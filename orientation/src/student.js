@@ -175,7 +175,7 @@ function runMenu() {
    ${r.t ? `<a class="btn alt" href="tel:${esc(r.t.replace(/[^\d+]/g, ""))}">📞 Appeler mon enseignant</a>` : ""}
    <button class="btn alt" id="mSync">↻ Renvoyer maintenant</button>
    <button class="btn red" id="mAb">Abandonner la course</button></div>
-   <p class="muted" style="font-size:.8rem;margin-top:14px">Séance ${esc(r.s)} · ${esc(r.r)} · ${r.queue.length} donnée(s) en attente d'envoi</p>`);
+   <p class="muted" style="font-size:.8rem;margin-top:14px">Leçon ${esc(r.s)} · ${esc(r.r)} · ${r.queue.length} donnée(s) en attente d'envoi</p>`);
   $("#mSms", m).onclick = () => { location.href = smsHref(r.t, smsResultat(smsRunData(loadRun()))); mutRun(r => r.smsSent = Date.now()); };
   $("#mSync", m).onclick = () => { flush(true); m.close(); };
   $("#mAb", m).onclick = () => { if (!confirm("Abandonner ? Ton enseignant sera prévenu.")) return; mutRun(r => { r.abandon = Date.now(); newEvent(r, "abandon"); }); m.close(); stopLoop(); flush(); endScreen(); };

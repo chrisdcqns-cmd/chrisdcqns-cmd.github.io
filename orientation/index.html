@@ -168,7 +168,7 @@ table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums
   <header>
     <div class="topline"><div class="flag" style="width:30px;height:30px"></div><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button></div>
     <nav class="tabs" id="ptabs">
-      <button class="tab" data-t="carte">🗺 Carte</button><button class="tab" data-t="balises">🚩 Balises</button><button class="tab" data-t="parcours">〰 Parcours</button><button class="tab" data-t="seance">📡 Séance live<span class="bdg hidden" id="alertBdg"></span></button><button class="tab" data-t="resultats">🏁 Résultats</button><button class="tab" data-t="reglages">⚙ Réglages</button>
+      <button class="tab" data-t="carte">🗺 Carte</button><button class="tab" data-t="balises">🚩 Balises</button><button class="tab" data-t="parcours">〰 Parcours</button><button class="tab" data-t="seance">📡 Leçon live<span class="bdg hidden" id="alertBdg"></span></button><button class="tab" data-t="resultats">🏁 Résultats</button><button class="tab" data-t="reglages">⚙ Réglages</button>
     </nav>
   </header>
   <div id="pview"></div>
@@ -1075,7 +1075,7 @@ async function satView(extra) {
 // ================= PARCOURS =================
 const modeNom = { ordre: "En ordre imposé", libre: "Dans le désordre", score: "Au score (temps limité)" };
 function viewParcours(v) {
-  v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Parcours</h2><p class="muted" style="margin-top:-6px">Un parcours = une suite de balises. Les élèves choisissent leur parcours en scannant le QR code de départ (onglet Séance live).</p>
+  v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Parcours</h2><p class="muted" style="margin-top:-6px">Un parcours = une suite de balises. Les élèves choisissent leur parcours en scannant le QR code de départ (onglet Leçon live).</p>
     <button class="btn or" id="cNew">＋ Nouveau parcours</button></div>
     <div class="list" style="margin-top:14px">${P.courses.map(k => { const st = courseStats(k); return `<div class="item"><div class="num" style="background:var(--violet);color:#fff;text-shadow:none;font-size:1.25rem">${esc(k.k)}</div><div class="body"><b>${esc(k.nom || k.k)}</b> <span class="chip vi">${modeNom[k.mode]}</span><br><small class="muted">${k.ctrl.length} balise(s)${k.choix ? ` · l'élève choisit${k.nb ? " " + k.nb : ""}` : ""}${st.dist ? ` · ≈ ${fmtDist(st.dist)} à vol d'oiseau` : ""}${k.valid === "prof" ? " · validation par l'enseignant" : ""}${k.mode === "score" && k.tm ? ` · ${k.tm} min` : ""}</small><div class="seq" style="margin-top:6px;background:none;padding:0">${k.ctrl.map((id, i) => { const c = ctrlById(id); return c ? `<span>${k.mode === "ordre" ? `<i>${i + 1}</i>` : ""}${esc(c.n)}</span>` : ""; }).join("")}</div></div>
       <div class="row"><button class="btn small alt" data-ed="${k.id}">Modifier</button><button class="btn small" data-pr="${k.id}">🖨 Carte</button><button class="btn small ghost" data-dup="${k.id}">Dupliquer</button></div></div>`; }).join("") || `<div class="panel muted">Aucun parcours. Crée d'abord tes balises, puis un parcours.</div>`}</div></div>`;
@@ -1155,7 +1155,7 @@ function printCourse(k) {
      ${land ? ".page{flex-direction:row;flex-wrap:wrap}.top{width:100%}.mapbox{flex:1;height:180mm}.desc{width:62mm;margin:0 0 0 3mm}" : ""}`);
 }
 
-// ================= SÉANCE LIVE =================
+// ================= LEÇON LIVE =================
 let S = null, pollTimer = null, liveMap = null, liveLayer = null, liveTick = null, lastSync = null, syncErr = null;
 const COLORS = ["#e63946", "#1f77b4", "#2a9d6f", "#f4a261", "#8a4fd8", "#e76f51", "#118ab2", "#d62598", "#6a994e", "#ff7f0e", "#3d5a80", "#bc4749", "#0f9d9a", "#b5179e", "#7f5539", "#4361ee"];
 const rColor = r => COLORS[hash32(r) % COLORS.length];
@@ -1179,12 +1179,12 @@ async function resumeSession() { const c = LS.get("curSession", null); if (c && 
 
 function viewSeance(v) {
   if (!S || !S.active) {
-    v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Lancer une séance</h2>
+    v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Lancer une leçon</h2>
      <p class="muted">La tablette de contrôle reçoit en direct la position des élèves (toutes les ${CFG.interval} s), leurs balises, leurs temps intermédiaires et les alertes. ${apiUrl() ? "" : "<b style='color:var(--red)'>Serveur non configuré (⚙ Réglages) : les élèves pourront courir, mais tu ne recevras leurs résultats que par SMS.</b>"}</p>
-     <div class="field"><label>Nom de la séance</label><input class="inp" id="sNom" value="${esc(new Date().toLocaleDateString("fr-FR"))} – ${esc(P.nom)}"></div>
+     <div class="field"><label>Nom de la leçon</label><input class="inp" id="sNom" value="${esc(new Date().toLocaleDateString("fr-FR"))} – ${esc(P.nom)}"></div>
      <div class="lbl">Parcours proposés</div><div class="cchips" style="margin:6px 0 14px">${P.courses.map(k => `<label class="chip" style="padding:8px 12px"><input type="checkbox" value="${k.id}" checked> ${esc(k.k)} – ${esc(k.nom)}</label>`).join("") || `<span class="muted">Crée d'abord un parcours.</span>`}</div>
-     <button class="btn or" id="sGo" ${P.courses.length ? "" : "disabled"}>📡 Lancer la séance</button></div>
-     ${S && !S.active ? `<div class="panel"><b>Dernière séance : ${esc(S.nom)}</b> <button class="btn small alt" id="sReopen">Rouvrir</button></div>` : ""}</div>`;
+     <button class="btn or" id="sGo" ${P.courses.length ? "" : "disabled"}>📡 Lancer la leçon</button></div>
+     ${S && !S.active ? `<div class="panel"><b>Dernière leçon : ${esc(S.nom)}</b> <button class="btn small alt" id="sReopen">Rouvrir</button></div>` : ""}</div>`;
     $("#sGo") && ($("#sGo").onclick = async () => {
       const ids = $$("input[type=checkbox]:checked", v).map(i => i.value); if (!ids.length) return toast("Choisis au moins un parcours", "ko");
       S = { code: randCode(4), nom: $("#sNom").value.trim(), date: Date.now(), courses: ids, runners: {}, dec: {}, msgs: [], since: 0, active: true, ack: {} };
@@ -1195,7 +1195,7 @@ function viewSeance(v) {
     return;
   }
   v.innerHTML = `<div class="pmain" style="padding-bottom:10px">
-    <div class="row" style="margin-bottom:10px"><span class="chip or" style="font-size:1rem">Séance <b>${esc(S.code)}</b></span><b>${esc(S.nom)}</b><span id="syncInfo" class="muted"></span><span class="grow"></span>
+    <div class="row" style="margin-bottom:10px"><span class="chip or" style="font-size:1rem">Leçon <b>${esc(S.code)}</b></span><b>${esc(S.nom)}</b><span id="syncInfo" class="muted"></span><span class="grow"></span>
      ${apiUrl() && !S.published ? `<button class="btn small red" id="sPub">⚠ Publier en ligne</button>` : ""}<button class="btn small or" id="sQr">🔳 QR de départ</button><button class="btn small alt" id="sSms">✉ Importer SMS</button><button class="btn small red" id="sRecall">📢 Rappel général</button><button class="btn small alt" id="sMsg">💬 Message à tous</button><button class="btn small red" id="sEnd">Terminer</button></div>
     <div id="alerts"></div><div id="recallBox"></div>
     <div class="live"><div class="runners" id="runners"></div>
@@ -1204,7 +1204,7 @@ function viewSeance(v) {
       <div class="mapbar"><button class="btn small alt" id="lBg">🛰 Satellite</button><label class="info"><input type="checkbox" id="lTr" ${S.traces !== false ? "checked" : ""}> traces</label><span class="info" id="lInfo"></span></div></div></div></div>`;
   $("#sPub") && ($("#sPub").onclick = async () => { await publishSession(); setPTab("seance"); });
   $("#sQr").onclick = showStartQRs; $("#sSms").onclick = importSMS; $("#sRecall").onclick = startRecall; $("#sMsg").onclick = () => sendMsg("*");
-  $("#sEnd").onclick = async () => { if (!confirm("Terminer la séance ? (les résultats restent dans l'onglet Résultats)")) return; S.active = false; await saveS(); stopPolling(); LS.set("curSession", null); setPTab("resultats"); };
+  $("#sEnd").onclick = async () => { if (!confirm("Terminer la leçon ? (les résultats restent dans l'onglet Résultats)")) return; S.active = false; await saveS(); stopPolling(); LS.set("curSession", null); setPTab("resultats"); };
   $("#lTr").onchange = e => { S.traces = e.target.checked; renderLive(); };
   $("#lBg").onclick = toggleSat;
   ED.lview = null;
@@ -1222,7 +1222,7 @@ function lzoom(f) { const v = liveView(), cx = v.x + v.w / 2, cy = v.y + v.h / 2
 
 async function publishSession() {
   if (!apiUrl()) return;
-  try { await apiCall(apiUrl(), "publish", { teacher: tpw(), s: S.code, data: { nom: S.nom, salt: P.salt, proj: publicProject() } }, 45000); S.published = true; saveS(); toast("Séance publiée en ligne ✓", "ok"); }
+  try { await apiCall(apiUrl(), "publish", { teacher: tpw(), s: S.code, data: { nom: S.nom, salt: P.salt, proj: publicProject() } }, 45000); S.published = true; saveS(); toast("Leçon publiée en ligne ✓", "ok"); }
   catch (e) { toast("Publication impossible : " + e.message + " (les élèves pourront quand même courir)", "ko"); }
 }
 function startPolling() { stopPolling(); const go = async () => { await pollOnce(); if (ptab === "seance") renderLive(); }; go(); pollTimer = setInterval(go, Math.max(3, CFG.poll) * 1000); liveTick = setInterval(() => { if (ptab === "seance") { renderRunnerList(); } }, 1000); }
@@ -1294,7 +1294,7 @@ function showStartQRs() {
    <div class="grid2">${ks.map(k => `<div class="panel" style="text-align:center;margin-top:0"><h2 style="margin:0">${esc(k.k)}</h2><div class="muted">${esc(k.nom)}</div><div style="max-width:300px;margin:8px auto">${QR.svg(goUrl(k), { ecl: "L" })}</div><button class="btn small ghost" data-cp="${k.id}">Copier le lien</button></div>`).join("")}</div>
    <div class="row" style="margin-top:12px"><button class="btn" id="qPrint">🖨 Imprimer (affiche de départ)</button></div>`, { wide: true });
   $$("[data-cp]", m).forEach(b => b.onclick = () => { navigator.clipboard?.writeText(goUrl(P.courses.find(k => k.id === b.dataset.cp))); toast("Lien copié"); });
-  $("#qPrint", m).onclick = () => printWin("QR de départ", ks.map(k => `<div class="pg"><h1>${esc(k.k)} — ${esc(k.nom)}</h1><p>${esc(modeNom[k.mode])} · séance ${esc(S.code)}</p>${QR.svg(goUrl(k), { ecl: "L" })}<p>1. Scanne avec l'appareil photo · 2. Entre ton nom · 3. Garde l'écran allumé · 4. Pars !</p></div>`).join(""), `.pg{text-align:center;page-break-after:always;padding-top:15mm}.pg svg{width:150mm;height:150mm}h1{font-size:32pt}p{font-size:14pt}`);
+  $("#qPrint", m).onclick = () => printWin("QR de départ", ks.map(k => `<div class="pg"><h1>${esc(k.k)} — ${esc(k.nom)}</h1><p>${esc(modeNom[k.mode])} · leçon ${esc(S.code)}</p>${QR.svg(goUrl(k), { ecl: "L" })}<p>1. Scanne avec l'appareil photo · 2. Entre ton nom · 3. Garde l'écran allumé · 4. Pars !</p></div>`).join(""), `.pg{text-align:center;page-break-after:always;padding-top:15mm}.pg svg{width:150mm;height:150mm}h1{font-size:32pt}p{font-size:14pt}`);
 }
 function importSMS() {
   const m = openModal(`<h2>Importer des SMS</h2><p class="muted">Quand un élève n'a pas de réseau internet, son téléphone prépare un SMS commençant par <b>OR1;</b>. Copie-colle ici le ou les SMS reçus.</p><textarea class="inp" id="smsT" style="min-height:160px" placeholder="OR1;S=…;C=P1;R=…;N=…;P=31+135,35+340;F=1351"></textarea><div class="row" style="margin-top:10px"><button class="btn or" id="smsGo">Importer</button><span id="smsR" class="muted"></span></div>`);
@@ -1414,7 +1414,7 @@ async function viewResultats(v) {
   const L = (await DB.get("sessions")) || [];
   const cur = LS.get("resSession", null) || S?.code || L[0]?.code;
   v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Résultats</h2>${L.length ? `<div class="row"><select class="inp" id="rSel" style="max-width:420px">${L.map(x => `<option value="${x.code}" ${x.code === cur ? "selected" : ""}>${esc(x.nom)} (${esc(x.code)})</option>`).join("")}</select>
-    <button class="btn or" id="rXls">⬇ Excel</button><button class="btn alt" id="rCsv">⬇ CSV</button><button class="btn alt" id="rPos">⬇ Positions GPS</button><button class="btn ghost" id="rPrint">🖨 Imprimer</button><button class="btn ghost" id="rSync">↻ Recharger du serveur</button><button class="btn ghost" id="rSms">✉ Importer SMS</button><button class="btn ghost" id="rDel">🗑</button></div>` : `<p class="muted">Aucune séance pour l'instant.</p>`}</div><div id="rBody"></div></div>`;
+    <button class="btn or" id="rXls">⬇ Excel</button><button class="btn alt" id="rCsv">⬇ CSV</button><button class="btn alt" id="rPos">⬇ Positions GPS</button><button class="btn ghost" id="rPrint">🖨 Imprimer</button><button class="btn ghost" id="rSync">↻ Recharger du serveur</button><button class="btn ghost" id="rSms">✉ Importer SMS</button><button class="btn ghost" id="rDel">🗑</button></div>` : `<p class="muted">Aucune leçon pour l'instant.</p>`}</div><div id="rBody"></div></div>`;
   if (!L.length) return;
   const load = async code => { LS.set("resSession", code); const X = S?.code === code ? S : await DB.get("session:" + code); renderResults(X); return X; };
   let X = await load(cur);
@@ -1423,7 +1423,7 @@ async function viewResultats(v) {
   $("#rPrint").onclick = () => printWin("Résultats " + X.nom, resultsHTML(X, true), `table{border-collapse:collapse;width:100%;font-size:9pt;margin-bottom:6mm}td,th{border:1px solid #999;padding:1.2mm}h2{font-size:13pt;margin:4mm 0 2mm}`);
   $("#rSync").onclick = async () => { const keep = S; S = X; S.since = 0; await pollOnce(); X = S; await saveS(); S = keep?.code === X.code ? X : keep; renderResults(X); toast(syncErr ? syncErr : "Rechargé ✓", syncErr ? "ko" : "ok"); };
   $("#rSms").onclick = () => { const keep = S; S = X; importSMS(); const obs = new MutationObserver(() => { if (!$("#modalRoot .modal")) { obs.disconnect(); renderResults(X); if (keep?.code !== X.code) S = keep; } }); obs.observe($("#modalRoot"), { childList: true }); };
-  $("#rDel").onclick = async () => { if (!confirm("Supprimer définitivement cette séance de la tablette ?")) return; await DB.del("session:" + X.code); await DB.set("sessions", L.filter(x => x.code !== X.code)); if (S?.code === X.code) { S = null; LS.set("curSession", null); stopPolling(); } LS.set("resSession", null); setPTab("resultats"); };
+  $("#rDel").onclick = async () => { if (!confirm("Supprimer définitivement cette leçon de la tablette ?")) return; await DB.del("session:" + X.code); await DB.set("sessions", L.filter(x => x.code !== X.code)); if (S?.code === X.code) { S = null; LS.set("curSession", null); stopPolling(); } LS.set("resSession", null); setPTab("resultats"); };
 }
 function resultRows(X) {
   const keep = S; S = X; const groups = {};
@@ -1437,7 +1437,7 @@ function resultsHTML(X, print) {
   const G = resultRows(X); const keep = S; S = X;
   const html = Object.entries(G).map(([c, list]) => { const k = courseOf(list[0].R); const nums = k ? k.b.map(b => b.n) : [];
     return `<h2>${esc(c)} ${k ? "– " + esc(k.nm || "") : ""} <small class="muted">(${list.length} élève(s))</small></h2><div class="tw"><table class="t"><thead><tr><th>Rang</th><th>Nom</th><th>Classe</th><th>Statut</th><th class="num">Temps</th><th class="num">Balises</th>${k?.m === "score" ? '<th class="num">Score</th>' : ""}<th class="num">Distance</th><th class="num">Vitesse</th><th class="num">Erreurs</th>${nums.map(n => `<th class="num">${n}</th>`).join("")}${print ? "" : "<th></th>"}</tr></thead><tbody>
-     ${list.map(({ R, a, rang }) => { const byN = {}; a.legs.forEach(l => byN[l.n] = l); return `<tr><td>${rang}</td><td><b>${esc(R.nom)}</b></td><td>${esc(R.cl)}</td><td>${a.statut}</td><td class="num"><b>${fmtDur(a.temps)}</b></td><td class="num">${a.found}/${a.total}</td>${k?.m === "score" ? `<td class="num">${a.score}</td>` : ""}<td class="num">${fmtDist(a.dist)}</td><td class="num">${a.vitesse ? fmtNum(a.vitesse) : "–"}</td><td class="num">${a.erreurs}</td>${nums.map(n => `<td class="num">${byN[n] ? fmtDur(byN[n].split) + `<br><small class="muted">${fmtDur(byN[n].cumul)}</small>` : "–"}</td>`).join("")}${print ? "" : `<td><button class="btn small alt" data-rd="${R.r}">Détail</button></td>`}</tr>`; }).join("")}</tbody></table></div>`; }).join("") || `<div class="panel muted">Aucun élève dans cette séance.</div>`;
+     ${list.map(({ R, a, rang }) => { const byN = {}; a.legs.forEach(l => byN[l.n] = l); return `<tr><td>${rang}</td><td><b>${esc(R.nom)}</b></td><td>${esc(R.cl)}</td><td>${a.statut}</td><td class="num"><b>${fmtDur(a.temps)}</b></td><td class="num">${a.found}/${a.total}</td>${k?.m === "score" ? `<td class="num">${a.score}</td>` : ""}<td class="num">${fmtDist(a.dist)}</td><td class="num">${a.vitesse ? fmtNum(a.vitesse) : "–"}</td><td class="num">${a.erreurs}</td>${nums.map(n => `<td class="num">${byN[n] ? fmtDur(byN[n].split) + `<br><small class="muted">${fmtDur(byN[n].cumul)}</small>` : "–"}</td>`).join("")}${print ? "" : `<td><button class="btn small alt" data-rd="${R.r}">Détail</button></td>`}</tr>`; }).join("")}</tbody></table></div>`; }).join("") || `<div class="panel muted">Aucun élève dans cette leçon.</div>`;
   S = keep; return html;
 }
 function renderResults(X) {
@@ -1666,7 +1666,7 @@ function runMenu() {
    ${r.t ? `<a class="btn alt" href="tel:${esc(r.t.replace(/[^\d+]/g, ""))}">📞 Appeler mon enseignant</a>` : ""}
    <button class="btn alt" id="mSync">↻ Renvoyer maintenant</button>
    <button class="btn red" id="mAb">Abandonner la course</button></div>
-   <p class="muted" style="font-size:.8rem;margin-top:14px">Séance ${esc(r.s)} · ${esc(r.r)} · ${r.queue.length} donnée(s) en attente d'envoi</p>`);
+   <p class="muted" style="font-size:.8rem;margin-top:14px">Leçon ${esc(r.s)} · ${esc(r.r)} · ${r.queue.length} donnée(s) en attente d'envoi</p>`);
   $("#mSms", m).onclick = () => { location.href = smsHref(r.t, smsResultat(smsRunData(loadRun()))); mutRun(r => r.smsSent = Date.now()); };
   $("#mSync", m).onclick = () => { flush(true); m.close(); };
   $("#mAb", m).onclick = () => { if (!confirm("Abandonner ? Ton enseignant sera prévenu.")) return; mutRun(r => { r.abandon = Date.now(); newEvent(r, "abandon"); }); m.close(); stopLoop(); flush(); endScreen(); };

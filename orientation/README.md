@@ -33,7 +33,7 @@ Même principe que l'appli acrosport :
 
 Sans script, l'appli fonctionne quand même : les élèves t'envoient leurs résultats par **SMS**, et tu les colles dans l'appli.
 
-## 3. Préparer la séance (à faire une fois par lieu)
+## 3. Préparer la leçon (à faire une fois par lieu)
 
 **🗺 Carte**
 - **Charger ma carte** : photo, scan ou PDF de ta carte (plan du lycée, carte du parc…), ou feuille blanche.
@@ -54,9 +54,9 @@ Sans script, l'appli fonctionne quand même : les élèves t'envoient leurs rés
 - Option : **dire tout de suite à l'élève si sa balise est juste ou fausse**. Par défaut, elle est désactivée : l'élève voit seulement « balise enregistrée », et c'est toi qui lui envoies la notification « juste » ou « fausse ».
 - **🖨 Carte** : carte A4 du parcours avec la surimpression violette et la liste des postes.
 
-## 4. Pendant la séance
+## 4. Pendant la leçon
 
-1. **📡 Séance live → Lancer la séance**, puis **🔳 QR de départ** : affiche ou imprime le QR de chaque parcours.
+1. **📡 Leçon live → Lancer la leçon**, puis **🔳 QR de départ** : affiche ou imprime le QR de chaque parcours.
 2. Les élèves scannent ce QR avec l'**appareil photo** du téléphone : l'appli s'ouvre sur le parcours. Ils entrent leur nom et leur classe, autorisent la localisation, puis **DÉPART**.
 3. À chaque balise, ils touchent **📷 Scanner** (ou tapent le numéro et le code). Le chrono, la prochaine balise et les temps intermédiaires s'affichent.
 4. Sur ta tablette, en direct :
@@ -72,7 +72,7 @@ Sans script, l'appli fonctionne quand même : les élèves t'envoient leurs rés
 
 **Conseils aux élèves** : garder l'appli ouverte et l'écran allumé (le GPS s'arrête quand le téléphone se verrouille) ; utiliser de préférence le bouton **Scanner** de l'appli plutôt que l'appareil photo.
 
-## 5. Après la séance
+## 5. Après la leçon
 
 **🏁 Résultats** : classement par parcours, temps intermédiaires de chaque balise. Exports **Excel**, **CSV** et **positions GPS** (avec liens Google Maps), impression.
 **⚙ Réglages → Exporter le projet** : sauvegarde de la carte, des balises et des parcours dans un fichier, pour une autre tablette ou un collègue.
