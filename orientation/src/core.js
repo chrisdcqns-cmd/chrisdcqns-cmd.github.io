@@ -1,6 +1,6 @@
 // ===== OrienRun EPS — fonctions communes =====
 const APP_VERSION = "1.0";
-const API_DEFAULT = ""; // URL /exec du script Google, si on veut la fixer pour tout le monde
+const API_DEFAULT = "https://script.google.com/macros/s/AKfycbyRGDLL7S2-5FNmWz9C0cGt1jxDm42dvtSFMOBtczNtDcbqf98EKtc36pBUlnk-eIt6/exec"; // URL /exec du script Google, si on veut la fixer pour tout le monde
 const APP_URL_DEFAULT = ""; // adresse publique de l'appli (sinon : adresse de la page ouverte)
 const VIOLET = "#c21fbf";
 const CODE_ALPHA = "ACDEFHJKLMNPRTUVWXY3479";
