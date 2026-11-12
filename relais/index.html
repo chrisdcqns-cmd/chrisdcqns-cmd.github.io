@@ -381,6 +381,8 @@ tr.disp{opacity:.55}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .dispobtn{white-space:nowrap}
+body:not(.teach-on) #v-home.on{min-height:calc(100vh + 110px)}
+body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
 .dispo-wrap{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 #dispo-area{flex:1 1 420px;max-width:640px;margin:0 auto}
 #dispo-form{flex:1 1 360px}
@@ -1302,6 +1304,8 @@ function go(v){
   if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto"].includes(v))renderClassAll();
   if(v==="auto"){AU_SEL=null;renderAuto()}
   if(v==="dispo"){DSP_EDIT=null;renderDispo()}
+  if(v==="home")homeScroll();
+  if(v==="home")setTimeout(homeStudentScroll,80);
   if(v==="eval")renderEval();
   if(v==="lecons")renderLecons();
   if(v==="perf")renderPerf();
@@ -2058,6 +2062,21 @@ $("#btnCfgHome").addEventListener("click",async()=>{if(!await requireCode())retu
 
 
 
+/* Côté élève : l'accueil de la leçon défile pour masquer la barre du haut (Dispositif, Enseignant)
+   et montrer directement « Consulter les vitesses » et « Enregistrer les courses » */
+function homeStudentScroll(){
+  const v=$("#v-home");if(!v||!v.classList.contains("on"))return;
+  document.body.classList.toggle("stu-home",!teachOn());
+  if(teachOn())return;
+  const top=el=>el.getBoundingClientRect().top+window.scrollY;
+  const g=document.querySelector("#v-home .gcard"),first=g&&g.offsetParent?g:$("#v-home .grid2"),big=$("#v-home .big2");
+  const hide=top(first)-10,show=big?top(big)+big.offsetHeight-window.innerHeight+14:0;
+  window.scrollTo({top:Math.max(hide,show,0),behavior:"instant"});
+}
+window.addEventListener("resize",()=>{if($("#v-home").classList.contains("on"))homeStudentScroll()});
+
+/* côté élève : l'accueil de la leçon s'ouvre sous la barre (Dispositif, Enseignant) pour voir directement les coureurs et les boutons */
+function homeScroll(){if(teachOn())return;const f=()=>{const g=$("#v-home .gcard");const t=g&&g.offsetParent?g.getBoundingClientRect().top+window.scrollY-10:0;window.scrollTo(0,Math.max(0,t))};requestAnimationFrame(()=>requestAnimationFrame(f));setTimeout(f,250)}
 /* ===== Dispositif du relais (schéma verrouillable) ===== */
 const DISPO_DEF={T:12,zs:20,z10:35,z100:40,ze:45,pmOff:3,pmN:10,pmStep:1,vMin:14,vMax:30,notes:[]};
 function DSP(){if(!DATA.dispo)DATA.dispo=clone(DISPO_DEF);const d=DATA.dispo;for(const k in DISPO_DEF)if(d[k]==null)d[k]=clone(DISPO_DEF[k]);return d}
