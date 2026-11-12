@@ -6,16 +6,21 @@ const initials = n => String(n || "?").split(/\s+/).filter(Boolean).slice(0, 2).
 
 function compactCourse(k) {
   const ctrl = P.controls; const dep = ctrlById(k.depart), fin = ctrlById(k.arrivee);
+  const pts = k.mode === "score" || k.ptsOn, bo = k.bonus || [];
   return { id: k.id, k: k.k, nm: k.nom, m: k.mode, v: k.valid, tm: k.tm, pen: k.pen, ch: k.choix ? 1 : 0, nb: k.nb, ds: k.desc !== false ? 1 : 0, fb: k.fb ? 1 : 0, mp: k.carte !== false ? 1 : 0,
-    b: k.ctrl.map(id => ctrlById(id)).filter(Boolean).map(c => ({ n: +c.n, h: codeHash(P.salt, c.n, c.code), p: k.mode === "score" ? (k.pts[c.id] ?? 10) : undefined, d: k.desc !== false ? c.desc || undefined : undefined })),
+    so: k.mode === "ordre" && k.so ? 1 : 0, dm: k.dm || "libre", prep: k.prep || 0, rk: k.rk || "auto", hr: S?.hr || null,
+    dLa: dep?.lat != null ? +dep.lat.toFixed(6) : undefined, dLo: dep?.lon != null ? +dep.lon.toFixed(6) : undefined,
+    b: k.ctrl.map(id => ctrlById(id)).filter(Boolean).map(c => ({ n: +c.n, h: codeHash(P.salt, c.n, c.code), p: pts ? (k.pts[c.id] ?? 10) : undefined, x: bo.includes(c.id) ? 1 : undefined, d: k.desc !== false ? c.desc || undefined : undefined })),
     dn: dep?.n, hS: dep ? codeHash(P.salt, dep.n, dep.code) : undefined, fn: fin?.n, hF: fin ? codeHash(P.salt, fin.n, fin.code) : undefined, depId: k.depart, finId: k.arrivee };
 }
 const goPayload = (k) => ({ s: S.code, a: shortApi(apiUrl()), t: CFG.tel, i: CFG.interval, z: P.salt, u: P.nom, c: compactCourse(k) });
-const goUrl = k => `${appUrl()}#go=${b64e(goPayload(k))}`;
-const sessionCourses = () => P.courses.filter(k => S.courses.includes(k.id));
-const courseOf = r => { const k = P.courses.find(x => x.k === r.c); return k ? compactCourse(k) : (S.snap || {})[r.c] || null; };
+const goUrl = k => `${appUrl()}#go=${b64e(S.snap?.[k.k] ? goFromSnap(S.snap[k.k]) : goPayload(k))}`;
+const eleveUrl = () => `${appUrl()}#eleve`;
+const sessionCourses = () => P.courses.filter(k => S.courses.includes(k.id) || (S.snap && S.snap[k.k] && S.snap[k.k].id === k.id));
+const courseOf = r => { const snap = (S.snap || {})[r.c]; if (snap) return snap; const k = P.courses.find(x => x.k === r.c); return k ? compactCourse(k) : null; };
+const goFromSnap = c => ({ s: S.code, a: shortApi(apiUrl()), t: CFG.tel, i: CFG.interval, z: S.salt || P.salt, u: P.nom, c });
 function publicProject() { // carte + postes SANS codes ni GPS (pour l'affichage sur les téléphones)
-  return { map: P.map, features: P.features, controls: P.controls.map(c => ({ id: c.id, n: c.n, type: c.type, x: c.x, y: c.y, lab: c.lab })), courses: sessionCourses().map(k => ({ id: k.id, k: k.k, mode: k.mode, ctrl: k.ctrl, depart: k.depart, arrivee: k.arrivee, carte: k.carte !== false })) };
+  return { map: P.map, features: P.features, controls: P.controls.map(c => ({ id: c.id, n: c.n, type: c.type, x: c.x, y: c.y, lab: c.lab })), courses: sessionCourses().map(k => ({ id: k.id, k: k.k, mode: k.mode, ctrl: k.ctrl, bonus: k.bonus || [], depart: k.depart, arrivee: k.arrivee, carte: k.carte !== false })) };
 }
 async function saveS() { if (!S) return; await DB.set("session:" + S.code, S); const L = (await DB.get("sessions")) || []; if (!L.some(x => x.code === S.code)) { L.unshift({ code: S.code, nom: S.nom, date: S.date }); await DB.set("sessions", L); } }
 async function resumeSession() { const c = LS.get("curSession", null); if (c && !S) { S = await DB.get("session:" + c); if (S && S.active) startPolling(); } }
@@ -25,29 +30,33 @@ function viewSeance(v) {
     v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Lancer une leçon</h2>
      <p class="muted">La tablette de contrôle reçoit en direct la position des élèves (toutes les ${CFG.interval} s), leurs balises, leurs temps intermédiaires et les alertes. ${apiUrl() ? "" : "<b style='color:var(--red)'>Serveur non configuré (⚙ Réglages) : les élèves pourront courir, mais tu ne recevras leurs résultats que par SMS.</b>"}</p>
      <div class="field"><label>Nom de la leçon</label><input class="inp" id="sNom" value="${esc(new Date().toLocaleDateString("fr-FR"))} – ${esc(P.nom)}"></div>
+     <div class="grid2"><div class="field"><label>Heure limite de retour (facultatif)</label><input class="inp" id="sHr" type="time"><small class="muted">Tous les élèves voient le compte à rebours et sont prévenus 5 min avant.</small></div></div>
      <div class="lbl">Parcours proposés</div><div class="cchips" style="margin:6px 0 14px">${P.courses.map(k => `<label class="chip" style="padding:8px 12px"><input type="checkbox" value="${k.id}" checked> ${esc(k.k)} – ${esc(k.nom)}</label>`).join("") || `<span class="muted">Crée d'abord un parcours.</span>`}</div>
-     <button class="btn or" id="sGo" ${P.courses.length ? "" : "disabled"}>📡 Lancer la leçon</button></div>
+     <div class="row"><button class="btn or" id="sGo" ${P.courses.length ? "" : "disabled"}>📡 Lancer la leçon</button><button class="btn ghost" id="sPerm">🔳 QR permanent « élèves »</button></div></div>
      ${S && !S.active ? `<div class="panel"><b>Dernière leçon : ${esc(S.nom)}</b> <button class="btn small alt" id="sReopen">Rouvrir</button></div>` : ""}</div>`;
     $("#sGo") && ($("#sGo").onclick = async () => {
       const ids = $$("input[type=checkbox]:checked", v).map(i => i.value); if (!ids.length) return toast("Choisis au moins un parcours", "ko");
-      S = { code: randCode(4), nom: $("#sNom").value.trim(), date: Date.now(), courses: ids, runners: {}, dec: {}, msgs: [], since: 0, active: true, ack: {} };
+      let hr = null; const hv = $("#sHr").value; if (hv) { const [h, mi] = hv.split(":").map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1); hr = d.getTime(); }
+      S = { code: randCode(4), nom: $("#sNom").value.trim(), date: Date.now(), courses: ids, runners: {}, dec: {}, msgs: [], since: 0, active: true, ack: {}, hr, salt: P.salt };
       S.snap = Object.fromEntries(sessionCourses().map(k => [k.k, compactCourse(k)]));
       LS.set("curSession", S.code); await saveS(); await publishSession(); startPolling(); setPTab("seance");
     });
+    $("#sPerm").onclick = printPermQR;
     $("#sReopen") && ($("#sReopen").onclick = async () => { S.active = true; await saveS(); startPolling(); setPTab("seance"); });
     return;
   }
   v.innerHTML = `<div class="pmain" style="padding-bottom:10px">
-    <div class="row" style="margin-bottom:10px"><span class="chip or" style="font-size:1rem">Leçon <b>${esc(S.code)}</b></span><b>${esc(S.nom)}</b><span id="syncInfo" class="muted"></span><span class="grow"></span>
-     ${apiUrl() && !S.published ? `<button class="btn small red" id="sPub">⚠ Publier en ligne</button>` : ""}<button class="btn small or" id="sQr">🔳 QR de départ</button><button class="btn small alt" id="sSms">✉ Importer SMS</button><button class="btn small red" id="sRecall">📢 Rappel général</button><button class="btn small alt" id="sMsg">💬 Message à tous</button><button class="btn small red" id="sEnd">Terminer</button></div>
+    <div class="row" style="margin-bottom:10px"><span class="chip or" style="font-size:1rem">Leçon <b>${esc(S.code)}</b></span><b>${esc(S.nom)}</b>${S.hr ? `<span class="chip wait">⏰ retour ${new Date(S.hr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>` : ""}<span id="syncInfo" class="muted"></span><span class="grow"></span>
+     ${apiUrl() && !S.published ? `<button class="btn small red" id="sPub">⚠ Publier en ligne</button>` : ""}<button class="btn small or" id="sQr">🔳 QR de départ</button><button class="btn small ghost" id="sUpd" title="Après avoir modifié un parcours pendant la leçon">↻ Appliquer mes modifs</button><button class="btn small alt" id="sSms">✉ Importer SMS</button><button class="btn small red" id="sRecall">📢 Rappel général</button><button class="btn small alt" id="sMsg">💬 Message à tous</button><button class="btn small red" id="sEnd">Terminer</button></div>
     <div id="alerts"></div><div id="recallBox"></div>
     <div class="live"><div class="runners" id="runners"></div>
      <div class="mapwrap" id="liveWrap"><svg class="map" id="livesvg" xmlns="http://www.w3.org/2000/svg"></svg><div id="liveSat" class="hidden" style="position:absolute;inset:0"></div>
       <div class="zoombtns"><button id="lzin">+</button><button id="lzout">−</button><button id="lzfit" style="font-size:.9rem">⤢</button></div>
       <div class="mapbar"><button class="btn small alt" id="lBg">🛰 Satellite</button><label class="info"><input type="checkbox" id="lTr" ${S.traces !== false ? "checked" : ""}> traces</label><span class="info" id="lInfo"></span></div></div></div></div>`;
   $("#sPub") && ($("#sPub").onclick = async () => { await publishSession(); setPTab("seance"); });
-  $("#sQr").onclick = showStartQRs; $("#sSms").onclick = importSMS; $("#sRecall").onclick = startRecall; $("#sMsg").onclick = () => sendMsg("*");
-  $("#sEnd").onclick = async () => { if (!confirm("Terminer la leçon ? (les résultats restent dans l'onglet Résultats)")) return; S.active = false; await saveS(); stopPolling(); LS.set("curSession", null); setPTab("resultats"); };
+  $("#sQr").onclick = showStartQRs;
+  $("#sUpd").onclick = async () => { if (!confirm("Appliquer à cette leçon les modifications faites dans l'onglet Parcours ?\nLes élèves déjà partis gardent leur ancien parcours sur leur téléphone.")) return; S.snap = Object.fromEntries(sessionCourses().map(k => [k.k, compactCourse(k)])); await saveS(); await publishSession(); renderLive(); toast("Parcours de la leçon mis à jour ✓", "ok"); }; $("#sSms").onclick = importSMS; $("#sRecall").onclick = startRecall; $("#sMsg").onclick = () => sendMsg("*");
+  $("#sEnd").onclick = async () => { if (!confirm("Terminer la leçon ? (les résultats restent dans l'onglet Résultats)")) return; S.active = false; await saveS(); stopPolling(); if (apiUrl()) apiCall(apiUrl(), "close", { teacher: tpw(), s: S.code }).catch(() => {}); LS.set("curSession", null); setPTab("resultats"); };
   $("#lTr").onchange = e => { S.traces = e.target.checked; renderLive(); };
   $("#lBg").onclick = toggleSat;
   ED.lview = null;
@@ -65,7 +74,7 @@ function lzoom(f) { const v = liveView(), cx = v.x + v.w / 2, cy = v.y + v.h / 2
 
 async function publishSession() {
   if (!apiUrl()) return;
-  try { await apiCall(apiUrl(), "publish", { teacher: tpw(), s: S.code, data: { nom: S.nom, salt: P.salt, proj: publicProject() } }, 45000); S.published = true; saveS(); toast("Leçon publiée en ligne ✓", "ok"); }
+  try { await apiCall(apiUrl(), "publish", { teacher: tpw(), s: S.code, data: { nom: S.nom, salt: P.salt, hr: S.hr, gos: Object.fromEntries(Object.entries(S.snap || {}).map(([kc, c]) => [kc, goFromSnap(c)])), proj: publicProject() } }, 45000); S.published = true; saveS(); toast("Leçon publiée en ligne ✓", "ok"); }
   catch (e) { toast("Publication impossible : " + e.message + " (les élèves pourront quand même courir)", "ko"); }
 }
 function startPolling() { stopPolling(); const go = async () => { await pollOnce(); if (ptab === "seance") renderLive(); }; go(); pollTimer = setInterval(go, Math.max(3, CFG.poll) * 1000); liveTick = setInterval(() => { if (ptab === "seance") { renderRunnerList(); } }, 1000); }
@@ -117,7 +126,7 @@ function renderLive() {
   $("#lInfo").textContent = g ? `${Object.keys(S.runners).length} élève(s)` : "Carte non calée : ajoute 2 points GPS ou utilise 🛰";
   if (liveMap) updateSat();
 }
-function runnerSummary(R) { return analyseRun(R, courseOf(R), P, S.dec, S.ack || {}); }
+function runnerSummary(R) { return analyseRun(R, courseOf(R), P, S.dec, S.ack || {}, { scanMax: CFG.scanMax }); }
 function renderRunnerList() {
   const box = $("#runners"); if (!box) return;
   const list = Object.values(S.runners).map(R => ({ R, a: runnerSummary(R) }));
@@ -127,7 +136,7 @@ function renderRunnerList() {
   box.innerHTML = list.length ? list.map(({ R, a }) => {
     const stale = a.statut === "En course" && a.lastSeen && Date.now() - a.lastSeen > (CFG.interval * 3 + 30) * 1000;
     const chip = { OK: "ok", PM: "ko", ALERTE: "ko", Abandon: "ko", "À valider": "wait", "En course": "or" }[a.statut] || "";
-    return `<button class="runner ${a.statut === "ALERTE" ? "alert" : ""} ${stale ? "stale" : ""}" data-r="${R.r}"><span class="dot" style="background:${rColor(R.r)}"></span><span><span class="nm">${esc(R.nom)}</span><br><small class="muted">${esc(R.cl)} · ${esc(R.c)} · <span class="chip ${chip}">${a.statut}</span> ${a.found}/${a.total}${a.pending ? ` · <b style="color:#a36b00">${a.pending} à valider</b>` : ""}${a.erreurs ? ` · ${a.erreurs} erreur(s)` : ""}${courseOf(R)?.m === "score" ? ` · ${a.score} pts` : ""}${S.recall && Object.values(R.ev).some(e => e.k === "here" && e.t >= S.recall.t - 1000) ? ' · <span class="chip ok">✅ au point</span>' : ""}</small></span><span class="chr">${fmtDur(a.temps)}<br><small class="muted" style="font-size:.7rem;font-family:Barlow">${a.legs.length ? "dernier poste " + esc(a.legs[a.legs.length - 1].n) : ""}</small></span></button>`;
+    return `<button class="runner ${a.statut === "ALERTE" ? "alert" : ""} ${stale ? "stale" : ""}" data-r="${R.r}"><span class="dot" style="background:${rColor(R.r)}"></span><span><span class="nm">${esc(R.nom)}</span><br><small class="muted">${esc(R.cl)} · ${esc(R.c)} · <span class="chip ${chip}">${a.statut}</span> ${a.found}/${a.total}${a.pending ? ` · <b style="color:#a36b00">${a.pending} à valider</b>` : ""}${a.bonusFound ? ` · ★${a.bonusFound}` : ""}${a.erreurs ? ` · ${a.erreurs} erreur(s)` : ""}${a.hasPts ? ` · ${a.score} pts` : ""}${a.suspects ? ` · <b style="color:var(--red)">⚠ ${a.suspects} scan(s) suspect(s)</b>` : ""}${a.retard && !a.finish ? ` · <b style="color:var(--red)">⏰ retard ${fmtDur(a.retard)}</b>` : a.deadline && !a.finish && a.start ? ` · ⏳ ${fmtDur(a.deadline - Date.now())}` : ""}${S.recall && Object.values(R.ev).some(e => e.k === "here" && e.t >= S.recall.t - 1000) ? ' · <span class="chip ok">✅ au point</span>' : ""}</small></span><span class="chr">${fmtDur(a.temps)}<br><small class="muted" style="font-size:.7rem;font-family:Barlow">${a.legs.length ? "dernier poste " + esc(a.legs[a.legs.length - 1].n) : ""}</small></span></button>`;
   }).join("") : `<div class="panel" style="margin:0"><b>En attente des élèves…</b><p class="muted">Montre le QR de départ du parcours aux élèves (bouton 🔳). Ils le scannent avec l'appareil photo de leur téléphone, entrent leur nom et partent.</p></div>`;
   $$(".runner", box).forEach(b => b.onclick = () => runnerDetail(b.dataset.r));
 }
@@ -160,7 +169,7 @@ function legTable(a, R, withActions) {
   const k = courseOf(R);
   return `<div class="tw"><table class="t"><thead><tr><th>Poste</th><th>Heure</th><th class="num">Temps inter.</th><th class="num">Cumul</th><th class="num">Vol d'oiseau</th><th class="num">Distance GPS</th><th class="num">Vitesse</th><th class="num">Allure</th><th class="num">Arrêts</th><th>État</th></tr></thead><tbody>
    ${a.legs.map(l => `<tr><td><b>${esc(l.de)} → ${esc(l.n)}</b>${l.pts ? ` <small>(${l.pts} pts)</small>` : ""}</td><td>${fmtHeure(l.t)}</td><td class="num"><b>${fmtDur(l.split)}</b></td><td class="num">${fmtDur(l.cumul)}</td><td class="num">${fmtDist(l.vol)}</td><td class="num">${fmtDist(l.gps)}${l.gps && l.vol ? ` <small class="muted">(×${fmtNum(l.gps / l.vol)})</small>` : ""}</td><td class="num">${l.gps && l.split ? fmtNum(l.gps / (l.split / 1000) * 3.6) + " km/h" : "–"}</td><td class="num">${fmtAllure(l.gps, l.split)}</td><td class="num">${l.stop ? fmtDur(l.stop) : "–"}</td>
-     <td>${l.status === "fin" ? '<span class="chip ok">arrivée</span>' : l.status === "ok" ? `<span class="chip ok">✓${S.dec[l.id] === true ? " validé" : ""}</span>` : '<span class="chip wait">à valider</span>'}${!l.ordre ? ' <span class="chip ko">ordre</span>' : ""}${l.via === "code" ? ' <span class="chip">code</span>' : l.via === "sms" ? ' <span class="chip">SMS</span>' : l.via === "prof" ? ' <span class="chip vi">ajoutée par l\'enseignant</span>' : ""}
+     <td>${l.bonus ? '<span class="chip wait">★ bonus</span> ' : ""}${l.pm ? '<span class="chip ko">PM ordre</span> ' : ""}${l.suspect ? `<span class="chip ko" title="Distance entre l'élève et la balise au moment du scan">⚠ scan à ${fmtDist(l.dist)}</span> ` : l.dist != null ? `<small class="muted">scan à ${fmtDist(l.dist)}</small> ` : ""}${l.status === "fin" ? '<span class="chip ok">arrivée</span>' : l.status === "ok" ? `<span class="chip ok">✓${S.dec[l.id] === true ? " validé" : ""}</span>` : '<span class="chip wait">à valider</span>'}${!l.ordre ? ' <span class="chip ko">ordre</span>' : ""}${l.via === "code" ? ' <span class="chip">code</span>' : l.via === "sms" ? ' <span class="chip">SMS</span>' : l.via === "prof" ? ' <span class="chip vi">ajoutée par l\'enseignant</span>' : ""}
      ${withActions && l.id && l.status !== "fin" && l.via !== "prof" ? ` <button class="btn small green" data-ok="${l.id}" title="Notifier l'élève : balise juste">✓ Juste</button> <button class="btn small red" data-ko="${l.id}" title="Notifier l'élève : balise fausse">✕ Fausse</button>${S.dec[l.id] != null ? ` <small class="muted">notifié</small>` : ""}` : ""}</td></tr>`).join("")}
    ${a.punches.filter(p => p.status === "hors" || p.status === "code" || p.status === "refus").map(p => `<tr style="background:#fff4f4"><td>Balise ${esc(p.n)}</td><td>${fmtHeure(p.t)}</td><td colspan="7" class="muted">${p.status === "hors" ? "Balise hors de son parcours" : p.status === "code" ? "Code incorrect" : "Refusée par l'enseignant"}</td><td>${withActions ? `${p.status !== "hors" ? `<button class="btn small green" data-ok="${p.id}">✓ Juste</button> ` : ""}<button class="btn small red" data-ko="${p.id}">✕ Fausse</button>${S.dec[p.id] != null ? ` <small class="muted">notifié</small>` : ""}` : '<span class="chip ko">✕</span>'}</td></tr>`).join("")}
    </tbody></table></div>`;
@@ -188,7 +197,7 @@ function runnerDetail(r) {
   const msgs = (S.msgs || []).filter(m => m.to === r || m.to === "*").slice(-8);
   const T = k ? (R.sel && R.sel.length && k.m !== "ordre" ? R.sel : k.b.map(b => b.n)) : [];
   const stateOf = n => { const ps = a.punches.filter(p => p.n === n); if (ps.some(p => p.status === "ok")) return "ok"; if (ps.some(p => p.status === "attente")) return "attente"; if (ps.some(p => p.status === "refus" || p.status === "code")) return "ko"; return "none"; };
-  const stats = [["Temps", fmtDur(a.temps)], ["Balises", `${a.found}/${a.total}${a.pending ? ` (+${a.pending} à valider)` : ""}`], ["Distance GPS", fmtDist(a.dist)], ["Vitesse moy.", a.vitesse ? fmtNum(a.vitesse) + " km/h" : "–"], ["Allure", fmtAllure(a.dist, a.temps)], ["Temps arrêté", a.stop ? fmtDur(a.stop) : "–"], ["Temps moyen / balise", a.found ? fmtDur(a.temps / Math.max(1, a.found)) : "–"], ["Erreurs", a.erreurs + (a.ordreErr ? ` · ${a.ordreErr} d'ordre` : "")], ...(k?.m === "score" ? [["Score", `${a.score} pts${a.penal ? ` (−${a.penal})` : ""}`]] : []), ["Dernier signal", lastEv ? `il y a ${fmtDur(Date.now() - (lastEv.rt || lastEv.t))}` : "–"], ["Précision GPS", lastPos?.ac ? "±" + Math.round(lastPos.ac) + " m" : "–"], ["Batterie", bat ? bat.bat + " %" : "–"]];
+  const stats = [["Temps", fmtDur(a.temps)], ["Balises", `${a.found}/${a.total}${a.pending ? ` (+${a.pending} à valider)` : ""}`], ["Distance GPS", fmtDist(a.dist)], ["Vitesse moy.", a.vitesse ? fmtNum(a.vitesse) + " km/h" : "–"], ["Allure", fmtAllure(a.dist, a.temps)], ["Temps arrêté", a.stop ? fmtDur(a.stop) : "–"], ["Temps moyen / balise", a.found ? fmtDur(a.temps / Math.max(1, a.found)) : "–"], ["Erreurs", a.erreurs + (a.ordreErr ? ` · ${a.ordreErr} d'ordre` : "")], ...(a.bonusTotal ? [["Bonus", `★ ${a.bonusFound}/${a.bonusTotal}`]] : []), ...(a.hasPts ? [["Points", `${a.score}${a.penal ? ` (−${a.penal})` : ""}`]] : []), ["Scans suspects", a.suspects ? `<span style="color:var(--red)">⚠ ${a.suspects}</span>` : "0"], ...(a.deadline ? [[a.retard ? "Retard" : "Temps restant", a.retard ? `<span style="color:var(--red)">${fmtDur(a.retard)}</span>` : a.finish ? "dans les temps ✓" : fmtDur(a.deadline - Date.now())]] : []), ["Dernier signal", lastEv ? `il y a ${fmtDur(Date.now() - (lastEv.rt || lastEv.t))}` : "–"], ["Précision GPS", lastPos?.ac ? "±" + Math.round(lastPos.ac) + " m" : "–"], ["Batterie", bat ? bat.bat + " %" : "–"]];
   const m = openModal(`<h2><span class="dot" style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${rColor(r)}"></span> ${esc(R.nom)}</h2>
    <div class="row" style="margin-bottom:10px"><span class="chip">${esc(R.cl || "classe ?")}</span><span class="chip vi">${esc(R.c)} · ${esc(modeNom[{ ordre: "ordre", libre: "libre", score: "score" }[k?.m]] || "")}</span><span class="chip ${a.statut === "OK" ? "ok" : a.statut === "En course" ? "or" : "ko"}">${a.statut}</span>${here ? `<span class="chip ok">📍 au point de retour (${fmtHeure(here.t)})</span>` : ""}${R.sel?.length ? `<span class="chip">balises choisies : ${R.sel.join(", ")}</span>` : ""}<span class="muted">départ ${fmtHeure(a.start)}${a.finish ? " · arrivée " + fmtHeure(a.finish) : ""}</span></div>
    <div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">${stats.map(([x, y]) => `<div class="panel" style="margin:0;padding:9px 10px"><div class="lbl">${x}</div><b style="font-size:1.2rem">${y}</b></div>`).join("")}</div>
@@ -200,7 +209,7 @@ function runnerDetail(r) {
    <h3>✏ Corriger les balises</h3><p class="muted" style="margin-top:-6px">Touche une balise pour la compter comme trouvée ou l'enlever (par exemple à l'arrivée, après avoir vérifié avec l'élève).</p>
    <div class="cchips" id="dCorr">${T.map(n => { const st = stateOf(n); return `<button class="cchip" data-corr="${n}" style="${st === "ok" ? "background:var(--green);color:#fff;box-shadow:none" : st === "attente" ? "background:var(--sun);box-shadow:none" : st === "ko" ? "background:#fde0e2;color:#a3202b" : ""}">${n}<small style="font-family:inherit;font-weight:600;font-size:.7rem;display:block;line-height:1">${{ ok: "trouvée", attente: "à valider", ko: "erreur", none: "manque" }[st]}</small></button>`; }).join("")}</div>
    <h3>Balises scannées <small class="muted">— ✓ Juste / ✕ Fausse envoie une notification à l'élève</small></h3>${legTable(a, R, true)}
-   ${a.manquants.length ? `<p><b>Balises manquantes :</b> ${a.manquants.join(", ")}</p>` : ""}
+   ${a.manquants.length ? `<p><b>Balises manquantes :</b> ${a.manquants.join(", ")}${a.ordreManq.length ? ` <span class="chip ko">dont ${a.ordreManq.join(", ")} : ordre non respecté</span>` : ""}</p>` : ""}
    <div class="row" style="margin-top:12px">${a.last ? `<a class="btn small alt" target="_blank" href="${gmapsUrl(a.last.la, a.last.lo)}">📍 Dernière position (${fmtHeure(a.last.t)})</a>` : ""}<button class="btn small ghost" id="dAb">Marquer abandon / rentré</button><button class="btn small ghost" id="dSat">🛰 Trace sur satellite</button></div>`, { wide: true });
   const reopen = () => { m.remove(); runnerDetail(r); renderLive(); };
   $$("[data-ok]", m).forEach(b => b.onclick = async () => { await decide(R, b.dataset.ok, true); reopen(); });
@@ -270,17 +279,19 @@ async function viewResultats(v) {
 }
 function resultRows(X) {
   const keep = S; S = X; const groups = {};
-  Object.values(X.runners).forEach(R => { const a = analyseRun(R, courseOf(R), P, X.dec, X.ack || {}); (groups[R.c] = groups[R.c] || []).push({ R, a }); });
-  Object.entries(groups).forEach(([c, list]) => { const sc = courseOf(list[0].R)?.m === "score"; const rank = { OK: 0, "À valider": 1, PM: 2, "En course": 3, Inscrit: 4, ALERTE: 5, Abandon: 6 };
-    list.sort((x, y) => sc ? (y.a.score - x.a.score || (x.a.temps ?? 1e12) - (y.a.temps ?? 1e12)) : ((rank[x.a.statut] ?? 9) - (rank[y.a.statut] ?? 9) || y.a.found - x.a.found || (x.a.temps ?? 1e12) - (y.a.temps ?? 1e12)));
-    let rk = 0; list.forEach(x => x.rang = (sc || x.a.statut === "OK") && x.a.finish ? ++rk : ""); });
+  Object.values(X.runners).forEach(R => { const a = analyseRun(R, courseOf(R), P, X.dec, X.ack || {}, { scanMax: CFG.scanMax }); (groups[R.c] = groups[R.c] || []).push({ R, a }); });
+  Object.entries(groups).forEach(([c, list]) => { const k = courseOf(list[0].R); const rank = { OK: 0, "À valider": 1, PM: 2, "En course": 3, Inscrit: 4, ALERTE: 5, Abandon: 6 };
+    const mode = k?.rk && k.rk !== "auto" ? k.rk : (k?.m === "score" || (k?.b || []).some(b => b.p != null)) ? "points" : (k?.ch || (k?.b || []).some(b => b.x)) ? "balises" : "temps";
+    const T = x => x.a.finish ? x.a.temps : 1e12;
+    list.sort((x, y) => mode === "points" ? (y.a.score - x.a.score || T(x) - T(y)) : mode === "balises" ? ((x.a.finish ? 0 : 1) - (y.a.finish ? 0 : 1) || (y.a.found + y.a.bonusFound) - (x.a.found + x.a.bonusFound) || T(x) - T(y)) : ((rank[x.a.statut] ?? 9) - (rank[y.a.statut] ?? 9) || y.a.found - x.a.found || T(x) - T(y)));
+    let rk = 0; list.forEach(x => x.rang = (mode !== "temps" || x.a.statut === "OK") && x.a.finish ? ++rk : ""); list.mode = mode; });
   S = keep; return groups;
 }
 function resultsHTML(X, print) {
   const G = resultRows(X); const keep = S; S = X;
   const html = Object.entries(G).map(([c, list]) => { const k = courseOf(list[0].R); const nums = k ? k.b.map(b => b.n) : [];
-    return `<h2>${esc(c)} ${k ? "– " + esc(k.nm || "") : ""} <small class="muted">(${list.length} élève(s))</small></h2><div class="tw"><table class="t"><thead><tr><th>Rang</th><th>Nom</th><th>Classe</th><th>Statut</th><th class="num">Temps</th><th class="num">Balises</th>${k?.m === "score" ? '<th class="num">Score</th>' : ""}<th class="num">Distance</th><th class="num">Vitesse</th><th class="num">Erreurs</th>${nums.map(n => `<th class="num">${n}</th>`).join("")}${print ? "" : "<th></th>"}</tr></thead><tbody>
-     ${list.map(({ R, a, rang }) => { const byN = {}; a.legs.forEach(l => byN[l.n] = l); return `<tr><td>${rang}</td><td><b>${esc(R.nom)}</b></td><td>${esc(R.cl)}</td><td>${a.statut}</td><td class="num"><b>${fmtDur(a.temps)}</b></td><td class="num">${a.found}/${a.total}</td>${k?.m === "score" ? `<td class="num">${a.score}</td>` : ""}<td class="num">${fmtDist(a.dist)}</td><td class="num">${a.vitesse ? fmtNum(a.vitesse) : "–"}</td><td class="num">${a.erreurs}</td>${nums.map(n => `<td class="num">${byN[n] ? fmtDur(byN[n].split) + `<br><small class="muted">${fmtDur(byN[n].cumul)}</small>` : "–"}</td>`).join("")}${print ? "" : `<td><button class="btn small alt" data-rd="${R.r}">Détail</button></td>`}</tr>`; }).join("")}</tbody></table></div>`; }).join("") || `<div class="panel muted">Aucun élève dans cette leçon.</div>`;
+    return `<h2>${esc(c)} ${k ? "– " + esc(k.nm || "") : ""} <small class="muted">(${list.length} élève(s) · classement ${{ temps: "au temps", balises: "aux balises puis au temps", points: "aux points puis au temps" }[list.mode]})</small></h2><div class="tw"><table class="t"><thead><tr><th>Rang</th><th>Nom</th><th>Classe</th><th>Statut</th><th class="num">Temps</th><th class="num">Balises</th>${(k?.b || []).some(b => b.x) ? '<th class="num">Bonus</th>' : ""}${(k?.m === "score" || (k?.b || []).some(b => b.p != null)) ? '<th class="num">Points</th>' : ""}<th class="num">Retard</th><th class="num">Scans suspects</th><th class="num">Distance</th><th class="num">Vitesse</th><th class="num">Erreurs</th>${nums.map(n => `<th class="num">${n}</th>`).join("")}${print ? "" : "<th></th>"}</tr></thead><tbody>
+     ${list.map(({ R, a, rang }) => { const byN = {}; a.legs.forEach(l => byN[l.n] = l); return `<tr><td>${rang}</td><td><b>${esc(R.nom)}</b></td><td>${esc(R.cl)}</td><td>${a.statut}</td><td class="num"><b>${fmtDur(a.temps)}</b></td><td class="num">${a.found}/${a.total}</td>${(k?.b || []).some(b => b.x) ? `<td class="num">${a.bonusFound}/${a.bonusTotal}</td>` : ""}${(k?.m === "score" || (k?.b || []).some(b => b.p != null)) ? `<td class="num">${a.score}${a.penal ? ` <small>(−${a.penal})</small>` : ""}</td>` : ""}<td class="num">${a.retard ? fmtDur(a.retard) : "–"}</td><td class="num">${a.suspects || "–"}</td><td class="num">${fmtDist(a.dist)}</td><td class="num">${a.vitesse ? fmtNum(a.vitesse) : "–"}</td><td class="num">${a.erreurs}</td>${nums.map(n => `<td class="num">${byN[n] ? fmtDur(byN[n].split) + `<br><small class="muted">${fmtDur(byN[n].cumul)}</small>` : "–"}</td>`).join("")}${print ? "" : `<td><button class="btn small alt" data-rd="${R.r}">Détail</button></td>`}</tr>`; }).join("")}</tbody></table></div>`; }).join("") || `<div class="panel muted">Aucun élève dans cette leçon.</div>`;
   S = keep; return html;
 }
 function renderResults(X) {
@@ -290,8 +301,8 @@ function renderResults(X) {
 async function exportResults(X, fmt) {
   const G = resultRows(X); const keep = S; S = X;
   const sheets = Object.entries(G).map(([c, list]) => { const k = courseOf(list[0].R); const nums = k ? k.b.map(b => b.n) : [];
-    const head = ["Rang", "Nom", "Classe", "Parcours", "Statut", "Départ", "Arrivée", "Temps", "Temps (s)", "Balises trouvées", "Balises du parcours", "Manquantes", ...(k?.m === "score" ? ["Points", "Pénalité", "Score"] : []), "Distance GPS (m)", "Vitesse moy. (km/h)", "Temps arrêté", "Erreurs", "Erreurs d'ordre", "Alertes", ...nums.flatMap(n => [`Inter ${n}`, `Cumul ${n}`, `Dist. ${n} (m)`])];
-    const rows = list.map(({ R, a, rang }) => { const byN = {}; a.legs.forEach(l => byN[l.n] = l); return [rang, R.nom, R.cl, R.c, a.statut, fmtHeure(a.start), fmtHeure(a.finish), fmtDur(a.temps), a.temps != null ? Math.round(a.temps / 1000) : "", a.found, a.total, a.manquants.join(" "), ...(k?.m === "score" ? [a.points, a.penal, a.score] : []), a.dist != null ? Math.round(a.dist) : "", a.vitesse ? +a.vitesse.toFixed(2) : "", a.stop ? fmtDur(a.stop) : "", a.erreurs, a.ordreErr, a.alerts.length, ...nums.flatMap(n => byN[n] ? [fmtDur(byN[n].split), fmtDur(byN[n].cumul), byN[n].gps != null ? Math.round(byN[n].gps) : ""] : ["", "", ""])]; });
+    const head = ["Rang", "Nom", "Classe", "Parcours", "Statut", "Départ", "Arrivée", "Temps", "Temps (s)", "Balises trouvées", "Balises du parcours", "Manquantes", "Bonus trouvés", ...(k?.m === "score" || (k?.b || []).some(b => b.p != null) ? ["Points", "Pénalité", "Score"] : []), "Retard", "Scans suspects", "Distance GPS (m)", "Vitesse moy. (km/h)", "Temps arrêté", "Erreurs", "Erreurs d'ordre", "Alertes", ...nums.flatMap(n => [`Inter ${n}`, `Cumul ${n}`, `Dist. ${n} (m)`])];
+    const rows = list.map(({ R, a, rang }) => { const byN = {}; a.legs.forEach(l => byN[l.n] = l); return [rang, R.nom, R.cl, R.c, a.statut, fmtHeure(a.start), fmtHeure(a.finish), fmtDur(a.temps), a.temps != null ? Math.round(a.temps / 1000) : "", a.found, a.total, a.manquants.join(" "), a.bonusFound, ...(k?.m === "score" || (k?.b || []).some(b => b.p != null) ? [a.points, a.penal, a.score] : []), a.retard ? fmtDur(a.retard) : "", a.suspects, a.dist != null ? Math.round(a.dist) : "", a.vitesse ? +a.vitesse.toFixed(2) : "", a.stop ? fmtDur(a.stop) : "", a.erreurs, a.ordreErr, a.alerts.length, ...nums.flatMap(n => byN[n] ? [fmtDur(byN[n].split), fmtDur(byN[n].cumul), byN[n].gps != null ? Math.round(byN[n].gps) : ""] : ["", "", ""])]; });
     return { name: String(c).slice(0, 28) || "Parcours", rows: [head, ...rows] }; });
   S = keep;
   const fname = `OrienRun_${X.nom}`.replace(/[^\wÀ-ÿ-]+/g, "_");
@@ -317,6 +328,7 @@ function viewReglages(v) {
    <div class="panel"><h2>Élèves</h2><div class="grid2">
     <div class="field"><label>Ton numéro de portable (SMS de secours)</label><input class="inp" id="cTel" type="tel" value="${esc(CFG.tel)}" placeholder="06 12 34 56 78"><small class="muted">Utilisé pour les alertes et les résultats envoyés par SMS quand il n'y a pas d'internet. Il est inscrit dans le QR de départ.</small></div>
     <div class="field"><label>Envoi de la position GPS toutes les…</label><select class="inp" id="cInt">${[10, 15, 20, 30, 60].map(s => `<option value="${s}" ${+CFG.interval === s ? "selected" : ""}>${s} secondes</option>`).join("")}</select></div>
+    <div class="field"><label>Scan « suspect » au-delà de… (distance élève ↔ balise)</label><select class="inp" id="cScan">${[30, 40, 60, 80, 120].map(s => `<option value="${s}" ${+CFG.scanMax === s ? "selected" : ""}>${s} m</option>`).join("")}</select><small class="muted">Repère les QR photographiés et partagés : la tablette signale un scan fait loin de la balise géolocalisée.</small></div>
     <div class="field"><label>Rafraîchissement de la tablette</label><select class="inp" id="cPoll">${[3, 5, 10, 15].map(s => `<option value="${s}" ${+CFG.poll === s ? "selected" : ""}>${s} secondes</option>`).join("")}</select></div>
     <div class="field"><label>Adresse publique de l'appli</label><input class="inp" id="cUrl" value="${esc(CFG.appUrl)}" placeholder="${esc(appUrl())}"><small class="muted">Laisse vide si tu utilises l'appli depuis son adresse GitHub. C'est l'adresse mise dans les QR codes.</small></div></div>
     <button class="btn green" id="cSave">Enregistrer les réglages</button></div>
@@ -325,9 +337,14 @@ function viewReglages(v) {
    ${apiUrl() ? "" : `<div class="panel"><h2>Code enseignant</h2><div class="row"><input class="inp" id="pw2" type="password" placeholder="Nouveau code" style="max-width:260px"><button class="btn alt" id="pwSave">Changer le code</button></div></div>`}
    <p class="muted" style="text-align:center;font-size:.8rem">OrienRun EPS v${APP_VERSION}</p></div>`;
   $("#cTest").onclick = async () => { $("#cTestR").textContent = "…"; try { await apiCall($("#cApi").value.trim(), "teacherCheck", { teacher: tpw() }); $("#cTestR").innerHTML = "<b style='color:var(--green)'>✓ Connexion OK, mot de passe reconnu</b>"; } catch (e) { $("#cTestR").textContent = "✕ " + e.message; } };
-  $("#cSave").onclick = () => { CFG.api = $("#cApi").value.trim(); CFG.tel = $("#cTel").value.trim(); CFG.interval = +$("#cInt").value; CFG.poll = +$("#cPoll").value; CFG.appUrl = $("#cUrl").value.trim(); saveCfg(); toast("Réglages enregistrés ✓", "ok"); if (S?.active) startPolling(); };
+  $("#cSave").onclick = () => { CFG.api = $("#cApi").value.trim(); CFG.tel = $("#cTel").value.trim(); CFG.interval = +$("#cInt").value; CFG.poll = +$("#cPoll").value; CFG.scanMax = +$("#cScan").value; CFG.appUrl = $("#cUrl").value.trim(); saveCfg(); toast("Réglages enregistrés ✓", "ok"); if (S?.active) startPolling(); };
   $("#pExp").onclick = () => download(`OrienRun_${P.nom.replace(/[^\wÀ-ÿ-]+/g, "_")}.orienrun.json`, JSON.stringify(P), "application/json");
   $("#pImp").onclick = async () => { const f = await pickFile(".json,application/json"); if (!f) return; try { const j = JSON.parse(await f.text()); if (!j.controls || !j.map) throw new Error("Fichier non reconnu"); if (!confirm("Remplacer le projet actuel par « " + j.nom + " » ?")) return; P = j; saveP(true); toast("Projet importé ✓", "ok"); setPTab("carte"); } catch (e) { toast(e.message, "ko"); } };
   $("#pNew").onclick = () => { if (!confirm("Créer un nouveau projet vide ? (pense à exporter l'actuel)")) return; P = newProject(); ED.view = null; saveP(true); setPTab("carte"); };
   $("#pwSave") && ($("#pwSave").onclick = async () => { const v = $("#pw2").value.trim(); if (v.length < 3) return toast("3 caractères minimum", "ko"); LS.set("tLocal", await sha256("orienrun:" + v)); toast("Code changé ✓", "ok"); });
+}
+
+// QR permanent : ouvre l'appli élève, qui liste les leçons en cours (à imprimer une fois pour toutes)
+function printPermQR() {
+  printWin("QR permanent élèves", `<div class="pg"><h1>Course d'orientation</h1><p>Scanne pour ouvrir l'appli, puis choisis ta leçon et ton parcours.</p>${QR.svg(eleveUrl(), { ecl: "Q" })}<p style="font-size:12pt">${esc(eleveUrl())}</p></div>`, `.pg{text-align:center;padding-top:15mm}.pg svg{width:140mm;height:140mm}h1{font-size:32pt}p{font-size:15pt}`);
 }

@@ -15,71 +15,144 @@ function newEvent(r, k, extra = {}) {
 }
 
 // ---------- entrée élève ----------
+const runOpen = r => r && r.start && !r.finish && !r.abandon;
 function studentEntry(goData) {
   showScreen("eleve");
   const run = loadRun();
   if (goData) {
-    if (run && run.start && !run.finish && !run.abandon && run.s === goData.s && run.c.k === goData.c.k) return runScreen();
-    if (run && run.start && !run.finish && !run.abandon && !confirm("Une course est en cours (" + run.c.k + "). L'abandonner pour commencer ce parcours ?")) return runScreen();
+    if (run && !run.done && run.s === goData.s && run.c.k === goData.c.k) return run.start ? runScreen() : readyScreen();
+    if (runOpen(run)) return closeFirst(run, () => joinScreen(goData));
     return joinScreen(goData);
   }
   if (run && !run.done) return run.start ? (run.finish || run.abandon ? endScreen() : runScreen()) : readyScreen();
   welcomeScreen();
 }
+// Une course n'est pas terminée : l'élève doit la clôturer avant d'en commencer une autre
+function closeFirst(run, then) {
+  const m = openModal(`<h2>⚠ Course non terminée</h2><p>Tu n'as pas clôturé ta course <b>${esc(run.c.k)}</b> (${esc(run.nom)}), commencée à ${fmtHeure(run.start)}.</p><p class="muted">Clôture-la d'abord : tes balises et ton temps seront envoyés à ton enseignant.</p>
+    <div style="display:flex;flex-direction:column;gap:10px"><button class="btn green" id="cfEnd">🏁 Clôturer la course ${esc(run.c.k)}</button><button class="btn alt" id="cfBack">↩ Reprendre la course ${esc(run.c.k)}</button></div>`, { sticky: true });
+  $("#cfBack", m).onclick = () => { m.close(); history.replaceState(null, "", location.pathname); runScreen(); };
+  $("#cfEnd", m).onclick = async () => {
+    mutRun(r => { r.finish = Date.now(); newEvent(r, "finish", { via: "cloture" }); r.done = true; });
+    await flush(true); const r = loadRun(); if (r.queue.length) keepOld(r);
+    m.close(); toast(`Course ${run.c.k} clôturée ✓`, "ok"); then();
+  };
+}
+// données pas encore reçues d'une ancienne course : gardées et renvoyées plus tard (plus de perte)
+function keepOld(r) { const L = LS.get("oldRuns", []).filter(x => x.r !== r.r); L.push(r); LS.set("oldRuns", L.slice(-5)); }
+async function flushOld() {
+  const L = LS.get("oldRuns", []); if (!L.length) return; const keep = [];
+  for (const r of L) { try { const ids = r.queue.slice(0, 150); const ev = ids.map(id => r.ev[id]).filter(Boolean).map(({ code, ...x }) => x); await apiCall(r.a, "push", { s: r.s, r: r.r, nom: r.nom, cl: r.cl, c: r.c.k, sel: r.sel, ev }, 15000); r.queue = r.queue.filter(id => !ids.includes(id)); if (r.queue.length) keep.push(r); } catch (e) { keep.push(r); } }
+  LS.set("oldRuns", keep);
+}
+const lessonApi = () => { const r = loadRun(); return (typeof CFG !== "undefined" && CFG.api) || API_DEFAULT || r?.a || LS.get("lastApi", ""); };
 function welcomeScreen() {
   const run = loadRun();
   $("#eleve").innerHTML = `<div class="ehead"><div class="flag"></div><h1>OrienRun</h1><span class="grow"></span><button class="btn small ghost" id="eHome">⌂</button></div>
-   <div class="panel"><h2>Pour commencer</h2><p>Scanne le <b>QR code de départ</b> de ton parcours (affiché par ton enseignant) avec l'appareil photo de ton téléphone, ou avec le bouton ci-dessous.</p>
-   <button class="btn or" id="wScan" style="width:100%;min-height:60px">📷 Scanner le QR de départ</button></div>
+   <div class="panel"><h2>Choisis ta leçon</h2><div id="wLessons" class="list"><p class="muted">Recherche des leçons en cours…</p></div>
+    <div class="row" style="margin-top:10px"><input class="inp grow" id="wCode" maxlength="6" placeholder="ou tape le code de la leçon" style="width:auto;text-transform:uppercase"><button class="btn alt" id="wCodeGo">OK</button></div></div>
+   <div class="panel"><p class="muted" style="margin-top:0">Ton enseignant a affiché un QR code de départ ?</p><button class="btn or" id="wScan" style="width:100%;min-height:56px">📷 Scanner le QR de départ</button></div>
    ${run?.done ? `<div class="panel"><b>Dernière course :</b> ${esc(run.c.k)} · ${fmtDur((run.finish || Date.now()) - run.start)} <button class="btn small alt" id="wLast">Revoir</button></div>` : ""}`;
   $("#eHome").onclick = () => { location.hash = ""; showHome(); };
   $("#wScan").onclick = () => openScanner(txt => { const m = String(txt).match(/#go=([\w-]+)/); if (m) { try { const g = b64d(m[1]); studentEntry(g); return true; } catch (e) {} } toast("Ce n'est pas un QR de départ", "ko"); return false; });
   $("#wLast") && ($("#wLast").onclick = () => endScreen());
+  const openLesson = async code => {
+    const api = lessonApi(); if (!api) return toast("Pas de serveur : scanne le QR de départ", "ko");
+    try { const j = await apiCall(api, "getSession", { s: code }, 30000); const d = j.data || {}; const gos = Object.values(d.gos || {}); if (!gos.length) throw new Error("Cette leçon n'a pas de parcours (mets à jour le script de l'enseignant)");
+      if (d.proj) DB.set("map:" + code, d.proj);
+      LS.set("lastApi", api);
+      if (gos.length === 1) return studentEntry(gos[0]);
+      const m = openModal(`<h2>${esc(d.nom || code)}</h2><p class="muted">Choisis ton parcours :</p><div style="display:flex;flex-direction:column;gap:10px">${gos.map((g, i) => `<button class="btn alt" data-g="${i}" style="justify-content:flex-start;min-height:56px"><b>${esc(g.c.k)}</b>&nbsp;· ${esc(g.c.nm || "")} <small class="muted">&nbsp;${g.c.b.filter(b => !b.x).length} balises</small></button>`).join("")}</div>`);
+      $$("[data-g]", m).forEach(b => b.onclick = () => { m.close(); studentEntry(gos[+b.dataset.g]); });
+    } catch (e) { toast(e.message, "ko"); }
+  };
+  $("#wCodeGo").onclick = () => { const c = $("#wCode").value.trim().toUpperCase(); if (c) openLesson(c); };
+  (async () => { const api = lessonApi(), box = $("#wLessons"); if (!api) { box.innerHTML = '<p class="muted">Scanne le QR de départ affiché par ton enseignant.</p>'; return; }
+    try { const j = await apiCall(api, "lessons", {}, 20000); const L = j.lessons || [];
+      box.innerHTML = L.length ? L.map(l => `<button class="item" data-l="${esc(l.s)}" style="text-align:left"><div class="num" style="background:var(--violet);color:#fff;text-shadow:none;font-size:1.1rem">${esc(l.s)}</div><div class="body"><b>${esc(l.nom)}</b><br><small class="muted">lancée à ${fmtHeure(l.t)}</small></div></button>`).join("") : '<p class="muted">Aucune leçon en cours pour l\'instant. Attends que ton enseignant la lance, puis touche ↻.</p><button class="btn small ghost" id="wRe">↻ Actualiser</button>';
+      $$("[data-l]", box).forEach(b => b.onclick = () => openLesson(b.dataset.l)); $("#wRe") && ($("#wRe").onclick = welcomeScreen);
+    } catch (e) { box.innerHTML = `<p class="muted">Liste indisponible (${esc(e.message)}). Tape le code de la leçon ou scanne le QR de départ.</p>`; }
+  })();
 }
 function joinScreen(g) {
   const me = LS.get("moi", {});
-  const c = g.c;
+  const c = g.c, req = c.b.filter(b => !b.x), bonus = c.b.filter(b => b.x);
   $("#eleve").innerHTML = `<div class="ehead"><div class="flag"></div><h1>${esc(c.k)}</h1></div>
-   <div class="panel"><h2>${esc(c.nm || "Parcours " + c.k)}</h2><p class="muted" style="margin-top:-6px">${esc(g.u || "")} · ${c.b.length} balises · ${{ ordre: "dans l'ordre imposé", libre: "dans l'ordre que tu veux", score: "au score" + (c.tm ? ` en ${c.tm} min` : "") }[c.m]}</p>
+   <div class="panel"><h2>${esc(c.nm || "Parcours " + c.k)}</h2><p class="muted" style="margin-top:-6px">${esc(g.u || "")} · ${req.length} balises${bonus.length ? ` + ${bonus.length} bonus` : ""} · ${{ ordre: "dans l'ordre imposé", libre: "dans l'ordre que tu veux", score: "au score" }[c.m]}${c.tm ? ` · ${c.tm} min maximum` : ""}${c.hr ? ` · retour avant ${new Date(c.hr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
     <div class="field"><label>Prénom NOM</label><input class="inp" id="jNom" value="${esc(me.nom || "")}" autocomplete="name" placeholder="ex. Léa DUPONT"></div>
     <div class="field"><label>Équipier(e) (si vous courez à deux)</label><input class="inp" id="jBin" placeholder="facultatif"></div>
     <div class="field"><label>Classe</label><input class="inp" id="jCl" list="dlCl" value="${esc(me.cl || "")}" placeholder="ex. TMELEC"><datalist id="dlCl"><option>TMELEC</option><option>TTBMA</option><option>1G1</option><option>1G2</option><option>1G3</option><option>1G4</option><option>1STMG</option></datalist></div>
-    ${c.ch ? `<h3>Choisis tes balises${c.nb ? ` (${c.nb})` : ""}</h3><p class="muted" style="margin-top:-4px">Touche les balises que tu veux aller chercher.${c.m === "score" ? " Le nombre de points est indiqué." : ""}</p><div class="cchips" id="jSel">${c.b.map(b => `<button class="cchip" data-n="${b.n}">${b.n}${b.p != null ? `<small style="font-family:inherit;font-weight:600"> ${b.p}pt</small>` : ""}</button>`).join("")}</div><p id="jSelInfo" class="muted"></p>` : ""}
-    <button class="btn or" id="jGo" style="width:100%;min-height:58px;margin-top:10px">Continuer →</button></div>`;
-  const sel = new Set();
-  $$("#jSel .cchip").forEach(b => b.onclick = () => { const n = +b.dataset.n; if (sel.has(n)) sel.delete(n); else { if (c.nb && sel.size >= c.nb) return toast(`${c.nb} balises maximum`); sel.add(n); } b.classList.toggle("on", sel.has(n)); $("#jSelInfo").textContent = sel.size ? `${sel.size} balise(s) choisie(s) : ${[...sel].join(", ")}` : ""; });
+    ${c.ch ? `<h3>Choisis tes balises${c.nb ? ` (${c.nb})` : ""}</h3><p class="muted" style="margin-top:-4px">Touche les balises que tu veux aller chercher.${c.prep ? " Tu pourras encore changer pendant ta préparation." : ""}</p><div class="cchips" id="jSel">${req.map(b => `<button class="cchip" data-n="${b.n}">${b.n}${b.p != null ? `<small style="font-family:inherit;font-weight:600"> ${b.p}pt</small>` : ""}</button>`).join("")}</div><p id="jSelInfo" class="muted"></p>` : ""}
+    ${bonus.length ? `<p class="muted">★ Balises bonus (facultatives) : ${bonus.map(b => b.n + (b.p != null ? ` (${b.p} pts)` : "")).join(", ")}</p>` : ""}
+    <button class="btn or" id="jGo" style="width:100%;min-height:58px;margin-top:10px">${c.prep ? `Commencer ma préparation (${c.prep} min) →` : "Continuer →"}</button></div>`;
+  const prev = loadRun(); const sel = new Set(prev && prev.s === g.s && prev.c.k === c.k && !prev.start ? prev.sel || [] : []);
+  const showSel = () => { $$("#jSel .cchip").forEach(b => b.classList.toggle("on", sel.has(+b.dataset.n))); const i = $("#jSelInfo"); if (i) i.textContent = sel.size ? `${sel.size} balise(s) choisie(s) : ${[...sel].join(", ")}` : ""; };
+  $$("#jSel .cchip").forEach(b => b.onclick = () => { const n = +b.dataset.n; if (sel.has(n)) sel.delete(n); else { if (c.nb && sel.size >= c.nb) return toast(`${c.nb} balises maximum`); sel.add(n); } showSel(); });
+  showSel();
   $("#jGo").onclick = () => {
     const nom = $("#jNom").value.trim(), bin = $("#jBin").value.trim(), cl = $("#jCl").value.trim().toUpperCase();
     if (nom.length < 2) return toast("Écris ton prénom et ton nom", "ko");
     if (c.ch && c.nb && sel.size !== c.nb) return toast(`Choisis exactement ${c.nb} balises`, "ko");
     if (c.ch && !sel.size) return toast("Choisis au moins une balise", "ko");
     LS.set("moi", { nom, cl });
-    const old = loadRun();
-    const r = { s: g.s, a: longApi(g.a), t: g.t, i: g.i || 20, z: g.z, u: g.u, c, r: uid(6), nom: bin ? `${nom} & ${bin}` : nom, cl, sel: c.ch ? [...sel] : null, start: null, finish: null, ev: {}, queue: [], seq: 0, dec: {}, msgs: [], seenMsg: {} };
-    if (old && old.r && old.start && !old.done && old.queue?.length) LS.set("runOld_" + old.r, old); // garde les données non envoyées
+    const same = prev && !prev.start && !prev.done && prev.s === g.s && prev.c.k === c.k;
+    if (prev && prev.queue?.length && !same) keepOld(prev);
+    const r = same ? prev : { s: g.s, a: longApi(g.a), t: g.t, i: g.i || 20, z: g.z, u: g.u, c, r: uid(6), start: null, finish: null, ev: {}, queue: [], seq: 0, dec: {}, msgs: [], seenMsg: {} };
+    Object.assign(r, { nom: bin ? `${nom} & ${bin}` : nom, cl, sel: c.ch ? [...sel] : null }); r.joinT = r.joinT || Date.now();
+    if (c.prep && !r.prepStart) { r.prepStart = Date.now(); newEvent(r, "prep"); }
     newEvent(r, "select", { sel: r.sel || undefined });
     saveRun(r); history.replaceState(null, "", location.pathname); readyScreen(); flush();
   };
 }
 function readyScreen() {
   const r = loadRun(); const c = r.c;
-  $("#eleve").innerHTML = `<div class="ehead"><div class="flag"></div><h1>Prêt ?</h1></div>
+  const prepLeft = () => c.prep && r.prepStart ? c.prep * 60000 - (Date.now() - r.prepStart) : 0;
+  const dm = c.dm || (c.hS ? "balise" : "libre");
+  const startBtn = dm === "balise" ? `<button class="btn green" id="rScanStart" style="width:100%;min-height:64px;font-size:1.2rem">📷 Scanner la balise DÉPART</button><button class="btn ghost small" id="rCodeStart" style="width:100%;margin-top:8px">⌨ Taper le code de la balise départ</button>`
+    : dm === "confirm" ? `<button class="btn green" id="rHereStart" style="width:100%;min-height:64px;font-size:1.15rem">📍 Je suis bien au point de départ</button>`
+    : `<button class="btn green" id="rGo" style="width:100%;min-height:70px;font-size:1.4rem">▶ DÉPART</button>`;
+  $("#eleve").innerHTML = `<div class="ehead"><div class="flag"></div><h1>${c.prep ? "Préparation" : "Prêt ?"}</h1></div>
    <div class="panel"><h2>${esc(r.nom)}</h2><p class="muted" style="margin-top:-6px">${esc(r.cl)} · parcours ${esc(c.k)}${r.sel ? " · balises : " + r.sel.join(", ") : ""}</p>
+    ${c.prep ? `<div class="runcard" style="text-align:center"><div class="lbl" style="color:#fff">Temps de préparation</div><div class="chrono" id="prepT"></div><div class="sub" style="justify-content:center">Prépare ton itinéraire sur la carte${c.ch ? " et vérifie tes balises" : ""}.</div></div>` : ""}
+    <div class="row" style="margin-top:10px">${c.mp ? `<button class="btn alt" id="rMap">🗺 Voir la carte</button>` : ""}${c.ch ? `<button class="btn ghost" id="rBack">✏ Changer mes balises</button>` : `<button class="btn ghost small" id="rBack">← Changer de nom</button>`}</div>
     <ol style="line-height:1.6;padding-left:20px"><li>Autorise la <b>localisation</b> (ton enseignant suit ta position pour ta sécurité).</li><li>Garde l'appli <b>ouverte et l'écran allumé</b> pendant la course.</li><li>À chaque balise : bouton <b>Scanner</b> (ou ton appareil photo).</li><li>En cas de problème : bouton rouge <b>SOS</b>.</li></ol>
     <div class="row"><button class="btn alt" id="rGps">📍 Autoriser la localisation</button><span id="rGpsR" class="muted"></span></div>
-    <div style="margin-top:16px">${c.hS ? `<button class="btn green" id="rScanStart" style="width:100%;min-height:64px;font-size:1.2rem">📷 Scanner la balise DÉPART</button><button class="btn ghost small" id="rGo" style="width:100%;margin-top:8px">ou partir sans scanner</button>` : `<button class="btn green" id="rGo" style="width:100%;min-height:70px;font-size:1.4rem">▶ DÉPART</button>`}</div>
-    <button class="btn ghost small" id="rBack" style="margin-top:14px">← Changer de nom / de balises</button></div>`;
+    <div id="msgs"></div>
+    <div style="margin-top:16px" id="startBox">${startBtn}</div></div>`;
   $("#rGps").onclick = () => navigator.geolocation?.getCurrentPosition(p => { E.fix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, t: Date.now() }; const o = $("#rGpsR"); if (o) o.innerHTML = `<b style="color:var(--green)">✓ ±${Math.round(p.coords.accuracy)} m</b>`; }, e => $("#rGpsR") && ($("#rGpsR").textContent = "✕ " + (e.code === 1 ? "refusée : autorise-la dans les réglages" : e.message)), { enableHighAccuracy: true, timeout: 20000 });
-  startGps();
-  const go = () => { mutRun(r => { if (!r.start) { r.start = Date.now(); newEvent(r, "start"); } }); runScreen(); flush(); };
-  $("#rGo").onclick = go;
-  $("#rScanStart") && ($("#rScanStart").onclick = () => openScanner(txt => { const p = parsePunch(txt); if (p && String(p.n) === String(c.dn)) { if (codeHash(r.z, p.n, p.code) !== c.hS) { toast("Code de départ incorrect", "ko"); return false; } go(); return true; } toast("Ce n'est pas la balise de départ", "ko"); return false; }));
+  startGps(); fetchMap();
+  const blocked = () => { const l = prepLeft(); if (l > 0) { toast(`Encore ${fmtDur(l)} de préparation`, "ko"); return true; } return false; };
+  const go = (via) => { if (blocked()) return; mutRun(r => { if (!r.start) { r.start = Date.now(); newEvent(r, "start", { via }); } }); stopLobby(); runScreen(); flush(); };
+  $("#rGo") && ($("#rGo").onclick = () => go("bouton"));
+  $("#rScanStart") && ($("#rScanStart").onclick = () => { if (blocked()) return; openScanner(txt => { const p = parsePunch(txt); if (p && String(p.n) === String(c.dn)) { if (codeHash(r.z, p.n, p.code) !== c.hS) { toast("Code de départ incorrect", "ko"); return false; } go("qr"); return true; } toast("Ce n'est pas la balise de départ", "ko"); return false; }); });
+  $("#rCodeStart") && ($("#rCodeStart").onclick = () => { if (blocked()) return; const v = prompt("Code écrit sous le QR de la balise DÉPART :"); if (!v) return; if (codeHash(r.z, c.dn, v.trim().toUpperCase()) !== c.hS) return toast("Code de départ incorrect", "ko"); go("code"); });
+  $("#rHereStart") && ($("#rHereStart").onclick = async () => {
+    if (blocked()) return;
+    if (c.dLa == null) { if (confirm("Tu confirmes être au point de départ ?")) go("confirme"); return; }
+    const b = $("#rHereStart"); b.disabled = true; b.textContent = "📍 Vérification de ta position…";
+    try { const p = E.fix && Date.now() - E.fix.t < 15000 && E.fix.acc < 40 ? E.fix : await measureGPS(5); const d = haversine(p, { lat: c.dLa, lon: c.dLo }); E.fix = { lat: p.lat, lon: p.lon, acc: p.acc, t: Date.now() };
+      if (d <= 50 + Math.min(p.acc || 0, 30)) { toast(`✓ Tu es au départ (${Math.round(d)} m)`, "ok"); go("gps"); }
+      else toast(`Tu es à ${fmtDist(d)} du point de départ : rapproche-toi puis réessaie.`, "ko");
+    } catch (e) { if (confirm(e.message + "\nConfirmer quand même que tu es au départ ?")) go("confirme"); }
+    b.disabled = false; b.textContent = "📍 Je suis bien au point de départ";
+  });
+  $("#rMap") && ($("#rMap").onclick = showStudentMap);
   $("#rBack").onclick = () => joinScreen({ s: r.s, a: shortApi(r.a), t: r.t, i: r.i, z: r.z, u: r.u, c: r.c });
+  // préparation : compte à rebours
+  clearInterval(E.prepTick);
+  const pt = () => { const el = $("#prepT"); if (!el) return clearInterval(E.prepTick); const l = prepLeft(); el.textContent = l > 0 ? fmtDur(l) : "C'est parti !"; $("#startBox").style.opacity = l > 0 ? .45 : 1; if (l <= 0 && !E.prepDone) { E.prepDone = 1; navigator.vibrate?.([300, 100, 300]); sbeep([660, 990]); } };
+  if (c.prep) { E.prepDone = prepLeft() <= 0; pt(); E.prepTick = setInterval(pt, 500); }
+  startLobby(); renderLobbyMsgs();
 }
+// Avant le départ, le téléphone écoute déjà l'enseignant (rappel général, messages)
+function startLobby() { stopLobby(); E.lobby = setInterval(() => { const r = loadRun(); if (!r || r.start || r.done) return stopLobby(); flush(true); }, Math.max(10, +(loadRun()?.i) || 20) * 1000); }
+function stopLobby() { clearInterval(E.lobby); E.lobby = null; }
+function renderLobbyMsgs() { const r = loadRun(), box = $("#msgs"); if (!box || !r) return; const unseen = (r.msgs || []).filter(m => !r.seenMsg[m.id] && m.type !== "recall"); box.innerHTML = unseen.map(m => `<div class="msgbox">💬 ${esc(m.txt)} <button class="btn small alt" data-mid="${m.id}" style="float:right">OK</button></div>`).join(""); $$("[data-mid]", box).forEach(b => b.onclick = () => { readMsg(b.dataset.mid); renderLobbyMsgs(); }); }
 const parsePunch = txt => { const m = String(txt || "").match(/#b=([\w%-]+)\.([A-Za-z0-9]+)/); return m ? { n: decodeURIComponent(m[1]), code: m[2].toUpperCase() } : null; };
 
 // ---------- pendant la course ----------
-function targetsOf(r) { return r.sel && r.sel.length && r.c.m !== "ordre" ? r.c.b.filter(b => r.sel.includes(b.n)) : r.c.b; }
+function targetsOf(r) { const req = r.c.b.filter(b => !b.x); return r.sel && r.sel.length && r.c.m !== "ordre" ? req.filter(b => r.sel.includes(b.n)) : req; }
+const bonusOf = r => r.c.b.filter(b => b.x);
 function runScreen() {
   const r = loadRun(); if (!r) return welcomeScreen(); if (!r.start) return readyScreen(); if (r.finish || r.abandon) return endScreen();
   $("#eleve").innerHTML = `<div class="ehead"><div class="flag" style="width:34px;height:34px"></div><h1 style="font-size:1.4rem">${esc(r.c.k)} · ${esc(r.nom)}</h1><span class="grow"></span><button class="btn small ghost" id="rMenu">☰</button></div>
@@ -99,7 +172,15 @@ function runScreen() {
   $("#rMenu").onclick = runMenu;
   initSOS($("#sos"));
   startGps(); startLoop(); renderRun(); fetchMap();
-  clearInterval(E.tick); E.tick = setInterval(() => { const r = loadRun(); if (!r || !$("#chrono")) return clearInterval(E.tick); $("#chrono").textContent = fmtDur(Date.now() - r.start); const left = r.c.m === "score" && r.c.tm ? r.c.tm * 60000 - (Date.now() - r.start) : null; if (left != null) $("#chrono").innerHTML = `${fmtDur(Date.now() - r.start)}<div style="font-size:1.1rem;color:${left < 0 ? "#ff8a8a" : "#ffd27a"}">${left < 0 ? "retard " + fmtDur(-left) : "reste " + fmtDur(left)}</div>`; updStatus(); }, 500);
+  clearInterval(E.tick); E.tick = setInterval(() => {
+    const r = loadRun(); if (!r || !$("#chrono")) return clearInterval(E.tick);
+    const el = Date.now() - r.start, dl = deadlineOf(r.c, r.start);
+    if (dl == null) $("#chrono").textContent = fmtDur(el);
+    else { const left = dl - Date.now(); $("#chrono").innerHTML = `${fmtDur(el)}<div style="font-size:1.1rem;color:${left < 0 ? "#ff8a8a" : left < 300000 ? "#ffd27a" : "#cfe"}">${left < 0 ? "⏰ en retard de " + fmtDur(-left) : "reste " + fmtDur(left) + (r.c.hr ? ` · retour avant ${new Date(r.c.hr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "")}</div>`;
+      if (left < 300000 && left > 0 && !r.warn5) { mutRun(x => x.warn5 = 1); navigator.vibrate?.([400, 150, 400]); sbeep([880, 660]); feedback(null, "⏳ Plus que 5 minutes !", "Pense à revenir à l'arrivée / au point de retour.", "", true); }
+      if (left <= 0 && !r.warn0) { mutRun(x => x.warn0 = 1); navigator.vibrate?.([800, 200, 800, 200, 800]); sbeep([440, 330, 440, 330]); feedback(false, "⏰ Temps écoulé !", "Reviens immédiatement au point de retour.", "", true); }
+    }
+    updStatus(); }, 500);
   requestWake();
 }
 function renderRun() {
@@ -108,12 +189,13 @@ function renderRun() {
   const st = {}; a.punches.forEach(p => { if (!st[p.n] || p.status === "ok") st[p.n] = p; });
   const leg = {}; a.legs.forEach(l => leg[l.n] = l);
   let next = null; if (r.c.m === "ordre") next = T.find(b => !(st[b.n] && (st[b.n].status === "ok" || st[b.n].status === "attente")));
-  $("#stCount").textContent = `${a.found + a.pending}/${T.length} balises${r.c.m === "score" && fb ? ` · ${a.points} pts` : ""}`;
+  $("#stCount").textContent = `${a.found + a.pending}/${T.length} balises${a.bonusTotal ? ` · ★${a.bonusFound}` : ""}${a.hasPts && fb ? ` · ${a.points} pts` : ""}`;
   const nb = $("#nextBox");
   if (r.c.m === "ordre") nb.innerHTML = next ? `<div class="flag">${next.n}</div><div><div class="lbl" style="color:var(--ink2)">Prochaine balise · n° ${T.indexOf(next) + 1}/${T.length}</div><b style="font-size:1.25rem">Balise ${next.n}</b>${next.d ? `<div class="muted">${esc(next.d)}</div>` : ""}</div>` : `<div class="flag">🏁</div><div><b style="font-size:1.2rem">Toutes les balises sont trouvées !</b><div class="muted">${r.c.hF ? "Va à l'arrivée et scanne-la." : "Touche « J'ai terminé »."}</div></div>`;
   else nb.innerHTML = `<div class="flag">${a.found + a.pending}</div><div><div class="lbl" style="color:var(--ink2)">${r.c.m === "score" ? "Course au score" : "Dans l'ordre que tu veux"}</div><b style="font-size:1.15rem">${T.length - a.found - a.pending ? `Encore ${T.length - a.found - a.pending} balise(s) à trouver` : "Tout est trouvé ! Va à l'arrivée."}</b></div>`;
   $("#targets").innerHTML = `<div class="lbl" style="margin:4px 2px">Mes balises</div>` + T.map(b => { const p = st[b.n], l = leg[b.n]; const cls = !p ? "" : p.status === "refus" ? "ko" : r.dec[p.id] === true ? "done" : !fb ? "wait" : p.status === "ok" ? "done" : p.status === "attente" ? "wait" : "ko";
     return `<div class="target ${cls} ${next && next.n === b.n ? "cur" : ""}"><div class="n">${b.n}</div><div>${b.d ? esc(b.d) : ""}${b.p != null ? ` <span class="chip">${b.p} pts</span>` : ""}<br><small class="muted">${!p ? "à trouver" : p.status === "refus" ? "<b style='color:var(--red)'>✕ fausse (notifiée par ton enseignant)</b>" : r.dec[p.id] === true ? "<b style='color:var(--green)'>✓ juste (confirmée par ton enseignant)</b>" : !fb ? "📍 enregistrée" : p.status === "ok" ? "✓ validée" + (l && !l.ordre ? " (hors ordre)" : "") : p.status === "attente" ? "⏳ en attente de validation par l'enseignant" : "✕ code incorrect"}</small></div><div class="tm">${l ? fmtDur(l.split) + `<br><small class="muted">${fmtDur(l.cumul)}</small>` : ""}</div></div>`; }).join("")
+    + (bonusOf(r).length ? `<div class="lbl" style="margin:10px 2px 4px">★ Balises bonus (facultatives)</div>` + bonusOf(r).map(b => { const p = st[b.n], l = leg[b.n]; const cls = !p ? "" : p.status === "refus" ? "ko" : r.dec[p.id] === true || (fb && p.status === "ok") ? "done" : "wait"; return `<div class="target ${cls}"><div class="n">★${b.n}</div><div>${b.d ? esc(b.d) : ""}${b.p != null ? ` <span class="chip">${b.p} pts</span>` : ""}<br><small class="muted">${!p ? "facultative" : p.status === "refus" ? "✕ fausse" : r.dec[p.id] === true ? "✓ juste" : !fb ? "📍 enregistrée" : p.status === "ok" ? "✓ validée" : "✕"}</small></div><div class="tm">${l && l.split != null ? fmtDur(l.split) : ""}</div></div>`; }).join("") : "")
     + (fb && a.punches.filter(p => p.status === "hors").length ? `<p class="muted">Balises hors parcours scannées : ${a.punches.filter(p => p.status === "hors").map(p => p.n).join(", ")}</p>` : "");
   const unseen = (r.msgs || []).filter(m => !r.seenMsg[m.id] && m.type !== "recall");
   $("#msgs").innerHTML = unseen.map(m => `<div class="msgbox">💬 ${esc(m.txt)} <button class="btn small alt" data-mid="${m.id}" style="float:right">OK</button></div>`).join("");
@@ -228,9 +310,9 @@ async function flush(force) {
     const ids = r.queue.slice(0, 150); const ev = ids.map(id => r.ev[id]).filter(Boolean).map(e => { const { code, ...x } = e; return x; });
     const j = await apiCall(r.a, "push", { s: r.s, r: r.r, nom: r.nom, cl: r.cl, c: r.c.k, sel: r.sel, ev }, 15000);
     const news = [], decs = [];
-    mutRun(x => { x.queue = x.queue.filter(id => !ids.includes(id)); Object.entries(j.dec || {}).forEach(([id, v]) => { if (x.dec[id] !== v && x.ev[id]) decs.push({ e: x.ev[id], v }); x.dec[id] = v; }); (j.msgs || []).forEach(m => { if (!x.msgs.some(o => o.id === m.id)) { x.msgs.push(m); news.push(m); } }); });
+    mutRun(x => { x.queue = x.queue.filter(id => !ids.includes(id)); Object.entries(j.dec || {}).forEach(([id, v]) => { if (x.dec[id] !== v && x.ev[id]) decs.push({ e: x.ev[id], v }); x.dec[id] = v; }); (j.msgs || []).forEach(m => { if (!x.msgs.some(o => o.id === m.id)) { x.msgs.push(m); if (!(x.joinT && m.t && m.t < x.joinT - 10000)) news.push(m); else x.seenMsg[m.id] = 1; } }); });
     E.online = true; if ($("#targets")) renderRun();
-    incoming(news, decs);
+    incoming(news, decs); renderLobbyMsgs(); flushOld();
     const left = loadRun().queue.length; if (left && ids.length === 150) setTimeout(() => flush(), 500);
     return true;
   } catch (e) { E.online = false; return false; }
@@ -313,3 +395,12 @@ function showRecall(m) {
 const fbOn = r => !!r.c.fb;
 function dispRun(r) { if (fbOn(r)) return r; const ev = {}; Object.values(r.ev).forEach(e => ev[e.id] = e.k === "punch" && r.dec[e.id] !== false ? { ...e, ok: true } : e); return { ...r, ev }; }
 const anaS = r => analyseRun(dispRun(r), r.c, null, r.dec);
+
+// Départ déclenché par la balise DÉPART scannée avec l'appareil photo
+function startFromCode(code, via) {
+  const r = loadRun(); if (!r || r.start) return; const c = r.c;
+  if (codeHash(r.z, c.dn, code) !== c.hS) return toast("Code de départ incorrect", "ko");
+  const l = c.prep && r.prepStart ? c.prep * 60000 - (Date.now() - r.prepStart) : 0;
+  if (l > 0) return toast(`Encore ${fmtDur(l)} de préparation avant de partir`, "ko");
+  mutRun(r => { r.start = Date.now(); newEvent(r, "start", { via }); }); stopLobby(); runScreen(); flush();
+}

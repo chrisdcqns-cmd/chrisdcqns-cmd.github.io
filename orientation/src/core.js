@@ -30,6 +30,8 @@ function toast(msg, kind = "") {
   t.className = "show " + kind; t.innerHTML = msg; clearTimeout(t._h); t._h = setTimeout(() => t.className = "", 3200);
 }
 
+// Numéros de balise qui se confondent une fois retournés (66/99, 68/89, 86/98…) : à éviter
+function numAmbigu(n) { const m = { 0: "0", 1: "1", 6: "9", 8: "8", 9: "6" }, d = String(n); if (![...d].every(c => m[c] != null)) return false; const r = [...d].reverse().map(c => m[c]).join(""); return r !== d; }
 // ---------- empreinte courte (codes de balise) ----------
 function hash32(str) { let h = 0x811c9dc5; for (const c of new TextEncoder().encode(str)) { h ^= c; h = Math.imul(h, 0x01000193) >>> 0; } return h >>> 0; }
 const codeHash = (salt, n, code) => hash32(salt + ":" + n + ":" + String(code || "").trim().toUpperCase()).toString(36).slice(-4);
@@ -75,6 +77,7 @@ function measureGPS(seconds = 10, onProgress) {
     const finish = () => {
       if (done) return; done = true; navigator.geolocation.clearWatch(id); clearInterval(tick);
       if (!pts.length) return reject(new Error("Aucune position reçue. Vérifie que la localisation est autorisée et que tu es dehors."));
+      if (pts.some(p => !p.seed)) pts.splice(0, pts.length, ...pts.filter(p => !p.seed));
       const best = Math.min(...pts.map(p => p.acc));
       const keep = pts.filter(p => p.acc <= Math.max(best * 2, 8));
       let sw = 0, la = 0, lo = 0; keep.forEach(p => { const w = 1 / (p.acc * p.acc); sw += w; la += p.lat * w; lo += p.lon * w; });
@@ -84,6 +87,8 @@ function measureGPS(seconds = 10, onProgress) {
       pts.push({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy || 50 });
       onProgress && onProgress({ n: pts.length, acc: p.coords.accuracy, left: Math.max(0, seconds - (Date.now() - t0) / 1000) });
     }, err => { if (!pts.length) { done = true; clearInterval(tick); navigator.geolocation.clearWatch(id); reject(new Error(err.code === 1 ? "Localisation refusée : autorise-la dans les réglages du navigateur." : "Position introuvable (" + err.message + ")")); } }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    // position récente déjà connue par le téléphone (utile si un autre suivi GPS est actif)
+    navigator.geolocation.getCurrentPosition(p => { if (!done && !pts.length) pts.push({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy || 50, seed: 1 }); }, () => {}, { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 });
     const tick = setInterval(() => { onProgress && onProgress({ n: pts.length, left: Math.max(0, seconds - (Date.now() - t0) / 1000) }); if (Date.now() - t0 >= seconds * 1000 && pts.length) finish(); if (Date.now() - t0 > (seconds + 25) * 1000) finish(); }, 500);
   });
 }
@@ -142,7 +147,7 @@ const SYM = [
   { id: "limveg", k: "line", code: "416", nom: "Limite de végétation", grp: "Végétation", draw: { w: .3, c: NOIR, dash: [.01, .55], cap: "round" } },
   { id: "courbe", k: "line", code: "101", nom: "Courbe de niveau", grp: "Relief", draw: { w: .14, c: BRUN } },
   { id: "courbe_m", k: "line", code: "102", nom: "Courbe maîtresse", grp: "Relief", draw: { w: .25, c: BRUN } },
-  { id: "talus", k: "line", code: "109", nom: "Talus", grp: "Relief", draw: { w: .14, c: BRUN, ticks: { len: .6, gap: .8, w: .14 } } },
+  { id: "talus", k: "line", code: "104", nom: "Talus", grp: "Relief", draw: { w: .14, c: BRUN, ticks: { len: .6, gap: .8, w: .14 } } },
   { id: "ruisseau", k: "line", code: "305", nom: "Ruisseau / fossé", grp: "Eau", draw: { w: .25, c: BLEU } },
   { id: "mur", k: "line", code: "513", nom: "Mur", grp: "Constructions", draw: { w: .25, c: NOIR } },
   { id: "mur_inf", k: "line", code: "515", nom: "Mur infranchissable", grp: "Constructions", draw: { w: .55, c: NOIR } },
@@ -168,15 +173,15 @@ const SYM = [
   { id: "butte", k: "point", code: "112", nom: "Petite butte", grp: "Relief" },
   { id: "depression", k: "point", code: "115", nom: "Petite dépression", grp: "Relief" },
   { id: "trou", k: "point", code: "116", nom: "Trou", grp: "Relief" },
-  { id: "arbre", k: "point", code: "418", nom: "Arbre remarquable", grp: "Végétation" },
-  { id: "buisson", k: "point", code: "419", nom: "Buisson remarquable", grp: "Végétation" },
+  { id: "arbre", k: "point", code: "417", nom: "Arbre remarquable", grp: "Végétation" },
+  { id: "buisson", k: "point", code: "418", nom: "Buisson remarquable", grp: "Végétation" },
   { id: "source", k: "point", code: "312", nom: "Point d'eau / fontaine", grp: "Eau" },
-  { id: "objet_x", k: "point", code: "540", nom: "Objet particulier (×)", grp: "Constructions" },
-  { id: "objet_o", k: "point", code: "541", nom: "Objet particulier (○)", grp: "Constructions" },
+  { id: "objet_x", k: "point", code: "531", nom: "Objet particulier (×)", grp: "Constructions" },
+  { id: "objet_o", k: "point", code: "530", nom: "Objet particulier (○)", grp: "Constructions" },
   { id: "poteau", k: "point", code: "524", nom: "Poteau / pylône", grp: "Constructions" },
-  { id: "interdit_x", k: "point", code: "710", nom: "Passage interdit (violet)", grp: "Surimpression" },
+  { id: "interdit_x", k: "point", code: "711", nom: "Passage interdit (× violet)", grp: "Surimpression" },
   { id: "secours", k: "point", code: "712", nom: "Poste de secours", grp: "Surimpression" },
-  { id: "nord", k: "point", code: "601", nom: "Flèche du nord", grp: "Divers" },
+  { id: "nord", k: "point", code: "", nom: "Flèche du nord", grp: "Divers" },
   { id: "texte", k: "text", code: "", nom: "Texte", grp: "Divers" }
 ];
 const SYMI = Object.fromEntries(SYM.map(s => [s.id, s]));
@@ -244,11 +249,13 @@ function overprintSVG(proj, opts = {}) {
   const course = opts.course;
   if (course) {
     if (course.depart) { const c = ctrl(course.depart); if (c && c.x != null) items.push({ c, t: "S" }); }
-    course.ctrl.forEach((id, i) => { const c = ctrl(id); if (c && c.x != null) items.push({ c, t: "C", lab: course.mode === "ordre" ? String(i + 1) : String(c.n) }); });
+    const bo = course.bonus || []; let ord = 0;
+    course.ctrl.forEach(id => { const c = ctrl(id); const isB = bo.includes(id); if (!isB) ord++; if (c && c.x != null) items.push({ c, t: "C", bonus: isB, lab: isB ? "★" + c.n : course.mode === "ordre" ? String(ord) : String(c.n) }); });
     if (course.arrivee) { const c = ctrl(course.arrivee); if (c && c.x != null) items.push({ c, t: "F" }); }
-    if (course.mode === "ordre") { // lignes de liaison
-      for (let i = 1; i < items.length; i++) {
-        const a = items[i - 1], b = items[i], ra = a.t === "S" ? 3.5 * mm : a.t === "F" ? 3.5 * mm : R, rb = b.t === "F" ? 3.5 * mm : R;
+    if (course.mode === "ordre") { // lignes de liaison (sans les bonus)
+      const seq = items.filter(x => !x.bonus);
+      for (let i = 1; i < seq.length; i++) {
+        const k = proj.map?.circ || 1, a = seq[i - 1], b = seq[i], ra = a.t === "S" || a.t === "F" ? 3.5 * mm * k : R, rb = b.t === "F" ? 3.5 * mm * k : R;
         const dx = b.c.x - a.c.x, dy = b.c.y - a.c.y, L = Math.hypot(dx, dy); if (L < ra + rb + mm) continue;
         out += `<line x1="${(a.c.x + dx / L * (ra + .4 * mm)).toFixed(1)}" y1="${(a.c.y + dy / L * (ra + .4 * mm)).toFixed(1)}" x2="${(b.c.x - dx / L * (rb + .4 * mm)).toFixed(1)}" y2="${(b.c.y - dy / L * (rb + .4 * mm)).toFixed(1)}" stroke="${VIOLET}" stroke-width="${sw}"/>`;
       }
@@ -259,8 +266,8 @@ function overprintSVG(proj, opts = {}) {
     const dt = `data-c="${c.id}"`, hl = opts.highlight === c.id ? ` filter="url(#glow)"` : "";
     if (t === "S") { // triangle orienté vers le 1er poste
       let ang = -90; if (first && course) ang = Math.atan2(first.c.y - c.y, first.c.x - c.x) * 180 / Math.PI;
-      const r = 3.46 * mm; out += `<g ${dt}${hl} transform="translate(${c.x},${c.y}) rotate(${ang + 90})"><path d="M0,${-r}L${r * .866},${r / 2}L${-r * .866},${r / 2}Z" fill="none" stroke="${VIOLET}" stroke-width="${sw}"/><circle r="${r}" fill="transparent"/></g>`;
-    } else if (t === "F") out += `<g ${dt}${hl}><circle cx="${c.x}" cy="${c.y}" r="${2.5 * mm}" fill="none" stroke="${VIOLET}" stroke-width="${sw}"/><circle cx="${c.x}" cy="${c.y}" r="${3.5 * mm}" fill="transparent" stroke="${VIOLET}" stroke-width="${sw}"/></g>`;
+      const r = 3.46 * mm * (proj.map?.circ || 1); out += `<g ${dt}${hl} transform="translate(${c.x},${c.y}) rotate(${ang + 90})"><path d="M0,${-r}L${r * .866},${r / 2}L${-r * .866},${r / 2}Z" fill="none" stroke="${VIOLET}" stroke-width="${sw}"/><circle r="${r}" fill="transparent"/></g>`;
+    } else if (t === "F") out += `<g ${dt}${hl}><circle cx="${c.x}" cy="${c.y}" r="${R}" fill="none" stroke="${VIOLET}" stroke-width="${sw}"/><circle cx="${c.x}" cy="${c.y}" r="${R * 1.4}" fill="transparent" stroke="${VIOLET}" stroke-width="${sw}"/></g>`;
     else {
       out += `<g ${dt}${hl}><circle cx="${c.x}" cy="${c.y}" r="${R}" fill="transparent" stroke="${VIOLET}" stroke-width="${sw}"/>`;
       const a = (c.lab ?? 45) * Math.PI / 180, lx = c.x + Math.cos(a) * (R + 2.6 * mm), ly = c.y - Math.sin(a) * (R + 2.6 * mm);
@@ -320,23 +327,42 @@ function parseSMS(text) {
 function smsHref(tel, body) { const ios = /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent) && "ontouchend" in document; return `sms:${(tel || "").replace(/[^\d+]/g, "")}${ios ? "&" : "?"}body=${encodeURIComponent(body)}`; }
 
 // ---------- analyse d'une course (temps intermédiaires, distances, vitesses…) ----------
-function analyseRun(runner, course, proj, dec = {}, ack = {}) {
+// Échéance de retour : durée max depuis le départ et/ou heure limite de la leçon
+function deadlineOf(course, start) { let d = null; if (course?.tm && start != null) d = start + course.tm * 60000; if (course?.hr) d = d == null ? course.hr : Math.min(d, course.hr); return d; }
+const SCAN_MAX_DEFAULT = 60; // m : au-delà, le scan est jugé « suspect » (photo du QR ?)
+function analyseRun(runner, course, proj, dec = {}, ack = {}, opts = {}) {
   const ev = Object.values(runner.ev || {}).sort((a, b) => a.t - b.t);
   const start = ev.find(e => e.k === "start")?.t ?? null;
   const finEv = ev.filter(e => e.k === "finish").pop(), finish = finEv?.t ?? null, abandon = ev.some(e => e.k === "abandon");
   const pos = ev.filter(e => e.k === "pos" || (e.la != null && e.k !== "alert")).filter(e => e.la != null && (e.ac == null || e.ac < 60));
   const alerts = ev.filter(e => e.k === "alert");
   const byN = {}; (course?.b || []).forEach(b => byN[b.n] = b);
-  const ctrlByN = n => proj?.controls?.find(c => c.n === n && c.type === "C");
+  const isBonus = n => !!byN[n]?.x;
+  const hasPts = (course?.b || []).some(b => b.p != null) || course?.m === "score";
+  const ctrlByN = n => proj?.controls?.find(c => String(c.n) === String(n) && c.type === "C");
+  const scanMax = opts.scanMax || SCAN_MAX_DEFAULT;
   const punches = ev.filter(e => e.k === "punch").map(p => {
     const inCourse = !!byN[p.n]; const d = dec[p.id];
     const status = !inCourse ? "hors" : d === false ? "refus" : d === true ? "ok" : !p.ok ? "code" : course.v === "prof" ? "attente" : "ok";
-    return { ...p, inCourse, status };
+    const c = ctrlByN(p.n); let dist = null, suspect = false;
+    if (c && c.lat != null && p.la != null && p.via !== "prof" && p.via !== "sms") { dist = haversine({ lat: p.la, lon: p.lo }, c); suspect = dist > scanMax + Math.min(p.ac || 0, 40); }
+    return { ...p, inCourse, status, dist, suspect, bonus: isBonus(p.n) };
   });
   // premier poinçon valable par balise
   const seen = new Set(), legs = [];
   const valid = punches.filter(p => (p.status === "ok" || p.status === "attente") && !seen.has(p.n) && seen.add(p.n)).sort((a, b) => (a.via === "prof") - (b.via === "prof") || a.t - b.t);
-  const targets = course ? (runner.sel && runner.sel.length && course.m !== "ordre" ? runner.sel : course.b.map(b => b.n)) : [];
+  const seqAll = course ? course.b.filter(b => !b.x) : [];
+  const targets = course ? (runner.sel && runner.sel.length && course.m !== "ordre" ? runner.sel.filter(n => !isBonus(n)) : seqAll.map(b => b.n)) : [];
+  // ordre imposé sanctionné : la suite des balises du circuit doit se retrouver, dans l'ordre, parmi les poinçons
+  let ordreManq = [];
+  if (course?.m === "ordre" && course.so) {
+    // plus longue sous-suite commune (circuit ↔ poinçons dans l'ordre chronologique) : les balises hors de cette suite sont des PM
+    const A = seqAll.map(b => b.n), B = punches.filter(p => (p.status === "ok" || p.status === "attente") && !p.bonus).sort((a, b) => a.t - b.t).map(p => p.n);
+    const L = Array.from({ length: A.length + 1 }, () => new Array(B.length + 1).fill(0));
+    for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    const kept = new Set(); for (let i = 0, j = 0; i < A.length && j < B.length;) { if (A[i] === B[j]) { kept.add(A[i]); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++; }
+    ordreManq = A.filter(n => !kept.has(n) && valid.some(v => v.n === n));
+  }
   let prevT = start, prevPt = null, prevLabel = "Départ"; const doneN = new Set();
   const startCtrl = proj?.controls?.find(c => c.id === course?.depId);
   prevPt = startCtrl && startCtrl.lat != null ? { lat: startCtrl.lat, lon: startCtrl.lon } : (pos[0] ? { lat: pos[0].la, lon: pos[0].lo } : null);
@@ -349,21 +375,27 @@ function analyseRun(runner, course, proj, dec = {}, ack = {}) {
   valid.forEach(p => {
     const c = ctrlByN(p.n), pt = c && c.lat != null ? { lat: c.lat, lon: c.lon } : (p.la != null ? { lat: p.la, lon: p.lo } : null);
     let ordre = true;
-    if (course?.m === "ordre") { const exp = course.b.find(b => !doneN.has(b.n)); ordre = !exp || exp.n === p.n; doneN.add(p.n); }
-    if (p.via === "prof") { legs.push({ de: "—", n: p.n, t: null, split: null, cumul: null, vol: null, gps: null, stop: null, status: p.status, ordre: true, id: p.id, via: "prof", pts: byN[p.n]?.p }); return; }
+    if (course?.m === "ordre" && !p.bonus) { const exp = seqAll.find(b => !doneN.has(b.n)); ordre = !exp || exp.n === p.n; doneN.add(p.n); }
+    const base = { n: p.n, status: p.status, id: p.id, via: p.via, pts: byN[p.n]?.p, bonus: p.bonus, dist: p.dist, suspect: p.suspect, pm: ordreManq.includes(p.n) };
+    if (p.via === "prof") { legs.push({ ...base, de: "—", t: null, split: null, cumul: null, vol: null, gps: null, stop: null, ordre: true }); return; }
     const tr = track(prevT, p.t);
-    legs.push({ de: prevLabel, n: p.n, t: p.t, split: prevT != null ? p.t - prevT : null, cumul: start != null ? p.t - start : null, vol: haversine(prevPt, pt), gps: tr?.d ?? null, stop: tr?.stop ?? null, status: p.status, ordre, id: p.id, via: p.via, pts: byN[p.n]?.p });
+    legs.push({ ...base, de: prevLabel, t: p.t, split: prevT != null ? p.t - prevT : null, cumul: start != null ? p.t - start : null, vol: haversine(prevPt, pt), gps: tr?.d ?? null, stop: tr?.stop ?? null, ordre });
     prevT = p.t; prevPt = pt || prevPt; prevLabel = String(p.n);
   });
   if (finish != null) { const fc = proj?.controls?.find(c => c.id === course?.finId); const pt = fc && fc.lat != null ? { lat: fc.lat, lon: fc.lon } : null; const tr = track(prevT, finish); legs.push({ de: prevLabel, n: "Arrivée", t: finish, split: prevT != null ? finish - prevT : null, cumul: start != null ? finish - start : null, vol: haversine(prevPt, pt), gps: tr?.d ?? null, stop: tr?.stop ?? null, status: "fin", ordre: true }); }
-  const found = new Set(valid.filter(p => p.status === "ok").map(p => p.n)), pending = valid.filter(p => p.status === "attente").length;
-  const manquants = targets.filter(n => !found.has(n) && !valid.some(v => v.n === n));
+  const okSet = new Set(valid.filter(p => p.status === "ok").map(p => p.n));
+  const found = new Set([...okSet].filter(n => !isBonus(n) && !ordreManq.includes(n)));
+  const bonusFound = [...okSet].filter(isBonus).length;
+  const pending = valid.filter(p => p.status === "attente" && !p.bonus).length;
+  const manquants = targets.filter(n => (!okSet.has(n) && !valid.some(v => v.n === n)) || ordreManq.includes(n));
   const end = finish ?? (abandon ? ev.filter(e => e.k === "abandon").pop().t : null);
   const tot = track(start, end ?? (ev.length ? ev[ev.length - 1].t : null));
   const temps = start != null ? (end ?? Date.now()) - start : null;
+  const deadline = deadlineOf(course, start);
+  const retard = deadline != null && start != null ? Math.max(0, (end ?? Date.now()) - deadline) : 0;
   let points = 0, penal = 0;
-  if (course?.m === "score") { valid.filter(p => p.status === "ok").forEach(p => points += +(byN[p.n]?.p ?? 10)); if (course.tm && temps > course.tm * 60000) penal = Math.ceil((temps - course.tm * 60000) / 60000) * (course.pen ?? 5); }
+  if (hasPts) { valid.filter(p => p.status === "ok" && !ordreManq.includes(p.n)).forEach(p => points += +(byN[p.n]?.p ?? (course.m === "score" ? 10 : 0))); if (retard > 0 && end != null) penal = Math.ceil(retard / 60000) * (course.pen ?? 5); }
   const last = ev.filter(e => e.la != null).pop();
   const statut = alerts.some(a => !ack[a.id]) && !finish ? "ALERTE" : abandon ? "Abandon" : start == null ? "Inscrit" : finish == null ? "En course" : manquants.length ? "PM" : pending ? "À valider" : "OK";
-  return { start, finish, temps, legs, punches, found: found.size, pending, total: targets.length, manquants, erreurs: punches.filter(p => p.status === "hors" || p.status === "code" || p.status === "refus").length, ordreErr: legs.filter(l => !l.ordre).length, dist: tot?.d ?? null, stop: tot?.stop ?? null, vitesse: tot?.d && temps ? tot.d / (temps / 1000) * 3.6 : null, alerts, last, statut, points, penal, score: points - penal, lastSeen: ev.length ? Math.max(...ev.map(e => e.rt || e.t)) : null };
+  return { start, finish, temps, legs, punches, found: found.size, bonusFound, bonusTotal: (course?.b || []).filter(b => b.x).length, pending, total: targets.length, manquants, ordreManq, erreurs: punches.filter(p => p.status === "hors" || p.status === "code" || p.status === "refus").length, ordreErr: legs.filter(l => !l.ordre).length, suspects: punches.filter(p => p.suspect && (p.status === "ok" || p.status === "attente")).length, dist: tot?.d ?? null, stop: tot?.stop ?? null, vitesse: tot?.d && temps ? tot.d / (temps / 1000) * 3.6 : null, alerts, last, statut, hasPts, points, penal, score: points - penal, deadline, retard, lastSeen: ev.length ? Math.max(...ev.map(e => e.rt || e.t)) : null };
 }

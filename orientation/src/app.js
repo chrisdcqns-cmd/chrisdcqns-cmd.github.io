@@ -46,10 +46,11 @@ function route() {
     history.replaceState(null, "", location.pathname);
     const r = loadRun();
     if (r && r.start && !r.finish && !r.abandon) { showScreen("eleve"); runScreen(); setTimeout(() => handlePunch(decodeURIComponent(m[1]), m[2].toUpperCase(), "photo"), 300); return; }
-    if (r && r.s && !r.start && String(decodeURIComponent(m[1])) === String(r.c.dn)) { showScreen("eleve"); readyScreen(); return; }
+    if (r && r.s && !r.start && String(decodeURIComponent(m[1])) === String(r.c.dn)) { showScreen("eleve"); readyScreen(); setTimeout(() => startFromCode(m[2].toUpperCase(), "photo"), 300); return; }
     showScreen("eleve"); welcomeScreen(); toast("Balise " + decodeURIComponent(m[1]) + " : ouvre d'abord ton parcours avec le QR de départ.", "ko"); return;
   }
   const r = loadRun();
+  if (/#eleve/.test(h)) { history.replaceState(null, "", location.pathname); return studentEntry(); }
   if (r && r.start && !r.finish && !r.abandon) return studentEntry();
   showHome();
 }

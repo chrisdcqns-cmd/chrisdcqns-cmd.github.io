@@ -1,7 +1,7 @@
 // ===== Espace enseignant =====
 let P = null;            // projet (carte, balises, parcours)
 let CFG = LS.get("cfg", {}) || {};
-CFG = Object.assign({ api: API_DEFAULT, tel: "", interval: 20, poll: 5, appUrl: "" }, CFG);
+CFG = Object.assign({ api: API_DEFAULT, tel: "", interval: 20, poll: 5, appUrl: "", scanMax: 60 }, CFG);
 const saveCfg = () => LS.set("cfg", CFG);
 const apiUrl = () => (CFG.api || API_DEFAULT || "").trim();
 const appUrl = () => { const u = (CFG.appUrl || APP_URL_DEFAULT || "").trim(); if (u) return u.replace(/#.*$/, ""); return /^https?:/.test(location.href) ? location.href.replace(/[#?].*$/, "") : "https://VOTRE-PSEUDO.github.io/orientation/"; };
@@ -14,7 +14,7 @@ function saveP(now) { clearTimeout(saveTimer); const go = () => DB.set("projet",
 function pushUndo() { undoStack.push(JSON.stringify({ calib: P.calib, features: P.features, controls: P.controls })); if (undoStack.length > 40) undoStack.shift(); }
 function undo() { const s = undoStack.pop(); if (!s) return toast("Rien à annuler"); Object.assign(P, JSON.parse(s)); saveP(); renderEditor(); }
 const ctrlById = id => P.controls.find(c => c.id === id);
-const nextN = () => Math.max(30, ...P.controls.filter(c => c.type === "C").map(c => +c.n || 0)) + 1;
+const nextN = () => { let n = Math.max(30, ...P.controls.filter(c => c.type === "C").map(c => +c.n || 0)) + 1; while (numAmbigu(n)) n++; return n; };
 const ctrlLabel = c => c.type === "S" ? "Départ" : c.type === "F" ? "Arrivée" : "Balise " + c.n;
 const georef = () => makeGeoref(calibPoints());
 function calibPoints() { // points de calage + balises placées ET géolocalisées

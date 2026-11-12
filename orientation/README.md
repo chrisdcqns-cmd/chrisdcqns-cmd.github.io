@@ -47,28 +47,38 @@ Sans script, l'appli fonctionne quand même : les élèves t'envoient leurs rés
 - **Imprimer les balises** : drapeau orange et blanc, grand numéro, **QR code** et **code de contrôle** (3 lettres) au cas où le QR ne passe pas. Plastifie-les.
 - **Fiche de pose / ramassage** : liste avec coordonnées et QR Google Maps pour retrouver chaque balise.
 
-**〰 Parcours**
-- **En ordre imposé** (circuit), **dans le désordre**, ou **au score** (points par balise, temps limite, pénalité par minute de retard).
-- Option : **l'élève choisit lui-même ses balises** (avec un nombre imposé ou non).
-- Option : **je confirme chaque balise sur ma tablette** (validation par l'enseignant).
-- Option : **dire tout de suite à l'élève si sa balise est juste ou fausse**. Par défaut, elle est désactivée : l'élève voit seulement « balise enregistrée », et c'est toi qui lui envoies la notification « juste » ou « fausse ».
-- **🖨 Carte** : carte A4 du parcours avec la surimpression violette et la liste des postes.
+**〰 Parcours** (paramétrage)
+- **Type** : en ordre imposé (circuit), dans le désordre, ou au score.
+- **Départ** : bouton « DÉPART », **« Je suis bien au point de départ »** (vérifié par GPS, à moins de 50 m), ou **scan de la balise DÉPART**. La balise DÉPART est un QR permanent : imprimez-la une fois et posez-la à chaque leçon.
+- **Temps de préparation** (par exemple 5 min) : l'élève voit la carte et choisit ses balises, et le départ est bloqué jusqu'à la fin du compte à rebours.
+- **Durée maximale** du parcours, et pénalité par minute de retard si le parcours est noté aux points.
+- **Sanctionner l'ordre imposé** : une balise sautée et non reprise dans l'ordre devient un poste manquant (PM). C'est la règle officielle.
+- **★ Balises bonus** : facultatives, elles ne comptent pas comme manquantes et peuvent rapporter des points.
+- **Points par balise** (dans tous les types de parcours) et **classement** au temps, aux balises puis au temps, ou aux points puis au temps.
+- **L'élève choisit ses balises** (avec un nombre imposé ou non), et **validation par l'enseignant** en option.
+- **Dire tout de suite à l'élève si sa balise est juste ou fausse** : désactivé par défaut, c'est vous qui le notifiez.
+- **🖨 Carte** : carte A4 du parcours en surimpression violette, avec la liste des postes (★ pour les bonus).
+- Les numéros de balise qui se confondent à l'envers (66/99, 68/89, 86/98…) sont automatiquement évités.
 
 ## 4. Pendant la leçon
 
-1. **📡 Leçon live → Lancer la leçon**, puis **🔳 QR de départ** : affiche ou imprime le QR de chaque parcours.
-2. Les élèves scannent ce QR avec l'**appareil photo** du téléphone : l'appli s'ouvre sur le parcours. Ils entrent leur nom et leur classe, autorisent la localisation, puis **DÉPART**.
+1. **📡 Leçon live → Lancer la leçon**, avec si besoin une **heure limite de retour**. Les élèves voient le compte à rebours et sont prévenus 5 min avant, puis à l'heure limite.
+2. Les élèves rejoignent la leçon **sans QR code** : ils ouvrent l'appli, touchent « Je suis élève », puis choisissent la leçon en cours et leur parcours. Vous pouvez aussi imprimer une fois pour toutes le **🔳 QR permanent « élèves »**, ou afficher le QR de départ du jour. Ils entrent leur nom et leur classe, se préparent, puis partent selon le mode choisi.
 3. À chaque balise, ils touchent **📷 Scanner** (ou tapent le numéro et le code). Le chrono, la prochaine balise et les temps intermédiaires s'affichent.
 4. Sur ta tablette, en direct :
    - la **position de chaque élève** (toutes les 20 s) avec sa trace, sur **ta carte** ou sur fond **🛰 satellite** ;
    - pour chaque élève : balises trouvées, **temps intermédiaires**, cumul, distance à vol d'oiseau et distance réellement parcourue (GPS), vitesse, allure, temps arrêté, erreurs d'ordre ou de code ;
    - les **alertes SOS** (sonnerie, bandeau rouge, lien vers la position) ;
    - en touchant un élève : sa **fiche** (temps, balises, distance, vitesse, allure, temps arrêté, dernier signal, précision GPS, batterie), **sa trace sur la carte**, et l'envoi d'un **message** (messages rapides, accusé « lu ») ;
+   - **⚠ scan suspect** : la balise a été scannée loin de sa position GPS (photo du QR partagée ?). Le seuil est réglable dans ⚙ Réglages ;
+   - **↻ Appliquer mes modifs** : si vous corrigez un parcours pendant la leçon. Sinon, la leçon garde le parcours tel qu'il était au lancement, et les résultats ne changent plus ;
    - **✓ Juste / ✕ Fausse** sur chaque balise scannée : l'élève reçoit la notification sur son téléphone ;
    - **✏ Corriger les balises** (à l'arrivée, avec l'élève) : touche une balise pour l'ajouter ou l'enlever ;
    - **📢 Rappel général** : tous les téléphones affichent « Retour au point ! » (vibration + son). Les élèves répondent « J'arrive » puis **« J'y suis »**, et tu vois qui est revenu ;
    - **💬 Message à tous**.
 5. **Pas de réseau ?** Le téléphone garde tout et renvoie dès que la connexion revient. L'élève peut aussi toucher **📩 Envoyer par SMS** : il t'envoie un message qui commence par `OR1;`. Copie-le dans **✉ Importer SMS**. Le SOS propose aussi l'envoi par SMS et l'appel.
+
+Si un élève ouvre une nouvelle course sans avoir clôturé la précédente, l'appli lui demande de **clôturer la première course**. Ses données sont envoyées, rien n'est perdu.
 
 **Conseils aux élèves** : garder l'appli ouverte et l'écran allumé (le GPS s'arrête quand le téléphone se verrouille) ; utiliser de préférence le bouton **Scanner** de l'appli plutôt que l'appareil photo.
 

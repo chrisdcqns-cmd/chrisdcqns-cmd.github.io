@@ -50,6 +50,7 @@ function editControl(id) {
   const save = () => {
     const n = c.type === "C" ? parseInt($("#eN", m).value) : $("#eN", m).value.trim();
     if (c.type === "C" && (!n || P.controls.some(x => x !== c && x.type === "C" && +x.n === n))) { toast("Numéro invalide ou déjà utilisé", "ko"); return false; }
+    if (c.type === "C" && n !== +c.n && numAmbigu(n) && !confirm(`Le numéro ${n} peut se lire autrement une fois la balise retournée. Le garder quand même ?`)) return false;
     pushUndo(); c.n = n; c.code = ($("#eCode", m).value.trim().toUpperCase() || randCode(3)); c.desc = $("#eDesc", m).value.trim(); c.calage = $("#eCal", m).checked;
     const g = parseLatLon($("#eGps", m).value); if (g && (c.lat == null || Math.abs(g.lat - c.lat) > 1e-6 || Math.abs(g.lon - c.lon) > 1e-6)) { c.lat = g.lat; c.lon = g.lon; c.acc = null; } if (!$("#eGps", m).value.trim()) { c.lat = c.lon = c.acc = null; }
     saveP(); return true;
@@ -112,7 +113,7 @@ const modeNom = { ordre: "En ordre imposé", libre: "Dans le désordre", score: 
 function viewParcours(v) {
   v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Parcours</h2><p class="muted" style="margin-top:-6px">Un parcours = une suite de balises. Les élèves choisissent leur parcours en scannant le QR code de départ (onglet Leçon live).</p>
     <button class="btn or" id="cNew">＋ Nouveau parcours</button></div>
-    <div class="list" style="margin-top:14px">${P.courses.map(k => { const st = courseStats(k); return `<div class="item"><div class="num" style="background:var(--violet);color:#fff;text-shadow:none;font-size:1.25rem">${esc(k.k)}</div><div class="body"><b>${esc(k.nom || k.k)}</b> <span class="chip vi">${modeNom[k.mode]}</span><br><small class="muted">${k.ctrl.length} balise(s)${k.choix ? ` · l'élève choisit${k.nb ? " " + k.nb : ""}` : ""}${st.dist ? ` · ≈ ${fmtDist(st.dist)} à vol d'oiseau` : ""}${k.valid === "prof" ? " · validation par l'enseignant" : ""}${k.mode === "score" && k.tm ? ` · ${k.tm} min` : ""}</small><div class="seq" style="margin-top:6px;background:none;padding:0">${k.ctrl.map((id, i) => { const c = ctrlById(id); return c ? `<span>${k.mode === "ordre" ? `<i>${i + 1}</i>` : ""}${esc(c.n)}</span>` : ""; }).join("")}</div></div>
+    <div class="list" style="margin-top:14px">${P.courses.map(k => { const st = courseStats(k); return `<div class="item"><div class="num" style="background:var(--violet);color:#fff;text-shadow:none;font-size:1.25rem">${esc(k.k)}</div><div class="body"><b>${esc(k.nom || k.k)}</b> <span class="chip vi">${modeNom[k.mode]}</span><br><small class="muted">${k.ctrl.length} balise(s)${k.choix ? ` · l'élève choisit${k.nb ? " " + k.nb : ""}` : ""}${st.dist ? ` · ≈ ${fmtDist(st.dist)} à vol d'oiseau` : ""}${k.valid === "prof" ? " · validation par l'enseignant" : ""}${k.tm ? ` · ${k.tm} min max` : ""}${k.prep ? ` · ${k.prep} min de préparation` : ""}${k.bonus?.length ? ` · ${k.bonus.length} bonus` : ""}${k.so ? " · ordre sanctionné" : ""}${k.dm === "balise" ? " · départ par QR" : k.dm === "confirm" ? " · départ confirmé (GPS)" : ""}</small><div class="seq" style="margin-top:6px;background:none;padding:0">${k.ctrl.map((id, i) => { const c = ctrlById(id); return c ? `<span>${k.bonus?.includes(id) ? "★" : k.mode === "ordre" ? `<i>${i + 1}</i>` : ""}${esc(c.n)}</span>` : ""; }).join("")}</div></div>
       <div class="row"><button class="btn small alt" data-ed="${k.id}">Modifier</button><button class="btn small" data-pr="${k.id}">🖨 Carte</button><button class="btn small ghost" data-dup="${k.id}">Dupliquer</button></div></div>`; }).join("") || `<div class="panel muted">Aucun parcours. Crée d'abord tes balises, puis un parcours.</div>`}</div></div>`;
   $("#cNew").onclick = () => { const n = P.courses.length + 1; const k = { id: uid(6), k: "P" + n, nom: "Parcours " + n, mode: "ordre", ctrl: [], depart: P.controls.find(c => c.type === "S")?.id || null, arrivee: P.controls.find(c => c.type === "F")?.id || null, tm: null, pen: 5, pts: {}, valid: "auto", choix: false, nb: null, desc: true, carte: true }; P.courses.push(k); saveP(); editCourse(k.id); };
   $$("[data-ed]", v).forEach(b => b.onclick = () => editCourse(b.dataset.ed));
@@ -124,50 +125,74 @@ function courseStats(k) {
   let d = 0; if (k.mode === "ordre") for (let i = 1; i < seq.length; i++) d += haversine(seq[i - 1], seq[i]);
   return { dist: k.mode === "ordre" && seq.length > 1 ? d : null };
 }
+const DEPART_MODES = { libre: "Bouton « DÉPART » sur le téléphone", confirm: "« Je suis au point de départ » (vérifié par GPS)", balise: "Scanner la balise DÉPART posée au départ (QR permanent)" };
+const RANKS = { auto: "Automatique selon le type", temps: "Au temps (toutes les balises obligatoires)", balises: "Au nombre de balises, puis au temps", points: "Aux points, puis au temps" };
 function editCourse(id) {
   const k = P.courses.find(x => x.id === id); const balises = P.controls.filter(c => c.type === "C").sort((a, b) => a.n - b.n);
+  k.bonus = k.bonus || []; k.pts = k.pts || {};
   const S = P.controls.filter(c => c.type === "S"), F = P.controls.filter(c => c.type === "F");
-  const m = openModal(`<h2>Parcours</h2><div class="grid2">
+  const chk = (id, on, label, extra = "") => `<label class="row" style="gap:6px;margin-top:6px"><input type="checkbox" id="${id}" ${on ? "checked" : ""}> ${label}${extra}</label>`;
+  const m = openModal(`<h2>Paramétrage du parcours</h2><div class="grid2">
    <div class="field"><label>Code (court, pour les élèves)</label><input class="inp" id="kK" value="${esc(k.k)}" maxlength="6"></div>
    <div class="field"><label>Nom</label><input class="inp" id="kNom" value="${esc(k.nom)}"></div>
    <div class="field"><label>Type de parcours</label><select class="inp" id="kMode">${Object.entries(modeNom).map(([a, b]) => `<option value="${a}" ${k.mode === a ? "selected" : ""}>${b}</option>`).join("")}</select></div>
    <div class="field"><label>Validation des balises</label><select class="inp" id="kVal"><option value="auto">Automatique (QR code / code juste)</option><option value="prof" ${k.valid === "prof" ? "selected" : ""}>Je confirme chaque balise sur ma tablette</option></select></div>
-   <div class="field"><label>Départ</label><select class="inp" id="kDep"><option value="">— aucun (départ libre) —</option>${S.map(c => `<option value="${c.id}" ${k.depart === c.id ? "selected" : ""}>${esc(ctrlLabel(c))} ${esc(c.n)}</option>`).join("")}</select></div>
-   <div class="field"><label>Arrivée</label><select class="inp" id="kArr"><option value="">— aucune (bouton « J'ai fini ») —</option>${F.map(c => `<option value="${c.id}" ${k.arrivee === c.id ? "selected" : ""}>${esc(ctrlLabel(c))} ${esc(c.n)}</option>`).join("")}</select></div>
    </div>
-   <div id="kScore" class="grid2"><div class="field"><label>Temps limite (minutes)</label><input class="inp" id="kTm" type="number" min="1" value="${k.tm ?? ""}"></div><div class="field"><label>Pénalité par minute de retard (points)</label><input class="inp" id="kPen" type="number" min="0" value="${k.pen ?? 5}"></div></div>
-   <div id="kLibre"><label class="row" style="gap:6px;margin-bottom:8px"><input type="checkbox" id="kChoix" ${k.choix ? "checked" : ""}> L'élève choisit lui-même la liste des balises qu'il veut trouver</label>
-     <div class="field" id="kNbF"><label>Nombre de balises à choisir (vide = libre)</label><input class="inp" id="kNb" type="number" min="1" value="${k.nb ?? ""}" style="max-width:160px"></div></div>
+   <h3>Départ et arrivée</h3><div class="grid2">
+   <div class="field"><label>Point de départ</label><select class="inp" id="kDep"><option value="">— aucun —</option>${S.map(c => `<option value="${c.id}" ${k.depart === c.id ? "selected" : ""}>${esc(ctrlLabel(c))} ${esc(c.n)}</option>`).join("")}</select></div>
+   <div class="field"><label>Comment l'élève part</label><select class="inp" id="kDm">${Object.entries(DEPART_MODES).map(([a, b]) => `<option value="${a}" ${(k.dm || "libre") === a ? "selected" : ""}>${b}</option>`).join("")}</select><small class="muted" id="kDmHint"></small></div>
+   <div class="field"><label>Arrivée</label><select class="inp" id="kArr"><option value="">— aucune (bouton « J'ai terminé ») —</option>${F.map(c => `<option value="${c.id}" ${k.arrivee === c.id ? "selected" : ""}>${esc(ctrlLabel(c))} ${esc(c.n)}</option>`).join("")}</select></div>
+   <div class="field"><label>Temps de préparation avant le départ (minutes)</label><input class="inp" id="kPrep" type="number" min="0" value="${k.prep ?? ""}" placeholder="0 = pas de préparation"></div>
+   </div>
+   <h3>Temps</h3><div class="grid2">
+   <div class="field"><label>Durée maximale du parcours (minutes)</label><input class="inp" id="kTm" type="number" min="1" value="${k.tm ?? ""}" placeholder="vide = pas de limite"><small class="muted">L'heure limite de retour se règle au lancement de la leçon.</small></div>
+   <div class="field" id="kPenF"><label>Pénalité par minute de retard (points)</label><input class="inp" id="kPen" type="number" min="0" value="${k.pen ?? 5}"></div>
+   </div>
+   <div id="kOrdre">${chk("kSo", k.so, "<b>Sanctionner l'ordre imposé</b> : une balise prise hors de l'ordre et non reprise dans l'ordre = poste manquant (PM)")}</div>
+   <div id="kLibre">${chk("kChoix", k.choix, "L'élève choisit lui-même la liste des balises qu'il veut trouver")}
+     <div class="field" id="kNbF" style="margin-top:8px"><label>Nombre de balises à choisir (vide = libre)</label><input class="inp" id="kNb" type="number" min="1" value="${k.nb ?? ""}" style="max-width:160px"></div></div>
    <h3>Balises <small class="muted" id="kHint"></small></h3>
    <div class="cchips" id="kChips">${balises.map(c => `<button class="cchip" data-c="${c.id}">${esc(c.n)}</button>`).join("") || `<span class="muted">Crée d'abord des balises.</span>`}</div>
    <div class="row" style="margin-top:8px"><button class="btn small ghost" id="kAll">Toutes</button><button class="btn small ghost" id="kNone">Aucune</button></div>
    <div class="seq" id="kSeq" style="margin-top:10px"></div>
+   <h3>★ Balises bonus <small class="muted">(facultatives : elles ne comptent pas comme manquantes, elles rapportent des points ou un bonus)</small></h3>
+   <div class="cchips" id="kBonus"></div>
+   <h3>Points</h3>${chk("kPtsOn", k.ptsOn || k.mode === "score", "Attribuer des points aux balises")}
    <div id="kPts"></div>
+   <div class="field" style="margin-top:10px;max-width:420px"><label>Classement</label><select class="inp" id="kRk">${Object.entries(RANKS).map(([a, b]) => `<option value="${a}" ${(k.rk || "auto") === a ? "selected" : ""}>${b}</option>`).join("")}</select></div>
    <h3>Options élève</h3>
-   <label class="row" style="gap:6px"><input type="checkbox" id="kDesc" ${k.desc !== false ? "checked" : ""}> Afficher les définitions de postes sur le téléphone</label>
-   <label class="row" style="gap:6px;margin-top:6px"><input type="checkbox" id="kFb" ${k.fb ? "checked" : ""}> Dire tout de suite à l'élève si sa balise est juste ou fausse <small class="muted">(sinon c'est toi qui le notifies depuis la tablette)</small></label>
-   <label class="row" style="gap:6px;margin-top:6px"><input type="checkbox" id="kCarte" ${k.carte !== false ? "checked" : ""}> Envoyer la carte sur le téléphone (si le serveur est configuré)</label>
+   ${chk("kDesc", k.desc !== false, "Afficher les définitions de postes sur le téléphone")}
+   ${chk("kFb", k.fb, "Dire tout de suite à l'élève si sa balise est juste ou fausse", ' <small class="muted">(sinon c\'est toi qui le notifies depuis la tablette)</small>')}
+   ${chk("kCarte", k.carte !== false, "Envoyer la carte sur le téléphone")}
    <div style="margin-top:12px;border-radius:12px;overflow:hidden;background:#ddd"><svg id="kPrev" style="width:100%;display:block" viewBox="0 0 ${P.map.w} ${P.map.h}"></svg></div>
    <div class="row" style="margin-top:14px"><button class="btn green" id="kSave">Enregistrer</button><button class="btn" id="kPrint">🖨 Imprimer la carte</button><button class="btn red" id="kDel">Supprimer</button></div>`, { wide: true, onClose: () => setPTab("parcours") });
   const ui = () => {
-    const mode = $("#kMode", m).value;
-    $("#kScore", m).classList.toggle("hidden", mode !== "score"); $("#kLibre", m).classList.toggle("hidden", mode === "ordre"); $("#kNbF", m).classList.toggle("hidden", !$("#kChoix", m).checked);
+    const mode = $("#kMode", m).value, ptsOn = $("#kPtsOn", m).checked || mode === "score";
+    if (mode === "score") $("#kPtsOn", m).checked = true;
+    $("#kOrdre", m).classList.toggle("hidden", mode !== "ordre"); $("#kLibre", m).classList.toggle("hidden", mode === "ordre"); $("#kNbF", m).classList.toggle("hidden", !$("#kChoix", m).checked);
+    $("#kPenF", m).classList.toggle("hidden", !ptsOn);
+    const dm = $("#kDm", m).value, dep = ctrlById($("#kDep", m).value);
+    $("#kDmHint", m).innerHTML = dm === "balise" ? (dep ? "Imprime et pose la balise de départ (onglet Balises) : son QR ne change jamais." : "<b style='color:var(--red)'>Choisis un point de départ.</b>") : dm === "confirm" ? (dep?.lat != null ? "L'élève doit être à moins de 50 m du départ." : "Géolocalise le départ pour vérifier la position (sinon simple confirmation).") : "";
     $("#kHint", m).textContent = mode === "ordre" ? "(touche-les dans l'ordre du circuit)" : "(touche pour ajouter / retirer)";
-    $$(".cchip", m).forEach(b => b.classList.toggle("on", k.ctrl.includes(b.dataset.c)));
-    $("#kSeq", m).innerHTML = k.ctrl.map((id, i) => `<span data-rm="${i}">${mode === "ordre" ? `<i>${i + 1}</i>` : ""}${esc(ctrlById(id)?.n)} ✕</span>`).join("") || `<span style="background:none;color:var(--ink2)">Aucune balise</span>`;
+    k.bonus = k.bonus.filter(id => k.ctrl.includes(id));
+    $$("#kChips .cchip", m).forEach(b => b.classList.toggle("on", k.ctrl.includes(b.dataset.c)));
+    $("#kSeq", m).innerHTML = k.ctrl.map((id, i) => `<span data-rm="${i}">${mode === "ordre" && !k.bonus.includes(id) ? `<i>${k.ctrl.slice(0, i + 1).filter(x => !k.bonus.includes(x)).length}</i>` : ""}${k.bonus.includes(id) ? "★" : ""}${esc(ctrlById(id)?.n)} ✕</span>`).join("") || `<span style="background:none;color:var(--ink2)">Aucune balise</span>`;
     $$("[data-rm]", m).forEach(s => s.onclick = () => { k.ctrl.splice(+s.dataset.rm, 1); ui(); });
-    $("#kPts", m).innerHTML = mode === "score" ? `<h3>Points par balise</h3><div class="cchips">${k.ctrl.map(id => `<label class="chip" style="padding:4px 8px">${esc(ctrlById(id)?.n)} <input type="number" data-p="${id}" value="${k.pts[id] ?? 10}" style="width:56px;border:1px solid var(--line);border-radius:6px;padding:2px 4px"></label>`).join("")}</div>` : "";
+    $("#kBonus", m).innerHTML = k.ctrl.map(id => `<button class="cchip ${k.bonus.includes(id) ? "on" : ""}" data-bo="${id}" style="${k.bonus.includes(id) ? "background:var(--sun);color:var(--ink)" : ""}">${k.bonus.includes(id) ? "★ " : ""}${esc(ctrlById(id)?.n)}</button>`).join("") || '<span class="muted">Ajoute d\'abord des balises au parcours.</span>';
+    $$("[data-bo]", m).forEach(b => b.onclick = () => { const id = b.dataset.bo, i = k.bonus.indexOf(id); if (i >= 0) k.bonus.splice(i, 1); else k.bonus.push(id); ui(); });
+    $("#kPts", m).innerHTML = ptsOn ? `<div class="cchips" style="margin-top:6px">${k.ctrl.map(id => `<label class="chip" style="padding:4px 8px">${k.bonus.includes(id) ? "★" : ""}${esc(ctrlById(id)?.n)} <input type="number" data-p="${id}" value="${k.pts[id] ?? 10}" style="width:56px;border:1px solid var(--line);border-radius:6px;padding:2px 4px"> pts</label>`).join("")}</div>` : "";
     $$("[data-p]", m).forEach(i => i.oninput = () => k.pts[i.dataset.p] = +i.value);
-    const tmp = { ...k, mode, depart: $("#kDep", m).value || null, arrivee: $("#kArr", m).value || null };
+    const tmp = { ...k, mode, depart: $("#kDep", m).value || null, arrivee: $("#kArr", m).value || null, ctrl: k.ctrl };
     $("#kPrev", m).innerHTML = mapSVG(P, { course: tmp });
   };
-  $$(".cchip", m).forEach(b => b.onclick = () => { const id = b.dataset.c, mode = $("#kMode", m).value; const i = k.ctrl.indexOf(id); if (mode === "ordre") k.ctrl.push(id); else if (i >= 0) k.ctrl.splice(i, 1); else k.ctrl.push(id); ui(); });
+  $$("#kChips .cchip", m).forEach(b => b.onclick = () => { const id = b.dataset.c, mode = $("#kMode", m).value; const i = k.ctrl.indexOf(id); if (mode === "ordre") k.ctrl.push(id); else if (i >= 0) k.ctrl.splice(i, 1); else k.ctrl.push(id); ui(); });
   $("#kAll", m).onclick = () => { k.ctrl = balises.map(c => c.id); ui(); }; $("#kNone", m).onclick = () => { k.ctrl = []; ui(); };
-  ["kMode", "kChoix", "kDep", "kArr"].forEach(i => $("#" + i, m).onchange = ui);
+  ["kMode", "kChoix", "kDep", "kArr", "kDm", "kPtsOn"].forEach(i => $("#" + i, m).onchange = ui);
   const save = () => {
     const code = $("#kK", m).value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
     if (!code || P.courses.some(x => x !== k && x.k === code)) { toast("Code de parcours vide ou déjà utilisé", "ko"); return false; }
-    Object.assign(k, { k: code, nom: $("#kNom", m).value.trim(), mode: $("#kMode", m).value, valid: $("#kVal", m).value, depart: $("#kDep", m).value || null, arrivee: $("#kArr", m).value || null, tm: +$("#kTm", m).value || null, pen: +$("#kPen", m).value || 0, choix: $("#kChoix", m).checked, nb: +$("#kNb", m).value || null, desc: $("#kDesc", m).checked, fb: $("#kFb", m).checked, carte: $("#kCarte", m).checked });
+    if ($("#kDm", m).value === "balise" && !$("#kDep", m).value) { toast("Choisis le point de départ à scanner", "ko"); return false; }
+    Object.assign(k, { k: code, nom: $("#kNom", m).value.trim(), mode: $("#kMode", m).value, valid: $("#kVal", m).value, depart: $("#kDep", m).value || null, arrivee: $("#kArr", m).value || null, dm: $("#kDm", m).value, prep: +$("#kPrep", m).value || null, tm: +$("#kTm", m).value || null, pen: +$("#kPen", m).value || 0, so: $("#kSo", m).checked, choix: $("#kChoix", m).checked, nb: +$("#kNb", m).value || null, ptsOn: $("#kPtsOn", m).checked, rk: $("#kRk", m).value, desc: $("#kDesc", m).checked, fb: $("#kFb", m).checked, carte: $("#kCarte", m).checked });
     if (k.mode === "ordre") k.choix = false;
     saveP(); return true;
   };
@@ -178,11 +203,12 @@ function editCourse(id) {
 }
 function printCourse(k) {
   const land = P.map.w >= P.map.h;
-  const list = k.ctrl.map((id, i) => { const c = ctrlById(id); return c ? `<tr><td>${k.mode === "ordre" ? i + 1 : ""}</td><td><b>${esc(c.n)}</b></td><td>${esc(c.desc || "")}</td>${k.mode === "score" ? `<td>${k.pts[id] ?? 10} pts</td>` : ""}<td class="w"></td></tr>` : ""; }).join("");
+  const pts = k.ptsOn || k.mode === "score", bo = k.bonus || [];
+  const list = k.ctrl.map((id, i) => { const c = ctrlById(id); return c ? `<tr><td>${bo.includes(id) ? "★ bonus" : k.mode === "ordre" ? k.ctrl.slice(0, i + 1).filter(x => !bo.includes(x)).length : ""}</td><td><b>${esc(c.n)}</b></td><td>${esc(c.desc || "")}</td>${pts ? `<td>${k.pts[id] ?? 10} pts</td>` : ""}<td class="w"></td></tr>` : ""; }).join("");
   printWin("Carte " + k.k, `<div class="page"><div class="top"><h1>${esc(P.nom)} — ${esc(k.nom || k.k)}</h1><span>Nom : ____________________ Classe : ______</span></div>
    <div class="mapbox"><svg viewBox="0 0 ${P.map.w} ${P.map.h}" preserveAspectRatio="xMidYMid meet">${mapSVG(P, { course: k })}</svg></div>
-   <div class="desc"><b>${esc(modeNom[k.mode])}${k.mode === "score" && k.tm ? ` · ${k.tm} min (−${k.pen} pts / min de retard)` : ""}</b> · Parcours <b>${esc(k.k)}</b>
-   <table><thead><tr><th>${k.mode === "ordre" ? "Ordre" : ""}</th><th>Balise</th><th>Définition</th>${k.mode === "score" ? "<th>Points</th>" : ""}<th>Temps</th></tr></thead><tbody>${list}</tbody></table>
+   <div class="desc"><b>${esc(modeNom[k.mode])}${k.tm ? ` · ${k.tm} min maximum${pts ? ` (−${k.pen} pts / min de retard)` : ""}` : ""}</b> · Parcours <b>${esc(k.k)}</b>
+   <table><thead><tr><th>${k.mode === "ordre" ? "Ordre" : ""}</th><th>Balise</th><th>Définition</th>${pts ? "<th>Points</th>" : ""}<th>Temps</th></tr></thead><tbody>${list}</tbody></table>
    <small>▲ départ · ○ poste · ◎ arrivée — symboles IOF</small></div></div>`,
     `@page{size:A4 ${land ? "landscape" : "portrait"};margin:7mm}.page{display:flex;flex-direction:column;height:${land ? 194 : 281}mm}.top{display:flex;justify-content:space-between;align-items:baseline}.top h1{font-size:14pt}
      .mapbox{flex:1;min-height:0;border:1px solid #000}.mapbox svg{width:100%;height:100%;display:block}

@@ -14,6 +14,7 @@
  *  - Evenements   : tout ce qu'envoient les téléphones (positions, balises, départ, arrivée, alertes)
  *  - Decisions    : balises validées / refusées par l'enseignant
  *  - Messages     : messages de l'enseignant aux élèves
+ *  - Lecons       : leçons en cours (les élèves les voient dans l'appli sans scanner de QR)
  * Seuls le nom saisi par l'élève, sa classe et ses positions pendant la course sont enregistrés, dans ton propre Google Drive.
  * Pour faire de la place : supprime les lignes des anciennes séances dans l'onglet Evenements (ou utilise l'action « purge » depuis l'éditeur : fonction purgerAnciennesSeances).
  */
@@ -25,6 +26,7 @@ const T_SEANCES = { nom: 'Seances', cols: ['seance', 'date', 'morceau', 'donnees
 const T_EVTS = { nom: 'Evenements', cols: ['recu', 'seance', 'coureur', 'nom', 'classe', 'parcours', 'type', 'heure', 'balise', 'latitude', 'longitude', 'precision', 'donnees'] };
 const T_DEC = { nom: 'Decisions', cols: ['seance', 'coureur', 'evenement', 'valide', 'date'] };
 const T_MSG = { nom: 'Messages', cols: ['seance', 'destinataire', 'id', 'texte', 'date'] };
+const T_LECONS = { nom: 'Lecons', cols: ['lecon', 'nom', 'lancee', 'active'] };
 
 function doGet() { return json_({ ok: true, app: 'orienrun' }); }
 
@@ -70,6 +72,13 @@ function traiter_(req) {
     return { ok: true, dec: dec, msgs: msgs };
   }
 
+  // ----- élève : liste des leçons en cours (pour rejoindre sans QR code) -----
+  if (a === 'lessons') {
+    const limite = Date.now() - 12 * 3600 * 1000;
+    const L = lignes_(T_LECONS).filter(x => x.v[3] === true || x.v[3] === 'TRUE').map(x => ({ s: String(x.v[0]), nom: String(x.v[1]), t: Number(x.v[2]) })).filter(x => x.t > limite).sort((x, y) => y.t - x.t);
+    return { ok: true, lessons: L };
+  }
+
   // ----- élève : récupère la carte de la séance -----
   if (a === 'getSession') {
     const s = code_(req.s), parts = lignes_(T_SEANCES).filter(x => String(x.v[0]) === s).sort((x, y) => x.v[2] - y.v[2]);
@@ -91,6 +100,14 @@ function traiter_(req) {
       sh.getRange(sh.getLastRow() + 1, 1, rows.length, 4).setValues(rows);
     } finally { lock.releaseLock(); }
     CacheService.getScriptCache().put('s_' + s, '1', DUREE_CACHE);
+    const nom = String((req.data && req.data.nom) || s).slice(0, 80), sl = feuille_(T_LECONS), ex = lignes_(T_LECONS).find(x => String(x.v[0]) === s);
+    if (ex) sl.getRange(ex.i, 1, 1, 4).setValues([[s, nom, Number(ex.v[2]) || Date.now(), true]]); else sl.appendRow([s, nom, Date.now(), true]);
+    return { ok: true };
+  }
+
+  if (a === 'close') {
+    const s = code_(req.s), ex = lignes_(T_LECONS).find(x => String(x.v[0]) === s);
+    if (ex) feuille_(T_LECONS).getRange(ex.i, 4).setValue(false);
     return { ok: true };
   }
 
