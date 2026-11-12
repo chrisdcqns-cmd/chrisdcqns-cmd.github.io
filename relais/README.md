@@ -22,6 +22,10 @@ L'enseignant a un **code à 4 chiffres** (créé à la première utilisation). I
 - Les élèves, les groupes et les courses restent **dans le navigateur de la tablette** (stockage local). Ils ne passent pas d'un appareil à l'autre : pense à exporter régulièrement le fichier Excel.
 - Vers Google Sheets, l'application n'envoie **jamais les noms** : seulement un **code anonyme** par élève (ex. `E-4C5U`), ou le prénom avec l'initiale du nom si tu choisis ce réglage. La correspondance code ↔ élève figure seulement dans l'export Excel (feuille « Vitesses », colonne « Code anonyme »).
 
+## Sauvegarde et transfert
+
+Sur la page des classes : **Sauvegarde** (code enseignant) → **Télécharger la sauvegarde** crée un fichier `.json` avec toutes les classes, élèves, vitesses, groupes, leçons et courses de la tablette. **Restaurer une sauvegarde** ajoute le contenu d'un fichier à la tablette, sans rien supprimer ni dupliquer. Sert à garder une copie ou à transférer les données vers un autre appareil (par exemple de la version Claude vers l'APK). Le fichier contient les noms des élèves : ne pas le publier.
+
 ## Envoyer les courses vers Google Sheets
 
 À faire une seule fois :

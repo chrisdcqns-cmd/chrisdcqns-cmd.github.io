@@ -463,6 +463,7 @@ tr.disp{opacity:.55}
       <button class="lk" id="lkState"></button>
       <button class="lk" id="lkChange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Code enseignant</button>
       <button class="lk" id="lkSheets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>Google Sheets</button>
+      <button class="lk" id="lkBackup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg>Sauvegarde</button>
     </div>
   </div>
 </section>
@@ -762,6 +763,17 @@ tr.disp{opacity:.55}
   <div class="mt"><label class="fl">Écart signalé ⚠ si un essai s'éloigne des deux autres de plus de (km/h)</label>
     <div class="stw small"><button class="stp" data-th="-0.5">−</button><input id="pfc-thr" inputmode="decimal"><button class="stp" data-th="0.5">+</button></div></div>
   <div class="row mt"><span style="flex:1"></span><button class="btn ghost sm" id="pfc-cancel">Annuler</button><button class="btn primary sm" id="pfc-save">Enregistrer</button></div>
+</div></div>
+
+<!-- Sauvegarde / restauration -->
+<div class="modal" id="bmodal"><div class="box wide">
+  <h3>Sauvegarde des données</h3>
+  <p>Le fichier de sauvegarde contient toutes les classes, élèves, vitesses, groupes, leçons et courses de cette tablette. Il sert à <b>garder une copie</b> ou à <b>transférer les données</b> vers un autre appareil ou une autre version de l'application (par exemple de la version Claude vers l'APK). Il contient les noms des élèves : garde-le pour toi.</p>
+  <p class="note" id="b-sum"></p>
+  <div class="row mt"><button class="btn primary sm" id="b-dl">💾 Télécharger la sauvegarde</button>
+    <label class="btn ghost sm" style="cursor:pointer">📂 Restaurer une sauvegarde<input type="file" id="b-file" accept=".json,application/json" hidden></label>
+    <span style="flex:1"></span><button class="btn ghost sm" id="b-close">Fermer</button></div>
+  <p class="note">Restaurer <b>ajoute</b> les données du fichier à celles de la tablette : rien n'est supprimé, et une course déjà présente n'est pas dupliquée.</p>
 </div></div>
 
 <!-- Google Sheets -->
@@ -2145,6 +2157,39 @@ $("#s-test").addEventListener("click",async()=>{readSheets();if(!SH.url){toast("
   toast("Test en cours…");const r=await shJsonp({ids:"_test"});
   toast(!r?"Impossible de joindre le script : vérifie l'adresse et le déploiement":!r.keyOk?"Le script répond, mais la clé ne correspond pas":r.check?"Connexion réussie ✓ clé correcte · vérification de réception active":"Connexion réussie ✓ clé correcte · mets à jour le script pour vérifier la réception")});
 shFlush();
+
+/* ===== Sauvegarde / restauration (fichier JSON) ===== */
+function bkSummary(d){const c=d.classes||[];return `${c.length} classe(s) · ${c.reduce((s,x)=>s+(x.eleves||[]).length,0)} élève(s) · ${c.reduce((s,x)=>s+(x.lecons||[]).length,0)} leçon(s) · ${c.reduce((s,x)=>s+(x.courses||[]).length,0)} course(s)`}
+$("#lkBackup").addEventListener("click",async()=>{if(!await requireCode())return;$("#b-sum").textContent="Sur cette tablette : "+bkSummary(DATA)+".";$("#bmodal").classList.add("on")});
+$("#b-close").addEventListener("click",()=>$("#bmodal").classList.remove("on"));
+$("#b-dl").addEventListener("click",async()=>{
+  const data=JSON.stringify({app:"relais-vitesse",version:3,date:new Date().toISOString(),data:{classes:DATA.classes}},null,1);
+  const name="Relais_sauvegarde_"+todayISO()+".json";
+  if(DL){try{await DL.save({filename:name,data});toast("Sauvegarde enregistrée ✓")}catch(e){if(e&&e.code==="declined")toast("Sauvegarde annulée");else fallback(new Blob([data],{type:"application/json"}),name)}}
+  else fallback(new Blob([data],{type:"application/json"}),name);
+});
+function mergeBy(dst,src,key){src.forEach(x=>{if(!dst.some(y=>y[key]===x[key]))dst.push(x)});return dst}
+$("#b-file").addEventListener("change",async()=>{
+  const f=$("#b-file").files[0];$("#b-file").value="";if(!f)return;
+  let j;try{j=JSON.parse(await f.text())}catch(e){toast("Fichier illisible");return}
+  const src=(j&&j.app==="relais-vitesse"&&j.data&&j.data.classes)||null;
+  if(!Array.isArray(src)){toast("Ce fichier n'est pas une sauvegarde de Relais Vitesse");return}
+  $("#bmodal").classList.remove("on");
+  if(!await confirmBox("Restaurer cette sauvegarde ?","Le fichier contient : "+bkSummary({classes:src})+". Ces données seront ajoutées à celles de la tablette.","Restaurer"))return;
+  let nc=0,nk=0;
+  src.forEach(sc=>{
+    sc.lecons=sc.lecons||[];sc.courses=sc.courses||[];sc.groupes=sc.groupes||[];sc.eleves=sc.eleves||[];
+    const ex=DATA.classes.find(c=>c.id===sc.id);
+    if(!ex){DATA.classes.push(sc);nc++;nk+=sc.courses.length;return}
+    const before=ex.courses.length;
+    ex.lecons=ex.lecons||[];mergeBy(ex.eleves,sc.eleves,"id");mergeBy(ex.groupes,sc.groupes,"id");mergeBy(ex.lecons,sc.lecons,"id");
+    sc.courses.forEach(c=>{if(!c.cid||!ex.courses.some(x=>x.cid===c.cid))ex.courses.push(c)});
+    if(sc.perf&&!ex.perf)ex.perf=sc.perf;
+    nk+=ex.courses.length-before;
+  });
+  save(K.data,DATA);renderClasses();
+  toast(`Sauvegarde restaurée ✓ ${nc} classe(s) ajoutée(s), ${nk} course(s) ajoutée(s)`);
+});
 
 /* ===== Démarrage : toujours sur le choix de la classe ===== */
 updLock();
