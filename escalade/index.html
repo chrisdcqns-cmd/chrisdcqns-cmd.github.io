@@ -41,6 +41,10 @@ table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px
 .tile b{font-size:30px;line-height:1.15}.tile span{opacity:.85;font-size:16px}
 .tile.wide{grid-column:1/-1;min-height:120px}
 .tile.tprof{outline:3px dashed var(--hi);outline-offset:-6px}
+.role{max-width:900px;margin:4vh auto 0;text-align:center}.role h2{font-size:40px;margin:0 0 6px}
+.rbtns{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}.rbtns .tile{min-height:min(42vh,300px);text-align:center;align-items:center}
+.rbtns .tile b{font-size:34px}.rbtns .tile span{margin-top:10px}
+@media(max-width:700px){.rbtns{grid-template-columns:1fr}}
 .vg{grid-template-columns:repeat(5,1fr)}.vg .b{font-size:26px;min-height:64px}
 .colb{display:flex;align-items:center;gap:12px;font-size:22px;min-height:64px;text-align:left}
 .colb .dot,.vl .dot{width:30px;height:30px}
@@ -139,17 +143,21 @@ let C=LS('c',DEF),W=LS('w',clone(WDEF)),R=LS('r',[]),CF=LS('cf',{tab:'Tablette 1
 const CL0=null;
 C.the?.forEach(b=>{if(b.t=='p'&&typeof b.v=='string')b.v=b.v.replace('• Gestion de la chute (PME)','• Recherche de PME (positions de moindre effort) pour récupérer')});
 let S={t:'home',s:'ech',e:false,T:false,cv:0,ce:null,free:false},F={},QR=[];
-const TABS=[['home','⌂ Accueil'],['prep','Se préparer'],['sec','Sécurité'],['gr','Renseigner une grimpe'],['mr','Mes résultats'],['cot','Cotation'],['the','Thématiques'],['res','Résultats et QRCODE']];
+const TABS=[['home','⌂ Accueil'],['prep','Se préparer'],['sec','Sécurité'],['gr','Renseigner une grimpe'],['mr','Mes résultats'],['cot','Cotation'],['the','Thématiques'],['res','Résultats, QR codes et Google Sheets']];
 const CRIT=[['m','Prises de mains'],['p','Prises de pieds'],['cp','Changements de pieds effectués'],['h','Hauteur : dernière dégaine dépassée'],['a',"S'est assis dans le baudrier ?"],['pm','PME réalisée ? (Position de Moindre Effort)'],['pof','Utilisation sac à POF'],['k','Commentaire']];
 const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
 const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
 function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',com:'',nr:{}};S.free=false}fresh();
 const save=()=>{SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL)};
+function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK()?`<span class="sea">${esc(cls().nom)}</span>`:''}<p class="mut">Qui utilise la tablette ?</p>
+ <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="S.T=false;S.t=seaOK()?'home':'set';render()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
+ <button class="tile tprof" style="background:#16252d" onclick="unlock(seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
 function render(){
+ if(S.t=='role'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=roleScr();return}
  if(!S.T){S.e=false;if(S.t=='res'||(S.t=='set'&&seaOK()))S.t='home'}
  if(S.t!='cot')S.cm='';
  if(S.t!='mr'){S.mr='';S.ml=''}
- $('#tm').innerHTML=S.T?(['gr','res','home','set'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="S.T=false;render()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
+ $('#tm').innerHTML=S.T?(['gr','res','home','set'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="S.T=false;S.t='role';render()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
  $('#nav').style.display=['home','set'].includes(S.t)?'none':'';
  $('#nav').innerHTML=TABS.filter(([k])=>k!='res'||S.T).map(([k,n])=>`<button class="${S.t==k?'on':''}" onclick="S.t='${k}';render()">${n}</button>`).join('');
  const m=$('#m');
@@ -166,7 +174,7 @@ function render(){
 }
 /* ---------- accueil ---------- */
 const TILES=[['prep','Se préparer','#00747a'],['sec','Sécurité','#a4262c'],['gr','Renseigner une grimpe','#b5651d'],['mr','Mes résultats','#2e7d4f'],['cot','Cotation','#5b3f8c','wide'],['the','Thématiques','#3d5a80','wide']];
-function home(){S.e=false;const t=S.T?[...TILES,['res','Résultats et QRCODE','#16252d','wide tprof']]:TILES;
+function home(){S.e=false;const t=S.T?[['set','📋 Leçon du jour et classes','#16252d','wide tprof'],...TILES,['res','📊 Résultats, QR codes et Google Sheets','#16252d','wide tprof']]:TILES;
  return `<h2 style="margin-top:4px">Escalade EPS</h2>${cls()?`<span class="sea">${esc(cls().nom)}</span>`:''}<div class="tiles">${t.map(([k,n,c,x])=>`<button class="tile ${x||''}" style="background:${c}" onclick="S.t='${k}';render()"><b>${n}</b></button>`).join('')}</div>`}
 /* ---------- leçon du jour / classes ---------- */
 function setup(){
@@ -491,7 +499,7 @@ function qr(text){
  for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!Fm[y][x]&&(x+y)%2==0)M[y][x]=!M[y][x];
  return M}
 function drawQR(cv,M){const s=5,b=4,N=M.length;cv.width=cv.height=(N+2*b)*s;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#000';M.forEach((r,j)=>r.forEach((d,i)=>{if(d)x.fillRect((i+b)*s,(j+b)*s,s,s)}));cv.style.width=Math.min(300,cv.width*1.4)+'px'}
-if(!seaOK())S.t='set';
+S.t='role';
 render();
 sync();
 </script><script src="/eps-home.js" defer></script>
