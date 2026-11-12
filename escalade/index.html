@@ -114,6 +114,7 @@ small,.mut{color:var(--mut)}
 .g9{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
 .g11{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.g9 .tp{font-weight:700}
 @media(max-width:600px){.g9{grid-template-columns:repeat(5,1fr)}}
+.rl{padding:2px 0 6px}.rl.miss{background:#fdecea;border-radius:12px;padding:4px 10px 10px;outline:3px solid var(--bad)}
 .sea{display:inline-block;background:#e3f1f2;border-radius:999px;padding:4px 14px;font-weight:700;color:var(--ac);margin-bottom:10px}
 </style></head><body>
 <header><b id="logo">Escalade EPS</b><span id="tm"></span></header>
@@ -149,7 +150,7 @@ const TABS=[['home','⌂ Accueil'],['prep','Se préparer'],['sec','Sécurité'],
 const CRIT=[['m','Prises de mains'],['p','Prises de pieds'],['cp','Changements de pieds effectués'],['h','Hauteur : dernière dégaine dépassée'],['a',"S'est assis dans le baudrier ?"],['pm','PME réalisée ? (Position de Moindre Effort)'],['pof','Utilisation sac à POF'],['k','Commentaire']];
 const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
 const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
-function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',com:'',nr:{}};S.free=false}fresh();
+function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',com:'',nr:{},asr:'',cas:'',obs:'',asrX:false,casX:false,obsX:false};S.free=false}fresh();
 const save=()=>{SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL)};
 function clsScr(){const cur=CF.sea?.cl||'';
  return `<div class="role"><h2>Choisis ta classe</h2><p class="mut">Touche ta classe pour retrouver ta liste de prénoms.</p>
@@ -304,6 +305,7 @@ function grimpe(){
  if(F.step==4)return `<div class="card">${top}<h3>Vérifie ta voie</h3><div class="conf" style="border-color:${COL[F.c]||'#ccc'}">${cs(F.c)}<div><b>Corde ${F.vo}</b> · voie ${esc(F.c)}<br><span class="mut" style="font-size:18px">Difficulté</span> <span class="cot">${esc(F.d)}</span></div></div><p>Est-ce bien la voie que tu as grimpée ?</p><div class="row"><button class="b g" onclick="go(3)">Non, revenir</button><button class="b" onclick="go(5)">Oui, c'est ça</button></div></div>`;
  if(F.step==6)return `<div class="card ok">${goal()}<span class="lab">✓ Grimpe enregistrée${F.eleve?' pour <b>'+esc(F.eleve)+'</b>':''}</span><p><button class="b d" onclick="undo()">↶ Annuler cet enregistrement</button></p><div class="row"><button class="b" onclick="again(true)">Autre voie (${esc(F.eleve)||'même élève'})</button><button class="b g" onclick="again(false)">Élève suivant</button></div></div>`;
  return `<div class="card">${top}<div class="sum">${esc(F.eleve)} · Corde ${F.vo} · ${cs(F.c)}${esc(F.c)} ${esc(F.d)}<button class="b g" onclick="go(2)">Changer</button></div>
+ ${roles()}
  ${critForm()}
  <p><button class="b" style="width:100%" onclick="rec()">Enregistrer la grimpe</button></p></div>`}
 function critForm(){const n10=[1,2,3,4,5,6,7,8,9,10];
@@ -320,13 +322,26 @@ function goal(){const m=CF.sea?.min||0,n=done();if(!m)return '';const r=m-n;
  :`<div class="goal win">🎉 Bravo, objectif atteint !<span class="n">${n}</span>${n>1?'voies grimpées':'voie grimpée'} aujourd'hui${n>m?' (objectif : '+m+')':''}</div>`}
 async function undo(){if(!await ask('Annuler cet enregistrement ?\nLa grimpe sera supprimée et tu pourras la corriger.'))return;shDel([F.last]);R=R.filter(r=>r.id!=F.last);F.last='';save();go(5)}
 async function delRec(id){const r=R.find(x=>x.id==id);if(!r||!await ask('Supprimer la grimpe de '+(r.el||'cet élève')+' (corde '+r.vo+', voie '+r.c+', '+r.ts+') ?'))return;shDel([r.id]);R=R.filter(x=>x!==r);save();render()}
+/* ---------- cordée : assureur, contre-assureur (obligatoires), observateur (facultatif) ---------- */
+const ROLES=[['asr','Assureur',1],['cas','Contre-assureur',1],['obs','Observateur',0]];
+function roleIn(k,label,need){const names=(cls()?.el||[]).filter(n=>n!=F.eleve).sort((a,b)=>a.localeCompare(b,'fr')),v=F[k],miss=(F.miss||[]).includes(k);
+ const lab=`<label class="l" style="margin:10px 0 6px">${label} ${need?'<span class="ob" style="font-size:13px;padding:3px 9px">★ Obligatoire</span>':'<small class="mut">(facultatif)</small>'}</label>`;
+ const txt=`<input value="${esc(v)}" placeholder="Prénom" autocomplete="off" oninput="F.${k}=this.value">`;
+ if(!names.length)return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}${txt}</div>`;
+ if(F[k+'X'])return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<div class="row">${txt}<button class="b g fix" onclick="F.${k}X=false;F.${k}='';render()">← Liste</button></div></div>`;
+ return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<select onchange="if(this.value=='__x'){F.${k}X=true;F.${k}='';render()}else F.${k}=this.value"><option value="">${need?'Choisir…':'Personne'}</option>${names.map(n=>`<option ${n==v?'selected':''}>${esc(n)}</option>`).join('')}<option value="__x">Autre (taper le prénom)</option></select></div>`}
+const roles=()=>`<div class="crit"><div class="ch"><b>Ta cordée</b></div>${ROLES.map(([k,l,n])=>roleIn(k,l,n)).join('')}</div>`;
 function nx1(){F.eleve=F.eleve.trim();if(!F.eleve){say('Écris ton prénom.');return $('#pn').focus()}go(2)}
-function again(same){const e=F.eleve;fresh();if(same){F.eleve=e;F.step=2}go(F.step)}
-function rec(){const miss=CRIT.filter(([k])=>req(k)&&!FIL[k]());
+function again(same){const e=F.eleve,k={};ROLES.forEach(([r])=>{k[r]=F[r];k[r+'X']=F[r+'X']});fresh();if(same){Object.assign(F,k);F.eleve=e;F.step=2}go(F.step)}
+function rec(){ROLES.forEach(([k])=>F[k]=String(F[k]||'').trim());
+ const rm=ROLES.filter(([k,,n])=>n&&!F[k]).map(([k,l])=>[k,l]),same=ROLES.filter(([k])=>F[k]&&nrm(F[k])==nrm(F.eleve));
+ if(same.length){F.miss=same.map(x=>x[0]);render();return say("Tu ne peux pas être à la fois grimpeur et "+same.map(x=>x[1].toLowerCase()).join(' / ')+'.')}
+ if(F.asr&&F.cas&&nrm(F.asr)==nrm(F.cas)){F.miss=['cas'];render();return say("L'assureur et le contre-assureur doivent être deux élèves différents.")}
+ const miss=[...rm,...CRIT.filter(([k])=>req(k)&&!FIL[k]())];
  if(miss.length){F.miss=miss.map(m=>m[0]);render();document.getElementById('cr_'+F.miss[0]).scrollIntoView({behavior:'smooth',block:'center'});
   return say('Il manque '+(miss.length>1?'des éléments obligatoires':'un élément obligatoire')+' :\n• '+miss.map(m=>m[1].replace(/ \?.*$| :.*$/,'')).join('\n• '))}
  F.miss=[];const n=F.nr,x=(k,v)=>(n[k]&&!req(k))||!on(k)?'':v;
- F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pof===''?'':Number(F.pof)),k:x('k',F.com)});
+ F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pof===''?'':Number(F.pof)),k:x('k',F.com),asr:F.asr,cas:F.cas,obs:F.obs});
  save();shAdd(F.last);go(6)}
 /* ---------- mes résultats ---------- */
 const fnum=x=>x.toLocaleString('fr-FR',{maximumFractionDigits:1});
@@ -337,7 +352,7 @@ const isNum=v=>v!==''&&v!=null&&!isNaN(v);
 function mesRes(){const k=cls(),nom=k?.nom||'',mine=r=>(r.cl||'')==nom;
  if(!S.mr){const names=[...new Set([...(k?.el||[]),...R.filter(mine).map(r=>r.el).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'fr'));
   return `<div class="card"><h3 style="margin-top:0">Qui es-tu ?</h3>${k?`<p class="mut">${esc(nom)} · touche ton nom pour voir tes résultats</p>`:''}${names.length?`<div class="names">${names.map(n=>`<button class="b g" data-n="${esc(n)}" onclick="S.mr=this.dataset.n;S.ml='';render()">${esc(n)}</button>`).join('')}</div>`:'<p class="mut">Aucun résultat enregistré sur cette tablette.</p>'}</div>`}
- const rs=R.filter(r=>r.el==S.mr&&mine(r)),days=[...new Set(rs.map(r=>String(r.ts).slice(0,10)))].sort().reverse();
+ const rs=R.filter(r=>r.el==S.mr&&mine(r)),RL=R.filter(r=>mine(r)&&r.el!=S.mr&&[r.asr,r.cas,r.obs].includes(S.mr)),days=[...new Set([...rs,...RL].map(r=>String(r.ts).slice(0,10)))].sort().reverse();
  const head=`<div class="sum" style="margin-bottom:12px">${esc(S.mr)}<button class="b g" onclick="S.mr='';render()">Changer</button></div>`;
  if(!days.length)return head+`<div class="card"><p class="mut">Tu n'as encore aucune grimpe enregistrée sur cette tablette.</p></div>`;
  const d=days.includes(S.ml)?S.ml:days[0],L=rs.filter(r=>String(r.ts).startsWith(d)).sort((a,b)=>a.ts<b.ts?-1:1);
@@ -345,19 +360,21 @@ function mesRes(){const k=cls(),nom=k?.nom||'',mine=r=>(r.cl||'')==nom;
  /* statistiques */
  const H=L.map(r=>r.h).filter(isNum).map(Number),ok=L.filter(r=>Number(r.h)==TOP),best=ok.map(r=>r.d).sort((a,b)=>gk(b)-gk(a))[0];
  const G={};L.forEach(r=>{const g=G[r.d]||(G[r.d]={n:0,ok:0,h:[]});g.n++;if(Number(r.h)==TOP)g.ok++;if(isNum(r.h))g.h.push(Number(r.h))});
- const gs=Object.keys(G).sort((a,b)=>gk(a)-gk(b)),mx=Math.max(...gs.map(g=>G[g].n));
+ const gs=Object.keys(G).sort((a,b)=>gk(a)-gk(b)),mx=Math.max(1,...gs.map(g=>G[g].n));
+ const DR=RL.filter(r=>String(r.ts).startsWith(d)),nR=k=>DR.filter(r=>r[k]==S.mr).length;
  const stats=`<div class="stats"><div class="st"><b>${L.length}</b><span>voie${L.length>1?'s':''} grimpée${L.length>1?'s':''}</span></div>
   <div class="st"><b>${ok.length}</b><span>voie${ok.length>1?'s':''} réussie${ok.length>1?'s':''} (Top)</span></div>
   <div class="st"><b>${best?esc(best):'–'}</b><span>meilleure difficulté réussie</span></div>
   <div class="st"><b>${H.length?fnum(H.reduce((a,b)=>a+b,0)/H.length):'–'}</b><span>hauteur moyenne (en dégaines, Top = 9)</span></div>
-  <div class="st"><b>${H.length?hl(Math.max(...H)):'–'}</b><span>hauteur maximale</span></div></div>`;
+  <div class="st"><b>${H.length?hl(Math.max(...H)):'–'}</b><span>hauteur maximale</span></div>
+  ${ROLES.map(([k,l])=>`<div class="st"><b>${nR(k)}</b><span>fois ${l.toLowerCase()}</span></div>`).join('')}</div>`;
  const diffs=`<div class="card"><h3 style="margin-top:0">Difficultés</h3><p class="mut" style="margin:0 0 4px"><span class="lg" style="background:#2e9e4f;margin-left:0"></span>réussie (Top)<span class="lg" style="background:#9fc6ca"></span>non terminée</p>
   ${gs.map(g=>{const x=G[g];return `<div class="dr"><b>${esc(g)}</b><div class="bar" style="width:${x.n/mx*100}%"><i style="flex:${x.ok}"></i><u style="flex:${x.n-x.ok}"></u></div><small class="mut">${x.n} grimpée${x.n>1?'s':''} · ${x.ok} réussie${x.ok>1?'s':''}${x.h.length?' · hauteur moy. '+(x.h.every(v=>v==TOP)?'Top':fnum(x.h.reduce((a,b)=>a+b,0)/x.h.length)):''}</small></div>`}).join('')}</div>`;
  /* tableau */
- const OPT=[['m','Mains'],['p','Pieds'],['cp','Chgt pieds'],['a','Assis'],['pm','PME'],['pof','Sac POF'],['k','Commentaire']].filter(([c])=>L.some(r=>r[c]!==''&&r[c]!=null));
+ const OPT=[['asr','Assureur'],['cas','Contre-ass.'],['obs','Observ.'],['m','Mains'],['p','Pieds'],['cp','Chgt pieds'],['a','Assis'],['pm','PME'],['pof','Sac POF'],['k','Commentaire']].filter(([c])=>L.some(r=>r[c]!==''&&r[c]!=null));
  const tbl=`<div class="card"><h3 style="margin-top:0">Voies grimpées</h3><div class="tw"><table><tr><th>#</th><th>Heure</th><th>Corde</th><th>Diff.</th><th>Hauteur</th>${OPT.map(o=>`<th>${o[1]}</th>`).join('')}</tr>
   ${L.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(String(r.ts).slice(11,16))}</td><td>${cs(r.c)}Corde ${r.vo}</td><td><b>${esc(r.d)}</b></td><td>${isNum(r.h)?`<span class="hb"><i style="width:${r.h/TOP*100}%"></i></span>${Number(r.h)==TOP?'<span class="top">Top ✓</span>':r.h+'<small class="mut"> dég.</small>'}`:'–'}</td>${OPT.map(([c])=>`<td>${c=='k'?esc(r[c])||'–':nd(r[c])}</td>`).join('')}</tr>`).join('')}</table></div></div>`;
- return head+tabs+`<h3 style="margin:4px 0 0">${d==days[0]?'Dernière leçon':'Leçon'} · ${fday(d,true)}</h3>`+stats+tbl+diffs}
+ return head+tabs+`<h3 style="margin:4px 0 0">${d==days[0]?'Dernière leçon':'Leçon'} · ${fday(d,true)}</h3>`+stats+(L.length?tbl+diffs:`<div class="card"><p class="mut">Tu n'as pas grimpé pendant cette leçon.</p></div>`)}
 /* ---------- cotation ---------- */
 const gk=d=>{const m=String(d).trim().match(/^(\d)([abc])?(\+)?/i);return m?(+m[1])*100+(m[2]?(m[2].toLowerCase().charCodeAt(0)-96)*10:0)+(m[3]?5:0):999};
 function cotation(){
@@ -372,8 +389,8 @@ function cotation(){
  return `<p><button class="b big" onclick="S.cm='d';render()">🔎 Je cherche une voie !</button></p><div class="card"><h3 style="margin-top:0">Quelle corde ?</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${S.cv==i+1?'on':'g'}" onclick="S.cv=${i+1};render()">${i+1}</button>`).join('')}</div></div>
  ${w?`<div class="card"><h3 style="margin-top:0">Corde ${S.cv}</h3>${w.map(([c,d])=>`<div class="vl">${cs(c)}<span>${esc(c)}</span><b>${esc(d)}</b></div>`).join('')||'<p class="mut">Aucune couleur.</p>'}</div>`:'<p class="mut">Touche un numéro de corde pour voir la cotation de chaque couleur.</p>'}`}
 /* ---------- résultats / export / QR ---------- */
-const HEAD=['Tablette','Date','Classe','Élève','Code anonyme (Sheets)','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur (dégaines)','Assis baudrier (nb de fois)','PME (nb de fois)','Sac à POF (0-10)','Commentaire'];
-const row=r=>[r.tab,r.ts,r.cl??'',r.el,SH.key?anon(r.cl,r.el):'',r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k];
+const HEAD=['Tablette','Date','Classe','Élève','Code anonyme (Sheets)','Assureur','Contre-assureur','Observateur','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur (dégaines)','Assis baudrier (nb de fois)','PME (nb de fois)','Sac à POF (0-10)','Commentaire'];
+const row=r=>[r.tab,r.ts,r.cl??'',r.el,SH.key?anon(r.cl,r.el):'',r.asr||'',r.cas||'',r.obs||'',r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k];
 const nd=v=>v===''||v==null?'–':v;
 function resultats(){
  const T=R.slice().reverse().map(r=>`<tr><td>${esc(r.el)||'–'}${r.cl?`<br><small>${esc(r.cl)}</small>`:''}</td><td>${r.vo} ${cs(r.c)}${esc(r.d)}</td><td>${nd(r.m)}/${nd(r.p)}</td><td>${nd(hl(r.h))}</td><td>${r.a||'–'}</td><td>${r.pm||'–'}</td><td><button class="b d" style="min-height:36px;padding:2px 10px" title="Supprimer" onclick="delRec('${r.id}')">✕</button></td></tr>`).join('');
@@ -395,23 +412,27 @@ function resultats(){
  <p><button class="b" onclick="imp()">Fusionner</button></p></div>
  <div class="card"><table><tr><th>Élève</th><th>Corde</th><th>M/P</th><th>H.</th><th>Assis</th><th>PME</th><th></th></tr>${T||'<tr><td colspan=7 class="mut">Aucune grimpe.</td></tr>'}</table>
  <p><button class="b d" onclick="ask('Effacer toutes les grimpes de cette tablette ?\n(Celles déjà envoyées restent dans Google Sheets.)').then(o=>{if(o){R=[];save();render()}})">Tout effacer</button></p></div>`}
-const payload=()=>JSON.stringify(R.map(r=>[r.id,r.ts,r.tab,r.el,r.vo,r.c,r.d,r.m,r.p,r.h,r.a,r.pm,r.k,r.cl??'',r.cp??'',r.pof??'']));
+const payload=()=>JSON.stringify(R.map(r=>[r.id,r.ts,r.tab,r.el,r.vo,r.c,r.d,r.m,r.p,r.h,r.a,r.pm,r.k,r.cl??'',r.cp??'',r.pof??'',r.asr||'',r.cas||'',r.obs||'']));
 function chunks(){const p=payload(),sid=Math.random().toString(36).slice(2,6),n=Math.ceil(p.length/330)||1,o=[];for(let i=0;i<n;i++)o.push(`G|${sid}|${i+1}|${n}|`+p.slice(i*330,(i+1)*330));return o}
 function qrs(){if(!R.length)return say('Aucune grimpe à transmettre.');const c=chunks();$('#qr').innerHTML='';c.forEach((t,i)=>{const f=document.createElement('figure'),cv=document.createElement('canvas');drawQR(cv,qr(t));f.append(cv,Object.assign(document.createElement('small'),{textContent:`QR ${i+1}/${c.length}`}));$('#qr').append(f)});$('#qi').textContent=c.length>1?'Scannez tous les QR : '+c.length+' au total.':''}
 function cp(){const t=chunks().join('\n');if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>say('Copié'),()=>dlg({msg:'Copiez ce texte :',area:t}));else dlg({msg:'Copiez ce texte :',area:t})}
 function imp(){const L=$('#imp').value.split('\n').map(s=>s.trim()).filter(s=>s.startsWith('G|')),g={};
  L.forEach(l=>{const a=l.split('|'),sid=a[1];(g[sid]=g[sid]||{n:+a[3],p:{}}).p[a[2]]=a.slice(4).join('|')});
- let add=0,bad=0;for(const s in g){const x=g[s];let t='';for(let i=1;i<=x.n;i++)t+=x.p[i]||'';try{JSON.parse(t).forEach(a=>{if(!R.some(r=>r.id==a[0])){R.push({id:a[0],ts:a[1],tab:a[2],el:a[3],vo:a[4],c:a[5],d:a[6],m:a[7],p:a[8],h:a[9],a:a[10],pm:a[11],k:a[12],cl:a[13]??'',cp:a[14]??'',pof:a[15]??''});add++}})}catch{bad++}}
+ let add=0,bad=0;for(const s in g){const x=g[s];let t='';for(let i=1;i<=x.n;i++)t+=x.p[i]||'';try{JSON.parse(t).forEach(a=>{if(!R.some(r=>r.id==a[0])){R.push({id:a[0],ts:a[1],tab:a[2],el:a[3],vo:a[4],c:a[5],d:a[6],m:a[7],p:a[8],h:a[9],a:a[10],pm:a[11],k:a[12],cl:a[13]??'',cp:a[14]??'',pof:a[15]??'',asr:a[16]??'',cas:a[17]??'',obs:a[18]??''});add++}})}catch{bad++}}
  save();render();say(add+' grimpe(s) ajoutée(s).'+(bad?'\n'+bad+' lot(s) incomplet(s) : il manque des QR.':''))}
 /* ---------- Google Sheets (anonymisé) ---------- */
 /* adresse du script Apps Script de l'enseignant (la clé secrète se saisit sur chaque tablette, rien n'est envoyé sans elle) */
 const SH_DEFAULT_URL='https://script.google.com/macros/s/AKfycbzwNfaSmI9PbkQ2ykDyHvfktcd8WVJPeg2-SvWG2ok0vl4IrRUj78rTiOaBBWP8jfiUbw/exec';
 let SH=LS('sh',{url:'',key:'',fmt:'code',q:[],dq:[]});SH.q=SH.q||[];SH.dq=SH.dq||[];if(!SH.url)SH.url=SH_DEFAULT_URL;
 const SH_HEAD=['Date','Classe','Élève','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur','Assis baudrier (nb)','PME (nb)','Sac à POF','Commentaire','Tablette','id'];
+/* script v3 : range les valeurs d'après les titres et ajoute les colonnes manquantes (avant « id ») */
+const SH_HEAD3=['Date','Classe','Élève','Assureur','Contre-assureur','Observateur','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur','Assis baudrier (nb)','PME (nb)','Sac à POF','Commentaire','Tablette','id'];
 const h32=s=>{let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.imul(h,16777619)}h^=h>>>13;h=Math.imul(h,0x5bd1e995);return (h^(h>>>15))>>>0};
 /* code stable : même clé + même classe + même prénom = même code sur toutes les tablettes */
 const anon=(cl,el)=>'E-'+(h32(SH.key+'|'+nrm(cl)+'|'+nrm(el))%1679616).toString(36).toUpperCase().padStart(4,'0');
 const pInit=n=>{const w=String(n||'').trim().split(/\s+/);return w.length<2?w[0]||'':w[0]+' '+w.slice(1).map(x=>x[0].toUpperCase()+'.').join('')};
+const shN=(r,n)=>!n?'':SH.fmt=='pi'?pInit(n):anon(r.cl,n);
+const shRow3=r=>[r.ts,r.cl||'',shN(r,r.el),shN(r,r.asr),shN(r,r.cas),shN(r,r.obs),r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k,r.tab,r.id];
 const shRow=r=>[r.ts,r.cl||'',SH.fmt=='pi'?pInit(r.el):anon(r.cl,r.el),r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k,r.tab,r.id];
 const shStatus=()=>!SH.url||!SH.key?'Non configuré.':`${SH.q.length?SH.q.length+' grimpe(s) en attente':(R.length?'Toutes les grimpes ont été reçues par Google ✓':'Aucune grimpe à envoyer')}${SH.dq.length?' · '+SH.dq.length+' suppression(s) en attente':''}${SH.err?' · ⚠ '+SH.err:''}${SH.last?' · dernière vérification : '+SH.last+(SH.rows!=null?' ('+SH.rows+' ligne(s) dans la feuille)':''):''}${navigator.onLine?'':' · hors connexion'}`;
 const shUpd=()=>{const e=$('#shS');if(e)e.textContent=shStatus()};
@@ -423,13 +444,14 @@ let shRT=null;
 /* envoi puis vérification : une grimpe ne quitte la file d'attente qu'une fois lue dans la feuille Google */
 async function sync(){if(!SH.url||!SH.key||shBusy||!navigator.onLine||(!SH.q.length&&!SH.dq.length))return shUpd();shBusy=true;clearTimeout(shRT);
  SH.q=SH.q.filter(id=>R.some(r=>r.id==id));
- const ids=SH.q.slice(0,150),del=SH.dq.slice(0,150),rows=ids.map(id=>R.find(r=>r.id==id)).map(shRow);
+ const ids=SH.q.slice(0,150),del=SH.dq.slice(0,150),v3=(SH.v||0)>=3,rows=ids.map(id=>R.find(r=>r.id==id)).map(v3?shRow3:shRow);
  let sent=false;
- try{await fetch(SH.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SH.key,head:SH_HEAD,rows,del})});sent=true}catch{SH.err='Envoi impossible (réseau ?)'}
+ try{await fetch(SH.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SH.key,head:v3?SH_HEAD3:SH_HEAD,rows,del})});sent=true}catch{SH.err='Envoi impossible (réseau ?)'}
  if(sent){await new Promise(r=>setTimeout(r,2000));
   const d=await shJ({ids:[...ids,...del].join(',')});
   if(!d)SH.err='Pas de réponse du script : nouvel essai automatique.';
   else if(!d.keyOk)SH.err="La clé secrète ne correspond pas à celle du script : rien n'a été reçu.";
+  else if((d.v||0)>=3&&(SH.v||0)<3){SH.v=d.v;SH.q=[...new Set([...SH.q,...R.filter(r=>r.asr||r.cas||r.obs).map(r=>r.id)])]}
   else if(!d.check){SH.q=SH.q.filter(id=>!ids.includes(id));SH.dq=SH.dq.filter(id=>!del.includes(id));SH.err='Envoyé, mais réception non vérifiée : mettez à jour le script Google (voir README).';SH.last=new Date().toLocaleString('fr-FR').slice(0,-3)}
   else{const have=new Set((d.have||[]).map(String)),okU=ids.filter(id=>have.has(String(id))),okD=del.filter(id=>!have.has(String(id)));
    SH.q=SH.q.filter(id=>!okU.includes(id));SH.dq=SH.dq.filter(id=>!okD.includes(id));

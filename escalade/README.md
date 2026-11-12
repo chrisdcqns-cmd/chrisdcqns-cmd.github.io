@@ -7,7 +7,7 @@ Application web pour tablette, pour l'escalade en moulinette au lycée : leçon 
 ## Déroulé
 
 1. **Leçon du jour** (🔒 Enseignant, code) : classe, éléments travaillés (facultatifs ou obligatoires), objectif de voies par élève.
-2. **Renseigner une grimpe** : l'élève choisit son prénom, le numéro de la corde, la couleur de la voie, confirme la cotation, puis renseigne les critères du jour (prises, changements de pieds, hauteur de 0 à 8 dégaines ou Top, baudrier, PME, sac à POF, commentaire).
+2. **Renseigner une grimpe** : l'élève choisit son prénom, le numéro de la corde, la couleur de la voie, confirme la cotation, indique **sa cordée** (assureur et contre-assureur obligatoires, observateur facultatif, choisis dans la liste de la classe), puis renseigne les critères du jour (prises, changements de pieds, hauteur de 0 à 8 dégaines ou Top, baudrier, PME, sac à POF, commentaire).
 3. **Mes résultats** : chaque élève retrouve sa dernière leçon et les leçons passées (tableau des voies, difficultés réussies, hauteur).
 4. **Cotation** : cotation de chaque voie par corde, et « Je cherche une voie ! » par difficulté.
 5. **Résultats et QRCODE** (mode enseignant) : export Excel, regroupement entre tablettes par QR code, Google Sheets.
@@ -43,6 +43,12 @@ Ensuite, chaque grimpe enregistrée est ajoutée à l'onglet « Grimpes » de la
 > Si tu modifies le script plus tard : **Déployer → Gérer les déploiements → Modifier → Nouvelle version**, pour garder la même URL.
 
 > L'adresse du script de l'enseignant est pré-remplie dans l'application (`SH_DEFAULT_URL` dans `index.html`) : sur chaque tablette, il suffit de saisir la **clé secrète**.
+
+## Colonnes Assureur, Contre-assureur, Observateur
+
+Dans la feuille, l'assureur, le contre-assureur et l'observateur sont, comme le grimpeur, remplacés par leur **code anonyme** (ou prénom + initiale).
+
+Ces trois colonnes n'apparaissent qu'avec le **script version 3** (fichier `apps-script/Code.gs` actuel) : il range chaque valeur d'après le titre de sa colonne et ajoute tout seul les colonnes manquantes, sans toucher aux lignes déjà présentes. Tant que l'ancien script est en place, l'application continue d'envoyer l'ancien format (sans la cordée) : rien ne se décale. Dès que le script est mis à jour (voir ci-dessous), l'application le détecte et renvoie automatiquement les grimpes qui ont une cordée pour compléter la feuille.
 
 ## Vérification de réception
 
