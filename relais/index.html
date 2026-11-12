@@ -293,7 +293,34 @@ body:not(.teach-on) .teach{display:none!important}
 .perfcard .pico{width:60px;height:60px;border-radius:16px;background:var(--track);color:#fff;display:grid;place-items:center;flex:none}
 .perfcard .pico svg{width:32px;height:32px}
 .perfcard .arr{color:var(--track);font-weight:700}
-.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.ptw{padding:8px 6px}
+.ptable{width:100%;border-collapse:collapse}
+.ptable th{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 4px;border-bottom:2px solid var(--line);text-align:center}
+.ptable th.l{text-align:left}.ptable th.ga{color:var(--track)}.ptable th.gb{color:var(--lane)}
+.ptable td{border-bottom:1px solid var(--line);padding:7px 3px;text-align:center;vertical-align:middle}
+.ptable td.pn{text-align:left;min-width:96px;padding-left:6px}.ptable td.pn b{font-size:19px}.ptable td.pn small{color:var(--muted)}
+.ptable td.pc.a{background:#FDF1EC}.ptable td.pc.l{background:#EEF5FA}
+.pst{display:inline-flex;align-items:stretch;border-radius:12px;overflow:hidden;background:#fff;border:2px solid var(--line)}
+.pst button{width:34px;height:52px;font-size:22px;font-weight:800;background:var(--soft)}
+.pst button:active{background:var(--line)}
+.pst .pv{min-width:48px;display:grid;place-items:center;font-family:"Barlow Condensed";font-size:24px;font-weight:800;padding:0 2px}
+.pst .pv small{font-size:14px;font-weight:600}
+.pst.off{opacity:.3}.pst.off button{cursor:default}
+td.pc.has .pst{border-color:var(--ink)}
+td.pc.pend .pst{border-color:var(--warn);background:var(--warn-soft)}
+td.pc.warn .pst{border-color:#C26A00}
+td.pc.ex .pv{text-decoration:line-through;opacity:.5}
+td.pc em{display:block;font-style:normal;font-size:13px;color:var(--muted);margin-top:3px;font-weight:600}
+.pw{display:block;font-size:12px;font-weight:700;color:#C26A00;margin-top:3px}
+.pex{margin-top:4px;font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;background:#fff;border:2px solid #C26A00;color:#C26A00}
+td.pm{min-width:58px}td.pm b{display:block;font-family:"Barlow Condensed";font-size:30px;font-weight:800;line-height:1}td.pm small{font-size:12px;color:var(--muted)}
+td.pm.a b{color:var(--track)}td.pm.l b{color:var(--lane)}td.pm.none b{color:var(--line)}
+tr.rpend td.pn{background:var(--warn-soft)}
+.pact{display:flex;gap:6px;margin-top:6px}
+.pok{height:44px;padding:0 14px;border-radius:12px;background:var(--ok);color:#fff;font-weight:800;font-size:16px}
+.pcan{width:44px;height:44px;border-radius:12px;background:var(--soft);font-size:20px;font-weight:800}
+.pdisp{color:var(--muted);font-style:italic}
+tr.disp{opacity:.55}
 .ptile{background:var(--card);border-radius:16px;box-shadow:0 2px 0 var(--line);padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:6px;border:2px solid transparent;min-height:118px}
 .ptile b{font-size:20px}.ptile b small{color:var(--muted);font-weight:600}
 .ptile.ok{border-color:var(--ok)}.ptile.part{border-color:var(--warn)}
@@ -305,7 +332,7 @@ body:not(.teach-on) .teach{display:none!important}
 .egrid.g3{grid-template-columns:repeat(3,1fr)}
 .pmoy{text-transform:none;letter-spacing:0;font-size:17px;color:var(--ink)}
 .pconv{font-size:14px;color:var(--muted);margin-top:4px;min-height:18px;font-weight:600}
-@media (max-width:820px){.pgrid{grid-template-columns:1fr 1fr}}
+@media (max-width:900px){.pst button{width:25px;height:46px;font-size:18px}.pst .pv{min-width:36px;font-size:19px}.ptable td{padding:6px 2px}.ptable td.pn{min-width:70px}.ptable td.pn b{font-size:16px}td.pm{min-width:44px}td.pm b{font-size:24px}#v-perf .wrap,.ptw{padding:6px 2px}}
 .todaycard{border:2px solid var(--ok)}
 .todayd{margin:0 0 6px;font-size:40px;font-weight:800}
 .cfgsum{display:flex;flex-wrap:wrap;gap:8px}
@@ -495,7 +522,8 @@ body:not(.teach-on) .teach{display:none!important}
   </div>
   <div class="card gcard" id="pf-gcard"><div class="label">Ton groupe</div><div class="gpick" id="pf-g"></div></div>
   <div class="stats" style="margin:0 0 14px" id="pf-stats"></div>
-  <div class="pgrid" id="pf-grid"></div>
+  <div class="card scroll ptw"><table class="ptable" id="pf-table"></table></div>
+  <p class="note">Règle chaque essai avec <b>−</b> et <b>+</b> (appui long pour aller plus vite), dans l'ordre : l'essai suivant s'active quand le précédent est renseigné. Touche <b>✓ Valider</b> pour enregistrer la ligne. Un essai validé ne peut être modifié qu'en mode enseignant. ⚠ signale un essai trop éloigné des deux autres : l'enseignant peut choisir de ne pas en tenir compte.</p>
 </section>
 
 <!-- CONSULTER UNE LEÇON -->
@@ -704,22 +732,14 @@ body:not(.teach-on) .teach{display:none!important}
     <button class="btn primary sm" id="f-save">Enregistrer</button></div>
 </div></div>
 
-<!-- Saisie des performances d'un élève -->
-<div class="modal" id="pfmodal"><div class="box wide">
-  <h3 id="pf-name"></h3>
-  <p id="pf-hint" style="margin:0 0 14px"></p>
-  <div class="eblk a"><div class="label"><span class="badge b1">A</span>Départ arrêté <span class="sp"></span><span class="pmoy" id="pf-ma"></span></div><div class="egrid g3" id="pf-a"></div></div>
-  <div class="eblk l"><div class="label"><span class="badge b2">L</span>Départ lancé <span class="sp"></span><span class="pmoy" id="pf-ml"></span></div><div class="egrid g3" id="pf-l"></div></div>
-  <div class="row mt"><span style="flex:1"></span>
-    <button class="btn ghost sm" id="pf-cancel">Annuler</button>
-    <button class="btn primary sm" id="pf-save">Enregistrer</button></div>
-</div></div>
 <div class="modal" id="pfcmodal"><div class="box">
   <h3>Mode de saisie</h3>
   <p>Les élèves saisissent directement leur vitesse, ou le temps chronométré sur une distance (la vitesse est alors calculée).</p>
   <div class="seg" id="pfc-mode" style="--n:2"><button data-m="kmh">Vitesse (km/h)</button><button data-m="temps">Temps (s)</button></div>
   <div id="pfc-distw" class="mt"><label class="fl" for="pfc-dist">Distance chronométrée (m)</label>
     <div class="stw small"><button class="stp" data-dd="-5">−</button><input id="pfc-dist" inputmode="numeric"><button class="stp" data-dd="5">+</button></div></div>
+  <div class="mt"><label class="fl">Écart signalé ⚠ si un essai s'éloigne des deux autres de plus de (km/h)</label>
+    <div class="stw small"><button class="stp" data-th="-0.5">−</button><input id="pfc-thr" inputmode="decimal"><button class="stp" data-th="0.5">+</button></div></div>
   <div class="row mt"><span style="flex:1"></span><button class="btn ghost sm" id="pfc-cancel">Annuler</button><button class="btn primary sm" id="pfc-save">Enregistrer</button></div>
 </div></div>
 
@@ -1277,6 +1297,7 @@ $("#e-save").addEventListener("click",()=>{
     const g=GR().find(g=>g.id===CURG());if(g&&!g.members.includes(e.id))g.members.push(e.id);
   }else{
     const e=byId(EDIT_ID);Object.assign(e,{prenom,nom,best:ED.best||null},vals);if(!e.added)e.edited=true;
+    if(!ED.disp){if(e.exA&&nTry(e.ea)>=3)e.ma=moyEx(e.ea,e.exA);if(e.exL&&nTry(e.el)>=3)e.ml=moyEx(e.el,e.exL)}
   }
   persist();renderClassAll();$("#emodal").classList.remove("on");
   toast(EDIT_ID===null?prenom+" ajouté(e) ✓":prenom+" : fiche mise à jour ✓");
@@ -1387,83 +1408,124 @@ function onCible(){const r=pair("c");$("#c-gohint").textContent=r?`Binôme ${r.e
 $("#c-r1").addEventListener("change",onCible);$("#c-r2").addEventListener("change",onCible);
 $("#c-go").addEventListener("click",()=>{$("#r-r1").value=$("#c-r1").value;$("#r-r2").value=$("#c-r2").value;resetST();go("course");onCourse();guide()});
 
-/* ===== Prise de performances ===== */
-const PFC=()=>CL().perf||(CL().perf={mode:"kmh",dist:30});
+/* ===== Prise de performances (tableau) ===== */
+const PFC=()=>{const c=CL();if(!c.perf)c.perf={mode:"kmh",dist:30,thr:2};if(c.perf.thr==null)c.perf.thr=2;return c.perf};
 const nTry=a=>a.filter(v=>typeof v==="number").length;
+const teachOn=()=>Date.now()<UNLOCK_UNTIL;
+const spd=(t,d)=>t>0?Math.round(d/t*3.6*10)/10:null;
+/* moyenne des essais retenus (au moins 3 essais faits) */
+function moyEx(arr,ex){if(nTry(arr)<3)return null;const v=arr.filter((x,i)=>typeof x==="number"&&!(ex&&ex[i]));if(!v.length)return null;return Math.ceil(v.reduce((s,x)=>s+x,0)/v.length-1e-9)}
 function perfState(e){if(e.ma==="DISP")return "disp";const a=nTry(e.ea),l=nTry(e.el);if(a>=3&&l>=3)return "ok";if(a||l)return "part";
   return (typeof e.ma==="number"&&e.ma>0&&typeof e.ml==="number"&&e.ml>0)?"ok":"none"}
+let PEND={};
+const KA={a:["ea","ta","exA","ma"],l:["el","tl","exL","ml"]};
+function pv(e,k,i){
+  const P=PEND[e.id]&&PEND[e.id][k];const pc=PFC();
+  if(P&&P[i]!=null){const raw=P[i];return {raw,s:pc.mode==="temps"?spd(raw,pc.dist):raw,pend:true,unit:pc.mode==="temps"?"s":"km/h"}}
+  const s=e[KA[k][0]][i];if(typeof s!=="number")return null;
+  const t=(e[KA[k][1]]||[])[i];
+  if(pc.mode==="temps"&&t!=null)return {raw:t,s,pend:false,unit:"s"};
+  return {raw:s,s,pend:false,unit:"km/h"};
+}
+function outlier(e,k,i){
+  const a=e[KA[k][0]];if(nTry(a)<3||typeof a[i]!=="number")return false;
+  const o=a.filter((x,j)=>j!==i&&typeof x==="number");const m=o.reduce((s,x)=>s+x,0)/o.length;
+  return Math.abs(a[i]-m)>PFC().thr;
+}
+function cellHTML(e,k,i){
+  const v=pv(e,k,i),prevOk=i===0||!!pv(e,k,i-1),locked=v&&!v.pend&&!teachOn(),on=prevOk&&!locked;
+  const ex=(e[KA[k][2]]||[])[i],warn=v&&!v.pend&&outlier(e,k,i);
+  const show=v?(v.unit==="s"?fmt(v.raw)+"<small> s</small>":fmt(v.raw)):"·";
+  const sub=v&&v.unit==="s"&&v.s?`<em>${fmt(v.s)} km/h</em>`:"";
+  const tog=(warn||ex)&&v&&!v.pend?`<button class="pex teach" data-ex="${e.id}" data-k="${k}" data-i="${i}">${ex?"Compter":"Ignorer"}</button>`:"";
+  return `<td class="pc ${k} ${v?"has":""} ${v&&v.pend?"pend":""} ${ex?"ex":""} ${warn?"warn":""}">
+    <div class="pst ${on?"":"off"}"><button data-pm="-1" data-id="${e.id}" data-k="${k}" data-i="${i}" ${on?"":"disabled"}>−</button><span class="pv">${show}</span><button data-pm="1" data-id="${e.id}" data-k="${k}" data-i="${i}" ${on?"":"disabled"}>+</button></div>
+    ${sub}${warn&&!ex?`<span class="pw">⚠ écart</span>`:""}${ex?`<span class="pw">non compté</span>`:""}${tog}</td>`;
+}
+function moyHTML(e,k){
+  const a=e[KA[k][0]],ex=e[KA[k][2]]||[],n=nTry(a),m=moyEx(a,ex),nex=ex.filter((x,i)=>x&&typeof a[i]==="number").length;
+  if(m!==null)return `<td class="pm ${k}"><b>${m}</b><small>km/h${nex?` · ${3-nex} essai${3-nex>1?"s":""}`:""}</small></td>`;
+  const old=e[KA[k][3]];
+  if(n===0&&typeof old==="number"&&old>0)return `<td class="pm ${k}"><b>${old}</b><small>km/h</small></td>`;
+  return `<td class="pm ${k} none"><b>—</b><small>${n}/3</small></td>`;
+}
 function renderPerf(){
   const pc=PFC();
-  $("#pf-mode").textContent=pc.mode==="temps"?`Saisie : temps en secondes sur ${pc.dist} m (la vitesse est calculée).`:"Saisie : vitesse en km/h.";
-  const html=GR().map(g=>`<button data-g="${g.id}" class="${CURG()===g.id?"on":""}">${esc(g.name)}<small>${groupMembers(g).length}</small></button>`).join("")+`<button data-g="all" class="${CURG()==="all"?"on":""}">Toute la classe</button>`;
-  $("#pf-g").innerHTML=html;$("#pf-gcard").style.display=GR().length?"":"none";
+  $("#pf-mode").textContent=pc.mode==="temps"?`Saisie : temps en secondes sur ${pc.dist} m (la vitesse est calculée) · ⚠ au-delà de ${fmt(pc.thr)} km/h d'écart.`:`Saisie : vitesse en km/h · ⚠ au-delà de ${fmt(pc.thr)} km/h d'écart.`;
+  $("#pf-g").innerHTML=GR().map(g=>`<button data-g="${g.id}" class="${CURG()===g.id?"on":""}">${esc(g.name)}<small>${groupMembers(g).length}</small></button>`).join("")+`<button data-g="all" class="${CURG()==="all"?"on":""}">Toute la classe</button>`;
+  $("#pf-gcard").style.display=GR().length?"":"none";
   const pool=[...poolFor()].sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
   const all=EL().filter(e=>e.ma!=="DISP"),ok=all.filter(e=>perfState(e)==="ok").length;
   $("#pf-stats").innerHTML=`<div class="chip"><b>${ok}/${all.length}</b> élèves avec leurs deux moyennes</div>`;
-  const dots=a=>[0,1,2].map(i=>`<i class="${typeof a[i]==="number"?"f":""}"></i>`).join("");
-  $("#pf-grid").innerHTML=pool.map(e=>{const s=perfState(e);
-    if(s==="disp")return `<div class="ptile disp"><b>${esc(e.prenom)}</b><span>dispensé</span></div>`;
-    return `<button class="ptile ${s}" data-pf="${e.id}"><b>${esc(e.prenom)} <small>${esc(e.nom?e.nom[0]+".":"")}</small></b>
-      <span class="pl"><em class="a">Arrêté</em><span class="dots">${dots(e.ea)}</span><strong>${nTry(e.ea)>=3||typeof e.ma==="number"&&e.ma>0?e.ma+" km/h":"—"}</strong></span>
-      <span class="pl"><em class="l">Lancé</em><span class="dots">${dots(e.el)}</span><strong>${nTry(e.el)>=3||typeof e.ml==="number"&&e.ml>0?e.ml+" km/h":"—"}</strong></span></button>`}).join("")||`<div class="card empty-msg">Aucun élève.</div>`;
+  let t=`<thead><tr><th rowspan="2" class="l">Prénom</th><th colspan="3" class="ga">Départ arrêté</th><th rowspan="2" class="ga">Moy.</th><th colspan="3" class="gb">Départ lancé</th><th rowspan="2" class="gb">Moy.</th></tr>
+    <tr><th class="ga">1</th><th class="ga">2</th><th class="ga">3</th><th class="gb">1</th><th class="gb">2</th><th class="gb">3</th></tr></thead><tbody>`;
+  pool.forEach(e=>{
+    if(e.ma==="DISP"){t+=`<tr class="disp"><td class="l"><b>${esc(e.prenom)}</b> <small>${esc(e.nom?e.nom[0]+".":"")}</small></td><td colspan="8" class="pdisp">dispensé</td></tr>`;return}
+    const pend=PEND[e.id]&&(["a","l"].some(k=>(PEND[e.id][k]||[]).some(x=>x!=null)));
+    t+=`<tr class="${pend?"rpend":""}"><td class="l pn"><b>${esc(e.prenom)}</b> <small>${esc(e.nom?e.nom[0]+".":"")}</small>
+      ${pend?`<div class="pact"><button class="pok" data-val="${e.id}">✓ Valider</button><button class="pcan" data-can="${e.id}" aria-label="Annuler">↺</button></div>`:""}</td>
+      ${[0,1,2].map(i=>cellHTML(e,"a",i)).join("")}${moyHTML(e,"a")}${[0,1,2].map(i=>cellHTML(e,"l",i)).join("")}${moyHTML(e,"l")}</tr>`;
+  });
+  if(!pool.length)t+=`<tr><td colspan="9" class="empty-msg">Aucun élève.</td></tr>`;
+  $("#pf-table").innerHTML=t+"</tbody>";
+}
+/* valeur de départ quand on touche + ou − sur un essai vide */
+function startVal(e,k,i){
+  const pc=PFC(),prev=i>0?pv(e,k,i-1):null;if(prev&&prev.unit===(pc.mode==="temps"?"s":"km/h"))return prev.raw;
+  const vals=[];EL().forEach(x=>{if(x===e)return;const arr=pc.mode==="temps"?(x[KA[k][1]]||[]):x[KA[k][0]];arr.forEach(v=>{if(typeof v==="number")vals.push(v)})});
+  if(vals.length){vals.sort((a,b)=>a-b);return vals[Math.floor(vals.length/2)]}
+  return pc.mode==="temps"?(k==="a"?5:4.5):(k==="a"?20:22);
+}
+function stepCell(id,k,i,d){
+  const e=byId(id),pc=PFC(),st=pc.mode==="temps"?0.1:0.5;
+  PEND[id]=PEND[id]||{a:[null,null,null],l:[null,null,null]};
+  const cur=pv(e,k,i);
+  let nv;
+  if(!cur)nv=startVal(e,k,i);
+  else{const base=(cur.unit==="km/h")===(pc.mode!=="temps")?cur.raw:(pc.mode==="temps"?(cur.s>0?Math.round(pc.dist/(cur.s/3.6)*10)/10:5):cur.s);nv=Math.max(st,Math.round((base+d*st)*10)/10)}
+  PEND[id][k][i]=nv;renderPerf();
+}
+let pfHold=null;
+$("#pf-table").addEventListener("pointerdown",e=>{const b=e.target.closest("[data-pm]");if(!b||b.disabled)return;e.preventDefault();
+  const a=[+b.dataset.id,b.dataset.k,+b.dataset.i,+b.dataset.pm];stepCell(...a);
+  clearTimeout(pfHold);pfHold=setTimeout(function rep(){stepCell(...a);pfHold=setTimeout(rep,110)},450)});
+["pointerup","pointercancel","pointerleave"].forEach(ev=>$("#pf-table").addEventListener(ev,()=>{clearTimeout(pfHold);pfHold=null}));
+document.addEventListener("pointerup",()=>{clearTimeout(pfHold);pfHold=null});
+$("#pf-table").addEventListener("click",async e=>{
+  const v=e.target.closest("[data-val]"),c=e.target.closest("[data-can]"),x=e.target.closest("[data-ex]");
+  if(c){delete PEND[+c.dataset.can];renderPerf();return}
+  if(x){if(!await requireCode())return;const s=byId(+x.dataset.ex),k=x.dataset.k,i=+x.dataset.i,key=KA[k][2];
+    s[key]=s[key]||[false,false,false];s[key][i]=!s[key][i];recalcMoy(s);persist();renderPerf();renderClassAll();
+    toast(s[key][i]?"Essai "+(i+1)+" non compté dans la moyenne":"Essai "+(i+1)+" de nouveau compté");return}
+  if(v){const id=+v.dataset.val,s=byId(id),P=PEND[id],pc=PFC();if(!P)return;
+    ["a","l"].forEach(k=>P[k].forEach((raw,i)=>{if(raw==null)return;
+      const sp=pc.mode==="temps"?spd(raw,pc.dist):raw;
+      s[KA[k][0]]=s[KA[k][0]].map(x=>typeof x==="number"?x:null);s[KA[k][0]][i]=sp;
+      s[KA[k][1]]=s[KA[k][1]]||[null,null,null];s[KA[k][1]][i]=pc.mode==="temps"?raw:null;
+      if(s[KA[k][2]])s[KA[k][2]][i]=false;}));
+    delete PEND[id];recalcMoy(s);s.perf=true;persist();renderPerf();renderClassAll();
+    const st=perfState(s);toast(s.prenom+" : "+(st==="ok"?`moyennes ${s.ma} et ${s.ml} km/h ✓`:"essais enregistrés ✓"))}
+});
+function recalcMoy(s){
+  ["a","l"].forEach(k=>{const arr=s[KA[k][0]],n=nTry(arr);
+    if(n>=3)s[KA[k][3]]=moyEx(arr,s[KA[k][2]]);else if(n>0)s[KA[k][3]]=0;});
 }
 $("#pf-g").addEventListener("click",e=>{const b=e.target.closest("[data-g]");if(!b)return;CL().curg=b.dataset.g;persist();renderPerf();renderGPicks();refillSelects()});
 $("#l-perf").addEventListener("click",()=>go("perf"));
-let PF=null;
-const spd=(t,d)=>t>0?Math.round(d/t*3.6*10)/10:null;
-function pfInputs(box,arr){
-  const pc=PFC();
-  box.innerHTML=[0,1,2].map(i=>{const v=arr[i];const shown=typeof v==="number"?(pc.mode==="temps"?(PF.t&&PF.t[box.id]&&PF.t[box.id][i]!=null?PF.t[box.id][i]:""):v):"";
-    return `<div class="ef"><span>Essai ${i+1}${pc.mode==="temps"?" · temps (s)":" · km/h"}</span><div class="stw"><button class="stp" data-d="${pc.mode==="temps"?-0.1:-1}">−</button><input data-i="${i}" inputmode="decimal" value="${shown}" placeholder="${typeof v==="number"&&pc.mode==="temps"?v+" km/h":""}"><button class="stp" data-d="${pc.mode==="temps"?0.1:1}">+</button></div><div class="pconv" data-c="${i}"></div></div>`}).join("");
-}
-function pfRead(boxId){
-  const pc=PFC();
-  return [...document.querySelectorAll("#"+boxId+" input")].map((inp,i)=>{
-    const raw=numOrNull(inp.value);const c=document.querySelector(`#${boxId} [data-c="${i}"]`);
-    if(raw===null){const old=PF.e[boxId==="pf-a"?"ea":"el"][i];c.textContent=pc.mode==="temps"&&typeof old==="number"?"déjà saisi : "+old+" km/h":"";return pc.mode==="temps"&&typeof old==="number"&&inp.value===""&&!PF.cleared[boxId+i]?old:null}
-    if(pc.mode==="temps"){const s=spd(raw,pc.dist);c.textContent=s?`= ${fmt(s)} km/h`:"";return s}
-    c.textContent="";return raw;
-  });
-}
-function pfUpd(){
-  const a=pfRead("pf-a"),l=pfRead("pf-l");PF.a=a;PF.l=l;
-  const m=arr=>nTry(arr)>=3?moyEssais(arr)+" km/h":`encore ${3-nTry(arr)} essai${3-nTry(arr)>1?"s":""}`;
-  $("#pf-ma").innerHTML="Moyenne : <b>"+m(a)+"</b>";$("#pf-ml").innerHTML="Moyenne : <b>"+m(l)+"</b>";
-}
-function openPerf(id){
-  const e=byId(id);PF={e,id,cleared:{}};
-  $("#pf-name").textContent=e.prenom+" "+e.nom;
-  $("#pf-hint").textContent="Saisis tes essais au fur et à mesure. La moyenne apparaît après 3 essais. Pour modifier un essai déjà enregistré, le code enseignant est demandé.";
-  pfInputs($("#pf-a"),e.ea.map(v=>typeof v==="number"?v:null));pfInputs($("#pf-l"),e.el.map(v=>typeof v==="number"?v:null));
-  pfUpd();$("#pfmodal").classList.add("on");
-}
-$("#pf-grid").addEventListener("click",e=>{const b=e.target.closest("[data-pf]");if(b)openPerf(+b.dataset.pf)});
-$("#pfmodal").addEventListener("input",e=>{if(e.target.matches("input")){if(e.target.value==="")PF.cleared[e.target.closest(".egrid").id+e.target.dataset.i]=true;pfUpd()}});
-$("#pfmodal").addEventListener("click",e=>{const b=e.target.closest(".stp");if(!b)return;const inp=b.parentElement.querySelector("input");const pc=PFC();
-  const v=numOrNull(inp.value);const d=+b.dataset.d;const base=v??(pc.mode==="temps"?5:20);inp.value=Math.max(0,Math.round((base+d)*10)/10);pfUpd()});
-$("#pf-cancel").addEventListener("click",()=>$("#pfmodal").classList.remove("on"));
-$("#pf-save").addEventListener("click",async()=>{
-  pfUpd();const e=PF.e;
-  const old=[...e.ea,...e.el].map(v=>typeof v==="number"?v:null),nw=[...PF.a,...PF.l];
-  const changed=old.some((v,i)=>v!==null&&v!==nw[i]);
-  if(changed){$("#pfmodal").classList.remove("on");if(!await requireCode()){$("#pfmodal").classList.add("on");return}}
-  e.ea=PF.a;e.el=PF.l;
-  const na=nTry(e.ea),nl=nTry(e.el);
-  e.ma=na>=3?moyEssais(e.ea):(na===0&&typeof e.ma==="number"?e.ma:0);
-  e.ml=nl>=3?moyEssais(e.el):(nl===0&&typeof e.ml==="number"?e.ml:0);
-  if(na>0&&na<3)e.ma=0;if(nl>0&&nl<3)e.ml=0;
-  e.perf=true;persist();$("#pfmodal").classList.remove("on");renderClassAll();renderPerf();
-  toast(e.prenom+" : "+(na>=3&&nl>=3?"moyennes "+e.ma+" et "+e.ml+" km/h ✓":"essais enregistrés ✓"));
-});
+/* le mode enseignant (dé)verrouille les essais validés */
+document.addEventListener("click",e=>{if(e.target.closest("[data-teach]")&&$("#v-perf").classList.contains("on"))setTimeout(renderPerf,400)});
+
 /* Mode de saisie (enseignant) */
 let PFCT=null;
 $("#pf-cfg").addEventListener("click",async()=>{if(!await requireCode())return;PFCT={...PFC()};drawPfc();$("#pfcmodal").classList.add("on")});
-function drawPfc(){document.querySelectorAll("#pfc-mode button").forEach(b=>b.classList.toggle("on",b.dataset.m===PFCT.mode));$("#pfc-distw").style.display=PFCT.mode==="temps"?"":"none";$("#pfc-dist").value=PFCT.dist}
+function drawPfc(){document.querySelectorAll("#pfc-mode button").forEach(b=>b.classList.toggle("on",b.dataset.m===PFCT.mode));$("#pfc-distw").style.display=PFCT.mode==="temps"?"":"none";$("#pfc-dist").value=PFCT.dist;$("#pfc-thr").value=fmt(PFCT.thr)}
 $("#pfc-mode").addEventListener("click",e=>{const b=e.target.closest("[data-m]");if(!b)return;PFCT.mode=b.dataset.m;drawPfc()});
-document.querySelectorAll("#pfcmodal .stp").forEach(b=>b.addEventListener("click",()=>{PFCT.dist=Math.min(200,Math.max(5,(PFCT.dist||30)+(+b.dataset.dd)));drawPfc()}));
+document.querySelectorAll("#pfcmodal .stp[data-dd]").forEach(b=>b.addEventListener("click",()=>{PFCT.dist=Math.min(200,Math.max(5,(PFCT.dist||30)+(+b.dataset.dd)));drawPfc()}));
+document.querySelectorAll("#pfcmodal .stp[data-th]").forEach(b=>b.addEventListener("click",()=>{PFCT.thr=Math.min(10,Math.max(0.5,Math.round(((PFCT.thr||2)+(+b.dataset.th))*10)/10));drawPfc()}));
+$("#pfc-thr").addEventListener("change",()=>{PFCT.thr=Math.min(10,Math.max(0.5,numOrNull($("#pfc-thr").value)||2));drawPfc()});
 $("#pfc-dist").addEventListener("change",()=>{PFCT.dist=Math.min(200,Math.max(5,parseInt($("#pfc-dist").value)||30));drawPfc()});
 $("#pfc-cancel").addEventListener("click",()=>$("#pfcmodal").classList.remove("on"));
-$("#pfc-save").addEventListener("click",()=>{CL().perf=PFCT;persist();$("#pfcmodal").classList.remove("on");renderPerf();toast("Mode de saisie enregistré ✓")});
+$("#pfc-save").addEventListener("click",()=>{CL().perf=PFCT;PEND={};persist();$("#pfcmodal").classList.remove("on");renderPerf();toast("Mode de saisie enregistré ✓")});
 
 /* ===== Leçons ===== */
 let BILAN=null;

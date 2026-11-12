@@ -7,7 +7,7 @@ Application web pour tablette, pour le relais-vitesse au lycée : vitesse cible 
 ## Déroulé
 
 1. **Classe** : importer la liste des élèves (.xls, .xlsx, .ods ou .csv, par exemple un export Pronote). Les noms et prénoms sont reconnus automatiquement.
-2. **Prise de performances** (depuis la page des leçons) : chaque élève fait 3 courses départ arrêté puis 3 courses départ lancé ; la moyenne (arrondie au km/h supérieur) sert à calculer les vitesses cibles. Saisie en km/h ou en temps sur une distance. Modifier un essai déjà saisi demande le code enseignant.
+2. **Prise de performances** (depuis la page des leçons) : tableau Prénom · départ arrêté (3 essais) · moyenne · départ lancé (3 essais) · moyenne. Chaque essai se règle avec − et +, dans l'ordre, puis la ligne est validée ; la moyenne (arrondie au km/h supérieur) sert à calculer les vitesses cibles. Saisie en km/h ou en temps sur une distance. Un essai trop éloigné des deux autres est signalé ⚠ et l'enseignant peut ne pas en tenir compte. Modifier un essai validé demande le mode enseignant.
 3. **Leçon** : la leçon du jour est datée automatiquement. On peut consulter les leçons précédentes.
 4. **Groupes** : sélectionner les élèves de chaque groupe.
 5. **Courses** : vitesse cible (moyenne entre le départ arrêté du coureur 1 et le départ lancé du coureur 2), puis saisie de la course : écart à la cible, zone de transmission (sur l'image de la piste), type de départ, plots, questions de diagnostic et conseil.
