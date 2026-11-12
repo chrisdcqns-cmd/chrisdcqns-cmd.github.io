@@ -387,7 +387,9 @@ function imp(){const L=$('#imp').value.split('\n').map(s=>s.trim()).filter(s=>s.
  let add=0,bad=0;for(const s in g){const x=g[s];let t='';for(let i=1;i<=x.n;i++)t+=x.p[i]||'';try{JSON.parse(t).forEach(a=>{if(!R.some(r=>r.id==a[0])){R.push({id:a[0],ts:a[1],tab:a[2],el:a[3],vo:a[4],c:a[5],d:a[6],m:a[7],p:a[8],h:a[9],a:a[10],pm:a[11],k:a[12],cl:a[13]??'',cp:a[14]??'',pof:a[15]??''});add++}})}catch{bad++}}
  save();render();say(add+' grimpe(s) ajoutée(s).'+(bad?'\n'+bad+' lot(s) incomplet(s) : il manque des QR.':''))}
 /* ---------- Google Sheets (anonymisé) ---------- */
-let SH=LS('sh',{url:'',key:'',fmt:'code',q:[],dq:[]});SH.q=SH.q||[];SH.dq=SH.dq||[];
+/* adresse du script Apps Script de l'enseignant (la clé secrète se saisit sur chaque tablette, rien n'est envoyé sans elle) */
+const SH_DEFAULT_URL='https://script.google.com/macros/s/AKfycbzwNfaSmI9PbkQ2ykDyHvfktcd8WVJPeg2-SvWG2ok0vl4IrRUj78rTiOaBBWP8jfiUbw/exec';
+let SH=LS('sh',{url:'',key:'',fmt:'code',q:[],dq:[]});SH.q=SH.q||[];SH.dq=SH.dq||[];if(!SH.url)SH.url=SH_DEFAULT_URL;
 const SH_HEAD=['Date','Classe','Élève','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur','Assis baudrier (nb)','PME (nb)','Sac à POF','Commentaire','Tablette','id'];
 const h32=s=>{let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.imul(h,16777619)}h^=h>>>13;h=Math.imul(h,0x5bd1e995);return (h^(h>>>15))>>>0};
 /* code stable : même clé + même classe + même prénom = même code sur toutes les tablettes */
