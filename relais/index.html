@@ -860,6 +860,8 @@ tr.disp{opacity:.55}
   <div class="frow"><button class="fck" data-f="evalOn"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Évaluation (version enseignant) <small>grille cliquable 4 éléments × 4 degrés, note sur 20, suggestions tirées des courses et auto-évaluation de l'élève</small></button></div>
   <div class="frow"><button class="fck" data-f="autoOn"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Auto-évaluation des élèves <small>grille simplifiée : l'élève clique sur ses cases et voit sa note en direct</small></button>
     <div class="fopt"><button class="fck sub" data-f="autoReq"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Obligatoire pendant cette leçon <small>un message d'alerte s'affiche tant qu'un élève ne l'a pas faite</small></button></div></div>
+  <div class="frow" id="f-evrepw"><label class="fl" style="font-weight:800">Répartition des 8 points AFL2 / AFL3 <small style="font-weight:500;color:var(--muted)">(Mise en projet / Vivre les rôles)</small></label>
+    <div class="seg mt" id="f-evrep" style="--n:4"><button data-r="4-4">4 / 4</button><button data-r="6-2">6 / 2</button><button data-r="2-6">2 / 6</button><button data-r="eleve">Au choix de l'élève</button></div></div>
   <div class="frow"><button class="fck" data-f="ecart"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Vitesse réalisée <small>écart à la cible, de −4 à +5 km/h</small></button></div>
   <div class="frow"><button class="fck" data-f="zone"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Zone de transmission</button>
     <div class="fopt"><button class="fck sub" data-f="zoneImg"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Choisir sur l'image de la piste <small>hors zone · zone 100 · zone 10 · zone 1</small></button>
@@ -1083,7 +1085,7 @@ const isoDate=iso=>new Date(iso+"T12:00:00");
 const fmtLong=iso=>isoDate(iso).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const fmtShort=iso=>isoDate(iso).toLocaleDateString("fr-FR");
-const DEFCFG={evalOn:false,autoOn:false,autoReq:false,coachOn:false,goalOn:false,goalN:4,goalMode:"both",allPairs:false,zoneImg:true,ecart:true,zone:true,dep:true,pt:true,pm:true,zones:["Zone 1","Zone 2","Zone 3"],deps:["Debout","Trépied","Balancé"],nPT:10,nPM:10};
+const DEFCFG={evRep:"4-4",evalOn:false,autoOn:false,autoReq:false,coachOn:false,goalOn:false,goalN:4,goalMode:"both",allPairs:false,zoneImg:true,ecart:true,zone:true,dep:true,pt:true,pm:true,zones:["Zone 1","Zone 2","Zone 3"],deps:["Debout","Trépied","Balancé"],nPT:10,nPM:10};
 /* Version précédente : les courses sont rangées dans des leçons selon leur date */
 DATA.classes.forEach(c=>{
   if(!Array.isArray(c.lecons)){
@@ -1852,6 +1854,7 @@ function cfgChips(cfg){
   if(cfg.coachOn)it.push(["coachOn","Un entraîneur par groupe"]);
   if(cfg.evalOn)it.push(["evalOn","Évaluation enseignant"]);
   if(cfg.autoOn)it.push(["autoOn","Auto-évaluation"+(cfg.autoReq?" obligatoire":"")]);
+  if(cfg.evalOn||cfg.autoOn)it.push(["evalOn","AFL2 / AFL3 : "+((cfg.evRep||"4-4")==="eleve"?"au choix de l'élève":(cfg.evRep||"4-4").replace("-"," / "))]);
   return it.map(([k,l])=>`<span class="${cfg[k]?"":"off"}">${esc(l)}</span>`).join("");
 }
 $("#l-start").addEventListener("click",()=>{
@@ -1938,6 +1941,8 @@ function drawCfg(){
   $("#f-zlist").style.display=FC.zoneImg?"none":"";$("#f-deps").innerHTML=chips(FC.deps,"deps");
   $("#f-npt").value=FC.nPT;$("#f-npm").value=FC.nPM;$("#f-goaln").value=FC.goalN;
   document.querySelectorAll("#f-goalmode button").forEach(b=>b.classList.toggle("on",b.dataset.m===FC.goalMode));
+  document.querySelectorAll("#f-evrep button").forEach(b=>b.classList.toggle("on",b.dataset.r===(FC.evRep||"4-4")));
+  $("#f-evrepw").style.display=(FC.evalOn||FC.autoOn)?"":"none";
   $("#f-goalhint").textContent=FC.goalMode==="both"?`Chaque élève doit faire ${FC.goalN} course(s) comme donneur et ${FC.goalN} comme receveur.`:`Chaque élève doit faire ${FC.goalN} course(s) dans son meilleur rôle (défini dans sa fiche, sinon d'après ses résultats). Avec « courir avec tout le groupe », il suffit d'avoir couru une fois avec chacun, quel que soit le rôle.`;
 }
 document.querySelectorAll("#fmodal .fck[data-f]").forEach(b=>b.addEventListener("click",()=>{FC[b.dataset.f]=!FC[b.dataset.f];drawCfg()}));
@@ -1946,6 +1951,7 @@ function addChip(inp,key){const v=$(inp).value.trim();if(!v)return;if(FC[key].le
 $("#f-zadd").addEventListener("click",()=>addChip("#f-zin","zones"));$("#f-dadd").addEventListener("click",()=>addChip("#f-din","deps"));
 $("#f-zin").addEventListener("keydown",e=>{if(e.key==="Enter")addChip("#f-zin","zones")});$("#f-din").addEventListener("keydown",e=>{if(e.key==="Enter")addChip("#f-din","deps")});
 document.querySelectorAll("#fmodal .stp[data-n]").forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.n;FC[k]=Math.min(30,Math.max(1,(FC[k]||10)+(+b.dataset.d)));drawCfg()}));
+$("#f-evrep").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;FC.evRep=b.dataset.r;drawCfg()});
 $("#f-goalmode").addEventListener("click",e=>{const b=e.target.closest("[data-m]");if(!b)return;FC.goalMode=b.dataset.m;drawCfg()});
 $("#f-goaln").addEventListener("change",()=>{FC.goalN=Math.min(30,Math.max(1,parseInt($("#f-goaln").value)||4));drawCfg()});
 $("#f-npt").addEventListener("change",()=>{FC.nPT=Math.min(30,Math.max(1,parseInt($("#f-npt").value)||10));drawCfg()});
@@ -1973,6 +1979,8 @@ const EVE=[
 ];
 const EV_REPS=["4-4","6-2","2-6"];
 function evMax(k,rep){if(k==="perf"||k==="trans")return 6;const [a,b]=(rep||"4-4").split("-").map(Number);return k==="proj"?a:b}
+const evRepMode=()=>(CFG().evRep||"4-4");
+const evRepOf=o=>evRepMode()==="eleve"?(o&&o.rep)||"4-4":evRepMode();
 function evOf(id){const C=CL();if(!C.evals)C.evals={};const E=C.evals;if(!E[id])E[id]={rep:"4-4",prof:{},auto:{}};const o=E[id];o.prof=o.prof||{};o.auto=o.auto||{};o.rep=o.rep||"4-4";return o}
 function evPts(sel,k,rep){const s=sel&&sel[k];if(!s||!s.d)return null;const r=EVR[evMax(k,rep)][s.d];return s.p!=null?Math.min(r[1],Math.max(r[0],s.p)):r[1]}
 function evTotal(sel,rep){let t=0,n=0;EVE.forEach(x=>{const p=evPts(sel,x.k,rep);if(p!=null){t+=p;n++}});return {t:Math.round(t*100)/100,n}}
@@ -2000,12 +2008,13 @@ function evNamesHTML(list,sel,mark){
 }
 const evList=all=>(all?EL():poolFor()).filter(e=>e.ma!=="DISP").slice().sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
 function evGridHTML(mode,e){
-  const o=evOf(e.id),rp=o.rep,lid=CLE().id,prof=mode==="prof";
+  const o=evOf(e.id),rp=evRepOf(o),lid=CLE().id,prof=mode==="prof",free=evRepMode()==="eleve";
   const sel=prof?o.prof:((o.auto[lid]||{}).sel||{});
   const la=prof?lastAuto(o):null,sg=prof?evSuggest(e):null;
   const repLab=r=>r.replace("-"," / ");
   let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}</div>
-    <div class="evrep"><span>${prof?"Répartition AFL2 / AFL3 (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}</div>
+    <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
+      :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts${prof?" (répartition fixée dans les réglages de la leçon)":""}</span>`}</div>
     <div class="evgrid"><div></div>${[4,3,2,1].map(d=>`<div class="evh d${d}">Degré ${d}</div>`).join("")}`;
   EVE.forEach(x=>{const mx=evMax(x.k,rp),pt=evPts(sel,x.k,rp);
     h+=`<div class="evl">${x.t}<small>${x.s} · sur ${mx} pts</small>${pt!=null?`<span class="evp">${fmtP(pt)} / ${mx}</span>`:""}</div>`;
@@ -2029,7 +2038,7 @@ let EV_SEL=null,AU_SEL=null;
 function renderEval(){
   const L=evList(true);if(EV_SEL!=null&&!L.some(e=>e.id===EV_SEL))EV_SEL=null;
   const lid=CLE()?CLE().id:null;
-  $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];const p=o&&evTotal(o.prof||{},o.rep).n===4,a=o&&lastAuto(o);return (p||a)?`<small>${p?"✓":""}${a?"🙋":""}</small>`:""});
+  $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=o&&lastAuto(o);return (p||a)?`<small>${p?"✓":""}${a?"🙋":""}</small>`:""});
   const e=EV_SEL!=null?byId(EV_SEL):null;
   $("#ev-body").innerHTML=e?evGridHTML("prof",e):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. Les cases 🙋 montrent son auto-évaluation, les cases 💡 ce que suggèrent ses courses.</div>`;
 }
@@ -2045,16 +2054,16 @@ function evClick(mode,ev){
     const b=$(mode==="prof"?"#ev-body":"#au-body");if(b)b.scrollIntoView({behavior:"smooth",block:"start"});return}
   const id=mode==="prof"?EV_SEL:AU_SEL;if(id==null)return;const e=byId(id);if(!e)return;const o=evOf(id),lid=CLE().id;
   const rr=t.closest("[data-evrep]");
-  if(rr){o.rep=rr.dataset.evrep;["proj","role"].forEach(k=>{if(o.prof[k])delete o.prof[k].p});persist();mode==="prof"?renderEval():renderAuto();return}
+  if(rr){if(evRepMode()!=="eleve")return;o.rep=rr.dataset.evrep;["proj","role"].forEach(k=>{if(o.prof[k])delete o.prof[k].p});persist();mode==="prof"?renderEval():renderAuto();return}
   const nx=t.closest("[data-evnext]");
   if(nx){const L=evList(true),i=L.findIndex(x=>x.id===id);EV_SEL=L[(i+1)%L.length].id;renderEval();$("#ev-body").scrollIntoView({behavior:"smooth",block:"start"});return}
   const aj=t.closest("[data-evadj]");
-  if(aj){const k=aj.dataset.evk2,s=o.prof[k];if(!s)return;const r=EVR[evMax(k,o.rep)][s.d];const cur=evPts(o.prof,k,o.rep);
+  if(aj){const k=aj.dataset.evk2,s=o.prof[k];if(!s)return;const r=EVR[evMax(k,evRepOf(o))][s.d];const cur=evPts(o.prof,k,evRepOf(o));
     s.p=Math.min(r[1],Math.max(r[0],Math.round((cur+0.25*(+aj.dataset.evadj))*4)/4));o.prof.at=new Date().toISOString();persist();renderEval();return}
   const c=t.closest("[data-evk]");if(!c)return;const k=c.dataset.evk,d=+c.dataset.evd;
   if(mode==="prof"){const s=o.prof[k];if(!(s&&s.d===d))o.prof[k]={d};o.prof.at=new Date().toISOString();persist();renderEval();return}
   const was=autoDone(e,lid);const a=o.auto[lid]||(o.auto[lid]={sel:{}});a.sel[k]={d};a.at=new Date().toISOString();persist();renderAuto();renderEvAlert();
-  if(!was&&autoDone(e,lid))toast("✓ Auto-évaluation enregistrée : "+fmtP(evTotal(a.sel,o.rep).t)+" / 20");
+  if(!was&&autoDone(e,lid))toast("✓ Auto-évaluation enregistrée : "+fmtP(evTotal(a.sel,evRepOf(o)).t)+" / 20");
 }
 $("#v-eval").addEventListener("click",e=>evClick("prof",e));
 $("#v-auto").addEventListener("click",e=>evClick("auto",e));
@@ -2440,7 +2449,7 @@ function buildXlsx(CS){
   const vit=[["Classe","Code anonyme (Google Sheets)","Nom","Prénom","Groupe(s)","Arrêté E1","Arrêté E2","Arrêté E3","Moyenne arrêté","Lancé E1","Lancé E2","Lancé E3","Moyenne lancé"]];
   sortedEleves().forEach(e=>vit.push([C.name,anonCode(C,e),e.nom,e.prenom,grpOf(e.id),...e.ea,e.ma,...e.el,e.ml]));
   const ev=[["Classe","Nom","Prénom","Groupe(s)","Répartition AFL2/AFL3","Performance (degré)","Performance (pts /6)","Transmission (degré)","Transmission (pts /6)","Mise en projet (degré)","Mise en projet (pts)","Vivre les rôles (degré)","Vivre les rôles (pts)","Note enseignant /20","Auto-évaluation /20 (dernière)","Date de l'auto-évaluation"]];
-  sortedEleves().forEach(e=>{const o=(C.evals||{})[e.id];if(!o)return;const rp=o.rep||"4-4",row=[C.name,e.nom,e.prenom,grpOf(e.id),rp.replace("-"," / ")];
+  sortedEleves().forEach(e=>{const o=(C.evals||{})[e.id];if(!o)return;const rp=evRepOf(o),row=[C.name,e.nom,e.prenom,grpOf(e.id),rp.replace("-"," / ")];
     let ok=true;EVE.forEach(x=>{const s=(o.prof||{})[x.k],pt=evPts(o.prof,x.k,rp);if(!s)ok=false;row.push(s?"Degré "+s.d:"",pt==null?"":pt)});
     const t=evTotal(o.prof||{},rp),la=lastAuto(o),ta=la?evTotal(la.sel||{},rp):null;
     row.push(t.n?t.t:"",ta&&ta.n===4?ta.t:"",la&&la.at?fmtShort(la.at.slice(0,10)):"");ev.push(row)});
