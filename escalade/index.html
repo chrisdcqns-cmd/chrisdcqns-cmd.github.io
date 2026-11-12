@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Escalade EPS</title>
+<style>
+:root{--bg:#eceff0;--ink:#16252d;--card:#fff;--ac:#00747a;--hi:#f2c230;--mut:#5d6e76;--ln:#cfd7da;--bad:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;font:18px/1.45 Verdana,Geneva,sans-serif;background:var(--bg);color:var(--ink);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{background:var(--ink);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header b{font-size:20px;margin-right:auto}
+nav{display:flex;gap:6px;overflow-x:auto;background:var(--ink);padding:0 12px}
+nav button{flex:none;background:none;border:0;color:#b9c7cd;font:inherit;font-weight:700;padding:14px 16px;border-bottom:4px solid transparent}
+nav button.on{color:#fff;border-color:var(--hi)}
+main{max-width:980px;margin:0 auto;padding:16px}
+.sub{display:flex;gap:8px;margin-bottom:14px}
+.sub button{flex:1}
+button,select,input,textarea{font:inherit;color:inherit}
+.b{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:12px 18px;font-weight:700;min-height:48px}
+.b.g{background:#fff;color:var(--ink);border:2px solid var(--ln)}
+.b.on{background:var(--hi);color:var(--ink)}
+.b.d{background:var(--bad)}
+input,select,textarea{width:100%;padding:11px;border:2px solid var(--ln);border-radius:10px;background:#fff;min-height:48px}
+textarea{min-height:90px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--ln)}
+h2{font-size:26px;margin:18px 0 6px}h3{font-size:21px;margin:14px 0 4px;color:var(--ac)}
+p{margin:6px 0;white-space:pre-wrap}
+video{width:100%;max-height:60vh;background:#000;border-radius:10px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
+.row .fix{flex:none}
+.step{display:flex;align-items:center;gap:10px}
+.step button{width:52px;padding:0}.step output{min-width:44px;text-align:center;font-size:26px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.dot{display:inline-block;width:20px;height:20px;border-radius:50%;border:2px solid #0004;vertical-align:-4px;margin-right:6px}
+label.l{display:block;font-weight:700;margin:14px 0 6px}
+.tb{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.tb button{min-height:40px;padding:6px 12px}
+table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px solid var(--ln);padding:6px;text-align:left}
+.qrs{display:flex;gap:14px;flex-wrap:wrap}.qrs figure{margin:0;text-align:center}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tile{border:0;border-radius:18px;color:#fff;text-align:left;padding:22px;min-height:min(30vh,220px);display:flex;flex-direction:column;justify-content:center;font:inherit}
+.tile b{font-size:30px;line-height:1.15}.tile span{opacity:.85;font-size:16px}
+.tile.wide{grid-column:1/-1;min-height:120px}
+.tile.tprof{outline:3px dashed var(--hi);outline-offset:-6px}
+.vg{grid-template-columns:repeat(5,1fr)}.vg .b{font-size:26px;min-height:64px}
+.colb{display:flex;align-items:center;gap:12px;font-size:22px;min-height:64px;text-align:left}
+.colb .dot,.vl .dot{width:30px;height:30px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.conf{display:flex;align-items:center;gap:18px;border:4px solid var(--ln);border-radius:16px;padding:18px;margin:12px 0;font-size:24px}
+.conf .dot{width:56px;height:56px;margin:0}
+.cot{font-size:34px;font-weight:700;color:var(--ac)}
+.sum{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#e3f1f2;border-radius:10px;padding:10px 12px;font-weight:700}
+.sum .b{min-height:38px;padding:4px 12px;margin-left:auto}
+.crit{border-top:1px solid var(--ln);padding:14px 0}
+.ch{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.nr{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--mut);background:#f1f4f5;padding:6px 12px;border-radius:999px;cursor:pointer}
+.nr input{width:22px;height:22px;min-height:0;margin:0;padding:0}
+.crit.off .cv{opacity:.3;pointer-events:none}
+.stp{margin:0 0 4px;font-size:15px}
+.vl{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--ln);font-size:22px}
+.vl b{margin-left:auto;font-size:30px;color:var(--ac)}
+.ok{text-align:center;padding:28px 16px}.ok b{font-size:28px;display:block;margin-bottom:16px}
+@media(max-width:600px){.tiles{grid-template-columns:1fr}}
+small,.mut{color:var(--mut)}
+.blk{border-left:4px solid var(--ln);padding-left:10px;margin:10px 0}
+@media(max-width:600px){body{font-size:16px}.grid{grid-template-columns:repeat(4,1fr)}}
+#logo{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;cursor:default}
+#tm{display:flex;gap:8px;flex-wrap:wrap}
+#tm .b{min-height:40px;padding:6px 12px;font-size:15px}
+.prof{background:#fff8e1;border:2px dashed var(--hi)}
+.fiche h3{margin-top:0;font-size:24px}
+.fiche video{margin:8px 0}
+.pick{display:block;text-align:center;cursor:pointer}
+.clsb{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;min-height:64px}
+.clsb small{color:inherit;opacity:.7;font-weight:400;font-size:14px}
+.ck{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--ln);font-weight:700}
+.ckl{display:flex;align-items:center;gap:14px;flex:1;cursor:pointer;min-height:44px}
+.rq{flex:none;border:2px solid var(--ln);background:#fff;border-radius:999px;padding:6px 14px;font-size:15px;font-weight:700;color:var(--mut);min-height:40px}
+.rq.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.rq:disabled{opacity:.35}
+.ob{font-size:15px;font-weight:700;color:#fff;background:var(--bad);padding:6px 12px;border-radius:999px}
+.crit.miss{background:#fdecea;border-radius:12px;padding:14px 10px;outline:3px solid var(--bad)}
+.ck input{width:28px;height:28px;min-height:0;flex:none;margin:0;accent-color:var(--ac)}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.names .b{text-align:left;min-height:56px}
+.g10{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.goal{border-radius:18px;padding:26px 18px;margin:0 0 18px;font-size:clamp(26px,5.2vw,40px);line-height:1.2;font-weight:700;color:#fff;background:var(--ac)}
+.goal .n{display:block;font-size:clamp(70px,16vw,130px);line-height:1;margin:6px 0}
+.goal.win{background:#2e9e4f}
+.ok>.lab{font-size:22px;display:block;margin-bottom:14px}
+.ok .lab b{display:inline;font-size:inherit;margin:0}
+.dlg{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.dbox{background:#fff;border-radius:16px;padding:20px;max-width:460px;width:100%;box-shadow:0 10px 40px #0005}
+.dbox p{font-size:19px;margin:0 0 14px}.dbox input,.dbox textarea{margin-bottom:14px}
+.big{width:100%;min-height:70px;font-size:clamp(20px,4.5vw,28px)}
+.lock{text-align:center;padding:40px 16px}.lock h2{margin-bottom:18px}
+.vl .cn{font-weight:700}
+.ltabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;margin-bottom:6px}.ltabs .b{flex:none;min-height:44px;padding:8px 16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:10px 0 4px}
+.st{background:#f4f8f8;border:1px solid var(--ln);border-radius:12px;padding:12px}
+.st b{display:block;font-size:30px;line-height:1.1;color:var(--ac)}.st span{font-size:14px;color:var(--mut)}
+.tw{overflow-x:auto}.tw table{font-size:15px;white-space:nowrap}.tw td,.tw th{padding:8px 6px}
+.hb{display:inline-block;width:56px;height:10px;background:#e3e9eb;border-radius:5px;vertical-align:middle;margin-right:6px;overflow:hidden}.hb i{display:block;height:100%;background:var(--ac)}
+.top{color:#1f7a3d;font-weight:700}
+.dr{display:grid;grid-template-columns:58px 1fr;gap:4px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--ln)}
+.dr>b{font-size:20px}.dr small{grid-column:2}
+.bar{display:flex;height:16px;border-radius:8px;overflow:hidden;min-width:16px}.bar i{background:#2e9e4f}.bar u{background:#9fc6ca}
+.lg{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin:0 4px 0 10px}
+.g9{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.g11{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.g9 .tp{font-weight:700}
+@media(max-width:600px){.g9{grid-template-columns:repeat(5,1fr)}}
+.sea{display:inline-block;background:#e3f1f2;border-radius:999px;padding:4px 14px;font-weight:700;color:var(--ac);margin-bottom:10px}
+</style></head><body>
+<header><b id="logo">Escalade EPS</b><span id="tm"></span></header>
+<nav id="nav"></nav>
+<main id="m"></main>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LSP='escalade.';
+/* reprise des données des anciennes versions (clés sans préfixe), sauf sur le site github.io partagé avec d'autres applis */
+try{if(!/github\.io$/.test(location.hostname))for(const k of ['c','w','r','cf','cl','cl0','cl0v'])if(localStorage.getItem(LSP+k)==null&&localStorage.getItem(k)!=null)localStorage.setItem(LSP+k,localStorage.getItem(k))}catch{}
+const LS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(LSP+k));return v??d}catch{return d}},SV=(k,v)=>{try{localStorage.setItem(LSP+k,JSON.stringify(v))}catch{}};
+const db=new Promise(r=>{try{const q=indexedDB.open('esc',1);q.onupgradeneeded=()=>q.result.createObjectStore('v');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch{r(null)}});
+const idb=async(m,k,v)=>{const d=await db;if(!d)return;return new Promise(r=>{const o=d.transaction('v',m=='get'?'readonly':'readwrite').objectStore('v');const q=m=='get'?o.get(k):m=='put'?o.put(v,k):o.delete(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()})};
+const WDEF=[[['Blanc','6a'],['Jaune','5b']],[['Noir','6a'],['Rouge','6a']],[['Jaune','6c+'],['Orange','5c+'],['Vert','5c']],[['Bleu','6c+'],['Noir','6b+'],['Rouge','6b'],['Violet','6a']],[['Blanc','6b'],['Rose','6a+'],['Jaune','5a']],[['Violet','7a+'],['Noir','6a'],['Vert','6c+']],[['Bleu','5c'],['Rose','6b']],[['Rouge','6c+'],['Jaune','5c'],['Vert','6a']],[['Orange','5a'],['Blanc','5a']],[['Rose','5c'],['Bleu','5a']],[['Vert','4c+'],['Rouge','5a']],[['Blanc','6a']],[['Orange','4'],['Rose','4']]];
+const clone=o=>JSON.parse(JSON.stringify(o));
+function dlg(o){return new Promise(res=>{const d=document.createElement('div');d.className='dlg';
+ d.innerHTML=`<div class="dbox"><p>${esc(o.msg)}</p>${o.input?`<input ${o.pw?'type="password" inputmode="numeric" autocomplete="off"':''}>`:''}${o.area!=null?`<textarea readonly style="min-height:160px">${esc(o.area)}</textarea>`:''}<div class="row">${o.cancel?`<button class="b g" data-r="0">${o.cancel}</button>`:''}<button class="b" data-r="1">${o.ok||'OK'}</button></div></div>`;
+ document.body.append(d);const i=d.querySelector('input,textarea');setTimeout(()=>{if(i){i.focus();i.select&&i.select()}else d.querySelector('[data-r="1"]').focus()},30);
+ const done=r=>{d.remove();res(o.input?(r?i.value:null):r)};d.querySelectorAll('button').forEach(b=>b.onclick=()=>done(b.dataset.r=='1'));if(o.input)i.onkeydown=e=>{if(e.key=='Enter')done(true)}})}
+const say=m=>dlg({msg:m}),ask=(m,ok='Oui',cancel='Annuler')=>dlg({msg:m,ok,cancel}),askT=(m,pw)=>dlg({msg:m,input:true,pw,ok:'Valider',cancel:'Annuler'});
+const COL={Rouge:'#d62828',Bleu:'#1d4ed8',Vert:'#2e9e4f',Jaune:'#f2c230',Orange:'#f77f00',Violet:'#7b2cbf',Rose:'#f06ba8',Noir:'#111',Blanc:'#fff',Gris:'#8d99a0',Marron:'#7a4b2a'};
+const DEF={
+sec:[{t:'h',v:'Règles de sécurité'},{t:'s',v:'Avant de grimper'},{t:'p',v:'• Pas de bijoux, cheveux attachés, chaussons ajustés.\n• Zone de chute dégagée, sol sécurisé.\n• Un seul grimpeur par voie.'},{t:'s',v:'Pendant la grimpe (moulinette)'},{t:'p',v:'• L\'assureur reste attentif, regard sur le grimpeur.\n• Corde toujours tendue (sans tracter le grimpeur), main de freinage jamais lâchée.\n• Communication claire grimpeur / assureur.'},{t:'s',v:'Vidéos'},{t:'p',v:'Utilisez « Modifier » pour ajouter une vidéo de démonstration.'}],
+ech:[{t:'h',v:'Échauffement'},{t:'s',v:'Articulaire'},{t:'p',v:'Poignets, épaules, nuque, hanches, chevilles.'},{t:'s',v:'Cardio'},{t:'p',v:'Course légère, montées de genoux, talons-fesses.'},{t:'s',v:'Spécifique'},{t:'p',v:'Traversées basses, voie facile sans dégaine, pose de pieds précise.'}],
+enc:[{t:'h',v:"S'encorder"},{t:'s',v:'Étapes'},{t:'p',v:'1. Baudrier ajusté, boucles doublées.\n2. Nœud de huit tressé, longueur de queue ≥ 10 cm.\n3. Assureur : frein, mousqueton à vis verrouillé.\n4. Vérification mutuelle : nœud, baudrier, système d\'assurage, nœud en bout de corde.'},{t:'p',v:'Ajoutez une vidéo du nœud avec « Modifier ».'}],
+the:[{t:'h',v:'Thématiques'},{t:'s',v:'Pistes de travail'},{t:'p',v:'• Placement des pieds\n• Lecture de voie\n• Recherche de PME (positions de moindre effort) pour récupérer\n• Confiance dans le matériel'}]};
+let C=LS('c',DEF),W=LS('w',clone(WDEF)),R=LS('r',[]),CF=LS('cf',{tab:'Tablette 1'}),CL=LS('cl',[]);
+/* dépôt public : aucun nom d'élève. Les classes s'importent sur la tablette (Leçon du jour → + Nouvelle classe). */
+const CL0=null;
+C.the?.forEach(b=>{if(b.t=='p'&&typeof b.v=='string')b.v=b.v.replace('• Gestion de la chute (PME)','• Recherche de PME (positions de moindre effort) pour récupérer')});
+let S={t:'home',s:'ech',e:false,T:false,cv:0,ce:null,free:false},F={},QR=[];
+const TABS=[['home','⌂ Accueil'],['prep','Se préparer'],['sec','Sécurité'],['gr','Renseigner une grimpe'],['mr','Mes résultats'],['cot','Cotation'],['the','Thématiques'],['res','Résultats et QRCODE']];
+const CRIT=[['m','Prises de mains'],['p','Prises de pieds'],['cp','Changements de pieds effectués'],['h','Hauteur : dernière dégaine dépassée'],['a',"S'est assis dans le baudrier ?"],['pm','PME réalisée ? (Position de Moindre Effort)'],['pof','Utilisation sac à POF'],['k','Commentaire']];
+const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
+const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
+function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',com:'',nr:{}};S.free=false}fresh();
+const save=()=>{SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL)};
+function render(){
+ if(!S.T){S.e=false;if(S.t=='res'||(S.t=='set'&&seaOK()))S.t='home'}
+ if(S.t!='cot')S.cm='';
+ if(S.t!='mr'){S.mr='';S.ml=''}
+ $('#tm').innerHTML=S.T?(['gr','res','home','set'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="S.T=false;render()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
+ $('#nav').style.display=['home','set'].includes(S.t)?'none':'';
+ $('#nav').innerHTML=TABS.filter(([k])=>k!='res'||S.T).map(([k,n])=>`<button class="${S.t==k?'on':''}" onclick="S.t='${k}';render()">${n}</button>`).join('');
+ const m=$('#m');
+ if(S.t=='home')m.innerHTML=home();
+ else if(S.t=='set')m.innerHTML=S.T?setup():`<div class="card lock"><h2>Escalade EPS</h2><p class="mut">Aucune leçon n'est commencée aujourd'hui sur cette tablette.</p><p><button class="b big" onclick="unlock('set')">🔒 Préparer la leçon du jour</button></p><p class="mut">Réservé à l'enseignant (code demandé).</p></div>`;
+ else if(S.t=='sec')m.innerHTML=content('sec');
+ else if(S.t=='the')m.innerHTML=(S.T?ficheForm():'')+content('the');
+ else if(S.t=='prep')m.innerHTML=`<div class="sub">${[['ech','Échauffement'],['enc',"S'encorder"]].map(([k,n])=>`<button class="b ${S.s==k?'':'g'}" onclick="S.s='${k}';render()">${n}</button>`).join('')}</div>`+content(S.s);
+ else if(S.t=='gr')m.innerHTML=grimpe();
+ else if(S.t=='cot')m.innerHTML=cotation();
+ else if(S.t=='mr')m.innerHTML=mesRes();
+ else m.innerHTML=resultats();
+ loadVideos();
+}
+/* ---------- accueil ---------- */
+const TILES=[['prep','Se préparer','#00747a'],['sec','Sécurité','#a4262c'],['gr','Renseigner une grimpe','#b5651d'],['mr','Mes résultats','#2e7d4f'],['cot','Cotation','#5b3f8c','wide'],['the','Thématiques','#3d5a80','wide']];
+function home(){S.e=false;const t=S.T?[...TILES,['res','Résultats et QRCODE','#16252d','wide tprof']]:TILES;
+ return `<h2 style="margin-top:4px">Escalade EPS</h2>${cls()?`<span class="sea">${esc(cls().nom)}</span>`:''}<div class="tiles">${t.map(([k,n,c,x])=>`<button class="tile ${x||''}" style="background:${c}" onclick="S.t='${k}';render()"><b>${n}</b></button>`).join('')}</div>`}
+/* ---------- leçon du jour / classes ---------- */
+function setup(){
+ if(S.ce!=null){const c=CL.find(x=>x.id==S.ce)||{nom:'',el:[]};
+  return `<div class="card"><h3 style="margin-top:0">${S.ce=='new'?'Nouvelle classe':'Modifier la classe'}</h3>
+  <label class="l">Nom de la classe</label><input id="ceN" value="${esc(c.nom)}" placeholder="Ex. : 2nde 4">
+  <label class="l">Élèves (un par ligne)</label>
+  <div class="tb"><label class="b g">📄 Importer un fichier Excel<input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impCls(this)"></label></div>
+  <textarea id="ceL" style="min-height:280px" placeholder="Un élève par ligne&#10;Ex. : Léa Martin" oninput="cnt()">${esc(c.el.join('\n'))}</textarea>
+  <p class="mut" id="ceC">${c.el.length} élève(s)</p>
+  <small>Excel (.xlsx) ou CSV : colonnes « Prénom » et « Nom », ou « Élève », ou simplement les noms dans la première colonne. Vous pouvez corriger la liste ici avant d'enregistrer.</small>
+  <div class="row" style="margin-top:14px"><button class="b g" onclick="S.ce=null;render()">Annuler</button><button class="b" onclick="saveCls()">Enregistrer la classe</button></div>
+  ${S.ce!='new'?`<p><button class="b d" onclick="delCls()">Supprimer cette classe</button></p>`:''}</div>`}
+ const sel=CF.sel||'',cr=CF.cr||ALL;
+ return `<h2 style="margin-top:4px">Leçon du jour</h2>
+ <div class="card"><h3 style="margin-top:0">1. Classe</h3>
+ <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'} clsb" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}<small>${c.el.length} élève(s)</small></button>`).join('')}
+ <button class="b ${sel?'g':'on'} clsb" onclick="CF.sel='';save();render()">Sans liste<small>l'élève tape son prénom</small></button></div>
+ <div class="tb">${CL.some(c=>c.id==sel)?`<button class="b g" onclick="S.ce='${sel}';render()">Modifier la liste</button>`:''}<button class="b g" onclick="S.ce='new';render()">+ Nouvelle classe</button></div></div>
+ <div class="card"><h3 style="margin-top:0">2. Éléments travaillés aujourd'hui</h3><p class="mut">Seuls les éléments cochés seront proposés aux élèves pour renseigner leur grimpe.</p>
+ <p class="mut" style="margin-top:0">« Obligatoire » : l'élève ne peut pas enregistrer sa grimpe sans renseigner cet élément.</p>
+ ${CRIT.map(([k,n])=>{const c=cr.includes(k),q=c&&(CF.req||[]).includes(k);return `<div class="ck"><label class="ckl"><input type="checkbox" ${c?'checked':''} onchange="tgCr('${k}',this.checked)">${n}</label><button class="rq ${q?'on':''}" ${c?'':'disabled'} onclick="tgReq('${k}')">${q?'★ Obligatoire':'Facultatif'}</button></div>`}).join('')}
+ <div class="tb"><button class="b g" onclick="CF.cr=[...ALL];save();render()">Tout cocher</button><button class="b g" onclick="CF.cr=[];save();render()">Tout décocher</button></div></div>
+ <div class="card"><h3 style="margin-top:0">3. Objectif du jour</h3><p class="mut">Nombre minimum de voies à grimper par élève pendant la leçon (0 = pas d'objectif).</p>
+ <div class="step"><button class="b g" onclick="CF.min=Math.max(0,(CF.min||0)-1);save();render()">−</button><output>${CF.min||0}</output><button class="b" onclick="CF.min=Math.min(30,(CF.min||0)+1);save();render()">+</button><span>voie(s) minimum</span></div></div>
+ <p><button class="b" style="width:100%;min-height:62px;font-size:21px" onclick="start()">${seaOK()?'Mettre à jour la leçon ✓':'Commencer la leçon →'}</button></p>`}
+function tgCr(k,v){const s=new Set(CF.cr||ALL);v?s.add(k):s.delete(k);CF.cr=ALL.filter(x=>s.has(x));save();render()}
+function tgReq(k){const s=new Set(CF.req||[]);s.has(k)?s.delete(k):s.add(k);CF.req=ALL.filter(x=>s.has(x));save();render()}
+function start(){const cr=CF.cr||ALL;if(!cr.length)return say('Cochez au moins un élément travaillé.');
+ if(CF.sel&&!CL.some(c=>c.id==CF.sel))CF.sel='';const was=seaOK();CF.sea={d:today(),cl:CF.sel||'',cr:[...cr],req:(CF.req||[]).filter(k=>cr.includes(k)),min:CF.min||0};save();fresh();S.T=false;S.t='home';render();say(was?'Leçon mise à jour.':'Leçon commencée. La tablette est prête pour les élèves.');scrollTo(0,0)}
+const lines=()=>[...new Set($('#ceL').value.split('\n').map(s=>s.trim()).filter(Boolean))];
+function cnt(){$('#ceC').textContent=lines().length+' élève(s)'}
+function saveCls(){const nom=$('#ceN').value.trim(),el=lines();if(!nom){say('Donnez un nom à la classe.');return $('#ceN').focus()}
+ if(S.ce=='new'){const id='c'+Date.now().toString(36);CL.push({id,nom,el});CF.sel=id}else{const c=CL.find(x=>x.id==S.ce);if(c){c.nom=nom;c.el=el}}
+ S.ce=null;save();render()}
+async function delCls(){const c=CL.find(x=>x.id==S.ce);if(!c||!await ask('Supprimer la classe « '+c.nom+' » ?'))return;CL=CL.filter(x=>x!==c);if(CF.sel==c.id)CF.sel='';if(CF.sea?.cl==c.id)CF.sea.cl='';S.ce=null;save();render()}
+async function impCls(inp){const f=inp.files[0];inp.value='';if(!f)return;
+ try{const rows=/\.xlsx$/i.test(f.name)?await readXlsx(f):(await f.text()).split(/\r?\n/).map(l=>l.split(/[;\t,]/));
+  const n=pickNames(rows);if(!n.length)return say('Aucun nom trouvé dans ce fichier.');
+  const t=$('#ceL');t.value=t.value.trim()&&!await ask(n.length+' élève(s) trouvé(s). Que faire de la liste actuelle ?','Remplacer','Ajouter à la suite')?t.value.trim()+'\n'+n.join('\n'):n.join('\n');
+  if(!$('#ceN').value.trim())$('#ceN').value=f.name.replace(/\.[^.]+$/,'');cnt()}
+ catch(e){say("Impossible de lire ce fichier. Enregistrez-le au format .xlsx (ou .csv), ou copiez-collez les noms dans la liste.")}}
+const nrm=s=>String(s??'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function pickNames(rows){rows=rows.map(r=>Array.from(r||[],v=>String(v??'').trim()));
+ let h=-1,iP=-1,iN=-1,iE=-1;
+ for(let i=0;i<Math.min(rows.length,15)&&h<0;i++){const r=rows[i].map(nrm);
+  const p=r.findIndex(c=>/^prenom/.test(c)),n=r.findIndex(c=>c=='nom'||/^nom( de famille|s)?$/.test(c)||c=='nom de l\'eleve'),e=r.findIndex(c=>/^(eleves?|nom et prenom|nom prenom|prenom nom|nom - prenom|identite)$/.test(c));
+  if(p>=0||n>=0||e>=0){h=i;iP=p;iN=n;iE=e}}
+ const out=[];
+ rows.slice(h+1).forEach(r=>{let v='';
+  if(h>=0){if(iP>=0&&iN>=0)v=[r[iP],r[iN]].filter(Boolean).join(' ');else if(iE>=0)v=r[iE];else if(iP>=0)v=r[iP];else v=r[iN]}
+  else v=r.find(c=>c&&isNaN(c))||'';
+  v=(v||'').replace(/\s+/g,' ').trim();if(v&&!out.includes(v))out.push(v)});
+ return out}
+/* lecture .xlsx sans bibliothèque */
+async function readXlsx(file){const b=new Uint8Array(await file.arrayBuffer()),dv=new DataView(b.buffer),td=new TextDecoder();
+ let e=b.length-22;while(e>=0&&dv.getUint32(e,true)!=0x06054b50)e--;if(e<0)throw 0;
+ const Z={};let p=dv.getUint32(e+16,true);for(let i=0,n=dv.getUint16(e+10,true);i<n;i++){const nl=dv.getUint16(p+28,true);Z[td.decode(b.subarray(p+46,p+46+nl))]={m:dv.getUint16(p+10,true),s:dv.getUint32(p+20,true),o:dv.getUint32(p+42,true)};p+=46+nl+dv.getUint16(p+30,true)+dv.getUint16(p+32,true)}
+ const get=async k=>{const f=Z[k];if(!f)return null;const s=f.o+30+dv.getUint16(f.o+26,true)+dv.getUint16(f.o+28,true),d=b.subarray(s,s+f.s);
+  return f.m==0?td.decode(d):await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text()};
+ const X=t=>new DOMParser().parseFromString(t,'application/xml'),T=(el,n)=>[...el.getElementsByTagNameNS('*',n)];
+ const ss=[],sx=await get('xl/sharedStrings.xml');if(sx)T(X(sx),'si').forEach(si=>ss.push(T(si,'t').map(t=>t.textContent).join('')));
+ let sp='xl/worksheets/sheet1.xml';try{const wb=X(await get('xl/workbook.xml')),rid=T(wb,'sheet')[0].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id'),rel=T(X(await get('xl/_rels/workbook.xml.rels')),'Relationship').find(r=>r.getAttribute('Id')==rid);if(rel){const t=rel.getAttribute('Target');sp=t.startsWith('/')?t.slice(1):'xl/'+t}}catch{}
+ const sh=await get(sp)||await get(Object.keys(Z).find(k=>/^xl\/worksheets\/[^/]+\.xml$/.test(k)));if(!sh)throw 0;
+ return T(X(sh),'row').map(r=>{const o=[];T(r,'c').forEach(c=>{const ref=(c.getAttribute('r')||'').replace(/\d+/g,'');let ci=0;for(const ch of ref)ci=ci*26+ch.charCodeAt(0)-64;ci=ref?ci-1:o.length;
+  const t=c.getAttribute('t'),v=T(c,'v')[0]?.textContent??'';o[ci]=t=='s'?ss[+v]??'':t=='inlineStr'?T(c,'t').map(x=>x.textContent).join(''):v});return o})}
+/* ---------- contenu éditable ---------- */
+function content(k){
+ const B=C[k]||(C[k]=[]);
+ let h=B.map((b,i)=>{
+  const tools=S.e?`<div class="tb"><button class="b g" onclick="mv('${k}',${i},-1)">↑</button><button class="b g" onclick="mv('${k}',${i},1)">↓</button><button class="b d" onclick="rm('${k}',${i})">Supprimer</button></div>`:'';
+  if(b.t=='v')return `<div class="card"><video controls playsinline data-id="${esc(b.v)}"></video>${tools}</div>`;
+  if(b.t=='f'){const vid=b.v?`<video controls playsinline preload="metadata" data-id="${esc(b.v)}"></video>`:'';
+   if(!S.e)return `<div class="card fiche"><h3>${esc(b.ti)}</h3>${vid}${b.tx?`<p>${esc(b.tx)}</p>`:''}</div>`;
+   return `<div class="card"><small>Fiche · titre</small><input value="${esc(b.ti)}" oninput="C['${k}'][${i}].ti=this.value;save()">${vid}<small>Texte</small><textarea oninput="C['${k}'][${i}].tx=this.value;save()">${esc(b.tx)}</textarea>${tools}</div>`}
+  if(!S.e)return b.t=='h'?`<h2>${esc(b.v)}</h2>`:b.t=='s'?`<h3>${esc(b.v)}</h3>`:`<p>${esc(b.v)}</p>`;
+  const f=b.t=='p'?`<textarea oninput="C['${k}'][${i}].v=this.value;save()">${esc(b.v)}</textarea>`:`<input value="${esc(b.v)}" oninput="C['${k}'][${i}].v=this.value;save()">`;
+  return `<div class="blk"><small>${{h:'Titre',s:'Sous-titre',p:'Texte'}[b.t]}</small>${f}${tools}</div>`}).join('');
+ if(S.e)h+=`<div class="card"><b>Ajouter</b><div class="tb"><button class="b" onclick="add('${k}','h')">Titre</button><button class="b" onclick="add('${k}','s')">Sous-titre</button><button class="b" onclick="add('${k}','p')">Texte</button><label class="b">Vidéo<input type="file" accept="video/*" hidden onchange="addVid('${k}',this)"></label></div><small>Les vidéos sont enregistrées sur cette tablette.</small></div>`;
+ return h||'<p class="mut">Rien ici pour le moment.</p>';
+}
+/* ---------- mode enseignant (caché) ---------- */
+function ficheForm(){return `<div class="card prof"><h3 style="margin-top:0">Nouvelle fiche (visible seulement en mode prof)</h3>
+ <label class="l">Titre</label><input id="fT" placeholder="Ex. : Lecture de voie">
+ <label class="l">Vidéo</label><label class="b g pick"><span id="fN">Choisir une vidéo</span><input id="fV" type="file" accept="video/*" hidden onchange="$('#fN').textContent=this.files[0]?'🎬 '+this.files[0].name:'Choisir une vidéo'"></label>
+ <label class="l">Texte</label><textarea id="fX" placeholder="Consignes, critères de réussite…"></textarea>
+ <p><button class="b" id="fB" style="width:100%" onclick="pub()">Publier dans Thématiques</button></p></div>`}
+async function pub(){const ti=$('#fT').value.trim(),tx=$('#fX').value.trim(),f=$('#fV').files[0];
+ if(!ti)return say('Ajoutez un titre.');
+ if(f&&!(await db))return say("Impossible d'enregistrer la vidéo sur cet appareil (navigation privée ?).");
+ const bt=$('#fB');bt.disabled=true;bt.textContent='Enregistrement…';
+ let id='';if(f){id='v'+Date.now();await idb('put',id,f)}
+ C.the.push({t:'f',ti,tx,v:id});save();render();say('Fiche publiée dans Thématiques.')}
+async function unlock(to){if(!S.T){const p=await askT('Code enseignant',true);if(p===null)return;if(p!==(CF.pin||'1234'))return say('Code incorrect');S.T=true}if(to){S.t=to;S.ce=null}render();scrollTo(0,0)}
+async function pin(){const a=await askT('Nouveau code enseignant (4 caractères minimum)');if(a===null)return;if(a.trim().length<4)return say('Code trop court.');CF.pin=a.trim();save();say('Code modifié.')}
+{let lp;const lg=$('#logo'),stop=()=>clearTimeout(lp);lg.addEventListener('pointerdown',()=>{stop();lp=setTimeout(()=>unlock(),1500)});['pointerup','pointerleave','pointercancel'].forEach(e=>lg.addEventListener(e,stop));lg.addEventListener('contextmenu',e=>e.preventDefault())}
+function add(k,t){C[k].push({t,v:t=='h'?'Nouveau titre':t=='s'?'Nouveau sous-titre':'Texte'});save();render()}
+function mv(k,i,d){const B=C[k],j=i+d;if(j<0||j>=B.length)return;[B[i],B[j]]=[B[j],B[i]];save();render()}
+async function rm(k,i){const b=C[k][i];if(b.t=='f'&&!await ask('Supprimer la fiche « '+b.ti+' » ?'))return;if((b.t=='v'||b.t=='f')&&b.v)await idb('del',b.v);C[k].splice(i,1);save();render()}
+async function addVid(k,el){const f=el.files[0];if(!f)return;const id='v'+Date.now();await idb('put',id,f);C[k].push({t:'v',v:id});save();render()}
+async function loadVideos(){for(const v of document.querySelectorAll('video[data-id]')){const b=await idb('get',v.dataset.id);if(b)v.src=URL.createObjectURL(b)}}
+/* ---------- grimpe ---------- */
+const cs=n=>`<span class="dot" style="background:${COL[n]||'#ccc'}"></span>`;
+function stepper(k){return `<div class="step"><button class="b g" onclick="st('${k}',-1)">−</button><output id="o_${k}">${F[k]}</output><button class="b" onclick="st('${k}',1)">+</button></div>`}
+function st(k,d){F[k]=Math.max(0,F[k]+d);$('#o_'+k).textContent=F[k]}
+const req=k=>on(k)&&(CF.sea?.req||[]).includes(k);
+const FIL={m:()=>F.mains>0,p:()=>F.pieds>0,cp:()=>F.cp!=='',h:()=>F.h!=='',a:()=>!F.as||String(F.asV).trim()!=='',pm:()=>!F.pme||String(F.pmeV).trim()!=='',pof:()=>F.pof!=='',k:()=>F.com.trim()!==''};
+const crit=(k,label,inner)=>req(k)?`<div class="crit ${(F.miss||[]).includes(k)?'miss':''}" id="cr_${k}"><div class="ch"><b>${label}</b><span class="ob">★ Obligatoire</span></div><div class="cv">${inner}</div></div>`:`<div class="crit ${F.nr[k]?'off':''}"><div class="ch"><b>${label}</b><label class="nr"><input type="checkbox" ${F.nr[k]?'checked':''} onchange="F.nr['${k}']=this.checked;this.closest('.crit').classList.toggle('off',this.checked)">Non renseigné</label></div><div class="cv">${inner}</div></div>`;
+const ouiNon=(k,kv)=>`<div class="row"><button class="b ${F[k]?'g':'on'}" onclick="F.${k}=false;render()">Non</button><button class="b ${F[k]?'on':'g'}" onclick="F.${k}=true;render()">Oui</button>${F[k]?`<input type="number" inputmode="numeric" min="1" placeholder="Combien de fois ?" aria-label="Combien de fois ?" value="${esc(F[kv])}" oninput="F.${kv}=this.value">`:''}</div>`;
+function go(s){F.step=s;render();scrollTo(0,0)}
+function grimpe(){
+ const top=`<p class="mut stp">Étape ${F.step} sur 5</p>`,back=s=>`<p><button class="b g" onclick="go(${s})">← Retour</button></p>`,w=W[F.vo-1]||[];
+ const k=cls();
+ if(F.step==1&&k&&k.el.length&&!S.free)return `<div class="card">${top}<h3>Qui es-tu ?</h3><p class="mut">${esc(k.nom)} · touche ton nom</p><div class="names">${[...k.el].sort((a,b)=>a.localeCompare(b,'fr')).map(n=>`<button class="b ${F.eleve==n?'on':'g'}" data-n="${esc(n)}" onclick="F.eleve=this.dataset.n;go(2)">${esc(n)}</button>`).join('')}</div><p><button class="b g" onclick="S.free=true;F.eleve='';render()">Mon nom n'est pas dans la liste</button></p></div>`;
+ if(F.step==1)return `<div class="card">${top}<h3>Quel est ton prénom ?</h3><input id="pn" value="${esc(F.eleve)}" oninput="F.eleve=this.value" onkeydown="if(event.key=='Enter')nx1()" placeholder="Prénom" autocomplete="off"><p><button class="b" style="width:100%" onclick="nx1()">Suivant →</button></p>${k&&k.el.length?`<p><button class="b g" onclick="S.free=false;render()">← Revenir à la liste</button></p>`:''}</div>`;
+ if(F.step==2)return `<div class="card">${top}<h3>Numéro de la corde</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${F.vo==i+1?'on':'g'}" onclick="F.vo=${i+1};go(3)">${i+1}</button>`).join('')}</div>${back(1)}</div>`;
+ if(F.step==3)return `<div class="card">${top}<h3>Corde ${F.vo} : couleur de la voie</h3><div class="cols">${w.map(([c],j)=>`<button class="b g colb" onclick="F.c=W[${F.vo-1}][${j}][0];F.d=W[${F.vo-1}][${j}][1];go(4)">${cs(c)}${esc(c)}</button>`).join('')||'<p class="mut">Aucune couleur pour cette corde.</p>'}</div>${back(2)}</div>`;
+ if(F.step==4)return `<div class="card">${top}<h3>Vérifie ta voie</h3><div class="conf" style="border-color:${COL[F.c]||'#ccc'}">${cs(F.c)}<div><b>Corde ${F.vo}</b> · voie ${esc(F.c)}<br><span class="mut" style="font-size:18px">Difficulté</span> <span class="cot">${esc(F.d)}</span></div></div><p>Est-ce bien la voie que tu as grimpée ?</p><div class="row"><button class="b g" onclick="go(3)">Non, revenir</button><button class="b" onclick="go(5)">Oui, c'est ça</button></div></div>`;
+ if(F.step==6)return `<div class="card ok">${goal()}<span class="lab">✓ Grimpe enregistrée${F.eleve?' pour <b>'+esc(F.eleve)+'</b>':''}</span><p><button class="b d" onclick="undo()">↶ Annuler cet enregistrement</button></p><div class="row"><button class="b" onclick="again(true)">Autre voie (${esc(F.eleve)||'même élève'})</button><button class="b g" onclick="again(false)">Élève suivant</button></div></div>`;
+ return `<div class="card">${top}<div class="sum">${esc(F.eleve)} · Corde ${F.vo} · ${cs(F.c)}${esc(F.c)} ${esc(F.d)}<button class="b g" onclick="go(2)">Changer</button></div>
+ ${critForm()}
+ <p><button class="b" style="width:100%" onclick="rec()">Enregistrer la grimpe</button></p></div>`}
+function critForm(){const n10=[1,2,3,4,5,6,7,8,9,10];
+ const I={m:()=>stepper('mains'),p:()=>stepper('pieds'),
+  cp:()=>`<div class="g11">${[0,...n10].map(n=>`<button class="b ${F.cp===n?'on':'g'}" onclick="F.cp=${n};render()">${n}</button>`).join('')}</div>`,
+  h:()=>`<div class="g9">${[0,1,2,3,4,5,6,7,8,9].map(n=>`<button class="b ${F.h===n?'on':'g'} ${n==9?'tp':''}" onclick="F.h=${n};render()">${hl(n)}</button>`).join('')}</div>`,
+  a:()=>ouiNon('as','asV'),pm:()=>ouiNon('pme','pmeV'),
+  pof:()=>`<select onchange="F.pof=this.value"><option value="">Choisir…</option>${[0,...n10].map(n=>`<option ${String(F.pof)===String(n)?'selected':''}>${n}</option>`).join('')}</select>`,
+  k:()=>`<textarea oninput="F.com=this.value">${esc(F.com)}</textarea>`};
+ return CRIT.filter(([k])=>on(k)).map(([k,n])=>crit(k,n,I[k]())).join('')}
+const done=()=>R.filter(r=>r.el==F.eleve&&String(r.ts).startsWith(today())&&(r.cl||'')==(cls()?.nom||'')).length;
+function goal(){const m=CF.sea?.min||0,n=done();if(!m)return '';const r=m-n;
+ return r>0?`<div class="goal">C'est enregistré !<br>Il te reste encore<span class="n">${r}</span>${r>1?'voies':'voie'} à grimper aujourd'hui !</div>`
+ :`<div class="goal win">🎉 Bravo, objectif atteint !<span class="n">${n}</span>${n>1?'voies grimpées':'voie grimpée'} aujourd'hui${n>m?' (objectif : '+m+')':''}</div>`}
+async function undo(){if(!await ask('Annuler cet enregistrement ?\nLa grimpe sera supprimée et tu pourras la corriger.'))return;shDel([F.last]);R=R.filter(r=>r.id!=F.last);F.last='';save();go(5)}
+async function delRec(id){const r=R.find(x=>x.id==id);if(!r||!await ask('Supprimer la grimpe de '+(r.el||'cet élève')+' (corde '+r.vo+', voie '+r.c+', '+r.ts+') ?'))return;shDel([r.id]);R=R.filter(x=>x!==r);save();render()}
+function nx1(){F.eleve=F.eleve.trim();if(!F.eleve){say('Écris ton prénom.');return $('#pn').focus()}go(2)}
+function again(same){const e=F.eleve;fresh();if(same){F.eleve=e;F.step=2}go(F.step)}
+function rec(){const miss=CRIT.filter(([k])=>req(k)&&!FIL[k]());
+ if(miss.length){F.miss=miss.map(m=>m[0]);render();document.getElementById('cr_'+F.miss[0]).scrollIntoView({behavior:'smooth',block:'center'});
+  return say('Il manque '+(miss.length>1?'des éléments obligatoires':'un élément obligatoire')+' :\n• '+miss.map(m=>m[1].replace(/ \?.*$| :.*$/,'')).join('\n• '))}
+ F.miss=[];const n=F.nr,x=(k,v)=>(n[k]&&!req(k))||!on(k)?'':v;
+ F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pof===''?'':Number(F.pof)),k:x('k',F.com)});
+ save();shAdd(F.last);go(6)}
+/* ---------- mes résultats ---------- */
+const fnum=x=>x.toLocaleString('fr-FR',{maximumFractionDigits:1});
+const fday=(x,long)=>new Date(x+'T12:00').toLocaleDateString('fr-FR',long?{weekday:'long',day:'numeric',month:'long'}:{weekday:'short',day:'numeric',month:'short'});
+/* hauteur : 0 = 1re dégaine non dépassée, 1 à 8 = dernière dégaine dépassée, 9 = Top */
+const TOP=9,hl=h=>Number(h)==TOP?'Top':h;
+const isNum=v=>v!==''&&v!=null&&!isNaN(v);
+function mesRes(){const k=cls(),nom=k?.nom||'',mine=r=>(r.cl||'')==nom;
+ if(!S.mr){const names=[...new Set([...(k?.el||[]),...R.filter(mine).map(r=>r.el).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'fr'));
+  return `<div class="card"><h3 style="margin-top:0">Qui es-tu ?</h3>${k?`<p class="mut">${esc(nom)} · touche ton nom pour voir tes résultats</p>`:''}${names.length?`<div class="names">${names.map(n=>`<button class="b g" data-n="${esc(n)}" onclick="S.mr=this.dataset.n;S.ml='';render()">${esc(n)}</button>`).join('')}</div>`:'<p class="mut">Aucun résultat enregistré sur cette tablette.</p>'}</div>`}
+ const rs=R.filter(r=>r.el==S.mr&&mine(r)),days=[...new Set(rs.map(r=>String(r.ts).slice(0,10)))].sort().reverse();
+ const head=`<div class="sum" style="margin-bottom:12px">${esc(S.mr)}<button class="b g" onclick="S.mr='';render()">Changer</button></div>`;
+ if(!days.length)return head+`<div class="card"><p class="mut">Tu n'as encore aucune grimpe enregistrée sur cette tablette.</p></div>`;
+ const d=days.includes(S.ml)?S.ml:days[0],L=rs.filter(r=>String(r.ts).startsWith(d)).sort((a,b)=>a.ts<b.ts?-1:1);
+ const tabs=`<div class="ltabs">${days.map((x,i)=>`<button class="b ${x==d?'':'g'}" onclick="S.ml='${x}';render()">${i?fday(x):'Dernière leçon'}</button>`).join('')}</div>`;
+ /* statistiques */
+ const H=L.map(r=>r.h).filter(isNum).map(Number),ok=L.filter(r=>Number(r.h)==TOP),best=ok.map(r=>r.d).sort((a,b)=>gk(b)-gk(a))[0];
+ const G={};L.forEach(r=>{const g=G[r.d]||(G[r.d]={n:0,ok:0,h:[]});g.n++;if(Number(r.h)==TOP)g.ok++;if(isNum(r.h))g.h.push(Number(r.h))});
+ const gs=Object.keys(G).sort((a,b)=>gk(a)-gk(b)),mx=Math.max(...gs.map(g=>G[g].n));
+ const stats=`<div class="stats"><div class="st"><b>${L.length}</b><span>voie${L.length>1?'s':''} grimpée${L.length>1?'s':''}</span></div>
+  <div class="st"><b>${ok.length}</b><span>voie${ok.length>1?'s':''} réussie${ok.length>1?'s':''} (Top)</span></div>
+  <div class="st"><b>${best?esc(best):'–'}</b><span>meilleure difficulté réussie</span></div>
+  <div class="st"><b>${H.length?fnum(H.reduce((a,b)=>a+b,0)/H.length):'–'}</b><span>hauteur moyenne (en dégaines, Top = 9)</span></div>
+  <div class="st"><b>${H.length?hl(Math.max(...H)):'–'}</b><span>hauteur maximale</span></div></div>`;
+ const diffs=`<div class="card"><h3 style="margin-top:0">Difficultés</h3><p class="mut" style="margin:0 0 4px"><span class="lg" style="background:#2e9e4f;margin-left:0"></span>réussie (Top)<span class="lg" style="background:#9fc6ca"></span>non terminée</p>
+  ${gs.map(g=>{const x=G[g];return `<div class="dr"><b>${esc(g)}</b><div class="bar" style="width:${x.n/mx*100}%"><i style="flex:${x.ok}"></i><u style="flex:${x.n-x.ok}"></u></div><small class="mut">${x.n} grimpée${x.n>1?'s':''} · ${x.ok} réussie${x.ok>1?'s':''}${x.h.length?' · hauteur moy. '+(x.h.every(v=>v==TOP)?'Top':fnum(x.h.reduce((a,b)=>a+b,0)/x.h.length)):''}</small></div>`}).join('')}</div>`;
+ /* tableau */
+ const OPT=[['m','Mains'],['p','Pieds'],['cp','Chgt pieds'],['a','Assis'],['pm','PME'],['pof','Sac POF'],['k','Commentaire']].filter(([c])=>L.some(r=>r[c]!==''&&r[c]!=null));
+ const tbl=`<div class="card"><h3 style="margin-top:0">Voies grimpées</h3><div class="tw"><table><tr><th>#</th><th>Heure</th><th>Corde</th><th>Diff.</th><th>Hauteur</th>${OPT.map(o=>`<th>${o[1]}</th>`).join('')}</tr>
+  ${L.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(String(r.ts).slice(11,16))}</td><td>${cs(r.c)}Corde ${r.vo}</td><td><b>${esc(r.d)}</b></td><td>${isNum(r.h)?`<span class="hb"><i style="width:${r.h/TOP*100}%"></i></span>${Number(r.h)==TOP?'<span class="top">Top ✓</span>':r.h+'<small class="mut"> dég.</small>'}`:'–'}</td>${OPT.map(([c])=>`<td>${c=='k'?esc(r[c])||'–':nd(r[c])}</td>`).join('')}</tr>`).join('')}</table></div></div>`;
+ return head+tabs+`<h3 style="margin:4px 0 0">${d==days[0]?'Dernière leçon':'Leçon'} · ${fday(d,true)}</h3>`+stats+tbl+diffs}
+/* ---------- cotation ---------- */
+const gk=d=>{const m=String(d).trim().match(/^(\d)([abc])?(\+)?/i);return m?(+m[1])*100+(m[2]?(m[2].toLowerCase().charCodeAt(0)-96)*10:0)+(m[3]?5:0):999};
+function cotation(){
+ if(S.T&&S.e){const opt=c=>Object.keys(COL).map(o=>`<option ${o==c?'selected':''}>${o}</option>`).join('');
+  return `<h2>Cotation des voies (modification)</h2>${W.map((w,i)=>`<div class="card"><h3 style="margin-top:0">Corde ${i+1}</h3>${w.map(([c,d],j)=>`<div class="row" style="margin-bottom:8px"><select onchange="W[${i}][${j}][0]=this.value;save()">${opt(c)}</select><input value="${esc(d)}" placeholder="Cotation" oninput="W[${i}][${j}][1]=this.value;save()"><button class="b d fix" onclick="W[${i}].splice(${j},1);save();render()">✕</button></div>`).join('')}
+  <div class="tb"><button class="b g" onclick="W[${i}].push(['Rouge','5a']);save();render()">+ Couleur</button>${i==W.length-1?`<button class="b d" onclick="ask('Supprimer la corde ${i+1} ?').then(o=>{if(o){W.pop();save();render()}})">Supprimer cette corde</button>`:''}</div></div>`).join('')}
+  <div class="tb"><button class="b" onclick="W.push([['Rouge','5a']]);save();render()">+ Ajouter une corde</button><button class="b g" onclick="ask('Revenir aux cotations d\\'origine ?').then(o=>{if(o){W=clone(WDEF);save();render()}})">Rétablir les cotations d'origine</button></div>`}
+ if(S.cm=='d'){const gr=[...new Set(W.flat().map(x=>x[1]))].sort((a,b)=>gk(a)-gk(b)),hits=[];W.forEach((w,i)=>w.forEach(([c,d])=>{if(d==S.cd)hits.push([i+1,c])}));
+  return `<p><button class="b g" onclick="S.cm='';render()">← Chercher par numéro de corde</button></p><div class="card"><h3 style="margin-top:0">Quelle difficulté cherches-tu ?</h3><div class="grid vg">${gr.map(d=>`<button class="b ${S.cd==d?'on':'g'}" data-d="${esc(d)}" onclick="S.cd=this.dataset.d;render()">${esc(d)}</button>`).join('')}</div></div>
+  ${S.cd?`<div class="card"><h3 style="margin-top:0">Voies en ${esc(S.cd)} : ${hits.length} possibilité${hits.length>1?'s':''}</h3>${hits.map(([v,c])=>`<div class="vl">${cs(c)}<span><span class="cn">Corde ${v}</span> · couleur ${esc(c)}</span></div>`).join('')}</div>`:'<p class="mut">Touche une difficulté pour voir toutes les voies correspondantes.</p>'}`}
+ const w=W[S.cv-1];
+ return `<p><button class="b big" onclick="S.cm='d';render()">🔎 Je cherche une voie !</button></p><div class="card"><h3 style="margin-top:0">Quelle corde ?</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${S.cv==i+1?'on':'g'}" onclick="S.cv=${i+1};render()">${i+1}</button>`).join('')}</div></div>
+ ${w?`<div class="card"><h3 style="margin-top:0">Corde ${S.cv}</h3>${w.map(([c,d])=>`<div class="vl">${cs(c)}<span>${esc(c)}</span><b>${esc(d)}</b></div>`).join('')||'<p class="mut">Aucune couleur.</p>'}</div>`:'<p class="mut">Touche un numéro de corde pour voir la cotation de chaque couleur.</p>'}`}
+/* ---------- résultats / export / QR ---------- */
+const HEAD=['Tablette','Date','Classe','Élève','Code anonyme (Sheets)','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur (dégaines)','Assis baudrier (nb de fois)','PME (nb de fois)','Sac à POF (0-10)','Commentaire'];
+const row=r=>[r.tab,r.ts,r.cl??'',r.el,SH.key?anon(r.cl,r.el):'',r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k];
+const nd=v=>v===''||v==null?'–':v;
+function resultats(){
+ const T=R.slice().reverse().map(r=>`<tr><td>${esc(r.el)||'–'}${r.cl?`<br><small>${esc(r.cl)}</small>`:''}</td><td>${r.vo} ${cs(r.c)}${esc(r.d)}</td><td>${nd(r.m)}/${nd(r.p)}</td><td>${nd(hl(r.h))}</td><td>${r.a||'–'}</td><td>${r.pm||'–'}</td><td><button class="b d" style="min-height:36px;padding:2px 10px" title="Supprimer" onclick="delRec('${r.id}')">✕</button></td></tr>`).join('');
+ return `<div class="card"><label class="l" style="margin-top:0">Nom de cette tablette</label><input value="${esc(CF.tab)}" oninput="CF.tab=this.value;save()">
+ <p><b>${R.length}</b> grimpe(s) enregistrée(s).</p>
+ <div class="tb"><button class="b" onclick="xl()">Exporter en Excel (.xlsx)</button><button class="b" onclick="qrs()">Générer les QR codes</button><button class="b g" onclick="cp()">Copier les données</button></div>
+ <div id="qr" class="qrs"></div><p id="qi" class="mut"></p></div>
+ <div class="card"><h3 style="margin-top:0">Google Sheets</h3>
+ <p class="mut">Chaque grimpe est envoyée automatiquement vers votre feuille, avec un <b>code anonyme</b> à la place du prénom. Sans réseau, les envois attendent et repartent dès que la connexion revient.</p>
+ <label class="l">URL de l'application Web (Apps Script)</label><input id="shU" value="${esc(SH.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+ <label class="l">Clé secrète (la même sur toutes les tablettes)</label><input id="shK" type="password" value="${esc(SH.key)}" autocomplete="off">
+ <label class="l">Élèves dans la feuille</label><select id="shF"><option value="code" ${SH.fmt!='pi'?'selected':''}>Code anonyme (ex. E-4C5U)</option><option value="pi" ${SH.fmt=='pi'?'selected':''}>Prénom + initiale du nom</option></select>
+ <div class="tb"><button class="b g" onclick="shTestUI()">Tester la connexion</button><button class="b" onclick="shSave()">Enregistrer</button><button class="b g" onclick="shAll()">Envoyer toutes les grimpes</button></div>
+ <p id="shS" class="mut">${shStatus()}</p>
+ <small>Ne changez pas la clé en cours d'année : les codes anonymes changeraient. La correspondance code ↔ élève figure seulement dans l'export Excel (colonne « Code anonyme »).</small></div>
+ <div class="card"><h3 style="margin-top:0">Centraliser (sur l'iPhone ou une tablette)</h3>
+ <p class="mut">1. Scannez chaque QR avec l'appareil photo de l'iPhone, touchez le texte puis « Copier ».<br>2. Collez les textes ici (un par ligne). Ouvrez ce même fichier sur l'iPhone.<br>3. Fusionnez : les doublons sont ignorés. Exportez ensuite en Excel.</p>
+ <textarea id="imp" placeholder="Collez ici les textes des QR codes"></textarea>
+ <p><button class="b" onclick="imp()">Fusionner</button></p></div>
+ <div class="card"><table><tr><th>Élève</th><th>Corde</th><th>M/P</th><th>H.</th><th>Assis</th><th>PME</th><th></th></tr>${T||'<tr><td colspan=7 class="mut">Aucune grimpe.</td></tr>'}</table>
+ <p><button class="b d" onclick="ask('Effacer toutes les grimpes de cette tablette ?\n(Celles déjà envoyées restent dans Google Sheets.)').then(o=>{if(o){R=[];save();render()}})">Tout effacer</button></p></div>`}
+const payload=()=>JSON.stringify(R.map(r=>[r.id,r.ts,r.tab,r.el,r.vo,r.c,r.d,r.m,r.p,r.h,r.a,r.pm,r.k,r.cl??'',r.cp??'',r.pof??'']));
+function chunks(){const p=payload(),sid=Math.random().toString(36).slice(2,6),n=Math.ceil(p.length/330)||1,o=[];for(let i=0;i<n;i++)o.push(`G|${sid}|${i+1}|${n}|`+p.slice(i*330,(i+1)*330));return o}
+function qrs(){if(!R.length)return say('Aucune grimpe à transmettre.');const c=chunks();$('#qr').innerHTML='';c.forEach((t,i)=>{const f=document.createElement('figure'),cv=document.createElement('canvas');drawQR(cv,qr(t));f.append(cv,Object.assign(document.createElement('small'),{textContent:`QR ${i+1}/${c.length}`}));$('#qr').append(f)});$('#qi').textContent=c.length>1?'Scannez tous les QR : '+c.length+' au total.':''}
+function cp(){const t=chunks().join('\n');if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>say('Copié'),()=>dlg({msg:'Copiez ce texte :',area:t}));else dlg({msg:'Copiez ce texte :',area:t})}
+function imp(){const L=$('#imp').value.split('\n').map(s=>s.trim()).filter(s=>s.startsWith('G|')),g={};
+ L.forEach(l=>{const a=l.split('|'),sid=a[1];(g[sid]=g[sid]||{n:+a[3],p:{}}).p[a[2]]=a.slice(4).join('|')});
+ let add=0,bad=0;for(const s in g){const x=g[s];let t='';for(let i=1;i<=x.n;i++)t+=x.p[i]||'';try{JSON.parse(t).forEach(a=>{if(!R.some(r=>r.id==a[0])){R.push({id:a[0],ts:a[1],tab:a[2],el:a[3],vo:a[4],c:a[5],d:a[6],m:a[7],p:a[8],h:a[9],a:a[10],pm:a[11],k:a[12],cl:a[13]??'',cp:a[14]??'',pof:a[15]??''});add++}})}catch{bad++}}
+ save();render();say(add+' grimpe(s) ajoutée(s).'+(bad?'\n'+bad+' lot(s) incomplet(s) : il manque des QR.':''))}
+/* ---------- Google Sheets (anonymisé) ---------- */
+let SH=LS('sh',{url:'',key:'',fmt:'code',q:[],dq:[]});SH.q=SH.q||[];SH.dq=SH.dq||[];
+const SH_HEAD=['Date','Classe','Élève','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur','Assis baudrier (nb)','PME (nb)','Sac à POF','Commentaire','Tablette','id'];
+const h32=s=>{let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.imul(h,16777619)}h^=h>>>13;h=Math.imul(h,0x5bd1e995);return (h^(h>>>15))>>>0};
+/* code stable : même clé + même classe + même prénom = même code sur toutes les tablettes */
+const anon=(cl,el)=>'E-'+(h32(SH.key+'|'+nrm(cl)+'|'+nrm(el))%1679616).toString(36).toUpperCase().padStart(4,'0');
+const pInit=n=>{const w=String(n||'').trim().split(/\s+/);return w.length<2?w[0]||'':w[0]+' '+w.slice(1).map(x=>x[0].toUpperCase()+'.').join('')};
+const shRow=r=>[r.ts,r.cl||'',SH.fmt=='pi'?pInit(r.el):anon(r.cl,r.el),r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k,r.tab,r.id];
+const shStatus=()=>!SH.url||!SH.key?'Non configuré.':`${SH.q.length} grimpe(s) en attente${SH.dq.length?' · '+SH.dq.length+' suppression(s) en attente':''}${SH.last?' · dernier envoi : '+SH.last:''}${navigator.onLine?'':' · hors connexion'}`;
+const shUpd=()=>{const e=$('#shS');if(e)e.textContent=shStatus()};
+let shBusy=false;
+async function sync(){if(!SH.url||!SH.key||shBusy||!navigator.onLine||(!SH.q.length&&!SH.dq.length))return shUpd();shBusy=true;
+ const ids=SH.q.slice(0,150),del=SH.dq.slice(),rows=ids.map(id=>R.find(r=>r.id==id)).filter(Boolean).map(shRow);
+ try{await fetch(SH.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SH.key,head:SH_HEAD,rows,del})});
+  SH.q=SH.q.filter(id=>!ids.includes(id));SH.dq=SH.dq.filter(id=>!del.includes(id));SH.last=new Date().toLocaleString('fr-FR').slice(0,-3);SV('sh',SH)}catch{}
+ shBusy=false;shUpd();if(SH.q.length&&navigator.onLine)setTimeout(sync,1500)}
+function shAdd(id){if(!SH.url)return;SH.q.push(id);SV('sh',SH);sync()}
+function shDel(ids){if(!SH.url)return;SH.q=SH.q.filter(i=>!ids.includes(i));SH.dq.push(...ids);SV('sh',SH);sync()}
+function shPing(url,key){return new Promise(res=>{const cb='shcb'+Date.now(),s=document.createElement('script');let t;
+ const end=d=>{clearTimeout(t);delete window[cb];s.remove();res(d)};t=setTimeout(()=>end(null),12000);window[cb]=d=>end(d);s.onerror=()=>end(null);
+ s.src=url+(url.includes('?')?'&':'?')+'callback='+cb+'&key='+encodeURIComponent(key);document.head.append(s)})}
+const shForm=()=>({url:$('#shU').value.trim(),key:$('#shK').value.trim(),fmt:$('#shF').value});
+async function shTestUI(){const f=shForm();if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(f.url))return say("L'URL doit commencer par https://script.google.com/…");if(!f.key)return say('Indiquez la clé secrète.');
+ $('#shS').textContent='Test en cours…';const d=await shPing(f.url,f.key);shUpd();
+ say(!d?"Pas de réponse du script. Vérifiez l'URL (elle finit par /exec), le déploiement « Tout le monde » et la connexion internet.":d.keyOk?'✓ Connexion réussie : la clé est correcte.':'Le script répond, mais la clé ne correspond pas à celle du script.')}
+async function shSave(){const f=shForm();if(f.url&&!/^https:\/\/script\.google(usercontent)?\.com\//.test(f.url))return say("L'URL doit commencer par https://script.google.com/…");
+ if(SH.key&&f.key!==SH.key&&!await ask('Changer la clé change aussi tous les codes anonymes. Continuer ?'))return;
+ const first=!SH.url&&f.url;Object.assign(SH,f);SV('sh',SH);render();
+ if(first&&R.length&&await ask('Envoyer les '+R.length+' grimpe(s) déjà enregistrée(s) sur cette tablette ?','Envoyer','Plus tard'))shAll(true);else say('Réglages enregistrés.')}
+function shAll(silent){if(!SH.url||!SH.key)return say("Enregistrez d'abord l'URL et la clé.");SH.q=[...new Set([...SH.q,...R.map(r=>r.id)])];SV('sh',SH);sync();if(silent!==true)say(R.length+' grimpe(s) mises en file d\'envoi (les doublons sont évités).')}
+addEventListener('online',()=>sync());setInterval(()=>sync(),60000);
+/* hors connexion sur le site : copie locale de l'appli */
+if('serviceWorker' in navigator&&/github\.io$/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
+/* XLSX sans bibliothèque */
+const col=i=>String.fromCharCode(65+i);
+const sh=rows=>'<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+rows.map((r,i)=>`<row r="${i+1}">`+r.map((c,j)=>typeof c=='number'?`<c r="${col(j)}${i+1}"><v>${c}</v></c>`:`<c r="${col(j)}${i+1}" t="inlineStr"><is><t>${esc(c)}</t></is></c>`).join('')+'</row>').join('')+'</sheetData></worksheet>';
+const crcT=[...Array(256)].map((_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0});
+const crc=b=>{let c=-1;for(const x of b)c=crcT[(c^x)&255]^(c>>>8);return(c^-1)>>>0};
+function zip(files){const e=new TextEncoder(),P=[],D=[];let off=0;const w=n=>[n&255,n>>8&255],d4=n=>[n&255,n>>8&255,n>>16&255,n>>>24&255];
+ for(const[n,t]of files){const nb=e.encode(n),d=e.encode(t),c=crc(d);
+  const lh=new Uint8Array([0x50,0x4b,3,4,20,0,0,8,0,0,0,0,33,0,...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,...nb]);
+  D.push(new Uint8Array([0x50,0x4b,1,2,20,0,20,0,0,8,0,0,0,0,33,0,...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,0,0,0,0,0,0,0,0,0,0,...d4(off),...nb]));
+  P.push(lh,d);off+=lh.length+d.length}
+ const cs=D.reduce((a,b)=>a+b.length,0);
+ return new Blob([...P,...D,new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...w(files.length),...w(files.length),...d4(cs),...d4(off),0,0])],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+async function xl(){if(!R.length)return say('Aucune grimpe à exporter.');
+ const X='<?xml version="1.0" encoding="UTF-8"?>',N='http://schemas.openxmlformats.org/';
+ const b=zip([['[Content_Types].xml',X+`<Types xmlns="${N}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`],
+ ['_rels/.rels',X+`<Relationships xmlns="${N}package/2006/relationships"><Relationship Id="rId1" Type="${N}officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+ ['xl/workbook.xml',X+`<workbook xmlns="${N}spreadsheetml/2006/main" xmlns:r="${N}officeDocument/2006/relationships"><sheets><sheet name="Grimpes" sheetId="1" r:id="rId1"/><sheet name="Cordes et voies" sheetId="2" r:id="rId2"/></sheets></workbook>`],
+ ['xl/_rels/workbook.xml.rels',X+`<Relationships xmlns="${N}package/2006/relationships"><Relationship Id="rId1" Type="${N}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${N}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/></Relationships>`],
+ ['xl/worksheets/sheet1.xml',sh([HEAD,...R.map(row)])],
+ ['xl/worksheets/sheet2.xml',sh([['Corde','Couleur','Difficulté'],...W.flatMap((w,i)=>w.map(([c,d])=>[i+1,c,d]))])]]);
+ const fn='escalade_'+CF.tab.replace(/\W+/g,'_')+'_'+today()+'.xlsx';dlFile(fn,b)}
+const DL=window.claude&&window.claude.use?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);
+async function dlFile(fn,b){const d=window.claude&&window.claude.use?await DL:null;
+ if(d){try{await d.save({filename:fn,data:b})}catch(e){if(e&&e.code!='declined')say("L'export n'a pas pu être enregistré ici ("+(e.code||'erreur')+").")}return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;document.body.append(a);a.click();a.remove()}
+/* Générateur de QR code (niveau L, masque 0) */
+function qr(text){
+ const data=[...new TextEncoder().encode(text)],EC=[7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],NB=[1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25];
+ const raw=v=>{let r=(16*v+128)*v+64;if(v>=2){const a=Math.floor(v/7)+2;r-=(25*a-10)*a-55;if(v>=7)r-=36}return r};
+ const cap=v=>Math.floor(raw(v)/8)-EC[v-1]*NB[v-1];
+ let v=1;while(v<40&&4+(v<10?8:16)+data.length*8>cap(v)*8)v++;
+ const bits=[],put=(x,n)=>{for(let i=n-1;i>=0;i--)bits.push((x>>>i)&1)};
+ put(4,4);put(data.length,v<10?8:16);data.forEach(b=>put(b,8));
+ const cb=cap(v)*8;put(0,Math.min(4,cb-bits.length));put(0,(8-bits.length%8)%8);for(let p=0xEC;bits.length<cb;p^=0xEC^0x11)put(p,8);
+ const cw=[];for(let i=0;i<bits.length;i+=8)cw.push(parseInt(bits.slice(i,i+8).join(''),2));
+ const gm=(x,y)=>{let z=0;for(let i=7;i>=0;i--){z=(z<<1)^((z>>>7)*0x11D);z^=((y>>>i)&1)*x}return z};
+ const nb=NB[v-1],ec=EC[v-1],rw=Math.floor(raw(v)/8),ns=nb-rw%nb,sl=Math.floor(rw/nb);
+ const gen=new Array(ec).fill(0);gen[ec-1]=1;let rt=1;for(let i=0;i<ec;i++){for(let j=0;j<ec;j++){gen[j]=gm(gen[j],rt);if(j+1<ec)gen[j]^=gen[j+1]}rt=gm(rt,2)}
+ const bl=[];for(let i=0,k=0;i<nb;i++){const len=sl-ec+(i<ns?0:1),d=cw.slice(k,k+len);k+=len;const r=gen.map(()=>0);for(const b of d){const f=b^r.shift();r.push(0);gen.forEach((c,x)=>r[x]^=gm(c,f))}if(i<ns)d.push(0);bl.push(d.concat(r))}
+ const out=[];for(let i=0;i<bl[0].length;i++)bl.forEach((b,j)=>{if(i!=sl-ec||j>=ns)out.push(b[i])});
+ const N=v*4+17,M=[...Array(N)].map(()=>Array(N).fill(false)),Fm=[...Array(N)].map(()=>Array(N).fill(false)),set=(x,y,d)=>{M[y][x]=d;Fm[y][x]=true};
+ for(let i=0;i<N;i++){set(6,i,i%2==0);set(i,6,i%2==0)}
+ const fd=(cx,cy)=>{for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){const d=Math.max(Math.abs(dx),Math.abs(dy)),x=cx+dx,y=cy+dy;if(x>=0&&x<N&&y>=0&&y<N)set(x,y,d!=2&&d!=4)}};
+ fd(3,3);fd(N-4,3);fd(3,N-4);
+ if(v>1){const n=Math.floor(v/7)+2,st=v==32?26:Math.ceil((v*4+4)/(n*2-2))*2,ap=[6];for(let p=N-7;ap.length<n;p-=st)ap.splice(1,0,p);
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){if((i==0&&j==0)||(i==0&&j==n-1)||(i==n-1&&j==0))continue;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)set(ap[i]+dx,ap[j]+dy,Math.max(Math.abs(dx),Math.abs(dy))!=1)}}
+ let r=8;for(let i=0;i<10;i++)r=(r<<1)^((r>>>9)*0x537);const fb=((8<<10)|r)^0x5412,g=i=>((fb>>>i)&1)!=0;
+ for(let i=0;i<=5;i++)set(8,i,g(i));set(8,7,g(6));set(8,8,g(7));set(7,8,g(8));for(let i=9;i<15;i++)set(14-i,8,g(i));
+ for(let i=0;i<8;i++)set(N-1-i,8,g(i));for(let i=8;i<15;i++)set(8,N-15+i,g(i));set(8,N-8,true);
+ if(v>=7){let q=v;for(let i=0;i<12;i++)q=(q<<1)^((q>>>11)*0x1F25);const b=(v<<12)|q;for(let i=0;i<18;i++){const bit=((b>>>i)&1)!=0,a=N-11+i%3,c=Math.floor(i/3);set(a,c,bit);set(c,a,bit)}}
+ let k=0;for(let rr=N-1;rr>=1;rr-=2){if(rr==6)rr=5;for(let vt=0;vt<N;vt++)for(let j=0;j<2;j++){const x=rr-j,y=((rr+1)&2)==0?N-1-vt:vt;if(!Fm[y][x]&&k<out.length*8){M[y][x]=((out[k>>>3]>>>(7-(k&7)))&1)!=0;k++}}}
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!Fm[y][x]&&(x+y)%2==0)M[y][x]=!M[y][x];
+ return M}
+function drawQR(cv,M){const s=5,b=4,N=M.length;cv.width=cv.height=(N+2*b)*s;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#000';M.forEach((r,j)=>r.forEach((d,i)=>{if(d)x.fillRect((i+b)*s,(j+b)*s,s,s)}));cv.style.width=Math.min(300,cv.width*1.4)+'px'}
+if(!seaOK())S.t='set';
+render();
+sync();
+</script></body></html>
