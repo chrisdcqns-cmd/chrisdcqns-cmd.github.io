@@ -399,6 +399,18 @@ tr.disp{opacity:.55}
 .evc{background:#fff;border:2px solid var(--line);border-radius:14px;padding:12px;font-size:15px;line-height:1.35;cursor:pointer;min-height:92px;position:relative;user-select:none}
 .evc:active{transform:scale(.98)}
 .evc.on{border-color:var(--c);box-shadow:inset 0 0 0 2px var(--c);background:color-mix(in srgb,var(--c) 13%,#fff)}
+.evc.au{background:#E4EEF8;border-color:#A9C6E2}
+.evc.au.on{background:color-mix(in srgb,var(--c) 13%,#E4EEF8)}
+.evleg{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);font-weight:600}
+.evleg i{width:22px;height:16px;border-radius:5px;background:#E4EEF8;border:2px solid #A9C6E2;display:inline-block}
+.evrec{width:100%;border-collapse:separate;border-spacing:0;margin-top:16px;font-size:17px}
+.evrec th{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:2px solid var(--line)}
+.evrec td{padding:12px;border-bottom:1px solid var(--line)}
+.evrec td.n,.evrec th.n{text-align:center}
+.evrec tr.tot td{font-weight:900;font-size:20px;background:var(--soft);border-bottom:none}
+.evrec .dg{display:inline-block;min-width:34px;text-align:center;border-radius:8px;color:#fff;font-weight:800;padding:2px 8px}
+.evrec .dg.d4{background:#2E7D4F}.evrec .dg.d3{background:#6E9F2E}.evrec .dg.d2{background:#C98A00}.evrec .dg.d1{background:#C0392B}
+.evrec tr[data-eve]{cursor:pointer}.evrec tr[data-eve].on td{background:var(--lane-soft)}
 .evc .evdl{display:none;font-weight:800;font-size:12px;color:var(--muted)}
 .evb{display:inline-block;font-style:normal;font-size:12px;font-weight:800;border-radius:999px;padding:2px 8px;margin:6px 4px 0 0}
 .evb.au{background:var(--lane-soft);color:var(--lane)}.evb.sg{background:var(--warn-soft);color:var(--warn)}
@@ -717,6 +729,7 @@ tr.disp{opacity:.55}
   </div>
   <div class="card"><div class="label">Élève à évaluer <small style="font-weight:600;color:var(--muted)">✓ évalué · 🙋 auto-évalué</small></div><div class="evnames" id="ev-names"></div></div>
   <div id="ev-body"></div>
+  <div class="card mt"><div class="label">Récapitulatif de la classe <small style="font-weight:600;color:var(--muted)">touche une ligne pour ouvrir la grille</small></div><div class="scroll" id="ev-recap"></div></div>
 </section>
 
 <!-- AUTO-ÉVALUATION (élève) -->
@@ -2015,20 +2028,28 @@ function evGridHTML(mode,e){
   let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}</div>
     <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
       :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts${prof?" (répartition fixée dans les réglages de la leçon)":""}</span>`}</div>
+    ${prof&&la?`<div class="evleg mt"><i></i>Case où ${esc(e.prenom)} s'est positionné(e) dans son auto-évaluation</div>`:""}
     <div class="evgrid"><div></div>${[4,3,2,1].map(d=>`<div class="evh d${d}">Degré ${d}</div>`).join("")}`;
   EVE.forEach(x=>{const mx=evMax(x.k,rp),pt=evPts(sel,x.k,rp);
     h+=`<div class="evl">${x.t}<small>${x.s} · sur ${mx} pts</small>${pt!=null?`<span class="evp">${fmtP(pt)} / ${mx}</span>`:""}</div>`;
     [4,3,2,1].forEach(d=>{const on=sel[x.k]&&sel[x.k].d===d,r=EVR[mx][d];
-      h+=`<div class="evc d${d} ${on?"on":""}" role="button" data-evk="${x.k}" data-evd="${d}"><span class="evdl">Degré ${d}</span>${esc(prof?x.prof[d]:x.el[d])}`
+      const au=prof&&la&&la.sel[x.k]&&la.sel[x.k].d===d;
+      h+=`<div class="evc d${d} ${on?"on":""} ${au?"au":""}" role="button" data-evk="${x.k}" data-evd="${d}"><span class="evdl">Degré ${d}</span>${esc(prof?x.prof[d]:x.el[d])}`
         +(prof&&la&&la.sel[x.k]&&la.sel[x.k].d===d?`<br><i class="evb au">🙋 élève</i>`:"")
         +(prof&&sg&&sg[x.k]===d?`<i class="evb sg">💡 d'après les courses</i>`:"")
         +(prof&&on?`<div class="evadj"><button data-evadj="-1" data-evk2="${x.k}">−</button><b>${fmtP(pt)}</b><button data-evadj="1" data-evk2="${x.k}">+</button><small>${fmtP(r[0])} à ${fmtP(r[1])}</small></div>`:"")
         +`</div>`});
   });
   h+=`</div>`;
+  const t0=evTotal(sel,rp);
   if(prof){const inf=[];if(sg.n)inf.push(sg.n+" course(s) enregistrée(s)"+(sg.info.length?" · "+sg.info.join(" · "):""));else inf.push("Aucune course enregistrée pour cet élève.");
     if(la){const ta=evTotal(la.sel,rp);inf.push("Auto-évaluation de l'élève"+(la.at?" du "+fmtShort(la.at.slice(0,10)):"")+" : "+(ta.n===4?fmtP(ta.t)+" / 20":"incomplète"))}
-    h+=`<div class="evinfo">${esc(inf.join(" — "))}</div>`}
+    h+=`<div class="evinfo">${esc(inf.join(" — "))}</div>`;
+    const ta=la?evTotal(la.sel,rp):null;
+    h+=`<table class="evrec"><thead><tr><th>Indicateur</th><th class="n">Degré</th><th class="n">Note</th>${la?'<th class="n">Auto-évaluation</th>':""}</tr></thead><tbody>`
+      +EVE.map(x=>{const s=sel[x.k],pt=evPts(sel,x.k,rp),mx=evMax(x.k,rp),as=la&&la.sel[x.k],ap=la?evPts(la.sel,x.k,rp):null;
+        return `<tr><td><b>${x.t}</b> <small style="color:var(--muted)">${x.s}</small></td><td class="n">${s?`<span class="dg d${s.d}">${s.d}</span>`:"–"}</td><td class="n"><b>${pt!=null?fmtP(pt):"–"}</b> / ${mx}</td>${la?`<td class="n">${as?`<span class="dg d${as.d}">${as.d}</span> ${fmtP(ap)} / ${mx}`:"–"}</td>`:""}</tr>`}).join("")
+      +`<tr class="tot"><td>Note générale</td><td></td><td class="n">${t0.n?fmtP(t0.t):"–"} / 20${t0.n<4?` <small style="font-weight:600;color:var(--muted)">(incomplète)</small>`:""}</td>${la?`<td class="n">${ta.n?fmtP(ta.t):"–"} / 20</td>`:""}</tr></tbody></table>`}
   const t=evTotal(sel,rp);
   h+=`<div class="evtot"><div class="big">${t.n?fmtP(t.t):"–"} / 20</div><div class="det">${t.n===4?(prof?"Note enregistrée ✓ · touche une autre case pour changer":"Auto-évaluation enregistrée ✓ · tu peux encore changer tes cases"):`${4-t.n} élément(s) à compléter`}</div>`
     +(prof?`<button class="btn ghost sm" style="margin-left:auto;background:transparent;color:#fff;border-color:#fff" data-evnext="1">Élève suivant →</button>`:"")+`</div></div>`;
@@ -2040,6 +2061,12 @@ function renderEval(){
   const lid=CLE()?CLE().id:null;
   $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=o&&lastAuto(o);return (p||a)?`<small>${p?"✓":""}${a?"🙋":""}</small>`:""});
   const e=EV_SEL!=null?byId(EV_SEL):null;
+  const cell=(o,k,rp)=>{const s=o&&o.prof[k];return s?`<span class="dg d${s.d}">${s.d}</span> ${fmtP(evPts(o.prof,k,rp))}`:"–"};
+  const ev0=CL().evals||{};
+  $("#ev-recap").innerHTML=`<table class="evrec"><thead><tr><th>Élève</th>${EVE.map(x=>`<th class="n">${x.t}</th>`).join("")}<th class="n">Note /20</th><th class="n">Auto /20</th></tr></thead><tbody>`
+    +L.map(st=>{const o=ev0[st.id],rp=evRepOf(o),t=o?evTotal(o.prof,rp):{n:0},la=o&&lastAuto(o),ta=la?evTotal(la.sel,rp):null;
+      return `<tr data-eve="${st.id}" class="${EV_SEL===st.id?"on":""}"><td><b>${esc(st.prenom)}</b> ${esc(st.nom)}</td>${EVE.map(x=>`<td class="n">${cell(o,x.k,rp)}</td>`).join("")}<td class="n"><b>${t.n?fmtP(t.t):"–"}</b>${t.n&&t.n<4?" *":""}</td><td class="n">${ta&&ta.n===4?fmtP(ta.t):"–"}</td></tr>`}).join("")
+    +`</tbody></table><p class="note" style="margin:8px 0 0">* note incomplète (il manque au moins un indicateur).</p>`;
   $("#ev-body").innerHTML=e?evGridHTML("prof",e):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. Les cases 🙋 montrent son auto-évaluation, les cases 💡 ce que suggèrent ses courses.</div>`;
 }
 function renderAuto(){
