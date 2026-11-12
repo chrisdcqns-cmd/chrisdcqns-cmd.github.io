@@ -380,6 +380,11 @@ tr.disp{opacity:.55}
 .waitbox .wt{margin:0;font-size:64px;line-height:.95;font-weight:800;text-transform:uppercase}.waitbox .wt span{color:var(--track)}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
+.goalrem{margin:-6px 0 18px;border-radius:14px;background:var(--lane-soft);border:2px solid var(--lane);padding:12px 16px;font-size:17px}
+.goalrem .grh b{color:var(--lane)}
+.goalrem .grl{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:15px;color:var(--muted)}
+.goalrem .grl span{background:#fff;border-radius:999px;padding:3px 10px;color:var(--ink)}
+.goalrem .grt{margin-top:6px;font-weight:700;color:var(--warn);font-size:15px}.goalrem .grt.ok{color:var(--ok)}
 .todaycard{border:2px solid var(--ok)}
 .todayd{margin:0 0 6px;font-size:40px;font-weight:800}
 .cfgsum{display:flex;flex-wrap:wrap;gap:8px}
@@ -683,6 +688,7 @@ tr.disp{opacity:.55}
     <span class="chip" id="r-lecon"></span>
   </div>
   <div class="card gcard"><div class="label">Ton groupe</div><div class="gpick" id="r-g"></div><div class="coachw" id="r-coach"></div></div>
+  <div class="goalrem" id="r-goalrem"></div>
   <div class="grid2">
     <div class="card">
       <div class="label"><span class="badge b1">1</span>Coureur 1 · départ arrêté</div>
@@ -2005,6 +2011,7 @@ function adviceHTML(m,pm,cfg){
 }
 function onCourse(){
   const r=pair("r"),cfg=CFG();
+  try{renderGoalReminder()}catch(e){}
   {const a=$("#r-r1").value,b=$("#r-r2").value;
    $("#r-o1").innerHTML=a===""?"":goalHTML(byId(+a),"D");$("#r-o2").innerHTML=b===""?"":goalHTML(byId(+b),"R");}
   document.querySelectorAll("#r-ecart button").forEach(b=>b.classList.toggle("on",typeof ST.ecart==="number"&&+b.dataset.v===ST.ecart));
@@ -2138,6 +2145,20 @@ function goalHTML(e,role){
   if(cfg.goalMode==="best"){const b=bestRole(e);if(b&&b.r!==role)warn=`<div class="gwarn">Attention : le meilleur rôle de ${esc(e.prenom)} est ${roleName(b.r)}. Cette course ne compte pas pour son objectif.</div>`}
   return `<div class="ghead2">Objectif de ${esc(e.prenom)}${s.note?` · <span>${esc(s.note)}</span>`:""}${s.done?` <b class="gdone">✓ atteint</b>`:""}</div>`
     +s.lines.map(([l,v,n])=>`<div class="gline"><span>${esc(l)}</span><div class="gbar"><i style="width:${Math.min(100,v/n*100)}%" class="${v>=n?"full":""}"></i></div><b>${Math.min(v,n)}/${n}</b></div>`).join("")+warn;
+}
+/* rappel de l'objectif de la leçon sur la page de saisie (pour ne pas se laisser surprendre par le temps) */
+function renderGoalReminder(){
+  const box=$("#r-goalrem");if(!box)return;const cfg=CFG();
+  if(!cfg.goalOn||!CLE()){box.innerHTML="";box.style.display="none";return}
+  const N=cfg.goalN||4,how=cfg.goalMode==="both"?`${N} comme donneur et ${N} comme receveur`:`${N} dans son meilleur rôle`;
+  const g=GR().find(x=>x.id===CURG());
+  let rest="";
+  if(g){const m=groupMembers(g).filter(e=>e.ma!=="DISP");
+    const left=m.map(e=>{const s=goalStatus(e,cfg,CO());const n=s.lines.reduce((t,[l,v,n])=>t+Math.max(0,n-v),0);return {e,n}}).filter(x=>x.n>0);
+    rest=left.length?`<div class="grl">Encore à courir : ${left.map(x=>`<span><b>${esc(x.e.prenom)}</b> ${x.n}</span>`).join("")}</div><div class="grt">⏱ Organisez-vous pour avoir le temps de toutes les faire avant la fin de la leçon !</div>`
+      :`<div class="grt ok">✓ Tout le groupe a atteint l'objectif de la leçon. Bravo !</div>`;
+  }else rest=`<div class="grt">⏱ Pensez à garder du temps pour atteindre cet objectif avant la fin de la leçon !</div>`;
+  box.innerHTML=`<div class="grh">🎯 Objectif de la leçon : <b>${how}</b> pour chaque élève.</div>`+rest;box.style.display="";
 }
 function goalsRow(gname,list,span,cfg){
   const g=GR().find(x=>x.name===gname);if(!g||!cfg.goalOn)return "";
