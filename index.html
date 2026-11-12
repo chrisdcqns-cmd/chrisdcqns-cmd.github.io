@@ -1,4 +1,68 @@
 <!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"><title>Acrosport EPS</title>
-<meta http-equiv="refresh" content="0; url=/acrosport/"></head>
-<body><p><a href="/acrosport/">Ouvrir l'application Acrosport EPS</a></p></body></html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EPS – Mes applications</title>
+<meta name="theme-color" content="#1B1E24">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<style>
+:root{--bg:#F4F1EA;--card:#fff;--ink:#1B1E24;--muted:#6A6F78;--line:#E2DDD2}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 22px 40px;min-height:100vh;display:flex;flex-direction:column}
+h1{margin:0;font-size:46px;font-weight:900;letter-spacing:-.01em}
+h1 span{color:#D9481F}
+.sub{margin:6px 0 22px;color:var(--muted);font-size:19px}
+.lanes{height:10px;border-radius:6px;margin-bottom:26px;background:linear-gradient(90deg,#D9481F 0 25%,#1F5F8B 25% 50%,#2E7D4F 50% 75%,#B26B00 75%)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1;align-content:start}
+a.app{display:flex;align-items:center;gap:20px;background:var(--card);border-radius:22px;padding:24px;text-decoration:none;color:inherit;box-shadow:0 3px 0 var(--line);min-height:170px;border:3px solid transparent;transition:transform .1s}
+a.app:active{transform:scale(.98)}
+.ico{width:92px;height:92px;border-radius:22px;display:grid;place-items:center;flex:none;color:#fff;overflow:hidden}
+.ico img{width:100%;height:100%;object-fit:cover}
+.ico svg{width:54px;height:54px}
+a.app h2{margin:0 0 6px;font-size:30px;font-weight:900}
+a.app p{margin:0;color:var(--muted);font-size:17px;line-height:1.35}
+.acro .ico{background:#1F4FA3}.esc .ico{background:#2E7D4F}.ori .ico{background:#B26B00}.rel .ico{background:#D9481F}
+.acro{border-color:#1F4FA3!important}.esc{border-color:#2E7D4F!important}.ori{border-color:#B26B00!important}.rel{border-color:#D9481F!important}
+.foot{margin-top:24px;color:var(--muted);font-size:14px;text-align:center}
+.off{display:none;margin:0 0 16px;padding:12px 16px;border-radius:14px;background:#FFF1D6;color:#B26B00;font-weight:600}
+@media (max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>EPS <span>·</span> Mes applications</h1>
+  <p class="sub">Choisis l'activité de la leçon.</p>
+  <div class="lanes"></div>
+  <p class="off" id="off">Pas de connexion : les applications déjà ouvertes sur cette tablette restent utilisables.</p>
+  <div class="grid">
+    <a class="app acro" href="/acrosport/">
+      <div class="ico"><img src="/acrosport/icon-192.png" alt="" onerror="this.remove()"></div>
+      <div><h2>Acrosport</h2><p>Figures, vidéos, enchaînement, tapis et observation.</p></div>
+    </a>
+    <a class="app esc" href="/escalade/">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg></div>
+      <div><h2>Escalade</h2><p>Moulinette : grimpes, cotations, critères et résultats.</p></div>
+    </a>
+    <a class="app ori" href="/orientation/">
+      <div class="ico"><img src="/orientation/icon-192.png" alt="" onerror="this.remove()"></div>
+      <div><h2>OrienRun</h2><p>Course d'orientation : cartes, balises et suivi en direct.</p></div>
+    </a>
+    <a class="app rel" href="/relais/">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg></div>
+      <div><h2>Relais Vitesse</h2><p>Vitesse cible, courses, transmission et conseils.</p></div>
+    </a>
+  </div>
+  <p class="foot">Les données restent sur chaque tablette. Aucun nom d'élève n'est publié.</p>
+</div>
+<script>
+function upd(){document.getElementById("off").style.display=navigator.onLine===false?"block":"none"}
+addEventListener("online",upd);addEventListener("offline",upd);upd();
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("/sw.js",{scope:"/"}).catch(()=>{});
+</script>
+</body>
+</html>
