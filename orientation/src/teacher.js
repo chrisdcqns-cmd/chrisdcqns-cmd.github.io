@@ -1,7 +1,7 @@
 // ===== Espace enseignant =====
 let P = null;            // projet (carte, balises, parcours)
 let CFG = LS.get("cfg", {}) || {};
-CFG = Object.assign({ api: API_DEFAULT, tel: "", interval: 20, poll: 5, appUrl: "", scanMax: 60 }, CFG);
+CFG = Object.assign({ api: API_DEFAULT, tel: "", interval: 20, poll: 5, appUrl: "", scanMax: 60, immo: 5 }, CFG);
 const saveCfg = () => LS.set("cfg", CFG);
 const apiUrl = () => (CFG.api || API_DEFAULT || "").trim();
 const appUrl = () => { const u = (CFG.appUrl || APP_URL_DEFAULT || "").trim(); if (u) return u.replace(/#.*$/, ""); return /^https?:/.test(location.href) ? location.href.replace(/[#?].*$/, "") : "https://VOTRE-PSEUDO.github.io/orientation/"; };

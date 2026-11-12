@@ -15,6 +15,7 @@
  *  - Decisions    : balises validées / refusées par l'enseignant
  *  - Messages     : messages de l'enseignant aux élèves
  *  - Lecons       : leçons en cours (les élèves les voient dans l'appli sans scanner de QR)
+ *  - Classes      : tes listes d'élèves (elles ne sont jamais publiées sur GitHub)
  * Seuls le nom saisi par l'élève, sa classe et ses positions pendant la course sont enregistrés, dans ton propre Google Drive.
  * Pour faire de la place : supprime les lignes des anciennes séances dans l'onglet Evenements (ou utilise l'action « purge » depuis l'éditeur : fonction purgerAnciennesSeances).
  */
@@ -27,6 +28,7 @@ const T_EVTS = { nom: 'Evenements', cols: ['recu', 'seance', 'coureur', 'nom', '
 const T_DEC = { nom: 'Decisions', cols: ['seance', 'coureur', 'evenement', 'valide', 'date'] };
 const T_MSG = { nom: 'Messages', cols: ['seance', 'destinataire', 'id', 'texte', 'date'] };
 const T_LECONS = { nom: 'Lecons', cols: ['lecon', 'nom', 'lancee', 'active'] };
+const T_CLASSES = { nom: 'Classes', cols: ['classe', 'eleve'] };
 
 function doGet() { return json_({ ok: true, app: 'orienrun' }); }
 
@@ -83,7 +85,20 @@ function traiter_(req) {
   if (a === 'getSession') {
     const s = code_(req.s), parts = lignes_(T_SEANCES).filter(x => String(x.v[0]) === s).sort((x, y) => x.v[2] - y.v[2]);
     if (!parts.length) throw new Error('Séance inconnue');
-    return { ok: true, data: JSON.parse(parts.map(x => x.v[3]).join('')) };
+    const data = JSON.parse(parts.map(x => x.v[3]).join(''));
+    delete data.geo; // le calage n'est donné qu'après l'arrivée (sinon il révélerait la position des balises)
+    return { ok: true, data: data };
+  }
+
+  // ----- élève : calage de la carte pour revoir son itinéraire, seulement une fois sa course terminée -----
+  if (a === 'trace') {
+    const s = code_(req.s), r = String(req.r || '').slice(0, 20), sh = feuille_(T_EVTS), last = sh.getLastRow();
+    let fini = false;
+    if (last > 1) { const v = sh.getRange(2, 2, last - 1, 6).getValues(); fini = v.some(x => String(x[0]) === s && String(x[1]) === r && (x[5] === 'finish' || x[5] === 'abandon')); }
+    if (!fini) throw new Error("Termine d'abord ta course pour revoir ton itinéraire");
+    const parts = lignes_(T_SEANCES).filter(x => String(x.v[0]) === s).sort((x, y) => x.v[2] - y.v[2]);
+    if (!parts.length) throw new Error('Leçon inconnue');
+    return { ok: true, geo: JSON.parse(parts.map(x => x.v[3]).join('')).geo || [] };
   }
 
   // ----- enseignant -----
@@ -103,6 +118,18 @@ function traiter_(req) {
     const nom = String((req.data && req.data.nom) || s).slice(0, 80), sl = feuille_(T_LECONS), ex = lignes_(T_LECONS).find(x => String(x.v[0]) === s);
     if (ex) sl.getRange(ex.i, 1, 1, 4).setValues([[s, nom, Number(ex.v[2]) || Date.now(), true]]); else sl.appendRow([s, nom, Date.now(), true]);
     return { ok: true };
+  }
+
+  if (a === 'saveClasses') {
+    const C = req.classes || {}, rows = [];
+    Object.keys(C).forEach(c => (C[c] || []).forEach(n => rows.push([String(c).slice(0, 30), String(n).slice(0, 80)])));
+    const sh = feuille_(T_CLASSES), n = sh.getLastRow(); if (n > 1) sh.deleteRows(2, n - 1);
+    if (rows.length) sh.getRange(2, 1, rows.length, 2).setValues(rows);
+    return { ok: true, n: rows.length };
+  }
+  if (a === 'loadClasses') {
+    const C = {}; lignes_(T_CLASSES).forEach(x => { const c = String(x.v[0]); if (c) (C[c] = C[c] || []).push(String(x.v[1])); });
+    return { ok: true, classes: C };
   }
 
   if (a === 'close') {

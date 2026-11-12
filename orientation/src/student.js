@@ -61,6 +61,7 @@ function welcomeScreen() {
     try { const j = await apiCall(api, "getSession", { s: code }, 30000); const d = j.data || {}; const gos = Object.values(d.gos || {}); if (!gos.length) throw new Error("Cette leçon n'a pas de parcours (mets à jour le script de l'enseignant)");
       if (d.proj) DB.set("map:" + code, d.proj);
       LS.set("lastApi", api);
+      gos.forEach(g => g.eleves = d.eleves || null);
       if (gos.length === 1) return studentEntry(gos[0]);
       const m = openModal(`<h2>${esc(d.nom || code)}</h2><p class="muted">Choisis ton parcours :</p><div style="display:flex;flex-direction:column;gap:10px">${gos.map((g, i) => `<button class="btn alt" data-g="${i}" style="justify-content:flex-start;min-height:56px"><b>${esc(g.c.k)}</b>&nbsp;· ${esc(g.c.nm || "")} <small class="muted">&nbsp;${g.c.b.filter(b => !b.x).length} balises</small></button>`).join("")}</div>`);
       $$("[data-g]", m).forEach(b => b.onclick = () => { m.close(); studentEntry(gos[+b.dataset.g]); });
@@ -79,18 +80,39 @@ function joinScreen(g) {
   const c = g.c, req = c.b.filter(b => !b.x), bonus = c.b.filter(b => b.x);
   $("#eleve").innerHTML = `<div class="ehead"><div class="flag"></div><h1>${esc(c.k)}</h1></div>
    <div class="panel"><h2>${esc(c.nm || "Parcours " + c.k)}</h2><p class="muted" style="margin-top:-6px">${esc(g.u || "")} · ${req.length} balises${bonus.length ? ` + ${bonus.length} bonus` : ""} · ${{ ordre: "dans l'ordre imposé", libre: "dans l'ordre que tu veux", score: "au score" }[c.m]}${c.tm ? ` · ${c.tm} min maximum` : ""}${c.hr ? ` · retour avant ${new Date(c.hr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
-    <div class="field"><label>Prénom NOM</label><input class="inp" id="jNom" value="${esc(me.nom || "")}" autocomplete="name" placeholder="ex. Léa DUPONT"></div>
-    <div class="field"><label>Équipier(e) (si vous courez à deux)</label><input class="inp" id="jBin" placeholder="facultatif"></div>
-    <div class="field"><label>Classe</label><input class="inp" id="jCl" list="dlCl" value="${esc(me.cl || "")}" placeholder="ex. TMELEC"><datalist id="dlCl"><option>TMELEC</option><option>TTBMA</option><option>1G1</option><option>1G2</option><option>1G3</option><option>1G4</option><option>1STMG</option></datalist></div>
+    <div id="jWho"></div>
     ${c.ch ? `<h3>Choisis tes balises${c.nb ? ` (${c.nb})` : ""}</h3><p class="muted" style="margin-top:-4px">Touche les balises que tu veux aller chercher.${c.prep ? " Tu pourras encore changer pendant ta préparation." : ""}</p><div class="cchips" id="jSel">${req.map(b => `<button class="cchip" data-n="${b.n}">${b.n}${b.p != null ? `<small style="font-family:inherit;font-weight:600"> ${b.p}pt</small>` : ""}</button>`).join("")}</div><p id="jSelInfo" class="muted"></p>` : ""}
     ${bonus.length ? `<p class="muted">★ Balises bonus (facultatives) : ${bonus.map(b => b.n + (b.p != null ? ` (${b.p} pts)` : "")).join(", ")}</p>` : ""}
     <button class="btn or" id="jGo" style="width:100%;min-height:58px;margin-top:10px">${c.prep ? `Commencer ma préparation (${c.prep} min) →` : "Continuer →"}</button></div>`;
+  // identité : liste de la classe (si l'enseignant l'a chargée) ou saisie libre
+  let eleves = g.eleves || null, libre = false;
+  const who = () => {
+    const box = $("#jWho"); if (!box) return;
+    const cls = eleves ? Object.keys(eleves) : [];
+    if (cls.length && !libre) {
+      const cur = box._cl && eleves[box._cl] ? box._cl : (cls.includes(me.cl) ? me.cl : cls.length === 1 ? cls[0] : null);
+      box._cl = cur;
+      box.innerHTML = `<div class="lbl">Ta classe</div><div class="cchips" style="margin:6px 0 10px">${cls.map(c => `<button class="cchip ${c === cur ? "on" : ""}" data-jc="${esc(c)}" style="padding:0 14px">${esc(c)}</button>`).join("")}</div>
+       ${cur ? `<div class="field"><label>Ton nom</label><select class="inp" id="jNomSel"><option value="">— choisis ton nom —</option>${eleves[cur].map(n => `<option ${normName(n) === normName(me.nom) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>
+       <div class="field"><label>Équipier(e) (si vous courez à deux)</label><select class="inp" id="jBinSel"><option value="">— personne —</option>${eleves[cur].map(n => `<option>${esc(n)}</option>`).join("")}</select></div>` : ""}
+       <button class="btn small ghost" id="jLibre">Je ne suis pas dans la liste</button>`;
+      $$("[data-jc]", box).forEach(b => b.onclick = () => { box._cl = b.dataset.jc; who(); });
+      $("#jLibre", box).onclick = () => { libre = true; who(); };
+    } else box.innerHTML = `<div class="field"><label>Prénom NOM</label><input class="inp" id="jNom" value="${esc(me.nom || "")}" autocomplete="name" placeholder="ex. Léa DUPONT"></div>
+      <div class="field"><label>Équipier(e) (si vous courez à deux)</label><input class="inp" id="jBin" placeholder="facultatif"></div>
+      <div class="field"><label>Classe</label><input class="inp" id="jCl" list="dlCl" value="${esc(me.cl || "")}" placeholder="ex. TMELEC"><datalist id="dlCl">${(cls.length ? cls : ["TMELEC", "TTBMA", "1G1", "1G2", "1G3", "1G4", "1STMG"]).map(c => `<option>${esc(c)}</option>`).join("")}</datalist></div>`;
+  };
+  who();
+  if (!eleves && g.a) apiCall(longApi(g.a), "getSession", { s: g.s }, 20000).then(j => { if (j.data?.eleves && Object.keys(j.data.eleves).length) { eleves = j.data.eleves; who(); } if (j.data?.proj) DB.set("map:" + g.s, j.data.proj); }).catch(() => {});
   const prev = loadRun(); const sel = new Set(prev && prev.s === g.s && prev.c.k === c.k && !prev.start ? prev.sel || [] : []);
   const showSel = () => { $$("#jSel .cchip").forEach(b => b.classList.toggle("on", sel.has(+b.dataset.n))); const i = $("#jSelInfo"); if (i) i.textContent = sel.size ? `${sel.size} balise(s) choisie(s) : ${[...sel].join(", ")}` : ""; };
   $$("#jSel .cchip").forEach(b => b.onclick = () => { const n = +b.dataset.n; if (sel.has(n)) sel.delete(n); else { if (c.nb && sel.size >= c.nb) return toast(`${c.nb} balises maximum`); sel.add(n); } showSel(); });
   showSel();
   $("#jGo").onclick = () => {
-    const nom = $("#jNom").value.trim(), bin = $("#jBin").value.trim(), cl = $("#jCl").value.trim().toUpperCase();
+    const fromList = !!$("#jNomSel");
+    const nom = fromList ? $("#jNomSel").value : $("#jNom").value.trim(), bin = fromList ? $("#jBinSel").value : $("#jBin").value.trim(), cl = fromList ? $("#jWho")._cl : $("#jCl").value.trim().toUpperCase();
+    if (fromList && !nom) return toast("Choisis ton nom dans la liste", "ko");
+    if (bin && bin === nom) return toast("Ton équipier ne peut pas être toi 😉", "ko");
     if (nom.length < 2) return toast("Écris ton prénom et ton nom", "ko");
     if (c.ch && c.nb && sel.size !== c.nb) return toast(`Choisis exactement ${c.nb} balises`, "ko");
     if (c.ch && !sel.size) return toast("Choisis au moins une balise", "ko");
@@ -351,9 +373,19 @@ function endScreen() {
    <div class="panel"><h2>Mes temps</h2><div class="tw"><table class="t"><thead><tr><th>Poste</th><th class="num">Temps inter.</th><th class="num">Cumul</th></tr></thead><tbody>${a.legs.map(l => `<tr><td><b>${esc(l.de)} → ${esc(l.n)}</b>${fbOn(r) && !l.ordre ? ' <span class="chip ko">ordre</span>' : ""}${r.dec[l.id] === true ? ' <span class="chip ok">✓ juste</span>' : ""}${l.status === "attente" && fbOn(r) ? ' <span class="chip wait">à valider</span>' : ""}</td><td class="num">${fmtDur(l.split)}</td><td class="num">${fmtDur(l.cumul)}</td></tr>`).join("")}</tbody></table></div>
     ${a.manquants.length ? `<p><b>Balises manquantes :</b> ${a.manquants.join(", ")}</p>` : ""}</div>
    <div class="panel"><p id="endSync" class="muted"></p><div style="display:flex;flex-direction:column;gap:10px">
+    <button class="btn" id="eAna">🗺 Revoir mon itinéraire</button><button class="btn alt" id="eBil">📄 Ma fiche bilan (PDF)</button>
     <button class="btn or" id="eSms">📩 Envoyer mes résultats par SMS</button><button class="btn alt" id="eRetry">↻ Renvoyer par internet</button><button class="btn ghost" id="eNew">Nouvelle course</button></div></div>`;
   const upd = () => { const r = loadRun(); if (!$("#endSync")) return; $("#endSync").innerHTML = !r.a ? "Pas de connexion à la tablette prévue : <b>envoie tes résultats par SMS</b>." : r.queue.length ? `⚠ ${r.queue.length} donnée(s) pas encore reçue(s) par la tablette. Reste près du réseau ou envoie par SMS.` : "<b style='color:var(--green)'>✓ Résultats reçus par la tablette de l'enseignant.</b>"; };
   upd();
+  const getTrace = async () => {
+    const r = loadRun(); if (!r.a) throw new Error("Pas de connexion à la tablette prévue");
+    await flush(true);
+    let proj = E.mapProj || await DB.get("map:" + r.s); if (!proj) { const j = await apiCall(r.a, "getSession", { s: r.s }, 30000); proj = j.data?.proj; if (proj) DB.set("map:" + r.s, proj); }
+    const t = await apiCall(r.a, "trace", { s: r.s, r: r.r }, 20000);
+    return { proj, geo: t.geo, R: { ...r, c: r.c.k, ev: r.ev }, course: r.c, a: anaS(r), lesson: r.u };
+  };
+  $("#eAna").onclick = async () => { try { openAnalysis(await getTrace()); } catch (e) { toast(e.message, "ko"); } };
+  $("#eBil").onclick = async () => { try { printBilans([await getTrace()]); } catch (e) { toast(e.message, "ko"); } };
   $("#eSms").onclick = () => { location.href = smsHref(r.t, smsResultat(smsRunData(loadRun()))); mutRun(r => r.smsSent = Date.now()); };
   $("#eRetry").onclick = async () => { await flush(true); upd(); };
   $("#eNew").onclick = () => { const r = loadRun(); if (r.queue.length && !r.smsSent && !confirm("Tes résultats ne sont pas encore arrivés. Continuer quand même ?")) return; mutRun(r => r.done = true); welcomeScreen(); };

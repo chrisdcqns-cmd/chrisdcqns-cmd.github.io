@@ -33,7 +33,9 @@ Même principe que l'appli acrosport :
 
 Sans script, l'appli fonctionne quand même : les élèves t'envoient leurs résultats par **SMS**, et tu les colles dans l'appli.
 
-## 3. Préparer la leçon (à faire une fois par lieu)
+## 3. Préparer la leçon
+
+**⚙ Réglages → Listes de classe** (facultatif mais conseillé) : collez la liste des élèves de chaque classe, un nom par ligne (copie depuis Pronote). Les listes sont enregistrées dans votre Google Sheet, jamais sur GitHub. Au lancement de la leçon, cochez les classes présentes : les élèves **choisissent leur nom dans la liste**, et l'**appel** se fait tout seul. (à faire une fois par lieu)
 
 **🗺 Carte**
 - **Charger ma carte** : photo, scan ou PDF de ta carte (plan du lycée, carte du parc…), ou feuille blanche.
@@ -45,7 +47,8 @@ Sans script, l'appli fonctionne quand même : les élèves t'envoient leurs rés
 - **Nouvelle balise ici (GPS)** : sur le terrain, pose-toi à l'endroit de la balise. La position est mesurée pendant 10 ou 30 s (moyenne), avec un **lien Google Maps**. Enchaîne avec **＋ Balise suivante**.
 - Une balise placée sur la carte **et** géolocalisée sert aussi de point de calage.
 - **Imprimer les balises** : drapeau orange et blanc, grand numéro, **QR code** et **code de contrôle** (3 lettres) au cas où le QR ne passe pas. Plastifie-les.
-- **Fiche de pose / ramassage** : liste avec coordonnées et QR Google Maps pour retrouver chaque balise.
+- **🧭 Pose / ramassage sur le terrain** : l'appli vous guide jusqu'à la balise la plus proche (flèche, distance, boussole) et vous cochez « Posée » ou « Ramassée ». Elle vibre à moins de 10 m.
+- **Fiche de pose / ramassage** : liste avec coordonnées, QR Google Maps et cases cochées (posée, ramassée).
 
 **〰 Parcours** (paramétrage)
 - **Type** : en ordre imposé (circuit), dans le désordre, ou au score.
@@ -70,6 +73,8 @@ Sans script, l'appli fonctionne quand même : les élèves t'envoient leurs rés
    - pour chaque élève : balises trouvées, **temps intermédiaires**, cumul, distance à vol d'oiseau et distance réellement parcourue (GPS), vitesse, allure, temps arrêté, erreurs d'ordre ou de code ;
    - les **alertes SOS** (sonnerie, bandeau rouge, lien vers la position) ;
    - en touchant un élève : sa **fiche** (temps, balises, distance, vitesse, allure, temps arrêté, dernier signal, précision GPS, batterie), **sa trace sur la carte**, et l'envoi d'un **message** (messages rapides, accusé « lu ») ;
+   - **📋 Appel** : présents (cochez les absents), partis, rentrés, et la liste de ceux qui ne sont pas encore rentrés. L'appli vous prévient si vous terminez la leçon alors qu'il en manque ;
+   - **🟠 Alerte d'immobilité** : un élève en course qui ne bouge plus depuis 5 min (réglable), loin de toute balise ;
    - **⚠ scan suspect** : la balise a été scannée loin de sa position GPS (photo du QR partagée ?). Le seuil est réglable dans ⚙ Réglages ;
    - **↻ Appliquer mes modifs** : si vous corrigez un parcours pendant la leçon. Sinon, la leçon garde le parcours tel qu'il était au lancement, et les résultats ne changent plus ;
    - **✓ Juste / ✕ Fausse** sur chaque balise scannée : l'élève reçoit la notification sur son téléphone ;
@@ -83,6 +88,11 @@ Si un élève ouvre une nouvelle course sans avoir clôturé la précédente, l'
 **Conseils aux élèves** : garder l'appli ouverte et l'écran allumé (le GPS s'arrête quand le téléphone se verrouille) ; utiliser de préférence le bouton **Scanner** de l'appli plutôt que l'appareil photo.
 
 ## 5. Après la leçon
+
+- **🗺 Analyse d'itinéraire** (fiche de l'élève sur la tablette, ou « Revoir mon itinéraire » sur le téléphone après l'arrivée) : la trace GPS sur la carte, inter-poste par inter-poste, avec les **arrêts** de plus d'1 minute et un bouton ▶ pour rejouer la course.
+- **📄 Fiche bilan** : une page A4 par élève (trace, temps intermédiaires, arrêts, et une partie « Mon analyse » à compléter). Pour l'enregistrer en PDF, choisissez « Enregistrer au format PDF » dans la fenêtre d'impression. Vous pouvez aussi imprimer toute la classe d'un coup (Résultats → 📄 Fiches bilan).
+- **📈 Progression** (Résultats) : le suivi de chaque élève de leçon en leçon (balises, temps, vitesse, erreurs), avec ses courbes et un export CSV.
+
 
 **🏁 Résultats** : classement par parcours, temps intermédiaires de chaque balise. Exports **Excel**, **CSV** et **positions GPS** (avec liens Google Maps), impression.
 **⚙ Réglages → Exporter le projet** : sauvegarde de la carte, des balises et des parcours dans un fichier, pour une autre tablette ou un collègue.

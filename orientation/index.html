@@ -710,7 +710,7 @@ function analyseRun(runner, course, proj, dec = {}, ack = {}, opts = {}) {
 // ===== Espace enseignant =====
 let P = null;            // projet (carte, balises, parcours)
 let CFG = LS.get("cfg", {}) || {};
-CFG = Object.assign({ api: API_DEFAULT, tel: "", interval: 20, poll: 5, appUrl: "", scanMax: 60 }, CFG);
+CFG = Object.assign({ api: API_DEFAULT, tel: "", interval: 20, poll: 5, appUrl: "", scanMax: 60, immo: 5 }, CFG);
 const saveCfg = () => LS.set("cfg", CFG);
 const apiUrl = () => (CFG.api || API_DEFAULT || "").trim();
 const appUrl = () => { const u = (CFG.appUrl || APP_URL_DEFAULT || "").trim(); if (u) return u.replace(/#.*$/, ""); return /^https?:/.test(location.href) ? location.href.replace(/[#?].*$/, "") : "https://VOTRE-PSEUDO.github.io/orientation/"; };
@@ -1004,7 +1004,7 @@ function viewBalises(v) {
    <div class="panel" style="margin-top:0"><h2>Balises</h2>
     <p class="muted" style="margin-top:-6px">Crée tes balises sur place (géolocalisation + lien Google Maps), imprime-les avec leur QR code, puis place-les sur la carte. Une balise placée sur la carte <b>et</b> géolocalisée sert aussi au calage de la carte.</p>
     <div class="row"><button class="btn or" id="bNewGps">📍 Nouvelle balise ici (GPS)</button><button class="btn alt" id="bNew">＋ Nouvelle balise</button><button class="btn alt" id="bNewS">＋ Départ</button><button class="btn alt" id="bNewF">＋ Arrivée</button></div>
-    <div class="row" style="margin-top:10px"><button class="btn" id="bPrint">🖨 Imprimer les balises (QR)</button><button class="btn ghost" id="bFiche">📋 Fiche de pose / ramassage</button><button class="btn ghost" id="bSat">🛰 Voir sur fond satellite</button>${P.controls.some(c => String(c.code).length < 3) ? `<button class="btn ghost" id="bCode3">🔤 Passer tous les codes à 3 lettres</button>` : ""}${g && P.controls.some(c => c.lat != null && c.x == null) ? `<button class="btn ghost" id="bAuto">🧲 Placer sur la carte d'après le GPS</button>` : ""}</div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="bPrint">🖨 Imprimer les balises (QR)</button><button class="btn or" id="bPose">🧭 Pose / ramassage sur le terrain</button><button class="btn ghost" id="bFiche">📋 Fiche de pose / ramassage</button><button class="btn ghost" id="bSat">🛰 Voir sur fond satellite</button>${P.controls.some(c => String(c.code).length < 3) ? `<button class="btn ghost" id="bCode3">🔤 Passer tous les codes à 3 lettres</button>` : ""}${g && P.controls.some(c => c.lat != null && c.x == null) ? `<button class="btn ghost" id="bAuto">🧲 Placer sur la carte d'après le GPS</button>` : ""}</div>
    </div>
    <div class="list" style="margin-top:14px">${C.length ? C.map(c => `<div class="item"><div class="num ${c.type}">${esc(c.type === "C" ? c.n : c.type === "S" ? "▲" : "◎")}</div>
      <div class="body"><b>${esc(ctrlLabel(c))}</b> <span class="chip">code ${esc(c.code)}</span> ${c.desc ? `<span class="muted">· ${esc(c.desc)}</span>` : ""}<br>
@@ -1012,7 +1012,7 @@ function viewBalises(v) {
      <div class="row"><button class="btn small or" data-gps="${c.id}">📍 Géolocaliser</button><button class="btn small alt" data-ed="${c.id}">Modifier</button>${c.x == null ? `<button class="btn small ghost" data-pl="${c.id}">Placer</button>` : ""}</div></div>`).join("") : `<div class="panel muted">Aucune balise pour l'instant.</div>`}</div></div>`;
   const mk = (type, gps) => { const c = { id: uid(6), type, n: type === "C" ? nextN() : type === "S" ? "D" + (P.controls.filter(x => x.type === "S").length || "") : "A" + (P.controls.filter(x => x.type === "F").length || ""), code: randCode(3), desc: "", x: null, y: null, lat: null, lon: null, acc: null }; P.controls.push(c); saveP(); if (gps) gpsControl(c.id, true); else editControl(c.id); };
   $("#bNewGps").onclick = () => mk("C", true); $("#bNew").onclick = () => mk("C"); $("#bNewS").onclick = () => mk("S"); $("#bNewF").onclick = () => mk("F");
-  $("#bPrint").onclick = printBalises; $("#bFiche").onclick = printFiche; $("#bSat").onclick = () => satView();
+  $("#bPrint").onclick = printBalises; $("#bFiche").onclick = printFiche; $("#bPose").onclick = openPose; $("#bSat").onclick = () => satView();
   $("#bCode3") && ($("#bCode3").onclick = () => { if (!confirm("Donner un nouveau code de 3 lettres aux balises qui ont un code plus court ?\n⚠ Il faudra réimprimer ces balises.")) return; pushUndo(); let n = 0; P.controls.forEach(c => { if (String(c.code).length < 3) { c.code = randCode(3); n++; } }); saveP(); toast(n + " code(s) changé(s) : pense à réimprimer", "ok"); setPTab("balises"); });
   $("#bAuto") && ($("#bAuto").onclick = () => { const g = georef(); let n = 0; P.controls.forEach(c => { if (c.lat != null && c.x == null) { const q = g.toPx(c.lat, c.lon); c.x = q.x; c.y = q.y; c.calage = false; n++; } }); saveP(); toast(n + " balise(s) placée(s) d'après le GPS", "ok"); setPTab("balises"); });
   $$("[data-gps]", v).forEach(b => b.onclick = () => gpsControl(b.dataset.gps));
@@ -1088,7 +1088,7 @@ function printBalises() {
 }
 function printFiche() {
   const C = P.controls.slice().sort((a, b) => String(a.type).localeCompare(b.type) || (+a.n || 0) - (+b.n || 0));
-  printWin("Fiche de pose", `<h1>${esc(P.nom)} — fiche de pose / ramassage des balises</h1><table><thead><tr><th>Balise</th><th>Code</th><th>Définition</th><th>Coordonnées GPS</th><th>Google Maps</th><th>Posée</th><th>Ramassée</th></tr></thead><tbody>${C.map(c => `<tr><td><b>${esc(ctrlLabel(c))}</b></td><td>${esc(c.code)}</td><td>${esc(c.desc || "")}</td><td>${c.lat != null ? `${c.lat.toFixed(6)}, ${c.lon.toFixed(6)}<br><small>±${Math.round(c.acc || 0)} m</small>` : "–"}</td><td>${c.lat != null ? QR.svg(gmapsUrl(c.lat, c.lon), { ecl: "L", border: 1 }) : ""}</td><td>☐</td><td>☐</td></tr>`).join("")}</tbody></table>`,
+  printWin("Fiche de pose", `<h1>${esc(P.nom)} — fiche de pose / ramassage des balises</h1><table><thead><tr><th>Balise</th><th>Code</th><th>Définition</th><th>Coordonnées GPS</th><th>Google Maps</th><th>Posée</th><th>Ramassée</th></tr></thead><tbody>${C.map(c => `<tr><td><b>${esc(ctrlLabel(c))}</b></td><td>${esc(c.code)}</td><td>${esc(c.desc || "")}</td><td>${c.lat != null ? `${c.lat.toFixed(6)}, ${c.lon.toFixed(6)}<br><small>±${Math.round(c.acc || 0)} m</small>` : "–"}</td><td>${c.lat != null ? QR.svg(gmapsUrl(c.lat, c.lon), { ecl: "L", border: 1 }) : ""}</td><td>${c.pose ? "☑ " + fmtHeure(c.pose) : "☐"}</td><td>${c.ramasse ? "☑ " + fmtHeure(c.ramasse) : "☐"}</td></tr>`).join("")}</tbody></table>`,
     `table{border-collapse:collapse;width:100%;font-size:10pt}td,th{border:1px solid #999;padding:2mm;text-align:left}td svg{width:22mm;height:22mm}tr{page-break-inside:avoid}`);
 }
 async function satView(extra) {
@@ -1246,23 +1246,26 @@ function viewSeance(v) {
      <p class="muted">La tablette de contrôle reçoit en direct la position des élèves (toutes les ${CFG.interval} s), leurs balises, leurs temps intermédiaires et les alertes. ${apiUrl() ? "" : "<b style='color:var(--red)'>Serveur non configuré (⚙ Réglages) : les élèves pourront courir, mais tu ne recevras leurs résultats que par SMS.</b>"}</p>
      <div class="field"><label>Nom de la leçon</label><input class="inp" id="sNom" value="${esc(new Date().toLocaleDateString("fr-FR"))} – ${esc(P.nom)}"></div>
      <div class="grid2"><div class="field"><label>Heure limite de retour (facultatif)</label><input class="inp" id="sHr" type="time"><small class="muted">Tous les élèves voient le compte à rebours et sont prévenus 5 min avant.</small></div></div>
+     <div class="lbl">Classes présentes (appel + noms à choisir sur le téléphone)</div><div class="cchips" id="sCls" style="margin:6px 0 14px"><span class="muted">…</span></div>
      <div class="lbl">Parcours proposés</div><div class="cchips" style="margin:6px 0 14px">${P.courses.map(k => `<label class="chip" style="padding:8px 12px"><input type="checkbox" value="${k.id}" checked> ${esc(k.k)} – ${esc(k.nom)}</label>`).join("") || `<span class="muted">Crée d'abord un parcours.</span>`}</div>
      <div class="row"><button class="btn or" id="sGo" ${P.courses.length ? "" : "disabled"}>📡 Lancer la leçon</button><button class="btn ghost" id="sPerm">🔳 QR permanent « élèves »</button></div></div>
      ${S && !S.active ? `<div class="panel"><b>Dernière leçon : ${esc(S.nom)}</b> <button class="btn small alt" id="sReopen">Rouvrir</button></div>` : ""}</div>`;
     $("#sGo") && ($("#sGo").onclick = async () => {
-      const ids = $$("input[type=checkbox]:checked", v).map(i => i.value); if (!ids.length) return toast("Choisis au moins un parcours", "ko");
+      const ids = $$("input[type=checkbox]:checked:not([name=cls])", v).map(i => i.value); const cls = $$("input[name=cls]:checked", v).map(i => i.value); if (!ids.length) return toast("Choisis au moins un parcours", "ko");
       let hr = null; const hv = $("#sHr").value; if (hv) { const [h, mi] = hv.split(":").map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1); hr = d.getTime(); }
       S = { code: randCode(4), nom: $("#sNom").value.trim(), date: Date.now(), courses: ids, runners: {}, dec: {}, msgs: [], since: 0, active: true, ack: {}, hr, salt: P.salt };
       S.snap = Object.fromEntries(sessionCourses().map(k => [k.k, compactCourse(k)]));
+      const C = await getClasses(); S.cls = cls; S.appel = { list: cls.flatMap(c => (C[c] || []).map(nom => ({ nom, cl: c, present: true }))) };
       LS.set("curSession", S.code); await saveS(); await publishSession(); startPolling(); setPTab("seance");
     });
     $("#sPerm").onclick = printPermQR;
+    getClasses().then(C => { const b = $("#sCls"); if (!b) return; const n = Object.keys(C).sort(); b.innerHTML = n.length ? n.map(c => `<label class="chip" style="padding:8px 12px"><input type="checkbox" name="cls" value="${esc(c)}"> ${esc(c)} (${C[c].length})</label>`).join("") : '<span class="muted">Aucune liste : ajoute-les dans ⚙ Réglages → Listes de classe (facultatif).</span>'; });
     $("#sReopen") && ($("#sReopen").onclick = async () => { S.active = true; await saveS(); startPolling(); setPTab("seance"); });
     return;
   }
   v.innerHTML = `<div class="pmain" style="padding-bottom:10px">
     <div class="row" style="margin-bottom:10px"><span class="chip or" style="font-size:1rem">Leçon <b>${esc(S.code)}</b></span><b>${esc(S.nom)}</b>${S.hr ? `<span class="chip wait">⏰ retour ${new Date(S.hr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>` : ""}<span id="syncInfo" class="muted"></span><span class="grow"></span>
-     ${apiUrl() && !S.published ? `<button class="btn small red" id="sPub">⚠ Publier en ligne</button>` : ""}<button class="btn small or" id="sQr">🔳 QR de départ</button><button class="btn small ghost" id="sUpd" title="Après avoir modifié un parcours pendant la leçon">↻ Appliquer mes modifs</button><button class="btn small alt" id="sSms">✉ Importer SMS</button><button class="btn small red" id="sRecall">📢 Rappel général</button><button class="btn small alt" id="sMsg">💬 Message à tous</button><button class="btn small red" id="sEnd">Terminer</button></div>
+     ${apiUrl() && !S.published ? `<button class="btn small red" id="sPub">⚠ Publier en ligne</button>` : ""}<button class="btn small or" id="sQr">🔳 QR de départ</button><button class="btn small ghost" id="sUpd" title="Après avoir modifié un parcours pendant la leçon">↻ Appliquer mes modifs</button><button class="btn small alt" id="sSms">✉ Importer SMS</button><button class="btn small alt" id="sAppel">📋 Appel</button><button class="btn small red" id="sRecall">📢 Rappel général</button><button class="btn small alt" id="sMsg">💬 Message à tous</button><button class="btn small red" id="sEnd">Terminer</button></div>
     <div id="alerts"></div><div id="recallBox"></div>
     <div class="live"><div class="runners" id="runners"></div>
      <div class="mapwrap" id="liveWrap"><svg class="map" id="livesvg" xmlns="http://www.w3.org/2000/svg"></svg><div id="liveSat" class="hidden" style="position:absolute;inset:0"></div>
@@ -1270,8 +1273,8 @@ function viewSeance(v) {
       <div class="mapbar"><button class="btn small alt" id="lBg">🛰 Satellite</button><label class="info"><input type="checkbox" id="lTr" ${S.traces !== false ? "checked" : ""}> traces</label><span class="info" id="lInfo"></span></div></div></div></div>`;
   $("#sPub") && ($("#sPub").onclick = async () => { await publishSession(); setPTab("seance"); });
   $("#sQr").onclick = showStartQRs;
-  $("#sUpd").onclick = async () => { if (!confirm("Appliquer à cette leçon les modifications faites dans l'onglet Parcours ?\nLes élèves déjà partis gardent leur ancien parcours sur leur téléphone.")) return; S.snap = Object.fromEntries(sessionCourses().map(k => [k.k, compactCourse(k)])); await saveS(); await publishSession(); renderLive(); toast("Parcours de la leçon mis à jour ✓", "ok"); }; $("#sSms").onclick = importSMS; $("#sRecall").onclick = startRecall; $("#sMsg").onclick = () => sendMsg("*");
-  $("#sEnd").onclick = async () => { if (!confirm("Terminer la leçon ? (les résultats restent dans l'onglet Résultats)")) return; S.active = false; await saveS(); stopPolling(); if (apiUrl()) apiCall(apiUrl(), "close", { teacher: tpw(), s: S.code }).catch(() => {}); LS.set("curSession", null); setPTab("resultats"); };
+  $("#sUpd").onclick = async () => { if (!confirm("Appliquer à cette leçon les modifications faites dans l'onglet Parcours ?\nLes élèves déjà partis gardent leur ancien parcours sur leur téléphone.")) return; S.snap = Object.fromEntries(sessionCourses().map(k => [k.k, compactCourse(k)])); await saveS(); await publishSession(); renderLive(); toast("Parcours de la leçon mis à jour ✓", "ok"); }; $("#sSms").onclick = importSMS; $("#sRecall").onclick = startRecall; $("#sAppel").onclick = openAppel; $("#sMsg").onclick = () => sendMsg("*");
+  $("#sEnd").onclick = async () => { const ap = S.appel?.list?.length ? appelSummary() : null; if (ap && ap.manquent.length && !confirm(`⚠ Pas encore rentré(s) : ${ap.manquent.join(", ")}.\nTerminer quand même la leçon ?`)) return; if (!confirm("Terminer la leçon ? (les résultats restent dans l'onglet Résultats)")) return; S.active = false; await saveS(); stopPolling(); if (apiUrl()) apiCall(apiUrl(), "close", { teacher: tpw(), s: S.code }).catch(() => {}); LS.set("curSession", null); setPTab("resultats"); };
   $("#lTr").onchange = e => { S.traces = e.target.checked; renderLive(); };
   $("#lBg").onclick = toggleSat;
   ED.lview = null;
@@ -1289,7 +1292,7 @@ function lzoom(f) { const v = liveView(), cx = v.x + v.w / 2, cy = v.y + v.h / 2
 
 async function publishSession() {
   if (!apiUrl()) return;
-  try { await apiCall(apiUrl(), "publish", { teacher: tpw(), s: S.code, data: { nom: S.nom, salt: P.salt, hr: S.hr, gos: Object.fromEntries(Object.entries(S.snap || {}).map(([kc, c]) => [kc, goFromSnap(c)])), proj: publicProject() } }, 45000); S.published = true; saveS(); toast("Leçon publiée en ligne ✓", "ok"); }
+  try { await apiCall(apiUrl(), "publish", { teacher: tpw(), s: S.code, data: { nom: S.nom, salt: P.salt, hr: S.hr, gos: Object.fromEntries(Object.entries(S.snap || {}).map(([kc, c]) => [kc, goFromSnap(c)])), proj: publicProject(), geo: calibPoints(), eleves: Object.fromEntries((S.cls || []).map(c => [c, [...new Set((S.appel?.list || []).filter(e => e.cl === c).map(e => e.nom))]])) } }, 45000); S.published = true; saveS(); toast("Leçon publiée en ligne ✓", "ok"); }
   catch (e) { toast("Publication impossible : " + e.message + " (les élèves pourront quand même courir)", "ko"); }
 }
 function startPolling() { stopPolling(); const go = async () => { await pollOnce(); if (ptab === "seance") renderLive(); }; go(); pollTimer = setInterval(go, Math.max(3, CFG.poll) * 1000); liveTick = setInterval(() => { if (ptab === "seance") { renderRunnerList(); } }, 1000); }
@@ -1321,6 +1324,13 @@ function renderLive() {
   renderRunnerList();
   const al = checkAlerts();
   $("#alerts").innerHTML = al.map(({ R, e, ids }) => `<div class="alertbar" style="margin-bottom:8px">🆘 ALERTE — ${esc(R.nom)} (${esc(R.c)}) à ${fmtHeure(e.first)}${e.la != null ? ` · <a style="color:#fff" target="_blank" href="${gmapsUrl(e.la, e.lo)}">voir la position</a>` : ""}${e.txt ? " · « " + esc(e.txt) + " »" : ""}<span class="grow"></span><button class="btn small alt" data-det="${R.r}">Détails</button><button class="btn small sun" data-ack="${ids.join(",")}">Pris en charge</button></div>`).join("");
+  const imm = Object.values(S.runners).map(R => ({ R, x: immobility(R, runnerSummary(R)) })).filter(o => o.x && (S.immAck || {})[o.R.r] !== o.x.since);
+  $("#alerts").innerHTML += imm.map(({ R, x }) => `<div class="alertbar" style="margin-bottom:8px;background:#f4a261;color:#14213d">🟠 ${esc(R.nom)} (${esc(R.c)}) ne bouge plus depuis <b>${fmtDur(x.dur)}</b>, loin des balises · <a target="_blank" href="${gmapsUrl(x.la, x.lo)}">voir la position</a><span class="grow"></span><button class="btn small alt" data-det2="${R.r}">Détails</button><button class="btn small" data-imm="${R.r}" data-since="${x.since}">Vu</button></div>`).join("");
+  S._immBeep = S._immBeep || {}; imm.forEach(({ R, x }) => { if (S._immBeep[R.r] !== x.since) { S._immBeep[R.r] = x.since; beep(); } });
+  $$("[data-imm]").forEach(b => b.onclick = () => { S.immAck = S.immAck || {}; S.immAck[b.dataset.imm] = +b.dataset.since; saveS(); renderLive(); });
+  $$("[data-det2]").forEach(b => b.onclick = () => runnerDetail(b.dataset.det2));
+  const sa = $("#sAppel"); if (sa && S.appel?.list?.length) { const s = appelSummary(); sa.innerHTML = `📋 Appel ${s.rentres}/${s.partis}${s.manquent.length && s.rentres ? " ⚠" : ""}`; }
+  $("#appelModal")?._draw?.();
   const rb = $("#recallBox"); if (rb) { rb.innerHTML = recallPanel(); $("#rcAgain") && ($("#rcAgain").onclick = () => { const t0 = S.recall.t; sendMsg("*", S.recall.txt, "recall"); S.recall.t = t0; saveS(); }); $("#rcEnd") && ($("#rcEnd").onclick = () => { S.recall = null; saveS(); renderLive(); }); $$("[data-rr]", rb).forEach(b => b.onclick = () => runnerDetail(b.dataset.rr)); }
   $$("[data-ack]").forEach(b => b.onclick = () => { b.dataset.ack.split(",").forEach(id => S.ack[id] = Date.now()); saveS(); renderLive(); });
   $$("[data-det]", $("#alerts")).forEach(b => b.onclick = () => runnerDetail(b.dataset.det));
@@ -1351,7 +1361,7 @@ function renderRunnerList() {
   box.innerHTML = list.length ? list.map(({ R, a }) => {
     const stale = a.statut === "En course" && a.lastSeen && Date.now() - a.lastSeen > (CFG.interval * 3 + 30) * 1000;
     const chip = { OK: "ok", PM: "ko", ALERTE: "ko", Abandon: "ko", "À valider": "wait", "En course": "or" }[a.statut] || "";
-    return `<button class="runner ${a.statut === "ALERTE" ? "alert" : ""} ${stale ? "stale" : ""}" data-r="${R.r}"><span class="dot" style="background:${rColor(R.r)}"></span><span><span class="nm">${esc(R.nom)}</span><br><small class="muted">${esc(R.cl)} · ${esc(R.c)} · <span class="chip ${chip}">${a.statut}</span> ${a.found}/${a.total}${a.pending ? ` · <b style="color:#a36b00">${a.pending} à valider</b>` : ""}${a.bonusFound ? ` · ★${a.bonusFound}` : ""}${a.erreurs ? ` · ${a.erreurs} erreur(s)` : ""}${a.hasPts ? ` · ${a.score} pts` : ""}${a.suspects ? ` · <b style="color:var(--red)">⚠ ${a.suspects} scan(s) suspect(s)</b>` : ""}${a.retard && !a.finish ? ` · <b style="color:var(--red)">⏰ retard ${fmtDur(a.retard)}</b>` : a.deadline && !a.finish && a.start ? ` · ⏳ ${fmtDur(a.deadline - Date.now())}` : ""}${S.recall && Object.values(R.ev).some(e => e.k === "here" && e.t >= S.recall.t - 1000) ? ' · <span class="chip ok">✅ au point</span>' : ""}</small></span><span class="chr">${fmtDur(a.temps)}<br><small class="muted" style="font-size:.7rem;font-family:Barlow">${a.legs.length ? "dernier poste " + esc(a.legs[a.legs.length - 1].n) : ""}</small></span></button>`;
+    return `<button class="runner ${a.statut === "ALERTE" ? "alert" : ""} ${stale ? "stale" : ""}" data-r="${R.r}"><span class="dot" style="background:${rColor(R.r)}"></span><span><span class="nm">${esc(R.nom)}</span><br><small class="muted">${esc(R.cl)} · ${esc(R.c)} · <span class="chip ${chip}">${a.statut}</span> ${a.found}/${a.total}${a.pending ? ` · <b style="color:#a36b00">${a.pending} à valider</b>` : ""}${a.bonusFound ? ` · ★${a.bonusFound}` : ""}${a.erreurs ? ` · ${a.erreurs} erreur(s)` : ""}${a.hasPts ? ` · ${a.score} pts` : ""}${a.suspects ? ` · <b style="color:var(--red)">⚠ ${a.suspects} scan(s) suspect(s)</b>` : ""}${a.retard && !a.finish ? ` · <b style="color:var(--red)">⏰ retard ${fmtDur(a.retard)}</b>` : a.deadline && !a.finish && a.start ? ` · ⏳ ${fmtDur(a.deadline - Date.now())}` : ""}${S.recall && Object.values(R.ev).some(e => e.k === "here" && e.t >= S.recall.t - 1000) ? ' · <span class="chip ok">✅ au point</span>' : ""}${(() => { const x = immobility(R, a); return x ? ` · <b style="color:#b85c00">🟠 immobile ${fmtDur(x.dur)}</b>` : ""; })()}</small></span><span class="chr">${fmtDur(a.temps)}<br><small class="muted" style="font-size:.7rem;font-family:Barlow">${a.legs.length ? "dernier poste " + esc(a.legs[a.legs.length - 1].n) : ""}</small></span></button>`;
   }).join("") : `<div class="panel" style="margin:0"><b>En attente des élèves…</b><p class="muted">Montre le QR de départ du parcours aux élèves (bouton 🔳). Ils le scannent avec l'appareil photo de leur téléphone, entrent leur nom et partent.</p></div>`;
   $$(".runner", box).forEach(b => b.onclick = () => runnerDetail(b.dataset.r));
 }
@@ -1425,7 +1435,7 @@ function runnerDetail(r) {
    <div class="cchips" id="dCorr">${T.map(n => { const st = stateOf(n); return `<button class="cchip" data-corr="${n}" style="${st === "ok" ? "background:var(--green);color:#fff;box-shadow:none" : st === "attente" ? "background:var(--sun);box-shadow:none" : st === "ko" ? "background:#fde0e2;color:#a3202b" : ""}">${n}<small style="font-family:inherit;font-weight:600;font-size:.7rem;display:block;line-height:1">${{ ok: "trouvée", attente: "à valider", ko: "erreur", none: "manque" }[st]}</small></button>`; }).join("")}</div>
    <h3>Balises scannées <small class="muted">— ✓ Juste / ✕ Fausse envoie une notification à l'élève</small></h3>${legTable(a, R, true)}
    ${a.manquants.length ? `<p><b>Balises manquantes :</b> ${a.manquants.join(", ")}${a.ordreManq.length ? ` <span class="chip ko">dont ${a.ordreManq.join(", ")} : ordre non respecté</span>` : ""}</p>` : ""}
-   <div class="row" style="margin-top:12px">${a.last ? `<a class="btn small alt" target="_blank" href="${gmapsUrl(a.last.la, a.last.lo)}">📍 Dernière position (${fmtHeure(a.last.t)})</a>` : ""}<button class="btn small ghost" id="dAb">Marquer abandon / rentré</button><button class="btn small ghost" id="dSat">🛰 Trace sur satellite</button></div>`, { wide: true });
+   <div class="row" style="margin-top:12px">${a.last ? `<a class="btn small alt" target="_blank" href="${gmapsUrl(a.last.la, a.last.lo)}">📍 Dernière position (${fmtHeure(a.last.t)})</a>` : ""}<button class="btn small or" id="dAna">🗺 Analyse d'itinéraire</button><button class="btn small" id="dBil">📄 Fiche bilan</button><button class="btn small ghost" id="dAb">Marquer abandon / rentré</button><button class="btn small ghost" id="dSat">🛰 Trace sur satellite</button></div>`, { wide: true });
   const reopen = () => { m.remove(); runnerDetail(r); renderLive(); };
   $$("[data-ok]", m).forEach(b => b.onclick = async () => { await decide(R, b.dataset.ok, true); reopen(); });
   $$("[data-ko]", m).forEach(b => b.onclick = async () => { await decide(R, b.dataset.ko, false); reopen(); });
@@ -1438,6 +1448,8 @@ function runnerDetail(r) {
     else { const p = ps.find(p => p.status === "refus" || p.status === "code"); if (p) await decide(R, p.id, true); else { const id = `${r}-prof-${n}-${Date.now()}`; R.ev[id] = { id, k: "punch", n, ok: true, via: "prof", t: a.finish || Date.now() }; S.dec[id] = true; saveS(); } }
     reopen();
   });
+  $("#dAna", m).onclick = () => openAnalysis({ proj: P, geo: calibPoints(), R, course: k, a, lesson: S.nom });
+  $("#dBil", m).onclick = () => printBilans([{ proj: P, geo: calibPoints(), R, course: k, a, lesson: S.nom }]);
   $("#dAb", m).onclick = () => { const id = r + "-prof-ab"; R.ev[id] = { id, k: "abandon", t: Date.now(), via: "prof" }; saveS(); reopen(); };
   $("#dSat", m).onclick = () => satView((map, pts) => { const tr = Object.values(R.ev).filter(e => e.la != null).sort((x, y) => x.t - y.t).map(e => [e.la, e.lo]); if (tr.length) { L.polyline(tr, { color: rColor(r), weight: 4 }).addTo(map); L.circleMarker(tr[tr.length - 1], { radius: 8, color: "#fff", fillColor: rColor(r), fillOpacity: 1 }).addTo(map); pts.push(...tr); } });
 }
@@ -1481,11 +1493,13 @@ async function viewResultats(v) {
   const L = (await DB.get("sessions")) || [];
   const cur = LS.get("resSession", null) || S?.code || L[0]?.code;
   v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Résultats</h2>${L.length ? `<div class="row"><select class="inp" id="rSel" style="max-width:420px">${L.map(x => `<option value="${x.code}" ${x.code === cur ? "selected" : ""}>${esc(x.nom)} (${esc(x.code)})</option>`).join("")}</select>
-    <button class="btn or" id="rXls">⬇ Excel</button><button class="btn alt" id="rCsv">⬇ CSV</button><button class="btn alt" id="rPos">⬇ Positions GPS</button><button class="btn ghost" id="rPrint">🖨 Imprimer</button><button class="btn ghost" id="rSync">↻ Recharger du serveur</button><button class="btn ghost" id="rSms">✉ Importer SMS</button><button class="btn ghost" id="rDel">🗑</button></div>` : `<p class="muted">Aucune leçon pour l'instant.</p>`}</div><div id="rBody"></div></div>`;
+    <button class="btn or" id="rXls">⬇ Excel</button><button class="btn alt" id="rCsv">⬇ CSV</button><button class="btn alt" id="rPos">⬇ Positions GPS</button><button class="btn ghost" id="rPrint">🖨 Imprimer</button><button class="btn" id="rProg">📈 Progression</button><button class="btn ghost" id="rBil">📄 Fiches bilan</button><button class="btn ghost" id="rSync">↻ Recharger du serveur</button><button class="btn ghost" id="rSms">✉ Importer SMS</button><button class="btn ghost" id="rDel">🗑</button></div>` : `<p class="muted">Aucune leçon pour l'instant.</p>`}</div><div id="rBody"></div></div>`;
   if (!L.length) return;
   const load = async code => { LS.set("resSession", code); const X = S?.code === code ? S : await DB.get("session:" + code); renderResults(X); return X; };
   let X = await load(cur);
   $("#rSel").onchange = async e => X = await load(e.target.value);
+  $("#rProg").onclick = openProgression;
+  $("#rBil").onclick = () => { const keep = S; S = X; const L = Object.values(X.runners).map(R => { const k = courseOf(R); return { proj: P, geo: calibPoints(), R, course: k, a: analyseRun(R, k, P, X.dec, X.ack || {}, { scanMax: CFG.scanMax }), lesson: X.nom }; }).filter(o => o.a.start).sort((a, b) => (a.R.cl || "").localeCompare(b.R.cl || "") || a.R.nom.localeCompare(b.R.nom)); S = keep; if (!L.length) return toast("Aucun élève parti dans cette leçon", "ko"); printBilans(L); };
   $("#rXls").onclick = () => exportResults(X, "xlsx"); $("#rCsv").onclick = () => exportResults(X, "csv"); $("#rPos").onclick = () => exportPositions(X);
   $("#rPrint").onclick = () => printWin("Résultats " + X.nom, resultsHTML(X, true), `table{border-collapse:collapse;width:100%;font-size:9pt;margin-bottom:6mm}td,th{border:1px solid #999;padding:1.2mm}h2{font-size:13pt;margin:4mm 0 2mm}`);
   $("#rSync").onclick = async () => { const keep = S; S = X; S.since = 0; await pollOnce(); X = S; await saveS(); S = keep?.code === X.code ? X : keep; renderResults(X); toast(syncErr ? syncErr : "Rechargé ✓", syncErr ? "ko" : "ok"); };
@@ -1544,15 +1558,18 @@ function viewReglages(v) {
     <div class="field"><label>Ton numéro de portable (SMS de secours)</label><input class="inp" id="cTel" type="tel" value="${esc(CFG.tel)}" placeholder="06 12 34 56 78"><small class="muted">Utilisé pour les alertes et les résultats envoyés par SMS quand il n'y a pas d'internet. Il est inscrit dans le QR de départ.</small></div>
     <div class="field"><label>Envoi de la position GPS toutes les…</label><select class="inp" id="cInt">${[10, 15, 20, 30, 60].map(s => `<option value="${s}" ${+CFG.interval === s ? "selected" : ""}>${s} secondes</option>`).join("")}</select></div>
     <div class="field"><label>Scan « suspect » au-delà de… (distance élève ↔ balise)</label><select class="inp" id="cScan">${[30, 40, 60, 80, 120].map(s => `<option value="${s}" ${+CFG.scanMax === s ? "selected" : ""}>${s} m</option>`).join("")}</select><small class="muted">Repère les QR photographiés et partagés : la tablette signale un scan fait loin de la balise géolocalisée.</small></div>
+    <div class="field"><label>Alerte d'immobilité</label><select class="inp" id="cImmo">${[[0, "désactivée"], [3, "après 3 min"], [5, "après 5 min"], [8, "après 8 min"], [10, "après 10 min"]].map(([v, l]) => `<option value="${v}" ${+CFG.immo === v ? "selected" : ""}>${l}</option>`).join("")}</select><small class="muted">Élève en course qui ne bouge plus, loin de toute balise.</small></div>
     <div class="field"><label>Rafraîchissement de la tablette</label><select class="inp" id="cPoll">${[3, 5, 10, 15].map(s => `<option value="${s}" ${+CFG.poll === s ? "selected" : ""}>${s} secondes</option>`).join("")}</select></div>
     <div class="field"><label>Adresse publique de l'appli</label><input class="inp" id="cUrl" value="${esc(CFG.appUrl)}" placeholder="${esc(appUrl())}"><small class="muted">Laisse vide si tu utilises l'appli depuis son adresse GitHub. C'est l'adresse mise dans les QR codes.</small></div></div>
     <button class="btn green" id="cSave">Enregistrer les réglages</button></div>
+   <div class="panel" id="clPanel"></div>
    <div class="panel"><h2>Projet</h2><p class="muted">Carte, balises et parcours sont gardés dans cette tablette. Exporte-les pour les sauvegarder ou les transférer sur une autre tablette.</p>
     <div class="row"><button class="btn alt" id="pExp">⬇ Exporter le projet</button><button class="btn alt" id="pImp">⬆ Importer un projet</button><button class="btn red" id="pNew">Nouveau projet</button></div></div>
    ${apiUrl() ? "" : `<div class="panel"><h2>Code enseignant</h2><div class="row"><input class="inp" id="pw2" type="password" placeholder="Nouveau code" style="max-width:260px"><button class="btn alt" id="pwSave">Changer le code</button></div></div>`}
    <p class="muted" style="text-align:center;font-size:.8rem">OrienRun EPS v${APP_VERSION}</p></div>`;
   $("#cTest").onclick = async () => { $("#cTestR").textContent = "…"; try { await apiCall($("#cApi").value.trim(), "teacherCheck", { teacher: tpw() }); $("#cTestR").innerHTML = "<b style='color:var(--green)'>✓ Connexion OK, mot de passe reconnu</b>"; } catch (e) { $("#cTestR").textContent = "✕ " + e.message; } };
-  $("#cSave").onclick = () => { CFG.api = $("#cApi").value.trim(); CFG.tel = $("#cTel").value.trim(); CFG.interval = +$("#cInt").value; CFG.poll = +$("#cPoll").value; CFG.scanMax = +$("#cScan").value; CFG.appUrl = $("#cUrl").value.trim(); saveCfg(); toast("Réglages enregistrés ✓", "ok"); if (S?.active) startPolling(); };
+  $("#cSave").onclick = () => { CFG.api = $("#cApi").value.trim(); CFG.tel = $("#cTel").value.trim(); CFG.interval = +$("#cInt").value; CFG.poll = +$("#cPoll").value; CFG.scanMax = +$("#cScan").value; CFG.immo = +$("#cImmo").value; CFG.appUrl = $("#cUrl").value.trim(); saveCfg(); toast("Réglages enregistrés ✓", "ok"); if (S?.active) startPolling(); };
+  classesPanel($("#clPanel"));
   $("#pExp").onclick = () => download(`OrienRun_${P.nom.replace(/[^\wÀ-ÿ-]+/g, "_")}.orienrun.json`, JSON.stringify(P), "application/json");
   $("#pImp").onclick = async () => { const f = await pickFile(".json,application/json"); if (!f) return; try { const j = JSON.parse(await f.text()); if (!j.controls || !j.map) throw new Error("Fichier non reconnu"); if (!confirm("Remplacer le projet actuel par « " + j.nom + " » ?")) return; P = j; saveP(true); toast("Projet importé ✓", "ok"); setPTab("carte"); } catch (e) { toast(e.message, "ko"); } };
   $("#pNew").onclick = () => { if (!confirm("Créer un nouveau projet vide ? (pense à exporter l'actuel)")) return; P = newProject(); ED.view = null; saveP(true); setPTab("carte"); };
@@ -1562,6 +1579,235 @@ function viewReglages(v) {
 // QR permanent : ouvre l'appli élève, qui liste les leçons en cours (à imprimer une fois pour toutes)
 function printPermQR() {
   printWin("QR permanent élèves", `<div class="pg"><h1>Course d'orientation</h1><p>Scanne pour ouvrir l'appli, puis choisis ta leçon et ton parcours.</p>${QR.svg(eleveUrl(), { ecl: "Q" })}<p style="font-size:12pt">${esc(eleveUrl())}</p></div>`, `.pg{text-align:center;padding-top:15mm}.pg svg{width:140mm;height:140mm}h1{font-size:32pt}p{font-size:15pt}`);
+}
+
+// ===== Analyse d'itinéraire, fiche bilan, progression, immobilité, appel, listes de classe, pose des balises =====
+const normName = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9& ]+/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+const posOf = R => Object.values(R.ev || {}).filter(e => e.la != null && (e.ac == null || e.ac < 60)).sort((a, b) => a.t - b.t);
+
+// Arrêts : positions restées dans un rayon de 15 m pendant au moins 1 minute
+function detectStops(pos, minMs = 60000, rad = 15) {
+  const out = []; let i = 0;
+  while (i < pos.length) {
+    let j = i; while (j + 1 < pos.length && haversine({ lat: pos[i].la, lon: pos[i].lo }, { lat: pos[j + 1].la, lon: pos[j + 1].lo }) <= rad) j++;
+    if (pos[j].t - pos[i].t >= minMs) { const P = pos.slice(i, j + 1); out.push({ t0: pos[i].t, t1: pos[j].t, d: pos[j].t - pos[i].t, la: P.reduce((s, p) => s + p.la, 0) / P.length, lo: P.reduce((s, p) => s + p.lo, 0) / P.length }); i = j + 1; } else i++;
+  }
+  return out;
+}
+function legRanges(a) { return a.legs.filter(l => l.t != null && l.split != null).map(l => ({ ...l, t0: l.t - l.split, t1: l.t })); }
+function mapCourseFor(proj, R) { const k = (proj.courses || []).find(x => x.k === R.c); if (!k) return null; return { ...k, ctrl: R.sel?.length && k.mode !== "ordre" ? k.ctrl.filter(id => R.sel.includes(+proj.controls.find(c => c.id === id)?.n) || (k.bonus || []).includes(id)) : k.ctrl }; }
+function traceBox(proj, g, pos, course) {
+  const mm = mapMM(proj), xs = [], ys = [];
+  pos.forEach(p => { const q = g.toPx(p.la, p.lo); xs.push(q.x); ys.push(q.y); });
+  if (course) [course.depart, ...course.ctrl, course.arrivee].map(id => proj.controls.find(c => c.id === id)).filter(c => c && c.x != null).forEach(c => { xs.push(c.x); ys.push(c.y); });
+  if (!xs.length) return { x: 0, y: 0, w: proj.map.w, h: proj.map.h };
+  const pad = mm * 14, x0 = Math.max(-pad, Math.min(...xs) - pad), y0 = Math.max(-pad, Math.min(...ys) - pad), x1 = Math.min(proj.map.w + pad, Math.max(...xs) + pad), y1 = Math.min(proj.map.h + pad, Math.max(...ys) + pad);
+  return { x: x0, y: y0, w: Math.max(x1 - x0, mm * 30), h: Math.max(y1 - y0, mm * 30) };
+}
+// Dessin : trace complète (pâle), portion choisie (vive), arrêts numérotés
+function traceSVG(proj, g, R, course, range, opts = {}) {
+  const mm = mapMM(proj), pos = posOf(R), col = opts.color || "#e63946";
+  const px = p => g.toPx(p.la, p.lo), all = pos.map(px);
+  let out = mapSVG(proj, { course });
+  if (all.length > 1) out += `<path d="${polyD(all.map(p => [p.x, p.y]))}" fill="none" stroke="${col}" stroke-opacity="${range ? .25 : .85}" stroke-width="${mm * .7}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if (range) { const seg = pos.filter(p => p.t >= range.t0 - 1000 && p.t <= range.t1 + 1000).map(px); if (seg.length > 1) out += `<path d="${polyD(seg.map(p => [p.x, p.y]))}" fill="none" stroke="${col}" stroke-width="${mm * 1}" stroke-linejoin="round" stroke-linecap="round"/>`; }
+  const stops = detectStops(pos).filter(s => !range || (s.t1 >= range.t0 && s.t0 <= range.t1));
+  stops.forEach((s, i) => { const q = g.toPx(s.la, s.lo), r = mm * (2.6 + Math.min(4, s.d / 60000) * .6); out += `<g><circle cx="${q.x}" cy="${q.y}" r="${r}" fill="#ffb703" fill-opacity=".85" stroke="#14213d" stroke-width="${mm * .3}"/><text x="${q.x}" y="${q.y}" font-size="${mm * 3}" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-weight="700" fill="#14213d">${i + 1}</text><text x="${q.x + r + mm * .8}" y="${q.y}" font-size="${mm * 3.4}" dominant-baseline="central" font-family="Arial" font-weight="700" fill="#14213d" paint-order="stroke" stroke="#fff" stroke-width="${mm * .6}">${fmtDur(s.d)}</text></g>`; });
+  if (opts.dot) { const q = g.toPx(opts.dot.la, opts.dot.lo); out += `<circle cx="${q.x}" cy="${q.y}" r="${mm * 2}" fill="${col}" stroke="#fff" stroke-width="${mm * .6}"/>`; }
+  return { svg: out, stops };
+}
+function interpAt(pos, t) { if (!pos.length) return null; if (t <= pos[0].t) return pos[0]; for (let i = 1; i < pos.length; i++) if (pos[i].t >= t) { const a = pos[i - 1], b = pos[i], k = (t - a.t) / ((b.t - a.t) || 1); return { la: a.la + (b.la - a.la) * k, lo: a.lo + (b.lo - a.lo) * k }; } return pos[pos.length - 1]; }
+
+// ---------- 1. analyse d'itinéraire (enseignant et élève) ----------
+function openAnalysis({ proj, geo, R, course, a, lesson }) {
+  const g = makeGeoref(geo || []);
+  if (!g || !proj?.map) { toast("Analyse impossible : la carte n'est pas calée (il faut au moins 2 points GPS).", "ko"); return; }
+  const pos = posOf(R), mcourse = mapCourseFor(proj, R), legs = legRanges(a), allStops = detectStops(pos);
+  if (pos.length < 2) { toast("Pas assez de positions GPS pour analyser l'itinéraire.", "ko"); return; }
+  let sel = null, play = null;
+  const box = traceBox(proj, g, pos, mcourse);
+  const m = openModal(`<h2>🗺 Itinéraire — ${esc(R.nom)}</h2>
+   <p class="muted" style="margin-top:-6px">Choisis un inter-poste pour voir ton trajet. Les ronds jaunes sont tes <b>arrêts</b> (plus d'1 minute au même endroit) : hésitation, lecture de carte, erreur ?</p>
+   <div style="display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:10px" class="anaGrid">
+    <div style="background:#ddd;border-radius:14px;overflow:hidden;position:relative"><svg id="aSvg" viewBox="${box.x} ${box.y} ${box.w} ${box.h}" style="width:100%;display:block;max-height:64vh"></svg>
+     <div style="position:absolute;left:8px;bottom:8px;display:flex;gap:6px;align-items:center"><button class="btn small" id="aPlay">▶ Rejouer</button><span class="chip" id="aClock" style="background:#fff"></span></div></div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:64vh;overflow:auto" id="aLegs"></div></div>
+   <div id="aInfo" class="panel" style="margin-top:10px"></div>
+   <div class="row" style="margin-top:10px"><button class="btn or" id="aPrint">📄 Fiche bilan (PDF)</button></div>`, { wide: true, onClose: () => clearInterval(play) });
+  if (innerWidth < 760) $(".anaGrid", m).style.gridTemplateColumns = "1fr";
+  const legStops = l => allStops.filter(s => s.t1 >= l.t0 && s.t0 <= l.t1);
+  const draw = (dot) => { const r = traceSVG(proj, g, R, mcourse, sel, { dot }); $("#aSvg", m).innerHTML = r.svg; };
+  const info = () => {
+    const l = sel, st = l ? legStops(l) : allStops, stopT = st.reduce((s, x) => s + x.d, 0);
+    $("#aInfo", m).innerHTML = l ? `<b>${esc(l.de)} → ${esc(l.n)}</b> · temps <b>${fmtDur(l.split)}</b> · distance GPS ${fmtDist(l.gps)}${l.vol ? ` (vol d'oiseau ${fmtDist(l.vol)}${l.gps ? `, ×${fmtNum(l.gps / l.vol)}` : ""})` : ""} · ${st.length ? `<b>${st.length} arrêt(s), ${fmtDur(stopT)}</b> (${Math.round(stopT / l.split * 100)} % du temps)` : "aucun arrêt"}`
+      : `<b>Toute la course</b> · ${fmtDur(a.temps)} · ${fmtDist(a.dist)} · ${allStops.length} arrêt(s), ${fmtDur(stopT)} au total${legs.length ? ` · inter-poste le plus long : <b>${esc((() => { const x = legs.slice().sort((p, q) => q.split - p.split)[0]; return `${x.de} → ${x.n} (${fmtDur(x.split)})`; })())}</b>` : ""}`;
+  };
+  const list = () => { $("#aLegs", m).innerHTML = `<button class="btn ${sel ? "ghost" : ""} small" data-li="-1" style="justify-content:flex-start">Toute la course · ${fmtDur(a.temps)}</button>` + legs.map((l, i) => { const st = legStops(l); return `<button class="btn ${sel === l ? "" : "ghost"} small" data-li="${i}" style="justify-content:space-between;min-height:44px;white-space:normal;text-align:left"><span>${esc(l.de)} → <b>${esc(l.n)}</b></span><span>${fmtDur(l.split)}${st.length ? ` · ⏸${st.length}` : ""}</span></button>`; }).join("");
+    $$("[data-li]", m).forEach(b => b.onclick = () => { clearInterval(play); play = null; $("#aPlay", m).textContent = "▶ Rejouer"; sel = +b.dataset.li < 0 ? null : legs[+b.dataset.li]; list(); info(); draw(); }); };
+  $("#aPlay", m).onclick = () => {
+    if (play) { clearInterval(play); play = null; $("#aPlay", m).textContent = "▶ Rejouer"; return; }
+    const t0 = sel ? sel.t0 : pos[0].t, t1 = sel ? sel.t1 : pos[pos.length - 1].t, dur = Math.min(20000, Math.max(5000, (t1 - t0) / 30)); const s0 = Date.now();
+    $("#aPlay", m).textContent = "⏸ Pause";
+    play = setInterval(() => { const k = Math.min(1, (Date.now() - s0) / dur), t = t0 + (t1 - t0) * k; draw(interpAt(pos, t)); $("#aClock", m).textContent = fmtDur(t - (a.start || t0)); if (k >= 1) { clearInterval(play); play = null; $("#aPlay", m).textContent = "▶ Rejouer"; } }, 60);
+  };
+  $("#aPrint", m).onclick = () => printBilans([{ proj, geo, R, course, a, lesson }]);
+  list(); info(); draw();
+}
+
+// ---------- 2. fiche bilan (PDF via l'impression) ----------
+function bilanHTML({ proj, geo, R, course, a, lesson }) {
+  const g = makeGeoref(geo || []), pos = posOf(R), mcourse = proj ? mapCourseFor(proj, R) : null;
+  let map = "", stops = [];
+  if (g && proj?.map && pos.length > 1) { const box = traceBox(proj, g, pos, mcourse); const r = traceSVG(proj, g, R, mcourse, null); stops = r.stops; map = `<svg viewBox="${box.x} ${box.y} ${box.w} ${box.h}" class="bmap">${r.svg}</svg>`; }
+  const legs = legRanges(a), allStops = stops.length ? stops : detectStops(pos);
+  const stat = (k, v) => `<div class="st"><small>${k}</small><b>${v}</b></div>`;
+  return `<div class="bilan"><div class="bh"><div><h1>Fiche bilan — course d'orientation</h1><div>${esc(lesson || "")}</div></div><div class="who"><b>${esc(R.nom)}</b><br>${esc(R.cl || "")} · parcours ${esc(R.c)}${course?.nm ? " – " + esc(course.nm) : ""}<br>${a.start ? new Date(a.start).toLocaleDateString("fr-FR") + " · départ " + fmtHeure(a.start) : ""}</div></div>
+   <div class="stats">${stat("Temps", fmtDur(a.temps))}${stat("Balises", `${a.found}/${a.total}${a.bonusTotal ? ` · ★${a.bonusFound}` : ""}`)}${a.hasPts ? stat("Points", a.score) : ""}${stat("Statut", a.statut)}${stat("Distance GPS", fmtDist(a.dist))}${stat("Vitesse moy.", a.vitesse ? fmtNum(a.vitesse) + " km/h" : "–")}${stat("Arrêts", `${allStops.length} · ${fmtDur(allStops.reduce((s, x) => s + x.d, 0))}`)}${stat("Erreurs", a.erreurs + (a.ordreErr ? ` · ${a.ordreErr} d'ordre` : ""))}${a.retard ? stat("Retard", fmtDur(a.retard)) : ""}</div>
+   ${map ? `<div class="mapw">${map}</div><p class="lg">Trait rouge : mon trajet GPS · ronds jaunes numérotés : mes arrêts de plus d'1 minute (durée à côté).</p>` : ""}
+   <table><thead><tr><th>Inter-poste</th><th>Temps</th><th>Cumul</th><th>Distance GPS</th><th>Vol d'oiseau</th><th>Arrêts</th></tr></thead><tbody>${legs.map(l => { const st = allStops.filter(s => s.t1 >= l.t0 && s.t0 <= l.t1); return `<tr><td>${esc(l.de)} → <b>${esc(l.n)}</b>${l.bonus ? " ★" : ""}${!l.ordre ? " (ordre)" : ""}</td><td><b>${fmtDur(l.split)}</b></td><td>${fmtDur(l.cumul)}</td><td>${fmtDist(l.gps)}</td><td>${fmtDist(l.vol)}</td><td>${st.length ? `${st.length} · ${fmtDur(st.reduce((s, x) => s + x.d, 0))}` : "–"}</td></tr>`; }).join("")}</tbody></table>
+   ${a.manquants.length ? `<p><b>Balises manquantes :</b> ${a.manquants.join(", ")}</p>` : ""}
+   <div class="refl"><b>Mon analyse</b><div>Où ai-je perdu le plus de temps ? Pourquoi ?</div><div class="l"></div><div class="l"></div><div>Ce que je ferai mieux la prochaine fois :</div><div class="l"></div><div class="l"></div></div></div>`;
+}
+function printBilans(list) {
+  printWin("Fiche bilan", list.map(bilanHTML).join(""), `@page{size:A4 portrait;margin:9mm}.bilan{page-break-after:always}.bilan:last-child{page-break-after:auto}.bh{display:flex;justify-content:space-between;gap:6mm;border-bottom:1mm solid #f47a20;padding-bottom:2mm}.bh h1{font-size:15pt;margin:0}.who{text-align:right;font-size:10pt}
+   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;margin:3mm 0}.st{border:1px solid #ccc;border-radius:2mm;padding:1.5mm 2mm}.st small{display:block;color:#666;font-size:7pt;text-transform:uppercase}.st b{font-size:11pt}
+   .mapw{border:1px solid #000;height:105mm}.bmap{width:100%;height:100%;display:block}.lg{font-size:7.5pt;color:#555;margin:1mm 0 2mm}
+   table{border-collapse:collapse;width:100%;font-size:8.5pt}td,th{border:1px solid #999;padding:1mm 1.5mm;text-align:left}.refl{margin-top:3mm;font-size:9pt}.refl .l{border-bottom:1px solid #999;height:7mm}`);
+}
+
+// ---------- 3. progression sur le cycle (enseignant) ----------
+async function openProgression() {
+  const L = (await DB.get("sessions")) || [], sessions = [];
+  for (const x of L) { const X = S?.code === x.code ? S : await DB.get("session:" + x.code); if (X) sessions.push(X); }
+  sessions.sort((a, b) => a.date - b.date);
+  const people = {};
+  sessions.forEach(X => Object.values(X.runners || {}).forEach(R => {
+    const c = X.snap?.[R.c]; if (!c) return; const a = analyseRun(R, c, P, X.dec || {}, X.ack || {}); if (!a.start) return;
+    const key = normName(R.nom); const p = people[key] || (people[key] = { nom: R.nom, cl: R.cl, rows: {} });
+    if (R.cl) p.cl = R.cl;
+    p.rows[X.code] = { X, R, a, c, pct: a.total ? (a.found / a.total) * 100 : 0 };
+  }));
+  const list = Object.values(people).sort((x, y) => (x.cl || "").localeCompare(y.cl || "") || x.nom.localeCompare(y.nom));
+  const cls = [...new Set(list.map(p => p.cl).filter(Boolean))];
+  const m = openModal(`<h2>📈 Progression sur le cycle</h2><p class="muted" style="margin-top:-6px">${sessions.length} leçon(s) · ${list.length} élève(s). Les élèves sont reconnus par leur nom (ordre des mots, accents et majuscules sans importance). Touche un élève pour voir ses courbes.</p>
+   <div class="row" style="margin-bottom:10px"><select class="inp" id="pCl" style="max-width:220px"><option value="">Toutes les classes</option>${cls.map(c => `<option>${esc(c)}</option>`).join("")}</select><button class="btn alt" id="pCsv">⬇ CSV</button></div>
+   <div class="tw" id="pTab"></div>`, { wide: true });
+  const cell = r => r ? `<b>${r.a.found}/${r.a.total}</b> · ${fmtDur(r.a.temps)}<br><small class="muted">${r.a.vitesse ? fmtNum(r.a.vitesse) + " km/h" : "–"} · ${r.a.erreurs} err. · ${esc(r.R.c)}</small>` : '<span class="muted">–</span>';
+  const draw = () => { const f = $("#pCl", m).value, rows = list.filter(p => !f || p.cl === f);
+    $("#pTab", m).innerHTML = `<table class="t"><thead><tr><th>Élève</th><th>Classe</th>${sessions.map(X => `<th>${new Date(X.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}<br><small>${esc(X.code)}</small></th>`).join("")}<th>Évolution</th></tr></thead><tbody>${rows.map((p, i) => { const pts = sessions.map(X => p.rows[X.code]).filter(Boolean); const d = pts.length > 1 ? pts[pts.length - 1].pct - pts[0].pct : null;
+      return `<tr data-p="${i}" style="cursor:pointer"><td><b>${esc(p.nom)}</b></td><td>${esc(p.cl || "")}</td>${sessions.map(X => `<td>${cell(p.rows[X.code])}</td>`).join("")}<td>${d == null ? "–" : `<b style="color:${d >= 0 ? "var(--green)" : "var(--red)"}">${d >= 0 ? "▲" : "▼"} ${Math.abs(Math.round(d))} pts %</b>`}</td></tr>`; }).join("") || `<tr><td colspan="9" class="muted">Aucune donnée.</td></tr>`}</tbody></table>`;
+    $$("[data-p]", m).forEach(tr => tr.onclick = () => personChart(rows[+tr.dataset.p], sessions)); };
+  $("#pCl", m).onchange = draw;
+  $("#pCsv", m).onclick = () => { const head = ["Élève", "Classe", ...sessions.flatMap(X => { const d = new Date(X.date).toLocaleDateString("fr-FR"); return [`${d} parcours`, `${d} balises`, `${d} temps`, `${d} vitesse km/h`, `${d} erreurs`]; })];
+    const rows = list.map(p => [p.nom, p.cl, ...sessions.flatMap(X => { const r = p.rows[X.code]; return r ? [r.R.c, `${r.a.found}/${r.a.total}`, fmtDur(r.a.temps), r.a.vitesse ? fmtNum(r.a.vitesse) : "", r.a.erreurs] : ["", "", "", "", ""]; })]);
+    download("OrienRun_progression.csv", "﻿" + [head, ...rows].map(r => r.map(v => /[;"\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(";")).join("\r\n"), "text/csv;charset=utf-8"); };
+  draw();
+}
+function personChart(p, sessions) {
+  const rows = sessions.map(X => ({ X, r: p.rows[X.code] })).filter(x => x.r);
+  const W = 640, H = 230, pad = 36, n = rows.length;
+  const series = [{ nom: "% balises trouvées", col: "#2a9d6f", v: rows.map(x => x.r.pct), max: 100 }, { nom: "Vitesse (km/h)", col: "#1f4fa3", v: rows.map(x => x.r.a.vitesse || 0), max: Math.max(6, ...rows.map(x => x.r.a.vitesse || 0)) }, { nom: "Erreurs", col: "#e63946", v: rows.map(x => x.r.a.erreurs), max: Math.max(3, ...rows.map(x => x.r.a.erreurs)) }];
+  const X = i => pad + (n > 1 ? i * (W - pad * 2) / (n - 1) : (W - pad * 2) / 2), Y = (v, mx) => H - pad - v / mx * (H - pad * 2);
+  const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#fff;border-radius:12px">${[0, .5, 1].map(k => `<line x1="${pad}" x2="${W - pad}" y1="${Y(k * 100, 100)}" y2="${Y(k * 100, 100)}" stroke="#eee"/>`).join("")}
+    ${rows.map((x, i) => `<text x="${X(i)}" y="${H - 12}" font-size="11" text-anchor="middle" fill="#56607a">${new Date(x.X.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}</text>`).join("")}
+    ${series.map(s => `<polyline points="${s.v.map((v, i) => `${X(i)},${Y(v, s.max)}`).join(" ")}" fill="none" stroke="${s.col}" stroke-width="3"/>${s.v.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v, s.max)}" r="4.5" fill="${s.col}"/><text x="${X(i) + 6}" y="${Y(v, s.max) - 7}" font-size="11" fill="${s.col}" font-weight="700">${s.nom.startsWith("%") ? Math.round(v) + "%" : fmtNum(v, s.nom.startsWith("V") ? 1 : 0)}</text>`).join("")}`).join("")}</svg>`;
+  const m = openModal(`<h2>📈 ${esc(p.nom)}</h2><p class="muted" style="margin-top:-6px">${esc(p.cl || "")} · ${n} leçon(s)</p><div class="row" style="gap:14px;margin-bottom:6px">${series.map(s => `<span><b style="color:${s.col}">━</b> ${s.nom}</span>`).join("")}</div>${svg}
+   <div class="tw" style="margin-top:10px"><table class="t"><thead><tr><th>Leçon</th><th>Parcours</th><th class="num">Balises</th><th class="num">Temps</th><th class="num">Distance</th><th class="num">Vitesse</th><th class="num">Arrêts</th><th class="num">Erreurs</th><th></th></tr></thead><tbody>${rows.map((x, i) => `<tr><td>${new Date(x.X.date).toLocaleDateString("fr-FR")} <small class="muted">${esc(x.X.code)}</small></td><td>${esc(x.r.R.c)}</td><td class="num">${x.r.a.found}/${x.r.a.total}</td><td class="num">${fmtDur(x.r.a.temps)}</td><td class="num">${fmtDist(x.r.a.dist)}</td><td class="num">${x.r.a.vitesse ? fmtNum(x.r.a.vitesse) : "–"}</td><td class="num">${x.r.a.stop ? fmtDur(x.r.a.stop) : "–"}</td><td class="num">${x.r.a.erreurs}</td><td><button class="btn small ghost" data-an="${i}">🗺</button></td></tr>`).join("")}</tbody></table></div>`, { wide: true });
+  $$("[data-an]", m).forEach(b => b.onclick = () => { const x = rows[+b.dataset.an]; openAnalysis({ proj: P, geo: calibPoints(), R: x.r.R, course: x.r.c, a: x.r.a, lesson: x.X.nom }); });
+}
+
+// ---------- 8. alerte d'immobilité (enseignant) ----------
+function immobility(R, a) {
+  const lim = (+CFG.immo || 0) * 60000; if (!lim || a.statut !== "En course") return null;
+  const pos = posOf(R); if (pos.length < 3) return null;
+  const last = pos[pos.length - 1]; if (Date.now() - (last.rt || last.t) > (CFG.interval * 3 + 30) * 1000) return null; // signal perdu : signalé ailleurs
+  const L = { lat: last.la, lon: last.lo }; let k = pos.length - 1;
+  while (k > 0 && haversine({ lat: pos[k - 1].la, lon: pos[k - 1].lo }, L) <= 20 + Math.min(last.ac || 0, 20)) k--;
+  const since = pos[k].t, dur = Date.now() - since; if (dur < lim || since < a.start) return null;
+  const near = P.controls.filter(c => c.lat != null).some(c => haversine(c, L) <= 30); if (near) return null; // à une balise : normal
+  return { since, dur, la: last.la, lo: last.lo };
+}
+
+// ---------- 9. appel : présents, partis, rentrés ----------
+function runnerForEleve(e) { if (e.r && S.runners[e.r]) return S.runners[e.r]; const k = normName(e.nom); return Object.values(S.runners).find(R => normName(R.nom) === k || normName(R.nom).split(" & ").includes(k) || R.nom.split(" & ").some(x => normName(x) === k)) || null; }
+function appelState(e) { const R = runnerForEleve(e), ev = R ? Object.values(R.ev) : []; const parti = ev.find(x => x.k === "start"), rentre = e.rentre || ev.find(x => x.k === "finish" || x.k === "abandon" || x.k === "here"); return { R, parti, rentre }; }
+function appelSummary() { const L = S.appel?.list || []; const pres = L.filter(e => e.present !== false); const st = pres.map(e => ({ e, ...appelState(e) })); return { pres: pres.length, abs: L.length - pres.length, partis: st.filter(x => x.parti).length, rentres: st.filter(x => x.rentre).length, manquent: st.filter(x => x.parti && !x.rentre).map(x => x.e.nom), pasPartis: st.filter(x => !x.parti && !x.rentre).map(x => x.e.nom), total: L.length }; }
+function openAppel() {
+  if (!S.appel?.list?.length) { toast("Pas de liste de classe pour cette leçon : ajoute tes listes dans ⚙ Réglages, puis choisis la classe au lancement.", "ko"); return; }
+  const m = openModal(`<h2>📋 Appel</h2><div id="apSum"></div><div class="tw" id="apTab" style="margin-top:10px"></div>`, { wide: true });
+  m.id = "appelModal";
+  const draw = () => {
+    const s = appelSummary(), linked = new Set(S.appel.list.map(e => runnerForEleve(e)?.r).filter(Boolean)), libres = Object.values(S.runners).filter(R => !linked.has(R.r));
+    $("#apSum", m).innerHTML = `<div class="row"><span class="chip">${s.pres} présent(s) / ${s.total}</span><span class="chip or">🏃 ${s.partis} parti(s)</span><span class="chip ok">✅ ${s.rentres} rentré(s)</span>${s.manquent.length ? `<span class="chip ko">⚠ pas encore rentré(s) : ${esc(s.manquent.join(", "))}</span>` : s.partis ? '<span class="chip ok">Tout le monde est rentré</span>' : ""}</div>${libres.length ? `<p class="muted">Hors liste : ${libres.map(R => esc(R.nom)).join(", ")}</p>` : ""}`;
+    $("#apTab", m).innerHTML = `<table class="t"><thead><tr><th>Élève</th><th>Classe</th><th>Présent</th><th>Parti</th><th>Rentré</th><th>Dans l'appli</th></tr></thead><tbody>${S.appel.list.map((e, i) => { const { R, parti, rentre } = appelState(e);
+      return `<tr style="${e.present === false ? "opacity:.45" : parti && !rentre ? "background:#fff4f4" : ""}"><td><b>${esc(e.nom)}</b></td><td>${esc(e.cl)}</td><td><button class="btn small ${e.present === false ? "ghost" : "green"}" data-pr="${i}">${e.present === false ? "Absent" : "✓ Présent"}</button></td><td>${parti ? `🏃 ${fmtHeure(parti.t)}` : "–"}</td><td>${rentre ? `✅ ${rentre.t ? fmtHeure(rentre.t) : ""}` : parti ? `<button class="btn small alt" data-rt="${i}">Marquer rentré</button>` : "–"}</td>
+       <td>${R ? `<button class="btn small ghost" data-det="${R.r}">${esc(R.nom)}</button>` : libres.length ? `<select data-lk="${i}" class="inp" style="min-height:34px;padding:2px 6px"><option value="">— associer —</option>${libres.map(x => `<option value="${x.r}">${esc(x.nom)}</option>`).join("")}</select>` : '<span class="muted">pas encore inscrit</span>'}</td></tr>`; }).join("")}</tbody></table>`;
+    $$("[data-pr]", m).forEach(b => b.onclick = () => { const e = S.appel.list[+b.dataset.pr]; e.present = e.present === false ? true : false; saveS(); draw(); });
+    $$("[data-rt]", m).forEach(b => b.onclick = () => { S.appel.list[+b.dataset.rt].rentre = { t: Date.now(), manuel: 1 }; saveS(); draw(); renderLive(); });
+    $$("[data-lk]", m).forEach(s => s.onchange = () => { S.appel.list[+s.dataset.lk].r = s.value || null; saveS(); draw(); });
+    $$("[data-det]", m).forEach(b => b.onclick = () => runnerDetail(b.dataset.det));
+  };
+  m._draw = draw; draw();
+}
+
+// ---------- 11. listes de classe (Réglages enseignant) ----------
+async function getClasses() { return (await DB.get("classes")) || {}; }
+async function classesPanel(box) {
+  let C = await getClasses();
+  const draw = () => { const names = Object.keys(C).sort();
+    box.innerHTML = `<h2>Listes de classe</h2><p class="muted">Les élèves choisiront leur nom dans la liste (pas de fautes de frappe, appel automatique). Les listes sont gardées dans cette tablette et dans ta Google Sheet, jamais sur GitHub. Astuce : copie-colle la colonne des noms depuis Pronote.</p>
+     <div class="row" style="margin-bottom:8px">${names.map(n => `<button class="btn small ${n === box._cur ? "" : "ghost"}" data-cl="${esc(n)}">${esc(n)} <small>(${C[n].length})</small></button>`).join("")}<button class="btn small alt" id="clNew">＋ Classe</button></div>
+     ${box._cur ? `<div class="field"><label>Élèves de ${esc(box._cur)} (un par ligne : Prénom NOM)</label><textarea class="inp" id="clTxt" style="min-height:200px">${esc(C[box._cur].join("\n"))}</textarea></div><div class="row"><button class="btn green" id="clSave">Enregistrer</button><button class="btn red" id="clDel">Supprimer la classe</button></div>` : ""}
+     <div class="row" style="margin-top:10px">${apiUrl() ? `<button class="btn small ghost" id="clPull">↻ Récupérer depuis la Google Sheet</button>` : ""}</div>`;
+    $$("[data-cl]", box).forEach(b => b.onclick = () => { box._cur = b.dataset.cl; draw(); });
+    $("#clNew", box).onclick = () => { const n = (prompt("Nom de la classe (ex. TMELEC) :") || "").trim().toUpperCase(); if (!n) return; C[n] = C[n] || []; box._cur = n; draw(); };
+    $("#clSave", box) && ($("#clSave", box).onclick = async () => { C[box._cur] = [...new Set($("#clTxt", box).value.split(/\n|;/).map(x => x.replace(/\s+/g, " ").trim()).filter(Boolean))]; await DB.set("classes", C); toast("Liste enregistrée ✓", "ok"); draw(); if (apiUrl()) apiCall(apiUrl(), "saveClasses", { teacher: tpw(), classes: C }).catch(e => toast("Google Sheet : " + e.message, "ko")); });
+    $("#clDel", box) && ($("#clDel", box).onclick = async () => { if (!confirm("Supprimer la liste " + box._cur + " ?")) return; delete C[box._cur]; box._cur = null; await DB.set("classes", C); draw(); if (apiUrl()) apiCall(apiUrl(), "saveClasses", { teacher: tpw(), classes: C }).catch(() => {}); });
+    $("#clPull", box) && ($("#clPull", box).onclick = async () => { try { const j = await apiCall(apiUrl(), "loadClasses", { teacher: tpw() }); C = j.classes || {}; await DB.set("classes", C); toast("Listes récupérées ✓", "ok"); draw(); } catch (e) { toast(e.message, "ko"); } });
+  };
+  if (!Object.keys(C).length && apiUrl()) { try { const j = await apiCall(apiUrl(), "loadClasses", { teacher: tpw() }); if (j.classes && Object.keys(j.classes).length) { C = j.classes; await DB.set("classes", C); } } catch (e) {} }
+  draw();
+}
+
+// ---------- 12. pose et ramassage des balises (guidage sur le terrain) ----------
+const bearing = (a, b) => { const r = Math.PI / 180, y = Math.sin((b.lon - a.lon) * r) * Math.cos(b.lat * r), x = Math.cos(a.lat * r) * Math.sin(b.lat * r) - Math.sin(a.lat * r) * Math.cos(b.lat * r) * Math.cos((b.lon - a.lon) * r); return (Math.atan2(y, x) / r + 360) % 360; };
+function openPose() {
+  let mode = "pose", me = null, head = null, target = null, watch = null, hasCompass = false;
+  const done = c => !!(mode === "pose" ? c.pose : c.ramasse);
+  const all = () => P.controls.filter(c => c.lat != null);
+  const pick = () => { const L = all().filter(c => !done(c)); if (!L.length) return null; if (!me) return L[0]; return L.slice().sort((a, b) => haversine(me, a) - haversine(me, b))[0]; };
+  const m = openModal(`<h2>🧭 Sur le terrain</h2><div class="row" style="margin-bottom:10px"><button class="btn small" data-md="pose">🚩 Pose des balises</button><button class="btn small ghost" data-md="ramasse">🧺 Ramassage</button><span class="grow"></span><button class="btn small ghost" id="poCompass">🧭 Activer la boussole</button></div>
+   <div id="poMain"></div><div id="poList" style="margin-top:12px"></div>`, { wide: true, sticky: true, onClose: () => { navigator.geolocation.clearWatch(watch); removeEventListener("deviceorientationabsolute", ori); removeEventListener("deviceorientation", ori); } });
+  const ori = e => { let h = e.webkitCompassHeading != null ? e.webkitCompassHeading : e.alpha != null && (e.absolute || e.type === "deviceorientationabsolute") ? (360 - e.alpha) % 360 : null; if (h != null) { head = h; hasCompass = true; drawMain(); } };
+  addEventListener("deviceorientationabsolute", ori); addEventListener("deviceorientation", ori);
+  $("#poCompass", m).onclick = async () => { try { if (window.DeviceOrientationEvent?.requestPermission) await DeviceOrientationEvent.requestPermission(); toast("Boussole activée : tiens le téléphone à plat"); } catch (e) { toast("Boussole refusée", "ko"); } };
+  watch = navigator.geolocation.watchPosition(p => { me = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }; if (!hasCompass && p.coords.heading != null && !isNaN(p.coords.heading) && p.coords.speed > .5) head = p.coords.heading; if (!target || done(target)) target = pick(); drawMain(); }, e => toast(e.message, "ko"), { enableHighAccuracy: true, maximumAge: 2000 });
+  let lastBuzz = 0;
+  const drawMain = () => {
+    const box = $("#poMain", m); if (!box) return;
+    const L = all(), n = L.filter(done).length;
+    if (!target || done(target)) target = pick();
+    if (!target) { box.innerHTML = `<div class="panel" style="margin:0;text-align:center"><h2>✓ Toutes les balises sont ${mode === "pose" ? "posées" : "ramassées"} (${n}/${L.length})</h2></div>`; return drawList(); }
+    const d = me ? haversine(me, target) : null, b = me ? bearing(me, target) : null, rot = b != null ? (head != null ? b - head : b) : 0;
+    if (d != null && d < 10 && Date.now() - lastBuzz > 8000) { lastBuzz = Date.now(); navigator.vibrate?.([200, 100, 200]); }
+    box.innerHTML = `<div class="runcard" style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center">
+      <div style="width:150px;height:150px;border-radius:50%;background:#ffffff14;display:grid;place-items:center;position:relative">${head == null ? '<span style="position:absolute;top:4px;font-weight:800">N</span>' : ""}<svg viewBox="-50 -50 100 100" style="width:120px;transform:rotate(${rot}deg);transition:transform .3s"><path d="M0,-44 L22,30 L0,16 L-22,30Z" fill="${d != null && d < 15 ? "#3ddc97" : "#f47a20"}"/></svg></div>
+      <div><div class="lbl" style="color:#fff">${mode === "pose" ? "Balise à poser" : "Balise à ramasser"} · ${n}/${L.length} faites</div><div style="font-family:var(--cond);font-size:3rem;font-weight:800;line-height:1">${esc(ctrlLabel(target))}</div>
+      <div style="font-size:2rem;font-weight:800">${d == null ? "GPS…" : fmtDist(d)}</div><div class="sub">${target.desc ? esc(target.desc) + " · " : ""}${me ? `ta précision ±${Math.round(me.acc)} m` : ""}${head == null ? " · flèche orientée par rapport au nord (active la boussole ou marche)" : ""}</div></div></div>
+     <div class="row" style="margin-top:10px"><button class="btn green" id="poDone" style="min-height:58px;flex:1">✓ ${mode === "pose" ? "Posée" : "Ramassée"}</button><button class="btn alt" id="poSkip">Passer</button><a class="btn ghost" target="_blank" href="${gmapsUrl(target.lat, target.lon)}">Google Maps</a></div>
+     ${mode === "pose" ? `<label class="row" style="gap:6px;margin-top:8px"><input type="checkbox" id="poUpd"> Remplacer la position GPS de la balise par ma position actuelle (si je la pose ailleurs)</label>` : ""}`;
+    $("#poDone", m).onclick = () => { if (mode === "pose" && $("#poUpd", m)?.checked && me) { target.lat = me.lat; target.lon = me.lon; target.acc = Math.round(me.acc); } target[mode === "pose" ? "pose" : "ramasse"] = Date.now(); saveP(); toast(`${ctrlLabel(target)} ${mode === "pose" ? "posée" : "ramassée"} ✓`, "ok"); target = pick(); drawMain(); };
+    $("#poSkip", m).onclick = () => { const L2 = all().filter(c => !done(c) && c !== target); if (L2.length) { target = me ? L2.sort((a, b) => haversine(me, a) - haversine(me, b))[0] : L2[0]; } drawMain(); };
+    drawList();
+  };
+  const drawList = () => { const L = all(), sans = P.controls.filter(c => c.lat == null);
+    $("#poList", m).innerHTML = `<div class="cchips">${L.map(c => `<button class="cchip ${done(c) ? "found" : target === c ? "on" : ""}" data-po="${c.id}" title="${done(c) ? "fait à " + fmtHeure(c[mode === "pose" ? "pose" : "ramasse"]) : ""}">${esc(c.type === "C" ? c.n : c.type === "S" ? "▲" : "◎")}</button>`).join("")}</div>
+     ${sans.length ? `<p class="muted">Sans GPS (non guidées) : ${sans.map(c => esc(ctrlLabel(c))).join(", ")}</p>` : ""}<button class="btn small ghost" id="poReset" style="margin-top:8px">Tout remettre à « ${mode === "pose" ? "à poser" : "à ramasser"} »</button>`;
+    $$("[data-po]", m).forEach(b => b.onclick = () => { const c = ctrlById(b.dataset.po); if (done(c)) { if (confirm(`Annuler « ${mode === "pose" ? "posée" : "ramassée"} » pour ${ctrlLabel(c)} ?`)) { delete c[mode === "pose" ? "pose" : "ramasse"]; saveP(); } } else target = c; drawMain(); });
+    $("#poReset", m).onclick = () => { if (!confirm("Tout remettre à zéro pour ce mode ?")) return; P.controls.forEach(c => delete c[mode === "pose" ? "pose" : "ramasse"]); saveP(); target = null; drawMain(); };
+  };
+  $$("[data-md]", m).forEach(b => b.onclick = () => { mode = b.dataset.md; $$("[data-md]", m).forEach(x => x.className = "btn small " + (x === b ? "" : "ghost")); target = null; drawMain(); });
+  drawMain();
 }
 
 // ===== Espace élève =====
@@ -1627,6 +1873,7 @@ function welcomeScreen() {
     try { const j = await apiCall(api, "getSession", { s: code }, 30000); const d = j.data || {}; const gos = Object.values(d.gos || {}); if (!gos.length) throw new Error("Cette leçon n'a pas de parcours (mets à jour le script de l'enseignant)");
       if (d.proj) DB.set("map:" + code, d.proj);
       LS.set("lastApi", api);
+      gos.forEach(g => g.eleves = d.eleves || null);
       if (gos.length === 1) return studentEntry(gos[0]);
       const m = openModal(`<h2>${esc(d.nom || code)}</h2><p class="muted">Choisis ton parcours :</p><div style="display:flex;flex-direction:column;gap:10px">${gos.map((g, i) => `<button class="btn alt" data-g="${i}" style="justify-content:flex-start;min-height:56px"><b>${esc(g.c.k)}</b>&nbsp;· ${esc(g.c.nm || "")} <small class="muted">&nbsp;${g.c.b.filter(b => !b.x).length} balises</small></button>`).join("")}</div>`);
       $$("[data-g]", m).forEach(b => b.onclick = () => { m.close(); studentEntry(gos[+b.dataset.g]); });
@@ -1645,18 +1892,39 @@ function joinScreen(g) {
   const c = g.c, req = c.b.filter(b => !b.x), bonus = c.b.filter(b => b.x);
   $("#eleve").innerHTML = `<div class="ehead"><div class="flag"></div><h1>${esc(c.k)}</h1></div>
    <div class="panel"><h2>${esc(c.nm || "Parcours " + c.k)}</h2><p class="muted" style="margin-top:-6px">${esc(g.u || "")} · ${req.length} balises${bonus.length ? ` + ${bonus.length} bonus` : ""} · ${{ ordre: "dans l'ordre imposé", libre: "dans l'ordre que tu veux", score: "au score" }[c.m]}${c.tm ? ` · ${c.tm} min maximum` : ""}${c.hr ? ` · retour avant ${new Date(c.hr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
-    <div class="field"><label>Prénom NOM</label><input class="inp" id="jNom" value="${esc(me.nom || "")}" autocomplete="name" placeholder="ex. Léa DUPONT"></div>
-    <div class="field"><label>Équipier(e) (si vous courez à deux)</label><input class="inp" id="jBin" placeholder="facultatif"></div>
-    <div class="field"><label>Classe</label><input class="inp" id="jCl" list="dlCl" value="${esc(me.cl || "")}" placeholder="ex. TMELEC"><datalist id="dlCl"><option>TMELEC</option><option>TTBMA</option><option>1G1</option><option>1G2</option><option>1G3</option><option>1G4</option><option>1STMG</option></datalist></div>
+    <div id="jWho"></div>
     ${c.ch ? `<h3>Choisis tes balises${c.nb ? ` (${c.nb})` : ""}</h3><p class="muted" style="margin-top:-4px">Touche les balises que tu veux aller chercher.${c.prep ? " Tu pourras encore changer pendant ta préparation." : ""}</p><div class="cchips" id="jSel">${req.map(b => `<button class="cchip" data-n="${b.n}">${b.n}${b.p != null ? `<small style="font-family:inherit;font-weight:600"> ${b.p}pt</small>` : ""}</button>`).join("")}</div><p id="jSelInfo" class="muted"></p>` : ""}
     ${bonus.length ? `<p class="muted">★ Balises bonus (facultatives) : ${bonus.map(b => b.n + (b.p != null ? ` (${b.p} pts)` : "")).join(", ")}</p>` : ""}
     <button class="btn or" id="jGo" style="width:100%;min-height:58px;margin-top:10px">${c.prep ? `Commencer ma préparation (${c.prep} min) →` : "Continuer →"}</button></div>`;
+  // identité : liste de la classe (si l'enseignant l'a chargée) ou saisie libre
+  let eleves = g.eleves || null, libre = false;
+  const who = () => {
+    const box = $("#jWho"); if (!box) return;
+    const cls = eleves ? Object.keys(eleves) : [];
+    if (cls.length && !libre) {
+      const cur = box._cl && eleves[box._cl] ? box._cl : (cls.includes(me.cl) ? me.cl : cls.length === 1 ? cls[0] : null);
+      box._cl = cur;
+      box.innerHTML = `<div class="lbl">Ta classe</div><div class="cchips" style="margin:6px 0 10px">${cls.map(c => `<button class="cchip ${c === cur ? "on" : ""}" data-jc="${esc(c)}" style="padding:0 14px">${esc(c)}</button>`).join("")}</div>
+       ${cur ? `<div class="field"><label>Ton nom</label><select class="inp" id="jNomSel"><option value="">— choisis ton nom —</option>${eleves[cur].map(n => `<option ${normName(n) === normName(me.nom) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>
+       <div class="field"><label>Équipier(e) (si vous courez à deux)</label><select class="inp" id="jBinSel"><option value="">— personne —</option>${eleves[cur].map(n => `<option>${esc(n)}</option>`).join("")}</select></div>` : ""}
+       <button class="btn small ghost" id="jLibre">Je ne suis pas dans la liste</button>`;
+      $$("[data-jc]", box).forEach(b => b.onclick = () => { box._cl = b.dataset.jc; who(); });
+      $("#jLibre", box).onclick = () => { libre = true; who(); };
+    } else box.innerHTML = `<div class="field"><label>Prénom NOM</label><input class="inp" id="jNom" value="${esc(me.nom || "")}" autocomplete="name" placeholder="ex. Léa DUPONT"></div>
+      <div class="field"><label>Équipier(e) (si vous courez à deux)</label><input class="inp" id="jBin" placeholder="facultatif"></div>
+      <div class="field"><label>Classe</label><input class="inp" id="jCl" list="dlCl" value="${esc(me.cl || "")}" placeholder="ex. TMELEC"><datalist id="dlCl">${(cls.length ? cls : ["TMELEC", "TTBMA", "1G1", "1G2", "1G3", "1G4", "1STMG"]).map(c => `<option>${esc(c)}</option>`).join("")}</datalist></div>`;
+  };
+  who();
+  if (!eleves && g.a) apiCall(longApi(g.a), "getSession", { s: g.s }, 20000).then(j => { if (j.data?.eleves && Object.keys(j.data.eleves).length) { eleves = j.data.eleves; who(); } if (j.data?.proj) DB.set("map:" + g.s, j.data.proj); }).catch(() => {});
   const prev = loadRun(); const sel = new Set(prev && prev.s === g.s && prev.c.k === c.k && !prev.start ? prev.sel || [] : []);
   const showSel = () => { $$("#jSel .cchip").forEach(b => b.classList.toggle("on", sel.has(+b.dataset.n))); const i = $("#jSelInfo"); if (i) i.textContent = sel.size ? `${sel.size} balise(s) choisie(s) : ${[...sel].join(", ")}` : ""; };
   $$("#jSel .cchip").forEach(b => b.onclick = () => { const n = +b.dataset.n; if (sel.has(n)) sel.delete(n); else { if (c.nb && sel.size >= c.nb) return toast(`${c.nb} balises maximum`); sel.add(n); } showSel(); });
   showSel();
   $("#jGo").onclick = () => {
-    const nom = $("#jNom").value.trim(), bin = $("#jBin").value.trim(), cl = $("#jCl").value.trim().toUpperCase();
+    const fromList = !!$("#jNomSel");
+    const nom = fromList ? $("#jNomSel").value : $("#jNom").value.trim(), bin = fromList ? $("#jBinSel").value : $("#jBin").value.trim(), cl = fromList ? $("#jWho")._cl : $("#jCl").value.trim().toUpperCase();
+    if (fromList && !nom) return toast("Choisis ton nom dans la liste", "ko");
+    if (bin && bin === nom) return toast("Ton équipier ne peut pas être toi 😉", "ko");
     if (nom.length < 2) return toast("Écris ton prénom et ton nom", "ko");
     if (c.ch && c.nb && sel.size !== c.nb) return toast(`Choisis exactement ${c.nb} balises`, "ko");
     if (c.ch && !sel.size) return toast("Choisis au moins une balise", "ko");
@@ -1917,9 +2185,19 @@ function endScreen() {
    <div class="panel"><h2>Mes temps</h2><div class="tw"><table class="t"><thead><tr><th>Poste</th><th class="num">Temps inter.</th><th class="num">Cumul</th></tr></thead><tbody>${a.legs.map(l => `<tr><td><b>${esc(l.de)} → ${esc(l.n)}</b>${fbOn(r) && !l.ordre ? ' <span class="chip ko">ordre</span>' : ""}${r.dec[l.id] === true ? ' <span class="chip ok">✓ juste</span>' : ""}${l.status === "attente" && fbOn(r) ? ' <span class="chip wait">à valider</span>' : ""}</td><td class="num">${fmtDur(l.split)}</td><td class="num">${fmtDur(l.cumul)}</td></tr>`).join("")}</tbody></table></div>
     ${a.manquants.length ? `<p><b>Balises manquantes :</b> ${a.manquants.join(", ")}</p>` : ""}</div>
    <div class="panel"><p id="endSync" class="muted"></p><div style="display:flex;flex-direction:column;gap:10px">
+    <button class="btn" id="eAna">🗺 Revoir mon itinéraire</button><button class="btn alt" id="eBil">📄 Ma fiche bilan (PDF)</button>
     <button class="btn or" id="eSms">📩 Envoyer mes résultats par SMS</button><button class="btn alt" id="eRetry">↻ Renvoyer par internet</button><button class="btn ghost" id="eNew">Nouvelle course</button></div></div>`;
   const upd = () => { const r = loadRun(); if (!$("#endSync")) return; $("#endSync").innerHTML = !r.a ? "Pas de connexion à la tablette prévue : <b>envoie tes résultats par SMS</b>." : r.queue.length ? `⚠ ${r.queue.length} donnée(s) pas encore reçue(s) par la tablette. Reste près du réseau ou envoie par SMS.` : "<b style='color:var(--green)'>✓ Résultats reçus par la tablette de l'enseignant.</b>"; };
   upd();
+  const getTrace = async () => {
+    const r = loadRun(); if (!r.a) throw new Error("Pas de connexion à la tablette prévue");
+    await flush(true);
+    let proj = E.mapProj || await DB.get("map:" + r.s); if (!proj) { const j = await apiCall(r.a, "getSession", { s: r.s }, 30000); proj = j.data?.proj; if (proj) DB.set("map:" + r.s, proj); }
+    const t = await apiCall(r.a, "trace", { s: r.s, r: r.r }, 20000);
+    return { proj, geo: t.geo, R: { ...r, c: r.c.k, ev: r.ev }, course: r.c, a: anaS(r), lesson: r.u };
+  };
+  $("#eAna").onclick = async () => { try { openAnalysis(await getTrace()); } catch (e) { toast(e.message, "ko"); } };
+  $("#eBil").onclick = async () => { try { printBilans([await getTrace()]); } catch (e) { toast(e.message, "ko"); } };
   $("#eSms").onclick = () => { location.href = smsHref(r.t, smsResultat(smsRunData(loadRun()))); mutRun(r => r.smsSent = Date.now()); };
   $("#eRetry").onclick = async () => { await flush(true); upd(); };
   $("#eNew").onclick = () => { const r = loadRun(); if (r.queue.length && !r.smsSent && !confirm("Tes résultats ne sont pas encore arrivés. Continuer quand même ?")) return; mutRun(r => r.done = true); welcomeScreen(); };
