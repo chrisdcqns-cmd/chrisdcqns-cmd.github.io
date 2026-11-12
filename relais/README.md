@@ -32,7 +32,7 @@ L'enseignant a un **code à 4 chiffres** (créé à la première utilisation). I
    - Qui a accès : **Tout le monde**
    - Clique sur **Déployer**, autorise l'accès, puis copie l'**URL de l'application Web** (elle se termine par `/exec`).
 6. Dans l'application, sur la page des classes : **Google Sheets** (code enseignant), puis :
-   - colle l'URL et la clé secrète ;
+   - l'URL du script de l'enseignant est déjà pré-remplie (`SH_DEFAULT_URL` dans `index.html`) : colle seulement la **clé secrète** (elle n'est jamais publiée) ;
    - choisis « Code anonyme » ou « Prénom + initiale » ;
    - touche **Tester la connexion**, puis **Enregistrer**.
 

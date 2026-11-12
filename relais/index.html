@@ -1796,7 +1796,10 @@ $("#btnExport").addEventListener("click",exportLecon);$("#btnExportHome").addEve
 if(!window.XLSX){const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";document.head.appendChild(s)}
 /* ===== Google Sheets (codes anonymes, jamais les noms) ===== */
 const KS="relais-vitesse-sheets-v1";
+/* Adresse du script Apps Script de l'enseignant (la clé secrète, elle, se saisit sur chaque tablette) */
+const SH_DEFAULT_URL="https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec";
 let SH={url:"",key:"",names:"code",auto:true,queue:[],salt:"",...(load(KS,{})||{})};
+if(!SH.url)SH.url=SH_DEFAULT_URL;
 if(!SH.salt){SH.salt=Math.random().toString(36).slice(2,10);save(KS,SH)}
 const shSave=()=>save(KS,SH);
 function mix32(s){let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}h^=h>>>16;h=Math.imul(h,0x45d9f3b);h^=h>>>16;h=Math.imul(h,0x45d9f3b);h^=h>>>16;return h>>>0}
@@ -1813,10 +1816,10 @@ function shRow(cls,c){
   const l=cls.lecons.find(x=>x.id===c.lid),v=x=>x===null||x===undefined?"":x,r1=x=>typeof x==="number"?Math.round(x*10)/10:v(x);
   return [cls.name,l?fmtShort(l.date):c.date,c.groupe||"Sans groupe",c.n,c.heure,shWho(cls,c.i1,c.p1,c.n1),c.v1,shWho(cls,c.i2,c.p2,c.n2),c.v2,r1(c.cible),v(c.ecart),r1(c.realise),v(c.zone),v(c.dep),v(c.pt),v(c.ptd),v(c.recul),v(c.pm),v(c.pmd),v(c.dv),v(c.dw),v(c.de),v(c.conseil),c.cid];
 }
-function shQueue(cid,op){if(!SH.url||!SH.auto)return;SH.queue=SH.queue.filter(q=>q.k!==cid);SH.queue.push({c:DATA.cur,k:cid,op});shSave()}
+function shQueue(cid,op){if(!SH.url||!SH.key||!SH.auto)return;SH.queue=SH.queue.filter(q=>q.k!==cid);SH.queue.push({c:DATA.cur,k:cid,op});shSave()}
 let shBusy=false;
 async function shFlush(){
-  if(shBusy||!SH.url||!SH.queue.length||navigator.onLine===false)return;
+  if(shBusy||!SH.url||!SH.key||!SH.queue.length||navigator.onLine===false)return;
   shBusy=true;const q=[...SH.queue];
   const rows=[],del=[];
   q.forEach(it=>{const cls=DATA.classes.find(x=>x.id===it.c);if(it.op==="del"){del.push(it.k);return}
@@ -1828,7 +1831,7 @@ async function shFlush(){
   shBusy=false;updShStatus();
 }
 window.addEventListener("online",shFlush);setInterval(shFlush,60000);
-function updShStatus(){const n=SH.queue.length;const el=$("#s-status");if(el)el.textContent=!SH.url?"Pas encore configuré.":n?`${n} envoi(s) en attente (réseau ?) : ils partiront dès que possible.`:"Tous les envois sont faits ✓"}
+function updShStatus(){const n=SH.queue.length;const el=$("#s-status");if(el)el.textContent=!SH.url?"Pas encore configuré.":!SH.key?"Saisis la clé secrète du script pour activer l'envoi.":n?`${n} envoi(s) en attente (réseau ?) : ils partiront dès que possible.`:"Tous les envois sont faits ✓"}
 function inArtifact(){return !!(window.claude||/claude\.ai|claudeusercontent|anthropic/.test(location.hostname))}
 function openSheets(){
   $("#s-url").value=SH.url;$("#s-key").value=SH.key;
