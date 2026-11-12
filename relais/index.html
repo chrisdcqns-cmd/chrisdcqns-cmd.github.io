@@ -409,6 +409,20 @@ tr.disp{opacity:.55}
 .evok{background:var(--ok-soft);color:var(--ok)}.evko{background:#FBD9D3;color:#9C2B10}
 .evles{font-size:15px;background:#fff;border-radius:12px;margin-top:12px}.evles td{padding:8px 12px}
 .evc.au{background:#E4EEF8;border-color:#A9C6E2}
+.evc.su{background:#FBE1DD;border-color:#E8A79C}
+.evc.au.su{background:linear-gradient(135deg,#E4EEF8 50%,#FBE1DD 50%)}
+.evc.on.su:not(.au){background:color-mix(in srgb,var(--c) 13%,#FBE1DD)}
+.evb.sg{background:#FBD9D3!important;color:#9C2B10!important}
+.evleg{gap:18px!important;flex-wrap:wrap}.evleg span{display:inline-flex;align-items:center;gap:6px}
+.evleg i.r{background:#FBE1DD;border-color:#E8A79C}
+.evscope{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.evscope button{height:42px;padding:0 14px;border-radius:999px;border:2px solid #E8A79C;background:#fff;font-weight:700;font-size:15px;color:#9C2B10}
+.evscope button.on{background:#C0392B;border-color:#C0392B;color:#fff}
+.evsugg{background:#fff;border:2px dashed #C0392B;border-radius:12px;padding:12px 14px;margin-top:10px;font-size:15px}
+.evsugg ul{margin:6px 0 10px;padding-left:4px;list-style:none}.evsugg li{margin:4px 0}
+.evsugg .dg{display:inline-block;min-width:28px;text-align:center;border-radius:8px;color:#fff;font-weight:800;padding:1px 7px}
+.evsugg .dg.d4{background:#2E7D4F}.evsugg .dg.d3{background:#6E9F2E}.evsugg .dg.d2{background:#C98A00}.evsugg .dg.d1{background:#C0392B}
+.evapply{background:#C0392B;color:#fff;border:none}
 .evc.au.on{background:color-mix(in srgb,var(--c) 13%,#E4EEF8)}
 .evleg{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);font-weight:600}
 .evleg i{width:22px;height:16px;border-radius:5px;background:#E4EEF8;border:2px solid #A9C6E2;display:inline-block}
@@ -2014,34 +2028,41 @@ const autoDone=(e,lid)=>{const o=(CL().evals||{})[e.id],a=o&&o.auto&&o.auto[lid]
 const EV_SEUIL=0.7;
 function evStats(e){
   const C=CL(),cs=ALLCO().filter(c=>c.i1===e.id||c.i2===e.id);
-  const lids=[...new Set(ALLCO().map(c=>c.lid))].map(id=>C.lecons.find(l=>l.id===id)).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
+  let lids=[...new Set(ALLCO().map(c=>c.lid))].map(id=>C.lecons.find(l=>l.id===id)).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
+  const scope=C.evScope==="last"?"last":"all";if(scope==="last")lids=lids.slice(-1);
   const coef={};lids.forEach((l,i)=>coef[l.id]=i+1);
   const inZ=z=>typeof z==="string"&&z&&z!==HZ&&z!==NR;
-  const r={n:cs.length,les:[],perf:null,trans:null};
+  const r={n:0,les:[],perf:null,trans:null,scope,last:lids.length?lids[lids.length-1].date:null};
   let P={w:0,over:0,reach:0,sum:0},T={w:0,inz:0,z100:0};
   lids.forEach(l=>{const L=cs.filter(c=>c.lid===l.id);if(!L.length)return;const k=coef[l.id];
     const ec=L.map(c=>c.ecart).filter(v=>typeof v==="number"),zs=L.map(c=>c.zone).filter(z=>inZ(z)||z===HZ);
     const row={date:l.date,k,n:L.length,ne:ec.length,over:ec.filter(v=>v>0).length,nz:zs.length,inz:zs.filter(inZ).length,z100:zs.filter(z=>z==="Zone 100").length};
-    r.les.push(row);
+    r.les.push(row);r.n+=L.length;
     P.w+=k*ec.length;P.over+=k*row.over;P.reach+=k*ec.filter(v=>v>=0).length;P.sum+=k*ec.reduce((a,b)=>a+b,0);
     T.w+=k*zs.length;T.inz+=k*row.inz;T.z100+=k*row.z100});
-  if(P.w){r.pOver=P.over/P.w;r.pReach=P.reach/P.w;r.mEc=P.sum/P.w;r.perf=r.pOver>=EV_SEUIL?4:r.pReach>=EV_SEUIL?3:r.mEc>-2?2:1}
-  if(T.w){r.pIn=T.inz/T.w;r.pZ100=T.z100/T.w;r.trans=r.pZ100>=EV_SEUIL?4:r.pIn>=EV_SEUIL?3:r.pIn>=0.5?2:1}
+  if(P.w){r.pOver=P.over/P.w;r.pReach=P.reach/P.w;r.mEc=P.sum/P.w;r.perf=r.pOver>=EV_SEUIL?4:r.pReach>=EV_SEUIL?3:r.mEc>-2?2:1;
+    const m=(r.mEc>0?"+":"")+fmt(r.mEc)+" km/h";
+    r.perfWhy={4:`cible dépassée ${pc(r.pOver)} du temps (≥ 70 %)`,3:`cible atteinte ou dépassée ${pc(r.pReach)} du temps (≥ 70 %), mais dépassée seulement ${pc(r.pOver)}`,2:`cible atteinte seulement ${pc(r.pReach)} du temps, écart moyen ${m}`,1:`écart moyen ${m} (−2 km/h ou moins)`}[r.perf]}
+  if(T.w){r.pIn=T.inz/T.w;r.pZ100=T.z100/T.w;r.trans=r.pZ100>=EV_SEUIL?4:r.pIn>=EV_SEUIL?3:r.pIn>=0.5?2:1;
+    r.transWhy={4:`Zone 100 ${pc(r.pZ100)} du temps (≥ 70 %)`,3:`dans la zone ${pc(r.pIn)} du temps (≥ 70 %), Zone 100 seulement ${pc(r.pZ100)}`,2:`dans la zone ${pc(r.pIn)} du temps (entre 50 et 70 %)`,1:`dans la zone seulement ${pc(r.pIn)} du temps`}[r.trans]}
   return r;
 }
 const evSuggest=evStats;
-const pc=v=>Math.round(v*100)+" %";
+function pc(v){return Math.round(v*100)+" %"}
 function evStatsHTML(e,s){
-  if(!s.n)return `<div class="evred"><div class="evrt">📊 Toutes les courses de ${esc(e.prenom)}</div><p>Aucune course enregistrée pour cet élève.</p></div>`;
+  const seg=`<div class="evscope"><button data-evscope="all" class="${s.scope==="all"?"on":""}">Toutes les leçons (dernières pondérées)</button><button data-evscope="last" class="${s.scope==="last"?"on":""}">Leçon finale seulement${s.scope==="last"&&s.last?" ("+fmtShort(s.last)+")":""}</button></div>`;
+  if(!s.n)return `<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale":"Toutes les courses"} de ${esc(e.prenom)}</div>${seg}<p>Aucune course enregistrée pour cet élève${s.scope==="last"?" lors de la leçon finale":""}.</p></div>`;
   const badge=(v)=>v>=EV_SEUIL?`<span class="evok">✓ majoritairement (≥ 70 %)</span>`:`<span class="evko">✗ moins de 70 %</span>`;
   const nl=s.les.length;
-  let h=`<div class="evred"><div class="evrt">📊 Toutes les courses de ${esc(e.prenom)} · ${s.n} course${s.n>1?"s":""} sur ${nl} leçon${nl>1?"s":""}</div>
-    <p class="evrs">Les dernières leçons comptent plus : coefficient ${s.les.map(l=>"×"+l.k).join(", ")}.</p><div class="evrg">`;
+  let h=`<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale du "+fmtShort(s.last)+" · "+esc(e.prenom):"Toutes les courses de "+esc(e.prenom)} · ${s.n} course${s.n>1?"s":""}${s.scope==="all"?" sur "+nl+" leçon"+(nl>1?"s":""):""}</div>${seg}
+    ${s.scope==="all"?`<p class="evrs">Les dernières leçons comptent plus : coefficient ${s.les.map(l=>"×"+l.k).join(", ")}.</p>`:""}`;
+  if(s.perf||s.trans)h+=`<div class="evsugg"><b>Positionnement suggéré d'après les résultats</b><ul>${s.perf?`<li><span class="dg d${s.perf}">${s.perf}</span> <b>Performance : degré ${s.perf}</b> — ${s.perfWhy}</li>`:""}${s.trans?`<li><span class="dg d${s.trans}">${s.trans}</span> <b>Transmission : degré ${s.trans}</b> — ${s.transWhy}</li>`:""}</ul><button class="btn sm evapply" data-evapply="1">Appliquer la suggestion</button></div>`;
+  h+=`<div class="evrg">`;
   h+=`<div><b>Performance</b>${s.pOver!=null?`<div class="evbig">${pc(s.pOver)}</div>vitesse cible dépassée ${badge(s.pOver)}<small>atteinte ou dépassée : ${pc(s.pReach)} · écart moyen ${s.mEc>0?"+":""}${fmt(s.mEc)} km/h</small>`:`<small>écart non renseigné</small>`}</div>`;
   h+=`<div><b>Transmission</b>${s.pIn!=null?`<div class="evbig">${pc(s.pIn)}</div>dans la zone de transmission ${badge(s.pIn)}<small>en Zone 100 : ${pc(s.pZ100)}</small>`:`<small>zone non renseignée</small>`}</div></div>`;
   h+=`<table class="evrec evles"><thead><tr><th>Leçon</th><th class="n">Coef.</th><th class="n">Courses</th><th class="n">Cible dépassée</th><th class="n">Dans la zone</th><th class="n">Zone 100</th></tr></thead><tbody>`
     +s.les.slice().reverse().map(l=>`<tr><td>${fmtShort(l.date)}</td><td class="n">×${l.k}</td><td class="n">${l.n}</td><td class="n">${l.ne?l.over+" / "+l.ne:"–"}</td><td class="n">${l.nz?l.inz+" / "+l.nz:"–"}</td><td class="n">${l.nz?l.z100+" / "+l.nz:"–"}</td></tr>`).join("")
-    +`</tbody></table><p class="evrs" style="margin-top:6px">Pourcentages pondérés par les coefficients. 💡 dans la grille : degré 4 si ≥ 70 % (cible dépassée / Zone 100), degré 3 si ≥ 70 % (cible atteinte / dans la zone).</p></div>`;
+    +`</tbody></table><p class="evrs" style="margin-top:6px">${s.scope==="all"?"Pourcentages pondérés par les coefficients. ":""}Degré 4 si ≥ 70 % (cible dépassée / Zone 100), degré 3 si ≥ 70 % (cible atteinte / dans la zone). Mise en projet et Vivre les rôles restent à ton appréciation.</p></div>`;
   return h;
 }
 function evNamesHTML(list,sel,mark){
@@ -2061,15 +2082,15 @@ function evGridHTML(mode,e){
   let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}</div>
     <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
       :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts${prof?" (répartition fixée dans les réglages de la leçon)":""}</span>`}</div>
-    ${prof?evStatsHTML(e,sg):""}${prof&&la?`<div class="evleg mt"><i></i>Case où ${esc(e.prenom)} s'est positionné(e) dans son auto-évaluation</div>`:""}
+    ${prof?evStatsHTML(e,sg):""}${prof?`<div class="evleg mt">${la?`<span><i></i>bleu : auto-positionnement de ${esc(e.prenom)}</span>`:""}${sg&&(sg.perf||sg.trans)?`<span><i class="r"></i>rouge : suggestion d'après les résultats</span>`:""}</div>`:""}
     <div class="evgrid"><div></div>${[4,3,2,1].map(d=>`<div class="evh d${d}">Degré ${d}</div>`).join("")}`;
   EVE.forEach(x=>{const mx=evMax(x.k,rp),pt=evPts(sel,x.k,rp);
     h+=`<div class="evl">${x.t}<small>${x.s} · sur ${mx} pts</small>${pt!=null?`<span class="evp">${fmtP(pt)} / ${mx}</span>`:""}</div>`;
     [4,3,2,1].forEach(d=>{const on=sel[x.k]&&sel[x.k].d===d,r=EVR[mx][d];
-      const au=prof&&la&&la.sel[x.k]&&la.sel[x.k].d===d;
-      h+=`<div class="evc d${d} ${on?"on":""} ${au?"au":""}" role="button" data-evk="${x.k}" data-evd="${d}"><span class="evdl">Degré ${d}</span>${esc(prof?x.prof[d]:x.el[d])}`
+      const au=prof&&la&&la.sel[x.k]&&la.sel[x.k].d===d,su=prof&&sg&&sg[x.k]===d;
+      h+=`<div class="evc d${d} ${on?"on":""} ${au?"au":""} ${su?"su":""}" role="button" data-evk="${x.k}" data-evd="${d}"><span class="evdl">Degré ${d}</span>${esc(prof?x.prof[d]:x.el[d])}`
         +(prof&&la&&la.sel[x.k]&&la.sel[x.k].d===d?`<br><i class="evb au">🙋 élève</i>`:"")
-        +(prof&&sg&&sg[x.k]===d?`<i class="evb sg">💡 d'après les courses</i>`:"")
+        +(prof&&sg&&sg[x.k]===d?`<i class="evb sg">📊 résultats</i>`:"")
         +(prof&&on?`<div class="evadj"><button data-evadj="-1" data-evk2="${x.k}">−</button><b>${fmtP(pt)}</b><button data-evadj="1" data-evk2="${x.k}">+</button><small>${fmtP(r[0])} à ${fmtP(r[1])}</small></div>`:"")
         +`</div>`});
   });
@@ -2100,7 +2121,7 @@ function renderEval(){
     +L.map(st=>{const o=ev0[st.id],rp=evRepOf(o),t=o?evTotal(o.prof,rp):{n:0},la=o&&lastAuto(o),ta=la?evTotal(la.sel,rp):null;
       return `<tr data-eve="${st.id}" class="${EV_SEL===st.id?"on":""}"><td><b>${esc(st.prenom)}</b> ${esc(st.nom)}</td>${EVE.map(x=>`<td class="n">${cell(o,x.k,rp)}</td>`).join("")}<td class="n"><b>${t.n?fmtP(t.t):"–"}</b>${t.n&&t.n<4?" *":""}</td><td class="n">${ta&&ta.n===4?fmtP(ta.t):"–"}</td></tr>`}).join("")
     +`</tbody></table><p class="note" style="margin:8px 0 0">* note incomplète (il manque au moins un indicateur).</p>`;
-  $("#ev-body").innerHTML=e?evGridHTML("prof",e):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. Les cases 🙋 montrent son auto-évaluation, les cases 💡 ce que suggèrent ses courses.</div>`;
+  $("#ev-body").innerHTML=e?evGridHTML("prof",e):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
 }
 function renderAuto(){
   const L=evList(false),lid=CLE().id;
@@ -2113,6 +2134,10 @@ function evClick(mode,ev){
   if(nm){if(mode==="prof")EV_SEL=+nm.dataset.eve;else AU_SEL=+nm.dataset.eve;mode==="prof"?renderEval():renderAuto();
     const b=$(mode==="prof"?"#ev-body":"#au-body");if(b)b.scrollIntoView({behavior:"smooth",block:"start"});return}
   const id=mode==="prof"?EV_SEL:AU_SEL;if(id==null)return;const e=byId(id);if(!e)return;const o=evOf(id),lid=CLE().id;
+  const sc=t.closest("[data-evscope]");
+  if(sc){CL().evScope=sc.dataset.evscope;persist();renderEval();return}
+  const ap=t.closest("[data-evapply]");
+  if(ap){const s=evStats(e);["perf","trans"].forEach(k=>{if(s[k]&&!(o.prof[k]&&o.prof[k].d===s[k]))o.prof[k]={d:s[k]}});o.prof.at=new Date().toISOString();persist();renderEval();toast("Suggestion appliquée : ajuste si besoin");return}
   const rr=t.closest("[data-evrep]");
   if(rr){if(evRepMode()!=="eleve")return;o.rep=rr.dataset.evrep;["proj","role"].forEach(k=>{if(o.prof[k])delete o.prof[k].p});persist();mode==="prof"?renderEval():renderAuto();return}
   const nx=t.closest("[data-evnext]");
