@@ -5,7 +5,7 @@ Racine du site GitHub Pages : **EPS – Mes applications** → https://chrisdcqn
 - `index.html` : page d'accueil commune (vignettes vers les 4 applications).
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png` : installation de l'ensemble comme une seule application (APK PWABuilder, `start_url` et `scope` = `/`).
 - `sw.js` : service worker de la racine. Il ne gère que l'accueil, `eps-home.js` et `relais/` (mode hors ligne) ; Acrosport, Escalade et OrienRun gardent leur propre service worker.
-- `eps-home.js` : bouton « Accueil » flottant (bas à gauche, déplaçable par appui long) inclus dans chaque application.
+- `eps-home.js` : inclus dans chaque application : désactive l'actualisation par glissé vers le bas (`overscroll-behavior-y: contain`) et ajoute le bouton « Accueil » flottant (bas à gauche, déplaçable par appui long).
 - `.well-known/assetlinks.json` : relie l'APK Android `io.github.chrisdcqns.acrosport` au site entier, pour que les applications s'ouvrent sans barre d'adresse.
 - `.nojekyll` : indispensable pour que GitHub Pages publie le dossier `.well-known`.
 

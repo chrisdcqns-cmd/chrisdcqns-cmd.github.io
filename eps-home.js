@@ -1,6 +1,12 @@
-// Bouton « Accueil » partagé par les applications EPS : ramène à la page d'accueil commune (/).
+// Commun à toutes les applications EPS : pas de glissé pour actualiser, et bouton « Accueil » qui ramène à la page commune (/).
 // Petit, en bas à gauche, et déplaçable par appui long si jamais il gêne.
 (function () {
+  // Pas d'actualisation par glissé vers le bas (pull-to-refresh) dans toutes les applications
+  try {
+    var st = document.createElement("style");
+    st.textContent = "html,body{overscroll-behavior-y:contain!important}";
+    (document.head || document.documentElement).appendChild(st);
+  } catch (e) {}
   if (window.__epsHome || location.pathname === "/" || location.pathname === "/index.html") return;
   window.__epsHome = true;
   function add() {
