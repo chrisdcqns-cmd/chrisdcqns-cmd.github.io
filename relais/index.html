@@ -283,6 +283,18 @@ body:not(.teach-on) .teach{display:none!important}
 .cpick{display:flex;flex-wrap:wrap;gap:8px}
 .cpick button{height:48px;padding:0 18px;border-radius:999px;background:#fff;border:2px solid #6D28D9;color:#4C1D95;font-weight:800;font-size:17px}
 #v-home .coachbar small{display:none}
+.rolepick{background:#FFF8E8;border:2px dashed var(--warn);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.rolepick.done{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
+.rolepick.compact{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px}.rolepick.compact b{display:inline;font-size:15px;margin-right:4px}
+.rpchip{background:#fff;border-radius:999px;padding:3px 10px;font-size:14px;font-weight:700}
+.rolepick b{display:block;font-size:18px}.rolepick>small{display:block;color:var(--muted);margin:2px 0 10px}
+.rplist{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,max-content));gap:8px}
+.rprow{display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:6px 8px}
+.rprow span{flex:1 1 auto;min-width:90px;max-width:160px;font-weight:800;font-size:17px}
+.rprow button{height:46px;padding:0 12px;border-radius:10px;background:var(--soft);font-weight:800;font-size:15px;line-height:1.05}
+.rprow button small{display:block;font-weight:600;font-size:11px;opacity:.7}
+.rprow button.on{background:var(--ink);color:#fff}
+.rpin{margin-top:12px}.rpin .rolepick{margin:0;background:#fff}
 .goalbox:empty{display:none}
 .goalbox{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--soft)}
 .ghead2{font-weight:700;font-size:15px;margin-bottom:6px}
@@ -1525,12 +1537,29 @@ function renderCoach(){
   const cfg=CFG();
   ["c","r"].forEach(p=>{const box=$("#"+p+"-coach");if(!box)return;
     const g=GR().find(x=>x.id===CURG());
-    if(!cfg.coachOn||!CLE()||!g){box.innerHTML="";return}
+    if(!CLE()||!g||(!cfg.coachOn&&!needBest(cfg))){box.innerHTML="";return}
+    const roles=needBest(cfg)?bestRolesHTML(g):"";
+    if(!cfg.coachOn){box.innerHTML=roles;return}
     const id=coachOf(g.id),e=id!=null?byId(id):null;
-    if(e)box.innerHTML=`<div class="coachbar">${coachTag(esc(e.prenom))}<div class="ctxt"><b>Entraîneur du groupe ${esc(g.name)}</b><small>${COACH_MISSIONS}</small></div><button class="cchg" data-coachchg="${g.id}">Changer</button></div>`;
-    else box.innerHTML=`<div class="coachpick"><b>🏅 Désignez l'entraîneur de votre groupe</b><small>${COACH_MISSIONS}</small><div class="cpick">${groupMembers(g).filter(x=>x.ma!=="DISP"||true).map(x=>`<button data-coach="${x.id}" data-g="${g.id}">${esc(x.prenom)}</button>`).join("")}</div></div>`;
+    if(e)box.innerHTML=roles+`<div class="coachbar">${coachTag(esc(e.prenom))}<div class="ctxt"><b>Entraîneur du groupe ${esc(g.name)}</b><small>${COACH_MISSIONS}</small></div><button class="cchg" data-coachchg="${g.id}">Changer</button></div>`;
+    else box.innerHTML=`<div class="coachpick"><b>🏅 Désignez l'entraîneur de votre groupe</b><small>${COACH_MISSIONS}</small><div class="cpick">${groupMembers(g).filter(x=>x.ma!=="DISP"||true).map(x=>`<button data-coach="${x.id}" data-g="${g.id}">${esc(x.prenom)}</button>`).join("")}</div>${roles?`<div class="rpin">${roles}</div>`:""}</div>`;
   });
 }
+/* Objectif « dans son meilleur rôle » : chaque élève du groupe enregistre son meilleur rôle */
+const needBest=cfg=>!!(cfg.goalOn&&cfg.goalMode==="best");
+const bestMissing=g=>groupMembers(g).filter(x=>x.ma!=="DISP"&&!x.best);
+function bestRolesHTML(g){
+  const m=groupMembers(g).filter(x=>x.ma!=="DISP"),miss=bestMissing(g).length;
+  if(!miss)return `<div class="rolepick done compact"><b>🎯 Meilleurs rôles</b> ${m.map(e=>`<span class="rpchip">${esc(e.prenom)} · ${e.best==="D"?"donneur":"receveur"}</span>`).join("")}</div>`;
+  return `<div class="rolepick ${miss?"":"done"}"><b>🎯 Ton meilleur rôle dans le relais</b><small>${miss?`Chacun choisit le rôle où il est le plus efficace : son objectif de courses se fera dans ce rôle. Encore ${miss} élève${miss>1?"s":""} à renseigner.`:"Tout le groupe a choisi son meilleur rôle ✓"}</small>
+    <div class="rplist">${m.map(e=>`<div class="rprow"><span>${isCoachE(e)?"🏅 ":""}${esc(e.prenom)}</span><button data-best="D" data-e="${e.id}" class="${e.best==="D"?"on":""}">Donneur <small>coureur 1</small></button><button data-best="R" data-e="${e.id}" class="${e.best==="R"?"on":""}">Receveur <small>coureur 2</small></button></div>`).join("")}</div></div>`;
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-best]");if(!b)return;
+  const s=byId(+b.dataset.e),v=b.dataset.best;if(!s||s.best===v)return;
+  if(s.best&&!await requireCode())return; /* changer un rôle déjà choisi : enseignant */
+  s.best=v;persist();renderClassAll();toast(s.prenom+" : meilleur rôle "+(v==="D"?"donneur":"receveur")+" ✓");
+});
 document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-coach]");
   if(b){const l=CLE();l.coach=l.coach||{};l.coach[b.dataset.g]=+b.dataset.coach;persist();renderClassAll();toast("🏅 "+byId(+b.dataset.coach).prenom+" est l'entraîneur du groupe");return}
@@ -1998,6 +2027,7 @@ function onCourse(){
   if(cfg.pt&&ptNeeded()&&ST.pt===null)miss.push("le plot de transmission (hors zone)");
   if(cfg.zone&&!diagResult().done&&!diagResult().needPt)miss.push("les questions sur la transmission");
   if(cfg.pm&&ST.pm===null)miss.push("le plot de prise de marque");
+  {const g=GR().find(x=>x.id===CURG());if(needBest(cfg)&&g&&bestMissing(g).length)miss.push("le meilleur rôle de chaque élève du groupe (en haut de la page)");}
   {const g=GR().find(x=>x.id===CURG());if(cfg.coachOn&&g&&coachOf(g.id)==null)miss.push("l'entraîneur du groupe (en haut de la page)")}
   $("#r-save").disabled=miss.length>0;
   $("#r-missing").textContent=miss.length?"À compléter : "+miss.join(", ")+".":"";
