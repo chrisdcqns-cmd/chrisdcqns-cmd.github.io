@@ -264,6 +264,21 @@ tr.editable:active td{background:var(--soft)}
 @media (max-width:820px){#v-home .hbar{flex-wrap:wrap}#v-home .hctx{order:9;flex-basis:100%}}
 @media (min-width:600px){section#v-home .grid2,section#v-home .big2{grid-template-columns:1fr 1fr}#v-home .bigbtn{padding:18px}#v-home .bigbtn h3{font-size:28px}}
 body:not(.teach-on) .teach{display:none!important}
+.coach{display:inline-flex;align-items:center;gap:4px;background:#6D28D9;color:#fff;border-radius:999px;padding:3px 12px 3px 8px;font-weight:800}
+.coach b{color:#fff}
+.coach.sm{font-family:"Barlow";font-size:15px;padding:2px 10px;margin-left:8px;vertical-align:middle}
+.names span.coach{background:#6D28D9;color:#fff}
+.coachw:empty{display:none}
+.coachw{margin-top:12px}
+.coachbar{display:flex;align-items:center;gap:14px;background:#EFE8FD;border:2px solid #6D28D9;border-radius:14px;padding:10px 14px}
+.coachbar .coach{font-size:20px;padding:6px 16px 6px 12px}
+.coachbar .ctxt{flex:1}.coachbar .ctxt b{display:block;color:#4C1D95}.coachbar .ctxt small{color:#5B4A86;font-size:14px}
+.cchg{height:44px;padding:0 16px;border-radius:12px;background:#fff;border:2px solid #6D28D9;color:#6D28D9;font-weight:700}
+.coachpick{background:#EFE8FD;border:2px dashed #6D28D9;border-radius:14px;padding:12px 14px}
+.coachpick b{display:block;color:#4C1D95;font-size:19px}.coachpick small{display:block;color:#5B4A86;margin:2px 0 10px}
+.cpick{display:flex;flex-wrap:wrap;gap:8px}
+.cpick button{height:48px;padding:0 18px;border-radius:999px;background:#fff;border:2px solid #6D28D9;color:#4C1D95;font-weight:800;font-size:17px}
+#v-home .coachbar small{display:none}
 .goalbox:empty{display:none}
 .goalbox{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--soft)}
 .ghead2{font-weight:700;font-size:15px;margin-bottom:6px}
@@ -406,7 +421,7 @@ tr.disp{opacity:.55}
 .fck .box{width:30px;height:30px;border-radius:8px;border:2.5px solid var(--muted);display:grid;place-items:center;background:#fff;flex:none}
 .fck .box svg{width:20px;height:20px;opacity:0}
 .fck.on{background:var(--ok-soft)}
-.fck[data-f]:not(.on):not(.sub):not([data-f=allPairs]):after{content:"Non renseigné";margin-left:auto;padding-left:12px;font-size:14px;font-weight:700;color:var(--warn)}
+.fck[data-f]:not(.on):not(.sub):not([data-f=allPairs]):not([data-f=coachOn]):not([data-f=goalOn]):after{content:"Non renseigné";margin-left:auto;padding-left:12px;font-size:14px;font-weight:700;color:var(--warn)}
 .fck.on .box{background:var(--ok);border-color:var(--ok);color:#fff}
 .fck.on .box svg{opacity:1}
 .fopt{flex:1;min-width:260px}
@@ -565,7 +580,7 @@ tr.disp{opacity:.55}
     <button class="btn ghost sm teachbtn" data-teach></button>
     <button class="btn ghost sm teach" id="btnExportHome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Excel</button>
   </div>
-  <div class="card gcard"><div class="label">Ton groupe</div><div class="gpick" id="c-g"></div></div>
+  <div class="card gcard"><div class="label">Ton groupe</div><div class="gpick" id="c-g"></div><div class="coachw" id="c-coach"></div></div>
   <div class="grid2">
     <div class="card">
       <div class="label"><span class="badge b1">1</span>Coureur 1 · départ arrêté</div>
@@ -613,7 +628,7 @@ tr.disp{opacity:.55}
     <h2>Enregistrer une course · <span class="cname"></span></h2>
     <span class="chip" id="r-lecon"></span>
   </div>
-  <div class="card gcard"><div class="label">Ton groupe</div><div class="gpick" id="r-g"></div></div>
+  <div class="card gcard"><div class="label">Ton groupe</div><div class="gpick" id="r-g"></div><div class="coachw" id="r-coach"></div></div>
   <div class="grid2">
     <div class="card">
       <div class="label"><span class="badge b1">1</span>Coureur 1 · départ arrêté</div>
@@ -712,6 +727,7 @@ tr.disp{opacity:.55}
 <div class="modal" id="fmodal"><div class="box wide">
   <h3>Éléments à saisir pendant la course</h3>
   <p>Coche ce que les élèves saisiront dans « Enregistrer les courses ». Un élément décoché est enregistré « non renseigné » et n'apparaît pas pour les élèves. Les coureurs et la vitesse cible sont toujours présents.</p>
+  <div class="frow"><button class="fck" data-f="coachOn"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Un entraîneur par groupe <small>chaque groupe désigne un élève qui veille au remplissage des résultats, au matériel et aux situations de remédiation</small></button></div>
   <div class="frow"><button class="fck" data-f="goalOn"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Objectif de courses par élève <small>la progression s'affiche quand les élèves enregistrent</small></button>
     <div class="fopt"><label class="fl">Nombre de courses</label><div class="stw small"><button class="stp" data-n="goalN" data-d="-1">−</button><input id="f-goaln" inputmode="numeric"><button class="stp" data-n="goalN" data-d="1">+</button></div>
       <div class="seg mt" id="f-goalmode" style="--n:2"><button data-m="both">Dans les deux rôles</button><button data-m="best">Dans son meilleur rôle</button></div>
@@ -897,7 +913,7 @@ const isoDate=iso=>new Date(iso+"T12:00:00");
 const fmtLong=iso=>isoDate(iso).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const fmtShort=iso=>isoDate(iso).toLocaleDateString("fr-FR");
-const DEFCFG={goalOn:false,goalN:4,goalMode:"both",allPairs:false,zoneImg:true,ecart:true,zone:true,dep:true,pt:true,pm:true,zones:["Zone 1","Zone 2","Zone 3"],deps:["Debout","Trépied","Balancé"],nPT:10,nPM:10};
+const DEFCFG={coachOn:false,goalOn:false,goalN:4,goalMode:"both",allPairs:false,zoneImg:true,ecart:true,zone:true,dep:true,pt:true,pm:true,zones:["Zone 1","Zone 2","Zone 3"],deps:["Debout","Trépied","Balancé"],nPT:10,nPM:10};
 /* Version précédente : les courses sont rangées dans des leçons selon leur date */
 DATA.classes.forEach(c=>{
   if(!Array.isArray(c.lecons)){
@@ -1214,6 +1230,7 @@ $("#i-go").addEventListener("click",async()=>{
 
 /* ===== Rendu commun à la classe ===== */
 function renderClassAll(){
+  setTimeout(()=>{try{renderCoach()}catch(e){}},0);
   document.querySelectorAll(".cname").forEach(s=>s.textContent=CL().name);
   if(CLE()){$("#h-lecon").textContent=CL().name+" · leçon du "+fmtShort(CLE().date);$("#r-lecon").textContent="Leçon du "+fmtShort(CLE().date)}
   renderFields();
@@ -1326,7 +1343,7 @@ function renderGroupes(){
   if(!GR().length){$("#glist").innerHTML=`<div class="card empty-msg" style="grid-column:1/-1">Aucun groupe pour l'instant. Touche « Créer un groupe » et sélectionne les élèves, ou continue sans groupe.</div>`;return}
   $("#glist").innerHTML=GR().map(g=>{const m=groupMembers(g);
     return `<button class="gitem" data-gedit="${g.id}"><h3>${esc(g.name)}<small>${m.length} élève${m.length>1?"s":""}</small></h3>
-    <div class="names">${m.map(e=>`<span>${esc(e.prenom)}</span>`).join("")||'<span style="background:none;color:var(--muted)">Aucun élève</span>'}</div>
+    <div class="names">${m.map(e=>isCoachE(e)&&coachOf(g.id)===e.id?`<span class="coach">🏅 ${esc(e.prenom)}</span>`:`<span>${esc(e.prenom)}</span>`).join("")||'<span style="background:none;color:var(--muted)">Aucun élève</span>'}</div>
     <span class="edit">Modifier →</span></button>`}).join("");
 }
 let GEDIT=null,GSEL=new Set();
@@ -1364,6 +1381,30 @@ $("#g-delete").addEventListener("click",async()=>{
   persist();renderClassAll();toast("Groupe supprimé");
 });
 
+/* ===== Entraîneur de groupe (par leçon) ===== */
+const COACH_MISSIONS="Veille au bon remplissage des résultats, au matériel et à la réalisation des situations de remédiation.";
+function coachOf(gid,lec){const l=lec||CLE();return l&&l.cfg&&l.cfg.coachOn&&l.coach?l.coach[gid]:undefined}
+function isCoachE(e,lec){const l=lec||CLE();return !!(e&&l&&l.cfg&&l.cfg.coachOn&&l.coach&&Object.values(l.coach).includes(e.id))}
+const coachTag=t=>`<span class="coach">🏅 ${t}</span>`;
+function renderCoach(){
+  const cfg=CFG();
+  ["c","r"].forEach(p=>{const box=$("#"+p+"-coach");if(!box)return;
+    const g=GR().find(x=>x.id===CURG());
+    if(!cfg.coachOn||!CLE()||!g){box.innerHTML="";return}
+    const id=coachOf(g.id),e=id!=null?byId(id):null;
+    if(e)box.innerHTML=`<div class="coachbar">${coachTag(esc(e.prenom))}<div class="ctxt"><b>Entraîneur du groupe ${esc(g.name)}</b><small>${COACH_MISSIONS}</small></div><button class="cchg" data-coachchg="${g.id}">Changer</button></div>`;
+    else box.innerHTML=`<div class="coachpick"><b>🏅 Désignez l'entraîneur de votre groupe</b><small>${COACH_MISSIONS}</small><div class="cpick">${groupMembers(g).filter(x=>x.ma!=="DISP"||true).map(x=>`<button data-coach="${x.id}" data-g="${g.id}">${esc(x.prenom)}</button>`).join("")}</div></div>`;
+  });
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-coach]");
+  if(b){const l=CLE();l.coach=l.coach||{};l.coach[b.dataset.g]=+b.dataset.coach;persist();renderClassAll();toast("🏅 "+byId(+b.dataset.coach).prenom+" est l'entraîneur du groupe");return}
+  const c=e.target.closest("[data-coachchg]");
+  if(c){const gid=c.dataset.coachchg,g=GR().find(x=>x.id===gid);
+    if(CO().some(x=>x.gid===gid||x.groupe===(g&&g.name))&&!await requireCode())return;
+    delete CLE().coach[gid];persist();renderClassAll()}
+});
+
 /* Choix du groupe pendant la leçon */
 function renderGPicks(){
   if(CURG()!=="all"&&!GR().some(g=>g.id===CURG()))CL().curg="all";
@@ -1371,6 +1412,7 @@ function renderGPicks(){
     +`<button data-g="all" class="${CURG()==="all"?"on":""}">Toute la classe</button>`;
   ["#c-g","#r-g"].forEach(s=>$(s).innerHTML=html);
   document.querySelectorAll(".gcard").forEach(c=>c.style.display=GR().length?"":"none");
+  try{renderCoach()}catch(e){}
 }
 ["#c-g","#r-g"].forEach(s=>$(s).addEventListener("click",e=>{const b=e.target.closest("[data-g]");if(!b)return;
   CL().curg=b.dataset.g;persist();renderGPicks();refillSelects();}));
@@ -1380,7 +1422,8 @@ function poolFor(){if(CURG()==="all")return EL();const g=GR().find(x=>x.id===CUR
 function fillSelect(sel,kind){
   const list=poolFor().filter(e=>usable(e,kind)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
   const dup=p=>list.filter(x=>x.prenom.toLowerCase()===p.toLowerCase()).length>1;
-  const lab=e=>CURG()==="all"?`${e.prenom} ${e.nom}`:(dup(e.prenom)?`${e.prenom} ${e.nom?e.nom[0]+".":""}`:e.prenom);
+  const lab0=e=>CURG()==="all"?`${e.prenom} ${e.nom}`:(dup(e.prenom)?`${e.prenom} ${e.nom?e.nom[0]+".":""}`:e.prenom);
+  const lab=e=>(isCoachE(e)?"🏅 ":"")+lab0(e);
   sel.innerHTML=`<option value="">— Choisir un prénom —</option>`+list.map(e=>`<option value="${e.id}">${esc(lab(e))} · ${kind==="A"?e.ma:e.ml} km/h</option>`).join("");
 }
 function refillSelects(){
@@ -1462,7 +1505,7 @@ function renderPerf(){
   pool.forEach(e=>{
     if(e.ma==="DISP"){t+=`<tr class="disp"><td class="l"><b>${esc(e.prenom)}</b> <small>${esc(e.nom?e.nom[0]+".":"")}</small></td><td colspan="8" class="pdisp">dispensé</td></tr>`;return}
     const pend=PEND[e.id]&&(["a","l"].some(k=>(PEND[e.id][k]||[]).some(x=>x!=null)));
-    t+=`<tr class="${pend?"rpend":""}"><td class="l pn"><b>${esc(e.prenom)}</b> <small>${esc(e.nom?e.nom[0]+".":"")}</small>
+    t+=`<tr class="${pend?"rpend":""}"><td class="l pn">${isCoachE(e)?coachTag("<b>"+esc(e.prenom)+"</b>"):"<b>"+esc(e.prenom)+"</b>"} <small>${esc(e.nom?e.nom[0]+".":"")}</small>
       ${pend?`<div class="pact"><button class="pok" data-val="${e.id}">✓ Valider</button><button class="pcan" data-can="${e.id}" aria-label="Annuler">↺</button></div>`:""}</td>
       ${[0,1,2].map(i=>cellHTML(e,"a",i)).join("")}${moyHTML(e,"a")}${[0,1,2].map(i=>cellHTML(e,"l",i)).join("")}${moyHTML(e,"l")}</tr>`;
   });
@@ -1548,6 +1591,7 @@ function cfgChips(cfg){
   const it=[["ecart","Vitesse réalisée"],["zone","Zone de transmission"+(cfg.zone?(cfg.zoneImg!==false?" (image)":" ("+cfg.zones.length+")"):"")],["dep","Type de départ"+(cfg.dep?" ("+cfg.deps.length+")":"")],["pt","Plot de transmission"],["pm","Plot de prise de marque"]];
   if(cfg.goalOn)it.push(["goalOn","Objectif : "+cfg.goalN+" course(s) "+(cfg.goalMode==="both"?"dans les deux rôles":"dans le meilleur rôle")]);
   if(cfg.allPairs)it.push(["allPairs","Courir avec tout le groupe"]);
+  if(cfg.coachOn)it.push(["coachOn","Un entraîneur par groupe"]);
   return it.map(([k,l])=>`<span class="${cfg[k]?"":"off"}">${esc(l)}</span>`).join("");
 }
 $("#l-start").addEventListener("click",()=>{
@@ -1771,6 +1815,7 @@ function onCourse(){
   if(cfg.pt&&ptNeeded()&&ST.pt===null)miss.push("le plot de transmission (hors zone)");
   if(cfg.zone&&!diagResult().done&&!diagResult().needPt)miss.push("les questions sur la transmission");
   if(cfg.pm&&ST.pm===null)miss.push("le plot de prise de marque");
+  {const g=GR().find(x=>x.id===CURG());if(cfg.coachOn&&g&&coachOf(g.id)==null)miss.push("l'entraîneur du groupe (en haut de la page)")}
   $("#r-save").disabled=miss.length>0;
   $("#r-missing").textContent=miss.length?"À compléter : "+miss.join(", ")+".":"";
   return r;
@@ -1821,7 +1866,8 @@ function renderCourses(sel,CS,cfg){
     if(gi)h+=`<tr class="gsp"><td colspan="${span}"></td></tr>`;
     const pr=cfg.allPairs?pairsTodo(gname,list):null;
     const gRow=goalsRow(gname,list,span,cfg);
-    h+=`<tr class="ghead"><td colspan="${span}">${esc(gname||"Sans groupe")}<small>${list.length} course${list.length>1?"s":""}${pr?` · binômes faits ${pr.done}/${pr.total}`:""}</small></td></tr>`;
+    const gObj=GR().find(x=>x.name===gname),lec0=list[0]?CL().lecons.find(l=>l.id===list[0].lid):CLE(),cId=gObj?coachOf(gObj.id,lec0):undefined,cE=cId!=null?byId(cId):null;
+    h+=`<tr class="ghead"><td colspan="${span}">${esc(gname||"Sans groupe")}${cE?` <span class="coach sm">🏅 Entraîneur : ${esc(cE.prenom)}</span>`:""}<small>${list.length} course${list.length>1?"s":""}${pr?` · binômes faits ${pr.done}/${pr.total}`:""}</small></td></tr>`;
     h+=gRow;
     if(pr&&pr.total)h+=`<tr class="pairs"><td colspan="${span}">${pr.todo.length?`<b>À faire (${pr.todo.length}) :</b><div class="todo">${pr.todo.map(t=>`<span>${esc(t)}</span>`).join("")}</div>`:`<b class="alldone">✓ Toutes les personnes du groupe ont couru ensemble, dans les deux rôles.</b>`}</td></tr>`;
     list.forEach(c=>{
@@ -1831,8 +1877,8 @@ function renderCourses(sel,CS,cfg){
         pt:`<td>${typeof c.pt==="number"?`<b>${c.pt}</b><br><span style="color:var(--muted);font-size:14px">${mFmt(c.ptd)}</span>`:nrs(c.pt)}</td>`,
         conseil:`<td class="l" style="font-size:15px;max-width:240px">${has(c.conseil)?`${c.dv?`<span style="color:var(--muted)">Pleine vitesse : ${esc(c.dv)}${c.dw?" · "+esc(c.dw):""}${c.de?" · erreur témoin : "+esc(c.de):""}</span><br>`:""}<b>${esc(c.conseil)}</b>`:"–"}</td>`,
         pm:`<td>${typeof c.pm==="number"?`<b>${c.pm}</b><br><span style="color:var(--muted);font-size:14px">${mFmt(c.pmd)}</span>`:nrs(c.pm)}</td>`};
-      h+=`<tr class="${num&&c.ecart>0?"hit2":num&&c.ecart===0?"hit1":""}"><td>${c.n}</td><td class="l"><b>${esc(c.p1)}</b> ${esc(c.n1)}<br><span style="color:var(--muted);font-size:15px">arrêté ${c.v1}</span></td>
-      <td class="l"><b>${esc(c.p2)}</b> ${esc(c.n2)}<br><span style="color:var(--muted);font-size:15px">lancé ${c.v2}</span></td>
+      h+=`<tr class="${num&&c.ecart>0?"hit2":num&&c.ecart===0?"hit1":""}"><td>${c.n}</td><td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i1!=null?byId(c.i1):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p1)+"</b>"):"<b>"+esc(c.p1)+"</b>"})()} ${esc(c.n1)}<br><span style="color:var(--muted);font-size:15px">arrêté ${c.v1}</span></td>
+      <td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i2!=null?byId(c.i2):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p2)+"</b>"):"<b>"+esc(c.p2)+"</b>"})()} ${esc(c.n2)}<br><span style="color:var(--muted);font-size:15px">lancé ${c.v2}</span></td>
       <td class="avg">${fmt(c.cible)}</td>${cols.map(([k])=>cells[k]).join("")}
       <td><button class="del teach" data-del="${c.cid}" aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
     });
@@ -1875,7 +1921,7 @@ function goalsRow(gname,list,span,cfg){
   const g=GR().find(x=>x.name===gname);if(!g||!cfg.goalOn)return "";
   const m=groupMembers(g).filter(e=>e.ma!=="DISP");
   return `<tr class="pairs"><td colspan="${span}"><b>Objectifs (${cfg.goalN} course${cfg.goalN>1?"s":""} ${cfg.goalMode==="both"?"dans les deux rôles":"dans le meilleur rôle"}) :</b><div class="todo">`
-    +m.map(e=>{const s=goalStatus(e,cfg,CO());return `<span class="${s.done?"gok":""}">${s.done?"✓ ":""}${esc(e.prenom)} · ${s.lines.map(([l,v,n])=>(s.lines.length>1?l[0]+" ":(cfg.goalMode==="best"&&l!=="Toutes les courses"?l.toLowerCase()+" ":""))+Math.min(v,n)+"/"+n).join(" · ")}${s.note==="meilleur rôle à déterminer"?" (rôle à déterminer)":""}</span>`}).join("")+`</div></td></tr>`;
+    +m.map(e=>{const s=goalStatus(e,cfg,CO());return `<span class="${s.done?"gok":""}">${s.done?"✓ ":""}${isCoachE(e)?"🏅 ":""}${esc(e.prenom)} · ${s.lines.map(([l,v,n])=>(s.lines.length>1?l[0]+" ":(cfg.goalMode==="best"&&l!=="Toutes les courses"?l.toLowerCase()+" ":""))+Math.min(v,n)+"/"+n).join(" · ")}${s.note==="meilleur rôle à déterminer"?" (rôle à déterminer)":""}</span>`}).join("")+`</div></td></tr>`;
 }
 /* Condition « courir avec toutes les personnes du groupe » : chaque binôme ordonné (donneur → receveur) ;
    en mode « meilleur rôle », il suffit d'avoir couru une fois ensemble, quel que soit le rôle */
@@ -1952,12 +1998,12 @@ function buildXlsx(CS){
   const r1=v=>Math.round(v*10)/10,C=CL();
   const ldate=id=>{const l=C.lecons.find(x=>x.id===id);return l?l.date:""};
   const val=v=>v===NR?NR:has(v)?v:"";
-  const res=[["Classe","Date de la leçon","Groupe","N°","Heure","Prénom C1","Nom C1","V. départ arrêté C1 (km/h)","Prénom C2","Nom C2","V. départ lancé C2 (km/h)","Vitesse cible (km/h)","Écart (km/h)","Vitesse réalisée (km/h)","Zone de transmission","Type de départ","Plot de transmission hors zone (n°)","Distance après la zone (m)","Recul de la prise de marque conseillé (m)","Plot de prise de marque (n°)","Distance de prise de marque (m)","Transmission à pleine vitesse ?","Pourquoi ?","Erreur de transmission du témoin ?","Conseil donné"]];
+  const res=[["Classe","Date de la leçon","Groupe","N°","Heure","Prénom C1","Nom C1","V. départ arrêté C1 (km/h)","Prénom C2","Nom C2","V. départ lancé C2 (km/h)","Vitesse cible (km/h)","Écart (km/h)","Vitesse réalisée (km/h)","Zone de transmission","Type de départ","Plot de transmission hors zone (n°)","Distance après la zone (m)","Recul de la prise de marque conseillé (m)","Plot de prise de marque (n°)","Distance de prise de marque (m)","Entraîneur du groupe","Transmission à pleine vitesse ?","Pourquoi ?","Erreur de transmission du témoin ?","Conseil donné"]];
   const dates=[...new Set(CS.map(c=>ldate(c.lid)))].sort();
   dates.forEach(d=>{const ofDay=CS.filter(c=>ldate(c.lid)===d);
     groupOrder(ofDay).forEach(gname=>ofDay.filter(c=>c.groupe===gname).sort((a,b)=>a.n-b.n).forEach(c=>{
       res.push([C.name,d?fmtShort(d):c.date,c.groupe||"Sans groupe",c.n,c.heure,c.p1,c.n1,c.v1,c.p2,c.n2,c.v2,r1(c.cible),
-        val(c.ecart),typeof c.realise==="number"?r1(c.realise):(c.ecart===NR?NR:""),val(c.zone),val(c.dep),val(c.pt),has(c.ptd)?c.ptd:(c.pt===NR?NR:""),has(c.recul)?c.recul:"",val(c.pm),has(c.pmd)?c.pmd:(c.pm===NR?NR:""),val(c.dv),val(c.dw),val(c.de),val(c.conseil)]);
+        val(c.ecart),typeof c.realise==="number"?r1(c.realise):(c.ecart===NR?NR:""),val(c.zone),val(c.dep),val(c.pt),has(c.ptd)?c.ptd:(c.pt===NR?NR:""),has(c.recul)?c.recul:"",val(c.pm),has(c.pmd)?c.pmd:(c.pm===NR?NR:""),(()=>{const L=C.lecons.find(l=>l.id===c.lid),g=C.groupes.find(x=>x.name===c.groupe),id=g?coachOf(g.id,L):undefined,ce=id!=null?C.eleves.find(x=>x.id===id):null;return ce?ce.prenom+" "+ce.nom:""})(),val(c.dv),val(c.dw),val(c.de),val(c.conseil)]);
     }));
   });
   const grpOf=id=>C.groupes.filter(g=>g.members.includes(id)).map(g=>g.name).join(", ");
@@ -1969,7 +2015,7 @@ function buildXlsx(CS){
    {name:"xl/workbook.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Courses" sheetId="1" r:id="rId1"/><sheet name="Vitesses" sheetId="2" r:id="rId2"/></sheets></workbook>`},
    {name:"xl/_rels/workbook.xml.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
    {name:"xl/styles.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9481F"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment wrapText="1" vertical="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`},
-   {name:"xl/worksheets/sheet1.xml",data:sheetXML(res,[12,12,14,6,8,13,16,14,13,16,14,13,13,14,15,14,14,13,16,13,14,14,30,16,45])},
+   {name:"xl/worksheets/sheet1.xml",data:sheetXML(res,[12,12,14,6,8,13,16,14,13,16,14,13,13,14,15,14,14,13,16,13,14,18,14,30,16,45])},
    {name:"xl/worksheets/sheet2.xml",data:sheetXML(vit,[12,16,16,12,16,10,10,10,13,10,10,10,13])}
   ];
   return zip(files);
