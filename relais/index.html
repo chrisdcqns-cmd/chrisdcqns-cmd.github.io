@@ -355,6 +355,7 @@ tr.disp{opacity:.55}
 .pmoy{text-transform:none;letter-spacing:0;font-size:17px;color:var(--ink)}
 .pconv{font-size:14px;color:var(--muted);margin-top:4px;min-height:18px;font-weight:600}
 @media (max-width:900px){.pst button{width:25px;height:46px;font-size:18px}.pst .pv{min-width:36px;font-size:19px}.ptable td{padding:6px 2px}.ptable td.pn{min-width:70px}.ptable td.pn b{font-size:16px}td.pm{min-width:44px}td.pm b{font-size:24px}#v-perf .wrap,.ptw{padding:6px 2px}}
+.glist.kg{grid-template-columns:repeat(2,1fr);gap:10px}.glist.kg .gitem{padding:12px 14px;box-shadow:none;border:2px solid var(--line)}.glist.kg .gitem h3{font-size:22px}
 .klist{max-height:46vh;overflow:auto;border:2px solid var(--line);border-radius:14px}
 .krow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;background:#fff}
 .krow:last-child{border-bottom:0}.krow:active{background:var(--soft)}
@@ -841,6 +842,10 @@ tr.disp{opacity:.55}
     <button class="btn ghost sm" id="k-imp">📄 Importer un fichier</button></div>
   <p class="note" style="margin:0 0 8px">Touche un élève pour modifier son nom, ses vitesses, son meilleur rôle, ou le supprimer.</p>
   <div class="klist" id="k-list"></div>
+  <div class="row" style="margin:18px 0 8px"><b style="flex:1;font-size:19px">Groupes habituels <span id="k-gcount"></span></b>
+    <button class="btn ghost sm" id="k-gadd">+ Créer un groupe</button></div>
+  <p class="note" style="margin:0 0 8px">Ils sont repris par chaque nouvelle leçon. Touche un groupe pour le modifier.</p>
+  <div class="glist kg" id="k-glist"></div>
   <div class="row mt">
     <button class="btn danger sm" id="k-delete">Supprimer la classe</button>
     <span style="flex:1"></span>
@@ -900,7 +905,7 @@ tr.disp{opacity:.55}
     <span class="fl" style="margin:0">Élèves du groupe · <b id="g-count">0</b> sélectionné(s)</span>
   </div>
   <div class="picker" id="g-picker"></div>
-  <div class="frow" id="g-scopew" style="border:0;padding-bottom:0"><button class="fck" id="g-scope"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Appliquer aussi aux prochaines leçons <small id="g-scopehint"></small></button></div>
+  <div class="frow" id="g-scopew" style="border:0;padding-bottom:0"><button class="fck" id="g-scope"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span><span><span id="g-scopetxt">Appliquer aussi aux prochaines leçons</span><small id="g-scopehint"></small></span></button></div>
   <div class="row mt">
     <button class="btn danger sm" id="g-delete">Supprimer le groupe</button>
     <span style="flex:1"></span>
@@ -1110,8 +1115,17 @@ $("#clist").addEventListener("click",async e=>{
   if(e.target.closest("#btnImport")){if(await requireCode())go("import")}
 });
 let KEDIT=null;
-function openClassSettings(id){KEDIT=id;DATA.cur=id;persist();$("#k-name").value=DATA.classes.find(c=>c.id===id).name;drawClassStudents();$("#cmodal").classList.add("on")}
+function openClassSettings(id){KEDIT=id;DATA.cur=id;DATA.lecon=null;persist();$("#k-name").value=DATA.classes.find(c=>c.id===id).name;drawClassStudents();$("#cmodal").classList.add("on")}
+function drawClassGroups(){
+  const C=DATA.classes.find(c=>c.id===KEDIT);if(!C)return;
+  $("#k-gcount").textContent="("+C.groupes.length+")";
+  const nm=id=>{const e=C.eleves.find(x=>x.id===id);return e?e.prenom:""};
+  $("#k-glist").innerHTML=C.groupes.map(g=>`<button class="gitem" data-kg="${g.id}"><h3>${esc(g.name)}<small>${g.members.filter(nm).length} élève(s)</small></h3><div class="names">${g.members.map(nm).filter(Boolean).sort((a,b)=>a.localeCompare(b,"fr")).map(n=>`<span>${esc(n)}</span>`).join("")}</div></button>`).join("")||`<div class="empty-msg" style="grid-column:1/-1">Aucun groupe habituel.</div>`;
+}
+$("#k-glist").addEventListener("click",e=>{const b=e.target.closest("[data-kg]");if(!b)return;DATA.cur=KEDIT;DATA.lecon=null;openGroupe(b.dataset.kg)});
+$("#k-gadd").addEventListener("click",()=>{DATA.cur=KEDIT;DATA.lecon=null;openGroupe(null)});
 function drawClassStudents(){
+  drawClassGroups();
   const C=DATA.classes.find(c=>c.id===KEDIT);if(!C)return;
   const L=[...C.eleves].sort((a,b)=>a.nom.localeCompare(b.nom,"fr")||a.prenom.localeCompare(b.prenom,"fr"));
   $("#k-count").textContent="("+L.length+")";
@@ -1428,9 +1442,12 @@ let GEDIT=null,GSEL=new Set();
 $("#btnAddGroupe").addEventListener("click",async()=>{if(await requireCode())openGroupe(null)});
 $("#glist").addEventListener("click",async e=>{const b=e.target.closest("[data-gedit]");if(!b)return;if(await requireCode())openGroupe(b.dataset.gedit)});
 function openGroupe(id){
-  {const l=CLE(),past=l&&l.date<todayISO();$("#g-scopew").style.display=l?"":"none";
-   $("#g-scope").classList.toggle("on",!!l&&!past);
-   $("#g-scopehint").textContent=past?"cette leçon est passée : décoché, seule cette leçon change":"décoché : le changement ne vaut que pour la leçon du "+(l?fmtShort(l.date):"");}
+  {const l=CLE(),past=l&&l.date<todayISO(),nf=futureLecons(l).length;
+   $("#g-scopew").style.display="";
+   $("#g-scope").classList.toggle("on",!past);
+   $("#g-scopetxt").textContent=l?"Appliquer aussi aux prochaines leçons":"Appliquer aussi aux leçons déjà préparées";
+   $("#g-scopehint").textContent=l?(past?"cette leçon est passée : décoché, seule cette leçon change":"groupes habituels de la classe"+(nf?" et "+nf+" leçon(s) déjà préparée(s)":"")+" · décoché : seulement la leçon du "+fmtShort(l.date))
+     :"groupes habituels modifiés"+(nf?" · coché : aussi dans "+nf+" leçon(s) d'aujourd'hui ou à venir déjà créée(s)":"");}
   GEDIT=id;const g=id?GR().find(x=>x.id===id):null;
   GSEL=new Set(g?g.members:[]);
   $("#g-title").textContent=g?"Modifier le groupe":"Créer un groupe";
@@ -1451,22 +1468,26 @@ $("#g-picker").addEventListener("click",e=>{const b=e.target.closest("[data-pick
 $("#g-cancel").addEventListener("click",()=>$("#gmodal").classList.remove("on"));
 $("#g-scope").addEventListener("click",()=>$("#g-scope").classList.toggle("on"));
 /* répercuter sur les groupes habituels de la classe (prochaines leçons) */
-function toClassGroups(fn){const L=CLE();if(!L||!L.groupes)return;if(!$("#g-scope").classList.contains("on"))return;fn(CL().groupes)}
+/* leçons concernées par « prochaines leçons » : après la leçon en cours, ou à partir d'aujourd'hui (depuis la classe) */
+function futureLecons(l){if(!CL())return [];const ref=l?l.date:null,t=todayISO();
+  return CL().lecons.filter(x=>x!==l&&x.groupes&&(ref?x.date>ref:x.date>=t))}
+/* applique une opération sur les groupes : leçon en cours (toujours), + groupes habituels et leçons suivantes si la case est cochée */
+function applyGroups(op){
+  const L=CLE(),scope=$("#g-scope").classList.contains("on");
+  if(L){ensureLeconGroups(L);L.groupes=op(L.groupes)}
+  if(!L||scope){CL().groupes=op(CL().groupes)}
+  if(scope)futureLecons(L).forEach(x=>{x.groupes=op(x.groupes)});
+}
 $("#g-save").addEventListener("click",()=>{
   const name=$("#g-name").value.trim();if(!name){toast("Donne un nom au groupe");return}
-  ensureLeconGroups(CLE());
-  let gid=GEDIT;
-  if(GEDIT){const g=GR().find(x=>x.id===GEDIT);g.name=name;g.members=[...GSEL]}
-  else{gid=uid("g");GR().push({id:gid,name,members:[...GSEL]})}
-  toClassGroups(G=>{const x=G.find(y=>y.id===gid);if(x){x.name=name;x.members=[...GSEL]}else G.push({id:gid,name,members:[...GSEL]})});
+  const gid=GEDIT||uid("g"),mem=[...GSEL];
+  applyGroups(G=>{G=G||[];const x=G.find(y=>y.id===gid);if(x){x.name=name;x.members=[...mem]}else G.push({id:gid,name,members:[...mem]});return G});
   persist();$("#gmodal").classList.remove("on");renderClassAll();toast("Groupe enregistré ✓");
 });
 $("#g-delete").addEventListener("click",async()=>{
   const g=GR().find(x=>x.id===GEDIT);$("#gmodal").classList.remove("on");
   if(!await confirmBox("Supprimer « "+g.name+" » ?","Les élèves restent dans la classe. Les courses déjà enregistrées gardent le nom du groupe.","Supprimer"))return;
-  ensureLeconGroups(CLE());
-  if(CLE())CLE().groupes=CLE().groupes.filter(x=>x.id!==g.id);else CL().groupes=CL().groupes.filter(x=>x.id!==g.id);
-  toClassGroups(()=>{CL().groupes=CL().groupes.filter(x=>x.id!==g.id)});
+  applyGroups(G=>(G||[]).filter(x=>x.id!==g.id));
   if(CL().curg===g.id)CL().curg="all";
   persist();renderClassAll();toast("Groupe supprimé");
 });
