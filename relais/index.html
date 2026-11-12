@@ -380,6 +380,23 @@ tr.disp{opacity:.55}
 .waitbox .wt{margin:0;font-size:64px;line-height:.95;font-weight:800;text-transform:uppercase}.waitbox .wt span{color:var(--track)}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
+.dispobtn{white-space:nowrap}
+.dispo-wrap{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+#dispo-area{flex:1 1 420px;max-width:640px;margin:0 auto}
+#dispo-form{flex:1 1 360px}
+.dph{font-size:22px;font-weight:800}.dps{color:var(--muted);font-size:15px;margin:4px 0 8px}
+#dispo-svg svg{display:block;width:100%;height:auto}
+.dfg{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:10px}
+.dfg label{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:700;color:var(--muted)}
+.dfg input,.dnote input{height:46px;border-radius:12px;border:2px solid var(--line);background:#FBFAF7;font:inherit;font-size:18px;padding:0 12px;color:var(--ink)}
+.dnote{display:flex;gap:8px;align-items:center;margin-bottom:8px}.dnote input.t{flex:1}.dnote input.m{width:90px}
+.dnote button{width:44px;height:44px;border-radius:10px;border:2px solid var(--line);background:#fff;font-size:20px}
+@media print{@page{size:A4 portrait;margin:10mm}
+ body *{visibility:hidden!important}
+ #dispo-area,#dispo-area *{visibility:visible!important}
+ #dispo-area{position:absolute;left:0;top:0;width:100%;max-width:none;box-shadow:none;padding:0}
+ html,body{background:#fff!important}
+ #dispo-svg svg{height:250mm!important;width:auto!important;margin:0 auto}}
 .evalert{display:none;margin:18px 0 0;border-radius:14px;background:#FDE2DD;border:2px solid #C0392B;padding:14px 18px;font-size:18px;align-items:center;gap:14px;flex-wrap:wrap}
 .evalert.on{display:flex}.evalert b{color:#9C2B10}.evalert .btn{margin-left:auto}
 #r-evalert{margin:-6px 0 18px}
@@ -552,6 +569,7 @@ tr.disp{opacity:.55}
       <h1>Relais <span>vitesse</span></h1>
       <p>Lycée · EPS — choisis ta classe pour commencer</p>
     </div>
+    <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
   </div>
   <div class="lanes"></div>
   <div class="steps"><span class="on"><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -575,6 +593,7 @@ tr.disp{opacity:.55}
     <p class="wp" id="w-msg">Aucune leçon n'est en cours sur cette tablette.<br>Ton enseignant va la lancer.</p>
     <div class="row" style="justify-content:center;gap:14px;margin-top:26px">
       <button class="btn green" id="w-perf" style="display:none">⏱ Prise de performances</button>
+      <button class="btn ghost" data-dispo>📐 Dispositif du relais</button>
     </div>
     <button class="wteach" id="w-teach">🔒 Espace enseignant</button>
   </div>
@@ -618,6 +637,7 @@ tr.disp{opacity:.55}
   <div class="top">
     <button class="back" data-go="classes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Classes</button>
     <h2>Leçons · <span class="cname"></span></h2>
+    <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span class="on"><b>2</b>Leçon</span><i></i><span><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
   <button class="card perfcard" id="l-perf">
@@ -684,6 +704,7 @@ tr.disp{opacity:.55}
   <div class="top">
     <button class="back" data-go="lecons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Leçons</button>
     <h2>Groupes · <span class="cname"></span></h2>
+    <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
     <button class="btn primary sm" id="btnAddGroupe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Créer un groupe</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span class="on"><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -698,6 +719,7 @@ tr.disp{opacity:.55}
   <div class="hbar">
     <button class="back" id="btnBackGroupes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Groupes <span class="lockmini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></button>
     <span class="hctx" id="h-lecon"></span>
+    <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
     <button class="btn ghost sm teach" id="btnCfgHome">Éléments saisis</button>
     <button class="btn ghost sm teach" data-go="lecons">Leçons</button>
     <button class="btn ghost sm teachbtn" data-teach></button>
@@ -740,6 +762,43 @@ tr.disp{opacity:.55}
       <div class="ico" style="background:var(--ok-soft);color:var(--ok)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
       <div><h3>Évaluation</h3><p>Grille enseignant, note sur 20.</p></div>
     </button>
+  </div>
+</section>
+
+<!-- DISPOSITIF DU RELAIS -->
+<section class="view" id="v-dispo">
+  <div class="top">
+    <button class="back" id="dispoBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour</button>
+    <h2>Dispositif du relais</h2>
+    <button class="btn ghost sm" id="dispoPrint">🖨 Imprimer (A4)</button>
+    <button class="btn primary sm" id="dispoEdit">🔒 Modifier</button>
+  </div>
+  <div class="dispo-wrap">
+    <div class="card" id="dispo-area"><div class="dph" id="dispo-title"></div><div class="dps" id="dispo-sub"></div><div id="dispo-svg"></div></div>
+    <div class="card" id="dispo-form" style="display:none">
+      <div class="label">Modifier le dispositif <small style="font-weight:600;color:var(--muted)">déverrouillé · l'aperçu se met à jour</small></div>
+      <div class="dfg">
+        <label>Durée du relais (s)<input type="number" step="1" data-dk="T"></label>
+        <label>Entrée de zone (m)<input type="number" step="0.5" data-dk="zs"></label>
+        <label>Début Zone 10 (m)<input type="number" step="0.5" data-dk="z10"></label>
+        <label>Début Zone 100 (m)<input type="number" step="0.5" data-dk="z100"></label>
+        <label>Fin de zone (m)<input type="number" step="0.5" data-dk="ze"></label>
+        <label>1re prise de marque : m avant la zone<input type="number" step="0.5" data-dk="pmOff"></label>
+        <label>Nombre de prises de marque<input type="number" step="1" data-dk="pmN"></label>
+        <label>Écart entre prises de marque (m)<input type="number" step="0.5" data-dk="pmStep"></label>
+        <label>1er plot de vitesse (km/h)<input type="number" step="1" data-dk="vMin"></label>
+        <label>Dernier plot de vitesse (km/h)<input type="number" step="1" data-dk="vMax"></label>
+      </div>
+      <p class="note" id="dispo-info" style="margin:6px 0 10px"></p>
+      <div class="label">Annotations libres</div>
+      <div id="dispo-notes"></div>
+      <button class="btn ghost sm" id="dispoAddNote">+ Ajouter une annotation</button>
+      <div class="row mt" style="gap:10px;flex-wrap:wrap">
+        <button class="btn green" id="dispoSave">✓ Enregistrer et verrouiller</button>
+        <button class="btn ghost" id="dispoCancel">Annuler</button>
+        <button class="btn ghost" id="dispoReset">Valeurs par défaut</button>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1226,13 +1285,13 @@ $("#lkChange").addEventListener("click",async()=>{
 });
 
 /* ===== Navigation ===== */
-const VIEWS=["classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto"];
+const VIEWS=["classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto","dispo"];
 /* Espace enseignant : ces écrans demandent le code */
 const TEACH_VIEWS=["classes","import","lecons","bilan","eval"];
 function go(v){
   if(TEACH_VIEWS.includes(v)&&!teachOn()){requireCode().then(ok=>{if(ok)go(v)});return}
   if(v==="wait"){showWait();return}
-  if(!["classes","import"].includes(v)&&!CL())v="classes";
+  if(!["classes","import","dispo"].includes(v)&&!CL())v="classes";
   if(["groupes","home","course","eval","auto"].includes(v)&&!CLE())v="lecons";
   if(["groupes","home","course"].includes(v)&&CLE()&&!CLE().groupes){ensureLeconGroups(CLE());persist()}
   if(v==="bilan"&&!BILAN)v="lecons";
@@ -1242,6 +1301,7 @@ function go(v){
   if(v==="import")resetImport();
   if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto"].includes(v))renderClassAll();
   if(v==="auto"){AU_SEL=null;renderAuto()}
+  if(v==="dispo"){DSP_EDIT=null;renderDispo()}
   if(v==="eval")renderEval();
   if(v==="lecons")renderLecons();
   if(v==="perf")renderPerf();
@@ -1996,6 +2056,71 @@ $("#f-cancel").addEventListener("click",()=>$("#fmodal").classList.remove("on"))
 $("#f-save").addEventListener("click",()=>{$("#fmodal").classList.remove("on");FC_SAVE&&FC_SAVE(clone(FC));toast("Éléments à saisir mis à jour ✓")});
 $("#btnCfgHome").addEventListener("click",async()=>{if(!await requireCode())return;openCfg(CFG(),v=>{Object.assign(CLE().cfg,v);persist();resetST();renderClassAll()})});
 
+
+
+/* ===== Dispositif du relais (schéma verrouillable) ===== */
+const DISPO_DEF={T:12,zs:20,z10:35,z100:40,ze:45,pmOff:3,pmN:10,pmStep:1,vMin:14,vMax:30,notes:[]};
+function DSP(){if(!DATA.dispo)DATA.dispo=clone(DISPO_DEF);const d=DATA.dispo;for(const k in DISPO_DEF)if(d[k]==null)d[k]=clone(DISPO_DEF[k]);return d}
+let DSP_EDIT=null,DISPO_BACK="classes";
+const f1=v=>(Math.round(v*10)/10).toLocaleString("fr-FR"),f2=v=>(Math.round(v*100)/100).toLocaleString("fr-FR");
+function dispoSVG(d){
+  const S=8,Y0=40,vm=v=>v*d.T/3.6,y=m=>Y0+m*S,X0=230,X1=300;
+  const mEnd=Math.max(d.ze,vm(d.vMax))+3;
+  const L=[],R=[];let g="";
+  g+=`<rect x="${X0}" y="${Y0-6}" width="${X1-X0}" height="${mEnd*S+12}" rx="5" fill="#F6DDD3" stroke="#B5532F" stroke-width="1"/>`;
+  const zr=(a,b,f,s)=>`<rect x="${X0}" y="${y(a)}" width="${X1-X0}" height="${(b-a)*S}" fill="${f}" stroke="${s}" stroke-width="1"/>`;
+  g+=zr(d.zs,d.z10,"#FAE3B8","#BA7517")+zr(d.z10,d.z100,"#BFE8D8","#0F6E56")+zr(d.z100,d.ze,"#C9E3A8","#3B6D11");
+  g+=`<line x1="${X0-6}" y1="${y(0)}" x2="${X1+6}" y2="${y(0)}" stroke="#1B1E24" stroke-width="4"/>`;
+  L.push({y:y(0),t:"0 m"});R.push({y:y(0),t:"Départ · donneur",b:1});
+  const pm=[];for(let i=0;i<d.pmN;i++){const m=d.zs-d.pmOff-i*d.pmStep;if(m>0)pm.push(m)}
+  pm.forEach(m=>g+=`<line x1="${X0}" y1="${y(m)}" x2="${X0+18}" y2="${y(m)}" stroke="#185FA5" stroke-width="2"/>`);
+  if(pm.length){const a=pm[0],b=pm[pm.length-1];L.push({y:y(a),t:f1(a)+" m"});if(pm.length>1)L.push({y:y(b),t:f1(b)+" m"});
+    const mid=(y(a)+y(b))/2;R.push({y:mid-9,t:"Prises de marque ("+pm.length+")",c:"#185FA5",b:1});R.push({y:mid+9,t:"1re à "+f1(d.pmOff)+" m avant la zone",c:"#185FA5"})}
+  [[d.zs,1],[d.z10,0],[d.z100,0],[d.ze,1]].forEach(([m,big])=>{
+    g+=big?`<line x1="${X0-6}" y1="${y(m)}" x2="${X1+6}" y2="${y(m)}" stroke="#412402" stroke-width="2"/>`:`<line x1="${X0}" y1="${y(m)}" x2="${X1}" y2="${y(m)}" stroke="#5F5E5A" stroke-width="1" stroke-dasharray="4 3"/>`;
+    g+=`<circle cx="${X1+6}" cy="${y(m)}" r="${big?6:5}" fill="#EF9F27" stroke="#854F0B"/>`+(big?`<circle cx="${X0-6}" cy="${y(m)}" r="6" fill="#EF9F27" stroke="#854F0B"/>`:"");
+    L.push({y:y(m),t:f1(m)+" m"})});
+  R.push({y:y(d.zs),t:"Entrée de zone · receveur",b:1});
+  R.push({y:y((d.zs+d.z10)/2),t:"Zone 1 · "+f1(d.z10-d.zs)+" m",c:"#854F0B"});
+  R.push({y:y((d.z10+d.z100)/2),t:"Zone 10 · "+f1(d.z100-d.z10)+" m",c:"#0F6E56"});
+  R.push({y:y((d.z100+d.ze)/2),t:"Zone 100 · "+f1(d.ze-d.z100)+" m",c:"#3B6D11"});
+  R.push({y:y(d.ze),t:"Fin de zone",b:1});
+  for(let v=d.vMin;v<=d.vMax;v++){const m=vm(v);g+=`<circle cx="${X1+6}" cy="${y(m)}" r="5" fill="#534AB7"/>`;L.push({y:y(m),t:f1(m)+" m",c:"#534AB7"});R.push({y:y(m),t:v+" km/h",c:"#534AB7"})}
+  (d.notes||[]).forEach(n=>{if(!n||!n.t||!(n.m>=0))return;g+=`<path d="M${X0-14} ${y(n.m)}l6 -6l6 6l-6 6z" fill="#D4537E"/>`;R.push({y:y(n.m),t:n.t,c:"#993556",b:1});if(!L.some(o=>Math.abs(o.y-y(n.m))<1))L.push({y:y(n.m),t:f1(n.m)+" m",c:"#993556"})});
+  const place=A=>{A.sort((a,b)=>a.y-b.y);for(let i=1;i<A.length;i++)if(A[i].y<A[i-1].y+16)A[i].y=A[i-1].y+16;return A};
+  place(L);place(R);
+  const tx=(x,o,anchor)=>`<text x="${x}" y="${o.y}" text-anchor="${anchor}" dominant-baseline="central" font-size="${o.b?15:14}" font-weight="${o.b?800:500}" fill="${o.c||"#1B1E24"}">${esc(o.t)}</text>`;
+  g+=L.map(o=>tx(X0-16,o,"end")).join("")+R.map(o=>tx(X1+18,o,"start")).join("");
+  const H=Math.ceil(Math.max(y(mEnd),...L.map(o=>o.y),...R.map(o=>o.y))+24);
+  return `<svg viewBox="0 0 600 ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">${g}</svg>`;
+}
+function renderDispo(){
+  const d=DSP_EDIT||DSP(),sp=d.T/3.6;
+  $("#dispo-title").textContent=`Dispositif du relais · ${d.T} s`;
+  $("#dispo-sub").textContent=`Départ commun · zone de transmission de ${f1(d.zs)} à ${f1(d.ze)} m · plots de vitesse tous les ${f2(sp)} m (${d.vMin} km/h à ${f1(d.vMin*sp)} m)`;
+  $("#dispo-svg").innerHTML=dispoSVG(d);
+  const ed=!!DSP_EDIT;$("#dispo-form").style.display=ed?"":"none";$("#dispoEdit").style.display=ed?"none":"";
+  if(ed){document.querySelectorAll("#dispo-form [data-dk]").forEach(i=>{if(document.activeElement!==i)i.value=d[i.dataset.dk]});
+    $("#dispo-info").textContent=`1 km/h = ${f2(sp)} m au coup de sifflet des ${d.T} s. Prises de marque de ${f1(d.zs-d.pmOff)} m à ${f1(d.zs-d.pmOff-(d.pmN-1)*d.pmStep)} m du départ.`;
+    $("#dispo-notes").innerHTML=(d.notes||[]).map((n,i)=>`<div class="dnote"><input class="t" data-ni="${i}" data-nf="t" placeholder="Texte (ex. : chronométreur)" value="${esc(n.t||"")}"><input class="m" type="number" step="0.5" data-ni="${i}" data-nf="m" value="${n.m??""}" placeholder="m"><button data-nrm="${i}" aria-label="Retirer">×</button></div>`).join("")||`<p class="note" style="margin:0 0 8px">Ex. : « Chronométreur » à 0 m, « Juge de zone » à 45 m…</p>`}
+}
+document.addEventListener("click",e=>{if(!e.target.closest("[data-dispo]"))return;const on=document.querySelector(".view.on");DISPO_BACK=on?on.id.slice(2):"classes";if(DISPO_BACK==="dispo")return;go("dispo")});
+$("#dispoBack").addEventListener("click",()=>{DSP_EDIT=null;if(DISPO_BACK==="wait")showWait();else go(DISPO_BACK||"classes")});
+$("#dispoEdit").addEventListener("click",async()=>{if(!await requireCode())return;DSP_EDIT=clone(DSP());renderDispo()});
+$("#dispoCancel").addEventListener("click",()=>{DSP_EDIT=null;renderDispo()});
+$("#dispoReset").addEventListener("click",()=>{DSP_EDIT=clone(DISPO_DEF);renderDispo()});
+$("#dispoAddNote").addEventListener("click",()=>{DSP_EDIT.notes=DSP_EDIT.notes||[];DSP_EDIT.notes.push({t:"",m:0});renderDispo()});
+$("#dispo-form").addEventListener("input",e=>{const i=e.target;if(!DSP_EDIT)return;
+  if(i.dataset.dk){const v=parseFloat(i.value);if(!isNaN(v)){DSP_EDIT[i.dataset.dk]=v;renderDispo()}return}
+  if(i.dataset.ni!=null){const n=DSP_EDIT.notes[+i.dataset.ni];if(i.dataset.nf==="t")n.t=i.value;else n.m=parseFloat(i.value);$("#dispo-svg").innerHTML=dispoSVG(DSP_EDIT)}});
+$("#dispo-form").addEventListener("click",e=>{const b=e.target.closest("[data-nrm]");if(b){DSP_EDIT.notes.splice(+b.dataset.nrm,1);renderDispo()}});
+$("#dispoSave").addEventListener("click",()=>{const d=DSP_EDIT;if(!d)return;
+  const bad=!(d.zs>0&&d.zs<d.z10&&d.z10<d.z100&&d.z100<d.ze)?"Les distances doivent se suivre : entrée < Zone 10 < Zone 100 < fin de zone."
+    :!(d.T>0&&d.vMin>0&&d.vMax>=d.vMin&&d.vMax-d.vMin<=40)?"Vérifie la durée et les plots de vitesse.":!(d.pmN>=0&&d.pmN<=30&&d.pmStep>0&&d.pmOff>=0)?"Vérifie les prises de marque.":"";
+  if(bad){toast(bad);return}
+  d.pmN=Math.round(d.pmN);d.vMin=Math.round(d.vMin);d.vMax=Math.round(d.vMax);d.notes=(d.notes||[]).filter(n=>n.t&&n.t.trim()&&n.m>=0);
+  DATA.dispo=clone(d);DSP_EDIT=null;persist();renderDispo();toast("🔒 Dispositif enregistré et verrouillé")});
+$("#dispoPrint").addEventListener("click",()=>{try{window.print()}catch(e){toast("Impression impossible sur cet appareil")}});
 
 /* ===== Évaluation (enseignant) et auto-évaluation (élève) ===== */
 const EVR={6:{4:[4.75,6],3:[3,4.5],2:[1.5,2.75],1:[0,1.25]},4:{4:[3.5,4],3:[2.5,3],2:[1,2],1:[0,0.5]},2:{4:[1.75,2],3:[1.25,1.5],2:[0.75,1],1:[0,0.5]}};
