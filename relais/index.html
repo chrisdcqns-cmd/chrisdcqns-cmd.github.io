@@ -563,6 +563,7 @@ tr.disp{opacity:.55}
   <div class="card scroll"><table class="tbl" id="tblBilan"></table></div>
   <div class="row mt">
     <button class="btn ghost" id="b-resume">Reprendre cette leçon</button>
+    <button class="btn ghost teach" id="b-groups">✏️ Groupes de cette leçon</button>
     <button class="btn ghost teach" id="b-regroup">👥 Reformer les groupes</button>
     <span style="flex:1"></span>
     <button class="btn danger teach" id="b-delete">🔒 Supprimer la leçon</button>
@@ -579,7 +580,8 @@ tr.disp{opacity:.55}
   <div class="steps"><span><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span class="on"><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
   <div class="glist" id="glist"></div>
   <p class="note">Touche un groupe pour le modifier (code enseignant demandé). Pendant la leçon, les élèves touchent leur groupe : seuls leurs prénoms apparaissent dans les listes, et les résultats sont regroupés par groupe.</p>
-  <div class="continue"><button class="btn green w100" data-go="home">Continuer vers la leçon →</button></div>
+  <p class="note" id="g-lecinfo"></p>
+  <div class="continue row"><button class="btn ghost" id="g-backbilan" style="display:none">← Retour à la leçon</button><button class="btn green" data-go="home" style="flex:1">Continuer vers la leçon →</button></div>
 </section>
 
 <!-- ÉTAPE 4 : ACCUEIL DE LA LEÇON (cible intégrée) -->
@@ -775,7 +777,7 @@ tr.disp{opacity:.55}
 <!-- Reformer les groupes d'une leçon -->
 <div class="modal" id="rgmodal"><div class="box wide">
   <h3>Reformer les groupes de cette leçon</h3>
-  <p>Les courses sont rangées dans les <b>groupes actuels</b> de la classe : une course va dans le groupe qui contient ses deux coureurs (sinon celui du coureur 1). Pour changer la composition des groupes, modifie-les d'abord dans « Groupes ».</p>
+  <p>Les courses sont rangées dans les <b>groupes de cette leçon</b> : une course va dans le groupe qui contient ses deux coureurs (sinon celui du coureur 1). Pour changer la composition de ces groupes, utilise d'abord « ✏️ Groupes de cette leçon ».</p>
   <div class="seg" id="rg-mode" style="--n:2"><button data-m="free">Seulement les courses sans groupe</button><button data-m="all">Toutes les courses de la leçon</button></div>
   <div class="card mt" id="rg-prev" style="background:var(--soft);box-shadow:none"></div>
   <div class="row mt"><span style="flex:1"></span><button class="btn ghost sm" id="rg-cancel">Annuler</button><button class="btn primary sm" id="rg-ok">Appliquer</button></div>
@@ -887,6 +889,7 @@ tr.disp{opacity:.55}
     <span class="fl" style="margin:0">Élèves du groupe · <b id="g-count">0</b> sélectionné(s)</span>
   </div>
   <div class="picker" id="g-picker"></div>
+  <div class="frow" id="g-scopew" style="border:0;padding-bottom:0"><button class="fck" id="g-scope"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Appliquer aussi aux prochaines leçons <small id="g-scopehint"></small></button></div>
   <div class="row mt">
     <button class="btn danger sm" id="g-delete">Supprimer le groupe</button>
     <span style="flex:1"></span>
@@ -947,7 +950,11 @@ if(!DATA||!Array.isArray(DATA.classes)){
 const persist=()=>save(K.data,DATA);
 const CL=()=>DATA.classes.find(c=>c.id===DATA.cur)||null;
 const EL=()=>CL()?CL().eleves:[];
-const GR=()=>CL()?CL().groupes:[];
+/* Groupes : chaque leçon a ses propres groupes (copiés des groupes habituels de la classe à son ouverture) */
+function ctxLecon(){if(!CL())return null;const vb=document.getElementById("v-bilan");
+  if(vb&&vb.classList.contains("on")&&typeof BILAN!=="undefined"&&BILAN)return CL().lecons.find(l=>l.id===BILAN)||null;return CLE()}
+const GR=()=>{if(!CL())return [];const l=ctxLecon();return (l&&l.groupes)||CL().groupes};
+function ensureLeconGroups(l){if(l&&!l.groupes)l.groupes=clone(CL().groupes||[])}
 const pad2=n=>String(n).padStart(2,"0");
 const todayISO=()=>{const d=new Date();return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())};
 const frToIso=s=>{const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s||"");return m?`${m[3]}-${m[2]}-${m[1]}`:todayISO()};
@@ -1064,6 +1071,7 @@ const VIEWS=["classes","import","lecons","perf","bilan","groupes","home","liste"
 function go(v){
   if(!["classes","import"].includes(v)&&!CL())v="classes";
   if(["groupes","home","course"].includes(v)&&!CLE())v="lecons";
+  if(["groupes","home","course"].includes(v)&&CLE()&&!CLE().groupes){ensureLeconGroups(CLE());persist()}
   if(v==="bilan"&&!BILAN)v="lecons";
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));window.scrollTo(0,0);
   try{history.replaceState(null,"",v==="classes"?location.pathname:"#"+v)}catch(e){}
@@ -1381,7 +1389,11 @@ $("#btnResetAll").addEventListener("click",async()=>{
 
 /* ===== Groupes ===== */
 function groupMembers(g){return g.members.map(byId).filter(Boolean).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"))}
+let FROM_BILAN=null;
+$("#g-backbilan").addEventListener("click",()=>{BILAN=FROM_BILAN;FROM_BILAN=null;go("bilan")});
 function renderGroupes(){
+  {const l=CLE();$("#g-lecinfo").textContent=l?"Groupes de la leçon du "+fmtShort(l.date)+". Une modification peut valoir pour cette leçon seulement, ou aussi pour les prochaines leçons (case dans la fiche du groupe).":"";
+   $("#g-backbilan").style.display=FROM_BILAN?"":"none";}
   if(!GR().length){$("#glist").innerHTML=`<div class="card empty-msg" style="grid-column:1/-1">Aucun groupe pour l'instant. Touche « Créer un groupe » et sélectionne les élèves, ou continue sans groupe.</div>`;return}
   $("#glist").innerHTML=GR().map(g=>{const m=groupMembers(g);
     return `<button class="gitem" data-gedit="${g.id}"><h3>${esc(g.name)}<small>${m.length} élève${m.length>1?"s":""}</small></h3>
@@ -1392,6 +1404,9 @@ let GEDIT=null,GSEL=new Set();
 $("#btnAddGroupe").addEventListener("click",async()=>{if(await requireCode())openGroupe(null)});
 $("#glist").addEventListener("click",async e=>{const b=e.target.closest("[data-gedit]");if(!b)return;if(await requireCode())openGroupe(b.dataset.gedit)});
 function openGroupe(id){
+  {const l=CLE(),past=l&&l.date<todayISO();$("#g-scopew").style.display=l?"":"none";
+   $("#g-scope").classList.toggle("on",!!l&&!past);
+   $("#g-scopehint").textContent=past?"cette leçon est passée : décoché, seule cette leçon change":"décoché : le changement ne vaut que pour la leçon du "+(l?fmtShort(l.date):"");}
   GEDIT=id;const g=id?GR().find(x=>x.id===id):null;
   GSEL=new Set(g?g.members:[]);
   $("#g-title").textContent=g?"Modifier le groupe":"Créer un groupe";
@@ -1410,16 +1425,25 @@ function drawPicker(){
 }
 $("#g-picker").addEventListener("click",e=>{const b=e.target.closest("[data-pick]");if(!b)return;const id=+b.dataset.pick;GSEL.has(id)?GSEL.delete(id):GSEL.add(id);b.classList.toggle("on");$("#g-count").textContent=GSEL.size});
 $("#g-cancel").addEventListener("click",()=>$("#gmodal").classList.remove("on"));
+$("#g-scope").addEventListener("click",()=>$("#g-scope").classList.toggle("on"));
+/* répercuter sur les groupes habituels de la classe (prochaines leçons) */
+function toClassGroups(fn){const L=CLE();if(!L||!L.groupes)return;if(!$("#g-scope").classList.contains("on"))return;fn(CL().groupes)}
 $("#g-save").addEventListener("click",()=>{
   const name=$("#g-name").value.trim();if(!name){toast("Donne un nom au groupe");return}
+  ensureLeconGroups(CLE());
+  let gid=GEDIT;
   if(GEDIT){const g=GR().find(x=>x.id===GEDIT);g.name=name;g.members=[...GSEL]}
-  else GR().push({id:uid("g"),name,members:[...GSEL]});
+  else{gid=uid("g");GR().push({id:gid,name,members:[...GSEL]})}
+  toClassGroups(G=>{const x=G.find(y=>y.id===gid);if(x){x.name=name;x.members=[...GSEL]}else G.push({id:gid,name,members:[...GSEL]})});
   persist();$("#gmodal").classList.remove("on");renderClassAll();toast("Groupe enregistré ✓");
 });
 $("#g-delete").addEventListener("click",async()=>{
   const g=GR().find(x=>x.id===GEDIT);$("#gmodal").classList.remove("on");
   if(!await confirmBox("Supprimer « "+g.name+" » ?","Les élèves restent dans la classe. Les courses déjà enregistrées gardent le nom du groupe.","Supprimer"))return;
-  CL().groupes=GR().filter(x=>x.id!==g.id);if(CL().curg===g.id)CL().curg="all";
+  ensureLeconGroups(CLE());
+  if(CLE())CLE().groupes=CLE().groupes.filter(x=>x.id!==g.id);else CL().groupes=CL().groupes.filter(x=>x.id!==g.id);
+  toClassGroups(()=>{CL().groupes=CL().groupes.filter(x=>x.id!==g.id)});
+  if(CL().curg===g.id)CL().curg="all";
   persist();renderClassAll();toast("Groupe supprimé");
 });
 
@@ -1631,7 +1655,7 @@ function renderLecons(){
   $("#l-start").textContent=ex?"Reprendre la leçon du jour →":"Commencer la leçon →";
   const nxt=C.lecons.filter(l=>l.date>t).sort((a,b)=>a.date.localeCompare(b.date));
   $("#lnextw").style.display=nxt.length?"":"none";
-  $("#lnext").innerHTML=nxt.map(l=>{const d=isoDate(l.date),g=C.groupes.length;return `<button class="litem" data-prep="${l.id}"><div class="cal" style="background:var(--lane-soft);color:var(--lane)"><div><b>${d.getDate()}</b><small>${d.toLocaleDateString("fr-FR",{month:"short"})}</small></div></div>
+  $("#lnext").innerHTML=nxt.map(l=>{const d=isoDate(l.date),g=(l.groupes||C.groupes).length;return `<button class="litem" data-prep="${l.id}"><div class="cal" style="background:var(--lane-soft);color:var(--lane)"><div><b>${d.getDate()}</b><small>${d.toLocaleDateString("fr-FR",{month:"short"})}</small></div></div>
     <div><h4>${esc(cap(fmtLong(l.date)))}</h4><p>En préparation · ${g} groupe${g>1?"s":""}</p></div><span class="arr">Préparer →</span></button>`}).join("");
   const prev=C.lecons.filter(l=>l.date<t).sort((a,b)=>b.date.localeCompare(a.date));
   $("#llist").innerHTML=prev.length?prev.map(l=>{const n=C.courses.filter(c=>c.lid===l.id),g=new Set(n.map(c=>c.groupe||"—"));const d=isoDate(l.date);
@@ -1703,7 +1727,9 @@ function renderBilan(){
   renderCourses("#tblBilan",list,l.cfg);
 }
 $("#b-export").addEventListener("click",()=>{const l=CL().lecons.find(x=>x.id===BILAN);exportXlsx(ALLCO().filter(c=>c.lid===l.id),l.date)});
-$("#b-resume").addEventListener("click",()=>{DATA.lecon=BILAN;persist();resetST();go("groupes")});
+$("#b-resume").addEventListener("click",()=>{DATA.lecon=BILAN;FROM_BILAN=null;persist();resetST();go("groupes")});
+$("#b-groups").addEventListener("click",async()=>{if(!await requireCode())return;const l=CL().lecons.find(x=>x.id===BILAN);ensureLeconGroups(l);
+  DATA.lecon=BILAN;FROM_BILAN=BILAN;persist();go("groupes");toast("Groupes de la leçon du "+fmtShort(l.date))});
 $("#b-delete").addEventListener("click",async()=>{
   if(!await requireCode(true))return; /* code toujours redemandé pour supprimer une leçon */
   const l=CL().lecons.find(x=>x.id===BILAN),n=ALLCO().filter(c=>c.lid===l.id).length;
@@ -1722,7 +1748,7 @@ async function doubleConfirm(t1,p1,t2,p2){
 let FC=null,FC_SAVE=null;
 function openCfg(cfg,onSave){FC={...clone(DEFCFG),...clone(cfg)};FC_SAVE=onSave;drawCfg();$("#fmodal").classList.add("on")}
 function drawCfg(){
-  document.querySelectorAll(".fck").forEach(b=>{const k=b.dataset.f;b.classList.toggle("on",!!FC[k]);const o=b.parentElement.querySelector(".fopt");if(o)o.classList.toggle("off",!FC[k])});
+  document.querySelectorAll("#fmodal .fck[data-f]").forEach(b=>{const k=b.dataset.f;b.classList.toggle("on",!!FC[k]);const o=b.parentElement.querySelector(".fopt");if(o)o.classList.toggle("off",!FC[k])});
   const chips=(arr,key)=>arr.map((v,i)=>`<span>${esc(v)}<button data-rm="${key}" data-i="${i}" aria-label="Retirer">×</button></span>`).join("");
   $("#f-zones").innerHTML=chips(FC.zones,"zones");
   $("#f-zlist").style.display=FC.zoneImg?"none":"";$("#f-deps").innerHTML=chips(FC.deps,"deps");
@@ -1730,7 +1756,7 @@ function drawCfg(){
   document.querySelectorAll("#f-goalmode button").forEach(b=>b.classList.toggle("on",b.dataset.m===FC.goalMode));
   $("#f-goalhint").textContent=FC.goalMode==="both"?`Chaque élève doit faire ${FC.goalN} course(s) comme donneur et ${FC.goalN} comme receveur.`:`Chaque élève doit faire ${FC.goalN} course(s) dans son meilleur rôle (défini dans sa fiche, sinon d'après ses résultats). Avec « courir avec tout le groupe », il suffit d'avoir couru une fois avec chacun, quel que soit le rôle.`;
 }
-document.querySelectorAll(".fck").forEach(b=>b.addEventListener("click",()=>{FC[b.dataset.f]=!FC[b.dataset.f];drawCfg()}));
+document.querySelectorAll("#fmodal .fck[data-f]").forEach(b=>b.addEventListener("click",()=>{FC[b.dataset.f]=!FC[b.dataset.f];drawCfg()}));
 $("#fmodal").addEventListener("click",e=>{const r=e.target.closest("[data-rm]");if(r){const a=FC[r.dataset.rm];if(a.length<=1){toast("Garde au moins un choix");return}a.splice(+r.dataset.i,1);drawCfg()}});
 function addChip(inp,key){const v=$(inp).value.trim();if(!v)return;if(FC[key].length>=6){toast("6 choix au maximum");return}FC[key].push(v);$(inp).value="";drawCfg()}
 $("#f-zadd").addEventListener("click",()=>addChip("#f-zin","zones"));$("#f-dadd").addEventListener("click",()=>addChip("#f-din","deps"));
@@ -2091,7 +2117,7 @@ function buildXlsx(CS){
   dates.forEach(d=>{const ofDay=CS.filter(c=>ldate(c.lid)===d);
     groupOrder(ofDay).forEach(gname=>ofDay.filter(c=>c.groupe===gname).sort((a,b)=>a.n-b.n).forEach(c=>{
       res.push([C.name,d?fmtShort(d):c.date,c.groupe||"Sans groupe",c.n,c.heure,c.p1,c.n1,c.v1,c.p2,c.n2,c.v2,r1(c.cible),
-        val(c.ecart),typeof c.realise==="number"?r1(c.realise):(c.ecart===NR?NR:""),val(c.zone),val(c.dep),val(c.pt),has(c.ptd)?c.ptd:(c.pt===NR?NR:""),has(c.recul)?c.recul:"",val(c.pm),has(c.pmd)?c.pmd:(c.pm===NR?NR:""),(()=>{const L=C.lecons.find(l=>l.id===c.lid),g=C.groupes.find(x=>x.name===c.groupe),id=g?coachOf(g.id,L):undefined,ce=id!=null?C.eleves.find(x=>x.id===id):null;return ce?ce.prenom+" "+ce.nom:""})(),val(c.dv),val(c.dw),val(c.de),val(c.conseil)]);
+        val(c.ecart),typeof c.realise==="number"?r1(c.realise):(c.ecart===NR?NR:""),val(c.zone),val(c.dep),val(c.pt),has(c.ptd)?c.ptd:(c.pt===NR?NR:""),has(c.recul)?c.recul:"",val(c.pm),has(c.pmd)?c.pmd:(c.pm===NR?NR:""),(()=>{const L=C.lecons.find(l=>l.id===c.lid),g=((L&&L.groupes)||C.groupes).find(x=>x.name===c.groupe),id=g?coachOf(g.id,L):undefined,ce=id!=null?C.eleves.find(x=>x.id===id):null;return ce?ce.prenom+" "+ce.nom:""})(),val(c.dv),val(c.dw),val(c.de),val(c.conseil)]);
     }));
   });
   const grpOf=id=>C.groupes.filter(g=>g.members.includes(id)).map(g=>g.name).join(", ");
