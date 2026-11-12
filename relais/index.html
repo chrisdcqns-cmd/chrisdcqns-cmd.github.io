@@ -399,6 +399,15 @@ tr.disp{opacity:.55}
 .evc{background:#fff;border:2px solid var(--line);border-radius:14px;padding:12px;font-size:15px;line-height:1.35;cursor:pointer;min-height:92px;position:relative;user-select:none}
 .evc:active{transform:scale(.98)}
 .evc.on{border-color:var(--c);box-shadow:inset 0 0 0 2px var(--c);background:color-mix(in srgb,var(--c) 13%,#fff)}
+.evred{margin-top:16px;border:3px solid #C0392B;background:#FDF0EE;border-radius:16px;padding:14px 18px}
+.evred .evrt{font-weight:900;font-size:19px;color:#9C2B10}.evred p{margin:4px 0}.evrs{font-size:14px;color:var(--muted)}
+.evrg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.evrg>div{background:#fff;border-radius:12px;padding:12px 14px;font-size:15px}
+.evrg b{font-size:17px}.evrg small{display:block;color:var(--muted);margin-top:4px}
+.evbig{font-size:34px;font-weight:900;line-height:1.1;margin-top:4px}
+.evok,.evko{display:inline-block;font-weight:800;font-size:13px;border-radius:999px;padding:2px 9px;margin-left:4px}
+.evok{background:var(--ok-soft);color:var(--ok)}.evko{background:#FBD9D3;color:#9C2B10}
+.evles{font-size:15px;background:#fff;border-radius:12px;margin-top:12px}.evles td{padding:8px 12px}
 .evc.au{background:#E4EEF8;border-color:#A9C6E2}
 .evc.au.on{background:color-mix(in srgb,var(--c) 13%,#E4EEF8)}
 .evleg{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);font-weight:600}
@@ -2001,15 +2010,39 @@ function lastAuto(o){return Object.values((o&&o.auto)||{}).filter(a=>a&&a.sel).s
 const fmtP=v=>(Math.round(v*100)/100).toLocaleString("fr-FR",{maximumFractionDigits:2});
 const autoDone=(e,lid)=>{const o=(CL().evals||{})[e.id],a=o&&o.auto&&o.auto[lid];return !!(a&&a.sel&&EVE.every(x=>a.sel[x.k]&&a.sel[x.k].d))};
 /* suggestions tirées des courses enregistrées (toutes les leçons) */
-function evSuggest(e){
-  const cs=ALLCO().filter(c=>c.i1===e.id||c.i2===e.id);
-  const ec=cs.map(c=>c.ecart).filter(v=>typeof v==="number");
-  const zs=cs.map(c=>c.zone).filter(z=>[HZ,"Zone 100","Zone 10","Zone 1"].includes(z));
-  const r={n:cs.length,info:[]};
-  if(ec.length){const m=ec.reduce((a,b)=>a+b,0)/ec.length;r.perf=m>0?4:m>=-0.5?3:m>-2?2:1;r.info.push("écart moyen "+(m>0?"+":"")+fmt(m)+" km/h")}
-  if(zs.length){const cnt={};zs.forEach(z=>cnt[z]=(cnt[z]||0)+1);const top=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
-    r.trans=top==="Zone 100"?4:top==="Zone 10"?3:1;r.info.push("zones : "+["Zone 100","Zone 10","Zone 1",HZ].filter(z=>cnt[z]).map(z=>z.replace("Zone ","Z")+" × "+cnt[z]).join(", "))}
+/* toutes les courses de l'élève, les dernières leçons pondérées par un coefficient (1re leçon ×1, 2e ×2, …) */
+const EV_SEUIL=0.7;
+function evStats(e){
+  const C=CL(),cs=ALLCO().filter(c=>c.i1===e.id||c.i2===e.id);
+  const lids=[...new Set(ALLCO().map(c=>c.lid))].map(id=>C.lecons.find(l=>l.id===id)).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
+  const coef={};lids.forEach((l,i)=>coef[l.id]=i+1);
+  const inZ=z=>typeof z==="string"&&z&&z!==HZ&&z!==NR;
+  const r={n:cs.length,les:[],perf:null,trans:null};
+  let P={w:0,over:0,reach:0,sum:0},T={w:0,inz:0,z100:0};
+  lids.forEach(l=>{const L=cs.filter(c=>c.lid===l.id);if(!L.length)return;const k=coef[l.id];
+    const ec=L.map(c=>c.ecart).filter(v=>typeof v==="number"),zs=L.map(c=>c.zone).filter(z=>inZ(z)||z===HZ);
+    const row={date:l.date,k,n:L.length,ne:ec.length,over:ec.filter(v=>v>0).length,nz:zs.length,inz:zs.filter(inZ).length,z100:zs.filter(z=>z==="Zone 100").length};
+    r.les.push(row);
+    P.w+=k*ec.length;P.over+=k*row.over;P.reach+=k*ec.filter(v=>v>=0).length;P.sum+=k*ec.reduce((a,b)=>a+b,0);
+    T.w+=k*zs.length;T.inz+=k*row.inz;T.z100+=k*row.z100});
+  if(P.w){r.pOver=P.over/P.w;r.pReach=P.reach/P.w;r.mEc=P.sum/P.w;r.perf=r.pOver>=EV_SEUIL?4:r.pReach>=EV_SEUIL?3:r.mEc>-2?2:1}
+  if(T.w){r.pIn=T.inz/T.w;r.pZ100=T.z100/T.w;r.trans=r.pZ100>=EV_SEUIL?4:r.pIn>=EV_SEUIL?3:r.pIn>=0.5?2:1}
   return r;
+}
+const evSuggest=evStats;
+const pc=v=>Math.round(v*100)+" %";
+function evStatsHTML(e,s){
+  if(!s.n)return `<div class="evred"><div class="evrt">📊 Toutes les courses de ${esc(e.prenom)}</div><p>Aucune course enregistrée pour cet élève.</p></div>`;
+  const badge=(v)=>v>=EV_SEUIL?`<span class="evok">✓ majoritairement (≥ 70 %)</span>`:`<span class="evko">✗ moins de 70 %</span>`;
+  const nl=s.les.length;
+  let h=`<div class="evred"><div class="evrt">📊 Toutes les courses de ${esc(e.prenom)} · ${s.n} course${s.n>1?"s":""} sur ${nl} leçon${nl>1?"s":""}</div>
+    <p class="evrs">Les dernières leçons comptent plus : coefficient ${s.les.map(l=>"×"+l.k).join(", ")}.</p><div class="evrg">`;
+  h+=`<div><b>Performance</b>${s.pOver!=null?`<div class="evbig">${pc(s.pOver)}</div>vitesse cible dépassée ${badge(s.pOver)}<small>atteinte ou dépassée : ${pc(s.pReach)} · écart moyen ${s.mEc>0?"+":""}${fmt(s.mEc)} km/h</small>`:`<small>écart non renseigné</small>`}</div>`;
+  h+=`<div><b>Transmission</b>${s.pIn!=null?`<div class="evbig">${pc(s.pIn)}</div>dans la zone de transmission ${badge(s.pIn)}<small>en Zone 100 : ${pc(s.pZ100)}</small>`:`<small>zone non renseignée</small>`}</div></div>`;
+  h+=`<table class="evrec evles"><thead><tr><th>Leçon</th><th class="n">Coef.</th><th class="n">Courses</th><th class="n">Cible dépassée</th><th class="n">Dans la zone</th><th class="n">Zone 100</th></tr></thead><tbody>`
+    +s.les.slice().reverse().map(l=>`<tr><td>${fmtShort(l.date)}</td><td class="n">×${l.k}</td><td class="n">${l.n}</td><td class="n">${l.ne?l.over+" / "+l.ne:"–"}</td><td class="n">${l.nz?l.inz+" / "+l.nz:"–"}</td><td class="n">${l.nz?l.z100+" / "+l.nz:"–"}</td></tr>`).join("")
+    +`</tbody></table><p class="evrs" style="margin-top:6px">Pourcentages pondérés par les coefficients. 💡 dans la grille : degré 4 si ≥ 70 % (cible dépassée / Zone 100), degré 3 si ≥ 70 % (cible atteinte / dans la zone).</p></div>`;
+  return h;
 }
 function evNamesHTML(list,sel,mark){
   const btn=e=>`<button data-eve="${e.id}" class="${sel===e.id?"on":""}">${esc(e.prenom)}${mark(e)}</button>`;
@@ -2028,7 +2061,7 @@ function evGridHTML(mode,e){
   let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}</div>
     <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
       :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts${prof?" (répartition fixée dans les réglages de la leçon)":""}</span>`}</div>
-    ${prof&&la?`<div class="evleg mt"><i></i>Case où ${esc(e.prenom)} s'est positionné(e) dans son auto-évaluation</div>`:""}
+    ${prof?evStatsHTML(e,sg):""}${prof&&la?`<div class="evleg mt"><i></i>Case où ${esc(e.prenom)} s'est positionné(e) dans son auto-évaluation</div>`:""}
     <div class="evgrid"><div></div>${[4,3,2,1].map(d=>`<div class="evh d${d}">Degré ${d}</div>`).join("")}`;
   EVE.forEach(x=>{const mx=evMax(x.k,rp),pt=evPts(sel,x.k,rp);
     h+=`<div class="evl">${x.t}<small>${x.s} · sur ${mx} pts</small>${pt!=null?`<span class="evp">${fmtP(pt)} / ${mx}</span>`:""}</div>`;
@@ -2042,9 +2075,9 @@ function evGridHTML(mode,e){
   });
   h+=`</div>`;
   const t0=evTotal(sel,rp);
-  if(prof){const inf=[];if(sg.n)inf.push(sg.n+" course(s) enregistrée(s)"+(sg.info.length?" · "+sg.info.join(" · "):""));else inf.push("Aucune course enregistrée pour cet élève.");
+  if(prof){const inf=[];
     if(la){const ta=evTotal(la.sel,rp);inf.push("Auto-évaluation de l'élève"+(la.at?" du "+fmtShort(la.at.slice(0,10)):"")+" : "+(ta.n===4?fmtP(ta.t)+" / 20":"incomplète"))}
-    h+=`<div class="evinfo">${esc(inf.join(" — "))}</div>`;
+    if(inf.length)h+=`<div class="evinfo">${esc(inf.join(" — "))}</div>`;
     const ta=la?evTotal(la.sel,rp):null;
     h+=`<table class="evrec"><thead><tr><th>Indicateur</th><th class="n">Degré</th><th class="n">Note</th>${la?'<th class="n">Auto-évaluation</th>':""}</tr></thead><tbody>`
       +EVE.map(x=>{const s=sel[x.k],pt=evPts(sel,x.k,rp),mx=evMax(x.k,rp),as=la&&la.sel[x.k],ap=la?evPts(la.sel,x.k,rp):null;
