@@ -355,6 +355,12 @@ tr.disp{opacity:.55}
 .pmoy{text-transform:none;letter-spacing:0;font-size:17px;color:var(--ink)}
 .pconv{font-size:14px;color:var(--muted);margin-top:4px;min-height:18px;font-weight:600}
 @media (max-width:900px){.pst button{width:25px;height:46px;font-size:18px}.pst .pv{min-width:36px;font-size:19px}.ptable td{padding:6px 2px}.ptable td.pn{min-width:70px}.ptable td.pn b{font-size:16px}td.pm{min-width:44px}td.pm b{font-size:24px}#v-perf .wrap,.ptw{padding:6px 2px}}
+.klist{max-height:46vh;overflow:auto;border:2px solid var(--line);border-radius:14px}
+.krow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;background:#fff}
+.krow:last-child{border-bottom:0}.krow:active{background:var(--soft)}
+.krow .kn{flex:1;font-size:17px}.krow .kv{font-family:"Barlow Condensed";font-size:20px;font-weight:700;color:var(--muted)}
+.krow .kv em{font-style:normal;font-size:13px;font-weight:800;margin-left:6px}.krow .kv em.a{color:var(--track)}.krow .kv em.l{color:var(--lane)}
+.krow .kgo{color:var(--track);font-weight:800}
 .todaycard{border:2px solid var(--ok)}
 .todayd{margin:0 0 6px;font-size:40px;font-weight:800}
 .cfgsum{display:flex;flex-wrap:wrap;gap:8px}
@@ -826,14 +832,19 @@ tr.disp{opacity:.55}
 </div></div>
 
 <!-- Réglages d'une classe -->
-<div class="modal" id="cmodal"><div class="box">
+<div class="modal" id="cmodal"><div class="box wide">
   <h3>Réglages de la classe</h3>
   <label class="fl" for="k-name">Nom de la classe</label>
   <input class="txt" id="k-name" autocomplete="off">
+  <div class="row" style="margin:18px 0 8px"><b style="flex:1;font-size:19px">Élèves <span id="k-count"></span></b>
+    <button class="btn ghost sm" id="k-add">+ Ajouter un élève</button>
+    <button class="btn ghost sm" id="k-imp">📄 Importer un fichier</button></div>
+  <p class="note" style="margin:0 0 8px">Touche un élève pour modifier son nom, ses vitesses, son meilleur rôle, ou le supprimer.</p>
+  <div class="klist" id="k-list"></div>
   <div class="row mt">
-    <button class="btn danger sm" id="k-delete">Supprimer</button>
+    <button class="btn danger sm" id="k-delete">Supprimer la classe</button>
     <span style="flex:1"></span>
-    <button class="btn ghost sm" id="k-cancel">Annuler</button>
+    <button class="btn ghost sm" id="k-cancel">Fermer</button>
     <button class="btn primary sm" id="k-save">Enregistrer</button>
   </div>
 </div></div>
@@ -1099,8 +1110,20 @@ $("#clist").addEventListener("click",async e=>{
   if(e.target.closest("#btnImport")){if(await requireCode())go("import")}
 });
 let KEDIT=null;
-function openClassSettings(id){KEDIT=id;$("#k-name").value=DATA.classes.find(c=>c.id===id).name;$("#cmodal").classList.add("on")}
-$("#k-cancel").addEventListener("click",()=>$("#cmodal").classList.remove("on"));
+function openClassSettings(id){KEDIT=id;DATA.cur=id;persist();$("#k-name").value=DATA.classes.find(c=>c.id===id).name;drawClassStudents();$("#cmodal").classList.add("on")}
+function drawClassStudents(){
+  const C=DATA.classes.find(c=>c.id===KEDIT);if(!C)return;
+  const L=[...C.eleves].sort((a,b)=>a.nom.localeCompare(b.nom,"fr")||a.prenom.localeCompare(b.prenom,"fr"));
+  $("#k-count").textContent="("+L.length+")";
+  const sp=v=>typeof v==="number"&&v>0?v:"—";
+  $("#k-list").innerHTML=L.map(e=>`<button class="krow" data-kel="${e.id}"><span class="kn"><b>${esc(e.nom)}</b> ${esc(e.prenom)}${e.ma==="DISP"?' <span class="flag">dispensé</span>':""}</span>
+    <span class="kv">${e.ma==="DISP"?"":`<em class="a">A</em> ${sp(e.ma)} <em class="l">L</em> ${sp(e.ml)}`}</span><span class="kgo">✎</span></button>`).join("")||`<div class="empty-msg">Aucun élève : ajoute-les un par un ou importe un fichier.</div>`;
+}
+$("#k-list").addEventListener("click",e=>{const b=e.target.closest("[data-kel]");if(!b)return;DATA.cur=KEDIT;openEdit(+b.dataset.kel)});
+$("#k-add").addEventListener("click",()=>{DATA.cur=KEDIT;openEdit(null)});
+$("#k-imp").addEventListener("click",()=>{const C=DATA.classes.find(c=>c.id===KEDIT);$("#cmodal").classList.remove("on");go("import");$("#i-cname").value=C.name;
+  toast("Les élèves du fichier seront ajoutés à "+C.name+" (sans doublon)")});
+$("#k-cancel").addEventListener("click",()=>{$("#cmodal").classList.remove("on");renderClasses()});
 $("#k-save").addEventListener("click",()=>{const n=$("#k-name").value.trim();if(!n){toast("Donne un nom à la classe");return}
   DATA.classes.find(c=>c.id===KEDIT).name=n;persist();$("#cmodal").classList.remove("on");renderClasses();toast("Classe renommée ✓")});
 $("#k-delete").addEventListener("click",async()=>{
@@ -1280,6 +1303,7 @@ $("#i-go").addEventListener("click",async()=>{
 
 /* ===== Rendu commun à la classe ===== */
 function renderClassAll(){
+  if($("#cmodal").classList.contains("on"))drawClassStudents();
   setTimeout(()=>{try{renderCoach()}catch(e){}},0);
   document.querySelectorAll(".cname").forEach(s=>s.textContent=CL().name);
   if(CLE()){$("#h-lecon").textContent=CL().name+" · leçon du "+fmtShort(CLE().date)+(CLE().date>todayISO()?" (en préparation)":"");$("#r-lecon").textContent="Leçon du "+fmtShort(CLE().date)}
