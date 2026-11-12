@@ -394,23 +394,39 @@ const h32=s=>{let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.im
 const anon=(cl,el)=>'E-'+(h32(SH.key+'|'+nrm(cl)+'|'+nrm(el))%1679616).toString(36).toUpperCase().padStart(4,'0');
 const pInit=n=>{const w=String(n||'').trim().split(/\s+/);return w.length<2?w[0]||'':w[0]+' '+w.slice(1).map(x=>x[0].toUpperCase()+'.').join('')};
 const shRow=r=>[r.ts,r.cl||'',SH.fmt=='pi'?pInit(r.el):anon(r.cl,r.el),r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k,r.tab,r.id];
-const shStatus=()=>!SH.url||!SH.key?'Non configuré.':`${SH.q.length} grimpe(s) en attente${SH.dq.length?' · '+SH.dq.length+' suppression(s) en attente':''}${SH.last?' · dernier envoi : '+SH.last:''}${navigator.onLine?'':' · hors connexion'}`;
+const shStatus=()=>!SH.url||!SH.key?'Non configuré.':`${SH.q.length?SH.q.length+' grimpe(s) en attente':(R.length?'Toutes les grimpes ont été reçues par Google ✓':'Aucune grimpe à envoyer')}${SH.dq.length?' · '+SH.dq.length+' suppression(s) en attente':''}${SH.err?' · ⚠ '+SH.err:''}${SH.last?' · dernière vérification : '+SH.last+(SH.rows!=null?' ('+SH.rows+' ligne(s) dans la feuille)':''):''}${navigator.onLine?'':' · hors connexion'}`;
 const shUpd=()=>{const e=$('#shS');if(e)e.textContent=shStatus()};
 let shBusy=false;
-async function sync(){if(!SH.url||!SH.key||shBusy||!navigator.onLine||(!SH.q.length&&!SH.dq.length))return shUpd();shBusy=true;
- const ids=SH.q.slice(0,150),del=SH.dq.slice(),rows=ids.map(id=>R.find(r=>r.id==id)).filter(Boolean).map(shRow);
- try{await fetch(SH.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SH.key,head:SH_HEAD,rows,del})});
-  SH.q=SH.q.filter(id=>!ids.includes(id));SH.dq=SH.dq.filter(id=>!del.includes(id));SH.last=new Date().toLocaleString('fr-FR').slice(0,-3);SV('sh',SH)}catch{}
- shBusy=false;shUpd();if(SH.q.length&&navigator.onLine)setTimeout(sync,1500)}
-function shAdd(id){if(!SH.url)return;SH.q.push(id);SV('sh',SH);sync()}
+function shJ(params){return new Promise(res=>{const cb='shcb'+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement('script');let t;
+ const end=d=>{clearTimeout(t);try{delete window[cb]}catch{}s.remove();res(d)};t=setTimeout(()=>end(null),15000);window[cb]=d=>end(d);s.onerror=()=>end(null);
+ s.src=SH.url+(SH.url.includes('?')?'&':'?')+Object.entries({...params,key:SH.key,callback:cb}).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');document.head.append(s)})}
+let shRT=null;
+/* envoi puis vérification : une grimpe ne quitte la file d'attente qu'une fois lue dans la feuille Google */
+async function sync(){if(!SH.url||!SH.key||shBusy||!navigator.onLine||(!SH.q.length&&!SH.dq.length))return shUpd();shBusy=true;clearTimeout(shRT);
+ SH.q=SH.q.filter(id=>R.some(r=>r.id==id));
+ const ids=SH.q.slice(0,150),del=SH.dq.slice(0,150),rows=ids.map(id=>R.find(r=>r.id==id)).map(shRow);
+ let sent=false;
+ try{await fetch(SH.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SH.key,head:SH_HEAD,rows,del})});sent=true}catch{SH.err='Envoi impossible (réseau ?)'}
+ if(sent){await new Promise(r=>setTimeout(r,2000));
+  const d=await shJ({ids:[...ids,...del].join(',')});
+  if(!d)SH.err='Pas de réponse du script : nouvel essai automatique.';
+  else if(!d.keyOk)SH.err="La clé secrète ne correspond pas à celle du script : rien n'a été reçu.";
+  else if(!d.check){SH.q=SH.q.filter(id=>!ids.includes(id));SH.dq=SH.dq.filter(id=>!del.includes(id));SH.err='Envoyé, mais réception non vérifiée : mettez à jour le script Google (voir README).';SH.last=new Date().toLocaleString('fr-FR').slice(0,-3)}
+  else{const have=new Set((d.have||[]).map(String)),okU=ids.filter(id=>have.has(String(id))),okD=del.filter(id=>!have.has(String(id)));
+   SH.q=SH.q.filter(id=>!okU.includes(id));SH.dq=SH.dq.filter(id=>!okD.includes(id));
+   let ch=0;R.forEach(r=>{if(okU.includes(r.id)&&!r.rx){r.rx=1;ch++}});if(ch)save();
+   SH.rows=d.rows;SH.last=new Date().toLocaleString('fr-FR').slice(0,-3);
+   const miss=ids.length-okU.length+del.length-okD.length;SH.err=miss?miss+' envoi(s) pas encore reçu(s) par Google : nouvel essai automatique.':''}}
+ SV('sh',SH);shBusy=false;shUpd();if((SH.q.length||SH.dq.length)&&navigator.onLine)shRT=setTimeout(sync,SH.err?20000:1500)}
+function shAdd(id){if(!SH.url)return;const r=R.find(x=>x.id==id);if(r)delete r.rx;SH.q=SH.q.filter(x=>x!=id);SH.q.push(id);SV('sh',SH);sync()}
 function shDel(ids){if(!SH.url)return;SH.q=SH.q.filter(i=>!ids.includes(i));SH.dq.push(...ids);SV('sh',SH);sync()}
 function shPing(url,key){return new Promise(res=>{const cb='shcb'+Date.now(),s=document.createElement('script');let t;
  const end=d=>{clearTimeout(t);delete window[cb];s.remove();res(d)};t=setTimeout(()=>end(null),12000);window[cb]=d=>end(d);s.onerror=()=>end(null);
- s.src=url+(url.includes('?')?'&':'?')+'callback='+cb+'&key='+encodeURIComponent(key);document.head.append(s)})}
+ s.src=url+(url.includes('?')?'&':'?')+'callback='+cb+'&key='+encodeURIComponent(key)+'&ids=_test';document.head.append(s)})}
 const shForm=()=>({url:$('#shU').value.trim(),key:$('#shK').value.trim(),fmt:$('#shF').value});
 async function shTestUI(){const f=shForm();if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(f.url))return say("L'URL doit commencer par https://script.google.com/…");if(!f.key)return say('Indiquez la clé secrète.');
  $('#shS').textContent='Test en cours…';const d=await shPing(f.url,f.key);shUpd();
- say(!d?"Pas de réponse du script. Vérifiez l'URL (elle finit par /exec), le déploiement « Tout le monde » et la connexion internet.":d.keyOk?'✓ Connexion réussie : la clé est correcte.':'Le script répond, mais la clé ne correspond pas à celle du script.')}
+ say(!d?"Pas de réponse du script. Vérifiez l'URL (elle finit par /exec), le déploiement « Tout le monde » et la connexion internet.":d.keyOk?(d.check?'✓ Connexion réussie : la clé est correcte et la vérification de réception est active.':'✓ Connexion réussie : la clé est correcte. Mettez à jour le script Google pour activer la vérification de réception.'):'Le script répond, mais la clé ne correspond pas à celle du script.')}
 async function shSave(){const f=shForm();if(f.url&&!/^https:\/\/script\.google(usercontent)?\.com\//.test(f.url))return say("L'URL doit commencer par https://script.google.com/…");
  if(SH.key&&f.key!==SH.key&&!await ask('Changer la clé change aussi tous les codes anonymes. Continuer ?'))return;
  const first=!SH.url&&f.url;Object.assign(SH,f);SV('sh',SH);render();

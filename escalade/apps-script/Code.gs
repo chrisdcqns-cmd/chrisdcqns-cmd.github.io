@@ -59,10 +59,24 @@ function doPost(e) {
   }
 }
 
-/** Test de connexion depuis l'application (JSONP). */
+/** Test de connexion et vérification de réception depuis l'application (JSONP). */
 function doGet(e) {
   const p = (e && e.parameter) || {};
   const res = { ok: true, app: 'Escalade EPS', keyOk: p.key === SECRET };
+  // Vérification de réception : l'application envoie les identifiants qu'elle vient de transmettre,
+  // le script répond ceux qui sont bien présents dans la feuille.
+  if (res.keyOk && p.ids !== undefined) {
+    const want = String(p.ids).split(',').filter(String);
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+    const have = {};
+    if (sh && sh.getLastRow() > 1) {
+      const col = sh.getLastColumn();
+      sh.getRange(2, col, sh.getLastRow() - 1, 1).getValues().forEach(r => { have[String(r[0])] = 1; });
+    }
+    res.check = true;
+    res.have = want.filter(id => have[id]);
+    res.rows = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
+  }
   const body = JSON.stringify(res);
   if (p.callback && /^[A-Za-z0-9_]+$/.test(p.callback)) {
     return ContentService.createTextOutput(p.callback + '(' + body + ')')

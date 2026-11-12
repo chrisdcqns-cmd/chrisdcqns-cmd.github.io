@@ -42,6 +42,12 @@ Ensuite, chaque grimpe enregistrée est ajoutée à l'onglet « Grimpes » de la
 
 > Si tu modifies le script plus tard : **Déployer → Gérer les déploiements → Modifier → Nouvelle version**, pour garder la même URL.
 
+## Vérification de réception
+
+Après chaque envoi, l'application relit la feuille Google pour vérifier que les lignes sont bien arrivées. Tant qu'une ligne n'est pas confirmée, elle reste en file d'attente sur la tablette et repart automatiquement (toutes les 20 secondes en cas de problème, à chaque retour du réseau, et toutes les minutes). L'état s'affiche dans les réglages Google Sheets (« reçues », « en attente », « clé incorrecte »…).
+
+**Mettre à jour un script déjà installé** : dans la feuille → Extensions → Apps Script → remplacer tout le contenu de `Code.gs` par la nouvelle version de [`apps-script/Code.gs`](apps-script/Code.gs) **en remettant ta clé secrète** à la ligne `const SECRET` → Enregistrer → Déployer → Gérer les déploiements → ✏️ → Version : **Nouvelle version** → Déployer (l'adresse ne change pas). Avec l'ancien script, l'envoi fonctionne toujours, mais la réception n'est pas vérifiée.
+
 ## Fichiers
 
 - `index.html` : toute l'application (HTML, CSS, JavaScript), sans bibliothèque externe.

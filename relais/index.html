@@ -265,6 +265,9 @@ tr.editable:active td{background:var(--soft)}
 @media (max-width:820px){#v-home .hbar{flex-wrap:wrap}#v-home .hctx{order:9;flex-basis:100%}}
 @media (min-width:600px){section#v-home .grid2,section#v-home .big2{grid-template-columns:1fr 1fr}#v-home .bigbtn{padding:18px}#v-home .bigbtn h3{font-size:28px}}
 body:not(.teach-on) .teach{display:none!important}
+.shstat{font-size:14px;font-weight:600;color:var(--ok);background:var(--ok-soft);border-radius:999px;padding:6px 12px;margin-right:auto}
+.shstat.bad{color:#9C2B10;background:#FBE3D9}
+.rx{font-size:12px;font-weight:700;color:var(--muted)}.rx.ok{color:var(--ok)}
 .coach{display:inline-flex;align-items:center;gap:4px;background:#6D28D9;color:#fff;border-radius:999px;padding:3px 12px 3px 8px;font-weight:800}
 .coach b{color:#fff}
 .coach.sm{font-family:"Barlow";font-size:15px;padding:2px 10px;margin-left:8px;vertical-align:middle}
@@ -705,6 +708,7 @@ tr.disp{opacity:.55}
 
   <div class="top mt" style="margin-bottom:12px">
     <h2 style="font-size:28px">Courses de la leçon</h2>
+    <span class="shstat teach" id="r-shstat" style="display:none"></span>
     <span class="legend"><i class="l1"></i>objectif atteint <i class="l2"></i>objectif dépassé</span>
     <button class="btn ghost sm teachbtn" data-teach></button>
     <button class="btn green sm teach" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Excel</button>
@@ -1878,7 +1882,7 @@ function renderCourses(sel,CS,cfg){
         pt:`<td>${typeof c.pt==="number"?`<b>${c.pt}</b><br><span style="color:var(--muted);font-size:14px">${mFmt(c.ptd)}</span>`:nrs(c.pt)}</td>`,
         conseil:`<td class="l" style="font-size:15px;max-width:240px">${has(c.conseil)?`${c.dv?`<span style="color:var(--muted)">Pleine vitesse : ${esc(c.dv)}${c.dw?" · "+esc(c.dw):""}${c.de?" · erreur témoin : "+esc(c.de):""}</span><br>`:""}<b>${esc(c.conseil)}</b>`:"–"}</td>`,
         pm:`<td>${typeof c.pm==="number"?`<b>${c.pm}</b><br><span style="color:var(--muted);font-size:14px">${mFmt(c.pmd)}</span>`:nrs(c.pm)}</td>`};
-      h+=`<tr class="${num&&c.ecart>0?"hit2":num&&c.ecart===0?"hit1":""}"><td>${c.n}</td><td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i1!=null?byId(c.i1):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p1)+"</b>"):"<b>"+esc(c.p1)+"</b>"})()} ${esc(c.n1)}<br><span style="color:var(--muted);font-size:15px">arrêté ${c.v1}</span></td>
+      h+=`<tr class="${num&&c.ecart>0?"hit2":num&&c.ecart===0?"hit1":""}"><td>${c.n}${SH.url&&SH.key?`<br><span class="rx ${c.rx?"ok":""}" title="${c.rx?"Reçue par Google Sheets":"Pas encore reçue par Google Sheets"}">${c.rx?"☁✓":"⏳"}</span>`:""}</td><td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i1!=null?byId(c.i1):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p1)+"</b>"):"<b>"+esc(c.p1)+"</b>"})()} ${esc(c.n1)}<br><span style="color:var(--muted);font-size:15px">arrêté ${c.v1}</span></td>
       <td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i2!=null?byId(c.i2):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p2)+"</b>"):"<b>"+esc(c.p2)+"</b>"})()} ${esc(c.n2)}<br><span style="color:var(--muted);font-size:15px">lancé ${c.v2}</span></td>
       <td class="avg">${fmt(c.cible)}</td>${cols.map(([k])=>cells[k]).join("")}
       <td><button class="del teach" data-del="${c.cid}" aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
@@ -1886,7 +1890,7 @@ function renderCourses(sel,CS,cfg){
   });
   $(sel).innerHTML=h+"</tbody>";
 }
-function renderRes(){renderCourses("#tblRes",CO(),CFG())}
+function renderRes(){renderCourses("#tblRes",CO(),CFG());try{updShStatus()}catch(e){}}
 /* ===== Objectif de courses ===== */
 const skey=(p,n)=>(p+"|"+n).toLowerCase();
 const isD=(c,e)=>c.i1!==undefined?c.i1===e.id:skey(c.p1,c.n1)===skey(e.prenom,e.nom);
@@ -2068,22 +2072,57 @@ function shRow(cls,c){
   const l=cls.lecons.find(x=>x.id===c.lid),v=x=>x===null||x===undefined?"":x,r1=x=>typeof x==="number"?Math.round(x*10)/10:v(x);
   return [cls.name,l?fmtShort(l.date):c.date,c.groupe||"Sans groupe",c.n,c.heure,shWho(cls,c.i1,c.p1,c.n1),c.v1,shWho(cls,c.i2,c.p2,c.n2),c.v2,r1(c.cible),v(c.ecart),r1(c.realise),v(c.zone),v(c.dep),v(c.pt),v(c.ptd),v(c.recul),v(c.pm),v(c.pmd),v(c.dv),v(c.dw),v(c.de),v(c.conseil),c.cid];
 }
-function shQueue(cid,op){if(!SH.url||!SH.key||!SH.auto)return;SH.queue=SH.queue.filter(q=>q.k!==cid);SH.queue.push({c:DATA.cur,k:cid,op});shSave()}
+function shQueue(cid,op){if(!SH.url||!SH.key||!SH.auto)return;DATA.classes.forEach(cls=>cls.courses.forEach(c=>{if(c.cid===cid)delete c.rx}));SH.queue=SH.queue.filter(q=>q.k!==cid);SH.queue.push({c:DATA.cur,k:cid,op});shSave()}
 let shBusy=false;
+/* Appel JSONP au script (lecture) : test de connexion et vérification de réception */
+function shJsonp(params){return new Promise(res=>{
+  const cb="relaisCb"+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement("script");let t;
+  const end=d=>{clearTimeout(t);try{delete window[cb]}catch(e){}s.remove();res(d)};
+  window[cb]=d=>end(d);s.onerror=()=>end(null);t=setTimeout(()=>end(null),15000);
+  const q=Object.entries({...params,key:SH.key,callback:cb}).map(([k,v])=>k+"="+encodeURIComponent(v)).join("&");
+  s.src=SH.url+(SH.url.includes("?")?"&":"?")+q;document.head.appendChild(s)})}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let shRetry=null;
+function markRx(cids){const set=new Set(cids);let n=0;DATA.classes.forEach(cls=>cls.courses.forEach(c=>{if(set.has(c.cid)&&!c.rx){c.rx=1;n++}}));if(n)persist()}
 async function shFlush(){
   if(shBusy||!SH.url||!SH.key||!SH.queue.length||navigator.onLine===false)return;
-  shBusy=true;const q=[...SH.queue];
-  const rows=[],del=[];
+  shBusy=true;clearTimeout(shRetry);
+  const q=SH.queue.slice(0,100);
+  const rows=[],del=[],up=[];
   q.forEach(it=>{const cls=DATA.classes.find(x=>x.id===it.c);if(it.op==="del"){del.push(it.k);return}
-    const c=cls&&cls.courses.find(x=>x.cid===it.k);if(c)rows.push(shRow(cls,c))});
-  try{
-    await fetch(SH.url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:SH.key,head:SH_HEAD,rows,del})});
-    SH.queue=SH.queue.filter(x=>!q.includes(x));shSave();
-  }catch(e){}
-  shBusy=false;updShStatus();
+    const c=cls&&cls.courses.find(x=>x.cid===it.k);if(c){rows.push(shRow(cls,c));up.push(it.k)}else SH.queue=SH.queue.filter(x=>x!==it)});
+  let sent=false;
+  try{await fetch(SH.url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:SH.key,head:SH_HEAD,rows,del})});sent=true}catch(e){SH.err="Envoi impossible (réseau ?)"}
+  if(sent){
+    await sleep(2000);
+    const r=await shJsonp({ids:[...up,...del].join(",")});
+    if(!r)SH.err="Pas de réponse du script : nouvel essai automatique.";
+    else if(!r.keyOk)SH.err="La clé secrète ne correspond pas à celle du script : rien n'a été reçu.";
+    else if(!r.check){ /* ancien script : réception non vérifiable */
+      SH.queue=SH.queue.filter(x=>!q.includes(x));SH.err="Envoyé, mais réception non vérifiée : mets à jour le script Google (voir README).";SH.last=new Date().toLocaleString("fr-FR").slice(0,-3)}
+    else{
+      const have=new Set(r.have||[]),okUp=up.filter(k=>have.has(k)),okDel=del.filter(k=>!have.has(k));
+      SH.queue=SH.queue.filter(x=>!(q.includes(x)&&(x.op==="del"?okDel.includes(x.k):okUp.includes(x.k))));
+      markRx(okUp);SH.rows=r.rows;SH.last=new Date().toLocaleString("fr-FR").slice(0,-3);
+      const miss=up.length-okUp.length+del.length-okDel.length;
+      SH.err=miss?miss+" envoi(s) pas encore reçu(s) par Google : nouvel essai automatique.":"";
+    }
+  }
+  shSave();shBusy=false;updShStatus();try{if($("#v-course").classList.contains("on"))renderCourses("#tblRes",CO(),CFG())}catch(e){}
+  if(SH.queue.length&&navigator.onLine!==false)shRetry=setTimeout(shFlush,SH.err?20000:1500);
 }
 window.addEventListener("online",shFlush);setInterval(shFlush,60000);
-function updShStatus(){const n=SH.queue.length;const el=$("#s-status");if(el)el.textContent=!SH.url?"Pas encore configuré.":!SH.key?"Saisis la clé secrète du script pour activer l'envoi.":n?`${n} envoi(s) en attente (réseau ?) : ils partiront dès que possible.`:"Tous les envois sont faits ✓"}
+function shSummary(){
+  if(!SH.url||!SH.key)return "";
+  const all=CL()?CO():[],rx=all.filter(c=>c.rx).length,n=SH.queue.length;
+  return `☁ Google Sheets : ${rx}/${all.length} course(s) de la leçon reçue(s)${n?` · ${n} en attente`:""}${SH.err?` · ⚠ ${SH.err}`:""}`;
+}
+function updShStatus(){
+  const n=SH.queue.length,el=$("#s-status");
+  if(el)el.textContent=!SH.url?"Pas encore configuré.":!SH.key?"Saisis la clé secrète du script pour activer l'envoi.":
+    (n?`${n} envoi(s) en attente : ils partiront dès que possible.`:"Tous les envois ont été reçus par Google ✓")+(SH.err?" ⚠ "+SH.err:"")+(SH.last?` · dernière vérification : ${SH.last}`+(SH.rows!=null?` (${SH.rows} ligne(s) dans la feuille)`:""):"");
+  const b=$("#r-shstat");if(b){const t=shSummary();b.textContent=t;b.style.display=t?"":"none";b.classList.toggle("bad",!!SH.err)}
+}
 function inArtifact(){return !!(window.claude||/claude\.ai|claudeusercontent|anthropic/.test(location.hostname))}
 function openSheets(){
   $("#s-url").value=SH.url;$("#s-key").value=SH.key;
@@ -2099,15 +2138,12 @@ $("#s-auto").addEventListener("click",()=>$("#s-auto").classList.toggle("on"));
 $("#s-cancel").addEventListener("click",()=>$("#smodal").classList.remove("on"));
 $("#s-save").addEventListener("click",()=>{readSheets();$("#smodal").classList.remove("on");toast("Réglages Google Sheets enregistrés ✓");shFlush()});
 $("#s-all").addEventListener("click",()=>{readSheets();if(!SH.url){toast("Indique d'abord l'adresse du script");return}
-  let n=0;DATA.classes.forEach(cls=>cls.courses.forEach(c=>{SH.queue=SH.queue.filter(q=>q.k!==c.cid);SH.queue.push({c:cls.id,k:c.cid,op:"up"});n++}));shSave();
-  updShStatus();shFlush().then(()=>toast(n+" course(s) envoyée(s) vers Google Sheets"))});
+  let n=0;DATA.classes.forEach(cls=>cls.courses.forEach(c=>{delete c.rx;SH.queue=SH.queue.filter(q=>q.k!==c.cid);SH.queue.push({c:cls.id,k:c.cid,op:"up"});n++}));shSave();persist();
+  updShStatus();renderRes();shFlush().then(()=>{toast(SH.err?"⚠ "+SH.err:n+" course(s) envoyée(s) et vérifiée(s) ✓");renderRes()})});
 /* Test : lecture JSONP (doGet) pour vérifier l'adresse et la clé */
-$("#s-test").addEventListener("click",()=>{readSheets();if(!SH.url){toast("Indique d'abord l'adresse du script");return}
-  const cb="relaisTest"+Date.now(),s=document.createElement("script");let done=false;
-  window[cb]=r=>{done=true;delete window[cb];s.remove();toast(r&&r.ok?(r.keyOk?"Connexion réussie ✓ clé correcte":"Le script répond, mais la clé ne correspond pas"):"Réponse inattendue du script")};
-  s.onerror=()=>{if(!done){delete window[cb];toast("Impossible de joindre le script : vérifie l'adresse et le déploiement")}};
-  s.src=SH.url+(SH.url.includes("?")?"&":"?")+"callback="+cb+"&key="+encodeURIComponent(SH.key);document.head.appendChild(s);
-  setTimeout(()=>{if(!done){delete window[cb];toast("Pas de réponse du script")}},12000)});
+$("#s-test").addEventListener("click",async()=>{readSheets();if(!SH.url){toast("Indique d'abord l'adresse du script");return}
+  toast("Test en cours…");const r=await shJsonp({ids:"_test"});
+  toast(!r?"Impossible de joindre le script : vérifie l'adresse et le déploiement":!r.keyOk?"Le script répond, mais la clé ne correspond pas":r.check?"Connexion réussie ✓ clé correcte · vérification de réception active":"Connexion réussie ✓ clé correcte · mets à jour le script pour vérifier la réception")});
 shFlush();
 
 /* ===== Démarrage : toujours sur le choix de la classe ===== */
