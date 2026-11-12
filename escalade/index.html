@@ -44,6 +44,8 @@ table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px
 .role{max-width:900px;margin:4vh auto 0;text-align:center}.role h2{font-size:40px;margin:0 0 6px}
 .rbtns{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}.rbtns .tile{min-height:min(42vh,300px);text-align:center;align-items:center}
 .rbtns .tile b{font-size:34px}.rbtns .tile span{margin-top:10px}
+.rbtns.cl .tile{min-height:min(24vh,170px)}.rbtns .tile.cur{outline:4px solid var(--hi);outline-offset:-8px}
+.chcl{min-height:40px;padding:6px 14px;font-size:15px;margin-left:8px;vertical-align:middle}
 @media(max-width:700px){.rbtns{grid-template-columns:1fr}}
 .vg{grid-template-columns:repeat(5,1fr)}.vg .b{font-size:26px;min-height:64px}
 .colb{display:flex;align-items:center;gap:12px;font-size:22px;min-height:64px;text-align:left}
@@ -149,11 +151,18 @@ const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
 const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
 function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',com:'',nr:{}};S.free=false}fresh();
 const save=()=>{SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL)};
+function clsScr(){const cur=CF.sea?.cl||'';
+ return `<div class="role"><h2>Choisis ta classe</h2><p class="mut">Touche ta classe pour retrouver ta liste de prénoms.</p>
+ <div class="rbtns cl">${CL.map(c=>`<button class="tile ${cur==c.id?'cur':''}" style="background:#2e7d4f" onclick="pickCl('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)</span></button>`).join('')}
+ <button class="tile" style="background:#5b6b75" onclick="pickCl('')"><b>Autre</b><span>je tape mon prénom</span></button></div>
+ <p style="margin-top:18px"><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`}
+function pickCl(id){if(CF.sea){CF.sea.cl=id;save()}fresh();S.t='home';render();scrollTo(0,0)}
+function eleve(){S.T=false;if(!seaOK()){S.t='set';return render()}S.t=CL.length?'pickcl':'home';render()}
 function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK()?`<span class="sea">${esc(cls().nom)}</span>`:''}<p class="mut">Qui utilise la tablette ?</p>
- <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="S.T=false;S.t=seaOK()?'home':'set';render()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
+ <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="eleve()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
  <button class="tile tprof" style="background:#16252d" onclick="unlock(seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
 function render(){
- if(S.t=='role'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=roleScr();return}
+ if(S.t=='role'||S.t=='pickcl'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():clsScr();return}
  if(!S.T){S.e=false;if(S.t=='res'||(S.t=='set'&&seaOK()))S.t='home'}
  if(S.t!='cot')S.cm='';
  if(S.t!='mr'){S.mr='';S.ml=''}
@@ -162,7 +171,7 @@ function render(){
  $('#nav').innerHTML=TABS.filter(([k])=>k!='res'||S.T).map(([k,n])=>`<button class="${S.t==k?'on':''}" onclick="S.t='${k}';render()">${n}</button>`).join('');
  const m=$('#m');
  if(S.t=='home')m.innerHTML=home();
- else if(S.t=='set')m.innerHTML=S.T?setup():`<div class="card lock"><h2>Escalade EPS</h2><p class="mut">Aucune leçon n'est commencée aujourd'hui sur cette tablette.</p><p><button class="b big" onclick="unlock('set')">🔒 Préparer la leçon du jour</button></p><p class="mut">Réservé à l'enseignant (code demandé).</p></div>`;
+ else if(S.t=='set')m.innerHTML=S.T?setup():`<div class="card lock"><h2>Escalade EPS</h2><p class="mut">Aucune leçon n'est commencée aujourd'hui sur cette tablette.</p><p><button class="b big" onclick="unlock('set')">🔒 Préparer la leçon du jour</button></p><p class="mut">Réservé à l'enseignant (code demandé).</p><p><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`;
  else if(S.t=='sec')m.innerHTML=content('sec');
  else if(S.t=='the')m.innerHTML=(S.T?ficheForm():'')+content('the');
  else if(S.t=='prep')m.innerHTML=`<div class="sub">${[['ech','Échauffement'],['enc',"S'encorder"]].map(([k,n])=>`<button class="b ${S.s==k?'':'g'}" onclick="S.s='${k}';render()">${n}</button>`).join('')}</div>`+content(S.s);
@@ -175,7 +184,7 @@ function render(){
 /* ---------- accueil ---------- */
 const TILES=[['prep','Se préparer','#00747a'],['sec','Sécurité','#a4262c'],['gr','Renseigner une grimpe','#b5651d'],['mr','Mes résultats','#2e7d4f'],['cot','Cotation','#5b3f8c','wide'],['the','Thématiques','#3d5a80','wide']];
 function home(){S.e=false;const t=S.T?[['set','📋 Leçon du jour et classes','#16252d','wide tprof'],...TILES,['res','📊 Résultats, QR codes et Google Sheets','#16252d','wide tprof']]:TILES;
- return `<h2 style="margin-top:4px">Escalade EPS</h2>${cls()?`<span class="sea">${esc(cls().nom)}</span>`:''}<div class="tiles">${t.map(([k,n,c,x])=>`<button class="tile ${x||''}" style="background:${c}" onclick="S.t='${k}';render()"><b>${n}</b></button>`).join('')}</div>`}
+ return `<h2 style="margin-top:4px">Escalade EPS</h2>${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}<div class="tiles">${t.map(([k,n,c,x])=>`<button class="tile ${x||''}" style="background:${c}" onclick="S.t='${k}';render()"><b>${n}</b></button>`).join('')}</div>`}
 /* ---------- leçon du jour / classes ---------- */
 function setup(){
  if(S.ce!=null){const c=CL.find(x=>x.id==S.ce)||{nom:'',el:[]};
@@ -189,7 +198,7 @@ function setup(){
   <div class="row" style="margin-top:14px"><button class="b g" onclick="S.ce=null;render()">Annuler</button><button class="b" onclick="saveCls()">Enregistrer la classe</button></div>
   ${S.ce!='new'?`<p><button class="b d" onclick="delCls()">Supprimer cette classe</button></p>`:''}</div>`}
  const sel=CF.sel||'',cr=CF.cr||ALL;
- return `<h2 style="margin-top:4px">Leçon du jour</h2>
+ return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.ce=null;S.t='home';render();scrollTo(0,0)">← Retour</button></p><h2 style="margin-top:4px">Leçon du jour</h2>
  <div class="card"><h3 style="margin-top:0">1. Classe</h3>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'} clsb" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}<small>${c.el.length} élève(s)</small></button>`).join('')}
  <button class="b ${sel?'g':'on'} clsb" onclick="CF.sel='';save();render()">Sans liste<small>l'élève tape son prénom</small></button></div>
