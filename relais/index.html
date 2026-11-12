@@ -286,6 +286,7 @@ body:not(.teach-on) .teach{display:none!important}
 .rolepick{background:#FFF8E8;border:2px dashed var(--warn);border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .rolepick.done{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
 .rolepick.compact{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px}.rolepick.compact b{display:inline;font-size:15px;margin-right:4px}
+.rpchg{height:36px;padding:0 12px;margin-left:auto}
 .rpchip{background:#fff;border-radius:999px;padding:3px 10px;font-size:14px;font-weight:700}
 .rolepick b{display:block;font-size:18px}.rolepick>small{display:block;color:var(--muted);margin:2px 0 10px}
 .rplist{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,max-content));gap:8px}
@@ -1546,19 +1547,25 @@ function renderCoach(){
   });
 }
 /* Objectif « dans son meilleur rôle » : chaque élève du groupe enregistre son meilleur rôle */
+const ROLE_EDIT={};
+const groupHasCourses=gid=>{const g=GR().find(x=>x.id===gid);return CO().some(x=>x.gid===gid||(g&&x.groupe===g.name))};
 const needBest=cfg=>!!(cfg.goalOn&&cfg.goalMode==="best");
 const bestMissing=g=>groupMembers(g).filter(x=>x.ma!=="DISP"&&!x.best);
 function bestRolesHTML(g){
   const m=groupMembers(g).filter(x=>x.ma!=="DISP"),miss=bestMissing(g).length;
-  if(!miss)return `<div class="rolepick done compact"><b>🎯 Meilleurs rôles</b> ${m.map(e=>`<span class="rpchip">${esc(e.prenom)} · ${e.best==="D"?"donneur":"receveur"}</span>`).join("")}</div>`;
+  if(!miss&&!ROLE_EDIT[g.id])return `<div class="rolepick done compact"><b>🎯 Meilleurs rôles</b> ${m.map(e=>`<span class="rpchip">${esc(e.prenom)} · ${e.best==="D"?"donneur":"receveur"}</span>`).join("")}<button class="cchg rpchg" data-rolechg="${g.id}">Changer</button></div>`;
   return `<div class="rolepick ${miss?"":"done"}"><b>🎯 Ton meilleur rôle dans le relais</b><small>${miss?`Chacun choisit le rôle où il est le plus efficace : son objectif de courses se fera dans ce rôle. Encore ${miss} élève${miss>1?"s":""} à renseigner.`:"Tout le groupe a choisi son meilleur rôle ✓"}</small>
-    <div class="rplist">${m.map(e=>`<div class="rprow"><span>${isCoachE(e)?"🏅 ":""}${esc(e.prenom)}</span><button data-best="D" data-e="${e.id}" class="${e.best==="D"?"on":""}">Donneur <small>coureur 1</small></button><button data-best="R" data-e="${e.id}" class="${e.best==="R"?"on":""}">Receveur <small>coureur 2</small></button></div>`).join("")}</div></div>`;
+    ${!miss?`<div style="margin:-4px 0 8px"><button class="cchg rpchg" data-roledone="${g.id}">✓ Terminé</button></div>`:""}<div class="rplist">${m.map(e=>`<div class="rprow"><span>${isCoachE(e)?"🏅 ":""}${esc(e.prenom)}</span><button data-best="D" data-e="${e.id}" class="${e.best==="D"?"on":""}">Donneur <small>coureur 1</small></button><button data-best="R" data-e="${e.id}" class="${e.best==="R"?"on":""}">Receveur <small>coureur 2</small></button></div>`).join("")}</div></div>`;
 }
 document.addEventListener("click",async e=>{
+  const ch=e.target.closest("[data-rolechg]");
+  if(ch){const gid=ch.dataset.rolechg;if(groupHasCourses(gid)&&!await requireCode())return;ROLE_EDIT[gid]=true;renderClassAll();return}
+  const dn=e.target.closest("[data-roledone]");if(dn){delete ROLE_EDIT[dn.dataset.roledone];renderClassAll();return}
   const b=e.target.closest("[data-best]");if(!b)return;
   const s=byId(+b.dataset.e),v=b.dataset.best;if(!s||s.best===v)return;
-  if(s.best&&!await requireCode())return; /* changer un rôle déjà choisi : enseignant */
-  s.best=v;persist();renderClassAll();toast(s.prenom+" : meilleur rôle "+(v==="D"?"donneur":"receveur")+" ✓");
+  const gid=CURG();
+  if(s.best&&!ROLE_EDIT[gid]&&groupHasCourses(gid)&&!await requireCode())return;
+  s.best=v;persist();refillSelects();renderClassAll();toast(s.prenom+" : meilleur rôle "+(v==="D"?"donneur":"receveur")+" ✓");
 });
 document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-coach]");
@@ -1583,8 +1590,10 @@ function renderGPicks(){
 function poolFor(){if(CURG()==="all")return EL();const g=GR().find(x=>x.id===CURG());return g?groupMembers(g):EL()}
 
 /* ===== Listes déroulantes et vitesse cible ===== */
+/* objectif « meilleur rôle » : un receveur n'apparaît pas en coureur 1 (départ arrêté), un donneur pas en coureur 2 */
+function roleOk(e,kind){const c=CFG();if(!(c.goalOn&&c.goalMode==="best")||!e.best)return true;return kind==="A"?e.best==="D":e.best==="R"}
 function fillSelect(sel,kind){
-  const list=poolFor().filter(e=>usable(e,kind)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
+  const list=poolFor().filter(e=>usable(e,kind)&&roleOk(e,kind)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
   const dup=p=>list.filter(x=>x.prenom.toLowerCase()===p.toLowerCase()).length>1;
   const lab0=e=>CURG()==="all"?`${e.prenom} ${e.nom}`:(dup(e.prenom)?`${e.prenom} ${e.nom?e.nom[0]+".":""}`:e.prenom);
   const lab=e=>(isCoachE(e)?"🏅 ":"")+lab0(e);
@@ -1592,7 +1601,7 @@ function fillSelect(sel,kind){
   /* élèves des autres groupes : à la fin de la liste, avec le nom de leur groupe */
   if(CURG()!=="all"){
     const ids=new Set(list.map(e=>e.id)),grpOf=e=>(GR().find(g=>g.members.includes(e.id))||{}).name;
-    const others=EL().filter(e=>!ids.has(e.id)&&usable(e,kind)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
+    const others=EL().filter(e=>!ids.has(e.id)&&usable(e,kind)&&roleOk(e,kind)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
     if(others.length)sel.innerHTML+=`<optgroup label="── Élève d'un autre groupe ──">`+others.map(e=>`<option value="${e.id}">${esc((isCoachE(e)?"🏅 ":"")+e.prenom+" "+(e.nom?e.nom[0]+".":""))} (${esc(grpOf(e)||"sans groupe")}) · ${kind==="A"?e.ma:e.ml} km/h</option>`).join("")+`</optgroup>`;
   }
 }
