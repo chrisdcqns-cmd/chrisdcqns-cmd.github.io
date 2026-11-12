@@ -129,7 +129,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .scroll{overflow-x:auto}
 .del{width:46px;height:46px;border-radius:12px;background:var(--soft);display:inline-grid;place-items:center;color:var(--muted)}
 .del svg{width:20px;height:20px}
-tr.editable{cursor:pointer}
+body.teach-on tr.editable{cursor:pointer}
 tr.editable:active td{background:var(--soft)}
 .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:15px}
 .pill.neg{background:#FBE3D9;color:#9C2B10}.pill.pos{background:var(--ok-soft);color:var(--ok)}.pill.zero{background:#EEE;color:#555}
@@ -362,6 +362,11 @@ tr.disp{opacity:.55}
 .krow .kn{flex:1;font-size:17px}.krow .kv{font-family:"Barlow Condensed";font-size:20px;font-weight:700;color:var(--muted)}
 .krow .kv em{font-style:normal;font-size:13px;font-weight:800;margin-left:6px}.krow .kv em.a{color:var(--track)}.krow .kv em.l{color:var(--lane)}
 .krow .kgo{color:var(--track);font-weight:800}
+#v-wait.on{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 60px)}
+.waitbox{text-align:center;max-width:720px}
+.waitbox .wt{margin:0;font-size:64px;line-height:.95;font-weight:800;text-transform:uppercase}.waitbox .wt span{color:var(--track)}
+.waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
+.wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .todaycard{border:2px solid var(--ok)}
 .todayd{margin:0 0 6px;font-size:40px;font-weight:800}
 .cfgsum{display:flex;flex-wrap:wrap;gap:8px}
@@ -473,8 +478,22 @@ tr.disp{opacity:.55}
       <button class="lk" id="lkState"></button>
       <button class="lk" id="lkChange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Code enseignant</button>
       <button class="lk" id="lkSheets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>Google Sheets</button>
+      <button class="lk" id="lkStudent">👟 Mode élève</button>
       <button class="lk" id="lkBackup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg>Sauvegarde</button>
     </div>
+  </div>
+</section>
+
+<!-- ÉCRAN ÉLÈVE QUAND AUCUNE LEÇON N'EST EN COURS -->
+<section class="view" id="v-wait">
+  <div class="waitbox">
+    <h1 class="wt">Relais <span>vitesse</span></h1>
+    <div class="lanes" style="max-width:520px;margin:18px auto 26px"></div>
+    <p class="wp" id="w-msg">Aucune leçon n'est en cours sur cette tablette.<br>Ton enseignant va la lancer.</p>
+    <div class="row" style="justify-content:center;gap:14px;margin-top:26px">
+      <button class="btn green" id="w-perf" style="display:none">⏱ Prise de performances</button>
+    </div>
+    <button class="wteach" id="w-teach">🔒 Espace enseignant</button>
   </div>
 </section>
 
@@ -635,11 +654,12 @@ tr.disp{opacity:.55}
   <div class="top">
     <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour</button>
     <h2>Vitesses · <span class="cname"></span></h2>
-    <button class="btn primary sm" id="btnAddEleve"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ajouter un élève</button>
+    <button class="btn ghost sm teachbtn" data-teach></button>
+    <button class="btn primary sm teach" id="btnAddEleve"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ajouter un élève</button>
   </div>
   <div class="card scroll"><table class="tbl" id="tblListe"></table></div>
-  <p class="note">Touche une ligne pour modifier un élève (code enseignant demandé). Moyenne = arrondi supérieur de la moyenne des essais, comme dans le tableur. Les élèves « incomplet » ou dispensés n'apparaissent pas dans les listes déroulantes. Les courses déjà enregistrées gardent les vitesses du moment.</p>
-  <div class="row mt"><button class="btn ghost" id="btnResetAll">Rétablir les valeurs d'origine</button></div>
+  <p class="note"><span class="teach">Touche une ligne pour modifier un élève. </span> Moyenne = arrondi supérieur de la moyenne des essais, comme dans le tableur. Les élèves « incomplet » ou dispensés n'apparaissent pas dans les listes déroulantes. Les courses déjà enregistrées gardent les vitesses du moment.</p>
+  <div class="row mt"><button class="btn ghost teach" id="btnResetAll">Rétablir les valeurs d'origine</button></div>
 </section>
 
 <!-- COURSES -->
@@ -1084,7 +1104,11 @@ $("#lkChange").addEventListener("click",async()=>{
 
 /* ===== Navigation ===== */
 const VIEWS=["classes","import","lecons","perf","bilan","groupes","home","liste","course"];
+/* Espace enseignant : ces écrans demandent le code */
+const TEACH_VIEWS=["classes","import","lecons","bilan"];
 function go(v){
+  if(TEACH_VIEWS.includes(v)&&!teachOn()){requireCode().then(ok=>{if(ok)go(v)});return}
+  if(v==="wait"){showWait();return}
   if(!["classes","import"].includes(v)&&!CL())v="classes";
   if(["groupes","home","course"].includes(v)&&!CLE())v="lecons";
   if(["groupes","home","course"].includes(v)&&CLE()&&!CLE().groupes){ensureLeconGroups(CLE());persist()}
@@ -1336,11 +1360,11 @@ function renderListe(){
   list.forEach(e=>{
     const okA=usable(e,"A"),okL=usable(e,"L");
     let flag=(e.ma==="DISP")?'<span class="flag">dispensé</span>':(!okA||!okL)?'<span class="flag">à compléter</span>':"";
-    if(e.added)flag+='<span class="flag new">ajouté</span>';else if(e.edited)flag+='<span class="flag mod">modifié</span>';
+    if(e.added)flag+='<span class="flag new teach">ajouté</span>';else if(e.edited)flag+='<span class="flag mod teach">modifié</span>';
     h+=`<tr class="editable" data-edit="${e.id}"><td class="l">${esc(e.nom)}</td><td class="l name">${esc(e.prenom)}${flag}</td>
     ${e.ea.map(v=>`<td>${cell(v)}</td>`).join("")}<td class="avg a">${typeof e.ma==="number"&&e.ma<=0&&!e.orig?"":cell(e.ma)}</td>
     ${e.el.map(v=>`<td>${cell(v)}</td>`).join("")}<td class="avg b">${typeof e.ml==="number"&&e.ml<=0&&!e.orig?"":cell(e.ml)}</td>
-    <td><span class="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></span></td></tr>`;
+    <td><span class="del teach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></span></td></tr>`;
   });
   if(!list.length)h+=`<tr><td colspan="11" class="empty-msg">Aucun élève dans cette classe.</td></tr>`;
   $("#tblListe").innerHTML=h+"</tbody>";
@@ -1349,7 +1373,7 @@ function renderListe(){
 /* ===== Fiche élève ===== */
 let EDIT_ID=null,ED=null;
 const numOrNull=v=>{if(v===""||v===null||v===undefined)return null;const n=parseFloat(String(v).replace(",","."));return isFinite(n)?n:null};
-$("#tblListe").addEventListener("click",async e=>{const tr=e.target.closest("[data-edit]");if(!tr)return;if(await requireCode())openEdit(+tr.dataset.edit)});
+$("#tblListe").addEventListener("click",async e=>{const tr=e.target.closest("[data-edit]");if(!tr||!teachOn())return;if(await requireCode())openEdit(+tr.dataset.edit)});
 $("#btnAddEleve").addEventListener("click",async()=>{if(await requireCode())openEdit(null)});
 function openEdit(id){
   const e=id===null?{prenom:"",nom:"",ea:[null,null,null],ma:null,el:[null,null,null],ml:null}:byId(id);
@@ -1671,7 +1695,7 @@ function recalcMoy(s){
     if(n>=3)s[KA[k][3]]=moyEx(arr,s[KA[k][2]]);else if(n>0)s[KA[k][3]]=0;});
 }
 $("#pf-g").addEventListener("click",e=>{const b=e.target.closest("[data-g]");if(!b)return;CL().curg=b.dataset.g;persist();renderPerf();renderGPicks();refillSelects()});
-$("#l-perf").addEventListener("click",()=>go("perf"));
+$("#l-perf").addEventListener("click",()=>{DATA.perfOpen=DATA.cur;persist();go("perf")});
 /* le mode enseignant (dé)verrouille les essais validés */
 document.addEventListener("click",e=>{if(e.target.closest("[data-teach]")&&$("#v-perf").classList.contains("on"))setTimeout(renderPerf,400)});
 
@@ -2333,9 +2357,28 @@ $("#b-file").addEventListener("change",async()=>{
   toast(`Sauvegarde restaurée ✓ ${nc} classe(s) ajoutée(s), ${nk} course(s) ajoutée(s)`);
 });
 
-/* ===== Démarrage : toujours sur le choix de la classe ===== */
+/* ===== Ouverture côté élève ===== */
+/* la tablette s'ouvre sur la leçon du jour (vue élève) ; sinon sur un écran d'attente avec l'accès enseignant */
+function startStudent(){
+  const t=todayISO();
+  let C=DATA.classes.find(c=>c.id===DATA.cur&&(c.lecons||[]).some(l=>l.date===t))||DATA.classes.find(c=>(c.lecons||[]).some(l=>l.date===t));
+  if(C){DATA.cur=C.id;DATA.lecon=C.lecons.find(l=>l.date===t).id;persist();go("home");return}
+  showWait();
+}
+function showWait(){
+  document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-wait"));window.scrollTo(0,0);
+  try{history.replaceState(null,"",location.pathname)}catch(e){}
+  const C=CL()||DATA.classes[0];
+  $("#w-perf").style.display=C&&C.eleves.some(e=>perfState(e)!=="ok"&&e.ma!=="DISP")&&DATA.perfOpen===C.id?"":"none";
+  $("#w-msg").innerHTML=DATA.classes.length?"Aucune leçon n'est en cours sur cette tablette.<br>Ton enseignant va la lancer.":"Bienvenue ! Aucune classe n'est encore créée.<br>L'enseignant commence par importer sa classe.";
+}
+$("#w-teach").addEventListener("click",async()=>{if(await requireCode())go("classes")});
+$("#w-perf").addEventListener("click",()=>{DATA.cur=DATA.perfOpen;go("perf")});
+$("#lkStudent").addEventListener("click",()=>{UNLOCK_UNTIL=0;updLock();startStudent();toast("Mode élève")});
+
+/* ===== Démarrage : côté élève ===== */
 updLock();
-(()=>{const h=location.hash.slice(1);go(VIEWS.includes(h)&&h!=="import"?h:"classes")})();
+startStudent();
 </script>
 <script src="/eps-home.js" defer></script>
 <script>if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("/sw.js",{scope:"/"}).catch(()=>{});</script>
