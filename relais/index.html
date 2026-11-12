@@ -301,6 +301,9 @@ body:not(.teach-on) .teach{display:none!important}
 .legend i{display:inline-block;width:18px;height:18px;border-radius:5px;margin-left:8px}
 .legend i.l1,.tbl tr.hit1 td{background:#E2F4E7}
 .legend i.l2,.tbl tr.hit2 td{background:#B5E2C3}
+.legend i.l3,.tbl tr.miss1 td{background:#FFE2BF}
+.legend i.l4,.tbl tr.miss2 td{background:#F9D0CC}
+.legend{flex-wrap:wrap}
 .tbl tr.pairs td{text-align:left;background:#FFF8E8;font-size:16px;padding:10px 14px}
 .tbl tr.pairs .todo{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .tbl tr.pairs .todo span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:15px}
@@ -523,6 +526,8 @@ tr.disp{opacity:.55}
       <button class="btn green" id="l-start">Commencer la leçon →</button>
     </div>
   </div>
+  <div class="row mt"><button class="btn ghost sm" id="l-other">📅 Préparer la leçon de demain ou d'un autre jour</button></div>
+  <div id="lnextw" style="display:none"><h3 class="sect" style="margin:24px 0 12px">Leçons à venir</h3><div class="llist" id="lnext"></div></div>
   <div class="row" style="margin:28px 0 12px"><h3 class="sect" style="flex:1">Leçons précédentes</h3>
     <button class="btn ghost sm" id="l-exportall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Toutes les leçons (Excel)</button></div>
   <div class="llist" id="llist"></div>
@@ -551,14 +556,16 @@ tr.disp{opacity:.55}
   <div class="top">
     <button class="back" data-go="lecons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour</button>
     <h2><span id="b-title"></span> · <span class="cname"></span></h2>
-    <button class="btn green sm" id="b-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Excel</button>
+    <button class="btn ghost sm teachbtn" data-teach></button>
+    <button class="btn green sm teach" id="b-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Excel</button>
   </div>
   <div class="stats" style="margin:0 0 16px" id="b-stats"></div>
   <div class="card scroll"><table class="tbl" id="tblBilan"></table></div>
   <div class="row mt">
     <button class="btn ghost" id="b-resume">Reprendre cette leçon</button>
+    <button class="btn ghost teach" id="b-regroup">👥 Reformer les groupes</button>
     <span style="flex:1"></span>
-    <button class="btn danger" id="b-delete">Supprimer la leçon</button>
+    <button class="btn danger teach" id="b-delete">🔒 Supprimer la leçon</button>
   </div>
 </section>
 
@@ -710,7 +717,7 @@ tr.disp{opacity:.55}
   <div class="top mt" style="margin-bottom:12px">
     <h2 style="font-size:28px">Courses de la leçon</h2>
     <span class="shstat teach" id="r-shstat" style="display:none"></span>
-    <span class="legend"><i class="l1"></i>objectif atteint <i class="l2"></i>objectif dépassé</span>
+    <span class="legend"><i class="l2"></i>dépassé <i class="l1"></i>atteint <i class="l3"></i>0,5 à 1,5 km/h sous la cible <i class="l4"></i>2 km/h ou plus sous la cible</span>
     <button class="btn ghost sm teachbtn" data-teach></button>
     <button class="btn green sm teach" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Excel</button>
   </div>
@@ -763,6 +770,24 @@ tr.disp{opacity:.55}
   <div class="mt"><label class="fl">Écart signalé ⚠ si un essai s'éloigne des deux autres de plus de (km/h)</label>
     <div class="stw small"><button class="stp" data-th="-0.5">−</button><input id="pfc-thr" inputmode="decimal"><button class="stp" data-th="0.5">+</button></div></div>
   <div class="row mt"><span style="flex:1"></span><button class="btn ghost sm" id="pfc-cancel">Annuler</button><button class="btn primary sm" id="pfc-save">Enregistrer</button></div>
+</div></div>
+
+<!-- Reformer les groupes d'une leçon -->
+<div class="modal" id="rgmodal"><div class="box wide">
+  <h3>Reformer les groupes de cette leçon</h3>
+  <p>Les courses sont rangées dans les <b>groupes actuels</b> de la classe : une course va dans le groupe qui contient ses deux coureurs (sinon celui du coureur 1). Pour changer la composition des groupes, modifie-les d'abord dans « Groupes ».</p>
+  <div class="seg" id="rg-mode" style="--n:2"><button data-m="free">Seulement les courses sans groupe</button><button data-m="all">Toutes les courses de la leçon</button></div>
+  <div class="card mt" id="rg-prev" style="background:var(--soft);box-shadow:none"></div>
+  <div class="row mt"><span style="flex:1"></span><button class="btn ghost sm" id="rg-cancel">Annuler</button><button class="btn primary sm" id="rg-ok">Appliquer</button></div>
+</div></div>
+
+<!-- Préparer une leçon à une autre date -->
+<div class="modal" id="dmodal"><div class="box">
+  <h3>Préparer une leçon</h3>
+  <p>Choisis la date de la leçon à préparer (groupes, éléments à saisir…). Le jour venu, elle s'ouvrira comme leçon du jour.</p>
+  <label class="fl" for="d-date">Date de la leçon</label>
+  <input class="txt" type="date" id="d-date">
+  <div class="row mt"><span style="flex:1"></span><button class="btn ghost sm" id="d-cancel">Annuler</button><button class="btn primary sm" id="d-ok">Préparer cette leçon →</button></div>
 </div></div>
 
 <!-- Sauvegarde / restauration -->
@@ -999,8 +1024,8 @@ async function createCode(){
   if(c1!==c2){toast("Les deux codes ne correspondent pas");return false}
   save(K.code,hashCode(c1));UNLOCK_UNTIL=Date.now()+UNLOCK_MS;updLock();toast("Code enseignant créé ✓");return true;
 }
-async function requireCode(){
-  if(Date.now()<UNLOCK_UNTIL){UNLOCK_UNTIL=Date.now()+UNLOCK_MS;return true}
+async function requireCode(force){
+  if(!force&&Date.now()<UNLOCK_UNTIL){UNLOCK_UNTIL=Date.now()+UNLOCK_MS;return true}
   const h=load(K.code,null);
   if(!h)return createCode();
   for(let i=0;i<3;i++){
@@ -1249,7 +1274,7 @@ $("#i-go").addEventListener("click",async()=>{
 function renderClassAll(){
   setTimeout(()=>{try{renderCoach()}catch(e){}},0);
   document.querySelectorAll(".cname").forEach(s=>s.textContent=CL().name);
-  if(CLE()){$("#h-lecon").textContent=CL().name+" · leçon du "+fmtShort(CLE().date);$("#r-lecon").textContent="Leçon du "+fmtShort(CLE().date)}
+  if(CLE()){$("#h-lecon").textContent=CL().name+" · leçon du "+fmtShort(CLE().date)+(CLE().date>todayISO()?" (en préparation)":"");$("#r-lecon").textContent="Leçon du "+fmtShort(CLE().date)}
   renderFields();
   renderListe();renderGroupes();renderGPicks();refillSelects();renderRes();
 }
@@ -1442,6 +1467,12 @@ function fillSelect(sel,kind){
   const lab0=e=>CURG()==="all"?`${e.prenom} ${e.nom}`:(dup(e.prenom)?`${e.prenom} ${e.nom?e.nom[0]+".":""}`:e.prenom);
   const lab=e=>(isCoachE(e)?"🏅 ":"")+lab0(e);
   sel.innerHTML=`<option value="">— Choisir un prénom —</option>`+list.map(e=>`<option value="${e.id}">${esc(lab(e))} · ${kind==="A"?e.ma:e.ml} km/h</option>`).join("");
+  /* élèves des autres groupes : à la fin de la liste, avec le nom de leur groupe */
+  if(CURG()!=="all"){
+    const ids=new Set(list.map(e=>e.id)),grpOf=e=>(GR().find(g=>g.members.includes(e.id))||{}).name;
+    const others=EL().filter(e=>!ids.has(e.id)&&usable(e,kind)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
+    if(others.length)sel.innerHTML+=`<optgroup label="── Élève d'un autre groupe ──">`+others.map(e=>`<option value="${e.id}">${esc((isCoachE(e)?"🏅 ":"")+e.prenom+" "+(e.nom?e.nom[0]+".":""))} (${esc(grpOf(e)||"sans groupe")}) · ${kind==="A"?e.ma:e.ml} km/h</option>`).join("")+`</optgroup>`;
+  }
 }
 function refillSelects(){
   [["#c-r1","A"],["#c-r2","L"],["#r-r1","A"],["#r-r2","L"]].forEach(([s,k])=>{const el=$(s),v=el.value;fillSelect(el,k);
@@ -1598,7 +1629,11 @@ function renderLecons(){
   const cfg=ex?ex.cfg:lastCfg(C);
   $("#l-cfgsum").innerHTML=cfgChips(cfg)+(ex?`<span style="background:var(--ok-soft);color:var(--ok)">${C.courses.filter(c=>c.lid===ex.id).length} course(s) déjà enregistrée(s)</span>`:"");
   $("#l-start").textContent=ex?"Reprendre la leçon du jour →":"Commencer la leçon →";
-  const prev=C.lecons.filter(l=>l.date!==t).sort((a,b)=>b.date.localeCompare(a.date));
+  const nxt=C.lecons.filter(l=>l.date>t).sort((a,b)=>a.date.localeCompare(b.date));
+  $("#lnextw").style.display=nxt.length?"":"none";
+  $("#lnext").innerHTML=nxt.map(l=>{const d=isoDate(l.date),g=C.groupes.length;return `<button class="litem" data-prep="${l.id}"><div class="cal" style="background:var(--lane-soft);color:var(--lane)"><div><b>${d.getDate()}</b><small>${d.toLocaleDateString("fr-FR",{month:"short"})}</small></div></div>
+    <div><h4>${esc(cap(fmtLong(l.date)))}</h4><p>En préparation · ${g} groupe${g>1?"s":""}</p></div><span class="arr">Préparer →</span></button>`}).join("");
+  const prev=C.lecons.filter(l=>l.date<t).sort((a,b)=>b.date.localeCompare(a.date));
   $("#llist").innerHTML=prev.length?prev.map(l=>{const n=C.courses.filter(c=>c.lid===l.id),g=new Set(n.map(c=>c.groupe||"—"));const d=isoDate(l.date);
     return `<button class="litem" data-lecon="${l.id}"><div class="cal"><div><b>${d.getDate()}</b><small>${d.toLocaleDateString("fr-FR",{month:"short"})}</small></div></div>
     <div><h4>${esc(cap(fmtLong(l.date)))}</h4><p>${n.length} course${n.length>1?"s":""} · ${n.length?g.size:0} groupe${g.size>1?"s":""}</p></div><span class="arr">Consulter →</span></button>`}).join("")
@@ -1621,8 +1656,44 @@ $("#l-cfg").addEventListener("click",async()=>{
   const C=CL(),ex=C.lecons.find(l=>l.date===todayISO());
   openCfg(ex?ex.cfg:lastCfg(C),v=>{if(ex)Object.assign(ex.cfg,v);else C.nextCfg=v;persist();renderLecons()});
 });
+function openLecon(date){const C=CL();let l=C.lecons.find(x=>x.date===date);
+  if(!l){l={id:uid("l"),date,cfg:lastCfg(C)};C.lecons.push(l);if(date===todayISO())delete C.nextCfg}
+  DATA.lecon=l.id;persist();resetST();go("groupes")}
+$("#l-other").addEventListener("click",async()=>{if(!await requireCode())return;const d=new Date();d.setDate(d.getDate()+1);
+  $("#d-date").value=d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());$("#d-date").min=todayISO();$("#dmodal").classList.add("on")});
+$("#d-cancel").addEventListener("click",()=>$("#dmodal").classList.remove("on"));
+$("#d-ok").addEventListener("click",()=>{const v=$("#d-date").value;if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){toast("Choisis une date");return}
+  if(v<todayISO()){toast("Choisis aujourd'hui ou une date à venir");return}$("#dmodal").classList.remove("on");openLecon(v);
+  if(v>todayISO())toast("Leçon du "+fmtShort(v)+" en préparation");});
+$("#lnext").addEventListener("click",e=>{const b=e.target.closest("[data-prep]");if(!b)return;const l=CL().lecons.find(x=>x.id===b.dataset.prep);if(l){DATA.lecon=l.id;persist();resetST();go("groupes")}});
 $("#llist").addEventListener("click",e=>{const b=e.target.closest("[data-lecon]");if(!b)return;BILAN=b.dataset.lecon;go("bilan")});
 $("#l-exportall").addEventListener("click",()=>exportXlsx(ALLCO(),"toutes-les-lecons"));
+/* ===== Reformer les groupes d'une leçon ===== */
+let RGM="free";
+function findE(id,p,n){return (id!=null&&byId(id))||EL().find(e=>skey(e.prenom,e.nom)===skey(p,n))||null}
+function regroupPlan(mode){
+  const list=ALLCO().filter(c=>c.lid===BILAN);
+  return list.filter(c=>mode==="all"||!c.groupe).map(c=>{
+    const a=findE(c.i1,c.p1,c.n1),b=findE(c.i2,c.p2,c.n2);
+    const g=(a&&b&&GR().find(g=>g.members.includes(a.id)&&g.members.includes(b.id)))||(a&&GR().find(g=>g.members.includes(a.id)))||(b&&GR().find(g=>g.members.includes(b.id)))||null;
+    return {c,g};
+  });
+}
+function drawRegroup(){
+  document.querySelectorAll("#rg-mode button").forEach(b=>b.classList.toggle("on",b.dataset.m===RGM));
+  const plan=regroupPlan(RGM),cnt={};plan.forEach(({g})=>{const k=g?g.name:"Sans groupe";cnt[k]=(cnt[k]||0)+1});
+  const ch=plan.filter(({c,g})=>(g?g.name:"")!==(c.groupe||"")).length;
+  $("#rg-prev").innerHTML=!GR().length?"Aucun groupe dans cette classe : crée d'abord les groupes.":plan.length?`<b>${plan.length} course(s) concernée(s)</b>, dont ${ch} qui change(nt) de groupe :<div class="names" style="margin-top:8px">${Object.entries(cnt).map(([k,v])=>`<span>${esc(k)} · ${v}</span>`).join("")}</div>`:"Aucune course concernée.";
+  $("#rg-ok").disabled=!plan.length||!GR().length;
+}
+$("#b-regroup").addEventListener("click",async()=>{if(!await requireCode())return;RGM=ALLCO().some(c=>c.lid===BILAN&&!c.groupe)?"free":"all";drawRegroup();$("#rgmodal").classList.add("on")});
+$("#rg-mode").addEventListener("click",e=>{const b=e.target.closest("[data-m]");if(!b)return;RGM=b.dataset.m;drawRegroup()});
+$("#rg-cancel").addEventListener("click",()=>$("#rgmodal").classList.remove("on"));
+$("#rg-ok").addEventListener("click",()=>{
+  let n=0;regroupPlan(RGM).forEach(({c,g})=>{const name=g?g.name:"";if(name!==(c.groupe||"")){c.groupe=name;c.gid=g?g.id:null;n++;try{shQueue(c.cid,"up")}catch(e){}}});
+  persist();try{shFlush()}catch(e){}$("#rgmodal").classList.remove("on");renderBilan();toast(n?`${n} course(s) rangée(s) dans leur groupe ✓`:"Aucun changement");
+});
+
 function renderBilan(){
   const l=CL().lecons.find(x=>x.id===BILAN);if(!l){go("lecons");return}
   const list=ALLCO().filter(c=>c.lid===l.id),g=new Set(list.map(c=>c.groupe||"Sans groupe"));
@@ -1634,7 +1705,7 @@ function renderBilan(){
 $("#b-export").addEventListener("click",()=>{const l=CL().lecons.find(x=>x.id===BILAN);exportXlsx(ALLCO().filter(c=>c.lid===l.id),l.date)});
 $("#b-resume").addEventListener("click",()=>{DATA.lecon=BILAN;persist();resetST();go("groupes")});
 $("#b-delete").addEventListener("click",async()=>{
-  if(!await requireCode())return;
+  if(!await requireCode(true))return; /* code toujours redemandé pour supprimer une leçon */
   const l=CL().lecons.find(x=>x.id===BILAN),n=ALLCO().filter(c=>c.lid===l.id).length;
   if(!await doubleConfirm("Supprimer la leçon du "+fmtShort(l.date)+" ?","Ses "+n+" course(s) seront effacées. Pense à exporter le fichier Excel avant.",
      "Confirmer la suppression","Dernière vérification : la leçon et ses courses seront supprimées définitivement."))return;
@@ -1894,7 +1965,7 @@ function renderCourses(sel,CS,cfg){
         pt:`<td>${typeof c.pt==="number"?`<b>${c.pt}</b><br><span style="color:var(--muted);font-size:14px">${mFmt(c.ptd)}</span>`:nrs(c.pt)}</td>`,
         conseil:`<td class="l" style="font-size:15px;max-width:240px">${has(c.conseil)?`${c.dv?`<span style="color:var(--muted)">Pleine vitesse : ${esc(c.dv)}${c.dw?" · "+esc(c.dw):""}${c.de?" · erreur témoin : "+esc(c.de):""}</span><br>`:""}<b>${esc(c.conseil)}</b>`:"–"}</td>`,
         pm:`<td>${typeof c.pm==="number"?`<b>${c.pm}</b><br><span style="color:var(--muted);font-size:14px">${mFmt(c.pmd)}</span>`:nrs(c.pm)}</td>`};
-      h+=`<tr class="${num&&c.ecart>0?"hit2":num&&c.ecart===0?"hit1":""}"><td>${c.n}${SH.url&&SH.key?`<br><span class="rx ${c.rx?"ok":""}" title="${c.rx?"Reçue par Google Sheets":"Pas encore reçue par Google Sheets"}">${c.rx?"☁✓":"⏳"}</span>`:""}</td><td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i1!=null?byId(c.i1):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p1)+"</b>"):"<b>"+esc(c.p1)+"</b>"})()} ${esc(c.n1)}<br><span style="color:var(--muted);font-size:15px">arrêté ${c.v1}</span></td>
+      h+=`<tr class="${!num?"":c.ecart>0?"hit2":c.ecart===0?"hit1":c.ecart<=-2?"miss2":"miss1"}"><td>${c.n}${SH.url&&SH.key?`<br><span class="rx ${c.rx?"ok":""}" title="${c.rx?"Reçue par Google Sheets":"Pas encore reçue par Google Sheets"}">${c.rx?"☁✓":"⏳"}</span>`:""}</td><td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i1!=null?byId(c.i1):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p1)+"</b>"):"<b>"+esc(c.p1)+"</b>"})()} ${esc(c.n1)}<br><span style="color:var(--muted);font-size:15px">arrêté ${c.v1}</span></td>
       <td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i2!=null?byId(c.i2):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p2)+"</b>"):"<b>"+esc(c.p2)+"</b>"})()} ${esc(c.n2)}<br><span style="color:var(--muted);font-size:15px">lancé ${c.v2}</span></td>
       <td class="avg">${fmt(c.cible)}</td>${cols.map(([k])=>cells[k]).join("")}
       <td><button class="del teach" data-del="${c.cid}" aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></td></tr>`;
