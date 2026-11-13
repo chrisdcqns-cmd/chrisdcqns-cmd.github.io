@@ -141,6 +141,9 @@ sec:[{t:'h',v:'Règles de sécurité'},{t:'s',v:'Avant de grimper'},{t:'p',v:'�
 ech:[{t:'h',v:'Échauffement'},{t:'s',v:'Articulaire'},{t:'p',v:'Poignets, épaules, nuque, hanches, chevilles.'},{t:'s',v:'Cardio'},{t:'p',v:'Course légère, montées de genoux, talons-fesses.'},{t:'s',v:'Spécifique'},{t:'p',v:'Traversées basses, voie facile sans dégaine, pose de pieds précise.'}],
 enc:[{t:'h',v:"S'encorder"},{t:'s',v:'Étapes'},{t:'p',v:'1. Baudrier ajusté, boucles doublées.\n2. Nœud de huit tressé, longueur de queue ≥ 10 cm.\n3. Assureur : frein, mousqueton à vis verrouillé.\n4. Vérification mutuelle : nœud, baudrier, système d\'assurage, nœud en bout de corde.'},{t:'p',v:'Ajoutez une vidéo du nœud avec « Modifier ».'}],
 the:[{t:'h',v:'Thématiques'},{t:'s',v:'Pistes de travail'},{t:'p',v:'• Placement des pieds\n• Lecture de voie\n• Recherche de PME (positions de moindre effort) pour récupérer\n• Confiance dans le matériel'}]};
+/* dispenses communes (page d'accueil EPS, eps-home.js) */
+const dzE=(c,n)=>{try{const d=window.EPSD&&EPSD.find(c||'',n);return d?` <small style="display:block;font-size:13px;font-weight:700;color:#C0392B">🩹 ${esc(EPSD.label(d))}</small>`:''}catch(e){return ''}};
+addEventListener('epsd-change',()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;try{render()}catch(e){}});
 let C=LS('c',DEF),W=LS('w',clone(WDEF)),R=LS('r',[]),CF=LS('cf',{tab:'Tablette 1'}),CL=LS('cl',[]);
 /* dépôt public : aucun nom d'élève. Les classes s'importent sur la tablette (Leçon du jour → + Nouvelle classe). */
 const CL0=null;
@@ -298,7 +301,7 @@ function go(s){F.step=s;render();scrollTo(0,0)}
 function grimpe(){
  const top=`<p class="mut stp">Étape ${F.step} sur 5</p>`,back=s=>`<p><button class="b g" onclick="go(${s})">← Retour</button></p>`,w=W[F.vo-1]||[];
  const k=cls();
- if(F.step==1&&k&&k.el.length&&!S.free)return `<div class="card">${top}<h3>Qui es-tu ?</h3><p class="mut">${esc(k.nom)} · touche ton nom</p><div class="names">${[...k.el].sort((a,b)=>a.localeCompare(b,'fr')).map(n=>`<button class="b ${F.eleve==n?'on':'g'}" data-n="${esc(n)}" onclick="F.eleve=this.dataset.n;go(2)">${esc(n)}</button>`).join('')}</div><p><button class="b g" onclick="S.free=true;F.eleve='';render()">Mon nom n'est pas dans la liste</button></p></div>`;
+ if(F.step==1&&k&&k.el.length&&!S.free)return `<div class="card">${top}<h3>Qui es-tu ?</h3><p class="mut">${esc(k.nom)} · touche ton nom</p><div class="names">${[...k.el].sort((a,b)=>a.localeCompare(b,'fr')).map(n=>`<button class="b ${F.eleve==n?'on':'g'}" data-n="${esc(n)}" onclick="F.eleve=this.dataset.n;go(2)">${esc(n)}${dzE(k.nom,n)}</button>`).join('')}</div><p><button class="b g" onclick="S.free=true;F.eleve='';render()">Mon nom n'est pas dans la liste</button></p></div>`;
  if(F.step==1)return `<div class="card">${top}<h3>Quel est ton prénom ?</h3><input id="pn" value="${esc(F.eleve)}" oninput="F.eleve=this.value" onkeydown="if(event.key=='Enter')nx1()" placeholder="Prénom" autocomplete="off"><p><button class="b" style="width:100%" onclick="nx1()">Suivant →</button></p>${k&&k.el.length?`<p><button class="b g" onclick="S.free=false;render()">← Revenir à la liste</button></p>`:''}</div>`;
  if(F.step==2)return `<div class="card">${top}<h3>Numéro de la corde</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${F.vo==i+1?'on':'g'}" onclick="F.vo=${i+1};go(3)">${i+1}</button>`).join('')}</div>${back(1)}</div>`;
  if(F.step==3)return `<div class="card">${top}<h3>Corde ${F.vo} : couleur de la voie</h3><div class="cols">${w.map(([c],j)=>`<button class="b g colb" onclick="F.c=W[${F.vo-1}][${j}][0];F.d=W[${F.vo-1}][${j}][1];go(4)">${cs(c)}${esc(c)}</button>`).join('')||'<p class="mut">Aucune couleur pour cette corde.</p>'}</div>${back(2)}</div>`;
@@ -329,7 +332,7 @@ function roleIn(k,label,need){const names=(cls()?.el||[]).filter(n=>n!=F.eleve).
  const txt=`<input value="${esc(v)}" placeholder="Prénom" autocomplete="off" oninput="F.${k}=this.value">`;
  if(!names.length)return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}${txt}</div>`;
  if(F[k+'X'])return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<div class="row">${txt}<button class="b g fix" onclick="F.${k}X=false;F.${k}='';render()">← Liste</button></div></div>`;
- return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<select onchange="if(this.value=='__x'){F.${k}X=true;F.${k}='';render()}else F.${k}=this.value"><option value="">${need?'Choisir…':'Personne'}</option>${names.map(n=>`<option ${n==v?'selected':''}>${esc(n)}</option>`).join('')}<option value="__x">Autre (taper le prénom)</option></select></div>`}
+ return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<select onchange="if(this.value=='__x'){F.${k}X=true;F.${k}='';render()}else F.${k}=this.value"><option value="">${need?'Choisir…':'Personne'}</option>${names.map(n=>`<option value="${esc(n)}" ${n==v?'selected':''}>${esc(n)}${dzE((cls()||{}).nom,n)?' 🩹':''}</option>`).join('')}<option value="__x">Autre (taper le prénom)</option></select></div>`}
 const roles=()=>`<div class="crit"><div class="ch"><b>Ta cordée</b></div>${ROLES.map(([k,l,n])=>roleIn(k,l,n)).join('')}</div>`;
 function nx1(){F.eleve=F.eleve.trim();if(!F.eleve){say('Écris ton prénom.');return $('#pn').focus()}go(2)}
 function again(same){const e=F.eleve,k={};ROLES.forEach(([r])=>{k[r]=F[r];k[r+'X']=F[r+'X']});fresh();if(same){Object.assign(F,k);F.eleve=e;F.step=2}go(F.step)}
@@ -351,7 +354,7 @@ const TOP=9,hl=h=>Number(h)==TOP?'Top':h;
 const isNum=v=>v!==''&&v!=null&&!isNaN(v);
 function mesRes(){const k=cls(),nom=k?.nom||'',mine=r=>(r.cl||'')==nom;
  if(!S.mr){const names=[...new Set([...(k?.el||[]),...R.filter(mine).map(r=>r.el).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'fr'));
-  return `<div class="card"><h3 style="margin-top:0">Qui es-tu ?</h3>${k?`<p class="mut">${esc(nom)} · touche ton nom pour voir tes résultats</p>`:''}${names.length?`<div class="names">${names.map(n=>`<button class="b g" data-n="${esc(n)}" onclick="S.mr=this.dataset.n;S.ml='';render()">${esc(n)}</button>`).join('')}</div>`:'<p class="mut">Aucun résultat enregistré sur cette tablette.</p>'}</div>`}
+  return `<div class="card"><h3 style="margin-top:0">Qui es-tu ?</h3>${k?`<p class="mut">${esc(nom)} · touche ton nom pour voir tes résultats</p>`:''}${names.length?`<div class="names">${names.map(n=>`<button class="b g" data-n="${esc(n)}" onclick="S.mr=this.dataset.n;S.ml='';render()">${esc(n)}${dzE((cls()||{}).nom,n)}</button>`).join('')}</div>`:'<p class="mut">Aucun résultat enregistré sur cette tablette.</p>'}</div>`}
  const rs=R.filter(r=>r.el==S.mr&&mine(r)),RL=R.filter(r=>mine(r)&&r.el!=S.mr&&[r.asr,r.cas,r.obs].includes(S.mr)),days=[...new Set([...rs,...RL].map(r=>String(r.ts).slice(0,10)))].sort().reverse();
  const head=`<div class="sum" style="margin-bottom:12px">${esc(S.mr)}<button class="b g" onclick="S.mr='';render()">Changer</button></div>`;
  if(!days.length)return head+`<div class="card"><p class="mut">Tu n'as encore aucune grimpe enregistrée sur cette tablette.</p></div>`;

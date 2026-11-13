@@ -157,7 +157,7 @@ function openAppel() {
     const s = appelSummary(), linked = new Set(S.appel.list.map(e => runnerForEleve(e)?.r).filter(Boolean)), libres = Object.values(S.runners).filter(R => !linked.has(R.r));
     $("#apSum", m).innerHTML = `<div class="row"><span class="chip">${s.pres} présent(s) / ${s.total}</span><span class="chip or">🏃 ${s.partis} parti(s)</span><span class="chip ok">✅ ${s.rentres} rentré(s)</span>${s.manquent.length ? `<span class="chip ko">⚠ pas encore rentré(s) : ${esc(s.manquent.join(", "))}</span>` : s.partis ? '<span class="chip ok">Tout le monde est rentré</span>' : ""}</div>${libres.length ? `<p class="muted">Hors liste : ${libres.map(R => esc(R.nom)).join(", ")}</p>` : ""}`;
     $("#apTab", m).innerHTML = `<table class="t"><thead><tr><th>Élève</th><th>Classe</th><th>Présent</th><th>Parti</th><th>Rentré</th><th>Dans l'appli</th></tr></thead><tbody>${S.appel.list.map((e, i) => { const { R, parti, rentre } = appelState(e);
-      return `<tr style="${e.present === false ? "opacity:.45" : parti && !rentre ? "background:#fff4f4" : ""}"><td><b>${esc(e.nom)}</b></td><td>${esc(e.cl)}</td><td><button class="btn small ${e.present === false ? "ghost" : "green"}" data-pr="${i}">${e.present === false ? "Absent" : "✓ Présent"}</button></td><td>${parti ? `🏃 ${fmtHeure(parti.t)}` : "–"}</td><td>${rentre ? `✅ ${rentre.t ? fmtHeure(rentre.t) : ""}` : parti ? `<button class="btn small alt" data-rt="${i}">Marquer rentré</button>` : "–"}</td>
+      return `<tr style="${e.present === false ? "opacity:.45" : parti && !rentre ? "background:#fff4f4" : ""}"><td><b>${esc(e.nom)}</b>${dzO(e.cl, e.nom) ? `<br><small style="color:#C0392B;font-weight:700">🩹 ${esc(EPSD.label(dzO(e.cl, e.nom)))}</small>` : ""}</td><td>${esc(e.cl)}</td><td><button class="btn small ${e.present === false ? "ghost" : "green"}" data-pr="${i}">${e.present === false ? "Absent" : "✓ Présent"}</button></td><td>${parti ? `🏃 ${fmtHeure(parti.t)}` : "–"}</td><td>${rentre ? `✅ ${rentre.t ? fmtHeure(rentre.t) : ""}` : parti ? `<button class="btn small alt" data-rt="${i}">Marquer rentré</button>` : "–"}</td>
        <td>${R ? `<button class="btn small ghost" data-det="${R.r}">${esc(R.nom)}</button>` : libres.length ? `<select data-lk="${i}" class="inp" style="min-height:34px;padding:2px 6px"><option value="">— associer —</option>${libres.map(x => `<option value="${x.r}">${esc(x.nom)}</option>`).join("")}</select>` : '<span class="muted">pas encore inscrit</span>'}</td></tr>`; }).join("")}</tbody></table>`;
     $$("[data-pr]", m).forEach(b => b.onclick = () => { const e = S.appel.list[+b.dataset.pr]; e.present = e.present === false ? true : false; saveS(); draw(); });
     $$("[data-rt]", m).forEach(b => b.onclick = () => { S.appel.list[+b.dataset.rt].rentre = { t: Date.now(), manuel: 1 }; saveS(); draw(); renderLive(); });
@@ -168,6 +168,8 @@ function openAppel() {
 }
 
 // ---------- 11. listes de classe (Réglages enseignant) ----------
+// dispenses communes (page d'accueil EPS, eps-home.js)
+function dzO(c, n) { try { return window.EPSD ? EPSD.find(c || "", n) : null; } catch (e) { return null; } }
 async function getClasses() { return (await DB.get("classes")) || {}; }
 async function classesPanel(box) {
   let C = await getClasses();

@@ -93,8 +93,8 @@ function joinScreen(g) {
       const cur = box._cl && eleves[box._cl] ? box._cl : (cls.includes(me.cl) ? me.cl : cls.length === 1 ? cls[0] : null);
       box._cl = cur;
       box.innerHTML = `<div class="lbl">Ta classe</div><div class="cchips" style="margin:6px 0 10px">${cls.map(c => `<button class="cchip ${c === cur ? "on" : ""}" data-jc="${esc(c)}" style="padding:0 14px">${esc(c)}</button>`).join("")}</div>
-       ${cur ? `<div class="field"><label>Ton nom</label><select class="inp" id="jNomSel"><option value="">— choisis ton nom —</option>${eleves[cur].map(n => `<option ${normName(n) === normName(me.nom) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>
-       <div class="field"><label>Équipier(e) (si vous courez à deux)</label><select class="inp" id="jBinSel"><option value="">— personne —</option>${eleves[cur].map(n => `<option>${esc(n)}</option>`).join("")}</select></div>` : ""}
+       ${cur ? `<div class="field"><label>Ton nom</label><select class="inp" id="jNomSel"><option value="">— choisis ton nom —</option>${eleves[cur].map(n => `<option value="${esc(n)}" ${normName(n) === normName(me.nom) ? "selected" : ""}>${esc(n)}${dzO(cur, n) ? " 🩹 " + esc(EPSD.label(dzO(cur, n))) : ""}</option>`).join("")}</select></div>
+       <div class="field"><label>Équipier(e) (si vous courez à deux)</label><select class="inp" id="jBinSel"><option value="">— personne —</option>${eleves[cur].map(n => `<option value="${esc(n)}">${esc(n)}${dzO(cur, n) ? " 🩹" : ""}</option>`).join("")}</select></div>` : ""}
        <button class="btn small ghost" id="jLibre">Je ne suis pas dans la liste</button>`;
       $$("[data-jc]", box).forEach(b => b.onclick = () => { box._cl = b.dataset.jc; who(); });
       $("#jLibre", box).onclick = () => { libre = true; who(); };

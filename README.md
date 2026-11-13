@@ -28,3 +28,6 @@ Applications :
 - Dans chaque application, une pastille rouge « 🩹 N dispensés » apparaît en bas à gauche quand des élèves sont dispensés aujourd'hui : elle liste qui et jusqu'à quand (le motif n'y est jamais affiché). Relais Vitesse marque aussi les élèves dispensés dans les groupes et les listes de coureurs.
 - Partage entre tablettes : par le même canal chiffré que Relais Vitesse (onglet « Sync », clés `disp|…`), dès que Google Sheets est configuré dans Relais Vitesse sur la tablette.
 - Code partagé : `eps-home.js` (`window.EPSD` : `find(classe, nom, prenom)`, `label()`, `active()`, événement `epsd-change`).
+
+## Bouton « Mise à jour »
+Bouton bleu ⟳ au-dessus du bouton Accueil (sur la page d'accueil : en bas à gauche) : il envoie et récupère les données (Relais, dispenses), vérifie s'il existe une nouvelle version de l'application, puis recharge la page — sans quitter l'appli.

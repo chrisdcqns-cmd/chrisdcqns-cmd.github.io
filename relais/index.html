@@ -381,6 +381,8 @@ tr.disp{opacity:.55}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .dispobtn{white-space:nowrap}
+.dupw:empty{display:none}.dupw{margin:0 0 16px;padding:14px 18px;border-radius:16px;background:#FFF1D6;border:2px solid #B26B00;font-size:17px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.dupw b{color:#7A4A00}.dupw .btn{margin-left:auto}
 .displine{width:100%;margin-top:8px;padding:8px 12px;border-radius:12px;background:#FDF0EE;color:#9C2B10;font-size:15px}
 .names .dz{font-style:normal;font-size:12px;font-weight:700;color:#9C2B10;margin-left:6px}
 .synbox{margin:12px 0 4px;padding:12px 14px;border:2px solid var(--lane);border-radius:14px;background:var(--lane-soft)}
@@ -581,6 +583,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
   </div>
   <div class="lanes"></div>
   <div class="steps"><span class="on"><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
+  <div class="dupw" id="c-dupw"></div>
   <div class="clist" id="clist"></div>
   <div class="stats">
     <div class="lockbar" style="margin-left:0">
@@ -667,6 +670,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
   <div id="lnextw" style="display:none"><h3 class="sect" style="margin:24px 0 12px">Leçons à venir</h3><div class="llist" id="lnext"></div></div>
   <div class="row" style="margin:28px 0 12px"><h3 class="sect" style="flex:1">Leçons précédentes</h3>
     <button class="btn ghost sm" id="l-exportall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Toutes les leçons (Excel)</button></div>
+  <div class="dupw" id="l-dupw"></div>
   <div class="llist" id="llist"></div>
 </section>
 
@@ -1328,6 +1332,7 @@ window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(VIEW
 
 /* ===== Étape 1 : classes ===== */
 function renderClasses(){
+  try{dupBanner()}catch(e){}
   const ic=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`;
   $("#clist").innerHTML=DATA.classes.map(c=>`<div class="ctile"><button class="open" data-class="${c.id}"><h3>${esc(c.name)}</h3>
     <span class="meta">${c.eleves.length} élèves · ${c.groupes.length} groupe${c.groupes.length>1?"s":""} · ${(c.lecons||[]).length} leçon${(c.lecons||[]).length>1?"s":""}</span></button>
@@ -1947,6 +1952,7 @@ $("#pfc-save").addEventListener("click",()=>{CL().perf=PFCT;PEND={};persist();$(
 /* ===== Leçons ===== */
 let BILAN=null;
 function renderLecons(){
+  try{dupBanner()}catch(e){}
   const C=CL(),t=todayISO(),ex=C.lecons.find(l=>l.date===t);
   {const all=C.eleves.filter(e=>e.ma!=="DISP"),ok=all.filter(e=>perfState(e)==="ok").length;
    $("#l-perfinfo").textContent=ok<all.length?`${all.length-ok} élève(s) sans leurs deux moyennes : 3 courses départ arrêté + 3 courses départ lancé.`:`Les ${all.length} élèves ont leurs deux moyennes ✓ (tu peux encore les modifier).`;
@@ -2850,6 +2856,77 @@ $("#s-test").addEventListener("click",async()=>{readSheets();if(!SH.url){toast("
 shFlush();
 
 
+
+/* ===== Compiler les données de plusieurs tablettes =====
+   Une même classe importée séparément sur plusieurs tablettes, ou plusieurs leçons créées le même jour,
+   sont réunies : élèves (par nom), leçons (par date), courses, auto-évaluations et évaluations.
+   La fusion est partagée par la synchronisation (enregistrements alias|…), pour que toutes les tablettes
+   — même celles qui étaient hors connexion — rangent leurs courses au même endroit. */
+const nrm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const ekey=e=>nrm((e.prenom||"")+" "+(e.nom||"")).split(" ").filter(Boolean).sort().join(" ");
+const AL=()=>{if(!DATA.aliases)DATA.aliases={cls:{},lec:{}};const a=DATA.aliases;a.cls=a.cls||{};a.lec=a.lec||{};return a};
+const cWeight=c=>(c.courses||[]).length*3+(c.eleves||[]).length+(c.lecons||[]).length;
+function dupInfo(){
+  const by={};DATA.classes.forEach(c=>{const k=nrm(c.name);(by[k]=by[k]||[]).push(c)});
+  const dc=Object.values(by).filter(L=>L.length>1);
+  const dl=[];DATA.classes.forEach(c=>{const d={};(c.lecons||[]).forEach(l=>{(d[l.date]=d[l.date]||[]).push(l)});Object.entries(d).forEach(([date,L])=>{if(L.length>1)dl.push({c,date,L})})});
+  return {dc,dl};
+}
+function dupBanner(){
+  const {dc,dl}=dupInfo();
+  const t=[...dc.map(L=>`<b>${L.length} classes « ${esc(L[0].name)} »</b>`),...dl.map(x=>`<b>${x.L.length} leçons le ${fmtShort(x.date)}</b> (${esc(x.c.name)})`)];
+  const html=t.length?`<span>🔗 Données de plusieurs tablettes à réunir : ${t.join(", ")}.</span><button class="btn primary sm" data-compile="1">Compiler</button>`:"";
+  ["#c-dupw","#l-dupw"].forEach(s=>{const b=$(s);if(b)b.innerHTML=html});
+}
+function mergeLessons(c,keep,dup){
+  const k=c.lecons.find(l=>l.id===keep),d=c.lecons.find(l=>l.id===dup);if(!k||!d||k===d)return;
+  c.courses.forEach(x=>{if(x.lid===dup)x.lid=keep});
+  if(d.coach){k.coach={...d.coach,...(k.coach||{})}}
+  if(!k.groupes&&d.groupes)k.groupes=d.groupes;
+  Object.values(c.evals||{}).forEach(o=>{if(!o||!o.auto||!o.auto[dup])return;const a=o.auto[dup],b=o.auto[keep];if(!b||(a.at||"")>(b.at||""))o.auto[keep]=a;delete o.auto[dup]});
+  c.lecons=c.lecons.filter(l=>l!==d);if(DATA.lecon===dup)DATA.lecon=keep;
+}
+function mergeClass(T,D,al){
+  al=al||{to:T.id,el:{},lec:{}};al.el=al.el||{};al.lec=al.lec||{};
+  const ids=new Set(T.eleves.map(e=>String(e.id)));
+  D.eleves.forEach(e=>{
+    if(al.el[e.id]!=null&&T.eleves.some(x=>String(x.id)===String(al.el[e.id])))return;
+    const t=T.eleves.find(x=>ekey(x)===ekey(e));
+    if(t){al.el[e.id]=t.id;return}
+    let id=e.id;if(ids.has(String(id)))id=Math.max(-1,...T.eleves.map(x=>+x.id||0))+1+Math.floor(Math.random()*500);
+    T.eleves.push({...e,id});ids.add(String(id));al.el[e.id]=id;
+  });
+  const mp=v=>al.el[v]!=null?al.el[v]:v;
+  (D.lecons||[]).forEach(l=>{
+    const t=al.lec[l.id]?T.lecons.find(x=>x.id===al.lec[l.id]):T.lecons.find(x=>x.date===l.date);
+    if(t){al.lec[l.id]=t.id;if(!t.groupes&&l.groupes)t.groupes=l.groupes.map(g=>({...g,members:g.members.map(mp)}));return}
+    const n=clone(l);if(n.groupes)n.groupes=n.groupes.map(g=>({...g,members:g.members.map(mp)}));if(n.coach)Object.keys(n.coach).forEach(g=>n.coach[g]=mp(n.coach[g]));
+    T.lecons.push(n);al.lec[l.id]=l.id;
+  });
+  const ml=v=>al.lec[v]||v;
+  (D.courses||[]).forEach(x=>{if(T.courses.some(y=>y.cid===x.cid))return;T.courses.push({...x,i1:mp(x.i1),i2:mp(x.i2),lid:ml(x.lid)})});
+  if(!(T.groupes||[]).length&&(D.groupes||[]).length)T.groupes=D.groupes.map(g=>({...g,members:g.members.map(mp)}));
+  Object.entries(D.evals||{}).forEach(([id,o])=>{if(!o)return;T.evals=T.evals||{};const nid=mp(isNaN(+id)?id:+id);const e=T.evals[nid]||(T.evals[nid]={rep:o.rep||"4-4",prof:{},auto:{}});
+    if(!Object.keys(e.prof||{}).length&&o.prof)e.prof=o.prof;
+    Object.entries(o.auto||{}).forEach(([lid,a])=>{const L=ml(lid),b=e.auto[L];if(!b||(a.at||"")>(b.at||""))e.auto[L]=a})});
+  DATA.classes=DATA.classes.filter(c=>c!==D);
+  if(DATA.cur===D.id)DATA.cur=T.id;
+  if(DATA.lecon&&al.lec[DATA.lecon])DATA.lecon=al.lec[DATA.lecon];
+  return al;
+}
+async function compileAll(){
+  if(!await requireCode())return;
+  const {dc,dl}=dupInfo();if(!dc.length&&!dl.length){toast("Rien à compiler");return}
+  if(!await confirmBox("Compiler les données ?","Les classes du même nom et les leçons du même jour sont réunies en une seule : élèves (par prénom et nom), courses, auto-évaluations et évaluations. Rien n'est perdu. Les autres tablettes feront de même à la prochaine synchronisation.","Compiler"))return;
+  let nc=0,nl=0;
+  dc.forEach(L=>{const s=L.slice().sort((a,b)=>cWeight(b)-cWeight(a)),T=s[0];s.slice(1).forEach(D=>{const al=mergeClass(T,D);AL().cls[D.id]=al;nc++})});
+  dupInfo().dl.forEach(({c,L})=>{const cnt=l=>c.courses.filter(x=>x.lid===l.id).length;const s=L.slice().sort((a,b)=>cnt(b)-cnt(a));s.slice(1).forEach(d=>{mergeLessons(c,s[0].id,d.id);AL().lec[c.id+"|"+d.id]=s[0].id;nl++})});
+  try{syRenumber()}catch(e){}
+  persist();renderClasses();if(CL())renderClassAll();if($("#v-lecons").classList.contains("on"))renderLecons();
+  toast(`✓ Compilé : ${nc} classe(s) et ${nl} leçon(s) réunies`);
+}
+document.addEventListener("click",e=>{if(e.target.closest("[data-compile]"))compileAll()});
+
 /* ===== Synchronisation en direct entre tablettes =====
    Chaque élément (classe, élève, leçon, entraîneur, course, évaluation, dispositif) est un enregistrement
    « clé → contenu chiffré » dans l'onglet caché « Sync » de la feuille Google. Le contenu est chiffré
@@ -2876,6 +2953,8 @@ function syRecords(){
   });
   if(DATA.dispo)put("dispo",DATA.dispo);
   put("meta",{salt:SH.salt});
+  {const c=load(K.code,null);if(c)put("code",{h:c})}
+  if(DATA.aliases){Object.entries(DATA.aliases.cls||{}).forEach(([d,o])=>put("alias|"+d,o));Object.entries(DATA.aliases.lec||{}).forEach(([k,to])=>put("lalias|"+k,{to}))}
   return R;
 }
 /* repère les changements locaux et les met en attente d'envoi */
@@ -2908,11 +2987,23 @@ function syApply(k,o){
   const p=k.split("|"),t=p[0];
   if(t==="meta"){if(o&&o.salt){SH.salt=o.salt;shSave()}return true}
   if(t==="dispo"){DATA.dispo=o;return true}
+  if(t==="code"){if(o&&o.h)save(K.code,o.h);return true}
+  if(t==="alias"){AL().cls[p[1]]=o;const D=DATA.classes.find(c=>c.id===p[1]),T=DATA.classes.find(c=>c.id===o.to);if(D&&T)mergeClass(T,D,o);return true}
+  if(t==="lalias"){AL().lec[p[1]+"|"+p[2]]=o.to;const c=DATA.classes.find(x=>x.id===p[1]);if(c&&c.lecons.some(l=>l.id===p[2])&&c.lecons.some(l=>l.id===o.to))mergeLessons(c,o.to,p[2]);return true}
+  /* éléments d'une classe ou d'une leçon déjà réunie ailleurs : rangés au bon endroit */
+  const ca=AL().cls[p[1]];
+  if(ca){const T=DATA.classes.find(x=>x.id===ca.to);if(!T)return false;const mp=v=>ca.el&&ca.el[v]!=null?ca.el[v]:v,ml=v=>(ca.lec&&ca.lec[v])||v;
+    if(t==="co"){if(!T.courses.some(y=>y.cid===o.cid))T.courses.push({...o,i1:mp(o.i1),i2:mp(o.i2),lid:ml(o.lid)});return true}
+    if(t==="eva"){T.evals=T.evals||{};const id=mp(isNaN(+p[2])?p[2]:+p[2]),e=T.evals[id]||(T.evals[id]={rep:"4-4",prof:{},auto:{}});const L=ml(p[3]),b=e.auto[L];if(!b||(o.at||"")>(b.at||""))e.auto[L]=o;return true}
+    return true}
+  if(t==="co"&&o&&AL().lec[p[1]+"|"+o.lid])o={...o,lid:AL().lec[p[1]+"|"+o.lid]};
+  if(t==="eva"&&AL().lec[p[1]+"|"+p[3]]){const c=syCls(p[1]);c.evals=c.evals||{};const e=c.evals[p[2]]||(c.evals[p[2]]={rep:"4-4",prof:{},auto:{}});e.auto[AL().lec[p[1]+"|"+p[3]]]=o;return true}
   if(t==="cls"){const i=DATA.classes.findIndex(x=>x.id===p[1]);const old=i<0?{}:DATA.classes[i];
     const n={...o};SYNC_EXCL.forEach(x=>{n[x]=old[x]});if(!n.eleves)n.eleves=[];if(!n.lecons)n.lecons=[];if(!n.courses)n.courses=[];if(!n.curg)n.curg="all";
     if(i<0)DATA.classes.push(n);else DATA.classes[i]=n;return true}
   const c=syCls(p[1]);
   if(t==="el"){const i=c.eleves.findIndex(e=>String(e.id)===p[2]);if(i<0)c.eleves.push(o);else c.eleves[i]=o;return true}
+  if(t==="lec"&&AL().lec[p[1]+"|"+p[2]])return true;
   if(t==="lec"){const i=c.lecons.findIndex(l=>l.id===p[2]);const n={...o};if(i>=0&&c.lecons[i].coach)n.coach=c.lecons[i].coach;if(i<0)c.lecons.push(n);else c.lecons[i]=n;return true}
   if(t==="lco"){const l=c.lecons.find(x=>x.id===p[2]);if(!l)return false;l.coach=l.coach||{};l.coach[p[3]]=o.v;return true}
   if(t==="co"){const i=c.courses.findIndex(x=>x.cid===p[2]);const n={...o};if(i>=0&&c.courses[i].rx)n.rx=c.courses[i].rx;if(i<0)c.courses.push(n);else c.courses[i]=n;return true}
@@ -3038,6 +3129,7 @@ $("#s-synow").addEventListener("click",()=>{readSheets();toast("Synchronisation�
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")syncSoon(300)});
 window.addEventListener("online",()=>syncSoon(300));
 setInterval(()=>syStatus(),15000);
+window.epsBeforeUpdate=async()=>{try{if(syOk())await syCycle()}catch(e){}};
 syStatus();setTimeout(syCycle,1200);
 
 /* ===== Sauvegarde / restauration (fichier JSON) ===== */

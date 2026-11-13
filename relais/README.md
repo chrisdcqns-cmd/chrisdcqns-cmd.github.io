@@ -68,6 +68,9 @@ tablette s'affiche sur toutes (vérification toutes les 8 s quand l'appli est ou
 3. Sur chaque tablette : 🔒 Enseignant → Google Sheets → vérifie l'adresse, saisis la clé secrète → Enregistrer.
    La tablette récupère alors automatiquement tout ce qui est déjà partagé.
 
+## Compiler les données de plusieurs tablettes
+Si une même classe a été importée séparément sur plusieurs tablettes, ou si plusieurs leçons ont été créées le même jour, un bandeau « 🔗 Données de plusieurs tablettes à réunir » apparaît (Classes et Leçons). « Compiler » réunit tout en une seule classe / une seule leçon : élèves (par prénom et nom), courses, auto-évaluations et évaluations. La fusion est transmise aux autres tablettes (même hors connexion au moment de la fusion : leurs courses sont rangées au bon endroit à la reconnexion).
+
 ## Vérification de réception
 
 Après chaque envoi, l'application relit la feuille Google pour vérifier que les lignes sont bien arrivées. Tant qu'une ligne n'est pas confirmée, elle reste en file d'attente sur la tablette et repart automatiquement (toutes les 20 secondes en cas de problème, à chaque retour du réseau, et toutes les minutes). L'état s'affiche dans les réglages Google Sheets (« reçues », « en attente », « clé incorrecte »…).

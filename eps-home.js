@@ -301,8 +301,33 @@
     b.addEventListener("click", function (e) { if (drag) { e.preventDefault(); drag = false; } });
     document.body.appendChild(b);
   }
+  /* ================= Bouton « Mise à jour » : récupère les nouveautés (données et application) sans quitter ================= */
+  function addUpdate() {
+    var b = document.createElement("button");
+    b.type = "button"; b.id = "eps-upd"; b.title = "Mettre à jour (données et application)"; b.setAttribute("aria-label", "Mettre à jour");
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
+    var s = b.style;
+    s.position = "fixed"; s.zIndex = "2147483000"; s.border = "0"; s.padding = "0";
+    s.left = "calc(10px + env(safe-area-inset-left, 0px))"; s.bottom = HUB ? "calc(10px + env(safe-area-inset-bottom, 0px))" : "calc(64px + env(safe-area-inset-bottom, 0px))";
+    s.width = "46px"; s.height = "46px"; s.borderRadius = "50%"; s.display = "grid"; s.placeItems = "center";
+    s.background = "rgba(31,95,139,.85)"; s.color = "#fff"; s.boxShadow = "0 2px 8px rgba(0,0,0,.25)";
+    b.onclick = async function () {
+      if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
+      var tip = document.createElement("div");
+      tip.textContent = "Mise à jour…";
+      tip.style.cssText = "position:fixed;z-index:2147483002;left:50%;bottom:24px;transform:translateX(-50%);background:#1B1E24;color:#fff;padding:12px 20px;border-radius:999px;font:700 16px system-ui,sans-serif";
+      document.body.appendChild(tip);
+      var wait = function (p, ms) { return Promise.race([p, new Promise(function (r) { setTimeout(r, ms); })]); };
+      try { if (typeof window.epsBeforeUpdate === "function") await wait(Promise.resolve(window.epsBeforeUpdate()), 8000); } catch (e) {}
+      try { await wait(sync(), 6000); } catch (e) {}
+      try { if (navigator.serviceWorker) { var regs = await navigator.serviceWorker.getRegistrations(); await wait(Promise.all(regs.map(function (r) { return r.update().catch(function () {}); })), 4000); } } catch (e) {}
+      location.reload();
+    };
+    document.body.appendChild(b);
+  }
   function init() {
     addCss();
+    addUpdate();
     pill = document.createElement("button"); pill.id = "epsd-pill"; pill.type = "button"; pill.onclick = showList;
     document.body.appendChild(pill);
     if (!HUB) addHome();

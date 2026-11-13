@@ -40,7 +40,7 @@ function viewSeance(v) {
       let hr = null; const hv = $("#sHr").value; if (hv) { const [h, mi] = hv.split(":").map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1); hr = d.getTime(); }
       S = { code: randCode(4), nom: $("#sNom").value.trim(), date: Date.now(), courses: ids, runners: {}, dec: {}, msgs: [], since: 0, active: true, ack: {}, hr, salt: P.salt };
       S.snap = Object.fromEntries(sessionCourses().map(k => [k.k, compactCourse(k)]));
-      const C = await getClasses(); S.cls = cls; S.appel = { list: cls.flatMap(c => (C[c] || []).map(nom => ({ nom, cl: c, present: true }))) };
+      const C = await getClasses(); S.cls = cls; S.appel = { list: cls.flatMap(c => (C[c] || []).map(nom => ({ nom, cl: c, present: !dzO(c, nom) }))) };
       LS.set("curSession", S.code); await saveS(); await publishSession(); startPolling(); setPTab("seance");
     });
     $("#sPerm").onclick = printPermQR;

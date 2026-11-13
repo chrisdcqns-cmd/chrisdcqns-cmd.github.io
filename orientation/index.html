@@ -1255,7 +1255,7 @@ function viewSeance(v) {
       let hr = null; const hv = $("#sHr").value; if (hv) { const [h, mi] = hv.split(":").map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1); hr = d.getTime(); }
       S = { code: randCode(4), nom: $("#sNom").value.trim(), date: Date.now(), courses: ids, runners: {}, dec: {}, msgs: [], since: 0, active: true, ack: {}, hr, salt: P.salt };
       S.snap = Object.fromEntries(sessionCourses().map(k => [k.k, compactCourse(k)]));
-      const C = await getClasses(); S.cls = cls; S.appel = { list: cls.flatMap(c => (C[c] || []).map(nom => ({ nom, cl: c, present: true }))) };
+      const C = await getClasses(); S.cls = cls; S.appel = { list: cls.flatMap(c => (C[c] || []).map(nom => ({ nom, cl: c, present: !dzO(c, nom) }))) };
       LS.set("curSession", S.code); await saveS(); await publishSession(); startPolling(); setPTab("seance");
     });
     $("#sPerm").onclick = printPermQR;
@@ -1740,7 +1740,7 @@ function openAppel() {
     const s = appelSummary(), linked = new Set(S.appel.list.map(e => runnerForEleve(e)?.r).filter(Boolean)), libres = Object.values(S.runners).filter(R => !linked.has(R.r));
     $("#apSum", m).innerHTML = `<div class="row"><span class="chip">${s.pres} présent(s) / ${s.total}</span><span class="chip or">🏃 ${s.partis} parti(s)</span><span class="chip ok">✅ ${s.rentres} rentré(s)</span>${s.manquent.length ? `<span class="chip ko">⚠ pas encore rentré(s) : ${esc(s.manquent.join(", "))}</span>` : s.partis ? '<span class="chip ok">Tout le monde est rentré</span>' : ""}</div>${libres.length ? `<p class="muted">Hors liste : ${libres.map(R => esc(R.nom)).join(", ")}</p>` : ""}`;
     $("#apTab", m).innerHTML = `<table class="t"><thead><tr><th>Élève</th><th>Classe</th><th>Présent</th><th>Parti</th><th>Rentré</th><th>Dans l'appli</th></tr></thead><tbody>${S.appel.list.map((e, i) => { const { R, parti, rentre } = appelState(e);
-      return `<tr style="${e.present === false ? "opacity:.45" : parti && !rentre ? "background:#fff4f4" : ""}"><td><b>${esc(e.nom)}</b></td><td>${esc(e.cl)}</td><td><button class="btn small ${e.present === false ? "ghost" : "green"}" data-pr="${i}">${e.present === false ? "Absent" : "✓ Présent"}</button></td><td>${parti ? `🏃 ${fmtHeure(parti.t)}` : "–"}</td><td>${rentre ? `✅ ${rentre.t ? fmtHeure(rentre.t) : ""}` : parti ? `<button class="btn small alt" data-rt="${i}">Marquer rentré</button>` : "–"}</td>
+      return `<tr style="${e.present === false ? "opacity:.45" : parti && !rentre ? "background:#fff4f4" : ""}"><td><b>${esc(e.nom)}</b>${dzO(e.cl, e.nom) ? `<br><small style="color:#C0392B;font-weight:700">🩹 ${esc(EPSD.label(dzO(e.cl, e.nom)))}</small>` : ""}</td><td>${esc(e.cl)}</td><td><button class="btn small ${e.present === false ? "ghost" : "green"}" data-pr="${i}">${e.present === false ? "Absent" : "✓ Présent"}</button></td><td>${parti ? `🏃 ${fmtHeure(parti.t)}` : "–"}</td><td>${rentre ? `✅ ${rentre.t ? fmtHeure(rentre.t) : ""}` : parti ? `<button class="btn small alt" data-rt="${i}">Marquer rentré</button>` : "–"}</td>
        <td>${R ? `<button class="btn small ghost" data-det="${R.r}">${esc(R.nom)}</button>` : libres.length ? `<select data-lk="${i}" class="inp" style="min-height:34px;padding:2px 6px"><option value="">— associer —</option>${libres.map(x => `<option value="${x.r}">${esc(x.nom)}</option>`).join("")}</select>` : '<span class="muted">pas encore inscrit</span>'}</td></tr>`; }).join("")}</tbody></table>`;
     $$("[data-pr]", m).forEach(b => b.onclick = () => { const e = S.appel.list[+b.dataset.pr]; e.present = e.present === false ? true : false; saveS(); draw(); });
     $$("[data-rt]", m).forEach(b => b.onclick = () => { S.appel.list[+b.dataset.rt].rentre = { t: Date.now(), manuel: 1 }; saveS(); draw(); renderLive(); });
@@ -1751,6 +1751,8 @@ function openAppel() {
 }
 
 // ---------- 11. listes de classe (Réglages enseignant) ----------
+// dispenses communes (page d'accueil EPS, eps-home.js)
+function dzO(c, n) { try { return window.EPSD ? EPSD.find(c || "", n) : null; } catch (e) { return null; } }
 async function getClasses() { return (await DB.get("classes")) || {}; }
 async function classesPanel(box) {
   let C = await getClasses();
@@ -1905,8 +1907,8 @@ function joinScreen(g) {
       const cur = box._cl && eleves[box._cl] ? box._cl : (cls.includes(me.cl) ? me.cl : cls.length === 1 ? cls[0] : null);
       box._cl = cur;
       box.innerHTML = `<div class="lbl">Ta classe</div><div class="cchips" style="margin:6px 0 10px">${cls.map(c => `<button class="cchip ${c === cur ? "on" : ""}" data-jc="${esc(c)}" style="padding:0 14px">${esc(c)}</button>`).join("")}</div>
-       ${cur ? `<div class="field"><label>Ton nom</label><select class="inp" id="jNomSel"><option value="">— choisis ton nom —</option>${eleves[cur].map(n => `<option ${normName(n) === normName(me.nom) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>
-       <div class="field"><label>Équipier(e) (si vous courez à deux)</label><select class="inp" id="jBinSel"><option value="">— personne —</option>${eleves[cur].map(n => `<option>${esc(n)}</option>`).join("")}</select></div>` : ""}
+       ${cur ? `<div class="field"><label>Ton nom</label><select class="inp" id="jNomSel"><option value="">— choisis ton nom —</option>${eleves[cur].map(n => `<option value="${esc(n)}" ${normName(n) === normName(me.nom) ? "selected" : ""}>${esc(n)}${dzO(cur, n) ? " 🩹 " + esc(EPSD.label(dzO(cur, n))) : ""}</option>`).join("")}</select></div>
+       <div class="field"><label>Équipier(e) (si vous courez à deux)</label><select class="inp" id="jBinSel"><option value="">— personne —</option>${eleves[cur].map(n => `<option value="${esc(n)}">${esc(n)}${dzO(cur, n) ? " 🩹" : ""}</option>`).join("")}</select></div>` : ""}
        <button class="btn small ghost" id="jLibre">Je ne suis pas dans la liste</button>`;
       $$("[data-jc]", box).forEach(b => b.onclick = () => { box._cl = b.dataset.jc; who(); });
       $("#jLibre", box).onclick = () => { libre = true; who(); };
