@@ -2518,7 +2518,8 @@ function renderCourses(sel,CS,cfg){
     const gObj=GR().find(x=>x.name===gname),lec0=list[0]?CL().lecons.find(l=>l.id===list[0].lid):CLE(),cId=gObj?coachOf(gObj.id,lec0):undefined,cE=cId!=null?byId(cId):null;
     h+=`<tr class="ghead"><td colspan="${span}">${esc(gname||"Sans groupe")}${cE?` <span class="coach sm">🏅 Entraîneur : ${esc(cE.prenom)}</span>`:""}<small>${list.length} course${list.length>1?"s":""}${pr?` · binômes faits ${pr.done}/${pr.total}`:""}</small></td></tr>`;
     h+=gRow;
-    if(pr&&pr.total)h+=`<tr class="pairs"><td colspan="${span}">${pr.todo.length?`<b>À faire (${pr.todo.length}) :</b><div class="todo">${pr.todo.map(t=>`<span>${esc(t)}</span>`).join("")}</div>`:`<b class="alldone">✓ Toutes les personnes du groupe ont couru ensemble, dans les deux rôles.</b>`}</td></tr>`;
+    const half=pr&&pr.total?pairsHalf(gname,list,pr,cfg):false;
+    if(pr&&pr.total&&half)h+=`<tr class="pairs"><td colspan="${span}">${pr.todo.length?`<b>Binômes à faire (${pr.todo.length}) :</b><div class="todo">${pr.html.map(t=>`<span>${t}</span>`).join("")}</div>`:`<b class="alldone">✓ Toutes les personnes du groupe ont couru ensemble, dans les deux rôles.</b>`}</td></tr>`;
     list.forEach(c=>{
       const num=typeof c.ecart==="number",cls=!num?"":c.ecart<0?"neg":c.ecart>0?"pos":"zero";
       const cells={ecart:`<td>${num?`<span class="pill ${cls}">${sgn(c.ecart)}</span>`:nrs(c.ecart)}</td><td class="avg">${num?fmt(c.realise):"–"}</td>`,
@@ -2588,6 +2589,13 @@ function goalsRow(gname,list,span,cfg){
 }
 /* Condition « courir avec toutes les personnes du groupe » : chaque binôme ordonné (donneur → receveur) ;
    en mode « meilleur rôle », il suffit d'avoir couru une fois ensemble, quel que soit le rôle */
+/* la liste des binômes à faire n'apparaît qu'une fois la moitié de l'objectif atteinte par le groupe
+   (objectif de courses s'il est activé, sinon la moitié des binômes) */
+function pairsHalf(gname,list,pr,cfg){
+  const g=GR().find(x=>x.name===gname);if(!g)return true;
+  if(cfg.goalOn){let v=0,n=0;groupMembers(g).filter(e=>e.ma!=="DISP").forEach(e=>{goalStatus(e,cfg,CO()).lines.forEach(([l,a,b])=>{v+=Math.min(a,b);n+=b})});return n?v/n>=0.5:true}
+  return pr.done/pr.total>=0.5;
+}
 function pairsTodo(gname,list){
   const g=GR().find(x=>x.name===gname);if(!g)return null;
   const m=groupMembers(g).filter(e=>e.ma!=="DISP");
@@ -2597,10 +2605,13 @@ function pairsTodo(gname,list){
   if(cfg.goalOn&&cfg.goalMode==="best"){
     m.forEach((a,i)=>m.slice(i+1).forEach(b=>{total++;const ka=key(a.prenom,a.nom),kb=key(b.prenom,b.nom);
       if(!did.has(ka+">"+kb)&&!did.has(kb+">"+ka))todo.push(`${a.prenom} n'a pas couru avec ${b.prenom}`)}));
-    return {total,done:total-todo.length,todo};
+    return {total,done:total-todo.length,todo,html:todo.map(esc)};
   }
-  m.forEach(a=>m.forEach(b=>{if(a===b)return;total++;if(!did.has(key(a.prenom,a.nom)+">"+key(b.prenom,b.nom)))todo.push(`${a.prenom} n'a pas couru avec ${b.prenom} en donneur/receveur`)}));
-  return {total,done:total-todo.length,todo};
+  /* regroupé par donneur (coureur 1) : « Éloïse en donneur (coureur 1) → receveur (coureur 2) : Lily, Remi » */
+  const html=[];
+  m.forEach(a=>{const rec=m.filter(b=>{if(a===b)return false;total++;return !did.has(key(a.prenom,a.nom)+">"+key(b.prenom,b.nom))});
+    if(rec.length){rec.forEach(b=>todo.push(b));html.push(`<b>${esc(a.prenom)}</b> en donneur (coureur 1) → receveur (coureur 2) : ${rec.map(b=>esc(b.prenom)).join(", ")}`)}});
+  return {total,done:total-todo.length,todo,html};
 }
 async function deleteCourse(cid,after){
   if(!await requireCode())return;
