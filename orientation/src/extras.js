@@ -169,6 +169,7 @@ function openAppel() {
 
 // ---------- 11. listes de classe (Réglages enseignant) ----------
 // dispenses communes (page d'accueil EPS, eps-home.js)
+window.epsIsTeacher = () => !!sessionStorage.getItem("tpw");
 function dzO(c, n) { try { return window.EPSD ? EPSD.find(c || "", n) : null; } catch (e) { return null; } }
 async function getClasses() { return (await DB.get("classes")) || {}; }
 async function classesPanel(box) {

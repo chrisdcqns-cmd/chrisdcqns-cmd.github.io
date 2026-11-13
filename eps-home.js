@@ -193,6 +193,16 @@
   /* code enseignant : le même que celui de Relais Vitesse */
   function hashCode(c) { var h = 5381, s = "relais:" + c; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); }
   var unlockedUntil = 0;
+  /* mode enseignant : celui de l'application (window.epsIsTeacher), ou celui de la page d'accueil (code enseignant) */
+  function hubTeach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+  function isTeacher() { try { if (typeof window.epsIsTeacher === "function" && window.epsIsTeacher()) return true; } catch (e) {} return HUB && hubTeach(); }
+  function setHubTeach(on) { try { localStorage.setItem("eps.teach.until", on ? String(Date.now() + 60 * 60000) : "0"); } catch (e) {} applyTeach(); }
+  function applyTeach() {
+    var t = isTeacher();
+    var u = document.getElementById("eps-upd"); if (u) u.style.display = t ? "grid" : "none";
+    document.querySelectorAll("[data-eps-teach]").forEach(function (el) { el.style.display = t ? "" : "none"; });
+    var b = document.getElementById("eps-teachbtn"); if (b) b.textContent = t ? "🔓 Quitter le mode enseignant" : "🔒 Enseignant";
+  }
   function askCode() {
     return new Promise(function (res) {
       if (Date.now() < unlockedUntil) return res(true);
@@ -203,7 +213,7 @@
         var v = inp.value.trim(); if (v.length < 4) { o.querySelector("#epsd-cerr").textContent = "4 chiffres minimum."; return; }
         if (!stored) { try { localStorage.setItem("relais-vitesse-code-v1", JSON.stringify(hashCode(v))); } catch (e) {} }
         else if (hashCode(v) !== stored) { o.querySelector("#epsd-cerr").textContent = "Code incorrect."; inp.value = ""; return; }
-        unlockedUntil = Date.now() + 10 * 60000; o.remove(); res(true);
+        unlockedUntil = Date.now() + 10 * 60000; if (HUB) setHubTeach(true); o.remove(); res(true);
       }
       o.querySelector("#epsd-cok").onclick = ok; inp.addEventListener("keydown", function (e) { if (e.key === "Enter") ok(); });
       o.addEventListener("click", function (e) { if (e.target === o || e.target.closest("[data-x]")) res(false); });
@@ -265,7 +275,8 @@
     }
     render();
   }
-  window.EPSD = { list: all, active: activeOn, find: find, label: label, manage: manage, show: showList, sync: sync };
+  window.EPSD = { list: all, active: activeOn, find: find, label: label, manage: manage, show: showList, sync: sync,
+    teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) ================= */
   function addHome() {
@@ -328,6 +339,7 @@
   function init() {
     addCss();
     addUpdate();
+    applyTeach(); setInterval(applyTeach, 1000);
     pill = document.createElement("button"); pill.id = "epsd-pill"; pill.type = "button"; pill.onclick = showList;
     document.body.appendChild(pill);
     if (!HUB) addHome();
