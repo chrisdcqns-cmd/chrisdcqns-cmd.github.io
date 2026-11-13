@@ -381,6 +381,11 @@ tr.disp{opacity:.55}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .dispobtn{white-space:nowrap}
+.synbox{margin:12px 0 4px;padding:12px 14px;border:2px solid var(--lane);border-radius:14px;background:var(--lane-soft)}
+#sydot{position:fixed;left:10px;bottom:10px;z-index:40;display:none;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:#fff;border:1.5px solid var(--line);font-size:13px;font-weight:700;color:var(--muted);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#sydot.on{display:flex}#sydot i{width:9px;height:9px;border-radius:50%;background:#9AA0A6}
+#sydot.ok i{background:#2E7D4F}#sydot.wait i{background:#EF9F27}#sydot.err i{background:#C0392B}
+@media print{#sydot{display:none!important}}
 body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
 .dispo-wrap{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 #dispo-area{flex:1 1 420px;max-width:640px;margin:0 auto}
@@ -766,6 +771,8 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
   </div>
 </section>
 
+<button id="sydot" type="button"><i></i><span>Synchro</span></button>
+
 <!-- DISPOSITIF DU RELAIS -->
 <section class="view" id="v-dispo">
   <div class="top">
@@ -1026,6 +1033,11 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
   <div class="seg" id="s-names" style="--n:2"><button data-nf="code">Code anonyme (E-XXXX)</button><button data-nf="init">Prénom + initiale du nom</button></div>
   <div class="frow" style="border:0;padding-top:16px"><button class="fck" id="s-auto"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Envoyer automatiquement chaque course</button></div>
   <p class="note" id="s-status" style="margin:0 0 6px"></p>
+  <div class="synbox">
+    <div class="frow" style="border:0;padding:0"><button class="fck" id="s-sync"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Synchroniser les tablettes en direct <small>leçons, groupes, élèves, courses et évaluations partagés entre toutes les tablettes qui ont la même adresse et la même clé · données chiffrées avec la clé : aucun nom lisible dans la feuille</small></button></div>
+    <p class="note" id="s-systat" style="margin:6px 0 0"></p>
+    <button class="btn ghost sm mt" id="s-synow">⟳ Synchroniser maintenant</button>
+  </div>
   <div class="row mt">
     <button class="btn ghost sm" id="s-test">Tester la connexion</button>
     <button class="btn ghost sm" id="s-all">Envoyer toutes les courses</button>
@@ -1166,7 +1178,7 @@ if(!DATA||!Array.isArray(DATA.classes)){
   DATA={classes:[{id:uid("c"),name:"Ma classe",eleves:el,groupes:load(K.grp,[]),courses,curg:load(K.curg,"all")}],cur:null};
   save(K.data,DATA);
 }
-const persist=()=>save(K.data,DATA);
+const persist=()=>{save(K.data,DATA);try{syncSoon()}catch(e){}};
 const CL=()=>DATA.classes.find(c=>c.id===DATA.cur)||null;
 const EL=()=>CL()?CL().eleves:[];
 /* Groupes : chaque leçon a ses propres groupes (copiés des groupes habituels de la classe à son ouverture) */
@@ -1220,7 +1232,7 @@ function usable(e,k){
   return n===0||n===3;
 }
 function moyEssais(arr){const v=arr.filter(x=>typeof x==="number");if(!v.length)return null;return Math.ceil(v.reduce((s,x)=>s+x,0)/v.length-1e-9)}
-const nextId=()=>Math.max(-1,...EL().map(e=>e.id))+1;
+const nextId=()=>Math.max(-1,...EL().map(e=>e.id))+1+Math.floor(Math.random()*500); /* évite que deux tablettes donnent le même numéro */
 
 /* ===== Code enseignant ===== */
 let UNLOCK_UNTIL=0;
@@ -2305,7 +2317,7 @@ function renderEvAlert(){
 
 /* ===== Enregistrer les courses ===== */
 $("#a-ok").addEventListener("click",()=>{$("#amodal").classList.remove("on");guide()});
-let ST;function resetST(){ST={ecart:null,zone:null,dep:null,pt:null,pm:null,dv:null,dw:null,de:null}}resetST();
+let ST;function resetST(){ST={ecart:null,zone:null,dep:null,pt:null,pm:null,dv:null,dw:null,de:null,zr:null,za:null}}resetST();
 /* ===== Bulle de diagnostic selon la zone de transmission ===== */
 const REPOS="Recommence la course après t'être reposé(e)";
 const Q_ERR="Y a-t-il eu une erreur de transmission du témoin ?";
@@ -2319,7 +2331,10 @@ const DIAG={
       ["Le donneur a donné trop tôt",REPOS+" et retarde la transmission !"],
       ["Le receveur était trop loin devant et a dû ralentir","Avance ta prise de marque"],
       ["Le receveur n'est pas parti au bon moment",REPOS+" et regarde bien ta marque"]],final:"Recule ta prise de marque pour atteindre la zone 100"},
-  "Zone 100":{msg:"Bravo ! Vous êtes dans la zone idéale !",tone:"ok"},
+  "Zone 100":{intro:"Zone 100 !",seq:[
+      ["zr","Le receveur a-t-il ralenti pour récupérer le témoin ?","La course n'est pas bonne : le receveur ne doit pas ralentir. Avance ta prise de marque."],
+      ["za","Le receveur a-t-il accéléré avec le témoin dans la main ?","La transmission n'est pas bonne : le receveur doit déjà être à pleine vitesse quand il reçoit le témoin. Recule ta prise de marque."]],
+    ok:"Bravo ! Vous êtes dans la zone idéale !"},
   "Zone 1":{msg:"Tu as transmis trop tôt !",tone:"warn",list:["Transmettre à pleine vitesse","En fin de zone de transmission"],asks:["Es-tu parti trop tard ?","Le donneur a-t-il ralenti en voyant le receveur ?"]}
 };
 /* Résultat du diagnostic : done = conseil final atteint */
@@ -2327,6 +2342,8 @@ function diagResult(){
   const d=DIAG[ST.zone],cfg=CFG();
   if(!d)return {active:false,done:true};
   if(d.msg)return {active:true,done:true,conseil:d.msg,tone:d.tone};
+  if(d.seq){for(const [k,,bad] of d.seq){if(ST[k]==null)return {active:true,done:false};if(ST[k]==="Oui")return {active:true,done:true,conseil:bad,tone:"warn"}}
+    return {active:true,done:true,conseil:d.ok,tone:"ok"}}
   if(ST.dv===null)return {active:true,done:false};
   if(ST.dv==="Non"){if(ST.dw===null)return {active:true,done:false};const w=d.whys.find(x=>x[0]===ST.dw);return {active:true,done:true,conseil:w?w[1]:"",tone:"warn"}}
   if(ST.de===null)return {active:true,done:false};
@@ -2351,7 +2368,9 @@ function renderDiag(){
   const cb=$("#r-conseil");cb.innerHTML="";cb.classList.remove("on");
   if(!d||!cfg.zone){box.innerHTML="";box.classList.remove("on");return}
   const r=diagResult();let html=`<div class="bubble">`;
-  if(d.msg){
+  if(d.seq){
+    let i=0;for(const [k,q] of d.seq){html+=`<div class="bq">${i===0&&d.intro?`<span class="bravo">${esc(d.intro)}</span> `:""}${esc(q)}</div><div class="byn">${yn(k,ST[k])}</div>`;i++;if(ST[k]!=="Non")break}
+  }else if(d.msg){
     html+=conseilHTML(r);
     if(d.list)html+=`<div class="blist"><b>Il faut :</b><ul>${d.list.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>${d.asks.map(a=>`<p class="bask">${esc(a)}</p>`).join("")}</div>`;
   }else{
@@ -2364,7 +2383,7 @@ function renderDiag(){
   if(!d.msg&&r.done){cb.innerHTML=conseilHTML(r,ST.pm,cfg);cb.classList.add("on")}
 }
 $("#r-advice").addEventListener("click",e=>{const b=e.target.closest("[data-d]");if(!b)return;const k=b.dataset.d,v=b.dataset.v;
-  ST[k]=v;if(k==="dv"){ST.dw=null;ST.de=null}onCourse();
+  ST[k]=v;if(k==="dv"){ST.dw=null;ST.de=null}if(k==="zr")ST.za=null;onCourse();
   guide();});
 const ECARTS=[-4,-3,-2,-1,0,1,2,3,4,5];
 const ptDist=n=>n*1, pmDist=n=>3+(n-1);
@@ -2372,7 +2391,7 @@ const ptDist=n=>n*1, pmDist=n=>3+(n-1);
 const IMGZONES=[{v:HZ,l:0,r:21.13},{v:"Zone 100",l:21.13,r:41.61},{v:"Zone 10",l:41.61,r:61.71},{v:"Zone 1",l:61.71,r:95.47}];
 $("#r-zhot").innerHTML=IMGZONES.map(z=>`<button data-v="${z.v}" class="${z.v===HZ?"hz":""}" style="left:${z.l}%;width:${z.r-z.l}%" aria-label="${z.v}"><span>${z.v}</span></button>`).join("");
 $("#r-zhot").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;setZone(b.dataset.v)});
-function setZone(v){const ch=ST.zone!==v;ST.zone=v;if(ch){ST.dv=ST.dw=ST.de=null}onCourse();
+function setZone(v){const ch=ST.zone!==v;ST.zone=v;if(ch){ST.dv=ST.dw=ST.de=ST.zr=ST.za=null}onCourse();
   guide()}
 const mFmt=v=>fmt(v)+" m";
 $("#r-ecart").innerHTML=ECARTS.map(v=>`<button data-v="${v}" class="${v<0?"neg":v>0?"pos":""}">${v>0?"+":""}${v}</button>`).join("");
@@ -2381,7 +2400,7 @@ $("#r-minus").addEventListener("click",()=>{const c=typeof ST.ecart==="number"?S
 $("#r-plus").addEventListener("click",()=>{const c=typeof ST.ecart==="number"?ST.ecart:-0.5;ST.ecart=Math.min(5,c+0.5);onCourse()});
 function segBind(id,key,num){$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;ST[key]=num?+b.dataset.v:b.dataset.v;onCourse();guide()})}
 $("#r-zone").addEventListener("click",e=>{const b=e.target.closest("button");if(b)setZone(b.dataset.v)});segBind("#r-dep","dep");$("#r-pt").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;ST.pt=+b.dataset.v;onCourse();guide()});segBind("#r-pm","pm",true);
-document.querySelectorAll(".nr").forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.nr;ST[k]=ST[k]===NR?null:NR;if(k==="zone"){ST.dv=ST.dw=ST.de=null}onCourse()}));
+document.querySelectorAll(".nr").forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.nr;ST[k]=ST[k]===NR?null:NR;if(k==="zone"){ST.dv=ST.dw=ST.de=ST.zr=ST.za=null}onCourse()}));
 $("#r-r1").addEventListener("change",()=>{onCourse();guide()});$("#r-r2").addEventListener("change",()=>{onCourse();guide()});
 /* ===== Défilement guidé : la page se place sur ce qu'il reste à remplir ===== */
 function nextStep(){
@@ -2484,7 +2503,7 @@ $("#r-save").addEventListener("click",()=>{
     cible:r.cible,ecart:on("ecart",num?ST.ecart:NR),realise:cfg.ecart&&num?r.cible+ST.ecart:null,
     zone:on("zone",ST.zone),dep:on("dep",ST.dep),
     pt:cfg.pt?(ptNeeded()?ST.pt:null):NR,ptd:cfg.pt&&ptNeeded()&&typeof ST.pt==="number"?ptDist(ST.pt):null,
-    ...(()=>{const r=diagResult();return {recul:r.recul||null,dv:r.active&&!DIAG[ST.zone].msg?ST.dv:null,dw:ST.dv==="Non"?ST.dw:null,de:ST.dv==="Oui"?ST.de:null,conseil:r.conseil||null,tone:r.tone||null}})(),
+    ...(()=>{const r=diagResult();return {recul:r.recul||null,dv:r.active&&!DIAG[ST.zone].msg&&!DIAG[ST.zone].seq?ST.dv:null,zr:r.active&&DIAG[ST.zone].seq?ST.zr:null,za:r.active&&DIAG[ST.zone].seq&&ST.zr==="Non"?ST.za:null,dw:ST.dv==="Non"?ST.dw:null,de:ST.dv==="Oui"?ST.de:null,conseil:r.conseil||null,tone:r.tone||null}})(),
     pm:on("pm",ST.pm),pmd:cfg.pm&&typeof ST.pm==="number"?pmDist(ST.pm):null
   });
   const last=CO()[CO().length-1],pmPrev=ST.pm,res=diagResult();
@@ -2525,7 +2544,7 @@ function renderCourses(sel,CS,cfg){
       const cells={ecart:`<td>${num?`<span class="pill ${cls}">${sgn(c.ecart)}</span>`:nrs(c.ecart)}</td><td class="avg">${num?fmt(c.realise):"–"}</td>`,
         zone:`<td>${c.zone===HZ?`<span class="pill neg">Hors zone</span>${c.recul?`<br><span style="color:#9C2B10;font-size:14px;font-weight:700">recul ${mFmt(c.recul)}</span>`:""}`:nrs(c.zone)}</td>`,dep:`<td>${nrs(c.dep)}</td>`,
         pt:`<td>${typeof c.pt==="number"?`<b>${c.pt}</b><br><span style="color:var(--muted);font-size:14px">${mFmt(c.ptd)}</span>`:nrs(c.pt)}</td>`,
-        conseil:`<td class="l" style="font-size:15px;max-width:240px">${has(c.conseil)?`${c.dv?`<span style="color:var(--muted)">Pleine vitesse : ${esc(c.dv)}${c.dw?" · "+esc(c.dw):""}${c.de?" · erreur témoin : "+esc(c.de):""}</span><br>`:""}<b>${esc(c.conseil)}</b>`:"–"}</td>`,
+        conseil:`<td class="l" style="font-size:15px;max-width:240px">${has(c.conseil)?`${c.zr?`<span style="color:var(--muted)">Receveur a ralenti : ${esc(c.zr)}${c.za?" · a accéléré avec le témoin : "+esc(c.za):""}</span><br>`:""}${c.dv?`<span style="color:var(--muted)">Pleine vitesse : ${esc(c.dv)}${c.dw?" · "+esc(c.dw):""}${c.de?" · erreur témoin : "+esc(c.de):""}</span><br>`:""}<b>${esc(c.conseil)}</b>`:"–"}</td>`,
         pm:`<td>${typeof c.pm==="number"?`<b>${c.pm}</b><br><span style="color:var(--muted);font-size:14px">${mFmt(c.pmd)}</span>`:nrs(c.pm)}</td>`};
       h+=`<tr class="${!num?"":c.ecart>0?"hit2":c.ecart===0?"hit1":c.ecart<=-2?"miss2":"miss1"}"><td>${c.n}${SH.url&&SH.key?`<br><span class="rx ${c.rx?"ok":""}" title="${c.rx?"Reçue par Google Sheets":"Pas encore reçue par Google Sheets"}">${c.rx?"☁✓":"⏳"}</span>`:""}</td><td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i1!=null?byId(c.i1):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p1)+"</b>"):"<b>"+esc(c.p1)+"</b>"})()} ${esc(c.n1)}<br><span style="color:var(--muted);font-size:15px">arrêté ${c.v1}</span></td>
       <td class="l">${(()=>{const L=CL().lecons.find(l=>l.id===c.lid),e=c.i2!=null?byId(c.i2):null;return e&&isCoachE(e,L)?coachTag("<b>"+esc(c.p2)+"</b>"):"<b>"+esc(c.p2)+"</b>"})()} ${esc(c.n2)}<br><span style="color:var(--muted);font-size:15px">lancé ${c.v2}</span></td>
@@ -2800,13 +2819,14 @@ function updShStatus(){
 }
 function inArtifact(){return !!(window.claude||/claude\.ai|claudeusercontent|anthropic/.test(location.hostname))}
 function openSheets(){
-  $("#s-url").value=SH.url;$("#s-key").value=SH.key;
+  $("#s-url").value=SH.url;$("#s-key").value=SH.key;$("#s-sync").classList.toggle("on",SY.on!==false);syStatus();
   document.querySelectorAll("#s-names button").forEach(b=>b.classList.toggle("on",b.dataset.nf===SH.names));
   $("#s-auto").classList.toggle("on",SH.auto);
   $("#s-where").textContent=inArtifact()?"⚠️ Ici, dans Claude, la page ne peut pas joindre Google : l'envoi fonctionne depuis la version publiée sur GitHub Pages (https://chrisdcqns-cmd.github.io/relais/).":"Mode d'emploi pour créer la feuille et le script : voir le fichier README du dossier relais sur GitHub.";
   updShStatus();$("#smodal").classList.add("on");
 }
-function readSheets(){SH.url=$("#s-url").value.trim();SH.key=$("#s-key").value.trim();SH.auto=$("#s-auto").classList.contains("on");const b=$("#s-names .on");SH.names=b?b.dataset.nf:"code";shSave()}
+function readSheets(){const k0=SH.key,u0=SH.url;SH.url=$("#s-url").value.trim();SH.key=$("#s-key").value.trim();
+  const on=$("#s-sync").classList.contains("on");if(on!==SY.on||k0!==SH.key||u0!==SH.url){SY.on=on;if(k0!==SH.key||u0!==SH.url){SY.init=false;SY.since=0}sySave();setTimeout(syCycle,300)}SH.auto=$("#s-auto").classList.contains("on");const b=$("#s-names .on");SH.names=b?b.dataset.nf:"code";shSave()}
 $("#lkSheets").addEventListener("click",async()=>{if(await requireCode())openSheets()});
 $("#s-names").addEventListener("click",e=>{const b=e.target.closest("[data-nf]");if(!b)return;document.querySelectorAll("#s-names button").forEach(x=>x.classList.toggle("on",x===b))});
 $("#s-auto").addEventListener("click",()=>$("#s-auto").classList.toggle("on"));
@@ -2820,6 +2840,196 @@ $("#s-test").addEventListener("click",async()=>{readSheets();if(!SH.url){toast("
   toast("Test en cours…");const r=await shJsonp({ids:"_test"});
   toast(!r?"Impossible de joindre le script : vérifie l'adresse et le déploiement":!r.keyOk?"Le script répond, mais la clé ne correspond pas":r.check?"Connexion réussie ✓ clé correcte · vérification de réception active":"Connexion réussie ✓ clé correcte · mets à jour le script pour vérifier la réception")});
 shFlush();
+
+
+/* ===== Synchronisation en direct entre tablettes =====
+   Chaque élément (classe, élève, leçon, entraîneur, course, évaluation, dispositif) est un enregistrement
+   « clé → contenu chiffré » dans l'onglet caché « Sync » de la feuille Google. Le contenu est chiffré
+   sur la tablette (AES-GCM, clé dérivée de la clé secrète du script) : aucun nom n'est lisible dans la feuille.
+   Envoi : POST (no-cors) ; réception : JSONP toutes les 8 s ; le plus récent l'emporte. */
+const KSY="relais-vitesse-sync-v1";
+let SY={on:true,init:false,since:0,maxU:0,h:{},pend:{},orph:{},dev:"",last:0,err:"",...(load(KSY,{})||{})};
+if(!SY.dev)SY.dev=Math.random().toString(36).slice(2,8);
+const sySave=()=>save(KSY,SY);
+const SYNC_EXCL=["eleves","lecons","courses","evals","curg"];
+const hs=s=>mix32(s)+":"+s.length;
+const syOk=()=>SY.on!==false&&!!SH.url&&!!SH.key&&!inArtifact()&&!!(window.crypto&&crypto.subtle);
+const syStamp=()=>Math.max(Date.now(),(SY.maxU||0)+1);
+function syRecords(){
+  const R={},put=(k,o)=>{R[k]=JSON.stringify(o)};
+  DATA.classes.forEach(c=>{
+    const b={};Object.keys(c).forEach(k=>{if(!SYNC_EXCL.includes(k))b[k]=c[k]});put("cls|"+c.id,b);
+    (c.eleves||[]).forEach(e=>put("el|"+c.id+"|"+e.id,e));
+    (c.lecons||[]).forEach(l=>{const o={};Object.keys(l).forEach(k=>{if(k!=="coach")o[k]=l[k]});put("lec|"+c.id+"|"+l.id,o);
+      Object.entries(l.coach||{}).forEach(([g,v])=>{if(v!=null)put("lco|"+c.id+"|"+l.id+"|"+g,{v})})});
+    (c.courses||[]).forEach(x=>{if(!x.cid)return;const o={};Object.keys(x).forEach(k=>{if(k!=="rx")o[k]=x[k]});put("co|"+c.id+"|"+x.cid,o)});
+    Object.entries(c.evals||{}).forEach(([id,o])=>{if(!o)return;put("evp|"+c.id+"|"+id,{rep:o.rep,prof:o.prof||{}});
+      Object.entries(o.auto||{}).forEach(([lid,a])=>{if(a)put("eva|"+c.id+"|"+id+"|"+lid,a)})});
+  });
+  if(DATA.dispo)put("dispo",DATA.dispo);
+  put("meta",{salt:SH.salt});
+  return R;
+}
+/* repère les changements locaux et les met en attente d'envoi */
+function syScan(){
+  const R=syRecords();let n=0;
+  for(const k in R){const x=hs(R[k]);if(SY.h[k]!==x){SY.h[k]=x;SY.pend[k]={u:k==="meta"?1:syStamp(),d:0};n++}}
+  let gone=Object.keys(SY.h).filter(k=>!(k in R));
+  if(gone.length){
+    const delC=new Set(gone.filter(k=>k.startsWith("cls|")).map(k=>k.split("|")[1]));
+    const sus=gone.filter(k=>{const p=k.split("|");return !(p.length>1&&delC.has(p[1]))});
+    const total=Object.keys(SY.h).length;
+    if(sus.length>40&&sus.length>total*0.4){ /* disparition massive inattendue : on ne la propage pas, on récupère tout */
+      sus.forEach(k=>{delete SY.h[k];delete SY.pend[k]});SY.since=0;gone=gone.filter(k=>!sus.includes(k))}
+    gone.forEach(k=>{delete SY.h[k];SY.pend[k]={u:syStamp(),d:1};n++});
+  }
+  if(n)sySave();return n;
+}
+/* clé de chiffrement dérivée de la clé secrète (jamais envoyée en clair dans les données) */
+let SYK=null,SYKsrc=null;
+async function syKey(){if(SYK&&SYKsrc===SH.key)return SYK;const enc=new TextEncoder();
+  const base=await crypto.subtle.importKey("raw",enc.encode(SH.key),"PBKDF2",false,["deriveKey"]);
+  SYK=await crypto.subtle.deriveKey({name:"PBKDF2",salt:enc.encode("relais-vitesse-sync-v1"),iterations:120000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);SYKsrc=SH.key;return SYK}
+const b64=u=>{let s="";const B=new Uint8Array(u);for(let i=0;i<B.length;i+=0x8000)s+=String.fromCharCode.apply(null,B.subarray(i,i+0x8000));return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function syEnc(str){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},await syKey(),new TextEncoder().encode(str));const o=new Uint8Array(12+ct.byteLength);o.set(iv);o.set(new Uint8Array(ct),12);return b64(o)}
+async function syDec(s){const b=unb64(s);const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b.slice(0,12)},await syKey(),b.slice(12));return new TextDecoder().decode(pt)}
+/* application d'un enregistrement reçu */
+function syCls(cid){let c=DATA.classes.find(x=>x.id===cid);if(!c){c={id:cid,name:"Classe",eleves:[],groupes:[],lecons:[],courses:[],curg:"all"};DATA.classes.push(c)}return c}
+function syApply(k,o){
+  const p=k.split("|"),t=p[0];
+  if(t==="meta"){if(o&&o.salt){SH.salt=o.salt;shSave()}return true}
+  if(t==="dispo"){DATA.dispo=o;return true}
+  if(t==="cls"){const i=DATA.classes.findIndex(x=>x.id===p[1]);const old=i<0?{}:DATA.classes[i];
+    const n={...o};SYNC_EXCL.forEach(x=>{n[x]=old[x]});if(!n.eleves)n.eleves=[];if(!n.lecons)n.lecons=[];if(!n.courses)n.courses=[];if(!n.curg)n.curg="all";
+    if(i<0)DATA.classes.push(n);else DATA.classes[i]=n;return true}
+  const c=syCls(p[1]);
+  if(t==="el"){const i=c.eleves.findIndex(e=>String(e.id)===p[2]);if(i<0)c.eleves.push(o);else c.eleves[i]=o;return true}
+  if(t==="lec"){const i=c.lecons.findIndex(l=>l.id===p[2]);const n={...o};if(i>=0&&c.lecons[i].coach)n.coach=c.lecons[i].coach;if(i<0)c.lecons.push(n);else c.lecons[i]=n;return true}
+  if(t==="lco"){const l=c.lecons.find(x=>x.id===p[2]);if(!l)return false;l.coach=l.coach||{};l.coach[p[3]]=o.v;return true}
+  if(t==="co"){const i=c.courses.findIndex(x=>x.cid===p[2]);const n={...o};if(i>=0&&c.courses[i].rx)n.rx=c.courses[i].rx;if(i<0)c.courses.push(n);else c.courses[i]=n;return true}
+  if(t==="evp"||t==="eva"){c.evals=c.evals||{};const e=c.evals[p[2]]||(c.evals[p[2]]={rep:"4-4",prof:{},auto:{}});
+    if(t==="evp"){e.rep=o.rep;e.prof=o.prof||{}}else{e.auto=e.auto||{};e.auto[p[3]]=o}return true}
+  return true;
+}
+function syRemove(k){
+  const p=k.split("|"),t=p[0];
+  if(t==="dispo"){delete DATA.dispo;return}
+  if(t==="meta")return;
+  const c=DATA.classes.find(x=>x.id===p[1]);if(!c)return;
+  if(t==="cls"){DATA.classes=DATA.classes.filter(x=>x!==c);if(DATA.cur===c.id){DATA.cur=null;DATA.lecon=null}return}
+  if(t==="el")c.eleves=c.eleves.filter(e=>String(e.id)!==p[2]);
+  if(t==="lec"){c.lecons=c.lecons.filter(l=>l.id!==p[2]);if(DATA.lecon===p[2])DATA.lecon=null}
+  if(t==="lco"){const l=c.lecons.find(x=>x.id===p[2]);if(l&&l.coach)delete l.coach[p[3]]}
+  if(t==="co")c.courses=c.courses.filter(x=>x.cid!==p[2]);
+  if(t==="evp"){const e=(c.evals||{})[p[2]];if(e){e.prof={}}}
+  if(t==="eva"){const e=(c.evals||{})[p[2]];if(e&&e.auto)delete e.auto[p[3]]}
+}
+/* réception : tout ce qui a changé depuis la dernière fois */
+async function syPull(){
+  for(let loop=0;loop<30;loop++){
+    const r=await shJsonp({pull:1,since:SY.since});
+    if(!r){SY.err="Pas de connexion avec le script Google";return false}
+    if(!r.keyOk){SY.err="La clé secrète ne correspond pas à celle du script";return false}
+    if(!r.sync){SY.err="Le script Google doit être mis à jour pour la synchronisation (voir le mode d'emploi)";return false}
+    const recs=r.recs||[];
+    if(recs.length){
+      if(SY.init)syScan(); /* les changements locaux en cours passent d'abord en attente d'envoi */
+      let changed=false;
+      for(const [seq,k,u,d,x] of recs){
+        SY.maxU=Math.max(SY.maxU||0,+u||0);
+        const pd=SY.pend[k];if(pd&&pd.u>+u)continue; /* notre version locale est plus récente : elle sera envoyée */
+        delete SY.pend[k];
+        if(+d){if(k in SY.h||k.split("|")[0]!=="meta"){syRemove(k);delete SY.h[k];changed=true}continue}
+        let o;try{o=JSON.parse(await syDec(x))}catch(e){SY.err="Des données ont été chiffrées avec une autre clé : vérifie la clé secrète";continue}
+        const s=JSON.stringify(o);if(SY.h[k]===hs(s))continue;
+        if(syApply(k,o)){SY.h[k]=hs(s);delete SY.orph[k];changed=true}else SY.orph[k]=o;
+      }
+      for(const k in SY.orph){if(syApply(k,SY.orph[k])){SY.h[k]=hs(JSON.stringify(SY.orph[k]));delete SY.orph[k];changed=true}}
+      if(changed){
+        syRenumber();
+        /* les effets secondaires de l'application (conteneurs créés…) sont considérés comme déjà synchronisés */
+        if(SY.init){const R=syRecords();for(const k in R)if(!SY.pend[k])SY.h[k]=hs(R[k])}
+        save(K.data,DATA);syRefreshSoon();
+      }
+      SY.since=+recs[recs.length-1][0];
+    }else SY.since=Math.max(SY.since,+r.seq||0);
+    sySave();
+    if(!r.more)return true;
+  }
+  return true;
+}
+let syBusy=false,syTimer=null,syT2=null;
+function syncSoon(ms){if(!syOk())return;clearTimeout(syT2);syT2=setTimeout(syCycle,ms||1500)}
+function sySched(){clearTimeout(syTimer);if(!syOk())return;syTimer=setTimeout(syCycle,document.visibilityState==="hidden"?30000:8000)}
+async function syCycle(){
+  if(!syOk()){syStatus();return}
+  if(syBusy){syncSoon(2000);return}
+  if(navigator.onLine===false){SY.err="Hors connexion : les données seront envoyées au retour du réseau";syStatus();sySched();return}
+  syBusy=true;syStatus("wait");
+  try{
+    await syKey();
+    if(!SY.init){if(!await syPull())return;SY.init=true;sySave()}
+    syScan();
+    const keys=Object.keys(SY.pend);let R=null;
+    if(keys.length){
+      for(let i=0;i<keys.length;i+=120){
+        const recs=[];
+        for(const k of keys.slice(i,i+120)){const pd=SY.pend[k];if(!pd)continue;
+          if(pd.d)recs.push({k,u:pd.u,d:1});
+          else{if(!R)R=syRecords();if(!(k in R)){delete SY.pend[k];continue}recs.push({k,u:pd.u,d:0,x:await syEnc(R[k])})}}
+        if(recs.length)await fetch(SH.url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:SH.key,sync:{dev:SY.dev,recs}})});
+      }
+      await sleep(1200);
+    }
+    if(await syPull()){SY.last=Date.now();SY.err=""}
+  }catch(e){SY.err="Synchronisation impossible pour l'instant (réseau ?)"}
+  finally{syBusy=false;sySave();syStatus();sySched()}
+}
+/* deux tablettes peuvent donner le même numéro à une course : on renumérote dans l'ordre de création (identique partout) */
+function syRenumber(){DATA.classes.forEach(c=>{const by={};(c.courses||[]).forEach(x=>{(by[x.lid]=by[x.lid]||[]).push(x)});
+  Object.values(by).forEach(L=>{if(new Set(L.map(x=>x.n)).size===L.length)return;const t=x=>String(x.cid||"").replace(/^[a-z]+/i,"");L.sort((a,b)=>t(a)<t(b)?-1:t(a)>t(b)?1:0).forEach((x,i)=>x.n=i+1)})})}
+/* rafraîchit l'écran affiché sans le faire sauter (pas pendant une saisie) */
+let syRT=null;
+function syRefreshSoon(){clearTimeout(syRT);syRT=setTimeout(syRefresh,60)}
+function syRefresh(){
+  const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.closest(".view.on,.modal.on")){syRT=setTimeout(syRefresh,2500);return}
+  if(document.querySelector(".modal.on"))
+    {if($("#cmodal").classList.contains("on"))try{drawClassStudents()}catch(e){}}
+  const on=document.querySelector(".view.on"),v=on?on.id.slice(2):"";
+  try{
+    if(v==="wait"){startStudent();return}
+    if(v==="classes"){renderClasses();return}
+    if(v==="dispo"){if(!DSP_EDIT)renderDispo();return}
+    if(!CL()){if(!teachOn())showWait();else go("classes");return}
+    if(["groupes","home","course","eval","auto"].includes(v)&&!CLE()){if(!teachOn())startStudent();else go("lecons");return}
+    if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto"].includes(v))renderClassAll();
+    if(v==="lecons")renderLecons();if(v==="perf")renderPerf();if(v==="bilan")renderBilan();if(v==="eval")renderEval();if(v==="auto")renderAuto();
+    if(v==="course")try{renderGoalReminder()}catch(e){}
+  }catch(e){}
+}
+function syStatus(st){
+  const d=$("#sydot");if(!d)return;
+  const on=syOk();d.classList.toggle("on",on);
+  const np=Object.keys(SY.pend||{}).length;
+  const cls=!on?"":st==="wait"?"wait":SY.err?"err":np?"wait":"ok";
+  d.className=on?"on "+cls:"";
+  const ago=SY.last?Math.round((Date.now()-SY.last)/1000):null;
+  const txt=!on?"":SY.err?"Synchro : problème":np?"Synchro : "+np+" en attente":"Synchro à jour";
+  d.querySelector("span").textContent=txt;
+  const st2=$("#s-systat");
+  if(st2)st2.textContent=inArtifact()?"⚠️ Dans Claude, la page ne peut pas joindre Google : la synchronisation fonctionne dans l'application (site GitHub Pages / APK).":
+    !SH.url||!SH.key?"Indique l'adresse et la clé secrète pour activer la synchronisation.":
+    SY.on===false?"Synchronisation désactivée sur cette tablette.":
+    (SY.err?"⚠ "+SY.err:np?np+" élément(s) en attente d'envoi.":"✓ À jour")+(SY.last?" · dernière synchro "+new Date(SY.last).toLocaleTimeString("fr-FR").slice(0,5):"");
+}
+$("#sydot").addEventListener("click",()=>{toast(SY.err?"⚠ "+SY.err:Object.keys(SY.pend).length?"Envoi en cours…":"✓ Tablette synchronisée"+(SY.last?" (il y a "+Math.max(1,Math.round((Date.now()-SY.last)/1000))+" s)":""));syCycle()});
+$("#s-sync").addEventListener("click",()=>$("#s-sync").classList.toggle("on"));
+$("#s-synow").addEventListener("click",()=>{readSheets();toast("Synchronisation…");syCycle().then(()=>{syStatus();toast(SY.err?"⚠ "+SY.err:"✓ Tablette synchronisée")})});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")syncSoon(300)});
+window.addEventListener("online",()=>syncSoon(300));
+setInterval(()=>syStatus(),15000);
+syStatus();setTimeout(syCycle,1200);
 
 /* ===== Sauvegarde / restauration (fichier JSON) ===== */
 function bkSummary(d){const c=d.classes||[];return `${c.length} classe(s) · ${c.reduce((s,x)=>s+(x.eleves||[]).length,0)} élève(s) · ${c.reduce((s,x)=>s+(x.lecons||[]).length,0)} leçon(s) · ${c.reduce((s,x)=>s+(x.courses||[]).length,0)} course(s)`}

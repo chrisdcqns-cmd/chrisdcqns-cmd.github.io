@@ -11,3 +11,10 @@ Application web pour tablette (relais-vitesse, lycée), hébergée sur GitHub Pa
 - Interface et textes en français, tutoiement des élèves.
 - Groupes par leçon : `lecon.groupes` (copie des groupes habituels `classe.groupes` à l'ouverture, `ensureLeconGroups`). `GR()` renvoie les groupes de la leçon en cours, ou de la leçon consultée (`ctxLecon()`, vue « bilan »). Fiche groupe : case « Appliquer aussi aux prochaines leçons » → `applyGroups(op)` modifie la leçon en cours, et si coché les groupes habituels + les leçons déjà préparées (`futureLecons`). Roue crantée de la classe : élèves et groupes habituels (`DATA.lecon=null`). Leçon passée : « ✏️ Groupes de cette leçon » puis « 👥 Reformer les groupes ».
 - Ouverture côté élève : `startStudent()` ouvre la leçon du jour (vue élève) ou l'écran d'attente `v-wait` (bouton « Espace enseignant »). `TEACH_VIEWS` (classes, import, lecons, bilan) demandent le code dans `go()`. « 👟 Mode élève » sur la page des classes reverrouille. Liste des vitesses : options de modification en `.teach`.
+
+## Synchronisation entre tablettes
+- Enregistrements `clé → JSON chiffré` (AES-GCM, clé PBKDF2 dérivée de `SH.key`) dans l'onglet caché « Sync » via `Code.gs` (`doPost` avec `sync`, `doGet` avec `pull&since`).
+- Clés : `cls|C`, `el|C|id`, `lec|C|lid` (sans `coach`), `lco|C|lid|gid`, `co|C|cid` (sans `rx`), `evp|C|id`, `eva|C|id|lid`, `dispo`, `meta` (sel des codes anonymes).
+- `persist()` → `syncSoon()` → `syScan()` détecte les changements par empreinte (`SY.h`), envoie `SY.pend` (horodatage de Lamport `syStamp`), puis `syPull()` ; le plus récent l'emporte.
+- Garde-fou : une disparition massive (> 40 éléments et > 40 %) n'est pas propagée et les données sont récupérées.
+- Jamais de nom d'élève en clair dans la feuille.

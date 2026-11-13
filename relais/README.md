@@ -47,6 +47,27 @@ Ensuite, chaque course enregistrée est ajoutée à l'onglet « Courses » de la
 
 > Si tu modifies le script plus tard : **Déployer → Gérer les déploiements → Modifier → Nouvelle version**, pour garder la même URL.
 
+## Synchronisation en direct entre les tablettes
+
+Toutes les tablettes qui ont **la même adresse de script et la même clé secrète** partagent en direct :
+classes, élèves et vitesses, leçons (réglages, groupes, entraîneurs), courses, évaluations et dispositif.
+Une leçon créée sur une tablette apparaît sur les autres en quelques secondes ; une course saisie sur une
+tablette s'affiche sur toutes (vérification toutes les 8 s quand l'appli est ouverte).
+
+- Les données passent par l'onglet caché **« Sync »** de la feuille Google, **chiffrées sur la tablette**
+  (AES-GCM, clé dérivée de la clé secrète) : aucun nom d'élève n'y est lisible.
+- Sans réseau, la tablette garde tout et envoie dès le retour de la connexion.
+- Si deux tablettes modifient le même élément en même temps, la modification la plus récente l'emporte
+  (les courses, elles, ne se chevauchent jamais : chacune est un élément distinct).
+- Pastille en bas à gauche : vert = à jour, orange = envoi en cours, rouge = problème (touche-la pour le détail).
+- Réglage : 🔒 Enseignant → Google Sheets → case « Synchroniser les tablettes en direct » (activée par défaut).
+
+**Mise en place (une fois)**
+1. Remplace le code du script par la nouvelle version de `apps-script/Code.gs` (garde ta valeur de `SECRET`).
+2. **Déployer → Gérer les déploiements → ✏️ → Version : Nouvelle version → Déployer** (l'adresse /exec ne change pas).
+3. Sur chaque tablette : 🔒 Enseignant → Google Sheets → vérifie l'adresse, saisis la clé secrète → Enregistrer.
+   La tablette récupère alors automatiquement tout ce qui est déjà partagé.
+
 ## Vérification de réception
 
 Après chaque envoi, l'application relit la feuille Google pour vérifier que les lignes sont bien arrivées. Tant qu'une ligne n'est pas confirmée, elle reste en file d'attente sur la tablette et repart automatiquement (toutes les 20 secondes en cas de problème, à chaque retour du réseau, et toutes les minutes). L'état s'affiche dans les réglages Google Sheets (« reçues », « en attente », « clé incorrecte »…).
