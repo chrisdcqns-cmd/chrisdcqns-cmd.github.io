@@ -21,3 +21,10 @@ Applications :
 2. Options : **Package ID** `io.github.chrisdcqns.acrosport` (le même qu'avant), nom « EPS – Mes applications », URL de démarrage `/`.
 3. **Signing key → Use mine** : charger le fichier `signing.keystore` d'origine avec ses mots de passe et l'alias (fichier `signing-key-info.txt` fourni par PWABuilder la première fois). Ainsi l'APK installé se met à jour sans désinstallation et l'empreinte de `assetlinks.json` reste valable.
 4. Sans la clé d'origine : laisser PWABuilder en créer une nouvelle, désinstaller l'ancien APK, puis remplacer `sha256_cert_fingerprints` dans `.well-known/assetlinks.json` par la nouvelle empreinte (fichier `assetlinks.json` du paquet PWABuilder).
+
+## Dispenses (communes à toutes les applications)
+- Page d'accueil → carte **Dispenses** → « 🔒 Gérer les dispenses » (code enseignant de Relais Vitesse) : classe → élève → période (du / au) et motif facultatif.
+- Les classes et élèves proposés viennent des listes déjà présentes sur la tablette (Relais, Escalade, OrienRun, Acrosport) ; on peut aussi taper une classe ou un nom.
+- Dans chaque application, une pastille rouge « 🩹 N dispensés » apparaît en bas à gauche quand des élèves sont dispensés aujourd'hui : elle liste qui et jusqu'à quand (le motif n'y est jamais affiché). Relais Vitesse marque aussi les élèves dispensés dans les groupes et les listes de coureurs.
+- Partage entre tablettes : par le même canal chiffré que Relais Vitesse (onglet « Sync », clés `disp|…`), dès que Google Sheets est configuré dans Relais Vitesse sur la tablette.
+- Code partagé : `eps-home.js` (`window.EPSD` : `find(classe, nom, prenom)`, `label()`, `active()`, événement `epsd-change`).

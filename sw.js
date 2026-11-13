@@ -1,7 +1,7 @@
 // EPS – Mes applications : service worker de la racine.
 // Il ne gère que la page d'accueil, le bouton Accueil partagé et Relais Vitesse (qui n'a pas de service worker propre).
 // Acrosport, Escalade et OrienRun gardent leur propre service worker : leurs requêtes ne sont pas touchées ici.
-const CORE = "eps-core-v3";
+const CORE = "eps-core-v4";
 const CORE_FILES = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/eps-home.js", "/relais/", "/relais/index.html"];
 // Bibliothèques externes utilisées par Relais Vitesse (lecture Excel, polices)
 const EXT = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;

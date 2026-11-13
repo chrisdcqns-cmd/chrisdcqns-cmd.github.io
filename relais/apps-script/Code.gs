@@ -148,7 +148,7 @@ function syncPush_(s) {
   }
 }
 
-/** Renvoie les éléments modifiés depuis « since » (par paquets de 300). */
+/** Renvoie les éléments modifiés depuis « since » (par paquets de 300) ; « pre » limite à un préfixe de clé (ex. disp| pour les dispenses). */
 function syncPull_(p) {
   const seq = Number(PropertiesService.getScriptProperties().getProperty('syncSeq') || 0);
   const since = Number(p.since || 0);
@@ -156,7 +156,7 @@ function syncPull_(p) {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SYNC_SHEET);
   if (!sh || sh.getLastRow() < 2) return { seq: seq, recs: [], more: false };
   const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 5).getValues()
-    .filter(r => Number(r[0]) > since)
+    .filter(r => Number(r[0]) > since && (!p.pre || String(r[1]).indexOf(String(p.pre)) === 0))
     .sort((a, b) => Number(a[0]) - Number(b[0]));
   const out = rows.slice(0, 300).map(r => [Number(r[0]), String(r[1]), Number(r[2]), Number(r[3]) ? 1 : 0, String(r[4])]);
   return { seq: seq, recs: out, more: rows.length > 300 };

@@ -381,8 +381,10 @@ tr.disp{opacity:.55}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .dispobtn{white-space:nowrap}
+.displine{width:100%;margin-top:8px;padding:8px 12px;border-radius:12px;background:#FDF0EE;color:#9C2B10;font-size:15px}
+.names .dz{font-style:normal;font-size:12px;font-weight:700;color:#9C2B10;margin-left:6px}
 .synbox{margin:12px 0 4px;padding:12px 14px;border:2px solid var(--lane);border-radius:14px;background:var(--lane-soft)}
-#sydot{position:fixed;left:10px;bottom:10px;z-index:40;display:none;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:#fff;border:1.5px solid var(--line);font-size:13px;font-weight:700;color:var(--muted);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#sydot{position:fixed;right:10px;bottom:10px;z-index:40;display:none;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:#fff;border:1.5px solid var(--line);font-size:13px;font-weight:700;color:var(--muted);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 #sydot.on{display:flex}#sydot i{width:9px;height:9px;border-radius:50%;background:#9AA0A6}
 #sydot.ok i{background:#2E7D4F}#sydot.wait i{background:#EF9F27}#sydot.err i{background:#C0392B}
 @media print{#sydot{display:none!important}}
@@ -1658,7 +1660,7 @@ function renderGroupes(){
   if(!GR().length){$("#glist").innerHTML=`<div class="card empty-msg" style="grid-column:1/-1">Aucun groupe pour l'instant. Touche « Créer un groupe » et sélectionne les élèves, ou continue sans groupe.</div>`;return}
   $("#glist").innerHTML=GR().map(g=>{const m=groupMembers(g);
     return `<button class="gitem" data-gedit="${g.id}"><h3>${esc(g.name)}<small>${m.length} élève${m.length>1?"s":""}</small></h3>
-    <div class="names">${m.map(e=>isCoachE(e)&&coachOf(g.id)===e.id?`<span class="coach">🏅 ${esc(e.prenom)}</span>`:`<span>${esc(e.prenom)}</span>`).join("")||'<span style="background:none;color:var(--muted)">Aucun élève</span>'}</div>
+    <div class="names">${m.map(e=>{const dz=dispOf(e)?`<i class="dz" title="${esc(dispTxt(e))}">🩹 ${esc(dispTxt(e).replace("dispensé(e) ",""))}</i>`:"";return isCoachE(e)&&coachOf(g.id)===e.id?`<span class="coach">🏅 ${esc(e.prenom)}${dz}</span>`:`<span>${esc(e.prenom)}${dz}</span>`}).join("")||'<span style="background:none;color:var(--muted)">Aucun élève</span>'}</div>
     <span class="edit">Modifier →</span></button>`}).join("");
 }
 let GEDIT=null,GSEL=new Set();
@@ -1763,11 +1765,17 @@ document.addEventListener("click",async e=>{
 });
 
 /* Choix du groupe pendant la leçon */
+/* dispenses saisies depuis la page d'accueil des applications (eps-home.js) */
+const dispOf=e=>{try{return window.EPSD&&e?EPSD.find(CL()?CL().name:"",e.nom,e.prenom):null}catch(x){return null}};
+const dispTxt=e=>{const d=dispOf(e);return d?EPSD.label(d):""};
+window.addEventListener("epsd-change",()=>{try{syRefreshSoon()}catch(e){}});
 function renderGPicks(){
   if(CURG()!=="all"&&!GR().some(g=>g.id===CURG()))CL().curg="all";
   const html=GR().map(g=>`<button data-g="${g.id}" class="${CURG()===g.id?"on":""}">${esc(g.name)}<small>${groupMembers(g).length}</small></button>`).join("")
     +`<button data-g="all" class="${CURG()==="all"?"on":""}">Toute la classe</button>`;
-  ["#c-g","#r-g"].forEach(s=>$(s).innerHTML=html);
+  const ds=poolFor().filter(e=>dispOf(e));
+  const dl=ds.length?`<div class="displine">🩹 ${ds.map(e=>`<b>${esc(e.prenom)}</b> ${esc(dispTxt(e))}`).join(" · ")}</div>`:"";
+  ["#c-g","#r-g"].forEach(s=>$(s).innerHTML=html+dl);
   try{renderEvAlert()}catch(e){}
   document.querySelectorAll(".gcard").forEach(c=>c.style.display=GR().length?"":"none");
   try{renderCoach()}catch(e){}
@@ -1783,7 +1791,7 @@ function fillSelect(sel,kind){
   const list=poolFor().filter(e=>usable(e,kind)&&roleOk(e,kind)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
   const dup=p=>list.filter(x=>x.prenom.toLowerCase()===p.toLowerCase()).length>1;
   const lab0=e=>CURG()==="all"?`${e.prenom} ${e.nom}`:(dup(e.prenom)?`${e.prenom} ${e.nom?e.nom[0]+".":""}`:e.prenom);
-  const lab=e=>(isCoachE(e)?"🏅 ":"")+lab0(e);
+  const lab=e=>(dispOf(e)?"🩹 ":"")+(isCoachE(e)?"🏅 ":"")+lab0(e)+(dispOf(e)?" ("+dispTxt(e)+")":"");
   sel.innerHTML=`<option value="">— Choisir un prénom —</option>`+list.map(e=>`<option value="${e.id}">${esc(lab(e))} · ${kind==="A"?e.ma:e.ml} km/h</option>`).join("");
   /* élèves des autres groupes : à la fin de la liste, avec le nom de leur groupe */
   if(CURG()!=="all"){
@@ -2310,7 +2318,7 @@ function renderEvAlert(){
   const show=!!(l&&(cfg.autoOn||cfg.evalOn));$("#c-evbtns").style.display=show?"":"none";
   $("#c-auto").style.display=cfg.autoOn?"":"none";$("#c-eval").classList.toggle("hide-ev",!cfg.evalOn);$("#c-eval").style.display=cfg.evalOn?"":"none";
   let html="";
-  if(l&&cfg.autoOn&&cfg.autoReq){const miss=evList(false).filter(e=>!autoDone(e,l.id));
+  if(l&&cfg.autoOn&&cfg.autoReq){const miss=evList(false).filter(e=>!autoDone(e,l.id)&&!dispOf(e));
     if(miss.length)html=`<span>⚠️ <b>Auto-évaluation obligatoire.</b> ${miss.length>12?miss.length+" élèves ne se sont":esc(miss.map(e=>e.prenom).join(", "))+(miss.length>1?" ne se sont":" ne s'est")} pas encore auto-évalué${miss.length>1?"s":""}.</span><button class="btn primary sm" data-go="auto">Je m'auto-évalue →</button>`}
   ["#c-evalert","#r-evalert"].forEach(s=>{const b=$(s);if(!b)return;b.innerHTML=html;b.classList.toggle("on",!!html)});
 }
@@ -2593,7 +2601,7 @@ function renderGoalReminder(){
   const N=cfg.goalN||4,how=cfg.goalMode==="both"?`${N} comme donneur et ${N} comme receveur`:`${N} dans son meilleur rôle`;
   const g=GR().find(x=>x.id===CURG());
   let rest="";
-  if(g){const m=groupMembers(g).filter(e=>e.ma!=="DISP");
+  if(g){const all=groupMembers(g).filter(e=>e.ma!=="DISP"),m=all.filter(e=>!dispOf(e));
     const left=m.map(e=>{const s=goalStatus(e,cfg,CO());const n=s.lines.reduce((t,[l,v,n])=>t+Math.max(0,n-v),0);return {e,n}}).filter(x=>x.n>0);
     rest=left.length?`<div class="grl">Encore à courir : ${left.map(x=>`<span><b>${esc(x.e.prenom)}</b> ${x.n}</span>`).join("")}</div><div class="grt">⏱ Organisez-vous pour avoir le temps de toutes les faire avant la fin de la leçon !</div>`
       :`<div class="grt ok">✓ Tout le groupe a atteint l'objectif de la leçon. Bravo !</div>`;
@@ -2938,6 +2946,7 @@ async function syPull(){
       let changed=false;
       for(const [seq,k,u,d,x] of recs){
         SY.maxU=Math.max(SY.maxU||0,+u||0);
+        if(k.startsWith("disp|"))continue; /* dispenses : gérées par la page d'accueil commune (eps-home.js) */
         const pd=SY.pend[k];if(pd&&pd.u>+u)continue; /* notre version locale est plus récente : elle sera envoyée */
         delete SY.pend[k];
         if(+d){if(k in SY.h||k.split("|")[0]!=="meta"){syRemove(k);delete SY.h[k];changed=true}continue}
