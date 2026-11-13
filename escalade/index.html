@@ -115,6 +115,12 @@ small,.mut{color:var(--mut)}
 .g11{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.g9 .tp{font-weight:700}
 @media(max-width:600px){.g9{grid-template-columns:repeat(5,1fr)}}
 .rl{padding:2px 0 6px}.rl.miss{background:#fdecea;border-radius:12px;padding:4px 10px 10px;outline:3px solid var(--bad)}
+.rpm{display:flex;flex-direction:column;gap:2px;border-radius:12px;padding:12px 14px;margin:6px 0 4px;background:#f1f4f5;border-left:6px solid var(--ln)}
+.rpm b{font-size:20px}.rpm span{font-size:15px;color:var(--mut)}
+.rpm.bad{background:#fdecea;border-color:#b3261e}.rpm.bad b{color:#b3261e}
+.rpm.mid{background:#fff4e0;border-color:#c77700}.rpm.mid b{color:#9a5c00}
+.rpm.good{background:#e6f4ea;border-color:#2e9e4f}.rpm.good b{color:#1f7a3d}
+.st.rp-bad b,.rpt.rp-bad{color:#b3261e}.st.rp-mid b,.rpt.rp-mid{color:#9a5c00}.st.rp-good b,.rpt.rp-good{color:#1f7a3d}.rpt{font-weight:700}
 .sea{display:inline-block;background:#e3f1f2;border-radius:999px;padding:4px 14px;font-weight:700;color:var(--ac);margin-bottom:10px}
 </style></head><body>
 <header><b id="logo">Escalade EPS</b><span id="tm"></span></header>
@@ -293,10 +299,10 @@ async function loadVideos(){for(const v of document.querySelectorAll('video[data
 /* ---------- grimpe ---------- */
 const cs=n=>`<span class="dot" style="background:${COL[n]||'#ccc'}"></span>`;
 function stepper(k){return `<div class="step"><button class="b g" onclick="st('${k}',-1)">−</button><output id="o_${k}">${F[k]}</output><button class="b" onclick="st('${k}',1)">+</button></div>`}
-function st(k,d){F[k]=Math.max(0,F[k]+d);$('#o_'+k).textContent=F[k]}
+function st(k,d){F[k]=Math.max(0,F[k]+d);$('#o_'+k).textContent=F[k];upR()}
 const req=k=>on(k)&&(CF.sea?.req||[]).includes(k);
 const FIL={m:()=>F.mains>0,p:()=>F.pieds>0,cp:()=>F.cp!=='',h:()=>F.h!=='',a:()=>!F.as||String(F.asV).trim()!=='',pm:()=>!F.pme||String(F.pmeV).trim()!=='',pof:()=>F.pof!=='',k:()=>F.com.trim()!==''};
-const crit=(k,label,inner)=>req(k)?`<div class="crit ${(F.miss||[]).includes(k)?'miss':''}" id="cr_${k}"><div class="ch"><b>${label}</b><span class="ob">★ Obligatoire</span></div><div class="cv">${inner}</div></div>`:`<div class="crit ${F.nr[k]?'off':''}"><div class="ch"><b>${label}</b><label class="nr"><input type="checkbox" ${F.nr[k]?'checked':''} onchange="F.nr['${k}']=this.checked;this.closest('.crit').classList.toggle('off',this.checked)">Non renseigné</label></div><div class="cv">${inner}</div></div>`;
+const crit=(k,label,inner)=>req(k)?`<div class="crit ${(F.miss||[]).includes(k)?'miss':''}" id="cr_${k}"><div class="ch"><b>${label}</b><span class="ob">★ Obligatoire</span></div><div class="cv">${inner}</div></div>`:`<div class="crit ${F.nr[k]?'off':''}"><div class="ch"><b>${label}</b><label class="nr"><input type="checkbox" ${F.nr[k]?'checked':''} onchange="F.nr['${k}']=this.checked;this.closest('.crit').classList.toggle('off',this.checked);upR()">Non renseigné</label></div><div class="cv">${inner}</div></div>`;
 const ouiNon=(k,kv)=>`<div class="row"><button class="b ${F[k]?'g':'on'}" onclick="F.${k}=false;render()">Non</button><button class="b ${F[k]?'on':'g'}" onclick="F.${k}=true;render()">Oui</button>${F[k]?`<input type="number" inputmode="numeric" min="1" placeholder="Combien de fois ?" aria-label="Combien de fois ?" value="${esc(F[kv])}" oninput="F.${kv}=this.value">`:''}</div>`;
 function go(s){F.step=s;render();scrollTo(0,0)}
 function grimpe(){
@@ -307,7 +313,7 @@ function grimpe(){
  if(F.step==2)return `<div class="card">${top}<h3>Numéro de la corde</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${F.vo==i+1?'on':'g'}" onclick="F.vo=${i+1};go(3)">${i+1}</button>`).join('')}</div>${back(1)}</div>`;
  if(F.step==3)return `<div class="card">${top}<h3>Corde ${F.vo} : couleur de la voie</h3><div class="cols">${w.map(([c],j)=>`<button class="b g colb" onclick="F.c=W[${F.vo-1}][${j}][0];F.d=W[${F.vo-1}][${j}][1];go(4)">${cs(c)}${esc(c)}</button>`).join('')||'<p class="mut">Aucune couleur pour cette corde.</p>'}</div>${back(2)}</div>`;
  if(F.step==4)return `<div class="card">${top}<h3>Vérifie ta voie</h3><div class="conf" style="border-color:${COL[F.c]||'#ccc'}">${cs(F.c)}<div><b>Corde ${F.vo}</b> · voie ${esc(F.c)}<br><span class="mut" style="font-size:18px">Difficulté</span> <span class="cot">${esc(F.d)}</span></div></div><p>Est-ce bien la voie que tu as grimpée ?</p><div class="row"><button class="b g" onclick="go(3)">Non, revenir</button><button class="b" onclick="go(5)">Oui, c'est ça</button></div></div>`;
- if(F.step==6)return `<div class="card ok">${goal()}<span class="lab">✓ Grimpe enregistrée${F.eleve?' pour <b>'+esc(F.eleve)+'</b>':''}</span><p><button class="b d" onclick="undo()">↶ Annuler cet enregistrement</button></p><div class="row"><button class="b" onclick="again(true)">Autre voie (${esc(F.eleve)||'même élève'})</button><button class="b g" onclick="again(false)">Élève suivant</button></div></div>`;
+ if(F.step==6)return `<div class="card ok">${goal()}${(()=>{const r=R.find(x=>x.id==F.last),x=r&&rpR(r);if(x==null||!r)return '';const [c,t]=rpLvl(x);return `<div class="rpm ${c}" style="text-align:left;margin-bottom:14px"><b>Ratio pieds / mains : ${fnum(x)}</b><span>${r.p} pieds pour ${r.m} mains · ${t}</span></div>`})()}<span class="lab">✓ Grimpe enregistrée${F.eleve?' pour <b>'+esc(F.eleve)+'</b>':''}</span><p><button class="b d" onclick="undo()">↶ Annuler cet enregistrement</button></p><div class="row"><button class="b" onclick="again(true)">Autre voie (${esc(F.eleve)||'même élève'})</button><button class="b g" onclick="again(false)">Élève suivant</button></div></div>`;
  return `<div class="card">${top}<div class="sum">${esc(F.eleve)} · Corde ${F.vo} · ${cs(F.c)}${esc(F.c)} ${esc(F.d)}<button class="b g" onclick="go(2)">Changer</button></div>
  ${roles()}
  ${critForm()}
@@ -319,7 +325,7 @@ function critForm(){const n10=[1,2,3,4,5,6,7,8,9,10];
   a:()=>ouiNon('as','asV'),pm:()=>ouiNon('pme','pmeV'),
   pof:()=>`<select onchange="F.pof=this.value"><option value="">Choisir…</option>${[0,...n10].map(n=>`<option ${String(F.pof)===String(n)?'selected':''}>${n}</option>`).join('')}</select>`,
   k:()=>`<textarea oninput="F.com=this.value">${esc(F.com)}</textarea>`};
- return CRIT.filter(([k])=>on(k)).map(([k,n])=>crit(k,n,I[k]())).join('')}
+ return CRIT.filter(([k])=>on(k)).map(([k,n])=>crit(k,n,I[k]())+(k=='p'&&on('m')?`<div id="rpm">${ratioBox()}</div>`:'')).join('')}
 const done=()=>R.filter(r=>r.el==F.eleve&&String(r.ts).startsWith(today())&&(r.cl||'')==(cls()?.nom||'')).length;
 function goal(){const m=CF.sea?.min||0,n=done();if(!m)return '';const r=m-n;
  return r>0?`<div class="goal">C'est enregistré !<br>Il te reste encore<span class="n">${r}</span>${r>1?'voies':'voie'} à grimper aujourd'hui !</div>`
@@ -352,6 +358,13 @@ const fnum=x=>x.toLocaleString('fr-FR',{maximumFractionDigits:1});
 const fday=(x,long)=>new Date(x+'T12:00').toLocaleDateString('fr-FR',long?{weekday:'long',day:'numeric',month:'long'}:{weekday:'short',day:'numeric',month:'short'});
 /* hauteur : 0 = 1re dégaine non dépassée, 1 à 8 = dernière dégaine dépassée, 9 = Top */
 const TOP=9,hl=h=>Number(h)==TOP?'Top':h;
+/* ratio pieds / mains : plus de pieds que de mains = on grimpe avec les jambes (repères indicatifs : < 1, 1 à 1,5, ≥ 1,5) */
+const RP=(p,m)=>Number(m)>0&&Number(p)>0?Number(p)/Number(m):null,rpR=r=>RP(r.p,r.m);
+const rpLvl=x=>x<1?['bad','Plus de mains que de pieds : pousse davantage sur tes jambes !']:x<1.5?['mid','Autant ou un peu plus de pieds que de mains : continue à chercher des pieds.']:['good','Bravo, tu grimpes avec les jambes !'];
+function ratioBox(){if(!on('m')||!on('p')||F.nr.m||F.nr.p)return '';const x=RP(F.pieds,F.mains);
+ if(x==null)return `<div class="rpm"><b>Ratio pieds / mains</b><span>Il s'affiche quand tu as compté tes prises de mains et de pieds.</span></div>`;
+ const [c,t]=rpLvl(x);return `<div class="rpm ${c}"><b>Ratio pieds / mains : ${fnum(x)}</b><span>${F.pieds} pieds pour ${F.mains} mains · ${t}</span></div>`}
+function upR(){const e=$('#rpm');if(e)e.innerHTML=ratioBox()}
 const isNum=v=>v!==''&&v!=null&&!isNaN(v);
 function mesRes(){const k=cls(),nom=k?.nom||'',mine=r=>(r.cl||'')==nom;
  if(!S.mr){const names=[...new Set([...(k?.el||[]),...R.filter(mine).map(r=>r.el).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'fr'));
@@ -371,13 +384,14 @@ function mesRes(){const k=cls(),nom=k?.nom||'',mine=r=>(r.cl||'')==nom;
   <div class="st"><b>${best?esc(best):'–'}</b><span>meilleure difficulté réussie</span></div>
   <div class="st"><b>${H.length?fnum(H.reduce((a,b)=>a+b,0)/H.length):'–'}</b><span>hauteur moyenne (en dégaines, Top = 9)</span></div>
   <div class="st"><b>${H.length?hl(Math.max(...H)):'–'}</b><span>hauteur maximale</span></div>
+  ${(()=>{const Q=L.filter(r=>rpR(r)!=null);if(!Q.length)return '';const x=Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0),[c]=rpLvl(x);return `<div class="st rp-${c}"><b>${fnum(x)}</b><span>ratio pieds / mains (${Q.length} voie${Q.length>1?'s':''})</span></div>`})()}
   ${ROLES.map(([k,l])=>`<div class="st"><b>${nR(k)}</b><span>fois ${l.toLowerCase()}</span></div>`).join('')}</div>`;
  const diffs=`<div class="card"><h3 style="margin-top:0">Difficultés</h3><p class="mut" style="margin:0 0 4px"><span class="lg" style="background:#2e9e4f;margin-left:0"></span>réussie (Top)<span class="lg" style="background:#9fc6ca"></span>non terminée</p>
   ${gs.map(g=>{const x=G[g];return `<div class="dr"><b>${esc(g)}</b><div class="bar" style="width:${x.n/mx*100}%"><i style="flex:${x.ok}"></i><u style="flex:${x.n-x.ok}"></u></div><small class="mut">${x.n} grimpée${x.n>1?'s':''} · ${x.ok} réussie${x.ok>1?'s':''}${x.h.length?' · hauteur moy. '+(x.h.every(v=>v==TOP)?'Top':fnum(x.h.reduce((a,b)=>a+b,0)/x.h.length)):''}</small></div>`}).join('')}</div>`;
  /* tableau */
- const OPT=[['asr','Assureur'],['cas','Contre-ass.'],['obs','Observ.'],['m','Mains'],['p','Pieds'],['cp','Chgt pieds'],['a','Assis'],['pm','PME'],['pof','Sac POF'],['k','Commentaire']].filter(([c])=>L.some(r=>r[c]!==''&&r[c]!=null));
+ const OPT=[['asr','Assureur'],['cas','Contre-ass.'],['obs','Observ.'],['m','Mains'],['p','Pieds'],['rp','Pieds/mains'],['cp','Chgt pieds'],['a','Assis'],['pm','PME'],['pof','Sac POF'],['k','Commentaire']].filter(([c])=>c=='rp'?L.some(r=>rpR(r)!=null):L.some(r=>r[c]!==''&&r[c]!=null));
  const tbl=`<div class="card"><h3 style="margin-top:0">Voies grimpées</h3><div class="tw"><table><tr><th>#</th><th>Heure</th><th>Corde</th><th>Diff.</th><th>Hauteur</th>${OPT.map(o=>`<th>${o[1]}</th>`).join('')}</tr>
-  ${L.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(String(r.ts).slice(11,16))}</td><td>${cs(r.c)}Corde ${r.vo}</td><td><b>${esc(r.d)}</b></td><td>${isNum(r.h)?`<span class="hb"><i style="width:${r.h/TOP*100}%"></i></span>${Number(r.h)==TOP?'<span class="top">Top ✓</span>':r.h+'<small class="mut"> dég.</small>'}`:'–'}</td>${OPT.map(([c])=>`<td>${c=='k'?esc(r[c])||'–':nd(r[c])}</td>`).join('')}</tr>`).join('')}</table></div></div>`;
+  ${L.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(String(r.ts).slice(11,16))}</td><td>${cs(r.c)}Corde ${r.vo}</td><td><b>${esc(r.d)}</b></td><td>${isNum(r.h)?`<span class="hb"><i style="width:${r.h/TOP*100}%"></i></span>${Number(r.h)==TOP?'<span class="top">Top ✓</span>':r.h+'<small class="mut"> dég.</small>'}`:'–'}</td>${OPT.map(([c])=>`<td>${c=='k'?esc(r[c])||'–':c=='rp'?(rpR(r)==null?'–':`<span class="rpt rp-${rpLvl(rpR(r))[0]}">${fnum(rpR(r))}</span>`):nd(r[c])}</td>`).join('')}</tr>`).join('')}</table></div></div>`;
  return head+tabs+`<h3 style="margin:4px 0 0">${d==days[0]?'Dernière leçon':'Leçon'} · ${fday(d,true)}</h3>`+stats+(L.length?tbl+diffs:`<div class="card"><p class="mut">Tu n'as pas grimpé pendant cette leçon.</p></div>`)}
 /* ---------- cotation ---------- */
 const gk=d=>{const m=String(d).trim().match(/^(\d)([abc])?(\+)?/i);return m?(+m[1])*100+(m[2]?(m[2].toLowerCase().charCodeAt(0)-96)*10:0)+(m[3]?5:0):999};
@@ -393,8 +407,8 @@ function cotation(){
  return `<p><button class="b big" onclick="S.cm='d';render()">🔎 Je cherche une voie !</button></p><div class="card"><h3 style="margin-top:0">Quelle corde ?</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${S.cv==i+1?'on':'g'}" onclick="S.cv=${i+1};render()">${i+1}</button>`).join('')}</div></div>
  ${w?`<div class="card"><h3 style="margin-top:0">Corde ${S.cv}</h3>${w.map(([c,d])=>`<div class="vl">${cs(c)}<span>${esc(c)}</span><b>${esc(d)}</b></div>`).join('')||'<p class="mut">Aucune couleur.</p>'}</div>`:'<p class="mut">Touche un numéro de corde pour voir la cotation de chaque couleur.</p>'}`}
 /* ---------- résultats / export / QR ---------- */
-const HEAD=['Tablette','Date','Classe','Élève','Code anonyme (Sheets)','Assureur','Contre-assureur','Observateur','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur (dégaines)','Assis baudrier (nb de fois)','PME (nb de fois)','Sac à POF (0-10)','Commentaire'];
-const row=r=>[r.tab,r.ts,r.cl??'',r.el,SH.key?anon(r.cl,r.el):'',r.asr||'',r.cas||'',r.obs||'',r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k];
+const HEAD=['Tablette','Date','Classe','Élève','Code anonyme (Sheets)','Assureur','Contre-assureur','Observateur','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Ratio pieds/mains','Changements de pieds','Hauteur (dégaines)','Assis baudrier (nb de fois)','PME (nb de fois)','Sac à POF (0-10)','Commentaire'];
+const row=r=>[r.tab,r.ts,r.cl??'',r.el,SH.key?anon(r.cl,r.el):'',r.asr||'',r.cas||'',r.obs||'',r.vo,r.c,r.d,r.m,r.p,rpR(r)==null?'':Math.round(rpR(r)*100)/100,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k];
 const nd=v=>v===''||v==null?'–':v;
 function resultats(){
  const T=R.slice().reverse().map(r=>`<tr><td>${esc(r.el)||'–'}${r.cl?`<br><small>${esc(r.cl)}</small>`:''}</td><td>${r.vo} ${cs(r.c)}${esc(r.d)}</td><td>${nd(r.m)}/${nd(r.p)}</td><td>${nd(hl(r.h))}</td><td>${r.a||'–'}</td><td>${r.pm||'–'}</td><td><button class="b d" style="min-height:36px;padding:2px 10px" title="Supprimer" onclick="delRec('${r.id}')">✕</button></td></tr>`).join('');
@@ -430,13 +444,13 @@ const SH_DEFAULT_URL='https://script.google.com/macros/s/AKfycbzwNfaSmI9PbkQ2ykD
 let SH=LS('sh',{url:'',key:'',fmt:'code',q:[],dq:[]});SH.q=SH.q||[];SH.dq=SH.dq||[];if(!SH.url)SH.url=SH_DEFAULT_URL;
 const SH_HEAD=['Date','Classe','Élève','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur','Assis baudrier (nb)','PME (nb)','Sac à POF','Commentaire','Tablette','id'];
 /* script v3 : range les valeurs d'après les titres et ajoute les colonnes manquantes (avant « id ») */
-const SH_HEAD3=['Date','Classe','Élève','Assureur','Contre-assureur','Observateur','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Changements de pieds','Hauteur','Assis baudrier (nb)','PME (nb)','Sac à POF','Commentaire','Tablette','id'];
+const SH_HEAD3=['Date','Classe','Élève','Assureur','Contre-assureur','Observateur','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Ratio pieds/mains','Changements de pieds','Hauteur','Assis baudrier (nb)','PME (nb)','Sac à POF','Commentaire','Tablette','id'];
 const h32=s=>{let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.imul(h,16777619)}h^=h>>>13;h=Math.imul(h,0x5bd1e995);return (h^(h>>>15))>>>0};
 /* code stable : même clé + même classe + même prénom = même code sur toutes les tablettes */
 const anon=(cl,el)=>'E-'+(h32(SH.key+'|'+nrm(cl)+'|'+nrm(el))%1679616).toString(36).toUpperCase().padStart(4,'0');
 const pInit=n=>{const w=String(n||'').trim().split(/\s+/);return w.length<2?w[0]||'':w[0]+' '+w.slice(1).map(x=>x[0].toUpperCase()+'.').join('')};
 const shN=(r,n)=>!n?'':SH.fmt=='pi'?pInit(n):anon(r.cl,n);
-const shRow3=r=>[r.ts,r.cl||'',shN(r,r.el),shN(r,r.asr),shN(r,r.cas),shN(r,r.obs),r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k,r.tab,r.id];
+const shRow3=r=>[r.ts,r.cl||'',shN(r,r.el),shN(r,r.asr),shN(r,r.cas),shN(r,r.obs),r.vo,r.c,r.d,r.m,r.p,rpR(r)==null?'':Math.round(rpR(r)*100)/100,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k,r.tab,r.id];
 const shRow=r=>[r.ts,r.cl||'',SH.fmt=='pi'?pInit(r.el):anon(r.cl,r.el),r.vo,r.c,r.d,r.m,r.p,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k,r.tab,r.id];
 const shStatus=()=>!SH.url||!SH.key?'Non configuré.':`${SH.q.length?SH.q.length+' grimpe(s) en attente':(R.length?'Toutes les grimpes ont été reçues par Google ✓':'Aucune grimpe à envoyer')}${SH.dq.length?' · '+SH.dq.length+' suppression(s) en attente':''}${SH.err?' · ⚠ '+SH.err:''}${SH.last?' · dernière vérification : '+SH.last+(SH.rows!=null?' ('+SH.rows+' ligne(s) dans la feuille)':''):''}${navigator.onLine?'':' · hors connexion'}`;
 const shUpd=()=>{const e=$('#shS');if(e)e.textContent=shStatus()};

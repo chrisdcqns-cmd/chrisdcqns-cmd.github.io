@@ -8,6 +8,7 @@ Application web pour tablette, pour l'escalade en moulinette au lycée : leçon 
 
 1. **Leçon du jour** (🔒 Enseignant, code) : classe, éléments travaillés (facultatifs ou obligatoires), objectif de voies par élève.
 2. **Renseigner une grimpe** : l'élève choisit son prénom, le numéro de la corde, la couleur de la voie, confirme la cotation, indique **sa cordée** (assureur et contre-assureur obligatoires, observateur facultatif, choisis dans la liste de la classe), puis renseigne les critères du jour (prises, changements de pieds, hauteur de 0 à 8 dégaines ou Top, baudrier, PME, sac à POF, commentaire).
+   - **Ratio pieds / mains** : dès que les prises de mains et de pieds sont comptées toutes les deux, l'élève voit le nombre de pieds par prise de main, avec un repère couleur : rouge sous 1 (plus de mains que de pieds), orange de 1 à 1,5, vert à partir de 1,5 (il grimpe avec les jambes). Ces seuils sont indicatifs : aucun référentiel officiel ne fixe de valeur chiffrée.
 3. **Mes résultats** : chaque élève retrouve sa dernière leçon et les leçons passées (tableau des voies, difficultés réussies, hauteur).
 4. **Cotation** : cotation de chaque voie par corde, et « Je cherche une voie ! » par difficulté.
 5. **Résultats et QRCODE** (mode enseignant) : export Excel, regroupement entre tablettes par QR code, Google Sheets.
