@@ -207,6 +207,16 @@ function syncPull_(p) {
   return { seq: seq, recs: out, more: rows.length > 300 };
 }
 
+/* ---------- À lancer UNE FOIS depuis l'éditeur Apps Script ----------
+   Choisis « autoriserDrive » dans la liste des fonctions (en haut), puis clique sur « Exécuter » :
+   Google demande l'autorisation d'accéder à Google Drive, puis le dossier « Escalade EPS – vidéos » est créé.
+   Ensuite : Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer. */
+function autoriserDrive() {
+  const f = vidFolder_();
+  Logger.log('✓ Dossier prêt : « ' + f.getName() + ' » → ' + f.getUrl());
+  Logger.log('Version du script : ' + VERSION + '. Pense à redéployer : Déployer > Gérer les déploiements > ✏️ > Nouvelle version.');
+}
+
 /* ---------- Vidéos : rangées dans TON Google Drive (dossier « Escalade EPS – vidéos »), jamais publiées ----------
    L'application envoie chaque vidéo en morceaux (texte base64) ; les tablettes les téléchargent
    morceau par morceau avec la clé secrète. */

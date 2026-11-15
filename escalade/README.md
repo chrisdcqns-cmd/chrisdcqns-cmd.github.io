@@ -34,7 +34,16 @@ Toutes les tablettes qui ont **la même clé secrète** (🔒 Enseignant → Ré
 
 **Vidéos** (vignettes nœud de 8, assurage, fiches) : l'enseignant choisit la vidéo **une seule fois**, sur n'importe quel appareil (🔒 Enseignant → Se préparer et assurer → Modifier → « 📹 Choisir la vidéo »). Elle part dans **son Google Drive** (dossier privé « Escalade EPS – vidéos », créé par le script), jamais dans ce dépôt public. Les autres tablettes la téléchargent toutes seules ; un bandeau « ⬇️ Télécharger les vidéos » permet aussi de lancer le téléchargement, et toucher une vignette absente la télécharge avant de la lire. Une fois téléchargée, la vidéo fonctionne hors connexion.
 
-> Pour la synchronisation et les vidéos, le script Google doit être en **version 4** (fichier `apps-script/Code.gs` actuel). Lors du nouveau déploiement, Google demande une autorisation supplémentaire pour **Google Drive** : accepte-la.
+> Pour la synchronisation et les vidéos, le script Google doit être en **version 4** (fichier `apps-script/Code.gs` actuel). Après avoir collé le nouveau code (et remis ta clé secrète) :
+> 1. dans l'éditeur Apps Script, choisis la fonction **`autoriserDrive`** dans la liste en haut, puis clique sur **Exécuter** : Google demande l'autorisation d'accéder à Google Drive (« Paramètres avancés → Accéder à … (non sécurisé) » si l'écran d'avertissement apparaît, c'est ton propre script) ; le dossier **« Escalade EPS – vidéos »** apparaît alors dans ton Drive ;
+> 2. **Déployer → Gérer les déploiements → ✏️ → Version : Nouvelle version → Déployer** (l'adresse ne change pas).
+
+## Résumés PDF
+
+- **Élève** (Mes résultats) : « 📄 Télécharger en PDF » sur l'onglet Bilan (toutes les leçons : chiffres clés, voies par difficulté et par leçon, prochain défi, liste des voies) ou sur l'onglet d'une leçon (résumé de la leçon).
+- **Enseignant** (Leçons et classes → Leçons précédentes → Consulter) : bouton « PDF » à côté de chaque élève, ou « 📄 PDF de tous les élèves » (une page par élève).
+
+Le PDF est fabriqué sur la tablette, sans internet ; il contient le prénom de l'élève (document personnel).
 
 ## Données et confidentialité
 

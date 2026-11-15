@@ -244,6 +244,7 @@ details.more .names{margin-top:8px}
 .vmiss{display:flex;align-items:center;gap:12px;width:100%;min-height:90px;border:2px dashed var(--ln);border-radius:14px;background:#f6f9fa;font:inherit;font-weight:700;color:var(--ink);padding:12px 16px;cursor:pointer;text-align:left}
 .vmiss em{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-style:normal;background:var(--hi);flex:none}
 .vst{font-size:14px;color:var(--ac2);font-weight:700;margin:0}
+.pdfb{margin-left:auto}.sum .pdfb+.b{margin-left:0}.pdfs{min-height:30px;padding:2px 10px;font-size:13px;margin-left:6px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
@@ -413,12 +414,12 @@ window.epsAppHome=()=>{document.querySelector('.vmod')?.remove();document.queryS
 /* consultation d'une leçon (enseignant) */
 function lecView(){const d=S.lv,k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',L=recOf(nom,d).sort((a,b)=>a.ts<b.ts?-1:1),cfg=lecFor(CF.sel||'',d);
  const el=[...new Set(L.map(r=>r.el))].sort((a,b)=>a.localeCompare(b,'fr')),ok=L.filter(r=>Number(r.h)==TOP),best=bestOk(L),min=cfg?.min||0;
- const per=el.map(n=>{const M=L.filter(r=>r.el==n),H=M.map(r=>r.h).filter(isNum).map(Number);return `<tr><td><b>${esc(n)}</b></td><td>${M.length}${min?(M.length>=min?' <span class="top">✓</span>':` <small class="mut">/ ${min}</small>`):''}</td><td>${M.filter(r=>Number(r.h)==TOP).length}</td><td>${esc(bestOk(M)||'–')}</td><td>${H.length?fnum(avg(H)):'–'}</td><td>${(()=>{const Q=M.filter(r=>rpR(r)!=null);return Q.length?fnum(Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0)):'–'})()}</td><td>${ROLES.map(([x])=>L.filter(r=>r[x]==n).length).join(' / ')}</td></tr>`}).join('');
+ const per=el.map(n=>{const M=L.filter(r=>r.el==n),H=M.map(r=>r.h).filter(isNum).map(Number);return `<tr><td><b>${esc(n)}</b> <button class="b g pdfs" data-n="${esc(n)}" onclick="pdfLe(this.dataset.n)">PDF</button></td><td>${M.length}${min?(M.length>=min?' <span class="top">✓</span>':` <small class="mut">/ ${min}</small>`):''}</td><td>${M.filter(r=>Number(r.h)==TOP).length}</td><td>${esc(bestOk(M)||'–')}</td><td>${H.length?fnum(avg(H)):'–'}</td><td>${(()=>{const Q=M.filter(r=>rpR(r)!=null);return Q.length?fnum(Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0)):'–'})()}</td><td>${ROLES.map(([x])=>L.filter(r=>r[x]==n).length).join(' / ')}</td></tr>`}).join('');
  const det=L.slice().reverse().map(r=>`<tr><td>${esc(String(r.ts).slice(11,16))}</td><td>${esc(r.el)}</td><td>${cs(r.c)}${r.vo} · ${esc(r.d)}</td><td>${nd(hl(r.h))}</td><td>${esc(r.asr||'–')} / ${esc(r.cas||'–')}</td><td><button class="b d" style="min-height:36px;padding:2px 10px" title="Supprimer" onclick="delRec('${r.id}')">✕</button></td></tr>`).join('');
  return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.lv=null;render();scrollTo(0,0)">← Retour aux leçons</button></p><h2 style="margin-top:4px">${cap(fday(d,true))}</h2><span class="sea">${k?esc(k.nom):'Sans liste'}</span>
  ${cfg?`<div class="lchips" style="margin-top:10px">${lecChips(cfg)}</div>`:''}
  <div class="stats">${stx(L.length,pw(L.length,'grimpe'))}${stx(el.length,pw(el.length,'élève'))}${stx(ok.length,'Top')}${stx(best?esc(best):'–','meilleure difficulté réussie')}${rpTile(L)}${min?stx(el.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+el.length,'élèves ont atteint l\'objectif'):''}</div>
- ${L.length?`<div class="card"><h3 style="margin-top:0">Par élève</h3><div class="tw"><table><tr><th>Élève</th><th>Voies</th><th>Tops</th><th>Meilleure réussite</th><th>Hauteur moy.</th><th>Pieds/mains</th><th>Assur. / contre / obs.</th></tr>${per}</table></div></div>
+ ${L.length?`<div class="card"><div class="ch"><h3 style="margin:0">Par élève</h3><button class="b" onclick="pdfLe()">📄 PDF de tous les élèves</button></div><div class="tw"><table><tr><th>Élève</th><th>Voies</th><th>Tops</th><th>Meilleure réussite</th><th>Hauteur moy.</th><th>Pieds/mains</th><th>Assur. / contre / obs.</th></tr>${per}</table></div></div>
  ${diffsBlock(L)}
  <div class="card"><div class="ch"><h3 style="margin:0">Toutes les grimpes</h3><button class="b" onclick="xlLe()">Exporter cette leçon (Excel)</button></div><div class="tw"><table><tr><th>Heure</th><th>Élève</th><th>Voie</th><th>Hauteur</th><th>Assureur / contre</th><th></th></tr>${det}</table></div></div>`:'<div class="card"><p class="mut">Aucune grimpe enregistrée pendant cette leçon.</p></div>'}`}
 const lines=()=>[...new Set($('#ceL').value.split('\n').map(s=>s.trim()).filter(Boolean))];
@@ -599,7 +600,7 @@ function mesRes(){const k=cls(),nom=k?.nom||'',mine=r=>(r.cl||'')==nom;
   ${g.length?`<div class="names big">${g.map(pick).join('')}</div>${others.length?`<details class="more"><summary>Toute la classe</summary><div class="names">${others.map(pick).join('')}</div></details>`:''}`
    :others.length?`<div class="names">${others.map(pick).join('')}</div>`:'<p class="mut">Aucun résultat enregistré sur cette tablette.</p>'}</div>`}
  const rs=R.filter(r=>r.el==S.mr&&mine(r)),RL=R.filter(r=>mine(r)&&r.el!=S.mr&&[r.asr,r.cas,r.obs].includes(S.mr)),days=[...new Set([...rs,...RL].map(r=>String(r.ts).slice(0,10)))].sort().reverse();
- const head=`<div class="sum" style="margin-bottom:12px"><span class="chip mini"><i style="--h:${hue(S.mr)}">${esc(ini(S.mr))}</i><span>${esc(S.mr)}</span></span><button class="b g" onclick="S.mr='';render()">Changer</button></div>`;
+ const head=`<div class="sum" style="margin-bottom:12px"><span class="chip mini"><i style="--h:${hue(S.mr)}">${esc(ini(S.mr))}</i><span>${esc(S.mr)}</span></span><button class="b g pdfb" onclick="pdfOne(S.mr,S.ml||'')">📄 Télécharger en PDF</button><button class="b g" onclick="S.mr='';render()">Changer</button></div>`;
  if(!days.length)return head+`<div class="card"><p class="mut">Tu n'as encore aucune grimpe enregistrée sur cette tablette.</p></div>`;
  const d=days.includes(S.ml)?S.ml:'';
  const tabs=`<div class="ltabs"><button class="b ${d?'g':''}" onclick="S.ml='';render()">📊 Bilan</button>${days.map((x,i)=>`<button class="b ${x==d?'':'g'}" onclick="S.ml='${x}';render()">${i?fday(x):'Dernière leçon'}</button>`).join('')}</div>`;
@@ -632,6 +633,90 @@ function bilan(rs,RL,days){const H=rs.map(r=>r.h).filter(isNum).map(Number),ok=r
  const hits=[];if(nx)W.forEach((w,i)=>w.forEach(([c,d])=>{if(d==nx)hits.push([i+1,c])}));
  const defi=nx?`<div class="card defi"><h3 style="margin-top:0">🎯 Ton prochain défi : ${esc(nx)}</h3><p class="mut">${best?`Ta meilleure réussite est ${esc(best)}. Essaie la difficulté juste au-dessus :`:'Vise un premier Top sur une de ces voies :'}</p>${hits.map(([v,c])=>`<div class="vl">${cs(c)}<span><span class="cn">Corde ${v}</span> · couleur ${esc(c)}</span></div>`).join('')}</div>`:(best?`<div class="card defi"><h3 style="margin-top:0">🏆 Tu as réussi la voie la plus difficile du mur !</h3></div>`:'');
  return `<h3 style="margin:4px 0 0">Bilan de toutes tes leçons</h3>`+tiles+defi+lessons+diffsBlock(rs)+favs}
+/* ================= PDF : résumé individuel (généré sur la tablette, sans bibliothèque ni internet) ================= */
+const HWN=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+const HWB=[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+const WAN={'€':128,'‚':130,'„':132,'…':133,'‰':137,'Œ':140,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'™':153,'œ':156,'Ÿ':159};
+const PSUB={'✓':'v','★':'*','→':'->','⇄':'<->','≥':'>=','≤':'<=','×':'x'};
+/* texte → octets WinAnsi (accents français pris en charge ; émojis retirés) */
+function pEnc(t){let o='';for(const ch of String(t??'')){if(PSUB[ch]){o+=PSUB[ch];continue}const c=ch.codePointAt(0);const b=WAN[ch]??((c>=32&&c<127)||(c>=160&&c<256)?c:null);
+ if(b!=null){o+=String.fromCharCode(b);continue}const n=ch.normalize('NFD')[0];if(n&&n.codePointAt(0)<127&&n.codePointAt(0)>=32)o+=n}return o}
+const pEsc=x=>x.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+function pW(t,size,bold){const T=bold?HWB:HWN;let w=0;for(const ch of pEnc(t)){const c=ch.charCodeAt(0),base=c<127?c:(String.fromCharCode(c).normalize('NFD').charCodeAt(0));w+=T[(base>=32&&base<127?base:110)-32]||556}return w*size/1000}
+const pCol=h=>{h=h.replace('#','');const n=parseInt(h.length==3?h.split('').map(x=>x+x).join(''):h,16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255].map(v=>v.toFixed(3)).join(' ')};
+function PDFDoc(){const W=595.28,H=841.89,M=40,pages=[];let c=null;const d={W,H,M,y:0,pages};
+ d.page=()=>{c=[];pages.push(c);d.y=M;return d};
+ d.text=(x,y,t,{size=11,bold=false,color='#1d2a31',align='left',max=0}={})=>{let s=String(t??'');if(max)while(s.length>1&&pW(s,size,bold)>max)s=s.slice(0,-2)+'…';
+  const w=pW(s,size,bold),X=align=='right'?x-w:align=='center'?x-w/2:x;c.push(`BT /${bold?'F2':'F1'} ${size} Tf ${pCol(color)} rg 1 0 0 1 ${X.toFixed(2)} ${(H-y).toFixed(2)} Tm (${pEsc(pEnc(s))}) Tj ET`);return w};
+ d.rect=(x,y,w,h,color,r)=>{c.push(`${pCol(color)} rg ${x.toFixed(2)} ${(H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`)};
+ d.line=(x1,y1,x2,y2,color='#d5dee2',lw=.7)=>{c.push(`${pCol(color)} RG ${lw} w ${x1.toFixed(2)} ${(H-y1).toFixed(2)} m ${x2.toFixed(2)} ${(H-y2).toFixed(2)} l S`)};
+ d.need=h=>{if(d.y+h>H-M-18){d.page();return true}return false};
+ d.bytes=()=>{const objs=[],add=x=>{objs.push(x);return objs.length};
+  const cat=add(''),pg=add(''),f1=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'),f2=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  const kids=pages.map((cc,i)=>{const st=cc.join('\n'),ci=add(`<< /Length ${st.length} >>\nstream\n${st}\nendstream`);return add(`<< /Type /Page /Parent ${pg} 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${ci} 0 R >>`)});
+  objs[cat-1]=`<< /Type /Catalog /Pages ${pg} 0 R >>`;objs[pg-1]=`<< /Type /Pages /Kids [${kids.map(k=>k+' 0 R').join(' ')}] /Count ${kids.length} >>`;
+  let out='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';const off=[];objs.forEach((o,i)=>{off.push(out.length);out+=`${i+1} 0 obj\n${o}\nendobj\n`});
+  const xr=out.length;out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length+1} /Root ${cat} 0 R >>\nstartxref\n${xr}\n%%EOF`;
+  const b=new Uint8Array(out.length);for(let i=0;i<out.length;i++)b[i]=out.charCodeAt(i)&255;return b};
+ return d}
+/* une ou plusieurs pages pour un élève : bilan général (d vide) ou une leçon (d = date) */
+function pdfEleve(doc,name,nom,d){const all=R.filter(r=>r.el==name&&(r.cl||'')==(nom||'')),RLa=R.filter(r=>(r.cl||'')==(nom||'')&&r.el!=name&&[r.asr,r.cas,r.obs].includes(name));
+ const L=(d?all.filter(r=>String(r.ts).startsWith(d)):all).slice().sort((a,b)=>a.ts<b.ts?-1:1),RL=d?RLa.filter(r=>String(r.ts).startsWith(d)):RLa;
+ const PW=doc.W,M=doc.M,CW=PW-2*M,T='#0e7c7b',INK='#1d2a31',MUT='#5b6a72',OK='#2b8a3e',NT='#9fc6ca';
+ doc.page();
+ /* en-tête */
+ doc.rect(0,0,PW,96,INK);doc.rect(0,96,PW,5,'#ffc93c');
+ doc.text(M,38,d?'Résumé de la leçon':"Bilan d'escalade",{size:22,bold:true,color:'#ffffff'});
+ doc.text(M,64,name,{size:16,bold:true,color:'#ffc93c'});
+ doc.text(PW-M,38,nom||'Sans liste',{size:12,bold:true,color:'#ffffff',align:'right'});
+ doc.text(PW-M,58,d?cap(fday(d,true)):'Toutes les leçons',{size:11,color:'#c3d0d6',align:'right'});
+ doc.text(PW-M,76,'Édité le '+new Date().toLocaleDateString('fr-FR'),{size:9,color:'#c3d0d6',align:'right'});
+ doc.y=126;
+ const sec=t=>{doc.need(60);doc.text(M,doc.y,t,{size:14,bold:true,color:INK});doc.line(M,doc.y+7,PW-M,doc.y+7,T,1.2);doc.y+=24};
+ if(!L.length&&!RL.length){doc.text(M,doc.y+10,d?"Aucune grimpe enregistrée pendant cette leçon.":"Aucune grimpe enregistrée pour le moment.",{size:12,color:MUT});return}
+ /* chiffres clés */
+ const H=L.map(r=>r.h).filter(isNum).map(Number),ok=L.filter(r=>Number(r.h)==TOP),best=bestOk(L),ld=[...new Set(L.map(r=>String(r.ts).slice(0,10)))];
+ const Q=L.filter(r=>rpR(r)!=null),rp=Q.length?Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0):null,cfg=d?LEC().find(l=>l.d==d&&(CL.find(c=>c.id==l.cl)?.nom||'')==(nom||'')):null;
+ const nR=k=>RL.filter(r=>r[k]==name).length;
+ const K=[[L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée')],[ok.length,'Top'],[L.length?Math.round(ok.length/L.length*100)+' %':'–','de voies réussies'],[best||'–','meilleure difficulté réussie'],
+  [H.length?fnum(avg(H)):'–','hauteur moyenne (Top = 9)'],[H.length?String(hl(Math.max(...H))):'–','hauteur maximale'],[rp==null?'–':fnum(rp),'ratio pieds / mains'],
+  d?[cfg&&cfg.min?(L.length>=cfg.min?'Atteint':L.length+' / '+cfg.min):'–','objectif de la leçon']:[ld.length?fnum(L.length/ld.length):'–','voies par leçon ('+pl(ld.length,'leçon')+')'],
+  [nR('asr'),'fois assureur'],[nR('cas'),'fois contre-assureur'],[nR('obs'),'fois observateur']];
+ sec('En chiffres');const bw=(CW-3*8)/4,bh=50;
+ K.forEach(([v,l],i)=>{const col=i%4,row=Math.floor(i/4),x=M+col*(bw+8),y=doc.y+row*(bh+8);doc.rect(x,y,bw,bh,'#eef3f5');
+  const good=l.startsWith('ratio')&&rp!=null?(rp<1?'#b3261e':rp<1.5?'#9a5c00':OK):T;doc.text(x+10,y+24,String(v),{size:17,bold:true,color:good,max:bw-16});doc.text(x+10,y+40,l,{size:8.5,color:MUT,max:bw-16})});
+ doc.y+=Math.ceil(K.length/4)*(bh+8)+14;
+ /* difficultés */
+ const G={};L.forEach(r=>{const g=G[r.d]||(G[r.d]={n:0,ok:0});g.n++;if(Number(r.h)==TOP)g.ok++});const gs=Object.keys(G).sort((a,b)=>gk(a)-gk(b));
+ if(gs.length){sec('Voies par difficulté');const mx=Math.max(...gs.map(g=>G[g].n)),bx=M+44,bwm=CW-44-150;
+  gs.forEach(g=>{doc.need(22);const x=G[g],w=Math.max(6,x.n/mx*bwm),wo=x.n?w*x.ok/x.n:0;doc.text(M,doc.y+11,g,{size:11,bold:true});
+   doc.rect(bx,doc.y,w,13,NT);if(wo)doc.rect(bx,doc.y,wo,13,OK);doc.text(bx+bwm+10,doc.y+10.5,pl(x.n,'grimpée')+' · '+pl(x.ok,'réussie'),{size:9.5,color:MUT});doc.y+=21});
+  doc.rect(M,doc.y+2,9,9,OK);doc.text(M+13,doc.y+10,'réussie (Top)',{size:8.5,color:MUT});doc.rect(M+90,doc.y+2,9,9,NT);doc.text(M+103,doc.y+10,'non terminée',{size:8.5,color:MUT});doc.y+=36}
+ if(!d){/* progression par leçon */
+  const per=[...ld].sort().map(x=>{const P=L.filter(r=>String(r.ts).startsWith(x));return {x,n:P.length,ok:P.filter(r=>Number(r.h)==TOP).length,b:bestOk(P)}});
+  if(per.length){sec('Voies par leçon');const mx=Math.max(...per.map(p=>p.n)),bx=M+92,bwm=CW-92-170;
+   per.forEach(p=>{doc.need(22);const w=Math.max(6,p.n/mx*bwm),wo=w*p.ok/p.n;doc.text(M,doc.y+11,fday(p.x),{size:10,bold:true});doc.rect(bx,doc.y,w,13,NT);if(wo)doc.rect(bx,doc.y,wo,13,OK);
+    doc.text(bx+bwm+10,doc.y+10.5,pl(p.n,'voie')+' · '+p.ok+' Top'+(p.b?' · max '+p.b:''),{size:9.5,color:MUT});doc.y+=21});doc.y+=8}
+  /* prochain défi */
+  const grades=[...new Set(W.flat().map(x=>x[1]))].sort((a,b)=>gk(a)-gk(b)),nx=best?grades.find(g=>gk(g)>gk(best)):grades[0];
+  if(nx){const hits=[];W.forEach((w,i)=>w.forEach(([c,dd])=>{if(dd==nx)hits.push('Corde '+(i+1)+' · '+c)}));doc.need(70);
+   const h=34+Math.ceil(hits.length/3)*16;doc.rect(M,doc.y,CW,h,'#fff3cd');doc.rect(M,doc.y,5,h,'#ffc93c');
+   doc.text(M+16,doc.y+20,'Prochain défi : '+nx,{size:13,bold:true});hits.forEach((t,i)=>doc.text(M+16+(i%3)*(CW-30)/3,doc.y+38+Math.floor(i/3)*16,t,{size:10,color:INK}));doc.y+=h+16}}
+ /* tableau des voies */
+ if(L.length){sec(d?'Voies grimpées':'Toutes les voies grimpées');
+  const cols=[['#',22],[d?'Heure':'Date',d?40:62],['Corde',42],['Couleur',58],['Diff.',38],['Hauteur',50],['Assureur',72],['Contre-ass.',72],['M / P',44],['P/M',CW-22-(d?40:62)-42-58-38-50-72-72-44]];
+  const head=()=>{doc.rect(M,doc.y,CW,18,INK);let x=M+4;cols.forEach(([t,w])=>{doc.text(x,doc.y+12.5,t,{size:8.5,bold:true,color:'#ffffff'});x+=w});doc.y+=18};
+  head();L.forEach((r,i)=>{if(doc.need(18))head();if(i%2)doc.rect(M,doc.y,CW,17,'#f4f7f8');const x0=M+4,v=[i+1,d?String(r.ts).slice(11,16):fday(String(r.ts).slice(0,10)),r.vo,r.c,r.d,isNum(r.h)?(Number(r.h)==TOP?'Top':r.h+' dég.'):'–',r.asr||'–',r.cas||'–',(isNum(r.m)||isNum(r.p))?nd(r.m)+' / '+nd(r.p):'–',rpR(r)==null?'–':fnum(rpR(r))];
+   let x=x0;cols.forEach(([,w],j)=>{doc.text(x,doc.y+12,String(v[j]),{size:9,bold:j==4||(j==5&&Number(r.h)==TOP),color:j==5&&Number(r.h)==TOP?OK:INK,max:w-6});x+=w});doc.y+=17});doc.y+=10}}
+function pdfFoot(doc){const n=doc.pages.length;doc.pages.forEach((c,i)=>{c.push(`BT /F1 8 Tf ${pCol('#5b6a72')} rg 1 0 0 1 ${doc.M} 22 Tm (${pEsc(pEnc('Escalade EPS · document personnel, ne pas diffuser'))}) Tj ET`);
+ const t=pEnc('Page '+(i+1)+' / '+n);c.push(`BT /F1 8 Tf ${pCol('#5b6a72')} rg 1 0 0 1 ${(doc.W-doc.M-pW(t,8)).toFixed(2)} 22 Tm (${t}) Tj ET`)})}
+const pFile=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9-]+/g,'_').replace(/^_|_$/g,'');
+function pdfOne(name,d){const nom=cls()?.nom||(CL.find(c=>c.id==(CF.sel||''))?.nom)||'',doc=PDFDoc();pdfEleve(doc,name,nom,d);pdfFoot(doc);
+ dlFile((d?'Lecon_'+d+'_':'Bilan_')+pFile(name)+'.pdf',new Blob([doc.bytes()],{type:'application/pdf'}))}
+/* enseignant : une leçon, un élève ou toute la classe (une page par élève) */
+function pdfLe(name){const k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',d=S.lv,doc=PDFDoc();
+ const els=name?[name]:[...new Set(recOf(nom,d).map(r=>r.el))].sort((a,b)=>a.localeCompare(b,'fr'));if(!els.length)return say('Aucune grimpe pendant cette leçon.');
+ els.forEach(n=>pdfEleve(doc,n,nom,d));pdfFoot(doc);dlFile('Lecon_'+d+'_'+(name?pFile(name):pFile(nom||'classe')+'_tous')+'.pdf',new Blob([doc.bytes()],{type:'application/pdf'}))}
 /* ---------- cotation ---------- */
 const gk=d=>{const m=String(d).trim().match(/^(\d)([abc])?(\+)?/i);return m?(+m[1])*100+(m[2]?(m[2].toLowerCase().charCodeAt(0)-96)*10:0)+(m[3]?5:0):999};
 const toRes=()=>requestAnimationFrame(()=>{const e=$('#cvres');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})});
