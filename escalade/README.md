@@ -28,14 +28,18 @@ Mode enseignant → **Leçons et classes**, pour la classe choisie :
 - **Leçons à venir** : « + Préparer une leçon » pour une date précise ; elle s'appliquera automatiquement ce jour-là.
 - **Leçons précédentes** : une ligne par jour, « Consulter » pour le détail par élève (voies, Tops, objectif atteint, rôles), les difficultés, toutes les grimpes et l'**export Excel de la leçon**.
 
-## Vidéos de « Se préparer et assurer »
+## Synchronisation entre tablettes et vidéos
 
-Les vignettes (nœud de 8 rapide, nœud de 8 version plus lente, assurer en moulinette) se remplissent **sur chaque tablette** : 🔒 Enseignant → Se préparer et assurer → Modifier → « 📹 Choisir la vidéo ». Les vidéos restent dans la mémoire de la tablette : elles ne sont pas publiées dans ce dépôt public (droits des auteurs) et fonctionnent hors connexion.
+Toutes les tablettes qui ont **la même clé secrète** (🔒 Enseignant → Résultats → Google Sheets) partagent automatiquement, dès qu'il y a internet : classes, leçons (préparées et passées), grimpes, cotations, contenus (textes, vignettes) et code enseignant. Chaque élève retrouve donc son bilan complet sur n'importe quelle tablette. Les données sont **chiffrées sur la tablette** avant l'envoi (onglet caché « Sync » de la feuille : aucun prénom lisible). Sans réseau, tout fonctionne et part au retour de la connexion. Le groupe d'élèves et la leçon ouverte restent propres à chaque tablette.
+
+**Vidéos** (vignettes nœud de 8, assurage, fiches) : l'enseignant choisit la vidéo **une seule fois**, sur n'importe quel appareil (🔒 Enseignant → Se préparer et assurer → Modifier → « 📹 Choisir la vidéo »). Elle part dans **son Google Drive** (dossier privé « Escalade EPS – vidéos », créé par le script), jamais dans ce dépôt public. Les autres tablettes la téléchargent toutes seules ; un bandeau « ⬇️ Télécharger les vidéos » permet aussi de lancer le téléchargement, et toucher une vignette absente la télécharge avant de la lire. Une fois téléchargée, la vidéo fonctionne hors connexion.
+
+> Pour la synchronisation et les vidéos, le script Google doit être en **version 4** (fichier `apps-script/Code.gs` actuel). Lors du nouveau déploiement, Google demande une autorisation supplémentaire pour **Google Drive** : accepte-la.
 
 ## Données et confidentialité
 
 - Ce dépôt est public : **il ne contient aucun nom d'élève**. Les classes sont importées sur la tablette (Excel, CSV ou saisie à la main).
-- Les classes, fiches, vidéos et grimpes restent **dans le navigateur de la tablette**. Elles ne passent pas d'un appareil à l'autre.
+- Les données sont gardées dans le navigateur de chaque tablette et **partagées entre les tablettes** par la synchronisation chiffrée (voir plus haut), dès que la clé secrète est saisie.
 - Vers Google Sheets, l'application n'envoie **jamais les prénoms** : seulement un **code anonyme** par élève (ex. `E-4C5U`), ou le prénom avec l'initiale du nom si tu choisis ce réglage. Le code dépend de la clé secrète, de la classe et du prénom : **un élève a le même code sur toutes les tablettes** qui utilisent la même clé. La correspondance code ↔ élève figure seulement dans l'export Excel (colonne « Code anonyme »).
 - ⚠️ La colonne « Commentaire » est envoyée telle quelle : demande aux élèves de ne pas y écrire de noms.
 

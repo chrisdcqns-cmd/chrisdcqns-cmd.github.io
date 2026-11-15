@@ -239,6 +239,11 @@ body[data-t=home] main{padding-top:12px;padding-bottom:0}
 details.more{margin-top:14px}details.more summary{cursor:pointer;font-weight:800;color:var(--ac2);padding:8px 0}
 details.more .names{margin-top:8px}
 .sum .chip.mini{border:0;background:none;padding-left:0}
+
+.vbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;background:#fff3cd;border-radius:14px;padding:12px 16px;margin:0 0 14px;font-weight:700}.vbar .b{min-height:44px;margin-left:auto}
+.vmiss{display:flex;align-items:center;gap:12px;width:100%;min-height:90px;border:2px dashed var(--ln);border-radius:14px;background:#f6f9fa;font:inherit;font-weight:700;color:var(--ink);padding:12px 16px;cursor:pointer;text-align:left}
+.vmiss em{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-style:normal;background:var(--hi);flex:none}
+.vst{font-size:14px;color:var(--ac2);font-weight:700;margin:0}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
@@ -251,7 +256,9 @@ const LSP='escalade.';
 try{if(!/github\.io$/.test(location.hostname))for(const k of ['c','w','r','cf','cl','cl0','cl0v'])if(localStorage.getItem(LSP+k)==null&&localStorage.getItem(k)!=null)localStorage.setItem(LSP+k,localStorage.getItem(k))}catch{}
 const LS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(LSP+k));return v??d}catch{return d}},SV=(k,v)=>{try{localStorage.setItem(LSP+k,JSON.stringify(v))}catch{}};
 const db=new Promise(r=>{try{const q=indexedDB.open('esc',1);q.onupgradeneeded=()=>q.result.createObjectStore('v');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch{r(null)}});
-const idb=async(m,k,v)=>{const d=await db;if(!d)return;return new Promise(r=>{const o=d.transaction('v',m=='get'?'readonly':'readwrite').objectStore('v');const q=m=='get'?o.get(k):m=='put'?o.put(v,k):o.delete(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()})};
+var VH=new Set(),VS={};/* VH : vidéos présentes sur cette tablette ; VS : envois/téléchargements en cours */
+const idb=async(m,k,v)=>{const d=await db;if(!d)return;return new Promise(r=>{const ro=m=='get'||m=='keys',o=d.transaction('v',ro?'readonly':'readwrite').objectStore('v');const q=m=='get'?o.get(k):m=='keys'?o.getAllKeys():m=='put'?o.put(v,k):o.delete(k);q.onsuccess=()=>{if(m=='put')VH.add(k);if(m=='del')VH.delete(k);r(q.result)};q.onerror=()=>r()})};
+idb('keys').then(ks=>{VH=new Set(ks||[]);try{vidUI()}catch(e){}});
 const WDEF=[[['Blanc','6a'],['Jaune','5b']],[['Noir','6a'],['Rouge','6a']],[['Jaune','6c+'],['Orange','5c+'],['Vert','5c']],[['Bleu','6c+'],['Noir','6b+'],['Rouge','6b'],['Violet','6a']],[['Blanc','6b'],['Rose','6a+'],['Jaune','5a']],[['Violet','7a+'],['Noir','6a'],['Vert','6c+']],[['Bleu','5c'],['Rose','6b']],[['Rouge','6c+'],['Jaune','5c'],['Vert','6a']],[['Orange','5a'],['Blanc','5a']],[['Rose','5c'],['Bleu','5a']],[['Vert','4c+'],['Rouge','5a']],[['Blanc','6a']],[['Orange','4'],['Rose','4']]];
 const clone=o=>JSON.parse(JSON.stringify(o));
 function dlg(o){return new Promise(res=>{const d=document.createElement('div');d.className='dlg';
@@ -290,7 +297,7 @@ const hue=n=>{let h=0;for(const c of String(n))h=(h*31+c.charCodeAt(0))>>>0;retu
 const ini=n=>String(n).trim().charAt(0).toUpperCase();
 /* badge prénom : pastille colorée + prénom (aucune saisie au clavier) */
 const chip=(n,{on=false,dis=false,act='',cl=''}={})=>`<button class="chip ${on?'on':''} ${dis?'dis':''} ${cl}" data-n="${esc(n)}" ${act?`onclick="${act}"`:''}><i style="--h:${hue(n)}">${esc(ini(n))}</i><span>${esc(n)}${dzE((cls()||{}).nom,n)}</span></button>`;
-const save=()=>{SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL)};
+const save=()=>{SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL);try{syncSoon()}catch(e){}};
 function clsScr(){const cur=CF.sea?.cl||'';
  return `<div class="role"><h2>Choisis ta classe</h2><p class="mut">Touche ta classe pour retrouver ta liste de prénoms.</p>
  <div class="rbtns cl">${CL.map(c=>`<button class="tile ${cur==c.id?'cur':''}" style="background:#2e7d4f" onclick="pickCl('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)</span></button>`).join('')}
@@ -322,8 +329,8 @@ function render(){
  if(S.t=='home')m.innerHTML=home();
  else if(S.t=='set')m.innerHTML=S.T?setup():`<div class="card lock"><h2>Escalade EPS</h2><p class="mut">Aucune leçon n'est commencée aujourd'hui sur cette tablette.</p><p><button class="b big" onclick="unlock('set')">🔒 Préparer la leçon du jour</button></p><p class="mut">Réservé à l'enseignant (code demandé).</p><p><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`;
  else if(S.t=='sec')m.innerHTML=content('sec');
- else if(S.t=='the')m.innerHTML=(S.T?ficheForm():'')+content('the');
- else if(S.t=='prep')m.innerHTML=`<div class="sub">${[['ech','Échauffement'],['enc',"S'encorder"],['ass','Assurage']].map(([k,n])=>`<button class="b ${S.s==k?'':'g'}" onclick="S.s='${k}';render()">${n}</button>`).join('')}</div>`+content(S.s);
+ else if(S.t=='the')m.innerHTML=vBar()+(S.T?ficheForm():'')+content('the');
+ else if(S.t=='prep')m.innerHTML=`<div class="sub">${[['ech','Échauffement'],['enc',"S'encorder"],['ass','Assurage']].map(([k,n])=>`<button class="b ${S.s==k?'':'g'}" onclick="S.s='${k}';render()">${n}</button>`).join('')}</div>`+vBar()+content(S.s);
  else if(S.t=='gr')m.innerHTML=grimpe();
  else if(S.t=='cot')m.innerHTML=cotation();
  else if(S.t=='mr')m.innerHTML=mesRes();
@@ -455,14 +462,14 @@ function content(k){
  const B=C[k]||(C[k]=[]);
  let h=B.map((b,i)=>{
   const tools=S.e?`<div class="tb"><button class="b g" onclick="mv('${k}',${i},-1)">↑</button><button class="b g" onclick="mv('${k}',${i},1)">↓</button><button class="b d" onclick="rm('${k}',${i})">Supprimer</button></div>`:'';
-  if(b.t=='v')return `<div class="card"><video controls playsinline data-id="${esc(b.v)}"></video>${tools}</div>`;
+  if(b.t=='v')return `<div class="card">${VH.has(b.v)?`<video controls playsinline data-id="${esc(b.v)}"></video>`:vMiss(b.v)}${tools}</div>`;
   if(b.t=='vgs'){const it=b.items||[];
-   if(!S.e)return `<div class="vigs">${it.map((x,j)=>`<button class="vig ${x.v?'':'nov'}" onclick="playV('${k}',${i},${j})"><span class="vth">${x.v?`<video muted playsinline preload="metadata" data-id="${esc(x.v)}" data-th="1"></video>`:''}<em>▶</em></span><b>${esc(x.ti)}</b>${x.sub?`<small>${esc(x.sub)}</small>`:''}${x.v?'':'<small class="mut">Vidéo à ajouter par l\'enseignant</small>'}</button>`).join('')}</div>`;
+   if(!S.e)return `<div class="vigs">${it.map((x,j)=>{const loc=x.v&&VH.has(x.v);return `<button class="vig ${loc?'':'nov'}" onclick="playV('${k}',${i},${j})"><span class="vth">${loc?`<video muted playsinline preload="metadata" data-id="${esc(x.v)}" data-th="1"></video>`:''}<em>${loc?'▶':x.v&&vRem(x.v)?'⬇':'▶'}</em></span><b>${esc(x.ti)}</b>${x.sub?`<small>${esc(x.sub)}</small>`:''}${loc?'':`<small class="mut">${vMsg(x.v)}</small>`}</button>`}).join('')}</div>`;
    return `<div class="card"><small>Vignettes vidéo</small><div class="vigs ed">${it.map((x,j)=>`<div class="vige"><input value="${esc(x.ti)}" placeholder="Titre" oninput="C['${k}'][${i}].items[${j}].ti=this.value;save()"><input value="${esc(x.sub)}" placeholder="Précision (facultatif)" oninput="C['${k}'][${i}].items[${j}].sub=this.value;save()">
-    ${x.v?`<video controls playsinline preload="metadata" data-id="${esc(x.v)}"></video>`:'<p class="mut">Pas encore de vidéo.</p>'}
+    ${x.v&&VH.has(x.v)?`<video controls playsinline preload="metadata" data-id="${esc(x.v)}"></video>`:x.v?`<p class="mut">${vMsg(x.v)}</p>`:'<p class="mut">Pas encore de vidéo.</p>'}${x.v?`<p class="vst">${vCloud(x.v)}</p>`:''}
     <div class="tb"><label class="b">${x.v?'Remplacer la vidéo':'📹 Choisir la vidéo'}<input type="file" accept="video/*" hidden onchange="setVg('${k}',${i},${j},this)"></label>${x.v?`<button class="b g" onclick="setVg('${k}',${i},${j},null)">Retirer la vidéo</button>`:''}<button class="b d" onclick="rmVg('${k}',${i},${j})">Supprimer la vignette</button></div></div>`).join('')}</div>
     <div class="tb"><button class="b g" onclick="C['${k}'][${i}].items.push({ti:'Nouvelle vignette',sub:'',v:''});save();render()">+ Vignette</button></div><small>Les vidéos restent sur cette tablette (elles ne sont pas publiées en ligne).</small>${tools}</div>`}
-  if(b.t=='f'){const vid=b.v?`<video controls playsinline preload="metadata" data-id="${esc(b.v)}"></video>`:'';
+  if(b.t=='f'){const vid=b.v?(VH.has(b.v)?`<video controls playsinline preload="metadata" data-id="${esc(b.v)}"></video>`:vMiss(b.v)):'';
    if(!S.e)return `<div class="card fiche"><h3>${esc(b.ti)}</h3>${vid}${b.tx?`<p>${esc(b.tx)}</p>`:''}</div>`;
    return `<div class="card"><small>Fiche · titre</small><input value="${esc(b.ti)}" oninput="C['${k}'][${i}].ti=this.value;save()">${vid}<small>Texte</small><textarea oninput="C['${k}'][${i}].tx=this.value;save()">${esc(b.tx)}</textarea>${tools}</div>`}
   if(!S.e)return b.t=='h'?`<h2>${esc(b.v)}</h2>`:b.t=='s'?`<h3>${esc(b.v)}</h3>`:`<p>${esc(b.v)}</p>`;
@@ -493,9 +500,10 @@ async function addVid(k,el){const f=el.files[0];if(!f)return;const id='v'+Date.n
 async function loadVideos(){for(const v of document.querySelectorAll('video[data-id]')){const b=await idb('get',v.dataset.id);if(b)v.src=URL.createObjectURL(b)+(v.dataset.th?'#t=0.8':'')}}
 async function setVg(k,i,j,inp){const it=C[k][i].items[j];if(inp===null){if(it.v)await idb('del',it.v);it.v='';save();return render()}
  const f=inp.files[0];if(!f)return;if(!(await db))return say("Impossible d'enregistrer la vidéo sur cet appareil (navigation privée ?).");
- if(it.v)await idb('del',it.v);it.v='v'+Date.now();await idb('put',it.v,f);save();render();say('Vidéo enregistrée sur cette tablette.')}
+ if(it.v)await idb('del',it.v);it.v='v'+Date.now();await idb('put',it.v,f);save();render();say(syOk()?'Vidéo enregistrée. Elle part maintenant dans votre Google Drive, puis les autres tablettes la téléchargeront toutes seules.':'Vidéo enregistrée sur cette tablette.');setTimeout(vidAuto,300)}
 async function rmVg(k,i,j){const b=C[k][i];if(!await ask('Supprimer la vignette « '+b.items[j].ti+' » ?'))return;if(b.items[j].v)await idb('del',b.items[j].v);b.items.splice(j,1);if(!b.items.length)C[k].splice(i,1);save();render()}
-async function playV(k,i,j){const it=C[k][i].items[j];if(!it.v)return say("La vidéo n'a pas encore été ajoutée sur cette tablette.");const bl=await idb('get',it.v);if(!bl)return say('Vidéo introuvable sur cette tablette.');
+async function playV(k,i,j){const it=C[k][i].items[j];if(!it.v)return say("L'enseignant n'a pas encore ajouté cette vidéo.");
+ if(!VH.has(it.v)){if(VS[it.v])return;if(!vRem(it.v))return say(syOk()?"Cette vidéo n'est pas encore en ligne : elle sera disponible dès que la tablette de l'enseignant l'aura envoyée.":"Cette vidéo n'est pas sur cette tablette. Pour la télécharger, l'enseignant doit d'abord régler Google Sheets (clé secrète) dans Résultats.");if(!await vidDown(it.v))return say('Téléchargement impossible pour le moment (réseau ?). Réessaie dans un instant.')}const bl=await idb('get',it.v);if(!bl)return say('Vidéo introuvable sur cette tablette.');
  const u=URL.createObjectURL(bl),d=document.createElement('div');d.className='vmod';d.innerHTML=`<div class="vbox"><div class="vh"><b>${esc(it.ti)} ${it.sub?`<small>${esc(it.sub)}</small>`:''}</b><button class="b g" aria-label="Fermer">✕ Fermer</button></div><video controls playsinline autoplay src="${u}"></video></div>`;
  const close=()=>{d.remove();URL.revokeObjectURL(u)};d.querySelector('button').onclick=close;d.onclick=e=>{if(e.target===d)close()};document.body.append(d)}
 /* ---------- grimpe ---------- */
@@ -650,6 +658,7 @@ function resultats(){
  <p><b>${R.length}</b> grimpe(s) enregistrée(s).</p>
  <div class="tb"><button class="b" onclick="xl()">Exporter en Excel (.xlsx)</button><button class="b" onclick="qrs()">Générer les QR codes</button><button class="b g" onclick="cp()">Copier les données</button></div>
  <div id="qr" class="qrs"></div><p id="qi" class="mut"></p></div>
+ <div class="card"><div class="ch"><h3 style="margin:0">Synchronisation entre tablettes</h3><button class="b g" onclick="syNow()">Synchroniser maintenant</button></div><p id="syS" class="mut">${syTxt()}</p><small>Classes, leçons, grimpes, cotations, contenus et code enseignant sont partagés entre toutes les tablettes qui ont la même clé secrète, dès qu'il y a internet. Les données sont chiffrées sur la tablette. Les vidéos passent par votre Google Drive.</small></div>
  <div class="card"><h3 style="margin-top:0">Google Sheets</h3>
  <p class="mut">Chaque grimpe est envoyée automatiquement vers votre feuille, avec un <b>code anonyme</b> à la place du prénom. Sans réseau, les envois attendent et repartent dès que la connexion revient.</p>
  <label class="l">URL de l'application Web (Apps Script)</label><input id="shU" value="${esc(SH.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
@@ -663,7 +672,7 @@ function resultats(){
  <textarea id="imp" placeholder="Collez ici les textes des QR codes"></textarea>
  <p><button class="b" onclick="imp()">Fusionner</button></p></div>
  <div class="card"><table><tr><th>Élève</th><th>Corde</th><th>M/P</th><th>H.</th><th>Assis</th><th>PME</th><th></th></tr>${T||'<tr><td colspan=7 class="mut">Aucune grimpe.</td></tr>'}</table>
- <p><button class="b d" onclick="ask('Effacer toutes les grimpes de cette tablette ?\n(Celles déjà envoyées restent dans Google Sheets.)').then(o=>{if(o){R=[];save();render()}})">Tout effacer</button></p></div>`}
+ <p><button class="b d" onclick="ask(syOk()?'Effacer toutes les grimpes, sur toutes les tablettes synchronisées ?\n(Celles déjà envoyées restent dans Google Sheets.)':'Effacer toutes les grimpes de cette tablette ?\n(Celles déjà envoyées restent dans Google Sheets.)').then(o=>{if(o){SY.mass=1;R=[];save();render()}})">Tout effacer</button></p></div>`}
 const payload=()=>JSON.stringify(R.map(r=>[r.id,r.ts,r.tab,r.el,r.vo,r.c,r.d,r.m,r.p,r.h,r.a,r.pm,r.k,r.cl??'',r.cp??'',r.pof??'',r.asr||'',r.cas||'',r.obs||'']));
 function chunks(){const p=payload(),sid=Math.random().toString(36).slice(2,6),n=Math.ceil(p.length/330)||1,o=[];for(let i=0;i<n;i++)o.push(`G|${sid}|${i+1}|${n}|`+p.slice(i*330,(i+1)*330));return o}
 function qrs(){if(!R.length)return say('Aucune grimpe à transmettre.');const c=chunks();$('#qr').innerHTML='';c.forEach((t,i)=>{const f=document.createElement('figure'),cv=document.createElement('canvas');drawQR(cv,qr(t));f.append(cv,Object.assign(document.createElement('small'),{textContent:`QR ${i+1}/${c.length}`}));$('#qr').append(f)});$('#qi').textContent=c.length>1?'Scannez tous les QR : '+c.length+' au total.':''}
@@ -689,8 +698,8 @@ const shRow=r=>[r.ts,r.cl||'',SH.fmt=='pi'?pInit(r.el):anon(r.cl,r.el),r.vo,r.c,
 const shStatus=()=>!SH.url||!SH.key?'Non configuré.':`${SH.q.length?SH.q.length+' grimpe(s) en attente':(R.length?'Toutes les grimpes ont été reçues par Google ✓':'Aucune grimpe à envoyer')}${SH.dq.length?' · '+SH.dq.length+' suppression(s) en attente':''}${SH.err?' · ⚠ '+SH.err:''}${SH.last?' · dernière vérification : '+SH.last+(SH.rows!=null?' ('+SH.rows+' ligne(s) dans la feuille)':''):''}${navigator.onLine?'':' · hors connexion'}`;
 const shUpd=()=>{const e=$('#shS');if(e)e.textContent=shStatus()};
 let shBusy=false;
-function shJ(params){return new Promise(res=>{const cb='shcb'+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement('script');let t;
- const end=d=>{clearTimeout(t);try{delete window[cb]}catch{}s.remove();res(d)};t=setTimeout(()=>end(null),15000);window[cb]=d=>end(d);s.onerror=()=>end(null);
+function shJ(params,ms){return new Promise(res=>{const cb='shcb'+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement('script');let t;
+ const end=d=>{clearTimeout(t);window[cb]=()=>{};s.remove();res(d)};t=setTimeout(()=>end(null),ms||15000);/* une réponse tardive ne provoque plus d'erreur */window[cb]=d=>end(d);s.onerror=()=>end(null);
  s.src=SH.url+(SH.url.includes('?')?'&':'?')+Object.entries({...params,key:SH.key,callback:cb}).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');document.head.append(s)})}
 let shRT=null;
 /* envoi puis vérification : une grimpe ne quitte la file d'attente qu'une fois lue dans la feuille Google */
@@ -714,7 +723,7 @@ async function sync(){if(!SH.url||!SH.key||shBusy||!navigator.onLine||(!SH.q.len
 function shAdd(id){if(!SH.url)return;const r=R.find(x=>x.id==id);if(r)delete r.rx;SH.q=SH.q.filter(x=>x!=id);SH.q.push(id);SV('sh',SH);sync()}
 function shDel(ids){if(!SH.url)return;SH.q=SH.q.filter(i=>!ids.includes(i));SH.dq.push(...ids);SV('sh',SH);sync()}
 function shPing(url,key){return new Promise(res=>{const cb='shcb'+Date.now(),s=document.createElement('script');let t;
- const end=d=>{clearTimeout(t);delete window[cb];s.remove();res(d)};t=setTimeout(()=>end(null),12000);window[cb]=d=>end(d);s.onerror=()=>end(null);
+ const end=d=>{clearTimeout(t);window[cb]=()=>{};s.remove();res(d)};t=setTimeout(()=>end(null),12000);window[cb]=d=>end(d);s.onerror=()=>end(null);
  s.src=url+(url.includes('?')?'&':'?')+'callback='+cb+'&key='+encodeURIComponent(key)+'&ids=_test';document.head.append(s)})}
 const shForm=()=>({url:$('#shU').value.trim(),key:$('#shK').value.trim(),fmt:$('#shF').value});
 async function shTestUI(){const f=shForm();if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(f.url))return say("L'URL doit commencer par https://script.google.com/…");if(!f.key)return say('Indiquez la clé secrète.');
@@ -722,10 +731,116 @@ async function shTestUI(){const f=shForm();if(!/^https:\/\/script\.google(userco
  say(!d?"Pas de réponse du script. Vérifiez l'URL (elle finit par /exec), le déploiement « Tout le monde » et la connexion internet.":d.keyOk?(d.check?'✓ Connexion réussie : la clé est correcte et la vérification de réception est active.':'✓ Connexion réussie : la clé est correcte. Mettez à jour le script Google pour activer la vérification de réception.'):'Le script répond, mais la clé ne correspond pas à celle du script.')}
 async function shSave(){const f=shForm();if(f.url&&!/^https:\/\/script\.google(usercontent)?\.com\//.test(f.url))return say("L'URL doit commencer par https://script.google.com/…");
  if(SH.key&&f.key!==SH.key&&!await ask('Changer la clé change aussi tous les codes anonymes. Continuer ?'))return;
- const first=!SH.url&&f.url;Object.assign(SH,f);SV('sh',SH);render();
+ const first=!SH.url&&f.url,newKey=f.key!==SH.key;Object.assign(SH,f);if(newKey){SY.init=false;SY.since=0;SY.h={};SY.pend={};SY.err='';sySave()}SV('sh',SH);render();syncSoon(300);
  if(first&&R.length&&await ask('Envoyer les '+R.length+' grimpe(s) déjà enregistrée(s) sur cette tablette ?','Envoyer','Plus tard'))shAll(true);else say('Réglages enregistrés.')}
 function shAll(silent){if(!SH.url||!SH.key)return say("Enregistrez d'abord l'URL et la clé.");SH.q=[...new Set([...SH.q,...R.map(r=>r.id)])];SV('sh',SH);sync();if(silent!==true)say(R.length+' grimpe(s) mises en file d\'envoi (les doublons sont évités).')}
 addEventListener('online',()=>sync());setInterval(()=>sync(),60000);
+/* ================= synchronisation entre tablettes (même principe que Relais Vitesse) =================
+   Enregistrements clé → JSON chiffré (AES-GCM, clé dérivée de la clé secrète) dans l'onglet caché « Sync » du script.
+   Clés : cl|id (classe), lec|id (leçon), r|id (grimpe, sans rx), w (cotations), c|section (contenus), pin (code enseignant). */
+var SY={since:0,maxU:0,h:{},pend:{},dev:'',init:false,last:0,err:'',vids:{},...LS('sy',{})};if(!SY.dev)SY.dev=uid();
+const sySave=()=>SV('sy',SY),hs=x=>h32(x)+':'+x.length;
+const syOk=()=>SY.on!==false&&!!SH.url&&!!SH.key&&!!(window.crypto&&crypto.subtle)&&!/claude/.test(location.hostname);
+const syStamp=()=>Math.max(Date.now(),(SY.maxU||0)+1);
+function syRecords(){const O={},put=(k,o)=>{O[k]=JSON.stringify(o)};
+ CL.forEach(c=>put('cl|'+c.id,c));LEC().forEach(l=>put('lec|'+l.id,l));
+ R.forEach(r=>{const o={...r};delete o.rx;put('r|'+r.id,o)});
+ put('w',W);Object.keys(C).forEach(k=>put('c|'+k,C[k]));if(CF.pin)put('pin',{p:CF.pin});return O}
+function syScan(){const O=syRecords();let n=0;
+ for(const k in O){const x=hs(O[k]);if(SY.h[k]!==x){SY.h[k]=x;SY.pend[k]={u:syStamp(),d:0};n++}}
+ let gone=Object.keys(SY.h).filter(k=>!(k in O));
+ if(gone.length){const total=Object.keys(SY.h).length;
+  if(!SY.mass&&gone.length>40&&gone.length>total*.4){gone.forEach(k=>{delete SY.h[k];delete SY.pend[k]});SY.since=0;gone=[]} /* disparition massive inattendue : on récupère tout */
+  gone.forEach(k=>{delete SY.h[k];SY.pend[k]={u:syStamp(),d:1};n++})}
+ SY.mass=0;if(n)sySave();return n}
+let SYK=null,SYKsrc=null;
+async function syKey(){if(SYK&&SYKsrc===SH.key)return SYK;const e=new TextEncoder(),base=await crypto.subtle.importKey('raw',e.encode(SH.key),'PBKDF2',false,['deriveKey']);
+ SYK=await crypto.subtle.deriveKey({name:'PBKDF2',salt:e.encode('escalade-eps-sync-v1'),iterations:120000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);SYKsrc=SH.key;return SYK}
+const b64u=u=>{let x='';const B=new Uint8Array(u);for(let i=0;i<B.length;i+=0x8000)x+=String.fromCharCode.apply(null,B.subarray(i,i+0x8000));return btoa(x)},unb64=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
+async function syEnc(t){const iv=crypto.getRandomValues(new Uint8Array(12)),ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await syKey(),new TextEncoder().encode(t)),o=new Uint8Array(12+ct.byteLength);o.set(iv);o.set(new Uint8Array(ct),12);return b64u(o)}
+async function syDec(x){const b=unb64(x);return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},await syKey(),b.slice(12)))}
+function syApply(k,o){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
+ if(t=='cl'){const i=CL.findIndex(c=>c.id==id);i<0?CL.push(o):CL[i]=o}
+ else if(t=='lec'){const L=LEC(),i=L.findIndex(l=>l.id==id);i<0?L.push(o):L[i]=o;if(CF.sea?.id==id)CF.sea=clone(o)}
+ else if(t=='r'){const i=R.findIndex(r=>r.id==id);if(i<0)R.push(o);else R[i]={...o,rx:R[i].rx}}
+ else if(t=='w')W=o;else if(t=='c')C[id]=o;else if(t=='pin'&&o.p)CF.pin=o.p;
+ return true}
+function syRemove(k){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
+ if(t=='cl')CL=CL.filter(c=>c.id!=id);else if(t=='lec'){CF.lec=LEC().filter(l=>l.id!=id)}else if(t=='r')R=R.filter(r=>r.id!=id)}
+/* au tout premier contact, ce qui a été préparé sur cette tablette (classes, leçons, grimpes, contenus modifiés) est gardé et partagé */
+function syFirst(){const O=syRecords();for(const k in O){const t=k.split('|')[0];
+ const mine=t=='cl'||t=='lec'||t=='r'||t=='pin'||(t=='w'&&O[k]!==JSON.stringify(WDEF))||(t=='c'&&O[k]!==JSON.stringify(DEF[k.slice(2)]??null));
+ if(mine){SY.h[k]=hs(O[k]);SY.pend[k]={u:syStamp(),d:0}}}}
+async function syPull(){
+ for(let loop=0;loop<30;loop++){
+  const r=await shJ({pull:1,since:SY.since,...(loop?{}:{vlist:1})},25000);
+  if(!r){SY.err='Pas de connexion avec le script Google.';return false}
+  if(!r.keyOk){SY.err='La clé secrète ne correspond pas à celle du script.';return false}
+  if(!r.sync){SY.err='Le script Google doit être mis à jour pour la synchronisation (voir le mode d\'emploi).';return false}
+  if(r.vids)SY.vids=r.vids;
+  const recs=r.recs||[];
+  if(recs.length){if(SY.init)syScan();let ch=false;
+   for(const [seq,k,u,d,x] of recs){SY.maxU=Math.max(SY.maxU||0,+u||0);
+    const pd=SY.pend[k];if(pd&&pd.u>+u)continue;delete SY.pend[k];
+    if(+d){if(k in SY.h){syRemove(k);delete SY.h[k];ch=true}continue}
+    let o;try{o=JSON.parse(await syDec(x))}catch(e){SY.err='Des données ont été chiffrées avec une autre clé : vérifiez la clé secrète.';continue}
+    const t=JSON.stringify(o);if(SY.h[k]===hs(t))continue;syApply(k,o);SY.h[k]=hs(t);ch=true}
+   if(ch){const O=syRecords();for(const k in O)if(!SY.pend[k])SY.h[k]=hs(O[k]);SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL);syRefresh()}
+   SY.since=+recs[recs.length-1][0]}
+  else SY.since=Math.max(SY.since,+r.seq||0);
+  sySave();if(!r.more)return true}
+ return true}
+let syBusy=false,syTimer=null,syT2=null;
+function syncSoon(ms){if(!syOk())return;clearTimeout(syT2);syT2=setTimeout(syCycle,ms||1500)}
+function sySched(){clearTimeout(syTimer);if(!syOk())return;syTimer=setTimeout(syCycle,document.visibilityState=='hidden'?30000:8000)}
+async function syCycle(){
+ if(!syOk()){syUpd();return}if(syBusy){syncSoon(2000);return}
+ if(navigator.onLine===false){SY.err='Hors connexion : les données partiront au retour du réseau.';syUpd();sySched();return}
+ syBusy=true;
+ try{await syKey();
+  if(!SY.init){syFirst();if(!await syPull())return;SY.init=true;sySave()}
+  syScan();const keys=Object.keys(SY.pend);let O=null;
+  if(keys.length){for(let i=0;i<keys.length;i+=100){const recs=[];
+    for(const k of keys.slice(i,i+100)){const pd=SY.pend[k];if(!pd)continue;
+     if(pd.d)recs.push({k,u:pd.u,d:1});else{if(!O)O=syRecords();if(!(k in O)){delete SY.pend[k];continue}recs.push({k,u:pd.u,d:0,x:await syEnc(O[k])})}}
+    if(recs.length)await fetch(SH.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SH.key,sync:{dev:SY.dev,recs}})})}
+   await new Promise(r=>setTimeout(r,1200))}
+  if(await syPull()){SY.last=Date.now();SY.err=''}
+ }catch(e){SY.err='Synchronisation impossible pour le moment (réseau ?).'}
+ finally{syBusy=false;sySave();syUpd();sySched();vidAuto()}}
+function syRefresh(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(document.querySelector('.dlg,.vmod'))return;
+ if(S.t=='gr'&&F.step>1)return;const y=scrollY;render();scrollTo(0,y)}
+const pend=()=>Object.keys(SY.pend).length;
+function syTxt(){if(!SH.key)return 'Inactive : indiquez la clé secrète dans « Google Sheets » ci-dessous, sur chaque tablette.';if(!syOk())return 'Inactive sur cette page.';
+ return (SY.err?'⚠️ '+SY.err:SY.last?'✓ À jour · dernière synchronisation à '+new Date(SY.last).toLocaleTimeString('fr-FR').slice(0,5):'Première synchronisation en cours…')+(pend()?' · '+pend()+' élément(s) en attente d\'envoi':'')}
+function syUpd(){const e=$('#syS');if(e)e.textContent=syTxt()}
+function syNow(){if(!syOk())return say(SH.key?'Synchronisation inactive.':"Indiquez d'abord la clé secrète dans « Google Sheets ».");SY.err='';syUpd();syncSoon(50);say('Synchronisation lancée.')}
+addEventListener('online',()=>syncSoon(500));document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')syncSoon(400)});
+/* ================= vidéos : envoyées dans le Google Drive de l'enseignant, téléchargées par les autres tablettes ================= */
+const VCH=2*1024*1024;/* morceaux de 2 Mo */
+function vidRefs(){const out={};Object.values(C).forEach(B=>(B||[]).forEach(b=>{if(b.v)out[b.v]=b.ti||'Vidéo';(b.items||[]).forEach(x=>{if(x.v)out[x.v]=x.ti||'Vidéo'})}));return out}
+const vRem=k=>{const r=SY.vids&&SY.vids[k];return !!(r&&r.n&&r.have>=r.n)};
+const vMsg=k=>!k?"Vidéo à ajouter par l'enseignant":VS[k]?(VS[k].st=='down'?'Téléchargement… '+Math.round(VS[k].p*100)+' %':'Envoi en cours…'):vRem(k)?'Touche pour télécharger la vidéo':'Vidéo pas encore disponible sur cette tablette';
+const vCloud=k=>VS[k]&&VS[k].st=='up'?'☁️ Envoi vers Google Drive… '+Math.round(VS[k].p*100)+' %':vRem(k)?'☁️ En ligne : les autres tablettes la téléchargent toutes seules ✓':VH.has(k)?(syOk()?'☁️ Pas encore en ligne : envoi automatique en cours ou à venir':'Sur cette tablette seulement (réglez Google Sheets pour la partager)'):'';
+const vMiss=k=>`<button class="vmiss" onclick="vGet('${esc(k)}')"><em>${vRem(k)?'⬇':'▶'}</em><span>${vMsg(k)}</span></button>`;
+function vBar(){const miss=Object.keys(vidRefs()).filter(k=>!VH.has(k)),dl=miss.filter(vRem),busy=Object.keys(VS).filter(k=>VS[k].st=='down');
+ if(busy.length){const k=busy[0];return `<div class="vbar">⬇️ Téléchargement des vidéos… ${Math.round(VS[k].p*100)} %</div>`}
+ return dl.length?`<div class="vbar">⬇️ ${dl.length} vidéo${dl.length>1?'s':''} à télécharger sur cette tablette <button class="b" onclick="vidAll()">Télécharger ${dl.length>1?'les vidéos':'la vidéo'}</button></div>`:''}
+function vidUI(){if(!['prep','the'].includes(S.t))return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA/.test(a.tagName))return;if(document.querySelector('.vmod'))return;const y=scrollY;render();scrollTo(0,y)}
+const blobB64=b=>new Promise(res=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>res(null);r.readAsDataURL(b)});
+async function vidUp(k){const b=await idb('get',k);if(!b)return false;const n=Math.max(1,Math.ceil(b.size/VCH));VS[k]={st:'up',p:0};vidUI();
+ try{for(let i=0;i<n;i++){const x=await blobB64(b.slice(i*VCH,(i+1)*VCH));if(x==null)throw 0;
+   await fetch(SH.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SH.key,vup:{name:k,i,n,b64:x,size:b.size,type:b.type||'video/mp4',title:vidRefs()[k]||''}})});VS[k].p=(i+1)/n;vidUI()}
+  const d=await shJ({vlist:1},25000);if(d&&d.vids)SY.vids=d.vids;sySave();return vRem(k)}catch(e){return false}finally{delete VS[k];vidUI()}}
+async function vidDown(k){const r=SY.vids&&SY.vids[k];if(!r||VS[k])return false;VS[k]={st:'down',p:0};vidUI();
+ try{const parts=[];for(let i=0;i<r.n;i++){const d=await shJ({vget:k,i},60000);if(!d||!d.part)throw 0;parts.push(unb64(d.part));VS[k].p=(i+1)/r.n;vidUI()}
+  await idb('put',k,new Blob(parts,{type:r.type||'video/mp4'}));return true}catch(e){return false}finally{delete VS[k];vidUI()}}
+async function vGet(k){if(VH.has(k))return;if(!vRem(k))return say(syOk()?"Cette vidéo n'est pas encore en ligne.":"Pour télécharger les vidéos, l'enseignant doit régler Google Sheets (clé secrète) sur cette tablette.");if(!await vidDown(k))say('Téléchargement impossible pour le moment (réseau ?).')}
+let vBusy=false;
+async function vidAll(){if(vBusy)return;vBusy=true;try{for(const k of Object.keys(vidRefs()))if(!VH.has(k)&&vRem(k))await vidDown(k)}finally{vBusy=false;vidUI()}}
+/* automatique : la tablette qui a la vidéo l'envoie, les autres la téléchargent (une à la fois, seulement en ligne) */
+async function vidAuto(){if(vBusy||!syOk()||navigator.onLine===false||!(await db))return;vBusy=true;
+ try{for(const k of Object.keys(vidRefs())){if(VS[k])continue;if(VH.has(k)&&!vRem(k)){await vidUp(k);break}if(!VH.has(k)&&vRem(k)){await vidDown(k);break}}}finally{vBusy=false}}
 /* hors connexion sur le site : copie locale de l'appli */
 if('serviceWorker' in navigator&&/github\.io$/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
 /* XLSX sans bibliothèque */
@@ -785,5 +900,6 @@ function drawQR(cv,M){const s=5,b=4,N=M.length;cv.width=cv.height=(N+2*b)*s;cons
 S.t='role';
 render();
 sync();
+syncSoon(800);
 </script><script src="/eps-home.js" defer></script>
 </body></html>
