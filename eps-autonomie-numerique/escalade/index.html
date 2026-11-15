@@ -301,6 +301,8 @@ body{background:var(--bg) linear-gradient(180deg,#eef0ee 0,var(--bg) 320px) no-r
 .pens{margin:0;padding-left:18px;font-size:12.5px;color:#b3261e}.pens li.off{color:#8a979d;text-decoration:line-through}.pens small{color:#8a979d}
 .belc.bel-red{border:2px solid #c92a2a}.beln{background:#fdecea;color:#b3261e;font-weight:800;border-radius:10px;padding:10px 12px;margin:10px 0 0;white-space:normal}
 ol.b5{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px}ol.b5 li{font-size:15px;color:#5b6a72}ol.b5 li.ok{color:#1f7a3d;font-weight:700}
+.crem{min-height:34px;padding:4px 10px;font-size:13px;border-color:#ffc93c!important;background:#fff8e1!important}.mpre .b.remo{border-color:#ffc93c;background:#fff8e1;white-space:normal}.mbox{max-height:92vh;overflow:auto}
+.helpb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fdecea;border-left:6px solid #c92a2a;border-radius:14px;padding:10px 12px;margin:0 0 12px}.helpb b{color:#b3261e;margin-right:4px}.helpb .b{min-height:38px;padding:4px 12px;font-size:14px}.helpb small{color:#b3261e;font-weight:700}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -474,7 +476,7 @@ const PED0={
   {obj:'Lire sa voie avant de grimper',sit:['s4']},{obj:'Choisir une voie à mon niveau',sit:['s3']},{obj:'Progresser en cordée',sit:['s5']},{obj:'Réussir ma voie projet',sit:['s3']}],
  rem:{"J'ai eu peur":{t:"C'est normal d'avoir peur au début. La prochaine fois, apprivoise la hauteur avec ton assureur :",s:'s7'},
   "J'étais fatigué(e)":{t:"Apprends à récupérer dans la voie :",s:'s2'},
-  "La voie était trop difficile":{t:"Choisis une voie un peu plus facile (onglet Cotation → « Je cherche une voie ! »), réussis-la, puis remonte d'un cran.",s:''},
+  "La voie était trop difficile":{t:"Choisis une voie un peu plus facile (onglet Cotation → « Je cherche une voie ! »), réussis-la, puis remonte d'un cran.",s:'',auto:1},
   "Je n'ai pas trouvé de prise":{t:"Prends le temps de lire ta voie avant de partir :",s:'s4'},
   "J'ai eu mal / une gêne":{t:"Préviens ton enseignant avant de repartir.",s:''},
   "Problème de matériel ou de sécurité":{t:"Préviens ton enseignant tout de suite et ne repars pas avant sa vérification.",s:''},
@@ -512,8 +514,11 @@ function belCard(n){const b=belOf(n),l=belLvl(b),P=PED().b5,pe=b.pen||[];
  ${l=='red'?`<p class="beln">Ton permis d'assurer est retiré : tu ne peux être ni assureur ni contre-assureur. Parle avec ton enseignant pour le retrouver.</p>`:''}
  <p class="mut" style="margin:10px 0 4px">Assurage en 5 temps validé par l'enseignant :</p><ol class="b5">${P.map((t,i)=>`<li class="${b.t5?.[i]?'ok':''}">${b.t5?.[i]?'✓':'○'} ${esc(t)}</li>`).join('')}</ol>
  ${pe.length?`<p class="mut" style="margin:10px 0 4px">Pénalités :</p><ul class="pens">${pe.map(p=>`<li class="${p.off?'off':''}">${esc(fday(p.d))} · ${esc(p.t)}${p.off?' (levée)':''}</li>`).join('')}</ul>`:''}</div>`}
-/* remédiation après une grimpe sous la ligne rouge */
-function remBox(){const r=R.find(x=>x.id==F.last);if(!r||!r.why||Number(r.h)!==0)return '';const k=Object.keys(PED().rem).find(w=>r.why.startsWith(w)),m=k&&PED().rem[k];if(!m)return '';const x=m.s&&sitOf(m.s);
+/* texte d'un conseil de remédiation (pour un message de l'enseignant) */
+const remTxt=m=>{const x=m&&m.s&&sitOf(m.s);return [m?.t||'',x?x.ti+' : '+x.cons:''].filter(Boolean).join(' ')};
+const remFor=why=>{const k=Object.keys(PED().rem).find(w=>String(why||'').startsWith(w));return k?PED().rem[k]:null};
+/* remédiation après une grimpe sous la ligne rouge (seulement les conseils marqués « automatique ») */
+function remBox(){const r=R.find(x=>x.id==F.last);if(!r||!r.why||Number(r.h)!==0)return '';const m=remFor(r.why);if(!m||!m.auto)return '';const x=m.s&&sitOf(m.s);
  return `<div class="remb"><b>💡 Pour la prochaine fois</b><p>${esc(m.t)}</p>${x?`<div class="sitb"><div><b>📋 ${esc(x.ti)}</b><span>${esc(x.cons)}</span>${x.crit?`<small>✓ Réussi si : ${esc(x.crit)}</small>`:''}</div></div>`:''}</div>`}
 /* écran enseignant : contenu pédagogique modifiable */
 function pedScr(){const P=PED(),inp=(p,v,ph='')=>`<input value="${esc(v||'')}" placeholder="${esc(ph)}" oninput="pedSet('${p}',this.value)">`,ta=(p,v)=>`<textarea oninput="pedSet('${p}',this.value)">${esc(v||'')}</textarea>`;
@@ -525,7 +530,8 @@ function pedScr(){const P=PED(),inp=(p,v,ph='')=>`<input value="${esc(v||'')}" p
  <div class="card"><h3 style="margin-top:0">Cycle de leçons</h3><p class="mut">Quand tu prépares la n-ième leçon d'une classe, l'objectif et les situations de la ligne n sont proposés.</p>${P.cyc.map((c,i)=>`<div class="pedi"><div class="ch"><b>Leçon ${i+1}</b>${inp('cyc.'+i+'.obj',c.obj,'Objectif')}</div>
   <div class="lchips">${P.sit.map(x=>`<button class="${(c.sit||[]).includes(x.id)?'on':''}" onclick="pedDo(P=>{const s=new Set(P.cyc[${i}].sit||[]);s.has('${x.id}')?s.delete('${x.id}'):s.add('${x.id}');P.cyc[${i}].sit=[...s]})">${esc(x.ti)}</button>`).join('')}</div></div>`).join('')}
   <div class="tb"><button class="b g" onclick="pedDo(P=>P.cyc.push({obj:'',sit:[]}))">+ Ajouter une leçon</button>${P.cyc.length?`<button class="b g" onclick="pedDo(P=>P.cyc.pop())">Retirer la dernière</button>`:''}</div></div>
- <div class="card"><h3 style="margin-top:0">Sous la ligne rouge : conseils selon le « pourquoi »</h3>${WHY.map(w=>{const m=P.rem[w]||{t:'',s:''};return `<div class="pedi"><b>${esc(w)}</b><textarea oninput="pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]={...(pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]||{}),t:this.value};save()">${esc(m.t)}</textarea>
+ <div class="card"><h3 style="margin-top:0">Sous la ligne rouge : conseils selon le « pourquoi »</h3><p class="mut">Chaque conseil peut être montré automatiquement à l'élève, ou proposé par toi au cas par cas (tablette de contrôle → « 💡 Proposer un conseil »).</p>${WHY.map(w=>{const m=P.rem[w]||{t:'',s:''};return `<div class="pedi"><b>${esc(w)}</b><textarea oninput="pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]={...(pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]||{}),t:this.value};save()">${esc(m.t)}</textarea>
+  <label class="ckl" style="margin:6px 0"><input type="checkbox" ${m.auto?'checked':''} onchange="pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]={...(pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]||{t:''}),auto:this.checked?1:0};save()">Montrer ce conseil automatiquement à l'élève (sinon, c'est toi qui le proposes depuis la tablette de contrôle)</label>
   <select onchange="pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]={...(pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]||{t:''}),s:this.value};save()"><option value="">Pas de situation proposée</option>${P.sit.map(x=>`<option value="${x.id}" ${m.s==x.id?'selected':''}>${esc(x.ti)}</option>`).join('')}</select></div>`}).join('')}</div>
  <div class="card"><h3 style="margin-top:0">Assurage en 5 temps</h3>${P.b5.map((t,i)=>`<div class="row" style="margin-bottom:6px"><b class="fix">${i+1}</b>${inp('b5.'+i,t)}</div>`).join('')}</div>
  <div class="card"><h3 style="margin-top:0">Motifs de pénalité</h3><p class="mut">★ grave : retire le permis d'assurer tout de suite. Sinon, le permis est retiré à la 2e pénalité.</p>${P.pens.map((p,i)=>`<div class="row" style="margin-bottom:6px">${inp('pens.'+i+'.t',p.t)}<button class="b fix ${p.g?'on':'g'}" onclick="pedDo(P=>{P.pens[${i}].g=P.pens[${i}].g?0:1})">${p.g?'★ Grave':'Simple'}</button><button class="b d fix" onclick="pedDo(P=>{P.pens.splice(${i},1)})">✕</button></div>`).join('')}
@@ -539,10 +545,11 @@ function setAbs(n,on){const id=CF.sel||CF.sea?.cl||'',k=abKey(id),L=new Set(absL
  if(L.size)CF.ab[k]=[...L];else delete CF.ab[k];save();const y=scrollY;render();scrollTo(0,y)}
 const MSGS=["Bravo, continue comme ça ! 💪","Pense à l'exercice du jour.","Essaie une voie plus difficile.","Essaie une voie plus facile.","Grimpe avec les jambes : plus de pieds que de mains.","Pense à faire une pause en position de moindre effort.","Viens me voir avant ta prochaine voie."];
 const msgOf=(n,nom,d)=>(CF.msg||[]).filter(m=>m.el==n&&m.cl==(nom||'')&&m.d==(d||today()));
-function msgDlg(n){const nom=CL.find(c=>c.id==(CF.sel||CF.sea?.cl||''))?.nom||'',o=String(lecFor(CF.sel||'',today())?.obj||'').trim(),d=document.createElement('div');d.className='dlg';
- const pre=MSGS.map(m=>m=="Pense à l'exercice du jour."&&o?"Pense à l'exercice du jour : "+o:m);
- d.innerHTML=`<div class="dbox mbox"><h3 style="margin-top:0">💬 Message pour ${esc(n)}</h3><p class="mut">Il s'affichera quand ${esc(n.split(' ')[0])} renseignera sa prochaine grimpe.</p>
- <div class="mpre">${pre.map((m,i)=>`<button class="b g" data-i="${i}">${esc(m)}</button>`).join('')}</div><textarea id="mtx" maxlength="200" placeholder="Ou écris ton message…"></textarea>
+function msgDlg(n,why){const nom=CL.find(c=>c.id==(CF.sel||CF.sea?.cl||''))?.nom||'',o=String(lecFor(CF.sel||'',today())?.obj||'').trim(),d=document.createElement('div');d.className='dlg';
+ const rf=why&&(remFor(why)||PED().rem['La voie était trop difficile']),rems=[...new Set([rf?remTxt(rf):'',...(why?Object.values(PED().rem).map(remTxt):[])].filter(Boolean))];
+ const pre=[...rems,...MSGS.map(m=>m=="Pense à l'exercice du jour."&&o?"Pense à l'exercice du jour : "+o:m)];
+ d.innerHTML=`<div class="dbox mbox"><h3 style="margin-top:0">${why?'💡 Conseil':'💬 Message'} pour ${esc(n)}</h3>${why?`<p class="mut">Pourquoi : ${esc(why)}</p>`:''}<p class="mut">Il s'affichera quand ${esc(n.split(' ')[0])} renseignera sa prochaine grimpe.</p>
+ <div class="mpre">${pre.map((m,i)=>`<button class="b g ${i<rems.length?'remo':''}" data-i="${i}">${i<rems.length?'💡 ':''}${esc(m)}</button>`).join('')}</div><textarea id="mtx" maxlength="200" placeholder="Ou écris ton message…"></textarea>
  <div class="row"><button class="b g" data-r="0">Annuler</button><button class="b" data-r="1">Envoyer</button></div></div>`;
  document.body.append(d);const tx=d.querySelector('#mtx');d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{tx.value=pre[+b.dataset.i]});
  d.querySelector('[data-r="0"]').onclick=()=>d.remove();
@@ -562,25 +569,28 @@ function belGrid(names,sel){const P=PED().b5,cnt={green:0,yellow:0,red:0,grey:0}
   <div class="t5">${P.map((t,i)=>`<button class="${b.t5?.[i]?'ok':''}" title="${esc(t)}" data-n="${esc(n)}" onclick="tog5(this.dataset.n,${i})"><b>${i+1}</b><span>${esc(t.split(':')[0])}</span></button>`).join('')}</div>
   ${pe.length?`<ul class="pens">${pe.slice(-3).map(p=>`<li class="${p.off?'off':''}">${p.g?'★ ':''}${esc(p.t)} <small>${esc(fday(p.d))}</small></li>`).join('')}</ul>`:''}
   <div class="cact"><button class="b g" data-n="${esc(n)}" onclick="penDlg(this.dataset.n)">⚠️ Pénalité</button>${l=='red'||on.length?`<button class="b g" data-n="${esc(n)}" onclick="giveBack(this.dataset.n)">${l=='red'?'Rendre le permis':'Lever'}</button>`:`<button class="b g" data-n="${esc(n)}" onclick="revoke(this.dataset.n)">Retirer</button>`}</div></div>`}).join('')}</div>`}
+/* élève à aider : passé sous la ligne rouge, ou 3 dernières voies sans Top (aujourd'hui) */
+function helpOf(M){const low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=M.slice(-3),fails=last.length>=3&&last.every(r=>isNum(r.h)&&Number(r.h)!=TOP);
+ return low?{t:low+'× sous la ligne rouge',why:M.filter(r=>r.why).slice(-1)[0]?.why||'Autre raison'}:fails?{t:'3 voies sans Top d\'affilée',why:'Échecs répétés'}:null}
 /* ---------- tablette de contrôle (enseignant) : une carte par élève, mise à jour en direct ---------- */
 function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.nom||'',t=today(),L=recOf(nom,t),cfg=lecFor(sel,t)||(CF.sea?.d==t&&(CF.sea.cl||'')==sel?CF.sea:null),min=cfg?.min||0;
  const all=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr')),ab=absL(sel),names=all.filter(n=>!ab.includes(n)||L.some(r=>r.el==n)),absent=all.filter(n=>!names.includes(n));
  const card=n=>{const M=L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1),H=M.map(r=>r.h).filter(isNum).map(Number),best=bestOk(M),low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=M[M.length-1],ok=min&&M.length>=min,dz=typeof EPSD!='undefined'&&EPSD.find&&EPSD.find(nom,n);
   const tri=[...new Map(M.map(r=>[r.d,M.some(x=>x.d==r.d&&Number(x.h)==TOP)])).entries()].sort((a,b)=>gk(a[0])-gk(b[0]));
-  const ms=msgOf(n,nom,t),lm=ms[ms.length-1];
-  return `<div class="ccard ${M.length?'':'idle'} ${ok?'done':''} ${low?'low':''}"><div class="cch">${chip(n,{cl:'mini'})}${dz?'<span class="cdz">🩹</span>':''}</div>${belTag(n,sel)}
+  const ms=msgOf(n,nom,t),lm=ms[ms.length-1],hp=helpOf(M);
+  return `<div class="ccard ${M.length?'':'idle'} ${ok?'done':''} ${low||hp?'low':''}"><div class="cch">${chip(n,{cl:'mini'})}${dz?'<span class="cdz">🩹</span>':''}</div>${belTag(n,sel)}
   <div class="cact"><button class="b g" data-n="${esc(n)}" onclick="msgDlg(this.dataset.n)">💬 Message</button>${M.length?'':`<button class="b g" data-n="${esc(n)}" onclick="setAbs(this.dataset.n,1)">Absent</button>`}</div>
   ${lm?`<p class="cmsg ${lm.seen?'seen':''}">💬 « ${esc(lm.t)} »<small>${lm.seen?'lu à '+esc(lm.seen):'envoyé à '+esc(lm.ts)+' · pas encore lu'}</small></p>`:''}
   <div class="cprog"><b>${M.length}</b>${min?`<span>/ ${min} ${min>1?'voies':'voie'}</span>`:`<span>${M.length>1?'voies':'voie'}</span>`}${ok?'<em>✓</em>':''}</div>${min?`<div class="cbar"><i style="width:${Math.min(100,M.length/min*100)}%"></i></div>`:''}
   <dl><dt>Meilleure réussite</dt><dd>${best?esc(best):'–'}</dd><dt>Hauteur max</dt><dd>${H.length?(Math.max(...H)==TOP?'Top':Math.max(...H)+' dég.'):'–'}</dd><dt>Tops</dt><dd>${M.filter(r=>Number(r.h)==TOP).length}</dd></dl>
   ${tri.length?`<div class="ctri">${tri.map(([d,o])=>`<span class="${o?'ok':''}">${esc(d)}</span>`).join('')}</div>`:''}
-  ${low?`<p class="clow">🟥 ${low}× sous la ligne rouge${M.filter(r=>r.why).length?' · '+esc(M.filter(r=>r.why).slice(-1)[0].why):''}</p>`:''}
+  ${low?`<p class="clow">🟥 ${low}× sous la ligne rouge${M.filter(r=>r.why).length?' · '+esc(M.filter(r=>r.why).slice(-1)[0].why):''}</p>`:''}${hp?`${low?'':`<p class="clow">🆘 ${esc(hp.t)}</p>`}${lm&&!lm.seen?'':`<button class="b g crem" data-n="${esc(n)}" data-w="${esc(hp.why)}" onclick="msgDlg(this.dataset.n,this.dataset.w)">💡 Proposer un conseil</button>`}`:''}
   ${M.length?`<ol class="cgl">${M.map(r=>`<li class="${Number(r.h)==TOP?'cok':Number(r.h)===0&&r.h!==''?'clo':''}"><time>${esc(String(r.ts).slice(11,16))}</time>${cs(r.c)}<span>C${r.vo} · <b>${esc(r.d)}</b></span><em>${isNum(r.h)?(Number(r.h)==TOP?'Top':r.h+' dég.'):'–'}</em></li>`).join('')}</ol>`:'<p class="clast">Pas encore de grimpe</p>'}</div>`};
  const act=names.filter(n=>L.some(r=>r.el==n)).length;
  return `<div class="ctlh"><div><h2 style="margin:0">Tablette de contrôle</h2><p class="mut" style="margin:2px 0 0">${k?esc(k.nom):'Sans liste'} · ${cap(fday(t,true))}${cfg?.obj?' · 🎯 '+esc(cfg.obj):''} · mise à jour automatique</p></div>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'}" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}</button>`).join('')}</div></div>
  <div class="sub ctab"><button class="b ${S.cv2!='a'?'':'g'}" onclick="S.cv2='g';render()">🧗 Grimpes</button><button class="b ${S.cv2=='a'?'':'g'}" onclick="S.cv2='a';render()">🪢 Assurage</button></div>
- ${S.cv2=='a'?belGrid(names,sel):`
+ ${S.cv2=='a'?belGrid(names,sel):`${(()=>{const H=names.map(n=>[n,helpOf(L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1))]).filter(x=>x[1]&&!msgOf(x[0],nom,t).some(m=>!m.seen));return H.length?`<div class="helpb"><b>🆘 À aider (${H.length})</b>${H.map(([n,h])=>`<button class="b g" data-n="${esc(n)}" data-w="${esc(h.why)}" onclick="msgDlg(this.dataset.n,this.dataset.w)">${esc(n)} <small>${esc(h.t)}</small> · 💡 conseil</button>`).join('')}</div>`:''})()}
  <div class="stats">${stx(act+' / '+names.length,'élèves ont grimpé'+(absent.length?' ('+absent.length+' absent'+(absent.length>1?'s':'')+')':''))}${stx(L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée'))}${stx(L.filter(r=>Number(r.h)==TOP).length,'Top')}${min?stx(names.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+names.length,'objectif atteint ('+min+' voie'+(min>1?'s':'')+')'):''}</div>
  ${names.length?`<div class="cgrid">${names.map(card).join('')}</div>`:'<div class="card"><p class="mut">Aucun élève dans cette classe. Choisis une classe avec une liste.</p></div>'}
  `}${absent.length?`<div class="card cabs"><h3 style="margin:0 0 8px">Absents aujourd'hui (${absent.length})</h3><p class="mut" style="margin:0 0 8px">Ils n'apparaissent ni dans les groupes ni dans les listes de cette leçon. Touche un prénom pour le remettre présent.</p><div class="names">${absent.map(n=>chip(n,{cl:'mini',act:'setAbs(this.dataset.n,0)'})).join('')}</div></div>`:''}`}
