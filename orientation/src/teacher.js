@@ -78,7 +78,7 @@ if(o.err)E.textContent=o.err;keys();dots();document.body.appendChild(el)})}
 async function profLogin() {
   const hasApi = !!apiUrl(), local = LS.get("tHash", null);
   const ok = v => { sessionStorage.setItem("tpw", v); openProf(); };
-  const v = await epsPin({ title: "🔒 Espace enseignant", text: hasApi ? "Mot de passe enseignant (celui du script Google). Touche ABC pour les lettres." : "Code enseignant (par défaut : eps, touche ABC pour les lettres).", min: 1, letters: true,
+  const v = await epsPin({ title: "🔒 Espace enseignant", text: "Touche ABC pour les lettres.", min: 1, letters: true,
     check: async v => {
       const h = await sha256("orienrun:" + v);
       if (hasApi) {

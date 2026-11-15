@@ -10,14 +10,14 @@
  *    Après une modification de ce fichier : Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version.
  *
  * Onglets créés automatiquement :
- *  - Seances      : les séances publiées (parcours + carte, découpés en morceaux)
+ *  - Seances      : les leçons publiées (parcours + carte, découpés en morceaux)
  *  - Evenements   : tout ce qu'envoient les téléphones (positions, balises, départ, arrivée, alertes)
  *  - Decisions    : balises validées / refusées par l'enseignant
  *  - Messages     : messages de l'enseignant aux élèves
  *  - Lecons       : leçons en cours (les élèves les voient dans l'appli sans scanner de QR)
  *  - Classes      : tes listes d'élèves (elles ne sont jamais publiées sur GitHub)
  * Seuls le nom saisi par l'élève, sa classe et ses positions pendant la course sont enregistrés, dans ton propre Google Drive.
- * Pour faire de la place : supprime les lignes des anciennes séances dans l'onglet Evenements (ou utilise l'action « purge » depuis l'éditeur : fonction purgerAnciennesSeances).
+ * Pour faire de la place : supprime les lignes des anciennes leçons dans l'onglet Evenements (ou utilise l'action « purge » depuis l'éditeur : fonction purgerAnciennesSeances).
  */
 const MOT_DE_PASSE_PROF = 'change-moi';
 const TAILLE_MORCEAU = 45000; // une cellule accepte 50 000 caractères maximum
@@ -53,8 +53,8 @@ function traiter_(req) {
   // ----- élève : envoi des positions / balises / alertes -----
   if (a === 'push') {
     const s = code_(req.s), r = String(req.r || '').slice(0, 20);
-    if (!s || !r) throw new Error('Séance ou élève manquant');
-    if (!seanceExiste_(s)) throw new Error('Séance inconnue : ' + s);
+    if (!s || !r) throw new Error('Leçon ou élève manquant');
+    if (!seanceExiste_(s)) throw new Error('Leçon inconnue : ' + s);
     const ev = (req.ev || []).slice(0, 200);
     if (ev.length) {
       const now = Date.now(), nom = String(req.nom || '').slice(0, 80), cl = String(req.cl || '').slice(0, 30), c = String(req.c || '').slice(0, 10);
@@ -81,10 +81,10 @@ function traiter_(req) {
     return { ok: true, lessons: L };
   }
 
-  // ----- élève : récupère la carte de la séance -----
+  // ----- élève : récupère la carte de la leçon -----
   if (a === 'getSession') {
     const s = code_(req.s), parts = lignes_(T_SEANCES).filter(x => String(x.v[0]) === s).sort((x, y) => x.v[2] - y.v[2]);
-    if (!parts.length) throw new Error('Séance inconnue');
+    if (!parts.length) throw new Error('Leçon inconnue');
     const data = JSON.parse(parts.map(x => x.v[3]).join(''));
     delete data.geo; // le calage n'est donné qu'après l'arrivée (sinon il révélerait la position des balises)
     return { ok: true, data: data };

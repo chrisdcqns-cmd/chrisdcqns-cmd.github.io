@@ -23,6 +23,8 @@ Application web pour tablette, pour l'escalade en moulinette au lycée : leçon 
 
 Code enseignant par défaut : `1234` (à changer avec le bouton **Code** en mode enseignant).
 
+**Importer une liste d'élèves** : en mode enseignant, la tuile « Importer une liste d'élèves » de l'accueil ouvre directement le choix du fichier (Excel ou CSV) ; la nouvelle classe s'affiche remplie, il reste à vérifier et à enregistrer.
+
 ## Leçons (comme dans Relais Vitesse)
 
 Mode enseignant → **Leçons et classes**, pour la classe choisie :

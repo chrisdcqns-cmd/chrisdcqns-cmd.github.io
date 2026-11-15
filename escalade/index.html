@@ -247,6 +247,8 @@ details.more .names{margin-top:8px}
 .pdfb{margin-left:auto}.sum .pdfb+.b{margin-left:0}.pdfs{min-height:30px;padding:2px 10px;font-size:13px;margin-left:6px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 .redl{margin:14px 0 4px;padding:14px 16px;border-radius:14px;background:#FDECEA;border:2px solid #C0392B;color:#8E1F14;font-weight:800;font-size:19px;line-height:1.3}.whys{display:flex;flex-wrap:wrap;gap:8px}.whys .b{flex:1 1 200px;text-align:left}
+.tile .ti{position:relative;z-index:1;width:clamp(28px,5.2vh,46px);height:clamp(28px,5.2vh,46px);margin-bottom:auto;flex:none;color:#fff}label.tile{cursor:pointer}
+@media(max-height:620px){.tile .ti{width:24px;height:24px}}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -341,19 +343,36 @@ function render(){
 }
 /* ---------- accueil ---------- */
 const TILES=[['prep','Se préparer et assurer','#0e7c7b','','Échauffement, nœud de 8, assurage'],['cot','Cotation','#6a3fb5','','Je cherche une voie'],['gr','Renseigner une grimpe','#d9480f','','Corde, voie, cordée'],['mr','Mes résultats','#2b8a3e','','Mes leçons, mes progrès'],['the','Thématiques','#1c5d99','wide','Pistes de travail'],['sec','Sécurité','#c92a2a','wide','Règles et vérifications']];
-function home(){S.e=false;const t=S.T?[['set','📋 Leçons et classes','#16252d','wide tprof'],...TILES,['res','📊 Résultats, QR codes et Google Sheets','#16252d','wide tprof']]:TILES;
- return `<div class="homeW"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}</div>${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.t='grp';render()">Modifier</button></div>`:''}<div class="tiles">${t.map(([k,n,c,x,d])=>`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()"><b>${n}</b>${d?`<span>${d}</span>`:''}</button>`).join('')}</div></div>`}
+/* icônes des tuiles (traits blancs, 24×24) */
+const TI={prep:'<path d="M17.5 9.5V8a5.5 5.5 0 0 0-11 0v8a5.5 5.5 0 0 0 11 0v-1"/><path d="M17.5 9.5l-2.6 5.6"/><path d="M10 7.5v9"/>',
+ cot:'<path d="M2.5 20.5 9 9l4 6.5 2.5-4 6 9z"/><path d="M9 9V3.5l4 1.6-4 1.6"/><circle cx="17.5" cy="6" r="2.2"/>',
+ gr:'<rect x="5" y="3.5" width="14" height="18" rx="2.5"/><path d="M9 3.5h6v3H9z"/><path d="M8.5 12l2 2 4.5-4.5"/><path d="M8.5 17.5h7"/>',
+ mr:'<path d="M3.5 20.5h17"/><rect x="5" y="13" width="3.5" height="7.5" rx="1"/><rect x="10.3" y="9" width="3.5" height="11.5" rx="1"/><rect x="15.6" y="5" width="3.5" height="15.5" rx="1"/><path d="M4.5 9.5l5-4.5 3.5 2.5 6-4.5"/>',
+ the:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>',
+ sec:'<path d="M12 2.8l7.5 3v5.6c0 4.8-3.2 8.4-7.5 9.8-4.3-1.4-7.5-5-7.5-9.8V5.8z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+ set:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h2M12 14h2M16 14h.5M8 17.5h2M12 17.5h2"/>',
+ imp:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6"/><path d="M18.5 8v8M15 12.5l3.5 3.5 3.5-3.5"/>',
+ res:'<path d="M3.5 20.5h17"/><rect x="5" y="11" width="3.5" height="9.5" rx="1"/><rect x="10.3" y="6" width="3.5" height="14.5" rx="1"/><rect x="15.6" y="13.5" width="3.5" height="7" rx="1"/><path d="M5.5 3.5h3M17 3.5h3v3"/>'};
+const tIco=k=>TI[k]?`<svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TI[k]}</svg>`:'';
+function home(){S.e=false;const t=S.T?[['set','Leçons et classes','#16252d','tprof','Préparer, consulter'],['imp','Importer une liste d\'élèves','#16252d','tprof','Excel ou CSV'],...TILES,['res','Résultats, QR codes et Google Sheets','#16252d','wide tprof']]:TILES;
+ return `<div class="homeW"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}</div>${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.t='grp';render()">Modifier</button></div>`:''}<div class="tiles">${t.map(([k,n,c,x,d])=>k=='imp'?`<label class="tile ${x||''}" style="--c:${c}">${tIco(k)}<b>${n}</b>${d?`<span>${d}</span>`:''}<input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label>`:`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()">${tIco(k)}<b>${n}</b>${d?`<span>${d}</span>`:''}</button>`).join('')}</div></div>`}
+/* import d'une liste d'élèves depuis l'accueil enseignant : ouvre la fiche « Nouvelle classe » déjà remplie */
+async function impHome(inp){const f=inp.files[0];inp.value='';if(!f)return;
+ try{const rows=/\.xlsx$/i.test(f.name)?await readXlsx(f):(await f.text()).split(/\r?\n/).map(l=>l.split(/[;\t,]/));
+  const n=pickNames(rows);if(!n.length)return say('Aucun nom trouvé dans ce fichier.');
+  S.imp={nom:f.name.replace(/\.[^.]+$/,''),el:n};S.t='set';S.ce='new';S.le=null;S.lv=null;render();scrollTo(0,0)}
+ catch(e){say("Impossible de lire ce fichier. Enregistre-le au format .xlsx (ou .csv).")}}
 /* ---------- leçon du jour / classes ---------- */
 function setup(){
- if(S.ce!=null){const c=CL.find(x=>x.id==S.ce)||{nom:'',el:[]};
-  return `<div class="card"><h3 style="margin-top:0">${S.ce=='new'?'Nouvelle classe':'Modifier la classe'}</h3>
+ if(S.ce!=null){const c=CL.find(x=>x.id==S.ce)||(S.ce=='new'&&S.imp)||{nom:'',el:[]};
+  return `<div class="card"><h3 style="margin-top:0">${S.ce=='new'?'Nouvelle classe':'Modifier la classe'}</h3>${S.ce=='new'&&S.imp?`<p class="mut">✓ ${S.imp.el.length} élève(s) importé(s). Vérifie le nom de la classe et la liste, puis enregistre.</p>`:''}
   <label class="l">Nom de la classe</label><input id="ceN" value="${esc(c.nom)}" placeholder="Ex. : 2nde 4">
   <label class="l">Élèves (un par ligne)</label>
   <div class="tb"><label class="b g">📄 Importer un fichier Excel<input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impCls(this)"></label></div>
   <textarea id="ceL" style="min-height:280px" placeholder="Un élève par ligne&#10;Ex. : Léa Martin" oninput="cnt()">${esc(c.el.join('\n'))}</textarea>
   <p class="mut" id="ceC">${c.el.length} élève(s)</p>
   <small>Excel (.xlsx) ou CSV : colonnes « Prénom » et « Nom », ou « Élève », ou simplement les noms dans la première colonne. Vous pouvez corriger la liste ici avant d'enregistrer.</small>
-  <div class="row" style="margin-top:14px"><button class="b g" onclick="S.ce=null;render()">Annuler</button><button class="b" onclick="saveCls()">Enregistrer la classe</button></div>
+  <div class="row" style="margin-top:14px"><button class="b g" onclick="S.ce=null;S.imp=null;render()">Annuler</button><button class="b" onclick="saveCls()">Enregistrer la classe</button></div>
   ${S.ce!='new'?`<p><button class="b d" onclick="delCls()">Supprimer cette classe</button></p>`:''}</div>`}
  if(S.le)return lecEdit();
  if(S.lv)return lecView();
@@ -365,7 +384,7 @@ function setup(){
  <div class="card"><h3 style="margin-top:0">Classe</h3>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'} clsb" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}<small>${c.el.length} élève(s)</small></button>`).join('')}
  <button class="b ${sel?'g':'on'} clsb" onclick="CF.sel='';save();render()">Sans liste<small>l'élève tape son prénom</small></button></div>
- <div class="tb">${k?`<button class="b g" onclick="S.ce='${sel}';render()">Modifier la liste</button>`:''}<button class="b g" onclick="S.ce='new';render()">+ Nouvelle classe</button></div></div>
+ <div class="tb">${k?`<button class="b g" onclick="S.ce='${sel}';render()">Modifier la liste</button>`:''}<button class="b g" onclick="S.imp=null;S.ce='new';render()">+ Nouvelle classe</button></div></div>
  <div class="card today"><h3 style="margin-top:0">Aujourd'hui · ${cap(fday(t,true))}</h3>
  ${Lt?`<div class="lchips">${lecChips(Lt)}${nT.length?`<span class="okc">${pl(nT.length,'grimpe')} enregistrée${nT.length>1?'s':''}</span>`:''}</div>
   <div class="tb"><button class="b g" onclick="editLe('${Lt.id}')">Modifier la leçon</button>${nT.length?`<button class="b g" onclick="S.lv='${t}';render();scrollTo(0,0)">Voir les résultats</button>`:''}<button class="b" onclick="startLe('${Lt.id}')">${CF.sea?.id==Lt.id&&seaOK()?'Reprendre la leçon':'Commencer la leçon'}</button></div>`
@@ -425,7 +444,7 @@ function lecView(){const d=S.lv,k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',
  <div class="card"><div class="ch"><h3 style="margin:0">Toutes les grimpes</h3><button class="b" onclick="xlLe()">Exporter cette leçon (Excel)</button></div><div class="tw"><table><tr><th>Heure</th><th>Élève</th><th>Voie</th><th>Hauteur</th><th>Assureur / contre</th><th></th></tr>${det}</table></div></div>`:'<div class="card"><p class="mut">Aucune grimpe enregistrée pendant cette leçon.</p></div>'}`}
 const lines=()=>[...new Set($('#ceL').value.split('\n').map(s=>s.trim()).filter(Boolean))];
 function cnt(){$('#ceC').textContent=lines().length+' élève(s)'}
-function saveCls(){const nom=$('#ceN').value.trim(),el=lines();if(!nom){say('Donnez un nom à la classe.');return $('#ceN').focus()}
+function saveCls(){S.imp=null;const nom=$('#ceN').value.trim(),el=lines();if(!nom){say('Donnez un nom à la classe.');return $('#ceN').focus()}
  if(S.ce=='new'){const id='c'+Date.now().toString(36);CL.push({id,nom,el});CF.sel=id}else{const c=CL.find(x=>x.id==S.ce);if(c){c.nom=nom;c.el=el}}
  S.ce=null;save();render()}
 async function delCls(){const c=CL.find(x=>x.id==S.ce);if(!c||!await ask('Supprimer la classe « '+c.nom+' » ?'))return;CL=CL.filter(x=>x!==c);if(CF.sel==c.id)CF.sel='';if(CF.sea?.cl==c.id)CF.sea.cl='';S.ce=null;save();render()}
