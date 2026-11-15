@@ -104,7 +104,7 @@ function setPTab(t) {
   $("#projName").textContent = P.nom;
   stopMyPos();
   const v = $("#pview"); v.innerHTML = "";
-  ({ carte: viewCarte, balises: viewBalises, parcours: viewParcours, seance: viewSeance, resultats: viewResultats, reglages: viewReglages })[t](v);
+  ({ carte: viewCarte, balises: viewBalises, parcours: viewParcours, biblio: viewBiblio, seance: viewSeance, resultats: viewResultats, reglages: viewReglages })[t](v);
 }
 
 // ================= CARTE =================
