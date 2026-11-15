@@ -283,6 +283,9 @@ body{background:var(--bg) linear-gradient(180deg,#eef0ee 0,var(--bg) 320px) no-r
 .homeW .tile.tprof .tib{background:#ffc93c;color:#16252d}
 .homeW .tile:active{transform:scale(.99)}
 .objt{box-shadow:0 1px 0 #00000014}
+.cact{display:flex;gap:6px}.cact .b{min-height:34px;padding:4px 8px;font-size:13px;flex:1;white-space:nowrap}
+.cmsg{margin:0;font-size:12.5px;background:#fff8e1;border-left:4px solid #ffc93c;border-radius:8px;padding:6px 8px;white-space:normal}.cmsg small{display:block;color:#9a5c00;font-weight:700}.cmsg.seen{background:#e6f4ea;border-left-color:#2b8a3e}.cmsg.seen small{color:#1f7a3d}
+.cabs .chip{opacity:.75}.mbox{max-width:560px;width:100%}.mpre{display:flex;flex-direction:column;gap:6px;margin:10px 0}.mpre .b{text-align:left;min-height:42px;font-weight:600}.mbox textarea{margin-bottom:12px}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -345,7 +348,7 @@ function pickCl(id){activate(id);fresh();const k=cls();S.gs=grp();S.t=k&&k.el.le
 /* ---------- groupe ---------- */
 function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
  return `<div class="role grpS"><h2>Forme ton groupe</h2><p class="mut">${esc(k.nom)} · touche les prénoms des élèves qui grimpent avec toi (au moins 3 : grimpeur, assureur, contre-assureur).</p>
- <div class="names big">${[...k.el].sort((a,b)=>a.localeCompare(b,'fr')).map(x=>chip(x,{on:sel.includes(x),act:'tgG(this.dataset.n)'})).join('')}</div>
+ <div class="names big">${presEl(k).sort((a,b)=>a.localeCompare(b,'fr')).map(x=>chip(x,{on:sel.includes(x),act:'tgG(this.dataset.n)'})).join('')}</div>
  <div class="gbar"><button class="b g" onclick="S.t='pickcl';render()">← Changer de classe</button><button class="b" ${n<3?'disabled':''} onclick="okG()">${n<3?`Encore ${3-n} prénom${3-n>1?'s':''} à choisir`:`Valider mon groupe (${n})`}</button></div></div>`}
 function tgG(n){const s=new Set(S.gs||[]);s.has(n)?s.delete(n):s.add(n);S.gs=[...s];const y=scrollY;render();scrollTo(0,y)}
 function okG(){const k=cls();if(!k||(S.gs||[]).length<3)return;CF.grp={cl:k.id,d:today(),el:[...S.gs].sort((a,b)=>a.localeCompare(b,'fr'))};save();fresh();S.t='home';render();scrollTo(0,0)}
@@ -441,12 +444,37 @@ function setup(){
  ${fut.length?fut.map(l=>litem(l.d,`En préparation · ${lecChips(l,1)}`,'Préparer',`editLe('${l.id}')`)).join(''):'<p class="mut">Aucune leçon préparée. Choisis une date pour préparer la prochaine.</p>'}</div>
  <div class="card"><h3 style="margin-top:0">Leçons précédentes</h3>
  ${pastD.length?pastD.map(d=>{const L=recOf(nomC,d),el=new Set(L.map(r=>r.el));return litem(d,`${pl(L.length,'grimpe')} · ${pl(el.size,'élève')}`,'Consulter',`S.lv='${d}';render();scrollTo(0,0)`)}).join(''):'<p class="mut">Aucune leçon précédente pour cette classe.</p>'}</div>`}
+/* ---------- absents du jour (par classe) et messages de l'enseignant ---------- */
+const abKey=(id,d)=>(id||'')+'|'+(d||today()),absL=(id,d)=>(CF.ab||{})[abKey(id,d)]||[],isAbs=(n,id,d)=>absL(id??cls()?.id,d).includes(n);
+const presEl=k=>k?k.el.filter(n=>!isAbs(n,k.id)):[];
+function setAbs(n,on){const id=CF.sel||CF.sea?.cl||'',k=abKey(id),L=new Set(absL(id));on?L.add(n):L.delete(n);CF.ab=CF.ab||{};
+ /* on ne garde que les 30 derniers jours */const lim=new Date(Date.now()-30*864e5).toLocaleDateString('fr-CA');Object.keys(CF.ab).forEach(x=>{if(x.split('|')[1]<lim)delete CF.ab[x]});
+ if(L.size)CF.ab[k]=[...L];else delete CF.ab[k];save();const y=scrollY;render();scrollTo(0,y)}
+const MSGS=["Bravo, continue comme ça ! 💪","Pense à l'exercice du jour.","Essaie une voie plus difficile.","Essaie une voie plus facile.","Grimpe avec les jambes : plus de pieds que de mains.","Pense à faire une pause en position de moindre effort.","Viens me voir avant ta prochaine voie."];
+const msgOf=(n,nom,d)=>(CF.msg||[]).filter(m=>m.el==n&&m.cl==(nom||'')&&m.d==(d||today()));
+function msgDlg(n){const nom=CL.find(c=>c.id==(CF.sel||CF.sea?.cl||''))?.nom||'',o=String(lecFor(CF.sel||'',today())?.obj||'').trim(),d=document.createElement('div');d.className='dlg';
+ const pre=MSGS.map(m=>m=="Pense à l'exercice du jour."&&o?"Pense à l'exercice du jour : "+o:m);
+ d.innerHTML=`<div class="dbox mbox"><h3 style="margin-top:0">💬 Message pour ${esc(n)}</h3><p class="mut">Il s'affichera quand ${esc(n.split(' ')[0])} renseignera sa prochaine grimpe.</p>
+ <div class="mpre">${pre.map((m,i)=>`<button class="b g" data-i="${i}">${esc(m)}</button>`).join('')}</div><textarea id="mtx" maxlength="200" placeholder="Ou écris ton message…"></textarea>
+ <div class="row"><button class="b g" data-r="0">Annuler</button><button class="b" data-r="1">Envoyer</button></div></div>`;
+ document.body.append(d);const tx=d.querySelector('#mtx');d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{tx.value=pre[+b.dataset.i]});
+ d.querySelector('[data-r="0"]').onclick=()=>d.remove();
+ d.querySelector('[data-r="1"]').onclick=()=>{const t=tx.value.trim();if(!t)return tx.focus();(CF.msg=CF.msg||[]).push({id:uid(),cl:nom,d:today(),el:n,t,ts:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),seen:''});
+  const lim=new Date(Date.now()-30*864e5).toLocaleDateString('fr-CA');CF.msg=CF.msg.filter(m=>m.d>=lim);save();d.remove();const y=scrollY;render();scrollTo(0,y)}}
+/* élève : messages non lus affichés quand il choisit son prénom pour renseigner une grimpe */
+async function showMsgs(n){const nom=cls()?.nom||'',M=msgOf(n,nom).filter(m=>!m.seen);if(!M.length)return;
+ await dlg({msg:'💬 Message de ton enseignant'+(M.length>1?'s':'')+' :\n\n'+M.map(m=>'« '+m.t+' »').join('\n'),ok:"J'ai lu"});
+ const t=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});M.forEach(m=>m.seen=t);save()}
+function pickEl(n){F.eleve=n;go(2);showMsgs(n)}
 /* ---------- tablette de contrôle (enseignant) : une carte par élève, mise à jour en direct ---------- */
 function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.nom||'',t=today(),L=recOf(nom,t),cfg=lecFor(sel,t)||(CF.sea?.d==t&&(CF.sea.cl||'')==sel?CF.sea:null),min=cfg?.min||0;
- const names=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr'));
+ const all=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr')),ab=absL(sel),names=all.filter(n=>!ab.includes(n)||L.some(r=>r.el==n)),absent=all.filter(n=>!names.includes(n));
  const card=n=>{const M=L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1),H=M.map(r=>r.h).filter(isNum).map(Number),best=bestOk(M),low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=M[M.length-1],ok=min&&M.length>=min,dz=typeof EPSD!='undefined'&&EPSD.find&&EPSD.find(nom,n);
   const tri=[...new Map(M.map(r=>[r.d,M.some(x=>x.d==r.d&&Number(x.h)==TOP)])).entries()].sort((a,b)=>gk(a[0])-gk(b[0]));
+  const ms=msgOf(n,nom,t),lm=ms[ms.length-1];
   return `<div class="ccard ${M.length?'':'idle'} ${ok?'done':''} ${low?'low':''}"><div class="cch">${chip(n,{cl:'mini'})}${dz?'<span class="cdz">🩹</span>':''}</div>
+  <div class="cact"><button class="b g" data-n="${esc(n)}" onclick="msgDlg(this.dataset.n)">💬 Message</button>${M.length?'':`<button class="b g" data-n="${esc(n)}" onclick="setAbs(this.dataset.n,1)">Absent</button>`}</div>
+  ${lm?`<p class="cmsg ${lm.seen?'seen':''}">💬 « ${esc(lm.t)} »<small>${lm.seen?'lu à '+esc(lm.seen):'envoyé à '+esc(lm.ts)+' · pas encore lu'}</small></p>`:''}
   <div class="cprog"><b>${M.length}</b>${min?`<span>/ ${min} ${min>1?'voies':'voie'}</span>`:`<span>${M.length>1?'voies':'voie'}</span>`}${ok?'<em>✓</em>':''}</div>${min?`<div class="cbar"><i style="width:${Math.min(100,M.length/min*100)}%"></i></div>`:''}
   <dl><dt>Meilleure réussite</dt><dd>${best?esc(best):'–'}</dd><dt>Hauteur max</dt><dd>${H.length?(Math.max(...H)==TOP?'Top':Math.max(...H)+' dég.'):'–'}</dd><dt>Tops</dt><dd>${M.filter(r=>Number(r.h)==TOP).length}</dd></dl>
   ${tri.length?`<div class="ctri">${tri.map(([d,o])=>`<span class="${o?'ok':''}">${esc(d)}</span>`).join('')}</div>`:''}
@@ -455,8 +483,9 @@ function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.n
  const act=names.filter(n=>L.some(r=>r.el==n)).length;
  return `<div class="ctlh"><div><h2 style="margin:0">Tablette de contrôle</h2><p class="mut" style="margin:2px 0 0">${k?esc(k.nom):'Sans liste'} · ${cap(fday(t,true))}${cfg?.obj?' · 🎯 '+esc(cfg.obj):''} · mise à jour automatique</p></div>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'}" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}</button>`).join('')}</div></div>
- <div class="stats">${stx(act+' / '+names.length,'élèves ont grimpé')}${stx(L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée'))}${stx(L.filter(r=>Number(r.h)==TOP).length,'Top')}${min?stx(names.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+names.length,'objectif atteint ('+min+' voie'+(min>1?'s':'')+')'):''}</div>
- ${names.length?`<div class="cgrid">${names.map(card).join('')}</div>`:'<div class="card"><p class="mut">Aucun élève dans cette classe. Choisis une classe avec une liste.</p></div>'}`}
+ <div class="stats">${stx(act+' / '+names.length,'élèves ont grimpé'+(absent.length?' ('+absent.length+' absent'+(absent.length>1?'s':'')+')':''))}${stx(L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée'))}${stx(L.filter(r=>Number(r.h)==TOP).length,'Top')}${min?stx(names.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+names.length,'objectif atteint ('+min+' voie'+(min>1?'s':'')+')'):''}</div>
+ ${names.length?`<div class="cgrid">${names.map(card).join('')}</div>`:'<div class="card"><p class="mut">Aucun élève dans cette classe. Choisis une classe avec une liste.</p></div>'}
+ ${absent.length?`<div class="card cabs"><h3 style="margin:0 0 8px">Absents aujourd'hui (${absent.length})</h3><p class="mut" style="margin:0 0 8px">Ils n'apparaissent ni dans les groupes ni dans les listes de cette leçon. Touche un prénom pour le remettre présent.</p><div class="names">${absent.map(n=>chip(n,{cl:'mini',act:'setAbs(this.dataset.n,0)'})).join('')}</div></div>`:''}`}
 setInterval(()=>{if(S.t=='ctl'&&S.T&&!document.querySelector('.dlg')){const y=scrollY;render();scrollTo(0,y)}},4000);
 /* ---------- leçons par classe et par date ---------- */
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-3);
@@ -643,8 +672,8 @@ function go(s){F.step=s;render();scrollTo(0,0)}
 function grimpe(){
  const top=`<div class="prog" aria-hidden="true">${[1,2,3,4,5].map(i=>`<i class="${i<F.step?'d':i==F.step?'c':''}"></i>`).join('')}</div><p class="mut stp">Étape ${F.step} sur 5</p>`,back=s=>`<p><button class="b g" onclick="go(${s})">← Retour</button></p>`,w=W[F.vo-1]||[];
  const k=cls();
- if(F.step==1&&k&&k.el.length){const g=grp(),all=[...k.el].sort((a,b)=>a.localeCompare(b,'fr')),list=g.length&&!S.free?g:all.filter(n=>!g.includes(n)||!g.length);
-  return `<div class="card">${top}<h3>Qui grimpe ?</h3><p class="mut">${g.length&&!S.free?'Touche le prénom du grimpeur.':esc(k.nom)+' · touche le prénom du grimpeur.'}</p><div class="names ${g.length&&!S.free?'big':''}">${list.map(n=>chip(n,{on:F.eleve==n,act:'F.eleve=this.dataset.n;go(2)'})).join('')}</div>
+ if(F.step==1&&k&&k.el.length){const g=grp().filter(n=>!isAbs(n)),all=presEl(k).sort((a,b)=>a.localeCompare(b,'fr')),list=g.length&&!S.free?g:all.filter(n=>!g.includes(n)||!g.length);
+  return `<div class="card">${top}<h3>Qui grimpe ?</h3><p class="mut">${g.length&&!S.free?'Touche le prénom du grimpeur.':esc(k.nom)+' · touche le prénom du grimpeur.'}</p><div class="names ${g.length&&!S.free?'big':''}">${list.map(n=>chip(n,{on:F.eleve==n,act:'pickEl(this.dataset.n)'})).join('')}</div>
   ${g.length?`<p><button class="b g" onclick="S.free=${!S.free};render()">${S.free?'← Mon groupe':'Un autre élève de la classe'}</button></p>`:''}</div>`}
  if(F.step==1)return `<div class="card">${top}<h3>Quel est ton prénom ?</h3><input id="pn" value="${esc(F.eleve)}" oninput="F.eleve=this.value" onkeydown="if(event.key=='Enter')nx1()" placeholder="Prénom" autocomplete="off"><p><button class="b" style="width:100%" onclick="nx1()">Suivant →</button></p></div>`;
  if(F.step==2)return `<div class="card">${top}<h3>Numéro de la corde</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${F.vo==i+1?'on':'g'}" onclick="F.vo=${i+1};go(3)">${i+1}</button>`).join('')}</div>${back(1)}</div>`;
@@ -680,7 +709,7 @@ async function undo(){if(!await ask('Annuler cet enregistrement ?\nLa grimpe ser
 async function delRec(id){const r=R.find(x=>x.id==id);if(!r||!await ask('Supprimer la grimpe de '+(r.el||'cet élève')+' (corde '+r.vo+', voie '+r.c+', '+r.ts+') ?'))return;shDel([r.id]);R=R.filter(x=>x!==r);save();render()}
 /* ---------- cordée : assureur, contre-assureur (obligatoires), observateur (facultatif) ---------- */
 const ROLES=[['asr','Assureur',1],['cas','Contre-assureur',1],['obs','Observateur',0]];
-function roleIn(k,label,need){const kk=cls(),all=(kk?.el||[]).filter(n=>n!=F.eleve).sort((a,b)=>a.localeCompare(b,'fr')),g=grp().filter(n=>n!=F.eleve),v=F[k],miss=(F.miss||[]).includes(k);
+function roleIn(k,label,need){const kk=cls(),all=presEl(kk).filter(n=>n!=F.eleve).sort((a,b)=>a.localeCompare(b,'fr')),g=grp().filter(n=>n!=F.eleve&&!isAbs(n)),v=F[k],miss=(F.miss||[]).includes(k);
  const lab=`<div class="rlh"><b>${label}</b>${need?'<span class="ob">★ Obligatoire</span>':'<small class="mut">facultatif</small>'}</div>`;
  if(!all.length)return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<input value="${esc(v)}" placeholder="Prénom" autocomplete="off" oninput="F.${k}=this.value"></div>`;
  const wide=F[k+'X']||!g.length,list=wide?all:g,used=n=>ROLES.some(([o])=>o!=k&&F[o]==n);
@@ -689,10 +718,10 @@ function roleIn(k,label,need){const kk=cls(),all=(kk?.el||[]).filter(n=>n!=F.ele
  ${g.length?`<button class="lnk" onclick="F.${k}X=${!F[k+'X']};render()">${F[k+'X']?'← Seulement mon groupe':'Un autre élève de la classe'}</button>`:''}</div>`}
 function setRole(k,n){const y=scrollY;if(F[k]==n)F[k]='';else{ROLES.forEach(([o])=>{if(o!=k&&F[o]==n)F[o]=''});F[k]=n}F.miss=(F.miss||[]).filter(x=>x!=k);render();scrollTo(0,y)}
 /* groupe de 3 : les deux autres sont proposés comme assureur et contre-assureur (inversables) */
-function autoRoles(){const o=grp().filter(n=>n!=F.eleve);if(o.length==2&&!F.asr&&!F.cas&&!F.auto){F.asr=o[0];F.cas=o[1];F.auto=1}}
+function autoRoles(){const o=grp().filter(n=>n!=F.eleve&&!isAbs(n));if(o.length==2&&!F.asr&&!F.cas&&!F.auto){F.asr=o[0];F.cas=o[1];F.auto=1}}
 function swapR(){[F.asr,F.cas]=[F.cas,F.asr];const y=scrollY;render();scrollTo(0,y)}
 const roles=()=>{autoRoles();return `<div class="crit cordee"><div class="ch"><b>Ta cordée</b>${F.asr&&F.cas?'<button class="b g swap" onclick="swapR()">⇄ Inverser assureur et contre-assureur</button>':''}</div>${ROLES.map(([k,l,n])=>roleIn(k,l,n)).join('')}</div>`};
-function nx1(){F.eleve=F.eleve.trim();if(!F.eleve){say('Écris ton prénom.');return $('#pn').focus()}go(2)}
+function nx1(){F.eleve=F.eleve.trim();if(!F.eleve){say('Écris ton prénom.');return $('#pn').focus()}go(2);showMsgs(F.eleve)}
 function again(same){const e=F.eleve,k={auto:F.auto};ROLES.forEach(([r])=>{k[r]=F[r];k[r+'X']=F[r+'X']});fresh();if(same){Object.assign(F,k);F.eleve=e;F.step=2}go(F.step)}
 function rec(){ROLES.forEach(([k])=>F[k]=String(F[k]||'').trim());
  const rm=ROLES.filter(([k,,n])=>n&&!F[k]).map(([k,l])=>[k,l]),same=ROLES.filter(([k])=>F[k]&&nrm(F[k])==nrm(F.eleve));
@@ -806,7 +835,7 @@ function pdfEleve(doc,name,nom,d){const all=R.filter(r=>r.el==name&&(r.cl||'')==
  doc.text(PW-M,76,'Édité le '+new Date().toLocaleDateString('fr-FR'),{size:9,color:'#c3d0d6',align:'right'});
  doc.y=126;
  const sec=t=>{doc.need(60);doc.text(M,doc.y,t,{size:14,bold:true,color:INK});doc.line(M,doc.y+7,PW-M,doc.y+7,T,1.2);doc.y+=24};
- if(!L.length&&!RL.length){doc.text(M,doc.y+10,d?"Aucune grimpe enregistrée pendant cette leçon.":"Aucune grimpe enregistrée pour le moment.",{size:12,color:MUT});return}
+ if(!L.length&&!RL.length){const ab=d&&isAbs(name,CL.find(c=>c.nom==nom)?.id,d);doc.text(M,doc.y+10,ab?"Absent(e) à cette leçon.":d?"Aucune grimpe enregistrée pendant cette leçon.":"Aucune grimpe enregistrée pour le moment.",{size:12,color:MUT});return}
  /* chiffres clés */
  const H=L.map(r=>r.h).filter(isNum).map(Number),ok=L.filter(r=>Number(r.h)==TOP),best=bestOk(L),ld=[...new Set(L.map(r=>String(r.ts).slice(0,10)))];
  const Q=L.filter(r=>rpR(r)!=null),rp=Q.length?Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0):null,cfg=d?LEC().find(l=>l.d==d&&(CL.find(c=>c.id==l.cl)?.nom||'')==(nom||'')):null;
@@ -970,7 +999,8 @@ const syStamp=()=>Math.max(Date.now(),(SY.maxU||0)+1);
 function syRecords(){const O={},put=(k,o)=>{O[k]=JSON.stringify(o)};
  CL.forEach(c=>put('cl|'+c.id,c));LEC().forEach(l=>put('lec|'+l.id,l));
  R.forEach(r=>{const o={...r};delete o.rx;put('r|'+r.id,o)});
- put('w',W);Object.keys(C).forEach(k=>put('c|'+k,C[k]));if(CF.pin)put('pin',{p:CF.pin});return O}
+ put('w',W);Object.keys(C).forEach(k=>put('c|'+k,C[k]));if(CF.pin)put('pin',{p:CF.pin});
+ Object.keys(CF.ab||{}).forEach(k=>put('ab|'+k,{el:CF.ab[k]}));(CF.msg||[]).forEach(m=>put('m|'+m.id,m));return O}
 function syScan(){const O=syRecords();let n=0;
  for(const k in O){const x=hs(O[k]);if(SY.h[k]!==x){SY.h[k]=x;SY.pend[k]={u:syStamp(),d:0};n++}}
  let gone=Object.keys(SY.h).filter(k=>!(k in O));
@@ -989,12 +1019,15 @@ function syApply(k,o){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
  else if(t=='lec'){const L=LEC(),i=L.findIndex(l=>l.id==id);i<0?L.push(o):L[i]=o;if(CF.sea?.id==id)CF.sea=clone(o)}
  else if(t=='r'){const i=R.findIndex(r=>r.id==id);if(i<0)R.push(o);else R[i]={...o,rx:R[i].rx}}
  else if(t=='w')W=o;else if(t=='c')C[id]=o;else if(t=='pin'&&o.p)CF.pin=o.p;
+ else if(t=='ab'){(CF.ab||(CF.ab={}))[id]=o.el||[]}
+ else if(t=='m'){const M=CF.msg||(CF.msg=[]),i=M.findIndex(m=>m.id==id);i<0?M.push(o):M[i]=o}
  return true}
 function syRemove(k){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
- if(t=='cl')CL=CL.filter(c=>c.id!=id);else if(t=='lec'){CF.lec=LEC().filter(l=>l.id!=id)}else if(t=='r')R=R.filter(r=>r.id!=id)}
+ if(t=='cl')CL=CL.filter(c=>c.id!=id);else if(t=='lec'){CF.lec=LEC().filter(l=>l.id!=id)}else if(t=='r')R=R.filter(r=>r.id!=id);
+ else if(t=='ab'){if(CF.ab)delete CF.ab[id]}else if(t=='m')CF.msg=(CF.msg||[]).filter(m=>m.id!=id)}
 /* au tout premier contact, ce qui a été préparé sur cette tablette (classes, leçons, grimpes, contenus modifiés) est gardé et partagé */
 function syFirst(){const O=syRecords();for(const k in O){const t=k.split('|')[0];
- const mine=t=='cl'||t=='lec'||t=='r'||t=='pin'||(t=='w'&&O[k]!==JSON.stringify(WDEF))||(t=='c'&&O[k]!==JSON.stringify(DEF[k.slice(2)]??null));
+ const mine=t=='cl'||t=='lec'||t=='r'||t=='pin'||t=='ab'||t=='m'||(t=='w'&&O[k]!==JSON.stringify(WDEF))||(t=='c'&&O[k]!==JSON.stringify(DEF[k.slice(2)]??null));
  if(mine){SY.h[k]=hs(O[k]);SY.pend[k]={u:syStamp(),d:0}}}}
 async function syPull(){
  for(let loop=0;loop<30;loop++){
