@@ -350,6 +350,90 @@
     var j = await r.json(); if (!j.ok) throw new Error(j.error || "erreur");
     return j.count;
   }
+
+  /* ================= Modifier les listes (page d'accueil) : renommer une classe, corriger ses élèves dans les applications ================= */
+  function oriGet() {
+    return new Promise(function (res) {
+      try { var q = indexedDB.open("orienrun", 1); q.onupgradeneeded = function () { try { q.result.createObjectStore("kv"); } catch (e) {} };
+        q.onerror = function () { res({}); };
+        q.onsuccess = function () { try { var g = q.result.transaction("kv").objectStore("kv").get("classes"); g.onsuccess = function () { res(g.result || {}); }; g.onerror = function () { res({}); }; } catch (e) { res({}); } };
+      } catch (e) { res({}); }
+    });
+  }
+  function oriPut(C) {
+    return new Promise(function (res, rej) { var q = indexedDB.open("orienrun", 1); q.onupgradeneeded = function () { try { q.result.createObjectStore("kv"); } catch (e) {} };
+      q.onerror = function () { rej(q.error); }; q.onsuccess = function () { var p = q.result.transaction("kv", "readwrite").objectStore("kv").put(C, "classes"); p.onsuccess = function () { res(); }; p.onerror = function () { rej(p.error); }; }; });
+  }
+  function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+  async function allLists() {
+    var M = {}, put = function (app, name, list) { var k = norm(name); if (!k) return; var x = M[k] || (M[k] = { name: name, apps: {} }); x.apps[app] = list; };
+    (jget("escalade.cl", []) || []).forEach(function (c) { put("esc", c.nom, (c.el || []).slice()); });
+    ((jget("relais-vitesse-data-v3", {}) || {}).classes || []).forEach(function (c) { put("rel", c.name, (c.eleves || []).map(full)); });
+    var O = await oriGet(); Object.keys(O).forEach(function (k) { put("ori", k, (O[k] || []).slice()); });
+    return M;
+  }
+  async function editLists() {
+    if (!(await askCode())) return;
+    var o = overlay('<div id="epsl"></div>'), box = o.querySelector("#epsl"), M = await allLists(), cur = null;
+    var APPS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"]];
+    function listView(msg) {
+      var keys = Object.keys(M).sort(function (a, b) { return M[a].name.localeCompare(M[b].name, "fr"); });
+      box.innerHTML = "<h3>✏️ Listes d'élèves</h3><p class=\"m\">Touche une classe pour la renommer ou corriger ses élèves. Les changements s'appliquent dans les applications que tu coches.</p>" +
+        (msg ? '<p class="m" style="color:#2E7D4F;font-weight:800">' + esc(msg) + "</p>" : "") +
+        (keys.length ? '<div class="epsd-chips">' + keys.map(function (k) { var x = M[k], n = Math.max.apply(null, Object.keys(x.apps).map(function (a) { return x.apps[a].length; }));
+          return '<button data-k="' + esc(k) + '">' + esc(x.name) + " <small>(" + n + " · " + APPS.filter(function (a) { return x.apps[a[0]]; }).map(function (a) { return a[1].split(" ")[0]; }).join(", ") + ")</small></button>"; }).join("") + "</div>"
+          : '<p class="m">Aucune liste sur cette tablette. Importe d\'abord une liste d\'élèves.</p>') +
+        '<div class="epsd-act"><button data-x>Fermer</button></div>';
+      box.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { cur = b.dataset.k; editView(); }; });
+    }
+    function editView(err) {
+      var x = M[cur], names = [];
+      Object.keys(x.apps).forEach(function (a) { x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); });
+      names.sort(function (a, b) { return a.localeCompare(b, "fr"); });
+      var sel = x.sel || (x.sel = {}); APPS.forEach(function (a) { if (sel[a[0]] === undefined) sel[a[0]] = x.apps[a[0]] ? 1 : 0; });
+      box.innerHTML = "<h3>✏️ " + esc(x.name) + "</h3>" +
+        '<span class="epsd-lab">Nom de la classe</span><input class="epsd-in" id="epsl-n" value="' + esc(x.draftName != null ? x.draftName : x.name) + '">' +
+        '<span class="epsd-lab">Élèves (un par ligne : Prénom Nom)</span><textarea class="epsd-in" id="epsl-t" style="height:min(38vh,320px);padding:10px 12px;line-height:1.45">' + esc(x.draft != null ? x.draft : names.join("\n")) + "</textarea>" +
+        '<p class="m" id="epsl-c" style="margin-top:6px"></p>' +
+        '<span class="epsd-lab">Appliquer dans</span><div class="epsd-chips">' + APPS.map(function (a) { return '<button data-a="' + a[0] + '" class="' + (sel[a[0]] ? "on" : "") + '">' + (sel[a[0]] ? "✓ " : "") + a[1] + (x.apps[a[0]] ? "" : " <small>(nouvelle)</small>") + "</button>"; }).join("") + "</div>" +
+        '<p class="m">Un élève retiré de la liste n\'apparaît plus dans l\'application ; ce qu\'il a déjà fait (grimpes, courses) reste dans les résultats. Acrosport : listes dans l\'espace enseignant de l\'appli (Google Sheet).</p>' +
+        (err ? '<p class="m" style="color:#C0392B;font-weight:800">' + esc(err) + "</p>" : "") +
+        '<div class="epsd-act"><button id="epsl-b">← Retour</button><button class="p" id="epsl-ok">Enregistrer</button></div>';
+      var ti = box.querySelector("#epsl-t"), ni = box.querySelector("#epsl-n");
+      var cnt = function () { var n = ti.value.split("\n").filter(function (l) { return l.trim(); }).length; box.querySelector("#epsl-c").textContent = n + " élève" + (n > 1 ? "s" : ""); };
+      ti.oninput = function () { x.draft = ti.value; cnt(); }; ni.oninput = function () { x.draftName = ni.value; }; cnt();
+      box.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { sel[b.dataset.a] = sel[b.dataset.a] ? 0 : 1; editView(); }; });
+      box.querySelector("#epsl-b").onclick = function () { x.draft = x.draftName = null; listView(); };
+      box.querySelector("#epsl-ok").onclick = async function () {
+        var nn = ni.value.replace(/\s+/g, " ").trim(), old = x.name;
+        if (!nn) return editView("Donne un nom à la classe.");
+        if (norm(nn) !== norm(old) && M[norm(nn)]) return editView("Une classe « " + M[norm(nn)].name + " » existe déjà.");
+        var L = []; ti.value.split("\n").forEach(function (l) { l = l.replace(/\s+/g, " ").trim(); if (l && !L.some(function (y) { return nkey(y) === nkey(l); })) L.push(l); });
+        if (!APPS.some(function (a) { return sel[a[0]]; })) return editView("Choisis au moins une application.");
+        var done = [];
+        try {
+          if (sel.esc) {
+            var A = jget("escalade.cl", []) || [], c = A.filter(function (y) { return norm(y.nom) === norm(old); })[0];
+            if (!c) { c = { id: "c" + Date.now().toString(36), nom: nn, el: [] }; A.push(c); }
+            if (c.nom !== nn) { var R = jget("escalade.r", []) || []; R.forEach(function (r) { if ((r.cl || "") === c.nom) r.cl = nn; }); localStorage.setItem("escalade.r", JSON.stringify(R)); }
+            c.nom = nn; c.el = L.slice(); localStorage.setItem("escalade.cl", JSON.stringify(A)); done.push("Escalade");
+          }
+          if (sel.rel) {
+            var D = jget("relais-vitesse-data-v3", null); if (!D || !D.classes) D = { classes: [], cur: null };
+            var k = D.classes.filter(function (y) { return norm(y.name) === norm(old); })[0];
+            if (!k) { k = { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: nn, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D.classes.push(k); }
+            var id = Math.max.apply(null, [-1].concat(k.eleves.map(function (e) { return +e.id || 0; }))) + 1;
+            k.eleves = L.map(function (l) { var e = k.eleves.filter(function (y) { return nkey(full(y)) === nkey(l); })[0]; if (e) return e; var p = splitFull(l) || { prenom: l, nom: "" };
+              return { id: id++, nom: p.nom, prenom: p.prenom, ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0, orig: { ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0 }, imported: true }; });
+            k.name = nn; localStorage.setItem("relais-vitesse-data-v3", JSON.stringify(D)); done.push("Relais Vitesse");
+          }
+          if (sel.ori) { var O = await oriGet(); Object.keys(O).forEach(function (kk) { if (norm(kk) === norm(old)) delete O[kk]; }); O[nn] = L.slice(); await oriPut(O); done.push("OrienRun"); }
+        } catch (e) { return editView("Enregistrement impossible : " + (e && e.message || e)); }
+        M = await allLists(); listView("✓ « " + nn + " » enregistrée dans " + done.join(", ") + ".");
+      };
+    }
+    listView();
+  }
   async function importList() {
     if (!(await askCode())) return;
     var o = overlay('<div id="epsi"></div>'), box = o.querySelector("#epsi"), L = [], cl = "", sel = { esc: 1, rel: 1, ori: 1, acro: 0 };
@@ -449,7 +533,7 @@
     }
     render();
   }
-  window.EPSD = { list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, show: showList, sync: sync,
+  window.EPSD = { list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================
