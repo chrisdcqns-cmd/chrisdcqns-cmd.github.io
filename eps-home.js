@@ -256,6 +256,142 @@
       });
     });
   }
+
+  /* ================= Import d'une liste d'élèves (page d'accueil, mode enseignant) ================= */
+  function loadX() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise(function (res, rej) { var sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; sc.onload = function () { res(window.XLSX); }; sc.onerror = function () { rej(new Error("x")); }; document.head.appendChild(sc); });
+  }
+  function readRows(file) {
+    var low = file.name.toLowerCase();
+    if (/\.(csv|txt)$/.test(low)) return file.arrayBuffer().then(function (b) { var t = new TextDecoder("utf-8").decode(b); if (t.indexOf("�") >= 0) t = new TextDecoder("windows-1252").decode(b); return t.split(/\r?\n/).map(function (l) { return l.split(/[;\t,]/); }); });
+    return Promise.all([loadX(), file.arrayBuffer()]).then(function (a) { var wb = a[0].read(a[1], { type: "array" }); return a[0].utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: "" }); });
+  }
+  function cap(w) { return w.toLowerCase().replace(/(^|[\s'-])(\S)/g, function (m, a, b) { return a + b.toUpperCase(); }); }
+  /* « DUPONT Marie » ou « Marie Dupont » → {nom, prenom} */
+  function splitFull(t) {
+    var w = String(t).replace(/\s+/g, " ").trim().split(" "); if (!w[0]) return null;
+    var up = function (x) { return x.length > 1 && x === x.toUpperCase() && x !== x.toLowerCase(); };
+    var i = 0; while (i < w.length - 1 && up(w[i])) i++;
+    if (i > 0) return { nom: w.slice(0, i).join(" "), prenom: cap(w.slice(i).join(" ")) };
+    if (w.length === 1) return { nom: "", prenom: w[0] };
+    return { prenom: w[0], nom: w.slice(1).join(" ") };
+  }
+  function parseList(rows) {
+    rows = (rows || []).map(function (r) { return Array.prototype.map.call(r || [], function (v) { return String(v == null ? "" : v).trim(); }); }).filter(function (r) { return r.some(Boolean); });
+    var h = -1, iN = -1, iP = -1, iF = -1, iC = -1;
+    for (var r = 0; r < Math.min(rows.length, 12) && h < 0; r++) {
+      rows[r].forEach(function (c, j) { var n = norm(c);
+        if (/^(nom|nom de famille|nom eleve|nom de l eleve)$/.test(n)) iN = j;
+        else if (/^prenom/.test(n)) iP = j;
+        else if (/^(eleve|eleves|nom prenom|prenom nom|nom et prenom|nom et prenoms|identite|nom complet)$/.test(n)) iF = j;
+        else if (/^(classe|division|classe eleve)$/.test(n)) iC = j; });
+      if (iN >= 0 || iF >= 0 || iP >= 0) h = r; else iC = -1;
+    }
+    var out = [], seen = {};
+    rows.slice(h + 1).forEach(function (r) {
+      var e = null;
+      if (iN >= 0 || iP >= 0) { var nm = iN >= 0 ? r[iN] : "", pr = iP >= 0 ? r[iP] : ""; if (nm && !pr && iP < 0) e = splitFull(nm); else if (nm || pr) e = { nom: nm, prenom: pr }; }
+      else e = splitFull(iF >= 0 ? r[iF] : r[0]);
+      if (!e || !(e.nom || e.prenom) || /^(total|effectif)/i.test(e.nom + e.prenom)) return;
+      e.classe = iC >= 0 ? (r[iC] || "") : "";
+      var k = nkey(e.prenom + " " + e.nom); if (seen[k]) return; seen[k] = 1; out.push(e);
+    });
+    return out;
+  }
+  function full(e) { return (e.prenom + " " + e.nom).replace(/\s+/g, " ").trim(); }
+  var TARGETS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["acro", "Acrosport"]];
+  function toEsc(cl, L) {
+    var a = []; try { a = JSON.parse(localStorage.getItem("escalade.cl") || "[]") || []; } catch (e) {}
+    var c = a.filter(function (x) { return norm(x.nom) === norm(cl); })[0], n = 0;
+    if (!c) { c = { id: "c" + Date.now().toString(36), nom: cl, el: [] }; a.push(c); }
+    L.forEach(function (e) { var f = full(e); if (!c.el.some(function (x) { return nkey(x) === nkey(f); })) { c.el.push(f); n++; } });
+    localStorage.setItem("escalade.cl", JSON.stringify(a)); return n;
+  }
+  function toRel(cl, L) {
+    var D = null; try { D = JSON.parse(localStorage.getItem("relais-vitesse-data-v3") || "null"); } catch (e) {}
+    if (!D || !D.classes) D = { classes: [], cur: null };
+    var c = D.classes.filter(function (x) { return norm(x.name) === norm(cl); })[0], n = 0;
+    if (!c) { c = { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: cl, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D.classes.push(c); }
+    var id = Math.max.apply(null, [-1].concat(c.eleves.map(function (e) { return +e.id || 0; }))) + 1;
+    L.forEach(function (e) { if (c.eleves.some(function (x) { return norm(x.nom) === norm(e.nom) && norm(x.prenom) === norm(e.prenom); })) return;
+      c.eleves.push({ id: id++, nom: e.nom, prenom: e.prenom, ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0, orig: { ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0 }, imported: true }); n++; });
+    if (!D.cur) D.cur = c.id;
+    localStorage.setItem("relais-vitesse-data-v3", JSON.stringify(D)); return n;
+  }
+  function toOri(cl, L) {
+    return new Promise(function (res, rej) {
+      var q = indexedDB.open("orienrun", 1);
+      q.onupgradeneeded = function () { try { q.result.createObjectStore("kv"); } catch (e) {} };
+      q.onerror = function () { rej(q.error); };
+      q.onsuccess = function () {
+        var db = q.result, st = db.transaction("kv", "readwrite").objectStore("kv"), g = st.get("classes");
+        g.onsuccess = function () {
+          var C = g.result || {}, key = Object.keys(C).filter(function (k) { return norm(k) === norm(cl); })[0] || cl, A = C[key] || [], n = 0;
+          L.forEach(function (e) { var f = full(e); if (!A.some(function (x) { return nkey(x) === nkey(f); })) { A.push(f); n++; } });
+          C[key] = A; var p = st.put(C, "classes"); p.onsuccess = function () { res(n); }; p.onerror = function () { rej(p.error); };
+        };
+        g.onerror = function () { rej(g.error); };
+      };
+    });
+  }
+  var ACRO_API = "https://script.google.com/macros/s/AKfycbzCW8b2vq-REokxUCdkbKyHf_nHJf4khfcCueu1AKKGlJVAiiSsiB7I-beOmjsUpE25Qg/exec";
+  async function toAcro(cl, L) {
+    var prof = {}; try { prof = JSON.parse(localStorage.getItem("acro.prof.v1") || "{}") || {}; } catch (e) {}
+    var url = (prof.api || ACRO_API).trim(), code = "";
+    try { var m = JSON.parse(localStorage.getItem("acro.codes.v1") || "{}") || {}; Object.keys(m).forEach(function (k) { if (norm(k) === norm(cl)) code = m[k]; }); } catch (e) {}
+    var pw = await (window.epsPin || epsPin)({ title: "🔒 Mot de passe enseignant d'Acrosport", text: "Touche ABC pour les lettres.", min: 1, letters: true,
+      check: async function (v) {
+        try { var r = await fetch(url, { method: "POST", body: JSON.stringify({ action: "teacherCheck", teacher: v }), redirect: "follow" }); var j = await r.json(); return j.ok ? true : "Mot de passe incorrect."; }
+        catch (e) { return "Pas de connexion internet."; } } });
+    if (pw === null) throw new Error("annulé");
+    var r = await fetch(url, { method: "POST", body: JSON.stringify({ action: "teacherSetStudents", teacher: pw, classe: cl, code: code, students: L.map(function (e) { return { nom: e.nom, prenom: e.prenom, classe: e.classe || "" }; }) }), redirect: "follow" });
+    var j = await r.json(); if (!j.ok) throw new Error(j.error || "erreur");
+    return j.count;
+  }
+  async function importList() {
+    if (!(await askCode())) return;
+    var o = overlay('<div id="epsi"></div>'), box = o.querySelector("#epsi"), L = [], cl = "", sel = { esc: 1, rel: 1, ori: 1, acro: 0 };
+    function step1(msg) {
+      box.innerHTML = "<h3>👥 Importer une liste d'élèves</h3><p class=\"m\">Fichier Excel (.xlsx, .xls, .ods) ou CSV : colonnes « Nom » et « Prénom », ou « Élève », ou les noms dans la première colonne (export Pronote accepté).</p>" +
+        (msg ? '<p class="m" style="color:#C0392B;font-weight:700">' + esc(msg) + "</p>" : "") +
+        '<div class="epsd-act" style="justify-content:flex-start;margin-top:8px"><label class="p" style="display:inline-grid;place-items:center;cursor:pointer;height:50px;padding:0 20px;border-radius:14px;background:#1F5F8B;color:#fff;font:800 17px system-ui,sans-serif">📄 Choisir le fichier<input type="file" id="epsi-f" accept=".xlsx,.xls,.ods,.csv,.txt" hidden></label></div>' +
+        '<div class="epsd-act"><button data-x>Annuler</button></div>';
+      box.querySelector("#epsi-f").onchange = async function (e) {
+        var f = e.target.files[0]; if (!f) return;
+        try { L = parseList(await readRows(f)); } catch (x) { return step1("Impossible de lire ce fichier (pour un fichier Excel, la première ouverture demande internet). Enregistre-le en .csv si besoin."); }
+        if (!L.length) return step1("Aucun élève trouvé dans ce fichier.");
+        cl = f.name.replace(/\.[^.]+$/, ""); step2();
+      };
+    }
+    function step2(msg) {
+      box.innerHTML = "<h3>👥 " + L.length + " élève" + (L.length > 1 ? "s" : "") + " trouvé" + (L.length > 1 ? "s" : "") + "</h3>" +
+        '<span class="epsd-lab">Nom de la classe</span><input class="epsd-in" id="epsi-c" value="' + esc(cl) + '">' +
+        '<span class="epsd-lab">Ajouter dans</span><div class="epsd-chips">' + TARGETS.map(function (t) { return '<button data-t="' + t[0] + '" class="' + (sel[t[0]] ? "on" : "") + '">' + (sel[t[0]] ? "✓ " : "") + t[1] + "</button>"; }).join("") + "</div>" +
+        (sel.acro ? '<p class="m">Acrosport : la liste de cette classe est <b>remplacée</b> en ligne (internet et mot de passe enseignant d\'Acrosport demandés).</p>' : "") +
+        '<p class="m">Les élèves déjà présents dans une classe du même nom ne sont pas ajoutés deux fois.</p>' +
+        (msg ? '<p class="m" style="color:#C0392B;font-weight:700">' + esc(msg) + "</p>" : "") +
+        '<div class="epsd-chips" style="max-height:30vh;overflow:auto">' + L.map(function (e) { return '<span style="padding:6px 12px;border-radius:999px;background:#F3F0EA;font-weight:600">' + esc(full(e)) + (e.classe ? " <small>(" + esc(e.classe) + ")</small>" : "") + "</span>"; }).join("") + "</div>" +
+        '<div class="epsd-act"><button id="epsi-b">Autre fichier</button><button class="p" id="epsi-go">Importer</button></div>';
+      var ci = box.querySelector("#epsi-c"); ci.oninput = function () { cl = ci.value; };
+      box.querySelectorAll("[data-t]").forEach(function (b) { b.onclick = function () { sel[b.dataset.t] = sel[b.dataset.t] ? 0 : 1; step2(); }; });
+      box.querySelector("#epsi-b").onclick = function () { step1(); };
+      box.querySelector("#epsi-go").onclick = async function () {
+        cl = String(cl).replace(/\s+/g, " ").trim(); if (!cl) return step2("Donne un nom à la classe.");
+        if (!TARGETS.some(function (t) { return sel[t[0]]; })) return step2("Choisis au moins une application.");
+        var res = [];
+        for (var i = 0; i < TARGETS.length; i++) { var t = TARGETS[i]; if (!sel[t[0]]) continue;
+          try {
+            var n = t[0] === "esc" ? toEsc(cl, L) : t[0] === "rel" ? toRel(cl, L) : t[0] === "ori" ? await toOri(cl, L) : await toAcro(cl, L);
+            res.push("✓ " + t[1] + " : " + (t[0] === "acro" ? n + " élève(s) dans la liste en ligne" : n + " élève(s) ajouté(s)"));
+          } catch (x) { res.push("✕ " + t[1] + " : " + (x && x.message === "annulé" ? "annulé" : "échec (" + esc(x && x.message || "erreur") + ")")); }
+        }
+        box.innerHTML = "<h3>Classe « " + esc(cl) + " »</h3>" + res.map(function (r) { return '<p class="m" style="font-size:17px;color:#1B1E24">' + r + "</p>"; }).join("") +
+          '<p class="m">Les tablettes reliées par Google Sheets recevront la liste à la prochaine ouverture de chaque application.</p><div class="epsd-act"><button class="p" data-x>Fermer</button></div>';
+      };
+    }
+    step1();
+  }
   /* gestion (page d'accueil) : liste + nouvelle dispense en 3 étapes : classe, élève, période et motif */
   async function manage() {
     if (!(await askCode())) return;
@@ -312,7 +448,7 @@
     }
     render();
   }
-  window.EPSD = { list: all, active: activeOn, find: find, label: label, manage: manage, show: showList, sync: sync,
+  window.EPSD = { list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================

@@ -30,5 +30,10 @@ Applications :
 - Partage entre tablettes : par le même canal chiffré que Relais Vitesse (onglet « Sync », clés `disp|…`), dès que Google Sheets est configuré dans Relais Vitesse sur la tablette.
 - Code partagé : `eps-home.js` (`window.EPSD` : `find(classe, nom, prenom)`, `label()`, `active()`, événement `epsd-change`).
 
+## Listes d'élèves (page d'accueil, mode enseignant)
+- Carte **Listes d'élèves**, sous Dispenses → « 🔒 Importer une liste d'élèves » (code enseignant) : fichier Excel (.xlsx/.xls/.ods, lu avec SheetJS) ou CSV ; colonnes Nom/Prénom, « Élève » (format Pronote « NOM Prénom ») ou noms en 1re colonne ; colonne Classe facultative.
+- Nom de la classe à vérifier, puis applications cochées : Escalade (`escalade.cl`), Relais Vitesse (`relais-vitesse-data-v3`), OrienRun (IndexedDB `orienrun` / `classes`) : élèves ajoutés à la classe du même nom, sans doublon. Acrosport : liste **remplacée** en ligne (`teacherSetStudents`, mot de passe enseignant d'Acrosport demandé avec le pavé).
+- Code : `importList()` dans `eps-home.js` (`parseList`, `toEsc`, `toRel`, `toOri`, `toAcro`).
+
 ## Bouton « Mise à jour »
 Bouton bleu ⟳ au-dessus du bouton Accueil (sur la page d'accueil : en bas à gauche) : il envoie et récupère les données (Relais, dispenses), vérifie s'il existe une nouvelle version de l'application, puis recharge la page — sans quitter l'appli.
