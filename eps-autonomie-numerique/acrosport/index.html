@@ -325,6 +325,37 @@ body.online .onlyOffline{display:none}
 .ficheCrit{background:#fff4d1;border-left:5px solid var(--sun);border-radius:10px;padding:6px 10px;margin:0 0 8px;font-size:.92rem}
 .partHead{font-family:"Barlow Condensed";font-weight:800;text-transform:uppercase;color:var(--ink2);margin:10px 0 4px}
 .figHead img+img{margin-left:-6px}
+.beltChip{display:inline-flex;gap:3px;align-items:center;margin-left:4px}
+.miniBelt{width:22px;height:8px;border-radius:3px;background:#ffffff33;display:inline-block}
+.miniBelt.on{background:var(--b);box-shadow:0 0 0 1px #fff8}
+.belt{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;background:#fff;color:var(--ink2);font-weight:700;box-shadow:inset 0 0 0 2px var(--line);white-space:nowrap}
+.belt i{width:26px;height:10px;border-radius:3px;background:var(--line)}
+.belt.on{color:var(--ink);box-shadow:inset 0 0 0 3px var(--b)}
+.belt.on i{background:var(--b)}
+.beltRow{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.pathGrid{display:grid;grid-template-columns:minmax(150px,1.1fr) repeat(4,minmax(0,1fr));gap:8px;align-items:stretch;margin-bottom:16px}
+.phd{font-family:"Barlow Condensed";font-weight:800;text-transform:uppercase;text-align:center;color:var(--ink2);align-self:end}
+.prow{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:10px 12px;flex-wrap:wrap}
+.prow b{font-family:"Barlow Condensed";font-size:1.25rem;text-transform:uppercase}
+.beltDot{width:14px;height:14px;border-radius:50%;background:var(--b)}
+.prow .mini{font-size:.8rem;background:var(--paper);border-radius:99px;padding:3px 8px;font-weight:700}
+.pcell{border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;min-height:78px;background:#fff;box-shadow:inset 0 0 0 2px var(--line);color:var(--ink2)}
+.pcell .pst{font-size:1.5rem;font-weight:800;line-height:1}
+.pcell small{font-size:.78rem}
+.pcell em{font-size:.68rem;font-style:normal;font-weight:700;color:var(--blue)}
+.pcell.done{background:#d6f2e5;box-shadow:none;color:#17734f}
+.pcell.cur{background:#fff4d1;box-shadow:inset 0 0 0 3px var(--sun);color:var(--ink)}
+.pcell.locked{opacity:.45}
+.pcell:disabled{opacity:1}
+.pcell.locked:disabled{opacity:.45}
+@media(max-width:760px){.pathGrid{grid-template-columns:repeat(4,minmax(0,1fr))}.pathGrid .ph0,.pathGrid .phd{display:none}.prow{grid-column:1/-1}}
+.rules{margin:0;padding-left:20px;line-height:1.5}
+.chips2{display:flex;flex-wrap:wrap;gap:6px}
+.dayTheme{background:var(--sun);color:var(--ink);border-radius:14px;padding:10px 14px;margin-bottom:12px;font-size:1.05rem}
+.fig.locked{opacity:.55}
+.lockBadge{position:absolute;top:8px;left:8px;width:30px;height:30px;border-radius:50%;background:#14213dcc;display:grid;place-items:center;font-size:.85rem;z-index:2}
+.chk{display:flex;align-items:center;gap:8px;font-weight:700;min-height:48px}
+.chk input{width:22px;height:22px}
 .note{background:#fff4d1;border-radius:12px;padding:10px 14px;margin:10px 0}
 .history{margin-top:28px}
 .history h3{text-transform:uppercase;font-size:1.3rem;margin:0 0 8px}
@@ -406,6 +437,7 @@ body.online .onlyOffline{display:none}
       <span class="logo">Acrosport</span>
       <div class="chips" id="memberChips"></div>
       <span class="syncBadge hidden" id="syncBadge"></span>
+      <span class="beltChip" id="beltChip" title="Ceintures"></span>
       <span class="sp"></span>
       <button class="iconbtn" id="profBtn" title="Espace enseignant">⚙</button>
     </div>
@@ -413,6 +445,7 @@ body.online .onlyOffline{display:none}
       <button class="tab on" data-tab="videos">Vidéothèque</button>
       <button class="tab" data-tab="routine">Mon enchaînement</button>
       <button class="tab" data-tab="obs">Observation</button>
+      <button class="tab" data-tab="path">Mon parcours</button>
       <button class="tab" data-tab="bonus">Bonus</button>
     </nav>
   </header>
@@ -420,6 +453,7 @@ body.online .onlyOffline{display:none}
     <div id="tab-videos"></div>
     <div id="tab-routine" class="hidden"></div>
     <div id="tab-obs" class="hidden"></div>
+    <div id="tab-path" class="hidden"></div>
     <div id="tab-bonus" class="hidden"></div>
   </main>
   <div class="savebar"><button class="btn coral" id="saveBtn">💾 Enregistrer ma progression</button></div>
@@ -578,7 +612,7 @@ window.addEventListener("online",()=>flushAll());
 setInterval(()=>{
   if(G&&G.online&&G.autoDirty&&apiUrl()&&credFor(G)&&navigator.onLine!==false){G.autoDirty=false;G.dirty=true;store.set(K_GROUPS,groups);flushAll()}
 },40000);
-setInterval(()=>{if(navigator.onLine!==false)refreshClasses()},120000);
+setInterval(()=>{if(navigator.onLine!==false){refreshClasses();if(G)loadObsAbout()}},120000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&G&&G.autoDirty&&G.online&&credFor(G)){G.autoDirty=false;G.dirty=true;store.set(K_GROUPS,groups);flushAll()}});
 setInterval(()=>{if(navigator.onLine!==false)flushAll()},30000);
 const K_CODES="acro.codes.v1";
@@ -600,8 +634,9 @@ async function apiC(action,payload,classe){
 let serverClasses=(store.get(K_CACHE,{})["__classes"]||[]);
 async function refreshClasses(){
   if(!apiUrl()) return;
-  const before=G?lessonN():null;
+  const before=G?lessonN():null, beforeSet=G?JSON.stringify(classSettings()):null;
   try{const r=await api("listClasses");serverClasses=r.classes||[];const c=store.get(K_CACHE,{});c["__classes"]=serverClasses;store.set(K_CACHE,c);renderClassPick()}catch(e){return}
+  if(G&&beforeSet!==JSON.stringify(classSettings())){const t=classSettings().theme;if(t&&T_LABEL[t]){vFilter.t=t;toast("🎯 Thématique du jour : "+T_SHORT[t])}if(curTab==="videos"||curTab==="path")showTab(curTab)}
   if(G&&before!==lessonN()){toast("Leçon du jour : "+lessonN()+" figure"+(lessonN()>1?"s":"")+" (réglé par l'enseignant)");if(!modalStack.length&&!document.querySelector(".dojoWrap.full"))showTab(curTab)}
 }
 function splitName(full){
@@ -858,7 +893,9 @@ function openApp(){
   document.getElementById("memberChips").innerHTML=
     `<span class="chip" style="background:var(--sun);color:var(--ink)">${esc(G.classe)}</span>`+G.members.map(m=>`<span class="chip">${esc(m)}${dzA(G.classe,m)?" 🩹":""}</span>`).join("")+(G.members.filter(m=>dzA(G.classe,m)).length?`<div class="dzline" style="width:100%;margin-top:6px;padding:6px 10px;border-radius:10px;background:#FDF0EE;color:#9C2B10;font-weight:700;font-size:14px">🩹 ${G.members.filter(m=>dzA(G.classe,m)).map(m=>esc(m)+" "+esc(EPSD.label(EPSD.find(G.classe,m)))).join(" · ")}</div>`:"");
   const n=G.members.length;
-  vFilter={f:n===2?"duo":n===3?"trio":n===4?"quatuor":null,t:null,lv:null};
+  const dayTheme=classSettings(G.classe).theme;
+  vFilter={f:n===2?"duo":n===3?"trio":n===4?"quatuor":null,t:STATIC_T.includes(dayTheme)?dayTheme:null,lv:null};
+  obsAbout=null; setTimeout(()=>{renderBeltChip();loadObsAbout()},0);
   ensureSlots();
   showTab(G.current.slots.some(s=>partsOf(s).length)?"routine":"videos");
   window.scrollTo(0,0);
@@ -874,13 +911,14 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>showTab(t.dataset.tab
 function showTab(name){
   curTab=name;
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===name));
-  ["videos","routine","obs","bonus"].forEach(k=>document.getElementById("tab-"+k).classList.toggle("hidden",k!==name));
-  document.querySelector(".savebar").classList.toggle("hidden",name==="bonus");
+  ["videos","routine","obs","path","bonus"].forEach(k=>document.getElementById("tab-"+k).classList.toggle("hidden",k!==name));
+  document.querySelector(".savebar").classList.toggle("hidden",name==="bonus"||name==="path");
   document.getElementById("saveBtn").textContent=name==="obs"?"💾 Enregistrer l'observation":"💾 Enregistrer ma progression";
   if(name==="videos") renderVideos();
   if(name==="routine") renderRoutine();
   if(name==="obs") renderObs();
   if(name==="bonus") renderBonus();
+  if(name==="path") renderPath();
 }
 
 /* ---------- filtres + grille ---------- */
@@ -906,8 +944,10 @@ function filterBar(state,onChange,opts={}){
   return wrap;
 }
 function lvlDots(lv){const i=LV.indexOf(lv);return `<span class="lvl" title="Difficulté ${lv}">${LV.map((_,k)=>`<i class="${k<=i?"on":""}"></i>`).join("")}</span>`}
+let curLocked=new Set();
 function figCard(f){
-  return `<button class="fig" data-id="${f.id}">
+  const lk=curLocked.has(f.t);
+  return `<button class="fig ${lk?"locked":""}" data-id="${f.id}">${lk?`<span class="lockBadge" title="Position pas encore débloquée">🔒</span>`:""}
     <div class="ph"><img loading="lazy" src="${f.img}" alt=""></div><span class="play">▶</span>
     <div class="meta"><span class="code">${f.code}</span><span class="fbadge ${f.f}">${f.f==="dyn"?F_LABEL[f.sub]||"Dyn.":F_LABEL[f.f]}</span>${lvlDots(f.lv)}</div></button>`;
 }
@@ -915,6 +955,7 @@ function filtered(state){
   return FIGS.filter(f=>(!state.f||f.f===state.f)&&(!state.t||f.t===state.t)&&(!state.lv||f.lv===state.lv));
 }
 function renderGrid(container,state,onPick){
+  curLocked=lockedThemes();
   const list=filtered(state);
   if(!list.length){container.innerHTML=`<div class="empty">Aucune figure avec ces filtres.</div>`;return}
   const order=[...STATIC_T,...DYN_T];
@@ -926,8 +967,13 @@ function renderGrid(container,state,onPick){
   container.innerHTML=html;
   container.querySelectorAll(".fig").forEach(b=>b.onclick=()=>onPick(byId[b.dataset.id]));
 }
+function dayThemeBanner(){
+  const t=G&&classSettings().theme; if(!t||!T_LABEL[t]) return null;
+  const d=document.createElement("div");d.className="dayTheme";d.innerHTML=`🎯 Thématique du jour : <b>${esc(T_LABEL[t])}</b>`;return d;
+}
 function renderVideos(){
   const root=document.getElementById("tab-videos");root.innerHTML="";
+  const ban=dayThemeBanner(); if(ban) root.appendChild(ban);
   root.appendChild(filterBar(vFilter,renderVideos));
   const g=document.createElement("div");root.appendChild(g);
   renderGrid(g,vFilter,f=>openDetail(f));
@@ -969,13 +1015,13 @@ function openDetail(f,opts={}){
         ${f.ic.length?`<div style="margin-top:12px"><small class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem">Prises de mains / appuis</small><div class="grips">${f.ic.map((s,k)=>`<figure><img src="${s}" alt="">${(f.il||[])[k]?`<figcaption>${esc(f.il[k])}</figcaption>`:""}</figure>`).join("")}</div></div>`:""}
       </div>
       <div class="desc">${f.d.map(fmtLine).join("")}
-        ${opts.pick?`<button class="btn sun" style="width:100%;margin-top:6px" data-choose>✓ Choisir cette pyramide</button>`:""}
+        ${opts.pick?(lockedThemes().has(f.t)?`<button class="btn alt" style="width:100%;margin-top:6px" disabled>🔒 Stabilise d'abord : ${esc(T_SHORT[PATH_T[PATH_T.indexOf(f.t)-1]])} (onglet « Mon parcours »)</button>`:`<button class="btn sun" style="width:100%;margin-top:6px" data-choose>✓ Choisir cette pyramide</button>`):""}
       </div>
     </div></div>`;
   const m=openModal(html);
   m.querySelector("video").play?.().catch(()=>{});
   m.querySelector("[data-zoom]").onclick=()=>zoomImg(f.img,figTitle(f)+" · position à atteindre");
-  if(opts.pick) m.querySelector("[data-choose]").onclick=()=>{closeModal();opts.pick(f)};
+  const ch=m.querySelector("[data-choose]"); if(opts.pick&&ch) ch.onclick=()=>{closeModal();opts.pick(f)};
 }
 function zoomImg(src,cap){
   const z=document.createElement("div");z.className="zoom";
@@ -995,6 +1041,141 @@ function openModal(inner){
 function closeModal(){
   const m=modalStack.pop(); if(m){m.querySelectorAll("video").forEach(v=>v.pause());m.remove()}
   if(!modalStack.length) document.body.style.overflow="";
+}
+
+/* ---------- parcours : étapes par position du voltigeur ---------- */
+// Ordre de la séquence : horizontale → équerre → position redressée → ATR.
+// Chaque position : Découvrir → Stabiliser → Complexifier → Enchaîner. Ceinture de la position = « Stabiliser » validé.
+const PATH_T=["horiz","equerre","redresse","atr"];
+const PALIERS=[
+  ["dec","Découvrir","Avoir choisi une pyramide de cette position dans son enchaînement."],
+  ["stab","Stabiliser","2 observations réussies d'une pyramide de cette position (par d'autres groupes)."],
+  ["cpx","Complexifier","Une observation réussie en niveau B ou plus, en trio/quatuor, ou avec plusieurs pyramides en même temps."],
+  ["ench","Enchaîner","Une observation réussie de cette position dans un enchaînement complet : transitions ✓ et aucune erreur de sécurité."]];
+const BELTS={horiz:["jaune","#facc15"],equerre:["orange","#f97316"],redresse:["verte","#16a34a"],atr:["bleue","#2563eb"]};
+function classSettings(c){const sc=(serverClasses||[]).find(x=>norm(x.nom)===norm(c||(G&&G.classe)||homeClass||""));return (sc&&sc.reglages)||{}}
+let obsAbout=null;
+async function loadObsAbout(){
+  if(!G) return;
+  const g=G;
+  if(apiUrl()&&g.online&&credFor(g)){
+    try{
+      const r=await api("myObservations",{classe:g.online.classe,nom:g.online.nom,...credFor(g)});
+      const list=(r.observations||[]).map(x=>x.data).filter(o=>o&&o.observed&&norm(o.observed.nom)===norm(g.name));
+      if(G!==g) return;
+      obsAbout=list; g.obsAboutCache=list; store.set(K_GROUPS,groups);
+    }catch(e){if(G!==g)return;obsAbout=g.obsAboutCache||[]}
+  }else obsAbout=g.obsAboutCache||[];
+  updateProgress();
+}
+// une pyramide est « réussie » dans une observation si : au moins 3 critères notés, aucun ✗, au moins 3/4 de ✓,
+// maintien ✓ (figures statiques) et aucune erreur de sécurité notée sur cette figure
+function partValid(o,i,j,f){
+  const pre="f"+i+"p"+j+"|", legacy=j===0?"f"+i+"|":null; const vals=[]; let maint=0;
+  for(const [k,v] of Object.entries(o.marks||{})){
+    if(!v||!(k.startsWith(pre)||(legacy&&k.startsWith(legacy)))) continue;
+    vals.push(v); if(k.endsWith("|maintien")) maint=Math.max(maint,v);
+  }
+  if(vals.length<3||vals.includes(1)) return false;
+  if(vals.filter(v=>v===3).length<Math.ceil(vals.length*0.75)) return false;
+  if(f.f!=="dyn"&&maint!==3) return false;
+  return !(o.safety||[]).some(e=>e.moment==="Figure "+(i+1));
+}
+function computeProgress(){
+  const ov=(G.progress&&G.progress.ov)||{};
+  const inRoutine=t=>[G.current,...(G.sessions||[])].some(c=>(c&&c.slots||[]).some(s=>partsOf(s).some(p=>byId[p.fig].t===t)));
+  const vals={},encOk={};PATH_T.forEach(t=>vals[t]=[]);
+  (obsAbout||G.obsAboutCache||[]).forEach(o=>{
+    const R=o.routine||{}, n=R.n||lessonN(), slots=(R.slots||[]).slice(0,n);
+    const full=n>0&&slots.filter(s=>partsOf(s).length).length>=n;
+    const transOk=(o.marks||{})["col|G|trans"]===3, noErr=!(o.safety||[]).length;
+    slots.forEach((s,i)=>{const parts=partsOf(s);parts.forEach((p,j)=>{
+      const f=byId[p.fig]; if(!PATH_T.includes(f.t)||!partValid(o,i,j,f)) return;
+      vals[f.t].push({o:o.id,f:f.id,lv:f.lv,form:f.f,multi:parts.length>1});
+      if(full&&transOk&&noErr) encOk[f.t]=true;
+    })});
+  });
+  const res={};
+  PATH_T.forEach(t=>{
+    const v=vals[t], nObs=new Set(v.map(x=>x.o)).size;
+    const auto={dec:inRoutine(t)||v.length>0,stab:nObs>=2,cpx:v.some(x=>x.lv>"A"||x.form!=="duo"||x.multi),ench:!!encOk[t]};
+    const st={},forced={};let ok=true;
+    for(const [k] of PALIERS){const o=ov[t+"|"+k];forced[k]=o===true||o===false?o:null;ok=ok&&(o===true?true:o===false?false:auto[k]);st[k]=ok}
+    res[t]={st,auto,forced,nObs,figs:[...new Set(v.map(x=>x.f))],unlock:!!ov[t+"|unlock"]};
+  });
+  const belts=PATH_T.filter(t=>res[t].st.stab), black=PATH_T.every(t=>res[t].st.ench);
+  return {res,belts,black};
+}
+function lockedThemes(){
+  const s=new Set();
+  if(!G||!classSettings().progressif||(G.online&&G.online.teacherKey)) return s;
+  const {res}=computeProgress();
+  PATH_T.forEach((t,k)=>{if(k>0&&!res[PATH_T[k-1]].st.stab&&!res[t].unlock) s.add(t)});
+  return s;
+}
+function updateProgress(){
+  if(!G) return;
+  const {res,belts,black}=computeProgress();
+  const done={};PATH_T.forEach(t=>done[t]=res[t].st);
+  const sig=JSON.stringify(done)+black;
+  G.progress=G.progress||{};
+  const old=G.progress.summary;
+  if(!old||old.sig!==sig){
+    const before=old?old.belts||[]:[];
+    G.progress.summary={sig,done,belts,black,at:new Date().toISOString()};
+    persist();
+    const gained=belts.filter(t=>!before.includes(t));
+    if(old&&gained.length) toast("🥋 Ceinture "+BELTS[gained[0]][0]+" obtenue : "+T_SHORT[gained[0]]+" stabilisée !");
+  }
+  renderBeltChip();
+  if(curTab==="path") renderPath();
+}
+function beltHTML(t,on){const [n,c]=BELTS[t];return `<span class="belt ${on?"on":""}" style="--b:${c}" title="Ceinture ${n} : ${T_SHORT[t]}"><i></i>${T_SHORT[t]}</span>`}
+function renderBeltChip(){
+  const el=document.getElementById("beltChip"); if(!el||!G) return;
+  const s=G.progress&&G.progress.summary; const b=(s&&s.belts)||[];
+  el.innerHTML=s&&s.black?`<span class="miniBelt" style="--b:#111"></span>`:PATH_T.map(t=>`<span class="miniBelt ${b.includes(t)?"on":""}" style="--b:${BELTS[t][1]}"></span>`).join("");
+  el.title="Ceintures : "+(b.length?b.map(t=>BELTS[t][0]).join(", "):"aucune pour l'instant");
+}
+function renderPath(){
+  const root=document.getElementById("tab-path"); if(!root||!G) return;
+  const {res,belts,black}=computeProgress();
+  const teacher=!!(G.online&&G.online.teacherKey), cs=classSettings(), locked=lockedThemes();
+  let h=`<div class="lessonHead"><h2>Mon parcours</h2>${cs.theme&&T_LABEL[cs.theme]?`<span class="pill">🎯 Thématique du jour : ${esc(T_SHORT[cs.theme])}</span>`:""}
+      <button class="btn alt small" id="pathRefresh" style="margin-left:auto">↻ Actualiser</button></div>
+    <div class="beltRow">${PATH_T.map(t=>beltHTML(t,belts.includes(t))).join("")}<span class="belt ${black?"on":""}" style="--b:#111"><i></i>Noire : enchaînement complet</span></div>
+    ${teacher?`<p class="note">Mode enseignant : touche une case pour la valider (✓), la refuser (✗) ou revenir au calcul automatique. « 🔓 » débloque une position.</p>`:""}
+    <div class="pathGrid"><div class="ph0"></div>${PALIERS.map(([k,l])=>`<div class="phd">${l}</div>`).join("")}`;
+  PATH_T.forEach(t=>{
+    const r=res[t]; const firstTodo=PALIERS.findIndex(([k])=>!r.st[k]);
+    h+=`<div class="prow"><span class="beltDot" style="--b:${BELTS[t][1]}"></span><b>${T_SHORT[t]}</b>${locked.has(t)?` <span class="lock">🔒</span>`:""}
+      ${teacher&&PATH_T.indexOf(t)>0?`<button class="mini" data-unlock="${t}" title="Débloquer cette position">${r.unlock?"🔓 débloquée":"🔓"}</button>`:""}</div>`;
+    PALIERS.forEach(([k,l],idx)=>{
+      const done=r.st[k], cur=idx===firstTodo&&!locked.has(t);
+      const hint=k==="stab"?`${Math.min(r.nObs,2)}/2 observations réussies`:k==="dec"?(done?"pyramide choisie":"à choisir"):k==="cpx"?(done?"réussi":"B+, trio/quatuor ou simultané"):(done?"réussi":"enchaînement complet sans erreur");
+      const f=r.forced[k];
+      h+=`<button class="pcell ${done?"done":cur?"cur":"todo"} ${locked.has(t)?"locked":""}" ${teacher?`data-ov="${t}|${k}"`:"disabled"}>
+        <span class="pst">${done?"✓":cur?"●":"○"}</span><small>${hint}</small>${f!==null?`<em>${f?"validé":"refusé"} par l'enseignant</em>`:""}</button>`;
+    });
+  });
+  h+=`</div>`;
+  const figs=PATH_T.flatMap(t=>res[t].figs.map(id=>byId[id]));
+  if(figs.length) h+=`<div class="panel"><h2 style="font-size:1.2rem">Pyramides réussies en observation</h2><div class="chips2">${figs.map(f=>`<span class="lk">${esc(f.code)} ${esc(T_SHORT[f.t])}</span>`).join("")}</div></div>`;
+  h+=`<div class="panel"><h2 style="font-size:1.2rem">Comment valider une étape ?</h2>
+    <ol class="rules">${PALIERS.map(([k,l,d])=>`<li><b>${l}</b> : ${d}</li>`).join("")}</ol>
+    <p class="muted" style="margin:6px 0 0">Une pyramide est <b>réussie</b> quand un groupe observateur a noté au moins 3 critères, <b>aucun ✗</b>, au moins 3 sur 4 en ✓, le <b>maintien ✓</b>, et <b>aucune erreur de sécurité</b> sur cette figure.
+    ${cs.progressif?` Les positions se débloquent dans l'ordre : il faut <b>stabiliser</b> une position (sa ceinture) pour choisir des pyramides de la suivante.`:""}</p></div>`;
+  root.innerHTML=h;
+  root.querySelector("#pathRefresh").onclick=()=>{toast("Actualisation…");loadObsAbout()};
+  root.querySelectorAll("[data-ov]").forEach(b=>b.onclick=()=>{
+    G.progress=G.progress||{};const ov=G.progress.ov=G.progress.ov||{};const k=b.dataset.ov;
+    ov[k]=ov[k]===undefined?true:ov[k]===true?false:undefined; if(ov[k]===undefined) delete ov[k];
+    persist();updateProgress();renderPath();
+  });
+  root.querySelectorAll("[data-unlock]").forEach(b=>b.onclick=()=>{
+    G.progress=G.progress||{};const ov=G.progress.ov=G.progress.ov||{};const k=b.dataset.unlock+"|unlock";
+    if(ov[k]) delete ov[k]; else ov[k]=true; persist();updateProgress();renderPath();
+  });
 }
 
 /* ---------- bonus ---------- */
@@ -1695,6 +1876,17 @@ function profPanel(){
       ${hashN?`<p class="note">Le lien ouvert impose actuellement ${hashN[1]} figures (#pyramides-${hashN[1]}).</p>`:""}
       <p class="muted" style="font-size:.85rem;margin-bottom:0">Le réglage est enregistré en ligne pour la classe : les tablettes des élèves le reçoivent en quelques instants (et au plus tard à la prochaine ouverture).</p>
     </div>
+    <div class="panel"><h2 style="font-size:1.3rem">🥋 Progression</h2>
+      <p class="muted" style="margin-top:0">Séquence par position du voltigeur : horizontale → équerre → position redressée → ATR. Chaque groupe suit ses étapes dans l'onglet « Mon parcours ».</p>
+      <div class="row" style="gap:12px;align-items:flex-end">
+        <div class="field" style="margin:0;min-width:140px"><label>Classe</label><select class="inp" id="pClasse">${classes().map(c=>`<option ${norm(c)===norm(lessonClass)?"selected":""}>${esc(c)}</option>`).join("")}</select></div>
+        <div class="field" style="margin:0;min-width:200px"><label>Thématique du jour</label><select class="inp" id="pTheme"><option value="">— aucune —</option>${PATH_T.map(t=>`<option value="${t}">${esc(T_LABEL[t])}</option>`).join("")}</select></div>
+        <label class="chk"><input type="checkbox" id="pProg"> Déblocage progressif</label>
+      </div>
+      <p class="muted" style="font-size:.85rem">Déblocage progressif : un groupe ne peut choisir les pyramides d'une position qu'après avoir <b>stabilisé</b> la précédente (ceinture). Vous pouvez débloquer un groupe dans son onglet « Mon parcours » (ouvert avec votre mot de passe).</p>
+      <div class="row"><button class="btn sun small" id="pApply">Enregistrer pour la classe</button><button class="btn small" id="pBelts">Voir les ceintures de la classe</button></div>
+      <div id="pOut" style="margin-top:10px"></div>
+    </div>
     <div class="panel"><h2 style="font-size:1.3rem">☁ En ligne</h2>
       <div class="field"><label>Adresse du script Google (se termine par /exec)</label><input class="inp" id="apiIn" value="${esc(prof.api||API_DEFAULT)}" placeholder="https://script.google.com/macros/s/…/exec"></div>
       <div class="row"><button class="btn alt small" id="apiTest">Tester la connexion</button></div>
@@ -1725,6 +1917,33 @@ function profPanel(){
   m.querySelector("#nMinus").onclick=()=>{n=Math.max(1,n-1);out.textContent=n};
   m.querySelector("#tPwB").onclick=async()=>{const v=await epsPin({title:"🔒 Mot de passe enseignant",text:"Touche ABC pour les lettres.",min:1,letters:true});if(v===null)return;teacherPw=v;m.querySelector("#tPw").value=v;m.querySelector("#tPwS").textContent="●●●●"};
   m.querySelector("#nClasse").onchange=e=>{n=lessonN(e.target.value);out.textContent=n};
+  const pSync=()=>{const cs=classSettings(m.querySelector("#pClasse").value);m.querySelector("#pTheme").value=cs.theme||"";m.querySelector("#pProg").checked=!!cs.progressif};
+  pSync(); m.querySelector("#pClasse").onchange=pSync;
+  const tpw=()=>teacherPw||m.querySelector("#tPw").value;
+  m.querySelector("#pApply").onclick=async()=>{
+    const classe=m.querySelector("#pClasse").value, settings={theme:m.querySelector("#pTheme").value||"",progressif:m.querySelector("#pProg").checked};
+    if(!apiUrl()){toast("Il faut l'enregistrement en ligne pour régler toute la classe");return}
+    try{
+      await api("teacherSetClassSettings",{teacher:tpw(),classe,settings});
+      const sc=serverClasses.find(x=>norm(x.nom)===norm(classe)); if(sc) sc.reglages=settings; else serverClasses.push({nom:classe,reglages:settings});
+      toast(`${classe} : réglages de progression enregistrés ✓`); refreshClasses();
+      if(G){const t=settings.theme;if(t)vFilter.t=t;showTab(curTab)}
+    }catch(e){toast(/Action inconnue|introuvable/.test(e.message)?"Mettez d'abord à jour le script Google (nouvelle version)":e.message)}
+  };
+  m.querySelector("#pBelts").onclick=async()=>{
+    const classe=m.querySelector("#pClasse").value, out=m.querySelector("#pOut");
+    out.innerHTML=`<p class="muted">Chargement…</p>`;
+    try{
+      const r=await api("teacherProgress",{teacher:tpw(),classe});
+      const list=(r.groups||[]).sort((a,b)=>String(a.nom).localeCompare(String(b.nom),"fr"));
+      out.innerHTML=list.length?`<div class="gList"><table class="tObs"><thead><tr><th>Groupe</th>${PATH_T.map(t=>`<th>${esc(T_SHORT[t])}</th>`).join("")}<th>Noire</th></tr></thead><tbody>${list.map(g=>{
+        const s=g.progress&&g.progress.summary, d=(s&&s.done)||{};
+        const cell=t=>{const st=d[t]||{};const n=PALIERS.filter(([k])=>st[k]).length;return `<td><span class="belt ${st.stab?"on":""}" style="--b:${BELTS[t][1]}"><i></i>${n}/4</span></td>`};
+        return `<tr><td><b>${esc(g.nom)}</b><br><small class="muted">${esc(g.membres)}</small></td>${PATH_T.map(cell).join("")}<td>${s&&s.black?"🥋":"–"}</td></tr>`}).join("")}</tbody></table></div>
+        <p class="muted" style="font-size:.82rem">x/4 = étapes validées (Découvrir, Stabiliser, Complexifier, Enchaîner). Couleur pleine = ceinture obtenue. Mis à jour à chaque ouverture de l'appli par le groupe.</p>`
+        :`<p class="muted">Aucun groupe dans cette classe.</p>`;
+    }catch(e){out.innerHTML="";toast(/Action inconnue|introuvable/.test(e.message)?"Mettez d'abord à jour le script Google (nouvelle version)":e.message)}
+  };
   m.querySelector("#nApply").onclick=async()=>{
     const classe=m.querySelector("#nClasse").value;
     prof.n=n;store.set(K_PROF,prof);

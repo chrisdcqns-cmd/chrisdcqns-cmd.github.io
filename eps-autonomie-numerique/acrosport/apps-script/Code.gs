@@ -18,7 +18,7 @@ const TAILLE_MORCEAU = 45000; // une cellule Google Sheets accepte 50 000 caract
 
 const T_GROUPES = { nom: 'Groupes', cols: ['cle', 'classe', 'nom', 'membres', 'empreinte', 'sel', 'mise_a_jour', 'nb_seances'] };
 const T_ELEVES = { nom: 'Eleves', cols: ['classe_eps', 'nom', 'prenom', 'classe'] };
-const T_CLASSES = { nom: 'Classes', cols: ['classe', 'code', 'pyramides'] };
+const T_CLASSES = { nom: 'Classes', cols: ['classe', 'code', 'pyramides', 'reglages'] };
 const T_OBS = { nom: 'Observations', cols: ['id', 'date', 'classe', 'groupe_observateur', 'observateurs', 'groupe_observe', 'reussis', 'criteres_notes', 'erreurs_securite', 'detail_securite'] };
 
 function doGet() {
@@ -44,12 +44,15 @@ function traiter_(req) {
 
   // ---- classes : noms seulement (public) ----
   if (a === 'listClasses') {
-    const codes = {}, pyr = {};
-    lignes_(T_CLASSES).forEach(r => { codes[norm_(r.v[0])] = String(r.v[1] || ''); pyr[norm_(r.v[0])] = Number(r.v[2]) || 0; });
+    const codes = {}, pyr = {}, regl = {};
+    lignes_(T_CLASSES).forEach(r => {
+      codes[norm_(r.v[0])] = String(r.v[1] || ''); pyr[norm_(r.v[0])] = Number(r.v[2]) || 0;
+      try { regl[norm_(r.v[0])] = r.v[3] ? JSON.parse(r.v[3]) : {}; } catch (e) { regl[norm_(r.v[0])] = {}; }
+    });
     const noms = {};
     lignes_(T_CLASSES).forEach(r => noms[norm_(r.v[0])] = r.v[0]);
     lignes_(T_ELEVES).forEach(r => { if (!noms[norm_(r.v[0])]) noms[norm_(r.v[0])] = r.v[0]; });
-    return { ok: true, classes: Object.keys(noms).map(k => ({ nom: noms[k], protege: !!codes[k], pyramides: pyr[k] || 0 })) };
+    return { ok: true, classes: Object.keys(noms).map(k => ({ nom: noms[k], protege: !!codes[k], pyramides: pyr[k] || 0, reglages: regl[k] || {} })) };
   }
 
   // ---- liste des élèves d'une classe (code de classe si défini) ----
@@ -146,6 +149,28 @@ function traiter_(req) {
       else fc.getRange(fc.getLastRow() + 1, 1, 1, 3).setValues([[String(req.classe).trim(), '', n]]);
       return { ok: true, n: n };
     });
+  }
+  // réglages de progression d'une classe : thématique du jour, déblocage progressif
+  if (a === 'teacherSetClassSettings') {
+    return verrou_(function () {
+      const c = norm_(req.classe);
+      if (!c) throw new Error('Nom de classe manquant');
+      const fc = feuille_(T_CLASSES);
+      fc.getRange(1, 3, 1, 2).setValues([['pyramides', 'reglages']]);
+      const txt = JSON.stringify(req.settings || {});
+      const lc = lignes_(T_CLASSES).find(r => norm_(r.v[0]) === c);
+      if (lc) fc.getRange(lc.row, 4).setValue(txt);
+      else fc.getRange(fc.getLastRow() + 1, 1, 1, 4).setValues([[String(req.classe).trim(), '', '', txt]]);
+      return { ok: true };
+    });
+  }
+  // ceintures / étapes de tous les groupes (calculées par l'appli de chaque groupe)
+  if (a === 'teacherProgress') {
+    const c = norm_(req.classe);
+    return { ok: true, groups: lignes_(T_GROUPES).filter(r => !c || norm_(r.v[1]) === c).map(r => {
+      const d = lireDonnees_(T_GROUPES, r.row) || {};
+      return { key: r.v[0], classe: r.v[1], nom: r.v[2], membres: r.v[3], maj: r.v[6], progress: d.progress || null };
+    }) };
   }
   if (a === 'teacherObservations') {
     return { ok: true, observations: lignes_(T_OBS).map(r => resumeObs_(r.v)) };
