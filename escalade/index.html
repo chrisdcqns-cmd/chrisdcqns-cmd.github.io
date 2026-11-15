@@ -197,6 +197,48 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac);box-
 @media(max-width:600px){main{padding:14px 12px 30px}.card{padding:16px}.names.big{grid-template-columns:1fr 1fr}.names{grid-template-columns:1fr 1fr}.chip{gap:8px}.chip i{width:36px;height:36px;font-size:16px}.gbar .b{font-size:16px}}
 .grid .b,.g9 .b,.g10 .b,.g11 .b,.vg .b{padding:0;min-width:0}
 @media(max-width:600px){.g11{grid-template-columns:repeat(4,1fr)}}
+
+/* --- accueil sur un seul écran --- */
+body[data-t=home] main{padding-top:12px;padding-bottom:0}
+.homeW{display:flex;flex-direction:column;gap:10px;height:calc(100dvh - var(--hh,64px) - 12px - env(safe-area-inset-bottom));padding-bottom:64px}
+.homeW .hline{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.homeW .hline:empty{display:none}.homeW .sea,.homeW .chcl{margin:0}
+.homeW .grpline{margin:0}
+.homeW .tiles{flex:1;min-height:0;grid-auto-rows:minmax(0,1fr);gap:12px}
+.homeW .tile{min-height:0;padding:16px 20px}
+.homeW .tile b{font-size:clamp(19px,min(3.4vw,4.2vh),32px)}
+.homeW .tile span{font-size:clamp(13px,1.9vh,16px)}
+@media(max-width:600px){.homeW .tiles{grid-template-columns:1fr 1fr;gap:10px}.homeW .tile{padding:12px 14px;border-radius:18px}.homeW .tile::after{width:90px;height:80px;right:-20px;top:-24px}.homeW .tile::before{display:none}}
+@media(max-height:620px){.homeW .tile span{display:none}}
+/* --- vignettes vidéo --- */
+.vigs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin:12px 0 18px}
+.vig{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:#fff;border:0;border-radius:18px;padding:0 0 14px;overflow:hidden;font:inherit;color:var(--ink);cursor:pointer;box-shadow:0 1px 0 #d5dee2,0 8px 20px -14px #1d2a3166}
+.vig .vth{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:16/10;background:linear-gradient(135deg,#1d2a31,#0e7c7b);margin-bottom:10px}
+.vig .vth video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0;max-height:none;background:none;pointer-events:none}
+.vig .vth em{position:relative;width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:24px;color:var(--ink);background:var(--hi);box-shadow:0 4px 14px #0006}
+.vig b{font-size:20px;padding:0 16px;line-height:1.2}.vig small{padding:0 16px;font-size:15px;color:var(--mut)}
+.vig.nov .vth{background:repeating-linear-gradient(135deg,#dfe7ea 0 12px,#eef2f4 12px 24px)}.vig.nov em{background:#c9d3d7;box-shadow:none}
+.vigs.ed{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}.vige{border:2px dashed var(--ln);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.vmod{position:fixed;inset:0;z-index:60;background:#0d1418e6;display:grid;place-items:center;padding:12px}
+.vbox{width:min(1100px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px}
+.vh{display:flex;align-items:center;gap:12px;color:#fff}.vh b{flex:1;font-size:20px}.vh small{color:#c3d0d6;font-weight:400}
+.vbox video{width:100%;max-height:calc(100dvh - 110px);border-radius:14px;background:#000}
+/* --- leçons --- */
+.litem{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#f6f9fa;border:0;border-radius:14px;padding:10px 14px;margin:8px 0;font:inherit;color:var(--ink);cursor:pointer}
+.litem:hover{background:#edf3f5}
+.cal{flex:none;width:56px;height:56px;border-radius:12px;background:#fff;border:2px solid var(--ln);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.cal b{font-size:22px}.cal small{font-size:13px;color:var(--mut);margin-top:2px}
+.li{flex:1;display:flex;flex-direction:column}.li small{color:var(--mut);font-size:15px}
+.arr{flex:none;font-weight:800;color:var(--ac2)}
+.lchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}.lchips span{background:#eef3f5;border-radius:999px;padding:4px 12px;font-size:14px;font-weight:700}
+.lchips .rqc{background:#fde8e8;color:var(--bad)}.lchips .obc{background:#fff3cd}.lchips .okc{background:#e6f4ea;color:var(--ok)}
+.card.today{border-left:6px solid var(--hi)}
+.card .ch h3{margin:0}
+/* --- bilan --- */
+.defi{border-left:6px solid var(--hi)}
+.dr.lr{grid-template-columns:110px 1fr}
+details.more{margin-top:14px}details.more summary{cursor:pointer;font-weight:800;color:var(--ac2);padding:8px 0}
+details.more .names{margin-top:8px}
+.sum .chip.mini{border:0;background:none;padding-left:0}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
@@ -221,18 +263,23 @@ const COL={Rouge:'#d62828',Bleu:'#1d4ed8',Vert:'#2e9e4f',Jaune:'#f2c230',Orange:
 const DEF={
 sec:[{t:'h',v:'Règles de sécurité'},{t:'s',v:'Avant de grimper'},{t:'p',v:'• Pas de bijoux, cheveux attachés, chaussons ajustés.\n• Zone de chute dégagée, sol sécurisé.\n• Un seul grimpeur par voie.'},{t:'s',v:'Pendant la grimpe (moulinette)'},{t:'p',v:'• L\'assureur reste attentif, regard sur le grimpeur.\n• Corde toujours tendue (sans tracter le grimpeur), main de freinage jamais lâchée.\n• Communication claire grimpeur / assureur.'},{t:'s',v:'Vidéos'},{t:'p',v:'Utilisez « Modifier » pour ajouter une vidéo de démonstration.'}],
 ech:[{t:'h',v:'Échauffement'},{t:'s',v:'Articulaire'},{t:'p',v:'Poignets, épaules, nuque, hanches, chevilles.'},{t:'s',v:'Cardio'},{t:'p',v:'Course légère, montées de genoux, talons-fesses.'},{t:'s',v:'Spécifique'},{t:'p',v:'Traversées basses, voie facile sans dégaine, pose de pieds précise.'}],
-enc:[{t:'h',v:"S'encorder"},{t:'s',v:'Étapes'},{t:'p',v:'1. Baudrier ajusté, boucles doublées.\n2. Nœud de huit tressé, longueur de queue ≥ 10 cm.\n3. Assureur : frein, mousqueton à vis verrouillé.\n4. Vérification mutuelle : nœud, baudrier, système d\'assurage, nœud en bout de corde.'},{t:'p',v:'Ajoutez une vidéo du nœud avec « Modifier ».'}],
+enc:[{t:'h',v:"S'encorder"},{t:'s',v:'Étapes'},{t:'p',v:'1. Baudrier ajusté, boucles doublées.\n2. Nœud de huit tressé, longueur de queue ≥ 10 cm.\n3. Assureur : frein, mousqueton à vis verrouillé.\n4. Vérification mutuelle : nœud, baudrier, système d\'assurage, nœud en bout de corde.'},{t:'vgs',items:[{ti:'Nœud de 8 rapide',sub:'(comme nous l\'avons vu)',v:''},{ti:'Nœud de 8',sub:'(version plus lente)',v:''}]}],
+ass:[{t:'h',v:'Assurage'},{t:'vgs',items:[{ti:'Assurer en moulinette',sub:'',v:''}]},{t:'p',v:'Regarde la vidéo, puis entraîne-toi avec ton contre-assureur avant de grimper.'}],
 the:[{t:'h',v:'Thématiques'},{t:'s',v:'Pistes de travail'},{t:'p',v:'• Placement des pieds\n• Lecture de voie\n• Recherche de PME (positions de moindre effort) pour récupérer\n• Confiance dans le matériel'}]};
 /* dispenses communes (page d'accueil EPS, eps-home.js) */
 const dzE=(c,n)=>{try{const d=window.EPSD&&EPSD.find(c||'',n);return d?` <small style="display:block;font-size:13px;font-weight:700;color:#C0392B">🩹 ${esc(EPSD.label(d))}</small>`:''}catch(e){return ''}};
 window.epsIsTeacher=()=>!!S.T;
+addEventListener('resize',()=>{try{document.documentElement.style.setProperty('--hh',$('header').offsetHeight+($('#nav').style.display=='none'?0:$('#nav').offsetHeight)+'px')}catch(e){}});
 addEventListener('epsd-change',()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;try{render()}catch(e){}});
 let C=LS('c',DEF),W=LS('w',clone(WDEF)),R=LS('r',[]),CF=LS('cf',{tab:'Tablette 1'}),CL=LS('cl',[]);
 /* dépôt public : aucun nom d'élève. Les classes s'importent sur la tablette (Leçon du jour → + Nouvelle classe). */
 const CL0=null;
+/* mise à jour des tablettes déjà utilisées : vignettes nœud de 8 et catégorie Assurage */
+if(!CF.lec){CF.lec=[];if(CF.sea&&CF.sea.d){CF.sea.id=CF.sea.id||Math.random().toString(36).slice(2,9);CF.lec.push(JSON.parse(JSON.stringify(CF.sea)))}SV('cf',CF)}
+if(!CF.m2){if(Array.isArray(C.enc)){C.enc=C.enc.filter(b=>!(b.t=='p'&&b.v=='Ajoutez une vidéo du nœud avec « Modifier ».'));if(!C.enc.some(b=>b.t=='vgs'))C.enc.push(clone(DEF.enc.find(b=>b.t=='vgs')))}if(!C.ass)C.ass=clone(DEF.ass);CF.m2=1;SV('c',C);SV('cf',CF)}
 C.the?.forEach(b=>{if(b.t=='p'&&typeof b.v=='string')b.v=b.v.replace('• Gestion de la chute (PME)','• Recherche de PME (positions de moindre effort) pour récupérer')});
 let S={t:'home',s:'ech',e:false,T:false,cv:0,ce:null,free:false},F={},QR=[];
-const TABS=[['home','⌂ Accueil'],['prep','Se préparer'],['cot','Cotation'],['gr','Renseigner une grimpe'],['mr','Mes résultats'],['the','Thématiques'],['sec','Sécurité'],['res','Résultats, QR codes et Google Sheets']];
+const TABS=[['home','⌂ Accueil'],['prep','Se préparer et assurer'],['cot','Cotation'],['gr','Renseigner une grimpe'],['mr','Mes résultats'],['the','Thématiques'],['sec','Sécurité'],['res','Résultats, QR codes et Google Sheets']];
 const CRIT=[['m','Prises de mains'],['p','Prises de pieds'],['cp','Changements de pieds effectués'],['h','Hauteur : dernière dégaine dépassée'],['a',"S'est assis dans le baudrier ?"],['pm','PME réalisée ? (Position de Moindre Effort)'],['pof','Utilisation sac à POF'],['k','Commentaire']];
 const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
 const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
@@ -249,7 +296,7 @@ function clsScr(){const cur=CF.sea?.cl||'';
  <div class="rbtns cl">${CL.map(c=>`<button class="tile ${cur==c.id?'cur':''}" style="background:#2e7d4f" onclick="pickCl('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)</span></button>`).join('')}
  ${CL.length?'':`<button class="tile" style="background:#5b6b75" onclick="pickCl('')"><b>Sans liste</b><span>je tape mon prénom</span></button>`}</div>
  <p style="margin-top:18px"><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`}
-function pickCl(id){if(CF.sea){CF.sea.cl=id;save()}fresh();const k=cls();S.gs=grp();S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
+function pickCl(id){activate(id);fresh();const k=cls();S.gs=grp();S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
 /* ---------- groupe ---------- */
 function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
  return `<div class="role grpS"><h2>Forme ton groupe</h2><p class="mut">${esc(k.nom)} · touche les prénoms des élèves qui grimpent avec toi (au moins 3 : grimpeur, assureur, contre-assureur).</p>
@@ -257,7 +304,7 @@ function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
  <div class="gbar"><button class="b g" onclick="S.t='pickcl';render()">← Changer de classe</button><button class="b" ${n<3?'disabled':''} onclick="okG()">${n<3?`Encore ${3-n} prénom${3-n>1?'s':''} à choisir`:`Valider mon groupe (${n})`}</button></div></div>`}
 function tgG(n){const s=new Set(S.gs||[]);s.has(n)?s.delete(n):s.add(n);S.gs=[...s];const y=scrollY;render();scrollTo(0,y)}
 function okG(){const k=cls();if(!k||(S.gs||[]).length<3)return;CF.grp={cl:k.id,d:today(),el:[...S.gs].sort((a,b)=>a.localeCompare(b,'fr'))};save();fresh();S.t='home';render();scrollTo(0,0)}
-function eleve(){S.T=false;if(!seaOK()){S.t='set';return render()}S.t=CL.length?'pickcl':'home';render()}
+function eleve(){S.T=false;if(CL.length){S.t='pickcl';return render()}if(!seaOK()){S.t='set';return render()}S.t='home';render()}
 function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK()?`<span class="sea">${esc(cls().nom)}</span>`:''}<p class="mut">Qui utilise la tablette ?</p>
  <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="eleve()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
  <button class="tile tprof" style="background:#16252d" onclick="unlock(seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
@@ -265,16 +312,18 @@ function render(){
  if(S.t=='role'||S.t=='pickcl'||S.t=='grp'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():S.t=='grp'?grpScr():clsScr();return}
  if(!S.T){S.e=false;if(S.t=='res'||(S.t=='set'&&seaOK()))S.t='home'}
  if(S.t!='cot')S.cm='';
+ if(S.t!='set'){S.le=null;S.lv=null}
  if(S.t!='mr'){S.mr='';S.ml=''}
  $('#tm').innerHTML=S.T?(['gr','res','home','set'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="S.T=false;S.t='role';render()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
  $('#nav').style.display=['home','set'].includes(S.t)?'none':'';
  $('#nav').innerHTML=TABS.filter(([k])=>k!='res'||S.T).map(([k,n])=>`<button class="${S.t==k?'on':''}" onclick="S.t='${k}';render()">${n}</button>`).join('');
+ document.body.dataset.t=S.t;document.documentElement.style.setProperty('--hh',$('header').offsetHeight+($('#nav').style.display=='none'?0:$('#nav').offsetHeight)+'px');
  const m=$('#m');
  if(S.t=='home')m.innerHTML=home();
  else if(S.t=='set')m.innerHTML=S.T?setup():`<div class="card lock"><h2>Escalade EPS</h2><p class="mut">Aucune leçon n'est commencée aujourd'hui sur cette tablette.</p><p><button class="b big" onclick="unlock('set')">🔒 Préparer la leçon du jour</button></p><p class="mut">Réservé à l'enseignant (code demandé).</p><p><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`;
  else if(S.t=='sec')m.innerHTML=content('sec');
  else if(S.t=='the')m.innerHTML=(S.T?ficheForm():'')+content('the');
- else if(S.t=='prep')m.innerHTML=`<div class="sub">${[['ech','Échauffement'],['enc',"S'encorder"]].map(([k,n])=>`<button class="b ${S.s==k?'':'g'}" onclick="S.s='${k}';render()">${n}</button>`).join('')}</div>`+content(S.s);
+ else if(S.t=='prep')m.innerHTML=`<div class="sub">${[['ech','Échauffement'],['enc',"S'encorder"],['ass','Assurage']].map(([k,n])=>`<button class="b ${S.s==k?'':'g'}" onclick="S.s='${k}';render()">${n}</button>`).join('')}</div>`+content(S.s);
  else if(S.t=='gr')m.innerHTML=grimpe();
  else if(S.t=='cot')m.innerHTML=cotation();
  else if(S.t=='mr')m.innerHTML=mesRes();
@@ -282,9 +331,9 @@ function render(){
  loadVideos();
 }
 /* ---------- accueil ---------- */
-const TILES=[['prep','Se préparer','#0e7c7b','','Échauffement, s\'encorder'],['cot','Cotation','#6a3fb5','','Je cherche une voie'],['gr','Renseigner une grimpe','#d9480f','','Corde, voie, cordée'],['mr','Mes résultats','#2b8a3e','','Mes leçons, mes progrès'],['the','Thématiques','#1c5d99','wide','Pistes de travail'],['sec','Sécurité','#c92a2a','wide','Règles et vérifications']];
-function home(){S.e=false;const t=S.T?[['set','📋 Leçon du jour et classes','#16252d','wide tprof'],...TILES,['res','📊 Résultats, QR codes et Google Sheets','#16252d','wide tprof']]:TILES;
- return `<h2 style="margin-top:4px">Escalade EPS</h2>${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.t='grp';render()">Modifier</button></div>`:''}<div class="tiles">${t.map(([k,n,c,x,d])=>`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()"><b>${n}</b>${d?`<span>${d}</span>`:''}</button>`).join('')}</div>`}
+const TILES=[['prep','Se préparer et assurer','#0e7c7b','','Échauffement, nœud de 8, assurage'],['cot','Cotation','#6a3fb5','','Je cherche une voie'],['gr','Renseigner une grimpe','#d9480f','','Corde, voie, cordée'],['mr','Mes résultats','#2b8a3e','','Mes leçons, mes progrès'],['the','Thématiques','#1c5d99','wide','Pistes de travail'],['sec','Sécurité','#c92a2a','wide','Règles et vérifications']];
+function home(){S.e=false;const t=S.T?[['set','📋 Leçons et classes','#16252d','wide tprof'],...TILES,['res','📊 Résultats, QR codes et Google Sheets','#16252d','wide tprof']]:TILES;
+ return `<div class="homeW"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}</div>${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.t='grp';render()">Modifier</button></div>`:''}<div class="tiles">${t.map(([k,n,c,x,d])=>`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()"><b>${n}</b>${d?`<span>${d}</span>`:''}</button>`).join('')}</div></div>`}
 /* ---------- leçon du jour / classes ---------- */
 function setup(){
  if(S.ce!=null){const c=CL.find(x=>x.id==S.ce)||{nom:'',el:[]};
@@ -297,23 +346,74 @@ function setup(){
   <small>Excel (.xlsx) ou CSV : colonnes « Prénom » et « Nom », ou « Élève », ou simplement les noms dans la première colonne. Vous pouvez corriger la liste ici avant d'enregistrer.</small>
   <div class="row" style="margin-top:14px"><button class="b g" onclick="S.ce=null;render()">Annuler</button><button class="b" onclick="saveCls()">Enregistrer la classe</button></div>
   ${S.ce!='new'?`<p><button class="b d" onclick="delCls()">Supprimer cette classe</button></p>`:''}</div>`}
- const sel=CF.sel||'',cr=CF.cr||ALL;
- return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.ce=null;S.t='home';render();scrollTo(0,0)">← Retour</button></p><h2 style="margin-top:4px">Leçon du jour</h2>
- <div class="card"><h3 style="margin-top:0">1. Classe</h3>
+ if(S.le)return lecEdit();
+ if(S.lv)return lecView();
+ const sel=CF.sel||'',k=CL.find(c=>c.id==sel),t=today(),Lt=lecFor(sel,t),nomC=k?k.nom:'';
+ const fut=LEC().filter(l=>l.cl==sel&&l.d>t).sort((a,b)=>a.d.localeCompare(b.d));
+ const pastD=[...new Set([...LEC().filter(l=>l.cl==sel&&l.d<t).map(l=>l.d),...R.filter(r=>(r.cl||'')==nomC).map(r=>String(r.ts).slice(0,10)).filter(d=>d<t)])].sort().reverse();
+ const nT=recOf(nomC,t);
+ return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.ce=null;S.t='home';render();scrollTo(0,0)">← Retour</button></p><h2 style="margin-top:4px">Leçons et classes</h2>
+ <div class="card"><h3 style="margin-top:0">Classe</h3>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'} clsb" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}<small>${c.el.length} élève(s)</small></button>`).join('')}
  <button class="b ${sel?'g':'on'} clsb" onclick="CF.sel='';save();render()">Sans liste<small>l'élève tape son prénom</small></button></div>
- <div class="tb">${CL.some(c=>c.id==sel)?`<button class="b g" onclick="S.ce='${sel}';render()">Modifier la liste</button>`:''}<button class="b g" onclick="S.ce='new';render()">+ Nouvelle classe</button></div></div>
- <div class="card"><h3 style="margin-top:0">2. Éléments travaillés aujourd'hui</h3><p class="mut">Seuls les éléments cochés seront proposés aux élèves pour renseigner leur grimpe.</p>
- <p class="mut" style="margin-top:0">« Obligatoire » : l'élève ne peut pas enregistrer sa grimpe sans renseigner cet élément.</p>
- ${CRIT.map(([k,n])=>{const c=cr.includes(k),q=c&&(CF.req||[]).includes(k);return `<div class="ck"><label class="ckl"><input type="checkbox" ${c?'checked':''} onchange="tgCr('${k}',this.checked)">${n}</label><button class="rq ${q?'on':''}" ${c?'':'disabled'} onclick="tgReq('${k}')">${q?'★ Obligatoire':'Facultatif'}</button></div>`}).join('')}
- <div class="tb"><button class="b g" onclick="CF.cr=[...ALL];save();render()">Tout cocher</button><button class="b g" onclick="CF.cr=[];save();render()">Tout décocher</button></div></div>
- <div class="card"><h3 style="margin-top:0">3. Objectif du jour</h3><p class="mut">Nombre minimum de voies à grimper par élève pendant la leçon (0 = pas d'objectif).</p>
- <div class="step"><button class="b g" onclick="CF.min=Math.max(0,(CF.min||0)-1);save();render()">−</button><output>${CF.min||0}</output><button class="b" onclick="CF.min=Math.min(30,(CF.min||0)+1);save();render()">+</button><span>voie(s) minimum</span></div></div>
- <p><button class="b" style="width:100%;min-height:62px;font-size:21px" onclick="start()">${seaOK()?'Mettre à jour la leçon ✓':'Commencer la leçon →'}</button></p>`}
-function tgCr(k,v){const s=new Set(CF.cr||ALL);v?s.add(k):s.delete(k);CF.cr=ALL.filter(x=>s.has(x));save();render()}
-function tgReq(k){const s=new Set(CF.req||[]);s.has(k)?s.delete(k):s.add(k);CF.req=ALL.filter(x=>s.has(x));save();render()}
-function start(){const cr=CF.cr||ALL;if(!cr.length)return say('Cochez au moins un élément travaillé.');
- if(CF.sel&&!CL.some(c=>c.id==CF.sel))CF.sel='';const was=seaOK();CF.sea={d:today(),cl:CF.sel||'',cr:[...cr],req:(CF.req||[]).filter(k=>cr.includes(k)),min:CF.min||0};save();fresh();S.T=false;S.t='home';render();say(was?'Leçon mise à jour.':'Leçon commencée. La tablette est prête pour les élèves.');scrollTo(0,0)}
+ <div class="tb">${k?`<button class="b g" onclick="S.ce='${sel}';render()">Modifier la liste</button>`:''}<button class="b g" onclick="S.ce='new';render()">+ Nouvelle classe</button></div></div>
+ <div class="card today"><h3 style="margin-top:0">Aujourd'hui · ${cap(fday(t,true))}</h3>
+ ${Lt?`<div class="lchips">${lecChips(Lt)}${nT.length?`<span class="okc">${pl(nT.length,'grimpe')} enregistrée${nT.length>1?'s':''}</span>`:''}</div>
+  <div class="tb"><button class="b g" onclick="editLe('${Lt.id}')">Modifier la leçon</button>${nT.length?`<button class="b g" onclick="S.lv='${t}';render();scrollTo(0,0)">Voir les résultats</button>`:''}<button class="b" onclick="startLe('${Lt.id}')">${CF.sea?.id==Lt.id&&seaOK()?'Reprendre la leçon':'Commencer la leçon'}</button></div>`
+ :`<p class="mut">Pas encore de leçon aujourd'hui pour ${k?esc(k.nom):'« Sans liste »'}.</p><div class="tb"><button class="b g" onclick="newLe('${t}')">Préparer la leçon du jour</button><button class="b" onclick="quickLe()">Commencer avec les réglages de la dernière leçon</button></div>`}</div>
+ <div class="card"><div class="ch"><h3 style="margin:0">Leçons à venir</h3><button class="b g" onclick="newLe()">+ Préparer une leçon</button></div>
+ ${fut.length?fut.map(l=>litem(l.d,`En préparation · ${lecChips(l,1)}`,'Préparer',`editLe('${l.id}')`)).join(''):'<p class="mut">Aucune leçon préparée. Choisis une date pour préparer la prochaine.</p>'}</div>
+ <div class="card"><h3 style="margin-top:0">Leçons précédentes</h3>
+ ${pastD.length?pastD.map(d=>{const L=recOf(nomC,d),el=new Set(L.map(r=>r.el));return litem(d,`${pl(L.length,'grimpe')} · ${pl(el.size,'élève')}`,'Consulter',`S.lv='${d}';render();scrollTo(0,0)`)}).join(''):'<p class="mut">Aucune leçon précédente pour cette classe.</p>'}</div>`}
+/* ---------- leçons par classe et par date ---------- */
+const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-3);
+const LEC=()=>CF.lec||(CF.lec=[]),lecFor=(cl,d)=>LEC().find(l=>(l.cl||'')==(cl||'')&&l.d==d);
+const recOf=(nom,d)=>R.filter(r=>(r.cl||'')==(nom||'')&&String(r.ts).startsWith(d));
+const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
+const SHORT={m:'Mains',p:'Pieds',cp:'Chgt pieds',h:'Hauteur',a:'Assis baudrier',pm:'PME',pof:'Sac à POF',k:'Commentaire'};
+const lecChips=(L,txt)=>txt?`${pl((L.cr||[]).length,'élément')}${L.min?' · objectif '+L.min+' voie'+(L.min>1?'s':''):''}`:(L.cr||[]).map(k=>`<span class="${(L.req||[]).includes(k)?'rqc':''}">${(L.req||[]).includes(k)?'★ ':''}${SHORT[k]}</span>`).join('')+`<span class="obc">${L.min?'Objectif : '+L.min+' voie'+(L.min>1?'s':''):"Pas d'objectif"}</span>`;
+const litem=(d,sub,act,on)=>{const x=new Date(d+'T12:00');return `<button class="litem" onclick="${on}"><span class="cal"><b>${x.getDate()}</b><small>${x.toLocaleDateString('fr-FR',{month:'short'})}</small></span><span class="li"><b>${cap(fday(d,true))}</b><small>${sub}</small></span><span class="arr">${act}</span></button>`};
+function lastCfg(cl,d=today()){const L=LEC().filter(l=>(l.cl||'')==(cl||'')&&l.d<=d).sort((a,b)=>b.d.localeCompare(a.d))[0]||LEC().filter(l=>(l.cl||'')==(cl||'')).sort((a,b)=>b.d.localeCompare(a.d))[0];
+ return L?{cr:[...L.cr],req:[...(L.req||[])],min:L.min||0}:{cr:[...ALL],req:[],min:0}}
+/* leçon du jour d'une classe : celle préparée, sinon créée avec les réglages de la dernière leçon */
+function activate(cl){let L=lecFor(cl,today());if(!L){L={id:uid(),cl:cl||'',d:today(),...lastCfg(cl)};LEC().push(L)}CF.sea=clone(L);save();return L}
+function newLe(d){const sel=CF.sel||'';if(!d){const t=new Date();t.setDate(t.getDate()+1);d=t.toLocaleDateString('fr-CA');while(lecFor(sel,d)){const x=new Date(d+'T12:00');x.setDate(x.getDate()+1);d=x.toLocaleDateString('fr-CA')}}
+ S.le={id:'',cl:sel,d,...lastCfg(sel,d)};render();scrollTo(0,0)}
+function editLe(id){const L=LEC().find(l=>l.id==id);if(L){S.le=clone(L);render();scrollTo(0,0)}}
+function quickLe(){const L=activate(CF.sel||'');startLe(L.id)}
+function startLe(id){const L=LEC().find(l=>l.id==id);if(!L)return;CF.sea=clone(L);CF.sel=L.cl;save();fresh();S.T=false;S.le=null;S.lv=null;S.t=L.cl&&cls()?.el.length?'grp':'home';S.gs=grp();render();scrollTo(0,0);say('Leçon commencée. La tablette est prête pour les élèves.')}
+function lecEdit(){const L=S.le,k=CL.find(c=>c.id==L.cl),isT=L.d==today();
+ return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.le=null;render();scrollTo(0,0)">← Retour aux leçons</button></p><h2 style="margin-top:4px">${L.id?'Modifier la leçon':'Préparer une leçon'}</h2>
+ <div class="card"><h3 style="margin-top:0">Date et classe</h3><div class="row"><input type="date" value="${L.d}" min="${today()}" onchange="if(this.value){S.le.d=this.value;render()}"><span class="fix sea" style="margin:0">${k?esc(k.nom):'Sans liste'}</span></div>
+ <p class="mut">${cap(fday(L.d,true))}${isT?" · c'est aujourd'hui":''}</p></div>
+ <div class="card"><h3 style="margin-top:0">Éléments travaillés</h3><p class="mut">Seuls les éléments cochés seront proposés aux élèves. « Obligatoire » : l'élève ne peut pas enregistrer sa grimpe sans cet élément.</p>
+ ${CRIT.map(([c,n])=>{const on=L.cr.includes(c),q=on&&L.req.includes(c);return `<div class="ck"><label class="ckl"><input type="checkbox" ${on?'checked':''} onchange="tgCr('${c}',this.checked)">${n}</label><button class="rq ${q?'on':''}" ${on?'':'disabled'} onclick="tgReq('${c}')">${q?'★ Obligatoire':'Facultatif'}</button></div>`}).join('')}
+ <div class="tb"><button class="b g" onclick="S.le.cr=[...ALL];render()">Tout cocher</button><button class="b g" onclick="S.le.cr=[];S.le.req=[];render()">Tout décocher</button></div></div>
+ <div class="card"><h3 style="margin-top:0">Objectif</h3><p class="mut">Nombre minimum de voies à grimper par élève pendant la leçon (0 = pas d'objectif).</p>
+ <div class="step"><button class="b g" onclick="S.le.min=Math.max(0,(S.le.min||0)-1);render()">−</button><output>${L.min||0}</output><button class="b" onclick="S.le.min=Math.min(30,(S.le.min||0)+1);render()">+</button><span>voie(s) minimum</span></div></div>
+ <div class="tb"><button class="b" style="flex:1;min-height:60px;font-size:19px" onclick="saveLe(${isT?1:0})">${isT?'Enregistrer et commencer la leçon':'Enregistrer la leçon'}</button>${isT?`<button class="b g" style="min-height:60px" onclick="saveLe(0)">Enregistrer seulement</button>`:''}</div>
+ ${L.id?`<p><button class="b d" onclick="delLe()">Supprimer cette leçon</button></p>`:''}`}
+function tgCr(k,v){const L=S.le,s=new Set(L.cr);v?s.add(k):s.delete(k);L.cr=ALL.filter(x=>s.has(x));L.req=L.req.filter(x=>L.cr.includes(x));render()}
+function tgReq(k){const L=S.le,s=new Set(L.req);s.has(k)?s.delete(k):s.add(k);L.req=ALL.filter(x=>s.has(x));render()}
+function saveLe(go){const L=S.le;if(!L.cr.length)return say('Cochez au moins un élément travaillé.');if(!L.d)return say('Choisissez une date.');
+ const dup=LEC().find(l=>l.id!=L.id&&(l.cl||'')==(L.cl||'')&&l.d==L.d);if(dup)return say('Une leçon existe déjà le '+fday(L.d,true)+' pour cette classe. Modifiez-la plutôt.');
+ if(!L.id){L.id=uid();LEC().push(clone(L))}else{const i=LEC().findIndex(l=>l.id==L.id);LEC()[i]=clone(L)}
+ if(CF.sea?.id==L.id)CF.sea=clone(L);save();S.le=null;if(go)return startLe(L.id);render();scrollTo(0,0);say('Leçon enregistrée.')}
+async function delLe(){const L=S.le;if(!await ask('Supprimer la leçon du '+fday(L.d,true)+' ?\n(Les grimpes déjà enregistrées restent dans les résultats.)'))return;CF.lec=LEC().filter(l=>l.id!=L.id);if(CF.sea?.id==L.id)CF.sea=null;save();S.le=null;render()}
+function xlLe(){const k=CL.find(c=>c.id==(CF.sel||''));xl(recOf(k?.nom||'',S.lv),S.lv)}
+/* bouton Accueil commun (eps-home.js) : un appui ramène à l'accueil de l'application */
+window.epsAppHome=()=>{document.querySelector('.vmod')?.remove();document.querySelector('.dlg')?.remove();fresh();S.e=false;S.le=null;S.lv=null;S.mr='';S.t=S.T||seaOK()?'home':'role';render();scrollTo(0,0)};
+/* consultation d'une leçon (enseignant) */
+function lecView(){const d=S.lv,k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',L=recOf(nom,d).sort((a,b)=>a.ts<b.ts?-1:1),cfg=lecFor(CF.sel||'',d);
+ const el=[...new Set(L.map(r=>r.el))].sort((a,b)=>a.localeCompare(b,'fr')),ok=L.filter(r=>Number(r.h)==TOP),best=bestOk(L),min=cfg?.min||0;
+ const per=el.map(n=>{const M=L.filter(r=>r.el==n),H=M.map(r=>r.h).filter(isNum).map(Number);return `<tr><td><b>${esc(n)}</b></td><td>${M.length}${min?(M.length>=min?' <span class="top">✓</span>':` <small class="mut">/ ${min}</small>`):''}</td><td>${M.filter(r=>Number(r.h)==TOP).length}</td><td>${esc(bestOk(M)||'–')}</td><td>${H.length?fnum(avg(H)):'–'}</td><td>${(()=>{const Q=M.filter(r=>rpR(r)!=null);return Q.length?fnum(Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0)):'–'})()}</td><td>${ROLES.map(([x])=>L.filter(r=>r[x]==n).length).join(' / ')}</td></tr>`}).join('');
+ const det=L.slice().reverse().map(r=>`<tr><td>${esc(String(r.ts).slice(11,16))}</td><td>${esc(r.el)}</td><td>${cs(r.c)}${r.vo} · ${esc(r.d)}</td><td>${nd(hl(r.h))}</td><td>${esc(r.asr||'–')} / ${esc(r.cas||'–')}</td><td><button class="b d" style="min-height:36px;padding:2px 10px" title="Supprimer" onclick="delRec('${r.id}')">✕</button></td></tr>`).join('');
+ return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.lv=null;render();scrollTo(0,0)">← Retour aux leçons</button></p><h2 style="margin-top:4px">${cap(fday(d,true))}</h2><span class="sea">${k?esc(k.nom):'Sans liste'}</span>
+ ${cfg?`<div class="lchips" style="margin-top:10px">${lecChips(cfg)}</div>`:''}
+ <div class="stats">${stx(L.length,pw(L.length,'grimpe'))}${stx(el.length,pw(el.length,'élève'))}${stx(ok.length,'Top')}${stx(best?esc(best):'–','meilleure difficulté réussie')}${rpTile(L)}${min?stx(el.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+el.length,'élèves ont atteint l\'objectif'):''}</div>
+ ${L.length?`<div class="card"><h3 style="margin-top:0">Par élève</h3><div class="tw"><table><tr><th>Élève</th><th>Voies</th><th>Tops</th><th>Meilleure réussite</th><th>Hauteur moy.</th><th>Pieds/mains</th><th>Assur. / contre / obs.</th></tr>${per}</table></div></div>
+ ${diffsBlock(L)}
+ <div class="card"><div class="ch"><h3 style="margin:0">Toutes les grimpes</h3><button class="b" onclick="xlLe()">Exporter cette leçon (Excel)</button></div><div class="tw"><table><tr><th>Heure</th><th>Élève</th><th>Voie</th><th>Hauteur</th><th>Assureur / contre</th><th></th></tr>${det}</table></div></div>`:'<div class="card"><p class="mut">Aucune grimpe enregistrée pendant cette leçon.</p></div>'}`}
 const lines=()=>[...new Set($('#ceL').value.split('\n').map(s=>s.trim()).filter(Boolean))];
 function cnt(){$('#ceC').textContent=lines().length+' élève(s)'}
 function saveCls(){const nom=$('#ceN').value.trim(),el=lines();if(!nom){say('Donnez un nom à la classe.');return $('#ceN').focus()}
@@ -356,13 +456,19 @@ function content(k){
  let h=B.map((b,i)=>{
   const tools=S.e?`<div class="tb"><button class="b g" onclick="mv('${k}',${i},-1)">↑</button><button class="b g" onclick="mv('${k}',${i},1)">↓</button><button class="b d" onclick="rm('${k}',${i})">Supprimer</button></div>`:'';
   if(b.t=='v')return `<div class="card"><video controls playsinline data-id="${esc(b.v)}"></video>${tools}</div>`;
+  if(b.t=='vgs'){const it=b.items||[];
+   if(!S.e)return `<div class="vigs">${it.map((x,j)=>`<button class="vig ${x.v?'':'nov'}" onclick="playV('${k}',${i},${j})"><span class="vth">${x.v?`<video muted playsinline preload="metadata" data-id="${esc(x.v)}" data-th="1"></video>`:''}<em>▶</em></span><b>${esc(x.ti)}</b>${x.sub?`<small>${esc(x.sub)}</small>`:''}${x.v?'':'<small class="mut">Vidéo à ajouter par l\'enseignant</small>'}</button>`).join('')}</div>`;
+   return `<div class="card"><small>Vignettes vidéo</small><div class="vigs ed">${it.map((x,j)=>`<div class="vige"><input value="${esc(x.ti)}" placeholder="Titre" oninput="C['${k}'][${i}].items[${j}].ti=this.value;save()"><input value="${esc(x.sub)}" placeholder="Précision (facultatif)" oninput="C['${k}'][${i}].items[${j}].sub=this.value;save()">
+    ${x.v?`<video controls playsinline preload="metadata" data-id="${esc(x.v)}"></video>`:'<p class="mut">Pas encore de vidéo.</p>'}
+    <div class="tb"><label class="b">${x.v?'Remplacer la vidéo':'📹 Choisir la vidéo'}<input type="file" accept="video/*" hidden onchange="setVg('${k}',${i},${j},this)"></label>${x.v?`<button class="b g" onclick="setVg('${k}',${i},${j},null)">Retirer la vidéo</button>`:''}<button class="b d" onclick="rmVg('${k}',${i},${j})">Supprimer la vignette</button></div></div>`).join('')}</div>
+    <div class="tb"><button class="b g" onclick="C['${k}'][${i}].items.push({ti:'Nouvelle vignette',sub:'',v:''});save();render()">+ Vignette</button></div><small>Les vidéos restent sur cette tablette (elles ne sont pas publiées en ligne).</small>${tools}</div>`}
   if(b.t=='f'){const vid=b.v?`<video controls playsinline preload="metadata" data-id="${esc(b.v)}"></video>`:'';
    if(!S.e)return `<div class="card fiche"><h3>${esc(b.ti)}</h3>${vid}${b.tx?`<p>${esc(b.tx)}</p>`:''}</div>`;
    return `<div class="card"><small>Fiche · titre</small><input value="${esc(b.ti)}" oninput="C['${k}'][${i}].ti=this.value;save()">${vid}<small>Texte</small><textarea oninput="C['${k}'][${i}].tx=this.value;save()">${esc(b.tx)}</textarea>${tools}</div>`}
   if(!S.e)return b.t=='h'?`<h2>${esc(b.v)}</h2>`:b.t=='s'?`<h3>${esc(b.v)}</h3>`:`<p>${esc(b.v)}</p>`;
   const f=b.t=='p'?`<textarea oninput="C['${k}'][${i}].v=this.value;save()">${esc(b.v)}</textarea>`:`<input value="${esc(b.v)}" oninput="C['${k}'][${i}].v=this.value;save()">`;
   return `<div class="blk"><small>${{h:'Titre',s:'Sous-titre',p:'Texte'}[b.t]}</small>${f}${tools}</div>`}).join('');
- if(S.e)h+=`<div class="card"><b>Ajouter</b><div class="tb"><button class="b" onclick="add('${k}','h')">Titre</button><button class="b" onclick="add('${k}','s')">Sous-titre</button><button class="b" onclick="add('${k}','p')">Texte</button><label class="b">Vidéo<input type="file" accept="video/*" hidden onchange="addVid('${k}',this)"></label></div><small>Les vidéos sont enregistrées sur cette tablette.</small></div>`;
+ if(S.e)h+=`<div class="card"><b>Ajouter</b><div class="tb"><button class="b" onclick="add('${k}','h')">Titre</button><button class="b" onclick="add('${k}','s')">Sous-titre</button><button class="b" onclick="add('${k}','p')">Texte</button><label class="b">Vidéo<input type="file" accept="video/*" hidden onchange="addVid('${k}',this)"></label><button class="b" onclick="C['${k}'].push({t:'vgs',items:[{ti:'Nouvelle vignette',sub:'',v:''}]});save();render()">Vignettes vidéo</button></div><small>Les vidéos sont enregistrées sur cette tablette.</small></div>`;
  return h||'<p class="mut">Rien ici pour le moment.</p>';
 }
 /* ---------- mode enseignant (caché) ---------- */
@@ -384,7 +490,14 @@ function add(k,t){C[k].push({t,v:t=='h'?'Nouveau titre':t=='s'?'Nouveau sous-tit
 function mv(k,i,d){const B=C[k],j=i+d;if(j<0||j>=B.length)return;[B[i],B[j]]=[B[j],B[i]];save();render()}
 async function rm(k,i){const b=C[k][i];if(b.t=='f'&&!await ask('Supprimer la fiche « '+b.ti+' » ?'))return;if((b.t=='v'||b.t=='f')&&b.v)await idb('del',b.v);C[k].splice(i,1);save();render()}
 async function addVid(k,el){const f=el.files[0];if(!f)return;const id='v'+Date.now();await idb('put',id,f);C[k].push({t:'v',v:id});save();render()}
-async function loadVideos(){for(const v of document.querySelectorAll('video[data-id]')){const b=await idb('get',v.dataset.id);if(b)v.src=URL.createObjectURL(b)}}
+async function loadVideos(){for(const v of document.querySelectorAll('video[data-id]')){const b=await idb('get',v.dataset.id);if(b)v.src=URL.createObjectURL(b)+(v.dataset.th?'#t=0.8':'')}}
+async function setVg(k,i,j,inp){const it=C[k][i].items[j];if(inp===null){if(it.v)await idb('del',it.v);it.v='';save();return render()}
+ const f=inp.files[0];if(!f)return;if(!(await db))return say("Impossible d'enregistrer la vidéo sur cet appareil (navigation privée ?).");
+ if(it.v)await idb('del',it.v);it.v='v'+Date.now();await idb('put',it.v,f);save();render();say('Vidéo enregistrée sur cette tablette.')}
+async function rmVg(k,i,j){const b=C[k][i];if(!await ask('Supprimer la vignette « '+b.items[j].ti+' » ?'))return;if(b.items[j].v)await idb('del',b.items[j].v);b.items.splice(j,1);if(!b.items.length)C[k].splice(i,1);save();render()}
+async function playV(k,i,j){const it=C[k][i].items[j];if(!it.v)return say("La vidéo n'a pas encore été ajoutée sur cette tablette.");const bl=await idb('get',it.v);if(!bl)return say('Vidéo introuvable sur cette tablette.');
+ const u=URL.createObjectURL(bl),d=document.createElement('div');d.className='vmod';d.innerHTML=`<div class="vbox"><div class="vh"><b>${esc(it.ti)} ${it.sub?`<small>${esc(it.sub)}</small>`:''}</b><button class="b g" aria-label="Fermer">✕ Fermer</button></div><video controls playsinline autoplay src="${u}"></video></div>`;
+ const close=()=>{d.remove();URL.revokeObjectURL(u)};d.querySelector('button').onclick=close;d.onclick=e=>{if(e.target===d)close()};document.body.append(d)}
 /* ---------- grimpe ---------- */
 const cs=n=>`<span class="dot" style="background:${COL[n]||'#ccc'}"></span>`;
 function stepper(k){return `<div class="step"><button class="b g" onclick="st('${k}',-1)">−</button><output id="o_${k}">${F[k]}</output><button class="b" onclick="st('${k}',1)">+</button></div>`}
@@ -447,7 +560,7 @@ function rec(){ROLES.forEach(([k])=>F[k]=String(F[k]||'').trim());
  if(miss.length){F.miss=miss.map(m=>m[0]);render();document.getElementById('cr_'+F.miss[0]).scrollIntoView({behavior:'smooth',block:'center'});
   return say('Il manque '+(miss.length>1?'des éléments obligatoires':'un élément obligatoire')+' :\n• '+miss.map(m=>m[1].replace(/ \?.*$| :.*$/,'')).join('\n• '))}
  F.miss=[];const n=F.nr,x=(k,v)=>(n[k]&&!req(k))||!on(k)?'':v;
- F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pofU===false?0:F.pofU?(F.pof===''?1:Number(F.pof)):''),k:x('k',F.com),asr:F.asr,cas:F.cas,obs:F.obs});
+ F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,lid:CF.sea?.id||'',ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pofU===false?0:F.pofU?(F.pof===''?1:Number(F.pof)):''),k:x('k',F.com),asr:F.asr,cas:F.cas,obs:F.obs});
  save();shAdd(F.last);go(6)}
 /* ---------- mes résultats ---------- */
 const fnum=x=>x.toLocaleString('fr-FR',{maximumFractionDigits:1});
@@ -462,46 +575,71 @@ function ratioBox(){if(!on('m')||!on('p')||F.nr.m||F.nr.p)return '';const x=RP(F
  const [c,t]=rpLvl(x);return `<div class="rpm ${c}"><b>Ratio pieds / mains : ${fnum(x)}</b><span>${F.pieds} pieds pour ${F.mains} mains · ${t}</span></div>`}
 function upR(){const e=$('#rpm');if(e)e.innerHTML=ratioBox()}
 const isNum=v=>v!==''&&v!=null&&!isNaN(v);
+/* blocs statistiques réutilisés (bilan, leçon, leçon côté enseignant) */
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const bestOk=L=>L.filter(r=>Number(r.h)==TOP).map(r=>r.d).sort((a,b)=>gk(b)-gk(a))[0];
+const rpTile=L=>{const Q=L.filter(r=>rpR(r)!=null);if(!Q.length)return '';const x=Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0),[c]=rpLvl(x);return `<div class="st rp-${c}"><b>${fnum(x)}</b><span>ratio pieds / mains (${Q.length} voie${Q.length>1?'s':''})</span></div>`};
+const pw=(n,w)=>w+(n>1?'s':''),stx=(v,l,c='')=>`<div class="st ${c}"><b>${v}</b><span>${l}</span></div>`,pl=(n,w)=>n+' '+w+(n>1?'s':'');
+function diffsBlock(L,title='Voies par difficulté'){const G={};L.forEach(r=>{const g=G[r.d]||(G[r.d]={n:0,ok:0,h:[]});g.n++;if(Number(r.h)==TOP)g.ok++;if(isNum(r.h))g.h.push(Number(r.h))});
+ const gs=Object.keys(G).sort((a,b)=>gk(a)-gk(b)),mx=Math.max(1,...gs.map(g=>G[g].n));if(!gs.length)return '';
+ return `<div class="card"><h3 style="margin-top:0">${title}</h3><p class="mut" style="margin:0 0 4px"><span class="lg" style="background:#2e9e4f;margin-left:0"></span>réussie (Top)<span class="lg" style="background:#9fc6ca"></span>non terminée</p>
+  ${gs.map(g=>{const x=G[g];return `<div class="dr"><b>${esc(g)}</b><div class="bar" style="width:${x.n/mx*100}%"><i style="flex:${x.ok}"></i><u style="flex:${x.n-x.ok}"></u></div><small class="mut">${pl(x.n,'grimpée')} · ${pl(x.ok,'réussie')}${x.h.length?' · hauteur moy. '+(x.h.every(v=>v==TOP)?'Top':fnum(avg(x.h))):''}</small></div>`}).join('')}</div>`}
 function mesRes(){const k=cls(),nom=k?.nom||'',mine=r=>(r.cl||'')==nom;
- if(!S.mr){const names=[...new Set([...(k?.el||[]),...R.filter(mine).map(r=>r.el).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'fr'));
-  return `<div class="card"><h3 style="margin-top:0">Qui es-tu ?</h3>${k?`<p class="mut">${esc(nom)} · touche ton nom pour voir tes résultats</p>`:''}${names.length?`<div class="names">${names.map(n=>`<button class="b g" data-n="${esc(n)}" onclick="S.mr=this.dataset.n;S.ml='';render()">${esc(n)}${dzE((cls()||{}).nom,n)}</button>`).join('')}</div>`:'<p class="mut">Aucun résultat enregistré sur cette tablette.</p>'}</div>`}
+ if(!S.mr){const g=grp(),others=[...new Set([...(k?.el||[]),...R.filter(mine).map(r=>r.el).filter(Boolean)])].filter(n=>!g.includes(n)).sort((a,b)=>a.localeCompare(b,'fr'));
+  const pick=n=>chip(n,{act:"S.mr=this.dataset.n;S.ml='';render();scrollTo(0,0)"});
+  return `<div class="card"><h3 style="margin-top:0">Qui es-tu ?</h3><p class="mut">Touche ton prénom pour voir ton bilan et tes leçons.</p>
+  ${g.length?`<div class="names big">${g.map(pick).join('')}</div>${others.length?`<details class="more"><summary>Toute la classe</summary><div class="names">${others.map(pick).join('')}</div></details>`:''}`
+   :others.length?`<div class="names">${others.map(pick).join('')}</div>`:'<p class="mut">Aucun résultat enregistré sur cette tablette.</p>'}</div>`}
  const rs=R.filter(r=>r.el==S.mr&&mine(r)),RL=R.filter(r=>mine(r)&&r.el!=S.mr&&[r.asr,r.cas,r.obs].includes(S.mr)),days=[...new Set([...rs,...RL].map(r=>String(r.ts).slice(0,10)))].sort().reverse();
- const head=`<div class="sum" style="margin-bottom:12px">${esc(S.mr)}<button class="b g" onclick="S.mr='';render()">Changer</button></div>`;
+ const head=`<div class="sum" style="margin-bottom:12px"><span class="chip mini"><i style="--h:${hue(S.mr)}">${esc(ini(S.mr))}</i><span>${esc(S.mr)}</span></span><button class="b g" onclick="S.mr='';render()">Changer</button></div>`;
  if(!days.length)return head+`<div class="card"><p class="mut">Tu n'as encore aucune grimpe enregistrée sur cette tablette.</p></div>`;
- const d=days.includes(S.ml)?S.ml:days[0],L=rs.filter(r=>String(r.ts).startsWith(d)).sort((a,b)=>a.ts<b.ts?-1:1);
- const tabs=`<div class="ltabs">${days.map((x,i)=>`<button class="b ${x==d?'':'g'}" onclick="S.ml='${x}';render()">${i?fday(x):'Dernière leçon'}</button>`).join('')}</div>`;
- /* statistiques */
- const H=L.map(r=>r.h).filter(isNum).map(Number),ok=L.filter(r=>Number(r.h)==TOP),best=ok.map(r=>r.d).sort((a,b)=>gk(b)-gk(a))[0];
- const G={};L.forEach(r=>{const g=G[r.d]||(G[r.d]={n:0,ok:0,h:[]});g.n++;if(Number(r.h)==TOP)g.ok++;if(isNum(r.h))g.h.push(Number(r.h))});
- const gs=Object.keys(G).sort((a,b)=>gk(a)-gk(b)),mx=Math.max(1,...gs.map(g=>G[g].n));
+ const d=days.includes(S.ml)?S.ml:'';
+ const tabs=`<div class="ltabs"><button class="b ${d?'g':''}" onclick="S.ml='';render()">📊 Bilan</button>${days.map((x,i)=>`<button class="b ${x==d?'':'g'}" onclick="S.ml='${x}';render()">${i?fday(x):'Dernière leçon'}</button>`).join('')}</div>`;
+ if(!d)return head+tabs+bilan(rs,RL,days);
+ const L=rs.filter(r=>String(r.ts).startsWith(d)).sort((a,b)=>a.ts<b.ts?-1:1);
+ const H=L.map(r=>r.h).filter(isNum).map(Number),ok=L.filter(r=>Number(r.h)==TOP),best=bestOk(L);
  const DR=RL.filter(r=>String(r.ts).startsWith(d)),nR=k=>DR.filter(r=>r[k]==S.mr).length;
- const stats=`<div class="stats"><div class="st"><b>${L.length}</b><span>voie${L.length>1?'s':''} grimpée${L.length>1?'s':''}</span></div>
-  <div class="st"><b>${ok.length}</b><span>voie${ok.length>1?'s':''} réussie${ok.length>1?'s':''} (Top)</span></div>
-  <div class="st"><b>${best?esc(best):'–'}</b><span>meilleure difficulté réussie</span></div>
-  <div class="st"><b>${H.length?fnum(H.reduce((a,b)=>a+b,0)/H.length):'–'}</b><span>hauteur moyenne (en dégaines, Top = 9)</span></div>
-  <div class="st"><b>${H.length?hl(Math.max(...H)):'–'}</b><span>hauteur maximale</span></div>
-  ${(()=>{const Q=L.filter(r=>rpR(r)!=null);if(!Q.length)return '';const x=Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0),[c]=rpLvl(x);return `<div class="st rp-${c}"><b>${fnum(x)}</b><span>ratio pieds / mains (${Q.length} voie${Q.length>1?'s':''})</span></div>`})()}
-  ${ROLES.map(([k,l])=>`<div class="st"><b>${nR(k)}</b><span>fois ${l.toLowerCase()}</span></div>`).join('')}</div>`;
- const diffs=`<div class="card"><h3 style="margin-top:0">Difficultés</h3><p class="mut" style="margin:0 0 4px"><span class="lg" style="background:#2e9e4f;margin-left:0"></span>réussie (Top)<span class="lg" style="background:#9fc6ca"></span>non terminée</p>
-  ${gs.map(g=>{const x=G[g];return `<div class="dr"><b>${esc(g)}</b><div class="bar" style="width:${x.n/mx*100}%"><i style="flex:${x.ok}"></i><u style="flex:${x.n-x.ok}"></u></div><small class="mut">${x.n} grimpée${x.n>1?'s':''} · ${x.ok} réussie${x.ok>1?'s':''}${x.h.length?' · hauteur moy. '+(x.h.every(v=>v==TOP)?'Top':fnum(x.h.reduce((a,b)=>a+b,0)/x.h.length)):''}</small></div>`}).join('')}</div>`;
- /* tableau */
+ const stats=`<div class="stats">${stx(L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée'))}${stx(ok.length,(ok.length>1?'voies réussies':'voie réussie')+' (Top)')}${stx(best?esc(best):'–','meilleure difficulté réussie')}
+  ${stx(H.length?fnum(avg(H)):'–','hauteur moyenne (en dégaines, Top = 9)')}${stx(H.length?hl(Math.max(...H)):'–','hauteur maximale')}${rpTile(L)}
+  ${ROLES.map(([k,l])=>stx(nR(k),'fois '+l.toLowerCase())).join('')}</div>`;
  const OPT=[['asr','Assureur'],['cas','Contre-ass.'],['obs','Observ.'],['m','Mains'],['p','Pieds'],['rp','Pieds/mains'],['cp','Chgt pieds'],['a','Assis'],['pm','PME'],['pof','Sac POF'],['k','Commentaire']].filter(([c])=>c=='rp'?L.some(r=>rpR(r)!=null):L.some(r=>r[c]!==''&&r[c]!=null));
  const tbl=`<div class="card"><h3 style="margin-top:0">Voies grimpées</h3><div class="tw"><table><tr><th>#</th><th>Heure</th><th>Corde</th><th>Diff.</th><th>Hauteur</th>${OPT.map(o=>`<th>${o[1]}</th>`).join('')}</tr>
   ${L.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(String(r.ts).slice(11,16))}</td><td>${cs(r.c)}Corde ${r.vo}</td><td><b>${esc(r.d)}</b></td><td>${isNum(r.h)?`<span class="hb"><i style="width:${r.h/TOP*100}%"></i></span>${Number(r.h)==TOP?'<span class="top">Top ✓</span>':r.h+'<small class="mut"> dég.</small>'}`:'–'}</td>${OPT.map(([c])=>`<td>${c=='k'?esc(r[c])||'–':c=='rp'?(rpR(r)==null?'–':`<span class="rpt rp-${rpLvl(rpR(r))[0]}">${fnum(rpR(r))}</span>`):nd(r[c])}</td>`).join('')}</tr>`).join('')}</table></div></div>`;
- return head+tabs+`<h3 style="margin:4px 0 0">${d==days[0]?'Dernière leçon':'Leçon'} · ${fday(d,true)}</h3>`+stats+(L.length?tbl+diffs:`<div class="card"><p class="mut">Tu n'as pas grimpé pendant cette leçon.</p></div>`)}
+ return head+tabs+`<h3 style="margin:4px 0 0">${d==days[0]?'Dernière leçon':'Leçon'} · ${fday(d,true)}</h3>`+stats+(L.length?tbl+diffsBlock(L,'Difficultés'):`<div class="card"><p class="mut">Tu n'as pas grimpé pendant cette leçon.</p></div>`)}
+/* bilan de toutes les leçons de l'élève */
+function bilan(rs,RL,days){const H=rs.map(r=>r.h).filter(isNum).map(Number),ok=rs.filter(r=>Number(r.h)==TOP),best=bestOk(rs),ld=days.filter(x=>rs.some(r=>String(r.ts).startsWith(x)));
+ const nR=k=>RL.filter(r=>r[k]==S.mr).length,rate=rs.length?Math.round(ok.length/rs.length*100):0;
+ const tiles=`<div class="stats">${stx(rs.length,pw(rs.length,'voie')+' '+pw(rs.length,'grimpée')+' en '+pl(ld.length,'leçon'))}${stx(ok.length,(ok.length>1?'voies réussies':'voie réussie')+' (Top)')}${stx(rate+' %','de voies réussies',rate>=50?'rp-good':'')}
+  ${stx(best?esc(best):'–','meilleure difficulté réussie')}${stx(ld.length?fnum(rs.length/ld.length):'–','voies par leçon en moyenne')}${stx(H.length?fnum(avg(H)):'–','hauteur moyenne (en dégaines, Top = 9)')}${rpTile(rs)}
+  ${ROLES.map(([k,l])=>stx(nR(k),'fois '+l.toLowerCase())).join('')}</div>`;
+ /* par leçon, de la plus ancienne à la plus récente */
+ const per=[...ld].reverse().map(x=>{const L=rs.filter(r=>String(r.ts).startsWith(x));return {x,n:L.length,ok:L.filter(r=>Number(r.h)==TOP).length,b:bestOk(L)}}),mx=Math.max(1,...per.map(p=>p.n));
+ const lessons=per.length?`<div class="card"><h3 style="margin-top:0">Voies par leçon</h3>${per.map(p=>`<div class="dr lr"><b>${fday(p.x)}</b><div class="bar" style="width:${p.n/mx*100}%"><i style="flex:${p.ok}"></i><u style="flex:${p.n-p.ok}"></u></div><small class="mut">${pl(p.n,'voie')} · ${p.ok} Top${p.b?' · meilleure réussite : '+esc(p.b):''}</small></div>`).join('')}</div>`:'';
+ /* voies les plus grimpées */
+ const F={};rs.forEach(r=>{const k=r.vo+'|'+r.c;F[k]=F[k]||{vo:r.vo,c:r.c,d:r.d,n:0,ok:0};F[k].n++;if(Number(r.h)==TOP)F[k].ok++});
+ const fav=Object.values(F).sort((a,b)=>b.n-a.n||gk(b.d)-gk(a.d)).slice(0,3);
+ const favs=fav.length?`<div class="card"><h3 style="margin-top:0">Tes voies les plus grimpées</h3>${fav.map(v=>`<div class="vl">${cs(v.c)}<span><span class="cn">Corde ${v.vo}</span> · ${esc(v.c)} · ${esc(v.d)}</span><b style="font-size:20px">${v.n}×${v.ok?` <small class="top">(${v.ok} Top)</small>`:''}</b></div>`).join('')}</div>`:'';
+ /* prochain défi : la difficulté juste au-dessus de la meilleure réussite */
+ const grades=[...new Set(W.flat().map(x=>x[1]))].sort((a,b)=>gk(a)-gk(b)),nx=best?grades.find(g=>gk(g)>gk(best)):grades[0];
+ const hits=[];if(nx)W.forEach((w,i)=>w.forEach(([c,d])=>{if(d==nx)hits.push([i+1,c])}));
+ const defi=nx?`<div class="card defi"><h3 style="margin-top:0">🎯 Ton prochain défi : ${esc(nx)}</h3><p class="mut">${best?`Ta meilleure réussite est ${esc(best)}. Essaie la difficulté juste au-dessus :`:'Vise un premier Top sur une de ces voies :'}</p>${hits.map(([v,c])=>`<div class="vl">${cs(c)}<span><span class="cn">Corde ${v}</span> · couleur ${esc(c)}</span></div>`).join('')}</div>`:(best?`<div class="card defi"><h3 style="margin-top:0">🏆 Tu as réussi la voie la plus difficile du mur !</h3></div>`:'');
+ return `<h3 style="margin:4px 0 0">Bilan de toutes tes leçons</h3>`+tiles+defi+lessons+diffsBlock(rs)+favs}
 /* ---------- cotation ---------- */
 const gk=d=>{const m=String(d).trim().match(/^(\d)([abc])?(\+)?/i);return m?(+m[1])*100+(m[2]?(m[2].toLowerCase().charCodeAt(0)-96)*10:0)+(m[3]?5:0):999};
+const toRes=()=>requestAnimationFrame(()=>{const e=$('#cvres');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})});
+function pickCv(n){S.cv=n;render();toRes()}
+function pickCd(d){S.cd=d;render();toRes()}
 function cotation(){
  if(S.T&&S.e){const opt=c=>Object.keys(COL).map(o=>`<option ${o==c?'selected':''}>${o}</option>`).join('');
   return `<h2>Cotation des voies (modification)</h2>${W.map((w,i)=>`<div class="card"><h3 style="margin-top:0">Corde ${i+1}</h3>${w.map(([c,d],j)=>`<div class="row" style="margin-bottom:8px"><select onchange="W[${i}][${j}][0]=this.value;save()">${opt(c)}</select><input value="${esc(d)}" placeholder="Cotation" oninput="W[${i}][${j}][1]=this.value;save()"><button class="b d fix" onclick="W[${i}].splice(${j},1);save();render()">✕</button></div>`).join('')}
   <div class="tb"><button class="b g" onclick="W[${i}].push(['Rouge','5a']);save();render()">+ Couleur</button>${i==W.length-1?`<button class="b d" onclick="ask('Supprimer la corde ${i+1} ?').then(o=>{if(o){W.pop();save();render()}})">Supprimer cette corde</button>`:''}</div></div>`).join('')}
   <div class="tb"><button class="b" onclick="W.push([['Rouge','5a']]);save();render()">+ Ajouter une corde</button><button class="b g" onclick="ask('Revenir aux cotations d\\'origine ?').then(o=>{if(o){W=clone(WDEF);save();render()}})">Rétablir les cotations d'origine</button></div>`}
  if(S.cm=='d'){const gr=[...new Set(W.flat().map(x=>x[1]))].sort((a,b)=>gk(a)-gk(b)),hits=[];W.forEach((w,i)=>w.forEach(([c,d])=>{if(d==S.cd)hits.push([i+1,c])}));
-  return `<p><button class="b g" onclick="S.cm='';render()">← Chercher par numéro de corde</button></p><div class="card"><h3 style="margin-top:0">Quelle difficulté cherches-tu ?</h3><div class="grid vg">${gr.map(d=>`<button class="b ${S.cd==d?'on':'g'}" data-d="${esc(d)}" onclick="S.cd=this.dataset.d;render()">${esc(d)}</button>`).join('')}</div></div>
-  ${S.cd?`<div class="card"><h3 style="margin-top:0">Voies en ${esc(S.cd)} : ${hits.length} possibilité${hits.length>1?'s':''}</h3>${hits.map(([v,c])=>`<div class="vl">${cs(c)}<span><span class="cn">Corde ${v}</span> · couleur ${esc(c)}</span></div>`).join('')}</div>`:'<p class="mut">Touche une difficulté pour voir toutes les voies correspondantes.</p>'}`}
+  return `<p><button class="b g" onclick="S.cm='';render()">← Chercher par numéro de corde</button></p><div class="card"><h3 style="margin-top:0">Quelle difficulté cherches-tu ?</h3><div class="grid vg">${gr.map(d=>`<button class="b ${S.cd==d?'on':'g'}" data-d="${esc(d)}" onclick="pickCd(this.dataset.d)">${esc(d)}</button>`).join('')}</div></div>
+  ${S.cd?`<div class="card" id="cvres"><h3 style="margin-top:0">Voies en ${esc(S.cd)} : ${hits.length} possibilité${hits.length>1?'s':''}</h3>${hits.map(([v,c])=>`<div class="vl">${cs(c)}<span><span class="cn">Corde ${v}</span> · couleur ${esc(c)}</span></div>`).join('')}</div>`:'<p class="mut">Touche une difficulté pour voir toutes les voies correspondantes.</p>'}`}
  const w=W[S.cv-1];
- return `<p><button class="b big" onclick="S.cm='d';render()">🔎 Je cherche une voie !</button></p><div class="card"><h3 style="margin-top:0">Quelle corde ?</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${S.cv==i+1?'on':'g'}" onclick="S.cv=${i+1};render()">${i+1}</button>`).join('')}</div></div>
- ${w?`<div class="card"><h3 style="margin-top:0">Corde ${S.cv}</h3>${w.map(([c,d])=>`<div class="vl">${cs(c)}<span>${esc(c)}</span><b>${esc(d)}</b></div>`).join('')||'<p class="mut">Aucune couleur.</p>'}</div>`:'<p class="mut">Touche un numéro de corde pour voir la cotation de chaque couleur.</p>'}`}
+ return `<p><button class="b big" onclick="S.cm='d';render()">🔎 Je cherche une voie !</button></p><div class="card"><h3 style="margin-top:0">Quelle corde ?</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${S.cv==i+1?'on':'g'}" onclick="pickCv(${i+1})">${i+1}</button>`).join('')}</div></div>
+ ${w?`<div class="card" id="cvres"><h3 style="margin-top:0">Corde ${S.cv}</h3>${w.map(([c,d])=>`<div class="vl">${cs(c)}<span>${esc(c)}</span><b>${esc(d)}</b></div>`).join('')||'<p class="mut">Aucune couleur.</p>'}</div>`:'<p class="mut">Touche un numéro de corde pour voir la cotation de chaque couleur.</p>'}`}
 /* ---------- résultats / export / QR ---------- */
 const HEAD=['Tablette','Date','Classe','Élève','Code anonyme (Sheets)','Assureur','Contre-assureur','Observateur','Corde','Couleur','Difficulté','Prises mains','Prises pieds','Ratio pieds/mains','Changements de pieds','Hauteur (dégaines)','Assis baudrier (nb de fois)','PME (nb de fois)','Sac à POF (0-10)','Commentaire'];
 const row=r=>[r.tab,r.ts,r.cl??'',r.el,SH.key?anon(r.cl,r.el):'',r.asr||'',r.cas||'',r.obs||'',r.vo,r.c,r.d,r.m,r.p,rpR(r)==null?'':Math.round(rpR(r)*100)/100,r.cp??'',hl(r.h),r.a,r.pm,r.pof??'',r.k];
@@ -602,15 +740,15 @@ function zip(files){const e=new TextEncoder(),P=[],D=[];let off=0;const w=n=>[n&
   P.push(lh,d);off+=lh.length+d.length}
  const cs=D.reduce((a,b)=>a+b.length,0);
  return new Blob([...P,...D,new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...w(files.length),...w(files.length),...d4(cs),...d4(off),0,0])],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
-async function xl(){if(!R.length)return say('Aucune grimpe à exporter.');
+async function xl(list,tag){list=Array.isArray(list)?list:R;if(!list.length)return say('Aucune grimpe à exporter.');
  const X='<?xml version="1.0" encoding="UTF-8"?>',N='http://schemas.openxmlformats.org/';
  const b=zip([['[Content_Types].xml',X+`<Types xmlns="${N}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`],
  ['_rels/.rels',X+`<Relationships xmlns="${N}package/2006/relationships"><Relationship Id="rId1" Type="${N}officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
  ['xl/workbook.xml',X+`<workbook xmlns="${N}spreadsheetml/2006/main" xmlns:r="${N}officeDocument/2006/relationships"><sheets><sheet name="Grimpes" sheetId="1" r:id="rId1"/><sheet name="Cordes et voies" sheetId="2" r:id="rId2"/></sheets></workbook>`],
  ['xl/_rels/workbook.xml.rels',X+`<Relationships xmlns="${N}package/2006/relationships"><Relationship Id="rId1" Type="${N}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${N}officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/></Relationships>`],
- ['xl/worksheets/sheet1.xml',sh([HEAD,...R.map(row)])],
+ ['xl/worksheets/sheet1.xml',sh([HEAD,...list.map(row)])],
  ['xl/worksheets/sheet2.xml',sh([['Corde','Couleur','Difficulté'],...W.flatMap((w,i)=>w.map(([c,d])=>[i+1,c,d]))])]]);
- const fn='escalade_'+CF.tab.replace(/\W+/g,'_')+'_'+today()+'.xlsx';dlFile(fn,b)}
+ const fn='escalade_'+(tag?'lecon_'+tag+'_':'')+CF.tab.replace(/\W+/g,'_')+'_'+today()+'.xlsx';dlFile(fn,b)}
 const DL=window.claude&&window.claude.use?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);
 async function dlFile(fn,b){const d=window.claude&&window.claude.use?await DL:null;
  if(d){try{await d.save({filename:fn,data:b})}catch(e){if(e&&e.code!='declined')say("L'export n'a pas pu être enregistré ici ("+(e.code||'erreur')+").")}return}

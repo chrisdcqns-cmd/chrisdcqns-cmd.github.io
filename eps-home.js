@@ -1,7 +1,7 @@
 // Commun à toutes les applications EPS (et à la page d'accueil) :
 //  - pas de glissé pour actualiser ;
 //  - dispenses partagées (window.EPSD) : pastille « 🩹 dispensés » dans chaque application, gestion depuis la page d'accueil ;
-//  - bouton « Accueil » qui ramène à la page commune (/), petit, en bas à gauche, déplaçable par appui long.
+//  - bouton « Accueil », petit, en bas à gauche : un appui = accueil de l'application en cours (window.epsAppHome), maintenir 3 s = page commune (/), glisser = déplacer.
 (function () {
   try {
     var st = document.createElement("style");
@@ -278,39 +278,71 @@
   window.EPSD = { list: all, active: activeOn, find: find, label: label, manage: manage, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
-  /* ================= Bouton « Accueil » (sauf sur la page d'accueil) ================= */
+  /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================
+     Un appui : accueil de l'application en cours (window.epsAppHome() si l'application le fournit, sinon sa page de départ).
+     Maintenir 3 secondes : menu général (/), avec un anneau qui se remplit.
+     Glisser : déplacer le bouton (position mémorisée). */
+  function appRoot() { var seg = location.pathname.split("/").filter(Boolean)[0]; return seg && !/\./.test(seg) ? "/" + seg + "/" : "/"; }
+  function appHome() {
+    if (typeof window.epsAppHome === "function") { try { window.epsAppHome(); return; } catch (e) {} }
+    location.href = appRoot();
+  }
   function addHome() {
-    var b = document.createElement("a");
-    b.href = "/";
-    b.setAttribute("aria-label", "Accueil : toutes les applications EPS");
-    b.title = "Toutes les applications EPS";
-    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>';
-    var s = b.style;
-    s.position = "fixed"; s.zIndex = "2147483000";
+    var HOLD = 3000;
+    var b = document.createElement("button");
+    b.type = "button"; b.id = "eps-home";
+    b.setAttribute("aria-label", "Accueil de l'application (maintenir 3 secondes : toutes les applications EPS)");
+    b.title = "Appui : accueil de l'application · Maintenir 3 s : toutes les applications";
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="position:relative"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>';
+    var s = b.style, BG = "rgba(27,30,36,.78)";
+    s.position = "fixed"; s.zIndex = "2147483000"; s.border = "0"; s.padding = "0"; s.cursor = "pointer";
     s.left = "calc(10px + env(safe-area-inset-left, 0px))"; s.bottom = "calc(10px + env(safe-area-inset-bottom, 0px))";
     s.width = "46px"; s.height = "46px"; s.borderRadius = "50%";
     s.display = "grid"; s.placeItems = "center";
-    s.background = "rgba(27,30,36,.78)"; s.color = "#fff";
-    s.boxShadow = "0 2px 8px rgba(0,0,0,.25)"; s.textDecoration = "none";
-    s.webkitTapHighlightColor = "transparent"; s.touchAction = "none";
-    try { var p = JSON.parse(localStorage.getItem("eps.homeBtn") || "null"); if (p) { s.left = p.x + "px"; s.top = p.y + "px"; s.bottom = "auto"; } } catch (e) {}
-    var t = null, drag = false, ox = 0, oy = 0;
+    s.background = BG; s.color = "#fff";
+    s.boxShadow = "0 2px 8px rgba(0,0,0,.25)";
+    s.webkitTapHighlightColor = "transparent"; s.touchAction = "none"; s.userSelect = "none"; s.webkitUserSelect = "none"; s.webkitTouchCallout = "none";
+    try { var p = JSON.parse(localStorage.getItem("eps.homeBtn") || "null"); if (p) { s.left = Math.min(p.x, innerWidth - 50) + "px"; s.top = Math.min(p.y, innerHeight - 50) + "px"; s.bottom = "auto"; } } catch (e) {}
+    var tip = document.createElement("div");
+    tip.textContent = "Maintiens pour toutes les applications…";
+    var ts = tip.style; ts.position = "fixed"; ts.zIndex = "2147483001"; ts.background = "rgba(27,30,36,.92)"; ts.color = "#fff"; ts.font = "600 14px system-ui,sans-serif";
+    ts.padding = "7px 12px"; ts.borderRadius = "10px"; ts.pointerEvents = "none"; ts.display = "none"; ts.whiteSpace = "nowrap";
+    var down = false, drag = false, fired = false, sx = 0, sy = 0, ox = 0, oy = 0, t0 = 0, raf = 0, pid = null;
+    function ring(f) { s.background = f > 0 ? "conic-gradient(#ffc93c " + (f * 360) + "deg, " + BG + " 0)" : BG; }
+    function showTip() { var r = b.getBoundingClientRect(); ts.left = Math.min(r.right + 8, innerWidth - 270) + "px"; ts.top = (r.top + 10) + "px"; ts.display = "block"; }
+    function stop() { cancelAnimationFrame(raf); raf = 0; ring(0); ts.display = "none"; }
+    function tick() {
+      if (!down || drag) return;
+      var f = Math.min(1, (performance.now() - t0) / HOLD);
+      ring(f); if (f > 0.12) showTip();
+      if (f >= 1) { fired = true; stop(); location.href = "/"; return; }
+      raf = requestAnimationFrame(tick);
+    }
+    b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
     b.addEventListener("pointerdown", function (e) {
-      drag = false; ox = e.clientX - b.offsetLeft; oy = e.clientY - b.offsetTop;
-      t = setTimeout(function () { drag = true; s.background = "rgba(217,72,31,.9)"; try { b.setPointerCapture(e.pointerId); } catch (x) {} }, 500);
+      if (e.button > 0) return;
+      down = true; drag = false; fired = false; pid = e.pointerId;
+      sx = e.clientX; sy = e.clientY; ox = e.clientX - b.offsetLeft; oy = e.clientY - b.offsetTop;
+      try { b.setPointerCapture(e.pointerId); } catch (x) {}
+      t0 = performance.now(); raf = requestAnimationFrame(tick);
     });
     b.addEventListener("pointermove", function (e) {
+      if (!down) return;
+      if (!drag && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { drag = true; stop(); s.background = "rgba(217,72,31,.9)"; }
       if (!drag) return; e.preventDefault();
       var x = Math.max(4, Math.min(innerWidth - 50, e.clientX - ox)), y = Math.max(4, Math.min(innerHeight - 50, e.clientY - oy));
       s.left = x + "px"; s.top = y + "px"; s.bottom = "auto";
     });
-    function end() {
-      clearTimeout(t);
-      if (drag) { s.background = "rgba(27,30,36,.78)"; try { localStorage.setItem("eps.homeBtn", JSON.stringify({ x: b.offsetLeft, y: b.offsetTop })); } catch (e) {} }
+    function end(e, cancel) {
+      if (!down) return; down = false; stop();
+      try { b.releasePointerCapture(pid); } catch (x) {}
+      if (drag) { s.background = BG; try { localStorage.setItem("eps.homeBtn", JSON.stringify({ x: b.offsetLeft, y: b.offsetTop })); } catch (x) {} return; }
+      if (!fired && !cancel) appHome();
     }
-    b.addEventListener("pointerup", end); b.addEventListener("pointercancel", end);
-    b.addEventListener("click", function (e) { if (drag) { e.preventDefault(); drag = false; } });
-    document.body.appendChild(b);
+    b.addEventListener("pointerup", function (e) { end(e, false); });
+    b.addEventListener("pointercancel", function (e) { end(e, true); });
+    b.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); appHome(); } });
+    document.body.appendChild(b); document.body.appendChild(tip);
   }
   /* ================= Bouton « Mise à jour » : récupère les nouveautés (données et application) sans quitter ================= */
   function addUpdate() {

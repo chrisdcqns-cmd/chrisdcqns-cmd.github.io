@@ -6,6 +6,10 @@ Application web pour tablette (escalade en moulinette, lycée), hébergée sur G
 - Groupe (`S.t='grp'`, `grpScr()`, `tgG`, `okG`) après le choix de la classe : `CF.grp={cl,d,el}` valable le jour même pour la classe ; `grp()` le renvoie. Badges prénom `chip()` (pastille couleur `hue()`), plus aucun champ texte quand une liste existe (saisie au clavier seulement en « Sans liste »). Cordée par badges (`roleIn`, `setRole` déplace un élève d'un rôle à l'autre, `autoRoles` pour un groupe de 3, `swapR`).
 - Sac à POF : `F.pofU` Oui/Non puis nombre 1–10 (Non = 0, Oui sans nombre = 1).
 - Habillage : couche CSS « granite, magnésie, corde » en fin de `<style>` (tuiles `--c`, badges `.chip`, barre d'étapes `.prog`).
+- Leçons (`CF.lec` : `{id,cl,d,cr,req,min}` par classe et par date ; `CF.sea` = copie de la leçon active) : `activate(cl)` au choix de la classe (leçon du jour préparée, sinon créée avec `lastCfg`) ; écran enseignant `setup()` → aujourd'hui / à venir (`newLe`, `editLe`, `lecEdit`, `saveLe`, `delLe`) / précédentes (`S.lv`, `lecView`, `xlLe`). Chaque grimpe porte `lid`. Migration : l'ancienne `CF.sea` devient une leçon.
+- Se préparer et assurer : sous-onglets `ech`, `enc`, `ass` ; bloc `{t:'vgs',items:[{ti,sub,v}]}` = vignettes vidéo (vidéo en IndexedDB `v`, `setVg`, `rmVg`, lecture plein écran `playV`) ; migration `CF.m2`. Pas de vidéo tierce dans le dépôt.
+- Mes résultats : onglet Bilan (`bilan()`), blocs `diffsBlock`, `rpTile`, `stx`. Cotation : `pickCv`/`pickCd` font défiler vers `#cvres`.
+- Accueil plein écran : `.homeW` (hauteur = `100dvh - --hh`). `window.epsAppHome` (bouton Accueil commun d'`eps-home.js`).
 - Parcours : 🔒 Leçon du jour (classe, critères `CRIT` cochés/obligatoires, objectif) → accueil → Renseigner une grimpe (prénom → corde → couleur → confirmation → critères) → Mes résultats / Cotation / Thématiques.
 - Vocabulaire : le numéro est celui de la **corde** ; chaque corde porte plusieurs **voies** de couleur (`WDEF` : cotations par corde).
 - Hauteur : 0 = 1re dégaine non dépassée, 1–8 = dernière dégaine dépassée, 9 = Top (`TOP`). Voie réussie = Top. Valeur non choisie = `''`.

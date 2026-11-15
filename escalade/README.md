@@ -8,18 +8,29 @@ Application web pour tablette, pour l'escalade en moulinette au lycée : leçon 
 
 1. **Je suis élève** → l'élève touche sa classe, puis **forme son groupe** en touchant les prénoms (au moins 3 : grimpeur, assureur, contre-assureur). Le groupe reste en mémoire sur la tablette pour la journée ; « Modifier » sur l'accueil.
 2. Aucun prénom ne se tape au clavier : grimpeur, assureur, contre-assureur et observateur se choisissent avec des **badges prénom** (le groupe d'abord, « Un autre élève de la classe » si besoin). Dans un groupe de 3, les deux autres élèves sont proposés d'office comme assureur et contre-assureur (bouton « Inverser »).
-3. Accueil : Se préparer, Cotation, Renseigner une grimpe, Mes résultats, puis Thématiques et Sécurité en bas.
+3. Accueil (tout tient sur un écran) : Se préparer et assurer, Cotation, Renseigner une grimpe, Mes résultats, puis Thématiques et Sécurité en bas.
 
 ## Déroulé
 
 1. **Leçon du jour** (🔒 Enseignant, code) : classe, éléments travaillés (facultatifs ou obligatoires), objectif de voies par élève.
 2. **Renseigner une grimpe** : l'élève choisit son prénom, le numéro de la corde, la couleur de la voie, confirme la cotation, indique **sa cordée** (assureur et contre-assureur obligatoires, observateur facultatif, choisis dans la liste de la classe), puis renseigne les critères du jour (prises, changements de pieds, hauteur de 0 à 8 dégaines ou Top, baudrier, PME, sac à POF : Oui / Non puis combien de fois, commentaire).
    - **Ratio pieds / mains** : dès que les prises de mains et de pieds sont comptées toutes les deux, l'élève voit le nombre de pieds par prise de main, avec un repère couleur : rouge sous 1 (plus de mains que de pieds), orange de 1 à 1,5, vert à partir de 1,5 (il grimpe avec les jambes). Ces seuils sont indicatifs : aucun référentiel officiel ne fixe de valeur chiffrée.
-3. **Mes résultats** : chaque élève retrouve sa dernière leçon et les leçons passées (tableau des voies, difficultés réussies, hauteur).
+3. **Mes résultats** : l'élève touche son prénom ; onglet **Bilan** (toutes ses leçons : voies, Tops, taux de réussite, meilleure difficulté, voies par leçon et par difficulté, hauteur, ratio pieds/mains, rôles tenus, voies les plus grimpées et **prochain défi**), puis un onglet par leçon. chaque élève retrouve sa dernière leçon et les leçons passées (tableau des voies, difficultés réussies, hauteur).
 4. **Cotation** : cotation de chaque voie par corde, et « Je cherche une voie ! » par difficulté.
 5. **Résultats et QRCODE** (mode enseignant) : export Excel, regroupement entre tablettes par QR code, Google Sheets.
 
 Code enseignant par défaut : `1234` (à changer avec le bouton **Code** en mode enseignant).
+
+## Leçons (comme dans Relais Vitesse)
+
+Mode enseignant → **Leçons et classes**, pour la classe choisie :
+- **Aujourd'hui** : la leçon du jour (éléments travaillés, obligatoires, objectif), à modifier ou à commencer. Sans leçon préparée, « Commencer avec les réglages de la dernière leçon » ; quand un élève choisit sa classe, la leçon du jour se crée aussi toute seule avec ces réglages.
+- **Leçons à venir** : « + Préparer une leçon » pour une date précise ; elle s'appliquera automatiquement ce jour-là.
+- **Leçons précédentes** : une ligne par jour, « Consulter » pour le détail par élève (voies, Tops, objectif atteint, rôles), les difficultés, toutes les grimpes et l'**export Excel de la leçon**.
+
+## Vidéos de « Se préparer et assurer »
+
+Les vignettes (nœud de 8 rapide, nœud de 8 version plus lente, assurer en moulinette) se remplissent **sur chaque tablette** : 🔒 Enseignant → Se préparer et assurer → Modifier → « 📹 Choisir la vidéo ». Les vidéos restent dans la mémoire de la tablette : elles ne sont pas publiées dans ce dépôt public (droits des auteurs) et fonctionnent hors connexion.
 
 ## Données et confidentialité
 
