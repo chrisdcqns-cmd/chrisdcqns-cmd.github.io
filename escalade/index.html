@@ -122,8 +122,84 @@ small,.mut{color:var(--mut)}
 .rpm.good{background:#e6f4ea;border-color:#2e9e4f}.rpm.good b{color:#1f7a3d}
 .st.rp-bad b,.rpt.rp-bad{color:#b3261e}.st.rp-mid b,.rpt.rp-mid{color:#9a5c00}.st.rp-good b,.rpt.rp-good{color:#1f7a3d}.rpt{font-weight:700}
 .sea{display:inline-block;background:#e3f1f2;border-radius:999px;padding:4px 14px;font-weight:700;color:var(--ac);margin-bottom:10px}
+
+/* ================= habillage : granite, magnésie, corde ================= */
+:root{--bg:#eef2f4;--ink:#1d2a31;--card:#fff;--ac:#0e7c7b;--ac2:#0a5f5e;--hi:#ffc93c;--mut:#5b6a72;--ln:#d5dee2;--bad:#c92a2a;--ok:#2b8a3e;--r:16px}
+body{font:17px/1.5 "Avenir Next","Segoe UI","Nunito",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);-webkit-font-smoothing:antialiased}
+header{background:var(--ink);padding:12px 18px;gap:12px}
+header b{font-size:21px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.mk{width:30px;height:30px;flex:none}
+nav{padding:0 14px 10px;gap:6px;scrollbar-width:none}nav::-webkit-scrollbar{display:none}
+nav button{padding:9px 16px;border:0;border-radius:999px;color:#c3d0d6;font-weight:700;font-size:16px}
+nav button.on{background:#fff;color:var(--ink)}
+main{padding:18px 16px 40px}
+h2{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:8px 0 10px}
+h3{font-size:22px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.card{border:0;border-radius:var(--r);padding:20px;box-shadow:0 1px 0 #d5dee2,0 6px 18px -12px #1d2a3155}
+.b{border-radius:14px;padding:12px 20px;font-weight:800;min-height:52px;transition:transform .08s,background .15s}
+.b:active{transform:scale(.97)}
+.b:focus-visible,.chip:focus-visible,.tile:focus-visible,nav button:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.b{background:var(--ac)}.b:hover{background:var(--ac2)}
+.b.g{background:#fff;border:2px solid var(--ln);color:var(--ink)}.b.g:hover{border-color:#aebcc2;background:#fff}
+.b.on,.b.on:hover{background:var(--hi);color:var(--ink);border-color:var(--hi)}
+.b.d,.b.d:hover{background:var(--bad)}
+.b:disabled{background:#c9d3d7;color:#6b7a81;transform:none}
+input,select,textarea{border-radius:12px;border:2px solid var(--ln)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px #0e7c7b22}
+/* accueil : grandes tuiles avec une « prise » */
+.tiles{gap:14px}
+.tile{position:relative;overflow:hidden;background:var(--c,#0e7c7b);border-radius:22px;padding:22px 24px;min-height:min(26vh,190px);justify-content:flex-end;box-shadow:0 10px 24px -16px var(--c,#000)}
+.tile::after{content:"";position:absolute;right:-26px;top:-30px;width:150px;height:130px;background:#ffffff26;border-radius:58% 42% 63% 37%/46% 58% 42% 54%;transform:rotate(-14deg)}
+.tile::before{content:"";position:absolute;right:38px;top:34px;width:16px;height:16px;border-radius:50%;background:#ffffff40}
+.tile b{font-size:clamp(24px,3.4vw,32px);font-weight:800;letter-spacing:-.02em;position:relative}
+.tile span{position:relative;margin-top:4px;font-size:16px;opacity:.9}
+.tile.wide{min-height:110px}
+.tile.tprof{outline:3px dashed #ffffff66;outline-offset:-8px}
+/* écrans de démarrage */
+.role h2{font-size:clamp(32px,6vw,46px)}
+.rbtns .tile{justify-content:center}
+.sea{background:#d8ecec;color:var(--ac2);padding:6px 16px;font-size:15px}
+.chcl{min-height:40px;padding:6px 14px;font-size:15px}
+/* badges prénom */
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.names.big{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.chip{display:flex;align-items:center;gap:12px;min-height:58px;padding:8px 14px 8px 8px;background:#fff;border:2px solid var(--ln);border-radius:999px;font:inherit;font-weight:700;text-align:left;color:var(--ink);cursor:pointer;transition:transform .08s,border-color .15s}
+.chip:active{transform:scale(.97)}
+.chip i{flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:19px;color:#fff;background:hsl(var(--h) 55% 42%)}
+.chip span{line-height:1.2}
+.names.big .chip{min-height:70px;font-size:20px}.names.big .chip i{width:52px;height:52px;font-size:22px}
+.chip.on{border-color:var(--ink);background:var(--hi);box-shadow:0 0 0 2px var(--ink) inset}
+.chip.dis{opacity:.38}
+.chip.none{padding-left:18px;color:var(--mut)}.chip.none.on{color:var(--ink)}
+.chip.mini{min-height:40px;padding:4px 12px 4px 4px;font-size:15px;cursor:default;border-width:1px}.chip.mini i{width:30px;height:30px;font-size:14px}
+.grpline{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:2px 0 16px}.grpline>span{font-weight:800;margin-right:4px}
+.gbar{position:sticky;bottom:0;display:flex;gap:10px;justify-content:space-between;padding:14px 0 calc(10px + env(safe-area-inset-bottom));margin-top:18px;background:linear-gradient(transparent,var(--bg) 30%)}
+.gbar .b:last-child{flex:1;max-width:420px;font-size:19px}
+.grpS{max-width:980px;text-align:left}.grpS h2,.grpS>p{text-align:center}
+.lnk{background:none;border:0;color:var(--ac2);font:inherit;font-weight:700;padding:10px 2px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* saisie d'une grimpe */
+.prog{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px}.prog i{height:6px;border-radius:3px;background:var(--ln)}.prog i.d{background:var(--ac)}.prog i.c{background:var(--hi)}
+.sum{background:#e4f1f1;border-radius:14px;padding:12px 14px;font-size:18px}
+.crit{border-top:1px solid #e3e9ec;padding:18px 0}
+.ch b{font-size:18px}
+.cordee .rl{padding:6px 0 10px}.rlh{display:flex;align-items:center;gap:10px;margin:6px 0 10px}.rlh b{font-size:17px}
+.ob{font-size:13px;padding:3px 10px}
+.swap{min-height:40px;padding:6px 14px;font-size:15px}
+.rl.miss,.crit.miss{outline-offset:4px}
+.conf{border-radius:20px}
+.vg .b{border-radius:16px}
+/* dialogues */
+.dlg{background:#1d2a31b3;backdrop-filter:blur(3px)}
+.dbox{border-radius:22px;padding:24px;box-shadow:0 24px 60px -20px #000}
+.dbox p{font-size:19px;font-weight:600}
+.st{background:#f3f7f8;border:0;border-radius:14px}
+.goal{border-radius:22px}
+@media(max-width:600px){main{padding:14px 12px 30px}.card{padding:16px}.names.big{grid-template-columns:1fr 1fr}.names{grid-template-columns:1fr 1fr}.chip{gap:8px}.chip i{width:36px;height:36px;font-size:16px}.gbar .b{font-size:16px}}
+.grid .b,.g9 .b,.g10 .b,.g11 .b,.vg .b{padding:0;min-width:0}
+@media(max-width:600px){.g11{grid-template-columns:repeat(4,1fr)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
-<header><b id="logo">Escalade EPS</b><span id="tm"></span></header>
+<header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
 <main id="m"></main>
 <script>
@@ -156,24 +232,37 @@ let C=LS('c',DEF),W=LS('w',clone(WDEF)),R=LS('r',[]),CF=LS('cf',{tab:'Tablette 1
 const CL0=null;
 C.the?.forEach(b=>{if(b.t=='p'&&typeof b.v=='string')b.v=b.v.replace('• Gestion de la chute (PME)','• Recherche de PME (positions de moindre effort) pour récupérer')});
 let S={t:'home',s:'ech',e:false,T:false,cv:0,ce:null,free:false},F={},QR=[];
-const TABS=[['home','⌂ Accueil'],['prep','Se préparer'],['sec','Sécurité'],['gr','Renseigner une grimpe'],['mr','Mes résultats'],['cot','Cotation'],['the','Thématiques'],['res','Résultats, QR codes et Google Sheets']];
+const TABS=[['home','⌂ Accueil'],['prep','Se préparer'],['cot','Cotation'],['gr','Renseigner une grimpe'],['mr','Mes résultats'],['the','Thématiques'],['sec','Sécurité'],['res','Résultats, QR codes et Google Sheets']];
 const CRIT=[['m','Prises de mains'],['p','Prises de pieds'],['cp','Changements de pieds effectués'],['h','Hauteur : dernière dégaine dépassée'],['a',"S'est assis dans le baudrier ?"],['pm','PME réalisée ? (Position de Moindre Effort)'],['pof','Utilisation sac à POF'],['k','Commentaire']];
 const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
 const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
-function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',com:'',nr:{},asr:'',cas:'',obs:'',asrX:false,casX:false,obsX:false};S.free=false}fresh();
+function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',pofU:null,com:'',nr:{},asr:'',cas:'',obs:'',asrX:false,casX:false,obsX:false};S.free=false}fresh();
+/* groupe de l'élève : choisi après la classe, valable pour la journée et la classe sur cette tablette */
+const grp=()=>{const k=cls(),g=CF.grp;return k&&g&&g.d==today()&&g.cl==k.id?g.el.filter(n=>k.el.includes(n)):[]};
+const hue=n=>{let h=0;for(const c of String(n))h=(h*31+c.charCodeAt(0))>>>0;return h%360};
+const ini=n=>String(n).trim().charAt(0).toUpperCase();
+/* badge prénom : pastille colorée + prénom (aucune saisie au clavier) */
+const chip=(n,{on=false,dis=false,act='',cl=''}={})=>`<button class="chip ${on?'on':''} ${dis?'dis':''} ${cl}" data-n="${esc(n)}" ${act?`onclick="${act}"`:''}><i style="--h:${hue(n)}">${esc(ini(n))}</i><span>${esc(n)}${dzE((cls()||{}).nom,n)}</span></button>`;
 const save=()=>{SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL)};
 function clsScr(){const cur=CF.sea?.cl||'';
  return `<div class="role"><h2>Choisis ta classe</h2><p class="mut">Touche ta classe pour retrouver ta liste de prénoms.</p>
  <div class="rbtns cl">${CL.map(c=>`<button class="tile ${cur==c.id?'cur':''}" style="background:#2e7d4f" onclick="pickCl('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)</span></button>`).join('')}
- <button class="tile" style="background:#5b6b75" onclick="pickCl('')"><b>Autre</b><span>je tape mon prénom</span></button></div>
+ ${CL.length?'':`<button class="tile" style="background:#5b6b75" onclick="pickCl('')"><b>Sans liste</b><span>je tape mon prénom</span></button>`}</div>
  <p style="margin-top:18px"><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`}
-function pickCl(id){if(CF.sea){CF.sea.cl=id;save()}fresh();S.t='home';render();scrollTo(0,0)}
+function pickCl(id){if(CF.sea){CF.sea.cl=id;save()}fresh();const k=cls();S.gs=grp();S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
+/* ---------- groupe ---------- */
+function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
+ return `<div class="role grpS"><h2>Forme ton groupe</h2><p class="mut">${esc(k.nom)} · touche les prénoms des élèves qui grimpent avec toi (au moins 3 : grimpeur, assureur, contre-assureur).</p>
+ <div class="names big">${[...k.el].sort((a,b)=>a.localeCompare(b,'fr')).map(x=>chip(x,{on:sel.includes(x),act:'tgG(this.dataset.n)'})).join('')}</div>
+ <div class="gbar"><button class="b g" onclick="S.t='pickcl';render()">← Changer de classe</button><button class="b" ${n<3?'disabled':''} onclick="okG()">${n<3?`Encore ${3-n} prénom${3-n>1?'s':''} à choisir`:`Valider mon groupe (${n})`}</button></div></div>`}
+function tgG(n){const s=new Set(S.gs||[]);s.has(n)?s.delete(n):s.add(n);S.gs=[...s];const y=scrollY;render();scrollTo(0,y)}
+function okG(){const k=cls();if(!k||(S.gs||[]).length<3)return;CF.grp={cl:k.id,d:today(),el:[...S.gs].sort((a,b)=>a.localeCompare(b,'fr'))};save();fresh();S.t='home';render();scrollTo(0,0)}
 function eleve(){S.T=false;if(!seaOK()){S.t='set';return render()}S.t=CL.length?'pickcl':'home';render()}
 function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK()?`<span class="sea">${esc(cls().nom)}</span>`:''}<p class="mut">Qui utilise la tablette ?</p>
  <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="eleve()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
  <button class="tile tprof" style="background:#16252d" onclick="unlock(seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
 function render(){
- if(S.t=='role'||S.t=='pickcl'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():clsScr();return}
+ if(S.t=='role'||S.t=='pickcl'||S.t=='grp'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():S.t=='grp'?grpScr():clsScr();return}
  if(!S.T){S.e=false;if(S.t=='res'||(S.t=='set'&&seaOK()))S.t='home'}
  if(S.t!='cot')S.cm='';
  if(S.t!='mr'){S.mr='';S.ml=''}
@@ -193,9 +282,9 @@ function render(){
  loadVideos();
 }
 /* ---------- accueil ---------- */
-const TILES=[['prep','Se préparer','#00747a'],['sec','Sécurité','#a4262c'],['gr','Renseigner une grimpe','#b5651d'],['mr','Mes résultats','#2e7d4f'],['cot','Cotation','#5b3f8c','wide'],['the','Thématiques','#3d5a80','wide']];
+const TILES=[['prep','Se préparer','#0e7c7b','','Échauffement, s\'encorder'],['cot','Cotation','#6a3fb5','','Je cherche une voie'],['gr','Renseigner une grimpe','#d9480f','','Corde, voie, cordée'],['mr','Mes résultats','#2b8a3e','','Mes leçons, mes progrès'],['the','Thématiques','#1c5d99','wide','Pistes de travail'],['sec','Sécurité','#c92a2a','wide','Règles et vérifications']];
 function home(){S.e=false;const t=S.T?[['set','📋 Leçon du jour et classes','#16252d','wide tprof'],...TILES,['res','📊 Résultats, QR codes et Google Sheets','#16252d','wide tprof']]:TILES;
- return `<h2 style="margin-top:4px">Escalade EPS</h2>${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}<div class="tiles">${t.map(([k,n,c,x])=>`<button class="tile ${x||''}" style="background:${c}" onclick="S.t='${k}';render()"><b>${n}</b></button>`).join('')}</div>`}
+ return `<h2 style="margin-top:4px">Escalade EPS</h2>${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.t='grp';render()">Modifier</button></div>`:''}<div class="tiles">${t.map(([k,n,c,x,d])=>`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()"><b>${n}</b>${d?`<span>${d}</span>`:''}</button>`).join('')}</div>`}
 /* ---------- leçon du jour / classes ---------- */
 function setup(){
  if(S.ce!=null){const c=CL.find(x=>x.id==S.ce)||{nom:'',el:[]};
@@ -301,15 +390,17 @@ const cs=n=>`<span class="dot" style="background:${COL[n]||'#ccc'}"></span>`;
 function stepper(k){return `<div class="step"><button class="b g" onclick="st('${k}',-1)">−</button><output id="o_${k}">${F[k]}</output><button class="b" onclick="st('${k}',1)">+</button></div>`}
 function st(k,d){F[k]=Math.max(0,F[k]+d);$('#o_'+k).textContent=F[k];upR()}
 const req=k=>on(k)&&(CF.sea?.req||[]).includes(k);
-const FIL={m:()=>F.mains>0,p:()=>F.pieds>0,cp:()=>F.cp!=='',h:()=>F.h!=='',a:()=>!F.as||String(F.asV).trim()!=='',pm:()=>!F.pme||String(F.pmeV).trim()!=='',pof:()=>F.pof!=='',k:()=>F.com.trim()!==''};
+const FIL={m:()=>F.mains>0,p:()=>F.pieds>0,cp:()=>F.cp!=='',h:()=>F.h!=='',a:()=>!F.as||String(F.asV).trim()!=='',pm:()=>!F.pme||String(F.pmeV).trim()!=='',pof:()=>F.pofU===false||(F.pofU===true&&F.pof!==''),k:()=>F.com.trim()!==''};
 const crit=(k,label,inner)=>req(k)?`<div class="crit ${(F.miss||[]).includes(k)?'miss':''}" id="cr_${k}"><div class="ch"><b>${label}</b><span class="ob">★ Obligatoire</span></div><div class="cv">${inner}</div></div>`:`<div class="crit ${F.nr[k]?'off':''}"><div class="ch"><b>${label}</b><label class="nr"><input type="checkbox" ${F.nr[k]?'checked':''} onchange="F.nr['${k}']=this.checked;this.closest('.crit').classList.toggle('off',this.checked);upR()">Non renseigné</label></div><div class="cv">${inner}</div></div>`;
 const ouiNon=(k,kv)=>`<div class="row"><button class="b ${F[k]?'g':'on'}" onclick="F.${k}=false;render()">Non</button><button class="b ${F[k]?'on':'g'}" onclick="F.${k}=true;render()">Oui</button>${F[k]?`<input type="number" inputmode="numeric" min="1" placeholder="Combien de fois ?" aria-label="Combien de fois ?" value="${esc(F[kv])}" oninput="F.${kv}=this.value">`:''}</div>`;
 function go(s){F.step=s;render();scrollTo(0,0)}
 function grimpe(){
- const top=`<p class="mut stp">Étape ${F.step} sur 5</p>`,back=s=>`<p><button class="b g" onclick="go(${s})">← Retour</button></p>`,w=W[F.vo-1]||[];
+ const top=`<div class="prog" aria-hidden="true">${[1,2,3,4,5].map(i=>`<i class="${i<F.step?'d':i==F.step?'c':''}"></i>`).join('')}</div><p class="mut stp">Étape ${F.step} sur 5</p>`,back=s=>`<p><button class="b g" onclick="go(${s})">← Retour</button></p>`,w=W[F.vo-1]||[];
  const k=cls();
- if(F.step==1&&k&&k.el.length&&!S.free)return `<div class="card">${top}<h3>Qui es-tu ?</h3><p class="mut">${esc(k.nom)} · touche ton nom</p><div class="names">${[...k.el].sort((a,b)=>a.localeCompare(b,'fr')).map(n=>`<button class="b ${F.eleve==n?'on':'g'}" data-n="${esc(n)}" onclick="F.eleve=this.dataset.n;go(2)">${esc(n)}${dzE(k.nom,n)}</button>`).join('')}</div><p><button class="b g" onclick="S.free=true;F.eleve='';render()">Mon nom n'est pas dans la liste</button></p></div>`;
- if(F.step==1)return `<div class="card">${top}<h3>Quel est ton prénom ?</h3><input id="pn" value="${esc(F.eleve)}" oninput="F.eleve=this.value" onkeydown="if(event.key=='Enter')nx1()" placeholder="Prénom" autocomplete="off"><p><button class="b" style="width:100%" onclick="nx1()">Suivant →</button></p>${k&&k.el.length?`<p><button class="b g" onclick="S.free=false;render()">← Revenir à la liste</button></p>`:''}</div>`;
+ if(F.step==1&&k&&k.el.length){const g=grp(),all=[...k.el].sort((a,b)=>a.localeCompare(b,'fr')),list=g.length&&!S.free?g:all.filter(n=>!g.includes(n)||!g.length);
+  return `<div class="card">${top}<h3>Qui grimpe ?</h3><p class="mut">${g.length&&!S.free?'Touche le prénom du grimpeur.':esc(k.nom)+' · touche le prénom du grimpeur.'}</p><div class="names ${g.length&&!S.free?'big':''}">${list.map(n=>chip(n,{on:F.eleve==n,act:'F.eleve=this.dataset.n;go(2)'})).join('')}</div>
+  ${g.length?`<p><button class="b g" onclick="S.free=${!S.free};render()">${S.free?'← Mon groupe':'Un autre élève de la classe'}</button></p>`:''}</div>`}
+ if(F.step==1)return `<div class="card">${top}<h3>Quel est ton prénom ?</h3><input id="pn" value="${esc(F.eleve)}" oninput="F.eleve=this.value" onkeydown="if(event.key=='Enter')nx1()" placeholder="Prénom" autocomplete="off"><p><button class="b" style="width:100%" onclick="nx1()">Suivant →</button></p></div>`;
  if(F.step==2)return `<div class="card">${top}<h3>Numéro de la corde</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${F.vo==i+1?'on':'g'}" onclick="F.vo=${i+1};go(3)">${i+1}</button>`).join('')}</div>${back(1)}</div>`;
  if(F.step==3)return `<div class="card">${top}<h3>Corde ${F.vo} : couleur de la voie</h3><div class="cols">${w.map(([c],j)=>`<button class="b g colb" onclick="F.c=W[${F.vo-1}][${j}][0];F.d=W[${F.vo-1}][${j}][1];go(4)">${cs(c)}${esc(c)}</button>`).join('')||'<p class="mut">Aucune couleur pour cette corde.</p>'}</div>${back(2)}</div>`;
  if(F.step==4)return `<div class="card">${top}<h3>Vérifie ta voie</h3><div class="conf" style="border-color:${COL[F.c]||'#ccc'}">${cs(F.c)}<div><b>Corde ${F.vo}</b> · voie ${esc(F.c)}<br><span class="mut" style="font-size:18px">Difficulté</span> <span class="cot">${esc(F.d)}</span></div></div><p>Est-ce bien la voie que tu as grimpée ?</p><div class="row"><button class="b g" onclick="go(3)">Non, revenir</button><button class="b" onclick="go(5)">Oui, c'est ça</button></div></div>`;
@@ -323,7 +414,7 @@ function critForm(){const n10=[1,2,3,4,5,6,7,8,9,10];
   cp:()=>`<div class="g11">${[0,...n10].map(n=>`<button class="b ${F.cp===n?'on':'g'}" onclick="F.cp=${n};render()">${n}</button>`).join('')}</div>`,
   h:()=>`<div class="g9">${[0,1,2,3,4,5,6,7,8,9].map(n=>`<button class="b ${F.h===n?'on':'g'} ${n==9?'tp':''}" onclick="F.h=${n};render()">${hl(n)}</button>`).join('')}</div>`,
   a:()=>ouiNon('as','asV'),pm:()=>ouiNon('pme','pmeV'),
-  pof:()=>`<select onchange="F.pof=this.value"><option value="">Choisir…</option>${[0,...n10].map(n=>`<option ${String(F.pof)===String(n)?'selected':''}>${n}</option>`).join('')}</select>`,
+  pof:()=>`<div class="row"><button class="b ${F.pofU===false?'on':'g'}" onclick="F.pofU=false;F.pof='';render()">Non</button><button class="b ${F.pofU?'on':'g'}" onclick="F.pofU=true;render()">Oui</button></div>${F.pofU?`<p class="mut" style="margin:12px 0 6px">Combien de fois ?</p><div class="g10">${n10.map(n=>`<button class="b ${F.pof===n?'on':'g'}" onclick="F.pof=${n};render()">${n}</button>`).join('')}</div>`:''}`,
   k:()=>`<textarea oninput="F.com=this.value">${esc(F.com)}</textarea>`};
  return CRIT.filter(([k])=>on(k)).map(([k,n])=>crit(k,n,I[k]())+(k=='p'&&on('m')?`<div id="rpm">${ratioBox()}</div>`:'')).join('')}
 const done=()=>R.filter(r=>r.el==F.eleve&&String(r.ts).startsWith(today())&&(r.cl||'')==(cls()?.nom||'')).length;
@@ -334,15 +425,20 @@ async function undo(){if(!await ask('Annuler cet enregistrement ?\nLa grimpe ser
 async function delRec(id){const r=R.find(x=>x.id==id);if(!r||!await ask('Supprimer la grimpe de '+(r.el||'cet élève')+' (corde '+r.vo+', voie '+r.c+', '+r.ts+') ?'))return;shDel([r.id]);R=R.filter(x=>x!==r);save();render()}
 /* ---------- cordée : assureur, contre-assureur (obligatoires), observateur (facultatif) ---------- */
 const ROLES=[['asr','Assureur',1],['cas','Contre-assureur',1],['obs','Observateur',0]];
-function roleIn(k,label,need){const names=(cls()?.el||[]).filter(n=>n!=F.eleve).sort((a,b)=>a.localeCompare(b,'fr')),v=F[k],miss=(F.miss||[]).includes(k);
- const lab=`<label class="l" style="margin:10px 0 6px">${label} ${need?'<span class="ob" style="font-size:13px;padding:3px 9px">★ Obligatoire</span>':'<small class="mut">(facultatif)</small>'}</label>`;
- const txt=`<input value="${esc(v)}" placeholder="Prénom" autocomplete="off" oninput="F.${k}=this.value">`;
- if(!names.length)return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}${txt}</div>`;
- if(F[k+'X'])return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<div class="row">${txt}<button class="b g fix" onclick="F.${k}X=false;F.${k}='';render()">← Liste</button></div></div>`;
- return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<select onchange="if(this.value=='__x'){F.${k}X=true;F.${k}='';render()}else F.${k}=this.value"><option value="">${need?'Choisir…':'Personne'}</option>${names.map(n=>`<option value="${esc(n)}" ${n==v?'selected':''}>${esc(n)}${dzE((cls()||{}).nom,n)?' 🩹':''}</option>`).join('')}<option value="__x">Autre (taper le prénom)</option></select></div>`}
-const roles=()=>`<div class="crit"><div class="ch"><b>Ta cordée</b></div>${ROLES.map(([k,l,n])=>roleIn(k,l,n)).join('')}</div>`;
+function roleIn(k,label,need){const kk=cls(),all=(kk?.el||[]).filter(n=>n!=F.eleve).sort((a,b)=>a.localeCompare(b,'fr')),g=grp().filter(n=>n!=F.eleve),v=F[k],miss=(F.miss||[]).includes(k);
+ const lab=`<div class="rlh"><b>${label}</b>${need?'<span class="ob">★ Obligatoire</span>':'<small class="mut">facultatif</small>'}</div>`;
+ if(!all.length)return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<input value="${esc(v)}" placeholder="Prénom" autocomplete="off" oninput="F.${k}=this.value"></div>`;
+ const wide=F[k+'X']||!g.length,list=wide?all:g,used=n=>ROLES.some(([o])=>o!=k&&F[o]==n);
+ const extra=v&&!list.includes(v)?[v]:[];
+ return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<div class="names">${[...extra,...list].map(n=>chip(n,{on:v==n,dis:used(n)&&v!=n,act:`setRole('${k}',this.dataset.n)`})).join('')}${need?'':`<button class="chip none ${v?'':'on'}" onclick="F.${k}='';render()"><span>Personne</span></button>`}</div>
+ ${g.length?`<button class="lnk" onclick="F.${k}X=${!F[k+'X']};render()">${F[k+'X']?'← Seulement mon groupe':'Un autre élève de la classe'}</button>`:''}</div>`}
+function setRole(k,n){const y=scrollY;if(F[k]==n)F[k]='';else{ROLES.forEach(([o])=>{if(o!=k&&F[o]==n)F[o]=''});F[k]=n}F.miss=(F.miss||[]).filter(x=>x!=k);render();scrollTo(0,y)}
+/* groupe de 3 : les deux autres sont proposés comme assureur et contre-assureur (inversables) */
+function autoRoles(){const o=grp().filter(n=>n!=F.eleve);if(o.length==2&&!F.asr&&!F.cas&&!F.auto){F.asr=o[0];F.cas=o[1];F.auto=1}}
+function swapR(){[F.asr,F.cas]=[F.cas,F.asr];const y=scrollY;render();scrollTo(0,y)}
+const roles=()=>{autoRoles();return `<div class="crit cordee"><div class="ch"><b>Ta cordée</b>${F.asr&&F.cas?'<button class="b g swap" onclick="swapR()">⇄ Inverser assureur et contre-assureur</button>':''}</div>${ROLES.map(([k,l,n])=>roleIn(k,l,n)).join('')}</div>`};
 function nx1(){F.eleve=F.eleve.trim();if(!F.eleve){say('Écris ton prénom.');return $('#pn').focus()}go(2)}
-function again(same){const e=F.eleve,k={};ROLES.forEach(([r])=>{k[r]=F[r];k[r+'X']=F[r+'X']});fresh();if(same){Object.assign(F,k);F.eleve=e;F.step=2}go(F.step)}
+function again(same){const e=F.eleve,k={auto:F.auto};ROLES.forEach(([r])=>{k[r]=F[r];k[r+'X']=F[r+'X']});fresh();if(same){Object.assign(F,k);F.eleve=e;F.step=2}go(F.step)}
 function rec(){ROLES.forEach(([k])=>F[k]=String(F[k]||'').trim());
  const rm=ROLES.filter(([k,,n])=>n&&!F[k]).map(([k,l])=>[k,l]),same=ROLES.filter(([k])=>F[k]&&nrm(F[k])==nrm(F.eleve));
  if(same.length){F.miss=same.map(x=>x[0]);render();return say("Tu ne peux pas être à la fois grimpeur et "+same.map(x=>x[1].toLowerCase()).join(' / ')+'.')}
@@ -351,7 +447,7 @@ function rec(){ROLES.forEach(([k])=>F[k]=String(F[k]||'').trim());
  if(miss.length){F.miss=miss.map(m=>m[0]);render();document.getElementById('cr_'+F.miss[0]).scrollIntoView({behavior:'smooth',block:'center'});
   return say('Il manque '+(miss.length>1?'des éléments obligatoires':'un élément obligatoire')+' :\n• '+miss.map(m=>m[1].replace(/ \?.*$| :.*$/,'')).join('\n• '))}
  F.miss=[];const n=F.nr,x=(k,v)=>(n[k]&&!req(k))||!on(k)?'':v;
- F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pof===''?'':Number(F.pof)),k:x('k',F.com),asr:F.asr,cas:F.cas,obs:F.obs});
+ F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pofU===false?0:F.pofU?(F.pof===''?1:Number(F.pof)):''),k:x('k',F.com),asr:F.asr,cas:F.cas,obs:F.obs});
  save();shAdd(F.last);go(6)}
 /* ---------- mes résultats ---------- */
 const fnum=x=>x.toLocaleString('fr-FR',{maximumFractionDigits:1});

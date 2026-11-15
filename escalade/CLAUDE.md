@@ -3,6 +3,9 @@
 Application web pour tablette (escalade en moulinette, lycée), hébergée sur GitHub Pages : `escalade/index.html` contient tout (HTML + CSS + JS, aucune bibliothèque externe : lecture/écriture .xlsx et QR codes faits main).
 
 - Écran de démarrage `S.t='role'` (`roleScr()`) : « Je suis élève » / « Je suis enseignant » (code `CF.pin`). Après « Je suis élève » : choix de la classe (`S.t='pickcl'`, `clsScr()`, `pickCl(id)` → `CF.sea.cl`), « Changer de classe » sur l'accueil élève. Accueil enseignant : tuiles « Leçon du jour et classes » et « Résultats, QR codes et Google Sheets » (`res`).
+- Groupe (`S.t='grp'`, `grpScr()`, `tgG`, `okG`) après le choix de la classe : `CF.grp={cl,d,el}` valable le jour même pour la classe ; `grp()` le renvoie. Badges prénom `chip()` (pastille couleur `hue()`), plus aucun champ texte quand une liste existe (saisie au clavier seulement en « Sans liste »). Cordée par badges (`roleIn`, `setRole` déplace un élève d'un rôle à l'autre, `autoRoles` pour un groupe de 3, `swapR`).
+- Sac à POF : `F.pofU` Oui/Non puis nombre 1–10 (Non = 0, Oui sans nombre = 1).
+- Habillage : couche CSS « granite, magnésie, corde » en fin de `<style>` (tuiles `--c`, badges `.chip`, barre d'étapes `.prog`).
 - Parcours : 🔒 Leçon du jour (classe, critères `CRIT` cochés/obligatoires, objectif) → accueil → Renseigner une grimpe (prénom → corde → couleur → confirmation → critères) → Mes résultats / Cotation / Thématiques.
 - Vocabulaire : le numéro est celui de la **corde** ; chaque corde porte plusieurs **voies** de couleur (`WDEF` : cotations par corde).
 - Hauteur : 0 = 1re dégaine non dépassée, 1–8 = dernière dégaine dépassée, 9 = Top (`TOP`). Voie réussie = Top. Valeur non choisie = `''`.

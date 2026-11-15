@@ -4,10 +4,16 @@ Application web pour tablette, pour l'escalade en moulinette au lycée : leçon 
 
 👉 **Ouvrir l'application : https://chrisdcqns-cmd.github.io/escalade/**
 
+## Côté élève
+
+1. **Je suis élève** → l'élève touche sa classe, puis **forme son groupe** en touchant les prénoms (au moins 3 : grimpeur, assureur, contre-assureur). Le groupe reste en mémoire sur la tablette pour la journée ; « Modifier » sur l'accueil.
+2. Aucun prénom ne se tape au clavier : grimpeur, assureur, contre-assureur et observateur se choisissent avec des **badges prénom** (le groupe d'abord, « Un autre élève de la classe » si besoin). Dans un groupe de 3, les deux autres élèves sont proposés d'office comme assureur et contre-assureur (bouton « Inverser »).
+3. Accueil : Se préparer, Cotation, Renseigner une grimpe, Mes résultats, puis Thématiques et Sécurité en bas.
+
 ## Déroulé
 
 1. **Leçon du jour** (🔒 Enseignant, code) : classe, éléments travaillés (facultatifs ou obligatoires), objectif de voies par élève.
-2. **Renseigner une grimpe** : l'élève choisit son prénom, le numéro de la corde, la couleur de la voie, confirme la cotation, indique **sa cordée** (assureur et contre-assureur obligatoires, observateur facultatif, choisis dans la liste de la classe), puis renseigne les critères du jour (prises, changements de pieds, hauteur de 0 à 8 dégaines ou Top, baudrier, PME, sac à POF, commentaire).
+2. **Renseigner une grimpe** : l'élève choisit son prénom, le numéro de la corde, la couleur de la voie, confirme la cotation, indique **sa cordée** (assureur et contre-assureur obligatoires, observateur facultatif, choisis dans la liste de la classe), puis renseigne les critères du jour (prises, changements de pieds, hauteur de 0 à 8 dégaines ou Top, baudrier, PME, sac à POF : Oui / Non puis combien de fois, commentaire).
    - **Ratio pieds / mains** : dès que les prises de mains et de pieds sont comptées toutes les deux, l'élève voit le nombre de pieds par prise de main, avec un repère couleur : rouge sous 1 (plus de mains que de pieds), orange de 1 à 1,5, vert à partir de 1,5 (il grimpe avec les jambes). Ces seuils sont indicatifs : aucun référentiel officiel ne fixe de valeur chiffrée.
 3. **Mes résultats** : chaque élève retrouve sa dernière leçon et les leçons passées (tableau des voies, difficultés réussies, hauteur).
 4. **Cotation** : cotation de chaque voie par corde, et « Je cherche une voie ! » par difficulté.
