@@ -505,7 +505,7 @@ async function setVg(k,i,j,inp){const it=C[k][i].items[j];if(inp===null){if(it.v
  if(it.v)await idb('del',it.v);it.v='v'+Date.now();await idb('put',it.v,f);save();render();say(syOk()?'Vidéo enregistrée. Elle part maintenant dans votre Google Drive, puis les autres tablettes la téléchargeront toutes seules.':'Vidéo enregistrée sur cette tablette.');setTimeout(vidAuto,300)}
 async function rmVg(k,i,j){const b=C[k][i];if(!await ask('Supprimer la vignette « '+b.items[j].ti+' » ?'))return;if(b.items[j].v)await idb('del',b.items[j].v);b.items.splice(j,1);if(!b.items.length)C[k].splice(i,1);save();render()}
 async function playV(k,i,j){const it=C[k][i].items[j];if(!it.v)return say("L'enseignant n'a pas encore ajouté cette vidéo.");
- if(!VH.has(it.v)){if(VS[it.v])return;if(!vRem(it.v))return say(syOk()?"Cette vidéo n'est pas encore en ligne : elle sera disponible dès que la tablette de l'enseignant l'aura envoyée.":"Cette vidéo n'est pas sur cette tablette. Pour la télécharger, l'enseignant doit d'abord régler Google Sheets (clé secrète) dans Résultats.");if(!await vidDown(it.v))return say('Téléchargement impossible pour le moment (réseau ?). Réessaie dans un instant.')}const bl=await idb('get',it.v);if(!bl)return say('Vidéo introuvable sur cette tablette.');
+ if(!VH.has(it.v)){if(VS[it.v])return;if(!vRem(it.v))return say(syOk()?"Cette vidéo n'est pas encore en ligne : elle sera disponible dès que la tablette de l'enseignant l'aura envoyée.":"Cette vidéo n'est pas sur cette tablette. Pour la télécharger, l'enseignant doit d'abord régler Google Sheets (clé secrète) dans Résultats.");if(!await vidDown(it.v))return say('Téléchargement impossible : '+(VERR||'réessaie dans un instant.'))}const bl=await idb('get',it.v);if(!bl)return say('Vidéo introuvable sur cette tablette.');
  const u=URL.createObjectURL(bl),d=document.createElement('div');d.className='vmod';d.innerHTML=`<div class="vbox"><div class="vh"><b>${esc(it.ti)} ${it.sub?`<small>${esc(it.sub)}</small>`:''}</b><button class="b g" aria-label="Fermer">✕ Fermer</button></div><video controls playsinline autoplay src="${u}"></video></div>`;
  const close=()=>{d.remove();URL.revokeObjectURL(u)};d.querySelector('button').onclick=close;d.onclick=e=>{if(e.target===d)close()};document.body.append(d)}
 /* ---------- grimpe ---------- */
@@ -913,7 +913,7 @@ function vBar(){const refs=vidRefs(),miss=Object.keys(refs).filter(k=>!VH.has(k)
  const empty=Object.values(C).flat().filter(b=>b&&b.t=='vgs').flatMap(b=>b.items||[]).filter(x=>!x.v).length,gN=Object.values(SY.vids||{}).filter(x=>x.g).length;
  const bar=(t,btn)=>`<div class="vbar"><span>${t}</span>${btn||''}</div>`,chk=`<button class="b g" onclick="vCheck()">↻ Vérifier</button>`;
  if(busy.length){const k=busy[0];return bar(`⬇️ Téléchargement des vidéos… ${Math.round(VS[k].p*100)} %`)}
- if(dl.length)return bar(`⬇️ ${dl.length} vidéo${dl.length>1?'s':''} à télécharger sur cette tablette`,`<button class="b" onclick="vidAll()">Télécharger ${dl.length>1?'les vidéos':'la vidéo'}</button>`);
+ if(dl.length)return bar(`⬇️ ${dl.length} vidéo${dl.length>1?'s':''} à télécharger sur cette tablette${VERR?`<br><small>⚠️ ${esc(VERR)}</small>`:''}`,`<button class="b" onclick="vidAll()">Télécharger ${dl.length>1?'les vidéos':'la vidéo'}</button>`);
  if(!miss.length&&!empty)return '';
  if(!SH.key)return bar("Les vidéos ne sont pas encore sur cette tablette. Pour les télécharger, il faut saisir la clé secrète une fois : 🔒 Enseignant → Résultats → Google Sheets.");
  if(SY.err)return bar('⚠️ '+esc(SY.err),chk);
@@ -938,12 +938,23 @@ async function vidUp(k){const b=await idb('get',k);if(!b)return false;const n=Ma
  try{for(let i=0;i<n;i++){const x=await blobB64(b.slice(i*VCH,(i+1)*VCH));if(x==null)throw 0;
    await fetch(SH.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:SH.key,vup:{name:k,i,n,b64:x,size:b.size,type:b.type||'video/mp4',title:vidRefs()[k]||''}})});VS[k].p=(i+1)/n;vidUI()}
   const d=await shJ({vlist:1},25000);if(d&&d.vids)SY.vids=d.vids;sySave();return vRem(k)}catch(e){return false}finally{delete VS[k];vidUI()}}
-async function vidDown(k){const r=SY.vids&&SY.vids[k];if(!r||VS[k])return false;VS[k]={st:'down',p:0};vidUI();
- try{const parts=[];for(let i=0;i<r.n;i++){const d=await shJ({vget:k,i},60000);if(!d||!d.part)throw 0;parts.push(unb64(d.part));VS[k].p=(i+1)/r.n;vidUI()}
-  await idb('put',k,new Blob(parts,{type:r.type||'video/mp4'}));return true}catch(e){return false}finally{delete VS[k];vidUI()}}
-async function vGet(k){if(VH.has(k))return;if(!vRem(k))return say(syOk()?"Cette vidéo n'est pas encore en ligne.":"Pour télécharger les vidéos, l'enseignant doit régler Google Sheets (clé secrète) sur cette tablette.");if(!await vidDown(k))say('Téléchargement impossible pour le moment (réseau ?).')}
+/* téléchargement par morceaux : liste fraîche, 3 essais par morceau, erreur exacte gardée dans VERR */
+var VERR='';
+const vErrTxt=e=>/permission|autoris|authoriz|external_request|UrlFetch/i.test(e)?"Le script Google n'a pas encore toutes les autorisations : dans Apps Script, exécutez « autoriserDrive », acceptez, puis redéployez (Nouvelle version).":/introuvable|plus dans le dossier/i.test(e)?"Vidéo introuvable dans le dossier Google Drive (déplacée ou supprimée ?). Touchez « ↻ Vérifier ».":e;
+async function vidDown(k){if(VS[k])return false;VERR='';
+ const L=await shJ({vlist:1},25000);if(!L){VERR="Pas de réponse du script Google (connexion ou adresse du script).";return false}
+ if(!L.keyOk){VERR='La clé secrète de cette tablette ne correspond pas à celle du script.';return false}
+ if(L.vids){SY.vids=L.vids;sySave()}const r=SY.vids&&SY.vids[k];if(!r){VERR='Cette vidéo n\'est plus dans Google Drive. Touchez « ↻ Vérifier ».';return false}
+ VS[k]={st:'down',p:0};vidUI();
+ try{const parts=[];for(let i=0;i<r.n;i++){let d=null;
+   for(let t=0;t<3;t++){d=await shJ({vget:k,i},90000);if(d&&d.part)break;if(d&&d.verr&&t==1)break;await new Promise(x=>setTimeout(x,1500))}
+   if(!d){VERR='Pas de réponse du script Google pour le morceau '+(i+1)+'/'+r.n+'.';throw 0}
+   if(!d.part){VERR=vErrTxt(d.verr||(d.v<6?'Le script Google doit être mis à jour (version 6).':'morceau vide'));throw 0}
+   parts.push(unb64(d.part));VS[k].p=(i+1)/r.n;vidUI()}
+  await idb('put',k,new Blob(parts,{type:r.type||'video/mp4'}));return true}catch(e){if(!VERR)VERR='erreur pendant l\'enregistrement sur la tablette (mémoire pleine ?)';return false}finally{delete VS[k];vidUI()}}
+async function vGet(k){if(VH.has(k))return;if(!vRem(k))return say(syOk()?"Cette vidéo n'est pas encore en ligne.":"Pour télécharger les vidéos, l'enseignant doit régler Google Sheets (clé secrète) sur cette tablette.");if(!await vidDown(k))say('Téléchargement impossible : '+(VERR||'réessaie dans un instant.'))}
 let vBusy=false;
-async function vidAll(){if(vBusy)return;vBusy=true;try{for(const k of Object.keys(vidRefs()))if(!VH.has(k)&&vRem(k))await vidDown(k)}finally{vBusy=false;vidUI()}}
+async function vidAll(){if(vBusy)return;vBusy=true;let bad='';try{for(const k of Object.keys(vidRefs()))if(!VH.has(k)&&vRem(k)&&!await vidDown(k)){bad=VERR;break}}finally{vBusy=false;vidUI()}if(bad)say('Téléchargement impossible : '+bad)}
 /* automatique : la tablette qui a la vidéo l'envoie, les autres la téléchargent (une à la fois, seulement en ligne) */
 async function vidAuto(){if(vBusy||!syOk()||navigator.onLine===false||!(await db))return;vBusy=true;
  try{for(const k of Object.keys(vidRefs())){if(VS[k])continue;if(VH.has(k)&&!vRem(k)&&!k.startsWith('g_')){await vidUp(k);break}if(!VH.has(k)&&vRem(k)){await vidDown(k);break}}}finally{vBusy=false}}

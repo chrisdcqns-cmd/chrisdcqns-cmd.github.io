@@ -17,8 +17,8 @@
 const SECRET = 'CHANGE-MOI';
 
 const SHEET_NAME = 'Grimpes';
-const VERSION = 5; // 3 : colonnes rangées par titre ; 4 : synchronisation + vidéos Drive ; 5 : vidéos déposées à la main dans le dossier Drive
-const CH_RAW = 2 * 1024 * 1024; // morceaux de 2 Mo pour le téléchargement
+const VERSION = 6; // 3 : colonnes rangées par titre ; 4 : synchronisation + vidéos Drive ; 5 : vidéos déposées à la main dans le dossier Drive ; 6 : erreurs de téléchargement expliquées, lecture de secours, morceaux de 1 Mo
+const CH_RAW = 1024 * 1024; // morceaux de 1 Mo pour le téléchargement
 const SYNC_SHEET = 'Sync';
 const VID_FOLDER = 'Escalade EPS – vidéos';
 
@@ -102,7 +102,7 @@ function doGet(e) {
   if (res.keyOk) { res.sync = 1; res.vid = 1; }
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
   if (res.keyOk && p.vlist !== undefined) res.vids = vidList_();
-  if (res.keyOk && p.vget !== undefined) res.part = vidGet_(p.vget, p.i);
+  if (res.keyOk && p.vget !== undefined) { try { res.part = vidGet_(p.vget, p.i); if (!res.part) res.verr = 'morceau introuvable'; } catch (err) { res.verr = String((err && err.message) || err); } }
   // Vérification de réception : l'application envoie les identifiants qu'elle vient de transmettre,
   // le script répond ceux qui sont bien présents dans la feuille.
   if (res.keyOk && p.ids !== undefined) {
@@ -232,7 +232,7 @@ function vidFolder_() {
   props.setProperty('vidFolder', f.getId());
   return f;
 }
-function vidName_(v) { v = String(v || ''); if (!/^[A-Za-z0-9_-]{1,40}$/.test(v)) throw new Error('nom'); return v; }
+function vidName_(v) { v = String(v || ''); if (!/^[A-Za-z0-9_-]{1,90}$/.test(v)) throw new Error('nom de vidéo invalide'); return v; }
 function vidPut_(u) {
   const name = vidName_(u.name), i = Number(u.i), n = Number(u.n);
   if (!(i >= 0 && i < n && n <= 200)) return { ok: false, error: 'part' };
@@ -270,11 +270,20 @@ function vidGet_(v, i) {
   if (v.indexOf('g_') === 0) { // vidéo déposée à la main : lecture d'un morceau (Range) sans charger tout le fichier
     const id = v.slice(2), f = DriveApp.getFileById(id), fid = vidFolder_().getId();
     let inside = false; const ps = f.getParents(); while (ps.hasNext()) if (ps.next().getId() === fid) inside = true;
-    if (!inside) return '';
+    if (!inside) throw new Error("la vidéo n'est plus dans le dossier « " + VID_FOLDER + " »");
     const size = f.getSize(), a = Number(i) * CH_RAW, b = Math.min(size, a + CH_RAW) - 1;
-    if (a >= size) return '';
-    const r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media', { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), Range: 'bytes=' + a + '-' + b }, muteHttpExceptions: true });
-    return r.getResponseCode() < 300 ? Utilities.base64Encode(r.getContent()) : '';
+    if (a >= size) throw new Error('morceau ' + i + ' au-delà de la fin du fichier');
+    let why = '';
+    try { // 1) lecture d'un seul morceau (rapide)
+      const r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media', { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), Range: 'bytes=' + a + '-' + b }, muteHttpExceptions: true });
+      const c = r.getResponseCode();
+      if (c === 206 || (c === 200 && size <= CH_RAW)) return Utilities.base64Encode(r.getContent());
+      if (c === 200) return Utilities.base64Encode(r.getContent().slice(a, b + 1));
+      why = 'Drive a répondu ' + c;
+    } catch (err) { why = String((err && err.message) || err); }
+    // 2) secours : lecture du fichier entier puis découpe (plus lent, mais sans autorisation supplémentaire)
+    try { return Utilities.base64Encode(f.getBlob().getBytes().slice(a, b + 1)); }
+    catch (err) { throw new Error(why + ' / ' + ((err && err.message) || err)); }
   }
   const it = vidFolder_().getFilesByName(vidName_(v) + '.' + Number(i) + '.part');
   return it.hasNext() ? it.next().getBlob().getDataAsString() : '';

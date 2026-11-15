@@ -36,7 +36,7 @@ Toutes les tablettes qui ont **la même clé secrète** (🔒 Enseignant → Ré
 
 **Vidéos** (vignettes nœud de 8, assurage, fiches) : l'enseignant choisit la vidéo **une seule fois**, sur n'importe quel appareil (🔒 Enseignant → Se préparer et assurer → Modifier → « 📹 Choisir la vidéo »). Elle part dans **son Google Drive** (dossier privé « Escalade EPS – vidéos », créé par le script), jamais dans ce dépôt public. Les autres tablettes la téléchargent toutes seules ; un bandeau « ⬇️ Télécharger les vidéos » permet aussi de lancer le téléchargement, et toucher une vignette absente la télécharge avant de la lire. Une fois téléchargée, la vidéo fonctionne hors connexion.
 
-> Pour la synchronisation et les vidéos, le script Google doit être en **version 5** (fichier `apps-script/Code.gs` actuel). Après avoir collé le nouveau code (et remis ta clé secrète) :
+> Pour la synchronisation et les vidéos, le script Google doit être en **version 6** (fichier `apps-script/Code.gs` actuel). Après avoir collé le nouveau code (et remis ta clé secrète) :
 > 1. dans l'éditeur Apps Script, choisis la fonction **`autoriserDrive`** dans la liste en haut, puis clique sur **Exécuter** : Google demande l'autorisation d'accéder à Google Drive (« Paramètres avancés → Accéder à … (non sécurisé) » si l'écran d'avertissement apparaît, c'est ton propre script) ; le dossier **« Escalade EPS – vidéos »** apparaît alors dans ton Drive ;
 > 2. **Déployer → Gérer les déploiements → ✏️ → Version : Nouvelle version → Déployer** (l'adresse ne change pas).
 
