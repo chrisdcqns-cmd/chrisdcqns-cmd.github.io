@@ -260,6 +260,7 @@ details.more .names{margin-top:8px}
 .ccard dl{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:2px 0;font-size:13px}.ccard dt{color:#5b6a72}.ccard dd{margin:0;font-weight:800;text-align:right}
 .ctri{display:flex;flex-wrap:wrap;gap:4px}.ctri span{font-size:12px;font-weight:800;padding:2px 7px;border-radius:99px;background:#eef3f5;color:#1d2a31}.ctri span.ok{background:#2b8a3e;color:#fff}
 .clow{margin:0;font-size:12.5px;font-weight:700;color:#c92a2a}.clast{margin:0;font-size:12px;color:#5b6a72}
+.ccard ol.cgl{list-style:none;margin:2px 0 0;padding:6px 0 0;border-top:1px solid #e3e9ec;display:flex;flex-direction:column;gap:3px}.ccard ol.cgl li{display:flex;align-items:center;gap:6px;font-size:12.5px}.ccard ol.cgl time{font-weight:800;font-variant-numeric:tabular-nums;color:#1d2a31}.ccard ol.cgl .dot{width:11px;height:11px;margin:0;flex:none;display:inline-block}.ccard ol.cgl b{font-size:inherit;font-weight:800}.ccard ol.cgl li{flex-wrap:nowrap}.ccard ol.cgl span{flex:1;min-width:0;color:#5b6a72}.ccard ol.cgl em{font-style:normal;font-weight:800}.ccard ol.cgl li.cok em{color:#2b8a3e}.ccard ol.cgl li.clo em{color:#c92a2a}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -419,7 +420,7 @@ function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.n
   <dl><dt>Meilleure réussite</dt><dd>${best?esc(best):'–'}</dd><dt>Hauteur max</dt><dd>${H.length?(Math.max(...H)==TOP?'Top':Math.max(...H)+' dég.'):'–'}</dd><dt>Tops</dt><dd>${M.filter(r=>Number(r.h)==TOP).length}</dd></dl>
   ${tri.length?`<div class="ctri">${tri.map(([d,o])=>`<span class="${o?'ok':''}">${esc(d)}</span>`).join('')}</div>`:''}
   ${low?`<p class="clow">🟥 ${low}× sous la ligne rouge${M.filter(r=>r.why).length?' · '+esc(M.filter(r=>r.why).slice(-1)[0].why):''}</p>`:''}
-  <p class="clast">${last?'Dernière grimpe '+esc(String(last.ts).slice(11,16))+' · '+cs(last.c)+'corde '+last.vo:'Pas encore de grimpe'}</p></div>`};
+  ${M.length?`<ol class="cgl">${M.map(r=>`<li class="${Number(r.h)==TOP?'cok':Number(r.h)===0&&r.h!==''?'clo':''}"><time>${esc(String(r.ts).slice(11,16))}</time>${cs(r.c)}<span>C${r.vo} · <b>${esc(r.d)}</b></span><em>${isNum(r.h)?(Number(r.h)==TOP?'Top':r.h+' dég.'):'–'}</em></li>`).join('')}</ol>`:'<p class="clast">Pas encore de grimpe</p>'}</div>`};
  const act=names.filter(n=>L.some(r=>r.el==n)).length;
  return `<div class="ctlh"><div><h2 style="margin:0">Tablette de contrôle</h2><p class="mut" style="margin:2px 0 0">${k?esc(k.nom):'Sans liste'} · ${cap(fday(t,true))}${cfg?.obj?' · 🎯 '+esc(cfg.obj):''} · mise à jour automatique</p></div>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'}" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}</button>`).join('')}</div></div>

@@ -1900,7 +1900,9 @@ function pEnc(t){let o='';for(const ch of String(t??'')){if(PSUB[ch]){o+=PSUB[ch
 const pEsc=x=>x.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
 function pW(t,size,bold){const T=bold?HWB:HWN;let w=0;for(const ch of pEnc(t)){const c=ch.charCodeAt(0),base=c<127?c:(String.fromCharCode(c).normalize('NFD').charCodeAt(0));w+=T[(base>=32&&base<127?base:110)-32]||556}return w*size/1000}
 const pCol=h=>{h=h.replace('#','');const n=parseInt(h.length==3?h.split('').map(x=>x+x).join(''):h,16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255].map(v=>v.toFixed(3)).join(' ')};
-function PDFDoc(){const W=595.28,H=841.89,M=40,pages=[];let c=null;const d={W,H,M,y:0,pages};
+function PDFDoc(){const W=595.28,H=841.89,M=40,pages=[],imgs=[];let c=null;const d={W,H,M,y:0,pages};
+ /* image JPEG (octets, largeur et hauteur en pixels) placée en x,y sur w×h points */
+ d.image=(b,iw,ih,x,y,w,h)=>{const k=imgs.length;imgs.push({b,w:iw,h:ih});c.push(`q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${(H-y-h).toFixed(2)} cm /Im${k} Do Q`)};
  d.page=()=>{c=[];pages.push(c);d.y=M;return d};
  d.text=(x,y,t,{size=11,bold=false,color='#1d2a31',align='left',max=0}={})=>{let s=String(t??'');if(max)while(s.length>1&&pW(s,size,bold)>max)s=s.slice(0,-2)+'…';
   const w=pW(s,size,bold),X=align=='right'?x-w:align=='center'?x-w/2:x;c.push(`BT /${bold?'F2':'F1'} ${size} Tf ${pCol(color)} rg 1 0 0 1 ${X.toFixed(2)} ${(H-y).toFixed(2)} Tm (${pEsc(pEnc(s))}) Tj ET`);return w};
@@ -1909,7 +1911,8 @@ function PDFDoc(){const W=595.28,H=841.89,M=40,pages=[];let c=null;const d={W,H,
  d.need=h=>{if(d.y+h>H-M-18){d.page();return true}return false};
  d.bytes=()=>{const objs=[],add=x=>{objs.push(x);return objs.length};
   const cat=add(''),pg=add(''),f1=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'),f2=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
-  const kids=pages.map((cc,i)=>{const st=cc.join('\n'),ci=add(`<< /Length ${st.length} >>\nstream\n${st}\nendstream`);return add(`<< /Type /Page /Parent ${pg} 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${ci} 0 R >>`)});
+  const imR=imgs.map(im=>{let x='';for(let i=0;i<im.b.length;i+=8192)x+=String.fromCharCode.apply(null,im.b.subarray(i,i+8192));return add(`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.b.length} >>\nstream\n${x}\nendstream`)}),xo=imR.length?` /XObject << ${imR.map((r,i)=>'/Im'+i+' '+r+' 0 R').join(' ')} >>`:'';
+  const kids=pages.map((cc,i)=>{const st=cc.join('\n'),ci=add(`<< /Length ${st.length} >>\nstream\n${st}\nendstream`);return add(`<< /Type /Page /Parent ${pg} 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >>${xo} >> /Contents ${ci} 0 R >>`)});
   objs[cat-1]=`<< /Type /Catalog /Pages ${pg} 0 R >>`;objs[pg-1]=`<< /Type /Pages /Kids [${kids.map(k=>k+' 0 R').join(' ')}] /Count ${kids.length} >>`;
   let out='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';const off=[];objs.forEach((o,i)=>{off.push(out.length);out+=`${i+1} 0 obj\n${o}\nendobj\n`});
   const xr=out.length;out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length+1} /Root ${cat} 0 R >>\nstartxref\n${xr}\n%%EOF`;
@@ -1938,8 +1941,31 @@ return {PDFDoc,zip,pFile,foot,dlZip,para,pW,fday};
 })();
 
 /* ---------- bilans de la classe pour une leçon : un .zip avec un PDF par élève (à déposer sur Pronote) ---------- */
+/* tapis (composition) dessiné en image JPEG pour le PDF : fond, tracés, pyramides numérotées, liaisons */
+async function dojoJpeg(dojo,members,n){
+  const D=dojo||{strokes:[],items:[]};if(!(D.items||[]).length&&!(D.strokes||[]).length)return null;
+  const W=1200,H=900,cv=document.createElement("canvas");cv.width=W;cv.height=H;const ctx=cv.getContext("2d");
+  drawDojoBg(ctx,W,H);drawStrokes(ctx,W,H,D.strokes);
+  const load=src=>new Promise(r=>{if(!src)return r(null);const im=new Image();im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src});
+  const col=k=>k<0?"#14213d":MEMBER_COLORS[k%MEMBER_COLORS.length];
+  const rr=(x,y,w,h,r)=>{ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()};
+  for(const it of (D.items||[]).filter(i=>i.kind!=="el")){const f=byId[it.fig];if(!f||(n&&it.slot>=n))continue;const im=await load(f.img);
+    const w=(it.w||.2)*W,h=im?w*im.naturalHeight/im.naturalWidth:w,x=it.x*W,y=it.y*H;
+    if(im){ctx.save();ctx.translate(x,y);if(it.flip)ctx.scale(-1,1);ctx.shadowColor="#0006";ctx.shadowBlur=8;ctx.shadowOffsetY=4;ctx.drawImage(im,-w/2,-h/2,w,h);ctx.restore()}
+    ctx.fillStyle="#1B1E24";ctx.beginPath();ctx.arc(x-w/2+6,y-h/2+6,22,0,7);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=4;ctx.stroke();
+    ctx.fillStyle="#fff";ctx.font="800 26px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String(it.slot+1),x-w/2+6,y-h/2+7)}
+  for(const it of (D.items||[]).filter(i=>i.kind==="el")){const t=it.pic&&TRANS_BY_ID[it.pic],who=it.m<0?"groupe":(members[it.m]||"");
+    ctx.font="800 24px sans-serif";const label=t?(t.lv||""):String(it.text||""),sub=" "+who;const tw=ctx.measureText(label).width;ctx.font="600 20px sans-serif";const sw=ctx.measureText(sub).width;
+    const im=t?await load(t.img):null,iw=im?40:0,w=tw+sw+iw+36,h=46,x=it.x*W-w/2,y=it.y*H-h/2;
+    ctx.save();ctx.shadowColor="#0005";ctx.shadowBlur=6;ctx.shadowOffsetY=3;rr(x,y,w,h,23);ctx.fillStyle=t?"#fff":col(it.m);ctx.fill();ctx.restore();
+    if(t){rr(x,y,w,h,23);ctx.strokeStyle=col(it.m);ctx.lineWidth=4;ctx.stroke()}
+    if(im)ctx.drawImage(im,x+12,y+5,36,36);ctx.textAlign="left";ctx.textBaseline="middle";
+    ctx.fillStyle=t?"#1B1E24":"#fff";ctx.font="800 24px sans-serif";ctx.fillText(label,x+18+iw,y+h/2+1);ctx.font="600 20px sans-serif";ctx.globalAlpha=.85;ctx.fillText(sub,x+18+iw+tw,y+h/2+1);ctx.globalAlpha=1}
+  const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.85));if(!blob)return null;
+  return {b:new Uint8Array(await blob.arrayBuffer()),w:W,h:H};
+}
 const ROLE_NAME=r=>(r[0]==="P"?"Porteur":"Voltigeur")+(r.length>1?" "+r.slice(1):"");
-function acroPdf(name,classe,day,gr,sess,obs){
+function acroPdf(name,classe,day,gr,sess,obs,img){
   const doc=EPDF.PDFDoc(),PW=doc.W,M=doc.M,CW=PW-2*M,AC="#1F4FA3",GO="#F4B63F",INK="#1B1E24",MUT="#5b6370";
   doc.page();doc.rect(0,0,PW,96,AC);doc.rect(0,96,PW,5,GO);
   doc.text(M,38,"Acrosport : bilan de la leçon",{size:20,bold:true,color:"#ffffff"});
@@ -1964,9 +1990,10 @@ function acroPdf(name,classe,day,gr,sess,obs){
       doc.text(M+14,doc.y+28,"Difficulté "+f.lv,{size:9,color:MUT});
       doc.text(PW-M-10,doc.y+21,my.length?"Mon rôle : "+my.join(", "):"Je n'ai pas de rôle",{size:10,bold:!!my.length,color:my.length?AC:MUT,align:"right"});doc.y+=h+6})});
     doc.y+=4;doc.text(M,doc.y+8,"Je participe à "+mine+" figure"+(mine>1?"s":"")+" de l'enchaînement.",{size:10.5,bold:true});doc.y+=24;
-    const els=(sess.dojo&&sess.dojo.items||[]).filter(it=>it.kind==="el"&&(it.m<0||norm((gr.members||[])[it.m]||"")===norm(name))).map(it=>it.text||it.pic).filter(Boolean);
+    const els=(sess.dojo&&sess.dojo.items||[]).filter(it=>it.kind==="el"&&(it.m<0||norm((gr.members||[])[it.m]||"")===norm(name))).map(it=>it.text||(TRANS_BY_ID[it.pic]?"élément gymnique "+TRANS_BY_ID[it.pic].lv:"")).filter(Boolean);
     if(els.length){sec("Mes liaisons");EPDF.para(doc,M,els.join(" · "),{size:10.5,max:CW});doc.y+=8}
   }
+  if(img){const ra=img.h/img.w,av=doc.H-doc.M-18-doc.y-48;let w=CW,h=CW*ra;if(h>av){if(av>=250){h=av;w=h/ra}else doc.page()}sec("Notre composition sur le tapis");doc.image(img.b,img.w,img.h,M+(CW-w)/2,doc.y,w,h);doc.y+=h+10}
   if(obs.length){sec("Observation reçue par mon groupe");
     obs.forEach(o=>{doc.need(24);doc.text(M,doc.y+12,"Observé par "+(o.observateurs||o.observateur||"un autre groupe"),{size:10.5,color:INK,max:CW-200});
       doc.text(PW-M,doc.y+12,o.reussis+" / "+o.total+" critères réussis"+(o.securite?" · "+o.securite+" alerte(s) sécurité":""),{size:10.5,bold:true,color:o.securite?"#b3261e":"#2e7d4f",align:"right"});doc.y+=20})}
@@ -1984,11 +2011,13 @@ async function zipBilans(classe,day,msg){
     const names=[];const add=n=>{n=String(n||"").replace(/\s+/g," ").trim();if(n&&!names.some(x=>norm(x)===norm(n)))names.push(n)};
     (st.students||[]).forEach(e=>add(displayName(e)));grs.forEach(g=>(g.members||[]).forEach(add));
     if(!names.length){msg.textContent="";toast("Aucun élève pour cette classe");return}
+    const D0=dayOf(day+"T12:00:00"),sessOf=g=>oneADay(g.sessions||[]).find(x=>dayOf(x.date)===D0)||null,imgs=new Map();
+    for(const g of grs){const ss=sessOf(g);if(ss&&ss.dojo){msg.textContent="Dessin des tapis…";try{imgs.set(g,await dojoJpeg(ss.dojo,g.members||[],(ss.slots||[]).length))}catch(e){}}}
     const files=names.sort((a,b)=>a.localeCompare(b,"fr")).map(n=>{
       const g=grs.find(x=>(x.members||[]).some(mm=>norm(mm)===norm(n)));
-      const sess=g?oneADay(g.sessions||[]).find(x=>dayOf(x.date)===dayOf(day+"T12:00:00")):null;
+      const sess=g?sessOf(g):null;
       const obs=g?(ob.observations||[]).filter(o=>norm(o.classe)===norm(classe)&&norm(o.observe)===norm(g.name)&&o.date&&dayOf(o.date)===dayOf(day+"T12:00:00")):[];
-      return [EPDF.pFile(n)+".pdf",acroPdf(n,classe,day,g,sess,obs)]});
+      return [EPDF.pFile(n)+".pdf",acroPdf(n,classe,day,g,sess,obs,g?imgs.get(g):null)]});
     EPDF.dlZip("Acrosport_"+EPDF.pFile(classe)+"_"+day.split("-").reverse().join("-")+".zip",files);
     msg.textContent="✓ "+files.length+" bilans dans le fichier .zip";
   }catch(e){msg.textContent="";toast(e.network?"Pas de connexion internet : les bilans se préparent en ligne.":e.message)}
