@@ -380,6 +380,8 @@ tr.disp{opacity:.55}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .dispobtn{white-space:nowrap}
+.wchips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}.wchips .btn{min-width:120px;font-size:20px}
+.wcls,.wopts{margin-top:26px}
 .dupw:empty{display:none}.dupw{margin:0 0 16px;padding:14px 18px;border-radius:16px;background:#FFF1D6;border:2px solid #B26B00;font-size:17px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .dupw b{color:#7A4A00}.dupw .btn{margin-left:auto}
 .displine{width:100%;margin-top:8px;padding:8px 12px;border-radius:12px;background:#FDF0EE;color:#9C2B10;font-size:15px}
@@ -600,11 +602,13 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
   <div class="waitbox">
     <h1 class="wt">Relais <span>vitesse</span></h1>
     <div class="lanes" style="max-width:520px;margin:18px auto 26px"></div>
-    <p class="wp" id="w-msg">Aucune leçon n'est en cours sur cette tablette.<br>Ton enseignant va la lancer.</p>
-    <div class="row" style="justify-content:center;gap:14px;margin-top:26px">
-      <button class="btn green" id="w-perf" style="display:none">⏱ Prise de performances</button>
+    <p class="wp" id="w-msg"></p>
+    <div class="row" id="w-main" style="justify-content:center;gap:14px;margin-top:26px">
+      <button class="btn primary" id="w-pick">🏫 Je choisis ma classe</button>
       <button class="btn ghost" data-dispo>📐 Dispositif du relais</button>
     </div>
+    <div class="wcls" id="w-cls" style="display:none"></div>
+    <div class="wopts" id="w-opts" style="display:none"></div>
     <button class="wteach" id="w-teach">🔒 Espace enseignant</button>
   </div>
 </section>
@@ -3279,21 +3283,45 @@ $("#b-file").addEventListener("change",async()=>{
 
 /* ===== Ouverture côté élève ===== */
 /* la tablette s'ouvre sur la leçon du jour (vue élève) ; sinon sur un écran d'attente avec l'accès enseignant */
-function startStudent(){
-  const t=todayISO();
-  let C=DATA.classes.find(c=>c.id===DATA.cur&&(c.lecons||[]).some(l=>l.date===t))||DATA.classes.find(c=>(c.lecons||[]).some(l=>l.date===t));
-  if(C){DATA.cur=C.id;DATA.lecon=C.lecons.find(l=>l.date===t).id;persist();go("home");return}
-  showWait();
-}
+/* côté élève : d'abord « Je choisis ma classe » (ou le dispositif), puis la leçon en cours, la prise de performances ou le dispositif */
+let WAIT_CL=null,WAIT_PICK=false;
+function startStudent(){showWait()}
 function showWait(){
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-wait"));window.scrollTo(0,0);
   try{history.replaceState(null,"",location.pathname)}catch(e){}
-  const C=CL()||DATA.classes[0];
-  $("#w-perf").style.display=C&&C.eleves.some(e=>perfState(e)!=="ok"&&e.ma!=="DISP")&&DATA.perfOpen===C.id?"":"none";
-  $("#w-msg").innerHTML=DATA.classes.length?"Aucune leçon n'est en cours sur cette tablette.<br>Ton enseignant va la lancer.":"Bienvenue ! Aucune classe n'est encore créée.<br>L'enseignant commence par importer sa classe.";
+  renderWait();
 }
+function renderWait(){
+  const t=todayISO(),C=WAIT_CL?DATA.classes.find(c=>c.id===WAIT_CL):null;if(!C)WAIT_CL=null;
+  const none=!DATA.classes.length;
+  $("#w-main").style.display=!C&&!WAIT_PICK?"":"none";
+  $("#w-pick").style.display=none?"none":"";
+  $("#w-msg").innerHTML=none?"Bienvenue ! Aucune classe n'est encore créée.<br>L'enseignant commence par importer sa classe.":!C&&!WAIT_PICK?"Touche « Je choisis ma classe » pour commencer.":"";
+  const cl=$("#w-cls");cl.style.display=!C&&WAIT_PICK?"":"none";
+  if(!C&&WAIT_PICK)cl.innerHTML=`<p class="wp" style="margin:0 0 14px">Quelle est ta classe ?</p><div class="wchips">${DATA.classes.slice().sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(c=>`<button class="btn" data-wcl="${esc(c.id)}">${esc(c.name)}</button>`).join("")}</div><button class="btn ghost sm mt" data-wback="1">← Retour</button>`;
+  const op=$("#w-opts");op.style.display=C?"":"none";
+  if(C){
+    const l=(C.lecons||[]).find(x=>x.date===t);
+    let perf=false;try{perf=DATA.perfOpen===C.id&&C.eleves.some(e=>e.ma!=="DISP"&&perfState(e)!=="ok")}catch(e){perf=DATA.perfOpen===C.id}
+    op.innerHTML=`<p class="wp" style="margin:0 0 14px">Classe : <b>${esc(C.name)}</b></p>
+      <div class="row" style="justify-content:center;gap:14px;flex-wrap:wrap">
+        ${l?`<button class="btn primary" data-wlec="${esc(l.id)}">▶ Leçon en cours</button>`:""}
+        ${perf?`<button class="btn green" data-wperf="1">⏱ Prise de performances</button>`:""}
+        <button class="btn ghost" data-dispo>📐 Dispositif du relais</button>
+      </div>
+      ${!l&&!perf?`<p class="wp" style="margin-top:16px;font-size:18px">Aucune leçon n'est en cours aujourd'hui pour cette classe.<br>Ton enseignant va la lancer.</p>`:""}
+      <button class="btn ghost sm mt" data-wback="1">Changer de classe</button>`;
+  }
+}
+$("#v-wait").addEventListener("click",e=>{
+  const t=e.target;
+  if(t.closest("#w-pick")){WAIT_PICK=true;renderWait();return}
+  const c=t.closest("[data-wcl]");if(c){WAIT_CL=c.dataset.wcl;WAIT_PICK=false;renderWait();return}
+  if(t.closest("[data-wback]")){WAIT_CL=null;WAIT_PICK=!!t.closest("#w-opts")&&DATA.classes.length>1;renderWait();return}
+  const l=t.closest("[data-wlec]");if(l){DATA.cur=WAIT_CL;DATA.lecon=l.dataset.wlec;persist();go("home");return}
+  if(t.closest("[data-wperf]")){DATA.cur=WAIT_CL;go("perf");return}
+});
 $("#w-teach").addEventListener("click",async()=>{if(await requireCode())go("classes")});
-$("#w-perf").addEventListener("click",()=>{DATA.cur=DATA.perfOpen;go("perf")});
 $("#lkStudent").addEventListener("click",()=>{UNLOCK_UNTIL=0;updLock();startStudent();toast("Mode élève")});
 
 /* ===== Démarrage : côté élève ===== */

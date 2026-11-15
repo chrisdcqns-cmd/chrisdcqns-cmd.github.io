@@ -20,3 +20,4 @@ Application web pour tablette (relais-vitesse, lycée), hébergée sur GitHub Pa
 - Jamais de nom d'élève en clair dans la feuille.
 - Compilation : `compileAll()` → `mergeClass(T,D)` / `mergeLessons(c,keep,dup)` ; alias synchronisés `alias|D` {to,el,lec} et `lalias|C|lid` {to} ; `syApply` redirige les éléments d'une classe/leçon fusionnée. Le code enseignant (`code`) est aussi synchronisé.
 - Bilans de la classe : bouton « 🗜️ Bilans (.zip) » de la vue bilan d'une leçon → `relaisPdf(e,l,list)` par élève, `EPDF` (PDF + zip maison, copie commune aux applis).
+- Accueil élève (`v-wait`) : « Je choisis ma classe » → `renderWait()` propose la leçon du jour de la classe, la prise de performances (si ouverte) et le dispositif. Plus de saut automatique vers la leçon.
