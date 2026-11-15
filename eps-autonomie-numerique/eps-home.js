@@ -79,7 +79,33 @@
   }
 
   /* -------- partage entre tablettes : même canal que Relais Vitesse (onglet « Sync » de la feuille), chiffré -------- */
-  function shCfg() { try { var s = JSON.parse(localStorage.getItem("relais-vitesse-sheets-v1") || "null"); return s && s.url && s.key ? s : null; } catch (e) { return null; } }
+  /* réglage commun à toutes les applications (racine) : adresse du script Google + clé secrète, une fois par tablette */
+  var KS = "eps.share.v1", DEF_URL = "https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec";
+  function shareGet() {
+    var s = null; try { s = JSON.parse(localStorage.getItem(KS) || "null"); } catch (e) {}
+    if (!s || !s.key) { /* reprise automatique d'un réglage déjà fait sur la tablette (Relais Vitesse) */
+      try { var r = JSON.parse(localStorage.getItem("relais-vitesse-sheets-v1") || "null"); if (r && r.url && r.key) { s = { url: r.url, key: r.key }; localStorage.setItem(KS, JSON.stringify(s)); } } catch (e) {}
+    }
+    return s || { url: DEF_URL, key: "" };
+  }
+  function shCfg() { var s = shareGet(); return s.url && s.key ? s : null; }
+  function shareSettings(back) {
+    var s = shareGet();
+    var o = overlay('<h3>⚙ Partage entre tablettes</h3><p class="m">Réglage commun à toutes les applications : les dispenses (et les listes communes) passent par ta feuille Google, chiffrées avec la clé secrète. À faire <b>une fois sur chaque tablette</b>.</p>' +
+      '<span class="epsd-lab">Adresse du script Google (…/exec)</span><input class="epsd-in" id="epsd-surl" value="' + esc(s.url || DEF_URL) + '">' +
+      '<span class="epsd-lab">Clé secrète (la même que dans le script)</span><input class="epsd-in" id="epsd-skey" type="password" autocomplete="off" value="' + esc(s.key || "") + '">' +
+      '<p class="m" id="epsd-sst" style="margin-top:10px"></p>' +
+      '<div class="epsd-act"><button data-x>Fermer</button><button id="epsd-stest">Tester</button><button class="p" id="epsd-ssave">Enregistrer</button></div>');
+    function val() { return { url: o.querySelector("#epsd-surl").value.trim(), key: o.querySelector("#epsd-skey").value.trim() }; }
+    async function test() {
+      var v = val(), st = o.querySelector("#epsd-sst"); if (!v.url || !v.key) { st.textContent = "Indique l'adresse et la clé."; return false; }
+      st.textContent = "Test…"; var r = await jsonp(v, {});
+      st.textContent = !r ? "✕ Impossible de joindre le script (adresse ou déploiement)." : !r.keyOk ? "✕ La clé ne correspond pas à celle du script." : !r.sync ? "⚠ Le script doit être mis à jour (nouvelle version de Code.gs)." : "✓ Connexion réussie.";
+      return !!(r && r.keyOk);
+    }
+    o.querySelector("#epsd-stest").onclick = test;
+    o.querySelector("#epsd-ssave").onclick = async function () { var v = val(); try { localStorage.setItem(KS, JSON.stringify(v)); } catch (e) {} D.since = 0; sv(D); var ok = await test(); if (ok) { sync(); setTimeout(function () { o.remove(); if (back) back(); }, 700); } };
+  }
   var KEY = null, KEYSRC = null;
   function key(k) {
     if (KEY && KEYSRC === k) return Promise.resolve(KEY);
@@ -485,11 +511,12 @@
       var cfg = shCfg();
       if (S.step === 0) {
         var L = all().filter(function (x) { return x.au >= today(); }).sort(function (a, b) { return a.du < b.du ? -1 : 1; });
-        box.innerHTML = "<h3>🩹 Dispenses</h3><p class=\"m\">" + (cfg ? "Partagées automatiquement avec les autres tablettes (comme Relais Vitesse), chiffrées." : "Enregistrées sur cette tablette. Pour les partager avec les autres tablettes, configure Google Sheets dans Relais Vitesse (🔒 Enseignant → Google Sheets).") + "</p>" +
+        box.innerHTML = "<h3>🩹 Dispenses</h3><p class=\"m\">" + (cfg ? "✓ Partagées avec toutes les tablettes et toutes les applications (chiffrées)." + (lastErr ? " ⚠ Dernier échange : " + esc(lastErr) + "." : "") : "⚠ Partage entre tablettes pas encore réglé sur cette tablette : les dispenses restent ici.") + ' <button type="button" id="epsd-share" style="border:0;background:none;color:#1F5F8B;font-weight:800;text-decoration:underline;font-size:15px">⚙ Partage entre tablettes</button></p>' +
           '<div class="epsd-act" style="margin-top:4px"><button class="p" id="epsd-new">+ Nouvelle dispense</button></div>' +
           '<h3 style="font-size:18px;margin-top:18px">En cours et à venir</h3>' + listHTML(L, true) +
           '<div class="epsd-act"><button data-x>Fermer</button></div>';
         box.querySelector("#epsd-new").onclick = function () { S = { step: 1, classe: "", nom: "" }; render(); };
+        box.querySelector("#epsd-share").onclick = function () { shareSettings(render); };
         box.querySelectorAll("[data-del]").forEach(function (b) { b.onclick = function () { var it = D.items[b.dataset.del]; if (it && confirm("Supprimer la dispense de " + it.nom + " ?")) { remove(it.id); render(); } }; });
         return;
       }
@@ -533,7 +560,7 @@
     }
     render();
   }
-  window.EPSD = { list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, show: showList, sync: sync,
+  window.EPSD = { share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================

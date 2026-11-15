@@ -46,3 +46,6 @@ Chaque application fabrique sur la tablette un fichier `.zip` par classe et par 
 
 ## Bouton « Mise à jour »
 Bouton bleu ⟳ au-dessus du bouton Accueil (sur la page d'accueil : en bas à gauche) : il envoie et récupère les données (Relais, dispenses), vérifie s'il existe une nouvelle version de l'application, puis recharge la page — sans quitter l'appli.
+
+## Partage entre tablettes (réglage commun, à la racine)
+Page d'accueil → 🔒 Enseignant → Dispenses → « ⚙ Partage entre tablettes » : adresse du script Google (préremplie) et clé secrète, **une fois par tablette**. Ce réglage est commun à toutes les applications (stocké sous `eps.share.v1`) ; il reprend automatiquement celui de Relais Vitesse s'il existe déjà. Les dispenses sont chiffrées avec la clé et lisibles sur toutes les tablettes réglées. Script : `eps-autonomie-numerique/apps-script/Code.gs` (le même que celui de Relais : un seul déploiement suffit).
