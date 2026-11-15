@@ -380,6 +380,25 @@ tr.disp{opacity:.55}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .dispobtn{white-space:nowrap}
+.sitcats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.sitcats button{height:44px;padding:0 14px;border-radius:999px;border:2px solid var(--line);background:#fff;font-weight:700;font-size:15px}
+.sitcats button.on{border-color:var(--lane);background:var(--lane-soft);color:var(--lane)}
+.sit{background:#fff;border:2px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden}
+.sit>summary{list-style:none;cursor:pointer;padding:14px 18px;display:flex;align-items:center;gap:12px}
+.sit>summary::-webkit-details-marker{display:none}
+.sit .sk{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--lane)}
+.sit .st{font-size:19px;font-weight:800}.sit .so{color:var(--muted);font-size:15px;margin-top:2px}
+.sit .sd{margin-left:auto;white-space:nowrap;font-weight:700;color:var(--muted);font-size:14px}
+.sit .sday{background:var(--ok-soft);color:var(--ok);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:800;white-space:nowrap}
+.sit[open]{border-color:var(--lane)}
+.sitb{padding:0 18px 16px;font-size:16px;line-height:1.45}
+.sitb h4{margin:12px 0 4px;font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.sitb ul{margin:0;padding-left:20px}.sitb li{margin:3px 0}
+.sitb .var{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.sitb .var div{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:15px}
+.sitday{margin:0 0 16px}.sitday:empty{display:none}
+.sitday .card{border:2px solid var(--ok)}.sitday .sl{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+@media(max-width:820px){.sitb .var{grid-template-columns:1fr}}
 .wchips{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,240px));gap:16px;justify-content:center}
 .wtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:120px;padding:18px 16px;border-radius:20px;border:3px solid var(--lane);background:#fff;color:var(--ink);box-shadow:0 4px 0 var(--lane-soft),0 6px 16px rgba(0,0,0,.08);cursor:pointer;transition:transform .08s}
 .wtile:active{transform:translateY(2px) scale(.98)}
@@ -585,6 +604,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
       <p>Lycée · EPS — choisis ta classe pour commencer</p>
     </div>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
+    <button class="btn ghost sm dispobtn" data-sits>📚 Situations</button>
   </div>
   <div class="lanes"></div>
   <div class="steps"><span class="on"><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -610,6 +630,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <div class="row" id="w-main" style="justify-content:center;gap:14px;margin-top:26px">
       <button class="btn primary" id="w-pick">🏫 Je choisis ma classe</button>
       <button class="btn ghost" data-dispo>📐 Dispositif du relais</button>
+      <button class="btn ghost" data-sits>📚 Situations</button>
     </div>
     <div class="wcls" id="w-cls" style="display:none"></div>
     <div class="wopts" id="w-opts" style="display:none"></div>
@@ -656,6 +677,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <button class="back" data-go="classes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Classes</button>
     <h2>Leçons · <span class="cname"></span></h2>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
+    <button class="btn ghost sm dispobtn" data-sits>📚 Situations</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span class="on"><b>2</b>Leçon</span><i></i><span><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
   <button class="card perfcard" id="l-perf">
@@ -725,6 +747,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <button class="back" data-go="lecons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Leçons</button>
     <h2>Groupes · <span class="cname"></span></h2>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
+    <button class="btn ghost sm dispobtn" data-sits>📚 Situations</button>
     <button class="btn primary sm" id="btnAddGroupe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Créer un groupe</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span class="on"><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -740,6 +763,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <button class="back" id="btnBackGroupes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Groupes <span class="lockmini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></button>
     <span class="hctx" id="h-lecon"></span>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
+    <button class="btn ghost sm dispobtn" data-sits>📚 Situations</button>
     <button class="btn ghost sm teach" id="btnCfgHome">Éléments saisis</button>
     <button class="btn ghost sm teach" data-go="lecons">Leçons</button>
     <button class="btn ghost sm teachbtn" data-teach></button>
@@ -772,6 +796,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
       <div><h3>Enregistrer les courses</h3><p id="c-gohint">Reprend le binôme choisi ci-dessus.</p></div>
     </button>
   </div>
+  <div class="sitday" id="c-sits"></div>
   <div class="evalert" id="c-evalert"></div>
   <div class="big2" id="c-evbtns">
     <button class="bigbtn" id="c-auto" data-go="auto">
@@ -786,6 +811,17 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
 </section>
 
 <button id="sydot" type="button"><i></i><span>Synchro</span></button>
+
+<!-- BIBLIOTHÈQUE DE SITUATIONS -->
+<section class="view" id="v-sits">
+  <div class="top">
+    <button class="back" id="sitsBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour</button>
+    <h2>Situations d'apprentissage</h2>
+  </div>
+  <p class="note" id="sits-intro" style="margin:-6px 0 14px"></p>
+  <div class="sitcats" id="sits-cats"></div>
+  <div id="sits-list"></div>
+</section>
 
 <!-- DISPOSITIF DU RELAIS -->
 <section class="view" id="v-dispo">
@@ -1330,13 +1366,13 @@ $("#lkChange").addEventListener("click",async()=>{
 });
 
 /* ===== Navigation ===== */
-const VIEWS=["classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto","dispo"];
+const VIEWS=["classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto","dispo","sits"];
 /* Espace enseignant : ces écrans demandent le code */
 const TEACH_VIEWS=["classes","import","lecons","bilan","eval"];
 function go(v){
   if(TEACH_VIEWS.includes(v)&&!teachOn()){requireCode().then(ok=>{if(ok)go(v)});return}
   if(v==="wait"){showWait();return}
-  if(!["classes","import","dispo"].includes(v)&&!CL())v="classes";
+  if(!["classes","import","dispo","sits"].includes(v)&&!CL())v="classes";
   if(["groupes","home","course","eval","auto"].includes(v)&&!CLE())v="lecons";
   if(["groupes","home","course"].includes(v)&&CLE()&&!CLE().groupes){ensureLeconGroups(CLE());persist()}
   if(v==="bilan"&&!BILAN)v="lecons";
@@ -1347,6 +1383,7 @@ function go(v){
   if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto"].includes(v))renderClassAll();
   if(v==="auto"){AU_SEL=null;renderAuto()}
   if(v==="dispo"){DSP_EDIT=null;renderDispo()}
+  if(v==="sits")renderSits();
   if(v==="home")setTimeout(homeStudentScroll,80);
   if(v==="eval")renderEval();
   if(v==="lecons")renderLecons();
@@ -1808,6 +1845,7 @@ function renderGPicks(){
   const dl=ds.length?`<div class="displine">🩹 ${ds.map(e=>`<b>${esc(e.prenom)}</b> ${esc(dispTxt(e))}`).join(" · ")}</div>`:"";
   ["#c-g","#r-g"].forEach(s=>$(s).innerHTML=html+dl);
   try{renderEvAlert()}catch(e){}
+  try{renderSitDay()}catch(e){}
   document.querySelectorAll(".gcard").forEach(c=>c.style.display=GR().length?"":"none");
   try{renderCoach()}catch(e){}
 }
@@ -2216,6 +2254,138 @@ function homeStudentScroll(){
   window.scrollTo({top:Math.max(hide,show,0),behavior:"instant"});
 }
 window.addEventListener("orientationchange",()=>setTimeout(()=>{if($("#v-home").classList.contains("on"))homeStudentScroll()},300));
+
+/* ===== Bibliothèque de situations (relais-vitesse) ===== */
+const SIT_CATS=[["echauf","Échauffement athlétique"],["depart","Départ"],["accel","Accélération"],["foulee","Foulée et vitesse"],["marque","Prise de marque"],["trans","Transmission"],["roles","Rôles et projet"]];
+const SITS=[
+{id:"gammes",cat:"echauf",t:"Gammes athlétiques",o:"Préparer le corps à courir vite et placer le pied actif.",d:"10 min",
+ disp:"Ligne droite de 20 m balisée par 2 plots. Retour en marchant.",
+ c:["Montées de genoux : genou à l'horizontale, pied sous le bassin, buste droit.","Talons-fesses rapides : le talon monte sous la fesse, sans reculer le genou.","Pas chassés et pas croisés : rester sur l'avant du pied.","Foulées bondissantes : pousser loin, bras opposé à la jambe.","Finir chaque gamme par 10 m de course accélérée."],
+ r:["Les appuis claquent sur l'avant du pied (pas sur le talon).","Le buste reste droit, le regard devant.","La course finale est fluide, sans à-coup."],
+ s:"Réduire à 10 m, faire en marchant.",x:"Enchaîner deux gammes sans pause ; finir par 20 m à 90 %."},
+{id:"piedactif",cat:"echauf",t:"Pied actif sur lattes rapprochées",o:"Augmenter la fréquence d'appuis et poser le pied sous le bassin.",d:"8 min",
+ disp:"8 à 10 lattes (ou coupelles) espacées de 0,9 à 1,1 m, puis 10 m libres.",
+ c:["Un appui entre chaque latte, sur l'avant du pied.","Les bras accompagnent vite, coudes à 90°.","Après la dernière latte, garder la même fréquence sur 10 m."],
+ r:["Aucune latte touchée.","Le pied se pose sous le corps (pas devant).","La fréquence ne chute pas après les lattes."],
+ s:"Lattes à 1,2 m, vitesse modérée.",x:"Lattes à 0,9 m ; chronométrer les 10 derniers mètres."},
+{id:"departsvaries",cat:"depart",t:"Départs variés au signal",o:"Réagir vite et se mettre en action dès le premier appui.",d:"12 min",
+ disp:"Couloirs de 15 m. Un starter (clap ou « Partez ! »), départs par 2 ou 3.",
+ c:["Partir de positions différentes : assis, à genoux, allongé face au sol, dos à la course.","Au signal, se relever et sprinter jusqu'à la ligne des 10 m.","Le starter varie le temps d'attente (pas de rythme régulier)."],
+ r:["Aucune anticipation (faux départ).","Le premier appui pousse vers l'avant, le corps incliné.","On arrive premier à 10 m au moins une fois sur trois."],
+ s:"Départ debout uniquement, signal visuel.",x:"Signal sonore discret ; départ dos à la course avec demi-tour."},
+{id:"departfente",cat:"depart",t:"Le départ debout du coureur 1",o:"Construire un départ arrêté efficace (le départ du donneur).",d:"12 min",
+ disp:"Ligne de départ, plots à 5, 10 et 20 m. Chronométreur à 20 m.",
+ c:["Pieds décalés : pied d'appel devant, pointe derrière la ligne, écart d'environ une longueur de pied.","Poids du corps sur la jambe avant, buste penché vers l'avant.","Bras opposé à la jambe avant prêt à partir.","Premiers appuis courts et puissants, le corps se redresse progressivement jusqu'aux 15-20 m."],
+ r:["Pas de petit pas en arrière au départ.","Le corps reste incliné sur les 5 premiers mètres.","Le temps sur 20 m s'améliore sur 3 essais."],
+ s:"Départ « chute avant » : se laisser tomber vers l'avant puis courir.",x:"Départ au signal sonore ; comparer le chrono 20 m avec la vitesse départ arrêté de l'appli."},
+{id:"chuteavant",cat:"depart",t:"Départ en chute avant",o:"Sentir l'inclinaison du corps et la poussée des premiers appuis.",d:"6 min",
+ disp:"Ligne droite de 15 m.",
+ c:["Debout, pieds joints, corps gainé.","Se laisser tomber vers l'avant comme une planche.","Au moment où l'on perd l'équilibre, faire le premier pas et courir 10 m."],
+ r:["Le premier appui est sous le corps, pas loin devant.","Pas de redressement brutal du buste.","La course s'enchaîne sans arrêt."],
+ s:"Le partenaire retient par les épaules puis lâche.",x:"Enchaîner directement sur 20 m d'accélération."},
+{id:"accelprog",cat:"accel",t:"Accélération sur plots de plus en plus espacés",o:"Allonger progressivement la foulée pendant l'accélération.",d:"10 min",
+ disp:"Plots ou lattes sur 25 m avec des écarts croissants : 1,0 – 1,1 – 1,2 – 1,3… jusqu'à environ 1,9 m.",
+ c:["Départ debout, un appui entre chaque plot.","Laisser la foulée s'allonger toute seule : on pousse fort, on ne cherche pas à « enjamber ».","Garder le buste incliné au début, redressé à la fin."],
+ r:["Aucun plot touché, pas de foulée « sautée ».","La vitesse augmente jusqu'au dernier plot.","On ne freine pas en posant le pied loin devant."],
+ s:"Écarts plus courts (jusqu'à 1,6 m).",x:"Écarts jusqu'à 2 m ; chrono sur les 10 derniers mètres."},
+{id:"resistance",cat:"accel",t:"Départ contre résistance",o:"Sentir la poussée vers l'avant et l'inclinaison du corps.",d:"8 min",
+ disp:"Par 2 : le partenaire derrière, mains sur les épaules (ou tenant une ceinture/élastique).",
+ c:["Le coureur pousse fort sur 5-6 appuis, le partenaire freine sans bloquer.","Au signal « Lâche ! », le partenaire libère : sprint de 15 m.","Changer de rôle."],
+ r:["Le corps reste incliné, en ligne (pas cassé aux hanches).","Pas de déséquilibre au lâcher.","L'accélération après le lâcher est franche."],
+ s:"Résistance légère, 3 appuis.",x:"Lâcher sans prévenir (réaction)."},
+{id:"lattesamplitude",cat:"foulee",t:"Distance de foulée sur lattes",o:"Trouver sa distance de foulée à vitesse élevée.",d:"12 min",
+ disp:"20 m d'élan, puis 8 lattes régulières. Trois ateliers d'écarts : 1,7 m, 1,9 m et 2,1 m (à adapter à la taille).",
+ c:["Arriver lancé, un appui entre chaque latte.","Choisir l'atelier où l'on court vite sans se « tendre » ni piétiner.","Ne pas regarder ses pieds : regarder loin devant."],
+ r:["Les appuis tombent au milieu des intervalles.","La vitesse ne baisse pas dans les lattes.","L'élève connaît sa distance de foulée (à noter)."],
+ s:"Moins de lattes (5), élan plus court.",x:"Chronométrer les lattes et comparer les ateliers."},
+{id:"frequence",cat:"foulee",t:"Fréquence puis amplitude",o:"Associer une fréquence élevée à une foulée qui pousse.",d:"10 min",
+ disp:"6 lattes rapprochées (1 m), puis 6 lattes à distance de foulée, puis 10 m libres.",
+ c:["Lattes rapprochées : vite, sur l'avant du pied.","Lattes larges : pousser loin en gardant le rythme.","Finir libre en gardant le rythme et la poussée."],
+ r:["Le passage d'un atelier à l'autre se fait sans ralentir.","Les bras restent rapides.","La course libre finale est la plus rapide."],
+ s:"Faire chaque atelier séparément.",x:"Chronométrer les 10 m libres."},
+{id:"lancee",cat:"foulee",t:"Vitesse lancée sur 20 m",o:"Mesurer et améliorer sa vitesse maximale (vitesse du coureur 2).",d:"15 min",
+ disp:"20 m d'élan, puis 20 m chronométrés entre deux plots. Chronométreur à l'arrivée, observateur au premier plot.",
+ c:["Monter progressivement en vitesse pendant l'élan.","Passer le premier plot déjà à pleine vitesse.","Rester relâché : visage, épaules et mains détendus."],
+ r:["Le temps est stable ou s'améliore sur 3 essais.","Pas de crispation visible.","La vitesse calculée est proche de sa vitesse lancée dans l'appli."],
+ s:"Élan de 15 m.",x:"Comparer une course « à 100 % » et une course « à 95 % relâché »."},
+{id:"relache",cat:"foulee",t:"Courir vite et relâché",o:"Éviter de se crisper, ce qui fait ralentir.",d:"8 min",
+ disp:"Ligne droite de 40 m.",
+ c:["Courir 40 m en accélérant, puis maintenir.","À mi-course, penser « mâchoire et épaules relâchées ».","Les mains passent devant le visage puis à hauteur de la hanche, sans croiser devant le corps."],
+ r:["Pas de grimace, épaules basses.","La vitesse se maintient jusqu'au bout.","Les bras restent dans l'axe de course."],
+ s:"Course à 80 %.",x:"Chrono : comparer course crispée et course relâchée."},
+{id:"departreceveur",cat:"marque",t:"Le départ du receveur sur la marque",o:"Partir au bon moment, sans être rattrapé trop tôt ni trop tard.",d:"15 min",
+ disp:"Zone de transmission balisée. Marque au sol (coupelle) placée à X pieds avant la zone. Donneur lancé à pleine vitesse.",
+ c:["Receveur en position de départ dans la zone, regard tourné vers la marque.","Il part à fond quand le donneur pose le pied sur la marque.","Sans témoin : le donneur touche le dos du receveur (« Top ! »).","Noter où a lieu le contact et ajuster la marque d'un pied à la fois."],
+ r:["Le receveur ne se retourne plus après son départ.","Le contact se fait dans la Zone 100 (fin de zone).","Le receveur n'a pas eu à ralentir."],
+ s:"Donneur à 80 %, marque courte.",x:"Avec témoin et signal vocal ; vérifier avec l'appli (zone de transmission)."},
+{id:"chatsouris",cat:"marque",t:"Le chat et la souris",o:"Trouver la bonne marque en jouant.",d:"10 min",
+ disp:"Par 2. Le donneur (chat) part 10 m avant la marque, le receveur (souris) part quand le chat passe la marque.",
+ c:["La souris doit atteindre la ligne de fin de zone sans être touchée… mais le chat doit la toucher juste avant la ligne.","Si la souris est touchée trop tôt : la marque est trop courte, on la recule.","Si le chat n'y arrive pas : la marque est trop longue, on l'avance."],
+ r:["Le contact a lieu dans les 3 derniers mètres avant la ligne.","Les deux courent à pleine vitesse.","Le binôme connaît sa marque (en pieds)."],
+ s:"Zone plus longue.",x:"Ajouter le témoin et le signal vocal."},
+{id:"transarret",cat:"trans",t:"La technique de transmission à l'arrêt puis en marchant",o:"Apprendre le geste : signal, bras du receveur, main du donneur.",d:"10 min",
+ disp:"Par 2, l'un derrière l'autre, légèrement décalés (donneur côté intérieur du couloir, receveur côté extérieur).",
+ c:["Le donneur tient le témoin dans la main droite et le donne dans la main gauche du receveur.","Signal vocal du donneur : « Hop ! ».","Au signal, le receveur tend le bras en arrière, main ouverte, pouce écarté, sans se retourner.","Le donneur pose le témoin dans la main d'un geste vers l'avant.","Faire à l'arrêt, puis en marchant, puis en trottinant."],
+ r:["Le receveur ne regarde pas derrière lui.","Le témoin passe en un seul geste, sans chute.","Le bras du receveur reste stable jusqu'à la saisie."],
+ s:"Le receveur peut regarder les premières fois.",x:"En trottinant de plus en plus vite."},
+{id:"transfile",cat:"trans",t:"Le témoin remonte la file",o:"Automatiser le signal et le geste en course.",d:"8 min",
+ disp:"Groupes de 4 à 6 en file indienne, en trottinant, 1 m entre chaque élève.",
+ c:["Le dernier a le témoin et le transmet à celui de devant avec le signal « Hop ! ».","Le témoin remonte la file jusqu'au premier, qui va se placer en dernier.","Alterner les mains : main droite → main gauche."],
+ r:["Le témoin ne tombe pas.","Chacun attend le signal avant de tendre le bras.","Le rythme de course ne ralentit pas."],
+ s:"En marchant.",x:"En course plus rapide ; la file doit faire 50 m le plus vite possible."},
+{id:"trans100",cat:"trans",t:"Transmettre à pleine vitesse en fin de zone",o:"Réussir la transmission dans la Zone 100, sans ralentir.",d:"20 min",
+ disp:"Dispositif du relais complet (zone de transmission, marques). Un observateur au bord de la zone avec la tablette.",
+ c:["Le donneur arrive à pleine vitesse et ne lève le bras qu'au signal.","Le receveur part sur sa marque et ne ralentit pas.","L'observateur saisit la zone dans l'appli et lit le conseil de la bulle.","Ajuster la marque d'un pied à la fois après chaque essai."],
+ r:["Transmission en Zone 100 deux fois de suite.","Ni ralentissement du receveur, ni accélération avec le témoin en main.","L'écart à la vitesse cible est positif ou nul."],
+ s:"Donneur à 90 %.",x:"Départ du donneur au signal du starter, chrono complet."},
+{id:"gaintemoin",cat:"trans",t:"Défi : le témoin plus rapide que le coureur",o:"Comprendre que la transmission fait gagner du temps.",d:"12 min",
+ disp:"Deux plots encadrant la zone de transmission + 5 m de part et d'autre. Chronométreur.",
+ c:["Mesurer le temps d'un coureur seul entre les deux plots (lancé).","Mesurer le temps du témoin entre les deux mêmes plots, transmis par le binôme.","Comparer : la transmission est réussie si le témoin va plus vite que le coureur seul."],
+ r:["Le témoin met moins de temps que le coureur seul.","Le binôme sait dire pourquoi (receveur déjà lancé).","Les deux essais suivants confirment le gain."],
+ s:"Zone plus longue.",x:"Classement des binômes au gain de temps."},
+{id:"roles",cat:"roles",t:"Les rôles autour de la piste",o:"Faire vivre les rôles : starter, chronométreur, observateur de zone, entraîneur.",d:"Toute la leçon",
+ disp:"Un groupe court, un groupe observe. Une tablette par groupe.",
+ c:["Le starter vérifie que tout est prêt puis donne le départ (« À vos marques… Partez ! »).","Le chronométreur arrête le chrono au coup de sifflet des 12 s et lit le plot atteint.","L'observateur de zone indique où le témoin a été transmis et répond aux questions de la bulle.","L'entraîneur lit le conseil et fait ajuster la marque."],
+ r:["Chaque course est saisie dans l'appli.","Les conseils sont donnés avant la course suivante.","Chacun change de rôle à chaque rotation."],
+ s:"Deux rôles seulement (chrono + observateur).",x:"L'entraîneur propose une situation de la bibliothèque à son binôme."}
+];
+
+let SIT_CAT="all",SITS_BACK="classes",SIT_OPEN=null;
+const sitsDay=()=>{const l=CLE&&CL()?CLE():null;return l&&Array.isArray(l.sits)?l.sits:[]};
+function sitHTML(s,open){
+  const cat=(SIT_CATS.find(c=>c[0]===s.cat)||[])[1]||"";const inDay=sitsDay().includes(s.id);const l=CL()&&CLE()?CLE():null;
+  return `<details class="sit" data-sit="${s.id}" ${open?"open":""}><summary><div><div class="sk">${esc(cat)}</div><div class="st">${esc(s.t)}</div><div class="so">${esc(s.o)}</div></div>${inDay?'<span class="sday">✓ Leçon du jour</span>':""}<span class="sd">⏱ ${esc(s.d)}</span></summary>
+  <div class="sitb"><h4>Dispositif</h4><p style="margin:0">${esc(s.disp)}</p>
+  <h4>Consignes</h4><ul>${s.c.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+  <h4>Critères de réussite</h4><ul>${s.r.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+  <div class="var"><div><b>➖ Pour simplifier</b><br>${esc(s.s)}</div><div><b>➕ Pour complexifier</b><br>${esc(s.x)}</div></div>
+  ${l&&teachOn()?`<p style="margin:12px 0 0"><button class="btn ${inDay?"ghost":"primary"} sm" data-sitday="${s.id}">${inDay?"Retirer de la leçon du "+fmtShort(l.date):"➕ Ajouter à la leçon du "+fmtShort(l.date)}</button></p>`:""}</div></details>`;
+}
+function renderSits(){
+  const l=CL()&&CLE()?CLE():null,day=sitsDay();
+  $("#sits-intro").textContent=l&&teachOn()?"Ouvre une situation et ajoute-la à la leçon du "+fmtShort(l.date)+" : elle apparaîtra sur l'accueil de la leçon des élèves.":"Des situations pour progresser : départ, foulée, prise de marque, transmission…";
+  const cats=[["all","Toutes"],...(day.length?[["day","Leçon du jour"]]:[]),...SIT_CATS];
+  if(SIT_CAT==="day"&&!day.length)SIT_CAT="all";
+  $("#sits-cats").innerHTML=cats.map(([k,n])=>`<button data-sitcat="${k}" class="${SIT_CAT===k?"on":""}">${esc(n)}</button>`).join("");
+  const L=SITS.filter(s=>SIT_CAT==="all"||(SIT_CAT==="day"?day.includes(s.id):s.cat===SIT_CAT));
+  $("#sits-list").innerHTML=L.map(s=>sitHTML(s,SIT_OPEN===s.id)).join("");
+}
+function renderSitDay(){
+  const b=$("#c-sits");if(!b)return;const day=sitsDay().map(id=>SITS.find(s=>s.id===id)).filter(Boolean);
+  b.innerHTML=day.length?`<div class="card"><div class="label">📚 Situations de la leçon</div><div class="sl">${day.map(s=>`<button class="btn ghost sm" data-sitgo="${s.id}">${esc(s.t)}</button>`).join("")}</div></div>`:"";
+}
+document.addEventListener("click",e=>{
+  const t=e.target;
+  const o=t.closest("[data-sits],[data-sitgo]");
+  if(o){const on=document.querySelector(".view.on");const v=on?on.id.slice(2):"classes";if(v!=="sits")SITS_BACK=v;
+    if(o.dataset.sitgo){SIT_OPEN=o.dataset.sitgo;SIT_CAT=sitsDay().length?"day":"all"}else{SIT_OPEN=null;SIT_CAT=sitsDay().length&&!teachOn()?"day":"all"}
+    go("sits");if(SIT_OPEN)setTimeout(()=>{const d=document.querySelector(`[data-sit="${SIT_OPEN}"]`);if(d)d.scrollIntoView({behavior:"smooth",block:"start"})},80);return}
+  const c=t.closest("[data-sitcat]");if(c){SIT_CAT=c.dataset.sitcat;SIT_OPEN=null;renderSits();return}
+  const a=t.closest("[data-sitday]");if(a){const l=CLE();if(!l||!teachOn())return;l.sits=Array.isArray(l.sits)?l.sits:[];const id=a.dataset.sitday;
+    l.sits=l.sits.includes(id)?l.sits.filter(x=>x!==id):[...l.sits,id];SIT_OPEN=id;persist();renderSits();renderSitDay();toast(l.sits.includes(id)?"✓ Ajoutée à la leçon":"Retirée de la leçon");return}
+});
+document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.classList&&d.classList.contains("sit")&&d.open)SIT_OPEN=d.dataset.sit},true);
+$("#sitsBack").addEventListener("click",()=>{if(SITS_BACK==="wait")showWait();else go(SITS_BACK||"classes")});
 
 /* ===== Dispositif du relais (schéma verrouillable) ===== */
 const DISPO_DEF={T:12,zs:20,z10:35,z100:40,ze:45,pmOff:3,pmN:10,pmStep:1,vMin:14,vMax:30,notes:[]};
@@ -3312,6 +3482,7 @@ function renderWait(){
         ${l?`<button class="btn primary" data-wlec="${esc(l.id)}">▶ Leçon en cours</button>`:""}
         ${perf?`<button class="btn green" data-wperf="1">⏱ Prise de performances</button>`:""}
         <button class="btn ghost" data-dispo>📐 Dispositif du relais</button>
+        <button class="btn ghost" data-sits>📚 Situations</button>
       </div>
       ${!l&&!perf?`<p class="wp" style="margin-top:16px;font-size:18px">Aucune leçon n'est en cours aujourd'hui pour cette classe.<br>Ton enseignant va la lancer.</p>`:""}
       <button class="btn ghost sm mt" data-wback="1">Changer de classe</button>`;
