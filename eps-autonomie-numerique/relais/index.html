@@ -380,7 +380,11 @@ tr.disp{opacity:.55}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .dispobtn{white-space:nowrap}
-.wchips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}.wchips .btn{min-width:120px;font-size:20px}
+.wchips{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,240px));gap:16px;justify-content:center}
+.wtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:120px;padding:18px 16px;border-radius:20px;border:3px solid var(--lane);background:#fff;color:var(--ink);box-shadow:0 4px 0 var(--lane-soft),0 6px 16px rgba(0,0,0,.08);cursor:pointer;transition:transform .08s}
+.wtile:active{transform:translateY(2px) scale(.98)}
+.wtile .wtn{font-size:28px;font-weight:900;letter-spacing:.01em}
+.wtile .wts{font-size:15px;font-weight:600;color:var(--muted)}
 .wcls,.wopts{margin-top:26px}
 .dupw:empty{display:none}.dupw{margin:0 0 16px;padding:14px 18px;border-radius:16px;background:#FFF1D6;border:2px solid #B26B00;font-size:17px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .dupw b{color:#7A4A00}.dupw .btn{margin-left:auto}
@@ -3298,7 +3302,7 @@ function renderWait(){
   $("#w-pick").style.display=none?"none":"";
   $("#w-msg").innerHTML=none?"Bienvenue ! Aucune classe n'est encore créée.<br>L'enseignant commence par importer sa classe.":!C&&!WAIT_PICK?"Touche « Je choisis ma classe » pour commencer.":"";
   const cl=$("#w-cls");cl.style.display=!C&&WAIT_PICK?"":"none";
-  if(!C&&WAIT_PICK)cl.innerHTML=`<p class="wp" style="margin:0 0 14px">Quelle est ta classe ?</p><div class="wchips">${DATA.classes.slice().sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(c=>`<button class="btn" data-wcl="${esc(c.id)}">${esc(c.name)}</button>`).join("")}</div><button class="btn ghost sm mt" data-wback="1">← Retour</button>`;
+  if(!C&&WAIT_PICK)cl.innerHTML=`<p class="wp" style="margin:0 0 14px">Quelle est ta classe ?</p><div class="wchips">${DATA.classes.slice().sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(c=>`<button class="wtile" data-wcl="${esc(c.id)}"><span class="wtn">${esc(c.name)}</span><span class="wts">${(c.eleves||[]).length} élèves</span></button>`).join("")}</div><button class="btn ghost sm mt" data-wback="1">← Retour</button>`;
   const op=$("#w-opts");op.style.display=C?"":"none";
   if(C){
     const l=(C.lecons||[]).find(x=>x.date===t);
