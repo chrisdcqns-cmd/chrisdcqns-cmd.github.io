@@ -481,6 +481,14 @@
     tip.textContent = "Maintiens pour toutes les applications…";
     var ts = tip.style; ts.position = "fixed"; ts.zIndex = "2147483001"; ts.background = "rgba(27,30,36,.92)"; ts.color = "#fff"; ts.font = "600 14px system-ui,sans-serif";
     ts.padding = "7px 12px"; ts.borderRadius = "10px"; ts.pointerEvents = "none"; ts.display = "none"; ts.whiteSpace = "nowrap";
+    var pre = false;
+    /* départ immédiat vers la page commune : écran « Toutes les applications… » tout de suite, sans attendre le chargement */
+    function goHub() {
+      var o = document.createElement("div");
+      o.style.cssText = "position:fixed;inset:0;z-index:2147483646;background:#F4F1EA;display:grid;place-items:center;font:800 22px system-ui,sans-serif;color:#1B1E24";
+      o.textContent = "Toutes les applications…"; document.body.appendChild(o);
+      location.href = BASE;
+    }
     var down = false, drag = false, fired = false, sx = 0, sy = 0, ox = 0, oy = 0, t0 = 0, raf = 0, pid = null;
     function ring(f) { s.background = f > 0 ? "conic-gradient(#ffc93c " + (f * 360) + "deg, " + BG + " 0)" : BG; }
     function showTip() { var r = b.getBoundingClientRect(); ts.left = Math.min(r.right + 8, innerWidth - 270) + "px"; ts.top = (r.top + 10) + "px"; ts.display = "block"; }
@@ -489,7 +497,8 @@
       if (!down || drag) return;
       var f = Math.min(1, (performance.now() - t0) / HOLD);
       ring(f); if (f > 0.12) showTip();
-      if (f >= 1) { fired = true; stop(); location.href = BASE; return; }
+      if (f > 0.4 && !pre) { pre = true; try { var l = document.createElement("link"); l.rel = "prefetch"; l.href = BASE; document.head.appendChild(l); } catch (x) {} }
+      if (f >= 1) { fired = true; stop(); goHub(); return; }
       raf = requestAnimationFrame(tick);
     }
     b.addEventListener("contextmenu", function (e) { e.preventDefault(); });

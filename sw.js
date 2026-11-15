@@ -1,7 +1,7 @@
 // EPS – Autonomie et Numérique : service worker de la racine.
 // Il ne gère que la page d'accueil (/eps-autonomie-numerique/), le bouton Accueil partagé et Relais Vitesse (qui n'a pas de service worker propre).
 // Acrosport, Escalade et OrienRun gardent leur propre service worker : leurs requêtes ne sont pas touchées ici.
-const CORE = "eps-core-v7";
+const CORE = "eps-core-v8";
 const B = "/eps-autonomie-numerique/"; // adresse des applications
 const CORE_FILES = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", B, B + "index.html", B + "eps-home.js", B + "relais/", B + "relais/index.html"];
 // Bibliothèques externes utilisées par Relais Vitesse (lecture Excel, polices)
@@ -28,6 +28,18 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   if (!mine(url)) return; // les autres applications gèrent leurs propres fichiers
 
+  // Page d'accueil commune et eps-home.js : tout de suite depuis la tablette, mise à jour en arrière-plan pour la fois suivante
+  const fast = url.origin === location.origin && (url.pathname === B || url.pathname === B + "index.html" || url.pathname === B + "eps-home.js");
+  if (fast) {
+    e.respondWith((async () => {
+      const cache = await caches.open(CORE);
+      const hit = await cache.match(req, { ignoreSearch: true });
+      const net = fetch(req).then(res => { if (res && res.ok) cache.put(req, res.clone()); return res; });
+      if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
+      return net;
+    })());
+    return;
+  }
   // Réseau d'abord (toujours à jour), le cache si pas de connexion
   e.respondWith((async () => {
     const cache = await caches.open(CORE);
