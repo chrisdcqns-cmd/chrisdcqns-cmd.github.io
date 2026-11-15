@@ -2,7 +2,7 @@
 
 Application web pour tablette, pour le relais-vitesse au lycée : vitesse cible du binôme, enregistrement des courses, conseils de prise de marque et suivi par groupe.
 
-👉 **Ouvrir l'application : https://chrisdcqns-cmd.github.io/relais/**
+👉 **Ouvrir l'application : https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/relais/**
 
 ## Déroulé
 

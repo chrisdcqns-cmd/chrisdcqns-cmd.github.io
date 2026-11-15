@@ -1,8 +1,9 @@
-// EPS – Mes applications : service worker de la racine.
-// Il ne gère que la page d'accueil, le bouton Accueil partagé et Relais Vitesse (qui n'a pas de service worker propre).
+// EPS – Autonomie et Numérique : service worker de la racine.
+// Il ne gère que la page d'accueil (/eps-autonomie-numerique/), le bouton Accueil partagé et Relais Vitesse (qui n'a pas de service worker propre).
 // Acrosport, Escalade et OrienRun gardent leur propre service worker : leurs requêtes ne sont pas touchées ici.
-const CORE = "eps-core-v6";
-const CORE_FILES = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", "/eps-home.js", "/relais/", "/relais/index.html"];
+const CORE = "eps-core-v7";
+const B = "/eps-autonomie-numerique/"; // adresse des applications
+const CORE_FILES = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", B, B + "index.html", B + "eps-home.js", B + "relais/", B + "relais/index.html"];
 // Bibliothèques externes utilisées par Relais Vitesse (lecture Excel, polices)
 const EXT = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 
@@ -16,7 +17,7 @@ self.addEventListener("activate", e => {
 function mine(url) {
   if (url.origin === location.origin) {
     const p = url.pathname;
-    return p === "/" || p === "/index.html" || p === "/manifest.webmanifest" || p === "/eps-home.js" || /^\/icon-\d+\.png$/.test(p) || p.startsWith("/relais/");
+    return p === "/" || p === "/index.html" || p === "/manifest.webmanifest" || p === "/eps-home.js" || /^\/icon-\d+\.png$/.test(p) || p === B || p === B + "index.html" || p === B + "eps-home.js" || p.startsWith(B + "relais/");
   }
   return EXT.test(url.href);
 }
@@ -36,7 +37,7 @@ self.addEventListener("fetch", e => {
       return res;
     } catch (err) {
       const hit = await cache.match(req, { ignoreSearch: true }) ||
-        (req.mode === "navigate" ? await cache.match(url.pathname.startsWith("/relais/") ? "/relais/" : "/") : null);
+        (req.mode === "navigate" ? await cache.match(url.pathname.startsWith(B + "relais/") ? B + "relais/" : B) : null);
       if (hit) return hit;
       throw err;
     }

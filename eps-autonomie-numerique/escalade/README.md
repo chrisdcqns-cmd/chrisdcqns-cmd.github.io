@@ -2,7 +2,7 @@
 
 Application web pour tablette, pour l'escalade en moulinette au lycée : leçon du jour, saisie des grimpes par les élèves, cotation des voies, résultats par élève et envoi anonymisé vers Google Sheets.
 
-👉 **Ouvrir l'application : https://chrisdcqns-cmd.github.io/escalade/**
+👉 **Ouvrir l'application : https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/escalade/**
 
 ## Côté élève
 
