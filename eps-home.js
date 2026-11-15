@@ -1,6 +1,7 @@
 // Commun à toutes les applications EPS (et à la page d'accueil) :
 //  - pas de glissé pour actualiser ;
 //  - dispenses partagées (window.EPSD) : pastille « 🩹 dispensés » dans chaque application, gestion depuis la page d'accueil ;
+//  - pavé de code enseignant window.epsPin({title,text,len,min,max,letters,check}) → Promise<code|null> (pas de clavier du système, rien d'affiché) ;
 //  - bouton « Accueil », petit, en bas à gauche : un appui = accueil de l'application en cours (window.epsAppHome), maintenir 3 s = page commune (/), glisser = déplacer.
 (function () {
   try {
@@ -8,6 +9,43 @@
     st.textContent = "html,body{overscroll-behavior-y:contain!important}";
     (document.head || document.documentElement).appendChild(st);
   } catch (e) {}
+  /* Pavé de code enseignant (commun aux applications EPS) : pas de clavier du système, aucun chiffre affiché (seulement des points), aucune touche mise en surbrillance. */
+  function epsPin(o){o=o||{};return new Promise(function(res){
+  if(!document.getElementById("epp-css")){var st=document.createElement("style");st.id="epp-css";st.textContent=
+  ".epp{position:fixed;inset:0;z-index:2147483600;background:rgba(20,22,27,.94);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-user-select:none;user-select:none;touch-action:manipulation}"+
+  ".epp *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}"+
+  ".epp-b{width:100%;max-width:380px;color:#fff;text-align:center}"+
+  ".epp .epp-b h3{margin:0 0 6px;font-size:22px;font-weight:800;color:#fff;background:none;border:0;padding:0;text-transform:none;letter-spacing:0}.epp .epp-t{margin:0 0 10px;font-size:15px;color:#fff;opacity:.75;line-height:1.35}"+
+  ".epp-d{display:flex;justify-content:center;gap:12px;min-height:22px;margin:16px 0 6px;flex-wrap:wrap}.epp-d i{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.6)}.epp-d i.f{background:#fff;border-color:#fff}"+
+  ".epp-e{min-height:22px;margin:4px 0 10px;color:#ff8a7a;font-weight:700;font-size:15px}"+
+  ".epp-k{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}"+
+  ".epp-k.l{grid-template-columns:repeat(10,1fr);gap:5px}"+
+  ".epp-k button,.epp-a button{border:0;border-radius:16px;background:rgba(255,255,255,.12);color:#fff;font:700 26px system-ui,sans-serif;height:64px;padding:0;outline:none;transition:none;-webkit-appearance:none;appearance:none}"+
+  ".epp-k.l button{height:48px;font-size:18px;border-radius:10px}.epp-k button.w{grid-column:span 2;font-size:15px}.epp-k.l button.w{grid-column:span 3}"+
+  ".epp-k button:active,.epp-k button:focus,.epp-k button:hover{background:rgba(255,255,255,.12)}.epp-k button.x,.epp-k button.x:active{background:transparent;font-size:15px}"+
+  ".epp-a{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.epp-a button{font-size:17px;height:54px}.epp-a .ok{background:#2E9E5B}.epp-a .ok[disabled]{opacity:.4}"+
+  "@keyframes epp-s{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}.epp-d.s{animation:epp-s .25s 2}";
+  document.head.appendChild(st)}
+  try{if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}catch(e){}
+  var v="",lt=false,up=false,busy=false,len=o.len||0,min=o.min||(len||4),el=document.createElement("div");el.className="epp";
+  el.innerHTML='<div class="epp-b" role="dialog" aria-label="Code"><h3></h3><p class="epp-t"></p><div class="epp-d" aria-hidden="true"></div><div class="epp-e" aria-live="polite"></div><div class="epp-k"></div><div class="epp-a"><button type="button" class="no">Annuler</button><button type="button" class="ok">Valider</button></div></div>';
+  el.querySelector("h3").textContent=o.title||"🔒 Code enseignant";var tx=el.querySelector(".epp-t");tx.textContent=o.text||"";if(!o.text)tx.style.display="none";
+  var D=el.querySelector(".epp-d"),E=el.querySelector(".epp-e"),K=el.querySelector(".epp-k"),OK=el.querySelector(".ok");if(len)OK.style.display="none",el.querySelector(".epp-a").style.gridTemplateColumns="1fr";
+  function dots(){var n=Math.max(len,v.length,len?0:min),h="";for(var i=0;i<n;i++)h+='<i class="'+(i<v.length?"f":"")+'"></i>';D.innerHTML=h;OK.disabled=v.length<min}
+  function keys(){var h="";if(!lt){"123456789".split("").forEach(function(c){h+='<button type="button" data-k="'+c+'">'+c+"</button>"});h+=o.letters?'<button type="button" class="x" data-m="1">ABC</button>':"<span></span>";h+='<button type="button" data-k="0">0</button><button type="button" class="x" data-b="1" aria-label="Effacer">⌫</button>';K.className="epp-k"}
+  else{"AZERTYUIOPQSDFGHJKLMWXCVBN-_.!".split("").forEach(function(c){var d=/[A-Z]/.test(c)?(up?c:c.toLowerCase()):c;h+='<button type="button" data-k="'+d+'">'+d+"</button>"});h+='<button type="button" class="x w" data-u="1">'+(up?"⇩ abc":"⇧ ABC")+'</button><button type="button" class="x w" data-m="1">123</button><button type="button" data-k="@">@</button><button type="button" class="x w" data-b="1" aria-label="Effacer">⌫</button>';K.className="epp-k l"}
+  K.innerHTML=h}
+  function close(r){document.removeEventListener("keydown",kd,true);el.remove();res(r)}
+  function fail(m){E.textContent=m||"Code incorrect.";v="";dots();D.classList.remove("s");void D.offsetWidth;D.classList.add("s")}
+  function submit(){if(busy||v.length<min)return;var val=v;if(!o.check)return close(val);busy=true;Promise.resolve(o.check(val)).then(function(r){busy=false;if(r===true)close(val);else fail(typeof r=="string"?r:"")},function(){busy=false;fail("Vérification impossible.")})}
+  function add(c){if(busy)return;E.textContent="";if(v.length>=(len||o.max||40))return;v+=c;dots();if(len&&v.length===len)setTimeout(submit,120)}
+  function bs(){if(busy)return;v=v.slice(0,-1);dots()}
+  K.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;e.preventDefault();b.blur();if(b.dataset.k)add(b.dataset.k);else if(b.dataset.b)bs();else if(b.dataset.u){up=!up;keys()}else if(b.dataset.m){lt=!lt;keys()}});
+  el.querySelector(".no").onclick=function(){close(null)};OK.onclick=submit;
+  function kd(e){if(!document.body.contains(el))return;var k=e.key;if(/^[0-9]$/.test(k)||(o.letters&&/^[a-zA-Z@._!-]$/.test(k)))add(k);else if(k==="Backspace")bs();else if(k==="Enter")submit();else if(k==="Escape")close(null);else return;e.preventDefault();e.stopPropagation()}
+  document.addEventListener("keydown",kd,true);
+  if(o.err)E.textContent=o.err;keys();dots();document.body.appendChild(el)})}
+  if (!window.epsPin) window.epsPin = epsPin;
   if (window.__epsHome) return;
   window.__epsHome = true;
   var HUB = location.pathname === "/" || location.pathname === "/index.html";
@@ -204,19 +242,18 @@
     var b = document.getElementById("eps-teachbtn"); if (b) b.textContent = t ? "🔓 Quitter le mode enseignant" : "🔒 Enseignant";
   }
   function askCode() {
-    return new Promise(function (res) {
-      if (Date.now() < unlockedUntil) return res(true);
-      var stored = null; try { stored = JSON.parse(localStorage.getItem("relais-vitesse-code-v1") || "null"); } catch (e) {}
-      var o = overlay("<h3>🔒 Code enseignant</h3><p class=\"m\">" + (stored ? "Le même code que dans Relais Vitesse." : "Crée un code enseignant (il servira aussi dans Relais Vitesse).") + '</p><input class="epsd-in" id="epsd-code" type="password" inputmode="numeric" autocomplete="off" placeholder="Code"><p class="m" id="epsd-cerr" style="color:#C0392B;margin-top:8px"></p><div class="epsd-act"><button data-x>Annuler</button><button class="p" id="epsd-cok">Valider</button></div>');
-      var inp = o.querySelector("#epsd-code"); setTimeout(function () { inp.focus(); }, 50);
-      function ok() {
-        var v = inp.value.trim(); if (v.length < 4) { o.querySelector("#epsd-cerr").textContent = "4 chiffres minimum."; return; }
-        if (!stored) { try { localStorage.setItem("relais-vitesse-code-v1", JSON.stringify(hashCode(v))); } catch (e) {} }
-        else if (hashCode(v) !== stored) { o.querySelector("#epsd-cerr").textContent = "Code incorrect."; inp.value = ""; return; }
-        unlockedUntil = Date.now() + 10 * 60000; if (HUB) setHubTeach(true); o.remove(); res(true);
-      }
-      o.querySelector("#epsd-cok").onclick = ok; inp.addEventListener("keydown", function (e) { if (e.key === "Enter") ok(); });
-      o.addEventListener("click", function (e) { if (e.target === o || e.target.closest("[data-x]")) res(false); });
+    if (Date.now() < unlockedUntil) return Promise.resolve(true);
+    var stored = null; try { stored = JSON.parse(localStorage.getItem("relais-vitesse-code-v1") || "null"); } catch (e) {}
+    var pin = window.epsPin || epsPin;
+    function done() { unlockedUntil = Date.now() + 10 * 60000; if (HUB) setHubTeach(true); return true; }
+    if (stored) return pin({ title: "🔒 Code enseignant", text: "Le même code que dans Relais Vitesse.", min: 4, max: 12, check: function (v) { return hashCode(v) === stored; } }).then(function (v) { return v === null ? false : done(); });
+    return pin({ title: "🔒 Crée ton code enseignant", text: "4 chiffres (il servira aussi dans Relais Vitesse).", len: 4 }).then(function (v) {
+      if (v === null) return false;
+      return pin({ title: "🔒 Confirme le code", text: "Tape le même code une 2e fois.", len: 4, check: function (w) { return w === v || "Les deux codes sont différents."; } }).then(function (w) {
+        if (w === null) return false;
+        try { localStorage.setItem("relais-vitesse-code-v1", JSON.stringify(hashCode(v))); } catch (e) {}
+        return done();
+      });
     });
   }
   /* gestion (page d'accueil) : liste + nouvelle dispense en 3 étapes : classe, élève, période et motif */

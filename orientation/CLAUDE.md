@@ -12,3 +12,4 @@ Application web (PWA) de course d'orientation pour l'EPS, hébergée sur GitHub 
 - SMS de secours : format `OR1;S=…;C=…;R=…;N=…;K=…;D=<départ s>;P=<n>+<s>,…;F=<s>;G=lat,lon` (`parseSMS` / `smsResultat`).
 - Interface et textes en français ; utilisateurs : lycéens (classes TMELEC, TTBMA, 1GT…) et leur enseignant d'EPS. Pas de noms d'élèves dans le dépôt public.
 - `sw.js` : changer `CORE` (orienrun-core-vN) si on ajoute des fichiers à `CORE_FILES`.
+- Accès enseignant (`profLogin`, src/teacher.js) et changement de code (src/teacher3.js) : pavé `epsPin()` (copie de celui d'`eps-home.js`, touche ABC pour les lettres), jamais de champ texte. `index.html` est généré : modifier `src/` puis `python3 build.py`.

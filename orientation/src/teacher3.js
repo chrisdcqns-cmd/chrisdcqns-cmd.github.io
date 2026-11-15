@@ -350,7 +350,7 @@ function viewReglages(v) {
    <div class="panel" id="clPanel"></div>
    <div class="panel"><h2>Projet</h2><p class="muted">Carte, balises et parcours sont gardés dans cette tablette. Exporte-les pour les sauvegarder ou les transférer sur une autre tablette.</p>
     <div class="row"><button class="btn alt" id="pExp">⬇ Exporter le projet</button><button class="btn alt" id="pImp">⬆ Importer un projet</button><button class="btn red" id="pNew">Nouveau projet</button></div></div>
-   ${apiUrl() ? "" : `<div class="panel"><h2>Code enseignant</h2><div class="row"><input class="inp" id="pw2" type="password" placeholder="Nouveau code" style="max-width:260px"><button class="btn alt" id="pwSave">Changer le code</button></div></div>`}
+   ${apiUrl() ? "" : `<div class="panel"><h2>Code enseignant</h2><button class="btn alt" id="pwSave">🔒 Changer le code</button></div>`}
    <p class="muted" style="text-align:center;font-size:.8rem">OrienRun EPS v${APP_VERSION}</p></div>`;
   $("#cTest").onclick = async () => { $("#cTestR").textContent = "…"; try { await apiCall($("#cApi").value.trim(), "teacherCheck", { teacher: tpw() }); $("#cTestR").innerHTML = "<b style='color:var(--green)'>✓ Connexion OK, mot de passe reconnu</b>"; } catch (e) { $("#cTestR").textContent = "✕ " + e.message; } };
   $("#cSave").onclick = () => { CFG.api = $("#cApi").value.trim(); CFG.tel = $("#cTel").value.trim(); CFG.interval = +$("#cInt").value; CFG.poll = +$("#cPoll").value; CFG.scanMax = +$("#cScan").value; CFG.immo = +$("#cImmo").value; CFG.appUrl = $("#cUrl").value.trim(); saveCfg(); toast("Réglages enregistrés ✓", "ok"); if (S?.active) startPolling(); };
@@ -358,7 +358,7 @@ function viewReglages(v) {
   $("#pExp").onclick = () => download(`OrienRun_${P.nom.replace(/[^\wÀ-ÿ-]+/g, "_")}.orienrun.json`, JSON.stringify(P), "application/json");
   $("#pImp").onclick = async () => { const f = await pickFile(".json,application/json"); if (!f) return; try { const j = JSON.parse(await f.text()); if (!j.controls || !j.map) throw new Error("Fichier non reconnu"); if (!confirm("Remplacer le projet actuel par « " + j.nom + " » ?")) return; P = j; saveP(true); toast("Projet importé ✓", "ok"); setPTab("carte"); } catch (e) { toast(e.message, "ko"); } };
   $("#pNew").onclick = () => { if (!confirm("Créer un nouveau projet vide ? (pense à exporter l'actuel)")) return; P = newProject(); ED.view = null; saveP(true); setPTab("carte"); };
-  $("#pwSave") && ($("#pwSave").onclick = async () => { const v = $("#pw2").value.trim(); if (v.length < 3) return toast("3 caractères minimum", "ko"); LS.set("tLocal", await sha256("orienrun:" + v)); toast("Code changé ✓", "ok"); });
+  $("#pwSave") && ($("#pwSave").onclick = async () => { const v = await epsPin({ title: "🔒 Nouveau code enseignant", text: "3 caractères minimum (touche ABC pour les lettres).", min: 3, letters: true }); if (v === null) return; const w = await epsPin({ title: "🔒 Confirme le nouveau code", text: "Tape le même code une 2e fois.", min: 3, letters: true, check: x => x === v || "Les deux codes sont différents." }); if (w === null) return; LS.set("tLocal", await sha256("orienrun:" + v)); toast("Code changé ✓", "ok"); });
 }
 
 // QR permanent : ouvre l'appli élève, qui liste les leçons en cours (à imprimer une fois pour toutes)

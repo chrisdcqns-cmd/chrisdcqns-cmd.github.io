@@ -19,6 +19,8 @@ Application web pour tablette, pour l'escalade en moulinette au lycée : leçon 
 4. **Cotation** : cotation de chaque voie par corde, et « Je cherche une voie ! » par difficulté.
 5. **Résultats et QRCODE** (mode enseignant) : export Excel, regroupement entre tablettes par QR code, Google Sheets.
 
+**Hauteur** : c'est le premier critère, juste après la cordée. Si l'élève touche **0**, un message s'affiche : « Tu n'as pas dépassé la ligne rouge (3 mètres) » ; les autres critères se ferment et l'élève doit dire **pourquoi** (peur, fatigue, voie trop difficile, prise introuvable, douleur, matériel, autre raison + précision). La raison apparaît dans Mes résultats, l'export Excel et Google Sheets.
+
 Code enseignant par défaut : `1234` (à changer avec le bouton **Code** en mode enseignant).
 
 ## Leçons (comme dans Relais Vitesse)
