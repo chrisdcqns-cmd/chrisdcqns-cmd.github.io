@@ -249,6 +249,17 @@ details.more .names{margin-top:8px}
 .redl{margin:14px 0 4px;padding:14px 16px;border-radius:14px;background:#FDECEA;border:2px solid #C0392B;color:#8E1F14;font-weight:800;font-size:19px;line-height:1.3}.whys{display:flex;flex-wrap:wrap;gap:8px}.whys .b{flex:1 1 200px;text-align:left}
 .tile .ti{position:relative;z-index:1;width:clamp(28px,5.2vh,46px);height:clamp(28px,5.2vh,46px);margin-bottom:auto;flex:none;color:#fff}label.tile{cursor:pointer}
 @media(max-height:620px){.tile .ti{width:24px;height:24px}}
+.objl{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}.objt{flex:1 1 260px;background:#fff;border-left:6px solid #ffc93c;border-radius:14px;padding:10px 14px;font-weight:800;font-size:clamp(16px,2.4vh,21px);line-height:1.25;box-shadow:0 2px 0 #0000000d}.objt small{display:block;font-size:12px;font-weight:700;color:#5b6a72;margin-bottom:2px}
+.objb{display:flex;align-items:center;gap:8px;background:#16252d;color:#fff;border-radius:14px;padding:8px 16px;font-weight:700;font-size:17px}.objb svg{width:30px;height:30px;color:#ffc93c}.objb b{font-size:30px;line-height:1;color:#ffc93c}
+.ctlh{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:6px 0 10px}.ctlh .cols{display:flex;gap:6px;flex-wrap:wrap}.ctlh .cols .b{min-height:40px}
+.cgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0 80px}@media(max-width:900px){.cgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:640px){.cgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ccard{background:#fff;border-radius:16px;padding:12px;border:2px solid #e3e9ec;display:flex;flex-direction:column;gap:6px;min-width:0}.ccard.idle{opacity:.6}.ccard.done{border-color:#2b8a3e;background:#f1faf3}.ccard.low{border-color:#c92a2a}
+.cch{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0}.cch .chip{max-width:100%;pointer-events:none}.cdz{font-size:18px}
+.cprog{display:flex;align-items:baseline;gap:6px}.cprog b{font-size:30px;line-height:1}.cprog span{color:#5b6a72;font-weight:700}.cprog em{margin-left:auto;font-style:normal;color:#2b8a3e;font-weight:900;font-size:20px}
+.cbar{height:8px;border-radius:99px;background:#e3e9ec;overflow:hidden}.cbar i{display:block;height:100%;background:#2b8a3e;border-radius:99px}
+.ccard dl{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:2px 0;font-size:13px}.ccard dt{color:#5b6a72}.ccard dd{margin:0;font-weight:800;text-align:right}
+.ctri{display:flex;flex-wrap:wrap;gap:4px}.ctri span{font-size:12px;font-weight:800;padding:2px 7px;border-radius:99px;background:#eef3f5;color:#1d2a31}.ctri span.ok{background:#2b8a3e;color:#fff}
+.clow{margin:0;font-size:12.5px;font-weight:700;color:#c92a2a}.clast{margin:0;font-size:12px;color:#5b6a72}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -321,12 +332,12 @@ function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK
  <button class="tile tprof" style="background:#16252d" onclick="unlock(seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
 function render(){
  if(S.t=='role'||S.t=='pickcl'||S.t=='grp'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():S.t=='grp'?grpScr():clsScr();return}
- if(!S.T){S.e=false;if(S.t=='res'||(S.t=='set'&&seaOK()))S.t='home'}
+ if(!S.T){S.e=false;if(S.t=='res'||S.t=='ctl'||(S.t=='set'&&seaOK()))S.t='home'}
  if(S.t!='cot')S.cm='';
  if(S.t!='set'){S.le=null;S.lv=null}
  if(S.t!='mr'){S.mr='';S.ml=''}
- $('#tm').innerHTML=S.T?(['gr','res','home','set'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="S.T=false;S.t='role';render()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
- $('#nav').style.display=['home','set'].includes(S.t)?'none':'';
+ $('#tm').innerHTML=S.T?(['gr','res','home','set','ctl'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="S.T=false;S.t='role';render()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
+ $('#nav').style.display=['home','set','ctl'].includes(S.t)?'none':'';
  $('#nav').innerHTML=TABS.filter(([k])=>k!='res'||S.T).map(([k,n])=>`<button class="${S.t==k?'on':''}" onclick="S.t='${k}';render()">${n}</button>`).join('');
  document.body.dataset.t=S.t;document.documentElement.style.setProperty('--hh',$('header').offsetHeight+($('#nav').style.display=='none'?0:$('#nav').offsetHeight)+'px');
  const m=$('#m');
@@ -336,6 +347,7 @@ function render(){
  else if(S.t=='the')m.innerHTML=vBar()+(S.T?ficheForm():'')+content('the');
  else if(S.t=='prep')m.innerHTML=`<div class="sub">${[['ech','Échauffement'],['enc',"S'encorder"],['ass','Assurage']].map(([k,n])=>`<button class="b ${S.s==k?'':'g'}" onclick="S.s='${k}';render()">${n}</button>`).join('')}</div>`+vBar()+content(S.s);
  else if(S.t=='gr')m.innerHTML=grimpe();
+ else if(S.t=='ctl')m.innerHTML=ctl();
  else if(S.t=='cot')m.innerHTML=cotation();
  else if(S.t=='mr')m.innerHTML=mesRes();
  else m.innerHTML=resultats();
@@ -350,12 +362,16 @@ const TI={prep:'<path d="M17.5 9.5V8a5.5 5.5 0 0 0-11 0v8a5.5 5.5 0 0 0 11 0v-1"
  mr:'<path d="M3.5 20.5h17"/><rect x="5" y="13" width="3.5" height="7.5" rx="1"/><rect x="10.3" y="9" width="3.5" height="11.5" rx="1"/><rect x="15.6" y="5" width="3.5" height="15.5" rx="1"/><path d="M4.5 9.5l5-4.5 3.5 2.5 6-4.5"/>',
  the:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>',
  sec:'<path d="M12 2.8l7.5 3v5.6c0 4.8-3.2 8.4-7.5 9.8-4.3-1.4-7.5-5-7.5-9.8V5.8z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+ ctl:'<rect x="2.5" y="3.5" width="8" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="8" height="7" rx="1.5"/><rect x="2.5" y="13.5" width="8" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="8" height="7" rx="1.5"/><path d="M5 8l1.5 1L9 6M16 8h3M5 18h3M16 18l1.5 1L20 16"/>',
  set:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h2M12 14h2M16 14h.5M8 17.5h2M12 17.5h2"/>',
  imp:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6"/><path d="M18.5 8v8M15 12.5l3.5 3.5 3.5-3.5"/>',
  res:'<path d="M3.5 20.5h17"/><rect x="5" y="11" width="3.5" height="9.5" rx="1"/><rect x="10.3" y="6" width="3.5" height="14.5" rx="1"/><rect x="15.6" y="13.5" width="3.5" height="7" rx="1"/><path d="M5.5 3.5h3M17 3.5h3v3"/>'};
 const tIco=k=>TI[k]?`<svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TI[k]}</svg>`:'';
-function home(){S.e=false;const t=S.T?[['set','Leçons et classes','#16252d','tprof','Préparer, consulter'],['imp','Importer une liste d\'élèves','#16252d','tprof','Excel ou CSV'],...TILES,['res','Résultats, QR codes et Google Sheets','#16252d','wide tprof']]:TILES;
- return `<div class="homeW"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}</div>${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.t='grp';render()">Modifier</button></div>`:''}<div class="tiles">${t.map(([k,n,c,x,d])=>k=='imp'?`<label class="tile ${x||''}" style="--c:${c}">${tIco(k)}<b>${n}</b>${d?`<span>${d}</span>`:''}<input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label>`:`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()">${tIco(k)}<b>${n}</b>${d?`<span>${d}</span>`:''}</button>`).join('')}</div></div>`}
+/* objectif de la leçon du jour : phrase de l'enseignant + nombre de voies */
+function objBar(){const L=seaOK()?CF.sea:null,o=String(L?.obj||'').trim(),m=L?.min||0;if(!o&&!m)return '';
+ return `<div class="objl">${o?`<span class="objt"><small>Objectif de la leçon</small>${esc(o)}</span>`:''}${m?`<span class="objb" title="Objectif de voies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 20.5 9 9l4 6.5 2.5-4 6 9z"/><path d="M9 9V3.5l4 1.6-4 1.6"/></svg><b>${m}</b> ${m>1?'voies':'voie'}</span>`:''}</div>`}
+function home(){S.e=false;const t=S.T?[['set','Leçons et classes','#16252d','tprof','Préparer, consulter'],['imp','Importer une liste d\'élèves','#16252d','tprof','Excel ou CSV'],...TILES,['ctl','Tablette de contrôle','#16252d','tprof','Tous les élèves en direct'],['res','Résultats, QR codes et Google Sheets','#16252d','tprof']]:TILES;
+ return `<div class="homeW"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}</div>${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.t='grp';render()">Modifier</button></div>`:''}${objBar()}<div class="tiles">${t.map(([k,n,c,x,d])=>k=='imp'?`<label class="tile ${x||''}" style="--c:${c}">${tIco(k)}<b>${n}</b>${d?`<span>${d}</span>`:''}<input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label>`:`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()">${tIco(k)}<b>${n}</b>${d?`<span>${d}</span>`:''}</button>`).join('')}</div></div>`}
 /* import d'une liste d'élèves depuis l'accueil enseignant : ouvre la fiche « Nouvelle classe » déjà remplie */
 async function impHome(inp){const f=inp.files[0];inp.value='';if(!f)return;
  try{const rows=/\.xlsx$/i.test(f.name)?await readXlsx(f):(await f.text()).split(/\r?\n/).map(l=>l.split(/[;\t,]/));
@@ -387,12 +403,29 @@ function setup(){
  <div class="tb">${k?`<button class="b g" onclick="S.ce='${sel}';render()">Modifier la liste</button>`:''}<button class="b g" onclick="S.imp=null;S.ce='new';render()">+ Nouvelle classe</button></div></div>
  <div class="card today"><h3 style="margin-top:0">Aujourd'hui · ${cap(fday(t,true))}</h3>
  ${Lt?`<div class="lchips">${lecChips(Lt)}${nT.length?`<span class="okc">${pl(nT.length,'grimpe')} enregistrée${nT.length>1?'s':''}</span>`:''}</div>
-  <div class="tb"><button class="b g" onclick="editLe('${Lt.id}')">Modifier la leçon</button>${nT.length?`<button class="b g" onclick="S.lv='${t}';render();scrollTo(0,0)">Voir les résultats</button>`:''}<button class="b" onclick="startLe('${Lt.id}')">${CF.sea?.id==Lt.id&&seaOK()?'Reprendre la leçon':'Commencer la leçon'}</button></div>`
+  <div class="tb"><button class="b g" onclick="editLe('${Lt.id}')">Modifier la leçon</button>${nT.length?`<button class="b g" onclick="S.lv='${t}';render();scrollTo(0,0)">Voir les résultats</button><button class="b g" onclick="zipLe('${t}')">🗜️ Bilans de la classe (.zip)</button>`:''}<button class="b" onclick="startLe('${Lt.id}')">${CF.sea?.id==Lt.id&&seaOK()?'Reprendre la leçon':'Commencer la leçon'}</button></div>`
  :`<p class="mut">Pas encore de leçon aujourd'hui pour ${k?esc(k.nom):'« Sans liste »'}.</p><div class="tb"><button class="b g" onclick="newLe('${t}')">Préparer la leçon du jour</button><button class="b" onclick="quickLe()">Commencer avec les réglages de la dernière leçon</button></div>`}</div>
  <div class="card"><div class="ch"><h3 style="margin:0">Leçons à venir</h3><button class="b g" onclick="newLe()">+ Préparer une leçon</button></div>
  ${fut.length?fut.map(l=>litem(l.d,`En préparation · ${lecChips(l,1)}`,'Préparer',`editLe('${l.id}')`)).join(''):'<p class="mut">Aucune leçon préparée. Choisis une date pour préparer la prochaine.</p>'}</div>
  <div class="card"><h3 style="margin-top:0">Leçons précédentes</h3>
  ${pastD.length?pastD.map(d=>{const L=recOf(nomC,d),el=new Set(L.map(r=>r.el));return litem(d,`${pl(L.length,'grimpe')} · ${pl(el.size,'élève')}`,'Consulter',`S.lv='${d}';render();scrollTo(0,0)`)}).join(''):'<p class="mut">Aucune leçon précédente pour cette classe.</p>'}</div>`}
+/* ---------- tablette de contrôle (enseignant) : une carte par élève, mise à jour en direct ---------- */
+function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.nom||'',t=today(),L=recOf(nom,t),cfg=lecFor(sel,t)||(CF.sea?.d==t&&(CF.sea.cl||'')==sel?CF.sea:null),min=cfg?.min||0;
+ const names=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr'));
+ const card=n=>{const M=L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1),H=M.map(r=>r.h).filter(isNum).map(Number),best=bestOk(M),low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=M[M.length-1],ok=min&&M.length>=min,dz=typeof EPSD!='undefined'&&EPSD.find&&EPSD.find(nom,n);
+  const tri=[...new Map(M.map(r=>[r.d,M.some(x=>x.d==r.d&&Number(x.h)==TOP)])).entries()].sort((a,b)=>gk(a[0])-gk(b[0]));
+  return `<div class="ccard ${M.length?'':'idle'} ${ok?'done':''} ${low?'low':''}"><div class="cch">${chip(n,{cl:'mini'})}${dz?'<span class="cdz">🩹</span>':''}</div>
+  <div class="cprog"><b>${M.length}</b>${min?`<span>/ ${min} ${min>1?'voies':'voie'}</span>`:`<span>${M.length>1?'voies':'voie'}</span>`}${ok?'<em>✓</em>':''}</div>${min?`<div class="cbar"><i style="width:${Math.min(100,M.length/min*100)}%"></i></div>`:''}
+  <dl><dt>Meilleure réussite</dt><dd>${best?esc(best):'–'}</dd><dt>Hauteur max</dt><dd>${H.length?(Math.max(...H)==TOP?'Top':Math.max(...H)+' dég.'):'–'}</dd><dt>Tops</dt><dd>${M.filter(r=>Number(r.h)==TOP).length}</dd></dl>
+  ${tri.length?`<div class="ctri">${tri.map(([d,o])=>`<span class="${o?'ok':''}">${esc(d)}</span>`).join('')}</div>`:''}
+  ${low?`<p class="clow">🟥 ${low}× sous la ligne rouge${M.filter(r=>r.why).length?' · '+esc(M.filter(r=>r.why).slice(-1)[0].why):''}</p>`:''}
+  <p class="clast">${last?'Dernière grimpe '+esc(String(last.ts).slice(11,16))+' · '+cs(last.c)+'corde '+last.vo:'Pas encore de grimpe'}</p></div>`};
+ const act=names.filter(n=>L.some(r=>r.el==n)).length;
+ return `<div class="ctlh"><div><h2 style="margin:0">Tablette de contrôle</h2><p class="mut" style="margin:2px 0 0">${k?esc(k.nom):'Sans liste'} · ${cap(fday(t,true))}${cfg?.obj?' · 🎯 '+esc(cfg.obj):''} · mise à jour automatique</p></div>
+ <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'}" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}</button>`).join('')}</div></div>
+ <div class="stats">${stx(act+' / '+names.length,'élèves ont grimpé')}${stx(L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée'))}${stx(L.filter(r=>Number(r.h)==TOP).length,'Top')}${min?stx(names.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+names.length,'objectif atteint ('+min+' voie'+(min>1?'s':'')+')'):''}</div>
+ ${names.length?`<div class="cgrid">${names.map(card).join('')}</div>`:'<div class="card"><p class="mut">Aucun élève dans cette classe. Choisis une classe avec une liste.</p></div>'}`}
+setInterval(()=>{if(S.t=='ctl'&&S.T&&!document.querySelector('.dlg')){const y=scrollY;render();scrollTo(0,y)}},4000);
 /* ---------- leçons par classe et par date ---------- */
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-3);
 const LEC=()=>CF.lec||(CF.lec=[]),lecFor=(cl,d)=>LEC().find(l=>(l.cl||'')==(cl||'')&&l.d==d);
@@ -417,7 +450,8 @@ function lecEdit(){const L=S.le,k=CL.find(c=>c.id==L.cl),isT=L.d==today();
  <div class="card"><h3 style="margin-top:0">Éléments travaillés</h3><p class="mut">Seuls les éléments cochés seront proposés aux élèves. « Obligatoire » : l'élève ne peut pas enregistrer sa grimpe sans cet élément.</p>
  ${CRIT.map(([c,n])=>{const on=L.cr.includes(c),q=on&&L.req.includes(c);return `<div class="ck"><label class="ckl"><input type="checkbox" ${on?'checked':''} onchange="tgCr('${c}',this.checked)">${n}</label><button class="rq ${q?'on':''}" ${on?'':'disabled'} onclick="tgReq('${c}')">${q?'★ Obligatoire':'Facultatif'}</button></div>`}).join('')}
  <div class="tb"><button class="b g" onclick="S.le.cr=[...ALL];render()">Tout cocher</button><button class="b g" onclick="S.le.cr=[];S.le.req=[];render()">Tout décocher</button></div></div>
- <div class="card"><h3 style="margin-top:0">Objectif</h3><p class="mut">Nombre minimum de voies à grimper par élève pendant la leçon (0 = pas d'objectif).</p>
+ <div class="card"><h3 style="margin-top:0">Objectif</h3><label class="l" style="margin-top:0">Objectif de la leçon (affiché sur l'accueil des élèves)</label><input value="${esc(L.obj||'')}" maxlength="140" placeholder="Ex. : Travailler le placement des pieds" oninput="S.le.obj=this.value">
+ <p class="mut" style="margin-top:14px">Nombre minimum de voies à grimper par élève pendant la leçon (0 = pas d'objectif).</p>
  <div class="step"><button class="b g" onclick="S.le.min=Math.max(0,(S.le.min||0)-1);render()">−</button><output>${L.min||0}</output><button class="b" onclick="S.le.min=Math.min(30,(S.le.min||0)+1);render()">+</button><span>voie(s) minimum</span></div></div>
  <div class="tb"><button class="b" style="flex:1;min-height:60px;font-size:19px" onclick="saveLe(${isT?1:0})">${isT?'Enregistrer et commencer la leçon':'Enregistrer la leçon'}</button>${isT?`<button class="b g" style="min-height:60px" onclick="saveLe(0)">Enregistrer seulement</button>`:''}</div>
  ${L.id?`<p><button class="b d" onclick="delLe()">Supprimer cette leçon</button></p>`:''}`}
@@ -439,7 +473,7 @@ function lecView(){const d=S.lv,k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',
  return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.lv=null;render();scrollTo(0,0)">← Retour aux leçons</button></p><h2 style="margin-top:4px">${cap(fday(d,true))}</h2><span class="sea">${k?esc(k.nom):'Sans liste'}</span>
  ${cfg?`<div class="lchips" style="margin-top:10px">${lecChips(cfg)}</div>`:''}
  <div class="stats">${stx(L.length,pw(L.length,'grimpe'))}${stx(el.length,pw(el.length,'élève'))}${stx(ok.length,'Top')}${stx(best?esc(best):'–','meilleure difficulté réussie')}${rpTile(L)}${min?stx(el.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+el.length,'élèves ont atteint l\'objectif'):''}</div>
- ${L.length?`<div class="card"><div class="ch"><h3 style="margin:0">Par élève</h3><button class="b" onclick="pdfLe()">📄 PDF de tous les élèves</button></div><div class="tw"><table><tr><th>Élève</th><th>Voies</th><th>Tops</th><th>Meilleure réussite</th><th>Hauteur moy.</th><th>Pieds/mains</th><th>Assur. / contre / obs.</th></tr>${per}</table></div></div>
+ ${L.length?`<div class="card"><div class="ch"><h3 style="margin:0">Par élève</h3><span class="tb" style="margin:0"><button class="b g" onclick="pdfLe()">📄 PDF de tous les élèves</button><button class="b" onclick="zipLe()">🗜️ Bilans de la classe (.zip)</button></span></div><div class="tw"><table><tr><th>Élève</th><th>Voies</th><th>Tops</th><th>Meilleure réussite</th><th>Hauteur moy.</th><th>Pieds/mains</th><th>Assur. / contre / obs.</th></tr>${per}</table></div></div>
  ${diffsBlock(L)}
  <div class="card"><div class="ch"><h3 style="margin:0">Toutes les grimpes</h3><button class="b" onclick="xlLe()">Exporter cette leçon (Excel)</button></div><div class="tw"><table><tr><th>Heure</th><th>Élève</th><th>Voie</th><th>Hauteur</th><th>Assureur / contre</th><th></th></tr>${det}</table></div></div>`:'<div class="card"><p class="mut">Aucune grimpe enregistrée pendant cette leçon.</p></div>'}`}
 const lines=()=>[...new Set($('#ceL').value.split('\n').map(s=>s.trim()).filter(Boolean))];
@@ -773,7 +807,9 @@ function pdfEleve(doc,name,nom,d){const all=R.filter(r=>r.el==name&&(r.cl||'')==
   const cols=[['#',22],[d?'Heure':'Date',d?40:62],['Corde',42],['Couleur',58],['Diff.',38],['Hauteur',50],['Assureur',72],['Contre-ass.',72],['M / P',44],['P/M',CW-22-(d?40:62)-42-58-38-50-72-72-44]];
   const head=()=>{doc.rect(M,doc.y,CW,18,INK);let x=M+4;cols.forEach(([t,w])=>{doc.text(x,doc.y+12.5,t,{size:8.5,bold:true,color:'#ffffff'});x+=w});doc.y+=18};
   head();L.forEach((r,i)=>{if(doc.need(18))head();if(i%2)doc.rect(M,doc.y,CW,17,'#f4f7f8');const x0=M+4,v=[i+1,d?String(r.ts).slice(11,16):fday(String(r.ts).slice(0,10)),r.vo,r.c,r.d,isNum(r.h)?(Number(r.h)==TOP?'Top':r.h+' dég.'):'–',r.asr||'–',r.cas||'–',(isNum(r.m)||isNum(r.p))?nd(r.m)+' / '+nd(r.p):'–',rpR(r)==null?'–':fnum(rpR(r))];
-   let x=x0;cols.forEach(([,w],j)=>{doc.text(x,doc.y+12,String(v[j]),{size:9,bold:j==4||(j==5&&Number(r.h)==TOP),color:j==5&&Number(r.h)==TOP?OK:INK,max:w-6});x+=w});doc.y+=17});doc.y+=10}}
+   let x=x0;cols.forEach(([,w],j)=>{doc.text(x,doc.y+12,String(v[j]),{size:9,bold:j==4||(j==5&&Number(r.h)==TOP),color:j==5&&Number(r.h)==TOP?OK:INK,max:w-6});x+=w});doc.y+=17});doc.y+=10}
+ /* ligne rouge non dépassée : pourquoi */
+ const WY=L.filter(r=>r.why);if(WY.length){sec('Sous la ligne rouge (3 m)');WY.forEach(r=>{doc.need(18);doc.text(M,doc.y+11,(d?String(r.ts).slice(11,16):fday(String(r.ts).slice(0,10)))+' · corde '+r.vo+' '+r.c+' : '+r.why,{size:10,color:'#b3261e',max:CW});doc.y+=17})}}
 function pdfFoot(doc){const n=doc.pages.length;doc.pages.forEach((c,i)=>{c.push(`BT /F1 8 Tf ${pCol('#5b6a72')} rg 1 0 0 1 ${doc.M} 22 Tm (${pEsc(pEnc('Escalade EPS · document personnel, ne pas diffuser'))}) Tj ET`);
  const t=pEnc('Page '+(i+1)+' / '+n);c.push(`BT /F1 8 Tf ${pCol('#5b6a72')} rg 1 0 0 1 ${(doc.W-doc.M-pW(t,8)).toFixed(2)} 22 Tm (${t}) Tj ET`)})}
 const pFile=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9-]+/g,'_').replace(/^_|_$/g,'');
@@ -783,6 +819,11 @@ function pdfOne(name,d){const nom=cls()?.nom||(CL.find(c=>c.id==(CF.sel||''))?.n
 function pdfLe(name){const k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',d=S.lv,doc=PDFDoc();
  const els=name?[name]:[...new Set(recOf(nom,d).map(r=>r.el))].sort((a,b)=>a.localeCompare(b,'fr'));if(!els.length)return say('Aucune grimpe pendant cette leçon.');
  els.forEach(n=>pdfEleve(doc,n,nom,d));pdfFoot(doc);dlFile('Lecon_'+d+'_'+(name?pFile(name):pFile(nom||'classe')+'_tous')+'.pdf',new Blob([doc.bytes()],{type:'application/pdf'}))}
+/* enseignant : un fichier .zip pour la classe, avec un PDF par élève (à déposer élève par élève sur Pronote) */
+function zipLe(d){d=d||S.lv||today();const k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',L=recOf(nom,d);
+ const els=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr'));if(!els.length)return say('Aucun élève dans cette classe.');
+ const fr=d.split('-').reverse().join('-'),used={},files=els.map(n=>{const doc=PDFDoc();pdfEleve(doc,n,nom,d);pdfFoot(doc);let f=pFile(n)||'eleve';if(used[f])f+='_'+(++used[f]);else used[f]=1;return [f+'.pdf',doc.bytes()]});
+ dlFile('Escalade_'+(pFile(nom)||'classe')+'_'+fr+'.zip',zip(files,'application/zip'))}
 /* ---------- cotation ---------- */
 const gk=d=>{const m=String(d).trim().match(/^(\d)([abc])?(\+)?/i);return m?(+m[1])*100+(m[2]?(m[2].toLowerCase().charCodeAt(0)-96)*10:0)+(m[3]?5:0):999};
 const toRes=()=>requestAnimationFrame(()=>{const e=$('#cvres');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})});
@@ -1030,13 +1071,13 @@ const col=i=>String.fromCharCode(65+i);
 const sh=rows=>'<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+rows.map((r,i)=>`<row r="${i+1}">`+r.map((c,j)=>typeof c=='number'?`<c r="${col(j)}${i+1}"><v>${c}</v></c>`:`<c r="${col(j)}${i+1}" t="inlineStr"><is><t>${esc(c)}</t></is></c>`).join('')+'</row>').join('')+'</sheetData></worksheet>';
 const crcT=[...Array(256)].map((_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0});
 const crc=b=>{let c=-1;for(const x of b)c=crcT[(c^x)&255]^(c>>>8);return(c^-1)>>>0};
-function zip(files){const e=new TextEncoder(),P=[],D=[];let off=0;const w=n=>[n&255,n>>8&255],d4=n=>[n&255,n>>8&255,n>>16&255,n>>>24&255];
- for(const[n,t]of files){const nb=e.encode(n),d=e.encode(t),c=crc(d);
-  const lh=new Uint8Array([0x50,0x4b,3,4,20,0,0,8,0,0,0,0,33,0,...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,...nb]);
-  D.push(new Uint8Array([0x50,0x4b,1,2,20,0,20,0,0,8,0,0,0,0,33,0,...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,0,0,0,0,0,0,0,0,0,0,...d4(off),...nb]));
+function zip(files,type){const e=new TextEncoder(),P=[],D=[];let off=0;const w=n=>[n&255,n>>8&255],d4=n=>[n&255,n>>8&255,n>>16&255,n>>>24&255];const now=new Date(),dT=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1),dD=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+ for(const[n,t]of files){const nb=e.encode(n),d=t instanceof Uint8Array?t:e.encode(t),c=crc(d);
+  const lh=new Uint8Array([0x50,0x4b,3,4,20,0,0,8,0,0,...w(dT),...w(dD),...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,...nb]);
+  D.push(new Uint8Array([0x50,0x4b,1,2,20,0,20,0,0,8,0,0,...w(dT),...w(dD),...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,0,0,0,0,0,0,0,0,0,0,...d4(off),...nb]));
   P.push(lh,d);off+=lh.length+d.length}
  const cs=D.reduce((a,b)=>a+b.length,0);
- return new Blob([...P,...D,new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...w(files.length),...w(files.length),...d4(cs),...d4(off),0,0])],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+ return new Blob([...P,...D,new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...w(files.length),...w(files.length),...d4(cs),...d4(off),0,0])],{type:type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
 async function xl(list,tag){list=Array.isArray(list)?list:R;if(!list.length)return say('Aucune grimpe à exporter.');
  const X='<?xml version="1.0" encoding="UTF-8"?>',N='http://schemas.openxmlformats.org/';
  const b=zip([['[Content_Types].xml',X+`<Types xmlns="${N}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`],

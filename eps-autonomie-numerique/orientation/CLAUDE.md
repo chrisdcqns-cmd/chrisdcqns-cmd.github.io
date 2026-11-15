@@ -13,3 +13,4 @@ Application web (PWA) de course d'orientation pour l'EPS, hébergée sur GitHub 
 - Interface et textes en français ; utilisateurs : lycéens (classes TMELEC, TTBMA, 1GT…) et leur enseignant d'EPS. Pas de noms d'élèves dans le dépôt public.
 - `sw.js` : changer `CORE` (orienrun-core-vN) si on ajoute des fichiers à `CORE_FILES`.
 - Accès enseignant (`profLogin`, src/teacher.js) et changement de code (src/teacher3.js) : pavé `epsPin()` (copie de celui d'`eps-home.js`, touche ABC pour les lettres), jamais de champ texte. `index.html` est généré : modifier `src/` puis `python3 build.py`.
+- Bilans de la leçon : bouton « 🗜️ Bilans (.zip) » des résultats → `zipBilans(X)` / `orienPdf` (src/teacher3.js, avec `EPDF`, PDF + zip maison) ; un sous-dossier par classe si la leçon en mélange plusieurs.

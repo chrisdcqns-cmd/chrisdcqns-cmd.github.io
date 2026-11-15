@@ -18,3 +18,4 @@ Application web (PWA) d'acrosport pour tablettes, hébergée sur GitHub Pages de
 - Leçons enregistrées : une seule par jour (`oneADay`, `dayOf`) — `saveProgress` remplace l'enregistrement du jour, `mergeGroups` et le chargement regroupent aussi par jour. Vocabulaire : « leçon », jamais « séance ».
 - Curseur de défilement `#scrollRail` (fin du script) : visible quand un tapis `.dojo` est à l'écran (hors plein écran), pour faire défiler la page sans toucher le tapis.
 - Logo : `icon-192.png` / `icon-512.png` (pyramide à trois, fond bleu, voltigeur jaune), aussi utilisé par la page d'accueil commune.
+- Bilans de la classe : espace enseignant → En ligne → classe + date → « 🗜️ Bilans de la classe (.zip) » (`zipBilans`, `acroPdf`, `EPDF`) : lit en ligne les groupes (`teacherList`/`teacherLoad`), la liste (`listStudents`) et les observations du jour ; un PDF par élève (groupe, enchaînement du jour et rôle de l'élève, liaisons, observations reçues).

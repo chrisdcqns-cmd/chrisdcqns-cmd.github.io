@@ -41,5 +41,8 @@ Les données des tablettes (localStorage, IndexedDB, vidéos en cache) dépenden
 - Nom de la classe à vérifier, puis applications cochées : Escalade (`escalade.cl`), Relais Vitesse (`relais-vitesse-data-v3`), OrienRun (IndexedDB `orienrun` / `classes`) : élèves ajoutés à la classe du même nom, sans doublon. Acrosport : liste **remplacée** en ligne (`teacherSetStudents`, mot de passe enseignant d'Acrosport demandé avec le pavé).
 - Code : `importList()` dans `eps-home.js` (`parseList`, `toEsc`, `toRel`, `toOri`, `toAcro`).
 
+## Bilans de la classe (.zip, pour Pronote)
+Chaque application fabrique sur la tablette un fichier `.zip` par classe et par leçon, avec un PDF par élève (`<Appli>_<classe>_<jj-mm-aaaa>.zip`) : Escalade (Leçons et classes → Aujourd'hui ou une leçon précédente), Relais Vitesse (leçon précédente → « 🗜️ Bilans (.zip) »), OrienRun (Résultats → « 🗜️ Bilans (.zip) »), Acrosport (espace enseignant → En ligne, internet nécessaire). Générateur PDF et zip maison, copie identique `EPDF` dans Relais, OrienRun et Acrosport.
+
 ## Bouton « Mise à jour »
 Bouton bleu ⟳ au-dessus du bouton Accueil (sur la page d'accueil : en bas à gauche) : il envoie et récupère les données (Relais, dispenses), vérifie s'il existe une nouvelle version de l'application, puis recharge la page — sans quitter l'appli.

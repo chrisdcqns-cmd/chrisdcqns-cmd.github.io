@@ -19,3 +19,4 @@ Application web pour tablette (relais-vitesse, lycée), hébergée sur GitHub Pa
 - Garde-fou : une disparition massive (> 40 éléments et > 40 %) n'est pas propagée et les données sont récupérées.
 - Jamais de nom d'élève en clair dans la feuille.
 - Compilation : `compileAll()` → `mergeClass(T,D)` / `mergeLessons(c,keep,dup)` ; alias synchronisés `alias|D` {to,el,lec} et `lalias|C|lid` {to} ; `syApply` redirige les éléments d'une classe/leçon fusionnée. Le code enseignant (`code`) est aussi synchronisé.
+- Bilans de la classe : bouton « 🗜️ Bilans (.zip) » de la vue bilan d'une leçon → `relaisPdf(e,l,list)` par élève, `EPDF` (PDF + zip maison, copie commune aux applis).

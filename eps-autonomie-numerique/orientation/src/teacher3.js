@@ -278,13 +278,14 @@ async function viewResultats(v) {
   const L = (await DB.get("sessions")) || [];
   const cur = LS.get("resSession", null) || S?.code || L[0]?.code;
   v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>Résultats</h2>${L.length ? `<div class="row"><select class="inp" id="rSel" style="max-width:420px">${L.map(x => `<option value="${x.code}" ${x.code === cur ? "selected" : ""}>${esc(x.nom)} (${esc(x.code)})</option>`).join("")}</select>
-    <button class="btn or" id="rXls">⬇ Excel</button><button class="btn alt" id="rCsv">⬇ CSV</button><button class="btn alt" id="rPos">⬇ Positions GPS</button><button class="btn ghost" id="rPrint">🖨 Imprimer</button><button class="btn" id="rProg">📈 Progression</button><button class="btn ghost" id="rBil">📄 Fiches bilan</button><button class="btn ghost" id="rSync">↻ Recharger du serveur</button><button class="btn ghost" id="rSms">✉ Importer SMS</button><button class="btn ghost" id="rDel">🗑</button></div>` : `<p class="muted">Aucune leçon pour l'instant.</p>`}</div><div id="rBody"></div></div>`;
+    <button class="btn or" id="rXls">⬇ Excel</button><button class="btn alt" id="rCsv">⬇ CSV</button><button class="btn alt" id="rPos">⬇ Positions GPS</button><button class="btn ghost" id="rPrint">🖨 Imprimer</button><button class="btn" id="rProg">📈 Progression</button><button class="btn ghost" id="rBil">📄 Fiches bilan</button><button class="btn ghost" id="rZip" title="Un PDF par élève, à déposer sur Pronote">🗜️ Bilans (.zip)</button><button class="btn ghost" id="rSync">↻ Recharger du serveur</button><button class="btn ghost" id="rSms">✉ Importer SMS</button><button class="btn ghost" id="rDel">🗑</button></div>` : `<p class="muted">Aucune leçon pour l'instant.</p>`}</div><div id="rBody"></div></div>`;
   if (!L.length) return;
   const load = async code => { LS.set("resSession", code); const X = S?.code === code ? S : await DB.get("session:" + code); renderResults(X); return X; };
   let X = await load(cur);
   $("#rSel").onchange = async e => X = await load(e.target.value);
   $("#rProg").onclick = openProgression;
   $("#rBil").onclick = () => { const keep = S; S = X; const L = Object.values(X.runners).map(R => { const k = courseOf(R); return { proj: P, geo: calibPoints(), R, course: k, a: analyseRun(R, k, P, X.dec, X.ack || {}, { scanMax: CFG.scanMax }), lesson: X.nom }; }).filter(o => o.a.start).sort((a, b) => (a.R.cl || "").localeCompare(b.R.cl || "") || a.R.nom.localeCompare(b.R.nom)); S = keep; if (!L.length) return toast("Aucun élève parti dans cette leçon", "ko"); printBilans(L); };
+  $("#rZip").onclick = () => zipBilans(X);
   $("#rXls").onclick = () => exportResults(X, "xlsx"); $("#rCsv").onclick = () => exportResults(X, "csv"); $("#rPos").onclick = () => exportPositions(X);
   $("#rPrint").onclick = () => printWin("Résultats " + X.nom, resultsHTML(X, true), `table{border-collapse:collapse;width:100%;font-size:9pt;margin-bottom:6mm}td,th{border:1px solid #999;padding:1.2mm}h2{font-size:13pt;margin:4mm 0 2mm}`);
   $("#rSync").onclick = async () => { const keep = S; S = X; S.since = 0; await pollOnce(); X = S; await saveS(); S = keep?.code === X.code ? X : keep; renderResults(X); toast(syncErr ? syncErr : "Rechargé ✓", syncErr ? "ko" : "ok"); };
@@ -364,4 +365,96 @@ function viewReglages(v) {
 // QR permanent : ouvre l'appli élève, qui liste les leçons en cours (à imprimer une fois pour toutes)
 function printPermQR() {
   printWin("QR permanent élèves", `<div class="pg"><h1>Course d'orientation</h1><p>Scanne pour ouvrir l'appli, puis choisis ta leçon et ton parcours.</p>${QR.svg(eleveUrl(), { ecl: "Q" })}<p style="font-size:12pt">${esc(eleveUrl())}</p></div>`, `.pg{text-align:center;padding-top:15mm}.pg svg{width:140mm;height:140mm}h1{font-size:32pt}p{font-size:15pt}`);
+}
+
+/* Outils communs EPS (copie identique dans Relais, OrienRun, Acrosport) : PDF maison (Helvetica, accents) + fichier .zip, sans bibliothèque ni internet. */
+const EPDF=(()=>{
+const HWN=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+const HWB=[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+const WAN={'€':128,'‚':130,'„':132,'…':133,'‰':137,'Œ':140,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'™':153,'œ':156,'Ÿ':159};
+const PSUB={'✓':'v','★':'*','→':'->','⇄':'<->','≥':'>=','≤':'<=','×':'x'};
+/* texte → octets WinAnsi (accents français pris en charge ; émojis retirés) */
+function pEnc(t){let o='';for(const ch of String(t??'')){if(PSUB[ch]){o+=PSUB[ch];continue}const c=ch.codePointAt(0);const b=WAN[ch]??((c>=32&&c<127)||(c>=160&&c<256)?c:null);
+ if(b!=null){o+=String.fromCharCode(b);continue}const n=ch.normalize('NFD')[0];if(n&&n.codePointAt(0)<127&&n.codePointAt(0)>=32)o+=n}return o}
+const pEsc=x=>x.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+function pW(t,size,bold){const T=bold?HWB:HWN;let w=0;for(const ch of pEnc(t)){const c=ch.charCodeAt(0),base=c<127?c:(String.fromCharCode(c).normalize('NFD').charCodeAt(0));w+=T[(base>=32&&base<127?base:110)-32]||556}return w*size/1000}
+const pCol=h=>{h=h.replace('#','');const n=parseInt(h.length==3?h.split('').map(x=>x+x).join(''):h,16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255].map(v=>v.toFixed(3)).join(' ')};
+function PDFDoc(){const W=595.28,H=841.89,M=40,pages=[];let c=null;const d={W,H,M,y:0,pages};
+ d.page=()=>{c=[];pages.push(c);d.y=M;return d};
+ d.text=(x,y,t,{size=11,bold=false,color='#1d2a31',align='left',max=0}={})=>{let s=String(t??'');if(max)while(s.length>1&&pW(s,size,bold)>max)s=s.slice(0,-2)+'…';
+  const w=pW(s,size,bold),X=align=='right'?x-w:align=='center'?x-w/2:x;c.push(`BT /${bold?'F2':'F1'} ${size} Tf ${pCol(color)} rg 1 0 0 1 ${X.toFixed(2)} ${(H-y).toFixed(2)} Tm (${pEsc(pEnc(s))}) Tj ET`);return w};
+ d.rect=(x,y,w,h,color,r)=>{c.push(`${pCol(color)} rg ${x.toFixed(2)} ${(H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`)};
+ d.line=(x1,y1,x2,y2,color='#d5dee2',lw=.7)=>{c.push(`${pCol(color)} RG ${lw} w ${x1.toFixed(2)} ${(H-y1).toFixed(2)} m ${x2.toFixed(2)} ${(H-y2).toFixed(2)} l S`)};
+ d.need=h=>{if(d.y+h>H-M-18){d.page();return true}return false};
+ d.bytes=()=>{const objs=[],add=x=>{objs.push(x);return objs.length};
+  const cat=add(''),pg=add(''),f1=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'),f2=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  const kids=pages.map((cc,i)=>{const st=cc.join('\n'),ci=add(`<< /Length ${st.length} >>\nstream\n${st}\nendstream`);return add(`<< /Type /Page /Parent ${pg} 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${ci} 0 R >>`)});
+  objs[cat-1]=`<< /Type /Catalog /Pages ${pg} 0 R >>`;objs[pg-1]=`<< /Type /Pages /Kids [${kids.map(k=>k+' 0 R').join(' ')}] /Count ${kids.length} >>`;
+  let out='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';const off=[];objs.forEach((o,i)=>{off.push(out.length);out+=`${i+1} 0 obj\n${o}\nendobj\n`});
+  const xr=out.length;out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length+1} /Root ${cat} 0 R >>\nstartxref\n${xr}\n%%EOF`;
+  const b=new Uint8Array(out.length);for(let i=0;i<out.length;i++)b[i]=out.charCodeAt(i)&255;return b};
+ return d}
+const crcT=[...Array(256)].map((_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0});
+const crc=b=>{let c=-1;for(const x of b)c=crcT[(c^x)&255]^(c>>>8);return(c^-1)>>>0};
+function zip(files,type){const e=new TextEncoder(),P=[],D=[];let off=0;const w=n=>[n&255,n>>8&255],d4=n=>[n&255,n>>8&255,n>>16&255,n>>>24&255];const now=new Date(),dT=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1),dD=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+ for(const[n,t]of files){const nb=e.encode(n),d=t instanceof Uint8Array?t:e.encode(t),c=crc(d);
+  const lh=new Uint8Array([0x50,0x4b,3,4,20,0,0,8,0,0,...w(dT),...w(dD),...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,...nb]);
+  D.push(new Uint8Array([0x50,0x4b,1,2,20,0,20,0,0,8,0,0,...w(dT),...w(dD),...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,0,0,0,0,0,0,0,0,0,0,...d4(off),...nb]));
+  P.push(lh,d);off+=lh.length+d.length}
+ const cs=D.reduce((a,b)=>a+b.length,0);
+ return new Blob([...P,...D,new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...w(files.length),...w(files.length),...d4(cs),...d4(off),0,0])],{type:type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+const pFile=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9-]+/g,'_').replace(/^_|_$/g,'');
+/* pied de page sur chaque page */
+const foot=(doc,label)=>{const n=doc.pages.length;doc.pages.forEach((c,i)=>{c.push(`BT /F1 8 Tf ${pCol('#5b6a72')} rg 1 0 0 1 ${doc.M} 22 Tm (${pEsc(pEnc(label))}) Tj ET`);const t=pEnc('Page '+(i+1)+' / '+n);c.push(`BT /F1 8 Tf ${pCol('#5b6a72')} rg 1 0 0 1 ${(doc.W-doc.M-pW(t,8)).toFixed(2)} 22 Tm (${t}) Tj ET`)})};
+/* fichiers [[nom, Uint8Array]] → .zip téléchargé (noms uniques) */
+const dlZip=(name,files)=>{const used={},F=files.map(([n,b])=>{let base=n.replace(/\.pdf$/,''),k=base;if(used[k])k=base+'_'+(++used[base]);else used[k]=1;return [k+'.pdf',b]});
+ const blob=zip(F,'application/zip'),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
+/* bloc de texte avec retour à la ligne */
+const para=(doc,x,t,{size=10.5,bold=false,color='#1d2a31',max=0,lh=1.35}={})=>{const words=String(t??'').split(/\s+/);let line='';const out=[];words.forEach(w=>{const tt=line?line+' '+w:w;if(pW(tt,size,bold)>max&&line){out.push(line);line=w}else line=tt});if(line)out.push(line);
+ out.forEach(l=>{doc.need(size*lh+2);doc.text(x,doc.y+size,l,{size,bold,color});doc.y+=size*lh});};
+const fday=d=>{const x=new Date(String(d).slice(0,10)+'T12:00');return isNaN(x)?String(d):x.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})};
+return {PDFDoc,zip,pFile,foot,dlZip,para,pW,fday};
+})();
+
+// ---------- bilans de la leçon : un .zip avec un PDF par élève (à déposer sur Pronote) ----------
+function orienPdf(R, a, k, X) {
+  const doc = EPDF.PDFDoc(), PW = doc.W, M = doc.M, CW = PW - 2 * M, AC = "#f47a20", INK = "#1d2430", MUT = "#5b6370";
+  doc.page(); doc.rect(0, 0, PW, 96, INK); doc.rect(0, 96, PW, 5, AC);
+  doc.text(M, 38, "Course d'orientation : bilan", { size: 20, bold: true, color: "#ffffff" });
+  doc.text(M, 64, R.nom, { size: 16, bold: true, color: "#ffc08a" });
+  doc.text(PW - M, 38, (R.cl || "") + (X.nom ? " · " + X.nom : ""), { size: 12, bold: true, color: "#ffffff", align: "right", max: 260 });
+  doc.text(PW - M, 58, X.date ? EPDF.fday(new Date(X.date).toLocaleDateString("fr-CA")) : "", { size: 11, color: "#d0d4da", align: "right" });
+  doc.text(PW - M, 76, "Parcours : " + (k?.nm || R.c || "–"), { size: 9.5, color: "#d0d4da", align: "right", max: 260 });
+  doc.y = 126;
+  const sec = t => { doc.need(60); doc.y += 12; doc.text(M, doc.y, t, { size: 14, bold: true, color: INK }); doc.line(M, doc.y + 7, PW - M, doc.y + 7, AC, 1.2); doc.y += 24; };
+  sec("En chiffres");
+  const pts = k?.m === "score" || (k?.b || []).some(b => b.p != null);
+  const K = [[a.statut || "–", "statut"], [a.temps != null ? fmtDur(a.temps) : "–", "temps"], [a.found + " / " + a.total, "balises trouvées"], [a.manquants?.length ? a.manquants.join(" ") : "aucune", "balises manquantes"],
+    ...(a.bonusTotal ? [[a.bonusFound + " / " + a.bonusTotal, "balises bonus"]] : []), ...(pts ? [[a.score, "points"]] : []),
+    [a.dist != null ? Math.round(a.dist) + " m" : "–", "distance (GPS)"], [a.vitesse ? fmtNum(a.vitesse) + " km/h" : "–", "vitesse moyenne"], [a.stop ? fmtDur(a.stop) : "–", "temps arrêté"], [a.erreurs ?? 0, "erreurs de balise"], [a.ordreErr ?? 0, "erreurs d'ordre"], [a.retard ? fmtDur(a.retard) : "–", "retard"]];
+  const bw = (CW - 3 * 8) / 4, bh = 50;
+  K.forEach(([v, l], i) => { const col = i % 4, row = Math.floor(i / 4), x = M + col * (bw + 8), y = doc.y + row * (bh + 8); doc.rect(x, y, bw, bh, "#fdf1e6"); doc.text(x + 10, y + 24, String(v), { size: 15, bold: true, color: AC, max: bw - 16 }); doc.text(x + 10, y + 40, l, { size: 8.5, color: MUT, max: bw - 16 }); });
+  doc.y += Math.ceil(K.length / 4) * (bh + 8) + 14;
+  if ((a.legs || []).length) {
+    sec("Temps par balise");
+    const cols = [["Balise", 70], ["Depuis", 70], ["Heure", 70], ["Interm.", 70], ["Cumul", 70], ["Distance", CW - 350]];
+    const head = () => { doc.rect(M, doc.y, CW, 18, INK); let x = M + 4; cols.forEach(([t, w]) => { doc.text(x, doc.y + 12.5, t, { size: 8.5, bold: true, color: "#ffffff" }); x += w; }); doc.y += 18; };
+    head(); a.legs.forEach((l, i) => { if (doc.need(18)) head(); if (i % 2) doc.rect(M, doc.y, CW, 17, "#f7f4f1");
+      const v = [l.n, l.de ?? "–", l.t ? fmtHeure(l.t) : "–", l.split != null ? fmtDur(l.split) : "–", l.cumul != null ? fmtDur(l.cumul) : "–", l.gps != null ? Math.round(l.gps) + " m" : (l.vol != null ? Math.round(l.vol) + " m (vol d'oiseau)" : "–")];
+      let x = M + 4; cols.forEach(([, w], j) => { doc.text(x, doc.y + 12, String(v[j]), { size: 9, bold: j === 0, color: l.ordre === false ? "#b3261e" : INK, max: w - 6 }); x += w; }); doc.y += 17; });
+  }
+  EPDF.foot(doc, "OrienRun EPS · document personnel, ne pas diffuser");
+  return doc.bytes();
+}
+function zipBilans(X) {
+  const keep = S; S = X;
+  try {
+    const L = Object.values(X.runners || {}).map(R => { const k = courseOf(R); return { R, k, a: analyseRun(R, k, P, X.dec, X.ack || {}, { scanMax: CFG.scanMax }) }; })
+      .sort((x, y) => (x.R.cl || "").localeCompare(y.R.cl || "") || x.R.nom.localeCompare(y.R.nom));
+    if (!L.length) return toast("Aucun élève inscrit dans cette leçon", "ko");
+    const many = new Set(L.map(o => o.R.cl || "")).size > 1;
+    const files = L.map(o => [(many ? EPDF.pFile(o.R.cl || "Sans_classe") + "/" : "") + EPDF.pFile(o.R.nom) + ".pdf", orienPdf(o.R, o.a, o.k, X)]);
+    EPDF.dlZip("OrienRun_" + EPDF.pFile(X.nom || "lecon") + "_" + new Date(X.date || Date.now()).toLocaleDateString("fr-FR").replace(/\//g, "-") + ".zip", files);
+    toast(files.length + " bilans dans le fichier .zip ✓", "ok");
+  } finally { S = keep; }
 }

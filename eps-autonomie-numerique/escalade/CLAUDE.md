@@ -25,3 +25,6 @@ Application web pour tablette (escalade en moulinette, lycée), hébergée sur G
 - PDF : générateur maison `PDFDoc()` (Helvetica WinAnsi, `pEnc`, largeurs `HWN`/`HWB`), `pdfEleve(doc,name,nom,d)` (bilan si `d` vide, sinon leçon), `pdfFoot`, `pdfOne` (Mes résultats), `pdfLe` (enseignant, un élève ou tous). Script : `autoriserDrive()` à exécuter une fois dans l'éditeur.
 - **Pas de noms d'élèves dans le dépôt public** : la version publiée a `const CL0=null;`. La version privée de l'enseignant (fichier local) peut intégrer sa classe dans `CL0`.
 - Interface et textes en français, tutoiement des élèves.
+- Objectif de la leçon : `L.obj` (phrase saisie dans `lecEdit`), affiché avec le nombre de voies `min` par `objBar()` en haut de l'accueil.
+- Tablette de contrôle (`S.t='ctl'`, `ctl()`, tuile enseignant) : une carte par élève de la classe (`CF.sel`) pour aujourd'hui (voies / objectif, meilleure réussite, hauteur max, Tops, cotations tentées, ligne rouge + pourquoi, dernière grimpe) ; rafraîchie toutes les 4 s (les grimpes des autres tablettes arrivent par la synchronisation).
+- Bilans de la classe : `zipLe(d)` → `Escalade_<classe>_<jj-mm-aaaa>.zip`, un PDF `pdfEleve` par élève de la liste (boutons dans « Aujourd'hui » et dans la consultation d'une leçon). `zip(files,type)` accepte du texte ou des octets.

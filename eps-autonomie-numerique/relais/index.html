@@ -697,6 +697,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <button class="back" data-go="lecons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour</button>
     <h2><span id="b-title"></span> · <span class="cname"></span></h2>
     <button class="btn ghost sm teachbtn" data-teach></button>
+    <button class="btn ghost sm teach" id="b-zip" title="Un PDF par élève, à déposer sur Pronote">🗜️ Bilans (.zip)</button>
     <button class="btn green sm teach" id="b-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Excel</button>
   </div>
   <div class="stats" style="margin:0 0 16px" id="b-stats"></div>
@@ -2054,6 +2055,96 @@ function renderBilan(){
     +(list.filter(c=>typeof c.ecart==="number").length?`<div class="chip">Écart moyen <b>${sgn(list.filter(c=>typeof c.ecart==="number").reduce((s,c)=>s+c.ecart,0)/list.filter(c=>typeof c.ecart==="number").length)}</b> km/h</div>`:"");
   renderCourses("#tblBilan",list,l.cfg);
 }
+/* Outils communs EPS (copie identique dans Relais, OrienRun, Acrosport) : PDF maison (Helvetica, accents) + fichier .zip, sans bibliothèque ni internet. */
+const EPDF=(()=>{
+const HWN=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+const HWB=[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+const WAN={'€':128,'‚':130,'„':132,'…':133,'‰':137,'Œ':140,'‘':145,'’':146,'“':147,'”':148,'•':149,'–':150,'—':151,'™':153,'œ':156,'Ÿ':159};
+const PSUB={'✓':'v','★':'*','→':'->','⇄':'<->','≥':'>=','≤':'<=','×':'x'};
+/* texte → octets WinAnsi (accents français pris en charge ; émojis retirés) */
+function pEnc(t){let o='';for(const ch of String(t??'')){if(PSUB[ch]){o+=PSUB[ch];continue}const c=ch.codePointAt(0);const b=WAN[ch]??((c>=32&&c<127)||(c>=160&&c<256)?c:null);
+ if(b!=null){o+=String.fromCharCode(b);continue}const n=ch.normalize('NFD')[0];if(n&&n.codePointAt(0)<127&&n.codePointAt(0)>=32)o+=n}return o}
+const pEsc=x=>x.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+function pW(t,size,bold){const T=bold?HWB:HWN;let w=0;for(const ch of pEnc(t)){const c=ch.charCodeAt(0),base=c<127?c:(String.fromCharCode(c).normalize('NFD').charCodeAt(0));w+=T[(base>=32&&base<127?base:110)-32]||556}return w*size/1000}
+const pCol=h=>{h=h.replace('#','');const n=parseInt(h.length==3?h.split('').map(x=>x+x).join(''):h,16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255].map(v=>v.toFixed(3)).join(' ')};
+function PDFDoc(){const W=595.28,H=841.89,M=40,pages=[];let c=null;const d={W,H,M,y:0,pages};
+ d.page=()=>{c=[];pages.push(c);d.y=M;return d};
+ d.text=(x,y,t,{size=11,bold=false,color='#1d2a31',align='left',max=0}={})=>{let s=String(t??'');if(max)while(s.length>1&&pW(s,size,bold)>max)s=s.slice(0,-2)+'…';
+  const w=pW(s,size,bold),X=align=='right'?x-w:align=='center'?x-w/2:x;c.push(`BT /${bold?'F2':'F1'} ${size} Tf ${pCol(color)} rg 1 0 0 1 ${X.toFixed(2)} ${(H-y).toFixed(2)} Tm (${pEsc(pEnc(s))}) Tj ET`);return w};
+ d.rect=(x,y,w,h,color,r)=>{c.push(`${pCol(color)} rg ${x.toFixed(2)} ${(H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`)};
+ d.line=(x1,y1,x2,y2,color='#d5dee2',lw=.7)=>{c.push(`${pCol(color)} RG ${lw} w ${x1.toFixed(2)} ${(H-y1).toFixed(2)} m ${x2.toFixed(2)} ${(H-y2).toFixed(2)} l S`)};
+ d.need=h=>{if(d.y+h>H-M-18){d.page();return true}return false};
+ d.bytes=()=>{const objs=[],add=x=>{objs.push(x);return objs.length};
+  const cat=add(''),pg=add(''),f1=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'),f2=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  const kids=pages.map((cc,i)=>{const st=cc.join('\n'),ci=add(`<< /Length ${st.length} >>\nstream\n${st}\nendstream`);return add(`<< /Type /Page /Parent ${pg} 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${ci} 0 R >>`)});
+  objs[cat-1]=`<< /Type /Catalog /Pages ${pg} 0 R >>`;objs[pg-1]=`<< /Type /Pages /Kids [${kids.map(k=>k+' 0 R').join(' ')}] /Count ${kids.length} >>`;
+  let out='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';const off=[];objs.forEach((o,i)=>{off.push(out.length);out+=`${i+1} 0 obj\n${o}\nendobj\n`});
+  const xr=out.length;out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+off.map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length+1} /Root ${cat} 0 R >>\nstartxref\n${xr}\n%%EOF`;
+  const b=new Uint8Array(out.length);for(let i=0;i<out.length;i++)b[i]=out.charCodeAt(i)&255;return b};
+ return d}
+const crcT=[...Array(256)].map((_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0});
+const crc=b=>{let c=-1;for(const x of b)c=crcT[(c^x)&255]^(c>>>8);return(c^-1)>>>0};
+function zip(files,type){const e=new TextEncoder(),P=[],D=[];let off=0;const w=n=>[n&255,n>>8&255],d4=n=>[n&255,n>>8&255,n>>16&255,n>>>24&255];const now=new Date(),dT=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1),dD=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+ for(const[n,t]of files){const nb=e.encode(n),d=t instanceof Uint8Array?t:e.encode(t),c=crc(d);
+  const lh=new Uint8Array([0x50,0x4b,3,4,20,0,0,8,0,0,...w(dT),...w(dD),...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,...nb]);
+  D.push(new Uint8Array([0x50,0x4b,1,2,20,0,20,0,0,8,0,0,...w(dT),...w(dD),...d4(c),...d4(d.length),...d4(d.length),...w(nb.length),0,0,0,0,0,0,0,0,0,0,0,0,...d4(off),...nb]));
+  P.push(lh,d);off+=lh.length+d.length}
+ const cs=D.reduce((a,b)=>a+b.length,0);
+ return new Blob([...P,...D,new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...w(files.length),...w(files.length),...d4(cs),...d4(off),0,0])],{type:type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+const pFile=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9-]+/g,'_').replace(/^_|_$/g,'');
+/* pied de page sur chaque page */
+const foot=(doc,label)=>{const n=doc.pages.length;doc.pages.forEach((c,i)=>{c.push(`BT /F1 8 Tf ${pCol('#5b6a72')} rg 1 0 0 1 ${doc.M} 22 Tm (${pEsc(pEnc(label))}) Tj ET`);const t=pEnc('Page '+(i+1)+' / '+n);c.push(`BT /F1 8 Tf ${pCol('#5b6a72')} rg 1 0 0 1 ${(doc.W-doc.M-pW(t,8)).toFixed(2)} 22 Tm (${t}) Tj ET`)})};
+/* fichiers [[nom, Uint8Array]] → .zip téléchargé (noms uniques) */
+const dlZip=(name,files)=>{const used={},F=files.map(([n,b])=>{let base=n.replace(/\.pdf$/,''),k=base;if(used[k])k=base+'_'+(++used[base]);else used[k]=1;return [k+'.pdf',b]});
+ const blob=zip(F,'application/zip'),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
+/* bloc de texte avec retour à la ligne */
+const para=(doc,x,t,{size=10.5,bold=false,color='#1d2a31',max=0,lh=1.35}={})=>{const words=String(t??'').split(/\s+/);let line='';const out=[];words.forEach(w=>{const tt=line?line+' '+w:w;if(pW(tt,size,bold)>max&&line){out.push(line);line=w}else line=tt});if(line)out.push(line);
+ out.forEach(l=>{doc.need(size*lh+2);doc.text(x,doc.y+size,l,{size,bold,color});doc.y+=size*lh});};
+const fday=d=>{const x=new Date(String(d).slice(0,10)+'T12:00');return isNaN(x)?String(d):x.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})};
+return {PDFDoc,zip,pFile,foot,dlZip,para,pW,fday};
+})();
+
+/* ===== Bilans de la classe : un .zip avec un PDF par élève pour la leçon consultée (à déposer sur Pronote) ===== */
+function relaisPdf(e,l,list){
+  const doc=EPDF.PDFDoc(),PW=doc.W,M=doc.M,CW=PW-2*M,AC='#D9481F',INK='#1B1E24',MUT='#5b6370';
+  const sg=n=>(n>0?"+":n<0?"-":"")+fmt(Math.abs(n)),num=v=>typeof v==="number"&&isFinite(v);
+  const name=(e.prenom+" "+e.nom).trim();
+  doc.page();doc.rect(0,0,PW,96,INK);doc.rect(0,96,PW,5,AC);
+  doc.text(M,38,"Relais vitesse : résumé de la leçon",{size:20,bold:true,color:'#ffffff'});
+  doc.text(M,64,name,{size:16,bold:true,color:'#ffb199'});
+  doc.text(PW-M,38,CL().name,{size:12,bold:true,color:'#ffffff',align:'right'});
+  doc.text(PW-M,58,cap(fmtLong(l.date)),{size:11,color:'#d0d4da',align:'right'});
+  doc.text(PW-M,76,'Édité le '+new Date().toLocaleDateString('fr-FR'),{size:9,color:'#d0d4da',align:'right'});
+  doc.y=126;
+  const sec=t=>{doc.need(60);doc.y+=12;doc.text(M,doc.y,t,{size:14,bold:true,color:INK});doc.line(M,doc.y+7,PW-M,doc.y+7,AC,1.2);doc.y+=24};
+  const mine=list.filter(c=>isD(c,e)||isR(c,e));
+  if(e.ma==="DISP"){doc.text(M,doc.y+10,"Élève dispensé(e) de course.",{size:12,color:MUT});}
+  /* vitesses de référence */
+  sec("Mes vitesses de référence");
+  const K0=[[num(e.ma)&&e.ma>0?fmt(e.ma)+" km/h":"–","départ arrêté (moyenne)"],[num(e.ml)&&e.ml>0?fmt(e.ml)+" km/h":"–","départ lancé (moyenne)"]];
+  const box=(K)=>{const bw=(CW-3*8)/4,bh=50;K.forEach(([v,lb],i)=>{const col=i%4,row=Math.floor(i/4),x=M+col*(bw+8),y=doc.y+row*(bh+8);doc.rect(x,y,bw,bh,'#f6efe9');doc.text(x+10,y+24,String(v),{size:16,bold:true,color:AC,max:bw-16});doc.text(x+10,y+40,lb,{size:8.5,color:MUT,max:bw-16})});doc.y+=Math.ceil(K.length/4)*(bh+8)+14};
+  box(K0);
+  if(!mine.length){doc.text(M,doc.y+6,"Aucune course enregistrée pendant cette leçon.",{size:12,color:MUT});EPDF.foot(doc,"Relais Vitesse EPS · document personnel");return doc.bytes()}
+  const D=mine.filter(c=>isD(c,e)).length,R=mine.filter(c=>isR(c,e)).length,ec=mine.filter(c=>num(c.ecart)),zn=mine.filter(c=>has(c.zone)&&c.zone!==NR),hz=zn.filter(c=>c.zone===HZ).length;
+  const best=ec.length?ec.slice().sort((a,b)=>Math.abs(a.ecart)-Math.abs(b.ecart))[0].ecart:null;
+  sec("En chiffres");
+  box([[mine.length,mine.length>1?"courses":"course"],[D,"fois coureur 1 (donneur)"],[R,"fois coureur 2 (receveur)"],[ec.length?sg(ec.reduce((a,c)=>a+c.ecart,0)/ec.length)+" km/h":"–","écart moyen à la cible"],
+    [best==null?"–":sg(best)+" km/h","meilleur écart"],[zn.length?(zn.length-hz)+" / "+zn.length:"–","transmissions dans la zone"],[hz,"hors zone"]]);
+  sec("Mes courses");
+  const cols=[["N°",26],["Rôle",64],["Partenaire",104],["Cible",50],["Écart",50],["Réalisé",54],["Zone",80],["Départ",CW-26-64-104-50-50-54-80]];
+  const head=()=>{doc.rect(M,doc.y,CW,18,INK);let x=M+4;cols.forEach(([t,w])=>{doc.text(x,doc.y+12.5,t,{size:8.5,bold:true,color:'#ffffff'});x+=w});doc.y+=18};
+  head();mine.slice().sort((a,b)=>a.n-b.n).forEach((c,i)=>{if(doc.need(18))head();if(i%2)doc.rect(M,doc.y,CW,17,'#f7f4f1');const d1=isD(c,e);
+    const v=[c.n,d1?"Donneur":"Receveur",d1?(c.p2+" "+c.n2):(c.p1+" "+c.n1),num(c.cible)?fmt(c.cible):"–",num(c.ecart)?sg(c.ecart):(has(c.ecart)?c.ecart:"–"),num(c.realise)?fmt(c.realise):"–",has(c.zone)?c.zone:"–",has(c.dep)?c.dep:"–"];
+    let x=M+4;cols.forEach(([,w],j)=>{doc.text(x,doc.y+12,String(v[j]),{size:9,bold:j==4,color:j==4&&num(c.ecart)?(c.ecart<0?'#b3261e':'#2e7d4f'):INK,max:w-6});x+=w});doc.y+=17});doc.y+=12;
+  const tips=[...new Set(mine.map(c=>c.conseil).filter(x=>has(x)&&x!==NR))];
+  if(tips.length){sec("Conseils reçus");tips.forEach(t=>{EPDF.para(doc,M,"• "+t,{size:10.5,max:CW});doc.y+=3})}
+  EPDF.foot(doc,"Relais Vitesse EPS · document personnel, ne pas diffuser");
+  return doc.bytes();
+}
+$("#b-zip").addEventListener("click",()=>{const l=CL().lecons.find(x=>x.id===BILAN);if(!l)return;const list=ALLCO().filter(c=>c.lid===l.id);
+  const els=CL().eleves.slice().sort((a,b)=>(a.nom+a.prenom).localeCompare(b.nom+b.prenom,"fr"));if(!els.length){toast("Aucun élève dans cette classe");return}
+  EPDF.dlZip("Relais_"+EPDF.pFile(CL().name)+"_"+l.date.split("-").reverse().join("-")+".zip",els.map(e=>[EPDF.pFile(e.nom+" "+e.prenom)+".pdf",relaisPdf(e,l,list)]));
+  toast(els.length+" bilans dans le fichier .zip ✓")});
 $("#b-export").addEventListener("click",()=>{const l=CL().lecons.find(x=>x.id===BILAN);exportXlsx(ALLCO().filter(c=>c.lid===l.id),l.date)});
 $("#b-resume").addEventListener("click",()=>{DATA.lecon=BILAN;FROM_BILAN=null;persist();resetST();go("groupes")});
 $("#b-groups").addEventListener("click",async()=>{if(!await requireCode())return;const l=CL().lecons.find(x=>x.id===BILAN);ensureLeconGroups(l);
