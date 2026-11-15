@@ -17,7 +17,8 @@
 const SECRET = 'CHANGE-MOI';
 
 const SHEET_NAME = 'Grimpes';
-const VERSION = 4; // 3 : colonnes rangées par titre ; 4 : synchronisation entre tablettes + vidéos dans Google Drive
+const VERSION = 5; // 3 : colonnes rangées par titre ; 4 : synchronisation + vidéos Drive ; 5 : vidéos déposées à la main dans le dossier Drive
+const CH_RAW = 2 * 1024 * 1024; // morceaux de 2 Mo pour le téléchargement
 const SYNC_SHEET = 'Sync';
 const VID_FOLDER = 'Escalade EPS – vidéos';
 
@@ -213,6 +214,9 @@ function syncPull_(p) {
    Ensuite : Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer. */
 function autoriserDrive() {
   const f = vidFolder_();
+  // lecture par morceaux des vidéos déposées à la main : demande aussi l'autorisation « services externes »
+  UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/about?fields=user', { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+  const L = vidList_(); Logger.log('Vidéos trouvées dans le dossier : ' + Object.keys(L).map(k => L[k].title || k).join(', '));
   Logger.log('✓ Dossier prêt : « ' + f.getName() + ' » → ' + f.getUrl());
   Logger.log('Version du script : ' + VERSION + '. Pense à redéployer : Déployer > Gérer les déploiements > ✏️ > Nouvelle version.');
 }
@@ -251,11 +255,27 @@ function vidList_() {
     let m = nm.match(/^([A-Za-z0-9_-]+)\.meta$/);
     if (m) { try { Object.assign(out[m[1]] = out[m[1]] || { have: 0 }, JSON.parse(fi.getBlob().getDataAsString())); } catch (e) {} continue; }
     m = nm.match(/^([A-Za-z0-9_-]+)\.(\d+)\.part$/);
-    if (m) (out[m[1]] = out[m[1]] || { have: 0 }).have++;
+    if (m) { (out[m[1]] = out[m[1]] || { have: 0 }).have++; continue; }
+    // vidéo déposée directement dans le dossier (glisser-déposer dans Google Drive)
+    const mt = String(fi.getMimeType() || '');
+    if (mt.indexOf('video/') === 0 || /\.(mp4|m4v|mov|webm)$/i.test(nm)) {
+      const n = Math.max(1, Math.ceil(fi.getSize() / CH_RAW));
+      out['g_' + fi.getId()] = { g: 1, title: nm, n: n, have: n, size: fi.getSize(), type: mt.indexOf('video/') === 0 ? mt : 'video/mp4' };
+    }
   }
   return out;
 }
 function vidGet_(v, i) {
+  v = vidName_(v);
+  if (v.indexOf('g_') === 0) { // vidéo déposée à la main : lecture d'un morceau (Range) sans charger tout le fichier
+    const id = v.slice(2), f = DriveApp.getFileById(id), fid = vidFolder_().getId();
+    let inside = false; const ps = f.getParents(); while (ps.hasNext()) if (ps.next().getId() === fid) inside = true;
+    if (!inside) return '';
+    const size = f.getSize(), a = Number(i) * CH_RAW, b = Math.min(size, a + CH_RAW) - 1;
+    if (a >= size) return '';
+    const r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media', { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), Range: 'bytes=' + a + '-' + b }, muteHttpExceptions: true });
+    return r.getResponseCode() < 300 ? Utilities.base64Encode(r.getContent()) : '';
+  }
   const it = vidFolder_().getFilesByName(vidName_(v) + '.' + Number(i) + '.part');
   return it.hasNext() ? it.next().getBlob().getDataAsString() : '';
 }
