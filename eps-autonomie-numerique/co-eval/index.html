@@ -508,13 +508,21 @@ function onRemote(conf) {
 function queueResult(k) {
   const r = RUNS[k]; if (!r?.fin || !ME) return;
   const out = LS.get("out", []).filter(x => !(x.eleve === ME.id && x.k === k));
-  out.push({ eleve: ME.id, nom: ME.prenom + " " + ME.nom, classe: ME.classe || "", prof: ME.prof, k, data: { me: ME, run: packRun(r) } });
+  const run = packRun(r); run.tr = fitTrace(run.tr, 30000);
+  out.push({ eleve: ME.id, nom: ME.prenom + " " + ME.nom, classe: ME.classe || "", prof: ME.prof, k, data: { me: ME, run } });
   LS.set("out", out); flushOut();
 }
+// tracé allégé (Douglas-Peucker) pour tenir dans une cellule de la Google Sheet
+function simplifyPts(P, tol) { if (P.length < 3) return P; const keep = new Uint8Array(P.length); keep[0] = keep[P.length - 1] = 1; const st = [[0, P.length - 1]];
+  while (st.length) { const [a, b] = st.pop(); let md = 0, mi = -1; const [ax, ay] = P[a], [bx, by] = P[b], L = Math.hypot(bx - ax, by - ay) || 1e-9;
+    for (let i = a + 1; i < b; i++) { const d = Math.abs((bx - ax) * (ay - P[i][1]) - (ax - P[i][0]) * (by - ay)) / L; if (d > md) { md = d; mi = i; } }
+    if (md > tol && mi > 0) { keep[mi] = 1; st.push([a, mi], [mi, b]); } }
+  return P.filter((_, i) => keep[i]); }
+function fitTrace(tr, max) { tr = tr || []; let tol = .0005, t = tr; while (JSON.stringify(t).length > max && tol < .05) { t = tr.map(x => x.t === "pen" ? { ...x, p: simplifyPts(x.p, tol) } : x); tol *= 2; } return JSON.stringify(t).length > max ? [] : t; }
 let flushing = false;
 async function flushOut() {
   if (flushing) return; const out = LS.get("out", []); if (!out.length) return; flushing = true;
-  try { for (const x of out) { await api("coeResult", x); const sx = JSON.stringify(x); LS.set("out", LS.get("out", []).filter(y => JSON.stringify(y) !== sx)); } NET = true; }
+  try { for (const x of out) { const sx = JSON.stringify(x); try { await api("coeResult", x); } catch (e) { if (!/trop gros/i.test(e.message)) throw e; x.data.run.tr = []; await api("coeResult", x); } LS.set("out", LS.get("out", []).filter(y => JSON.stringify(y) !== sx)); } NET = true; }
   catch (e) { NET = false; } finally { flushing = false; setNet(); }
 }
 
