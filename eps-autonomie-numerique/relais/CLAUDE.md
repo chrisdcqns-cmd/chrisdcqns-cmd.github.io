@@ -24,3 +24,4 @@ Application web pour tablette (relais-vitesse, lycée), hébergée sur GitHub Pa
 - Bibliothèque de situations : `SITS` / `SIT_CATS` (contenu), vue `v-sits` (`renderSits`), boutons `[data-sits]` ; l'enseignant ajoute des situations à la leçon (`lecon.sits`, synchronisé avec la leçon) → carte « 📚 Situations de la leçon » sur l'accueil (`renderSitDay`).
 - Situations : la bibliothèque (`data-sits`) est réservée à l'enseignant (`.teach`) ; les élèves ne voient que les situations cochées pour la leçon du jour (`renderSits` filtré, `data-sitgo`).
 - Mode enseignant partagé : `eps.teach.until` (`hubSync`, `hubOn`) ; au démarrage, si actif → vue classes ; « Mode élève » / verrou le coupe partout.
+- Clé de synchro : si aucune clé n'est saisie dans Relais, celle du « Partage entre tablettes » de la page d'accueil (`eps.share.v1`, même script). Les enregistrements `disp|`, `lst|` (page d'accueil) et `e:` (Escalade) sont ignorés.

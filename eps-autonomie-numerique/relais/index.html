@@ -3060,6 +3060,8 @@ const KS="relais-vitesse-sheets-v1";
 /* Adresse du script Apps Script de l'enseignant (la clé secrète, elle, se saisit sur chaque tablette) */
 const SH_DEFAULT_URL="https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec";
 let SH={url:"",key:"",names:"code",auto:true,queue:[],salt:"",...(load(KS,{})||{})};
+/* clé non saisie ici : on prend celle du « Partage entre tablettes » de la page d'accueil (même script Google) */
+if(!SH.key){try{const c=JSON.parse(localStorage.getItem("eps.share.v1")||"null");if(c&&c.key){SH.key=c.key;if(!SH.url)SH.url=c.url}}catch(e){}}
 if(!SH.url)SH.url=SH_DEFAULT_URL;
 if(!SH.salt){SH.salt=Math.random().toString(36).slice(2,10);save(KS,SH)}
 const shSave=()=>save(KS,SH);
@@ -3334,7 +3336,7 @@ async function syPull(){
       let changed=false;
       for(const [seq,k,u,d,x] of recs){
         SY.maxU=Math.max(SY.maxU||0,+u||0);
-        if(k.startsWith("disp|"))continue; /* dispenses : gérées par la page d'accueil commune (eps-home.js) */
+        if(k.startsWith("disp|")||k.startsWith("lst|")||k.startsWith("e:"))continue; /* dispenses, listes de classes (page d'accueil commune) et Escalade (« e: ») : pas pour Relais */
         const pd=SY.pend[k];if(pd&&pd.u>+u)continue; /* notre version locale est plus récente : elle sera envoyée */
         delete SY.pend[k];
         if(+d){if(k in SY.h||k.split("|")[0]!=="meta"){syRemove(k);delete SY.h[k];changed=true}continue}
