@@ -97,10 +97,33 @@ const DESCRIPTIONS = ["Angle de bâtiment", "Angle de mur", "Angle de clôture",
 const DB = (() => { let p; const open = () => p || (p = new Promise((res, rej) => { const r = indexedDB.open("orienrun-terrain", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
   return { async get(k) { const db = await open(); return new Promise(res => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); },
     async set(k, v) { const db = await open(); return new Promise((res, rej) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); } }; })();
-let CFG = Object.assign({ accBalise: 6, accTrace: 15, mesure: 15 }, JSON.parse(localStorage.getItem("terrain.cfg") || "{}"));
+let CFG = Object.assign({ accBalise: 6, accTrace: 15, mesure: 15, pas: 3, useCal: true }, JSON.parse(localStorage.getItem("terrain.cfg") || "{}"));
 const saveCfg = () => localStorage.setItem("terrain.cfg", JSON.stringify(CFG));
-let BAL = [], TRC = [];
-const saveBal = () => DB.set("balises", BAL), saveTrc = () => DB.set("traces", TRC);
+let BAL = [], TRC = [], REP = [], CAL = [];
+const saveBal = () => DB.set("balises", BAL), saveTrc = () => DB.set("traces", TRC), saveRep = () => DB.set("reperes", REP), saveCal = () => DB.set("calage", CAL);
+// ---------- calage de la trace : correction déduite de points dont on connaît la vraie position ----------
+// 1 point = décalage ; 2 points = décalage + rotation + échelle ; 3 points et plus = transformation affine + correction locale (chaque point tombe juste)
+function makeCorr(pairs) {
+  if (!pairs.length) return p => p;
+  const la0 = pairs.reduce((s, x) => s + x.src.lat, 0) / pairs.length, lo0 = pairs.reduce((s, x) => s + x.src.lon, 0) / pairs.length;
+  const kx = 111320 * Math.cos(la0 * Math.PI / 180), ky = 110540;
+  const toM = p => [(p.lon - lo0) * kx, (p.lat - la0) * ky], fromM = (x, y) => ({ lat: la0 + y / ky, lon: lo0 + x / kx });
+  const A = pairs.map(x => toM(x.src)), B = pairs.map(x => toM(x.dst));
+  let f;
+  if (A.length === 1) { const dx = B[0][0] - A[0][0], dy = B[0][1] - A[0][1]; f = (x, y) => [x + dx, y + dy]; }
+  else if (A.length === 2) { const za = [A[1][0] - A[0][0], A[1][1] - A[0][1]], zb = [B[1][0] - B[0][0], B[1][1] - B[0][1]], d = za[0] ** 2 + za[1] ** 2 || 1; const c = [(zb[0] * za[0] + zb[1] * za[1]) / d, (zb[1] * za[0] - zb[0] * za[1]) / d]; f = (x, y) => { const dx = x - A[0][0], dy = y - A[0][1]; return [B[0][0] + c[0] * dx - c[1] * dy, B[0][1] + c[1] * dx + c[0] * dy]; }; }
+  else { const S = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], bx = [0, 0, 0], by = [0, 0, 0];
+    A.forEach((a, i) => { const v = [a[0], a[1], 1]; for (let r = 0; r < 3; r++) { for (let k = 0; k < 3; k++) S[r][k] += v[r] * v[k]; bx[r] += v[r] * B[i][0]; by[r] += v[r] * B[i][1]; } });
+    const sol = b => { const m = S.map((r, i) => [...r, b[i]]); for (let c = 0; c < 3; c++) { let p = c; for (let r = c + 1; r < 3; r++) if (Math.abs(m[r][c]) > Math.abs(m[p][c])) p = r; [m[c], m[p]] = [m[p], m[c]]; const dd = m[c][c] || 1e-12; for (let r = 0; r < 3; r++) if (r !== c) { const q = m[r][c] / dd; for (let k = c; k < 4; k++) m[r][k] -= q * m[c][k]; } } return [0, 1, 2].map(i => m[i][3] / (m[i][i] || 1e-12)); };
+    const cx = sol(bx), cy = sol(by), aff = (x, y) => [cx[0] * x + cx[1] * y + cx[2], cy[0] * x + cy[1] * y + cy[2]];
+    const det = cx[0] * cy[1] - cx[1] * cy[0];
+    if (!isFinite(det) || Math.abs(det) < .2) { const dx = B.reduce((s, b, i) => s + b[0] - A[i][0], 0) / A.length, dy = B.reduce((s, b, i) => s + b[1] - A[i][1], 0) / A.length; f = (x, y) => [x + dx, y + dy]; } // points alignés : simple décalage moyen
+    else { const res = A.map((a, i) => { const q = aff(a[0], a[1]); return [B[i][0] - q[0], B[i][1] - q[1]]; });
+      f = (x, y) => { const q = aff(x, y); let sw = 0, rx = 0, ry = 0; for (let i = 0; i < A.length; i++) { const d2 = (x - A[i][0]) ** 2 + (y - A[i][1]) ** 2; if (d2 < 1e-6) return [B[i][0], B[i][1]]; const w = 1 / d2; sw += w; rx += res[i][0] * w; ry += res[i][1] * w; } return [q[0] + rx / sw, q[1] + ry / sw]; }; } }
+  return p => { const m = toM(p), q = f(m[0], m[1]); return { ...p, ...fromM(q[0], q[1]) }; };
+}
+let CORR = p => p; const recalcCorr = () => { CORR = CFG.useCal && CAL.length ? makeCorr(CAL) : (p => p); };
+const cp = p => CORR(p); // position corrigée (ou brute s'il n'y a pas de calage)
 
 // ---------- alertes visibles + son ----------
 let audioCtx = null;
@@ -166,7 +189,7 @@ function measure(seconds, thr, onProg) {
 
 // ======================= écrans =======================
 let curView = "home";
-function go(v, arg) { curView = v; $("#back").classList.toggle("hidden", v === "home"); window.scrollTo(0, 0); ({ home: vHome, pose: vPose, trace: vTrace, liste: vListe, export: vExport, reglages: vReglages })[v](arg); updGps(); }
+function go(v, arg) { curView = v; $("#back").classList.toggle("hidden", v === "home"); window.scrollTo(0, 0); ({ home: vHome, pose: vPose, trace: vTrace, liste: vListe, export: vExport, reglages: vReglages, caler: vCaler })[v](arg); updGps(); }
 $("#back").onclick = () => { if (curView === "trace" && REC.on && !confirm("Le tracé est en cours. Quitter l'écran ? (il continue en arrière-plan de l'appli)")) return; go("home"); };
 
 function vHome() {
@@ -176,12 +199,13 @@ function vHome() {
    ${enCours ? `<button class="big" id="hRec" style="border-color:var(--rd)"><span class="ic rec" style="background:#fde0e2">⏺</span><span><b>Tracé en cours</b><span>${esc(REC.cur.nom)} · ${fmtD(traceDist(REC.cur))}</span></span></button>` : ""}
    <button class="big" id="hPose" style="border-color:var(--or)"><span class="ic" style="background:#ffe3cc">🚩</span><span><b>Poser des balises</b><span>Position GPS contrôlée, photos, lien Google Maps</span></span></button>
    <button class="big" id="hTrace" style="border-color:#1f4fa3"><span class="ic" style="background:#dbe6fb">〰</span><span><b>Tracer un chemin</b><span>Je marche, l'appli trace (balise possible sans quitter)</span></span></button>
-   <button class="big" id="hListe"><span class="ic" style="background:var(--paper)">📂</span><span><b>Mes relevés</b><span>${BAL.length} balise(s) · ${TRC.length} tracé(s)</span></span></button>
+   <button class="big" id="hCal" style="border-color:#2a9d6f"><span class="ic" style="background:#d9f2e6">🎯</span><span><b>Caler la trace</b><span>Sur la photo aérienne IGN : ${CAL.length ? CAL.length + " point(s) de calage" : "pointe des endroits visibles pour corriger le GPS"}</span></span></button>
+   <button class="big" id="hListe"><span class="ic" style="background:var(--paper)">📂</span><span><b>Mes relevés</b><span>${BAL.length} balise(s) · ${TRC.length} tracé(s) · ${REP.length} repère(s)</span></span></button>
    <button class="big" id="hExp"><span class="ic" style="background:var(--paper)">📤</span><span><b>Exporter</b><span>Vers OrienRun, GPX (Géoportail, IGNrando), calque 1:25 000 / 1:50 000</span></span></button>
    <div class="row"><button class="btn ghost small" id="hReg">⚙ Réglages</button><button class="btn ghost small" id="hImp">📥 Importer un GPX (Strava, IGNrando…)</button></div>
    <div class="tip">📱 <b>Sur iPhone</b> : Safari → bouton Partager → « Sur l'écran d'accueil ». Pendant un tracé, <b>garde l'écran allumé</b> : un iPhone verrouillé n'envoie plus sa position aux applis web. Pour enregistrer écran verrouillé, enregistre avec Strava ou IGNrando puis importe le GPX ici.</div>`;
   $("#hRec") && ($("#hRec").onclick = () => go("trace"));
-  $("#hPose").onclick = () => go("pose"); $("#hTrace").onclick = () => go("trace"); $("#hListe").onclick = () => go("liste"); $("#hExp").onclick = () => go("export"); $("#hReg").onclick = () => go("reglages"); $("#hImp").onclick = importGPX;
+  $("#hPose").onclick = () => go("pose"); $("#hCal").onclick = () => go("caler"); $("#hTrace").onclick = () => go("trace"); $("#hListe").onclick = () => go("liste"); $("#hExp").onclick = () => go("export"); $("#hReg").onclick = () => go("reglages"); $("#hImp").onclick = importGPX;
 }
 
 // ---------- pose d'une balise (écran ou panneau par-dessus le tracé) ----------
@@ -254,8 +278,9 @@ function ensureMap(el) {
 function drawTraces() {
   if (!map) return; layers.clearLayers();
   const all = [...TRC.filter(t => !REC.cur || t.id !== REC.cur.id), ...(REC.cur ? [REC.cur] : [])];
-  all.forEach(t => t.segments.forEach(seg => { if (seg.length > 1) L.polyline(seg.map(p => [p.lat, p.lon]), { color: TYPE_COL[t.type] || "#111", weight: t === REC.cur ? 5 : 3, opacity: t === REC.cur ? .95 : .55, dashArray: t.type === "sentier" ? "6 6" : t.type === "chemin" ? "12 4" : null }).addTo(layers); }));
-  BAL.forEach(b => L.circleMarker([b.lat, b.lon], { radius: 10, color: "#c21fbf", weight: 3, fillOpacity: 0 }).addTo(layers).bindTooltip(String(b.n), { permanent: true, direction: "right", className: "" }));
+  all.forEach(t => t.segments.forEach(seg => { if (seg.length > 1) L.polyline(seg.map(p => { const q = t === REC.cur ? p : cp(p); return [q.lat, q.lon]; }), { color: TYPE_COL[t.type] || "#111", weight: t === REC.cur ? 5 : 3, opacity: t === REC.cur ? .95 : .55, dashArray: t.type === "sentier" ? "6 6" : t.type === "chemin" ? "12 4" : null }).addTo(layers); }));
+  REP.forEach(r => { const q = cp(r); L.circleMarker([q.lat, q.lon], { radius: 7, color: "#fff", weight: 2, fillColor: "#2a9d6f", fillOpacity: 1 }).addTo(layers).bindTooltip("📌 " + r.nom); });
+  BAL.forEach(b0 => { const b = cp(b0); L.circleMarker([b.lat, b.lon], { radius: 10, color: "#c21fbf", weight: 3, fillOpacity: 0 }).addTo(layers).bindTooltip(String(b0.n), { permanent: true, direction: "right", className: "" }); });
 }
 function updMe() { if (!map || !G.fix) return; const ll = [G.fix.lat, G.fix.lon]; if (!meMk) { meMk = L.circleMarker(ll, { radius: 8, color: "#fff", weight: 3, fillColor: "#2b7bff", fillOpacity: 1 }).addTo(map); meCirc = L.circle(ll, { radius: G.fix.acc, color: "#2b7bff", weight: 1, fillOpacity: .1 }).addTo(map); } else { meMk.setLatLng(ll); meCirc.setLatLng(ll).setRadius(G.fix.acc); } if (follow) map.setView(ll, Math.max(map.getZoom(), 17), { animate: false }); }
 // réception de chaque position pendant le tracé
@@ -270,7 +295,7 @@ function onRecFix(fix, q, prev) {
   if (fix.acc > CFG.accTrace) return;
   if (REC.auto) { REC.auto = false; tr.segments.push([]); tr.gaps.push({ t0: REC.autoT, t1: Date.now(), why: "signal" }); notify(`▶ Signal retrouvé (±${Math.round(fix.acc)} m) : le tracé reprend (sans relier la partie manquante).`, "ok"); }
   const seg = tr.segments[tr.segments.length - 1], last = seg[seg.length - 1];
-  if (!last || hav(last, fix) >= Math.max(2, fix.acc / 2) || fix.t - last.t > 15000) {
+  if (!last || hav(last, fix) >= Math.max(CFG.pas, fix.acc * .35) || fix.t - last.t > 30000) {
     if (last && hav(last, fix) / ((fix.t - last.t) / 1000 || 1) > 8) return; // saut impossible à pied : ignoré
     seg.push({ lat: +fix.lat.toFixed(7), lon: +fix.lon.toFixed(7), acc: Math.round(fix.acc), t: fix.t, alt: fix.alt != null ? Math.round(fix.alt) : undefined });
     tr.t1 = fix.t; if (seg.length % 3 === 0) saveRecNow();
@@ -305,12 +330,13 @@ function renderRec() {
   const st = REC.paused ? "⏸ En pause" : REC.auto ? "⏸ Pause automatique : signal GPS insuffisant" : "⏺ Enregistrement en cours";
   box.innerHTML = `<div class="row"><b class="${REC.paused || REC.auto ? "" : "rec"}" style="color:${REC.paused || REC.auto ? "#d97706" : "var(--rd)"}">${st}</b><span class="grow"></span><span class="chip">${esc(TYPES[tr.type])}</span></div><div style="font-weight:800;margin-top:4px">${esc(tr.nom)}</div>
     <div class="stats"><div><b>${fmtD(d)}</b><small>distance</small></div><div><b>${fmtDur(Date.now() - tr.t0)}</b><small>durée</small></div><div><b>${pts}</b><small>points${tr.gaps.length ? ` · ${tr.gaps.length} coupure(s)` : ""}</small></div></div>
-    <div class="row" style="margin-top:12px"><button class="btn or grow" id="rBal" style="min-height:58px">🚩 Balise ici</button><button class="btn alt" id="rPause" style="min-height:58px">${REC.paused ? "▶ Reprendre" : "⏸ Pause"}</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn or grow" id="rBal" style="min-height:58px">🚩 Balise ici</button><button class="btn gr" id="rRep" style="min-height:58px">📌 Repère</button><button class="btn alt" id="rPause" style="min-height:58px">${REC.paused ? "▶ Reprendre" : "⏸ Pause"}</button></div>
     <div class="row" style="margin-top:10px"><select class="inp grow" id="rType2" style="width:auto">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${tr.type === k ? "selected" : ""}>${v}</option>`).join("")}</select><button class="btn gr" id="rStop">⏹ Terminer</button></div>
     <button class="btn ghost small" id="rCenter" style="margin-top:10px">◎ Recentrer sur moi</button>`;
   $("#rPause").onclick = () => { REC.paused = !REC.paused; if (!REC.paused) { REC.cur.segments.push([]); keepAwake(true); } saveRecNow(); renderRec(); };
   $("#rType2").onchange = e => { tr.type = e.target.value; saveRecNow(); drawTraces(); };
   $("#rCenter").onclick = () => { follow = true; updMe(); };
+  $("#rRep").onclick = () => repereSheet();
   $("#rBal").onclick = () => { // balise sans quitter le tracé
     const bg = document.createElement("div"); bg.className = "sheet-bg"; bg.innerHTML = `<div class="sheet"><button class="x">✕</button><h2 style="margin:0 0 10px">🚩 Balise ici</h2><div class="muted" style="margin-bottom:8px">Le tracé continue pendant la mesure. GPS actuel : ${G.fix ? "±" + Math.round(G.fix.acc) + " m" : "–"} (il faut ±${CFG.accBalise} m)</div><div id="sBox"></div></div>`;
     document.body.appendChild(bg); let stop = null; const close = () => { stop && stop(); bg.remove(); drawTraces(); };
@@ -327,13 +353,76 @@ function renderRec() {
 setInterval(() => { if (REC.on && curView === "trace") { const d = $("#recBox .stats div:nth-child(2) b"); if (d) d.textContent = fmtDur(Date.now() - REC.cur.t0); } }, 1000);
 function renderTrList() { const b = $("#recList"); if (!b) return; b.innerHTML = `<h2>Tracés enregistrés</h2>` + (TRC.slice().reverse().map(t => `<div class="item"><div class="grow"><b>${esc(t.nom)}</b><div class="muted" style="font-size:.85rem">${esc(TYPES[t.type])} · ${fmtD(traceDist(t))} · ${new Date(t.t0).toLocaleDateString("fr-FR")}${t.gaps?.length ? ` · ${t.gaps.length} coupure(s)` : ""}</div></div><button class="btn small ghost" data-zoom="${t.id}">Voir</button></div>`).join("") || '<p class="muted">Aucun tracé pour l\'instant.</p>'); $$("[data-zoom]", b).forEach(x => x.onclick = () => { const t = TRC.find(y => y.id === x.dataset.zoom); const pts = t.segments.flat().map(p => [p.lat, p.lon]); if (map && pts.length) { follow = false; map.fitBounds(pts, { padding: [30, 30] }); window.scrollTo(0, 0); } }); }
 
+// ---------- repère : point précis et reconnaissable (angle de bâtiment, croisement…) ----------
+function repereSheet() {
+  const s = sheet(`<h2 style="margin:0 0 6px">📌 Repère de calage</h2><p class="muted" style="margin:0 0 8px">Mets-toi exactement sur un point que tu reconnaîtras sur la carte ou la photo aérienne (angle de bâtiment, croisement de chemins, poteau…). Le tracé continue pendant la mesure.</p>
+   <label class="lbl">Nom du repère</label><input class="inp" id="rpN" list="dl3" placeholder="ex. Angle nord du gymnase"><datalist id="dl3">${DESCRIPTIONS.map(d => `<option>${d}</option>`).join("")}</datalist>
+   <label class="lbl">Photo (facultatif)</label><div class="photos" id="rpPh"></div><div id="rpRes"></div>
+   <button class="btn gr w100" id="rpGo" style="min-height:58px;margin-top:12px">📍 Mesurer le repère (${CFG.mesure} s)</button>`);
+  const photos = []; const ph = () => { const el = $("#rpPh", s); el.innerHTML = photos.map((p, i) => `<div><img src="${p}"><button data-rm="${i}">✕</button></div>`).join("") + (photos.length < 2 ? '<div class="add" id="rpAdd">📷</div>' : ""); $$("[data-rm]", el).forEach(x => x.onclick = () => { photos.splice(+x.dataset.rm, 1); ph(); }); $("#rpAdd", el) && ($("#rpAdd", el).onclick = async () => { const p = await pickPhoto(); if (p) { photos.push(p); ph(); } }); }; ph();
+  $("#rpGo", s).onclick = async () => { const b = $("#rpGo", s); b.disabled = true;
+    const r = await measure(CFG.mesure, CFG.accBalise, p => b.textContent = `⏳ Mesure… ${Math.ceil(p.left)} s · ${p.good} bonne(s) position(s)`); b.disabled = false; b.textContent = "📍 Mesurer à nouveau";
+    if (!r.ok) { notify("⚠ Repère NON enregistré. " + r.why, "ko", true); $("#rpRes", s).innerHTML = `<p style="color:var(--rd);font-weight:700">${esc(r.why)}</p>`; return; }
+    REP.push({ id: uid(), nom: $("#rpN", s).value.trim() || "Repère " + (REP.length + 1), lat: r.lat, lon: r.lon, acc: r.acc, n: r.n, t: r.t, photos, trace: REC.on ? REC.cur.id : null }); saveRep();
+    notify(`✓ Repère « ${esc(REP.at(-1).nom)} » enregistré (±${r.acc} m). Tu pourras le pointer sur la photo aérienne (🎯 Caler la trace) ou sur ta carte dans OrienRun.`, "ok"); s.remove(); drawTraces(); };
+}
+let calMap = null;
+function vCaler() {
+  $("#title").textContent = "Caler la trace"; recalcCorr();
+  $("#view").innerHTML = `<div class="tip">Le GPS se trompe souvent de quelques mètres. Pour corriger : touche <b>＋ Point de calage</b>, puis un 📌 repère (ou un point de ta trace grise), puis l'<b>endroit exact</b> où il se trouve sur la photo aérienne. Avec 3 points bien répartis, toute la trace est corrigée.</div>
+   <div id="map" style="height:52vh"></div><div class="card" id="calBox" style="margin-top:12px"></div>`;
+  if (!window.L) { $("#map").innerHTML = '<p style="padding:20px">La photo aérienne demande internet (au moins une fois).</p>'; }
+  else {
+    const wm = l => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${l}&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=`;
+    calMap = L.map($("#map"), { zoomControl: true });
+    const ortho = L.tileLayer(wm("ORTHOIMAGERY.ORTHOPHOTOS") + "image/jpeg", { maxZoom: 20, maxNativeZoom: 19, attribution: "© IGN" }).addTo(calMap), plan = L.tileLayer(wm("GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2") + "image/png", { maxZoom: 20, maxNativeZoom: 18, attribution: "© IGN" });
+    L.control.layers({ "Photos aériennes IGN": ortho, "Plan IGN": plan }).addTo(calMap);
+    calMap._lay = L.layerGroup().addTo(calMap);
+    const all = [...TRC.flatMap(t => t.segments.flat()), ...REP, ...BAL]; if (all.length) calMap.fitBounds(all.map(p => [p.lat, p.lon]), { padding: [30, 30], maxZoom: 19 }); else calMap.setView(G.fix ? [G.fix.lat, G.fix.lon] : [46.6, 2.4], G.fix ? 18 : 6);
+    calMap.on("click", e => calClick(e.latlng));
+  }
+  calState.step = null; drawCal();
+}
+const calState = { step: null, src: null, nom: "" };
+function drawCal() {
+  if (calMap) { const g = calMap._lay; g.clearLayers();
+    TRC.forEach(t => t.segments.forEach(seg => { if (seg.length < 2) return; L.polyline(seg.map(p => [p.lat, p.lon]), { color: "#666", weight: 3, opacity: .7, dashArray: "4 6" }).addTo(g); if (CAL.length) L.polyline(seg.map(p => { const q = cp(p); return [q.lat, q.lon]; }), { color: "#e63946", weight: 4 }).addTo(g); }));
+    REP.forEach(r => L.circleMarker([r.lat, r.lon], { radius: 9, color: "#fff", weight: 2, fillColor: "#2a9d6f", fillOpacity: 1 }).addTo(g).bindTooltip("📌 " + r.nom, { direction: "top" }));
+    CAL.forEach(c => { L.polyline([[c.src.lat, c.src.lon], [c.dst.lat, c.dst.lon]], { color: "#ffb703", weight: 3 }).addTo(g); L.circleMarker([c.dst.lat, c.dst.lon], { radius: 7, color: "#14213d", weight: 3, fillColor: "#ffb703", fillOpacity: 1 }).addTo(g).bindTooltip("🎯 " + c.nom, { permanent: true, direction: "right" }); });
+    if (calState.src) L.circleMarker([calState.src.lat, calState.src.lon], { radius: 12, color: "#ffb703", weight: 4, fillOpacity: 0 }).addTo(g);
+  }
+  const box = $("#calBox"); if (!box) return;
+  const st = calState.step;
+  box.innerHTML = `${st === "src" ? `<p style="font-weight:800;color:#b45309">1/2 · Touche sur la carte un 📌 repère vert ou un point de ta trace grise.</p>` : st === "dst" ? `<p style="font-weight:800;color:#b45309">2/2 · Touche maintenant l'endroit EXACT où se trouve « ${esc(calState.nom)} » sur la photo aérienne (zoome au maximum).</p>` : ""}
+   <div class="row">${st ? `<button class="btn ghost" id="cCancel">Annuler</button>` : `<button class="btn gr grow" id="cAdd">＋ Point de calage</button>`}</div>
+   <h2 style="margin-top:14px">Points de calage (${CAL.length})</h2>${CAL.map((c, i) => `<div class="item"><div class="grow"><b>🎯 ${esc(c.nom)}</b><div class="muted" style="font-size:.85rem">correction de ${fmtD(hav(c.src, c.dst))}</div></div><button class="btn small ghost" data-cd="${i}">✕</button></div>`).join("") || '<p class="muted">Aucun. La trace est utilisée telle que le GPS l\'a enregistrée.</p>'}
+   ${CAL.length ? `<label class="row" style="gap:8px;margin-top:10px"><input type="checkbox" id="cUse" ${CFG.useCal ? "checked" : ""}> Appliquer le calage aux exports et à l'affichage</label><p class="muted" style="font-size:.85rem">${CAL.length === 1 ? "1 point : toute la trace est simplement décalée." : CAL.length === 2 ? "2 points : décalage + rotation + échelle." : "3 points et plus : correction complète, chaque point tombe juste."} Trace grise = GPS brut, rouge = corrigée.</p>` : ""}`;
+  $("#cAdd", box) && ($("#cAdd", box).onclick = () => { if (!calMap) return notify("Il faut internet pour afficher la photo aérienne.", "warn"); calState.step = "src"; calState.src = null; drawCal(); });
+  $("#cCancel", box) && ($("#cCancel", box).onclick = () => { calState.step = null; calState.src = null; drawCal(); });
+  $$("[data-cd]", box).forEach(b => b.onclick = () => { CAL.splice(+b.dataset.cd, 1); saveCal(); recalcCorr(); drawCal(); });
+  $("#cUse", box) && ($("#cUse", box).onchange = e => { CFG.useCal = e.target.checked; saveCfg(); recalcCorr(); drawCal(); });
+}
+function calClick(ll) {
+  if (!calState.step) return;
+  const P = calMap.latLngToContainerPoint(ll), near = (p, px = 28) => calMap.latLngToContainerPoint([p.lat, p.lon]).distanceTo(P) <= px;
+  if (calState.step === "src") {
+    const r = REP.find(x => near(x)); if (r) { calState.src = { lat: r.lat, lon: r.lon }; calState.nom = r.nom; calState.step = "dst"; return drawCal(); }
+    let best = null, bd = 1e9; TRC.forEach(t => t.segments.forEach(seg => seg.forEach(p => { const d = calMap.latLngToContainerPoint([p.lat, p.lon]).distanceTo(P); if (d < bd) { bd = d; best = p; } })));
+    if (best && bd <= 28) { calState.src = { lat: best.lat, lon: best.lon }; calState.nom = prompt("Nom de ce point (ce que tu vois sur la photo) :", "Point " + (CAL.length + 1)) || "Point " + (CAL.length + 1); calState.step = "dst"; return drawCal(); }
+    notify("Touche plus près d'un repère vert ou de la trace grise (zoome si besoin).", "warn"); return;
+  }
+  if (calState.step === "dst") { CAL.push({ id: uid(), nom: calState.nom, src: calState.src, dst: { lat: ll.lat, lon: ll.lng } }); saveCal(); recalcCorr(); calState.step = null; calState.src = null; notify(`🎯 Point de calage ajouté (correction de ${fmtD(hav(CAL.at(-1).src, CAL.at(-1).dst))}).`, "ok"); drawCal(); }
+}
+
 // ---------- liste / modification ----------
 function vListe() {
   $("#title").textContent = "Mes relevés";
   $("#view").innerHTML = `<div class="card"><h2>🚩 Balises (${BAL.length})</h2>${BAL.map(b => `<div class="item"><div class="num">${b.n}</div><div class="grow"><b>${esc(b.desc || "Balise " + b.n)}</b> ${b.imprecise ? '<span class="chip ko">⚠ imprécise</span>' : `<span class="chip ok">±${b.acc} m</span>`}<div class="muted" style="font-size:.82rem">${fmtT(b.t)} · ${new Date(b.t).toLocaleDateString("fr-FR")}${b.photos?.length ? ` · 📷 ${b.photos.length}` : ""}</div></div><button class="btn small ghost" data-b="${b.id}">Ouvrir</button></div>`).join("") || '<p class="muted">Aucune balise.</p>'}</div>
+   <div class="card"><h2>📌 Repères (${REP.length})</h2>${REP.map(r => `<div class="item"><div class="grow"><b>${esc(r.nom)}</b> <span class="chip ok">±${r.acc} m</span><div class="muted" style="font-size:.82rem">${fmtT(r.t)} · <a href="${gmaps(r.lat, r.lon)}" target="_blank">Google Maps</a>${CAL.some(c => Math.abs(c.src.lat - r.lat) < 1e-9 && Math.abs(c.src.lon - r.lon) < 1e-9) ? " · 🎯 calé" : ""}</div></div><button class="btn small ghost" data-rd="${r.id}">✕</button></div>`).join("") || '<p class="muted">Aucun repère. Pendant un tracé : bouton « 📌 Repère ».</p>'}</div>
    <div class="card"><h2>〰 Tracés (${TRC.length})</h2>${TRC.map(t => `<div class="item"><div class="grow"><b>${esc(t.nom)}</b><div class="muted" style="font-size:.82rem">${esc(TYPES[t.type])} · ${fmtD(traceDist(t))} · ${t.segments.length} morceau(x)</div></div><button class="btn small ghost" data-t="${t.id}">Modifier</button></div>`).join("") || '<p class="muted">Aucun tracé.</p>'}</div>`;
   $$("[data-b]").forEach(x => x.onclick = () => openBal(BAL.find(b => b.id === x.dataset.b)));
   $$("[data-t]").forEach(x => x.onclick = () => editTr(TRC.find(t => t.id === x.dataset.t)));
+  $$("[data-rd]").forEach(x => x.onclick = () => { if (!confirm("Supprimer ce repère ?")) return; REP = REP.filter(r => r.id !== x.dataset.rd); saveRep(); vListe(); });
 }
 function sheet(html) { const bg = document.createElement("div"); bg.className = "sheet-bg"; bg.innerHTML = `<div class="sheet"><button class="x">✕</button>${html}</div>`; document.body.appendChild(bg); bg.querySelector(".x").onclick = () => bg.remove(); return bg; }
 function openBal(b) {
@@ -378,14 +467,18 @@ async function shareFile(name, data, type) {
 const stamp = () => new Date().toISOString().slice(0, 10);
 function toGPX() {
   const iso = t => new Date(t).toISOString(), x = s => esc(s);
+  const BALc = BAL.map(b => ({ ...b, ...cp(b) })), TRCc = TRC.map(t => ({ ...t, segments: t.segments.map(sg => sg.map(cp)) })), REPc = REP.map(r => ({ ...r, ...cp(r) }));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="OrienRun Terrain" xmlns="http://www.topografix.com/GPX/1/1">\n` +
-    BAL.map(b => `<wpt lat="${b.lat.toFixed(7)}" lon="${b.lon.toFixed(7)}">${b.alt != null ? `<ele>${b.alt}</ele>` : ""}<time>${iso(b.t)}</time><name>${b.n}</name><desc>${x(b.desc || "")}${b.acc ? ` (±${b.acc} m)` : ""}</desc><sym>Flag</sym></wpt>\n`).join("") +
-    TRC.map(t => `<trk><name>${x(t.nom)}</name><type>${x(TYPES[t.type])}</type>${t.segments.map(sg => `<trkseg>${sg.map(p => `<trkpt lat="${p.lat}" lon="${p.lon}">${p.alt != null ? `<ele>${p.alt}</ele>` : ""}<time>${iso(p.t)}</time></trkpt>`).join("")}</trkseg>`).join("")}</trk>\n`).join("") + `</gpx>\n`;
+    REPc.map(r => `<wpt lat="${r.lat.toFixed(7)}" lon="${r.lon.toFixed(7)}"><time>${iso(r.t)}</time><name>${x(r.nom)}</name><desc>Repère (±${r.acc} m)</desc><sym>Pin</sym></wpt>\n`).join("") +
+    BALc.map(b => `<wpt lat="${b.lat.toFixed(7)}" lon="${b.lon.toFixed(7)}">${b.alt != null ? `<ele>${b.alt}</ele>` : ""}<time>${iso(b.t)}</time><name>${b.n}</name><desc>${x(b.desc || "")}${b.acc ? ` (±${b.acc} m)` : ""}</desc><sym>Flag</sym></wpt>\n`).join("") +
+    TRCc.map(t => `<trk><name>${x(t.nom)}</name><type>${x(TYPES[t.type])}</type>${t.segments.map(sg => `<trkseg>${sg.map(p => `<trkpt lat="${p.lat.toFixed(7)}" lon="${p.lon.toFixed(7)}">${p.alt != null ? `<ele>${p.alt}</ele>` : ""}<time>${iso(p.t)}</time></trkpt>`).join("")}</trkseg>`).join("")}</trk>\n`).join("") + `</gpx>\n`;
 }
 function vExport() {
   $("#title").textContent = "Exporter";
   $("#view").innerHTML = `<div class="card"><h2>📤 Vers OrienRun (tablette)</h2><p class="muted">Balises (avec photos et précision) et tracés. Sur la tablette : OrienRun → Balises → « 📥 Importer (appli Terrain) ».</p><button class="btn or w100" id="eOR">Envoyer le fichier OrienRun</button><p class="muted" style="font-size:.85rem">Sur iPhone, le bouton ouvre le menu Partager : AirDrop, Mail, Fichiers, Google Drive…</p></div>
+   ${CAL.length ? `<div class="card" style="border:2px solid var(--gr)"><b>🎯 Calage : ${CAL.length} point(s)</b> — ${CFG.useCal ? "les exports utilisent la trace <b>corrigée</b>." : "désactivé : les exports utilisent le GPS brut."}</div>` : ""}
    <div class="card"><h2>📍 GPX</h2><p class="muted">S'ouvre dans Géoportail (Mes données), IGNrando, OsmAnd, Google Earth, OpenOrienteering Mapper ou OCAD pour dessiner la carte.</p><button class="btn w100" id="eGPX">Exporter en GPX</button></div>
+   <div class="card"><h2>📊 Tous les points (CSV)</h2><p class="muted">Un point tous les ${CFG.pas} m environ, avec heure, précision et coordonnées UTM (comme le quadrillage des cartes IGN) : pour reporter la trace point par point. S'ouvre dans Excel.</p><button class="btn w100" id="eCSV">Exporter les points (CSV)</button></div>
    <div class="card"><h2>🗺 Calque à l'échelle d'une carte IGN</h2><p class="muted">Imprime tes balises et tes chemins exactement à l'échelle 1:25 000 ou 1:50 000, avec le quadrillage kilométrique UTM des cartes IGN, pour les reporter sur ta carte papier (sur papier calque ou transparent).</p>
     <label class="lbl">Échelle</label><div class="seg" id="eSc"><button data-v="25000" class="on">1 : 25 000</button><button data-v="50000">1 : 50 000</button><button data-v="10000">1 : 10 000</button></div>
     <label class="lbl">Fond</label><div class="seg" id="eBg"><button data-v="none" class="on">Aucun (calque)</button><button data-v="plan">Plan IGN</button></div>
@@ -394,15 +487,24 @@ function vExport() {
    <div class="card"><h2>💾 Sauvegarde complète</h2><div class="row"><button class="btn ghost small" id="eBak">Sauvegarder (.json)</button><button class="btn ghost small" id="eRes">Restaurer</button><button class="btn ghost small" id="eClr" style="color:var(--rd)">Tout effacer</button></div></div>`;
   $$(".seg").forEach(s => $$("button", s).forEach(b => b.onclick = () => { $$("button", s).forEach(x => x.classList.toggle("on", x === b)); }));
   const val = id => $(`#${id} .on`).dataset.v;
-  const payload = () => JSON.stringify({ app: "orienrun-terrain", v: 1, date: Date.now(), balises: BAL, traces: TRC.map(t => ({ ...t, segments: t.segments.map(s => s.map(p => ({ lat: p.lat, lon: p.lon, t: p.t, acc: p.acc, alt: p.alt }))) })) });
+  recalcCorr();
+  const payload = (raw) => { const C = raw ? (p => p) : cp; return JSON.stringify({ app: "orienrun-terrain", v: 2, date: Date.now(), corrige: !raw && CFG.useCal && CAL.length > 0, balises: BAL.map(b => ({ ...b, ...C(b), rawLat: b.lat, rawLon: b.lon })), reperes: REP.map(r => ({ ...r, ...C(r), rawLat: r.lat, rawLon: r.lon })), calage: CAL, traces: TRC.map(t => ({ ...t, segments: t.segments.map(s => s.map(p => { const q = C(p); return { lat: q.lat, lon: q.lon, t: p.t, acc: p.acc, alt: p.alt }; })) })) }); };
   $("#eOR").onclick = () => { if (!BAL.length && !TRC.length) return notify("Rien à exporter pour l'instant.", "warn"); shareFile(`orienrun-terrain-${stamp()}.json`, payload(), "application/json"); };
   $("#eGPX").onclick = () => { if (!BAL.length && !TRC.length) return notify("Rien à exporter pour l'instant.", "warn"); shareFile(`terrain-${stamp()}.gpx`, toGPX(), "application/gpx+xml"); };
+  $("#eCSV").onclick = () => { if (!TRC.length && !BAL.length && !REP.length) return notify("Rien à exporter pour l'instant.", "warn"); shareFile(`terrain-points-${stamp()}.csv`, toCSV(), "text/csv"); };
   $("#eCal").onclick = () => printCalque(+val("eSc"), val("eBg"), val("eOr"));
-  $("#eBak").onclick = () => shareFile(`terrain-sauvegarde-${stamp()}.json`, payload(), "application/json");
-  $("#eRes").onclick = () => { const f = $("#fileIn"); f.value = ""; f.removeAttribute("capture"); f.accept = ".json,application/json"; f.onchange = async () => { try { const j = JSON.parse(await f.files[0].text()); if (j.app !== "orienrun-terrain") throw 0; if (!confirm(`Remplacer les données par cette sauvegarde (${j.balises.length} balises, ${j.traces.length} tracés) ?`)) return; BAL = j.balises; TRC = j.traces; saveBal(); saveTrc(); notify("Sauvegarde restaurée ✓", "ok"); } catch (e) { notify("Fichier non reconnu.", "ko"); } }; f.click(); };
-  $("#eClr").onclick = () => { if (!confirm("Effacer TOUTES les balises et tous les tracés de ce téléphone ? (pense à exporter avant)")) return; if (!confirm("Vraiment tout effacer ?")) return; BAL = []; TRC = []; saveBal(); saveTrc(); notify("Données effacées.", "warn"); };
+  $("#eBak").onclick = () => shareFile(`terrain-sauvegarde-${stamp()}.json`, payload(true), "application/json");
+  $("#eRes").onclick = () => { const f = $("#fileIn"); f.value = ""; f.removeAttribute("capture"); f.accept = ".json,application/json"; f.onchange = async () => { try { const j = JSON.parse(await f.files[0].text()); if (j.app !== "orienrun-terrain") throw 0; if (!confirm(`Remplacer les données par cette sauvegarde (${j.balises.length} balises, ${j.traces.length} tracés) ?`)) return; BAL = j.balises.map(b => ({ ...b, lat: b.rawLat ?? b.lat, lon: b.rawLon ?? b.lon })); TRC = j.traces; REP = (j.reperes || []).map(r => ({ ...r, lat: r.rawLat ?? r.lat, lon: r.rawLon ?? r.lon })); CAL = j.calage || []; saveBal(); saveTrc(); saveRep(); saveCal(); recalcCorr(); notify("Sauvegarde restaurée ✓", "ok"); } catch (e) { notify("Fichier non reconnu.", "ko"); } }; f.click(); };
+  $("#eClr").onclick = () => { if (!confirm("Effacer TOUTES les balises et tous les tracés de ce téléphone ? (pense à exporter avant)")) return; if (!confirm("Vraiment tout effacer ?")) return; BAL = []; TRC = []; REP = []; CAL = []; saveBal(); saveTrc(); saveRep(); saveCal(); recalcCorr(); notify("Données effacées.", "warn"); };
 }
 
+function toCSV() {
+  const rows = [["type", "nom", "morceau", "n°", "heure", "latitude", "longitude", "précision (m)", "UTM zone", "UTM E (m)", "UTM N (m)", "lat. GPS brute", "lon. GPS brute"]];
+  const add = (type, nom, seg, i, p) => { const q = cp(p), u = toUTM(q.lat, q.lon); rows.push([type, nom, seg, i, p.t ? new Date(p.t).toLocaleString("fr-FR") : "", q.lat.toFixed(7), q.lon.toFixed(7), p.acc ?? "", u.zone, u.E.toFixed(1), u.N.toFixed(1), p.lat.toFixed(7), p.lon.toFixed(7)]); };
+  TRC.forEach(t => t.segments.forEach((sg, k) => sg.forEach((p, i) => add("trace", t.nom, k + 1, i + 1, p))));
+  BAL.forEach(b => add("balise", b.desc || "Balise " + b.n, "", b.n, b)); REP.forEach(r => add("repère", r.nom, "", "", r));
+  return "\ufeff" + rows.map(r => r.map(v => /[;"\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(";")).join("\r\n");
+}
 // ---------- calque à l'échelle : projection Mercator à l'échelle vraie au centre + quadrillage UTM (WGS84) des cartes IGN ----------
 function toUTM(lat, lon, zone) {
   const a = 6378137, f = 1 / 298.257223563, k0 = .9996, e2 = f * (2 - f), ep2 = e2 / (1 - e2), r = Math.PI / 180;
@@ -420,7 +522,9 @@ function fromUTM(E, N, zone) { // inverse approché par itérations (suffisant a
 }
 const R_EARTH = 6378137, mx = lon => R_EARTH * lon * Math.PI / 180, my = lat => R_EARTH * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
 function printCalque(scale, bg, orient) {
-  const pts = [...BAL.map(b => ({ lat: b.lat, lon: b.lon })), ...TRC.flatMap(t => t.segments.flat())];
+  recalcCorr();
+  const BALc = BAL.map(b => ({ ...b, ...cp(b) })), TRCc = TRC.map(t => ({ ...t, segments: t.segments.map(sg => sg.map(cp)) })), REPc = REP.map(r => ({ ...r, ...cp(r) }));
+  const pts = [...BALc.map(b => ({ lat: b.lat, lon: b.lon })), ...REPc, ...TRCc.flatMap(t => t.segments.flat())];
   if (!pts.length) return notify("Rien à imprimer : pose des balises ou trace des chemins d'abord.", "warn");
   const W = orient === "l" ? 277 : 190, H = orient === "l" ? 170 : 257; // zone utile en mm (marges et légende)
   const la0 = (Math.min(...pts.map(p => p.lat)) + Math.max(...pts.map(p => p.lat))) / 2, lo0 = (Math.min(...pts.map(p => p.lon)) + Math.max(...pts.map(p => p.lon))) / 2;
@@ -446,17 +550,18 @@ function printCalque(scale, bg, orient) {
   for (let E = Math.floor((c.E - spanE) / step) * step; E <= c.E + spanE; E += step) { const a = fromUTM(E, c.N - spanN, zone), b = fromUTM(E, c.N + spanN, zone), A = P(a.lat, a.lon), B = P(b.lat, b.lon); grid += `<line x1="${A.x.toFixed(2)}" y1="${A.y.toFixed(2)}" x2="${B.x.toFixed(2)}" y2="${B.y.toFixed(2)}" stroke="#1f4fa3" stroke-width=".18"/>`; const L1 = fromUTM(E, c.N, zone), q = P(L1.lat, L1.lon); grid += `<text x="${(q.x + .6).toFixed(1)}" y="3.2" font-size="2.6" fill="#1f4fa3">${String(Math.round(E / 1000)).slice(-3)}</text>`; }
   for (let N = Math.floor((c.N - spanN) / step) * step; N <= c.N + spanN; N += step) { const a = fromUTM(c.E - spanE, N, zone), b = fromUTM(c.E + spanE, N, zone), A = P(a.lat, a.lon), B = P(b.lat, b.lon); grid += `<line x1="${A.x.toFixed(2)}" y1="${A.y.toFixed(2)}" x2="${B.x.toFixed(2)}" y2="${B.y.toFixed(2)}" stroke="#1f4fa3" stroke-width=".18"/>`; const L1 = fromUTM(c.E, N, zone), q = P(L1.lat, L1.lon); grid += `<text x="1" y="${(q.y - .6).toFixed(1)}" font-size="2.6" fill="#1f4fa3">${String(Math.round(N / 1000)).slice(-4)}</text>`; }
   const sw = scale >= 50000 ? .5 : .6;
-  const traces = TRC.map(t => t.segments.filter(s => s.length > 1).map(s => `<polyline points="${s.map(p => { const q = P(p.lat, p.lon); return q.x.toFixed(2) + "," + q.y.toFixed(2); }).join(" ")}" fill="none" stroke="${t.type === "trace_course" ? "#c21fbf" : t.type === "ruisseau" ? "#00a0e2" : "#d01f1f"}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${t.type === "sentier" ? ' stroke-dasharray="1.2 .8"' : ""}/>`).join("")).join("");
+  const traces = TRCc.map(t => t.segments.filter(s => s.length > 1).map(s => `<polyline points="${s.map(p => { const q = P(p.lat, p.lon); return q.x.toFixed(2) + "," + q.y.toFixed(2); }).join(" ")}" fill="none" stroke="${t.type === "trace_course" ? "#c21fbf" : t.type === "ruisseau" ? "#00a0e2" : "#d01f1f"}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"${t.type === "sentier" ? ' stroke-dasharray="1.2 .8"' : ""}/>`).join("")).join("");
   const r = 2.5;
-  const bals = BAL.map(b => { const q = P(b.lat, b.lon); return `<circle cx="${q.x.toFixed(2)}" cy="${q.y.toFixed(2)}" r="${r}" fill="none" stroke="#c21fbf" stroke-width=".35"/><circle cx="${q.x.toFixed(2)}" cy="${q.y.toFixed(2)}" r=".25" fill="#c21fbf"/><text x="${(q.x + r + .6).toFixed(2)}" y="${(q.y - r).toFixed(2)}" font-size="3.4" font-weight="700" fill="#c21fbf">${b.n}</text>`; }).join("");
+  const bals = BALc.map(b => { const q = P(b.lat, b.lon); return `<circle cx="${q.x.toFixed(2)}" cy="${q.y.toFixed(2)}" r="${r}" fill="none" stroke="#c21fbf" stroke-width=".35"/><circle cx="${q.x.toFixed(2)}" cy="${q.y.toFixed(2)}" r=".25" fill="#c21fbf"/><text x="${(q.x + r + .6).toFixed(2)}" y="${(q.y - r).toFixed(2)}" font-size="3.4" font-weight="700" fill="#c21fbf">${b.n}</text>`; }).join("");
   // barre d'échelle : 1 km (ou 500 m au 1:10 000)
   const bar = scale <= 10000 ? 500 : 1000, barMm = bar * mmPerM;
   const legende = `<g transform="translate(0,${H + 5})"><rect x="0" y="0" width="${barMm / 2}" height="1.6" fill="#000"/><rect x="${barMm / 2}" y="0" width="${barMm / 2}" height="1.6" fill="#fff" stroke="#000" stroke-width=".25"/><text x="0" y="5" font-size="2.8">0</text><text x="${barMm - 3}" y="5" font-size="2.8">${bar === 1000 ? "1 km" : "500 m"}</text>
     <text x="${barMm + 8}" y="2" font-size="3.6" font-weight="700">Échelle 1 : ${scale.toLocaleString("fr-FR")} — 1 cm = ${scale / 100} m</text><text x="${barMm + 8}" y="6.5" font-size="2.6">Quadrillage bleu : UTM zone ${zone}N (WGS84), ${step / 1000} km, comme sur les cartes IGN.</text>
     <text x="${barMm + 8}" y="10" font-size="2.6">Imprimer à 100 % (taille réelle), sans « ajuster à la page ».</text>
-    <text x="${barMm + 8}" y="13.5" font-size="2.6">Centre : ${la0.toFixed(5)}, ${lo0.toFixed(5)} · ${BAL.length} balise(s), ${TRC.length} tracé(s) · ${new Date().toLocaleDateString("fr-FR")}</text></g>`;
+    <text x="${barMm + 8}" y="13.5" font-size="2.6">Centre : ${la0.toFixed(5)}, ${lo0.toFixed(5)} · ${BALc.length} balise(s), ${TRCc.length} tracé(s)${CFG.useCal && CAL.length ? `, trace calée sur ${CAL.length} point(s)` : ""} · ${new Date().toLocaleDateString("fr-FR")}</text></g>`;
   const nord = `<g transform="translate(${W - 8},12)"><path d="M0,-8 L3,2 L0,0 L-3,2Z" fill="#000"/><text x="0" y="6" font-size="3.5" text-anchor="middle" font-weight="700">N</text></g>`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${H + 18}mm" viewBox="0 0 ${W} ${H + 18}"><defs><clipPath id="cl"><rect width="${W}" height="${H}"/></clipPath></defs><g clip-path="url(#cl)">${tiles}${grid}${traces}${bals}</g><rect width="${W}" height="${H}" fill="none" stroke="#000" stroke-width=".3"/>${nord}${legende}</svg>`;
+  const reps = REPc.map(r => { const q = P(r.lat, r.lon); return `<path d="M${q.x.toFixed(2)},${(q.y - 1.6).toFixed(2)}l1.4,2.4h-2.8z" fill="#2a9d6f"/><text x="${(q.x + 1.8).toFixed(2)}" y="${(q.y + .8).toFixed(2)}" font-size="2.2" fill="#2a9d6f">${esc(r.nom)}</text>`; }).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${H + 18}mm" viewBox="0 0 ${W} ${H + 18}"><defs><clipPath id="cl"><rect width="${W}" height="${H}"/></clipPath></defs><g clip-path="url(#cl)">${tiles}${grid}${traces}${reps}${bals}</g><rect width="${W}" height="${H}" fill="none" stroke="#000" stroke-width=".3"/>${nord}${legende}</svg>`;
   const w = window.open("", "_blank");
   if (!w) return notify("Autorise les fenêtres surgissantes pour imprimer.", "ko");
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Calque 1:${scale}</title><style>@page{size:A4 ${orient === "l" ? "landscape" : "portrait"};margin:${orient === "l" ? "10mm" : "10mm"}}body{margin:0;font-family:Arial,sans-serif}.bar{position:sticky;top:0;background:#14213d;color:#fff;padding:10px;font-size:14px;display:flex;gap:10px;align-items:center}.bar button{font-size:16px;padding:8px 16px;border-radius:20px;border:0;background:#f47a20;color:#fff;font-weight:700}@media print{.bar{display:none}}svg{display:block}</style></head><body><div class="bar"><button onclick="print()">🖨 Imprimer</button><span>Imprime à 100 % (taille réelle). Vérifie avec une règle : la barre d'échelle doit mesurer ${barMm.toFixed(0)} mm.</span></div>${svg}</body></html>`);
@@ -467,15 +572,15 @@ function printCalque(scale, bg, orient) {
 function vReglages() {
   $("#title").textContent = "Réglages";
   const opt = (id, vals, cur, unit) => `<select class="inp" id="${id}">${vals.map(v => `<option value="${v}" ${+cur === v ? "selected" : ""}>${v} ${unit}</option>`).join("")}</select>`;
-  $("#view").innerHTML = `<div class="card"><h2>Précision GPS exigée</h2><label class="lbl">Pour enregistrer une balise</label>${opt("cB", [3, 4, 5, 6, 8, 10, 15], CFG.accBalise, "m maximum")}<label class="lbl">Durée de la mesure d'une balise</label>${opt("cM", [10, 15, 20, 30], CFG.mesure, "secondes")}<label class="lbl">Pour enregistrer un tracé</label>${opt("cT", [8, 10, 15, 20, 30], CFG.accTrace, "m maximum")}
+  $("#view").innerHTML = `<div class="card"><h2>Précision GPS exigée</h2><label class="lbl">Pour enregistrer une balise</label>${opt("cB", [3, 4, 5, 6, 8, 10, 15], CFG.accBalise, "m maximum")}<label class="lbl">Durée de la mesure d'une balise</label>${opt("cM", [10, 15, 20, 30], CFG.mesure, "secondes")}<label class="lbl">Pour enregistrer un tracé</label>${opt("cT", [8, 10, 15, 20, 30], CFG.accTrace, "m maximum")}<label class="lbl">Un point du tracé tous les…</label>${opt("cP", [2, 3, 5, 10], CFG.pas, "m environ")}
     <p class="muted" style="font-size:.88rem">Un iPhone à découvert donne en général ±3 à ±8 m. Près des bâtiments et sous les arbres, c'est moins bon : l'appli préfère refuser et prévenir plutôt que d'enregistrer une position fausse.</p><button class="btn gr w100" id="cS">Enregistrer</button></div>
    <div class="card"><h2>Sur iPhone</h2><ul style="padding-left:18px;line-height:1.5"><li>Réglages → Confidentialité → Service de localisation : activé, et pour Safari ou Terrain : « Lorsque l'app est active » + <b>Position exacte</b>.</li><li>Pendant un tracé : laisse l'écran allumé (Réglages → Luminosité → Verrouillage auto. : Jamais, le temps de la sortie).</li><li>Pour tracer écran verrouillé : Strava ou IGNrando, puis « Importer un GPX ».</li></ul></div>`;
-  $("#cS").onclick = () => { CFG.accBalise = +$("#cB").value; CFG.mesure = +$("#cM").value; CFG.accTrace = +$("#cT").value; saveCfg(); notify("Réglages enregistrés ✓", "ok"); go("home"); };
+  $("#cS").onclick = () => { CFG.accBalise = +$("#cB").value; CFG.mesure = +$("#cM").value; CFG.accTrace = +$("#cT").value; CFG.pas = +$("#cP").value; saveCfg(); notify("Réglages enregistrés ✓", "ok"); go("home"); };
 }
 
 // ---------- démarrage ----------
 (async () => {
-  BAL = (await DB.get("balises")) || []; TRC = (await DB.get("traces")) || [];
+  BAL = (await DB.get("balises")) || []; TRC = (await DB.get("traces")) || []; REP = (await DB.get("reperes")) || []; CAL = (await DB.get("calage")) || []; recalcCorr();
   const r = await DB.get("rec"); if (r && r.cur) { REC.on = true; REC.cur = r.cur; REC.paused = true; REC.cur.segments.push([]); notify("Un tracé était en cours : il est en pause. Ouvre « Tracer un chemin » pour le reprendre ou le terminer.", "warn", true); }
   startGPS(); go("home");
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});

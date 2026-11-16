@@ -133,6 +133,8 @@ function viewCarte(v) {
       <h4>Sur le terrain</h4>
       <button class="btn small ghost" id="myPosB" style="width:100%">📍 Afficher ma position</button>
       <p class="muted" style="font-size:.78rem;margin:8px 2px">Calage : <b id="calInfo"></b></p>
+      ${P.calib.some(c => c.x == null) ? `<button class="btn small gr" id="pcRep" style="width:100%;margin-bottom:6px">📌 ${P.calib.filter(c => c.x == null).length} repère(s) du terrain à placer</button>` : ""}
+      ${P.features.some(f => f.gps) ? `<button class="btn small ghost" id="rcTr" style="width:100%;margin-bottom:6px">↻ Recaler les chemins GPS</button>` : ""}
       ${P.gpsTraces?.length ? `<button class="btn small or" id="cvTr" style="width:100%">〰 ${P.gpsTraces.length} chemin(s) GPS en attente → dessiner</button>` : ""}
     </div>
     <div class="mapwrap" id="mapwrap"><svg class="map" id="mapsvg" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -145,6 +147,8 @@ function viewCarte(v) {
   $("#mapSet").onclick = mapSettings; $("#undoB").onclick = undo;
   $("#zin").onclick = () => zoomBy(1 / 1.4); $("#zout").onclick = () => zoomBy(1.4); $("#zfit").onclick = () => { ED.view = null; renderEditor(); };
   $("#myPosB").onclick = toggleMyPos;
+  $("#pcRep") && ($("#pcRep").onclick = placeReperes);
+  $("#rcTr") && ($("#rcTr").onclick = () => { const n = recalTraces(); if (n == null) return toast("Cale d'abord la carte (au moins 2 points).", "ko"); saveP(); renderEditor(); toast(n + " chemin(s) recalé(s) sur le calage actuel ✓", "ok"); });
   $("#cvTr") && ($("#cvTr").onclick = () => { if (!georef()) return toast("Cale d'abord la carte (au moins 2 points GPS) : outil « Point GPS (calage) ».", "ko"); pushUndo(); const n = convertTraces(); saveP(); toast(n + " chemin(s) dessiné(s) sur la carte ✓", "ok"); setPTab("carte"); });
   setTool(ED.tool); initPointer($("#mapsvg"), $("#mapwrap")); renderEditor();
 }
@@ -168,7 +172,7 @@ function renderEditor() {
   const s = $("#mapsvg"); if (!s) return; applyView();
   const mm = mapMM(P);
   let extra = "";
-  if (ED.showCal) P.calib.forEach(c => { extra += `<g data-cal="${c.id}"><circle cx="${c.x}" cy="${c.y}" r="${2.2 * mm}" fill="#1a9b5533" stroke="#1a9b55" stroke-width="${.4 * mm}"/><path d="M${c.x} ${c.y - 3.5 * mm}V${c.y + 3.5 * mm}M${c.x - 3.5 * mm} ${c.y}H${c.x + 3.5 * mm}" stroke="#1a9b55" stroke-width="${.3 * mm}"/><text x="${c.x + 2.6 * mm}" y="${c.y - 2.6 * mm}" font-size="${2.6 * mm}" fill="#1a9b55" font-weight="700" font-family="Arial">GPS</text></g>`; });
+  if (ED.showCal) P.calib.filter(c => c.x != null).forEach(c => { extra += `<g data-cal="${c.id}"><circle cx="${c.x}" cy="${c.y}" r="${2.2 * mm}" fill="#1a9b5533" stroke="#1a9b55" stroke-width="${.4 * mm}"/><path d="M${c.x} ${c.y - 3.5 * mm}V${c.y + 3.5 * mm}M${c.x - 3.5 * mm} ${c.y}H${c.x + 3.5 * mm}" stroke="#1a9b55" stroke-width="${.3 * mm}"/><text x="${c.x + 2.6 * mm}" y="${c.y - 2.6 * mm}" font-size="${2.6 * mm}" fill="#1a9b55" font-weight="700" font-family="Arial">GPS</text></g>`; });
   if (ED.draw && ED.draw.pts.length) { const f = { sym: ED.draw.sym, pts: ED.draw.pts }; extra += featureSVG(f, mm).replace(/data-f="[^"]*"/g, "") + ED.draw.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${mm * .9}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .4}"/>`).join(""); }
   if (ED.sel?.k === "f") { const f = P.features.find(x => x.id === ED.sel.id); if (f?.pts) extra += f.pts.map((p, i) => `<circle data-v="${i}" cx="${p[0]}" cy="${p[1]}" r="${mm * 1.3}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .5}"/>`).join(""); else if (f) extra += `<circle cx="${f.x}" cy="${f.y}" r="${mm * 2.5}" fill="none" stroke="#f47a20" stroke-width="${mm * .5}" stroke-dasharray="${mm} ${mm}"/>`; }
   if (ED.myPos) { const g = georef(); if (g) { const q = g.toPx(ED.myPos.lat, ED.myPos.lon); extra += `<circle cx="${q.x}" cy="${q.y}" r="${mm * 2}" fill="#2b7bff" stroke="#fff" stroke-width="${mm * .6}"/><circle cx="${q.x}" cy="${q.y}" r="${Math.max(mm * 2, (ED.myPos.acc || 0) / (g.mPerPx || 1))}" fill="#2b7bff22" stroke="#2b7bff" stroke-width="${mm * .2}"/>`; } }
@@ -180,6 +184,7 @@ function renderBar() {
   const b = $("#mapbar"); if (!b) return;
   let h = "";
   if (ED.draw) h = `<span class="info">${esc(SYMI[ED.draw.sym].nom)} : ${ED.draw.pts.length} point(s) — touche la carte pour ajouter des points</span><button class="btn green small" id="bDone">✓ Terminer</button><button class="btn small alt" id="bBack">↶ Point</button><button class="btn small red" id="bCancel">✕</button>`;
+  else if (ED.placeCal) { const c = P.calib.find(x => x.id === ED.placeCal); h = `<span class="info">📌 Touche sur la carte l'endroit exact du repère « ${esc(c?.nom || "")} »</span>${c?.photos?.[0] ? `<img src="${c.photos[0]}" style="height:54px;border-radius:8px">` : ""}<button class="btn small red" id="bCancelPc">✕</button>`; }
   else if (ED.place) { const c = ctrlById(ED.place); h = `<span class="info">Touche la carte pour placer : ${esc(ctrlLabel(c))}</span><button class="btn small red" id="bCancelPl">✕</button>`; }
   else if (ED.sel) {
     if (ED.sel.k === "c") { const c = ctrlById(ED.sel.id); h = `<span class="info">${esc(ctrlLabel(c))}${c.lat != null ? ` · GPS ±${Math.round(c.acc || 0)} m` : " · pas de GPS"}</span><button class="btn small or" id="bEditC">Modifier</button><button class="btn small alt" id="bLab">↻ Numéro</button><button class="btn small red" id="bDelC">Supprimer</button>`; }
@@ -191,6 +196,7 @@ function renderBar() {
   const on = (id, f) => { const e = $("#" + id, b); if (e) e.onclick = f; };
   on("bDone", finishDraw); on("bBack", () => { ED.draw.pts.pop(); renderBar(); renderEditor(); }); on("bCancel", () => { ED.draw = null; renderBar(); renderEditor(); });
   on("bCancelPl", () => { ED.place = null; renderBar(); });
+  on("bCancelPc", () => { ED.placeCal = null; renderBar(); });
   on("bEditC", () => editControl(ED.sel.id)); on("bDelC", () => { if (confirm("Supprimer ce poste ?")) { pushUndo(); delControl(ED.sel.id); ED.sel = null; saveP(); renderBar(); renderEditor(); } });
   on("bLab", () => { const c = ctrlById(ED.sel.id); pushUndo(); c.lab = ((c.lab ?? 45) + 45) % 360; saveP(); renderEditor(); });
   const fsel = () => P.features.find(x => x.id === ED.sel.id);
@@ -252,6 +258,7 @@ function initPointer(svg, wrap) {
 function tapMap(q, target) {
   $("#emptyMap")?.classList.add("hidden");
   const t = ED.tool;
+  if (ED.placeCal) { const c = P.calib.find(x => x.id === ED.placeCal); pushUndo(); c.x = q.x; c.y = q.y; ED.placeCal = null; saveP(); const n = recalTraces(); setPTab("carte"); toast(`📌 Repère « ${c.nom} » placé ✓${n ? ` · ${n} chemin(s) GPS recalé(s)` : ""}`, "ok"); return; }
   if (ED.place) { const c = ctrlById(ED.place); pushUndo(); c.x = q.x; c.y = q.y; ED.place = null; saveP(); renderBar(); renderEditor(); toast(ctrlLabel(c) + " placée ✓", "ok"); return; }
   if (t === "pan") return;
   if (t === "select") {
@@ -312,7 +319,7 @@ async function loadMapImage() {
     const had = P.map.img || P.controls.some(c => c.x != null) || P.features.length;
     if (had && !confirm("Remplacer la carte actuelle ? Les balises et dessins restent à leur place (en proportion).")) return;
     const sx = cv.width / P.map.w, sy = cv.height / P.map.h;
-    if (had) { P.controls.forEach(c => { if (c.x != null) { c.x *= sx; c.y *= sy; } }); P.calib.forEach(c => { c.x *= sx; c.y *= sy; }); P.features.forEach(f => { if (f.pts) f.pts = f.pts.map(p => [p[0] * sx, p[1] * sy]); else { f.x *= sx; f.y *= sy; } }); }
+    if (had) { P.controls.forEach(c => { if (c.x != null) { c.x *= sx; c.y *= sy; } }); P.calib.forEach(c => { if (c.x == null) return; c.x *= sx; c.y *= sy; }); P.features.forEach(f => { if (f.pts) f.pts = f.pts.map(p => [p[0] * sx, p[1] * sy]); else { f.x *= sx; f.y *= sy; } }); }
     P.map.img = cv.toDataURL("image/jpeg", .86); P.map.w = cv.width; P.map.h = cv.height; ED.view = null;
     saveP(true); renderEditor(); $("#emptyMap")?.classList.add("hidden"); toast("Carte chargée ✓", "ok");
   } catch (e) { toast(e.message, "ko"); }

@@ -15,9 +15,18 @@ function simplify(pts, tol) {
 }
 function convertTraces(list) {
   const g = georef(); if (!g) return 0; const mm = mapMM(P); let n = 0;
-  (list || P.gpsTraces || []).forEach(t => { t.segments.forEach(seg => { if (seg.length < 2) return; const px = seg.map(p => { const q = g.toPx(p.lat, p.lon); return [q.x, q.y]; }); P.features.push({ id: uid(6), sym: SYMI[t.type] ? t.type : "chemin", pts: simplify(px, mm * .3), src: "terrain" }); n++; }); });
+  (list || P.gpsTraces || []).forEach(t => { t.segments.forEach(seg => { if (seg.length < 2) return; const px = seg.map(p => { const q = g.toPx(p.lat, p.lon); return [q.x, q.y]; }); P.features.push({ id: uid(6), sym: SYMI[t.type] ? t.type : "chemin", pts: simplify(px, mm * .15), src: "terrain", gps: seg.map(p => [+(+p.lat).toFixed(7), +(+p.lon).toFixed(7)]) }); n++; }); });
   if (!list) P.gpsTraces = [];
   return n;
+}
+// Après un nouveau calage (repères placés…), les chemins GPS sont redessinés depuis leurs points d'origine
+function recalTraces() { const g = georef(); if (!g) return null; const mm = mapMM(P); let n = 0; P.features.filter(f => f.gps?.length > 1).forEach(f => { f.pts = simplify(f.gps.map(([la, lo]) => { const q = g.toPx(la, lo); return [q.x, q.y]; }), mm * .15); n++; }); return n; }
+function placeReperes() {
+  const L = P.calib.filter(c => c.x == null);
+  const m = openModal(`<h2>📌 Repères du terrain</h2><p class="muted">Chaque repère a été mesuré au GPS sur le terrain. Touche-en un, puis touche sur ta carte l'endroit exact où il se trouve : il devient un point de calage, et les chemins GPS se recalent dessus (même si ta carte n'est pas à l'échelle).</p>
+   <div class="list">${L.map(c => `<div class="item">${c.photos?.[0] ? `<img src="${c.photos[0]}" style="width:64px;height:64px;object-fit:cover;border-radius:10px">` : '<div class="num" style="background:#d9f2e6">📌</div>'}<div class="body"><b>${esc(c.nom || "Repère")}</b><br><small class="muted">±${c.acc ?? "?"} m · <a target="_blank" href="${gmapsUrl(c.lat, c.lon)}">Google Maps</a></small></div><div class="row"><button class="btn small gr" data-pc="${c.id}">Placer</button><button class="btn small ghost" data-pd="${c.id}">✕</button></div></div>`).join("")}</div>`, { wide: true });
+  $$("[data-pc]", m).forEach(b => b.onclick = () => { m.close(); ED.placeCal = b.dataset.pc; ED.tool = "select"; setPTab("carte"); });
+  $$("[data-pd]", m).forEach(b => b.onclick = () => { P.calib = P.calib.filter(c => c.id !== b.dataset.pd); saveP(); m.close(); setPTab("carte"); });
 }
 function parseGPXText(txt, name) {
   const x = new DOMParser().parseFromString(txt, "application/xml"), tim = el => { const t = el.querySelector("time")?.textContent; return t ? Date.parse(t) : Date.now(); };
@@ -28,12 +37,13 @@ function parseGPXText(txt, name) {
 async function importTerrain() {
   const f = await pickFile(".json,.gpx,application/json,application/gpx+xml,application/xml"); if (!f) return;
   let data;
-  try { const txt = await f.text(); if (/\.gpx$/i.test(f.name) || txt.trim().startsWith("<")) data = parseGPXText(txt, f.name.replace(/\.gpx$/i, "")); else { const j = JSON.parse(txt); if (j.app !== "orienrun-terrain") throw new Error("Ce fichier ne vient pas de l'appli Terrain"); data = { balises: j.balises || [], traces: j.traces || [] }; } }
+  try { const txt = await f.text(); if (/\.gpx$/i.test(f.name) || txt.trim().startsWith("<")) data = parseGPXText(txt, f.name.replace(/\.gpx$/i, "")); else { const j = JSON.parse(txt); if (j.app !== "orienrun-terrain") throw new Error("Ce fichier ne vient pas de l'appli Terrain"); data = { balises: j.balises || [], traces: j.traces || [], reperes: j.reperes || [], corrige: j.corrige }; } }
   catch (e) { return toast(e.message || "Fichier illisible", "ko"); }
   const g = georef(), exist = n => P.controls.find(c => c.type === "C" && +c.n === +n);
-  const m = openModal(`<h2>📥 Import depuis l'appli Terrain</h2><p class="muted" style="margin-top:-6px">${data.balises.length} balise(s), ${data.traces.length} chemin(s). ${g ? "La carte est calée : tout sera placé automatiquement." : "<b>La carte n'est pas encore calée</b> (2 points GPS minimum) : les balises gardent leur position GPS et les chemins attendront le calage."}</p>
+  const m = openModal(`<h2>📥 Import depuis l'appli Terrain</h2><p class="muted" style="margin-top:-6px">${data.balises.length} balise(s), ${data.traces.length} chemin(s)${data.reperes?.length ? `, ${data.reperes.length} repère(s)` : ""}.${data.corrige ? " Positions <b>déjà calées</b> sur la photo aérienne dans l'appli Terrain." : ""} ${g ? "La carte est calée : tout sera placé automatiquement." : "<b>La carte n'est pas encore calée</b> (2 points GPS minimum) : les balises gardent leur position GPS et les chemins attendront le calage."}</p>
    ${data.balises.length ? `<h3>Balises</h3><div class="tw"><table class="t"><thead><tr><th><input type="checkbox" id="tiAllB" checked></th><th>N°</th><th>Définition</th><th>Précision</th><th>Photos</th><th>Action</th></tr></thead><tbody>${data.balises.map((b, i) => { const e = b.n != null && exist(b.n); return `<tr><td><input type="checkbox" data-ib="${i}" checked></td><td><b>${esc(b.n ?? "?")}</b></td><td>${esc(b.desc || "")}</td><td>${b.acc ? `±${b.acc} m` : "–"}${b.imprecise ? ' <span class="chip ko">imprécise</span>' : ""}</td><td>${b.photos?.length || 0}</td><td>${e ? `<select data-ia="${i}" class="inp" style="min-height:34px;padding:2px 6px"><option value="maj">Mettre à jour la balise ${esc(b.n)} existante</option><option value="new">Créer une nouvelle balise</option></select>` : "Nouvelle balise"}</td></tr>`; }).join("")}</tbody></table></div>` : ""}
    ${data.traces.length ? `<h3>Chemins</h3><div class="tw"><table class="t"><thead><tr><th></th><th>Nom</th><th>Symbole sur la carte</th><th class="num">Points</th></tr></thead><tbody>${data.traces.map((t, i) => `<tr><td><input type="checkbox" data-it="${i}" checked></td><td>${esc(t.nom)}</td><td><select data-is="${i}" class="inp" style="min-height:34px;padding:2px 6px">${SYM.filter(s => s.k === "line").map(s => `<option value="${s.id}" ${(SYMI[t.type] ? t.type : "chemin") === s.id ? "selected" : ""}>${esc(s.nom)}</option>`).join("")}</select></td><td class="num">${t.segments.reduce((s, x) => s + x.length, 0)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+   ${data.reperes?.length ? `<h3>📌 Repères (points de calage à placer sur ta carte)</h3><div class="tw"><table class="t"><thead><tr><th></th><th>Nom</th><th>Précision</th></tr></thead><tbody>${data.reperes.map((r, i) => `<tr><td><input type="checkbox" data-ir="${i}" checked></td><td>${esc(r.nom)}</td><td>±${r.acc ?? "?"} m</td></tr>`).join("")}</tbody></table></div>` : ""}
    <div class="row" style="margin-top:14px"><button class="btn or" id="tiGo">Importer</button></div>`, { wide: true });
   $("#tiAllB", m) && ($("#tiAllB", m).onchange = e => $$("[data-ib]", m).forEach(x => x.checked = e.target.checked));
   $("#tiGo", m).onclick = async () => {
@@ -46,9 +56,12 @@ async function importTerrain() {
       Object.assign(c, { lat: b.lat, lon: b.lon, acc: b.acc ?? null, gpsT: b.t, desc: b.desc || c.desc || "", photos: photos.length ? photos : c.photos, imprecise: !!b.imprecise });
       if (g && c.x == null) { const q = g.toPx(c.lat, c.lon); c.x = q.x; c.y = q.y; c.calage = false; }
     }
+    let nr = 0;
+    for (const [i, r] of (data.reperes || []).entries()) { if (!$(`[data-ir="${i}"]`, m)?.checked) continue; if (P.calib.some(c => c.src === "terrain" && Math.abs(c.lat - r.lat) < 1e-7 && Math.abs(c.lon - r.lon) < 1e-7)) continue; const ph = r.photos?.[0] ? await shrinkData(r.photos[0], 480) : null; P.calib.push({ id: uid(6), x: null, y: null, lat: r.lat, lon: r.lon, acc: r.acc, nom: r.nom, photos: ph ? [ph] : [], src: "terrain", t: r.t }); nr++; }
     const tr = data.traces.filter((t, i) => $(`[data-it="${i}"]`, m)?.checked).map(t => ({ ...t, type: $(`[data-is="${data.traces.indexOf(t)}"]`, m).value }));
     if (tr.length) { if (g) nt = convertTraces(tr); else { P.gpsTraces = (P.gpsTraces || []).concat(tr.map(t => ({ id: t.id || uid(6), nom: t.nom, type: t.type, segments: t.segments.map(s => s.map(p => ({ lat: p.lat, lon: p.lon }))) }))); } }
     saveP(true); m.close();
+    if (nr) setTimeout(() => toast(`📌 ${nr} repère(s) à placer sur la carte (onglet Carte) pour caler les chemins`, "ok"), 3500);
     toast(`Import : ${nb} nouvelle(s) balise(s), ${nm} mise(s) à jour${tr.length ? g ? `, ${nt} chemin(s) dessiné(s)` : `, ${tr.length} chemin(s) en attente du calage` : ""} ✓`, "ok");
     setPTab(ptab);
   };
