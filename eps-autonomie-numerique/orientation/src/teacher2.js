@@ -7,7 +7,7 @@ function viewBalises(v) {
    <div class="panel" style="margin-top:0"><h2>Balises</h2>
     <p class="muted" style="margin-top:-6px">Crée tes balises sur place (géolocalisation + lien Google Maps), imprime-les avec leur QR code, puis place-les sur la carte. Une balise placée sur la carte <b>et</b> géolocalisée sert aussi au calage de la carte.</p>
     <div class="row"><button class="btn or" id="bNewGps">📍 Nouvelle balise ici (GPS)</button><button class="btn alt" id="bNew">＋ Nouvelle balise</button><button class="btn alt" id="bNewS">＋ Départ</button><button class="btn alt" id="bNewF">＋ Arrivée</button></div>
-    <div class="row" style="margin-top:10px"><button class="btn" id="bPrint">🖨 Imprimer les balises (QR)</button><button class="btn or" id="bPose">🧭 Pose / ramassage sur le terrain</button><button class="btn" id="bTerImp">📥 Importer (appli Terrain)</button><button class="btn ghost" id="bTerQR">📱 Appli Terrain (iPhone)</button><button class="btn ghost" id="bFiche">📋 Fiche de pose / ramassage</button><button class="btn ghost" id="bSat">🛰 Voir sur fond satellite</button>${P.controls.some(c => String(c.code).length < 3) ? `<button class="btn ghost" id="bCode3">🔤 Passer tous les codes à 3 lettres</button>` : ""}${g && P.controls.some(c => c.lat != null && c.x == null) ? `<button class="btn ghost" id="bAuto">🧲 Placer sur la carte d'après le GPS</button>` : ""}</div>
+    <div class="row" style="margin-top:10px"><button class="btn or" id="bCodes">⌨ Saisir les codes</button><button class="btn" id="bPrint">🖨 Imprimer les balises (QR)</button><button class="btn or" id="bPose">🧭 Pose / ramassage sur le terrain</button><button class="btn" id="bTerImp">📥 Importer (appli Terrain)</button><button class="btn ghost" id="bTerQR">📱 Appli Terrain (iPhone)</button><button class="btn ghost" id="bFiche">📋 Fiche de pose / ramassage</button><button class="btn ghost" id="bSat">🛰 Voir sur fond satellite</button>${P.controls.some(c => String(c.code).length < 3) ? `<button class="btn ghost" id="bCode3">🔤 Passer tous les codes à 3 lettres</button>` : ""}${g && P.controls.some(c => c.lat != null && c.x == null) ? `<button class="btn ghost" id="bAuto">🧲 Placer sur la carte d'après le GPS</button>` : ""}</div>
    </div>
    <div class="list" style="margin-top:14px">${C.length ? C.map(c => `<div class="item"><div class="num ${c.type}">${esc(c.type === "C" ? c.n : c.type === "S" ? "▲" : "◎")}</div>
      <div class="body"><b>${esc(ctrlLabel(c))}</b> <span class="chip">code ${esc(c.code)}</span> ${c.desc ? `<span class="muted">· ${esc(c.desc)}</span>` : ""}<br>
@@ -16,6 +16,7 @@ function viewBalises(v) {
   const mk = (type, gps) => { const c = { id: uid(6), type, n: type === "C" ? nextN() : type === "S" ? "D" + (P.controls.filter(x => x.type === "S").length || "") : "A" + (P.controls.filter(x => x.type === "F").length || ""), code: randCode(3), desc: "", x: null, y: null, lat: null, lon: null, acc: null }; P.controls.push(c); saveP(); if (gps) gpsControl(c.id, true); else editControl(c.id); };
   $("#bNewGps").onclick = () => mk("C", true); $("#bNew").onclick = () => mk("C"); $("#bNewS").onclick = () => mk("S"); $("#bNewF").onclick = () => mk("F");
   $("#bPrint").onclick = printBalises; $("#bFiche").onclick = printFiche; $("#bPose").onclick = openPose; $("#bTerImp").onclick = importTerrain; $("#bTerQR").onclick = showTerrainQR; $("#bSat").onclick = () => satView();
+  $("#bCodes").onclick = codesDialog;
   $("#bCode3") && ($("#bCode3").onclick = () => { if (!confirm("Donner un nouveau code de 3 lettres aux balises qui ont un code plus court ?\n⚠ Il faudra réimprimer ces balises.")) return; pushUndo(); let n = 0; P.controls.forEach(c => { if (String(c.code).length < 3) { c.code = randCode(3); n++; } }); saveP(); toast(n + " code(s) changé(s) : pense à réimprimer", "ok"); setPTab("balises"); });
   $("#bAuto") && ($("#bAuto").onclick = () => { const g = georef(); let n = 0; P.controls.forEach(c => { if (c.lat != null && c.x == null) { const q = g.toPx(c.lat, c.lon); c.x = q.x; c.y = q.y; c.calage = false; n++; } }); saveP(); toast(n + " balise(s) placée(s) d'après le GPS", "ok"); setPTab("balises"); });
   $$("[data-gps]", v).forEach(b => b.onclick = () => gpsControl(b.dataset.gps));
@@ -219,4 +220,22 @@ function printCourse(k) {
      .mapbox{flex:1;min-height:0;border:1px solid #000}.mapbox svg{width:100%;height:100%;display:block}
      .desc{font-size:9pt;margin-top:2mm}.desc table{border-collapse:collapse;margin-top:1mm}.desc td,.desc th{border:1px solid #888;padding:.6mm 2mm;font-size:8.5pt}.desc td.w{width:18mm}
      ${land ? ".page{flex-direction:row;flex-wrap:wrap}.top{width:100%}.mapbox{flex:1;height:180mm}.desc{width:62mm;margin:0 0 0 3mm}" : ""}`);
+}
+
+// Saisie rapide des codes écrits sur les balises (une ligne par balise, Entrée = suivante)
+function codesDialog() {
+  const L = P.controls.filter(c => c.type === "C").sort((a, b) => (+a.n) - (+b.n));
+  if (!L.length) return toast("Crée d'abord tes balises.", "ko");
+  const m = openModal(`<h2>⌨ Codes des balises</h2><p class="muted">Tape le code écrit sur chaque balise (3 lettres). Entrée passe à la balise suivante. Les codes sont enregistrés au fur et à mesure.</p>
+   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">${L.map((c, i) => `<label class="row" style="gap:8px;background:#f7f4ec;border-radius:12px;padding:6px 10px"><span style="width:40px;height:40px;border-radius:50%;border:3px solid ${VIOLET};color:${VIOLET};display:grid;place-items:center;font-weight:900;flex:none">${esc(c.n)}</span><input class="inp" data-ci="${i}" value="${esc(c.code || "")}" maxlength="4" autocomplete="off" autocapitalize="characters" style="width:96px;text-transform:uppercase;font-weight:800;letter-spacing:.15em;color:${VIOLET}"><small data-cw="${i}" style="color:#d62839;font-weight:700"></small></label>`).join("")}</div>
+   <div class="row" style="margin-top:14px"><button class="btn ghost" id="cdRnd">🎲 Codes au hasard pour les cases vides</button><span class="grow"></span><button class="btn or" id="cdOk">Terminé</button></div>`, { wide: true, onClose: () => setPTab(ptab) });
+  const chk = () => { let ok = true; L.forEach((c, i) => { const v = $(`[data-ci="${i}"]`, m).value, dup = v && L.some((x, j) => j !== i && $(`[data-ci="${j}"]`, m).value === v); $(`[data-cw="${i}"]`, m).textContent = !v ? "vide" : dup ? "en double" : v.length < 3 ? "3 lettres" : ""; if (dup) ok = false; }); return ok; };
+  let undoDone = false;
+  $$("[data-ci]", m).forEach(inp => {
+    inp.oninput = () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4); chk(); const c = L[+inp.dataset.ci], v = inp.value; if (v.length >= 3 && !L.some(x => x !== c && String(x.code).toUpperCase() === v)) { if (!undoDone) { pushUndo(); undoDone = true; } c.code = v; saveP(); } if (v.length === 3 && inp.dataset.ci < L.length - 1 && !$(`[data-cw="${inp.dataset.ci}"]`, m).textContent) $(`[data-ci="${+inp.dataset.ci + 1}"]`, m).focus(); };
+    inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const n = $(`[data-ci="${+inp.dataset.ci + 1}"]`, m); n ? n.focus() : $("#cdOk", m).focus(); } };
+  });
+  $("#cdRnd", m).onclick = () => { if (!undoDone) { pushUndo(); undoDone = true; } L.forEach((c, i) => { const inp = $(`[data-ci="${i}"]`, m); if (!inp.value) { c.code = randCode(3); while (P.controls.some(x => x !== c && x.code === c.code)) c.code = randCode(3); inp.value = c.code; } }); saveP(); chk(); };
+  $("#cdOk", m).onclick = () => { if (!chk() && !confirm("Certains codes sont en double ou incomplets. Fermer quand même ?")) return; m.close(); };
+  chk(); setTimeout(() => { const e = L.findIndex(c => !c.code); $(`[data-ci="${e < 0 ? 0 : e}"]`, m)?.focus(); }, 50);
 }
