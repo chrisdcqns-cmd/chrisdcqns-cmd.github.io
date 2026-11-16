@@ -304,6 +304,8 @@ ol.b5{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column
 .crem{min-height:34px;padding:4px 10px;font-size:13px;border-color:#ffc93c!important;background:#fff8e1!important}.mpre .b.remo{border-color:#ffc93c;background:#fff8e1;white-space:normal}.mbox{max-height:92vh;overflow:auto}
 .helpb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fdecea;border-left:6px solid #c92a2a;border-radius:14px;padding:10px 12px;margin:0 0 12px}.helpb b{color:#b3261e;margin-right:4px}.helpb .b{min-height:38px;padding:4px 12px;font-size:14px}.helpb small{color:#b3261e;font-weight:700}
 .wait .rbtns{grid-template-columns:1fr}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:10px 0}.gcard{background:#fff;border:2px solid #0e7c7b;border-radius:16px;padding:14px 16px;text-align:left;font:inherit;display:flex;flex-direction:column;gap:4px;color:var(--ink);box-shadow:0 1px 0 #00000014}.gcard b{font-size:18px}.gcard span{color:#5b6a72;font-size:14px}
+.gsel{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;padding:8px 10px;background:#eef3f5;border-radius:12px}.gsel span{font-weight:800;margin-right:4px}.gsel .b{min-height:38px;padding:4px 12px;font-size:14px}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -353,7 +355,12 @@ const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
 const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
 function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',pofU:null,com:'',why:'',whyT:'',nr:{},asr:'',cas:'',obs:'',asrX:false,casX:false,obsX:false};S.free=false}fresh();
 /* groupe de l'élève : choisi après la classe, valable pour la journée et la classe sur cette tablette */
-const grp=()=>{const k=cls(),g=CF.grp;return k&&g&&g.d==today()&&g.cl==k.id?g.el.filter(n=>k.el.includes(n)):[]};
+/* groupes du jour, partagés entre les tablettes (CF.gps, synchronisés « gp| ») ; CF.grp = groupe choisi sur cette tablette */
+const dayG=id=>(CF.gps||[]).filter(g=>g.cl==(id??cls()?.id)&&g.d==today());
+const grp=()=>{const k=cls(),g=CF.grp;if(!(k&&g&&g.d==today()&&g.cl==k.id))return [];const G=g.gid&&(CF.gps||[]).find(x=>x.id==g.gid);return (G?G.el:g.el).filter(n=>k.el.includes(n))};
+function useG(id){const k=cls(),G=(CF.gps||[]).find(x=>x.id==id);if(!k||!G)return;CF.grp={cl:k.id,d:today(),el:[...G.el],gid:G.id};save();fresh();S.free=false;
+ if(S.t=='grp'){S.t='home';render();scrollTo(0,0)}else{const y=scrollY;render();scrollTo(0,y)}}
+const gName=G=>G.el.map(n=>n.split(' ')[0]).join(', ');
 const hue=n=>{let h=0;for(const c of String(n))h=(h*31+c.charCodeAt(0))>>>0;return h%360};
 const ini=n=>String(n).trim().charAt(0).toUpperCase();
 /* badge prénom : pastille colorée + prénom (aucune saisie au clavier) */
@@ -364,14 +371,19 @@ function clsScr(){const cur=CF.sea?.cl||'';
  <div class="rbtns cl">${CL.map(c=>`<button class="tile ${cur==c.id?'cur':''}" style="background:#2e7d4f" onclick="pickCl('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)</span></button>`).join('')}
  ${CL.length?'':`<button class="tile" style="background:#5b6b75" onclick="pickCl('')"><b>Sans liste</b><span>je tape mon prénom</span></button>`}</div>
  <p style="margin-top:18px"><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`}
-function pickCl(id){if(!S.T&&!lecFor(id,today())){CF.wcl=id;save();S.t='wait';render();scrollTo(0,0);return}activate(id);fresh();const k=cls();S.gs=grp();S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
+function pickCl(id){if(!S.T&&!lecFor(id,today())){CF.wcl=id;save();S.t='wait';render();scrollTo(0,0);return}activate(id);fresh();const k=cls();S.gs=[];S.gid=null;S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
 /* ---------- groupe ---------- */
 function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
- return `<div class="role grpS"><h2>Forme ton groupe</h2><p class="mut">${esc(k.nom)} · touche les prénoms des élèves qui grimpent avec toi (au moins 3 : grimpeur, assureur, contre-assureur).</p>
+ const DG=dayG(k.id).filter(G=>G.id!=S.gid);
+ return `<div class="role grpS">${DG.length&&!S.gid?`<h2>Ton groupe est déjà formé ?</h2><p class="mut">Groupes enregistrés aujourd'hui sur toutes les tablettes : touche le tien.</p>
+ <div class="gcards">${DG.map(G=>`<button class="gcard" onclick="useG('${G.id}')"><b>${esc(gName(G))}</b><span>${G.el.length} élèves</span></button>`).join('')}</div><h2 style="margin-top:22px">Ou forme un nouveau groupe</h2>`:`<h2>${S.gid?'Modifie ton groupe':'Forme ton groupe'}</h2>`}<p class="mut">${esc(k.nom)} · touche les prénoms des élèves qui grimpent avec toi (au moins 3 : grimpeur, assureur, contre-assureur).</p>
  <div class="names big">${presEl(k).sort((a,b)=>a.localeCompare(b,'fr')).map(x=>chip(x,{on:sel.includes(x),act:'tgG(this.dataset.n)'})).join('')}</div>
- <div class="gbar"><button class="b g" onclick="S.t='pickcl';render()">← Changer de classe</button><button class="b" ${n<3?'disabled':''} onclick="okG()">${n<3?`Encore ${3-n} prénom${3-n>1?'s':''} à choisir`:`Valider mon groupe (${n})`}</button></div></div>`}
+ <div class="gbar"><button class="b g" onclick="S.t='pickcl';render()">← Changer de classe</button><button class="b" ${n<3?'disabled':''} onclick="okG()">${n<3?`Encore ${3-n} prénom${3-n>1?'s':''} à choisir`:S.gid?`Enregistrer les changements (${n})`:`Valider mon groupe (${n})`}</button></div></div>`}
 function tgG(n){const s=new Set(S.gs||[]);s.has(n)?s.delete(n):s.add(n);S.gs=[...s];const y=scrollY;render();scrollTo(0,y)}
-function okG(){const k=cls();if(!k||(S.gs||[]).length<3)return;CF.grp={cl:k.id,d:today(),el:[...S.gs].sort((a,b)=>a.localeCompare(b,'fr'))};save();fresh();S.t='home';render();scrollTo(0,0)}
+function okG(){const k=cls();if(!k||(S.gs||[]).length<3)return;const el=[...S.gs].sort((a,b)=>a.localeCompare(b,'fr'));CF.gps=CF.gps||[];
+ let G=S.gid&&CF.gps.find(x=>x.id==S.gid);if(G){G.el=el;G.ts=Date.now()}else{G={id:uid(),cl:k.id,d:today(),el,ts:Date.now()};CF.gps.push(G)}
+ const lim=new Date(Date.now()-30*864e5).toLocaleDateString('fr-CA');CF.gps=CF.gps.filter(x=>x.d>=lim);
+ CF.grp={cl:k.id,d:today(),el,gid:G.id};S.gid=null;save();fresh();S.t='home';render();scrollTo(0,0)}
 /* mode enseignant partagé par toutes les applis (page d'accueil commune) et code commun */
 const hubT=()=>{try{return Date.now()<+(localStorage.getItem('eps.teach.until')||0)}catch(e){return false}},hubOn=on=>{try{localStorage.setItem('eps.teach.until',on?String(Date.now()+3600000):'0')}catch(e){}};
 const shHash=c=>{let h=5381;for(const ch of 'relais:'+c)h=((h<<5)+h+ch.charCodeAt(0))|0;return String(h)},shCode=()=>{try{return JSON.parse(localStorage.getItem('relais-vitesse-code-v1')||'null')}catch(e){return null}};
@@ -431,7 +443,7 @@ const tIco=k=>TI[k]?`<i class="tib"><svg class="ti" viewBox="0 0 24 24" fill="no
 function objBar(){const L0=seaOK()?CF.sea:null,L=L0&&(LEC().find(l=>l.id==L0.id)||L0),o=String(L?.obj||'').trim(),m=L?.min||0,X=(L?.sit||[]).map(sitOf).filter(Boolean);if(!o&&!m&&!X.length)return '';
  return `<div class="objl">${o?`<span class="objt"><small>Objectif de la leçon</small>${esc(o)}</span>`:''}${X.map(x=>`<button class="objs" onclick="sitDlg('${x.id}')"><small>Situation</small>📋 ${esc(x.ti)}</button>`).join('')}${m?`<span class="objb" title="Objectif de voies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 20.5 9 9l4 6.5 2.5-4 6 9z"/><path d="M9 9V3.5l4 1.6-4 1.6"/></svg><b>${m}</b> ${m>1?'voies':'voie'}</span>`:''}</div>`}
 function home(){S.e=false;const t=S.T?[['set','Leçons et classes','#16252d','tprof','Préparer, consulter'],['cls','Classes et élèves','#16252d','tprof','Importer, renommer, modifier'],...TILES,['ctl','Tablette de contrôle','#16252d','tprof','Tous les élèves en direct'],['res','Résultats et QR codes','#16252d','tprof','Excel, Google Sheets, regroupement']]:TILES;
- return `<div class="homeW ${S.T?'tm':''}"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}</div>${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.t='grp';render()">Modifier</button></div>`:''}${objBar()}<div class="tiles">${t.map(([k,n,c,x,d])=>k=='imp_'?`<label class="tile ${x||''}" style="--c:${c}">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div><input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label>`:`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div></button>`).join('')}</div></div>`}
+ return `<div class="homeW ${S.T?'tm':''}"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}</div>${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="S.gs=grp();S.gid=CF.grp?.gid||null;S.t='grp';render()">Modifier</button><button class="b g chcl" onclick="S.gs=[];S.gid=null;S.t='grp';render()">Changer de groupe</button></div>`:''}${objBar()}<div class="tiles">${t.map(([k,n,c,x,d])=>k=='imp_'?`<label class="tile ${x||''}" style="--c:${c}">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div><input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label>`:`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div></button>`).join('')}</div></div>`}
 /* classes et élèves (enseignant) : importer, renommer une classe, modifier ses élèves */
 function clsAdm(){return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.t='home';render();scrollTo(0,0)">← Accueil</button></p><h2 style="margin-top:4px">Classes et élèves</h2>
  <div class="tb"><label class="b">📄 Importer une liste (Excel ou CSV)<input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label><button class="b g" onclick="S.imp=null;edCl('new')">+ Nouvelle classe</button></div>
@@ -621,7 +633,7 @@ function mergeDupCls(){const by={};let ch=false;CL.forEach(c=>{const k=nrm(c.nom
  Object.values(by).forEach(G=>{if(G.length<2)return;G.sort((a,b)=>a.id<b.id?-1:1);const keep=G[0];
   G.slice(1).forEach(o=>{(o.el||[]).forEach(n=>{if(!keep.el.includes(n))keep.el.push(n)});LEC().forEach(l=>{if(l.cl==o.id)l.cl=keep.id});
    for(const M of [CF.ab,CF.bel])if(M)Object.keys(M).forEach(k=>{if(k.startsWith(o.id+'|')){const nk=keep.id+k.slice(o.id.length);if(!(nk in M))M[nk]=M[k];delete M[k]}});
-   if(CF.sel==o.id)CF.sel=keep.id;if(CF.sea&&CF.sea.cl==o.id)CF.sea.cl=keep.id;if(CF.wcl==o.id)CF.wcl=keep.id;if(CF.grp&&CF.grp.cl==o.id)CF.grp.cl=keep.id;
+   if(CF.sel==o.id)CF.sel=keep.id;if(CF.sea&&CF.sea.cl==o.id)CF.sea.cl=keep.id;if(CF.wcl==o.id)CF.wcl=keep.id;if(CF.grp&&CF.grp.cl==o.id)CF.grp.cl=keep.id;(CF.gps||[]).forEach(g=>{if(g.cl==o.id)g.cl=keep.id});
    CL.splice(CL.indexOf(o),1);ch=true})});return ch}
 const recOf=(nom,d)=>R.filter(r=>(r.cl||'')==(nom||'')&&String(r.ts).startsWith(d));
 const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
@@ -809,7 +821,8 @@ function grimpe(){
  const top=`<div class="prog" aria-hidden="true">${[1,2,3,4,5].map(i=>`<i class="${i<F.step?'d':i==F.step?'c':''}"></i>`).join('')}</div><p class="mut stp">Étape ${F.step} sur 5</p>`,back=s=>`<p><button class="b g" onclick="go(${s})">← Retour</button></p>`,w=W[F.vo-1]||[];
  const k=cls();
  if(F.step==1&&k&&k.el.length){const g=grp().filter(n=>!isAbs(n)),all=presEl(k).sort((a,b)=>a.localeCompare(b,'fr')),list=g.length&&!S.free?g:all.filter(n=>!g.includes(n)||!g.length);
-  return `<div class="card">${top}<h3>Qui grimpe ?</h3><p class="mut">${g.length&&!S.free?'Touche le prénom du grimpeur.':esc(k.nom)+' · touche le prénom du grimpeur.'}</p><div class="names ${g.length&&!S.free?'big':''}">${list.map(n=>chip(n,{on:F.eleve==n,act:'pickEl(this.dataset.n)'})).join('')}</div>
+  const DG=dayG(k.id),cg=CF.grp?.gid;
+  return `<div class="card">${top}${DG.length>1||(DG.length&&!cg)?`<div class="gsel"><span>Groupe :</span>${DG.map(G=>`<button class="b ${cg==G.id&&!S.free?'on':'g'}" onclick="useG('${G.id}')">${esc(gName(G))}</button>`).join('')}</div>`:''}<h3>Qui grimpe ?</h3><p class="mut">${g.length&&!S.free?'Touche le prénom du grimpeur.':esc(k.nom)+' · touche le prénom du grimpeur.'}</p><div class="names ${g.length&&!S.free?'big':''}">${list.map(n=>chip(n,{on:F.eleve==n,act:'pickEl(this.dataset.n)'})).join('')}</div>
   ${g.length?`<p><button class="b g" onclick="S.free=${!S.free};render()">${S.free?'← Mon groupe':'Un autre élève de la classe'}</button></p>`:''}</div>`}
  if(F.step==1)return `<div class="card">${top}<h3>Quel est ton prénom ?</h3><input id="pn" value="${esc(F.eleve)}" oninput="F.eleve=this.value" onkeydown="if(event.key=='Enter')nx1()" placeholder="Prénom" autocomplete="off"><p><button class="b" style="width:100%" onclick="nx1()">Suivant →</button></p></div>`;
  if(F.step==2)return `<div class="card">${top}<h3>Numéro de la corde</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${F.vo==i+1?'on':'g'}" onclick="F.vo=${i+1};go(3)">${i+1}</button>`).join('')}</div>${back(1)}</div>`;
@@ -1147,7 +1160,7 @@ function syRecords(){const O={},put=(k,o)=>{O[k]=JSON.stringify(o)};
  CL.forEach(c=>put('cl|'+c.id,c));LEC().forEach(l=>put('lec|'+l.id,l));
  R.forEach(r=>{const o={...r};delete o.rx;put('r|'+r.id,o)});
  put('w',W);Object.keys(C).forEach(k=>put('c|'+k,C[k]));if(CF.pin)put('pin',{p:CF.pin});
- Object.keys(CF.ab||{}).forEach(k=>put('ab|'+k,{el:CF.ab[k]}));(CF.msg||[]).forEach(m=>put('m|'+m.id,m));
+ Object.keys(CF.ab||{}).forEach(k=>put('ab|'+k,{el:CF.ab[k]}));(CF.gps||[]).forEach(g=>put('gp|'+g.id,g));(CF.msg||[]).forEach(m=>put('m|'+m.id,m));
  if(CF.ped)put('ped',CF.ped);Object.keys(CF.bel||{}).forEach(k=>put('bel|'+k,CF.bel[k]));return O}
 function syScan(){const O=syRecords();let n=0;
  for(const k in O){const x=hs(O[k]);if(SY.h[k]!==x){SY.h[k]=x;SY.pend[k]={u:syStamp(),d:0};n++}}
@@ -1168,15 +1181,16 @@ function syApply(k,o){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
  else if(t=='r'){const i=R.findIndex(r=>r.id==id);if(i<0)R.push(o);else R[i]={...o,rx:R[i].rx}}
  else if(t=='w')W=o;else if(t=='c')C[id]=o;else if(t=='pin'&&o.p)CF.pin=o.p;
  else if(t=='ab'){(CF.ab||(CF.ab={}))[id]=o.el||[]}
+ else if(t=='gp'){const G=CF.gps||(CF.gps=[]),i=G.findIndex(g=>g.id==id);i<0?G.push(o):G[i]=o}
  else if(t=='ped')CF.ped=o;else if(t=='bel'){(CF.bel||(CF.bel={}))[id]=o}
  else if(t=='m'){const M=CF.msg||(CF.msg=[]),i=M.findIndex(m=>m.id==id);i<0?M.push(o):M[i]=o}
  return true}
 function syRemove(k){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
  if(t=='cl')CL=CL.filter(c=>c.id!=id);else if(t=='lec'){CF.lec=LEC().filter(l=>l.id!=id)}else if(t=='r')R=R.filter(r=>r.id!=id);
- else if(t=='ab'){if(CF.ab)delete CF.ab[id]}else if(t=='bel'){if(CF.bel)delete CF.bel[id]}else if(t=="ped")CF.ped=null;else if(t=="m")CF.msg=(CF.msg||[]).filter(m=>m.id!=id)}
+ else if(t=='ab'){if(CF.ab)delete CF.ab[id]}else if(t=='gp'){CF.gps=(CF.gps||[]).filter(g=>g.id!=id)}else if(t=='bel'){if(CF.bel)delete CF.bel[id]}else if(t=="ped")CF.ped=null;else if(t=="m")CF.msg=(CF.msg||[]).filter(m=>m.id!=id)}
 /* au tout premier contact, ce qui a été préparé sur cette tablette (classes, leçons, grimpes, contenus modifiés) est gardé et partagé */
 function syFirst(){const O=syRecords();for(const k in O){const t=k.split('|')[0];
- const mine=t=='cl'||t=='lec'||t=='r'||t=='pin'||t=='ab'||t=='m'||t=='ped'||t=='bel'||(t=='w'&&O[k]!==JSON.stringify(WDEF))||(t=='c'&&O[k]!==JSON.stringify(DEF[k.slice(2)]??null));
+ const mine=t=='cl'||t=='lec'||t=='r'||t=='pin'||t=='ab'||t=='m'||t=='ped'||t=='bel'||t=='gp'||(t=='w'&&O[k]!==JSON.stringify(WDEF))||(t=='c'&&O[k]!==JSON.stringify(DEF[k.slice(2)]??null));
  if(mine){SY.h[k]=hs(O[k]);SY.pend[k]={u:syStamp(),d:0}}}}
 async function syPull(){const chn=SYC();
  if(chn.common&&SH.url&&SH.key){const v=await shJ({vlist:1},20000);if(v&&v.vids)SY.vids=v.vids} /* vidéos : toujours par le script d'Escalade (Google Drive) */
