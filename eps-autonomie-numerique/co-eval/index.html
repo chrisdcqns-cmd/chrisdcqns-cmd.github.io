@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#14213d">
@@ -121,6 +121,7 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 .dr .mapv{flex:1;border-radius:0;height:auto;min-height:0}
 .tb{border:0;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-weight:800;padding:7px 9px;font-size:.84rem;min-height:40px}
 body:has(.dr) #eps-home-btn{display:none!important}
+html,body,button,input,a,label,.card,.pc,.kb,.boxes{touch-action:manipulation}html{-webkit-text-size-adjust:100%}
 .dr,.dr *,.mapv,.mapv *{touch-action:none}.dr{overscroll-behavior:none}
 html:has(.dr),body:has(.dr){overscroll-behavior:none;touch-action:none}
 .sw{flex:none}.wd{flex:none}
@@ -1137,6 +1138,10 @@ function profDev(box) {
   $("#dOut").onclick = () => { TPW = ""; LS.del("tpw"); go("home"); };
 }
 
+// pas de zoom de la page (double-tape, pincement hors carte) : gênant pendant la saisie des codes
+document.addEventListener("gesturestart", e => { if (!e.target.closest?.(".mapv")) e.preventDefault(); }, { passive: false });
+document.addEventListener("dblclick", e => e.preventDefault(), { passive: false });
+let lastTouch = 0; document.addEventListener("touchend", e => { const t = Date.now(); if (t - lastTouch < 350 && !e.target.closest(".mapv,input,textarea,select")) { e.preventDefault(); e.target.closest("button")?.click(); } lastTouch = t; }, { passive: false });
 setInterval(checkAlerts, 3000); document.addEventListener("visibilitychange", () => { if (!document.hidden) checkAlerts(); });
 // ======================= DÉMARRAGE =======================
 $("#hProf").onclick = openProf;
