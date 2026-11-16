@@ -9,6 +9,7 @@ Toutes les applications sont dans le dossier `eps-autonomie-numerique/` :
 - `escalade/` : **Escalade EPS** → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/escalade/
 - `orientation/` : **OrienRun EPS** → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/orientation/
 - `relais/` : **Relais Vitesse EPS** → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/relais/
+- `terrain/` : **Terrain** (outil enseignant pour iPhone, tuile visible en mode enseignant) : pose des balises au GPS avec contrôle de précision et photos, tracé de chemins, exports GPX / calque 1:25 000 et import dans OrienRun → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/terrain/
 
 À la racine :
 - `index.html`, `escalade/index.html`, `orientation/index.html`, `relais/index.html` : **redirections** des anciennes adresses vers la nouvelle (en gardant `?…` et `#…`, pour les QR codes déjà imprimés) ; elles désinstallent aussi l'ancien service worker de l'application. L'ancienne adresse `/acrosport/` est redirigée par le dépôt `chrisdcqns-cmd/acrosport` (une seule page).
