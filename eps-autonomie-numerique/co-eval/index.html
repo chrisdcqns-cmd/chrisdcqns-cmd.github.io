@@ -576,7 +576,9 @@ function vIdent() {
 
 // ---------- Préparation : tracé, choix et ordre des balises ----------
 function startPrep(k) {
-  const p = P(k);
+  const p = P(k), cur = RUNS.findIndex((r, j) => r && !r.fin && j !== k);
+  if (cur >= 0) { flash(`Termine d'abord ${P(cur).nom}`); return go(RUNS[cur].debut ? "run" : "prep", cur); }
+  if (RUNS[k] && !RUNS[k].fin) return go(RUNS[k].debut ? "run" : "prep", k);
   if (p.type === "duo") {
     const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">👥 Ton ou ta camarade</h2><button class="btn sm gh" id="dX">Annuler</button></div><p class="muted small" style="margin-top:0">Vous courez ensemble avec ce téléphone.</p><div id="dBox"></div>`);
     $("#dX", m).onclick = m.close;
