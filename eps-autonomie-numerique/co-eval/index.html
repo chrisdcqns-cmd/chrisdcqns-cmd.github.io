@@ -582,7 +582,7 @@ function startPrep(k) {
   if (p.type === "duo") {
     const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">👥 Ton ou ta camarade</h2><button class="btn sm gh" id="dX">Annuler</button></div><p class="muted small" style="margin-top:0">Vous courez ensemble avec ce téléphone.</p><div id="dBox"></div>`);
     $("#dX", m).onclick = m.close;
-    picker($("#dBox", m), { prof: ME.prof, classe: ME.classe, q1: "Qui est son enseignant ?", q3: "Touche le prénom de ton ou ta camarade", exclude: e => studentId(e) !== ME.id }, e => { m.close(); RUNS[k] = newRun(k, { ...e, id: studentId(e) }); saveRuns(); go("prep", k); });
+    picker($("#dBox", m), { q1: "Qui est son enseignant ?", q3: "Touche le prénom de ton ou ta camarade", exclude: e => studentId(e) !== ME.id }, e => { m.close(); RUNS[k] = newRun(k, { ...e, id: studentId(e) }); saveRuns(); go("prep", k); });
     return;
   }
   RUNS[k] = newRun(k); saveRuns(); go("prep", k);
