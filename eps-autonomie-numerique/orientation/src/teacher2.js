@@ -204,10 +204,14 @@ function editCourse(id) {
 }
 function printCourse(k) {
   const land = P.map.w >= P.map.h;
+  // carte à l'échelle : taille imprimée exacte si elle tient dans la page (sinon ajustée à la page, échelle indiquée « environ »)
+  const Wmm = P.map.scale ? P.map.w / P.map.pxmm : 0, Hmm = P.map.scale ? P.map.h / P.map.pxmm : 0, exact = P.map.scale && (land ? Wmm <= 210 && Hmm <= 172 : Wmm <= 196 && Hmm <= 205);
+  const barM = P.map.scale ? [10, 20, 25, 50, 100, 200, 250, 500, 1000].reverse().find(v => v / P.map.scale * 1000 <= 45) || 10 : 0, barMm = barM / (P.map.scale || 1) * 1000;
+  const scaleTxt = P.map.scale ? `<div style="display:flex;align-items:center;gap:3mm;font-size:8.5pt;margin-top:1mm"><b>Échelle 1 : ${P.map.scale.toLocaleString("fr-FR")}${exact ? "" : " (impression réduite : échelle non respectée)"}</b>${exact ? `<span style="display:inline-block;width:${barMm}mm;height:1.6mm;border:.3mm solid #000;background:linear-gradient(90deg,#000 50%,#fff 50%)"></span> ${barM} m · ↑ Nord` : ""}</div>` : "";
   const pts = k.ptsOn || k.mode === "score", bo = k.bonus || [];
   const list = k.ctrl.map((id, i) => { const c = ctrlById(id); return c ? `<tr><td>${bo.includes(id) ? "★ bonus" : k.mode === "ordre" ? k.ctrl.slice(0, i + 1).filter(x => !bo.includes(x)).length : ""}</td><td><b>${esc(c.n)}</b></td><td>${esc(c.desc || "")}</td>${pts ? `<td>${k.pts[id] ?? 10} pts</td>` : ""}<td class="w"></td></tr>` : ""; }).join("");
   printWin("Carte " + k.k, `<div class="page"><div class="top"><h1>${esc(P.nom)} — ${esc(k.nom || k.k)}</h1><span>Nom : ____________________ Classe : ______</span></div>
-   <div class="mapbox"><svg viewBox="0 0 ${P.map.w} ${P.map.h}" preserveAspectRatio="xMidYMid meet">${mapSVG(P, { course: k })}</svg></div>
+   ${exact ? `<div class="mapbox" style="flex:none;border:none"><svg viewBox="0 0 ${P.map.w} ${P.map.h}" style="width:${Wmm}mm;height:${Hmm}mm;border:.3mm solid #000">${mapSVG(P, { course: k })}</svg>${scaleTxt}</div>` : `<div class="mapbox"><svg viewBox="0 0 ${P.map.w} ${P.map.h}" preserveAspectRatio="xMidYMid meet">${mapSVG(P, { course: k })}</svg></div>${scaleTxt}`}
    <div class="desc"><b>${esc(modeNom[k.mode])}${k.tm ? ` · ${k.tm} min maximum${pts ? ` (−${k.pen} pts / min de retard)` : ""}` : ""}</b> · Parcours <b>${esc(k.k)}</b>
    <table><thead><tr><th>${k.mode === "ordre" ? "Ordre" : ""}</th><th>Balise</th><th>Définition</th>${pts ? "<th>Points</th>" : ""}<th>Temps</th></tr></thead><tbody>${list}</tbody></table>
    <small>▲ départ · ○ poste · ◎ arrivée — symboles IOF</small></div></div>`,

@@ -590,7 +590,7 @@ function mapSVG(proj, opts = {}) {
   // ordre de dessin : surfaces, lignes, points, textes, surimpression
   const order = { area: 0, line: 1, point: 2, text: 3 };
   const sorted = (proj.features || []).map((f, i) => ({ f, i, o: order[SYMI[f.sym]?.k] ?? 4, ov: SYMI[f.sym]?.grp === "Surimpression" })).filter(x => !x.ov || opts.showOverprintFeatures !== false).sort((a, b) => a.o - b.o || a.i - b.i);
-  return `${patDefs(mm)}<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="${mm}" flood-color="#ffb703" flood-opacity="1"/></filter></defs>${img}<g class="feats">${sorted.filter(x => !x.ov).map(x => feats[x.i]).join("")}</g><g class="ovfeats">${sorted.filter(x => x.ov).map(x => feats[x.i]).join("")}</g><g class="over">${opts.noOverprint ? "" : overprintSVG(proj, opts)}</g>`;
+  return `${patDefs(mm)}<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="${mm}" flood-color="#ffb703" flood-opacity="1"/></filter></defs>${img}${opts.under && typeof underlaySVG === "function" ? underlaySVG(proj) : ""}<g class="feats">${sorted.filter(x => !x.ov).map(x => feats[x.i]).join("")}</g><g class="ovfeats">${sorted.filter(x => x.ov).map(x => feats[x.i]).join("")}</g><g class="over">${opts.noOverprint ? "" : overprintSVG(proj, opts)}</g>`;
 }
 
 // ---------- serveur Google Apps Script ----------
@@ -824,6 +824,8 @@ function setPTab(t) {
 
 // ================= CARTE =================
 const ED = { tool: "select", view: null, draw: null, sel: null, place: null, myPos: null, watch: null, showCal: true };
+// une carte importée ou une feuille blanche quelconque n'est plus « à l'échelle » : on retire le cadre automatique
+function dropScale() { if (!P.map.frame && !P.map.scale) return; P.calib = P.calib.filter(c => !c.auto); ["scale", "pxmm", "frame", "under", "showUnder"].forEach(k => delete P.map[k]); P.map.sym = 1; }
 function viewCarte(v) {
   const groups = {}; SYM.forEach(s => (groups[s.grp] = groups[s.grp] || []).push(s));
   const icon = s => `<svg viewBox="0 0 26 20">${symIcon(s)}</svg>`;
@@ -836,15 +838,20 @@ function viewCarte(v) {
         <button class="tool" data-tool="C"><svg viewBox="0 0 26 20"><circle cx="13" cy="10" r="7" fill="none" stroke="${VIOLET}" stroke-width="2"/></svg>Balise (poste)</button>
         <button class="tool" data-tool="S"><svg viewBox="0 0 26 20"><path d="M13 2l8 14H5z" fill="none" stroke="${VIOLET}" stroke-width="2"/></svg>Départ</button>
         <button class="tool" data-tool="F"><svg viewBox="0 0 26 20"><circle cx="13" cy="10" r="5" fill="none" stroke="${VIOLET}" stroke-width="1.8"/><circle cx="13" cy="10" r="8.5" fill="none" stroke="${VIOLET}" stroke-width="1.8"/></svg>Arrivée</button>
+        <button class="tool" data-tool="measure"><svg viewBox="0 0 26 20"><path d="M3 14L21 4" stroke="#e63946" stroke-width="2"/><circle cx="3" cy="14" r="2" fill="#e63946"/><circle cx="21" cy="4" r="2" fill="#e63946"/></svg>Mesurer une distance</button>
         <button class="tool" data-tool="cal"><svg viewBox="0 0 26 20"><circle cx="13" cy="10" r="6" fill="none" stroke="#1a9b55" stroke-width="2"/><path d="M13 1v6M13 13v6M4 10h6M16 10h6" stroke="#1a9b55" stroke-width="2"/></svg>Point GPS (calage)</button>
       </div>
       ${Object.entries(groups).map(([g, list]) => `<h4>${g}</h4><div class="tgrid">${list.map(s => `<button class="tool" data-tool="sym:${s.id}" title="${s.code ? "ISOM " + s.code + " – " : ""}${esc(s.nom)}">${icon(s)}${esc(s.nom)}</button>`).join("")}</div>`).join("")}
+      <h4>Carte à l'échelle</h4>
+      <button class="btn small ${P.map.scale ? "ghost" : "or"}" id="bmB" style="width:100%;margin-bottom:6px;white-space:normal;height:auto;min-height:36px;line-height:1.2;padding:6px 10px">🗺 ${P.map.scale ? "Refaire la carte à l'échelle" : "Créer une carte vierge à l'échelle (relevés GPS)"}</button>
+      ${P.map.scale ? `<p class="muted" style="font-size:.78rem;margin:0 2px 6px">Échelle <b>1 : ${P.map.scale.toLocaleString("fr-FR")}</b> · ${Math.round(P.map.w / P.map.pxmm)} × ${Math.round(P.map.h / P.map.pxmm)} mm · nord en haut</p>` : ""}
+      ${P.map.under ? `<label class="row" style="gap:6px;font-size:.85rem;margin-bottom:6px"><input type="checkbox" id="undB" ${P.map.showUnder ? "checked" : ""}> 🛰 Photo aérienne IGN dessous (écran seulement)</label>` : ""}
       <h4>Sur le terrain</h4>
       <button class="btn small ghost" id="myPosB" style="width:100%">📍 Afficher ma position</button>
       <p class="muted" style="font-size:.78rem;margin:8px 2px">Calage : <b id="calInfo"></b></p>
-      ${P.calib.some(c => c.x == null) ? `<button class="btn small gr" id="pcRep" style="width:100%;margin-bottom:6px">📌 ${P.calib.filter(c => c.x == null).length} repère(s) du terrain à placer</button>` : ""}
+      ${P.calib.some(c => c.x == null) ? `<button class="btn small gr" id="pcRep" style="width:100%;margin-bottom:6px;white-space:normal;height:auto;line-height:1.2;padding:6px 10px">📌 ${P.calib.filter(c => c.x == null).length} repère(s) du terrain à placer</button>` : ""}
       ${P.features.some(f => f.gps) ? `<button class="btn small ghost" id="rcTr" style="width:100%;margin-bottom:6px">↻ Recaler les chemins GPS</button>` : ""}
-      ${P.gpsTraces?.length ? `<button class="btn small or" id="cvTr" style="width:100%">〰 ${P.gpsTraces.length} chemin(s) GPS en attente → dessiner</button>` : ""}
+      ${P.gpsTraces?.length ? `<button class="btn small or" id="cvTr" style="width:100%;white-space:normal;height:auto;min-height:36px;line-height:1.2;padding:6px 10px">〰 ${P.gpsTraces.length} chemin(s) GPS en attente → dessiner</button>` : ""}
     </div>
     <div class="mapwrap" id="mapwrap"><svg class="map" id="mapsvg" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button><button id="zfit" style="font-size:.9rem">⤢</button></div>
@@ -857,6 +864,8 @@ function viewCarte(v) {
   $("#zin").onclick = () => zoomBy(1 / 1.4); $("#zout").onclick = () => zoomBy(1.4); $("#zfit").onclick = () => { ED.view = null; renderEditor(); };
   $("#myPosB").onclick = toggleMyPos;
   $("#pcRep") && ($("#pcRep").onclick = placeReperes);
+  $("#bmB").onclick = blankMapDialog;
+  $("#undB") && ($("#undB").onchange = e => { P.map.showUnder = e.target.checked; saveP(); renderEditor(); });
   $("#rcTr") && ($("#rcTr").onclick = () => { const n = recalTraces(); if (n == null) return toast("Cale d'abord la carte (au moins 2 points).", "ko"); saveP(); renderEditor(); toast(n + " chemin(s) recalé(s) sur le calage actuel ✓", "ok"); });
   $("#cvTr") && ($("#cvTr").onclick = () => { if (!georef()) return toast("Cale d'abord la carte (au moins 2 points GPS) : outil « Point GPS (calage) ».", "ko"); pushUndo(); const n = convertTraces(); saveP(); toast(n + " chemin(s) dessiné(s) sur la carte ✓", "ok"); setPTab("carte"); });
   setTool(ED.tool); initPointer($("#mapsvg"), $("#mapwrap")); renderEditor();
@@ -869,7 +878,7 @@ function symIcon(s) {
 }
 function setTool(t) {
   if (ED.draw && t !== ED.tool) finishDraw();
-  ED.tool = t; $$(".tool").forEach(b => b.classList.toggle("on", b.dataset.tool === t));
+  ED.tool = t; if (t !== "measure") ED.meas = null; $$(".tool").forEach(b => b.classList.toggle("on", b.dataset.tool === t));
   $("#mapwrap")?.classList.toggle("pan", t === "pan");
   if (t !== "select") ED.sel = null;
   renderBar(); renderEditor();
@@ -881,18 +890,20 @@ function renderEditor() {
   const s = $("#mapsvg"); if (!s) return; applyView();
   const mm = mapMM(P);
   let extra = "";
-  if (ED.showCal) P.calib.filter(c => c.x != null).forEach(c => { extra += `<g data-cal="${c.id}"><circle cx="${c.x}" cy="${c.y}" r="${2.2 * mm}" fill="#1a9b5533" stroke="#1a9b55" stroke-width="${.4 * mm}"/><path d="M${c.x} ${c.y - 3.5 * mm}V${c.y + 3.5 * mm}M${c.x - 3.5 * mm} ${c.y}H${c.x + 3.5 * mm}" stroke="#1a9b55" stroke-width="${.3 * mm}"/><text x="${c.x + 2.6 * mm}" y="${c.y - 2.6 * mm}" font-size="${2.6 * mm}" fill="#1a9b55" font-weight="700" font-family="Arial">GPS</text></g>`; });
+  if (ED.showCal) P.calib.filter(c => c.x != null && !c.auto).forEach(c => { extra += `<g data-cal="${c.id}"><circle cx="${c.x}" cy="${c.y}" r="${2.2 * mm}" fill="#1a9b5533" stroke="#1a9b55" stroke-width="${.4 * mm}"/><path d="M${c.x} ${c.y - 3.5 * mm}V${c.y + 3.5 * mm}M${c.x - 3.5 * mm} ${c.y}H${c.x + 3.5 * mm}" stroke="#1a9b55" stroke-width="${.3 * mm}"/><text x="${c.x + 2.6 * mm}" y="${c.y - 2.6 * mm}" font-size="${2.6 * mm}" fill="#1a9b55" font-weight="700" font-family="Arial">GPS</text></g>`; });
   if (ED.draw && ED.draw.pts.length) { const f = { sym: ED.draw.sym, pts: ED.draw.pts }; extra += featureSVG(f, mm).replace(/data-f="[^"]*"/g, "") + ED.draw.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${mm * .9}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .4}"/>`).join(""); }
   if (ED.sel?.k === "f") { const f = P.features.find(x => x.id === ED.sel.id); if (f?.pts) extra += f.pts.map((p, i) => `<circle data-v="${i}" cx="${p[0]}" cy="${p[1]}" r="${mm * 1.3}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .5}"/>`).join(""); else if (f) extra += `<circle cx="${f.x}" cy="${f.y}" r="${mm * 2.5}" fill="none" stroke="#f47a20" stroke-width="${mm * .5}" stroke-dasharray="${mm} ${mm}"/>`; }
   if (ED.myPos) { const g = georef(); if (g) { const q = g.toPx(ED.myPos.lat, ED.myPos.lon); extra += `<circle cx="${q.x}" cy="${q.y}" r="${mm * 2}" fill="#2b7bff" stroke="#fff" stroke-width="${mm * .6}"/><circle cx="${q.x}" cy="${q.y}" r="${Math.max(mm * 2, (ED.myPos.acc || 0) / (g.mPerPx || 1))}" fill="#2b7bff22" stroke="#2b7bff" stroke-width="${mm * .2}"/>`; } }
-  s.innerHTML = mapSVG(P, { highlight: ED.sel?.k === "c" ? ED.sel.id : null }) + extra;
+  if (ED.meas?.length) { const [a, b] = ED.meas; extra += `<circle cx="${a.x}" cy="${a.y}" r="${mm * 1.2}" fill="#e63946"/>` + (b ? `<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="#e63946" stroke-width="${mm * .6}" stroke-dasharray="${mm * 2} ${mm}"/><circle cx="${b.x}" cy="${b.y}" r="${mm * 1.2}" fill="#e63946"/>` : ""); }
+  s.innerHTML = mapSVG(P, { highlight: ED.sel?.k === "c" ? ED.sel.id : null, under: P.map.showUnder }) + extra;
   const g = georef(); const ci = $("#calInfo");
-  if (ci) ci.textContent = !g ? `${calibPoints().length} point(s) – il en faut au moins 2 (3 conseillés)` : `${g.n} points${g.err != null ? ` · précision ≈ ±${Math.round(g.err)} m` : ""}${g.mPerPx ? ` · 1 cm carte ≈ ${Math.round(g.mPerPx * P.map.w / 29.7)} m (A4)` : ""}`;
+  if (ci) ci.textContent = P.map.scale && P.map.frame ? "carte à l'échelle, calée automatiquement" : !g ? `${calibPoints().length} point(s) – il en faut au moins 2 (3 conseillés)` : `${g.n} points${g.err != null ? ` · précision ≈ ±${Math.round(g.err)} m` : ""}${g.mPerPx ? ` · 1 cm carte ≈ ${Math.round(g.mPerPx * P.map.w / 29.7)} m (A4)` : ""}`;
 }
 function renderBar() {
   const b = $("#mapbar"); if (!b) return;
   let h = "";
   if (ED.draw) h = `<span class="info">${esc(SYMI[ED.draw.sym].nom)} : ${ED.draw.pts.length} point(s) — touche la carte pour ajouter des points</span><button class="btn green small" id="bDone">✓ Terminer</button><button class="btn small alt" id="bBack">↶ Point</button><button class="btn small red" id="bCancel">✕</button>`;
+  else if (ED.tool === "measure") { const d = ED.meas?.length === 2 ? mapDist(ED.meas[0], ED.meas[1]) : null; h = `<span class="info">📏 ${!ED.meas?.length ? "Touche le point de départ" : ED.meas.length === 1 ? "Touche le point d'arrivée" : d == null ? "Cale d'abord la carte (2 points GPS) pour mesurer" : `Distance : <b>${d < 1000 ? Math.round(d) + " m" : (d / 1000).toFixed(2) + " km"}</b> à vol d'oiseau${P.map.scale ? ` · ${(Math.hypot(ED.meas[0].x - ED.meas[1].x, ED.meas[0].y - ED.meas[1].y) / P.map.pxmm).toFixed(0)} mm sur la carte` : ""}`}</span>`; }
   else if (ED.placeCal) { const c = P.calib.find(x => x.id === ED.placeCal); h = `<span class="info">📌 Touche sur la carte l'endroit exact du repère « ${esc(c?.nom || "")} »</span>${c?.photos?.[0] ? `<img src="${c.photos[0]}" style="height:54px;border-radius:8px">` : ""}<button class="btn small red" id="bCancelPc">✕</button>`; }
   else if (ED.place) { const c = ctrlById(ED.place); h = `<span class="info">Touche la carte pour placer : ${esc(ctrlLabel(c))}</span><button class="btn small red" id="bCancelPl">✕</button>`; }
   else if (ED.sel) {
@@ -983,6 +994,7 @@ function tapMap(q, target) {
     ED.sel = { k: "c", id: c.id }; renderBar(); return;
   }
   if (t === "cal") return calibAt(q);
+  if (t === "measure") { if (!ED.meas || ED.meas.length === 2) ED.meas = [q]; else ED.meas.push(q); renderBar(); renderEditor(); return; }
   if (t.startsWith("sym:")) {
     const id = t.slice(4), s = SYMI[id];
     if (s.k === "point") { pushUndo(); P.features.push({ id: uid(6), sym: id, x: q.x, y: q.y }); saveP(); renderEditor(); return; }
@@ -1029,6 +1041,7 @@ async function loadMapImage() {
     if (had && !confirm("Remplacer la carte actuelle ? Les balises et dessins restent à leur place (en proportion).")) return;
     const sx = cv.width / P.map.w, sy = cv.height / P.map.h;
     if (had) { P.controls.forEach(c => { if (c.x != null) { c.x *= sx; c.y *= sy; } }); P.calib.forEach(c => { if (c.x == null) return; c.x *= sx; c.y *= sy; }); P.features.forEach(f => { if (f.pts) f.pts = f.pts.map(p => [p[0] * sx, p[1] * sy]); else { f.x *= sx; f.y *= sy; } }); }
+    dropScale();
     P.map.img = cv.toDataURL("image/jpeg", .86); P.map.w = cv.width; P.map.h = cv.height; ED.view = null;
     saveP(true); renderEditor(); $("#emptyMap")?.classList.add("hidden"); toast("Carte chargée ✓", "ok");
   } catch (e) { toast(e.message, "ko"); }
@@ -1040,7 +1053,7 @@ function mapSettings() {
    <div class="row"><button class="btn alt" id="msBlank">Nouvelle feuille blanche…</button><button class="btn red" id="msClear">Effacer les dessins</button></div>`);
   $("#msNom", m).oninput = e => { P.nom = e.target.value; $("#projName").textContent = P.nom; saveP(); };
   $$("input[type=range]", m).forEach(r => { const upd = () => $("#v_" + r.dataset.k, m).textContent = "(" + (+r.value).toFixed(2) + ")"; upd(); r.oninput = () => { P.map[r.dataset.k] = +r.value; upd(); saveP(); renderEditor(); }; });
-  $("#msBlank", m).onclick = () => { const f = prompt("Format de la feuille : paysage ou portrait ?", "paysage"); if (!f) return; P.map.img = null; if (/portrait/i.test(f)) { P.map.w = 1414; P.map.h = 2000; } else { P.map.w = 2000; P.map.h = 1414; } ED.view = null; saveP(); renderEditor(); m.close(); };
+  $("#msBlank", m).onclick = () => { const f = prompt("Format de la feuille : paysage ou portrait ?", "paysage"); if (!f) return; dropScale(); P.map.img = null; if (/portrait/i.test(f)) { P.map.w = 1414; P.map.h = 2000; } else { P.map.w = 2000; P.map.h = 1414; } ED.view = null; saveP(); renderEditor(); m.close(); };
   $("#msClear", m).onclick = () => { if (confirm("Effacer tous les dessins (les balises restent) ?")) { pushUndo(); P.features = []; saveP(); renderEditor(); } };
 }
 
@@ -1250,10 +1263,14 @@ function editCourse(id) {
 }
 function printCourse(k) {
   const land = P.map.w >= P.map.h;
+  // carte à l'échelle : taille imprimée exacte si elle tient dans la page (sinon ajustée à la page, échelle indiquée « environ »)
+  const Wmm = P.map.scale ? P.map.w / P.map.pxmm : 0, Hmm = P.map.scale ? P.map.h / P.map.pxmm : 0, exact = P.map.scale && (land ? Wmm <= 210 && Hmm <= 172 : Wmm <= 196 && Hmm <= 205);
+  const barM = P.map.scale ? [10, 20, 25, 50, 100, 200, 250, 500, 1000].reverse().find(v => v / P.map.scale * 1000 <= 45) || 10 : 0, barMm = barM / (P.map.scale || 1) * 1000;
+  const scaleTxt = P.map.scale ? `<div style="display:flex;align-items:center;gap:3mm;font-size:8.5pt;margin-top:1mm"><b>Échelle 1 : ${P.map.scale.toLocaleString("fr-FR")}${exact ? "" : " (impression réduite : échelle non respectée)"}</b>${exact ? `<span style="display:inline-block;width:${barMm}mm;height:1.6mm;border:.3mm solid #000;background:linear-gradient(90deg,#000 50%,#fff 50%)"></span> ${barM} m · ↑ Nord` : ""}</div>` : "";
   const pts = k.ptsOn || k.mode === "score", bo = k.bonus || [];
   const list = k.ctrl.map((id, i) => { const c = ctrlById(id); return c ? `<tr><td>${bo.includes(id) ? "★ bonus" : k.mode === "ordre" ? k.ctrl.slice(0, i + 1).filter(x => !bo.includes(x)).length : ""}</td><td><b>${esc(c.n)}</b></td><td>${esc(c.desc || "")}</td>${pts ? `<td>${k.pts[id] ?? 10} pts</td>` : ""}<td class="w"></td></tr>` : ""; }).join("");
   printWin("Carte " + k.k, `<div class="page"><div class="top"><h1>${esc(P.nom)} — ${esc(k.nom || k.k)}</h1><span>Nom : ____________________ Classe : ______</span></div>
-   <div class="mapbox"><svg viewBox="0 0 ${P.map.w} ${P.map.h}" preserveAspectRatio="xMidYMid meet">${mapSVG(P, { course: k })}</svg></div>
+   ${exact ? `<div class="mapbox" style="flex:none;border:none"><svg viewBox="0 0 ${P.map.w} ${P.map.h}" style="width:${Wmm}mm;height:${Hmm}mm;border:.3mm solid #000">${mapSVG(P, { course: k })}</svg>${scaleTxt}</div>` : `<div class="mapbox"><svg viewBox="0 0 ${P.map.w} ${P.map.h}" preserveAspectRatio="xMidYMid meet">${mapSVG(P, { course: k })}</svg></div>${scaleTxt}`}
    <div class="desc"><b>${esc(modeNom[k.mode])}${k.tm ? ` · ${k.tm} min maximum${pts ? ` (−${k.pen} pts / min de retard)` : ""}` : ""}</b> · Parcours <b>${esc(k.k)}</b>
    <table><thead><tr><th>${k.mode === "ordre" ? "Ordre" : ""}</th><th>Balise</th><th>Définition</th>${pts ? "<th>Points</th>" : ""}<th>Temps</th></tr></thead><tbody>${list}</tbody></table>
    <small>▲ départ · ○ poste · ◎ arrivée — symboles IOF</small></div></div>`,
@@ -2283,14 +2300,43 @@ function simplify(pts, tol) {
   let im = 0, dm = 0; for (let i = 1; i < pts.length - 1; i++) { const x = d(pts[i], pts[0], pts[pts.length - 1]); if (x > dm) { dm = x; im = i; } }
   return dm > tol ? simplify(pts.slice(0, im + 1), tol).slice(0, -1).concat(simplify(pts.slice(im), tol)) : [pts[0], pts[pts.length - 1]];
 }
+// Densité notée de part et d'autre du chemin (appli Terrain) → bandes de végétation
+const DENS_SYM = { vert1: "vert1", vert2: "vert2", vert3: "vert3", jaune: "decouvert", jclair: "semi" };
+function offsetGeo(pts, dist) { // dist > 0 : à gauche dans le sens de la marche
+  const la0 = pts[0].lat, kx = 111320 * Math.cos(la0 * Math.PI / 180), ky = 110540;
+  return pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)]; let dx = (b.lon - a.lon) * kx, dy = (b.lat - a.lat) * ky; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L; return { lat: p.lat + dx * dist / ky, lon: p.lon - dy * dist / kx }; });
+}
+function densBandsGeo(t) {
+  const out = [], w = t.bande || 15;
+  (t.segments || []).forEach(seg => ["g", "d"].forEach(side => {
+    let run = [];
+    const flush = () => { if (run.length > 1 && run[0][side]) { const off = offsetGeo(run, side === "g" ? w : -w); out.push({ cls: run[0][side], poly: [...run, ...off.reverse()].map(p => [+(+p.lat).toFixed(7), +(+p.lon).toFixed(7)]) }); } run = []; };
+    seg.forEach(p => { if (run.length && (p[side] || "") !== (run[run.length - 1][side] || "")) { const last = run[run.length - 1]; flush(); if (p[side]) run.push({ ...last, [side]: p[side] }); } run.push(p); });
+    flush();
+  }));
+  return out;
+}
+const isAreaType = t => SYMI[t.type]?.k === "area";
 function convertTraces(list) {
   const g = georef(); if (!g) return 0; const mm = mapMM(P); let n = 0;
-  (list || P.gpsTraces || []).forEach(t => { t.segments.forEach(seg => { if (seg.length < 2) return; const px = seg.map(p => { const q = g.toPx(p.lat, p.lon); return [q.x, q.y]; }); P.features.push({ id: uid(6), sym: SYMI[t.type] ? t.type : "chemin", pts: simplify(px, mm * .15), src: "terrain", gps: seg.map(p => [+(+p.lat).toFixed(7), +(+p.lon).toFixed(7)]) }); n++; }); });
-  if (!list) P.gpsTraces = [];
+  const toPx = gps => gps.map(([la, lo]) => { const q = g.toPx(la, lo); return [q.x, q.y]; });
+  const gpsOf = seg => seg.map(p => [+(+p.lat).toFixed(7), +(+p.lon).toFixed(7)]);
+  (list || P.gpsTraces || []).forEach(t => {
+    if (isAreaType(t)) { t.segments.forEach(seg => { if (seg.length < 3) return; const gps = gpsOf(seg); P.features.push({ id: uid(6), sym: t.type, pts: simplify(toPx(gps), mm * .15), src: "terrain", gps }); n++; }); return; }
+    densBandsGeo(t).forEach(b => { const sym = DENS_SYM[b.cls]; if (sym) P.features.push({ id: uid(6), sym, pts: simplify(toPx(b.poly), mm * .15), src: "terrain", gps: b.poly, dens: 1 }); });
+    t.segments.forEach(seg => { if (seg.length < 2) return; const gps = gpsOf(seg); P.features.push({ id: uid(6), sym: SYMI[t.type] ? t.type : "chemin", pts: simplify(toPx(gps), mm * .15), src: "terrain", gps }); n++; });
+  });
+  if (!list) { P.gpsTraces = []; n += convertElts(); }
+  return n;
+}
+function convertElts(list) {
+  const g = georef(); if (!g) return 0; let n = 0;
+  (list || P.gpsElts || []).forEach(e => { if (!SYMI[e.sym]) return; const q = g.toPx(e.lat, e.lon); P.features.push({ id: uid(6), sym: e.sym, x: q.x, y: q.y, src: "terrain", gpsPt: [+(+e.lat).toFixed(7), +(+e.lon).toFixed(7)], note: e.note || "" }); n++; });
+  if (!list) P.gpsElts = [];
   return n;
 }
 // Après un nouveau calage (repères placés…), les chemins GPS sont redessinés depuis leurs points d'origine
-function recalTraces() { const g = georef(); if (!g) return null; const mm = mapMM(P); let n = 0; P.features.filter(f => f.gps?.length > 1).forEach(f => { f.pts = simplify(f.gps.map(([la, lo]) => { const q = g.toPx(la, lo); return [q.x, q.y]; }), mm * .15); n++; }); return n; }
+function recalTraces() { const g = georef(); if (!g) return null; const mm = mapMM(P); let n = 0; P.features.filter(f => f.gps?.length > 1).forEach(f => { f.pts = simplify(f.gps.map(([la, lo]) => { const q = g.toPx(la, lo); return [q.x, q.y]; }), mm * .15); n++; }); P.features.filter(f => f.gpsPt).forEach(f => { const q = g.toPx(f.gpsPt[0], f.gpsPt[1]); f.x = q.x; f.y = q.y; n++; }); return n; }
 function placeReperes() {
   const L = P.calib.filter(c => c.x == null);
   const m = openModal(`<h2>📌 Repères du terrain</h2><p class="muted">Chaque repère a été mesuré au GPS sur le terrain. Touche-en un, puis touche sur ta carte l'endroit exact où il se trouve : il devient un point de calage, et les chemins GPS se recalent dessus (même si ta carte n'est pas à l'échelle).</p>
@@ -2307,12 +2353,13 @@ function parseGPXText(txt, name) {
 async function importTerrain() {
   const f = await pickFile(".json,.gpx,application/json,application/gpx+xml,application/xml"); if (!f) return;
   let data;
-  try { const txt = await f.text(); if (/\.gpx$/i.test(f.name) || txt.trim().startsWith("<")) data = parseGPXText(txt, f.name.replace(/\.gpx$/i, "")); else { const j = JSON.parse(txt); if (j.app !== "orienrun-terrain") throw new Error("Ce fichier ne vient pas de l'appli Terrain"); data = { balises: j.balises || [], traces: j.traces || [], reperes: j.reperes || [], corrige: j.corrige }; } }
+  try { const txt = await f.text(); if (/\.gpx$/i.test(f.name) || txt.trim().startsWith("<")) data = parseGPXText(txt, f.name.replace(/\.gpx$/i, "")); else { const j = JSON.parse(txt); if (j.app !== "orienrun-terrain") throw new Error("Ce fichier ne vient pas de l'appli Terrain"); data = { balises: j.balises || [], traces: j.traces || [], reperes: j.reperes || [], elements: j.elements || [], corrige: j.corrige }; } }
   catch (e) { return toast(e.message || "Fichier illisible", "ko"); }
   const g = georef(), exist = n => P.controls.find(c => c.type === "C" && +c.n === +n);
-  const m = openModal(`<h2>📥 Import depuis l'appli Terrain</h2><p class="muted" style="margin-top:-6px">${data.balises.length} balise(s), ${data.traces.length} chemin(s)${data.reperes?.length ? `, ${data.reperes.length} repère(s)` : ""}.${data.corrige ? " Positions <b>déjà calées</b> sur la photo aérienne dans l'appli Terrain." : ""} ${g ? "La carte est calée : tout sera placé automatiquement." : "<b>La carte n'est pas encore calée</b> (2 points GPS minimum) : les balises gardent leur position GPS et les chemins attendront le calage."}</p>
+  const m = openModal(`<h2>📥 Import depuis l'appli Terrain</h2><p class="muted" style="margin-top:-6px">${data.balises.length} balise(s), ${data.traces.length} chemin(s)${data.reperes?.length ? `, ${data.reperes.length} repère(s)` : ""}${data.elements?.length ? `, ${data.elements.length} élément(s)` : ""}.${data.corrige ? " Positions <b>déjà calées</b> sur la photo aérienne dans l'appli Terrain." : ""} ${g ? "La carte est calée : tout sera placé automatiquement." : "<b>La carte n'est pas encore calée</b> (2 points GPS minimum) : les balises gardent leur position GPS et les chemins attendront le calage."}</p>
    ${data.balises.length ? `<h3>Balises</h3><div class="tw"><table class="t"><thead><tr><th><input type="checkbox" id="tiAllB" checked></th><th>N°</th><th>Définition</th><th>Précision</th><th>Photos</th><th>Action</th></tr></thead><tbody>${data.balises.map((b, i) => { const e = b.n != null && exist(b.n); return `<tr><td><input type="checkbox" data-ib="${i}" checked></td><td><b>${esc(b.n ?? "?")}</b></td><td>${esc(b.desc || "")}</td><td>${b.acc ? `±${b.acc} m` : "–"}${b.imprecise ? ' <span class="chip ko">imprécise</span>' : ""}</td><td>${b.photos?.length || 0}</td><td>${e ? `<select data-ia="${i}" class="inp" style="min-height:34px;padding:2px 6px"><option value="maj">Mettre à jour la balise ${esc(b.n)} existante</option><option value="new">Créer une nouvelle balise</option></select>` : "Nouvelle balise"}</td></tr>`; }).join("")}</tbody></table></div>` : ""}
-   ${data.traces.length ? `<h3>Chemins</h3><div class="tw"><table class="t"><thead><tr><th></th><th>Nom</th><th>Symbole sur la carte</th><th class="num">Points</th></tr></thead><tbody>${data.traces.map((t, i) => `<tr><td><input type="checkbox" data-it="${i}" checked></td><td>${esc(t.nom)}</td><td><select data-is="${i}" class="inp" style="min-height:34px;padding:2px 6px">${SYM.filter(s => s.k === "line").map(s => `<option value="${s.id}" ${(SYMI[t.type] ? t.type : "chemin") === s.id ? "selected" : ""}>${esc(s.nom)}</option>`).join("")}</select></td><td class="num">${t.segments.reduce((s, x) => s + x.length, 0)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+   ${data.traces.length ? `<h3>Chemins</h3><div class="tw"><table class="t"><thead><tr><th></th><th>Nom</th><th>Symbole sur la carte</th><th class="num">Points</th></tr></thead><tbody>${data.traces.map((t, i) => { const ar = isAreaType(t), nd = densBandsGeo(t).filter(b => DENS_SYM[b.cls]).length; return `<tr><td><input type="checkbox" data-it="${i}" checked></td><td>${esc(t.nom)}${ar ? ' <span class="chip">zone</span>' : ""}${nd ? ` <span class="chip ok">+ ${nd} bande(s) de densité</span>` : ""}</td><td><select data-is="${i}" class="inp" style="min-height:34px;padding:2px 6px">${SYM.filter(s => s.k === (ar ? "area" : "line")).map(s => `<option value="${s.id}" ${(SYMI[t.type] ? t.type : ar ? "vert1" : "chemin") === s.id ? "selected" : ""}>${esc(s.nom)}</option>`).join("")}</select></td><td class="num">${t.segments.reduce((s, x) => s + x.length, 0)}</td></tr>`; }).join("")}</tbody></table></div>` : ""}
+   ${data.elements?.length ? `<h3>📍 Éléments ponctuels</h3><div class="tw"><table class="t"><thead><tr><th></th><th>Symbole</th><th>Précision</th></tr></thead><tbody>${data.elements.map((e, i) => `<tr><td><input type="checkbox" data-iel="${i}" checked></td><td>${esc(SYMI[e.sym]?.nom || e.sym)}${e.note ? " · " + esc(e.note) : ""}</td><td>±${e.acc ?? "?"} m</td></tr>`).join("")}</tbody></table></div>` : ""}
    ${data.reperes?.length ? `<h3>📌 Repères (points de calage à placer sur ta carte)</h3><div class="tw"><table class="t"><thead><tr><th></th><th>Nom</th><th>Précision</th></tr></thead><tbody>${data.reperes.map((r, i) => `<tr><td><input type="checkbox" data-ir="${i}" checked></td><td>${esc(r.nom)}</td><td>±${r.acc ?? "?"} m</td></tr>`).join("")}</tbody></table></div>` : ""}
    <div class="row" style="margin-top:14px"><button class="btn or" id="tiGo">Importer</button></div>`, { wide: true });
   $("#tiAllB", m) && ($("#tiAllB", m).onchange = e => $$("[data-ib]", m).forEach(x => x.checked = e.target.checked));
@@ -2329,12 +2376,84 @@ async function importTerrain() {
     let nr = 0;
     for (const [i, r] of (data.reperes || []).entries()) { if (!$(`[data-ir="${i}"]`, m)?.checked) continue; if (P.calib.some(c => c.src === "terrain" && Math.abs(c.lat - r.lat) < 1e-7 && Math.abs(c.lon - r.lon) < 1e-7)) continue; const ph = r.photos?.[0] ? await shrinkData(r.photos[0], 480) : null; P.calib.push({ id: uid(6), x: null, y: null, lat: r.lat, lon: r.lon, acc: r.acc, nom: r.nom, photos: ph ? [ph] : [], src: "terrain", t: r.t }); nr++; }
     const tr = data.traces.filter((t, i) => $(`[data-it="${i}"]`, m)?.checked).map(t => ({ ...t, type: $(`[data-is="${data.traces.indexOf(t)}"]`, m).value }));
-    if (tr.length) { if (g) nt = convertTraces(tr); else { P.gpsTraces = (P.gpsTraces || []).concat(tr.map(t => ({ id: t.id || uid(6), nom: t.nom, type: t.type, segments: t.segments.map(s => s.map(p => ({ lat: p.lat, lon: p.lon }))) }))); } }
+    if (tr.length) { if (g) nt = convertTraces(tr); else { P.gpsTraces = (P.gpsTraces || []).concat(tr.map(t => ({ id: t.id || uid(6), nom: t.nom, type: t.type, bande: t.bande, segments: t.segments.map(s => s.map(p => { const q = { lat: p.lat, lon: p.lon }; if (p.g) q.g = p.g; if (p.d) q.d = p.d; return q; })) }))); } }
+    const el = (data.elements || []).filter((e, i) => $(`[data-iel="${i}"]`, m)?.checked).map(e => ({ sym: e.sym, note: e.note, lat: e.lat, lon: e.lon, acc: e.acc }));
+    if (el.length) { if (g) convertElts(el); else P.gpsElts = (P.gpsElts || []).concat(el); }
     saveP(true); m.close();
     if (nr) setTimeout(() => toast(`📌 ${nr} repère(s) à placer sur la carte (onglet Carte) pour caler les chemins`, "ok"), 3500);
-    toast(`Import : ${nb} nouvelle(s) balise(s), ${nm} mise(s) à jour${tr.length ? g ? `, ${nt} chemin(s) dessiné(s)` : `, ${tr.length} chemin(s) en attente du calage` : ""} ✓`, "ok");
+    toast(`Import : ${nb} nouvelle(s) balise(s), ${nm} mise(s) à jour${tr.length ? g ? `, ${nt} chemin(s)/zone(s) dessiné(s)` : `, ${tr.length} chemin(s)/zone(s) en attente du calage` : ""}${el.length ? `, ${el.length} élément(s)` : ""} ✓`, "ok");
     setPTab(ptab);
   };
+}
+
+// ================= Carte vierge à l'échelle, à partir des relevés GPS =================
+function gpsExtent() {
+  const pts = [];
+  (P.gpsTraces || []).forEach(t => t.segments.forEach(sg => sg.forEach(p => pts.push([p.lat, p.lon]))));
+  (P.gpsTraces || []).forEach(t => densBandsGeo(t).forEach(b => b.poly.forEach(q => pts.push(q))));
+  (P.gpsElts || []).forEach(e => pts.push([e.lat, e.lon]));
+  P.features.forEach(f => { (f.gps || []).forEach(q => pts.push(q)); if (f.gpsPt) pts.push(f.gpsPt); });
+  P.controls.forEach(c => { if (c.lat != null) pts.push([c.lat, c.lon]); });
+  P.calib.forEach(c => { if (c.lat != null) pts.push([c.lat, c.lon]); });
+  if (!pts.length) return null;
+  const la = pts.map(p => +p[0]), lo = pts.map(p => +p[1]);
+  return { s: Math.min(...la), n: Math.max(...la), w: Math.min(...lo), e: Math.max(...lo), n_pts: pts.length };
+}
+function blankMapDialog() {
+  const ex = gpsExtent();
+  if (!ex) return toast("Aucun relevé GPS : importe d'abord des balises, chemins ou repères de l'appli Terrain.", "ko");
+  const la0 = (ex.s + ex.n) / 2, kx = 111320 * Math.cos(la0 * Math.PI / 180), ky = 110540;
+  const Wm = (ex.e - ex.w) * kx, Hm = (ex.n - ex.s) * ky;
+  const sizes = sc => { const mg = Math.max(25, .08 * Math.max(Wm, Hm)); return { mg, w: (Wm + 2 * mg) / sc * 1000, h: (Hm + 2 * mg) / sc * 1000 }; };
+  const fit = z => { const a = Math.max(z.w, z.h), b = Math.min(z.w, z.h); return a <= 277 && b <= 190 ? "A4" : a <= 400 && b <= 277 ? "A3" : null; };
+  const scales = [1000, 2000, 4000, 5000, 7500, 10000, 15000];
+  const best = scales.find(sc => fit(sizes(sc)) === "A4") || 15000;
+  const m = openModal(`<h2>🗺 Créer une carte vierge à l'échelle</h2>
+   <p class="muted">À partir de tes relevés GPS (${ex.n_pts} points, zone de ${Math.round(Wm)} × ${Math.round(Hm)} m), OrienRun crée une carte <b>orientée au nord et à l'échelle exacte</b>, déjà calée : les chemins, zones, densités, éléments et balises sont dessinés automatiquement. La photo aérienne IGN peut s'afficher dessous pour t'aider à compléter à la main (elle n'est jamais imprimée).</p>
+   <div class="field"><label>Échelle</label><select class="inp" id="bmS">${scales.map(sc => { const z = sizes(sc), f = fit(z); return `<option value="${sc}" ${sc === best ? "selected" : ""}>1 : ${sc.toLocaleString("fr-FR")} — carte de ${Math.round(z.w)} × ${Math.round(z.h)} mm${f ? " (tient sur " + f + ")" : " (trop grande pour A3)"}</option>`; }).join("")}</select></div>
+   <p class="muted" style="font-size:.85rem">Repères en CO scolaire : 1 : 2 000 à 1 : 5 000 pour un parc ou un établissement, 1 : 7 500 à 1 : 10 000 pour un bois.</p>
+   ${P.map.img || P.features.some(f => !f.gps && !f.gpsPt) ? `<p class="chip ko" style="display:inline-block">Attention : ta carte actuelle ${P.map.img ? "(image) " : ""}sera remplacée. Les éléments dessinés à la main sans GPS risquent d'être mal placés.</p>` : ""}
+   <div class="row" style="margin-top:12px"><button class="btn or" id="bmGo">Créer la carte</button></div>`, { wide: true });
+  $("#bmGo", m).onclick = () => { const sc = +$("#bmS", m).value; m.close(); makeBlankMap(ex, sc, sizes(sc).mg); };
+}
+function makeBlankMap(ex, scale, mg) {
+  pushUndo();
+  const la0 = (ex.s + ex.n) / 2, lo0 = (ex.w + ex.e) / 2, kx = 111320 * Math.cos(la0 * Math.PI / 180), ky = 110540;
+  const Wm = (ex.e - ex.w) * kx + 2 * mg, Hm = (ex.n - ex.s) * ky + 2 * mg;
+  const wmm = Wm / scale * 1000, hmm = Hm / scale * 1000; let pxmm = 10; if (Math.max(wmm, hmm) * pxmm > 6000) pxmm = 6000 / Math.max(wmm, hmm);
+  const w = Math.round(wmm * pxmm), h = Math.round(hmm * pxmm), mpp = Wm / w;
+  const west = lo0 - Wm / 2 / kx, north = la0 + Hm / 2 / ky;
+  const toPx = (lat, lon) => ({ x: (lon - west) * kx / mpp, y: (north - lat) * ky / mpp });
+  const toLL = (x, y) => ({ lat: north - y * mpp / ky, lon: west + x * mpp / kx });
+  P.map = { ...P.map, img: null, w, h, sym: pxmm * 297 / Math.max(w, h), scale, pxmm, fade: 0, frame: { west, north, kx, ky, mpp } };
+  // calage automatique : les 4 coins + le centre (exacts par construction)
+  P.calib = P.calib.filter(c => !c.auto).map(c => c.lat != null ? { ...c, ...toPx(c.lat, c.lon) } : c).filter(c => c.x != null || c.src === "terrain");
+  [[0, 0], [w, 0], [0, h], [w, h], [w / 2, h / 2]].forEach(([x, y]) => P.calib.push({ id: uid(6), x, y, ...toLL(x, y), auto: true, nom: "Cadre de la carte" }));
+  P.controls.forEach(c => { if (c.lat != null) { const q = toPx(c.lat, c.lon); c.x = q.x; c.y = q.y; } });
+  recalTraces(); convertTraces();
+  makeUnderlay(); P.map.showUnder = !!P.map.under;
+  ED.view = null; saveP(true); setPTab("carte");
+  toast(`Carte créée au 1 : ${scale.toLocaleString("fr-FR")} (${Math.round(wmm)} × ${Math.round(hmm)} mm) ✓`, "ok");
+}
+// photo aérienne IGN (BD ORTHO) sous la carte : tuiles Web Mercator positionnées dans le cadre
+function makeUnderlay() {
+  const F = P.map.frame; if (!F) { P.map.under = null; return; }
+  const lat2y = (lat, z) => { const r = lat * Math.PI / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z; }, lon2x = (lon, z) => (lon + 180) / 360 * 2 ** z;
+  const y2lat = (y, z) => { const n = Math.PI - 2 * Math.PI * y / 2 ** z; return 180 / Math.PI * Math.atan(Math.sinh(n)); }, x2lon = (x, z) => x / 2 ** z * 360 - 180;
+  const south = F.north - P.map.h * F.mpp / F.ky, east = F.west + P.map.w * F.mpp / F.kx, la0 = (F.north + south) / 2;
+  let z = Math.round(Math.log2(156543.03 * Math.cos(la0 * Math.PI / 180) / F.mpp)); z = Math.max(14, Math.min(19, z));
+  let x0, x1, y0, y1; const rng = () => { x0 = Math.floor(lon2x(F.west, z)); x1 = Math.floor(lon2x(east, z)); y0 = Math.floor(lat2y(F.north, z)); y1 = Math.floor(lat2y(south, z)); };
+  rng(); while ((x1 - x0 + 1) * (y1 - y0 + 1) > 160 && z > 14) { z--; rng(); }
+  const px = (lat, lon) => ({ x: (lon - F.west) * F.kx / F.mpp, y: (F.north - lat) * F.ky / F.mpp }), tiles = [];
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) { const a = px(y2lat(y, z), x2lon(x, z)), b = px(y2lat(y + 1, z), x2lon(x + 1, z)); tiles.push([x, y, +a.x.toFixed(1), +a.y.toFixed(1), +(b.x - a.x).toFixed(1), +(b.y - a.y).toFixed(1)]); }
+  P.map.under = { z, tiles };
+}
+const ignTile = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}`;
+function underlaySVG(proj) { const U = proj.map?.under; if (!U) return ""; return `<g opacity=".55" pointer-events="none">${U.tiles.map(([x, y, px, py, pw, ph]) => `<image href="${ignTile(U.z, x, y)}" x="${px}" y="${py}" width="${pw + .6}" height="${ph + .6}" preserveAspectRatio="none"/>`).join("")}</g>`; }
+// distance réelle entre deux points de la carte
+function mapDist(a, b) {
+  if (P.map.scale && P.map.pxmm) return Math.hypot(a.x - b.x, a.y - b.y) / P.map.pxmm * P.map.scale / 1000;
+  const g = georef(); if (!g) return null; return haversine(g.toGeo(a.x, a.y), g.toGeo(b.x, b.y));
 }
 
 // ===== Espace élève =====

@@ -283,7 +283,7 @@ function mapSVG(proj, opts = {}) {
   // ordre de dessin : surfaces, lignes, points, textes, surimpression
   const order = { area: 0, line: 1, point: 2, text: 3 };
   const sorted = (proj.features || []).map((f, i) => ({ f, i, o: order[SYMI[f.sym]?.k] ?? 4, ov: SYMI[f.sym]?.grp === "Surimpression" })).filter(x => !x.ov || opts.showOverprintFeatures !== false).sort((a, b) => a.o - b.o || a.i - b.i);
-  return `${patDefs(mm)}<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="${mm}" flood-color="#ffb703" flood-opacity="1"/></filter></defs>${img}<g class="feats">${sorted.filter(x => !x.ov).map(x => feats[x.i]).join("")}</g><g class="ovfeats">${sorted.filter(x => x.ov).map(x => feats[x.i]).join("")}</g><g class="over">${opts.noOverprint ? "" : overprintSVG(proj, opts)}</g>`;
+  return `${patDefs(mm)}<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="0" stdDeviation="${mm}" flood-color="#ffb703" flood-opacity="1"/></filter></defs>${img}${opts.under && typeof underlaySVG === "function" ? underlaySVG(proj) : ""}<g class="feats">${sorted.filter(x => !x.ov).map(x => feats[x.i]).join("")}</g><g class="ovfeats">${sorted.filter(x => x.ov).map(x => feats[x.i]).join("")}</g><g class="over">${opts.noOverprint ? "" : overprintSVG(proj, opts)}</g>`;
 }
 
 // ---------- serveur Google Apps Script ----------

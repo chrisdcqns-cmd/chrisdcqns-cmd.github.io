@@ -115,6 +115,8 @@ function setPTab(t) {
 
 // ================= CARTE =================
 const ED = { tool: "select", view: null, draw: null, sel: null, place: null, myPos: null, watch: null, showCal: true };
+// une carte importée ou une feuille blanche quelconque n'est plus « à l'échelle » : on retire le cadre automatique
+function dropScale() { if (!P.map.frame && !P.map.scale) return; P.calib = P.calib.filter(c => !c.auto); ["scale", "pxmm", "frame", "under", "showUnder"].forEach(k => delete P.map[k]); P.map.sym = 1; }
 function viewCarte(v) {
   const groups = {}; SYM.forEach(s => (groups[s.grp] = groups[s.grp] || []).push(s));
   const icon = s => `<svg viewBox="0 0 26 20">${symIcon(s)}</svg>`;
@@ -127,15 +129,20 @@ function viewCarte(v) {
         <button class="tool" data-tool="C"><svg viewBox="0 0 26 20"><circle cx="13" cy="10" r="7" fill="none" stroke="${VIOLET}" stroke-width="2"/></svg>Balise (poste)</button>
         <button class="tool" data-tool="S"><svg viewBox="0 0 26 20"><path d="M13 2l8 14H5z" fill="none" stroke="${VIOLET}" stroke-width="2"/></svg>Départ</button>
         <button class="tool" data-tool="F"><svg viewBox="0 0 26 20"><circle cx="13" cy="10" r="5" fill="none" stroke="${VIOLET}" stroke-width="1.8"/><circle cx="13" cy="10" r="8.5" fill="none" stroke="${VIOLET}" stroke-width="1.8"/></svg>Arrivée</button>
+        <button class="tool" data-tool="measure"><svg viewBox="0 0 26 20"><path d="M3 14L21 4" stroke="#e63946" stroke-width="2"/><circle cx="3" cy="14" r="2" fill="#e63946"/><circle cx="21" cy="4" r="2" fill="#e63946"/></svg>Mesurer une distance</button>
         <button class="tool" data-tool="cal"><svg viewBox="0 0 26 20"><circle cx="13" cy="10" r="6" fill="none" stroke="#1a9b55" stroke-width="2"/><path d="M13 1v6M13 13v6M4 10h6M16 10h6" stroke="#1a9b55" stroke-width="2"/></svg>Point GPS (calage)</button>
       </div>
       ${Object.entries(groups).map(([g, list]) => `<h4>${g}</h4><div class="tgrid">${list.map(s => `<button class="tool" data-tool="sym:${s.id}" title="${s.code ? "ISOM " + s.code + " – " : ""}${esc(s.nom)}">${icon(s)}${esc(s.nom)}</button>`).join("")}</div>`).join("")}
+      <h4>Carte à l'échelle</h4>
+      <button class="btn small ${P.map.scale ? "ghost" : "or"}" id="bmB" style="width:100%;margin-bottom:6px;white-space:normal;height:auto;min-height:36px;line-height:1.2;padding:6px 10px">🗺 ${P.map.scale ? "Refaire la carte à l'échelle" : "Créer une carte vierge à l'échelle (relevés GPS)"}</button>
+      ${P.map.scale ? `<p class="muted" style="font-size:.78rem;margin:0 2px 6px">Échelle <b>1 : ${P.map.scale.toLocaleString("fr-FR")}</b> · ${Math.round(P.map.w / P.map.pxmm)} × ${Math.round(P.map.h / P.map.pxmm)} mm · nord en haut</p>` : ""}
+      ${P.map.under ? `<label class="row" style="gap:6px;font-size:.85rem;margin-bottom:6px"><input type="checkbox" id="undB" ${P.map.showUnder ? "checked" : ""}> 🛰 Photo aérienne IGN dessous (écran seulement)</label>` : ""}
       <h4>Sur le terrain</h4>
       <button class="btn small ghost" id="myPosB" style="width:100%">📍 Afficher ma position</button>
       <p class="muted" style="font-size:.78rem;margin:8px 2px">Calage : <b id="calInfo"></b></p>
-      ${P.calib.some(c => c.x == null) ? `<button class="btn small gr" id="pcRep" style="width:100%;margin-bottom:6px">📌 ${P.calib.filter(c => c.x == null).length} repère(s) du terrain à placer</button>` : ""}
+      ${P.calib.some(c => c.x == null) ? `<button class="btn small gr" id="pcRep" style="width:100%;margin-bottom:6px;white-space:normal;height:auto;line-height:1.2;padding:6px 10px">📌 ${P.calib.filter(c => c.x == null).length} repère(s) du terrain à placer</button>` : ""}
       ${P.features.some(f => f.gps) ? `<button class="btn small ghost" id="rcTr" style="width:100%;margin-bottom:6px">↻ Recaler les chemins GPS</button>` : ""}
-      ${P.gpsTraces?.length ? `<button class="btn small or" id="cvTr" style="width:100%">〰 ${P.gpsTraces.length} chemin(s) GPS en attente → dessiner</button>` : ""}
+      ${P.gpsTraces?.length ? `<button class="btn small or" id="cvTr" style="width:100%;white-space:normal;height:auto;min-height:36px;line-height:1.2;padding:6px 10px">〰 ${P.gpsTraces.length} chemin(s) GPS en attente → dessiner</button>` : ""}
     </div>
     <div class="mapwrap" id="mapwrap"><svg class="map" id="mapsvg" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button><button id="zfit" style="font-size:.9rem">⤢</button></div>
@@ -148,6 +155,8 @@ function viewCarte(v) {
   $("#zin").onclick = () => zoomBy(1 / 1.4); $("#zout").onclick = () => zoomBy(1.4); $("#zfit").onclick = () => { ED.view = null; renderEditor(); };
   $("#myPosB").onclick = toggleMyPos;
   $("#pcRep") && ($("#pcRep").onclick = placeReperes);
+  $("#bmB").onclick = blankMapDialog;
+  $("#undB") && ($("#undB").onchange = e => { P.map.showUnder = e.target.checked; saveP(); renderEditor(); });
   $("#rcTr") && ($("#rcTr").onclick = () => { const n = recalTraces(); if (n == null) return toast("Cale d'abord la carte (au moins 2 points).", "ko"); saveP(); renderEditor(); toast(n + " chemin(s) recalé(s) sur le calage actuel ✓", "ok"); });
   $("#cvTr") && ($("#cvTr").onclick = () => { if (!georef()) return toast("Cale d'abord la carte (au moins 2 points GPS) : outil « Point GPS (calage) ».", "ko"); pushUndo(); const n = convertTraces(); saveP(); toast(n + " chemin(s) dessiné(s) sur la carte ✓", "ok"); setPTab("carte"); });
   setTool(ED.tool); initPointer($("#mapsvg"), $("#mapwrap")); renderEditor();
@@ -160,7 +169,7 @@ function symIcon(s) {
 }
 function setTool(t) {
   if (ED.draw && t !== ED.tool) finishDraw();
-  ED.tool = t; $$(".tool").forEach(b => b.classList.toggle("on", b.dataset.tool === t));
+  ED.tool = t; if (t !== "measure") ED.meas = null; $$(".tool").forEach(b => b.classList.toggle("on", b.dataset.tool === t));
   $("#mapwrap")?.classList.toggle("pan", t === "pan");
   if (t !== "select") ED.sel = null;
   renderBar(); renderEditor();
@@ -172,18 +181,20 @@ function renderEditor() {
   const s = $("#mapsvg"); if (!s) return; applyView();
   const mm = mapMM(P);
   let extra = "";
-  if (ED.showCal) P.calib.filter(c => c.x != null).forEach(c => { extra += `<g data-cal="${c.id}"><circle cx="${c.x}" cy="${c.y}" r="${2.2 * mm}" fill="#1a9b5533" stroke="#1a9b55" stroke-width="${.4 * mm}"/><path d="M${c.x} ${c.y - 3.5 * mm}V${c.y + 3.5 * mm}M${c.x - 3.5 * mm} ${c.y}H${c.x + 3.5 * mm}" stroke="#1a9b55" stroke-width="${.3 * mm}"/><text x="${c.x + 2.6 * mm}" y="${c.y - 2.6 * mm}" font-size="${2.6 * mm}" fill="#1a9b55" font-weight="700" font-family="Arial">GPS</text></g>`; });
+  if (ED.showCal) P.calib.filter(c => c.x != null && !c.auto).forEach(c => { extra += `<g data-cal="${c.id}"><circle cx="${c.x}" cy="${c.y}" r="${2.2 * mm}" fill="#1a9b5533" stroke="#1a9b55" stroke-width="${.4 * mm}"/><path d="M${c.x} ${c.y - 3.5 * mm}V${c.y + 3.5 * mm}M${c.x - 3.5 * mm} ${c.y}H${c.x + 3.5 * mm}" stroke="#1a9b55" stroke-width="${.3 * mm}"/><text x="${c.x + 2.6 * mm}" y="${c.y - 2.6 * mm}" font-size="${2.6 * mm}" fill="#1a9b55" font-weight="700" font-family="Arial">GPS</text></g>`; });
   if (ED.draw && ED.draw.pts.length) { const f = { sym: ED.draw.sym, pts: ED.draw.pts }; extra += featureSVG(f, mm).replace(/data-f="[^"]*"/g, "") + ED.draw.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${mm * .9}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .4}"/>`).join(""); }
   if (ED.sel?.k === "f") { const f = P.features.find(x => x.id === ED.sel.id); if (f?.pts) extra += f.pts.map((p, i) => `<circle data-v="${i}" cx="${p[0]}" cy="${p[1]}" r="${mm * 1.3}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .5}"/>`).join(""); else if (f) extra += `<circle cx="${f.x}" cy="${f.y}" r="${mm * 2.5}" fill="none" stroke="#f47a20" stroke-width="${mm * .5}" stroke-dasharray="${mm} ${mm}"/>`; }
   if (ED.myPos) { const g = georef(); if (g) { const q = g.toPx(ED.myPos.lat, ED.myPos.lon); extra += `<circle cx="${q.x}" cy="${q.y}" r="${mm * 2}" fill="#2b7bff" stroke="#fff" stroke-width="${mm * .6}"/><circle cx="${q.x}" cy="${q.y}" r="${Math.max(mm * 2, (ED.myPos.acc || 0) / (g.mPerPx || 1))}" fill="#2b7bff22" stroke="#2b7bff" stroke-width="${mm * .2}"/>`; } }
-  s.innerHTML = mapSVG(P, { highlight: ED.sel?.k === "c" ? ED.sel.id : null }) + extra;
+  if (ED.meas?.length) { const [a, b] = ED.meas; extra += `<circle cx="${a.x}" cy="${a.y}" r="${mm * 1.2}" fill="#e63946"/>` + (b ? `<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="#e63946" stroke-width="${mm * .6}" stroke-dasharray="${mm * 2} ${mm}"/><circle cx="${b.x}" cy="${b.y}" r="${mm * 1.2}" fill="#e63946"/>` : ""); }
+  s.innerHTML = mapSVG(P, { highlight: ED.sel?.k === "c" ? ED.sel.id : null, under: P.map.showUnder }) + extra;
   const g = georef(); const ci = $("#calInfo");
-  if (ci) ci.textContent = !g ? `${calibPoints().length} point(s) – il en faut au moins 2 (3 conseillés)` : `${g.n} points${g.err != null ? ` · précision ≈ ±${Math.round(g.err)} m` : ""}${g.mPerPx ? ` · 1 cm carte ≈ ${Math.round(g.mPerPx * P.map.w / 29.7)} m (A4)` : ""}`;
+  if (ci) ci.textContent = P.map.scale && P.map.frame ? "carte à l'échelle, calée automatiquement" : !g ? `${calibPoints().length} point(s) – il en faut au moins 2 (3 conseillés)` : `${g.n} points${g.err != null ? ` · précision ≈ ±${Math.round(g.err)} m` : ""}${g.mPerPx ? ` · 1 cm carte ≈ ${Math.round(g.mPerPx * P.map.w / 29.7)} m (A4)` : ""}`;
 }
 function renderBar() {
   const b = $("#mapbar"); if (!b) return;
   let h = "";
   if (ED.draw) h = `<span class="info">${esc(SYMI[ED.draw.sym].nom)} : ${ED.draw.pts.length} point(s) — touche la carte pour ajouter des points</span><button class="btn green small" id="bDone">✓ Terminer</button><button class="btn small alt" id="bBack">↶ Point</button><button class="btn small red" id="bCancel">✕</button>`;
+  else if (ED.tool === "measure") { const d = ED.meas?.length === 2 ? mapDist(ED.meas[0], ED.meas[1]) : null; h = `<span class="info">📏 ${!ED.meas?.length ? "Touche le point de départ" : ED.meas.length === 1 ? "Touche le point d'arrivée" : d == null ? "Cale d'abord la carte (2 points GPS) pour mesurer" : `Distance : <b>${d < 1000 ? Math.round(d) + " m" : (d / 1000).toFixed(2) + " km"}</b> à vol d'oiseau${P.map.scale ? ` · ${(Math.hypot(ED.meas[0].x - ED.meas[1].x, ED.meas[0].y - ED.meas[1].y) / P.map.pxmm).toFixed(0)} mm sur la carte` : ""}`}</span>`; }
   else if (ED.placeCal) { const c = P.calib.find(x => x.id === ED.placeCal); h = `<span class="info">📌 Touche sur la carte l'endroit exact du repère « ${esc(c?.nom || "")} »</span>${c?.photos?.[0] ? `<img src="${c.photos[0]}" style="height:54px;border-radius:8px">` : ""}<button class="btn small red" id="bCancelPc">✕</button>`; }
   else if (ED.place) { const c = ctrlById(ED.place); h = `<span class="info">Touche la carte pour placer : ${esc(ctrlLabel(c))}</span><button class="btn small red" id="bCancelPl">✕</button>`; }
   else if (ED.sel) {
@@ -274,6 +285,7 @@ function tapMap(q, target) {
     ED.sel = { k: "c", id: c.id }; renderBar(); return;
   }
   if (t === "cal") return calibAt(q);
+  if (t === "measure") { if (!ED.meas || ED.meas.length === 2) ED.meas = [q]; else ED.meas.push(q); renderBar(); renderEditor(); return; }
   if (t.startsWith("sym:")) {
     const id = t.slice(4), s = SYMI[id];
     if (s.k === "point") { pushUndo(); P.features.push({ id: uid(6), sym: id, x: q.x, y: q.y }); saveP(); renderEditor(); return; }
@@ -320,6 +332,7 @@ async function loadMapImage() {
     if (had && !confirm("Remplacer la carte actuelle ? Les balises et dessins restent à leur place (en proportion).")) return;
     const sx = cv.width / P.map.w, sy = cv.height / P.map.h;
     if (had) { P.controls.forEach(c => { if (c.x != null) { c.x *= sx; c.y *= sy; } }); P.calib.forEach(c => { if (c.x == null) return; c.x *= sx; c.y *= sy; }); P.features.forEach(f => { if (f.pts) f.pts = f.pts.map(p => [p[0] * sx, p[1] * sy]); else { f.x *= sx; f.y *= sy; } }); }
+    dropScale();
     P.map.img = cv.toDataURL("image/jpeg", .86); P.map.w = cv.width; P.map.h = cv.height; ED.view = null;
     saveP(true); renderEditor(); $("#emptyMap")?.classList.add("hidden"); toast("Carte chargée ✓", "ok");
   } catch (e) { toast(e.message, "ko"); }
@@ -331,6 +344,6 @@ function mapSettings() {
    <div class="row"><button class="btn alt" id="msBlank">Nouvelle feuille blanche…</button><button class="btn red" id="msClear">Effacer les dessins</button></div>`);
   $("#msNom", m).oninput = e => { P.nom = e.target.value; $("#projName").textContent = P.nom; saveP(); };
   $$("input[type=range]", m).forEach(r => { const upd = () => $("#v_" + r.dataset.k, m).textContent = "(" + (+r.value).toFixed(2) + ")"; upd(); r.oninput = () => { P.map[r.dataset.k] = +r.value; upd(); saveP(); renderEditor(); }; });
-  $("#msBlank", m).onclick = () => { const f = prompt("Format de la feuille : paysage ou portrait ?", "paysage"); if (!f) return; P.map.img = null; if (/portrait/i.test(f)) { P.map.w = 1414; P.map.h = 2000; } else { P.map.w = 2000; P.map.h = 1414; } ED.view = null; saveP(); renderEditor(); m.close(); };
+  $("#msBlank", m).onclick = () => { const f = prompt("Format de la feuille : paysage ou portrait ?", "paysage"); if (!f) return; dropScale(); P.map.img = null; if (/portrait/i.test(f)) { P.map.w = 1414; P.map.h = 2000; } else { P.map.w = 2000; P.map.h = 1414; } ED.view = null; saveP(); renderEditor(); m.close(); };
   $("#msClear", m).onclick = () => { if (confirm("Effacer tous les dessins (les balises restent) ?")) { pushUndo(); P.features = []; saveP(); renderEditor(); } };
 }
