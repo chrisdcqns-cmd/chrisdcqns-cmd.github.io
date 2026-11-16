@@ -133,6 +133,7 @@ function viewCarte(v) {
       <h4>Sur le terrain</h4>
       <button class="btn small ghost" id="myPosB" style="width:100%">📍 Afficher ma position</button>
       <p class="muted" style="font-size:.78rem;margin:8px 2px">Calage : <b id="calInfo"></b></p>
+      ${P.gpsTraces?.length ? `<button class="btn small or" id="cvTr" style="width:100%">〰 ${P.gpsTraces.length} chemin(s) GPS en attente → dessiner</button>` : ""}
     </div>
     <div class="mapwrap" id="mapwrap"><svg class="map" id="mapsvg" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="zoombtns"><button id="zin">+</button><button id="zout">−</button><button id="zfit" style="font-size:.9rem">⤢</button></div>
@@ -144,6 +145,7 @@ function viewCarte(v) {
   $("#mapSet").onclick = mapSettings; $("#undoB").onclick = undo;
   $("#zin").onclick = () => zoomBy(1 / 1.4); $("#zout").onclick = () => zoomBy(1.4); $("#zfit").onclick = () => { ED.view = null; renderEditor(); };
   $("#myPosB").onclick = toggleMyPos;
+  $("#cvTr") && ($("#cvTr").onclick = () => { if (!georef()) return toast("Cale d'abord la carte (au moins 2 points GPS) : outil « Point GPS (calage) ».", "ko"); pushUndo(); const n = convertTraces(); saveP(); toast(n + " chemin(s) dessiné(s) sur la carte ✓", "ok"); setPTab("carte"); });
   setTool(ED.tool); initPointer($("#mapsvg"), $("#mapwrap")); renderEditor();
 }
 function symIcon(s) {
