@@ -309,6 +309,8 @@ ol.b5{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column
 .gvt{display:flex;gap:6px;margin:6px 0 10px}.gvt .b{min-height:38px;padding:4px 14px;font-size:14px}
 .gh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:16px 0 8px;padding:10px 14px;border-radius:14px;background:#fff;border-left:7px solid #2b8a3e;box-shadow:0 1px 0 #00000014}.gh b{font-size:18px}.gh span{color:#5b6a72;font-weight:700}.gh em{flex-basis:100%;font-style:normal;color:#b3261e;font-weight:800;font-size:14px}.gh.gh-w{border-left-color:#f2c230}
 .cgrid.gg{margin:0;padding:12px 0;border-top:2px solid #cfd8dc}.cgrid.gg:first-of-type{border-top:0}
+.chip{min-width:0;max-width:100%}.chip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b.swapb{min-height:58px;font-size:19px;padding:10px 22px;background:#ffc93c;color:#16252d;border:0;box-shadow:0 3px 0 #c99a1f}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -581,7 +583,7 @@ const msgOf=(n,nom,d)=>(CF.msg||[]).filter(m=>m.el==n&&m.cl==(nom||'')&&m.d==(d|
 function msgDlg(n,why){const nom=CL.find(c=>c.id==(CF.sel||CF.sea?.cl||''))?.nom||'',o=String(lecFor(CF.sel||'',today())?.obj||'').trim(),d=document.createElement('div');d.className='dlg';
  const rf=why&&(remFor(why)||PED().rem['La voie était trop difficile']),rems=[...new Set([rf?remTxt(rf):'',...(why?Object.values(PED().rem).map(remTxt):[])].filter(Boolean))];
  const pre=[...rems,...MSGS.map(m=>m=="Pense à l'exercice du jour."&&o?"Pense à l'exercice du jour : "+o:m)];
- d.innerHTML=`<div class="dbox mbox"><h3 style="margin-top:0">${why?'💡 Conseil':'💬 Message'} pour ${esc(n)}</h3>${why?`<p class="mut">Pourquoi : ${esc(why)}</p>`:''}<p class="mut">Il s'affichera quand ${esc(n.split(' ')[0])} renseignera sa prochaine grimpe.</p>
+ d.innerHTML=`<div class="dbox mbox"><h3 style="margin-top:0">${why?'💡 Conseil':'💬 Message'} pour ${esc(n)}</h3>${why?`<p class="mut">Pourquoi : ${esc(why)}</p>`:''}<p class="mut">Il s'affichera quand ${esc(n.split(' ')[0])} ou un camarade de son groupe renseignera la prochaine grimpe.</p>
  <div class="mpre">${pre.map((m,i)=>`<button class="b g ${i<rems.length?'remo':''}" data-i="${i}">${i<rems.length?'💡 ':''}${esc(m)}</button>`).join('')}</div><textarea id="mtx" maxlength="200" placeholder="Ou écris ton message…"></textarea>
  <div class="row"><button class="b g" data-r="0">Annuler</button><button class="b" data-r="1">Envoyer</button></div></div>`;
  document.body.append(d);const tx=d.querySelector('#mtx');d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{tx.value=pre[+b.dataset.i]});
@@ -589,7 +591,12 @@ function msgDlg(n,why){const nom=CL.find(c=>c.id==(CF.sel||CF.sea?.cl||''))?.nom
  d.querySelector('[data-r="1"]').onclick=()=>{const t=tx.value.trim();if(!t)return tx.focus();(CF.msg=CF.msg||[]).push({id:uid(),cl:nom,d:today(),el:n,t,ts:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),seen:''});
   const lim=new Date(Date.now()-30*864e5).toLocaleDateString('fr-CA');CF.msg=CF.msg.filter(m=>m.d>=lim);save();d.remove();const y=scrollY;render();scrollTo(0,y)}}
 /* élève : messages non lus affichés quand il choisit son prénom pour renseigner une grimpe */
-async function showMsgs(n){const nom=cls()?.nom||'',M=msgOf(n,nom).filter(m=>!m.seen);if(!M.length)return;
+async function showMsgs(n){const nom=cls()?.nom||'',M=msgOf(n,nom).filter(m=>!m.seen);
+ /* conseils pour un camarade du groupe : montrés une fois au groupe, pour qu'il vienne te voir avant de grimper */
+ const G=grp().filter(x=>x!=n),MG=(CF.msg||[]).filter(m=>G.includes(m.el)&&m.cl==nom&&m.d==today()&&!m.seen&&!m.gseen);
+ if(MG.length){await dlg({msg:'💬 Message de ton enseignant pour '+[...new Set(MG.map(m=>m.el.split(' ')[0]))].join(', ')+' :\n\n'+MG.map(m=>(new Set(MG.map(x=>x.el)).size>1?m.el.split(' ')[0]+' : ':'')+'« '+m.t+' »').join('\n')+'\n\nPréviens '+(new Set(MG.map(m=>m.el)).size>1?'tes camarades':'ton camarade')+' avant sa prochaine voie.',ok:'Je le préviens'});
+  const t=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});MG.forEach(m=>{m.gseen=t;m.gby=n.split(' ')[0]});save()}
+ if(!M.length)return;
  await dlg({msg:'💬 Message de ton enseignant'+(M.length>1?'s':'')+' :\n\n'+M.map(m=>'« '+m.t+' »').join('\n'),ok:"J'ai lu"});
  const t=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});M.forEach(m=>m.seen=t);save()}
 function pickEl(n){F.eleve=n;go(2);showMsgs(n)}
@@ -614,7 +621,7 @@ function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.n
   const ms=msgOf(n,nom,t),lm=ms[ms.length-1],hp=helpOf(M);
   return `<div class="ccard ${M.length?'':'idle'} ${ok?'done':''} ${low||hp?'low':''}"><div class="cch">${chip(n,{cl:'mini'})}${dz?'<span class="cdz">🩹</span>':''}</div>${belTag(n,sel)}
   <div class="cact"><button class="b g" data-n="${esc(n)}" onclick="msgDlg(this.dataset.n)">💬 Message</button>${M.length?'':`<button class="b g" data-n="${esc(n)}" onclick="setAbs(this.dataset.n,1)">Absent</button>`}</div>
-  ${lm?`<p class="cmsg ${lm.seen?'seen':''}">💬 « ${esc(lm.t)} »<small>${lm.seen?'lu à '+esc(lm.seen):'envoyé à '+esc(lm.ts)+' · pas encore lu'}</small></p>`:''}
+  ${lm?`<p class="cmsg ${lm.seen?'seen':''}">💬 « ${esc(lm.t)} »<small>${lm.seen?'lu à '+esc(lm.seen):'envoyé à '+esc(lm.ts)+(lm.gseen?' · transmis par '+esc(lm.gby||'le groupe')+' à '+esc(lm.gseen):' · pas encore lu')}</small></p>`:''}
   <div class="cprog"><b>${M.length}</b>${min?`<span>/ ${min} ${min>1?'voies':'voie'}</span>`:`<span>${M.length>1?'voies':'voie'}</span>`}${ok?'<em>✓</em>':''}</div>${min?`<div class="cbar"><i style="width:${Math.min(100,M.length/min*100)}%"></i></div>`:''}
   <dl><dt>Meilleure réussite</dt><dd>${best?esc(best):'–'}</dd><dt>Hauteur max</dt><dd>${H.length?(Math.max(...H)==TOP?'Top':Math.max(...H)+' dég.'):'–'}</dd><dt>Tops</dt><dd>${M.filter(r=>Number(r.h)==TOP).length}</dd></dl>
   ${tri.length?`<div class="ctri">${tri.map(([d,o])=>`<span class="${o?'ok':''}">${esc(d)}</span>`).join('')}</div>`:''}
@@ -887,7 +894,7 @@ function setRole(k,n){if((k=='asr'||k=='cas')&&F[k]!=n&&belLvl(belOf(n))=='red')
 /* groupe de 3 : les deux autres sont proposés comme assureur et contre-assureur (inversables) */
 function autoRoles(){const o=grp().filter(n=>n!=F.eleve&&!isAbs(n));if(o.length==2&&!F.asr&&!F.cas&&!F.auto){const r=n=>belLvl(belOf(n))=='red';F.asr=r(o[0])?'':o[0];F.cas=r(o[1])?'':o[1];F.auto=1}}
 function swapR(){[F.asr,F.cas]=[F.cas,F.asr];const y=scrollY;render();scrollTo(0,y)}
-const roles=()=>{autoRoles();return `<div class="crit cordee"><div class="ch"><b>Ta cordée</b>${F.asr&&F.cas?'<button class="b g swap" onclick="swapR()">⇄ Inverser assureur et contre-assureur</button>':''}</div>${ROLES.map(([k,l,n])=>roleIn(k,l,n)).join('')}</div>`};
+const roles=()=>{autoRoles();return `<div class="crit cordee"><div class="ch"><b>Ta cordée</b>${F.asr&&F.cas?'<button class="b swap swapb" onclick="swapR()">⇄ Inverser assureur et contre-assureur</button>':''}</div>${ROLES.map(([k,l,n])=>roleIn(k,l,n)).join('')}</div>`};
 function nx1(){F.eleve=F.eleve.trim();if(!F.eleve){say('Écris ton prénom.');return $('#pn').focus()}go(2);showMsgs(F.eleve)}
 function again(same){const e=F.eleve,k={auto:F.auto};ROLES.forEach(([r])=>{k[r]=F[r];k[r+'X']=F[r+'X']});fresh();if(same){Object.assign(F,k);F.eleve=e;F.step=2}go(F.step)}
 function rec(){ROLES.forEach(([k])=>F[k]=String(F[k]||'').trim());

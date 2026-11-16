@@ -253,10 +253,10 @@
   function draw() {
     if (!pill) return;
     var n = activeOn().length;
-    pill.classList.toggle("on", n > 0 && !HUB);
+    pill.classList.toggle("on", n > 0 && !HUB && hubTeach()); /* nombre de dispensés : seulement en mode enseignant */
     pill.textContent = "🩹 " + n + " dispensé" + (n > 1 ? "s" : "");
     var hc = document.getElementById("epsd-hubcount");
-    if (hc) hc.textContent = n ? n + " élève" + (n > 1 ? "s" : "") + " dispensé" + (n > 1 ? "s" : "") + " aujourd'hui" : "Aucun élève dispensé aujourd'hui";
+    if (hc) hc.textContent = !hubTeach() ? "Mode enseignant pour voir les dispenses" : n ? n + " élève" + (n > 1 ? "s" : "") + " dispensé" + (n > 1 ? "s" : "") + " aujourd'hui" : "Aucun élève dispensé aujourd'hui";
   }
   function overlay(html) {
     var o = document.createElement("div"); o.className = "epsd-ov"; o.innerHTML = '<div class="epsd-box">' + html + "</div>";
@@ -288,6 +288,7 @@
   var unlockedUntil = 0;
   /* mode enseignant : celui de l'application (window.epsIsTeacher), ou celui de la page d'accueil (code enseignant) */
   function hubTeach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+  setInterval(function () { try { draw(); } catch (e) {} }, 2000);
   function isTeacher() { try { if (typeof window.epsIsTeacher === "function" && window.epsIsTeacher()) return true; } catch (e) {} return HUB && hubTeach(); }
   function setHubTeach(on) { try { localStorage.setItem("eps.teach.until", on ? String(Date.now() + 60 * 60000) : "0"); } catch (e) {} applyTeach(); }
   function applyTeach() {
