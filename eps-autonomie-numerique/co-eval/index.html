@@ -808,17 +808,26 @@ const profTel = prof => String((C.tels || {})[prof] || "").replace(/[^\d+]/g, ""
 function openSMS(tel, body) { const sep = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? "&" : "?"; location.href = `sms:${tel}${sep}body=${encodeURIComponent(body)}`; }
 function askTel(prof, then) {
   const t = profTel(prof); if (t) return then(t);
-  const m = modal(`<h2 style="margin:0 0 6px">📱 Numéro de l'enseignant</h2><p class="small muted" style="margin-top:0">Le numéro de ${esc(prof || "ton enseignant")} n'est pas enregistré dans l'appli. Écris-le, ou laisse vide pour choisir le destinataire dans tes contacts.</p><input class="inp" id="tT" type="tel" placeholder="06 …"><div class="row" style="margin-top:10px"><button class="btn gh grow" id="tX">Annuler</button><button class="btn or grow" id="tOk">Ouvrir les SMS</button></div>`);
+  const m = modal(`<h2 style="margin:0 0 6px">📱 Numéro de l'enseignant</h2><p class="small muted" style="margin-top:0">${prof ? `Le numéro de ${esc(prof)} n'est pas enregistré dans l'appli.` : "Quel numéro ?"} Écris-le, ou laisse vide pour choisir le destinataire dans tes contacts.</p><input class="inp" id="tT" type="tel" placeholder="06 …"><div class="row" style="margin-top:10px"><button class="btn gh grow" id="tX">Annuler</button><button class="btn or grow" id="tOk">Ouvrir les SMS</button></div>`);
   $("#tX", m).onclick = m.close; $("#tOk", m).onclick = () => { const v = $("#tT", m).value.replace(/[^\d+]/g, ""); m.close(); then(v); };
 }
-async function sos(k) {
+// choix de l'enseignant destinataire (le sien en premier)
+function chooseProf(title, then) {
+  const L = [ME.prof, ...C.profs.filter(p => p && p !== ME.prof)].filter((p, i, a) => p && a.indexOf(p) === i);
+  const m = modal(`<h2 style="margin:0 0 6px">${title}</h2><p class="small muted" style="margin-top:0">À quel enseignant envoyer le SMS ?</p><div class="pick big">${L.map(p => `<button data-to="${esc(p)}">${esc(p)}${p === ME.prof ? "<small>ton enseignant</small>" : ""}${profTel(p) ? "" : "<small>numéro à saisir</small>"}</button>`).join("")}<button data-to="">Autre numéro<small>à saisir</small></button></div><button class="btn gh" id="cpX" style="width:100%;margin-top:10px">Annuler</button>`);
+  $("#cpX", m).onclick = m.close;
+  $$("[data-to]", m).forEach(b => b.onclick = () => { m.close(); askTel(b.dataset.to, then); });
+}
+function sos(k) {
   if (!ME) return;
   const r = k != null ? RUNS[k] : RUNS.find(x => x && !x.fin), kk = r ? r.k : null;
-  let pos = ""; try { pos = await new Promise(res => { if (!navigator.geolocation) return res(""); const h = setTimeout(() => res(""), 5000); navigator.geolocation.getCurrentPosition(p => { clearTimeout(h); res(` Position (±${Math.round(p.coords.accuracy)} m) : https://maps.google.com/?q=${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`); }, () => { clearTimeout(h); res(""); }, { enableHighAccuracy: true, timeout: 4500, maximumAge: 30000 }); }); } catch (e) {}
-  let etat = "";
-  if (r) { const i = r.idx || 0; etat = r.debut ? ` ${P(kk).nom}, chrono ${fmt(now() - r.debut)}, ${i ? "dernière balise saisie : " + r.plan[i - 1] : "aucune balise saisie"}, prochaine : ${r.plan[i] ?? "arrivée"}.` : ` En préparation du ${P(kk).nom}.`; }
-  const body = `🆘 CO éval – ${studentName(ME)}${ME.classe ? " (" + ME.classe + ")" : ""}${r?.duo ? " avec " + studentName(r.duo) : ""}.${etat} J'ai besoin d'aide.${pos}`;
-  askTel(ME.prof, t => openSMS(t, body));
+  // la position GPS est cherchée pendant que l'élève choisit le destinataire
+  let pos = ""; try { navigator.geolocation && navigator.geolocation.getCurrentPosition(p => { pos = ` Position (±${Math.round(p.coords.accuracy)} m) : https://maps.google.com/?q=${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`; }, () => {}, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }); } catch (e) {}
+  chooseProf("🆘 SMS de secours", t => {
+    let etat = "";
+    if (r) { const i = r.idx || 0; etat = r.debut ? ` ${P(kk).nom}, chrono ${fmt(now() - r.debut)}, ${i ? "dernière balise saisie : " + r.plan[i - 1] : "aucune balise saisie"}, prochaine : ${r.plan[i] ?? "arrivée"}.` : ` En préparation du ${P(kk).nom}.`; }
+    openSMS(t, `🆘 CO éval – ${studentName(ME)}${ME.classe ? " (" + ME.classe + ")" : ""}${r?.duo ? " avec " + studentName(r.duo) : ""}.${etat} J'ai besoin d'aide.${pos}`);
+  });
 }
 // Format SMS des résultats (relu par l'enseignant : 📥 Importer des SMS)
 // COE1|prénom|nom|classe|enseignant|k|camarade(prénom~nom~classe~enseignant)|départ (s)|durée (s)|prévu (s)|balises.prévues|sec:CODE,sec:CODE,…|ressenti
@@ -829,7 +838,7 @@ function runSMS(r) {
 }
 function smsResults() {
   const L = RUNS.filter(r => r?.fin); if (!L.length) return flash("Aucun parcours terminé");
-  askTel(ME.prof, t => openSMS(t, L.map(runSMS).join("\n")));
+  chooseProf("📩 Résultats par SMS", t => openSMS(t, L.map(runSMS).join("\n")));
 }
 function parseSMS(txt) {
   const out = [];
