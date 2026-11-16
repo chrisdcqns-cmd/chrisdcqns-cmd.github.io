@@ -2585,7 +2585,7 @@ async function coeDialog(proj = P) {
    ${bad.length ? `<p class="chip ko" style="display:inline-block">${bad.length} balise(s) sans code de 3 lettres (${bad.slice(0, 8).map(c => esc(c.n)).join(", ")}${bad.length > 8 ? "…" : ""}) : l'appli élève a besoin des codes. Saisis-les d'abord (onglet Balises → ⌨ Saisir les codes).</p>` : ""}
    <div style="max-height:46vh;overflow:auto;border-radius:10px;background:#eee"><svg id="coPrev" viewBox="0 0 ${proj.map.w} ${proj.map.h}" style="width:100%;display:block"></svg></div>
    <p id="coSt" class="muted"></p>
-   <div class="row"><button class="btn or" id="coGo" ${bad.length || !B.length ? "disabled" : ""}>📲 Envoyer vers CO éval</button><a class="btn ghost" href="../co-eval/" target="_blank">Ouvrir CO éval</a></div>`, { wide: true });
+   <p class="muted" style="font-size:.75rem;margin:0 0 6px">envoi v2</p><div class="row"><button class="btn or" id="coGo" ${bad.length || !B.length ? "disabled" : ""}>📲 Envoyer vers CO éval</button><a class="btn ghost" href="../co-eval/" target="_blank">Ouvrir CO éval</a></div>`, { wide: true });
   const prev = () => $("#coPrev", m).innerHTML = mapSVG(proj, MAP_VERSIONS[$("#coV", m).value].o);
   prev(); $("#coV", m).onchange = prev;
   $("#coGo", m).onclick = async () => {
