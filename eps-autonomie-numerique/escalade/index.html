@@ -336,6 +336,8 @@ the:[{t:'h',v:'Thématiques'},{t:'s',v:'Pistes de travail'},{t:'p',v:'• Placem
 const dzE=(c,n)=>{try{const d=window.EPSD&&EPSD.find(c||'',n);return d?` <small style="display:block;font-size:13px;font-weight:700;color:#C0392B">🩹 ${esc(EPSD.label(d))}</small>`:''}catch(e){return ''}};
 window.epsIsTeacher=()=>!!S.T;
 addEventListener('resize',()=>{try{document.documentElement.style.setProperty('--hh',$('header').offsetHeight+($('#nav').style.display=='none'?0:$('#nav').offsetHeight)+'px')}catch(e){}});
+/* liste de classe reçue d'une autre tablette (page d'accueil commune) */
+addEventListener('eps-lists',()=>{try{CL=LS('cl',[]);R=LS('r',[]);mergeDupCls();render()}catch(e){}});
 addEventListener('epsd-change',()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;try{render()}catch(e){}});
 let C=LS('c',DEF),W=LS('w',clone(WDEF)),R=LS('r',[]),CF=LS('cf',{tab:'Tablette 1'}),CL=LS('cl',[]);
 /* dépôt public : aucun nom d'élève. Les classes s'importent sur la tablette (Leçon du jour → + Nouvelle classe). */

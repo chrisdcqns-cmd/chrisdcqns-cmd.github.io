@@ -55,6 +55,10 @@
   var KD = "eps.disp.v1";
   function ld() { try { var v = JSON.parse(localStorage.getItem(KD) || "null"); if (v && v.items) return v; } catch (e) {} return { items: {}, pend: {}, since: 0, maxU: 0 }; }
   function sv(d) { try { localStorage.setItem(KD, JSON.stringify(d)); } catch (e) {} }
+  /* listes de classes partagées entre tablettes (import / modification depuis la page d'accueil) : enregistrements « lst|<id> » */
+  var KL = "eps.lists.v1";
+  function lld() { try { var v = JSON.parse(localStorage.getItem(KL) || "null"); if (v && v.items) { v.app = v.app || {}; return v; } } catch (e) {} return { items: {}, pend: {}, since: 0, app: {} }; }
+  function lsv(v) { try { localStorage.setItem(KL, JSON.stringify(v)); } catch (e) {} }
   var D = ld(); D.pend = D.pend || {};
   function today() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
   function norm(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
@@ -145,6 +149,14 @@
         if (recs.length) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, sync: { dev: "dispenses", recs: recs } }) });
         await new Promise(function (r) { setTimeout(r, 1200); });
       }
+      var LL = lld(), lk = Object.keys(LL.pend);
+      if (lk.length) {
+        var lr = [];
+        for (var li = 0; li < lk.length; li++) { var lo = LL.items[lk[li]]; if (!lo) continue; lr.push(lo.del ? { k: "lst|" + lk[li], u: LL.pend[lk[li]], d: 1 } : { k: "lst|" + lk[li], u: LL.pend[lk[li]], d: 0, x: await enc(cfg.key, JSON.stringify(lo)) }); }
+        if (lr.length) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, sync: { dev: "listes", recs: lr } }) });
+        LL = lld(); lk.forEach(function (k) { delete LL.pend[k]; }); lsv(LL);
+        await new Promise(function (r) { setTimeout(r, 1200); });
+      }
       var changed = false;
       for (var loop = 0; loop < 20; loop++) {
         var r = await jsonp(cfg, { pull: 1, since: D.since || 0, pre: "disp|" });
@@ -166,6 +178,22 @@
       }
       sv(D);
       if (changed) fire();
+      /* listes de classes reçues d'une autre tablette → appliquées dans Escalade, Relais Vitesse, OrienRun */
+      var lch = false;
+      for (var lp = 0; lp < 20; lp++) {
+        var LS2 = lld(), rr = await jsonp(cfg, { pull: 1, since: LS2.since || 0, pre: "lst|" });
+        if (!rr || !rr.keyOk || !rr.sync) break;
+        var RL = rr.recs || [];
+        for (var q = 0; q < RL.length; q++) {
+          var lid = String(RL[q][1]).slice(4), ldel = +RL[q][3];
+          if (ldel || LS2.pend[lid]) continue;
+          try { var ob = JSON.parse(await dec(cfg.key, RL[q][4])), sig = JSON.stringify(ob);
+            if (LS2.app[lid] !== sig) { await applyList(ob); LS2 = lld(); LS2.items[lid] = ob; LS2.app[lid] = sig; lch = true; } } catch (e) {}
+        }
+        LS2.since = RL.length ? +RL[RL.length - 1][0] : Math.max(LS2.since || 0, +rr.seq || 0); lsv(LS2);
+        if (!rr.more) break;
+      }
+      if (lch) try { window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {}
     } catch (e) { lastErr = "réseau"; }
     finally { busy = false; sched(); }
   }
@@ -401,6 +429,33 @@
     var O = await oriGet(); Object.keys(O).forEach(function (k) { put("ori", k, (O[k] || []).slice()); });
     return M;
   }
+  /* après un import ou une modification ici : la liste finale part vers les autres tablettes */
+  async function shareList(nom, old, apps) {
+    var M = await allLists(), x = M[norm(nom)]; if (!x) return;
+    var names = []; Object.keys(x.apps).forEach(function (a) { if (apps[a]) x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); });
+    var id = clsId(nom), o = { id: id, nom: nom, old: old && norm(old) !== norm(nom) ? old : "", apps: { esc: apps.esc ? 1 : 0, rel: apps.rel ? 1 : 0, ori: apps.ori ? 1 : 0 }, el: names, ts: Date.now() };
+    var L = lld(); L.items[id] = o; L.pend[id] = stamp(); L.app[id] = JSON.stringify(o); lsv(L); setTimeout(sync, 300);
+  }
+  /* liste reçue : même nom (ou ancien nom) → la classe prend exactement cette liste */
+  async function applyList(o) {
+    var L = o.el || [], nn = o.nom, old = o.old || o.nom, same = function (y) { return norm(y) === norm(nn) || norm(y) === norm(old); };
+    if (o.apps.esc) {
+      var A = jget("escalade.cl", []) || [], c = A.filter(function (y) { return same(y.nom); })[0];
+      if (!c) { c = { id: freeId(A, clsId(nn)), nom: nn, el: [] }; A.push(c); }
+      if (c.nom !== nn) { var R = jget("escalade.r", []) || []; R.forEach(function (r) { if ((r.cl || "") === c.nom) r.cl = nn; }); localStorage.setItem("escalade.r", JSON.stringify(R)); }
+      c.nom = nn; c.el = L.slice(); localStorage.setItem("escalade.cl", JSON.stringify(A));
+    }
+    if (o.apps.rel) {
+      var D2 = jget("relais-vitesse-data-v3", null); if (!D2 || !D2.classes) D2 = { classes: [], cur: null };
+      var k = D2.classes.filter(function (y) { return same(y.name); })[0];
+      if (!k) { k = { id: freeId(D2.classes, clsId(nn)), name: nn, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D2.classes.push(k); }
+      var id2 = Math.max.apply(null, [-1].concat(k.eleves.map(function (e) { return +e.id || 0; }))) + 1;
+      k.eleves = L.map(function (l) { var e = k.eleves.filter(function (y) { return nkey(full(y)) === nkey(l); })[0]; if (e) return e; var p = splitFull(l) || { prenom: l, nom: "" };
+        return { id: id2++, nom: p.nom, prenom: p.prenom, ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0, orig: { ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0 }, imported: true }; });
+      k.name = nn; if (!D2.cur) D2.cur = k.id; localStorage.setItem("relais-vitesse-data-v3", JSON.stringify(D2));
+    }
+    if (o.apps.ori) { var O = await oriGet(); Object.keys(O).forEach(function (kk) { if (same(kk)) delete O[kk]; }); O[nn] = L.slice(); await oriPut(O); }
+  }
   async function editLists() {
     if (!(await askCode())) return;
     var o = overlay('<div id="epsl"></div>'), box = o.querySelector("#epsl"), M = await allLists(), cur = null;
@@ -458,7 +513,8 @@
           }
           if (sel.ori) { var O = await oriGet(); Object.keys(O).forEach(function (kk) { if (norm(kk) === norm(old)) delete O[kk]; }); O[nn] = L.slice(); await oriPut(O); done.push("OrienRun"); }
         } catch (e) { return editView("Enregistrement impossible : " + (e && e.message || e)); }
-        M = await allLists(); listView("✓ « " + nn + " » enregistrée dans " + done.join(", ") + ".");
+        await shareList(nn, old, { esc: sel.esc, rel: sel.rel, ori: sel.ori });
+        M = await allLists(); listView("✓ « " + nn + " » enregistrée dans " + done.join(", ") + (shCfg() ? " ; elle part vers les autres tablettes." : ". (Partage entre tablettes non réglé : elle reste sur cette tablette.)"));
       };
     }
     listView();
@@ -500,8 +556,10 @@
             res.push("✓ " + t[1] + " : " + (t[0] === "acro" ? n + " élève(s) dans la liste en ligne" : n + " élève(s) ajouté(s)"));
           } catch (x) { res.push("✕ " + t[1] + " : " + (x && x.message === "annulé" ? "annulé" : "échec (" + esc(x && x.message || "erreur") + ")")); }
         }
+        await shareList(cl, "", { esc: sel.esc, rel: sel.rel, ori: sel.ori });
+        res.push(shCfg() ? "↗ Envoi vers les autres tablettes en cours." : "⚠ Partage entre tablettes non réglé (bouton « ⚙ Partage entre tablettes » de la carte Listes d'élèves) : la classe reste sur cette tablette.");
         box.innerHTML = "<h3>Classe « " + esc(cl) + " »</h3>" + res.map(function (r) { return '<p class="m" style="font-size:17px;color:#1B1E24">' + r + "</p>"; }).join("") +
-          '<p class="m">Les tablettes reliées par Google Sheets recevront la liste à la prochaine ouverture de chaque application.</p><div class="epsd-act"><button class="p" data-x>Fermer</button></div>';
+          '<div class="epsd-act"><button class="p" data-x>Fermer</button></div>';
       };
     }
     step1();
@@ -563,7 +621,7 @@
     }
     render();
   }
-  window.EPSD = { share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, show: showList, sync: sync,
+  window.EPSD = { share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================

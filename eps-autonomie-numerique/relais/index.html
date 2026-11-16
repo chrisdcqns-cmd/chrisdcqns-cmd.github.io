@@ -3508,6 +3508,8 @@ $("#w-teach").addEventListener("click",async()=>{if(await requireCode())go("clas
 $("#lkStudent").addEventListener("click",()=>{UNLOCK_UNTIL=0;hubOn(false);updLock();startStudent();toast("Mode élève")});
 
 /* ===== Démarrage : côté élève ===== */
+/* liste de classe reçue d'une autre tablette (page d'accueil commune) */
+window.addEventListener("eps-lists",()=>{const d=load(K.data,null);if(d&&Array.isArray(d.classes)){DATA=d;try{syRefresh()}catch(e){}}});
 hubSync();updLock();
 if(teachOn())go("classes");else startStudent();
 </script>

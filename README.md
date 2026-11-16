@@ -41,6 +41,9 @@ Les données des tablettes (localStorage, IndexedDB, vidéos en cache) dépenden
 - Nom de la classe à vérifier, puis applications cochées : Escalade (`escalade.cl`), Relais Vitesse (`relais-vitesse-data-v3`), OrienRun (IndexedDB `orienrun` / `classes`) : élèves ajoutés à la classe du même nom, sans doublon. Acrosport : liste **remplacée** en ligne (`teacherSetStudents`, mot de passe enseignant d'Acrosport demandé avec le pavé).
 - Code : `importList()` dans `eps-home.js` (`parseList`, `toEsc`, `toRel`, `toOri`, `toAcro`).
 
+## Listes partagées entre tablettes
+Une liste importée ou modifiée depuis la page d'accueil part vers les autres tablettes par le canal commun (« ⚙ Partage entre tablettes », même réglage que les dispenses) : enregistrements chiffrés `lst|<id>` (`shareList`), appliqués à la réception dans Escalade, Relais Vitesse et OrienRun (`applyList`, la liste reçue remplace celle de la classe du même nom ou de l'ancien nom). Identifiant de classe tiré du nom (`clsId`, même calcul dans Escalade) : pas de doublon d'une tablette à l'autre. Les applis ouvertes rechargent leurs listes (événement `eps-lists`).
+
 ## Bilans de la classe (.zip, pour Pronote)
 Chaque application fabrique sur la tablette un fichier `.zip` par classe et par leçon, avec un PDF par élève (`<Appli>_<classe>_<jj-mm-aaaa>.zip`) : Escalade (Leçons et classes → Aujourd'hui ou une leçon précédente), Relais Vitesse (leçon précédente → « 🗜️ Bilans (.zip) »), OrienRun (Résultats → « 🗜️ Bilans (.zip) »), Acrosport (espace enseignant → En ligne, internet nécessaire). Générateur PDF et zip maison, copie identique `EPDF` dans Relais, OrienRun et Acrosport.
 
