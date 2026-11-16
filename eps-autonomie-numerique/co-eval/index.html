@@ -469,7 +469,7 @@ async function sync() {
     NET = true; let conf = false, map = false;
     if (j.conf != null && j.vc && j.vc !== VC) { try { const o = JSON.parse(j.conf); C = Object.assign(clone(DEF), o); if (TPW) { statP = null; await ensureStat(); } LS.set("conf", o); VC = j.vc; LS.set("vc", VC); conf = true; if (ME && (C.moves || {})[ME.id]) { ME = moved(ME); LS.set("me", ME); } } catch (e) {} }
     if (j.carte != null && j.vm && j.vm !== VM) { await idbSet("carte", j.carte || null); VM = j.vm; LS.set("vm", VM); MAPIMG = j.carte || demoMap(); map = true; }
-    if (conf || map) { onRemote(conf, map); checkAlerts(); }
+    if (conf || map) { if (conf) applyDeletions(); onRemote(conf, map); checkAlerts(); }
     flushOut();
   } catch (e) { NET = false; }
   finally { syncing = false; setNet(); }
@@ -604,15 +604,42 @@ function moveStudent(e, toProf, toClasse) {
   C.moves = C.moves || {}; Object.keys(C.moves).forEach(k => { if (studentId({ ...C.moves[k], nom: e.nom, prenom: e.prenom }) === oldId) C.moves[k] = { prof: toProf, classe: toClasse }; }); C.moves[oldId] = { prof: toProf, classe: toClasse }; delete C.moves[newId];
   if (STAT && STAT[oldId]) { STAT[newId] = STAT[oldId]; delete STAT[oldId]; saveStat(); } else confChanged();
 }
-function studentMenu(e, after) {
+// Résultats supprimés par l'enseignant : C.suppr = ["k:départ(ms)[:r]"] (« :r » = l'élève peut refaire le parcours), C.supprAvant = date (ms)
+const runKey = r => r.k + ":" + Math.round(r.debut / 1000);
+const isDeleted = r => !!r && ((C.supprAvant && r.debut < C.supprAvant) || (C.suppr || []).some(x => x === runKey(r) || x === runKey(r) + ":r"));
+const canRedo = r => (C.supprAvant && r.debut < C.supprAvant) || (C.suppr || []).includes(runKey(r) + ":r");
+// côté élève : un parcours effacé par l'enseignant peut être refait
+function applyDeletions() {
+  let ch = false; RUNS.forEach((r, k) => { if (r?.fin && isDeleted(r) && canRedo(r)) { RUNS[k] = null; ch = true; LS.set("out", LS.get("out", []).filter(x => !(x.k === k && x.data?.run?.t0 === r.debut))); flash(`Ton enseignant a effacé ton ${P(k).nom} : tu peux le refaire.`); } });
+  if (ch) { saveRuns(); if (["home", "bilan", "full"].includes(CUR.v)) go("home"); }
+}
+// confirmation par le mot de passe enseignant
+function askCode(title, text, then) {
+  const m = modal(`<h2 style="margin:0 0 6px">${title}</h2><p class="small">${text}</p><label class="l">Ton mot de passe enseignant</label><input class="inp" type="password" id="acP"><p class="small" id="acE" style="color:var(--ko)"></p><div class="row"><button class="btn gh grow" id="acX">Annuler</button><button class="btn ko grow" id="acOk">🗑 Supprimer</button></div>`);
+  $("#acP", m).focus(); $("#acX", m).onclick = m.close;
+  const go2 = () => { if ($("#acP", m).value !== TPW) { $("#acE", m).textContent = "Mot de passe incorrect."; return; } then(m); m.close(); };
+  $("#acOk", m).onclick = go2; $("#acP", m).onkeydown = e => { if (e.key === "Enter") go2(); };
+}
+function deleteRun(x, k, after) {
+  const r = x.runs[k]; if (!r) return;
+  const a = withStudent(x, () => analyse(r));
+  askCode(`🗑 Supprimer un résultat`, `<b>${esc(studentName(x.me))}</b> · ${esc(P(k).nom)} · ${new Date(r.debut).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} · temps ${fmt(a.chrono)}${r.duo ? `<br>Parcours collectif : le résultat est aussi retiré pour <b>${esc(studentName(r.duo))}</b>.` : ""}<label class="row small" style="margin-top:10px"><input type="checkbox" id="acR" checked> L'élève peut refaire ce parcours (il est effacé sur son téléphone)</label>`, m => {
+    const redo = $("#acR", m).checked; C.suppr = (C.suppr || []).filter(s => !s.startsWith(runKey(r))); C.suppr.push(runKey(r) + (redo ? ":r" : ""));
+    if (ME && RUNS[k] && runKey(RUNS[k]) === runKey(r)) { RUNS[k] = null; saveRuns(); }
+    confChanged(); flash("Résultat supprimé ✓"); after && after();
+  });
+}
+function studentMenu(e, after, runs) {
   const st = statOf(e), others = C.profs.filter(p => p && p !== e.prof);
   const m = modal(`<h2 style="margin:0 0 4px">${esc(e.prenom)} ${esc(e.nom)}</h2><p class="small muted" style="margin-top:0">${esc(e.classe || "")} · ${esc(e.prof)}</p>
    <div class="row"><button class="btn grow ${st === "absent" ? "ko" : "gh"}" data-st="absent">🚫 Absent</button><button class="btn grow ${st === "dispense" ? "ko" : "gh"}" data-st="dispense">🩺 Dispensé</button><button class="btn grow ${!st ? "gr" : "gh"}" data-st="">✓ Présent</button></div>
    <p class="small muted">Un élève absent ou dispensé n'apparaît plus dans la liste des prénoms, ni comme camarade possible. 🔒 Les élèves ne voient jamais ce statut : leur téléphone reçoit seulement une empreinte anonyme, et le mot « dispensé » est chiffré avec ton mot de passe.</p>
+   ${runs && runs.some(r => r?.fin) ? `<h3 style="margin:12px 0 6px">🗑 Supprimer un résultat</h3><div class="row">${runs.map((r, k) => r?.fin ? `<button class="btn sm gh" data-delr="${k}" style="color:var(--ko)">🗑 ${esc(P(k).nom)} (${fmt(r.fin - r.debut)})</button>` : "").join("")}</div>` : ""}
    ${others.length ? `<h3 style="margin:14px 0 6px">↔ Basculer vers un autre enseignant</h3><label class="l">Classe chez le nouvel enseignant</label><input class="inp" id="smC" value="${esc(e.classe || "")}" list="smCl"><datalist id="smCl"></datalist>
    <div class="pick" style="margin-top:8px">${others.map(p => `<button data-to="${esc(p)}">→ ${esc(p)}</button>`).join("")}</div><p class="small muted">Ses résultats déjà envoyés passent aussi chez le nouvel enseignant.</p>` : ""}
    <button class="btn gh" id="smX" style="width:100%;margin-top:10px">Fermer</button>`);
   $("#smX", m).onclick = m.close;
+  $$("[data-delr]", m).forEach(b => b.onclick = () => { m.close(); deleteRun({ me: e, runs }, +b.dataset.delr, after); });
   $$("[data-st]", m).forEach(b => b.onclick = async () => { await setStatut(e, b.dataset.st); m.close(); flash(b.dataset.st ? STAT_LBL[b.dataset.st][0].toUpperCase() + STAT_LBL[b.dataset.st].slice(1) + " ✓" : "Présent ✓"); after && after(); });
   $$("[data-to]", m).forEach(b => { b.onfocus = b.onmouseenter = () => { $("#smCl", m).innerHTML = Object.keys(C.listes[b.dataset.to] || {}).map(c => `<option value="${esc(c)}">`).join(""); };
     b.onclick = async () => { const cl = $("#smC", m).value.trim() || e.classe; if (!(await ask("Basculer ?", `<b>${esc(e.prenom)} ${esc(e.nom)}</b> passe chez <b>${esc(b.dataset.to)}</b> (classe ${esc(cl)}).`, "Basculer", "or"))) return; moveStudent(e, b.dataset.to, cl); m.close(); flash("Élève basculé ✓"); after && after(); }; });
@@ -949,7 +976,7 @@ let SRV = LS.get("srv", { since: 1, rows: [] });
 async function pullResults() { try { const j = await api("coeResults", { teacher: TPW, since: SRV.since }); if (j.since < SRV.since) SRV.rows = []; SRV.rows.push(...j.rows); SRV.since = j.since; LS.set("srv", SRV); NET = true; return true; } catch (e) { NET = false; if (/Mot de passe/.test(e.message)) { TPW = ""; LS.del("tpw"); } return /Action inconnue/.test(e.message) ? "script Google pas à jour" : e.message; } finally { setNet(); } }
 function allStudents() {
   const S = {}, get = me => S[me.id] = S[me.id] || { me, runs: [null, null, null] };
-  const put = (me, k, r, t) => { if (!me?.id) return; me = moved(me); if (r.duo?.id) r = { ...r, duo: moved(r.duo) }; const x = get(me); if (!x.runs[k] || (x.runs[k]._t || 0) <= t) x.runs[k] = { ...r, _t: t }; };
+  const put = (me, k, r, t) => { if (!me?.id || isDeleted(r)) return; me = moved(me); if (r.duo?.id) r = { ...r, duo: moved(r.duo) }; const x = get(me); if (!x.runs[k] || (x.runs[k]._t || 0) <= t) x.runs[k] = { ...r, _t: t }; };
   SRV.rows.forEach(row => { const d = row.d; if (!d?.me || !d.run) return; const r = unpackRun(d.run); put(d.me, row.k, r, row.t); if (r.duo?.id) put(r.duo, row.k, { ...r, duo: d.me }, row.t - 1); });
   Object.values(LS.get("res", {})).forEach(o => (o.runs || []).forEach((x, k) => { if (!x) return; const r = unpackRun(x); put(o.me, k, r, o.recu - 5); if (r.duo?.id) put(r.duo, k, { ...r, duo: o.me }, o.recu - 6); }));
   Object.entries(C.listes || {}).forEach(([prof, cl]) => Object.entries(cl).forEach(([classe, L]) => L.forEach(([nom, prenom]) => { const me = { prenom, nom, classe, prof }; me.id = studentId(me); get(me); })));
@@ -967,13 +994,13 @@ function profRes(box) {
       <p class="small muted">Touche ⋯ pour marquer un élève absent ou dispensé, ou le basculer vers un autre enseignant. Les résultats arrivent tout seuls à la fin de chaque parcours. Temps final = temps de course + pénalités (balise non validée ${fmtMin(C.penOubli)}, obligatoire manquée ${fmtMin(C.penOblig)}${C.parcours.some(p => p.max) ? `, ${fmtMin(C.penRetard)} par minute de retard` : ""}).</p>
       ${Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)} <span class="chip">${cls[c].length} élèves</span> <span class="chip ok">${cls[c].filter(x => x.runs.some(r => r?.fin)).length} avec résultat</span>${cls[c].some(x => x.abs) ? ` <span class="chip ko">${[["absent", "absent(s)"], ["dispense", "dispensé(s)"]].map(([k, l]) => { const n = cls[c].filter(x => x.st === k).length; return n ? n + " " + l : ""; }).filter(Boolean).join(" · ")}</span>` : ""}</h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th>${!f ? "<th>Enseignant</th>" : ""}${C.parcours.map(p => `<th class="n">${esc(p.nom)}</th>`).join("")}<th></th></tr></thead><tbody>
        ${cls[c].sort((a, b) => byFr(a.me.nom, b.me.nom) || byFr(a.me.prenom, b.me.prenom)).map(x => `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}</td>${!f ? `<td class="small">${esc(x.me.prof)}</td>` : ""}${x.runs.map(r => { if (!r?.fin) return x.abs ? `<td class="n"><span class="chip ko">${STAT_LBL[x.st] || "absent"}</span></td>` : '<td class="n muted">–</td>'; const a = withStudent(x, () => analyse(r)); return `<td class="n"><b>${fmt(a.final)}</b><br><small>${fmt(a.chrono)}${a.pen ? ` +${fmt(a.pen)}` : ""}</small> ${a.nErr ? `<span class="chip ko">${a.nErr}</span>` : '<span class="chip ok">✓</span>'}${r.duo ? `<br><small class="muted">👥 ${esc(r.duo.prenom)} ${esc(r.duo.nom)}</small>` : ""}</td>`; }).join("")}<td style="white-space:nowrap">${x.runs.some(r => r?.fin) ? `<button class="btn sm gh" data-v="${esc(x.me.id)}">Bilan</button> ` : ""}<button class="btn sm gh" data-sm="${esc(x.me.id)}" title="Absent / changer d'enseignant">⋯</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun résultat pour l\'instant.</p>'}
-      <div class="row" style="margin-top:14px"><button class="btn sm or" id="rSms">📥 Importer des SMS</button><button class="btn sm gh" id="rCsv">⬇ Tableur (CSV)</button><button class="btn sm gh" id="rPr">🖨 Imprimer ce tableau</button><button class="btn sm gh" id="rAll">🖨 Bilans complets de ces élèves</button><button class="btn sm gh" id="rDel" style="color:var(--ko)">Vider l'affichage</button></div></div>`;
+      <div class="row" style="margin-top:14px"><button class="btn sm or" id="rSms">📥 Importer des SMS</button><button class="btn sm gh" id="rCsv">⬇ Tableur (CSV)</button><button class="btn sm gh" id="rPr">🖨 Imprimer ce tableau</button><button class="btn sm gh" id="rAll">🖨 Bilans complets de ces élèves</button><button class="btn sm gh" id="rDel" style="color:var(--ko)">🗑 Supprimer tous les résultats</button></div></div>`;
     $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); go("prof", "res"); });
     $$("[data-v]", box).forEach(b => b.onclick = () => { const x = all.find(y => y.me.id === b.dataset.v); SW = SW || { ME, RUNS }; ME = x.me; RUNS = x.runs; go("full", true); });
-    $$("[data-sm]", box).forEach(b => b.onclick = () => { const x = all.find(y => y.me.id === b.dataset.sm); studentMenu(x.me, draw); });
+    $$("[data-sm]", box).forEach(b => b.onclick = () => { const x = all.find(y => y.me.id === b.dataset.sm); studentMenu(x.me, draw, x.runs); });
     $("#rPr").onclick = () => print();
     $("#rAll").onclick = () => { clearInterval(profTick); profTick = null; const sorted = L.filter(x => x.runs.some(r => r?.fin)).sort((a, b) => byFr(a.me.classe || "", b.me.classe || "") || byFr(a.me.nom, b.me.nom)); $("#app").innerHTML = sorted.map((x, i) => `<div class="${i ? "pb" : ""}" data-s="${i}">${withStudent(x, () => fullHTML(true))}</div>`).join("") + `<div class="row noprint"><button class="btn gh grow" id="aB">← Retour</button><button class="btn or grow" id="aP">🖨 Imprimer</button></div>`; sorted.forEach((x, i) => fillBilanMaps($(`[data-s="${i}"]`), x.runs)); $("#aB").onclick = () => go("prof", "res"); $("#aP").onclick = () => print(); };
-    $("#rDel").onclick = async () => { if (await ask("Vider l'affichage ?", "Les résultats affichés sur ce téléphone seront effacés (pour repartir à zéro après un test). Les résultats restent dans ta Google Sheet, onglet CO_Resultats.", "Vider", "ko")) { LS.del("res"); SRV.rows = []; LS.set("srv", SRV); draw(); } };
+    $("#rDel").onclick = () => askCode("🗑 Supprimer tous les résultats", "Tous les résultats reçus jusqu'à maintenant sont retirés, sur tous les appareils des enseignants (pratique après un essai). Les élèves pourront refaire leurs parcours. Ils restent dans ta Google Sheet, onglet CO_Resultats.", () => { C.supprAvant = now(); C.suppr = []; LS.del("res"); if (ME) { RUNS = [null, null, null]; saveRuns(); } confChanged(); flash("Résultats supprimés ✓"); draw(); });
     $("#rSms").onclick = importSMSDialog;
     $("#rCsv").onclick = () => {
       const rows = [["Enseignant", "Classe", "Nom", "Prénom", ...C.parcours.flatMap(p => [p.nom + " camarade", p.nom + " balises", p.nom + " temps (s)", p.nom + " pénalités (s)", p.nom + " final", p.nom + " non validées", p.nom + " prévu"])]];
