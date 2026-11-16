@@ -16,6 +16,8 @@
  *  - Messages     : messages de l'enseignant aux élèves
  *  - Lecons       : leçons en cours (les élèves les voient dans l'appli sans scanner de QR)
  *  - Classes      : tes listes d'élèves (elles ne sont jamais publiées sur GitHub)
+ *  - CO_Eval      : appli « CO – préparation à l'évaluation » : paramètres, listes et carte (mis à jour en direct chez les élèves)
+ *  - CO_Resultats : appli « CO – préparation à l'évaluation » : résultats envoyés par les élèves
  * Seuls le nom saisi par l'élève, sa classe et ses positions pendant la course sont enregistrés, dans ton propre Google Drive.
  * Pour faire de la place : supprime les lignes des anciennes leçons dans l'onglet Evenements (ou utilise l'action « purge » depuis l'éditeur : fonction purgerAnciennesSeances).
  */
@@ -29,6 +31,8 @@ const T_DEC = { nom: 'Decisions', cols: ['seance', 'coureur', 'evenement', 'vali
 const T_MSG = { nom: 'Messages', cols: ['seance', 'destinataire', 'id', 'texte', 'date'] };
 const T_LECONS = { nom: 'Lecons', cols: ['lecon', 'nom', 'lancee', 'active'] };
 const T_CLASSES = { nom: 'Classes', cols: ['classe', 'eleve'] };
+const T_COE = { nom: 'CO_Eval', cols: ['cle', 'morceau', 'donnees'] };
+const T_COER = { nom: 'CO_Resultats', cols: ['recu', 'eleve', 'nom', 'classe', 'enseignant', 'parcours', 'donnees'] };
 
 function doGet() { return json_({ ok: true, app: 'orienrun' }); }
 
@@ -101,8 +105,44 @@ function traiter_(req) {
     return { ok: true, geo: JSON.parse(parts.map(x => x.v[3]).join('')).geo || [] };
   }
 
+  // ----- appli CO – préparation à l'évaluation : les élèves récupèrent les paramètres et la carte en direct -----
+  if (a === 'coeGet') {
+    const props = PropertiesService.getScriptProperties(), vc = props.getProperty('coe_v_conf') || '', vm = props.getProperty('coe_v_carte') || '';
+    const out = { ok: true, vc: vc, vm: vm };
+    if (vc && String(req.vc || '') !== vc) out.conf = coeLire_('conf');
+    if (vm && req.carte && String(req.vm || '') !== vm) out.carte = coeLire_('carte');
+    return out;
+  }
+  if (a === 'coeResult') {
+    const d = JSON.stringify(req.data || {}); if (d.length > 45000) throw new Error('Résultat trop gros');
+    const lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try { feuille_(T_COER).appendRow([Date.now(), String(req.eleve || '').slice(0, 60), String(req.nom || '').slice(0, 80), String(req.classe || '').slice(0, 30), String(req.prof || '').slice(0, 60), Number(req.k) || 0, d]); }
+    finally { lock.releaseLock(); }
+    return { ok: true };
+  }
+
   // ----- enseignant -----
   if (!estProf) throw new Error('Mot de passe enseignant incorrect');
+
+  if (a === 'coeSave') {
+    const cle = req.cle === 'carte' ? 'carte' : 'conf', txt = String(req.data || '');
+    const lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      const sh = feuille_(T_COE);
+      lignes_(T_COE).filter(x => String(x.v[0]) === cle).reverse().forEach(x => sh.deleteRow(x.i));
+      const rows = []; for (let i = 0, k = 0; i < txt.length; i += TAILLE_MORCEAU, k++) rows.push([cle, k, txt.slice(i, i + TAILLE_MORCEAU)]);
+      if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, 3).setValues(rows);
+      const v = String(Date.now()); PropertiesService.getScriptProperties().setProperty('coe_v_' + cle, v);
+      if (cle === 'conf' && txt.length < 95000) CacheService.getScriptCache().put('coe_conf_' + v, txt, DUREE_CACHE);
+      return { ok: true, v: v };
+    } finally { lock.releaseLock(); }
+  }
+  if (a === 'coeResults') {
+    const sh = feuille_(T_COER), last = sh.getLastRow(); let since = Math.max(1, Number(req.since) || 1); if (since > last) since = 1;
+    const out = [];
+    if (last > since) sh.getRange(since + 1, 1, last - since, 7).getValues().forEach(v => out.push({ t: Number(v[0]), eleve: String(v[1]), k: Number(v[5]), d: JSON.parse(v[6] || '{}') }));
+    return { ok: true, rows: out, since: Math.max(since, last) };
+  }
 
   if (a === 'publish') {
     const s = code_(req.s), txt = JSON.stringify(req.data || {});
@@ -178,6 +218,13 @@ function traiter_(req) {
   throw new Error('Action inconnue : ' + a);
 }
 
+function coeLire_(cle) {
+  const v = PropertiesService.getScriptProperties().getProperty('coe_v_' + cle) || '';
+  if (cle === 'conf') { const c = CacheService.getScriptCache().get('coe_conf_' + v); if (c) return c; }
+  const txt = lignes_(T_COE).filter(x => String(x.v[0]) === cle).sort((x, y) => x.v[1] - y.v[1]).map(x => x.v[2]).join('');
+  if (cle === 'conf' && txt.length < 95000) CacheService.getScriptCache().put('coe_conf_' + v, txt, DUREE_CACHE);
+  return txt;
+}
 function seanceExiste_(s) {
   const cache = CacheService.getScriptCache();
   if (cache.get('s_' + s)) return true;

@@ -100,10 +100,39 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 .modal>div{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 .hide{display:none!important}
 @media print{header,.noprint,#eps-home-btn{display:none!important}body{background:#fff}main{padding:0;max-width:none}.card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;padding:10px}.pb{break-before:page}}
+
+.net{font-size:.72rem;font-weight:800;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.14)}
+.net.ok{background:#2a9d6f}.net.ko{background:#d62839}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.pick button{border:2px solid var(--li);background:#fff;border-radius:14px;padding:12px 8px;font-weight:800;color:var(--nv);min-height:58px;line-height:1.15}
+.pick button small{display:block;font-weight:600;color:var(--mu);font-size:.78rem;margin-top:2px}
+.pick button:active{border-color:var(--or);background:#fff4ea}
+.pick.big button{min-height:70px;font-size:1.1rem}
+.crumb{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.crumb button{border:0;background:var(--li);border-radius:99px;padding:6px 12px;font-weight:800;color:var(--nv);font-size:.85rem}
+/* éditeur de tracé */
+.dr{position:fixed;inset:0;z-index:60;background:#222;display:flex;flex-direction:column}
+.dr .dbar{background:var(--nv);color:#fff;padding:calc(env(safe-area-inset-top) + 6px) 8px 6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dr .dbar.bot{padding:6px 8px calc(env(safe-area-inset-bottom) + 6px)}
+.dr .mapv{flex:1;border-radius:0;height:auto;min-height:0}
+.tb{border:0;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-weight:800;padding:7px 9px;font-size:.84rem;min-height:40px}
+body:has(.dr) #eps-home-btn{display:none!important}
+.sw{flex:none}.wd{flex:none}
+.tb.on{background:var(--or)}
+.sw{width:32px;height:32px;border-radius:50%;border:3px solid rgba(255,255,255,.25);padding:0}
+.sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--or)}
+.wd{width:42px;height:42px;border-radius:10px;border:0;background:rgba(255,255,255,.12);display:grid;place-items:center;padding:0}
+.wd.on{background:var(--or)}
+.wd i{display:block;background:#fff;border-radius:9px;width:24px}
+.sec{border-top:1px solid var(--li);margin-top:12px;padding-top:12px}
+.cls{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:#f7f4ec;margin-bottom:6px}
+.pub{position:sticky;top:calc(env(safe-area-inset-top) + 58px);z-index:9;margin:-4px 0 10px;padding:8px 12px;border-radius:12px;font-size:.85rem;font-weight:700;background:#d5f0e3;color:#11643f}
+.pub.wait{background:#fff1d6;color:#7a4b00}.pub.ko{background:#fbd5d9;color:#8c1020}
+.tabs2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 </style>
 </head>
 <body>
-<header><div class="ic">CO</div><h1 id="hT">Course d'orientation</h1><button class="hb noprint" id="hProf" title="Espace enseignant">🔒</button></header>
+<header><div class="ic">CO</div><h1 id="hT">Course d'orientation</h1><span class="net noprint" id="net">…</span><button class="hb noprint" id="hProf" title="Espace enseignant">🔒</button></header>
 <main id="app"></main>
 <script>
 "use strict";
@@ -235,201 +264,309 @@ const QR = (() => {
 
 // =====================================================================
 //  CO – Préparation à l'évaluation (appli temporaire, une leçon)
+//  Les paramètres de l'enseignant sont publiés sur son script Google
+//  et récupérés en direct par les téléphones des élèves.
 // =====================================================================
+const API = "https://script.google.com/macros/s/AKfycbyRGDLL7S2-5FNmWz9C0cGt1jxDm42dvtSFMOBtczNtDcbqf98EKtc36pBUlnk-eIt6/exec";
+const SYNC_MS = 15000;
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const LS = { get(k, d) { try { const v = localStorage.getItem("coe." + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem("coe." + k, JSON.stringify(v)); } catch (e) {} }, del(k) { try { localStorage.removeItem("coe." + k); } catch (e) {} } };
+const clone = o => JSON.parse(JSON.stringify(o));
 const pad = n => String(n).padStart(2, "0");
 const fmt = ms => { if (ms == null || isNaN(ms)) return "–"; const neg = ms < 0; ms = Math.abs(ms); const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (neg ? "−" : "") + (h ? h + ":" + pad(m) : m) + ":" + pad(x); };
 const fmtMin = s => s % 60 ? fmt(s * 1000) : (s / 60) + " min";
-const uid = () => Math.random().toString(36).slice(2, 9);
-const hashCode = c => { let h = 5381, s = "relais:" + c; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); };
 const now = () => Date.now();
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+const byFr = (a, b) => String(a).localeCompare(String(b), "fr", { sensitivity: "base" });
 function flash(t) { const d = document.createElement("div"); d.className = "flash"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 950); }
 function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
 function modal(html) { const m = document.createElement("div"); m.className = "modal"; m.innerHTML = `<div>${html}</div>`; m.onclick = e => { if (e.target === m) m.remove(); }; document.body.appendChild(m); m.close = () => m.remove(); return m; }
 function ask(title, text, okTxt = "Oui", cls = "or") { return new Promise(res => { const m = modal(`<h2 style="margin:0 0 8px">${title}</h2><p>${text}</p><div class="row"><button class="btn gh grow" id="mN">Annuler</button><button class="btn ${cls} grow" id="mY">${okTxt}</button></div>`); $("#mN", m).onclick = () => { m.close(); res(false); }; $("#mY", m).onclick = () => { m.close(); res(true); }; }); }
+async function api(action, payload = {}, timeout = 20000) {
+  const ctl = new AbortController(), h = setTimeout(() => ctl.abort(), timeout);
+  try { const r = await fetch(API, { method: "POST", body: JSON.stringify({ action, ...payload }), signal: ctl.signal, redirect: "follow" }); const j = await r.json(); if (!j.ok) throw new Error(j.error || "Erreur du serveur"); return j; }
+  catch (e) { if (e.name === "AbortError") throw new Error("Le serveur ne répond pas"); throw e; }
+  finally { clearTimeout(h); }
+}
 
-// ---------------- Paramètres (modifiables dans l'espace enseignant) ----------------
+// ---------------- Paramètres par défaut (démonstration) ----------------
 const DEMO_B = [[31, "KTR", .16, .22], [32, "BOP", .38, .14], [33, "LUV", .62, .18], [34, "MAZ", .84, .25], [35, "FER", .73, .42], [36, "DIX", .48, .36], [37, "GOL", .24, .44], [38, "PRA", .12, .66], [39, "SUC", .33, .62], [40, "NEB", .55, .58], [41, "TAV", .8, .66], [42, "JOR", .68, .84], [43, "WIK", .42, .82], [44, "HYL", .2, .86]];
 const DEF = {
-  v: 1, titre: "CO – Préparation à l'évaluation", profs: ["Enseignant 1", "Enseignant 2"], carte: "carte.jpg", demo: true,
-  balises: DEMO_B.map(([n, code, x, y]) => ({ n, code, x, y })),
-  depart: { x: .5, y: .5 },
+  titre: "CO – Préparation à l'évaluation", profs: ["Enseignant 1", "Enseignant 2"], listes: {}, demo: true,
+  balises: DEMO_B.map(([n, code]) => ({ n, code })),
   parcours: [
     { nom: "Parcours 1", type: "indiv", nb: 5, oblig: 36, prep: 5, max: 0 },
     { nom: "Parcours 2", type: "indiv", nb: 6, oblig: 40, prep: 5, max: 0 },
     { nom: "Parcours 3", type: "duo", nb: 8, oblig: 33, prep: 5, max: 0 }],
-  penOubli: 60, penOblig: 120, penRetard: 30, voirErr: false, avance: true, prevu: true, reuse: true, pin: null
+  penOubli: 60, penOblig: 120, penRetard: 30, voirErr: false, avance: true, prevu: true, reuse: true
 };
-let C = Object.assign({}, DEF, LS.get("conf", {}));
-// paramètres reçus par lien (#c=…) : codes brouillés pour ne pas être lisibles dans l'adresse
-const KEY = "orienrun-eps";
-function enc(o) { const b = new TextEncoder().encode(JSON.stringify(o)); const x = b.map((v, i) => v ^ KEY.charCodeAt(i % KEY.length)); let s = ""; x.forEach(v => s += String.fromCharCode(v)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
-function dec(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(s), b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length); return JSON.parse(new TextDecoder().decode(b)); }
+let C = Object.assign(clone(DEF), LS.get("conf", {}));
+let VC = LS.get("vc", ""), VM = LS.get("vm", "");
 const balise = n => C.balises.find(b => +b.n === +n);
 const P = k => C.parcours[k];
-const pinHash = () => C.pin || (() => { try { return JSON.parse(localStorage.getItem("relais-vitesse-code-v1") || "null"); } catch (e) { return null; } })();
 
 // ---------------- Données de l'élève (cet appareil) ----------------
-let ME = LS.get("me", null);          // {prenom, nom, prof}
-let RUNS = LS.get("runs", [null, null, null]); // un objet par parcours
+let ME = LS.get("me", null);          // {prenom, nom, classe, prof, id}
+let RUNS = LS.get("runs", [null, null, null]);
 const saveRuns = () => LS.set("runs", RUNS);
-let tick = null;
+let tick = null, CUR = { v: "home", a: [] }, SW = null;
 function stopTick() { if (tick) clearInterval(tick); tick = null; }
 
-// ---------------- Carte (zoom au doigt) ----------------
-let MAPIMG = null; // URL de l'image de carte
+// ---------------- Carte ----------------
+let MAPIMG = null;
 function demoMap() {
-  const W = 1000, H = 1300, b = C.balises;
+  const W = 1000, H = 1300;
   const path = (d, w = 5, dash = "") => `<path d="${d}" fill="none" stroke="#111" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>
   <path d="M0 0H380L330 260 120 330 0 300Z" fill="#c9eab8"/><path d="M620 380 980 330 1000 700 760 760Z" fill="#8dd17a"/><path d="M60 900 360 940 330 1300H0V950Z" fill="#c9eab8"/>
   <path d="M430 480H600V640H430Z" fill="#ffba35"/><path d="M700 980H1000V1300H640Z" fill="#ffdd9a"/><rect x="420" y="1000" width="140" height="90" fill="#666"/><path d="M820 120 900 90 950 170 860 200Z" fill="#7fc8ef" stroke="#2a8fd0" stroke-width="3"/>
   ${path("M0 520 C200 500 300 420 500 400 S800 300 1000 280", 9)}${path("M500 0 C480 300 520 600 500 760 S540 1100 520 1300", 6, "26 6")}${path("M0 1080 C250 1050 450 1160 1000 1100", 6, "26 6")}${path("M150 0 C170 200 250 400 210 700", 4, "12 8")}${path("M760 760 C700 900 880 1000 860 1300", 4, "12 8")}
-  ${b.map(x => `<circle cx="${x.x * W}" cy="${x.y * H}" r="30" fill="none" stroke="#c21fbf" stroke-width="5"/><text x="${x.x * W + 34}" y="${x.y * H - 22}" font-family="Arial" font-weight="700" font-size="42" fill="#c21fbf">${x.n}</text>`).join("")}
-  <path d="M${C.depart.x * W} ${C.depart.y * H - 40}l35 60h-70z" fill="none" stroke="#c21fbf" stroke-width="5"/>
+  ${DEMO_B.map(([n, , x, y]) => `<circle cx="${x * W}" cy="${y * H}" r="30" fill="none" stroke="#c21fbf" stroke-width="5"/><text x="${x * W + 34}" y="${y * H - 22}" font-family="Arial" font-weight="700" font-size="42" fill="#c21fbf">${n}</text>`).join("")}
+  <path d="M500 610l35 60h-70z" fill="none" stroke="#c21fbf" stroke-width="5"/>
   <text x="20" y="${H - 20}" font-family="Arial" font-size="30" fill="#999">CARTE DE DÉMONSTRATION</text></svg>`;
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
-async function loadMap() {
-  const own = await idbGet("carte"); if (own) return MAPIMG = own;
-  if (C.carte) { const ok = await new Promise(r => { const i = new Image(); i.onload = () => r(true); i.onerror = () => r(false); i.src = C.carte + "?v=" + (C.carteV || 1); }); if (ok) return MAPIMG = C.carte + "?v=" + (C.carteV || 1); }
-  return MAPIMG = demoMap();
-}
-// petite base IndexedDB pour l'image de carte chargée par l'enseignant
 function idb() { return new Promise((res, rej) => { const r = indexedDB.open("coe", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function idbGet(k) { try { const d = await idb(); return await new Promise(r => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); } catch (e) { return null; } }
 async function idbSet(k, v) { try { const d = await idb(); await new Promise(r => { const t = d.transaction("kv", "readwrite"); v == null ? t.objectStore("kv").delete(k) : t.objectStore("kv").put(v, k); t.oncomplete = r; t.onerror = r; }); } catch (e) {} }
+async function loadMap() { MAPIMG = (await idbGet("carte")) || demoMap(); }
 
-function mapViewer(box, opts = {}) {
+// Visionneuse de carte : zoom/déplacement à deux doigts, dessin à un doigt (si un outil de dessin est actif)
+function mapViewer(box, o = {}) {
   box.innerHTML = `<div class="in"><img alt="Carte"><svg class="ov"></svg></div><div class="zb"><button data-z="1">+</button><button data-z="-1">−</button><button data-z="0" style="font-size:.95rem">⤢</button></div>`;
   const inn = $(".in", box), img = $("img", box), ov = $("svg", box);
-  let s = 1, tx = 0, ty = 0, W = 1, H = 1;
+  let s = 1, tx = 0, ty = 0, W = 1000, H = 1300, ready = false;
   const apply = () => { inn.style.transform = `translate(${tx}px,${ty}px) scale(${s})`; };
-  const fit = () => { const bw = box.clientWidth, bh = box.clientHeight; s = Math.min(bw / W, bh / H); tx = (bw - W * s) / 2; ty = (bh - H * s) / 2; apply(); };
-  const clampS = v => Math.max(Math.min(box.clientWidth / W, box.clientHeight / H) * .8, Math.min(v, 6));
-  const zoomAt = (f, cx, cy) => { const ns = clampS(s * f), k = ns / s; tx = cx - (cx - tx) * k; ty = cy - (cy - ty) * k; s = ns; apply(); };
-  const draw = () => { ov.setAttribute("width", W); ov.setAttribute("height", H); ov.setAttribute("viewBox", `0 0 ${W} ${H}`); ov.innerHTML = opts.overlay ? opts.overlay(W, H) : ""; };
-  img.onload = () => { W = img.naturalWidth || 1000; H = img.naturalHeight || 1300; img.width = W; img.height = H; draw(); fit(); };
+  const fit = () => { const bw = box.clientWidth, bh = box.clientHeight; if (!bw || !bh) return; s = Math.min(bw / W, bh / H); tx = (bw - W * s) / 2; ty = (bh - H * s) / 2; apply(); };
+  const minS = () => Math.min(box.clientWidth / W, box.clientHeight / H) * .7;
+  const zoomAt = (f, cx, cy) => { const ns = Math.max(minS(), Math.min(s * f, 8)), k = ns / s; tx = cx - (cx - tx) * k; ty = cy - (cy - ty) * k; s = ns; apply(); };
+  const draw = () => { ov.setAttribute("width", W); ov.setAttribute("height", H); ov.setAttribute("viewBox", `0 0 ${W} ${H}`); ov.innerHTML = o.overlay ? o.overlay(W, H) : ""; };
+  img.onload = () => { W = img.naturalWidth || 1000; H = img.naturalHeight || 1300; img.width = W; img.height = H; ready = true; draw(); fit(); };
   img.src = MAPIMG;
-  $$("[data-z]", box).forEach(b => b.onclick = e => { e.stopPropagation(); const z = +b.dataset.z; if (!z) return fit(); zoomAt(z > 0 ? 1.5 : 1 / 1.5, box.clientWidth / 2, box.clientHeight / 2); });
-  const pts = new Map(); let last = null, moved = 0;
-  box.addEventListener("pointerdown", e => { if (e.target.closest(".zb")) return; box.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = null; moved = 0; });
+  try { new ResizeObserver(() => ready && fit()).observe(box); } catch (e) {}
+  $$("[data-z]", box).forEach(b => { b.onpointerdown = e => e.stopPropagation(); b.onclick = e => { e.stopPropagation(); const z = +b.dataset.z; if (!z) return fit(); zoomAt(z > 0 ? 1.6 : 1 / 1.6, box.clientWidth / 2, box.clientHeight / 2); }; });
+  const pts = new Map(); let last = null, drawing = false;
+  const toImg = e => { const r = box.getBoundingClientRect(); return { x: (e.clientX - r.left - tx) / s / W, y: (e.clientY - r.top - ty) / s / H }; };
+  const mode = () => o.mode ? o.mode() : "pan";
+  const view = () => ({ s, W, H });
+  box.addEventListener("pointerdown", e => {
+    if (e.target.closest(".zb")) return; box.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = null;
+    if (pts.size === 1 && mode() !== "pan") { drawing = true; o.onDown && o.onDown(toImg(e), view()); }
+    else if (pts.size === 2 && drawing) { drawing = false; o.onCancel && o.onCancel(); }
+  });
   box.addEventListener("pointermove", e => {
-    if (!pts.has(e.pointerId)) return; const r = box.getBoundingClientRect(); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const p = [...pts.values()], cx = p.reduce((a, q) => a + q.x, 0) / p.length - r.left, cy = p.reduce((a, q) => a + q.y, 0) / p.length - r.top, d = p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0;
-    if (last && last.n === p.length) { tx += cx - last.cx; ty += cy - last.cy; moved += Math.abs(cx - last.cx) + Math.abs(cy - last.cy); if (d && last.d) zoomAt(d / last.d, cx, cy); else apply(); }
+    if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (drawing) { o.onMove && o.onMove(toImg(e), view()); return; }
+    const r = box.getBoundingClientRect(), p = [...pts.values()], cx = p.reduce((a, q) => a + q.x, 0) / p.length - r.left, cy = p.reduce((a, q) => a + q.y, 0) / p.length - r.top, d = p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0;
+    if (last && last.n === p.length) { tx += cx - last.cx; ty += cy - last.cy; if (d && last.d) zoomAt(d / last.d, cx, cy); else apply(); }
     last = { cx, cy, d, n: p.length };
   });
-  const up = e => { const was = pts.has(e.pointerId); pts.delete(e.pointerId); last = null; if (was && !pts.size && moved < 8 && opts.onTap) { const r = box.getBoundingClientRect(); opts.onTap(((e.clientX - r.left - tx) / s) / W, ((e.clientY - r.top - ty) / s) / H); } };
+  const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); last = null; if (drawing && !pts.size) { drawing = false; o.onUp && o.onUp(toImg(e), view()); } };
   box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up);
   box.addEventListener("wheel", e => { e.preventDefault(); const r = box.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
-  return { redraw: draw, fit };
+  return { redraw: draw, fit, size: view };
 }
-// tracé de l'itinéraire choisi (si les balises ont été positionnées sur la carte)
-function routeOverlay(plan, done = -1) {
-  return (W, H) => {
-    const pts = [C.depart, ...plan.map(balise), C.depart].filter(b => b && b.x != null);
-    if (pts.length < 2) return "";
-    const L = Math.max(W, H) / 1000;
-    let s = `<polyline points="${pts.map(p => p.x * W + "," + p.y * H).join(" ")}" fill="none" stroke="#f47a20" stroke-width="${5 * L}" stroke-linejoin="round" stroke-opacity=".85" stroke-dasharray="${16 * L} ${8 * L}"/>`;
-    plan.forEach((n, i) => { const b = balise(n); if (!b || b.x == null) return; s += `<circle cx="${b.x * W}" cy="${b.y * H}" r="${22 * L}" fill="${i < done ? "#2a9d6f" : "#f47a20"}" fill-opacity=".9"/><text x="${b.x * W}" y="${b.y * H + 9 * L}" text-anchor="middle" font-family="Arial" font-weight="900" font-size="${26 * L}" fill="#fff">${i + 1}</text>`; });
-    return s;
-  };
+
+// ---------------- Tracé de l'élève (stylo / lignes) ----------------
+const COLS = ["#e63946", "#1d4ed8", "#f47a20", "#16a34a", "#111111", "#c21fbf"];
+const WIDTHS = [0, 3, 6, 11];
+function traceSVG(tr, W, H, extra) {
+  const K = Math.max(W, H) / 1000, L = [...(tr || []), ...(extra ? [extra] : [])];
+  return L.map(t => `<polyline points="${t.p.map(q => (q[0] * W).toFixed(1) + "," + (q[1] * H).toFixed(1)).join(" ")}" fill="none" stroke="${t.c}" stroke-width="${WIDTHS[t.w || 2] * K}" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".85"/>` + (t.t === "line" ? t.p.map(q => `<circle cx="${q[0] * W}" cy="${q[1] * H}" r="${WIDTHS[t.w || 2] * K * .9}" fill="${t.c}"/>`).join("") : "")).join("");
 }
-// distance à vol d'oiseau (en « unités carte ») — utile seulement si la carte a une échelle connue
-function planLen(plan) { const pts = [C.depart, ...plan.map(balise), C.depart]; if (pts.some(p => !p || p.x == null) || !C.mPerUnit) return null; let d = 0; for (let i = 1; i < pts.length; i++) d += Math.hypot((pts[i].x - pts[i - 1].x) * (C.mapW || 1000), (pts[i].y - pts[i - 1].y) * (C.mapH || 1300)) * C.mPerUnit; return d; }
+function drawEditor(r, onClose) {
+  const d = document.createElement("div"); d.className = "dr";
+  const st = LS.get("pen", { mode: "pen", c: COLS[0], w: 2 });
+  let tmp = null; const undo = [];
+  d.innerHTML = `<div class="dbar"><b style="flex:1;font-size:.95rem">✏️ Trace ton itinéraire</b><button class="tb" id="dU">↶ Annuler</button><button class="tb" id="dC">🗑</button><button class="tb" id="dOk" style="background:var(--gr)">✓ Terminé</button></div>
+   <div class="mapv" id="dM"></div>
+   <div class="dbar bot"><button class="tb" data-m="pan">✋ Déplacer</button><button class="tb" data-m="pen">✏️ Stylo</button><button class="tb" data-m="line">📏 Lignes</button><button class="tb" data-m="erase">🧽 Gomme</button>
+    <span style="flex-basis:100%;height:0"></span>${COLS.map(c => `<button class="sw" data-c="${c}" style="background:${c}"></button>`).join("")}<span style="width:6px"></span>${[1, 2, 3].map(w => `<button class="wd" data-w="${w}"><i style="height:${w * 3 + 1}px"></i></button>`).join("")}
+    <span class="small" style="opacity:.75;flex-basis:100%">Deux doigts : zoomer et déplacer la carte</span></div>`;
+  document.body.appendChild(d); document.body.style.overflow = "hidden";
+  r.trace = r.trace || [];
+  const save = () => { saveRuns(); mv.redraw(); };
+  const push = () => { undo.push(JSON.stringify(r.trace)); if (undo.length > 60) undo.shift(); };
+  const thr = v => 22 / (v.s * Math.max(v.W, v.H)); // ~22 px à l'écran
+  const dist = (a, b, v) => Math.hypot((a[0] - b[0]) * v.W, (a[1] - b[1]) * v.H) / Math.max(v.W, v.H);
+  const segD = (p, a, b, v) => { const ax = a[0] * v.W, ay = a[1] * v.H, bx = b[0] * v.W, by = b[1] * v.H, px = p[0] * v.W, py = p[1] * v.H, L = (bx - ax) ** 2 + (by - ay) ** 2; let t = L ? ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - ax - t * (bx - ax), py - ay - t * (by - ay)) / Math.max(v.W, v.H); };
+  const rd = q => [+q.x.toFixed(4), +q.y.toFixed(4)];
+  const erase = (p, v) => { const i = r.trace.findIndex(t => t.p.some((x, j) => j ? segD(p, t.p[j - 1], x, v) < thr(v) : dist(x, p, v) < thr(v))); if (i >= 0) { push(); r.trace.splice(i, 1); vib(20); save(); } };
+  const mv = mapViewer($("#dM", d), {
+    overlay: (W, H) => traceSVG(r.trace, W, H, tmp), mode: () => st.mode,
+    onDown(q, v) {
+      const p = rd(q);
+      if (st.mode === "pen") tmp = { t: "pen", c: st.c, w: st.w, p: [p] };
+      else if (st.mode === "line") { // accroche au bout d'une ligne existante
+        let a = p; r.trace.forEach(t => { if (t.t === "line") { const e = t.p[t.p.length - 1]; if (dist(e, p, v) < thr(v) * 1.3) a = e; } });
+        tmp = { t: "line", c: st.c, w: st.w, p: [a, p] };
+      } else if (st.mode === "erase") erase(p, v);
+      mv.redraw();
+    },
+    onMove(q, v) { const p = rd(q); if (!tmp) { if (st.mode === "erase") erase(p, v); return; } if (tmp.t === "pen") { if (dist(tmp.p[tmp.p.length - 1], p, v) > 2 / (v.s * Math.max(v.W, v.H))) tmp.p.push(p); } else tmp.p[1] = p; mv.redraw(); },
+    onUp(q, v) {
+      if (!tmp) return;
+      if (tmp.t === "line") { if (dist(tmp.p[0], tmp.p[1], v) < 6 / (v.s * Math.max(v.W, v.H))) { tmp = null; return mv.redraw(); } push(); const prev = r.trace.find(t => t.t === "line" && t.c === tmp.c && t.w === tmp.w && t.p[t.p.length - 1] === tmp.p[0]); if (prev) prev.p.push(tmp.p[1]); else r.trace.push(tmp); }
+      else if (tmp.p.length > 1) { push(); r.trace.push(tmp); }
+      tmp = null; save();
+    },
+    onCancel() { tmp = null; mv.redraw(); }
+  });
+  const ui = () => { $$("[data-m]", d).forEach(b => b.classList.toggle("on", b.dataset.m === st.mode)); $$("[data-c]", d).forEach(b => b.classList.toggle("on", b.dataset.c === st.c)); $$("[data-w]", d).forEach(b => b.classList.toggle("on", +b.dataset.w === st.w)); LS.set("pen", st); };
+  $$("[data-m]", d).forEach(b => b.onclick = () => { st.mode = b.dataset.m; ui(); });
+  $$("[data-c]", d).forEach(b => b.onclick = () => { st.c = b.dataset.c; if (st.mode === "pan" || st.mode === "erase") st.mode = "pen"; ui(); });
+  $$("[data-w]", d).forEach(b => b.onclick = () => { st.w = +b.dataset.w; if (st.mode === "pan" || st.mode === "erase") st.mode = "pen"; ui(); });
+  $("#dU", d).onclick = () => { if (!undo.length) return flash("Rien à annuler"); r.trace = JSON.parse(undo.pop()); save(); };
+  $("#dC", d).onclick = async () => { if (!r.trace.length) return; if (await ask("Tout effacer ?", "Ton tracé sera effacé.", "Effacer", "ko")) { push(); r.trace = []; save(); } };
+  $("#dOk", d).onclick = () => { d.remove(); document.body.style.overflow = ""; onClose && onClose(); };
+  ui();
+}
+
+// ---------------- Synchronisation en direct ----------------
+let NET = null, syncing = false, TPW = LS.get("tpw", "");
+function setNet() { const n = $("#net"); if (!n) return; n.className = "net " + (NET === true ? "ok" : NET === false ? "ko" : ""); n.textContent = NET === true ? "● en ligne" : NET === false ? "● hors ligne" : "…"; }
+async function sync() {
+  if (syncing) return; syncing = true;
+  try {
+    const j = await api("coeGet", { vc: VC, vm: VM, carte: 1 });
+    NET = true; let conf = false, map = false;
+    if (j.conf != null && j.vc && j.vc !== VC) { try { const o = JSON.parse(j.conf); C = Object.assign(clone(DEF), o); LS.set("conf", o); VC = j.vc; LS.set("vc", VC); conf = true; } catch (e) {} }
+    if (j.carte != null && j.vm && j.vm !== VM) { await idbSet("carte", j.carte || null); VM = j.vm; LS.set("vm", VM); MAPIMG = j.carte || demoMap(); map = true; }
+    if (conf || map) onRemote(conf, map);
+    flushOut();
+  } catch (e) { NET = false; }
+  finally { syncing = false; setNet(); }
+}
+function onRemote(conf) {
+  $("#hT").textContent = C.titre;
+  const v = CUR.v;
+  if (v === "prof") { const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; if (["conf", "eleves", "carte"].includes(CUR.a[0])) return go("prof", ...CUR.a); return; }
+  if (v === "run" || v === "end") return; // la course continue : les nouveaux codes sont déjà pris en compte
+  if ($(".dr") || $(".modal")) return; // l'élève est en train de tracer ou de choisir
+  if (["home", "ident", "prep", "bilan", "full"].includes(v)) { const y = scrollY; go(v, ...CUR.a); scrollTo(0, y); if (conf) flash("🔄 Mis à jour par l'enseignant"); }
+}
+// résultats envoyés à l'enseignant (file d'attente si pas de réseau)
+function queueResult(k) {
+  const r = RUNS[k]; if (!r?.fin || !ME) return;
+  const out = LS.get("out", []).filter(x => !(x.eleve === ME.id && x.k === k));
+  out.push({ eleve: ME.id, nom: ME.prenom + " " + ME.nom, classe: ME.classe || "", prof: ME.prof, k, data: { me: ME, run: packRun(r) } });
+  LS.set("out", out); flushOut();
+}
+let flushing = false;
+async function flushOut() {
+  if (flushing) return; const out = LS.get("out", []); if (!out.length) return; flushing = true;
+  try { for (const x of out) { await api("coeResult", x); const sx = JSON.stringify(x); LS.set("out", LS.get("out", []).filter(y => JSON.stringify(y) !== sx)); } NET = true; }
+  catch (e) { NET = false; } finally { flushing = false; setNet(); }
+}
 
 // ======================= ÉCRANS ÉLÈVE =======================
-let SW = null; // élève consulté par l'enseignant
-function go(v, ...a) { if (SW && v !== "full") { ME = SW.ME; RUNS = SW.RUNS; SW = null; } stopTick(); window.scrollTo(0, 0); ({ home: vHome, ident: vIdent, prep: vPrep, run: vRun, end: vEnd, bilan: vBilan, full: vFull, prof: vProf })[v](...a); }
+function go(v, ...a) {
+  if (SW && v !== "full") { ME = SW.ME; RUNS = SW.RUNS; SW = null; }
+  stopTick(); if (v !== "prof") { clearInterval(profTick); profTick = null; }
+  if (CUR.v !== v || v === "prof") window.scrollTo(0, 0); CUR = { v, a };
+  ({ home: vHome, ident: vIdent, prep: vPrep, run: vRun, end: vEnd, bilan: vBilan, full: vFull, prof: vProf })[v](...a);
+}
 window.epsAppHome = () => go("home");
+const studentName = m => `${m.prenom} ${m.nom}`;
 
 function vHome() {
   $("#hT").textContent = C.titre;
-  if (!ME) return vIdent();
+  if (!ME) return go("ident");
   const cur = RUNS.findIndex(r => r && !r.fin);
-  if (cur >= 0) return RUNS[cur].debut ? vRun(cur) : vPrep(cur);
-  const app = $("#app");
-  app.innerHTML = `<div class="card"><div class="row"><div class="grow"><div class="muted small">Élève</div><b style="font-size:1.15rem">${esc(ME.prenom)} ${esc(ME.nom)}</b><div class="small muted">Enseignant : ${esc(ME.prof)}</div></div><button class="btn sm gh" id="eId">Modifier</button></div></div>
+  if (cur >= 0) return RUNS[cur].debut ? go("run", cur) : go("prep", cur);
+  const nOut = LS.get("out", []).length;
+  $("#app").innerHTML = `<div class="card"><div class="row"><div class="grow"><div class="muted small">Élève</div><b style="font-size:1.15rem">${esc(studentName(ME))}</b><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}${esc(ME.prof)}</div></div>${RUNS.some(Boolean) ? "" : '<button class="btn sm gh" id="eId">Ce n\'est pas moi</button>'}</div></div>
+   ${C.demo ? '<p class="chip or" style="margin:0 4px 8px">Mode démonstration : l\'enseignant n\'a pas encore publié ses paramètres.</p>' : ""}
    <h2 style="margin:16px 4px 10px">Tes 3 parcours</h2>
    ${C.parcours.map((p, k) => { const r = RUNS[k], done = r?.fin, next = !done && RUNS.slice(0, k).every(x => x?.fin); return `<button class="pc ${done ? "done" : next ? "cur" : ""}" data-p="${k}" ${!done && !next ? "disabled style='opacity:.55'" : ""}><div class="n">${done ? "✓" : k + 1}</div><div class="grow"><b>${esc(p.nom)} · ${p.type === "duo" ? "👥 collectif" : "👤 individuel"}</b><span class="small muted">${p.nb} balises à choisir${p.oblig ? `, dont la n° <b style="color:var(--vi)">${p.oblig}</b> obligatoire` : ""} · préparation ${fmtMin(p.prep * 60)}${p.max ? ` · ${p.max} min maximum` : ""}</span>${done ? `<div style="margin-top:4px"><span class="chip ok">Temps : ${fmt(r.fin - r.debut)}</span></div>` : ""}</div><span style="font-size:1.4rem">${done ? "📄" : next ? "▶" : "🔒"}</span></button>`; }).join("")}
-   ${RUNS.some(r => r?.fin) ? `<button class="btn big vi" id="full" style="margin-top:6px">📊 Bilan complet${RUNS.every(r => r?.fin) ? " des 3 parcours" : " (provisoire)"}</button><button class="btn big gh" id="send" style="margin-top:10px">📤 Envoyer mes résultats à l'enseignant</button>` : ""}`;
-  $("#eId").onclick = () => vIdent(true);
+   ${RUNS.some(r => r?.fin) ? `<button class="btn big vi" id="full" style="margin-top:6px">📊 Bilan complet${RUNS.every(r => r?.fin) ? " des 3 parcours" : " (provisoire)"}</button><p class="small muted" style="text-align:center">${nOut ? `⏳ ${nOut} résultat(s) en attente d'envoi à l'enseignant (pas de réseau)` : "✓ Tes résultats ont été envoyés à ton enseignant."}</p><button class="btn sm gh" id="send" style="width:100%">📤 Secours : envoyer mes résultats par QR code</button>` : ""}`;
+  $("#eId") && ($("#eId").onclick = () => { ME = null; LS.del("me"); go("ident"); });
   $$("[data-p]").forEach(b => b.onclick = () => { const k = +b.dataset.p; if (RUNS[k]?.fin) return go("bilan", k); startPrep(k); });
   $("#full") && ($("#full").onclick = () => go("full"));
   $("#send") && ($("#send").onclick = sendResults);
 }
-function vIdent(edit) {
-  const me = ME || { prenom: "", nom: "", prof: "" };
-  const app = $("#app");
-  app.innerHTML = `<div class="card"><h2>👋 Qui es-tu ?</h2><p class="muted" style="margin-top:0">Ces informations apparaîtront sur tes bilans.</p>
-   <label class="l">Prénom</label><input class="inp" id="iP" autocomplete="given-name" value="${esc(me.prenom)}">
-   <label class="l">Nom</label><input class="inp" id="iN" autocomplete="family-name" value="${esc(me.nom)}">
-   <label class="l">Ton enseignant</label><div class="prof">${C.profs.filter(Boolean).map(p => `<button data-pr="${esc(p)}" class="${me.prof === p ? "on" : ""}">${esc(p)}</button>`).join("")}</div>
-   <button class="btn big or" id="iGo" style="margin-top:18px">C'est parti</button></div>`;
-  let prof = me.prof;
-  $$("[data-pr]").forEach(b => b.onclick = () => { prof = b.dataset.pr; $$("[data-pr]").forEach(x => x.classList.toggle("on", x === b)); });
-  $("#iGo").onclick = () => {
-    const prenom = $("#iP").value.trim(), nom = $("#iN").value.trim();
-    if (!prenom || !nom) return flash("Prénom et nom ?"); if (!prof) return flash("Choisis ton enseignant");
-    ME = { prenom, nom, prof, id: ME?.id || uid() }; LS.set("me", ME); go("home");
+// Choix d'un élève dans les listes : enseignant → classe → prénom
+function picker(box, opt, onPick) {
+  const st = { prof: opt.prof || null, classe: opt.classe || null, manual: false };
+  const draw = () => {
+    const L = C.listes || {};
+    if (st.prof && !C.profs.includes(st.prof)) st.prof = null;
+    const cls = st.prof ? Object.keys(L[st.prof] || {}).sort(byFr) : [];
+    if (st.classe && !cls.includes(st.classe)) st.classe = null;
+    const crumb = `<div class="crumb">${st.prof ? `<button data-cb="prof">👤 ${esc(st.prof)} ✕</button>` : ""}${st.classe ? `<button data-cb="classe">🏫 ${esc(st.classe)} ✕</button>` : ""}</div>`;
+    if (!st.prof) box.innerHTML = `<h3 style="margin:4px 0 8px">${opt.q1 || "Qui est ton enseignant ?"}</h3><div class="pick big">${C.profs.filter(Boolean).map(p => `<button data-pf="${esc(p)}">${esc(p)}</button>`).join("")}</div>`;
+    else if (st.manual || !cls.length) box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">${cls.length ? "Écris le prénom et le nom" : "Pas encore de liste pour cet enseignant : écris le prénom et le nom"}</h3><label class="l">Prénom</label><input class="inp" id="kP"><label class="l">Nom</label><input class="inp" id="kN"><label class="l">Classe</label><input class="inp" id="kC" value="${esc(st.classe || "")}"><button class="btn big or" id="kGo" style="margin-top:12px">Valider</button>${cls.length ? '<button class="btn gh" id="kBack" style="width:100%;margin-top:8px">← Revenir à la liste</button>' : ""}`;
+    else if (!st.classe) box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">Quelle classe ?</h3><div class="pick big">${cls.map(c => `<button data-cl="${esc(c)}">${esc(c)}<small>${L[st.prof][c].length} élèves</small></button>`).join("")}</div>`;
+    else { const el = L[st.prof][st.classe].map(([nom, prenom]) => ({ nom, prenom, classe: st.classe, prof: st.prof })).filter(e => !opt.exclude || opt.exclude(e)).sort((a, b) => byFr(a.prenom, b.prenom) || byFr(a.nom, b.nom));
+      box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">${opt.q3 || "Touche ton prénom"}</h3><div class="pick">${el.map((e, i) => `<button data-el="${i}">${esc(e.prenom)}<small>${esc(e.nom)}</small></button>`).join("")}</div><button class="btn sm gh" id="kMan" style="margin-top:12px">${opt.q3 ? "Pas dans la liste" : "Je ne suis pas dans la liste"}</button>`;
+      $$("[data-el]", box).forEach(b => b.onclick = () => onPick(el[+b.dataset.el])); }
+    $$("[data-pf]", box).forEach(b => b.onclick = () => { st.prof = b.dataset.pf; st.classe = null; draw(); });
+    $$("[data-cl]", box).forEach(b => b.onclick = () => { st.classe = b.dataset.cl; draw(); });
+    $$("[data-cb]", box).forEach(b => b.onclick = () => { if (b.dataset.cb === "prof") { st.prof = null; st.classe = null; } else st.classe = null; st.manual = false; draw(); });
+    $("#kMan", box) && ($("#kMan", box).onclick = () => { st.manual = true; draw(); });
+    $("#kBack", box) && ($("#kBack", box).onclick = () => { st.manual = false; draw(); });
+    $("#kGo", box) && ($("#kGo", box).onclick = () => { const prenom = $("#kP", box).value.trim(), nom = $("#kN", box).value.trim(); if (!prenom || !nom) return flash("Prénom et nom ?"); onPick({ prenom, nom: nom.toUpperCase(), classe: $("#kC", box).value.trim(), prof: st.prof, manuel: true }); });
   };
+  draw();
+}
+const studentId = e => norm([e.prof, e.classe, e.nom, e.prenom].join("|")).replace(/\s+/g, " ");
+function vIdent() {
+  $("#app").innerHTML = `<div class="card"><h2>👋 Qui es-tu ?</h2><div id="iBox"></div></div>`;
+  picker($("#iBox"), {}, async e => { if (!(await ask("C'est bien toi ?", `<b style="font-size:1.2rem">${esc(e.prenom)} ${esc(e.nom)}</b><br>${e.classe ? esc(e.classe) + " · " : ""}${esc(e.prof)}`, "Oui, c'est moi", "gr"))) return; ME = { ...e, id: studentId(e) }; LS.set("me", ME); go("home"); });
 }
 
-// ---------- Préparation : choix et ordre des balises ----------
+// ---------- Préparation : tracé, choix et ordre des balises ----------
 function startPrep(k) {
   const p = P(k);
   if (p.type === "duo") {
-    const m = modal(`<h2 style="margin:0 0 6px">👥 Parcours collectif</h2><p class="muted" style="margin-top:0">Indique ton ou ta camarade : vous courez ensemble avec ce téléphone.</p>
-     <label class="l">Prénom du camarade</label><input class="inp" id="dP"><label class="l">Nom du camarade</label><input class="inp" id="dN">
-     <label class="l">Son enseignant</label><div class="prof">${C.profs.filter(Boolean).map(x => `<button data-dp="${esc(x)}" class="${x === ME.prof ? "on" : ""}">${esc(x)}</button>`).join("")}</div>
-     <button class="btn big or" id="dGo" style="margin-top:16px">Commencer la préparation</button>`);
-    let pr = ME.prof; $$("[data-dp]", m).forEach(b => b.onclick = () => { pr = b.dataset.dp; $$("[data-dp]", m).forEach(x => x.classList.toggle("on", x === b)); });
-    $("#dGo", m).onclick = () => { const a = $("#dP", m).value.trim(), b = $("#dN", m).value.trim(); if (!a || !b) return flash("Prénom et nom ?"); m.close(); RUNS[k] = newRun(k, { prenom: a, nom: b, prof: pr }); saveRuns(); go("prep", k); };
+    const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">👥 Ton ou ta camarade</h2><button class="btn sm gh" id="dX">Annuler</button></div><p class="muted small" style="margin-top:0">Vous courez ensemble avec ce téléphone.</p><div id="dBox"></div>`);
+    $("#dX", m).onclick = m.close;
+    picker($("#dBox", m), { prof: ME.prof, classe: ME.classe, q1: "Qui est son enseignant ?", q3: "Touche le prénom de ton ou ta camarade", exclude: e => studentId(e) !== ME.id }, e => { m.close(); RUNS[k] = newRun(k, { ...e, id: studentId(e) }); saveRuns(); go("prep", k); });
     return;
   }
   RUNS[k] = newRun(k); saveRuns(); go("prep", k);
 }
-const newRun = (k, duo = null) => ({ k, duo, prepT: now(), plan: P(k).oblig ? [P(k).oblig] : [], prevu: null, debut: null, fin: null, saisies: [], auto: {} });
+const newRun = (k, duo = null) => ({ k, duo, prepT: now(), plan: P(k).oblig ? [+P(k).oblig] : [], trace: [], prevu: null, debut: null, fin: null, saisies: [], auto: {} });
 const usedBefore = k => C.reuse ? [] : RUNS.slice(0, k).flatMap(r => r?.plan || []);
 
 function vPrep(k) {
-  const p = P(k), r = RUNS[k], app = $("#app"), used = usedBefore(k);
-  app.innerHTML = `<div class="prep" id="pBar"><div><div class="small" style="opacity:.8">Préparation · ${esc(p.nom)}</div><div class="timer" id="pT">–</div></div><div style="text-align:right" class="small"><b id="pCnt"></b><br><span style="opacity:.8">balises choisies</span></div></div>
-   ${r.duo ? `<div class="card small">👥 Équipe : <b>${esc(ME.prenom)} ${esc(ME.nom)}</b> et <b>${esc(r.duo.prenom)} ${esc(r.duo.nom)}</b></div>` : ""}
-   <div class="card" style="padding:10px"><div class="mapv" id="pMap"></div></div>
+  const p = P(k), r = RUNS[k], used = usedBefore(k);
+  if (p.oblig && !r.plan.includes(+p.oblig)) r.plan.unshift(+p.oblig);
+  $("#app").innerHTML = `<div class="prep" id="pBar"><div><div class="small" style="opacity:.8">Préparation · ${esc(p.nom)}</div><div class="timer" id="pT">–</div></div><div style="text-align:right" class="small"><b id="pCnt"></b><br><span style="opacity:.8">balises choisies</span></div></div>
+   ${r.duo ? `<div class="card small">👥 Équipe : <b>${esc(studentName(ME))}</b> et <b>${esc(studentName(r.duo))}</b></div>` : ""}
    <div class="card"><h2>1. Choisis ${p.nb} balises</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé ont déjà été faites : elles sont interdites." : ""}</p><div class="bgrid" id="pGrid"></div></div>
    <div class="card"><h2>2. Range-les dans ton ordre de passage</h2><p class="muted small" style="margin-top:0">Fais glisser avec le doigt sur ≡ pour changer l'ordre.</p>
-    <ul class="sl"><li class="st"><span class="o"></span><span class="bn" style="border-radius:8px">▲</span><b>Départ</b></li></ul><ul class="sl" id="pList"></ul><ul class="sl"><li class="fi"><span class="o"></span><span class="bn">◎</span><b>Retour à l'arrivée</b></li></ul><div id="pDist" class="small muted"></div></div>
-   ${C.prevu ? `<div class="card"><h2>3. Combien de temps vas-tu mettre ?</h2><p class="muted small" style="margin-top:0">Ton estimation sera comparée à ton temps réel dans le bilan.</p><div class="row"><button class="btn gh" data-pv="-60">−1 min</button><div class="timer grow" style="text-align:center;font-size:1.8rem" id="pPv">–</div><button class="btn gh" data-pv="60">+1 min</button></div><div class="row" style="justify-content:center;margin-top:6px"><button class="btn sm gh" data-pv="-15">−15 s</button><button class="btn sm gh" data-pv="15">+15 s</button></div></div>` : ""}
+    <ul class="sl"><li class="st"><span class="o"></span><span class="bn" style="border-radius:8px">▲</span><b>Départ</b></li></ul><ul class="sl" id="pList"></ul><ul class="sl"><li class="fi"><span class="o"></span><span class="bn">◎</span><b>Retour à l'arrivée</b></li></ul></div>
+   <div class="card" style="padding:10px"><h2 style="margin:4px 4px 8px">3. Trace ton itinéraire sur la carte</h2><div class="mapv" id="pMap" style="height:38vh"></div><button class="btn big or" id="pDraw" style="margin-top:10px">✏️ ${r.trace?.length ? "Modifier mon tracé" : "Tracer sur la carte"}</button></div>
+   ${C.prevu ? `<div class="card"><h2>4. Combien de temps vas-tu mettre ?</h2><p class="muted small" style="margin-top:0">Ton estimation sera comparée à ton temps réel dans le bilan.</p><div class="row"><button class="btn gh" data-pv="-60">−1 min</button><div class="timer grow" style="text-align:center;font-size:1.8rem" id="pPv">–</div><button class="btn gh" data-pv="60">+1 min</button></div><div class="row" style="justify-content:center;margin-top:6px"><button class="btn sm gh" data-pv="-15">−15 s</button><button class="btn sm gh" data-pv="15">+15 s</button></div></div>` : ""}
    <button class="btn big gr" id="pGo" disabled>▶ Départ</button><p class="small muted" id="pWhy" style="text-align:center"></p>`;
-  const mv = mapViewer($("#pMap"), { overlay: routeOverlay(r.plan), onTap: (x, y) => { const W = 1; let best = null, bd = 1e9; C.balises.forEach(b => { if (b.x == null) return; const d = Math.hypot(b.x - x, (b.y - y) * 1.3); if (d < bd) { bd = d; best = b; } }); if (best && bd < .045) toggle(best.n); } });
+  const mv = mapViewer($("#pMap"), { overlay: (W, H) => traceSVG(r.trace, W, H) });
+  $("#pDraw").onclick = () => drawEditor(r, () => { mv.redraw(); $("#pDraw").textContent = "✏️ " + (r.trace.length ? "Modifier mon tracé" : "Tracer sur la carte"); });
   const grid = $("#pGrid"), list = $("#pList");
   if (r.prevu == null) r.prevu = Math.max(5, p.nb * 2) * 60;
   function toggle(n) { n = +n; if (n === +p.oblig) return flash("Balise obligatoire ★"); if (used.includes(n)) return flash("Déjà faite"); const i = r.plan.indexOf(n); if (i >= 0) r.plan.splice(i, 1); else { if (r.plan.length >= p.nb) return flash(`${p.nb} balises maximum`); r.plan.push(n); } vib(10); saveRuns(); render(); }
   function render() {
+    r.plan = r.plan.filter(n => balise(n));
     grid.innerHTML = C.balises.map(b => `<button data-b="${b.n}" class="${r.plan.includes(+b.n) ? "on" : ""} ${+b.n === +p.oblig ? "ob" : ""} ${used.includes(+b.n) ? "used" : ""}">${b.n}</button>`).join("");
     $$("[data-b]", grid).forEach(b => b.onclick = () => toggle(b.dataset.b));
     list.innerHTML = r.plan.map((n, i) => `<li data-i="${i}"><span class="o">${i + 1}</span><span class="bn">${n}</span><b class="grow">${+n === +p.oblig ? "★ obligatoire" : ""}</b>${+n === +p.oblig ? "" : `<button class="x" data-rm="${n}">✕</button>`}<span class="h">≡</span></li>`).join("") || `<li style="justify-content:center;color:var(--mu);border-style:dashed">Aucune balise choisie</li>`;
     $$("[data-rm]", list).forEach(b => b.onclick = () => toggle(b.dataset.rm));
     $("#pCnt").textContent = `${r.plan.length} / ${p.nb}`;
-    const d = planLen(r.plan); $("#pDist").textContent = d ? `Distance à vol d'oiseau : ${Math.round(d)} m` : "";
     if ($("#pPv")) $("#pPv").textContent = fmt(r.prevu * 1000);
-    mv.redraw(); ok();
+    ok();
   }
   sortable(list, (from, to) => { const [x] = r.plan.splice(from, 1); r.plan.splice(to, 0, x); saveRuns(); render(); });
   $$("[data-pv]").forEach(b => b.onclick = () => { r.prevu = Math.max(60, r.prevu + +b.dataset.pv); saveRuns(); $("#pPv").textContent = fmt(r.prevu * 1000); });
-  const end = r.prepT + p.prep * 60000;
+  const end = () => r.prepT + P(k).prep * 60000;
   function ok() {
-    const left = end - now(), full = r.plan.length === p.nb, early = left > 0 && !C.avance;
+    const left = end() - now(), full = r.plan.length === p.nb, early = left > 0 && !C.avance;
     $("#pGo").disabled = !full || early;
-    $("#pWhy").textContent = !full ? `Il te manque ${p.nb - r.plan.length} balise(s).` : early ? "Le départ sera possible à la fin de la préparation." : left > 0 ? "Tu peux partir dès que tu es prêt·e." : "";
+    $("#pWhy").textContent = !full ? (r.plan.length > p.nb ? `Tu as trop de balises : retire-en ${r.plan.length - p.nb}.` : `Il te manque ${p.nb - r.plan.length} balise(s).`) : early ? "Le départ sera possible à la fin de la préparation." : left > 0 ? "Tu peux partir dès que tu es prêt·e." : "";
   }
-  const upd = () => { const left = end - now(); $("#pT").textContent = left > 0 ? fmt(left) : "Temps écoulé"; $("#pBar").classList.toggle("low", left < 60000); if (left <= 0 && !r.auto.prepEnd) { r.auto.prepEnd = 1; saveRuns(); vib([200, 100, 200]); flash("⏰ Fin de la préparation"); } ok(); };
+  const upd = () => { const left = end() - now(); const t = $("#pT"); if (!t) return; t.textContent = left > 0 ? fmt(left) : "Temps écoulé"; $("#pBar").classList.toggle("low", left < 60000); if (left <= 0 && !r.auto.prepEnd) { r.auto.prepEnd = 1; saveRuns(); vib([200, 100, 200]); flash("⏰ Fin de la préparation"); } ok(); };
   render(); upd(); tick = setInterval(upd, 500);
-  $("#pGo").onclick = async () => { if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>`, "▶ Partir", "gr"))) return; r.debut = now(); r.prepFin = r.debut; saveRuns(); vib(300); go("run", k); };
+  $("#pGo").onclick = async () => { if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>`, "▶ Partir", "gr"))) return; r.debut = now(); saveRuns(); vib(300); go("run", k); };
 }
 // glisser-déposer au doigt (poignée ≡)
 function sortable(ul, onMove) {
@@ -437,30 +574,28 @@ function sortable(ul, onMove) {
   ul.addEventListener("pointerdown", e => {
     const h = e.target.closest(".h"); if (!h) return; const li = h.closest("li"); e.preventDefault();
     const items = $$("li[data-i]", ul), rects = items.map(x => x.getBoundingClientRect());
-    drag = { li, from: +li.dataset.i, to: +li.dataset.i, y0: e.clientY, items, rects, hgt: rects[+li.dataset.i].height + 7 };
+    drag = { li, from: +li.dataset.i, to: +li.dataset.i, y0: e.clientY, sy: scrollY, items, rects, hgt: rects[+li.dataset.i].height + 7 };
     li.classList.add("drag"); h.setPointerCapture(e.pointerId); vib(15);
     items.forEach(x => x !== li && x.classList.add("anim"));
   });
   ul.addEventListener("pointermove", e => {
-    if (!drag) return; e.preventDefault(); const dy = e.clientY - drag.y0; drag.li.style.transform = `translateY(${dy}px)`;
+    if (!drag) return; e.preventDefault(); const dy = e.clientY - drag.y0 + (scrollY - drag.sy); drag.li.style.transform = `translateY(${dy}px)`;
     const c = drag.rects[drag.from].top + drag.rects[drag.from].height / 2 + dy; let to = drag.from;
     drag.rects.forEach((r, i) => { if (i < drag.from && c < r.top + r.height / 2) to = Math.min(to, i); if (i > drag.from && c > r.top + r.height / 2) to = Math.max(to, i); });
     if (to !== drag.to) { drag.to = to; vib(8); }
     drag.items.forEach((x, i) => { if (x === drag.li) return; x.style.transform = drag.from < to && i > drag.from && i <= to ? `translateY(${-drag.hgt}px)` : drag.from > to && i >= to && i < drag.from ? `translateY(${drag.hgt}px)` : ""; });
-    // défilement automatique près des bords
-    if (e.clientY < 90) window.scrollBy(0, -8); else if (e.clientY > innerHeight - 70) window.scrollBy(0, 8);
+    if (e.clientY < 110) window.scrollBy(0, -8); else if (e.clientY > innerHeight - 70) window.scrollBy(0, 8);
   });
   const end = () => { if (!drag) return; const { from, to } = drag; drag.items.forEach(x => { x.style.transform = ""; x.classList.remove("anim", "drag"); }); drag = null; if (from !== to) onMove(from, to); };
   ul.addEventListener("pointerup", end); ul.addEventListener("pointercancel", end);
 }
 
 // ---------- Course : chrono + saisie des codes ----------
-function expectedIdx(r) { return r.idx || 0; }
 function vRun(k) {
   const p = P(k), r = RUNS[k], app = $("#app");
   let code = "";
   const draw = () => {
-    const i = expectedIdx(r), fini = i >= r.plan.length, n = r.plan[i];
+    const i = r.idx || 0, fini = i >= r.plan.length, n = r.plan[i];
     app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(r.duo.prenom) : ""}</div><div class="chrono" id="rT">0:00</div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
       <div class="steps">${r.plan.map((b, j) => `<span class="${j < i ? "d" : j === i ? "c" : ""}">${b}</span>`).join("")}<span style="border-color:var(--nv);color:var(--nv)">◎</span></div></div>
      ${fini ? `<div class="card" style="text-align:center"><div style="font-size:3rem">🏁</div><h2>Toutes tes balises sont saisies</h2><p class="muted">Retourne à l'arrivée, puis touche le bouton.</p></div>` :
@@ -468,255 +603,333 @@ function vRun(k) {
        <div class="small muted">Tape le code de 3 lettres écrit sur la balise</div><div class="boxes">${[0, 1, 2].map(j => `<div class="${j === code.length ? "cur" : ""}">${code[j] || ""}</div>`).join("")}</div>
        <div class="kb">${"AZERTYUIOPQSDFGHJKLMWXCVBN".split("").map(c => `<button data-k="${c}">${c}</button>`).join("")}<button class="w2" data-k="⌫" style="background:#f5f2ea">⌫</button><button class="w2" data-k="C" style="background:#f5f2ea;font-size:.85rem">Effacer</button></div>
        <button class="btn big or" id="rOk" style="margin-top:12px" ${code.length === 3 ? "" : "disabled"}>✓ Valider la balise ${n}</button>
-       ${i + 1 < r.plan.length ? `<div class="small muted" style="margin-top:8px">Ensuite : balise <b>${r.plan[i + 1]}</b></div>` : `<div class="small muted" style="margin-top:8px">Ensuite : retour à l'arrivée</div>`}</div>`}
-     <div class="row"><button class="btn gh grow" id="rMap">🗺 Carte</button></div>
+       ${i + 1 < r.plan.length ? `<div class="small muted" style="margin-top:8px">Ensuite : balise <b>${r.plan[i + 1]}</b></div>` : `<div class="small muted" style="margin-top:8px">Ensuite : retour à l'arrivée</div>`}
+       <button class="btn sm gh" id="rSkip" style="margin-top:12px">⏭ Je ne la trouve pas : passer la balise ${n}</button></div>`}
+     <div class="row"><button class="btn gh grow" id="rMap">🗺 Ma carte et mon tracé</button></div>
      <button class="btn big ${fini ? "gr" : "gh"}" id="rBack" style="margin-top:10px">🏁 Je suis de retour</button>`;
     $$("[data-k]").forEach(b => b.onclick = () => { const c = b.dataset.k; if (c === "⌫") code = code.slice(0, -1); else if (c === "C") code = ""; else if (code.length < 3) code += c; vib(8); drawCode(); });
-    $("#rOk") && ($("#rOk").onclick = validate);
-    $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:70vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { overlay: routeOverlay(r.plan, expectedIdx(r)) }); };
-    $("#rBack").onclick = async () => { const left = r.plan.length - expectedIdx(r); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return; r.fin = now(); saveRuns(); vib([100, 60, 300]); go("end", k); };
+    $("#rOk") && ($("#rOk").onclick = () => { if (code.length !== 3) return; punch(r, code); code = ""; saveRuns(); vib(60); flash("✓ Enregistré"); draw(); });
+    $("#rSkip") && ($("#rSkip").onclick = async () => { if (!(await ask(`Passer la balise ${n} ?`, `Elle sera comptée comme <b>non trouvée</b> (pénalité). Tu continues vers ${i + 1 < r.plan.length ? "la balise <b>" + r.plan[i + 1] + "</b>" : "l'arrivée"}.`, "⏭ Passer", "ko"))) return; r.saisies.push({ t: now(), code: "", attendu: n, st: "passe", bal: null }); r.idx = i + 1; code = ""; saveRuns(); draw(); });
+    $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { overlay: (W, H) => traceSVG(r.trace, W, H) }); };
+    $("#rBack").onclick = async () => { const left = r.plan.length - (r.idx || 0); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return; r.fin = now(); saveRuns(); vib([100, 60, 300]); queueResult(k); go("end", k); };
     upd();
   };
-  const drawCode = () => { const bx = $$(".boxes div"); bx.forEach((d, j) => { d.textContent = code[j] || ""; d.classList.toggle("cur", j === code.length); }); const o = $("#rOk"); if (o) o.disabled = code.length !== 3; };
-  function validate() {
-    if (code.length !== 3) return;
-    punch(r, code, p); code = ""; saveRuns(); vib(60); flash("✓ Enregistré"); draw();
-  }
-  const upd = () => { const t = now() - r.debut; const e = $("#rT"); if (e) e.textContent = fmt(t); const mx = $("#rMax"); if (mx) { const left = p.max * 60000 - t; mx.textContent = left >= 0 ? `Temps maximum : encore ${fmt(left)}` : `⚠ Temps maximum dépassé de ${fmt(-left)}`; mx.style.color = left < 0 ? "var(--ko)" : ""; } };
+  const drawCode = () => { $$(".boxes div").forEach((d, j) => { d.textContent = code[j] || ""; d.classList.toggle("cur", j === code.length); }); const o = $("#rOk"); if (o) o.disabled = code.length !== 3; };
+  const upd = () => { const t = now() - r.debut, e = $("#rT"); if (e) e.textContent = fmt(t); const mx = $("#rMax"); if (mx) { const left = P(k).max * 60000 - t; mx.textContent = left >= 0 ? `Temps maximum : encore ${fmt(left)}` : `⚠ Temps maximum dépassé de ${fmt(-left)}`; mx.style.color = left < 0 ? "var(--ko)" : ""; } };
   draw(); tick = setInterval(upd, 250);
 }
-// Saisie d'un code : rien n'est signalé à l'élève, l'analyse est enregistrée pour l'enseignant
-function punch(r, code, p) {
-  const i = r.idx || 0, t = now(), hit = C.balises.find(b => b.code.toUpperCase() === code);
-  const s = { t, code, attendu: r.plan[i], bal: hit ? +hit.n : null };
-  if (hit && +hit.n === +r.plan[i]) { s.st = "ok"; r.idx = i + 1; }
-  else if (hit && r.plan.indexOf(+hit.n) > i) { const j = r.plan.indexOf(+hit.n); s.st = "saut"; s.oublis = r.plan.slice(i, j); r.idx = j + 1; }
-  else if (hit && r.plan.indexOf(+hit.n) >= 0 && r.plan.indexOf(+hit.n) < i) { s.st = "retour"; } // balise oubliée récupérée plus tard
-  else if (hit) { s.st = "hors"; r.idx = i + 1; } // balise qui n'est pas dans son parcours
-  else { s.st = "faux"; r.idx = i + 1; } // code inexistant
+// Saisie d'un code : rien n'est signalé à l'élève, l'analyse est gardée pour l'enseignant
+function punch(r, code) {
+  const i = r.idx || 0, hit = C.balises.find(b => String(b.code).toUpperCase() === code);
+  const s = { t: now(), code, attendu: r.plan[i], bal: hit ? +hit.n : null }, j = hit ? r.plan.indexOf(+hit.n) : -1;
+  if (hit && j === i) { s.st = "ok"; r.idx = i + 1; }
+  else if (hit && j > i) { s.st = "saut"; r.idx = j + 1; }       // a sauté des balises de son parcours
+  else if (hit && j >= 0) { s.st = "retour"; }                    // balise sautée, récupérée plus tard
+  else if (hit) { s.st = "hors"; r.idx = i + 1; }                 // balise qui n'est pas dans son parcours
+  else { s.st = "faux"; r.idx = i + 1; }                          // code inexistant
   r.saisies.push(s);
 }
-// Analyse complète d'un parcours
 function analyse(r) {
-  const p = P(r.k), plan = r.plan, ok = new Set(), retards = new Set();
+  const p = P(r.k) || {}, plan = r.plan, ok = new Set(), retards = new Set();
   r.saisies.forEach(s => { if (s.st === "ok" || s.st === "saut") ok.add(+s.bal); if (s.st === "retour") retards.add(+s.bal); });
-  const manq = plan.filter(n => !ok.has(+n) && !retards.has(+n));
-  const oublis = plan.filter(n => !ok.has(+n)); // non validées dans l'ordre
+  const oublis = plan.filter(n => !ok.has(+n));
+  const passees = r.saisies.filter(s => s.st === "passe").map(s => s.attendu);
   const faux = r.saisies.filter(s => s.st === "faux" || s.st === "hors").length;
   const obligOk = !p.oblig || ok.has(+p.oblig) || retards.has(+p.oblig);
   const chrono = (r.fin || now()) - r.debut;
-  const nErr = oublis.length + faux - 0;
   const over = p.max ? Math.max(0, chrono - p.max * 60000) : 0;
   const pen = (oublis.length * C.penOubli + (obligOk ? 0 : C.penOblig) + (over ? Math.ceil(over / 60000) * C.penRetard : 0)) * 1000;
-  // temps intermédiaires (chaque validation)
   let prev = r.debut; const legs = r.saisies.map(s => { const d = s.t - prev; prev = s.t; return { ...s, leg: d, cum: s.t - r.debut }; });
-  const retour = r.fin ? r.fin - prev : null;
-  return { chrono, pen, final: chrono + pen, ok: [...ok], manq, oublis, faux, obligOk, nErr: oublis.length, over, legs, retour, ordre: !r.saisies.some(s => s.st !== "ok") && oublis.length === 0 };
+  return { chrono, pen, final: chrono + pen, oublis, passees, faux, obligOk, nErr: oublis.length, over, legs, retour: r.fin ? r.fin - prev : null, ordre: oublis.length === 0 && r.saisies.every(s => s.st === "ok") };
 }
 
 // ---------- Fin de parcours : ressenti + bilan ----------
 const Q = [
   { id: "effort", t: "Ton effort pendant la course", o: ["😌 Facile", "🙂 Moyen", "😤 Difficile", "🥵 Maximal"] },
-  { id: "projet", t: "As-tu suivi l'itinéraire que tu avais prévu ?", o: ["Oui", "En partie", "Non"] },
+  { id: "projet", t: "As-tu suivi l'itinéraire que tu avais tracé ?", o: ["Oui", "En partie", "Non"] },
   { id: "perte", t: "Qu'est-ce qui t'a fait perdre du temps ?", multi: 1, o: ["Orienter ma carte", "Me situer sur la carte", "Choix d'itinéraire", "Trouver la balise", "Fatigue", "Rien de particulier"] },
   { id: "coop", t: "Votre coopération (collectif)", duo: 1, o: ["Très bonne", "Correcte", "Difficile"] }
 ];
 function vEnd(k) {
-  const r = RUNS[k], p = P(k), a = analyse(r), app = $("#app");
+  const r = RUNS[k], a = analyse(r);
   r.ress = r.ress || {};
-  app.innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2.6rem">🏁</div><h2>Bravo ${esc(ME.prenom)}${r.duo ? " et " + esc(r.duo.prenom) : ""} !</h2><div class="chrono">${fmt(a.chrono)}</div><div class="muted small">Temps de course</div></div>
+  $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2.6rem">🏁</div><h2>Bravo ${esc(ME.prenom)}${r.duo ? " et " + esc(r.duo.prenom) : ""} !</h2><div class="chrono">${fmt(a.chrono)}</div><div class="muted small">Temps de course</div></div>
    <div class="card"><h2>Ton ressenti</h2>${Q.filter(q => !q.duo || r.duo).map(q => `<label class="l">${q.t}</label><div class="opts" data-q="${q.id}">${q.o.map(o => `<button class="${(q.multi ? (r.ress[q.id] || []).includes(o) : r.ress[q.id] === o) ? "on" : ""}">${o}</button>`).join("")}</div>`).join("")}
     <label class="l">Un conseil pour toi la prochaine fois</label><input class="inp" id="eC" value="${esc(r.ress.conseil || "")}" placeholder="ex. orienter la carte à chaque balise"></div>
    <button class="btn big vi" id="eGo">📄 Voir ma fiche bilan</button>`;
   $$("[data-q]").forEach(box => { const q = Q.find(x => x.id === box.dataset.q); $$("button", box).forEach(b => b.onclick = () => { if (q.multi) { const L = r.ress[q.id] = r.ress[q.id] || []; const i = L.indexOf(b.textContent); i >= 0 ? L.splice(i, 1) : L.push(b.textContent); b.classList.toggle("on"); } else { r.ress[q.id] = b.textContent; $$("button", box).forEach(x => x.classList.toggle("on", x === b)); } saveRuns(); }); });
-  $("#eGo").onclick = () => { r.ress.conseil = $("#eC").value.trim(); saveRuns(); go("bilan", k); };
+  $("#eGo").onclick = () => { r.ress.conseil = $("#eC").value.trim(); saveRuns(); queueResult(k); go("bilan", k); };
 }
-const refCode = (a, r) => { const e = Math.min(9, a.nErr), s = (r.debut % 997).toString(36).toUpperCase().padStart(2, "0"); return `${s}${"KMPQRTVXYZ"[e]}${(r.k + 1)}`; };
+const refCode = (a, r) => { const e = Math.min(9, a.nErr), s = (Math.round(r.debut / 1000) % 997).toString(36).toUpperCase().padStart(2, "0"); return `${s}${"KMPQRTVXYZ"[e]}${(r.k + 1)}`; };
 function bilanHTML(k, teacher) {
   const r = RUNS[k], p = P(k), a = analyse(r), show = teacher || C.voirErr;
-  const okLegs = a.legs, maxLeg = Math.max(1, ...okLegs.map(l => l.leg), a.retour || 0);
-  const best = okLegs.length ? okLegs.reduce((m, l) => l.leg < m.leg ? l : m) : null, worst = okLegs.length ? okLegs.reduce((m, l) => l.leg > m.leg ? l : m) : null;
-  const ecart = r.prevu ? a.chrono / 1000 - r.prevu : null, d = planLen(r.plan);
-  const stat = s => ({ ok: '<span class="chip ok">✓</span>', saut: '<span class="chip ko">balise(s) oubliée(s) avant</span>', retour: '<span class="chip or">hors ordre</span>', hors: '<span class="chip ko">hors parcours</span>', faux: '<span class="chip ko">code faux</span>' })[s];
-  return `<div class="card"><div class="row"><div class="grow"><div class="small muted">Fiche bilan · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}</h2><div class="small"><b>${esc(ME.prenom)} ${esc(ME.nom)}</b>${r.duo ? ` et <b>${esc(r.duo.prenom)} ${esc(r.duo.nom)}</b>` : ""} · ${esc(ME.prof)} · ${new Date(r.debut).toLocaleDateString("fr-FR")}</div></div></div>
+  const legs = a.legs, maxLeg = Math.max(1, ...legs.map(l => l.leg), a.retour || 0);
+  const best = legs.length ? legs.reduce((m, l) => l.leg < m.leg ? l : m) : null, worst = legs.length ? legs.reduce((m, l) => l.leg > m.leg ? l : m) : null;
+  const ecart = r.prevu ? a.chrono / 1000 - r.prevu : null, from = i => i ? legs[i - 1].attendu : "▲";
+  const stat = s => ({ ok: '<span class="chip ok">✓</span>', saut: '<span class="chip ko">balise(s) sautée(s) avant</span>', retour: '<span class="chip or">hors ordre</span>', hors: '<span class="chip ko">hors parcours</span>', faux: '<span class="chip ko">code faux</span>', passe: '<span class="chip ko">passée</span>' })[s];
+  return `<div class="card"><div class="small muted">Fiche bilan · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}</h2><div class="small"><b>${esc(studentName(ME))}</b>${ME.classe ? " (" + esc(ME.classe) + ")" : ""}${r.duo ? ` et <b>${esc(studentName(r.duo))}</b>${r.duo.classe ? " (" + esc(r.duo.classe) + ")" : ""}` : ""} · Enseignant : <b>${esc(ME.prof)}</b> · ${new Date(r.debut).toLocaleDateString("fr-FR")}</div>
    <div class="kpi"><div><span>Temps de course</span><b>${fmt(a.chrono)}</b></div>${show ? `<div><span>Pénalités</span><b style="color:${a.pen ? "var(--ko)" : "inherit"}">+${fmt(a.pen)}</b></div><div><span>Temps final</span><b>${fmt(a.final)}</b></div>` : ""}
-    <div><span>Balises</span><b>${r.saisies.length} / ${r.plan.length}</b></div>${r.prevu ? `<div><span>Temps prévu</span><b>${fmt(r.prevu * 1000)}</b><small class="${Math.abs(ecart) <= 60 ? "" : "muted"}">${ecart >= 0 ? "+" : "−"}${fmt(Math.abs(ecart) * 1000)} ${Math.abs(ecart) <= 60 ? "· très bonne estimation 👍" : ecart > 0 ? "plus lent que prévu" : "plus rapide que prévu"}</small></div>` : ""}
-    ${d ? `<div><span>Distance (vol d'oiseau)</span><b>${Math.round(d)} m</b><small>${(a.chrono / 60000 / (d / 1000)).toFixed(1)} min/km</small></div>` : ""}</div>
-   ${show ? `<p class="small" style="margin:4px 0">${a.ordre ? '<span class="chip ok">Parcours réalisé sans erreur, dans l\'ordre</span>' : `<span class="chip ko">${a.nErr} erreur(s)</span> ${a.oublis.length ? `Non validées dans l'ordre : <b>${a.oublis.join(", ")}</b>. ` : ""}${a.faux ? `${a.faux} code(s) faux ou hors parcours. ` : ""}`} ${p.oblig ? (a.obligOk ? `<span class="chip ok">★ ${p.oblig} validée</span>` : `<span class="chip ko">★ ${p.oblig} manquée</span>`) : ""}${a.over ? ` <span class="chip ko">Temps max dépassé de ${fmt(a.over)}</span>` : ""}</p>` : ""}
+    <div><span>Balises</span><b>${r.saisies.filter(s => s.st !== "passe").length} / ${r.plan.length}</b>${a.passees.length ? `<small>${a.passees.length} passée(s)</small>` : ""}</div>${r.prevu ? `<div><span>Temps prévu</span><b>${fmt(r.prevu * 1000)}</b><small>${ecart >= 0 ? "+" : "−"}${fmt(Math.abs(ecart) * 1000)} ${Math.abs(ecart) <= 60 ? "· très bonne estimation 👍" : ecart > 0 ? "plus lent que prévu" : "plus rapide que prévu"}</small></div>` : ""}</div>
+   ${show ? `<p class="small" style="margin:4px 0">${a.ordre ? '<span class="chip ok">Parcours réalisé sans erreur, dans l\'ordre</span>' : `<span class="chip ko">${a.nErr} balise(s) non validée(s)</span> ${a.oublis.length ? `<b>${a.oublis.join(", ")}</b>. ` : ""}${a.faux ? `${a.faux} code(s) faux ou hors parcours. ` : ""}`} ${p.oblig ? (a.obligOk ? `<span class="chip ok">★ ${p.oblig} validée</span>` : `<span class="chip ko">★ ${p.oblig} manquée</span>`) : ""}${a.over ? ` <span class="chip ko">Temps max dépassé de ${fmt(a.over)}</span>` : ""}</p>` : ""}
    <h3 style="margin:14px 0 4px;font-size:1rem">Temps entre chaque balise</h3>
-   <table class="t"><thead><tr><th>#</th><th>Tronçon</th><th class="n">Temps</th><th class="n">Cumul</th><th style="width:34%"></th>${show ? "<th>Contrôle</th>" : ""}</tr></thead><tbody>
-    ${okLegs.map((l, i) => `<tr><td>${i + 1}</td><td>${i ? r.saisies[i - 1].attendu : "▲"} → <b>${l.attendu}</b>${+l.attendu === +p.oblig ? " ★" : ""}</td><td class="n">${fmt(l.leg)}</td><td class="n">${fmt(l.cum)}</td><td><div class="bar" style="width:${Math.max(4, l.leg / maxLeg * 100)}%;background:${l === best ? "var(--gr)" : l === worst ? "var(--ko)" : "var(--or)"}"></div></td>${show ? `<td>${stat(l.st)}${l.st !== "ok" ? ` <small class="muted">saisi ${esc(l.code)}${l.bal ? " (" + l.bal + ")" : ""}</small>` : ""}</td>` : ""}</tr>`).join("")}
-    ${a.retour != null ? `<tr><td></td><td>${r.saisies.length ? r.saisies.at(-1).attendu : "▲"} → <b>◎ arrivée</b></td><td class="n">${fmt(a.retour)}</td><td class="n">${fmt(a.chrono)}</td><td><div class="bar" style="width:${Math.max(4, a.retour / maxLeg * 100)}%;background:var(--nv)"></div></td>${show ? "<td></td>" : ""}</tr>` : ""}
+   <table class="t"><thead><tr><th>#</th><th>Tronçon</th><th class="n">Temps</th><th class="n">Cumul</th><th style="width:30%"></th>${show ? "<th>Contrôle</th>" : ""}</tr></thead><tbody>
+    ${legs.map((l, i) => `<tr><td>${i + 1}</td><td>${from(i)} → <b>${l.attendu}</b>${+l.attendu === +p.oblig ? " ★" : ""}${l.st === "passe" && !show ? ' <span class="chip">passée</span>' : ""}</td><td class="n">${fmt(l.leg)}</td><td class="n">${fmt(l.cum)}</td><td><div class="bar" style="width:${Math.max(4, l.leg / maxLeg * 100)}%;background:${l === best ? "var(--gr)" : l === worst ? "var(--ko)" : "var(--or)"}"></div></td>${show ? `<td>${stat(l.st)}${l.code && l.st !== "ok" ? ` <small class="muted">saisi ${esc(l.code)}${l.bal ? " (" + l.bal + ")" : ""}</small>` : ""}</td>` : ""}</tr>`).join("")}
+    ${a.retour != null ? `<tr><td></td><td>${legs.length ? legs.at(-1).attendu : "▲"} → <b>◎ arrivée</b></td><td class="n">${fmt(a.retour)}</td><td class="n">${fmt(a.chrono)}</td><td><div class="bar" style="width:${Math.max(4, a.retour / maxLeg * 100)}%;background:var(--nv)"></div></td>${show ? "<td></td>" : ""}</tr>` : ""}
    </tbody></table>
-   ${okLegs.length > 1 ? `<p class="small">🟢 Tronçon le plus rapide : <b>${best === okLegs[0] ? "▲" : r.saisies[okLegs.indexOf(best) - 1].attendu} → ${best.attendu}</b> (${fmt(best.leg)}) · 🔴 le plus long : <b>${worst === okLegs[0] ? "▲" : r.saisies[okLegs.indexOf(worst) - 1].attendu} → ${worst.attendu}</b> (${fmt(worst.leg)}). Moyenne : ${fmt(a.chrono / (okLegs.length + 1))} par tronçon.</p>` : ""}
+   ${legs.length > 1 ? `<p class="small">🟢 Tronçon le plus rapide : <b>${from(legs.indexOf(best))} → ${best.attendu}</b> (${fmt(best.leg)}) · 🔴 le plus long : <b>${from(legs.indexOf(worst))} → ${worst.attendu}</b> (${fmt(worst.leg)}). Moyenne : ${fmt(a.chrono / (legs.length + 1))} par tronçon.</p>` : ""}
    ${r.ress && Object.keys(r.ress).length ? `<h3 style="margin:12px 0 4px;font-size:1rem">Ressenti</h3><p class="small" style="margin:0">${Q.filter(q => r.ress[q.id] && (!Array.isArray(r.ress[q.id]) || r.ress[q.id].length)).map(q => `${q.t} : <b>${esc([].concat(r.ress[q.id]).join(", "))}</b>`).join("<br>")}${r.ress.conseil ? `<br>Conseil : <b>${esc(r.ress.conseil)}</b>` : ""}</p>` : ""}
+   ${r.trace?.length ? `<h3 style="margin:12px 0 4px;font-size:1rem">Itinéraire tracé</h3><div class="bmap" data-k="${k}" style="position:relative;max-width:520px"><img src="${MAPIMG}" style="width:100%;display:block;border-radius:10px"><svg style="position:absolute;inset:0;width:100%;height:100%"></svg></div>` : ""}
    <div class="ref">réf. ${refCode(a, r)}</div></div>`;
 }
-function vBilan(k, teacher) {
-  const app = $("#app");
-  app.innerHTML = bilanHTML(k, teacher) + `<div class="card noprint" style="padding:10px"><div class="mapv" id="bMap" style="height:38vh"></div></div>
-   <div class="row noprint"><button class="btn gh grow" id="bHome">← Mes parcours</button><button class="btn or grow" id="bPr">🖨 Imprimer / PDF</button></div>`;
-  mapViewer($("#bMap"), { overlay: routeOverlay(RUNS[k].plan, 99) });
-  $("#bHome").onclick = () => teacher ? go("prof") : go("home"); $("#bPr").onclick = () => print();
+// dessine le tracé par-dessus les images de carte des bilans
+function fillBilanMaps(root = document, runs = RUNS) {
+  $$(".bmap", root).forEach(b => { const img = $("img", b), sv = $("svg", b), r = runs[+b.dataset.k]; const f = () => { const W = img.naturalWidth || 1000, H = img.naturalHeight || 1300; sv.setAttribute("viewBox", `0 0 ${W} ${H}`); sv.innerHTML = traceSVG(r?.trace, W, H); }; img.complete ? f() : img.onload = f; });
 }
-function vFull(teacher) {
-  const done = RUNS.map((r, k) => r?.fin ? k : -1).filter(k => k >= 0), A = done.map(k => ({ k, r: RUNS[k], a: analyse(RUNS[k]), p: P(k) })), show = teacher || C.voirErr;
-  const per = x => x.a.chrono / (x.r.plan.length + 1);
-  const mx = Math.max(1, ...A.map(x => per(x)));
+function vBilan(k, teacher) {
+  $("#app").innerHTML = bilanHTML(k, teacher) + `<div class="row noprint"><button class="btn gh grow" id="bHome">← ${teacher ? "Retour" : "Mes parcours"}</button><button class="btn or grow" id="bPr">🖨 Imprimer / PDF</button></div>`;
+  fillBilanMaps();
+  $("#bHome").onclick = () => teacher ? go("prof", "dev") : go("home"); $("#bPr").onclick = () => print();
+}
+function fullHTML(teacher) {
+  const A = RUNS.map((r, k) => r?.fin ? { k, r, a: analyse(r), p: P(k) } : null).filter(Boolean), show = teacher || C.voirErr;
+  const per = x => x.a.chrono / (x.r.plan.length + 1), mx = Math.max(1, ...A.map(per));
   const est = A.filter(x => x.r.prevu).map(x => Math.abs(x.a.chrono / 1000 - x.r.prevu));
   const pertes = {}; A.forEach(x => (x.r.ress?.perte || []).forEach(v => pertes[v] = (pertes[v] || 0) + 1));
   const top = Object.entries(pertes).filter(([v]) => v !== "Rien de particulier").sort((a, b) => b[1] - a[1]);
-  const pts = []; if (A.length > 1 && per(A.at(-1)) < per(A[0])) pts.push("Tu as été plus rapide par tronçon au fil des parcours."); if (show && A.every(x => x.a.ordre)) pts.push("Tous tes parcours ont été réalisés sans erreur."); if (est.length && Math.max(...est) <= 90) pts.push("Tu sais bien estimer ton temps de course.");
-  const amel = []; if (show && A.some(x => !x.a.ordre)) amel.push("Vérifier le numéro de la balise et le code avant de valider : chaque balise oubliée coûte " + fmtMin(C.penOubli) + "."); if (est.some(e => e > 120)) amel.push("Mieux estimer ton temps : regarde la longueur de chaque tronçon avant de partir."); top.slice(0, 2).forEach(([v]) => amel.push(({ "Orienter ma carte": "Orienter la carte (le nord de la carte vers le nord) à chaque balise.", "Me situer sur la carte": "Garder le pouce sur ta position et suivre les éléments (chemins, lisières) en courant.", "Choix d'itinéraire": "Préparer chaque tronçon : chemin plus long mais plus rapide ou ligne droite ?", "Trouver la balise": "Repérer un point d'appui proche de la balise (angle de chemin, bâtiment) et ralentir à l'approche.", "Fatigue": "Gérer ton allure : courir sur les chemins, marcher pour lire la carte." })[v] || v));
-  $("#app").innerHTML = `<div class="card"><div class="small muted">Bilan complet · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(ME.prenom)} ${esc(ME.nom)}</h2><div class="small muted">${esc(ME.prof)} · ${new Date().toLocaleDateString("fr-FR")} · ${A.length} parcours sur 3</div>
-    <table class="t" style="margin-top:10px"><thead><tr><th>Parcours</th><th class="n">Balises</th><th class="n">Temps</th>${show ? '<th class="n">Pénal.</th><th class="n">Final</th><th>Erreurs</th>' : ""}<th class="n">Prévu</th><th class="n">Par tronçon</th></tr></thead><tbody>
-    ${A.map(x => `<tr><td><b>${esc(x.p.nom)}</b><br><small class="muted">${x.p.type === "duo" ? "👥 avec " + esc(x.r.duo?.prenom || "") : "👤 individuel"}</small></td><td class="n">${x.r.plan.length}</td><td class="n"><b>${fmt(x.a.chrono)}</b></td>${show ? `<td class="n">${x.a.pen ? "+" + fmt(x.a.pen) : "–"}</td><td class="n"><b>${fmt(x.a.final)}</b></td><td>${x.a.nErr ? `<span class="chip ko">${x.a.nErr}</span>` : '<span class="chip ok">0</span>'}</td>` : ""}<td class="n">${x.r.prevu ? fmt(x.r.prevu * 1000) : "–"}</td><td class="n">${fmt(per(x))}</td></tr>`).join("")}</tbody></table>
+  const pts = []; if (A.length > 1 && per(A.at(-1)) < per(A[0])) pts.push("Tu as été plus rapide par tronçon au fil des parcours."); if (show && A.length && A.every(x => x.a.ordre)) pts.push("Tous tes parcours ont été réalisés sans erreur."); if (est.length && Math.max(...est) <= 90) pts.push("Tu sais bien estimer ton temps de course."); if (A.length && A.every(x => x.r.trace?.length)) pts.push("Tu as préparé ton itinéraire sur la carte à chaque parcours.");
+  const amel = []; if (A.some(x => x.a.passees.length)) amel.push("Tu as passé des balises : choisis des balises adaptées à ton niveau et repère un point d'appui (angle de chemin, bâtiment) avant chacune."); if (show && A.some(x => x.a.oublis.length > x.a.passees.length)) amel.push("Vérifier le numéro de la balise et son code avant de valider : chaque balise non validée coûte " + fmtMin(C.penOubli) + "."); if (est.some(e => e > 120)) amel.push("Mieux estimer ton temps : regarde la longueur de chaque tronçon avant de partir."); if (A.some(x => !x.r.trace?.length)) amel.push("Tracer ton itinéraire sur la carte pendant la préparation."); top.slice(0, 2).forEach(([v]) => amel.push(({ "Orienter ma carte": "Orienter la carte (le nord de la carte vers le nord) à chaque balise.", "Me situer sur la carte": "Garder le pouce sur ta position et suivre les éléments (chemins, lisières) en courant.", "Choix d'itinéraire": "Préparer chaque tronçon : chemin plus long mais plus rapide, ou ligne droite ?", "Trouver la balise": "Repérer un point d'appui proche de la balise et ralentir à l'approche.", "Fatigue": "Gérer ton allure : courir sur les chemins, marcher pour lire la carte." })[v] || v));
+  return `<div class="card"><div class="small muted">Bilan complet · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(studentName(ME))}</h2><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}Enseignant : ${esc(ME.prof)} · ${new Date().toLocaleDateString("fr-FR")} · ${A.length} parcours sur 3</div>
+    <table class="t" style="margin-top:10px"><thead><tr><th>Parcours</th><th class="n">Balises</th><th class="n">Temps</th>${show ? '<th class="n">Pénal.</th><th class="n">Final</th><th>Non val.</th>' : ""}<th class="n">Prévu</th><th class="n">Par tronçon</th></tr></thead><tbody>
+    ${A.map(x => `<tr><td><b>${esc(x.p.nom)}</b><br><small class="muted">${x.p.type === "duo" ? "👥 avec " + esc(x.r.duo ? studentName(x.r.duo) : "") : "👤 individuel"}</small></td><td class="n">${x.r.plan.length}</td><td class="n"><b>${fmt(x.a.chrono)}</b></td>${show ? `<td class="n">${x.a.pen ? "+" + fmt(x.a.pen) : "–"}</td><td class="n"><b>${fmt(x.a.final)}</b></td><td>${x.a.nErr ? `<span class="chip ko">${x.a.nErr}</span>` : '<span class="chip ok">0</span>'}</td>` : ""}<td class="n">${x.r.prevu ? fmt(x.r.prevu * 1000) : "–"}</td><td class="n">${fmt(per(x))}</td></tr>`).join("")}</tbody></table>
     <h3 style="margin:14px 0 6px;font-size:1rem">Temps moyen par tronçon</h3>${A.map(x => `<div class="row small" style="margin-bottom:5px"><span style="width:90px">${esc(x.p.nom)}</span><div class="grow"><div class="bar" style="width:${per(x) / mx * 100}%"></div></div><b style="width:52px;text-align:right">${fmt(per(x))}</b></div>`).join("")}
     ${pts.length ? `<h3 style="margin:14px 0 4px;font-size:1rem">👍 Points forts</h3><ul class="small" style="margin:0;padding-left:20px">${pts.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
     ${amel.length ? `<h3 style="margin:14px 0 4px;font-size:1rem">🎯 À travailler</h3><ul class="small" style="margin:0;padding-left:20px">${amel.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
     <div class="ref">réf. ${A.map(x => refCode(x.a, x.r)).join(" ")}</div></div>
-   ${A.map((x, i) => `<div class="pb">${bilanHTML(x.k, teacher)}</div>`).join("")}
-   <div class="row noprint"><button class="btn gh grow" id="fH">← Retour</button><button class="btn or grow" id="fP">🖨 Imprimer / PDF</button></div>`;
-  $("#fH").onclick = () => teacher ? go("prof") : go("home"); $("#fP").onclick = () => print();
+   ${A.map(x => `<div class="pb">${bilanHTML(x.k, teacher)}</div>`).join("")}`;
+}
+function vFull(teacher) {
+  $("#app").innerHTML = fullHTML(teacher) + `<div class="row noprint"><button class="btn gh grow" id="fH">← Retour</button><button class="btn or grow" id="fP">🖨 Imprimer / PDF</button></div>`;
+  fillBilanMaps(); $("#fH").onclick = () => teacher ? go("prof", "res") : go("home"); $("#fP").onclick = () => print();
 }
 
-// ---------- Envoi des résultats à l'enseignant (QR code, sans internet) ----------
-function packResults() {
-  return { m: [ME.prenom, ME.nom, ME.prof, ME.id], r: RUNS.map(r => r && r.fin ? { k: r.k, d: r.duo ? [r.duo.prenom, r.duo.nom, r.duo.prof] : 0, p: r.plan, v: r.prevu, t0: Math.round(r.debut / 1000) * 1000, t1: r.fin, s: r.saisies.map(s => s.st === "ok" ? [Math.round((s.t - r.debut) / 1000), s.code] : [Math.round((s.t - r.debut) / 1000), s.code, s.attendu, s.st, s.bal]), q: Object.fromEntries(Object.entries(r.ress || {}).map(([k, v]) => { const q = Q.find(x => x.id === k); return [k, q ? [].concat(v).map(o => q.o.indexOf(o)) : v]; })) } : 0) };
-}
-function unpackRuns(o) { return o.r.map(x => x ? { k: x.k, duo: x.d ? { prenom: x.d[0], nom: x.d[1], prof: x.d[2] } : null, plan: x.p, prevu: x.v, debut: x.t0, fin: x.t1, saisies: (() => { let i = 0; return x.s.map(s => { const o = s.length > 2 ? { t: x.t0 + s[0] * 1000, code: s[1], attendu: s[2], st: s[3], bal: s[4] } : { t: x.t0 + s[0] * 1000, code: s[1], attendu: x.p[i], st: "ok", bal: x.p[i] }; if (o.st === "ok") i = x.p.indexOf(+o.bal) + 1; else if (o.st === "saut") i = x.p.indexOf(+o.bal) + 1; else if (o.st !== "retour") i++; return o; }); })(), ress: Object.fromEntries(Object.entries(x.q || {}).map(([k, v]) => { const q = Q.find(z => z.id === k); return [k, q && Array.isArray(v) ? (q.multi ? v.map(j => q.o[j]) : q.o[v[0]]) : v]; })) } : null); }
+// ---------- Résultats : envoi au serveur + secours par QR code ----------
+function packRun(r) { return { k: r.k, d: r.duo || 0, p: r.plan, v: r.prevu, t0: r.debut, t1: r.fin, s: r.saisies.map(s => [s.t - r.debut, s.code, s.attendu, s.st, s.bal]), q: r.ress || {}, tr: r.trace || [] }; }
+function unpackRun(x) { return x ? { k: x.k, duo: x.d || null, plan: x.p, prevu: x.v, debut: x.t0, fin: x.t1, saisies: (x.s || []).map(s => ({ t: x.t0 + s[0], code: s[1], attendu: s[2], st: s[3], bal: s[4] })), ress: x.q || {}, trace: x.tr || [] } : null; }
+const KEY = "orienrun-eps";
+function enc(o) { const b = new TextEncoder().encode(JSON.stringify(o)); let s = ""; b.forEach((v, i) => s += String.fromCharCode(v ^ KEY.charCodeAt(i % KEY.length))); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+function dec(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(s), b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length); return JSON.parse(new TextDecoder().decode(b)); }
 function sendResults() {
-  const url = location.origin + location.pathname + "#r=" + enc(packResults());
-  let svg = ""; try { svg = QR.svg(url, { ecl: "L", border: 2 }); } catch (e) { svg = "<p>Trop de données pour un QR code : utilise le lien.</p>"; }
-  const m = modal(`<h2 style="margin:0 0 6px">📤 Envoyer mes résultats</h2><p class="muted small" style="margin-top:0">Montre ce QR code à ton enseignant : il le scanne avec l'appareil photo de son téléphone.</p><div style="background:#fff;padding:10px;border-radius:14px;max-width:420px;margin:0 auto">${svg}</div>
-   <div class="row" style="margin-top:12px"><button class="btn gh grow" id="sC">Copier le lien</button><button class="btn grow" id="sX">Fermer</button></div>`);
-  $("#sX", m).onclick = m.close; $("#sC", m).onclick = async () => { try { await navigator.clipboard.writeText(url); flash("Lien copié"); } catch (e) { prompt("Copie ce lien :", url); } };
+  // QR compact (sans le tracé dessiné)
+  const o = { m: ME, r: RUNS.map(r => r?.fin ? { ...packRun(r), tr: 0, s: r.saisies.map(s => s.st === "ok" ? [Math.round((s.t - r.debut) / 1000), s.code] : [Math.round((s.t - r.debut) / 1000), s.code, s.attendu, s.st, s.bal]), z: 1 } : 0) };
+  const url = location.origin + location.pathname + "#r=" + enc(o);
+  let svg = ""; try { svg = QR.svg(url, { ecl: "L", border: 2 }); } catch (e) { svg = "<p>Trop de données pour un QR code.</p>"; }
+  const m = modal(`<h2 style="margin:0 0 6px">📤 Envoyer mes résultats</h2><p class="muted small" style="margin-top:0">Tes résultats partent automatiquement dès qu'il y a du réseau. Si ton enseignant te le demande, montre-lui ce QR code : il le scanne avec l'appareil photo de son téléphone.</p><div style="background:#fff;padding:10px;border-radius:14px;max-width:420px;margin:0 auto">${svg}</div>
+   <div class="row" style="margin-top:12px"><button class="btn grow" id="sX">Fermer</button></div>`);
+  $("#sX", m).onclick = m.close;
 }
+function unpackQR(o) { return o.r.map(x => { if (!x) return null; const r = unpackRun({ ...x, s: [] }); let i = 0; r.saisies = x.s.map(s => { const z = x.z ? 1000 : 1; const q = s.length > 2 ? { t: x.t0 + s[0] * z, code: s[1], attendu: s[2], st: s[3], bal: s[4] } : { t: x.t0 + s[0] * z, code: s[1], attendu: x.p[i], st: "ok", bal: x.p[i] }; if (q.st === "ok" || q.st === "saut") i = x.p.indexOf(+q.bal) + 1; else if (q.st !== "retour") i++; return q; }); return r; }); }
 function receiveResults(code) {
   try {
-    const o = dec(code), R = LS.get("res", {}), id = o.m[3] || o.m.join("|"); R[id] = { ...o, recu: now() }; LS.set("res", R);
+    const o = dec(code), R = LS.get("res", {}); R[o.m.id] = { me: o.m, runs: unpackQR(o).map(r => r && packRun(r)), recu: now() }; LS.set("res", R);
     history.replaceState(null, "", location.pathname);
-    $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:3rem">✅</div><h2>Résultats reçus</h2><p><b>${esc(o.m[0])} ${esc(o.m[1])}</b> (${esc(o.m[2])}) · ${o.r.filter(Boolean).length} parcours</p><p class="muted small">Ils sont rangés dans l'espace enseignant (🔒) de ce téléphone.</p><button class="btn big or" id="rcP">Voir tous les résultats</button></div>`;
+    $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:3rem">✅</div><h2>Résultats reçus</h2><p><b>${esc(studentName(o.m))}</b> (${esc(o.m.classe || "")} · ${esc(o.m.prof)}) · ${o.r.filter(Boolean).length} parcours</p><p class="muted small">Ils sont rangés dans l'espace enseignant (🔒) de ce téléphone.</p><button class="btn big or" id="rcP">Voir tous les résultats</button></div>`;
     $("#rcP").onclick = openProf; return true;
   } catch (e) { return false; }
 }
 
 // ======================= ESPACE ENSEIGNANT =======================
-let profUntil = 0;
 async function openProf() {
-  if (now() < profUntil || (() => { try { return now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } })()) return go("prof");
-  const h = pinHash(), pin = window.epsPin;
-  let v;
-  if (pin) v = await pin({ title: "🔒 Espace enseignant", text: h ? "Code enseignant" : "Crée un code enseignant (4 chiffres)", min: 4, max: 12, check: h ? (x => hashCode(x) === h || "Code incorrect.") : null });
-  else { v = prompt(h ? "Code enseignant :" : "Crée un code enseignant :"); if (v != null && h && hashCode(v) !== h) { alert("Code incorrect"); v = null; } }
-  if (v == null) return;
-  if (!h) { C.pin = hashCode(v); saveConf(); }
-  profUntil = now() + 20 * 60000; go("prof");
+  if (TPW) return go("prof", "res");
+  const m = modal(`<h2 style="margin:0 0 6px">🔒 Espace enseignant</h2><p class="muted small" style="margin-top:0">Mot de passe enseignant : le même que pour OrienRun (celui écrit dans ton script Google).</p><input class="inp" type="password" id="tp" autocomplete="current-password"><p class="small" id="tpE" style="color:var(--ko)"></p><div class="row"><button class="btn gh grow" id="tpX">Annuler</button><button class="btn or grow" id="tpOk">Entrer</button></div>`);
+  $("#tp", m).focus(); $("#tpX", m).onclick = m.close;
+  const tryIt = async () => { const v = $("#tp", m).value; if (!v) return; $("#tpOk", m).disabled = true; $("#tpE", m).textContent = "Vérification…"; try { await api("teacherCheck", { teacher: v }); TPW = v; LS.set("tpw", v); m.close(); go("prof", "res"); } catch (e) { $("#tpE", m).textContent = e.message; } finally { $("#tpOk", m).disabled = false; } };
+  $("#tpOk", m).onclick = tryIt; $("#tp", m).onkeydown = e => { if (e.key === "Enter") tryIt(); };
 }
-function saveConf() { const o = {}; Object.keys(C).forEach(k => { if (JSON.stringify(C[k]) !== JSON.stringify(DEF[k])) o[k] = C[k]; }); LS.set("conf", o); }
+let pubTimer = null, PUB = { st: "ok", t: null, err: "" }, profTick = null;
+function pubUI() { const e = $("#pub"); if (!e) return; e.className = "pub " + (PUB.st === "ok" ? "" : PUB.st === "wait" ? "wait" : "ko"); e.textContent = PUB.st === "wait" ? "⏳ Publication en cours…" : PUB.st === "ko" ? "⚠ Non publié : " + PUB.err : PUB.t ? `✓ Publié à ${new Date(PUB.t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} : les élèves le reçoivent en moins de ${SYNC_MS / 1000} s` : "Chaque modification est publiée automatiquement chez les élèves."; }
+function confChanged() { C.demo = false; LS.set("conf", C); PUB.st = "wait"; pubUI(); clearTimeout(pubTimer); pubTimer = setTimeout(publish, 900); }
+async function publish() {
+  try { const j = await api("coeSave", { teacher: TPW, cle: "conf", data: JSON.stringify(C) }); VC = j.v; LS.set("vc", VC); PUB = { st: "ok", t: now() }; }
+  catch (e) { PUB = { st: "ko", err: /Action inconnue/.test(e.message) ? "le script Google n'est pas à jour (voir les instructions)" : e.message }; if (/Mot de passe/.test(e.message)) { TPW = ""; LS.del("tpw"); } }
+  pubUI();
+}
 function vProf(tab = "res") {
-  const app = $("#app");
-  app.innerHTML = `<div class="row" style="margin-bottom:10px"><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "share" ? "" : "gh"}" data-tb="share">📲 Lien élèves</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><span class="grow"></span><button class="btn sm gh" id="pX">Fermer</button></div><div id="pv"></div>`;
-  $$("[data-tb]").forEach(b => b.onclick = () => vProf(b.dataset.tb)); $("#pX").onclick = () => { profUntil = 0; go("home"); };
-  ({ res: profRes, conf: profConf, share: profShare, dev: profDev })[tab]($("#pv"));
+  if (!TPW) return openProf();
+  clearInterval(profTick); profTick = null;
+  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><span class="grow"></span><button class="btn sm gh" id="pX">Quitter</button></div>${tab === "res" || tab === "dev" ? "" : '<div class="pub" id="pub"></div>'}<div id="pv"></div>`;
+  $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home");
+  pubUI();
+  ({ res: profRes, conf: profConf, eleves: profEleves, carte: profCarte, dev: profDev })[tab]($("#pv"));
 }
-function allResults() {
-  const R = LS.get("res", {}), L = Object.values(R).map(o => ({ me: { prenom: o.m[0], nom: o.m[1], prof: o.m[2], id: o.m[3] }, runs: unpackRuns(o), recu: o.recu }));
-  if (ME && RUNS.some(r => r?.fin) && !L.some(x => x.me.id === ME.id)) L.push({ me: ME, runs: RUNS, local: 1 });
-  return L;
+// --- résultats en direct ---
+let SRV = LS.get("srv", { since: 1, rows: [] });
+async function pullResults() { try { const j = await api("coeResults", { teacher: TPW, since: SRV.since }); if (j.since < SRV.since) SRV.rows = []; SRV.rows.push(...j.rows); SRV.since = j.since; LS.set("srv", SRV); NET = true; return true; } catch (e) { NET = false; if (/Mot de passe/.test(e.message)) { TPW = ""; LS.del("tpw"); } return /Action inconnue/.test(e.message) ? "script Google pas à jour" : e.message; } finally { setNet(); } }
+function allStudents() {
+  const S = {}, get = me => S[me.id] = S[me.id] || { me, runs: [null, null, null] };
+  const put = (me, k, r, t) => { if (!me?.id) return; const x = get(me); if (!x.runs[k] || (x.runs[k]._t || 0) <= t) x.runs[k] = { ...r, _t: t }; };
+  SRV.rows.forEach(row => { const d = row.d; if (!d?.me || !d.run) return; const r = unpackRun(d.run); put(d.me, row.k, r, row.t); if (r.duo?.id) put(r.duo, row.k, { ...r, duo: d.me }, row.t - 1); });
+  Object.values(LS.get("res", {})).forEach(o => (o.runs || []).forEach((x, k) => { if (!x) return; const r = unpackRun(x); put(o.me, k, r, o.recu - 5); if (r.duo?.id) put(r.duo, k, { ...r, duo: o.me }, o.recu - 6); }));
+  return Object.values(S);
 }
 function withStudent(x, fn) { const sM = ME, sR = RUNS; ME = x.me; RUNS = x.runs; try { return fn(); } finally { ME = sM; RUNS = sR; } }
 function profRes(box) {
-  let L = allResults(); const f = LS.get("pf", "");
-  if (f) L = L.filter(x => x.me.prof === f);
-  L.sort((a, b) => (a.me.nom + a.me.prenom).localeCompare(b.me.nom + b.me.prenom, "fr"));
-  box.innerHTML = `<div class="card"><div class="row"><h2 class="grow" style="margin:0">Résultats (${L.length})</h2><select class="inp" id="rf" style="width:auto;padding:8px"><option value="">Tous les enseignants</option>${C.profs.filter(Boolean).map(p => `<option ${p === f ? "selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
-   <p class="small muted">Chaque élève touche « 📤 Envoyer mes résultats » : scanne son QR code avec l'appareil photo de ce téléphone. Temps final = temps de course + pénalités (oubli ${fmtMin(C.penOubli)}, obligatoire manquée ${fmtMin(C.penOblig)}${C.parcours.some(p => p.max) ? `, ${fmtMin(C.penRetard)} par minute de retard` : ""}).</p>
-   <div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th>${C.parcours.map(p => `<th class="n">${esc(p.nom)}</th>`).join("")}<th></th></tr></thead><tbody>
-   ${L.map((x, i) => `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}<br><small class="muted">${esc(x.me.prof)}${x.local ? " · cet appareil" : ""}</small></td>${x.runs.map((r, k) => { if (!r?.fin) return '<td class="n muted">–</td>'; const a = withStudent(x, () => analyse(r)); return `<td class="n"><b>${fmt(a.final)}</b><br><small>${fmt(a.chrono)}${a.pen ? ` +${fmt(a.pen)}` : ""}</small> ${a.nErr ? `<span class="chip ko">${a.nErr} err.</span>` : '<span class="chip ok">✓</span>'}${r.duo ? `<br><small class="muted">👥 ${esc(r.duo.prenom)} ${esc(r.duo.nom)}</small>` : ""}</td>`; }).join("")}<td><button class="btn sm gh" data-v="${i}">Détail</button></td></tr>`).join("") || `<tr><td colspan="5" class="muted">Aucun résultat reçu pour l'instant.</td></tr>`}</tbody></table></div>
-   <div class="row" style="margin-top:12px"><button class="btn sm gh" id="rCsv">⬇ Tableur (CSV)</button><button class="btn sm gh" id="rPr">🖨 Imprimer</button><button class="btn sm gh" id="rDel" style="color:var(--ko)">Effacer les résultats reçus</button></div></div>`;
-  $("#rf").onchange = e => { LS.set("pf", e.target.value); profRes(box); };
-  $$("[data-v]", box).forEach(b => b.onclick = () => { const x = L[+b.dataset.v]; SW = SW || { ME, RUNS }; ME = x.me; RUNS = x.runs; vFull(true); });
-  $("#rPr").onclick = () => print();
-  $("#rDel").onclick = async () => { if (await ask("Effacer ?", "Tous les résultats reçus sur ce téléphone seront supprimés.", "Effacer", "ko")) { LS.del("res"); profRes(box); } };
-  $("#rCsv").onclick = () => {
-    const rows = [["Nom", "Prénom", "Enseignant", ...C.parcours.flatMap(p => [p.nom + " camarade", p.nom + " balises", p.nom + " temps (s)", p.nom + " pénalités (s)", p.nom + " final", p.nom + " erreurs", p.nom + " oubliées", p.nom + " prévu"])]];
-    L.forEach(x => rows.push([x.me.nom, x.me.prenom, x.me.prof, ...x.runs.flatMap((r, k) => { if (!r?.fin) return ["", "", "", "", "", "", "", ""]; const a = withStudent(x, () => analyse(r)); return [r.duo ? r.duo.prenom + " " + r.duo.nom : "", r.plan.join("-"), Math.round(a.chrono / 1000), Math.round(a.pen / 1000), fmt(a.final), a.nErr, a.oublis.join("-"), r.prevu ? fmt(r.prevu * 1000) : ""]; })]));
-    const csv = "﻿" + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n"), a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "resultats-CO.csv"; a.click();
+  const f = LS.get("pf", C.profs[0] || "");
+  const draw = () => {
+    const all = allStudents(), L = all.filter(x => !f || x.me.prof === f), cls = {};
+    L.forEach(x => (cls[x.me.classe || "Sans classe"] = cls[x.me.classe || "Sans classe"] || []).push(x));
+    box.innerHTML = `<div class="tabs2">${C.profs.filter(Boolean).map(p => `<button class="btn sm ${p === f ? "vi" : "gh"}" data-pf="${esc(p)}">👤 ${esc(p)} (${all.filter(x => x.me.prof === p).length})</button>`).join("")}<button class="btn sm ${!f ? "vi" : "gh"}" data-pf="">Tous (${all.length})</button></div>
+     <div class="card"><div class="row"><h2 class="grow" style="margin:0">Résultats ${f ? "· " + esc(f) : "· tous les enseignants"}</h2><span class="small muted" id="rSt"></span></div>
+      <p class="small muted">Les résultats arrivent tout seuls à la fin de chaque parcours. Temps final = temps de course + pénalités (balise non validée ${fmtMin(C.penOubli)}, obligatoire manquée ${fmtMin(C.penOblig)}${C.parcours.some(p => p.max) ? `, ${fmtMin(C.penRetard)} par minute de retard` : ""}).</p>
+      ${Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)} <span class="chip">${cls[c].length}</span></h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th>${!f ? "<th>Enseignant</th>" : ""}${C.parcours.map(p => `<th class="n">${esc(p.nom)}</th>`).join("")}<th></th></tr></thead><tbody>
+       ${cls[c].sort((a, b) => byFr(a.me.nom, b.me.nom) || byFr(a.me.prenom, b.me.prenom)).map(x => `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}</td>${!f ? `<td class="small">${esc(x.me.prof)}</td>` : ""}${x.runs.map(r => { if (!r?.fin) return '<td class="n muted">–</td>'; const a = withStudent(x, () => analyse(r)); return `<td class="n"><b>${fmt(a.final)}</b><br><small>${fmt(a.chrono)}${a.pen ? ` +${fmt(a.pen)}` : ""}</small> ${a.nErr ? `<span class="chip ko">${a.nErr}</span>` : '<span class="chip ok">✓</span>'}${r.duo ? `<br><small class="muted">👥 ${esc(r.duo.prenom)} ${esc(r.duo.nom)}</small>` : ""}</td>`; }).join("")}<td><button class="btn sm gh" data-v="${esc(x.me.id)}">Bilan</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun résultat pour l\'instant.</p>'}
+      <div class="row" style="margin-top:14px"><button class="btn sm gh" id="rCsv">⬇ Tableur (CSV)</button><button class="btn sm gh" id="rPr">🖨 Imprimer ce tableau</button><button class="btn sm gh" id="rAll">🖨 Bilans complets de ces élèves</button><button class="btn sm gh" id="rDel" style="color:var(--ko)">Vider l'affichage</button></div></div>`;
+    $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); go("prof", "res"); });
+    $$("[data-v]", box).forEach(b => b.onclick = () => { const x = all.find(y => y.me.id === b.dataset.v); SW = SW || { ME, RUNS }; ME = x.me; RUNS = x.runs; go("full", true); });
+    $("#rPr").onclick = () => print();
+    $("#rAll").onclick = () => { clearInterval(profTick); profTick = null; const sorted = L.slice().sort((a, b) => byFr(a.me.classe || "", b.me.classe || "") || byFr(a.me.nom, b.me.nom)); $("#app").innerHTML = sorted.map((x, i) => `<div class="${i ? "pb" : ""}" data-s="${i}">${withStudent(x, () => fullHTML(true))}</div>`).join("") + `<div class="row noprint"><button class="btn gh grow" id="aB">← Retour</button><button class="btn or grow" id="aP">🖨 Imprimer</button></div>`; sorted.forEach((x, i) => fillBilanMaps($(`[data-s="${i}"]`), x.runs)); $("#aB").onclick = () => go("prof", "res"); $("#aP").onclick = () => print(); };
+    $("#rDel").onclick = async () => { if (await ask("Vider l'affichage ?", "Les résultats affichés sur ce téléphone seront effacés (pour repartir à zéro après un test). Les résultats restent dans ta Google Sheet, onglet CO_Resultats.", "Vider", "ko")) { LS.del("res"); SRV.rows = []; LS.set("srv", SRV); draw(); } };
+    $("#rCsv").onclick = () => {
+      const rows = [["Enseignant", "Classe", "Nom", "Prénom", ...C.parcours.flatMap(p => [p.nom + " camarade", p.nom + " balises", p.nom + " temps (s)", p.nom + " pénalités (s)", p.nom + " final", p.nom + " non validées", p.nom + " prévu"])]];
+      L.forEach(x => rows.push([x.me.prof, x.me.classe || "", x.me.nom, x.me.prenom, ...x.runs.flatMap(r => { if (!r?.fin) return ["", "", "", "", "", "", ""]; const a = withStudent(x, () => analyse(r)); return [r.duo ? studentName(r.duo) : "", r.plan.join("-"), Math.round(a.chrono / 1000), Math.round(a.pen / 1000), fmt(a.final), a.oublis.join("-"), r.prevu ? fmt(r.prevu * 1000) : ""]; })]));
+      const csv = "﻿" + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n"), a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `resultats-CO${f ? "-" + f : ""}.csv`; a.click();
+    };
   };
+  const refresh = async () => { const st = $("#rSt"); if (st) st.textContent = "⏳"; const ok = await pullResults(); if (CUR.v !== "prof" || CUR.a[0] !== "res") return; draw(); $("#rSt").textContent = ok === true ? "● à jour " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "⚠ " + ok; };
+  draw(); refresh(); profTick = setInterval(refresh, 15000);
 }
+// --- paramètres (publiés automatiquement) ---
 function profConf(box) {
   box.innerHTML = `<div class="card"><h2>Général</h2><label class="l">Titre</label><input class="inp" id="cT" value="${esc(C.titre)}">
     <label class="l">Enseignants (un par ligne)</label><textarea class="inp" id="cPr" rows="2">${esc(C.profs.join("\n"))}</textarea></div>
-   <div class="card"><h2>Les 3 parcours</h2>${C.parcours.map((p, k) => `<div style="border-top:${k ? "1px solid var(--li)" : "0"};padding-top:${k ? 10 : 0}px;margin-top:${k ? 10 : 0}px"><div class="row"><input class="inp" style="flex:1;min-width:140px" data-pn="${k}" value="${esc(p.nom)}"><select class="inp" style="width:auto" data-pt="${k}"><option value="indiv" ${p.type === "indiv" ? "selected" : ""}>👤 individuel</option><option value="duo" ${p.type === "duo" ? "selected" : ""}>👥 collectif</option></select></div>
-     <div class="row small" style="margin-top:6px"><label>Balises à choisir <input class="inp" style="width:70px;padding:8px" type="number" min="1" data-pb="${k}" value="${p.nb}"></label><label>Obligatoire n° <select class="inp" style="width:auto;padding:8px" data-po="${k}"><option value="">aucune</option>${C.balises.map(b => `<option ${+b.n === +p.oblig ? "selected" : ""}>${b.n}</option>`).join("")}</select></label><label>Préparation (min) <input class="inp" style="width:70px;padding:8px" type="number" min="0" step="0.5" data-pp="${k}" value="${p.prep}"></label><label>Temps max (min, 0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-pm="${k}" value="${p.max}"></label></div></div>`).join("")}</div>
-   <div class="card"><h2>Pénalités et options</h2><div class="row small"><label>Balise oubliée / code faux (s) <input class="inp" style="width:80px;padding:8px" type="number" id="cPo" value="${C.penOubli}"></label><label>Obligatoire manquée (s, en plus) <input class="inp" style="width:80px;padding:8px" type="number" id="cPb" value="${C.penOblig}"></label><label>Par minute de retard (s) <input class="inp" style="width:80px;padding:8px" type="number" id="cPr2" value="${C.penRetard}"></label></div>
-    <label class="row small" style="margin-top:10px"><input type="checkbox" id="cE" ${C.voirErr ? "checked" : ""}> Montrer les erreurs et pénalités dans le bilan de l'élève</label>
-    <label class="row small"><input type="checkbox" id="cA" ${C.avance ? "checked" : ""}> L'élève peut partir avant la fin du temps de préparation</label>
-    <label class="row small"><input type="checkbox" id="cV" ${C.prevu ? "checked" : ""}> Demander une estimation du temps de course</label>
-    <label class="row small"><input type="checkbox" id="cR" ${C.reuse ? "checked" : ""}> Une balise peut être reprise d'un parcours à l'autre</label></div>
-   <div class="card"><h2>Balises (${C.balises.length})</h2><p class="small muted" style="margin-top:0">Numéro et code de 3 lettres. Pour tracer l'itinéraire des élèves sur la carte, touche « 📍 » puis l'emplacement du rond sur la carte.</p>
-    <div id="cB"></div><div class="row" style="margin-top:8px"><button class="btn sm gh" id="cAdd">＋ Balise</button><button class="btn sm gh" id="cGen">🎲 Codes au hasard</button><button class="btn sm gh" id="cMap">🗺 Charger une carte (cet appareil)</button><button class="btn sm gh" id="cDep">▲ Placer le départ</button></div>
-    <div class="mapv" id="cM" style="margin-top:10px;height:50vh"></div><p class="small" id="cMsg"></p></div>
-   <button class="btn big or" id="cSave">Enregistrer les paramètres</button>
-   <button class="btn sm gh" id="cReset" style="margin-top:10px">Revenir aux paramètres d'origine</button>`;
-  let placing = null; const B = C.balises.map(b => ({ ...b }));
-  const drawB = () => { $("#cB").innerHTML = B.map((b, i) => `<div class="row" style="margin-bottom:5px"><input class="inp" style="width:72px;padding:8px" type="number" data-bn="${i}" value="${b.n}"><input class="inp" style="width:90px;padding:8px;text-transform:uppercase;font-weight:800;letter-spacing:.1em" maxlength="3" data-bc="${i}" value="${esc(b.code)}"><button class="btn sm ${placing === i ? "or" : "gh"}" data-bp="${i}">📍${b.x != null ? " ✓" : ""}</button><button class="btn sm gh" data-bd="${i}" style="color:var(--ko)">✕</button></div>`).join("");
-    $$("[data-bn]").forEach(x => x.oninput = () => B[+x.dataset.bn].n = +x.value); $$("[data-bc]").forEach(x => x.oninput = () => B[+x.dataset.bc].code = x.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3));
-    $$("[data-bp]").forEach(x => x.onclick = () => { placing = +x.dataset.bp; $("#cMsg").textContent = `Touche sur la carte le rond de la balise ${B[placing].n}.`; drawB(); });
-    $$("[data-bd]").forEach(x => x.onclick = () => { B.splice(+x.dataset.bd, 1); drawB(); mv.redraw(); }); };
-  const mv = mapViewer($("#cM"), { overlay: (W, H) => { const l = Math.max(W, H) / 1000; return B.filter(b => b.x != null).map(b => `<circle cx="${b.x * W}" cy="${b.y * H}" r="${14 * l}" fill="#f47a20" fill-opacity=".7"/><text x="${b.x * W}" y="${b.y * H + 7 * l}" text-anchor="middle" font-size="${18 * l}" font-weight="900" fill="#fff" font-family="Arial">${b.n}</text>`).join("") + (C.depart?.x != null ? `<path d="M${C.depart.x * W} ${C.depart.y * H - 18 * l}l16 28h-32z" fill="#f47a20"/>` : ""); },
-    onTap: (x, y) => { if (placing === "dep") { C.depart = { x, y }; placing = null; $("#cMsg").textContent = "Départ placé ✓"; mv.redraw(); return; } if (placing == null) return; B[placing].x = +x.toFixed(4); B[placing].y = +y.toFixed(4); $("#cMsg").textContent = `Balise ${B[placing].n} placée ✓`; placing = B.findIndex((b, i) => i > placing && b.x == null); if (placing < 0) placing = null; else $("#cMsg").textContent += ` Maintenant la ${B[placing].n}.`; drawB(); mv.redraw(); } });
-  drawB();
-  $("#cAdd").onclick = () => { B.push({ n: (Math.max(30, ...B.map(b => +b.n)) + 1), code: rndCode(B) }); drawB(); };
-  $("#cGen").onclick = () => { B.forEach(b => b.code = ""); B.forEach(b => b.code = rndCode(B)); drawB(); };
-  $("#cDep").onclick = () => { placing = "dep"; $("#cMsg").textContent = "Touche le triangle de départ sur la carte."; };
-  $("#cMap").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = async () => { const f = i.files[0]; if (!f) return; const url = await shrink(f); await idbSet("carte", url); MAPIMG = url; vProf("conf"); flash("Carte chargée"); }; i.click(); };
-  $("#cSave").onclick = () => {
-    const codes = B.map(b => b.code); if (codes.some(c => c.length !== 3)) return flash("Chaque code doit avoir 3 lettres"); if (new Set(codes).size !== codes.length) return flash("Deux balises ont le même code"); if (new Set(B.map(b => b.n)).size !== B.length) return flash("Deux balises ont le même numéro");
-    C.titre = $("#cT").value.trim() || DEF.titre; C.profs = $("#cPr").value.split("\n").map(s => s.trim()).filter(Boolean); C.balises = B.sort((a, b) => a.n - b.n);
-    C.parcours = C.parcours.map((p, k) => ({ ...p, nom: $(`[data-pn="${k}"]`).value.trim() || p.nom, type: $(`[data-pt="${k}"]`).value, nb: Math.max(1, +$(`[data-pb="${k}"]`).value || 1), oblig: +$(`[data-po="${k}"]`).value || null, prep: Math.max(0, +$(`[data-pp="${k}"]`).value || 0), max: Math.max(0, +$(`[data-pm="${k}"]`).value || 0) }));
-    C.penOubli = +$("#cPo").value || 0; C.penOblig = +$("#cPb").value || 0; C.penRetard = +$("#cPr2").value || 0; C.voirErr = $("#cE").checked; C.avance = $("#cA").checked; C.prevu = $("#cV").checked; C.reuse = $("#cR").checked; C.demo = false;
-    saveConf(); flash("Enregistré ✓"); vProf("share");
+   <div class="card"><h2>Les 3 parcours</h2>${C.parcours.map((p, k) => `<div class="${k ? "sec" : ""}"><div class="row"><input class="inp" style="flex:1;min-width:140px" data-f="nom" data-k="${k}" value="${esc(p.nom)}"><select class="inp" style="width:auto" data-f="type" data-k="${k}"><option value="indiv" ${p.type === "indiv" ? "selected" : ""}>👤 individuel</option><option value="duo" ${p.type === "duo" ? "selected" : ""}>👥 collectif</option></select></div>
+     <div class="row small" style="margin-top:6px"><label>Balises à choisir <input class="inp" style="width:70px;padding:8px" type="number" min="1" data-f="nb" data-k="${k}" value="${p.nb}"></label><label>Obligatoire n° <select class="inp" style="width:auto;padding:8px" data-f="oblig" data-k="${k}"><option value="">aucune</option>${C.balises.map(b => `<option ${+b.n === +p.oblig ? "selected" : ""}>${b.n}</option>`).join("")}</select></label><label>Préparation (min) <input class="inp" style="width:70px;padding:8px" type="number" min="0" step="0.5" data-f="prep" data-k="${k}" value="${p.prep}"></label><label>Temps max (min, 0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="max" data-k="${k}" value="${p.max}"></label></div></div>`).join("")}</div>
+   <div class="card"><h2>Pénalités et options</h2><div class="row small"><label>Balise non validée (s) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penOubli" value="${C.penOubli}"></label><label>Obligatoire manquée (s, en plus) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penOblig" value="${C.penOblig}"></label><label>Par minute de retard (s) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penRetard" value="${C.penRetard}"></label></div>
+    <label class="row small" style="margin-top:10px"><input type="checkbox" data-o="voirErr" ${C.voirErr ? "checked" : ""}> Montrer les erreurs et pénalités dans le bilan de l'élève</label>
+    <label class="row small"><input type="checkbox" data-o="avance" ${C.avance ? "checked" : ""}> L'élève peut partir avant la fin du temps de préparation</label>
+    <label class="row small"><input type="checkbox" data-o="prevu" ${C.prevu ? "checked" : ""}> Demander une estimation du temps de course</label>
+    <label class="row small"><input type="checkbox" data-o="reuse" ${C.reuse ? "checked" : ""}> Une balise peut être reprise d'un parcours à l'autre</label></div>
+   <div class="card"><h2>Balises (${C.balises.length})</h2><p class="small muted" style="margin-top:0">Numéro (celui du rond violet sur la carte) et code de 3 lettres écrit sur la balise.</p><div id="cB"></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm gh" id="cAdd">＋ Balise</button><button class="btn sm gh" id="cMany">＋ Plusieurs balises</button><button class="btn sm gh" id="cGen">🎲 Nouveaux codes au hasard</button><button class="btn sm gh" id="cPrint">🖨 Fiche des balises (codes)</button></div></div>
+   <button class="btn sm gh" id="cReset">Revenir aux paramètres de démonstration</button>`;
+  const ch = () => confChanged();
+  $("#cT").oninput = e => { C.titre = e.target.value.trim() || DEF.titre; $("#hT").textContent = C.titre; ch(); };
+  $("#cPr").oninput = e => { C.profs = e.target.value.split("\n").map(s => s.trim()).filter(Boolean); ch(); };
+  $$("[data-f]", box).forEach(x => x.onchange = x.oninput = () => { const p = C.parcours[+x.dataset.k], f = x.dataset.f; p[f] = f === "nom" ? (x.value.trim() || p.nom) : f === "type" ? x.value : f === "oblig" ? (+x.value || null) : f === "nb" ? Math.max(1, +x.value || 1) : Math.max(0, +x.value || 0); ch(); });
+  $$("[data-g]", box).forEach(x => x.oninput = () => { C[x.dataset.g] = Math.max(0, +x.value || 0); ch(); });
+  $$("[data-o]", box).forEach(x => x.onchange = () => { C[x.dataset.o] = x.checked; ch(); });
+  const drawB = () => {
+    $("#cB").innerHTML = C.balises.map((b, i) => `<div class="row" style="margin-bottom:5px"><input class="inp" style="width:76px;padding:8px" type="number" data-bn="${i}" value="${b.n}"><input class="inp" style="width:96px;padding:8px;text-transform:uppercase;font-weight:800;letter-spacing:.1em" maxlength="3" data-bc="${i}" value="${esc(b.code)}"><span class="small" data-bw="${i}" style="color:var(--ko)"></span><span class="grow"></span><button class="btn sm gh" data-bd="${i}" style="color:var(--ko)">✕</button></div>`).join("");
+    const check = () => { const codes = C.balises.map(b => b.code), nums = C.balises.map(b => +b.n); C.balises.forEach((b, i) => { $(`[data-bw="${i}"]`).textContent = b.code.length !== 3 ? "3 lettres" : codes.indexOf(b.code) !== i ? "code en double" : nums.indexOf(+b.n) !== i ? "numéro en double" : ""; }); };
+    $$("[data-bn]").forEach(x => x.oninput = () => { C.balises[+x.dataset.bn].n = +x.value; check(); ch(); });
+    $$("[data-bc]").forEach(x => x.oninput = () => { x.value = x.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3); C.balises[+x.dataset.bc].code = x.value; check(); ch(); });
+    $$("[data-bd]").forEach(x => x.onclick = () => { C.balises.splice(+x.dataset.bd, 1); drawB(); ch(); });
+    check();
   };
-  $("#cReset").onclick = async () => { if (await ask("Paramètres d'origine ?", "Tes réglages sur ce téléphone seront effacés.", "Revenir", "ko")) { LS.del("conf"); await idbSet("carte", null); C = { ...DEF }; await loadMap(); vProf("conf"); } };
+  drawB();
+  $("#cAdd").onclick = () => { C.balises.push({ n: Math.max(30, ...C.balises.map(b => +b.n)) + 1, code: rndCode() }); drawB(); ch(); };
+  $("#cMany").onclick = () => { const v = prompt("Numéros des balises (ex. 31-50, ou 31,32,40) :"); if (!v) return; const L = []; v.split(/[,; ]+/).forEach(x => { const m = x.match(/^(\d+)-(\d+)$/); if (m) for (let i = +m[1]; i <= +m[2]; i++) L.push(i); else if (+x) L.push(+x); }); L.forEach(n => { if (!balise(n)) C.balises.push({ n, code: rndCode() }); }); C.balises.sort((a, b) => a.n - b.n); drawB(); ch(); };
+  $("#cGen").onclick = async () => { if (!(await ask("Nouveaux codes ?", "Tous les codes seront remplacés par des codes tirés au hasard. Pense à réimprimer la fiche des balises.", "Remplacer", "ko"))) return; C.balises.forEach(b => b.code = ""); C.balises.forEach(b => b.code = rndCode()); drawB(); ch(); };
+  $("#cPrint").onclick = () => { const w = open(""); w.document.write(`<title>Balises</title><style>body{font-family:Arial}.g{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.b{border:2px solid #c21fbf;border-radius:4mm;padding:6mm;text-align:center;break-inside:avoid}.n{font-size:28mm;font-weight:900;color:#c21fbf;line-height:1}.c{font-size:22mm;font-weight:900;letter-spacing:4mm}</style><body><div class="g">${C.balises.map(b => `<div class="b"><div class="n">${b.n}</div><div class="c">${esc(b.code)}</div></div>`).join("")}</div><script>print()<\/script>`); w.document.close(); };
+  $("#cReset").onclick = async () => { if (!(await ask("Paramètres de démonstration ?", "Tes paramètres seront remplacés par ceux de démonstration, chez toi et chez les élèves (les listes d'élèves sont gardées).", "Remplacer", "ko"))) return; const l = C.listes; C = clone(DEF); C.listes = l; confChanged(); go("prof", "conf"); };
 }
-const rndCode = B => { const A = "ABCDEFGHJKLMNPRSTUVWXYZ"; let c; do { c = [0, 1, 2].map(() => A[Math.floor(Math.random() * A.length)]).join(""); } while (B.some(b => b.code === c)); return c; };
-function shrink(f) { return new Promise(res => { const i = new Image(); i.onload = () => { const k = Math.min(1, 2400 / Math.max(i.width, i.height)), c = document.createElement("canvas"); c.width = i.width * k; c.height = i.height * k; c.getContext("2d").drawImage(i, 0, 0, c.width, c.height); res(c.toDataURL("image/jpeg", .85)); }; i.src = URL.createObjectURL(f); }); }
-function profShare(box) {
-  const o = {}; Object.keys(C).forEach(k => { if (JSON.stringify(C[k]) !== JSON.stringify(DEF[k])) o[k] = C[k]; }); o.pin = pinHash();
-  const url = location.origin + location.pathname + "#c=" + enc(o);
-  box.innerHTML = `<div class="card"><h2>📲 Lien pour les élèves</h2><p class="small muted" style="margin-top:0">Les élèves scannent ce QR code : leur téléphone reçoit tes paramètres (balises, codes, parcours, enseignants). Les codes ne sont pas lisibles dans l'adresse.</p>
-   <div style="background:#fff;padding:10px;border-radius:14px;max-width:440px;margin:0 auto">${QR.svg(url, { ecl: "L", border: 2 })}</div>
-   <div class="row" style="margin-top:10px"><button class="btn sm gh" id="shC">Copier le lien</button><button class="btn sm gh" id="shP">🖨 Imprimer l'affiche</button><button class="btn sm gh" id="shB">🖨 Fiche des balises (codes)</button></div>
-   ${C.demo ? '<p class="chip or" style="margin-top:10px">Paramètres de démonstration : modifie-les dans ⚙ Paramètres.</p>' : ""}
-   <p class="small muted">⚠ La carte n'est pas dans le lien : les élèves voient la carte enregistrée sur le site${MAPIMG?.startsWith("data:image/svg") ? " (pour l'instant la carte de démonstration)" : ""}. Une carte chargée sur ce téléphone reste sur ce téléphone.</p></div>`;
-  $("#shC").onclick = async () => { try { await navigator.clipboard.writeText(url); flash("Lien copié"); } catch (e) { prompt("Lien :", url); } };
-  $("#shP").onclick = () => { const w = open(""); w.document.write(`<title>QR élèves</title><body style="font-family:Arial;text-align:center"><h1>${esc(C.titre)}</h1><p style="font-size:20px">Scanne avec l'appareil photo de ton téléphone</p><div style="width:150mm;margin:auto">${QR.svg(url, { ecl: "L" })}</div><script>print()<\/script>`); w.document.close(); };
-  $("#shB").onclick = () => { const w = open(""); w.document.write(`<title>Balises</title><style>body{font-family:Arial}.g{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.b{border:2px solid #c21fbf;border-radius:4mm;padding:6mm;text-align:center;break-inside:avoid}.n{font-size:28mm;font-weight:900;color:#c21fbf;line-height:1}.c{font-size:22mm;font-weight:900;letter-spacing:4mm}</style><body><div class="g">${C.balises.map(b => `<div class="b"><div class="n">${b.n}</div><div class="c">${esc(b.code)}</div></div>`).join("")}</div><script>print()<\/script>`); w.document.close(); };
+const rndCode = () => { const A = "ABCDEFGHJKLMNPRSTUVWXYZ"; let c; do { c = [0, 1, 2].map(() => A[Math.floor(Math.random() * A.length)]).join(""); } while (C.balises.some(b => b.code === c)); return c; };
+// --- listes d'élèves (import Excel) ---
+function profEleves(box) {
+  C.listes = C.listes || {};
+  box.innerHTML = `<div class="card"><h2>👥 Listes d'élèves</h2><p class="small muted" style="margin-top:0">Importe un fichier Excel (.xlsx) ou CSV par enseignant. Colonnes reconnues : <b>Nom</b>, <b>Prénom</b> (ou une colonne « Élève » avec NOM Prénom) et <b>Classe</b>. Sans colonne Classe, chaque onglet du fichier devient une classe. Les élèves choisissent ensuite : enseignant → classe → prénom.</p>
+   ${C.profs.filter(Boolean).map(p => { const L = C.listes[p] || {}; return `<div class="sec"><div class="row"><h3 class="grow" style="margin:0">👤 ${esc(p)}</h3><button class="btn sm or" data-imp="${esc(p)}">📥 Importer une liste</button></div>
+     <div style="margin-top:8px">${Object.keys(L).sort(byFr).map(c => `<div class="cls"><b class="grow">🏫 ${esc(c)}</b><span class="small muted">${L[c].length} élèves</span><button class="btn sm gh" data-see="${esc(p)}|${esc(c)}">Voir</button><button class="btn sm gh" data-del="${esc(p)}|${esc(c)}" style="color:var(--ko)">✕</button></div>`).join("") || '<p class="small muted">Aucune liste.</p>'}</div></div>`; }).join("")}
+   <p class="small muted sec">🔒 Les listes sont enregistrées dans ta Google Sheet (onglet CO_Eval), jamais sur GitHub.</p></div>`;
+  $$("[data-imp]", box).forEach(b => b.onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = ".xlsx,.csv,.txt"; i.onchange = () => i.files[0] && importList(b.dataset.imp, i.files[0]); i.click(); });
+  $$("[data-del]", box).forEach(b => b.onclick = async () => { const [p, c] = b.dataset.del.split("|"); if (!(await ask("Supprimer ?", `La classe ${esc(c)} de ${esc(p)} sera retirée.`, "Supprimer", "ko"))) return; delete C.listes[p][c]; confChanged(); go("prof", "eleves"); });
+  $$("[data-see]", box).forEach(b => b.onclick = () => { const [p, c] = b.dataset.see.split("|"); const m = modal(`<h2 style="margin:0 0 6px">${esc(c)} · ${esc(p)}</h2><table class="t"><tbody>${C.listes[p][c].map(([n, pr]) => `<tr><td><b>${esc(n)}</b></td><td>${esc(pr)}</td></tr>`).join("")}</tbody></table><button class="btn" style="width:100%;margin-top:12px" id="sX">Fermer</button>`); $("#sX", m).onclick = m.close; });
 }
+function parseSheets(sheets, base) {
+  const res = {}, names = Object.keys(sheets);
+  names.forEach(sn => { const rows = sheets[sn].filter(r => r.some(c => String(c).trim())); if (!rows.length) return;
+    const hi = rows.slice(0, 10).findIndex(r => r.some(c => /^(nom|prenom|eleve|classe|division)/.test(norm(c))));
+    const head = hi >= 0 ? rows[hi].map(norm) : [], data = rows.slice(hi + 1);
+    const col = re => head.findIndex(h => re.test(h));
+    let cE = col(/^(eleve|nom.*prenom|identite)/), cN = col(/^nom(?!.*prenom)/), cP = col(/^prenom/), cC = col(/^(classe|division|groupe)/);
+    if (hi < 0) { cN = 0; cP = rows[0].length > 1 ? 1 : -1; }
+    const fallback = names.length > 1 || !/^(feuil|sheet)\d*$/i.test(sn) ? sn : base;
+    data.forEach(r => { let nom = "", prenom = "";
+      if (cN >= 0 && cP >= 0) { nom = String(r[cN] || "").trim(); prenom = String(r[cP] || "").trim(); }
+      else { const full = String(r[cE >= 0 ? cE : cN >= 0 ? cN : 0] || "").trim().replace(/\s+/g, " "); const w = full.split(" "); let k = 0; while (k < w.length - 1 && w[k] === w[k].toUpperCase() && /\p{L}/u.test(w[k])) k++; if (!k) k = 1; nom = w.slice(0, k).join(" "); prenom = w.slice(k).join(" "); }
+      if (!nom && !prenom) return; const cl = (cC >= 0 ? String(r[cC] || "").trim() : "") || fallback;
+      (res[cl] = res[cl] || []).push([nom.toUpperCase(), prenom]); });
+  });
+  return res;
+}
+async function importList(prof, file) {
+  let sheets;
+  try { sheets = /\.xlsx$/i.test(file.name) ? await readXLSX(await file.arrayBuffer()) : { [file.name.replace(/\.\w+$/, "")]: readCSV(await file.text()) }; }
+  catch (e) { return alert("Fichier illisible : " + e.message + "\nEnregistre-le au format .xlsx ou .csv."); }
+  const res = parseSheets(sheets, file.name.replace(/\.\w+$/, "")), cls = Object.keys(res).sort(byFr);
+  if (!cls.length) return alert("Aucun élève trouvé dans ce fichier.");
+  const m = modal(`<h2 style="margin:0 0 6px">📥 Import pour ${esc(prof)}</h2><p class="small muted" style="margin-top:0">Vérifie et renomme les classes si besoin.</p>${cls.map((c, i) => `<div class="cls"><input class="inp" style="flex:1;padding:8px" data-cn="${i}" value="${esc(c)}"><span class="small muted">${res[c].length} élèves</span></div><p class="small muted" style="margin:0 0 8px 6px">${res[c].slice(0, 4).map(([n, p]) => esc(p + " " + n)).join(", ")}…</p>`).join("")}
+   <div class="row" style="margin-top:10px"><button class="btn gh grow" id="iX">Annuler</button><button class="btn or grow" id="iOk">Importer</button></div>`);
+  $("#iX", m).onclick = m.close;
+  $("#iOk", m).onclick = () => { C.listes = C.listes || {}; C.listes[prof] = C.listes[prof] || {}; cls.forEach((c, i) => { const nm = $(`[data-cn="${i}"]`, m).value.trim() || c; C.listes[prof][nm] = res[c].sort((a, b) => byFr(a[0], b[0]) || byFr(a[1], b[1])); }); m.close(); confChanged(); go("prof", "eleves"); flash("Liste importée ✓"); };
+}
+function readCSV(t) { const lines = t.replace(/\r/g, "").split("\n"), sep = [";", "\t", ","].sort((a, b) => lines[0].split(b).length - lines[0].split(a).length)[0]; return lines.map(l => l.split(sep).map(c => c.replace(/^"|"$/g, "").trim())); }
+// lecteur .xlsx minimal (zip + XML), sans bibliothèque externe
+async function readXLSX(buf) {
+  const dv = new DataView(buf), td = new TextDecoder(); let e = buf.byteLength - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--; if (e < 0) throw new Error("ce n'est pas un fichier .xlsx");
+  const n = dv.getUint16(e + 10, true), files = {}; let o = dv.getUint32(e + 16, true);
+  for (let i = 0; i < n; i++) { const meth = dv.getUint16(o + 10, true), cs = dv.getUint32(o + 20, true), nl = dv.getUint16(o + 28, true), el = dv.getUint16(o + 30, true), cl = dv.getUint16(o + 32, true), lo = dv.getUint32(o + 42, true); files[td.decode(new Uint8Array(buf, o + 46, nl))] = { meth, cs, lo }; o += 46 + nl + el + cl; }
+  const get = async name => { const f = files[name]; if (!f) return null; const ln = dv.getUint16(f.lo + 26, true), le = dv.getUint16(f.lo + 28, true), data = new Uint8Array(buf, f.lo + 30 + ln + le, f.cs); if (!f.meth) return td.decode(data); const out = await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer(); return td.decode(out); };
+  const X = s => new DOMParser().parseFromString(s, "application/xml"), T = (el, tag) => [...el.getElementsByTagName(tag)];
+  const ssx = await get("xl/sharedStrings.xml"), ss = ssx ? T(X(ssx), "si").map(si => T(si, "t").map(t => t.textContent).join("")) : [];
+  const wb = X(await get("xl/workbook.xml")), rels = X(await get("xl/_rels/workbook.xml.rels")), rmap = {};
+  T(rels, "Relationship").forEach(r => rmap[r.getAttribute("Id")] = r.getAttribute("Target"));
+  const out = {};
+  for (const sh of T(wb, "sheet")) {
+    const rid = sh.getAttribute("r:id") || sh.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id"); let tg = rmap[rid] || ""; tg = tg.startsWith("/") ? tg.slice(1) : "xl/" + tg.replace(/^\.\//, "");
+    const x = await get(tg); if (!x) continue; const rows = [];
+    T(X(x), "row").forEach(row => { const r = []; T(row, "c").forEach(c => { const ref = c.getAttribute("r") || "", col = ref.replace(/\d+/g, "").split("").reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) - 1, t = c.getAttribute("t"), v = T(c, "v")[0]?.textContent ?? ""; r[col >= 0 ? col : r.length] = t === "s" ? ss[+v] ?? "" : t === "inlineStr" ? T(c, "t").map(z => z.textContent).join("") : v; }); rows.push(Array.from(r, v => v ?? "")); });
+    out[sh.getAttribute("name")] = rows;
+  }
+  return out;
+}
+// --- carte ---
+function profCarte(box) {
+  const demo = MAPIMG.startsWith("data:image/svg");
+  box.innerHTML = `<div class="card"><h2>🗺 Carte des élèves</h2><p class="small muted" style="margin-top:0">Photo ou scan de ta carte (JPG ou PNG). Elle est envoyée à tous les téléphones des élèves, qui pourront zoomer et y tracer leur itinéraire. Pour un PDF : fais une capture d'écran ou exporte la page en image.</p>
+   <div class="row"><button class="btn or" id="mU">📥 ${demo ? "Envoyer ma carte" : "Remplacer la carte"}</button>${demo ? "" : '<button class="btn sm gh" id="mD" style="color:var(--ko)">Revenir à la carte de démonstration</button>'}</div><p class="small" id="mS"></p>
+   <div class="mapv" id="mV" style="margin-top:10px;height:60vh"></div></div>`;
+  mapViewer($("#mV"));
+  const send = async data => { PUB.st = "wait"; pubUI(); $("#mS").textContent = `⏳ Envoi (${Math.round(data.length / 1024)} Ko)…`;
+    try { const j = await api("coeSave", { teacher: TPW, cle: "carte", data }, 90000); VM = j.v; LS.set("vm", VM); await idbSet("carte", data || null); MAPIMG = data || demoMap(); PUB = { st: "ok", t: now() }; go("prof", "carte"); flash("Carte envoyée ✓"); }
+    catch (e) { PUB = { st: "ko", err: /Action inconnue/.test(e.message) ? "le script Google n'est pas à jour" : e.message }; pubUI(); $("#mS").textContent = "⚠ " + e.message; } };
+  $("#mU").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = async () => { const f = i.files[0]; if (f) send(await shrink(f)); }; i.click(); };
+  $("#mD") && ($("#mD").onclick = async () => { if (await ask("Carte de démonstration ?", "Ta carte sera retirée chez les élèves.", "Retirer", "ko")) send(""); });
+}
+function shrink(f) { return new Promise(res => { const i = new Image(); i.onload = () => { const k = Math.min(1, 2600 / Math.max(i.width, i.height)), c = document.createElement("canvas"); c.width = Math.round(i.width * k); c.height = Math.round(i.height * k); const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(i, 0, 0, c.width, c.height); let q = .85, u = c.toDataURL("image/jpeg", q); while (u.length > 1.4e6 && q > .5) { q -= .1; u = c.toDataURL("image/jpeg", q); } res(u); }; i.src = URL.createObjectURL(f); }); }
 function profDev(box) {
-  box.innerHTML = `<div class="card"><h2>📱 Cet appareil</h2><p class="small">Élève : <b>${ME ? esc(ME.prenom + " " + ME.nom) + " · " + esc(ME.prof) : "aucun"}</b> · ${RUNS.filter(r => r?.fin).length} parcours terminé(s)${RUNS.some(r => r && !r.fin) ? " · 1 parcours en cours" : ""}</p>
+  box.innerHTML = `<div class="card"><h2>📱 Cet appareil</h2><p class="small">Élève : <b>${ME ? esc(studentName(ME)) + " · " + esc(ME.classe || "") + " · " + esc(ME.prof) : "aucun"}</b> · ${RUNS.filter(r => r?.fin).length} parcours terminé(s)${RUNS.some(r => r && !r.fin) ? " · 1 parcours en cours" : ""}</p>
    ${RUNS.map((r, k) => r?.fin ? `<button class="btn sm gh" data-tb2="${k}" style="margin:0 6px 6px 0">Bilan détaillé ${esc(P(k).nom)}</button>` : "").join("")}
    <div class="row" style="margin-top:10px">${RUNS.map((r, k) => r ? `<button class="btn sm gh" data-rz="${k}">↺ Refaire ${esc(P(k).nom)}</button>` : "").join("")}</div>
    <button class="btn ko" id="dAll" style="margin-top:12px">Nouvel élève (tout effacer sur cet appareil)</button>
-   <p class="small muted">Pour un test : fais un parcours, puis « Nouvel élève ». Les résultats reçus par QR code ne sont pas effacés.</p></div>`;
-  $$("[data-tb2]").forEach(b => b.onclick = () => vBilan(+b.dataset.tb2, true));
-  $$("[data-rz]").forEach(b => b.onclick = async () => { if (await ask("Refaire ce parcours ?", "Le résultat de ce parcours sera effacé sur cet appareil.", "Effacer", "ko")) { RUNS[+b.dataset.rz] = null; saveRuns(); vProf("dev"); } });
-  $("#dAll").onclick = async () => { if (await ask("Tout effacer ?", "L'identité et les parcours de cet appareil seront effacés.", "Effacer", "ko")) { ME = null; RUNS = [null, null, null]; LS.del("me"); saveRuns(); profUntil = 0; go("home"); } };
+   <button class="btn gh" id="dOut" style="margin-top:12px">Se déconnecter de l'espace enseignant</button>
+   <p class="small muted">Pour un test : fais un parcours, puis « Nouvel élève ». Les résultats déjà envoyés restent dans ta Google Sheet.</p></div>`;
+  $$("[data-tb2]").forEach(b => b.onclick = () => go("bilan", +b.dataset.tb2, true));
+  $$("[data-rz]").forEach(b => b.onclick = async () => { if (await ask("Refaire ce parcours ?", "Le parcours sera effacé sur cet appareil.", "Effacer", "ko")) { RUNS[+b.dataset.rz] = null; saveRuns(); go("prof", "dev"); } });
+  $("#dAll").onclick = async () => { if (await ask("Tout effacer ?", "L'identité et les parcours de cet appareil seront effacés.", "Effacer", "ko")) { ME = null; RUNS = [null, null, null]; LS.del("me"); LS.del("out"); saveRuns(); go("home"); } };
+  $("#dOut").onclick = () => { TPW = ""; LS.del("tpw"); go("home"); };
 }
 
 // ======================= DÉMARRAGE =======================
 $("#hProf").onclick = openProf;
 (async () => {
-  const h = location.hash;
-  if (h.startsWith("#c=")) { try { const o = dec(h.slice(3)); LS.set("conf", o); C = Object.assign({}, DEF, o); history.replaceState(null, "", location.pathname); setTimeout(() => flash("Paramètres reçus ✓"), 300); } catch (e) { alert("Lien de paramètres illisible."); } }
-  $("#hT").textContent = C.titre; await loadMap();
-  if (h.startsWith("#r=") && receiveResults(h.slice(3))) return;
+  $("#hT").textContent = C.titre; await loadMap(); setNet();
+  if (location.hash.startsWith("#r=") && receiveResults(location.hash.slice(3))) { sync(); return; }
   go("home");
+  sync(); setInterval(sync, SYNC_MS);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); });
+  addEventListener("online", sync); addEventListener("focus", sync);
 })();
-document.addEventListener("visibilitychange", () => { if (!document.hidden && $(".chrono")) { /* le chrono repart de l'heure de départ enregistrée */ } });
 </script>
 <script src="../eps-home.js" defer></script>
 </body>
