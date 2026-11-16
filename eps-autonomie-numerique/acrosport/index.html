@@ -511,7 +511,7 @@ async function api(action,payload={}){
   }finally{clearTimeout(tm)}
 }
 function cleanForCloud(g){
-  const o=JSON.parse(JSON.stringify(g)); ["online","dirty","pwh","obsDraft","obsLog","token","autoDirty","orphan"].forEach(k=>delete o[k]);
+  const o=JSON.parse(JSON.stringify(g)); ["online","dirty","pwh","obsDraft","obsLog","token","autoDirty","orphan","obsAboutCache"].forEach(k=>delete o[k]);
   (o.current&&o.current.mats||[]).forEach(m=>delete m.img); (o.sessions||[]).forEach(s=>(s.mats||[]).forEach(m=>delete m.img));
   return o;
 }
@@ -546,7 +546,9 @@ function mergeGroups(local,server){
   const seen={};const all=[...(server.sessions||[]),...(local.sessions||[])].filter(x=>{const k=x&&x.date;if(!k||seen[k])return false;seen[k]=1;return true});
   all.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   local.sessions=oneADay(all);
-  if((server.editedAt||"")>(local.editedAt||"")){local.current=server.current||local.current;local.editedAt=server.editedAt}
+  // l'enchaînement modifié en dernier gagne ; une tablette qui n'y a pas touché reprend celui du serveur
+  if((server.curAt||server.editedAt||"")>curTime(local)){local.current=server.current||local.current;local.curAt=server.curAt||server.editedAt||"";local.fromServer=true}
+  if(server.progress&&!(local.progress&&local.progress.ov&&Object.keys(local.progress.ov).length)) local.progress=Object.assign({},server.progress,local.progress&&local.progress.summary?{summary:local.progress.summary}:{});
   if(server.members&&server.members.length) local.members=server.members;
   if(server.name) local.name=server.name; if(server.classe) local.classe=server.classe;
   local.updated=[local.updated||"",server.updated||""].sort().pop();
@@ -569,30 +571,50 @@ async function pushGroup(g){
   catch(e){
     if(!(e.data&&e.data.conflict)) throw e;
     const server=e.data.data||{}; mergeGroups(g,server); g.rev=Number(server.rev)||0;
-    await send(); toast("Fusion avec l'enregistrement d'une autre tablette ✓");
+    const took=g.fromServer; delete g.fromServer;
+    if(took&&g===G){
+      normSlots(g.current); curSnap[g.id]=curSig(g);
+      if(!modalStack.length&&!document.querySelector(".dojoWrap.full")&&(curTab==="routine"||curTab==="videos")) try{showTab(curTab)}catch(e2){}
+      toast("Enchaînement mis à jour depuis une autre tablette du groupe");
+    }else if(g===G) toast("Fusion avec l'enregistrement d'une autre tablette ✓");
+    await send();
   }
-  g.dirty=false; forgetPending(g.id); groups[g.id]=g; store.set(K_GROUPS,groups); return true;
+  g.dirty=false; forgetPending(g.id); groups[g.id]=g; saveGroups(); return true;
 }
-function outboxHas(pred){return store.get(K_OUTBOX,[]).some(pred)}
+// file d'attente des observations : gardée tant que le serveur ne l'a pas confirmée
+let OUTBOX=store.get(K_OUTBOX,[]);
+function getBox(){return OUTBOX}
+function setBox(b){OUTBOX=b;store.set(K_OUTBOX,b)}
+const obsKey=it=>{const o=it.obs||(it.req&&it.req.obs)||{};return o.id+"|"+o.date};
+function outboxHas(pred){return getBox().some(pred)}
+function outboxState(id){const it=getBox().find(x=>(x.obs||x.req.obs).id===id);if(!it)return "ok";const g=groups[it.gid];return it.hold||!(g&&credFor(g))?"nopw":"wait"}
 let flushing=null, flushAgain=false;
 async function flushOnce(){
   for(const g of Object.values(groups)){
     if(!(g.dirty&&g.online)) continue;
     try{await pushGroup(g)}catch(e){
       if(e.network) return;
-      if(/Mot de passe/.test(e.message)){forgetPending(g.id);delete PW[g.id];toast(e.message)}
-      else if(/introuvable/.test(e.message)){g.dirty=false;g.orphan=true;forgetPending(g.id);store.set(K_GROUPS,groups)}
+      if(/Mot de passe/.test(e.message)){forgetPending(g.id);delete PW[g.id];delete g.token;saveGroups();if(g===G)toast("Mot de passe du groupe changé : reconnecte le groupe")}
+      else if(/introuvable/.test(e.message)){g.dirty=false;g.orphan=true;forgetPending(g.id);saveGroups()}
     }
   }
-  const box=store.get(K_OUTBOX,[]); const rest=[];
-  for(let k=0;k<box.length;k++){
-    try{await api("saveObservation",box[k].req)}
-    catch(e){if(e.network){rest.push(...box.slice(k));break} toast("Observation refusée : "+e.message)}
+  const box=getBox().slice(); const sent=new Set(), hold=new Set();
+  for(const it of box){
+    if(it.hold) continue;
+    const g=groups[it.gid], obs=it.obs||it.req.obs, old=it.req||{};
+    const cred=(g&&credFor(g))||(old.token?{token:old.token}:old.password?{password:old.password}:old.teacher?{teacher:old.teacher}:null);
+    if(!cred){hold.add(obsKey(it));continue}
+    const classe=(g&&g.online&&g.online.classe)||old.classe, nom=(g&&g.online&&g.online.nom)||old.nom;
+    try{await api("saveObservation",{classe,nom,...cred,obs});sent.add(obsKey(it))}
+    catch(e){
+      if(e.network) break;
+      if(/Observation vide/.test(e.message)) sent.add(obsKey(it));            // rien à envoyer
+      else if(/Mot de passe|introuvable/.test(e.message)){hold.add(obsKey(it));if(g&&/Mot de passe/.test(e.message)){delete g.token;delete PW[g.id];saveGroups()}}
+      // autre erreur (serveur occupé…) : on réessaiera
+    }
   }
-  // garder ce qui a été ajouté pendant l'envoi
-  const now=store.get(K_OUTBOX,[]); const handled=new Set(box);
-  const added=now.filter(x=>!box.some(y=>y.req.obs.id===x.req.obs.id&&y.req.obs.date===x.req.obs.date));
-  store.set(K_OUTBOX,[...rest.filter(x=>!added.some(y=>y.req.obs.id===x.req.obs.id)),...added]);
+  // on ne retire que ce que le serveur a confirmé ; ce qui a été ajouté pendant l'envoi reste
+  setBox(getBox().filter(it=>!sent.has(obsKey(it))).map(it=>hold.has(obsKey(it))?{...it,hold:true}:it));
 }
 function flushAll(){
   if(!apiUrl()) return Promise.resolve();
@@ -601,21 +623,22 @@ function flushAll(){
   return flushing;
 }
 function pendingFor(g){return !!(g&&(g.dirty||outboxHas(it=>it.gid===g.id)))}
+function needsLogin(g){return !!(g&&g.online&&((g.dirty&&!credFor(g))||outboxHas(it=>it.gid===g.id&&(it.hold||!credFor(g)))))}
 function updateBadge(){
   const b=document.getElementById("syncBadge"); if(!b) return;
   if(!G||!G.online||!apiUrl()){b.classList.add("hidden");return}
   b.classList.remove("hidden");
   const wait=pendingFor(G);
   b.className="syncBadge "+(wait?"wait":"ok");
-  b.textContent=(G.online.teacherKey?"Enseignant · ":"")+(wait?"⏳ Envoi dès connexion":"☁ En ligne ✓");
+  b.textContent=(G.online.teacherKey?"Enseignant · ":"")+(needsLogin(G)?"🔑 Reconnecte le groupe":wait?"⏳ Envoi dès connexion":"☁ En ligne ✓");
 }
 window.addEventListener("online",()=>flushAll());
 // envoi automatique de l'enchaînement en cours (les observateurs voient la dernière version)
 setInterval(()=>{
-  if(G&&G.online&&G.autoDirty&&apiUrl()&&credFor(G)&&navigator.onLine!==false){G.autoDirty=false;G.dirty=true;store.set(K_GROUPS,groups);flushAll()}
+  if(G&&G.online&&G.autoDirty&&apiUrl()&&credFor(G)&&navigator.onLine!==false){G.autoDirty=false;G.dirty=true;saveGroups();flushAll()}
 },40000);
 setInterval(()=>{if(navigator.onLine!==false){refreshClasses();if(G)loadObsAbout()}},120000);
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&G&&G.autoDirty&&G.online&&credFor(G)){G.autoDirty=false;G.dirty=true;store.set(K_GROUPS,groups);flushAll()}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&G&&G.autoDirty&&G.online&&credFor(G)){G.autoDirty=false;G.dirty=true;saveGroups();flushAll()}});
 setInterval(()=>{if(navigator.onLine!==false)flushAll()},30000);
 const K_CODES="acro.codes.v1";
 function classCode(c){return (store.get(K_CODES,{})[norm(c)]||"")}
@@ -672,7 +695,23 @@ function normGroup(g,meta){
   g.created=g.created||new Date().toISOString();
   return g;
 }
-let memoryOnly=false;
+let memoryOnly=false, quotaWarned=false;
+// écriture locale : si la mémoire de la tablette est pleine, on allège (caches, puis groupes déjà enregistrés en ligne)
+function saveGroups(){
+  if(store.set(K_GROUPS,groups)){memoryOnly=false;return true}
+  for(const g of Object.values(groups)){delete g.obsAboutCache;if(g.obsLog&&g.obsLog.length>5)g.obsLog=g.obsLog.slice(-5)}
+  if(store.set(K_GROUPS,groups)){memoryOnly=false;return true}
+  const others=Object.values(groups).filter(g=>g!==G&&g.online&&!g.dirty&&!g.autoDirty&&!g.online.pendingCreate&&!getBox().some(it=>it.gid===g.id))
+    .sort((a,b)=>String(a.editedAt||"").localeCompare(String(b.editedAt||"")));
+  for(const g of others){delete groups[g.id];if(store.set(K_GROUPS,groups)){memoryOnly=false;return true}}
+  memoryOnly=true;
+  if(!quotaWarned){quotaWarned=true;toast("⚠ Mémoire de la tablette pleine : garde la connexion, tout est envoyé en ligne")}
+  return false;
+}
+// l'enchaînement a-t-il vraiment changé ? (les notes d'observation ou l'ouverture d'un onglet ne comptent pas)
+const curSnap={};
+function curSig(g){try{const c=g.current||{};const sl=(c.slots||[]).slice();while(sl.length&&!sl[sl.length-1])sl.pop();return JSON.stringify({...c,slots:sl})}catch(e){return ""}}
+const curTime=g=>g.curAt||"";
 
 function lessonN(classe){
   const m=(location.hash||"").match(/^#pyramides-(\d{1,2})$/);
@@ -684,9 +723,12 @@ function lessonN(classe){
 }
 function persist(){
   if(!G) return;
-  G.editedAt=new Date().toISOString(); G.autoDirty=true;
+  const now=new Date().toISOString(), sig=curSig(G);
+  G.editedAt=now;
+  if(curSnap[G.id]===undefined) curSnap[G.id]=sig;
+  else if(curSnap[G.id]!==sig){curSnap[G.id]=sig;G.curAt=now;G.autoDirty=true}
   groups[G.id]=G;
-  if(!store.set(K_GROUPS,groups)) memoryOnly=true;
+  saveGroups();
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function toast(msg){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
@@ -805,6 +847,7 @@ async function enterGroup(g,pw){
   g.online=g.online||{classe:homeClass,nom:g.name};
   if(pw){PW[g.id]=pw;g.pwh=await sha(pw+"|"+g.id)}
   G=g;persist();
+  setBox(getBox().map(it=>it.gid===g.id&&it.hold?{...it,hold:false}:it));
   document.getElementById("gPwIn").value="";
   openApp();flushAll();
 }
@@ -824,12 +867,13 @@ document.getElementById("enterBtn").onclick=async e=>{
     const r=await api("load",{classe:homeClass,nom:it.nom,password:pw});
     const g=normGroup(r.data,{classe:homeClass,nom:it.nom});
     g.token=r.token||null; g.rev=Number(r.data&&r.data.rev)||0;
-    if(local&&local.id===g.id){
-      if((local.editedAt||"")>(g.editedAt||g.updated||"")){
-        g.current=local.current; if((local.sessions||[]).length>=(g.sessions||[]).length) g.sessions=oneADay(local.sessions);
-        g.updated=local.updated||g.updated; g.dirty=!!local.dirty; g.editedAt=local.editedAt;
-      }
-      g.obsDraft=local.obsDraft; g.obsLog=local.obsLog;
+    const loc=groups[g.id];   // même groupe déjà ouvert sur cette tablette (même s'il a été renommé)
+    if(loc){
+      const srvDates=new Set((g.sessions||[]).map(x=>dayOf(x.date)));
+      const seen={};g.sessions=oneADay([...(g.sessions||[]),...(loc.sessions||[])].filter(x=>{const k=x&&x.date;if(!k||seen[k])return false;seen[k]=1;return true}));
+      if(curTime(loc)>(g.curAt||g.editedAt||"")){g.current=loc.current;g.curAt=loc.curAt;g.dirty=true}
+      else if((loc.sessions||[]).some(x=>x&&x.date&&!srvDates.has(dayOf(x.date)))) g.dirty=true;
+      g.obsDraft=loc.obsDraft; g.obsLog=loc.obsLog; g.obsAboutCache=loc.obsAboutCache;
     }
     g.online={classe:homeClass,nom:it.nom};
     await enterGroup(g,pw);
@@ -845,6 +889,7 @@ document.getElementById("enterBtn").onclick=async e=>{
         const loc=groups[g.id]; if(loc){g.obsDraft=loc.obsDraft;g.obsLog=loc.obsLog;g.token=loc.token;g.pwh=loc.pwh}
         g.online={classe:homeClass,nom:it.nom,teacherKey:key};
         G=g;persist();document.getElementById("gPwIn").value="";openApp();
+        setBox(getBox().map(it=>it.gid===g.id&&it.hold?{...it,hold:false}:it));flushAll();
         toast("Groupe ouvert avec le mot de passe enseignant");
         return;
       }catch(e2){ if(e2.network){toast(e2.message);return} }
@@ -899,6 +944,7 @@ function openApp(){
   vFilter={f:n===2?"duo":n===3?"trio":n===4?"quatuor":null,t:STATIC_T.includes(dayTheme)?dayTheme:null,lv:null};
   obsAbout=null; setTimeout(()=>{renderBeltChip();loadObsAbout()},0);
   ensureSlots();
+  curSnap[G.id]=curSig(G);
   showTab(G.current.slots.some(s=>partsOf(s).length)?"routine":"videos");
   window.scrollTo(0,0);
 }
@@ -1059,13 +1105,14 @@ function classSettings(c){const sc=(serverClasses||[]).find(x=>norm(x.nom)===nor
 let obsAbout=null;
 async function loadObsAbout(){
   if(!G) return;
+  if(!beltsShow()){obsAbout=G.obsAboutCache||[];return}
   const g=G;
   if(apiUrl()&&g.online&&credFor(g)){
     try{
       const r=await api("myObservations",{classe:g.online.classe,nom:g.online.nom,...credFor(g)});
       const list=(r.observations||[]).map(x=>x.data).filter(o=>o&&o.observed&&norm(o.observed.nom)===norm(g.name));
       if(G!==g) return;
-      obsAbout=list; g.obsAboutCache=list; store.set(K_GROUPS,groups);
+      obsAbout=list; g.obsAboutCache=list; saveGroups();
     }catch(e){if(G!==g)return;obsAbout=g.obsAboutCache||[]}
   }else obsAbout=g.obsAboutCache||[];
   updateProgress();
@@ -1132,7 +1179,7 @@ function updateProgress(){
   if(!old||old.sig!==sig){
     const before=old?old.belts||[]:[];
     G.progress.summary={sig,done,belts,black,at:new Date().toISOString()};
-    persist();
+    persist();G.autoDirty=true;saveGroups();
     const gained=belts.filter(t=>!before.includes(t));
     if(beltsActive()&&old&&gained.length) toast("🥋 Ceinture "+BELTS[gained[0]][0]+" obtenue : "+T_SHORT[gained[0]]+" stabilisée !");
   }
@@ -1179,11 +1226,11 @@ function renderPath(){
   root.querySelectorAll("[data-ov]").forEach(b=>b.onclick=()=>{
     G.progress=G.progress||{};const ov=G.progress.ov=G.progress.ov||{};const k=b.dataset.ov;
     ov[k]=ov[k]===undefined?true:ov[k]===true?false:undefined; if(ov[k]===undefined) delete ov[k];
-    persist();updateProgress();renderPath();
+    persist();G.autoDirty=true;saveGroups();updateProgress();renderPath();
   });
   root.querySelectorAll("[data-unlock]").forEach(b=>b.onclick=()=>{
     G.progress=G.progress||{};const ov=G.progress.ov=G.progress.ov||{};const k=b.dataset.unlock+"|unlock";
-    if(ov[k]) delete ov[k]; else ov[k]=true; persist();updateProgress();renderPath();
+    if(ov[k]) delete ov[k]; else ov[k]=true; persist();G.autoDirty=true;saveGroups();updateProgress();renderPath();
   });
 }
 
@@ -1508,7 +1555,9 @@ function setupDojo(){
     if(sel!==null){sel=null;renderPieces()}
     cv.setPointerCapture(e.pointerId);cur={c:colOf(who),m:who,d:dash,p:[rel(e)]};D.strokes.push(cur);
   });
-  cv.addEventListener("pointermove",e=>{if(!cur)return;cur.p.push(rel(e).map(v=>Math.round(v*1000)/1000));redraw()});
+  cv.addEventListener("pointermove",e=>{if(!cur)return;const q=rel(e).map(v=>Math.round(v*1000)/1000),l=cur.p[cur.p.length-1];
+    if(Math.abs(q[0]-l[0])+Math.abs(q[1]-l[1])<0.006)return;   // points trop proches : inutiles (enregistrements plus légers)
+    cur.p.push(q);redraw()});
   const end=()=>{if(!cur)return;if(cur.p.length<2)D.strokes.pop();cur=null;redraw();persist()};
   cv.addEventListener("pointerup",end);cv.addEventListener("pointercancel",end);
 
@@ -1704,6 +1753,7 @@ function renderObs(){
       <div class="field" style="flex:none"><label>&nbsp;</label><button class="btn alt small" id="obsNew">+ Nouvelle observation</button></div>
     </div>
     <div class="legend"><span>Touche une case :</span><span class="mark m1 lg">✗ non réussi</span><span class="mark m2 lg">~ en cours</span><span class="mark m3 lg">✓ réussi</span><span class="muted">ⓘ = détail du critère</span></div>`;
+  if(o.routine&&o.date) html+=`<div class="note okNote" style="margin:0 0 10px">✓ Observation enregistrée à ${new Date(o.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}. Tu peux la corriger puis l'enregistrer à nouveau. Pour un <b>autre passage</b> : « + Nouvelle observation ».</div>`;
   if(!o.routine) html+=`<div class="panel" style="text-align:center"><p style="margin:0"><b>Choisis le groupe observé</b> : son enchaînement enregistré s'affiche ici avec les critères.</p></div>`;
   else{
     html+=`<div class="row" style="margin:4px 0 10px"><p class="sub" style="margin:0">Enchaînement de <b>${esc(o.routine.nom)}</b> · ${esc((o.routine.members||[]).join(", "))}</p>
@@ -1761,50 +1811,52 @@ function renderObs(){
 function statusBox(st,what){
   if(st==="ok") return `<p class="note okNote">☁ ${what} enregistrée en ligne ✓</p>`;
   if(st==="wait") return `<p class="note">⏳ ${what} enregistrée. Elle partira en ligne <b>automatiquement</b> dès que la tablette sera connectée.</p>`;
-  if(st==="nopw") return `<p class="note">⚠ Rouvre le groupe avec son mot de passe pour l'envoyer en ligne.</p>`;
+  if(st==="nopw") return `<p class="note">🔑 ${what} gardée sur la tablette. Pour l'envoyer en ligne : reviens à l'accueil (⌂) et rouvre le groupe avec son mot de passe.</p>`;
   return `<p class="muted">${what} enregistrée. (L'enregistrement en ligne n'est pas encore activé par l'enseignant.)</p>`;
 }
+let saving=false;
 async function saveProgress(){
-  const snap=JSON.parse(JSON.stringify(G.current));
-  snap.date=new Date().toISOString(); snap.n=lessonN();
-  G.sessions=oneADay([...G.sessions.filter(x=>dayOf(x.date)!==dayOf(snap.date)),snap]); G.updated=snap.date;
-  const online=!!(G.online&&apiUrl());
-  if(online){G.dirty=true;if(!G.online.teacherKey)rememberPending(G.id,PW[G.id])}
-  persist();
-  const m=openModal(`<div class="sheet" style="max-width:560px"><button class="close" data-close>×</button>
-    <h2>Progression enregistrée</h2><div id="stBox">${online?`<p class="note">☁ Envoi en ligne…</p>`:statusBox("local","Elle est")}</div>
-    <div class="row"><button class="btn alt" data-close>Fermer</button></div></div>`);
-  if(online){
-    await flushAll();
-    const st=!G.dirty?"ok":credFor(G)?"wait":"nopw";
-    const box=m.querySelector("#stBox"); if(box) box.innerHTML=statusBox(st,"La progression est").replace("est enregistrée","est enregistrée");
-  }
-  updateBadge();
+  if(saving) return; saving=true;
+  try{
+    const snap=JSON.parse(JSON.stringify(G.current));
+    snap.date=new Date().toISOString(); snap.n=lessonN();
+    G.sessions=oneADay([...G.sessions.filter(x=>dayOf(x.date)!==dayOf(snap.date)),snap]); G.updated=snap.date;
+    const online=!!(G.online&&apiUrl());
+    if(online){G.dirty=true;if(!G.online.teacherKey)rememberPending(G.id,PW[G.id])}
+    persist();
+    const m=openModal(`<div class="sheet" style="max-width:560px"><button class="close" data-close>×</button>
+      <h2>Progression enregistrée</h2><div id="stBox">${online?`<p class="note">☁ Envoi en ligne…</p>`:statusBox("local","Elle est")}</div>
+      <div class="row"><button class="btn alt" data-close>Fermer</button></div></div>`);
+    if(online){
+      await flushAll();
+      const st=!G.dirty?"ok":credFor(G)?"wait":"nopw";
+      const box=m.querySelector("#stBox"); if(box) box.innerHTML=statusBox(st,"La progression est");
+    }
+  }finally{saving=false;updateBadge()}
 }
 async function saveObservation(){
+  if(saving) return;
   const o=draft();
   if(!o.routine){toast("Choisis d'abord le groupe observé");return}
   if(!o.observers.length){toast("Indique qui observe (Observateur(s))");return}
-  o.date=new Date().toISOString(); o.summary=obsSummary(o); o.observerGroup={classe:G.classe,nom:G.name};
-  const copy=JSON.parse(JSON.stringify(o));
-  G.obsLog=(G.obsLog||[]).filter(x=>x.id!==o.id); G.obsLog.push(copy); persist();
-  let st="local";
-  if(G.online&&apiUrl()){
-    const cred=credFor(G);
-    if(!cred) st="nopw";
-    else{
-      const box=store.get(K_OUTBOX,[]).filter(it=>it.req.obs.id!==o.id);
-      box.push({gid:G.id,req:{classe:G.online.classe,nom:G.online.nom,...cred,obs:copy}}); store.set(K_OUTBOX,box);
+  saving=true;
+  try{
+    o.date=new Date().toISOString(); o.summary=obsSummary(o); o.observerGroup={classe:G.classe,nom:G.name};
+    const copy=JSON.parse(JSON.stringify(o));
+    G.obsLog=(G.obsLog||[]).filter(x=>x.id!==o.id); G.obsLog.push(copy); persist();
+    const online=!!(G.online&&apiUrl());
+    const m=openModal(`<div class="sheet" style="max-width:600px"><button class="close" data-close>×</button>
+      <h2>Observation enregistrée</h2><div class="obsLine big">${obsLine(copy)}</div><div id="stBox">${online?`<p class="note">☁ Envoi en ligne…</p>`:statusBox("local","L'observation est")}</div>
+      <div class="row"><button class="btn sun" id="obsNext">+ Observer un autre passage</button><button class="btn alt" data-close>Fermer</button></div></div>`);
+    m.querySelector("#obsNext").onclick=()=>{G.obsDraft=Object.assign(newDraft(),{observers:o.observers});persist();closeModal();renderObs()};
+    obsHistory=null; if(curTab==="obs") renderObs();
+    if(online){
+      setBox([...getBox().filter(it=>(it.obs||it.req.obs).id!==o.id),{gid:G.id,obs:copy}]);
       await flushAll();
-      st=outboxHas(it=>it.req.obs.id===o.id)?"wait":"ok";
+      const box=m.querySelector("#stBox"); if(box) box.innerHTML=statusBox(outboxState(o.id),"L'observation est");
+      obsHistory=null; if(curTab==="obs"&&!modalStack.length) renderObs();
     }
-  }
-  const m=openModal(`<div class="sheet" style="max-width:600px"><button class="close" data-close>×</button>
-    <h2>Observation enregistrée</h2><div class="obsLine big">${obsLine(copy)}</div>${statusBox(st,"L'observation est").replace("Elle partira","Elle partira")}
-    <div class="row"><button class="btn sun" id="obsNext">+ Observer un autre passage</button><button class="btn alt" data-close>Fermer</button></div></div>`);
-  m.querySelector("#obsNext").onclick=()=>{G.obsDraft=Object.assign(newDraft(),{observers:o.observers});persist();closeModal();renderObs()};
-  obsHistory=null; if(curTab==="obs") renderObs();
-  updateBadge();
+  }finally{saving=false;updateBadge()}
 }
 document.getElementById("saveBtn").onclick=()=>curTab==="obs"?saveObservation():saveProgress();
 
@@ -1977,10 +2029,10 @@ function profPanel(){
   m.querySelector("#nPlus").onclick=()=>{n=Math.min(12,n+1);out.textContent=n};
   m.querySelector("#pasteOk").onclick=()=>{
     try{const g=JSON.parse(m.querySelector("#pasteCode").value);if(!g.id||!Array.isArray(g.members))throw 0;
-      groups[g.id]=g;store.set(K_GROUPS,groups);if(homeClass)loadGroupList();toast("Groupe importé")}catch(e){toast("Code non reconnu")}
+      groups[g.id]=g;saveGroups();if(homeClass)loadGroupList();toast("Groupe importé")}catch(e){toast("Code non reconnu")}
   };
   m.querySelector("#wipe").onclick=()=>confirmBox("Effacer TOUS les groupes et progressions de cette tablette ?",()=>{
-    groups={};store.set(K_GROUPS,groups);store.set(K_OUTBOX,[]);store.set(K_PENDING,{});if(G){closeModal();document.getElementById("backHome").click()}if(homeClass)loadGroupList();toast("Tablette réinitialisée")});
+    groups={};saveGroups();setBox([]);store.set(K_PENDING,{});if(G){closeModal();document.getElementById("backHome").click()}if(homeClass)loadGroupList();toast("Tablette réinitialisée")});
   m.querySelector("#apiTest").onclick=async()=>{
     prof.api=m.querySelector("#apiIn").value.trim();store.set(K_PROF,prof);refreshOnlineUI();
     try{await api("ping");toast("Connexion OK ✓")}catch(e){toast(e.message)}
@@ -2014,7 +2066,7 @@ function profPanel(){
           try{
             await api("teacherDelete",{teacher:teacherPw,key:g.key});
             Object.values(groups).filter(x=>norm(x.classe)===norm(g.classe)&&norm(x.name)===norm(g.nom)).forEach(x=>{delete groups[x.id];forgetPending(x.id)});
-            store.set(K_GROUPS,groups);
+            saveGroups();
             toast("Groupe « "+g.nom+" » supprimé");
             if(homeClass&&!G) loadGroupList();
             showGroups();
@@ -2118,7 +2170,7 @@ async function editGroup(g,onDone){
     try{
       await api("teacherUpdateGroup",{teacher:teacherPw,key:g.key,nom,classe,members});
       Object.values(groups).filter(x=>norm(x.classe)===norm(g.classe)&&norm(x.name)===norm(g.nom)).forEach(x=>{x.name=nom;x.classe=classe;x.members=members.slice();if(x.online){x.online.nom=nom;x.online.classe=classe}});
-      store.set(K_GROUPS,groups);
+      saveGroups();
       closeModal();toast("Groupe modifié ✓");onDone&&onDone();
       if(homeClass&&!G) loadGroupList();
     }catch(e){toast(e.message)}
