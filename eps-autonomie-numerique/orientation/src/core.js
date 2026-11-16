@@ -246,7 +246,8 @@ function overprintSVG(proj, opts = {}) {
   const mm = mapMM(proj), sw = (.35 * mm).toFixed(2), R = 2.5 * mm * (proj.map?.circ || 1);
   const ctrl = id => proj.controls.find(c => c.id === id);
   let out = "", items = [];
-  const course = opts.course;
+  const course = opts.course, sc = proj.map?.showCode || 0;
+  const showCode = !opts.noCode && (opts.codes ?? (sc === 2 || (sc === 1 && !course)));
   if (course) {
     if (course.depart) { const c = ctrl(course.depart); if (c && c.x != null) items.push({ c, t: "S" }); }
     const bo = course.bonus || []; let ord = 0;
@@ -271,7 +272,9 @@ function overprintSVG(proj, opts = {}) {
     else {
       out += `<g ${dt}${hl}><circle cx="${c.x}" cy="${c.y}" r="${R}" fill="transparent" stroke="${VIOLET}" stroke-width="${sw}"/>`;
       const a = (c.lab ?? 45) * Math.PI / 180, lx = c.x + Math.cos(a) * (R + 2.6 * mm), ly = c.y - Math.sin(a) * (R + 2.6 * mm);
-      out += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="${(4 * mm * (proj.map?.txt || 1)).toFixed(1)}" fill="${VIOLET}" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central" paint-order="stroke" stroke="#fff" stroke-width="${(.6 * mm).toFixed(1)}">${esc(lab)}</text></g>`;
+      out += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="${(4 * mm * (proj.map?.txt || 1)).toFixed(1)}" fill="${VIOLET}" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central" paint-order="stroke" stroke="#fff" stroke-width="${(.6 * mm).toFixed(1)}">${esc(lab)}</text>`;
+      if (showCode && c.code) { const fs = 3.2 * mm * (proj.map?.txt || 1); out += `<text x="${lx.toFixed(1)}" y="${(ly + fs * 1.15).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="${VIOLET}" font-family="Arial, sans-serif" font-weight="700" letter-spacing="${(.25 * mm).toFixed(1)}" text-anchor="middle" dominant-baseline="central" paint-order="stroke" stroke="#fff" stroke-width="${(.5 * mm).toFixed(1)}">${esc(c.code)}</text>`; }
+      out += `</g>`;
     }
   });
   return out;

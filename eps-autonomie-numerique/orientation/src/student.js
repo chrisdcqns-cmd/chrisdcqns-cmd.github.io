@@ -357,7 +357,7 @@ function showStudentMap() {
   const k = pr.courses.find(x => x.k === r.c.k); if (k && !k.carte) return toast("Ton enseignant n'a pas partagé la carte", "ko");
   const course = k ? { ...k, ctrl: r.sel && k.mode !== "ordre" ? k.ctrl.filter(id => r.sel.includes(+pr.controls.find(c => c.id === id)?.n)) : k.ctrl } : null;
   let z = 1;
-  const m = openModal(`<h2>Carte · ${esc(r.c.k)}</h2><div class="row" style="margin-bottom:8px"><button class="btn small alt" id="zp">＋</button><button class="btn small alt" id="zm">－</button></div><div style="overflow:auto;max-height:72vh;border-radius:12px;background:#ddd"><svg id="smap" viewBox="0 0 ${pr.map.w} ${pr.map.h}" style="width:100%;display:block">${mapSVG(pr, { course })}</svg></div>`, { wide: true });
+  const m = openModal(`<h2>Carte · ${esc(r.c.k)}</h2><div class="row" style="margin-bottom:8px"><button class="btn small alt" id="zp">＋</button><button class="btn small alt" id="zm">－</button></div><div style="overflow:auto;max-height:72vh;border-radius:12px;background:#ddd"><svg id="smap" viewBox="0 0 ${pr.map.w} ${pr.map.h}" style="width:100%;display:block">${mapSVG(pr, { course, noCode: true })}</svg></div>`, { wide: true });
   const set = () => $("#smap", m).style.width = (100 * z) + "%";
   $("#zp", m).onclick = () => { z = Math.min(5, z * 1.5); set(); }; $("#zm", m).onclick = () => { z = Math.max(1, z / 1.5); set(); };
 }

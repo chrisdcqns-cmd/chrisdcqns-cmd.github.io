@@ -133,6 +133,14 @@ function viewCarte(v) {
         <button class="tool" data-tool="cal"><svg viewBox="0 0 26 20"><circle cx="13" cy="10" r="6" fill="none" stroke="#1a9b55" stroke-width="2"/><path d="M13 1v6M13 13v6M4 10h6M16 10h6" stroke="#1a9b55" stroke-width="2"/></svg>Point GPS (calage)</button>
       </div>
       ${Object.entries(groups).map(([g, list]) => `<h4>${g}</h4><div class="tgrid">${list.map(s => `<button class="tool" data-tool="sym:${s.id}" title="${s.code ? "ISOM " + s.code + " – " : ""}${esc(s.nom)}">${icon(s)}${esc(s.nom)}</button>`).join("")}</div>`).join("")}
+      <h4>Apparence des postes</h4>
+      <div class="pst" style="font-size:.85rem;margin:0 2px 8px">
+        <label style="display:block">Taille des cercles <b id="vCirc">${Math.round((P.map.circ || 1) * 100)} %</b><input type="range" id="rCirc" min="40" max="250" step="5" value="${Math.round((P.map.circ || 1) * 100)}" style="width:100%"></label>
+        <label style="display:block;margin-top:4px">Taille des numéros et codes <b id="vTxt">${Math.round((P.map.txt || 1) * 100)} %</b><input type="range" id="rTxt" min="40" max="250" step="5" value="${Math.round((P.map.txt || 1) * 100)}" style="width:100%"></label>
+        <label style="display:block;margin-top:6px">Code de la balise sur la carte
+          <select class="inp" id="sCode" style="min-height:34px;padding:2px 6px;margin-top:3px"><option value="0" ${!P.map.showCode ? "selected" : ""}>Non affiché</option><option value="1" ${P.map.showCode === 1 ? "selected" : ""}>Affiché sur la carte de l'enseignant (éditeur, carte générale)</option><option value="2" ${P.map.showCode === 2 ? "selected" : ""}>Affiché aussi sur les parcours imprimés</option></select></label>
+        <button class="btn small ghost" id="bPstR" style="margin-top:6px">↺ Tailles par défaut</button>
+      </div>
       <h4>Carte à l'échelle</h4>
       <button class="btn small ${P.map.scale ? "ghost" : "or"}" id="bmB" style="width:100%;margin-bottom:6px;white-space:normal;height:auto;min-height:36px;line-height:1.2;padding:6px 10px">🗺 ${P.map.scale ? "Refaire la carte à l'échelle" : "Créer une carte vierge à l'échelle (relevés GPS)"}</button>
       ${P.map.scale ? `<p class="muted" style="font-size:.78rem;margin:0 2px 6px">Échelle <b>1 : ${P.map.scale.toLocaleString("fr-FR")}</b> · ${Math.round(P.map.w / P.map.pxmm)} × ${Math.round(P.map.h / P.map.pxmm)} mm · nord en haut</p>` : ""}
@@ -156,6 +164,12 @@ function viewCarte(v) {
   $("#myPosB").onclick = toggleMyPos;
   $("#pcRep") && ($("#pcRep").onclick = placeReperes);
   $("#bmB").onclick = blankMapDialog;
+  const pst = (k, v) => { P.map[k] = v; saveP(); renderEditor(); };
+  $("#rCirc").oninput = e => { $("#vCirc").textContent = e.target.value + " %"; P.map.circ = e.target.value / 100; renderEditor(); };
+  $("#rTxt").oninput = e => { $("#vTxt").textContent = e.target.value + " %"; P.map.txt = e.target.value / 100; renderEditor(); };
+  $("#rCirc").onchange = e => pst("circ", e.target.value / 100); $("#rTxt").onchange = e => pst("txt", e.target.value / 100);
+  $("#sCode").onchange = e => { const v = +e.target.value; if (v === 2 && !confirm("Le code de chaque balise sera écrit sur les cartes de parcours imprimées.\nLes élèves pourront alors valider une balise sans la trouver. Continuer ?")) { e.target.value = P.map.showCode || 0; return; } pst("showCode", v); };
+  $("#bPstR").onclick = () => { P.map.circ = 1; P.map.txt = 1; saveP(); renderEditor(); $("#rCirc").value = 100; $("#rTxt").value = 100; $("#vCirc").textContent = "100 %"; $("#vTxt").textContent = "100 %"; };
   $("#undB") && ($("#undB").onchange = e => { P.map.showUnder = e.target.checked; saveP(); renderEditor(); });
   $("#rcTr") && ($("#rcTr").onclick = () => { const n = recalTraces(); if (n == null) return toast("Cale d'abord la carte (au moins 2 points).", "ko"); saveP(); renderEditor(); toast(n + " chemin(s) recalé(s) sur le calage actuel ✓", "ok"); });
   $("#cvTr") && ($("#cvTr").onclick = () => { if (!georef()) return toast("Cale d'abord la carte (au moins 2 points GPS) : outil « Point GPS (calage) ».", "ko"); pushUndo(); const n = convertTraces(); saveP(); toast(n + " chemin(s) dessiné(s) sur la carte ✓", "ok"); setPTab("carte"); });
