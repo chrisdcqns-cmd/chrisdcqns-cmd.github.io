@@ -271,6 +271,7 @@ function overprintSVG(proj, opts = {}) {
     } else if (t === "F") out += `<g ${dt}${hl}><circle cx="${c.x}" cy="${c.y}" r="${R}" fill="none" stroke="${VIOLET}" stroke-width="${sw}"/><circle cx="${c.x}" cy="${c.y}" r="${R * 1.4}" fill="transparent" stroke="${VIOLET}" stroke-width="${sw}"/></g>`;
     else {
       out += `<g ${dt}${hl}><circle cx="${c.x}" cy="${c.y}" r="${R}" fill="transparent" stroke="${VIOLET}" stroke-width="${sw}"/>`;
+      if (opts.noNum) { out += `</g>`; return; }
       const a = (c.lab ?? 45) * Math.PI / 180, lx = c.x + Math.cos(a) * (R + 2.6 * mm), ly = c.y - Math.sin(a) * (R + 2.6 * mm);
       out += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="${(4 * mm * (proj.map?.txt || 1)).toFixed(1)}" fill="${VIOLET}" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central" paint-order="stroke" stroke="#fff" stroke-width="${(.6 * mm).toFixed(1)}">${esc(lab)}</text>`;
       if (showCode && c.code) { const fs = 3.2 * mm * (proj.map?.txt || 1); out += `<text x="${lx.toFixed(1)}" y="${(ly + fs * 1.15).toFixed(1)}" font-size="${fs.toFixed(1)}" fill="${VIOLET}" font-family="Arial, sans-serif" font-weight="700" letter-spacing="${(.25 * mm).toFixed(1)}" text-anchor="middle" dominant-baseline="central" paint-order="stroke" stroke="#fff" stroke-width="${(.5 * mm).toFixed(1)}">${esc(c.code)}</text>`; }

@@ -123,6 +123,8 @@ function viewCarte(v) {
   v.innerHTML = `<div class="pmain" style="padding-bottom:10px"><div class="editor">
     <div class="tools">
       <div class="row" style="gap:6px"><button class="btn small or" id="loadMap">📂 Charger ma carte</button><button class="btn small ghost" id="mapSet">⚙</button><button class="btn small ghost" id="undoB" title="Annuler">↶</button></div>
+      <h4>Ma carte</h4>
+      <div class="row" style="gap:6px;margin:0 0 8px"><button class="btn small or" id="bLib" style="flex:1 1 100%">📚 Bibliothèque de cartes</button><button class="btn small alt" id="bSaveAs" style="flex:1">💾 Enregistrer</button><button class="btn small alt" id="bDl" style="flex:1">⬇ Télécharger</button><button class="btn small ghost" id="bCoe" style="flex:1 1 100%">📲 Utiliser dans CO éval</button></div>
       <h4>Outils</h4><div class="tgrid">
         <button class="tool" data-tool="select"><svg viewBox="0 0 26 20"><path d="M8 2l10 9-5 1 3 6-2 1-3-6-3 4z" fill="currentColor"/></svg>Choisir / déplacer</button>
         <button class="tool" data-tool="pan"><svg viewBox="0 0 26 20"><path d="M13 1v18M4 10h18M13 1l-3 3M13 1l3 3M13 19l-3-3M13 19l3-3M4 10l3-3M4 10l3 3M22 10l-3-3M22 10l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>Se déplacer</button>
@@ -164,6 +166,7 @@ function viewCarte(v) {
   $("#myPosB").onclick = toggleMyPos;
   $("#pcRep") && ($("#pcRep").onclick = placeReperes);
   $("#bmB").onclick = blankMapDialog;
+  $("#bLib").onclick = libraryDialog; $("#bSaveAs").onclick = saveAsDialog; $("#bDl").onclick = downloadDialog; $("#bCoe").onclick = () => coeDialog(P);
   const pst = (k, v) => { P.map[k] = v; saveP(); renderEditor(); };
   $("#rCirc").oninput = e => { $("#vCirc").textContent = e.target.value + " %"; P.map.circ = e.target.value / 100; renderEditor(); };
   $("#rTxt").oninput = e => { $("#vTxt").textContent = e.target.value + " %"; P.map.txt = e.target.value / 100; renderEditor(); };
