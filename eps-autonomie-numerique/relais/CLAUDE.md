@@ -22,3 +22,5 @@ Application web pour tablette (relais-vitesse, lycée), hébergée sur GitHub Pa
 - Bilans de la classe : bouton « 🗜️ Bilans (.zip) » de la vue bilan d'une leçon → `relaisPdf(e,l,list)` par élève, `EPDF` (PDF + zip maison, copie commune aux applis).
 - Accueil élève (`v-wait`) : « Je choisis ma classe » → `renderWait()` propose la leçon du jour de la classe, la prise de performances (si ouverte) et le dispositif. Plus de saut automatique vers la leçon.
 - Bibliothèque de situations : `SITS` / `SIT_CATS` (contenu), vue `v-sits` (`renderSits`), boutons `[data-sits]` ; l'enseignant ajoute des situations à la leçon (`lecon.sits`, synchronisé avec la leçon) → carte « 📚 Situations de la leçon » sur l'accueil (`renderSitDay`).
+- Situations : la bibliothèque (`data-sits`) est réservée à l'enseignant (`.teach`) ; les élèves ne voient que les situations cochées pour la leçon du jour (`renderSits` filtré, `data-sitgo`).
+- Mode enseignant partagé : `eps.teach.until` (`hubSync`, `hubOn`) ; au démarrage, si actif → vue classes ; « Mode élève » / verrou le coupe partout.

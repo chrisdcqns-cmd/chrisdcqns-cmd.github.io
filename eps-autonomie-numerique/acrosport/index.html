@@ -377,6 +377,7 @@ body.online .onlyOffline{display:none}
 .stepper button{width:52px;height:52px;border-radius:50%;background:var(--ink);color:#fff;font-size:1.6rem;font-weight:800}
 .stepper output{font-family:"Barlow Condensed";font-size:2.6rem;font-weight:800;min-width:50px;text-align:center}
 .codebox{width:100%;min-height:120px;font-family:ui-monospace,monospace;font-size:.75rem}
+body:not(.acroProf) .profOnly{display:none!important}
 </style>
 </head>
 <body>
@@ -445,7 +446,7 @@ body.online .onlyOffline{display:none}
       <button class="tab on" data-tab="videos">Vidéothèque</button>
       <button class="tab" data-tab="routine">Mon enchaînement</button>
       <button class="tab" data-tab="obs">Observation</button>
-      <button class="tab" data-tab="path">Mon parcours</button>
+      <button class="tab profOnly" data-tab="path">Mon parcours</button>
       <button class="tab" data-tab="bonus">Bonus</button>
     </nav>
   </header>
@@ -1015,7 +1016,7 @@ function openDetail(f,opts={}){
         ${f.ic.length?`<div style="margin-top:12px"><small class="muted" style="font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem">Prises de mains / appuis</small><div class="grips">${f.ic.map((s,k)=>`<figure><img src="${s}" alt="">${(f.il||[])[k]?`<figcaption>${esc(f.il[k])}</figcaption>`:""}</figure>`).join("")}</div></div>`:""}
       </div>
       <div class="desc">${f.d.map(fmtLine).join("")}
-        ${opts.pick?(lockedThemes().has(f.t)?`<button class="btn alt" style="width:100%;margin-top:6px" disabled>🔒 Stabilise d'abord : ${esc(T_SHORT[PATH_T[PATH_T.indexOf(f.t)-1]])} (onglet « Mon parcours »)</button>`:`<button class="btn sun" style="width:100%;margin-top:6px" data-choose>✓ Choisir cette pyramide</button>`):""}
+        ${opts.pick?(lockedThemes().has(f.t)?`<button class="btn alt" style="width:100%;margin-top:6px" disabled>🔒 Stabilise d'abord : ${esc(T_SHORT[PATH_T[PATH_T.indexOf(f.t)-1]])} (à valider par ton enseignant)</button>`:`<button class="btn sun" style="width:100%;margin-top:6px" data-choose>✓ Choisir cette pyramide</button>`):""}
       </div>
     </div></div>`;
   const m=openModal(html);
@@ -1845,12 +1846,20 @@ el.querySelector(".no").onclick=function(){close(null)};OK.onclick=submit;
 function kd(e){if(!document.body.contains(el))return;var k=e.key;if(/^[0-9]$/.test(k)||(o.letters&&/^[a-zA-Z@._!-]$/.test(k)))add(k);else if(k==="Backspace")bs();else if(k==="Enter")submit();else if(k==="Escape")close(null);else return;e.preventDefault();e.stopPropagation()}
 document.addEventListener("keydown",kd,true);
 if(o.err)E.textContent=o.err;keys();dots();document.body.appendChild(el)})}
+/* mode enseignant partagé par toutes les applis (page d'accueil commune) */
+const hubT=()=>{try{return Date.now()<+(localStorage.getItem("eps.teach.until")||0)}catch(e){return false}},hubOn=()=>{try{localStorage.setItem("eps.teach.until",String(Date.now()+3600000))}catch(e){}};
+try{if(hubT()&&localStorage.getItem("acro.tpw"))teacherPw=localStorage.getItem("acro.tpw")}catch(e){}
+/* onglet « Mon parcours » : visible seulement en mode enseignant */
+function profMode(){const on=hubT();document.body.classList.toggle("acroProf",on);if(!on){const t=document.querySelector('.tab.on[data-tab="path"]');if(t)try{showTab("routine")}catch(e){}}}
+setInterval(profMode,1500);document.addEventListener("DOMContentLoaded",profMode);
 async function openProf(){
   const online=!!apiUrl();
+  if(hubT()&&!teacherPw)try{teacherPw=localStorage.getItem("acro.tpw")||""}catch(e){}
+  if(hubT()&&(teacherPw||!online)){profPanel();profMode();return}
   const v=await epsPin({title:"🔒 Espace enseignant",text:"Touche ABC pour les lettres.",min:1,letters:true,
     check:async v=>{
-      if(!online)return v===prof.pin||"Code incorrect.";
-      const ok=async()=>{teacherPw=v;store.set(K_TPH,await sha("prof|"+v));return true};
+      if(!online){if(v===prof.pin){hubOn();profMode();return true}return "Code incorrect."}
+      const ok=async()=>{teacherPw=v;try{localStorage.setItem("acro.tpw",v)}catch(e){}hubOn();profMode();store.set(K_TPH,await sha("prof|"+v));return true};
       try{await api("teacherCheck",{teacher:v});return await ok()}
       catch(e){
         if(e.network){const h=store.get(K_TPH,"");if(h&&h===await sha("prof|"+v)){toast("Hors connexion : accès enseignant");return await ok()}return "Pas de connexion : impossible de vérifier le mot de passe."}
@@ -2263,11 +2272,12 @@ flushAll();refreshClasses();
 /* ---------- curseur de défilement : faire défiler la page sans toucher le tapis ---------- */
 (function(){
   const css=document.createElement("style");css.textContent=
-  "#scrollRail{position:fixed;right:max(6px,env(safe-area-inset-right));top:96px;bottom:120px;width:46px;z-index:55;display:none;flex-direction:column;align-items:center;gap:6px;touch-action:none;-webkit-user-select:none;user-select:none}"+
-  "#scrollRail button{width:46px;height:46px;border:0;border-radius:50%;background:#1F2A44;color:#fff;font-size:18px;box-shadow:0 2px 8px #0004;padding:0}"+
-  "#scrollRail .sr-track{position:relative;flex:1;width:14px;border-radius:99px;background:#1F2A4426}"+
-  "#scrollRail .sr-thumb{position:absolute;left:50%;width:40px;transform:translateX(-50%);border-radius:99px;background:#F4B63F;box-shadow:0 2px 8px #0005;cursor:grab;display:grid;place-items:center;color:#1F2A44;font-size:14px;font-weight:900;touch-action:none}"+
-  "body.hasRail{padding-right:54px}";
+  "#scrollRail{position:fixed;right:max(6px,env(safe-area-inset-right));top:96px;bottom:120px;width:30px;z-index:55;display:none;flex-direction:column;align-items:center;gap:6px;touch-action:none;-webkit-user-select:none;user-select:none}"+
+  "#scrollRail button{width:30px;height:30px;border:0;border-radius:50%;background:#1F2A44cc;color:#fff;font-size:12px;box-shadow:0 1px 4px #0004;padding:0}"+
+  "#scrollRail .sr-track{position:relative;flex:1;width:4px;border-radius:99px;background:#1F2A4430}"+
+  "#scrollRail .sr-thumb{position:absolute;left:50%;width:10px;transform:translateX(-50%);border-radius:99px;background:#F4B63F;box-shadow:0 1px 4px #0005;cursor:grab;color:transparent;font-size:0;touch-action:none}"+
+  "#scrollRail .sr-thumb::before{content:'';position:absolute;inset:-6px -16px}"+
+  "body.hasRail{padding-right:36px}";
   document.head.appendChild(css);
   const r=document.createElement("div");r.id="scrollRail";r.setAttribute("aria-label","Faire défiler la page");
   r.innerHTML='<button type="button" class="sr-up" aria-label="Monter">▲</button><div class="sr-track"><div class="sr-thumb">≡</div></div><button type="button" class="sr-dn" aria-label="Descendre">▼</button>';

@@ -604,7 +604,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
       <p>Lycée · EPS — choisis ta classe pour commencer</p>
     </div>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
-    <button class="btn ghost sm dispobtn" data-sits>📚 Situations</button>
+    <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
   </div>
   <div class="lanes"></div>
   <div class="steps"><span class="on"><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -630,7 +630,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <div class="row" id="w-main" style="justify-content:center;gap:14px;margin-top:26px">
       <button class="btn primary" id="w-pick">🏫 Je choisis ma classe</button>
       <button class="btn ghost" data-dispo>📐 Dispositif du relais</button>
-      <button class="btn ghost" data-sits>📚 Situations</button>
+      <button class="btn ghost teach" data-sits>📚 Situations</button>
     </div>
     <div class="wcls" id="w-cls" style="display:none"></div>
     <div class="wopts" id="w-opts" style="display:none"></div>
@@ -677,7 +677,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <button class="back" data-go="classes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Classes</button>
     <h2>Leçons · <span class="cname"></span></h2>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
-    <button class="btn ghost sm dispobtn" data-sits>📚 Situations</button>
+    <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span class="on"><b>2</b>Leçon</span><i></i><span><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
   <button class="card perfcard" id="l-perf">
@@ -747,7 +747,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <button class="back" data-go="lecons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Leçons</button>
     <h2>Groupes · <span class="cname"></span></h2>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
-    <button class="btn ghost sm dispobtn" data-sits>📚 Situations</button>
+    <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
     <button class="btn primary sm" id="btnAddGroupe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Créer un groupe</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span class="on"><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -763,7 +763,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <button class="back" id="btnBackGroupes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Groupes <span class="lockmini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></button>
     <span class="hctx" id="h-lecon"></span>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
-    <button class="btn ghost sm dispobtn" data-sits>📚 Situations</button>
+    <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
     <button class="btn ghost sm teach" id="btnCfgHome">Éléments saisis</button>
     <button class="btn ghost sm teach" data-go="lecons">Leçons</button>
     <button class="btn ghost sm teachbtn" data-teach></button>
@@ -1287,6 +1287,9 @@ const nextId=()=>Math.max(-1,...EL().map(e=>e.id))+1+Math.floor(Math.random()*50
 /* ===== Code enseignant ===== */
 let UNLOCK_UNTIL=0;
 const UNLOCK_MS=10*60*1000;
+/* mode enseignant partagé par toutes les applis (page d'accueil commune) : eps.teach.until */
+const HUB_MS=60*60*1000,hubUntil=()=>{try{return +(localStorage.getItem("eps.teach.until")||0)}catch(e){return 0}},hubOn=on=>{try{localStorage.setItem("eps.teach.until",on?String(Date.now()+HUB_MS):"0")}catch(e){}};
+function hubSync(){const u=hubUntil();if(u>Date.now()&&UNLOCK_UNTIL<u)UNLOCK_UNTIL=u}
 function hashCode(c){let h=5381;for(const ch of "relais:"+c)h=((h<<5)+h+ch.charCodeAt(0))|0;return String(h)}
 /* Pavé de code enseignant (commun aux applications EPS) : pas de clavier du système, aucun chiffre affiché (seulement des points), aucune touche mise en surbrillance. */
 function epsPin(o){o=o||{};return new Promise(function(res){
@@ -1334,12 +1337,13 @@ async function createCode(){
   save(K.code,hashCode(c1));UNLOCK_UNTIL=Date.now()+UNLOCK_MS;updLock();toast("Code enseignant créé ✓");return true;
 }
 async function requireCode(force){
-  if(!force&&Date.now()<UNLOCK_UNTIL){UNLOCK_UNTIL=Date.now()+UNLOCK_MS;return true}
+  hubSync();
+  if(!force&&Date.now()<UNLOCK_UNTIL){UNLOCK_UNTIL=Math.max(UNLOCK_UNTIL,Date.now()+UNLOCK_MS);return true}
   const h=load(K.code,null);
   if(!h)return createCode();
   const c=await epsPin({title:"🔒 Code enseignant",text:"Saisis le code pour continuer.",len:4,check:v=>hashCode(v)===h});
   if(c===null)return false;
-  UNLOCK_UNTIL=Date.now()+UNLOCK_MS;updLock();return true;
+  UNLOCK_UNTIL=Date.now()+HUB_MS;hubOn(true);updLock();return true;
 }
 function updLock(){
   const open=Date.now()<UNLOCK_UNTIL, el=$("#lkState");
@@ -1352,9 +1356,9 @@ function updLock(){
 }
 setInterval(updLock,30000);
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-teach]");if(!b)return;
-  if(Date.now()<UNLOCK_UNTIL){UNLOCK_UNTIL=0;updLock();toast("Mode enseignant verrouillé")}else if(await requireCode())toast("Mode enseignant · 10 min")});
+  if(Date.now()<UNLOCK_UNTIL){UNLOCK_UNTIL=0;hubOn(false);updLock();toast("Mode enseignant verrouillé")}else if(await requireCode())toast("Mode enseignant · 10 min")});
 document.addEventListener("click",async e=>{if(!e.target.closest("#btnBackGroupes"))return;if(await requireCode())go("groupes")});
-$("#lkState").addEventListener("click",async()=>{if(Date.now()<UNLOCK_UNTIL){UNLOCK_UNTIL=0;updLock();toast("Verrouillé")}else if(await requireCode())toast("Déverrouillé pour 10 min")});
+$("#lkState").addEventListener("click",async()=>{if(Date.now()<UNLOCK_UNTIL){UNLOCK_UNTIL=0;hubOn(false);updLock();toast("Verrouillé")}else if(await requireCode())toast("Déverrouillé pour 10 min")});
 $("#lkChange").addEventListener("click",async()=>{
   if(!load(K.code,null)){await createCode();return}
   UNLOCK_UNTIL=0;
@@ -2364,6 +2368,9 @@ function sitHTML(s,open){
 function renderSits(){
   const l=CL()&&CLE()?CLE():null,day=sitsDay();
   $("#sits-intro").textContent=l&&teachOn()?"Ouvre une situation et ajoute-la à la leçon du "+fmtShort(l.date)+" : elle apparaîtra sur l'accueil de la leçon des élèves.":"Des situations pour progresser : départ, foulée, prise de marque, transmission…";
+  if(!teachOn()){ /* élèves : seulement les situations cochées par l'enseignant pour la leçon du jour */
+    $("#sits-intro").textContent=day.length?"Les situations choisies par ton enseignant pour la leçon du jour.":"Pas de situation pour la leçon du jour.";
+    $("#sits-cats").innerHTML="";$("#sits-list").innerHTML=SITS.filter(s=>day.includes(s.id)).map(s=>sitHTML(s,SIT_OPEN===s.id)).join("");return}
   const cats=[["all","Toutes"],...(day.length?[["day","Leçon du jour"]]:[]),...SIT_CATS];
   if(SIT_CAT==="day"&&!day.length)SIT_CAT="all";
   $("#sits-cats").innerHTML=cats.map(([k,n])=>`<button data-sitcat="${k}" class="${SIT_CAT===k?"on":""}">${esc(n)}</button>`).join("");
@@ -2377,6 +2384,7 @@ function renderSitDay(){
 document.addEventListener("click",e=>{
   const t=e.target;
   const o=t.closest("[data-sits],[data-sitgo]");
+  if(o&&!teachOn()&&(!o.dataset.sitgo||!sitsDay().includes(o.dataset.sitgo)))return;
   if(o){const on=document.querySelector(".view.on");const v=on?on.id.slice(2):"classes";if(v!=="sits")SITS_BACK=v;
     if(o.dataset.sitgo){SIT_OPEN=o.dataset.sitgo;SIT_CAT=sitsDay().length?"day":"all"}else{SIT_OPEN=null;SIT_CAT=sitsDay().length&&!teachOn()?"day":"all"}
     go("sits");if(SIT_OPEN)setTimeout(()=>{const d=document.querySelector(`[data-sit="${SIT_OPEN}"]`);if(d)d.scrollIntoView({behavior:"smooth",block:"start"})},80);return}
@@ -3482,7 +3490,7 @@ function renderWait(){
         ${l?`<button class="btn primary" data-wlec="${esc(l.id)}">▶ Leçon en cours</button>`:""}
         ${perf?`<button class="btn green" data-wperf="1">⏱ Prise de performances</button>`:""}
         <button class="btn ghost" data-dispo>📐 Dispositif du relais</button>
-        <button class="btn ghost" data-sits>📚 Situations</button>
+        <button class="btn ghost teach" data-sits>📚 Situations</button>
       </div>
       ${!l&&!perf?`<p class="wp" style="margin-top:16px;font-size:18px">Aucune leçon n'est en cours aujourd'hui pour cette classe.<br>Ton enseignant va la lancer.</p>`:""}
       <button class="btn ghost sm mt" data-wback="1">Changer de classe</button>`;
@@ -3497,11 +3505,11 @@ $("#v-wait").addEventListener("click",e=>{
   if(t.closest("[data-wperf]")){DATA.cur=WAIT_CL;go("perf");return}
 });
 $("#w-teach").addEventListener("click",async()=>{if(await requireCode())go("classes")});
-$("#lkStudent").addEventListener("click",()=>{UNLOCK_UNTIL=0;updLock();startStudent();toast("Mode élève")});
+$("#lkStudent").addEventListener("click",()=>{UNLOCK_UNTIL=0;hubOn(false);updLock();startStudent();toast("Mode élève")});
 
 /* ===== Démarrage : côté élève ===== */
-updLock();
-startStudent();
+hubSync();updLock();
+if(teachOn())go("classes");else startStudent();
 </script>
 <script>window.epsAppHome=function(){try{go("home")}catch(e){location.href=location.pathname}};</script>
 <script src="../eps-home.js" defer></script>

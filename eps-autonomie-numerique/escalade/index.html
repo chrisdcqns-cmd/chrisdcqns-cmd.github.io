@@ -303,6 +303,7 @@ body{background:var(--bg) linear-gradient(180deg,#eef0ee 0,var(--bg) 320px) no-r
 ol.b5{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px}ol.b5 li{font-size:15px;color:#5b6a72}ol.b5 li.ok{color:#1f7a3d;font-weight:700}
 .crem{min-height:34px;padding:4px 10px;font-size:13px;border-color:#ffc93c!important;background:#fff8e1!important}.mpre .b.remo{border-color:#ffc93c;background:#fff8e1;white-space:normal}.mbox{max-height:92vh;overflow:auto}
 .helpb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#fdecea;border-left:6px solid #c92a2a;border-radius:14px;padding:10px 12px;margin:0 0 12px}.helpb b{color:#b3261e;margin-right:4px}.helpb .b{min-height:38px;padding:4px 12px;font-size:14px}.helpb small{color:#b3261e;font-weight:700}
+.wait .rbtns{grid-template-columns:1fr}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -361,7 +362,7 @@ function clsScr(){const cur=CF.sea?.cl||'';
  <div class="rbtns cl">${CL.map(c=>`<button class="tile ${cur==c.id?'cur':''}" style="background:#2e7d4f" onclick="pickCl('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)</span></button>`).join('')}
  ${CL.length?'':`<button class="tile" style="background:#5b6b75" onclick="pickCl('')"><b>Sans liste</b><span>je tape mon prénom</span></button>`}</div>
  <p style="margin-top:18px"><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`}
-function pickCl(id){activate(id);fresh();const k=cls();S.gs=grp();S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
+function pickCl(id){if(!S.T&&!lecFor(id,today())){CF.wcl=id;save();S.t='wait';render();scrollTo(0,0);return}activate(id);fresh();const k=cls();S.gs=grp();S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
 /* ---------- groupe ---------- */
 function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
  return `<div class="role grpS"><h2>Forme ton groupe</h2><p class="mut">${esc(k.nom)} · touche les prénoms des élèves qui grimpent avec toi (au moins 3 : grimpeur, assureur, contre-assureur).</p>
@@ -369,17 +370,28 @@ function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
  <div class="gbar"><button class="b g" onclick="S.t='pickcl';render()">← Changer de classe</button><button class="b" ${n<3?'disabled':''} onclick="okG()">${n<3?`Encore ${3-n} prénom${3-n>1?'s':''} à choisir`:`Valider mon groupe (${n})`}</button></div></div>`}
 function tgG(n){const s=new Set(S.gs||[]);s.has(n)?s.delete(n):s.add(n);S.gs=[...s];const y=scrollY;render();scrollTo(0,y)}
 function okG(){const k=cls();if(!k||(S.gs||[]).length<3)return;CF.grp={cl:k.id,d:today(),el:[...S.gs].sort((a,b)=>a.localeCompare(b,'fr'))};save();fresh();S.t='home';render();scrollTo(0,0)}
-function eleve(){S.T=false;if(CL.length){S.t='pickcl';return render()}if(!seaOK()){S.t='set';return render()}S.t='home';render()}
+/* mode enseignant partagé par toutes les applis (page d'accueil commune) et code commun */
+const hubT=()=>{try{return Date.now()<+(localStorage.getItem('eps.teach.until')||0)}catch(e){return false}},hubOn=on=>{try{localStorage.setItem('eps.teach.until',on?String(Date.now()+3600000):'0')}catch(e){}};
+const shHash=c=>{let h=5381;for(const ch of 'relais:'+c)h=((h<<5)+h+ch.charCodeAt(0))|0;return String(h)},shCode=()=>{try{return JSON.parse(localStorage.getItem('relais-vitesse-code-v1')||'null')}catch(e){return null}};
+const codeOk=v=>v===(CF.pin||'1234')||(shCode()&&shHash(v)===shCode());
+function quitT(){S.T=false;hubOn(false);S.t='role';render()}
+function eleve(){S.T=false;if(CL.length){S.t='pickcl';return render()}if(!seaOK()){S.t='wait';return render()}S.t='home';render()}
+/* élève : attendre que l'enseignant prépare la leçon du jour (l'écran s'ouvre tout seul quand elle arrive) */
+function waitScr(){const k=CL.find(c=>c.id==CF.wcl);return `<div class="role wait"><h2>${k?esc(k.nom):'Escalade EPS'}</h2><div class="card" style="text-align:center"><p style="font-size:22px;font-weight:800;margin:6px 0">⏳ Pas encore de leçon aujourd'hui</p><p class="mut">Ton enseignant va la préparer : cet écran s'ouvrira tout seul.</p></div>
+ <div class="rbtns"><button class="tile" style="background:#0e7c7b" onclick="S.t='prep';render()"><b>🪢 Se préparer et assurer</b><span>Échauffement, nœud de 8, assurage</span></button></div>
+ <p style="text-align:center"><button class="b g" onclick="S.t=CL.length?'pickcl':'role';render()">← ${CL.length?'Changer de classe':'Retour'}</button></p></div>`}
+setInterval(()=>{if(!S.T&&S.t=='wait'){const id=CF.wcl;if(CL.length?id&&lecFor(id,today()):seaOK())CL.length?pickCl(id):(S.t='home',render())}},3000);
 function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK()?`<span class="sea">${esc(cls().nom)}</span>`:''}<p class="mut">Qui utilise la tablette ?</p>
  <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="eleve()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
  <button class="tile tprof" style="background:#16252d" onclick="unlock(seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
 function render(){
- if(S.t=='role'||S.t=='pickcl'||S.t=='grp'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():S.t=='grp'?grpScr():clsScr();return}
+ if(!S.T&&!seaOK()&&['set','home','gr','mr','cot','the','sec'].includes(S.t))S.t='wait';
+ if(S.t=='role'||S.t=='pickcl'||S.t=='grp'||S.t=='wait'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():S.t=='grp'?grpScr():S.t=='wait'?waitScr():clsScr();return}
  if(!S.T){S.e=false;if(S.t=='res'||S.t=='ctl'||S.t=='cls'||S.t=='ped'||(S.t=='set'&&seaOK()))S.t='home'}
  if(S.t!='cot')S.cm='';
  if(S.t!='set'){S.le=null;S.lv=null}
  if(S.t!='mr'){S.mr='';S.ml=''}
- $('#tm').innerHTML=S.T?(['gr','res','home','set','ctl','cls','ped'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="S.T=false;S.t='role';render()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
+ $('#tm').innerHTML=S.T?(['gr','res','home','set','ctl','cls','ped'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="quitT()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
  $('#nav').style.display=['home','set','ctl','cls','ped'].includes(S.t)?'none':'';
  $('#nav').innerHTML=TABS.filter(([k])=>k!='res'||S.T).map(([k,n])=>`<button class="${S.t==k?'on':''}" onclick="S.t='${k}';render()">${n}</button>`).join('');
  document.body.dataset.t=S.t;document.documentElement.style.setProperty('--hh',$('header').offsetHeight+($('#nav').style.display=='none'?0:$('#nav').offsetHeight)+'px');
@@ -755,8 +767,8 @@ el.querySelector(".no").onclick=function(){close(null)};OK.onclick=submit;
 function kd(e){if(!document.body.contains(el))return;var k=e.key;if(/^[0-9]$/.test(k)||(o.letters&&/^[a-zA-Z@._!-]$/.test(k)))add(k);else if(k==="Backspace")bs();else if(k==="Enter")submit();else if(k==="Escape")close(null);else return;e.preventDefault();e.stopPropagation()}
 document.addEventListener("keydown",kd,true);
 if(o.err)E.textContent=o.err;keys();dots();document.body.appendChild(el)})}
-async function unlock(to){if(!S.T){const p=await epsPin({title:'🔒 Code enseignant',min:4,letters:true,check:v=>v===(CF.pin||'1234')});if(p===null)return;S.T=true}if(to){S.t=to;S.ce=null}render();scrollTo(0,0)}
-async function pin(){const a=await epsPin({title:'🔒 Nouveau code enseignant',text:'4 caractères minimum.',min:4,letters:true});if(a===null)return;const b=await epsPin({title:'🔒 Confirme le nouveau code',text:'Tape le même code une 2e fois.',min:4,letters:true,check:v=>v===a||'Les deux codes sont différents.'});if(b===null)return;CF.pin=a;save();say('Code modifié.')}
+async function unlock(to){if(!S.T){if(!hubT()){const p=await epsPin({title:'🔒 Code enseignant',min:4,letters:true,check:v=>codeOk(v)});if(p===null)return}S.T=true;hubOn(true)}if(to){S.t=to;S.ce=null}render();scrollTo(0,0)}
+async function pin(){const a=await epsPin({title:'🔒 Nouveau code enseignant',text:'4 chiffres, pour toutes les applications.',len:4});if(a===null)return;const b=await epsPin({title:'🔒 Confirme le nouveau code',text:'Tape le même code une 2e fois.',len:4,check:v=>v===a||'Les deux codes sont différents.'});if(b===null)return;CF.pin=a;try{localStorage.setItem('relais-vitesse-code-v1',JSON.stringify(shHash(a)))}catch(e){}save();say('Code modifié : il sert maintenant dans toutes les applications de cette tablette (et des autres, après synchronisation).')}
 {let lp;const lg=$('#logo'),stop=()=>clearTimeout(lp);lg.addEventListener('pointerdown',()=>{stop();lp=setTimeout(()=>unlock(),1500)});['pointerup','pointerleave','pointercancel'].forEach(e=>lg.addEventListener(e,stop));lg.addEventListener('contextmenu',e=>e.preventDefault())}
 function add(k,t){C[k].push({t,v:t=='h'?'Nouveau titre':t=='s'?'Nouveau sous-titre':'Texte'});save();render()}
 function mv(k,i,d){const B=C[k],j=i+d;if(j<0||j>=B.length)return;[B[i],B[j]]=[B[j],B[i]];save();render()}
@@ -1301,7 +1313,7 @@ function qr(text){
  for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!Fm[y][x]&&(x+y)%2==0)M[y][x]=!M[y][x];
  return M}
 function drawQR(cv,M){const s=5,b=4,N=M.length;cv.width=cv.height=(N+2*b)*s;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#000';M.forEach((r,j)=>r.forEach((d,i)=>{if(d)x.fillRect((i+b)*s,(j+b)*s,s,s)}));cv.style.width=Math.min(300,cv.width*1.4)+'px'}
-S.t='role';
+if(hubT()){S.T=true;S.t=seaOK()?'home':'set'}else S.t='role';
 render();
 sync();
 syncSoon(800);

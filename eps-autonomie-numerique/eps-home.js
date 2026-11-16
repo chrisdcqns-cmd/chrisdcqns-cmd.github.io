@@ -269,12 +269,12 @@
     var b = document.getElementById("eps-teachbtn"); if (b) b.textContent = t ? "🔓 Quitter le mode enseignant" : "🔒 Enseignant";
   }
   function askCode() {
-    if (Date.now() < unlockedUntil) return Promise.resolve(true);
+    if (Date.now() < unlockedUntil || hubTeach()) return Promise.resolve(true);
     var stored = null; try { stored = JSON.parse(localStorage.getItem("relais-vitesse-code-v1") || "null"); } catch (e) {}
     var pin = window.epsPin || epsPin;
-    function done() { unlockedUntil = Date.now() + 10 * 60000; if (HUB) setHubTeach(true); return true; }
-    if (stored) return pin({ title: "🔒 Code enseignant", text: "Le même code que dans Relais Vitesse.", min: 4, max: 12, check: function (v) { return hashCode(v) === stored; } }).then(function (v) { return v === null ? false : done(); });
-    return pin({ title: "🔒 Crée ton code enseignant", text: "4 chiffres (il servira aussi dans Relais Vitesse).", len: 4 }).then(function (v) {
+    function done() { unlockedUntil = Date.now() + 10 * 60000; setHubTeach(true); return true; }
+    if (stored) return pin({ title: "🔒 Code enseignant", min: 4, max: 12, check: function (v) { return hashCode(v) === stored; } }).then(function (v) { return v === null ? false : done(); });
+    return pin({ title: "🔒 Crée ton code enseignant", text: "4 chiffres, pour toutes les applications.", len: 4 }).then(function (v) {
       if (v === null) return false;
       return pin({ title: "🔒 Confirme le code", text: "Tape le même code une 2e fois.", len: 4, check: function (w) { return w === v || "Les deux codes sont différents."; } }).then(function (w) {
         if (w === null) return false;

@@ -75,9 +75,15 @@ el.querySelector(".no").onclick=function(){close(null)};OK.onclick=submit;
 function kd(e){if(!document.body.contains(el))return;var k=e.key;if(/^[0-9]$/.test(k)||(o.letters&&/^[a-zA-Z@._!-]$/.test(k)))add(k);else if(k==="Backspace")bs();else if(k==="Enter")submit();else if(k==="Escape")close(null);else return;e.preventDefault();e.stopPropagation()}
 document.addEventListener("keydown",kd,true);
 if(o.err)E.textContent=o.err;keys();dots();document.body.appendChild(el)})}
+/* mode enseignant partagé par toutes les applis (page d'accueil commune) */
+const hubT = () => { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } };
+const hubOn = () => { try { localStorage.setItem("eps.teach.until", String(Date.now() + 3600000)); } catch (e) {} };
 async function profLogin() {
   const hasApi = !!apiUrl(), local = LS.get("tHash", null);
-  const ok = v => { sessionStorage.setItem("tpw", v); openProf(); };
+  const ok = v => { sessionStorage.setItem("tpw", v); try { localStorage.setItem("orienrun.tpw", v); } catch (e) {} hubOn(); openProf(); };
+  // déjà en mode enseignant depuis l'accueil commun : pas de code (le mot de passe du script, retenu sur la tablette après la 1re saisie, sert pour les envois)
+  const mem = sessionStorage.getItem("tpw") || (() => { try { return localStorage.getItem("orienrun.tpw"); } catch (e) { return null; } })();
+  if (hubT() && (mem || !hasApi)) { sessionStorage.setItem("tpw", mem || "eps"); openProf(); return; }
   const v = await epsPin({ title: "🔒 Espace enseignant", text: "Touche ABC pour les lettres.", min: 1, letters: true,
     check: async v => {
       const h = await sha256("orienrun:" + v);
