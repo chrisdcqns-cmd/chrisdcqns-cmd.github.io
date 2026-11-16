@@ -609,7 +609,18 @@ function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.n
 setInterval(()=>{if(S.t=='ctl'&&S.T&&!document.querySelector('.dlg')){const y=scrollY;render();scrollTo(0,y)}},4000);
 /* ---------- leçons par classe et par date ---------- */
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-3);
-const LEC=()=>CF.lec||(CF.lec=[]),lecFor=(cl,d)=>LEC().find(l=>(l.cl||'')==(cl||'')&&l.d==d);
+const LEC=()=>CF.lec||(CF.lec=[]),clNom=id=>{const c=CL.find(x=>x.id==id);return c?String(c.nom).trim().toLowerCase():null},
+ lecFor=(cl,d)=>LEC().find(l=>(l.cl||'')==(cl||'')&&l.d==d)||(clNom(cl)!=null?LEC().find(l=>l.d==d&&clNom(l.cl)==clNom(cl)):undefined);
+/* identifiant de classe tiré du nom : la même classe importée sur plusieurs tablettes a le même identifiant */
+const clsId=n=>{let h=5381;for(const ch of String(n).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' '))h=((h<<5)+h+ch.charCodeAt(0))|0;return 'n'+(h>>>0).toString(36)};
+/* classes en double (même nom créé sur deux tablettes) : on garde une seule classe (le plus petit identifiant, le même sur toutes les tablettes)
+   et on y rattache élèves, leçons, absents et permis d'assurer */
+function mergeDupCls(){const by={};let ch=false;CL.forEach(c=>{const k=nrm(c.nom);(by[k]=by[k]||[]).push(c)});
+ Object.values(by).forEach(G=>{if(G.length<2)return;G.sort((a,b)=>a.id<b.id?-1:1);const keep=G[0];
+  G.slice(1).forEach(o=>{(o.el||[]).forEach(n=>{if(!keep.el.includes(n))keep.el.push(n)});LEC().forEach(l=>{if(l.cl==o.id)l.cl=keep.id});
+   for(const M of [CF.ab,CF.bel])if(M)Object.keys(M).forEach(k=>{if(k.startsWith(o.id+'|')){const nk=keep.id+k.slice(o.id.length);if(!(nk in M))M[nk]=M[k];delete M[k]}});
+   if(CF.sel==o.id)CF.sel=keep.id;if(CF.sea&&CF.sea.cl==o.id)CF.sea.cl=keep.id;if(CF.wcl==o.id)CF.wcl=keep.id;if(CF.grp&&CF.grp.cl==o.id)CF.grp.cl=keep.id;
+   CL.splice(CL.indexOf(o),1);ch=true})});return ch}
 const recOf=(nom,d)=>R.filter(r=>(r.cl||'')==(nom||'')&&String(r.ts).startsWith(d));
 const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
 const SHORT={m:'Mains',p:'Pieds',cp:'Chgt pieds',h:'Hauteur',a:'Assis baudrier',pm:'PME',pof:'Sac à POF',k:'Commentaire'};
@@ -664,7 +675,7 @@ const lines=()=>[...new Set($('#ceL').value.split('\n').map(s=>s.trim()).filter(
 function cnt(){$('#ceC').textContent=lines().length+' élève(s)'}
 function saveCls(){S.imp=null;const nom=$('#ceN').value.trim(),el=lines();if(!nom){say('Donnez un nom à la classe.');return $('#ceN').focus()}
  if(CL.some(x=>x.id!=S.ce&&nrm(x.nom)==nrm(nom)))return say('Une classe porte déjà ce nom.');
- if(S.ce=='new'){const id='c'+Date.now().toString(36);CL.push({id,nom,el});CF.sel=id}else{const c=CL.find(x=>x.id==S.ce);if(c){if(c.nom!==nom)R.forEach(r=>{if((r.cl||'')==c.nom)r.cl=nom});c.nom=nom;c.el=el}}
+ if(S.ce=='new'){const id=CL.some(c=>c.id==clsId(nom))?'c'+Date.now().toString(36):clsId(nom);CL.push({id,nom,el});CF.sel=id}else{const c=CL.find(x=>x.id==S.ce);if(c){if(c.nom!==nom)R.forEach(r=>{if((r.cl||'')==c.nom)r.cl=nom});c.nom=nom;c.el=el}}
  save();backCl()}
 async function delCls(){const c=CL.find(x=>x.id==S.ce);if(!c||!await ask('Supprimer la classe « '+c.nom+' » ?'))return;CL=CL.filter(x=>x!==c);if(CF.sel==c.id)CF.sel='';if(CF.sea?.cl==c.id)CF.sea.cl='';S.ce=null;save();render()}
 async function impCls(inp){const f=inp.files[0];inp.value='';if(!f)return;
@@ -1170,7 +1181,7 @@ async function syPull(){
     if(+d){if(k in SY.h){syRemove(k);delete SY.h[k];ch=true}continue}
     let o;try{o=JSON.parse(await syDec(x))}catch(e){SY.err='Des données ont été chiffrées avec une autre clé : vérifiez la clé secrète.';continue}
     const t=JSON.stringify(o);if(SY.h[k]===hs(t))continue;syApply(k,o);SY.h[k]=hs(t);ch=true}
-   if(ch){const O=syRecords();for(const k in O)if(!SY.pend[k])SY.h[k]=hs(O[k]);SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL);syRefresh()}
+   if(ch){const O=syRecords();for(const k in O)if(!SY.pend[k])SY.h[k]=hs(O[k]);SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL);if(mergeDupCls())save();syRefresh()}
    SY.since=+recs[recs.length-1][0]}
   else SY.since=Math.max(SY.since,+r.seq||0);
   sySave();if(!r.more)return true}
@@ -1313,6 +1324,7 @@ function qr(text){
  for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!Fm[y][x]&&(x+y)%2==0)M[y][x]=!M[y][x];
  return M}
 function drawQR(cv,M){const s=5,b=4,N=M.length;cv.width=cv.height=(N+2*b)*s;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#000';M.forEach((r,j)=>r.forEach((d,i)=>{if(d)x.fillRect((i+b)*s,(j+b)*s,s,s)}));cv.style.width=Math.min(300,cv.width*1.4)+'px'}
+if(mergeDupCls())save();
 if(hubT()){S.T=true;S.t=seaOK()?'home':'set'}else S.t='role';
 render();
 sync();

@@ -326,12 +326,15 @@
     });
     return out;
   }
+  /* identifiant de classe tiré du nom (même calcul que dans Escalade) : la même classe importée sur plusieurs tablettes a le même identifiant */
+  function clsId(n) { var h = 5381, t = String(n).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " "); for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return "n" + (h >>> 0).toString(36); }
+  function freeId(list, id) { return list.some(function (x) { return x.id === id; }) ? "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : id; }
   function full(e) { return (e.prenom + " " + e.nom).replace(/\s+/g, " ").trim(); }
   var TARGETS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["acro", "Acrosport"]];
   function toEsc(cl, L) {
     var a = []; try { a = JSON.parse(localStorage.getItem("escalade.cl") || "[]") || []; } catch (e) {}
     var c = a.filter(function (x) { return norm(x.nom) === norm(cl); })[0], n = 0;
-    if (!c) { c = { id: "c" + Date.now().toString(36), nom: cl, el: [] }; a.push(c); }
+    if (!c) { c = { id: freeId(a, clsId(cl)), nom: cl, el: [] }; a.push(c); }
     L.forEach(function (e) { var f = full(e); if (!c.el.some(function (x) { return nkey(x) === nkey(f); })) { c.el.push(f); n++; } });
     localStorage.setItem("escalade.cl", JSON.stringify(a)); return n;
   }
@@ -339,7 +342,7 @@
     var D = null; try { D = JSON.parse(localStorage.getItem("relais-vitesse-data-v3") || "null"); } catch (e) {}
     if (!D || !D.classes) D = { classes: [], cur: null };
     var c = D.classes.filter(function (x) { return norm(x.name) === norm(cl); })[0], n = 0;
-    if (!c) { c = { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: cl, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D.classes.push(c); }
+    if (!c) { c = { id: freeId(D.classes, clsId(cl)), name: cl, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D.classes.push(c); }
     var id = Math.max.apply(null, [-1].concat(c.eleves.map(function (e) { return +e.id || 0; }))) + 1;
     L.forEach(function (e) { if (c.eleves.some(function (x) { return norm(x.nom) === norm(e.nom) && norm(x.prenom) === norm(e.prenom); })) return;
       c.eleves.push({ id: id++, nom: e.nom, prenom: e.prenom, ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0, orig: { ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0 }, imported: true }); n++; });
@@ -440,14 +443,14 @@
         try {
           if (sel.esc) {
             var A = jget("escalade.cl", []) || [], c = A.filter(function (y) { return norm(y.nom) === norm(old); })[0];
-            if (!c) { c = { id: "c" + Date.now().toString(36), nom: nn, el: [] }; A.push(c); }
+            if (!c) { c = { id: freeId(A, clsId(nn)), nom: nn, el: [] }; A.push(c); }
             if (c.nom !== nn) { var R = jget("escalade.r", []) || []; R.forEach(function (r) { if ((r.cl || "") === c.nom) r.cl = nn; }); localStorage.setItem("escalade.r", JSON.stringify(R)); }
             c.nom = nn; c.el = L.slice(); localStorage.setItem("escalade.cl", JSON.stringify(A)); done.push("Escalade");
           }
           if (sel.rel) {
             var D = jget("relais-vitesse-data-v3", null); if (!D || !D.classes) D = { classes: [], cur: null };
             var k = D.classes.filter(function (y) { return norm(y.name) === norm(old); })[0];
-            if (!k) { k = { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: nn, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D.classes.push(k); }
+            if (!k) { k = { id: freeId(D.classes, clsId(nn)), name: nn, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D.classes.push(k); }
             var id = Math.max.apply(null, [-1].concat(k.eleves.map(function (e) { return +e.id || 0; }))) + 1;
             k.eleves = L.map(function (l) { var e = k.eleves.filter(function (y) { return nkey(full(y)) === nkey(l); })[0]; if (e) return e; var p = splitFull(l) || { prenom: l, nom: "" };
               return { id: id++, nom: p.nom, prenom: p.prenom, ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0, orig: { ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0 }, imported: true }; });
