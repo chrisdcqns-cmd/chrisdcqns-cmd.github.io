@@ -378,6 +378,7 @@ body.online .onlyOffline{display:none}
 .stepper output{font-family:"Barlow Condensed";font-size:2.6rem;font-weight:800;min-width:50px;text-align:center}
 .codebox{width:100%;min-height:120px;font-family:ui-monospace,monospace;font-size:.75rem}
 body:not(.acroProf) .profOnly{display:none!important}
+.noBelts .beltOnly,.noBelts #beltChip,.noBelts [data-tab="path"]{display:none!important}html:not(.noBelts) .noBeltOnly{display:none!important}
 </style>
 </head>
 <body>
@@ -1107,8 +1108,12 @@ function computeProgress(){
   const belts=PATH_T.filter(t=>res[t].st.stab), black=PATH_T.every(t=>res[t].st.ench);
   return {res,belts,black};
 }
+/* ceintures et parcours : masqués pour l'instant (mettre true pour les réactiver) */
+const BELTS_ON=false;
+if(!BELTS_ON)document.documentElement.classList.add("noBelts");
 function lockedThemes(){
   const s=new Set();
+  if(!BELTS_ON) return s;
   if(!G||!classSettings().progressif||(G.online&&G.online.teacherKey)) return s;
   const {res}=computeProgress();
   PATH_T.forEach((t,k)=>{if(k>0&&!res[PATH_T[k-1]].st.stab&&!res[t].unlock) s.add(t)});
@@ -1126,7 +1131,7 @@ function updateProgress(){
     G.progress.summary={sig,done,belts,black,at:new Date().toISOString()};
     persist();
     const gained=belts.filter(t=>!before.includes(t));
-    if(old&&gained.length) toast("🥋 Ceinture "+BELTS[gained[0]][0]+" obtenue : "+T_SHORT[gained[0]]+" stabilisée !");
+    if(BELTS_ON&&old&&gained.length) toast("🥋 Ceinture "+BELTS[gained[0]][0]+" obtenue : "+T_SHORT[gained[0]]+" stabilisée !");
   }
   renderBeltChip();
   if(curTab==="path") renderPath();
@@ -1885,15 +1890,15 @@ function profPanel(){
       ${hashN?`<p class="note">Le lien ouvert impose actuellement ${hashN[1]} figures (#pyramides-${hashN[1]}).</p>`:""}
       <p class="muted" style="font-size:.85rem;margin-bottom:0">Le réglage est enregistré en ligne pour la classe : les tablettes des élèves le reçoivent en quelques instants (et au plus tard à la prochaine ouverture).</p>
     </div>
-    <div class="panel"><h2 style="font-size:1.3rem">🥋 Progression</h2>
-      <p class="muted" style="margin-top:0">Séquence par position du voltigeur : horizontale → équerre → position redressée → ATR. Chaque groupe suit ses étapes dans l'onglet « Mon parcours ».</p>
+    <div class="panel"><h2 style="font-size:1.3rem"><span class="beltOnly">🥋 Progression</span><span class="noBeltOnly">🎯 Thématique du jour</span></h2>
+      <p class="muted beltOnly" style="margin-top:0">Séquence par position du voltigeur : horizontale → équerre → position redressée → ATR. Chaque groupe suit ses étapes dans l'onglet « Mon parcours ».</p>
       <div class="row" style="gap:12px;align-items:flex-end">
         <div class="field" style="margin:0;min-width:140px"><label>Classe</label><select class="inp" id="pClasse">${classes().map(c=>`<option ${norm(c)===norm(lessonClass)?"selected":""}>${esc(c)}</option>`).join("")}</select></div>
         <div class="field" style="margin:0;min-width:200px"><label>Thématique du jour</label><select class="inp" id="pTheme"><option value="">— aucune —</option>${PATH_T.map(t=>`<option value="${t}">${esc(T_LABEL[t])}</option>`).join("")}</select></div>
-        <label class="chk"><input type="checkbox" id="pProg"> Déblocage progressif</label>
+        <label class="chk beltOnly"><input type="checkbox" id="pProg"> Déblocage progressif</label>
       </div>
-      <p class="muted" style="font-size:.85rem">Déblocage progressif : un groupe ne peut choisir les pyramides d'une position qu'après avoir <b>stabilisé</b> la précédente (ceinture). Vous pouvez débloquer un groupe dans son onglet « Mon parcours » (ouvert avec votre mot de passe).</p>
-      <div class="row"><button class="btn sun small" id="pApply">Enregistrer pour la classe</button><button class="btn small" id="pBelts">Voir les ceintures de la classe</button></div>
+      <p class="muted beltOnly" style="font-size:.85rem">Déblocage progressif : un groupe ne peut choisir les pyramides d'une position qu'après avoir <b>stabilisé</b> la précédente (ceinture). Vous pouvez débloquer un groupe dans son onglet « Mon parcours » (ouvert avec votre mot de passe).</p>
+      <div class="row"><button class="btn sun small" id="pApply">Enregistrer pour la classe</button><button class="btn small beltOnly" id="pBelts">Voir les ceintures de la classe</button></div>
       <div id="pOut" style="margin-top:10px"></div>
     </div>
     <div class="panel"><h2 style="font-size:1.3rem">☁ En ligne</h2>
