@@ -135,6 +135,12 @@ html:has(.dr),body:has(.dr){overscroll-behavior:none;touch-action:none}
 .pub{position:sticky;top:calc(env(safe-area-inset-top) + 58px);z-index:9;margin:-4px 0 10px;padding:8px 12px;border-radius:12px;font-size:.85rem;font-weight:700;background:#d5f0e3;color:#11643f}
 .pub.wait{background:#fff1d6;color:#7a4b00}.pub.ko{background:#fbd5d9;color:#8c1020}
 .tabs2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.retb{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border-radius:16px;padding:10px 12px;margin-bottom:10px;border:2px solid #fbd5d9}
+.alarm{position:fixed;inset:0;z-index:90;background:rgba(214,40,57,.96);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;animation:pul 1s infinite alternate}
+.alarm.warn{background:rgba(244,122,32,.97)}
+.alarm h1{font-size:2.4rem;margin:8px 0}.alarm p{font-size:1.2rem;max-width:520px}
+@keyframes pul{from{filter:brightness(1)}to{filter:brightness(1.15)}}
+.retour{background:#fff4ea;border:2px solid var(--or);border-radius:12px;padding:6px 10px;font-weight:800;font-size:.9rem;margin-top:6px}
 </style>
 </head>
 <body>
@@ -463,10 +469,31 @@ async function sync() {
     NET = true; let conf = false, map = false;
     if (j.conf != null && j.vc && j.vc !== VC) { try { const o = JSON.parse(j.conf); C = Object.assign(clone(DEF), o); if (TPW) { statP = null; await ensureStat(); } LS.set("conf", o); VC = j.vc; LS.set("vc", VC); conf = true; if (ME && (C.moves || {})[ME.id]) { ME = moved(ME); LS.set("me", ME); } } catch (e) {} }
     if (j.carte != null && j.vm && j.vm !== VM) { await idbSet("carte", j.carte || null); VM = j.vm; LS.set("vm", VM); MAPIMG = j.carte || demoMap(); map = true; }
-    if (conf || map) onRemote(conf, map);
+    if (conf || map) { onRemote(conf, map); checkAlerts(); }
     flushOut();
   } catch (e) { NET = false; }
   finally { syncing = false; setNet(); }
+}
+// ---------- Heure de retour + bouton RETOUR de l'enseignant ----------
+// C.retour = heure de retour (ms) ; C.rappel = { id, prof } : appel « RETOUR » (prof vide = tout le monde)
+function beep() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); [0, .35, .7].forEach(t => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; o.type = "square"; g.gain.value = .25; o.connect(g); g.connect(a.destination); o.start(a.currentTime + t); o.stop(a.currentTime + t + .22); }); } catch (e) {} }
+function notifySys(title, body) { try { if ("Notification" in window && Notification.permission === "granted" && document.hidden) new Notification(title, { body, icon: "icon-192.png", tag: "coe-retour", renotify: true, requireInteraction: true }); } catch (e) {} }
+function alarm(title, text, kind = "") {
+  $(".alarm")?.remove(); const d = document.createElement("div"); d.className = "alarm " + kind;
+  d.innerHTML = `<div style="font-size:4rem">${kind === "warn" ? "⏰" : "📢"}</div><h1>${title}</h1><p>${text}</p><button class="btn big" style="max-width:360px;background:#fff;color:var(--nv);margin-top:18px" id="alOk">J'ai compris</button>`;
+  document.body.appendChild(d); vib([400, 150, 400, 150, 600]); beep(); notifySys(title.replace(/<[^>]+>/g, ""), text.replace(/<[^>]+>/g, ""));
+  const rep = setInterval(() => { vib([300, 150, 300]); beep(); }, 6000); $("#alOk", d).onclick = () => { clearInterval(rep); d.remove(); };
+}
+const hhmm = t => new Date(t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+function checkAlerts() {
+  if (!ME || CUR.v === "prof") return;
+  const seen = LS.get("seen", {}), t = now();
+  const rp = C.rappel; if (rp && rp.id && seen.rappel !== rp.id) { seen.rappel = rp.id; LS.set("seen", seen); if (t - rp.id < 5 * 60000 && (!rp.prof || rp.prof === ME.prof)) alarm("RETOUR !", `${esc(rp.prof || "Tes enseignants")} demande${rp.prof ? "" : "nt"} à tout le monde de <b>revenir à l'arrivée maintenant</b>.${C.retour ? `<br>Heure de retour : <b>${hhmm(C.retour)}</b>` : ""}`); }
+  const R = C.retour; if (R && t < R + 30 * 60000) {
+    if (t >= R - 10 * 60000 && t < R && seen.r10 !== R) { seen.r10 = R; LS.set("seen", seen); alarm("Plus que 10 minutes !", `Retour à l'arrivée à <b>${hhmm(R)}</b>. Commence à revenir maintenant.`, "warn"); }
+    if (t >= R && seen.r0 !== R) { seen.r0 = R; seen.r10 = R; LS.set("seen", seen); if (t - R < 15 * 60000) alarm("C'est l'heure du retour !", `Il est <b>${hhmm(R)}</b> : reviens tout de suite à l'arrivée.`); }
+  }
+  const e = $("#rRet"); if (e) { const L = C.retour ? C.retour - t : null; e.innerHTML = L == null ? "" : L > 0 ? `⏰ Retour à <b>${hhmm(C.retour)}</b> · encore ${fmt(L)}` : `⏰ Heure de retour dépassée (${hhmm(C.retour)})`; e.style.display = L == null ? "none" : ""; }
 }
 function onRemote(conf) {
   $("#hT").textContent = C.titre;
@@ -626,7 +653,7 @@ function vPrep(k) {
     <ul class="sl"><li class="st"><span class="o"></span><span class="bn" style="border-radius:8px">▲</span><b>Départ</b></li></ul><ul class="sl" id="pList"></ul><ul class="sl"><li class="fi"><span class="o"></span><span class="bn">◎</span><b>Retour à l'arrivée</b></li></ul></div>
    <div class="card" style="padding:10px"><h2 style="margin:4px 4px 8px">3. Trace ton itinéraire <span class="chip">facultatif</span></h2>${hasPos() ? '<p class="muted small" style="margin:0 4px 8px" id="pMiss"></p>' : '<div class="mapv" id="pMap" style="height:38vh"></div>'}<button class="btn big or" id="pDraw" style="margin-top:10px">✏️ ${r.trace?.length ? "Modifier mon tracé" : "Tracer sur la carte"}</button></div>
    ${C.prevu ? `<div class="card"><h2>4. Combien de temps vas-tu mettre ?</h2><p class="muted small" style="margin-top:0">Ton estimation sera comparée à ton temps réel dans le bilan.</p><div class="row"><button class="btn gh" data-pv="-60">−1 min</button><div class="timer grow" style="text-align:center;font-size:1.8rem" id="pPv">–</div><button class="btn gh" data-pv="60">+1 min</button></div><div class="row" style="justify-content:center;margin-top:6px"><button class="btn sm gh" data-pv="-15">−15 s</button><button class="btn sm gh" data-pv="15">+15 s</button></div></div>` : ""}
-   <button class="btn big gr" id="pGo" disabled>▶ Départ</button><p class="small muted" id="pWhy" style="text-align:center"></p>
+   ${C.retour ? `<div class="retour" style="text-align:center;margin-bottom:8px">⏰ Retour à l'arrivée avant <b>${hhmm(C.retour)}</b></div>` : ""}<button class="btn big gr" id="pGo" disabled>▶ Départ</button><p class="small muted" id="pWhy" style="text-align:center"></p>
    <button class="btn gh" id="pCancel" style="width:100%;margin-top:6px">↩ Annuler et revenir à l'accueil</button>
    <button class="btn sm gh" id="pSos" style="width:100%;margin-top:8px;color:var(--ko)">🆘 SMS de secours à mon enseignant</button><p class="small muted" style="text-align:center;margin-top:4px">Pour changer de parcours, de camarade ou de coureur.</p>`;
   $("#pSos").onclick = () => sos(k);
@@ -657,7 +684,7 @@ function vPrep(k) {
   }
   const upd = () => { const left = end() - now(); const t = $("#pT"); if (!t) return; t.textContent = left > 0 ? fmt(left) : "Temps écoulé"; $("#pBar").classList.toggle("low", left < 60000); if (left <= 0 && !r.auto.prepEnd) { r.auto.prepEnd = 1; saveRuns(); vib([200, 100, 200]); flash("⏰ Fin de la préparation"); } ok(); };
   render(); upd(); tick = setInterval(upd, 500);
-  $("#pGo").onclick = async () => { const M = traceMissing(r), warn = hasPos() ? (!r.trace?.length ? "" : M.length ? `<br><br>⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : "") : ""; if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>${warn}`, warn ? "▶ Partir quand même" : "▶ Partir", "gr"))) return; r.debut = now(); saveRuns(); vib(300); go("run", k); };
+  $("#pGo").onclick = async () => { const M = traceMissing(r), warn = hasPos() ? (!r.trace?.length ? "" : M.length ? `<br><br>⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : "") : ""; if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>${warn}`, warn ? "▶ Partir quand même" : "▶ Partir", "gr"))) return; r.debut = now(); saveRuns(); vib(300); try { "Notification" in window && Notification.permission === "default" && Notification.requestPermission(); } catch (e) {} go("run", k); };
 }
 // glisser-déposer au doigt (poignée ≡)
 function sortable(ul, onMove) {
@@ -687,7 +714,7 @@ function vRun(k) {
   let code = "";
   const draw = () => {
     const i = r.idx || 0, fini = i >= r.plan.length, n = r.plan[i];
-    app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(r.duo.prenom) : ""}</div><div class="chrono" id="rT">0:00</div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
+    app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(r.duo.prenom) : ""}</div><div class="chrono" id="rT">0:00</div><div class="retour" id="rRet" style="display:none"></div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
       <div class="steps">${r.plan.map((b, j) => `<span class="${j < i ? "d" : j === i ? "c" : ""}">${b}</span>`).join("")}<span style="border-color:var(--nv);color:var(--nv)">◎</span></div></div>
      ${fini ? `<div class="card" style="text-align:center"><div style="font-size:3rem">🏁</div><h2>Toutes tes balises sont saisies</h2><p class="muted">Retourne à l'arrivée, puis touche le bouton.</p></div>` :
       `<div class="card" style="text-align:center;padding-top:10px"><div class="small muted">Balise ${i + 1} sur ${r.plan.length}${+n === +p.oblig ? " · ★ obligatoire" : ""}</div><div class="bigb">${n}</div>
@@ -908,7 +935,10 @@ function vProf(tab = "res") {
   if (!TPW) return openProf();
   if (!statP) { ensureStat().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0] || tab); }); }
   clearInterval(profTick); profTick = null;
-  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${tab === "res" || tab === "dev" ? "" : '<div class="pub" id="pub"></div>'}<div id="pv"></div>`;
+  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${tab === "res" || tab === "dev" ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
+  $("#hRet").onchange = e => { const v = e.target.value; if (!v) return; const [h, mi] = v.split(":").map(Number), d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < now() - 6 * 3600000) d.setDate(d.getDate() + 1); C.retour = d.getTime(); confChanged(); flash(`Heure de retour : ${hhmm(C.retour)} ✓`); };
+  $("#hRetX").onclick = () => { C.retour = null; $("#hRet").value = ""; confChanged(); };
+  $("#bRetour").onclick = () => { const L = C.profs.filter(Boolean); const m = modal(`<h2 style="margin:0 0 6px">📢 Appel RETOUR</h2><p class="small muted" style="margin-top:0">Les téléphones des élèves sonnent, vibrent et affichent « RETOUR ! » (dans les 15 secondes).</p><div class="pick big"><button data-rp="">Tous les élèves</button>${L.map(p => `<button data-rp="${esc(p)}">Élèves de ${esc(p)}</button>`).join("")}</div><button class="btn gh" id="rpX" style="width:100%;margin-top:10px">Annuler</button>`); $("#rpX", m).onclick = m.close; $$("[data-rp]", m).forEach(b => b.onclick = () => { C.rappel = { id: now(), prof: b.dataset.rp }; confChanged(); m.close(); flash("📢 Appel RETOUR envoyé"); }); };
   $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home");
   $("#pUp").onclick = async () => { const b = $("#pUp"); b.disabled = true; b.textContent = "⏳ Mise à jour…"; clearTimeout(pubTimer); if (PUB.st === "wait") await publish(); VC = ""; VM = ""; LS.set("vc", ""); LS.set("vm", ""); LS.set("reopen", CUR.a[0] || "res"); location.replace(location.pathname + "?maj=" + Date.now()); };
   pubUI();
@@ -1080,6 +1110,7 @@ function profDev(box) {
   $("#dOut").onclick = () => { TPW = ""; LS.del("tpw"); go("home"); };
 }
 
+setInterval(checkAlerts, 3000); document.addEventListener("visibilitychange", () => { if (!document.hidden) checkAlerts(); });
 // ======================= DÉMARRAGE =======================
 $("#hProf").onclick = openProf;
 (async () => {
