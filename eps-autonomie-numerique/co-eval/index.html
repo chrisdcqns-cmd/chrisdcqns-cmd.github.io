@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14213d">
+<title>CO – Préparation à l'évaluation</title>
+<link rel="icon" href="../orientation/icon-192.png">
+<link rel="apple-touch-icon" href="../orientation/icon-192.png">
+<style>
+:root{--nv:#14213d;--or:#f47a20;--vi:#c21fbf;--gr:#2a9d6f;--ko:#d62839;--bg:#f3efe6;--card:#fff;--mu:#6b7280;--li:#e7e1d3}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--nv);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior-y:contain}
+button{font:inherit;cursor:pointer}
+header{position:sticky;top:0;z-index:20;background:var(--nv);color:#fff;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px}
+header h1{font-size:1.05rem;margin:0;flex:1;line-height:1.15;font-weight:800}
+header .ic{width:34px;height:34px;border-radius:9px;background:var(--or);display:grid;place-items:center;font-weight:900;flex:none}
+.hb{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:10px;padding:7px 10px;font-weight:700;font-size:.85rem}
+main{max-width:720px;margin:0 auto;padding:14px 14px calc(90px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.card h2{margin:0 0 8px;font-size:1.15rem}
+.muted{color:var(--mu)}.small{font-size:.85rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:12px 16px;font-weight:800;min-height:48px;background:var(--nv);color:#fff}
+.btn.or{background:var(--or)}.btn.gr{background:var(--gr)}.btn.ko{background:var(--ko)}.btn.vi{background:var(--vi)}
+.btn.gh{background:#fff;color:var(--nv);box-shadow:inset 0 0 0 2px var(--li)}
+.btn.big{width:100%;min-height:64px;font-size:1.25rem;border-radius:18px}
+.btn:disabled{opacity:.4}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:.88rem;border-radius:11px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.grow{flex:1}
+.inp{width:100%;font:inherit;font-size:1.05rem;padding:12px 14px;border-radius:13px;border:2px solid var(--li);background:#fff;color:var(--nv)}
+.inp:focus{outline:none;border-color:var(--or)}
+label.l{display:block;font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mu);margin:12px 0 5px}
+.chip{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--li);font-size:.78rem;font-weight:800}
+.chip.ok{background:#d5f0e3;color:#11643f}.chip.ko{background:#fbd5d9;color:#8c1020}.chip.or{background:#ffe2c9;color:#8a3d00}.chip.vi{background:#f6d4f5;color:#7c0f7a}
+.prof{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prof button{border:2px solid var(--li);background:#fff;border-radius:14px;padding:14px 8px;font-weight:800;color:var(--nv)}
+.prof button.on{border-color:var(--or);background:#fff4ea}
+.pc{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;background:#fff;border:2px solid var(--li);margin-bottom:10px;width:100%;text-align:left;color:var(--nv)}
+.pc .n{width:46px;height:46px;border-radius:13px;background:var(--nv);color:#fff;display:grid;place-items:center;font-weight:900;font-size:1.2rem;flex:none}
+.pc.done{border-color:#bfe6d3}.pc.done .n{background:var(--gr)}
+.pc.cur{border-color:var(--or)}.pc.cur .n{background:var(--or)}
+.pc b{display:block;font-size:1.05rem}
+/* carte */
+.mapv{position:relative;overflow:hidden;border-radius:14px;background:#ddd;touch-action:none;height:46vh;min-height:260px}
+.mapv .in{position:absolute;left:0;top:0;transform-origin:0 0}
+.mapv img{display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.mapv svg.ov{position:absolute;left:0;top:0;pointer-events:none}
+.zb{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.zb button{width:40px;height:40px;border-radius:11px;border:0;background:#fff;font-weight:900;font-size:1.2rem;box-shadow:0 1px 4px rgba(0,0,0,.25);color:var(--nv)}
+/* choix des balises */
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:7px}
+.bgrid button{height:54px;border-radius:50%;border:3px solid var(--vi);background:#fff;color:var(--vi);font-weight:900;font-size:1.1rem;aspect-ratio:1;justify-self:center;width:54px;padding:0;position:relative}
+.bgrid button.on{background:var(--vi);color:#fff}
+.bgrid button.ob::after{content:"★";position:absolute;right:-5px;top:-7px;font-size:.85rem;color:var(--or);background:#fff;border-radius:50%;width:18px;height:18px;line-height:18px}
+.bgrid button.used{border-style:dashed;opacity:.55}
+.sl{list-style:none;margin:0;padding:0;position:relative}
+.sl li{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--li);border-radius:14px;padding:6px 6px 6px 10px;margin-bottom:7px;touch-action:none;user-select:none;-webkit-user-select:none}
+.sl li .o{font-weight:900;color:var(--mu);width:22px;text-align:right}
+.sl li .bn{width:42px;height:42px;border-radius:50%;border:3px solid var(--vi);color:var(--vi);display:grid;place-items:center;font-weight:900;flex:none;background:#fff}
+.sl li .h{margin-left:auto;width:52px;height:46px;display:grid;place-items:center;font-size:1.5rem;color:var(--mu);border-radius:10px;background:#f5f2ea;touch-action:none}
+.sl li .x{width:38px;height:46px;border:0;background:none;color:var(--ko);font-size:1.1rem;font-weight:900}
+.sl li.drag{position:relative;z-index:5;box-shadow:0 10px 24px rgba(0,0,0,.25);border-color:var(--or);transition:none}
+.sl li.anim{transition:transform .15s}
+.sl li.st,.sl li.fi{background:#f7f3ff;border-style:dashed;touch-action:auto}
+.timer{font-variant-numeric:tabular-nums;font-weight:900}
+.prep{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--nv);color:#fff;border-radius:16px;padding:10px 14px;margin-bottom:12px;position:sticky;top:calc(env(safe-area-inset-top) + 60px);z-index:10}
+.prep .timer{font-size:1.6rem}
+.prep.low{background:var(--ko)}
+/* course */
+.chrono{font-size:3.2rem;text-align:center;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.02em;margin:4px 0 0}
+.bigb{width:150px;height:150px;border-radius:50%;border:9px solid var(--vi);display:grid;place-items:center;margin:8px auto 4px;font-size:3.4rem;font-weight:900;color:var(--vi);background:#fff}
+.boxes{display:flex;justify-content:center;gap:10px;margin:14px 0 10px}
+.boxes div{width:64px;height:74px;border-radius:14px;border:3px solid var(--li);background:#fff;display:grid;place-items:center;font-size:2.3rem;font-weight:900}
+.boxes div.cur{border-color:var(--or);box-shadow:0 0 0 4px #ffe2c9}
+.kb{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.kb button{height:52px;border:0;border-radius:10px;background:#fff;font-weight:800;font-size:1.15rem;color:var(--nv);box-shadow:0 2px 0 var(--li);padding:0}
+.kb button:active{background:var(--li)}
+.kb .w2{grid-column:span 2}.kb .w3{grid-column:span 3}
+.steps{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin:6px 0}
+.steps span{min-width:30px;height:30px;padding:0 4px;border-radius:15px;display:grid;place-items:center;font-size:.8rem;font-weight:900;border:2px solid var(--vi);color:var(--vi);background:#fff}
+.steps span.d{background:var(--vi);color:#fff}.steps span.c{background:var(--or);border-color:var(--or);color:#fff;transform:scale(1.15)}
+.flash{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);background:var(--nv);color:#fff;padding:18px 26px;border-radius:18px;font-weight:900;font-size:1.2rem;z-index:99;box-shadow:0 10px 40px rgba(0,0,0,.3);animation:fl .9s forwards;pointer-events:none}
+@keyframes fl{0%{opacity:0;transform:translate(-50%,-40%)}15%{opacity:1;transform:translate(-50%,-50%)}75%{opacity:1}100%{opacity:0}}
+/* bilan */
+table.t{width:100%;border-collapse:collapse;font-size:.92rem}
+table.t th,table.t td{padding:7px 6px;border-bottom:1px solid var(--li);text-align:left}
+table.t th{font-size:.72rem;text-transform:uppercase;color:var(--mu);letter-spacing:.03em}
+table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0}
+.kpi div{background:#f7f4ec;border-radius:13px;padding:10px}
+.kpi b{display:block;font-size:1.35rem;font-variant-numeric:tabular-nums}
+.kpi span{font-size:.76rem;color:var(--mu);font-weight:700;text-transform:uppercase}
+.bar{height:12px;border-radius:6px;background:var(--or)}
+.opts button{border:2px solid var(--li);background:#fff;border-radius:12px;padding:9px 12px;font-weight:700;color:var(--nv);margin:0 6px 6px 0}
+.opts button.on{border-color:var(--or);background:#fff4ea}
+.ref{font-size:.7rem;color:#b9b2a3;text-align:right;margin-top:6px}
+.modal{position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.modal>div{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+.hide{display:none!important}
+@media print{header,.noprint,#eps-home-btn{display:none!important}body{background:#fff}main{padding:0;max-width:none}.card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;padding:10px}.pb{break-before:page}}
+</style>
+</head>
+<body>
+<header><div class="ic">CO</div><h1 id="hT">Course d'orientation</h1><button class="hb noprint" id="hProf" title="Espace enseignant">🔒</button></header>
+<main id="app"></main>
+<script>
+"use strict";
+const QR = (() => {
+  const ECC = { L: [-1,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+    M: [-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28],
+    Q: [-1,13,22,18,26,18,24,18,22,20,24,28,26,24,20,30,24,28,28,26,30,28,30,30,30,30,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+    H: [-1,17,28,22,16,22,28,26,26,24,28,24,28,22,24,24,30,28,28,26,28,30,24,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30] };
+  const BLK = { L: [-1,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25],
+    M: [-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49],
+    Q: [-1,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20,23,23,25,27,29,34,34,35,38,40,43,45,48,51,53,56,59,62,65,68],
+    H: [-1,1,1,2,4,4,4,5,6,8,8,11,11,16,16,18,16,19,21,25,25,25,34,30,32,35,37,40,42,45,48,51,54,57,60,63,66,70,74,77,81] };
+  const FMT = { L: 1, M: 0, Q: 3, H: 2 };
+
+  function rawModules(v) {
+    let r = (16 * v + 128) * v + 64;
+    if (v >= 2) { const n = Math.floor(v / 7) + 2; r -= (25 * n - 10) * n - 55; if (v >= 7) r -= 36; }
+    return r;
+  }
+  const dataCw = (v, e) => Math.floor(rawModules(v) / 8) - ECC[e][v] * BLK[e][v];
+
+  function gfMul(x, y) { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z & 255; }
+  function rsDivisor(deg) {
+    const r = new Array(deg).fill(0); r[deg - 1] = 1; let root = 1;
+    for (let i = 0; i < deg; i++) { for (let j = 0; j < r.length; j++) { r[j] = gfMul(r[j], root); if (j + 1 < r.length) r[j] ^= r[j + 1]; } root = gfMul(root, 2); }
+    return r;
+  }
+  function rsRem(data, div) {
+    const r = div.map(() => 0);
+    for (const b of data) { const f = b ^ r.shift(); r.push(0); div.forEach((c, i) => r[i] ^= gfMul(c, f)); }
+    return r;
+  }
+
+  function encode(text, ecl = "M", forceMask) {
+    const bytes = Array.from(new TextEncoder().encode(text));
+    let v = 1;
+    for (; v <= 40; v++) { const cc = v < 10 ? 8 : 16; if (4 + cc + bytes.length * 8 <= dataCw(v, ecl) * 8) break; }
+    if (v > 40) throw new Error("Texte trop long pour un QR code");
+    // améliore le niveau de correction si la place le permet
+    for (const e of ["M", "Q", "H"]) { if ("LMQH".indexOf(e) > "LMQH".indexOf(ecl)) { const cc = v < 10 ? 8 : 16; if (4 + cc + bytes.length * 8 <= dataCw(v, e) * 8) ecl = e; } }
+    const bits = [];
+    const put = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+    put(4, 4); put(bytes.length, v < 10 ? 8 : 16); bytes.forEach(b => put(b, 8));
+    const cap = dataCw(v, ecl) * 8;
+    put(0, Math.min(4, cap - bits.length));
+    put(0, (8 - bits.length % 8) % 8);
+    for (let p = 0xEC; bits.length < cap; p ^= 0xEC ^ 0x11) put(p, 8);
+    const data = []; for (let i = 0; i < bits.length; i += 8) data.push(parseInt(bits.slice(i, i + 8).join(""), 2));
+    // blocs + correction d'erreurs
+    const nb = BLK[ecl][v], ecLen = ECC[ecl][v], raw = Math.floor(rawModules(v) / 8);
+    const nShort = nb - raw % nb, shortLen = Math.floor(raw / nb);
+    const blocks = [], div = rsDivisor(ecLen);
+    for (let i = 0, k = 0; i < nb; i++) {
+      const dat = data.slice(k, k + shortLen - ecLen + (i < nShort ? 0 : 1)); k += dat.length;
+      const ecc = rsRem(dat, div); if (i < nShort) dat.push(0); blocks.push(dat.concat(ecc));
+    }
+    const all = [];
+    for (let i = 0; i < blocks[0].length; i++) blocks.forEach((b, j) => { if (i !== shortLen - ecLen || j >= nShort) all.push(b[i]); });
+    // matrice
+    const size = v * 4 + 17;
+    const M = Array.from({ length: size }, () => new Array(size).fill(false));
+    const F = Array.from({ length: size }, () => new Array(size).fill(false));
+    const set = (x, y, d) => { M[y][x] = d; F[y][x] = true; };
+    for (let i = 0; i < size; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+    const finder = (x, y) => { for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const d = Math.max(Math.abs(dx), Math.abs(dy)), xx = x + dx, yy = y + dy; if (xx >= 0 && xx < size && yy >= 0 && yy < size) set(xx, yy, d !== 2 && d !== 4); } };
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    const al = [];
+    if (v > 1) { const n = Math.floor(v / 7) + 2, step = Math.floor((v * 8 + n * 3 + 5) / (n * 4 - 4)) * 2; for (let i = n - 1, p = size - 7; i >= 1; i--, p -= step) al.unshift(p); al.unshift(6); }
+    al.forEach((a, i) => al.forEach((b, j) => { if (!((i === 0 && j === 0) || (i === 0 && j === al.length - 1) || (i === al.length - 1 && j === 0))) for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(a + dx, b + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1); }));
+    const drawFormat = (mask) => {
+      const d = FMT[ecl] << 3 | mask; let r = d; for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+      const b = (d << 10 | r) ^ 0x5412, g = i => ((b >>> i) & 1) !== 0;
+      for (let i = 0; i <= 5; i++) set(8, i, g(i));
+      set(8, 7, g(6)); set(8, 8, g(7)); set(7, 8, g(8));
+      for (let i = 9; i < 15; i++) set(14 - i, 8, g(i));
+      for (let i = 0; i < 8; i++) set(size - 1 - i, 8, g(i));
+      for (let i = 8; i < 15; i++) set(8, size - 15 + i, g(i));
+      set(8, size - 8, true);
+    };
+    drawFormat(0);
+    if (v >= 7) {
+      let r = v; for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25);
+      const b = v << 12 | r;
+      for (let i = 0; i < 18; i++) { const bit = ((b >>> i) & 1) !== 0, a = size - 11 + i % 3, c = Math.floor(i / 3); set(a, c, bit); set(c, a, bit); }
+    }
+    // données en zigzag
+    let i = 0;
+    for (let right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (let vert = 0; vert < size; vert++) for (let j = 0; j < 2; j++) {
+        const x = right - j, up = ((right + 1) & 2) === 0, y = up ? size - 1 - vert : vert;
+        if (!F[y][x] && i < all.length * 8) { M[y][x] = ((all[i >>> 3] >>> (7 - (i & 7))) & 1) !== 0; i++; }
+      }
+    }
+    const applyMask = (m) => {
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        if (F[y][x]) continue; let inv;
+        switch (m) { case 0: inv = (x + y) % 2 === 0; break; case 1: inv = y % 2 === 0; break; case 2: inv = x % 3 === 0; break; case 3: inv = (x + y) % 3 === 0; break;
+          case 4: inv = (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0; break; case 5: inv = x * y % 2 + x * y % 3 === 0; break;
+          case 6: inv = (x * y % 2 + x * y % 3) % 2 === 0; break; default: inv = ((x + y) % 2 + x * y % 3) % 2 === 0; }
+        if (inv) M[y][x] = !M[y][x];
+      }
+    };
+    const penalty = () => {
+      let p = 0;
+      const lines = (get) => { for (let a = 0; a < size; a++) { let run = 1; for (let b = 1; b < size; b++) { if (get(a, b) === get(a, b - 1)) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else run = 1; }
+        for (let b = 0; b + 6 < size; b++) { const s = [0,1,2,3,4,5,6].map(k => get(a, b + k)); if (s.join() === "true,false,true,true,true,false,true") { const before = b >= 4 && [1,2,3,4].every(k => !get(a, b - k)); const after = b + 10 < size && [7,8,9,10].every(k => !get(a, b + k)); if (before || after) p += 40; } } } };
+      lines((a, b) => M[a][b]); lines((a, b) => M[b][a]);
+      for (let y = 0; y < size - 1; y++) for (let x = 0; x < size - 1; x++) { const c = M[y][x]; if (c === M[y][x + 1] && c === M[y + 1][x] && c === M[y + 1][x + 1]) p += 3; }
+      let dark = 0; M.forEach(r => r.forEach(c => { if (c) dark++; }));
+      const tot = size * size; p += (Math.ceil(Math.abs(dark * 20 - tot * 10) / tot) - 1) * 10;
+      return p;
+    };
+    let best = 0, bestP = Infinity;
+    for (let m = 0; m < 8; m++) { applyMask(m); drawFormat(m); const p = penalty(); if (p < bestP) { bestP = p; best = m; } applyMask(m); }
+    if (forceMask !== undefined) best = forceMask;
+    applyMask(best); drawFormat(best);
+    return { size, get: (x, y) => M[y][x], version: v };
+  }
+
+  function svg(text, opts = {}) {
+    const q = encode(text, opts.ecl || "M"), b = opts.border ?? 4, n = q.size + b * 2;
+    let d = "";
+    for (let y = 0; y < q.size; y++) for (let x = 0; x < q.size; x++) if (q.get(x, y)) d += `M${x + b},${y + b}h1v1h-1z`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"${opts.cls ? ` class="${opts.cls}"` : ""}><rect width="${n}" height="${n}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+  }
+  return { encode, svg };
+})();
+
+// =====================================================================
+//  CO – Préparation à l'évaluation (appli temporaire, une leçon)
+// =====================================================================
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const LS = { get(k, d) { try { const v = localStorage.getItem("coe." + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem("coe." + k, JSON.stringify(v)); } catch (e) {} }, del(k) { try { localStorage.removeItem("coe." + k); } catch (e) {} } };
+const pad = n => String(n).padStart(2, "0");
+const fmt = ms => { if (ms == null || isNaN(ms)) return "–"; const neg = ms < 0; ms = Math.abs(ms); const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (neg ? "−" : "") + (h ? h + ":" + pad(m) : m) + ":" + pad(x); };
+const fmtMin = s => s % 60 ? fmt(s * 1000) : (s / 60) + " min";
+const uid = () => Math.random().toString(36).slice(2, 9);
+const hashCode = c => { let h = 5381, s = "relais:" + c; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); };
+const now = () => Date.now();
+function flash(t) { const d = document.createElement("div"); d.className = "flash"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 950); }
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+function modal(html) { const m = document.createElement("div"); m.className = "modal"; m.innerHTML = `<div>${html}</div>`; m.onclick = e => { if (e.target === m) m.remove(); }; document.body.appendChild(m); m.close = () => m.remove(); return m; }
+function ask(title, text, okTxt = "Oui", cls = "or") { return new Promise(res => { const m = modal(`<h2 style="margin:0 0 8px">${title}</h2><p>${text}</p><div class="row"><button class="btn gh grow" id="mN">Annuler</button><button class="btn ${cls} grow" id="mY">${okTxt}</button></div>`); $("#mN", m).onclick = () => { m.close(); res(false); }; $("#mY", m).onclick = () => { m.close(); res(true); }; }); }
+
+// ---------------- Paramètres (modifiables dans l'espace enseignant) ----------------
+const DEMO_B = [[31, "KTR", .16, .22], [32, "BOP", .38, .14], [33, "LUV", .62, .18], [34, "MAZ", .84, .25], [35, "FER", .73, .42], [36, "DIX", .48, .36], [37, "GOL", .24, .44], [38, "PRA", .12, .66], [39, "SUC", .33, .62], [40, "NEB", .55, .58], [41, "TAV", .8, .66], [42, "JOR", .68, .84], [43, "WIK", .42, .82], [44, "HYL", .2, .86]];
+const DEF = {
+  v: 1, titre: "CO – Préparation à l'évaluation", profs: ["Enseignant 1", "Enseignant 2"], carte: "carte.jpg", demo: true,
+  balises: DEMO_B.map(([n, code, x, y]) => ({ n, code, x, y })),
+  depart: { x: .5, y: .5 },
+  parcours: [
+    { nom: "Parcours 1", type: "indiv", nb: 5, oblig: 36, prep: 5, max: 0 },
+    { nom: "Parcours 2", type: "indiv", nb: 6, oblig: 40, prep: 5, max: 0 },
+    { nom: "Parcours 3", type: "duo", nb: 8, oblig: 33, prep: 5, max: 0 }],
+  penOubli: 60, penOblig: 120, penRetard: 30, voirErr: false, avance: true, prevu: true, reuse: true, pin: null
+};
+let C = Object.assign({}, DEF, LS.get("conf", {}));
+// paramètres reçus par lien (#c=…) : codes brouillés pour ne pas être lisibles dans l'adresse
+const KEY = "orienrun-eps";
+function enc(o) { const b = new TextEncoder().encode(JSON.stringify(o)); const x = b.map((v, i) => v ^ KEY.charCodeAt(i % KEY.length)); let s = ""; x.forEach(v => s += String.fromCharCode(v)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+function dec(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(s), b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length); return JSON.parse(new TextDecoder().decode(b)); }
+const balise = n => C.balises.find(b => +b.n === +n);
+const P = k => C.parcours[k];
+const pinHash = () => C.pin || (() => { try { return JSON.parse(localStorage.getItem("relais-vitesse-code-v1") || "null"); } catch (e) { return null; } })();
+
+// ---------------- Données de l'élève (cet appareil) ----------------
+let ME = LS.get("me", null);          // {prenom, nom, prof}
+let RUNS = LS.get("runs", [null, null, null]); // un objet par parcours
+const saveRuns = () => LS.set("runs", RUNS);
+let tick = null;
+function stopTick() { if (tick) clearInterval(tick); tick = null; }
+
+// ---------------- Carte (zoom au doigt) ----------------
+let MAPIMG = null; // URL de l'image de carte
+function demoMap() {
+  const W = 1000, H = 1300, b = C.balises;
+  const path = (d, w = 5, dash = "") => `<path d="${d}" fill="none" stroke="#111" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>
+  <path d="M0 0H380L330 260 120 330 0 300Z" fill="#c9eab8"/><path d="M620 380 980 330 1000 700 760 760Z" fill="#8dd17a"/><path d="M60 900 360 940 330 1300H0V950Z" fill="#c9eab8"/>
+  <path d="M430 480H600V640H430Z" fill="#ffba35"/><path d="M700 980H1000V1300H640Z" fill="#ffdd9a"/><rect x="420" y="1000" width="140" height="90" fill="#666"/><path d="M820 120 900 90 950 170 860 200Z" fill="#7fc8ef" stroke="#2a8fd0" stroke-width="3"/>
+  ${path("M0 520 C200 500 300 420 500 400 S800 300 1000 280", 9)}${path("M500 0 C480 300 520 600 500 760 S540 1100 520 1300", 6, "26 6")}${path("M0 1080 C250 1050 450 1160 1000 1100", 6, "26 6")}${path("M150 0 C170 200 250 400 210 700", 4, "12 8")}${path("M760 760 C700 900 880 1000 860 1300", 4, "12 8")}
+  ${b.map(x => `<circle cx="${x.x * W}" cy="${x.y * H}" r="30" fill="none" stroke="#c21fbf" stroke-width="5"/><text x="${x.x * W + 34}" y="${x.y * H - 22}" font-family="Arial" font-weight="700" font-size="42" fill="#c21fbf">${x.n}</text>`).join("")}
+  <path d="M${C.depart.x * W} ${C.depart.y * H - 40}l35 60h-70z" fill="none" stroke="#c21fbf" stroke-width="5"/>
+  <text x="20" y="${H - 20}" font-family="Arial" font-size="30" fill="#999">CARTE DE DÉMONSTRATION</text></svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+async function loadMap() {
+  const own = await idbGet("carte"); if (own) return MAPIMG = own;
+  if (C.carte) { const ok = await new Promise(r => { const i = new Image(); i.onload = () => r(true); i.onerror = () => r(false); i.src = C.carte + "?v=" + (C.carteV || 1); }); if (ok) return MAPIMG = C.carte + "?v=" + (C.carteV || 1); }
+  return MAPIMG = demoMap();
+}
+// petite base IndexedDB pour l'image de carte chargée par l'enseignant
+function idb() { return new Promise((res, rej) => { const r = indexedDB.open("coe", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function idbGet(k) { try { const d = await idb(); return await new Promise(r => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); } catch (e) { return null; } }
+async function idbSet(k, v) { try { const d = await idb(); await new Promise(r => { const t = d.transaction("kv", "readwrite"); v == null ? t.objectStore("kv").delete(k) : t.objectStore("kv").put(v, k); t.oncomplete = r; t.onerror = r; }); } catch (e) {} }
+
+function mapViewer(box, opts = {}) {
+  box.innerHTML = `<div class="in"><img alt="Carte"><svg class="ov"></svg></div><div class="zb"><button data-z="1">+</button><button data-z="-1">−</button><button data-z="0" style="font-size:.95rem">⤢</button></div>`;
+  const inn = $(".in", box), img = $("img", box), ov = $("svg", box);
+  let s = 1, tx = 0, ty = 0, W = 1, H = 1;
+  const apply = () => { inn.style.transform = `translate(${tx}px,${ty}px) scale(${s})`; };
+  const fit = () => { const bw = box.clientWidth, bh = box.clientHeight; s = Math.min(bw / W, bh / H); tx = (bw - W * s) / 2; ty = (bh - H * s) / 2; apply(); };
+  const clampS = v => Math.max(Math.min(box.clientWidth / W, box.clientHeight / H) * .8, Math.min(v, 6));
+  const zoomAt = (f, cx, cy) => { const ns = clampS(s * f), k = ns / s; tx = cx - (cx - tx) * k; ty = cy - (cy - ty) * k; s = ns; apply(); };
+  const draw = () => { ov.setAttribute("width", W); ov.setAttribute("height", H); ov.setAttribute("viewBox", `0 0 ${W} ${H}`); ov.innerHTML = opts.overlay ? opts.overlay(W, H) : ""; };
+  img.onload = () => { W = img.naturalWidth || 1000; H = img.naturalHeight || 1300; img.width = W; img.height = H; draw(); fit(); };
+  img.src = MAPIMG;
+  $$("[data-z]", box).forEach(b => b.onclick = e => { e.stopPropagation(); const z = +b.dataset.z; if (!z) return fit(); zoomAt(z > 0 ? 1.5 : 1 / 1.5, box.clientWidth / 2, box.clientHeight / 2); });
+  const pts = new Map(); let last = null, moved = 0;
+  box.addEventListener("pointerdown", e => { if (e.target.closest(".zb")) return; box.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = null; moved = 0; });
+  box.addEventListener("pointermove", e => {
+    if (!pts.has(e.pointerId)) return; const r = box.getBoundingClientRect(); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const p = [...pts.values()], cx = p.reduce((a, q) => a + q.x, 0) / p.length - r.left, cy = p.reduce((a, q) => a + q.y, 0) / p.length - r.top, d = p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0;
+    if (last && last.n === p.length) { tx += cx - last.cx; ty += cy - last.cy; moved += Math.abs(cx - last.cx) + Math.abs(cy - last.cy); if (d && last.d) zoomAt(d / last.d, cx, cy); else apply(); }
+    last = { cx, cy, d, n: p.length };
+  });
+  const up = e => { const was = pts.has(e.pointerId); pts.delete(e.pointerId); last = null; if (was && !pts.size && moved < 8 && opts.onTap) { const r = box.getBoundingClientRect(); opts.onTap(((e.clientX - r.left - tx) / s) / W, ((e.clientY - r.top - ty) / s) / H); } };
+  box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up);
+  box.addEventListener("wheel", e => { e.preventDefault(); const r = box.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  return { redraw: draw, fit };
+}
+// tracé de l'itinéraire choisi (si les balises ont été positionnées sur la carte)
+function routeOverlay(plan, done = -1) {
+  return (W, H) => {
+    const pts = [C.depart, ...plan.map(balise), C.depart].filter(b => b && b.x != null);
+    if (pts.length < 2) return "";
+    const L = Math.max(W, H) / 1000;
+    let s = `<polyline points="${pts.map(p => p.x * W + "," + p.y * H).join(" ")}" fill="none" stroke="#f47a20" stroke-width="${5 * L}" stroke-linejoin="round" stroke-opacity=".85" stroke-dasharray="${16 * L} ${8 * L}"/>`;
+    plan.forEach((n, i) => { const b = balise(n); if (!b || b.x == null) return; s += `<circle cx="${b.x * W}" cy="${b.y * H}" r="${22 * L}" fill="${i < done ? "#2a9d6f" : "#f47a20"}" fill-opacity=".9"/><text x="${b.x * W}" y="${b.y * H + 9 * L}" text-anchor="middle" font-family="Arial" font-weight="900" font-size="${26 * L}" fill="#fff">${i + 1}</text>`; });
+    return s;
+  };
+}
+// distance à vol d'oiseau (en « unités carte ») — utile seulement si la carte a une échelle connue
+function planLen(plan) { const pts = [C.depart, ...plan.map(balise), C.depart]; if (pts.some(p => !p || p.x == null) || !C.mPerUnit) return null; let d = 0; for (let i = 1; i < pts.length; i++) d += Math.hypot((pts[i].x - pts[i - 1].x) * (C.mapW || 1000), (pts[i].y - pts[i - 1].y) * (C.mapH || 1300)) * C.mPerUnit; return d; }
+
+// ======================= ÉCRANS ÉLÈVE =======================
+let SW = null; // élève consulté par l'enseignant
+function go(v, ...a) { if (SW && v !== "full") { ME = SW.ME; RUNS = SW.RUNS; SW = null; } stopTick(); window.scrollTo(0, 0); ({ home: vHome, ident: vIdent, prep: vPrep, run: vRun, end: vEnd, bilan: vBilan, full: vFull, prof: vProf })[v](...a); }
+window.epsAppHome = () => go("home");
+
+function vHome() {
+  $("#hT").textContent = C.titre;
+  if (!ME) return vIdent();
+  const cur = RUNS.findIndex(r => r && !r.fin);
+  if (cur >= 0) return RUNS[cur].debut ? vRun(cur) : vPrep(cur);
+  const app = $("#app");
+  app.innerHTML = `<div class="card"><div class="row"><div class="grow"><div class="muted small">Élève</div><b style="font-size:1.15rem">${esc(ME.prenom)} ${esc(ME.nom)}</b><div class="small muted">Enseignant : ${esc(ME.prof)}</div></div><button class="btn sm gh" id="eId">Modifier</button></div></div>
+   <h2 style="margin:16px 4px 10px">Tes 3 parcours</h2>
+   ${C.parcours.map((p, k) => { const r = RUNS[k], done = r?.fin, next = !done && RUNS.slice(0, k).every(x => x?.fin); return `<button class="pc ${done ? "done" : next ? "cur" : ""}" data-p="${k}" ${!done && !next ? "disabled style='opacity:.55'" : ""}><div class="n">${done ? "✓" : k + 1}</div><div class="grow"><b>${esc(p.nom)} · ${p.type === "duo" ? "👥 collectif" : "👤 individuel"}</b><span class="small muted">${p.nb} balises à choisir${p.oblig ? `, dont la n° <b style="color:var(--vi)">${p.oblig}</b> obligatoire` : ""} · préparation ${fmtMin(p.prep * 60)}${p.max ? ` · ${p.max} min maximum` : ""}</span>${done ? `<div style="margin-top:4px"><span class="chip ok">Temps : ${fmt(r.fin - r.debut)}</span></div>` : ""}</div><span style="font-size:1.4rem">${done ? "📄" : next ? "▶" : "🔒"}</span></button>`; }).join("")}
+   ${RUNS.some(r => r?.fin) ? `<button class="btn big vi" id="full" style="margin-top:6px">📊 Bilan complet${RUNS.every(r => r?.fin) ? " des 3 parcours" : " (provisoire)"}</button><button class="btn big gh" id="send" style="margin-top:10px">📤 Envoyer mes résultats à l'enseignant</button>` : ""}`;
+  $("#eId").onclick = () => vIdent(true);
+  $$("[data-p]").forEach(b => b.onclick = () => { const k = +b.dataset.p; if (RUNS[k]?.fin) return go("bilan", k); startPrep(k); });
+  $("#full") && ($("#full").onclick = () => go("full"));
+  $("#send") && ($("#send").onclick = sendResults);
+}
+function vIdent(edit) {
+  const me = ME || { prenom: "", nom: "", prof: "" };
+  const app = $("#app");
+  app.innerHTML = `<div class="card"><h2>👋 Qui es-tu ?</h2><p class="muted" style="margin-top:0">Ces informations apparaîtront sur tes bilans.</p>
+   <label class="l">Prénom</label><input class="inp" id="iP" autocomplete="given-name" value="${esc(me.prenom)}">
+   <label class="l">Nom</label><input class="inp" id="iN" autocomplete="family-name" value="${esc(me.nom)}">
+   <label class="l">Ton enseignant</label><div class="prof">${C.profs.filter(Boolean).map(p => `<button data-pr="${esc(p)}" class="${me.prof === p ? "on" : ""}">${esc(p)}</button>`).join("")}</div>
+   <button class="btn big or" id="iGo" style="margin-top:18px">C'est parti</button></div>`;
+  let prof = me.prof;
+  $$("[data-pr]").forEach(b => b.onclick = () => { prof = b.dataset.pr; $$("[data-pr]").forEach(x => x.classList.toggle("on", x === b)); });
+  $("#iGo").onclick = () => {
+    const prenom = $("#iP").value.trim(), nom = $("#iN").value.trim();
+    if (!prenom || !nom) return flash("Prénom et nom ?"); if (!prof) return flash("Choisis ton enseignant");
+    ME = { prenom, nom, prof, id: ME?.id || uid() }; LS.set("me", ME); go("home");
+  };
+}
+
+// ---------- Préparation : choix et ordre des balises ----------
+function startPrep(k) {
+  const p = P(k);
+  if (p.type === "duo") {
+    const m = modal(`<h2 style="margin:0 0 6px">👥 Parcours collectif</h2><p class="muted" style="margin-top:0">Indique ton ou ta camarade : vous courez ensemble avec ce téléphone.</p>
+     <label class="l">Prénom du camarade</label><input class="inp" id="dP"><label class="l">Nom du camarade</label><input class="inp" id="dN">
+     <label class="l">Son enseignant</label><div class="prof">${C.profs.filter(Boolean).map(x => `<button data-dp="${esc(x)}" class="${x === ME.prof ? "on" : ""}">${esc(x)}</button>`).join("")}</div>
+     <button class="btn big or" id="dGo" style="margin-top:16px">Commencer la préparation</button>`);
+    let pr = ME.prof; $$("[data-dp]", m).forEach(b => b.onclick = () => { pr = b.dataset.dp; $$("[data-dp]", m).forEach(x => x.classList.toggle("on", x === b)); });
+    $("#dGo", m).onclick = () => { const a = $("#dP", m).value.trim(), b = $("#dN", m).value.trim(); if (!a || !b) return flash("Prénom et nom ?"); m.close(); RUNS[k] = newRun(k, { prenom: a, nom: b, prof: pr }); saveRuns(); go("prep", k); };
+    return;
+  }
+  RUNS[k] = newRun(k); saveRuns(); go("prep", k);
+}
+const newRun = (k, duo = null) => ({ k, duo, prepT: now(), plan: P(k).oblig ? [P(k).oblig] : [], prevu: null, debut: null, fin: null, saisies: [], auto: {} });
+const usedBefore = k => C.reuse ? [] : RUNS.slice(0, k).flatMap(r => r?.plan || []);
+
+function vPrep(k) {
+  const p = P(k), r = RUNS[k], app = $("#app"), used = usedBefore(k);
+  app.innerHTML = `<div class="prep" id="pBar"><div><div class="small" style="opacity:.8">Préparation · ${esc(p.nom)}</div><div class="timer" id="pT">–</div></div><div style="text-align:right" class="small"><b id="pCnt"></b><br><span style="opacity:.8">balises choisies</span></div></div>
+   ${r.duo ? `<div class="card small">👥 Équipe : <b>${esc(ME.prenom)} ${esc(ME.nom)}</b> et <b>${esc(r.duo.prenom)} ${esc(r.duo.nom)}</b></div>` : ""}
+   <div class="card" style="padding:10px"><div class="mapv" id="pMap"></div></div>
+   <div class="card"><h2>1. Choisis ${p.nb} balises</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé ont déjà été faites : elles sont interdites." : ""}</p><div class="bgrid" id="pGrid"></div></div>
+   <div class="card"><h2>2. Range-les dans ton ordre de passage</h2><p class="muted small" style="margin-top:0">Fais glisser avec le doigt sur ≡ pour changer l'ordre.</p>
+    <ul class="sl"><li class="st"><span class="o"></span><span class="bn" style="border-radius:8px">▲</span><b>Départ</b></li></ul><ul class="sl" id="pList"></ul><ul class="sl"><li class="fi"><span class="o"></span><span class="bn">◎</span><b>Retour à l'arrivée</b></li></ul><div id="pDist" class="small muted"></div></div>
+   ${C.prevu ? `<div class="card"><h2>3. Combien de temps vas-tu mettre ?</h2><p class="muted small" style="margin-top:0">Ton estimation sera comparée à ton temps réel dans le bilan.</p><div class="row"><button class="btn gh" data-pv="-60">−1 min</button><div class="timer grow" style="text-align:center;font-size:1.8rem" id="pPv">–</div><button class="btn gh" data-pv="60">+1 min</button></div><div class="row" style="justify-content:center;margin-top:6px"><button class="btn sm gh" data-pv="-15">−15 s</button><button class="btn sm gh" data-pv="15">+15 s</button></div></div>` : ""}
+   <button class="btn big gr" id="pGo" disabled>▶ Départ</button><p class="small muted" id="pWhy" style="text-align:center"></p>`;
+  const mv = mapViewer($("#pMap"), { overlay: routeOverlay(r.plan), onTap: (x, y) => { const W = 1; let best = null, bd = 1e9; C.balises.forEach(b => { if (b.x == null) return; const d = Math.hypot(b.x - x, (b.y - y) * 1.3); if (d < bd) { bd = d; best = b; } }); if (best && bd < .045) toggle(best.n); } });
+  const grid = $("#pGrid"), list = $("#pList");
+  if (r.prevu == null) r.prevu = Math.max(5, p.nb * 2) * 60;
+  function toggle(n) { n = +n; if (n === +p.oblig) return flash("Balise obligatoire ★"); if (used.includes(n)) return flash("Déjà faite"); const i = r.plan.indexOf(n); if (i >= 0) r.plan.splice(i, 1); else { if (r.plan.length >= p.nb) return flash(`${p.nb} balises maximum`); r.plan.push(n); } vib(10); saveRuns(); render(); }
+  function render() {
+    grid.innerHTML = C.balises.map(b => `<button data-b="${b.n}" class="${r.plan.includes(+b.n) ? "on" : ""} ${+b.n === +p.oblig ? "ob" : ""} ${used.includes(+b.n) ? "used" : ""}">${b.n}</button>`).join("");
+    $$("[data-b]", grid).forEach(b => b.onclick = () => toggle(b.dataset.b));
+    list.innerHTML = r.plan.map((n, i) => `<li data-i="${i}"><span class="o">${i + 1}</span><span class="bn">${n}</span><b class="grow">${+n === +p.oblig ? "★ obligatoire" : ""}</b>${+n === +p.oblig ? "" : `<button class="x" data-rm="${n}">✕</button>`}<span class="h">≡</span></li>`).join("") || `<li style="justify-content:center;color:var(--mu);border-style:dashed">Aucune balise choisie</li>`;
+    $$("[data-rm]", list).forEach(b => b.onclick = () => toggle(b.dataset.rm));
+    $("#pCnt").textContent = `${r.plan.length} / ${p.nb}`;
+    const d = planLen(r.plan); $("#pDist").textContent = d ? `Distance à vol d'oiseau : ${Math.round(d)} m` : "";
+    if ($("#pPv")) $("#pPv").textContent = fmt(r.prevu * 1000);
+    mv.redraw(); ok();
+  }
+  sortable(list, (from, to) => { const [x] = r.plan.splice(from, 1); r.plan.splice(to, 0, x); saveRuns(); render(); });
+  $$("[data-pv]").forEach(b => b.onclick = () => { r.prevu = Math.max(60, r.prevu + +b.dataset.pv); saveRuns(); $("#pPv").textContent = fmt(r.prevu * 1000); });
+  const end = r.prepT + p.prep * 60000;
+  function ok() {
+    const left = end - now(), full = r.plan.length === p.nb, early = left > 0 && !C.avance;
+    $("#pGo").disabled = !full || early;
+    $("#pWhy").textContent = !full ? `Il te manque ${p.nb - r.plan.length} balise(s).` : early ? "Le départ sera possible à la fin de la préparation." : left > 0 ? "Tu peux partir dès que tu es prêt·e." : "";
+  }
+  const upd = () => { const left = end - now(); $("#pT").textContent = left > 0 ? fmt(left) : "Temps écoulé"; $("#pBar").classList.toggle("low", left < 60000); if (left <= 0 && !r.auto.prepEnd) { r.auto.prepEnd = 1; saveRuns(); vib([200, 100, 200]); flash("⏰ Fin de la préparation"); } ok(); };
+  render(); upd(); tick = setInterval(upd, 500);
+  $("#pGo").onclick = async () => { if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>`, "▶ Partir", "gr"))) return; r.debut = now(); r.prepFin = r.debut; saveRuns(); vib(300); go("run", k); };
+}
+// glisser-déposer au doigt (poignée ≡)
+function sortable(ul, onMove) {
+  let drag = null;
+  ul.addEventListener("pointerdown", e => {
+    const h = e.target.closest(".h"); if (!h) return; const li = h.closest("li"); e.preventDefault();
+    const items = $$("li[data-i]", ul), rects = items.map(x => x.getBoundingClientRect());
+    drag = { li, from: +li.dataset.i, to: +li.dataset.i, y0: e.clientY, items, rects, hgt: rects[+li.dataset.i].height + 7 };
+    li.classList.add("drag"); h.setPointerCapture(e.pointerId); vib(15);
+    items.forEach(x => x !== li && x.classList.add("anim"));
+  });
+  ul.addEventListener("pointermove", e => {
+    if (!drag) return; e.preventDefault(); const dy = e.clientY - drag.y0; drag.li.style.transform = `translateY(${dy}px)`;
+    const c = drag.rects[drag.from].top + drag.rects[drag.from].height / 2 + dy; let to = drag.from;
+    drag.rects.forEach((r, i) => { if (i < drag.from && c < r.top + r.height / 2) to = Math.min(to, i); if (i > drag.from && c > r.top + r.height / 2) to = Math.max(to, i); });
+    if (to !== drag.to) { drag.to = to; vib(8); }
+    drag.items.forEach((x, i) => { if (x === drag.li) return; x.style.transform = drag.from < to && i > drag.from && i <= to ? `translateY(${-drag.hgt}px)` : drag.from > to && i >= to && i < drag.from ? `translateY(${drag.hgt}px)` : ""; });
+    // défilement automatique près des bords
+    if (e.clientY < 90) window.scrollBy(0, -8); else if (e.clientY > innerHeight - 70) window.scrollBy(0, 8);
+  });
+  const end = () => { if (!drag) return; const { from, to } = drag; drag.items.forEach(x => { x.style.transform = ""; x.classList.remove("anim", "drag"); }); drag = null; if (from !== to) onMove(from, to); };
+  ul.addEventListener("pointerup", end); ul.addEventListener("pointercancel", end);
+}
+
+// ---------- Course : chrono + saisie des codes ----------
+function expectedIdx(r) { return r.idx || 0; }
+function vRun(k) {
+  const p = P(k), r = RUNS[k], app = $("#app");
+  let code = "";
+  const draw = () => {
+    const i = expectedIdx(r), fini = i >= r.plan.length, n = r.plan[i];
+    app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(r.duo.prenom) : ""}</div><div class="chrono" id="rT">0:00</div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
+      <div class="steps">${r.plan.map((b, j) => `<span class="${j < i ? "d" : j === i ? "c" : ""}">${b}</span>`).join("")}<span style="border-color:var(--nv);color:var(--nv)">◎</span></div></div>
+     ${fini ? `<div class="card" style="text-align:center"><div style="font-size:3rem">🏁</div><h2>Toutes tes balises sont saisies</h2><p class="muted">Retourne à l'arrivée, puis touche le bouton.</p></div>` :
+      `<div class="card" style="text-align:center;padding-top:10px"><div class="small muted">Balise ${i + 1} sur ${r.plan.length}${+n === +p.oblig ? " · ★ obligatoire" : ""}</div><div class="bigb">${n}</div>
+       <div class="small muted">Tape le code de 3 lettres écrit sur la balise</div><div class="boxes">${[0, 1, 2].map(j => `<div class="${j === code.length ? "cur" : ""}">${code[j] || ""}</div>`).join("")}</div>
+       <div class="kb">${"AZERTYUIOPQSDFGHJKLMWXCVBN".split("").map(c => `<button data-k="${c}">${c}</button>`).join("")}<button class="w2" data-k="⌫" style="background:#f5f2ea">⌫</button><button class="w2" data-k="C" style="background:#f5f2ea;font-size:.85rem">Effacer</button></div>
+       <button class="btn big or" id="rOk" style="margin-top:12px" ${code.length === 3 ? "" : "disabled"}>✓ Valider la balise ${n}</button>
+       ${i + 1 < r.plan.length ? `<div class="small muted" style="margin-top:8px">Ensuite : balise <b>${r.plan[i + 1]}</b></div>` : `<div class="small muted" style="margin-top:8px">Ensuite : retour à l'arrivée</div>`}</div>`}
+     <div class="row"><button class="btn gh grow" id="rMap">🗺 Carte</button></div>
+     <button class="btn big ${fini ? "gr" : "gh"}" id="rBack" style="margin-top:10px">🏁 Je suis de retour</button>`;
+    $$("[data-k]").forEach(b => b.onclick = () => { const c = b.dataset.k; if (c === "⌫") code = code.slice(0, -1); else if (c === "C") code = ""; else if (code.length < 3) code += c; vib(8); drawCode(); });
+    $("#rOk") && ($("#rOk").onclick = validate);
+    $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:70vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { overlay: routeOverlay(r.plan, expectedIdx(r)) }); };
+    $("#rBack").onclick = async () => { const left = r.plan.length - expectedIdx(r); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return; r.fin = now(); saveRuns(); vib([100, 60, 300]); go("end", k); };
+    upd();
+  };
+  const drawCode = () => { const bx = $$(".boxes div"); bx.forEach((d, j) => { d.textContent = code[j] || ""; d.classList.toggle("cur", j === code.length); }); const o = $("#rOk"); if (o) o.disabled = code.length !== 3; };
+  function validate() {
+    if (code.length !== 3) return;
+    punch(r, code, p); code = ""; saveRuns(); vib(60); flash("✓ Enregistré"); draw();
+  }
+  const upd = () => { const t = now() - r.debut; const e = $("#rT"); if (e) e.textContent = fmt(t); const mx = $("#rMax"); if (mx) { const left = p.max * 60000 - t; mx.textContent = left >= 0 ? `Temps maximum : encore ${fmt(left)}` : `⚠ Temps maximum dépassé de ${fmt(-left)}`; mx.style.color = left < 0 ? "var(--ko)" : ""; } };
+  draw(); tick = setInterval(upd, 250);
+}
+// Saisie d'un code : rien n'est signalé à l'élève, l'analyse est enregistrée pour l'enseignant
+function punch(r, code, p) {
+  const i = r.idx || 0, t = now(), hit = C.balises.find(b => b.code.toUpperCase() === code);
+  const s = { t, code, attendu: r.plan[i], bal: hit ? +hit.n : null };
+  if (hit && +hit.n === +r.plan[i]) { s.st = "ok"; r.idx = i + 1; }
+  else if (hit && r.plan.indexOf(+hit.n) > i) { const j = r.plan.indexOf(+hit.n); s.st = "saut"; s.oublis = r.plan.slice(i, j); r.idx = j + 1; }
+  else if (hit && r.plan.indexOf(+hit.n) >= 0 && r.plan.indexOf(+hit.n) < i) { s.st = "retour"; } // balise oubliée récupérée plus tard
+  else if (hit) { s.st = "hors"; r.idx = i + 1; } // balise qui n'est pas dans son parcours
+  else { s.st = "faux"; r.idx = i + 1; } // code inexistant
+  r.saisies.push(s);
+}
+// Analyse complète d'un parcours
+function analyse(r) {
+  const p = P(r.k), plan = r.plan, ok = new Set(), retards = new Set();
+  r.saisies.forEach(s => { if (s.st === "ok" || s.st === "saut") ok.add(+s.bal); if (s.st === "retour") retards.add(+s.bal); });
+  const manq = plan.filter(n => !ok.has(+n) && !retards.has(+n));
+  const oublis = plan.filter(n => !ok.has(+n)); // non validées dans l'ordre
+  const faux = r.saisies.filter(s => s.st === "faux" || s.st === "hors").length;
+  const obligOk = !p.oblig || ok.has(+p.oblig) || retards.has(+p.oblig);
+  const chrono = (r.fin || now()) - r.debut;
+  const nErr = oublis.length + faux - 0;
+  const over = p.max ? Math.max(0, chrono - p.max * 60000) : 0;
+  const pen = (oublis.length * C.penOubli + (obligOk ? 0 : C.penOblig) + (over ? Math.ceil(over / 60000) * C.penRetard : 0)) * 1000;
+  // temps intermédiaires (chaque validation)
+  let prev = r.debut; const legs = r.saisies.map(s => { const d = s.t - prev; prev = s.t; return { ...s, leg: d, cum: s.t - r.debut }; });
+  const retour = r.fin ? r.fin - prev : null;
+  return { chrono, pen, final: chrono + pen, ok: [...ok], manq, oublis, faux, obligOk, nErr: oublis.length, over, legs, retour, ordre: !r.saisies.some(s => s.st !== "ok") && oublis.length === 0 };
+}
+
+// ---------- Fin de parcours : ressenti + bilan ----------
+const Q = [
+  { id: "effort", t: "Ton effort pendant la course", o: ["😌 Facile", "🙂 Moyen", "😤 Difficile", "🥵 Maximal"] },
+  { id: "projet", t: "As-tu suivi l'itinéraire que tu avais prévu ?", o: ["Oui", "En partie", "Non"] },
+  { id: "perte", t: "Qu'est-ce qui t'a fait perdre du temps ?", multi: 1, o: ["Orienter ma carte", "Me situer sur la carte", "Choix d'itinéraire", "Trouver la balise", "Fatigue", "Rien de particulier"] },
+  { id: "coop", t: "Votre coopération (collectif)", duo: 1, o: ["Très bonne", "Correcte", "Difficile"] }
+];
+function vEnd(k) {
+  const r = RUNS[k], p = P(k), a = analyse(r), app = $("#app");
+  r.ress = r.ress || {};
+  app.innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2.6rem">🏁</div><h2>Bravo ${esc(ME.prenom)}${r.duo ? " et " + esc(r.duo.prenom) : ""} !</h2><div class="chrono">${fmt(a.chrono)}</div><div class="muted small">Temps de course</div></div>
+   <div class="card"><h2>Ton ressenti</h2>${Q.filter(q => !q.duo || r.duo).map(q => `<label class="l">${q.t}</label><div class="opts" data-q="${q.id}">${q.o.map(o => `<button class="${(q.multi ? (r.ress[q.id] || []).includes(o) : r.ress[q.id] === o) ? "on" : ""}">${o}</button>`).join("")}</div>`).join("")}
+    <label class="l">Un conseil pour toi la prochaine fois</label><input class="inp" id="eC" value="${esc(r.ress.conseil || "")}" placeholder="ex. orienter la carte à chaque balise"></div>
+   <button class="btn big vi" id="eGo">📄 Voir ma fiche bilan</button>`;
+  $$("[data-q]").forEach(box => { const q = Q.find(x => x.id === box.dataset.q); $$("button", box).forEach(b => b.onclick = () => { if (q.multi) { const L = r.ress[q.id] = r.ress[q.id] || []; const i = L.indexOf(b.textContent); i >= 0 ? L.splice(i, 1) : L.push(b.textContent); b.classList.toggle("on"); } else { r.ress[q.id] = b.textContent; $$("button", box).forEach(x => x.classList.toggle("on", x === b)); } saveRuns(); }); });
+  $("#eGo").onclick = () => { r.ress.conseil = $("#eC").value.trim(); saveRuns(); go("bilan", k); };
+}
+const refCode = (a, r) => { const e = Math.min(9, a.nErr), s = (r.debut % 997).toString(36).toUpperCase().padStart(2, "0"); return `${s}${"KMPQRTVXYZ"[e]}${(r.k + 1)}`; };
+function bilanHTML(k, teacher) {
+  const r = RUNS[k], p = P(k), a = analyse(r), show = teacher || C.voirErr;
+  const okLegs = a.legs, maxLeg = Math.max(1, ...okLegs.map(l => l.leg), a.retour || 0);
+  const best = okLegs.length ? okLegs.reduce((m, l) => l.leg < m.leg ? l : m) : null, worst = okLegs.length ? okLegs.reduce((m, l) => l.leg > m.leg ? l : m) : null;
+  const ecart = r.prevu ? a.chrono / 1000 - r.prevu : null, d = planLen(r.plan);
+  const stat = s => ({ ok: '<span class="chip ok">✓</span>', saut: '<span class="chip ko">balise(s) oubliée(s) avant</span>', retour: '<span class="chip or">hors ordre</span>', hors: '<span class="chip ko">hors parcours</span>', faux: '<span class="chip ko">code faux</span>' })[s];
+  return `<div class="card"><div class="row"><div class="grow"><div class="small muted">Fiche bilan · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}</h2><div class="small"><b>${esc(ME.prenom)} ${esc(ME.nom)}</b>${r.duo ? ` et <b>${esc(r.duo.prenom)} ${esc(r.duo.nom)}</b>` : ""} · ${esc(ME.prof)} · ${new Date(r.debut).toLocaleDateString("fr-FR")}</div></div></div>
+   <div class="kpi"><div><span>Temps de course</span><b>${fmt(a.chrono)}</b></div>${show ? `<div><span>Pénalités</span><b style="color:${a.pen ? "var(--ko)" : "inherit"}">+${fmt(a.pen)}</b></div><div><span>Temps final</span><b>${fmt(a.final)}</b></div>` : ""}
+    <div><span>Balises</span><b>${r.saisies.length} / ${r.plan.length}</b></div>${r.prevu ? `<div><span>Temps prévu</span><b>${fmt(r.prevu * 1000)}</b><small class="${Math.abs(ecart) <= 60 ? "" : "muted"}">${ecart >= 0 ? "+" : "−"}${fmt(Math.abs(ecart) * 1000)} ${Math.abs(ecart) <= 60 ? "· très bonne estimation 👍" : ecart > 0 ? "plus lent que prévu" : "plus rapide que prévu"}</small></div>` : ""}
+    ${d ? `<div><span>Distance (vol d'oiseau)</span><b>${Math.round(d)} m</b><small>${(a.chrono / 60000 / (d / 1000)).toFixed(1)} min/km</small></div>` : ""}</div>
+   ${show ? `<p class="small" style="margin:4px 0">${a.ordre ? '<span class="chip ok">Parcours réalisé sans erreur, dans l\'ordre</span>' : `<span class="chip ko">${a.nErr} erreur(s)</span> ${a.oublis.length ? `Non validées dans l'ordre : <b>${a.oublis.join(", ")}</b>. ` : ""}${a.faux ? `${a.faux} code(s) faux ou hors parcours. ` : ""}`} ${p.oblig ? (a.obligOk ? `<span class="chip ok">★ ${p.oblig} validée</span>` : `<span class="chip ko">★ ${p.oblig} manquée</span>`) : ""}${a.over ? ` <span class="chip ko">Temps max dépassé de ${fmt(a.over)}</span>` : ""}</p>` : ""}
+   <h3 style="margin:14px 0 4px;font-size:1rem">Temps entre chaque balise</h3>
+   <table class="t"><thead><tr><th>#</th><th>Tronçon</th><th class="n">Temps</th><th class="n">Cumul</th><th style="width:34%"></th>${show ? "<th>Contrôle</th>" : ""}</tr></thead><tbody>
+    ${okLegs.map((l, i) => `<tr><td>${i + 1}</td><td>${i ? r.saisies[i - 1].attendu : "▲"} → <b>${l.attendu}</b>${+l.attendu === +p.oblig ? " ★" : ""}</td><td class="n">${fmt(l.leg)}</td><td class="n">${fmt(l.cum)}</td><td><div class="bar" style="width:${Math.max(4, l.leg / maxLeg * 100)}%;background:${l === best ? "var(--gr)" : l === worst ? "var(--ko)" : "var(--or)"}"></div></td>${show ? `<td>${stat(l.st)}${l.st !== "ok" ? ` <small class="muted">saisi ${esc(l.code)}${l.bal ? " (" + l.bal + ")" : ""}</small>` : ""}</td>` : ""}</tr>`).join("")}
+    ${a.retour != null ? `<tr><td></td><td>${r.saisies.length ? r.saisies.at(-1).attendu : "▲"} → <b>◎ arrivée</b></td><td class="n">${fmt(a.retour)}</td><td class="n">${fmt(a.chrono)}</td><td><div class="bar" style="width:${Math.max(4, a.retour / maxLeg * 100)}%;background:var(--nv)"></div></td>${show ? "<td></td>" : ""}</tr>` : ""}
+   </tbody></table>
+   ${okLegs.length > 1 ? `<p class="small">🟢 Tronçon le plus rapide : <b>${best === okLegs[0] ? "▲" : r.saisies[okLegs.indexOf(best) - 1].attendu} → ${best.attendu}</b> (${fmt(best.leg)}) · 🔴 le plus long : <b>${worst === okLegs[0] ? "▲" : r.saisies[okLegs.indexOf(worst) - 1].attendu} → ${worst.attendu}</b> (${fmt(worst.leg)}). Moyenne : ${fmt(a.chrono / (okLegs.length + 1))} par tronçon.</p>` : ""}
+   ${r.ress && Object.keys(r.ress).length ? `<h3 style="margin:12px 0 4px;font-size:1rem">Ressenti</h3><p class="small" style="margin:0">${Q.filter(q => r.ress[q.id] && (!Array.isArray(r.ress[q.id]) || r.ress[q.id].length)).map(q => `${q.t} : <b>${esc([].concat(r.ress[q.id]).join(", "))}</b>`).join("<br>")}${r.ress.conseil ? `<br>Conseil : <b>${esc(r.ress.conseil)}</b>` : ""}</p>` : ""}
+   <div class="ref">réf. ${refCode(a, r)}</div></div>`;
+}
+function vBilan(k, teacher) {
+  const app = $("#app");
+  app.innerHTML = bilanHTML(k, teacher) + `<div class="card noprint" style="padding:10px"><div class="mapv" id="bMap" style="height:38vh"></div></div>
+   <div class="row noprint"><button class="btn gh grow" id="bHome">← Mes parcours</button><button class="btn or grow" id="bPr">🖨 Imprimer / PDF</button></div>`;
+  mapViewer($("#bMap"), { overlay: routeOverlay(RUNS[k].plan, 99) });
+  $("#bHome").onclick = () => teacher ? go("prof") : go("home"); $("#bPr").onclick = () => print();
+}
+function vFull(teacher) {
+  const done = RUNS.map((r, k) => r?.fin ? k : -1).filter(k => k >= 0), A = done.map(k => ({ k, r: RUNS[k], a: analyse(RUNS[k]), p: P(k) })), show = teacher || C.voirErr;
+  const per = x => x.a.chrono / (x.r.plan.length + 1);
+  const mx = Math.max(1, ...A.map(x => per(x)));
+  const est = A.filter(x => x.r.prevu).map(x => Math.abs(x.a.chrono / 1000 - x.r.prevu));
+  const pertes = {}; A.forEach(x => (x.r.ress?.perte || []).forEach(v => pertes[v] = (pertes[v] || 0) + 1));
+  const top = Object.entries(pertes).filter(([v]) => v !== "Rien de particulier").sort((a, b) => b[1] - a[1]);
+  const pts = []; if (A.length > 1 && per(A.at(-1)) < per(A[0])) pts.push("Tu as été plus rapide par tronçon au fil des parcours."); if (show && A.every(x => x.a.ordre)) pts.push("Tous tes parcours ont été réalisés sans erreur."); if (est.length && Math.max(...est) <= 90) pts.push("Tu sais bien estimer ton temps de course.");
+  const amel = []; if (show && A.some(x => !x.a.ordre)) amel.push("Vérifier le numéro de la balise et le code avant de valider : chaque balise oubliée coûte " + fmtMin(C.penOubli) + "."); if (est.some(e => e > 120)) amel.push("Mieux estimer ton temps : regarde la longueur de chaque tronçon avant de partir."); top.slice(0, 2).forEach(([v]) => amel.push(({ "Orienter ma carte": "Orienter la carte (le nord de la carte vers le nord) à chaque balise.", "Me situer sur la carte": "Garder le pouce sur ta position et suivre les éléments (chemins, lisières) en courant.", "Choix d'itinéraire": "Préparer chaque tronçon : chemin plus long mais plus rapide ou ligne droite ?", "Trouver la balise": "Repérer un point d'appui proche de la balise (angle de chemin, bâtiment) et ralentir à l'approche.", "Fatigue": "Gérer ton allure : courir sur les chemins, marcher pour lire la carte." })[v] || v));
+  $("#app").innerHTML = `<div class="card"><div class="small muted">Bilan complet · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(ME.prenom)} ${esc(ME.nom)}</h2><div class="small muted">${esc(ME.prof)} · ${new Date().toLocaleDateString("fr-FR")} · ${A.length} parcours sur 3</div>
+    <table class="t" style="margin-top:10px"><thead><tr><th>Parcours</th><th class="n">Balises</th><th class="n">Temps</th>${show ? '<th class="n">Pénal.</th><th class="n">Final</th><th>Erreurs</th>' : ""}<th class="n">Prévu</th><th class="n">Par tronçon</th></tr></thead><tbody>
+    ${A.map(x => `<tr><td><b>${esc(x.p.nom)}</b><br><small class="muted">${x.p.type === "duo" ? "👥 avec " + esc(x.r.duo?.prenom || "") : "👤 individuel"}</small></td><td class="n">${x.r.plan.length}</td><td class="n"><b>${fmt(x.a.chrono)}</b></td>${show ? `<td class="n">${x.a.pen ? "+" + fmt(x.a.pen) : "–"}</td><td class="n"><b>${fmt(x.a.final)}</b></td><td>${x.a.nErr ? `<span class="chip ko">${x.a.nErr}</span>` : '<span class="chip ok">0</span>'}</td>` : ""}<td class="n">${x.r.prevu ? fmt(x.r.prevu * 1000) : "–"}</td><td class="n">${fmt(per(x))}</td></tr>`).join("")}</tbody></table>
+    <h3 style="margin:14px 0 6px;font-size:1rem">Temps moyen par tronçon</h3>${A.map(x => `<div class="row small" style="margin-bottom:5px"><span style="width:90px">${esc(x.p.nom)}</span><div class="grow"><div class="bar" style="width:${per(x) / mx * 100}%"></div></div><b style="width:52px;text-align:right">${fmt(per(x))}</b></div>`).join("")}
+    ${pts.length ? `<h3 style="margin:14px 0 4px;font-size:1rem">👍 Points forts</h3><ul class="small" style="margin:0;padding-left:20px">${pts.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
+    ${amel.length ? `<h3 style="margin:14px 0 4px;font-size:1rem">🎯 À travailler</h3><ul class="small" style="margin:0;padding-left:20px">${amel.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
+    <div class="ref">réf. ${A.map(x => refCode(x.a, x.r)).join(" ")}</div></div>
+   ${A.map((x, i) => `<div class="pb">${bilanHTML(x.k, teacher)}</div>`).join("")}
+   <div class="row noprint"><button class="btn gh grow" id="fH">← Retour</button><button class="btn or grow" id="fP">🖨 Imprimer / PDF</button></div>`;
+  $("#fH").onclick = () => teacher ? go("prof") : go("home"); $("#fP").onclick = () => print();
+}
+
+// ---------- Envoi des résultats à l'enseignant (QR code, sans internet) ----------
+function packResults() {
+  return { m: [ME.prenom, ME.nom, ME.prof, ME.id], r: RUNS.map(r => r && r.fin ? { k: r.k, d: r.duo ? [r.duo.prenom, r.duo.nom, r.duo.prof] : 0, p: r.plan, v: r.prevu, t0: Math.round(r.debut / 1000) * 1000, t1: r.fin, s: r.saisies.map(s => s.st === "ok" ? [Math.round((s.t - r.debut) / 1000), s.code] : [Math.round((s.t - r.debut) / 1000), s.code, s.attendu, s.st, s.bal]), q: Object.fromEntries(Object.entries(r.ress || {}).map(([k, v]) => { const q = Q.find(x => x.id === k); return [k, q ? [].concat(v).map(o => q.o.indexOf(o)) : v]; })) } : 0) };
+}
+function unpackRuns(o) { return o.r.map(x => x ? { k: x.k, duo: x.d ? { prenom: x.d[0], nom: x.d[1], prof: x.d[2] } : null, plan: x.p, prevu: x.v, debut: x.t0, fin: x.t1, saisies: (() => { let i = 0; return x.s.map(s => { const o = s.length > 2 ? { t: x.t0 + s[0] * 1000, code: s[1], attendu: s[2], st: s[3], bal: s[4] } : { t: x.t0 + s[0] * 1000, code: s[1], attendu: x.p[i], st: "ok", bal: x.p[i] }; if (o.st === "ok") i = x.p.indexOf(+o.bal) + 1; else if (o.st === "saut") i = x.p.indexOf(+o.bal) + 1; else if (o.st !== "retour") i++; return o; }); })(), ress: Object.fromEntries(Object.entries(x.q || {}).map(([k, v]) => { const q = Q.find(z => z.id === k); return [k, q && Array.isArray(v) ? (q.multi ? v.map(j => q.o[j]) : q.o[v[0]]) : v]; })) } : null); }
+function sendResults() {
+  const url = location.origin + location.pathname + "#r=" + enc(packResults());
+  let svg = ""; try { svg = QR.svg(url, { ecl: "L", border: 2 }); } catch (e) { svg = "<p>Trop de données pour un QR code : utilise le lien.</p>"; }
+  const m = modal(`<h2 style="margin:0 0 6px">📤 Envoyer mes résultats</h2><p class="muted small" style="margin-top:0">Montre ce QR code à ton enseignant : il le scanne avec l'appareil photo de son téléphone.</p><div style="background:#fff;padding:10px;border-radius:14px;max-width:420px;margin:0 auto">${svg}</div>
+   <div class="row" style="margin-top:12px"><button class="btn gh grow" id="sC">Copier le lien</button><button class="btn grow" id="sX">Fermer</button></div>`);
+  $("#sX", m).onclick = m.close; $("#sC", m).onclick = async () => { try { await navigator.clipboard.writeText(url); flash("Lien copié"); } catch (e) { prompt("Copie ce lien :", url); } };
+}
+function receiveResults(code) {
+  try {
+    const o = dec(code), R = LS.get("res", {}), id = o.m[3] || o.m.join("|"); R[id] = { ...o, recu: now() }; LS.set("res", R);
+    history.replaceState(null, "", location.pathname);
+    $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:3rem">✅</div><h2>Résultats reçus</h2><p><b>${esc(o.m[0])} ${esc(o.m[1])}</b> (${esc(o.m[2])}) · ${o.r.filter(Boolean).length} parcours</p><p class="muted small">Ils sont rangés dans l'espace enseignant (🔒) de ce téléphone.</p><button class="btn big or" id="rcP">Voir tous les résultats</button></div>`;
+    $("#rcP").onclick = openProf; return true;
+  } catch (e) { return false; }
+}
+
+// ======================= ESPACE ENSEIGNANT =======================
+let profUntil = 0;
+async function openProf() {
+  if (now() < profUntil || (() => { try { return now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } })()) return go("prof");
+  const h = pinHash(), pin = window.epsPin;
+  let v;
+  if (pin) v = await pin({ title: "🔒 Espace enseignant", text: h ? "Code enseignant" : "Crée un code enseignant (4 chiffres)", min: 4, max: 12, check: h ? (x => hashCode(x) === h || "Code incorrect.") : null });
+  else { v = prompt(h ? "Code enseignant :" : "Crée un code enseignant :"); if (v != null && h && hashCode(v) !== h) { alert("Code incorrect"); v = null; } }
+  if (v == null) return;
+  if (!h) { C.pin = hashCode(v); saveConf(); }
+  profUntil = now() + 20 * 60000; go("prof");
+}
+function saveConf() { const o = {}; Object.keys(C).forEach(k => { if (JSON.stringify(C[k]) !== JSON.stringify(DEF[k])) o[k] = C[k]; }); LS.set("conf", o); }
+function vProf(tab = "res") {
+  const app = $("#app");
+  app.innerHTML = `<div class="row" style="margin-bottom:10px"><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "share" ? "" : "gh"}" data-tb="share">📲 Lien élèves</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><span class="grow"></span><button class="btn sm gh" id="pX">Fermer</button></div><div id="pv"></div>`;
+  $$("[data-tb]").forEach(b => b.onclick = () => vProf(b.dataset.tb)); $("#pX").onclick = () => { profUntil = 0; go("home"); };
+  ({ res: profRes, conf: profConf, share: profShare, dev: profDev })[tab]($("#pv"));
+}
+function allResults() {
+  const R = LS.get("res", {}), L = Object.values(R).map(o => ({ me: { prenom: o.m[0], nom: o.m[1], prof: o.m[2], id: o.m[3] }, runs: unpackRuns(o), recu: o.recu }));
+  if (ME && RUNS.some(r => r?.fin) && !L.some(x => x.me.id === ME.id)) L.push({ me: ME, runs: RUNS, local: 1 });
+  return L;
+}
+function withStudent(x, fn) { const sM = ME, sR = RUNS; ME = x.me; RUNS = x.runs; try { return fn(); } finally { ME = sM; RUNS = sR; } }
+function profRes(box) {
+  let L = allResults(); const f = LS.get("pf", "");
+  if (f) L = L.filter(x => x.me.prof === f);
+  L.sort((a, b) => (a.me.nom + a.me.prenom).localeCompare(b.me.nom + b.me.prenom, "fr"));
+  box.innerHTML = `<div class="card"><div class="row"><h2 class="grow" style="margin:0">Résultats (${L.length})</h2><select class="inp" id="rf" style="width:auto;padding:8px"><option value="">Tous les enseignants</option>${C.profs.filter(Boolean).map(p => `<option ${p === f ? "selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
+   <p class="small muted">Chaque élève touche « 📤 Envoyer mes résultats » : scanne son QR code avec l'appareil photo de ce téléphone. Temps final = temps de course + pénalités (oubli ${fmtMin(C.penOubli)}, obligatoire manquée ${fmtMin(C.penOblig)}${C.parcours.some(p => p.max) ? `, ${fmtMin(C.penRetard)} par minute de retard` : ""}).</p>
+   <div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th>${C.parcours.map(p => `<th class="n">${esc(p.nom)}</th>`).join("")}<th></th></tr></thead><tbody>
+   ${L.map((x, i) => `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}<br><small class="muted">${esc(x.me.prof)}${x.local ? " · cet appareil" : ""}</small></td>${x.runs.map((r, k) => { if (!r?.fin) return '<td class="n muted">–</td>'; const a = withStudent(x, () => analyse(r)); return `<td class="n"><b>${fmt(a.final)}</b><br><small>${fmt(a.chrono)}${a.pen ? ` +${fmt(a.pen)}` : ""}</small> ${a.nErr ? `<span class="chip ko">${a.nErr} err.</span>` : '<span class="chip ok">✓</span>'}${r.duo ? `<br><small class="muted">👥 ${esc(r.duo.prenom)} ${esc(r.duo.nom)}</small>` : ""}</td>`; }).join("")}<td><button class="btn sm gh" data-v="${i}">Détail</button></td></tr>`).join("") || `<tr><td colspan="5" class="muted">Aucun résultat reçu pour l'instant.</td></tr>`}</tbody></table></div>
+   <div class="row" style="margin-top:12px"><button class="btn sm gh" id="rCsv">⬇ Tableur (CSV)</button><button class="btn sm gh" id="rPr">🖨 Imprimer</button><button class="btn sm gh" id="rDel" style="color:var(--ko)">Effacer les résultats reçus</button></div></div>`;
+  $("#rf").onchange = e => { LS.set("pf", e.target.value); profRes(box); };
+  $$("[data-v]", box).forEach(b => b.onclick = () => { const x = L[+b.dataset.v]; SW = SW || { ME, RUNS }; ME = x.me; RUNS = x.runs; vFull(true); });
+  $("#rPr").onclick = () => print();
+  $("#rDel").onclick = async () => { if (await ask("Effacer ?", "Tous les résultats reçus sur ce téléphone seront supprimés.", "Effacer", "ko")) { LS.del("res"); profRes(box); } };
+  $("#rCsv").onclick = () => {
+    const rows = [["Nom", "Prénom", "Enseignant", ...C.parcours.flatMap(p => [p.nom + " camarade", p.nom + " balises", p.nom + " temps (s)", p.nom + " pénalités (s)", p.nom + " final", p.nom + " erreurs", p.nom + " oubliées", p.nom + " prévu"])]];
+    L.forEach(x => rows.push([x.me.nom, x.me.prenom, x.me.prof, ...x.runs.flatMap((r, k) => { if (!r?.fin) return ["", "", "", "", "", "", "", ""]; const a = withStudent(x, () => analyse(r)); return [r.duo ? r.duo.prenom + " " + r.duo.nom : "", r.plan.join("-"), Math.round(a.chrono / 1000), Math.round(a.pen / 1000), fmt(a.final), a.nErr, a.oublis.join("-"), r.prevu ? fmt(r.prevu * 1000) : ""]; })]));
+    const csv = "﻿" + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n"), a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "resultats-CO.csv"; a.click();
+  };
+}
+function profConf(box) {
+  box.innerHTML = `<div class="card"><h2>Général</h2><label class="l">Titre</label><input class="inp" id="cT" value="${esc(C.titre)}">
+    <label class="l">Enseignants (un par ligne)</label><textarea class="inp" id="cPr" rows="2">${esc(C.profs.join("\n"))}</textarea></div>
+   <div class="card"><h2>Les 3 parcours</h2>${C.parcours.map((p, k) => `<div style="border-top:${k ? "1px solid var(--li)" : "0"};padding-top:${k ? 10 : 0}px;margin-top:${k ? 10 : 0}px"><div class="row"><input class="inp" style="flex:1;min-width:140px" data-pn="${k}" value="${esc(p.nom)}"><select class="inp" style="width:auto" data-pt="${k}"><option value="indiv" ${p.type === "indiv" ? "selected" : ""}>👤 individuel</option><option value="duo" ${p.type === "duo" ? "selected" : ""}>👥 collectif</option></select></div>
+     <div class="row small" style="margin-top:6px"><label>Balises à choisir <input class="inp" style="width:70px;padding:8px" type="number" min="1" data-pb="${k}" value="${p.nb}"></label><label>Obligatoire n° <select class="inp" style="width:auto;padding:8px" data-po="${k}"><option value="">aucune</option>${C.balises.map(b => `<option ${+b.n === +p.oblig ? "selected" : ""}>${b.n}</option>`).join("")}</select></label><label>Préparation (min) <input class="inp" style="width:70px;padding:8px" type="number" min="0" step="0.5" data-pp="${k}" value="${p.prep}"></label><label>Temps max (min, 0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-pm="${k}" value="${p.max}"></label></div></div>`).join("")}</div>
+   <div class="card"><h2>Pénalités et options</h2><div class="row small"><label>Balise oubliée / code faux (s) <input class="inp" style="width:80px;padding:8px" type="number" id="cPo" value="${C.penOubli}"></label><label>Obligatoire manquée (s, en plus) <input class="inp" style="width:80px;padding:8px" type="number" id="cPb" value="${C.penOblig}"></label><label>Par minute de retard (s) <input class="inp" style="width:80px;padding:8px" type="number" id="cPr2" value="${C.penRetard}"></label></div>
+    <label class="row small" style="margin-top:10px"><input type="checkbox" id="cE" ${C.voirErr ? "checked" : ""}> Montrer les erreurs et pénalités dans le bilan de l'élève</label>
+    <label class="row small"><input type="checkbox" id="cA" ${C.avance ? "checked" : ""}> L'élève peut partir avant la fin du temps de préparation</label>
+    <label class="row small"><input type="checkbox" id="cV" ${C.prevu ? "checked" : ""}> Demander une estimation du temps de course</label>
+    <label class="row small"><input type="checkbox" id="cR" ${C.reuse ? "checked" : ""}> Une balise peut être reprise d'un parcours à l'autre</label></div>
+   <div class="card"><h2>Balises (${C.balises.length})</h2><p class="small muted" style="margin-top:0">Numéro et code de 3 lettres. Pour tracer l'itinéraire des élèves sur la carte, touche « 📍 » puis l'emplacement du rond sur la carte.</p>
+    <div id="cB"></div><div class="row" style="margin-top:8px"><button class="btn sm gh" id="cAdd">＋ Balise</button><button class="btn sm gh" id="cGen">🎲 Codes au hasard</button><button class="btn sm gh" id="cMap">🗺 Charger une carte (cet appareil)</button><button class="btn sm gh" id="cDep">▲ Placer le départ</button></div>
+    <div class="mapv" id="cM" style="margin-top:10px;height:50vh"></div><p class="small" id="cMsg"></p></div>
+   <button class="btn big or" id="cSave">Enregistrer les paramètres</button>
+   <button class="btn sm gh" id="cReset" style="margin-top:10px">Revenir aux paramètres d'origine</button>`;
+  let placing = null; const B = C.balises.map(b => ({ ...b }));
+  const drawB = () => { $("#cB").innerHTML = B.map((b, i) => `<div class="row" style="margin-bottom:5px"><input class="inp" style="width:72px;padding:8px" type="number" data-bn="${i}" value="${b.n}"><input class="inp" style="width:90px;padding:8px;text-transform:uppercase;font-weight:800;letter-spacing:.1em" maxlength="3" data-bc="${i}" value="${esc(b.code)}"><button class="btn sm ${placing === i ? "or" : "gh"}" data-bp="${i}">📍${b.x != null ? " ✓" : ""}</button><button class="btn sm gh" data-bd="${i}" style="color:var(--ko)">✕</button></div>`).join("");
+    $$("[data-bn]").forEach(x => x.oninput = () => B[+x.dataset.bn].n = +x.value); $$("[data-bc]").forEach(x => x.oninput = () => B[+x.dataset.bc].code = x.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3));
+    $$("[data-bp]").forEach(x => x.onclick = () => { placing = +x.dataset.bp; $("#cMsg").textContent = `Touche sur la carte le rond de la balise ${B[placing].n}.`; drawB(); });
+    $$("[data-bd]").forEach(x => x.onclick = () => { B.splice(+x.dataset.bd, 1); drawB(); mv.redraw(); }); };
+  const mv = mapViewer($("#cM"), { overlay: (W, H) => { const l = Math.max(W, H) / 1000; return B.filter(b => b.x != null).map(b => `<circle cx="${b.x * W}" cy="${b.y * H}" r="${14 * l}" fill="#f47a20" fill-opacity=".7"/><text x="${b.x * W}" y="${b.y * H + 7 * l}" text-anchor="middle" font-size="${18 * l}" font-weight="900" fill="#fff" font-family="Arial">${b.n}</text>`).join("") + (C.depart?.x != null ? `<path d="M${C.depart.x * W} ${C.depart.y * H - 18 * l}l16 28h-32z" fill="#f47a20"/>` : ""); },
+    onTap: (x, y) => { if (placing === "dep") { C.depart = { x, y }; placing = null; $("#cMsg").textContent = "Départ placé ✓"; mv.redraw(); return; } if (placing == null) return; B[placing].x = +x.toFixed(4); B[placing].y = +y.toFixed(4); $("#cMsg").textContent = `Balise ${B[placing].n} placée ✓`; placing = B.findIndex((b, i) => i > placing && b.x == null); if (placing < 0) placing = null; else $("#cMsg").textContent += ` Maintenant la ${B[placing].n}.`; drawB(); mv.redraw(); } });
+  drawB();
+  $("#cAdd").onclick = () => { B.push({ n: (Math.max(30, ...B.map(b => +b.n)) + 1), code: rndCode(B) }); drawB(); };
+  $("#cGen").onclick = () => { B.forEach(b => b.code = ""); B.forEach(b => b.code = rndCode(B)); drawB(); };
+  $("#cDep").onclick = () => { placing = "dep"; $("#cMsg").textContent = "Touche le triangle de départ sur la carte."; };
+  $("#cMap").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = async () => { const f = i.files[0]; if (!f) return; const url = await shrink(f); await idbSet("carte", url); MAPIMG = url; vProf("conf"); flash("Carte chargée"); }; i.click(); };
+  $("#cSave").onclick = () => {
+    const codes = B.map(b => b.code); if (codes.some(c => c.length !== 3)) return flash("Chaque code doit avoir 3 lettres"); if (new Set(codes).size !== codes.length) return flash("Deux balises ont le même code"); if (new Set(B.map(b => b.n)).size !== B.length) return flash("Deux balises ont le même numéro");
+    C.titre = $("#cT").value.trim() || DEF.titre; C.profs = $("#cPr").value.split("\n").map(s => s.trim()).filter(Boolean); C.balises = B.sort((a, b) => a.n - b.n);
+    C.parcours = C.parcours.map((p, k) => ({ ...p, nom: $(`[data-pn="${k}"]`).value.trim() || p.nom, type: $(`[data-pt="${k}"]`).value, nb: Math.max(1, +$(`[data-pb="${k}"]`).value || 1), oblig: +$(`[data-po="${k}"]`).value || null, prep: Math.max(0, +$(`[data-pp="${k}"]`).value || 0), max: Math.max(0, +$(`[data-pm="${k}"]`).value || 0) }));
+    C.penOubli = +$("#cPo").value || 0; C.penOblig = +$("#cPb").value || 0; C.penRetard = +$("#cPr2").value || 0; C.voirErr = $("#cE").checked; C.avance = $("#cA").checked; C.prevu = $("#cV").checked; C.reuse = $("#cR").checked; C.demo = false;
+    saveConf(); flash("Enregistré ✓"); vProf("share");
+  };
+  $("#cReset").onclick = async () => { if (await ask("Paramètres d'origine ?", "Tes réglages sur ce téléphone seront effacés.", "Revenir", "ko")) { LS.del("conf"); await idbSet("carte", null); C = { ...DEF }; await loadMap(); vProf("conf"); } };
+}
+const rndCode = B => { const A = "ABCDEFGHJKLMNPRSTUVWXYZ"; let c; do { c = [0, 1, 2].map(() => A[Math.floor(Math.random() * A.length)]).join(""); } while (B.some(b => b.code === c)); return c; };
+function shrink(f) { return new Promise(res => { const i = new Image(); i.onload = () => { const k = Math.min(1, 2400 / Math.max(i.width, i.height)), c = document.createElement("canvas"); c.width = i.width * k; c.height = i.height * k; c.getContext("2d").drawImage(i, 0, 0, c.width, c.height); res(c.toDataURL("image/jpeg", .85)); }; i.src = URL.createObjectURL(f); }); }
+function profShare(box) {
+  const o = {}; Object.keys(C).forEach(k => { if (JSON.stringify(C[k]) !== JSON.stringify(DEF[k])) o[k] = C[k]; }); o.pin = pinHash();
+  const url = location.origin + location.pathname + "#c=" + enc(o);
+  box.innerHTML = `<div class="card"><h2>📲 Lien pour les élèves</h2><p class="small muted" style="margin-top:0">Les élèves scannent ce QR code : leur téléphone reçoit tes paramètres (balises, codes, parcours, enseignants). Les codes ne sont pas lisibles dans l'adresse.</p>
+   <div style="background:#fff;padding:10px;border-radius:14px;max-width:440px;margin:0 auto">${QR.svg(url, { ecl: "L", border: 2 })}</div>
+   <div class="row" style="margin-top:10px"><button class="btn sm gh" id="shC">Copier le lien</button><button class="btn sm gh" id="shP">🖨 Imprimer l'affiche</button><button class="btn sm gh" id="shB">🖨 Fiche des balises (codes)</button></div>
+   ${C.demo ? '<p class="chip or" style="margin-top:10px">Paramètres de démonstration : modifie-les dans ⚙ Paramètres.</p>' : ""}
+   <p class="small muted">⚠ La carte n'est pas dans le lien : les élèves voient la carte enregistrée sur le site${MAPIMG?.startsWith("data:image/svg") ? " (pour l'instant la carte de démonstration)" : ""}. Une carte chargée sur ce téléphone reste sur ce téléphone.</p></div>`;
+  $("#shC").onclick = async () => { try { await navigator.clipboard.writeText(url); flash("Lien copié"); } catch (e) { prompt("Lien :", url); } };
+  $("#shP").onclick = () => { const w = open(""); w.document.write(`<title>QR élèves</title><body style="font-family:Arial;text-align:center"><h1>${esc(C.titre)}</h1><p style="font-size:20px">Scanne avec l'appareil photo de ton téléphone</p><div style="width:150mm;margin:auto">${QR.svg(url, { ecl: "L" })}</div><script>print()<\/script>`); w.document.close(); };
+  $("#shB").onclick = () => { const w = open(""); w.document.write(`<title>Balises</title><style>body{font-family:Arial}.g{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.b{border:2px solid #c21fbf;border-radius:4mm;padding:6mm;text-align:center;break-inside:avoid}.n{font-size:28mm;font-weight:900;color:#c21fbf;line-height:1}.c{font-size:22mm;font-weight:900;letter-spacing:4mm}</style><body><div class="g">${C.balises.map(b => `<div class="b"><div class="n">${b.n}</div><div class="c">${esc(b.code)}</div></div>`).join("")}</div><script>print()<\/script>`); w.document.close(); };
+}
+function profDev(box) {
+  box.innerHTML = `<div class="card"><h2>📱 Cet appareil</h2><p class="small">Élève : <b>${ME ? esc(ME.prenom + " " + ME.nom) + " · " + esc(ME.prof) : "aucun"}</b> · ${RUNS.filter(r => r?.fin).length} parcours terminé(s)${RUNS.some(r => r && !r.fin) ? " · 1 parcours en cours" : ""}</p>
+   ${RUNS.map((r, k) => r?.fin ? `<button class="btn sm gh" data-tb2="${k}" style="margin:0 6px 6px 0">Bilan détaillé ${esc(P(k).nom)}</button>` : "").join("")}
+   <div class="row" style="margin-top:10px">${RUNS.map((r, k) => r ? `<button class="btn sm gh" data-rz="${k}">↺ Refaire ${esc(P(k).nom)}</button>` : "").join("")}</div>
+   <button class="btn ko" id="dAll" style="margin-top:12px">Nouvel élève (tout effacer sur cet appareil)</button>
+   <p class="small muted">Pour un test : fais un parcours, puis « Nouvel élève ». Les résultats reçus par QR code ne sont pas effacés.</p></div>`;
+  $$("[data-tb2]").forEach(b => b.onclick = () => vBilan(+b.dataset.tb2, true));
+  $$("[data-rz]").forEach(b => b.onclick = async () => { if (await ask("Refaire ce parcours ?", "Le résultat de ce parcours sera effacé sur cet appareil.", "Effacer", "ko")) { RUNS[+b.dataset.rz] = null; saveRuns(); vProf("dev"); } });
+  $("#dAll").onclick = async () => { if (await ask("Tout effacer ?", "L'identité et les parcours de cet appareil seront effacés.", "Effacer", "ko")) { ME = null; RUNS = [null, null, null]; LS.del("me"); saveRuns(); profUntil = 0; go("home"); } };
+}
+
+// ======================= DÉMARRAGE =======================
+$("#hProf").onclick = openProf;
+(async () => {
+  const h = location.hash;
+  if (h.startsWith("#c=")) { try { const o = dec(h.slice(3)); LS.set("conf", o); C = Object.assign({}, DEF, o); history.replaceState(null, "", location.pathname); setTimeout(() => flash("Paramètres reçus ✓"), 300); } catch (e) { alert("Lien de paramètres illisible."); } }
+  $("#hT").textContent = C.titre; await loadMap();
+  if (h.startsWith("#r=") && receiveResults(h.slice(3))) return;
+  go("home");
+})();
+document.addEventListener("visibilitychange", () => { if (!document.hidden && $(".chrono")) { /* le chrono repart de l'heure de départ enregistrée */ } });
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>
