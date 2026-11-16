@@ -308,7 +308,7 @@ ol.b5{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column
 .gsel{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;padding:8px 10px;background:#eef3f5;border-radius:12px}.gsel span{font-weight:800;margin-right:4px}.gsel .b{min-height:38px;padding:4px 12px;font-size:14px}
 .gvt{display:flex;gap:6px;margin:6px 0 10px}.gvt .b{min-height:38px;padding:4px 14px;font-size:14px}
 .gh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:16px 0 8px;padding:10px 14px;border-radius:14px;background:#fff;border-left:7px solid #2b8a3e;box-shadow:0 1px 0 #00000014}.gh b{font-size:18px}.gh span{color:#5b6a72;font-weight:700}.gh em{flex-basis:100%;font-style:normal;color:#b3261e;font-weight:800;font-size:14px}.gh.gh-w{border-left-color:#f2c230}
-.cgrid.gg{margin:0 0 6px}
+.cgrid.gg{margin:0;padding:12px 0;border-top:2px solid #cfd8dc}.cgrid.gg:first-of-type{border-top:0}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span></header>
 <nav id="nav"></nav>
@@ -634,7 +634,7 @@ function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.n
   const head=(t,m)=>{const c=m.filter(n=>L.some(r=>r.el==n)).length,v=L.filter(r=>m.includes(r.el)).length,o=min?m.filter(n=>L.filter(r=>r.el==n).length>=min).length:0,w=m.filter(n=>!L.some(r=>r.el==n));
    return `<div class="gh ${c<m.length?'gh-w':'gh-ok'}"><b>${t}</b><span>${c} / ${m.length} ont grimpé · ${v} ${v>1?'voies':'voie'}${min?' · objectif : '+o+' / '+m.length:''}</span>${w.length?`<em>Pas encore grimpé : ${esc(w.map(n=>n.split(' ')[0]).join(', '))}</em>`:''}</div>`};
   return `<div class="gvt"><button class="b ${by?'on':'g'}" onclick="S.cgv='g';render()">Par groupe</button><button class="b ${by?'g':'on'}" onclick="S.cgv='all';render()">Tous les élèves</button></div>`+
-   (by?blocks.map(([G,m])=>head('Groupe '+esc(gName(G)),m)+`<div class="cgrid gg">${m.map(card).join('')}</div>`).join('')+(rest.length?head('Sans groupe',rest)+`<div class="cgrid gg">${rest.map(card).join('')}</div>`:'')
+   (by?blocks.map(([G,m])=>`<div class="cgrid gg">${m.map(card).join('')}</div>`).join('')+(rest.length?`<div class="cgrid gg">${rest.map(card).join('')}</div>`:'')
    :`<div class="cgrid">${names.map(card).join('')}</div>`)})():'<div class="card"><p class="mut">Aucun élève dans cette classe. Choisis une classe avec une liste.</p></div>'}
  `}${absent.length?`<div class="card cabs"><h3 style="margin:0 0 8px">Absents aujourd'hui (${absent.length})</h3><p class="mut" style="margin:0 0 8px">Ils n'apparaissent ni dans les groupes ni dans les listes de cette leçon. Touche un prénom pour le remettre présent.</p><div class="names">${absent.map(n=>chip(n,{cl:'mini',act:'setAbs(this.dataset.n,0)'})).join('')}</div></div>`:''}`}
 setInterval(()=>{if(S.t=='ctl'&&S.T&&!document.querySelector('.dlg')){const y=scrollY;render();scrollTo(0,y)}},4000);
