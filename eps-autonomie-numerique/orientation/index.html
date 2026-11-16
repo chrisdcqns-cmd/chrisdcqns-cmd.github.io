@@ -2598,7 +2598,9 @@ async function coeDialog(proj = P) {
       const g = await apiCall(apiUrl(), "coeGet", { vc: "" }, 20000);
       let conf = {}; try { conf = g.conf ? JSON.parse(g.conf) : {}; } catch (e) {}
       const nums = B.map(c => +c.n);
-      conf.balises = B.map(c => ({ n: +c.n, code: String(c.code).toUpperCase() }));
+      const W = proj.map.w, H = proj.map.h, st = proj.controls.find(c => c.type === "S" && c.x != null);
+      conf.balises = B.map(c => ({ n: +c.n, code: String(c.code).toUpperCase(), x: +(c.x / W).toFixed(4), y: +(c.y / H).toFixed(4) }));
+      conf.depart = st ? { x: +(st.x / W).toFixed(4), y: +(st.y / H).toFixed(4) } : null;
       conf.carteNom = proj.nom; conf.demo = false;
       if (Array.isArray(conf.parcours)) conf.parcours.forEach(p => { if (p.oblig && !nums.includes(+p.oblig)) p.oblig = null; if (p.nb > nums.length) p.nb = nums.length; });
       st.textContent = `⏳ Envoi de la carte (${Math.round(img.length / 1024)} Ko)…`;

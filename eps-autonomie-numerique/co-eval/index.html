@@ -119,6 +119,8 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 .dr .mapv{flex:1;border-radius:0;height:auto;min-height:0}
 .tb{border:0;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-weight:800;padding:7px 9px;font-size:.84rem;min-height:40px}
 body:has(.dr) #eps-home-btn{display:none!important}
+.dr,.dr *,.mapv,.mapv *{touch-action:none}.dr{overscroll-behavior:none}
+html:has(.dr),body:has(.dr){overscroll-behavior:none;touch-action:none}
 .sw{flex:none}.wd{flex:none}
 .tb.on{background:var(--or)}
 .sw{width:32px;height:32px;border-radius:50%;border:3px solid rgba(255,255,255,.25);padding:0}
@@ -296,7 +298,7 @@ async function api(action, payload = {}, timeout = 20000) {
 const DEMO_B = [[31, "KTR", .16, .22], [32, "BOP", .38, .14], [33, "LUV", .62, .18], [34, "MAZ", .84, .25], [35, "FER", .73, .42], [36, "DIX", .48, .36], [37, "GOL", .24, .44], [38, "PRA", .12, .66], [39, "SUC", .33, .62], [40, "NEB", .55, .58], [41, "TAV", .8, .66], [42, "JOR", .68, .84], [43, "WIK", .42, .82], [44, "HYL", .2, .86]];
 const DEF = {
   titre: "CO – Préparation à l'évaluation", profs: ["Enseignant 1", "Enseignant 2"], listes: {}, demo: true,
-  balises: DEMO_B.map(([n, code]) => ({ n, code })),
+  balises: DEMO_B.map(([n, code, x, y]) => ({ n, code, x, y })), depart: { x: .5, y: .5 },
   parcours: [
     { nom: "Parcours 1", type: "indiv", nb: 5, oblig: 36, prep: 5, max: 0 },
     { nom: "Parcours 2", type: "indiv", nb: 6, oblig: 40, prep: 5, max: 0 },
@@ -348,23 +350,24 @@ function mapViewer(box, o = {}) {
   img.src = MAPIMG;
   try { new ResizeObserver(() => ready && fit()).observe(box); } catch (e) {}
   $$("[data-z]", box).forEach(b => { b.onpointerdown = e => e.stopPropagation(); b.onclick = e => { e.stopPropagation(); const z = +b.dataset.z; if (!z) return fit(); zoomAt(z > 0 ? 1.6 : 1 / 1.6, box.clientWidth / 2, box.clientHeight / 2); }; });
-  const pts = new Map(); let last = null, drawing = false;
+  const pts = new Map(); let last = null, drawing = false, tap = null;
   const toImg = e => { const r = box.getBoundingClientRect(); return { x: (e.clientX - r.left - tx) / s / W, y: (e.clientY - r.top - ty) / s / H }; };
   const mode = () => o.mode ? o.mode() : "pan";
   const view = () => ({ s, W, H });
   box.addEventListener("pointerdown", e => {
-    if (e.target.closest(".zb")) return; box.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = null;
+    if (e.target.closest(".zb")) return; box.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = null; tap = pts.size === 1 ? { x: e.clientX, y: e.clientY, t: Date.now() } : null;
     if (pts.size === 1 && mode() !== "pan") { drawing = true; o.onDown && o.onDown(toImg(e), view()); }
     else if (pts.size === 2 && drawing) { drawing = false; o.onCancel && o.onCancel(); }
   });
   box.addEventListener("pointermove", e => {
     if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 8) tap = null;
     if (drawing) { o.onMove && o.onMove(toImg(e), view()); return; }
     const r = box.getBoundingClientRect(), p = [...pts.values()], cx = p.reduce((a, q) => a + q.x, 0) / p.length - r.left, cy = p.reduce((a, q) => a + q.y, 0) / p.length - r.top, d = p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0;
     if (last && last.n === p.length) { tx += cx - last.cx; ty += cy - last.cy; if (d && last.d) zoomAt(d / last.d, cx, cy); else apply(); }
     last = { cx, cy, d, n: p.length };
   });
-  const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); last = null; if (drawing && !pts.size) { drawing = false; o.onUp && o.onUp(toImg(e), view()); } };
+  const up = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); last = null; if (drawing && !pts.size) { drawing = false; o.onUp && o.onUp(toImg(e), view()); } else if (tap && !pts.size && e.type === "pointerup" && Date.now() - tap.t < 600 && o.onTap) o.onTap(toImg(e), view()); tap = null; };
   box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up);
   box.addEventListener("wheel", e => { e.preventDefault(); const r = box.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - r.left, e.clientY - r.top); }, { passive: false });
   return { redraw: draw, fit, size: view };
@@ -373,6 +376,21 @@ function mapViewer(box, o = {}) {
 // ---------------- Tracé de l'élève (stylo / lignes) ----------------
 const COLS = ["#e63946", "#1d4ed8", "#f47a20", "#16a34a", "#111111", "#c21fbf"];
 const WIDTHS = [0, 3, 6, 11];
+const hasPos = () => C.balises.some(b => b.x != null);
+// balises choisies (anneau orange) + numéro d'ordre dans une pastille
+function planSVG(plan, W, H, done = -1) {
+  if (!plan || !hasPos()) return ""; const K = Math.max(W, H) / 1000, R = 21 * K;
+  return plan.map((n, i) => { const b = balise(n); if (!b || b.x == null) return ""; const x = b.x * W, y = b.y * H, ox = x - R * 1.3, oy = y + R * 1.3;
+    return `<circle cx="${x}" cy="${y}" r="${R}" fill="none" stroke="${i < done ? "#2a9d6f" : "#f47a20"}" stroke-width="${5 * K}" stroke-opacity=".9"/><circle cx="${ox}" cy="${oy}" r="${15 * K}" fill="${i < done ? "#2a9d6f" : "#f47a20"}" stroke="#fff" stroke-width="${2.5 * K}"/><text x="${ox}" y="${oy + 6 * K}" text-anchor="middle" font-family="Arial" font-weight="900" font-size="${17 * K}" fill="#fff">${i + 1}</text>`; }).join("");
+}
+// balise touchée sur la carte (la plus proche, à moins de ~28 px à l'écran)
+function baliseAt(q, v) { let best = null, bd = 1e9; C.balises.forEach(b => { if (b.x == null) return; const d = Math.hypot((b.x - q.x) * v.W, (b.y - q.y) * v.H) * v.s; if (d < bd) { bd = d; best = b; } }); return bd < 30 ? best : null; }
+// vérifie que le tracé passe près de chaque balise choisie
+function traceMissing(r) {
+  if (!hasPos()) return []; const pts = (r.trace || []).flatMap(t => t.p.length > 1 ? t.p.flatMap((q, j) => j ? Array.from({ length: 6 }, (_, k) => [t.p[j - 1][0] + (q[0] - t.p[j - 1][0]) * k / 5, t.p[j - 1][1] + (q[1] - t.p[j - 1][1]) * k / 5]) : [q]) : t.p);
+  const ar = r.mapAR || 1300 / 1000;
+  return r.plan.filter(n => { const b = balise(n); if (!b || b.x == null) return false; return !pts.some(q => Math.hypot(q[0] - b.x, (q[1] - b.y) * ar) < .03); });
+}
 function traceSVG(tr, W, H, extra) {
   const K = Math.max(W, H) / 1000, L = [...(tr || []), ...(extra ? [extra] : [])];
   return L.map(t => `<polyline points="${t.p.map(q => (q[0] * W).toFixed(1) + "," + (q[1] * H).toFixed(1)).join(" ")}" fill="none" stroke="${t.c}" stroke-width="${WIDTHS[t.w || 2] * K}" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".85"/>` + (t.t === "line" ? t.p.map(q => `<circle cx="${q[0] * W}" cy="${q[1] * H}" r="${WIDTHS[t.w || 2] * K * .9}" fill="${t.c}"/>`).join("") : "")).join("");
@@ -385,7 +403,7 @@ function drawEditor(r, onClose) {
    <div class="mapv" id="dM"></div>
    <div class="dbar bot"><button class="tb" data-m="pan">✋ Déplacer</button><button class="tb" data-m="pen">✏️ Stylo</button><button class="tb" data-m="line">📏 Lignes</button><button class="tb" data-m="erase">🧽 Gomme</button>
     <span style="flex-basis:100%;height:0"></span>${COLS.map(c => `<button class="sw" data-c="${c}" style="background:${c}"></button>`).join("")}<span style="width:6px"></span>${[1, 2, 3].map(w => `<button class="wd" data-w="${w}"><i style="height:${w * 3 + 1}px"></i></button>`).join("")}
-    <span class="small" style="opacity:.75;flex-basis:100%">Deux doigts : zoomer et déplacer la carte</span></div>`;
+    <span class="small" style="opacity:.75;flex-basis:100%">Deux doigts : zoomer et déplacer la carte${hasPos() ? " · En mode Lignes, le trait se colle sur les balises" : ""}</span></div>`;
   document.body.appendChild(d); document.body.style.overflow = "hidden";
   r.trace = r.trace || [];
   const save = () => { saveRuns(); mv.redraw(); };
@@ -394,22 +412,24 @@ function drawEditor(r, onClose) {
   const dist = (a, b, v) => Math.hypot((a[0] - b[0]) * v.W, (a[1] - b[1]) * v.H) / Math.max(v.W, v.H);
   const segD = (p, a, b, v) => { const ax = a[0] * v.W, ay = a[1] * v.H, bx = b[0] * v.W, by = b[1] * v.H, px = p[0] * v.W, py = p[1] * v.H, L = (bx - ax) ** 2 + (by - ay) ** 2; let t = L ? ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - ax - t * (bx - ax), py - ay - t * (by - ay)) / Math.max(v.W, v.H); };
   const rd = q => [+q.x.toFixed(4), +q.y.toFixed(4)];
+  // en mode « Lignes », un bout de trait près d'une balise (ou du départ) se colle sur son centre
+  const snap = (p, v) => { let best = p, bd = thr(v) * 1.5; [...C.balises, C.depart].forEach(b => { if (!b || b.x == null) return; const d = dist([b.x, b.y], p, v); if (d < bd) { bd = d; best = [b.x, b.y]; } }); return best; };
   const erase = (p, v) => { const i = r.trace.findIndex(t => t.p.some((x, j) => j ? segD(p, t.p[j - 1], x, v) < thr(v) : dist(x, p, v) < thr(v))); if (i >= 0) { push(); r.trace.splice(i, 1); vib(20); save(); } };
   const mv = mapViewer($("#dM", d), {
-    overlay: (W, H) => traceSVG(r.trace, W, H, tmp), mode: () => st.mode,
+    overlay: (W, H) => { r.mapAR = H / W; return planSVG(r.plan, W, H) + traceSVG(r.trace, W, H, tmp); }, mode: () => st.mode,
     onDown(q, v) {
       const p = rd(q);
       if (st.mode === "pen") tmp = { t: "pen", c: st.c, w: st.w, p: [p] };
       else if (st.mode === "line") { // accroche au bout d'une ligne existante
-        let a = p; r.trace.forEach(t => { if (t.t === "line") { const e = t.p[t.p.length - 1]; if (dist(e, p, v) < thr(v) * 1.3) a = e; } });
+        let a = snap(p, v); if (a === p) r.trace.forEach(t => { if (t.t === "line") { const e = t.p[t.p.length - 1]; if (dist(e, p, v) < thr(v) * 1.3) a = e; } });
         tmp = { t: "line", c: st.c, w: st.w, p: [a, p] };
       } else if (st.mode === "erase") erase(p, v);
       mv.redraw();
     },
-    onMove(q, v) { const p = rd(q); if (!tmp) { if (st.mode === "erase") erase(p, v); return; } if (tmp.t === "pen") { if (dist(tmp.p[tmp.p.length - 1], p, v) > 2 / (v.s * Math.max(v.W, v.H))) tmp.p.push(p); } else tmp.p[1] = p; mv.redraw(); },
+    onMove(q, v) { const p = rd(q); if (!tmp) { if (st.mode === "erase") erase(p, v); return; } if (tmp.t === "pen") { if (dist(tmp.p[tmp.p.length - 1], p, v) > 2 / (v.s * Math.max(v.W, v.H))) tmp.p.push(p); } else tmp.p[1] = snap(p, v); mv.redraw(); },
     onUp(q, v) {
       if (!tmp) return;
-      if (tmp.t === "line") { if (dist(tmp.p[0], tmp.p[1], v) < 6 / (v.s * Math.max(v.W, v.H))) { tmp = null; return mv.redraw(); } push(); const prev = r.trace.find(t => t.t === "line" && t.c === tmp.c && t.w === tmp.w && t.p[t.p.length - 1] === tmp.p[0]); if (prev) prev.p.push(tmp.p[1]); else r.trace.push(tmp); }
+      if (tmp.t === "line") { if (dist(tmp.p[0], tmp.p[1], v) < 6 / (v.s * Math.max(v.W, v.H))) { tmp = null; return mv.redraw(); } push(); const same = (u, w) => u[0] === w[0] && u[1] === w[1], prev = r.trace.find(t => t.t === "line" && t.c === tmp.c && t.w === tmp.w && same(t.p[t.p.length - 1], tmp.p[0])); if (prev) prev.p.push(tmp.p[1]); else r.trace.push(tmp); }
       else if (tmp.p.length > 1) { push(); r.trace.push(tmp); }
       tmp = null; save();
     },
@@ -565,14 +585,16 @@ function vPrep(k) {
   if (p.oblig && !r.plan.includes(+p.oblig)) r.plan.unshift(+p.oblig);
   $("#app").innerHTML = `<div class="prep" id="pBar"><div><div class="small" style="opacity:.8">Préparation · ${esc(p.nom)}</div><div class="timer" id="pT">–</div></div><div style="text-align:right" class="small"><b id="pCnt"></b><br><span style="opacity:.8">balises choisies</span></div></div>
    ${r.duo ? `<div class="card small">👥 Équipe : <b>${esc(studentName(ME))}</b> et <b>${esc(studentName(r.duo))}</b></div>` : ""}
-   <div class="card"><h2>1. Choisis ${p.nb} balises</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé ont déjà été faites : elles sont interdites." : ""}</p><div class="bgrid" id="pGrid"></div></div>
+   ${hasPos() ? `<div class="card" style="padding:10px"><h2 style="margin:4px 4px 4px">1. Choisis ${p.nb} balises sur la carte</h2><p class="muted small" style="margin:0 4px 8px">Touche un rond violet pour ajouter ou retirer la balise. Zoome à deux doigts.</p><div class="mapv" id="pMap" style="height:44vh"></div></div>` : ""}
+   <div class="card"><h2>${hasPos() ? "… ou dans la liste" : `1. Choisis ${p.nb} balises`}</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé ont déjà été faites : elles sont interdites." : ""}</p><div class="bgrid" id="pGrid"></div></div>
    <div class="card"><h2>2. Range-les dans ton ordre de passage</h2><p class="muted small" style="margin-top:0">Fais glisser avec le doigt sur ≡ pour changer l'ordre.</p>
     <ul class="sl"><li class="st"><span class="o"></span><span class="bn" style="border-radius:8px">▲</span><b>Départ</b></li></ul><ul class="sl" id="pList"></ul><ul class="sl"><li class="fi"><span class="o"></span><span class="bn">◎</span><b>Retour à l'arrivée</b></li></ul></div>
-   <div class="card" style="padding:10px"><h2 style="margin:4px 4px 8px">3. Trace ton itinéraire sur la carte</h2><div class="mapv" id="pMap" style="height:38vh"></div><button class="btn big or" id="pDraw" style="margin-top:10px">✏️ ${r.trace?.length ? "Modifier mon tracé" : "Tracer sur la carte"}</button></div>
+   <div class="card" style="padding:10px"><h2 style="margin:4px 4px 8px">3. Trace ton itinéraire sur la carte</h2>${hasPos() ? '<p class="muted small" style="margin:0 4px 8px" id="pMiss"></p>' : '<div class="mapv" id="pMap" style="height:38vh"></div>'}<button class="btn big or" id="pDraw" style="margin-top:10px">✏️ ${r.trace?.length ? "Modifier mon tracé" : "Tracer sur la carte"}</button></div>
    ${C.prevu ? `<div class="card"><h2>4. Combien de temps vas-tu mettre ?</h2><p class="muted small" style="margin-top:0">Ton estimation sera comparée à ton temps réel dans le bilan.</p><div class="row"><button class="btn gh" data-pv="-60">−1 min</button><div class="timer grow" style="text-align:center;font-size:1.8rem" id="pPv">–</div><button class="btn gh" data-pv="60">+1 min</button></div><div class="row" style="justify-content:center;margin-top:6px"><button class="btn sm gh" data-pv="-15">−15 s</button><button class="btn sm gh" data-pv="15">+15 s</button></div></div>` : ""}
    <button class="btn big gr" id="pGo" disabled>▶ Départ</button><p class="small muted" id="pWhy" style="text-align:center"></p>`;
-  const mv = mapViewer($("#pMap"), { overlay: (W, H) => traceSVG(r.trace, W, H) });
-  $("#pDraw").onclick = () => drawEditor(r, () => { mv.redraw(); $("#pDraw").textContent = "✏️ " + (r.trace.length ? "Modifier mon tracé" : "Tracer sur la carte"); });
+  const mv = mapViewer($("#pMap"), { overlay: (W, H) => { r.mapAR = H / W; return planSVG(r.plan, W, H) + traceSVG(r.trace, W, H); }, onTap: (q, v) => { const b = baliseAt(q, v); if (b) toggle(b.n); } });
+  const miss = () => { const e = $("#pMiss"); if (!e) return; const M = traceMissing(r); e.innerHTML = !r.trace?.length ? "Ton tracé apparaît sur la carte ci-dessus." : M.length ? `⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : r.plan.length ? "✓ Ton tracé passe par toutes tes balises." : ""; };
+  $("#pDraw").onclick = () => drawEditor(r, () => { mv.redraw(); miss(); $("#pDraw").textContent = "✏️ " + (r.trace.length ? "Modifier mon tracé" : "Tracer sur la carte"); });
   const grid = $("#pGrid"), list = $("#pList");
   if (r.prevu == null) r.prevu = Math.max(5, p.nb * 2) * 60;
   function toggle(n) { n = +n; if (n === +p.oblig) return flash("Balise obligatoire ★"); if (used.includes(n)) return flash("Déjà faite"); const i = r.plan.indexOf(n); if (i >= 0) r.plan.splice(i, 1); else { if (r.plan.length >= p.nb) return flash(`${p.nb} balises maximum`); r.plan.push(n); } vib(10); saveRuns(); render(); }
@@ -584,7 +606,7 @@ function vPrep(k) {
     $$("[data-rm]", list).forEach(b => b.onclick = () => toggle(b.dataset.rm));
     $("#pCnt").textContent = `${r.plan.length} / ${p.nb}`;
     if ($("#pPv")) $("#pPv").textContent = fmt(r.prevu * 1000);
-    ok();
+    mv.redraw(); miss(); ok();
   }
   sortable(list, (from, to) => { const [x] = r.plan.splice(from, 1); r.plan.splice(to, 0, x); saveRuns(); render(); });
   $$("[data-pv]").forEach(b => b.onclick = () => { r.prevu = Math.max(60, r.prevu + +b.dataset.pv); saveRuns(); $("#pPv").textContent = fmt(r.prevu * 1000); });
@@ -596,7 +618,7 @@ function vPrep(k) {
   }
   const upd = () => { const left = end() - now(); const t = $("#pT"); if (!t) return; t.textContent = left > 0 ? fmt(left) : "Temps écoulé"; $("#pBar").classList.toggle("low", left < 60000); if (left <= 0 && !r.auto.prepEnd) { r.auto.prepEnd = 1; saveRuns(); vib([200, 100, 200]); flash("⏰ Fin de la préparation"); } ok(); };
   render(); upd(); tick = setInterval(upd, 500);
-  $("#pGo").onclick = async () => { if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>`, "▶ Partir", "gr"))) return; r.debut = now(); saveRuns(); vib(300); go("run", k); };
+  $("#pGo").onclick = async () => { const M = traceMissing(r), warn = hasPos() ? (!r.trace?.length ? `<br><br>⚠ Tu n'as pas tracé ton itinéraire sur la carte.` : M.length ? `<br><br>⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : "") : ""; if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>${warn}`, warn ? "▶ Partir quand même" : "▶ Partir", "gr"))) return; r.debut = now(); saveRuns(); vib(300); go("run", k); };
 }
 // glisser-déposer au doigt (poignée ≡)
 function sortable(ul, onMove) {
@@ -640,7 +662,7 @@ function vRun(k) {
     $$("[data-k]").forEach(b => b.onclick = () => { const c = b.dataset.k; if (c === "⌫") code = code.slice(0, -1); else if (c === "C") code = ""; else if (code.length < 3) code += c; vib(8); drawCode(); });
     $("#rOk") && ($("#rOk").onclick = () => { if (code.length !== 3) return; punch(r, code); code = ""; saveRuns(); vib(60); flash("✓ Enregistré"); draw(); });
     $("#rSkip") && ($("#rSkip").onclick = async () => { if (!(await ask(`Passer la balise ${n} ?`, `Elle sera comptée comme <b>non trouvée</b> (pénalité). Tu continues vers ${i + 1 < r.plan.length ? "la balise <b>" + r.plan[i + 1] + "</b>" : "l'arrivée"}.`, "⏭ Passer", "ko"))) return; r.saisies.push({ t: now(), code: "", attendu: n, st: "passe", bal: null }); r.idx = i + 1; code = ""; saveRuns(); draw(); });
-    $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { overlay: (W, H) => traceSVG(r.trace, W, H) }); };
+    $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { overlay: (W, H) => planSVG(r.plan, W, H, r.idx || 0) + traceSVG(r.trace, W, H) }); };
     $("#rBack").onclick = async () => { const left = r.plan.length - (r.idx || 0); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return; r.fin = now(); saveRuns(); vib([100, 60, 300]); queueResult(k); go("end", k); };
     upd();
   };
@@ -713,7 +735,7 @@ function bilanHTML(k, teacher) {
 }
 // dessine le tracé par-dessus les images de carte des bilans
 function fillBilanMaps(root = document, runs = RUNS) {
-  $$(".bmap", root).forEach(b => { const img = $("img", b), sv = $("svg", b), r = runs[+b.dataset.k]; const f = () => { const W = img.naturalWidth || 1000, H = img.naturalHeight || 1300; sv.setAttribute("viewBox", `0 0 ${W} ${H}`); sv.innerHTML = traceSVG(r?.trace, W, H); }; img.complete ? f() : img.onload = f; });
+  $$(".bmap", root).forEach(b => { const img = $("img", b), sv = $("svg", b), r = runs[+b.dataset.k]; const f = () => { const W = img.naturalWidth || 1000, H = img.naturalHeight || 1300; sv.setAttribute("viewBox", `0 0 ${W} ${H}`); sv.innerHTML = planSVG(r?.plan, W, H) + traceSVG(r?.trace, W, H); }; img.complete ? f() : img.onload = f; });
 }
 function vBilan(k, teacher) {
   $("#app").innerHTML = bilanHTML(k, teacher) + `<div class="row noprint"><button class="btn gh grow" id="bHome">← ${teacher ? "Retour" : "Mes parcours"}</button><button class="btn or grow" id="bPr">🖨 Imprimer / PDF</button></div>`;
