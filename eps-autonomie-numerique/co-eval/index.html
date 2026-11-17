@@ -755,13 +755,13 @@ function vRun(k) {
      ${fini ? `<div class="card" style="text-align:center"><div style="font-size:3rem">🏁</div><h2>Toutes tes balises sont saisies</h2><p class="muted">Retourne à l'arrivée, puis touche le bouton.</p></div>` :
       `<div class="card" style="text-align:center;padding-top:10px"><div class="small muted">Balise ${i + 1} sur ${r.plan.length}${+n === +p.oblig ? " · ★ obligatoire" : ""}</div><div class="bigb">${n}</div>
        <div class="small muted">Tape le code de 3 lettres écrit sur la balise</div><div class="boxes">${[0, 1, 2].map(j => `<div class="${j === code.length ? "cur" : ""}">${code[j] || ""}</div>`).join("")}</div>
-       <div class="kb">${"AZERTYUIOPQSDFGHJKLMWXCVBN".split("").map(c => `<button data-k="${c}">${c}</button>`).join("")}<button class="w2" data-k="⌫" style="background:#f5f2ea">⌫</button><button class="w2" data-k="C" style="background:#f5f2ea;font-size:.85rem">Effacer</button></div>
+       <div class="kb">${"AZERTYUIOPQSDFGHJKLMWXCVBN".split("").map(c => `<button data-k="${c}">${c}</button>`).join("")}<button class="w2" data-k="⌫" style="background:#f5f2ea">⌫</button><button class="w2" data-k="CLR" style="background:#f5f2ea;font-size:.85rem">Effacer</button></div>
        <button class="btn big or" id="rOk" style="margin-top:12px" ${code.length === 3 ? "" : "disabled"}>✓ Valider la balise ${n}</button>
        ${i + 1 < r.plan.length ? `<div class="small muted" style="margin-top:8px">Ensuite : balise <b>${r.plan[i + 1]}</b></div>` : `<div class="small muted" style="margin-top:8px">Ensuite : retour à l'arrivée</div>`}
        <button class="btn sm gh" id="rSkip" style="margin-top:12px">⏭ Je ne la trouve pas : passer la balise ${n}</button></div>`}
      <div class="row"><button class="btn gh grow" id="rMap">🗺 Ma carte et mon tracé</button><button class="btn ko" id="rSos">🆘 SOS</button></div>
      <button class="btn big ${fini ? "gr" : "gh"}" id="rBack" style="margin-top:10px">🏁 Je suis de retour</button>`;
-    $$("[data-k]").forEach(b => b.onclick = () => { const c = b.dataset.k; if (c === "⌫") code = code.slice(0, -1); else if (c === "C") code = ""; else if (code.length < 3) code += c; vib(8); drawCode(); });
+    $$("[data-k]").forEach(b => b.onclick = () => { const c = b.dataset.k; if (c === "⌫") code = code.slice(0, -1); else if (c === "CLR") code = ""; else if (code.length < 3) code += c; vib(8); drawCode(); });
     $("#rOk") && ($("#rOk").onclick = () => { if (code.length !== 3) return; punch(r, code); code = ""; saveRuns(); vib(60); flash("✓ Enregistré"); draw(); });
     $("#rSkip") && ($("#rSkip").onclick = async () => { if (!(await ask(`Passer la balise ${n} ?`, `Elle sera comptée comme <b>non trouvée</b> (pénalité). Tu continues vers ${i + 1 < r.plan.length ? "la balise <b>" + r.plan[i + 1] + "</b>" : "l'arrivée"}.`, "⏭ Passer", "ko"))) return; r.saisies.push({ t: now(), code: "", attendu: n, st: "passe", bal: null }); r.idx = i + 1; code = ""; saveRuns(); draw(); });
     $("#rSos").onclick = () => sos(k);
