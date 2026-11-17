@@ -1160,6 +1160,8 @@ async function pullLive() {
 }
 function liveInfo(x) {
   const runs = (x.d.runs || []).map((y, k) => unpackLive(y, k)), me = moved(x.d.me || {}), pos = x.d.pos;
+  // collectif partagé : on prend la version la plus récente des deux téléphones du binôme
+  try { const ob = me.binome && LIVE.st[me.binome.id]; const r2 = ob && ob.d.runs && unpackLive(ob.d.runs[1], 1); if (r2 && (!runs[1] || (r2.u || 0) > (runs[1].u || 0))) runs[1] = r2; } catch (e) {}
   const act = runs.find(r => r && r.debut && !r.fin), prep = runs.find(r => r && !r.debut && !r.fin), done = runs.filter(r => r && r.fin && !isDeleted(r));
   let st, cls, ord;
   if (act) { const i = act.idx || 0; st = `🏃 ${P(act.k).nom} · balise ${Math.min(i + 1, act.plan.length)}/${act.plan.length} · ${fmt(now() - act.debut)}${act.pilot && act.pilot !== x.eleve ? " (saisie par le binôme)" : ""}`; cls = "or"; ord = 0; }
@@ -1167,7 +1169,8 @@ function liveInfo(x) {
   else if (done.length) { st = `✅ ${done.length === 2 ? "2 parcours terminés" : P(done[0].k).nom + " terminé"}`; cls = "ok"; ord = 2; }
   else { st = "👋 Connecté, pas encore de parcours"; cls = ""; ord = 3; }
   const age = now() - x.t, late = act && age > 6 * 60000;
-  return { me, runs, pos, st, cls, ord, age, late, act };
+  const last = act || runs.filter(r => r && r.saisies && r.saisies.length).sort((p, q) => (q.u || 0) - (p.u || 0))[0] || null;
+  return { me, runs, pos, st, cls, ord, age, late, act, last };
 }
 let LMAP = null, LLAYER = null;
 function loadLeaflet() { return new Promise((res, rej) => { if (window.L) return res(); const c = document.createElement("link"); c.rel = "stylesheet"; c.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(c); const sc = document.createElement("script"); sc.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; sc.onload = res; sc.onerror = () => rej(new Error("carte indisponible")); document.head.appendChild(sc); }); }
@@ -1235,7 +1238,7 @@ function profSuivi(box) {
     $("#lvList").innerHTML = `<div class="row"><h2 class="grow" style="margin:0">Élèves connectés (${L.length})</h2><span class="small muted">🏃 ${L.filter(o => o.ord === 0).length} en course · ✏️ ${L.filter(o => o.ord === 1).length} en préparation · ✅ ${L.filter(o => o.ord === 2).length} terminés</span></div>` +
       (Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)}</h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th><th>Binôme</th><th>Où en est-il ?</th><th>Dernière balise pointée</th><th>Mise à jour</th><th></th></tr></thead><tbody>
         ${cls[c].sort((a, b) => a.ord - b.ord || byFr(a.me.nom, b.me.nom)).map(o => `<tr data-lv="${esc(o.x.eleve)}" style="cursor:pointer${sel === o.x.eleve ? ";background:#fff4ea" : ""}"><td><b>${esc(o.me.nom)}</b> ${esc(o.me.prenom)}</td><td class="small">${o.me.binome ? esc(studentName(o.me.binome)) : '<span class="muted">—</span>'}</td><td><span class="chip ${o.cls}">${esc(o.st)}</span></td>
-          <td class="small">${o.act && o.act.saisies.length ? (s0 => `${esc(String(s0.bal || s0.attendu))}${s0.st === "passe" ? " (passée)" : ""} à ${hhmm(s0.t)}`)(o.act.saisies[o.act.saisies.length - 1]) : o.act ? "départ" : "—"}${o.pos && o.pos.la != null ? ` · <a href="https://maps.google.com/?q=${o.pos.la},${o.pos.lo}" target="_blank" title="Dernière position GPS (${hhmm(o.pos.t)}, ±${o.pos.acc} m)">📍 GPS</a>` : ""}</td><td class="small" style="${o.late ? "color:var(--ko);font-weight:800" : ""}">${o.late ? "⚠ " : ""}${ago(o.age)}</td>
+          <td class="small">${o.last && o.last.saisies.length ? (s0 => `${esc(String(s0.bal || s0.attendu))}${s0.st === "passe" ? " (passée)" : ""} à ${hhmm(s0.t)}${o.act ? "" : " <span class='muted'>(fin)</span>"}`)(o.last.saisies[o.last.saisies.length - 1]) : o.act ? "départ" : "—"}${o.pos && o.pos.la != null ? ` · <a href="https://maps.google.com/?q=${o.pos.la},${o.pos.lo}" target="_blank" title="Dernière position GPS (${hhmm(o.pos.t)}, ±${o.pos.acc} m)">📍 GPS</a>` : ""}</td><td class="small" style="${o.late ? "color:var(--ko);font-weight:800" : ""}">${o.late ? "⚠ " : ""}${ago(o.age)}</td>
           <td style="white-space:nowrap"><button class="btn sm gh" data-lvm="${esc(o.x.eleve)}" title="Message">💬</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun élève connecté pour l\'instant. Les élèves apparaissent dès qu\'ils ont choisi leur nom.</p>');
     $$("[data-lv]").forEach(tr => tr.onclick = e => { if (e.target.closest("[data-lvm]")) return; sel = tr.dataset.lv; draw(); });
     $$("[data-lvm]").forEach(b => b.onclick = () => { const o = L.find(z => z.x.eleve === b.dataset.lvm); msgDialog({ ...o.me, id: studentId(o.me) }); });
