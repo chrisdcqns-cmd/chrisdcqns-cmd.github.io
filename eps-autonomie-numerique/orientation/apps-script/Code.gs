@@ -18,6 +18,8 @@
  *  - Classes      : tes listes d'élèves (elles ne sont jamais publiées sur GitHub)
  *  - CO_Eval      : appli « CO – préparation à l'évaluation » : paramètres, listes et carte (mis à jour en direct chez les élèves)
  *  - CO_Resultats : appli « CO – préparation à l'évaluation » : résultats envoyés par les élèves
+ *  - CO_Etat      : appli « CO éval » : progression de chaque élève (sauvegarde, binôme, suivi en direct)
+ *  - CO_Log       : appli « CO éval » : erreurs techniques signalées par les téléphones
  * Seuls le nom saisi par l'élève, sa classe et ses positions pendant la course sont enregistrés, dans ton propre Google Drive.
  * Pour faire de la place : supprime les lignes des anciennes leçons dans l'onglet Evenements (ou utilise l'action « purge » depuis l'éditeur : fonction purgerAnciennesSeances).
  */
@@ -33,6 +35,8 @@ const T_LECONS = { nom: 'Lecons', cols: ['lecon', 'nom', 'lancee', 'active'] };
 const T_CLASSES = { nom: 'Classes', cols: ['classe', 'eleve'] };
 const T_COE = { nom: 'CO_Eval', cols: ['cle', 'morceau', 'donnees'] };
 const T_COER = { nom: 'CO_Resultats', cols: ['recu', 'eleve', 'nom', 'classe', 'enseignant', 'parcours', 'donnees'] };
+const T_COES = { nom: 'CO_Etat', cols: ['eleve', 'maj', 'donnees'] };
+const T_COEL = { nom: 'CO_Log', cols: ['date', 'eleve', 'message', 'appareil'] };
 
 function doGet() { return json_({ ok: true, app: 'orienrun' }); }
 
@@ -111,7 +115,23 @@ function traiter_(req) {
     const out = { ok: true, vc: vc, vm: vm };
     if (vc && String(req.vc || '') !== vc) out.conf = coeLire_('conf');
     if (vm && req.carte && String(req.vm || '') !== vm) out.carte = coeLire_('carte');
+    if (Array.isArray(req.ids) && req.ids.length) out.states = coeEtats_(req.ids.slice(0, 4).map(String));
     return out;
+  }
+  if (a === 'coeState') {
+    const id = String(req.eleve || '').slice(0, 100), d = JSON.stringify(req.data || {});
+    if (!id) throw new Error('Élève manquant'); if (d.length > 45000) throw new Error('État trop gros');
+    const lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try {
+      const sh = feuille_(T_COES), row = coeLigne_(id), t = Date.now();
+      if (row) sh.getRange(row, 1, 1, 3).setValues([[id, t, d]]); else { sh.appendRow([id, t, d]); CacheService.getScriptCache().put('coes_' + id, String(sh.getLastRow()), DUREE_CACHE); }
+      return { ok: true, t: t };
+    } finally { lock.releaseLock(); }
+  }
+  if (a === 'coeLog') {
+    const sh = feuille_(T_COEL); if (sh.getLastRow() > 3000) return { ok: true };
+    sh.appendRow([new Date(), String(req.eleve || '').slice(0, 100), String(req.m || '').slice(0, 1500), String(req.ua || '').slice(0, 300)]);
+    return { ok: true };
   }
   if (a === 'coeResult') {
     const d = JSON.stringify(req.data || {}); if (d.length > 45000) throw new Error('Résultat trop gros');
@@ -136,6 +156,11 @@ function traiter_(req) {
       if (cle === 'conf' && txt.length < 95000) CacheService.getScriptCache().put('coe_conf_' + v, txt, DUREE_CACHE);
       return { ok: true, v: v };
     } finally { lock.releaseLock(); }
+  }
+  if (a === 'coeAllStates') {
+    const sh = feuille_(T_COES), n = sh.getLastRow() - 1, since = Number(req.since) || 0, out = [];
+    if (n > 0) { const maj = sh.getRange(2, 2, n, 1).getValues(); maj.forEach((m, i) => { if (Number(m[0]) > since) { const v = sh.getRange(i + 2, 1, 1, 3).getValues()[0]; try { out.push({ eleve: String(v[0]), t: Number(v[1]), d: JSON.parse(v[2] || '{}') }); } catch (e) {} } }); }
+    return { ok: true, states: out, now: Date.now() };
   }
   if (a === 'coeResults') {
     const sh = feuille_(T_COER), last = sh.getLastRow(); let since = Math.max(1, Number(req.since) || 1); if (since > last) since = 1;
@@ -224,6 +249,20 @@ function coeLire_(cle) {
   const txt = lignes_(T_COE).filter(x => String(x.v[0]) === cle).sort((x, y) => x.v[1] - y.v[1]).map(x => x.v[2]).join('');
   if (cle === 'conf' && txt.length < 95000) CacheService.getScriptCache().put('coe_conf_' + v, txt, DUREE_CACHE);
   return txt;
+}
+// ligne de l'élève dans CO_Etat (mémorisée dans le cache, vérifiée)
+function coeLigne_(id) {
+  const sh = feuille_(T_COES), c = CacheService.getScriptCache(), k = 'coes_' + id, r = Number(c.get(k)) || 0;
+  if (r > 1 && r <= sh.getLastRow() && String(sh.getRange(r, 1).getValue()) === id) return r;
+  const n = sh.getLastRow() - 1; if (n < 1) return 0;
+  const ids = sh.getRange(2, 1, n, 1).getValues();
+  for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) { c.put(k, String(i + 2), DUREE_CACHE); return i + 2; }
+  return 0;
+}
+function coeEtats_(ids) {
+  const sh = feuille_(T_COES), out = [];
+  ids.forEach(id => { const r = coeLigne_(id); if (!r) return; const v = sh.getRange(r, 1, 1, 3).getValues()[0]; try { out.push({ eleve: id, t: Number(v[1]), d: JSON.parse(v[2] || '{}') }); } catch (e) {} });
+  return out;
 }
 function seanceExiste_(s) {
   const cache = CacheService.getScriptCache();
