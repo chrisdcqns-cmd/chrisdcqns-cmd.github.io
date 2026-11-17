@@ -468,7 +468,7 @@ async function sync() {
   try {
     const j = await api("coeGet", { vc: VC, vm: VM, carte: 1 });
     NET = true; let conf = false, map = false;
-    if (j.conf != null && j.vc && j.vc !== VC) { try { const o = JSON.parse(j.conf); C = Object.assign(clone(DEF), o); if (TPW) { statP = null; await ensureStat(); } LS.set("conf", o); VC = j.vc; LS.set("vc", VC); conf = true; if (ME && (C.moves || {})[ME.id]) { ME = moved(ME); LS.set("me", ME); } } catch (e) {} }
+    if (j.conf != null && j.vc && j.vc !== VC) { try { const o = JSON.parse(j.conf), stable = x => JSON.stringify({ ...x, msgs: 0, rappel: 0, retour: 0 }), before = stable(C); C = Object.assign(clone(DEF), o); if (TPW) { statP = null; await ensureStat(); } LS.set("conf", o); VC = j.vc; LS.set("vc", VC); conf = true; if (ME && (C.moves || {})[ME.id]) { ME = moved(ME); LS.set("me", ME); } if (stable(C) === before) { VC = j.vc; LS.set("vc", VC); checkAlerts(); $("#hT").textContent = C.titre; syncing = false; setNet(); return flushOut(); } } catch (e) {} }
     if (j.carte != null && j.vm && j.vm !== VM) { await idbSet("carte", j.carte || null); VM = j.vm; LS.set("vm", VM); MAPIMG = j.carte || demoMap(); map = true; }
     if (conf || map) { if (conf) applyDeletions(); onRemote(conf, map); checkAlerts(); }
     flushOut();
@@ -486,7 +486,26 @@ function alarm(title, text, kind = "") {
   const rep = setInterval(() => { vib([300, 150, 300]); beep(); }, 6000); $("#alOk", d).onclick = () => { clearInterval(rep); d.remove(); };
 }
 const hhmm = t => new Date(t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+// Messages de l'enseignant : C.msgs = [{ id, de, to: "" | "p:<enseignant>" | "e:<empreinte élève>", txt }]
+function showMsg(m) {
+  $(".msgbox")?.remove(); const d = document.createElement("div"); d.className = "modal msgbox";
+  d.innerHTML = `<div><div style="font-size:2.6rem;text-align:center">💬</div><h2 style="margin:4px 0 2px;text-align:center">Message de ${esc(m.de || "ton enseignant")}</h2><p class="small muted" style="text-align:center;margin:0 0 10px">${hhmm(m.id)}${m.to.startsWith("e:") ? " · pour toi" : ""}</p><p style="font-size:1.3rem;font-weight:700;text-align:center;white-space:pre-wrap;background:#fff;border-radius:14px;padding:14px">${esc(m.txt)}</p><button class="btn big or" id="mgOk">J'ai lu</button></div>`;
+  document.body.appendChild(d); vib([200, 100, 200]); beep(); notifySys("Message de " + (m.de || "ton enseignant"), m.txt);
+  $("#mgOk", d).onclick = () => d.remove();
+}
+function checkMsgs() {
+  if (!ME || CUR.v === "prof") return;
+  const seen = LS.get("seen", {}), last = seen.msg || 0, t = now();
+  if (!seen.msg) { seen.msg = t - 5 * 60000; LS.set("seen", seen); } // nouvel appareil : seulement les messages récents
+  const run = RUNS.find(r => r && !r.fin), mine = [ME, run?.duo].filter(Boolean).map(e => "e:" + hid(studentId(e)));
+  const L = (C.msgs || []).filter(m => m.id > (seen.msg || last) && t - m.id < 3 * 3600000 && (!m.to || m.to === "p:" + ME.prof || mine.includes(m.to))).sort((a, b) => a.id - b.id);
+  if (!L.length) return;
+  seen.msg = L.at(-1).id; LS.set("seen", seen);
+  const hist = LS.get("msgs", []); hist.push(...L); LS.set("msgs", hist.slice(-20));
+  showMsg(L.at(-1));
+}
 function checkAlerts() {
+  checkMsgs();
   if (!ME || CUR.v === "prof") return;
   const seen = LS.get("seen", {}), t = now();
   const rp = C.rappel; if (rp && rp.id && seen.rappel !== rp.id) { seen.rappel = rp.id; LS.set("seen", seen); if (t - rp.id < 5 * 60000 && (!rp.prof || rp.prof === ME.prof)) alarm("RETOUR !", `${esc(rp.prof || "Tes enseignants")} demande${rp.prof ? "" : "nt"} à tout le monde de <b>revenir à l'arrivée maintenant</b>.${C.retour ? `<br>Heure de retour : <b>${hhmm(C.retour)}</b>` : ""}`); }
@@ -548,6 +567,7 @@ function vHome() {
    ${C.parcours.map((p, k) => { const r = RUNS[k], done = r?.fin, next = !done; return `<button class="pc ${done ? "done" : next ? "cur" : ""}" data-p="${k}" ${!done && !next ? "disabled style='opacity:.55'" : ""}><div class="n">${done ? "✓" : k + 1}</div><div class="grow"><b>${esc(p.nom)} · ${p.type === "duo" ? "👥 collectif" : "👤 individuel"}</b><span class="small muted">${p.nb} balises à choisir${p.oblig ? `, dont la n° <span style="color:var(--vi);font-weight:900">${p.oblig}</span> obligatoire` : ""} · préparation ${fmtMin(p.prep * 60)}${p.max ? ` · ${p.max} min maximum` : ""}</span>${done ? `<div style="margin-top:4px"><span class="chip ok">Temps : ${fmt(r.fin - r.debut)}</span></div>` : ""}</div><span style="font-size:1.4rem">${done ? "📄" : next ? "▶" : "🔒"}</span></button>`; }).join("")}
    ${RUNS.some(r => r?.fin) ? `<button class="btn big vi" id="full" style="margin-top:6px">📊 Bilan complet${RUNS.every(r => r?.fin) ? " des 3 parcours" : " (provisoire)"}</button>${nOut ? `<div class="card" style="border:2px solid var(--or);margin-top:10px"><b>⏳ ${nOut} résultat(s) gardé(s) sur ce téléphone</b><p class="small muted" style="margin:4px 0 8px">Pas de réseau pour l'instant : ils partiront tout seuls dès que le réseau revient. Tu peux aussi les envoyer par SMS.</p><div class="row"><button class="btn sm or grow" id="retry">↻ Réessayer maintenant</button><button class="btn sm grow" id="smsRes">📩 Envoyer par SMS</button></div></div>` : `<p class="small muted" style="text-align:center">✓ Tes résultats ont été envoyés à ton enseignant.</p>`}
    <div class="row" style="margin-top:8px"><button class="btn sm gh grow" id="send">📤 Secours : QR code</button><button class="btn sm gh grow" id="smsRes2">📩 Secours : SMS</button></div>` : ""}
+   ${LS.get("msgs", []).length ? `<div class="card" style="margin-top:14px"><h2>💬 Messages reçus</h2>${LS.get("msgs", []).slice(-5).reverse().map(m => `<p class="small" style="margin:6px 0"><b>${hhmm(m.id)} · ${esc(m.de || "")}</b> : ${esc(m.txt)}</p>`).join("")}</div>` : ""}
    <button class="btn ko" id="sos" style="width:100%;margin-top:14px">🆘 SMS de secours à mon enseignant</button>`;
   $("#eId").onclick = async () => { if (RUNS.some(Boolean) && !(await ask("Changer de coureur ?", "Les parcours enregistrés sur ce téléphone seront effacés de l'écran (ceux déjà envoyés restent chez l'enseignant).", "Changer", "ko"))) return; ME = null; RUNS = [null, null, null]; LS.del("me"); saveRuns(); go("ident"); };
   $$("[data-p]").forEach(b => b.onclick = () => { const k = +b.dataset.p; if (RUNS[k]?.fin) return go("bilan", k); startPrep(k); });
@@ -638,16 +658,33 @@ function deleteRun(x, k, after) {
     confChanged(); flash("Résultat supprimé ✓"); after && after();
   });
 }
+function msgDialog(target) {
+  const profs = C.profs.filter(Boolean), me = LS.get("pf", "") || profs[0] || "";
+  const all = allStudents().filter(x => !x.abs).sort((a, b) => byFr(a.me.prof, b.me.prof) || byFr(a.me.classe || "", b.me.classe || "") || byFr(a.me.nom, b.me.nom));
+  const m = modal(`<h2 style="margin:0 0 6px">💬 Envoyer un message</h2>
+   <label class="l">De</label><select class="inp" id="mgDe">${profs.map(p => `<option ${p === me ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>
+   <label class="l">À</label><select class="inp" id="mgTo"><option value="">Tous les élèves</option>${profs.map(p => `<option value="p:${esc(p)}">Les élèves de ${esc(p)}</option>`).join("")}<optgroup label="Un élève">${all.map(x => `<option value="e:${hid(x.me.id)}" ${target && x.me.id === target.id ? "selected" : ""}>${esc(x.me.nom)} ${esc(x.me.prenom)} (${esc(x.me.classe || "")} · ${esc(x.me.prof)})</option>`).join("")}</optgroup></select>
+   <label class="l">Message</label><textarea class="inp" id="mgT" rows="3" maxlength="300" placeholder="ex. Attention à la balise 34, elle est derrière le bâtiment."></textarea>
+   <div class="row" style="margin:8px 0;gap:6px">${["Reviens à l'arrivée", "Tout va bien ?", "Appelle-moi", "Bravo, continue !"].map(t => `<button class="btn sm gh" data-q="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+   <p class="small muted">L'élève reçoit le message en moins de 15 s (avec son et vibration), à condition que l'appli soit ouverte et qu'il ait du réseau.</p>
+   <div class="row"><button class="btn gh grow" id="mgX">Annuler</button><button class="btn or grow" id="mgOk">Envoyer</button></div>`);
+  $$("[data-q]", m).forEach(b => b.onclick = () => { $("#mgT", m).value = b.dataset.q; });
+  $("#mgX", m).onclick = m.close;
+  $("#mgOk", m).onclick = () => { const txt = $("#mgT", m).value.trim(); if (!txt) return flash("Écris un message"); const t = now(); C.msgs = (C.msgs || []).filter(x => t - x.id < 3 * 3600000).slice(-29); C.msgs.push({ id: t, de: $("#mgDe", m).value, to: $("#mgTo", m).value, txt }); LS.set("pf", $("#mgDe", m).value); confChanged(); m.close(); flash("💬 Message envoyé"); };
+  setTimeout(() => $("#mgT", m).focus(), 50);
+}
 function studentMenu(e, after, runs) {
   const st = statOf(e), others = C.profs.filter(p => p && p !== e.prof);
   const m = modal(`<h2 style="margin:0 0 4px">${esc(e.prenom)} ${esc(e.nom)}</h2><p class="small muted" style="margin-top:0">${esc(e.classe || "")} · ${esc(e.prof)}</p>
    <div class="row"><button class="btn grow ${st === "absent" ? "ko" : "gh"}" data-st="absent">🚫 Absent</button><button class="btn grow ${st === "dispense" ? "ko" : "gh"}" data-st="dispense">🩺 Dispensé</button><button class="btn grow ${!st ? "gr" : "gh"}" data-st="">✓ Présent</button></div>
    <p class="small muted">Un élève absent ou dispensé n'apparaît plus dans la liste des prénoms, ni comme camarade possible. 🔒 Les élèves ne voient jamais ce statut : leur téléphone reçoit seulement une empreinte anonyme, et le mot « dispensé » est chiffré avec ton mot de passe.</p>
+   <button class="btn vi" id="smMsg" style="width:100%;margin-top:10px">💬 Envoyer un message à ${esc(e.prenom)}</button>
    ${runs && runs.some(r => r?.fin) ? `<h3 style="margin:12px 0 6px">🗑 Supprimer un résultat</h3><div class="row">${runs.map((r, k) => r?.fin ? `<button class="btn sm gh" data-delr="${k}" style="color:var(--ko)">🗑 ${esc(P(k).nom)} (${fmt(r.fin - r.debut)})</button>` : "").join("")}</div>` : ""}
    ${others.length ? `<h3 style="margin:14px 0 6px">↔ Basculer vers un autre enseignant</h3><label class="l">Classe chez le nouvel enseignant</label><input class="inp" id="smC" value="${esc(e.classe || "")}" list="smCl"><datalist id="smCl"></datalist>
    <div class="pick" style="margin-top:8px">${others.map(p => `<button data-to="${esc(p)}">→ ${esc(p)}</button>`).join("")}</div><p class="small muted">Ses résultats déjà envoyés passent aussi chez le nouvel enseignant.</p>` : ""}
    <button class="btn gh" id="smX" style="width:100%;margin-top:10px">Fermer</button>`);
   $("#smX", m).onclick = m.close;
+  $("#smMsg", m).onclick = () => { m.close(); msgDialog({ ...e, id: e.id || studentId(e) }); };
   $$("[data-delr]", m).forEach(b => b.onclick = () => { m.close(); deleteRun({ me: e, runs }, +b.dataset.delr, after); });
   $$("[data-st]", m).forEach(b => b.onclick = async () => { await setStatut(e, b.dataset.st); m.close(); flash(b.dataset.st ? STAT_LBL[b.dataset.st][0].toUpperCase() + STAT_LBL[b.dataset.st].slice(1) + " ✓" : "Présent ✓"); after && after(); });
   $$("[data-to]", m).forEach(b => { b.onfocus = b.onmouseenter = () => { $("#smCl", m).innerHTML = Object.keys(C.listes[b.dataset.to] || {}).map(c => `<option value="${esc(c)}">`).join(""); };
@@ -971,9 +1008,10 @@ function vProf(tab = "res") {
   if (!TPW) return openProf();
   if (!statP) { ensureStat().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0] || tab); }); }
   clearInterval(profTick); profTick = null;
-  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${tab === "res" || tab === "dev" ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
+  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${tab === "res" || tab === "dev" ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
   $("#hRet").onchange = e => { const v = e.target.value; if (!v) return; const [h, mi] = v.split(":").map(Number), d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < now() - 6 * 3600000) d.setDate(d.getDate() + 1); C.retour = d.getTime(); confChanged(); flash(`Heure de retour : ${hhmm(C.retour)} ✓`); };
   $("#hRetX").onclick = () => { C.retour = null; $("#hRet").value = ""; confChanged(); };
+  $("#bMsg").onclick = () => msgDialog();
   $("#bRetour").onclick = () => { const L = C.profs.filter(Boolean); const m = modal(`<h2 style="margin:0 0 6px">📢 Appel RETOUR</h2><p class="small muted" style="margin-top:0">Les téléphones des élèves sonnent, vibrent et affichent « RETOUR ! » (dans les 15 secondes).</p><div class="pick big"><button data-rp="">Tous les élèves</button>${L.map(p => `<button data-rp="${esc(p)}">Élèves de ${esc(p)}</button>`).join("")}</div><button class="btn gh" id="rpX" style="width:100%;margin-top:10px">Annuler</button>`); $("#rpX", m).onclick = m.close; $$("[data-rp]", m).forEach(b => b.onclick = () => { C.rappel = { id: now(), prof: b.dataset.rp }; confChanged(); m.close(); flash("📢 Appel RETOUR envoyé"); }); };
   $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home");
   $("#pUp").onclick = async () => { const b = $("#pUp"); b.disabled = true; b.textContent = "⏳ Mise à jour…"; clearTimeout(pubTimer); if (PUB.st === "wait") await publish(); VC = ""; VM = ""; LS.set("vc", ""); LS.set("vm", ""); LS.set("reopen", CUR.a[0] || "res"); location.replace(location.pathname + "?maj=" + Date.now()); };
