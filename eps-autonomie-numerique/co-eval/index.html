@@ -632,7 +632,7 @@ function vHome() {
   $("#app").innerHTML = `<div class="card"><div class="row"><div class="grow"><div class="muted small">Élève</div><b style="font-size:1.15rem">${esc(studentName(ME))}</b><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}${esc(ME.prof)}</div><div class="small" style="margin-top:4px">👥 Binôme : <b>${ME.binome ? esc(studentName(ME.binome)) : "pas encore choisi"}</b> <button class="btn sm gh" id="eBin" style="min-height:28px;padding:2px 8px">${ME.binome ? "Modifier" : "Choisir"}</button></div></div><button class="btn sm gh" id="eId">↺ Changer de coureur</button></div></div>
    ${C.demo ? '<p class="chip or" style="margin:0 4px 8px">Mode démonstration : l\'enseignant n\'a pas encore publié ses paramètres.</p>' : ""}
    <h2 style="margin:16px 4px 4px">Choisis ton parcours</h2><p class="small muted" style="margin:0 4px 10px">Tu peux les faire dans l'ordre que tu veux. Ta progression est sauvegardée en ligne : en choisissant ton nom sur un autre téléphone, tu la retrouves.</p>
-   ${C.parcours.map((p, k) => { const r = RUNS[k], done = r?.fin, next = !done; return `<button class="pc ${done ? "done" : next ? "cur" : ""}" data-p="${k}" ${!done && !next ? "disabled style='opacity:.55'" : ""}><div class="n">${done ? "✓" : k + 1}</div><div class="grow"><b>${esc(p.nom)} · ${p.type === "duo" ? "👥 collectif" : "👤 individuel"}</b><span class="small muted">${p.nb} balises à choisir${p.oblig ? `, dont la n° <span style="color:var(--vi);font-weight:900">${p.oblig}</span> obligatoire` : ""} · préparation ${fmtMin(p.prep * 60)}${p.max ? ` · ${p.max} min maximum` : ""}</span>${done ? `<div style="margin-top:4px"><span class="chip ok">Temps : ${fmt(r.fin - r.debut)}</span></div>` : ""}</div>${r && !done && r.owner && r.owner !== ME.id && !r.debut ? `<div style="margin-top:4px"><span class="chip vi">préparé avec ${esc(r.duo ? r.duo.prenom : "ton binôme")} : touche pour voir</span></div>` : ""}<span style="font-size:1.4rem">${done ? "📄" : next ? "▶" : "🔒"}</span></button>`; }).join("")}
+   ${C.parcours.map((p, k) => { const r = RUNS[k], done = r?.fin, next = !done; return `<button class="pc ${done ? "done" : next ? "cur" : ""}" data-p="${k}" ${!done && !next ? "disabled style='opacity:.55'" : ""}><div class="n">${done ? "✓" : k + 1}</div><div class="grow"><b>${esc(p.nom)} · ${p.type === "duo" ? "👥 collectif" : "👤 individuel"}</b><span class="small muted">${p.nb} balises à choisir${p.oblig ? `, dont la n° <span style="color:var(--vi);font-weight:900">${p.oblig}</span> obligatoire` : ""}${startOf(k) ? ` · 🚩 départ par la <span style="color:var(--vi);font-weight:900">${startOf(k)}</span>` : ""} · préparation ${fmtMin(p.prep * 60)}${p.max ? ` · ${p.max} min maximum` : ""}</span>${done ? `<div style="margin-top:4px"><span class="chip ok">Temps : ${fmt(r.fin - r.debut)}</span></div>` : ""}</div>${r && !done && r.owner && r.owner !== ME.id && !r.debut ? `<div style="margin-top:4px"><span class="chip vi">préparé avec ${esc(r.duo ? r.duo.prenom : "ton binôme")} : touche pour voir</span></div>` : ""}<span style="font-size:1.4rem">${done ? "📄" : next ? "▶" : "🔒"}</span></button>`; }).join("")}
    ${RUNS.some(r => r?.fin) ? `<button class="btn big vi" id="full" style="margin-top:6px">📊 Bilan complet${RUNS.every(r => r?.fin) ? " des 2 parcours" : " (provisoire)"}</button>${nOut ? `<div class="card" style="border:2px solid var(--or);margin-top:10px"><b>⏳ ${nOut} résultat(s) gardé(s) sur ce téléphone</b><p class="small muted" style="margin:4px 0 8px">Pas de réseau pour l'instant : ils partiront tout seuls dès que le réseau revient. Tu peux aussi les envoyer par SMS.</p><div class="row"><button class="btn sm or grow" id="retry">↻ Réessayer maintenant</button><button class="btn sm grow" id="smsRes">📩 Envoyer par SMS</button></div></div>` : `<p class="small muted" style="text-align:center">✓ Tes résultats ont été envoyés à ton enseignant.</p>`}
    <div class="row" style="margin-top:8px"><button class="btn sm gh grow" id="send">📤 Secours : QR code</button><button class="btn sm gh grow" id="smsRes2">📩 Secours : SMS</button></div>` : ""}
    ${LS.get("msgs", []).length ? `<div class="card" style="margin-top:14px"><h2>💬 Messages reçus</h2>${LS.get("msgs", []).slice(-5).reverse().map(m => `<p class="small" style="margin:6px 0"><b>${hhmm(m.id)} · ${esc(m.de || "")}</b> : ${esc(m.txt)}</p>`).join("")}</div>` : ""}
@@ -795,6 +795,14 @@ const newRun = (k, duo = null) => ({ k, duo, owner: ME.id, prepT: now(), plan: P
 // balises choisies dans les autres parcours : { numéro: ["Parcours 1", …] }
 const usedElsewhere = k => { const o = {}; RUNS.forEach((r, j) => { if (j !== k && r?.plan) r.plan.forEach(n => (o[n] = o[n] || []).push(j)); }); return o; };
 const usedBefore = k => C.reuse ? [] : Object.keys(usedElsewhere(k)).map(Number);
+// Balise de départ imposée (1re balise du parcours) : la même pour tous (p.dmode = "tous", p.dn) ou par binôme (p.dmode = "groupe", C.deps[empreinte du binôme] = [individuel, collectif])
+const groupKey = ids => hid(ids.filter(Boolean).sort().join("|"));
+function startOf(k, me = ME) {
+  const p = P(k); if (!p || !p.dmode || !me) return null;
+  if (p.dmode === "tous") return p.dn ? +p.dn : null;
+  const d = C.deps || {}, g = d[groupKey([me.id, me.binome && me.binome.id])] || d[groupKey([me.id])];
+  return g && g[k] ? +g[k] : null;
+}
 // balises interdites dans le parcours k : { numéro: raison }
 function forbidden(k) {
   const o = {}, other = 1 - k, po = P(other) && P(other).oblig, r = RUNS[k];
@@ -802,6 +810,7 @@ function forbidden(k) {
   if (k === 0 && PARTNER && PARTNER.runs[0]) { const pr = PARTNER.runs[0], name = (PARTNER.me && PARTNER.me.prenom) || "ton binôme";
     pr.plan.forEach(n => { if (+n === +P(0).oblig || o[n]) return; const mine = r && r.sel && r.sel[n], his = pr.sel && pr.sel[n]; if (!(r && r.plan.includes(+n)) || !mine || !his || his <= mine) o[n] = "choisie par " + name; }); }
   if (!C.reuse && RUNS[other]) RUNS[other].plan.forEach(n => { if (!o[n] && +n !== +P(k).oblig) o[n] = "déjà dans " + P(other).nom; });
+  const st = startOf(k); if (st) delete o[st]; // la balise de départ imposée est toujours autorisée
   return o;
 }
 const shortP = j => "P" + (j + 1);
@@ -813,11 +822,12 @@ function vPrep(k) {
   const p = P(k), r = RUNS[k], other = usedElsewhere(k), fb = forbidden(k), used = Object.keys(fb).map(Number);
   r.sel = r.sel || {};
   if (p.oblig && !r.plan.includes(+p.oblig)) r.plan.unshift(+p.oblig);
+  const dep = startOf(k); if (dep && balise(dep)) { r.plan = [dep, ...r.plan.filter(n => +n !== dep)]; r.sel[dep] = r.sel[dep] || 1; }
   const conflicts = () => r.plan.filter(n => fb[n]);
   $("#app").innerHTML = `<div class="prep" id="pBar"><div><div class="small" style="opacity:.8">Préparation · ${esc(p.nom)}</div><div class="timer" id="pT">–</div></div><div style="text-align:right" class="small"><b id="pCnt"></b><br><span style="opacity:.8">balises choisies</span></div></div>
    ${r.duo ? `<div class="card small">👥 Équipe : <b>${esc(studentName(ME))}</b> et <b>${esc(studentName(r.duo))}</b><br><span class="muted">Ce parcours est partagé : ce que vous choisissez apparaît aussi sur le téléphone de ${esc(r.duo.prenom)} (en moins de 15 s). Préparez-le ensemble sur un seul téléphone.</span></div>` : ""}
    ${hasPos() ? `<div class="card" style="padding:10px"><h2 style="margin:4px 4px 4px">1. Choisis ${p.nb} balises sur la carte</h2><p class="muted small" style="margin:0 4px 8px">Touche un rond violet pour ajouter ou retirer la balise. Zoome à deux doigts.</p><div class="mapv" id="pMap" style="height:44vh"></div></div>` : ""}
-   <div class="card"><h2>${hasPos() ? "… ou dans la liste" : `1. Choisis ${p.nb} balises`}</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé sont interdites (obligatoire de l'autre parcours" + (k === 0 && PARTNER ? ", ou déjà choisie par ton binôme" : "") + ")." : ""}${Object.keys(other).length && C.reuse ? ` Une étiquette <span class="chip" style="background:#1d4ed8;color:#fff">P1</span> signale une balise de ton autre parcours.` : ""}</p><div class="bgrid" id="pGrid"></div></div>
+   <div class="card"><h2>${hasPos() ? "… ou dans la liste" : `1. Choisis ${p.nb} balises`}</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${dep ? ` 🚩 Tu commences obligatoirement par la balise <b style="color:var(--vi)">${dep}</b>.` : ""}${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé sont interdites (obligatoire de l'autre parcours" + (k === 0 && PARTNER ? ", ou déjà choisie par ton binôme" : "") + ")." : ""}${Object.keys(other).length && C.reuse ? ` Une étiquette <span class="chip" style="background:#1d4ed8;color:#fff">P1</span> signale une balise de ton autre parcours.` : ""}</p><div class="bgrid" id="pGrid"></div></div>
    <div class="card"><h2>2. Range-les dans ton ordre de passage</h2><p class="muted small" style="margin-top:0">Fais glisser avec le doigt sur ≡ pour changer l'ordre.</p>
     <ul class="sl"><li class="st"><span class="o"></span><span class="bn" style="border-radius:8px">▲</span><b>Départ</b></li></ul><ul class="sl" id="pList"></ul><ul class="sl"><li class="fi"><span class="o"></span><span class="bn">◎</span><b>Retour à l'arrivée</b></li></ul></div>
    <div class="card" style="padding:10px"><h2 style="margin:4px 4px 8px">3. Trace ton itinéraire <span class="chip">facultatif</span></h2>${hasPos() ? '<p class="muted small" style="margin:0 4px 8px" id="pMiss"></p>' : '<div class="mapv" id="pMap" style="height:38vh"></div>'}<button class="btn big or" id="pDraw" style="margin-top:10px">✏️ ${r.trace?.length ? "Modifier mon tracé" : "Tracer sur la carte"}</button></div>
@@ -832,18 +842,18 @@ function vPrep(k) {
   $("#pDraw").onclick = () => drawEditor(r, () => { mv.redraw(); miss(); $("#pDraw").textContent = "✏️ " + (r.trace.length ? "Modifier mon tracé" : "Tracer sur la carte"); });
   const grid = $("#pGrid"), list = $("#pList");
   if (r.prevu == null) r.prevu = Math.max(5, p.nb * 2) * 60;
-  function toggle(n) { n = +n; if (n === +p.oblig) return flash("Balise obligatoire ★"); const i = r.plan.indexOf(n); if (i < 0 && fb[n]) return flash(`Interdite : ${fb[n]}`); if (i >= 0) { r.plan.splice(i, 1); delete r.sel[n]; } else { if (r.plan.length >= p.nb) return flash(`${p.nb} balises maximum`); r.plan.push(n); r.sel[n] = now(); if (other[n]) flash(`⚠ Déjà choisie dans ${other[n].map(j => P(j).nom).join(", ")}`); } vib(10); saveRuns(); render(); }
+  function toggle(n) { n = +n; if (n === dep) return flash("🚩 Balise de départ imposée"); if (n === +p.oblig) return flash("Balise obligatoire ★"); const i = r.plan.indexOf(n); if (i < 0 && fb[n]) return flash(`Interdite : ${fb[n]}`); if (i >= 0) { r.plan.splice(i, 1); delete r.sel[n]; } else { if (r.plan.length >= p.nb) return flash(`${p.nb} balises maximum`); r.plan.push(n); r.sel[n] = now(); if (other[n]) flash(`⚠ Déjà choisie dans ${other[n].map(j => P(j).nom).join(", ")}`); } vib(10); saveRuns(); render(); }
   function render() {
     r.plan = r.plan.filter(n => balise(n));
-    grid.innerHTML = C.balises.map(b => `<button data-b="${b.n}" class="${r.plan.includes(+b.n) ? "on" : ""} ${+b.n === +p.oblig ? "ob" : ""} ${fb[b.n] ? "used" : ""}">${b.n}${fb[b.n] ? `<span class="tg" style="background:#6b7280">${/obligatoire/.test(fb[b.n]) ? "★ autre" : /choisie par/.test(fb[b.n]) ? esc(fb[b.n].replace("choisie par ", "")) : "pris"}</span>` : other[b.n] ? `<span class="tg">${other[b.n].map(shortP).join(" ")}</span>` : ""}</button>`).join("");
+    grid.innerHTML = C.balises.map(b => `<button data-b="${b.n}" class="${r.plan.includes(+b.n) ? "on" : ""} ${+b.n === +p.oblig || +b.n === dep ? "ob" : ""} ${fb[b.n] ? "used" : ""}">${b.n}${fb[b.n] ? `<span class="tg" style="background:#6b7280">${/obligatoire/.test(fb[b.n]) ? "★ autre" : /choisie par/.test(fb[b.n]) ? esc(fb[b.n].replace("choisie par ", "")) : "pris"}</span>` : other[b.n] ? `<span class="tg">${other[b.n].map(shortP).join(" ")}</span>` : ""}</button>`).join("");
     $$("[data-b]", grid).forEach(b => b.onclick = () => toggle(b.dataset.b));
-    list.innerHTML = r.plan.map((n, i) => `<li data-i="${i}"><span class="o">${i + 1}</span><span class="bn">${n}</span><b class="grow">${+n === +p.oblig ? "★ obligatoire" : ""}${fb[n] ? ` <span class="chip ko">⚠ ${esc(fb[n])} : retire-la</span>` : ""}${other[n] ? ` <span class="chip" style="background:#dbe4ff;color:#1d4ed8">déjà dans ${other[n].map(j => esc(P(j).nom)).join(", ")}</span>` : ""}</b>${+n === +p.oblig ? "" : `<button class="x" data-rm="${n}">✕</button>`}<span class="h">≡</span></li>`).join("") || `<li style="justify-content:center;color:var(--mu);border-style:dashed">Aucune balise choisie</li>`;
+    list.innerHTML = r.plan.map((n, i) => `<li data-i="${i}"${dep && i === 0 ? ' style="background:#fff4ea;border-color:var(--or)"' : ""}><span class="o">${i + 1}</span><span class="bn">${n}</span><b class="grow">${dep && i === 0 ? "🚩 départ imposé" : ""}${+n === +p.oblig ? " ★ obligatoire" : ""}${fb[n] ? ` <span class="chip ko">⚠ ${esc(fb[n])} : retire-la</span>` : ""}${other[n] ? ` <span class="chip" style="background:#dbe4ff;color:#1d4ed8">déjà dans ${other[n].map(j => esc(P(j).nom)).join(", ")}</span>` : ""}</b>${+n === +p.oblig || (dep && i === 0) ? "" : `<button class="x" data-rm="${n}">✕</button>`}${dep && i === 0 ? '<span style="width:52px"></span>' : '<span class="h">≡</span>'}</li>`).join("") || `<li style="justify-content:center;color:var(--mu);border-style:dashed">Aucune balise choisie</li>`;
     $$("[data-rm]", list).forEach(b => b.onclick = () => toggle(b.dataset.rm));
     $("#pCnt").textContent = `${r.plan.length} / ${p.nb}`;
     if ($("#pPv")) $("#pPv").textContent = fmt(r.prevu * 1000);
     mv.redraw(); miss(); ok();
   }
-  sortable(list, (from, to) => { const [x] = r.plan.splice(from, 1); r.plan.splice(to, 0, x); saveRuns(); render(); });
+  sortable(list, (from, to) => { if (dep && (from === 0 || to === 0)) { flash("🚩 La balise de départ reste en premier"); return render(); } const [x] = r.plan.splice(from, 1); r.plan.splice(to, 0, x); saveRuns(); render(); });
   $$("[data-pv]").forEach(b => b.onclick = () => { r.prevu = Math.max(60, r.prevu + +b.dataset.pv); saveRuns(); $("#pPv").textContent = fmt(r.prevu * 1000); });
   const end = () => r.prepT + P(k).prep * 60000;
   function ok() {
@@ -1161,21 +1171,71 @@ function liveInfo(x) {
 }
 let LMAP = null, LLAYER = null;
 function loadLeaflet() { return new Promise((res, rej) => { if (window.L) return res(); const c = document.createElement("link"); c.rel = "stylesheet"; c.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(c); const sc = document.createElement("script"); sc.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; sc.onload = res; sc.onerror = () => rej(new Error("carte indisponible")); document.head.appendChild(sc); }); }
+// binômes connus (élèves connectés) : [{ key, ids, noms, prof, classe }]
+function knownGroups() {
+  const st = Object.values(LIVE.st), seen = {}, out = [];
+  st.forEach(x => { const me = moved(x.d.me || {}); if (!me.id || isAbs(me)) return; const ids = [x.eleve, me.binome && me.binome.id].filter(Boolean), key = groupKey(ids); if (seen[key]) return; seen[key] = 1;
+    const ob = me.binome ? st.find(y => y.eleve === me.binome.id) : null, other = me.binome ? ((ob && ob.d.me) || me.binome) : null;
+    out.push({ key, ids, noms: [studentName(me), other ? studentName(other) : null].filter(Boolean), prof: me.prof, classe: me.classe || "" }); });
+  return out.sort((a, b) => byFr(a.prof, b.prof) || byFr(a.classe, b.classe) || byFr(a.noms[0], b.noms[0]));
+}
+async function groupDialog() {
+  await pullLive(); const G = knownGroups(); C.deps = C.deps || {};
+  const pool = () => C.balises.map(b => +b.n).filter(n => n !== +P(0).oblig && n !== +P(1).oblig);
+  const modes = [0, 1].filter(k => P(k).dmode === "groupe");
+  if (!modes.length) return flash("Choisis d'abord « différente par binôme » pour un parcours (⚙ Paramètres)");
+  const m = modal(`<h2 style="margin:0 0 6px">🚩 Balise de départ par binôme</h2><p class="small muted" style="margin-top:0">Les binômes apparaissent dès que les élèves se sont identifiés (${G.length} pour l'instant). La balise est imposée en 1re position ; elle vaut pour les deux élèves du binôme.</p>
+   <div class="row" style="margin-bottom:8px"><button class="btn sm or" id="gAuto">🎲 Répartir automatiquement</button><button class="btn sm gh" id="gClr">Tout effacer</button></div>
+   <div style="max-height:55vh;overflow:auto"><table class="t"><thead><tr><th>Binôme</th>${modes.map(k => `<th>${esc(P(k).nom)}</th>`).join("")}</tr></thead><tbody>${G.map((g, i) => `<tr><td><b>${g.noms.map(esc).join(" + ")}</b><br><small class="muted">${esc(g.classe)} · ${esc(g.prof)}</small></td>${modes.map(k => `<td><select class="inp" style="padding:6px;width:auto" data-gi="${i}" data-gk="${k}"><option value="">—</option>${pool().map(n => `<option ${+((C.deps[g.key] || [])[k]) === n ? "selected" : ""}>${n}</option>`).join("")}</select></td>`).join("")}</tr>`).join("") || `<tr><td colspan="3" class="muted">Aucun binôme identifié pour l'instant.</td></tr>`}</tbody></table></div>
+   <div class="row" style="margin-top:12px"><button class="btn gh grow" id="gX">Annuler</button><button class="btn or grow" id="gOk">Enregistrer et publier</button></div>`);
+  $("#gX", m).onclick = m.close;
+  $("#gAuto", m).onclick = () => modes.forEach((k, j) => { const P0 = pool(); $$(`[data-gk="${k}"]`, m).forEach((sel, i) => { sel.value = String(P0[(i + j * Math.ceil(P0.length / 2)) % P0.length]); }); });
+  $("#gClr", m).onclick = () => $$("[data-gi]", m).forEach(x => x.value = "");
+  $("#gOk", m).onclick = () => { $$("[data-gi]", m).forEach(x => { const g = G[+x.dataset.gi], a = C.deps[g.key] = C.deps[g.key] || [null, null]; a[+x.dataset.gk] = +x.value || null; if (!a[0] && !a[1]) delete C.deps[g.key]; }); confChanged(); m.close(); flash("🚩 Départs publiés"); };
+}
 function profSuivi(box) {
   const f = LS.get("pf", C.profs[0] || "");
   box.innerHTML = `<div class="tabs2">${C.profs.filter(Boolean).map(p => `<button class="btn sm ${p === f ? "vi" : "gh"}" data-pf="${esc(p)}">👤 ${esc(p)}</button>`).join("")}<button class="btn sm ${!f ? "vi" : "gh"}" data-pf="">Tous</button><span class="grow"></span><span class="small muted" id="lvSt"></span></div>
-   <div class="card" style="padding:10px"><div class="row" style="margin:0 4px 6px"><b class="grow">📍 Dernière position connue (au moment de la dernière balise saisie)</b><button class="btn sm gh" id="lvFit">Tout voir</button></div><div id="lvMap" style="height:46vh;border-radius:12px;background:#e5e7eb"></div><p class="small muted" style="margin:6px 4px 0">🟠 en course · 🟣 en préparation · 🟢 terminé · touche un élève dans la liste pour voir ses balises sur la carte.</p></div>
+   <div class="card" style="padding:10px"><div class="row" style="margin:0 4px 8px"><button class="btn sm ${LS.get("lvMode", "co") === "co" ? "" : "gh"}" data-lvmode="co">🗺 Carte de la course</button><button class="btn sm ${LS.get("lvMode", "co") === "gps" ? "" : "gh"}" data-lvmode="gps">🛰 Position GPS (élève perdu)</button><span class="grow"></span>${P(0).dmode === "groupe" || P(1).dmode === "groupe" ? '<button class="btn sm or" id="lvGrp">🚩 Départs par binôme</button>' : ""}<button class="btn sm gh" id="lvFit">Tout voir</button></div>
+    <div class="mapv" id="lvCo" style="height:52vh;${LS.get("lvMode", "co") === "co" ? "" : "display:none"}"></div>
+    <div id="lvMap" style="height:52vh;border-radius:12px;background:#e5e7eb;${LS.get("lvMode", "co") === "gps" ? "" : "display:none"}"></div>
+    <p class="small muted" style="margin:6px 4px 0" id="lvLeg"></p></div>
    <div class="card" id="lvList"><p class="muted">Chargement…</p></div>`;
   $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); go("prof", "suivi"); });
-  let sel = null;
+  $$("[data-lvmode]", box).forEach(b => b.onclick = () => { LS.set("lvMode", b.dataset.lvmode); go("prof", "suivi"); });
+  $("#lvGrp") && ($("#lvGrp").onclick = groupDialog);
+  let sel = null, LBL = [], CUR_L = [];
+  const mode = LS.get("lvMode", "co");
+  // carte de la course : chaque élève en course est affiché à côté de sa dernière balise pointée
+  const anchorOf = o => { if (!o.act) return null; const s = o.act.saisies[o.act.saisies.length - 1]; const b = s ? balise(s.bal || s.attendu) : null; return b && b.x != null ? { b, n: b.n, s } : (C.depart && C.depart.x != null ? { b: C.depart, n: "départ" } : null); };
+  const coOverlay = (W, H) => {
+    const K = Math.max(W, H) / 1000, groups = {}; LBL = [];
+    CUR_L.filter(o => o.ord === 0).forEach(o => { const a = anchorOf(o); if (!a) return; const key = String(a.n); const g = groups[key] = groups[key] || { a, L: [] };
+      const dup = g.L.find(z => z.act.k === 1 && o.act.k === 1 && z.act.debut === o.act.debut); if (dup) { dup.label += " + " + o.me.prenom; return; }
+      g.L.push({ o, act: o.act, label: o.me.prenom + " " + (o.me.nom || "").slice(0, 1) + "." + (o.act.k === 1 ? " 👥" : ""), late: o.late }); });
+    let out = "";
+    Object.values(groups).forEach(({ a, L }) => { const bx = a.b.x * W, by = a.b.y * H;
+      L.forEach((z, i) => { const fs = 15 * K, w = (z.label.length * 8.2 + 16) * K, h = 22 * K, x = bx + 30 * K, y = by - 24 * K + i * (h + 4 * K), isSel = sel === z.o.x.eleve;
+        LBL.push({ x: x / W, y: y / H, w: w / W, h: h / H, id: z.o.x.eleve });
+        out += `<line x1="${bx + 18 * K}" y1="${by}" x2="${x}" y2="${y + h / 2}" stroke="${z.late ? "#d62839" : "#f47a20"}" stroke-width="${2 * K}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="${z.late ? "#d62839" : "#f47a20"}" stroke="${isSel ? "#14213d" : "#fff"}" stroke-width="${(isSel ? 3 : 1.5) * K}"/><text x="${x + w / 2}" y="${y + h * .72}" text-anchor="middle" font-family="Arial" font-weight="800" font-size="${fs}" fill="#fff">${esc(z.label)}</text>`; }); });
+    const sp = CUR_L.find(o => o.x.eleve === sel);
+    if (sp && sp.act) { const pts = sp.act.saisies.map(s0 => balise(s0.bal || s0.attendu)).filter(b => b && b.x != null); if (C.depart && C.depart.x != null) pts.unshift(C.depart); if (pts.length > 1) out = `<polyline points="${pts.map(p => p.x * W + "," + p.y * H).join(" ")}" fill="none" stroke="#14213d" stroke-width="${3 * K}" stroke-dasharray="${8 * K} ${6 * K}" opacity=".7"/>` + out; }
+    return out;
+  };
+  const coMv = mode === "co" && hasPos() ? mapViewer($("#lvCo"), { overlay: coOverlay, onTap: q => { const h = LBL.find(l => q.x >= l.x && q.x <= l.x + l.w && q.y >= l.y && q.y <= l.y + l.h); if (h) { sel = h.id; draw(); } } }) : null;
+  if (mode === "co" && !hasPos()) $("#lvCo").innerHTML = `<div style="padding:30px;text-align:center"><p>Les balises ne sont pas encore placées sur la carte.</p><button class="btn or" id="lvPlace">📍 Placer les balises sur la carte</button><p class="small muted">(ou envoie la carte depuis OrienRun : les positions suivent automatiquement)</p></div>`;
+  $("#lvPlace") && ($("#lvPlace").onclick = () => { LS.set("placeNow", 1); go("prof", "carte"); });
   const draw = () => {
-    const L = Object.values(LIVE.st).map(x => ({ x, ...liveInfo(x) })).filter(o => o.me && o.me.prof && (!f || o.me.prof === f) && !isAbs(o.me));
+    const L = Object.values(LIVE.st).map(x => ({ x, ...liveInfo(x) })).filter(o => o.me && o.me.prof && (!f || o.me.prof === f) && !isAbs(o.me)); CUR_L = L;
+    const nPrep = L.filter(o => o.ord === 1).length, nDone = L.filter(o => o.ord === 2).length;
+    $("#lvLeg").innerHTML = mode === "co" ? `🟠 en course, placé à côté de sa dernière balise pointée · 🔴 sans nouvelle depuis plus de 6 min · touche une étiquette ou un élève de la liste pour voir son trajet de balise en balise. <b>${nPrep}</b> en préparation et <b>${nDone}</b> terminé(s) ne sont pas sur la carte.` : "Position GPS prise au moment de la dernière balise saisie : utile si un élève s'est perdu. 🟠 en course · 🟣 en préparation · 🟢 terminé.";
+    if (coMv) coMv.redraw();
     const cls = {}; L.forEach(o => (cls[o.me.classe || "Sans classe"] = cls[o.me.classe || "Sans classe"] || []).push(o));
     const ago = ms => ms < 60000 ? "à l'instant" : `il y a ${Math.round(ms / 60000)} min`;
     $("#lvList").innerHTML = `<div class="row"><h2 class="grow" style="margin:0">Élèves connectés (${L.length})</h2><span class="small muted">🏃 ${L.filter(o => o.ord === 0).length} en course · ✏️ ${L.filter(o => o.ord === 1).length} en préparation · ✅ ${L.filter(o => o.ord === 2).length} terminés</span></div>` +
-      (Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)}</h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th><th>Binôme</th><th>Où en est-il ?</th><th>Dernière balise</th><th>Mise à jour</th><th></th></tr></thead><tbody>
+      (Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)}</h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th><th>Binôme</th><th>Où en est-il ?</th><th>Dernière balise pointée</th><th>Mise à jour</th><th></th></tr></thead><tbody>
         ${cls[c].sort((a, b) => a.ord - b.ord || byFr(a.me.nom, b.me.nom)).map(o => `<tr data-lv="${esc(o.x.eleve)}" style="cursor:pointer${sel === o.x.eleve ? ";background:#fff4ea" : ""}"><td><b>${esc(o.me.nom)}</b> ${esc(o.me.prenom)}</td><td class="small">${o.me.binome ? esc(studentName(o.me.binome)) : '<span class="muted">—</span>'}</td><td><span class="chip ${o.cls}">${esc(o.st)}</span></td>
-          <td class="small">${o.pos ? `${esc(String(o.pos.n))}${o.pos.passe ? " (passée)" : ""} · ${hhmm(o.pos.t)} · ±${o.pos.acc} m` : '<span class="muted">pas de position</span>'}</td><td class="small" style="${o.late ? "color:var(--ko);font-weight:800" : ""}">${o.late ? "⚠ " : ""}${ago(o.age)}</td>
+          <td class="small">${o.act && o.act.saisies.length ? (s0 => `${esc(String(s0.bal || s0.attendu))}${s0.st === "passe" ? " (passée)" : ""} à ${hhmm(s0.t)}`)(o.act.saisies[o.act.saisies.length - 1]) : o.act ? "départ" : "—"}${o.pos && o.pos.la != null ? ` · <a href="https://maps.google.com/?q=${o.pos.la},${o.pos.lo}" target="_blank" title="Dernière position GPS (${hhmm(o.pos.t)}, ±${o.pos.acc} m)">📍 GPS</a>` : ""}</td><td class="small" style="${o.late ? "color:var(--ko);font-weight:800" : ""}">${o.late ? "⚠ " : ""}${ago(o.age)}</td>
           <td style="white-space:nowrap"><button class="btn sm gh" data-lvm="${esc(o.x.eleve)}" title="Message">💬</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun élève connecté pour l\'instant. Les élèves apparaissent dès qu\'ils ont choisi leur nom.</p>');
     $$("[data-lv]").forEach(tr => tr.onclick = e => { if (e.target.closest("[data-lvm]")) return; sel = tr.dataset.lv; draw(); });
     $$("[data-lvm]").forEach(b => b.onclick = () => { const o = L.find(z => z.x.eleve === b.dataset.lvm); msgDialog({ ...o.me, id: studentId(o.me) }); });
@@ -1190,11 +1250,12 @@ function profSuivi(box) {
       $("#lvFit").onclick = () => pts.length && LMAP.fitBounds(pts, { padding: [40, 40], maxZoom: 18 });
     }
   };
-  loadLeaflet().then(() => { if (!$("#lvMap")) return; LMAP = window.L.map("lvMap", { zoomControl: true }).setView([46.6, 2.4], 6);
+  if (mode === "gps") loadLeaflet().then(() => { if (!$("#lvMap")) return; LMAP = window.L.map("lvMap", { zoomControl: true }).setView([46.6, 2.4], 6);
     const plan = window.L.tileLayer("https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}", { maxZoom: 19, attribution: "© IGN" }).addTo(LMAP);
     const photo = window.L.tileLayer("https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}", { maxZoom: 19, attribution: "© IGN" });
     window.L.control.layers({ "Plan IGN": plan, "Photo aérienne": photo }).addTo(LMAP); LLAYER = window.L.layerGroup().addTo(LMAP); draw(); })
-    .catch(() => { $("#lvMap").innerHTML = '<p class="muted" style="padding:20px">Carte indisponible (pas d\'accès internet) : la liste ci-dessous reste à jour.</p>'; });
+    .catch(() => { $("#lvMap").innerHTML = '<p class="muted" style="padding:20px">Carte GPS indisponible (pas d\'accès internet) : utilise la carte de la course ou les liens 📍 GPS de la liste.</p>'; });
+  if (mode === "co") $("#lvFit").onclick = () => coMv && coMv.fit();
   const refresh = async () => { const st = $("#lvSt"); if (st) st.textContent = "⏳"; const ok = await pullLive(); if (CUR.v !== "prof" || CUR.a[0] !== "suivi") return; draw(); const e = $("#lvSt"); if (e) e.textContent = ok === true ? "● à jour " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "⚠ " + ok; };
   draw(); refresh(); profTick = setInterval(refresh, 10000);
 }
@@ -1245,7 +1306,7 @@ function profConf(box) {
     <label class="l">Enseignants (un par ligne)</label><textarea class="inp" id="cPr" rows="2">${esc(C.profs.join("\n"))}</textarea>
     <label class="l">Téléphone des enseignants (SMS de secours et résultats par SMS)</label><div id="cTel"></div><p class="small muted" style="margin:4px 0 0">Les numéros sont envoyés aux téléphones des élèves pour préparer le SMS.</p></div>
    <div class="card"><h2>Les 2 parcours</h2><p class="small muted" style="margin-top:0">La balise obligatoire d'un parcours est interdite dans l'autre.</p>${C.parcours.map((p, k) => `<div class="${k ? "sec" : ""}"><div class="row"><input class="inp" style="flex:1;min-width:140px" data-f="nom" data-k="${k}" value="${esc(p.nom)}"><span class="chip">${p.type === "duo" ? "👥 collectif (binôme)" : "👤 individuel"}</span></div>
-     <div class="row small" style="margin-top:6px"><label>Balises à choisir <input class="inp" style="width:70px;padding:8px" type="number" min="1" data-f="nb" data-k="${k}" value="${p.nb}"></label><label>Obligatoire n° <select class="inp" style="width:auto;padding:8px" data-f="oblig" data-k="${k}"><option value="">aucune</option>${C.balises.map(b => `<option ${+b.n === +p.oblig ? "selected" : ""}>${b.n}</option>`).join("")}</select></label><label>Préparation (min) <input class="inp" style="width:70px;padding:8px" type="number" min="0" step="0.5" data-f="prep" data-k="${k}" value="${p.prep}"></label><label>Temps max (min, 0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="max" data-k="${k}" value="${p.max}"></label></div></div>`).join("")}</div>
+     <div class="row small" style="margin-top:6px"><label>Balises à choisir <input class="inp" style="width:70px;padding:8px" type="number" min="1" data-f="nb" data-k="${k}" value="${p.nb}"></label><label>Obligatoire n° <select class="inp" style="width:auto;padding:8px" data-f="oblig" data-k="${k}"><option value="">aucune</option>${C.balises.map(b => `<option ${+b.n === +p.oblig ? "selected" : ""}>${b.n}</option>`).join("")}</select></label><label>Préparation (min) <input class="inp" style="width:70px;padding:8px" type="number" min="0" step="0.5" data-f="prep" data-k="${k}" value="${p.prep}"></label><label>🚩 Balise de départ imposée <select class="inp" style="width:auto;padding:8px" data-f="dmode" data-k="${k}"><option value="" ${!p.dmode ? "selected" : ""}>aucune</option><option value="tous" ${p.dmode === "tous" ? "selected" : ""}>la même pour tous</option><option value="groupe" ${p.dmode === "groupe" ? "selected" : ""}>différente par binôme</option></select></label>${p.dmode === "tous" ? `<label>n° <select class="inp" style="width:auto;padding:8px" data-f="dn" data-k="${k}"><option value="">?</option>${C.balises.map(b => `<option ${+b.n === +p.dn ? "selected" : ""}>${b.n}</option>`).join("")}</select></label>` : p.dmode === "groupe" ? `<button class="btn sm or" data-grp="${k}">🚩 Attribuer par binôme</button>` : ""}<label>Temps max (min, 0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="max" data-k="${k}" value="${p.max}"></label></div></div>`).join("")}</div>
    <div class="card"><h2>Pénalités et options</h2><div class="row small"><label>Balise non validée (s) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penOubli" value="${C.penOubli}"></label><label>Obligatoire manquée (s, en plus) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penOblig" value="${C.penOblig}"></label><label>Par minute de retard (s) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penRetard" value="${C.penRetard}"></label></div>
     <label class="row small" style="margin-top:10px"><input type="checkbox" data-o="voirErr" ${C.voirErr ? "checked" : ""}> Montrer les erreurs et pénalités dans le bilan de l'élève</label>
     <label class="row small"><input type="checkbox" data-o="avance" ${C.avance ? "checked" : ""}> L'élève peut partir avant la fin du temps de préparation</label>
@@ -1259,7 +1320,9 @@ function profConf(box) {
   const drawTel = () => { $("#cTel").innerHTML = C.profs.map((p, i) => `<div class="row" style="margin-bottom:5px"><span class="small" style="min-width:120px"><b>${esc(p)}</b></span><input class="inp" style="flex:1;padding:8px" type="tel" data-tel="${i}" value="${esc((C.tels || {})[p] || "")}" placeholder="06 …"></div>`).join(""); $$("[data-tel]").forEach(x => x.oninput = () => { C.tels = C.tels || {}; C.tels[C.profs[+x.dataset.tel]] = x.value.trim(); ch(); }); };
   drawTel();
   $("#cPr").oninput = e => { C.profs = e.target.value.split("\n").map(s => s.trim()).filter(Boolean); drawTel(); ch(); };
-  $$("[data-f]", box).forEach(x => x.onchange = x.oninput = () => { const p = C.parcours[+x.dataset.k], f = x.dataset.f; p[f] = f === "nom" ? (x.value.trim() || p.nom) : f === "type" ? x.value : f === "oblig" ? (+x.value || null) : f === "nb" ? Math.max(1, +x.value || 1) : Math.max(0, +x.value || 0); ch(); });
+  $$("[data-f]", box).forEach(x => x.onchange = x.oninput = () => { const p = C.parcours[+x.dataset.k], f = x.dataset.f; p[f] = f === "nom" ? (x.value.trim() || p.nom) : f === "type" ? x.value : f === "oblig" || f === "dn" ? (+x.value || null) : f === "dmode" ? x.value : f === "nb" ? Math.max(1, +x.value || 1) : Math.max(0, +x.value || 0); ch(); });
+  $$("[data-f=dmode]", box).forEach(x => x.addEventListener("change", () => setTimeout(() => go("prof", "conf"), 50)));
+  $$("[data-grp]", box).forEach(b => b.onclick = () => groupDialog());
   $$("[data-g]", box).forEach(x => x.oninput = () => { C[x.dataset.g] = Math.max(0, +x.value || 0); ch(); });
   $$("[data-o]", box).forEach(x => x.onchange = () => { C[x.dataset.o] = x.checked; ch(); });
   const drawB = () => {
@@ -1342,8 +1405,17 @@ function profCarte(box) {
   const demo = String(MAPIMG).startsWith("data:image/svg");
   box.innerHTML = `<div class="card"><h2>🗺 Carte des élèves</h2><p class="small muted" style="margin-top:0">Photo ou scan de ta carte (JPG ou PNG). Elle est envoyée à tous les téléphones des élèves, qui pourront zoomer et y tracer leur itinéraire. Pour un PDF : fais une capture d'écran ou exporte la page en image.</p>
    <div class="row"><button class="btn or" id="mU">📥 ${demo ? "Envoyer ma carte" : "Remplacer la carte"}</button>${demo ? "" : '<button class="btn sm gh" id="mD" style="color:var(--ko)">Revenir à la carte de démonstration</button>'}</div><p class="small" id="mS"></p>
+   <div class="sec"><div class="row"><b class="grow">📍 Position des balises sur la carte</b><span class="small muted">${C.balises.filter(b => b.x != null).length}/${C.balises.length} placées${C.depart && C.depart.x != null ? " · départ placé" : ""}</span></div>
+    <p class="small muted" style="margin:4px 0">Utile si la carte n'a pas été envoyée depuis OrienRun : les élèves peuvent alors choisir leurs balises en touchant la carte, et tu vois sur le Suivi où ils en sont.</p>
+    <div class="row"><select class="inp" id="plT" style="width:auto;padding:8px"><option value="dep">▲ Départ / arrivée</option>${C.balises.map(b => `<option value="${b.n}">Balise ${b.n}${b.x != null ? " ✓" : ""}</option>`).join("")}</select><button class="btn sm ${LS.get("placeNow", 0) ? "or" : "gh"}" id="plOn">${LS.get("placeNow", 0) ? "✓ Mode placement actif : touche la carte" : "📍 Placer les balises"}</button><button class="btn sm gh" id="plClr" style="color:var(--ko)">Effacer les positions</button></div></div>
    <div class="mapv" id="mV" style="margin-top:10px;height:60vh"></div></div>`;
-  mapViewer($("#mV"));
+  let placing = !!LS.get("placeNow", 0);
+  const nextT = () => { const u = C.balises.find(b => b.x == null); $("#plT").value = !C.depart || C.depart.x == null ? "dep" : u ? String(u.n) : $("#plT").value; };
+  if (placing) nextT();
+  const mvP = mapViewer($("#mV"), { overlay: (W, H) => { const K = Math.max(W, H) / 1000; return C.balises.filter(b => b.x != null).map(b => `<circle cx="${b.x * W}" cy="${b.y * H}" r="${15 * K}" fill="#f47a20" fill-opacity=".75"/><text x="${b.x * W}" y="${b.y * H + 6 * K}" text-anchor="middle" font-size="${16 * K}" font-weight="900" fill="#fff" font-family="Arial">${b.n}</text>`).join("") + (C.depart && C.depart.x != null ? `<path d="M${C.depart.x * W} ${C.depart.y * H - 20 * K}l17 30h-34z" fill="#f47a20"/>` : ""); },
+    onTap: q => { if (!placing) return; const t = $("#plT").value, p = { x: +q.x.toFixed(4), y: +q.y.toFixed(4) }; if (t === "dep") C.depart = p; else { const b = balise(t); if (b) Object.assign(b, p); } confChanged(); flash(t === "dep" ? "▲ Départ placé" : `Balise ${t} placée`); vib(15); nextT(); mvP.redraw(); } });
+  $("#plOn").onclick = () => { placing = !placing; LS.set("placeNow", placing ? 1 : 0); go("prof", "carte"); };
+  $("#plClr").onclick = async () => { if (!(await ask("Effacer les positions ?", "Les positions des balises sur la carte seront effacées (les numéros et codes sont gardés).", "Effacer", "ko"))) return; C.balises.forEach(b => { delete b.x; delete b.y; }); C.depart = null; confChanged(); go("prof", "carte"); };
   const send = async data => { PUB.st = "wait"; pubUI(); $("#mS").textContent = `⏳ Envoi (${Math.round(data.length / 1024)} Ko)…`;
     try { const j = await api("coeSave", { teacher: TPW, cle: "carte", data }, 90000); VM = j.v; LS.set("vm", VM); await idbSet("carte", data || null); MAPIMG = (await blobURL(data)) || demoMap(); PUB = { st: "ok", t: now() }; go("prof", "carte"); flash("Carte envoyée ✓"); }
     catch (e) { PUB = { st: "ko", err: /Action inconnue/.test(e.message) ? "le script Google n'est pas à jour" : e.message }; pubUI(); $("#mS").textContent = "⚠ " + e.message; } };
