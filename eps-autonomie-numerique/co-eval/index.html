@@ -338,7 +338,7 @@ const P = k => C.parcours[k];
 let ME = LS.get("me", null);          // {prenom, nom, classe, prof, id}
 let RUNS = (r => { r = Array.isArray(r) ? r : []; if (r.length === 3) r = [r[0] || r[1] || null, r[2] || null]; r = [r[0] || null, r[1] || null]; r.forEach((x, k) => { if (x) x.k = k; }); return r; })(LS.get("runs", null));
 // chaque modification est gardée sur le téléphone ET envoyée (sauvegarde + suivi par l'enseignant)
-const runSig = r => JSON.stringify([r.plan, r.trace ? JSON.stringify(r.trace).length : 0, r.prevu, r.debut, r.fin, r.saisies.length, r.idx, r.ress, r.pilot, r.duo && r.duo.id]);
+const runSig = r => JSON.stringify([r.plan, r.trace ? JSON.stringify(r.trace).length : 0, r.prevu, r.debut, r.fin, r.saisies.length, r.idx, r.ress, r.pilot, teamOf(r).map(x => x.id)]);
 const saveRuns = (quiet) => { RUNS.forEach(r => { if (!r) return; const g = runSig(r); if (r._sig !== g) { r._sig = g; if (!quiet) r.u = now(); } }); LS.set("runs", RUNS); if (!quiet) pushState(); };
 let tick = null, CUR = { v: "home", a: [] }, SW = null;
 function stopTick() { if (tick) clearInterval(tick); tick = null; }
@@ -518,7 +518,7 @@ function checkMsgs() {
   if (!ME || CUR.v === "prof") return;
   const seen = LS.get("seen", {}), last = seen.msg || 0, t = now();
   if (!seen.msg) { seen.msg = t - 5 * 60000; LS.set("seen", seen); } // nouvel appareil : seulement les messages récents
-  const run = RUNS.find(r => r && !r.fin), mine = [ME, run?.duo].filter(Boolean).map(e => "e:" + hid(studentId(e)));
+  const run = RUNS.find(r => r && !r.fin), mine = [ME, ...teamOf(run)].filter(Boolean).map(e => "e:" + hid(studentId(e)));
   const L = (C.msgs || []).filter(m => m.id > (seen.msg || last) && t - m.id < 3 * 3600000 && (!m.to || m.to === "p:" + ME.prof || mine.includes(m.to))).sort((a, b) => a.id - b.id);
   if (!L.length) return;
   seen.msg = L.at(-1).id; LS.set("seen", seen);
@@ -567,7 +567,14 @@ async function flushOut() {
 }
 
 // ---------- Progression sauvegardée en ligne (reprise, binôme, suivi enseignant) ----------
-let pushT = null, stateDirty = false, PARTNER = null; // PARTNER = { me, runs } : état du binôme
+let pushT = null, stateDirty = false, PARTNERS = {}; // PARTNERS[id] = { me, runs, t } : état de chaque partenaire (binôme ou groupe)
+// Équipe : binôme (ME.binome) ou groupe de 3 et plus (ME.groupe, créé avec le code enseignant ; ME.gu = date de la dernière modification)
+const mates = (me = ME) => me ? (me.groupe && me.groupe.length ? me.groupe : me.binome ? [me.binome] : []) : [];
+const teamOf = r => r ? (r.team && r.team.length ? r.team : r.duo ? [r.duo] : []) : [];
+const teamNames = (r, sep = ", ") => teamOf(r).map(studentName).join(sep);
+const teamFirst = (r, sep = ", ") => teamOf(r).map(x => x.prenom).join(sep);
+const strip = m => { const { binome, groupe, gu, ...x } = m || {}; return x; };
+const teamWord = (me = ME) => mates(me).length > 1 ? "groupe" : "binôme";
 function packLive(r) { if (!r) return 0; const x = packRun(r); x.tr = fitTrace(x.tr, 12000); x.pt = r.prepT; x.ix = r.idx || 0; x.pi = r.pilot || ""; x.ow = r.owner || ""; x.u = r.u || 0; x.se = r.sel || {}; x.au = r.auto || {}; return x; }
 function unpackLive(x, k) { if (!x) return null; const r = unpackRun(x); r.k = k; r.prepT = x.pt || r.debut || now(); r.idx = x.ix || 0; r.pilot = x.pi || ""; r.owner = x.ow || ""; r.u = x.u || 0; r.sel = x.se || {}; r.auto = x.au || {}; r._sig = runSig(r); return r; }
 function pushState(soon) { if (!ME || SW) return; stateDirty = true; clearTimeout(pushT); pushT = setTimeout(sendState, soon ? 50 : 1200); }
@@ -578,22 +585,36 @@ async function sendState() {
   catch (e) { if (/Action inconnue/.test(e.message)) stateDirty = false; else NET = false; }
   setNet();
 }
-const idsToWatch = () => ME ? [ME.id, ME.binome && ME.binome.id].filter(Boolean) : [];
+const idsToWatch = () => ME ? [ME.id, ...mates().map(m => m.id)].filter(Boolean) : [];
 // états reçus du serveur : ma sauvegarde (autre téléphone, rechargement) et celle de mon binôme
 function handleStates(L) {
   if (!ME || !L) return false; let ch = false;
-  const mine = L.find(x => x.eleve === ME.id), part = ME.binome ? L.find(x => x.eleve === ME.binome.id) : null;
-  const before = PARTNER ? JSON.stringify([PARTNER.runs.map(r => r && [r.plan, r.sel]), PARTNER.me && PARTNER.me.binome]) : "";
-  if (part && part.d) PARTNER = { me: part.d.me || ME.binome, runs: (part.d.runs || []).map((x, k) => unpackLive(x, k)), t: part.t };
+  const sigP = () => JSON.stringify([mates().map(m => m.id), Object.values(PARTNERS).map(P0 => [P0.runs.map(r => r && [r.plan, r.sel, r.debut]), P0.me && P0.me.binome, P0.me && P0.me.groupe])]);
+  const before = sigP(), mine = L.find(x => x.eleve === ME.id);
+  // ma propre sauvegarde (autre téléphone) : équipe la plus récente
+  if (mine && mine.d && mine.d.me) { const m = mine.d.me; if ((m.binome && !ME.binome && !ME.groupe) || (m.gu || 0) > (ME.gu || 0)) { ME.binome = m.binome || ME.binome; ME.groupe = m.groupe || null; ME.gu = m.gu || ME.gu; LS.set("me", ME); } }
+  // groupe créé ou modifié sur le téléphone d'un partenaire (avec le code enseignant) : il se propage à tout le groupe
+  const look = () => { const ids = mates().map(m => m.id), o = {}; ids.forEach(id => { const x = L.find(y => y.eleve === id); if (x && x.d) o[id] = { me: x.d.me || mates().find(m => m.id === id), runs: (x.d.runs || []).map((y, k) => unpackLive(y, k)), t: x.t }; else if (PARTNERS[id]) o[id] = PARTNERS[id]; }); PARTNERS = o; };
+  look();
+  Object.values(PARTNERS).forEach(P0 => { const pm = P0.me || {}; if ((pm.gu || 0) <= (ME.gu || 0)) return;
+    if ((pm.groupe || []).some(x => x.id === ME.id)) { ME.groupe = [strip(pm), ...pm.groupe.filter(x => x.id !== ME.id && x.id !== pm.id)]; ME.binome = ME.groupe[0]; }
+    else if ((ME.groupe || []).some(x => x.id === pm.id)) { ME.groupe = null; if (pm.binome && pm.binome.id === ME.id) ME.binome = strip(pm); }
+    else return;
+    ME.gu = pm.gu; LS.set("me", ME); pushState(true); if (RUNS[1] && !RUNS[1].debut && !RUNS[1].fin) { RUNS[1].team = mates().slice(); RUNS[1].duo = RUNS[1].team[0] || null; } });
+  look();
   const adopt = (k, r) => { if (!r || (isDeleted(r) && canRedo(r))) return; const loc = RUNS[k]; if (!loc || (r.u || 0) > (loc.u || 0)) { r._sig = runSig(r); RUNS[k] = r; ch = true; } };
-  if (mine && mine.d && mine.d.runs) { mine.d.runs.forEach((x, k) => adopt(k, unpackLive(x, k))); if (mine.d.me && mine.d.me.binome && !ME.binome) { ME.binome = mine.d.me.binome; LS.set("me", ME); } }
-  // parcours collectif : la version la plus récente du binôme (s'il m'a bien choisi comme binôme)
-  const pd = PARTNER && PARTNER.runs[1];
-  if (pd && pd.duo && pd.duo.id === ME.id) adopt(1, { ...pd, duo: (({ binome, ...m }) => m)(PARTNER.me || ME.binome) });
+  if (mine && mine.d && mine.d.runs) mine.d.runs.forEach((x, k) => adopt(k, unpackLive(x, k)));
+  // parcours collectif : la version la plus récente parmi les téléphones de l'équipe (si je fais bien partie de son équipe)
+  Object.values(PARTNERS).forEach(P0 => { const pd = P0.runs[1]; if (!pd || !teamOf(pd).some(x => x.id === ME.id)) return;
+    const team = [strip(P0.me), ...teamOf(pd).filter(x => x.id !== ME.id && x.id !== (P0.me || {}).id)]; adopt(1, { ...pd, duo: team[0], team }); });
   if (ch) { saveRuns(true); return true; }
-  const after = PARTNER ? JSON.stringify([PARTNER.runs.map(r => r && [r.plan, r.sel]), PARTNER.me && PARTNER.me.binome]) : "";
-  return after !== before ? "partner" : false;
+  return sigP() !== before ? "partner" : false;
 }
+// synchronisation rapide (toutes les 5 s) quand l'équipe doit se voir : préparation, suivi du collectif, accueil avec un parcours d'équipe en cours
+let fastBusy = false;
+function needFast() { if (!ME || !mates().length || document.hidden || CUR.v === "prof") return false; const k = CUR.a && CUR.a[0];
+  return CUR.v === "prep" || CUR.v === "follow" || (CUR.v === "home" && RUNS[1] && !RUNS[1].fin) || (CUR.v === "bilan" && k === 1); }
+async function fastSync() { if (fastBusy || !needFast()) return; fastBusy = true; try { await refreshStates(4500); } finally { fastBusy = false; } }
 async function refreshStates(timeout = 6000) { try { const j = await api("coeGet", { vc: VC, vm: VM, ids: idsToWatch() }, timeout); NET = true; const r = handleStates(j.states); if (r) afterStates(r); return true; } catch (e) { return false; } }
 function afterStates(r) {
   if ($(".dr") || $(".modal") || $(".alarm")) return;
@@ -629,7 +650,7 @@ function vHome() {
   const cur = RUNS.findIndex(r => r && !r.fin && (r.debut || !r.owner || r.owner === ME.id));
   if (cur >= 0) { const r = RUNS[cur]; return r.debut ? go(r.pilot && r.pilot !== ME.id ? "follow" : "run", cur) : go("prep", cur); }
   const nOut = LS.get("out", []).length;
-  $("#app").innerHTML = `<div class="card"><div class="row"><div class="grow"><div class="muted small">Élève</div><b style="font-size:1.15rem">${esc(studentName(ME))}</b><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}${esc(ME.prof)}</div><div class="small" style="margin-top:4px">👥 Binôme : <b>${ME.binome ? esc(studentName(ME.binome)) : "pas encore choisi"}</b> <button class="btn sm gh" id="eBin" style="min-height:28px;padding:2px 8px">${ME.binome ? "Modifier" : "Choisir"}</button></div></div><button class="btn sm gh" id="eId">↺ Changer de coureur</button></div></div>
+  $("#app").innerHTML = `<div class="card"><div class="row"><div class="grow"><div class="muted small">Élève</div><b style="font-size:1.15rem">${esc(studentName(ME))}</b><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}${esc(ME.prof)}</div><div class="small" style="margin-top:4px">👥 ${mates().length > 1 ? "Groupe" : "Binôme"} : <b>${mates().length ? esc(mates().map(studentName).join(", ")) : "pas encore choisi"}</b> <button class="btn sm gh" id="eBin" style="min-height:28px;padding:2px 8px">${mates().length ? "Modifier" : "Choisir"}</button></div></div><button class="btn sm gh" id="eId">↺ Changer de coureur</button></div></div>
    ${C.demo ? '<p class="chip or" style="margin:0 4px 8px">Mode démonstration : l\'enseignant n\'a pas encore publié ses paramètres.</p>' : ""}
    <h2 style="margin:16px 4px 4px">Choisis ton parcours</h2><p class="small muted" style="margin:0 4px 10px">Tu peux les faire dans l'ordre que tu veux. Ta progression est sauvegardée en ligne : en choisissant ton nom sur un autre téléphone, tu la retrouves.</p>
    ${C.parcours.map((p, k) => { const r = RUNS[k], done = r?.fin, next = !done; return `<button class="pc ${done ? "done" : next ? "cur" : ""}" data-p="${k}" ${!done && !next ? "disabled style='opacity:.55'" : ""}><div class="n">${done ? "✓" : k + 1}</div><div class="grow"><b>${esc(p.nom)} · ${p.type === "duo" ? "👥 collectif" : "👤 individuel"}</b><span class="small muted">${p.nb} balises à choisir${p.oblig ? `, dont la n° <span style="color:var(--vi);font-weight:900">${p.oblig}</span> obligatoire` : ""}${startOf(k) ? ` · 🚩 départ par la <span style="color:var(--vi);font-weight:900">${startOf(k)}</span>` : ""} · préparation ${fmtMin(p.prep * 60)}${p.max ? ` · ${p.max} min maximum` : ""}</span>${done ? `<div style="margin-top:4px"><span class="chip ok">Temps : ${fmt(r.fin - r.debut)}</span></div>` : ""}</div>${r && !done && r.owner && r.owner !== ME.id && !r.debut ? `<div style="margin-top:4px"><span class="chip vi">préparé avec ${esc(r.duo ? r.duo.prenom : "ton binôme")} : touche pour voir</span></div>` : ""}<span style="font-size:1.4rem">${done ? "📄" : next ? "▶" : "🔒"}</span></button>`; }).join("")}
@@ -637,7 +658,7 @@ function vHome() {
    <div class="row" style="margin-top:8px"><button class="btn sm gh grow" id="send">📤 Secours : QR code</button><button class="btn sm gh grow" id="smsRes2">📩 Secours : SMS</button></div>` : ""}
    ${LS.get("msgs", []).length ? `<div class="card" style="margin-top:14px"><h2>💬 Messages reçus</h2>${LS.get("msgs", []).slice(-5).reverse().map(m => `<p class="small" style="margin:6px 0"><b>${hhmm(m.id)} · ${esc(m.de || "")}</b> : ${esc(m.txt)}</p>`).join("")}</div>` : ""}
    <button class="btn ko" id="sos" style="width:100%;margin-top:14px">🆘 SMS de secours à mon enseignant</button>`;
-  $("#eId").onclick = async () => { if (RUNS.some(Boolean) && !(await ask("Changer de coureur ?", "Les parcours enregistrés sur ce téléphone seront effacés de l'écran (ceux déjà envoyés restent chez l'enseignant).", "Changer", "ko"))) return; ME = null; PARTNER = null; RUNS = [null, null]; LS.del("me"); LS.del("pos"); LS.set("runs", RUNS); go("ident"); };
+  $("#eId").onclick = async () => { if (RUNS.some(Boolean) && !(await ask("Changer de coureur ?", "Les parcours enregistrés sur ce téléphone seront effacés de l'écran (ceux déjà envoyés restent chez l'enseignant).", "Changer", "ko"))) return; ME = null; PARTNERS = {}; RUNS = [null, null]; LS.del("me"); LS.del("pos"); LS.set("runs", RUNS); go("ident"); };
   $("#eBin").onclick = () => go("binome");
   $$("[data-p]").forEach(b => b.onclick = () => { const k = +b.dataset.p; if (RUNS[k]?.fin) return go("bilan", k); startPrep(k); });
   $("#full") && ($("#full").onclick = () => go("full"));
@@ -721,7 +742,7 @@ function askCode(title, text, then) {
 function deleteRun(x, k, after) {
   const r = x.runs[k]; if (!r) return;
   const a = withStudent(x, () => analyse(r));
-  askCode(`🗑 Supprimer un résultat`, `<b>${esc(studentName(x.me))}</b> · ${esc(P(k).nom)} · ${new Date(r.debut).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} · temps ${fmt(a.chrono)}${r.duo ? `<br>Parcours collectif : le résultat est aussi retiré pour <b>${esc(studentName(r.duo))}</b>.` : ""}<label class="row small" style="margin-top:10px"><input type="checkbox" id="acR" checked> L'élève peut refaire ce parcours (il est effacé sur son téléphone)</label>`, m => {
+  askCode(`🗑 Supprimer un résultat`, `<b>${esc(studentName(x.me))}</b> · ${esc(P(k).nom)} · ${new Date(r.debut).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} · temps ${fmt(a.chrono)}${r.duo ? `<br>Parcours collectif : le résultat est aussi retiré pour <b>${esc(teamNames(r))}</b>.` : ""}<label class="row small" style="margin-top:10px"><input type="checkbox" id="acR" checked> L'élève peut refaire ce parcours (il est effacé sur son téléphone)</label>`, m => {
     const redo = $("#acR", m).checked; C.suppr = (C.suppr || []).filter(s => !s.startsWith(runKey(r))); C.suppr.push(runKey(r) + (redo ? ":r" : ""));
     if (ME && RUNS[k] && runKey(RUNS[k]) === runKey(r)) { RUNS[k] = null; saveRuns(); }
     confChanged(); flash("Résultat supprimé ✓"); after && after();
@@ -765,16 +786,53 @@ function vIdent() {
   picker($("#iBox"), {}, async e => { if (!(await ask("C'est bien toi ?", `<b style="font-size:1.2rem">${esc(e.prenom)} ${esc(e.nom)}</b><br>${e.classe ? esc(e.classe) + " · " : ""}${esc(e.prof)}`, "Oui, c'est moi", "gr"))) return;
     ME = { ...e, id: studentId(e) }; LS.set("me", ME); RUNS = [null, null]; LS.set("runs", RUNS);
     $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2rem">⏳</div><p>Recherche de ta progression…</p></div>`;
-    await restore(); go(ME.binome ? "home" : "binome"); });
+    await restore(); go(mates().length ? "home" : "binome"); });
+}
+function setTeam(list) {
+  list = (list || []).filter(x => x && x.id && x.id !== ME.id);
+  ME.groupe = list.length > 1 ? list.map(strip) : null; ME.binome = list[0] ? strip(list[0]) : null; ME.gu = now(); LS.set("me", ME);
+  if (RUNS[1] && !RUNS[1].debut && !RUNS[1].fin) { RUNS[1].team = mates().slice(); RUNS[1].duo = RUNS[1].team[0] || null; saveRuns(); }
+  PARTNERS = {}; pushState(true); refreshStates();
+}
+// code enseignant vérifié en ligne (le mot de passe n'est jamais gardé sur le téléphone de l'élève)
+function teacherGate(title, text, then) {
+  const m = modal(`<h2 style="margin:0 0 6px">${title}</h2><p class="small">${text}</p><label class="l">Code de l'enseignant</label><input class="inp" type="password" id="tgP" autocomplete="off"><p class="small" id="tgE" style="color:var(--ko)"></p><div class="row"><button class="btn gh grow" id="tgX">Annuler</button><button class="btn or grow" id="tgOk">🔓 Déverrouiller</button></div>`);
+  const inp = $("#tgP", m); setTimeout(() => inp.focus(), 50); $("#tgX", m).onclick = m.close;
+  const go2 = async () => { const v = inp.value; if (!v) return; if (TPW && v === TPW) { m.close(); return then(); } $("#tgOk", m).disabled = true; $("#tgE", m).textContent = "Vérification…";
+    try { await api("teacherCheck", { teacher: v }, 10000); m.close(); then(); } catch (e) { $("#tgE", m).textContent = /mot de passe|incorrect|refus/i.test(e.message) ? "Code incorrect." : "Vérification impossible (réseau ?). " + e.message; } finally { $("#tgOk", m).disabled = false; } };
+  $("#tgOk", m).onclick = go2; inp.onkeydown = e => { if (e.key === "Enter") go2(); };
 }
 function vBinome() {
-  $("#app").innerHTML = `<div class="card"><h2>👥 Qui est ton binôme ?</h2><p class="small muted" style="margin-top:0">C'est ton ou ta partenaire pour le parcours collectif. Vos choix seront partagés entre vos deux téléphones : une balise choisie par l'un pour son parcours individuel ne pourra pas être choisie par l'autre.</p><div id="bBox"></div><button class="btn sm gh" id="bSkip" style="margin-top:12px">Plus tard</button></div>`;
-  picker($("#bBox"), { q1: "Qui est l'enseignant de ton binôme ?", q3: "Touche le prénom de ton binôme", exclude: e => studentId(e) !== ME.id }, e => {
-    ME.binome = { prenom: e.prenom, nom: e.nom, classe: e.classe, prof: e.prof, id: studentId(e) }; LS.set("me", ME);
-    if (RUNS[1] && !RUNS[1].debut) { RUNS[1].duo = ME.binome; saveRuns(); } else pushState(true);
-    PARTNER = null; flash(`Binôme : ${e.prenom} ✓`); go("home"); refreshStates();
+  const M = mates(), isG = M.length > 1;
+  $("#app").innerHTML = `<div class="card"><h2>👥 ${isG ? "Ton groupe" : "Qui est ton binôme ?"}</h2>
+   ${isG ? `<p style="margin-top:0">${M.map(m => `<span class="chip vi" style="margin:2px">${esc(studentName(m))}</span>`).join(" ")}</p><p class="small muted">Le groupe a été créé avec le code de l'enseignant. Seul l'enseignant peut le modifier.</p>`
+     : `<p class="small muted" style="margin-top:0">C'est ton ou ta partenaire pour le parcours collectif. Vos choix seront partagés entre vos téléphones : une balise choisie par l'un pour son parcours individuel ne pourra pas être choisie par l'autre.</p><div id="bBox"></div>`}
+   <div class="row" style="margin-top:12px">${isG ? "" : '<button class="btn sm gh" id="bSkip">Plus tard</button>'}<span class="grow"></span><button class="btn sm or" id="bGrp">🔒 ${isG ? "Modifier le groupe" : "Passer en groupe (3 élèves ou plus)"}</button></div>
+   ${isG ? '<button class="btn gh" id="bHome" style="width:100%;margin-top:10px">← Accueil</button>' : ""}</div>`;
+  if (!isG) picker($("#bBox"), { q1: "Qui est l'enseignant de ton binôme ?", q3: "Touche le prénom de ton binôme", exclude: e => studentId(e) !== ME.id }, e => {
+    setTeam([{ prenom: e.prenom, nom: e.nom, classe: e.classe, prof: e.prof, id: studentId(e) }]); flash(`Binôme : ${e.prenom} ✓`); go("home");
   });
-  $("#bSkip").onclick = () => go("home");
+  $("#bSkip") && ($("#bSkip").onclick = () => go("home"));
+  $("#bHome") && ($("#bHome").onclick = () => go("home"));
+  $("#bGrp").onclick = () => {
+    if (RUNS[1] && RUNS[1].debut && !RUNS[1].fin) return flash("Le parcours collectif est en cours : termine-le d'abord");
+    teacherGate("👥 Passer en groupe", "Un groupe (3 élèves ou plus) se crée avec le code de l'enseignant. Tape le code, puis ajoute les élèves.", groupEditor);
+  };
+}
+function groupEditor() {
+  let L = mates().slice();
+  const m = modal(`<h2 style="margin:0 0 4px">👥 Groupe de ${esc(ME.prenom)}</h2><p class="small muted" style="margin-top:0">Ajoute les autres élèves du groupe. Sur leurs téléphones, le groupe apparaît tout seul en moins de 10 s (il suffit qu'ils se soient identifiés et qu'ils aient choisi l'un des membres comme binôme).</p>
+   <div id="gL"></div><div id="gPick" style="margin-top:8px"></div>
+   <div class="row" style="margin-top:12px"><button class="btn gh grow" id="gX">Annuler</button><button class="btn sm gh" id="gBin">↩ Revenir à un binôme</button><button class="btn or grow" id="gOk">✓ Valider le groupe</button></div>`);
+  const draw = () => {
+    $("#gL", m).innerHTML = `<ul class="sl"><li><span class="o">★</span><b class="grow">${esc(studentName(ME))}</b><small class="muted">ce téléphone</small></li>${L.map((x, i) => `<li><span class="o">${i + 2}</span><b class="grow">${esc(studentName(x))}</b><small class="muted">${esc(x.classe || "")}</small><button class="x" data-gr="${i}">✕</button></li>`).join("")}</ul><p class="small muted" style="margin:4px 0">${L.length + 1} élève(s)${L.length < 2 ? " · il faut au moins 3 élèves pour un groupe" : ""}</p>`;
+    $$("[data-gr]", m).forEach(b => b.onclick = () => { L.splice(+b.dataset.gr, 1); draw(); });
+  };
+  let lastE = ME; const pk = () => picker($("#gPick", m), { prof: lastE.prof, classe: lastE.classe, q1: "Ajouter un élève : son enseignant ?", q3: "Touche le prénom à ajouter", exclude: e => studentId(e) !== ME.id && !L.some(x => x.id === studentId(e)) }, e => { if (L.length >= 7) return flash("8 élèves maximum"); L.push({ prenom: e.prenom, nom: e.nom, classe: e.classe, prof: e.prof, id: studentId(e) }); lastE = e; draw(); pk(); flash(`${e.prenom} ajouté·e`); });
+  draw(); pk();
+  $("#gX", m).onclick = m.close;
+  $("#gBin", m).onclick = () => { m.close(); setTeam(L.slice(0, 1)); ME.groupe = null; LS.set("me", ME); flash(L[0] ? `Binôme : ${L[0].prenom} ✓` : "Groupe supprimé"); go(L[0] ? "home" : "binome"); };
+  $("#gOk", m).onclick = () => { if (L.length < 2) return flash("Ajoute au moins 2 élèves (groupe de 3)"); m.close(); setTeam(L); flash(`Groupe de ${L.length + 1} ✓`); go("home"); };
 }
 
 // ---------- Préparation : tracé, choix et ordre des balises ----------
@@ -783,15 +841,15 @@ function startPrep(k) {
   if (cur >= 0) { flash(`Termine d'abord ${P(cur).nom}`); return go(RUNS[cur].debut ? "run" : "prep", cur); }
   if (RUNS[k] && !RUNS[k].fin) { const r = RUNS[k]; if (!r.debut && r.owner !== ME.id) { r.owner = ME.id; saveRuns(true); } return go(r.debut ? (r.pilot && r.pilot !== ME.id ? "follow" : "run") : "prep", k); }
   if (p.type === "duo") {
-    if (!ME.binome) { flash("Choisis d'abord ton binôme"); return go("binome"); }
+    if (!mates().length) { flash("Choisis d'abord ton binôme"); return go("binome"); }
     // le binôme a peut-être déjà commencé à préparer le parcours collectif
-    $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2rem">⏳</div><p>Vérification avec le téléphone de ${esc(ME.binome.prenom)}…</p></div>`;
-    refreshStates(5000).then(() => { if (RUNS[1] && !RUNS[1].fin) return startPrep(1); RUNS[1] = newRun(1, ME.binome); saveRuns(); pushState(true); go("prep", 1); });
+    $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2rem">⏳</div><p>Vérification avec le téléphone de ${esc(mates().map(m => m.prenom).join(", "))}…</p></div>`;
+    refreshStates(5000).then(() => { if (RUNS[1] && !RUNS[1].fin) return startPrep(1); RUNS[1] = newRun(1, mates()); saveRuns(); pushState(true); go("prep", 1); });
     return;
   }
   RUNS[k] = newRun(k); saveRuns(); go("prep", k);
 }
-const newRun = (k, duo = null) => ({ k, duo, owner: ME.id, prepT: now(), plan: P(k).oblig ? [+P(k).oblig] : [], sel: {}, trace: [], prevu: null, debut: null, fin: null, saisies: [], auto: {} });
+const newRun = (k, team = null) => ({ k, duo: team && team.length ? team[0] : null, team: team && team.length ? team.slice() : null, owner: ME.id, prepT: now(), plan: P(k).oblig ? [+P(k).oblig] : [], sel: {}, trace: [], prevu: null, debut: null, fin: null, saisies: [], auto: {} });
 // balises choisies dans les autres parcours : { numéro: ["Parcours 1", …] }
 const usedElsewhere = k => { const o = {}; RUNS.forEach((r, j) => { if (j !== k && r?.plan) r.plan.forEach(n => (o[n] = o[n] || []).push(j)); }); return o; };
 const usedBefore = k => C.reuse ? [] : Object.keys(usedElsewhere(k)).map(Number);
@@ -800,15 +858,15 @@ const groupKey = ids => hid(ids.filter(Boolean).sort().join("|"));
 function startOf(k, me = ME) {
   const p = P(k); if (!p || !p.dmode || !me) return null;
   if (p.dmode === "tous") return p.dn ? +p.dn : null;
-  const d = C.deps || {}, g = d[groupKey([me.id, me.binome && me.binome.id])] || d[groupKey([me.id])];
+  const d = C.deps || {}, g = d[groupKey([me.id, ...mates(me).map(m => m.id)])] || d[groupKey([me.id, me.binome && me.binome.id])] || d[groupKey([me.id])];
   return g && g[k] ? +g[k] : null;
 }
 // balises interdites dans le parcours k : { numéro: raison }
 function forbidden(k) {
   const o = {}, other = 1 - k, po = P(other) && P(other).oblig, r = RUNS[k];
   if (po && +po !== +P(k).oblig) o[po] = "obligatoire de l'autre parcours";
-  if (k === 0 && PARTNER && PARTNER.runs[0]) { const pr = PARTNER.runs[0], name = (PARTNER.me && PARTNER.me.prenom) || "ton binôme";
-    pr.plan.forEach(n => { if (+n === +P(0).oblig || o[n]) return; const mine = r && r.sel && r.sel[n], his = pr.sel && pr.sel[n]; if (!(r && r.plan.includes(+n)) || !mine || !his || his <= mine) o[n] = "choisie par " + name; }); }
+  if (k === 0) Object.values(PARTNERS).forEach(P0 => { const pr = P0.runs[0]; if (!pr || !pr.plan || (isDeleted(pr) && canRedo(pr))) return; const name = (P0.me && P0.me.prenom) || "ton binôme";
+    pr.plan.forEach(n => { if (+n === +P(0).oblig || o[n]) return; const mine = r && r.sel && r.sel[n], his = pr.sel && pr.sel[n]; if (pr.debut || !(r && r.plan.includes(+n)) || !mine || !his || his <= mine) o[n] = "choisie par " + name; }); });
   if (!C.reuse && RUNS[other]) RUNS[other].plan.forEach(n => { if (!o[n] && +n !== +P(k).oblig) o[n] = "déjà dans " + P(other).nom; });
   const st = startOf(k); if (st) delete o[st]; // la balise de départ imposée est toujours autorisée
   return o;
@@ -825,9 +883,9 @@ function vPrep(k) {
   const dep = startOf(k); if (dep && balise(dep)) { r.plan = [dep, ...r.plan.filter(n => +n !== dep)]; r.sel[dep] = r.sel[dep] || 1; }
   const conflicts = () => r.plan.filter(n => fb[n]);
   $("#app").innerHTML = `<div class="prep" id="pBar"><div><div class="small" style="opacity:.8">Préparation · ${esc(p.nom)}</div><div class="timer" id="pT">–</div></div><div style="text-align:right" class="small"><b id="pCnt"></b><br><span style="opacity:.8">balises choisies</span></div></div>
-   ${r.duo ? `<div class="card small">👥 Équipe : <b>${esc(studentName(ME))}</b> et <b>${esc(studentName(r.duo))}</b><br><span class="muted">Ce parcours est partagé : ce que vous choisissez apparaît aussi sur le téléphone de ${esc(r.duo.prenom)} (en moins de 15 s). Préparez-le ensemble sur un seul téléphone.</span></div>` : ""}
+   ${r.duo ? `<div class="card small">👥 Équipe : <b>${esc(studentName(ME))}</b> et <b>${esc(teamNames(r, " et "))}</b><br><span class="muted">Ce parcours est partagé : ce que vous choisissez apparaît aussi sur le téléphone de ${esc(teamFirst(r, " et "))} (en moins de 10 s). Préparez-le ensemble sur un seul téléphone ; pendant la course, les autres téléphones suivent la progression en direct.</span></div>` : ""}
    ${hasPos() ? `<div class="card" style="padding:10px"><h2 style="margin:4px 4px 4px">1. Choisis ${p.nb} balises sur la carte</h2><p class="muted small" style="margin:0 4px 8px">Touche un rond violet pour ajouter ou retirer la balise. Zoome à deux doigts.</p><div class="mapv" id="pMap" style="height:44vh"></div></div>` : ""}
-   <div class="card"><h2>${hasPos() ? "… ou dans la liste" : `1. Choisis ${p.nb} balises`}</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${dep ? ` 🚩 Tu commences obligatoirement par la balise <b style="color:var(--vi)">${dep}</b>.` : ""}${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé sont interdites (obligatoire de l'autre parcours" + (k === 0 && PARTNER ? ", ou déjà choisie par ton binôme" : "") + ")." : ""}${Object.keys(other).length && C.reuse ? ` Une étiquette <span class="chip" style="background:#1d4ed8;color:#fff">P1</span> signale une balise de ton autre parcours.` : ""}</p><div class="bgrid" id="pGrid"></div></div>
+   <div class="card"><h2>${hasPos() ? "… ou dans la liste" : `1. Choisis ${p.nb} balises`}</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${dep ? ` 🚩 Tu commences obligatoirement par la balise <b style="color:var(--vi)">${dep}</b>.` : ""}${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé sont interdites (obligatoire de l'autre parcours" + (k === 0 && mates().length ? `, ou déjà choisie par ton ${teamWord()}` : "") + ")." : ""}${Object.keys(other).length && C.reuse ? ` Une étiquette <span class="chip" style="background:#1d4ed8;color:#fff">P1</span> signale une balise de ton autre parcours.` : ""}</p><div class="bgrid" id="pGrid"></div></div>
    <div class="card"><h2>2. Range-les dans ton ordre de passage</h2><p class="muted small" style="margin-top:0">Fais glisser avec le doigt sur ≡ pour changer l'ordre.</p>
     <ul class="sl"><li class="st"><span class="o"></span><span class="bn" style="border-radius:8px">▲</span><b>Départ</b></li></ul><ul class="sl" id="pList"></ul><ul class="sl"><li class="fi"><span class="o"></span><span class="bn">◎</span><b>Retour à l'arrivée</b></li></ul></div>
    <div class="card" style="padding:10px"><h2 style="margin:4px 4px 8px">3. Trace ton itinéraire <span class="chip">facultatif</span></h2>${hasPos() ? '<p class="muted small" style="margin:0 4px 8px" id="pMiss"></p>' : '<div class="mapv" id="pMap" style="height:38vh"></div>'}<button class="btn big or" id="pDraw" style="margin-top:10px">✏️ ${r.trace?.length ? "Modifier mon tracé" : "Tracer sur la carte"}</button></div>
@@ -864,7 +922,8 @@ function vPrep(k) {
   const upd = () => { const left = end() - now(); const t = $("#pT"); if (!t) return; t.textContent = left > 0 ? fmt(left) : "Temps écoulé"; $("#pBar").classList.toggle("low", left < 60000); if (left <= 0 && !r.auto.prepEnd) { r.auto.prepEnd = 1; saveRuns(); vib([200, 100, 200]); flash("⏰ Fin de la préparation"); } ok(); };
   render(); upd(); tick = setInterval(upd, 500);
   $("#pGo").onclick = async () => {
-    if (k === 0 && ME.binome) { await refreshStates(4000); const cf = r.plan.filter(n => forbidden(0)[n]); if (cf.length) { flash(`La balise ${cf.join(", ")} vient d'être choisie par ton binôme`); return go("prep", k); } }
+    if (k === 0 && mates().length) { const okNet = await refreshStates(5000); const cf = r.plan.filter(n => forbidden(0)[n]); if (cf.length) { flash(`La balise ${cf.join(", ")} vient d'être choisie par ton ${teamWord()}`); return go("prep", k); }
+      if (!okNet && !(await ask("Pas de réseau", `Impossible de vérifier que ${esc(mates().map(m => m.prenom).join(", "))} n'a pas choisi les mêmes balises que toi. Attends le réseau quelques secondes, ou pars quand même.`, "Partir quand même", "or"))) return; }
     const M = traceMissing(r), warn = hasPos() ? (!r.trace?.length ? "" : M.length ? `<br><br>⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : "") : ""; if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>${warn}`, warn ? "▶ Partir quand même" : "▶ Partir", "gr"))) return; r.debut = now(); r.pilot = ME.id; saveRuns(); pushState(true); locate({ n: "départ", k }); vib(300); try { "Notification" in window && Notification.permission === "default" && Notification.requestPermission(); } catch (e) {} go("run", k); };
 }
 // glisser-déposer au doigt (poignée ≡)
@@ -897,7 +956,7 @@ function vRun(k) {
   let code = "";
   const draw = () => {
     const i = r.idx || 0, fini = i >= r.plan.length, n = r.plan[i];
-    app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(r.duo.prenom) : ""}</div><div class="chrono" id="rT">0:00</div><div class="retour" id="rRet" style="display:none"></div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
+    app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(teamFirst(r)) : ""}</div><div class="chrono" id="rT">0:00</div><div class="retour" id="rRet" style="display:none"></div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
       <div class="steps">${r.plan.map((b, j) => `<span class="${j < i ? "d" : j === i ? "c" : ""}">${b}</span>`).join("")}<span style="border-color:var(--nv);color:var(--nv)">◎</span></div></div>
      ${fini ? `<div class="card" style="text-align:center"><div style="font-size:3rem">🏁</div><h2>Toutes tes balises sont saisies</h2><p class="muted">Retourne à l'arrivée, puis touche le bouton.</p></div>` :
       `<div class="card" style="text-align:center;padding-top:10px"><div class="small muted">Balise ${i + 1} sur ${r.plan.length}${+n === +p.oblig ? " · ★ obligatoire" : ""}</div><div class="bigb">${n}</div>
@@ -931,11 +990,11 @@ function vFollow(k) {
   const r = RUNS[k], p = P(k); if (!r) return go("home");
   if (r.fin) return go("bilan", k);
   if (!r.pilot || r.pilot === ME.id) return go(r.debut ? "run" : "prep", k);
-  const who = r.duo ? r.duo.prenom : "ton binôme", i = r.idx || 0, last = r.saisies[r.saisies.length - 1];
-  $("#app").innerHTML = `<div class="card" style="text-align:center"><div class="small muted">${esc(p.nom)} · 👥 avec ${esc(who)}</div><div class="chrono" id="fT">0:00</div><div class="retour" id="rRet" style="display:none"></div>
+  const pil = teamOf(r).find(x => x.id === r.pilot), who = pil ? pil.prenom : r.duo ? teamFirst(r) : "ton binôme", i = r.idx || 0, last = r.saisies[r.saisies.length - 1];
+  $("#app").innerHTML = `<div class="card" style="text-align:center"><div class="small muted">${esc(p.nom)} · 👥 avec ${esc(teamFirst(r))}</div><div class="chrono" id="fT">0:00</div><div class="retour" id="rRet" style="display:none"></div>
     <div class="steps">${r.plan.map((b, j) => `<span class="${j < i ? "d" : j === i ? "c" : ""}">${b}</span>`).join("")}<span style="border-color:var(--nv);color:var(--nv)">◎</span></div>
     <p style="margin:10px 0 0">Les codes sont saisis sur le téléphone de <b>${esc(who)}</b>.<br>${i < r.plan.length ? `Prochaine balise : <b style="color:var(--vi);font-size:1.3rem">${r.plan[i]}</b>` : "Toutes les balises sont saisies : retour à l'arrivée."}</p>
-    <p class="small muted">${last ? `Dernière saisie à ${hhmm(last.t)}` : "Aucune balise saisie pour l'instant"} · mise à jour toutes les 15 s</p></div>
+    <p class="small muted">${last ? `Dernière saisie à ${hhmm(last.t)}` : "Aucune balise saisie pour l'instant"} · mise à jour toutes les 5 s</p></div>
    <div class="row"><button class="btn gh grow" id="fMap">🗺 Notre carte et notre tracé</button><button class="btn ko" id="fSos">🆘 SOS</button></div>
    <button class="btn gh" id="fTake" style="width:100%;margin-top:12px">📱 Le téléphone de ${esc(who)} ne marche plus : continuer la saisie ici</button>`;
   const upd = () => { const e = $("#fT"); if (e) e.textContent = fmt(now() - r.debut); }; upd(); tick = setInterval(upd, 500);
@@ -978,7 +1037,7 @@ const Q = [
 function vEnd(k) {
   const r = RUNS[k], a = analyse(r);
   r.ress = r.ress || {};
-  $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2.6rem">🏁</div><h2>Bravo ${esc(ME.prenom)}${r.duo ? " et " + esc(r.duo.prenom) : ""} !</h2><div class="chrono">${fmt(a.chrono)}</div><div class="muted small">Temps de course</div></div>
+  $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2.6rem">🏁</div><h2>Bravo ${esc(ME.prenom)}${r.duo ? " et " + esc(teamFirst(r, " et ")) : ""} !</h2><div class="chrono">${fmt(a.chrono)}</div><div class="muted small">Temps de course</div></div>
    <div class="card"><h2>Ton ressenti</h2>${Q.filter(q => !q.duo || r.duo).map(q => `<label class="l">${q.t}</label><div class="opts" data-q="${q.id}">${q.o.map(o => `<button class="${(q.multi ? (r.ress[q.id] || []).includes(o) : r.ress[q.id] === o) ? "on" : ""}">${o}</button>`).join("")}</div>`).join("")}
     <label class="l">Un conseil pour toi la prochaine fois</label><input class="inp" id="eC" value="${esc(r.ress.conseil || "")}" placeholder="ex. orienter la carte à chaque balise"></div>
    <button class="btn big vi" id="eGo">📄 Voir ma fiche bilan</button>`;
@@ -992,7 +1051,7 @@ function bilanHTML(k, teacher) {
   const best = legs.length ? legs.reduce((m, l) => l.leg < m.leg ? l : m) : null, worst = legs.length ? legs.reduce((m, l) => l.leg > m.leg ? l : m) : null;
   const ecart = r.prevu ? a.chrono / 1000 - r.prevu : null, from = i => i ? legs[i - 1].attendu : "▲";
   const stat = s => ({ ok: '<span class="chip ok">✓</span>', saut: '<span class="chip ko">balise(s) sautée(s) avant</span>', retour: '<span class="chip or">hors ordre</span>', hors: '<span class="chip ko">hors parcours</span>', faux: '<span class="chip ko">code faux</span>', passe: '<span class="chip ko">passée</span>' })[s];
-  return `<div class="card"><div class="small muted">Fiche bilan · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}</h2><div class="small"><b>${esc(studentName(ME))}</b>${ME.classe ? " (" + esc(ME.classe) + ")" : ""}${r.duo ? ` et <b>${esc(studentName(r.duo))}</b>${r.duo.classe ? " (" + esc(r.duo.classe) + ")" : ""}` : ""} · Enseignant : <b>${esc(ME.prof)}</b> · ${new Date(r.debut).toLocaleDateString("fr-FR")}</div>
+  return `<div class="card"><div class="small muted">Fiche bilan · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}</h2><div class="small"><b>${esc(studentName(ME))}</b>${ME.classe ? " (" + esc(ME.classe) + ")" : ""}${r.duo ? teamOf(r).map(x => ` et <b>${esc(studentName(x))}</b>${x.classe ? " (" + esc(x.classe) + ")" : ""}`).join("") : ""} · Enseignant : <b>${esc(ME.prof)}</b> · ${new Date(r.debut).toLocaleDateString("fr-FR")}</div>
    <div class="kpi"><div><span>Temps de course</span><b>${fmt(a.chrono)}</b></div>${show ? `<div><span>Pénalités</span><b style="color:${a.pen ? "var(--ko)" : "inherit"}">+${fmt(a.pen)}</b></div><div><span>Temps final</span><b>${fmt(a.final)}</b></div>` : ""}
     <div><span>Balises</span><b>${r.saisies.filter(s => s.st !== "passe").length} / ${r.plan.length}</b>${a.passees.length ? `<small>${a.passees.length} passée(s)</small>` : ""}</div>${r.prevu ? `<div><span>Temps prévu</span><b>${fmt(r.prevu * 1000)}</b><small>${ecart >= 0 ? "+" : "−"}${fmt(Math.abs(ecart) * 1000)} ${Math.abs(ecart) <= 60 ? "· très bonne estimation 👍" : ecart > 0 ? "plus lent que prévu" : "plus rapide que prévu"}</small></div>` : ""}</div>
    ${show ? `<p class="small" style="margin:4px 0">${a.ordre ? '<span class="chip ok">Parcours réalisé sans erreur, dans l\'ordre</span>' : `<span class="chip ko">${a.nErr} balise(s) non validée(s)</span> ${a.oublis.length ? `<b>${a.oublis.join(", ")}</b>. ` : ""}${a.faux ? `${a.faux} code(s) faux ou hors parcours. ` : ""}`} ${p.oblig ? (a.obligOk ? `<span class="chip ok">★ ${p.oblig} validée</span>` : `<span class="chip ko">★ ${p.oblig} manquée</span>`) : ""}${a.over ? ` <span class="chip ko">Temps max dépassé de ${fmt(a.over)}</span>` : ""}</p>` : ""}
@@ -1025,7 +1084,7 @@ function fullHTML(teacher) {
   const amel = []; if (A.some(x => x.a.passees.length)) amel.push("Tu as passé des balises : choisis des balises adaptées à ton niveau et repère un point d'appui (angle de chemin, bâtiment) avant chacune."); if (show && A.some(x => x.a.oublis.length > x.a.passees.length)) amel.push("Vérifier le numéro de la balise et son code avant de valider : chaque balise non validée coûte " + fmtMin(C.penOubli) + "."); if (est.some(e => e > 120)) amel.push("Mieux estimer ton temps : regarde la longueur de chaque tronçon avant de partir."); top.slice(0, 2).forEach(([v]) => amel.push(({ "Orienter ma carte": "Orienter la carte (le nord de la carte vers le nord) à chaque balise.", "Me situer sur la carte": "Garder le pouce sur ta position et suivre les éléments (chemins, lisières) en courant.", "Choix d'itinéraire": "Préparer chaque tronçon : chemin plus long mais plus rapide, ou ligne droite ?", "Trouver la balise": "Repérer un point d'appui proche de la balise et ralentir à l'approche.", "Fatigue": "Gérer ton allure : courir sur les chemins, marcher pour lire la carte." })[v] || v));
   return `<div class="card"><div class="small muted">Bilan complet · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(studentName(ME))}</h2><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}Enseignant : ${esc(ME.prof)} · ${new Date().toLocaleDateString("fr-FR")} · ${A.length} parcours sur 2</div>
     <table class="t" style="margin-top:10px"><thead><tr><th>Parcours</th><th class="n">Balises</th><th class="n">Temps</th>${show ? '<th class="n">Pénal.</th><th class="n">Final</th><th>Non val.</th>' : ""}<th class="n">Prévu</th><th class="n">Par tronçon</th></tr></thead><tbody>
-    ${A.map(x => `<tr><td><b>${esc(x.p.nom)}</b><br><small class="muted">${x.p.type === "duo" ? "👥 avec " + esc(x.r.duo ? studentName(x.r.duo) : "") : "👤 individuel"}</small></td><td class="n">${x.r.plan.length}</td><td class="n"><b>${fmt(x.a.chrono)}</b></td>${show ? `<td class="n">${x.a.pen ? "+" + fmt(x.a.pen) : "–"}</td><td class="n"><b>${fmt(x.a.final)}</b></td><td>${x.a.nErr ? `<span class="chip ko">${x.a.nErr}</span>` : '<span class="chip ok">0</span>'}</td>` : ""}<td class="n">${x.r.prevu ? fmt(x.r.prevu * 1000) : "–"}</td><td class="n">${fmt(per(x))}</td></tr>`).join("")}</tbody></table>
+    ${A.map(x => `<tr><td><b>${esc(x.p.nom)}</b><br><small class="muted">${x.p.type === "duo" ? "👥 avec " + esc(teamNames(x.r)) : "👤 individuel"}</small></td><td class="n">${x.r.plan.length}</td><td class="n"><b>${fmt(x.a.chrono)}</b></td>${show ? `<td class="n">${x.a.pen ? "+" + fmt(x.a.pen) : "–"}</td><td class="n"><b>${fmt(x.a.final)}</b></td><td>${x.a.nErr ? `<span class="chip ko">${x.a.nErr}</span>` : '<span class="chip ok">0</span>'}</td>` : ""}<td class="n">${x.r.prevu ? fmt(x.r.prevu * 1000) : "–"}</td><td class="n">${fmt(per(x))}</td></tr>`).join("")}</tbody></table>
     <h3 style="margin:14px 0 6px;font-size:1rem">Temps moyen par tronçon</h3>${A.map(x => `<div class="row small" style="margin-bottom:5px"><span style="width:90px">${esc(x.p.nom)}</span><div class="grow"><div class="bar" style="width:${per(x) / mx * 100}%"></div></div><b style="width:52px;text-align:right">${fmt(per(x))}</b></div>`).join("")}
     ${pts.length ? `<h3 style="margin:14px 0 4px;font-size:1rem">👍 Points forts</h3><ul class="small" style="margin:0;padding-left:20px">${pts.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
     ${amel.length ? `<h3 style="margin:14px 0 4px;font-size:1rem">🎯 À travailler</h3><ul class="small" style="margin:0;padding-left:20px">${amel.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
@@ -1038,8 +1097,8 @@ function vFull(teacher) {
 }
 
 // ---------- Résultats : envoi au serveur + secours par QR code ----------
-function packRun(r) { return { k: r.k, d: r.duo || 0, p: r.plan, v: r.prevu, t0: r.debut, t1: r.fin, s: r.saisies.map(s => s.g ? [s.t - r.debut, s.code, s.attendu, s.st, s.bal, s.g] : [s.t - r.debut, s.code, s.attendu, s.st, s.bal]), q: r.ress || {}, tr: r.trace || [] }; }
-function unpackRun(x) { return x ? { k: x.k, duo: x.d || null, plan: x.p, prevu: x.v, debut: x.t0, fin: x.t1, saisies: (x.s || []).map(s => ({ t: x.t0 + s[0], code: s[1], attendu: s[2], st: s[3], bal: s[4], g: s[5] || null })), ress: x.q || {}, trace: x.tr || [] } : null; }
+function packRun(r) { return { k: r.k, d: r.duo || 0, ...(r.team && r.team.length > 1 ? { g: r.team } : {}), p: r.plan, v: r.prevu, t0: r.debut, t1: r.fin, s: r.saisies.map(s => s.g ? [s.t - r.debut, s.code, s.attendu, s.st, s.bal, s.g] : [s.t - r.debut, s.code, s.attendu, s.st, s.bal]), q: r.ress || {}, tr: r.trace || [] }; }
+function unpackRun(x) { return x ? { k: x.k, duo: x.d || null, team: x.g || (x.d ? [x.d] : null), plan: x.p, prevu: x.v, debut: x.t0, fin: x.t1, saisies: (x.s || []).map(s => ({ t: x.t0 + s[0], code: s[1], attendu: s[2], st: s[3], bal: s[4], g: s[5] || null })), ress: x.q || {}, trace: x.tr || [] } : null; }
 const KEY = "orienrun-eps";
 function enc(o) { const b = new TextEncoder().encode(JSON.stringify(o)); let s = ""; b.forEach((v, i) => s += String.fromCharCode(v ^ KEY.charCodeAt(i % KEY.length))); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
 function dec(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(s), b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length); return JSON.parse(new TextDecoder().decode(b)); }
@@ -1076,13 +1135,13 @@ function sos(k) {
   chooseProf("🆘 SMS de secours", t => {
     let etat = "";
     if (r) { const i = r.idx || 0; etat = r.debut ? ` ${P(kk).nom}, chrono ${fmt(now() - r.debut)}, ${i ? "dernière balise saisie : " + r.plan[i - 1] : "aucune balise saisie"}, prochaine : ${r.plan[i] ?? "arrivée"}.` : ` En préparation du ${P(kk).nom}.`; }
-    openSMS(t, `🆘 CO éval – ${studentName(ME)}${ME.classe ? " (" + ME.classe + ")" : ""}${r?.duo ? " avec " + studentName(r.duo) : ""}.${etat} J'ai besoin d'aide.${pos}`);
+    openSMS(t, `🆘 CO éval – ${studentName(ME)}${ME.classe ? " (" + ME.classe + ")" : ""}${r?.duo ? " avec " + teamNames(r) : ""}.${etat} J'ai besoin d'aide.${pos}`);
   });
 }
 // Format SMS des résultats (relu par l'enseignant : 📥 Importer des SMS)
 // COE1|prénom|nom|classe|enseignant|k|camarade(prénom~nom~classe~enseignant)|départ (s)|durée (s)|prévu (s)|balises.prévues|sec:CODE,sec:CODE,…|ressenti
 function runSMS(r) {
-  const d = r.duo ? [r.duo.prenom, r.duo.nom, r.duo.classe || "", r.duo.prof || ""].join("~") : "", t0 = Math.round(r.debut / 1000);
+  const d = teamOf(r).map(x => [x.prenom, x.nom, x.classe || "", x.prof || ""].join("~")).join("^"), t0 = Math.round(r.debut / 1000);
   const q = r.ress || {}, ix = (id, v) => { const o = Q.find(x => x.id === id).o; return [].concat(v || []).map(z => o.indexOf(z)).filter(z => z >= 0).join(""); };
   return ["COE1", ME.prenom, ME.nom, ME.classe || "", ME.prof, r.k, d, t0, Math.round((r.fin - r.debut) / 1000), r.prevu || 0, r.plan.join("."), r.saisies.map(s => Math.round(s.t / 1000 - t0) + ":" + (s.st === "passe" ? "-" : s.code)).join(","), ["effort", "projet", "perte", "coop"].map(id => ix(id, q[id])).join("-")].map(x => String(x).replace(/\|/g, "/")).join("|");
 }
@@ -1096,8 +1155,8 @@ function parseSMS(txt) {
     const f = l.split("|"); if (f.length < 12) return;
     const [, prenom, nom, classe, prof, k, d, t0s, dur, prevu, planS, sai, rs] = f, t0 = +t0s * 1000, plan = planS.split(".").filter(Boolean).map(Number);
     const me = { prenom, nom, classe, prof }; me.id = studentId(me);
-    const duo = d ? (([p, n, c, pr]) => { const x = { prenom: p, nom: n, classe: c, prof: pr }; x.id = studentId(x); return x; })(d.split("~")) : null;
-    const r = { k: +k, duo, plan, prevu: +prevu || null, debut: t0, fin: t0 + +dur * 1000, saisies: [], ress: {}, trace: [] };
+    const team = d ? d.split("^").map(z => (([p, n, c, pr]) => { const x = { prenom: p, nom: n, classe: c, prof: pr }; x.id = studentId(x); return x; })(z.split("~"))) : null, duo = team ? team[0] : null;
+    const r = { k: +k, duo, team, plan, prevu: +prevu || null, debut: t0, fin: t0 + +dur * 1000, saisies: [], ress: {}, trace: [] };
     (sai || "").split(",").filter(Boolean).forEach(x => { const [sec, code] = x.split(":"), t = t0 + +sec * 1000; if (code === "-") { r.saisies.push({ t, code: "", attendu: r.plan[r.idx || 0], st: "passe", bal: null }); r.idx = (r.idx || 0) + 1; } else { const n = Date.now; Date.now = () => t; try { punch(r, code); } finally { Date.now = n; } } });
     delete r.idx;
     (rs || "").split("-").forEach((v, i) => { const q = Q[i]; if (!q || v === "") return; const o = v.split("").map(j => q.o[+j]).filter(Boolean); r.ress[q.id] = q.multi ? o : o[0]; });
@@ -1159,9 +1218,10 @@ async function pullLive() {
   finally { setNet(); }
 }
 function liveInfo(x) {
+  const x0id = x.eleve;
   const runs = (x.d.runs || []).map((y, k) => unpackLive(y, k)), me = moved(x.d.me || {}), pos = x.d.pos;
   // collectif partagé : on prend la version la plus récente des deux téléphones du binôme
-  try { const ob = me.binome && LIVE.st[me.binome.id]; const r2 = ob && ob.d.runs && unpackLive(ob.d.runs[1], 1); if (r2 && (!runs[1] || (r2.u || 0) > (runs[1].u || 0))) runs[1] = r2; } catch (e) {}
+  try { mates(me).forEach(m => { const ob = LIVE.st[m.id]; const r2 = ob && ob.d.runs && unpackLive(ob.d.runs[1], 1); if (r2 && teamOf(r2).some(x => x.id === x0id) && (!runs[1] || (r2.u || 0) > (runs[1].u || 0))) runs[1] = r2; }); } catch (e) {}
   const act = runs.find(r => r && r.debut && !r.fin), prep = runs.find(r => r && !r.debut && !r.fin), done = runs.filter(r => r && r.fin && !isDeleted(r));
   let st, cls, ord;
   if (act) { const i = act.idx || 0; st = `🏃 ${P(act.k).nom} · balise ${Math.min(i + 1, act.plan.length)}/${act.plan.length} · ${fmt(now() - act.debut)}${act.pilot && act.pilot !== x.eleve ? " (saisie par le binôme)" : ""}`; cls = "or"; ord = 0; }
@@ -1177,9 +1237,8 @@ function loadLeaflet() { return new Promise((res, rej) => { if (window.L) return
 // binômes connus (élèves connectés) : [{ key, ids, noms, prof, classe }]
 function knownGroups() {
   const st = Object.values(LIVE.st), seen = {}, out = [];
-  st.forEach(x => { const me = moved(x.d.me || {}); if (!me.id || isAbs(me)) return; const ids = [x.eleve, me.binome && me.binome.id].filter(Boolean), key = groupKey(ids); if (seen[key]) return; seen[key] = 1;
-    const ob = me.binome ? st.find(y => y.eleve === me.binome.id) : null, other = me.binome ? ((ob && ob.d.me) || me.binome) : null;
-    out.push({ key, ids, noms: [studentName(me), other ? studentName(other) : null].filter(Boolean), prof: me.prof, classe: me.classe || "" }); });
+  st.forEach(x => { const me = moved(x.d.me || {}); if (!me.id || isAbs(me)) return; const M = mates(me), ids = [x.eleve, ...M.map(m => m.id)].filter(Boolean), key = groupKey(ids); if (seen[key]) return; seen[key] = 1;
+    out.push({ key, ids, noms: [studentName(me), ...M.map(m => { const ob = st.find(y => y.eleve === m.id); return studentName((ob && ob.d.me) || m); })], prof: me.prof, classe: me.classe || "" }); });
   return out.sort((a, b) => byFr(a.prof, b.prof) || byFr(a.classe, b.classe) || byFr(a.noms[0], b.noms[0]));
 }
 async function groupDialog() {
@@ -1187,7 +1246,7 @@ async function groupDialog() {
   const pool = () => C.balises.map(b => +b.n).filter(n => n !== +P(0).oblig && n !== +P(1).oblig);
   const modes = [0, 1].filter(k => P(k).dmode === "groupe");
   if (!modes.length) return flash("Choisis d'abord « différente par binôme » pour un parcours (⚙ Paramètres)");
-  const m = modal(`<h2 style="margin:0 0 6px">🚩 Balise de départ par binôme</h2><p class="small muted" style="margin-top:0">Les binômes apparaissent dès que les élèves se sont identifiés (${G.length} pour l'instant). La balise est imposée en 1re position ; elle vaut pour les deux élèves du binôme.</p>
+  const m = modal(`<h2 style="margin:0 0 6px">🚩 Balise de départ par binôme / groupe</h2><p class="small muted" style="margin-top:0">Les binômes apparaissent dès que les élèves se sont identifiés (${G.length} pour l'instant). La balise est imposée en 1re position ; elle vaut pour les deux élèves du binôme.</p>
    <div class="row" style="margin-bottom:8px"><button class="btn sm or" id="gAuto">🎲 Répartir automatiquement</button><button class="btn sm gh" id="gClr">Tout effacer</button></div>
    <div style="max-height:55vh;overflow:auto"><table class="t"><thead><tr><th>Binôme</th>${modes.map(k => `<th>${esc(P(k).nom)}</th>`).join("")}</tr></thead><tbody>${G.map((g, i) => `<tr><td><b>${g.noms.map(esc).join(" + ")}</b><br><small class="muted">${esc(g.classe)} · ${esc(g.prof)}</small></td>${modes.map(k => `<td><select class="inp" style="padding:6px;width:auto" data-gi="${i}" data-gk="${k}"><option value="">—</option>${pool().map(n => `<option ${+((C.deps[g.key] || [])[k]) === n ? "selected" : ""}>${n}</option>`).join("")}</select></td>`).join("")}</tr>`).join("") || `<tr><td colspan="3" class="muted">Aucun binôme identifié pour l'instant.</td></tr>`}</tbody></table></div>
    <div class="row" style="margin-top:12px"><button class="btn gh grow" id="gX">Annuler</button><button class="btn or grow" id="gOk">Enregistrer et publier</button></div>`);
@@ -1237,7 +1296,7 @@ function profSuivi(box) {
     const ago = ms => ms < 60000 ? "à l'instant" : `il y a ${Math.round(ms / 60000)} min`;
     $("#lvList").innerHTML = `<div class="row"><h2 class="grow" style="margin:0">Élèves connectés (${L.length})</h2><span class="small muted">🏃 ${L.filter(o => o.ord === 0).length} en course · ✏️ ${L.filter(o => o.ord === 1).length} en préparation · ✅ ${L.filter(o => o.ord === 2).length} terminés</span></div>` +
       (Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)}</h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th><th>Binôme</th><th>Où en est-il ?</th><th>Dernière balise pointée</th><th>Mise à jour</th><th></th></tr></thead><tbody>
-        ${cls[c].sort((a, b) => a.ord - b.ord || byFr(a.me.nom, b.me.nom)).map(o => `<tr data-lv="${esc(o.x.eleve)}" style="cursor:pointer${sel === o.x.eleve ? ";background:#fff4ea" : ""}"><td><b>${esc(o.me.nom)}</b> ${esc(o.me.prenom)}</td><td class="small">${o.me.binome ? esc(studentName(o.me.binome)) : '<span class="muted">—</span>'}</td><td><span class="chip ${o.cls}">${esc(o.st)}</span></td>
+        ${cls[c].sort((a, b) => a.ord - b.ord || byFr(a.me.nom, b.me.nom)).map(o => `<tr data-lv="${esc(o.x.eleve)}" style="cursor:pointer${sel === o.x.eleve ? ";background:#fff4ea" : ""}"><td><b>${esc(o.me.nom)}</b> ${esc(o.me.prenom)}</td><td class="small">${o.me.binome ? esc(mates(o.me).map(studentName).join(", ")) + (mates(o.me).length > 1 ? " <span class='chip vi'>groupe</span>" : "") : '<span class="muted">—</span>'}</td><td><span class="chip ${o.cls}">${esc(o.st)}</span></td>
           <td class="small">${o.last && o.last.saisies.length ? (s0 => `${esc(String(s0.bal || s0.attendu))}${s0.st === "passe" ? " (passée)" : ""} à ${hhmm(s0.t)}${o.act ? "" : " <span class='muted'>(fin)</span>"}`)(o.last.saisies[o.last.saisies.length - 1]) : o.act ? "départ" : "—"}${o.pos && o.pos.la != null ? ` · <a href="https://maps.google.com/?q=${o.pos.la},${o.pos.lo}" target="_blank" title="Dernière position GPS (${hhmm(o.pos.t)}, ±${o.pos.acc} m)">📍 GPS</a>` : ""}</td><td class="small" style="${o.late ? "color:var(--ko);font-weight:800" : ""}">${o.late ? "⚠ " : ""}${ago(o.age)}</td>
           <td style="white-space:nowrap"><button class="btn sm gh" data-lvm="${esc(o.x.eleve)}" title="Message">💬</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun élève connecté pour l\'instant. Les élèves apparaissent dès qu\'ils ont choisi leur nom.</p>');
     $$("[data-lv]").forEach(tr => tr.onclick = e => { if (e.target.closest("[data-lvm]")) return; sel = tr.dataset.lv; draw(); });
@@ -1267,9 +1326,10 @@ let SRV = LS.get("srv", { since: 1, rows: [] });
 async function pullResults() { try { const j = await api("coeResults", { teacher: TPW, since: SRV.since }); if (j.since < SRV.since) SRV.rows = []; SRV.rows.push(...j.rows); SRV.since = j.since; LS.set("srv", SRV); NET = true; return true; } catch (e) { NET = false; if (/Mot de passe/.test(e.message)) { TPW = ""; LS.del("tpw"); } return /Action inconnue/.test(e.message) ? "script Google pas à jour" : e.message; } finally { setNet(); } }
 function allStudents() {
   const S = {}, get = me => S[me.id] = S[me.id] || { me, runs: [null, null] };
-  const put = (me, k, r, t) => { if (!me?.id || isDeleted(r)) return; k = r.duo ? 1 : 0; r.k = k; me = moved(me); if (r.duo?.id) r = { ...r, duo: moved(r.duo) }; const x = get(me); if (!x.runs[k] || (x.runs[k]._t || 0) <= t) x.runs[k] = { ...r, _t: t }; };
-  SRV.rows.forEach(row => { const d = row.d; if (!d?.me || !d.run) return; const r = unpackRun(d.run); put(d.me, row.k, r, row.t); if (r.duo?.id) put(r.duo, row.k, { ...r, duo: d.me }, row.t - 1); });
-  Object.values(LS.get("res", {})).forEach(o => (o.runs || []).forEach((x, k) => { if (!x) return; const r = unpackRun(x); put(o.me, k, r, o.recu - 5); if (r.duo?.id) put(r.duo, k, { ...r, duo: o.me }, o.recu - 6); }));
+  const put = (me, k, r, t) => { if (!me?.id || isDeleted(r)) return; k = r.duo ? 1 : 0; r.k = k; me = moved(me); if (r.duo?.id) r = { ...r, duo: moved(r.duo), team: teamOf(r).map(moved) }; const x = get(me); if (!x.runs[k] || (x.runs[k]._t || 0) <= t) x.runs[k] = { ...r, _t: t }; };
+  const putTeam = (me, k, r, t) => { put(me, k, r, t); teamOf(r).forEach(m => { if (!m?.id || m.id === me.id) return; const team = [strip(me), ...teamOf(r).filter(x => x.id !== m.id)]; put(m, k, { ...r, duo: team[0], team }, t - 1); }); };
+  SRV.rows.forEach(row => { const d = row.d; if (!d?.me || !d.run) return; putTeam(d.me, row.k, unpackRun(d.run), row.t); });
+  Object.values(LS.get("res", {})).forEach(o => (o.runs || []).forEach((x, k) => { if (!x) return; putTeam(o.me, k, unpackRun(x), o.recu - 5); }));
   Object.entries(C.listes || {}).forEach(([prof, cl]) => Object.entries(cl).forEach(([classe, L]) => L.forEach(([nom, prenom]) => { const me = { prenom, nom, classe, prof }; me.id = studentId(me); get(me); })));
   Object.values(S).forEach(x => { x.st = statOf(x.me); x.abs = !!x.st; });
   return Object.values(S);
@@ -1295,7 +1355,7 @@ function profRes(box) {
     $("#rSms").onclick = importSMSDialog;
     $("#rCsv").onclick = () => {
       const rows = [["Enseignant", "Classe", "Nom", "Prénom", ...C.parcours.flatMap(p => [p.nom + " camarade", p.nom + " balises", p.nom + " temps (s)", p.nom + " pénalités (s)", p.nom + " final", p.nom + " non validées", p.nom + " prévu"])]];
-      L.forEach(x => rows.push([x.me.prof, x.me.classe || "", x.me.nom, x.me.prenom, ...x.runs.flatMap(r => { if (!r?.fin) return [x.abs ? STAT_LBL[x.st] || "absent" : "", "", "", "", "", "", ""]; const a = withStudent(x, () => analyse(r)); return [r.duo ? studentName(r.duo) : "", r.plan.join("-"), Math.round(a.chrono / 1000), Math.round(a.pen / 1000), fmt(a.final), a.oublis.join("-"), r.prevu ? fmt(r.prevu * 1000) : ""]; })]));
+      L.forEach(x => rows.push([x.me.prof, x.me.classe || "", x.me.nom, x.me.prenom, ...x.runs.flatMap(r => { if (!r?.fin) return [x.abs ? STAT_LBL[x.st] || "absent" : "", "", "", "", "", "", ""]; const a = withStudent(x, () => analyse(r)); return [r.duo ? teamNames(r) : "", r.plan.join("-"), Math.round(a.chrono / 1000), Math.round(a.pen / 1000), fmt(a.final), a.oublis.join("-"), r.prevu ? fmt(r.prevu * 1000) : ""]; })]));
       const csv = "﻿" + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n"), a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `resultats-CO${f ? "-" + f : ""}.csv`; a.click();
     };
@@ -1453,7 +1513,7 @@ $("#hProf").onclick = openProf;
   if (reopen && TPW) { go("prof", reopen); sync().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0]); flash("✓ Appli et données à jour"); }); setInterval(sync, SYNC_MS); document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); }); addEventListener("online", sync); return; }
   go("home");
   if (ME && !RUNS.some(Boolean)) restore().then(() => { if (RUNS.some(Boolean) && ["home", "ident"].includes(CUR.v)) go("home"); });
-  sync(); setInterval(sync, SYNC_MS);
+  sync(); setInterval(sync, SYNC_MS); setInterval(fastSync, 5000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); });
   addEventListener("online", sync); addEventListener("focus", sync);
 })();
