@@ -339,7 +339,45 @@ let ME = LS.get("me", null);          // {prenom, nom, classe, prof, id}
 let RUNS = (r => { r = Array.isArray(r) ? r : []; if (r.length === 3) r = [r[0] || r[1] || null, r[2] || null]; r = [r[0] || null, r[1] || null]; r.forEach((x, k) => { if (x) x.k = k; }); return r; })(LS.get("runs", null));
 // chaque modification est gardée sur le téléphone ET envoyée (sauvegarde + suivi par l'enseignant)
 const runSig = r => JSON.stringify([r.plan, r.trace ? JSON.stringify(r.trace).length : 0, r.prevu, r.debut, r.fin, r.saisies.length, r.idx, r.ress, r.pilot, teamOf(r).map(x => x.id)]);
-const saveRuns = (quiet) => { RUNS.forEach(r => { if (!r) return; const g = runSig(r); if (r._sig !== g) { r._sig = g; if (!quiet) r.u = now(); } }); LS.set("runs", RUNS); if (!quiet) pushState(); };
+const saveRuns = (quiet) => { RUNS.forEach(r => { if (!r) return; const g = runSig(r); if (r._sig !== g) { r._sig = g; if (!quiet) r.u = now(); } }); LS.set("runs", RUNS); backup(); if (!quiet) pushState(); };
+// Copie de secours dans IndexedDB (survit si le navigateur vide le localStorage) + carnet de balises permanent
+let bakT = null;
+function backup() { clearTimeout(bakT); bakT = setTimeout(() => { if (!ME || SW) return; const b = { me: ME, runs: RUNS.map(r => r && packLive(r)), t: now() }; idbSet("bak", b); idbSet("bak:" + ME.id, b); }, 250); }
+const OFF = { ready: false, why: "" };
+async function checkOffline() {
+  const sw = "serviceWorker" in navigator, ctl = sw && !!navigator.serviceWorker.controller, map = !!(await idbGet("carte")) || !!VM || OFF.nomap, conf = !C.demo;
+  let persist = false; try { persist = navigator.storage && navigator.storage.persist ? await navigator.storage.persist() : false; } catch (e) {}
+  const was = OFF.ready; OFF.ready = (!sw || ctl) && map && conf; OFF.persist = persist;
+  OFF.why = !conf ? "(paramètres de l'enseignant pas encore reçus)" : !map ? "(carte pas encore téléchargée)" : sw && !ctl ? "(appli pas encore enregistrée : recharge la page une fois avec le réseau)" : "";
+  if (was !== OFF.ready && CUR.v === "home") { const y = scrollY; go("home"); scrollTo(0, y); }
+}
+async function carnetDialog() {
+  const a = LS.get("jr", {})[ME.id] || [], b = ((await idbGet("jr")) || {})[ME.id] || [], seen = {}, J = [...a, ...b].filter(x => { const k = x.t + x.e + (x.n || ""); if (seen[k]) return false; return seen[k] = 1; }).sort((x, y) => x.t - y.t);
+  const lbl = { depart: "▶ Départ", balise: "Balise", passe: "⏭ Passée", retour: "🏁 Retour" };
+  const html = L => L.length ? `<table class="t"><tbody>${L.map(x => `<tr><td class="small">${new Date(x.t).toLocaleTimeString("fr-FR")}</td><td><b>${esc(P(x.k).nom)}</b></td><td>${lbl[x.e] || x.e}${x.e === "balise" ? ` <b style="color:var(--vi)">${esc(String(x.n))}</b> <span class="muted">(${esc(x.code)})</span>` : x.e === "passe" ? ` <b>${esc(String(x.n))}</b>` : x.e === "depart" ? ` <span class="muted small">${esc(x.plan || "")}</span>` : x.e === "retour" ? ` <b>${esc(x.temps || "")}</b>` : ""}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Rien pour l'instant : chaque départ, balise et retour s'inscrit ici.</p>`;
+  const nOut = LS.get("out", []).length;
+  const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">📒 Mon carnet</h2><button class="btn sm gh" id="cjX">Fermer</button></div><p class="small muted" style="margin-top:0">${esc(studentName(ME))} · tout est enregistré dans la mémoire de ce téléphone (deux copies), même sans réseau ou après un rechargement.</p><div style="max-height:52vh;overflow:auto">${html(J.slice().reverse())}</div>
+   <p class="small" style="margin:10px 0 6px">${nOut ? `⏳ <b>${nOut}</b> résultat(s) pas encore transféré(s).` : RUNS.some(r => r?.fin) ? "✓ Résultats transférés à l'enseignant." : ""}</p>
+   <button class="btn or" id="cjGo" style="width:100%">📤 Tout transférer maintenant</button><div class="row" style="margin-top:8px"><button class="btn sm gh grow" id="cjSms">📩 Par SMS</button><button class="btn sm gh grow" id="cjQr">📤 Par QR code</button></div>`);
+  $("#cjX", m).onclick = m.close;
+  $("#cjGo", m).onclick = async () => { const b = $("#cjGo", m); b.disabled = true; b.textContent = "⏳ Transfert…"; await sendState(); await flushOut(); const left = LS.get("out", []).length; b.disabled = false; b.textContent = "📤 Tout transférer maintenant"; flash(NET === false || left ? "Pas de réseau : réessaie plus tard, ou envoie par SMS" : "✓ Tout est transféré"); };
+  $("#cjSms", m).onclick = () => { m.close(); smsResults(); };
+  $("#cjQr", m).onclick = () => { m.close(); sendResults(); };
+}
+function journal(r, ev) { // ev = { e: "depart" | "balise" | "passe" | "retour", n, code, st }
+  if (!ME || SW) return; const line = { t: now(), k: r.k, ...ev }, J = LS.get("jr", {}); (J[ME.id] = J[ME.id] || []).push(line); J[ME.id] = J[ME.id].slice(-200); LS.set("jr", J);
+  idbGet("jr").then(D => { D = D || {}; (D[ME.id] = D[ME.id] || []).push(line); D[ME.id] = D[ME.id].slice(-200); idbSet("jr", D); });
+}
+async function recoverLocal() { // au démarrage : si le localStorage a été vidé ou est en retard, on reprend la copie IndexedDB
+  try { const b = await idbGet("bak"); if (!b || !b.me) return false; let ch = false;
+    if (!ME) { ME = b.me; LS.set("me", ME); ch = true; }
+    if (b.me.id !== ME.id) return ch;
+    (b.runs || []).forEach((x, k) => { const r = x && unpackLive(x, k); if (r && (!RUNS[k] || (r.u || 0) > (RUNS[k].u || 0) || (!RUNS[k].saisies.length && r.saisies.length))) { RUNS[k] = r; ch = true; } });
+    if (ch) { LS.set("runs", RUNS);
+      const D = (await idbGet("jr")) || {}; if (D[ME.id] && !(LS.get("jr", {})[ME.id] || []).length) { const J = LS.get("jr", {}); J[ME.id] = D[ME.id]; LS.set("jr", J); }
+      const O = await idbGet("out"); if (O && O.length && !LS.get("out", []).length) LS.set("out", O); }
+    return ch; } catch (e) { return false; }
+}
 let tick = null, CUR = { v: "home", a: [] }, SW = null;
 function stopTick() { if (tick) clearInterval(tick); tick = null; }
 
@@ -482,7 +520,7 @@ function drawEditor(r, onClose) {
 
 // ---------------- Synchronisation en direct ----------------
 let NET = null, syncing = false, TPW = LS.get("tpw", "");
-function setNet() { const n = $("#net"); if (!n) return; n.className = "net " + (NET === true ? "ok" : NET === false ? "ko" : ""); n.textContent = NET === true ? "● en ligne" : NET === false ? "● hors ligne" : "…"; }
+function setNet() { $$(".offnote").forEach(e => e.style.display = NET === false ? "" : "none"); const n = $("#net"); if (!n) return; n.className = "net " + (NET === true ? "ok" : NET === false ? "ko" : ""); n.textContent = NET === true ? "● en ligne" : NET === false ? "● hors ligne" : "…"; }
 async function sync() {
   if (syncing) return; syncing = true;
   try {
@@ -492,7 +530,8 @@ async function sync() {
     if (j.conf != null && j.vc && j.vc !== VC) { try { const o = JSON.parse(j.conf), stable = x => JSON.stringify({ ...x, msgs: 0, rappel: 0, retour: 0 }), before = stable(C); C = fixConf(Object.assign(clone(DEF), o)); if (TPW) { statP = null; await ensureStat(); } LS.set("conf", o); VC = j.vc; LS.set("vc", VC); conf = true; if (ME && (C.moves || {})[ME.id]) { ME = moved(ME); LS.set("me", ME); } if (stable(C) === before) { VC = j.vc; LS.set("vc", VC); checkAlerts(); $("#hT").textContent = C.titre; syncing = false; setNet(); return flushOut(); } } catch (e) {} }
     if (j.carte != null && j.vm && j.vm !== VM) { await idbSet("carte", j.carte || null); VM = j.vm; LS.set("vm", VM); MAPIMG = (await blobURL(j.carte)) || demoMap(); map = true; }
     if (conf || map) { if (conf) applyDeletions(); onRemote(conf, map); checkAlerts(); }
-    flushOut();
+    if (!j.vm) OFF.nomap = true; // pas de carte publiée : la carte de démonstration suffit
+    flushOut(); if (!OFF.ready && CUR.v !== "prof") checkOffline();
   } catch (e) { NET = false; }
   finally { syncing = false; setNet(); }
 }
@@ -545,12 +584,13 @@ function onRemote(conf) {
   if (["home", "ident", "prep", "bilan", "full"].includes(v)) { const y = scrollY; go(v, ...CUR.a); scrollTo(0, y); if (conf) flash("🔄 Mis à jour par l'enseignant"); }
 }
 // résultats envoyés à l'enseignant (file d'attente si pas de réseau)
+function setOut(v) { LS.set("out", v); idbSet("out", v); } // résultats pas encore transférés : deux copies
 function queueResult(k) {
   const r = RUNS[k]; if (!r?.fin || !ME || (r.pilot && r.pilot !== ME.id)) return;
   const out = LS.get("out", []).filter(x => !(x.eleve === ME.id && x.k === k));
   const run = packRun(r); run.tr = fitTrace(run.tr, 30000);
   out.push({ eleve: ME.id, nom: ME.prenom + " " + ME.nom, classe: ME.classe || "", prof: ME.prof, k, data: { me: ME, run } });
-  LS.set("out", out); flushOut();
+  setOut(out); flushOut();
 }
 // tracé allégé (Douglas-Peucker) pour tenir dans une cellule de la Google Sheet
 function simplifyPts(P, tol) { if (P.length < 3) return P; const keep = new Uint8Array(P.length); keep[0] = keep[P.length - 1] = 1; const st = [[0, P.length - 1]];
@@ -562,7 +602,7 @@ function fitTrace(tr, max) { tr = tr || []; let tol = .0005, t = tr; while (JSON
 let flushing = false;
 async function flushOut() {
   if (flushing) return; const out = LS.get("out", []); if (!out.length) return; flushing = true;
-  try { for (const x of out) { const sx = JSON.stringify(x); try { await api("coeResult", x); } catch (e) { if (!/trop gros/i.test(e.message)) throw e; x.data.run.tr = []; await api("coeResult", x); } LS.set("out", LS.get("out", []).filter(y => JSON.stringify(y) !== sx)); } NET = true; }
+  try { for (const x of out) { const sx = JSON.stringify(x); try { await api("coeResult", x); } catch (e) { if (!/trop gros/i.test(e.message)) throw e; x.data.run.tr = []; await api("coeResult", x); } setOut(LS.get("out", []).filter(y => JSON.stringify(y) !== sx)); } NET = true; }
   catch (e) { NET = false; } finally { flushing = false; setNet(); }
 }
 
@@ -657,8 +697,13 @@ function vHome() {
    ${RUNS.some(r => r?.fin) ? `<button class="btn big vi" id="full" style="margin-top:6px">📊 Bilan complet${RUNS.every(r => r?.fin) ? " des 2 parcours" : " (provisoire)"}</button>${nOut ? `<div class="card" style="border:2px solid var(--or);margin-top:10px"><b>⏳ ${nOut} résultat(s) gardé(s) sur ce téléphone</b><p class="small muted" style="margin:4px 0 8px">Pas de réseau pour l'instant : ils partiront tout seuls dès que le réseau revient. Tu peux aussi les envoyer par SMS.</p><div class="row"><button class="btn sm or grow" id="retry">↻ Réessayer maintenant</button><button class="btn sm grow" id="smsRes">📩 Envoyer par SMS</button></div></div>` : `<p class="small muted" style="text-align:center">✓ Tes résultats ont été envoyés à ton enseignant.</p>`}
    <div class="row" style="margin-top:8px"><button class="btn sm gh grow" id="send">📤 Secours : QR code</button><button class="btn sm gh grow" id="smsRes2">📩 Secours : SMS</button></div>` : ""}
    ${LS.get("msgs", []).length ? `<div class="card" style="margin-top:14px"><h2>💬 Messages reçus</h2>${LS.get("msgs", []).slice(-5).reverse().map(m => `<p class="small" style="margin:6px 0"><b>${hhmm(m.id)} · ${esc(m.de || "")}</b> : ${esc(m.txt)}</p>`).join("")}</div>` : ""}
+   <div class="card offcard" style="margin-top:14px;border:2px solid ${OFF.ready ? "var(--ok)" : "var(--or)"}"><b>📴 Mode hors-ligne ${OFF.ready ? "prêt ✓" : "en préparation…"}</b>
+    <p class="small" style="margin:4px 0 8px">${OFF.ready ? "L'appli, la carte et tes saisies sont enregistrées sur ce téléphone. Tu peux perdre le réseau ou recharger la page : rien n'est perdu. À la fin, tes résultats partent tout seuls dès que le réseau revient (ou par SMS / QR code)." : "Garde le réseau quelques secondes pour que l'appli et la carte s'enregistrent sur ce téléphone. " + (OFF.why || "")}</p>
+    <button class="btn sm gh" id="carnet" style="width:100%">📒 Mon carnet de balises (enregistré sur ce téléphone)</button></div>
+   <p class="small offnote" style="display:${NET === false ? "" : "none"};text-align:center;color:var(--ko);font-weight:700">📴 Pas de réseau pour l'instant : tu peux continuer, tout est enregistré sur ce téléphone.</p>
    <button class="btn ko" id="sos" style="width:100%;margin-top:14px">🆘 SMS de secours à mon enseignant</button>`;
-  $("#eId").onclick = async () => { if (RUNS.some(Boolean) && !(await ask("Changer de coureur ?", "Les parcours enregistrés sur ce téléphone seront effacés de l'écran (ceux déjà envoyés restent chez l'enseignant).", "Changer", "ko"))) return; ME = null; PARTNERS = {}; RUNS = [null, null]; LS.del("me"); LS.del("pos"); LS.set("runs", RUNS); go("ident"); };
+  $("#carnet").onclick = carnetDialog;
+  $("#eId").onclick = async () => { if (RUNS.some(Boolean) && !(await ask("Changer de coureur ?", "Les parcours enregistrés sur ce téléphone seront effacés de l'écran (ceux déjà envoyés restent chez l'enseignant).", "Changer", "ko"))) return; ME = null; PARTNERS = {}; RUNS = [null, null]; idbSet("bak", null); LS.del("me"); LS.del("pos"); LS.set("runs", RUNS); go("ident"); };
   $("#eBin").onclick = () => go("binome");
   $$("[data-p]").forEach(b => b.onclick = () => { const k = +b.dataset.p; if (RUNS[k]?.fin) return go("bilan", k); startPrep(k); });
   $("#full") && ($("#full").onclick = () => go("full"));
@@ -729,7 +774,7 @@ const isDeleted = r => !!r && ((C.supprAvant && r.debut < C.supprAvant) || (C.su
 const canRedo = r => (C.supprAvant && r.debut < C.supprAvant) || (C.suppr || []).includes(runKey(r) + ":r");
 // côté élève : un parcours effacé par l'enseignant peut être refait
 function applyDeletions() {
-  let ch = false; RUNS.forEach((r, k) => { if (r?.fin && isDeleted(r) && canRedo(r)) { RUNS[k] = null; ch = true; LS.set("out", LS.get("out", []).filter(x => !(x.k === k && x.data?.run?.t0 === r.debut))); flash(`Ton enseignant a effacé ton ${P(k).nom} : tu peux le refaire.`); } });
+  let ch = false; RUNS.forEach((r, k) => { if (r?.fin && isDeleted(r) && canRedo(r)) { RUNS[k] = null; ch = true; setOut(LS.get("out", []).filter(x => !(x.k === k && x.data?.run?.t0 === r.debut))); flash(`Ton enseignant a effacé ton ${P(k).nom} : tu peux le refaire.`); } });
   if (ch) { saveRuns(); if (["home", "bilan", "full"].includes(CUR.v)) go("home"); }
 }
 // confirmation par le mot de passe enseignant
@@ -786,7 +831,9 @@ function vIdent() {
   picker($("#iBox"), {}, async e => { if (!(await ask("C'est bien toi ?", `<b style="font-size:1.2rem">${esc(e.prenom)} ${esc(e.nom)}</b><br>${e.classe ? esc(e.classe) + " · " : ""}${esc(e.prof)}`, "Oui, c'est moi", "gr"))) return;
     ME = { ...e, id: studentId(e) }; LS.set("me", ME); RUNS = [null, null]; LS.set("runs", RUNS);
     $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2rem">⏳</div><p>Recherche de ta progression…</p></div>`;
-    await restore(); go(mates().length ? "home" : "binome"); });
+    await restore();
+    if (!RUNS.some(Boolean)) { const b = await idbGet("bak:" + ME.id); if (b && b.runs) { RUNS = b.runs.map((x, k) => x && unpackLive(x, k)); if (b.me) { ME.binome = ME.binome || b.me.binome; ME.groupe = ME.groupe || b.me.groupe; ME.gu = ME.gu || b.me.gu; LS.set("me", ME); } saveRuns(true); flash("✓ Ta progression a été retrouvée sur ce téléphone"); } }
+    go(mates().length ? "home" : "binome"); });
 }
 function setTeam(list) {
   list = (list || []).filter(x => x && x.id && x.id !== ME.id);
@@ -924,7 +971,7 @@ function vPrep(k) {
   $("#pGo").onclick = async () => {
     if (k === 0 && mates().length) { const okNet = await refreshStates(5000); const cf = r.plan.filter(n => forbidden(0)[n]); if (cf.length) { flash(`La balise ${cf.join(", ")} vient d'être choisie par ton ${teamWord()}`); return go("prep", k); }
       if (!okNet && !(await ask("Pas de réseau", `Impossible de vérifier que ${esc(mates().map(m => m.prenom).join(", "))} n'a pas choisi les mêmes balises que toi. Attends le réseau quelques secondes, ou pars quand même.`, "Partir quand même", "or"))) return; }
-    const M = traceMissing(r), warn = hasPos() ? (!r.trace?.length ? "" : M.length ? `<br><br>⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : "") : ""; if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>${warn}`, warn ? "▶ Partir quand même" : "▶ Partir", "gr"))) return; r.debut = now(); r.pilot = ME.id; saveRuns(); pushState(true); locate({ n: "départ", k }); vib(300); try { "Notification" in window && Notification.permission === "default" && Notification.requestPermission(); } catch (e) {} go("run", k); };
+    const M = traceMissing(r), warn = hasPos() ? (!r.trace?.length ? "" : M.length ? `<br><br>⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : "") : ""; if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>${warn}`, warn ? "▶ Partir quand même" : "▶ Partir", "gr"))) return; r.debut = now(); r.pilot = ME.id; journal(r, { e: "depart", plan: r.plan.join("-") }); saveRuns(); pushState(true); locate({ n: "départ", k }); vib(300); try { "Notification" in window && Notification.permission === "default" && Notification.requestPermission(); } catch (e) {} go("run", k); };
 }
 // glisser-déposer au doigt (poignée ≡)
 function sortable(ul, onMove) {
@@ -956,7 +1003,7 @@ function vRun(k) {
   let code = "";
   const draw = () => {
     const i = r.idx || 0, fini = i >= r.plan.length, n = r.plan[i];
-    app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(teamFirst(r)) : ""}</div><div class="chrono" id="rT">0:00</div><div class="retour" id="rRet" style="display:none"></div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
+    app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(teamFirst(r)) : ""}</div><div class="chrono" id="rT">0:00</div><div class="small offnote" style="display:${NET === false ? "" : "none"};color:var(--ko);font-weight:700">📴 Hors ligne : chaque balise est enregistrée sur ce téléphone</div><div class="retour" id="rRet" style="display:none"></div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
       <div class="steps">${r.plan.map((b, j) => `<span class="${j < i ? "d" : j === i ? "c" : ""}">${b}</span>`).join("")}<span style="border-color:var(--nv);color:var(--nv)">◎</span></div></div>
      ${fini ? `<div class="card" style="text-align:center"><div style="font-size:3rem">🏁</div><h2>Toutes tes balises sont saisies</h2><p class="muted">Retourne à l'arrivée, puis touche le bouton.</p></div>` :
       `<div class="card" style="text-align:center;padding-top:10px"><div class="small muted">Balise ${i + 1} sur ${r.plan.length}${+n === +p.oblig ? " · ★ obligatoire" : ""}</div><div class="bigb">${n}</div>
@@ -974,11 +1021,11 @@ function vRun(k) {
       kb.addEventListener("pointerdown", e => { e.preventDefault(); const b = keyAt(e.clientX, e.clientY); if (!b) return; b.classList.add("prs"); setTimeout(() => b.classList.remove("prs"), 140); press(b.dataset.k); });
       kb.addEventListener("click", e => e.preventDefault());
     }
-    $("#rOk") && ($("#rOk").onclick = () => { if (code.length !== 3) return; punch(r, code); const s0 = r.saisies[r.saisies.length - 1]; code = ""; saveRuns(); pushState(true); locate({ n: s0.attendu, k }, s0); vib(60); flash("✓ Enregistré"); draw(); });
-    $("#rSkip") && ($("#rSkip").onclick = async () => { if (!(await ask(`Passer la balise ${n} ?`, `Elle sera comptée comme <b>non trouvée</b> (pénalité). Tu continues vers ${i + 1 < r.plan.length ? "la balise <b>" + r.plan[i + 1] + "</b>" : "l'arrivée"}.`, "⏭ Passer", "ko"))) return; const s0 = { t: now(), code: "", attendu: n, st: "passe", bal: null }; r.saisies.push(s0); r.idx = i + 1; code = ""; saveRuns(); pushState(true); locate({ n, k, passe: 1 }, s0); draw(); });
+    $("#rOk") && ($("#rOk").onclick = () => { if (code.length !== 3) return; punch(r, code); const s0 = r.saisies[r.saisies.length - 1]; journal(r, { e: "balise", n: s0.bal || s0.attendu, code: s0.code, st: s0.st }); code = ""; saveRuns(); pushState(true); locate({ n: s0.attendu, k }, s0); vib(60); flash("✓ Enregistré"); draw(); });
+    $("#rSkip") && ($("#rSkip").onclick = async () => { if (!(await ask(`Passer la balise ${n} ?`, `Elle sera comptée comme <b>non trouvée</b> (pénalité). Tu continues vers ${i + 1 < r.plan.length ? "la balise <b>" + r.plan[i + 1] + "</b>" : "l'arrivée"}.`, "⏭ Passer", "ko"))) return; const s0 = { t: now(), code: "", attendu: n, st: "passe", bal: null }; r.saisies.push(s0); r.idx = i + 1; code = ""; journal(r, { e: "passe", n }); saveRuns(); pushState(true); locate({ n, k, passe: 1 }, s0); draw(); });
     $("#rSos").onclick = () => sos(k);
     $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { overlay: (W, H) => planSVG(r.plan, W, H, r.idx || 0) + traceSVG(r.trace, W, H) }); };
-    $("#rBack").onclick = async () => { const left = r.plan.length - (r.idx || 0); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return; r.fin = now(); saveRuns(); pushState(true); locate({ n: "arrivée", k }); vib([100, 60, 300]); queueResult(k); go("end", k); };
+    $("#rBack").onclick = async () => { const left = r.plan.length - (r.idx || 0); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return; r.fin = now(); journal(r, { e: "retour", temps: fmt(r.fin - r.debut) }); saveRuns(); pushState(true); locate({ n: "arrivée", k }); vib([100, 60, 300]); queueResult(k); go("end", k); };
     upd();
   };
   const drawCode = () => { $$(".boxes div").forEach((d, j) => { d.textContent = code[j] || ""; d.classList.toggle("cur", j === code.length); }); const o = $("#rOk"); if (o) o.disabled = code.length !== 3; };
@@ -1511,6 +1558,9 @@ $("#hProf").onclick = openProf;
   if (location.hash.startsWith("#r=") && receiveResults(location.hash.slice(3))) { sync(); return; }
   const reopen = LS.get("reopen", ""); LS.del("reopen"); if (/maj=/.test(location.search)) history.replaceState(null, "", location.pathname);
   if (reopen && TPW) { go("prof", reopen); sync().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0]); flash("✓ Appli et données à jour"); }); setInterval(sync, SYNC_MS); document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); }); addEventListener("online", sync); return; }
+  if (await recoverLocal()) flash("✓ Tes saisies ont été récupérées sur ce téléphone");
+  try { if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).then(() => setTimeout(checkOffline, 500)).catch(() => {}); } catch (e) {}
+  checkOffline(); setTimeout(checkOffline, 8000);
   go("home");
   if (ME && !RUNS.some(Boolean)) restore().then(() => { if (RUNS.some(Boolean) && ["home", "ident"].includes(CUR.v)) go("home"); });
   sync(); setInterval(sync, SYNC_MS); setInterval(fastSync, 5000);
