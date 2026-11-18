@@ -258,7 +258,8 @@
     if (!pill) return;
     var all0 = activeOn(), cc = curClass(), n = cc ? all0.filter(function (x) { return inClass(x, cc); }).length : all0.length;
     pill.classList.toggle("on", all0.length > 0 && !HUB && hubTeach()); /* nombre de dispensés : seulement en mode enseignant */
-    pill.textContent = "🩹 " + n + " dispensé" + (n > 1 ? "s" : "") + (cc ? " · " + cc.nom : "");
+    pill.textContent = "🩹 " + n; /* logo + nombre ; le détail est dans l'infobulle et la liste */
+    pill.title = n + " élève" + (n > 1 ? "s" : "") + " dispensé" + (n > 1 ? "s" : "") + " aujourd'hui" + (cc ? " (" + cc.nom + ")" : ""); pill.setAttribute("aria-label", pill.title);
     var hc = document.getElementById("epsd-hubcount");
     if (hc) hc.textContent = !hubTeach() ? "Mode enseignant pour voir les dispenses" : n ? n + " élève" + (n > 1 ? "s" : "") + " dispensé" + (n > 1 ? "s" : "") + " aujourd'hui" : "Aucun élève dispensé aujourd'hui";
   }

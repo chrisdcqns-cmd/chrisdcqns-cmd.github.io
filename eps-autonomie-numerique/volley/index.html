@@ -32,6 +32,14 @@ header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;paddin
 .pick label.off{opacity:.45;text-decoration:line-through}
 .pick input{width:18px;height:18px;accent-color:var(--blue)}
 .disp{font-size:.8rem}
+.opt{border:2px dashed var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.opt.on{border-style:solid;border-color:var(--vol)}
+.mres{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.mres span{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-weight:800;color:#fff;cursor:pointer}
+.mG{background:var(--d4)}.mN{background:#8a8f98}.mP{background:var(--d1)}
+.cnt{display:flex;align-items:center;gap:12px}
+.cnt button{width:52px;height:52px;border-radius:14px;border:0;font-size:1.6rem;font-weight:800;background:#e8eef6;color:var(--navy)}
+.cnt b{font-size:2rem;min-width:44px;text-align:center;color:var(--navy)}
 /* pastille « dispensés » (eps-home.js) : dans la barre du haut, à droite des onglets, au lieu d'en bas */
 #epsd-pill{top:calc(60px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:14px!important;height:36px!important;box-shadow:none!important}
 nav{padding-right:190px}
@@ -215,6 +223,7 @@ const KEY='eps_volley_eval_v1';
 const CHOIX=['4-4','6-2','2-6']; // AFL2-AFL3
 function defBareme(){return{
   v:2,
+  optMatchs:false, optBonus:false, bonusSeuil:3, bonusLabel:"Point gagné après une attaque construite en 3 touches",
   mode:'perso',        // 'perso' = 4 × 25 % ; 'officiel' = AFL1 12 pts + AFL2/AFL3 8 pts au choix
   pas:0.25,            // pas du curseur
   arrondi:0.5,         // arrondi de la note finale
@@ -277,6 +286,17 @@ function rnd(v,p){return Math.round(v/p+1e-9)*p}
 function fr(v,dec){if(v==null||isNaN(v))return '–';let s=(Math.round(v*100)/100).toString();return s.replace('.',',')}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1800)}
 function fullName(e){return (e.nom+' '+(e.prenom||'')).trim()}
+
+/* ===== Options (désactivées par défaut) : résultats des matchs (AFL1) et points bonus ===== */
+const optM=()=>!!B().optMatchs, optB=()=>!!B().optBonus;
+function matchProp(e){const m=e.matchs||[];if(!m.length)return null;return m.reduce((s,x)=>s+(x==='G'?1:x==='N'?.5:0),0)/m.length}
+function matchTxt(e){const m=e.matchs||[];const c=k=>m.filter(x=>x===k).length;return m.length?`${c('G')} G · ${c('N')} N · ${c('P')} P`:'–'}
+/* place le curseur des critères AFL1 dans le degré choisi selon la proportion de matchs gagnés (sauf si l'enseignant l'a déplacé à la main) */
+function autoPos(cr,e){
+  if(!optM()||cr.afl!=='AFL1')return;const v=e.ev&&e.ev[cr.id],pr=matchProp(e);if(!v||v.d==null||v.man||pr==null)return;
+  const [lo,hi]=band(cr,e,v.d),mx=maxPts(cr,e);v.f=mx?rnd(lo+pr*(hi-lo),B().pas)/mx:0;
+}
+function applyMatchs(e){B().criteres.forEach(cr=>autoPos(cr,e))}
 
 /* points max d'un critère pour un élève */
 function maxPts(c,e){
@@ -372,6 +392,7 @@ function renderEval(){
     <button class="btn red sm" onclick="resetEleve()">Effacer la note</button>
   </div>
   ${choixHtml}
+  ${optM()||optB()?`<div class="row" style="align-items:stretch;margin-bottom:12px">${optM()?matchCard(e):''}${optB()?bonusCard(e):''}</div>`:''}
   <div id="crits" ${isAbs(e)?'style="opacity:.4;pointer-events:none"':''}>
   ${b.criteres.map(cr=>critHtml(cr,e)).join('')}
   </div>
@@ -396,6 +417,22 @@ function critHtml(cr,e){
       <span class="dt">D${d+1} · ${esc(b.degres[d])}</span><span class="rg">${fr(lo)} à ${fr(hi)} pt</span><span>${esc(cr.desc[d]||'')}</span></button>`}).join('')}</div>
    ${sl}</div>`;
 }
+function matchCard(e){
+  const pr=matchProp(e);
+  return `<div class="card" style="flex:2;min-width:280px;margin:0"><h2>🏐 Résultats des matchs <span class="tag">AFL1</span></h2>
+   <div class="row"><button class="btn" style="background:var(--d4)" onclick="addMatch('G')">Gagné</button><button class="btn" style="background:#8a8f98" onclick="addMatch('N')">Nul</button><button class="btn" style="background:var(--d1)" onclick="addMatch('P')">Perdu</button></div>
+   <div class="mres">${(e.matchs||[]).map((x,i)=>`<span class="m${x}" onclick="delMatch(${i})" title="Toucher pour supprimer">${x}</span>`).join('')||'<span class="muted" style="width:auto;color:var(--muted)">Aucun match saisi</span>'}</div>
+   <div class="muted">${pr==null?'Le curseur des critères AFL1 se placera dans le degré selon la part de matchs gagnés.':`<b>${Math.round(pr*100)} %</b> de matchs gagnés (nul = ½) → curseur AFL1 placé à ${Math.round(pr*100)} % du degré. Tu peux toujours le déplacer à la main.`}</div></div>`;
+}
+function bonusCard(e){
+  const n=e.bonus||0,seuil=+B().bonusSeuil||0;
+  return `<div class="card" style="flex:1;min-width:230px;margin:0"><h2>⭐ Points bonus</h2><div class="muted" style="margin-bottom:8px">${esc(B().bonusLabel||'')}</div>
+   <div class="cnt"><button onclick="addBonus(-1)">−</button><b>${n}</b><button onclick="addBonus(1)">+</button></div>
+   ${seuil?`<div class="muted" style="margin-top:6px">${n>=seuil?'✓ Objectif atteint':'Objectif : '+seuil}</div>`:''}</div>`;
+}
+function addMatch(x){const e=curE();e.matchs=e.matchs||[];e.matchs.push(x);applyMatchs(e);save();renderEval()}
+function delMatch(i){const e=curE();if(!confirm('Supprimer ce résultat ?'))return;e.matchs.splice(i,1);applyMatchs(e);save();renderEval()}
+function addBonus(d){const e=curE();e.bonus=Math.max(0,(e.bonus||0)+d);save();renderEval()}
 function renderTotal(){
   const e=C().eleves[curEl],t=document.getElementById('totBar');if(!t)return;
   if(isAbs(e)){t.innerHTML=`<div class="big">${e.statut==='ABS'?'Absent':'Dispensé'}</div>`;return}
@@ -408,18 +445,18 @@ function curE(){return C().eleves[curEl]}
 function setDeg(id,d){
   const e=curE(),cr=B().criteres.find(x=>x.id===id),[lo,hi]=band(cr,e,d),mx=maxPts(cr,e);
   const mid=rnd((lo+hi)/2,B().pas);
-  e.ev[id]={d,f:mx?mid/mx:0};save();
+  e.ev[id]={d,f:mx?mid/mx:0};autoPos(cr,e);save();
   document.getElementById('c-'+id).outerHTML=critHtml(cr,e);renderTotal();
 }
 function setVal(id,val){
   const e=curE(),cr=B().criteres.find(x=>x.id===id),mx=maxPts(cr,e);
-  e.ev[id].f=mx?(+val)/mx:0;save();
+  e.ev[id].f=mx?(+val)/mx:0;e.ev[id].man=1;save();
   document.getElementById('p-'+id).innerHTML=`${fr(+val)} <small>/ ${fr(mx)}</small>`;renderTotal();
 }
 function setStatut(s){const e=curE();e.statut=s;save();renderEval()}
 function setChoix(x){const e=curE();e.choix=x;save();renderEval()}
 function setComment(v){curE().comment=v;save()}
-function resetEleve(){if(!confirm('Effacer toute l\'évaluation de cet élève ?'))return;const e=curE();e.ev={};e.statut='';e.comment='';save();renderEval()}
+function resetEleve(){if(!confirm('Effacer toute l\'évaluation de cet élève ?'))return;const e=curE();e.ev={};e.statut='';e.comment='';e.matchs=[];e.bonus=0;save();renderEval()}
 function nav(d){const n=curEl+d;if(n<0||n>=C().eleves.length)return;openEval(n)}
 
 /* ================== ÉLÈVES ================== */
@@ -468,6 +505,14 @@ function renderBareme(){
       <div><label class="l">Arrondi de la note /20</label><select class="f" onchange="setB('arrondi',+this.value)">${[0.1,0.25,0.5,1].map(v=>`<option value="${v}" ${b.arrondi==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
     </div>
   </div>
+  <div class="card"><h2>Options (pour les prochaines évaluations)</h2>
+    <div class="opt ${b.optMatchs?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optMatchs?'checked':''} onchange="setB('optMatchs',this.checked)" style="width:22px;height:22px"><b>Résultats des matchs (AFL1)</b></label>
+      <p class="muted">Dans la fiche de l'élève, tu saisis ses matchs (gagné, nul, perdu). Une fois le degré choisi, le curseur des critères AFL1 se place selon la part de matchs gagnés : 0 % en bas du degré, 100 % en haut. Tu peux toujours le déplacer à la main.</p></div>
+    <div class="opt ${b.optBonus?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optBonus?'checked':''} onchange="setB('optBonus',this.checked)" style="width:22px;height:22px"><b>Points bonus</b></label>
+      <p class="muted">Un compteur par élève pour un indicateur de jeu, affiché dans la fiche, le bilan et les exports. Il ne change pas la note : c'est un repère pour placer l'élève.</p>
+      ${b.optBonus?`<div class="g2"><div><label class="l">Ce qui rapporte un point bonus</label><input type="text" value="${esc(b.bonusLabel||'')}" onchange="setB('bonusLabel',this.value)"></div>
+      <div><label class="l">Objectif (0 = aucun)</label><input type="number" min="0" value="${+b.bonusSeuil||0}" onchange="setB('bonusSeuil',+this.value)"></div></div>`:''}</div>
+  </div>
   <div class="card"><h2>Degrés et bornes (en % des points du critère)</h2>
     <p class="muted">Le curseur intra-degré se déplace entre ces bornes. Exemple sur 5 pts → ${ex}</p>
     <div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
@@ -493,7 +538,7 @@ function renderBareme(){
     <button class="btn red" onclick="resetB()">Rétablir le barème d'origine</button></div>
   </div>`;
 }
-function setB(k,v){B()[k]=v;save();renderBareme();renderClassSel()}
+function setB(k,v){B()[k]=v;if(k==='optBonus'&&v&&B().bonusLabel==null){B().bonusLabel=defBareme().bonusLabel;B().bonusSeuil=3}save();renderBareme();renderClassSel()}
 function setBand(i,j,v){v=Math.max(0,Math.min(100,+v||0));B().bandes[i][j]=v;save();renderBareme()}
 function setC(k,f,v,re){B().criteres[k][f]=v;save();if(re)renderBareme()}
 function setDesc(k,d,v){B().criteres[k].desc[d]=v;save()}
@@ -689,12 +734,12 @@ function tableHtml(c){
   const b=B();
   const hasAfl=a=>b.criteres.some(x=>x.afl===a);
   return `<table><thead><tr><th>Élève</th>${b.criteres.map(cr=>`<th>${esc(cr.nom)}<br><small>${cr.afl}</small></th>`).join('')}
-   ${['AFL1','AFL2','AFL3'].filter(hasAfl).map(a=>`<th>${a}</th>`).join('')}${b.mode==='officiel'?'<th>Choix</th>':''}<th>Note /20</th></tr></thead><tbody>
+   ${['AFL1','AFL2','AFL3'].filter(hasAfl).map(a=>`<th>${a}</th>`).join('')}${b.mode==='officiel'?'<th>Choix</th>':''}${optM()?'<th>Matchs</th>':''}${optB()?'<th>Bonus</th>':''}<th>Note /20</th></tr></thead><tbody>
    ${c.eleves.map(e=>{
-     if(isAbs(e))return `<tr><td>${esc(fullName(e))}</td><td colspan="${b.criteres.length+['AFL1','AFL2','AFL3'].filter(hasAfl).length+(b.mode==='officiel'?1:0)}"><i>${e.statut==='ABS'?'Absent':'Dispensé'}</i></td><td><b>${e.statut}</b></td></tr>`;
+     if(isAbs(e))return `<tr><td>${esc(fullName(e))}</td><td colspan="${b.criteres.length+['AFL1','AFL2','AFL3'].filter(hasAfl).length+(b.mode==='officiel'?1:0)+(optM()?1:0)+(optB()?1:0)}"><i>${e.statut==='ABS'?'Absent':'Dispensé'}</i></td><td><b>${e.statut}</b></td></tr>`;
      return `<tr><td>${esc(fullName(e))}</td>${b.criteres.map(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e);return `<td>${p!=null?`${fr(p)}/${fr(maxPts(cr,e))} <small style="color:var(--d${v.d+1});font-weight:700">D${v.d+1}</small>`:'–'}</td>`}).join('')}
      ${['AFL1','AFL2','AFL3'].filter(hasAfl).map(a=>{const r=aflPts(e,a);return `<td>${r?fr(r.pts)+'/'+fr(r.max):'–'}</td>`}).join('')}
-     ${b.mode==='officiel'?`<td>${e.choix||'4-4'}</td>`:''}<td><b>${note20(e)!=null?fr(note20(e)):'–'}</b></td></tr>`}).join('')}
+     ${b.mode==='officiel'?`<td>${e.choix||'4-4'}</td>`:''}${optM()?`<td>${matchTxt(e)}</td>`:''}${optB()?`<td>${e.bonus||0}</td>`:''}<td><b>${note20(e)!=null?fr(note20(e)):'–'}</b></td></tr>`}).join('')}
    </tbody></table>`;
 }
 function renderBilan(){
@@ -732,6 +777,8 @@ function ficheHtml(e,c){
    ${isAbs(e)?`<h2>${e.statut==='ABS'?'Absent':'Dispensé'}</h2>`:`
    <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">Critère</th><th>Degré</th><th style="text-align:left">Ce qui a été observé</th><th>Points</th></tr>${rows}</table>
    <p style="font-size:1.1em">${afls}</p>
+   ${optM()&&(e.matchs||[]).length?`<p>Matchs : ${matchTxt(e)} (${Math.round(matchProp(e)*100)} % gagnés)</p>`:''}
+   ${optB()?`<p>Points bonus (${esc(B().bonusLabel||'')}) : ${e.bonus||0}</p>`:''}
    <p style="font-size:1.4em"><b>Note : ${n!=null?fr(n):'–'} / 20</b></p>`}
    ${e.comment?`<p><b>Commentaire :</b> ${esc(e.comment).replace(/\n/g,'<br>')}</p>`:''}`;
 }
@@ -747,10 +794,10 @@ function printPDF(kind){
 }
 function exportCSV(){
   const c=C(),b=B(),hasAfl=a=>b.criteres.some(x=>x.afl===a),afls=['AFL1','AFL2','AFL3'].filter(hasAfl);
-  const head=['Nom','Prénom',...b.criteres.flatMap(cr=>[cr.nom+' (degré)',cr.nom+' (pts)']),...afls,...(b.mode==='officiel'?['Choix AFL2-AFL3']:[]),'Note /20','Statut','Commentaire'];
+  const head=['Nom','Prénom',...b.criteres.flatMap(cr=>[cr.nom+' (degré)',cr.nom+' (pts)']),...afls,...(b.mode==='officiel'?['Choix AFL2-AFL3']:[]),...(optM()?['Matchs (G-N-P)','% gagnés']:[]),...(optB()?['Points bonus']:[]),'Note /20','Statut','Commentaire'];
   const lines=[head];
   c.eleves.forEach(e=>{lines.push([e.nom,e.prenom||'',...b.criteres.flatMap(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e);return [v&&v.d!=null?'D'+(v.d+1):'',p!=null?fr(p):'']}),
-    ...afls.map(a=>{const r=aflPts(e,a);return r?fr(r.pts):''}),...(b.mode==='officiel'?[e.choix||'4-4']:[]),note20(e)!=null?fr(note20(e)):'',e.statut||'',e.comment||''])});
+    ...afls.map(a=>{const r=aflPts(e,a);return r?fr(r.pts):''}),...(b.mode==='officiel'?[e.choix||'4-4']:[]),...(optM()?[matchTxt(e),matchProp(e)==null?'':Math.round(matchProp(e)*100)+' %']:[]),...(optB()?[e.bonus||0]:[]),note20(e)!=null?fr(note20(e)):'',e.statut||'',e.comment||''])});
   const csv='﻿'+lines.map(l=>l.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\r\n');
   download(new Blob([csv],{type:'text/csv;charset=utf-8'}),'volley_'+safe(c.nom)+'_'+today()+'.csv');
 }
