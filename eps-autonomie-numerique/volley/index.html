@@ -210,6 +210,7 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
 const KEY='eps_volley_eval_v1';
 const CHOIX=['4-4','6-2','2-6']; // AFL2-AFL3
 function defBareme(){return{
+  v:2,
   mode:'perso',        // 'perso' = 4 × 25 % ; 'officiel' = AFL1 12 pts + AFL2/AFL3 8 pts au choix
   pas:0.25,            // pas du curseur
   arrondi:0.5,         // arrondi de la note finale
@@ -224,18 +225,18 @@ function defBareme(){return{
     {id:'pro',nom:"Profil de joueur et action",but:"Choisir un type de passe et être capable de participer activement au jeu.",afl:'AFL1',refs:'AFL1 · EP3 · EP4',pts:5,desc:[
       "Statique, intervient peu et se débarrasse du ballon.",
       "Intervient sur le 2e ballon (renvois directs ou passes canadiennes imprécises).",
-      "Alterne un jeu en 2 ou 3 touches et distribue en zone avant avec un rebond.",
+      "Alterne un jeu en 2 ou 3 touches et distribue en zone avant, en utilisant l'autopasse si besoin (attraper le ballon et se le passer pour le jouer).",
       "Joue en 3 touches en s'orientant et en passant le ballon à l'attaquant (trajectoire haute, en cloche, proche du filet, zone avant)."]},
     {id:'ech',nom:"Échauffement et engagement",but:"S'échauffer pour pratiquer en sécurité et s'engager pour progresser.",afl:'AFL2',refs:'AFL2 · EP5 · EP8 · EP9',pts:5,desc:[
       "Échauffement non structuré. Le volume de répétition et l'engagement ne permettent pas de progresser.",
       "Échauffement partiel. S'engage de façon poussive : le volume de pratique freine les progrès.",
       "Échauffement complet mais décousu. Identifie des manquements mais a besoin de l'aide de l'enseignant pour les combler.",
       "Échauffement complet. Identifie ses lacunes et les travaille pendant les temps consacrés. Répétition accrue qui permet une amélioration."]},
-    {id:'arb',nom:"Arbitrage et règles",but:"Connaître les règles et être capable d'arbitrer.",afl:'AFL3',refs:'AFL3 · EP9 · EP10',pts:5,desc:[
-      "L'attitude ne permet ni arbitrage, ni fonctionnement autonome.",
-      "Règles partiellement connues. Arbitrage qui ne permet pas un bon déroulement du jeu.",
-      "Arbitre avec des lacunes mais s'appuie sur les partenaires pour se corriger. Autonomie qui nécessite encore une intervention de l'enseignant.",
-      "Arbitre et argumente lors des contestations. Garant du fonctionnement autonome de l'organisation des matchs."]}
+    {id:'arb',nom:"Règles et déroulement du match",but:"Connaître les règles essentielles et faire fonctionner le match de façon autonome (score, service, rotation, rôles).",afl:'AFL3',refs:'AFL3 · EP9 · EP10',pts:5,desc:[
+      "Ne connaît pas les règles de base (nombre de touches, filet, ballon dehors). Ne sait pas tenir le score ni dire qui sert. Le match ne peut pas se dérouler sans l'enseignant.",
+      "Connaît quelques règles mais les applique de façon irrégulière. Tient le score avec des erreurs et oublie la rotation. A besoin de l'enseignant pour lancer ou relancer le jeu.",
+      "Connaît les règles essentielles (touches, filet, lignes, service) et les fait respecter. Tient le score, gère le service et la rotation. Le match se déroule avec quelques interventions de l'enseignant.",
+      "Connaît et applique toutes les règles du jeu aménagé, y compris l'autopasse. Organise le match seul : installation, score annoncé à voix haute, rotation, changement de rôles. Explique une règle à un camarade ou règle un désaccord calmement."]}
   ]};}
 function defState(){return{bareme:defBareme(),classes:[{id:uid(),nom:'Ma classe',eleves:[]}],cur:0};}
 function uid(){return Math.random().toString(36).slice(2,9)}
@@ -245,9 +246,19 @@ try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 function fixState(){
   if(!S||typeof S!=='object')S=defState();
   if(!S.bareme||!S.bareme.criteres)S.bareme=defBareme();
+  migrateBareme();
   if(!Array.isArray(S.classes)||!S.classes.length)S.classes=[{id:uid(),nom:'Ma classe',eleves:[]}];
   S.classes.forEach(c=>{c.eleves=c.eleves||[];c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
   if(!(S.cur>=0&&S.cur<S.classes.length))S.cur=0;
+}
+function migrateBareme(){
+  const b=S.bareme;if((b.v||1)>=2)return;
+  const D=defBareme(),get=id=>D.criteres.find(c=>c.id===id);
+  const pro=b.criteres.find(c=>c.id==='pro');
+  if(pro&&pro.desc[2]==="Alterne un jeu en 2 ou 3 touches et distribue en zone avant avec un rebond.")pro.desc[2]=get('pro').desc[2];
+  const arb=b.criteres.find(c=>c.id==='arb');
+  if(arb&&arb.nom==="Arbitrage et règles"){const n=get('arb');arb.nom=n.nom;arb.but=n.but;arb.desc=n.desc.slice()}
+  b.v=2;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
 }
 fixState();
 /* recharge si une autre page (accueil : import de liste) a modifié les données */
