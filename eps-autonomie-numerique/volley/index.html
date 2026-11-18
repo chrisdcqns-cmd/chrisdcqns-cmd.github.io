@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#1B1E24">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<title>Évaluation Volley-ball – EPS</title>
+<style>
+:root{
+  --navy:#1B1E24; --blue:#1F5F8B; --orange:#D9481F; --vol:#7A3E9D; --bg:#F4F1EA; --card:#fff; --ink:#1B1E24; --muted:#6A6F78; --line:#E2DDD2;
+  --d1:#d64545; --d2:#f0a030; --d3:#3aa0d8; --d4:#2e9e5b;
+}
+*{box-sizing:border-box}
+html,body{overscroll-behavior-y:contain;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit}
+header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:10px 14px 0}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top h1{font-size:1.15rem;margin:0;flex:1;min-width:200px}
+.top h1 span{color:#E7A6FF}
+.lockbtn{background:transparent;border:2px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:7px 14px;font-weight:700}
+#lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#lock.on{display:flex}
+#lock .bx{background:#fff;border-radius:22px;padding:30px;max-width:440px;box-shadow:0 3px 0 var(--line);border:3px solid var(--vol)}
+#lock h2{margin:0 0 8px;font-size:26px}
+.src{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.src button{border:2px solid var(--line);background:#fff;border-radius:14px;padding:14px;text-align:left;font-weight:700;color:var(--ink);cursor:pointer}
+.src button small{display:block;font-weight:400;color:var(--muted);margin-top:4px}
+.pick{display:flex;flex-wrap:wrap;gap:8px;max-height:45vh;overflow:auto;padding:4px 0}
+.pick label{display:flex;align-items:center;gap:6px;background:#F3F0EA;border-radius:999px;padding:7px 12px;font-weight:600;cursor:pointer}
+.pick label.off{opacity:.45;text-decoration:line-through}
+.pick input{width:18px;height:18px;accent-color:var(--blue)}
+.disp{font-size:.8rem}
+.top select{background:#fff;border:0;border-radius:8px;padding:8px 10px;min-width:150px}
+nav{display:flex;gap:4px;margin-top:10px;overflow-x:auto}
+nav button{background:transparent;color:#c8d6e8;border:0;padding:10px 16px;border-radius:10px 10px 0 0;font-weight:600;white-space:nowrap}
+nav button.on{background:var(--bg);color:var(--navy)}
+main{padding:14px;max-width:1200px;margin:0 auto}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h2{font-size:1.05rem;margin:0 0 10px;color:var(--navy)}
+.card h3{font-size:.95rem;margin:12px 0 6px;color:var(--navy)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:600;background:var(--blue);color:#fff;cursor:pointer}
+.btn.alt{background:#e8eef6;color:var(--navy)}
+.btn.or{background:var(--orange)}
+.btn.red{background:#fde8e8;color:#b02a2a}
+.btn.sm{padding:6px 10px;font-size:.85rem}
+input[type=text],input[type=number],textarea,select.f{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;width:100%}
+textarea{resize:vertical}
+.muted{color:var(--muted);font-size:.88rem}
+.warn{background:#fff4e0;border-left:4px solid var(--orange);padding:8px 12px;border-radius:8px;font-size:.9rem;margin:8px 0}
+.ok{background:#e6f5ec;border-left:4px solid var(--d4);padding:8px 12px;border-radius:8px;font-size:.9rem;margin:8px 0}
+
+/* grille élèves */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.chip{background:#fff;border:2px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:76px}
+.chip:active{transform:scale(.98)}
+.chip .n{font-weight:700;line-height:1.2}
+.chip .s{display:flex;justify-content:space-between;align-items:center}
+.chip .note{font-weight:800;font-size:1.1rem;color:var(--navy)}
+.chip.done{border-color:var(--d4)}
+.chip.part{border-color:var(--orange)}
+.dots{display:flex;gap:3px}
+.dot{width:12px;height:12px;border-radius:50%;background:#e2e6ec}
+.bg1{background:var(--d1)!important}.bg2{background:var(--d2)!important}.bg3{background:var(--d3)!important}.bg4{background:var(--d4)!important}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:20px;background:#e8eef6;color:var(--navy)}
+.tag.abs{background:#fde8e8;color:#b02a2a}
+
+/* évaluation */
+.evhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:96px;z-index:10;background:var(--bg);padding:6px 0 10px}
+.evhead h2{margin:0;flex:1;font-size:1.25rem;color:var(--navy)}
+.crit{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.crit-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.crit-h b{font-size:1.05rem;color:var(--navy)}
+.crit-h .pts{font-size:1.4rem;font-weight:800;color:var(--navy);white-space:nowrap}
+.crit-h .pts small{font-size:.85rem;color:var(--muted);font-weight:600}
+.degs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.deg{border:2px solid var(--line);background:#fafbfd;border-radius:12px;padding:8px;text-align:left;cursor:pointer;font-size:.84rem;line-height:1.3;display:flex;flex-direction:column;gap:4px}
+.deg .dt{font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.02em}
+.deg .rg{font-size:.75rem;color:var(--muted);font-weight:600}
+.deg.d1 .dt{color:var(--d1)}.deg.d2 .dt{color:#c57d10}.deg.d3 .dt{color:#1f7fb5}.deg.d4 .dt{color:var(--d4)}
+.deg.sel.d1{border-color:var(--d1);background:#fdeeee}.deg.sel.d2{border-color:var(--d2);background:#fff5e6}
+.deg.sel.d3{border-color:var(--d3);background:#eaf5fc}.deg.sel.d4{border-color:var(--d4);background:#e8f6ee}
+.slider{margin-top:10px;display:flex;align-items:center;gap:12px;background:#f3f6fa;border-radius:10px;padding:10px 12px}
+.slider input{flex:1;height:36px;accent-color:var(--blue)}
+.slider .lim{font-size:.8rem;color:var(--muted);min-width:34px;text-align:center}
+.total{position:sticky;bottom:0;background:var(--navy);color:#fff;border-radius:14px 14px 0 0;padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px}
+.total .big{font-size:1.8rem;font-weight:800}
+.total .big small{font-size:1rem;opacity:.7}
+.total .afl{font-size:.9rem;opacity:.9}
+.seg{display:inline-flex;background:#e8eef6;border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;padding:7px 12px;border-radius:8px;font-weight:600;color:var(--navy)}
+.seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+/* tableaux */
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{border-bottom:1px solid var(--line);padding:7px 6px;text-align:center}
+th{background:#eef2f7;color:var(--navy);font-weight:700;position:sticky;top:0}
+td:first-child,th:first-child{text-align:left}
+.tw{overflow-x:auto;max-height:70vh}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{background:#f3f6fa;border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:1.5rem;color:var(--navy)}
+.stat span{font-size:.8rem;color:var(--muted)}
+.bar{display:flex;height:26px;border-radius:8px;overflow:hidden;background:#eef1f5;margin:4px 0 10px}
+.bar div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.78rem;font-weight:700;min-width:0}
+.hist{display:flex;align-items:flex-end;gap:8px;height:150px;padding-top:10px}
+.hist .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.hist .col div.b{width:100%;background:var(--blue);border-radius:6px 6px 0 0;min-height:2px}
+.hist .col span{font-size:.75rem;color:var(--muted);margin-top:4px;white-space:nowrap}
+.hist .col em{font-style:normal;font-size:.8rem;font-weight:700;color:var(--navy)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;margin-bottom:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+
+/* barème */
+.bcrit{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin:6px 0 3px}
+.elist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.erow{display:flex;gap:8px;align-items:center;background:#f7f9fc;border-radius:10px;padding:6px 10px}
+.erow .nm{flex:1;font-weight:600}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:30px;opacity:0;transition:.3s;pointer-events:none;z-index:99}
+.toast.on{opacity:1}
+#printArea{display:none}
+@media (max-width:760px){.degs{grid-template-columns:1fr 1fr}.g2,.g4{grid-template-columns:1fr 1fr}.evhead{top:92px}}
+
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body{background:#fff}
+  header,main,.toast{display:none!important}
+  #printArea{display:block;font-size:10.5pt;color:#000}
+  #printArea h1{font-size:15pt;margin:0 0 4px}
+  #printArea h2{font-size:12pt;margin:12px 0 6px}
+  #printArea table{font-size:9.5pt}
+  #printArea th{position:static}
+  .pb{page-break-before:always}
+  .stat{border:1px solid #ccc}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>🏐 Évaluation <span>Volley-ball</span> · CA4</h1>
+    <select id="classSel" aria-label="Classe"></select>
+    <button class="lockbtn" onclick="lockApp()" title="Verrouiller">🔒 Verrouiller</button>
+  </div>
+  <nav id="nav">
+    <button data-t="eval" class="on">Évaluer</button>
+    <button data-t="bilan">Bilan & export</button>
+    <button data-t="eleves">Élèves</button>
+    <button data-t="bareme">Barème</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ÉVALUER -->
+  <section class="tab on" id="t-eval">
+    <div id="evList"></div>
+    <div id="evPanel" style="display:none"></div>
+  </section>
+
+  <!-- BILAN -->
+  <section class="tab" id="t-bilan"></section>
+
+  <!-- ÉLÈVES -->
+  <section class="tab" id="t-eleves">
+    <div class="card">
+      <h2>Classes / groupes</h2>
+      <div class="row">
+        <button class="btn" onclick="newClass()">+ Nouvelle classe</button>
+        <button class="btn alt" onclick="renameClass()">Renommer</button>
+        <button class="btn red" onclick="deleteClass()">Supprimer la classe</button>
+      </div>
+    </div>
+    <div class="card" id="impCard"></div>
+    <div class="card">
+      <h2>Élèves de la classe</h2>
+      <div class="row"><button class="btn alt" onclick="sortEleves()">Trier A→Z</button><button class="btn alt" onclick="addOne()">+ Un élève</button></div>
+      <div class="elist" id="elist"></div>
+    </div>
+    </div>
+    <div class="card">
+      <h2>Sauvegarde</h2>
+      <p class="muted">Tout est enregistré automatiquement sur la tablette (aucune note n'est envoyée en ligne). Pour changer d'appareil ou garder une copie de sécurité, exporte une sauvegarde.</p>
+      <div class="row">
+        <button class="btn alt" onclick="exportBackup()">⬇ Exporter la sauvegarde (.json)</button>
+        <label class="btn alt">⬆ Importer une sauvegarde<input type="file" accept=".json,application/json" style="display:none" onchange="importBackup(this)"></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- BARÈME -->
+  <section class="tab" id="t-bareme"></section>
+</main>
+
+<div id="lock"><div class="bx"><div style="font-size:48px">🏐</div><h2>Évaluation Volley-ball</h2>
+<p class="muted" style="font-size:1rem">Notes des élèves : réservé à l'enseignant.</p>
+<button class="btn" style="font-size:1.1rem;padding:14px 22px;margin-top:10px" onclick="unlock()">🔒 Code enseignant</button>
+<p class="muted" style="margin-top:14px">Même code que les autres applications EPS.</p></div></div>
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================== DONNÉES PAR DÉFAUT ================== */
+const KEY='eps_volley_eval_v1';
+const CHOIX=['4-4','6-2','2-6']; // AFL2-AFL3
+function defBareme(){return{
+  mode:'perso',        // 'perso' = 4 × 25 % ; 'officiel' = AFL1 12 pts + AFL2/AFL3 8 pts au choix
+  pas:0.25,            // pas du curseur
+  arrondi:0.5,         // arrondi de la note finale
+  degres:['Maîtrise insuffisante','Maîtrise fragile','Maîtrise suffisante','Très bonne maîtrise'],
+  bandes:[[0,20],[25,40],[45,70],[75,100]], // en % des points du critère
+  criteres:[
+    {id:'att',nom:"Système d'attaque",but:"Être capable de renvoyer le ballon dans l'intention de marquer.",afl:'AFL1',refs:'AFL1 · EP1 · EP2',pts:5,desc:[
+      "Renvoi direct dans l'autre camp. Passe à l'aveugle. Aucune intention de jeu. Jeu en réaction.",
+      "Conserve le ballon mais les actions ne sont pas toujours décisives. Renvoi du ballon sur un joueur adverse.",
+      "Attaque construite en 3 touches. Utilisation du relais, marque au fond du terrain, vise un espace vide.",
+      "Attaque le ballon : l'intention de marquer est présente. Trajectoire descendante, balle accélérée, placée, frappée."]},
+    {id:'pro',nom:"Profil de joueur et action",but:"Choisir un type de passe et être capable de participer activement au jeu.",afl:'AFL1',refs:'AFL1 · EP3 · EP4',pts:5,desc:[
+      "Statique, intervient peu et se débarrasse du ballon.",
+      "Intervient sur le 2e ballon (renvois directs ou passes canadiennes imprécises).",
+      "Alterne un jeu en 2 ou 3 touches et distribue en zone avant avec un rebond.",
+      "Joue en 3 touches en s'orientant et en passant le ballon à l'attaquant (trajectoire haute, en cloche, proche du filet, zone avant)."]},
+    {id:'ech',nom:"Échauffement et engagement",but:"S'échauffer pour pratiquer en sécurité et s'engager pour progresser.",afl:'AFL2',refs:'AFL2 · EP5 · EP8 · EP9',pts:5,desc:[
+      "Échauffement non structuré. Le volume de répétition et l'engagement ne permettent pas de progresser.",
+      "Échauffement partiel. S'engage de façon poussive : le volume de pratique freine les progrès.",
+      "Échauffement complet mais décousu. Identifie des manquements mais a besoin de l'aide de l'enseignant pour les combler.",
+      "Échauffement complet. Identifie ses lacunes et les travaille pendant les temps consacrés. Répétition accrue qui permet une amélioration."]},
+    {id:'arb',nom:"Arbitrage et règles",but:"Connaître les règles et être capable d'arbitrer.",afl:'AFL3',refs:'AFL3 · EP9 · EP10',pts:5,desc:[
+      "L'attitude ne permet ni arbitrage, ni fonctionnement autonome.",
+      "Règles partiellement connues. Arbitrage qui ne permet pas un bon déroulement du jeu.",
+      "Arbitre avec des lacunes mais s'appuie sur les partenaires pour se corriger. Autonomie qui nécessite encore une intervention de l'enseignant.",
+      "Arbitre et argumente lors des contestations. Garant du fonctionnement autonome de l'organisation des matchs."]}
+  ]};}
+function defState(){return{bareme:defBareme(),classes:[{id:uid(),nom:'Ma classe',eleves:[]}],cur:0};}
+function uid(){return Math.random().toString(36).slice(2,9)}
+
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+function fixState(){
+  if(!S||typeof S!=='object')S=defState();
+  if(!S.bareme||!S.bareme.criteres)S.bareme=defBareme();
+  if(!Array.isArray(S.classes)||!S.classes.length)S.classes=[{id:uid(),nom:'Ma classe',eleves:[]}];
+  S.classes.forEach(c=>{c.eleves=c.eleves||[];c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
+  if(!(S.cur>=0&&S.cur<S.classes.length))S.cur=0;
+}
+fixState();
+/* recharge si une autre page (accueil : import de liste) a modifié les données */
+addEventListener('storage',ev=>{if(ev.key===KEY){try{S=JSON.parse(ev.newValue)}catch(e){}fixState();refresh()}});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠ Enregistrement impossible sur cet appareil')}}
+const B=()=>S.bareme;
+const C=()=>S.classes[S.cur]||S.classes[0];
+
+/* ================== OUTILS ================== */
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function rnd(v,p){return Math.round(v/p+1e-9)*p}
+function fr(v,dec){if(v==null||isNaN(v))return '–';let s=(Math.round(v*100)/100).toString();return s.replace('.',',')}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1800)}
+function fullName(e){return (e.nom+' '+(e.prenom||'')).trim()}
+
+/* points max d'un critère pour un élève */
+function maxPts(c,e){
+  const b=B();
+  if(b.mode==='perso')return +c.pts||0;
+  const same=b.criteres.filter(x=>x.afl===c.afl).length||1;
+  if(c.afl==='AFL1')return 12/same;
+  const ch=(e&&e.choix)||'4-4';const [a2,a3]=ch.split('-').map(Number);
+  if(c.afl==='AFL2')return a2/same;
+  if(c.afl==='AFL3')return a3/same;
+  return 0;
+}
+function band(c,e,d){const m=maxPts(c,e),b=B(),p=b.pas;return [rnd(b.bandes[d][0]/100*m,p),rnd(b.bandes[d][1]/100*m,p)]}
+function critPts(c,e){const v=e.ev&&e.ev[c.id];if(!v||v.d==null)return null;return rnd(v.f*maxPts(c,e),B().pas)}
+function totalMax(e){return B().criteres.reduce((s,c)=>s+maxPts(c,e),0)}
+function isAbs(e){return e.statut==='ABS'||e.statut==='DISP'}
+function nbEval(e){return B().criteres.filter(c=>critPts(c,e)!=null).length}
+function note20(e){
+  if(isAbs(e))return null;
+  const cs=B().criteres;if(!cs.length||nbEval(e)<cs.length)return null;
+  const tot=cs.reduce((s,c)=>s+critPts(c,e),0),mx=totalMax(e);
+  return rnd(mx?tot/mx*20:0,B().arrondi);
+}
+function aflPts(e,afl){
+  const cs=B().criteres.filter(c=>c.afl===afl);if(!cs.length)return null;
+  let s=0,m=0;for(const c of cs){const p=critPts(c,e);if(p==null)return null;s+=p;m+=maxPts(c,e)}
+  return {pts:s,max:m};
+}
+function partial(e){const cs=B().criteres;let s=0,m=0;cs.forEach(c=>{const p=critPts(c,e);if(p!=null){s+=p;m+=maxPts(c,e)}});return{s,m}}
+
+/* ================== NAVIGATION ================== */
+document.getElementById('nav').addEventListener('click',ev=>{
+  const b=ev.target.closest('button');if(!b)return;showTab(b.dataset.t);
+});
+function showTab(t){
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));
+  if(t==='eval'){closeEval()}
+  if(t==='bilan')renderBilan();
+  if(t==='eleves')renderEleves();
+  if(t==='bareme')renderBareme();
+  window.scrollTo(0,0);
+}
+function renderClassSel(){
+  const s=document.getElementById('classSel');
+  s.innerHTML=S.classes.map((c,i)=>`<option value="${i}" ${i===S.cur?'selected':''}>${esc(c.nom)} (${c.eleves.length})</option>`).join('');
+}
+document.getElementById('classSel').onchange=e=>{S.cur=+e.target.value;save();refresh()};
+function refresh(){renderClassSel();const t=document.querySelector('#nav button.on').dataset.t;showTab(t)}
+
+/* ================== ÉVALUER : LISTE ================== */
+let curEl=null;
+function renderList(){
+  const c=C(),cs=B().criteres;
+  const el=document.getElementById('evList');
+  if(!c.eleves.length){el.innerHTML=`<div class="card"><h2>${esc(c.nom)}</h2><p>Aucun élève dans cette classe.</p><button class="btn" onclick="showTab('eleves')">Ajouter des élèves</button></div>`;return}
+  const done=c.eleves.filter(e=>note20(e)!=null).length;
+  el.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px">
+    <div class="muted"><b>${esc(c.nom)}</b> · ${done}/${c.eleves.length} élèves notés · barème ${B().mode==='perso'?'personnel':'officiel CA4'}</div>
+    <div class="legend">${B().degres.map((d,i)=>`<span><i class="bg${i+1}"></i>${esc(d)}</span>`).join('')}</div></div>
+  <div class="grid">${c.eleves.map((e,i)=>{
+    const n=note20(e),ne=nbEval(e),cls=isAbs(e)||n!=null?'done':ne?'part':'';
+    const dots=cs.map(cr=>{const v=e.ev&&e.ev[cr.id];return `<span class="dot ${v&&v.d!=null?'bg'+(v.d+1):''}"></span>`}).join('');
+    const right=isAbs(e)?`<span class="tag abs">${e.statut}</span>`:`<span class="note">${n!=null?fr(n):'–'}</span>`;
+    const dp=dispOf(e);
+    return `<button class="chip ${cls}" onclick="openEval(${i})"><span class="n">${esc(fullName(e))}${dp?' <span class="disp" title="'+esc(EPSD.label(dp))+'">🩹</span>':''}</span><span class="s"><span class="dots">${dots}</span>${right}</span></button>`;
+  }).join('')}</div>`;
+}
+
+/* ================== ÉVALUER : FICHE ÉLÈVE ================== */
+function openEval(i){curEl=i;document.getElementById('evList').style.display='none';const p=document.getElementById('evPanel');p.style.display='block';renderEval();window.scrollTo(0,0)}
+function closeEval(){curEl=null;document.getElementById('evPanel').style.display='none';document.getElementById('evList').style.display='block';renderList()}
+function renderEval(){
+  const c=C(),e=c.eleves[curEl];if(!e){closeEval();return}
+  e.ev=e.ev||{};
+  const b=B(),p=document.getElementById('evPanel');
+  const choixHtml=b.mode==='officiel'?`<div class="card" style="padding:10px 14px"><div class="row"><b style="color:var(--navy)">Choix de l'élève AFL2 / AFL3 :</b>
+     <div class="seg">${CHOIX.map(x=>`<button class="${(e.choix||'4-4')===x?'on':''}" onclick="setChoix('${x}')">${x.replace('-',' / ')} pts</button>`).join('')}</div>
+     <span class="muted">à annoncer avant l'épreuve</span></div></div>`:'';
+  p.innerHTML=`
+  <div class="evhead">
+    <button class="btn alt" onclick="closeEval()">← Liste</button>
+    <h2>${esc(fullName(e))}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
+    <button class="btn alt sm" onclick="nav(-1)" ${curEl===0?'disabled':''}>◀ Préc.</button>
+    <button class="btn alt sm" onclick="nav(1)" ${curEl===c.eleves.length-1?'disabled':''}>Suiv. ▶</button>
+  </div>
+  <div class="row" style="margin-bottom:12px">
+    <div class="seg">
+      <button class="${!e.statut?'on':''}" onclick="setStatut('')">Présent</button>
+      <button class="${e.statut==='ABS'?'on':''}" onclick="setStatut('ABS')">Absent</button>
+      <button class="${e.statut==='DISP'?'on':''}" onclick="setStatut('DISP')">Dispensé</button>
+    </div>
+    <button class="btn red sm" onclick="resetEleve()">Effacer la note</button>
+  </div>
+  ${choixHtml}
+  <div id="crits" ${isAbs(e)?'style="opacity:.4;pointer-events:none"':''}>
+  ${b.criteres.map(cr=>critHtml(cr,e)).join('')}
+  </div>
+  <div class="card"><h2>Commentaire / bilan pour l'élève</h2>
+    <textarea rows="3" oninput="setComment(this.value)" placeholder="Points forts, axes de progrès…">${esc(e.comment||'')}</textarea></div>
+  <div class="total" id="totBar"></div>`;
+  renderTotal();
+}
+function critHtml(cr,e){
+  const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e);
+  let sl='';
+  if(v&&v.d!=null){
+    const [lo,hi]=band(cr,e,v.d);
+    sl=`<div class="slider"><span class="lim">${fr(lo)}</span>
+      <input type="range" min="${lo}" max="${hi}" step="${b.pas}" value="${pts}" oninput="setVal('${cr.id}',this.value)" aria-label="Position dans le degré">
+      <span class="lim">${fr(hi)}</span></div>`;
+  }
+  return `<div class="crit" id="c-${cr.id}">
+   <div class="crit-h"><div><b>${esc(cr.nom)}</b> <span class="tag">${esc(cr.afl)}</span><div class="muted">${esc(cr.but)}${cr.refs?' · '+esc(cr.refs):''}</div></div>
+   <div class="pts" id="p-${cr.id}">${pts!=null?fr(pts):'–'} <small>/ ${fr(mx)}</small></div></div>
+   <div class="degs">${[0,1,2,3].map(d=>{const [lo,hi]=band(cr,e,d);return `<button class="deg d${d+1} ${v&&v.d===d?'sel':''}" onclick="setDeg('${cr.id}',${d})">
+      <span class="dt">D${d+1} · ${esc(b.degres[d])}</span><span class="rg">${fr(lo)} à ${fr(hi)} pt</span><span>${esc(cr.desc[d]||'')}</span></button>`}).join('')}</div>
+   ${sl}</div>`;
+}
+function renderTotal(){
+  const e=C().eleves[curEl],t=document.getElementById('totBar');if(!t)return;
+  if(isAbs(e)){t.innerHTML=`<div class="big">${e.statut==='ABS'?'Absent':'Dispensé'}</div>`;return}
+  const n=note20(e),{s,m}=partial(e);
+  const afls=['AFL1','AFL2','AFL3'].map(a=>{const r=aflPts(e,a);return r?`${a} : <b>${fr(r.pts)}</b>/${fr(r.max)}`:null}).filter(Boolean).join(' · ');
+  t.innerHTML=`<div class="big">${n!=null?fr(n):'–'} <small>/ 20</small></div>
+   <div class="afl">${n==null?`En cours : ${fr(s)} / ${fr(m)} pts<br>`:''}${afls||''}</div>`;
+}
+function curE(){return C().eleves[curEl]}
+function setDeg(id,d){
+  const e=curE(),cr=B().criteres.find(x=>x.id===id),[lo,hi]=band(cr,e,d),mx=maxPts(cr,e);
+  const mid=rnd((lo+hi)/2,B().pas);
+  e.ev[id]={d,f:mx?mid/mx:0};save();
+  document.getElementById('c-'+id).outerHTML=critHtml(cr,e);renderTotal();
+}
+function setVal(id,val){
+  const e=curE(),cr=B().criteres.find(x=>x.id===id),mx=maxPts(cr,e);
+  e.ev[id].f=mx?(+val)/mx:0;save();
+  document.getElementById('p-'+id).innerHTML=`${fr(+val)} <small>/ ${fr(mx)}</small>`;renderTotal();
+}
+function setStatut(s){const e=curE();e.statut=s;save();renderEval()}
+function setChoix(x){const e=curE();e.choix=x;save();renderEval()}
+function setComment(v){curE().comment=v;save()}
+function resetEleve(){if(!confirm('Effacer toute l\'évaluation de cet élève ?'))return;const e=curE();e.ev={};e.statut='';e.comment='';save();renderEval()}
+function nav(d){const n=curEl+d;if(n<0||n>=C().eleves.length)return;openEval(n)}
+
+/* ================== ÉLÈVES ================== */
+function renderEleves(){
+  renderImport();
+  const c=C();
+  document.getElementById('elist').innerHTML=`<h3>${esc(c.nom)} – ${c.eleves.length} élève(s)</h3>`+c.eleves.map((e,i)=>`
+   <div class="erow"><span class="nm">${esc(fullName(e))}</span>
+   <button class="btn alt sm" onclick="editEleve(${i})">✎</button>
+   <button class="btn red sm" onclick="delEleve(${i})">✕</button></div>`).join('');
+}
+function sortEleves(){C().eleves.sort((a,b)=>fullName(a).localeCompare(fullName(b),'fr'));save();renderEleves()}
+function editEleve(i){const e=C().eleves[i];const v=prompt('Nom Prénom',fullName(e));if(v==null)return;const w=v.trim().split(/\s+/);e.nom=w.shift()||e.nom;e.prenom=w.join(' ');save();renderEleves()}
+function addOne(){const v=prompt('Nom Prénom de l\'élève');if(!v)return;const p=splitFull(v);if(!p)return;C().eleves.push(newEl(p));save();renderEleves();renderClassSel()}
+function delEleve(i){if(!confirm('Supprimer '+fullName(C().eleves[i])+' ?'))return;C().eleves.splice(i,1);save();renderEleves();renderClassSel()}
+function newClass(){const n=prompt('Nom de la classe / du groupe (ex : TMELEC-TTBMA, 1GT)');if(!n)return;S.classes.push({id:uid(),nom:n.trim(),eleves:[]});S.cur=S.classes.length-1;save();renderClassSel();renderEleves()}
+function renameClass(){const n=prompt('Nouveau nom',C().nom);if(!n)return;C().nom=n.trim();save();renderClassSel();renderEleves()}
+function deleteClass(){if(!confirm('Supprimer la classe « '+C().nom+' » et toutes ses notes ?'))return;S.classes.splice(S.cur,1);if(!S.classes.length)S.classes.push({id:uid(),nom:'Ma classe',eleves:[]});S.cur=0;save();renderClassSel();renderEleves()}
+function exportBackup(){download(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),'sauvegarde_volley_'+today()+'.json')}
+function importBackup(inp){
+  const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.bareme||!d.classes)throw 0;if(!confirm('Remplacer toutes les données actuelles par cette sauvegarde ?'))return;S=d;save();refresh();toast('Sauvegarde importée')}catch(e){alert('Fichier non valide')}};
+  r.readAsText(f);inp.value='';
+}
+
+/* ================== BARÈME ================== */
+function renderBareme(){
+  const b=B(),sum=b.criteres.reduce((s,c)=>s+(+c.pts||0),0);
+  const aflCount=a=>b.criteres.filter(c=>c.afl===a).length;
+  const offOk=aflCount('AFL1')>0&&aflCount('AFL2')>0&&aflCount('AFL3')>0;
+  const ex=b.bandes.map((bd,i)=>`D${i+1} : ${fr(rnd(bd[0]/100*5,b.pas))}–${fr(rnd(bd[1]/100*5,b.pas))}`).join(' · ');
+  document.getElementById('t-bareme').innerHTML=`
+  <div class="card"><h2>Mode de notation</h2>
+    <div class="seg">
+      <button class="${b.mode==='perso'?'on':''}" onclick="setB('mode','perso')">Mon barème (points par critère)</button>
+      <button class="${b.mode==='officiel'?'on':''}" onclick="setB('mode','officiel')">Officiel CA4 : AFL1 /12 + AFL2-AFL3 /8</button>
+    </div>
+    ${b.mode==='perso'
+      ?`<p class="muted">Chaque critère vaut le nombre de points indiqué ci-dessous ; la note est ramenée sur 20.</p>
+        ${Math.abs(sum-20)>0.001?`<div class="warn">Total actuel : ${fr(sum)} pts — la note sera ramenée sur 20 proportionnellement.</div>`:`<div class="ok">Total : 20 pts ✓</div>`}
+        <div class="warn"><b>Rappel CA4 lycée :</b> le référentiel national note l'AFL1 sur 12 pts et l'AFL2 + l'AFL3 sur 8 pts, répartis au choix de l'élève (4-4, 6-2 ou 2-6). Avec 4 × 5 pts, ton AFL1 pèse 10 pts et l'AFL2/AFL3 5 pts chacun. Pour une note certificative, passe en mode « Officiel CA4 ».</div>`
+      :`<p class="muted">Les critères AFL1 se partagent 12 pts ; les critères AFL2 et AFL3 se partagent les 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.</p>
+        ${offOk?'':'<div class="warn">Il faut au moins un critère AFL1, un AFL2 et un AFL3.</div>'}`}
+    <div class="g4" style="margin-top:10px">
+      <div><label class="l">Pas du curseur (pt)</label><select class="f" onchange="setB('pas',+this.value)">${[0.1,0.25,0.5].map(v=>`<option value="${v}" ${b.pas==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
+      <div><label class="l">Arrondi de la note /20</label><select class="f" onchange="setB('arrondi',+this.value)">${[0.1,0.25,0.5,1].map(v=>`<option value="${v}" ${b.arrondi==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
+    </div>
+  </div>
+  <div class="card"><h2>Degrés et bornes (en % des points du critère)</h2>
+    <p class="muted">Le curseur intra-degré se déplace entre ces bornes. Exemple sur 5 pts → ${ex}</p>
+    <div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
+      <label class="l">Degré ${i+1}</label><input type="text" value="${esc(d)}" onchange="B().degres[${i}]=this.value;save()">
+      <div class="row" style="margin-top:6px;flex-wrap:nowrap"><input type="number" min="0" max="100" value="${b.bandes[i][0]}" onchange="setBand(${i},0,this.value)"> à <input type="number" min="0" max="100" value="${b.bandes[i][1]}" onchange="setBand(${i},1,this.value)"> %</div>
+    </div>`).join('')}</div>
+  </div>
+  <div class="card"><h2>Critères</h2>
+    ${b.criteres.map((c,k)=>`<div class="bcrit">
+      <div class="g2">
+        <div><label class="l">Critère</label><input type="text" value="${esc(c.nom)}" onchange="setC(${k},'nom',this.value)"></div>
+        <div><label class="l">AFL</label><select class="f" onchange="setC(${k},'afl',this.value,true)">${['AFL1','AFL2','AFL3'].map(a=>`<option ${c.afl===a?'selected':''}>${a}</option>`).join('')}</select></div>
+        <div><label class="l">Points ${b.mode==='officiel'?'(mode perso)':''}</label><input type="number" step="0.5" min="0" value="${c.pts}" onchange="setC(${k},'pts',+this.value,true)"></div>
+      </div>
+      <label class="l">Objectif</label><input type="text" value="${esc(c.but)}" onchange="setC(${k},'but',this.value)">
+      <label class="l">Références (AFL / EP…)</label><input type="text" value="${esc(c.refs)}" onchange="setC(${k},'refs',this.value)">
+      <div class="g4">${[0,1,2,3].map(d=>`<div><label class="l">D${d+1} · ${esc(b.degres[d])}</label><textarea rows="4" onchange="setDesc(${k},${d},this.value)">${esc(c.desc[d])}</textarea></div>`).join('')}</div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn alt sm" onclick="moveC(${k},-1)">↑</button><button class="btn alt sm" onclick="moveC(${k},1)">↓</button>
+        <button class="btn red sm" onclick="delC(${k})">Supprimer ce critère</button></div>
+    </div>`).join('')}
+    <div class="row"><button class="btn" onclick="addC()">+ Ajouter un critère</button>
+    <button class="btn red" onclick="resetB()">Rétablir le barème d'origine</button></div>
+  </div>`;
+}
+function setB(k,v){B()[k]=v;save();renderBareme();renderClassSel()}
+function setBand(i,j,v){v=Math.max(0,Math.min(100,+v||0));B().bandes[i][j]=v;save();renderBareme()}
+function setC(k,f,v,re){B().criteres[k][f]=v;save();if(re)renderBareme()}
+function setDesc(k,d,v){B().criteres[k].desc[d]=v;save()}
+function moveC(k,d){const a=B().criteres,j=k+d;if(j<0||j>=a.length)return;[a[k],a[j]]=[a[j],a[k]];save();renderBareme()}
+function delC(k){if(!confirm('Supprimer ce critère ? Les notes déjà saisies pour ce critère ne compteront plus.'))return;B().criteres.splice(k,1);save();renderBareme()}
+function addC(){B().criteres.push({id:uid(),nom:'Nouveau critère',but:'',afl:'AFL1',refs:'',pts:5,desc:['','','','']});save();renderBareme()}
+function resetB(){if(!confirm('Rétablir le barème d\'origine ? (les notes des élèves sont conservées)'))return;S.bareme=defBareme();save();renderBareme()}
+
+/* ================== IMPORT D'UNE LISTE (au choix) ================== */
+function norm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function nkey(s){return norm(s).split(' ').filter(Boolean).sort().join(' ')}
+function capw(w){return w.toLowerCase().replace(/(^|[\s'-])(\S)/g,(m,a,b)=>a+b.toUpperCase())}
+function splitFull(t){
+  const w=String(t).replace(/\s+/g,' ').trim().split(' ');if(!w[0])return null;
+  const up=x=>x.length>1&&x===x.toUpperCase()&&x!==x.toLowerCase();
+  let i=0;while(i<w.length-1&&up(w[i]))i++;
+  if(i>0)return{nom:w.slice(0,i).join(' '),prenom:capw(w.slice(i).join(' '))};
+  if(w.length===1)return{nom:w[0],prenom:''};
+  return{prenom:w[0],nom:w.slice(1).join(' ')};
+}
+function newEl(p){return{id:uid(),nom:p.nom||'',prenom:p.prenom||'',ev:{},choix:'4-4',statut:'',comment:''}}
+function jget(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
+function oriClasses(){return new Promise(res=>{try{const q=indexedDB.open('orienrun',1);q.onupgradeneeded=()=>{try{q.result.createObjectStore('kv')}catch(e){}};q.onerror=()=>res({});
+  q.onsuccess=()=>{try{const g=q.result.transaction('kv').objectStore('kv').get('classes');g.onsuccess=()=>res(g.result||{});g.onerror=()=>res({})}catch(e){res({})}}}catch(e){res({})}})}
+/* classes déjà présentes sur la tablette dans les autres applications EPS */
+async function tabletLists(){
+  const M={},put=(app,name,list)=>{const k=norm(name);if(!k||!list.length)return;const x=M[k]||(M[k]={name,apps:[],el:[]});if(!x.apps.includes(app))x.apps.push(app);
+    list.forEach(p=>{if(p&&!x.el.some(y=>nkey(y.prenom+' '+y.nom)===nkey(p.prenom+' '+p.nom)))x.el.push(p)})};
+  (jget('escalade.cl',[])||[]).forEach(c=>put('Escalade',c.nom,(c.el||[]).map(splitFull)));
+  ((jget('relais-vitesse-data-v3',{})||{}).classes||[]).forEach(c=>put('Relais',c.name,(c.eleves||[]).map(e=>({nom:e.nom||'',prenom:e.prenom||''}))));
+  const O=await oriClasses();Object.keys(O).forEach(k=>put('OrienRun',k,(O[k]||[]).map(splitFull)));
+  return Object.values(M).sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+}
+function loadX(){if(window.XLSX)return Promise.resolve(window.XLSX);return new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';sc.onload=()=>res(window.XLSX);sc.onerror=()=>rej(new Error('x'));document.head.appendChild(sc)})}
+function readRows(file){
+  const low=file.name.toLowerCase();
+  if(/\.(csv|txt)$/.test(low))return file.arrayBuffer().then(b=>{let t=new TextDecoder('utf-8').decode(b);if(t.indexOf('�')>=0)t=new TextDecoder('windows-1252').decode(b);return t.split(/\r?\n/).map(l=>l.split(/[;\t,]/))});
+  return Promise.all([loadX(),file.arrayBuffer()]).then(a=>{const wb=a[0].read(a[1],{type:'array'});return a[0].utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''})});
+}
+function parseRows(rows){
+  rows=(rows||[]).map(r=>Array.prototype.map.call(r||[],v=>String(v==null?'':v).trim())).filter(r=>r.some(Boolean));
+  let h=-1,iN=-1,iP=-1,iF=-1;
+  for(let r=0;r<Math.min(rows.length,12)&&h<0;r++){rows[r].forEach((c,j)=>{const n=norm(c);
+    if(/^(nom|nom de famille|nom eleve|nom de l eleve)$/.test(n))iN=j;else if(/^prenom/.test(n))iP=j;
+    else if(/^(eleve|eleves|nom prenom|prenom nom|nom et prenom|nom et prenoms|identite|nom complet)$/.test(n))iF=j});
+    if(iN>=0||iF>=0||iP>=0)h=r}
+  const out=[],seen={};
+  rows.slice(h+1).forEach(r=>{let e=null;
+    if(iN>=0||iP>=0){const nm=iN>=0?r[iN]:'',pr=iP>=0?r[iP]:'';if(nm&&!pr&&iP<0)e=splitFull(nm);else if(nm||pr)e={nom:nm,prenom:pr}}
+    else if(iF>=0)e=splitFull(r[iF]);
+    else e=r.length>=2&&r[1]&&!/\d/.test(r[1])&&r[0]===r[0].toUpperCase()?{nom:r[0],prenom:r[1]}:splitFull(r[0]);
+    if(!e||!(e.nom||e.prenom)||/^(total|effectif)/i.test(e.nom+e.prenom))return;
+    const k=nkey(e.prenom+' '+e.nom);if(seen[k])return;seen[k]=1;out.push(e)});
+  return out;
+}
+let IMP=null; // {L:[{nom,prenom,on}], nom:'', dest:'new'|index}
+async function renderImport(msg){
+  const box=document.getElementById('impCard');if(!box)return;
+  if(!IMP){
+    const T=await tabletLists();
+    box.innerHTML=`<h2>Importer une liste d'élèves</h2>
+     <p class="muted">Choisis d'où vient la liste. Tu pourras ensuite cocher les élèves à importer et choisir la classe.</p>
+     ${msg?`<div class="warn">${esc(msg)}</div>`:''}
+     <h3>📋 Classes déjà sur la tablette</h3>
+     ${T.length?`<div class="src">${T.map((x,k)=>`<button data-tl="${k}">${esc(x.name)}<small>${x.el.length} élèves · ${esc(x.apps.join(', '))}</small></button>`).join('')}</div>`
+       :`<p class="muted">Aucune classe trouvée dans Escalade, Relais Vitesse ou OrienRun sur cette tablette. Tu peux en importer une depuis la page d'accueil (« Listes d'élèves ») ou utiliser un fichier.</p>`}
+     <h3>Autres sources</h3>
+     <div class="src">
+      <label class="btn" style="text-align:center;padding:14px">📄 Fichier Excel ou CSV<input type="file" accept=".xlsx,.xls,.ods,.csv,.txt" hidden onchange="impFile(this)"></label>
+      <button onclick="impPaste()">✍️ Coller une liste<small>NOM Prénom, un élève par ligne (copié depuis Pronote ou un tableur)</small></button>
+     </div>
+     <p class="muted">Fichier : colonnes « Nom » et « Prénom », ou « Élève », ou les noms dans la première colonne (export Pronote accepté). La première lecture d'un fichier Excel demande internet ; sinon, enregistre-le en .csv.</p>`;
+    box.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{const x=T[+b.dataset.tl];startPick(x.el,x.name)});
+    return;
+  }
+  const n=IMP.L.filter(x=>x.on).length;
+  const existing=S.classes.findIndex(c=>norm(c.nom)===norm(IMP.nom));
+  box.innerHTML=`<h2>Importer : ${IMP.L.length} élève(s) trouvé(s)</h2>
+   <label class="l">Importer dans</label>
+   <select class="f" id="impDest">
+     <option value="new" ${IMP.dest==='new'?'selected':''}>Nouvelle classe…</option>
+     ${S.classes.map((c,i)=>`<option value="${i}" ${IMP.dest===i?'selected':''}>${esc(c.nom)} (${c.eleves.length} élèves)</option>`).join('')}
+   </select>
+   ${IMP.dest==='new'?`<label class="l">Nom de la nouvelle classe</label><input type="text" id="impNom" value="${esc(IMP.nom)}" placeholder="ex. TMELEC-TTBMA">`
+     :`<p class="muted">Les élèves déjà présents dans cette classe ne sont pas ajoutés deux fois.</p>`}
+   ${IMP.dest==='new'&&existing>=0?`<div class="warn">Une classe « ${esc(S.classes[existing].nom)} » existe déjà : choisis-la dans la liste pour la compléter, ou change le nom.</div>`:''}
+   ${msg?`<div class="warn">${esc(msg)}</div>`:''}
+   <div class="row" style="margin:10px 0 4px"><b id="impN">${n} coché(s)</b><button class="btn alt sm" onclick="impAll(1)">Tout cocher</button><button class="btn alt sm" onclick="impAll(0)">Tout décocher</button></div>
+   <div class="pick">${IMP.L.map((e,k)=>`<label class="${e.on?'':'off'}"><input type="checkbox" ${e.on?'checked':''} onchange="IMP.L[${k}].on=this.checked;this.parentNode.classList.toggle('off',!this.checked);document.getElementById('impN').textContent=IMP.L.filter(x=>x.on).length+' coché(s)'">${esc(fullName(e))}</label>`).join('')}</div>
+   <div class="row" style="margin-top:12px"><button class="btn alt" onclick="IMP=null;renderImport()">Annuler</button><button class="btn or" onclick="impGo()">✓ Importer les élèves cochés</button></div>`;
+  box.querySelector('#impDest').onchange=e=>{const v=e.target.value;IMP.dest=v==='new'?'new':+v;renderImport()};
+  const ni=box.querySelector('#impNom');if(ni)ni.oninput=()=>{IMP.nom=ni.value};
+}
+function startPick(L,nom){
+  const ex=S.classes.findIndex(c=>norm(c.nom)===norm(nom));
+  IMP={L:L.filter(Boolean).map(e=>({nom:e.nom||'',prenom:e.prenom||'',on:true})).sort((a,b)=>fullName(a).localeCompare(fullName(b),'fr')),nom:nom||'',dest:ex>=0?ex:'new'};
+  renderImport();document.getElementById('impCard').scrollIntoView({behavior:'smooth'});
+}
+function impAll(v){IMP.L.forEach(e=>e.on=!!v);renderImport()}
+async function impFile(inp){
+  const f=inp.files[0];inp.value='';if(!f)return;
+  let L;try{L=parseRows(await readRows(f))}catch(e){return renderImport("Impossible de lire ce fichier (pour un fichier Excel, la première ouverture demande internet). Enregistre-le en .csv si besoin.")}
+  if(!L.length)return renderImport('Aucun élève trouvé dans ce fichier.');
+  startPick(L,f.name.replace(/\.[^.]+$/,''));
+}
+function impPaste(){
+  const box=document.getElementById('impCard');
+  box.innerHTML=`<h2>Coller une liste</h2><p class="muted">Un élève par ligne : « NOM Prénom » (ou colonnes Nom ; Prénom copiées depuis un tableur).</p>
+   <textarea id="pasteTa" rows="8" placeholder="DUPONT Léa&#10;MARTIN Hugo"></textarea>
+   <div class="row" style="margin-top:8px"><button class="btn alt" onclick="IMP=null;renderImport()">Annuler</button><button class="btn" id="pasteOk">Continuer</button></div>`;
+  box.querySelector('#pasteOk').onclick=()=>{const t=box.querySelector('#pasteTa').value;const L=parseRows(t.split(/\r?\n/).map(l=>l.split(/\t|;/)));
+    if(!L.length)return;startPick(L,'')};
+}
+function impGo(){
+  const sel=IMP.L.filter(e=>e.on);if(!sel.length)return renderImport('Coche au moins un élève.');
+  let c;
+  if(IMP.dest==='new'){const nm=String(IMP.nom).replace(/\s+/g,' ').trim();if(!nm)return renderImport('Donne un nom à la classe.');
+    if(S.classes.some(x=>norm(x.nom)===norm(nm)))return renderImport('Ce nom de classe existe déjà.');
+    const blank=S.classes.length===1&&!S.classes[0].eleves.length&&S.classes[0].nom==='Ma classe';
+    c={id:uid(),nom:nm,eleves:[]};if(blank)S.classes[0]=c;else S.classes.push(c);S.cur=S.classes.indexOf(c);}
+  else{c=S.classes[IMP.dest];S.cur=IMP.dest}
+  let n=0;sel.forEach(e=>{if(c.eleves.some(x=>nkey(x.prenom+' '+x.nom)===nkey(e.prenom+' '+e.nom)))return;c.eleves.push(newEl(e));n++});
+  c.eleves.sort((a,b)=>fullName(a).localeCompare(fullName(b),'fr'));
+  IMP=null;save();renderClassSel();renderEleves();toast(n+' élève(s) ajouté(s) à '+c.nom);
+}
+
+/* ================== DISPENSES (page d'accueil EPS) ================== */
+function dispOf(e){try{return window.EPSD&&EPSD.find?EPSD.find(C().nom,e.nom,e.prenom):null}catch(x){return null}}
+addEventListener('epsd-change',()=>{if(curEl==null&&document.getElementById('t-eval').classList.contains('on'))renderList()});
+
+/* ================== CODE ENSEIGNANT (le même que les autres applis EPS) ================== */
+let unlockedUntil=0;
+function hashCode(c){let h=5381,s='relais:'+c;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return String(h)}
+function hubTeach(){try{return Date.now()<+(localStorage.getItem('eps.teach.until')||0)}catch(e){return false}}
+function isUnlocked(){return Date.now()<unlockedUntil||hubTeach()}
+window.epsIsTeacher=()=>isUnlocked();
+function setLock(){document.getElementById('lock').classList.toggle('on',!isUnlocked())}
+async function unlock(){
+  const pin=window.epsPin;
+  const done=()=>{unlockedUntil=Date.now()+60*60000;try{localStorage.setItem('eps.teach.until',String(unlockedUntil))}catch(e){}setLock();refresh()};
+  let stored=null;try{stored=JSON.parse(localStorage.getItem('relais-vitesse-code-v1')||'null')}catch(e){}
+  if(!pin){const v=prompt('Code enseignant');if(v==null)return;if(!stored||hashCode(v)===stored){if(!stored)try{localStorage.setItem('relais-vitesse-code-v1',JSON.stringify(hashCode(v)))}catch(e){}done()}else alert('Code incorrect');return}
+  if(stored){const v=await pin({title:'🔒 Code enseignant',min:4,max:12,check:v=>hashCode(v)===stored});if(v!==null)done();return}
+  const v=await pin({title:'🔒 Crée ton code enseignant',text:'4 chiffres, pour toutes les applications.',len:4});if(v===null)return;
+  const w=await pin({title:'🔒 Confirme le code',text:'Tape le même code une 2e fois.',len:4,check:w=>w===v||'Les deux codes sont différents.'});if(w===null)return;
+  try{localStorage.setItem('relais-vitesse-code-v1',JSON.stringify(hashCode(v)))}catch(e){}done();
+}
+function lockApp(){unlockedUntil=0;try{localStorage.setItem('eps.teach.until','0')}catch(e){}setLock()}
+setInterval(setLock,30000);
+window.epsAppHome=function(){showTab('eval')};
+
+/* ================== BILAN ================== */
+function classStats(c){
+  const b=B(),ev=c.eleves.filter(e=>note20(e)!=null),notes=ev.map(note20).sort((x,y)=>x-y);
+  const moy=notes.length?notes.reduce((a,x)=>a+x,0)/notes.length:null;
+  const med=notes.length?(notes.length%2?notes[(notes.length-1)/2]:(notes[notes.length/2-1]+notes[notes.length/2])/2):null;
+  const crit=b.criteres.map(cr=>{const cnt=[0,0,0,0];let s=0,m=0,n=0;c.eleves.forEach(e=>{if(isAbs(e))return;const v=e.ev&&e.ev[cr.id];if(v&&v.d!=null){cnt[v.d]++;s+=critPts(cr,e);m+=maxPts(cr,e);n++}});return{cr,cnt,moy:n?s/n:null,pct:m?s/m*100:null,n}});
+  const afl=['AFL1','AFL2','AFL3'].map(a=>{let s=0,m=0,n=0;ev.forEach(e=>{const r=aflPts(e,a);if(r){s+=r.pts;m+=r.max;n++}});return{a,moyPts:n?s/n:null,moyMax:n?m/n:null,pct:m?s/m*100:null}}).filter(x=>x.moyMax!=null);
+  const bins=[[0,4],[4,8],[8,10],[10,12],[12,14],[14,16],[16,20.01]].map(([lo,hi])=>({lbl:`${lo}–${Math.floor(hi)}`,n:notes.filter(x=>x>=lo&&x<hi).length}));
+  const choix=CHOIX.map(x=>({x,n:ev.filter(e=>(e.choix||'4-4')===x).length}));
+  return{ev,notes,moy,med,min:notes[0],max:notes[notes.length-1],crit,afl,bins,choix,
+    abs:c.eleves.filter(e=>e.statut==='ABS').length,disp:c.eleves.filter(e=>e.statut==='DISP').length,
+    nonNotes:c.eleves.filter(e=>!isAbs(e)&&note20(e)==null).length};
+}
+function statsHtml(c,st){
+  const b=B();
+  const maxBin=Math.max(1,...st.bins.map(x=>x.n));
+  return `
+  <div class="stats">
+    <div class="stat"><b>${st.moy!=null?fr(Math.round(st.moy*100)/100):'–'}</b><span>Moyenne /20</span></div>
+    <div class="stat"><b>${st.med!=null?fr(st.med):'–'}</b><span>Médiane</span></div>
+    <div class="stat"><b>${st.min!=null?fr(st.min):'–'}</b><span>Note min.</span></div>
+    <div class="stat"><b>${st.max!=null?fr(st.max):'–'}</b><span>Note max.</span></div>
+    <div class="stat"><b>${st.ev.length}/${c.eleves.length}</b><span>Élèves notés</span></div>
+    <div class="stat"><b>${st.abs} / ${st.disp}</b><span>Absents / dispensés</span></div>
+  </div>
+  <h3>Moyennes par AFL (champ d'apprentissage 4)</h3>
+  <table><tr><th>AFL</th><th>Moyenne</th><th>Réussite</th><th style="width:45%"></th></tr>
+  ${st.afl.map(x=>`<tr><td><b>${x.a}</b> – ${{AFL1:"S'engager pour gagner une rencontre",AFL2:"Se préparer et s'entraîner",AFL3:"Choisir et assumer les rôles"}[x.a]}</td>
+    <td>${fr(Math.round(x.moyPts*100)/100)} / ${fr(Math.round(x.moyMax*100)/100)}</td><td>${Math.round(x.pct)} %</td>
+    <td><div class="bar" style="margin:0"><div style="width:${x.pct}%;background:var(--blue)"></div></div></td></tr>`).join('')}</table>
+  ${b.mode==='officiel'?`<p class="muted">Choix AFL2/AFL3 : ${st.choix.map(x=>`${x.x} → ${x.n} élève(s)`).join(' · ')}</p>`:''}
+  <h3>Répartition des degrés par critère</h3>
+  <div class="legend">${b.degres.map((d,i)=>`<span><i class="bg${i+1}"></i>D${i+1} ${esc(d)}</span>`).join('')}</div>
+  ${st.crit.map(x=>{const t=x.n||1;return `<div><b>${esc(x.cr.nom)}</b> <span class="tag">${x.cr.afl}</span> <span class="muted">moyenne ${x.moy!=null?fr(Math.round(x.moy*100)/100):'–'} pt (${x.pct!=null?Math.round(x.pct)+' %':'–'})</span>
+    <div class="bar">${x.cnt.map((n,i)=>n?`<div class="bg${i+1}" style="width:${n/t*100}%">${n}</div>`:'').join('')}</div></div>`}).join('')}
+  <h3>Répartition des notes /20</h3>
+  <div class="hist">${st.bins.map(x=>`<div class="col"><em>${x.n||''}</em><div class="b" style="height:${x.n/maxBin*100}%"></div><span>${x.lbl}</span></div>`).join('')}</div>`;
+}
+function tableHtml(c){
+  const b=B();
+  const hasAfl=a=>b.criteres.some(x=>x.afl===a);
+  return `<table><thead><tr><th>Élève</th>${b.criteres.map(cr=>`<th>${esc(cr.nom)}<br><small>${cr.afl}</small></th>`).join('')}
+   ${['AFL1','AFL2','AFL3'].filter(hasAfl).map(a=>`<th>${a}</th>`).join('')}${b.mode==='officiel'?'<th>Choix</th>':''}<th>Note /20</th></tr></thead><tbody>
+   ${c.eleves.map(e=>{
+     if(isAbs(e))return `<tr><td>${esc(fullName(e))}</td><td colspan="${b.criteres.length+['AFL1','AFL2','AFL3'].filter(hasAfl).length+(b.mode==='officiel'?1:0)}"><i>${e.statut==='ABS'?'Absent':'Dispensé'}</i></td><td><b>${e.statut}</b></td></tr>`;
+     return `<tr><td>${esc(fullName(e))}</td>${b.criteres.map(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e);return `<td>${p!=null?`${fr(p)}/${fr(maxPts(cr,e))} <small style="color:var(--d${v.d+1});font-weight:700">D${v.d+1}</small>`:'–'}</td>`}).join('')}
+     ${['AFL1','AFL2','AFL3'].filter(hasAfl).map(a=>{const r=aflPts(e,a);return `<td>${r?fr(r.pts)+'/'+fr(r.max):'–'}</td>`}).join('')}
+     ${b.mode==='officiel'?`<td>${e.choix||'4-4'}</td>`:''}<td><b>${note20(e)!=null?fr(note20(e)):'–'}</b></td></tr>`}).join('')}
+   </tbody></table>`;
+}
+function renderBilan(){
+  const c=C(),st=classStats(c);
+  document.getElementById('t-bilan').innerHTML=`
+  <div class="card"><h2>Export – ${esc(c.nom)}</h2>
+    <div class="row">
+      <button class="btn or" onclick="printPDF('classe')">📄 PDF : notes + statistiques</button>
+      <button class="btn" onclick="printPDF('fiches')">📄 PDF : fiches individuelles</button>
+      <button class="btn alt" onclick="exportCSV()">⬇ Tableur (.csv)</button>
+      <button class="btn alt" onclick="exportZip()">🗜 Bilans élèves (.zip)</button>
+    </div>
+    <p class="muted">PDF : dans la fenêtre d'impression, choisis « Enregistrer au format PDF ». Le .zip contient un bilan par élève (fichier .html à publier sur Pronote ou à imprimer).</p>
+    ${st.nonNotes?`<div class="warn">${st.nonNotes} élève(s) n'ont pas encore tous leurs critères évalués.</div>`:''}
+  </div>
+  <div class="card"><h2>Statistiques de la classe</h2>${statsHtml(c,st)}</div>
+  <div class="card"><h2>Notes des élèves</h2><div class="tw">${tableHtml(c)}</div></div>`;
+}
+
+/* ================== EXPORTS ================== */
+function today(){const d=new Date();return d.toISOString().slice(0,10)}
+function dateFR(){return new Date().toLocaleDateString('fr-FR')}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+function modeTxt(){return B().mode==='perso'?'Barème personnel ('+B().criteres.map(c=>c.nom+' '+fr(c.pts)+' pts').join(', ')+')':'Barème officiel CA4 : AFL1 sur 12 pts, AFL2 + AFL3 sur 8 pts (choix de l\'élève)'}
+function ficheHtml(e,c){
+  const b=B(),n=note20(e);
+  const rows=b.criteres.map(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e);
+    return `<tr><td style="text-align:left"><b>${esc(cr.nom)}</b><br><small>${esc(cr.afl)} – ${esc(cr.but)}</small></td>
+      <td>${v&&v.d!=null?'D'+(v.d+1)+' – '+esc(b.degres[v.d]):'–'}</td>
+      <td style="text-align:left"><small>${v&&v.d!=null?esc(cr.desc[v.d]):''}</small></td>
+      <td><b>${p!=null?fr(p):'–'}</b> / ${fr(maxPts(cr,e))}</td></tr>`}).join('');
+  const afls=['AFL1','AFL2','AFL3'].map(a=>{const r=aflPts(e,a);return r?`${a} : ${fr(r.pts)} / ${fr(r.max)}`:null}).filter(Boolean).join(' &nbsp;·&nbsp; ');
+  return `<h1>Volley-ball – Évaluation CA4</h1>
+   <p><b>${esc(fullName(e))}</b> · ${esc(c.nom)} · ${dateFR()}${b.mode==='officiel'?' · Choix AFL2/AFL3 : '+(e.choix||'4-4'):''}</p>
+   ${isAbs(e)?`<h2>${e.statut==='ABS'?'Absent':'Dispensé'}</h2>`:`
+   <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">Critère</th><th>Degré</th><th style="text-align:left">Ce qui a été observé</th><th>Points</th></tr>${rows}</table>
+   <p style="font-size:1.1em">${afls}</p>
+   <p style="font-size:1.4em"><b>Note : ${n!=null?fr(n):'–'} / 20</b></p>`}
+   ${e.comment?`<p><b>Commentaire :</b> ${esc(e.comment).replace(/\n/g,'<br>')}</p>`:''}`;
+}
+function printPDF(kind){
+  const c=C(),pa=document.getElementById('printArea');
+  if(kind==='classe'){
+    pa.innerHTML=`<h1>Volley-ball – Évaluation CA4 – ${esc(c.nom)}</h1><p>${dateFR()} · ${esc(modeTxt())}</p>
+      <h2>Notes des élèves</h2>${tableHtml(c)}<div class="pb"></div><h2>Statistiques et répartition des points</h2>${statsHtml(c,classStats(c))}`;
+  }else{
+    pa.innerHTML=c.eleves.map((e,i)=>`<div class="${i?'pb':''}">${ficheHtml(e,c)}</div>`).join('');
+  }
+  setTimeout(()=>window.print(),100);
+}
+function exportCSV(){
+  const c=C(),b=B(),hasAfl=a=>b.criteres.some(x=>x.afl===a),afls=['AFL1','AFL2','AFL3'].filter(hasAfl);
+  const head=['Nom','Prénom',...b.criteres.flatMap(cr=>[cr.nom+' (degré)',cr.nom+' (pts)']),...afls,...(b.mode==='officiel'?['Choix AFL2-AFL3']:[]),'Note /20','Statut','Commentaire'];
+  const lines=[head];
+  c.eleves.forEach(e=>{lines.push([e.nom,e.prenom||'',...b.criteres.flatMap(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e);return [v&&v.d!=null?'D'+(v.d+1):'',p!=null?fr(p):'']}),
+    ...afls.map(a=>{const r=aflPts(e,a);return r?fr(r.pts):''}),...(b.mode==='officiel'?[e.choix||'4-4']:[]),note20(e)!=null?fr(note20(e)):'',e.statut||'',e.comment||''])});
+  const csv='﻿'+lines.map(l=>l.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  download(new Blob([csv],{type:'text/csv;charset=utf-8'}),'volley_'+safe(c.nom)+'_'+today()+'.csv');
+}
+function safe(s){return String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_')}
+/* ZIP (sans compression) */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function makeZip(files){
+  const enc=new TextEncoder(),d=new Date(),dd=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(),tt=(d.getHours()<<11)|(d.getMinutes()<<5);
+  const chunks=[],cent=[];let off=0;
+  files.forEach(f=>{
+    const nm=enc.encode(f.name),data=enc.encode(f.data),crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint16(10,tt,true);h.setUint16(12,dd,true);
+    h.setUint32(14,crc,true);h.setUint32(18,data.length,true);h.setUint32(22,data.length,true);h.setUint16(26,nm.length,true);h.setUint16(28,0,true);
+    chunks.push(new Uint8Array(h.buffer),nm,data);
+    const c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);c.setUint16(12,tt,true);c.setUint16(14,dd,true);
+    c.setUint32(16,crc,true);c.setUint32(20,data.length,true);c.setUint32(24,data.length,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+    cent.push(new Uint8Array(c.buffer),nm);
+    off+=30+nm.length+data.length;
+  });
+  const cdSize=cent.reduce((s,x)=>s+x.length,0),e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cdSize,true);e.setUint32(16,off,true);
+  return new Blob([...chunks,...cent,new Uint8Array(e.buffer)],{type:'application/zip'});
+}
+function exportZip(){
+  const c=C();if(!c.eleves.length){toast('Aucun élève');return}
+  const style='<style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1{color:#0f2a4a;font-size:20px}th{background:#eef2f7}td,th{text-align:center;vertical-align:top}</style>';
+  const files=c.eleves.map(e=>({name:safe(fullName(e))+'_volley.html',data:`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Volley – ${esc(fullName(e))}</title>${style}</head><body>${ficheHtml(e,c)}</body></html>`}));
+  download(makeZip(files),'bilans_volley_'+safe(c.nom)+'_'+today()+'.zip');
+}
+
+/* ================== DÉMARRAGE ================== */
+renderClassSel();renderList();setLock();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>
