@@ -32,6 +32,10 @@ header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;paddin
 .pick label.off{opacity:.45;text-decoration:line-through}
 .pick input{width:18px;height:18px;accent-color:var(--blue)}
 .disp{font-size:.8rem}
+/* pastille « dispensés » (eps-home.js) : dans la barre du haut, à droite des onglets, au lieu d'en bas */
+#epsd-pill{top:calc(60px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:14px!important;height:36px!important;box-shadow:none!important}
+nav{padding-right:190px}
+@media (max-width:760px){nav{padding-right:0}#epsd-pill{top:auto!important;bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;right:10px!important}}
 .top select{background:#fff;border:0;border-radius:8px;padding:8px 10px;min-width:150px}
 nav{display:flex;gap:4px;margin-top:10px;overflow-x:auto}
 nav button{background:transparent;color:#c8d6e8;border:0;padding:10px 16px;border-radius:10px 10px 0 0;font-weight:600;white-space:nowrap}
@@ -86,7 +90,7 @@ textarea{resize:vertical}
 .slider{margin-top:10px;display:flex;align-items:center;gap:12px;background:#f3f6fa;border-radius:10px;padding:10px 12px}
 .slider input{flex:1;height:36px;accent-color:var(--blue)}
 .slider .lim{font-size:.8rem;color:var(--muted);min-width:34px;text-align:center}
-.total{position:sticky;bottom:0;background:var(--navy);color:#fff;border-radius:14px 14px 0 0;padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px}
+.total{position:sticky;bottom:0;background:var(--navy);color:#fff;border-radius:14px 14px 0 0;padding:12px 16px 12px 76px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px}
 .total .big{font-size:1.8rem;font-weight:800}
 .total .big small{font-size:1rem;opacity:.7}
 .total .afl{font-size:.9rem;opacity:.9}
@@ -321,7 +325,7 @@ function renderClassSel(){
   s.innerHTML=S.classes.map((c,i)=>`<option value="${i}" ${i===S.cur?'selected':''}>${esc(c.nom)} (${c.eleves.length})</option>`).join('');
 }
 document.getElementById('classSel').onchange=e=>{S.cur=+e.target.value;save();refresh()};
-function refresh(){renderClassSel();const t=document.querySelector('#nav button.on').dataset.t;showTab(t)}
+function refresh(){try{window.EPSD&&EPSD.refresh&&EPSD.refresh()}catch(e){}renderClassSel();const t=document.querySelector('#nav button.on').dataset.t;showTab(t)}
 
 /* ================== ÉVALUER : LISTE ================== */
 let curEl=null;
@@ -640,6 +644,8 @@ async function unlock(){
 function lockApp(){unlockedUntil=0;try{localStorage.setItem('eps.teach.until','0')}catch(e){}setLock()}
 setInterval(setLock,30000);
 window.epsAppHome=function(){showTab('eval')};
+/* la pastille des dispensés ne compte que la classe affichée */
+window.epsCurrentClass=()=>{const c=C();return c?{nom:c.nom,eleves:c.eleves.map(e=>((e.prenom||'')+' '+e.nom).trim())}:null};
 
 /* ================== BILAN ================== */
 function classStats(c){

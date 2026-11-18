@@ -250,11 +250,15 @@
     "@media print{#epsd-pill{display:none!important}}";
   function addCss() { var s = document.createElement("style"); s.textContent = css; document.head.appendChild(s); }
   var pill = null;
+  /* classe affichée dans l'application (facultatif) : window.epsCurrentClass() → {nom, eleves:["Prénom Nom", …]}.
+     La pastille compte alors seulement les dispensés de cette classe (même classe, ou élève présent dans sa liste) ; la liste permet de voir tous les autres. */
+  function curClass() { try { var c = typeof window.epsCurrentClass === "function" && window.epsCurrentClass(); return c && c.nom ? c : null; } catch (e) { return null; } }
+  function inClass(x, cc) { if (x.classe && norm(x.classe) === norm(cc.nom)) return true; var k = nkey(x.nom); return (cc.eleves || []).some(function (e) { return nkey(e) === k; }); }
   function draw() {
     if (!pill) return;
-    var n = activeOn().length;
-    pill.classList.toggle("on", n > 0 && !HUB && hubTeach()); /* nombre de dispensés : seulement en mode enseignant */
-    pill.textContent = "🩹 " + n + " dispensé" + (n > 1 ? "s" : "");
+    var all0 = activeOn(), cc = curClass(), n = cc ? all0.filter(function (x) { return inClass(x, cc); }).length : all0.length;
+    pill.classList.toggle("on", all0.length > 0 && !HUB && hubTeach()); /* nombre de dispensés : seulement en mode enseignant */
+    pill.textContent = "🩹 " + n + " dispensé" + (n > 1 ? "s" : "") + (cc ? " · " + cc.nom : "");
     var hc = document.getElementById("epsd-hubcount");
     if (hc) hc.textContent = !hubTeach() ? "Mode enseignant pour voir les dispenses" : n ? n + " élève" + (n > 1 ? "s" : "") + " dispensé" + (n > 1 ? "s" : "") + " aujourd'hui" : "Aucun élève dispensé aujourd'hui";
   }
@@ -276,8 +280,16 @@
     return h;
   }
   /* vue pour tous (dans chaque application) : qui est dispensé, jusqu'à quand — sans le motif */
-  function showList() {
-    var up = upcoming().filter(function (x) { return x.du <= addDays(today(), 7); });
+  function showList(ev, everyone) {
+    var up = upcoming().filter(function (x) { return x.du <= addDays(today(), 7); }), cc = everyone === true ? null : curClass();
+    if (cc) {
+      var A = activeOn(), mine = A.filter(function (x) { return inClass(x, cc); }), upm = up.filter(function (x) { return inClass(x, cc); });
+      var o = overlay("<h3>🩹 Dispensés · " + esc(cc.nom) + "</h3><p class=\"m\">Aujourd'hui, " + fmt(today()) + "</p>" + (mine.length ? listHTML(mine, false) : '<p class="m">Aucun élève de cette classe n\'est dispensé aujourd\'hui.</p>') +
+        (upm.length ? '<h3 style="font-size:18px;margin-top:18px">Dans les 7 prochains jours</h3>' + listHTML(upm, false) : "") +
+        '<div class="epsd-act"><button data-x>Fermer</button><button class="p" id="epsd-all">Voir tous les dispensés (' + A.length + ")</button></div>");
+      o.querySelector("#epsd-all").onclick = function () { o.remove(); showList(null, true); };
+      return;
+    }
     overlay("<h3>🩹 Élèves dispensés</h3><p class=\"m\">Aujourd'hui, " + fmt(today()) + "</p>" + listHTML(activeOn(), false) +
       (up.length ? '<h3 style="font-size:18px;margin-top:18px">Dans les 7 prochains jours</h3>' + listHTML(up, false) : "") +
       '<div class="epsd-act"><button data-x>Fermer</button></div>');
@@ -633,7 +645,7 @@
     }
     render();
   }
-  window.EPSD = { share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
+  window.EPSD = { refresh: function () { try { draw(); } catch (e) {} }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================
