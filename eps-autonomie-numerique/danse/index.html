@@ -42,6 +42,9 @@ body.eleve-mode #tabs{visibility:hidden}
 .tabcl{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0edf5;color:var(--ink)}
 .tabcl small{color:var(--muted)}
 .hello{font-size:1.1rem;margin:.2em 0 .6em}
+.envoi{background:#fff7e6;border:1px solid #f5d38a;color:#8a5a00;border-radius:10px;padding:8px 12px;font-size:.88rem}.envoi.ok{background:#e8f6f1;border-color:#9fd9c4;color:#0f6e52}
+.warnb{background:#fff1f0;border:1px solid #f5b5b0;color:#b42318;border-radius:10px;padding:8px 12px}
+.spin{width:44px;height:44px;border-radius:50%;border:5px solid #f1eef7;border-top-color:var(--accent);margin:18px auto;animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 .tagdisp{display:inline-block;background:#fde8e8;color:#b42318;font-weight:700;font-size:.82rem;border-radius:8px;padding:2px 8px;margin:.3em 0 0}
 .qrw .btn{margin-top:8px}.qrw code{font-size:.72rem;overflow-wrap:anywhere}
 
@@ -1865,11 +1868,109 @@ function urlAppli() {
   if (/^https?:$/.test(location.protocol)) return location.href.split('#')[0];
   return 'https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/danse/';
 }
-function lienEleve(e, cl) {
-  if (!e) return urlAppli() + '#eleve';
+function lienGeneral() { return urlAppli() + '#eleve'; }
+async function lienEleve(e, cl) {
   const x = (S.reglages.autoJusqua || '').replace(/-/g, '');
   const t = [e.nom, e.prenom || '', cl.nom, S.grilleNom === 'origine' ? '' : S.grilleNom, x];
+  const cfg = partageCfg();
+  if (cfg && cryptoOk()) {
+    try { const d = await depotDe(cfg, cl, e); const sid = sidDe(cfg.url); t.push(d.id, d.k, sid === sidDe(DEF_URL) ? '' : sid); } catch (err) { console.warn(err); }
+  }
   return urlAppli() + '#eleve=' + b64urlEnc(JSON.stringify(t));
+}
+
+/* ---------- Envoi automatique par la feuille Google (« Partage entre tablettes ») ----------
+   La tablette de l'enseignant dérive, avec la clé secrète du partage, un identifiant de dépôt et une clé AES
+   propres à chaque élève (HMAC) ; ils sont dans le lien du bilan. Le téléphone de l'élève chiffre son
+   positionnement avec cette clé et le dépose dans le script (onglet caché « Depot ») sans connaître la clé secrète.
+   Seules les tablettes réglées avec la clé secrète peuvent relever et déchiffrer les dépôts. */
+const DEF_URL = 'https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec';
+const TE = new TextEncoder();
+function cryptoOk() { return !!(window.crypto && crypto.subtle); }
+function partageCfg() {
+  let c = jget('eps.share.v1', null);
+  if (!c || !c.key) { const r = jget('relais-vitesse-sheets-v1', null); if (r && r.url && r.key) c = { url: r.url, key: r.key }; }
+  return c && c.url && c.key ? c : null;
+}
+function sidDe(url) { const m = /\/macros\/s\/([^/]+)\/exec/.exec(url || ''); return m ? m[1] : ''; }
+function urlScript(sid) { return sid ? 'https://script.google.com/macros/s/' + sid + '/exec' : DEF_URL; }
+function u8b64(u8) { let x = ''; u8.forEach(c => x += String.fromCharCode(c)); return btoa(x).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function b64u8(t) { t = t.replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; return Uint8Array.from(atob(t), c => c.charCodeAt(0)); }
+async function hmac(cle, msg) { const k = await crypto.subtle.importKey('raw', TE.encode(cle), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return new Uint8Array(await crypto.subtle.sign('HMAC', k, TE.encode(msg))); }
+async function cleDepot(secret, id) { return u8b64((await hmac(secret, 'dan|k|' + id)).slice(0, 16)); }
+async function depotDe(cfg, cl, e) { const id = u8b64((await hmac(cfg.key, 'dan|id|' + norm(cl.nom) + '|' + norm(e.nom) + '|' + norm(e.prenom))).slice(0, 12)); return { id, k: await cleDepot(cfg.key, id) }; }
+async function aes(k) { return crypto.subtle.importKey('raw', b64u8(k), 'AES-GCM', false, ['encrypt', 'decrypt']); }
+async function chiffrer(k, obj) { const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aes(k), TE.encode(JSON.stringify(obj)))); const o = new Uint8Array(12 + ct.length); o.set(iv); o.set(ct, 12); return u8b64(o); }
+async function dechiffrer(k, x) { const b = b64u8(x); const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, await aes(k), b.slice(12)); return JSON.parse(new TextDecoder().decode(pt)); }
+function jsonpGet(url, params) {
+  return new Promise(res => {
+    const cb = 'danCb' + Date.now() + Math.floor(Math.random() * 1e4), sc = document.createElement('script'); let t;
+    const fin = d => { clearTimeout(t); try { delete window[cb]; } catch (e) { } sc.remove(); res(d); };
+    window[cb] = fin; sc.onerror = () => fin(null); t = setTimeout(() => fin(null), 15000);
+    params.callback = cb;
+    sc.src = url + (url.includes('?') ? '&' : '?') + Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&');
+    document.head.appendChild(sc);
+  });
+}
+const pause = ms => new Promise(r => setTimeout(r, ms));
+/* côté élève : dépôt puis vérification de réception */
+async function envoyerDepot(drop, payload) {
+  try {
+    const url = urlScript(drop.sid); const x = await chiffrer(drop.k, payload); const k = 'dan|' + drop.id;
+    await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ drop: { k, x } }) });
+    for (let i = 0; i < 5; i++) {
+      await pause(i ? 2000 : 800);
+      const r = await jsonpGet(url, { dropchk: k });
+      if (r && r.drop && r.drop === x.slice(0, 16)) return true;
+    }
+  } catch (e) { console.warn(e); }
+  return false;
+}
+/* côté enseignant : relevé des dépôts */
+let dernierReleve = 0, releveEnCours = false;
+async function releverDepots(force) {
+  const cfg = partageCfg();
+  if (!cfg) return { err: 'partage' };
+  if (!cryptoOk() || releveEnCours || (!force && Date.now() - dernierReleve < 15000)) return null;
+  releveEnCours = true; dernierReleve = Date.now();
+  let since = S.dropSeq || 0, n = 0, inconnus = 0, more = true, garde = 0;
+  try {
+    while (more && garde++ < 20) {
+      const r = await jsonpGet(cfg.url, { key: cfg.key, drops: 1, since });
+      if (!r) return { err: 'connexion' };
+      if (!r.keyOk) return { err: 'cle' };
+      if (!Array.isArray(r.drops)) return { err: 'script' };
+      for (const [seq, k, , x] of r.drops) {
+        since = Math.max(since, +seq || 0);
+        try {
+          const d = await dechiffrer(await cleDepot(cfg.key, String(k).slice(4)), x);
+          const f = trouverEleve(d.n, d.p, d.c, curClasse());
+          if (!f) { inconnus++; continue; }
+          if (f.e.auto && (f.e.auto.t || 0) >= (d.t || 0)) continue;
+          const ev = {}; ['afl1', 'afl2', 'afl3'].forEach((id, i) => { const v = d.a[i]; if (v && v[0]) ev[id] = { d: v[0], pos: v[1] }; });
+          f.e.auto = { ev, reussi: d.r || '', ameliorer: d.m || '', date: dateFr(new Date(d.t || Date.now())), t: d.t || Date.now(), via: 'lien' };
+          n++;
+        } catch (err) { }
+      }
+      more = !!r.more;
+    }
+    S.dropSeq = since; save();
+    return { n, inconnus };
+  } finally { releveEnCours = false; }
+}
+function etatEnvoi() {
+  if (!partageCfg()) return '⚠ Envoi automatique inactif : règle « ⚙ Partage entre tablettes » (page d\'accueil, carte Listes d\'élèves) sur cette tablette. En attendant, les élèves obtiennent un code à t\'envoyer.';
+  return '✓ Envoi automatique actif : le positionnement de l\'élève arrive ici tout seul, par ta feuille Google (chiffré). Le code n\'est proposé à l\'élève que si l\'envoi échoue.';
+}
+setInterval(() => { if (!document.hidden && ['evaluation', 'bilan', 'classe'].includes(vue)) relevéAuto(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ['evaluation', 'bilan', 'classe'].includes(vue)) relevéAuto(); });
+function relevéAuto() {
+  if (!isTeacher() || !partageCfg()) return;
+  releverDepots(false).then(r => {
+    if (!r || !r.n) return;
+    toast(`${r.n} nouvel${r.n > 1 ? 's' : ''} auto-positionnement${r.n > 1 ? 's' : ''} reçu${r.n > 1 ? 's' : ''}`);
+    if (vue === 'evaluation') { rListe(); rEvMain(); } else if (vue === 'bilan' || vue === 'classe') VUES[vue]();
+  });
 }
 
 /* ---------- Routage ---------- */
@@ -1897,7 +1998,7 @@ function route() {
   document.body.classList.toggle('eleve-mode', v === 'eleve');
   majEntete();
   $('#view').onclick = null;
-  if (TEACH.includes(v) && !T) rVerrou(); else VUES[v]();
+  if (TEACH.includes(v) && !T) rVerrou(); else { VUES[v](); if (v === 'evaluation' || v === 'bilan' || v === 'classe') relevéAuto(); }
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
@@ -2272,19 +2373,26 @@ function rClasse() {
     <div class="lgrid">
       <div>
         <ul class="muted">
-          <li><b>Lien personnel sur le bilan</b> : quand c'est autorisé, chaque PDF élève porte un QR code et un lien à son nom. L'élève se positionne avec la <b>grille en langage élève</b> (curseur dans le degré compris), puis t'envoie le <b>code</b> obtenu par la messagerie Pronote.</li>
+          <li><b>Lien personnel sur le bilan</b> : quand c'est autorisé, chaque PDF élève porte un QR code et un lien à son nom. L'élève se positionne avec la <b>grille en langage élève</b> (curseur dans le degré compris) et valide : son positionnement t'arrive automatiquement.</li>
           <li><b>Sur cette tablette</b> : « Passer en mode élève » ; l'élève choisit son nom et son positionnement s'enregistre directement ici.</li>
           <li>Hors de la période autorisée, les liens ne fonctionnent plus.</li>
         </ul>
-        <div class="row wrap"><button class="btn primary" id="lGo" ${autoOuvert() ? '' : 'disabled'}>Passer cette tablette en mode élève</button></div>
-        <h4>Coller les codes reçus</h4>
+        <p class="envoi ${partageCfg() ? 'ok' : ''}">${esc(etatEnvoi())}</p>
+        <div class="row wrap"><button class="btn primary" id="lGo" ${autoOuvert() ? '' : 'disabled'}>Passer cette tablette en mode élève</button>${partageCfg() ? '<button class="btn" id="lRel">⟳ Récupérer les positionnements</button><span class="muted" id="lRelR"></span>' : ''}</div>
+        <h4>Codes reçus (si l'envoi automatique a échoué)</h4>
         <textarea id="codes" rows="3" placeholder="DANSE1.eyJu… (tu peux coller plusieurs messages d'un coup)"></textarea>
         <div class="row end"><button class="btn" id="cImp">Importer les codes</button></div>
       </div>
-      <div class="qrw"><canvas id="qr" width="220" height="220" aria-label="QR code du lien élève"></canvas><small class="muted">Lien général (sans nom) :<br><code id="lUrl">${esc(lienEleve())}</code></small><button class="btn sm" id="lCopy">Copier le lien</button></div>
+      <div class="qrw"><canvas id="qr" width="220" height="220" aria-label="QR code du lien élève"></canvas><small class="muted">Lien général (sans nom, sur cette tablette ou avec un code) :<br><code id="lUrl">${esc(lienGeneral())}</code></small><button class="btn sm" id="lCopy">Copier le lien</button></div>
     </div>
   </section>`;
-  dessinerQR($('#qr'), lienEleve());
+  dessinerQR($('#qr'), lienGeneral());
+  const lr = $('#lRel'); if (lr) lr.onclick = async () => {
+    lr.disabled = true; $('#lRelR').textContent = 'Relevé en cours…';
+    const r = await releverDepots(true); lr.disabled = false;
+    const msg = !r ? '' : r.err === 'connexion' ? 'Pas de connexion au script Google.' : r.err === 'cle' ? 'Clé secrète refusée par le script.' : r.err === 'script' ? 'Le script Google n\'est pas à jour (voir le message de mise à jour).' : r.n ? `${r.n} nouveau(x) positionnement(s) reçu(s)${r.inconnus ? `, ${r.inconnus} élève(s) non reconnu(s)` : ''}.` : 'Rien de nouveau.' + (r.inconnus ? ` (${r.inconnus} élève(s) non reconnu(s))` : '');
+    if (r && r.n) { rClasse(); toast(msg); } else $('#lRelR').textContent = msg;
+  };
   $('#cSel').onchange = ev => { S.classeId = ev.target.value; save(); UI.selId = null; route(); };
   $('#cNew').onclick = async () => { const n = await modal({ titre: 'Nouvelle classe', input: { ph: 'Ex. : 2nde 4' }, ok: 'Créer' }); if (n && n.trim()) { const c = { id: uid(), nom: n.trim(), eleves: [], groupes: [] }; S.classes.push(c); S.classeId = c.id; save(); route(); } };
   $('#cRen').onclick = async () => { const n = await modal({ titre: 'Renommer la classe', input: { value: cl.nom }, ok: 'Renommer' }); if (n && n.trim()) { cl.nom = n.trim(); save(); route(); } };
@@ -2304,7 +2412,7 @@ function rClasse() {
   tb.oninput = ev => { const r = ev.target.closest('[data-e]'); if (!r) return; const e = cl.eleves.find(x => x.id === r.dataset.e); if (ev.target.classList.contains('eN')) e.nom = ev.target.value; else if (ev.target.classList.contains('eP')) e.prenom = ev.target.value; save(); };
   tb.onchange = ev => { if (!ev.target.classList.contains('eG')) return; const r = ev.target.closest('[data-e]'); cl.eleves.find(x => x.id === r.dataset.e).groupeId = ev.target.value; save(); };
   tb.onclick = async ev => { const b = ev.target.closest('[data-dele]'); if (!b) return; const e = cl.eleves.find(x => x.id === b.dataset.dele); if (await modal({ titre: `Supprimer ${nomComplet(e)} ?`, html: '<p>Son évaluation sera effacée.</p>', ok: 'Supprimer', danger: true })) { cl.eleves = cl.eleves.filter(x => x.id !== e.id); save(); rClasse(); } };
-  $('#lCopy').onclick = () => copier(lienEleve());
+  $('#lCopy').onclick = () => copier(lienGeneral());
   $('#lGo').onclick = () => { if (!autoOuvert()) return; verrouiller(); UI.em = null; aller('eleve'); route(); };
   bindAutoCtl($('#view'), rClasse);
   rTablette(cl);
@@ -2378,7 +2486,7 @@ function importerCodes(cl, txt) {
     if (!t) { inconnus.push((d.p + ' ' + d.n).trim() + (d.c ? ' (' + d.c + ')' : '')); continue; }
     const e = t.e;
     const ev = {}; ['afl1', 'afl2', 'afl3'].forEach((id, i) => { const v = d.a[i]; if (v && v[0]) ev[id] = { d: v[0], pos: v[1] }; });
-    e.auto = { ev, reussi: d.r, ameliorer: d.m, date: dateFr(new Date(d.t || Date.now())) };
+    e.auto = { ev, reussi: d.r, ameliorer: d.m, date: dateFr(new Date(d.t || Date.now())), t: d.t || Date.now(), via: 'code' };
     ok++;
   }
   save();
@@ -2403,7 +2511,7 @@ let EMC = null; // critères utilisés par la page élève
 function emContexte() {
   if (UI.token) {
     let t; try { t = JSON.parse(b64urlDec(UI.token)); } catch (e) { return { err: 'Ce lien est incomplet : vérifie que tu l\'as bien ouvert en entier depuis ton bilan.' }; }
-    if (Array.isArray(t)) { const x = String(t[4] || ''); t = { n: t[0] || '', p: t[1] || '', c: t[2] || '', g: t[3] || 'origine', x: x.length === 8 ? x.slice(0, 4) + '-' + x.slice(4, 6) + '-' + x.slice(6) : x }; }
+    if (Array.isArray(t)) { const x = String(t[4] || ''); t = { n: t[0] || '', p: t[1] || '', c: t[2] || '', g: t[3] || 'origine', x: x.length === 8 ? x.slice(0, 4) + '-' + x.slice(4, 6) + '-' + x.slice(6) : x, drop: t[5] && t[6] ? { id: t[5], k: t[6], sid: t[7] || '' } : null }; }
     if (!t || typeof t !== 'object') return { err: 'Ce lien n\'est pas valide.' };
     if (t.x && auj() > t.x) return { err: `Ce lien était valable jusqu'au ${dateIso(t.x)}. Demande à ton professeur s'il peut rouvrir l'auto-positionnement.` };
     const crit = t.g && GRILLES[t.g] && S.grilleNom !== t.g ? grilleVers(t.g) : S.criteres;
@@ -2432,14 +2540,25 @@ function rEleveMode() {
     V.innerHTML = `<div class="em card merci"><h1>Merci ${esc(E.prenom || '')} !</h1><p>Ton positionnement a bien été enregistré.</p>${ctx.ident ? '' : '<p class="muted">Passe la tablette à l\'élève suivant.</p><button class="btn primary big" id="emNext">Élève suivant</button>'}</div>`;
     const n = $('#emNext'); if (n) n.onclick = () => { UI.em = null; rEleveMode(); }; return;
   }
+  if (E.etape === 'envoi') { V.innerHTML = `<div class="em card merci"><h1>Envoi en cours…</h1><p>Ne ferme pas cette page.</p><div class="spin"></div></div>`; return; }
+  if (E.etape === 'envoye') {
+    V.innerHTML = `<div class="em card merci"><h1>✓ Merci ${esc(E.prenom || '')} !</h1><p>Ton positionnement a bien été <b>envoyé à ton professeur</b>. Tu n'as rien d'autre à faire.</p>
+      <p class="muted">Tu peux le modifier en rouvrant le lien de ton bilan${ctx.ident && ctx.ident.x ? ' jusqu\'au ' + esc(dateIso(ctx.ident.x)) : ''} : c'est le dernier envoi qui compte.</p>
+      <p class="muted">Récapitulatif : ${EMC.map(c => { const x = E.ev[c.id]; return `${esc(c.court)} → ${x ? 'degré ' + x.d : '—'}`; }).join(' · ')}</p>
+      <button class="btn" id="emBack">Modifier mes réponses</button></div>`;
+    $('#emBack').onclick = () => { E.etape = 'form'; rEleveMode(); };
+    return;
+  }
   if (E.etape === 'code') {
     V.innerHTML = `<div class="em card merci"><h1>C'est presque fini, ${esc(E.prenom || '')} !</h1>
+      ${E.echec ? '<p class="warnb">L\'envoi automatique n\'a pas fonctionné (connexion ?). Tu peux réessayer, ou utiliser le code ci-dessous.</p><div class="row center"><button class="btn primary" id="emRetry">Réessayer l\'envoi</button></div>' : ''}
       <p>Copie ce code et <b>envoie-le à ton professeur</b> par la messagerie Pronote :</p>
       <div class="codebox" id="emCode">${esc(E.code)}</div>
       <div class="row center wrap"><button class="btn primary big" id="emCopy">Copier mon code</button><button class="btn" id="emBack">Modifier mes réponses</button></div>
       <p class="muted">Récapitulatif : ${EMC.map(c => { const x = E.ev[c.id]; return `${esc(c.court)} → ${x ? 'degré ' + x.d : '—'}`; }).join(' · ')}</p></div>`;
     $('#emCopy').onclick = () => copier(E.code);
     $('#emBack').onclick = () => { E.etape = 'form'; rEleveMode(); };
+    const rt = $('#emRetry'); if (rt) rt.onclick = () => envoyerEleve(ctx, E);
     return;
   }
   let ident;
@@ -2479,8 +2598,16 @@ function rEleveMode() {
     if (local && !E.eleveId) { toast('Choisis ton nom dans la liste'); return; }
     if (!E.nom.trim() || !E.prenom.trim()) { toast('Écris ton nom et ton prénom'); return; }
     E.code = codeAuto({ nom: E.nom.trim(), prenom: E.prenom.trim(), classe: E.classe.trim(), ev: E.ev, reussi: E.reussi.trim(), ameliorer: E.ameliorer.trim() });
+    if (ctx.ident && ctx.ident.drop && cryptoOk()) { envoyerEleve(ctx, E); return; }
     E.etape = 'code'; rEleveMode(); window.scrollTo(0, 0);
   };
+}
+async function envoyerEleve(ctx, E) {
+  E.etape = 'envoi'; rEleveMode(); window.scrollTo(0, 0);
+  const payload = { n: E.nom.trim(), p: E.prenom.trim(), c: E.classe.trim(), a: EMC.map(c => { const x = E.ev[c.id]; return x ? [x.d, Math.round(x.pos * 100) / 100] : 0; }), r: E.reussi.trim(), m: E.ameliorer.trim(), t: Date.now() };
+  const ok = await envoyerDepot(ctx.ident.drop, payload);
+  E.echec = !ok; E.etape = ok ? 'envoye' : 'code';
+  if (vue === 'eleve') { rEleveMode(); window.scrollTo(0, 0); }
 }
 function champsLibres(E) {
   return `<label>Nom<input data-f="nom" value="${esc(E.nom)}" autocomplete="family-name"></label><label>Prénom<input data-f="prenom" value="${esc(E.prenom)}" autocomplete="given-name"></label><label>Classe<input data-f="classe" value="${esc(E.classe)}" placeholder="2nde…"></label>`;
@@ -2677,7 +2804,7 @@ function objectifPrioritaire(e, lang) {
   return `${best.c.court} (${lang === 'eleve' ? best.c.titreEleve : best.c.titre}) — pour atteindre le degré ${best.d} : ${txt}`;
 }
 
-function pageEleve(ctx, cl, e) {
+function pageEleve(ctx, cl, e, urlLien) {
   const { doc, F } = ctx; const R = S.reglages; const lang = R.langPDF;
   const PW = 841.89, PH = 595.28, M = 26, W = PW - 2 * M;
   const ink = PDFLib.rgb(0.11, 0.09, 0.17), grey = PDFLib.rgb(0.42, 0.40, 0.48), light = PDFLib.rgb(0.85, 0.84, 0.88), white = PDFLib.rgb(1, 1, 1);
@@ -2688,7 +2815,7 @@ function pageEleve(ctx, cl, e) {
   const obj = objectifPrioritaire(e, lang);
   const comm = (e.comm || '').trim();
   const a = e.auto && e.auto.ev ? e.auto.ev : null;
-  const avecLien = autoOuvert() && !e.statut;
+  const avecLien = !!urlLien && autoOuvert() && !e.statut;
   const HL = avecLien ? 90 : 0;
 
   function mesure(fs) {
@@ -2799,13 +2926,14 @@ function pageEleve(ctx, cl, e) {
   box('Pour progresser', L.cl2, rgbH('#0f9d76'));
   // Lien d'auto-positionnement (si autorisé)
   if (avecLien) {
-    const url = lienEleve(e, cl);
+    const url = urlLien;
     const by = y - fh - 8, bh = 82;
     page.drawRectangle({ x: M, y: by - bh, width: W, height: bh, color: rgbH('#fdeef4'), borderColor: rgbH('#e0447c'), borderWidth: 1.2 });
     const q = qrPdf(page, url, M + 6, by - bh + 4, bh - 8);
     const tx0 = M + 16 + q;
     T(page, lang === 'eleve' ? 'Et toi, où te situes-tu ? Positionne-toi !' : 'Auto-positionnement de l\'élève', tx0, by - 24, 12, F.b, rgbH('#c2185b'));
-    const msg = `Scanne le QR code ou clique ici pour te positionner toi-même dans les degrés${S.reglages.autoJusqua ? ' (lien valable jusqu\'au ' + dateIso(S.reglages.autoJusqua) + ')' : ''}. Ensuite, envoie le code obtenu à ton professeur par la messagerie Pronote.`;
+    const auto = /#eleve=/.test(url) && JSON.parse(b64urlDec(url.split('#eleve=')[1])).length > 5;
+    const msg = `Scanne le QR code ou clique ici pour te positionner toi-même dans les degrés${S.reglages.autoJusqua ? ' (lien valable jusqu\'au ' + dateIso(S.reglages.autoJusqua) + ')' : ''}. ${auto ? 'Quand tu valides, ton positionnement est envoyé directement à ton professeur.' : 'Ensuite, envoie le code obtenu à ton professeur par la messagerie Pronote.'}`;
     lines(page, wrap(msg, F.r, 9.2, W - (tx0 - M) - 160), tx0, by - 42, 9.2, F.r, 11.6, ink);
     const bw = 128, bx = M + W - bw - 12, bby = by - bh / 2 - 13;
     page.drawRectangle({ x: bx, y: bby, width: bw, height: 26, color: rgbH('#e0447c') });
@@ -2838,7 +2966,7 @@ function lienPdf(doc, page, url, x, y, w, h) {
   const ex = page.node.lookupMaybe(PDFName.of('Annots'), PDFArray);
   if (ex) ex.push(annot); else page.node.set(PDFName.of('Annots'), ctx.obj([annot]));
 }
-async function pdfEleveBytes(cl, e) { const ctx = await nouveauDoc(); pageEleve(ctx, cl, e); return ctx.doc.save(); }
+async function pdfEleveBytes(cl, e) { const ctx = await nouveauDoc(); const u = autoOuvert() && !e.statut ? await lienEleve(e, cl) : ''; pageEleve(ctx, cl, e, u); return ctx.doc.save(); }
 function nomPdfEleve(cl, e) { return `${nomFichier(e.nom)}_${nomFichier(e.prenom || '')}_Danse_${nomFichier(cl.nom)}.pdf`.replace(/__+/g, '_'); }
 async function exportPdfEleve(e) {
   if (!e) return;

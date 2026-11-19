@@ -12,6 +12,11 @@
  * contient donc aucun nom lisible. Les tablettes récupèrent les changements des
  * autres toutes les quelques secondes.
  *
+ * Danse EPS : boîte de dépôt (onglet caché « Depot ») pour l'auto-positionnement des élèves.
+ * Le téléphone de l'élève y dépose son positionnement CHIFFRÉ (clé propre à l'élève, contenue dans
+ * le lien de son bilan) sans connaître la clé secrète ; seules les tablettes réglées avec la clé secrète
+ * peuvent relever et déchiffrer les dépôts.
+ *
  * Installation : voir relais/README.md
  * ⚠️ Après avoir remplacé ce code : Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer.
  */
@@ -21,6 +26,8 @@ const SECRET = 'CHANGE-MOI';
 
 const SHEET_NAME = 'Courses';
 const SYNC_SHEET = 'Sync';
+const DROP_SHEET = 'Depot';
+const DROP_MAX = 5000; // nombre maximal de dépôts conservés
 
 /** Réception des courses (POST envoyé par l'application). */
 function doPost(e) {
@@ -30,6 +37,7 @@ function doPost(e) {
   } catch (err) {
     return json_({ ok: false, error: 'json' });
   }
+  if (data.drop) return json_(dropPush_(data.drop)); // dépôt élève (Danse) : pas de clé secrète
   if (data.key !== SECRET) return json_({ ok: false, error: 'key' });
   if (data.sync) return json_(syncPush_(data.sync));
 
@@ -75,6 +83,9 @@ function doGet(e) {
   const res = { ok: true, app: 'Relais Vitesse EPS', keyOk: p.key === SECRET };
   if (res.keyOk) res.sync = 1;
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
+  if (res.keyOk && p.drops !== undefined) Object.assign(res, dropPull_(p));
+  // Danse : l'élève vérifie que son dépôt est arrivé (ne renvoie que le début du texte chiffré, aucune donnée)
+  if (p.dropchk !== undefined) res.drop = dropCheck_(String(p.dropchk));
   // Vérification de réception : l'application envoie les identifiants qu'elle vient de transmettre,
   // le script répond ceux qui sont bien présents dans la feuille.
   if (res.keyOk && p.ids !== undefined) {
@@ -160,6 +171,63 @@ function syncPull_(p) {
     .sort((a, b) => Number(a[0]) - Number(b[0]));
   const out = rows.slice(0, 300).map(r => [Number(r[0]), String(r[1]), Number(r[2]), Number(r[3]) ? 1 : 0, String(r[4])]);
   return { seq: seq, recs: out, more: rows.length > 300 };
+}
+
+/* ---------- Danse EPS : boîte de dépôt des auto-positionnements ---------- */
+
+function dropSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(DROP_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(DROP_SHEET);
+    sh.getRange(1, 1, 1, 4).setValues([['seq', 'clé', 'reçu', 'données (chiffrées)']]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    try { sh.hideSheet(); } catch (e) {}
+  }
+  return sh;
+}
+
+/** Dépôt d'un élève : une ligne par élève (clé « dan|… »), le dernier envoi remplace le précédent. */
+function dropPush_(d) {
+  const k = String((d && d.k) || ''), x = String((d && d.x) || '');
+  if (!/^dan\|[A-Za-z0-9_-]{8,40}$/.test(k) || !/^[A-Za-z0-9_-]{20,8000}$/.test(x)) return { ok: false, error: 'drop' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = dropSheet_();
+    const props = PropertiesService.getScriptProperties();
+    const seq = Number(props.getProperty('dropSeq') || 0) + 1;
+    const last = sh.getLastRow();
+    const keys = last > 1 ? sh.getRange(2, 2, last - 1, 1).getValues().map(r => String(r[0])) : [];
+    const i = keys.indexOf(k);
+    const row = [seq, k, Date.now(), x];
+    if (i >= 0) sh.getRange(i + 2, 1, 1, 4).setValues([row]);
+    else if (keys.length >= DROP_MAX) return { ok: false, error: 'full' };
+    else sh.getRange(last + 1, 1, 1, 4).setValues([row]);
+    props.setProperty('dropSeq', String(seq));
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Début du texte chiffré déposé sous cette clé (pour que l'élève sache que c'est bien arrivé). */
+function dropCheck_(k) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DROP_SHEET);
+  if (!sh || sh.getLastRow() < 2) return '';
+  const rows = sh.getRange(2, 2, sh.getLastRow() - 1, 3).getValues();
+  for (let i = 0; i < rows.length; i++) if (String(rows[i][0]) === k) return String(rows[i][2]).slice(0, 16);
+  return '';
+}
+
+/** Relevé par les tablettes (clé secrète) : dépôts reçus depuis « since », par paquets de 300. */
+function dropPull_(p) {
+  const since = Number(p.since || 0);
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DROP_SHEET);
+  if (!sh || sh.getLastRow() < 2) return { drops: [], more: false };
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues()
+    .filter(r => Number(r[0]) > since).sort((a, b) => Number(a[0]) - Number(b[0]));
+  return { drops: rows.slice(0, 300).map(r => [Number(r[0]), String(r[1]), Number(r[2]), String(r[3])]), more: rows.length > 300 };
 }
 
 function sheet_(head) {
