@@ -126,7 +126,7 @@ input:focus,select,textarea:focus{outline-color:var(--accent)}
 .chip.on{background:var(--violet);border-color:var(--violet);color:#fff}
 .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pgrid small{display:block;font-weight:800;color:#0f766e;margin-bottom:4px;text-transform:uppercase;font-size:.72rem;letter-spacing:.5px}
 .obsc{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}.obsc p{margin:.35em 0;font-size:.9rem}
-.mini{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.mini span{background:#efe9fb;color:var(--violet);font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:10px}.mini.p span{background:#e3f4f1;color:#0f766e}
+.mini{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.mini span{background:#efe9fb;color:var(--violet);font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:10px}.mini.p span{background:#e3f4f1;color:#0f766e}.mini.d span{background:#fdeef4;color:#c2185b}
 
 /* Procédés */
 .defi{background:linear-gradient(135deg,#1d1530,#3b1d4f);color:#fff}
@@ -1515,21 +1515,21 @@ const GRILLES = {
     criteres: [
       {
         id: 'afl1', court: 'AFL1',
-        titre: 'Mobiliser des procédés de composition',
-        sous: "Explorer, maîtriser et mobiliser des procédés de composition pour enrichir des mouvements afin d'exprimer une intention et/ou une émotion en rapport avec une thématique de son choix.",
+        titre: 'Mobiliser des procédés de composition et danser',
+        sous: "Explorer, maîtriser et mobiliser des procédés de composition pour enrichir des mouvements afin d'exprimer une intention et/ou une émotion en rapport avec une thématique de son choix, puis les danser devant un public avec mémorisation, concentration et présence.",
         refs: 'AFL2CA3 EP1CA3 EP2CA3 EP4CA3 EP9CA3',
-        titreEleve: 'Je transforme mes mouvements pour exprimer quelque chose',
+        titreEleve: 'Je transforme mes mouvements et je les danse pour exprimer quelque chose',
         d: [
-          "L'élève propose des formes corporelles ordinaires. Il se maintient dans le mime ou la banalité sans chercher à colorer l'élément par des procédés de composition.",
-          "L'élève met difficilement en œuvre des formes corporelles peu ou pas personnalisées. Il copie, reproduit pour proposer une motricité peu originale. Il ne saisit que très peu les procédés de composition et peine à s'en servir.",
-          "L'élève met en œuvre des formes corporelles avec l'aide de ses camarades. Il maîtrise partiellement les procédés de composition pour changer sa motricité usuelle. Il modifie un des paramètres (temps, espace, énergie) pour proposer des formes corporelles personnalisées et une motricité peu ordinaire.",
-          "L'élève met en œuvre des formes corporelles au service de la thématique par l'appropriation des procédés de composition. Il modifie des paramètres (temps, espace, énergie) pour proposer des formes corporelles personnalisées et une motricité complexe."
+          "L'élève propose des formes corporelles ordinaires. Il se maintient dans le mime ou la banalité sans chercher à colorer l'élément par des procédés de composition. La séquence n'est pas mémorisée (arrêts, regards vers les autres, rires) : concentration et présence ne sont pas tenues.",
+          "L'élève met difficilement en œuvre des formes corporelles peu ou pas personnalisées. Il copie, reproduit pour proposer une motricité peu originale. Il ne saisit que très peu les procédés de composition et peine à s'en servir. La séquence est mémorisée avec des hésitations ; la concentration est fragile et le regard peu engagé.",
+          "L'élève met en œuvre des formes corporelles avec l'aide de ses camarades. Il maîtrise partiellement les procédés de composition pour changer sa motricité usuelle. Il modifie un des paramètres (temps, espace, énergie) pour proposer des formes corporelles personnalisées et une motricité peu ordinaire. La séquence est mémorisée ; il reste concentré la plupart du temps, avec un début et une fin marqués.",
+          "L'élève met en œuvre des formes corporelles au service de la thématique par l'appropriation des procédés de composition. Il modifie des paramètres (temps, espace, énergie) pour proposer des formes corporelles personnalisées et une motricité complexe. Il danse sans trou de mémoire, avec concentration et présence du début à la fin (regard, immobilités tenues, début et fin marqués)."
         ],
         e: [
-          "Je fais des gestes de tous les jours ou je mime. Je n'utilise pas encore les procédés pour transformer mes mouvements.",
-          "Je copie souvent les autres. J'ai du mal à utiliser les procédés : mes mouvements restent assez ordinaires.",
-          "Avec l'aide de mon groupe, j'utilise quelques procédés. Je change au moins un paramètre (vitesse, espace ou énergie) : mes mouvements ne ressemblent plus à des gestes de tous les jours.",
-          "J'utilise les procédés pour servir notre thème. Je joue sur plusieurs paramètres (vitesse, espace, énergie) : mes mouvements sont personnels, originaux et maîtrisés."
+          "Je fais des gestes de tous les jours ou je mime. Je n'utilise pas encore les procédés pour transformer mes mouvements. J'oublie ma danse, je m'arrête ou je ris : je ne reste pas concentré.",
+          "Je copie souvent les autres. J'ai du mal à utiliser les procédés : mes mouvements restent assez ordinaires. Je connais ma danse mais j'hésite, et j'ai du mal à rester concentré.",
+          "Avec l'aide de mon groupe, j'utilise quelques procédés. Je change au moins un paramètre (vitesse, espace ou énergie) : mes mouvements ne ressemblent plus à des gestes de tous les jours. Je connais ma danse et je reste concentré presque tout le temps.",
+          "J'utilise les procédés pour servir notre thème. Je joue sur plusieurs paramètres (vitesse, espace, énergie) : mes mouvements sont personnels, originaux et maîtrisés. Je danse concentré du début à la fin, sans trou de mémoire : mon regard, mes immobilités, mon début et ma fin sont maîtrisés."
         ]
       },
       {
@@ -1685,6 +1685,7 @@ const OBS_PARAM = [
   ['Corps', ['Parties du corps', 'Appuis']]
 ];
 const CLARTE = ['Pas du tout', 'Un peu', 'Plutôt oui', 'Très clairement'];
+const OBS_DANSE = ['Danse mémorisée, sans trou', 'Concentrés, sans rire', 'Regard engagé', 'Immobilités tenues', 'Début et fin marqués'];
 
 /* ---------- État ---------- */
 function uid() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
@@ -1703,7 +1704,7 @@ function defState() {
       defaut: 'additio', arrondi: 0.25, noteSurPDF: true, langPDF: 'eleve',
       autoOuvert: false, autoJusqua: '', urlAppli: ''
     },
-    grilleNom: 'origine',
+    grilleNom: 'origine', grilleV: 2,
     criteres: grilleVers('origine'),
     classes: [{ id: cid, nom: 'Ma classe', eleves: [], groupes: [] }],
     classeId: cid,
@@ -1723,6 +1724,11 @@ function load() {
   if (!s.classes.length) s.classes = d.classes;
   s.classes.forEach(c => { c.id = c.id || uid(); c.eleves = c.eleves || []; c.groupes = c.groupes || []; c.eleves.forEach(e => { e.id = e.id || uid(); e.ev = e.ev || {}; }); });
   if (!s.classes.some(c => c.id === s.classeId)) s.classeId = s.classes[0].id;
+  if ((s.grilleNom || 'origine') === 'origine' && (s.grilleV || 1) < 2) {
+    const a = s.criteres.find(c => c.id === 'afl1'), n = GRILLES.origine.criteres[0];
+    if (a && a.titre === 'Mobiliser des procédés de composition') ['titre', 'sous', 'titreEleve', 'd', 'e'].forEach(k => { a[k] = clone(n[k]); });
+  }
+  s.grilleV = 2;
   return s;
 }
 let S = load();
@@ -2076,11 +2082,11 @@ function bindEval(e) {
 /* =========================================================
    VUE OBSERVATION (rôle d'observateur)
    ========================================================= */
-function obsFormVide() { return { obsId: '', groupeId: '', procedes: [], params: [], clarte: -1, fort: '', conseil: '' }; }
+function obsFormVide() { return { obsId: '', groupeId: '', procedes: [], params: [], danse: [], clarte: -1, fort: '', conseil: '' }; }
 function rObs() {
   const cl = curClasse(); const V = $('#view');
   if (!UI.obsForm) UI.obsForm = obsFormVide();
-  const f = UI.obsForm;
+  const f = UI.obsForm; if (!f.danse) f.danse = [];
   if (!cl || !cl.groupes.length) {
     V.innerHTML = `<div class="empty card"><h2>Crée d'abord les groupes</h2><p>La fiche d'observation s'appuie sur les groupes de création de la classe.</p><button class="btn primary" onclick="aller('classe')">Gérer la classe</button></div>`; return;
   }
@@ -2097,10 +2103,11 @@ function rObs() {
     <h4>1. Les procédés que je repère</h4><div class="chips">${OBS_PROC.map(p => chip(p, 'procedes')).join('')}</div>
     <h4>2. Les paramètres qu'ils transforment</h4>
     <div class="pgrid">${OBS_PARAM.map(([t, l]) => `<div><small>${t}</small><div class="chips">${l.map(p => chip(t + ' : ' + p, 'params').replace('>' + esc(t + ' : ' + p) + '<', '>' + esc(p) + '<')).join('')}</div></div>`).join('')}</div>
-    <h4>3. L'intention (le thème) est-elle lisible ?</h4>
+    <h4>3. Comment ils dansent</h4><div class="chips">${OBS_DANSE.map(p => chip(p, 'danse')).join('')}</div>
+    <h4>4. L'intention (le thème) est-elle lisible ?</h4>
     <div class="seg wide" id="oClar">${CLARTE.map((t, i) => `<button data-i="${i}" class="${f.clarte === i ? 'on' : ''}">${t}</button>`).join('')}</div>
-    <h4>4. Un point fort</h4><textarea id="oFort" rows="2" placeholder="J'ai trouvé réussi … parce que …">${esc(f.fort)}</textarea>
-    <h4>5. Un conseil pour progresser</h4><textarea id="oCons" rows="2" placeholder="Pour que … , vous pourriez …">${esc(f.conseil)}</textarea>
+    <h4>5. Un point fort</h4><textarea id="oFort" rows="2" placeholder="J'ai trouvé réussi … parce que …">${esc(f.fort)}</textarea>
+    <h4>6. Un conseil pour progresser</h4><textarea id="oCons" rows="2" placeholder="Pour que … , vous pourriez …">${esc(f.conseil)}</textarea>
     <div class="row end"><button class="btn ghost" id="oReset">Effacer</button><button class="btn primary" id="oSave">Valider ma fiche</button></div>
   </section>
   <section class="card">
@@ -2136,6 +2143,7 @@ function obsCard(o, avecNom = true) {
   return `<div class="obsc"><div class="row"><b>${avecNom ? esc(ob ? nomComplet(ob) : 'Élève supprimé') : 'Groupe observé : ' + esc(g ? g.nom : '?')}</b><span class="muted">${new Date(o.date).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span><span class="grow"></span>${isTeacher() ? `<button class="lnk" data-act="supObs" data-id="${o.id}">supprimer</button>` : ''}</div>
     ${o.procedes.length ? `<div class="mini">${o.procedes.map(p => `<span>${esc(p)}</span>`).join('')}</div>` : ''}
     ${o.params.length ? `<div class="mini p">${o.params.map(p => `<span>${esc(p)}</span>`).join('')}</div>` : ''}
+    ${o.danse && o.danse.length ? `<div class="mini d">${o.danse.map(p => `<span>${esc(p)}</span>`).join('')}</div>` : ''}
     ${o.clarte >= 0 ? `<p><small>Intention lisible :</small> <b>${CLARTE[o.clarte]}</b></p>` : ''}
     ${o.fort ? `<p>👍 ${esc(o.fort)}</p>` : ''}${o.conseil ? `<p>💡 ${esc(o.conseil)}</p>` : ''}</div>`;
 }
