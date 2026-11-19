@@ -1401,8 +1401,17 @@ function profRes(box) {
     $("#rDel").onclick = () => askCode("🗑 Supprimer tous les résultats", "Tous les résultats reçus jusqu'à maintenant sont retirés, sur tous les appareils des enseignants (pratique après un essai). Les élèves pourront refaire leurs parcours. Ils restent dans ta Google Sheet, onglet CO_Resultats.", () => { C.supprAvant = now(); C.suppr = []; LS.del("res"); if (ME) { RUNS = [null, null]; saveRuns(); } confChanged(); flash("Résultats supprimés ✓"); draw(); });
     $("#rSms").onclick = importSMSDialog;
     $("#rCsv").onclick = () => {
-      const rows = [["Enseignant", "Classe", "Nom", "Prénom", ...C.parcours.flatMap(p => [p.nom + " camarade", p.nom + " balises", p.nom + " temps (s)", p.nom + " pénalités (s)", p.nom + " final", p.nom + " non validées", p.nom + " prévu"])]];
-      L.forEach(x => rows.push([x.me.prof, x.me.classe || "", x.me.nom, x.me.prenom, ...x.runs.flatMap(r => { if (!r?.fin) return [x.abs ? STAT_LBL[x.st] || "absent" : "", "", "", "", "", "", ""]; const a = withStudent(x, () => analyse(r)); return [r.duo ? teamNames(r) : "", r.plan.join("-"), Math.round(a.chrono / 1000), Math.round(a.pen / 1000), fmt(a.final), a.oublis.join("-"), r.prevu ? fmt(r.prevu * 1000) : ""]; })]));
+      // une ligne par élève ; pour chaque parcours : balises, temps, pénalités, final, bonnes / erreurs, temps moyen par tronçon (+ équipe pour le collectif)
+      const hms = ms => { const t = Math.round(Math.max(0, ms) / 1000); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`; }; // h:mm:ss, reconnu comme une durée par Excel
+      const isDuo = k => k === 1 || !!(C.parcours[k] || {}).duo;
+      const cols = k => { const n = C.parcours[k].nom; return [...(isDuo(k) ? [n + " · binôme / groupe"] : []), n + " · balises du parcours", n + " · temps réalisé", n + " · pénalités", n + " · temps final", n + " · balises bonnes", n + " · erreurs", n + " · balises ratées", n + " · temps moyen entre balises", n + " · temps prévu"]; };
+      const rows = [["Enseignant", "Classe", "Nom", "Prénom", ...C.parcours.flatMap((p, k) => cols(k))]];
+      L.forEach(x => rows.push([x.me.prof, x.me.classe || "", x.me.nom, x.me.prenom, ...C.parcours.flatMap((p, k) => {
+        const r = x.runs[k], w = cols(k).length;
+        if (!r?.fin) { const e = Array(w).fill(""); if (x.abs) e[0] = STAT_LBL[x.st] || "absent"; return e; }
+        const a = withStudent(x, () => analyse(r)), bonnes = r.plan.length - a.oublis.length, tron = r.saisies.length + 1; // départ → chaque balise → arrivée
+        return [...(isDuo(k) ? [r.duo ? teamNames(r) : ""] : []), r.plan.join(" - "), hms(a.chrono), a.pen ? hms(a.pen) : "0:00:00", hms(a.final), bonnes, a.oublis.length, a.oublis.join(" - "), hms(a.chrono / tron), r.prevu ? hms(r.prevu * 1000) : ""];
+      })]));
       const csv = "﻿" + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n"), a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `resultats-CO${f ? "-" + f : ""}.csv`; a.click();
     };
