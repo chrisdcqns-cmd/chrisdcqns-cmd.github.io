@@ -3196,8 +3196,9 @@ const KS="relais-vitesse-sheets-v1";
 /* Adresse du script Apps Script de l'enseignant (la clé secrète, elle, se saisit sur chaque tablette) */
 const SH_DEFAULT_URL="https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec";
 let SH={url:"",key:"",names:"code",auto:true,queue:[],salt:"",...(load(KS,{})||{})};
-/* clé non saisie ici : on prend celle du « Partage entre tablettes » de la page d'accueil (même script Google) */
-if(!SH.key){try{const c=JSON.parse(localStorage.getItem("eps.share.v1")||"null");if(c&&c.key){SH.key=c.key;if(!SH.url)SH.url=c.url}}catch(e){}}
+/* clé non saisie ici : on prend celle du « Partage entre tablettes » seulement s'il pointe encore vers le script de Relais
+   (le partage commun a maintenant son propre script, apps-script/Code.gs, qui ne reçoit pas les courses) */
+if(!SH.key){try{const c=JSON.parse(localStorage.getItem("eps.share.v1")||"null");if(c&&c.key&&(!c.url||c.url===SH_DEFAULT_URL||c.url===SH.url)){SH.key=c.key;if(!SH.url)SH.url=c.url}}catch(e){}}
 if(!SH.url)SH.url=SH_DEFAULT_URL;
 if(!SH.salt){SH.salt=Math.random().toString(36).slice(2,10);save(KS,SH)}
 const shSave=()=>save(KS,SH);

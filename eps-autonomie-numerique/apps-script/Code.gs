@@ -1,103 +1,45 @@
 /**
- * Relais Vitesse EPS — réception des courses dans Google Sheets
- * et synchronisation en direct entre les tablettes (onglet caché « Sync »).
+ * EPS – Autonomie et Numérique : script commun (partage entre tablettes).
  *
- * Les élèves n'y apparaissent que par leur code anonyme (ou prénom + initiale,
- * selon le réglage de l'application). La correspondance code ↔ élève reste
- * sur la tablette (export Excel, feuille « Vitesses »).
+ * Il transporte les données communes à toutes les applications : réglages communs (établissement,
+ * enseignant, année…), dispenses, listes d'élèves, et les données d'Escalade quand elle utilise
+ * le partage commun. Il est indépendant :
+ *  - du script de Relais Vitesse (relais/apps-script/Code.gs : courses et synchro de Relais) ;
+ *  - du script de Danse (danse/apps-script/Code.gs : auto-positionnements des élèves).
  *
- * Synchronisation : chaque tablette envoie ses classes, leçons, groupes, élèves,
- * courses et évaluations sous forme d'enregistrements CHIFFRÉS sur la tablette
- * (AES-GCM, clé dérivée de la clé secrète ci-dessous). La feuille « Sync » ne
- * contient donc aucun nom lisible. Les tablettes récupèrent les changements des
- * autres toutes les quelques secondes.
+ * Tout est CHIFFRÉ sur la tablette (AES-GCM, clé dérivée de la clé secrète ci-dessous) :
+ * la feuille ne contient aucun nom lisible.
  *
- * Installation : voir relais/README.md
- * ⚠️ Après avoir remplacé ce code : Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer.
+ * Installation : voir README.md (même dossier).
+ * ⚠️ Après avoir modifié ce code : Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer.
  */
 
-// ⚠️ Change cette clé, puis indique exactement la même dans l'application.
+// ⚠️ Change cette clé, puis indique exactement la même sur chaque tablette (page d'accueil > ⚙ Partage entre tablettes).
 const SECRET = 'CHANGE-MOI';
 
-const SHEET_NAME = 'Courses';
 const SYNC_SHEET = 'Sync';
 
-/** Réception des courses (POST envoyé par l'application). */
+/** Envoi d'enregistrements par une tablette. */
 function doPost(e) {
   let data;
-  try {
-    data = JSON.parse(e.postData.contents);
-  } catch (err) {
-    return json_({ ok: false, error: 'json' });
-  }
+  try { data = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'json' }); }
   if (data.key !== SECRET) return json_({ ok: false, error: 'key' });
   if (data.sync) return json_(syncPush_(data.sync));
-
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    const sh = sheet_(data.head);
-    const width = sh.getLastColumn();
-    const idCol = width; // la dernière colonne contient l'identifiant de la course
-
-    // Index des lignes existantes par identifiant
-    const last = sh.getLastRow();
-    const ids = last > 1 ? sh.getRange(2, idCol, last - 1, 1).getValues().map(r => String(r[0])) : [];
-    const rowOf = {};
-    ids.forEach((id, i) => { if (id) rowOf[id] = i + 2; });
-
-    // Ajout ou mise à jour
-    const appendRows = [];
-    (data.rows || []).forEach(row => {
-      const r = row.slice(0, width);
-      while (r.length < width) r.push('');
-      const id = String(r[width - 1]);
-      if (rowOf[id]) sh.getRange(rowOf[id], 1, 1, width).setValues([r]);
-      else appendRows.push(r);
-    });
-    if (appendRows.length) {
-      sh.getRange(sh.getLastRow() + 1, 1, appendRows.length, width).setValues(appendRows);
-    }
-
-    // Suppressions (du bas vers le haut)
-    const toDelete = (data.del || []).map(id => rowOf[String(id)]).filter(Boolean).sort((a, b) => b - a);
-    toDelete.forEach(r => sh.deleteRow(r));
-
-    return json_({ ok: true, added: appendRows.length, deleted: toDelete.length });
-  } finally {
-    lock.releaseLock();
-  }
+  return json_({ ok: false, error: 'requête' });
 }
 
-/** Test de connexion et vérification de réception depuis l'application (JSONP). */
+/** Test de connexion et récupération des changements (JSONP). */
 function doGet(e) {
   const p = (e && e.parameter) || {};
-  const res = { ok: true, app: 'Relais Vitesse EPS', keyOk: p.key === SECRET };
+  const res = { ok: true, app: 'EPS commun', keyOk: p.key === SECRET };
   if (res.keyOk) res.sync = 1;
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
-  // Vérification de réception : l'application envoie les identifiants qu'elle vient de transmettre,
-  // le script répond ceux qui sont bien présents dans la feuille.
-  if (res.keyOk && p.ids !== undefined) {
-    const want = String(p.ids).split(',').filter(String);
-    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    const have = {};
-    if (sh && sh.getLastRow() > 1) {
-      const col = sh.getLastColumn();
-      sh.getRange(2, col, sh.getLastRow() - 1, 1).getValues().forEach(r => { have[String(r[0])] = 1; });
-    }
-    res.check = true;
-    res.have = want.filter(id => have[id]);
-    res.rows = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
-  }
   const body = JSON.stringify(res);
   if (p.callback && /^[A-Za-z0-9_]+$/.test(p.callback)) {
-    return ContentService.createTextOutput(p.callback + '(' + body + ')')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(p.callback + '(' + body + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
   return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JSON);
 }
-
-/* ---------- Synchronisation entre tablettes ---------- */
 
 function syncSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -107,7 +49,6 @@ function syncSheet_() {
     sh.getRange(1, 1, 1, 6).setValues([['seq', 'clé', 'mise à jour', 'supprimé', 'données (chiffrées)', 'tablette']])
       .setFontWeight('bold');
     sh.setFrozenRows(1);
-    try { sh.hideSheet(); } catch (e) {}
   }
   return sh;
 }
@@ -148,7 +89,7 @@ function syncPush_(s) {
   }
 }
 
-/** Renvoie les éléments modifiés depuis « since » (par paquets de 300) ; « pre » limite à un préfixe de clé (ex. disp| pour les dispenses). */
+/** Éléments modifiés depuis « since » (par paquets de 300) ; « pre » limite à un préfixe de clé (ex. disp|). */
 function syncPull_(p) {
   const seq = Number(PropertiesService.getScriptProperties().getProperty('syncSeq') || 0);
   const since = Number(p.since || 0);
@@ -160,18 +101,6 @@ function syncPull_(p) {
     .sort((a, b) => Number(a[0]) - Number(b[0]));
   const out = rows.slice(0, 300).map(r => [Number(r[0]), String(r[1]), Number(r[2]), Number(r[3]) ? 1 : 0, String(r[4])]);
   return { seq: seq, recs: out, more: rows.length > 300 };
-}
-
-function sheet_(head) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(SHEET_NAME);
-  if (!sh) sh = ss.insertSheet(SHEET_NAME);
-  if (sh.getLastRow() === 0 && head && head.length) {
-    sh.getRange(1, 1, 1, head.length).setValues([head])
-      .setFontWeight('bold').setBackground('#D9481F').setFontColor('#FFFFFF');
-    sh.setFrozenRows(1);
-  }
-  return sh;
 }
 
 function json_(o) {

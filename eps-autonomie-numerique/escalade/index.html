@@ -1173,7 +1173,6 @@ const sySave=()=>SV('sy',SY),hs=x=>h32(x)+':'+x.length;
 /* canal de synchronisation : le partage commun de la page d'accueil (une seule clé par tablette, toutes applis) s'il est réglé,
    sinon le script Google d'Escalade. Sur le canal commun, les clés sont préfixées « e: ». */
 const SYC=()=>{let c=null;try{c=JSON.parse(localStorage.getItem('eps.share.v1')||'null')}catch(e){}
- if((!c||!c.key))try{const r=JSON.parse(localStorage.getItem('relais-vitesse-sheets-v1')||'null');if(r&&r.url&&r.key)c={url:r.url,key:r.key}}catch(e){}
  return c&&c.url&&c.key?{url:c.url,key:c.key,pre:'e:',common:1}:{url:SH.url,key:SH.key,pre:''}};
 const syOk=()=>{const c=SYC();return SY.on!==false&&!!c.url&&!!c.key&&!!(window.crypto&&crypto.subtle)&&!/claude/.test(location.hostname)};
 function syChan(){const c=SYC(),sig=c.url+'|'+h32(c.key)+'|'+c.pre;if(SY.ch!==sig){SY.ch=sig;SY.init=false;SY.since=0;SY.h={};SY.pend={};SY.err='';SY.orph={};sySave()}return c}

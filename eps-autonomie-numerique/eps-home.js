@@ -84,19 +84,28 @@
 
   /* -------- partage entre tablettes : même canal que Relais Vitesse (onglet « Sync » de la feuille), chiffré -------- */
   /* réglage commun à toutes les applications (racine) : adresse du script Google + clé secrète, une fois par tablette */
-  var KS = "eps.share.v1", DEF_URL = "https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec";
+  /* script commun (apps-script/Code.gs), indépendant de celui de Relais Vitesse (RELAIS_URL) */
+  var KS = "eps.share.v1", RELAIS_URL = "https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec";
+  var GUIDE_COMMUN = "https://github.com/chrisdcqns-cmd/chrisdcqns-cmd.github.io/blob/main/eps-autonomie-numerique/apps-script/README.md";
   function shareGet() {
     var s = null; try { s = JSON.parse(localStorage.getItem(KS) || "null"); } catch (e) {}
-    if (!s || !s.key) { /* reprise automatique d'un réglage déjà fait sur la tablette (Relais Vitesse) */
-      try { var r = JSON.parse(localStorage.getItem("relais-vitesse-sheets-v1") || "null"); if (r && r.url && r.key) { s = { url: r.url, key: r.key }; localStorage.setItem(KS, JSON.stringify(s)); } } catch (e) {}
-    }
-    return s || { url: DEF_URL, key: "" };
+    return s || { url: "", key: "" };
+  }
+  /* empreinte du canal (adresse + clé) : quand elle change, tout ce qui est sur la tablette est renvoyé au nouveau script */
+  function chSig(c) { var h = 5381, t = c.url + "|" + c.key; for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return String(h); }
+  function migrer(cfg) {
+    var sig = chSig(cfg); if (D.ch === sig) return;
+    D.ch = sig; D.since = 0; /* u = 1 : ne remplace jamais une version plus récente déjà présente dans le script */
+    Object.keys(D.items).forEach(function (id) { if (!D.pend[id]) D.pend[id] = 1; }); sv(D);
+    var LL = lld(); LL.since = 0; Object.keys(LL.items).forEach(function (id) { if (!LL.pend[id]) LL.pend[id] = 1; }); lsv(LL);
+    try { var r = rget(); r.since = 0; if (!r.pend && r.u) r.pend = r.u; localStorage.setItem(KR, JSON.stringify(r)); } catch (e) {}
   }
   function shCfg() { var s = shareGet(); return s.url && s.key ? s : null; }
   function shareSettings(back) {
     var s = shareGet();
-    var o = overlay('<h3>⚙ Partage entre tablettes</h3><p class="m">Réglage commun à toutes les applications : les dispenses (et les listes communes) passent par ta feuille Google, chiffrées avec la clé secrète. À faire <b>une fois sur chaque tablette</b>.</p>' +
-      '<span class="epsd-lab">Adresse du script Google (…/exec)</span><input class="epsd-in" id="epsd-surl" value="' + esc(s.url || DEF_URL) + '">' +
+    var o = overlay('<h3>⚙ Partage entre tablettes</h3><p class="m">Réglage commun à toutes les applications : réglages, dispenses et listes passent par le <b>script commun EPS</b> (ta feuille Google), chiffrés avec la clé secrète. À faire <b>une fois sur chaque tablette</b>. <a href="' + GUIDE_COMMUN + '" target="_blank" rel="noopener">Installer le script commun</a></p>' +
+      (s.url === RELAIS_URL ? '<p class="m" style="color:#B26B00;font-weight:700">⚠ Cette tablette utilise encore le script de Relais Vitesse : installe le script commun, puis colle ici sa nouvelle adresse et sa clé.</p>' : "") +
+      '<span class="epsd-lab">Adresse du script commun (…/exec)</span><input class="epsd-in" id="epsd-surl" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(s.url || "") + '">' +
       '<span class="epsd-lab">Clé secrète (la même que dans le script)</span><input class="epsd-in" id="epsd-skey" type="password" autocomplete="off" value="' + esc(s.key || "") + '">' +
       '<p class="m" id="epsd-sst" style="margin-top:10px"></p>' +
       '<div class="epsd-act"><button data-x>Fermer</button><button id="epsd-stest">Tester</button><button class="p" id="epsd-ssave">Enregistrer</button></div>');
@@ -104,11 +113,15 @@
     async function test() {
       var v = val(), st = o.querySelector("#epsd-sst"); if (!v.url || !v.key) { st.textContent = "Indique l'adresse et la clé."; return false; }
       st.textContent = "Test…"; var r = await jsonp(v, {});
-      st.textContent = !r ? "✕ Impossible de joindre le script (adresse ou déploiement)." : !r.keyOk ? "✕ La clé ne correspond pas à celle du script." : !r.sync ? "⚠ Le script doit être mis à jour (nouvelle version de Code.gs)." : "✓ Connexion réussie.";
+      st.textContent = !r ? "✕ Impossible de joindre le script (adresse ou déploiement)." : !r.keyOk ? "✕ La clé ne correspond pas à celle du script." : !r.sync ? "⚠ Le script doit être mis à jour (nouvelle version de Code.gs)." : r.app === "Relais Vitesse EPS" ? "⚠ Connexion réussie, mais c'est le script de Relais Vitesse : installe le script commun (lien ci-dessus)." : "✓ Connexion réussie au script commun.";
       return !!(r && r.keyOk);
     }
     o.querySelector("#epsd-stest").onclick = test;
-    o.querySelector("#epsd-ssave").onclick = async function () { var v = val(); try { localStorage.setItem(KS, JSON.stringify(v)); } catch (e) {} D.since = 0; sv(D); var ok = await test(); if (ok) { sync(); setTimeout(function () { o.remove(); if (back) back(); }, 700); } };
+    o.querySelector("#epsd-ssave").onclick = async function () { var v = val();
+      /* Relais Vitesse garde son propre script : s'il utilisait le partage (pas de clé saisie dans Relais), on lui recopie l'ancien réglage */
+      try { var old = shareGet(), rs = JSON.parse(localStorage.getItem("relais-vitesse-sheets-v1") || "null") || {};
+        if (old.url && old.key && old.url !== v.url && !rs.key) { rs.url = old.url; rs.key = old.key; localStorage.setItem("relais-vitesse-sheets-v1", JSON.stringify(rs)); } } catch (e) {}
+      try { localStorage.setItem(KS, JSON.stringify(v)); } catch (e) {} D.since = 0; sv(D); var ok = await test(); if (ok) { sync(); setTimeout(function () { o.remove(); if (back) back(); }, 700); } };
   }
   var KEY = null, KEYSRC = null;
   function key(k) {
@@ -138,6 +151,7 @@
     if (!cfg || busy || !(window.crypto && crypto.subtle) || navigator.onLine === false) { sched(); return; }
     busy = true;
     try {
+      migrer(cfg);
       var ks = Object.keys(D.pend);
       if (ks.length) {
         var recs = [];
