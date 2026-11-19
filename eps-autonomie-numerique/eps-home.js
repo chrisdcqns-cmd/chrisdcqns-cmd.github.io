@@ -372,7 +372,17 @@
   function clsId(n) { var h = 5381, t = String(n).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " "); for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return "n" + (h >>> 0).toString(36); }
   function freeId(list, id) { return list.some(function (x) { return x.id === id; }) ? "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : id; }
   function full(e) { return (e.prenom + " " + e.nom).replace(/\s+/g, " ").trim(); }
-  var TARGETS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["acro", "Acrosport"]];
+  var TARGETS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["dan", "Danse"], ["acro", "Acrosport"]];
+  /* Danse (évaluation CA3) : localStorage « danse-eps-v1 » = {classes:[{id,nom,eleves:[{id,nom,prenom,groupeId,ev,comm,statut}],groupes}], classeId, …} (grille et réglages créés par l'application) */
+  function toDan(cl, L) {
+    var D = jget("danse-eps-v1", null); if (!D || typeof D !== "object") D = { classes: [] };
+    D.classes = (D.classes || []).filter(function (c) { return !(c.nom === "Ma classe" && !(c.eleves || []).length); });
+    var c = D.classes.filter(function (x) { return norm(x.nom) === norm(cl); })[0], n = 0;
+    if (!c) { c = { id: freeId(D.classes, clsId(cl)), nom: cl, eleves: [], groupes: [] }; D.classes.push(c); }
+    L.forEach(function (e) { if (c.eleves.some(function (x) { return nkey(x.prenom + " " + x.nom) === nkey(e.prenom + " " + e.nom); })) return;
+      c.eleves.push({ id: "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom: e.nom, prenom: e.prenom, groupeId: "", ev: {}, comm: "", statut: "" }); n++; });
+    D.classeId = c.id; localStorage.setItem("danse-eps-v1", JSON.stringify(D)); return n;
+  }
   /* Volley-ball (évaluation) : localStorage « eps_volley_eval_v1 » = {bareme, classes:[{id,nom,eleves:[{id,nom,prenom,ev,choix,statut,comment}]}], cur} (le barème est créé par l'application) */
   function toVol(cl, L) {
     var V = jget("eps_volley_eval_v1", null); if (!V || typeof V !== "object") V = { classes: [], cur: 0 };
@@ -577,7 +587,7 @@
         var res = [];
         for (var i = 0; i < TARGETS.length; i++) { var t = TARGETS[i]; if (!sel[t[0]]) continue;
           try {
-            var n = t[0] === "esc" ? toEsc(cl, L) : t[0] === "rel" ? toRel(cl, L) : t[0] === "ori" ? await toOri(cl, L) : t[0] === "vol" ? toVol(cl, L) : await toAcro(cl, L);
+            var n = t[0] === "esc" ? toEsc(cl, L) : t[0] === "rel" ? toRel(cl, L) : t[0] === "ori" ? await toOri(cl, L) : t[0] === "vol" ? toVol(cl, L) : t[0] === "dan" ? toDan(cl, L) : await toAcro(cl, L);
             res.push("✓ " + t[1] + " : " + (t[0] === "acro" ? n + " élève(s) dans la liste en ligne" : n + " élève(s) ajouté(s)"));
           } catch (x) { res.push("✕ " + t[1] + " : " + (x && x.message === "annulé" ? "annulé" : "échec (" + esc(x && x.message || "erreur") + ")")); }
         }

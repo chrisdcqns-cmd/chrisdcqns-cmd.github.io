@@ -10,6 +10,7 @@ Toutes les applications sont dans le dossier `eps-autonomie-numerique/` :
 - `orientation/` : **OrienRun EPS** → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/orientation/
 - `relais/` : **Relais Vitesse EPS** → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/relais/
 - `volley/` : **Volley-ball – Évaluation CA4** (enseignant, code commun) : critères par degrés avec curseur intra-degré, barème modifiable (barème perso ou officiel AFL1 /12 + AFL2-AFL3 /8), import de liste au choix (classes déjà sur la tablette, fichier Excel/CSV, collage), options (désactivées par défaut) : résultats des matchs pour placer le curseur AFL1 et compteur de points bonus, bilan de classe, PDF, CSV et zip des bilans. Données dans `localStorage` `eps_volley_eval_v1`, jamais envoyées en ligne → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/volley/
+- `danse/` : **Danse EPS** (CA3) : espace élève sans code (procédés & défis « sortir du geste ordinaire », fiche d'observation) ; espace enseignant (code commun) : évaluation par degrés avec curseur intra-degré (valeur Additio au clic), grille d'origine ou « cycle court », textes enseignant / langage élève, bilans PDF (zip pour Pronote), récapitulatif, CSV. Auto-positionnement **si l'enseignant l'autorise** (avec date limite) : lien + QR code nominatifs sur chaque bilan PDF, ou tablette en mode élève ; depuis un téléphone l'élève envoie un code (messagerie Pronote) que l'enseignant colle dans l'appli. Données dans `localStorage` `danse-eps-v1`, jamais envoyées en ligne. Fichier unique hors ligne (pdf-lib, JSZip et générateur QR intégrés) → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/danse/
 - `terrain/` : **Terrain** (outil enseignant pour iPhone, tuile visible en mode enseignant) : pose des balises au GPS avec contrôle de précision et photos, tracé de chemins, exports GPX / calque 1:25 000 et import dans OrienRun → https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/terrain/
 - `eps-autonomie-numerique/co-eval/` : CO – préparation à l'évaluation (appli temporaire : 3 parcours, tracé sur la carte, paramètres en direct via le script Google OrienRun).
 
@@ -17,7 +18,7 @@ Toutes les applications sont dans le dossier `eps-autonomie-numerique/` :
 - `index.html`, `escalade/index.html`, `orientation/index.html`, `relais/index.html` : **redirections** des anciennes adresses vers la nouvelle (en gardant `?…` et `#…`, pour les QR codes déjà imprimés) ; elles désinstallent aussi l'ancien service worker de l'application. L'ancienne adresse `/acrosport/` est redirigée par le dépôt `chrisdcqns-cmd/acrosport` (une seule page).
 - `eps-home.js` : petit chargeur qui renvoie vers `eps-autonomie-numerique/eps-home.js` (pages encore en cache).
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png` : installation comme une seule application (APK PWABuilder, `start_url` et `scope` = `/`, redirigé vers la page d'accueil).
-- `sw.js` : service worker de la racine (portée `/`) : page d'accueil, `eps-home.js`, `relais/` et `volley/` hors ligne ; Acrosport, Escalade et OrienRun gardent leur propre service worker.
+- `sw.js` : service worker de la racine (portée `/`) : page d'accueil, `eps-home.js`, `relais/`, `volley/` et `danse/` hors ligne ; Acrosport, Escalade et OrienRun gardent leur propre service worker.
 - `.well-known/assetlinks.json` : relie l'APK Android `io.github.chrisdcqns.acrosport` au site entier (applications sans barre d'adresse).
 - `.nojekyll` : indispensable pour que GitHub Pages publie le dossier `.well-known`.
 
@@ -41,7 +42,7 @@ Les données des tablettes (localStorage, IndexedDB, vidéos en cache) dépenden
 
 ## Listes d'élèves (page d'accueil, mode enseignant)
 - Carte **Listes d'élèves**, sous Dispenses → « 🔒 Importer une liste d'élèves » (code enseignant) : fichier Excel (.xlsx/.xls/.ods, lu avec SheetJS) ou CSV ; colonnes Nom/Prénom, « Élève » (format Pronote « NOM Prénom ») ou noms en 1re colonne ; colonne Classe facultative.
-- Nom de la classe à vérifier, puis applications cochées : Escalade (`escalade.cl`), Relais Vitesse (`relais-vitesse-data-v3`), OrienRun (IndexedDB `orienrun` / `classes`) : élèves ajoutés à la classe du même nom, sans doublon. Acrosport : liste **remplacée** en ligne (`teacherSetStudents`, mot de passe enseignant d'Acrosport demandé avec le pavé).
+- Nom de la classe à vérifier, puis applications cochées : Escalade (`escalade.cl`), Relais Vitesse (`relais-vitesse-data-v3`), OrienRun (IndexedDB `orienrun` / `classes`) : élèves ajoutés à la classe du même nom, sans doublon. Volley-ball (`eps_volley_eval_v1`) et Danse (`danse-eps-v1`) : élèves ajoutés à la classe du même nom. Acrosport : liste **remplacée** en ligne (`teacherSetStudents`, mot de passe enseignant d'Acrosport demandé avec le pavé).
 - Code : `importList()` dans `eps-home.js` (`parseList`, `toEsc`, `toRel`, `toOri`, `toAcro`).
 
 ## Listes partagées entre tablettes
