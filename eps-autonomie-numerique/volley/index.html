@@ -159,6 +159,7 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
   <div class="top">
     <h1>🏐 Évaluation <span>Volley-ball</span> · CA4</h1>
     <select id="classSel" aria-label="Classe"></select>
+    <button class="lockbtn" id="syncIc" onclick="showTab('eleves');syncSoon(100)" title="Sauvegarde en ligne" style="padding:7px 10px">☁️</button>
     <button class="lockbtn" onclick="lockApp()" title="Verrouiller">🔒 Verrouiller</button>
   </div>
   <nav id="nav">
@@ -198,7 +199,9 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
     </div>
     <div class="card">
       <h2>Sauvegarde</h2>
-      <p class="muted">Tout est enregistré automatiquement sur la tablette (aucune note n'est envoyée en ligne). Pour changer d'appareil ou garder une copie de sécurité, exporte une sauvegarde.</p>
+      <p id="syncSt" style="font-weight:600;margin:0 0 8px"></p>
+      <div class="row" style="margin-bottom:10px"><button class="btn alt" onclick="syncSoon(50)">🔄 Synchroniser maintenant</button></div>
+      <p class="muted">Tout est enregistré automatiquement sur la tablette, et en ligne (chiffré) dès que le partage entre tablettes est réglé. Tu peux aussi garder une copie de sécurité en fichier.</p>
       <div class="row">
         <button class="btn alt" onclick="exportBackup()">⬇ Exporter la sauvegarde (.json)</button>
         <label class="btn alt">⬆ Importer une sauvegarde<input type="file" accept=".json,application/json" style="display:none" onchange="importBackup(this)"></label>
@@ -278,7 +281,7 @@ function migrateBareme(){
 fixState();
 /* recharge si une autre page (accueil : import de liste) a modifié les données */
 addEventListener('storage',ev=>{if(ev.key===KEY){try{S=JSON.parse(ev.newValue)}catch(e){}fixState();refresh()}});
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠ Enregistrement impossible sur cet appareil')}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠ Enregistrement impossible sur cet appareil')}try{syncSoon()}catch(e){}}
 const B=()=>S.bareme;
 const C=()=>S.classes[S.cur]||S.classes[0];
 
@@ -472,9 +475,9 @@ function renderEleves(){
 }
 function sortEleves(){C().eleves.sort((a,b)=>fullName(a).localeCompare(fullName(b),'fr'));save();renderEleves()}
 function editEleve(i){const e=C().eleves[i];const v=prompt('Nom Prénom',fullName(e));if(v==null)return;const w=v.trim().split(/\s+/);e.nom=w.shift()||e.nom;e.prenom=w.join(' ');save();renderEleves()}
-function addOne(){const v=prompt('Nom Prénom de l\'élève');if(!v)return;const p=splitFull(v);if(!p)return;C().eleves.push(newEl(p));save();renderEleves();renderClassSel()}
+function addOne(){const v=prompt('Nom Prénom de l\'élève');if(!v)return;const p=splitFull(v);if(!p)return;C().eleves.push(newEl(p,C().id));save();renderEleves();renderClassSel()}
 function delEleve(i){if(!confirm('Supprimer '+fullName(C().eleves[i])+' ?'))return;C().eleves.splice(i,1);save();renderEleves();renderClassSel()}
-function newClass(){const n=prompt('Nom de la classe / du groupe (ex : TMELEC-TTBMA, 1GT)');if(!n)return;S.classes.push({id:uid(),nom:n.trim(),eleves:[]});S.cur=S.classes.length-1;save();renderClassSel();renderEleves()}
+function newClass(){const n=prompt('Nom de la classe / du groupe (ex : TMELEC-TTBMA, 1GT)');if(!n)return;S.classes.push({id:clsIdOf(n.trim()),nom:n.trim(),eleves:[]});S.cur=S.classes.length-1;save();renderClassSel();renderEleves()}
 function renameClass(){const n=prompt('Nouveau nom',C().nom);if(!n)return;C().nom=n.trim();save();renderClassSel();renderEleves()}
 function deleteClass(){if(!confirm('Supprimer la classe « '+C().nom+' » et toutes ses notes ?'))return;S.classes.splice(S.cur,1);if(!S.classes.length)S.classes.push({id:uid(),nom:'Ma classe',eleves:[]});S.cur=0;save();renderClassSel();renderEleves()}
 function exportBackup(){download(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),'sauvegarde_volley_'+today()+'.json')}
@@ -561,7 +564,7 @@ function splitFull(t){
   if(w.length===1)return{nom:w[0],prenom:''};
   return{prenom:w[0],nom:w.slice(1).join(' ')};
 }
-function newEl(p){return{id:uid(),nom:p.nom||'',prenom:p.prenom||'',ev:{},choix:'4-4',statut:'',comment:''}}
+function newEl(p,cid){return{id:'e'+h32(nkey((p.prenom||'')+' '+(p.nom||''))+'|'+(cid||'')),nom:p.nom||'',prenom:p.prenom||'',ev:{},choix:'4-4',statut:'',comment:''}}
 function jget(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
 function oriClasses(){return new Promise(res=>{try{const q=indexedDB.open('orienrun',1);q.onupgradeneeded=()=>{try{q.result.createObjectStore('kv')}catch(e){}};q.onerror=()=>res({});
   q.onsuccess=()=>{try{const g=q.result.transaction('kv').objectStore('kv').get('classes');g.onsuccess=()=>res(g.result||{});g.onerror=()=>res({})}catch(e){res({})}}}catch(e){res({})}})}
@@ -660,9 +663,9 @@ function impGo(){
   if(IMP.dest==='new'){const nm=String(IMP.nom).replace(/\s+/g,' ').trim();if(!nm)return renderImport('Donne un nom à la classe.');
     if(S.classes.some(x=>norm(x.nom)===norm(nm)))return renderImport('Ce nom de classe existe déjà.');
     const blank=S.classes.length===1&&!S.classes[0].eleves.length&&S.classes[0].nom==='Ma classe';
-    c={id:uid(),nom:nm,eleves:[]};if(blank)S.classes[0]=c;else S.classes.push(c);S.cur=S.classes.indexOf(c);}
+    c={id:clsIdOf(nm),nom:nm,eleves:[]};if(blank)S.classes[0]=c;else S.classes.push(c);S.cur=S.classes.indexOf(c);}
   else{c=S.classes[IMP.dest];S.cur=IMP.dest}
-  let n=0;sel.forEach(e=>{if(c.eleves.some(x=>nkey(x.prenom+' '+x.nom)===nkey(e.prenom+' '+e.nom)))return;c.eleves.push(newEl(e));n++});
+  let n=0;sel.forEach(e=>{if(c.eleves.some(x=>nkey(x.prenom+' '+x.nom)===nkey(e.prenom+' '+e.nom)))return;c.eleves.push(newEl(e,c.id));n++});
   c.eleves.sort((a,b)=>fullName(a).localeCompare(fullName(b),'fr'));
   IMP=null;save();renderClassSel();renderEleves();toast(n+' élève(s) ajouté(s) à '+c.nom);
 }
@@ -834,8 +837,121 @@ function exportZip(){
   download(makeZip(files),'bilans_volley_'+safe(c.nom)+'_'+today()+'.zip');
 }
 
+/* ================== SYNCHRONISATION ENTRE TABLETTES ==================
+   Canal : le « Partage entre tablettes » de la page d'accueil (script Google commun, clé eps.share.v1), clés préfixées « v: ».
+   Enregistrements chiffrés (AES-GCM) : cl|<classe> {id,nom,ord}, el|<classe>|<élève> (élève + positionnements), bar (barème).
+   Le plus récent l'emporte, élève par élève. Aucun nom lisible dans la feuille. */
+function h32(t){let h=5381;t=String(t);for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return (h>>>0).toString(36)}
+function clsIdOf(n){return 'n'+h32(String(n).trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' '))}
+const SYKEY='eps_volley_sync_v1';
+let SY=Object.assign({since:0,maxU:0,h:{},pend:{},init:false,last:0,err:'',ch:''},jget(SYKEY,{})||{});
+const sySave=()=>{try{localStorage.setItem(SYKEY,JSON.stringify(SY))}catch(e){}};
+const hs=x=>h32(x)+':'+x.length;
+function SYC(){const c=jget('eps.share.v1',null);return c&&c.url&&c.key?{url:c.url,key:c.key,pre:'v:'}:null}
+const syOk=()=>!!SYC()&&!!(window.crypto&&crypto.subtle)&&/^https?:/.test(location.protocol);
+const syStamp=()=>Math.max(Date.now(),(SY.maxU||0)+1);
+function canon(o){return JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v)}
+function hasData(e){return !!(Object.keys(e.ev||{}).length||e.statut||e.comment||(e.matchs||[]).length||e.bonus)}
+function syRecords(){const O={};
+  S.classes.forEach(c=>{if(c.nom==='Ma classe'&&!c.eleves.length)return;
+    O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,ord:c.eleves.map(e=>e.id)});
+    c.eleves.forEach(e=>{O['el|'+c.id+'|'+e.id]=JSON.stringify(e)})});
+  O.bar=JSON.stringify(S.bareme);return O}
+function syChan(){const c=SYC(),sig=c.url+'|'+h32(c.key);if(SY.ch!==sig){Object.assign(SY,{ch:sig,init:false,since:0,h:{},pend:{},err:''});sySave()}return c}
+function syScan(){const O=syRecords();let n=0;
+  for(const k in O){const x=hs(O[k]);if(SY.h[k]!==x){SY.h[k]=x;SY.pend[k]={u:syStamp(),d:0};n++}}
+  let gone=Object.keys(SY.h).filter(k=>!(k in O));
+  if(gone.length>40&&gone.length>Object.keys(SY.h).length*.4){gone.forEach(k=>{delete SY.h[k];delete SY.pend[k]});SY.since=0;gone=[]} /* disparition massive inattendue : on récupère tout */
+  gone.forEach(k=>{delete SY.h[k];SY.pend[k]={u:syStamp(),d:1};n++});
+  if(n)sySave();return n}
+/* premier contact : ce qui a été saisi ici part avec la date du jour ; une liste sans note, ou le barème d'origine, ne remplace jamais ce qui existe déjà en ligne */
+function syFirst(){const O=syRecords(),D=canon(defBareme());
+  for(const k in O){const t=k.split('|')[0];let low=false;
+    if(t==='el')low=!hasData(JSON.parse(O[k]));else if(t==='bar')low=canon(S.bareme)===D;
+    SY.h[k]=hs(O[k]);SY.pend[k]={u:low?1:syStamp(),d:0}}}
+let SYK=null,SYKsrc=null;
+async function syKey(){const KK=SYC().key;if(SYK&&SYKsrc===KK)return SYK;const e=new TextEncoder(),base=await crypto.subtle.importKey('raw',e.encode(KK),'PBKDF2',false,['deriveKey']);
+  SYK=await crypto.subtle.deriveKey({name:'PBKDF2',salt:e.encode('volley-eps-sync-v1'),iterations:120000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);SYKsrc=KK;return SYK}
+const b64u=u=>{let x='';const A=new Uint8Array(u);for(let i=0;i<A.length;i+=0x8000)x+=String.fromCharCode.apply(null,A.subarray(i,i+0x8000));return btoa(x)};
+async function syEnc(t){const iv=crypto.getRandomValues(new Uint8Array(12)),ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await syKey(),new TextEncoder().encode(t)),o=new Uint8Array(12+ct.byteLength);o.set(iv);o.set(new Uint8Array(ct),12);return b64u(o)}
+async function syDec(x){const b=Uint8Array.from(atob(x),c=>c.charCodeAt(0));return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},await syKey(),b.slice(12)))}
+function syJ(params,ms){const c=SYC();return new Promise(res=>{const cb='vcb'+Date.now()+Math.floor(Math.random()*1e4),sc=document.createElement('script');let t;
+  const end=d=>{clearTimeout(t);window[cb]=()=>{};sc.remove();res(d)};t=setTimeout(()=>end(null),ms||20000);window[cb]=d=>end(d);sc.onerror=()=>end(null);
+  sc.src=c.url+(c.url.includes('?')?'&':'?')+Object.entries({...params,key:c.key,callback:cb}).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');document.head.append(sc)})}
+function syApply(k,o){const p=k.split('|'),t=p[0];
+  if(t==='bar'){S.bareme=o;return}
+  if(t==='cl'){let c=S.classes.find(x=>x.id===o.id);
+    if(!c){c=S.classes.find(x=>norm(x.nom)===norm(o.nom));if(c)c.id=o.id;else{S.classes=S.classes.filter(x=>!(x.nom==='Ma classe'&&!x.eleves.length));c={id:o.id,nom:o.nom,eleves:[]};S.classes.push(c)}}
+    c.nom=o.nom;const ord=o.ord||[];c.eleves.sort((a,b)=>{const i=ord.indexOf(a.id),j=ord.indexOf(b.id);return (i<0?1e6:i)-(j<0?1e6:j)});return}
+  if(t==='el'){const cid=p[1];let c=S.classes.find(x=>x.id===cid);
+    if(!c){S.classes=S.classes.filter(x=>!(x.nom==='Ma classe'&&!x.eleves.length));c={id:cid,nom:'…',eleves:[]};S.classes.push(c)}
+    o.ev=o.ev||{};const i=c.eleves.findIndex(e=>e.id===o.id);
+    if(i>=0){c.eleves[i]=o;return}
+    const j=c.eleves.findIndex(e=>nkey(e.prenom+' '+e.nom)===nkey(o.prenom+' '+o.nom));
+    if(j>=0&&!hasData(c.eleves[j]))c.eleves[j]=o;else c.eleves.push(o)}}
+function syRemove(k){const p=k.split('|'),t=p[0];
+  if(t==='cl')S.classes=S.classes.filter(c=>c.id!==p[1]);
+  else if(t==='el'){const c=S.classes.find(x=>x.id===p[1]);if(c)c.eleves=c.eleves.filter(e=>e.id!==p[2])}}
+async function syPull(){const ch=SYC();
+  for(let loop=0;loop<30;loop++){
+    const r=await syJ({pull:1,since:SY.since,pre:ch.pre},25000);
+    if(!r){SY.err='Pas de connexion avec le script Google.';return false}
+    if(!r.keyOk){SY.err='La clé secrète ne correspond pas à celle du script.';return false}
+    if(!r.sync){SY.err='Le script Google doit être mis à jour.';return false}
+    const recs=r.recs||[];
+    if(recs.length){if(SY.init)syScan();let ch2=false;const curId=curEl!=null&&C().eleves[curEl]?C().eleves[curEl].id:null,curC=C()&&C().id;
+      for(let [seq,k,u,d,x] of recs){SY.maxU=Math.max(SY.maxU||0,+u||0);k=String(k);if(!k.startsWith(ch.pre))continue;k=k.slice(ch.pre.length);
+        const pd=SY.pend[k];if(pd&&pd.u>+u)continue;delete SY.pend[k];
+        if(+d){syRemove(k);delete SY.h[k];ch2=true;continue}
+        let o;try{o=JSON.parse(await syDec(x))}catch(e){SY.err='Des données ont été chiffrées avec une autre clé.';continue}
+        const tx=JSON.stringify(o);if(SY.h[k]===hs(tx))continue;syApply(k,o);SY.h[k]=hs(tx);ch2=true}
+      if(ch2){fixState();const ci=S.classes.findIndex(c=>c.id===curC);if(ci>=0)S.cur=ci;
+        if(curId!=null){const ii=C().eleves.findIndex(e=>e.id===curId);curEl=ii>=0?ii:null}
+        const O=syRecords();for(const k in O)if(!SY.pend[k])SY.h[k]=hs(O[k]);
+        try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}syRefresh()}
+      SY.since=+recs[recs.length-1][0]}
+    else SY.since=Math.max(SY.since,+r.seq||0);
+    sySave();if(!r.more)return true}
+  return true}
+let syBusy=false,syTimer=null,syT2=null;
+function syncSoon(ms){if(!syOk())return;clearTimeout(syT2);syT2=setTimeout(syCycle,ms||1500)}
+function sySched(){clearTimeout(syTimer);if(!syOk())return;syTimer=setTimeout(syCycle,document.visibilityState==='hidden'?60000:15000)}
+async function syCycle(){
+  if(!syOk()){syUpd();return}if(syBusy){syncSoon(2000);return}
+  if(navigator.onLine===false){SY.err='Hors connexion : les notes partiront au retour du réseau.';syUpd();sySched();return}
+  syBusy=true;syUpd();
+  try{const ch=syChan();await syKey();
+    if(!SY.init){syFirst();if(!await syPull())return;SY.init=true;sySave()}
+    syScan();const keys=Object.keys(SY.pend);let O=null;
+    if(keys.length){for(let i=0;i<keys.length;i+=100){const recs=[];
+        for(const k of keys.slice(i,i+100)){const pd=SY.pend[k];if(!pd)continue;
+          if(pd.d)recs.push({k,u:pd.u,d:1});else{if(!O)O=syRecords();if(!(k in O)){delete SY.pend[k];continue}recs.push({k,u:pd.u,d:0,x:await syEnc(O[k])})}}
+        if(recs.length)await fetch(ch.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:ch.key,sync:{dev:'volley',recs:recs.map(r=>({...r,k:ch.pre+r.k}))}})});
+        recs.forEach(r=>{if(SY.pend[r.k]&&SY.pend[r.k].u===r.u)delete SY.pend[r.k]})}
+      await new Promise(r=>setTimeout(r,1200))}
+    if(await syPull()){SY.last=Date.now();SY.err=''}
+  }catch(e){SY.err='Synchronisation impossible pour le moment (réseau ?).'}
+  finally{syBusy=false;sySave();syUpd();sySched()}}
+/* après réception : on réaffiche sans perdre l'endroit où l'on est (sauf pendant une saisie) */
+function syRefresh(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!=='checkbox')return;
+  const y=scrollY;renderClassSel();const t=document.querySelector('#nav button.on').dataset.t;
+  if(t==='eval'){if(curEl!=null)renderEval();else renderList()}else if(t==='bilan')renderBilan();else if(t==='eleves')renderEleves();else if(t==='bareme')renderBareme();
+  scrollTo(0,y)}
+function syUpd(){const el=document.getElementById('syncSt'),ic=document.getElementById('syncIc');
+  const n=Object.keys(SY.pend).length;let txt,icon;
+  if(!SYC()){txt="Partage entre tablettes non réglé : les notes restent sur cette tablette. Règle-le sur la page d'accueil (🔒 Enseignant → Listes d'élèves → ⚙ Partage entre tablettes).";icon='⚠️'}
+  else if(syBusy){txt='Synchronisation en cours…';icon='🔄'}
+  else if(SY.err){txt=SY.err+(n?' ('+n+' élément(s) en attente d\'envoi)':'');icon='⚠️'}
+  else if(n){txt=n+' élément(s) en attente d\'envoi.';icon='🔄'}
+  else{txt='✓ Classes, élèves et positionnements sauvegardés en ligne (chiffrés)'+(SY.last?', dernier échange à '+new Date(SY.last).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'')+'. Ils sont retrouvés sur toutes tes tablettes.';icon='☁️'}
+  if(el)el.textContent=txt;if(ic){ic.textContent=icon;ic.title=txt}}
+addEventListener('online',()=>syncSoon(300));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncSoon(300)});
+/* le partage peut être réglé depuis l'accueil pendant que l'appli est ouverte */
+addEventListener('storage',ev=>{if(ev.key==='eps.share.v1'){syUpd();syncSoon(300)}});
+
 /* ================== DÉMARRAGE ================== */
-renderClassSel();renderList();setLock();
+renderClassSel();renderList();setLock();syUpd();syncSoon(800);
 </script>
 <script src="../eps-home.js" defer></script>
 </body>

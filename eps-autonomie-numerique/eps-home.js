@@ -443,13 +443,14 @@
     D.classeId = c.id; localStorage.setItem("danse-eps-v1", JSON.stringify(D)); return n;
   }
   /* Volley-ball (évaluation) : localStorage « eps_volley_eval_v1 » = {bareme, classes:[{id,nom,eleves:[{id,nom,prenom,ev,choix,statut,comment}]}], cur} (le barème est créé par l'application) */
+  function h32v(t) { var h = 5381; t = String(t); for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); } /* même identifiant d'élève que dans l'appli Volley */
   function toVol(cl, L) {
     var V = jget("eps_volley_eval_v1", null); if (!V || typeof V !== "object") V = { classes: [], cur: 0 };
     V.classes = (V.classes || []).filter(function (c) { return !(c.nom === "Ma classe" && !(c.eleves || []).length); });
     var c = V.classes.filter(function (x) { return norm(x.nom) === norm(cl); })[0], n = 0;
     if (!c) { c = { id: freeId(V.classes, clsId(cl)), nom: cl, eleves: [] }; V.classes.push(c); }
     L.forEach(function (e) { if (c.eleves.some(function (x) { return nkey(x.prenom + " " + x.nom) === nkey(e.prenom + " " + e.nom); })) return;
-      c.eleves.push({ id: "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), nom: e.nom, prenom: e.prenom, ev: {}, choix: "4-4", statut: "", comment: "" }); n++; });
+      c.eleves.push({ id: "e" + h32v(nkey(e.prenom + " " + e.nom) + "|" + c.id), nom: e.nom, prenom: e.prenom, ev: {}, choix: "4-4", statut: "", comment: "" }); n++; });
     c.eleves.sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); });
     V.cur = V.classes.indexOf(c); localStorage.setItem("eps_volley_eval_v1", JSON.stringify(V)); return n;
   }
