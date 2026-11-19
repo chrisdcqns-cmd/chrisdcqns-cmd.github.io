@@ -25,3 +25,7 @@ Application web pour tablette (relais-vitesse, lycée), hébergée sur GitHub Pa
 - Situations : la bibliothèque (`data-sits`) est réservée à l'enseignant (`.teach`) ; les élèves ne voient que les situations cochées pour la leçon du jour (`renderSits` filtré, `data-sitgo`).
 - Mode enseignant partagé : `eps.teach.until` (`hubSync`, `hubOn`) ; au démarrage, si actif → vue classes ; « Mode élève » / verrou le coupe partout.
 - Clé de synchro : si aucune clé n'est saisie dans Relais, celle du « Partage entre tablettes » de la page d'accueil (`eps.share.v1`, même script). Les enregistrements `disp|`, `lst|` (page d'accueil) et `e:` (Escalade) sont ignorés.
+- Synchro, diagnostic : chaque tablette publie une fiche chiffrée `dev|<id>` (nom, heure, nb de courses et d'auto-évaluations, attente, erreur) → liste « Tablettes vues » (🔒 Google Sheets ou bouton 📡 Tablettes dans Évaluation) ; `syResend()` renvoie tout, `syRefetch()` récupère tout.
+- Auto-évaluations reliées entre classes du même nom (élève retrouvé par prénom+nom) : `lastAutoE(e)` / `autoSources(e)`.
+- Bilan de l'évaluation (`#ev-bilan`, `renderEvBilan`) : statistiques, `evClassPdf()`, `evStudentPdf(e)`, .zip, partage `shareOrSave()` (navigator.share sinon téléchargement). Onglet Évaluation toujours visible pour l'enseignant.
+- Bulle de conseil → `sitFor(conseil)` → bouton « Situation conseillée » (`data-sitadv`, visible aussi des élèves).

@@ -380,6 +380,16 @@ tr.disp{opacity:.55}
 .waitbox .wp{font-size:22px;color:var(--muted);line-height:1.5;margin:0}
 .wteach{margin-top:48px;background:none;border:2px solid var(--line);border-radius:999px;padding:10px 20px;color:var(--muted);font-weight:700;font-size:16px}
 .dispobtn{white-space:nowrap}
+.devs{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.devr{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;background:#fff;border:2px solid var(--line);border-left:6px solid var(--ok);border-radius:12px;padding:8px 12px;font-size:15px}
+.devr span{color:var(--muted)}.devr small{width:100%;color:var(--muted);font-size:12px}.devr em{width:100%;color:#9C2B10;font-style:normal;font-weight:700;font-size:13px}
+.devr.old{border-left-color:#EF9F27}.devr.err{border-left-color:#C0392B}
+.sitlink{margin-top:10px}
+.evbil .bstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+.evbil .bstats div{background:var(--soft);border-radius:12px;padding:10px 12px}.evbil .bstats b{display:block;font-size:24px;font-weight:900}.evbil .bstats span{font-size:13px;color:var(--muted)}
+.evbil .bdist{margin-top:12px;display:grid;grid-template-columns:150px 1fr;gap:6px 12px;align-items:center;font-size:14px}
+.evbil .bbar{display:flex;height:20px;border-radius:6px;overflow:hidden;background:var(--soft)}.evbil .bbar i{display:block;height:100%;color:#fff;font-style:normal;font-size:11px;font-weight:800;text-align:center;line-height:20px}
+.evbil .bact{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .sitcats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .sitcats button{height:44px;padding:0 14px;border-radius:999px;border:2px solid var(--line);background:#fff;font-weight:700;font-size:15px}
 .sitcats button.on{border-color:var(--lane);background:var(--lane-soft);color:var(--lane)}
@@ -730,6 +740,7 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <button class="btn ghost sm teach" id="b-zip" title="Un PDF par élève, à déposer sur Pronote">🗜️ Bilans (.zip)</button>
     <button class="btn green sm teach" id="b-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Excel</button>
   </div>
+  <div class="dupw" id="b-dupw"></div>
   <div class="stats" style="margin:0 0 16px" id="b-stats"></div>
   <div class="card scroll"><table class="tbl" id="tblBilan"></table></div>
   <div class="row mt">
@@ -865,8 +876,11 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
   <div class="top">
     <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour</button>
     <h2>Évaluation · <span class="cname"></span></h2>
+    <button class="btn ghost sm" data-sypanel>📡 Tablettes</button>
     <button class="btn ghost sm" id="ev-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Excel</button>
   </div>
+  <div class="dupw" id="ev-dupw"></div>
+  <div class="card evbil" id="ev-bilan"></div>
   <div class="card"><div class="label">Élève à évaluer <small style="font-weight:600;color:var(--muted)">✓ évalué · 🙋 auto-évalué</small></div><div class="evnames" id="ev-names"></div></div>
   <div id="ev-body"></div>
   <div class="card mt"><div class="label">Récapitulatif de la classe <small style="font-weight:600;color:var(--muted)">touche une ligne pour ouvrir la grille</small></div><div class="scroll" id="ev-recap"></div></div>
@@ -1087,6 +1101,14 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
     <div class="frow" style="border:0;padding:0"><button class="fck" id="s-sync"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>Synchroniser les tablettes en direct <small>leçons, groupes, élèves, courses et évaluations partagés entre toutes les tablettes qui ont la même adresse et la même clé · données chiffrées avec la clé : aucun nom lisible dans la feuille</small></button></div>
     <p class="note" id="s-systat" style="margin:6px 0 0"></p>
     <button class="btn ghost sm mt" id="s-synow">⟳ Synchroniser maintenant</button>
+    <label class="fl" for="s-tname" style="margin-top:14px">Nom de cette tablette</label>
+    <input class="txt" id="s-tname" placeholder="ex. Tablette 1" autocomplete="off">
+    <div class="label" style="margin-top:14px">Tablettes vues par la synchronisation</div>
+    <div class="devs" id="s-devs"></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn ghost sm" id="s-resend">📤 Renvoyer toutes les données de cette tablette</button>
+      <button class="btn ghost sm" id="s-refetch">📥 Tout récupérer à nouveau</button>
+    </div>
   </div>
   <div class="row mt">
     <button class="btn ghost sm" id="s-test">Tester la connexion</button>
@@ -2098,6 +2120,7 @@ $("#rg-ok").addEventListener("click",()=>{
 });
 
 function renderBilan(){
+  try{dupBanner()}catch(e){}
   const l=CL().lecons.find(x=>x.id===BILAN);if(!l){go("lecons");return}
   const list=ALLCO().filter(c=>c.lid===l.id),g=new Set(list.map(c=>c.groupe||"Sans groupe"));
   $("#b-title").textContent="Leçon du "+fmtLong(l.date);
@@ -2157,6 +2180,7 @@ const fday=d=>{const x=new Date(String(d).slice(0,10)+'T12:00');return isNaN(x)?
 return {PDFDoc,zip,pFile,foot,dlZip,para,pW,fday};
 })();
 
+/* (bilan de l'évaluation : voir plus bas) */
 /* ===== Bilans de la classe : un .zip avec un PDF par élève pour la leçon consultée (à déposer sur Pronote) ===== */
 function relaisPdf(e,l,list){
   const doc=EPDF.PDFDoc(),PW=doc.W,M=doc.M,CW=PW-2*M,AC='#D9481F',INK='#1B1E24',MUT='#5b6370';
@@ -2194,6 +2218,96 @@ function relaisPdf(e,l,list){
   EPDF.foot(doc,"Relais Vitesse EPS · document personnel, ne pas diffuser");
   return doc.bytes();
 }
+
+/* ===== Bilan de l'évaluation : statistiques, PDF de la classe, fiches élèves, partage ===== */
+function evRows(){
+  const C=CL();return evList(true).map(e=>{const o=(C.evals||{})[e.id]||{prof:{},auto:{}},rp=evRepOf(o),t=evTotal(o.prof||{},rp),la=lastAutoE(e),ta=la?evTotal(la.sel||{},rp):null;
+    return {e,o,rp,t,la,ta,done:t.n===4,adone:!!(ta&&ta.n===4)}}).sort((a,b)=>(a.e.nom+a.e.prenom).localeCompare(b.e.nom+b.e.prenom,"fr"))}
+function evStatsC(R){
+  const D=R.filter(r=>r.done),A=R.filter(r=>r.adone),B=R.filter(r=>r.done&&r.adone);
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null,notes=D.map(r=>r.t.t);
+  const dist={};EVE.forEach(x=>{dist[x.k]={4:0,3:0,2:0,1:0};R.forEach(r=>{const s=(r.o.prof||{})[x.k];if(s&&s.d)dist[x.k][s.d]++})});
+  return {n:R.length,nd:D.length,na:A.length,moy:avg(notes),min:notes.length?Math.min(...notes):null,max:notes.length?Math.max(...notes):null,
+    moyA:avg(A.map(r=>r.ta.t)),gap:avg(B.map(r=>r.ta.t-r.t.t)),dist};
+}
+const DCOL={4:"#2E7D4F",3:"#6E9F2E",2:"#C98A00",1:"#C0392B"};
+function renderEvBilan(){
+  const b=$("#ev-bilan");if(!b)return;const R=evRows(),S=evStatsC(R),f=v=>v==null?"–":fmtP(Math.round(v*100)/100);
+  b.innerHTML=`<div class="label">📊 Bilan de l'évaluation <small style="font-weight:600;color:var(--muted)">${esc(CL().name)}</small></div>
+   <div class="bstats"><div><b>${S.nd} / ${S.n}</b><span>élèves évalués</span></div><div><b>${f(S.moy)}</b><span>moyenne de la classe /20</span></div>
+   <div><b>${S.min==null?"–":f(S.min)+" – "+f(S.max)}</b><span>note la plus basse – la plus haute</span></div>
+   <div><b>${S.na} / ${S.n}</b><span>auto-évaluations reçues</span></div><div><b>${f(S.moyA)}</b><span>moyenne des auto-évaluations</span></div>
+   <div><b>${S.gap==null?"–":(S.gap>0?"+":"")+f(S.gap)}</b><span>écart moyen élève − enseignant</span></div></div>
+   <div class="bdist">${EVE.map(x=>{const d=S.dist[x.k],tot=d[4]+d[3]+d[2]+d[1];return `<span><b>${x.t}</b></span><div class="bbar">${tot?[4,3,2,1].map(k=>d[k]?`<i style="width:${d[k]/tot*100}%;background:${DCOL[k]}">D${k}·${d[k]}</i>`:"").join(""):'<i style="width:100%;color:var(--muted)">pas encore évalué</i>'}</div>`}).join("")}</div>
+   <div class="bact"><button class="btn primary sm" data-evbil="share">📤 Partager le bilan (PDF)</button><button class="btn ghost sm" data-evbil="pdf">📄 PDF de la classe</button><button class="btn ghost sm" data-evbil="zip">🗜 Fiches élèves (.zip)</button><button class="btn ghost sm" data-evbil="xlsx">📊 Excel</button></div>`;
+}
+function pdfHead(doc,title,sub,right){
+  const PW=doc.W,M=doc.M;doc.page();doc.rect(0,0,PW,96,'#1B1E24');doc.rect(0,96,PW,5,'#D9481F');
+  doc.text(M,38,title,{size:20,bold:true,color:'#ffffff'});if(sub)doc.text(M,64,sub,{size:16,bold:true,color:'#ffb199'});
+  doc.text(PW-M,38,CL().name,{size:12,bold:true,color:'#ffffff',align:'right'});doc.text(PW-M,58,right||("Édité le "+new Date().toLocaleDateString('fr-FR')),{size:10,color:'#d0d4da',align:'right'});doc.y=126;
+}
+function pdfSec(doc,t){doc.need(60);doc.y+=12;doc.text(doc.M,doc.y,t,{size:14,bold:true,color:'#1B1E24'});doc.line(doc.M,doc.y+7,doc.W-doc.M,doc.y+7,'#D9481F',1.2);doc.y+=24}
+function pdfBoxes(doc,K){const M=doc.M,CW=doc.W-2*M,bw=(CW-3*8)/4,bh=50;doc.need(bh+10);K.forEach(([v,lb],i)=>{const col=i%4,row=Math.floor(i/4),x=M+col*(bw+8),y=doc.y+row*(bh+8);if(col===0&&row>0)doc.need(bh+8);
+  doc.rect(x,y,bw,bh,'#f6efe9');doc.text(x+10,y+24,String(v),{size:16,bold:true,color:'#D9481F',max:bw-16});doc.text(x+10,y+40,lb,{size:8.5,color:'#5b6370',max:bw-14})});doc.y+=Math.ceil(K.length/4)*(bh+8)+6}
+function evClassPdf(){
+  const doc=EPDF.PDFDoc(),M=doc.M,CW=doc.W-2*M,R=evRows(),S=evStatsC(R),f=v=>v==null?"–":fmtP(Math.round(v*100)/100);
+  const rp0=evRepOf({}),mx=k=>evMax(k,rp0);
+  pdfHead(doc,"Relais vitesse : bilan de l'évaluation","Classe "+CL().name);
+  pdfSec(doc,"La classe en chiffres");
+  pdfBoxes(doc,[[S.nd+" / "+S.n,"élèves évalués"],[f(S.moy),"moyenne /20"],[S.min==null?"–":f(S.min)+" – "+f(S.max),"note min – max"],[S.na+" / "+S.n,"auto-évaluations"],[f(S.moyA),"moyenne des auto-évaluations"],[S.gap==null?"–":(S.gap>0?"+":"")+f(S.gap),"écart élève − enseignant"]]);
+  pdfSec(doc,"Répartition des degrés");
+  EVE.forEach(x=>{const d=S.dist[x.k],tot=d[4]+d[3]+d[2]+d[1];doc.need(22);doc.text(M,doc.y+12,x.t,{size:10,bold:true});let X=M+130;const W=CW-130;
+    if(!tot){doc.text(X,doc.y+12,"pas encore évalué",{size:9,color:'#5b6370'})}else [4,3,2,1].forEach(k=>{if(!d[k])return;const w=W*d[k]/tot;doc.rect(X,doc.y+2,w,15,DCOL[k]);if(w>34)doc.text(X+4,doc.y+13,"D"+k+" : "+d[k],{size:8,bold:true,color:'#ffffff'});X+=w});doc.y+=22});
+  pdfSec(doc,"Notes des élèves");
+  const cols=[["Élève",150],...EVE.map(x=>[x.t+" /"+mx(x.k),(CW-150-110)/4]),["Note /20",55],["Auto /20",55]];
+  const head=()=>{doc.rect(M,doc.y,CW,18,'#1B1E24');let x=M+4;cols.forEach(([t,w])=>{doc.text(x,doc.y+12.5,t,{size:8,bold:true,color:'#ffffff',max:w-4});x+=w});doc.y+=18};
+  head();R.forEach((r,i)=>{if(doc.need(18))head();if(i%2)doc.rect(M,doc.y,CW,17,'#f7f4f1');
+    const v=[r.e.nom+" "+r.e.prenom,...EVE.map(x=>{const s=(r.o.prof||{})[x.k];return s?"D"+s.d+" · "+fmtP(evPts(r.o.prof,x.k,r.rp)):"–"}),r.t.n?fmtP(r.t.t)+(r.done?"":"*"):"–",r.adone?fmtP(r.ta.t):"–"];
+    let x=M+4;cols.forEach(([,w],j)=>{doc.text(x,doc.y+12,String(v[j]),{size:9,bold:j===5,max:w-6});x+=w});doc.y+=17});
+  doc.y+=8;doc.text(M,doc.y+8,"* note incomplète (au moins un indicateur manquant). D = degré (4 = le meilleur).",{size:8,color:'#5b6370'});
+  EPDF.foot(doc,"Relais Vitesse EPS · bilan de l'évaluation · "+CL().name);
+  return doc.bytes();
+}
+function evStudentPdf(e){
+  const doc=EPDF.PDFDoc(),M=doc.M,CW=doc.W-2*M,C=CL(),o=(C.evals||{})[e.id]||{prof:{},auto:{}},rp=evRepOf(o),t=evTotal(o.prof||{},rp),la=lastAutoE(e),ta=la?evTotal(la.sel||{},rp):null;
+  pdfHead(doc,"Relais vitesse : mon évaluation",(e.prenom+" "+e.nom).trim());
+  pdfSec(doc,"Ma note");
+  pdfBoxes(doc,[[t.n?fmtP(t.t)+" / 20":"–",t.n===4?"note de l'enseignant":"note incomplète"],[ta&&ta.n===4?fmtP(ta.t)+" / 20":"–","mon auto-évaluation"],[rp.replace("-"," / "),"répartition AFL2 / AFL3"]]);
+  pdfSec(doc,"Ma grille");
+  EVE.forEach(x=>{const s=(o.prof||{})[x.k],a=la&&la.sel&&la.sel[x.k],pt=evPts(o.prof,x.k,rp);doc.need(56);
+    doc.rect(M,doc.y,CW,20,'#f6efe9');doc.text(M+8,doc.y+14,x.t+" ("+x.s+")",{size:11,bold:true});doc.text(doc.W-M-8,doc.y+14,(pt==null?"–":fmtP(pt))+" / "+evMax(x.k,rp)+" pts",{size:11,bold:true,color:'#D9481F',align:'right'});doc.y+=26;
+    if(s){doc.text(M+8,doc.y+8,"Degré "+s.d,{size:10,bold:true,color:DCOL[s.d]});doc.y+=4;EPDF.para(doc,M+60,x.prof[s.d],{size:10,max:CW-70})}else{doc.text(M+8,doc.y+8,"Pas encore évalué",{size:10,color:'#5b6370'});doc.y+=12}
+    if(a&&a.d)doc.text(M+8,doc.y+10,"Mon auto-positionnement : degré "+a.d+(s?(a.d===s.d?" (identique)":a.d>s.d?" (je me suis surévalué)":" (je me suis sous-évalué)"):""),{size:9,color:'#1F5F8B'}),doc.y+=14;
+    doc.y+=6});
+  const st=evStats(e);
+  if(st.n){pdfSec(doc,"Mes courses");
+    pdfBoxes(doc,[[st.n,"courses"],[st.pOver!=null?Math.round(st.pOver*100)+" %":"–","vitesse cible dépassée"],[st.pIn!=null?Math.round(st.pIn*100)+" %":"–","transmissions dans la zone"],[st.pZ100!=null?Math.round(st.pZ100*100)+" %":"–","en Zone 100"]]);
+    if(st.mEc!=null)doc.text(M,doc.y+6,"Écart moyen à la vitesse cible : "+(st.mEc>0?"+":"")+fmt(st.mEc)+" km/h"+(st.scope==="all"?" (dernières leçons pondérées)":" (leçon finale)"),{size:10,color:'#5b6370'}),doc.y+=16}
+  EPDF.foot(doc,"Relais Vitesse EPS · document personnel, ne pas diffuser");
+  return doc.bytes();
+}
+async function shareOrSave(bytes,name,type){
+  const blob=new Blob([bytes],{type});
+  try{const f=new File([blob],name,{type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return}}catch(e){if(e&&e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast("Fichier enregistré dans les téléchargements");
+}
+const evFileBase=()=>"Relais_evaluation_"+EPDF.pFile(CL().name)+"_"+todayISO().split("-").reverse().join("-");
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-evbil]");
+  if(b){const k=b.dataset.evbil;
+    if(k==="share")return shareOrSave(evClassPdf(),evFileBase()+".pdf","application/pdf");
+    if(k==="pdf"){const blob=new Blob([evClassPdf()],{type:"application/pdf"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=evFileBase()+".pdf";document.body.append(a);a.click();a.remove();return}
+    if(k==="zip"){const R=evRows();if(!R.length){toast("Aucun élève");return}const used={};
+      const F=R.map(r=>{let n=EPDF.pFile(r.e.nom+" "+r.e.prenom);if(used[n])n+="_"+(++used[n]);else used[n]=1;return [n+".pdf",evStudentPdf(r.e)]});
+      F.unshift(["00_Bilan_classe_"+EPDF.pFile(CL().name)+".pdf",evClassPdf()]);
+      return shareOrSave(await EPDF.zip(F,"application/zip").arrayBuffer().then(x=>new Uint8Array(x)),evFileBase()+".zip","application/zip")}
+    if(k==="xlsx"){$("#ev-export").click();return}
+  }
+  const s=e.target.closest("[data-evshare]");
+  if(s){const el=byId(+s.dataset.evshare);if(el)shareOrSave(evStudentPdf(el),"Relais_"+EPDF.pFile(el.nom+" "+el.prenom)+".pdf","application/pdf")}
+});
+
 $("#b-zip").addEventListener("click",()=>{const l=CL().lecons.find(x=>x.id===BILAN);if(!l)return;const list=ALLCO().filter(c=>c.lid===l.id);
   const els=CL().eleves.slice().sort((a,b)=>(a.nom+a.prenom).localeCompare(b.nom+b.prenom,"fr"));if(!els.length){toast("Aucun élève dans cette classe");return}
   EPDF.dlZip("Relais_"+EPDF.pFile(CL().name)+"_"+l.date.split("-").reverse().join("-")+".zip",els.map(e=>[EPDF.pFile(e.nom+" "+e.prenom)+".pdf",relaisPdf(e,l,list)]));
@@ -2354,7 +2468,7 @@ const SITS=[
  s:"Deux rôles seulement (chrono + observateur).",x:"L'entraîneur propose une situation de la bibliothèque à son binôme."}
 ];
 
-let SIT_CAT="all",SITS_BACK="classes",SIT_OPEN=null;
+let SIT_CAT="all",SITS_BACK="classes",SIT_OPEN=null,SIT_ADV=null;
 const sitsDay=()=>{const l=CLE&&CL()?CLE():null;return l&&Array.isArray(l.sits)?l.sits:[]};
 function sitHTML(s,open){
   const cat=(SIT_CATS.find(c=>c[0]===s.cat)||[])[1]||"";const inDay=sitsDay().includes(s.id);const l=CL()&&CLE()?CLE():null;
@@ -2369,8 +2483,8 @@ function renderSits(){
   const l=CL()&&CLE()?CLE():null,day=sitsDay();
   $("#sits-intro").textContent=l&&teachOn()?"Ouvre une situation et ajoute-la à la leçon du "+fmtShort(l.date)+" : elle apparaîtra sur l'accueil de la leçon des élèves.":"Des situations pour progresser : départ, foulée, prise de marque, transmission…";
   if(!teachOn()){ /* élèves : seulement les situations cochées par l'enseignant pour la leçon du jour */
-    $("#sits-intro").textContent=day.length?"Les situations choisies par ton enseignant pour la leçon du jour.":"Pas de situation pour la leçon du jour.";
-    $("#sits-cats").innerHTML="";$("#sits-list").innerHTML=SITS.filter(s=>day.includes(s.id)).map(s=>sitHTML(s,SIT_OPEN===s.id)).join("");return}
+    $("#sits-intro").textContent=SIT_ADV&&!day.includes(SIT_ADV)?"La situation conseillée après ta course"+(day.length?", et celles choisies par ton enseignant.":"."):day.length?"Les situations choisies par ton enseignant pour la leçon du jour.":"Pas de situation pour la leçon du jour.";
+    $("#sits-cats").innerHTML="";$("#sits-list").innerHTML=SITS.filter(s=>day.includes(s.id)||s.id===SIT_ADV).map(s=>sitHTML(s,SIT_OPEN===s.id)).join("");return}
   const cats=[["all","Toutes"],...(day.length?[["day","Leçon du jour"]]:[]),...SIT_CATS];
   if(SIT_CAT==="day"&&!day.length)SIT_CAT="all";
   $("#sits-cats").innerHTML=cats.map(([k,n])=>`<button data-sitcat="${k}" class="${SIT_CAT===k?"on":""}">${esc(n)}</button>`).join("");
@@ -2384,8 +2498,9 @@ function renderSitDay(){
 document.addEventListener("click",e=>{
   const t=e.target;
   const o=t.closest("[data-sits],[data-sitgo]");
-  if(o&&!teachOn()&&(!o.dataset.sitgo||!sitsDay().includes(o.dataset.sitgo)))return;
+  if(o&&!teachOn()&&!o.dataset.sitadv&&(!o.dataset.sitgo||!sitsDay().includes(o.dataset.sitgo)))return; /* élèves : situations de la leçon, ou celle conseillée par la bulle */
   if(o){const on=document.querySelector(".view.on");const v=on?on.id.slice(2):"classes";if(v!=="sits")SITS_BACK=v;
+    SIT_ADV=o.dataset.sitadv?o.dataset.sitgo:SIT_ADV;
     if(o.dataset.sitgo){SIT_OPEN=o.dataset.sitgo;SIT_CAT=sitsDay().length?"day":"all"}else{SIT_OPEN=null;SIT_CAT=sitsDay().length&&!teachOn()?"day":"all"}
     go("sits");if(SIT_OPEN)setTimeout(()=>{const d=document.querySelector(`[data-sit="${SIT_OPEN}"]`);if(d)d.scrollIntoView({behavior:"smooth",block:"start"})},80);return}
   const c=t.closest("[data-sitcat]");if(c){SIT_CAT=c.dataset.sitcat;SIT_OPEN=null;renderSits();return}
@@ -2482,6 +2597,11 @@ const evRepOf=o=>evRepMode()==="eleve"?(o&&o.rep)||"4-4":evRepMode();
 function evOf(id){const C=CL();if(!C.evals)C.evals={};const E=C.evals;if(!E[id])E[id]={rep:"4-4",prof:{},auto:{}};const o=E[id];o.prof=o.prof||{};o.auto=o.auto||{};o.rep=o.rep||"4-4";return o}
 function evPts(sel,k,rep){const s=sel&&sel[k];if(!s||!s.d)return null;const r=EVR[evMax(k,rep)][s.d];return s.p!=null?Math.min(r[1],Math.max(r[0],s.p)):r[1]}
 function evTotal(sel,rep){let t=0,n=0;EVE.forEach(x=>{const p=evPts(sel,x.k,rep);if(p!=null){t+=p;n++}});return {t:Math.round(t*100)/100,n}}
+/* auto-évaluations d'un élève, toutes tablettes confondues : aussi dans les classes du même nom (élève retrouvé par prénom + nom) */
+function autoSources(e){const C=CL(),out=[];if(!C||!e)return out;const k=ekey(e),n=nrm(C.name);
+  DATA.classes.forEach(c=>{if(c!==C&&nrm(c.name)!==n)return;const x=c===C?e:(c.eleves||[]).find(y=>ekey(y)===k);if(!x)return;const o=(c.evals||{})[x.id];
+    if(o&&o.auto)Object.values(o.auto).forEach(a=>{if(a&&a.sel)out.push(a)})});return out}
+function lastAutoE(e){return autoSources(e).sort((x,y)=>(y.at||"").localeCompare(x.at||""))[0]||null}
 function lastAuto(o){return Object.values((o&&o.auto)||{}).filter(a=>a&&a.sel).sort((x,y)=>(y.at||"").localeCompare(x.at||""))[0]||null}
 const fmtP=v=>(Math.round(v*100)/100).toLocaleString("fr-FR",{maximumFractionDigits:2});
 const autoDone=(e,lid)=>{const o=(CL().evals||{})[e.id],a=o&&o.auto&&o.auto[lid];return !!(a&&a.sel&&EVE.every(x=>a.sel[x.k]&&a.sel[x.k].d))};
@@ -2539,7 +2659,7 @@ const evList=all=>(all?EL():poolFor()).filter(e=>e.ma!=="DISP").slice().sort((a,
 function evGridHTML(mode,e){
   const o=evOf(e.id),rp=evRepOf(o),lid=CLE().id,prof=mode==="prof",free=evRepMode()==="eleve";
   const sel=prof?o.prof:((o.auto[lid]||{}).sel||{});
-  const la=prof?lastAuto(o):null,sg=prof?evSuggest(e):null;
+  const la=prof?lastAutoE(e):null,sg=prof?evSuggest(e):null;
   const repLab=r=>r.replace("-"," / ");
   let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}</div>
     <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
@@ -2559,7 +2679,7 @@ function evGridHTML(mode,e){
   h+=`</div>`;
   const t0=evTotal(sel,rp);
   if(prof){const inf=[];
-    if(la){const ta=evTotal(la.sel,rp);inf.push("Auto-évaluation de l'élève"+(la.at?" du "+fmtShort(la.at.slice(0,10)):"")+" : "+(ta.n===4?fmtP(ta.t)+" / 20":"incomplète"))}
+    if(la){const ta=evTotal(la.sel,rp);inf.push("Auto-évaluation de l'élève"+(la.at?" du "+fmtShort(la.at.slice(0,10)):"")+(la.tab?" ("+la.tab+")":"")+" : "+(ta.n===4?fmtP(ta.t)+" / 20":"incomplète"))}
     if(inf.length)h+=`<div class="evinfo">${esc(inf.join(" — "))}</div>`;
     const ta=la?evTotal(la.sel,rp):null;
     h+=`<table class="evrec"><thead><tr><th>Indicateur</th><th class="n">Degré</th><th class="n">Note</th>${la?'<th class="n">Auto-évaluation</th>':""}</tr></thead><tbody>`
@@ -2568,19 +2688,20 @@ function evGridHTML(mode,e){
       +`<tr class="tot"><td>Note générale</td><td></td><td class="n">${t0.n?fmtP(t0.t):"–"} / 20${t0.n<4?` <small style="font-weight:600;color:var(--muted)">(incomplète)</small>`:""}</td>${la?`<td class="n">${ta.n?fmtP(ta.t):"–"} / 20</td>`:""}</tr></tbody></table>`}
   const t=evTotal(sel,rp);
   h+=`<div class="evtot"><div class="big">${t.n?fmtP(t.t):"–"} / 20</div><div class="det">${t.n===4?(prof?"Note enregistrée ✓ · touche une autre case pour changer":"Auto-évaluation enregistrée ✓ · tu peux encore changer tes cases"):`${4-t.n} élément(s) à compléter`}</div>`
-    +(prof?`<button class="btn ghost sm" style="margin-left:auto;background:transparent;color:#fff;border-color:#fff" data-evnext="1">Élève suivant →</button>`:"")+`</div></div>`;
+    +(prof?`<button class="btn ghost sm" style="margin-left:auto;background:transparent;color:#fff;border-color:#fff" data-evshare="${e.id}">📤 Fiche PDF</button><button class="btn ghost sm" style="background:transparent;color:#fff;border-color:#fff" data-evnext="1">Élève suivant →</button>`:"")+`</div></div>`;
   return h;
 }
 let EV_SEL=null,AU_SEL=null;
 function renderEval(){
+  try{dupBanner()}catch(e){}try{renderEvBilan()}catch(e){}
   const L=evList(true);if(EV_SEL!=null&&!L.some(e=>e.id===EV_SEL))EV_SEL=null;
   const lid=CLE()?CLE().id:null;
-  $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=o&&lastAuto(o);return (p||a)?`<small>${p?"✓":""}${a?"🙋":""}</small>`:""});
+  $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=lastAutoE(e);return (p||a)?`<small>${p?"✓":""}${a?"🙋":""}</small>`:""});
   const e=EV_SEL!=null?byId(EV_SEL):null;
   const cell=(o,k,rp)=>{const s=o&&o.prof[k];return s?`<span class="dg d${s.d}">${s.d}</span> ${fmtP(evPts(o.prof,k,rp))}`:"–"};
   const ev0=CL().evals||{};
   $("#ev-recap").innerHTML=`<table class="evrec"><thead><tr><th>Élève</th>${EVE.map(x=>`<th class="n">${x.t}</th>`).join("")}<th class="n">Note /20</th><th class="n">Auto /20</th></tr></thead><tbody>`
-    +L.map(st=>{const o=ev0[st.id],rp=evRepOf(o),t=o?evTotal(o.prof,rp):{n:0},la=o&&lastAuto(o),ta=la?evTotal(la.sel,rp):null;
+    +L.map(st=>{const o=ev0[st.id],rp=evRepOf(o),t=o?evTotal(o.prof,rp):{n:0},la=lastAutoE(st),ta=la?evTotal(la.sel,rp):null;
       return `<tr data-eve="${st.id}" class="${EV_SEL===st.id?"on":""}"><td><b>${esc(st.prenom)}</b> ${esc(st.nom)}</td>${EVE.map(x=>`<td class="n">${cell(o,x.k,rp)}</td>`).join("")}<td class="n"><b>${t.n?fmtP(t.t):"–"}</b>${t.n&&t.n<4?" *":""}</td><td class="n">${ta&&ta.n===4?fmtP(ta.t):"–"}</td></tr>`}).join("")
     +`</tbody></table><p class="note" style="margin:8px 0 0">* note incomplète (il manque au moins un indicateur).</p>`;
   $("#ev-body").innerHTML=e?evGridHTML("prof",e):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
@@ -2609,7 +2730,7 @@ function evClick(mode,ev){
     s.p=Math.min(r[1],Math.max(r[0],Math.round((cur+0.25*(+aj.dataset.evadj))*4)/4));o.prof.at=new Date().toISOString();persist();renderEval();return}
   const c=t.closest("[data-evk]");if(!c)return;const k=c.dataset.evk,d=+c.dataset.evd;
   if(mode==="prof"){const s=o.prof[k];if(!(s&&s.d===d))o.prof[k]={d};o.prof.at=new Date().toISOString();persist();renderEval();return}
-  const was=autoDone(e,lid);const a=o.auto[lid]||(o.auto[lid]={sel:{}});a.sel[k]={d};a.at=new Date().toISOString();persist();renderAuto();renderEvAlert();
+  const was=autoDone(e,lid);const a=o.auto[lid]||(o.auto[lid]={sel:{}});a.sel[k]={d};a.at=new Date().toISOString();a.tab=(typeof SY!=="undefined"&&SY.nom)||"";persist();renderAuto();renderEvAlert();
   if(!was&&autoDone(e,lid))toast("✓ Auto-évaluation enregistrée : "+fmtP(evTotal(a.sel,evRepOf(o)).t)+" / 20");
 }
 $("#v-eval").addEventListener("click",e=>evClick("prof",e));
@@ -2618,8 +2739,8 @@ $("#ev-export").addEventListener("click",()=>exportXlsx(ALLCO(),"evaluation"));
 /* boutons de la leçon + message d'alerte si l'auto-évaluation est obligatoire */
 function renderEvAlert(){
   const cfg=CFG(),l=CLE();
-  const show=!!(l&&(cfg.autoOn||cfg.evalOn));$("#c-evbtns").style.display=show?"":"none";
-  $("#c-auto").style.display=cfg.autoOn?"":"none";$("#c-eval").classList.toggle("hide-ev",!cfg.evalOn);$("#c-eval").style.display=cfg.evalOn?"":"none";
+  const show=!!(l&&(cfg.autoOn||teachOn()));$("#c-evbtns").style.display=show?"":"none";
+  $("#c-auto").style.display=cfg.autoOn?"":"none";$("#c-eval").style.display="";
   let html="";
   if(l&&cfg.autoOn&&cfg.autoReq){const miss=evList(false).filter(e=>!autoDone(e,l.id)&&!dispOf(e));
     if(miss.length)html=`<span>⚠️ <b>Auto-évaluation obligatoire.</b> ${miss.length>12?miss.length+" élèves ne se sont":esc(miss.map(e=>e.prenom).join(", "))+(miss.length>1?" ne se sont":" ne s'est")} pas encore auto-évalué${miss.length>1?"s":""}.</span><button class="btn primary sm" data-go="auto">Je m'auto-évalue →</button>`}
@@ -2667,12 +2788,23 @@ function diagResult(){
   return {active:true,done:true,conseil:d.final,tone:"red"};
 }
 function yn(key,val){return ["Oui","Non"].map(v=>`<button data-d="${key}" data-v="${v}" class="${val===v?"on":""}">${v}</button>`).join("")}
+/* situation de la bibliothèque qui correspond au conseil donné */
+function sitFor(t){t=String(t||"");
+  if(/Bravo/.test(t))return "gaintemoin";
+  if(/vas-y à fond/.test(t))return "relache";
+  if(/Recommence la course/.test(t))return "transarret";
+  if(/retarde la transmission|trop tôt/i.test(t))return "trans100";
+  if(/Recule/.test(t))return "departreceveur";
+  if(/Avance/.test(t))return "chatsouris";
+  if(/ta marque|bon moment|parti trop tard/.test(t))return "departreceveur";
+  return null}
 function conseilHTML(r,pm,cfg){
   if(!r||!r.conseil)return "";
   let sub="";
   if(r.recul){const np=typeof pm==="number"?pm+Math.round(r.recul):null;sub=`Transmission ${mFmt(r.recul)} après la zone${np?` · nouvelle prise de marque : plot ${np} (${mFmt(pmDist(np))})${cfg&&np>cfg.nPM?" — ajoute des plots":""}`:""}`}
   const ico=r.tone==="ok"?"★":r.tone==="red"?"↩":"!";
-  return `<div class="cons ${r.tone||""}"><div class="adv-ico">${ico}</div><div><div class="adv-big">${esc(r.conseil)}</div>${sub?`<div class="adv-sub">${sub}</div>`:""}</div></div>`;
+  let sl="";try{const sid=sitFor(r.conseil),s=sid&&SITS.find(x=>x.id===sid);if(s)sl=`<button class="btn ghost sm sitlink" data-sitgo="${s.id}" data-sitadv="1">📚 Situation conseillée : ${esc(s.t)}</button>`}catch(e){}
+  return `<div class="cons ${r.tone||""}"><div class="adv-ico">${ico}</div><div><div class="adv-big">${esc(r.conseil)}</div>${sub?`<div class="adv-sub">${sub}</div>`:""}${sl}</div></div>`;
 }
 function renderDiag(){
   const d=DIAG[ST.zone],box=$("#r-advice"),cfg=CFG();
@@ -3014,9 +3146,9 @@ function buildXlsx(CS){
   const vit=[["Classe","Code anonyme (Google Sheets)","Nom","Prénom","Groupe(s)","Arrêté E1","Arrêté E2","Arrêté E3","Moyenne arrêté","Lancé E1","Lancé E2","Lancé E3","Moyenne lancé"]];
   sortedEleves().forEach(e=>vit.push([C.name,anonCode(C,e),e.nom,e.prenom,grpOf(e.id),...e.ea,e.ma,...e.el,e.ml]));
   const ev=[["Classe","Nom","Prénom","Groupe(s)","Répartition AFL2/AFL3","Performance (degré)","Performance (pts /6)","Transmission (degré)","Transmission (pts /6)","Mise en projet (degré)","Mise en projet (pts)","Vivre les rôles (degré)","Vivre les rôles (pts)","Note enseignant /20","Auto-évaluation /20 (dernière)","Date de l'auto-évaluation"]];
-  sortedEleves().forEach(e=>{const o=(C.evals||{})[e.id];if(!o)return;const rp=evRepOf(o),row=[C.name,e.nom,e.prenom,grpOf(e.id),rp.replace("-"," / ")];
+  sortedEleves().forEach(e=>{const o=(C.evals||{})[e.id]||{prof:{},auto:{}};if(!o.prof||(!Object.keys(o.prof).length&&!lastAutoE(e)))return;const rp=evRepOf(o),row=[C.name,e.nom,e.prenom,grpOf(e.id),rp.replace("-"," / ")];
     let ok=true;EVE.forEach(x=>{const s=(o.prof||{})[x.k],pt=evPts(o.prof,x.k,rp);if(!s)ok=false;row.push(s?"Degré "+s.d:"",pt==null?"":pt)});
-    const t=evTotal(o.prof||{},rp),la=lastAuto(o),ta=la?evTotal(la.sel||{},rp):null;
+    const t=evTotal(o.prof||{},rp),la=lastAutoE(e),ta=la?evTotal(la.sel||{},rp):null;
     row.push(t.n?t.t:"",ta&&ta.n===4?ta.t:"",la&&la.at?fmtShort(la.at.slice(0,10)):"");ev.push(row)});
   const files=[
    {name:"[Content_Types].xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`},
@@ -3132,13 +3264,14 @@ function updShStatus(){
 }
 function inArtifact(){return !!(window.claude||/claude\.ai|claudeusercontent|anthropic/.test(location.hostname))}
 function openSheets(){
+  try{$("#s-tname").value=SY.nom||"";$("#s-devs").innerHTML=syDevsHTML()}catch(e){}
   $("#s-url").value=SH.url;$("#s-key").value=SH.key;$("#s-sync").classList.toggle("on",SY.on!==false);syStatus();
   document.querySelectorAll("#s-names button").forEach(b=>b.classList.toggle("on",b.dataset.nf===SH.names));
   $("#s-auto").classList.toggle("on",SH.auto);
   $("#s-where").textContent=inArtifact()?"⚠️ Ici, dans Claude, la page ne peut pas joindre Google : l'envoi fonctionne depuis la version publiée sur GitHub Pages (https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/relais/).":"Mode d'emploi pour créer la feuille et le script : voir le fichier README du dossier relais sur GitHub.";
   updShStatus();$("#smodal").classList.add("on");
 }
-function readSheets(){const k0=SH.key,u0=SH.url;SH.url=$("#s-url").value.trim();SH.key=$("#s-key").value.trim();
+function readSheets(){try{const n=$("#s-tname").value.trim();if(n!==(SY.nom||"")){SY.nom=n;SY.hb=0;sySave()}}catch(e){}const k0=SH.key,u0=SH.url;SH.url=$("#s-url").value.trim();SH.key=$("#s-key").value.trim();
   const on=$("#s-sync").classList.contains("on");if(on!==SY.on||k0!==SH.key||u0!==SH.url){SY.on=on;if(k0!==SH.key||u0!==SH.url){SY.init=false;SY.since=0}sySave();setTimeout(syCycle,300)}SH.auto=$("#s-auto").classList.contains("on");const b=$("#s-names .on");SH.names=b?b.dataset.nf:"code";shSave()}
 $("#lkSheets").addEventListener("click",async()=>{if(await requireCode())openSheets()});
 $("#s-names").addEventListener("click",e=>{const b=e.target.closest("[data-nf]");if(!b)return;document.querySelectorAll("#s-names button").forEach(x=>x.classList.toggle("on",x===b))});
@@ -3175,7 +3308,7 @@ function dupBanner(){
   const {dc,dl}=dupInfo();
   const t=[...dc.map(L=>`<b>${L.length} classes « ${esc(L[0].name)} »</b>`),...dl.map(x=>`<b>${x.L.length} leçons le ${fmtShort(x.date)}</b> (${esc(x.c.name)})`)];
   const html=t.length?`<span>🔗 Données de plusieurs tablettes à réunir : ${t.join(", ")}.</span><button class="btn primary sm" data-compile="1">Compiler</button>`:"";
-  ["#c-dupw","#l-dupw"].forEach(s=>{const b=$(s);if(b)b.innerHTML=html});
+  ["#c-dupw","#l-dupw","#ev-dupw","#b-dupw"].forEach(s=>{const b=$(s);if(b)b.innerHTML=html});
 }
 function mergeLessons(c,keep,dup){
   const k=c.lecons.find(l=>l.id===keep),d=c.lecons.find(l=>l.id===dup);if(!k||!d||k===d)return;
@@ -3222,6 +3355,7 @@ async function compileAll(){
   dupInfo().dl.forEach(({c,L})=>{const cnt=l=>c.courses.filter(x=>x.lid===l.id).length;const s=L.slice().sort((a,b)=>cnt(b)-cnt(a));s.slice(1).forEach(d=>{mergeLessons(c,s[0].id,d.id);AL().lec[c.id+"|"+d.id]=s[0].id;nl++})});
   try{syRenumber()}catch(e){}
   persist();renderClasses();if(CL())renderClassAll();if($("#v-lecons").classList.contains("on"))renderLecons();
+  if($("#v-eval").classList.contains("on"))renderEval();if($("#v-bilan").classList.contains("on"))try{renderBilan()}catch(e){}
   toast(`✓ Compilé : ${nc} classe(s) et ${nl} leçon(s) réunies`);
 }
 document.addEventListener("click",e=>{if(e.target.closest("[data-compile]"))compileAll()});
@@ -3336,6 +3470,7 @@ async function syPull(){
       let changed=false;
       for(const [seq,k,u,d,x] of recs){
         SY.maxU=Math.max(SY.maxU||0,+u||0);
+        if(k.startsWith("dev|")){try{(SY.devs=SY.devs||{})[k.slice(4)]=JSON.parse(await syDec(x))}catch(e){}continue}
         if(k.startsWith("disp|")||k.startsWith("lst|")||k.startsWith("e:"))continue; /* dispenses, listes de classes (page d'accueil commune) et Escalade (« e: ») : pas pour Relais */
         const pd=SY.pend[k];if(pd&&pd.u>+u)continue; /* notre version locale est plus récente : elle sera envoyée */
         delete SY.pend[k];
@@ -3381,13 +3516,51 @@ async function syCycle(){
       }
       await sleep(1200);
     }
-    if(await syPull()){SY.last=Date.now();SY.err=""}
+    if(await syPull()){SY.last=Date.now();SY.err="";try{await syBeat()}catch(e){}}
   }catch(e){SY.err="Synchronisation impossible pour l'instant (réseau ?)"}
   finally{syBusy=false;sySave();syStatus();sySched()}
 }
 /* deux tablettes peuvent donner le même numéro à une course : on renumérote dans l'ordre de création (identique partout) */
 function syRenumber(){DATA.classes.forEach(c=>{const by={};(c.courses||[]).forEach(x=>{(by[x.lid]=by[x.lid]||[]).push(x)});
   Object.values(by).forEach(L=>{if(new Set(L.map(x=>x.n)).size===L.length)return;const t=x=>String(x.cid||"").replace(/^[a-z]+/i,"");L.sort((a,b)=>t(a)<t(b)?-1:t(a)>t(b)?1:0).forEach((x,i)=>x.n=i+1)})})}
+
+/* ===== Diagnostic de la synchronisation : chaque tablette publie une petite fiche (chiffrée) ===== */
+const syTabName=()=>SY.nom||("Tablette "+String(SY.dev||"").slice(0,4).toUpperCase());
+async function syBeat(force){
+  if(!force&&Date.now()-(SY.hb||0)<90000)return;
+  const C=DATA.classes,o={nom:syTabName(),at:Date.now(),co:C.reduce((n,c)=>n+(c.courses||[]).length,0),
+    au:C.reduce((n,c)=>n+Object.values(c.evals||{}).reduce((m,x)=>m+Object.keys((x&&x.auto)||{}).length,0),0),
+    cls:C.map(c=>c.name).join(", "),pend:Object.keys(SY.pend||{}).length,err:SY.err||""};
+  await fetch(SH.url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:SH.key,sync:{dev:SY.dev,recs:[{k:"dev|"+SY.dev,u:syStamp(),d:0,x:await syEnc(JSON.stringify(o))}]}})});
+  SY.hb=Date.now();SY.devs=SY.devs||{};SY.devs[SY.dev]=o;sySave();
+}
+function syDevsHTML(){
+  const D=Object.entries(SY.devs||{}).sort((a,b)=>(b[1].at||0)-(a[1].at||0));
+  if(!D.length)return `<p class="note" style="margin:4px 0">Aucune tablette n'a encore donné de nouvelles (elles apparaissent ici après leur première synchronisation).</p>`;
+  const ago=t=>{const m=Math.round((Date.now()-t)/60000);return m<1?"à l'instant":m<60?"il y a "+m+" min":m<1440?"il y a "+Math.round(m/60)+" h":"il y a "+Math.round(m/1440)+" j"};
+  return D.map(([id,o])=>{const old=Date.now()-(o.at||0)>20*60000;
+    return `<div class="devr ${old?"old":""} ${o.err?"err":""}"><b>${esc(o.nom||id)}</b>${id===SY.dev?" <small>(cette tablette)</small>":""}<span>${ago(o.at||0)} · ${o.co||0} courses · ${o.au||0} auto-évaluations${o.pend?" · ⏳ "+o.pend+" en attente":""}</span>${o.err?`<em>⚠ ${esc(o.err)}</em>`:""}<small>${esc(o.cls||"")}</small></div>`}).join("");
+}
+async function syResend(){
+  if(!syOk()){toast("Synchronisation non réglée sur cette tablette");return}
+  toast("Envoi de toutes les données…");
+  try{await syPull()}catch(e){}
+  const R=syRecords(),u=syStamp();let n=0;
+  Object.keys(R).forEach(k=>{if(/^(cls|el|lec|lco|co|evp|eva|dispo)(\||$)/.test(k)){SY.pend[k]={u,d:0};n++}});
+  sySave();await syCycle();await syBeat(true).catch(()=>{});
+  try{$("#s-devs").innerHTML=syDevsHTML()}catch(e){}
+  toast(SY.err?"⚠ "+SY.err:"✓ "+n+" éléments renvoyés");
+}
+async function syRefetch(){
+  if(!syOk()){toast("Synchronisation non réglée sur cette tablette");return}
+  toast("Récupération de toutes les données…");
+  SY.init=false;SY.since=0;SY.h={};sySave();await syCycle();
+  try{$("#s-devs").innerHTML=syDevsHTML()}catch(e){}
+  toast(SY.err?"⚠ "+SY.err:"✓ Données récupérées");
+}
+$("#s-resend").addEventListener("click",()=>{readSheets();syResend()});
+$("#s-refetch").addEventListener("click",()=>{readSheets();syRefetch()});
+document.addEventListener("click",e=>{if(e.target.closest("[data-sypanel]")){openSheets();syCycle().then(()=>{try{$("#s-devs").innerHTML=syDevsHTML()}catch(x){}})}});
 /* rafraîchit l'écran affiché sans le faire sauter (pas pendant une saisie) */
 let syRT=null;
 function syRefreshSoon(){clearTimeout(syRT);syRT=setTimeout(syRefresh,60)}
