@@ -45,6 +45,33 @@ header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;paddin
 .chipsel{display:flex;flex-wrap:wrap;gap:6px}.chipsel button{border:2px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-weight:600}
 .chipsel button.on{border-color:var(--vol);background:#f3e9f8}
 .poster{width:100%;border-radius:14px;display:block;cursor:zoom-in;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.coach{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;display:none;padding-bottom:40px}
+.coach.on{display:block}
+.chd{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.chd h1{margin:0;font-size:1.15rem;flex:1}.chd .dot{width:22px;height:22px;border-radius:50%;border:2px solid #fff;display:inline-block;vertical-align:-5px}
+.ctabs{display:flex;gap:4px;overflow-x:auto;background:var(--navy);padding:0 10px}
+.ctabs button{background:transparent;border:0;color:#c8d6e8;padding:10px 14px;font-weight:700;border-radius:10px 10px 0 0;white-space:nowrap;font-size:1rem}
+.ctabs button.on{background:var(--bg);color:var(--navy)}
+.cbody{max-width:1000px;margin:0 auto;padding:14px}
+.big{font-size:1.15rem}
+.tile{border:3px solid var(--line);background:#fff;border-radius:16px;padding:16px;font-weight:800;font-size:1.15rem;text-align:left;cursor:pointer;color:var(--ink)}
+.tile.on{border-color:var(--vol);background:#f3e9f8}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.steps span{padding:6px 12px;border-radius:999px;background:#e8e3d8;font-weight:700;font-size:.85rem;color:var(--muted)}.steps span.on{background:var(--vol);color:#fff}.steps span.ok{background:#d6efe0;color:#1d6b44}
+.pres{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.pres button{border:3px solid var(--line);border-radius:14px;padding:12px;font-weight:700;font-size:1.05rem;text-align:left;background:#fff}
+.pres button.p{border-color:var(--d4);background:#e8f6ee}.pres button.a{border-color:var(--d1);background:#fdeeee;text-decoration:line-through}
+.chas{display:flex;gap:10px;flex-wrap:wrap}.chas button{width:84px;height:84px;border-radius:16px;border:4px solid #fff;box-shadow:0 0 0 2px var(--line);font-weight:800;font-size:.8rem}
+.chas button.on{box-shadow:0 0 0 4px var(--navy)}
+.score{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;text-align:center;background:var(--navy);color:#fff;border-radius:16px;padding:14px}
+.score b{font-size:3.2rem;line-height:1}.score small{display:block;opacity:.8;font-size:.95rem}
+.pbtn{border:0;border-radius:16px;padding:20px;font-size:1.25rem;font-weight:800;color:#fff;width:100%}
+.court{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,90px);gap:4px;background:#2b7bb9;padding:6px;border-radius:12px;position:relative;margin-top:22px}
+.court::after{content:'FILET';position:absolute;left:0;right:0;bottom:-18px;text-align:center;font-weight:800;font-size:.75rem;color:var(--navy);letter-spacing:.2em;border-top:4px solid var(--navy);padding-top:2px}
+.court button,.court div{border:0;border-radius:8px;background:#f6a35b;font-weight:800;color:#3b2306;font-size:1rem;display:grid;place-items:center}
+.court button:active{background:#ffcf9e}
+.hbar{display:flex;align-items:center;gap:8px;margin:5px 0}.hbar span{min-width:190px;font-size:.92rem}.hbar i{display:block;height:20px;border-radius:6px;min-width:3px}.hbar em{font-style:normal;font-weight:800}
+.sit{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:8px;border:2px solid var(--line)}.sit.ok{border-color:var(--d4);background:#f1faf4}.sit.sug{border-color:var(--vol)}
 #full{position:fixed;inset:0;z-index:60;background:#0b0d12;display:none;align-items:center;justify-content:center;overflow:auto;cursor:zoom-out}
 #full.on{display:flex}#full img{max-width:100%;max-height:100%}
 #full .t3{max-width:1100px;width:100%;margin:auto}
@@ -193,6 +220,7 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
     <button data-t="eval" class="on">Évaluer</button>
     <button data-t="bilan">Bilan & export</button>
     <button data-t="seq">Séquence</button>
+    <button data-t="equipes">Équipes</button>
     <button data-t="eleves">Élèves</button>
     <button data-t="bareme">Barème</button>
   </nav>
@@ -207,6 +235,9 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
 
   <!-- BILAN -->
   <section class="tab" id="t-bilan"></section>
+
+  <!-- ÉQUIPES -->
+  <section class="tab" id="t-equipes"></section>
 
   <!-- SÉQUENCE -->
   <section class="tab" id="t-seq"></section>
@@ -245,9 +276,11 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
 </main>
 
 <div id="lock"><div class="bx"><div style="font-size:48px">🏐</div><h2>Évaluation Volley-ball</h2>
-<p class="muted" style="font-size:1rem">Notes des élèves : réservé à l'enseignant.</p>
-<button class="btn" style="font-size:1.1rem;padding:14px 22px;margin-top:10px" onclick="unlock()">🔒 Code enseignant</button>
+<p class="muted" style="font-size:1rem">Coachs : touchez « Tablette du coach ». Les notes restent réservées à l'enseignant.</p>
+<button class="btn" style="font-size:1.2rem;padding:16px 24px;margin-top:10px;background:var(--vol)" onclick="coachStart()">🧢 Tablette du coach</button><br>
+<button class="btn alt" style="font-size:1rem;padding:12px 20px;margin-top:10px" onclick="unlock()">🔒 Code enseignant</button>
 <p class="muted" style="margin-top:14px">Même code que les autres applications EPS.</p></div></div>
+<div class="coach" id="coach"></div>
 <div id="full" onclick="this.classList.remove('on');this.innerHTML=''"></div>
 <div id="printArea"></div>
 <div class="toast" id="toast"></div>
@@ -324,9 +357,10 @@ function fixState(){
   if(!S.bareme||!S.bareme.criteres)S.bareme=defBareme();
   migrateBareme();
   if(!Array.isArray(S.classes)||!S.classes.length)S.classes=[{id:uid(),nom:'Ma classe',eleves:[]}];
-  S.classes.forEach(c=>{c.eleves=c.eleves||[];c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
+  S.classes.forEach(c=>{c.eleves=c.eleves||[];c.equipes=c.equipes||[];c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
   if(!(S.cur>=0&&S.cur<S.classes.length))S.cur=0;
   if(!S.seq||!Array.isArray(S.seq.lecons))S.seq=defSeq();
+  if(!Array.isArray(S.seq.situations))S.seq.situations=defSituations();
   if((S.seq.v||1)<2){const D=defSeq(); /* v2 : mobilisation articulaire + routines avec ballon enrichies au fil des leçons ; autopasse réservée aux élèves en difficulté */
     S.seq.mob=S.seq.mob||D.mob;S.seq.routines=S.seq.routines||D.routines;
     if(S.seq.comp==="Pour gagner le match en 4 contre 4, construire l'attaque à plusieurs (jusqu'à 3 touches, autopasse autorisée en cas de difficulté) afin de rompre l'échange par un jeu placé, fort ou rapide, tout en protégeant collectivement son terrain. S'échauffer et s'entraîner en autonomie en fonction de ses besoins. Connaître les règles et faire fonctionner le match (score, service, rotation, rôles).")S.seq.comp=D.comp;
@@ -416,6 +450,7 @@ function showTab(t){
   if(t==='eleves')renderEleves();
   if(t==='bareme')renderBareme();
   if(t==='seq')renderSeq();
+  if(t==='equipes')renderEquipes();
   window.scrollTo(0,0);
 }
 function renderClassSel(){
@@ -659,6 +694,218 @@ function printSeq(){
   setTimeout(()=>window.print(),100);
 }
 
+/* ================== TABLETTE DU COACH ==================
+   Mode élève (sans code, sans accès aux notes). Données par équipe : c.equipes[] = {id,nom,el:[ids],jours:{date:{coach,pres,chas,mat,terrain,ok}},matchs:[],valid:{sitId:date},rem:[]}
+   Synchronisées entre tablettes (eq|classe|équipe). */
+const CHAS=[['Rouge','#d63a3a'],['Bleu','#2563c9'],['Jaune','#f2c014'],['Vert','#2e9e5b'],['Orange','#f28c28'],['Violet','#7A3E9D'],['Rose','#e85d9e'],['Blanc','#ffffff'],['Noir','#222']];
+const MAT=[['filet','Filet'],['poteaux','2 poteaux'],['antennes','Antennes'],['ballons','Ballons'],['chasubles','Chasubles'],['plots','Plots / cerceaux']];
+const WIN={a3:'Attaque construite en 3 touches',a12:'Attaque en 1 ou 2 touches',sv:'Service gagnant',fa:'Faute adverse'};
+const LOSS={sv:'Service raté',fa:'Faute de notre équipe (filet, balle tenue, dehors)',rc:'Réception ratée',ad:'Attaque adverse non défendue'};
+const ZONES=[['AG','Fond gauche'],['AC','Fond centre'],['AD','Fond droit'],['VG','Avant gauche'],['VC','Avant centre'],['VD','Avant droit']];
+const PB={sv:"Trop de services ratés",fa:"Trop de fautes (filet, balle tenue, dehors)",rc:"On rate la réception du service",ad:"On ne défend pas les attaques adverses",direct:"On renvoie trop vite (1 ou 2 touches)",zone:"On attaque toujours au même endroit"};
+function S_(id,nom,but,type,lec,pb){return{id,nom,but,type,lec,pb:pb||''}}
+function defSituations(){return[
+  S_('s1',"Passe à 3 vers l'avant","10 passes de suite sans faute, chacun touche le ballon.",'app',2),
+  S_('s2',"Service : 8 sur 10","L'équipe réussit 8 services sur 10 dans le terrain adverse.",'app',2),
+  S_('s3',"Se répartir le terrain","Sur 10 balles lancées par le coach, l'équipe ne laisse tomber aucune balle (annonce « j'ai ! »).",'app',3),
+  S_('s4',"Attaque en 3 touches","5 attaques réussies en 3 touches qui tombent dans une zone libre.",'app',4),
+  S_('s5',"Rompre l'échange","Gagner 3 points de suite par un jeu placé, fort ou rapide.",'app',5),
+  S_('s6',"Réception en manchette","6 réceptions de service exploitables par le passeur.",'app',6),
+  S_('s7',"Schéma d'attaque","Réception – passe – attaque réussi 4 fois sur 6.",'app',7),
+  S_('s8',"Défense – relance","5 balles attaquées défendues puis renvoyées en 3 touches.",'app',8),
+  S_('r1',"Service cible","Chacun sert 5 fois dans la moitié arrière avant de rejouer.",'rem',1,'sv'),
+  S_('r2',"Routine passe à deux puis à trois","5 min de passes hautes, bout des doigts, ballon au-dessus du front.",'rem',1,'fa'),
+  S_('r3',"Réception vers le passeur","Le coach sert ou lance ; réception en manchette (ou passe haute) vers la zone du passeur.",'rem',1,'rc'),
+  S_('r4',"Défense à 4 avec annonce","Répartition 2 avant / 2 arrière ; le coach attaque à la main, annonce « j'ai ! » obligatoire.",'rem',1,'ad'),
+  S_('r5',"3 touches obligatoires","Match : le point ne compte que si l'équipe a joué en 3 touches.",'rem',1,'direct'),
+  S_('r6',"Zones imposées","Le coach annonce une zone (cerceau) avant chaque échange : le point compte double s'il y tombe.",'rem',1,'zone')]}
+const coachKey='eps_volley_coach_v1';
+let CO=Object.assign({cid:null,tid:null,tab:'lecon',step:0,pt:null},jget(coachKey,{})||{});
+const coSave=()=>{try{localStorage.setItem(coachKey,JSON.stringify({cid:CO.cid,tid:CO.tid,on:CO.on}))}catch(e){}};
+function coachOn(){return !!CO.on}
+function coachStart(){CO.on=1;CO.tab='lecon';coSave();setLock();renderCoach()}
+function coachQuit(){CO.on=0;CO.tid=null;CO.cid=null;coSave();setLock()}
+function coC(){return S.classes.find(c=>c.id===CO.cid)}
+function coT(){const c=coC();return c&&(c.equipes||[]).find(t=>t.id===CO.tid)}
+function elOf(c,id){return c.eleves.find(e=>e.id===id)}
+function shortName(e){return e?((e.prenom||'')+' '+(e.nom||'').charAt(0)+'.').trim():'?'}
+function lessonNow(){return nextLesson()}
+function jour(t){const d=today();t.jours=t.jours||{};return t.jours[d]||(t.jours[d]={coach:null,pres:{},chas:'',mat:{},terrain:0,ok:0})}
+/* le coach change à chaque séance : chaque nouveau jour de cours de l'équipe passe au joueur suivant (ordre réglable par l'enseignant) */
+function seances(t){return Object.keys(t.jours||{}).filter(d=>d<today()).length}
+function coachIdx(t){const n=(t.el||[]).length;return n?seances(t)%n:0}
+function coachAuto(c,t){const pl=(t.el||[]);if(!pl.length)return null;const id=pl[coachIdx(t)];return elOf(c,id)?id:pl.find(x=>elOf(c,x))||null}
+function coachNext(c,t){const pl=t.el||[];if(!pl.length)return '';const i=(coachIdx(t)+1)%pl.length;return shortName(elOf(c,pl[i]))}
+function coSet(fn){const t=coT();if(!t)return;fn(t);save();renderCoach()}
+function teamMatches(t,d){return (t.matchs||[]).filter(m=>m.fini&&(!d||m.date===d))}
+
+function renderCoach(){
+  const box=document.getElementById('coach');if(!box||!coachOn())return;
+  const c=coC(),t=coT();
+  if(!c){const L=S.classes.filter(x=>x.eleves.length);
+    box.innerHTML=`<div class="chd"><h1>🧢 Tablette du coach</h1><button class="lockbtn" onclick="coachQuit()">Fermer</button></div><div class="cbody"><div class="card"><h2>Quelle est ta classe ?</h2>
+     ${L.length?`<div class="tiles">${L.map(x=>`<button class="tile" onclick="CO.cid='${x.id}';coSave();renderCoach()">${esc(x.nom)}</button>`).join('')}</div>`:'<p>Aucune classe sur cette tablette : demande à ton enseignant.</p>'}</div></div>`;return}
+  if(!t){const E=c.equipes||[];
+    box.innerHTML=`<div class="chd"><h1>🧢 ${esc(c.nom)} · Choisis ton équipe</h1><button class="lockbtn" onclick="CO.cid=null;coSave();renderCoach()">← Classe</button></div><div class="cbody">
+     ${E.length?`<div class="tiles">${E.map(x=>{const j=(x.jours||{})[today()];const ch=j&&CHAS.find(k=>k[0]===j.chas);return `<button class="tile" onclick="CO.tid='${x.id}';CO.tab='lecon';CO.step=0;coSave();renderCoach()">${ch?`<span class="dot" style="background:${ch[1]};width:18px;height:18px;border-radius:50%;display:inline-block;border:2px solid #ccc;vertical-align:-3px"></span> `:''}${esc(x.nom)}<br><small class="muted" style="font-weight:600">${(x.el||[]).map(id=>shortName(elOf(c,id))).join(', ')}</small></button>`}).join('')}</div>`
+       :`<div class="card"><p>Ton enseignant n'a pas encore créé les équipes. Créez la vôtre :</p></div>`}
+     <div class="card"><h2>➕ Créer notre équipe</h2><input type="text" id="coNew" placeholder="Nom de l'équipe">
+      <p class="muted">Coche les joueurs :</p><div class="pres" id="coNewEl">${c.eleves.filter(e=>!E.some(x=>(x.el||[]).includes(e.id))).map(e=>`<button data-id="${e.id}" onclick="this.classList.toggle('p')">${esc(fullName(e))}</button>`).join('')}</div>
+      <button class="btn or" style="margin-top:10px" onclick="coNewTeam()">Créer l'équipe</button></div></div>`;return}
+  const j=jour(t),need=!j.ok,steps=[['Coach'],['Présents'],['Chasuble'],['Matériel']];
+  const ch=CHAS.find(k=>k[0]===j.chas);
+  const head=`<div class="chd">${ch?`<span class="dot" style="background:${ch[1]}"></span>`:''}<h1>${esc(t.nom)} · ${esc(c.nom)}${j.coach?` · 🧢 ${esc(shortName(elOf(c,j.coach)))}`:''}${j.terrain?` · Terrain ${j.terrain}`:''}</h1>
+    <button class="lockbtn" onclick="CO.tid=null;coSave();renderCoach()">Changer d'équipe</button><button class="lockbtn" onclick="unlock()">🔒</button></div>`;
+  if(need){box.innerHTML=head+`<div class="cbody"><div class="steps">${steps.map((x,i)=>`<span class="${i===CO.step?'on':i<CO.step?'ok':''}">${i+1}. ${x[0]}</span>`).join('')}<span>5. Leçon du jour</span></div>${coStep(c,t,j)}</div>`;return}
+  const tabs=[['lecon','📋 Leçon'],['match','🏐 Match'],['sit','✅ Situations'],['rem','🔁 Remédiation'],['bilan','📊 Bilan'],['equipe','👥 Équipe']];
+  box.innerHTML=head+`<div class="ctabs">${tabs.map(([k,n])=>`<button class="${CO.tab===k?'on':''}" onclick="CO.tab='${k}';CO.pt=null;renderCoach()">${n}</button>`).join('')}</div><div class="cbody">${
+    CO.tab==='lecon'?coLecon(c,t,j):CO.tab==='match'?coMatch(c,t):CO.tab==='sit'?coSit(c,t):CO.tab==='rem'?coRem(c,t):CO.tab==='bilan'?bilanEquipe(c,t):coEquipe(c,t,j)}</div>`;
+}
+function coNewTeam(){const c=coC(),nom=(document.getElementById('coNew').value||'').trim(),el=[...document.querySelectorAll('#coNewEl button.p')].map(b=>b.dataset.id);
+  if(!nom||!el.length){toast("Donne un nom et coche au moins un joueur");return}
+  const t={id:'t'+uid(),nom,el,jours:{},matchs:[],valid:{},rem:[]};c.equipes.push(t);CO.tid=t.id;CO.step=0;coSave();save();renderCoach()}
+function coStep(c,t,j){
+  const pl=(t.el||[]).map(id=>elOf(c,id)).filter(Boolean);
+  if(CO.step===0){if(!j.coach)j.coach=coachAuto(c,t);
+    return `<div class="card"><h2>🧢 Coach de la leçon ${lessonNow()}</h2><p class="big">Aujourd'hui, le coach est <b>${esc(fullName(elOf(c,j.coach)||{}))}</b>.</p><p class="muted">Le coach change à chaque leçon. La prochaine fois : ${esc(coachNext(c,t))}.</p>
+     <p class="muted">S'il est absent, choisis un autre coach :</p><div class="pres">${pl.map(e=>`<button class="${e.id===j.coach?'p':''}" onclick="coSet(t=>{jour(t).coach='${e.id}'})">${esc(fullName(e))}</button>`).join('')}</div>
+     <button class="pbtn" style="background:var(--vol);margin-top:14px" onclick="CO.step=1;save();renderCoach()">C'est moi, on continue →</button></div>`}
+  if(CO.step===1){return `<div class="card"><h2>✋ Qui est présent ?</h2><p class="muted">Touche un joueur pour le passer présent (vert) ou absent (rouge).</p>
+     <div class="pres">${pl.map(e=>{const v=j.pres[e.id],dp=dispOf(e);return `<button class="${v===1?'p':v===0?'a':''}" onclick="coPres('${e.id}')">${esc(fullName(e))}${dp?' 🩹':''}<br><small class="muted">${v===1?'présent':v===0?'absent':'à cocher'}${dp?' · dispensé(e)':''}</small></button>`}).join('')}</div>
+     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=0;renderCoach()">←</button><button class="btn alt" onclick="coSet(t=>{const J=jour(t);(t.el||[]).forEach(id=>{if(J.pres[id]==null)J.pres[id]=1})})">Tous présents</button>
+     <button class="pbtn" style="background:var(--vol);flex:1" onclick="if(${pl.length}&&Object.keys(jour(coT()).pres).length<${pl.length}){toast('Coche tous les joueurs');return}CO.step=2;renderCoach()">Continuer →</button></div></div>`}
+  if(CO.step===2){return `<div class="card"><h2>🎽 Couleur de nos chasubles</h2>
+     <div class="chas">${CHAS.map(([n,col])=>`<button class="${j.chas===n?'on':''}" style="background:${col};color:${['Blanc','Jaune'].includes(n)?'#222':'#fff'}" onclick="coSet(t=>{jour(t).chas='${n}'})">${n}</button>`).join('')}</div>
+     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=1;renderCoach()">←</button><button class="pbtn" style="background:var(--vol);flex:1" onclick="if(!jour(coT()).chas){toast('Choisis une couleur');return}CO.step=3;renderCoach()">Continuer →</button></div></div>`}
+  const used=(c.equipes||[]).filter(x=>x.id!==t.id).map(x=>({t:x,j:(x.jours||{})[today()]})).filter(x=>x.j&&x.j.terrain);
+  return `<div class="card"><h2>🏐 Notre terrain</h2><div class="tiles">${[1,2,3].map(n=>{const o=used.filter(x=>x.j.terrain===n).map(x=>x.t.nom);return `<button class="tile ${j.terrain===n?'on':''}" onclick="coSet(t=>{jour(t).terrain=${n}})">Terrain ${n}${o.length?`<br><small class="muted">avec ${esc(o.join(', '))}</small>`:''}</button>`}).join('')}</div></div>
+   <div class="card"><h2>🧰 Matériel installé</h2><p class="muted">Coche ce que votre équipe a pris et installé.</p>
+    <div class="pres">${MAT.map(([k,n])=>`<button class="${j.mat[k]?'p':''}" onclick="coSet(t=>{const J=jour(t);J.mat['${k}']=J.mat['${k}']?0:1})">${j.mat[k]?'✓ ':''}${n}</button>`).join('')}</div>
+    <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=2;renderCoach()">←</button><button class="pbtn" style="background:var(--d4);flex:1" onclick="if(!jour(coT()).terrain){toast('Choisis votre terrain');return}coSet(t=>{jour(t).ok=1});CO.tab='lecon'">✓ Terrain prêt : voir la leçon</button></div></div>`;
+}
+function coPres(id){coSet(t=>{const J=jour(t);J.pres[id]=J.pres[id]===1?0:1})}
+function coLecon(c,t,j){
+  const n=lessonNow(),l=S.seq.lecons.find(x=>x.n===n),R=routinesFor(n),sits=(S.seq.situations||[]).filter(x=>x.type==='app'&&+x.lec===n);
+  const abs=Object.keys(j.pres).filter(id=>j.pres[id]===0).map(id=>shortName(elOf(c,id)));
+  return `<div class="card" style="border-left:6px solid var(--vol)"><h2>📋 Leçon ${n}${l?' · '+esc(l.titre):''}</h2>${l?`<p class="big"><b>Objectif :</b> ${esc(l.obj)}</p><ul>${l.cont.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p>Pas d\'information pour cette leçon.</p>'}
+   <p class="muted">Présents : ${Object.values(j.pres).filter(v=>v===1).length}/${(t.el||[]).length}${abs.length?' · absents : '+esc(abs.join(', ')):''} · chasubles ${esc(j.chas)} · terrain ${j.terrain}</p></div>
+  <div class="card"><h2>🔥 Échauffement du jour</h2><ol><li><b>Mobilisation articulaire</b> <button class="btn alt sm" onclick="showFull('mob')">voir</button></li>
+   <li><b>Courses Temps ${l&&l.ech?l.ech:'I'}</b> <button class="btn alt sm" onclick="showFull('${l&&l.ech==='II'?'II':'I'}')">voir le schéma</button></li>
+   <li><b>Routines avec ballon</b> : ${R.map(r=>esc(r.nom)+(+r.lec===n?' <span class="ctag ptag">nouveau</span>':'')).join(' → ')} <button class="btn alt sm" onclick="SEQR=${n};showFull('rout')">voir</button></li></ol></div>
+  ${sits.length?`<div class="card"><h2>✅ Situations à valider aujourd'hui</h2>${sits.map(x=>`<div class="sit ${(t.valid||{})[x.id]?'ok':''}"><b>${esc(x.nom)}</b><br>${esc(x.but)}</div>`).join('')}<button class="btn" onclick="CO.tab='sit';renderCoach()">Aller valider →</button></div>`:''}`;
+}
+/* ---- match ---- */
+function curMatch(t){return (t.matchs||[]).find(m=>!m.fini)}
+function coMatch(c,t){
+  const m=curMatch(t);
+  if(!m){const others=(c.equipes||[]).filter(x=>x.id!==t.id),today_=teamMatches(t,today());
+    return `<div class="card"><h2>🏐 Nouveau match</h2><p class="muted">Contre quelle équipe ?</p><div class="tiles">${others.map(x=>`<button class="tile" onclick="coNewMatch('${esc(x.nom).replace(/'/g,"\\'")}')">${esc(x.nom)}</button>`).join('')}</div>
+     <div class="row" style="margin-top:10px"><input type="text" id="coAdv" placeholder="Autre adversaire" style="flex:1"><button class="btn" onclick="coNewMatch(document.getElementById('coAdv').value||'Adversaire')">Commencer</button></div></div>
+    ${today_.length?`<div class="card"><h2>Matchs d'aujourd'hui</h2>${today_.map(x=>`<div class="erow"><span class="nm">contre ${esc(x.adv)}</span><b>${x.nous} – ${x.eux}</b> ${x.nous>x.eux?'✅':x.nous<x.eux?'❌':'➖'}</div>`).join('')}
+      <button class="btn or" style="margin-top:10px" onclick="CO.tab='rem';renderCoach()">🔁 Temps de remédiation</button></div>`:''}`}
+  const nous=m.pts.filter(x=>x.w).length,eux=m.pts.length-nous;
+  let ask='';
+  if(CO.pt==='w')ask=`<div class="card"><h2>Comment avons-nous marqué ?</h2><div class="tiles">${Object.entries(WIN).map(([k,n])=>`<button class="tile" onclick="coWin('${k}')">${n}</button>`).join('')}</div></div>`;
+  else if(CO.pt&&CO.pt.k)ask=`<div class="card"><h2>Où le ballon est-il tombé ? <small class="muted">(terrain adverse)</small></h2><div class="court">${ZONES.map(([z,n])=>`<button onclick="coZone('${z}')">${n}</button>`).join('')}</div></div>`;
+  else if(CO.pt==='l')ask=`<div class="card"><h2>Pourquoi avons-nous perdu le point ?</h2><div class="tiles">${Object.entries(LOSS).map(([k,n])=>`<button class="tile" onclick="coAdd({w:0,k:'${k}'})">${n}</button>`).join('')}</div></div>`;
+  return `<div class="score"><div><small>${esc(t.nom)}</small><b>${nous}</b></div><div style="font-size:1.5rem">–</div><div><small>${esc(m.adv)}</small><b>${eux}</b></div></div>
+   ${ask||`<div class="row" style="margin-top:12px;flex-wrap:nowrap"><button class="pbtn" style="background:var(--d4)" onclick="CO.pt='w';renderCoach()">＋ Point pour nous</button><button class="pbtn" style="background:var(--d1)" onclick="CO.pt='l';renderCoach()">＋ Point pour eux</button></div>`}
+   <div class="row" style="margin-top:12px">${ask?`<button class="btn alt" onclick="CO.pt=null;renderCoach()">Annuler</button>`:`<button class="btn alt" onclick="coUndo()" ${m.pts.length?'':'disabled'}>↶ Annuler le dernier point</button>`}
+   <button class="btn red" onclick="coEndMatch()">🏁 Fin du match</button></div>
+   ${m.pts.length?`<div class="card" style="margin-top:12px"><h2>Ce match</h2>${statsHtml_([m])}</div>`:''}`;
+}
+function coNewMatch(adv){coSet(t=>{t.matchs=t.matchs||[];t.matchs.push({id:'m'+uid(),date:today(),lecon:lessonNow(),adv:String(adv).trim()||'Adversaire',pts:[],fini:0})})}
+function coWin(k){if(k==='fa')return coAdd({w:1,k});CO.pt={k};renderCoach()}
+function coZone(z){const k=CO.pt.k;coAdd({w:1,k,z})}
+function coAdd(pt){CO.pt=null;coSet(t=>{curMatch(t).pts.push(pt)})}
+function coUndo(){coSet(t=>{curMatch(t).pts.pop()})}
+function coEndMatch(){const t=coT(),m=curMatch(t);if(!m)return;if(!confirm('Terminer le match ?'))return;
+  const c=coC();coSet(t=>{const m=curMatch(t);m.nous=m.pts.filter(x=>x.w).length;m.eux=m.pts.length-m.nous;m.fini=1;
+    const res=m.nous>m.eux?'G':m.nous<m.eux?'P':'N',J=jour(t);
+    if(B().optMatchs)(t.el||[]).forEach(id=>{if(J.pres[id]===0)return;const e=elOf(c,id);if(e){e.matchs=e.matchs||[];e.matchs.push(res);applyMatchs(e)}})});
+  toast('Match enregistré')}
+/* ---- statistiques ---- */
+function agg(M){const a={w:0,l:0,win:{},loss:{},zone:{},G:0,N:0,P:0};M.forEach(m=>{(m.pts||[]).forEach(x=>{if(x.w){a.w++;a.win[x.k]=(a.win[x.k]||0)+1;if(x.z)a.zone[x.z]=(a.zone[x.z]||0)+1}else{a.l++;a.loss[x.k]=(a.loss[x.k]||0)+1}});
+  if(m.fini){const n=m.pts.filter(x=>x.w).length,e=m.pts.length-n;a[n>e?'G':n<e?'P':'N']++}});return a}
+function bars(obj,labels,col){const tot=Object.values(obj).reduce((s,x)=>s+x,0)||1,mx=Math.max(1,...Object.values(obj));
+  return Object.entries(labels).map(([k,n])=>`<div class="hbar"><span>${n}</span><i style="width:${(obj[k]||0)/mx*55}%;background:${col}"></i><em>${obj[k]||0}</em><small class="muted">${obj[k]?Math.round(obj[k]/tot*100)+' %':''}</small></div>`).join('')}
+function zoneMap(z){const mx=Math.max(1,...Object.values(z));return `<div class="court" style="grid-template-rows:repeat(2,70px)">${ZONES.map(([k,n])=>`<div style="background:rgba(242,140,40,${.15+.85*(z[k]||0)/mx})"><span>${n}<br><b style="font-size:1.3rem">${z[k]||0}</b></span></div>`).join('')}</div>`}
+function statsHtml_(M){const a=agg(M);return `<div class="row" style="align-items:flex-start"><div style="flex:1;min-width:280px"><h3>Comment on marque (${a.w})</h3>${bars(a.win,WIN,'var(--d4)')}<h3>Comment on perd des points (${a.l})</h3>${bars(a.loss,LOSS,'var(--d1)')}</div>
+  <div style="flex:1;min-width:260px"><h3>Où tombent nos points</h3>${zoneMap(a.zone)}</div></div>`}
+function analyse(M){const a=agg(M),out=[],L=a.l||0,att=(a.win.a3||0)+(a.win.a12||0),zt=Object.values(a.zone).reduce((s,x)=>s+x,0),zm=Math.max(0,...Object.values(a.zone));
+  const add=(k,v,txt)=>out.push({k,v,txt});
+  ['sv','fa','rc','ad'].forEach(k=>{const n=a.loss[k]||0;if(L&&n>=2&&n/L>=.25)add(k,n/L,`${Math.round(n/L*100)} % de nos points perdus`)});
+  if(att>=3&&(a.win.a12||0)>(a.win.a3||0))add('direct',(a.win.a12)/att,`${a.win.a12} attaques en 1-2 touches contre ${a.win.a3||0} en 3 touches`);
+  if(zt>=4&&zm/zt>=.6)add('zone',zm/zt,`${Math.round(zm/zt*100)} % de nos points dans la même zone`);
+  return out.sort((x,y)=>y.v-x.v)}
+/* ---- situations ---- */
+function coSit(c,t){const n=lessonNow(),A=(S.seq.situations||[]).filter(x=>x.type==='app'),v=t.valid||{};
+  return `<div class="card"><h2>✅ Situations validées par toute l'équipe</h2><p class="muted">Une situation est validée quand <b>tous les joueurs présents</b> réussissent le but. ${Object.keys(v).filter(k=>A.some(x=>x.id===k)).length}/${A.length} validées.</p></div>
+  ${A.map(x=>`<div class="sit ${v[x.id]?'ok':''} ${+x.lec===n&&!v[x.id]?'sug':''}"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${esc(x.nom)}</b> <small class="muted">leçon ${x.lec}</small>${+x.lec===n?' <span class="ctag ptag">aujourd\'hui</span>':''}<br>${esc(x.but)}</div>
+   ${v[x.id]?`<span style="font-weight:800;color:var(--d4)">✓ ${new Date(v[x.id]+'T12:00').toLocaleDateString('fr-FR')}</span> <button class="btn alt sm" onclick="coValid('${x.id}')">Annuler</button>`:`<button class="btn" style="background:var(--d4)" onclick="coValid('${x.id}')">✓ Validée</button>`}</div></div>`).join('')}`}
+function coValid(id){coSet(t=>{t.valid=t.valid||{};if(t.valid[id])delete t.valid[id];else t.valid[id]=today()})}
+/* ---- remédiation ---- */
+function coRem(c,t){const M=teamMatches(t,today()),M2=M.length?M:teamMatches(t).slice(-3),an=analyse(M2),Rm=(S.seq.situations||[]).filter(x=>x.type==='rem'),sug=an.map(x=>x.k),cur=(t.rem||[]).find(r=>r.ok==null);
+  if(cur){const x=Rm.find(r=>r.id===cur.sit)||{nom:'?',but:''};return `<div class="card" style="border-left:6px solid var(--vol)"><h2>🔁 Remédiation en cours</h2><p class="big"><b>${esc(x.nom)}</b></p><p>${esc(x.but)}</p><p class="muted">Pourquoi : ${esc(PB[cur.pb]||cur.pb||'')}${cur.txt?' · '+esc(cur.txt):''}</p>
+    <p><b>Après ce temps de travail, est-ce réussi ?</b></p><div class="row"><button class="pbtn" style="background:var(--d4)" onclick="coRemEnd(1)">✓ Oui, on a progressé</button><button class="pbtn" style="background:var(--d2)" onclick="coRemEnd(0)">✗ À retravailler</button></div></div>`}
+  return `<div class="card"><h2>🔍 Ce que disent nos matchs ${M.length?"d'aujourd'hui":'récents'}</h2>${M2.length?(an.length?an.map(x=>`<div class="sit sug"><b>${PB[x.k]}</b><br><small class="muted">${x.txt}</small></div>`).join(''):'<p>Pas de problème marqué : choisissez ce que vous voulez améliorer.</p>')+statsHtml_(M2):'<p>Jouez d\'abord un match (onglet 🏐 Match) : l\'appli vous aidera à choisir.</p>'}</div>
+   <div class="card"><h2>🎯 Le coach choisit une situation de remédiation</h2>
+    <label class="l">Notre problème principal</label><select class="f" id="coPb">${Object.entries(PB).map(([k,n])=>`<option value="${k}" ${sug[0]===k?'selected':''}>${n}</option>`).join('')}</select>
+    <label class="l">Pourquoi ce choix ? (facultatif)</label><input type="text" id="coWhy" placeholder="ex. on a perdu 5 points sur nos services">
+    <div style="margin-top:10px">${Rm.sort((a,b)=>(sug.includes(b.pb)?1:0)-(sug.includes(a.pb)?1:0)).map(x=>`<div class="sit ${sug.includes(x.pb)?'sug':''}"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${esc(x.nom)}</b>${sug.includes(x.pb)?' <span class="ctag ptag">conseillée</span>':''}<br>${esc(x.but)}<br><small class="muted">Pour : ${esc(PB[x.pb]||'')}</small></div><button class="btn or" onclick="coRemGo('${x.id}')">Choisir</button></div></div>`).join('')}</div></div>
+   ${(t.rem||[]).length?`<div class="card"><h2>Nos remédiations</h2>${t.rem.slice().reverse().map(r=>{const x=Rm.find(y=>y.id===r.sit)||{nom:'?'};return `<div class="erow"><span class="nm">${new Date(r.date+'T12:00').toLocaleDateString('fr-FR')} · ${esc(x.nom)}<br><small class="muted">${esc(PB[r.pb]||'')}</small></span>${r.ok==null?'en cours':r.ok?'✅ réussie':'🔁 à retravailler'}</div>`}).join('')}</div>`:''}`}
+function coRemGo(id){const pb=document.getElementById('coPb').value,txt=(document.getElementById('coWhy').value||'').trim();coSet(t=>{t.rem=t.rem||[];t.rem.push({id:'r'+uid(),date:today(),lecon:lessonNow(),sit:id,pb,txt,ok:null})})}
+function coRemEnd(ok){coSet(t=>{const r=(t.rem||[]).find(r=>r.ok==null);if(r)r.ok=ok})}
+/* ---- bilan (coach et enseignant) ---- */
+let BIL='seq';
+function bilanEquipe(c,t,teacher){const M=BIL==='jour'?teamMatches(t,today()):teamMatches(t),a=agg(M),A=(S.seq.situations||[]).filter(x=>x.type==='app'),v=t.valid||{},Rm=S.seq.situations||[];
+  return `<div class="subtabs"><button class="${BIL==='jour'?'on':''}" onclick="BIL='jour';${teacher?'renderEquipes()':'renderCoach()'}">Aujourd'hui</button><button class="${BIL==='seq'?'on':''}" onclick="BIL='seq';${teacher?'renderEquipes()':'renderCoach()'}">Toute la séquence</button></div>
+  <div class="stats"><div class="stat"><b>${a.G}-${a.N}-${a.P}</b><span>Gagnés · nuls · perdus</span></div><div class="stat"><b>${a.w} / ${a.l}</b><span>Points marqués / perdus</span></div>
+   <div class="stat"><b>${a.w?Math.round((a.win.a3||0)/a.w*100):0} %</b><span>Points en 3 touches</span></div><div class="stat"><b>${Object.keys(v).filter(k=>A.some(x=>x.id===k)).length}/${A.length}</b><span>Situations validées</span></div></div>
+  ${M.length?`<div class="card" style="margin-top:12px">${statsHtml_(M)}</div><div class="card"><h2>Matchs</h2>${M.slice().reverse().map(m=>`<div class="erow"><span class="nm">${new Date(m.date+'T12:00').toLocaleDateString('fr-FR')} · contre ${esc(m.adv)}</span><b>${m.nous} – ${m.eux}</b> ${m.nous>m.eux?'✅':m.nous<m.eux?'❌':'➖'}</div>`).join('')}</div>`:'<div class="card"><p>Aucun match terminé sur cette période.</p></div>'}
+  <div class="card"><h2>Situations validées</h2>${A.filter(x=>v[x.id]).map(x=>`<div>✓ ${esc(x.nom)} <small class="muted">${new Date(v[x.id]+'T12:00').toLocaleDateString('fr-FR')}</small></div>`).join('')||'<p class="muted">Aucune pour l\'instant.</p>'}
+   <h3>Remédiations choisies</h3>${(t.rem||[]).map(r=>{const x=Rm.find(y=>y.id===r.sit)||{nom:'?'};return `<div>${r.ok==null?'⏳':r.ok?'✅':'🔁'} ${esc(x.nom)} <small class="muted">${new Date(r.date+'T12:00').toLocaleDateString('fr-FR')} · ${esc(PB[r.pb]||'')}${r.txt?' · « '+esc(r.txt)+' »':''}</small></div>`}).join('')||'<p class="muted">Aucune pour l\'instant.</p>'}</div>`}
+function coEquipe(c,t,j){return `<div class="card"><h2>👥 ${esc(t.nom)}</h2><p class="muted">Pour corriger l'appel, la chasuble, le terrain ou le matériel d'aujourd'hui.</p>
+  <button class="btn" onclick="coSet(t=>{jour(t).ok=0});CO.step=0">Refaire l'installation (coach, présents, chasuble, matériel)</button></div>`}
+
+/* ================== ÉQUIPES (enseignant) ================== */
+let EQT=null,EQV='jour';
+function renderEquipes(){const c=C(),E=c.equipes=c.equipes||[],box=document.getElementById('t-equipes'),free=c.eleves.filter(e=>!E.some(t=>(t.el||[]).includes(e.id)));
+  if(EQT){const t=E.find(x=>x.id===EQT);if(t){box.innerHTML=`<div class="row" style="margin-bottom:10px"><button class="btn alt" onclick="EQT=null;renderEquipes()">← Équipes</button><h2 style="margin:0;color:var(--navy)">${esc(t.nom)} · bilan</h2></div>`+bilanEquipe(c,t,1);return}EQT=null}
+  box.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Équipes · ${esc(c.nom)}</h2>
+    <div class="row"><button class="btn alt sm" onclick="eqAuto()">🎲 Répartir automatiquement</button><button class="btn sm" onclick="eqAdd()">+ Équipe</button><button class="btn sm" style="background:var(--vol)" onclick="lockApp();coachStart()">🧢 Passer en tablette du coach</button></div></div>
+    <p class="muted">Les élèves coachs choisissent leur équipe sur la tablette, sans code et sans voir les notes. Une tablette par équipe : elle garde son équipe. Le coach change à chaque leçon, dans l'ordre des joueurs ci-dessous (🧢 = coach du jour ; ↑ pour changer l'ordre) ; s'il est absent, l'équipe en choisit un autre. ${free.length?`<b>${free.length} élève(s) sans équipe.</b>`:''}</p></div>
+  ${E.map((t,k)=>{const j=(t.jours||{})[today()],ch=j&&CHAS.find(x=>x[0]===j.chas),a=agg(teamMatches(t));return `<div class="card"><div class="row" style="justify-content:space-between">
+     <input type="text" value="${esc(t.nom)}" onchange="eqSet(${k},'nom',this.value)" style="max-width:260px;font-weight:800">
+     <div class="row"><button class="btn alt sm" onclick="EQT='${t.id}';renderEquipes()">📊 Bilan</button><button class="btn red sm" onclick="eqDel(${k})">Supprimer</button></div></div>
+    <div class="pick" style="margin-top:8px">${(t.el||[]).map((id,i)=>{const e=elOf(c,id);return e?`<label>${i===coachIdx(t)?'🧢 ':''}${esc(fullName(e))} <button class="btn alt sm" style="padding:2px 8px" onclick="eqMv(${k},${i},-1)">↑</button><button class="btn red sm" style="padding:2px 8px" onclick="eqRm(${k},'${id}')">✕</button></label>`:''}).join('')}</div>
+    ${free.length?`<select class="f" style="margin-top:6px;max-width:320px" onchange="if(this.value)eqAddEl(${k},this.value)"><option value="">+ Ajouter un joueur…</option>${free.map(e=>`<option value="${e.id}">${esc(fullName(e))}</option>`).join('')}</select>`:''}
+    <p class="muted" style="margin-top:8px"><b>Aujourd'hui :</b> ${j?`coach ${esc(shortName(elOf(c,j.coach)))} · ${Object.values(j.pres).filter(v=>v===1).length} présent(s)${Object.keys(j.pres).filter(id=>j.pres[id]===0).length?' · absents : '+Object.keys(j.pres).filter(id=>j.pres[id]===0).map(id=>esc(shortName(elOf(c,id)))).join(', '):''} · ${ch?`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${ch[1]};border:1px solid #999"></span> ${esc(j.chas)}`:'chasuble ?'} · ${j.terrain?'terrain '+j.terrain:'terrain ?'} · matériel : ${MAT.filter(([m])=>j.mat[m]).map(x=>x[1]).join(', ')||'—'}`:'pas encore installée.'}
+     · Matchs : ${a.G}-${a.N}-${a.P} · situations validées : ${Object.keys(t.valid||{}).length}</p></div>`}).join('')}
+  <div class="card"><h2>Situations proposées aux coachs</h2><p class="muted">« Apprentissage » : validées par toute l'équipe, à partir de la leçon indiquée. « Remédiation » : choisies par le coach après les matchs, selon le problème repéré.</p>
+   ${(S.seq.situations||[]).map((x,k)=>`<div class="bcrit"><div class="g2"><div><label class="l">Situation</label><input type="text" value="${esc(x.nom)}" onchange="sitSet(${k},'nom',this.value)"></div>
+     <div><label class="l">Type</label><select class="f" onchange="sitSet(${k},'type',this.value,1)"><option value="app" ${x.type==='app'?'selected':''}>Apprentissage</option><option value="rem" ${x.type==='rem'?'selected':''}>Remédiation</option></select></div>
+     <div>${x.type==='app'?`<label class="l">À partir de la leçon</label><input type="number" min="1" value="${x.lec}" onchange="sitSet(${k},'lec',+this.value)">`:`<label class="l">Pour le problème</label><select class="f" onchange="sitSet(${k},'pb',this.value)">${Object.entries(PB).map(([p,n])=>`<option value="${p}" ${x.pb===p?'selected':''}>${n}</option>`).join('')}</select>`}</div></div>
+     <label class="l">But / consigne</label><input type="text" value="${esc(x.but)}" onchange="sitSet(${k},'but',this.value)">
+     <button class="btn red sm" style="margin-top:6px" onclick="sitDel(${k})">Supprimer</button></div>`).join('')}
+   <div class="row"><button class="btn" onclick="sitAdd('app')">+ Situation d'apprentissage</button><button class="btn alt" onclick="sitAdd('rem')">+ Situation de remédiation</button></div></div>`}
+function eqSet(k,f,v){C().equipes[k][f]=v;save()}
+function eqAdd(){const c=C();c.equipes.push({id:'t'+uid(),nom:'Équipe '+(c.equipes.length+1),el:[],jours:{},matchs:[],valid:{},rem:[]});save();renderEquipes()}
+function eqDel(k){if(!confirm('Supprimer cette équipe et ses matchs ?'))return;C().equipes.splice(k,1);save();renderEquipes()}
+function eqAddEl(k,id){C().equipes[k].el.push(id);save();renderEquipes()}
+function eqRm(k,id){const t=C().equipes[k];t.el=t.el.filter(x=>x!==id);save();renderEquipes()}
+function eqMv(k,i,d){const a=C().equipes[k].el,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();renderEquipes()}
+function eqAuto(){const c=C(),n=+prompt('Combien d\'équipes ?',c.equipes.length||4);if(!n||n<1)return;
+  if(c.equipes.length&&!confirm('Refaire la répartition des joueurs ? (les matchs et bilans des équipes existantes sont gardés)'))return;
+  while(c.equipes.length<n)c.equipes.push({id:'t'+uid(),nom:'Équipe '+(c.equipes.length+1),el:[],jours:{},matchs:[],valid:{},rem:[]});
+  const T=c.equipes.slice(0,n);T.forEach(t=>t.el=[]);
+  /* équipes équilibrées : élèves classés par leur note AFL1 (ou au hasard), distribués en serpentin */
+  const L=c.eleves.filter(e=>!isAbs(e)).map(e=>({e,v:(aflPts(e,'AFL1')||{}).pts??Math.random()})).sort((a,b)=>b.v-a.v);
+  L.forEach((x,i)=>{const r=Math.floor(i/n),q=i%n;T[r%2?n-1-q:q].el.push(x.e.id)});save();renderEquipes();toast('Équipes équilibrées créées')}
+function sitSet(k,f,v,re){S.seq.situations[k][f]=v;save();if(re)renderEquipes()}
+function sitDel(k){if(!confirm('Supprimer cette situation ?'))return;S.seq.situations.splice(k,1);save();renderEquipes()}
+function sitAdd(type){S.seq.situations.push({id:'x'+uid(),nom:'Nouvelle situation',but:'',type,lec:lessonNow(),pb:type==='rem'?'sv':''});save();renderEquipes()}
+
 /* ================== ÉLÈVES ================== */
 function renderEleves(){
   renderImport();
@@ -875,7 +1122,8 @@ function hashCode(c){let h=5381,s='relais:'+c;for(let i=0;i<s.length;i++)h=((h<<
 function hubTeach(){try{return Date.now()<+(localStorage.getItem('eps.teach.until')||0)}catch(e){return false}}
 function isUnlocked(){return Date.now()<unlockedUntil||hubTeach()}
 window.epsIsTeacher=()=>isUnlocked();
-function setLock(){document.getElementById('lock').classList.toggle('on',!isUnlocked())}
+function setLock(){const u=isUnlocked(),co=!u&&coachOn();document.getElementById('lock').classList.toggle('on',!u&&!co);
+  const cc=document.getElementById('coach');if(cc){const was=cc.classList.contains('on');cc.classList.toggle('on',co);document.body.style.overflow=co?'hidden':'';if(co&&!was)renderCoach()}}
 async function unlock(){
   const pin=window.epsPin;
   const done=()=>{unlockedUntil=Date.now()+60*60000;try{localStorage.setItem('eps.teach.until',String(unlockedUntil))}catch(e){}setLock();refresh()};
@@ -888,7 +1136,7 @@ async function unlock(){
 }
 function lockApp(){unlockedUntil=0;try{localStorage.setItem('eps.teach.until','0')}catch(e){}setLock()}
 setInterval(setLock,30000);
-window.epsAppHome=function(){showTab('eval')};
+window.epsAppHome=function(){if(coachOn()&&!isUnlocked()){CO.tab='lecon';renderCoach()}else showTab('eval')};
 /* la pastille des dispensés ne compte que la classe affichée */
 window.epsCurrentClass=()=>{const c=C();return c?{nom:c.nom,eleves:c.eleves.map(e=>((e.prenom||'')+' '+e.nom).trim())}:null};
 
@@ -1050,7 +1298,8 @@ function hasData(e){return !!(Object.keys(e.ev||{}).length||e.statut||e.comment|
 function syRecords(){const O={};
   S.classes.forEach(c=>{if(c.nom==='Ma classe'&&!c.eleves.length)return;
     O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,ord:c.eleves.map(e=>e.id)});
-    c.eleves.forEach(e=>{O['el|'+c.id+'|'+e.id]=JSON.stringify(e)})});
+    c.eleves.forEach(e=>{O['el|'+c.id+'|'+e.id]=JSON.stringify(e)});
+    (c.equipes||[]).forEach(t=>{O['eq|'+c.id+'|'+t.id]=JSON.stringify(t)})});
   O.bar=JSON.stringify(S.bareme);if(S.seq)O.seq=JSON.stringify(S.seq);return O}
 function syChan(){const c=SYC(),sig=c.url+'|'+h32(c.key);if(SY.ch!==sig){Object.assign(SY,{ch:sig,init:false,since:0,h:{},pend:{},err:''});sySave()}return c}
 function syScan(){const O=syRecords();let n=0;
@@ -1079,6 +1328,9 @@ function syApply(k,o){const p=k.split('|'),t=p[0];
   if(t==='cl'){let c=S.classes.find(x=>x.id===o.id);
     if(!c){c=S.classes.find(x=>norm(x.nom)===norm(o.nom));if(c)c.id=o.id;else{S.classes=S.classes.filter(x=>!(x.nom==='Ma classe'&&!x.eleves.length));c={id:o.id,nom:o.nom,eleves:[]};S.classes.push(c)}}
     c.nom=o.nom;const ord=o.ord||[];c.eleves.sort((a,b)=>{const i=ord.indexOf(a.id),j=ord.indexOf(b.id);return (i<0?1e6:i)-(j<0?1e6:j)});return}
+  if(t==='eq'){const cid=p[1];let c=S.classes.find(x=>x.id===cid);
+    if(!c){S.classes=S.classes.filter(x=>!(x.nom==='Ma classe'&&!x.eleves.length));c={id:cid,nom:'…',eleves:[],equipes:[]};S.classes.push(c)}
+    c.equipes=c.equipes||[];const i=c.equipes.findIndex(x=>x.id===o.id);if(i>=0)c.equipes[i]=o;else c.equipes.push(o);return}
   if(t==='el'){const cid=p[1];let c=S.classes.find(x=>x.id===cid);
     if(!c){S.classes=S.classes.filter(x=>!(x.nom==='Ma classe'&&!x.eleves.length));c={id:cid,nom:'…',eleves:[]};S.classes.push(c)}
     o.ev=o.ev||{};const i=c.eleves.findIndex(e=>e.id===o.id);
@@ -1087,7 +1339,8 @@ function syApply(k,o){const p=k.split('|'),t=p[0];
     if(j>=0&&!hasData(c.eleves[j]))c.eleves[j]=o;else c.eleves.push(o)}}
 function syRemove(k){const p=k.split('|'),t=p[0];
   if(t==='cl')S.classes=S.classes.filter(c=>c.id!==p[1]);
-  else if(t==='el'){const c=S.classes.find(x=>x.id===p[1]);if(c)c.eleves=c.eleves.filter(e=>e.id!==p[2])}}
+  else if(t==='el'){const c=S.classes.find(x=>x.id===p[1]);if(c)c.eleves=c.eleves.filter(e=>e.id!==p[2])}
+  else if(t==='eq'){const c=S.classes.find(x=>x.id===p[1]);if(c)c.equipes=(c.equipes||[]).filter(e=>e.id!==p[2])}}
 async function syPull(){const ch=SYC();
   for(let loop=0;loop<30;loop++){
     const r=await syJ({pull:1,since:SY.since,pre:ch.pre},25000);
@@ -1131,7 +1384,8 @@ async function syCycle(){
 /* après réception : on réaffiche sans perdre l'endroit où l'on est (sauf pendant une saisie) */
 function syRefresh(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!=='checkbox')return;
   const y=scrollY;renderClassSel();const t=document.querySelector('#nav button.on').dataset.t;
-  if(t==='eval'){if(curEl!=null)renderEval();else renderList()}else if(t==='bilan')renderBilan();else if(t==='eleves')renderEleves();else if(t==='bareme')renderBareme();else if(t==='seq')renderSeq();
+  if(t==='eval'){if(curEl!=null)renderEval();else renderList()}else if(t==='bilan')renderBilan();else if(t==='eleves')renderEleves();else if(t==='bareme')renderBareme();else if(t==='seq')renderSeq();else if(t==='equipes')renderEquipes();
+  if(coachOn())renderCoach();
   scrollTo(0,y)}
 function syUpd(){const el=document.getElementById('syncSt'),ic=document.getElementById('syncIc');
   const n=Object.keys(SY.pend).length;let txt,icon;
@@ -1147,7 +1401,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 addEventListener('storage',ev=>{if(ev.key==='eps.share.v1'){syUpd();syncSoon(300)}});
 
 /* ================== DÉMARRAGE ================== */
-renderClassSel();renderList();setLock();syUpd();syncSoon(800);
+renderClassSel();renderList();setLock();syUpd();syncSoon(800);if(coachOn()&&!isUnlocked())renderCoach();
 </script>
 <script src="../eps-home.js" defer></script>
 </body>
