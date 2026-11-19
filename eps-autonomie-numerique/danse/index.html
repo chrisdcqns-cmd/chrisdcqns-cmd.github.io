@@ -1705,7 +1705,7 @@ function defState() {
       etab: '', prof: '', activite: 'Danse — CA3',
       bandes: [{ min: 0, max: 25, def: 15 }, { min: 25, max: 50, def: 45 }, { min: 50, max: 75, def: 75 }, { min: 75, max: 100, def: 100 }],
       defaut: 'additio', arrondi: 0.25, noteSurPDF: true, langPDF: 'eleve',
-      autoOuvert: false, autoJusqua: '', urlAppli: ''
+      autoOuvert: false, autoJusqua: '', urlAppli: '', envoiUrl: '', envoiCle: ''
     },
     grilleNom: 'origine', grilleV: 2,
     criteres: grilleVers('origine'),
@@ -1872,28 +1872,27 @@ function lienGeneral() { return urlAppli() + '#eleve'; }
 async function lienEleve(e, cl) {
   const x = (S.reglages.autoJusqua || '').replace(/-/g, '');
   const t = [e.nom, e.prenom || '', cl.nom, S.grilleNom === 'origine' ? '' : S.grilleNom, x];
-  const cfg = partageCfg();
+  const cfg = envoiCfg();
   if (cfg && cryptoOk()) {
-    try { const d = await depotDe(cfg, cl, e); const sid = sidDe(cfg.url); t.push(d.id, d.k, sid === sidDe(DEF_URL) ? '' : sid); } catch (err) { console.warn(err); }
+    try { const d = await depotDe(cfg, cl, e); t.push(d.id, d.k, sidDe(cfg.url) || cfg.url); } catch (err) { console.warn(err); }
   }
   return urlAppli() + '#eleve=' + b64urlEnc(JSON.stringify(t));
 }
 
-/* ---------- Envoi automatique par la feuille Google (« Partage entre tablettes ») ----------
-   La tablette de l'enseignant dérive, avec la clé secrète du partage, un identifiant de dépôt et une clé AES
-   propres à chaque élève (HMAC) ; ils sont dans le lien du bilan. Le téléphone de l'élève chiffre son
-   positionnement avec cette clé et le dépose dans le script (onglet caché « Depot ») sans connaître la clé secrète.
-   Seules les tablettes réglées avec la clé secrète peuvent relever et déchiffrer les dépôts. */
-const DEF_URL = 'https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec';
+/* ---------- Envoi automatique par le script Google de Danse (danse/apps-script/Code.gs) ----------
+   Script réservé à Danse, indépendant du script commun. La tablette de l'enseignant dérive, avec la clé secrète
+   de ce script (Réglages > Envoi automatique), un identifiant de dépôt et une clé AES propres à chaque élève (HMAC) ;
+   ils sont dans le lien du bilan. Le téléphone de l'élève chiffre son positionnement et le dépose dans le script
+   sans connaître la clé secrète. Seules les tablettes réglées avec la clé secrète relèvent et déchiffrent les dépôts. */
 const TE = new TextEncoder();
+const GUIDE_SCRIPT = 'https://github.com/chrisdcqns-cmd/chrisdcqns-cmd.github.io/blob/main/eps-autonomie-numerique/danse/apps-script/README.md';
 function cryptoOk() { return !!(window.crypto && crypto.subtle); }
-function partageCfg() {
-  let c = jget('eps.share.v1', null);
-  if (!c || !c.key) { const r = jget('relais-vitesse-sheets-v1', null); if (r && r.url && r.key) c = { url: r.url, key: r.key }; }
-  return c && c.url && c.key ? c : null;
+function envoiCfg() {
+  const R = S.reglages, url = (R.envoiUrl || '').trim(), key = (R.envoiCle || '').trim();
+  return /^https:\/\/\S+\/exec$/.test(url) && key ? { url, key } : null;
 }
-function sidDe(url) { const m = /\/macros\/s\/([^/]+)\/exec/.exec(url || ''); return m ? m[1] : ''; }
-function urlScript(sid) { return sid ? 'https://script.google.com/macros/s/' + sid + '/exec' : DEF_URL; }
+function sidDe(url) { const m = /^https:\/\/script\.google\.com\/macros\/s\/([^/]+)\/exec$/.exec(url || ''); return m ? m[1] : ''; }
+function urlScript(sid) { return /^https:\/\//.test(sid) ? sid : 'https://script.google.com/macros/s/' + sid + '/exec'; }
 function u8b64(u8) { let x = ''; u8.forEach(c => x += String.fromCharCode(c)); return btoa(x).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function b64u8(t) { t = t.replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; return Uint8Array.from(atob(t), c => c.charCodeAt(0)); }
 async function hmac(cle, msg) { const k = await crypto.subtle.importKey('raw', TE.encode(cle), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return new Uint8Array(await crypto.subtle.sign('HMAC', k, TE.encode(msg))); }
@@ -1929,8 +1928,8 @@ async function envoyerDepot(drop, payload) {
 /* côté enseignant : relevé des dépôts */
 let dernierReleve = 0, releveEnCours = false;
 async function releverDepots(force) {
-  const cfg = partageCfg();
-  if (!cfg) return { err: 'partage' };
+  const cfg = envoiCfg();
+  if (!cfg) return { err: 'reglage' };
   if (!cryptoOk() || releveEnCours || (!force && Date.now() - dernierReleve < 15000)) return null;
   releveEnCours = true; dernierReleve = Date.now();
   let since = S.dropSeq || 0, n = 0, inconnus = 0, more = true, garde = 0;
@@ -1959,13 +1958,13 @@ async function releverDepots(force) {
   } finally { releveEnCours = false; }
 }
 function etatEnvoi() {
-  if (!partageCfg()) return '⚠ Envoi automatique inactif : règle « ⚙ Partage entre tablettes » (page d\'accueil, carte Listes d\'élèves) sur cette tablette. En attendant, les élèves obtiennent un code à t\'envoyer.';
-  return '✓ Envoi automatique actif : le positionnement de l\'élève arrive ici tout seul, par ta feuille Google (chiffré). Le code n\'est proposé à l\'élève que si l\'envoi échoue.';
+  if (!envoiCfg()) return '⚠ Envoi automatique inactif sur cette tablette : installe le script Google de Danse (5 min, une seule fois) puis colle son adresse et sa clé dans Réglages > Envoi automatique. En attendant, les élèves obtiennent un code à t\'envoyer.';
+  return '✓ Envoi automatique actif : le positionnement de l\'élève arrive ici tout seul, par le script Google de Danse (chiffré). Le code n\'est proposé à l\'élève que si l\'envoi échoue.';
 }
 setInterval(() => { if (!document.hidden && ['evaluation', 'bilan', 'classe'].includes(vue)) relevéAuto(); }, 30000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && ['evaluation', 'bilan', 'classe'].includes(vue)) relevéAuto(); });
 function relevéAuto() {
-  if (!isTeacher() || !partageCfg()) return;
+  if (!isTeacher() || !envoiCfg()) return;
   releverDepots(false).then(r => {
     if (!r || !r.n) return;
     toast(`${r.n} nouvel${r.n > 1 ? 's' : ''} auto-positionnement${r.n > 1 ? 's' : ''} reçu${r.n > 1 ? 's' : ''}`);
@@ -2377,8 +2376,8 @@ function rClasse() {
           <li><b>Sur cette tablette</b> : « Passer en mode élève » ; l'élève choisit son nom et son positionnement s'enregistre directement ici.</li>
           <li>Hors de la période autorisée, les liens ne fonctionnent plus.</li>
         </ul>
-        <p class="envoi ${partageCfg() ? 'ok' : ''}">${esc(etatEnvoi())}</p>
-        <div class="row wrap"><button class="btn primary" id="lGo" ${autoOuvert() ? '' : 'disabled'}>Passer cette tablette en mode élève</button>${partageCfg() ? '<button class="btn" id="lRel">⟳ Récupérer les positionnements</button><span class="muted" id="lRelR"></span>' : ''}</div>
+        <p class="envoi ${envoiCfg() ? 'ok' : ''}">${esc(etatEnvoi())}</p>
+        <div class="row wrap"><button class="btn primary" id="lGo" ${autoOuvert() ? '' : 'disabled'}>Passer cette tablette en mode élève</button>${envoiCfg() ? '<button class="btn" id="lRel">⟳ Récupérer les positionnements</button><span class="muted" id="lRelR"></span>' : ''}</div>
         <h4>Codes reçus (si l'envoi automatique a échoué)</h4>
         <textarea id="codes" rows="3" placeholder="DANSE1.eyJu… (tu peux coller plusieurs messages d'un coup)"></textarea>
         <div class="row end"><button class="btn" id="cImp">Importer les codes</button></div>
@@ -2390,7 +2389,7 @@ function rClasse() {
   const lr = $('#lRel'); if (lr) lr.onclick = async () => {
     lr.disabled = true; $('#lRelR').textContent = 'Relevé en cours…';
     const r = await releverDepots(true); lr.disabled = false;
-    const msg = !r ? '' : r.err === 'connexion' ? 'Pas de connexion au script Google.' : r.err === 'cle' ? 'Clé secrète refusée par le script.' : r.err === 'script' ? 'Le script Google n\'est pas à jour (voir le message de mise à jour).' : r.n ? `${r.n} nouveau(x) positionnement(s) reçu(s)${r.inconnus ? `, ${r.inconnus} élève(s) non reconnu(s)` : ''}.` : 'Rien de nouveau.' + (r.inconnus ? ` (${r.inconnus} élève(s) non reconnu(s))` : '');
+    const msg = !r ? '' : r.err === 'connexion' ? 'Pas de connexion au script Google.' : r.err === 'cle' ? 'Clé secrète refusée par le script.' : r.err === 'script' ? 'Ce n\'est pas le script de Danse (vérifie l\'adresse dans Réglages).' : r.n ? `${r.n} nouveau(x) positionnement(s) reçu(s)${r.inconnus ? `, ${r.inconnus} élève(s) non reconnu(s)` : ''}.` : 'Rien de nouveau.' + (r.inconnus ? ` (${r.inconnus} élève(s) non reconnu(s))` : '');
     if (r && r.n) { rClasse(); toast(msg); } else $('#lRelR').textContent = msg;
   };
   $('#cSel').onchange = ev => { S.classeId = ev.target.value; save(); UI.selId = null; route(); };
@@ -2511,7 +2510,7 @@ let EMC = null; // critères utilisés par la page élève
 function emContexte() {
   if (UI.token) {
     let t; try { t = JSON.parse(b64urlDec(UI.token)); } catch (e) { return { err: 'Ce lien est incomplet : vérifie que tu l\'as bien ouvert en entier depuis ton bilan.' }; }
-    if (Array.isArray(t)) { const x = String(t[4] || ''); t = { n: t[0] || '', p: t[1] || '', c: t[2] || '', g: t[3] || 'origine', x: x.length === 8 ? x.slice(0, 4) + '-' + x.slice(4, 6) + '-' + x.slice(6) : x, drop: t[5] && t[6] ? { id: t[5], k: t[6], sid: t[7] || '' } : null }; }
+    if (Array.isArray(t)) { const x = String(t[4] || ''); t = { n: t[0] || '', p: t[1] || '', c: t[2] || '', g: t[3] || 'origine', x: x.length === 8 ? x.slice(0, 4) + '-' + x.slice(4, 6) + '-' + x.slice(6) : x, drop: t[5] && t[6] && t[7] ? { id: t[5], k: t[6], sid: t[7] } : null }; }
     if (!t || typeof t !== 'object') return { err: 'Ce lien n\'est pas valide.' };
     if (t.x && auj() > t.x) return { err: `Ce lien était valable jusqu'au ${dateIso(t.x)}. Demande à ton professeur s'il peut rouvrir l'auto-positionnement.` };
     const crit = t.g && GRILLES[t.g] && S.grilleNom !== t.g ? grilleVers(t.g) : S.criteres;
@@ -2697,6 +2696,12 @@ function rReglages() {
     <h3>Auto-positionnement</h3>
     ${autoCtlHTML()}
     <label>Adresse de l'application (pour les liens des bilans)<input data-r="urlAppli" value="${esc(R.urlAppli)}" placeholder="${esc(urlAppli())}"></label>
+    <h3>Envoi automatique</h3>
+    <p class="muted">Le positionnement des élèves arrive directement sur la tablette grâce à ton script Google réservé à Danse. <a href="${GUIDE_SCRIPT}" target="_blank" rel="noopener">Guide d'installation (5 min)</a></p>
+    <label>Adresse du script (…/exec)<input id="rEUrl" value="${esc(R.envoiUrl)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"></label>
+    <label>Clé secrète (la même que dans le script)<input id="rECle" type="password" value="${esc(R.envoiCle)}" autocomplete="off"></label>
+    <div class="row wrap"><button class="btn" id="rETest">Tester la connexion</button><button class="btn ghost" id="rEPurge">Vider les dépôts (fin de cycle)</button></div>
+    <p class="muted" id="rERes"></p>
     <p class="muted">Code enseignant : le même que dans les autres applications EPS.</p>
   </section>
   <section class="card">
@@ -2729,6 +2734,26 @@ function rReglages() {
     <button class="btn ghost danger-t" id="rReset">Tout effacer</button>
   </section>`;
   $$('[data-r]').forEach(i => i.oninput = () => { R[i.dataset.r] = i.value; save(); });
+  $('#rEUrl').oninput = ev => { R.envoiUrl = ev.target.value.trim(); save(); };
+  $('#rECle').oninput = ev => { R.envoiCle = ev.target.value.trim(); save(); };
+  $('#rETest').onclick = async () => {
+    const out = $('#rERes'); const cfg = envoiCfg();
+    if (!cfg) { out.textContent = '⚠ Colle l\'adresse complète du script (elle se termine par /exec) et la clé secrète.'; return; }
+    out.textContent = 'Test en cours…';
+    const r = await jsonpGet(cfg.url, { key: cfg.key, ping: 1 });
+    out.textContent = !r ? '✕ Script injoignable : vérifie l\'adresse, la connexion, et que le déploiement est accessible à « Tout le monde ».'
+      : r.app !== 'Danse EPS' ? '✕ Cette adresse n\'est pas celle du script de Danse.'
+      : !r.keyOk ? '✕ Clé secrète refusée : elle doit être identique à celle écrite dans le script.'
+      : `✓ Connexion OK (${r.count || 0} dépôt(s) dans la feuille). Génère maintenant les bilans : les liens enverront directement ici.`;
+  };
+  $('#rEPurge').onclick = async () => {
+    const cfg = envoiCfg(); if (!cfg) { toast('Règle d\'abord l\'adresse et la clé'); return; }
+    if (!(await modal({ titre: 'Vider les dépôts ?', html: '<p>Tous les positionnements stockés dans ta feuille Google sont supprimés. Ceux déjà reçus restent dans Danse sur cette tablette. Les liens déjà distribués continuent de fonctionner jusqu\'à leur date limite.</p>', ok: 'Vider', danger: true }))) return;
+    await releverDepots(true);
+    try { await fetch(cfg.url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: cfg.key, purge: 1 }) }); } catch (e) { }
+    await pause(1500); const r = await jsonpGet(cfg.url, { key: cfg.key, ping: 1 });
+    $('#rERes').textContent = r && r.keyOk ? `✓ Boîte de dépôt vidée (${r.count || 0} restant).` : '✕ Impossible de joindre le script.';
+  };
   $('#rNote').onchange = ev => { R.noteSurPDF = ev.target.checked; save(); };
   $('#rLang').onclick = ev => { const b = ev.target.closest('button'); if (b) { R.langPDF = b.dataset.v; save(); rReglages(); } };
   $('#rDef').onclick = ev => { const b = ev.target.closest('button'); if (b) { R.defaut = b.dataset.v; save(); rReglages(); } };
