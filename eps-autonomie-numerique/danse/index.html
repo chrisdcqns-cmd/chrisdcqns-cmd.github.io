@@ -2553,14 +2553,16 @@ window.epsCurrentClass = () => { const c = curClasse(); return c ? { nom: c.nom,
 /* =========================================================
    VUE RÉGLAGES
    ========================================================= */
+/* établissement et enseignant : réglages communs de l'accueil (window.EPSR), sinon ceux de Danse */
+function entG() { let g = {}; try { g = window.EPSR ? EPSR.get() : {}; } catch (e) {} const R = S.reglages; return { etab: g.etab || R.etab, prof: g.prof || R.prof, ca: g.ca !== false, commun: !!(g.etab || g.prof) }; }
 function rReglages() {
-  const R = S.reglages; const V = $('#view');
+  const R = S.reglages; const V = $('#view'); const EG = entG();
   V.innerHTML = `
   <div class="cgrid">
   <section class="card">
     <h3>En-tête des PDF</h3>
-    <label>Établissement<input data-r="etab" value="${esc(R.etab)}" placeholder="Lycée …"></label>
-    <label>Enseignant<input data-r="prof" value="${esc(R.prof)}" placeholder="M. …"></label>
+    ${EG.commun ? `<p class="muted">Établissement et enseignant : <b>${esc([EG.etab, EG.prof].filter(Boolean).join(' · '))}</b><br>À modifier dans ⚙️ Réglages, sur l'accueil des applications EPS (mode enseignant).</p>` : `<label>Établissement<input data-r="etab" value="${esc(R.etab)}" placeholder="Lycée …"></label>
+    <label>Enseignant<input data-r="prof" value="${esc(R.prof)}" placeholder="M. …"></label>`}
     <label>Activité<input data-r="activite" value="${esc(R.activite)}"></label>
     <h3>PDF élève</h3>
     <label class="sw"><input type="checkbox" id="rNote" ${R.noteSurPDF ? 'checked' : ''}><span></span>Afficher les points et la note /20</label>
@@ -2717,7 +2719,7 @@ function pageEleve(ctx, cl, e) {
   page.drawRectangle({ x: M, y: y - 52, width: W, height: 52, color: rgbH('#1d1530') });
   page.drawRectangle({ x: M, y: y - 52, width: 6, height: 52, color: rgbH('#e0447c') });
   T(page, (R.activite || 'Danse') + ' — Mon positionnement dans les degrés', M + 18, y - 22, 15, F.b, white);
-  T(page, [R.etab, R.prof, 'EPS'].filter(Boolean).join(' · '), M + 18, y - 40, 9, F.r, PDFLib.rgb(0.8, 0.78, 0.86));
+  { const EG = entG(); T(page, [EG.etab, EG.prof, 'EPS' + (EG.ca ? ' · CA3' : '')].filter(Boolean).join(' · '), M + 18, y - 40, 9, F.r, PDFLib.rgb(0.8, 0.78, 0.86)); }
   const nm = nomComplet(e);
   const nmW = F.b.widthOfTextAtSize(san(F.b, nm), 15);
   T(page, nm, M + W - 16 - nmW, y - 22, 15, F.b, white);
@@ -2863,7 +2865,7 @@ async function recapBytes(cl) {
     page = doc.addPage([PW, PH]); num++; y = PH - M;
     page.drawRectangle({ x: M, y: y - 40, width: W, height: 40, color: rgbH('#1d1530') });
     T(page, (R.activite || 'Danse') + ' — Récapitulatif ' + cl.nom, M + 12, y - 18, 13, F.b, PDFLib.rgb(1, 1, 1));
-    T(page, [R.etab, R.prof, dateFr()].filter(Boolean).join(' · '), M + 12, y - 32, 8, F.r, PDFLib.rgb(0.8, 0.78, 0.86));
+    { const EG = entG(); T(page, [EG.etab, EG.prof, 'EPS' + (EG.ca ? ' · CA3' : ''), dateFr()].filter(Boolean).join(' · '), M + 12, y - 32, 8, F.r, PDFLib.rgb(0.8, 0.78, 0.86)); }
     y -= 56; let x = M;
     cols.forEach(c => { T(page, c.t, x + 4, y, 8, F.b, grey); x += c.w; });
     y -= 6; page.drawLine({ start: { x: M, y }, end: { x: M + W, y }, thickness: 1, color: ink });

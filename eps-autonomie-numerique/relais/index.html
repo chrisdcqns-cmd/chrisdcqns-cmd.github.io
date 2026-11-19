@@ -2186,13 +2186,14 @@ function relaisPdf(e,l,list){
   const doc=EPDF.PDFDoc(),PW=doc.W,M=doc.M,CW=PW-2*M,AC='#D9481F',INK='#1B1E24',MUT='#5b6370';
   const sg=n=>(n>0?"+":n<0?"-":"")+fmt(Math.abs(n)),num=v=>typeof v==="number"&&isFinite(v);
   const name=(e.prenom+" "+e.nom).trim();
-  doc.page();doc.rect(0,0,PW,96,INK);doc.rect(0,96,PW,5,AC);
+  if(window.EPSR&&EPSR.pdfHead)EPSR.pdfHead(doc,{act:"Relais Vitesse",titre:"Résumé de la leçon",ca:"CA1",ac:AC,nom:name,classe:CL().name,date:cap(fmtLong(l.date))});
+  else{doc.page();doc.rect(0,0,PW,96,INK);doc.rect(0,96,PW,5,AC);
   doc.text(M,38,"Relais vitesse : résumé de la leçon",{size:20,bold:true,color:'#ffffff'});
   doc.text(M,64,name,{size:16,bold:true,color:'#ffb199'});
   doc.text(PW-M,38,CL().name,{size:12,bold:true,color:'#ffffff',align:'right'});
   doc.text(PW-M,58,cap(fmtLong(l.date)),{size:11,color:'#d0d4da',align:'right'});
   doc.text(PW-M,76,'Édité le '+new Date().toLocaleDateString('fr-FR'),{size:9,color:'#d0d4da',align:'right'});
-  doc.y=126;
+  doc.y=126;}
   const sec=t=>{doc.need(60);doc.y+=12;doc.text(M,doc.y,t,{size:14,bold:true,color:INK});doc.line(M,doc.y+7,PW-M,doc.y+7,AC,1.2);doc.y+=24};
   const mine=list.filter(c=>isD(c,e)||isR(c,e));
   if(e.ma==="DISP"){doc.text(M,doc.y+10,"Élève dispensé(e) de course.",{size:12,color:MUT});}
@@ -2242,7 +2243,10 @@ function renderEvBilan(){
    <div class="bact"><button class="btn primary sm" data-evbil="share">📤 Partager le bilan (PDF)</button><button class="btn ghost sm" data-evbil="pdf">📄 PDF de la classe</button><button class="btn ghost sm" data-evbil="zip">🗜 Fiches élèves (.zip)</button><button class="btn ghost sm" data-evbil="xlsx">📊 Excel</button></div>`;
 }
 function pdfHead(doc,title,sub,right){
-  const PW=doc.W,M=doc.M;doc.page();doc.rect(0,0,PW,96,'#1B1E24');doc.rect(0,96,PW,5,'#D9481F');
+  const PW=doc.W,M=doc.M;
+  if(window.EPSR&&EPSR.pdfHead){const cls=sub==="Classe "+CL().name;const t=String(title).replace(/^Relais vitesse\s*:\s*/i,"");
+    EPSR.pdfHead(doc,{act:"Relais Vitesse",titre:t.charAt(0).toUpperCase()+t.slice(1),ca:"CA1",ac:"#D9481F",nom:cls?CL().name:(sub||""),classe:cls?"":CL().name,date:right||new Date().toLocaleDateString('fr-FR')});return}
+  doc.page();doc.rect(0,0,PW,96,'#1B1E24');doc.rect(0,96,PW,5,'#D9481F');
   doc.text(M,38,title,{size:20,bold:true,color:'#ffffff'});if(sub)doc.text(M,64,sub,{size:16,bold:true,color:'#ffb199'});
   doc.text(PW-M,38,CL().name,{size:12,bold:true,color:'#ffffff',align:'right'});doc.text(PW-M,58,right||("Édité le "+new Date().toLocaleDateString('fr-FR')),{size:10,color:'#d0d4da',align:'right'});doc.y=126;
 }

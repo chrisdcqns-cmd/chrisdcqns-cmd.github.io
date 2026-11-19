@@ -774,8 +774,9 @@ function ficheHtml(e,c){
       <td style="text-align:left"><small>${v&&v.d!=null?esc(cr.desc[v.d]):''}</small></td>
       <td><b>${p!=null?fr(p):'–'}</b> / ${fr(maxPts(cr,e))}</td></tr>`}).join('');
   const afls=['AFL1','AFL2','AFL3'].map(a=>{const r=aflPts(e,a);return r?`${a} : ${fr(r.pts)} / ${fr(r.max)}`:null}).filter(Boolean).join(' &nbsp;·&nbsp; ');
-  return `<h1>Volley-ball – Évaluation CA4</h1>
-   <p><b>${esc(fullName(e))}</b> · ${esc(c.nom)} · ${dateFR()}${b.mode==='officiel'?' · Choix AFL2/AFL3 : '+(e.choix||'4-4'):''}</p>
+  const hd=window.EPSR&&EPSR.htmlHead?EPSR.htmlHead({act:'Volley-ball',titre:'Évaluation',ca:'CA4',ac:'#7A3E9D',nom:fullName(e),classe:c.nom,date:dateFR()}):'';
+  return `${hd||'<h1>Volley-ball – Évaluation CA4</h1>'}
+   <p>${hd?'':`<b>${esc(fullName(e))}</b> · ${esc(c.nom)} · ${dateFR()}`}${b.mode==='officiel'?(hd?'':' · ')+'Choix AFL2/AFL3 : '+(e.choix||'4-4'):''}</p>
    ${isAbs(e)?`<h2>${e.statut==='ABS'?'Absent':'Dispensé'}</h2>`:`
    <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">Critère</th><th>Degré</th><th style="text-align:left">Ce qui a été observé</th><th>Points</th></tr>${rows}</table>
    <p style="font-size:1.1em">${afls}</p>

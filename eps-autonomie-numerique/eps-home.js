@@ -194,6 +194,7 @@
         if (!rr.more) break;
       }
       if (lch) try { window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {}
+      try { await syncReg(cfg); } catch (e) {}
     } catch (e) { lastErr = "réseau"; }
     finally { busy = false; sched(); }
   }
@@ -303,12 +304,13 @@
   function hubTeach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
   setInterval(function () { try { draw(); } catch (e) {} }, 2000);
   function isTeacher() { try { if (typeof window.epsIsTeacher === "function" && window.epsIsTeacher()) return true; } catch (e) {} return HUB && hubTeach(); }
-  function setHubTeach(on) { try { localStorage.setItem("eps.teach.until", on ? String(Date.now() + 60 * 60000) : "0"); } catch (e) {} applyTeach(); }
+  function setHubTeach(on) { try { localStorage.setItem("eps.teach.until", on ? String(Date.now() + (rget().teachMin || 60) * 60000) : "0"); } catch (e) {} applyTeach(); }
   function applyTeach() {
     var t = isTeacher();
     var u = document.getElementById("eps-upd"); if (u) u.style.display = t ? "grid" : "none";
     document.querySelectorAll("[data-eps-teach]").forEach(function (el) { el.style.display = t ? "" : "none"; });
     var b = document.getElementById("eps-teachbtn"); if (b) b.textContent = t ? "🔓 Quitter le mode enseignant" : "🔒 Enseignant";
+    try { applyReg(); } catch (e) {}
   }
   function askCode() {
     if (Date.now() < unlockedUntil || hubTeach()) return Promise.resolve(true);
@@ -656,6 +658,166 @@
     }
     render();
   }
+  /* ================= Réglages communs (page d'accueil, mode enseignant) =================
+     localStorage « eps.reglages.v1 » : {etab, ville, annee, equipe:[noms], u}  → partagés entre tablettes (enregistrement chiffré « cfg|commun »)
+     + propres à la tablette : {prof, ca, masque:[dossiers], teachMin, nomTab}.
+     window.EPSR.get() → réglages ; EPSR.pdfHead(doc, o) → en-tête commun des bilans PDF (générateurs EPDF / PDFDoc) ;
+     EPSR.htmlHead(o) → même en-tête en HTML (Volley-ball). */
+  var KR = "eps.reglages.v1", SHARED = ["etab", "ville", "annee", "equipe"];
+  function anneeDef() { var d = new Date(), y = d.getFullYear() - (d.getMonth() < 7 ? 1 : 0); return y + "-" + (y + 1); }
+  function rget() {
+    var r = null; try { r = JSON.parse(localStorage.getItem(KR) || "null"); } catch (e) {}
+    r = r || {};
+    if (!r.etab || !r.prof) { /* reprise des réglages déjà saisis dans Danse */
+      try { var dz = JSON.parse(localStorage.getItem("danse-eps-v1") || "null"), dr = dz && dz.reglages || {}; if (!r.etab && dr.etab) r.etab = dr.etab; if (!r.prof && dr.prof) r.prof = dr.prof; } catch (e) {}
+    }
+    r.equipe = Array.isArray(r.equipe) ? r.equipe : [];
+    if (r.prof && r.equipe.indexOf(r.prof) < 0) r.equipe.push(r.prof);
+    if (!r.annee) r.annee = anneeDef();
+    if (r.ca === undefined) r.ca = true;
+    r.masque = Array.isArray(r.masque) ? r.masque : [];
+    r.teachMin = +r.teachMin || 60;
+    return r;
+  }
+  function rset(r, shared) {
+    if (shared) { r.u = Math.max(Date.now(), (+r.u || 0) + 1); r.pend = r.u; }
+    try { localStorage.setItem(KR, JSON.stringify(r)); } catch (e) {}
+    applyReg(); try { window.dispatchEvent(new CustomEvent("eps-reglages")); } catch (e) {}
+    if (shared) setTimeout(sync, 300);
+  }
+  var regSig = "";
+  function applyReg() {
+    if (!HUB) return;
+    var t = isTeacher(), sig = t + "|" + (localStorage.getItem(KR) || "");
+    if (sig === regSig) return; regSig = sig;
+    var r = rget();
+    document.querySelectorAll("a.app[href]").forEach(function (a) {
+      var k = a.getAttribute("href").replace(/\/.*$/, ""), off = r.masque.indexOf(k) >= 0;
+      a.style.opacity = off && t ? ".45" : "";
+      if (off && !t) a.style.display = "none"; else if (!a.hasAttribute("data-eps-teach")) a.style.display = "";
+    });
+    var h = document.getElementById("eps-etab"); if (h) h.textContent = r.etab ? r.etab + (r.ville ? " · " + r.ville : "") + " — " : "";
+    var rs = document.getElementById("eps-regsum"); if (rs) rs.textContent = (r.etab || "Établissement à renseigner") + " · " + (r.prof || "enseignant à choisir") + " · " + r.annee;
+  }
+  /* synchronisation des réglages communs (établissement, année, équipe) */
+  async function syncReg(cfg) {
+    var r = rget();
+    if (r.pend) {
+      var x = {}; SHARED.forEach(function (k) { x[k] = r[k]; }); x.u = r.u;
+      await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, sync: { dev: "reglages", recs: [{ k: "cfg|commun", u: r.pend, d: 0, x: await enc(cfg.key, JSON.stringify(x)) }] } }) });
+      r = rget(); delete r.pend; try { localStorage.setItem(KR, JSON.stringify(r)); } catch (e) {}
+      await new Promise(function (res) { setTimeout(res, 1200); });
+    }
+    for (var lp = 0; lp < 10; lp++) {
+      r = rget(); var q = await jsonp(cfg, { pull: 1, since: r.since || 0, pre: "cfg|" });
+      if (!q || !q.keyOk || !q.sync) break;
+      var L = q.recs || [], ch = false;
+      for (var i = 0; i < L.length; i++) {
+        if (String(L[i][1]) !== "cfg|commun" || +L[i][3]) continue;
+        try { var o = JSON.parse(await dec(cfg.key, L[i][4])); if ((+o.u || 0) > (+r.u || 0) && !r.pend) { SHARED.forEach(function (k) { if (o[k] !== undefined) r[k] = o[k]; }); r.u = o.u; ch = true; } } catch (e) {}
+      }
+      r.since = L.length ? +L[L.length - 1][0] : Math.max(r.since || 0, +q.seq || 0);
+      try { localStorage.setItem(KR, JSON.stringify(r)); } catch (e) {}
+      if (ch) { applyReg(); try { window.dispatchEvent(new CustomEvent("eps-reglages")); } catch (e) {} }
+      if (!q.more) break;
+    }
+  }
+  var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["danse", "Danse"], ["co-eval", "CO – Évaluation"]];
+  function reglages(msg) {
+    var r = rget();
+    var chips = function (L, on, attr) { return L.map(function (x) { return '<button type="button" ' + attr + '="' + esc(x[0]) + '" class="' + (on(x[0]) ? "on" : "") + '">' + esc(x[1]) + "</button>"; }).join(""); };
+    var o = overlay('<h3>⚙️ Réglages</h3>' + (msg ? '<p class="m" style="color:#2E7D4F;font-weight:800">' + esc(msg) + "</p>" : "") +
+      '<p class="m">Ces informations apparaissent dans l\'en-tête de tous les bilans (PDF) de toutes les applications.</p>' +
+      '<div class="epsd-cls">Établissement <small style="font-weight:600;color:#6A6F78">(partagé avec les tablettes réglées)</small></div>' +
+      '<span class="epsd-lab">Nom exact de l\'établissement</span><input class="epsd-in" id="er-etab" placeholder="Lycée …" value="' + esc(r.etab || "") + '">' +
+      '<div class="epsd-g2"><div><span class="epsd-lab">Ville (facultatif)</span><input class="epsd-in" id="er-ville" value="' + esc(r.ville || "") + '"></div>' +
+      '<div><span class="epsd-lab">Année scolaire</span><input class="epsd-in" id="er-annee" value="' + esc(r.annee) + '"></div></div>' +
+      '<span class="epsd-lab">Équipe EPS (un nom par ligne, tel qu\'il doit apparaître : « M. Martin », « Mme Durand »)</span>' +
+      '<textarea class="epsd-in" id="er-equipe" style="height:150px;padding:10px 12px;line-height:1.5">' + esc(r.equipe.join("\n")) + "</textarea>" +
+      '<div class="epsd-cls" style="margin-top:18px">Cette tablette</div>' +
+      '<span class="epsd-lab">Enseignant(e) qui signe les bilans sur cette tablette</span><div class="epsd-chips" id="er-prof"></div>' +
+      '<span class="epsd-lab">Champ d\'apprentissage (CA) dans l\'en-tête</span><div class="epsd-chips" id="er-ca">' + chips([["1", "Afficher"], ["0", "Masquer"]], function (v) { return (v === "1") === !!r.ca; }, "data-v") + "</div>" +
+      '<span class="epsd-lab">Mode enseignant ouvert depuis l\'accueil pendant</span><div class="epsd-chips" id="er-tm">' + chips([["30", "30 min"], ["60", "1 h"], ["120", "2 h"], ["240", "4 h"]], function (v) { return +v === r.teachMin; }, "data-v") + "</div>" +
+      '<span class="epsd-lab">Applications visibles par les élèves sur l\'accueil</span><div class="epsd-chips" id="er-apps">' + chips(APPS, function (k) { return r.masque.indexOf(k) < 0; }, "data-a") + "</div>" +
+      '<div class="epsd-cls" style="margin-top:18px">Sauvegarde</div>' +
+      '<p class="m">Fichier de sauvegarde de toutes les applications de cette tablette (classes, leçons, évaluations, réglages), à garder sur ton ordinateur ou ta clé USB. Les vidéos et les cartes d\'OrienRun n\'y sont pas.</p>' +
+      '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-save">💾 Enregistrer une sauvegarde</button><label style="height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;display:inline-flex;align-items:center;font:800 17px system-ui,sans-serif;cursor:pointer">♻️ Restaurer<input type="file" accept=".json,.eps,application/json" id="er-load" style="display:none"></label><button type="button" id="er-share">⚙ Partage entre tablettes</button></div>' +
+      '<div class="epsd-act"><button data-x>Fermer</button><button class="p" id="er-ok">Enregistrer les réglages</button></div>');
+    function readForm() {
+      r.etab = o.querySelector("#er-etab").value.trim(); r.ville = o.querySelector("#er-ville").value.trim(); r.annee = o.querySelector("#er-annee").value.trim() || anneeDef();
+      r.equipe = o.querySelector("#er-equipe").value.split("\n").map(function (s) { return s.replace(/\s+/g, " ").trim(); }).filter(Boolean).filter(function (s, i, a) { return a.indexOf(s) === i; });
+    }
+    function saveNow() { var old = rget(); if (r.prof && r.equipe.indexOf(r.prof) < 0) r.prof = ""; rset(r, SHARED.some(function (k) { return JSON.stringify(old[k]) !== JSON.stringify(r[k]); })); }
+    function tog(sel, fn) { o.querySelector(sel).addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) fn(b); }); }
+    function drawProf() {
+      if (r.prof && r.equipe.indexOf(r.prof) < 0) r.prof = "";
+      o.querySelector("#er-prof").innerHTML = r.equipe.length ? chips(r.equipe.map(function (n) { return [n, n]; }), function (n) { return n === r.prof; }, "data-p") : '<span class="m">Écris d\'abord les noms de l\'équipe ci-dessus.</span>';
+    }
+    drawProf();
+    tog("#er-prof", function (b) { readForm(); r.prof = b.dataset.p === r.prof ? "" : b.dataset.p; drawProf(); });
+    tog("#er-ca", function (b) { r.ca = b.dataset.v === "1"; o.querySelectorAll("#er-ca button").forEach(function (x) { x.classList.toggle("on", x === b); }); });
+    tog("#er-tm", function (b) { r.teachMin = +b.dataset.v; o.querySelectorAll("#er-tm button").forEach(function (x) { x.classList.toggle("on", x === b); }); });
+    tog("#er-apps", function (b) { var k = b.dataset.a, i = r.masque.indexOf(k); if (i >= 0) r.masque.splice(i, 1); else r.masque.push(k); b.classList.toggle("on", i >= 0); });
+    o.querySelector("#er-equipe").addEventListener("input", function () { readForm(); drawProf(); });
+    o.querySelector("#er-ok").onclick = function () {
+      readForm(); saveNow(); o.remove(); toastHub("Réglages enregistrés");
+    };
+    o.querySelector("#er-share").onclick = function () { o.remove(); shareSettings(function () { reglages(); }); };
+    o.querySelector("#er-save").onclick = backupSave;
+    o.querySelector("#er-load").onchange = function (e) { var f = e.target.files[0]; if (f) backupLoad(f, o); };
+  }
+  function toastHub(t) {
+    var d = document.createElement("div"); d.textContent = t;
+    d.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483646;background:#1B1E24;color:#fff;font:700 16px system-ui,sans-serif;padding:12px 20px;border-radius:14px";
+    document.body.appendChild(d); setTimeout(function () { d.remove(); }, 2200);
+  }
+  /* sauvegarde complète de la tablette (toutes les clés localStorage des applications EPS) */
+  function backupSave() {
+    var data = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k === "eps.teach.until") continue; data[k] = localStorage.getItem(k); }
+    var r = rget(), d = new Date(), dd = ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + d.getFullYear();
+    var blob = new Blob([JSON.stringify({ type: "eps-autonomie-numerique", v: 1, date: d.toISOString(), etab: r.etab || "", prof: r.prof || "", data: data })], { type: "application/json" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "EPS_sauvegarde_" + (r.prof ? norm(r.prof).replace(/ /g, "-") + "_" : "") + dd + ".json";
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    try { var rr = rget(); rr.lastBackup = Date.now(); localStorage.setItem(KR, JSON.stringify(rr)); } catch (e) {}
+  }
+  function backupLoad(file, o) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      var j = null; try { j = JSON.parse(fr.result); } catch (e) {}
+      if (!j || j.type !== "eps-autonomie-numerique" || !j.data) { alert("Ce fichier n'est pas une sauvegarde EPS – Autonomie et Numérique."); return; }
+      var n = Object.keys(j.data).length, when = new Date(j.date).toLocaleString("fr-FR");
+      if (!confirm("Restaurer la sauvegarde du " + when + (j.prof ? " (" + j.prof + ")" : "") + " ?\n\n" + n + " éléments. Les données actuelles de cette tablette seront remplacées par celles du fichier.")) return;
+      Object.keys(j.data).forEach(function (k) { try { localStorage.setItem(k, j.data[k]); } catch (e) {} });
+      if (o) o.remove(); toastHub("Sauvegarde restaurée"); setTimeout(function () { location.reload(); }, 900);
+    };
+    fr.readAsText(file);
+  }
+  /* en-tête commun des bilans PDF (même présentation que Danse) */
+  function headInfo(o) {
+    var r = rget();
+    return { l1: (o.act || "") + (o.titre ? " — " + o.titre : ""), l2: [r.etab, r.prof, "EPS" + (r.ca && o.ca ? " · " + o.ca : "")].filter(Boolean).join(" · "),
+      r1: o.nom || "", r2: [o.classe, o.lecon, o.date].filter(Boolean).join(" · ") };
+  }
+  function pdfHead(doc, o) {
+    var h = headInfo(o), M = doc.M, W = doc.W - 2 * M, top = 26, HH = 58, half = W * 0.58;
+    if (!o.noPage) doc.page();
+    doc.rect(M, top, W, HH, "#1d1530"); doc.rect(M, top, 6, HH, o.ac || "#D9481F");
+    doc.text(M + 18, top + 25, h.l1, { size: 14.5, bold: true, color: "#ffffff", max: half - 20 });
+    doc.text(M + 18, top + 44, h.l2, { size: 9, color: "#cfc8dc", max: half - 20 });
+    doc.text(M + W - 14, top + 25, h.r1, { size: 14.5, bold: true, color: "#ffffff", align: "right", max: W - half - 20 });
+    doc.text(M + W - 14, top + 44, h.r2, { size: 9, color: "#cfc8dc", align: "right", max: W - half - 20 });
+    if (o.info) doc.text(M, top + HH + 18, o.info, { size: 9.5, bold: true, color: "#1B1E24", max: W });
+    doc.y = top + HH + (o.info ? 34 : 24);
+    return doc;
+  }
+  function htmlHead(o) {
+    var h = headInfo(o);
+    return '<div style="display:flex;background:#1d1530;color:#fff;margin:0 0 14px;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:Arial,Helvetica,sans-serif">' +
+      '<div style="width:7px;background:' + esc(o.ac || "#7A3E9D") + '"></div><div style="flex:1;display:flex;justify-content:space-between;gap:14px;align-items:center;padding:9px 14px">' +
+      '<div><div style="font-size:17px;font-weight:700">' + esc(h.l1) + '</div><div style="font-size:12px;color:#cfc8dc">' + esc(h.l2) + "</div></div>" +
+      '<div style="text-align:right"><div style="font-size:17px;font-weight:700">' + esc(h.r1) + '</div><div style="font-size:12px;color:#cfc8dc">' + esc(h.r2) + "</div></div></div></div>";
+  }
+  window.EPSR = { get: rget, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 

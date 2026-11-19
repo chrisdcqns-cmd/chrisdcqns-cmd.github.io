@@ -1000,7 +1000,8 @@ function PDFDoc(){const W=595.28,H=841.89,M=40,pages=[];let c=null;const d={W,H,
 function pdfEleve(doc,name,nom,d){const all=R.filter(r=>r.el==name&&(r.cl||'')==(nom||'')),RLa=R.filter(r=>(r.cl||'')==(nom||'')&&r.el!=name&&[r.asr,r.cas,r.obs].includes(name));
  const L=(d?all.filter(r=>String(r.ts).startsWith(d)):all).slice().sort((a,b)=>a.ts<b.ts?-1:1),RL=d?RLa.filter(r=>String(r.ts).startsWith(d)):RLa;
  const PW=doc.W,M=doc.M,CW=PW-2*M,T='#0e7c7b',INK='#1d2a31',MUT='#5b6a72',OK='#2b8a3e',NT='#9fc6ca';
- doc.page();
+ if(window.EPSR&&EPSR.pdfHead)EPSR.pdfHead(doc,{act:'Escalade',titre:d?'Résumé de la leçon':"Bilan d'escalade",ca:'CA2',ac:'#2E7D4F',nom:name,classe:nom||'Sans liste',date:d?cap(fday(d,true)):'Toutes les leçons'});
+ else{doc.page();
  /* en-tête */
  doc.rect(0,0,PW,96,INK);doc.rect(0,96,PW,5,'#ffc93c');
  doc.text(M,38,d?'Résumé de la leçon':"Bilan d'escalade",{size:22,bold:true,color:'#ffffff'});
@@ -1008,7 +1009,7 @@ function pdfEleve(doc,name,nom,d){const all=R.filter(r=>r.el==name&&(r.cl||'')==
  doc.text(PW-M,38,nom||'Sans liste',{size:12,bold:true,color:'#ffffff',align:'right'});
  doc.text(PW-M,58,d?cap(fday(d,true)):'Toutes les leçons',{size:11,color:'#c3d0d6',align:'right'});
  doc.text(PW-M,76,'Édité le '+new Date().toLocaleDateString('fr-FR'),{size:9,color:'#c3d0d6',align:'right'});
- doc.y=126;
+ doc.y=126;}
  const sec=t=>{doc.need(60);doc.text(M,doc.y,t,{size:14,bold:true,color:INK});doc.line(M,doc.y+7,PW-M,doc.y+7,T,1.2);doc.y+=24};
  if(!L.length&&!RL.length){const ab=d&&isAbs(name,CL.find(c=>c.nom==nom)?.id,d);doc.text(M,doc.y+10,ab?"Absent(e) à cette leçon.":d?"Aucune grimpe enregistrée pendant cette leçon.":"Aucune grimpe enregistrée pour le moment.",{size:12,color:MUT});return}
  /* chiffres clés */

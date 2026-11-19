@@ -422,13 +422,14 @@ return {PDFDoc,zip,pFile,foot,dlZip,para,pW,fday};
 // ---------- bilans de la leçon : un .zip avec un PDF par élève (à déposer sur Pronote) ----------
 function orienPdf(R, a, k, X) {
   const doc = EPDF.PDFDoc(), PW = doc.W, M = doc.M, CW = PW - 2 * M, AC = "#f47a20", INK = "#1d2430", MUT = "#5b6370";
-  doc.page(); doc.rect(0, 0, PW, 96, INK); doc.rect(0, 96, PW, 5, AC);
+  if (window.EPSR && EPSR.pdfHead) EPSR.pdfHead(doc, { act: "Course d'orientation", titre: "Bilan", ca: "CA2", ac: "#B26B00", nom: R.nom, classe: R.cl || "", lecon: X.nom || "", date: X.date ? EPDF.fday(new Date(X.date).toLocaleDateString("fr-CA")) : "", info: "Parcours : " + (k?.nm || R.c || "–") });
+  else { doc.page(); doc.rect(0, 0, PW, 96, INK); doc.rect(0, 96, PW, 5, AC);
   doc.text(M, 38, "Course d'orientation : bilan", { size: 20, bold: true, color: "#ffffff" });
   doc.text(M, 64, R.nom, { size: 16, bold: true, color: "#ffc08a" });
   doc.text(PW - M, 38, (R.cl || "") + (X.nom ? " · " + X.nom : ""), { size: 12, bold: true, color: "#ffffff", align: "right", max: 260 });
   doc.text(PW - M, 58, X.date ? EPDF.fday(new Date(X.date).toLocaleDateString("fr-CA")) : "", { size: 11, color: "#d0d4da", align: "right" });
   doc.text(PW - M, 76, "Parcours : " + (k?.nm || R.c || "–"), { size: 9.5, color: "#d0d4da", align: "right", max: 260 });
-  doc.y = 126;
+  doc.y = 126; }
   const sec = t => { doc.need(60); doc.y += 12; doc.text(M, doc.y, t, { size: 14, bold: true, color: INK }); doc.line(M, doc.y + 7, PW - M, doc.y + 7, AC, 1.2); doc.y += 24; };
   sec("En chiffres");
   const pts = k?.m === "score" || (k?.b || []).some(b => b.p != null);

@@ -2257,13 +2257,14 @@ async function dojoJpeg(dojo,members,n){
 const ROLE_NAME=r=>(r[0]==="P"?"Porteur":"Voltigeur")+(r.length>1?" "+r.slice(1):"");
 function acroPdf(name,classe,day,gr,sess,obs,img){
   const doc=EPDF.PDFDoc(),PW=doc.W,M=doc.M,CW=PW-2*M,AC="#1F4FA3",GO="#F4B63F",INK="#1B1E24",MUT="#5b6370";
-  doc.page();doc.rect(0,0,PW,96,AC);doc.rect(0,96,PW,5,GO);
+  if(window.EPSR&&EPSR.pdfHead)EPSR.pdfHead(doc,{act:"Acrosport",titre:"Bilan de la leçon",ca:"CA3",ac:AC,nom:name,classe:classe,date:EPDF.fday(day)});
+  else{doc.page();doc.rect(0,0,PW,96,AC);doc.rect(0,96,PW,5,GO);
   doc.text(M,38,"Acrosport : bilan de la leçon",{size:20,bold:true,color:"#ffffff"});
   doc.text(M,64,name,{size:16,bold:true,color:GO});
   doc.text(PW-M,38,classe,{size:12,bold:true,color:"#ffffff",align:"right"});
   doc.text(PW-M,58,EPDF.fday(day),{size:11,color:"#dbe3f3",align:"right"});
   doc.text(PW-M,76,"Édité le "+new Date().toLocaleDateString("fr-FR"),{size:9,color:"#dbe3f3",align:"right"});
-  doc.y=126;
+  doc.y=126;}
   const sec=t=>{doc.need(60);doc.y+=12;doc.text(M,doc.y,t,{size:14,bold:true,color:INK});doc.line(M,doc.y+7,PW-M,doc.y+7,AC,1.2);doc.y+=24};
   if(!gr){doc.text(M,doc.y+10,"Pas de groupe enregistré pour cet élève dans cette classe.",{size:12,color:MUT});EPDF.foot(doc,"Acrosport EPS · document personnel");return doc.bytes()}
   sec("Mon groupe");
