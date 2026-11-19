@@ -257,7 +257,7 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
 const KEY='eps_volley_eval_v1';
 const CHOIX=['4-4','6-2','2-6']; // AFL2-AFL3
 function defBareme(){return{
-  v:3,
+  v:4,
   optMatchs:false, optBonus:false, bonusSeuil:3, bonusLabel:"Point gagné après une attaque construite en 3 touches",
   mode:'perso',        // 'perso' = 4 × 25 % ; 'officiel' = AFL1 12 pts + AFL2/AFL3 8 pts au choix
   pas:0.25,            // pas du curseur
@@ -272,8 +272,8 @@ function defBareme(){return{
       "Attaque le ballon : l'intention de marquer est présente. Trajectoire descendante, balle accélérée, placée, frappée."]},
     {id:'pro',nom:"Profil de joueur et action",but:"Choisir un type de passe et être capable de participer activement au jeu.",afl:'AFL1',refs:'AFL1 · EP3 · EP4',pts:5,desc:[
       "Statique, intervient peu et se débarrasse du ballon.",
-      "Intervient sur le 2e ballon (renvois directs ou passes canadiennes imprécises).",
-      "Alterne un jeu en 2 ou 3 touches et distribue en zone avant, en utilisant l'autopasse si besoin (attraper le ballon et se le passer pour le jouer).",
+      "Intervient sur le 2e ballon (renvois directs ou passes canadiennes imprécises). Peut s'aider de l'autopasse, simplification réservée aux élèves en difficulté.",
+      "Alterne un jeu en 2 ou 3 touches et distribue en zone avant.",
       "Joue en 3 touches en s'orientant et en passant le ballon à l'attaquant (trajectoire haute, en cloche, proche du filet, zone avant)."]},
     {id:'ech',nom:"Échauffement et engagement",but:"S'échauffer pour pratiquer en sécurité et s'engager pour progresser.",afl:'AFL2',refs:'AFL2 · EP5 · EP8 · EP9',pts:5,desc:[
       "Échauffement non structuré. Le volume de répétition et l'engagement ne permettent pas de progresser.",
@@ -284,12 +284,23 @@ function defBareme(){return{
       "Ne connaît pas les règles de base (nombre de touches, filet, ballon dehors). Ne sait pas tenir le score ni dire qui sert. Le match ne peut pas se dérouler sans l'enseignant.",
       "Connaît quelques règles mais les applique de façon irrégulière. Tient le score avec des erreurs et oublie la rotation. A besoin de l'enseignant pour lancer ou relancer le jeu.",
       "Connaît les règles essentielles (touches, filet, lignes, service) et les fait respecter. Tient le score, gère le service et la rotation. Le match se déroule avec quelques interventions de l'enseignant.",
-      "Connaît et applique toutes les règles du jeu aménagé, y compris l'autopasse. Organise le match seul : installation, score annoncé à voix haute, rotation, changement de rôles. Explique une règle à un camarade ou règle un désaccord calmement."]}
+      "Connaît et applique toutes les règles du jeu aménagé (dont l'autopasse pour les élèves en difficulté). Organise le match seul : installation, score annoncé à voix haute, rotation, changement de rôles. Explique une règle à un camarade ou règle un désaccord calmement."]}
   ]};}
 /* ================== SÉQUENCE (leçons, échauffement, AFL) ================== */
 function L_(n,titre,obj,cont,ech,crit,prop){return{id:'l'+n,n,titre,obj,cont,ech,crit,prop:!!prop,faite:false,date:''}}
-function defSeq(){return{v:1,
-  comp:"Pour gagner le match en 4 contre 4, construire l'attaque à plusieurs (jusqu'à 3 touches, autopasse autorisée en cas de difficulté) afin de rompre l'échange par un jeu placé, fort ou rapide, tout en protégeant collectivement son terrain. S'échauffer et s'entraîner en autonomie en fonction de ses besoins. Connaître les règles et faire fonctionner le match (score, service, rotation, rôles).",
+function defMob(){return["Chevilles : rotations dans les deux sens","Genoux : flexions, petits cercles","Hanches : cercles du bassin, fentes avant et latérales","Épaules : cercles bras tendus en avant et en arrière","Poignets et doigts : rotations, doigts écartés / serrés, mains qui se pressent","Nuque : rotations lentes"]}
+function R_(id,nom,lec,c,cons){return{id,nom,lec,c,cons}}
+function defRoutines(){return[
+  R_('P1',"Passe seul",1,'#2E7D4F',["Passes à soi-même à 10 doigts, de plus en plus hautes","Puis passes contre le mur, au-dessus d'une ligne","Bout des doigts, ballon au-dessus du front, jambes qui poussent"]),
+  R_('S',"Service cuillère",1,'#D9481F',["5 services dans le terrain adverse","Puis viser la moitié arrière","Je reste derrière la ligne, je vise avant de servir"]),
+  R_('P2',"Passe à deux",2,'#3a8f5a',["Face à face à 3-4 m, passes hautes","Puis l'un se déplace sur le côté entre chaque passe","Je m'oriente vers la cible avant de toucher le ballon"]),
+  R_('P3',"Passe à trois, vers l'avant",3,'#1d6b44',["En triangle : passe vers la zone avant, puis vers le partenaire au filet","Annoncer « j'ai ! » avant de jouer","Changer de place après chaque passe"]),
+  R_('A',"Attaque en 3 touches",5,'#7A3E9D',["À 3 : lancer – passe – passe d'attaque par-dessus le filet","Viser une zone libre (fond, côté, zone courte)","Varier : jeu placé, jeu fort, jeu rapide"]),
+  R_('M',"Manchette",6,'#1F5F8B',["À deux : lancer bas, manchette vers le partenaire","10 réussies chacun, puis en se déplaçant","Jambes fléchies, bras tendus, plan orienté vers la cible"]),
+  R_('RA',"Réception – passe – attaque",7,'#14213d',["À 3 : service ou lancer, réception en manchette vers le passeur","Passe haute en zone avant, renvoi d'attaque","Tourner les rôles après chaque ballon"]),
+  R_('D',"Défense – relance",8,'#B26B00',["À 2 : l'un attaque à mi-distance, l'autre défend en manchette","Ballon défendu haut, vers le centre du terrain","Puis enchaîner défense → passe → renvoi"])]}
+function defSeq(){return{v:2,mob:defMob(),routines:defRoutines(),
+  comp:"Pour gagner le match en 4 contre 4, construire l'attaque à plusieurs, jusqu'à 3 touches, afin de rompre l'échange par un jeu placé, fort ou rapide, tout en protégeant collectivement son terrain. S'échauffer et s'entraîner en autonomie, en enrichissant ses routines avec ballon selon ses besoins. Connaître les règles (dont la règle aménagée de l'autopasse pour les élèves en difficulté) et faire fonctionner le match (score, service, rotation, rôles).",
   lecons:[
    L_(1,"Découverte de l'activité","Découvrir l'activité, les règles, le matériel, sa mise en place et les principes de jeu.",["Mise en place du matériel","Explication des règles et des attentes","Découverte de la passe 10 doigts : bout des doigts – intensité – hauteur – placement – prise d'informations","Découverte du service cuillère","Évaluation diagnostique sur jeu simple"],'I',['arb']),
    L_(2,"Jeu vers l'avant","Réaliser des passes vers l'avant, afin de renvoyer la balle de l'autre côté du filet.",["Remobilisation de la passe 10 doigts sous forme de routine","Apprendre à passer dans des zones définies","Apprendre à passer en se déplaçant","Apprendre à contrôler son service (intensité, précision…)","Introduction du rôle d'entraîneur"],'I',['pro','att']),
@@ -298,10 +309,10 @@ function defSeq(){return{v:1,
    L_(5,"Schéma d'attaque","Rompre l'échange en variant les espaces et les temps en attaque.",["Répéter des schémas d'attaque afin de s'organiser collectivement","Chercher la rupture par un jeu placé, un jeu fort ou un jeu rapide","Gestion de tournoi en autonomie"],'II',['att','arb']),
    L_(6,"Manchette","Mobiliser une technique (manchette) pour réceptionner un service puissant ou pour répondre à une crise spatio-temporelle.",["Travail de la manchette","Travail de la défense","Travail du service smashé pour tous"],'II',['pro','att']),
    L_(7,"Construire des schémas d'attaque","Construire à plusieurs des schémas d'attaque pour gagner le point rapidement.",["Construire l'attaque dès la réception par des schémas","S'attribuer collectivement des postes afin de proposer la meilleure prestation possible"],'II',['att','pro']),
-   L_(8,"Protéger son terrain et relancer","Assurer collectivement la protection du terrain et transformer une balle défendue en attaque.",["Temps III de l'échauffement : mobilité + atelier choisi (passe, manchette, service)","Défense en manchette : se placer bas, plan de frappe orienté vers le passeur","Répartition des zones à 4 : qui prend la balle courte / la balle longue ?","Situation : 1re touche défendue = point bonus si l'équipe attaque en 3 touches","Rôle de marqueur-organisateur : score annoncé, service, rotation"],'III',['pro','att','arb'],1),
-   L_(9,"Tournoi formatif","Gagner des matchs équilibrés en appliquant son projet d'attaque, et faire fonctionner le tournoi en autonomie.",["Matchs en 4 contre 4, équipes équilibrées et remaniées entre les matchs","Points bonus : point gagné après une attaque construite en 3 touches","Les élèves tiennent score, service et rotation ; l'enseignant observe","Bilan d'équipe : ce qui nous fait gagner des points, ce qui nous en fait perdre","Positionnement formatif dans l'appli (matchs gagnés, degrés)"],'III',['att','arb','ech'],1),
-   L_(10,"Préparer l'évaluation","Choisir son projet d'attaque et s'entraîner sur ses points faibles.",["Temps III à la carte : chaque élève justifie son atelier","Chaque équipe choisit et répète son schéma d'attaque","Matchs à thème : l'adversaire défend la zone arrière → chercher la zone avant","Auto-positionnement de l'élève sur les 4 critères, comparé à celui de l'enseignant"],'III',['ech','att','pro'],1),
-   L_(11,"Évaluation","Évaluer les 4 critères en situation de match.",["Échauffement complet en autonomie (Temps I, II, III) : observé pour l'AFL2","Matchs en 4 contre 4 entre équipes équilibrées, équipes remaniées","Positionnement dans l'appli : degré + curseur, matchs gagnés","Les élèves organisent les matchs (score, service, rotation) : observé pour l'AFL3"],'III',['att','pro','ech','arb'],1)
+   L_(8,"Protéger son terrain et relancer","Assurer collectivement la protection du terrain et transformer une balle défendue en attaque.",["Routines avec ballon : ajout de la routine « défense – relance »","Défense en manchette : se placer bas, plan de frappe orienté vers le passeur","Répartition des zones à 4 : qui prend la balle courte / la balle longue ?","Situation : 1re touche défendue = point bonus si l'équipe attaque en 3 touches","Rôle de marqueur-organisateur : score annoncé, service, rotation"],'II',['pro','att','arb'],1),
+   L_(9,"Tournoi formatif","Gagner des matchs équilibrés en appliquant son projet d'attaque, et faire fonctionner le tournoi en autonomie.",["Routines avec ballon menées en autonomie par les équipes","Matchs en 4 contre 4, équipes équilibrées et remaniées entre les matchs","Points bonus : point gagné après une attaque construite en 3 touches","Les élèves tiennent score, service et rotation ; l'enseignant observe","Bilan d'équipe : ce qui nous fait gagner des points, ce qui nous en fait perdre"],'II',['att','arb','ech'],1),
+   L_(10,"Préparer l'évaluation","Choisir son projet d'attaque et s'entraîner sur ses points faibles.",["Routines avec ballon : chaque élève insiste sur celle qui correspond à son besoin et sait dire pourquoi","Chaque équipe choisit et répète son schéma d'attaque","Matchs à thème : l'adversaire défend la zone arrière → chercher la zone avant","Auto-positionnement de l'élève sur les 4 critères, comparé à celui de l'enseignant"],'II',['ech','att','pro'],1),
+   L_(11,"Évaluation","Évaluer les 4 critères en situation de match.",["Échauffement complet en autonomie (mobilisation, courses, routines) : observé pour l'AFL2","Matchs en 4 contre 4 entre équipes équilibrées, équipes remaniées","Positionnement dans l'appli : degré + curseur, matchs gagnés","Les élèves organisent les matchs (score, service, rotation) : observé pour l'AFL3"],'II',['att','pro','ech','arb'],1)
   ]};}
 function defState(){return{bareme:defBareme(),classes:[{id:uid(),nom:'Ma classe',eleves:[]}],cur:0};}
 function uid(){return Math.random().toString(36).slice(2,9)}
@@ -316,17 +327,28 @@ function fixState(){
   S.classes.forEach(c=>{c.eleves=c.eleves||[];c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
   if(!(S.cur>=0&&S.cur<S.classes.length))S.cur=0;
   if(!S.seq||!Array.isArray(S.seq.lecons))S.seq=defSeq();
+  if((S.seq.v||1)<2){const D=defSeq(); /* v2 : mobilisation articulaire + routines avec ballon enrichies au fil des leçons ; autopasse réservée aux élèves en difficulté */
+    S.seq.mob=S.seq.mob||D.mob;S.seq.routines=S.seq.routines||D.routines;
+    if(S.seq.comp==="Pour gagner le match en 4 contre 4, construire l'attaque à plusieurs (jusqu'à 3 touches, autopasse autorisée en cas de difficulté) afin de rompre l'échange par un jeu placé, fort ou rapide, tout en protégeant collectivement son terrain. S'échauffer et s'entraîner en autonomie en fonction de ses besoins. Connaître les règles et faire fonctionner le match (score, service, rotation, rôles).")S.seq.comp=D.comp;
+    S.seq.lecons=S.seq.lecons.map(l=>{if(!l.prop)return l;const n=D.lecons.find(x=>x.id===l.id);return n?Object.assign(n,{faite:l.faite,date:l.date}):l});
+    S.seq.lecons.forEach(l=>{if(l.ech==='III')l.ech='II'});S.seq.v=2;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 }
 function migrateBareme(){
-  const b=S.bareme;if((b.v||1)>=3)return;
+  const b=S.bareme;if((b.v||1)>=4)return;
+  if((b.v||1)===3){ /* v4 : l'autopasse est une simplification pour les élèves en difficulté, pas un repère du degré 3 */
+    const pro=b.criteres.find(c=>c.id==='pro'),arb=b.criteres.find(c=>c.id==='arb');
+    if(pro&&pro.desc[2]==="Alterne un jeu en 2 ou 3 touches et distribue en zone avant, en utilisant l'autopasse si besoin (attraper le ballon et se le passer pour le jouer).")pro.desc[2]="Alterne un jeu en 2 ou 3 touches et distribue en zone avant.";
+    if(pro&&pro.desc[1]==="Intervient sur le 2e ballon (renvois directs ou passes canadiennes imprécises).")pro.desc[1]="Intervient sur le 2e ballon (renvois directs ou passes canadiennes imprécises). Peut s'aider de l'autopasse, simplification réservée aux élèves en difficulté.";
+    if(arb&&typeof arb.desc[3]==='string')arb.desc[3]=arb.desc[3].replace("Connaît et applique toutes les règles du jeu aménagé, y compris l'autopasse. Organise","Connaît et applique toutes les règles du jeu aménagé (dont l'autopasse pour les élèves en difficulté). Organise");
+    b.v=4;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}return}
   const D=defBareme(),get=id=>D.criteres.find(c=>c.id===id);
   if((b.v||1)<3&&(b.arrondi==null||b.arrondi===0.5))b.arrondi=0.25; /* note /20 au 0,25 près */
-  if((b.v||1)>=2){b.v=3;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}return}
+  if((b.v||1)>=2){b.v=3;migrateBareme();return}
   const pro=b.criteres.find(c=>c.id==='pro');
   if(pro&&pro.desc[2]==="Alterne un jeu en 2 ou 3 touches et distribue en zone avant avec un rebond.")pro.desc[2]=get('pro').desc[2];
   const arb=b.criteres.find(c=>c.id==='arb');
   if(arb&&arb.nom==="Arbitrage et règles"){const n=get('arb');arb.nom=n.nom;arb.but=n.but;arb.desc=n.desc.slice()}
-  b.v=3;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  b.v=3;migrateBareme();
 }
 fixState();
 /* recharge si une autre page (accueil : import de liste) a modifié les données */
@@ -467,7 +489,7 @@ function critHtml(cr,e){
       <span class="lim">${fr(hi)}</span></div>`;
   }
   return `<div class="crit" id="c-${cr.id}">
-   <div class="crit-h"><div><b>${esc(cr.nom)}</b> <span class="tag">${esc(cr.afl)}</span><div class="muted">${esc(cr.but)}${cr.refs?' · '+esc(cr.refs):''}</div>${cr.afl==='AFL2'&&t3Txt(e)?`<div class="muted" style="color:var(--vol);font-weight:700;margin-top:3px">Temps III choisis : ${t3Txt(e)}</div>`:''}</div>
+   <div class="crit-h"><div><b>${esc(cr.nom)}</b> <span class="tag">${esc(cr.afl)}</span><div class="muted">${esc(cr.but)}${cr.refs?' · '+esc(cr.refs):''}</div>${cr.afl==='AFL2'&&t3Txt(e)?`<div class="muted" style="color:var(--vol);font-weight:700;margin-top:3px">Routines renforcées : ${t3Txt(e)}</div>`:''}</div>
    <div class="pts" id="p-${cr.id}">${pts!=null?fr(pts):'–'} <small>/ ${fr(mx)}</small></div></div>
    <div class="degs">${[0,1,2,3].map(d=>{const [lo,hi]=band(cr,e,d);return `<button class="deg d${d+1} ${v&&v.d===d?'sel':''}" onclick="setDeg('${cr.id}',${d})">
       <span class="dt">D${d+1} · ${esc(b.degres[d])}</span><span class="rg">${fr(lo)} à ${fr(hi)} pt</span><span>${esc(cr.desc[d]||'')}</span></button>`}).join('')}</div>
@@ -516,8 +538,9 @@ function resetEleve(){if(!confirm('Effacer toute l\'évaluation de cet élève ?
 function nav(d){const n=curEl+d;if(n<0||n>=C().eleves.length)return;openEval(n)}
 
 let SEQT='lec',SEQEDIT=null;
-const T3={P:{n:'Passe',c:'#2E7D4F'},M:{n:'Manchette',c:'#1F5F8B'},S:{n:'Service',c:'#D9481F'}};
-function t3Txt(e){const v=Object.values(e.t3||{});if(!v.length)return '';return Object.keys(T3).map(k=>{const n=v.filter(x=>x===k).length;return n?T3[k].n+(n>1?' ×'+n:''):''}).filter(Boolean).join(' · ')}
+/* routines avec ballon : relevé de la routine renforcée par l'élève (AFL2) ; anciens relevés P/M/S → P1/M/S */
+function routine(id){const m={P:'P1'};id=m[id]||id;return (S.seq.routines||[]).find(r=>r.id===id)}
+function t3Txt(e){const v=Object.values(e.t3||{});if(!v.length)return '';const c={};v.forEach(x=>{const r=routine(x);if(r)c[r.nom]=(c[r.nom]||0)+1});return Object.entries(c).map(([n,k])=>n+(k>1?' ×'+k:'')).join(' · ')}
 function critName(id){const c=B().criteres.find(x=>x.id===id);return c?c.nom:id}
 function critAfl(id){const c=B().criteres.find(x=>x.id===id);return c?c.afl:''}
 function ctag(id){const a=critAfl(id);return `<span class="ctag ${a==='AFL1'?'a1':a==='AFL2'?'a2':'a3'}">${esc(critName(id))}</span>`}
@@ -536,7 +559,7 @@ function seqLecons(){
     <h3>Leçon ${l.n} · ${esc(l.titre)} ${l.prop?'<span class="ctag ptag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted" style="font-weight:600">${esc(new Date(l.date+'T12:00').toLocaleDateString('fr-FR'))}</span>`:''}</h3>
     <p style="margin:6px 0"><b>Objectif :</b> ${esc(l.obj)}</p>
     <ul>${l.cont.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>
-    <div>${l.ech?`<span class="ctag" style="background:#0f3d7a;cursor:pointer" onclick="SEQT='ech';renderSeq()">🔥 Échauffement Temps ${l.ech}</span>`:''}${l.crit.map(ctag).join('')}</div>
+    <div>${l.ech?`<span class="ctag" style="background:#0f3d7a;cursor:pointer" onclick="SEQR=${l.n};SEQT='ech';renderSeq()">🔥 Mobilisation · courses Temps ${l.ech} · ${routinesFor(l.n).length} routine(s)</span>`:''}${l.crit.map(ctag).join('')}</div>
     <div class="row" style="margin-top:8px">
       <button class="btn ${l.faite?'alt':''} sm" onclick="lecSet(${i},'faite',${!l.faite})">${l.faite?'Annuler « faite »':'✓ Faite'}</button>
       <button class="btn alt sm" onclick="SEQEDIT='${l.id}';renderSeq()">✎ Modifier</button>
@@ -549,7 +572,7 @@ function lecEdit(l,i){
    <label class="l">Titre</label><input type="text" id="le-t" value="${esc(l.titre)}">
    <div class="g2"><div><label class="l">Objectif</label><textarea id="le-o" rows="2">${esc(l.obj)}</textarea></div>
    <div><label class="l">Date</label><input type="text" id="le-d" placeholder="AAAA-MM-JJ" value="${esc(l.date)}" onfocus="this.type='date'"></div>
-   <div><label class="l">Échauffement</label><select class="f" id="le-e">${['','I','II','III'].map(x=>`<option value="${x}" ${l.ech===x?'selected':''}>${x?'Temps '+x:'—'}</option>`).join('')}</select></div></div>
+   <div><label class="l">Échauffement</label><select class="f" id="le-e">${['','I','II'].map(x=>`<option value="${x}" ${l.ech===x?'selected':''}>${x?'Courses Temps '+x:'—'}</option>`).join('')}</select></div></div>
    <label class="l">Contenus (un par ligne)</label><textarea id="le-c" rows="6">${esc(l.cont.join('\n'))}</textarea>
    <label class="l">Critères d'évaluation travaillés</label><div class="chipsel" id="le-k">${B().criteres.map(c=>`<button data-k="${c.id}" class="${l.crit.includes(c.id)?'on':''}" onclick="this.classList.toggle('on')">${esc(c.nom)} <small>${c.afl}</small></button>`).join('')}</div>
    <div class="row" style="margin-top:10px"><button class="btn alt" onclick="SEQEDIT=null;renderSeq()">Annuler</button><button class="btn" onclick="lecSave(${i})">Enregistrer</button></div></div>`;
@@ -564,34 +587,52 @@ function lecMove(i,d){const L=S.seq.lecons,j=i+d;if(j<0||j>=L.length)return;[L[i
 function lecDel(i){if(!confirm('Supprimer la leçon « '+S.seq.lecons[i].titre+' » ?'))return;S.seq.lecons.splice(i,1);lecRenum();save();renderSeq()}
 function addLecon(){const n=S.seq.lecons.length+1,l={id:'l'+uid(),n,titre:'Nouvelle leçon',obj:'',cont:[],ech:'',crit:[],prop:false,faite:false,date:''};S.seq.lecons.push(l);SEQEDIT=l.id;save();renderSeq()}
 
-function t3Html(){return `<div class="t3"><h2>🏐 Échauffement volley-ball</h2><div class="sub">Temps III · Avec ballon, à la carte</div>
-  <div class="blk"><span class="num" style="background:#2E7D4F">1</span><b>Mobilité (1 min)</b> : épaules (10 cercles en avant, 10 en arrière) · poignets (rotations dans les deux sens) · doigts (écarter / serrer ×10, presser fort le ballon entre les mains).</div>
-  <div class="blk"><span class="num" style="background:var(--vol)">2</span><b>Je choisis MON atelier (4 min)</b> : celui qui correspond à ce que je dois améliorer pour gagner des points.</div>
-  <div class="cards">
-   <div class="cardx" style="background:#2E7D4F"><b>🟢 Passe</b><ul><li>10 autopasses de plus en plus hautes</li><li>10 passes contre le mur, au-dessus de la ligne</li><li>Bout des doigts, ballon au-dessus du front</li></ul></div>
-   <div class="cardx" style="background:#1F5F8B"><b>🔵 Manchette</b><ul><li>À 2 : lancer bas, manchette vers le partenaire</li><li>10 réussies chacun, puis en se déplaçant</li><li>Jambes fléchies, bras tendus, plan orienté</li></ul></div>
-   <div class="cardx" style="background:#D9481F"><b>🟠 Service</b><ul><li>5 services dans la moitié arrière adverse</li><li>5 services dans une zone que je choisis</li><li>Je reste à la ligne, je vise avant de servir</li></ul></div>
-  </div>
-  <div class="blk" style="margin-top:10px"><span class="num" style="background:#C0392B">3</span><b>Je m'arrête quand</b> : mes doigts, poignets et épaules sont chauds · je réussis la consigne de mon atelier · je me sens prêt(e) à jouer. <br><i>Je dois pouvoir dire à l'enseignant pourquoi j'ai choisi cet atelier.</i></div></div>`}
-function showFull(what){const f=document.getElementById('full');f.innerHTML=what==='III'?'<div style="padding:16px;width:100%">'+t3Html()+'</div>':`<img src="echauffement-temps${what==='I'?1:2}.webp" alt="Échauffement Temps ${what}">`;f.classList.add('on')}
+let SEQR=null; /* leçon choisie pour les routines du jour */
+function routinesFor(n){return (S.seq.routines||[]).filter(r=>(+r.lec||1)<=n).sort((a,b)=>a.lec-b.lec)}
+function nextLesson(){const L=S.seq.lecons,l=L.find(x=>!x.faite)||L[L.length-1];return l?l.n:1}
+function mobHtml(){return `<div class="t3"><h2>🏐 Échauffement volley-ball</h2><div class="sub">Étape 1 · Mobilisation articulaire</div>
+  <div class="blk"><ul style="margin:0;padding-left:20px">${(S.seq.mob||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
+  <div class="blk"><b>Ensuite</b> : courses sur demi-terrain (schéma affiché), puis routines avec ballon.</div></div>`}
+function routHtml(n){const R=routinesFor(n);return `<div class="t3"><h2>🏐 Échauffement volley-ball</h2><div class="sub">Étape 3 · Routines avec ballon${n?' · leçon '+n:''}</div>
+  <div class="cards">${R.map((r,k)=>`<div class="cardx" style="background:${r.c}"><b>${k+1}. ${esc(r.nom)}</b>${+r.lec===n?'<small style="background:#fff;color:#1B1E24;border-radius:999px;padding:1px 8px;font-weight:800">NOUVEAU</small>':''}<ul>${r.cons.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')||'<div class="blk">Aucune routine pour cette leçon.</div>'}</div>
+  <div class="blk" style="margin-top:10px"><b>Je m'arrête quand</b> : je réussis la consigne de chaque routine · mes appuis sont rapides · je me sens prêt(e) à jouer.</div></div>`}
+function showFull(what){const f=document.getElementById('full');
+  f.innerHTML=what==='mob'?'<div style="padding:16px;width:100%">'+mobHtml()+'</div>':what==='rout'?'<div style="padding:16px;width:100%">'+routHtml(SEQR||nextLesson())+'</div>':`<img src="echauffement-temps${what==='I'?1:2}.webp" alt="Échauffement Temps ${what}">`;f.classList.add('on')}
 function seqEch(){
-  const c=C(),d=today();
-  return `<div class="card"><h2>Échauffement en 3 temps</h2><p class="muted">Touche une affiche pour l'afficher en grand devant les élèves (touche à nouveau pour fermer). Le Temps III est une proposition : il relie l'échauffement à ton critère AFL2 (« identifie ses lacunes et les travaille »).</p></div>
-  <div class="card"><h2>Temps I · Courses sur demi-terrain</h2><img class="poster" src="echauffement-temps1.webp" alt="Temps I" onclick="showFull('I')"></div>
-  <div class="card"><h2>Temps II · Courses et montées au filet</h2><img class="poster" src="echauffement-temps2.webp" alt="Temps II" onclick="showFull('II')"></div>
-  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Temps III · Avec ballon, à la carte <span class="ctag ptag">Proposition</span></h2><button class="btn sm" onclick="showFull('III')">⛶ Afficher en grand</button></div><div style="margin-top:10px">${t3Html()}</div></div>
-  <div class="card"><h2>Relevé du Temps III · ${esc(c.nom)} · aujourd'hui</h2>
-   <p class="muted">Note l'atelier choisi par chaque élève. Ses choix apparaissent dans sa fiche, sous le critère « ${esc(critName('ech'))} » (AFL2), pour t'aider à le positionner.</p>
-   ${c.eleves.length?`<div class="elist">${c.eleves.map((e,i)=>{const v=(e.t3||{})[d];return `<div class="erow"><span class="nm">${esc(fullName(e))}<br><small class="muted" style="font-weight:400">${t3Txt(e)||'aucun relevé'}</small></span>
-     ${Object.keys(T3).map(k=>`<button class="btn sm" style="background:${v===k?T3[k].c:'#e8eef6'};color:${v===k?'#fff':'var(--navy)'}" onclick="setT3(${i},'${k}')">${T3[k].n}</button>`).join('')}</div>`}).join('')}</div>`:'<p class="muted">Aucun élève dans cette classe.</p>'}</div>`;
+  const c=C(),d=today(),n=SEQR||nextLesson(),RR=routinesFor(n),all=S.seq.routines||[];
+  return `<div class="card"><h2>Échauffement en 3 étapes</h2><p class="muted">1. Mobilisation articulaire · 2. Courses sur demi-terrain (Temps I, puis Temps II) · 3. Routines avec ballon, enrichies au fil de la séquence (la manchette arrive avec la leçon où elle est travaillée). Touche une affiche ou « Afficher en grand » pour la montrer aux élèves.</p></div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">1 · Mobilisation articulaire</h2><button class="btn sm" onclick="showFull('mob')">⛶ Afficher en grand</button></div>
+   <label class="l">Une articulation par ligne</label><textarea rows="6" onchange="S.seq.mob=this.value.split(/\\n/).map(x=>x.trim()).filter(Boolean);save();toast('Enregistré')">${esc((S.seq.mob||[]).join('\n'))}</textarea></div>
+  <div class="card"><h2>2 · Courses · Temps I</h2><img class="poster" src="echauffement-temps1.webp" alt="Temps I" onclick="showFull('I')"></div>
+  <div class="card"><h2>2 · Courses · Temps II</h2><img class="poster" src="echauffement-temps2.webp" alt="Temps II" onclick="showFull('II')"></div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">3 · Routines avec ballon</h2>
+     <div class="row"><label class="muted" style="font-weight:700">Leçon</label><select class="f" style="width:auto" onchange="SEQR=+this.value;renderSeq()">${S.seq.lecons.map(l=>`<option value="${l.n}" ${l.n===n?'selected':''}>${l.n}. ${esc(l.titre)}</option>`).join('')}</select>
+     <button class="btn sm" onclick="showFull('rout')">⛶ Afficher en grand</button></div></div>
+   <p class="muted">Les routines s'ajoutent leçon après leçon : en leçon ${n}, les élèves enchaînent ${RR.length} routine(s).</p>
+   <div style="margin-top:6px">${routHtml(n)}</div></div>
+  <div class="card"><h2>Routines de la séquence <span class="ctag ptag">Propositions</span></h2>
+   <p class="muted">Chaque routine apparaît à partir de la leçon indiquée. Change la leçon d'ajout (par exemple la manchette avec la leçon où tu la travailles), modifie les consignes, ajoutes-en.</p>
+   ${all.map((r,k)=>`<div class="bcrit"><div class="g2"><div><label class="l">Routine</label><input type="text" value="${esc(r.nom)}" onchange="routSet(${k},'nom',this.value)"></div>
+     <div><label class="l">Ajoutée en leçon</label><input type="number" min="1" value="${r.lec}" onchange="routSet(${k},'lec',+this.value)"></div>
+     <div><label class="l">Couleur</label><input type="color" value="${r.c}" onchange="routSet(${k},'c',this.value)" style="width:100%;height:40px;border:0"></div></div>
+     <label class="l">Consignes (une par ligne)</label><textarea rows="3" onchange="routSet(${k},'cons',this.value.split(/\\n/).map(x=>x.trim()).filter(Boolean))">${esc(r.cons.join('\n'))}</textarea>
+     <div class="row" style="margin-top:6px"><button class="btn red sm" onclick="routDel(${k})">Supprimer</button></div></div>`).join('')}
+   <button class="btn" onclick="routAdd()">+ Routine</button></div>
+  <div class="card"><h2>Routine renforcée par chaque élève · ${esc(c.nom)} · aujourd'hui</h2>
+   <p class="muted">Facultatif : quand un élève insiste sur une routine parce qu'il en a besoin, note-la. Ses choix apparaissent dans sa fiche, sous « ${esc(critName('ech'))} » (AFL2, « identifie ses lacunes et les travaille »).</p>
+   ${c.eleves.length?`<div class="elist">${c.eleves.map((e,i)=>{const v=(e.t3||{})[d];return `<div class="erow" style="flex-wrap:wrap"><span class="nm">${esc(fullName(e))}<br><small class="muted" style="font-weight:400">${t3Txt(e)||'aucun relevé'}</small></span>
+     ${RR.map(r=>`<button class="btn sm" style="background:${v===r.id?r.c:'#e8eef6'};color:${v===r.id?'#fff':'var(--navy)'}" onclick="setT3(${i},'${r.id}')">${esc(r.nom)}</button>`).join('')}</div>`}).join('')}</div>`:'<p class="muted">Aucun élève dans cette classe.</p>'}</div>`;
 }
+function routSet(k,f,v){S.seq.routines[k][f]=v;save();const y=scrollY;renderSeq();scrollTo(0,y)}
+function routDel(k){if(!confirm('Supprimer la routine « '+S.seq.routines[k].nom+' » ?'))return;S.seq.routines.splice(k,1);save();renderSeq()}
+function routAdd(){S.seq.routines.push({id:'r'+uid(),nom:'Nouvelle routine',lec:SEQR||nextLesson(),c:'#555b66',cons:['Consigne']});save();renderSeq()}
 function setT3(i,k){const e=C().eleves[i],d=today();e.t3=e.t3||{};if(e.t3[d]===k)delete e.t3[d];else e.t3[d]=k;save();const y=scrollY;renderSeq();scrollTo(0,y)}
 function seqAfl(){
   const L=S.seq.lecons,cs=B().criteres;
   const AFL={AFL1:"S'engager pour gagner une rencontre en faisant des choix techniques et tactiques pertinents au regard de l'analyse du rapport de force.",AFL2:"Se préparer et s'entraîner, individuellement ou collectivement, pour conduire et maîtriser un affrontement collectif ou interindividuel.",AFL3:"Choisir et assumer les rôles qui permettent un fonctionnement collectif solidaire."};
   return `<div class="card"><h2>Compétence de fin de séquence (CA4 · lycée)</h2>
    <textarea rows="4" onchange="S.seq.comp=this.value;save();toast('Enregistré')">${esc(S.seq.comp)}</textarea>
-   <p class="muted">Proposition écrite à partir de tes AFL et de ta règle de l'autopasse ; modifie-la librement.</p></div>
+   <p class="muted">Proposition écrite à partir de tes AFL et de tes critères ; modifie-la librement.</p></div>
   <div class="card"><h2>Les 3 AFL et tes critères</h2>
    ${['AFL1','AFL2','AFL3'].map((a,ai)=>{const cc=cs.filter(c=>c.afl===a);return `<div style="margin-bottom:12px"><span class="ctag a${ai+1}">${a}</span> <i>${AFL[a]}</i>
      <ul style="margin:6px 0">${cc.map(c=>`<li><b>${esc(c.nom)}</b> (${fr(B().mode==='perso'?c.pts:maxPts(c,null))} pts) — travaillé en leçon${L.filter(l=>l.crit.includes(c.id)).length>1?'s':''} ${L.filter(l=>l.crit.includes(c.id)).map(l=>l.n).join(', ')||'<span style="color:var(--d1)">aucune</span>'}</li>`).join('')||'<li class="muted">Aucun critère</li>'}</ul></div>`}).join('')}</div>
@@ -601,11 +642,11 @@ function seqAfl(){
 }
 function seqIdees(){
   const I=[
-   ["🔥 Temps III à la carte","Un 3e temps d'échauffement avec ballon : mobilité des doigts, poignets et épaules, puis un atelier choisi selon son besoin. Tu observes la pertinence du choix pour l'AFL2.","SEQT='ech';renderSeq()","Voir le Temps III"],
+   ["🔥 Routines qui s'enrichissent","Après les courses, une suite de routines avec ballon qui grandit avec la séquence : passe seul et service dès la leçon 1, passe à deux, à trois, attaque, puis la manchette quand elle est travaillée. Les élèves les enchaînent en autonomie.","SEQT='ech';renderSeq()","Voir les routines"],
    ["⭐ Points bonus","Un point bonus quand l'équipe gagne le point après une attaque construite en 3 touches : la tactique devient visible dans le score. Compteur par élève dans sa fiche.","showTab('bareme')","Activer dans Barème"],
    ["🏆 Matchs gagnés","Saisir les résultats des matchs : le curseur des critères AFL1 se place dans le degré selon la part de matchs gagnés, comme dans de nombreux référentiels de lycée.","showTab('bareme')","Activer dans Barème"],
    ["📋 Marqueur-organisateur","Rôle tenu à tour de rôle : annoncer le score, gérer le service et la rotation. C'est exactement ce que mesure ton critère « Règles et déroulement du match ».",null],
-   ["🤲 Autopasse dégressive","Autopasse libre en début de séquence, puis limitée (1 par équipe et par échange) : l'élève qui n'en a plus besoin montre sa progression en passe.",null],
+   ["🤲 Autopasse : une aide ciblée","L'autopasse reste une simplification pour les élèves en difficulté, pas une étape pour tous. Repère qui en a besoin et fixe-lui un objectif personnel : un échange sans autopasse, puis deux…",null],
    ["⚖️ Équipes équilibrées et remaniées","Matchs en 4 contre 4, équipes de niveau proche et changées entre les matchs : la note reflète l'élève, pas son équipe.",null],
    ["🪞 Auto-positionnement","En leçon 10, chaque élève se positionne sur les 4 critères ; on compare avec ton positionnement. Très utile en seconde, où l'évaluation est formative.",null]];
   return I.map(([t,d,a,lab])=>`<div class="card"><h2>${t}</h2><p style="margin:0 0 8px">${d}</p>${a?`<button class="btn alt sm" onclick="${a}">${lab}</button>`:''}</div>`).join('');
