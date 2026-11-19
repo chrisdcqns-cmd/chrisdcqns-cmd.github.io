@@ -659,11 +659,11 @@
     render();
   }
   /* ================= Réglages communs (page d'accueil, mode enseignant) =================
-     localStorage « eps.reglages.v1 » : {etab, ville, annee, equipe:[noms], u}  → partagés entre tablettes (enregistrement chiffré « cfg|commun »)
-     + propres à la tablette : {prof, ca, masque:[dossiers], teachMin, nomTab}.
+     localStorage « eps.reglages.v1 » : {etab, ville, annee, prof, ca, masque:[dossiers], teachMin, u} → tous partagés entre les tablettes
+     (un seul utilisateur ; enregistrement chiffré « cfg|commun »). « equipe » est gardé pour une future version partageable.
      window.EPSR.get() → réglages ; EPSR.pdfHead(doc, o) → en-tête commun des bilans PDF (générateurs EPDF / PDFDoc) ;
      EPSR.htmlHead(o) → même en-tête en HTML (Volley-ball). */
-  var KR = "eps.reglages.v1", SHARED = ["etab", "ville", "annee", "equipe"];
+  var KR = "eps.reglages.v1", SHARED = ["etab", "ville", "annee", "equipe", "prof", "ca", "masque", "teachMin"];
   function anneeDef() { var d = new Date(), y = d.getFullYear() - (d.getMonth() < 7 ? 1 : 0); return y + "-" + (y + 1); }
   function rget() {
     var r = null; try { r = JSON.parse(localStorage.getItem(KR) || "null"); } catch (e) {}
@@ -728,14 +728,11 @@
     var chips = function (L, on, attr) { return L.map(function (x) { return '<button type="button" ' + attr + '="' + esc(x[0]) + '" class="' + (on(x[0]) ? "on" : "") + '">' + esc(x[1]) + "</button>"; }).join(""); };
     var o = overlay('<h3>⚙️ Réglages</h3>' + (msg ? '<p class="m" style="color:#2E7D4F;font-weight:800">' + esc(msg) + "</p>" : "") +
       '<p class="m">Ces informations apparaissent dans l\'en-tête de tous les bilans (PDF) de toutes les applications.</p>' +
-      '<div class="epsd-cls">Établissement <small style="font-weight:600;color:#6A6F78">(partagé avec les tablettes réglées)</small></div>' +
+      '<p class="m">Réglages communs à toutes tes tablettes (dès que le partage entre tablettes est réglé).</p>' +
       '<span class="epsd-lab">Nom exact de l\'établissement</span><input class="epsd-in" id="er-etab" placeholder="Lycée …" value="' + esc(r.etab || "") + '">' +
       '<div class="epsd-g2"><div><span class="epsd-lab">Ville (facultatif)</span><input class="epsd-in" id="er-ville" value="' + esc(r.ville || "") + '"></div>' +
       '<div><span class="epsd-lab">Année scolaire</span><input class="epsd-in" id="er-annee" value="' + esc(r.annee) + '"></div></div>' +
-      '<span class="epsd-lab">Équipe EPS (un nom par ligne, tel qu\'il doit apparaître : « M. Martin », « Mme Durand »)</span>' +
-      '<textarea class="epsd-in" id="er-equipe" style="height:150px;padding:10px 12px;line-height:1.5">' + esc(r.equipe.join("\n")) + "</textarea>" +
-      '<div class="epsd-cls" style="margin-top:18px">Cette tablette</div>' +
-      '<span class="epsd-lab">Enseignant(e) qui signe les bilans sur cette tablette</span><div class="epsd-chips" id="er-prof"></div>' +
+      '<span class="epsd-lab">Enseignant (tel qu\'il apparaît sur les bilans)</span><input class="epsd-in" id="er-prof" placeholder="M. …" value="' + esc(r.prof || "") + '">' +
       '<span class="epsd-lab">Champ d\'apprentissage (CA) dans l\'en-tête</span><div class="epsd-chips" id="er-ca">' + chips([["1", "Afficher"], ["0", "Masquer"]], function (v) { return (v === "1") === !!r.ca; }, "data-v") + "</div>" +
       '<span class="epsd-lab">Mode enseignant ouvert depuis l\'accueil pendant</span><div class="epsd-chips" id="er-tm">' + chips([["30", "30 min"], ["60", "1 h"], ["120", "2 h"], ["240", "4 h"]], function (v) { return +v === r.teachMin; }, "data-v") + "</div>" +
       '<span class="epsd-lab">Applications visibles par les élèves sur l\'accueil</span><div class="epsd-chips" id="er-apps">' + chips(APPS, function (k) { return r.masque.indexOf(k) < 0; }, "data-a") + "</div>" +
@@ -745,20 +742,13 @@
       '<div class="epsd-act"><button data-x>Fermer</button><button class="p" id="er-ok">Enregistrer les réglages</button></div>');
     function readForm() {
       r.etab = o.querySelector("#er-etab").value.trim(); r.ville = o.querySelector("#er-ville").value.trim(); r.annee = o.querySelector("#er-annee").value.trim() || anneeDef();
-      r.equipe = o.querySelector("#er-equipe").value.split("\n").map(function (s) { return s.replace(/\s+/g, " ").trim(); }).filter(Boolean).filter(function (s, i, a) { return a.indexOf(s) === i; });
+      r.prof = o.querySelector("#er-prof").value.replace(/\s+/g, " ").trim();
     }
-    function saveNow() { var old = rget(); if (r.prof && r.equipe.indexOf(r.prof) < 0) r.prof = ""; rset(r, SHARED.some(function (k) { return JSON.stringify(old[k]) !== JSON.stringify(r[k]); })); }
+    function saveNow() { var old = rget(); rset(r, SHARED.some(function (k) { return JSON.stringify(old[k]) !== JSON.stringify(r[k]); })); }
     function tog(sel, fn) { o.querySelector(sel).addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) fn(b); }); }
-    function drawProf() {
-      if (r.prof && r.equipe.indexOf(r.prof) < 0) r.prof = "";
-      o.querySelector("#er-prof").innerHTML = r.equipe.length ? chips(r.equipe.map(function (n) { return [n, n]; }), function (n) { return n === r.prof; }, "data-p") : '<span class="m">Écris d\'abord les noms de l\'équipe ci-dessus.</span>';
-    }
-    drawProf();
-    tog("#er-prof", function (b) { readForm(); r.prof = b.dataset.p === r.prof ? "" : b.dataset.p; drawProf(); });
     tog("#er-ca", function (b) { r.ca = b.dataset.v === "1"; o.querySelectorAll("#er-ca button").forEach(function (x) { x.classList.toggle("on", x === b); }); });
     tog("#er-tm", function (b) { r.teachMin = +b.dataset.v; o.querySelectorAll("#er-tm button").forEach(function (x) { x.classList.toggle("on", x === b); }); });
     tog("#er-apps", function (b) { var k = b.dataset.a, i = r.masque.indexOf(k); if (i >= 0) r.masque.splice(i, 1); else r.masque.push(k); b.classList.toggle("on", i >= 0); });
-    o.querySelector("#er-equipe").addEventListener("input", function () { readForm(); drawProf(); });
     o.querySelector("#er-ok").onclick = function () {
       readForm(); saveNow(); o.remove(); toastHub("Réglages enregistrés");
     };
