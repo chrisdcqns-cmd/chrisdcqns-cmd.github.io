@@ -16,7 +16,9 @@ Tout est **chiffré sur la tablette** avec la clé secrète : la feuille ne cont
 3. Ligne `const SECRET = 'CHANGE-MOI';` : mets une clé secrète de ton choix (au moins 12 caractères au hasard, sans espace) et garde-la.
 4. Enregistre, puis **Déployer → Nouveau déploiement** : type **Application Web**, exécuter en tant que **Moi**, accès **Tout le monde** → **Déployer** → autorise l'accès avec ton compte.
 5. Copie l'**URL de l'application Web** (elle se termine par `/exec`).
-6. **Sur chaque tablette** : page d'accueil → 🔒 Enseignant → carte « Listes d'élèves » → **⚙ Partage entre tablettes** : colle l'adresse et la clé → **Enregistrer**.
+6. Indique l'adresse dans `eps-home.js` (`DEF_URL`) : elle est alors **préremplie sur toutes les tablettes** (c'est fait pour le script actuel).
+7. **Première tablette** : page d'accueil → 🔒 Enseignant → carte « Listes d'élèves » → **⚙ Partage entre tablettes** : tape la clé → **Enregistrer**.
+8. **Autres tablettes** : sur la première, rouvre ⚙ Partage entre tablettes → **📲 Régler une autre tablette** : un QR code s'affiche. Scanne-le avec l'appareil photo de l'autre tablette (ou envoie-toi le lien), puis tape ton code enseignant : c'est réglé. Ce QR code contient la clé secrète : ne le montre pas aux élèves.
 
 Les dispenses, listes et réglages déjà présents sur la tablette sont **renvoyés automatiquement** vers le nouveau script ; les autres tablettes les récupèrent dès qu'elles sont réglées à leur tour. Une version plus récente n'est jamais écrasée par une plus ancienne.
 

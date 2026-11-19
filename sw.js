@@ -1,9 +1,9 @@
 // EPS – Autonomie et Numérique : service worker de la racine.
 // Il ne gère que la page d'accueil (/eps-autonomie-numerique/), le bouton Accueil partagé, Relais Vitesse, Volley-ball et Danse (qui n'ont pas de service worker propre).
 // Acrosport, Escalade et OrienRun gardent leur propre service worker : leurs requêtes ne sont pas touchées ici.
-const CORE = "eps-core-v10";
+const CORE = "eps-core-v11";
 const B = "/eps-autonomie-numerique/"; // adresse des applications
-const CORE_FILES = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", B, B + "index.html", B + "eps-home.js", B + "relais/", B + "relais/index.html", B + "volley/", B + "volley/index.html", B + "danse/", B + "danse/index.html"];
+const CORE_FILES = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", B, B + "index.html", B + "eps-home.js", B + "eps-qr.js", B + "relais/", B + "relais/index.html", B + "volley/", B + "volley/index.html", B + "danse/", B + "danse/index.html"];
 // Bibliothèques externes utilisées par Relais Vitesse (lecture Excel, polices)
 const EXT = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 
@@ -17,7 +17,7 @@ self.addEventListener("activate", e => {
 function mine(url) {
   if (url.origin === location.origin) {
     const p = url.pathname;
-    return p === "/" || p === "/index.html" || p === "/manifest.webmanifest" || p === "/eps-home.js" || /^\/icon-\d+\.png$/.test(p) || p === B || p === B + "index.html" || p === B + "eps-home.js" || p.startsWith(B + "relais/") || p.startsWith(B + "volley/") || p.startsWith(B + "danse/");
+    return p === "/" || p === "/index.html" || p === "/manifest.webmanifest" || p === "/eps-home.js" || /^\/icon-\d+\.png$/.test(p) || p === B || p === B + "index.html" || p === B + "eps-home.js" || p === B + "eps-qr.js" || p.startsWith(B + "relais/") || p.startsWith(B + "volley/") || p.startsWith(B + "danse/");
   }
   return EXT.test(url.href);
 }

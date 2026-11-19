@@ -87,9 +87,54 @@
   /* script commun (apps-script/Code.gs), indépendant de celui de Relais Vitesse (RELAIS_URL) */
   var KS = "eps.share.v1", RELAIS_URL = "https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec";
   var GUIDE_COMMUN = "https://github.com/chrisdcqns-cmd/chrisdcqns-cmd.github.io/blob/main/eps-autonomie-numerique/apps-script/README.md";
+  /* adresse du script commun déployé (publique : seule la clé secrète, saisie sur chaque tablette, donne accès aux données) */
+  var DEF_URL = "https://script.google.com/macros/s/AKfycbzMC68J_J-iKj6mCi9sIkxYTQoW8w5Qsool00ng1mwwRN4BVOAu9l0FN8_pVSPp0oh1lQ/exec";
   function shareGet() {
     var s = null; try { s = JSON.parse(localStorage.getItem(KS) || "null"); } catch (e) {}
-    return s || { url: "", key: "" };
+    return s || { url: DEF_URL, key: "" };
+  }
+  /* enregistre le réglage ; Relais Vitesse garde son propre script (recopie de l'ancien réglage s'il n'avait pas sa clé) */
+  function saveShare(v) {
+    try { var old = shareGet(), rs = JSON.parse(localStorage.getItem("relais-vitesse-sheets-v1") || "null") || {};
+      if (old.url && old.key && old.url !== v.url && !rs.key) { rs.url = old.url; rs.key = old.key; localStorage.setItem("relais-vitesse-sheets-v1", JSON.stringify(rs)); } } catch (e) {}
+    try { localStorage.setItem(KS, JSON.stringify(v)); } catch (e) {}
+    D.since = 0; sv(D);
+  }
+  /* « Régler une autre tablette » : lien + QR code contenant le réglage (adresse si différente + clé) */
+  function u64(t) { var b = new TextEncoder().encode(t), x = ""; b.forEach(function (c) { x += String.fromCharCode(c); }); return btoa(x).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function d64(t) { t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; return new TextDecoder().decode(Uint8Array.from(atob(t), function (c) { return c.charCodeAt(0); })); }
+  function lienPartage(c) { return location.origin + BASE + "#partage=" + u64(JSON.stringify(c.url === DEF_URL ? [c.key] : [c.key, c.url])); }
+  function loadQR() {
+    if (window.QRLib) return Promise.resolve(window.QRLib);
+    return new Promise(function (res, rej) { var sc = document.createElement("script"); sc.src = BASE + "eps-qr.js"; sc.onload = function () { res(window.QRLib); }; sc.onerror = rej; document.head.appendChild(sc); });
+  }
+  function shareQR() {
+    var c = shCfg(); if (!c) return;
+    var url = lienPartage(c);
+    var o = overlay('<h3>📲 Régler une autre tablette</h3><p class="m">Sur l\'autre tablette, scanne ce QR code avec l\'appareil photo (ou ouvre le lien), puis tape ton code enseignant : le partage est réglé.</p>' +
+      '<div style="text-align:center"><canvas id="epsd-qr" width="260" height="260" style="width:260px;height:260px;border-radius:12px"></canvas></div>' +
+      '<p class="m" style="color:#C0392B;font-weight:700">⚠ Ce QR code contient ta clé secrète : ne le montre pas aux élèves.</p>' +
+      '<div class="epsd-act"><button data-x>Fermer</button><button id="epsd-qcp">Copier le lien</button></div>');
+    o.querySelector("#epsd-qcp").onclick = function () { try { navigator.clipboard.writeText(url).then(function () { toastHub("Lien copié"); }); } catch (e) {} };
+    loadQR().then(function (L) {
+      var q = new L.QRCode(-1, L.ECL.M); q.addData(url); q.make();
+      var cv = o.querySelector("#epsd-qr"), n = q.getModuleCount(), sz = Math.floor(cv.width / (n + 8)), off = Math.floor((cv.width - sz * n) / 2), g = cv.getContext("2d");
+      g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = "#000";
+      for (var r = 0; r < n; r++) for (var cc = 0; cc < n; cc++) if (q.isDark(r, cc)) g.fillRect(off + cc * sz, off + r * sz, sz, sz);
+    }).catch(function () { var cv = o.querySelector("#epsd-qr"); if (cv) cv.replaceWith(document.createTextNode("QR code indisponible : utilise « Copier le lien ».")); });
+  }
+  /* arrivée par le lien / QR code « #partage=… » (page d'accueil) : code enseignant, puis réglage enregistré */
+  function partageDepuisLien() {
+    var m = /^#partage=([A-Za-z0-9_-]+)$/.exec(location.hash || ""); if (!m) return;
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    var a; try { a = JSON.parse(d64(m[1])); } catch (e) { toastHub("Lien de partage illisible"); return; }
+    var v = { key: String(a[0] || ""), url: String(a[1] || DEF_URL) }; if (!v.key) return;
+    askCode().then(function (ok) {
+      if (!ok) return;
+      saveShare(v); sync();
+      var o = overlay('<h3>✓ Partage réglé</h3><p class="m">Cette tablette utilise maintenant le script commun : les réglages, dispenses et listes des autres tablettes arrivent dans quelques secondes.</p><div class="epsd-act"><button class="p" data-x>OK</button></div>');
+      try { window.dispatchEvent(new CustomEvent("eps-reglages")); } catch (e) {}
+    });
   }
   /* empreinte du canal (adresse + clé) : quand elle change, tout ce qui est sur la tablette est renvoyé au nouveau script */
   function chSig(c) { var h = 5381, t = c.url + "|" + c.key; for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return String(h); }
@@ -105,23 +150,21 @@
     var s = shareGet();
     var o = overlay('<h3>⚙ Partage entre tablettes</h3><p class="m">Réglage commun à toutes les applications : réglages, dispenses et listes passent par le <b>script commun EPS</b> (ta feuille Google), chiffrés avec la clé secrète. À faire <b>une fois sur chaque tablette</b>. <a href="' + GUIDE_COMMUN + '" target="_blank" rel="noopener">Installer le script commun</a></p>' +
       (s.url === RELAIS_URL ? '<p class="m" style="color:#B26B00;font-weight:700">⚠ Cette tablette utilise encore le script de Relais Vitesse : installe le script commun, puis colle ici sa nouvelle adresse et sa clé.</p>' : "") +
-      '<span class="epsd-lab">Adresse du script commun (…/exec)</span><input class="epsd-in" id="epsd-surl" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(s.url || "") + '">' +
+      '<span class="epsd-lab">Adresse du script commun (…/exec)</span><input class="epsd-in" id="epsd-surl" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(s.url && s.url !== RELAIS_URL ? s.url : DEF_URL) + '">' +
       '<span class="epsd-lab">Clé secrète (la même que dans le script)</span><input class="epsd-in" id="epsd-skey" type="password" autocomplete="off" value="' + esc(s.key || "") + '">' +
       '<p class="m" id="epsd-sst" style="margin-top:10px"></p>' +
-      '<div class="epsd-act"><button data-x>Fermer</button><button id="epsd-stest">Tester</button><button class="p" id="epsd-ssave">Enregistrer</button></div>');
+      '<div class="epsd-act"><button data-x>Fermer</button>' + (shCfg() && s.url !== RELAIS_URL ? '<button id="epsd-sqr">📲 Régler une autre tablette</button>' : "") + '<button id="epsd-stest">Tester</button><button class="p" id="epsd-ssave">Enregistrer</button></div>');
+    var bq = o.querySelector("#epsd-sqr"); if (bq) bq.onclick = function () { o.remove(); shareQR(); };
     function val() { return { url: o.querySelector("#epsd-surl").value.trim(), key: o.querySelector("#epsd-skey").value.trim() }; }
     async function test() {
       var v = val(), st = o.querySelector("#epsd-sst"); if (!v.url || !v.key) { st.textContent = "Indique l'adresse et la clé."; return false; }
       st.textContent = "Test…"; var r = await jsonp(v, {});
       st.textContent = !r ? "✕ Impossible de joindre le script (adresse ou déploiement)." : !r.keyOk ? "✕ La clé ne correspond pas à celle du script." : !r.sync ? "⚠ Le script doit être mis à jour (nouvelle version de Code.gs)." : r.app === "Relais Vitesse EPS" ? "⚠ Connexion réussie, mais c'est le script de Relais Vitesse : installe le script commun (lien ci-dessus)." : "✓ Connexion réussie au script commun.";
+      if (r && r.app === "Danse EPS") st.textContent = "✕ Cette adresse est celle du script de Danse : il faut celle du script commun.";
       return !!(r && r.keyOk);
     }
     o.querySelector("#epsd-stest").onclick = test;
-    o.querySelector("#epsd-ssave").onclick = async function () { var v = val();
-      /* Relais Vitesse garde son propre script : s'il utilisait le partage (pas de clé saisie dans Relais), on lui recopie l'ancien réglage */
-      try { var old = shareGet(), rs = JSON.parse(localStorage.getItem("relais-vitesse-sheets-v1") || "null") || {};
-        if (old.url && old.key && old.url !== v.url && !rs.key) { rs.url = old.url; rs.key = old.key; localStorage.setItem("relais-vitesse-sheets-v1", JSON.stringify(rs)); } } catch (e) {}
-      try { localStorage.setItem(KS, JSON.stringify(v)); } catch (e) {} D.since = 0; sv(D); var ok = await test(); if (ok) { sync(); setTimeout(function () { o.remove(); if (back) back(); }, 700); } };
+    o.querySelector("#epsd-ssave").onclick = async function () { var v = val(); saveShare(v); var ok = await test(); if (ok) { sync(); setTimeout(function () { o.remove(); if (back) back(); }, 700); } };
   }
   var KEY = null, KEYSRC = null;
   function key(k) {
@@ -935,4 +978,5 @@
     setTimeout(sync, 1500);
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);
+  if (HUB) { var goP = function () { setTimeout(partageDepuisLien, 300); }; if (document.readyState === "complete") goP(); else addEventListener("load", goP); addEventListener("hashchange", partageDepuisLien); }
 })();
