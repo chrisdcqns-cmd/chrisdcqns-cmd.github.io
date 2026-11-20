@@ -24,18 +24,25 @@ button{font:inherit;color:inherit}
 .chip{min-height:42px;padding:0 14px;border-radius:999px;border:2px solid var(--line);background:#FBFAF7;font-weight:700;font-size:16px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;flex:none}
 .chip.on{border-color:var(--ink);background:var(--ink);color:#fff}
 .chip small{font-weight:700;opacity:.7}
+.chips.sm .chip{min-height:36px;font-size:15px;padding:0 12px}
+.chip.more{border-style:dashed;color:var(--muted)}
+.chip.sep{margin-left:auto}
+.bar .chips{margin:0}
+.bar input.s{height:40px;min-width:150px;flex:1;max-width:260px}
+.bar .btn{height:40px}
 .lab{display:block;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 2px}
 .bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.count{font-size:26px;font-weight:900}
+.count{font-size:22px;font-weight:900;white-space:nowrap}
 .count small{font-size:16px;color:var(--muted);font-weight:700}
 .grow{flex:1}
 input.s{height:46px;border-radius:14px;border:2px solid var(--line);padding:0 14px;font-size:17px;min-width:200px;background:#fff}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-.cls{grid-column:1/-1;font-weight:900;font-size:17px;margin:12px 0 0;color:var(--muted)}
-.el{display:flex;align-items:center;gap:12px;min-height:66px;padding:10px 14px;border-radius:16px;border:3px solid var(--line);background:#fff;cursor:pointer;text-align:left;width:100%}
-.el .bx{width:34px;height:34px;border-radius:9px;border:3px solid #B9B4A8;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff}
-.el .n{font-weight:800;font-size:18px;line-height:1.15}
-.el .n small{display:block;font-weight:600;font-size:14px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:6px}
+.cls{grid-column:1/-1;font-weight:800;font-size:13px;letter-spacing:.05em;text-transform:uppercase;margin:10px 0 0;color:var(--muted);display:flex;gap:8px;align-items:baseline}
+.cls small{font-weight:700;letter-spacing:0;text-transform:none}
+.el{display:flex;align-items:center;gap:8px;min-height:44px;padding:5px 9px;border-radius:11px;border:2px solid var(--line);background:#fff;cursor:pointer;text-align:left;width:100%;min-width:0}
+.el .bx{width:24px;height:24px;border-radius:7px;border:2px solid #B9B4A8;flex:none;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff}
+.el .n{font-weight:700;font-size:15px;line-height:1.15;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.el .n b{font-weight:800}
 .el.on{border-color:var(--acc);background:#E7F3EC}
 .el.on .bx{background:var(--acc);border-color:var(--acc)}
 .el.wait{opacity:.6}
@@ -182,30 +189,29 @@ function render(){
   if(!S.data){A.innerHTML='<p class="m">'+(S.loading?"Chargement du fichier…":"")+'</p>';return;}
   var d=S.data;
   if(!d.cols.length)return renderInfo(A,d);
-  var tabs=(d.tabs||[]).map(function(t){return'<button class="chip'+(t===S.tab?" on":"")+'" data-tab="'+esc(t)+'">'+esc(t)+'</button>';}).join("");
   var cols=d.cols.map(function(c){var n=d.rows.filter(function(x){return d.at[x.r+"|"+c.c]===1;}).length;return'<button class="chip'+(c.c===S.col?" on":"")+'" data-col="'+c.c+'">'+esc(c.h)+(n?' <small>'+n+'</small>':'')+'</button>';}).join("");
   var nivs={};d.rows.forEach(function(x){var n=niveau(x.cl);if(n)nivs[n]=1;});
   var nv=Object.keys(nivs).sort().reverse();
   var q=norm(S.q),L=d.rows.filter(function(x){return(!S.niv||niveau(x.cl)===S.niv)&&(!q||norm(x.p+" "+x.n+" "+x.cl).indexOf(q)>=0);});
   var pres=d.rows.filter(function(x){return d.at[x.r+"|"+S.col]===1;}).length;
-  var h='<span class="lab">'+esc(d.title||"Fichier")+' · onglet</span><div class="chips scroll">'+tabs+'</div>'+
-    '<span class="lab">Date</span><div class="chips scroll" id="cols">'+cols+'</div>'+
-    '<div class="bar"><div class="count">'+pres+' <small>présent'+(pres>1?"s":"")+' / '+d.rows.length+'</small></div><div class="grow"></div>'+
-    '<input class="s" id="q" placeholder="🔎 Chercher un élève" value="'+esc(S.q)+'"><button class="btn" id="rf">⟳</button></div>'+
-    (nv.length>1?'<div class="chips"><button class="chip'+(!S.niv?" on":"")+'" data-niv="">Tous</button>'+nv.map(function(n){return'<button class="chip'+(S.niv===n?" on":"")+'" data-niv="'+n+'">'+n+'e</button>';}).join("")+'</div>':'')+
+  var h='<div class="chips sm scroll">'+tabsHtml(d)+'</div>'+
+    '<div class="chips sm scroll" id="cols">'+cols+'</div>'+
+    '<div class="bar"><div class="count">'+pres+' <small>/ '+d.rows.length+'</small></div>'+
+    (nv.length>1?'<div class="chips sm"><button class="chip'+(!S.niv?" on":"")+'" data-niv="">Tous</button>'+nv.map(function(n){return'<button class="chip'+(S.niv===n?" on":"")+'" data-niv="'+n+'">'+n+'e</button>';}).join("")+'</div>':'')+
+    '<div class="grow"></div><input class="s" id="q" placeholder="🔎 Élève" value="'+esc(S.q)+'"><button class="btn" id="rf" aria-label="Actualiser">⟳</button></div>'+
     '<div class="grid">';
   var last=null;
   L.forEach(function(x){
-    if(x.cl!==last){h+='<div class="cls">'+esc(x.cl||"")+'</div>';last=x.cl;}
+    if(x.cl!==last){var gp=L.filter(function(y){return y.cl===x.cl;}),gn=gp.filter(function(y){return d.at[y.r+"|"+S.col]===1;}).length;h+='<div class="cls">'+esc(x.cl||"")+'<small>'+gn+' / '+gp.length+'</small></div>';last=x.cl;}
     var k=x.r+"|"+S.col,v=d.at[k];if(v===undefined)return;
-    h+='<button class="el'+(v===1?" on":"")+(S.busy[k]?" wait":"")+'" data-r="'+x.r+'"><span class="bx">'+(v===1?"✓":"")+'</span><span class="n">'+esc(x.p)+' '+esc(x.n)+'<small>'+esc(x.cl)+'</small></span></button>';
+    h+='<button class="el'+(v===1?" on":"")+(S.busy[k]?" wait":"")+'" data-r="'+x.r+'"><span class="bx">'+(v===1?"✓":"")+'</span><span class="n" title="'+esc(x.p+" "+x.n+" · "+x.cl)+'"><b>'+esc(x.p)+'</b> '+esc(x.n)+'</span></button>';
   });
   h+='</div>'+(L.length?'':'<p class="m">Aucun élève.</p>');
   var y=window.scrollY,foc=document.activeElement&&document.activeElement.id==="q",cx=$("#cols")?$("#cols").scrollLeft:null;
   A.innerHTML=h;window.scrollTo(0,y);
   var cc=$("#cols");if(cc){if(cx!=null)cc.scrollLeft=cx;else{var on=cc.querySelector(".on");if(on)cc.scrollLeft=on.offsetLeft-cc.offsetLeft-20;}}
   if(foc){var qi=$("#q");qi.focus();qi.setSelectionRange(qi.value.length,qi.value.length);}
-  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.data=null;S.q="";load(S.tab);};});
+  bindTabs(A);
   A.querySelectorAll("[data-col]").forEach(function(b){b.onclick=function(){S.col=+b.dataset.col;try{localStorage.setItem(KP,JSON.stringify({tab:S.tab,col:S.col}));}catch(e){}render();};});
   A.querySelectorAll("[data-niv]").forEach(function(b){b.onclick=function(){S.niv=b.dataset.niv;render();};});
   A.querySelectorAll("[data-r]").forEach(function(b){b.onclick=function(){toggle(+b.dataset.r);};});
@@ -213,7 +219,26 @@ function render(){
   $("#rf").onclick=function(){load(S.tab);};
 }
 /* onglet sans cases à cocher (liste des licenciés, classements…) : affichage en tableau, en lecture seule */
-function tabsHtml(d){return(d.tabs||[]).map(function(t){return'<button class="chip'+(t===S.tab?" on":"")+'" data-tab="'+esc(t)+'">'+esc(t)+'</button>';}).join("");}
+/* ordre des onglets : mois en cours, top licenciés, liste des licenciés, statistiques…, historique ; autres mois regroupés à la fin */
+var ORDRE_MOIS=[8,9,10,11,0,1,2,3,4,5,6,7];
+function moisIdx(t){var n=norm(t);for(var i=0;i<12;i++)if(n.indexOf(norm(MOIS[i]))>=0)return i;return -1;}
+function rang(t){var n=norm(t),m=moisIdx(t);
+  if(m>=0)return m===new Date().getMonth()?0:100+ORDRE_MOIS.indexOf(m);
+  if(/top|classement|palmar/.test(n))return 1;
+  if(/liste|licenci|inscri/.test(n))return 2;
+  if(/histor|unss|enss|archive|annee|ancien/.test(n))return 90;
+  return 10;}
+function tabsHtml(d){
+  var T=(d.tabs||[]).map(function(t,i){return{t:t,r:rang(t),i:i};}).sort(function(a,b){return a.r-b.r||a.i-b.i;});
+  var main=T.filter(function(x){return x.r<100;}),oth=T.filter(function(x){return x.r>=100;});
+  var open=S.moreM||oth.some(function(x){return x.t===S.tab;});
+  var b=function(x){return'<button class="chip'+(x.t===S.tab?" on":"")+'" data-tab="'+esc(x.t)+'">'+esc(x.t)+'</button>';};
+  return main.map(b).join("")+(oth.length?'<button class="chip more" data-more="1">'+(open?"▴ Autres mois":"▾ Autres mois ("+oth.length+")")+'</button>'+(open?oth.map(b).join(""):""):"");
+}
+function bindTabs(A){
+  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.data=null;S.q="";S.niv="";load(S.tab);};});
+  var m=A.querySelector("[data-more]");if(m)m.onclick=function(){S.moreM=!S.moreM;render();};
+}
 function renderInfo(A,d){
   var D=(d.disp||[]).map(function(r){return r.map(function(x){return String(x==null?"":x).trim();});});
   var used=[];D.forEach(function(r){r.forEach(function(x,j){if(x)used[j]=1;});});
@@ -224,17 +249,17 @@ function renderInfo(A,d){
   var head=hi>=0?rows[hi]:[],body=hi>=0?rows.slice(hi+1):rows;
   var q=norm(S.q);if(q)body=body.filter(function(r){return norm(r.join(" ")).indexOf(q)>=0;});
   var isNum=function(x){return /^[-+]?[\d\s]+([.,]\d+)?\s*%?$/.test(x);};
-  var h='<span class="lab">'+esc(d.title||"Fichier")+' · onglet</span><div class="chips scroll">'+tabsHtml(d)+'</div>'+
+  var h='<div class="chips sm scroll">'+tabsHtml(d)+'</div>'+
     (titles.length?'<div class="ttl">'+esc(titles.join("\n"))+'</div>':'')+
     '<div class="bar"><div class="count">'+body.length+' <small>ligne'+(body.length>1?"s":"")+'</small></div><div class="grow"></div>'+
-    '<input class="s" id="q" placeholder="🔎 Chercher" value="'+esc(S.q)+'"><button class="btn" id="rf">⟳</button></div>';
+    '<input class="s" id="q" placeholder="🔎 Chercher" value="'+esc(S.q)+'"><button class="btn" id="rf" aria-label="Actualiser">⟳</button></div>';
   if(!rows.length)h+='<p class="m">Cet onglet est vide.</p>';
   else h+='<div class="tw"><table class="inf"><thead><tr>'+head.map(function(x){return'<th>'+esc(x)+'</th>';}).join("")+'</tr></thead><tbody>'+
     body.map(function(r){return'<tr>'+r.map(function(x){return'<td'+(isNum(x)?' class="num"':'')+'>'+esc(x)+'</td>';}).join("")+'</tr>';}).join("")+'</tbody></table></div>';
   var foc=document.activeElement&&document.activeElement.id==="q";
   A.innerHTML=h;
   if(foc){var qi=$("#q");qi.focus();qi.setSelectionRange(qi.value.length,qi.value.length);}
-  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.data=null;S.q="";load(S.tab);};});
+  bindTabs(A);
   $("#q").oninput=function(e){S.q=e.target.value;render();};
   $("#rf").onclick=function(){load(S.tab);};
 }
