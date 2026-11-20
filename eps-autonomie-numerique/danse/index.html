@@ -1737,7 +1737,7 @@ function load() {
 let S = load();
 let saveTimer = null, dirty = false;
 function saveNow() { clearTimeout(saveTimer); dirty = false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Impossible d\'enregistrer sur cet appareil'); } }
-function save() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 200); }
+function save() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 200); if (typeof synchroBientot === 'function') synchroBientot(5000); }
 window.addEventListener('beforeunload', () => { if (dirty) saveNow(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && dirty) saveNow(); });
 /* liste importée depuis la page d'accueil (autre onglet) : on recharge */
@@ -2397,7 +2397,7 @@ function rClasse() {
   $('#cRen').onclick = async () => { const n = await modal({ titre: 'Renommer la classe', input: { value: cl.nom }, ok: 'Renommer' }); if (n && n.trim()) { cl.nom = n.trim(); save(); route(); } };
   $('#cDel').onclick = async () => {
     if (S.classes.length < 2) { toast('Il faut garder au moins une classe'); return; }
-    if (await modal({ titre: `Supprimer la classe « ${cl.nom} » ?`, html: '<p>Toutes les évaluations de cette classe seront effacées de cet appareil.</p>', ok: 'Supprimer', danger: true })) {
+    if (await modal({ titre: `Supprimer la classe « ${cl.nom} » ?`, html: '<p>Toutes les évaluations de cette classe seront effacées' + (communCfg() ? ' <b>sur tous tes appareils synchronisés</b>' : ' de cet appareil') + '.</p>', ok: 'Supprimer', danger: true })) {
       S.classes = S.classes.filter(c => c.id !== cl.id); S.obs = S.obs.filter(o => o.classeId !== cl.id); S.classeId = S.classes[0].id; save(); route();
     }
   };
@@ -2727,6 +2727,11 @@ function rReglages() {
       ${[0, 1, 2, 3].map(d => `<div class="two"><label>Degré ${d + 1} — enseignant<textarea rows="3" data-t="${i}" data-k="d" data-d="${d}">${esc(c.d[d])}</textarea></label><label>Degré ${d + 1} — élève<textarea rows="3" data-t="${i}" data-k="e" data-d="${d}">${esc(c.e[d])}</textarea></label></div>`).join('')}
     </details>`).join('')}
   </section>
+  <section class="card">
+    <h3>Synchronisation entre tes appareils</h3>
+    <p class="envoi ${etatSynchro().ok ? 'ok' : ''}" id="rSyEtat">${esc(etatSynchro().t)}</p>
+    <div class="row wrap"><button class="btn" id="rSyGo" ${communCfg() ? '' : 'disabled'}>⟳ Synchroniser maintenant</button><span class="muted" id="rSyRes"></span></div>
+  </section>
   <section class="card row wrap">
     <h3>Sauvegarde</h3><span class="grow"></span>
     <button class="btn" id="rSave">Exporter mes données (.json)</button>
@@ -2768,12 +2773,19 @@ function rReglages() {
       S.criteres = grilleVers(k); S.grilleNom = k; save(); toast('Grille chargée'); rReglages();
     }
   };
+  $('#rSyGo').onclick = async () => {
+    const b = $('#rSyGo'); b.disabled = true; $('#rSyRes').textContent = 'Synchronisation…';
+    const r = await synchroniser(); b.disabled = false;
+    if (vue !== 'reglages') return;
+    $('#rSyRes').textContent = r && r.err ? (r.err === 'occupe' ? 'Synchronisation déjà en cours…' : '✕ ' + etatSynchro().t) : `✓ Fait (${r.n} reçu(s), ${r.envoyes} envoyé(s)).`;
+    const st = etatSynchro(); const el = $('#rSyEtat'); el.textContent = st.t; el.classList.toggle('ok', st.ok);
+  };
   $('#rSave').onclick = () => { saveNow(); telecharger(new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }), `danse-eps-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`); };
   $('#rLoad').onchange = ev => lireFichier(ev.target.files[0], async t => {
-    try { const d = JSON.parse(t); if (!d.criteres || !d.classes) throw 0; if (await modal({ titre: 'Restaurer cette sauvegarde ?', html: '<p>Les données actuelles de cet appareil seront remplacées.</p>', ok: 'Restaurer', danger: true })) { S = Object.assign(defState(), d); S.reglages = Object.assign(defState().reglages, d.reglages || {}); saveNow(); toast('Données restaurées'); route(); } }
+    try { const d = JSON.parse(t); if (!d.criteres || !d.classes) throw 0; if (await modal({ titre: 'Restaurer cette sauvegarde ?', html: '<p>Les données actuelles de cet appareil seront remplacées.</p>', ok: 'Restaurer', danger: true })) { S = Object.assign(defState(), d); S.reglages = Object.assign(defState().reglages, d.reglages || {}); saveNow(); synchroBientot(1500); toast('Données restaurées'); route(); } }
     catch (e) { toast('Fichier de sauvegarde invalide'); }
   });
-  $('#rReset').onclick = async () => { if (await modal({ titre: 'Tout effacer ?', html: '<p>Classes, évaluations, observations et réglages seront supprimés de cet appareil. Pense à exporter une sauvegarde avant.</p>', ok: 'Tout effacer', danger: true })) { S = defState(); saveNow(); route(); } };
+  $('#rReset').onclick = async () => { if (await modal({ titre: 'Tout effacer ?', html: '<p>Classes, évaluations, observations et réglages seront supprimés de cet appareil. Pense à exporter une sauvegarde avant.</p>' + (communCfg() ? '<p>Tes autres appareils ne sont pas touchés : les données synchronisées reviendront ici à la prochaine synchronisation.</p>' : ''), ok: 'Tout effacer', danger: true })) { S = defState(); SY = { since: 0, h: {}, u: {}, p: {} }; sySave(); saveNow(); route(); } };
 }
 
 /* =========================================================
@@ -3081,10 +3093,185 @@ function exportCsv(cl) {
   telecharger(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `Danse_${nomFichier(cl.nom)}.csv`);
 }
 
+/* =========================================================
+   SYNCHRONISATION ENTRE APPAREILS — script commun EPS (« Partage entre tablettes », eps.share.v1)
+   Enregistrements chiffrés (AES-GCM, clé dérivée de la clé du partage) : « danse|cfg » (grille + réglages),
+   « danse|cl|<id> » (classe + groupes), « danse|el|<id> » (un élève : degrés, commentaire, statut, auto-positionnement),
+   « danse|ob|<id> » (fiche d'observation). Changements repérés par empreinte ; le plus récent l'emporte, élément par élément.
+   Premier passage sur un appareil (horodatage 2) : fusion avec ce qui existe déjà ailleurs (classes et élèves reconnus par leur nom).
+   ========================================================= */
+const SYK = 'danse-eps-sync-v1';
+let SY = (() => { const v = jget(SYK, null); return v && v.h ? v : { since: 0, h: {}, u: {}, p: {} }; })();
+function sySave() { try { localStorage.setItem(SYK, JSON.stringify(SY)); } catch (e) { } }
+function communCfg() { const c = jget('eps.share.v1', null); return c && c.url && c.key ? { url: c.url, key: c.key } : null; }
+function hs(t) { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return String(h); }
+function enregistrements() {
+  const R = {};
+  R.cfg = { grilleNom: S.grilleNom, grilleV: S.grilleV || 2, criteres: S.criteres, reglages: S.reglages };
+  S.classes.forEach(c => {
+    if (c.nom === 'Ma classe' && !c.eleves.length && !c.groupes.length) return;
+    R['cl|' + c.id] = { id: c.id, nom: c.nom, groupes: c.groupes };
+    c.eleves.forEach(e => { R['el|' + e.id] = Object.assign({ classeId: c.id }, e); });
+  });
+  S.obs.forEach(o => { R['ob|' + o.id] = o; });
+  return R;
+}
+function syScan() {
+  const R = enregistrements(), init = SY.init !== SY.ch; let n = 0;
+  const st = k => init && !SY.u[k] ? 2 : Math.max(Date.now(), (SY.u[k] || 0) + 1);
+  for (const k in R) { const h = hs(JSON.stringify(R[k])); if (SY.h[k] !== h) { SY.h[k] = h; SY.p[k] = st(k); n++; } }
+  for (const k in SY.h) if (!(k in R) && SY.h[k] !== 'DEL') { if (SY.u[k]) { SY.h[k] = 'DEL'; SY.p[k] = st(k); n++; } else { delete SY.h[k]; delete SY.p[k]; } }
+  if (init) SY.init = SY.ch;
+  sySave(); return n;
+}
+let SYKEY = null, SYSRC = '';
+async function syKey(k) {
+  if (SYKEY && SYSRC === k) return SYKEY;
+  const b = await crypto.subtle.importKey('raw', TE.encode(k), 'PBKDF2', false, ['deriveKey']);
+  SYKEY = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: TE.encode('danse-eps-sync-v1'), iterations: 120000, hash: 'SHA-256' }, b, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  SYSRC = k; return SYKEY;
+}
+async function syEnc(k, o) { const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await syKey(k), TE.encode(JSON.stringify(o)))); const r = new Uint8Array(12 + ct.length); r.set(iv); r.set(ct, 12); return u8b64(r); }
+async function syDec(k, x) { const b = b64u8(x); return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b.slice(0, 12) }, await syKey(k), b.slice(12)))); }
+function syRenomme(a, b) { /* une classe ou un élève prend l'identifiant connu ailleurs */
+  if (SY.p[a] && !SY.p[b]) SY.p[b] = SY.p[a];
+  if (SY.u[a]) { SY.h[a] = 'DEL'; SY.p[a] = Math.max(Date.now(), SY.u[a] + 1); } else { delete SY.h[a]; delete SY.p[a]; }
+}
+function classeVideParDefaut(x) { return x.nom === 'Ma classe' && !x.eleves.length && !x.groupes.length; }
+/* applique un enregistrement reçu ; renvoie les clés touchées (ou null s'il est ignoré) */
+function syAppliquer(k, del, o, u) {
+  const t = k.split('|')[0], id = k.slice(t.length + 1), touche = [k];
+  if (t === 'cl' && !del && !S.classes.some(c => c.id === id)) {
+    const c = S.classes.find(x => norm(x.nom) === norm(o.nom) && !x._recu);
+    if (c) { const old = c.id; syRenomme('cl|' + old, k); c.id = id; S.obs.forEach(ob => { if (ob.classeId === old) ob.classeId = id; }); if (S.classeId === old) S.classeId = id; }
+  }
+  if (t === 'el' && !del && !S.classes.some(c => c.eleves.some(e => e.id === id))) {
+    const c = S.classes.find(x => x.id === o.classeId);
+    const e2 = c && c.eleves.find(x => norm(x.nom) === norm(o.nom) && norm(x.prenom) === norm(o.prenom));
+    if (e2) { const old = e2.id; syRenomme('el|' + old, k); e2.id = id; S.obs.forEach(ob => { if (ob.obsId === old) ob.obsId = id; }); if (UI.selId === old) UI.selId = id; }
+  }
+  const pend = SY.p[k];
+  if (pend && pend > 2 && pend >= u) return null; // modification locale plus récente : elle sera envoyée
+  const fusion = !!(pend && pend <= 2 && !del);
+  if (k === 'cfg') {
+    if (fusion) {
+      const parDefaut = S.grilleNom === 'origine' && JSON.stringify(S.criteres) === JSON.stringify(grilleVers('origine'));
+      if (parDefaut) { S.criteres = o.criteres; S.grilleNom = o.grilleNom; S.grilleV = o.grilleV; }
+      const R0 = S.reglages; Object.keys(o.reglages || {}).forEach(x => { if (R0[x] === '' || R0[x] == null || R0[x] === false) R0[x] = o.reglages[x]; });
+    } else { S.criteres = o.criteres; S.grilleNom = o.grilleNom; S.grilleV = o.grilleV; S.reglages = Object.assign(defState().reglages, o.reglages || {}); }
+  } else if (t === 'cl') {
+    let c = S.classes.find(x => x.id === id);
+    if (del) { if (c) { S.classes = S.classes.filter(x => x !== c); S.obs = S.obs.filter(ob => ob.classeId !== id); } }
+    else {
+      if (!c) { c = { id, nom: o.nom, groupes: [], eleves: [] }; S.classes.push(c); }
+      c._recu = true;
+      if (fusion) { (o.groupes || []).forEach(g => { if (!c.groupes.some(x => x.id === g.id || norm(x.nom) === norm(g.nom))) c.groupes.push(g); }); if (c.nom === '…') c.nom = o.nom; }
+      else { c.nom = o.nom; c.groupes = o.groupes || []; }
+    }
+  } else if (t === 'el') {
+    let f = null; S.classes.forEach(c => { const e = c.eleves.find(x => x.id === id); if (e) f = { c, e }; });
+    if (del) { if (f) f.c.eleves = f.c.eleves.filter(x => x !== f.e); }
+    else {
+      let c = S.classes.find(x => x.id === o.classeId);
+      if (!c) { c = { id: o.classeId, nom: '…', groupes: [], eleves: [] }; S.classes.push(c); touche.push('cl|' + c.id); }
+      const data = Object.assign({}, o); delete data.classeId;
+      if (!f) c.eleves.push(Object.assign({ ev: {}, comm: '', statut: '', groupeId: '' }, data));
+      else {
+        if (f.c !== c) { f.c.eleves = f.c.eleves.filter(x => x !== f.e); c.eleves.push(f.e); }
+        const L = f.e;
+        if (fusion) {
+          L.ev = Object.assign({}, data.ev || {}, L.ev || {}); L.comm = L.comm || data.comm || ''; L.statut = L.statut || data.statut || '';
+          if (!L.groupeId || !c.groupes.some(g => g.id === L.groupeId)) L.groupeId = data.groupeId || L.groupeId || '';
+          if (data.auto && (!L.auto || (data.auto.t || 0) > (L.auto.t || 0))) L.auto = data.auto;
+        } else { Object.keys(L).forEach(x => delete L[x]); Object.assign(L, { ev: {}, comm: '', statut: '', groupeId: '' }, data); }
+      }
+    }
+  } else if (t === 'ob') {
+    const i = S.obs.findIndex(x => x.id === id);
+    if (del) { if (i >= 0) S.obs.splice(i, 1); } else if (i >= 0) S.obs[i] = o; else S.obs.push(o);
+  } else return null;
+  if (S.classes.length > 1) S.classes = S.classes.filter(x => !classeVideParDefaut(x));
+  if (!S.classes.length) S.classes = [{ id: uid(), nom: 'Ma classe', eleves: [], groupes: [] }];
+  if (!S.classes.some(x => x.id === S.classeId)) S.classeId = S.classes[0].id;
+  SY.u[k] = u;
+  if (fusion) SY.p[k] = Math.max(Date.now(), u + 1); else delete SY.p[k];
+  return touche;
+}
+let syEnCours = false, syTimer = null;
+function synchroBientot(ms) { clearTimeout(syTimer); syTimer = setTimeout(synchroniser, ms || 0); }
+async function synchroniser() {
+  const cfg = communCfg();
+  if (!cfg || !cryptoOk() || syEnCours || navigator.onLine === false) return { err: cfg ? 'occupe' : 'partage' };
+  syEnCours = true;
+  try {
+    const sig = hs(cfg.url + '|' + cfg.key);
+    if (SY.ch !== sig) SY = { since: 0, h: {}, u: {}, p: {}, ch: sig };
+    if (dirty) saveNow();
+    syScan();
+    let recus = [];
+    for (let lp = 0; lp < 30; lp++) {
+      const q = await jsonpGet(cfg.url, { key: cfg.key, pull: 1, since: SY.since || 0, pre: 'danse|' });
+      if (!q) { SY.err = 'connexion'; sySave(); return { err: 'connexion' }; }
+      if (!q.keyOk) { SY.err = 'cle'; sySave(); return { err: 'cle' }; }
+      if (!q.sync) { SY.err = 'script'; sySave(); return { err: 'script' }; }
+      const L = q.recs || [];
+      for (const [, kk, u, d, x] of L) {
+        const k = String(kk).slice(6); if ((+u || 0) <= (SY.u[k] || 0)) continue;
+        let o = null; if (!+d) { try { o = await syDec(cfg.key, x); } catch (e) { continue; } }
+        const t = syAppliquer(k, !!+d, o, +u || 0); if (t) recus = recus.concat(t);
+      }
+      SY.since = L.length ? +L[L.length - 1][0] : Math.max(SY.since || 0, +q.seq || 0);
+      if (!q.more) break;
+    }
+    S.classes.forEach(c => delete c._recu);
+    if (recus.length) {
+      const R = enregistrements(); recus.forEach(k => { if (!SY.p[k]) SY.h[k] = k in R ? hs(JSON.stringify(R[k])) : 'DEL'; else if (k in R) SY.h[k] = hs(JSON.stringify(R[k])); });
+      saveNow(); syScan();
+    }
+    const ks = Object.keys(SY.p);
+    if (ks.length) {
+      const R = enregistrements(), rang = k => k === 'cfg' ? 0 : k.startsWith('cl|') ? 1 : k.startsWith('el|') ? 2 : 3;
+      ks.sort((a, b) => rang(a) - rang(b));
+      for (let i = 0; i < ks.length; i += 40) {
+        const lot = ks.slice(i, i + 40), recs = [];
+        for (const k of lot) { const del = !(k in R); recs.push({ k: 'danse|' + k, u: SY.p[k], d: del ? 1 : 0, x: del ? '' : await syEnc(cfg.key, R[k]) }); }
+        await fetch(cfg.url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: cfg.key, sync: { dev: 'danse', recs } }) });
+        lot.forEach(k => { SY.u[k] = SY.p[k]; delete SY.p[k]; });
+        sySave();
+      }
+    }
+    SY.last = Date.now(); SY.err = ''; sySave();
+    if (recus.length) rafraichirApresSynchro(recus.length);
+    return { n: recus.length, envoyes: ks.length };
+  } catch (e) { console.warn(e); return { err: 'erreur' }; }
+  finally { syEnCours = false; }
+}
+let rafraichirPlusTard = false;
+function rafraichirApresSynchro(n) {
+  if (vue === 'eleve') return;
+  const a = document.activeElement;
+  if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && a.type !== 'button' && a.type !== 'checkbox') { rafraichirPlusTard = true; return; }
+  if (TEACH.includes(vue) && !isTeacher()) return;
+  const y = window.scrollY; VUES[vue](); window.scrollTo(0, y); majEntete();
+  if (n) toast(n > 1 ? `Danse mise à jour depuis un autre appareil (${n} éléments)` : 'Danse mise à jour depuis un autre appareil');
+}
+document.addEventListener('focusout', () => { if (rafraichirPlusTard) { rafraichirPlusTard = false; setTimeout(() => rafraichirApresSynchro(0), 300); } });
+function etatSynchro() {
+  if (!communCfg()) return { ok: false, t: 'Inactive : règle le « Partage entre tablettes » (page d\'accueil, Réglages) avec la clé du script commun. En attendant, tes évaluations restent sur cet appareil.' };
+  if (SY.err === 'cle') return { ok: false, t: 'Clé du partage refusée par le script commun.' };
+  if (SY.err === 'script') return { ok: false, t: 'L\'adresse du partage n\'est pas celle du script commun.' };
+  if (SY.err === 'connexion') return { ok: false, t: 'Pas de connexion au script commun pour l\'instant : les changements partiront dès le retour du réseau.' };
+  return { ok: true, t: 'Active : tes classes, évaluations, groupes et fiches d\'observation suivent sur tous tes appareils réglés avec la clé du partage (chiffré).' + (SY.last ? ' Dernière synchronisation : ' + new Date(SY.last).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '.' : '') };
+}
+setInterval(() => { if (!document.hidden) synchroniser(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) synchroBientot(500); });
+window.addEventListener('online', () => synchroBientot(500));
+
 /* ---------- Démarrage ---------- */
 $('#tabs').onclick = ev => { const b = ev.target.closest('button[data-v]'); if (b) aller(b.dataset.v); };
 $('#bLock').onclick = boutonVerrou;
 route();
+synchroBientot(1200);
 </script>
 <script src="../eps-home.js" defer></script>
 </body>
