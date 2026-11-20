@@ -643,18 +643,18 @@ setInterval(()=>{if(navigator.onLine!==false)flushAll()},30000);
 const K_CODES="acro.codes.v1";
 function classCode(c){return (store.get(K_CODES,{})[norm(c)]||"")}
 function setClassCode(c,v){const m=store.get(K_CODES,{});if(v)m[norm(c)]=v;else delete m[norm(c)];store.set(K_CODES,m)}
+/* code de classe : jamais demandé aux élèves. Il est enregistré sur la tablette quand l'enseignant s'y connecte (mode enseignant) ;
+   en mode enseignant, le mot de passe enseignant suffit. */
+function keepCodes(r){if(r&&r.codes&&typeof r.codes==="object")Object.keys(r.codes).forEach(c=>setClassCode(c,r.codes[c]))}
+async function teacherCheck(pw){const r=await api("teacherCheck",{teacher:pw});keepCodes(r);return r}
 async function apiC(action,payload,classe){
-  for(let tries=0;tries<3;tries++){
-    try{return await api(action,{...payload,classe,code:classCode(classe)})}
-    catch(e){
-      if(e.network||!/Code de classe/.test(e.message)) throw e;
-      setClassCode(classe,"");
-      const v=await askPassword((tries?"Code incorrect. ":"")+"Code de la classe "+classe+" (donné par l'enseignant)");
-      if(!v) throw new Error("Code de classe nécessaire");
-      setClassCode(classe,v.trim());
-    }
+  const extra=teacherPw?{teacher:teacherPw}:{};
+  try{return await api(action,{...payload,...extra,classe,code:classCode(classe)})}
+  catch(e){
+    if(e.network||!/Code de classe/.test(e.message)) throw e;
+    setClassCode(classe,"");
+    throw new Error("Cette tablette n'est pas encore prête pour la classe "+classe+" : demande à ton enseignant d'ouvrir une fois l'espace enseignant 🔒 sur cette tablette.");
   }
-  throw new Error("Code de classe incorrect");
 }
 let serverClasses=(store.get(K_CACHE,{})["__classes"]||[]);
 async function refreshClasses(){
@@ -881,7 +881,7 @@ document.getElementById("enterBtn").onclick=async e=>{
     // le mot de passe enseignant ouvre aussi tous les groupes
     if(!err.network&&/Mot de passe/.test(err.message)){
       try{
-        await api("teacherCheck",{teacher:pw});
+        await teacherCheck(pw);
         teacherPw=pw; store.set(K_TPH,await sha("prof|"+pw));
         const key=norm(homeClass)+"|"+norm(it.nom);
         const r=await api("teacherLoad",{teacher:pw,key});
@@ -1909,6 +1909,7 @@ if(o.err)E.textContent=o.err;keys();dots();document.body.appendChild(el)})}
 /* mode enseignant partagé par toutes les applis (page d'accueil commune) */
 const hubT=()=>{try{return Date.now()<+(localStorage.getItem("eps.teach.until")||0)}catch(e){return false}},hubOn=()=>{try{localStorage.setItem("eps.teach.until",String(Date.now()+3600000))}catch(e){}};
 try{if(hubT()&&localStorage.getItem("acro.tpw"))teacherPw=localStorage.getItem("acro.tpw")}catch(e){}
+if(teacherPw&&apiUrl())teacherCheck(teacherPw).catch(()=>{});
 /* onglet « Mon parcours » : visible seulement en mode enseignant */
 function profMode(){const on=hubT();document.body.classList.toggle("acroProf",on);if(!on){const t=document.querySelector('.tab.on[data-tab="path"]');if(t)try{showTab("routine")}catch(e){}}}
 setInterval(profMode,1500);document.addEventListener("DOMContentLoaded",profMode);
@@ -1920,7 +1921,7 @@ async function openProf(){
     check:async v=>{
       if(!online){if(v===prof.pin){hubOn();profMode();return true}return "Code incorrect."}
       const ok=async()=>{teacherPw=v;try{localStorage.setItem("acro.tpw",v)}catch(e){}hubOn();profMode();store.set(K_TPH,await sha("prof|"+v));return true};
-      try{await api("teacherCheck",{teacher:v});return await ok()}
+      try{await teacherCheck(v);return await ok()}
       catch(e){
         if(e.network){const h=store.get(K_TPH,"");if(h&&h===await sha("prof|"+v)){toast("Hors connexion : accès enseignant");return await ok()}return "Pas de connexion : impossible de vérifier le mot de passe."}
         if(/Mot de passe/.test(e.message))return "Mot de passe incorrect.";

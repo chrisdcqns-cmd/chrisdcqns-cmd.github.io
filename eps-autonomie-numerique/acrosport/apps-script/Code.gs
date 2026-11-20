@@ -114,7 +114,12 @@ function traiter_(req) {
   // ---- actions enseignant ----
   if (String(req.teacher || '') !== MOT_DE_PASSE_PROF) throw new Error('Mot de passe enseignant incorrect');
 
-  if (a === 'teacherCheck') return { ok: true };
+  if (a === 'teacherCheck') {
+    // codes des classes : enregistrés sur la tablette quand l'enseignant s'y connecte, pour que les élèves n'aient jamais à les taper
+    const codes = {};
+    lignes_(T_CLASSES).forEach(r => { if (String(r.v[1] || '').trim()) codes[String(r.v[0])] = String(r.v[1]).trim(); });
+    return { ok: true, codes: codes };
+  }
   if (a === 'teacherList') {
     return { ok: true, groups: lignes_(T_GROUPES).map(r => ({ key: r.v[0], classe: r.v[1], nom: r.v[2], membres: r.v[3], maj: r.v[6], seances: r.v[7] })) };
   }
