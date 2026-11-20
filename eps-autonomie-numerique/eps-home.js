@@ -144,6 +144,7 @@
     Object.keys(D.items).forEach(function (id) { if (!D.pend[id]) D.pend[id] = 1; }); sv(D);
     var LL = lld(); LL.since = 0; Object.keys(LL.items).forEach(function (id) { if (!LL.pend[id]) LL.pend[id] = 1; }); lsv(LL);
     try { var r = rget(); r.since = 0; if (!r.pend && r.u) r.pend = r.u; localStorage.setItem(KR, JSON.stringify(r)); } catch (e) {}
+    try { var ee = eget(); ee.since = 0; if (ee.data && !ee.pend) ee.pend = ee.u || Date.now(); eset(ee); } catch (e) {}
   }
   function shCfg() { var s = shareGet(); return s.url && s.key ? s : null; }
   function shareSettings(back) {
@@ -252,6 +253,7 @@
       }
       if (lch) try { window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {}
       try { await syncReg(cfg); } catch (e) {}
+      try { await syncEdt(cfg); } catch (e) {}
     } catch (e) { lastErr = "réseau"; }
     finally { busy = false; sched(); }
   }
@@ -780,6 +782,33 @@
       if (!q.more) break;
     }
   }
+  /* ================= Emploi du temps (application edt/, mode enseignant) =================
+     localStorage « eps.edt.v1 » : {data (export « Appli EPS » de Planif EPS), u, pend, since} → enregistrement chiffré « edt|equipe » partagé entre les tablettes */
+  var KE = "eps.edt.v1";
+  function eget() { try { return JSON.parse(localStorage.getItem(KE) || "null") || {}; } catch (e) { return {}; } }
+  function eset(v) { try { localStorage.setItem(KE, JSON.stringify(v)); } catch (e) {} }
+  async function syncEdt(cfg) {
+    var E = eget();
+    if (E.pend && E.data) {
+      var x = await enc(cfg.key, JSON.stringify({ data: E.data, u: E.u }));
+      if (x.length < 48000) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, sync: { dev: "edt", recs: [{ k: "edt|equipe", u: E.pend, d: 0, x: x }] } }) });
+      E = eget(); delete E.pend; eset(E);
+      await new Promise(function (res) { setTimeout(res, 1200); });
+    }
+    for (var lp = 0; lp < 10; lp++) {
+      E = eget(); var q = await jsonp(cfg, { pull: 1, since: E.since || 0, pre: "edt|" });
+      if (!q || !q.keyOk || !q.sync) break;
+      var L = q.recs || [], ch = false;
+      for (var i = 0; i < L.length; i++) {
+        if (String(L[i][1]) !== "edt|equipe" || +L[i][3]) continue;
+        try { var o = JSON.parse(await dec(cfg.key, L[i][4])); if ((+o.u || 0) > (+E.u || 0) && !E.pend) { E.data = o.data; E.u = o.u; ch = true; } } catch (e) {}
+      }
+      E.since = L.length ? +L[L.length - 1][0] : Math.max(E.since || 0, +q.seq || 0); eset(E);
+      if (ch) try { window.dispatchEvent(new CustomEvent("eps-edt")); } catch (e) {}
+      if (!q.more) break;
+    }
+  }
+  window.EPSE = { get: eget, set: function (data) { var E = eget(); E.data = data; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); } };
   var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["danse", "Danse"], ["co-eval", "CO – Évaluation"]];
   function reglages(msg) {
     var r = rget();
