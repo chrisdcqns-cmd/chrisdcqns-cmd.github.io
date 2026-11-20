@@ -433,7 +433,7 @@
   function clsId(n) { var h = 5381, t = String(n).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " "); for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return "n" + (h >>> 0).toString(36); }
   function freeId(list, id) { return list.some(function (x) { return x.id === id; }) ? "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) : id; }
   function full(e) { return (e.prenom + " " + e.nom).replace(/\s+/g, " ").trim(); }
-  var TARGETS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["dan", "Danse"], ["acro", "Acrosport"]];
+  var TARGETS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["bad", "Badminton"], ["dan", "Danse"], ["acro", "Acrosport"]];
   /* Danse (évaluation CA3) : localStorage « danse-eps-v1 » = {classes:[{id,nom,eleves:[{id,nom,prenom,groupeId,ev,comm,statut}],groupes}], classeId, …} (grille et réglages créés par l'application) */
   function toDan(cl, L) {
     var D = jget("danse-eps-v1", null); if (!D || typeof D !== "object") D = { classes: [] };
@@ -455,6 +455,18 @@
       c.eleves.push({ id: "e" + h32v(nkey(e.prenom + " " + e.nom) + "|" + c.id), nom: e.nom, prenom: e.prenom, ev: {}, choix: "4-4", statut: "", comment: "" }); n++; });
     c.eleves.sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); });
     V.cur = V.classes.indexOf(c); localStorage.setItem("eps_volley_eval_v1", JSON.stringify(V)); return n;
+  }
+  /* Badminton : localStorage « eps_badminton_v1 » = {voie, prof, tech, presets, classes:[{id,nom,voie,eleves:[{id,nom,prenom,ev,choix,statut,comment,rout}],matchs,poules}], cur} (grilles, séquence et situations créées par l'application) */
+  function toBad(cl, L) {
+    var V = jget("eps_badminton_v1", null); if (!V || typeof V !== "object") V = { classes: [], cur: 0 };
+    V.classes = (V.classes || []).filter(function (c) { return !(c.nom === "Ma classe" && !(c.eleves || []).length && !Object.keys(c.matchs || {}).length); });
+    var voie = V.voie === "pro" ? "pro" : "gt";
+    var c = V.classes.filter(function (x) { return norm(x.nom) === norm(cl); })[0], n = 0;
+    if (!c) { c = { id: freeId(V.classes, clsId(cl)), nom: cl, voie: voie, eleves: [], matchs: {}, poules: {} }; V.classes.push(c); }
+    L.forEach(function (e) { if (c.eleves.some(function (x) { return nkey(x.prenom + " " + x.nom) === nkey(e.prenom + " " + e.nom); })) return;
+      c.eleves.push({ id: "e" + h32v(nkey(e.prenom + " " + e.nom) + "|" + c.id), nom: e.nom, prenom: e.prenom, ev: {}, choix: "4-4", statut: "", comment: "", rout: {} }); n++; });
+    c.eleves.sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); });
+    V.voie = c.voie || voie; V.cur = V.classes.indexOf(c); localStorage.setItem("eps_badminton_v1", JSON.stringify(V)); return n;
   }
   function toEsc(cl, L) {
     var a = []; try { a = JSON.parse(localStorage.getItem("escalade.cl") || "[]") || []; } catch (e) {}
@@ -649,7 +661,7 @@
         var res = [];
         for (var i = 0; i < TARGETS.length; i++) { var t = TARGETS[i]; if (!sel[t[0]]) continue;
           try {
-            var n = t[0] === "esc" ? toEsc(cl, L) : t[0] === "rel" ? toRel(cl, L) : t[0] === "ori" ? await toOri(cl, L) : t[0] === "vol" ? toVol(cl, L) : t[0] === "dan" ? toDan(cl, L) : await toAcro(cl, L);
+            var n = t[0] === "esc" ? toEsc(cl, L) : t[0] === "rel" ? toRel(cl, L) : t[0] === "ori" ? await toOri(cl, L) : t[0] === "vol" ? toVol(cl, L) : t[0] === "bad" ? toBad(cl, L) : t[0] === "dan" ? toDan(cl, L) : await toAcro(cl, L);
             res.push("✓ " + t[1] + " : " + (t[0] === "acro" ? n + " élève(s) dans la liste en ligne" : n + " élève(s) ajouté(s)"));
           } catch (x) { res.push("✕ " + t[1] + " : " + (x && x.message === "annulé" ? "annulé" : "échec (" + esc(x && x.message || "erreur") + ")")); }
         }
@@ -809,7 +821,7 @@
     }
   }
   window.EPSE = { get: eget, set: function (data) { var E = eget(); E.data = data; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); } };
-  var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["danse", "Danse"], ["co-eval", "CO – Évaluation"]];
+  var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["badminton", "Badminton"], ["danse", "Danse"], ["co-eval", "CO – Évaluation"]];
   function reglages(msg) {
     var r = rget();
     var chips = function (L, on, attr) { return L.map(function (x) { return '<button type="button" ' + attr + '="' + esc(x[0]) + '" class="' + (on(x[0]) ? "on" : "") + '">' + esc(x[1]) + "</button>"; }).join(""); };
@@ -828,7 +840,7 @@
       '<div class="epsd-cls" style="margin-top:18px">Appel AS</div>' +
       '<span class="epsd-lab">Lien du fichier d\'appel de l\'association sportive (Google Sheets)</span><input class="epsd-in" id="er-as" placeholder="https://docs.google.com/spreadsheets/d/…" value="' + esc(r.asSheet || "") + '">' +
       '<div class="epsd-cls" style="margin-top:18px">Listes d\'élèves</div>' +
-      '<p class="m">Une liste importée ou corrigée ici va dans Escalade, Relais Vitesse, OrienRun, Acrosport, Volley-ball et Danse, et sur toutes tes tablettes.</p>' +
+      '<p class="m">Une liste importée ou corrigée ici va dans Escalade, Relais Vitesse, OrienRun, Acrosport, Volley-ball, Badminton et Danse, et sur toutes tes tablettes.</p>' +
       '<div id="er-cls" class="m" style="margin:6px 0 4px">…</div>' +
       '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-edit">✏️ Modifier les listes</button><button type="button" class="p" id="er-imp">📥 Importer une liste d\'élèves</button></div>' +
       '<div class="epsd-cls" style="margin-top:18px">Sauvegarde</div>' +

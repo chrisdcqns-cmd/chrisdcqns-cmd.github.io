@@ -1,9 +1,9 @@
 // EPS – Autonomie et Numérique : service worker de la racine.
-// Il ne gère que la page d'accueil (/eps-autonomie-numerique/), le bouton Accueil partagé, Relais Vitesse, Volley-ball, Danse, Emploi du temps et Appel AS (qui n'ont pas de service worker propre).
+// Il ne gère que la page d'accueil (/eps-autonomie-numerique/), le bouton Accueil partagé, Relais Vitesse, Volley-ball, Badminton, Danse, Emploi du temps et Appel AS (qui n'ont pas de service worker propre).
 // Acrosport, Escalade et OrienRun gardent leur propre service worker : leurs requêtes ne sont pas touchées ici.
-const CORE = "eps-core-v13";
+const CORE = "eps-core-v14";
 const B = "/eps-autonomie-numerique/"; // adresse des applications
-const CORE_FILES = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", B, B + "index.html", B + "eps-home.js", B + "eps-qr.js", B + "relais/", B + "relais/index.html", B + "volley/", B + "volley/index.html", B + "danse/", B + "danse/index.html", B + "edt/", B + "edt/index.html", B + "appel-as/", B + "appel-as/index.html"];
+const CORE_FILES = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", B, B + "index.html", B + "eps-home.js", B + "eps-qr.js", B + "relais/", B + "relais/index.html", B + "volley/", B + "volley/index.html", B + "badminton/", B + "badminton/index.html", B + "badminton/echauffement-deplacements.webp", B + "danse/", B + "danse/index.html", B + "edt/", B + "edt/index.html", B + "appel-as/", B + "appel-as/index.html"];
 // Bibliothèques externes utilisées par Relais Vitesse (lecture Excel, polices)
 const EXT = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 
@@ -17,7 +17,7 @@ self.addEventListener("activate", e => {
 function mine(url) {
   if (url.origin === location.origin) {
     const p = url.pathname;
-    return p === "/" || p === "/index.html" || p === "/manifest.webmanifest" || p === "/eps-home.js" || /^\/icon-\d+\.png$/.test(p) || p === B || p === B + "index.html" || p === B + "eps-home.js" || p === B + "eps-qr.js" || p.startsWith(B + "relais/") || p.startsWith(B + "volley/") || p.startsWith(B + "danse/") || p.startsWith(B + "edt/") || p.startsWith(B + "appel-as/");
+    return p === "/" || p === "/index.html" || p === "/manifest.webmanifest" || p === "/eps-home.js" || /^\/icon-\d+\.png$/.test(p) || p === B || p === B + "index.html" || p === B + "eps-home.js" || p === B + "eps-qr.js" || p.startsWith(B + "relais/") || p.startsWith(B + "volley/") || p.startsWith(B + "badminton/") || p.startsWith(B + "danse/") || p.startsWith(B + "edt/") || p.startsWith(B + "appel-as/");
   }
   return EXT.test(url.href);
 }
@@ -49,7 +49,7 @@ self.addEventListener("fetch", e => {
       return res;
     } catch (err) {
       const hit = await cache.match(req, { ignoreSearch: true }) ||
-        (req.mode === "navigate" ? await cache.match(url.pathname.startsWith(B + "relais/") ? B + "relais/" : url.pathname.startsWith(B + "volley/") ? B + "volley/" : url.pathname.startsWith(B + "danse/") ? B + "danse/" : url.pathname.startsWith(B + "edt/") ? B + "edt/" : url.pathname.startsWith(B + "appel-as/") ? B + "appel-as/" : B) : null);
+        (req.mode === "navigate" ? await cache.match(url.pathname.startsWith(B + "relais/") ? B + "relais/" : url.pathname.startsWith(B + "volley/") ? B + "volley/" : url.pathname.startsWith(B + "badminton/") ? B + "badminton/" : url.pathname.startsWith(B + "danse/") ? B + "danse/" : url.pathname.startsWith(B + "edt/") ? B + "edt/" : url.pathname.startsWith(B + "appel-as/") ? B + "appel-as/" : B) : null);
       if (hit) return hit;
       throw err;
     }
