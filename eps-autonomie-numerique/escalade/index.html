@@ -334,6 +334,8 @@ header [data-eps-bar]{margin-left:8px}
 .card{box-shadow:0 1px 0 #E6E1D6,0 8px 20px -16px #14171C66}
 .sea{background:var(--appt);color:var(--app2)}
 .sum{background:var(--appt)}
+.sywarn{background:#fff3cd;border:2px solid #e0a800;border-radius:12px;padding:10px 12px;margin:8px 0;font-weight:700;color:#5c4400;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;text-align:left}.sywarn .b{min-height:40px}
+.devs .devr{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-left:5px solid #2b8a3e;background:#f3f7f4;border-radius:8px;margin:6px 0}.devr span{font-size:14px}.devr small{color:#667}.devr em{color:#a33;font-style:normal;font-weight:700;font-size:13px}.devr.old{border-left-color:#999;opacity:.8}.devr.err{border-left-color:#d33}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span><span data-eps-bar></span></header>
 <nav id="nav"></nav>
@@ -403,6 +405,13 @@ function clsScr(){const cur=CF.sea?.cl||'';
  <div class="rbtns cl">${CL.map(c=>`<button class="tile ${cur==c.id?'cur':''}" style="background:#2e7d4f" onclick="pickCl('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)</span></button>`).join('')}
  ${CL.length?'':`<button class="tile" style="background:#5b6b75" onclick="pickCl('')"><b>Sans liste</b><span>je tape mon prénom</span></button>`}</div>
  <p style="margin-top:18px"><button class="b g" onclick="S.t='role';render()">← Retour</button></p></div>`}
+/* enseignant : choisir la classe en entrant dans l'appli */
+function tclScr(){const t=today();
+ return `<div class="role"><h2>Choisis la classe</h2><p class="mut">${cap(fday(t,true))} · la leçon, la tablette de contrôle et les résultats s'ouvrent sur cette classe.</p>${syWarn()}
+ <div class="rbtns cl">${[...CL].sort((a,b)=>a.nom.localeCompare(b.nom,'fr')).map(c=>{const L=lecFor(c.id,t),n=recOf(c.nom,t).length;return `<button class="tile ${CF.sel==c.id?'cur':''}" style="background:#16252d" onclick="tPick('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)${L?' · leçon prête':' · pas de leçon aujourd\'hui'}${n?' · '+n+' '+pw(n,'grimpe')+' aujourd\'hui':''}</span></button>`}).join('')}
+ <button class="tile" style="background:#5b6b75" onclick="tPick('')"><b>Sans liste</b><span>l'élève tape son prénom</span></button></div>
+ ${cls()&&seaOK()?`<p style="margin-top:18px;text-align:center"><button class="b g" onclick="S.t='home';render()">Garder ${esc(cls().nom)}</button></p>`:''}</div>`}
+function tPick(id){CF.sel=id;const L=lecFor(id,today());if(L){CF.sea=clone(L);fresh()}save();S.t=L?'home':'set';S.ce=null;render();scrollTo(0,0)}
 function pickCl(id){if(!S.T&&!lecFor(id,today())){CF.wcl=id;save();S.t='wait';render();scrollTo(0,0);return}activate(id);fresh();const k=cls();S.gs=[];S.gid=null;S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
 /* ---------- groupe ---------- */
 function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
@@ -429,10 +438,12 @@ function waitScr(){const k=CL.find(c=>c.id==CF.wcl);return `<div class="role wai
 setInterval(()=>{if(!S.T&&S.t=='wait'){const id=CF.wcl;if(CL.length?id&&lecFor(id,today()):seaOK())CL.length?pickCl(id):(S.t='home',render())}},3000);
 function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK()?`<span class="sea">${esc(cls().nom)}</span>`:''}<p class="mut">Qui utilise la tablette ?</p>
  <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="eleve()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
- <button class="tile tprof" style="background:#16252d" onclick="unlock(seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
+ <button class="tile tprof" style="background:#16252d" onclick="unlock(CL.length?'tcl':seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
 function render(){
  if(!S.T&&['role','pickcl'].includes(S.t)&&window.EPSG&&EPSG.open&&!document.querySelector('.epsg'))setTimeout(()=>{if(!S.T&&['role','pickcl'].includes(S.t))EPSG.open()},0);
  if(!S.T&&!seaOK()&&['set','home','gr','mr','cot','the'].includes(S.t))S.t='wait';
+ if(S.t=='tcl'&&!S.T)S.t='role';
+ if(S.t=='tcl'){S.e=false;$('#tm').innerHTML=`<button class="b on" onclick="quitT()">Quitter mode prof</button>`;$('#nav').style.display='none';$('#m').innerHTML=tclScr();document.body.dataset.t='tcl';return}
  if(S.t=='role'||S.t=='pickcl'||S.t=='grp'||S.t=='wait'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():S.t=='grp'?grpScr():S.t=='wait'?waitScr():clsScr();return}
  if(!S.T){S.e=false;if(S.t=='res'||S.t=='ctl'||S.t=='cls'||S.t=='ped'||(S.t=='set'&&seaOK()))S.t='home'}
  if(S.t!='cot')S.cm='';
@@ -476,7 +487,7 @@ const tIco=k=>TI[k]?`<i class="tib"><svg class="ti" viewBox="0 0 24 24" fill="no
 function objBar(){const L0=seaOK()?CF.sea:null,L=L0&&(LEC().find(l=>l.id==L0.id)||L0),o=String(L?.obj||'').trim(),m=L?.min||0,X=(L?.sit||[]).map(sitOf).filter(Boolean);if(!o&&!m&&!X.length)return '';
  return `<div class="objl">${o?`<span class="objt"><small>Objectif de la leçon</small>${esc(o)}</span>`:''}${X.map(x=>`<button class="objs" onclick="sitDlg('${x.id}')"><small>Situation</small>📋 ${esc(x.ti)}</button>`).join('')}${m?`<span class="objb" title="Objectif de voies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 20.5 9 9l4 6.5 2.5-4 6 9z"/><path d="M9 9V3.5l4 1.6-4 1.6"/></svg><b>${m}</b> ${m>1?'voies':'voie'}</span>`:''}</div>`}
 function home(){S.e=false;const t=S.T?[['set','Leçons et classes','#16252d','tprof','Préparer, consulter'],['cls','Classes et élèves','#16252d','tprof','Importer, renommer, modifier'],...TILES,['ctl','Tablette de contrôle','#16252d','tprof','Tous les élèves en direct'],['res','Résultats et QR codes','#16252d','tprof','Excel, Google Sheets, regroupement']]:TILES;
- return `<div class="homeW ${S.T?'tm':''}"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}</div>${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="editG()">🔒 Modifier</button><button class="b g chcl" onclick="S.gs=[];S.gid=null;S.t='grp';render()">Changer de groupe</button></div>`:''}${objBar()}<div class="tiles">${t.map(([k,n,c,x,d])=>k=='imp_'?`<label class="tile ${x||''}" style="--c:${c}">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div><input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label>`:`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div></button>`).join('')}</div></div>`}
+ return `<div class="homeW ${S.T?'tm':''}"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}${S.T&&CL.length?` <button class="b g chcl" onclick="S.t='tcl';render()">Changer de classe</button>`:''}</div>${S.T?syWarn():''}${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="editG()">🔒 Modifier</button><button class="b g chcl" onclick="S.gs=[];S.gid=null;S.t='grp';render()">Changer de groupe</button></div>`:''}${objBar()}<div class="tiles">${t.map(([k,n,c,x,d])=>k=='imp_'?`<label class="tile ${x||''}" style="--c:${c}">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div><input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label>`:`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div></button>`).join('')}</div></div>`}
 /* classes et élèves (enseignant) : importer, renommer une classe, modifier ses élèves */
 function clsAdm(){return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.t='home';render();scrollTo(0,0)">← Accueil</button></p><h2 style="margin-top:4px">Classes et élèves</h2>
  <div class="tb"><label class="b">📄 Importer une liste (Excel ou CSV)<input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label><button class="b g" onclick="S.imp=null;edCl('new')">+ Nouvelle classe</button></div>
@@ -654,7 +665,9 @@ function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.n
  const act=names.filter(n=>L.some(r=>r.el==n)).length;
  return `<div class="ctlh"><div><h2 style="margin:0">Tablette de contrôle</h2><p class="mut" style="margin:2px 0 0">${k?esc(k.nom):'Sans liste'} · ${cap(fday(t,true))}${cfg?.obj?' · 🎯 '+esc(cfg.obj):''} · mise à jour automatique</p></div>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'}" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}</button>`).join('')}</div></div>
- <p style="margin:0 0 8px"><button class="b g" onclick="ctlRefresh()">⟳ Rafraîchir</button> <small class="mut" id="ctlst">${esc(syOk()?syTxt():'')}</small></p>
+ ${syWarn()}<p style="margin:0 0 8px"><button class="b g" onclick="ctlRefresh()">⟳ Rafraîchir</button> <button class="b g" onclick="S.cdev=!S.cdev;render()">📡 Tablettes${S.cdev?' ▲':''}</button> <small class="mut" id="ctlst">${esc(syOk()?syTxt():'')}</small></p>
+ ${S.cdev?`<div class="card devs"><h3 style="margin:0 0 6px">Tablettes vues par la synchronisation</h3><p class="mut" style="margin:0 0 8px">Chaque tablette donne de ses nouvelles toutes les 2 minutes environ : nombre de grimpes qu'elle contient, envois en attente, problème éventuel.</p>${syDevsHTML()}
+ <div class="row" style="margin-top:10px"><button class="b g" onclick="syResend()">⬆️ Renvoyer tout ce qui est sur cette tablette</button><button class="b g" onclick="syRefetch()">⬇️ Tout récupérer</button></div></div>`:''}
  <div class="sub ctab"><button class="b ${S.cv2!='a'?'':'g'}" onclick="S.cv2='g';render()">🧗 Grimpes</button><button class="b ${S.cv2=='a'?'':'g'}" onclick="S.cv2='a';render()">🪢 Assurage</button></div>
  ${S.cv2=='a'?belGrid(names,sel):`${(()=>{const H=names.map(n=>[n,helpOf(L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1))]).filter(x=>x[1]&&!msgOf(x[0],nom,t).some(m=>!m.seen));return H.length?`<div class="helpb"><b>🆘 À aider (${H.length})</b>${H.map(([n,h])=>`<button class="b g" data-n="${esc(n)}" data-w="${esc(h.why)}" onclick="msgDlg(this.dataset.n,this.dataset.w)">${esc(n)} <small>${esc(h.t)}</small> · 💡 conseil</button>`).join('')}</div>`:''})()}
  <div class="stats">${stx(act+' / '+names.length,'élèves ont grimpé'+(absent.length?' ('+absent.length+' absent'+(absent.length>1?'s':'')+')':''))}${stx(L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée'))}${stx(L.filter(r=>Number(r.h)==TOP).length,'Top')}${min?stx(names.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+names.length,'objectif atteint ('+min+' voie'+(min>1?'s':'')+')'):''}</div>
@@ -1192,14 +1205,14 @@ addEventListener('online',()=>sync());setInterval(()=>sync(),60000);
 /* ================= synchronisation entre tablettes (même principe que Relais Vitesse) =================
    Enregistrements clé → JSON chiffré (AES-GCM, clé dérivée de la clé secrète) dans l'onglet caché « Sync » du script.
    Clés : cl|id (classe), lec|id (leçon), r|id (grimpe, sans rx), w (cotations), c|section (contenus), pin (code enseignant). */
-var SY={since:0,maxU:0,h:{},pend:{},dev:'',init:false,last:0,err:'',vids:{},...LS('sy',{})};if(!SY.dev)SY.dev=uid();
+var SY={since:0,maxU:0,h:{},pend:{},dev:'',init:false,last:0,err:'',vids:{},...LS('sy',{})};if(!SY.dev){SY.dev=uid();try{SV('sy',SY)}catch(e){}}
 const sySave=()=>SV('sy',SY),hs=x=>h32(x)+':'+x.length;
 /* canal de synchronisation : le partage commun de la page d'accueil (une seule clé par tablette, toutes applis) s'il est réglé,
    sinon le script Google d'Escalade. Sur le canal commun, les clés sont préfixées « e: ». */
 const SYC=()=>{let c=null;try{c=JSON.parse(localStorage.getItem('eps.share.v1')||'null')}catch(e){}
  return c&&c.url&&c.key?{url:c.url,key:c.key,pre:'e:',common:1}:{url:SH.url,key:SH.key,pre:''}};
 const syOk=()=>{const c=SYC();return SY.on!==false&&!!c.url&&!!c.key&&!!(window.crypto&&crypto.subtle)&&!/claude/.test(location.hostname)};
-function syChan(){const c=SYC(),sig=c.url+'|'+h32(c.key)+'|'+c.pre;if(SY.ch!==sig){SY.ch=sig;SY.init=false;SY.since=0;SY.h={};SY.pend={};SY.err='';SY.orph={};sySave()}return c}
+function syChan(){const c=SYC(),sig=c.url+'|'+h32(c.key)+'|'+c.pre;if(SY.ch!==sig){SY.ch=sig;SY.init=false;SY.since=0;SY.h={};SY.pend={};SY.err='';SY.orph={};SY.hb=0;sySave()}return c}
 function syJ(params,ms){const c=SYC();return new Promise(res=>{const cb='shcb'+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement('script');let t;
  const end=d=>{clearTimeout(t);window[cb]=()=>{};s.remove();res(d)};t=setTimeout(()=>end(null),ms||15000);window[cb]=d=>end(d);s.onerror=()=>end(null);
  s.src=c.url+(c.url.includes('?')?'&':'?')+Object.entries({...params,key:c.key,callback:cb}).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');document.head.append(s)})}
@@ -1215,7 +1228,7 @@ function syScan(){const O=syRecords();let n=0;
  let gone=Object.keys(SY.h).filter(k=>!(k in O));
  if(gone.length){const total=Object.keys(SY.h).length;
   if(!SY.mass&&gone.length>40&&gone.length>total*.4){gone.forEach(k=>{delete SY.h[k];delete SY.pend[k]});SY.since=0;gone=[]} /* disparition massive inattendue : on récupère tout */
-  gone.forEach(k=>{delete SY.h[k];SY.pend[k]={u:syStamp(),d:1};n++})}
+  gone.forEach(k=>{delete SY.h[k];(SY.dk=SY.dk||{})[k]=1;SY.pend[k]={u:syStamp(),d:1};n++})}
  SY.mass=0;if(n)sySave();return n}
 let SYK=null,SYKsrc=null;
 async function syKey(){const KK=SYC().key;if(SYK&&SYKsrc===KK)return SYK;const e=new TextEncoder(),base=await crypto.subtle.importKey('raw',e.encode(KK),'PBKDF2',false,['deriveKey']);
@@ -1223,6 +1236,54 @@ async function syKey(){const KK=SYC().key;if(SYK&&SYKsrc===KK)return SYK;const e
 const b64u=u=>{let x='';const B=new Uint8Array(u);for(let i=0;i<B.length;i+=0x8000)x+=String.fromCharCode.apply(null,B.subarray(i,i+0x8000));return btoa(x)},unb64=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
 async function syEnc(t){const iv=crypto.getRandomValues(new Uint8Array(12)),ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await syKey(),new TextEncoder().encode(t)),o=new Uint8Array(12+ct.byteLength);o.set(iv);o.set(new Uint8Array(ct),12);return b64u(o)}
 async function syDec(x){const b=unb64(x);return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},await syKey(),b.slice(12)))}
+/* ---- diagnostic : chaque tablette publie une petite fiche chiffrée (dev|id) ---- */
+const RELAIS_URL='https://script.google.com/macros/s/AKfycbxx2iiF_YauPOeCrmBBuNp2Szn4s8qnifLbvuDUCCYCD8djF7egfH3oSg2XEfSIVJjg/exec';
+const syName=()=>String(CF.tab||'').trim()||'Tablette '+String(SY.dev||'').slice(0,4).toUpperCase();
+const syChName=c=>!c.url?'aucun':c.url==RELAIS_URL?'ancien script de Relais':c.common?'partage commun':'script d\'Escalade';
+function syDevRec(){const t=today(),c=SYC();return {nom:syName(),at:Date.now(),gr:R.length,gt:R.filter(r=>String(r.ts).startsWith(t)).length,cls:CL.map(x=>x.nom).join(', '),pend:pend(),err:SY.err||'',ch:syChName(c)}}
+async function syBeat(force){if(!syOk()||(!force&&Date.now()-(SY.hb||0)<90000))return;const c=SYC(),o=syDevRec();
+ await fetch(c.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:c.key,sync:{dev:SY.dev,recs:[{k:c.pre+'dev|'+SY.dev,u:syStamp(),d:0,x:await syEnc(JSON.stringify(o))}]}})});
+ SY.hb=Date.now();(SY.devs=SY.devs||{})[SY.dev]=o;sySave()}
+const agoT=t=>{const m=Math.round((Date.now()-t)/60000);return m<1?"à l'instant":m<60?'il y a '+m+' min':m<1440?'il y a '+Math.round(m/60)+' h':'il y a '+Math.round(m/1440)+' j'};
+function syDevsHTML(){const D=Object.entries(SY.devs||{}).sort((a,b)=>(b[1].at||0)-(a[1].at||0));
+ if(!D.length)return '<p class="mut">Aucune tablette n\'a encore donné de nouvelles : elles apparaissent ici après leur première synchronisation.</p>';
+ return D.map(([id,o])=>{const old=Date.now()-(o.at||0)>20*60000,bad=o.old||o.ch=='ancien script de Relais';
+  return `<div class="devr ${old?'old':''} ${o.err||bad?'err':''}"><b>${esc(o.nom||'Tablette')} <small>n° ${esc(id.slice(0,4).toUpperCase())}${id==SY.dev?' · cette tablette':''}</small></b><span>${agoT(o.at||0)} · ${o.gr||0} ${pw(o.gr||0,'grimpe')} en tout · ${o.gt||0} aujourd'hui${o.pend?' · ⏳ '+o.pend+' en attente d\'envoi':''}</span>${bad?'<em>⚠️ Utilise encore l\'ancien script : règle le partage commun sur cette tablette (QR code depuis une tablette déjà réglée).</em>':''}${o.err?`<em>⚠️ ${esc(o.err)}</em>`:''}<small>${esc(o.cls||'')}</small></div>`}).join('')}
+function syWarn(){const c=SYC();
+ if(!c.key)return `<div class="sywarn">⚠️ Cette tablette n'est reliée à aucune autre : ses grimpes restent sur elle. <button class="b" onclick="syShare()">Régler le partage</button></div>`;
+ if(c.url==RELAIS_URL)return `<div class="sywarn">⚠️ Cette tablette utilise encore l'ancien script de Relais : les tablettes réglées sur le partage commun ne voient pas ses grimpes. <button class="b" onclick="syShare()">Régler le partage commun</button></div>`;
+ return ''}
+function syShare(){if(window.EPSD&&EPSD.shareSettings)EPSD.shareSettings(()=>{syncSoon(300);render()});else say('Règle le partage depuis la page d\'accueil (Réglages).')}
+async function syResend(){if(!syOk())return say('Le partage n\'est pas réglé sur cette tablette.');say('Envoi de toutes les grimpes, classes et leçons…');
+ const O=syRecords(),u=syStamp();let n=0;Object.keys(O).forEach(k=>{if(/^(cl|lec|r|ab|gp|m|bel)\|/.test(k)){SY.h[k]=hs(O[k]);SY.pend[k]={u,d:0};n++}});sySave();
+ await syCycle();await syBeat(true).catch(()=>{});say(SY.err?'⚠️ '+SY.err:'✓ '+n+' éléments renvoyés');const y=scrollY;render();scrollTo(0,y)}
+async function syRefetch(){if(!syOk())return say('Le partage n\'est pas réglé sur cette tablette.');say('Récupération de toutes les données…');
+ SY.since=0;SY.lg={};sySave();await syCycle();say(SY.err?'⚠️ '+SY.err:'✓ Données récupérées : '+R.length+' '+pw(R.length,'grimpe')+' sur cette tablette');const y=scrollY;render();scrollTo(0,y)}
+/* ---- pont avec les anciens canaux : une tablette réglée sur le partage commun récupère aussi ce que les tablettes
+   encore sur l'ancien script de Relais (ou sur le script d'Escalade) y ont envoyé, puis le republie sur le partage commun.
+   Seuls les éléments absents de cette tablette sont ajoutés (rien n'est écrasé ni supprimé). */
+const syLgSrc=()=>{const c=SYC(),L=[];if(!c.common)return L;let rs=null;try{rs=JSON.parse(localStorage.getItem('relais-vitesse-sheets-v1')||'null')}catch(e){}
+ if(rs&&rs.url&&rs.key&&rs.url!=c.url)L.push({url:rs.url,key:rs.key,pre:'e:'});
+ if(c.url!=RELAIS_URL&&c.key&&!L.some(x=>x.url==RELAIS_URL))L.push({url:RELAIS_URL,key:c.key,pre:'e:'});
+ if(SH.url&&SH.key&&SH.url!=c.url)L.push({url:SH.url,key:SH.key,pre:''});return L};
+const LGK={};
+async function lgKey(KK){if(LGK[KK])return LGK[KK];const e=new TextEncoder(),base=await crypto.subtle.importKey('raw',e.encode(KK),'PBKDF2',false,['deriveKey']);
+ return LGK[KK]=await crypto.subtle.deriveKey({name:'PBKDF2',salt:e.encode('escalade-eps-sync-v1'),iterations:120000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt'])}
+function lgJ(src,params,ms){return new Promise(res=>{const cb='lgcb'+Date.now()+Math.floor(Math.random()*1e4),sc=document.createElement('script');let t;
+ const end=d=>{clearTimeout(t);window[cb]=()=>{};sc.remove();res(d)};t=setTimeout(()=>end(null),ms||20000);window[cb]=d=>end(d);sc.onerror=()=>end(null);
+ sc.src=src.url+(src.url.includes('?')?'&':'?')+Object.entries({...params,key:src.key,callback:cb}).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');document.head.append(sc)})}
+async function syLegacy(){const S0=syLgSrc();if(!S0.length)return;SY.lg=SY.lg||{};let add=0;
+ for(const src of S0){const sig=h32(src.url+'|'+src.key+'|'+src.pre);if(SY.lg[sig]&&SY.lg[sig].dead&&Date.now()-SY.lg[sig].dead<6*3600e3)continue;
+  const st=SY.lg[sig]=SY.lg[sig]||{since:0};
+  for(let loop=0;loop<20;loop++){const r=await lgJ(src,{pull:1,since:st.since,...(src.pre?{pre:src.pre}:{})});
+   if(!r||!r.keyOk||!r.sync){st.dead=Date.now();break}delete st.dead;const recs=r.recs||[];
+   for(let [seq,k,u,d,x] of recs){if(src.pre){if(!String(k).startsWith(src.pre))continue;k=String(k).slice(src.pre.length)}if(+d)continue;
+    let o;try{const b=unb64(x);o=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},await lgKey(src.key),b.slice(12))))}catch(e){continue}
+    if(k.startsWith('dev|')){const id=k.slice(4);if(!SY.devs?.[id]||(SY.devs[id].at||0)<(o.at||0))(SY.devs=SY.devs||{})[id]={...o,old:1};continue}
+    if(!/^(cl|lec|r|ab|gp|m|bel)\|/.test(k)||k in SY.h||SY.pend[k]||(SY.dk&&SY.dk[k]))continue;
+    syApply(k,o);add++}
+   st.since=recs.length?+recs[recs.length-1][0]:Math.max(st.since,+r.seq||0);if(!r.more)break}}
+ sySave();if(add){SV('r',R);SV('cf',CF);SV('cl',CL);mergeDupCls();save();syScan();syRefresh()}}
 function syApply(k,o){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
  if(t=='cl'){const i=CL.findIndex(c=>c.id==id);i<0?CL.push(o):CL[i]=o}
  else if(t=='lec'){const L=LEC(),i=L.findIndex(l=>l.id==id);i<0?L.push(o):L[i]=o;if(CF.sea?.id==id)CF.sea=clone(o)}
@@ -1251,8 +1312,9 @@ async function syPull(){const chn=SYC();
   const recs=r.recs||[];
   if(recs.length){if(SY.init)syScan();let ch=false;
    for(let [seq,k,u,d,x] of recs){SY.maxU=Math.max(SY.maxU||0,+u||0);if(chn.pre){if(!String(k).startsWith(chn.pre))continue;k=String(k).slice(chn.pre.length)}
+    if(k.startsWith('dev|')){if(!+d)try{(SY.devs=SY.devs||{})[k.slice(4)]=JSON.parse(await syDec(x))}catch(e){}continue}
     const pd=SY.pend[k];if(pd&&pd.u>+u)continue;delete SY.pend[k];
-    if(+d){if(k in SY.h){syRemove(k);delete SY.h[k];ch=true}continue}
+    if(+d){(SY.dk=SY.dk||{})[k]=1;if(k in SY.h){syRemove(k);delete SY.h[k];ch=true}continue}
     let o;try{o=JSON.parse(await syDec(x))}catch(e){SY.err='Des données ont été chiffrées avec une autre clé : vérifiez la clé secrète.';continue}
     const t=JSON.stringify(o);if(SY.h[k]===hs(t))continue;syApply(k,o);SY.h[k]=hs(t);ch=true}
    if(ch){const O=syRecords();for(const k in O)if(!SY.pend[k])SY.h[k]=hs(O[k]);SV('c',C);SV('w',W);SV('r',R);SV('cf',CF);SV('cl',CL);if(mergeDupCls())save();syRefresh()}
@@ -1276,6 +1338,7 @@ async function syCycle(){
     if(recs.length)await fetch(ch.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:ch.key,sync:{dev:SY.dev,recs:recs.map(r=>({...r,k:ch.pre+r.k}))}})})}
    await new Promise(r=>setTimeout(r,1200))}
   if(await syPull()){SY.last=Date.now();SY.err=''}
+  try{await syLegacy()}catch(e){}try{await syBeat()}catch(e){}
  }catch(e){SY.err='Synchronisation impossible pour le moment (réseau ?).'}
  finally{syBusy=false;sySave();syUpd();sySched();try{vidMap()}catch(e){}vidAuto();vidUI()}}
 function syRefresh(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(document.querySelector('.dlg,.vmod'))return;
@@ -1399,7 +1462,7 @@ function qr(text){
  return M}
 function drawQR(cv,M){const s=5,b=4,N=M.length;cv.width=cv.height=(N+2*b)*s;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.fillStyle='#000';M.forEach((r,j)=>r.forEach((d,i)=>{if(d)x.fillRect((i+b)*s,(j+b)*s,s,s)}));cv.style.width=Math.min(300,cv.width*1.4)+'px'}
 if(mergeDupCls())save();
-if(hubT()){S.T=true;S.t=seaOK()?'home':'set'}else S.t='role';
+if(hubT()){S.T=true;S.t=CL.length?'tcl':seaOK()?'home':'set'}else S.t='role';
 render();
 sync();
 syncSoon(800);
@@ -1415,6 +1478,6 @@ syncSoon(800);
   {ico:'🪢',label:"S'encorder",sub:'nœud de 8',open:()=>{S.t='prep';S.s='enc';render();scrollTo(0,0)}},
   {ico:'🤝',label:'Assurage',open:()=>{S.t='prep';S.s='ass';render();scrollTo(0,0)}},
   {ico:'🛡️',label:'Sécurité',open:()=>{S.t='sec';render();scrollTo(0,0)}}],
- teacher:()=>unlock(seaOK()?'home':'set')});
+ teacher:()=>unlock(CL.length?'tcl':seaOK()?'home':'set')});
 </script><script src="../eps-home.js" defer></script>
 </body></html>
