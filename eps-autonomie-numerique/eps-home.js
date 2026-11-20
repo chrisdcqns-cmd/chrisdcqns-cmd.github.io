@@ -543,6 +543,12 @@
     var O = await oriGet(); Object.keys(O).forEach(function (k) { put("ori", k, (O[k] || []).slice()); });
     [["vol", "eps_volley_eval_v1"], ["bad", "eps_badminton_v1"], ["dan", "danse-eps-v1"]].forEach(function (a) {
       ((jget(a[1], {}) || {}).classes || []).forEach(function (c) { if (c.nom === "Ma classe" && !(c.eleves || []).length) return; put(a[0], c.nom, (c.eleves || []).map(full)); }); });
+    /* Acrosport : classes de son Google Sheet (cache de la tablette) */
+    try { var ac = jget("acro.cache.v1", {}) || {}; (ac.__classes || []).forEach(function (c) { var nm = typeof c === "string" ? c : (c && (c.classe || c.nom || c.name)); if (!nm) return;
+      put("acro", nm, (ac["st|" + norm(nm)] || []).map(function (x) { return full({ prenom: x.prenom || "", nom: x.nom || "" }); })); }); } catch (e) {}
+    /* listes communes : classes importées sur les autres tablettes ou dans une appli pas encore ouverte ici */
+    try { if (window.EPSL) EPSL.items().forEach(function (o) { var k = norm(o.nom), x = M[k] || (o.old && M[norm(o.old)]); if (x && !M[k]) { M[k] = x; delete M[norm(o.old)]; x.name = o.nom; }
+      put("com", o.nom, (o.el || []).slice()); }); } catch (e) {}
     return M;
   }
   /* après un import ou une modification ici : la liste finale part vers les autres tablettes */
@@ -614,7 +620,7 @@
   async function editLists() {
     if (!(await askCode())) return;
     var o = overlay('<div id="epsl"></div>'), box = o.querySelector("#epsl"), M = await allLists(), cur = null;
-    var APPS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["bad", "Badminton"], ["dan", "Danse"]];
+    var APPS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["bad", "Badminton"], ["dan", "Danse"], ["acro", "Acrosport"]];
     function listView(msg) {
       var keys = Object.keys(M).sort(function (a, b) { return M[a].name.localeCompare(M[b].name, "fr"); });
       box.innerHTML = "<h3>✏️ Listes d'élèves</h3><p class=\"m\">Touche une classe pour la renommer ou corriger ses élèves. Les changements s'appliquent dans toutes les applications et sur toutes les tablettes.</p>" +
@@ -909,13 +915,14 @@
     o.querySelector("#er-save").onclick = backupSave;
     o.querySelector("#er-edit").onclick = function () { o.remove(); editLists(); };
     o.querySelector("#er-imp").onclick = function () { o.remove(); importList(); };
-    allLists().then(function (M) {
+    var showCls = function () { return allLists().then(function (M) {
       var el = o.querySelector("#er-cls"); if (!el) return;
       var L = Object.keys(M).map(function (k) { var x = M[k], n = 0; Object.keys(x.apps).forEach(function (a) { n = Math.max(n, (x.apps[a] || []).length); }); return [x.name, n]; })
         .sort(function (a, b) { return a[0].localeCompare(b[0], "fr"); });
       el.innerHTML = L.length ? L.map(function (c) { return '<span style="display:inline-block;margin:3px 6px 3px 0;padding:6px 12px;border-radius:999px;background:#F1EFE8;font-weight:700">' + esc(c[0]) + ' · ' + c[1] + ' élève' + (c[1] > 1 ? "s" : "") + "</span>"; }).join("")
         : "Aucune liste pour l'instant.";
-    }).catch(function () {});
+    }).catch(function () {}); };
+    collectLists().catch(function () {}).then(showCls).then(function () { return sync(); }).then(showCls).catch(function () {});
     o.querySelector("#er-load").onchange = function (e) { var f = e.target.files[0]; if (f) backupLoad(f, o); };
   }
   function toastHub(t) {
