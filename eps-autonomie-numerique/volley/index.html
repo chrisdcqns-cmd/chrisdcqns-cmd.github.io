@@ -80,6 +80,18 @@ header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;paddin
 .rc{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;margin:3px 0;background:#f7f5f0}.rc.me{background:#f3e9f8;border:2px solid var(--vol)}
 .frise{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}.frise>div{min-width:190px;background:#fff;border-radius:12px;padding:10px;border:1px solid var(--line);font-size:.88rem}
 .vid video{width:100%;max-height:60vh;background:#000;border-radius:12px}
+.obsban{background:#0f3d7a;color:#fff;border-radius:12px;padding:10px 14px;margin-bottom:10px;font-weight:700}
+.obsg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.obsg .side{border-radius:16px;padding:12px;text-align:center;color:#fff}
+.obsg .side b{display:block;font-size:3.4rem;line-height:1.05}
+.obsg .side .pbtn{background:rgba(255,255,255,.22);margin-top:8px;padding:16px}
+.mid{display:flex;gap:8px;margin-top:10px}.mid .pbtn{padding:14px;font-size:1.1rem}
+.icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.icons div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.icons div span{font-size:2rem;display:block}.icons div b{font-size:1.4rem}
+.ballrow{font-size:1.5rem;letter-spacing:2px;word-break:break-all}
+.lit p{font-size:1.08rem;line-height:1.55;margin:0 0 10px}
+input[type=range].big{width:100%;height:40px;accent-color:var(--vol)}
 .sit{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:8px;border:2px solid var(--line)}.sit.ok{border-color:var(--d4);background:#f1faf4}.sit.sug{border-color:var(--vol)}
 #full{position:fixed;inset:0;z-index:60;background:#0b0d12;display:none;align-items:center;justify-content:center;overflow:auto;cursor:zoom-out}
 #full.on{display:flex}#full img{max-width:100%;max-height:100%}
@@ -802,7 +814,8 @@ function rolesAuto(c,t,coach){const pl=(t.el||[]).filter(id=>elOf(c,id));if(!pl.
 function rolesHtml(c,t,j,edit){const pl=(t.el||[]).filter(id=>elOf(c,id));return ROLES.map(([k,n,d])=>{const id=(j.roles||{})[k];return `<div class="sit"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${n}</b> : ${id?esc(fullName(elOf(c,id))):'—'}<br><small class="muted">${d}</small></div>
   ${edit?`<select class="f" style="width:auto" onchange="coSet(t=>{const J=jour(t);J.roles=J.roles||{};J.roles['${k}']=this.value})"><option value="">—</option>${pl.map(x=>`<option value="${x}" ${x===id?'selected':''}>${esc(shortName(elOf(c,x)))}</option>`).join('')}</select>`:''}</div></div>`}).join('')}
 /* rôles tenus par un élève sur la séquence (pour l'AFL3) */
-function rolesOf(c,eid){const n={coach:0};ROLES.forEach(([k])=>n[k]=0);(c.equipes||[]).forEach(t=>Object.values(t.jours||{}).forEach(j=>{if(j.coach===eid)n.coach++;Object.entries(j.roles||{}).forEach(([k,v])=>{if(v===eid)n[k]=(n[k]||0)+1})}));return n}
+function rolesOf(c,eid){const n={coach:0};ROLES.forEach(([k])=>n[k]=0);(c.equipes||[]).forEach(t=>{Object.values(t.jours||{}).forEach(j=>{if(j.coach===eid)n.coach++;Object.entries(j.roles||{}).forEach(([k,v])=>{if(v===eid)n[k]=(n[k]||0)+1})});
+  (t.matchs||[]).forEach(m=>{if(!m.obs)return;if(m.obs.arbitre===eid)n.arbitre++;if(m.obs.marqueur===eid)n.marqueur++})});return n}
 function rolesTxt(c,e){const n=rolesOf(c,e.id),L={coach:'coach',marqueur:'marqueur',arbitre:'arbitre',observateur:'observateur'};return Object.entries(n).filter(([k,v])=>v).map(([k,v])=>L[k]+(v>1?' ×'+v:'')).join(' · ')}
 function coPres(id){coSet(t=>{const J=jour(t);J.pres[id]=J.pres[id]===1?0:1})}
 function coLecon(c,t,j){
@@ -907,10 +920,19 @@ function coFin(c,t,j){const b=j.bilan||{},a=agg(teamMatches(t,today())),RG=j.ran
    ${MAT.every(([k])=>RG[k])?'<p style="font-weight:800;color:var(--d4);margin-top:10px">✓ Tout est rangé. Merci coach !</p>':''}</div>`}
 /* ---- match ---- */
 function curMatch(t){return (t.matchs||[]).find(m=>!m.fini)}
+/* score affiché = points saisis + correction au curseur */
+function scOf(m){const w=(m.pts||[]).filter(x=>x.w).length,l=(m.pts||[]).length-w,a=m.adj||{};return[w+(a.n||0),l+(a.e||0)]}
+const FAUTES=[['dehors','Ballon dehors','↗️'],['filet','Filet touché','🕸️'],['tenue','Balle tenue / portée','✋'],['4t','4 touches','4️⃣'],['service','Service raté','🎯'],['ligne','Pied sur la ligne','🦶'],['autre','Autre faute','❗']];
+const MOTIFS=['Ballon dedans ou dehors ?','Filet touché ?','Balle tenue ?','4 touches ?','Pied sur la ligne ?','Autre'];
+const ISSUES={ok:['✓ Point maintenu','#2e9e5b'],rej:['↺ Point rejoué (annulé)','#f0a030'],inv:["⇄ Point donné à l'autre équipe",'#d64545']};
 function coMatch(c,t){
   const m=curMatch(t);
+  if(m&&m.mode==='obs')return obsMatch(c,t,m);
+  if(!m&&OBS)return obsSetup(c,t);
   if(!m){const others=(c.equipes||[]).filter(x=>x.id!==t.id),today_=teamMatches(t,today()),tr=tourn(c),nx=tr&&tr.rc.find(r=>(r.a===t.id||r.b===t.id)&&!rcScore(c,r));
-    return `${nx?`<div class="card" style="border-left:6px solid var(--vol)"><h2>🏆 Match du tournoi</h2><p class="big">Tour ${nx.tour} · terrain ${nx.terrain} contre <b>${esc(tnom(c,nx.a===t.id?nx.b:nx.a))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'")}','${nx.id}')">▶ Commencer</button></div>`:''}<div class="card"><h2>🏐 ${nx?'Autre match':'Nouveau match'}</h2><p class="muted">Contre quelle équipe ?</p><div class="tiles">${others.map(x=>`<button class="tile" onclick="coNewMatch('${esc(x.nom).replace(/'/g,"\\'")}')">${esc(x.nom)}</button>`).join('')}</div>
+    return `${nx?`<div class="card" style="border-left:6px solid var(--vol)"><h2>🏆 Match du tournoi</h2><p class="big">Tour ${nx.tour} · terrain ${nx.terrain} contre <b>${esc(tnom(c,nx.a===t.id?nx.b:nx.a))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'")}','${nx.id}')">▶ Commencer</button></div>`:''}<div class="card" style="border-left:6px solid #0f3d7a"><h2>👀 Match observé par une autre équipe</h2><p class="muted">Une équipe au repos prend notre tablette (et celle de nos adversaires) : elle arbitre, tient la table de marque et observe. À la pause, elle nous rend la tablette pour qu'on analyse le match.</p>
+     <button class="pbtn" style="background:#0f3d7a" onclick="OBS={adv:'${nx?esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'"):''}',rid:'${nx?nx.id:''}',cible:15,pause:8};renderCoach()">👀 Transformer en tablette d'observation</button></div>
+    <div class="card"><h2>🏐 ${nx?'Autre match':'Nouveau match'}</h2><p class="muted">Contre quelle équipe ?</p><div class="tiles">${others.map(x=>`<button class="tile" onclick="coNewMatch('${esc(x.nom).replace(/'/g,"\\'")}')">${esc(x.nom)}</button>`).join('')}</div>
      <div class="row" style="margin-top:10px"><input type="text" id="coAdv" placeholder="Autre adversaire" style="flex:1"><button class="btn" onclick="coNewMatch(document.getElementById('coAdv').value||'Adversaire')">Commencer</button></div></div>
     ${today_.length?`<div class="card"><h2>Matchs d'aujourd'hui</h2>${today_.map(x=>`<div class="erow"><span class="nm">contre ${esc(x.adv)}</span><b>${x.nous} – ${x.eux}</b> ${x.nous>x.eux?'✅':x.nous<x.eux?'❌':'➖'}</div>`).join('')}
       <button class="btn or" style="margin-top:10px" onclick="CO.tab='rem';renderCoach()">🔁 Temps de remédiation</button></div>`:''}`}
@@ -925,19 +947,116 @@ function coMatch(c,t){
    <button class="btn red" onclick="coEndMatch()">🏁 Fin du match</button></div>
    ${m.pts.length?`<div class="card" style="margin-top:12px"><h2>Ce match</h2>${statsHtml_([m])}</div>`:''}`;
 }
+/* ================== TABLETTE D'OBSERVATION ==================
+   Chaque équipe qui joue prête sa tablette à l'équipe qui observe. Sur la tablette de l'équipe A : arbitre A et table de marque A (joueurs de l'équipe qui observe).
+   Le match est enregistré dans l'équipe observée (mode 'obs') : points, fautes, contestations, correction de score au curseur, pause pour l'analyse. */
+let OBS=null,OBV='graph';
+function obsSetup(c,t){const others=(c.equipes||[]).filter(x=>x.id!==t.id),o=OBS,ob=others.find(x=>x.id===o.eq),pl=ob?(ob.el||[]).map(id=>elOf(c,id)).filter(Boolean):[];
+  return `<div class="obsban">👀 Tablette d'observation · on observe : ${esc(t.nom)}</div>
+  <div class="card"><h2>1. Quelle équipe observe ?</h2><div class="tiles">${others.map(x=>`<button class="tile ${o.eq===x.id?'on':''}" onclick="OBS.eq='${x.id}';OBS.arbitre='';OBS.marqueur='';renderCoach()">${esc(x.nom)}</button>`).join('')}</div></div>
+  ${ob?`<div class="card"><h2>2. Qui, dans ${esc(ob?ob.nom:'')}, s'occupe de ${esc(t.nom)} ?</h2>
+    <label class="l">🟨 Arbitre</label><div class="pres">${pl.map(e=>`<button class="${o.arbitre===e.id?'p':''}" onclick="OBS.arbitre='${e.id}';renderCoach()">${esc(fullName(e))}</button>`).join('')}</div>
+    <label class="l" style="margin-top:10px">📋 Table de marque</label><div class="pres">${pl.map(e=>`<button class="${o.marqueur===e.id?'p':''}" onclick="OBS.marqueur='${e.id}';renderCoach()">${esc(fullName(e))}</button>`).join('')}</div></div>
+  <div class="card"><h2>3. Le match</h2>
+    <label class="l">Contre</label><input type="text" id="obAdv" value="${esc(o.adv||'')}" placeholder="Équipe adverse" oninput="OBS.adv=this.value">
+    <div class="tiles" style="margin-top:6px">${others.filter(x=>x.id!==o.eq).map(x=>`<button class="tile ${o.adv===x.nom?'on':''}" style="padding:10px" onclick="OBS.adv='${esc(x.nom).replace(/'/g,"\\'")}';renderCoach()">${esc(x.nom)}</button>`).join('')}</div>
+    <label class="l" style="margin-top:12px">Set en <b id="obC">${o.cible}</b> points</label><input class="big" type="range" min="5" max="25" value="${o.cible}" oninput="OBS.cible=+this.value;document.getElementById('obC').textContent=this.value;OBS.pause=Math.ceil(this.value/2);document.getElementById('obP').textContent=OBS.pause;document.getElementById('obPr').value=OBS.pause">
+    <label class="l">Pause d'analyse quand une équipe atteint <b id="obP">${o.pause}</b> points</label><input class="big" id="obPr" type="range" min="2" max="24" value="${o.pause}" oninput="OBS.pause=+this.value;document.getElementById('obP').textContent=this.value">
+    <div class="row" style="margin-top:12px"><button class="btn alt" onclick="OBS=null;renderCoach()">Annuler</button>
+    <button class="pbtn" style="background:#0f3d7a;flex:1" onclick="obsGo()">▶ Commencer l'observation</button></div></div>`:''}`}
+function obsGo(){const o=OBS;if(!o.eq||!o.arbitre||!o.marqueur){toast("Choisis l'équipe qui observe, l'arbitre et la table de marque");return}
+  const adv=(o.adv||'').trim()||'Adversaire';OBS=null;OBV='graph';
+  coSet(t=>{t.matchs=t.matchs||[];t.matchs.push({id:'m'+uid(),date:today(),lecon:lessonNow(),adv,rid:o.rid||'',pts:[],fini:0,mode:'obs',ph:1,cible:o.cible,pause:o.pause,adj:{n:0,e:0},cont:[],obs:{eq:o.eq,arbitre:o.arbitre,marqueur:o.marqueur}})})}
+let OBA=null; // saisie en cours : {s:'n'|'e', step}
+function obsMatch(c,t,m){const [n,e]=scOf(m),ob=(c.equipes||[]).find(x=>x.id===m.obs.eq),j=jour(t),ch=CHAS.find(k=>k[0]===j.chas);
+  if(m.ph==='P'||m.ph==='F')return obsPause(c,t,m);
+  const head=`<div class="obsban">👀 Observé par ${esc(ob?ob.nom:'?')} · 🟨 ${esc(shortName(elOf(c,m.obs.arbitre)))} · 📋 ${esc(shortName(elOf(c,m.obs.marqueur)))} · set en ${m.cible} · pause à ${m.pause}</div>`;
+  let ask='';
+  if(OBA&&OBA.s==='n'&&!OBA.k)ask=`<h2>Comment ${esc(t.nom)} a marqué ?</h2><div class="tiles">${[['a3','Attaque en 3 touches'],['a12','Attaque en 1 ou 2 touches'],['sv','Service gagnant'],['x','Je ne sais pas']].map(([k,l])=>`<button class="tile" onclick="OBA.k='${k}';renderCoach()">${l}</button>`).join('')}</div>`;
+  else if(OBA&&OBA.s==='n'&&OBA.k)ask=`<h2>Où est tombé le ballon ? <small class="muted">(chez ${esc(m.adv)})</small></h2><div class="court">${ZONES.map(([z,l])=>`<button onclick="obsPt({w:1,k:'${OBA.k==='x'?'a12':OBA.k}',z:'${z}'})">${l}</button>`).join('')}</div><button class="btn alt" style="margin-top:26px" onclick="obsPt({w:1,k:'${OBA.k==='x'?'a12':OBA.k}'})">Passer</button>`;
+  else if(OBA&&OBA.s==='e')ask=`<h2>Comment ${esc(m.adv)} a marqué ?</h2><div class="tiles">${[['ad','Leur attaque (non défendue)'],['rc','Notre réception ratée'],['x','Autre / je ne sais pas']].map(([k,l])=>`<button class="tile" onclick="obsPt({w:0,k:'${k==='x'?'ad':k}'})">${l}</button>`).join('')}</div>`;
+  else if(OBA&&OBA.s==='F'&&!OBA.q)ask=`<h2>⚠️ Faute : quelle équipe l'a commise ?</h2><div class="tiles"><button class="tile" onclick="OBA.q='n';renderCoach()">${esc(t.nom)}</button><button class="tile" onclick="OBA.q='e';renderCoach()">${esc(m.adv)}</button></div>`;
+  else if(OBA&&OBA.s==='F')ask=`<h2>⚠️ Faute de ${esc(OBA.q==='n'?t.nom:m.adv)} : laquelle ?</h2><div class="tiles">${FAUTES.map(([k,l,i])=>`<button class="tile" onclick="obsFaute('${k}')">${i} ${l}</button>`).join('')}</div><p class="muted">Le point est donné à l'autre équipe.</p>`;
+  else if(OBA&&OBA.s==='C'&&!OBA.q)ask=`<h2>❓ Contestation du dernier point : quelle équipe conteste ?</h2>${m.pts.length?'':'<p class="muted">Aucun point à contester.</p>'}<div class="tiles"><button class="tile" onclick="OBA.q='n';renderCoach()">${esc(t.nom)}</button><button class="tile" onclick="OBA.q='e';renderCoach()">${esc(m.adv)}</button></div>`;
+  else if(OBA&&OBA.s==='C'&&!OBA.mo)ask=`<h2>❓ Quel est le doute ?</h2><div class="tiles">${MOTIFS.map(x=>`<button class="tile" onclick="OBA.mo='${x.replace(/'/g,"\\'")}';renderCoach()">${x}</button>`).join('')}</div>`;
+  else if(OBA&&OBA.s==='C')ask=`<h2>❓ Décision de l'arbitre (${esc(shortName(elOf(c,m.obs.arbitre)))})</h2><p class="muted">Après discussion calme entre les capitaines et l'arbitre.</p><div class="tiles">${Object.entries(ISSUES).map(([k,[l,col]])=>`<button class="tile" style="border-color:${col}" onclick="obsCont('${k}')">${l}</button>`).join('')}</div>`;
+  else if(OBA&&OBA.s==='S')ask=`<h2>🎚 Corriger le score</h2><p class="muted">Déplace les curseurs pour mettre le bon score (en cas d'oubli ou d'erreur).</p>
+    <label class="l">${esc(t.nom)} : <b id="sN">${n}</b></label><input class="big" type="range" min="0" max="${m.cible+10}" value="${n}" oninput="document.getElementById('sN').textContent=this.value;OBA.n=+this.value">
+    <label class="l">${esc(m.adv)} : <b id="sE">${e}</b></label><input class="big" type="range" min="0" max="${m.cible+10}" value="${e}" oninput="document.getElementById('sE').textContent=this.value;OBA.e=+this.value">
+    <label class="l" style="margin-top:8px">Set en <b id="sC">${m.cible}</b> points</label><input class="big" type="range" min="5" max="25" value="${m.cible}" oninput="document.getElementById('sC').textContent=this.value;OBA.c=+this.value">
+    <button class="pbtn" style="background:var(--vol);margin-top:8px" onclick="obsAdj()">✓ Valider</button>`;
+  return head+(ask?`<div class="card">${ask}<button class="btn alt" style="margin-top:12px" onclick="OBA=null;renderCoach()">Annuler</button></div>`:
+  `<div class="obsg"><div class="side" style="background:${ch?ch[1]:'#2e9e5b'};${ch&&['Blanc','Jaune'].includes(ch[0])?'color:#222':''}"><div>${esc(t.nom)}</div><b>${n}</b><button class="pbtn" onclick="OBA={s:'n'};renderCoach()">＋ Point</button></div>
+    <div class="side" style="background:#555b66"><div>${esc(m.adv)}</div><b>${e}</b><button class="pbtn" onclick="OBA={s:'e'};renderCoach()">＋ Point</button></div></div>
+   <div class="mid"><button class="pbtn" style="background:#d64545" onclick="OBA={s:'F'};renderCoach()">⚠️ Faute</button><button class="pbtn" style="background:#f0a030" onclick="OBA={s:'C'};renderCoach()" ${m.pts.length?'':'disabled'}>❓ Contestation</button></div>
+   <div class="row" style="margin-top:10px"><button class="btn alt" onclick="obsUndo()" ${m.pts.length?'':'disabled'}>↶ Annuler le dernier point</button><button class="btn alt" onclick="OBA={s:'S'};renderCoach()">🎚 Corriger le score</button>
+    <button class="btn alt" onclick="obsSetPh('P')">⏸ Pause d'analyse</button><button class="btn red" onclick="if(confirm('Fin du match ?'))obsSetPh('F')">🏁 Fin du match</button></div>
+   ${(m.cont||[]).length?`<div class="card" style="margin-top:12px"><h2>Contestations</h2>${m.cont.map(x=>`<div>${ISSUES[x.issue][0]} · ${esc(x.qui==='n'?t.nom:m.adv)} : ${esc(x.mo)} <small class="muted">(${x.sc})</small></div>`).join('')}</div>`:''}`)}
+function obsAuto(m){const [n,e]=scOf(m);if(m.ph===1&&Math.max(n,e)>=m.pause)m.ph='P';else if(m.ph===2&&Math.max(n,e)>=m.cible)m.ph='F'}
+function obsPt(pt){OBA=null;coSet(t=>{const m=curMatch(t);m.pts.push(pt);obsAuto(m)})}
+function obsFaute(f){const q=OBA.q;OBA=null;coSet(t=>{const m=curMatch(t);m.pts.push(q==='n'?{w:0,k:f==='service'?'sv':'fa',f}:{w:1,k:'fa',f});obsAuto(m)})}
+function obsCont(issue){const o=OBA;OBA=null;coSet(t=>{const m=curMatch(t);const last=m.pts[m.pts.length-1];if(!last)return;
+  if(issue==='rej')m.pts.pop();else if(issue==='inv')m.pts[m.pts.length-1]={w:last.w?0:1,k:last.w?'ad':'fa',cont:1};
+  const [n,e]=scOf(m);m.cont=m.cont||[];m.cont.push({qui:o.q,mo:o.mo,issue,sc:n+'-'+e})})}
+function obsUndo(){coSet(t=>{curMatch(t).pts.pop()})}
+function obsAdj(){const o=OBA;OBA=null;coSet(t=>{const m=curMatch(t),w=m.pts.filter(x=>x.w).length,l=m.pts.length-w;m.adj=m.adj||{n:0,e:0};
+  if(o.n!=null)m.adj.n=o.n-w;if(o.e!=null)m.adj.e=o.e-l;if(o.c){m.cible=o.c;if(m.pause>=o.c)m.pause=Math.ceil(o.c/2)}})}
+function obsSetPh(ph){OBV='graph';coSet(t=>{const m=curMatch(t);m.ph=ph;if(ph==='P')m.vuP=0})}
+/* écran de pause / fin : on rend la tablette à l'équipe observée, qui choisit son bilan */
+function obsPause(c,t,m){const [n,e]=scOf(m),fin=m.ph==='F',ob=(c.equipes||[]).find(x=>x.id===m.obs.eq);
+  if(!m.vu&&!(fin&&m.vuF))return `<div class="card" style="text-align:center;padding:30px"><div style="font-size:3.5rem">${fin?'🏁':'⏸'}</div><h2 style="font-size:1.6rem">${fin?'Fin du match':'Pause d\'analyse'} · ${n} – ${e}</h2>
+    <p class="big">${esc(ob?ob.nom:'Observateurs')} : donnez la tablette à l'équipe <b>${esc(t.nom)}</b>.</p>
+    <button class="pbtn" style="background:var(--vol);max-width:520px;margin:10px auto 0" onclick="coSet(t=>{const m=curMatch(t);m.vu=1;if(m.ph==='F')m.vuF=1})">Nous sommes ${esc(t.nom)} : voir notre bilan</button></div>`;
+  const tabs=[['graph','📊 Graphique'],['img','🖼 Imagé'],['txt','📝 Texte']];
+  return `<div class="obsban">${fin?'🏁 Bilan du match':'⏸ Pause : bilan de la 1re partie'} · ${esc(t.nom)} ${n} – ${e} ${esc(m.adv)}</div>
+   <div class="subtabs">${tabs.map(([k,l])=>`<button class="${OBV===k?'on':''}" onclick="OBV='${k}';renderCoach()">${l}</button>`).join('')}</div>
+   ${OBV==='graph'?obsGraph(m,t):OBV==='img'?obsImage(m,t):obsTexte(m,t,c)}
+   <div class="row" style="margin-top:12px">${fin?`<button class="pbtn" style="background:var(--d4)" onclick="obsFinal()">✓ Enregistrer le match</button>`:`<button class="pbtn" style="background:#0f3d7a" onclick="coSet(t=>{const m=curMatch(t);m.ph=2;m.vu=0})">↩ Rendre la tablette aux observateurs et reprendre</button>`}</div>`}
+function obsFinal(){const t=coT(),m=curMatch(t);if(!m)return;const c=coC();
+  coSet(t=>{const m=curMatch(t);[m.nous,m.eux]=scOf(m);m.fini=1;const res=m.nous>m.eux?'G':m.nous<m.eux?'P':'N',J=jour(t);
+    if(B().optMatchs)(t.el||[]).forEach(id=>{if(J.pres[id]===0)return;const e=elOf(c,id);if(e){e.matchs=e.matchs||[];e.matchs.push(res);applyMatchs(e)}})});toast('Match enregistré')}
+/* ---- trois formes de bilan pour l'équipe observée ---- */
+function evo(m){const A=[[0,0]];let n=0,e=0;(m.pts||[]).forEach(x=>{x.w?n++:e++;A.push([n,e])});return A}
+function obsGraph(m,t){const a=agg([m]),E=evo(m),W=600,H=170,mx=Math.max(4,...E.map(x=>Math.max(x[0],x[1]))),X=i=>20+i*(W-40)/Math.max(1,E.length-1),Y=v=>H-15-v*(H-30)/mx;
+  const line=k=>E.map((p,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(p[k]).toFixed(1)).join(' ');
+  const FN={},FA={};FAUTES.forEach(([k,l])=>{FN[k]=l;FA[k]=l});
+  return `<div class="card"><h2>Évolution du score</h2><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><line x1="20" y1="${H-15}" x2="${W-20}" y2="${H-15}" stroke="#ccc"/>
+    <path d="${line(0)}" fill="none" stroke="#2e9e5b" stroke-width="4"/><path d="${line(1)}" fill="none" stroke="#d64545" stroke-width="4" stroke-dasharray="7 5"/>
+    <text x="22" y="16" font-size="14" fill="#2e9e5b" font-weight="700">${esc(t.nom)}</text><text x="${W-22}" y="16" font-size="14" fill="#d64545" font-weight="700" text-anchor="end">${esc(m.adv)}</text></svg></div>
+  <div class="card"><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:280px"><h3>Comment nous marquons (${a.w})</h3>${bars(a.win,WIN,'var(--d4)')}<h3>Fautes de l'adversaire</h3>${bars(a.fadv,FA,'#8a8f98')}</div>
+   <div style="flex:1;min-width:280px"><h3>Comment nous perdons des points (${a.l})</h3>${bars(a.loss,LOSS,'var(--d1)')}<h3>Nos fautes</h3>${bars(a.fn,FN,'#d64545')}</div></div></div>`}
+function obsImage(m,t){const a=agg([m]),A3=a.win.a3||0;
+  return `<div class="card"><h2>🏐 Nos points marqués : ${a.w}</h2><div class="ballrow">${'🟢'.repeat(A3)}${'🔵'.repeat((a.win.a12||0))}${'⭐'.repeat(a.win.sv||0)}${'🎁'.repeat(a.win.fa||0)}</div>
+    <p class="muted">🟢 attaque en 3 touches · 🔵 attaque en 1-2 touches · ⭐ service gagnant · 🎁 faute adverse</p></div>
+  <div class="card"><h2>📍 Où nos attaques tombent</h2>${zoneMap(a.zone)}</div>
+  <div class="card"><h2>⚠️ Nos fautes</h2><div class="icons">${FAUTES.map(([k,l,i])=>`<div style="${a.fn[k]?'border-color:#d64545':'opacity:.45'}"><span>${i}</span><b>${a.fn[k]||0}</b><br><small>${l}</small></div>`).join('')}</div></div>
+  ${(m.cont||[]).length?`<div class="card"><h2>❓ Contestations</h2><div class="icons">${Object.entries(ISSUES).map(([k,[l]])=>`<div><span>${l.split(' ')[0]}</span><b>${m.cont.filter(x=>x.issue===k).length}</b><br><small>${l.slice(2)}</small></div>`).join('')}</div></div>`:''}`}
+function obsTexte(m,t,c){const a=agg([m]),[n,e]=scOf(m),fin=m.ph==='F'||m.fini,P=[],pc=x=>a.w?Math.round(x/a.w*100):0;
+  const top=(o,L)=>{const k=Object.keys(o).sort((x,y)=>o[y]-o[x])[0];return k&&o[k]?[k,o[k],L[k]]:null};
+  P.push(n>e?`Vous ${fin?'avez gagné':'menez'} ${n} à ${e} contre ${esc(m.adv)}.`:n<e?`Vous ${fin?'avez perdu':'êtes menés'} ${n} à ${e} contre ${esc(m.adv)}.`:`Égalité ${n} partout contre ${esc(m.adv)}.`);
+  const tw=top(a.win,WIN);if(tw)P.push(`Vous marquez surtout par « ${tw[2].toLowerCase()} » (${tw[1]} point${tw[1]>1?'s':''}, ${pc(tw[1])} % de vos points).${(a.win.a3||0)>=(a.win.a12||0)&&a.win.a3?' Vous construisez bien vos attaques en 3 touches : continuez.':(a.win.a12||0)>(a.win.a3||0)?' Vous renvoyez souvent trop vite : prenez le temps de jouer en 3 touches.':''}`);
+  const zt=Object.values(a.zone).reduce((x,y)=>x+y,0);if(zt){const tz=top(a.zone,Object.fromEntries(ZONES));P.push(`Vos attaques tombent le plus souvent en « ${tz[2].toLowerCase()} » (${tz[1]} sur ${zt}).${tz[1]/zt>=.6&&zt>=3?" L'adversaire va s'y attendre : variez les zones.":' Vous variez bien les zones.'}`)}
+  const fnT=Object.values(a.fn).reduce((x,y)=>x+y,0);if(fnT){const tf=top(a.fn,Object.fromEntries(FAUTES.map(x=>[x[0],x[1]])));P.push(`Vous avez fait ${fnT} faute${fnT>1?'s':''}, surtout « ${tf[2].toLowerCase()} » (${tf[1]}). Ce sont des points donnés à l'adversaire.`)}else P.push("Vous n'avez fait aucune faute : bravo.");
+  if(a.loss.ad)P.push(`L'adversaire a marqué ${a.loss.ad} fois sur ses attaques : pensez à vous répartir le terrain et à annoncer « j'ai ! ».`);
+  if(a.loss.rc)P.push(`${a.loss.rc} réception${a.loss.rc>1?'s':''} ratée${a.loss.rc>1?'s':''} : réceptionnez haut, vers le passeur.`);
+  if((m.cont||[]).length)P.push(`${m.cont.length} contestation${m.cont.length>1?'s':''} : ${Object.keys(ISSUES).map(k=>{const x=m.cont.filter(y=>y.issue===k).length;return x?x+' '+ISSUES[k][0].slice(2).toLowerCase():''}).filter(Boolean).join(', ')}.`);
+  const an=analyse([m]);if(an.length)P.push(`<b>Notre conseil ${fin?'pour la prochaine fois':'pour la 2e partie'} :</b> ${PB[an[0].k].replace(/^On /,'vous ').replace(/^Trop/,'il y a trop')}. ${fin?'Choisissez une remédiation dans l\'onglet 🔁.':'Mettez-vous d\'accord sur une consigne avant de reprendre.'}`);
+  const ob=(c.equipes||[]).find(x=>x.id===m.obs.eq);P.push(`<small class="muted">Observé par ${esc(ob?ob.nom:'?')} · arbitre ${esc(shortName(elOf(c,m.obs.arbitre)))} · table de marque ${esc(shortName(elOf(c,m.obs.marqueur)))}</small>`);
+  return `<div class="card lit"><h2>📝 Ce que disent les observateurs</h2>${P.map(x=>`<p>${x}</p>`).join('')}</div>`}
+
 function coNewMatch(adv,rid){coSet(t=>{t.matchs=t.matchs||[];t.matchs.push({id:'m'+uid(),date:today(),lecon:lessonNow(),adv:String(adv).trim()||'Adversaire',rid:rid||'',pts:[],fini:0})})}
 function coWin(k){if(k==='fa')return coAdd({w:1,k});CO.pt={k};renderCoach()}
 function coZone(z){const k=CO.pt.k;coAdd({w:1,k,z})}
 function coAdd(pt){CO.pt=null;coSet(t=>{curMatch(t).pts.push(pt)})}
 function coUndo(){coSet(t=>{curMatch(t).pts.pop()})}
 function coEndMatch(){const t=coT(),m=curMatch(t);if(!m)return;if(!confirm('Terminer le match ?'))return;
-  const c=coC();coSet(t=>{const m=curMatch(t);m.nous=m.pts.filter(x=>x.w).length;m.eux=m.pts.length-m.nous;m.fini=1;
+  const c=coC();coSet(t=>{const m=curMatch(t);[m.nous,m.eux]=scOf(m);m.fini=1;if(m.mode==='obs')m.ph='F';
     const res=m.nous>m.eux?'G':m.nous<m.eux?'P':'N',J=jour(t);
     if(B().optMatchs)(t.el||[]).forEach(id=>{if(J.pres[id]===0)return;const e=elOf(c,id);if(e){e.matchs=e.matchs||[];e.matchs.push(res);applyMatchs(e)}})});
   toast('Match enregistré')}
 /* ---- statistiques ---- */
-function agg(M){const a={w:0,l:0,win:{},loss:{},zone:{},G:0,N:0,P:0};M.forEach(m=>{(m.pts||[]).forEach(x=>{if(x.w){a.w++;a.win[x.k]=(a.win[x.k]||0)+1;if(x.z)a.zone[x.z]=(a.zone[x.z]||0)+1}else{a.l++;a.loss[x.k]=(a.loss[x.k]||0)+1}});
-  if(m.fini){const n=m.pts.filter(x=>x.w).length,e=m.pts.length-n;a[n>e?'G':n<e?'P':'N']++}});return a}
+function agg(M){const a={w:0,l:0,win:{},loss:{},zone:{},fn:{},fadv:{},G:0,N:0,P:0};M.forEach(m=>{(m.pts||[]).forEach(x=>{if(x.w){a.w++;a.win[x.k]=(a.win[x.k]||0)+1;if(x.z)a.zone[x.z]=(a.zone[x.z]||0)+1;if(x.f)a.fadv[x.f]=(a.fadv[x.f]||0)+1}else{a.l++;a.loss[x.k]=(a.loss[x.k]||0)+1;if(x.f)a.fn[x.f]=(a.fn[x.f]||0)+1}});
+  if(m.fini){const [n,e]=scOf(m);a[n>e?'G':n<e?'P':'N']++}});return a}
 function bars(obj,labels,col){const tot=Object.values(obj).reduce((s,x)=>s+x,0)||1,mx=Math.max(1,...Object.values(obj));
   return Object.entries(labels).map(([k,n])=>`<div class="hbar"><span>${n}</span><i style="width:${(obj[k]||0)/mx*55}%;background:${col}"></i><em>${obj[k]||0}</em><small class="muted">${obj[k]?Math.round(obj[k]/tot*100)+' %':''}</small></div>`).join('')}
 function zoneMap(z){const mx=Math.max(1,...Object.values(z));return `<div class="court" style="grid-template-rows:repeat(2,70px)">${ZONES.map(([k,n])=>`<div style="background:rgba(242,140,40,${.15+.85*(z[k]||0)/mx})"><span>${n}<br><b style="font-size:1.3rem">${z[k]||0}</b></span></div>`).join('')}</div>`}
@@ -974,7 +1093,8 @@ function bilanEquipe(c,t,teacher){const M=BIL==='jour'?teamMatches(t,today()):te
   <div class="stats"><div class="stat"><b>${a.G}-${a.N}-${a.P}</b><span>Gagnés · nuls · perdus</span></div><div class="stat"><b>${a.w} / ${a.l}</b><span>Points marqués / perdus</span></div>
    <div class="stat"><b>${a.w?Math.round((a.win.a3||0)/a.w*100):0} %</b><span>Points en 3 touches</span></div><div class="stat"><b>${Object.keys(v).filter(k=>A.some(x=>x.id===k)).length}/${A.length}</b><span>Situations validées</span></div></div>
   <div class="card" style="margin-top:12px"><h2>🧭 Notre parcours</h2>${parcours(c,t)}</div>
-  ${M.length?`<div class="card">${statsHtml_(M)}</div><div class="card"><h2>Matchs</h2>${M.slice().reverse().map(m=>`<div class="erow"><span class="nm">${new Date(m.date+'T12:00').toLocaleDateString('fr-FR')} · contre ${esc(m.adv)}</span><b>${m.nous} – ${m.eux}</b> ${m.nous>m.eux?'✅':m.nous<m.eux?'❌':'➖'}</div>`).join('')}</div>`:'<div class="card"><p>Aucun match terminé sur cette période.</p></div>'}
+  ${M.length?`<div class="card">${statsHtml_(M)}</div><div class="card"><h2>Matchs</h2>${M.slice().reverse().map(m=>`<div class="erow" style="flex-wrap:wrap"><span class="nm">${new Date(m.date+'T12:00').toLocaleDateString('fr-FR')} · contre ${esc(m.adv)}${m.mode==='obs'?' · 👀 observé':''}</span><b>${m.nous} – ${m.eux}</b> ${m.nous>m.eux?'✅':m.nous<m.eux?'❌':'➖'}
+   ${m.mode==='obs'?`<details style="width:100%"><summary class="muted" style="cursor:pointer">Bilan des observateurs</summary>${obsTexte(m,t,c)}</details>`:''}</div>`).join('')}</div>`:'<div class="card"><p>Aucun match terminé sur cette période.</p></div>'}
   <div class="card"><h2>Situations validées</h2>${A.filter(x=>v[x.id]).map(x=>`<div>✓ ${esc(x.nom)} <small class="muted">${new Date(v[x.id]+'T12:00').toLocaleDateString('fr-FR')}</small></div>`).join('')||'<p class="muted">Aucune pour l\'instant.</p>'}
    <h3>Remédiations choisies</h3>${(t.rem||[]).map(r=>{const x=Rm.find(y=>y.id===r.sit)||{nom:'?'};return `<div>${r.ok==null?'⏳':r.ok?'✅':'🔁'} ${esc(x.nom)} <small class="muted">${new Date(r.date+'T12:00').toLocaleDateString('fr-FR')} · ${esc(PB[r.pb]||'')}${r.txt?' · « '+esc(r.txt)+' »':''}</small></div>`}).join('')||'<p class="muted">Aucune pour l\'instant.</p>'}</div>`}
 function parcours(c,t){const D=new Set(Object.keys(t.jours||{}));(t.matchs||[]).forEach(m=>D.add(m.date));Object.values(t.valid||{}).forEach(d=>D.add(d));(t.rem||[]).forEach(r=>D.add(r.date));
