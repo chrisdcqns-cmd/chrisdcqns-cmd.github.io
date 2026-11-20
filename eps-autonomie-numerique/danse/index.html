@@ -26,6 +26,10 @@ code{background:#f1eef7;padding:1px 5px;border-radius:5px;font-size:.88em}
 .top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:8px 16px;background:var(--ink);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .brand{display:flex;align-items:center;gap:10px;min-width:max-content}
 .brand svg{width:34px;height:34px}
+#hdrClasse.lnk{cursor:pointer;color:#fff;text-decoration:underline dotted;text-underline-offset:3px}
+.ch-w{max-width:720px;margin:20px auto}.ch-w h2{text-align:center}.ch-l{display:grid;gap:10px;margin:14px 0}
+.ch-c{display:flex;align-items:center;gap:10px;padding:0 12px 0 0}.ch-c.on{outline:2px solid var(--accent,#e0447c)}
+.ch-o{flex:1;text-align:left;background:none;border:0;padding:16px 18px;cursor:pointer;font:inherit;color:inherit}.ch-o b{display:block;font-size:1.15rem}.ch-o small{color:var(--muted)}
 .brand b{display:block;font-size:1.05rem;letter-spacing:.2px}.brand small{display:block;color:#bfb6d3;font-size:.78rem}
 #tabs{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none}
 #tabs::-webkit-scrollbar{display:none}
@@ -189,10 +193,9 @@ details.edit{border:1px solid var(--line);border-radius:12px;padding:10px 12px;m
   .obs-grid,.cgrid,.lien .lgrid{grid-template-columns:1fr}
 }
 @media (max-width:560px){
-  main{padding:10px}.degs,.two,.three,.pgrid{grid-template-columns:1fr}.brand small{display:none}
+  main{padding:10px}.degs,.two,.three,.pgrid{grid-template-columns:1fr}.brand small{display:none}.brand small.lnk{display:block}
   .ev-head{flex-direction:column;align-items:stretch}.grow-row{grid-template-columns:1fr auto}.grow-row .gT{grid-column:1/-1;order:3}
 }
-
 /* ===== Charte EPS : barre sombre commune, liseré et accents à la couleur de l'appli ===== */
 :root{--app:#C2185B;--ink:#14171C;--accent:#C2185B;--accent-d:#9E1249;--bg:#F5F3EE;--line:#E6E1D6;--muted:#6A6F78}
 .top{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding:10px 16px 14px}
@@ -201,6 +204,7 @@ details.edit{border:1px solid var(--line);border-radius:12px;padding:10px 12px;m
 #tabs button.on{background:var(--app);color:#fff}
 #bLock{background:transparent;border:1.5px solid #3A3F47;color:#D5D8DE;border-radius:10px;height:40px;padding:0 12px;font-weight:700}
 .top [data-eps-bar]{margin-left:0}
+#hdrClasse.lnk{color:#fff}
 </style>
 </head>
 <body>
@@ -1753,7 +1757,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && dir
 /* liste importée depuis la page d'accueil (autre onglet) : on recharge */
 window.addEventListener('storage', ev => { if (ev.key === KEY && ev.newValue && !dirty) { S = load(); UI.selId = null; route(); } });
 
-const UI = { token: '', selId: null, filtreG: '', q: '', txtEleve: false, obsG: '', defi: null, defiGroupe: false, emSel: '', em: null, obsForm: null };
+const UI = { token: '', selId: null, filtreG: '', q: '', txtEleve: false, obsG: '', defi: null, defiGroupe: false, emSel: '', em: null, obsForm: null, choisi: false };
 
 function curClasse() { return S.classes.find(c => c.id === S.classeId) || S.classes[0] || null; }
 function groupeDe(cl, e) { return cl.groupes.find(g => g.id === e.groupeId) || null; }
@@ -1983,8 +1987,8 @@ function relevéAuto() {
 }
 
 /* ---------- Routage ---------- */
-const VUES = { evaluation: rEval, observation: rObs, procedes: rProc, bilan: rBilan, classe: rClasse, reglages: rReglages, eleve: rEleveMode };
-const TEACH = ['evaluation', 'bilan', 'classe', 'reglages'];
+const VUES = { classes: rChoix, evaluation: rEval, observation: rObs, procedes: rProc, bilan: rBilan, classe: rClasse, reglages: rReglages, eleve: rEleveMode };
+const TEACH = ['classes', 'evaluation', 'bilan', 'classe', 'reglages'];
 let vue = 'evaluation';
 function parseHash() { const h = decodeURIComponent((location.hash || '').slice(1)); const i = h.indexOf('='); return i < 0 ? { v: h, arg: '' } : { v: h.slice(0, i), arg: h.slice(i + 1) }; }
 function majEntete() {
@@ -1993,7 +1997,11 @@ function majEntete() {
   document.body.classList.toggle('auto-on', autoOuvert());
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === vue));
   const cl = curClasse();
-  $('#hdrClasse').textContent = T && cl ? cl.nom + ' · ' + cl.eleves.length + ' élèves' : (vue === 'eleve' ? 'Je me positionne' : 'Espace élève');
+  const hc = $('#hdrClasse');
+  hc.textContent = T && cl ? (vue === 'classes' ? 'Choisir une classe' : cl.nom + ' · ' + cl.eleves.length + ' élèves ▾') : (vue === 'eleve' ? 'Je me positionne' : 'Espace élève');
+  hc.classList.toggle('lnk', !!(T && cl && vue !== 'classes' && vue !== 'eleve'));
+  hc.onclick = hc.classList.contains('lnk') ? () => { UI.apres = VUES[vue] && vue !== 'classes' ? vue : 'evaluation'; aller('classes'); } : null;
+  hc.title = hc.onclick ? 'Changer de classe' : '';
   const b = $('#bLock');
   b.textContent = T ? (vue === 'eleve' ? '← Espace enseignant' : '👟 Mode élève') : '🔒 Enseignant';
 }
@@ -2001,6 +2009,7 @@ function route() {
   let { v, arg } = parseHash();
   const T = isTeacher();
   if (!VUES[v]) v = T ? 'evaluation' : (autoOuvert() ? 'eleve' : 'procedes');
+  if (T && !UI.choisi && (v === 'evaluation' || v === 'bilan')) { UI.apres = v; v = 'classes'; }
   if (UI.token !== (v === 'eleve' ? arg : '')) UI.em = null;
   UI.token = v === 'eleve' ? arg : '';
   vue = v;
@@ -2026,6 +2035,37 @@ async function boutonVerrou() {
   } else if (await demanderCode()) { UI.em = null; aller('evaluation'); route(); }
 }
 setInterval(() => { const T = isTeacher(); if (T !== document.body.classList.contains('teach-on')) route(); }, 30000);
+
+/* =========================================================
+   CHOIX DE LA CLASSE (à l'ouverture, ou en touchant le nom de la classe en haut)
+   ========================================================= */
+function rChoix() {
+  const V = $('#view');
+  const cartes = S.classes.map(c => {
+    const n = c.eleves.length, ev = c.eleves.filter(e => !e.statut && nbEval(e) === S.criteres.length).length;
+    const ne = S.obs.filter(o => o.classeId === c.id).length;
+    return `<div class="card ch-c ${c.id === S.classeId ? 'on' : ''}" data-c="${c.id}">
+      <button class="ch-o" data-o="${c.id}"><b>${esc(c.nom)}</b><small>${n} élève${n > 1 ? 's' : ''} · ${ev}/${n} évalué${ev > 1 ? 's' : ''}${c.groupes.length ? ' · ' + c.groupes.length + ' groupe' + (c.groupes.length > 1 ? 's' : '') : ''}${ne ? ' · ' + ne + ' fiche' + (ne > 1 ? 's' : '') + ' d\'observation' : ''}</small></button>
+      <button class="btn sm ghost" data-ren="${c.id}" title="Renommer la classe">✎ Renommer</button></div>`;
+  }).join('');
+  V.innerHTML = `<div class="ch-w"><h2>Quelle classe ?</h2>
+    <div class="ch-l">${cartes}</div>
+    <div class="row center wrap"><button class="btn" id="chNew">+ Nouvelle classe</button><button class="btn ghost" id="chImp">Importer une liste…</button></div></div>`;
+  const ouvrir = id => { if (S.classeId !== id) { S.classeId = id; UI.selId = null; UI.filtreG = ''; UI.obsG = ''; save(); } UI.choisi = true; const d = UI.apres || 'evaluation'; UI.apres = ''; if (location.hash === '#' + d) route(); else location.hash = d; };
+  V.onclick = async ev => {
+    const r = ev.target.closest('[data-ren]');
+    if (r) { const c = S.classes.find(x => x.id === r.dataset.ren); const n = await renommerClasse(c); if (n) { rChoix(); majEntete(); } return; }
+    const o = ev.target.closest('[data-o]'); if (o) ouvrir(o.dataset.o);
+  };
+  $('#chNew').onclick = async () => { const n = await modal({ titre: 'Nouvelle classe', input: { ph: 'Ex. : 2nde 4' }, ok: 'Créer' }); if (n && n.trim()) { const c = { id: uid(), nom: n.trim(), eleves: [], groupes: [] }; S.classes.push(c); S.classeId = c.id; save(); UI.choisi = true; UI.apres = ''; aller('classe'); } };
+  $('#chImp').onclick = () => { UI.choisi = true; UI.apres = ''; aller('classe'); };
+}
+async function renommerClasse(c) {
+  if (!c) return false;
+  const n = await modal({ titre: 'Renommer la classe', html: '<p class="muted">Le nouveau nom apparaît partout : en-tête, PDF, export et sur tes autres appareils.</p>', input: { value: c.nom, ph: 'Ex. : 2nde 4' }, ok: 'Renommer' });
+  if (!n || !n.trim() || n.trim() === c.nom) return false;
+  c.nom = n.trim(); save(); toast('Classe renommée : ' + c.nom); return true;
+}
 
 /* =========================================================
    VUE ÉVALUATION
@@ -2347,6 +2387,7 @@ function rBilan() {
    VUE CLASSE (élèves, groupes, import, lien élève)
    ========================================================= */
 function rClasse() {
+  UI.choisi = true;
   const cl = curClasse(); const V = $('#view');
   V.innerHTML = `
   <div class="card row wrap">
@@ -2402,9 +2443,9 @@ function rClasse() {
     const msg = !r ? '' : r.err === 'connexion' ? 'Pas de connexion au script Google.' : r.err === 'cle' ? 'Clé secrète refusée par le script.' : r.err === 'script' ? 'Ce n\'est pas le script de Danse (vérifie l\'adresse dans Réglages).' : r.n ? `${r.n} nouveau(x) positionnement(s) reçu(s)${r.inconnus ? `, ${r.inconnus} élève(s) non reconnu(s)` : ''}.` : 'Rien de nouveau.' + (r.inconnus ? ` (${r.inconnus} élève(s) non reconnu(s))` : '');
     if (r && r.n) { rClasse(); toast(msg); } else $('#lRelR').textContent = msg;
   };
-  $('#cSel').onchange = ev => { S.classeId = ev.target.value; save(); UI.selId = null; route(); };
+  $('#cSel').onchange = ev => { S.classeId = ev.target.value; save(); UI.selId = null; UI.choisi = true; route(); };
   $('#cNew').onclick = async () => { const n = await modal({ titre: 'Nouvelle classe', input: { ph: 'Ex. : 2nde 4' }, ok: 'Créer' }); if (n && n.trim()) { const c = { id: uid(), nom: n.trim(), eleves: [], groupes: [] }; S.classes.push(c); S.classeId = c.id; save(); route(); } };
-  $('#cRen').onclick = async () => { const n = await modal({ titre: 'Renommer la classe', input: { value: cl.nom }, ok: 'Renommer' }); if (n && n.trim()) { cl.nom = n.trim(); save(); route(); } };
+  $('#cRen').onclick = async () => { if (await renommerClasse(cl)) route(); };
   $('#cDel').onclick = async () => {
     if (S.classes.length < 2) { toast('Il faut garder au moins une classe'); return; }
     if (await modal({ titre: `Supprimer la classe « ${cl.nom} » ?`, html: '<p>Toutes les évaluations de cette classe seront effacées' + (communCfg() ? ' <b>sur tous tes appareils synchronisés</b>' : ' de cet appareil') + '.</p>', ok: 'Supprimer', danger: true })) {
