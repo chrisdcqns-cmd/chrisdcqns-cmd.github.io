@@ -208,6 +208,8 @@ details.edit{border:1px solid var(--line);border-radius:12px;padding:10px 12px;m
 #bLock{background:transparent;border:1.5px solid #3A3F47;color:#D5D8DE;border-radius:10px;height:40px;padding:0 12px;font-weight:700}
 .top [data-eps-bar]{margin-left:0}
 #hdrClasse.lnk{color:#fff}
+/* lien personnel du bilan : l'élève n'a accès qu'à son auto-positionnement */
+body.lien-mode #tabs,body.lien-mode #bLock,body.lien-mode [data-eps-bar],body.lien-mode #eps-home,body.lien-mode #eps-upd,body.lien-mode #epsd-pill,body.lien-mode .epsg{display:none!important}
 </style>
 </head>
 <body>
@@ -2010,9 +2012,13 @@ function majEntete() {
   b.textContent = T ? (vue === 'eleve' ? '← Espace enseignant' : '👟 Mode élève') : '🔒 Enseignant';
   b.style.display = T ? '' : 'none'; /* élèves : accès enseignant par appui long (3 s) sur le logo */
 }
+/* ouvert par le lien personnel d'un bilan : la page reste sur l'auto-positionnement de cet élève (même si l'adresse est modifiée) */
+const LIEN = (() => { const m = /^#eleve=(.+)$/.exec(location.hash); if (m) { try { sessionStorage.setItem('danse.lien', m[1]); } catch (e) { } return m[1]; } try { return sessionStorage.getItem('danse.lien') || ''; } catch (e) { return ''; } })();
 function route() {
   let { v, arg } = parseHash();
   const T = isTeacher();
+  document.body.classList.toggle('lien-mode', !!LIEN && !T);
+  if (LIEN && !T) { v = 'eleve'; arg = decodeURIComponent(LIEN); if (location.hash !== '#eleve=' + LIEN) history.replaceState(null, '', location.pathname + location.search + '#eleve=' + LIEN); }
   if (!VUES[v]) v = T ? 'evaluation' : (autoOuvert() ? 'eleve' : 'procedes');
   if (T && !UI.choisi && (v === 'evaluation' || v === 'bilan')) { UI.apres = v; v = 'classes'; }
   if (T) UI.mode = '';
@@ -3339,7 +3345,7 @@ window.epsListsHook = { save: () => saveNow(), reload: () => { S = load(); route
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 (window.EPSG_Q = window.EPSG_Q || []).push({ app: 'Danse', sub: 'CA3 · Composer, observer', color: '#C2185B',
   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M4 9l5-1 4 2 5-3"/><path d="M13 10l-1 5 4 3 1 4"/><path d="M12 15l-4 2-2 4"/></svg>',
-  isTeacher: () => isTeacher(), when: () => !isTeacher() && !/^#eleve=/.test(location.hash),
+  isTeacher: () => isTeacher(), when: () => !isTeacher() && !/^#eleve=/.test(location.hash) && !LIEN,
   classes: () => S.classes.filter(c => c.eleves.length).map(c => ({ id: c.id, nom: c.nom, n: c.eleves.length })),
   current: () => S.classeId || '',
   select: id => { S.classeId = id; save(); UI.mode = 'cl'; UI.em = null; aller('observation'); route(); },

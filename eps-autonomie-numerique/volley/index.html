@@ -284,6 +284,8 @@ nav button.on{background:var(--app);color:#fff}
 .ap-spin{width:46px;height:46px;border:5px solid #e3d5ef;border-top-color:var(--vol);border-radius:50%;margin:10px auto;animation:apr 1s linear infinite}@keyframes apr{to{transform:rotate(360deg)}}
 @media(max-width:700px){.ap-degs{grid-template-columns:1fr 1fr}.ap-three{grid-template-columns:1fr}}
 @media print{.apv{display:none!important}}
+/* en mode élève, tout le reste de l'appli est masqué (barre, boutons communs, autres écrans) */
+body.apmode>*:not(#apv):not(script):not(.toast):not(.epp){display:none!important}
 </style>
 </head>
 <body>
@@ -1834,6 +1836,10 @@ function apDate(a){return a&&a.t?new Date(a.t).toLocaleDateString('fr-FR'):''}
 
 /* ================== VUE ÉLÈVE (lien du bilan ou tablette en mode élève) ================== */
 let APE=null;
+/* lien personnel d'une fiche : la page reste sur l'auto-positionnement de cet élève, même si l'adresse est modifiée */
+const AP_LIEN=(()=>{const m=/^#eleve=(.+)$/.exec(location.hash);if(m){try{sessionStorage.setItem('volley.lien',m[1])}catch(e){}return m[1]}try{return sessionStorage.getItem('volley.lien')||''}catch(e){return ''}})();
+function apFixHash(){if(AP_LIEN&&location.hash!=='#eleve='+AP_LIEN)history.replaceState(null,'',location.pathname+location.search+'#eleve='+AP_LIEN)}
+apFixHash();
 function apOn(){return /^#eleve/.test(location.hash)}
 function apCtx(){
   const m=/^#eleve=(.+)$/.exec(location.hash);
@@ -1845,11 +1851,12 @@ function apCtx(){
   return{ident:null};
 }
 function apShow(){const v=document.getElementById('apv'),on=apOn();v.classList.toggle('on',on);document.body.classList.toggle('apmode',on);if(on){document.getElementById('lock').classList.remove('on');const cc=document.getElementById('coach');if(cc)cc.classList.remove('on');document.querySelectorAll('.epsg').forEach(x=>x.remove());renderAp()}}
-addEventListener('hashchange',()=>{APE=null;apShow();if(!apOn())setLock()});
-function apQuit(){APE=null;history.replaceState(null,'',location.pathname+location.search);apShow();setLock()}
+addEventListener('hashchange',()=>{if(AP_LIEN){apFixHash();return}APE=null;apShow();if(!apOn())setLock()});
+/* quitter le mode élève de la tablette : code enseignant obligatoire */
+async function apQuit(){await unlock();if(!isUnlocked())return;APE=null;history.replaceState(null,'',location.pathname+location.search);apShow();setLock()}
 function renderAp(){
   const V=document.getElementById('apv'),ctx=apCtx(),b=B();
-  const top=`<div class="ap-top"><span class="ap-logo">🏐</span><div><b>Volley-ball</b><small>Je me positionne · CA4</small></div>${ctx.ident?'':'<button class="ap-q" onclick="apQuit()">Quitter</button>'}</div>`;
+  const top=`<div class="ap-top"><span class="ap-logo">🏐</span><div><b>Volley-ball</b><small>Je me positionne · CA4</small></div>${ctx.ident?'':'<button class="ap-q" onclick="apQuit()">🔒 Quitter</button>'}</div>`;
   if(ctx.err){V.innerHTML=top+`<div class="ap-in"><div class="ap-card ap-end"><div class="ap-big">🔒</div><h1>Auto-positionnement fermé</h1><p>${esc(ctx.err)}</p></div></div>`;return}
   if(!APE){APE={etape:'form',eleveId:'',nom:'',prenom:'',classe:'',ev:{},reussi:'',ameliorer:'',code:''};
     if(ctx.ident){const t=ctx.ident;Object.assign(APE,{nom:t.n,prenom:t.p,classe:t.c})}}
