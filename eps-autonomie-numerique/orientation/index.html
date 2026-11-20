@@ -3131,7 +3131,9 @@ route();
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
 </script>
-<script>window.epsAppHome=function(){try{stopMyPos()}catch(e){}try{location.hash="";showHome()}catch(e){location.href=location.pathname}};</script>
+<script>/* dispensés : seulement ceux des classes de la leçon en cours (appel), sinon tous */
+window.epsCurrentClass=function(){try{if(typeof S!=="undefined"&&S&&S.active&&S.cls&&S.cls.length)return{nom:S.cls.join(" + "),eleves:((S.appel&&S.appel.list)||[]).map(function(x){return x.nom})}}catch(e){}return null};
+window.epsAppHome=function(){try{stopMyPos()}catch(e){}try{location.hash="";showHome()}catch(e){location.href=location.pathname}};</script>
 <script src="../eps-home.js" defer></script>
 </body>
 </html>

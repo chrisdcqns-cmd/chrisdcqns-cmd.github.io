@@ -1695,6 +1695,8 @@ addEventListener('storage',ev=>{if(ev.key==='eps.share.v1'){syUpd();syncSoon(300
 
 /* ================== DÉMARRAGE ================== */
 renderClassSel();renderList();setLock();syUpd();syncSoon(800);if(coachOn()&&!isUnlocked())renderCoach();
+/* listes de classes communes (eps-home.js) : mise à jour en direct quand une liste arrive */
+window.epsListsHook={save:()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},reload:()=>{try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&typeof v==='object')S=v}catch(e){}fixState();refresh();if(coachOn()&&!isUnlocked())renderCoach()}};
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, puis son équipe (tablette du coach) */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'Volley-ball',sub:'CA4 · Tablette du coach',color:'#6B3FA0',
  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 4 9M12 12a9 9 0 0 1-8 4.5M12 12a9 9 0 0 1 8.5 3.5"/><path d="M12 12 7.5 4.5"/></svg>',

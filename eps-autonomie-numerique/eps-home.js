@@ -572,7 +572,13 @@
   async function applyLocal() {
     if (!window.EPSL) return;
     if (HUB) ["esc", "rel", "vol", "bad", "dan"].forEach(function (a) { try { if (localStorage.getItem({ esc: "escalade.cl", rel: "relais-vitesse-data-v3", vol: "eps_volley_eval_v1", bad: "eps_badminton_v1", dan: "danse-eps-v1" }[a]) != null) EPSL.apply(a); } catch (e) {} });
-    else if (EPSL.app === "esc" || EPSL.app === "rel") { try { if (EPSL.apply(EPSL.app)) window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {} }
+    else if (EPSL.app) { /* appli ouverte : ses données sont enregistrées, la liste est ajoutée, puis l'appli se recharge (mise à jour en direct) */
+      var H = window.epsListsHook, ch = false;
+      try { if (H && H.save) H.save(); } catch (e) {}
+      try { ch = EPSL.apply(EPSL.app); } catch (e) {}
+      if (ch) { if (H && H.reload) { try { H.reload(); } catch (e) {} } else try { window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {} }
+    }
+    else if (window.epsListsHook && window.epsListsHook.reload) { try { window.epsListsHook.reload(); } catch (e) {} } /* Acrosport, OrienRun… */
     try { /* OrienRun */
       var O = await oriGet(), ch = false, V = JSON.parse(localStorage.getItem(KL) || "{}"), skip = V.skip || {};
       EPSL.items().forEach(function (o) {
@@ -1040,7 +1046,7 @@
   (window.EPSG_Q || []).forEach(gateRegister);
   window.EPSG_Q = { push: gateRegister };
   window.EPSR = { get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
-  window.EPSD = { refresh: function () { try { draw(); } catch (e) {} }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
+  window.EPSD = { refresh: function () { try { draw(); } catch (e) {} }, applyLists: function () { return applyLocal(); }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================

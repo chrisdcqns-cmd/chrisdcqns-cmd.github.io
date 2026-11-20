@@ -1941,7 +1941,7 @@ async function openProf(){
   const v=await epsPin({title:"🔒 Espace enseignant",text:"Touche ABC pour les lettres.",min:1,letters:true,
     check:async v=>{
       if(!online){if(v===prof.pin){hubOn();profMode();return true}return "Code incorrect."}
-      const ok=async()=>{teacherPw=v;try{localStorage.setItem("acro.tpw",v)}catch(e){}hubOn();profMode();store.set(K_TPH,await sha("prof|"+v));return true};
+      const ok=async()=>{teacherPw=v;try{localStorage.setItem("acro.tpw",v)}catch(e){}hubOn();profMode();setTimeout(()=>{try{pushCommonToSheet()}catch(e){}},800);store.set(K_TPH,await sha("prof|"+v));return true};
       try{await teacherCheck(v);return await ok()}
       catch(e){
         if(e.network){const h=store.get(K_TPH,"");if(h&&h===await sha("prof|"+v)){toast("Hors connexion : accès enseignant");return await ok()}return "Pas de connexion : impossible de vérifier le mot de passe."}
@@ -2353,6 +2353,33 @@ refreshOnlineUI();
 renderMembers();renderClassPick();
 (()=>{let c=null;try{c=sessionStorage.getItem(K_CLASS)}catch(e){} if(c&&classes().includes(c)) selectClass(c)})();
 flushAll();refreshClasses();
+/* listes de classes communes (eps-home.js) : mise à jour en direct, et les classes importées ailleurs sont écrites dans le Google Sheet d'Acrosport
+   (en mode enseignant, avec le mot de passe enseignant d'Acrosport enregistré sur la tablette, et une connexion) */
+function nkA(s){return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ").filter(Boolean).sort().join(" ")}
+let pushBusy=false;
+async function pushCommonToSheet(){
+  if(pushBusy||!teacherPw||!apiUrl()||navigator.onLine===false)return; pushBusy=true;
+  let done={};try{done=JSON.parse(localStorage.getItem("acro.pushed.v1")||"{}")||{}}catch(e){}
+  let sent=0;
+  try{
+    for(const o of commonLists()){
+      const k=norm(o.nom),sig=JSON.stringify([o.el||[],o.rm||[]]);if(done[k]===sig)continue;
+      let cur=[];
+      if((serverClasses||[]).some(c=>norm(c&&(c.nom||c))===k)){try{cur=(await apiC("listStudents",{},o.nom)).students||[]}catch(e){if(e.network)break;cur=[]}}
+      const rm=new Set(o.rm||[]),list=cur.filter(x=>!rm.has(nkA((x.prenom||"")+" "+(x.nom||""))));
+      const have=new Set(list.map(x=>nkA((x.prenom||"")+" "+(x.nom||""))));
+      commonStudents(o.nom).forEach(p=>{const kk=nkA(p.prenom+" "+p.nom);if(kk&&!have.has(kk)){have.add(kk);list.push({nom:p.nom,prenom:p.prenom,classe:""})}});
+      if(list.length!==cur.length||list.some((x,i)=>x!==cur[i])){
+        try{await api("teacherSetStudents",{teacher:teacherPw,classe:o.nom,code:classCode(o.nom)||"",students:list.map(x=>({nom:x.nom||"",prenom:x.prenom||"",classe:x.classe||""}))});sent++}
+        catch(e){if(e.network)break;continue}
+      }
+      done[k]=sig;
+    }
+  }finally{try{localStorage.setItem("acro.pushed.v1",JSON.stringify(done))}catch(e){}pushBusy=false}
+  if(sent){try{await refreshClasses()}catch(e){}}
+}
+window.epsListsHook={reload:()=>{try{renderClassPick()}catch(e){}if(homeClass)loadStudents(homeClass).catch(()=>{});pushCommonToSheet()}};
+setTimeout(pushCommonToSheet,4000);setInterval(pushCommonToSheet,120000);
 /* écran élève commun (eps-home.js) : choisir sa classe en premier */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:"Acrosport",sub:"CA3 · Figures et pyramides",color:"#1F4FA3",
  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3.5" r="1.8"/><path d="M8 7.5h8M12 7.5v3"/><circle cx="7.5" cy="11.5" r="1.8"/><circle cx="16.5" cy="11.5" r="1.8"/><path d="M7.5 13.5v7M16.5 13.5v7M5 16h5M14 16h5"/></svg>',
