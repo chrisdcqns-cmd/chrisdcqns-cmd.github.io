@@ -87,7 +87,7 @@ function jsonp(params){
     if(!c)return res(null);
     var cb="asCb"+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement("script"),t;
     function end(d){clearTimeout(t);try{delete window[cb];}catch(e){}s.remove();res(d);}
-    window[cb]=end;s.onerror=function(){end(null);};t=setTimeout(function(){end(null);},25000);
+    window[cb]=end;s.onerror=function(){end(null);};t=setTimeout(function(){end(null);},40000);
     params.key=c.key;params.callback=cb;params.id=sheetId();
     s.src=c.url+(c.url.indexOf("?")>=0?"&":"?")+Object.keys(params).map(function(k){return k+"="+encodeURIComponent(params[k]);}).join("&");
     document.head.appendChild(s);
@@ -151,7 +151,12 @@ async function toggle(r){
   var v=cur===1?0:1;d.at[k]=v;S.busy[k]=1;render();
   var x=await jsonp({as:"set",tab:S.tab,r:r,c:S.col,v:v});
   delete S.busy[k];
-  if(!x||!x.asOk){d.at[k]=cur;render();toast(errMsg(x)||"Non enregistré, réessaie.");var el=document.querySelector('[data-r="'+r+'"]');if(el)el.classList.add("err");return;}
+  if(!x){ /* pas de réponse : on relit le fichier pour savoir si la case a quand même été cochée */
+    S.busy[k]=1;render();await load(S.tab,true);delete S.busy[k];
+    if(S.data&&S.data.at[k]===v){render();return;}
+    if(S.data)S.data.at[k]=cur;render();toast("Pas de réponse du script en cochant : regarde Apps Script → Exécutions (doGet) et envoie-moi l'erreur.");return;
+  }
+  if(!x.asOk){d.at[k]=cur;render();toast(errMsg(x)||"Non enregistré, réessaie.");var el=document.querySelector('[data-r="'+r+'"]');if(el)el.classList.add("err");return;}
   d.at[k]=x.v;render();
 }
 /* ---- affichage ---- */
