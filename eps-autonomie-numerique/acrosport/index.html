@@ -750,10 +750,12 @@ function fmtDate(iso){try{return new Date(iso).toLocaleDateString("fr-FR",{weekd
 /* ---------- ACCUEIL ---------- */
 const K_CLASS="acro.class";
 let homeClass=null, homeList=[];
+window.epsCurrentClass=()=>homeClass?{nom:homeClass,eleves:[]}:null;
 let draftMembers=["","",""];
 function classes(){
   const base=["1GT"];
   const out=[...base]; (serverClasses||[]).forEach(c=>{if(c&&c.nom&&!out.some(x=>norm(x)===norm(c.nom))) out.push(c.nom)});
+  commonLists().forEach(o=>{if(!out.some(x=>norm(x)===norm(o.nom))) out.push(o.nom)}); /* classes importées ailleurs (listes communes) */
   return out;
 }
 function findLocal(c,nom){return Object.values(groups).find(g=>norm(g.classe)===norm(c)&&norm(g.name)===norm(nom))}
@@ -784,11 +786,17 @@ async function groupsOfClass(c){
   return {list,offline};
 }
 let homeStudents=[];
+/* listes de classes communes à toutes les applis EPS (eps-lists.js / eps-home.js) */
+function commonLists(){try{const v=JSON.parse(localStorage.getItem("eps.lists.v1")||"null");return Object.values(v&&v.items||{}).filter(o=>o&&!o.del&&o.nom)}catch(e){return[]}}
+function commonStudents(c){const o=commonLists().find(x=>norm(x.nom)===norm(c)||(x.old&&norm(x.old)===norm(c)));if(!o)return[];const st=o.st||{};
+  return (o.el||[]).map(f=>{const k=String(f).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ").filter(Boolean).sort().join(" ");const p=st[k];if(p)return{prenom:p[0],nom:p[1]};const w=String(f).trim().split(/\s+/);return{prenom:w[0],nom:w.slice(1).join(" ")}})}
 async function loadStudents(c){
-  if(!apiUrl()){homeStudents=[];return}
+  if(!apiUrl()){homeStudents=commonStudents(c);return}
   const key="st|"+norm(c);
   try{homeStudents=(await apiC("listStudents",{},c)).students||[];const cache=store.get(K_CACHE,{});cache[key]=homeStudents;store.set(K_CACHE,cache)}
   catch(e){homeStudents=store.get(K_CACHE,{})[key]||[]}
+  if(!homeStudents.length)homeStudents=commonStudents(c);
+  else commonStudents(c).forEach(p=>{if(!homeStudents.some(x=>norm(x.prenom+" "+x.nom)===norm(p.prenom+" "+p.nom)))homeStudents.push(p)});
   homeStudents.sort((a,b)=>(a.nom+a.prenom).localeCompare(b.nom+b.prenom,"fr"));
 }
 async function loadGroupList(){

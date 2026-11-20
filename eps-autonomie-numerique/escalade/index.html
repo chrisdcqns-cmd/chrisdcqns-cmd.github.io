@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
+<script src="../eps-lists.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Escalade EPS</title>
 <style>
@@ -337,7 +338,7 @@ header [data-eps-bar]{margin-left:8px}
 .sywarn{background:#fff3cd;border:2px solid #e0a800;border-radius:12px;padding:10px 12px;margin:8px 0;font-weight:700;color:#5c4400;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;text-align:left}.sywarn .b{min-height:40px}
 .devs .devr{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-left:5px solid #2b8a3e;background:#f3f7f4;border-radius:8px;margin:6px 0}.devr span{font-size:14px}.devr small{color:#667}.devr em{color:#a33;font-style:normal;font-weight:700;font-size:13px}.devr.old{border-left-color:#999;opacity:.8}.devr.err{border-left-color:#d33}
 </style></head><body>
-<header><b id="logo"><svg class="mk" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 12 9l5 9 3-5 9 14z" fill="#fff"/><circle cx="21.5" cy="7" r="3.2" fill="#ffc93c"/></svg>Escalade EPS</b><span id="tm"></span><span data-eps-bar></span></header>
+<header><b id="logo"><svg class="mk" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg>Escalade EPS</b><span id="tm"></span><span data-eps-bar></span></header>
 <nav id="nav"></nav>
 <main id="m"></main>
 <script>
@@ -734,6 +735,7 @@ function saveLe(go){const L=S.le;if(!L.cr.length)return say('Cochez au moins un 
 async function delLe(){const L=S.le;if(!await ask('Supprimer la leçon du '+fday(L.d,true)+' ?\n(Les grimpes déjà enregistrées restent dans les résultats.)'))return;CF.lec=LEC().filter(l=>l.id!=L.id);if(CF.sea?.id==L.id)CF.sea=null;save();S.le=null;render()}
 function xlLe(){const k=CL.find(c=>c.id==(CF.sel||''));xl(recOf(k?.nom||'',S.lv),S.lv)}
 /* bouton Accueil commun (eps-home.js) : un appui ramène à l'accueil de l'application */
+window.epsCurrentClass=()=>{const c=seaOK()&&cls();return c?{nom:c.nom,eleves:c.el||[]}:null};
 window.epsAppHome=()=>{document.querySelector('.vmod')?.remove();document.querySelector('.dlg')?.remove();fresh();S.e=false;S.le=null;S.lv=null;S.mr='';S.t=S.T||seaOK()?'home':'role';render();scrollTo(0,0)};
 /* consultation d'une leçon (enseignant) */
 function lecView(){const d=S.lv,k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',L=recOf(nom,d).sort((a,b)=>a.ts<b.ts?-1:1),cfg=lecFor(CF.sel||'',d);
@@ -1468,7 +1470,7 @@ sync();
 syncSoon(800);
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'Escalade',sub:'CA2 · Moulinette',color:'#2E7D4F',
- icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 20.5 9 9l4 6.5 2.5-4 6 9z"/><path d="M9 9V3.5l4 1.6-4 1.6"/></svg>',
+ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg>',
  isTeacher:()=>S.T,when:()=>!S.T&&['role','pickcl'].includes(S.t),
  classes:()=>CL.map(c=>({id:c.id,nom:c.nom,note:c.el.length+' élève'+(c.el.length>1?'s':'')+(lecFor(c.id,today())?' · leçon aujourd\'hui':'')})),
  current:()=>CF.wcl||'',

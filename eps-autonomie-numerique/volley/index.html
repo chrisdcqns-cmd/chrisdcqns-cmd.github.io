@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<script src="../eps-lists.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#1B1E24">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -246,7 +247,7 @@ nav button.on{background:var(--app);color:#fff}
 <body>
 <header>
   <div class="top">
-    <h1><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3c-1 4 0 8 3 11M3.6 9.5c4-1 8.5 0 11.4 3.5M8 20c1-3.5 4-6.5 8.5-7.5"/></svg></span><span>Volley-ball</span><small>CA4 · Évaluation</small></h1>
+    <h1><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 4 9M12 12a9 9 0 0 1-8 4.5M12 12a9 9 0 0 1 8.5 3.5"/><path d="M12 12 7.5 4.5"/></svg></span><span>Volley-ball</span><small>CA4 · Évaluation</small></h1>
     <select id="classSel" aria-label="Classe"></select>
     <button class="lockbtn" id="syncIc" onclick="showTab('eleves');syncSoon(100)" title="Sauvegarde en ligne" style="padding:7px 10px">☁️</button>
     <button class="lockbtn" onclick="lockApp()" title="Verrouiller">🔒 Verrouiller</button>
@@ -1696,7 +1697,7 @@ addEventListener('storage',ev=>{if(ev.key==='eps.share.v1'){syUpd();syncSoon(300
 renderClassSel();renderList();setLock();syUpd();syncSoon(800);if(coachOn()&&!isUnlocked())renderCoach();
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, puis son équipe (tablette du coach) */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'Volley-ball',sub:'CA4 · Tablette du coach',color:'#6B3FA0',
- icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3c-1 4 0 8 3 11M3.6 9.5c4-1 8.5 0 11.4 3.5M8 20c1-3.5 4-6.5 8.5-7.5"/></svg>',
+ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 4 9M12 12a9 9 0 0 1-8 4.5M12 12a9 9 0 0 1 8.5 3.5"/><path d="M12 12 7.5 4.5"/></svg>',
  isTeacher:()=>isUnlocked(),when:()=>!isUnlocked()&&!coachOn(),
  classes:()=>S.classes.filter(c=>c.eleves.length).map(c=>({id:c.id,nom:c.nom,note:c.eleves.length+' élève'+(c.eleves.length>1?'s':'')+((c.equipes||[]).length?' · '+c.equipes.length+' équipe'+(c.equipes.length>1?'s':''):'')})),
  current:()=>CO.cid||'',

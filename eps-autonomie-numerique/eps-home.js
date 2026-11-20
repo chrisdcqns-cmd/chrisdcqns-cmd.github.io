@@ -246,12 +246,12 @@
           var lid = String(RL[q][1]).slice(4), ldel = +RL[q][3];
           if (ldel || LS2.pend[lid]) continue;
           try { var ob = JSON.parse(await dec(cfg.key, RL[q][4])), sig = JSON.stringify(ob);
-            if (LS2.app[lid] !== sig) { await applyList(ob); LS2 = lld(); LS2.items[lid] = ob; LS2.app[lid] = sig; lch = true; } } catch (e) {}
+            if (LS2.app[lid] !== sig) { LS2.items[lid] = ob; LS2.app[lid] = sig; lsv(LS2); lch = true; } } catch (e) {}
         }
         LS2.since = RL.length ? +RL[RL.length - 1][0] : Math.max(LS2.since || 0, +rr.seq || 0); lsv(LS2);
         if (!rr.more) break;
       }
-      if (lch) try { window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {}
+      if (lch) { try { await applyLocal(); } catch (e) {} if (HUB) try { window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {} }
       try { await syncReg(cfg); } catch (e) {}
       try { await syncEdt(cfg); } catch (e) {}
     } catch (e) { lastErr = "réseau"; }
@@ -322,7 +322,7 @@
   function draw() {
     if (!pill) return;
     var all0 = activeOn(), cc = curClass(), n = cc ? all0.filter(function (x) { return inClass(x, cc); }).length : all0.length;
-    pill.classList.toggle("on", all0.length > 0 && !HUB && hubTeach()); /* nombre de dispensés : seulement en mode enseignant */
+    pill.classList.toggle("on", n > 0 && !HUB && hubTeach()); /* mode enseignant seulement ; classe choisie : ses dispensés uniquement, sinon tous */
     pill.textContent = "🩹 " + n; /* logo + nombre ; le détail est dans l'infobulle et la liste */
     pill.title = n + " élève" + (n > 1 ? "s" : "") + " dispensé" + (n > 1 ? "s" : "") + " aujourd'hui" + (cc ? " (" + cc.nom + ")" : ""); pill.setAttribute("aria-label", pill.title);
     var hc = document.getElementById("epsd-hubcount");
@@ -541,14 +541,55 @@
     (jget("escalade.cl", []) || []).forEach(function (c) { put("esc", c.nom, (c.el || []).slice()); });
     ((jget("relais-vitesse-data-v3", {}) || {}).classes || []).forEach(function (c) { put("rel", c.name, (c.eleves || []).map(full)); });
     var O = await oriGet(); Object.keys(O).forEach(function (k) { put("ori", k, (O[k] || []).slice()); });
+    [["vol", "eps_volley_eval_v1"], ["bad", "eps_badminton_v1"], ["dan", "danse-eps-v1"]].forEach(function (a) {
+      ((jget(a[1], {}) || {}).classes || []).forEach(function (c) { if (c.nom === "Ma classe" && !(c.eleves || []).length) return; put(a[0], c.nom, (c.eleves || []).map(full)); }); });
     return M;
   }
   /* après un import ou une modification ici : la liste finale part vers les autres tablettes */
-  async function shareList(nom, old, apps) {
-    var M = await allLists(), x = M[norm(nom)]; if (!x) return;
-    var names = []; Object.keys(x.apps).forEach(function (a) { if (apps[a]) x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); });
-    var id = clsId(nom), o = { id: id, nom: nom, old: old && norm(old) !== norm(nom) ? old : "", apps: { esc: apps.esc ? 1 : 0, rel: apps.rel ? 1 : 0, ori: apps.ori ? 1 : 0 }, el: names, ts: Date.now() };
-    var L = lld(); L.items[id] = o; L.pend[id] = stamp(); L.app[id] = JSON.stringify(o); lsv(L); setTimeout(sync, 300);
+  async function shareList(nom, old, apps, exact) {
+    var M = await allLists(), x = M[norm(nom)]; if (!x && !exact) return;
+    var names = exact ? exact.slice() : [];
+    if (!exact) Object.keys(x.apps).forEach(function (a) { if (apps[a]) x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); });
+    var L = lld(), it = null;
+    Object.keys(L.items).forEach(function (k) { var o = L.items[k]; if (o && !o.del && (norm(o.nom) === norm(old || nom) || norm(o.nom) === norm(nom))) it = it || o; });
+    if (!it) { it = { id: clsId(nom), nom: nom, el: [], st: {}, rm: [] }; L.items[it.id] = it; }
+    var keep = {}; names.forEach(function (n) { keep[nkey(n)] = 1; });
+    it.rm = (it.rm || []).filter(function (k) { return !keep[k]; });
+    if (exact) (it.el || []).forEach(function (n) { var k = nkey(n); if (!keep[k] && it.rm.indexOf(k) < 0) it.rm.push(k); });
+    else (it.el || []).forEach(function (n) { if (!keep[nkey(n)]) { names.push(n); keep[nkey(n)] = 1; } });
+    it.old = old && norm(old) !== norm(nom) ? old : ""; it.nom = nom; it.el = names; it.ts = Date.now();
+    L.pend[it.id] = stamp(); L.app[it.id] = JSON.stringify(it); lsv(L);
+    applyLocal(); setTimeout(sync, 300);
+  }
+  /* page d'accueil (aucune appli ouverte) : les listes communes sont écrites dans toutes les applis de la tablette ;
+     dans une appli : seulement OrienRun (IndexedDB) ici, l'appli elle-même les reçoit à sa prochaine ouverture (eps-lists.js) */
+  async function applyLocal() {
+    if (!window.EPSL) return;
+    if (HUB) ["esc", "rel", "vol", "bad", "dan"].forEach(function (a) { try { if (localStorage.getItem({ esc: "escalade.cl", rel: "relais-vitesse-data-v3", vol: "eps_volley_eval_v1", bad: "eps_badminton_v1", dan: "danse-eps-v1" }[a]) != null) EPSL.apply(a); } catch (e) {} });
+    else if (EPSL.app === "esc" || EPSL.app === "rel") { try { if (EPSL.apply(EPSL.app)) window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {} }
+    try { /* OrienRun */
+      var O = await oriGet(), ch = false, V = JSON.parse(localStorage.getItem(KL) || "{}"), skip = V.skip || {};
+      EPSL.items().forEach(function (o) {
+        if (skip["ori|" + norm(o.nom)]) return;
+        var key = Object.keys(O).filter(function (k) { return norm(k) === norm(o.nom) || (o.old && norm(k) === norm(o.old)); })[0];
+        if (key && key !== o.nom) { O[o.nom] = O[key]; delete O[key]; ch = true; }
+        if (!key && !Object.keys(O).length && !/\/orientation\//.test(location.pathname) && !HUB) return;
+        var A = O[o.nom] || (O[o.nom] = []), have = {}; A.forEach(function (n) { have[nkey(n)] = 1; }); if (!key) ch = true;
+        (o.el || []).forEach(function (n) { if (!have[nkey(n)]) { A.push(n); have[nkey(n)] = 1; ch = true; } });
+        (o.rm || []).forEach(function (k) { if (have[k]) { O[o.nom] = A = A.filter(function (n) { return nkey(n) !== k; }); ch = true; } });
+      });
+      if (ch) await oriPut(O);
+    } catch (e) {}
+  }
+  /* ce qui a été importé ou modifié dans une appli de cette tablette → listes communes (puis autres tablettes) */
+  async function collectLists() {
+    if (!window.EPSL) return;
+    var O = await oriGet(), ex = { ori: Object.keys(O).map(function (k) { return { nom: k, ppl: (O[k] || []).map(function (n) { return { full: n }; }) }; }) };
+    try { var ac = JSON.parse(localStorage.getItem("acro.cache.v1") || "{}") || {}; /* Acrosport : listes de son Google Sheet (cache de la tablette) */
+      ex.acro = (ac.__classes || []).map(function (c) { var nm = typeof c === "string" ? c : (c && (c.classe || c.nom || c.name)); var st = ac["st|" + norm(nm)];
+        return st && st.length ? { nom: nm, ppl: st.map(function (x) { return { full: full({ prenom: x.prenom || "", nom: x.nom || "" }), prenom: x.prenom || "", nom: x.nom || "" }; }) } : null; }).filter(Boolean); } catch (e) {}
+    var n = 0; try { n = EPSL.collect(ex); } catch (e) {}
+    if (n) { if (HUB) applyLocal(); clearTimeout(timer); timer = setTimeout(sync, 1500); }
   }
   /* liste reçue : même nom (ou ancien nom) → la classe prend exactement cette liste */
   async function applyList(o) {
@@ -573,10 +614,10 @@
   async function editLists() {
     if (!(await askCode())) return;
     var o = overlay('<div id="epsl"></div>'), box = o.querySelector("#epsl"), M = await allLists(), cur = null;
-    var APPS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"]];
+    var APPS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["bad", "Badminton"], ["dan", "Danse"]];
     function listView(msg) {
       var keys = Object.keys(M).sort(function (a, b) { return M[a].name.localeCompare(M[b].name, "fr"); });
-      box.innerHTML = "<h3>✏️ Listes d'élèves</h3><p class=\"m\">Touche une classe pour la renommer ou corriger ses élèves. Les changements s'appliquent dans les applications que tu coches.</p>" +
+      box.innerHTML = "<h3>✏️ Listes d'élèves</h3><p class=\"m\">Touche une classe pour la renommer ou corriger ses élèves. Les changements s'appliquent dans toutes les applications et sur toutes les tablettes.</p>" +
         (msg ? '<p class="m" style="color:#2E7D4F;font-weight:800">' + esc(msg) + "</p>" : "") +
         (keys.length ? '<div class="epsd-chips">' + keys.map(function (k) { var x = M[k], n = Math.max.apply(null, Object.keys(x.apps).map(function (a) { return x.apps[a].length; }));
           return '<button data-k="' + esc(k) + '">' + esc(x.name) + " <small>(" + n + " · " + APPS.filter(function (a) { return x.apps[a[0]]; }).map(function (a) { return a[1].split(" ")[0]; }).join(", ") + ")</small></button>"; }).join("") + "</div>"
@@ -588,13 +629,12 @@
       var x = M[cur], names = [];
       Object.keys(x.apps).forEach(function (a) { x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); });
       names.sort(function (a, b) { return a.localeCompare(b, "fr"); });
-      var sel = x.sel || (x.sel = {}); APPS.forEach(function (a) { if (sel[a[0]] === undefined) sel[a[0]] = x.apps[a[0]] ? 1 : 0; });
+      var sel = x.sel || (x.sel = {}); APPS.forEach(function (a) { sel[a[0]] = 1; });
       box.innerHTML = "<h3>✏️ " + esc(x.name) + "</h3>" +
         '<span class="epsd-lab">Nom de la classe</span><input class="epsd-in" id="epsl-n" value="' + esc(x.draftName != null ? x.draftName : x.name) + '">' +
         '<span class="epsd-lab">Élèves (un par ligne : Prénom Nom)</span><textarea class="epsd-in" id="epsl-t" style="height:min(38vh,320px);padding:10px 12px;line-height:1.45">' + esc(x.draft != null ? x.draft : names.join("\n")) + "</textarea>" +
         '<p class="m" id="epsl-c" style="margin-top:6px"></p>' +
-        '<span class="epsd-lab">Appliquer dans</span><div class="epsd-chips">' + APPS.map(function (a) { return '<button data-a="' + a[0] + '" class="' + (sel[a[0]] ? "on" : "") + '">' + (sel[a[0]] ? "✓ " : "") + a[1] + (x.apps[a[0]] ? "" : " <small>(nouvelle)</small>") + "</button>"; }).join("") + "</div>" +
-        '<p class="m">Un élève retiré de la liste n\'apparaît plus dans l\'application ; ce qu\'il a déjà fait (grimpes, courses) reste dans les résultats. Acrosport : listes dans l\'espace enseignant de l\'appli (Google Sheet).</p>' +
+        '<p class="m">La liste est commune à toutes les applications (Escalade, Relais, OrienRun, Volley-ball, Badminton, Danse, Acrosport) et à toutes les tablettes. Un élève retiré n\'apparaît plus ; ce qu\'il a déjà fait (grimpes, courses) reste dans les résultats, et un élève déjà évalué (Volley, Badminton, Danse) est gardé.</p>' +
         (err ? '<p class="m" style="color:#C0392B;font-weight:800">' + esc(err) + "</p>" : "") +
         '<div class="epsd-act"><button id="epsl-b">← Retour</button><button class="p" id="epsl-ok">Enregistrer</button></div>';
       var ti = box.querySelector("#epsl-t"), ni = box.querySelector("#epsl-n");
@@ -627,15 +667,15 @@
           }
           if (sel.ori) { var O = await oriGet(); Object.keys(O).forEach(function (kk) { if (norm(kk) === norm(old)) delete O[kk]; }); O[nn] = L.slice(); await oriPut(O); done.push("OrienRun"); }
         } catch (e) { return editView("Enregistrement impossible : " + (e && e.message || e)); }
-        await shareList(nn, old, { esc: sel.esc, rel: sel.rel, ori: sel.ori });
-        M = await allLists(); listView("✓ « " + nn + " » enregistrée dans " + done.join(", ") + (shCfg() ? " ; elle part vers les autres tablettes." : ". (Partage entre tablettes non réglé : elle reste sur cette tablette.)"));
+        await shareList(nn, old, sel, L);
+        M = await allLists(); listView("✓ « " + nn + " » enregistrée dans toutes les applications" + (shCfg() ? " ; elle part vers les autres tablettes." : ". (Partage entre tablettes non réglé : elle reste sur cette tablette.)"));
       };
     }
     listView();
   }
   async function importList() {
     if (!(await askCode())) return;
-    var o = overlay('<div id="epsi"></div>'), box = o.querySelector("#epsi"), L = [], cl = "", sel = { esc: 1, rel: 1, ori: 1, vol: 0, acro: 0 };
+    var o = overlay('<div id="epsi"></div>'), box = o.querySelector("#epsi"), L = [], cl = "", sel = { esc: 1, rel: 1, ori: 1, vol: 1, bad: 1, dan: 1, acro: 0 };
     function step1(msg) {
       box.innerHTML = "<h3>👥 Importer une liste d'élèves</h3><p class=\"m\">Fichier Excel (.xlsx, .xls, .ods) ou CSV : colonnes « Nom » et « Prénom », ou « Élève », ou les noms dans la première colonne (export Pronote accepté).</p>" +
         (msg ? '<p class="m" style="color:#C0392B;font-weight:700">' + esc(msg) + "</p>" : "") +
@@ -670,7 +710,7 @@
             res.push("✓ " + t[1] + " : " + (t[0] === "acro" ? n + " élève(s) dans la liste en ligne" : n + " élève(s) ajouté(s)"));
           } catch (x) { res.push("✕ " + t[1] + " : " + (x && x.message === "annulé" ? "annulé" : "échec (" + esc(x && x.message || "erreur") + ")")); }
         }
-        await shareList(cl, "", { esc: sel.esc, rel: sel.rel, ori: sel.ori });
+        await collectLists(); await shareList(cl, "", { esc: 1, rel: 1, ori: 1, vol: 1, bad: 1, dan: 1 });
         res.push(shCfg() ? "↗ Envoi vers les autres tablettes en cours." : "⚠ Partage entre tablettes non réglé (bouton « ⚙ Partage entre tablettes » de la carte Listes d'élèves) : la classe reste sur cette tablette.");
         box.innerHTML = "<h3>Classe « " + esc(cl) + " »</h3>" + res.map(function (r) { return '<p class="m" style="font-size:17px;color:#1B1E24">' + r + "</p>"; }).join("") +
           '<div class="epsd-act"><button class="p" data-x>Fermer</button></div>';
@@ -845,7 +885,7 @@
       '<div class="epsd-cls" style="margin-top:18px">Appel AS</div>' +
       '<span class="epsd-lab">Lien du fichier d\'appel de l\'association sportive (Google Sheets)</span><input class="epsd-in" id="er-as" placeholder="https://docs.google.com/spreadsheets/d/…" value="' + esc(r.asSheet || "") + '">' +
       '<div class="epsd-cls" style="margin-top:18px">Listes d\'élèves</div>' +
-      '<p class="m">Une liste importée ou corrigée ici va dans Escalade, Relais Vitesse et OrienRun, et sur toutes tes tablettes. Acrosport, Volley-ball, Danse et Badminton gardent pour l\'instant leur propre import de liste.</p>' +
+      '<p class="m">Les listes sont communes : une classe importée ici ou dans n\'importe quelle application apparaît dans toutes les applications (Escalade, Relais Vitesse, OrienRun, Volley-ball, Badminton, Danse, Acrosport) et sur toutes tes tablettes.</p>' +
       '<div id="er-cls" class="m" style="margin:6px 0 4px">…</div>' +
       '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-edit">✏️ Modifier les listes</button><button type="button" class="p" id="er-imp">📥 Importer une liste d\'élèves</button></div>' +
       '<div class="epsd-cls" style="margin-top:18px">Sauvegarde</div>' +
@@ -913,21 +953,21 @@
   function pdfHead(doc, o) {
     var h = headInfo(o), M = doc.M, W = doc.W - 2 * M, top = 26, HH = 58, half = W * 0.58;
     if (!o.noPage) doc.page();
-    doc.rect(M, top, W, HH, "#1d1530"); doc.rect(M, top, 6, HH, o.ac || "#D9481F");
+    doc.rect(M, top, W, HH, "#14171C"); doc.rect(M, top, 6, HH, o.ac || "#D9481F");
     doc.text(M + 18, top + 25, h.l1, { size: 14.5, bold: true, color: "#ffffff", max: half - 20 });
-    doc.text(M + 18, top + 44, h.l2, { size: 9, color: "#cfc8dc", max: half - 20 });
+    doc.text(M + 18, top + 44, h.l2, { size: 9, color: "#A9AEB8", max: half - 20 });
     doc.text(M + W - 14, top + 25, h.r1, { size: 14.5, bold: true, color: "#ffffff", align: "right", max: W - half - 20 });
-    doc.text(M + W - 14, top + 44, h.r2, { size: 9, color: "#cfc8dc", align: "right", max: W - half - 20 });
+    doc.text(M + W - 14, top + 44, h.r2, { size: 9, color: "#A9AEB8", align: "right", max: W - half - 20 });
     if (o.info) doc.text(M, top + HH + 18, o.info, { size: 9.5, bold: true, color: "#1B1E24", max: W });
     doc.y = top + HH + (o.info ? 34 : 24);
     return doc;
   }
   function htmlHead(o) {
     var h = headInfo(o);
-    return '<div style="display:flex;background:#1d1530;color:#fff;margin:0 0 14px;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:Arial,Helvetica,sans-serif">' +
+    return '<div style="display:flex;background:#14171C;color:#fff;margin:0 0 14px;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:Arial,Helvetica,sans-serif">' +
       '<div style="width:7px;background:' + esc(o.ac || "#7A3E9D") + '"></div><div style="flex:1;display:flex;justify-content:space-between;gap:14px;align-items:center;padding:9px 14px">' +
-      '<div><div style="font-size:17px;font-weight:700">' + esc(h.l1) + '</div><div style="font-size:12px;color:#cfc8dc">' + esc(h.l2) + "</div></div>" +
-      '<div style="text-align:right"><div style="font-size:17px;font-weight:700">' + esc(h.r1) + '</div><div style="font-size:12px;color:#cfc8dc">' + esc(h.r2) + "</div></div></div></div>";
+      '<div><div style="font-size:17px;font-weight:700">' + esc(h.l1) + '</div><div style="font-size:12px;color:#A9AEB8">' + esc(h.l2) + "</div></div>" +
+      '<div style="text-align:right"><div style="font-size:17px;font-weight:700">' + esc(h.r1) + '</div><div style="font-size:12px;color:#A9AEB8">' + esc(h.r2) + "</div></div></div></div>";
   }
   /* ================= Écran élève commun : « Choisis ta classe » + ressources sans classe =================
      Chaque application enregistre sa configuration (avant ou après le chargement de ce fichier) :
@@ -1128,6 +1168,9 @@
     if (!HUB) addHome();
     draw();
     setTimeout(sync, 1500);
+    /* listes de classes communes (eps-lists.js) : chargé ici s'il ne l'est pas déjà par l'appli */
+    var goL = function () { setTimeout(function () { collectLists().then(applyLocal).catch(function () {}); }, 600); setInterval(function () { collectLists().catch(function () {}); }, 5000); };
+    if (window.EPSL) goL(); else { var ls = document.createElement("script"); ls.src = BASE + "eps-lists.js"; ls.onload = goL; document.head.appendChild(ls); }
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);
   if (HUB) { var goP = function () { setTimeout(partageDepuisLien, 300); }; if (document.readyState === "complete") goP(); else addEventListener("load", goP); addEventListener("hashchange", partageDepuisLien); }
