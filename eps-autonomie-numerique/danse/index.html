@@ -41,6 +41,8 @@ code{background:#f1eef7;padding:1px 5px;border-radius:5px;font-size:.88em}
 body:not(.teach-on) #tabs .t{display:none}
 body.teach-on #tabs .s-auto,body:not(.auto-on) #tabs .s-auto{display:none}
 body.eleve-mode #tabs{visibility:hidden}
+[hidden]{display:none!important}
+body.res-mode #tabs button:not([data-v=procedes]){display:none}
 .autoctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;background:#FBEAF1;border:1px solid #F2C3D6;border-radius:12px;padding:10px 12px;margin:6px 0 12px}
 .autoctl input[type=date]{width:auto;min-height:38px}
 .aEtat{flex-basis:100%;font-size:.84rem;color:#8a3b57}.aEtat.ok{color:#0f7a5c;font-weight:600}
@@ -1758,7 +1760,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && dir
 /* liste importée depuis la page d'accueil (autre onglet) : on recharge */
 window.addEventListener('storage', ev => { if (ev.key === KEY && ev.newValue && !dirty) { S = load(); UI.selId = null; route(); } });
 
-const UI = { token: '', selId: null, filtreG: '', q: '', txtEleve: false, obsG: '', defi: null, defiGroupe: false, emSel: '', em: null, obsForm: null, choisi: false };
+const UI = { token: '', selId: null, filtreG: '', q: '', txtEleve: false, obsG: '', defi: null, defiGroupe: false, emSel: '', em: null, obsForm: null, choisi: false, mode: '' };
 
 function curClasse() { return S.classes.find(c => c.id === S.classeId) || S.classes[0] || null; }
 function groupeDe(cl, e) { return cl.groupes.find(g => g.id === e.groupeId) || null; }
@@ -1999,7 +2001,8 @@ function majEntete() {
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === vue));
   const cl = curClasse();
   const hc = $('#hdrClasse');
-  hc.textContent = T && cl ? (vue === 'classes' ? 'Choisir une classe' : cl.nom + ' · ' + cl.eleves.length + ' élèves ▾') : (vue === 'eleve' ? 'Je me positionne' : 'Espace élève');
+  document.body.classList.toggle('res-mode', !T && UI.mode === 'res');
+  hc.textContent = T && cl ? (vue === 'classes' ? 'Choisir une classe' : cl.nom + ' · ' + cl.eleves.length + ' élèves ▾') : (vue === 'eleve' ? 'Je me positionne' : UI.mode === 'res' ? 'Ressources' : UI.mode === 'cl' && cl ? cl.nom : 'Espace élève');
   hc.classList.toggle('lnk', !!(T && cl && vue !== 'classes' && vue !== 'eleve'));
   hc.onclick = hc.classList.contains('lnk') ? () => { UI.apres = VUES[vue] && vue !== 'classes' ? vue : 'evaluation'; aller('classes'); } : null;
   hc.title = hc.onclick ? 'Changer de classe' : '';
@@ -2011,6 +2014,8 @@ function route() {
   const T = isTeacher();
   if (!VUES[v]) v = T ? 'evaluation' : (autoOuvert() ? 'eleve' : 'procedes');
   if (T && !UI.choisi && (v === 'evaluation' || v === 'bilan')) { UI.apres = v; v = 'classes'; }
+  if (T) UI.mode = '';
+  else if (UI.mode === 'res' && v !== 'procedes') v = 'procedes'; /* ressources sans classe : procédés et défis seulement */
   if (UI.token !== (v === 'eleve' ? arg : '')) UI.em = null;
   UI.token = v === 'eleve' ? arg : '';
   vue = v;
@@ -2031,7 +2036,7 @@ function rVerrou() {
 async function boutonVerrou() {
   if (isTeacher()) {
     if (vue === 'eleve') { UI.em = null; aller('evaluation'); return; }
-    verrouiller(); UI.em = null; toast('Mode élève : l\'espace enseignant est verrouillé');
+    verrouiller(); UI.em = null; UI.mode = 'cl'; toast('Mode élève : l\'espace enseignant est verrouillé');
     aller(autoOuvert() ? 'eleve' : 'procedes'); route();
   } else if (await demanderCode()) { UI.em = null; aller('evaluation'); route(); }
 }
@@ -2464,7 +2469,7 @@ function rClasse() {
   tb.onchange = ev => { if (!ev.target.classList.contains('eG')) return; const r = ev.target.closest('[data-e]'); cl.eleves.find(x => x.id === r.dataset.e).groupeId = ev.target.value; save(); };
   tb.onclick = async ev => { const b = ev.target.closest('[data-dele]'); if (!b) return; const e = cl.eleves.find(x => x.id === b.dataset.dele); if (await modal({ titre: `Supprimer ${nomComplet(e)} ?`, html: '<p>Son évaluation sera effacée.</p>', ok: 'Supprimer', danger: true })) { cl.eleves = cl.eleves.filter(x => x.id !== e.id); save(); rClasse(); } };
   $('#lCopy').onclick = () => copier(lienGeneral());
-  $('#lGo').onclick = () => { if (!autoOuvert()) return; verrouiller(); UI.em = null; aller('eleve'); route(); };
+  $('#lGo').onclick = () => { if (!autoOuvert()) return; verrouiller(); UI.em = null; UI.mode = 'cl'; aller('eleve'); route(); };
   bindAutoCtl($('#view'), rClasse);
   rTablette(cl);
   $('#cImp').onclick = () => importerCodes(cl, $('#codes').value);
@@ -2587,6 +2592,11 @@ function rEleveMode() {
   const E = UI.em;
   const cl = ctx.ident ? null : curClasse();
   const local = !ctx.ident && cl && cl.eleves.length > 0;
+  if (!ctx.ident && (!local || (!isTeacher() && UI.mode !== 'cl'))) {
+    V.innerHTML = `<div class="em card merci"><h1>Choisis d'abord ta classe</h1><p>Pour te positionner, choisis ta classe puis ton nom dans la liste.</p>${window.EPSG && EPSG.open ? '<button class="btn primary big" id="emCl">Choisir ma classe</button>' : ''}</div>`;
+    const b = $('#emCl'); if (b) b.onclick = () => EPSG.open();
+    return;
+  }
   if (E.etape === 'merci') {
     V.innerHTML = `<div class="em card merci"><h1>Merci ${esc(E.prenom || '')} !</h1><p>Ton positionnement a bien été enregistré.</p>${ctx.ident ? '' : '<p class="muted">Passe la tablette à l\'élève suivant.</p><button class="btn primary big" id="emNext">Élève suivant</button>'}</div>`;
     const n = $('#emNext'); if (n) n.onclick = () => { UI.em = null; rEleveMode(); }; return;
@@ -2614,8 +2624,7 @@ function rEleveMode() {
   }
   let ident;
   if (ctx.ident) ident = `<p class="hello">Bonjour <b>${esc((E.prenom + ' ' + E.nom).trim())}</b>${E.classe ? ' (' + esc(E.classe) + ')' : ''}</p>`;
-  else if (local) ident = `<label>Je suis<select id="emSel"><option value="">— choisis ton nom —</option>${trierEleves(cl.eleves).map(e => `<option value="${e.id}" ${E.eleveId === e.id ? 'selected' : ''}>${esc(nomComplet(e))}</option>`).join('')}<option value="__autre" ${E.eleveId === '__autre' ? 'selected' : ''}>Je ne suis pas dans la liste</option></select></label>
-    <div id="emLibre" class="three" ${E.eleveId === '__autre' ? '' : 'hidden'}>${champsLibres(E)}</div>`;
+  else if (local) ident = `<label>Je suis<select id="emSel"><option value="">— choisis ton nom —</option>${trierEleves(cl.eleves).map(e => `<option value="${e.id}" ${E.eleveId === e.id ? 'selected' : ''}>${esc(nomComplet(e))}</option>`).join('')}</select></label>`;
   else ident = `<div class="three">${champsLibres(E)}</div>`;
   V.innerHTML = `<div class="em">
     <div class="card em-intro"><h1>Je me positionne en danse</h1>${ident}
@@ -2625,7 +2634,7 @@ function rEleveMode() {
     <label class="lbl">Ce que je veux améliorer</label><textarea id="emA" rows="2" placeholder="Je voudrais…">${esc(E.ameliorer)}</textarea></div>
     <div class="row center"><button class="btn primary big" id="emOk">Valider mon positionnement</button></div></div>`;
   const sel = $('#emSel');
-  if (sel) sel.onchange = () => { E.eleveId = sel.value; E.clId = cl.id; $('#emLibre').hidden = sel.value !== '__autre'; };
+  if (sel) sel.onchange = () => { E.eleveId = sel.value; E.clId = cl.id; };
   $$('[data-f]').forEach(i => i.oninput = () => { E[i.dataset.f] = i.value; });
   $('#emR').oninput = ev => E.reussi = ev.target.value;
   $('#emA').oninput = ev => E.ameliorer = ev.target.value;
@@ -2646,7 +2655,7 @@ function rEleveMode() {
         saveNow(); E.prenom = e.prenom; E.etape = 'merci'; rEleveMode(); window.scrollTo(0, 0); return;
       }
     }
-    if (local && !E.eleveId) { toast('Choisis ton nom dans la liste'); return; }
+    if (local) { toast('Choisis ton nom dans la liste'); $('#emSel').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
     if (!E.nom.trim() || !E.prenom.trim()) { toast('Écris ton nom et ton prénom'); return; }
     E.code = codeAuto({ nom: E.nom.trim(), prenom: E.prenom.trim(), classe: E.classe.trim(), ev: E.ev, reussi: E.reussi.trim(), ameliorer: E.ameliorer.trim() });
     if (ctx.ident && ctx.ident.drop && cryptoOk()) { envoyerEleve(ctx, E); return; }
@@ -3329,13 +3338,12 @@ window.epsListsHook = { save: () => saveNow(), reload: () => { S = load(); route
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 (window.EPSG_Q = window.EPSG_Q || []).push({ app: 'Danse', sub: 'CA3 · Composer, observer', color: '#C2185B',
   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M4 9l5-1 4 2 5-3"/><path d="M13 10l-1 5 4 3 1 4"/><path d="M12 15l-4 2-2 4"/></svg>',
-  isTeacher: () => isTeacher(), when: () => !isTeacher() && !/^#eleve/.test(location.hash),
+  isTeacher: () => isTeacher(), when: () => !isTeacher() && !/^#eleve=/.test(location.hash),
   classes: () => S.classes.filter(c => c.eleves.length).map(c => ({ id: c.id, nom: c.nom, n: c.eleves.length })),
   current: () => S.classeId || '',
-  select: id => { S.classeId = id; save(); aller('observation'); },
-  resources: [{ ico: '🎭', label: 'Procédés de composition', sub: 'répétition, canon, contraste…', open: () => aller('procedes') },
-    { ico: '🎲', label: 'Défis', sub: 'sortir du geste ordinaire', open: () => aller('procedes') }]
-    .concat(autoOuvert() ? [{ ico: '🙋', label: 'Je me positionne', sub: 'auto-positionnement', open: () => aller('eleve') }] : []),
+  select: id => { S.classeId = id; save(); UI.mode = 'cl'; UI.em = null; aller('observation'); route(); },
+  resources: [{ ico: '🎭', label: 'Procédés de composition', sub: 'répétition, canon, contraste…', open: () => { UI.mode = 'res'; aller('procedes'); route(); } },
+    { ico: '🎲', label: 'Défis', sub: 'sortir du geste ordinaire', open: () => { UI.mode = 'res'; aller('procedes'); route(); } }],
   teacher: async () => { if (await demanderCode()) aller('evaluation'); } });
 </script>
 <script src="../eps-home.js" defer></script>
