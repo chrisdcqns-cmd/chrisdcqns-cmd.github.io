@@ -1,0 +1,487 @@
+/* EPS – Autonomie et numérique : évaluation commune au format Danse / Volley-ball.
+   - Grille par degrés (4 degrés par critère, curseur dans le degré), note /20.
+   - Auto-positionnement de l'élève : QR code + lien personnel sur sa fiche (#auto=<jeton>), envoi chiffré au dépôt
+     (script Google de Danse, clé « dan|<préfixe>… »), code de repli à coller, ou tablette passée en mode élève.
+   - Fiches PDF (pdf-lib) : une page paysage par élève, récapitulatif de classe, .zip.
+   Deux façons de l'utiliser :
+   1) EPSE.create(A) avec un adaptateur A fourni par une appli qui a déjà son évaluation (Badminton…) ;
+   2) EPSE.store(o) : évaluation complète gérée ici (données « eps.eval.<appli>.v1 », synchronisées entre tablettes
+      par eps-home.js), avec un écran Évaluation ouvert par EPSE.open() (Escalade, Acrosport, OrienRun…).
+   Les bibliothèques (vendor/pdf-lib.min.js, jszip.min.js, qrlib.js) sont chargées seulement au premier export. */
+(function () {
+  var SRC = (document.currentScript && document.currentScript.src) || "", BASE = SRC.replace(/eps-eval\.js.*$/, "");
+  var DCOL = ["#d64545", "#f0a030", "#3aa0d8", "#2e9e5b"], DTINT = ["#fbe3e3", "#fdf0d9", "#e1f0f9", "#def1e5"];
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function nk(s) { return String(s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " "); }
+  function nkey(s) { return nk(s).replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" "); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function plusJours(n) { var d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function dIso(s) { return s ? new Date(s + "T12:00").toLocaleDateString("fr-FR") : ""; }
+  function dateFR() { return new Date().toLocaleDateString("fr-FR"); }
+  function fr(x) { return x == null || isNaN(x) ? "—" : String(Math.round(x * 100) / 100).replace(".", ","); }
+  function safe(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").replace(/^_+|_+$/g, ""); }
+  function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+  function jset(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function h32(t) { var h = 5381; t = String(t); for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+  function toast(m) { var t = document.createElement("div"); t.className = "epse-toast"; t.textContent = m; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600); }
+  function download(blob, name) { var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+  function b64e(str) { var b = new TextEncoder().encode(str), s = ""; b.forEach(function (x) { s += String.fromCharCode(x); }); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function b64d(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; var bin = atob(s), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new TextDecoder().decode(u); }
+  var TE8 = new TextEncoder();
+  function u8b64(u8) { var x = ""; u8.forEach(function (c) { x += String.fromCharCode(c); }); return btoa(x).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function b64u8(t) { t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; return Uint8Array.from(atob(t), function (c) { return c.charCodeAt(0); }); }
+  function cryptoOk() { return !!(window.crypto && crypto.subtle); }
+  async function hmac(cle, msg) { var k = await crypto.subtle.importKey("raw", TE8.encode(cle), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]); return new Uint8Array(await crypto.subtle.sign("HMAC", k, TE8.encode(msg))); }
+  async function aes(k) { return crypto.subtle.importKey("raw", b64u8(k), "AES-GCM", false, ["encrypt", "decrypt"]); }
+  async function chiffrer(k, obj) { var iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, await aes(k), TE8.encode(JSON.stringify(obj)))), o = new Uint8Array(12 + ct.length); o.set(iv); o.set(ct, 12); return u8b64(o); }
+  async function dechiffrer(k, x) { var b = b64u8(x), pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, await aes(k), b.slice(12)); return JSON.parse(new TextDecoder().decode(pt)); }
+  function sidDe(url) { var m = /^https:\/\/script\.google\.com\/macros\/s\/([^/]+)\/exec$/.exec(url || ""); return m ? m[1] : ""; }
+  function urlScript(sid) { return /^https:\/\//.test(sid) ? sid : "https://script.google.com/macros/s/" + sid + "/exec"; }
+  function jsonpGet(url, params) { return new Promise(function (res) { var cb = "epseCb" + Date.now() + Math.floor(Math.random() * 1e4), sc = document.createElement("script"), t;
+    var fin = function (d) { clearTimeout(t); try { delete window[cb]; } catch (e) {} sc.remove(); res(d); }; window[cb] = fin; sc.onerror = function () { fin(null); }; t = setTimeout(function () { fin(null); }, 15000);
+    params.callback = cb; sc.src = url + (url.indexOf("?") >= 0 ? "&" : "?") + Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&"); document.head.appendChild(sc); }); }
+  function pause(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function loadJs(src) { return new Promise(function (ok, ko) { var s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+  async function libs() { if (!window.PDFLib) await loadJs(BASE + "vendor/pdf-lib.min.js"); if (!window.JSZip) await loadJs(BASE + "vendor/jszip.min.js"); if (!window.QRLib) await loadJs(BASE + "vendor/qrlib.js"); }
+  function posLbl(d, pos) { return pos < .2 ? "au début du niveau" : pos < .45 ? "plutôt au début" : pos < .7 ? "au milieu" : pos < .9 ? "bien avancé" : d === 3 ? "au top" : "presque au niveau suivant"; }
+  /* envoi automatique : script Google de Danse (réglé dans Danse, ou propre à l'appli) */
+  function envoiDanse() { var R = ((jget("danse-eps-v1", {}) || {}).reglages) || {}; return { url: (R.envoiUrl || "").trim(), key: (R.envoiCle || "").trim() }; }
+
+  /* ---------------- styles communs (charte) ---------------- */
+  function css(col) {
+    if (document.getElementById("epse-css")) return;
+    var st = document.createElement("style"); st.id = "epse-css";
+    st.textContent = [
+      ".epse-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#14171C;color:#fff;padding:12px 18px;border-radius:12px;font:700 15px system-ui,sans-serif;z-index:2147483600;box-shadow:0 8px 24px #0004}",
+      ".epse{position:fixed;inset:0;z-index:2147482000;background:#F5F3EE;overflow:auto;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#14171C;-webkit-overflow-scrolling:touch}",
+      ".epse-bar{position:sticky;top:0;z-index:2;background:#14171C;color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:12px 18px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}",
+      ".epse-bar .ei{width:36px;height:36px;border-radius:10px;background:var(--app);display:grid;place-items:center;flex:none}.epse-bar .ei svg{width:22px;height:22px}",
+      ".epse-bar b{font-size:20px;font-weight:800}.epse-bar small{color:#A9AEB8;font-weight:600;font-size:14px;flex:1}",
+      ".epse-bar button,.epse-bar select{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 12px}",
+      ".epse-bar select option{color:#14171C}",
+      ".epse-tabs{display:flex;gap:6px;padding:0 18px;background:#14171C}.epse-tabs button{border:0;background:transparent;color:#B9BEC7;font:700 15px system-ui,sans-serif;padding:10px 16px;border-radius:10px 10px 0 0}.epse-tabs button.on{background:var(--app);color:#fff}",
+      ".epse-in{max-width:1100px;margin:0 auto;padding:16px 18px 60px}",
+      ".epse-card{background:#fff;border:1px solid #E6E1D6;border-radius:16px;padding:14px 16px;margin:0 0 14px;box-shadow:0 1px 0 #E6E1D6}",
+      ".epse-card h2{margin:0 0 10px;font-size:18px}.epse-mut{color:#6A6F78;font-size:14px}",
+      ".epse-btn{height:44px;border-radius:12px;border:2px solid #E2DDD2;background:#FBFAF7;font:800 15px system-ui,sans-serif;color:#14171C;padding:0 14px;cursor:pointer}",
+      ".epse-btn.p{background:var(--app);border-color:var(--app);color:#fff}.epse-btn:disabled{opacity:.45}",
+      ".epse-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}",
+      ".epse-chips{display:flex;flex-wrap:wrap;gap:8px}.epse-chip{min-height:44px;padding:6px 12px;border-radius:12px;border:2px solid #E6E1D6;background:#fff;font:700 15px system-ui,sans-serif;text-align:left;cursor:pointer}",
+      ".epse-chip.ok{border-color:#2e9e5b;background:#EEF8F1}.epse-chip small{display:block;color:#6A6F78;font-weight:600;font-size:12px}",
+      ".epse-crit{border:1px solid #E6E1D6;border-radius:14px;padding:10px;margin:0 0 12px;background:#fff}",
+      ".epse-ch{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 8px}.epse-ch b{font-size:16px}.epse-ch span{color:var(--app);font-weight:800;font-size:13px}",
+      ".epse-degs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}@media(max-width:700px){.epse-degs{grid-template-columns:1fr 1fr}}",
+      ".epse-deg{display:flex;flex-direction:column;justify-content:flex-start;border:2px solid #E6E1D6;border-radius:12px;background:#fff;padding:8px;text-align:left;font:500 13px/1.35 system-ui,sans-serif;color:#14171C;cursor:pointer;min-height:70px}",
+      ".epse-deg b{display:block;font-size:13px;color:var(--dc);margin-bottom:3px}.epse-deg.on{border-color:var(--dc);background:var(--dt)}",
+      ".epse-deg .me{display:inline-block;margin-left:6px;border:1.5px solid var(--app);color:var(--app);border-radius:6px;padding:0 5px;font-size:11px;font-weight:800}",
+      ".epse-intra{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap}.epse-intra input[type=range]{flex:1;min-width:180px;accent-color:var(--dc)}",
+      ".epse textarea,.epse input[type=text],.epse input[type=date],.epse input[type=password],.epse select.f{width:100%;border:2px solid #E6E1D6;border-radius:12px;padding:10px 12px;font:500 15px system-ui,sans-serif;background:#FBFAF7}",
+      ".epse input[type=date]{width:auto}",
+      ".epse table{border-collapse:collapse;width:100%;font-size:14px}.epse th,.epse td{border-bottom:1px solid #EEE9DF;padding:7px 8px;text-align:center}.epse th.l,.epse td.l{text-align:left}",
+      ".epse-d{display:inline-block;min-width:28px;padding:2px 6px;border-radius:7px;color:#fff;font-weight:800;font-size:12px}.epse-d.e{background:#fff;border:1.8px solid;}",
+      ".epse-note{font-size:28px;font-weight:900}",
+      ".epse-ap .ap-in{max-width:820px;margin:0 auto;padding:16px 16px 40px}.epse-ap h1{font-size:22px;margin:0 0 8px}",
+      ".epse-code{font:700 14px ui-monospace,monospace;word-break:break-all;background:#F1EFE8;border-radius:10px;padding:10px;margin:10px 0}",
+      ".epse-spin{width:42px;height:42px;border-radius:50%;border:5px solid #E6E1D6;border-top-color:var(--app);animation:epsespin 1s linear infinite;margin:10px auto}@keyframes epsespin{to{transform:rotate(360deg)}}",
+      "body.epse-lock>*:not(.epse):not(.epse-toast):not(script){display:none!important}"
+    ].join("\n");
+    document.head.appendChild(st);
+  }
+
+  /* =====================================================================
+     Moteur : auto-positionnement + PDF pour un adaptateur A
+     A = { app, nom, ca, color, icon, pfx (2 lettres), code ('BAD1'), url,
+           grid() → {criteres:[{id, afl, nom, but, nomEl, butEl, desc:[4], descEl:[4], max}], degres:[4], degresEl:[4]},
+           classes() → [{nom, eleves:[E]}], name(E) → {nom, prenom},
+           prof(cr, E) → {d, pos, pts} | null,  note(E) → nombre | null,  absent(E) → '' | 'ABS' | 'DISP',
+           comment(E), extras(c, E) → [texte], getAp(E), setAp(E, ap) (puis enregistre),
+           settings() → {apOuvert, apJusqua, envoiUrl, envoiCle}, setSettings(o),
+           isTeacher(), unlock() → Promise, changed() (réaffichage) }
+     ===================================================================== */
+  function create(A) {
+    var HASH = "#auto=", SEQ = "eps.eval.seq." + A.app;
+    if (document.head) css(); else document.addEventListener("DOMContentLoaded", function () { css(); });
+    var M = {};
+    function S() { return A.settings() || {}; }
+    function ouvert() { var s = S(); return !!s.apOuvert && (!s.apJusqua || today() <= s.apJusqua); }
+    function etat() { var s = S(); if (ouvert()) return s.apJusqua ? "Ouvert jusqu'au " + dIso(s.apJusqua) + " : un lien personnel figure sur chaque fiche PDF." : "Ouvert : un lien personnel figure sur chaque fiche PDF.";
+      return s.apOuvert ? "Date dépassée : les liens ne fonctionnent plus." : "Fermé : aucun lien sur les fiches, les élèves ne peuvent pas se positionner."; }
+    function pageUrl() { if (/^https?:$/.test(location.protocol)) return location.href.split("#")[0].split("?")[0]; return A.url; }
+    function envoi() { var s = S(), url = (s.envoiUrl || "").trim(), key = (s.envoiCle || "").trim(), src = "appli"; if (!url || !key) { var d = envoiDanse(); url = d.url; key = d.key; src = "danse"; }
+      return /^https:\/\/\S+\/exec$/.test(url) && key ? { url: url, key: key, src: src } : null; }
+    async function cle(secret, id) { return u8b64((await hmac(secret, A.app + "|k|" + id)).slice(0, 16)); }
+    async function depot(cfg, cnom, n) { var id = A.pfx + u8b64((await hmac(cfg.key, A.app + "|id|" + nk(cnom) + "|" + nk(n.nom) + "|" + nk(n.prenom))).slice(0, 12)); return { id: id, k: await cle(cfg.key, id) }; }
+    async function lien(E, c) {
+      var n = A.name(E), t = [n.nom, n.prenom || "", c.nom, (S().apJusqua || "").replace(/-/g, "")], cfg = envoi();
+      if (cfg && cryptoOk()) { try { var d = await depot(cfg, c.nom, n); t.push(d.id, d.k, sidDe(cfg.url) || cfg.url); } catch (e) {} }
+      return pageUrl() + HASH + b64e(JSON.stringify(t));
+    }
+    function trouver(nom, prenom, classe) {
+      var cible = nk(nom + " " + prenom), inv = nk(prenom + " " + nom), C = A.classes();
+      var ordre = C.filter(function (c) { return nk(c.nom) === nk(classe); }).concat(C.filter(function (c) { return nk(c.nom) !== nk(classe); }));
+      for (var i = 0; i < ordre.length; i++) { var c = ordre[i]; for (var j = 0; j < c.eleves.length; j++) { var n = A.name(c.eleves[j]), a = nk(n.nom + " " + (n.prenom || "")); if (a === cible || a === inv) return { c: c, e: c.eleves[j] }; } }
+      return null;
+    }
+    function payload(P) { var a = {}; A.grid().criteres.forEach(function (cr) { var x = P.ev[cr.id]; if (x) a[cr.id] = [x.d + 1, Math.round(x.pos * 100) / 100]; }); return { n: P.nom.trim(), p: P.prenom.trim(), c: P.classe.trim(), a: a, r: (P.reussi || "").trim(), m: (P.ameliorer || "").trim(), t: Date.now() }; }
+    function depuis(d, via) { var ev = {}; Object.keys(d.a || {}).forEach(function (id) { var v = d.a[id]; if (v && v[0]) ev[id] = { d: v[0] - 1, pos: +v[1] || 0 }; }); return { ev: ev, r: d.r || "", m: d.m || "", t: d.t || Date.now(), via: via }; }
+    function poser(f, d, via) { var a = A.getAp(f.e); if (a && (a.t || 0) >= (d.t || 0)) return false; A.setAp(f.e, depuis(d, via)); return true; }
+    var releve = false, dernier = 0;
+    async function relever(force) {
+      var cfg = envoi(); if (!cfg) return { err: "reglage" };
+      if (!cryptoOk() || releve || (!force && Date.now() - dernier < 15000)) return null;
+      releve = true; dernier = Date.now();
+      var since = +(localStorage.getItem(SEQ) || 0), n = 0, inconnus = 0, more = true, garde = 0, re = new RegExp("^dan\\|" + A.pfx);
+      try {
+        while (more && garde++ < 20) {
+          var r = await jsonpGet(cfg.url, { key: cfg.key, drops: 1, since: since });
+          if (!r) return { err: "connexion" }; if (!r.keyOk) return { err: "cle" }; if (!Array.isArray(r.drops)) return { err: "script" };
+          for (var i = 0; i < r.drops.length; i++) { var x = r.drops[i]; since = Math.max(since, +x[0] || 0); if (!re.test(String(x[1]))) continue;
+            try { var d = await dechiffrer(await cle(cfg.key, String(x[1]).slice(4)), x[3]), f = trouver(d.n, d.p, d.c); if (!f) { inconnus++; continue; } if (poser(f, d, "lien")) n++; } catch (e) {} }
+          more = !!r.more;
+        }
+        try { localStorage.setItem(SEQ, String(since)); } catch (e) {}
+        return { n: n, inconnus: inconnus };
+      } finally { releve = false; }
+    }
+    function msg(r) { return !r ? "" : r.err === "connexion" ? "Pas de connexion au script Google." : r.err === "cle" ? "Clé secrète refusée par le script." : r.err === "script" ? "Ce n'est pas le script des auto-positionnements." : r.err === "reglage" ? "Envoi automatique non réglé." : r.n ? r.n + " nouveau(x) positionnement(s) reçu(s)" + (r.inconnus ? ", " + r.inconnus + " élève(s) non reconnu(s)" : "") + "." : "Rien de nouveau."; }
+    setInterval(function () { if (!A.isTeacher() || !envoi() || document.hidden || !ouvert()) return; relever(false).then(function (r) { if (r && r.n) { toast("🙋 " + r.n + " auto-positionnement" + (r.n > 1 ? "s" : "") + " reçu" + (r.n > 1 ? "s" : "")); try { A.changed(); } catch (e) {} } }); }, 30000);
+    function codeDe(P) { return A.code + "." + b64e(JSON.stringify(payload(P))); }
+    function importer(txt) {
+      var codes = String(txt || "").match(new RegExp(A.code.replace(/\./g, "\\.") + "\\.[A-Za-z0-9_-]+", "g")) || []; if (!codes.length) { toast("Aucun code trouvé"); return; }
+      var ok = 0, inc = []; codes.forEach(function (k) { var d; try { d = JSON.parse(b64d(k.slice(A.code.length + 1))); } catch (e) { inc.push("code illisible"); return; }
+        var f = trouver(d.n, d.p, d.c); if (!f) { inc.push((d.p + " " + d.n).trim() + (d.c ? " (" + d.c + ")" : "")); return; } poser(f, d, "code"); ok++; });
+      alert(ok + " auto-positionnement(s) importé(s)." + (inc.length ? "\nNon reconnus (vérifie l'orthographe) : " + inc.join(", ") : "")); try { A.changed(); } catch (e) {}
+    }
+    function ecart(cr, E) { var v = A.prof(cr, E), a = A.getAp(E), x = a && a.ev && a.ev[cr.id]; if (!v || v.d == null || !x) return null; return (x.d + x.pos) - (v.d + v.pos); }
+
+    /* ---------- vue élève (lien personnel ou tablette en mode élève) ---------- */
+    var LIEN = (function () { var m = /^#auto=(.+)$/.exec(location.hash); if (m) { try { sessionStorage.setItem("epse.lien." + A.app, m[1]); } catch (e) {} return m[1]; } try { return sessionStorage.getItem("epse.lien." + A.app) || ""; } catch (e) { return ""; } })();
+    var TAB = "epse.tab." + A.app; /* tablette passée en mode élève : classe choisie */
+    var P = null;
+    function ctx() {
+      var tok = LIEN || ((/^#auto=(.+)$/.exec(location.hash) || [])[1]);
+      if (tok) { var t; try { t = JSON.parse(b64d(tok)); } catch (e) { return { err: "Ce lien est incomplet : vérifie que tu l'as bien ouvert en entier depuis ta fiche." }; }
+        if (!Array.isArray(t)) return { err: "Ce lien n'est pas valide." }; var x = String(t[3] || ""), fin = x.length === 8 ? x.slice(0, 4) + "-" + x.slice(4, 6) + "-" + x.slice(6) : "";
+        if (fin && today() > fin) return { err: "Ce lien était valable jusqu'au " + dIso(fin) + ". Demande à ton enseignant s'il peut rouvrir l'auto-positionnement." };
+        return { ident: { n: t[0] || "", p: t[1] || "", c: t[2] || "", x: fin, drop: t[4] && t[5] && t[6] ? { id: t[4], k: t[5], sid: t[6] } : null } }; }
+      if (!ouvert()) return { err: "L'auto-positionnement n'est pas ouvert pour le moment." };
+      var cl = null; try { cl = sessionStorage.getItem(TAB); } catch (e) {}
+      var c = A.classes().filter(function (x) { return x.nom === cl; })[0];
+      return { ident: null, classe: c || null };
+    }
+    function apActif() { if (LIEN || /^#auto=/.test(location.hash)) return true; try { return !!sessionStorage.getItem(TAB); } catch (e) { return false; } }
+    function vue() { var v = document.getElementById("epse-ap-" + A.app); if (!v) { css(); v = document.createElement("div"); v.id = "epse-ap-" + A.app; v.className = "epse epse-ap"; v.style.setProperty("--app", A.color); v.style.zIndex = "2147483300"; document.body.appendChild(v); } return v; }
+    function apShow() { if (!apActif()) return; document.body.classList.add("epse-lock"); document.querySelectorAll(".epsg").forEach(function (x) { x.remove(); }); renderAp(); }
+    function bar(sub, quit) { return '<div class="epse-bar"><span class="ei">' + (A.icon || "") + "</span><b>" + esc(A.nom) + "</b><small>" + esc(sub) + "</small>" + (quit ? '<button data-q="1">🔒 Quitter</button>' : "") + "</div>"; }
+    function renderAp() {
+      var V = vue(), C = ctx(), G = A.grid(), top = bar("Je me positionne · " + A.ca, !C.ident);
+      if (C.err) { V.innerHTML = top + '<div class="ap-in"><div class="epse-card" style="text-align:center"><div style="font-size:44px">🔒</div><h1>Auto-positionnement fermé</h1><p>' + esc(C.err) + "</p></div></div>"; bindQ(V); return; }
+      if (!P) { P = { etape: "form", eleve: -1, nom: "", prenom: "", classe: "", ev: {}, reussi: "", ameliorer: "", code: "" }; if (C.ident) { P.nom = C.ident.n; P.prenom = C.ident.p; P.classe = C.ident.c; } }
+      var recap = function () { return '<div class="epse-chips" style="justify-content:center;margin:12px 0">' + G.criteres.map(function (cr) { var x = P.ev[cr.id]; return '<span class="epse-chip" style="border-color:' + (x ? DCOL[x.d] : "#ccc") + '"><b>' + esc(cr.nomEl || cr.nom) + "</b><small>" + (x ? esc((G.degresEl || G.degres)[x.d]) : "—") + "</small></span>"; }).join("") + "</div>"; };
+      var fin = function (h) { V.innerHTML = top + '<div class="ap-in"><div class="epse-card" style="text-align:center">' + h + "</div></div>"; bindQ(V); var b = V.querySelector("[data-next]"); if (b) b.onclick = function () { P = null; renderAp(); };
+        var r = V.querySelector("[data-retry]"); if (r) r.onclick = envoyer; var cp = V.querySelector("[data-copy]"); if (cp) cp.onclick = function () { copier(P.code); }; var md = V.querySelector("[data-mod]"); if (md) md.onclick = function () { P.etape = "form"; renderAp(); }; };
+      if (P.etape === "merci") return fin('<div style="font-size:44px">✅</div><h1>Merci ' + esc(P.prenom) + " !</h1><p>Ton positionnement est enregistré.</p>" + recap() + '<button class="epse-btn p" data-next="1">Élève suivant</button>');
+      if (P.etape === "envoi") return fin('<div class="epse-spin"></div><h1>Envoi en cours…</h1><p>Ne ferme pas cette page.</p>');
+      if (P.etape === "envoye") return fin('<div style="font-size:44px">✅</div><h1>Merci ' + esc(P.prenom) + " !</h1><p>Ton positionnement a bien été <b>envoyé à ton enseignant</b>. Tu n'as rien d'autre à faire.</p>" + recap());
+      if (P.etape === "code") return fin("<h1>C'est presque fini, " + esc(P.prenom) + " !</h1>" + (P.echec ? '<p style="color:#C0392B;font-weight:700">L\'envoi automatique n\'a pas fonctionné (connexion ?). Réessaie, ou utilise le code ci-dessous.</p><button class="epse-btn" data-retry="1">Réessayer l\'envoi</button>' : "") +
+        "<p>Copie ce code et <b>envoie-le à ton enseignant</b> par la messagerie Pronote :</p><div class=\"epse-code\">" + esc(P.code) + '</div><div class="epse-row" style="justify-content:center"><button class="epse-btn p" data-copy="1">Copier mon code</button><button class="epse-btn" data-mod="1">Modifier mes réponses</button></div>' + recap());
+      var ident;
+      if (C.ident) ident = '<p>Bonjour <b>' + esc((P.prenom + " " + P.nom).trim()) + "</b>" + (P.classe ? " · " + esc(P.classe) : "") + "</p>";
+      else if (C.classe && C.classe.eleves.length) ident = '<label class="epse-mut" style="font-weight:800">Je suis<select class="f" data-who="1"><option value="-1">— choisis ton nom —</option>' + C.classe.eleves.map(function (e, i) { var n = A.name(e); return '<option value="' + i + '"' + (P.eleve === i ? " selected" : "") + ">" + esc((n.prenom + " " + n.nom).trim()) + "</option>"; }).join("") + "</select></label>";
+      else ident = '<p class="epse-mut">Aucune liste d\'élèves pour cette classe : demande à ton enseignant.</p>';
+      V.innerHTML = top + '<div class="ap-in"><div class="epse-card"><h1>Je me positionne · ' + esc(A.nom) + "</h1>" + ident +
+        "<p>Pour chaque critère : <b>1.</b> lis les 4 niveaux et touche celui qui te ressemble le plus ; <b>2.</b> précise avec le curseur où tu en es dans ce niveau. Sois honnête : c'est pour t'aider à progresser !</p></div>" +
+        G.criteres.map(function (cr, i) { var x = P.ev[cr.id], DG = G.degresEl || G.degres;
+          return '<div class="epse-crit" id="epse-c-' + esc(cr.id) + '"><div class="epse-ch"><b>' + (i + 1) + ". " + esc(cr.nomEl || cr.nom) + "</b><span>" + esc(cr.afl || "") + "</span></div>" + (cr.butEl || cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.butEl || cr.but) + "</p>" : "") +
+            '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (x && x.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>Niveau ' + (d + 1) + " · " + esc(DG[d]) + "</b>" + esc((cr.descEl || cr.desc)[d] || "") + "</button>"; }).join("") + "</div>" +
+            (x ? '<div class="epse-intra" style="--dc:' + DCOL[x.d] + '"><span>Dans ce niveau, je suis…</span><input type="range" min="0" max="4" step="1" value="' + Math.round(x.pos * 4) + '" data-p="' + esc(cr.id) + '"><b id="epse-pv-' + esc(cr.id) + '" style="color:' + DCOL[x.d] + '">' + esc(posLbl(x.d, x.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
+        '<div class="epse-card"><label class="epse-mut" style="font-weight:800">Ce que je pense avoir réussi<textarea rows="2" data-t="reussi" placeholder="J\'ai réussi à…">' + esc(P.reussi) + '</textarea></label><label class="epse-mut" style="font-weight:800">Ce que je veux améliorer<textarea rows="2" data-t="ameliorer" placeholder="Je voudrais…">' + esc(P.ameliorer) + "</textarea></label></div>" +
+        '<div style="text-align:center"><button class="epse-btn p" style="height:54px;font-size:17px" data-ok="1">Valider mon positionnement</button></div></div>';
+      bindQ(V);
+      var w = V.querySelector("[data-who]"); if (w) w.onchange = function () { P.eleve = +w.value; };
+      V.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { var id = b.dataset.c, d = +b.dataset.d, el = document.getElementById("epse-c-" + id), y = el ? el.getBoundingClientRect().top : 0; if (!P.ev[id] || P.ev[id].d !== d) P.ev[id] = { d: d, pos: .5 }; renderAp(); var n = document.getElementById("epse-c-" + id); if (n) V.scrollTop += n.getBoundingClientRect().top - y; }; });
+      V.querySelectorAll("[data-p]").forEach(function (r) { r.oninput = function () { var x = P.ev[r.dataset.p]; x.pos = (+r.value) / 4; var s = document.getElementById("epse-pv-" + r.dataset.p); if (s) s.textContent = posLbl(x.d, x.pos); }; });
+      V.querySelectorAll("[data-t]").forEach(function (t) { t.oninput = function () { P[t.dataset.t] = t.value; }; });
+      V.querySelector("[data-ok]").onclick = valider;
+    }
+    function bindQ(V) { var q = V.querySelector("[data-q]"); if (q) q.onclick = quitter; }
+    async function quitter() { await A.unlock(); if (!A.isTeacher()) return; try { sessionStorage.removeItem(TAB); } catch (e) {} P = null; document.body.classList.remove("epse-lock"); var v = document.getElementById("epse-ap-" + A.app); if (v) v.remove(); try { A.changed(); } catch (e) {} }
+    function copier(t) { try { navigator.clipboard.writeText(t).then(function () { toast("Copié !"); }, function () { prompt("Copie ce code :", t); }); } catch (e) { prompt("Copie ce code :", t); } }
+    function valider() {
+      var G = A.grid(), C = ctx(), manque = G.criteres.filter(function (cr) { return !P.ev[cr.id]; });
+      if (manque.length) { toast("Choisis un niveau pour : " + manque.map(function (cr) { return cr.nomEl || cr.nom; }).join(", ")); var n = document.getElementById("epse-c-" + manque[0].id); if (n) n.scrollIntoView({ behavior: "smooth" }); return; }
+      if (!C.ident) { var c = C.classe, e = c && c.eleves[P.eleve]; if (!e) { toast("Choisis ton nom dans la liste"); return; } var nn = A.name(e); P.nom = nn.nom; P.prenom = nn.prenom || ""; P.classe = c.nom;
+        poser({ e: e }, payload(P), "tablette"); try { A.changed(); } catch (x) {} P.etape = "merci"; renderAp(); vue().scrollTop = 0; return; }
+      P.code = codeDe(P);
+      if (C.ident.drop && cryptoOk()) { envoyer(); return; }
+      P.etape = "code"; renderAp(); vue().scrollTop = 0;
+    }
+    async function envoyer() {
+      var C = ctx(), drop = C.ident && C.ident.drop; if (!drop) return; P.etape = "envoi"; renderAp(); var ok = false, x = "";
+      try { var url = urlScript(drop.sid), k = "dan|" + drop.id; x = await chiffrer(drop.k, payload(P));
+        await fetch(url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ drop: { k: k, x: x } }) });
+        for (var i = 0; i < 5 && !ok; i++) { await pause(i ? 2000 : 800); var r = await jsonpGet(url, { dropchk: k }); if (r && r.drop && r.drop === x.slice(0, 16)) ok = true; } } catch (e) {}
+      P.echec = !ok; P.etape = ok ? "envoye" : "code"; renderAp();
+    }
+    M.modeEleve = function (classe) { if (!ouvert()) { toast("Ouvre d'abord l'auto-positionnement"); return; } try { sessionStorage.setItem(TAB, classe); } catch (e) {} P = null; apShow(); };
+    if (LIEN && location.hash !== HASH + LIEN) try { history.replaceState(null, "", location.pathname + location.search + HASH + LIEN); } catch (e) {}
+    if (apActif()) { if (document.body) apShow(); else document.addEventListener("DOMContentLoaded", apShow); }
+    addEventListener("hashchange", function () { if (/^#auto=/.test(location.hash)) apShow(); });
+    M.actif = apActif;
+
+    /* ---------- carte « Auto-positionnement » (bilan, côté enseignant) ---------- */
+    M.card = function (c) {
+      var s = S(), cfg = envoi(), G = A.grid(), cs = G.criteres, recu = c.eleves.filter(function (e) { var a = A.getAp(e); return a && a.ev && Object.keys(a.ev).length; });
+      var rows = c.eleves.map(function (e) { var a = A.getAp(e), n = A.name(e);
+        return '<tr><td class="l">' + esc((n.prenom + " " + n.nom).trim()) + "</td>" + cs.map(function (cr) { var v = A.prof(cr, e), x = a && a.ev && a.ev[cr.id], g = ecart(cr, e);
+          return "<td>" + (v && v.d != null ? '<span class="epse-d" style="background:' + DCOL[v.d] + '">D' + (v.d + 1) + "</span>" : "–") + (x ? ' <span class="epse-d e" style="border-color:' + DCOL[x.d] + ";color:" + DCOL[x.d] + '">🙋 D' + (x.d + 1) + "</span>" : "") + (g != null && Math.abs(g) > .6 ? (g > 0 ? " ▲" : " ▼") : "") + "</td>"; }).join("") +
+          '<td class="l"><small>' + (a ? new Date(a.t || Date.now()).toLocaleDateString("fr-FR") + " · " + ({ lien: "lien", code: "code", tablette: "tablette" }[a.via] || "") : '<span class="epse-mut">pas encore</span>') + "</small>" + (a && (a.r || a.m) ? '<div class="epse-mut" style="font-size:12px">' + (a.r ? "✓ " + esc(a.r) : "") + (a.r && a.m ? "<br>" : "") + (a.m ? "→ " + esc(a.m) : "") + "</div>" : "") + "</td></tr>"; }).join("");
+      return '<div class="epse-card"><h2>🙋 Auto-positionnement des élèves</h2>' +
+        '<div class="epse-row"><label><input type="checkbox" data-ap-on' + (s.apOuvert ? " checked" : "") + "> Autoriser l'auto-positionnement</label><label>jusqu'au <input type=\"date\" data-ap-date value=\"" + esc(s.apJusqua || "") + '" min="' + today() + '"></label></div>' +
+        '<p class="epse-mut">' + esc(etat()) + "</p>" +
+        '<p class="epse-mut">' + (cfg ? "✓ Envoi automatique actif (script Google " + (cfg.src === "danse" ? "de Danse" : "réglé ici") + ", chiffré) : les positionnements arrivent tout seuls." : "⚠ Envoi automatique inactif : règle le script des auto-positionnements dans Danse (ou ci-dessous). En attendant, l'élève obtient un code à t'envoyer.") + "</p>" +
+        '<div class="epse-row"><button class="epse-btn p" data-ap-tab' + (ouvert() ? "" : " disabled") + ">🙋 Passer cette tablette en mode élève (" + esc(c.nom) + ")</button>" + (cfg ? '<button class="epse-btn" data-ap-rel>Relever maintenant</button>' : "") + "</div>" +
+        '<details><summary class="epse-mut" style="cursor:pointer">Codes reçus (si l\'envoi a échoué) · réglage de l\'envoi</summary><textarea rows="2" data-ap-codes placeholder="' + esc(A.code) + '.eyJu…"></textarea><div class="epse-row"><button class="epse-btn" data-ap-imp>Importer les codes</button></div>' +
+        '<div class="epse-row"><input type="text" data-ap-u placeholder="https://script.google.com/macros/s/…/exec (vide = celui de Danse)" value="' + esc(s.envoiUrl || "") + '" style="flex:2"><input type="password" data-ap-k placeholder="Clé secrète" value="' + esc(s.envoiCle || "") + '" style="flex:1"><button class="epse-btn" data-ap-save>Enregistrer</button></div></details>' +
+        '<h3 style="margin:14px 0 6px">Suivi : ' + recu.length + " / " + c.eleves.length + ' élève(s) positionné(s)</h3><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + cs.map(function (cr) { return "<th>" + esc(cr.nomEl || cr.nom) + "</th>"; }).join("") + '<th class="l">Reçu · ses mots</th></tr>' + rows + "</table></div></div>";
+    };
+    M.bindCard = function (root, c) {
+      var q = function (s) { return root.querySelector(s); }, ch = function () { try { A.changed(); } catch (e) {} };
+      if (q("[data-ap-on]")) q("[data-ap-on]").onchange = function (e) { var s = S(), o = { apOuvert: e.target.checked }; if (e.target.checked && (!s.apJusqua || s.apJusqua < today())) o.apJusqua = plusJours(14); A.setSettings(o); ch(); };
+      if (q("[data-ap-date]")) q("[data-ap-date]").onchange = function (e) { A.setSettings({ apJusqua: e.target.value }); ch(); };
+      if (q("[data-ap-tab]")) q("[data-ap-tab]").onclick = function () { M.modeEleve(c.nom); };
+      if (q("[data-ap-rel]")) q("[data-ap-rel]").onclick = function (e) { e.target.disabled = true; relever(true).then(function (r) { e.target.disabled = false; toast(msg(r)); if (r && r.n) ch(); }); };
+      if (q("[data-ap-imp]")) q("[data-ap-imp]").onclick = function () { importer(q("[data-ap-codes]").value); };
+      if (q("[data-ap-save]")) q("[data-ap-save]").onclick = function () { A.setSettings({ envoiUrl: q("[data-ap-u]").value.trim(), envoiCle: q("[data-ap-k]").value.trim() }); toast("Enregistré"); ch(); };
+    };
+
+    /* ---------- PDF ---------- */
+    var sanCache = new Map();
+    function rgbH(h) { var n = parseInt(h.slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); }
+    function san(font, s) { s = String(s == null ? "" : s).replace(/[   ​]/g, " ").replace(/[‑]/g, "-").replace(/\t/g, " ").replace(/[’]/g, "'");
+      var ok = sanCache.get(font); if (!ok) { ok = new Map(); sanCache.set(font, ok); } var out = "";
+      for (var ch of s) { if (ch === "\n") { out += ch; continue; } var v = ok.get(ch); if (v === undefined) { try { font.encodeText(ch); v = true; } catch (e) { v = false; } ok.set(ch, v); } if (v) out += ch; } return out; }
+    function wrap(s, font, size, w) { s = san(font, s); var out = [];
+      s.split("\n").forEach(function (para) { var words = para.split(/\s+/).filter(Boolean), line = "";
+        words.forEach(function (wd) { var t = line ? line + " " + wd : wd; if (font.widthOfTextAtSize(t, size) <= w) { line = t; return; } if (line) out.push(line);
+          if (font.widthOfTextAtSize(wd, size) > w) { var part = ""; for (var ch of wd) { if (font.widthOfTextAtSize(part + ch, size) > w) { out.push(part); part = ch; } else part += ch; } line = part; } else line = wd; });
+        out.push(line); }); return out.length ? out : [""]; }
+    async function doc0() { await libs(); var doc = await PDFLib.PDFDocument.create(); doc.setTitle(A.nom + " EPS — positionnement"); doc.setCreator(A.nom + " EPS");
+      return { doc: doc, F: { r: await doc.embedFont(PDFLib.StandardFonts.Helvetica), b: await doc.embedFont(PDFLib.StandardFonts.HelveticaBold), o: await doc.embedFont(PDFLib.StandardFonts.HelveticaOblique) } }; }
+    function PT(page, s, x, y, size, font, color) { page.drawText(san(font, s), { x: x, y: y, size: size, font: font, color: color || PDFLib.rgb(.106, .118, .141) }); }
+    function PLn(page, arr, x, y, size, font, lh, color) { arr.forEach(function (l, i) { PT(page, l, x, y - i * lh, size, font, color); }); return arr.length * lh; }
+    function headTxt(o) { try { if (window.EPSR && EPSR.head) return EPSR.head(o); } catch (e) {} return { l1: o.act + (o.titre ? " — " + o.titre : ""), l2: "EPS · " + o.ca, r1: o.nom || "", r2: [o.classe, o.date].filter(Boolean).join(" · ") }; }
+    function conseil(E, el) { var G = A.grid(), cs = G.criteres.filter(function (cr) { var v = A.prof(cr, E); return v && v.d != null; }); if (!cs.length) return "";
+      var w = cs.slice().sort(function (a, b) { var va = A.prof(a, E), vb = A.prof(b, E); return (va.d + va.pos) - (vb.d + vb.pos); })[0], v = A.prof(w, E);
+      if (v.d >= 3) return el ? "Je continue ainsi : j'ai atteint le meilleur niveau sur tous les critères." : "Très bonne maîtrise sur tous les critères.";
+      var D = el ? (w.descEl || w.desc) : w.desc; return el ? "Je travaille « " + (w.nomEl || w.nom) + " ». Mon prochain objectif : " + (D[v.d + 1] || "") : w.nom + (w.afl ? " (" + w.afl + ")" : "") + " — pour atteindre le degré " + (v.d + 2) + " : " + (D[v.d + 1] || ""); }
+    function qrPdf(page, texte, x, y, size) { var qr = new QRLib.QRCode(-1, QRLib.ECL.L); qr.addData(unescape(encodeURIComponent(texte))); qr.make();
+      var n = qr.getModuleCount(), s = size / (n + 4), ink = PDFLib.rgb(0, 0, 0); page.drawRectangle({ x: x, y: y, width: size, height: size, color: PDFLib.rgb(1, 1, 1) }); var x0 = x + 2 * s, y0 = y + 2 * s;
+      for (var r = 0; r < n; r++) { var k = 0; while (k < n) { if (!qr.isDark(r, k)) { k++; continue; } var k2 = k; while (k2 < n && qr.isDark(r, k2)) k2++; page.drawRectangle({ x: x0 + k * s, y: y0 + (n - r - 1) * s, width: (k2 - k) * s + .02, height: s + .02, color: ink }); k = k2; } } return size; }
+    function lienPdf(doc, page, url, x, y, w, h) { var cx = doc.context, an = cx.register(cx.obj({ Type: "Annot", Subtype: "Link", Rect: [x, y, x + w, y + h], Border: [0, 0, 0], A: { Type: "Action", S: "URI", URI: PDFLib.PDFString.of(url) } }));
+      var ex = page.node.lookupMaybe(PDFLib.PDFName.of("Annots"), PDFLib.PDFArray); if (ex) ex.push(an); else page.node.set(PDFLib.PDFName.of("Annots"), cx.obj([an])); }
+    function fullN(E) { var n = A.name(E); return ((n.prenom || "") + " " + (n.nom || "")).trim(); }
+    function pageEleve(ctx, c, E, url, el) {
+      var doc = ctx.doc, F = ctx.F, G = A.grid(), PW = 841.89, PH = 595.28, Mg = 26, W = PW - 2 * Mg, ink = PDFLib.rgb(.106, .118, .141), grey = PDFLib.rgb(.42, .43, .47), light = PDFLib.rgb(.86, .85, .82), white = PDFLib.rgb(1, 1, 1), app = rgbH(A.color);
+      var LW = 170, CW = (W - LW) / 4, pad = 5, abs = A.absent(E), n20 = abs ? null : A.note(E), ap = A.getAp(E), a = ap && ap.ev && Object.keys(ap.ev).length ? ap.ev : null;
+      var avecLien = !!url && ouvert() && !abs, HL = avecLien ? 90 : 0, comm = (A.comment(E) || "").trim(), obj = abs ? "" : conseil(E, el), extra = (A.extras ? A.extras(c, E) : []) || [];
+      var DG = el ? (G.degresEl || G.degres) : G.degres;
+      function mesure(fs) { var lh = fs * 1.22;
+        var rows = G.criteres.map(function (cr) { var nm = el ? (cr.nomEl || cr.nom) : cr.nom, bt = el ? (cr.butEl || cr.but || "") : (cr.but || ""), D = el ? (cr.descEl || cr.desc) : cr.desc;
+          var tl = wrap(nm, F.b, fs + 1.2, LW - 2 * pad), sl = wrap(bt, F.o, fs - .8, LW - 2 * pad), labelH = tl.length * (fs + 1.2) * 1.2 + 11 + sl.length * (fs - .8) * 1.22, cells = [0, 1, 2, 3].map(function (d) { return wrap(D[d] || "", F.r, fs, CW - 2 * pad); });
+          return { cr: cr, tl: tl, sl: sl, cells: cells, h: Math.max(labelH, 12 + Math.max.apply(null, cells.map(function (l) { return l.length; })) * lh) + 2 * pad, gauge: 24 }; });
+        var footW = (W - 120 - 16) / 2, cl1 = wrap(comm || "—", F.r, fs + .4, footW - 14), cl2 = wrap(obj || "—", F.r, fs + .4, footW - 14), footH = Math.max(58, 24 + Math.max(cl1.length, cl2.length) * (fs + .4) * 1.25);
+        return { fs: fs, lh: lh, rows: rows, footW: footW, cl1: cl1, cl2: cl2, footH: footH, total: rows.reduce(function (s, r) { return s + r.h + r.gauge; }, 0) + footH }; }
+      var dispo = PH - 2 * Mg - 58 - 18 - 18 - 14 - 10 - HL, L = null; for (var fs = 9.6; fs >= 5.6; fs -= .2) { L = mesure(fs); if (L.total <= dispo) break; }
+      var page = doc.addPage([PW, PH]), y = PH - Mg, H = headTxt({ act: A.nom, titre: el ? "Mon positionnement" : "Évaluation", ca: A.ca, nom: fullN(E), classe: c.nom, date: dateFR() });
+      page.drawRectangle({ x: Mg, y: y - 52, width: W, height: 52, color: rgbH("#14171C") }); page.drawRectangle({ x: Mg, y: y - 52, width: 6, height: 52, color: app });
+      PT(page, H.l1, Mg + 18, y - 22, 15, F.b, white); PT(page, H.l2, Mg + 18, y - 40, 9, F.r, PDFLib.rgb(.663, .682, .722));
+      PT(page, H.r1, Mg + W - 16 - F.b.widthOfTextAtSize(san(F.b, H.r1), 15), y - 22, 15, F.b, white); PT(page, H.r2, Mg + W - 16 - F.r.widthOfTextAtSize(san(F.r, H.r2), 9), y - 40, 9, F.r, PDFLib.rgb(.663, .682, .722));
+      y -= 70;
+      PT(page, (abs ? (abs === "ABS" ? "ABSENT(E)" : "DISPENSÉ(E)") + "   ·   " : "") + (extra.join("   ·   ") || " "), Mg, y, 9.5, F.b, ink);
+      var lx = Mg + W - 300; page.drawSvgPath("M0 0 L10 0 L5 8 Z", { x: lx, y: y + 8, color: ink }); PT(page, el ? "Positionnement de mon enseignant" : "Positionnement du professeur", lx + 14, y, 8, F.r, grey);
+      if (a) { lx += 165; page.drawCircle({ x: lx + 5, y: y + 3, size: 4, borderColor: app, borderWidth: 1.6, color: white }); PT(page, el ? "Mon auto-positionnement" : "Auto-positionnement de l'élève", lx + 14, y, 8, F.r, grey); }
+      y -= 18; PT(page, el ? "Ce qui est évalué" : "Critères", Mg + pad, y, 8, F.b, grey);
+      for (var d0 = 0; d0 < 4; d0++) { var x0 = Mg + LW + d0 * CW; page.drawRectangle({ x: x0 + 1, y: y - 4, width: CW - 2, height: 3, color: rgbH(DCOL[d0]) }); PT(page, (el ? "" : "D" + (d0 + 1) + " · ") + DG[d0], x0 + pad, y + 2, 8.6, F.b, rgbH(DCOL[d0])); }
+      y -= 10; var fsz = L.fs, lh = L.lh;
+      L.rows.forEach(function (r) { var cr = r.cr, top = y, h = r.h, sel = A.prof(cr, E), au = a ? a[cr.id] : null; if (sel && sel.d == null) sel = null;
+        page.drawRectangle({ x: Mg, y: top - h, width: W, height: h, borderColor: light, borderWidth: .7 }); page.drawRectangle({ x: Mg, y: top - h, width: LW, height: h, color: PDFLib.rgb(.965, .957, .98) });
+        var ty = top - pad - fsz - 1; PLn(page, r.tl, Mg + pad, ty, fsz + 1.2, F.b, (fsz + 1.2) * 1.2, ink); ty -= r.tl.length * (fsz + 1.2) * 1.2;
+        var mx = A.max ? A.max(cr, E) : cr.max; PT(page, (cr.afl ? cr.afl + " · " : "") + (mx != null ? fr(mx) + " pts" : ""), Mg + pad, ty, fsz - .6, F.b, app); ty -= 11; PLn(page, r.sl, Mg + pad, ty, fsz - .8, F.o, (fsz - .8) * 1.22, grey);
+        for (var d = 0; d < 4; d++) { var cx = Mg + LW + d * CW, on = sel && sel.d === d, aon = au && au.d === d;
+          if (on) page.drawRectangle({ x: cx + 1.5, y: top - h + 1.5, width: CW - 3, height: h - 3, color: rgbH(DTINT[d]), borderColor: rgbH(DCOL[d]), borderWidth: 1.8 });
+          else page.drawLine({ start: { x: cx, y: top }, end: { x: cx, y: top - h }, thickness: .7, color: light });
+          var bx = cx + pad;
+          if (on) { var t = el ? "ENSEIGNANT" : "PROFESSEUR", tw = F.b.widthOfTextAtSize(t, 6.2) + 8; page.drawRectangle({ x: bx, y: top - pad - 9, width: tw, height: 9, color: rgbH(DCOL[d]) }); PT(page, t, bx + 4, top - pad - 7, 6.2, F.b, white); bx += tw + 4; }
+          if (aon) { var t2 = el ? "MOI" : "ÉLÈVE", tw2 = F.b.widthOfTextAtSize(san(F.b, t2), 6.2) + 8; page.drawRectangle({ x: bx, y: top - pad - 9, width: tw2, height: 9, borderColor: app, borderWidth: 1, color: white }); PT(page, t2, bx + 4, top - pad - 7, 6.2, F.b, app); }
+          PLn(page, r.cells[d], cx + pad, top - pad - 12 - fsz + 1, fsz, F.r, lh, on || !sel ? ink : grey); }
+        y = top - h; var gy = y - 13;
+        if (sel) { PT(page, (el ? DG[sel.d] : "Degré " + (sel.d + 1)) + (sel.pts != null && mx != null ? "  ·  " + fr(sel.pts) + " / " + fr(mx) + " pts" : ""), Mg + pad, gy + 1, Math.min(9, fsz + .6), F.b, rgbH(DCOL[sel.d])); PT(page, posLbl(sel.d, sel.pos), Mg + pad, gy - 8.5, Math.min(7.5, fsz), F.r, grey); }
+        else PT(page, abs ? "—" : "Non évalué", Mg + pad, gy - 2, fsz, F.b, grey);
+        for (var d2 = 0; d2 < 4; d2++) { var gx = Mg + LW + d2 * CW + 3; page.drawRectangle({ x: gx, y: gy - 3, width: CW - 6, height: 6, color: sel && sel.d === d2 ? rgbH(DCOL[d2]) : rgbH(DTINT[d2]) }); }
+        if (au) { var ax = Mg + LW + au.d * CW + 3 + au.pos * (CW - 6); page.drawCircle({ x: ax, y: gy, size: 4.6, borderColor: app, borderWidth: 1.8, color: white }); }
+        if (sel) { var px = Mg + LW + sel.d * CW + 3 + (sel.pos || 0) * (CW - 6); page.drawSvgPath("M-5 0 L5 0 L0 8 Z", { x: px, y: gy + 13, color: ink }); page.drawLine({ start: { x: px, y: gy + 5 }, end: { x: px, y: gy - 5 }, thickness: 1.6, color: ink }); }
+        y -= r.gauge; });
+      y -= 4; var fx = Mg, fh = L.footH;
+      page.drawRectangle({ x: fx, y: y - fh, width: 120, height: fh, color: rgbH("#1B1E24") }); page.drawRectangle({ x: fx, y: y - fh, width: 120, height: 3, color: app });
+      PT(page, el ? "Ma note" : "Note", fx + 10, y - 16, 9, F.b, PDFLib.rgb(.663, .682, .722));
+      var nt = abs ? abs : (n20 == null ? "—" : fr(n20)); PT(page, nt, fx + 10, y - fh / 2 - 12, 26, F.b, white);
+      if (!abs && n20 != null) PT(page, "/ 20", fx + 14 + F.b.widthOfTextAtSize(san(F.b, nt), 26), y - fh / 2 - 12, 11, F.r, white); fx += 128;
+      var box = function (titre, arr, col) { page.drawRectangle({ x: fx, y: y - fh, width: L.footW, height: fh, borderColor: light, borderWidth: .8 }); page.drawRectangle({ x: fx, y: y - fh, width: 3, height: fh, color: col });
+        PT(page, titre, fx + 10, y - 14, 9, F.b, col); PLn(page, arr, fx + 10, y - 27, fsz + .4, F.r, (fsz + .4) * 1.25, ink); fx += L.footW + 8; };
+      box(el ? "Le mot de mon enseignant" : "Commentaire du professeur", L.cl1, rgbH("#1F5F8B")); box(el ? "Pour progresser" : "Axe de progrès", L.cl2, rgbH("#2e9e5b"));
+      if (avecLien) { var by = y - fh - 8, bh = 82;
+        page.drawRectangle({ x: Mg, y: by - bh, width: W, height: bh, color: rgbH("#F5F3EE"), borderColor: app, borderWidth: 1.2 });
+        var q = qrPdf(page, url, Mg + 6, by - bh + 4, bh - 8), tx0 = Mg + 16 + q, auto = false; try { auto = JSON.parse(b64d(url.split(HASH)[1])).length > 4; } catch (x) {}
+        PT(page, el ? "Et moi, où je me situe ? Je me positionne !" : "Auto-positionnement de l'élève", tx0, by - 24, 12, F.b, app);
+        var m = "Scanne le QR code ou clique ici pour te positionner toi-même dans les niveaux" + (S().apJusqua ? " (lien valable jusqu'au " + dIso(S().apJusqua) + ")" : "") + ". " + (auto ? "Quand tu valides, ton positionnement est envoyé directement à ton enseignant." : "Ensuite, envoie le code obtenu à ton enseignant par la messagerie Pronote.");
+        PLn(page, wrap(m, F.r, 9.2, W - (tx0 - Mg) - 160), tx0, by - 42, 9.2, F.r, 11.6, ink);
+        var bw = 128, bx2 = Mg + W - bw - 12, bby = by - bh / 2 - 13; page.drawRectangle({ x: bx2, y: bby, width: bw, height: 26, color: app });
+        var lb = "Je me positionne  >"; PT(page, lb, bx2 + (bw - F.b.widthOfTextAtSize(lb, 10)) / 2, bby + 9, 10, F.b, white); lienPdf(doc, page, url, Mg, by - bh, W, bh); }
+      PT(page, A.nom + " EPS — " + (el ? "grille en langage élève" : "grille enseignant") + " · document généré le " + dateFR(), Mg, Mg - 12, 6.5, F.r, grey);
+    }
+    async function pageLien(ctx, c, E, el) { var u = ouvert() && !A.absent(E) ? await lien(E, c) : ""; pageEleve(ctx, c, E, u, el); }
+    function nomPdf(c, E) { var n = A.name(E); return (safe(n.nom) + "_" + safe(n.prenom || "") + "_" + safe(A.nom) + "_" + safe(c.nom) + ".pdf").replace(/__+/g, "_"); }
+    async function ficheBytes(c, E, el) { var ctx = await doc0(); await pageLien(ctx, c, E, el); return ctx.doc.save(); }
+    async function recapBytes(c) {
+      var ctx = await doc0(), doc = ctx.doc, F = ctx.F, G = A.grid(), PW = 595.28, PH = 841.89, Mg = 32, W = PW - 2 * Mg, ink = PDFLib.rgb(.106, .118, .141), grey = PDFLib.rgb(.42, .43, .47), light = PDFLib.rgb(.88, .87, .85);
+      var cols = [{ t: "Élève", w: 150 }].concat(G.criteres.map(function (cr) { return { t: cr.nom.length > 16 ? cr.nom.slice(0, 15) + "." : cr.nom, w: 72 }; })).concat([{ t: "Note /20", w: 48 }, { t: "Auto (élève)", w: 0 }]);
+      cols[cols.length - 1].w = Math.max(40, W - cols.slice(0, -1).reduce(function (s, x) { return s + x.w; }, 0)); var page, y, num = 0;
+      var H = headTxt({ act: A.nom, titre: "Récapitulatif", ca: A.ca, nom: c.nom, classe: "", date: dateFR() });
+      var entete = function () { page = doc.addPage([PW, PH]); num++; y = PH - Mg; page.drawRectangle({ x: Mg, y: y - 44, width: W, height: 44, color: rgbH("#14171C") }); page.drawRectangle({ x: Mg, y: y - 44, width: 6, height: 44, color: rgbH(A.color) });
+        PT(page, H.l1 + " · " + c.nom, Mg + 16, y - 19, 13, F.b, PDFLib.rgb(1, 1, 1)); PT(page, H.l2 + " · " + dateFR(), Mg + 16, y - 34, 8, F.r, PDFLib.rgb(.663, .682, .722));
+        y -= 60; var x = Mg; cols.forEach(function (k) { PT(page, k.t, x + 4, y, 7.6, F.b, grey); x += k.w; }); y -= 6; page.drawLine({ start: { x: Mg, y: y }, end: { x: Mg + W, y: y }, thickness: 1, color: ink }); PT(page, "Page " + num, Mg + W - 30, Mg - 14, 7, F.r, grey); };
+      entete(); var notes = [];
+      c.eleves.forEach(function (E, i) { if (y < Mg + 30) entete(); var rh = 17, abs = A.absent(E), n = abs ? null : A.note(E); if (n != null) notes.push(n);
+        if (i % 2) page.drawRectangle({ x: Mg, y: y - rh, width: W, height: rh, color: PDFLib.rgb(.975, .97, .96) }); var x = Mg, by = y - 12;
+        var fit = function (s, w, f, sz) { s = san(f, s); while (s && f.widthOfTextAtSize(s, sz) > w - 8) s = s.slice(0, -1); return s; };
+        PT(page, fit(fullN(E), cols[0].w, F.b, 8.5), x + 4, by, 8.5, F.b, ink); x += cols[0].w;
+        G.criteres.forEach(function (cr, k) { var v = A.prof(cr, E); if (v && v.d != null) { page.drawRectangle({ x: x + 4, y: by - 3, width: 18, height: 11, color: rgbH(DTINT[v.d]) }); PT(page, "D" + (v.d + 1), x + 6.5, by, 7.5, F.b, rgbH(DCOL[v.d])); if (v.pts != null) PT(page, fr(v.pts), x + 27, by, 8, F.r, ink); } else PT(page, "—", x + 6, by, 8, F.r, grey); x += cols[1 + k].w; });
+        PT(page, abs || fr(n), x + 4, by, 9, F.b, ink); x += cols[cols.length - 2].w;
+        var ap = A.getAp(E); PT(page, ap && ap.ev ? G.criteres.map(function (cr) { var z = ap.ev[cr.id]; return z ? "D" + (z.d + 1) : "–"; }).join(" ") : "", x + 4, by, 7.5, F.r, grey);
+        y -= rh; page.drawLine({ start: { x: Mg, y: y }, end: { x: Mg + W, y: y }, thickness: .4, color: light }); });
+      if (y < Mg + 40) entete(); y -= 20; var moy = notes.length ? notes.reduce(function (s, v) { return s + v; }, 0) / notes.length : null;
+      PT(page, "Élèves notés : " + notes.length + " / " + c.eleves.length + "    Moyenne : " + fr(moy) + "    Min : " + (notes.length ? fr(Math.min.apply(null, notes)) : "—") + "    Max : " + (notes.length ? fr(Math.max.apply(null, notes)) : "—"), Mg, y, 9, F.b, ink);
+      return doc.save();
+    }
+    function err(e) { console.error(e); toast("Erreur lors de la création du PDF (la première fois, il faut une connexion)"); }
+    M.pdfEleve = async function (c, E, el) { try { download(new Blob([await ficheBytes(c, E, el !== false)], { type: "application/pdf" }), nomPdf(c, E)); } catch (e) { err(e); } };
+    M.pdfTous = async function (c, el) { if (!c.eleves.length) { toast("Aucun élève"); return; } toast("Préparation des fiches…");
+      try { var ctx = await doc0(); for (var i = 0; i < c.eleves.length; i++) await pageLien(ctx, c, c.eleves[i], el !== false); download(new Blob([await ctx.doc.save()], { type: "application/pdf" }), safe(A.nom) + "_" + safe(c.nom) + "_fiches.pdf"); } catch (e) { err(e); } };
+    M.pdfRecap = async function (c) { try { download(new Blob([await recapBytes(c)], { type: "application/pdf" }), safe(A.nom) + "_" + safe(c.nom) + "_recapitulatif.pdf"); } catch (e) { err(e); } };
+    M.zip = async function (c, el) { if (!c.eleves.length) { toast("Aucun élève"); return; } toast("Préparation des PDF…");
+      try { await libs(); var zip = new JSZip(), dos = zip.folder(safe(A.nom) + "_" + safe(c.nom)); for (var i = 0; i < c.eleves.length; i++) dos.file(nomPdf(c, c.eleves[i]), await ficheBytes(c, c.eleves[i], el !== false));
+        dos.file("_Recapitulatif_" + safe(c.nom) + ".pdf", await recapBytes(c));
+        download(await zip.generateAsync({ type: "blob" }), safe(A.nom) + "_" + safe(c.nom) + "_" + dateFR().replace(/\//g, "-") + ".zip"); toast(c.eleves.length + " PDF prêts dans le ZIP"); } catch (e) { err(e); } };
+    M.exportsHtml = function () { return '<div class="epse-card"><h2>📄 Fiches PDF</h2><p class="epse-mut">Une fiche par élève (grille en langage élève, positionnement de l\'enseignant et de l\'élève, note, commentaire' + (ouvert() ? ", QR code d'auto-positionnement" : "") + "), récapitulatif de la classe, ou tout dans un .zip.</p>" +
+      '<div class="epse-row"><button class="epse-btn p" data-x-zip>🗂 Tout en .zip</button><button class="epse-btn" data-x-all>📄 Toutes les fiches (un PDF)</button><button class="epse-btn" data-x-rec>📊 Récapitulatif</button><label class="epse-mut"><input type="checkbox" data-x-prof> grille enseignant</label></div></div>'; };
+    M.bindExports = function (root, c) { var el = function () { var x = root.querySelector("[data-x-prof]"); return !(x && x.checked); };
+      root.querySelector("[data-x-zip]").onclick = function () { M.zip(c, el()); }; root.querySelector("[data-x-all]").onclick = function () { M.pdfTous(c, el()); }; root.querySelector("[data-x-rec]").onclick = function () { M.pdfRecap(c); }; };
+    M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
+    return M;
+  }
+
+  /* =====================================================================
+     Évaluation complète gérée ici (appli sans évaluation par degrés)
+     o = { app, nom, ca, color, icon, pfx, code, url, grid (grille par défaut), extras(c, eleve), unlock, isTeacher }
+     Données : localStorage « eps.eval.<app>.v1 » = {items:{cfg:{grid, apOuvert, apJusqua, envoiUrl, envoiCle, u}, s<id>:{c, n, p, ev, ap, comm, st, u}}, pend, since}
+     Classes et élèves : listes communes (eps-lists.js) attribuées à cette activité.
+     ===================================================================== */
+  function store(o) {
+    var KEY = "eps.eval." + o.app + ".v1", PRE = "ev." + o.app + "|";
+    function ld() { var v = jget(KEY, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+    function put(id, obj) { var v = ld(); obj.u = Date.now(); v.items[id] = obj; v.pend[id] = obj.u; jset(KEY, v); try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} }
+    function cfg() { var c = ld().items.cfg || {}; if (!c.grid) c.grid = JSON.parse(JSON.stringify(o.grid)); return c; }
+    function setCfg(x) { var c = cfg(); Object.keys(x).forEach(function (k) { c[k] = x[k]; }); put("cfg", c); }
+    function sid(cl, n) { return "s" + h32(nk(cl) + "|" + nkey((n.prenom || "") + " " + (n.nom || ""))); }
+    function rec(cl, n) { var id = sid(cl, n), r = ld().items[id]; return r || { c: cl, n: n.nom, p: n.prenom || "", ev: {}, ap: null, comm: "", st: "" }; }
+    function save(cl, n, r) { r.c = cl; r.n = n.nom; r.p = n.prenom || ""; put(sid(cl, n), r); }
+    function classes() {
+      var L = []; try { if (window.EPSL) L = EPSL.items().filter(function (it) { return (it.off || []).indexOf(o.app) < 0; }).map(function (it) { return { nom: it.nom, eleves: EPSL.people(it).map(function (p) { return { nom: p.nom || "", prenom: p.prenom || "", _c: it.nom }; }) }; }); } catch (e) {}
+      L.sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); }); L.forEach(function (c) { c.eleves.sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); }); }); return L;
+    }
+    function grid() { return cfg().grid; }
+    function maxOf(cr) { return +cr.max || 0; }
+    function prof(cr, e) { var r = rec(e._c, e), v = r.ev && r.ev[cr.id]; if (!v || v.d == null) return null; var pos = v.pos == null ? .5 : v.pos; return { d: v.d, pos: pos, pts: Math.round(maxOf(cr) * (v.d + pos) / 4 * 4) / 4 }; }
+    function note(e) { var G = grid(), tot = 0, max = 0, n = 0; G.criteres.forEach(function (cr) { var v = prof(cr, e); max += maxOf(cr); if (v) { tot += v.pts; n++; } }); if (!n || !max) return null; return Math.round(tot / max * 20 * 4) / 4; }
+    var A = { app: o.app, nom: o.nom, ca: o.ca, color: o.color, icon: o.icon, pfx: o.pfx, code: o.code, url: o.url,
+      grid: function () { var G = grid(); G.criteres.forEach(function (cr) { if (!cr.descEl) cr.descEl = cr.desc; }); return G; },
+      classes: classes, name: function (e) { return { nom: e.nom, prenom: e.prenom }; }, prof: prof, note: note,
+      absent: function (e) { return rec(e._c, e).st || ""; }, comment: function (e) { return rec(e._c, e).comm || ""; },
+      extras: function (c, e) { try { return o.extras ? o.extras(c, e) : []; } catch (x) { return []; } },
+      getAp: function (e) { return rec(e._c, e).ap; }, setAp: function (e, ap) { var r = rec(e._c, e); r.ap = ap; save(e._c, e, r); },
+      settings: function () { return cfg(); }, setSettings: setCfg, isTeacher: o.isTeacher, unlock: o.unlock, changed: function () { if (UI.open) render(); } };
+    var M = create(A);
+    try { if (window.EPSD && EPSD.store) EPSD.store({ pre: PRE, key: KEY, onChange: A.changed }); else document.addEventListener("DOMContentLoaded", function () { if (window.EPSD && EPSD.store) EPSD.store({ pre: PRE, key: KEY, onChange: A.changed }); }); } catch (e) {}
+    setTimeout(function () { try { if (window.EPSD && EPSD.store && !M._reg) { M._reg = 1; EPSD.store({ pre: PRE, key: KEY, onChange: A.changed }); } } catch (e) {} }, 1500);
+
+    /* ---------- écran Évaluation (enseignant) ---------- */
+    var UI = { open: false, tab: "eval", cls: null, el: -1 };
+    function root() { var v = document.getElementById("epse-" + o.app); if (!v) { css(); v = document.createElement("div"); v.id = "epse-" + o.app; v.className = "epse"; v.style.setProperty("--app", o.color); document.body.appendChild(v); } return v; }
+    function curC() { var L = classes(); var c = L.filter(function (x) { return x.nom === UI.cls; })[0] || L[0] || null; if (c) UI.cls = c.nom; return c; }
+    function render() {
+      var R = root(), L = classes(), c = curC(), G = grid();
+      var head = '<div class="epse-bar"><span class="ei">' + (o.icon || "") + "</span><b>" + esc(o.nom) + "</b><small>Évaluation · " + esc(o.ca) + "</small>" +
+        (L.length ? '<select data-cls>' + L.map(function (x) { return "<option" + (c && x.nom === c.nom ? " selected" : "") + ">" + esc(x.nom) + "</option>"; }).join("") + "</select>" : "") + '<button data-close>✕ Fermer</button></div>' +
+        '<div class="epse-tabs">' + [["eval", "Évaluer"], ["bilan", "Bilan & export"], ["grille", "Grille"]].map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + "</div>";
+      var body = "";
+      if (!c) body = '<div class="epse-card"><p>Aucune classe pour cette activité. Importe une liste d\'élèves dans Réglages (accueil) et vérifie que l\'activité est cochée pour la classe.</p></div>';
+      else if (UI.tab === "eval") body = UI.el >= 0 && c.eleves[UI.el] ? sheet(c, c.eleves[UI.el]) : '<div class="epse-card"><h2>' + esc(c.nom) + " · " + c.eleves.length + ' élèves</h2><p class="epse-mut">Touche un élève pour le positionner sur la grille.</p><div class="epse-chips">' +
+        c.eleves.map(function (e, i) { var n = note(e), r = rec(e._c, e); return '<button class="epse-chip' + (n != null ? " ok" : "") + '" data-el="' + i + '">' + esc(e.prenom + " " + e.nom) + (r.ap ? " 🙋" : "") + "<small>" + (r.st ? r.st : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></button>"; }).join("") + "</div></div>";
+      else if (UI.tab === "bilan") body = table(c) + M.card(c) + M.exportsHtml();
+      else body = gridEditor(G);
+      R.innerHTML = head + '<div class="epse-in">' + body + "</div>";
+      R.querySelector("[data-close]").onclick = close;
+      var s = R.querySelector("[data-cls]"); if (s) s.onchange = function () { UI.cls = s.value; UI.el = -1; render(); };
+      R.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.tab; UI.el = -1; render(); }; });
+      R.querySelectorAll("[data-el]").forEach(function (b) { b.onclick = function () { UI.el = +b.dataset.el; render(); R.scrollTop = 0; }; });
+      if (c && UI.tab === "eval" && UI.el >= 0) bindSheet(R, c, c.eleves[UI.el]);
+      if (c && UI.tab === "bilan") { M.bindCard(R, c); M.bindExports(R, c); }
+      if (UI.tab === "grille") bindGrid(R);
+    }
+    function sheet(c, e) {
+      var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap;
+      return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><button class="epse-btn" data-back>← Liste</button><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1">‹</button> <button class="epse-btn" data-nav="1">›</button></span></div>' +
+        '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (st) { return '<button class="epse-btn' + ((r.st || "") === st ? " p" : "") + '" data-st="' + st + '">' + (st || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button></div></div>' +
+        G.criteres.map(function (cr) { var v = r.ev && r.ev[cr.id], x = ap && ap.ev && ap.ev[cr.id], p = prof(cr, e);
+          return '<div class="epse-crit"><div class="epse-ch"><b>' + esc(cr.nom) + "</b><span>" + esc(cr.afl || "") + " · " + fr(maxOf(cr)) + " pts" + (p ? " · " + fr(p.pts) + " pts" : "") + "</span></div>" + (cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.but) + "</p>" : "") +
+            '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
+            (v ? '<div class="epse-intra" style="--dc:' + DCOL[v.d] + '"><span>Dans le degré :</span><input type="range" min="0" max="4" step="1" value="' + Math.round((v.pos == null ? .5 : v.pos) * 4) + '" data-p="' + esc(cr.id) + '"><b style="color:' + DCOL[v.d] + '">' + esc(posLbl(v.d, v.pos == null ? .5 : v.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
+        (ap && (ap.r || ap.m) ? '<div class="epse-card"><h2>🙋 Les mots de l\'élève</h2>' + (ap.r ? "<p>✓ " + esc(ap.r) + "</p>" : "") + (ap.m ? "<p>→ " + esc(ap.m) + "</p>" : "") + "</div>" : "") +
+        '<div class="epse-card"><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm>' + esc(r.comm || "") + "</textarea></label></div>";
+    }
+    function bindSheet(R, c, e) {
+      var up = function (f) { var r = rec(e._c, e); f(r); save(e._c, e, r); render(); };
+      R.querySelector("[data-back]").onclick = function () { UI.el = -1; render(); };
+      R.querySelectorAll("[data-nav]").forEach(function (b) { b.onclick = function () { var n = UI.el + (+b.dataset.nav); if (n >= 0 && n < c.eleves.length) { UI.el = n; render(); } }; });
+      R.querySelectorAll("[data-st]").forEach(function (b) { b.onclick = function () { up(function (r) { r.st = b.dataset.st; }); }; });
+      R.querySelector("[data-pdf]").onclick = function () { M.pdfEleve(c, e, true); };
+      R.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { up(function (r) { r.ev = r.ev || {}; var id = b.dataset.c, d = +b.dataset.d; if (r.ev[id] && r.ev[id].d === d) delete r.ev[id]; else r.ev[id] = { d: d, pos: .5 }; }); }; });
+      R.querySelectorAll("[data-p]").forEach(function (i) { i.onchange = function () { up(function (r) { r.ev[i.dataset.p].pos = (+i.value) / 4; }); }; });
+      var t = R.querySelector("[data-comm]"); t.onchange = function () { var r = rec(e._c, e); r.comm = t.value; save(e._c, e, r); };
+    }
+    function table(c) { var G = grid();
+      return '<div class="epse-card"><h2>📋 ' + esc(c.nom) + '</h2><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + G.criteres.map(function (cr) { return "<th>" + esc(cr.nom) + "</th>"; }).join("") + "<th>Note /20</th></tr>" +
+        c.eleves.map(function (e) { var r = rec(e._c, e); return '<tr><td class="l">' + esc(e.prenom + " " + e.nom) + "</td>" + G.criteres.map(function (cr) { var p = prof(cr, e); return "<td>" + (p ? '<span class="epse-d" style="background:' + DCOL[p.d] + '">D' + (p.d + 1) + "</span> " + fr(p.pts) : "–") + "</td>"; }).join("") + "<td><b>" + (r.st || fr(note(e))) + "</b></td></tr>"; }).join("") + "</table></div></div>"; }
+    function gridEditor(G) {
+      return '<div class="epse-card"><h2>Grille d\'évaluation</h2><p class="epse-mut">Proposition à adapter : intitulés, points et textes des 4 degrés (enseignant et élève). Les modifications valent pour toutes les tablettes.</p>' +
+        '<div class="epse-row">' + [0, 1, 2, 3].map(function (d) { return '<label class="epse-mut">D' + (d + 1) + ' <input type="text" data-g="degres.' + d + '" value="' + esc(G.degres[d]) + '" style="width:140px"></label>'; }).join("") + "</div>" +
+        G.criteres.map(function (cr, i) { return '<div class="epse-crit"><div class="epse-row"><input type="text" data-g="c.' + i + '.nom" value="' + esc(cr.nom) + '" style="flex:2"><input type="text" data-g="c.' + i + '.afl" value="' + esc(cr.afl || "") + '" style="width:90px"><label class="epse-mut">pts <input type="text" data-g="c.' + i + '.max" value="' + esc(cr.max) + '" style="width:60px"></label></div>' +
+          '<input type="text" data-g="c.' + i + '.but" value="' + esc(cr.but || "") + '" placeholder="Ce qui est attendu">' +
+          '<div class="epse-degs" style="margin-top:6px">' + [0, 1, 2, 3].map(function (d) { return '<div><small class="epse-mut">D' + (d + 1) + ' (enseignant)</small><textarea rows="3" data-g="c.' + i + '.desc.' + d + '">' + esc(cr.desc[d] || "") + '</textarea><small class="epse-mut">D' + (d + 1) + ' (élève)</small><textarea rows="3" data-g="c.' + i + '.descEl.' + d + '">' + esc((cr.descEl || cr.desc)[d] || "") + "</textarea></div>"; }).join("") + "</div></div>"; }).join("") +
+        '<div class="epse-row"><button class="epse-btn" data-g-reset>↺ Revenir à la grille proposée</button></div></div>';
+    }
+    function bindGrid(R) {
+      R.querySelectorAll("[data-g]").forEach(function (i) { i.onchange = function () { var G = JSON.parse(JSON.stringify(grid())), p = i.dataset.g.split("."), v = i.value;
+        if (p[0] === "degres") G.degres[+p[1]] = v; else { var cr = G.criteres[+p[1]]; if (p[2] === "desc" || p[2] === "descEl") { cr[p[2]] = (cr[p[2]] || cr.desc).slice(); cr[p[2]][+p[3]] = v; } else cr[p[2]] = p[2] === "max" ? (+String(v).replace(",", ".") || 0) : v; }
+        setCfg({ grid: G }); toast("Grille enregistrée"); }; });
+      R.querySelector("[data-g-reset]").onclick = function () { if (confirm("Revenir à la grille proposée ? Les textes modifiés seront remplacés.")) { setCfg({ grid: JSON.parse(JSON.stringify(o.grid)) }); render(); } };
+    }
+    function open(cls) { UI.open = true; if (cls) UI.cls = cls; UI.el = -1; render(); document.documentElement.style.overflow = "hidden"; }
+    function close() { UI.open = false; var v = document.getElementById("epse-" + o.app); if (v) v.remove(); document.documentElement.style.overflow = ""; }
+    M.open = open; M.close = close; M.classes = classes; M.adapter = A;
+    return M;
+  }
+
+  window.EPSE = { create: create, store: store, libs: libs, DCOL: DCOL, DTINT: DTINT };
+})();

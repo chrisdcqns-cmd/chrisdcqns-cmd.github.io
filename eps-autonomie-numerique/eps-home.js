@@ -254,9 +254,36 @@
       if (lch) { try { await applyLocal(); } catch (e) {} if (HUB) try { window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {} }
       try { await syncReg(cfg); } catch (e) {}
       try { await syncEdt(cfg); } catch (e) {}
+      for (var si = 0; si < STORES.length; si++) { try { await syncStore(cfg, STORES[si]); } catch (e) {} }
     } catch (e) { lastErr = "réseau"; }
     finally { busy = false; sched(); }
   }
+  /* magasins de données génériques (ex. évaluations d'eps-eval.js) : {pre, key, onChange} ;
+     localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
+  var STORES = [];
+  function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+  async function syncStore(cfg, st) {
+    var V = stLd(st.key), pk = Object.keys(V.pend), sent = {};
+    if (pk.length) { var recs = [];
+      for (var i = 0; i < pk.length; i++) { var it = V.items[pk[i]]; if (!it) continue; sent[pk[i]] = V.pend[pk[i]]; recs.push({ k: st.pre + pk[i], u: V.pend[pk[i]], d: 0, x: await enc(cfg.key, JSON.stringify(it)) }); }
+      if (recs.length) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, sync: { dev: "eval", recs: recs } }) });
+      V = stLd(st.key); Object.keys(sent).forEach(function (k) { if (V.pend[k] === sent[k]) delete V.pend[k]; }); jsetS(st.key, V);
+      await new Promise(function (r) { setTimeout(r, 1200); }); }
+    var ch = false;
+    for (var loop = 0; loop < 20; loop++) {
+      V = stLd(st.key); var r = await jsonp(cfg, { pull: 1, since: V.since || 0, pre: st.pre });
+      if (!r || !r.keyOk || !r.sync) break;
+      var L = r.recs || [];
+      for (var j = 0; j < L.length; j++) { var k = String(L[j][1]); if (k.indexOf(st.pre) !== 0 || +L[j][3]) continue; var id = k.slice(st.pre.length);
+        try { var o = JSON.parse(await dec(cfg.key, L[j][4])), cur = V.items[id];
+          if (V.pend[id] && (!o.u || V.pend[id] >= o.u)) continue;
+          if (!cur || (o.u || 0) > (cur.u || 0)) { V.items[id] = o; ch = true; } } catch (e) {} }
+      V.since = L.length ? +L[L.length - 1][0] : Math.max(V.since || 0, +r.seq || 0); jsetS(st.key, V);
+      if (!r.more) break;
+    }
+    if (ch && st.onChange) try { st.onChange(); } catch (e) {}
+  }
+  function jsetS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function sched() { clearTimeout(timer); timer = setTimeout(sync, document.visibilityState === "hidden" ? 60000 : 20000); }
   function fire() { try { window.dispatchEvent(new CustomEvent("epsd-change")); } catch (e) {} draw(); }
   function put(it) { it.upd = Date.now(); D.items[it.id] = it; D.pend[it.id] = stamp(); sv(D); fire(); setTimeout(sync, 200); }
@@ -1144,7 +1171,9 @@
   (window.EPSG_Q || []).forEach(gateRegister);
   window.EPSG_Q = { push: gateRegister };
   window.EPSR = { get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
-  window.EPSD = { refresh: function () { try { draw(); } catch (e) {} }, applyLists: function () { return applyLocal(); }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
+  window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
+    store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
+    syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); }, applyLists: function () { return applyLocal(); }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================

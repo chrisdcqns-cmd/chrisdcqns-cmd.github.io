@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="../eps-lists.js"></script>
+<script src="../eps-eval.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#1B1E24">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -2002,7 +2003,8 @@ function renderBilan(){
    <div class="stats" style="margin-top:12px"><div class="stat"><b>${moy!=null?fr(Math.round(moy*100)/100):'–'}</b><span>Moyenne /20</span></div><div class="stat"><b>${notes.length?fr(Math.min(...notes)):'–'}</b><span>Min.</span></div><div class="stat"><b>${notes.length?fr(Math.max(...notes)):'–'}</b><span>Max.</span></div><div class="stat"><b>${ev.length}/${c.eleves.length}</b><span>Élèves notés</span></div></div>
    <h3>Répartition des degrés</h3><div class="legend">${B().degres.map((d,i)=>`<span><i class="bg${i+1}"></i>D${i+1} ${esc(d)}</span>`).join('')}</div>
    ${crit.map(x=>`<div><b>${esc(x.cr.nom)}</b> <span class="tag">${x.cr.afl}</span><div class="bar">${x.cnt.map((n,i)=>n?`<div class="bg${i+1}" style="width:${n/x.t*100}%">${n}</div>`:'').join('')}</div></div>`).join('')}</div>
-  <div class="card"><h2>Notes</h2><div class="tw">${tableHtml(c)}</div></div>`;
+  <div class="card"><h2>Notes</h2><div class="tw">${tableHtml(c)}</div></div><div id="evb-bilan">${EVB?EVB.exportsHtml()+EVB.card(c):''}</div>`;
+  if(EVB){const R=document.getElementById('evb-bilan');EVB.bindExports(R,c);EVB.bindCard(R,c)}
 }
 function tableHtml(c){const b=B(),afls=aflList();
   return `<table><thead><tr><th>Élève</th>${b.criteres.map(cr=>`<th>${esc(cr.nom)}<br><small>${cr.afl}</small></th>`).join('')}${afls.map(a=>`<th>${a}</th>`).join('')}${b.mode==='officiel'?'<th>Choix</th>':''}<th>Matchs G/J</th><th>Note /20</th></tr></thead><tbody>
@@ -2236,6 +2238,17 @@ addEventListener('storage',ev=>{if(ev.key==='eps.share.v1'){syUpd();syncSoon(300
 /* ================== DÉMARRAGE ================== */
 renderHead();showTab('seq');setLock();syUpd();syncSoon(800);
 
+/* évaluation commune (eps-eval.js) : auto-positionnement par QR code et fiches PDF au format Danse / Volley-ball */
+var EVB=window.EPSE?EPSE.create({app:'bad',nom:'Badminton',ca:'CA4',color:'#0B7A75',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="17.5" r="3"/><path d="M8.6 15.4 18 3l3 3-12.4 9.4"/><path d="M12 10.5 15 13M14.5 7.5 18 10"/></svg>',pfx:'bd',code:'BAD1',url:'https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/badminton/',
+ grid:()=>{const b=B();return{criteres:b.criteres.map(cr=>({id:cr.id,afl:cr.afl,nom:cr.nom,but:cr.but,nomEl:cr.nomEl||cr.nom,butEl:cr.butEl||cr.but,desc:cr.desc,descEl:(cr.descEl&&cr.descEl.length?cr.descEl:cr.desc),max:maxPts(cr,null)})),degres:b.degres,degresEl:b.degresEl||b.degres}},
+ max:(cr,e)=>maxPts(B().criteres.find(x=>x.id===cr.id)||cr,e),
+ classes:()=>S.classes,name:e=>({nom:e.nom||'',prenom:e.prenom||''}),
+ prof:(cr,e)=>{const c0=B().criteres.find(x=>x.id===cr.id)||cr,v=e.ev&&e.ev[c0.id];if(!v||v.d==null)return null;const [lo,hi]=band(c0,e,v.d),p=critPts(c0,e);return{d:v.d,pos:hi>lo?Math.max(0,Math.min(1,(p-lo)/(hi-lo))):.5,pts:p}},
+ note:e=>note20(e),absent:e=>isAbs(e)?e.statut:'',comment:e=>e.comment||'',
+ extras:(c,e)=>{const x=[];['AFL1','AFL2','AFL3','AFLP1','AFLP2'].forEach(a=>{const r=aflPts(e,a);if(r)x.push(a+' : '+fr(r.pts)+' / '+fr(r.max))});return x},
+ getAp:e=>e.ap||null,setAp:(e,ap)=>{e.ap=ap;save()},
+ settings:()=>B(),setSettings:o=>{Object.assign(B(),o);save()},
+ isTeacher:()=>isUnlocked(),unlock:()=>Promise.resolve(unlock()),changed:()=>{try{refresh()}catch(e){}}}):null;
 /* listes de classes communes (eps-home.js) : mise à jour en direct quand une liste arrive */
 window.epsListsHook={save:()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},reload:()=>{try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&typeof v==='object')S=v}catch(e){}fixState();refresh();if(terrOn()&&!isUnlocked())renderTerr()}};
 /* écran élève commun (eps-home.js) : choisir sa classe en premier */
