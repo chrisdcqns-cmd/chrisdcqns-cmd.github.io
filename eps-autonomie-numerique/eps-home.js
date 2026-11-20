@@ -755,7 +755,7 @@
       if (off && !t) a.style.display = "none"; else if (!a.hasAttribute("data-eps-teach")) a.style.display = "";
     });
     var h = document.getElementById("eps-etab"); if (h) h.textContent = r.etab ? r.etab + (r.ville ? " · " + r.ville : "") + " — " : "";
-    var rs = document.getElementById("eps-regsum"); if (rs) rs.textContent = (r.etab || "Établissement à renseigner") + " · " + (r.prof || "enseignant à choisir") + " · " + r.annee;
+    var rs = document.getElementById("eps-regsum"); if (rs) rs.textContent = (r.etab || "Établissement à renseigner") + " · " + (r.prof || "enseignant à choisir") + " · " + r.annee + " — listes d'élèves, partage, sauvegarde";
   }
   /* synchronisation des réglages communs (établissement, année, équipe) */
   async function syncReg(cfg) {
@@ -785,8 +785,10 @@
     var r = rget();
     var chips = function (L, on, attr) { return L.map(function (x) { return '<button type="button" ' + attr + '="' + esc(x[0]) + '" class="' + (on(x[0]) ? "on" : "") + '">' + esc(x[1]) + "</button>"; }).join(""); };
     var o = overlay('<h3>⚙️ Réglages</h3>' + (msg ? '<p class="m" style="color:#2E7D4F;font-weight:800">' + esc(msg) + "</p>" : "") +
+      (shCfg() ? '<p class="m" style="background:#E7F3EC;color:#1E5A37;border-radius:12px;padding:10px 12px;font-weight:700">✅ Réglages et listes d\'élèves communs à toutes tes tablettes (partage entre tablettes actif). <button type="button" id="er-share" style="margin:8px 0 0;display:block;height:42px;padding:0 16px;border-radius:12px;border:2px solid currentColor;background:#fff;color:inherit;font:800 15px system-ui,sans-serif;cursor:pointer">⚙ Partage entre tablettes</button></p>'
+        : '<p class="m" style="background:#FDF0E1;color:#7A4A06;border-radius:12px;padding:10px 12px;font-weight:700">⚠️ Le partage entre tablettes n\'est pas réglé sur cette tablette : ce que tu enregistres ici reste sur elle. <button type="button" id="er-share" style="margin:8px 0 0;display:block;height:42px;padding:0 16px;border-radius:12px;border:2px solid currentColor;background:#fff;color:inherit;font:800 15px system-ui,sans-serif;cursor:pointer">⚙ Régler le partage</button></p>') +
+      '<div class="epsd-cls">En-tête des bilans</div>' +
       '<p class="m">Ces informations apparaissent dans l\'en-tête de tous les bilans (PDF) de toutes les applications.</p>' +
-      '<p class="m">Réglages communs à toutes tes tablettes (dès que le partage entre tablettes est réglé).</p>' +
       '<span class="epsd-lab">Nom exact de l\'établissement</span><input class="epsd-in" id="er-etab" placeholder="Lycée …" value="' + esc(r.etab || "") + '">' +
       '<div class="epsd-g2"><div><span class="epsd-lab">Ville (facultatif)</span><input class="epsd-in" id="er-ville" value="' + esc(r.ville || "") + '"></div>' +
       '<div><span class="epsd-lab">Année scolaire</span><input class="epsd-in" id="er-annee" value="' + esc(r.annee) + '"></div></div>' +
@@ -794,9 +796,13 @@
       '<span class="epsd-lab">Champ d\'apprentissage (CA) dans l\'en-tête</span><div class="epsd-chips" id="er-ca">' + chips([["1", "Afficher"], ["0", "Masquer"]], function (v) { return (v === "1") === !!r.ca; }, "data-v") + "</div>" +
       '<span class="epsd-lab">Mode enseignant ouvert depuis l\'accueil pendant</span><div class="epsd-chips" id="er-tm">' + chips([["30", "30 min"], ["60", "1 h"], ["120", "2 h"], ["240", "4 h"]], function (v) { return +v === r.teachMin; }, "data-v") + "</div>" +
       '<span class="epsd-lab">Applications visibles par les élèves sur l\'accueil</span><div class="epsd-chips" id="er-apps">' + chips(APPS, function (k) { return r.masque.indexOf(k) < 0; }, "data-a") + "</div>" +
+      '<div class="epsd-cls" style="margin-top:18px">Listes d\'élèves</div>' +
+      '<p class="m">Une liste importée ou corrigée ici va dans Escalade, Relais Vitesse, OrienRun, Acrosport, Volley-ball et Danse, et sur toutes tes tablettes.</p>' +
+      '<div id="er-cls" class="m" style="margin:6px 0 4px">…</div>' +
+      '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-edit">✏️ Modifier les listes</button><button type="button" class="p" id="er-imp">📥 Importer une liste d\'élèves</button></div>' +
       '<div class="epsd-cls" style="margin-top:18px">Sauvegarde</div>' +
       '<p class="m">Fichier de sauvegarde de toutes les applications de cette tablette (classes, leçons, évaluations, réglages), à garder sur ton ordinateur ou ta clé USB. Les vidéos et les cartes d\'OrienRun n\'y sont pas.</p>' +
-      '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-save">💾 Enregistrer une sauvegarde</button><label style="height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;display:inline-flex;align-items:center;font:800 17px system-ui,sans-serif;cursor:pointer">♻️ Restaurer<input type="file" accept=".json,.eps,application/json" id="er-load" style="display:none"></label><button type="button" id="er-share">⚙ Partage entre tablettes</button></div>' +
+      '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-save">💾 Enregistrer une sauvegarde</button><label style="height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;display:inline-flex;align-items:center;font:800 17px system-ui,sans-serif;cursor:pointer">♻️ Restaurer<input type="file" accept=".json,.eps,application/json" id="er-load" style="display:none"></label></div>' +
       '<div class="epsd-act"><button data-x>Fermer</button><button class="p" id="er-ok">Enregistrer les réglages</button></div>');
     function readForm() {
       r.etab = o.querySelector("#er-etab").value.trim(); r.ville = o.querySelector("#er-ville").value.trim(); r.annee = o.querySelector("#er-annee").value.trim() || anneeDef();
@@ -812,6 +818,15 @@
     };
     o.querySelector("#er-share").onclick = function () { o.remove(); shareSettings(function () { reglages(); }); };
     o.querySelector("#er-save").onclick = backupSave;
+    o.querySelector("#er-edit").onclick = function () { o.remove(); editLists(); };
+    o.querySelector("#er-imp").onclick = function () { o.remove(); importList(); };
+    allLists().then(function (M) {
+      var el = o.querySelector("#er-cls"); if (!el) return;
+      var L = Object.keys(M).map(function (k) { var x = M[k], n = 0; Object.keys(x.apps).forEach(function (a) { n = Math.max(n, (x.apps[a] || []).length); }); return [x.name, n]; })
+        .sort(function (a, b) { return a[0].localeCompare(b[0], "fr"); });
+      el.innerHTML = L.length ? L.map(function (c) { return '<span style="display:inline-block;margin:3px 6px 3px 0;padding:6px 12px;border-radius:999px;background:#F1EFE8;font-weight:700">' + esc(c[0]) + ' · ' + c[1] + ' élève' + (c[1] > 1 ? "s" : "") + "</span>"; }).join("")
+        : "Aucune liste pour l'instant.";
+    }).catch(function () {});
     o.querySelector("#er-load").onchange = function (e) { var f = e.target.files[0]; if (f) backupLoad(f, o); };
   }
   function toastHub(t) {
