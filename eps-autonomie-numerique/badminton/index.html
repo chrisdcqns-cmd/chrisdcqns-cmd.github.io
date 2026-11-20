@@ -701,13 +701,14 @@ function fixState(){
     if(!P.seq||!Array.isArray(P.seq.lecons))P.seq=v==='gt'?defSeq():defSeqPro();
     if(!Array.isArray(P.seq.routines))P.seq.routines=defRoutines();if(!Array.isArray(P.seq.or))P.seq.or=defSeq().or});
   /* passage à la grille et à la séquence LP de l'enseignant (remplace les modèles provisoires) */
+  /* valeurs par défaut AVANT les migrations (données créées par l'import de listes de l'accueil : ni situations ni fiches) */
+  if(!Array.isArray(S.tech))S.tech=defTech();
+  if(!Array.isArray(S.presets)||!S.presets.length)S.presets=defPresets();
+  if(!Array.isArray(S.classes))S.classes=[];
   if(!S.lpv){const Q=S.prof.pro;if(Q.bareme.grille==='origine'&&!S.classes.some(c=>c.voie==='pro'&&c.eleves.some(e=>Object.keys(e.ev||{}).length)))Q.bareme=grilleLP();
     if(/^À compléter/.test(Q.seq.comp||''))Q.seq=defSeqPro();lpPresets().forEach(p=>{if(!S.presets.some(x=>x.id===p.id))(S.presets=S.presets||[]).push(p)});S.lpv=1}
   if((S.prv||0)<2){defPresets().forEach(p=>{if(!S.presets.some(x=>x.id===p.id))S.presets.push(p)});S.prv=2}
   if(S.voie!=='pro')S.voie='gt';
-  if(!Array.isArray(S.tech))S.tech=defTech();
-  if(!Array.isArray(S.presets)||!S.presets.length)S.presets=defPresets();
-  if(!Array.isArray(S.classes))S.classes=[];
   S.classes.forEach(c=>{c.eleves=c.eleves||[];c.matchs=c.matchs||{};c.poules=c.poules||{};c.voie=c.voie==='pro'?'pro':'gt';c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
   if(!S.classes.some(c=>c.voie===S.voie))S.classes.push({id:uid(),nom:'Ma classe',voie:S.voie,eleves:[],matchs:{},poules:{}});
   if(!(S.cur>=0&&S.cur<S.classes.length)||S.classes[S.cur].voie!==S.voie)S.cur=S.classes.findIndex(c=>c.voie===S.voie);
