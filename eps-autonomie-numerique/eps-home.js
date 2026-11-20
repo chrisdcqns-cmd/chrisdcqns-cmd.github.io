@@ -840,7 +840,7 @@
       '<div class="epsd-cls" style="margin-top:18px">Appel AS</div>' +
       '<span class="epsd-lab">Lien du fichier d\'appel de l\'association sportive (Google Sheets)</span><input class="epsd-in" id="er-as" placeholder="https://docs.google.com/spreadsheets/d/…" value="' + esc(r.asSheet || "") + '">' +
       '<div class="epsd-cls" style="margin-top:18px">Listes d\'élèves</div>' +
-      '<p class="m">Une liste importée ou corrigée ici va dans Escalade, Relais Vitesse, OrienRun, Acrosport, Volley-ball, Badminton et Danse, et sur toutes tes tablettes.</p>' +
+      '<p class="m">Une liste importée ou corrigée ici va dans Escalade, Relais Vitesse et OrienRun, et sur toutes tes tablettes. Acrosport, Volley-ball, Danse et Badminton gardent pour l\'instant leur propre import de liste.</p>' +
       '<div id="er-cls" class="m" style="margin:6px 0 4px">…</div>' +
       '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-edit">✏️ Modifier les listes</button><button type="button" class="p" id="er-imp">📥 Importer une liste d\'élèves</button></div>' +
       '<div class="epsd-cls" style="margin-top:18px">Sauvegarde</div>' +
