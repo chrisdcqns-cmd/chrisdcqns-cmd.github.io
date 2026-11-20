@@ -279,6 +279,23 @@ table.kv td,table.kv th{text-align:left;padding:5px 6px}table.kv td:first-child{
 .astuce{background:#fff8e1;border-radius:10px;padding:8px 10px;margin:6px 0}
 .seg.big button{padding:12px 18px;font-size:1.05rem}
 #play{z-index:45}
+.legend2{display:flex;flex-wrap:wrap;gap:12px;font-size:.85rem;font-weight:700;color:var(--navy)}.legend2 i{display:inline-block;width:18px;height:14px;border-radius:4px;margin-right:5px;vertical-align:-2px;border:1px solid #1769b8}
+h2.step{display:flex;align-items:center;gap:10px}h2.step span{width:30px;height:30px;border-radius:50%;background:var(--vol);color:#fff;display:grid;place-items:center;font-size:1rem;flex:none}
+.blks{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.blk2{background:#f6f8fb;border-radius:12px;padding:12px 14px;border-top:4px solid var(--vol)}.blk2 h3{margin:0 0 6px;font-size:1rem;color:var(--navy)}
+input.mnum{width:84px;padding:6px 8px;text-align:center;font-weight:800}
+.vsl input.mnum{width:70px;writing-mode:horizontal-tb;direction:ltr;height:auto}
+.ctab{border-collapse:collapse;width:100%;margin:8px 0;font-size:.9rem}.ctab td,.ctab th{border:1.5px solid #333;text-align:center;padding:5px 2px;min-width:30px}
+.ctab th.h,.ctab th.cn{background:#d9d9d9;font-weight:800}.ctab th.cn{text-align:left;padding-left:8px}.ctab .adv{background:#c9d5e8;width:140px;font-size:.8rem}
+.ctab td.x{font-weight:900;box-shadow:inset 0 0 0 3px #14213d}.ctab tr:nth-child(2) td.x{background:#14213d;color:#fff}.ctab td.pm{background:#fff;font-size:1.3rem}.ctab tr:nth-child(4) td:not(.x):not(.pm){opacity:.4}
+.ctab.leg th{background:#c9d5e8;font-size:.75rem}.ctab.leg td{font-size:1rem}
+.gauge{display:flex;gap:2px;margin-top:3px}.gauge span{flex:1;min-width:16px;text-align:center;font-size:.7rem;font-weight:800;color:#14213d;border-radius:3px;padding:1px 0;opacity:.55}.gauge span.x{opacity:1;box-shadow:inset 0 0 0 2px #14213d}
+.board .man{flex-wrap:wrap}.board .man .gauge{flex:1;min-width:180px}
+.ctxt{background:#eef8f6;border-left:4px solid #00b050;padding:6px 10px;border-radius:8px;margin:6px 0 0;font-weight:600}
+.mg3.sm button{width:70px;height:36px;font-size:.72rem}
+.bct{border-collapse:collapse;width:100%;font-size:.9rem;margin:6px 0}.bct th{background:#4f6fa8;color:#fff;padding:6px}.bct td{border:1px solid #b9c3d3;text-align:center;padding:6px}.bct tr:nth-child(even) td{background:#f3f6fb}.bct tr.tot td{background:#f4c7b4;font-weight:800}
+button.mini{border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;border-radius:8px;padding:1px 8px;font-size:.75rem;margin-left:4px}
+
 .nat{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
 .nat button{border:2px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-weight:800;color:var(--navy)}
 .nat button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -488,6 +505,7 @@ function basePresets(){return[
  P_('svc',"Danger dès le service","Utiliser le service pour créer le danger : point gagné directement sur service +2, en amorti ou kill sur la 3e frappe +2.",{coups:{svc:2,svl:2,amo:2,kil:2},lec:7}),
  P_('int',"Zone interdite au milieu","Adapter son jeu : le milieu de terrain est interdit (volant dedans = point pour l'adversaire). Avant et fond rapportent.",{np:3,prof:[SSL,4.72],zones:{r0c0:{m:'n',v:2},r1c0:{m:'x',v:0},r2c0:{m:'n',v:2}},lec:8}),
  P_('maniere',"Jouer avec la manière","Chaque élève choisit sa manière de marquer (ex. hors zone centrale, au fond, au filet, en smash…) et le pourcentage à atteindre. Marquer au moins 10 points dont 50 % minimum avec sa manière.",{np:3,prof:[SSL,4.72],nl:3,lat:[CW/3,2*CW/3],cible:15,man:{on:true,z:['fg','fc','fd','mg','md','ag','ac','ad'],c:[],s:50,min:10,pd:false},lec:0}),
+ P_('contrat',"Gagner avec la manière : contrat","Chaque joueur choisit un contrat (n°1 zone avant, n°2 zone arrière…). Marquer en respectant son contrat donne un point de contrat. Points de match : gagné + zone verte 4 · gagné sans zone verte (ou l'adversaire l'a aussi atteinte) 3 · perdu + zone verte 2 · perdu à 1 point de la zone verte 1 · sinon 0.",{np:3,prof:[SSL,4.72],nl:1,cible:11,man:{on:true,mode:'verte',v:7,num:'c1',z:['ag','ac','ad'],c:[],s:70,min:0,pd:false},lec:0}),
  P_('z1000',"La zone à 1000 points","Touche la zone où le point est marqué. Plus une même zone est atteinte, moins elle rapporte (1000, 100, 10, 1). Le centre est supprimé. Le vainqueur a le plus de points de zones.",{np:3,prof:[SSL,4.72],nl:3,lat:[1.7,4.4],zones:{r0c0:{m:'g'},r0c1:{m:'g'},r0c2:{m:'g'},r1c0:{m:'g'},r1c1:{m:'o',v:0},r1c2:{m:'g'},r2c0:{m:'g'},r2c1:{m:'g'},r2c2:{m:'g'}},score:'zones',cible:0,lec:0}),
  P_('cibles',"Cibles précises","Trois cibles (cerceaux) par moitié : un point marqué dans une cible rapporte +5.",{cibles:[{d:6.1,l:0.75,r:0.6,v:5},{d:6.1,l:5.35,r:0.6,v:5},{d:2.4,l:3.05,r:0.6,v:5}],lec:0}),
  P_('ccf',"Match CCF","Match en 11 points (écart de 2), score classique.",{ecart:true,lec:9})
@@ -631,13 +649,14 @@ function lpPresets(){return[
  P_('lp_choix',"Zone favorable au choix (avant ou arrière)","Matchs en 11 points dans la poule. Chacun choisit sa zone favorable de marque (avant ou arrière) : un point marqué dans cette zone donne un point de contrat.",{np:3,prof:[SSL,4.72],zones:{r0c0:{m:'b',v:1},r1c0:{m:'n',v:1},r2c0:{m:'b',v:1}},contrat:3,lec:0}),
  P_('lp_cc',"Couloir central interdit","Match en 5 points. Renvoyer le volant dans la zone centrale fait perdre le point. Marquer dans les zones latérales rapporte 1 point. Marquer dans les DEUX zones latérales fait gagner le match instantanément. 5 matchs par joueur.",{nl:3,lat:[1.7,4.4],zones:{r0c0:{m:'b',v:1},r0c1:{m:'x',v:0},r0c2:{m:'b',v:1}},cible:5,tous:true,lec:0}),
  P_('retard',"Simuler un retard","Match en 11 points : l'adversaire doit toucher la ligne de fond (service long double) ou le filet entre chaque frappe. Objectif : marquer au moins 7 points sur 11 en exploitant la zone libérée.",{np:3,prof:[SSL,4.72],lec:0}),
- P_('badcode',"« Badcode »","Set en 11 points. Avant le match, chacun choisit un code de 2 chiffres (2 zones) : amener l'adversaire dans la 1re zone, puis finir par un point direct dans la 2e. Ex. code 14 : fond gauche puis avant droite. Double objectif : gagner et réaliser 2 fois son code. Points : victoire 5 / 4 / 3 (code 2 fois / 1 fois / 0), défaite 2 / 1 / 0.",{np:2,prof:[3.35],nl:2,lat:[CW/2],badcode:true,lec:0}),
+ P_('badcode',"« Badcode »","Set en 11 points. Avant le match, chacun choisit un code de 2 chiffres (2 zones) : amener l'adversaire dans la 1re zone, puis finir par un point direct dans la 2e. Ex. code 14 : fond gauche puis avant droite. Double objectif : gagner et réaliser 2 fois son code. Points : victoire 5 / 4 / 3 (code 2 fois / 1 fois / 0), défaite 2 / 1 / 0.",{np:3,prof:[SSL,5.2],nl:2,lat:[CW/2],zones:{r1c0:{m:'o',v:0},r1c1:{m:'o',v:0}},badcode:true,lec:0}),
  P_('ex_sma',"Exercice : smash dans les zones","A sert en coup droit en variant hauteur et longueur ; B smashe dans les zones ciblées. 1'30 à 2 min puis on change. Réussite = volant dans une zone 🎯. Objectif : 2/3.",{type:'exo',np:2,prof:[3.35],nl:3,lat:[1.5,4.6],zones:{r0c0:{m:'b',v:1},r0c2:{m:'b',v:1},r1c0:{m:'b',v:1},r1c2:{m:'b',v:1}},essais:15,obj:10,lec:0}),
  P_('ex_kil',"Exercice : kill","A sert court, mi-hauteur ; B arrive raquette haute au filet et frappe vers le bas. Réussite = volant dans la zone avant 🎯. Objectif : 2/3.",{type:'exo',np:2,prof:[SSL+0.6],zones:{r0c0:{m:'b',v:1}},essais:15,obj:10,lec:0}),
  P_('v10',"Volant à 10 points","Match en 21 points. Le volant vaut 10 points dès le service et perd 1 point à chaque frappe : il faut rompre le plus vite possible ! Après chaque point, touche le nombre de frappes de l'échange (service compris). Objectif : gagner sous 3 services.",{frappes:true,vf:10,score:'zones',cible:21,lec:0})
 ]}
 /* Badcode : numéros des 4 zones (repère du receveur) */
-const BCN={r1c0:1,r1c1:2,r0c0:3,r0c1:4};
+/* numéros de la fiche Badcode, vus par le joueur qui attaque : 1 fond gauche, 2 fond droit, 3 avant gauche, 4 avant droit */
+const BCN={r2c1:1,r2c0:2,r0c1:3,r0c0:4};
 function bcPts(win,cd){return win?(cd>=2?5:cd===1?4:3):(cd>=2?2:cd===1?1:0)}
 
 function T2_(t,cons,crq,crl,crr,vp,vm,pre){return T_(t,cons,crq,crl,crr,vp,vm,pre)}
@@ -704,11 +723,13 @@ function fixState(){
   /* passage à la grille et à la séquence LP de l'enseignant (remplace les modèles provisoires) */
   /* valeurs par défaut AVANT les migrations (données créées par l'import de listes de l'accueil : ni situations ni fiches) */
   if(!Array.isArray(S.tech))S.tech=defTech();
+  if(!Array.isArray(S.contrats))S.contrats=defContrats();
   if(!Array.isArray(S.presets)||!S.presets.length)S.presets=defPresets();
   if(!Array.isArray(S.classes))S.classes=[];
   if(!S.lpv){const Q=S.prof.pro;if(Q.bareme.grille==='origine'&&!S.classes.some(c=>c.voie==='pro'&&c.eleves.some(e=>Object.keys(e.ev||{}).length)))Q.bareme=grilleLP();
     if(/^À compléter/.test(Q.seq.comp||''))Q.seq=defSeqPro();lpPresets().forEach(p=>{if(!S.presets.some(x=>x.id===p.id))(S.presets=S.presets||[]).push(p)});S.lpv=1}
   if((S.prv||0)<2){defPresets().forEach(p=>{if(!S.presets.some(x=>x.id===p.id))S.presets.push(p)});S.prv=2}
+  if((S.prv||0)<3){const D=defPresets(),i=S.presets.findIndex(p=>p.id==='badcode');if(i>=0)S.presets[i]=D.find(p=>p.id==='badcode');if(!S.presets.some(p=>p.id==='contrat'))S.presets.push(D.find(p=>p.id==='contrat'));S.prv=3}
   if(S.voie!=='pro')S.voie='gt';
   S.classes.forEach(c=>{c.eleves=c.eleves||[];c.matchs=c.matchs||{};c.poules=c.poules||{};c.voie=c.voie==='pro'?'pro':'gt';c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
   if(!S.classes.some(c=>c.voie===S.voie))S.classes.push({id:uid(),nom:'Ma classe',voie:S.voie,eleves:[],matchs:{},poules:{}});
@@ -889,6 +910,7 @@ function classById(id){return S.classes.find(c=>c.id===id)}
 function replay(m){
   const pre=m.pre,R={mn:[0,0],sc:[0,0],zp:[0,0],ct:[0,0],cd:[0,0],bz:[{},{}],inst:null,srv:m.srv||0,cnt:[{},{}],det:[],fin:false,win:null,ok:0,n:0};
   const bAll=zoneIds(pre).filter(z=>zoneRule(pre,z).m==='b');
+  if(m.manu){const u=m.manu;R.sc=[+u.ms||0,+u.as||0];R.cd=[+u.cd||0,0];R.mn=[+u.ct||0,0]} /* match noté à la main sur la fiche */
   if(pre.type==='exo'){(m.pts||[]).forEach(p=>{R.n++;if(p.ok)R.ok++;R.det.push({p,zp:p.ok?1:0})});R.fin=R.n>=(pre.essais||20);return R}
   (m.pts||[]).forEach(p=>{const w=p.w;let zp=0;if(R.inst!=null)return;
     if(pre.frappes)zp=p.nf?Math.max(0,(+pre.vf||10)-(p.nf-1)):(p.f?+pre.faute||0:1);
@@ -909,7 +931,10 @@ function replay(m){
   else{const t=+pre.cible||11,mx=Math.max(a,b),df=Math.abs(a-b);if(mx>=t&&(!pre.ecart||df>=2||mx>=t+9))R.fin=true}
   if(R.inst!=null)R.fin=true;
   if(m.fin||R.fin){const k=pre.score==='zones'?R.zp:R.sc;R.win=R.inst!=null?R.inst:k[0]>k[1]?0:k[1]>k[0]?1:-1}
-  if(m.man)R.mp=[0,1].map(s=>m.man[s]?{pct:R.sc[s]?Math.round(R.mn[s]/R.sc[s]*100):0,ok:R.sc[s]>=(+m.man[s].min||0)&&R.sc[s]>0&&R.mn[s]/R.sc[s]*100>=(+m.man[s].s||0)}:null);
+  if(m.man)R.mp=[0,1].map(s=>{const c=m.man[s];if(!c)return null;const pct=R.sc[s]?Math.round(R.mn[s]/R.sc[s]*100):0;
+    return{pct,n:R.mn[s],ok:c.mode==='verte'?R.mn[s]>=(+c.v||7):R.sc[s]>=(+c.min||0)&&R.sc[s]>0&&pct>=(+c.s||0)}});
+  if(m.man&&R.win!=null)R.cp=[0,1].map(s=>{const c=m.man[s];if(!c||c.mode!=='verte')return null;const v=+c.v||7,g=R.mn[s]>=v,o=m.man[1-s],og=!!(o&&o.mode==='verte'&&R.mn[1-s]>=(+o.v||7)),won=R.win===s;
+    return won?(g&&!og?4:3):g?2:R.mn[s]===v-1?1:0});
   if(pre.badcode&&R.win!=null)R.bc=[0,1].map(s=>bcPts(R.win===s,R.cd[s]));
   return R}
 /* valeur de la prochaine frappe gagnante dans une zone (affichée sur le terrain pendant le match) */
@@ -925,7 +950,9 @@ function courtSvg(o){
   const pre=o.pre,U=100,R=o.R||null,flip=!!o.flip;let z='';
   /* zones sur les deux moitiés (chaque moitié avec les bornes du joueur qui la vise) */
   const anyV=zoneIds(pre).some(id=>{const r=zoneRule(pre,id);return r.m!=='n'||r.v!==1});
+  let dz='';const DL=(x1,y1,x2,y2)=>`<line x1="${x1*U}" y1="${y1*U}" x2="${x2*U}" y2="${y2*U}" stroke="rgba(150,240,255,.28)" stroke-width="18" pointer-events="none"/><line x1="${x1*U}" y1="${y1*U}" x2="${x2*U}" y2="${y2*U}" stroke="#bff6ff" stroke-width="6" stroke-dasharray="24 14" pointer-events="none"/>`;
   for(let side=0;side<2;side++){const hitter=1-(flip?1-side:side),bb=bounds(pre,hitter),dB=[0,...bb.pd,NET],lB=[0,...bb.pl,CW];
+   if(o.dash!==false){bb.pd.forEach(d=>{const x=side?NET+d:NET-d;dz+=DL(x,0,x,CW)});bb.pl.forEach(l=>{const y=fromHalf(side,0,l).y;dz+=DL(side?NET:0,y,side?CL:NET,y)})}
    for(let r=0;r<dB.length-1;r++)for(let c=0;c<lB.length-1;c++){
     const id='r'+r+'c'+c,ru=zoneRule(pre,id),p1=fromHalf(side,dB[r],lB[c]),p2=fromHalf(side,dB[r+1],lB[c+1]);
     const x=Math.min(p1.x,p2.x)*U,y=Math.min(p1.y,p2.y)*U,w=Math.abs(p2.x-p1.x)*U,h=Math.abs(p2.y-p1.y)*U;
@@ -955,7 +982,7 @@ function courtSvg(o){
   return `<svg class="court" id="${o.id||'court'}" viewBox="-90 -90 ${CL*U+180} ${CW*U+180}" xmlns="http://www.w3.org/2000/svg">
    <defs><pattern id="hatch" width="28" height="28" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="28" height="28" fill="rgba(220,38,38,.35)"/><line x1="0" y1="0" x2="0" y2="28" stroke="rgba(255,255,255,.55)" stroke-width="8"/></pattern></defs>
    <rect x="-90" y="-90" width="${CL*U+180}" height="${CW*U+180}" fill="#0a4f96" rx="30"/>
-   <rect x="0" y="0" width="${CL*U}" height="${CW*U}" fill="#1769b8"/>${alley}${z}${li}${dots}${nm}</svg>`;
+   <rect x="0" y="0" width="${CL*U}" height="${CW*U}" fill="#1769b8"/>${alley}${z}${li}${dz}${dots}${nm}</svg>`;
 }
 function svgPt(svg,ev){const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const q=pt.matrixTransform(svg.getScreenCTM().inverse());return{x:q.x/100,y:q.y/100}}
 
@@ -969,53 +996,69 @@ function renderTerrain(){
      <div class="row"><button class="btn sm" onclick="preNew()">+ Nouvelle situation</button><button class="btn alt sm" onclick="preReset()">Rétablir les situations proposées</button></div></div>
    <p class="muted">Découpe le terrain en zones avec les curseurs, puis touche une zone pour régler sa valeur : normale, bonifiée (compte pour le contrat), interdite (le point va à l'adversaire) ou dégressive (1000, 100, 10, 1…). Ajoute des cibles précises et des coups valorisés. Chaque situation peut être reliée à une leçon : elle est proposée en premier sur la tablette de terrain ce jour-là.</p>
    <div class="prelist">${S.presets.map(x=>`<button class="${x.id===PRE?'on':''}" onclick="PRE='${x.id}';ZSEL=null;CIBADD=false;renderTerrain()">${x.type==='exo'?'🎯':'🏸'} ${esc(x.nom)}${x.lec?` <small>L${x.lec}</small>`:''}</button>`).join('')}</div></div>
-  ${p?preEditor(p):''}`;
+  ${p?preEditor(p):''}
+  ${ctrEditor()}
+  <div class="card"><h2>📄 Fiches papier à imprimer</h2><p class="muted">Pour les élèves sans tablette : la même fiche que dans l'appli (onglet « Ma fiche » de la tablette de terrain).</p>
+   <div class="row"><button class="btn alt" onclick="printFiche('badcode')">🔢 Fiche Badcode (8 matchs + schéma)</button><button class="btn alt" onclick="printFiche('contrat')">🟩 Fiche contrat (6 matchs + contrats)</button></div></div>`;
   bindEditCourt();
 }
 function preEditor(p){
-  const zs=zoneIds(p),z=ZSEL&&zs.includes(ZSEL)?ZSEL:null,zr=z?zoneRule(p,z):null,two=!!p.asym;
-  const dGrp=who=>{const {pd}=bounds(p,who);return pd.map((v,i)=>`<div class="slrow"><label>${two?`<span style="color:${PCOL[who]};font-weight:900">${who?'Visé par B':'Visé par A'}</span> · `:''}${p.np===3?(i?'Limite milieu / arrière':'Limite avant / milieu'):'Limite avant / arrière'} : <b id="dv${who}${i}">${fr(Math.round(v*100)/100)} m</b> du filet</label>
+  const zs=zoneIds(p),z=ZSEL&&zs.includes(ZSEL)?ZSEL:null,zr=z?zoneRule(p,z):null,two=!!p.asym,exo=p.type==='exo';
+  const num=(k,i,v,who,mn,mx)=>`<input type="number" class="mnum" step="0.05" min="${mn}" max="${mx}" value="${Math.round(v*100)/100}" onchange="preSl('${k}',${i},this.value,1,${who})">`;
+  const dGrp=who=>{const {pd}=bounds(p,who);return pd.map((v,i)=>`<div class="slrow"><div class="row" style="justify-content:space-between"><label>${two?`<span style="color:${PCOL[who]};font-weight:900">${who?'Visé par B':'Visé par A'}</span> · `:''}${p.np===3?(i?'Limite milieu / arrière':'Limite avant / milieu'):'Limite avant / arrière'}</label><span class="row" style="gap:4px">${num('prof',i,v,who,0.4,6.5)}<b>m du filet</b></span></div>
      <input type="range" min="0.4" max="6.5" step="0.02" value="${v}" oninput="preSl('prof',${i},this.value,0,${who})">
-     <div class="snap">${[[SSL,'service court'],[4.72,'mi-fond'],[CL/2-LSD,'service long double']].map(([s,n])=>`<button onclick="preSl('prof',${i},${s},1,${who})">${n}</button>`).join('')}</div></div>`).join('')};
-  const lGrp=who=>{const {pl}=bounds(p,who);return pl.length?`<div class="vsls">${pl.map((v,i)=>`<div class="vsl"><input type="range" min="0.3" max="5.8" step="0.02" value="${v}" style="accent-color:${two?PCOL[who]:'var(--vol)'}" oninput="preSl('lat',${i},this.value,0,${who})"><b id="lv${who}${i}">${fr(Math.round(v*100)/100)}</b></div>`).join('')}<small>${two?(who?'visé par B':'visé par A'):'largeur (m)'}</small></div>`:''};
+     <div class="snap">${[[SSL,'ligne de service court'],[4.72,'mi-fond'],[CL/2-LSD,'service long double']].map(([s,n])=>`<button onclick="preSl('prof',${i},${s},1,${who})">${n}</button>`).join('')}</div></div>`).join('')};
+  const lGrp=who=>{const {pl}=bounds(p,who);return pl.length?`<div class="vsls">${pl.map((v,i)=>`<div class="vsl"><input type="range" min="0.3" max="5.8" step="0.02" value="${v}" style="accent-color:${two?PCOL[who]:'var(--vol)'}" oninput="preSl('lat',${i},this.value,0,${who})">${num('lat',i,v,who,0.3,5.8)}</div>`).join('')}<small>${two?(who?'visé par B':'visé par A'):'largeur (m)'}</small></div>`:''};
   const dSl=two?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[1,0].map(w=>`<div>${dGrp(w)}</div>`).join('')}</div>`:dGrp(0);
-  return `<div class="card"><div class="g2"><div><label class="l">Nom de la situation</label><input type="text" value="${esc(p.nom)}" onchange="preSet('nom',this.value,1)"></div>
-     <div><label class="l">Type</label><div class="seg"><button class="${p.type!=='exo'?'on':''}" onclick="preSet('type','match',1)">🏸 Match</button><button class="${p.type==='exo'?'on':''}" onclick="preSet('type','exo',1)">🎯 Exercice</button></div></div>
+  const blk=(ic,t,body,note)=>`<div class="blk2"><h3>${ic} ${t}</h3>${note?`<p class="muted" style="margin:0 0 8px">${note}</p>`:''}${body}</div>`;
+  return `<div class="card"><h2 class="step"><span>1</span>La situation</h2>
+   <div class="g2"><div><label class="l">Nom</label><input type="text" value="${esc(p.nom)}" onchange="preSet('nom',this.value,1)"></div>
+     <div><label class="l">Type</label><div class="seg"><button class="${!exo?'on':''}" onclick="preSet('type','match',1)">🏸 Match</button><button class="${exo?'on':''}" onclick="preSet('type','exo',1)">🎯 Exercice</button></div></div>
      <div><label class="l">Leçon</label><select class="f" onchange="preSet('lec',+this.value,1)"><option value="0">—</option>${SEQ().lecons.map(l=>`<option value="${l.n}" ${+p.lec===l.n?'selected':''}>L${l.n}. ${esc(l.titre)}</option>`).join('')}</select></div></div>
-   <label class="l">Consigne affichée aux élèves</label><textarea rows="2" onchange="preSet('desc',this.value)">${esc(p.desc||'')}</textarea>
-   <div class="row" style="margin-top:8px;gap:14px">
+   <label class="l">Consigne affichée aux élèves</label><textarea rows="2" onchange="preSet('desc',this.value)">${esc(p.desc||'')}</textarea></div>
+
+  <div class="card"><h2 class="step"><span>2</span>Découper le terrain</h2>
+   <div class="row" style="gap:16px;align-items:flex-end">
      <div><label class="l">Terrain</label><div class="seg"><button class="${p.jeu!=='double'?'on':''}" onclick="preSet('jeu','simple',1)">Simple</button><button class="${p.jeu==='double'?'on':''}" onclick="preSet('jeu','double',1)">Double</button></div></div>
      <div><label class="l">Bandes en profondeur</label><div class="seg">${[1,2,3].map(n=>`<button class="${(p.np||1)===n?'on':''}" onclick="preSet('np',${n},1)">${n}</button>`).join('')}</div></div>
      <div><label class="l">Bandes en largeur</label><div class="seg">${[1,2,3].map(n=>`<button class="${(p.nl||1)===n?'on':''}" onclick="preSet('nl',${n},1)">${n}</button>`).join('')}</div></div>
-     <div><label class="l">Cibles</label><button class="btn ${CIBADD?'or':'alt'} sm" onclick="CIBADD=!CIBADD;renderTerrain()">${CIBADD?'Touche le terrain…':'+ Cible'}</button></div>
-   </div>
-   <label class="l">Modèles de découpage</label><div class="snap">${TPL.map(([k,n])=>`<button onclick="preTpl('${k}')">${n}</button>`).join('')}</div>
-   <label class="sw" style="margin-top:8px"><input type="checkbox" ${two?'checked':''} onchange="preAsym(this.checked)"><span></span>Zones de taille différente pour chaque joueur (réguler le niveau)</label>
+     <label class="sw"><input type="checkbox" ${two?'checked':''} onchange="preAsym(this.checked)"><span></span>Tailles différentes pour A et B (réguler le niveau)</label></div>
+   <label class="l">Modèles de découpage (en un toucher)</label><div class="snap">${TPL.map(([k,n])=>`<button onclick="preTpl('${k}')">${n}</button>`).join('')}</div>
    <div class="courtwrap edit">${two?lGrp(1):''}<div class="cw">${courtSvg({pre:p,mode:'edit',sel:z,id:'ecourt'})}</div>${lGrp(0)}</div>
    ${two?'<p class="muted" style="margin:4px 0 0;text-align:center">Moitié gauche : zones visées par le joueur B · moitié droite : zones visées par le joueur A</p>':''}
-   ${dSl}
+   <h3 style="margin:12px 0 4px">📏 Taille des zones <small class="muted" style="font-weight:600">— curseur ou valeur exacte en mètres ; enregistré pour toujours dans cette situation</small></h3>
+   ${dSl||'<p class="muted">Une seule bande en profondeur : pas de limite à régler.</p>'}</div>
+
+  <div class="card"><h2 class="step"><span>3</span>Valeur des zones</h2>
+   <div class="legend2">${[['n','Normale','rgba(255,255,255,.0)'],['b','★ Bonifiée (contrat)','rgba(255,190,0,.6)'],['x','⛔ Interdite','rgba(220,38,38,.5)'],['g','Dégressive','rgba(0,214,170,.32)'],['o','Supprimée','rgba(10,30,60,.42)']].map(([k,n,c])=>`<span><i style="background:linear-gradient(${c},${c}),#1769b8"></i>${n}</span>`).join('')}</div>
    ${z?`<div class="zed"><b>${esc(zoneName(p,z))}</b> <span class="muted">(identique sur les deux moitiés)</span>
      <div class="seg" style="margin:6px 0">${[['n','Normale'],['b','★ Bonifiée'],['x','⛔ Interdite'],['g','Dégressive'],['o','Supprimée']].map(([m,n])=>`<button class="${zr.m===m?'on':''}" onclick="zoneSet('${z}','m','${m}')">${n}</button>`).join('')}</div>
      ${zr.m==='n'||zr.m==='b'?`<label class="l">Valeur d'un point marqué ici</label><div class="cnt"><button onclick="zoneSet('${z}','v',${Math.max(0,zr.v-1)})">−</button><b>${zr.v}</b><button onclick="zoneSet('${z}','v',${zr.v+1})">+</button><input type="number" style="width:110px" value="${zr.v}" onchange="zoneSet('${z}','v',+this.value)"></div>`:''}
      ${zr.m==='x'?`<p class="muted">Un volant qui tombe ici donne le point à l'adversaire (comme une faute).</p>`:''}
-     ${zr.m==='o'?`<p class="muted">Zone supprimée : le point compte au score mais ne rapporte aucun point de zone (comme le centre blanc de la « zone à 1000 points »).</p>`:''}
-     ${zr.m==='g'?`<p class="muted">La valeur baisse chaque fois que le même joueur marque dans cette zone : ${esc((p.deg||[]).join(' → '))}.</p>`:''}</div>`:'<p class="muted" style="margin:8px 0 0">👆 Touche une zone du terrain pour régler sa valeur.</p>'}
-  </div>
-  <div class="card"><h2>Score et règles</h2>
-   ${p.type==='exo'?`<div class="g2"><div><label class="l">Essais par joueur</label><input type="number" min="1" value="${p.essais||20}" onchange="preSet('essais',+this.value)"></div><div><label class="l">Objectif (réussites)</label><input type="number" min="0" value="${p.obj||0}" onchange="preSet('obj',+this.value)"></div><div></div></div><p class="muted">Réussite = volant dans une zone ★ bonifiée.</p>`:`
-   <div class="row" style="gap:14px"><div><label class="l">Le match se gagne</label><div class="seg"><button class="${p.score!=='zones'?'on':''}" onclick="preSet('score','classique',1)">au score classique</button><button class="${p.score==='zones'?'on':''}" onclick="preSet('score','zones',1)">aux points de zones</button></div></div>
-     <div><label class="l">${p.score==='zones'?'Points de zones à atteindre (0 = au temps)':'En combien de points'}</label><input type="number" min="0" style="width:120px" value="${p.cible==null?11:p.cible}" onchange="preSet('cible',+this.value)"></div>
-     ${p.score!=='zones'?`<label class="sw" style="margin-top:18px"><input type="checkbox" ${p.ecart?'checked':''} onchange="preSet('ecart',this.checked)"><span></span>2 points d'écart</label>`:''}</div>
-   <div class="g2" style="margin-top:8px"><div><label class="l">Point sur faute adverse (filet, dehors) : points de zones</label><input type="number" min="0" value="${p.faute==null?1:p.faute}" onchange="preSet('faute',+this.value)"></div>
-     <div><label class="l">Contrat : nombre de points en zone ★ (0 = aucun)</label><input type="number" min="0" value="${p.contrat||0}" onchange="preSet('contrat',+this.value)"></div>
-     <div><label class="l">Les zones s'appliquent à</label><select class="f" onchange="preSet('pour',this.value)">${[['ab','les deux joueurs'],['a','joueur A seulement (handicap)'],['b','joueur B seulement (handicap)']].map(([k,n])=>`<option value="${k}" ${(p.pour||'ab')===k?'selected':''}>${n}</option>`).join('')}</select></div></div>
-   <label class="l">Coups valorisés (bonus ajouté quand le point est gagné avec ce coup)</label>
-   <div class="coupg">${COUPS.map(([k,n,c])=>`<div><span style="border-left:5px solid ${c};padding-left:6px">${n}</span><input type="number" min="0" value="${(p.coups||{})[k]||0}" onchange="preCoup('${k}',+this.value)"></div>`).join('')}</div>
-   ${p.np>1||p.nl>1||Object.values(p.zones||{}).some(r=>r.m==='g')?`<label class="l">Suite dégressive</label><input type="text" value="${esc((p.deg||[]).join(' '))}" onchange="preSet('deg',this.value.split(/[ ;,]+/).map(Number).filter(x=>!isNaN(x)))">`:''}`}
-   ${(p.cibles||[]).length?`<label class="l">Cibles</label>${p.cibles.map((t,i)=>`<div class="row" style="margin:4px 0"><b>Cible ${i+1}</b> rayon <input type="range" min="0.2" max="1.5" step="0.05" value="${t.r}" style="width:140px" oninput="cibSet(${i},'r',+this.value,1)"> bonus <input type="number" style="width:80px" value="${t.v}" onchange="cibSet(${i},'v',+this.value)"><button class="btn red sm" onclick="cibDel(${i})">✕</button></div>`).join('')}`:''}
-   ${p.type!=='exo'?`<div class="opt ${p.man&&p.man.on?'on':''}" style="margin-top:12px"><label class="row" style="cursor:pointer"><input type="checkbox" ${p.man&&p.man.on?'checked':''} onchange="manSet('PRE','on',this.checked)" style="width:22px;height:22px"><b>Jouer avec la manière (proposé par défaut)</b></label>
-     <p class="muted" style="margin:4px 0">Chaque élève fixe sa manière de marquer et le pourcentage à atteindre au moment de lancer le match ; voici le contrat proposé au départ.</p>${p.man&&p.man.on?manEd('PRE',p.man):''}</div>`:''}
-   <div class="row" style="margin-top:12px"><button class="btn or" onclick="playStart('${p.id}')">▶ Lancer ${p.type==='exo'?'cet exercice':'un match'} ici</button><button class="btn alt" onclick="preDup()">Dupliquer</button><button class="btn red" onclick="preDel()">Supprimer</button></div></div>`;
+     ${zr.m==='o'?`<p class="muted">Zone supprimée : le point compte au score mais ne rapporte aucun point de zone.</p>`:''}
+     ${zr.m==='g'?`<p class="muted">La valeur baisse chaque fois que le même joueur marque dans cette zone : ${esc((p.deg||[]).join(' → '))}.</p>`:''}</div>`:'<p class="muted" style="margin:8px 0 0">👆 Touche une zone du terrain (étape 2) pour régler sa valeur.</p>'}
+   <div class="row" style="margin-top:10px"><button class="btn ${CIBADD?'or':'alt'} sm" onclick="CIBADD=!CIBADD;renderTerrain()">${CIBADD?'👆 Touche le terrain pour placer la cible…':'🎯 + Ajouter une cible précise'}</button></div>
+   ${(p.cibles||[]).map((t,i)=>`<div class="row" style="margin:4px 0"><b>Cible ${i+1}</b> rayon <input type="range" min="0.2" max="1.5" step="0.05" value="${t.r}" style="width:140px" oninput="cibSet(${i},'r',+this.value,1)"> bonus <input type="number" style="width:80px" value="${t.v}" onchange="cibSet(${i},'v',+this.value)"><button class="btn red sm" onclick="cibDel(${i})">✕</button></div>`).join('')}</div>
+
+  <div class="card"><h2 class="step"><span>4</span>${exo?"Réussite de l'exercice":'Score et règles'}</h2>
+   ${exo?`<div class="g2"><div><label class="l">Essais par joueur</label><input type="number" min="1" value="${p.essais||20}" onchange="preSet('essais',+this.value)"></div><div><label class="l">Objectif (réussites)</label><input type="number" min="0" value="${p.obj||0}" onchange="preSet('obj',+this.value)"></div><div></div></div><p class="muted">Réussite = volant dans une zone ★ bonifiée.</p>`:`
+   <div class="blks">
+    ${blk('🏁','Fin du match',`<div class="seg"><button class="${p.score!=='zones'?'on':''}" onclick="preSet('score','classique',1)">Score classique</button><button class="${p.score==='zones'?'on':''}" onclick="preSet('score','zones',1)">Points de zones</button></div>
+      <label class="l">${p.score==='zones'?'Points de zones à atteindre (0 = au temps)':'En combien de points'}</label><input type="number" min="0" value="${p.cible==null?11:p.cible}" onchange="preSet('cible',+this.value)">
+      ${p.score!=='zones'?`<label class="sw" style="margin-top:8px"><input type="checkbox" ${p.ecart?'checked':''} onchange="preSet('ecart',this.checked)"><span></span>2 points d'écart</label>`:''}
+      <label class="sw" style="margin-top:8px"><input type="checkbox" ${p.tous?'checked':''} onchange="preSet('tous',this.checked)"><span></span>Victoire immédiate si un joueur marque dans toutes les zones ★</label>`)}
+    ${blk('💯','Valeur des points',`<label class="l">Point gagné sur une faute adverse (filet, dehors…)</label><input type="number" min="0" value="${p.faute==null?1:p.faute}" onchange="preSet('faute',+this.value)">
+      ${zs.some(id=>zoneRule(p,id).m==='g')?`<label class="l">Suite dégressive</label><input type="text" value="${esc((p.deg||[]).join(' '))}" onchange="preSet('deg',this.value.split(/[ ;,]+/).map(Number).filter(x=>!isNaN(x)))">`:''}
+      <details style="margin-top:8px"><summary class="muted" style="font-weight:700;cursor:pointer">Coups valorisés (bonus quand le point est gagné avec ce coup)${Object.keys(p.coups||{}).length?' · '+Object.entries(p.coups).map(([k,v])=>coupNom(k)+' +'+v).join(', '):''}</summary>
+       <div class="coupg" style="margin-top:6px">${COUPS.map(([k,n,c])=>`<div><span style="border-left:5px solid ${c};padding-left:6px">${n}</span><input type="number" min="0" value="${(p.coups||{})[k]||0}" onchange="preCoup('${k}',+this.value)"></div>`).join('')}</div></details>`)}
+    ${blk('⭐','Contrat des zones ★',`<label class="l">Nombre de points à marquer en zone ★ (0 = pas de contrat)</label><input type="number" min="0" value="${p.contrat||0}" onchange="preSet('contrat',+this.value)">`,"Compté pour chaque joueur et affiché sur le tableau de score.")}
+    ${blk('⚖️','Handicap',`<select class="f" onchange="preSet('pour',this.value)">${[['ab','Les zones valent pour les deux joueurs'],['a','Seulement pour le joueur A'],['b','Seulement pour le joueur B']].map(([k,n])=>`<option value="${k}" ${(p.pour||'ab')===k?'selected':''}>${n}</option>`).join('')}</select>`,"Avec « tailles différentes pour A et B » (étape 2), règle l'écart de niveau.")}
+   </div>`}</div>
+
+  ${!exo?`<div class="card"><h2 class="step"><span>5</span>Jouer avec la manière / contrat</h2>
+   <label class="sw"><input type="checkbox" ${p.man&&p.man.on?'checked':''} onchange="manSet('PRE','on',this.checked)"><span></span>Proposé au lancement du match (chaque élève choisit ensuite son contrat)</label>
+   ${p.man&&p.man.on?manEd('PRE',p.man):''}</div>`:''}
+  <div class="row" style="margin:4px 0 16px"><button class="btn or big" onclick="playStart('${p.id}')">▶ Lancer ${exo?'cet exercice':'un match'} ici</button><button class="btn alt" onclick="preDup()">Dupliquer</button><button class="btn red" onclick="preDel()">Supprimer</button></div>`;
 }
 function bindEditCourt(){const svg=document.getElementById('ecourt');if(!svg)return;
   svg.onclick=ev=>{const p=preById(PRE),q=svgPt(svg,ev),h=toHalf(q.x,q.y);
@@ -1065,10 +1108,10 @@ function renderPlay(){
        <p style="margin:8px 0 0">${esc(pre.desc||'')}</p><div class="cw mini">${courtSvg({pre,mode:'view',id:'scourt'})}</div></div>
      <div class="card"><h2>2 · ${exo?'Joueur':'Joueur A (à gauche)'}</h2>${pick('a')}</div>
      ${exo?'':`<div class="card"><h2>3 · Joueur B (à droite)</h2>${pick('b')}</div>
-     ${pre.badcode?`<div class="card"><h2>Codes « Badcode »</h2><p class="muted">Zones 1 fond gauche · 2 fond droit · 3 avant gauche · 4 avant droit (vues par le joueur qui reçoit). 1er chiffre : où amener l'adversaire ; 2e : où finir par un point direct.</p>
+     ${pre.badcode?`<div class="card"><h2>Codes « Badcode »</h2><p class="muted">Zones 1 fond gauche · 2 fond droit · 3 avant gauche · 4 avant droit, vues par le joueur qui attaque (comme sur la fiche). 1er chiffre : où amener l'adversaire ; 2e : où finir par un point direct.</p>
        ${['a','b'].map(k=>`<div class="row" style="margin:6px 0"><b style="min-width:110px">${esc(PL[k]?plName(c,PL[k],PL['g'+k]):k.toUpperCase())}</b>${[0,1].map(j=>`<div class="seg">${[1,2,3,4].map(n=>`<button class="${(PL['c'+k]||'')[j]==String(n)?'on':''}" onclick="setCode('${k}',${j},${n})">${n}</button>`).join('')}</div>`).join(' → ')}<b style="font-size:1.4rem">${esc(PL['c'+k]||'')}</b></div>`).join('')}</div>`:''}
-     <div class="card"><label class="row" style="cursor:pointer"><input type="checkbox" ${PL.manOn?'checked':''} onchange="PL.manOn=this.checked;renderPlay()" style="width:24px;height:24px"><h2 style="margin:0">🎯 Jouer avec la manière ${PL.manOn?'':'<small class="muted" style="font-weight:600">(facultatif)</small>'}</h2></label>
-       ${PL.manOn?`<p class="muted">Chaque joueur choisit sa manière de marquer : la majorité de ses points doivent respecter son contrat (ex. 7 sur 10). Règle le pourcentage selon le niveau.</p>${[0,1].map(k=>`<div class="bcrit"><b style="color:${PCOL[k]}">${esc(PL[k?'b':'a']?plName(c,PL[k?'b':'a'],PL[k?'gb':'ga']):(k?'Joueur B':'Joueur A'))}</b>${manEd(k,PL.man[k])}</div>`).join('')}`:''}</div>
+     <div class="card"><label class="row" style="cursor:pointer"><input type="checkbox" ${PL.manOn?'checked':''} onchange="PL.manOn=this.checked;renderPlay()" style="width:24px;height:24px"><h2 style="margin:0">🟩 Jouer avec la manière / contrat ${PL.manOn?'':'<small class="muted" style="font-weight:600">(facultatif)</small>'}</h2></label>
+       ${PL.manOn?`<p class="muted">Chaque joueur choisit son contrat (par son numéro) ou sa propre manière de marquer. Zone verte : nombre de points de contrat à atteindre (points de match 4 / 3 / 2 / 1 / 0) ; ou pourcentage de ses points (ex. 7 sur 10). Règle-les selon le niveau.</p>${[0,1].map(k=>`<div class="bcrit"><b style="color:${PCOL[k]}">${esc(PL[k?'b':'a']?plName(c,PL[k?'b':'a'],PL[k?'gb':'ga']):(k?'Joueur B':'Joueur A'))}</b>${manEd(k,PL.man[k])}</div>`).join('')}`:''}</div>
      <div class="card"><h2>Stratégie annoncée (facultatif)</h2><p class="muted">Le coach choisit une stratégie pour son joueur ; elle s'affiche pendant le match et dans le bilan.</p>
        <div class="g2"><input type="text" placeholder="Stratégie de A" value="${esc(PL.sa||'')}" oninput="PL.sa=this.value"><input type="text" placeholder="Stratégie de B" value="${esc(PL.sb||'')}" oninput="PL.sb=this.value"><div></div></div></div>
      <div class="card"><h2>4 · Qui sert en premier ?</h2><div class="seg big">${[0,1].map(k=>`<button class="${PL.srv===k?'on':''}" onclick="PL.srv=${k};renderPlay()">${k?'B':'A'} · ${esc(PL[k?'b':'a']?plName(c,PL[k?'b':'a'],PL[k?'gb':'ga']):'—')}</button>`).join('')}</div></div>`}
@@ -1086,13 +1129,15 @@ function renderPlay(){
   const tgt=pre.score==='zones'?(+pre.cible||0):(+pre.cible||11);
   const srvSide=R.sc[R.srv]%2===0?'droite':'gauche';
   const card=w=>`<div class="pl p${w}"><div class="nm">${esc(w?nB:nA)}${R.srv===w&&!R.fin?' <span class="srv">🏸 sert à '+srvSide+'</span>':''}</div>
-     <div class="big2">${pre.score==='zones'?R.zp[w]:R.sc[w]}</div>${m[w?'sb':'sa']?`<div class="sub">🎯 ${esc(m[w?'sb':'sa'])}</div>`:''}${R.mp&&R.mp[w]?`<div class="man ${R.mp[w].ok?'ok':''}"><span>Manière</span><b>${R.mp[w].pct} %</b><small>objectif ${m.man[w].s} %${+m.man[w].min?' · '+m.man[w].min+' pts':''} ${R.mp[w].ok?'✓':''}<br>${esc(manDesc(m.man[w]).split(' · ')[0])}</small></div>`:''}<div class="sub">${pre.badcode?`code <b>${esc(m[w?'cb':'ca'])}</b> : ${R.cd[w]}/2${R.cd[w]>=2?' ✓':''} `:''}${pre.score==='zones'?`score : ${R.sc[w]}`:pre.badcode||pre.np*pre.nl===1&&!Object.keys(pre.coups||{}).length?'':`points de zones : <b>${R.zp[w]}</b>`}${pre.contrat?` · contrat ${Math.min(R.ct[w],pre.contrat)}/${pre.contrat}${R.ct[w]>=pre.contrat?' ✓':''}`:''}</div></div>`;
+     <div class="big2">${pre.score==='zones'?R.zp[w]:R.sc[w]}</div>${m[w?'sb':'sa']?`<div class="sub">🎯 ${esc(m[w?'sb':'sa'])}</div>`:''}${manBoard(m,R,w)}<div class="sub">${pre.badcode?`code <b>${esc(m[w?'cb':'ca'])}</b> : ${R.cd[w]}/2${R.cd[w]>=2?' ✓':''} <button class="mini" onclick="codeEd(${w})">✎ changer</button> `:''}${pre.score==='zones'?`score : ${R.sc[w]}`:pre.badcode||pre.np*pre.nl===1&&!Object.keys(pre.coups||{}).length?'':`points de zones : <b>${R.zp[w]}</b>`}${pre.contrat?` · contrat ${Math.min(R.ct[w],pre.contrat)}/${pre.contrat}${R.ct[w]>=pre.contrat?' ✓':''}`:''}</div></div>`;
   const pend=PL.pend;
   box.innerHTML=`<div class="chd"><button class="lockbtn" onclick="playClose()">✕</button><h1>🏸 ${esc(pre.nom)}</h1><button class="lockbtn" onclick="PL.cnt=!PL.cnt;renderPlay()" title="Afficher le nombre et le % de points par zone">${PL.cnt?'🔢 Valeurs':'🔢 Compteurs'}</button><button class="lockbtn" onclick="m_flip()">⇄ Côtés</button><button class="lockbtn" onclick="playEnd()">🏁 Terminer</button></div>
   <div class="cbody wide">
    <div class="board">${card(m.flip?1:0)}<div class="vs">${pre.score==='zones'?(tgt?'à '+tgt:'au temps'):'en '+tgt}${pre.ecart?'<br>écart 2':''}</div>${card(m.flip?0:1)}</div>
    ${R.fin&&!m.fin?`<div class="ok big" style="text-align:center">🏆 ${R.win<0?'Égalité':esc(R.win?nB:nA)+' gagne'}${R.inst!=null?' instantanément (toutes les zones ★)':''}${R.bc?` · Badcode : ${esc(nA)} ${R.bc[0]} pts, ${esc(nB)} ${R.bc[1]} pts`:''} — touche « Terminer » ou continue.</div>`:''}
+   ${PL.cedit!=null?`<div class="pend"><b>Nouveau code de ${esc(PL.cedit?nB:nA)} :</b> ${[0,1].map(j=>`<div class="seg">${[1,2,3,4].map(n=>`<button class="${(PL.nc||'')[j]==String(n)?'on':''}" onclick="codeNew(${j},${n})">${n}</button>`).join('')}</div>`).join(' → ')} <button class="btn alt sm" onclick="PL.cedit=null;renderPlay()">Annuler</button></div>`:''}
    <div class="cw play">${courtSvg({pre,mode:'play',pts:m.pts,R,id:'pcourt',pend,flip:m.flip,names:[nA,nB],counts:!!PL.cnt})}</div>
+   ${m.man?`<details class="card" open style="margin-top:10px"><summary><b>🟩 Fiche ${m.man.some(x=>x&&x.mode==='verte')?'contrat':'manière'} en direct</b></summary>${[0,1].map(s=>ctTable(m,R,s)).join('')}${m.man.some(x=>x&&x.mode==='verte')?ctLegend():''}</details>`:''}
    ${pend?`<div class="pend"><div class="row" style="justify-content:center"><b class="big">Point pour <span style="color:${PCOL[pend.w]}">${esc(pend.w?nB:nA)}</span></b>${pend.f?`<span class="tag abs">${pend.f==='dehors'?'volant dehors':pend.f==='interdit'?'zone interdite':pend.f==='service'?'faute de service':pend.f==='filet'?'volant dans le filet':'faute'}</span>`:''}<button class="btn alt sm" onclick="if(PL.pend.x==null){PL.pend.w=1-PL.pend.w;PL.pend.by=1-PL.pend.w}else{PL.pend.w=1-PL.pend.w;PL.pend.f=PL.pend.f?'':'dehors';PL.pend.t=PL.pend.f?'fd':'pd'}renderPlay()">⇄ Inverser</button></div>
       <div class="nat">${NAT.map(([k,n,d])=>`<button class="${(pend.t||'pd')===k?'on':''}" onclick="PL.pend.t='${k}';renderPlay()" title="${d}">${n}</button>`).join('')}</div>
       ${pre.frappes?`<p class="muted" style="text-align:center;margin:6px 0">Combien de frappes dans l'échange (service compris) ? Le point vaut ${+pre.vf||10} − (frappes − 1).</p><div class="coups">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button style="border-color:#0B7A75;min-width:70px" onclick="PL.pend.nf=${n};pointOk('')">${n}${n===10?'+':''}<br><small>${Math.max(0,(+pre.vf||10)-(n-1))} pts</small></button>`).join('')}</div>`
@@ -1109,7 +1154,7 @@ function playGo(){const c=classById(PL.cid),pre=preById(PL.pre)||S.presets[0],ex
   if(!PL.a||(!exo&&!PL.b)){toast(exo?'Choisis le joueur':'Choisis les deux joueurs');return}
   if(pre.badcode&&!(/^[1-4]{2}$/.test(PL.ca||'')&&/^[1-4]{2}$/.test(PL.cb||''))){toast('Chaque joueur choisit son code (2 zones)');return}
   const id='m'+Date.now().toString(36)+uid().slice(0,3);
-  c.matchs[id]={id,date:today(),lec:lessonNow(),t0:Date.now(),pre:JSON.parse(JSON.stringify(pre)),a:PL.a,b:exo?null:PL.b,an:plName(c,PL.a,PL.ga),bn:exo?'':plName(c,PL.b,PL.gb),srv:PL.srv||0,pts:[],fin:false,flip:false,ca:PL.ca||'',cb:PL.cb||'',man:!exo&&PL.manOn?PL.man.map(x=>({z:(x.z||[]).slice(),c:(x.c||[]).slice(),s:+x.s||0,min:+x.min||0,pd:!!x.pd})):null,sa:(PL.sa||'').trim(),sb:(PL.sb||'').trim(),poule:PL.poule||'',dev:terrOn()&&!isUnlocked()?'terrain':'prof'};
+  c.matchs[id]={id,date:today(),lec:lessonNow(),t0:Date.now(),pre:JSON.parse(JSON.stringify(pre)),a:PL.a,b:exo?null:PL.b,an:plName(c,PL.a,PL.ga),bn:exo?'':plName(c,PL.b,PL.gb),srv:PL.srv||0,pts:[],fin:false,flip:false,ca:PL.ca||'',cb:PL.cb||'',man:!exo&&PL.manOn?PL.man.map(x=>({mode:x.mode==='verte'?'verte':'pct',v:+x.v||7,num:x.num||'',z:(x.z||[]).slice(),c:(x.c||[]).slice(),s:+x.s||0,min:+x.min||0,pd:!!x.pd})):null,cal:pre.badcode?[[PL.ca],[PL.cb]]:null,sa:(PL.sa||'').trim(),sb:(PL.sb||'').trim(),poule:PL.poule||'',dev:terrOn()&&!isUnlocked()?'terrain':'prof'};
   PL.mid=id;PL.step='play';PL.pend=null;save();renderPlay()}
 function bindPlayCourt(){const svg=document.getElementById('pcourt');if(!svg)return;
   svg.onclick=ev=>{const m=curMatch();if(!m)return;const q=svgPt(svg,ev),pre=m.pre;
@@ -1135,7 +1180,8 @@ function playEnd(){const m=curMatch();if(!m)return;if(!m.pts.length){if(confirm(
   const R=replay(m),box=document.getElementById('play'),exo=m.pre.type==='exo';
   box.innerHTML=`<div class="chd"><h1>🏁 ${exo?'Exercice terminé':'Match terminé'}</h1><button class="lockbtn" onclick="playClose()">Fermer</button></div>
    <div class="cbody wide">${exo?`<div class="board"><div class="sc"><b>${R.ok} / ${R.n}</b><span>${esc(m.an)}</span></div></div>`
-    :`<div class="board"><div class="pl p0"><div class="nm">${esc(m.an)}</div><div class="big2">${R.sc[0]}</div><div class="sub">zones ${R.zp[0]}</div></div><div class="vs">${R.win<0?'Égalité':'🏆 '+esc(R.win?m.bn:m.an)}${R.mp?`<br><small>Manière : ${[0,1].map(s=>R.mp[s]?R.mp[s].pct+' % '+(R.mp[s].ok?'✓':'✗'):'–').join(' – ')}</small>`:''}${R.bc?`<br><small>Badcode : ${R.bc[0]} – ${R.bc[1]} pts</small>`:''}</div><div class="pl p1"><div class="nm">${esc(m.bn)}</div><div class="big2">${R.sc[1]}</div><div class="sub">zones ${R.zp[1]}</div></div></div>`}
+    :`<div class="board"><div class="pl p0"><div class="nm">${esc(m.an)}</div><div class="big2">${R.sc[0]}</div><div class="sub">zones ${R.zp[0]}</div></div><div class="vs">${R.win<0?'Égalité':'🏆 '+esc(R.win?m.bn:m.an)}${R.cp?`<br><small>Points de match : ${[0,1].map(s=>R.cp[s]??'–').join(' – ')}</small>`:R.mp?`<br><small>Manière : ${[0,1].map(s=>R.mp[s]?R.mp[s].pct+' % '+(R.mp[s].ok?'✓':'✗'):'–').join(' – ')}</small>`:''}${R.bc?`<br><small>Badcode : ${R.bc[0]} – ${R.bc[1]} pts</small>`:''}</div><div class="pl p1"><div class="nm">${esc(m.bn)}</div><div class="big2">${R.sc[1]}</div><div class="sub">zones ${R.zp[1]}</div></div></div>`}
+   ${m.man?`<div class="card"><h2>🟩 Fiche ${m.man.some(x=>x&&x.mode==='verte')?'contrat':'manière'}</h2>${[0,1].map(s=>ctTable(m,R,s)).join('')}${m.man.some(x=>x&&x.mode==='verte')?ctLegend():''}</div>`:''}
    <div class="card">${matchStatsHtml(m)}</div>
    <div class="row" style="justify-content:center"><button class="btn or big" onclick="playStart('${m.pre.id}','${PL.cid}',${exo?`'${m.a}',null`:`'${m.b}','${m.a}'`},'${m.poule||''}')">↻ ${exo?'Recommencer':'Revanche'}</button>${m.poule?`<button class="btn big" onclick="playClose();TERRT='poule';renderTerr()">🏆 Retour à la poule</button>`:''}<button class="btn alt big" onclick="playClose()">Terminé</button></div></div>`;
 }
@@ -1145,23 +1191,119 @@ function playEnd(){const m=curMatch();if(!m)return;if(!m.pts.length){if(confirm(
 const MANQ=[['hc',"Hors zone centrale",['fg','fc','fd','mg','md','ag','ac','ad'],[]],['fond',"Fond de court",['fg','fc','fd'],[]],['filet',"Jeu au filet",['ag','ac','ad'],[]],['coul',"Couloirs latéraux",['fg','fd','mg','md','ag','ad'],[]],['av_ar',"Avant + fond",['fg','fc','fd','ag','ac','ad'],[]],['rupt',"Smash / kill",[],['sma','kil']]];
 function manOk(c,p){if(p.f||p.x==null)return false;if(c.pd&&p.t&&p.t!=='pd')return false;
   if((c.z||[]).length&&!c.z.includes(azOf(p.x,p.y)))return false;if((c.c||[]).length&&!c.c.includes(p.c))return false;return true}
-function manDesc(c){if(!c)return '';const q=MANQ.find(([k,n,z,co])=>JSON.stringify((c.z||[]).slice().sort())===JSON.stringify(z.slice().sort())&&JSON.stringify((c.c||[]).slice().sort())===JSON.stringify(co.slice().sort()));
-  const zs=q?q[1]:[(c.z||[]).length?(c.z.length>=9?'toutes zones':c.z.map(k=>AZ.find(a=>a[0]===k)[1]).join(', ')):'',(c.c||[]).length?'en '+c.c.map(coupNom).join(' / '):''].filter(Boolean).join(' ');
-  return (zs||'tous les points')+' · '+(c.s||0)+' %'+(+c.min?' (au moins '+c.min+' pts)':'')+(c.pd?' · points directs':'')}
-function defMan(){return{on:false,z:MANQ[0][2].slice(),c:[],s:70,min:0,pd:false}}
 function manGet(t){if(t==='PRE'){const p=preById(PRE);return p.man=p.man||defMan()}return PL.man[t]}
 function manRe(t){if(t==='PRE'){save();renderTerrain()}else renderPlay()}
-function manTog(t,k,v){const c=manGet(t),a=c[k]=c[k]||[],i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v);manRe(t)}
 function manSet(t,k,v){manGet(t)[k]=v;manRe(t)}
-function manQ(t,i){const c=manGet(t);c.z=MANQ[i][2].slice();c.c=MANQ[i][3].slice();manRe(t)}
-function manEd(t,c){const g=[['fg','fc','fd'],['mg','mc','md'],['ag','ac','ad']],NM={f:'Fond',m:'Milieu',a:'Avant'};
-  return `<div class="maned"><div class="mg3"><small>Zones (vue du joueur qui reçoit, filet en bas)</small>${g.map(r=>`<div>${r.map(k=>`<button class="${(c.z||[]).includes(k)?'on':''}" onclick="manTog(${JSON.stringify(t).replace(/"/g,"'")},'z','${k}')">${AZ.find(a=>a[0]===k)[1]}</button>`).join('')}</div>`).join('')}<div class="netl">filet</div></div>
-   <div style="flex:1;min-width:230px"><div class="snap" style="margin-bottom:6px">${MANQ.map(([k,n],i)=>`<button onclick="manQ(${JSON.stringify(t).replace(/"/g,"'")},${i})">${n}</button>`).join('')}</div>
-    <small class="muted">Coups (facultatif)</small><div class="snap">${COUPS.map(([k,n])=>`<button class="${(c.c||[]).includes(k)?'onb':''}" onclick="manTog(${JSON.stringify(t).replace(/"/g,"'")},'c','${k}')">${n}</button>`).join('')}</div>
-    <label class="l">Au moins <b>${c.s}</b> % de ses points avec la manière</label><input type="range" min="30" max="100" step="5" value="${c.s}" style="width:100%;accent-color:var(--vol)" onchange="manSet(${JSON.stringify(t).replace(/"/g,"'")},'s',+this.value)">
-    <div class="row"><label class="muted">et au moins</label><input type="number" min="0" style="width:80px" value="${+c.min||0}" onchange="manSet(${JSON.stringify(t).replace(/"/g,"'")},'min',+this.value)"><span class="muted">points marqués</span>
-    <label class="sw"><input type="checkbox" ${c.pd?'checked':''} onchange="manSet(${JSON.stringify(t).replace(/"/g,"'")},'pd',this.checked)"><span></span>points directs seulement</label></div>
-    <p class="muted" style="margin:4px 0 0"><b>Contrat :</b> ${esc(manDesc(c))}</p></div></div>`}
+/* ================== CONTRATS : GAGNER AVEC LA MANIÈRE (zone verte) ==================
+   bibliothèque de contrats modifiable par l'enseignant (partagée entre tablettes) ; chaque joueur en choisit un.
+   Zone verte : nombre de points de contrat à atteindre. Points de match : 4 / 3 / 2 / 1 / 0 (fiche de l'enseignant). */
+function defContrats(){return[
+ {id:'c1',nom:"Joueur en zone avant",txt:"Je choisis de bonifier la zone avant. Marquer dans cette zone me donne un point de contrat.",z:['ag','ac','ad'],c:[]},
+ {id:'c2',nom:"Joueur en zone arrière",txt:"Je choisis de bonifier la zone arrière. Marquer dans cette zone me donne un point de contrat.",z:['fg','fc','fd'],c:[]},
+ {id:'c3',nom:"Joueur des couloirs",txt:"Je joue loin de l'adversaire : marquer dans un couloir latéral (gauche ou droit) me donne un point de contrat.",z:['fg','fd','mg','md','ag','ad'],c:[],prop:1},
+ {id:'c4',nom:"Joueur des 4 coins",txt:"Je fais courir l'adversaire : marquer dans un des 4 coins du terrain me donne un point de contrat.",z:['fg','fd','ag','ad'],c:[],prop:1},
+ {id:'c5',nom:"Joueur de rupture",txt:"Je conclus sur volant favorable : marquer en smash ou en kill me donne un point de contrat.",z:[],c:['sma','kil'],prop:1},
+ {id:'c6',nom:"Joueur du jeu court",txt:"Je fais avancer l'adversaire : marquer en amorti ou en contre-amorti me donne un point de contrat.",z:[],c:['amo','cam'],prop:1},
+ {id:'c7',nom:"Joueur hors du centre",txt:"Je ne joue pas sur l'adversaire : marquer hors de la zone centrale me donne un point de contrat.",z:['fg','fc','fd','mg','md','ag','ac','ad'],c:[],prop:1},
+ {id:'c8',nom:"Joueur du point direct",txt:"Je cherche le point gagnant : chaque point direct (le volant tombe sans être touché) me donne un point de contrat.",z:[],c:[],pd:true,prop:1}]}
+const CT_PTS=[["Match gagné + zone verte",4],["Match gagné sans zone verte, ou l'adversaire a aussi atteint la zone verte",3],["Match perdu + zone verte",2],["Match perdu à 1 point de la zone verte",1],["Tous les autres cas",0]];
+function ctrById(id){return (S.contrats||[]).find(x=>x.id===id)}
+function ctrNum(id){const i=(S.contrats||[]).findIndex(x=>x.id===id);return i>=0?i+1:''}
+function gcol(i,v){return i>=v?'#00b050':i>=v-2?'#92d050':i<=1?'#ff4b4b':i===2?'#ffc000':'#ffff66'}
+function gauge(n,v,k,col){return `<div class="gauge">${Array.from({length:n},(_,i)=>`<span class="${i<k?'x':''}" style="${col===false?'':'background:'+gcol(i+1,v)}">${i+1}</span>`).join('')}</div>`}
+function defMan(){return{on:false,mode:'pct',num:'',z:MANQ[0][2].slice(),c:[],s:70,v:7,min:0,pd:false}}
+function manDesc(c){if(!c)return '';const k=c.num&&ctrById(c.num);
+  if(k)return 'Contrat n°'+ctrNum(c.num)+' : '+k.nom+(c.mode==='verte'?' · zone verte à '+(c.v||7):' · '+(c.s||0)+' %');
+  const q=MANQ.find(([kk,n,z,co])=>JSON.stringify((c.z||[]).slice().sort())===JSON.stringify(z.slice().sort())&&JSON.stringify((c.c||[]).slice().sort())===JSON.stringify(co.slice().sort()));
+  const zs=q?q[1]:[(c.z||[]).length?(c.z.length>=9?'toutes zones':c.z.map(x=>AZ.find(a=>a[0]===x)[1]).join(', ')):'',(c.c||[]).length?'en '+c.c.map(coupNom).join(' / '):''].filter(Boolean).join(' ');
+  return (zs||'tous les points')+(c.mode==='verte'?' · zone verte à '+(c.v||7):' · '+(c.s||0)+' %'+(+c.min?' (au moins '+c.min+' pts)':''))+(c.pd?' · points directs':'')}
+function manTog(t,k,v){const c=manGet(t),a=c[k]=c[k]||[],i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v);c.num='';manRe(t)}
+function manQ(t,i){const c=manGet(t);c.z=MANQ[i][2].slice();c.c=MANQ[i][3].slice();c.num='';manRe(t)}
+function manPick(t,id){const c=manGet(t),k=ctrById(id);c.num=id;if(k){c.z=(k.z||[]).slice();c.c=(k.c||[]).slice();c.pd=!!k.pd}manRe(t)}
+function manEd(t,c){const T=JSON.stringify(t).replace(/"/g,"'"),g=[['fg','fc','fd'],['mg','mc','md'],['ag','ac','ad']],verte=c.mode==='verte',k=c.num&&ctrById(c.num);
+  return `<div class="maned"><div style="flex-basis:100%"><div class="row">
+     <select class="f" style="width:auto;min-width:280px" onchange="manPick(${T},this.value)"><option value="">✎ Manière personnalisée</option>${(S.contrats||[]).map((x,i)=>`<option value="${x.id}" ${c.num===x.id?'selected':''}>Contrat n°${i+1} · ${esc(x.nom)}</option>`).join('')}</select>
+     <div class="seg"><button class="${verte?'on':''}" onclick="manSet(${T},'mode','verte')">🟩 Zone verte</button><button class="${!verte?'on':''}" onclick="manSet(${T},'mode','pct')">% de mes points</button></div></div>
+     ${k?`<p class="ctxt">${esc(k.txt)}</p>`:''}</div>
+   <div class="mg3"><small>Zones (vue du joueur qui reçoit, filet en bas)</small>${g.map(r=>`<div>${r.map(x=>`<button class="${(c.z||[]).includes(x)?'on':''}" onclick="manTog(${T},'z','${x}')">${AZ.find(a=>a[0]===x)[1]}</button>`).join('')}</div>`).join('')}<div class="netl">filet</div></div>
+   <div style="flex:1;min-width:230px"><div class="snap" style="margin-bottom:6px">${MANQ.map(([x,n],i)=>`<button onclick="manQ(${T},${i})">${n}</button>`).join('')}</div>
+    <small class="muted">Coups (facultatif)</small><div class="snap">${COUPS.map(([x,n])=>`<button class="${(c.c||[]).includes(x)?'onb':''}" onclick="manTog(${T},'c','${x}')">${n}</button>`).join('')}</div>
+    ${verte?`<label class="l">Zone verte à partir de <b>${c.v||7}</b> points de contrat</label><input type="range" min="2" max="11" step="1" value="${c.v||7}" style="width:100%;accent-color:#00b050" onchange="manSet(${T},'v',+this.value)">${gauge(11,c.v||7,0)}`
+     :`<label class="l">Au moins <b>${c.s}</b> % de ses points avec la manière</label><input type="range" min="30" max="100" step="5" value="${c.s}" style="width:100%;accent-color:var(--vol)" onchange="manSet(${T},'s',+this.value)">
+    <div class="row"><label class="muted">et au moins</label><input type="number" min="0" style="width:80px" value="${+c.min||0}" onchange="manSet(${T},'min',+this.value)"><span class="muted">points marqués</span></div>`}
+    <label class="sw" style="margin-top:6px"><input type="checkbox" ${c.pd?'checked':''} onchange="manSet(${T},'pd',this.checked)"><span></span>points directs seulement</label>
+    <p class="muted" style="margin:4px 0 0"><b>Choix :</b> ${esc(manDesc(c))}</p></div></div>`}
+/* tableau « fiche contrat » d'un joueur (comme la fiche papier, avec sa manière) */
+function ctTable(m,R,s){const c=m.man&&m.man[s];if(!c)return '';const N=Math.max(11,R.sc[s],R.mn[s]),me=s?m.bn:m.an,adv=s?m.an:m.bn,v=+c.v||7,verte=c.mode==='verte',k=c.num&&ctrById(c.num);
+  const row=(n,col)=>Array.from({length:N},(_,i)=>`<td class="${i<n?'x':''}" style="${col?'background:'+gcol(i+1,v):''}">${i+1}</td>`).join('');
+  return `<table class="ctab"><tr><th colspan="${N}" class="h">Points marqués${c.blank?'':` · <span style="color:${PCOL[s]}">${esc(me)}</span>`}</th><th class="adv">Adversaire + score</th></tr>
+   <tr>${row(R.sc[s],false)}<td class="adv">${c.blank?'':`<b>${esc(adv)}</b><br>${R.sc[1-s]}`}</td></tr>
+   <tr><th colspan="${N}" class="cn">${c.blank?'Contrat numéro : ……………':k?'Contrat n°'+ctrNum(c.num)+' : '+esc(k.nom):'Ma manière : '+esc(manDesc(c))}${verte?'':' · objectif '+(c.s||0)+' %'}</th><th class="adv">Points de match</th></tr>
+   <tr>${row(R.mn[s],verte)}<td class="pm">${c.blank?'':R.cp&&R.cp[s]!=null?`<b>${R.cp[s]}</b>`:verte?(R.mn[s]>=v?'🟩':'–'):(R.mp&&R.mp[s]?`<b>${R.mp[s].pct} %</b> ${R.mp[s].ok?'✓':'✗'}`:'–')}</td></tr></table>`}
+function ctLegend(){return `<table class="ctab leg"><tr>${CT_PTS.map(([t])=>`<th>${t}</th>`).join('')}</tr><tr>${CT_PTS.map(([,p])=>`<td><b>${p} point${p>1?'s':''}</b></td>`).join('')}</tr></table>`}
+function manBoard(m,R,w){const c=m.man&&m.man[w];if(!c||!R.mp||!R.mp[w])return '';const k=c.num&&ctrById(c.num);
+  return `<div class="man ${R.mp[w].ok?'ok':''}"><span>${k?'Contrat n°'+ctrNum(c.num):'Manière'}</span>${c.mode==='verte'?`<b>${R.mn[w]}/${c.v||7}</b>${gauge(Math.max(11,R.mn[w]),c.v||7,R.mn[w])}`:`<b>${R.mp[w].pct} %</b><small>objectif ${c.s} %${+c.min?' · '+c.min+' pts':''} ${R.mp[w].ok?'✓':''}</small>`}<small style="flex-basis:100%">${esc(k?k.nom:manDesc(c).split(' · ')[0])}</small></div>`}
+
+/* ================== BADCODE : changer de code en cours de match, fiche ================== */
+function codeEd(w){PL.cedit=w;PL.nc='';renderPlay()}
+function codeNew(j,n){const a=(PL.nc||'  ').padEnd(2,' ').split('');a[j]=String(n);PL.nc=a.join('');
+  if(/^[1-4]{2}$/.test(PL.nc)){const m=curMatch(),w=PL.cedit,k=w?'cb':'ca';m.cal=m.cal||[[m.ca],[m.cb]];m.cal[w].push(PL.nc);m[k]=PL.nc;m.cch=m.cch||[0,0];m.cch[w]++;PL.cedit=null;save()}renderPlay()}
+function bcRows(c,eid,date){return matchesOf(c,m=>m.pre.badcode&&(m.a===eid||m.b===eid)&&(!date||m.date===date)).map(m=>{const R=replay(m),s=m.a===eid?0:1;
+  return{adv:s?m.an:m.bn,sa:R.sc[1-s],sm:R.sc[s],codes:((m.cal&&m.cal[s])||[s?m.cb:m.ca]).filter(Boolean).join(' → '),cd:R.cd[s],ch:(m.cch&&m.cch[s])||0,pts:R.bc?R.bc[s]:(R.win!=null?bcPts(R.win===s,R.cd[s]):'–'),man:!!m.manu}})}
+function bcTable(rows,blank){const L=blank?Array.from({length:8},()=>({})):rows;
+  return `<table class="bct"><tr><th>Match</th><th>Adversaire</th><th>Score adv.</th><th>Mon score</th><th>Code(s)</th><th>Codes réalisés</th><th>Code changé</th><th>Points du match</th></tr>
+   ${L.map((r,i)=>`<tr><td>N°${i+1}${r.man?' ✍️':''}</td><td>${esc(r.adv||'')}</td><td>${r.sa??''}</td><td>${r.sm??''}</td><td><b>${esc(r.codes||'')}</b></td><td>${r.cd??''}</td><td>${blank?'':r.ch}</td><td><b>${r.pts??''}</b></td></tr>`).join('')}
+   ${blank?'':`<tr class="tot"><td colspan="7">Total des points</td><td><b>${rows.reduce((a,r)=>a+(+r.pts||0),0)}</b></td></tr>`}</table>`}
+const BC_LEG="Set en 11 points. Avant le match, choisis un code de 2 chiffres (2 zones). Double objectif : gagner et réaliser 2 fois le code. Ex. 14 : amener l'adversaire au fond à gauche (1), finir par un point direct en zone avant droite (4). Points : 5 victoire + code 2 fois · 4 victoire + code 1 fois · 3 victoire sans code · 2 défaite + code 2 fois · 1 défaite + code 1 fois · 0 défaite sans code.";
+function bcSchema(){const pre=preById('badcode')||lpPresets().find(p=>p.id==='badcode');return `<div class="cw mini" style="max-width:420px">${courtSvg({pre,mode:'view',id:'bcs'+uid()})}</div>`}
+
+/* ================== FICHE DE L'ÉLÈVE (remplie par la tablette, ou à la main) ================== */
+let FMAN=null;
+function ficheHtml2(c,e,date){const bc=bcRows(c,e.id,date),cm=matchesOf(c,m=>m.man&&(m.a===e.id||m.b===e.id)&&(!date||m.date===date));
+  const totC=cm.reduce((a,m)=>{const R=replay(m),s=m.a===e.id?0:1;return a+(R.cp&&R.cp[s]!=null?R.cp[s]:0)},0);
+  return `${bc.length?`<h3>🔢 Badcode</h3>${bcTable(bc)}`:''}
+   ${cm.length?`<h3>🟩 Gagner avec la manière · ${totC} point(s) de match</h3>${cm.map(m=>{const R=replay(m);return ctTable(m,R,m.a===e.id?0:1)}).join('')}${ctLegend()}`:''}
+   ${!bc.length&&!cm.length?'<p class="muted">Aucun match Badcode ni contrat pour le moment.</p>':''}`}
+function ficheForm(c,e){const f=FMAN||{type:'badcode',adv:'',ms:'',as:'',code:'',cd:0,ch:0,num:(S.contrats[0]||{}).id||'',ct:0,v:7};FMAN=f;
+  const opp=c.eleves.filter(x=>x.id!==e.id);
+  return `<details class="card" ${FMAN.open?'open':''} ontoggle="FMAN.open=this.open"><summary><b>✍️ Ajouter un match joué sans tablette</b></summary>
+   <div class="seg" style="margin:8px 0">${[['badcode','🔢 Badcode'],['contrat','🟩 Contrat']].map(([k,n])=>`<button class="${f.type===k?'on':''}" onclick="FMAN.type='${k}';renderTerr()">${n}</button>`).join('')}</div>
+   <div class="g2"><div><label class="l">Adversaire</label><select class="f" onchange="FMAN.adv=this.value">${['',...opp.map(x=>x.id)].map(id=>`<option value="${id}" ${f.adv===id?'selected':''}>${id?esc(fullName(elById(c,id))):'—'}</option>`).join('')}</select></div>
+    <div><label class="l">Mon score</label><input type="number" min="0" value="${f.ms}" oninput="FMAN.ms=this.value"></div><div><label class="l">Score adversaire</label><input type="number" min="0" value="${f.as}" oninput="FMAN.as=this.value"></div></div>
+   ${f.type==='badcode'?`<div class="g2"><div><label class="l">Code (2 chiffres)</label><input type="text" maxlength="5" value="${esc(f.code)}" oninput="FMAN.code=this.value"></div><div><label class="l">Codes réalisés</label><input type="number" min="0" value="${f.cd}" oninput="FMAN.cd=this.value"></div><div><label class="l">Code changé (nombre de fois)</label><input type="number" min="0" value="${f.ch}" oninput="FMAN.ch=this.value"></div></div>`
+    :`<div class="g2"><div><label class="l">Contrat</label><select class="f" onchange="FMAN.num=this.value">${S.contrats.map((x,i)=>`<option value="${x.id}" ${f.num===x.id?'selected':''}>n°${i+1} · ${esc(x.nom)}</option>`).join('')}</select></div><div><label class="l">Points de contrat</label><input type="number" min="0" value="${f.ct}" oninput="FMAN.ct=this.value"></div><div><label class="l">Zone verte à</label><input type="number" min="1" value="${f.v}" oninput="FMAN.v=this.value"></div></div>`}
+   <button class="btn or" style="margin-top:10px" onclick="ficheAdd()">Enregistrer ce match</button></details>`}
+function ficheAdd(){const c=classById(TERR.cls)||C(),e=elById(c,TSTAT),f=FMAN;if(!e)return;if(f.ms===''||f.as===''){toast('Indique les deux scores');return}
+  const pre=JSON.parse(JSON.stringify(preById(f.type==='badcode'?'badcode':'contrat')||lpPresets().find(p=>p.id==='badcode')));const id='m'+Date.now().toString(36)+uid().slice(0,3);
+  const k=ctrById(f.num);
+  c.matchs[id]={id,date:today(),lec:lessonNow(),t0:Date.now(),pre,a:e.id,b:elById(c,f.adv)?f.adv:'_',an:shortName(e),bn:f.adv?(elById(c,f.adv)?shortName(elById(c,f.adv)):String(f.adv)):'Adversaire',srv:0,pts:[],fin:true,flip:false,
+    manu:{ms:+f.ms||0,as:+f.as||0,cd:+f.cd||0,ct:+f.ct||0},ca:f.type==='badcode'?String(f.code||'').trim():'',cb:'',cch:[+f.ch||0,0],
+    man:f.type==='contrat'?[{mode:'verte',v:+f.v||7,num:f.num,z:k?(k.z||[]).slice():[],c:k?(k.c||[]).slice():[],pd:!!(k&&k.pd),s:70,min:0},null]:null,poule:'',dev:'fiche'};
+  FMAN=null;save();renderTerr();toast('Match ajouté à ta fiche')}
+
+/* ================== FICHES PAPIER (à imprimer) ================== */
+function printFiche(kind){const pa=document.getElementById('printArea'),H=hd({titre:kind==='badcode'?'Fiche Badcode':'Fiche contrat : gagner avec la manière',classe:C().nom});
+  if(kind==='badcode')pa.innerHTML=H+`<p>PRÉNOM : ……………………… NOM : ………………………</p>${bcSchema()}<p style="font-size:12px">${BC_LEG}</p>${bcTable([],true)}`;
+  else{const fake={an:'',bn:'',pre:{},man:[{mode:'verte',v:7,blank:1}]},R={sc:[0,0],mn:[0,0]};
+    pa.innerHTML=H+`<p>NOM DU JOUEUR : ………………………………</p>${Array.from({length:6},()=>ctTable(fake,R,0)).join('')}${ctLegend()}
+     <div class="pb"></div><h2>Les contrats</h2>${S.contrats.map((x,i)=>`<table class="ctab"><tr><th>Contrat n°${i+1} : ${esc(x.nom)}</th></tr><tr><td style="padding:8px">${esc(x.txt)}</td></tr></table>`).join('')}`}
+  setTimeout(()=>window.print(),150)}
+
+/* ================== ÉDITION DES CONTRATS (enseignant) ================== */
+function ctrEditor(){return `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🟩 Contrats « gagner avec la manière »</h2><div class="row"><button class="btn sm" onclick="ctrAdd()">+ Contrat</button><button class="btn alt sm" onclick="printFiche('contrat')">📄 Fiche papier</button></div></div>
+  <p class="muted">Tes contrats n°1 et n°2, puis mes propositions (en vert clair). Chaque contrat dit ce qui rapporte un point de contrat : des zones (grille 3 × 3) et/ou des coups. Les élèves les choisissent par leur numéro, sur la tablette ou sur la fiche papier.</p>
+  ${S.contrats.map((x,i)=>`<div class="bcrit" ${x.prop?'style="background:#f1faf8"':''}><div class="row"><b style="font-size:1.1rem">n°${i+1}</b><input type="text" style="flex:1;min-width:200px" value="${esc(x.nom)}" onchange="ctrSet(${i},'nom',this.value)">${x.prop?'<button class="btn alt sm" onclick="ctrSet('+i+',\'prop\',0)">👍 Garder</button>':''}<button class="btn alt sm" onclick="ctrMove(${i},-1)">↑</button><button class="btn alt sm" onclick="ctrMove(${i},1)">↓</button><button class="btn red sm" onclick="ctrDel(${i})">✕</button></div>
+   <textarea rows="2" style="margin-top:6px" onchange="ctrSet(${i},'txt',this.value)">${esc(x.txt)}</textarea>
+   <div class="row" style="margin-top:6px"><div class="mg3 sm">${[['fg','fc','fd'],['mg','mc','md'],['ag','ac','ad']].map(r=>`<div>${r.map(k=>`<button class="${(x.z||[]).includes(k)?'on':''}" onclick="ctrTog(${i},'z','${k}')">${AZ.find(a=>a[0]===k)[1]}</button>`).join('')}</div>`).join('')}<div class="netl">filet</div></div>
+    <div style="flex:1"><div class="snap">${COUPS.map(([k,n])=>`<button class="${(x.c||[]).includes(k)?'onb':''}" onclick="ctrTog(${i},'c','${k}')">${n}</button>`).join('')}</div>
+    <label class="sw" style="margin-top:6px"><input type="checkbox" ${x.pd?'checked':''} onchange="ctrSet(${i},'pd',this.checked)"><span></span>points directs seulement</label></div></div></div>`).join('')}</div>`}
+function ctrRe(){save();const y=scrollY;renderTerrain();scrollTo(0,y)}
+function ctrSet(i,k,v){S.contrats[i][k]=v;ctrRe()}
+function ctrTog(i,k,v){const a=S.contrats[i][k]=S.contrats[i][k]||[],j=a.indexOf(v);if(j>=0)a.splice(j,1);else a.push(v);ctrRe()}
+function ctrMove(i,d){const a=S.contrats,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];ctrRe()}
+function ctrDel(i){if(!confirm('Supprimer le contrat « '+S.contrats[i].nom+' » ?'))return;S.contrats.splice(i,1);ctrRe()}
+function ctrAdd(){S.contrats.push({id:'c'+uid(),nom:'Nouveau contrat',txt:'Marquer … me donne un point de contrat.',z:[],c:[]});ctrRe()}
+
 /* modèles de découpage du terrain */
 const TPL=[['tout',"Tout le terrain",{np:1,nl:1,z:{}}],['avar',"Avant + arrière",{np:3,prof:[SSL,4.72],nl:1,z:{r0c0:'b',r1c0:'o',r2c0:'b'}}],['av',"Avant seule",{np:2,prof:[SSL],nl:1,z:{r0c0:'b',r1c0:'o'}}],['ar',"Arrière seule",{np:2,prof:[4.72],nl:1,z:{r0c0:'o',r1c0:'b'}}],
  ['amf',"Avant / milieu / fond",{np:3,prof:[SSL,4.72],nl:1,z:{}}],['2l',"2 couloirs latéraux",{np:1,nl:3,lat:[1.7,4.4],z:{r0c0:'b',r0c1:'o',r0c2:'b'}}],['1lg',"1 couloir (gauche)",{np:1,nl:2,lat:[1.7],z:{r0c0:'b',r0c1:'o'}}],['1ld',"1 couloir (droit)",{np:1,nl:2,lat:[4.4],z:{r0c0:'o',r0c1:'b'}}],
@@ -1457,7 +1599,7 @@ function renderTerr(){
     <div class="cbody"><div class="card"><h2>Quelle classe ?</h2><div class="tiles">${L.map(x=>`<button class="tile" onclick="TERR.cls='${x.id}';terrSave();renderTerr()">${esc(x.nom)}<br><small class="muted">${x.eleves.length} élèves · ${VOIES[x.voie]}</small></button>`).join('')||'<p class="muted">Aucune classe : l\'enseignant doit d\'abord importer une liste d\'élèves.</p>'}</div></div></div>`;return}
   if(c.voie!==S.voie){S.voie=c.voie;fixState();S.cur=S.classes.indexOf(c)}
   const n=lessonNow(),l=lessonObj(n);
-  const tabs=[['jouer','🏸 Jouer'],['poule','🏆 Poule'],['lecon','📋 Leçon du jour'],['ech','🔥 Échauffement'],['tech','📚 Technique'],['stats','📊 Mes stats']];
+  const tabs=[['jouer','🏸 Jouer'],['poule','🏆 Poule'],['lecon','📋 Leçon du jour'],['ech','🔥 Échauffement'],['tech','📚 Technique'],['fiche','🗒 Ma fiche'],['stats','📊 Mes stats']];
   box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}${l?' · Leçon '+l.n:''}</h1><button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button></div>
    <div class="ctabs">${tabs.map(([k,nm])=>`<button class="${TERRT===k?'on':''}" onclick="TERRT='${k}';renderTerr()">${nm}</button>`).join('')}</div>
    <div class="cbody" id="tbody"></div>`;
@@ -1472,6 +1614,10 @@ function renderTerr(){
   else if(TERRT==='lecon')b.innerHTML=l?lecHtml(l,SEQ().lecons.indexOf(l),false):'<p class="muted">Pas de leçon.</p>';
   else if(TERRT==='ech'){b.innerHTML=`<div class="card">${deplHtml()}</div><div class="card">${routHtml(n)}</div>`}
   else if(TERRT==='tech')b.innerHTML=techHtml(false);
+  else if(TERRT==='fiche'){const e=elById(c,TSTAT);
+    b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${c.eleves.map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';FMAN=null;renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
+     ${e?`<div class="card"><h2>🗒 Fiche de ${esc(fullName(e))} · aujourd'hui</h2><p class="muted">Remplie automatiquement par les matchs saisis sur la tablette. Un match joué sans tablette ? Ajoute-le ci-dessous.</p>${ficheHtml2(c,e,today())}</div>${ficheForm(c,e)}
+      <div class="card"><h3>Rappel Badcode</h3><p style="font-size:.95rem">${BC_LEG}</p>${bcSchema()}</div>`:''}`}
   else{const e=elById(c,TSTAT);
     b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${c.eleves.map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
      ${e?(()=>{const st=elStats(c,e.id),sd=elStats(c,e.id,today());return `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(fullName(e))}</h2><div class="seg">${['profil','zones','coups'].map(k=>`<button class="${RADK===k?'on':''}" onclick="RADK='${k}';renderTerr()">${{profil:'Mon profil',zones:'Mes zones',coups:'Mes coups'}[k]}</button>`).join('')}</div></div>
@@ -1494,14 +1640,14 @@ function conseil(st){const p=Object.fromEntries(profil(st));
 function pouleHtml(c){
   const P0=Object.values(c.poules||{}).filter(p=>p.date===today());
   if(POULE&&c.poules[POULE]){const p=c.poules[POULE],pairs=[];for(let i=0;i<p.el.length;i++)for(let j=i+1;j<p.el.length;j++)pairs.push([p.el[i],p.el[j]]);
-    const ms=matchesOf(c,m=>m.poule===p.id&&m.fin);const tab={};p.el.forEach(id=>tab[id]={v:0,j:0,diff:0,bc:0});const isBC=!!(preById(p.pre)||{}).badcode;
-    ms.forEach(m=>{const R=replay(m);[m.a,m.b].forEach((id,s)=>{if(!tab[id])return;tab[id].j++;if(R.win===s)tab[id].v++;tab[id].diff+=R.sc[s]-R.sc[1-s];if(R.bc)tab[id].bc+=R.bc[s]})});
+    const ms=matchesOf(c,m=>m.poule===p.id&&m.fin);const tab={};p.el.forEach(id=>tab[id]={v:0,j:0,diff:0,bc:0});const pp=preById(p.pre)||{},isBC=!!(pp.badcode||(pp.man&&pp.man.on&&pp.man.mode==='verte'));
+    ms.forEach(m=>{const R=replay(m);[m.a,m.b].forEach((id,s)=>{if(!tab[id])return;tab[id].j++;if(R.win===s)tab[id].v++;tab[id].diff+=R.sc[s]-R.sc[1-s];if(R.bc)tab[id].bc+=R.bc[s];else if(R.cp&&R.cp[s]!=null)tab[id].bc+=R.cp[s]})});
     const rk=p.el.slice().sort((a,b)=>(isBC?tab[b].bc-tab[a].bc:0)||tab[b].v-tab[a].v||tab[b].diff-tab[a].diff);
     return `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🏆 ${esc(p.nom)}</h2><button class="btn alt sm" onclick="POULE=null;renderTerr()">← Poules</button></div>
      <p class="muted">Situation : ${esc((preById(p.pre)||{nom:'—'}).nom)}</p>
      <div class="mlist">${pairs.map(([a,b])=>{const m=ms.filter(x=>(x.a===a&&x.b===b)||(x.a===b&&x.b===a)).pop();const R=m&&replay(m);
        return `<button onclick="${m?`TRES='${m.id}';renderTerrRes()`:`playStart('${p.pre}','${c.id}','${a}','${b}','${p.id}')`}"><b>${esc(shortName(elById(c,a)))} ${m?`<span class="sc2">${R.sc[m.a===a?0:1]} – ${R.sc[m.a===a?1:0]}</span>`:'<span class="sc2">▶</span>'} ${esc(shortName(elById(c,b)))}</b><small>${m?'joué':'à jouer'}</small></button>`}).join('')}</div>
-     <h3>Classement</h3><table><tr><th>#</th><th>Joueur</th><th>Victoires</th><th>Joués</th><th>Diff.</th>${isBC?'<th>Pts Badcode</th>':''}</tr>${rk.map((id,i)=>`<tr><td>${i+1}</td><td>${esc(fullName(elById(c,id)||{nom:'?'}))}</td><td>${tab[id].v}</td><td>${tab[id].j}</td><td>${tab[id].diff>0?'+':''}${tab[id].diff}</td>${isBC?`<td><b>${tab[id].bc}</b></td>`:''}</tr>`).join('')}</table></div>`}
+     <h3>Classement</h3><table><tr><th>#</th><th>Joueur</th><th>Victoires</th><th>Joués</th><th>Diff.</th>${isBC?'<th>Points de match</th>':''}</tr>${rk.map((id,i)=>`<tr><td>${i+1}</td><td>${esc(fullName(elById(c,id)||{nom:'?'}))}</td><td>${tab[id].v}</td><td>${tab[id].j}</td><td>${tab[id].diff>0?'+':''}${tab[id].diff}</td>${isBC?`<td><b>${tab[id].bc}</b></td>`:''}</tr>`).join('')}</table></div>`}
   return `${P0.length?`<div class="card"><h2>Poules du jour</h2><div class="tiles">${P0.map(p=>`<button class="tile" onclick="POULE='${p.id}';renderTerr()">🏆 ${esc(p.nom)}<br><small class="muted">${p.el.map(id=>esc(shortName(elById(c,id)))).join(', ')}</small></button>`).join('')}</div></div>`:''}
    <div class="card"><h2>Nouvelle poule</h2><p class="muted">Choisis 3 à 5 joueurs : l'appli prépare tous les matchs et le classement.</p>
     <div class="pres">${c.eleves.filter(e=>!isAbs(e)).map(e=>`<button class="${PSEL.includes(e.id)?'p':''}" onclick="PSEL.includes('${e.id}')?PSEL=PSEL.filter(x=>x!=='${e.id}'):PSEL.push('${e.id}');renderTerr()">${esc(fullName(e))}</button>`).join('')}</div>
@@ -1738,6 +1884,7 @@ function leconHtml(e,c,date){
    ${l?`<p><b>Leçon ${l.n} · ${esc(l.titre)}</b><br>Objectif : ${esc(l.obj)}</p>`:''}
    ${isAbs(e)&&!ms.length?`<p><i>${e.statut==='ABS'?'Absent(e)':'Dispensé(e)'}</i></p>`:''}
    ${rows?`<h2 style="font-size:15px">Mes matchs</h2><table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;width:100%"><tr><th>Situation</th><th>Adversaire</th><th>Score</th><th>Résultat</th><th>Points de zones / Badcode</th></tr>${rows}</table>`:''}
+   ${(()=>{const h=ficheHtml2(c,e,date);return /<table/.test(h)?'<h2 style="font-size:15px">Ma fiche</h2>'+h:''})()}
    ${st.ex.length?`<h2 style="font-size:15px">Mes exercices</h2><ul>${st.ex.map(x=>`<li>${esc(x.nom)} : <b>${x.ok} / ${x.n}</b>${x.obj?` (objectif ${x.obj} sur ${x.essais})`:''}</li>`).join('')}</ul>`:''}
    ${st.pts||st.loc?`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start"><div><h2 style="font-size:15px">Mon profil de jeu</h2>${radarSvg(radarAxes('profil',[st]),[{nom:'',c:'#0B7A75'}],300)}</div><div><h2 style="font-size:15px">Mes zones de marque</h2>${radarSvg(radarAxes('zones',[st]),[{nom:'',c:'#D9481F'}],300)}</div></div>
    <h2 style="font-size:15px">Où j'ai marqué</h2><div style="max-width:520px">${heatSvg(st)}</div><p>Points gagnés : <b>${st.pts}</b> · perdus : ${st.pl} (dont ${st.fd} sur mes fautes) · zones favorites : ${topZones(st,2).join(', ')||'–'} · coup favori : ${topCoup(st)}</p>`:''}
@@ -1824,7 +1971,7 @@ function syRecords(){const O={};
     Object.values(c.poules||{}).forEach(p=>{O['po|'+c.id+'|'+p.id]=JSON.stringify(p)})});
   ['gt','pro'].forEach(v=>{const P0=S.prof[v];O['bar|'+v]=JSON.stringify(P0.bareme);O['sq|'+v]=JSON.stringify(seqMeta(P0.seq));(P0.seq.lecons||[]).forEach(l=>{O['le|'+v+'|'+l.id]=JSON.stringify(l)})});
   S.tech.forEach(f=>{O['te|'+f.id]=JSON.stringify(f)});O.teo=JSON.stringify(S.tech.map(f=>f.id));
-  S.presets.forEach(p=>{O['pr|'+p.id]=JSON.stringify(p)});O.pro=JSON.stringify(S.presets.map(p=>p.id));
+  S.presets.forEach(p=>{O['pr|'+p.id]=JSON.stringify(p)});O.pro=JSON.stringify(S.presets.map(p=>p.id));O.ctr=JSON.stringify(S.contrats||[]);
   return O}
 function syChan(){const c=SYC(),sig=c.url+'|'+h32(c.key);if(SY.ch!==sig){Object.assign(SY,{ch:sig,init:false,since:0,h:{},pend:{},err:''});sySave()}return c}
 function syScan(){const O=syRecords();let n=0;
@@ -1837,7 +1984,7 @@ function syScan(){const O=syRecords();let n=0;
 function syFirst(){const O=syRecords(),D={},DS={gt:defSeq(),pro:defSeqPro()};
   D['bar|gt']=canon(grilleTleG());D['bar|pro']=canon(grilleLP());
   ['gt','pro'].forEach(v=>{D['sq|'+v]=canon(seqMeta(DS[v]));DS[v].lecons.forEach(l=>{D['le|'+v+'|'+l.id]=canon(l)})});
-  defTech().forEach(f=>{D['te|'+f.id]=canon(f)});D.teo=canon(defTech().map(f=>f.id));defPresets().forEach(p=>{D['pr|'+p.id]=canon(p)});D.pro=canon(defPresets().map(p=>p.id));
+  defTech().forEach(f=>{D['te|'+f.id]=canon(f)});D.teo=canon(defTech().map(f=>f.id));defPresets().forEach(p=>{D['pr|'+p.id]=canon(p)});D.pro=canon(defPresets().map(p=>p.id));D.ctr=canon(defContrats());
   for(const k in O){const t=k.split('|')[0];let low=false;
     if(t==='el')low=!hasData(JSON.parse(O[k]));else if(k in D)low=canon(JSON.parse(O[k]))===D[k];
     SY.h[k]=hs(O[k]);SY.pend[k]={u:low?1:syStamp(),d:0}}}
@@ -1860,6 +2007,7 @@ function syApply(k,o){const p=k.split('|'),t=p[0];
   if(t==='teo'){S._teo=o;sortBy(S.tech,o);return}
   if(t==='pr'){const i=S.presets.findIndex(x=>x.id===o.id);if(i>=0)S.presets[i]=o;else S.presets.push(o);sortBy(S.presets,S._pro);return}
   if(t==='pro'){S._pro=o;sortBy(S.presets,o);return}
+  if(t==='ctr'){S.contrats=o;return}
   if(t==='cl'){let c=S.classes.find(x=>x.id===o.id);
     if(!c){c=S.classes.find(x=>norm(x.nom)===norm(o.nom)&&x.voie===(o.voie||'gt'));if(c)c.id=o.id;else c=syCls(o.id,o.nom)}
     c.nom=o.nom;c.voie=o.voie==='pro'?'pro':'gt';sortBy(c.eleves,o.ord);return}
