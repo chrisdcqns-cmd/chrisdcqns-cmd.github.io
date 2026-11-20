@@ -116,18 +116,46 @@ function errMsg(d){
   return "";
 }
 function moisTab(tabs){var m=MOIS[new Date().getMonth()];for(var i=0;i<tabs.length;i++)if(norm(tabs[i]).indexOf(norm(m))>=0)return tabs[i];return null;}
-async function load(tab,quiet){
-  if(!isT()||!cfg()||!sheetId())return;
-  S.loading=true;if(!quiet)render();
-  var p=jget(KP,{}),t=tab||S.tab||null;
-  var d=await jsonp(t?{as:"get",tab:t}:{as:"get"});
-  S.loading=false;S.err=errMsg(d);
-  if(S.err){render();return;}
-  if(!tab&&!S.tab){var mt=moisTab(d.tabs||[]);if(mt&&mt!==d.tab){S.tab=mt;return load(mt,quiet);}}
+/* ---- cache sur la tablette : affichage immédiat du dernier état connu, puis mise à jour en arrière-plan ---- */
+var KC="eps.appelas.cache.v1";
+function cacheAll(){var c=jget(KC,null);return c&&c.id===sheetId()?c:{id:sheetId(),tabs:[],t:{}};}
+function cachePut(d){
+  try{var c=cacheAll(),cb=d.at?Object.keys(d.at).map(function(k){var x=k.split("|");return[+x[0],+x[1],d.at[k]];}):d.cb;
+    c.tabs=d.tabs||c.tabs;c.title=d.title;c.t[d.tab]={title:d.title,tabs:d.tabs,tab:d.tab,disp:d.disp,cb:cb,ts:Date.now()};
+    localStorage.setItem(KC,JSON.stringify(c));}catch(e){}
+}
+function cacheGet(tab){var c=cacheAll(),x=c.t[tab];return x?JSON.parse(JSON.stringify(x)):null;}
+function show(d){
   S.data=d;S.tab=d.tab;parse();
   var hd=S.data.cols.map(function(c){return c.c;});
   if(S.col==null||hd.indexOf(S.col)<0)S.col=autoCol();
   render();
+}
+async function load(tab,quiet){
+  if(!isT()||!cfg()||!sheetId())return;
+  var c=cacheAll();
+  if(!tab&&!S.tab&&c.tabs.length)tab=moisTab(c.tabs)||null; /* onglet du mois connu grâce au cache : une seule requête */
+  var t=tab||S.tab||null,hit=t&&cacheGet(t);
+  if(hit&&(!S.data||S.data.tab!==t)){show(hit);quiet=true;}
+  S.loading=true;if(!quiet)render();
+  var d=await jsonp(t?{as:"get",tab:t}:{as:"get"});
+  S.loading=false;
+  var er=errMsg(d);
+  if(er){if(!S.data){S.err=er;render();}else if(!quiet)toast(er);return;}
+  S.err="";
+  if(!t){var mt=moisTab(d.tabs||[]);if(mt&&mt!==d.tab){cachePut(d);S.tab=mt;return load(mt,quiet);}}
+  cachePut(d);
+  if(S.tab&&d.tab!==S.tab)return; /* l'utilisateur a changé d'onglet entre-temps */
+  if(Object.keys(S.busy).length)return; /* une coche est en cours : on garde l'affichage */
+  show(d);
+  prefetch(d.tabs||[]);
+}
+/* charge en arrière-plan le top et la liste des licenciés, pour qu'ils s'ouvrent tout de suite */
+var prefDone={};
+async function prefetch(tabs){
+  var L=tabs.filter(function(t){var r=rang(t);return r===1||r===2;});
+  for(var i=0;i<L.length;i++){var t=L[i];if(prefDone[t]||t===S.tab)continue;prefDone[t]=1;
+    var d=await jsonp({as:"get",tab:t});if(d&&d.asOk)cachePut(d);}
 }
 /* ---- lecture de la structure : ligne d'en-tête au-dessus des premières cases, colonnes de noms à gauche ---- */
 function parse(){
@@ -166,12 +194,12 @@ async function toggle(r){
   var x=await jsonp({as:"set",tab:S.tab,ligne:r,colonne:S.col,coche:v});
   delete S.busy[k];
   if(!x){ /* pas de réponse : on relit le fichier pour savoir si la case a quand même été cochée */
-    S.busy[k]=1;render();await load(S.tab,true);delete S.busy[k];
+    d.at[k]=cur;await load(S.tab,true);
     if(S.data&&S.data.at[k]===v){render();return;}
     if(S.data)S.data.at[k]=cur;render();toast("Pas de réponse du script en cochant : regarde Apps Script → Exécutions (doGet) et envoie-moi l'erreur.");return;
   }
   if(!x.asOk){d.at[k]=cur;render();toast(errMsg(x)||"Non enregistré, réessaie.");var el=document.querySelector('[data-r="'+r+'"]');if(el)el.classList.add("err");return;}
-  d.at[k]=x.v;render();
+  d.at[k]=x.v;cachePut(d);render();
 }
 /* ---- affichage ---- */
 function niveau(cl){var m=String(cl).match(/^\s*(\d)/);return m?m[1]:"";}
@@ -198,7 +226,7 @@ function render(){
     '<div class="chips sm scroll" id="cols">'+cols+'</div>'+
     '<div class="bar"><div class="count">'+pres+' <small>/ '+d.rows.length+'</small></div>'+
     (nv.length>1?'<div class="chips sm"><button class="chip'+(!S.niv?" on":"")+'" data-niv="">Tous</button>'+nv.map(function(n){return'<button class="chip'+(S.niv===n?" on":"")+'" data-niv="'+n+'">'+n+'e</button>';}).join("")+'</div>':'')+
-    '<div class="grow"></div><input class="s" id="q" placeholder="🔎 Élève" value="'+esc(S.q)+'"><button class="btn" id="rf" aria-label="Actualiser">⟳</button></div>'+
+    '<div class="grow"></div>'+(S.loading?'<span class="m" style="font-size:14px">mise à jour…</span>':'')+'<input class="s" id="q" placeholder="🔎 Élève" value="'+esc(S.q)+'"><button class="btn" id="rf" aria-label="Actualiser">⟳</button></div>'+
     '<div class="grid">';
   var last=null;
   L.forEach(function(x){
@@ -236,7 +264,7 @@ function tabsHtml(d){
   return main.map(b).join("")+(oth.length?'<button class="chip more" data-more="1">'+(open?"▴ Autres mois":"▾ Autres mois ("+oth.length+")")+'</button>'+(open?oth.map(b).join(""):""):"");
 }
 function bindTabs(A){
-  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.data=null;S.q="";S.niv="";load(S.tab);};});
+  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.q="";S.niv="";var h=cacheGet(S.tab);if(h)show(h);else{S.data=null;render();}load(S.tab,!!h);};});
   var m=A.querySelector("[data-more]");if(m)m.onclick=function(){S.moreM=!S.moreM;render();};
 }
 function renderInfo(A,d){
