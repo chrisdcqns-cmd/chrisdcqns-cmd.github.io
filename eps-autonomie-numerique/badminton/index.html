@@ -279,6 +279,20 @@ table.kv td,table.kv th{text-align:left;padding:5px 6px}table.kv td:first-child{
 .astuce{background:#fff8e1;border-radius:10px;padding:8px 10px;margin:6px 0}
 .seg.big button{padding:12px 18px;font-size:1.05rem}
 #play{z-index:45}
+.lecrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:2px solid var(--line);border-radius:14px;padding:10px 14px;margin:8px 0;color:var(--ink)}
+.lecrow .ln{flex:0 0 40px;height:40px;border-radius:12px;background:var(--navy);color:#fff;font-weight:900;font-size:1.2rem;display:flex;align-items:center;justify-content:center}
+.lecrow.done .ln{background:var(--d4)}.lecrow.prop{background:#f1faf8}
+.lecrow .tt{flex:1;display:flex;flex-direction:column;min-width:0}.lecrow .tt small{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lecrow .bdg{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;font-size:.8rem}.lecrow .chev{font-size:1.6rem;color:var(--muted)}
+.lecwrap{position:relative}.lecfold{position:absolute;right:10px;top:10px;border:0;background:#eef2f7;border-radius:10px;width:38px;height:38px;font-size:1.2rem;z-index:1}
+.lecel .lh{display:flex;align-items:center;gap:12px}.lecel .ln{background:var(--vol);color:#fff;border-radius:12px;padding:6px 12px;font-weight:900}.lecel h2{margin:0}
+.lecel .obj{font-size:1.15rem;font-weight:700;color:var(--navy);margin:10px 0 6px}
+.echl{margin-top:10px;background:#fff3e6;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+.tel h3{margin:0;color:var(--navy);font-size:1.15rem}.tcons{font-size:1.1rem;line-height:1.5;background:#f3f8fd;border-left:6px solid var(--vol);border-radius:10px;padding:12px 14px;margin:10px 0}
+.tel .bx{border-radius:12px;padding:10px 12px}.tel .bx ul{margin:4px 0 0;padding-left:18px}.tel .bx p{margin:2px 0}
+.tel .bx.ok{background:#e8f6ee}.tel .bx.tip{background:#fff8e1}.tel .bx.var{background:#f1f3f8}
+.ronde{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}.ronde b{min-width:80px}.ronde span{background:#eef2f7;border-radius:999px;padding:6px 12px;font-weight:700}
+.ronde span.me{background:var(--vol);color:#fff;cursor:pointer}
 .legend2{display:flex;flex-wrap:wrap;gap:12px;font-size:.85rem;font-weight:700;color:var(--navy)}.legend2 i{display:inline-block;width:18px;height:14px;border-radius:4px;margin-right:5px;vertical-align:-2px;border:1px solid #1769b8}
 h2.step{display:flex;align-items:center;gap:10px}h2.step span{width:30px;height:30px;border-radius:50%;background:var(--vol);color:#fff;display:grid;place-items:center;font-size:1rem;flex:none}
 .blks{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
@@ -339,20 +353,20 @@ nav button.on{background:var(--app);color:#fff}
     <span data-eps-bar></span>
   </div>
   <nav id="nav">
-    <button data-t="eval" class="on">Évaluer</button>
+    <button data-t="seq" class="on">Séquence</button>
     <button data-t="match">Matchs & stats</button>
     <button data-t="terrain">Terrain & scoring</button>
-    <button data-t="seq">Séquence</button>
+    <button data-t="eval">Évaluer</button>
     <button data-t="bilan">Bilans & export</button>
     <button data-t="eleves">Élèves</button>
     <button data-t="bareme">Barème</button>
   </nav>
 </header>
 <main>
-  <section class="tab on" id="t-eval"><div id="evList"></div><div id="evPanel" style="display:none"></div></section>
+  <section class="tab" id="t-eval"><div id="evList"></div><div id="evPanel" style="display:none"></div></section>
   <section class="tab" id="t-match"></section>
   <section class="tab" id="t-terrain"></section>
-  <section class="tab" id="t-seq"></section>
+  <section class="tab on" id="t-seq"></section>
   <section class="tab" id="t-bilan"></section>
   <section class="tab" id="t-eleves">
     <div class="card"><h2>Classes / groupes</h2>
@@ -731,7 +745,7 @@ function fixState(){
   if((S.prv||0)<2){defPresets().forEach(p=>{if(!S.presets.some(x=>x.id===p.id))S.presets.push(p)});S.prv=2}
   if((S.prv||0)<3){const D=defPresets(),i=S.presets.findIndex(p=>p.id==='badcode');if(i>=0)S.presets[i]=D.find(p=>p.id==='badcode');if(!S.presets.some(p=>p.id==='contrat'))S.presets.push(D.find(p=>p.id==='contrat'));S.prv=3}
   if(S.voie!=='pro')S.voie='gt';
-  S.classes.forEach(c=>{c.eleves=c.eleves||[];c.matchs=c.matchs||{};c.poules=c.poules||{};c.voie=c.voie==='pro'?'pro':'gt';c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
+  S.classes.forEach(c=>{c.eleves=c.eleves||[];c.matchs=c.matchs||{};c.poules=c.poules||{};c.groupes=c.groupes||{};c.voie=c.voie==='pro'?'pro':'gt';c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
   if(!S.classes.some(c=>c.voie===S.voie))S.classes.push({id:uid(),nom:'Ma classe',voie:S.voie,eleves:[],matchs:{},poules:{}});
   if(!(S.cur>=0&&S.cur<S.classes.length)||S.classes[S.cur].voie!==S.voie)S.cur=S.classes.findIndex(c=>c.voie===S.voie);
 }
@@ -794,7 +808,7 @@ function autoPos(cr,e){if(!B().optMatchs||!(cr.afl==='AFL1'||lpCore(cr.afl)))ret
 
 /* ================== NAVIGATION ================== */
 document.getElementById('nav').addEventListener('click',ev=>{const b=ev.target.closest('button');if(b)showTab(b.dataset.t)});
-function curTab(){const b=document.querySelector('#nav button.on');return b?b.dataset.t:'eval'}
+function curTab(){const b=document.querySelector('#nav button.on');return b?b.dataset.t:'seq'}
 function showTab(t){
   document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));
@@ -995,7 +1009,7 @@ function renderTerrain(){
   el.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Situations de scoring</h2>
      <div class="row"><button class="btn sm" onclick="preNew()">+ Nouvelle situation</button><button class="btn alt sm" onclick="preReset()">Rétablir les situations proposées</button></div></div>
    <p class="muted">Découpe le terrain en zones avec les curseurs, puis touche une zone pour régler sa valeur : normale, bonifiée (compte pour le contrat), interdite (le point va à l'adversaire) ou dégressive (1000, 100, 10, 1…). Ajoute des cibles précises et des coups valorisés. Chaque situation peut être reliée à une leçon : elle est proposée en premier sur la tablette de terrain ce jour-là.</p>
-   <div class="prelist">${S.presets.map(x=>`<button class="${x.id===PRE?'on':''}" onclick="PRE='${x.id}';ZSEL=null;CIBADD=false;renderTerrain()">${x.type==='exo'?'🎯':'🏸'} ${esc(x.nom)}${x.lec?` <small>L${x.lec}</small>`:''}</button>`).join('')}</div></div>
+   <div class="prelist">${S.presets.map(x=>`<button class="${x.id===PRE?'on':''}" onclick="PRE='${x.id}';ZSEL=null;CIBADD=false;renderTerrain()">${x.type==='exo'?'🎯':'🏸'} ${esc(x.nom)}${x.vis?' 👁':''}${x.lec?` <small>L${x.lec}</small>`:''}</button>`).join('')}</div></div>
   ${p?preEditor(p):''}
   ${ctrEditor()}
   <div class="card"><h2>📄 Fiches papier à imprimer</h2><p class="muted">Pour les élèves sans tablette : la même fiche que dans l'appli (onglet « Ma fiche » de la tablette de terrain).</p>
@@ -1015,6 +1029,8 @@ function preEditor(p){
    <div class="g2"><div><label class="l">Nom</label><input type="text" value="${esc(p.nom)}" onchange="preSet('nom',this.value,1)"></div>
      <div><label class="l">Type</label><div class="seg"><button class="${!exo?'on':''}" onclick="preSet('type','match',1)">🏸 Match</button><button class="${exo?'on':''}" onclick="preSet('type','exo',1)">🎯 Exercice</button></div></div>
      <div><label class="l">Leçon</label><select class="f" onchange="preSet('lec',+this.value,1)"><option value="0">—</option>${SEQ().lecons.map(l=>`<option value="${l.n}" ${+p.lec===l.n?'selected':''}>L${l.n}. ${esc(l.titre)}</option>`).join('')}</select></div></div>
+   <label class="sw" style="margin:10px 0 4px"><input type="checkbox" ${p.vis?'checked':''} onchange="preSet('vis',this.checked,1)"><span></span>👁 Proposer aux élèves en plus de la leçon du jour</label>
+   <p class="muted" style="margin:0 0 6px">Sur la tablette de terrain, l'onglet « Jouer » montre d'abord les situations de la leçon du jour ; les autres n'apparaissent que si tu les coches ici.</p>
    <label class="l">Consigne affichée aux élèves</label><textarea rows="2" onchange="preSet('desc',this.value)">${esc(p.desc||'')}</textarea></div>
 
   <div class="card"><h2 class="step"><span>2</span>Découper le terrain</h2>
@@ -1099,9 +1115,11 @@ function plName(c,id,g){if(id==='_')return g||'Invité';const e=elById(c,id);ret
 function renderPlay(){
   const box=document.getElementById('play'),c=classById(PL.cid);if(!c){playClose();return}
   if(PL.step==='setup'){const pre=preById(PL.pre)||S.presets[0],exo=pre.type==='exo';
-    const opts=S.presets.slice().sort((x,y)=>(x.lec===lessonNow()?-1:0)-(y.lec===lessonNow()?-1:0));
-    const pick=k=>`<div class="pres">${c.eleves.filter(e=>!isAbs(e)).map(e=>`<button class="${PL[k]===e.id?'p':''}" ${(k==='b'&&PL.a===e.id)||(k==='a'&&PL.b===e.id)?'disabled style="opacity:.35"':''} onclick="PL.${k}='${e.id}';renderPlay()">${esc(fullName(e))}</button>`).join('')}
-      <button class="${PL[k]==='_'?'p':''}" onclick="PL.${k}='_';renderPlay()">👤 Invité</button></div>${PL[k]==='_'?`<input type="text" placeholder="Prénom" value="${esc(PL['g'+k])}" oninput="PL.g${k}=this.value" style="margin-top:6px">`:''}`;
+    const stu=terrOn()&&!isUnlocked(),lids=lessonPreIds(),gg=stu?curGrp(c):null;
+    const opts=S.presets.filter(p=>!stu||lids.includes(p.id)||p.vis||p.id===pre.id).sort((x,y)=>(lids.includes(y.id)?1:0)-(lids.includes(x.id)?1:0));
+    const pool=gg&&!PL.all?c.eleves.filter(e=>gg.el.includes(e.id)||e.id===PL.a||e.id===PL.b):c.eleves;
+    const pick=k=>`<div class="pres">${pool.filter(e=>!isAbs(e)).map(e=>`<button class="${PL[k]===e.id?'p':''}" ${(k==='b'&&PL.a===e.id)||(k==='a'&&PL.b===e.id)?'disabled style="opacity:.35"':''} onclick="PL.${k}='${e.id}';renderPlay()">${esc(fullName(e))}</button>`).join('')}
+      <button class="${PL[k]==='_'?'p':''}" onclick="PL.${k}='_';renderPlay()">👤 Invité</button>${gg?`<button onclick="PL.all=!PL.all;renderPlay()" style="border-style:dashed">${PL.all?'👥 Mon groupe seulement':'➕ Autre élève de la classe'}</button>`:''}</div>${PL[k]==='_'?`<input type="text" placeholder="Prénom" value="${esc(PL['g'+k])}" oninput="PL.g${k}=this.value" style="margin-top:6px">`:''}`;
     box.innerHTML=`<div class="chd"><button class="lockbtn" onclick="playClose()">✕</button><h1>${exo?'🎯 Nouvel exercice':'🏸 Nouveau match'} · ${esc(c.nom)}</h1></div>
     <div class="cbody">
      <div class="card"><h2>1 · Situation</h2><select class="f big" onchange="PL.pre=this.value;const q=preById(this.value)||{};PL.manOn=!!(q.man&&q.man.on);PL.man=[0,1].map(()=>JSON.parse(JSON.stringify(q.man&&q.man.on?q.man:defMan())));renderPlay()">${opts.map(p=>`<option value="${p.id}" ${p.id===pre.id?'selected':''}>${p.type==='exo'?'🎯':'🏸'} ${esc(p.nom)}${p.lec?' (leçon '+p.lec+')':''}</option>`).join('')}</select>
@@ -1153,8 +1171,8 @@ function setCode(k,j,n){const a=(PL['c'+k]||'  ').padEnd(2,' ').split('');a[j]=S
 function playGo(){const c=classById(PL.cid),pre=preById(PL.pre)||S.presets[0],exo=pre.type==='exo';
   if(!PL.a||(!exo&&!PL.b)){toast(exo?'Choisis le joueur':'Choisis les deux joueurs');return}
   if(pre.badcode&&!(/^[1-4]{2}$/.test(PL.ca||'')&&/^[1-4]{2}$/.test(PL.cb||''))){toast('Chaque joueur choisit son code (2 zones)');return}
-  const id='m'+Date.now().toString(36)+uid().slice(0,3);
-  c.matchs[id]={id,date:today(),lec:lessonNow(),t0:Date.now(),pre:JSON.parse(JSON.stringify(pre)),a:PL.a,b:exo?null:PL.b,an:plName(c,PL.a,PL.ga),bn:exo?'':plName(c,PL.b,PL.gb),srv:PL.srv||0,pts:[],fin:false,flip:false,ca:PL.ca||'',cb:PL.cb||'',man:!exo&&PL.manOn?PL.man.map(x=>({mode:x.mode==='verte'?'verte':'pct',v:+x.v||7,num:x.num||'',z:(x.z||[]).slice(),c:(x.c||[]).slice(),s:+x.s||0,min:+x.min||0,pd:!!x.pd})):null,cal:pre.badcode?[[PL.ca],[PL.cb]]:null,sa:(PL.sa||'').trim(),sb:(PL.sb||'').trim(),poule:PL.poule||'',dev:terrOn()&&!isUnlocked()?'terrain':'prof'};
+  const id='m'+Date.now().toString(36)+uid().slice(0,3),ga=grpOf(c,PL.a),gb=exo?null:grpOf(c,PL.b);
+  c.matchs[id]={id,date:today(),lec:lessonNow(),t0:Date.now(),pre:JSON.parse(JSON.stringify(pre)),a:PL.a,b:exo?null:PL.b,an:plName(c,PL.a,PL.ga),bn:exo?'':plName(c,PL.b,PL.gb),srv:PL.srv||0,pts:[],fin:false,flip:false,ca:PL.ca||'',cb:PL.cb||'',man:!exo&&PL.manOn?PL.man.map(x=>({mode:x.mode==='verte'?'verte':'pct',v:+x.v||7,num:x.num||'',z:(x.z||[]).slice(),c:(x.c||[]).slice(),s:+x.s||0,min:+x.min||0,pd:!!x.pd})):null,cal:pre.badcode?[[PL.ca],[PL.cb]]:null,sa:(PL.sa||'').trim(),sb:(PL.sb||'').trim(),poule:PL.poule||'',ga:ga?ga.id:'',gb:gb?gb.id:'',dev:terrOn()&&!isUnlocked()?'terrain':'prof'};
   PL.mid=id;PL.step='play';PL.pend=null;save();renderPlay()}
 function bindPlayCourt(){const svg=document.getElementById('pcourt');if(!svg)return;
   svg.onclick=ev=>{const m=curMatch();if(!m)return;const q=svgPt(svg,ev),pre=m.pre;
@@ -1392,7 +1410,7 @@ function renderMatchs(){
      <button class="btn sm" onclick="playResume('${m.id}')">✎ Reprendre</button><button class="btn red sm" onclick="matchDel('${m.id}')">Supprimer</button></div>${matchStatsHtml(m)}</div>`;return}
   const L=c.eleves.map(e=>({e,st:elStats(c,e.id,MDATE)}));
   const sel=CMP.map(id=>L.find(x=>x.e.id===id)).filter(Boolean);
-  el.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Matchs de ${esc(c.nom)}</h2>
+  el.innerHTML=grpAdmin(c)+`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Matchs de ${esc(c.nom)}</h2>
      <div class="row"><select class="f" style="width:auto" onchange="MDATE=this.value;renderMatchs()"><option value="">Toutes les leçons (${all.length})</option>${dates.map(d=>`<option value="${d}" ${d===MDATE?'selected':''}>${dateFR(d)} (${all.filter(m=>m.date===d).length})</option>`).join('')}</select>
      <button class="btn or sm" onclick="playStart(lessonPre())">▶ Nouveau match</button></div></div>
    <p class="muted">Les matchs saisis sur toutes les tablettes (enseignant ou tablette de terrain) arrivent ici automatiquement.</p>
@@ -1450,7 +1468,11 @@ function seqLecons(){
   return `<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
     <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="addLecon()">+ Leçon</button></div></div>
     <p class="muted" style="margin:6px 0 0">${S.voie==='pro'?'Les 7 leçons reprennent tes fiches de Terminale pro (leçon 7 : CCF).':'Leçons 1 et 2 reprises de tes fiches ; leçons 3 à 8 proposées à partir de ton projet de séquence (en vert clair : à garder, modifier ou supprimer).'} Chaque temps peut être relié à une situation du terrain : « ▶ Lancer » ouvre directement le scoring. Tout est partagé entre tes tablettes.</p></div>
-  ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):lecHtml(l,i,true)).join('')}`}
+  ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):(SEQOPEN[l.id]===1||(l.n===lessonNow()&&SEQOPEN[l.id]!==-1))?`<div class="lecwrap"><button class="lecfold" title="Replier" onclick="SEQOPEN['${l.id}']=-1;renderSeq()">▴</button>${lecHtml(l,i,true)}</div>`:lecRow(l,i)).join('')}`}
+let SEQOPEN={};
+function lecRow(l,i){const pre=(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id));
+  return `<button class="lecrow ${l.faite?'done':''} ${l.prop?'prop':''}" onclick="SEQOPEN['${l.id}']=1;renderSeq()"><span class="ln">${l.n}</span><span class="tt"><b>${esc(l.titre)}</b><small>${esc(l.obj)}</small></span>
+   <span class="bdg">${l.prop?'<span class="ctag ptag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted">${dateFR(l.date)}</span>`:''}<span class="muted">${(l.temps||[]).length} temps · ${pre.length} situation${pre.length>1?'s':''}</span></span><span class="chev">›</span></button>`}
 function lecEdit(l,i){
   const preOpt=v=>`<option value="">— aucune —</option>${S.presets.map(p=>`<option value="${p.id}" ${p.id===v?'selected':''}>${p.type==='exo'?'🎯':'🏸'} ${esc(p.nom)}</option>`).join('')}`;
   const ta=(id,v,r)=>`<textarea id="${id}" rows="${r||2}">${esc(v||'')}</textarea>`;
@@ -1462,6 +1484,7 @@ function lecEdit(l,i){
    <label class="l">Critères d'évaluation travaillés</label><div class="chipsel" id="le-k">${B().criteres.map(c=>`<button data-k="${c.id}" class="${l.crit.includes(c.id)?'on':''}" onclick="this.classList.toggle('on')">${esc(c.nom)} <small>${c.afl}</small></button>`).join('')}</div>
    ${(l.temps||[]).map((t,k)=>`<div class="bcrit" style="margin-top:10px" data-tk="${k}"><div class="g2"><div><label class="l">Temps</label><input type="text" class="tt" value="${esc(t.t)}"></div><div><label class="l">Situation de scoring</label><select class="f tp">${preOpt(t.pre)}</select></div><div style="align-self:end"><button class="btn red sm" onclick="tempsDel(${i},${k})">Supprimer ce temps</button></div></div>
      <label class="l">Consignes</label><textarea class="tc" rows="3">${esc(t.cons)}</textarea>
+     <label class="l">🧒 Consigne pour les élèves (onglet « Leçon du jour » de la tablette)</label><textarea class="tel2" rows="3">${esc(elCons(l,k))}</textarea>
      <div class="g2"><div><label class="l">Réussite quantitative (1 par ligne)</label><textarea class="tq" rows="2">${esc((t.crq||[]).join('\n'))}</textarea></div><div><label class="l">Réussite qualitative</label><textarea class="tl" rows="2">${esc((t.crl||[]).join('\n'))}</textarea></div><div><label class="l">Critères de réalisation</label><textarea class="tr" rows="3">${esc((t.crr||[]).join('\n'))}</textarea></div></div>
      <div class="g2"><div><label class="l">Variable +</label><input type="text" class="vp" value="${esc(t.vp||'')}"></div><div><label class="l">Variable −</label><input type="text" class="vm" value="${esc(t.vm||'')}"></div><div></div></div></div>`).join('')}
    <div class="row" style="margin-top:10px"><button class="btn alt" onclick="lecSave(${i},1)">+ Ajouter un temps</button><span style="flex:1"></span><button class="btn alt" onclick="SEQEDIT=null;renderSeq()">Annuler</button><button class="btn" onclick="lecSave(${i})">Enregistrer</button></div></div>`}
@@ -1469,7 +1492,7 @@ function lines(v){return String(v||'').split(/\n/).map(x=>x.trim()).filter(Boole
 function lecSave(i,addT){const l=SEQ().lecons[i],v=id=>document.getElementById(id).value;
   l.titre=v('le-t').trim()||l.titre;l.obj=v('le-o').trim();l.but=v('le-b').trim();l.date=v('le-d');l.cont=lines(v('le-c'));l.mat=v('le-m').trim();l.disp=v('le-p').trim();l.consg=v('le-g').trim();
   l.crit=[...document.querySelectorAll('#le-k button.on')].map(b=>b.dataset.k);
-  l.temps=[...document.querySelectorAll('[data-tk]')].map(d=>{const q=s=>d.querySelector(s).value;return{t:q('.tt').trim(),pre:q('.tp'),cons:q('.tc').trim(),crq:lines(q('.tq')),crl:lines(q('.tl')),crr:lines(q('.tr')),vp:q('.vp').trim(),vm:q('.vm').trim()}});
+  l.temps=[...document.querySelectorAll('[data-tk]')].map(d=>{const q=s=>d.querySelector(s).value;return{t:q('.tt').trim(),pre:q('.tp'),cons:q('.tc').trim(),crq:lines(q('.tq')),crl:lines(q('.tl')),crr:lines(q('.tr')),vp:q('.vp').trim(),vm:q('.vm').trim(),el:q('.tel2').trim()}});
   if(addT){l.temps.push({t:'Temps '+(l.temps.length+1),pre:'',cons:'',crq:[],crl:[],crr:[],vp:'',vm:''});save();renderSeq();return}
   l.prop=false;SEQEDIT=null;save();renderSeq();toast('Leçon enregistrée')}
 function tempsDel(i,k){lecSave(i,0);SEQEDIT=SEQ().lecons[i].id;SEQ().lecons[i].temps.splice(k,1);save();renderSeq()}
@@ -1584,6 +1607,127 @@ function printSeq(){
 /* ================== TABLETTE DE TERRAIN (mode élève, sans code ni notes) ==================
    Une tablette par terrain ou par poule : l'élève observateur (souvent dispensé) saisit les matchs et les exercices,
    les joueurs consultent la leçon du jour, l'échauffement, les fiches techniques et leurs statistiques. */
+/* ================== CONSIGNES EN LANGAGE ÉLÈVE (leçon du jour, tablette de terrain) ==================
+   clé : voie|id de leçon|n° du temps — modifiables par l'enseignant (champ « Consigne pour les élèves » de chaque temps) */
+const SV_BC="Set de 11 points. Avant le match, choisis ton code de 2 chiffres : la 1re zone où tu fais aller ton adversaire, la 2e où tu marques le point direct. Exemple 14 : fond gauche, puis avant droit.\nObjectif : gagner ET réussir 2 fois ton code. Note tes points sur ta fiche.";
+const ELTX={
+ 'gt|l1|0':"Par 2. Fais 5 services longs, puis ton partenaire fait les siens. 4 passages chacun.\nVise le fond du terrain : le volant doit tomber près de la ligne de service long double (à 1 m maximum).",
+ 'gt|l1|1':"Ton partenaire te sert un volant facile. Renvoie-le par un dégagé tout au fond du terrain.\n5 essais, puis on change. 4 passages chacun.",
+ 'gt|l1|2':"Matchs de 11 points dans ta poule.\nUn point marqué dans la zone arrière = 1 point de contrat.\nVous arbitrez vous-mêmes : annoncez le score et faites respecter les règles.",
+ 'gt|l2|0':"Service court : 5 services en prise revers. Vise la zone avant, juste derrière la ligne. 4 passages.\nAmorti : ton partenaire sert long, tu amortis depuis le fond puis tu reviens au centre. 5 essais, 4 passages.",
+ 'gt|l2|1':"Petit match au filet sur un terrain réduit : seule la zone avant compte.\nSers court ou long, puis joue en amorti et en contre-amorti.",
+ 'gt|l2|2':"Matchs de 11 points dans ta poule.\nUn point marqué dans la zone avant = 1 point de contrat.",
+ 'gt|l3|0':"Par 2 : dégagé, dégagé, amorti, contre-amorti, lob… 5 enchaînements chacun, puis on change.",
+ 'gt|l3|1':"Matchs de 11 points. Les points marqués en zone avant ou arrière rapportent plus que ceux du milieu : fais avancer et reculer ton adversaire.",
+ 'gt|l4|0':"Par 2 : échanges croisés puis le long de la ligne, au filet, à mi-court puis au fond. 10 frappes par distance.",
+ 'gt|l4|1':"Matchs de 11 points. Les points marqués dans les couloirs rapportent plus que ceux du centre : joue là où l'autre n'est pas.",
+ 'gt|l5|0':"Smash : ton partenaire t'envoie un volant haut au milieu du terrain. Smashe 5 fois, puis on change (4 passages).\nKill : le volant est lancé au-dessus du filet, frappe vers le bas.",
+ 'gt|l5|1':"Matchs de 11 points. Un point gagné en smash ou en kill rapporte un bonus.\nSmashe seulement sur un volant facile (haut et court).",
+ 'gt|l6|0':"Par 2 : fond – fond – filet. Le joueur en retard renvoie haut, l'autre termine le point.",
+ 'gt|l6|1':"Matchs avec 4 coins : le 1er point dans un coin vaut 1000, puis 100, 10, 1. Varie tes zones !\nAprès le match, regarde ton radar : quelles sont tes 2 zones favorites ?",
+ 'gt|l7|0':"Sers court puis termine au kill, ou sers long puis amortis. 5 enchaînements chacun, 4 passages.",
+ 'gt|l7|1':"Matchs de 11 points : service gagnant +2, amorti ou kill gagnant +2.\nChoisis ton service selon ton adversaire.",
+ 'gt|l8|0':"Ton coach regarde les statistiques de ton adversaire (son radar) et te propose une stratégie en 2 phrases avant le match.",
+ 'gt|l8|1':"Matchs de 11 points avec une zone interdite choisie par ton coach.\nTemps mort du coach à 6 points : change ton plan si besoin.",
+ 'gt|l9|0':"Matchs de 11 points (2 points d'écart) contre des joueurs de ton niveau. L'observateur saisit chaque match sur la tablette.",
+ 'pro|l3|0':"Par 2, 5 fois chaque thème :\n• Service court → ton partenaire avance → dégagé au fond → amorti au filet.\n• Service long → ton partenaire recule → amorti au filet.\nMarque le point en moins de 5 échanges.",
+ 'pro|l3|1':"Match de 11 points ou 3 minutes. A sert. B doit faire bouger A : si A pose un pied dans la zone avant, B doit ensuite jouer dans la zone arrière, et inversement.\nRaté = 5 points pour A. Réussi = 1 point pour B. L'arbitre vérifie.",
+ 'pro|l3|2':"Matchs de 11 points dans ta poule. Choisis TA zone favorite (avant ou arrière) : chaque point marqué dedans = 1 point de contrat.",
+ 'pro|l4|0':"Jeu en 8, à deux, sans faire tomber le volant : un joueur joue toujours tout droit, l'autre renvoie toujours en diagonale.\nAu moins 20 frappes croisées, puis on change de rôle.",
+ 'pro|l4|1':"Match de 5 points. Volant dans le couloir du milieu = point perdu. Point dans un couloir de côté = 1 point.\nSi tu marques dans les DEUX couloirs de côté, tu gagnes tout de suite ! 5 matchs chacun.",
+ 'pro|l4|2':"Matchs de 11 points dans ta poule. Un point marqué dans le couloir de ton choix = 1 point de contrat.",
+ 'pro|l5|0':"Réalise 5 fois chaque schéma :\n• Service court – amorti – contre-amorti\n• Service court – amorti – lob\n• Service long – dégagé – amorti\n• Service long – amorti – contre-amorti\nPuis invente ton propre schéma.",
+ 'pro|l5|1':"Match de 11 points : ton adversaire doit toucher la ligne du fond ou le filet entre chaque frappe.\nProfite de la place qu'il te laisse : marque au moins 7 points.",
+ 'pro|l5|2':SV_BC,
+ 'pro|l6|0':"Smash : ton partenaire sert en variant hauteur et longueur, tu smashes dans les zones. 1 min 30 à 2 min, puis on change.\nKill : il sert court, mi-hauteur ; arrive raquette haute au filet et frappe vers le bas.",
+ 'pro|l6|1':"Match de 21 points. Le volant vaut 10 points au service et perd 1 point à chaque frappe : marque le plus vite possible !",
+ 'pro|l6|2':SV_BC,
+ 'pro|l7|0':"Avec ton groupe, choisissez l'ordre des joueurs. Chacun prépare 4 stratégies : ton coach en choisira une pour chaque match.",
+ 'pro|l7|1':"Jouez tous vos matchs. Ton coach annonce la stratégie, l'observateur saisit le match sur la tablette.",
+ 'pro|l7|2':"Rends les fiches, démonte le terrain et range le matériel."};
+['l1|0','l1|1','l1|2','l2|0','l2|1','l2|2'].forEach(k=>{ELTX['pro|'+k]=ELTX['gt|'+k]});
+function elCons(l,k){const t=(l.temps||[])[k]||{};return t.el!=null&&t.el!==''?t.el:(ELTX[S.voie+'|'+l.id+'|'+k]||t.cons||'')}
+function lecEleveHtml(l){const sit=(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id));
+  return `<div class="card lecel"><div class="lh"><span class="ln">Leçon ${l.n}</span><h2>${esc(l.titre)}</h2></div>
+   <p class="obj">🎯 ${esc(l.objEl||l.obj)}</p>${l.but?`<p class="muted" style="margin:0">${esc(l.butEl||l.but)}</p>`:''}
+   <div class="echl" onclick="TERRT='ech';renderTerr()">🔥 Échauffement : déplacements badiste + ${routinesFor(l.n).length} routine(s) d'échanges <b>›</b></div></div>
+  ${(l.temps||[]).map((t,k)=>{const p=t.pre&&preById(t.pre),cr=(t.crq||[]).concat(t.crl||[]);
+   return `<div class="card tel"><div class="row" style="justify-content:space-between"><h3>${esc(t.t)}</h3>${p?`<button class="btn or" onclick="playStart('${p.id}')">▶ ${p.type==='exo'?'Exercice':'Jouer'}</button>`:''}</div>
+    <div class="tcons">${esc(elCons(l,k)).replace(/\n/g,'<br>')}</div>
+    <div class="g3">${cr.length?`<div class="bx ok"><b>✅ Je réussis si…</b><ul>${cr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+     ${(t.crr||[]).length?`<div class="bx tip"><b>💡 Pour bien faire</b><ul>${t.crr.map(x=>`<li>${esc(x.replace(/^(Service|Amorti|Dégagé|Smash|Kill|Kill revers) : /,'$1 : '))}</li>`).join('')}</ul></div>`:''}
+     ${t.vp||t.vm?`<div class="bx var">${t.vp?`<p><b>➕ Trop facile ?</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p><b>➖ Trop difficile ?</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div></div>`}).join('')}`}
+
+/* ================== GROUPES (une tablette = un groupe d'élèves) ET RENCONTRES ================== */
+const TOURS=[['groupe',"Au sein du groupe","Chaque groupe joue sa poule : tout le monde se rencontre. Seuls les résultats du groupe s'affichent."],['inter',"Entre groupes (défis)","Un groupe défie le groupe de son choix. Tous les groupes et leur classement apparaissent."],['italienne',"Ronde à l'italienne","Chaque groupe rencontre tous les autres groupes, ronde après ronde. Tous les groupes apparaissent."]];
+function grpOf(c,eid){return Object.values(c.groupes||{}).find(g=>g.el.includes(eid))}
+function curGrp(c){return c&&c.groupes&&c.groupes[TERR.grp]}
+function tourMode(c){return (c.tour&&c.tour.mode)||'groupe'}
+function grpMembers(c,g){return g?c.eleves.filter(e=>g.el.includes(e.id)):c.eleves}
+let GNEW=null;
+function grpScreen(c){
+  const G=Object.values(c.groupes||{}).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  if(GNEW){const used={};G.forEach(g=>g.el.forEach(id=>used[id]=g.nom));
+    return `<div class="card"><h2>👥 Créer ton groupe</h2><p class="muted">Cette tablette sera celle de ton groupe pendant la séquence. Choisis un nom, les joueurs et un code secret de 4 chiffres pour retrouver le groupe sur une autre tablette.</p>
+     <label class="l">Nom du groupe</label><input type="text" id="gnom" value="${esc(GNEW.nom)}" oninput="GNEW.nom=this.value" placeholder="ex. Les volants fous">
+     <label class="l">Joueurs du groupe</label><div class="pres">${c.eleves.map(e=>`<button class="${GNEW.el.includes(e.id)?'p':''}" onclick="gTog('${e.id}')">${esc(fullName(e))}${used[e.id]?`<br><small class="muted">déjà dans ${esc(used[e.id])}</small>`:''}</button>`).join('')}</div>
+     <label class="l">Code secret (4 chiffres)</label><input type="password" inputmode="numeric" maxlength="4" style="width:160px;font-size:1.4rem;letter-spacing:.3em" value="${esc(GNEW.pw)}" oninput="GNEW.pw=this.value.replace(/\\D/g,'')">
+     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="GNEW=null;renderTerr()">Annuler</button><button class="btn or big" onclick="gCreate()">Créer le groupe (${GNEW.el.length} joueur${GNEW.el.length>1?'s':''})</button></div></div>`}
+  return `<div class="card"><h2>👥 Ton groupe</h2><p class="muted">Rejoins ton groupe (avec son code secret) ou crée-le.</p>
+   <div class="tiles">${G.map(g=>`<button class="tile" onclick="gJoin('${g.id}')">👥 ${esc(g.nom)}<br><small class="muted" style="font-weight:600">${g.el.map(id=>esc(shortName(elById(c,id)))).join(', ')||'—'}</small></button>`).join('')}
+    <button class="tile" style="border-style:dashed" onclick="GNEW={nom:'',el:[],pw:''};renderTerr()">＋ Créer un groupe</button></div></div>`}
+function gTog(id){const a=GNEW.el,i=a.indexOf(id);if(i>=0)a.splice(i,1);else a.push(id);renderTerr()}
+function gCreate(){const c=classById(TERR.cls);if(!GNEW.nom.trim()){toast('Donne un nom au groupe');return}if(GNEW.el.length<2){toast('Choisis au moins 2 joueurs');return}if(!/^\d{4}$/.test(GNEW.pw)){toast('Le code secret doit avoir 4 chiffres');return}
+  if(Object.values(c.groupes||{}).some(g=>norm(g.nom)===norm(GNEW.nom))){toast('Ce nom de groupe existe déjà');return}
+  c.groupes=c.groupes||{};Object.values(c.groupes).forEach(g=>{const o=g.el.length;g.el=g.el.filter(id=>!GNEW.el.includes(id));if(g.el.length!==o)g.u=Date.now()});
+  const id='g'+Date.now().toString(36);c.groupes[id]={id,nom:GNEW.nom.trim(),el:GNEW.el.slice(),pw:h32('grp:'+GNEW.pw),t:Date.now()};TERR.grp=id;GNEW=null;terrSave();save();TERRT='jouer';renderTerr();toast('Groupe créé : cette tablette est celle de ton groupe')}
+async function gJoin(id){const c=classById(TERR.cls),g=c.groupes[id];const ok=v=>h32('grp:'+v)===g.pw;
+  let v=null;if(window.epsPin)v=await epsPin({title:'👥 '+g.nom,text:'Code secret du groupe',len:4,check:x=>ok(x)||'Code incorrect'});else{v=prompt('Code secret du groupe « '+g.nom+' »');if(v!=null&&!ok(v)){alert('Code incorrect');v=null}}
+  if(v==null)return;TERR.grp=id;terrSave();TERRT='jouer';renderTerr()}
+function gLeave(){if(!confirm('Changer de groupe sur cette tablette ?'))return;TERR.grp='';terrSave();renderTerr()}
+/* classement d'un ensemble de joueurs sur une liste de matchs */
+function plTable(c,ids,ms){const tab={};ids.forEach(id=>tab[id]={v:0,j:0,diff:0,pm:0});
+  ms.forEach(m=>{const R=replay(m);[m.a,m.b].forEach((id,s)=>{if(!tab[id])return;tab[id].j++;if(R.win===s)tab[id].v++;tab[id].diff+=R.sc[s]-R.sc[1-s];if(R.bc)tab[id].pm+=R.bc[s];else if(R.cp&&R.cp[s]!=null)tab[id].pm+=R.cp[s]})});
+  const usePm=ms.some(m=>{const R=replay(m);return R.bc||R.cp});const rk=ids.slice().sort((a,b)=>(usePm?tab[b].pm-tab[a].pm:0)||tab[b].v-tab[a].v||tab[b].diff-tab[a].diff);
+  return `<table><tr><th>#</th><th>Joueur</th><th>Victoires</th><th>Joués</th><th>Diff.</th>${usePm?'<th>Points de match</th>':''}</tr>${rk.map((id,i)=>`<tr><td>${i+1}</td><td>${esc(fullName(elById(c,id)||{nom:'?'}))}</td><td><b>${tab[id].v}</b></td><td>${tab[id].j}</td><td>${tab[id].diff>0?'+':''}${tab[id].diff}</td>${usePm?`<td><b>${tab[id].pm}</b></td>`:''}</tr>`).join('')}</table>`}
+/* classement des groupes (rencontres entre groupes du jour) */
+function grpTable(c,ms,mine){const G=Object.values(c.groupes||{}),T={};G.forEach(g=>T[g.id]={g,v:0,j:0,rv:0,rj:0});const R2={};
+  ms.forEach(m=>{if(!m.ga||!m.gb||m.ga===m.gb||!T[m.ga]||!T[m.gb])return;const R=replay(m);[m.ga,m.gb].forEach((g,s)=>{T[g].j++;if(R.win===s)T[g].v++});const k=[m.ga,m.gb].sort().join('|');R2[k]=R2[k]||{};R2[k][m.ga]=(R2[k][m.ga]||0)+(R.win===0?1:0);R2[k][m.gb]=(R2[k][m.gb]||0)+(R.win===1?1:0)});
+  Object.entries(R2).forEach(([k,o])=>{const [a,b]=k.split('|');T[a].rj++;T[b].rj++;if((o[a]||0)>(o[b]||0))T[a].rv++;else if((o[b]||0)>(o[a]||0))T[b].rv++});
+  const rk=Object.values(T).sort((x,y)=>y.rv-x.rv||y.v-x.v);
+  return `<table><tr><th>#</th><th>Groupe</th><th>Rencontres gagnées</th><th>Rencontres</th><th>Matchs gagnés</th></tr>${rk.map((t,i)=>`<tr ${t.g.id===mine?'style="background:#e3f4f1;font-weight:800"':''}><td>${i+1}</td><td>👥 ${esc(t.g.nom)}</td><td><b>${t.rv}</b></td><td>${t.rj}</td><td>${t.v}/${t.j}</td></tr>`).join('')}</table>`}
+/* ronde à l'italienne entre groupes (méthode du cercle) */
+function rondes(ids){const a=ids.slice();if(a.length%2)a.push(null);const n=a.length,R=[];for(let r=0;r<n-1;r++){const pr=[];for(let i=0;i<n/2;i++){const x=a[i],y=a[n-1-i];if(x&&y)pr.push([x,y])}R.push(pr);a.splice(1,0,a.pop())}return R}
+let OPP=null;
+function pouleGrpHtml(c){const g=curGrp(c),mode=tourMode(c),pre=c.tour&&c.tour.pre&&preById(c.tour.pre)?c.tour.pre:lessonPre(),d=today();
+  const sitSel=`<label class="l">Situation des matchs</label><select class="f" onchange="c_tourPre(this.value)">${S.presets.filter(p=>p.type!=='exo'&&(p.vis||lessonPreIds().includes(p.id))).map(p=>`<option value="${p.id}" ${p.id===pre?'selected':''}>${esc(p.nom)}</option>`).join('')}</select>`;
+  const ms=matchesOf(c,m=>m.date===d&&m.fin&&m.pre.type!=='exo');
+  const mtile=(a,b)=>{const m=ms.filter(x=>(x.a===a&&x.b===b)||(x.a===b&&x.b===a)).pop(),R=m&&replay(m);
+    return `<button onclick="${m?`TRES='${m.id}';renderTerrRes()`:`playStart('${pre}','${c.id}','${a}','${b}','${mode}:${d}')`}"><b>${esc(shortName(elById(c,a)))} ${m?`<span class="sc2">${R.sc[m.a===a?0:1]} – ${R.sc[m.a===a?1:0]}</span>`:'<span class="sc2">▶</span>'} ${esc(shortName(elById(c,b)))}</b><small>${m?'joué':'à jouer'}</small></button>`};
+  const head=`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🏆 ${TOURS.find(t=>t[0]===mode)[1]}</h2><span class="tag">👥 ${esc(g.nom)}</span></div><p class="muted" style="margin:4px 0 0">${TOURS.find(t=>t[0]===mode)[2]}</p>${sitSel}</div>`;
+  if(mode==='groupe'){const pairs=[];for(let i=0;i<g.el.length;i++)for(let j=i+1;j<g.el.length;j++)pairs.push([g.el[i],g.el[j]]);
+    const mg=ms.filter(m=>g.el.includes(m.a)&&g.el.includes(m.b));
+    return head+`<div class="card"><h3>Matchs du groupe</h3><div class="mlist">${pairs.map(([a,b])=>mtile(a,b)).join('')}</div><h3>Classement du groupe</h3>${plTable(c,g.el,mg)}</div>`}
+  const others=Object.values(c.groupes).filter(x=>x.id!==g.id);
+  let opp=OPP&&c.groupes[OPP]&&OPP!==g.id?c.groupes[OPP]:null,rd='';
+  if(mode==='italienne'){const R=rondes(Object.keys(c.groupes).sort());rd=`<div class="card"><h3>Programme des rondes</h3>${R.map((pr,i)=>`<div class="ronde"><b>Ronde ${i+1}</b>${pr.map(([x,y])=>{const me=x===g.id||y===g.id,o=x===g.id?y:x;return `<span class="${me?'me':''}" ${me?`onclick="OPP='${o}';renderTerr()"`:''}>${esc(c.groupes[x].nom)} – ${esc(c.groupes[y].nom)}</span>`}).join('')}</div>`).join('')||'<p class="muted">Il faut au moins 2 groupes.</p>'}<p class="muted">Touche la rencontre de ton groupe pour jouer.</p></div>`}
+  const cross=opp?g.el.flatMap(a=>opp.el.map(b=>[a,b])):[];
+  return head+rd+`<div class="card"><h3>${mode==='inter'?'Défier un groupe':'Rencontre'}</h3>${mode==='inter'?`<div class="tiles">${others.map(o=>`<button class="tile ${opp&&opp.id===o.id?'on':''}" onclick="OPP='${o.id}';renderTerr()">👥 ${esc(o.nom)}<br><small class="muted">${o.el.map(id=>esc(shortName(elById(c,id)))).join(', ')}</small></button>`).join('')||'<p class="muted">Aucun autre groupe dans la classe.</p>'}</div>`:''}
+    ${opp?`<h3>${esc(g.nom)} – ${esc(opp.nom)}</h3><div class="mlist">${cross.map(([a,b])=>mtile(a,b)).join('')}</div>`:''}</div>
+   <div class="card"><h3>Classement des groupes · aujourd'hui</h3>${grpTable(c,ms,g.id)}<h3>Joueurs de ${esc(g.nom)}</h3>${plTable(c,g.el,ms.filter(m=>g.el.includes(m.a)||g.el.includes(m.b)))}</div>`}
+function c_tourPre(v){const c=classById(TERR.cls);c.tour=Object.assign({mode:tourMode(c)},c.tour||{},{pre:v});save();renderTerr()}
+function lessonPreIds(){const l=lessonObj(lessonNow());return l?(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id)):[]}
+/* enseignant : groupes et format des rencontres */
+function grpAdmin(c){const G=Object.values(c.groupes||{}),mode=tourMode(c),ms=matchesOf(c,m=>m.date===today()&&m.fin&&m.pre.type!=='exo');
+  return `<div class="card"><h2>👥 Groupes et rencontres · ${esc(c.nom)}</h2>
+   <p class="muted">Les élèves créent leur groupe sur la tablette de terrain (nom, joueurs, code secret). Choisis ici comment les groupes s'affrontent.</p>
+   <div class="seg">${TOURS.map(([k,n])=>`<button class="${mode===k?'on':''}" onclick="setTour('${k}')">${n}</button>`).join('')}</div><p class="muted" style="margin:6px 0 10px">${TOURS.find(t=>t[0]===mode)[2]}</p>
+   ${G.length?`<div class="tw"><table><tr><th>Groupe</th><th>Joueurs</th><th></th></tr>${G.map(g=>`<tr><td><b>👥 ${esc(g.nom)}</b></td><td>${g.el.map(id=>esc(fullName(elById(c,id)||{nom:'?'}))).join(', ')}</td><td style="white-space:nowrap"><button class="btn alt sm" onclick="gPw('${g.id}')">Nouveau code</button> <button class="btn red sm" onclick="gDel('${g.id}')">Supprimer</button></td></tr>`).join('')}</table></div>
+   ${mode!=='groupe'?`<h3>Classement des groupes · aujourd'hui</h3>${grpTable(c,ms,'')}`:G.map(g=>`<h3>Poule ${esc(g.nom)} · aujourd'hui</h3>${plTable(c,g.el,ms.filter(m=>g.el.includes(m.a)&&g.el.includes(m.b)))}`).join('')}`:'<p class="muted">Aucun groupe pour le moment.</p>'}</div>`}
+function setTour(k){const c=C();c.tour=Object.assign({},c.tour||{},{mode:k});save();renderMatchs()}
+function gDel(id){const c=C();if(!confirm('Supprimer le groupe « '+c.groupes[id].nom+' » ? Les matchs joués sont conservés.'))return;delete c.groupes[id];save();renderMatchs()}
+function gPw(id){const c=C(),v=prompt('Nouveau code secret (4 chiffres) pour « '+c.groupes[id].nom+' »');if(v==null)return;if(!/^\d{4}$/.test(v)){alert('4 chiffres');return}c.groupes[id].pw=h32('grp:'+v);c.groupes[id].u=Date.now();save();toast('Code changé')}
+
 const TKEY='eps_bad_terrain';
 let TERR=Object.assign({on:false,cls:''},jget(TKEY,{})||{}),TERRT='jouer',TSTAT='',POULE=null,PSEL=[];
 const terrOn=()=>!!TERR.on;
@@ -1598,28 +1742,30 @@ function renderTerr(){
     box.innerHTML=`<div class="chd"><h1>🏸 Tablette de terrain</h1><button class="lockbtn" onclick="terrStop()">Quitter</button></div>
     <div class="cbody"><div class="card"><h2>Quelle classe ?</h2><div class="tiles">${L.map(x=>`<button class="tile" onclick="TERR.cls='${x.id}';terrSave();renderTerr()">${esc(x.nom)}<br><small class="muted">${x.eleves.length} élèves · ${VOIES[x.voie]}</small></button>`).join('')||'<p class="muted">Aucune classe : l\'enseignant doit d\'abord importer une liste d\'élèves.</p>'}</div></div></div>`;return}
   if(c.voie!==S.voie){S.voie=c.voie;fixState();S.cur=S.classes.indexOf(c)}
-  const n=lessonNow(),l=lessonObj(n);
+  const n=lessonNow(),l=lessonObj(n),g=curGrp(c);
+  const hdBtns=`${g?`<button class="lockbtn" onclick="gLeave()" title="Changer de groupe">👥 ${esc(g.nom)}</button>`:''}<button class="lockbtn" onclick="unlock()" title="Passer en mode enseignant">🔒 Enseignant</button><button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button>`;
+  if(!g){box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}</h1>${hdBtns}</div><div class="cbody">${grpScreen(c)}</div>`;return}
   const tabs=[['jouer','🏸 Jouer'],['poule','🏆 Poule'],['lecon','📋 Leçon du jour'],['ech','🔥 Échauffement'],['tech','📚 Technique'],['fiche','🗒 Ma fiche'],['stats','📊 Mes stats']];
-  box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}${l?' · Leçon '+l.n:''}</h1><button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button></div>
+  box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}${l?' · Leçon '+l.n:''}</h1>${hdBtns}</div>
    <div class="ctabs">${tabs.map(([k,nm])=>`<button class="${TERRT===k?'on':''}" onclick="TERRT='${k}';renderTerr()">${nm}</button>`).join('')}</div>
    <div class="cbody" id="tbody"></div>`;
   const b=document.getElementById('tbody');
-  if(TERRT==='jouer'){const ids=l?(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id)):[];const others=S.presets.filter(p=>!ids.includes(p.id));
-    const today_=matchesOf(c,m=>m.date===today()).reverse();
+  if(TERRT==='jouer'){const ids=l?(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id)):[];const others=S.presets.filter(p=>p.vis&&!ids.includes(p.id));
+    const today_=matchesOf(c,m=>m.date===today()&&(g.el.includes(m.a)||g.el.includes(m.b))).reverse();
     b.innerHTML=`${l?`<div class="card"><h2>Aujourd'hui · ${esc(l.titre)}</h2><p style="margin:0 0 10px"><b>Objectif :</b> ${esc(l.obj)}</p>
       <div class="tiles">${(l.temps||[]).filter(t=>t.pre&&preById(t.pre)).map(t=>{const p=preById(t.pre);return `<button class="tile" onclick="playStart('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(t.t)}<br><small class="muted" style="font-weight:600">${esc(p.nom)}</small></button>`}).join('')||'<p class="muted">Pas de situation reliée à cette leçon.</p>'}</div></div>`:''}
-     <div class="card"><h2>Autres situations</h2><div class="tiles">${others.map(p=>`<button class="tile" style="font-size:1rem" onclick="playStart('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(p.nom)}</button>`).join('')}</div></div>
+     ${others.length?`<div class="card"><h2>Autres situations</h2><div class="tiles">${others.map(p=>`<button class="tile" style="font-size:1rem" onclick="playStart('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(p.nom)}</button>`).join('')}</div></div>`:''}
      <div class="card"><h2>Matchs du jour</h2>${today_.length?`<div class="mlist">${today_.map(m=>{const R=replay(m);return `<button onclick="TRES='${m.id}';renderTerrRes()"><b>${m.pre.type==='exo'?'🎯 '+esc(m.an)+' · '+R.ok+'/'+R.n:esc(m.an)+' <span class="sc2">'+R.sc[0]+' – '+R.sc[1]+'</span> '+esc(m.bn)}</b><small>${esc(m.pre.nom)}${m.fin?'':' · en cours (toucher pour reprendre)'}</small></button>`}).join('')}</div>`:'<p class="muted">Aucun match saisi aujourd\'hui.</p>'}</div>`}
-  else if(TERRT==='poule')b.innerHTML=pouleHtml(c);
-  else if(TERRT==='lecon')b.innerHTML=l?lecHtml(l,SEQ().lecons.indexOf(l),false):'<p class="muted">Pas de leçon.</p>';
+  else if(TERRT==='poule')b.innerHTML=pouleGrpHtml(c);
+  else if(TERRT==='lecon')b.innerHTML=l?lecEleveHtml(l):'<p class="muted">Pas de leçon.</p>';
   else if(TERRT==='ech'){b.innerHTML=`<div class="card">${deplHtml()}</div><div class="card">${routHtml(n)}</div>`}
   else if(TERRT==='tech')b.innerHTML=techHtml(false);
   else if(TERRT==='fiche'){const e=elById(c,TSTAT);
-    b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${c.eleves.map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';FMAN=null;renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
+    b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${grpMembers(c,g).map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';FMAN=null;renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
      ${e?`<div class="card"><h2>🗒 Fiche de ${esc(fullName(e))} · aujourd'hui</h2><p class="muted">Remplie automatiquement par les matchs saisis sur la tablette. Un match joué sans tablette ? Ajoute-le ci-dessous.</p>${ficheHtml2(c,e,today())}</div>${ficheForm(c,e)}
       <div class="card"><h3>Rappel Badcode</h3><p style="font-size:.95rem">${BC_LEG}</p>${bcSchema()}</div>`:''}`}
   else{const e=elById(c,TSTAT);
-    b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${c.eleves.map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
+    b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${grpMembers(c,g).map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
      ${e?(()=>{const st=elStats(c,e.id),sd=elStats(c,e.id,today());return `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(fullName(e))}</h2><div class="seg">${['profil','zones','coups'].map(k=>`<button class="${RADK===k?'on':''}" onclick="RADK='${k}';renderTerr()">${{profil:'Mon profil',zones:'Mes zones',coups:'Mes coups'}[k]}</button>`).join('')}</div></div>
        ${st.ms.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,sd.ms.length&&sd.ms.length<st.ms.length?[st,sd]:[st]),sd.ms.length&&sd.ms.length<st.ms.length?[{nom:'Toute la séquence',c:'#0B7A75'},{nom:"Aujourd'hui",c:'#D9481F'}]:[{nom:'',c:'#0B7A75'}],340)}</div><div style="flex:1;min-width:240px">${statLines(st)}<p class="astuce">💡 ${conseil(st)}</p></div></div><h3>Où je marque mes points</h3><div class="cw mini">${heatSvg(st)}</div>`:'<p class="muted">Pas encore de match saisi.</p>'}</div>`})():''}`}
 }
@@ -1942,7 +2088,7 @@ async function unlock(){
 function lockApp(){unlockedUntil=0;try{localStorage.setItem('eps.teach.until','0')}catch(e){}setLock()}
 function toTerrain(){TERR.cls=C().id;lockApp();terrStart()}
 setInterval(setLock,30000);
-window.epsAppHome=function(){if(document.getElementById('play').classList.contains('on'))return;if(!isUnlocked()){TERR.cls='';terrSave();if(window.EPSG&&EPSG.open){TERR.on=false;terrSave();setLock()}else{TERRT='jouer';renderTerr()}}else showTab('eval')};
+window.epsAppHome=function(){if(document.getElementById('play').classList.contains('on'))return;if(!isUnlocked()){TERR.cls='';terrSave();if(window.EPSG&&EPSG.open){TERR.on=false;terrSave();setLock()}else{TERRT='jouer';renderTerr()}}else showTab('seq')};
 window.epsCurrentClass=()=>{const c=terrOn()&&!isUnlocked()?classById(TERR.cls):C();return c?{nom:c.nom,eleves:c.eleves.map(e=>((e.prenom||'')+' '+e.nom).trim())}:null};
 
 /* ================== SYNCHRONISATION ENTRE TABLETTES ==================
@@ -1965,7 +2111,8 @@ function blankClass(c){return c.nom==='Ma classe'&&!c.eleves.length&&!Object.key
 function seqMeta(q){const o=Object.assign({},q);o.ord=(q.lecons||[]).map(l=>l.id);delete o.lecons;return o}
 function syRecords(){const O={};
   S.classes.forEach(c=>{if(blankClass(c))return;
-    O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,voie:c.voie,ord:c.eleves.map(e=>e.id)});
+    O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,voie:c.voie,ord:c.eleves.map(e=>e.id),tour:c.tour||null});
+    Object.values(c.groupes||{}).forEach(g=>{O['gr|'+c.id+'|'+g.id]=JSON.stringify(g)});
     c.eleves.forEach(e=>{O['el|'+c.id+'|'+e.id]=JSON.stringify(e)});
     Object.values(c.matchs||{}).forEach(m=>{O['ma|'+c.id+'|'+m.id]=JSON.stringify(m)});
     Object.values(c.poules||{}).forEach(p=>{O['po|'+c.id+'|'+p.id]=JSON.stringify(p)})});
@@ -1997,7 +2144,7 @@ async function syDec(x){const b=Uint8Array.from(atob(x),c=>c.charCodeAt(0));retu
 function syJ(params,ms){const c=SYC();return new Promise(res=>{const cb='bcb'+Date.now()+Math.floor(Math.random()*1e4),sc=document.createElement('script');let t;
   const end=d=>{clearTimeout(t);window[cb]=()=>{};sc.remove();res(d)};t=setTimeout(()=>end(null),ms||20000);window[cb]=d=>end(d);sc.onerror=()=>end(null);
   sc.src=c.url+(c.url.includes('?')?'&':'?')+Object.entries({...params,key:c.key,callback:cb}).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');document.head.append(sc)})}
-function syCls(cid,nom){let c=S.classes.find(x=>x.id===cid);if(!c){S.classes=S.classes.filter(x=>!blankClass(x));c={id:cid,nom:nom||'…',voie:'gt',eleves:[],matchs:{},poules:{}};S.classes.push(c)}return c}
+function syCls(cid,nom){let c=S.classes.find(x=>x.id===cid);if(!c){S.classes=S.classes.filter(x=>!blankClass(x));c={id:cid,nom:nom||'…',voie:'gt',eleves:[],matchs:{},poules:{},groupes:{}};S.classes.push(c)}return c}
 function sortBy(arr,ord){if(!Array.isArray(ord))return;arr.sort((a,b)=>{const i=ord.indexOf(a.id),j=ord.indexOf(b.id);return (i<0?1e6:i)-(j<0?1e6:j)})}
 function syApply(k,o){const p=k.split('|'),t=p[0];
   if(t==='bar'){S.prof[p[1]].bareme=o;return}
@@ -2010,10 +2157,11 @@ function syApply(k,o){const p=k.split('|'),t=p[0];
   if(t==='ctr'){S.contrats=o;return}
   if(t==='cl'){let c=S.classes.find(x=>x.id===o.id);
     if(!c){c=S.classes.find(x=>norm(x.nom)===norm(o.nom)&&x.voie===(o.voie||'gt'));if(c)c.id=o.id;else c=syCls(o.id,o.nom)}
-    c.nom=o.nom;c.voie=o.voie==='pro'?'pro':'gt';sortBy(c.eleves,o.ord);return}
+    c.nom=o.nom;c.voie=o.voie==='pro'?'pro':'gt';c.tour=o.tour||null;sortBy(c.eleves,o.ord);return}
   const c=syCls(p[1]);
   if(t==='ma'){c.matchs[o.id]=o;return}
   if(t==='po'){c.poules[o.id]=o;return}
+  if(t==='gr'){c.groupes=c.groupes||{};c.groupes[o.id]=o;return}
   if(t==='el'){o.ev=o.ev||{};const i=c.eleves.findIndex(e=>e.id===o.id);if(i>=0){c.eleves[i]=o;return}
     const j=c.eleves.findIndex(e=>nkey(e.prenom+' '+e.nom)===nkey(o.prenom+' '+o.nom));if(j>=0&&!hasData(c.eleves[j]))c.eleves[j]=o;else c.eleves.push(o)}}
 function syRemove(k){const p=k.split('|'),t=p[0],c=S.classes.find(x=>x.id===p[1]);
@@ -2021,6 +2169,7 @@ function syRemove(k){const p=k.split('|'),t=p[0],c=S.classes.find(x=>x.id===p[1]
   else if(t==='el'&&c)c.eleves=c.eleves.filter(e=>e.id!==p[2]);
   else if(t==='ma'&&c)delete c.matchs[p[2]];
   else if(t==='po'&&c)delete c.poules[p[2]];
+  else if(t==='gr'&&c&&c.groupes)delete c.groupes[p[2]];
   else if(t==='le'){const q=S.prof[p[1]]&&S.prof[p[1]].seq;if(q)q.lecons=q.lecons.filter(l=>l.id!==p[2])}
   else if(t==='te')S.tech=S.tech.filter(f=>f.id!==p[1]);
   else if(t==='pr')S.presets=S.presets.filter(x=>x.id!==p[1])}
@@ -2085,7 +2234,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 addEventListener('storage',ev=>{if(ev.key==='eps.share.v1'){syUpd();syncSoon(300)}});
 
 /* ================== DÉMARRAGE ================== */
-renderHead();renderList();setLock();syUpd();syncSoon(800);
+renderHead();showTab('seq');setLock();syUpd();syncSoon(800);
 
 /* listes de classes communes (eps-home.js) : mise à jour en direct quand une liste arrive */
 window.epsListsHook={save:()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},reload:()=>{try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&typeof v==='object')S=v}catch(e){}fixState();refresh();if(terrOn()&&!isUnlocked())renderTerr()}};
