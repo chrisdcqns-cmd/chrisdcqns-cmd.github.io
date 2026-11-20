@@ -27,3 +27,4 @@ C'est tout : génère ensuite les bilans PDF (auto-positionnement autorisé), le
 - Si tu changes la clé secrète ou l'URL, les liens des bilans déjà distribués ne fonctionnent plus : régénère les bilans.
 - En fin de cycle : **Réglages → Envoi automatique → Vider les dépôts** (les positionnements déjà relevés restent dans Danse sur la tablette).
 - Les élèves n'ont pas besoin de compte Google.
+- **Volley-ball utilise le même script** : rien à installer de plus. Volley reprend l'adresse et la clé réglées dans Danse sur la même tablette (ou celles saisies dans Volley > Bilan & export > Auto-positionnement). Ses dépôts (clés `dan|vb…`) sont ignorés par Danse, et inversement.
