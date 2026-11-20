@@ -32,6 +32,12 @@ header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;paddin
 .pick label.off{opacity:.45;text-decoration:line-through}
 .pick input{width:18px;height:18px;accent-color:var(--blue)}
 .disp{font-size:.8rem}
+.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-weight:700;font-size:.9rem;position:relative}
+.sw input{position:absolute;opacity:0}
+.sw span{width:42px;height:24px;border-radius:12px;background:#d8d2e3;position:relative;transition:.2s;flex:none}
+.sw span::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.sw input:checked+span{background:var(--vol)}.sw input:checked+span::after{left:21px}
+.crit.el{border-left:5px solid var(--vol)}
 .subtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .subtabs button{border:2px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font-weight:700;color:var(--ink)}
 .subtabs button.on{background:var(--vol);border-color:var(--vol);color:#fff}
@@ -310,8 +316,10 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
 /* ================== DONNÉES PAR DÉFAUT ================== */
 const KEY='eps_volley_eval_v1';
 const CHOIX=['4-4','6-2','2-6']; // AFL2-AFL3
-function defBareme(){return{
-  v:4,
+function defBareme(){const B0={
+  v:5,
+  degresEl:['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'],
+  langFiche:'eleve', // langage des fiches et PDF élèves : 'eleve' (simplifié) ou 'prof'
   optMatchs:false, optBonus:false, bonusSeuil:3, bonusLabel:"Point gagné après une attaque construite en 3 touches",
   mode:'perso',        // 'perso' = 4 × 25 % ; 'officiel' = AFL1 12 pts + AFL2/AFL3 8 pts au choix
   pas:0.25,            // pas du curseur
@@ -339,7 +347,7 @@ function defBareme(){return{
       "Connaît quelques règles mais les applique de façon irrégulière. Tient le score avec des erreurs et oublie la rotation. A besoin de l'enseignant pour lancer ou relancer le jeu.",
       "Connaît les règles essentielles (touches, filet, lignes, service) et les fait respecter. Tient le score, gère le service et la rotation. Le match se déroule avec quelques interventions de l'enseignant.",
       "Connaît et applique toutes les règles du jeu aménagé (dont l'autopasse pour les élèves en difficulté). Organise le match seul : installation, score annoncé à voix haute, rotation, changement de rôles. Explique une règle à un camarade ou règle un désaccord calmement."]}
-  ]};}
+  ]};addEl(B0);return B0}
 /* ================== SÉQUENCE (leçons, échauffement, AFL) ================== */
 function L_(n,titre,obj,cont,ech,crit,prop){return{id:'l'+n,n,titre,obj,cont,ech,crit,prop:!!prop,faite:false,date:''}}
 function defMob(){return["Chevilles : rotations dans les deux sens","Genoux : flexions, petits cercles","Hanches : cercles du bassin, fentes avant et latérales","Épaules : cercles bras tendus en avant et en arrière","Poignets et doigts : rotations, doigts écartés / serrés, mains qui se pressent","Nuque : rotations lentes"]}
@@ -368,6 +376,9 @@ function defSeq(){return{v:2,mob:defMob(),routines:defRoutines(),
    L_(10,"Préparer l'évaluation","Choisir son projet d'attaque et s'entraîner sur ses points faibles.",["Routines avec ballon : chaque élève insiste sur celle qui correspond à son besoin et sait dire pourquoi","Chaque équipe choisit et répète son schéma d'attaque","Matchs à thème : l'adversaire défend la zone arrière → chercher la zone avant","Auto-positionnement de l'élève sur les 4 critères, comparé à celui de l'enseignant"],'II',['ech','att','pro'],1),
    L_(11,"Évaluation","Évaluer les 4 critères en situation de match.",["Échauffement complet en autonomie (mobilisation, courses, routines) : observé pour l'AFL2","Matchs en 4 contre 4 entre équipes équilibrées, équipes remaniées","Positionnement dans l'appli : degré + curseur, matchs gagnés","Les élèves organisent les matchs (score, service, rotation) : observé pour l'AFL3"],'II',['att','pro','ech','arb'],1)
   ]};}
+const DEF_EL={"att": ["Marquer des points en attaque", "Renvoyer le ballon pour marquer, pas seulement pour s'en débarrasser.", ["Tu renvoies le ballon directement, sans viser. Tu joues en réaction, sans chercher à marquer.", "Tu gardes le ballon dans ton camp, mais tes renvois ne sont pas encore décisifs : le ballon arrive souvent sur un adversaire.", "Ton équipe construit l'attaque en 3 touches. Tu vises le fond du terrain ou un espace libre.", "Tu attaques le ballon pour marquer : il redescend vite, il est placé, accéléré ou frappé."]], "pro": ["Mon rôle dans le jeu", "Choisir la bonne passe et participer activement au jeu.", ["Tu bouges peu, tu interviens rarement et tu te débarrasses du ballon.", "Tu joues surtout la 2e touche, avec des renvois directs ou des passes encore imprécises. Tu peux t'aider de l'autopasse si tu es en difficulté.", "Tu joues en 2 ou 3 touches et tu passes le ballon vers l'avant, près du filet.", "Tu joues en 3 touches : tu t'orientes et tu fais une passe haute vers l'attaquant, près du filet."]], "ech": ["Je m'échauffe et je m'engage", "S'échauffer pour jouer en sécurité et s'engager pour progresser.", ["Ton échauffement n'est pas organisé. Tu ne répètes pas assez pour progresser.", "Ton échauffement est incomplet. Tu t'engages peu : tu ne pratiques pas assez pour progresser.", "Ton échauffement est complet mais désordonné. Tu repères ce qui ne va pas, mais tu as besoin de l'enseignant pour progresser.", "Ton échauffement est complet. Tu repères tes points faibles et tu les travailles. Tu répètes beaucoup et tu progresses."]], "arb": ["Je connais les règles et je fais vivre le match", "Connaître les règles et faire fonctionner le match seul (score, service, rotation, rôles).", ["Tu ne connais pas les règles de base. Tu ne sais pas tenir le score ni dire qui sert.", "Tu connais quelques règles mais tu ne les appliques pas toujours. Tu te trompes dans le score ou la rotation.", "Tu connais les règles principales et tu les fais respecter. Tu tiens le score, le service et la rotation, avec un peu d'aide.", "Tu connais toutes les règles du jeu (y compris l'autopasse pour les élèves en difficulté). Tu organises le match seul et tu aides les autres à comprendre une règle."]]};
+function addEl(b){b.degresEl=b.degresEl||['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'];if(!b.langFiche)b.langFiche='eleve';
+  (b.criteres||[]).forEach(c=>{const d=DEF_EL[c.id];if(c.nomEl==null)c.nomEl=d?d[0]:c.nom;if(c.butEl==null)c.butEl=d?d[1]:c.but;if(!Array.isArray(c.descEl))c.descEl=d?d[2].slice():c.desc.slice()})}
 function defState(){return{bareme:defBareme(),classes:[{id:uid(),nom:'Ma classe',eleves:[]}],cur:0};}
 function uid(){return Math.random().toString(36).slice(2,9)}
 
@@ -376,7 +387,7 @@ try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 function fixState(){
   if(!S||typeof S!=='object')S=defState();
   if(!S.bareme||!S.bareme.criteres)S.bareme=defBareme();
-  migrateBareme();
+  migrateBareme();addEl(S.bareme);
   if(!Array.isArray(S.classes)||!S.classes.length)S.classes=[{id:uid(),nom:'Ma classe',eleves:[]}];
   S.classes.forEach(c=>{c.eleves=c.eleves||[];c.equipes=c.equipes||[];c.tournois=c.tournois||{};c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
   if(!(S.cur>=0&&S.cur<S.classes.length))S.cur=0;
@@ -390,13 +401,13 @@ function fixState(){
     S.seq.lecons.forEach(l=>{if(l.ech==='III')l.ech='II'});S.seq.v=2;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 }
 function migrateBareme(){
-  const b=S.bareme;if((b.v||1)>=4)return;
+  const b=S.bareme;if((b.v||1)===4){b.v=5;addEl(b);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}return}if((b.v||1)>=5)return;
   if((b.v||1)===3){ /* v4 : l'autopasse est une simplification pour les élèves en difficulté, pas un repère du degré 3 */
     const pro=b.criteres.find(c=>c.id==='pro'),arb=b.criteres.find(c=>c.id==='arb');
     if(pro&&pro.desc[2]==="Alterne un jeu en 2 ou 3 touches et distribue en zone avant, en utilisant l'autopasse si besoin (attraper le ballon et se le passer pour le jouer).")pro.desc[2]="Alterne un jeu en 2 ou 3 touches et distribue en zone avant.";
     if(pro&&pro.desc[1]==="Intervient sur le 2e ballon (renvois directs ou passes canadiennes imprécises).")pro.desc[1]="Intervient sur le 2e ballon (renvois directs ou passes canadiennes imprécises). Peut s'aider de l'autopasse, simplification réservée aux élèves en difficulté.";
     if(arb&&typeof arb.desc[3]==='string')arb.desc[3]=arb.desc[3].replace("Connaît et applique toutes les règles du jeu aménagé, y compris l'autopasse. Organise","Connaît et applique toutes les règles du jeu aménagé (dont l'autopasse pour les élèves en difficulté). Organise");
-    b.v=4;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}return}
+    b.v=4;migrateBareme();return}
   const D=defBareme(),get=id=>D.criteres.find(c=>c.id===id);
   if((b.v||1)<3&&(b.arrondi==null||b.arrondi===0.5))b.arrondi=0.25; /* note /20 au 0,25 près */
   if((b.v||1)>=2){b.v=3;migrateBareme();return}
@@ -524,6 +535,8 @@ function renderEval(){
       <button class="${e.statut==='ABS'?'on':''}" onclick="setStatut('ABS')">Absent</button>
       <button class="${e.statut==='DISP'?'on':''}" onclick="setStatut('DISP')">Dispensé</button>
     </div>
+    <label class="sw" title="Afficher les critères avec les mots de l'élève"><input type="checkbox" ${TXEL?'checked':''} onchange="TXEL=this.checked;try{localStorage.setItem('eps_volley_txel',TXEL?'1':'')}catch(e){};renderEval()"><span></span>Texte élève</label>
+    <button class="btn sm" onclick="printPDF('un')">📄 PDF élève</button>
     <button class="btn red sm" onclick="resetEleve()">Effacer la note</button>
   </div>
   ${choixHtml}
@@ -536,8 +549,11 @@ function renderEval(){
   <div class="total" id="totBar"></div>`;
   renderTotal();
 }
+let TXEL=(()=>{try{return !!localStorage.getItem('eps_volley_txel')}catch(e){return false}})();
+/* textes d'un critère dans le langage voulu ('eleve' ou 'prof') */
+function cTx(cr,el){return el?{nom:cr.nomEl||cr.nom,but:cr.butEl||cr.but,desc:(cr.descEl&&cr.descEl.length?cr.descEl:cr.desc),deg:B().degresEl||B().degres}:{nom:cr.nom,but:cr.but,desc:cr.desc,deg:B().degres}}
 function critHtml(cr,e){
-  const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e);
+  const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
   if(v&&v.d!=null){
     const [lo,hi]=band(cr,e,v.d);
@@ -545,11 +561,11 @@ function critHtml(cr,e){
       <input type="range" min="${lo}" max="${hi}" step="${b.pas}" value="${pts}" oninput="setVal('${cr.id}',this.value)" aria-label="Position dans le degré">
       <span class="lim">${fr(hi)}</span></div>`;
   }
-  return `<div class="crit" id="c-${cr.id}">
-   <div class="crit-h"><div><b>${esc(cr.nom)}</b> <span class="tag">${esc(cr.afl)}</span><div class="muted">${esc(cr.but)}${cr.refs?' · '+esc(cr.refs):''}</div>${e.auto&&e.auto.d&&e.auto.d[cr.id]!=null?`<div class="muted" style="font-weight:700;margin-top:3px">🪞 Auto-positionnement (${new Date(e.auto.date+'T12:00').toLocaleDateString('fr-FR')}) : D${e.auto.d[cr.id]+1}</div>`:''}${cr.afl==='AFL3'&&rolesTxt(C(),e)?`<div class="muted" style="color:#B26B00;font-weight:700;margin-top:3px">🎭 Rôles tenus : ${rolesTxt(C(),e)}</div>`:''}${cr.afl==='AFL2'&&t3Txt(e)?`<div class="muted" style="color:var(--vol);font-weight:700;margin-top:3px">Routines renforcées : ${t3Txt(e)}</div>`:''}</div>
+  return `<div class="crit ${TXEL?'el':''}" id="c-${cr.id}">
+   <div class="crit-h"><div><b>${esc(X.nom)}</b> <span class="tag">${esc(cr.afl)}</span><div class="muted">${esc(X.but)}${cr.refs&&!TXEL?' · '+esc(cr.refs):''}</div>${e.auto&&e.auto.d&&e.auto.d[cr.id]!=null?`<div class="muted" style="font-weight:700;margin-top:3px">🪞 Auto-positionnement (${new Date(e.auto.date+'T12:00').toLocaleDateString('fr-FR')}) : D${e.auto.d[cr.id]+1}</div>`:''}${cr.afl==='AFL3'&&rolesTxt(C(),e)?`<div class="muted" style="color:#B26B00;font-weight:700;margin-top:3px">🎭 Rôles tenus : ${rolesTxt(C(),e)}</div>`:''}${cr.afl==='AFL2'&&t3Txt(e)?`<div class="muted" style="color:var(--vol);font-weight:700;margin-top:3px">Routines renforcées : ${t3Txt(e)}</div>`:''}</div>
    <div class="pts" id="p-${cr.id}">${pts!=null?fr(pts):'–'} <small>/ ${fr(mx)}</small></div></div>
    <div class="degs">${[0,1,2,3].map(d=>{const [lo,hi]=band(cr,e,d);return `<button class="deg d${d+1} ${v&&v.d===d?'sel':''}" onclick="setDeg('${cr.id}',${d})">
-      <span class="dt">D${d+1} · ${esc(b.degres[d])}</span><span class="rg">${fr(lo)} à ${fr(hi)} pt</span><span>${esc(cr.desc[d]||'')}</span></button>`}).join('')}</div>
+      <span class="dt">D${d+1} · ${esc(X.deg[d])}</span><span class="rg">${fr(lo)} à ${fr(hi)} pt</span><span>${esc(X.desc[d]||'')}</span></button>`}).join('')}</div>
    ${sl}</div>`;
 }
 function matchCard(e){
@@ -903,7 +919,7 @@ function coAuto(c,t,j){const pl=(t.el||[]).map(id=>elOf(c,id)).filter(Boolean).f
     <div class="pres">${pl.map(e=>`<button class="${e.auto&&e.auto.date===today()?'p':''}" onclick="AUTOEL='${e.id}';renderCoach()">${esc(fullName(e))}${e.auto&&e.auto.date===today()?'<br><small>✓ fait aujourd\'hui</small>':''}</button>`).join('')}</div></div>`;
   const e=elOf(c,AUTOEL);if(!e){AUTOEL=null;return ''}const a=(e.auto&&e.auto.date===today())?e.auto:{date:today(),d:{}};
   return `<div class="card"><h2>🪞 ${esc(fullName(e))}</h2><p class="muted">Pour chaque critère, touche la phrase qui te ressemble.</p></div>
-  ${B().criteres.map(cr=>`<div class="crit"><b>${esc(cr.nom)}</b><div class="degs" style="margin-top:8px">${[0,1,2,3].map(d=>`<button class="deg d${d+1} ${a.d[cr.id]===d?'sel':''}" onclick="autoSet('${cr.id}',${d})"><span class="dt">${['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'][d]}</span><span>${esc(cr.desc[d]||'')}</span></button>`).join('')}</div></div>`).join('')}
+  ${B().criteres.map(cr=>{const X=cTx(cr,true);return `<div class="crit"><b>${esc(X.nom)}</b><div class="muted">${esc(X.but)}</div><div class="degs" style="margin-top:8px">${[0,1,2,3].map(d=>`<button class="deg d${d+1} ${a.d[cr.id]===d?'sel':''}" onclick="autoSet('${cr.id}',${d})"><span class="dt">${esc(X.deg[d])}</span><span>${esc(X.desc[d]||'')}</span></button>`).join('')}</div></div>`}).join('')}
   <div class="row"><button class="btn alt" onclick="AUTOEL=null;renderCoach()">← Joueurs</button><button class="pbtn" style="background:var(--d4);flex:1" onclick="AUTOEL=null;renderCoach();toast('Merci !')">✓ J'ai terminé</button></div>`}
 function autoSet(id,d){const c=coC(),e=elOf(c,AUTOEL);if(!e)return;if(!e.auto||e.auto.date!==today())e.auto={date:today(),d:{}};e.auto.d[id]=d;save();const y=scrollY;renderCoach();scrollTo(0,y)}
 
@@ -1207,6 +1223,7 @@ function renderBareme(){
     <p class="muted">Le curseur intra-degré se déplace entre ces bornes. Exemple sur 5 pts → ${ex}</p>
     <div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
       <label class="l">Degré ${i+1}</label><input type="text" value="${esc(d)}" onchange="B().degres[${i}]=this.value;save()">
+      <label class="l">Version élève</label><input type="text" value="${esc((b.degresEl||[])[i]||'')}" onchange="B().degresEl[${i}]=this.value;save()">
       <div class="row" style="margin-top:6px;flex-wrap:nowrap"><input type="number" min="0" max="100" value="${b.bandes[i][0]}" onchange="setBand(${i},0,this.value)"> à <input type="number" min="0" max="100" value="${b.bandes[i][1]}" onchange="setBand(${i},1,this.value)"> %</div>
     </div>`).join('')}</div>
   </div>
@@ -1220,6 +1237,10 @@ function renderBareme(){
       <label class="l">Objectif</label><input type="text" value="${esc(c.but)}" onchange="setC(${k},'but',this.value)">
       <label class="l">Références (AFL / EP…)</label><input type="text" value="${esc(c.refs)}" onchange="setC(${k},'refs',this.value)">
       <div class="g4">${[0,1,2,3].map(d=>`<div><label class="l">D${d+1} · ${esc(b.degres[d])}</label><textarea rows="4" onchange="setDesc(${k},${d},this.value)">${esc(c.desc[d])}</textarea></div>`).join('')}</div>
+      <details style="margin-top:8px;background:#f8f3fb;border-radius:10px;padding:8px 10px"><summary style="cursor:pointer;font-weight:700;color:var(--vol)">🧒 Version élève de ce critère (fiches, PDF élève, « Texte élève », auto-positionnement)</summary>
+       <label class="l">Titre pour l'élève</label><input type="text" value="${esc(c.nomEl||'')}" onchange="setC(${k},'nomEl',this.value)">
+       <label class="l">Objectif pour l'élève</label><input type="text" value="${esc(c.butEl||'')}" onchange="setC(${k},'butEl',this.value)">
+       <div class="g4">${[0,1,2,3].map(d=>`<div><label class="l">${esc((b.degresEl||[])[d]||'D'+(d+1))}</label><textarea rows="4" onchange="B().criteres[${k}].descEl[${d}]=this.value;save()">${esc((c.descEl||[])[d]||'')}</textarea></div>`).join('')}</div></details>
       <div class="row" style="margin-top:8px">
         <button class="btn alt sm" onclick="moveC(${k},-1)">↑</button><button class="btn alt sm" onclick="moveC(${k},1)">↓</button>
         <button class="btn red sm" onclick="delC(${k})">Supprimer ce critère</button></div>
@@ -1234,7 +1255,7 @@ function setC(k,f,v,re){B().criteres[k][f]=v;save();if(re)renderBareme()}
 function setDesc(k,d,v){B().criteres[k].desc[d]=v;save()}
 function moveC(k,d){const a=B().criteres,j=k+d;if(j<0||j>=a.length)return;[a[k],a[j]]=[a[j],a[k]];save();renderBareme()}
 function delC(k){if(!confirm('Supprimer ce critère ? Les notes déjà saisies pour ce critère ne compteront plus.'))return;B().criteres.splice(k,1);save();renderBareme()}
-function addC(){B().criteres.push({id:uid(),nom:'Nouveau critère',but:'',afl:'AFL1',refs:'',pts:5,desc:['','','','']});save();renderBareme()}
+function addC(){B().criteres.push({id:uid(),nom:'Nouveau critère',but:'',afl:'AFL1',refs:'',pts:5,desc:['','','',''],nomEl:'Nouveau critère',butEl:'',descEl:['','','','']});save();renderBareme()}
 function resetB(){if(!confirm('Rétablir le barème d\'origine ? (les notes des élèves sont conservées)'))return;S.bareme=defBareme();save();renderBareme()}
 
 /* ================== IMPORT D'UNE LISTE (au choix) ================== */
@@ -1443,6 +1464,8 @@ function renderBilan(){
       <button class="btn alt" onclick="exportCSV()">⬇ Tableur (.csv)</button>
       <button class="btn alt" onclick="exportZip()">🗜 Bilans élèves (.zip)</button>
     </div>
+    <div class="row" style="margin-top:10px"><b style="color:var(--navy)">Langage des fiches élèves (PDF et .zip) :</b>
+     <div class="seg"><button class="${B().langFiche!=='prof'?'on':''}" onclick="B().langFiche='eleve';save();renderBilan()">Version élève (simplifiée)</button><button class="${B().langFiche==='prof'?'on':''}" onclick="B().langFiche='prof';save();renderBilan()">Version enseignant</button></div></div>
     <p class="muted">PDF : dans la fenêtre d'impression, choisis « Enregistrer au format PDF ». Le .zip contient un bilan par élève (fichier .html à publier sur Pronote ou à imprimer).</p>
     ${st.nonNotes?`<div class="warn">${st.nonNotes} élève(s) n'ont pas encore tous leurs critères évalués.</div>`:''}
   </div>
@@ -1455,30 +1478,37 @@ function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth
 function dateFR(){return new Date().toLocaleDateString('fr-FR')}
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 function modeTxt(){return B().mode==='perso'?'Barème personnel ('+B().criteres.map(c=>c.nom+' '+fr(c.pts)+' pts').join(', ')+')':'Barème officiel CA4 : AFL1 sur 12 pts, AFL2 + AFL3 sur 8 pts (choix de l\'élève)'}
-function ficheHtml(e,c){
-  const b=B(),n=note20(e);
-  const rows=b.criteres.map(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e);
-    return `<tr><td style="text-align:left"><b>${esc(cr.nom)}</b><br><small>${esc(cr.afl)} – ${esc(cr.but)}</small></td>
-      <td>${v&&v.d!=null?'D'+(v.d+1)+' – '+esc(b.degres[v.d]):'–'}</td>
-      <td style="text-align:left"><small>${v&&v.d!=null?esc(cr.desc[v.d]):''}</small></td>
+function ficheHtml(e,c,lang){
+  const b=B(),n=note20(e),el=(lang||b.langFiche||'eleve')==='eleve';
+  const rows=b.criteres.map(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e),X=cTx(cr,el);
+    return `<tr><td style="text-align:left"><b>${esc(X.nom)}</b><br><small>${el?esc(X.but):esc(cr.afl)+' – '+esc(X.but)}</small></td>
+      <td>${v&&v.d!=null?(el?esc(X.deg[v.d]):'D'+(v.d+1)+' – '+esc(X.deg[v.d])):'–'}</td>
+      <td style="text-align:left"><small>${v&&v.d!=null?esc(X.desc[v.d]):''}</small></td>
       <td><b>${p!=null?fr(p):'–'}</b> / ${fr(maxPts(cr,e))}</td></tr>`}).join('');
   const afls=['AFL1','AFL2','AFL3'].map(a=>{const r=aflPts(e,a);return r?`${a} : ${fr(r.pts)} / ${fr(r.max)}`:null}).filter(Boolean).join(' &nbsp;·&nbsp; ');
   const hd=window.EPSR&&EPSR.htmlHead?EPSR.htmlHead({act:'Volley-ball',titre:'Évaluation',ca:'CA4',ac:'#7A3E9D',nom:fullName(e),classe:c.nom,date:dateFR()}):'';
   return `${hd||'<h1>Volley-ball – Évaluation CA4</h1>'}
    <p>${hd?'':`<b>${esc(fullName(e))}</b> · ${esc(c.nom)} · ${dateFR()}`}${b.mode==='officiel'?(hd?'':' · ')+'Choix AFL2/AFL3 : '+(e.choix||'4-4'):''}</p>
    ${isAbs(e)?`<h2>${e.statut==='ABS'?'Absent':'Dispensé'}</h2>`:`
-   <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">Critère</th><th>Degré</th><th style="text-align:left">Ce qui a été observé</th><th>Points</th></tr>${rows}</table>
+   <table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">${el?'Ce qui est évalué':'Critère'}</th><th>${el?'Ton niveau':'Degré'}</th><th style="text-align:left">${el?'Ce que tu as montré':'Ce qui a été observé'}</th><th>Points</th></tr>${rows}</table>
    <p style="font-size:1.1em">${afls}</p>
    ${optM()&&(e.matchs||[]).length?`<p>Matchs : ${matchTxt(e)} (${Math.round(matchProp(e)*100)} % gagnés)</p>`:''}
    ${optB()?`<p>Points bonus (${esc(B().bonusLabel||'')}) : ${e.bonus||0}</p>`:''}
    <p style="font-size:1.4em"><b>Note : ${n!=null?fr(n):'–'} / 20</b></p>`}
-   ${e.comment?`<p><b>Commentaire :</b> ${esc(e.comment).replace(/\n/g,'<br>')}</p>`:''}`;
+   ${e.comment?`<p><b>${el?'Le mot de ton enseignant':'Commentaire'} :</b> ${esc(e.comment).replace(/\n/g,'<br>')}</p>`:''}
+   ${el&&!isAbs(e)?ficheConseil(e):''}`;
+}
+/* version élève : un conseil pour progresser, tiré du critère le plus faible */
+function ficheConseil(e){const cs=B().criteres.filter(cr=>critPts(cr,e)!=null);if(!cs.length)return '';
+  const w=cs.slice().sort((a,b)=>critPts(a,e)/maxPts(a,e)-critPts(b,e)/maxPts(b,e))[0],v=e.ev[w.id];if(!v||v.d>=3)return '<p><b>Pour progresser :</b> continue ainsi, tu as atteint le meilleur niveau sur tous les critères.</p>';
+  const X=cTx(w,true);return `<p><b>Pour progresser :</b> travaille « ${esc(X.nom.toLowerCase())} ». Prochain objectif : ${esc(X.desc[v.d+1]||'')}</p>`;
 }
 function printPDF(kind){
   const c=C(),pa=document.getElementById('printArea');
   if(kind==='classe'){
     pa.innerHTML=`<h1>Volley-ball – Évaluation CA4 – ${esc(c.nom)}</h1><p>${dateFR()} · ${esc(modeTxt())}</p>
       <h2>Notes des élèves</h2>${tableHtml(c)}<div class="pb"></div><h2>Statistiques et répartition des points</h2>${statsHtml(c,classStats(c))}`;
+  }else if(kind==='un'){const e=C().eleves[curEl];if(!e)return;pa.innerHTML=ficheHtml(e,c,TXEL?'eleve':B().langFiche);
   }else{
     pa.innerHTML=c.eleves.map((e,i)=>`<div class="${i?'pb':''}">${ficheHtml(e,c)}</div>`).join('');
   }
