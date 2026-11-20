@@ -373,7 +373,8 @@
     var t = isTeacher();
     var u = document.getElementById("eps-upd"); if (u) u.style.display = t ? (u.className == "epsb" ? "inline-flex" : "grid") : "none";
     document.querySelectorAll("[data-eps-teach]").forEach(function (el) { el.style.display = t ? "" : "none"; });
-    var b = document.getElementById("eps-teachbtn"); if (b) b.textContent = t ? "🔓 Quitter le mode enseignant" : "🔒 Enseignant";
+    try { document.documentElement.classList.toggle("eps-teach", !!t); } catch (e) {}
+    var b = document.getElementById("eps-teachbtn"); if (b) { b.textContent = "🔓 Quitter le mode enseignant"; b.style.display = t ? "" : "none"; }
     try { applyReg(); } catch (e) {}
   }
   function askCode() {
@@ -552,7 +553,7 @@
     return M;
   }
   /* après un import ou une modification ici : la liste finale part vers les autres tablettes */
-  async function shareList(nom, old, apps, exact) {
+  async function shareList(nom, old, apps, exact, off) {
     var M = await allLists(), x = M[norm(nom)]; if (!x && !exact) return;
     var names = exact ? exact.slice() : [];
     if (!exact) Object.keys(x.apps).forEach(function (a) { if (apps[a]) x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); });
@@ -563,9 +564,20 @@
     it.rm = (it.rm || []).filter(function (k) { return !keep[k]; });
     if (exact) (it.el || []).forEach(function (n) { var k = nkey(n); if (!keep[k] && it.rm.indexOf(k) < 0) it.rm.push(k); });
     else (it.el || []).forEach(function (n) { if (!keep[nkey(n)]) { names.push(n); keep[nkey(n)] = 1; } });
-    it.old = old && norm(old) !== norm(nom) ? old : ""; it.nom = nom; it.el = names; it.ts = Date.now();
+    it.old = old && norm(old) !== norm(nom) ? old : ""; it.nom = nom; it.el = names; it.ts = Date.now(); it.del = false;
+    if (off) it.off = off.slice();
     L.pend[it.id] = stamp(); L.app[it.id] = JSON.stringify(it); lsv(L);
     applyLocal(); setTimeout(sync, 300);
+  }
+  /* suppression d'une liste commune (partout) : la classe disparaît des applis où elle n'a pas encore de données */
+  async function deleteList(nom) {
+    var L = lld(), it = null;
+    Object.keys(L.items).forEach(function (k) { var o = L.items[k]; if (o && !o.del && (norm(o.nom) === norm(nom) || (o.old && norm(o.old) === norm(nom)))) it = it || o; });
+    if (!it) { it = { id: clsId(nom), nom: nom, el: [], st: {}, rm: [] }; L.items[it.id] = it; }
+    it.del = true; it.ts = Date.now(); L.pend[it.id] = stamp(); L.app[it.id] = JSON.stringify(it); lsv(L);
+    try { var A = jget("escalade.cl", []) || []; localStorage.setItem("escalade.cl", JSON.stringify(A.filter(function (c) { return norm(c.nom) !== norm(nom); }))); } catch (e) {}
+    try { var O = await oriGet(); Object.keys(O).forEach(function (k) { if (norm(k) === norm(nom)) delete O[k]; }); await oriPut(O); } catch (e) {}
+    await applyLocal(); setTimeout(sync, 300);
   }
   /* page d'accueil (aucune appli ouverte) : les listes communes sont écrites dans toutes les applis de la tablette ;
      dans une appli : seulement OrienRun (IndexedDB) ici, l'appli elle-même les reçoit à sa prochaine ouverture (eps-lists.js) */
@@ -581,8 +593,10 @@
     else if (window.epsListsHook && window.epsListsHook.reload) { try { window.epsListsHook.reload(); } catch (e) {} } /* Acrosport, OrienRun… */
     try { /* OrienRun */
       var O = await oriGet(), ch = false, V = JSON.parse(localStorage.getItem(KL) || "{}"), skip = V.skip || {};
+      Object.keys(V.items || {}).map(function (k) { return V.items[k]; }).filter(function (o) { return o && o.nom && (o.del || (o.off || []).indexOf("ori") >= 0); }).forEach(function (o) {
+        Object.keys(O).forEach(function (k) { if (norm(k) === norm(o.nom)) { delete O[k]; ch = true; } }); });
       EPSL.items().forEach(function (o) {
-        if (skip["ori|" + norm(o.nom)]) return;
+        if (skip["ori|" + norm(o.nom)] || (o.off || []).indexOf("ori") >= 0) return;
         var key = Object.keys(O).filter(function (k) { return norm(k) === norm(o.nom) || (o.old && norm(k) === norm(o.old)); })[0];
         if (key && key !== o.nom) { O[o.nom] = O[key]; delete O[key]; ch = true; }
         if (!key && !Object.keys(O).length && !/\/orientation\//.test(location.pathname) && !HUB) return;
@@ -627,60 +641,115 @@
     if (!(await askCode())) return;
     var o = overlay('<div id="epsl"></div>'), box = o.querySelector("#epsl"), M = await allLists(), cur = null;
     var APPS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["bad", "Badminton"], ["dan", "Danse"], ["acro", "Acrosport"]];
-    function listView(msg) {
-      var keys = Object.keys(M).sort(function (a, b) { return M[a].name.localeCompare(M[b].name, "fr"); });
-      box.innerHTML = "<h3>✏️ Listes d'élèves</h3><p class=\"m\">Touche une classe pour la renommer ou corriger ses élèves. Les changements s'appliquent dans toutes les applications et sur toutes les tablettes.</p>" +
-        (msg ? '<p class="m" style="color:#2E7D4F;font-weight:800">' + esc(msg) + "</p>" : "") +
-        (keys.length ? '<div class="epsd-chips">' + keys.map(function (k) { var x = M[k], n = Math.max.apply(null, Object.keys(x.apps).map(function (a) { return x.apps[a].length; }));
-          return '<button data-k="' + esc(k) + '">' + esc(x.name) + " <small>(" + n + " · " + APPS.filter(function (a) { return x.apps[a[0]]; }).map(function (a) { return a[1].split(" ")[0]; }).join(", ") + ")</small></button>"; }).join("") + "</div>"
-          : '<p class="m">Aucune liste sur cette tablette. Importe d\'abord une liste d\'élèves.</p>') +
+    function itemOf(name) { var r = null; try { (window.EPSL ? EPSL.items() : []).forEach(function (it) { if (!r && (norm(it.nom) === norm(name) || (it.old && norm(it.old) === norm(name)))) r = it; }); } catch (e) {} return r; }
+    function offOf(name) { var it = itemOf(name); return (it && it.off) || []; }
+    function namesOf(x) { var names = []; Object.keys(x.apps).forEach(function (a) { x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); }); return names; }
+    /* listes très proches (beaucoup d'élèves en commun) : fusion proposée */
+    function similar() {
+      var keys = Object.keys(M), out = [];
+      for (var a = 0; a < keys.length; a++) for (var b = a + 1; b < keys.length; b++) {
+        var A = namesOf(M[keys[a]]).map(nkey), B = namesOf(M[keys[b]]).map(nkey); if (A.length < 3 || B.length < 3) continue;
+        var setB = {}; B.forEach(function (k) { setB[k] = 1; }); var n = A.filter(function (k) { return setB[k]; }).length;
+        if (n >= 3 && n / Math.min(A.length, B.length) >= 0.6) out.push([keys[a], keys[b], n]);
+      }
+      return out;
+    }
+    async function writeClass(nn, old, L, sel, off) {
+      if (sel.esc) {
+        var A = jget("escalade.cl", []) || [], c = A.filter(function (y) { return norm(y.nom) === norm(old); })[0];
+        if (!c) { c = { id: freeId(A, clsId(nn)), nom: nn, el: [] }; A.push(c); }
+        if (c.nom !== nn) { var R = jget("escalade.r", []) || []; R.forEach(function (r) { if ((r.cl || "") === c.nom) r.cl = nn; }); localStorage.setItem("escalade.r", JSON.stringify(R)); }
+        c.nom = nn; c.el = L.slice(); localStorage.setItem("escalade.cl", JSON.stringify(A));
+      }
+      if (sel.rel) {
+        var D = jget("relais-vitesse-data-v3", null); if (!D || !D.classes) D = { classes: [], cur: null };
+        var k = D.classes.filter(function (y) { return norm(y.name) === norm(old); })[0];
+        if (!k) { k = { id: freeId(D.classes, clsId(nn)), name: nn, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D.classes.push(k); }
+        var id = Math.max.apply(null, [-1].concat(k.eleves.map(function (e) { return +e.id || 0; }))) + 1;
+        k.eleves = L.map(function (l) { var e = k.eleves.filter(function (y) { return nkey(full(y)) === nkey(l); })[0]; if (e) return e; var p = splitFull(l) || { prenom: l, nom: "" };
+          return { id: id++, nom: p.nom, prenom: p.prenom, ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0, orig: { ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0 }, imported: true }; });
+        k.name = nn; localStorage.setItem("relais-vitesse-data-v3", JSON.stringify(D));
+      }
+      if (sel.ori) { var O = await oriGet(); Object.keys(O).forEach(function (kk) { if (norm(kk) === norm(old)) delete O[kk]; }); O[nn] = L.slice(); await oriPut(O); }
+      await shareList(nn, old, sel, L, off);
+    }
+    function after(msg) { return (shCfg() ? msg + " Les autres tablettes suivent." : msg + " (Partage entre tablettes non réglé : seulement sur cette tablette.)"); }
+    function listView(msg, bad) {
+      var keys = Object.keys(M).sort(function (a, b) { return M[a].name.localeCompare(M[b].name, "fr"); }), sim = similar();
+      box.innerHTML = "<h3>✏️ Listes d'élèves</h3><p class=\"m\">Touche une classe pour la renommer, corriger ses élèves, choisir ses activités ou la supprimer. Les changements s'appliquent dans toutes les applications et sur toutes les tablettes.</p>" +
+        (msg ? '<p class="m" style="color:' + (bad ? "#C0392B" : "#2E7D4F") + ';font-weight:800">' + esc(msg) + "</p>" : "") +
+        (sim.length ? '<div style="background:#FFF6E0;border:1px solid #F0D58A;border-radius:12px;padding:10px 12px;margin:8px 0 12px"><b>Listes en double ?</b>' + sim.map(function (p, i) {
+          return '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap"><span style="flex:1;min-width:200px">« ' + esc(M[p[0]].name) + " » et « " + esc(M[p[1]].name) + " » ont <b>" + p[2] + "</b> élèves en commun.</span><button data-m=\"" + i + '" style="height:40px;border-radius:10px;border:1.5px solid #B7791F;background:#fff;color:#8A5A1F;font-weight:800;padding:0 14px">Fusionner…</button></div>'; }).join("") + "</div>" : "") +
+        (keys.length ? '<div class="epsd-chips">' + keys.map(function (k) { var x = M[k], n = namesOf(x).length, off = offOf(x.name);
+          var act = APPS.filter(function (a) { return off.indexOf(a[0]) < 0; });
+          return '<button data-k="' + esc(k) + '">' + esc(x.name) + " <small>(" + n + " · " + (act.length === APPS.length ? "toutes les activités" : act.length ? act.map(function (a) { return a[1].split(" ")[0]; }).join(", ") : "aucune activité") + ")</small></button>"; }).join("") + "</div>"
+          : '<p class="m">Aucune liste pour l\'instant. Importe d\'abord une liste d\'élèves.</p>') +
         '<div class="epsd-act"><button data-x>Fermer</button></div>';
       box.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { cur = b.dataset.k; editView(); }; });
+      box.querySelectorAll("[data-m]").forEach(function (b) { b.onclick = function () { mergeView(sim[+b.dataset.m]); }; });
+    }
+    function mergeView(p, keepK) {
+      var a = M[p[0]], b = M[p[1]], keep = keepK ? M[keepK] : null, gone = keep ? (keep === a ? b : a) : null;
+      var U = namesOf(a).slice(); namesOf(b).forEach(function (n) { if (!U.some(function (y) { return nkey(y) === nkey(n); })) U.push(n); });
+      U.sort(function (x, y) { return x.localeCompare(y, "fr"); });
+      box.innerHTML = "<h3>🔗 Fusionner deux listes</h3>" +
+        '<p class="m">« ' + esc(a.name) + " » (" + namesOf(a).length + " élèves) et « " + esc(b.name) + " » (" + namesOf(b).length + " élèves) → une seule liste de <b>" + U.length + " élèves</b>.</p>" +
+        (!keep ? '<span class="epsd-lab">Quel nom garder ?</span><div class="epsd-chips"><button data-keep="' + esc(p[0]) + '">' + esc(a.name) + '</button><button data-keep="' + esc(p[1]) + '">' + esc(b.name) + "</button></div>"
+          : '<p class="m">La liste « <b>' + esc(keep.name) + "</b> » reçoit tous les élèves ; la liste « " + esc(gone.name) + " » est supprimée partout (sauf dans une activité où elle a déjà des évaluations, qui restent consultables).</p>") +
+        '<div class="epsd-act"><button id="epsl-b">← Retour</button>' + (keep ? '<button class="p" id="epsl-ok">Fusionner</button>' : "") + "</div>";
+      box.querySelector("#epsl-b").onclick = function () { listView(); };
+      box.querySelectorAll("[data-keep]").forEach(function (x) { x.onclick = function () { mergeView(p, x.dataset.keep); }; });
+      if (keep) box.querySelector("#epsl-ok").onclick = async function () {
+        var off = offOf(keep.name).slice(), sel = {}; /* la liste gardée conserve ses activités */
+        APPS.forEach(function (x) { sel[x[0]] = off.indexOf(x[0]) < 0 ? 1 : 0; });
+        try { await writeClass(keep.name, keep.name, U, sel, off); await deleteList(gone.name); } catch (e) { return listView("Fusion impossible : " + (e && e.message || e), true); }
+        M = await allLists(); listView(after("✓ Listes fusionnées dans « " + keep.name + " » (" + U.length + " élèves)."));
+      };
+    }
+    function delView(step) {
+      var x = M[cur];
+      box.innerHTML = "<h3>🗑 Supprimer « " + esc(x.name) + " »</h3>" +
+        (step === 1 ? '<p class="m">La liste de <b>' + namesOf(x).length + " élèves</b> sera retirée de toutes les applications et de toutes les tablettes.</p>" +
+          '<div class="epsd-act"><button id="epsl-b">Annuler</button><button id="epsl-ok" style="background:#C0392B;color:#fff;border-color:#C0392B">Supprimer…</button></div>'
+          : '<p class="m" style="color:#C0392B;font-weight:800">Dernière confirmation : supprimer définitivement la liste « ' + esc(x.name) + " » ?</p>" +
+          '<p class="m">Les évaluations déjà faites ne sont pas effacées : une activité où la classe a des données la garde.</p>' +
+          '<div class="epsd-act"><button id="epsl-b">Non, garder</button><button id="epsl-ok" style="background:#C0392B;color:#fff;border-color:#C0392B">Oui, supprimer définitivement</button></div>');
+      box.querySelector("#epsl-b").onclick = function () { editView(); };
+      box.querySelector("#epsl-ok").onclick = async function () {
+        if (step === 1) return delView(2);
+        var nm = x.name; try { await deleteList(nm); } catch (e) { return editView("Suppression impossible : " + (e && e.message || e)); }
+        M = await allLists(); var still = M[norm(nm)];
+        listView(after("✓ Liste « " + nm + " » supprimée." + (still ? " Gardée dans " + APPS.filter(function (a) { return still.apps[a[0]]; }).map(function (a) { return a[1]; }).join(", ") + " car des évaluations y sont enregistrées." : "")));
+      };
     }
     function editView(err) {
-      var x = M[cur], names = [];
-      Object.keys(x.apps).forEach(function (a) { x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); });
+      var x = M[cur], names = namesOf(x);
       names.sort(function (a, b) { return a.localeCompare(b, "fr"); });
-      var sel = x.sel || (x.sel = {}); APPS.forEach(function (a) { sel[a[0]] = 1; });
+      var sel = x.sel; if (!sel) { var off0 = offOf(x.name); sel = x.sel = {}; APPS.forEach(function (a) { sel[a[0]] = off0.indexOf(a[0]) < 0 ? 1 : 0; }); }
       box.innerHTML = "<h3>✏️ " + esc(x.name) + "</h3>" +
         '<span class="epsd-lab">Nom de la classe</span><input class="epsd-in" id="epsl-n" value="' + esc(x.draftName != null ? x.draftName : x.name) + '">' +
-        '<span class="epsd-lab">Élèves (un par ligne : Prénom Nom)</span><textarea class="epsd-in" id="epsl-t" style="height:min(38vh,320px);padding:10px 12px;line-height:1.45">' + esc(x.draft != null ? x.draft : names.join("\n")) + "</textarea>" +
+        '<span class="epsd-lab">Activités de cette classe <small style="font-weight:600;color:#6A6F78">(touche pour retirer ou ajouter)</small></span><div class="epsd-chips">' +
+          APPS.map(function (a) { return '<button data-a="' + a[0] + '"' + (sel[a[0]] ? ' style="border-color:#2E7D4F;background:#E4F1E8;color:#21603B"' : ' style="opacity:.55;text-decoration:line-through"') + ">" + (sel[a[0]] ? "✓ " : "") + a[1] + "</button>"; }).join("") + "</div>" +
+        '<span class="epsd-lab">Élèves (un par ligne : Prénom Nom)</span><textarea class="epsd-in" id="epsl-t" style="height:min(34vh,300px);padding:10px 12px;line-height:1.45">' + esc(x.draft != null ? x.draft : names.join("\n")) + "</textarea>" +
         '<p class="m" id="epsl-c" style="margin-top:6px"></p>' +
-        '<p class="m">La liste est commune à toutes les applications (Escalade, Relais, OrienRun, Volley-ball, Badminton, Danse, Acrosport) et à toutes les tablettes. Un élève retiré n\'apparaît plus ; ce qu\'il a déjà fait (grimpes, courses) reste dans les résultats, et un élève déjà évalué (Volley, Badminton, Danse) est gardé.</p>' +
+        '<p class="m">La liste est commune à toutes les tablettes. Une activité décochée ne propose plus cette classe (elle n\'y est gardée que si des évaluations y sont déjà enregistrées). Un élève retiré n\'apparaît plus ; ce qu\'il a déjà fait reste dans les résultats.</p>' +
         (err ? '<p class="m" style="color:#C0392B;font-weight:800">' + esc(err) + "</p>" : "") +
-        '<div class="epsd-act"><button id="epsl-b">← Retour</button><button class="p" id="epsl-ok">Enregistrer</button></div>';
+        '<div class="epsd-act"><button id="epsl-del" style="color:#C0392B;margin-right:auto">🗑 Supprimer la liste</button><button id="epsl-b">← Retour</button><button class="p" id="epsl-ok">Enregistrer</button></div>';
       var ti = box.querySelector("#epsl-t"), ni = box.querySelector("#epsl-n");
       var cnt = function () { var n = ti.value.split("\n").filter(function (l) { return l.trim(); }).length; box.querySelector("#epsl-c").textContent = n + " élève" + (n > 1 ? "s" : ""); };
       ti.oninput = function () { x.draft = ti.value; cnt(); }; ni.oninput = function () { x.draftName = ni.value; }; cnt();
       box.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { sel[b.dataset.a] = sel[b.dataset.a] ? 0 : 1; editView(); }; });
-      box.querySelector("#epsl-b").onclick = function () { x.draft = x.draftName = null; listView(); };
+      box.querySelector("#epsl-b").onclick = function () { x.draft = x.draftName = null; x.sel = null; listView(); };
+      box.querySelector("#epsl-del").onclick = function () { delView(1); };
       box.querySelector("#epsl-ok").onclick = async function () {
         var nn = ni.value.replace(/\s+/g, " ").trim(), old = x.name;
         if (!nn) return editView("Donne un nom à la classe.");
         if (norm(nn) !== norm(old) && M[norm(nn)]) return editView("Une classe « " + M[norm(nn)].name + " » existe déjà.");
         var L = []; ti.value.split("\n").forEach(function (l) { l = l.replace(/\s+/g, " ").trim(); if (l && !L.some(function (y) { return nkey(y) === nkey(l); })) L.push(l); });
-        if (!APPS.some(function (a) { return sel[a[0]]; })) return editView("Choisis au moins une application.");
-        var done = [];
-        try {
-          if (sel.esc) {
-            var A = jget("escalade.cl", []) || [], c = A.filter(function (y) { return norm(y.nom) === norm(old); })[0];
-            if (!c) { c = { id: freeId(A, clsId(nn)), nom: nn, el: [] }; A.push(c); }
-            if (c.nom !== nn) { var R = jget("escalade.r", []) || []; R.forEach(function (r) { if ((r.cl || "") === c.nom) r.cl = nn; }); localStorage.setItem("escalade.r", JSON.stringify(R)); }
-            c.nom = nn; c.el = L.slice(); localStorage.setItem("escalade.cl", JSON.stringify(A)); done.push("Escalade");
-          }
-          if (sel.rel) {
-            var D = jget("relais-vitesse-data-v3", null); if (!D || !D.classes) D = { classes: [], cur: null };
-            var k = D.classes.filter(function (y) { return norm(y.name) === norm(old); })[0];
-            if (!k) { k = { id: freeId(D.classes, clsId(nn)), name: nn, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; D.classes.push(k); }
-            var id = Math.max.apply(null, [-1].concat(k.eleves.map(function (e) { return +e.id || 0; }))) + 1;
-            k.eleves = L.map(function (l) { var e = k.eleves.filter(function (y) { return nkey(full(y)) === nkey(l); })[0]; if (e) return e; var p = splitFull(l) || { prenom: l, nom: "" };
-              return { id: id++, nom: p.nom, prenom: p.prenom, ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0, orig: { ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0 }, imported: true }; });
-            k.name = nn; localStorage.setItem("relais-vitesse-data-v3", JSON.stringify(D)); done.push("Relais Vitesse");
-          }
-          if (sel.ori) { var O = await oriGet(); Object.keys(O).forEach(function (kk) { if (norm(kk) === norm(old)) delete O[kk]; }); O[nn] = L.slice(); await oriPut(O); done.push("OrienRun"); }
-        } catch (e) { return editView("Enregistrement impossible : " + (e && e.message || e)); }
-        await shareList(nn, old, sel, L);
-        M = await allLists(); listView("✓ « " + nn + " » enregistrée dans toutes les applications" + (shCfg() ? " ; elle part vers les autres tablettes." : ". (Partage entre tablettes non réglé : elle reste sur cette tablette.)"));
+        var off = APPS.filter(function (a) { return !sel[a[0]]; }).map(function (a) { return a[0]; });
+        try { await writeClass(nn, old, L, sel, off); } catch (e) { return editView("Enregistrement impossible : " + (e && e.message || e)); }
+        x.sel = null; M = await allLists();
+        listView(after("✓ « " + nn + " » enregistrée" + (off.length ? " (" + (APPS.length - off.length) + " activité" + (APPS.length - off.length > 1 ? "s" : "") + ")." : " dans toutes les activités.")));
       };
     }
     listView();
@@ -1027,7 +1096,7 @@
       (R.length ? '<div class="epsg-lab">Ressources · sans classe</div><div class="epsg-g">' + R.map(function (r, i) {
         return '<button class="epsg-r" data-r="' + i + '" style="background:' + tint(col, .12) + ';color:' + col + '"><i>' + (r.ico || "📘") + "</i><span>" + esc(r.label) + (r.sub ? "<small>" + esc(r.sub) + "</small>" : "") + "</span></button>";
       }).join("") + "</div>" : "") +
-      (G.teacher ? '<div class="epsg-ft"><button data-t="1">🔒 Je suis enseignant</button></div>' : "") + "</div>";
+      "</div>"; /* accès enseignant : appui long (3 s) sur le logo de l'appli, sans bouton visible pour les élèves */
     d.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       if (b.dataset.c != null) { gateClose(); try { G.select(b.dataset.c); } catch (er) {} }
@@ -1043,6 +1112,35 @@
     if (show) { if (document.body) gateOpen(); else document.addEventListener("DOMContentLoaded", gateOpen); }
   }
   window.EPSG = { register: gateRegister, open: gateOpen, close: gateClose };
+
+  /* ================= Accès enseignant caché : maintenir 3 s le logo =================
+     Logos : barre de l'accueil (.mark), barre de chaque appli, écran « Choisis ta classe ».
+     L'appli peut fournir window.epsTeacherEntry() ; sinon : celle de l'écran de classe, sinon le code enseignant commun. */
+  var LOGOS = ".mark,.epsg-ic,header .mk,.ebar .ei,.top h1 .ei,.brand .ei,.topline .ei,.chd h1,[data-eps-logo]";
+  function teacherEntry() {
+    try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+    if (HUB) { if (!isTeacher()) window.EPSD.teacherToggle(); return; }
+    if (typeof window.epsTeacherEntry === "function") { gateClose(); try { window.epsTeacherEntry(); } catch (e) {} return; }
+    if (GATE && GATE.teacher) { gateClose(); try { GATE.teacher(); } catch (e) {} return; }
+    askCode().then(function (ok) { if (ok) { setHubTeach(true); location.reload(); } });
+  }
+  (function () {
+    var st = document.createElement("style");
+    st.textContent = ".mark,.epsg-ic,header .mk,.ebar .ei,.top h1 .ei,.brand .ei,.topline .ei,.chd h1,[data-eps-logo]{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}" +
+      ".eps-hold{animation:epshold 1.8s linear forwards}@keyframes epshold{from{box-shadow:0 0 0 0 rgba(255,201,60,.0)}to{box-shadow:0 0 0 5px rgba(255,201,60,.9)}}";
+    (document.head || document.documentElement).appendChild(st);
+    var tm = 0, t2 = 0, el = null, sx = 0, sy = 0;
+    function stop() { clearTimeout(tm); clearTimeout(t2); if (el) el.classList.remove("eps-hold"); el = null; }
+    document.addEventListener("pointerdown", function (e) {
+      var l = e.target.closest && e.target.closest(LOGOS); if (!l) return;
+      stop(); el = l; sx = e.clientX; sy = e.clientY;
+      t2 = setTimeout(function () { if (el) el.classList.add("eps-hold"); }, 1200);
+      tm = setTimeout(function () { stop(); teacherEntry(); }, 3000);
+    }, true);
+    document.addEventListener("pointermove", function (e) { if (el && Math.hypot(e.clientX - sx, e.clientY - sy) > 14) stop(); }, true);
+    ["pointerup", "pointercancel"].forEach(function (ev) { document.addEventListener(ev, stop, true); });
+    document.addEventListener("contextmenu", function (e) { if (e.target.closest && e.target.closest(LOGOS)) e.preventDefault(); }, true);
+  })();
   (window.EPSG_Q || []).forEach(gateRegister);
   window.EPSG_Q = { push: gateRegister };
   window.EPSR = { get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };

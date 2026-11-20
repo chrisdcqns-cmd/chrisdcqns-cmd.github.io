@@ -390,6 +390,7 @@ body:has(#home.hidden) .homebar{display:none}
 .topline .logo{display:inline-flex;align-items:center;gap:10px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:none;font-size:20px;letter-spacing:0}
 .iconbtn{border-radius:10px;width:40px;height:40px;background:transparent;border:1.5px solid #3A3F47;color:#D5D8DE}
 .tab{color:#B9BEC7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:none;letter-spacing:0;font-size:16px;padding:11px 16px;border-radius:10px 10px 0 0}.tab.on{background:var(--app);color:#fff}
+html:not(.eps-teach) #profHome{display:none}
 </style>
 </head>
 <body>
@@ -756,7 +757,7 @@ function classes(){
   const base=["1GT"];
   const out=[...base]; (serverClasses||[]).forEach(c=>{if(c&&c.nom&&!out.some(x=>norm(x)===norm(c.nom))) out.push(c.nom)});
   commonLists().forEach(o=>{if(!out.some(x=>norm(x)===norm(o.nom))) out.push(o.nom)}); /* classes importées ailleurs (listes communes) */
-  return out;
+  return out.filter(c=>!notAcro(c));
 }
 function findLocal(c,nom){return Object.values(groups).find(g=>norm(g.classe)===norm(c)&&norm(g.name)===norm(nom))}
 function renderClassPick(){
@@ -787,7 +788,10 @@ async function groupsOfClass(c){
 }
 let homeStudents=[];
 /* listes de classes communes à toutes les applis EPS (eps-lists.js / eps-home.js) */
-function commonLists(){try{const v=JSON.parse(localStorage.getItem("eps.lists.v1")||"null");return Object.values(v&&v.items||{}).filter(o=>o&&!o.del&&o.nom)}catch(e){return[]}}
+function allCommon(){try{const v=JSON.parse(localStorage.getItem("eps.lists.v1")||"null");return Object.values(v&&v.items||{}).filter(o=>o&&o.nom)}catch(e){return[]}}
+/* classes de la liste commune attribuées à l'Acrosport (Réglages → Listes d'élèves → Activités) */
+function commonLists(){return allCommon().filter(o=>!o.del&&!(o.off||[]).includes("acro"))}
+function notAcro(c){return allCommon().some(o=>(o.del||(o.off||[]).includes("acro"))&&(norm(o.nom)===norm(c)||(o.old&&norm(o.old)===norm(c))))}
 function commonStudents(c){const o=commonLists().find(x=>norm(x.nom)===norm(c)||(x.old&&norm(x.old)===norm(c)));if(!o)return[];const st=o.st||{};
   return (o.el||[]).map(f=>{const k=String(f).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ").filter(Boolean).sort().join(" ");const p=st[k];if(p)return{prenom:p[0],nom:p[1]};const w=String(f).trim().split(/\s+/);return{prenom:w[0],nom:w.slice(1).join(" ")}})}
 async function loadStudents(c){

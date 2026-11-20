@@ -164,10 +164,11 @@ body:has(#home.hidden) .homebar{display:none}
 #profHome{display:none}
 .tab{color:#B9BEC7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:none;font-size:15px;border-radius:10px 10px 0 0}
 .tab.on{background:var(--app);color:#fff}
+html:not(.eps-teach) #goProf{display:none}
 </style>
 </head>
 <body>
-<header class="ebar homebar"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></span><b>OrienRun</b><small>CA2 · Course d'orientation</small><span data-eps-bar></span></header>
+<header class="ebar homebar"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg></span><b>OrienRun</b><small>CA2 · Course d'orientation</small><span data-eps-bar></span></header>
 <div id="home" class="hidden">
   <div class="hero"><span class="tag">EPS · Course d'orientation</span><h1>OrienRun<br>EPS</h1><p>Cartes, balises à QR code, parcours, suivi GPS en direct et résultats.</p></div>
   <div class="bigchoice">
@@ -179,7 +180,7 @@ body:has(#home.hidden) .homebar{display:none}
 </div>
 <div id="prof" class="hidden">
   <header>
-    <div class="topline"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></span><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button><span data-eps-bar></span></div>
+    <div class="topline"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg></span><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button><span data-eps-bar></span></div>
     <nav class="tabs" id="ptabs">
       <button class="tab" data-t="carte">🗺 Carte</button><button class="tab" data-t="balises">🚩 Balises</button><button class="tab" data-t="parcours">〰 Parcours</button><button class="tab" data-t="biblio">📚 Bibliothèque</button><button class="tab" data-t="seance">📡 Leçon live<span class="bdg hidden" id="alertBdg"></span></button><button class="tab" data-t="resultats">🏁 Résultats</button><button class="tab" data-t="reglages">⚙ Réglages</button>
     </nav>
@@ -3131,7 +3132,9 @@ route();
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
 </script>
-<script>/* dispensés : seulement ceux des classes de la leçon en cours (appel), sinon tous */
+<script>/* accès enseignant caché : appui long (3 s) sur le logo */
+window.epsTeacherEntry=function(){try{location.hash="";showHome()}catch(e){}var b=document.getElementById("goProf");if(b)b.click()};
+/* dispensés : seulement ceux des classes de la leçon en cours (appel), sinon tous */
 window.epsCurrentClass=function(){try{if(typeof S!=="undefined"&&S&&S.active&&S.cls&&S.cls.length)return{nom:S.cls.join(" + "),eleves:((S.appel&&S.appel.list)||[]).map(function(x){return x.nom})}}catch(e){}return null};
 window.epsAppHome=function(){try{stopMyPos()}catch(e){}try{location.hash="";showHome()}catch(e){location.href=location.pathname}};</script>
 <script src="../eps-home.js" defer></script>

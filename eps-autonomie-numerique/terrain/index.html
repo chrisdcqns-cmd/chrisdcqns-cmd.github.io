@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Terrain – OrienRun</title>
+<title>Pose des balises – OrienRun</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#14213d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Terrain">
+<meta name="apple-mobile-web-app-title" content="Balises">
 <link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -69,7 +69,7 @@ label.lbl{display:block;font-weight:800;font-size:.75rem;text-transform:uppercas
 </style>
 </head>
 <body>
-<header><button class="back hidden" id="back">‹</button><div class="flag"></div><h1 id="title">Terrain · OrienRun</h1></header>
+<header><button class="back hidden" id="back">‹</button><div class="flag"></div><h1 id="title">Pose des balises</h1></header>
 <div class="gps none" id="gps"><span class="dot"></span><span id="gpsTxt">GPS : en attente…</span><span class="net" id="net"></span></div>
 <div id="banner"><span id="bannerTxt"></span><button id="bannerX">OK</button></div>
 <main id="view"></main>
@@ -155,7 +155,7 @@ function startGPS() {
   G.watch = navigator.geolocation.watchPosition(p => {
     G.fix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy || 99, alt: p.coords.altitude, t: Date.now() };
     G.listeners.forEach(f => f(G.fix)); updGps();
-  }, e => { if (e.code === 1) notify("Localisation refusée. Sur iPhone : Réglages → Confidentialité → Service de localisation → Safari (ou Terrain) → « Lorsque l'app est active » et « Position exacte » activée.", "ko", true); updGps(); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+  }, e => { if (e.code === 1) notify("Localisation refusée. Sur iPhone : Réglages → Confidentialité → Service de localisation → Safari (ou Balises) → « Lorsque l'app est active » et « Position exacte » activée.", "ko", true); updGps(); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
 }
 function updGps() {
   const el = $("#gps"), thr = REC.on || curView === "trace" ? CFG.accTrace : CFG.accBalise, q = gpsQuality(thr);
@@ -203,7 +203,7 @@ function go(v, arg) { curView = v; $("#back").classList.toggle("hidden", v === "
 $("#back").onclick = () => { if (curView === "trace" && REC.on && !confirm("Le tracé est en cours. Quitter l'écran ? (il continue en arrière-plan de l'appli)")) return; go("home"); };
 
 function vHome() {
-  $("#title").textContent = "Terrain · OrienRun";
+  $("#title").textContent = "Pose des balises";
   const enCours = REC.on;
   $("#view").innerHTML = `
    ${enCours ? `<button class="big" id="hRec" style="border-color:var(--rd)"><span class="ic rec" style="background:#fde0e2">⏺</span><span><b>Tracé en cours</b><span>${esc(REC.cur.nom)} · ${fmtD(traceDist(REC.cur))}</span></span></button>` : ""}
@@ -514,7 +514,7 @@ const stamp = () => new Date().toISOString().slice(0, 10);
 function toGPX() {
   const iso = t => new Date(t).toISOString(), x = s => esc(s);
   const BALc = BAL.map(b => ({ ...b, ...cp(b) })), TRCc = TRC.map(t => ({ ...t, segments: t.segments.map(sg => sg.map(cp)) })), REPc = REP.map(r => ({ ...r, ...cp(r) }));
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="OrienRun Terrain" xmlns="http://www.topografix.com/GPX/1/1">\n` +
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="OrienRun Pose des balises" xmlns="http://www.topografix.com/GPX/1/1">\n` +
     ELT.map(e0 => { const e = cp(e0); return `<wpt lat="${e.lat.toFixed(7)}" lon="${e.lon.toFixed(7)}"><time>${iso(e0.t)}</time><name>${x(ELEM[e0.sym])}</name><desc>${x(e0.note || "")} (±${e0.acc} m)</desc><type>${e0.sym}</type></wpt>\n`; }).join("") +
     REPc.map(r => `<wpt lat="${r.lat.toFixed(7)}" lon="${r.lon.toFixed(7)}"><time>${iso(r.t)}</time><name>${x(r.nom)}</name><desc>Repère (±${r.acc} m)</desc><sym>Pin</sym></wpt>\n`).join("") +
     BALc.map(b => `<wpt lat="${b.lat.toFixed(7)}" lon="${b.lon.toFixed(7)}">${b.alt != null ? `<ele>${b.alt}</ele>` : ""}<time>${iso(b.t)}</time><name>${b.n}</name><desc>${x(b.desc || "")}${b.acc ? ` (±${b.acc} m)` : ""}</desc><sym>Flag</sym></wpt>\n`).join("") +

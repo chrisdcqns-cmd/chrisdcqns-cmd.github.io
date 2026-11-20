@@ -45,6 +45,11 @@ input.s{height:46px;border-radius:14px;border:2px solid var(--line);padding:0 14
 .el .n b{font-weight:800}
 .el.on{border-color:var(--acc);background:#E7F3EC}
 .el.on .bx{background:var(--acc);border-color:var(--acc)}
+.el.top{background:#FFF7DC;border-color:#F0DA9A}
+.el.top .n::after{content:" ★";color:#C9971C;font-size:13px}
+.el.on.top{background:#E7F3EC;border-color:var(--acc);box-shadow:inset 5px 0 0 #E8B931}
+.legtop{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut,#6A6F78);font-weight:700}
+.legtop i{width:14px;height:14px;border-radius:4px;background:#FFF7DC;border:2px solid #F0DA9A}
 .el.wait{opacity:.6}
 .el.err{border-color:var(--red)}
 .card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 3px 0 var(--line);margin:14px 0}
@@ -155,7 +160,7 @@ var prefDone={};
 async function prefetch(tabs){
   var L=tabs.filter(function(t){var r=rang(t);return r===1||r===2;});
   for(var i=0;i<L.length;i++){var t=L[i];if(prefDone[t]||t===S.tab)continue;prefDone[t]=1;
-    var d=await jsonp({as:"get",tab:t});if(d&&d.asOk)cachePut(d);}
+    var d=await jsonp({as:"get",tab:t});if(d&&d.asOk){cachePut(d);if(rang(t)===1&&S.data&&S.data.cols&&S.data.cols.length&&!Object.keys(S.busy).length)render();}}
 }
 /* ---- lecture de la structure : ligne d'en-tête au-dessus des premières cases, colonnes de noms à gauche ---- */
 function parse(){
@@ -186,6 +191,20 @@ function autoCol(){
   var p=jget(KP,{});if(p.tab===S.tab&&C.some(function(c){return c.c===p.col;}))return p.col;
   for(var j=0;j<C.length;j++){var c=C[j].c;if(!S.data.rows.some(function(x){return S.data.at[x.r+"|"+c]===1;}))return c;}
   return C.length?C[C.length-1].c:null;
+}
+/* ---- élèves du « Top licenciés » (onglet lu en arrière-plan) : surlignés dans l'appel ---- */
+var TOPC={k:"",rows:null};
+function topRows(){
+  var c=cacheAll(),t=(c.tabs||[]).filter(function(x){return rang(x)===1;})[0],x=t&&c.t[t];
+  if(!x||!x.disp)return null;
+  var k=t+"|"+x.ts;if(TOPC.k===k)return TOPC.rows;
+  TOPC.k=k;TOPC.rows=x.disp.map(function(L){return " "+(L||[]).filter(function(v){return v!==""&&v!=null&&isNaN(+v);}).map(function(v){return norm(v);}).join(" ")+" ";}).filter(function(r){return r.trim();});
+  return TOPC.rows;
+}
+function isTop(x){
+  var R=topRows();if(!R||!R.length)return false;
+  var p=norm(x.p),n=norm(x.n);if(!p&&!n)return false;
+  return R.some(function(r){return(!p||r.indexOf(" "+p+" ")>=0)&&(!n||r.indexOf(" "+n+" ")>=0);});
 }
 /* ---- coche ---- */
 async function toggle(r){
@@ -226,13 +245,14 @@ function render(){
     '<div class="chips sm scroll" id="cols">'+cols+'</div>'+
     '<div class="bar"><div class="count">'+pres+' <small>/ '+d.rows.length+'</small></div>'+
     (nv.length>1?'<div class="chips sm"><button class="chip'+(!S.niv?" on":"")+'" data-niv="">Tous</button>'+nv.map(function(n){return'<button class="chip'+(S.niv===n?" on":"")+'" data-niv="'+n+'">'+n+'e</button>';}).join("")+'</div>':'')+
+    (topRows()?'<span class="legtop"><i></i>Top licenciés ★</span>':'')+
     '<div class="grow"></div>'+(S.loading?'<span class="m" style="font-size:14px">mise à jour…</span>':'')+'<input class="s" id="q" placeholder="🔎 Élève" value="'+esc(S.q)+'"><button class="btn" id="rf" aria-label="Actualiser">⟳</button></div>'+
     '<div class="grid">';
   var last=null;
   L.forEach(function(x){
     if(x.cl!==last){var gp=L.filter(function(y){return y.cl===x.cl;}),gn=gp.filter(function(y){return d.at[y.r+"|"+S.col]===1;}).length;h+='<div class="cls">'+esc(x.cl||"")+'<small>'+gn+' / '+gp.length+'</small></div>';last=x.cl;}
     var k=x.r+"|"+S.col,v=d.at[k];if(v===undefined)return;
-    h+='<button class="el'+(v===1?" on":"")+(S.busy[k]?" wait":"")+'" data-r="'+x.r+'"><span class="bx">'+(v===1?"✓":"")+'</span><span class="n" title="'+esc(x.p+" "+x.n+" · "+x.cl)+'"><b>'+esc(x.p)+'</b> '+esc(x.n)+'</span></button>';
+    h+='<button class="el'+(v===1?" on":"")+(isTop(x)?" top":"")+(S.busy[k]?" wait":"")+'" data-r="'+x.r+'"><span class="bx">'+(v===1?"✓":"")+'</span><span class="n" title="'+esc(x.p+" "+x.n+" · "+x.cl)+'"><b>'+esc(x.p)+'</b> '+esc(x.n)+'</span></button>';
   });
   h+='</div>'+(L.length?'':'<p class="m">Aucun élève.</p>');
   var y=window.scrollY,foc=document.activeElement&&document.activeElement.id==="q",cx=$("#cols")?$("#cols").scrollLeft:null;

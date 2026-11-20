@@ -33,34 +33,42 @@
   function same(o, n) { return norm(n) === norm(o.nom) || (o.old && norm(n) === norm(o.old)); }
   function isDefault(c, nm) { return nm === "Ma classe" && !(c.eleves || []).length; }
   function hasEv(e) { return e && e.ev && Object.keys(e.ev).length > 0; }
+  function anyEv(c) { return (c.eleves || []).some(hasEv); }
+  function nonEmpty(o) { return o && (Array.isArray(o) ? o.length : Object.keys(o).length) > 0; }
+  function offFor(o, app) { return !!(o && (o.del || (o.off || []).indexOf(app) >= 0)); }
 
   /* description de chaque appli : où sont ses classes, comment lire / ajouter / retirer un élève */
   var APPS = {
     esc: { key: "escalade.cl", list: function (d) { return d || []; }, nom: "nom",
       names: function (c) { return (c.el || []).map(function (n) { return { full: n }; }); },
       make: function (L, o) { return { id: freeId(L, clsId(o.nom)), nom: o.nom, el: [] }; },
-      add: function (c, p) { c.el.push(p.full); }, del: function (c, k) { c.el = c.el.filter(function (n) { return nkey(n) !== k; }); } },
+      add: function (c, p) { c.el.push(p.full); }, del: function (c, k) { c.el = c.el.filter(function (n) { return nkey(n) !== k; }); },
+      data: function (c) { var R = jget("escalade.r", []) || []; return R.some(function (r) { return r && (r.cl || "") === c.nom; }); } },
     rel: { key: "relais-vitesse-data-v3", list: function (d) { return d && d.classes || []; }, nom: "name", init: function () { return { classes: [], cur: null }; },
       names: function (c) { return (c.eleves || []).map(function (e) { return { full: full(e), prenom: e.prenom, nom: e.nom }; }); },
       make: function (L, o) { return { id: freeId(L, clsId(o.nom)), name: o.nom, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; },
       add: function (c, p) { var id = Math.max.apply(null, [-1].concat(c.eleves.map(function (e) { return +e.id || 0; }))) + 1;
         c.eleves.push({ id: id, nom: p.nom, prenom: p.prenom, ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0, orig: { ea: [null, null, null], ma: 0, el: [null, null, null], ml: 0 }, imported: true }); },
-      del: function (c, k) { c.eleves = c.eleves.filter(function (e) { if (nkey(full(e)) !== k) return true; return (e.ea || []).concat(e.el || []).some(function (x) { return x != null; }); }); } },
+      del: function (c, k) { c.eleves = c.eleves.filter(function (e) { if (nkey(full(e)) !== k) return true; return (e.ea || []).concat(e.el || []).some(function (x) { return x != null; }); }); },
+      data: function (c) { return nonEmpty(c.courses) || nonEmpty(c.lecons) || (c.eleves || []).some(function (e) { return (e.ea || []).concat(e.el || []).some(function (x) { return x != null; }); }); } },
     vol: { key: "eps_volley_eval_v1", list: function (d) { return d && d.classes || []; }, nom: "nom", init: function () { return { classes: [], cur: 0 }; },
       names: function (c) { return (c.eleves || []).map(function (e) { return { full: full(e), prenom: e.prenom, nom: e.nom }; }); },
       make: function (L, o) { return { id: freeId(L, clsId(o.nom)), nom: o.nom, eleves: [] }; },
       add: function (c, p) { c.eleves.push({ id: "e" + h32v(p.k + "|" + c.id), nom: p.nom, prenom: p.prenom, ev: {}, choix: "4-4", statut: "", comment: "" }); },
-      del: function (c, k) { c.eleves = c.eleves.filter(function (e) { return nkey(full(e)) !== k || hasEv(e); }); } },
+      del: function (c, k) { c.eleves = c.eleves.filter(function (e) { return nkey(full(e)) !== k || hasEv(e); }); },
+      data: function (c) { return anyEv(c); } },
     bad: { key: "eps_badminton_v1", list: function (d) { return d && d.classes || []; }, nom: "nom", init: function () { return { classes: [], cur: 0 }; },
       names: function (c) { return (c.eleves || []).map(function (e) { return { full: full(e), prenom: e.prenom, nom: e.nom }; }); },
       make: function (L, o, d) { return { id: freeId(L, clsId(o.nom)), nom: o.nom, voie: d && d.voie === "pro" ? "pro" : "gt", eleves: [], matchs: {}, poules: {} }; },
       add: function (c, p) { c.eleves.push({ id: "e" + h32v(p.k + "|" + c.id), nom: p.nom, prenom: p.prenom, ev: {}, choix: "4-4", statut: "", comment: "", rout: {} }); },
-      del: function (c, k) { c.eleves = c.eleves.filter(function (e) { return nkey(full(e)) !== k || hasEv(e); }); } },
+      del: function (c, k) { c.eleves = c.eleves.filter(function (e) { return nkey(full(e)) !== k || hasEv(e); }); },
+      data: function (c) { return anyEv(c) || nonEmpty(c.matchs) || nonEmpty(c.poules); } },
     dan: { key: "danse-eps-v1", list: function (d) { return d && d.classes || []; }, nom: "nom", init: function () { return { classes: [] }; },
       names: function (c) { return (c.eleves || []).map(function (e) { return { full: full(e), prenom: e.prenom, nom: e.nom }; }); },
       make: function (L, o) { return { id: freeId(L, clsId(o.nom)), nom: o.nom, eleves: [], groupes: [] }; },
       add: function (c, p) { c.eleves.push({ id: "d" + h32v(p.k + "|" + c.id), nom: p.nom, prenom: p.prenom, groupeId: "", ev: {}, comm: "", statut: "" }); },
-      del: function (c, k) { c.eleves = c.eleves.filter(function (e) { return nkey(full(e)) !== k || hasEv(e) || e.groupeId; }); } }
+      del: function (c, k) { c.eleves = c.eleves.filter(function (e) { return nkey(full(e)) !== k || hasEv(e) || e.groupeId; }); },
+      data: function (c) { return anyEv(c) || nonEmpty(c.groupes); } }
   };
 
   /* listes communes → données de l'appli (à l'ouverture de l'appli) */
@@ -71,9 +79,16 @@
     if (d == null) { if (!A.init) d = []; else d = A.init(); }
     var L = A.list(d); if (!Array.isArray(L)) return false;
     if (d && !Array.isArray(d) && !d.classes) d.classes = L;
-    var ch = false;
+    var ch = false, vch = false;
+    /* liste supprimée, ou classe non attribuée à cette activité : la classe est retirée de l'appli si elle n'y a encore aucune donnée */
+    Object.keys(v.items).map(function (k) { return v.items[k]; }).filter(function (o) { return o && o.nom && offFor(o, app); }).forEach(function (o) {
+      for (var i = L.length - 1; i >= 0; i--) { var c = L[i]; if (!same(o, c[A.nom])) continue;
+        if (A.data && A.data(c)) continue;
+        L.splice(i, 1); ch = true; delete v.snap[app + "|" + norm(c[A.nom])]; vch = true;
+        if (d && !Array.isArray(d)) { if (typeof d.cur === "number" && d.cur >= L.length) d.cur = 0; if (d.classeId === c.id && L[0]) d.classeId = L[0].id; } }
+    });
     its.forEach(function (o) {
-      var sk = app + "|" + norm(o.nom); if (v.skip[sk]) return;
+      var sk = app + "|" + norm(o.nom); if (v.skip[sk] || offFor(o, app)) return;
       var c = L.filter(function (x) { return same(o, x[A.nom]); })[0];
       if (!c) { c = A.make(L, o, d); L.push(c); ch = true; }
       if (c[A.nom] !== o.nom) { c[A.nom] = o.nom; ch = true; }
@@ -85,6 +100,7 @@
     /* classe vide par défaut (« Ma classe ») inutile dès qu'une vraie classe existe */
     if (ch && L.length > 1) { for (var i = L.length - 1; i >= 0; i--) if (isDefault(L[i], L[i][A.nom]) && L.length > 1) { L.splice(i, 1); if (d && typeof d.cur === "number" && d.cur >= L.length) d.cur = 0; } }
     if (ch) jset(A.key, d);
+    if (vch) jset(KL, v);
     return ch;
   }
 
@@ -92,10 +108,14 @@
   function collect(extra) {
     var v = ld(), its = items(v), changed = [], now = Date.now();
     function itemFor(nom) { return its.filter(function (o) { return same(o, nom); })[0]; }
+    function deadFor(nom) { return Object.keys(v.items).map(function (k) { return v.items[k]; }).filter(function (o) { return o && o.del && o.nom && same(o, nom); })[0]; }
     function scan(app, classes) {
       classes.forEach(function (c) {
         var nom = String(c.nom || "").replace(/\s+/g, " ").trim(); if (!nom || (nom === "Ma classe" && !c.ppl.length)) return;
         var sk = app + "|" + norm(nom), snap = v.snap[sk], o = itemFor(nom), loc = {}, dirty = false;
+        if (!o) { var dd = deadFor(nom); if (dd) { if (snap || !c.ppl.length) { v.snap[sk] = c.ppl.map(function (p) { return nkey(p.full); }); return; } /* classe gardée pour ses données */
+          o = dd; o.del = false; o.el = []; o.rm = []; o.st = {}; its.push(o); dirty = true; } } /* classe réimportée : la liste revient */
+        if (o && offFor(o, app)) { v.snap[sk] = c.ppl.map(function (p) { return nkey(p.full); }); return; }
         c.ppl.forEach(function (p) { if (p.full) loc[nkey(p.full)] = p; });
         if (!o) { if (!c.ppl.length) { v.snap[sk] = []; return; }
           o = { id: clsId(nom), nom: nom, old: "", el: [], st: {}, rm: [], ts: now }; while (v.items[o.id] && !v.items[o.id].del && !same(v.items[o.id], nom)) o.id += "x"; its.push(o); v.items[o.id] = o; dirty = true; }

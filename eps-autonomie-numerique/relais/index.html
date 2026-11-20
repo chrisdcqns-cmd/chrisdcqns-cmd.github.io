@@ -613,6 +613,7 @@ body.eteach .ebar .es{display:block}
 #v-home.on{min-height:calc(100dvh - 108px)}
 .hero h1{font-size:46px}
 .hero>div:first-child{flex:1}
+#w-teach{display:none}
 </style>
 </head>
 <body>
@@ -1385,7 +1386,7 @@ function updLock(){
   const open=Date.now()<UNLOCK_UNTIL, el=$("#lkState");
   el.classList.toggle("open",open);
   document.body.classList.toggle("teach-on",open);
-  document.querySelectorAll("[data-teach]").forEach(b=>b.innerHTML=open?"🔓 Verrouiller":"🔒 Enseignant");
+  document.querySelectorAll("[data-teach]").forEach(b=>{b.innerHTML=open?"🔓 Verrouiller":"🔒 Enseignant";b.style.display=open?"":"none"});
   el.innerHTML=open
     ?`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>Déverrouillé · verrouiller`
     :`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Verrouillé`;
