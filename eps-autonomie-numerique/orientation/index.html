@@ -165,6 +165,7 @@ body:has(#home.hidden) .homebar{display:none}
 .tab{color:#B9BEC7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:none;font-size:15px;border-radius:10px 10px 0 0}
 .tab.on{background:var(--app);color:#fff}
 html:not(.eps-teach) #goProf{display:none}
+.epse-open{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -180,7 +181,7 @@ html:not(.eps-teach) #goProf{display:none}
 </div>
 <div id="prof" class="hidden">
   <header>
-    <div class="topline"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg></span><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button><span data-eps-bar></span></div>
+    <div class="topline"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg></span><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button><button class="epse-open" onclick="window.EVORI&&EVORI.open()">📋 Évaluation</button><span data-eps-bar></span></div>
     <nav class="tabs" id="ptabs">
       <button class="tab" data-t="carte">🗺 Carte</button><button class="tab" data-t="balises">🚩 Balises</button><button class="tab" data-t="parcours">〰 Parcours</button><button class="tab" data-t="biblio">📚 Bibliothèque</button><button class="tab" data-t="seance">📡 Leçon live<span class="bdg hidden" id="alertBdg"></span></button><button class="tab" data-t="resultats">🏁 Résultats</button><button class="tab" data-t="reglages">⚙ Réglages</button>
     </nav>
@@ -3131,6 +3132,26 @@ window.addEventListener("hashchange", route);
 route();
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
+</script>
+<script src="../eps-eval.js"></script>
+<script>/* évaluation commune (eps-eval.js) : grille par degrés, auto-positionnement par QR code, fiches PDF au format Danse / Volley-ball.
+   Grille proposée (CA2, lycée), modifiable dans Évaluation → Grille ; données « eps.eval.ori.v1 », synchronisées entre tablettes. */
+window.EVORI=window.EPSE?EPSE.store({app:'ori',nom:'Course d\'orientation',ca:'CA2',color:'#E8701A',pfx:'or',code:'ORI1',url:'https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/orientation/',
+ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg>',
+ isTeacher:function(){try{return Number(localStorage.getItem('eps.teach.until')||0)>Date.now()||!!(typeof tpw==='function'&&tpw())}catch(e){return false}},unlock:function(){return Promise.resolve(typeof profLogin==='function'?profLogin():null)},
+ grid:{degres:['Degré 1','Degré 2','Degré 3','Degré 4'],degresEl:['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'],criteres:[
+  {id:'iti',afl:'AFL1',max:6,nom:"Lecture de carte et choix d'itinéraire",but:"Orienter sa carte, se situer en permanence, choisir l'itinéraire le plus efficace.",nomEl:'Je lis ma carte',butEl:"Je sais où je suis et je choisis le meilleur chemin.",
+   desc:["Carte rarement orientée ; se perd souvent ; suit les autres.","Oriente sa carte aux points de décision ; choix d'itinéraire par les lignes directrices les plus évidentes.","Carte orientée en permanence, pouce sur la carte ; choisit des itinéraires efficaces et anticipe le point d'attaque.","Lit la carte en courant ; compare plusieurs itinéraires et choisit le plus rapide ; corrige seul ses erreurs."],
+   descEl:["Je me perds souvent et je suis les autres.","J'oriente ma carte quand je m'arrête et je suis les chemins.","Ma carte est toujours orientée et je choisis de bons chemins.","Je lis ma carte en courant et je choisis le chemin le plus rapide."]},
+  {id:'perf',afl:'AFL1',max:6,nom:'Efficacité du déplacement et performance',but:"Trouver toutes les balises du parcours le plus vite possible, en sécurité.",nomEl:'Ma course',butEl:'Je trouve toutes mes balises le plus vite possible.',
+   desc:["Parcours incomplet (balises manquantes) ou hors délai ; marche souvent.","Parcours complet du niveau facile ; allure irrégulière, pertes de temps aux balises.","Parcours complet de niveau moyen dans le temps ; allure régulière, peu d'hésitations.","Parcours difficile réussi rapidement ; adapte son allure au terrain et à la difficulté."],
+   descEl:["Il me manque des balises ou je dépasse le temps.","Je fais tout un parcours facile, mais je perds du temps.","Je réussis un parcours moyen dans le temps, sans trop hésiter.","Je réussis un parcours difficile, vite et sans erreur."]},
+  {id:'prep',afl:'AFL2',max:4,nom:"S'entraîner, analyser sa course et ajuster",but:"Analyser sa trace et ses temps, repérer ses erreurs, ajuster son projet de course.",nomEl:'J\'analyse ma course',butEl:'Je regarde ma trace et je corrige mes erreurs.',
+   desc:["Ne revient pas sur sa course.","Repère ses erreurs avec l'aide de l'enseignant ou de la trace.","Analyse sa trace seul, identifie la cause de ses erreurs et choisit un parcours adapté.","Construit son projet de course (niveau, stratégie) et l'ajuste après chaque course ; conseille ses camarades."],
+   descEl:["Je ne regarde pas ma course après.","Je trouve mes erreurs avec l'aide du prof ou de ma trace.","Je comprends seul pourquoi je me suis trompé et je choisis un parcours adapté.","Je prépare ma course, je l'ajuste et je conseille les autres."]},
+  {id:'secu',afl:'AFL3',max:4,nom:'Sécurité et rôles',but:"Respecter les règles de sécurité et les limites, assumer les rôles (contrôleur, poseur de balises, chronométreur).",nomEl:'Sécurité et rôles',butEl:'Je respecte les règles et je joue bien mon rôle.',
+   desc:["Ne respecte pas toujours les limites ou l'heure de retour ; rôles délaissés.","Respecte les règles quand on les lui rappelle ; assume un rôle simple.","Respecte seul les règles de sécurité et les limites ; tient son rôle avec rigueur.","Veille à la sécurité de tous ; organise ou contrôle une partie de la course (balises, départs, résultats)."],
+   descEl:["J'oublie parfois les limites ou l'heure de retour.","Je respecte les règles quand on me les rappelle.","Je respecte seul les règles et je joue bien mon rôle.","Je veille à la sécurité de tous et j'aide à organiser la course."]}]}}):null;
 </script>
 <script>/* accès enseignant caché : appui long (3 s) sur le logo */
 window.epsTeacherEntry=function(){try{location.hash="";showHome()}catch(e){}var b=document.getElementById("goProf");if(b)b.click()};

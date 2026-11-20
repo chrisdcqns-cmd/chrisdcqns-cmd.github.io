@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
 <script src="../eps-lists.js"></script>
+<script src="../eps-eval.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Escalade EPS</title>
 <style>
@@ -332,6 +333,7 @@ nav{box-shadow:inset 0 -4px 0 var(--app);padding-bottom:14px}
 .homeW .tile.tprof::before{content:"Enseignant";display:block;position:absolute;right:12px;bottom:10px;top:auto;width:auto;height:auto;border-radius:6px;background:#14171C;color:#fff;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px}
 .homeW .tile.tprof .tib{background:#14171C;color:#ffc93c}
 header [data-eps-bar]{margin-left:8px}
+.homeW .tile.tprof::before{display:none!important}
 .card{box-shadow:0 1px 0 #E6E1D6,0 8px 20px -16px #14171C66}
 .sea{background:var(--appt);color:var(--app2)}
 .sum{background:var(--appt)}
@@ -441,6 +443,7 @@ function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK
  <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="eleve()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
  </div></div>`}
 function render(){
+ if(S.t==='evl'){S.t='home';if(window.EVESC)EVESC.open(cls()&&cls().nom);}
  if(!S.T&&['role','pickcl'].includes(S.t)&&window.EPSG&&EPSG.open&&!document.querySelector('.epsg'))setTimeout(()=>{if(!S.T&&['role','pickcl'].includes(S.t))EPSG.open()},0);
  if(!S.T&&!seaOK()&&['set','home','gr','mr','cot','the'].includes(S.t))S.t='wait';
  if(S.t=='tcl'&&!S.T)S.t='role';
@@ -472,7 +475,7 @@ function render(){
 /* ---------- accueil ---------- */
 const TILES=[['prep','Se préparer et assurer','#2E7D4F','','Échauffement, nœud de 8, assurage'],['cot','Cotation','#6a3fb5','','Je cherche une voie'],['gr','Renseigner une grimpe','#d9480f','','Corde, voie, cordée'],['mr','Mes résultats','#2b8a3e','','Mes leçons, mes progrès'],['the','Thématiques','#1c5d99','wide','Pistes de travail'],['sec','Sécurité','#c92a2a','wide','Règles et vérifications']];
 /* icônes des tuiles (traits blancs, 24×24) */
-const TI={prep:'<path d="M17.5 9.5V8a5.5 5.5 0 0 0-11 0v8a5.5 5.5 0 0 0 11 0v-1"/><path d="M17.5 9.5l-2.6 5.6"/><path d="M10 7.5v9"/>',
+const TI={evl:'<rect x="5" y="3.5" width="14" height="18" rx="2.5"/><path d="M9 3.5h6v3H9z"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/>',prep:'<path d="M17.5 9.5V8a5.5 5.5 0 0 0-11 0v8a5.5 5.5 0 0 0 11 0v-1"/><path d="M17.5 9.5l-2.6 5.6"/><path d="M10 7.5v9"/>',
  cot:'<path d="M2.5 20.5 9 9l4 6.5 2.5-4 6 9z"/><path d="M9 9V3.5l4 1.6-4 1.6"/><circle cx="17.5" cy="6" r="2.2"/>',
  gr:'<rect x="5" y="3.5" width="14" height="18" rx="2.5"/><path d="M9 3.5h6v3H9z"/><path d="M8.5 12l2 2 4.5-4.5"/><path d="M8.5 17.5h7"/>',
  mr:'<path d="M3.5 20.5h17"/><rect x="5" y="13" width="3.5" height="7.5" rx="1"/><rect x="10.3" y="9" width="3.5" height="11.5" rx="1"/><rect x="15.6" y="5" width="3.5" height="15.5" rx="1"/><path d="M4.5 9.5l5-4.5 3.5 2.5 6-4.5"/>',
@@ -487,7 +490,7 @@ const tIco=k=>TI[k]?`<i class="tib"><svg class="ti" viewBox="0 0 24 24" fill="no
 /* objectif de la leçon du jour : phrase de l'enseignant + nombre de voies */
 function objBar(){const L0=seaOK()?CF.sea:null,L=L0&&(LEC().find(l=>l.id==L0.id)||L0),o=String(L?.obj||'').trim(),m=L?.min||0,X=(L?.sit||[]).map(sitOf).filter(Boolean);if(!o&&!m&&!X.length)return '';
  return `<div class="objl">${o?`<span class="objt"><small>Objectif de la leçon</small>${esc(o)}</span>`:''}${X.map(x=>`<button class="objs" onclick="sitDlg('${x.id}')"><small>Situation</small>📋 ${esc(x.ti)}</button>`).join('')}${m?`<span class="objb" title="Objectif de voies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 20.5 9 9l4 6.5 2.5-4 6 9z"/><path d="M9 9V3.5l4 1.6-4 1.6"/></svg><b>${m}</b> ${m>1?'voies':'voie'}</span>`:''}</div>`}
-function home(){S.e=false;const t=S.T?[['set','Leçons et classes','#16252d','tprof','Préparer, consulter'],['cls','Classes et élèves','#16252d','tprof','Importer, renommer, modifier'],...TILES,['ctl','Tablette de contrôle','#16252d','tprof','Tous les élèves en direct'],['res','Résultats et QR codes','#16252d','tprof','Excel, Google Sheets, regroupement']]:TILES;
+function home(){S.e=false;const t=S.T?[['set','Leçons et classes','#16252d','tprof','Préparer, consulter'],['cls','Classes et élèves','#16252d','tprof','Importer, renommer, modifier'],...TILES,['ctl','Tablette de contrôle','#16252d','tprof','Tous les élèves en direct'],['res','Résultats et QR codes','#16252d','tprof','Excel, Google Sheets, regroupement'],['evl','Évaluation','#16252d','tprof','Grille, auto-positionnement, fiches PDF']]:TILES;
  return `<div class="homeW ${S.T?'tm':''}"><div class="hline">${cls()?`<span class="sea">${esc(cls().nom)}</span>`:(seaOK()?`<span class="sea">Sans liste</span>`:'')}${!S.T&&CL.length&&seaOK()?` <button class="b g chcl" onclick="S.t='pickcl';render()">Changer de classe</button>`:''}${S.T&&CL.length?` <button class="b g chcl" onclick="S.t='tcl';render()">Changer de classe</button>`:''}</div>${S.T?syWarn():''}${!S.T&&grp().length?`<div class="grpline"><span>Ton groupe</span>${grp().map(n=>chip(n,{cl:'mini'})).join('')}<button class="b g chcl" onclick="editG()">🔒 Modifier</button><button class="b g chcl" onclick="S.gs=[];S.gid=null;S.t='grp';render()">Changer de groupe</button></div>`:''}${objBar()}<div class="tiles">${t.map(([k,n,c,x,d])=>k=='imp_'?`<label class="tile ${x||''}" style="--c:${c}">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div><input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label>`:`<button class="tile ${x||''}" style="--c:${c}" onclick="S.t='${k}';render()">${tIco(k)}<div class="tt"><b>${n}</b>${d?`<span>${d}</span>`:''}</div></button>`).join('')}</div></div>`}
 /* classes et élèves (enseignant) : importer, renommer une classe, modifier ses élèves */
 function clsAdm(){return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.t='home';render();scrollTo(0,0)">← Accueil</button></p><h2 style="margin-top:4px">Classes et élèves</h2>
@@ -1485,6 +1488,24 @@ if(hubT()){S.T=true;S.t=CL.length?'tcl':seaOK()?'home':'set'}else S.t='role';
 render();
 sync();
 syncSoon(800);
+/* évaluation commune (eps-eval.js) : grille par degrés, auto-positionnement par QR code, fiches PDF au format Danse / Volley-ball.
+   Grille proposée (CA2, lycée), modifiable dans Évaluation → Grille ; données « eps.eval.esc.v1 », synchronisées entre tablettes. */
+window.EVESC=window.EPSE?EPSE.store({app:'esc',nom:'Escalade',ca:'CA2',color:'#2E7D4F',pfx:'es',code:'ESC1',url:'https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/escalade/',
+ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg>',
+ isTeacher:()=>!!S.T,unlock:()=>Promise.resolve(unlock()),
+ grid:{degres:['Degré 1','Degré 2','Degré 3','Degré 4'],degresEl:['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'],criteres:[
+  {id:'dif',afl:'AFL1',max:6,nom:'Difficulté de la voie réussie',but:"Grimper en tête ou en moulinette la voie la plus difficile possible, en sécurité.",nomEl:'La difficulté de mes voies',butEl:'Je réussis des voies de plus en plus difficiles, en sécurité.',
+   desc:["Réussit des voies faciles (≤ 4b) avec des arrêts fréquents ; abandonne dès que la voie se complique.","Réussit des voies de niveau 4c-5a ; quelques chutes ou repos sur la corde dans les passages clés.","Réussit des voies de niveau 5b-5c, enchaîne la plupart des passages ; gère un repos utile.","Réussit des voies de niveau 6a et plus, à vue ou après repérage, sans repos sur la corde."],
+   descEl:["Je réussis les voies faciles, mais je m'arrête souvent.","Je réussis des voies un peu plus dures, avec quelques repos sur la corde.","J'enchaîne des voies difficiles pour moi, avec peu d'arrêts.","J'enchaîne des voies très difficiles, sans me reposer sur la corde."]},
+  {id:'mot',afl:'AFL1',max:6,nom:'Efficacité et fluidité de la grimpe',but:"Utiliser les jambes, économiser les bras, lire la voie et grimper avec continuité.",nomEl:'Ma façon de grimper',butEl:'Je pousse sur mes jambes, je lis la voie, je grimpe sans m\'arrêter.',
+   desc:["Tire sur les bras, pieds peu précis ; progression saccadée, nombreux arrêts.","Commence à pousser sur les jambes ; lit la voie prise par prise ; fatigue rapide des bras.","Pieds précis, bras tendus aux repos ; lit plusieurs mouvements à l'avance ; grimpe avec continuité.","Gestuelle variée et économique (carres, changements de pied, crochetages) ; rythme adapté aux passages."],
+   descEl:["Je tire surtout avec mes bras, mes pieds glissent.","Je commence à pousser sur mes jambes, mais mes bras fatiguent vite.","Mes pieds sont précis, je me repose bras tendus et je lis la voie.","Je grimpe vite et bien, avec des mouvements variés et économiques."]},
+  {id:'prep',afl:'AFL2',max:4,nom:"Se préparer et s'entraîner",but:"Choisir des voies adaptées, se fixer un projet, analyser ses grimpes pour progresser.",nomEl:'Je me prépare et je progresse',butEl:"Je choisis mes voies, je me fixe un objectif et je l'ajuste.",
+   desc:["Choisit les voies au hasard ou par imitation ; pas de projet.","Se fixe un projet peu réaliste (trop facile ou trop dur) ; l'ajuste peu.","Choisit des voies adaptées à son niveau, analyse ses chutes et ajuste son projet.","Planifie sa progression (repérage, essais, enchaînement), analyse finement et conseille les autres."],
+   descEl:["Je choisis mes voies au hasard.","Je me fixe un objectif, mais il n'est pas toujours adapté.","Je choisis des voies à mon niveau et je comprends pourquoi je chute.","Je prépare mes voies (repérage, essais) et je conseille les autres."]},
+  {id:'sec',afl:'AFL3',max:4,nom:'Assurer et sécuriser la cordée',but:"Assurer un camarade en continu, contrôler la cordée (nœud, baudrier, système d'assurage), parer.",nomEl:"J'assure mon camarade",butEl:'Je vérifie la cordée et j\'assure sans jamais lâcher la corde.',
+   desc:["Assurage irrégulier, mou dans la corde ; vérifications oubliées ; besoin d'un contre-assureur.","Assure correctement sur une voie facile ; vérifications faites quand on les lui rappelle.","Assure en continu (main sous le frein), contrôle seul nœud et baudrier, descend le grimpeur en douceur.","Assure de façon dynamique et attentive à toute la cordée ; repère et corrige les erreurs des autres."],
+   descEl:["J'ai encore besoin d'un contre-assureur.","J'assure bien sur une voie facile, je vérifie quand on me le rappelle.","J'assure sans lâcher la corde, je vérifie tout seul et je descends doucement.","J'assure parfaitement et je corrige les erreurs des autres cordées."]}]}}):null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'Escalade',sub:'CA2 · Moulinette',color:'#2E7D4F',
  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg>',

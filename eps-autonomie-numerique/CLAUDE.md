@@ -33,6 +33,10 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 - `window.epsCurrentClass()` → `{nom, eleves}` : la pastille des dispensés ne compte alors que la classe choisie (sinon tous).
 
 ## Évaluation, bilans et PDF (modèle : Danse et Volley-ball)
+- **Module commun `eps-eval.js`** (`<script src="../eps-eval.js"></script>`) : à utiliser pour toute appli (actuelle ou nouvelle) au lieu de recopier le code de Danse / Volley.
+  - Appli qui a déjà sa propre évaluation : `EPSE.create(adaptateur)` (Badminton, Relais Vitesse) ; afficher `exportsHtml()` + `card(classe)` dans le bilan puis `bindExports` / `bindCard`.
+  - Appli sans évaluation : `EPSE.store({app, nom, ca, color, icon, pfx, code, url, grid, isTeacher, unlock})` (Escalade, Acrosport, OrienRun) : écran complet Évaluer / Bilan & export / Grille ouvert par `.open(classe)` depuis un bouton enseignant ; classes = listes communes attribuées à l'activité ; données `eps.eval.<app>.v1` synchronisées par `EPSD.store` (eps-home.js).
+  - Lien élève `…/<appli>/#auto=<jeton>`, préfixe de dépôt de 2 lettres propre à l'appli (`pfx`), code de repli `<CODE>.…`. Bibliothèques partagées dans `vendor/` (pdf-lib, JSZip, QR), chargées au premier export.
 - En-tête commun des bilans : `EPSR.pdfHead(doc, {act, titre, ca, ac, nom, classe, lecon…})` / `EPSR.htmlHead(...)` : bandeau `#14171C`, filet à la couleur de l'appli, établissement, enseignant, classe, date.
 - Fiches élèves au format Danse/Volley : pdf-lib, une fiche par élève (paysage, texte ajusté), un PDF ou un .zip `<Appli>_<classe>_<jj-mm-aaaa>.zip` avec récapitulatif de classe.
 - Auto-positionnement de l'élève (si l'activité a une grille par degrés) : QR code + lien nominatif sur la fiche (`…/<appli>/#eleve=<jeton>`), envoi chiffré au dépôt (script de Danse), code de repli à coller, mode lien qui masque tout le reste, sur tablette seulement après le choix de la classe et du nom dans la liste ; positionnement de l'élève affiché à côté de celui de l'enseignant, et suivi dans Bilan & export. Voir `danse/CLAUDE.md` et `volley/index.html`.
