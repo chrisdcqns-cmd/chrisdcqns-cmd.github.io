@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#14213d;--ink2:#56607a;--paper:#f5f2ea;--card:#fff;--line:#e2dccf;--orange:#f47a20;--orange2:#d9600a;--violet:#c21fbf;--green:#2a9d6f;--red:#e63946;--sun:#ffb703;--blue:#1f4fa3;--r:16px;--cond:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif}
+:root{--ink:#14213d;--ink2:#56607a;--paper:#f5f2ea;--card:#fff;--line:#e2dccf;--orange:#E8701A;--orange2:#C45A0E;--violet:#c21fbf;--green:#2a9d6f;--red:#e63946;--sun:#ffb703;--blue:#1f4fa3;--r:16px;--cond:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--paper);color:var(--ink);font-family:Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:17px}
 body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh}
@@ -152,9 +152,22 @@ table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums
 #scanner .frame{position:absolute;left:50%;top:42%;width:min(70vw,320px);aspect-ratio:1;transform:translate(-50%,-50%);border:4px solid #fff;border-radius:24px;box-shadow:0 0 0 2000px #0006}
 #scanner .bar{padding:14px;display:flex;gap:10px;justify-content:center;background:#000}
 @media print{.noprint{display:none!important}}
+
+/* ===== Charte EPS : barre sombre commune, liseré et accents à la couleur de l'appli ===== */
+:root{--app:#E8701A}
+.ebar{background:#14171C;color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:calc(env(safe-area-inset-top) + 12px) 22px 16px;display:flex;align-items:center;gap:12px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.ei{width:36px;height:36px;border-radius:10px;background:var(--app);display:inline-grid;place-items:center;flex:none}.ei svg{width:22px;height:22px}
+.ebar b{font-size:20px;font-weight:800}.ebar small{color:#A9AEB8;font-weight:600;font-size:14px;flex:1}
+body:has(#home.hidden) .homebar{display:none}
+#prof header{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding:10px 14px 4px}
+#prof .topline .logo{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:20px;font-weight:800;text-transform:none}
+#profHome{display:none}
+.tab{color:#B9BEC7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:none;font-size:15px;border-radius:10px 10px 0 0}
+.tab.on{background:var(--app);color:#fff}
 </style>
 </head>
 <body>
+<header class="ebar homebar"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></span><b>OrienRun</b><small>CA2 · Course d'orientation</small><span data-eps-bar></span></header>
 <div id="home" class="hidden">
   <div class="hero"><span class="tag">EPS · Course d'orientation</span><h1>OrienRun<br>EPS</h1><p>Cartes, balises à QR code, parcours, suivi GPS en direct et résultats.</p></div>
   <div class="bigchoice">
@@ -166,7 +179,7 @@ table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums
 </div>
 <div id="prof" class="hidden">
   <header>
-    <div class="topline"><div class="flag" style="width:30px;height:30px"></div><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button></div>
+    <div class="topline"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></span><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button><span data-eps-bar></span></div>
     <nav class="tabs" id="ptabs">
       <button class="tab" data-t="carte">🗺 Carte</button><button class="tab" data-t="balises">🚩 Balises</button><button class="tab" data-t="parcours">〰 Parcours</button><button class="tab" data-t="biblio">📚 Bibliothèque</button><button class="tab" data-t="seance">📡 Leçon live<span class="bdg hidden" id="alertBdg"></span></button><button class="tab" data-t="resultats">🏁 Résultats</button><button class="tab" data-t="reglages">⚙ Réglages</button>
     </nav>
@@ -912,8 +925,8 @@ function renderEditor() {
   const mm = mapMM(P);
   let extra = "";
   if (ED.showCal) P.calib.filter(c => c.x != null && !c.auto).forEach(c => { extra += `<g data-cal="${c.id}"><circle cx="${c.x}" cy="${c.y}" r="${2.2 * mm}" fill="#1a9b5533" stroke="#1a9b55" stroke-width="${.4 * mm}"/><path d="M${c.x} ${c.y - 3.5 * mm}V${c.y + 3.5 * mm}M${c.x - 3.5 * mm} ${c.y}H${c.x + 3.5 * mm}" stroke="#1a9b55" stroke-width="${.3 * mm}"/><text x="${c.x + 2.6 * mm}" y="${c.y - 2.6 * mm}" font-size="${2.6 * mm}" fill="#1a9b55" font-weight="700" font-family="Arial">GPS</text></g>`; });
-  if (ED.draw && ED.draw.pts.length) { const f = { sym: ED.draw.sym, pts: ED.draw.pts }; extra += featureSVG(f, mm).replace(/data-f="[^"]*"/g, "") + ED.draw.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${mm * .9}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .4}"/>`).join(""); }
-  if (ED.sel?.k === "f") { const f = P.features.find(x => x.id === ED.sel.id); if (f?.pts) extra += f.pts.map((p, i) => `<circle data-v="${i}" cx="${p[0]}" cy="${p[1]}" r="${mm * 1.3}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .5}"/>`).join(""); else if (f) extra += `<circle cx="${f.x}" cy="${f.y}" r="${mm * 2.5}" fill="none" stroke="#f47a20" stroke-width="${mm * .5}" stroke-dasharray="${mm} ${mm}"/>`; }
+  if (ED.draw && ED.draw.pts.length) { const f = { sym: ED.draw.sym, pts: ED.draw.pts }; extra += featureSVG(f, mm).replace(/data-f="[^"]*"/g, "") + ED.draw.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${mm * .9}" fill="#fff" stroke="#E8701A" stroke-width="${mm * .4}"/>`).join(""); }
+  if (ED.sel?.k === "f") { const f = P.features.find(x => x.id === ED.sel.id); if (f?.pts) extra += f.pts.map((p, i) => `<circle data-v="${i}" cx="${p[0]}" cy="${p[1]}" r="${mm * 1.3}" fill="#fff" stroke="#E8701A" stroke-width="${mm * .5}"/>`).join(""); else if (f) extra += `<circle cx="${f.x}" cy="${f.y}" r="${mm * 2.5}" fill="none" stroke="#E8701A" stroke-width="${mm * .5}" stroke-dasharray="${mm} ${mm}"/>`; }
   if (ED.myPos) { const g = georef(); if (g) { const q = g.toPx(ED.myPos.lat, ED.myPos.lon); extra += `<circle cx="${q.x}" cy="${q.y}" r="${mm * 2}" fill="#2b7bff" stroke="#fff" stroke-width="${mm * .6}"/><circle cx="${q.x}" cy="${q.y}" r="${Math.max(mm * 2, (ED.myPos.acc || 0) / (g.mPerPx || 1))}" fill="#2b7bff22" stroke="#2b7bff" stroke-width="${mm * .2}"/>`; } }
   if (ED.meas?.length) { const [a, b] = ED.meas; extra += `<circle cx="${a.x}" cy="${a.y}" r="${mm * 1.2}" fill="#e63946"/>` + (b ? `<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="#e63946" stroke-width="${mm * .6}" stroke-dasharray="${mm * 2} ${mm}"/><circle cx="${b.x}" cy="${b.y}" r="${mm * 1.2}" fill="#e63946"/>` : ""); }
   s.innerHTML = mapSVG(P, { highlight: ED.sel?.k === "c" ? ED.sel.id : null, under: P.map.showUnder }) + extra;
@@ -1151,7 +1164,7 @@ function printWin(title, body, css = "") {
   const w = window.open("", "_blank"); if (!w) return toast("Autorise les fenêtres surgissantes pour imprimer", "ko");
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
   @page{size:A4;margin:10mm}body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#111}h1{font-size:18pt;margin:0 0 4mm}
-  .noprint{position:sticky;top:0;background:#14213d;color:#fff;padding:10px;display:flex;gap:10px;align-items:center;font-size:14px}.noprint button{font-size:16px;padding:8px 16px;border-radius:20px;border:0;background:#f47a20;color:#fff;font-weight:700}
+  .noprint{position:sticky;top:0;background:#14213d;color:#fff;padding:10px;display:flex;gap:10px;align-items:center;font-size:14px}.noprint button{font-size:16px;padding:8px 16px;border-radius:20px;border:0;background:#E8701A;color:#fff;font-weight:700}
   @media print{.noprint{display:none}} ${css}</style></head><body><div class="noprint"><button onclick="print()">🖨 Imprimer</button><span>Conseil : imprime en couleur, à 100 % (sans « ajuster »).</span></div>${body}</body></html>`);
   w.document.close();
 }
@@ -1159,12 +1172,12 @@ function printBalises() {
   const C = P.controls.slice().sort((a, b) => String(a.type).localeCompare(b.type) || (+a.n || 0) - (+b.n || 0));
   if (!C.length) return toast("Aucune balise", "ko");
   const small = confirm("Format compact : 4 balises par page ?\n(OK = 4 par page, Annuler = 2 grandes par page)");
-  const card = c => `<div class="bal"><div class="hd">COURSE D'ORIENTATION · EPS</div><div class="in"><div class="fl"><svg viewBox="0 0 100 100"><path d="M0 0H100L0 100Z" fill="#fff"/><path d="M100 0V100H0Z" fill="#f47a20"/><rect x="1" y="1" width="98" height="98" fill="none" stroke="#000" stroke-width="2"/></svg><div class="nb">${esc(c.type === "C" ? c.n : c.type === "S" ? "DÉPART" : "ARRIVÉE")}</div></div>
+  const card = c => `<div class="bal"><div class="hd">COURSE D'ORIENTATION · EPS</div><div class="in"><div class="fl"><svg viewBox="0 0 100 100"><path d="M0 0H100L0 100Z" fill="#fff"/><path d="M100 0V100H0Z" fill="#E8701A"/><rect x="1" y="1" width="98" height="98" fill="none" stroke="#000" stroke-width="2"/></svg><div class="nb">${esc(c.type === "C" ? c.n : c.type === "S" ? "DÉPART" : "ARRIVÉE")}</div></div>
     <div class="qr">${QR.svg(baliseUrl(c), { ecl: "Q" })}<div class="cd">Code : <b>${esc(c.code)}</b></div></div></div>
     <div class="ft">Scanne avec l'appli <b>OrienRun</b> (ou l'appareil photo) · Ne pas déplacer, merci !${c.desc ? ` · ${esc(c.desc)}` : ""}</div></div>`;
   printWin("Balises", `<div class="pages">${C.map(card).join("")}</div>`, `
    .pages{display:grid;grid-template-columns:${small ? "1fr 1fr" : "1fr"};gap:6mm}
-   .bal{border:1.5mm solid #f47a20;border-radius:4mm;padding:${small ? 4 : 7}mm;height:${small ? 132 : 132}mm;box-sizing:border-box;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid}
+   .bal{border:1.5mm solid #E8701A;border-radius:4mm;padding:${small ? 4 : 7}mm;height:${small ? 132 : 132}mm;box-sizing:border-box;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid}
    .hd{font-weight:700;letter-spacing:.1em;font-size:${small ? 8 : 12}pt;text-align:center}
    .in{flex:1;display:flex;align-items:center;justify-content:space-around;gap:4mm;${small ? "flex-direction:column" : ""}}
    .fl{position:relative;width:${small ? 40 : 90}mm;height:${small ? 40 : 90}mm}.fl svg{width:100%;height:100%}
@@ -1185,7 +1198,7 @@ async function satView(extra) {
     loadCss("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"); await loadScript("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js");
     const map = L.map($("#sat", m)); L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 20, maxNativeZoom: 19, attribution: "Esri" }).addTo(map);
     const pts = [];
-    P.controls.filter(c => c.lat != null).forEach(c => { pts.push([c.lat, c.lon]); L.circleMarker([c.lat, c.lon], { radius: 9, color: "#fff", fillColor: "#f47a20", fillOpacity: 1, weight: 2 }).addTo(map).bindTooltip(String(c.n), { permanent: true, direction: "right" }); if (c.acc) L.circle([c.lat, c.lon], { radius: c.acc, color: "#f47a20", weight: 1, fillOpacity: .1 }).addTo(map); });
+    P.controls.filter(c => c.lat != null).forEach(c => { pts.push([c.lat, c.lon]); L.circleMarker([c.lat, c.lon], { radius: 9, color: "#fff", fillColor: "#E8701A", fillOpacity: 1, weight: 2 }).addTo(map).bindTooltip(String(c.n), { permanent: true, direction: "right" }); if (c.acc) L.circle([c.lat, c.lon], { radius: c.acc, color: "#E8701A", weight: 1, fillOpacity: .1 }).addTo(map); });
     P.calib.forEach(c => { pts.push([c.lat, c.lon]); L.circleMarker([c.lat, c.lon], { radius: 6, color: "#fff", fillColor: "#1a9b55", fillOpacity: 1, weight: 2 }).addTo(map); });
     extra && extra(map, pts);
     if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 19 }); else map.setView([46.6, 2.4], 6);
@@ -1746,7 +1759,7 @@ return {PDFDoc,zip,pFile,foot,dlZip,para,pW,fday};
 
 // ---------- bilans de la leçon : un .zip avec un PDF par élève (à déposer sur Pronote) ----------
 function orienPdf(R, a, k, X) {
-  const doc = EPDF.PDFDoc(), PW = doc.W, M = doc.M, CW = PW - 2 * M, AC = "#f47a20", INK = "#1d2430", MUT = "#5b6370";
+  const doc = EPDF.PDFDoc(), PW = doc.W, M = doc.M, CW = PW - 2 * M, AC = "#E8701A", INK = "#1d2430", MUT = "#5b6370";
   if (window.EPSR && EPSR.pdfHead) EPSR.pdfHead(doc, { act: "Course d'orientation", titre: "Bilan", ca: "CA2", ac: "#B26B00", nom: R.nom, classe: R.cl || "", lecon: X.nom || "", date: X.date ? EPDF.fday(new Date(X.date).toLocaleDateString("fr-CA")) : "", info: "Parcours : " + (k?.nm || R.c || "–") });
   else { doc.page(); doc.rect(0, 0, PW, 96, INK); doc.rect(0, 96, PW, 5, AC);
   doc.text(M, 38, "Course d'orientation : bilan", { size: 20, bold: true, color: "#ffffff" });
@@ -1876,7 +1889,7 @@ function bilanHTML({ proj, geo, R, course, a, lesson }) {
    <div class="refl"><b>Mon analyse</b><div>Où ai-je perdu le plus de temps ? Pourquoi ?</div><div class="l"></div><div class="l"></div><div>Ce que je ferai mieux la prochaine fois :</div><div class="l"></div><div class="l"></div></div></div>`;
 }
 function printBilans(list) {
-  printWin("Fiche bilan", list.map(bilanHTML).join(""), `@page{size:A4 portrait;margin:9mm}.bilan{page-break-after:always}.bilan:last-child{page-break-after:auto}.bh{display:flex;justify-content:space-between;gap:6mm;border-bottom:1mm solid #f47a20;padding-bottom:2mm}.bh h1{font-size:15pt;margin:0}.who{text-align:right;font-size:10pt}
+  printWin("Fiche bilan", list.map(bilanHTML).join(""), `@page{size:A4 portrait;margin:9mm}.bilan{page-break-after:always}.bilan:last-child{page-break-after:auto}.bh{display:flex;justify-content:space-between;gap:6mm;border-bottom:1mm solid #E8701A;padding-bottom:2mm}.bh h1{font-size:15pt;margin:0}.who{text-align:right;font-size:10pt}
    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;margin:3mm 0}.st{border:1px solid #ccc;border-radius:2mm;padding:1.5mm 2mm}.st small{display:block;color:#666;font-size:7pt;text-transform:uppercase}.st b{font-size:11pt}
    .mapw{border:1px solid #000;height:105mm}.bmap{width:100%;height:100%;display:block}.lg{font-size:7.5pt;color:#555;margin:1mm 0 2mm}
    table{border-collapse:collapse;width:100%;font-size:8.5pt}td,th{border:1px solid #999;padding:1mm 1.5mm;text-align:left}.refl{margin-top:3mm;font-size:9pt}.refl .l{border-bottom:1px solid #999;height:7mm}`);
@@ -2002,7 +2015,7 @@ function openPose() {
     const d = me ? haversine(me, target) : null, b = me ? bearing(me, target) : null, rot = b != null ? (head != null ? b - head : b) : 0;
     if (d != null && d < 10 && Date.now() - lastBuzz > 8000) { lastBuzz = Date.now(); navigator.vibrate?.([200, 100, 200]); }
     box.innerHTML = `<div class="runcard" style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center">
-      <div style="width:150px;height:150px;border-radius:50%;background:#ffffff14;display:grid;place-items:center;position:relative">${head == null ? '<span style="position:absolute;top:4px;font-weight:800">N</span>' : ""}<svg viewBox="-50 -50 100 100" style="width:120px;transform:rotate(${rot}deg);transition:transform .3s"><path d="M0,-44 L22,30 L0,16 L-22,30Z" fill="${d != null && d < 15 ? "#3ddc97" : "#f47a20"}"/></svg></div>
+      <div style="width:150px;height:150px;border-radius:50%;background:#ffffff14;display:grid;place-items:center;position:relative">${head == null ? '<span style="position:absolute;top:4px;font-weight:800">N</span>' : ""}<svg viewBox="-50 -50 100 100" style="width:120px;transform:rotate(${rot}deg);transition:transform .3s"><path d="M0,-44 L22,30 L0,16 L-22,30Z" fill="${d != null && d < 15 ? "#3ddc97" : "#E8701A"}"/></svg></div>
       <div><div class="lbl" style="color:#fff">${mode === "pose" ? "Balise à poser" : "Balise à ramasser"} · ${n}/${L.length} faites</div><div style="font-family:var(--cond);font-size:3rem;font-weight:800;line-height:1">${esc(ctrlLabel(target))}</div>
       <div style="font-size:2rem;font-weight:800">${d == null ? "GPS…" : fmtDist(d)}</div><div class="sub">${target.desc ? esc(target.desc) + " · " : ""}${me ? `ta précision ±${Math.round(me.acc)} m` : ""}${head == null ? " · flèche orientée par rapport au nord (active la boussole ou marche)" : ""}</div></div></div>
      <div class="row" style="margin-top:10px"><button class="btn green" id="poDone" style="min-height:58px;flex:1">✓ ${mode === "pose" ? "Posée" : "Ramassée"}</button><button class="btn alt" id="poSkip">Passer</button><a class="btn ghost" target="_blank" href="${gmapsUrl(target.lat, target.lon)}">Google Maps</a></div>
@@ -2269,10 +2282,10 @@ function ficheHTML(L, niv, print) {
    ${o ? `<h4>Réglages OrienRun</h4><p class="or">${esc(modeNom[o.mode] || o.mode)} · ${o.nbB} balises conseillées${o.choix ? ` · l'élève choisit${o.nb ? " " + o.nb : ""} balises` : ""}${o.prep ? ` · préparation ${o.prep} min` : ""}${o.tm ? ` · durée max ${o.tm} min` : ""}${o.so ? " · ordre sanctionné" : ""}${o.ptsOn || o.mode === "score" ? " · points" : ""} · départ : ${esc((DEPART_MODES[o.dm] || "").replace(/«|»/g, ""))}${o.carte ? " · carte sur le téléphone" : " · pas de carte sur le téléphone"}${o.fb ? " · réponse juste/fausse immédiate" : ""}<br><i>${esc(o.conseil || "")}</i></p>` : ""}
   </div>`;
 }
-const FICHE_CSS = `.fiche{font-size:10pt;line-height:1.35}.fiche h4{margin:3mm 0 1mm;font-size:10.5pt;text-transform:uppercase;letter-spacing:.04em;color:#c25200;border-bottom:.3mm solid #f47a20}
+const FICHE_CSS = `.fiche{font-size:10pt;line-height:1.35}.fiche h4{margin:3mm 0 1mm;font-size:10.5pt;text-transform:uppercase;letter-spacing:.04em;color:#c25200;border-bottom:.3mm solid #E8701A}
  .fiche table{border-collapse:collapse;width:100%}.fiche td,.fiche th{border:.3mm solid #999;padding:1.4mm 2mm;vertical-align:top;text-align:left}.fiche th{background:#f3efe4;font-size:9pt}
  .fiche .hd .tt{background:#14213d;color:#fff}.fiche .kick{font-size:8pt;letter-spacing:.12em;text-transform:uppercase;opacity:.85}.fiche .ti{font-size:17pt;font-weight:800}.fiche .th{font-size:10pt;opacity:.9}
- .fiche ul{margin:1mm 0 1mm 4.5mm;padding:0}.fiche li{margin:.4mm 0}.fiche p{margin:1mm 0}.fiche .two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.fiche .muted2{color:#666;font-size:8.5pt}.fiche .vide{color:#999}.fiche .or{background:#fff4e8;border-left:1mm solid #f47a20;padding:1.5mm 2.5mm}
+ .fiche ul{margin:1mm 0 1mm 4.5mm;padding:0}.fiche li{margin:.4mm 0}.fiche p{margin:1mm 0}.fiche .two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.fiche .muted2{color:#666;font-size:8.5pt}.fiche .vide{color:#999}.fiche .or{background:#fff4e8;border-left:1mm solid #E8701A;padding:1.5mm 2.5mm}
  .fiche .att li{list-style:none;margin-left:-4.5mm}`;
 function openFiche(L) {
   const niv = blibNiv();
@@ -3118,7 +3131,7 @@ route();
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
 </script>
-<script>window.epsAppHome=function(){try{location.hash="";showHome()}catch(e){location.href=location.pathname}};</script>
+<script>window.epsAppHome=function(){try{stopMyPos()}catch(e){}try{location.hash="";showHome()}catch(e){location.href=location.pathname}};</script>
 <script src="../eps-home.js" defer></script>
 </body>
 </html>

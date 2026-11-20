@@ -940,9 +940,9 @@
     var st = document.createElement("style"); st.id = "epsg-css";
     st.textContent = ".epsg{position:fixed;inset:0;z-index:2147483000;background:#F5F3EE;overflow:auto;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1B1E24;-webkit-font-smoothing:antialiased}" +
       ".epsg *{box-sizing:border-box}.epsg-hd{color:#fff;padding:calc(env(safe-area-inset-top) + 18px) 22px 20px;display:flex;align-items:center;gap:14px}" +
-      ".epsg-ic{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex:none}.epsg-ic svg{width:30px;height:30px}" +
+      ".epsg-ic{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex:none}.epsg-ic svg{width:30px;height:30px}" +
       ".epsg-hd h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.1}.epsg-hd p{margin:3px 0 0;font-size:14px;opacity:.82;font-weight:600}" +
-      ".epsg-home{margin-left:auto;color:#fff;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid rgba(255,255,255,.45);border-radius:10px;padding:8px 12px;white-space:nowrap}" +
+      ".epsg-home{margin-left:auto;display:inline-flex;align-items:center;gap:7px;height:40px;color:#D5D8DE;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid #3A3F47;border-radius:10px;padding:0 12px;white-space:nowrap}" +
       ".epsg-in{max-width:1100px;margin:0 auto;padding:22px 22px 120px}.epsg h2{font-size:22px;font-weight:800;margin:4px 0 12px}" +
       ".epsg-lab{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#6A6F78;font-weight:800;margin:26px 0 10px}" +
       ".epsg-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}" +
@@ -965,7 +965,7 @@
     var cur = ""; try { cur = G.current ? G.current() : ""; } catch (e) {}
     var R = G.resources || [];
     var d = document.createElement("div"); d.className = "epsg";
-    d.innerHTML = '<div class="epsg-hd" style="background:' + col + '"><div class="epsg-ic">' + (G.icon || "") + '</div><div><h1>' + esc(G.app || "") + '</h1>' + (G.sub ? "<p>" + esc(G.sub) + "</p>" : "") + '</div><a class="epsg-home" href="' + BASE + '">⌂ Accueil</a></div>' +
+    d.innerHTML = '<div class="epsg-hd" style="background:#14171C;box-shadow:inset 0 -4px 0 ' + col + '"><div class="epsg-ic" style="background:' + col + '">' + (G.icon || "") + '</div><div><h1>' + esc(G.app || "") + '</h1>' + (G.sub ? "<p>" + esc(G.sub) + "</p>" : "") + '</div><a class="epsg-home" href="' + BASE + '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Accueil</a></div>' +
       '<div class="epsg-in"><h2>Choisis ta classe</h2>' +
       (L.length || G.noClass ? '<div class="epsg-g">' + L.map(function (c) {
         return '<button class="epsg-c' + (c.id === cur ? " on" : "") + '" data-c="' + esc(c.id) + '"' + (c.id === cur ? ' style="border-color:' + col + '"' : "") + '><b>' + esc(c.nom) + '</b><span>' + esc(c.note || (c.n != null ? c.n + " élève" + (c.n > 1 ? "s" : "") : "")) + "</span></button>";
@@ -1012,7 +1012,7 @@
     b.setAttribute("aria-label", "Accueil de l'application (maintenir 3 secondes : toutes les applications EPS)");
     b.title = "Appui : accueil de l'application · Maintenir 3 s : toutes les applications";
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="position:relative"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>';
-    var s = b.style, BG = "rgba(27,30,36,.78)", slot = document.querySelector("[data-eps-bar]");
+    var s = b.style, BG = "rgba(27,30,36,.78)", slot = epsSlot();
     if (slot) { /* bouton logé dans la barre du haut de l'appli (charte commune) */
       BG = "transparent"; b.className = "epsb";
       b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Accueil</span>';
@@ -1082,7 +1082,7 @@
     var b = document.createElement("button");
     b.type = "button"; b.id = "eps-upd"; b.title = "Mettre à jour (données et application)"; b.setAttribute("aria-label", "Mettre à jour");
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
-    var s = b.style, slot = document.querySelector("[data-eps-bar]");
+    var s = b.style, slot = epsSlot();
     if (slot) { b.className = "epsb"; } else {
     s.position = "fixed"; s.zIndex = "2147483000"; s.border = "0"; s.padding = "0";
     s.left = "calc(10px + env(safe-area-inset-left, 0px))"; s.bottom = HUB ? "calc(10px + env(safe-area-inset-bottom, 0px))" : "calc(64px + env(safe-area-inset-bottom, 0px))";
@@ -1103,12 +1103,28 @@
     };
     (slot || document.body).appendChild(b);
   }
+  /* emplacement(s) des boutons communs dans la barre du haut de l'appli : on utilise celui qui est visible
+     (une appli peut en avoir plusieurs, par exemple un par écran) */
+  function epsSlot() {
+    var L = document.querySelectorAll("[data-eps-bar]");
+    for (var i = 0; i < L.length; i++) if (L[i].getClientRects().length) return L[i];
+    return L[0] || null;
+  }
+  function redock() {
+    var L = document.querySelectorAll("[data-eps-bar]"); if (L.length < 2) return;
+    var sl = epsSlot();
+    ["epsd-pill", "eps-upd", "eps-home"].forEach(function (id) {
+      var e = document.getElementById(id);
+      if (e && e.parentNode && e.parentNode !== sl && e.parentNode.hasAttribute && e.parentNode.hasAttribute("data-eps-bar")) sl.appendChild(e);
+    });
+  }
   function init() {
     addCss();
     addUpdate();
     applyTeach(); setInterval(applyTeach, 1000);
+    setInterval(redock, 400);
     pill = document.createElement("button"); pill.id = "epsd-pill"; pill.type = "button"; pill.onclick = showList;
-    var sl = document.querySelector("[data-eps-bar]"); if (sl) sl.insertBefore(pill, sl.firstChild); else document.body.appendChild(pill);
+    var sl = epsSlot(); if (sl) sl.insertBefore(pill, sl.firstChild); else document.body.appendChild(pill);
     if (!HUB) addHome();
     draw();
     setTimeout(sync, 1500);

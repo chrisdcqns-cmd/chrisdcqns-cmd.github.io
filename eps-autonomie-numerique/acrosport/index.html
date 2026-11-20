@@ -379,9 +379,21 @@ body.online .onlyOffline{display:none}
 .codebox{width:100%;min-height:120px;font-family:ui-monospace,monospace;font-size:.75rem}
 body:not(.acroProf) .profOnly{display:none!important}
 .noBelts .beltOnly,.noBelts #beltChip,.noBelts [data-tab="path"]{display:none!important}html:not(.noBelts) .noBeltOnly{display:none!important}
+
+/* ===== Charte EPS : barre sombre commune, liseré et accents à la couleur de l'appli ===== */
+:root{--app:#1F4FA3}
+.ebar{background:#14171C;color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:calc(env(safe-area-inset-top) + 12px) 22px 16px;display:flex;align-items:center;gap:12px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.ei{width:36px;height:36px;border-radius:10px;background:var(--app);display:inline-grid;place-items:center;flex:none}.ei svg{width:22px;height:22px}
+.ebar b{font-size:20px;font-weight:800}.ebar small{color:#A9AEB8;font-weight:600;font-size:14px;flex:1}
+body:has(#home.hidden) .homebar{display:none}
+#app header{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding-bottom:4px}
+.topline .logo{display:inline-flex;align-items:center;gap:10px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:none;font-size:20px;letter-spacing:0}
+.iconbtn{border-radius:10px;width:40px;height:40px;background:transparent;border:1.5px solid #3A3F47;color:#D5D8DE}
+.tab{color:#B9BEC7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:none;letter-spacing:0;font-size:16px;padding:11px 16px;border-radius:10px 10px 0 0}.tab.on{background:var(--app);color:#fff}
 </style>
 </head>
 <body>
+<header class="ebar homebar"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3.5" r="1.8"/><path d="M8 7.5h8M12 7.5v3"/><circle cx="7.5" cy="11.5" r="1.8"/><circle cx="16.5" cy="11.5" r="1.8"/><path d="M7.5 13.5v7M16.5 13.5v7M5 16h5M14 16h5"/></svg></span><b>Acrosport</b><small>CA3 · Figures et pyramides</small><span data-eps-bar></span></header>
 
 <!-- ============ ACCUEIL ============ -->
 <section id="home">
@@ -435,13 +447,14 @@ body:not(.acroProf) .profOnly{display:none!important}
 <section id="app" class="hidden">
   <header>
     <div class="topline">
-      <button class="iconbtn" id="backHome" title="Changer de groupe">⌂</button>
-      <span class="logo">Acrosport</span>
+      <button class="iconbtn" id="backHome" title="Changer de groupe">👥</button>
+      <span class="logo"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3.5" r="1.8"/><path d="M8 7.5h8M12 7.5v3"/><circle cx="7.5" cy="11.5" r="1.8"/><circle cx="16.5" cy="11.5" r="1.8"/><path d="M7.5 13.5v7M16.5 13.5v7M5 16h5M14 16h5"/></svg></span>Acrosport</span>
       <div class="chips" id="memberChips"></div>
       <span class="syncBadge hidden" id="syncBadge"></span>
       <span class="beltChip" id="beltChip" title="Ceintures"></span>
       <span class="sp"></span>
       <button class="iconbtn" id="profBtn" title="Espace enseignant">⚙</button>
+      <span data-eps-bar></span>
     </div>
     <nav class="tabs">
       <button class="tab on" data-tab="videos">Vidéothèque</button>
