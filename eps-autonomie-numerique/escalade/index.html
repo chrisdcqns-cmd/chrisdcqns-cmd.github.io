@@ -492,8 +492,19 @@ function home(){S.e=false;const t=S.T?[['set','Leçons et classes','#16252d','tp
 /* classes et élèves (enseignant) : importer, renommer une classe, modifier ses élèves */
 function clsAdm(){return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.t='home';render();scrollTo(0,0)">← Accueil</button></p><h2 style="margin-top:4px">Classes et élèves</h2>
  <div class="tb"><label class="b">📄 Importer une liste (Excel ou CSV)<input type="file" accept=".xlsx,.csv,.txt" hidden onchange="impHome(this)"></label><button class="b g" onclick="S.imp=null;edCl('new')">+ Nouvelle classe</button></div>
+ ${CL.length>1?`<div class="card rgc"><h3 style="margin:0 0 4px">👥 Regrouper des classes en un seul groupe</h3><p class="mut" style="margin:0 0 8px">Pour un groupe EPS qui réunit plusieurs classes (ex. TMELEC et TTBMA) : une seule liste, une seule leçon, une seule tablette de contrôle. Les grimpes déjà enregistrées sont rattachées au groupe, sur toutes les tablettes.</p>
+ <div class="cols">${CL.map(c=>`<button class="b ${(S.rg||[]).includes(c.id)?'on':'g'}" onclick="tgRg('${c.id}')">${esc(c.nom)}</button>`).join('')}</div>
+ ${(S.rg||[]).length>1?`<label class="l">Nom du groupe</label><input id="rgN" value="${esc(rgName())}"><p><button class="b" onclick="doRg()">Regrouper ${S.rg.length} classes</button></p>`:'<p class="mut" style="margin:8px 0 0">Touche au moins deux classes.</p>'}
+ ${Object.keys(CF.alias||{}).length?`<p class="mut" style="margin:8px 0 0">Déjà regroupées : ${Object.entries(CF.alias).map(([a,t])=>esc(a.toUpperCase())+' → '+esc(t)).join(' · ')}</p>`:''}</div>`:''}
  ${CL.length?CL.map(c=>`<div class="card"><div class="ch"><h3 style="margin:0">${esc(c.nom)} <small class="mut">· ${c.el.length} élève(s)</small></h3><button class="b g" onclick="edCl('${c.id}')">✏️ Renommer / modifier les élèves</button></div>
   <div class="names" style="margin-top:10px">${[...c.el].sort((a,b)=>a.localeCompare(b,'fr')).map(n=>chip(n,{cl:'mini'})).join('')}</div></div>`).join(''):'<div class="card"><p class="mut">Aucune classe sur cette tablette : importe une liste.</p></div>'}`}
+function tgRg(id){S.rg=S.rg||[];S.rg=S.rg.includes(id)?S.rg.filter(x=>x!=id):[...S.rg,id];const y=scrollY;render();scrollTo(0,y)}
+const rgName=()=>(S.rg||[]).map(id=>CL.find(c=>c.id==id)?.nom).filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr')).join(' + ');
+async function doRg(){const G=(S.rg||[]).map(id=>CL.find(c=>c.id==id)).filter(Boolean),nom=($('#rgN')?.value||'').trim()||rgName();if(G.length<2)return;
+ if(!await ask('Regrouper '+G.map(c=>c.nom).join(' et ')+' en « '+nom+' » ?\n\nLes élèves, les leçons et les grimpes de ces classes seront réunis dans ce groupe, sur toutes les tablettes.'))return;
+ CF.alias=CF.alias||{};G.forEach(c=>{if(nrm(c.nom)!=nrm(nom))CF.alias[nrm(c.nom)]=nom});
+ const keep=G.slice().sort((a,b)=>a.id<b.id?-1:1)[0];if(CF.sel&&G.some(c=>c.id==CF.sel))CF.sel=keep.id;
+ mergeDupCls();save();S.rg=[];say('✓ Groupe « '+nom+' » créé.');const y=scrollY;render();scrollTo(0,y)}
 function edCl(id){S.back='cls';S.t='set';S.le=null;S.lv=null;S.ce=id;render();scrollTo(0,0)}
 function backCl(){S.ce=null;S.imp=null;if(S.back=='cls'){S.back=null;S.t='cls'}render();scrollTo(0,0)}
 /* import d'une liste d'élèves depuis l'accueil enseignant : ouvre la fiche « Nouvelle classe » déjà remplie */
@@ -691,7 +702,13 @@ const LEC=()=>CF.lec||(CF.lec=[]),clNom=id=>{const c=CL.find(x=>x.id==id);return
 const clsId=n=>{let h=5381;for(const ch of String(n).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' '))h=((h<<5)+h+ch.charCodeAt(0))|0;return 'n'+(h>>>0).toString(36)};
 /* classes en double (même nom créé sur deux tablettes) : on garde une seule classe (le plus petit identifiant, le même sur toutes les tablettes)
    et on y rattache élèves, leçons, absents et permis d'assurer */
-function mergeDupCls(){const by={};let ch=false;CL.forEach(c=>{const k=nrm(c.nom);(by[k]=by[k]||[]).push(c)});
+/* classes regroupées en un seul groupe EPS : CF.alias[nom normalisé] = nom du groupe (synchronisé al|…) */
+const aliasOf=n=>{let t=n,i=0;const A=CF.alias||{};while(i++<6&&A[nrm(t)]&&nrm(A[nrm(t)])!=nrm(t))t=A[nrm(t)];return t};
+function applyAlias(){if(!CF.alias||!Object.keys(CF.alias).length)return false;let ch=false;
+ CL.forEach(c=>{const t=aliasOf(c.nom);if(t!==c.nom){c.nom=t;ch=true}});
+ R.forEach(r=>{if(r.cl){const t=aliasOf(r.cl);if(t!==r.cl){r.cl=t;ch=true}}});
+ (CF.msg||[]).forEach(m=>{if(m.cl){const t=aliasOf(m.cl);if(t!==m.cl){m.cl=t;ch=true}}});return ch}
+function mergeDupCls(){const by={};let ch=applyAlias();CL.forEach(c=>{const k=nrm(c.nom);(by[k]=by[k]||[]).push(c)});
  Object.values(by).forEach(G=>{if(G.length<2)return;G.sort((a,b)=>a.id<b.id?-1:1);const keep=G[0];
   G.slice(1).forEach(o=>{(o.el||[]).forEach(n=>{if(!keep.el.includes(n))keep.el.push(n)});LEC().forEach(l=>{if(l.cl==o.id)l.cl=keep.id});
    for(const M of [CF.ab,CF.bel])if(M)Object.keys(M).forEach(k=>{if(k.startsWith(o.id+'|')){const nk=keep.id+k.slice(o.id.length);if(!(nk in M))M[nk]=M[k];delete M[k]}});
@@ -1224,7 +1241,7 @@ function syRecords(){const O={},put=(k,o)=>{O[k]=JSON.stringify(o)};
  R.forEach(r=>{const o={...r};delete o.rx;put('r|'+r.id,o)});
  put('w',W);Object.keys(C).forEach(k=>put('c|'+k,C[k]));if(CF.pin)put('pin',{p:CF.pin});
  Object.keys(CF.ab||{}).forEach(k=>put('ab|'+k,{el:CF.ab[k]}));(CF.gps||[]).forEach(g=>put('gp|'+g.id,g));(CF.msg||[]).forEach(m=>put('m|'+m.id,m));
- if(CF.ped)put('ped',CF.ped);Object.keys(CF.bel||{}).forEach(k=>put('bel|'+k,CF.bel[k]));return O}
+ if(CF.ped)put('ped',CF.ped);Object.keys(CF.alias||{}).forEach(k=>put('al|'+k,{to:CF.alias[k]}));Object.keys(CF.bel||{}).forEach(k=>put('bel|'+k,CF.bel[k]));return O}
 function syScan(){const O=syRecords();let n=0;
  for(const k in O){const x=hs(O[k]);if(SY.h[k]!==x){SY.h[k]=x;SY.pend[k]={u:syStamp(),d:0};n++}}
  let gone=Object.keys(SY.h).filter(k=>!(k in O));
@@ -1256,10 +1273,10 @@ function syWarn(){const c=SYC();
  if(c.url==RELAIS_URL)return `<div class="sywarn">⚠️ Cette tablette utilise encore l'ancien script de Relais : les tablettes réglées sur le partage commun ne voient pas ses grimpes. <button class="b" onclick="syShare()">Régler le partage commun</button></div>`;
  return ''}
 function syShare(){if(window.EPSD&&EPSD.shareSettings)EPSD.shareSettings(()=>{syncSoon(300);render()});else say('Règle le partage depuis la page d\'accueil (Réglages).')}
-async function syResend(){if(!syOk())return say('Le partage n\'est pas réglé sur cette tablette.');say('Envoi de toutes les grimpes, classes et leçons…');
- const O=syRecords(),u=syStamp();let n=0;Object.keys(O).forEach(k=>{if(/^(cl|lec|r|ab|gp|m|bel)\|/.test(k)){SY.h[k]=hs(O[k]);SY.pend[k]={u,d:0};n++}});sySave();
+async function syResend(){if(!syOk())return say('Le partage n\'est pas réglé sur cette tablette.');{const e=$('#ctlst');if(e)e.textContent='Envoi de toutes les grimpes, classes et leçons…'}
+ const O=syRecords(),u=syStamp();let n=0;Object.keys(O).forEach(k=>{if(/^(cl|lec|r|ab|gp|m|bel|al)\|/.test(k)){SY.h[k]=hs(O[k]);SY.pend[k]={u,d:0};n++}});sySave();
  await syCycle();await syBeat(true).catch(()=>{});say(SY.err?'⚠️ '+SY.err:'✓ '+n+' éléments renvoyés');const y=scrollY;render();scrollTo(0,y)}
-async function syRefetch(){if(!syOk())return say('Le partage n\'est pas réglé sur cette tablette.');say('Récupération de toutes les données…');
+async function syRefetch(){if(!syOk())return say('Le partage n\'est pas réglé sur cette tablette.');{const e=$('#ctlst');if(e)e.textContent='Récupération de toutes les données…'}
  SY.since=0;SY.lg={};sySave();await syCycle();say(SY.err?'⚠️ '+SY.err:'✓ Données récupérées : '+R.length+' '+pw(R.length,'grimpe')+' sur cette tablette');const y=scrollY;render();scrollTo(0,y)}
 /* ---- pont avec les anciens canaux : une tablette réglée sur le partage commun récupère aussi ce que les tablettes
    encore sur l'ancien script de Relais (ou sur le script d'Escalade) y ont envoyé, puis le republie sur le partage commun.
@@ -1282,7 +1299,7 @@ async function syLegacy(){const S0=syLgSrc();if(!S0.length)return;SY.lg=SY.lg||{
    for(let [seq,k,u,d,x] of recs){if(src.pre){if(!String(k).startsWith(src.pre))continue;k=String(k).slice(src.pre.length)}if(+d)continue;
     let o;try{const b=unb64(x);o=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},await lgKey(src.key),b.slice(12))))}catch(e){continue}
     if(k.startsWith('dev|')){const id=k.slice(4);if(!SY.devs?.[id]||(SY.devs[id].at||0)<(o.at||0))(SY.devs=SY.devs||{})[id]={...o,old:1};continue}
-    if(!/^(cl|lec|r|ab|gp|m|bel)\|/.test(k)||k in SY.h||SY.pend[k]||(SY.dk&&SY.dk[k]))continue;
+    if(!/^(cl|lec|r|ab|gp|m|bel|al)\|/.test(k)||k in SY.h||SY.pend[k]||(SY.dk&&SY.dk[k]))continue;
     syApply(k,o);add++}
    st.since=recs.length?+recs[recs.length-1][0]:Math.max(st.since,+r.seq||0);if(!r.more)break}}
  sySave();if(add){SV('r',R);SV('cf',CF);SV('cl',CL);mergeDupCls();save();syScan();syRefresh()}}
@@ -1293,15 +1310,15 @@ function syApply(k,o){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
  else if(t=='w')W=o;else if(t=='c')C[id]=o;else if(t=='pin'&&o.p)CF.pin=o.p;
  else if(t=='ab'){(CF.ab||(CF.ab={}))[id]=o.el||[]}
  else if(t=='gp'){const G=CF.gps||(CF.gps=[]),i=G.findIndex(g=>g.id==id);i<0?G.push(o):G[i]=o}
- else if(t=='ped')CF.ped=o;else if(t=='bel'){(CF.bel||(CF.bel={}))[id]=o}
+ else if(t=='ped')CF.ped=o;else if(t=='al'){(CF.alias||(CF.alias={}))[id]=o.to}else if(t=='bel'){(CF.bel||(CF.bel={}))[id]=o}
  else if(t=='m'){const M=CF.msg||(CF.msg=[]),i=M.findIndex(m=>m.id==id);i<0?M.push(o):M[i]=o}
  return true}
 function syRemove(k){const p=k.split('|'),t=p[0],id=p.slice(1).join('|');
  if(t=='cl')CL=CL.filter(c=>c.id!=id);else if(t=='lec'){CF.lec=LEC().filter(l=>l.id!=id)}else if(t=='r')R=R.filter(r=>r.id!=id);
- else if(t=='ab'){if(CF.ab)delete CF.ab[id]}else if(t=='gp'){CF.gps=(CF.gps||[]).filter(g=>g.id!=id)}else if(t=='bel'){if(CF.bel)delete CF.bel[id]}else if(t=="ped")CF.ped=null;else if(t=="m")CF.msg=(CF.msg||[]).filter(m=>m.id!=id)}
+ else if(t=='ab'){if(CF.ab)delete CF.ab[id]}else if(t=='gp'){CF.gps=(CF.gps||[]).filter(g=>g.id!=id)}else if(t=='bel'){if(CF.bel)delete CF.bel[id]}else if(t=="ped")CF.ped=null;else if(t=='al'){if(CF.alias)delete CF.alias[id]}else if(t=="m")CF.msg=(CF.msg||[]).filter(m=>m.id!=id)}
 /* au tout premier contact, ce qui a été préparé sur cette tablette (classes, leçons, grimpes, contenus modifiés) est gardé et partagé */
 function syFirst(){const O=syRecords();for(const k in O){const t=k.split('|')[0];
- const mine=t=='cl'||t=='lec'||t=='r'||t=='pin'||t=='ab'||t=='m'||t=='ped'||t=='bel'||t=='gp'||(t=='w'&&O[k]!==JSON.stringify(WDEF))||(t=='c'&&O[k]!==JSON.stringify(DEF[k.slice(2)]??null));
+ const mine=t=='cl'||t=='lec'||t=='r'||t=='pin'||t=='ab'||t=='m'||t=='ped'||t=='bel'||t=='gp'||t=='al'||(t=='w'&&O[k]!==JSON.stringify(WDEF))||(t=='c'&&O[k]!==JSON.stringify(DEF[k.slice(2)]??null));
  if(mine){SY.h[k]=hs(O[k]);SY.pend[k]={u:syStamp(),d:0}}}}
 async function syPull(){const chn=SYC();
  if(chn.common&&SH.url&&SH.key){const v=await shJ({vlist:1},20000);if(v&&v.vids)SY.vids=v.vids} /* vidéos : toujours par le script d'Escalade (Google Drive) */
