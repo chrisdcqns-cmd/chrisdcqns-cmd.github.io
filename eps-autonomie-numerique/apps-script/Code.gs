@@ -113,7 +113,8 @@ function json_(o) {
  * Le fichier n'est pas chiffré : c'est le tien (ou celui de l'AS), le script ne fait que lire ses cellules et cocher ses cases.
  * Sécurité : seules des cases à cocher existantes peuvent être modifiées (rien d'autre n'est écrit).
  *   ?as=get&id=<fichier>[&tab=<onglet>]        → onglets, valeurs affichées, cases à cocher (état)
- *   ?as=set&id=<fichier>&tab=<onglet>&r=&c=&v=1|0 → coche / décoche une case (lignes et colonnes comptées à partir de 1)
+ *   ?as=set&id=<fichier>&tab=<onglet>&ligne=&colonne=&coche=1|0 → coche / décoche une case (lignes et colonnes comptées à partir de 1)
+ *   (paramètres aux noms longs : « r », « c », « v » courts sont interceptés par Google avant d'arriver au script)
  */
 const AS_MAX_ROWS = 600, AS_MAX_COLS = 120;
 
@@ -125,13 +126,13 @@ function appelAS_(p) {
   const tabs = sheets.map(sh => sh.getName());
   const sh = (p.tab && ss.getSheetByName(String(p.tab))) || sheets[0];
   if (p.as === 'set') {
-    const r = Number(p.r), c = Number(p.c);
+    const r = Number(p.ligne || p.r), c = Number(p.colonne || p.c), v = String(p.coche !== undefined ? p.coche : p.v);
     if (!(r >= 1 && c >= 1)) return { asErr: 'case' };
     const cell = sh.getRange(r, c);
     const dv = cell.getDataValidation();
     if (!dv || dv.getCriteriaType() !== SpreadsheetApp.DataValidationCriteria.CHECKBOX) return { asErr: 'pas une case à cocher' };
     const lock = LockService.getScriptLock(); lock.waitLock(20000);
-    try { cell.setValue(String(p.v) === '1'); SpreadsheetApp.flush(); }
+    try { cell.setValue(v === '1'); SpreadsheetApp.flush(); }
     finally { lock.releaseLock(); }
     return { asOk: 1, r: r, c: c, v: cell.getValue() === true ? 1 : 0 };
   }

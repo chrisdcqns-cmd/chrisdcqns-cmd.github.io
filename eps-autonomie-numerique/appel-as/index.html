@@ -149,7 +149,7 @@ function autoCol(){
 async function toggle(r){
   var d=S.data,k=r+"|"+S.col,cur=d.at[k];if(cur===undefined||S.busy[k])return;
   var v=cur===1?0:1;d.at[k]=v;S.busy[k]=1;render();
-  var x=await jsonp({as:"set",tab:S.tab,r:r,c:S.col,v:v});
+  var x=await jsonp({as:"set",tab:S.tab,ligne:r,colonne:S.col,coche:v});
   delete S.busy[k];
   if(!x){ /* pas de réponse : on relit le fichier pour savoir si la case a quand même été cochée */
     S.busy[k]=1;render();await load(S.tab,true);delete S.busy[k];
