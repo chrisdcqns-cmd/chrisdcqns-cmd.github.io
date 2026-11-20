@@ -924,6 +924,69 @@
       '<div><div style="font-size:17px;font-weight:700">' + esc(h.l1) + '</div><div style="font-size:12px;color:#cfc8dc">' + esc(h.l2) + "</div></div>" +
       '<div style="text-align:right"><div style="font-size:17px;font-weight:700">' + esc(h.r1) + '</div><div style="font-size:12px;color:#cfc8dc">' + esc(h.r2) + "</div></div></div></div>";
   }
+  /* ================= Écran élève commun : « Choisis ta classe » + ressources sans classe =================
+     Chaque application enregistre sa configuration (avant ou après le chargement de ce fichier) :
+       (window.EPSG_Q = window.EPSG_Q || []).push({ app, sub, color, icon(svg), classes(): [{id, nom, n, note}],
+         current(): id, select(id), resources: [{ico, label, sub, open()}], teacher(), when(): bool, noClass: {label, sub, open()} });
+     L'écran s'affiche au chargement de l'application, en mode élève seulement (when() permet de l'éviter). */
+  var GATE = null;
+  function gateCss() {
+    if (document.getElementById("epsg-css")) return;
+    var st = document.createElement("style"); st.id = "epsg-css";
+    st.textContent = ".epsg{position:fixed;inset:0;z-index:2147483000;background:#F5F3EE;overflow:auto;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1B1E24;-webkit-font-smoothing:antialiased}" +
+      ".epsg *{box-sizing:border-box}.epsg-hd{color:#fff;padding:calc(env(safe-area-inset-top) + 18px) 22px 20px;display:flex;align-items:center;gap:14px}" +
+      ".epsg-ic{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex:none}.epsg-ic svg{width:30px;height:30px}" +
+      ".epsg-hd h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1.1}.epsg-hd p{margin:3px 0 0;font-size:14px;opacity:.82;font-weight:600}" +
+      ".epsg-home{margin-left:auto;color:#fff;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid rgba(255,255,255,.45);border-radius:10px;padding:8px 12px;white-space:nowrap}" +
+      ".epsg-in{max-width:1100px;margin:0 auto;padding:22px 22px 120px}.epsg h2{font-size:22px;font-weight:800;margin:4px 0 12px}" +
+      ".epsg-lab{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#6A6F78;font-weight:800;margin:26px 0 10px}" +
+      ".epsg-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}" +
+      ".epsg-c{background:#fff;border:2px solid #E6E1D6;border-radius:14px;padding:16px;text-align:left;cursor:pointer;font:inherit;color:inherit;min-height:84px;transition:border-color .15s}" +
+      ".epsg-c b{display:block;font-size:21px;font-weight:800}.epsg-c span{display:block;font-size:13px;color:#6A6F78;margin-top:4px;font-weight:600}" +
+      ".epsg-c.on{border-width:3px}.epsg-c.nl{border-style:dashed;background:transparent}" +
+      ".epsg-r{display:flex;align-items:center;gap:10px;border:0;border-radius:12px;padding:13px 14px;text-align:left;cursor:pointer;font:inherit;font-weight:700;font-size:15px}" +
+      ".epsg-r i{font-style:normal;font-size:20px}.epsg-r small{display:block;font-weight:600;font-size:12px;opacity:.8}" +
+      ".epsg-ft{margin-top:34px;text-align:center}.epsg-ft button{font:inherit;font-weight:700;font-size:15px;color:#6A6F78;background:#fff;border:1.5px solid #DDD7CA;border-radius:12px;padding:11px 18px;cursor:pointer}" +
+      ".epsg-empty{background:#fff;border-radius:14px;padding:18px;color:#6A6F78;font-weight:600}";
+    document.head.appendChild(st);
+  }
+  function tint(hex, a) { var h = String(hex || "#444").replace("#", ""); if (h.length === 3) h = h.replace(/./g, "$&$&"); var n = parseInt(h, 16); return "rgba(" + (n >> 16 & 255) + "," + (n >> 8 & 255) + "," + (n & 255) + "," + a + ")"; }
+  function gateClose() { var g = document.querySelector(".epsg"); if (g) g.remove(); try { document.documentElement.style.overflow = ""; } catch (e) {} }
+  function gateOpen() {
+    var G = GATE; if (!G) return;
+    gateCss(); gateClose();
+    var col = G.color || "#1B1E24", L = [];
+    try { L = (G.classes && G.classes()) || []; } catch (e) {}
+    var cur = ""; try { cur = G.current ? G.current() : ""; } catch (e) {}
+    var R = G.resources || [];
+    var d = document.createElement("div"); d.className = "epsg";
+    d.innerHTML = '<div class="epsg-hd" style="background:' + col + '"><div class="epsg-ic">' + (G.icon || "") + '</div><div><h1>' + esc(G.app || "") + '</h1>' + (G.sub ? "<p>" + esc(G.sub) + "</p>" : "") + '</div><a class="epsg-home" href="' + BASE + '">⌂ Accueil</a></div>' +
+      '<div class="epsg-in"><h2>Choisis ta classe</h2>' +
+      (L.length || G.noClass ? '<div class="epsg-g">' + L.map(function (c) {
+        return '<button class="epsg-c' + (c.id === cur ? " on" : "") + '" data-c="' + esc(c.id) + '"' + (c.id === cur ? ' style="border-color:' + col + '"' : "") + '><b>' + esc(c.nom) + '</b><span>' + esc(c.note || (c.n != null ? c.n + " élève" + (c.n > 1 ? "s" : "") : "")) + "</span></button>";
+      }).join("") + (G.noClass ? '<button class="epsg-c nl" data-nl="1"><b style="font-size:17px">' + esc(G.noClass.label || "Sans liste") + "</b><span>" + esc(G.noClass.sub || "") + "</span></button>" : "") + "</div>"
+        : '<div class="epsg-empty">Aucune classe sur cette tablette pour l\'instant : demande à ton enseignant.</div>') +
+      (R.length ? '<div class="epsg-lab">Ressources · sans classe</div><div class="epsg-g">' + R.map(function (r, i) {
+        return '<button class="epsg-r" data-r="' + i + '" style="background:' + tint(col, .12) + ';color:' + col + '"><i>' + (r.ico || "📘") + "</i><span>" + esc(r.label) + (r.sub ? "<small>" + esc(r.sub) + "</small>" : "") + "</span></button>";
+      }).join("") + "</div>" : "") +
+      (G.teacher ? '<div class="epsg-ft"><button data-t="1">🔒 Je suis enseignant</button></div>' : "") + "</div>";
+    d.addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.c != null) { gateClose(); try { G.select(b.dataset.c); } catch (er) {} }
+      else if (b.dataset.nl) { gateClose(); try { G.noClass.open(); } catch (er) {} }
+      else if (b.dataset.r != null) { gateClose(); try { R[+b.dataset.r].open(); } catch (er) {} }
+      else if (b.dataset.t) { gateClose(); try { G.teacher(); } catch (er) {} }
+    });
+    document.body.appendChild(d); try { document.documentElement.style.overflow = "hidden"; } catch (e) {}
+  }
+  function gateRegister(cfg) {
+    GATE = cfg;
+    var show = true; try { show = !(cfg.isTeacher ? cfg.isTeacher() : isTeacher()) && (!cfg.when || cfg.when()); } catch (e) { show = false; }
+    if (show) { if (document.body) gateOpen(); else document.addEventListener("DOMContentLoaded", gateOpen); }
+  }
+  window.EPSG = { register: gateRegister, open: gateOpen, close: gateClose };
+  (window.EPSG_Q || []).forEach(gateRegister);
+  window.EPSG_Q = { push: gateRegister };
   window.EPSR = { get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };

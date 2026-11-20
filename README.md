@@ -70,3 +70,8 @@ Page d'accueil → 🔒 Enseignant → carte Listes d'élèves → « ⚙ Partag
 
 ## Appel AS (`eps-autonomie-numerique/appel-as/`, mode enseignant)
 - Coche les élèves présents à l'AS **directement dans le fichier Google Sheets d'appel** (via le script commun : `?as=get` / `?as=set`, voir `apps-script/README.md`). Lien du fichier dans ⚙️ Réglages (`asSheet`, partagé entre tablettes). Onglet du mois et colonne du jour choisis automatiquement ; filtres par niveau, recherche, rafraîchissement toutes les 45 s. Rien n'est stocké sur la tablette à part le dernier onglet / colonne.
+
+## Écran élève commun « Choisis ta classe » (eps-home.js, `window.EPSG`)
+- En mode élève, chaque application s'ouvre sur le choix de la classe, avec en dessous les **ressources sans classe** et « 🔒 Je suis enseignant ». Chaque appli déclare sa configuration : `(window.EPSG_Q=window.EPSG_Q||[]).push({app, sub, color, icon, classes(), current(), select(id), resources:[{ico,label,sub,open()}], teacher(), isTeacher(), when(), noClass})`.
+- En place : Escalade (vert #2E7D4F ; échauffement, s'encorder, assurage, sécurité), Relais Vitesse (#D9481F ; dispositif, situations), Volley-ball (#6B3FA0 ; puis choix de l'équipe dans la tablette du coach), Danse (#C2185B ; procédés, défis, auto-positionnement s'il est ouvert ; jamais devant un lien #eleve=…), Acrosport (#1F4FA3). OrienRun : classe donnée par le QR code de départ (pas d'écran de classe).
+- Charte : barre sombre commune (#14171C) avec les bandes de couleur des activités ; une couleur par appli (Acrosport #1F4FA3, Escalade #2E7D4F, OrienRun #E8701A, Relais #D9481F, Volley #6B3FA0, Danse #C2185B, CO-éval #14213D, Appel AS #475569, Badminton #0B7A75, Emploi du temps #1F5F8B).

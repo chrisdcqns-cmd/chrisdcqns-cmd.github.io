@@ -408,7 +408,8 @@ function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK
  <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="eleve()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
  <button class="tile tprof" style="background:#16252d" onclick="unlock(seaOK()?'home':'set')"><b>🔒 Je suis enseignant</b><span>Leçon du jour, classes, résultats, QR codes et Google Sheets (code demandé)</span></button></div></div>`}
 function render(){
- if(!S.T&&!seaOK()&&['set','home','gr','mr','cot','the','sec'].includes(S.t))S.t='wait';
+ if(!S.T&&['role','pickcl'].includes(S.t)&&window.EPSG&&EPSG.open&&!document.querySelector('.epsg'))setTimeout(()=>{if(!S.T&&['role','pickcl'].includes(S.t))EPSG.open()},0);
+ if(!S.T&&!seaOK()&&['set','home','gr','mr','cot','the'].includes(S.t))S.t='wait';
  if(S.t=='role'||S.t=='pickcl'||S.t=='grp'||S.t=='wait'){S.e=false;$('#tm').innerHTML='';$('#nav').style.display='none';$('#m').innerHTML=S.t=='role'?roleScr():S.t=='grp'?grpScr():S.t=='wait'?waitScr():clsScr();return}
  if(!S.T){S.e=false;if(S.t=='res'||S.t=='ctl'||S.t=='cls'||S.t=='ped'||(S.t=='set'&&seaOK()))S.t='home'}
  if(S.t!='cot')S.cm='';
@@ -1379,5 +1380,18 @@ if(hubT()){S.T=true;S.t=seaOK()?'home':'set'}else S.t='role';
 render();
 sync();
 syncSoon(800);
+/* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
+(window.EPSG_Q=window.EPSG_Q||[]).push({app:'Escalade',sub:'CA2 · Moulinette',color:'#2E7D4F',
+ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 20.5 9 9l4 6.5 2.5-4 6 9z"/><path d="M9 9V3.5l4 1.6-4 1.6"/></svg>',
+ isTeacher:()=>S.T,when:()=>!S.T&&['role','pickcl'].includes(S.t),
+ classes:()=>CL.map(c=>({id:c.id,nom:c.nom,note:c.el.length+' élève'+(c.el.length>1?'s':'')+(lecFor(c.id,today())?' · leçon aujourd\'hui':'')})),
+ current:()=>CF.wcl||'',
+ select:id=>{S.T=false;pickCl(id)},
+ noClass:CL.length?null:{label:'Sans liste',sub:'je tape mon prénom',open:()=>eleve()},
+ resources:[{ico:'🔥',label:'Échauffement',open:()=>{S.t='prep';S.s='ech';render();scrollTo(0,0)}},
+  {ico:'🪢',label:"S'encorder",sub:'nœud de 8',open:()=>{S.t='prep';S.s='enc';render();scrollTo(0,0)}},
+  {ico:'🤝',label:'Assurage',open:()=>{S.t='prep';S.s='ass';render();scrollTo(0,0)}},
+  {ico:'🛡️',label:'Sécurité',open:()=>{S.t='sec';render();scrollTo(0,0)}}],
+ teacher:()=>unlock(seaOK()?'home':'set')});
 </script><script src="../eps-home.js" defer></script>
 </body></html>

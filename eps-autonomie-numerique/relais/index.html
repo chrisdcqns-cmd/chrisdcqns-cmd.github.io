@@ -3655,6 +3655,7 @@ function showWait(){
 }
 function renderWait(){
   const t=todayISO(),C=WAIT_CL?DATA.classes.find(c=>c.id===WAIT_CL):null;if(!C)WAIT_CL=null;
+  if(!C&&!teachOn()&&window.EPSG&&EPSG.open&&!document.querySelector(".epsg"))setTimeout(()=>{if(!WAIT_CL&&!teachOn())EPSG.open()},0);
   const none=!DATA.classes.length;
   $("#w-main").style.display=!C&&!WAIT_PICK?"":"none";
   $("#w-pick").style.display=none?"none":"";
@@ -3691,9 +3692,18 @@ $("#lkStudent").addEventListener("click",()=>{UNLOCK_UNTIL=0;hubOn(false);updLoc
 /* liste de classe reçue d'une autre tablette (page d'accueil commune) */
 window.addEventListener("eps-lists",()=>{const d=load(K.data,null);if(d&&Array.isArray(d.classes)){DATA=d;try{syRefresh()}catch(e){}}});
 hubSync();updLock();
+/* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
+(window.EPSG_Q=window.EPSG_Q||[]).push({app:"Relais Vitesse",sub:"CA1 · Vitesse et transmission",color:"#D9481F",
+ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M19 6.5l1.5-1.5"/></svg>',
+ isTeacher:()=>teachOn(),when:()=>!teachOn()&&!WAIT_CL,
+ classes:()=>DATA.classes.slice().sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(c=>{const l=(c.lecons||[]).find(x=>x.date===todayISO());return{id:c.id,nom:c.name,note:c.eleves.length+" élève"+(c.eleves.length>1?"s":"")+(l?" · leçon aujourd'hui":"")}}),
+ current:()=>WAIT_CL||"",
+ select:id=>{WAIT_CL=id;WAIT_PICK=false;showWait()},
+ resources:[{ico:"📐",label:"Dispositif",sub:"zones, plots, mesures",open:()=>{DISPO_BACK="wait";go("dispo")}},{ico:"📚",label:"Situations",sub:"exercices et consignes",open:()=>{SITS_BACK="wait";SIT_OPEN=null;SIT_CAT=sitsDay().length?"day":"all";go("sits")}}],
+ teacher:async()=>{if(await requireCode())go("classes")}});
 if(teachOn())go("classes");else startStudent();
 </script>
-<script>window.epsAppHome=function(){try{go("home")}catch(e){location.href=location.pathname}};</script>
+<script>window.epsAppHome=function(){try{if(!teachOn()){WAIT_CL=null;WAIT_PICK=false;showWait();return}go("home")}catch(e){location.href=location.pathname}};</script>
 <script src="../eps-home.js" defer></script>
 <script>if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("/sw.js",{scope:"/"}).catch(()=>{});</script>
 </body>

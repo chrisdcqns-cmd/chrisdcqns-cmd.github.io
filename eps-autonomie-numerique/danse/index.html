@@ -2673,7 +2673,7 @@ async function rTablette(cl) {
 function dispOf(cl, e) { try { return window.EPSD && EPSD.find ? EPSD.find(cl.nom, e.nom, e.prenom) : null; } catch (x) { return null; } }
 function dispLabel(d) { try { return EPSD.label(d); } catch (x) { return ''; } }
 addEventListener('epsd-change', () => { if (vue === 'evaluation' && isTeacher()) rListe(); });
-window.epsAppHome = () => aller(isTeacher() ? 'evaluation' : (autoOuvert() ? 'eleve' : 'procedes'));
+window.epsAppHome = () => { if (!isTeacher() && window.EPSG && EPSG.open) { EPSG.open(); return; } aller(isTeacher() ? 'evaluation' : (autoOuvert() ? 'eleve' : 'procedes')); };
 window.epsCurrentClass = () => { const c = curClasse(); return c ? { nom: c.nom, eleves: c.eleves.map(e => ((e.prenom || '') + ' ' + e.nom).trim()) } : null; };
 
 /* =========================================================
@@ -3272,6 +3272,17 @@ $('#tabs').onclick = ev => { const b = ev.target.closest('button[data-v]'); if (
 $('#bLock').onclick = boutonVerrou;
 route();
 synchroBientot(1200);
+/* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
+(window.EPSG_Q = window.EPSG_Q || []).push({ app: 'Danse', sub: 'CA3 · Composer, observer', color: '#C2185B',
+  icon: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M4 9l5-1 4 2 5-3"/><path d="M13 10l-1 5 4 3 1 4"/><path d="M12 15l-4 2-2 4"/></svg>',
+  isTeacher: () => isTeacher(), when: () => !isTeacher() && !/^#eleve/.test(location.hash),
+  classes: () => S.classes.filter(c => c.eleves.length).map(c => ({ id: c.id, nom: c.nom, n: c.eleves.length })),
+  current: () => S.classeId || '',
+  select: id => { S.classeId = id; save(); aller('observation'); },
+  resources: [{ ico: '🎭', label: 'Procédés de composition', sub: 'répétition, canon, contraste…', open: () => aller('procedes') },
+    { ico: '🎲', label: 'Défis', sub: 'sortir du geste ordinaire', open: () => aller('procedes') }]
+    .concat(autoOuvert() ? [{ ico: '🙋', label: 'Je me positionne', sub: 'auto-positionnement', open: () => aller('eleve') }] : []),
+  teacher: async () => { if (await demanderCode()) aller('evaluation'); } });
 </script>
 <script src="../eps-home.js" defer></script>
 </body>
