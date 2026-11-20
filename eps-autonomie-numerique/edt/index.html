@@ -50,7 +50,7 @@ button{font:inherit;color:inherit}
 .badge{display:inline-block;border-radius:7px;padding:1px 8px;font-size:13px;font-weight:800;vertical-align:1px}
 .pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:13px;font-weight:800;background:#ECE8DE}
 .pill.r{background:#FDE3DF;color:#9C2B10}.pill.g{background:#DFF1E6;color:#1E5A37}.pill.o{background:#FCEBCB;color:#7A4A04}
-.prog{display:flex;gap:3px;margin-top:6px}.prog i{height:6px;flex:1;max-width:18px;border-radius:3px;background:var(--line)}.prog i.on{background:var(--acc)}
+.prog{display:flex;gap:3px;margin-top:6px}.prog i{height:6px;flex:1;max-width:18px;border-radius:3px;background:var(--line)}.prog i.on{background:var(--acc)}.prog i.ccf{background:#E5323B}.prog i.ccf.fut{background:rgba(229,50,59,.35)}
 .banner{border-radius:16px;padding:14px 16px;font-weight:800;font-size:17px;margin-bottom:12px;background:#1B1E24;color:#fff}
 .empty{background:#fff;border-radius:18px;padding:26px;text-align:center;color:var(--muted);font-size:17px;box-shadow:0 3px 0 var(--line)}
 .empty h2{color:var(--ink);margin:0 0 8px}
@@ -137,10 +137,12 @@ function vac(w){return D.vac.indexOf(w)>=0;}
 function fer(d,w){return D.fer.some(function(x){return x[0]===d&&x[1]===w;});}
 function st(r,w){if(vac(w))return{k:"vac"};if(fer(r.d,w))return{k:"ferie"};return r.cells[w]||{k:"none"};}
 function seqs(r){var out=[],cur=null;for(var w=0;w<D.w.length;w++){var s=st(r,w);
-  if(s.k==="cours"){if(!cur||cur.t!==s.t){cur={t:s.t,inf:{},w0:w,w1:w,n:0,weeks:[],ccf:0};out.push(cur);}cur.n++;cur.w1=w;cur.weeks.push(w);if(s.i!=null)cur.inf[s.i]=(cur.inf[s.i]||0)+1;}
-  else if(s.k==="ccf"&&cur){cur.ccf++;cur.w1=w;}}
+  if(s.k==="cours"){if(!cur||cur.t!==s.t){cur={t:s.t,inf:{},w0:w,w1:w,n:0,weeks:[],ccf:0,it:[]};out.push(cur);}cur.n++;cur.w1=w;cur.weeks.push(w);cur.it.push({w:w});if(s.i!=null)cur.inf[s.i]=(cur.inf[s.i]||0)+1;}
+  else if(s.k==="ccf"&&cur){cur.ccf++;cur.w1=w;cur.it.push({w:w,c:1});}}
   out.forEach(function(c){var b=null,n=0;for(var k in c.inf)if(c.inf[k]>n){n=c.inf[k];b=+k;}c.i=b;});return out;}
-function lesson(r,w){var S=seqs(r);for(var i=0;i<S.length;i++){var k=S[i].weeks.indexOf(w);if(k>=0)return{n:k+1,of:S[i].n,sq:S[i]};}return null;}
+function lesson(r,w){var S=seqs(r);for(var i=0;i<S.length;i++){var k=S[i].weeks.indexOf(w);if(k>=0)return{n:k+1,of:S[i].n,sq:S[i]};if(S[i].it.some(function(x){return x.c&&x.w===w;}))return{n:S[i].n,of:S[i].n,sq:S[i],ccf:1};}return null;}
+/* barre de progression : une case par leçon, CCF en rouge (transparent tant qu'il n'est pas passé) */
+function progHTML(li,w){var h='<div class="prog">',L=li.sq.it.slice(0,20);L.forEach(function(x){h+=x.c?'<i class="ccf'+(x.w>w?" fut":"")+'" title="CCF"></i>':'<i class="'+(x.w<=w?"on":"")+'"></i>';});return h+"</div>";}
 function mine(){return ROWS.filter(function(r){return r.t===U.moi;}).sort(function(a,b){return a.d-b.d||a.s-b.s;});}
 function guessMoi(){
   var m=null;try{m=localStorage.getItem(KM);}catch(e){}
@@ -186,7 +188,7 @@ function vSem(){
   return h+'</div><p style="color:var(--muted);text-align:center;margin-top:14px">≈ '+tot+" h de cours cette semaine</p>";
 }
 function lsHTML(r,s,w){
-  var bar="#ccc",main="",sub="",cls="ls",li=null;
+  var bar="#ccc",main="",sub="",cls="ls",li=null;if(s.k==="ccf")li=lesson(r,w);
   if(s.k==="cours"){bar=s.i!=null?infC(s.i):"#bbb";li=lesson(r,w);main='<div class="ac">'+esc(s.t)+" "+ib(s.i)+"</div>";
     var oth=ROWS.filter(function(o){if(o===r||o.d!==r.d||!o.t||o.s>=r.e||o.e<=r.s)return false;var x=st(o,w);return x.k==="cours"&&x.i!=null&&x.i===s.i;});
     if(oth.length)sub+='<div class="mt">Aussi '+esc(infS(s.i))+" : "+oth.map(function(o){return esc(o.t)+" ("+esc(o.c)+")";}).join(", ")+"</div>";
@@ -196,7 +198,7 @@ function lsHTML(r,s,w){
   else if(s.k==="ferie"){cls+=" dim";main='<div class="ac">Férié</div>';}
   else{cls+=" dim";main='<div class="ac" style="color:var(--muted)">Pas de cours <span class="pill">quinzaine</span></div>';}
   var h='<div class="'+cls+'"><span class="bar" style="background:'+bar+'"></span><div class="tm">'+fh(r.s)+"<small>"+fh(r.e)+'</small></div><div style="flex:1"><div class="cl">'+esc(r.c)+(r.f!=="H"?' <span class="pill">Q'+r.f+"</span>":"")+"</div>"+main;
-  if(li){h+='<div class="mt">Leçon '+li.n+" / "+li.of+'</div><div class="prog">';for(var k=1;k<=Math.min(li.of,16);k++)h+='<i class="'+(k<=li.n?"on":"")+'"></i>';h+="</div>";}
+  if(li){var cf=li.sq.it.filter(function(x){return x.c;});h+='<div class="mt">'+(li.ccf?"Après "+li.of+" leçons":"Leçon "+li.n+" / "+li.of)+(cf.length&&!li.ccf?" · CCF le "+cf.map(function(x){return fdate(wd(x.w,r.d));}).join(", "):"")+"</div>"+progHTML(li,w);}
   return h+sub+"</div></div>";
 }
 function vGrille(){
