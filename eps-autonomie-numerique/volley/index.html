@@ -9,7 +9,7 @@
 <title>Évaluation Volley-ball – EPS</title>
 <style>
 :root{
-  --navy:#1B1E24; --blue:#1F5F8B; --orange:#D9481F; --vol:#7A3E9D; --bg:#F4F1EA; --card:#fff; --ink:#1B1E24; --muted:#6A6F78; --line:#E2DDD2;
+  --navy:#1B1E24; --blue:#1F5F8B; --orange:#D9481F; --vol:#6B3FA0; --bg:#F4F1EA; --card:#fff; --ink:#1B1E24; --muted:#6A6F78; --line:#E2DDD2;
   --d1:#d64545; --d2:#f0a030; --d3:#3aa0d8; --d4:#2e9e5b;
 }
 *{box-sizing:border-box}
@@ -121,10 +121,6 @@ input[type=range].big{width:100%;height:40px;accent-color:var(--vol)}
 .cnt{display:flex;align-items:center;gap:12px}
 .cnt button{width:52px;height:52px;border-radius:14px;border:0;font-size:1.6rem;font-weight:800;background:#e8eef6;color:var(--navy)}
 .cnt b{font-size:2rem;min-width:44px;text-align:center;color:var(--navy)}
-/* pastille « dispensés » (eps-home.js) : dans la barre du haut, à droite des onglets, au lieu d'en bas */
-#epsd-pill{top:calc(60px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:14px!important;height:36px!important;box-shadow:none!important}
-nav{padding-right:190px}
-@media (max-width:760px){nav{padding-right:0}#epsd-pill{top:auto!important;bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;right:10px!important}}
 .top select{background:#fff;border:0;border-radius:8px;padding:8px 10px;min-width:150px}
 nav{display:flex;gap:4px;margin-top:10px;overflow-x:auto}
 nav button{background:transparent;color:#c8d6e8;border:0;padding:10px 16px;border-radius:10px 10px 0 0;font-weight:600;white-space:nowrap}
@@ -233,15 +229,28 @@ label.l{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin
   .stat{border:1px solid #ccc}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ===== Charte EPS : barre sombre commune, liseré et accents à la couleur de l'appli ===== */
+:root{--app:#6B3FA0;--blue:#6B3FA0;--vol:#6B3FA0;--navy:#14171C;--ink:#14171C;--bg:#F5F3EE;--line:#E6E1D6}
+header{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding:12px 18px 4px}
+.top h1{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800}
+.top h1 .ei{width:36px;height:36px;border-radius:10px;background:var(--app);display:grid;place-items:center;flex:none}.top h1 .ei svg{width:22px;height:22px}
+.top h1 span{color:#fff}.top h1 small{color:#A9AEB8;font-size:14px;font-weight:600}
+.lockbtn{border:1.5px solid #3A3F47;border-radius:10px;color:#D5D8DE;height:40px;padding:0 12px}
+nav{margin-top:8px;padding-bottom:4px}
+nav button{color:#B9BEC7;border-radius:10px 10px 0 0}
+nav button.on{background:var(--app);color:#fff}
+.chd{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding-bottom:14px}
 </style>
 </head>
 <body>
 <header>
   <div class="top">
-    <h1>🏐 Évaluation <span>Volley-ball</span> · CA4</h1>
+    <h1><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3c-1 4 0 8 3 11M3.6 9.5c4-1 8.5 0 11.4 3.5M8 20c1-3.5 4-6.5 8.5-7.5"/></svg></span><span>Volley-ball</span><small>CA4 · Évaluation</small></h1>
     <select id="classSel" aria-label="Classe"></select>
     <button class="lockbtn" id="syncIc" onclick="showTab('eleves');syncSoon(100)" title="Sauvegarde en ligne" style="padding:7px 10px">☁️</button>
     <button class="lockbtn" onclick="lockApp()" title="Verrouiller">🔒 Verrouiller</button>
+    <span data-eps-bar></span>
   </div>
   <nav id="nav">
     <button data-t="eval" class="on">Évaluer</button>
@@ -357,7 +366,7 @@ function defRoutines(){return[
   R_('S',"Service cuillère",1,'#D9481F',["5 services dans le terrain adverse","Puis viser la moitié arrière","Je reste derrière la ligne, je vise avant de servir"]),
   R_('P2',"Passe à deux",2,'#3a8f5a',["Face à face à 3-4 m, passes hautes","Puis l'un se déplace sur le côté entre chaque passe","Je m'oriente vers la cible avant de toucher le ballon"]),
   R_('P3',"Passe à trois, vers l'avant",3,'#1d6b44',["En triangle : passe vers la zone avant, puis vers le partenaire au filet","Annoncer « j'ai ! » avant de jouer","Changer de place après chaque passe"]),
-  R_('A',"Attaque en 3 touches",5,'#7A3E9D',["À 3 : lancer – passe – passe d'attaque par-dessus le filet","Viser une zone libre (fond, côté, zone courte)","Varier : jeu placé, jeu fort, jeu rapide"]),
+  R_('A',"Attaque en 3 touches",5,'#6B3FA0',["À 3 : lancer – passe – passe d'attaque par-dessus le filet","Viser une zone libre (fond, côté, zone courte)","Varier : jeu placé, jeu fort, jeu rapide"]),
   R_('M',"Manchette",6,'#1F5F8B',["À deux : lancer bas, manchette vers le partenaire","10 réussies chacun, puis en se déplaçant","Jambes fléchies, bras tendus, plan orienté vers la cible"]),
   R_('RA',"Réception – passe – attaque",7,'#14213d',["À 3 : service ou lancer, réception en manchette vers le passeur","Passe haute en zone avant, renvoi d'attaque","Tourner les rôles après chaque ballon"]),
   R_('D',"Défense – relance",8,'#B26B00',["À 2 : l'un attaque à mi-distance, l'autre défend en manchette","Ballon défendu haut, vers le centre du terrain","Puis enchaîner défense → passe → renvoi"])]}
@@ -730,7 +739,7 @@ function seqIdees(){
   return I.map(([t,d,a,lab])=>`<div class="card"><h2>${t}</h2><p style="margin:0 0 8px">${d}</p>${a?`<button class="btn alt sm" onclick="${a}">${lab}</button>`:''}</div>`).join('');
 }
 function printSeq(){
-  const L=S.seq.lecons,hd=window.EPSR&&EPSR.htmlHead?EPSR.htmlHead({act:'Volley-ball',titre:'Séquence',ca:'CA4',ac:'#7A3E9D',classe:C().nom,date:dateFR()}):'<h1>Volley-ball – Séquence</h1>';
+  const L=S.seq.lecons,hd=window.EPSR&&EPSR.htmlHead?EPSR.htmlHead({act:'Volley-ball',titre:'Séquence',ca:'CA4',ac:'#6B3FA0',classe:C().nom,date:dateFR()}):'<h1>Volley-ball – Séquence</h1>';
   document.getElementById('printArea').innerHTML=hd+`<p><b>Compétence de fin de séquence :</b> ${esc(S.seq.comp)}</p>
    <table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;width:100%"><tr><th>Leçon</th><th>Date</th><th>Résumé</th><th>Objectif</th><th>Contenus</th><th>Échauf.</th><th>Critères</th></tr>
    ${L.map(l=>`<tr><td>${l.n}</td><td>${l.date?new Date(l.date+'T12:00').toLocaleDateString('fr-FR'):''}</td><td><b>${esc(l.titre)}</b>${l.prop?'<br><i>(proposition)</i>':''}</td><td>${esc(l.obj)}</td><td><ul style="margin:0;padding-left:14px">${l.cont.map(c=>`<li>${esc(c)}</li>`).join('')}</ul></td><td>${l.ech?'Temps '+l.ech:''}</td><td>${l.crit.map(id=>esc(critName(id))+' ('+critAfl(id)+')').join('<br>')}</td></tr>`).join('')}</table>`;
@@ -740,7 +749,7 @@ function printSeq(){
 /* ================== TABLETTE DU COACH ==================
    Mode élève (sans code, sans accès aux notes). Données par équipe : c.equipes[] = {id,nom,el:[ids],jours:{date:{coach,pres,chas,mat,terrain,ok}},matchs:[],valid:{sitId:date},rem:[]}
    Synchronisées entre tablettes (eq|classe|équipe). */
-const CHAS=[['Rouge','#d63a3a'],['Bleu','#2563c9'],['Jaune','#f2c014'],['Vert','#2e9e5b'],['Orange','#f28c28'],['Violet','#7A3E9D'],['Rose','#e85d9e'],['Blanc','#ffffff'],['Noir','#222']];
+const CHAS=[['Rouge','#d63a3a'],['Bleu','#2563c9'],['Jaune','#f2c014'],['Vert','#2e9e5b'],['Orange','#f28c28'],['Violet','#6B3FA0'],['Rose','#e85d9e'],['Blanc','#ffffff'],['Noir','#222']];
 const MAT=[['filet','Filet'],['poteaux','2 poteaux'],['antennes','Antennes'],['ballons','Ballons'],['chasubles','Chasubles'],['plots','Plots / cerceaux']];
 const WIN={a3:'Attaque construite en 3 touches',a12:'Attaque en 1 ou 2 touches',sv:'Service gagnant',fa:'Faute adverse'};
 const LOSS={sv:'Service raté',fa:'Faute de notre équipe (filet, balle tenue, dehors)',rc:'Réception ratée',ad:'Attaque adverse non défendue'};
@@ -792,7 +801,7 @@ function renderCoach(){
     box.innerHTML=`<div class="chd"><h1>🧢 Tablette du coach</h1><button class="lockbtn" onclick="coachQuit()">Fermer</button></div><div class="cbody"><div class="card"><h2>Quelle est ta classe ?</h2>
      ${L.length?`<div class="tiles">${L.map(x=>`<button class="tile" onclick="CO.cid='${x.id}';coSave();renderCoach()">${esc(x.nom)}</button>`).join('')}</div>`:'<p>Aucune classe sur cette tablette : demande à ton enseignant.</p>'}</div></div>`;return}
   if(!t){const E=c.equipes||[];
-    box.innerHTML=`<div class="chd"><h1>🧢 ${esc(c.nom)} · Choisis ton équipe</h1><button class="lockbtn" onclick="CO.cid=null;coSave();renderCoach()">← Classe</button></div><div class="cbody">
+    box.innerHTML=`<div class="chd"><h1>🧢 ${esc(c.nom)} · Choisis ton équipe</h1><button class="lockbtn" onclick="coachQuit()">⌂ Accueil</button></div><div class="cbody">
      ${E.length?`<div class="tiles">${E.map(x=>{const j=(x.jours||{})[today()];const ch=j&&CHAS.find(k=>k[0]===j.chas);return `<button class="tile" onclick="CO.tid='${x.id}';CO.tab='lecon';CO.step=0;coSave();renderCoach()">${ch?`<span class="dot" style="background:${ch[1]};width:18px;height:18px;border-radius:50%;display:inline-block;border:2px solid #ccc;vertical-align:-3px"></span> `:''}${esc(x.nom)}<br><small class="muted" style="font-weight:600">${(x.el||[]).map(id=>shortName(elOf(c,id))).join(', ')}</small></button>`}).join('')}</div>`
        :`<div class="card"><p>Ton enseignant n'a pas encore créé les équipes. Créez la vôtre :</p></div>`}
      <div class="card"><h2>➕ Créer notre équipe</h2><input type="text" id="coNew" placeholder="Nom de l'équipe">
@@ -801,7 +810,7 @@ function renderCoach(){
   const j=jour(t),need=!j.ok,steps=[['Coach'],['Présents'],['Chasuble'],['Matériel']];
   const ch=CHAS.find(k=>k[0]===j.chas);
   const head=`<div class="chd">${ch?`<span class="dot" style="background:${ch[1]}"></span>`:''}<h1>${esc(t.nom)} · ${esc(c.nom)}${j.coach?` · 🧢 ${esc(shortName(elOf(c,j.coach)))}`:''}${j.terrain?` · Terrain ${j.terrain}`:''}</h1>
-    <span class="tm" id="tmHead" onclick="CO.tab='timer';renderCoach()"></span><button class="lockbtn" onclick="if(confirm('Changer l\'équipe de cette tablette ?')){CO.tid=null;coSave();renderCoach()}">Changer d'équipe</button><button class="lockbtn" onclick="unlock()">🔒</button></div>`;
+    <span class="tm" id="tmHead" onclick="CO.tab='timer';renderCoach()"></span><button class="lockbtn" onclick="if(confirm('Changer l\'équipe de cette tablette ?')){CO.tid=null;coSave();renderCoach()}">Changer d'équipe</button><button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button><button class="lockbtn" onclick="unlock()">🔒</button></div>`;
   if(need){box.innerHTML=head+`<div class="cbody"><div class="steps">${steps.map((x,i)=>`<span class="${i===CO.step?'on':i<CO.step?'ok':''}">${i+1}. ${x[0]}</span>`).join('')}<span>5. Leçon du jour</span></div>${coStep(c,t,j)}</div>`;return}
   const tabs=[['lecon','📋 Leçon'],['timer','⏱ Déroulé'],['match','🏐 Match'],['tournoi','🏆 Tournoi'],['sit','✅ Situations'],['rem','🔁 Remédiation'],['video','🎥 Vidéo'],['auto','🪞 Je me positionne'],['fin','🏁 Fin de leçon'],['bilan','📊 Bilan']];
   box.innerHTML=head+`<div class="ctabs">${tabs.map(([k,n])=>`<button class="${CO.tab===k?'on':''}" onclick="CO.tab='${k}';CO.pt=null;renderCoach()">${n}</button>`).join('')}</div><div class="cbody">${
@@ -1407,7 +1416,7 @@ async function unlock(){
 }
 function lockApp(){unlockedUntil=0;try{localStorage.setItem('eps.teach.until','0')}catch(e){}setLock()}
 setInterval(setLock,30000);
-window.epsAppHome=function(){if(coachOn()&&!isUnlocked()){CO.tab='lecon';renderCoach()}else showTab('eval')};
+window.epsAppHome=function(){if(coachOn()&&!isUnlocked()){if(window.EPSG&&EPSG.open)coachQuit();else{CO.tab='lecon';renderCoach()}}else showTab('eval')};
 /* la pastille des dispensés ne compte que la classe affichée */
 window.epsCurrentClass=()=>{const c=C();return c?{nom:c.nom,eleves:c.eleves.map(e=>((e.prenom||'')+' '+e.nom).trim())}:null};
 
@@ -1493,7 +1502,7 @@ function ficheHtml(e,c,lang){
       <td style="text-align:left"><small>${v&&v.d!=null?esc(X.desc[v.d]):''}</small></td>
       <td><b>${p!=null?fr(p):'–'}</b> / ${fr(maxPts(cr,e))}</td></tr>`}).join('');
   const afls=['AFL1','AFL2','AFL3'].map(a=>{const r=aflPts(e,a);return r?`${a} : ${fr(r.pts)} / ${fr(r.max)}`:null}).filter(Boolean).join(' &nbsp;·&nbsp; ');
-  const hd=window.EPSR&&EPSR.htmlHead?EPSR.htmlHead({act:'Volley-ball',titre:'Évaluation',ca:'CA4',ac:'#7A3E9D',nom:fullName(e),classe:c.nom,date:dateFR()}):'';
+  const hd=window.EPSR&&EPSR.htmlHead?EPSR.htmlHead({act:'Volley-ball',titre:'Évaluation',ca:'CA4',ac:'#6B3FA0',nom:fullName(e),classe:c.nom,date:dateFR()}):'';
   return `${hd||'<h1>Volley-ball – Évaluation CA4</h1>'}
    <p>${hd?'':`<b>${esc(fullName(e))}</b> · ${esc(c.nom)} · ${dateFR()}`}${b.mode==='officiel'?(hd?'':' · ')+'Choix AFL2/AFL3 : '+(e.choix||'4-4'):''}</p>
    ${isAbs(e)?`<h2>${e.statut==='ABS'?'Absent':'Dispensé'}</h2>`:`

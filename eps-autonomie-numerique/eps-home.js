@@ -292,6 +292,11 @@
   /* -------- interface -------- */
   var css = "#epsd-pill{position:fixed;z-index:2147482999;left:calc(64px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:none;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:999px;border:0;background:#C0392B;color:#fff;font:700 15px system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.25)}" +
     "#epsd-pill.on{display:flex}" +
+    "[data-eps-bar]{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}" +
+    "[data-eps-bar] .epsb{position:relative;height:40px;min-width:40px;padding:0 12px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}" +
+    "[data-eps-bar] .epsb:active{background:#ffffff14}[data-eps-bar] .epsb svg{width:20px;height:20px;flex:none}" +
+    "[data-eps-bar] #epsd-pill{position:static;height:40px;border-radius:10px;box-shadow:none;padding:0 12px}" +
+    "@media (max-width:620px){[data-eps-bar] .epsb span{display:none}}" +
     ".epsd-ov{position:fixed;inset:0;z-index:2147483001;background:rgba(27,30,36,.55);display:flex;align-items:center;justify-content:center;padding:18px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
     ".epsd-box{background:#fff;color:#1B1E24;border-radius:20px;width:min(720px,100%);max-height:92vh;overflow:auto;padding:22px 24px;box-shadow:0 10px 40px rgba(0,0,0,.3)}" +
     ".epsd-box h3{margin:0 0 6px;font-size:24px;font-weight:900}.epsd-box .m{color:#6A6F78;font-size:15px;margin:0 0 12px}" +
@@ -366,7 +371,7 @@
   function setHubTeach(on) { try { localStorage.setItem("eps.teach.until", on ? String(Date.now() + (rget().teachMin || 60) * 60000) : "0"); } catch (e) {} applyTeach(); }
   function applyTeach() {
     var t = isTeacher();
-    var u = document.getElementById("eps-upd"); if (u) u.style.display = t ? "grid" : "none";
+    var u = document.getElementById("eps-upd"); if (u) u.style.display = t ? (u.className == "epsb" ? "inline-flex" : "grid") : "none";
     document.querySelectorAll("[data-eps-teach]").forEach(function (el) { el.style.display = t ? "" : "none"; });
     var b = document.getElementById("eps-teachbtn"); if (b) b.textContent = t ? "🔓 Quitter le mode enseignant" : "🔒 Enseignant";
     try { applyReg(); } catch (e) {}
@@ -1007,7 +1012,11 @@
     b.setAttribute("aria-label", "Accueil de l'application (maintenir 3 secondes : toutes les applications EPS)");
     b.title = "Appui : accueil de l'application · Maintenir 3 s : toutes les applications";
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="position:relative"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>';
-    var s = b.style, BG = "rgba(27,30,36,.78)";
+    var s = b.style, BG = "rgba(27,30,36,.78)", slot = document.querySelector("[data-eps-bar]");
+    if (slot) { /* bouton logé dans la barre du haut de l'appli (charte commune) */
+      BG = "transparent"; b.className = "epsb";
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Accueil</span>';
+    } else {
     s.position = "fixed"; s.zIndex = "2147483000"; s.border = "0"; s.padding = "0"; s.cursor = "pointer";
     s.left = "calc(10px + env(safe-area-inset-left, 0px))"; s.bottom = "calc(10px + env(safe-area-inset-bottom, 0px))";
     s.width = "46px"; s.height = "46px"; s.borderRadius = "50%";
@@ -1016,6 +1025,7 @@
     s.boxShadow = "0 2px 8px rgba(0,0,0,.25)";
     s.webkitTapHighlightColor = "transparent"; s.touchAction = "none"; s.userSelect = "none"; s.webkitUserSelect = "none"; s.webkitTouchCallout = "none";
     try { var p = JSON.parse(localStorage.getItem("eps.homeBtn") || "null"); if (p) { s.left = Math.min(p.x, innerWidth - 50) + "px"; s.top = Math.min(p.y, innerHeight - 50) + "px"; s.bottom = "auto"; } } catch (e) {}
+    }
     var tip = document.createElement("div");
     tip.textContent = "Maintiens pour toutes les applications…";
     var ts = tip.style; ts.position = "fixed"; ts.zIndex = "2147483001"; ts.background = "rgba(27,30,36,.92)"; ts.color = "#fff"; ts.font = "600 14px system-ui,sans-serif";
@@ -1050,6 +1060,7 @@
     });
     b.addEventListener("pointermove", function (e) {
       if (!down) return;
+      if (slot) return;
       if (!drag && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { drag = true; stop(); s.background = "rgba(217,72,31,.9)"; }
       if (!drag) return; e.preventDefault();
       var x = Math.max(4, Math.min(innerWidth - 50, e.clientX - ox)), y = Math.max(4, Math.min(innerHeight - 50, e.clientY - oy));
@@ -1064,18 +1075,20 @@
     b.addEventListener("pointerup", function (e) { end(e, false); });
     b.addEventListener("pointercancel", function (e) { end(e, true); });
     b.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); appHome(); } });
-    document.body.appendChild(b); document.body.appendChild(tip);
+    (slot || document.body).appendChild(b); document.body.appendChild(tip);
   }
   /* ================= Bouton « Mise à jour » : récupère les nouveautés (données et application) sans quitter ================= */
   function addUpdate() {
     var b = document.createElement("button");
     b.type = "button"; b.id = "eps-upd"; b.title = "Mettre à jour (données et application)"; b.setAttribute("aria-label", "Mettre à jour");
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
-    var s = b.style;
+    var s = b.style, slot = document.querySelector("[data-eps-bar]");
+    if (slot) { b.className = "epsb"; } else {
     s.position = "fixed"; s.zIndex = "2147483000"; s.border = "0"; s.padding = "0";
     s.left = "calc(10px + env(safe-area-inset-left, 0px))"; s.bottom = HUB ? "calc(10px + env(safe-area-inset-bottom, 0px))" : "calc(64px + env(safe-area-inset-bottom, 0px))";
     s.width = "46px"; s.height = "46px"; s.borderRadius = "50%"; s.display = "grid"; s.placeItems = "center";
     s.background = "rgba(31,95,139,.85)"; s.color = "#fff"; s.boxShadow = "0 2px 8px rgba(0,0,0,.25)";
+    }
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
       var tip = document.createElement("div");
@@ -1088,14 +1101,14 @@
       try { if (navigator.serviceWorker) { var regs = await navigator.serviceWorker.getRegistrations(); await wait(Promise.all(regs.map(function (r) { return r.update().catch(function () {}); })), 4000); } } catch (e) {}
       location.reload();
     };
-    document.body.appendChild(b);
+    (slot || document.body).appendChild(b);
   }
   function init() {
     addCss();
     addUpdate();
     applyTeach(); setInterval(applyTeach, 1000);
     pill = document.createElement("button"); pill.id = "epsd-pill"; pill.type = "button"; pill.onclick = showList;
-    document.body.appendChild(pill);
+    var sl = document.querySelector("[data-eps-bar]"); if (sl) sl.insertBefore(pill, sl.firstChild); else document.body.appendChild(pill);
     if (!HUB) addHome();
     draw();
     setTimeout(sync, 1500);

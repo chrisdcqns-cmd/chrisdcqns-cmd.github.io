@@ -121,10 +121,6 @@ input[type=range].big{width:100%;height:40px;accent-color:var(--vol)}
 .cnt{display:flex;align-items:center;gap:12px}
 .cnt button{width:52px;height:52px;border-radius:14px;border:0;font-size:1.6rem;font-weight:800;background:#e8eef6;color:var(--navy)}
 .cnt b{font-size:2rem;min-width:44px;text-align:center;color:var(--navy)}
-/* pastille « dispensés » (eps-home.js) : dans la barre du haut, à droite des onglets, au lieu d'en bas */
-#epsd-pill{top:calc(60px + env(safe-area-inset-top,0px))!important;bottom:auto!important;left:auto!important;right:14px!important;height:36px!important;box-shadow:none!important}
-nav{padding-right:190px}
-@media (max-width:760px){nav{padding-right:0}#epsd-pill{top:auto!important;bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;right:10px!important}}
 .top select{background:#fff;border:0;border-radius:8px;padding:8px 10px;min-width:150px}
 nav{display:flex;gap:4px;margin-top:10px;overflow-x:auto}
 nav button{background:transparent;color:#c8d6e8;border:0;padding:10px 16px;border-radius:10px 10px 0 0;font-weight:600;white-space:nowrap}
@@ -299,17 +295,30 @@ table.kv td,table.kv th{text-align:left;padding:5px 6px}table.kv td:first-child{
 #terr .cbody{max-width:1100px}
 .lec details ul{margin:4px 0}
 @media (max-width:760px){.vsl input{height:200px}.board .big2{font-size:2.2rem}}
+
+/* ===== Charte EPS : barre sombre commune, liseré et accents à la couleur de l'appli ===== */
+:root{--app:#0B7A75;--blue:#0B7A75;--vol:#0B7A75;--navy:#14171C;--ink:#14171C;--bg:#F5F3EE;--line:#E6E1D6}
+header{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding:12px 18px 4px}
+.top h1{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800}
+.top h1 .ei{width:36px;height:36px;border-radius:10px;background:var(--app);display:grid;place-items:center;flex:none}.top h1 .ei svg{width:22px;height:22px}
+.top h1 span{color:#fff}.top h1 small{color:#A9AEB8;font-size:14px;font-weight:600}
+.lockbtn{border:1.5px solid #3A3F47;border-radius:10px;color:#D5D8DE;height:40px;padding:0 12px}
+nav{margin-top:8px;padding-bottom:4px}
+nav button{color:#B9BEC7;border-radius:10px 10px 0 0}
+nav button.on{background:var(--app);color:#fff}
+.chd{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding-bottom:14px}
 </style>
 </head>
 <body>
 <header>
   <div class="top">
-    <h1>🏸 <span>Badminton</span> · CA4</h1>
+    <h1><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="3"/><path d="M9.2 14.8 18 6M14 4l6 6M12.5 5.5l6 6M16 3l5 5"/></svg></span><span>Badminton</span><small>CA4</small></h1>
     <div class="voie" id="voieSw"><button data-v="gt" onclick="setVoie('gt')">Lycée général</button><button data-v="pro" onclick="setVoie('pro')">Lycée pro</button></div>
     <select id="classSel" aria-label="Classe"></select>
     <button class="lockbtn" id="syncIc" onclick="showTab('eleves');syncSoon(100)" title="Sauvegarde en ligne" style="padding:7px 10px">☁️</button>
     <button class="lockbtn" onclick="toTerrain()" title="Passer cette tablette en tablette de terrain (élèves)">🏸 Terrain</button>
     <button class="lockbtn" onclick="lockApp()" title="Verrouiller">🔒</button>
+    <span data-eps-bar></span>
   </div>
   <nav id="nav">
     <button data-t="eval" class="on">Évaluer</button>
@@ -1440,13 +1449,14 @@ function terrStop(){if(!confirm('Quitter la tablette de terrain ?'))return;TERR.
 function renderTerr(){
   const box=document.getElementById('terr');if(!box)return;
   const c=classById(TERR.cls);
+  if(!c&&!isUnlocked()&&window.EPSG&&EPSG.open){TERR.on=false;terrSave();setLock();return}
   if(!c){const L=S.classes.filter(x=>x.eleves.length);
     box.innerHTML=`<div class="chd"><h1>🏸 Tablette de terrain</h1><button class="lockbtn" onclick="terrStop()">Quitter</button></div>
     <div class="cbody"><div class="card"><h2>Quelle classe ?</h2><div class="tiles">${L.map(x=>`<button class="tile" onclick="TERR.cls='${x.id}';terrSave();renderTerr()">${esc(x.nom)}<br><small class="muted">${x.eleves.length} élèves · ${VOIES[x.voie]}</small></button>`).join('')||'<p class="muted">Aucune classe : l\'enseignant doit d\'abord importer une liste d\'élèves.</p>'}</div></div></div>`;return}
   if(c.voie!==S.voie){S.voie=c.voie;fixState();S.cur=S.classes.indexOf(c)}
   const n=lessonNow(),l=lessonObj(n);
   const tabs=[['jouer','🏸 Jouer'],['poule','🏆 Poule'],['lecon','📋 Leçon du jour'],['ech','🔥 Échauffement'],['tech','📚 Technique'],['stats','📊 Mes stats']];
-  box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}${l?' · Leçon '+l.n:''}</h1><button class="lockbtn" onclick="TERR.cls='';terrSave();renderTerr()">Classe</button><button class="lockbtn" onclick="terrStop()">Quitter</button></div>
+  box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}${l?' · Leçon '+l.n:''}</h1><button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button></div>
    <div class="ctabs">${tabs.map(([k,nm])=>`<button class="${TERRT===k?'on':''}" onclick="TERRT='${k}';renderTerr()">${nm}</button>`).join('')}</div>
    <div class="cbody" id="tbody"></div>`;
   const b=document.getElementById('tbody');
@@ -1770,6 +1780,7 @@ function hubTeach(){try{return Date.now()<+(localStorage.getItem('eps.teach.unti
 function isUnlocked(){return Date.now()<unlockedUntil||hubTeach()}
 window.epsIsTeacher=()=>isUnlocked();
 function setLock(){const u=isUnlocked(),te=!u&&terrOn();document.getElementById('lock').classList.toggle('on',!u&&!te);
+  if(!u&&!(te&&classById(TERR.cls))&&window.EPSG&&EPSG.open&&!document.querySelector('.epsg'))setTimeout(()=>{if(!isUnlocked()&&!(terrOn()&&classById(TERR.cls)))EPSG.open()},0);
   const t=document.getElementById('terr'),was=t.classList.contains('on');t.classList.toggle('on',te);if(!document.getElementById('play').classList.contains('on'))document.body.style.overflow=te?'hidden':'';if(te&&!was)renderTerr()}
 async function unlock(){
   const pin=window.epsPin,done=()=>{unlockedUntil=Date.now()+60*60000;try{localStorage.setItem('eps.teach.until',String(unlockedUntil))}catch(e){}setLock();refresh()};
@@ -1782,7 +1793,7 @@ async function unlock(){
 function lockApp(){unlockedUntil=0;try{localStorage.setItem('eps.teach.until','0')}catch(e){}setLock()}
 function toTerrain(){TERR.cls=C().id;lockApp();terrStart()}
 setInterval(setLock,30000);
-window.epsAppHome=function(){if(document.getElementById('play').classList.contains('on'))return;if(terrOn()&&!isUnlocked()){TERRT='jouer';renderTerr()}else showTab('eval')};
+window.epsAppHome=function(){if(document.getElementById('play').classList.contains('on'))return;if(!isUnlocked()){TERR.cls='';terrSave();if(window.EPSG&&EPSG.open){TERR.on=false;terrSave();setLock()}else{TERRT='jouer';renderTerr()}}else showTab('eval')};
 window.epsCurrentClass=()=>{const c=terrOn()&&!isUnlocked()?classById(TERR.cls):C();return c?{nom:c.nom,eleves:c.eleves.map(e=>((e.prenom||'')+' '+e.nom).trim())}:null};
 
 /* ================== SYNCHRONISATION ENTRE TABLETTES ==================
@@ -1926,6 +1937,15 @@ addEventListener('storage',ev=>{if(ev.key==='eps.share.v1'){syUpd();syncSoon(300
 /* ================== DÉMARRAGE ================== */
 renderHead();renderList();setLock();syUpd();syncSoon(800);
 
+/* écran élève commun (eps-home.js) : choisir sa classe en premier */
+(window.EPSG_Q=window.EPSG_Q||[]).push({app:'Badminton',sub:'CA4 · Tablette de terrain',color:'#0B7A75',
+ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="3"/><path d="M9.2 14.8 18 6M14 4l6 6M12.5 5.5l6 6M16 3l5 5"/></svg>',
+ isTeacher:()=>isUnlocked(),when:()=>!isUnlocked()&&!(terrOn()&&classById(TERR.cls)),
+ classes:()=>S.classes.filter(c=>c.eleves.length).map(c=>({id:c.id,nom:c.nom,note:c.eleves.length+' élève'+(c.eleves.length>1?'s':'')+' · '+VOIES[c.voie]})),
+ current:()=>TERR.cls||'',
+ select:id=>{TERR.cls=id;terrStart()},
+ resources:[],
+ teacher:()=>unlock()});
 </script>
 <script src="../eps-home.js" defer></script>
 </body>

@@ -601,17 +601,29 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
   .map{grid-template-columns:1fr}
   .big2{grid-template-columns:1fr}
 }
+
+/* ===== Charte EPS : barre sombre commune, liseré à la couleur de l'appli ===== */
+:root{--app:#D9481F}
+.ebar{background:#14171C;color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:12px 22px 16px;display:flex;align-items:center;gap:12px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.ebar .ei{width:36px;height:36px;border-radius:10px;background:var(--app);display:grid;place-items:center;flex:none}.ebar .ei svg{width:22px;height:22px}
+.ebar b{font-size:20px;font-weight:800;letter-spacing:.01em}.ebar small{color:#A9AEB8;font-weight:600;font-size:14px;margin-left:4px;flex:1}.ebar [data-eps-bar]{margin-left:10px}
+.ebar .es{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#ffc93c;border:1.5px solid #ffc93c66;border-radius:8px;padding:5px 10px;display:none}
+body.eteach .ebar .es{display:block}
+#v-home.on{min-height:calc(100dvh - 108px)}
+.hero h1{font-size:46px}
+.hero>div:first-child{flex:1}
 </style>
 </head>
 <body>
+<header class="ebar"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M19 6.5l1.5-1.5"/></svg></span><b>Relais Vitesse</b><small>CA1</small><span class="es">Mode enseignant</span><span data-eps-bar></span></header>
 <div class="wrap">
 
 <!-- ÉTAPE 1 : CLASSES -->
 <section class="view" id="v-classes">
   <div class="hero">
     <div>
-      <h1>Relais <span>vitesse</span></h1>
-      <p>Lycée · EPS — choisis ta classe pour commencer</p>
+      <h1>Mes <span>classes</span></h1>
+      <p>Choisis la classe pour commencer</p>
     </div>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
     <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
@@ -1402,6 +1414,7 @@ function go(v){
   if(["groupes","home","course","eval","auto"].includes(v)&&!CLE())v="lecons";
   if(["groupes","home","course"].includes(v)&&CLE()&&!CLE().groupes){ensureLeconGroups(CLE());persist()}
   if(v==="bilan"&&!BILAN)v="lecons";
+  document.body.classList.toggle("eteach",teachOn());
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));window.scrollTo(0,0);
   try{history.replaceState(null,"",v==="classes"?location.pathname:"#"+v)}catch(e){}
   if(v==="classes"){renderClasses();updLock()}
