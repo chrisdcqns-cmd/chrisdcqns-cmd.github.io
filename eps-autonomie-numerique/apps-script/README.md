@@ -28,3 +28,15 @@ Relais Vitesse garde son propre script : la tablette conserve son réglage Relai
 
 - Si tu modifies le code : **Déployer → Gérer les déploiements → ✏️ → Version : Nouvelle version → Déployer** (l'URL ne change pas).
 - L'ancienne feuille (celle de Relais) peut garder ses anciens enregistrements de partage : ils ne servent plus aux autres applications.
+
+## Appel AS (mise à jour du script, une seule fois)
+
+L'application **Appel AS** lit et coche le fichier d'appel de l'association sportive (un autre Google Sheets, que ton compte peut modifier). Seules des **cases à cocher déjà présentes** peuvent être modifiées : le script n'écrit rien d'autre dans ce fichier.
+
+1. Ouvre la feuille « EPS – partage commun » → **Extensions → Apps Script**.
+2. Remplace tout le code par le nouveau contenu de [`Code.gs`](Code.gs) — **garde ta ligne `const SECRET = '…';`** telle quelle.
+3. Enregistre (💾), choisis la fonction **`autoriserAppelAS`** dans la liste en haut, clique **▶ Exécuter** et accepte l'autorisation (« Afficher, modifier, créer et supprimer toutes vos feuilles de calcul Google Sheets » : c'est ce qui permet d'ouvrir le fichier d'appel).
+4. **Déployer → Gérer les déploiements → ✏️ → Version : Nouvelle version → Déployer** (l'adresse ne change pas).
+5. Dans l'application : ⚙️ Réglages → « Lien du fichier d'appel de l'association sportive » (ou directement dans Appel AS au premier lancement).
+
+Structure reconnue automatiquement : un onglet par mois (l'onglet du mois en cours s'ouvre seul), une ligne d'en-tête juste au-dessus des cases (Prénom, Nom, Classe, puis une colonne par date) ; la colonne du jour (« ven. 20/11 ») est choisie automatiquement.

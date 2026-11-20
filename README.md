@@ -66,3 +66,6 @@ Page d'accueil → 🔒 Enseignant → carte Listes d'élèves → « ⚙ Partag
 - **Sauvegarde complète** (bouton « 💾 Sauvegarde » de la carte, ou dans les réglages) : un fichier `EPS_sauvegarde_<enseignant>_<date>.json` avec toutes les clés `localStorage` de la tablette (sauf le mode enseignant) ; « ♻️ Restaurer » remet ces clés et recharge. Les vidéos (IndexedDB) et les cartes d'OrienRun ne sont pas incluses.
 
 - Les **listes d'élèves** (import Excel/CSV, modification) sont dans les Réglages (section « Listes d'élèves ») ; la carte séparée de l'accueil a été retirée. En haut des Réglages : état du partage entre tablettes (actif ou à régler).
+
+## Appel AS (`eps-autonomie-numerique/appel-as/`, mode enseignant)
+- Coche les élèves présents à l'AS **directement dans le fichier Google Sheets d'appel** (via le script commun : `?as=get` / `?as=set`, voir `apps-script/README.md`). Lien du fichier dans ⚙️ Réglages (`asSheet`, partagé entre tablettes). Onglet du mois et colonne du jour choisis automatiquement ; filtres par niveau, recherche, rafraîchissement toutes les 45 s. Rien n'est stocké sur la tablette à part le dernier onglet / colonne.

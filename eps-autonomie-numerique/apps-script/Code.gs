@@ -1,7 +1,7 @@
 /**
  * EPS – Autonomie et Numérique : script commun (partage entre tablettes).
  *
- * Il transporte les données communes à toutes les applications : réglages communs (établissement,
+ * Il transporte les données communes à toutes les applications (et sert aussi l'appli « Appel AS », voir plus bas) : réglages communs (établissement,
  * enseignant, année…), dispenses, listes d'élèves, et les données d'Escalade quand elle utilise
  * le partage commun. Il est indépendant :
  *  - du script de Relais Vitesse (relais/apps-script/Code.gs : courses et synchro de Relais) ;
@@ -34,6 +34,7 @@ function doGet(e) {
   const res = { ok: true, app: 'EPS commun', keyOk: p.key === SECRET };
   if (res.keyOk) res.sync = 1;
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
+  if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
   const body = JSON.stringify(res);
   if (p.callback && /^[A-Za-z0-9_]+$/.test(p.callback)) {
     return ContentService.createTextOutput(p.callback + '(' + body + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
@@ -105,4 +106,52 @@ function syncPull_(p) {
 
 function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ================= Appel AS =================
+ * Lit et coche le fichier d'appel de l'association sportive (un autre Google Sheets, partagé avec toi en modification).
+ * Le fichier n'est pas chiffré : c'est le tien (ou celui de l'AS), le script ne fait que lire ses cellules et cocher ses cases.
+ * Sécurité : seules des cases à cocher existantes peuvent être modifiées (rien d'autre n'est écrit).
+ *   ?as=get&id=<fichier>[&tab=<onglet>]        → onglets, valeurs affichées, cases à cocher (état)
+ *   ?as=set&id=<fichier>&tab=<onglet>&r=&c=&v=1|0 → coche / décoche une case (lignes et colonnes comptées à partir de 1)
+ */
+const AS_MAX_ROWS = 600, AS_MAX_COLS = 120;
+
+function appelAS_(p) {
+  let ss;
+  try { ss = SpreadsheetApp.openById(String(p.id || '')); }
+  catch (err) { return { asErr: 'acces' }; }
+  const sheets = ss.getSheets();
+  const tabs = sheets.map(sh => sh.getName());
+  const sh = (p.tab && ss.getSheetByName(String(p.tab))) || sheets[0];
+  if (p.as === 'set') {
+    const r = Number(p.r), c = Number(p.c);
+    if (!(r >= 1 && c >= 1)) return { asErr: 'case' };
+    const cell = sh.getRange(r, c);
+    const dv = cell.getDataValidation();
+    if (!dv || dv.getCriteriaType() !== SpreadsheetApp.DataValidationCriteria.CHECKBOX) return { asErr: 'pas une case à cocher' };
+    const lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try { cell.setValue(String(p.v) === '1'); SpreadsheetApp.flush(); }
+    finally { lock.releaseLock(); }
+    return { asOk: 1, r: r, c: c, v: cell.getValue() === true ? 1 : 0 };
+  }
+  const nr = Math.min(sh.getLastRow(), AS_MAX_ROWS), nc = Math.min(sh.getLastColumn(), AS_MAX_COLS);
+  if (nr < 1 || nc < 1) return { asOk: 1, title: ss.getName(), tabs: tabs, tab: sh.getName(), disp: [], cb: [] };
+  const rg = sh.getRange(1, 1, nr, nc);
+  const disp = rg.getDisplayValues(), val = rg.getValues(), dvs = rg.getDataValidations();
+  const CB = SpreadsheetApp.DataValidationCriteria.CHECKBOX;
+  /* cases à cocher : [ligne, colonne, état] */
+  const cb = [];
+  for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) {
+    const d = dvs[i][j];
+    if (d && d.getCriteriaType() === CB) cb.push([i + 1, j + 1, val[i][j] === true ? 1 : 0]);
+  }
+  return { asOk: 1, title: ss.getName(), tabs: tabs, tab: sh.getName(), disp: disp, cb: cb };
+}
+
+/** À lancer une fois depuis l'éditeur (▶ Exécuter) après avoir collé ce code : Google demande l'autorisation
+ *  d'ouvrir d'autres fichiers Google Sheets (nécessaire pour l'Appel AS). */
+function autoriserAppelAS() {
+  SpreadsheetApp.openById(SpreadsheetApp.getActiveSpreadsheet().getId());
+  Logger.log('Autorisation OK : l\'Appel AS peut ouvrir ton fichier d\'appel.');
 }

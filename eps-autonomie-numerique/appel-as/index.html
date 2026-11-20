@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Appel AS – EPS</title>
+<meta name="theme-color" content="#1B1E24">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#F4F1EA;--card:#fff;--ink:#1B1E24;--muted:#6A6F78;--line:#E2DDD2;--acc:#2E7D4F;--red:#C0392B}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 18px 110px}
+h1{margin:0;font-size:34px;font-weight:900;letter-spacing:-.01em}
+h1 span{color:var(--acc)}
+.lanes{height:8px;border-radius:6px;margin:12px 0 16px;background:linear-gradient(90deg,#D9481F 0 25%,#1F5F8B 25% 50%,#2E7D4F 50% 75%,#B26B00 75%)}
+button{font:inherit;color:inherit}
+.btn{height:46px;padding:0 16px;border-radius:14px;border:2px solid var(--ink);background:#fff;font-weight:800;font-size:16px;cursor:pointer}
+.btn.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+.chip{min-height:42px;padding:0 14px;border-radius:999px;border:2px solid var(--line);background:#FBFAF7;font-weight:700;font-size:16px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;flex:none}
+.chip.on{border-color:var(--ink);background:var(--ink);color:#fff}
+.chip small{font-weight:700;opacity:.7}
+.lab{display:block;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 2px}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.count{font-size:26px;font-weight:900}
+.count small{font-size:16px;color:var(--muted);font-weight:700}
+.grow{flex:1}
+input.s{height:46px;border-radius:14px;border:2px solid var(--line);padding:0 14px;font-size:17px;min-width:200px;background:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.cls{grid-column:1/-1;font-weight:900;font-size:17px;margin:12px 0 0;color:var(--muted)}
+.el{display:flex;align-items:center;gap:12px;min-height:66px;padding:10px 14px;border-radius:16px;border:3px solid var(--line);background:#fff;cursor:pointer;text-align:left;width:100%}
+.el .bx{width:34px;height:34px;border-radius:9px;border:3px solid #B9B4A8;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff}
+.el .n{font-weight:800;font-size:18px;line-height:1.15}
+.el .n small{display:block;font-weight:600;font-size:14px;color:var(--muted)}
+.el.on{border-color:var(--acc);background:#E7F3EC}
+.el.on .bx{background:var(--acc);border-color:var(--acc)}
+.el.wait{opacity:.6}
+.el.err{border-color:var(--red)}
+.card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 3px 0 var(--line);margin:14px 0}
+.m{color:var(--muted);font-size:16px;line-height:1.45}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1B1E24;color:#fff;font-weight:700;padding:12px 20px;border-radius:14px;z-index:20;max-width:90vw;text-align:center}
+.lock{text-align:center;padding:60px 10px}
+a.back{color:var(--muted);font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../">← Accueil</a>
+  <h1>Appel <span>AS</span></h1>
+  <div class="lanes"></div>
+  <div id="app"></div>
+</div>
+<script>
+/* Appel AS : coche les élèves présents dans le fichier Google Sheets de l'association sportive,
+   par l'intermédiaire du script commun (apps-script/Code.gs, ?as=get / ?as=set). Rien n'est stocké sur la tablette
+   à part le dernier onglet et la dernière colonne choisis. */
+var $=function(s,r){return (r||document).querySelector(s);};
+var KS="eps.share.v1",KR="eps.reglages.v1",KP="eps.appelas.v1";
+var MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+var S={data:null,tab:null,col:null,q:"",niv:"",busy:{},loading:false,err:""};
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function norm(s){return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();}
+function toast(t){var d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(function(){d.remove();},2600);}
+function jget(k,d){try{var v=JSON.parse(localStorage.getItem(k)||"null");return v==null?d:v;}catch(e){return d;}}
+function cfg(){var s=jget(KS,null);return s&&s.url&&s.key?s:null;}
+function reg(){return window.EPSR?EPSR.get():jget(KR,{});}
+function sheetId(){var u=String(reg().asSheet||"");var m=u.match(/\/d\/([a-zA-Z0-9_-]{20,})/);return m?m[1]:(/^[a-zA-Z0-9_-]{20,}$/.test(u)?u:"");}
+/* ---- mode enseignant ---- */
+function hashCode(c){var h=5381,s="relais:"+c;for(var i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return String(h);}
+function isT(){try{return Date.now()<+(localStorage.getItem("eps.teach.until")||0);}catch(e){return false;}}
+window.epsIsTeacher=isT;
+function unlock(){
+  var stored=jget("relais-vitesse-code-v1",null);
+  if(!stored){toast("Crée d'abord ton code enseignant depuis la page d'accueil");return;}
+  window.epsPin({title:"🔒 Code enseignant",min:4,max:12,check:function(v){return hashCode(v)===stored;}}).then(function(v){
+    if(v===null)return;var m=+(reg().teachMin)||60;
+    try{localStorage.setItem("eps.teach.until",String(Date.now()+m*60000));}catch(e){}render();load();});
+}
+/* ---- échanges avec le script ---- */
+function jsonp(params){
+  var c=cfg();
+  return new Promise(function(res){
+    if(!c)return res(null);
+    var cb="asCb"+Date.now()+Math.floor(Math.random()*1e4),s=document.createElement("script"),t;
+    function end(d){clearTimeout(t);try{delete window[cb];}catch(e){}s.remove();res(d);}
+    window[cb]=end;s.onerror=function(){end(null);};t=setTimeout(function(){end(null);},25000);
+    params.key=c.key;params.callback=cb;params.id=sheetId();
+    s.src=c.url+(c.url.indexOf("?")>=0?"&":"?")+Object.keys(params).map(function(k){return k+"="+encodeURIComponent(params[k]);}).join("&");
+    document.head.appendChild(s);
+  });
+}
+function errMsg(d){
+  if(!d)return "Pas de réponse du script (connexion ?).";
+  if(!d.keyOk)return "Clé du partage entre tablettes refusée.";
+  if(d.asErr==="acces")return "Le script n'a pas accès au fichier d'appel : vérifie le lien, et que ton compte Google peut le modifier.";
+  if(d.asErr)return "Erreur du script : "+d.asErr;
+  if(!d.asOk)return "Le script commun n'a pas encore la fonction Appel AS : il faut le redéployer (voir le guide).";
+  return "";
+}
+function moisTab(tabs){var m=MOIS[new Date().getMonth()];for(var i=0;i<tabs.length;i++)if(norm(tabs[i]).indexOf(norm(m))>=0)return tabs[i];return null;}
+async function load(tab,quiet){
+  if(!isT()||!cfg()||!sheetId())return;
+  S.loading=true;if(!quiet)render();
+  var p=jget(KP,{}),t=tab||S.tab||null;
+  var d=await jsonp(t?{as:"get",tab:t}:{as:"get"});
+  S.loading=false;S.err=errMsg(d);
+  if(S.err){render();return;}
+  if(!tab&&!S.tab){var mt=moisTab(d.tabs||[]);if(mt&&mt!==d.tab){S.tab=mt;return load(mt,quiet);}}
+  S.data=d;S.tab=d.tab;parse();
+  var hd=S.data.cols.map(function(c){return c.c;});
+  if(S.col==null||hd.indexOf(S.col)<0)S.col=autoCol();
+  render();
+}
+/* ---- lecture de la structure : ligne d'en-tête au-dessus des premières cases, colonnes de noms à gauche ---- */
+function parse(){
+  var d=S.data,D=d.disp||[],cb=d.cb||[];
+  var at={},cols={},minR=1e9,minC=1e9;
+  cb.forEach(function(x){at[x[0]+"|"+x[1]]=x[2];cols[x[1]]=1;if(x[0]<minR)minR=x[0];if(x[1]<minC)minC=x[1];});
+  d.at=at;
+  var hr=Math.max(1,minR-1),H=D[hr-1]||[];
+  d.hr=hr;
+  d.cols=Object.keys(cols).map(Number).sort(function(a,b){return a-b;}).map(function(c){return{c:c,h:String(H[c-1]||"").trim()||("Colonne "+c)};});
+  var iP=-1,iN=-1,iC=-1;
+  for(var j=0;j<Math.min(minC-1,H.length);j++){var h=norm(H[j]);if(h.indexOf("prenom")>=0)iP=j;else if(h==="nom"||h.indexOf("nom")===0)iN=j;else if(h.indexOf("classe")>=0)iC=j;}
+  var rows=[];
+  for(var r=hr+1;r<=D.length;r++){
+    var L=D[r-1]||[];
+    var hasCb=d.cols.some(function(c){return at[r+"|"+c.c]!==undefined;});if(!hasCb)continue;
+    var pr=iP>=0?L[iP]:"",no=iN>=0?L[iN]:"",cl=iC>=0?L[iC]:"";
+    if(iP<0&&iN<0){var parts=[];for(var k=0;k<minC-1;k++)if(String(L[k]||"").trim())parts.push(L[k]);pr=parts.join(" ");}
+    if(!String(pr+no).trim())continue;
+    rows.push({r:r,p:String(pr).trim(),n:String(no).trim(),cl:String(cl).trim()});
+  }
+  d.rows=rows;
+}
+function autoCol(){
+  var t=new Date(),dd=("0"+t.getDate()).slice(-2)+"/"+("0"+(t.getMonth()+1)).slice(-2),d1=t.getDate()+"/"+(t.getMonth()+1);
+  var C=S.data.cols;
+  for(var i=0;i<C.length;i++){var h=C[i].h.replace(/\s/g,"");if(h.indexOf(dd)>=0||new RegExp("(^|\\D)"+d1.replace("/","/0?")+"(\\D|$)").test(h))return C[i].c;}
+  var p=jget(KP,{});if(p.tab===S.tab&&C.some(function(c){return c.c===p.col;}))return p.col;
+  for(var j=0;j<C.length;j++){var c=C[j].c;if(!S.data.rows.some(function(x){return S.data.at[x.r+"|"+c]===1;}))return c;}
+  return C.length?C[C.length-1].c:null;
+}
+/* ---- coche ---- */
+async function toggle(r){
+  var d=S.data,k=r+"|"+S.col,cur=d.at[k];if(cur===undefined||S.busy[k])return;
+  var v=cur===1?0:1;d.at[k]=v;S.busy[k]=1;render();
+  var x=await jsonp({as:"set",tab:S.tab,r:r,c:S.col,v:v});
+  delete S.busy[k];
+  if(!x||!x.asOk){d.at[k]=cur;render();toast(errMsg(x)||"Non enregistré, réessaie.");var el=document.querySelector('[data-r="'+r+'"]');if(el)el.classList.add("err");return;}
+  d.at[k]=x.v;render();
+}
+/* ---- affichage ---- */
+function niveau(cl){var m=String(cl).match(/^\s*(\d)/);return m?m[1]:"";}
+function render(){
+  var A=$("#app");
+  if(!isT()){A.innerHTML='<div class="lock"><p class="m">L\'appel de l\'AS est réservé à l\'enseignant.</p><button class="btn p" id="ul">🔒 Code enseignant</button></div>';$("#ul").onclick=unlock;return;}
+  if(!cfg()){A.innerHTML='<div class="card"><p class="m">Le partage entre tablettes n\'est pas réglé sur cette tablette : l\'appel passe par ton script commun.</p><button class="btn p" id="sh">⚙ Régler le partage</button></div>';$("#sh").onclick=function(){window.EPSD&&EPSD.shareSettings();};return;}
+  if(!sheetId()){
+    A.innerHTML='<div class="card"><p class="m">Colle le lien du fichier d\'appel de l\'AS (Google Sheets). Il est retenu pour toutes tes tablettes ; tu peux le changer dans ⚙️ Réglages.</p><input class="s" id="lk" style="width:100%" placeholder="https://docs.google.com/spreadsheets/d/…"><p><button class="btn p" id="ok">Enregistrer</button></p></div>';
+    $("#ok").onclick=function(){var v=$("#lk").value.trim();if(!/\/d\/[a-zA-Z0-9_-]{20,}/.test(v)&&!/^[a-zA-Z0-9_-]{20,}$/.test(v)){toast("Ce n'est pas un lien Google Sheets");return;}
+      if(window.EPSR&&EPSR.set)EPSR.set({asSheet:v});else{var r=jget(KR,{});r.asSheet=v;localStorage.setItem(KR,JSON.stringify(r));}render();load();};
+    return;
+  }
+  if(S.err){A.innerHTML='<div class="card"><p class="m" style="color:var(--red);font-weight:700">'+esc(S.err)+'</p><button class="btn" id="rt">Réessayer</button></div>';$("#rt").onclick=function(){load();};return;}
+  if(!S.data){A.innerHTML='<p class="m">'+(S.loading?"Chargement du fichier…":"")+'</p>';return;}
+  var d=S.data;
+  var tabs=(d.tabs||[]).map(function(t){return'<button class="chip'+(t===S.tab?" on":"")+'" data-tab="'+esc(t)+'">'+esc(t)+'</button>';}).join("");
+  var cols=d.cols.map(function(c){var n=d.rows.filter(function(x){return d.at[x.r+"|"+c.c]===1;}).length;return'<button class="chip'+(c.c===S.col?" on":"")+'" data-col="'+c.c+'">'+esc(c.h)+(n?' <small>'+n+'</small>':'')+'</button>';}).join("");
+  var nivs={};d.rows.forEach(function(x){var n=niveau(x.cl);if(n)nivs[n]=1;});
+  var nv=Object.keys(nivs).sort().reverse();
+  var q=norm(S.q),L=d.rows.filter(function(x){return(!S.niv||niveau(x.cl)===S.niv)&&(!q||norm(x.p+" "+x.n+" "+x.cl).indexOf(q)>=0);});
+  var pres=d.rows.filter(function(x){return d.at[x.r+"|"+S.col]===1;}).length;
+  var h='<span class="lab">'+esc(d.title||"Fichier")+' · onglet</span><div class="chips scroll">'+tabs+'</div>'+
+    '<span class="lab">Date</span><div class="chips scroll" id="cols">'+cols+'</div>'+
+    '<div class="bar"><div class="count">'+pres+' <small>présent'+(pres>1?"s":"")+' / '+d.rows.length+'</small></div><div class="grow"></div>'+
+    '<input class="s" id="q" placeholder="🔎 Chercher un élève" value="'+esc(S.q)+'"><button class="btn" id="rf">⟳</button></div>'+
+    (nv.length>1?'<div class="chips"><button class="chip'+(!S.niv?" on":"")+'" data-niv="">Tous</button>'+nv.map(function(n){return'<button class="chip'+(S.niv===n?" on":"")+'" data-niv="'+n+'">'+n+'e</button>';}).join("")+'</div>':'')+
+    '<div class="grid">';
+  var last=null;
+  L.forEach(function(x){
+    if(x.cl!==last){h+='<div class="cls">'+esc(x.cl||"")+'</div>';last=x.cl;}
+    var k=x.r+"|"+S.col,v=d.at[k];if(v===undefined)return;
+    h+='<button class="el'+(v===1?" on":"")+(S.busy[k]?" wait":"")+'" data-r="'+x.r+'"><span class="bx">'+(v===1?"✓":"")+'</span><span class="n">'+esc(x.p)+' '+esc(x.n)+'<small>'+esc(x.cl)+'</small></span></button>';
+  });
+  h+='</div>'+(L.length?'':'<p class="m">Aucun élève.</p>');
+  var y=window.scrollY,foc=document.activeElement&&document.activeElement.id==="q",cx=$("#cols")?$("#cols").scrollLeft:null;
+  A.innerHTML=h;window.scrollTo(0,y);
+  var cc=$("#cols");if(cc){if(cx!=null)cc.scrollLeft=cx;else{var on=cc.querySelector(".on");if(on)cc.scrollLeft=on.offsetLeft-cc.offsetLeft-20;}}
+  if(foc){var qi=$("#q");qi.focus();qi.setSelectionRange(qi.value.length,qi.value.length);}
+  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.data=null;load(S.tab);};});
+  A.querySelectorAll("[data-col]").forEach(function(b){b.onclick=function(){S.col=+b.dataset.col;try{localStorage.setItem(KP,JSON.stringify({tab:S.tab,col:S.col}));}catch(e){}render();};});
+  A.querySelectorAll("[data-niv]").forEach(function(b){b.onclick=function(){S.niv=b.dataset.niv;render();};});
+  A.querySelectorAll("[data-r]").forEach(function(b){b.onclick=function(){toggle(+b.dataset.r);};});
+  $("#q").oninput=function(e){S.q=e.target.value;render();};
+  $("#rf").onclick=function(){load(S.tab);};
+}
+/* mise à jour régulière (les cases cochées ailleurs apparaissent) */
+setInterval(function(){if(document.visibilityState==="visible"&&isT()&&S.data&&!Object.keys(S.busy).length)load(S.tab,true);},45000);
+addEventListener("storage",function(e){if(e.key==="eps.teach.until"||e.key===KR||e.key===KS)render();});
+render();
+</script>
+<script src="../eps-home.js"></script>
+<script>render();load();</script>
+</body>
+</html>

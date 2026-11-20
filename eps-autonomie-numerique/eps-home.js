@@ -723,7 +723,7 @@
      (un seul utilisateur ; enregistrement chiffré « cfg|commun »). « equipe » est gardé pour une future version partageable.
      window.EPSR.get() → réglages ; EPSR.pdfHead(doc, o) → en-tête commun des bilans PDF (générateurs EPDF / PDFDoc) ;
      EPSR.htmlHead(o) → même en-tête en HTML (Volley-ball). */
-  var KR = "eps.reglages.v1", SHARED = ["etab", "ville", "annee", "equipe", "prof", "ca", "masque", "teachMin"];
+  var KR = "eps.reglages.v1", SHARED = ["etab", "ville", "annee", "equipe", "prof", "ca", "masque", "teachMin", "asSheet"];
   function anneeDef() { var d = new Date(), y = d.getFullYear() - (d.getMonth() < 7 ? 1 : 0); return y + "-" + (y + 1); }
   function rget() {
     var r = null; try { r = JSON.parse(localStorage.getItem(KR) || "null"); } catch (e) {}
@@ -825,6 +825,8 @@
       '<span class="epsd-lab">Champ d\'apprentissage (CA) dans l\'en-tête</span><div class="epsd-chips" id="er-ca">' + chips([["1", "Afficher"], ["0", "Masquer"]], function (v) { return (v === "1") === !!r.ca; }, "data-v") + "</div>" +
       '<span class="epsd-lab">Mode enseignant ouvert depuis l\'accueil pendant</span><div class="epsd-chips" id="er-tm">' + chips([["30", "30 min"], ["60", "1 h"], ["120", "2 h"], ["240", "4 h"]], function (v) { return +v === r.teachMin; }, "data-v") + "</div>" +
       '<span class="epsd-lab">Applications visibles par les élèves sur l\'accueil</span><div class="epsd-chips" id="er-apps">' + chips(APPS, function (k) { return r.masque.indexOf(k) < 0; }, "data-a") + "</div>" +
+      '<div class="epsd-cls" style="margin-top:18px">Appel AS</div>' +
+      '<span class="epsd-lab">Lien du fichier d\'appel de l\'association sportive (Google Sheets)</span><input class="epsd-in" id="er-as" placeholder="https://docs.google.com/spreadsheets/d/…" value="' + esc(r.asSheet || "") + '">' +
       '<div class="epsd-cls" style="margin-top:18px">Listes d\'élèves</div>' +
       '<p class="m">Une liste importée ou corrigée ici va dans Escalade, Relais Vitesse, OrienRun, Acrosport, Volley-ball et Danse, et sur toutes tes tablettes.</p>' +
       '<div id="er-cls" class="m" style="margin:6px 0 4px">…</div>' +
@@ -836,6 +838,7 @@
     function readForm() {
       r.etab = o.querySelector("#er-etab").value.trim(); r.ville = o.querySelector("#er-ville").value.trim(); r.annee = o.querySelector("#er-annee").value.trim() || anneeDef();
       r.prof = o.querySelector("#er-prof").value.replace(/\s+/g, " ").trim();
+      r.asSheet = o.querySelector("#er-as").value.trim();
     }
     function saveNow() { var old = rget(); rset(r, SHARED.some(function (k) { return JSON.stringify(old[k]) !== JSON.stringify(r[k]); })); }
     function tog(sel, fn) { o.querySelector(sel).addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) fn(b); }); }
@@ -909,7 +912,7 @@
       '<div><div style="font-size:17px;font-weight:700">' + esc(h.l1) + '</div><div style="font-size:12px;color:#cfc8dc">' + esc(h.l2) + "</div></div>" +
       '<div style="text-align:right"><div style="font-size:17px;font-weight:700">' + esc(h.r1) + '</div><div style="font-size:12px;color:#cfc8dc">' + esc(h.r2) + "</div></div></div></div>";
   }
-  window.EPSR = { get: rget, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
+  window.EPSR = { get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
