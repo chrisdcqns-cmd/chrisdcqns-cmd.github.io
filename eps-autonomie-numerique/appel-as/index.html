@@ -44,6 +44,13 @@ input.s{height:46px;border-radius:14px;border:2px solid var(--line);padding:0 14
 .m{color:var(--muted);font-size:16px;line-height:1.45}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1B1E24;color:#fff;font-weight:700;padding:12px 20px;border-radius:14px;z-index:20;max-width:90vw;text-align:center}
 .lock{text-align:center;padding:60px 10px}
+.tw{overflow:auto;background:#fff;border-radius:16px;box-shadow:0 3px 0 var(--line);max-height:calc(100vh - 230px)}
+table.inf{border-collapse:collapse;width:100%;font-size:16px}
+table.inf th{position:sticky;top:0;background:var(--ink);color:#fff;text-align:left;padding:10px 12px;font-weight:800;white-space:nowrap;z-index:1}
+table.inf td{padding:9px 12px;border-top:1px solid var(--line);white-space:nowrap}
+table.inf tr:nth-child(even) td{background:#FBFAF7}
+table.inf td.num{text-align:right;font-variant-numeric:tabular-nums}
+.ttl{font-weight:800;font-size:17px;margin:6px 0 10px;white-space:pre-line}
 a.back{color:var(--muted);font-weight:700;text-decoration:none}
 </style>
 </head>
@@ -174,6 +181,7 @@ function render(){
   if(S.err){A.innerHTML='<div class="card"><p class="m" style="color:var(--red);font-weight:700">'+esc(S.err)+'</p><button class="btn" id="rt">Réessayer</button></div>';$("#rt").onclick=function(){load();};return;}
   if(!S.data){A.innerHTML='<p class="m">'+(S.loading?"Chargement du fichier…":"")+'</p>';return;}
   var d=S.data;
+  if(!d.cols.length)return renderInfo(A,d);
   var tabs=(d.tabs||[]).map(function(t){return'<button class="chip'+(t===S.tab?" on":"")+'" data-tab="'+esc(t)+'">'+esc(t)+'</button>';}).join("");
   var cols=d.cols.map(function(c){var n=d.rows.filter(function(x){return d.at[x.r+"|"+c.c]===1;}).length;return'<button class="chip'+(c.c===S.col?" on":"")+'" data-col="'+c.c+'">'+esc(c.h)+(n?' <small>'+n+'</small>':'')+'</button>';}).join("");
   var nivs={};d.rows.forEach(function(x){var n=niveau(x.cl);if(n)nivs[n]=1;});
@@ -197,10 +205,36 @@ function render(){
   A.innerHTML=h;window.scrollTo(0,y);
   var cc=$("#cols");if(cc){if(cx!=null)cc.scrollLeft=cx;else{var on=cc.querySelector(".on");if(on)cc.scrollLeft=on.offsetLeft-cc.offsetLeft-20;}}
   if(foc){var qi=$("#q");qi.focus();qi.setSelectionRange(qi.value.length,qi.value.length);}
-  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.data=null;load(S.tab);};});
+  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.data=null;S.q="";load(S.tab);};});
   A.querySelectorAll("[data-col]").forEach(function(b){b.onclick=function(){S.col=+b.dataset.col;try{localStorage.setItem(KP,JSON.stringify({tab:S.tab,col:S.col}));}catch(e){}render();};});
   A.querySelectorAll("[data-niv]").forEach(function(b){b.onclick=function(){S.niv=b.dataset.niv;render();};});
   A.querySelectorAll("[data-r]").forEach(function(b){b.onclick=function(){toggle(+b.dataset.r);};});
+  $("#q").oninput=function(e){S.q=e.target.value;render();};
+  $("#rf").onclick=function(){load(S.tab);};
+}
+/* onglet sans cases à cocher (liste des licenciés, classements…) : affichage en tableau, en lecture seule */
+function tabsHtml(d){return(d.tabs||[]).map(function(t){return'<button class="chip'+(t===S.tab?" on":"")+'" data-tab="'+esc(t)+'">'+esc(t)+'</button>';}).join("");}
+function renderInfo(A,d){
+  var D=(d.disp||[]).map(function(r){return r.map(function(x){return String(x==null?"":x).trim();});});
+  var used=[];D.forEach(function(r){r.forEach(function(x,j){if(x)used[j]=1;});});
+  var cols=[];for(var j=0;j<used.length;j++)if(used[j])cols.push(j);
+  var rows=D.map(function(r){return cols.map(function(j){return r[j]||"";});}).filter(function(r){return r.some(Boolean);});
+  var hi=-1;for(var i=0;i<rows.length;i++){if(rows[i].filter(Boolean).length>=Math.min(2,cols.length)){hi=i;break;}}
+  var titles=hi>0?rows.slice(0,hi).map(function(r){return r.filter(Boolean).join(" · ");}):[];
+  var head=hi>=0?rows[hi]:[],body=hi>=0?rows.slice(hi+1):rows;
+  var q=norm(S.q);if(q)body=body.filter(function(r){return norm(r.join(" ")).indexOf(q)>=0;});
+  var isNum=function(x){return /^[-+]?[\d\s]+([.,]\d+)?\s*%?$/.test(x);};
+  var h='<span class="lab">'+esc(d.title||"Fichier")+' · onglet</span><div class="chips scroll">'+tabsHtml(d)+'</div>'+
+    (titles.length?'<div class="ttl">'+esc(titles.join("\n"))+'</div>':'')+
+    '<div class="bar"><div class="count">'+body.length+' <small>ligne'+(body.length>1?"s":"")+'</small></div><div class="grow"></div>'+
+    '<input class="s" id="q" placeholder="🔎 Chercher" value="'+esc(S.q)+'"><button class="btn" id="rf">⟳</button></div>';
+  if(!rows.length)h+='<p class="m">Cet onglet est vide.</p>';
+  else h+='<div class="tw"><table class="inf"><thead><tr>'+head.map(function(x){return'<th>'+esc(x)+'</th>';}).join("")+'</tr></thead><tbody>'+
+    body.map(function(r){return'<tr>'+r.map(function(x){return'<td'+(isNum(x)?' class="num"':'')+'>'+esc(x)+'</td>';}).join("")+'</tr>';}).join("")+'</tbody></table></div>';
+  var foc=document.activeElement&&document.activeElement.id==="q";
+  A.innerHTML=h;
+  if(foc){var qi=$("#q");qi.focus();qi.setSelectionRange(qi.value.length,qi.value.length);}
+  A.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.col=null;S.data=null;S.q="";load(S.tab);};});
   $("#q").oninput=function(e){S.q=e.target.value;render();};
   $("#rf").onclick=function(){load(S.tab);};
 }
