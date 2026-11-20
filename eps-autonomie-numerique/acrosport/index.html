@@ -406,14 +406,14 @@ html:not(.eps-teach) .epse-open{display:none}
     <p>Consulte les figures, construis ton enchaînement et retrouve ta progression à chaque leçon.</p>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="classPanel">
     <h2>1 · Ma classe</h2>
     <div class="classPick" id="classPick"></div>
   </div>
 
   <div id="afterClass" class="hidden">
     <div class="panel" id="accessPanel">
-      <h2>2 · Notre groupe</h2>
+      <h2 id="groupTitle">2 · Notre groupe</h2>
       <div class="row" style="gap:14px;align-items:flex-end">
         <div class="field" style="flex:2;min-width:220px"><label for="gSel">Groupe</label><select id="gSel" class="inp"></select></div>
         <div class="field onlyOnline" style="flex:2;min-width:200px"><label for="gPwIn">Mot de passe</label><input id="gPwIn" class="inp" type="password" autocomplete="current-password" maxlength="40"></div>
@@ -770,9 +770,18 @@ function renderClassPick(){
   box.innerHTML=classes().map(c=>`<button class="classBtn ${c===homeClass?"on":""}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
   box.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>selectClass(b.dataset.c));
 }
+/* la classe est choisie sur l'écran commun « Choisis ta classe » : l'élève ne voit plus que son groupe */
+function syncClassPanel(){
+  const gate=!!(window.EPSG&&homeClass)&&!(teacherPw||hubT());
+  const cp=document.getElementById("classPanel"),gt=document.getElementById("groupTitle"); if(!cp||!gt) return;
+  const key=gate+"|"+homeClass; if(gt.dataset.k===key) return; gt.dataset.k=key;
+  cp.classList.toggle("hidden",gate);
+  gt.innerHTML=gate?`Notre groupe · ${esc(homeClass)} <button class="btn alt small" id="chgClass" style="margin-left:8px;font-size:.8rem">Changer de classe</button>`:"2 · Notre groupe";
+  const b=document.getElementById("chgClass"); if(b) b.onclick=()=>{try{window.EPSG.open()}catch(e){}};
+}
 async function selectClass(c){
   homeClass=c; try{sessionStorage.setItem(K_CLASS,c)}catch(e){}
-  renderClassPick();
+  renderClassPick(); syncClassPanel();
   document.getElementById("afterClass").classList.remove("hidden");
   document.getElementById("listTitle").textContent="Les groupes de "+c;
   await loadGroupList();
@@ -1940,17 +1949,20 @@ if(o.err)E.textContent=o.err;keys();dots();document.body.appendChild(el)})}
 const hubT=()=>{try{return Date.now()<+(localStorage.getItem("eps.teach.until")||0)}catch(e){return false}},hubOn=()=>{try{localStorage.setItem("eps.teach.until",String(Date.now()+3600000))}catch(e){}};
 try{if(hubT()&&localStorage.getItem("acro.tpw"))teacherPw=localStorage.getItem("acro.tpw")}catch(e){}
 if(teacherPw&&apiUrl())teacherCheck(teacherPw).catch(()=>{});
+/* code enseignant commun à toutes les applis (page d'accueil, eps-home.js) */
+function commonCodeOk(c){try{const st=JSON.parse(localStorage.getItem("relais-vitesse-code-v1")||"null");if(!st)return false;let h=5381;const s="relais:"+c;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return String(h)===String(st)}catch(e){return false}}
 /* onglet « Mon parcours » : visible seulement en mode enseignant */
-function profMode(){const on=hubT();document.body.classList.toggle("acroProf",on);if(!on){const t=document.querySelector('.tab.on[data-tab="path"]');if(t)try{showTab("routine")}catch(e){}}}
+function profMode(){const on=hubT();try{syncClassPanel()}catch(e){}document.body.classList.toggle("acroProf",on);if(!on){const t=document.querySelector('.tab.on[data-tab="path"]');if(t)try{showTab("routine")}catch(e){}}}
 setInterval(profMode,1500);document.addEventListener("DOMContentLoaded",profMode);
 async function openProf(){
   const online=!!apiUrl();
   if(hubT()&&!teacherPw)try{teacherPw=localStorage.getItem("acro.tpw")||""}catch(e){}
-  if(hubT()&&(teacherPw||!online)){profPanel();profMode();return}
-  const v=await epsPin({title:"🔒 Espace enseignant",text:"Touche ABC pour les lettres.",min:1,letters:true,
+  if(hubT()){profPanel();profMode();syncClassPanel();return}
+  const v=await epsPin({title:"🔒 Espace enseignant",text:"Code enseignant ou mot de passe Acrosport (touche ABC pour les lettres).",min:1,letters:true,
     check:async v=>{
+      if(commonCodeOk(v)){hubOn();profMode();syncClassPanel();return true}
       if(!online){if(v===prof.pin){hubOn();profMode();return true}return "Code incorrect."}
-      const ok=async()=>{teacherPw=v;try{localStorage.setItem("acro.tpw",v)}catch(e){}hubOn();profMode();setTimeout(()=>{try{pushCommonToSheet()}catch(e){}},800);store.set(K_TPH,await sha("prof|"+v));return true};
+      const ok=async()=>{teacherPw=v;try{localStorage.setItem("acro.tpw",v)}catch(e){}hubOn();profMode();syncClassPanel();setTimeout(()=>{try{pushCommonToSheet()}catch(e){}},800);store.set(K_TPH,await sha("prof|"+v));return true};
       try{await teacherCheck(v);return await ok()}
       catch(e){
         if(e.network){const h=store.get(K_TPH,"");if(h&&h===await sha("prof|"+v)){toast("Hors connexion : accès enseignant");return await ok()}return "Pas de connexion : impossible de vérifier le mot de passe."}
@@ -2410,7 +2422,7 @@ window.EVACRO=window.EPSE?EPSE.store({app:'acro',nom:'Acrosport',ca:'CA3',color:
 /* écran élève commun (eps-home.js) : choisir sa classe en premier */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:"Acrosport",sub:"CA3 · Figures et pyramides",color:"#1F4FA3",
  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3.5" r="1.8"/><path d="M8 7.5h8M12 7.5v3"/><circle cx="7.5" cy="11.5" r="1.8"/><circle cx="16.5" cy="11.5" r="1.8"/><path d="M7.5 13.5v7M16.5 13.5v7M5 16h5M14 16h5"/></svg>',
- isTeacher:()=>!!teacherPw,when:()=>!teacherPw&&!homeClass,
+ isTeacher:()=>!!teacherPw||hubT(),when:()=>!teacherPw&&!hubT()&&!homeClass,
  classes:()=>classes().map(c=>({id:c,nom:c,note:""})),
  current:()=>homeClass||"",
  select:c=>selectClass(c),
