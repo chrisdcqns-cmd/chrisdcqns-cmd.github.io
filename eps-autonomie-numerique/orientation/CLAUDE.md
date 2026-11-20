@@ -1,5 +1,7 @@
 # OrienRun EPS — notes pour Claude
 
+> Lire d'abord la charte commune : `../CLAUDE.md` (barre, couleurs, écran « Choisis ta classe », accès enseignant caché, listes communes, PDF et auto-positionnement au format Danse/Volley).
+
 Application web (PWA) de course d'orientation pour l'EPS, hébergée sur GitHub Pages (`index.html` à la racine).
 
 - `index.html` : toute l'appli (HTML + CSS + JS), générée à partir des sources (`src/*.js`, `src/shell.html` + `build.py`) si elles sont présentes. Sinon, modifier directement le `<script>`.

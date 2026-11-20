@@ -1,5 +1,7 @@
 # Danse EPS — notes pour Claude
 
+> Lire d'abord la charte commune : `../CLAUDE.md` (barre, couleurs, écran « Choisis ta classe », accès enseignant caché, listes communes, PDF et auto-positionnement au format Danse/Volley).
+
 Application web pour tablette (danse, CA3, lycée), hébergée sur GitHub Pages : `danse/index.html` contient tout. Les 3 premiers `<script>` sont des bibliothèques intégrées pour le hors ligne (pdf-lib, JSZip, générateur QR de Kazuhiko Arase) ; le 4e est le code de l'application (lisible) ; le 5e charge `../eps-home.js`.
 
 - Données dans `localStorage`, clé `danse-eps-v1` : `{reglages, grilleNom, criteres:[{id:'afl1'|'afl2'|'afl3', court, titre, sous, titreEleve, d:[4 textes enseignant], e:[4 textes élève], poids}], classes:[{id,nom,eleves:[{id,nom,prenom,groupeId,ev:{afl1:{d,pos}},comm,statut,auto}],groupes:[{id,nom,theme}]}], classeId, obs:[…]}`.

@@ -1,5 +1,7 @@
 # Escalade EPS — notes pour Claude
 
+> Lire d'abord la charte commune : `../CLAUDE.md` (barre, couleurs, écran « Choisis ta classe », accès enseignant caché, listes communes, PDF et auto-positionnement au format Danse/Volley).
+
 Application web pour tablette (escalade en moulinette, lycée), hébergée sur GitHub Pages : `escalade/index.html` contient tout (HTML + CSS + JS, aucune bibliothèque externe : lecture/écriture .xlsx et QR codes faits main).
 
 - Écran de démarrage `S.t='role'` (`roleScr()`) : « Je suis élève » / « Je suis enseignant » (code `CF.pin`). Après « Je suis élève » : choix de la classe (`S.t='pickcl'`, `clsScr()`, `pickCl(id)` → `CF.sea.cl`), « Changer de classe » sur l'accueil élève. Accueil enseignant : tuiles « Leçon du jour et classes » et « Résultats, QR codes et Google Sheets » (`res`).

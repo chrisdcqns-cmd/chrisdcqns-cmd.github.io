@@ -1,5 +1,7 @@
 # Badminton EPS — notes pour Claude
 
+> Lire d'abord la charte commune : `../CLAUDE.md` (barre, couleurs, écran « Choisis ta classe », accès enseignant caché, listes communes, PDF et auto-positionnement au format Danse/Volley).
+
 Application web pour tablette (badminton, CA4, lycée), hébergée sur GitHub Pages : `badminton/index.html` contient tout (le code source lisible est dans le seul `<script>` de l'application ; le second charge `../eps-home.js`). Affiche du déplacement badiste : `echauffement-deplacements.webp` (tirée de la fiche de leçon 1 de l'enseignant).
 
 - Données dans `localStorage` `eps_badminton_v1` : `{voie:'gt'|'pro', prof:{gt:{bareme,seq},pro:{bareme,seq}}, tech:[fiches], presets:[situations], classes:[{id,nom,voie,eleves:[{id,nom,prenom,ev,choix,statut,comment,rout:{date:routineId}}],matchs:{id:match},poules:{id:poule}}], cur}`.

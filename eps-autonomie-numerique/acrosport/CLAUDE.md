@@ -1,5 +1,7 @@
 # Acrosport EPS — notes pour Claude
 
+> Lire d'abord la charte commune : `../CLAUDE.md` (barre, couleurs, écran « Choisis ta classe », accès enseignant caché, listes communes, PDF et auto-positionnement au format Danse/Volley).
+
 Application web (PWA) d'acrosport pour tablettes, hébergée sur GitHub Pages depuis la branche `main` (racine).
 
 - `index.html` : toute l'appli dans un seul fichier (HTML + CSS + JS). Les données des 176 figures (`const FIGS`) et les photos (`const IMGS`, images WebP en data URI) sont des lignes JSON très longues : modifier le code autour, pas ces lignes à la main.

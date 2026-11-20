@@ -1,5 +1,7 @@
 # Relais Vitesse EPS — notes pour Claude
 
+> Lire d'abord la charte commune : `../CLAUDE.md` (barre, couleurs, écran « Choisis ta classe », accès enseignant caché, listes communes, PDF et auto-positionnement au format Danse/Volley).
+
 Application web pour tablette (relais-vitesse, lycée), hébergée sur GitHub Pages : `relais/index.html` contient tout (HTML + CSS + JS + image de la piste en WebP base64).
 
 - Parcours : classes (import .xls/.xlsx/.ods/.csv via SheetJS cdnjs) → leçon du jour datée → groupes → accueil de leçon (vitesse cible) → enregistrer les courses.
