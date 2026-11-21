@@ -1327,6 +1327,7 @@
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
     reformuler: function (t, o) { return reformuler(t, o); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
+    search: function () { searchStudents(); },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
     /* synchro immédiate d'un seul magasin (ex. leçon en cours : relevé toutes les quelques secondes) */
     syncOne: function (k) { var cfg = shCfg(), st = STORES.filter(function (x) { return x.key === k; })[0]; if (!cfg || !st || st._busy || navigator.onLine === false) return Promise.resolve(false);
@@ -1470,10 +1471,44 @@
     b.innerHTML = st + " <span>" + t + "</span>";
   }
   setInterval(function () { try { syncBadge(); } catch (e) {} }, 3000);
+  /* 🔍 recherche rapide d'un élève (mode enseignant) : classes, activités de la classe, dispense du jour, évaluations et commentaires dans chaque appli */
+  var ACTN = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport" };
+  function evalsOf(nomComplet, classe) {
+    var out = [], k = nkey(nomComplet), c = norm(classe);
+    for (var i = 0; i < localStorage.length; i++) { var key = localStorage.key(i), m = /^eps\.eval\.([a-z]+)\.v1$/.exec(key || ""); if (!m) continue;
+      var V = jget(key, {}), I = (V && V.items) || {};
+      Object.keys(I).forEach(function (id) { var r = I[id]; if (!r || id === "cfg" || nkey((r.p || "") + " " + (r.n || "")) !== k || (c && r.c && norm(r.c) !== c)) return;
+        var n = r.ev ? Object.keys(r.ev).filter(function (x) { return r.ev[x] && r.ev[x].d != null; }).length : 0;
+        out.push({ app: ACTN[m[1]] || ({ escalade: "Escalade", acrosport: "Acrosport", orientation: "OrienRun", ori: "OrienRun" }[m[1]]) || m[1], n: n, comm: r.comm || "", st: r.st || "", auto: !!(r.ap && r.ap.ev) }); }); }
+    return out;
+  }
+  function searchStudents() {
+    var o = overlay('<div id="epss"><h3>🔍 Rechercher un élève</h3><input class="epsd-in" id="epss-q" placeholder="Nom ou prénom…" autocomplete="off"><div id="epss-r" style="margin-top:10px"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
+    var q = o.querySelector("#epss-q"), res = o.querySelector("#epss-r"), P = [];
+    try { (window.EPSL ? EPSL.items() : []).forEach(function (it) { EPSL.people(it).forEach(function (p) { P.push({ full: p.full, cls: it.nom, off: it.off || [] }); }); }); } catch (e) {}
+    function draw() {
+      var t = norm(q.value); if (t.length < 2) { res.innerHTML = '<p class="m">' + P.length + " élèves dans tes listes. Tape au moins 2 lettres.</p>"; return; }
+      var W = t.split(" "), L = P.filter(function (p) { var n = norm(p.full); return W.every(function (w) { return n.indexOf(w) >= 0; }); }).slice(0, 12);
+      res.innerHTML = L.length ? L.map(function (p) {
+        var acts = Object.keys(ACTN).filter(function (a) { return p.off.indexOf(a) < 0; }).map(function (a) { return ACTN[a]; }), d = find(p.cls, p.full), E = evalsOf(p.full, p.cls);
+        return '<div style="border:1px solid #E6E1D6;border-radius:14px;padding:10px 14px;margin:0 0 8px"><b style="font-size:18px">' + esc(p.full) + '</b> <span style="color:#6A6F78">· ' + esc(p.cls) + "</span>" +
+          (d ? '<div style="color:#9C2B10;font-weight:700;margin-top:4px">🩹 ' + esc(label(d)) + "</div>" : "") +
+          '<div style="color:#6A6F78;font-size:14px;margin-top:4px">Activités de la classe : ' + esc(acts.join(", ") || "aucune") + "</div>" +
+          (E.length ? E.map(function (e) { return '<div style="font-size:14px;margin-top:4px">📋 <b>' + esc(e.app) + "</b> : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.auto ? " · auto-positionnement reçu" : "") + (e.comm ? '<div style="color:#6A6F78;margin-left:22px">« ' + esc(e.comm.slice(0, 160)) + (e.comm.length > 160 ? "…" : "") + " »</div>" : "") + "</div>"; }).join("") : '<div style="color:#9AA0A6;font-size:14px;margin-top:4px">Pas encore d\'évaluation sur cette tablette.</div>') + "</div>"; }).join("")
+        : '<p class="m">Aucun élève trouvé.</p>';
+    }
+    q.oninput = draw; draw(); setTimeout(function () { q.focus(); }, 50);
+  }
+  function searchBtn() {
+    var b = document.getElementById("eps-find"), sl = epsSlot();
+    if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-find"; b.className = "epsb"; b.title = "Rechercher un élève"; b.innerHTML = "🔍"; b.onclick = searchStudents; var sy = document.getElementById("eps-sync"); sl.insertBefore(b, sy && sy.parentNode === sl ? sy : sl.firstChild); }
+    b.style.display = isTeacher() ? "" : "none";
+  }
+  setInterval(function () { try { searchBtn(); } catch (e) {} }, 3000);
   function redock() {
     var L = document.querySelectorAll("[data-eps-bar]"); if (L.length < 2) return;
     var sl = epsSlot();
-    ["eps-sync", "epsd-pill", "eps-upd", "eps-home"].forEach(function (id) {
+    ["eps-find", "eps-sync", "epsd-pill", "eps-upd", "eps-home"].forEach(function (id) {
       var e = document.getElementById(id);
       if (e && e.parentNode && e.parentNode !== sl && e.parentNode.hasAttribute && e.parentNode.hasAttribute("data-eps-bar")) sl.appendChild(e);
     });
