@@ -645,6 +645,10 @@ body.eteach .ebar .es{display:block}
 .vctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
 .vctl input[type=range]{flex:1 1 260px;accent-color:#D9481F;height:30px}
 .vmodal [hidden]{display:none!important}
+.vclips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}.vclips:empty{display:none}.vclips>span{color:#A9AEB8;font:700 14px system-ui}
+.vclips button{height:52px;border-radius:12px;border:1.5px solid #3A3F47;background:#1B1E24;color:#fff;font:700 15px system-ui;padding:0 12px;display:flex;flex-direction:column;justify-content:center;cursor:pointer}
+.vclips button small{font-size:11px;color:#A9AEB8;font-weight:600}.vclips button.on{border-color:#D9481F;background:#3A1E14}
+
 .vnote{font-size:13px;color:#A9AEB8;text-align:center;margin:0}
 /* tableau de bord en direct */
 .lvsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px}
@@ -906,18 +910,19 @@ body.eteach .ebar .es{display:block}
   <div class="card mt"><div class="label">📡 Tablettes</div><div id="lv-devs"></div></div>
 </section>
 
-<!-- VIDÉO DE LA TRANSMISSION -->
+<!-- VIDÉO DE LA TRANSMISSION (en mémoire seulement, rien n'est enregistré) -->
 <div class="vmodal" id="vmodal">
   <div class="vtop"><b>🎥 Revoir la transmission</b><span id="v-st"></span><button id="v-close">Fermer</button></div>
-  <div class="vstage"><video id="v-cam" playsinline muted autoplay></video><video id="v-rep" playsinline muted hidden></video><div class="vrec" id="v-recb"><i></i>La tablette filme</div></div>
-  <div class="vctl" id="v-c1"><button class="big" id="v-replay">⏪ Revoir les dernières secondes</button></div>
+  <div class="vstage"><video id="v-cam" playsinline muted autoplay></video><video id="v-rep" playsinline muted hidden></video><div class="vrec" id="v-recb"><i></i><span id="v-rect">La tablette filme</span></div></div>
+  <div class="vctl" id="v-c1"><button class="big" id="v-replay">⏪ Revoir cette course</button></div>
   <div class="vctl" id="v-c2" hidden>
     <button data-vr="0.25">× 0,25</button><button data-vr="0.5">× 0,5</button><button data-vr="1">× 1</button>
     <button id="v-back">⏪ 1 s</button><button id="v-pp">⏸ Pause</button><button id="v-fwd">1 s ⏩</button>
     <input type="range" id="v-pos" min="0" max="1" step="0.04" value="0">
-    <button id="v-again">🎥 Reprendre le film</button>
+    <button class="big" id="v-cam2">🎥 Retour à la caméra</button>
   </div>
-  <p class="vnote">Filme la zone de transmission, puis touche « Revoir » juste après la course. Rien n'est enregistré ni envoyé : la vidéo s'efface dès que tu reprends ou fermes.</p>
+  <div class="vclips" id="v-clips"></div>
+  <p class="vnote">La tablette filme sans arrêt ; après chaque course, touche « Revoir cette course ». Les courses revues restent disponibles 10 minutes (même si tu fermes cette fenêtre), puis s'effacent. Rien n'est enregistré sur la tablette ni envoyé.</p>
 </div>
 
 <button id="sydot" type="button"><i></i><span>Synchro</span></button>
@@ -3844,49 +3849,79 @@ function markHTML(p){
   return `<div class="pmark"><div class="pmi">🎯</div><div><b>Votre marque : plot ${m.np} · ${mFmt(pmDist(m.np))} avant la zone</b><span>${esc(lab)}. ${esc(why)}${m.np>cfg.nPM?" Ajoutez des plots.":""}</span></div></div>`;
 }
 
-/* ===== Vidéo de la transmission : la tablette filme en continu (2 enregistreurs décalés), on revoit les dernières secondes au ralenti.
-   Rien n'est gardé : la vidéo reste en mémoire et s'efface dès qu'on reprend ou ferme. ===== */
-var VR={st:null,recs:[],iv:null,url:null,mime:null,rate:0.5,back:8,from:0};
-function vMime(){if(!window.MediaRecorder)return null;return ["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm","video/mp4"].find(t=>{try{return MediaRecorder.isTypeSupported(t)}catch(e){return false}})||""}
-function vNewRec(){const r={ch:[],t0:Date.now()};try{r.m=VR.mime?new MediaRecorder(VR.st,{mimeType:VR.mime,videoBitsPerSecond:3000000}):new MediaRecorder(VR.st)}catch(e){r.m=new MediaRecorder(VR.st)}
-  r.m.ondataavailable=ev=>{if(ev.data&&ev.data.size)r.ch.push(ev.data)};r.m.start(500);VR.recs.push(r)}
-function vRoll(){if(VR.recs.length>=2){const o=VR.recs.shift();o.m.ondataavailable=null;try{o.m.stop()}catch(e){}o.ch=[]}vNewRec()}
-function vUI(mode){const rep=mode==="rep";$("#v-cam").hidden=rep;$("#v-rep").hidden=!rep;$("#v-recb").hidden=rep;$("#v-c1").hidden=rep;$("#v-c2").hidden=!rep;
-  $("#v-st").textContent=rep?"Ralenti · touche la barre pour te déplacer":"Place la tablette face à la zone de transmission";
-  document.querySelectorAll("[data-vr]").forEach(b=>b.classList.toggle("on",+b.dataset.vr===VR.rate))}
-function vRec(){VR.recs=[];vNewRec();clearInterval(VR.iv);VR.iv=setInterval(vRoll,12000);vUI("cam")}
-function vFree(){const v=$("#v-rep");v.pause();v.removeAttribute("src");try{v.load()}catch(e){}if(VR.url){URL.revokeObjectURL(VR.url);VR.url=null}}
-async function vOpen(){
+/* ===== Vidéo de la transmission
+   - La caméra filme en continu avec 2 enregistreurs décalés de 8 s (VR.recs) : à tout moment, le plus ancien contient les 8 à 16 dernières secondes.
+   - « Revoir cette course » arrête ce plus ancien (→ un petit clip autonome, lisible du début sans recherche) et relance aussitôt un enregistreur :
+     le film ne s'interrompt jamais, la course suivante est filmée pendant qu'on revoit.
+   - Les clips restent en MÉMOIRE seulement (Blob + URL), 10 min, 6 au plus ; jamais écrits sur la tablette ni envoyés. Recharger l'appli les efface. ===== */
+var VR={st:null,recs:[],iv:null,mime:null,rate:0.5,clips:[],cur:null,wl:null,len:8};
+const V_KEEP=10*60000,V_MAX=6,V_ROLL=8000;
+function vMime(){if(!window.MediaRecorder)return null;return ["video/webm;codecs=vp8","video/webm;codecs=vp9","video/webm","video/mp4"].find(t=>{try{return MediaRecorder.isTypeSupported(t)}catch(e){return false}})||""}
+function vNewRec(){if(!VR.st)return;const r={ch:[],t0:Date.now()};
+  try{r.m=VR.mime?new MediaRecorder(VR.st,{mimeType:VR.mime,videoBitsPerSecond:2500000}):new MediaRecorder(VR.st)}catch(e){try{r.m=new MediaRecorder(VR.st)}catch(e2){vMsg("Enregistrement vidéo impossible sur cette tablette");return}}
+  r.m.ondataavailable=ev=>{if(ev.data&&ev.data.size)r.ch.push(ev.data)};
+  r.m.onerror=()=>{VR.recs=VR.recs.filter(x=>x!==r);vNewRec()};
+  try{r.m.start(1000);VR.recs.push(r)}catch(e){vMsg("Enregistrement vidéo impossible sur cette tablette")}}
+function vDrop(r){r.m.ondataavailable=null;r.m.onerror=null;try{if(r.m.state!=="inactive")r.m.stop()}catch(e){}r.ch=[]}
+function vRoll(){if(!VR.st)return;if(VR.recs.length>=2)vDrop(VR.recs.shift());vNewRec()}
+function vStartRec(){VR.recs.forEach(vDrop);VR.recs=[];vNewRec();clearInterval(VR.iv);VR.iv=setInterval(vRoll,V_ROLL)}
+function vMsg(t){$("#v-st").textContent=t}
+function vRuns(){const a=$("#r-r1")&&$("#r-r1").value,b=$("#r-r2")&&$("#r-r2").value,e1=a!==""?byId(+a):null,e2=b!==""?byId(+b):null;return e1&&e2?e1.prenom+" → "+e2.prenom:""}
+function vUI(mode){const rep=mode==="rep";$("#v-cam").hidden=rep;$("#v-rep").hidden=!rep;$("#v-recb").hidden=rep&&!VR.st;$("#v-c1").hidden=rep||!VR.st;$("#v-c2").hidden=!rep;
+  $("#v-cam2").textContent=VR.st?"🎥 Retour à la caméra":"🎥 Rallumer la caméra";
+  $("#v-rect").textContent=rep?"La caméra continue de filmer":"La tablette filme";vMsg(rep?(VR.st?"Ralenti · la caméra continue de filmer":"Ralenti"):VR.st?"Place la tablette face à la zone de transmission":"");
+  document.querySelectorAll("[data-vr]").forEach(b=>b.classList.toggle("on",+b.dataset.vr===VR.rate));vClipsUI()}
+function vPrune(){const now=Date.now();VR.clips=VR.clips.filter(c=>{const ok=now-c.at<V_KEEP&&!c.gone;if(!ok&&c!==VR.cur){URL.revokeObjectURL(c.url);c.gone=1}return ok||c===VR.cur});
+  while(VR.clips.length>V_MAX){const c=VR.clips.shift();if(c!==VR.cur){URL.revokeObjectURL(c.url);c.gone=1}}}
+function vClipsUI(){vPrune();const box=$("#v-clips");if(!box)return;
+  box.innerHTML=VR.clips.length?`<span>Courses filmées :</span>`+VR.clips.slice().reverse().map(c=>{const m=Math.max(0,Math.round((V_KEEP-(Date.now()-c.at))/60000));
+    return `<button data-vclip="${c.id}" class="${c===VR.cur?"on":""}">${c.h}${c.who?" · "+esc(c.who):""}<small>encore ${m} min</small></button>`}).join(""):"";
+  document.querySelectorAll("[data-vid]").forEach(b=>{const n=VR.clips.length;b.textContent=b.dataset.vlab||(b.dataset.vlab=b.textContent);if(n)b.textContent=b.dataset.vlab+" ("+n+" à revoir)"})}
+setInterval(()=>{try{vClipsUI()}catch(e){}},30000);
+async function vWake(on){try{if(on&&navigator.wakeLock&&!VR.wl){VR.wl=await navigator.wakeLock.request("screen");VR.wl.addEventListener("release",()=>{VR.wl=null})}if(!on&&VR.wl){VR.wl.release();VR.wl=null}}catch(e){}}
+async function vCamOn(){
   if(VR.mime===null)VR.mime=vMime();
-  if(VR.mime===null||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast("Cette tablette ne permet pas de filmer dans l'appli");return}
-  try{VR.st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60}},audio:false})}
-  catch(e){toast(e&&e.name==="NotAllowedError"?"Autorise la caméra pour cette appli dans les réglages de la tablette":"Caméra indisponible");return}
-  $("#vmodal").classList.add("on");$("#v-cam").srcObject=VR.st;try{$("#v-cam").play()}catch(e){}vRec()}
-function vClose(){clearInterval(VR.iv);VR.recs.forEach(r=>{r.m.ondataavailable=null;try{r.m.stop()}catch(e){}});VR.recs=[];vFree();
-  if(VR.st){VR.st.getTracks().forEach(t=>t.stop());VR.st=null}$("#v-cam").srcObject=null;$("#vmodal").classList.remove("on")}
+  if(VR.mime===null||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){vMsg("Cette tablette ne permet pas de filmer dans l'appli");return false}
+  try{VR.st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,max:60}},audio:false})}
+  catch(e){VR.st=null;vMsg(e&&e.name==="NotAllowedError"?"Autorise la caméra pour cette appli dans les réglages de la tablette":"Caméra indisponible (utilisée par une autre appli ?)");return false}
+  VR.st.getVideoTracks().forEach(t=>t.addEventListener("ended",()=>{vCamOff();vUI(VR.cur?"rep":"cam");vMsg("La caméra s'est arrêtée : touche « Rallumer la caméra »")}));
+  const c=$("#v-cam");c.srcObject=VR.st;try{await c.play()}catch(e){}vStartRec();vWake(true);return true}
+function vCamOff(){clearInterval(VR.iv);VR.recs.forEach(vDrop);VR.recs=[];if(VR.st){VR.st.getTracks().forEach(t=>t.stop());VR.st=null}$("#v-cam").srcObject=null;vWake(false)}
+async function vOpen(){$("#vmodal").classList.add("on");VR.cur=null;vUI("cam");vMsg("Ouverture de la caméra…");if(await vCamOn())vUI("cam");else vUI(VR.clips.length?"rep":"cam")}
+function vClose(){vCamOff();const v=$("#v-rep");v.pause();v.removeAttribute("src");try{v.load()}catch(e){}VR.cur=null;$("#vmodal").classList.remove("on");vClipsUI()}
 function vReplay(){
-  clearInterval(VR.iv);const rs=VR.recs;VR.recs=[];if(!rs.length)return;const r=rs[0];
-  rs.slice(1).forEach(x=>{x.m.ondataavailable=null;try{x.m.stop()}catch(e){}});
-  const show=()=>vShow(new Blob(r.ch,{type:(r.m.mimeType||VR.mime||"video/webm").split(";")[0]}));
-  r.m.onstop=show;try{r.m.stop()}catch(e){show()}
+  const r=VR.recs.shift();if(!r){vMsg("La caméra démarre, réessaie dans une seconde");return}
+  vNewRec();clearInterval(VR.iv);VR.iv=setInterval(vRoll,V_ROLL); /* le film continue sans interruption */
+  const len=(Date.now()-r.t0)/1000,who=vRuns(),h=new Date().toLocaleTimeString("fr-FR").slice(0,5);
+  const done=()=>{r.m.ondataavailable=null;if(!r.ch.length){vMsg("Rien n'a été filmé : vérifie la caméra");return}
+    const blob=new Blob(r.ch,{type:(r.m.mimeType||VR.mime||"video/webm").split(";")[0]});r.ch=[];
+    const c={id:"v"+Date.now(),url:URL.createObjectURL(blob),at:Date.now(),h,who,len};VR.clips.push(c);vPrune();vPlay(c)};
+  r.m.onstop=done;try{r.m.stop()}catch(e){done()}
 }
-function vShow(blob){
-  vFree();VR.url=URL.createObjectURL(blob);const v=$("#v-rep");vUI("rep");v.src=VR.url;
-  v.onloadedmetadata=()=>{const ok=()=>{VR.dur=v.duration;VR.from=Math.max(0,VR.dur-VR.back);const pos=$("#v-pos");pos.min=VR.from;pos.max=VR.dur;v.currentTime=VR.from;v.playbackRate=VR.rate;v.play().catch(()=>{});$("#v-pp").textContent="⏸ Pause"};
-    if(!isFinite(v.duration)){v.currentTime=1e101;v.ontimeupdate=()=>{v.ontimeupdate=vTick;ok()}}else{v.ontimeupdate=vTick;ok()}};
-  v.onended=()=>{v.currentTime=VR.from;v.playbackRate=VR.rate;v.play().catch(()=>{})};
+function vPlay(c){
+  if(!c||c.gone){vMsg("Ce film a été effacé");return}VR.cur=c;const v=$("#v-rep");vUI("rep");
+  const pos=$("#v-pos");pos.min=0;pos.max=c.len;pos.value=0;
+  /* durée connue par le chrono (les vidéos webm de la tablette n'indiquent pas toujours leur durée) ; on part des 8 dernières secondes si la recherche marche, sinon du début */
+  const from=Math.max(0,c.len-VR.len);
+  v.onloadeddata=()=>{v.onloadeddata=null;v.playbackRate=VR.rate;if(from>0.5){let ok=false;v.onseeked=()=>{ok=true;v.onseeked=null;v.play().catch(()=>{})};try{v.currentTime=from}catch(e){}setTimeout(()=>{if(!ok){v.onseeked=null;try{v.currentTime=0}catch(e){}v.play().catch(()=>{})}},1500)}else v.play().catch(()=>{});$("#v-pp").textContent="⏸ Pause"};
+  v.ontimeupdate=()=>{pos.value=v.currentTime};
+  v.onended=()=>{try{v.currentTime=from}catch(e){v.currentTime=0}v.playbackRate=VR.rate;v.play().catch(()=>{})};
+  v.onerror=()=>vMsg("Lecture impossible de ce film");
+  v.src=c.url;v.load();
 }
-function vTick(){const v=$("#v-rep");if(isFinite(v.duration)&&VR.dur)$("#v-pos").value=v.currentTime}
 $("#v-replay").addEventListener("click",vReplay);
 $("#v-close").addEventListener("click",vClose);
-$("#v-again").addEventListener("click",()=>{vFree();vRec()});
+$("#v-cam2").addEventListener("click",async()=>{const v=$("#v-rep");v.pause();VR.cur=null;if(!VR.st)await vCamOn();vUI("cam")});
+$("#v-clips").addEventListener("click",e=>{const b=e.target.closest("[data-vclip]");if(!b)return;const c=VR.clips.find(x=>x.id===b.dataset.vclip);vPlay(c)});
 $("#v-c2").addEventListener("click",e=>{const v=$("#v-rep"),r=e.target.closest("[data-vr]");
-  if(r){VR.rate=+r.dataset.vr;v.playbackRate=VR.rate;vUI("rep");return}
-  if(e.target.id==="v-pp"){if(v.paused){v.playbackRate=VR.rate;v.play();e.target.textContent="⏸ Pause"}else{v.pause();e.target.textContent="▶ Lecture"}return}
-  if(e.target.id==="v-back"||e.target.id==="v-fwd"){v.pause();$("#v-pp").textContent="▶ Lecture";v.currentTime=Math.max(VR.from,Math.min(VR.dur||v.duration,v.currentTime+(e.target.id==="v-back"?-1:1)))}});
-$("#v-pos").addEventListener("input",e=>{const v=$("#v-rep");v.pause();$("#v-pp").textContent="▶ Lecture";v.currentTime=+e.target.value});
+  if(r){VR.rate=+r.dataset.vr;v.playbackRate=VR.rate;document.querySelectorAll("[data-vr]").forEach(b=>b.classList.toggle("on",+b.dataset.vr===VR.rate));return}
+  if(e.target.id==="v-pp"){if(v.paused){v.playbackRate=VR.rate;v.play().catch(()=>{});e.target.textContent="⏸ Pause"}else{v.pause();e.target.textContent="▶ Lecture"}return}
+  if(e.target.id==="v-back"||e.target.id==="v-fwd"){v.pause();$("#v-pp").textContent="▶ Lecture";const L=VR.cur?VR.cur.len:v.duration;try{v.currentTime=Math.max(0,Math.min(L,v.currentTime+(e.target.id==="v-back"?-1:1)))}catch(x){}}});
+$("#v-pos").addEventListener("input",e=>{const v=$("#v-rep");v.pause();$("#v-pp").textContent="▶ Lecture";try{v.currentTime=+e.target.value}catch(x){}});
 document.addEventListener("click",e=>{if(e.target.closest("[data-vid]"))vOpen()});
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&VR.st)vClose()});
+/* appli en arrière-plan ou écran éteint : la caméra s'arrête, les courses déjà filmées restent (en mémoire) */
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&VR.st){vCamOff();if($("#vmodal").classList.contains("on"))vUI(VR.cur?"rep":"cam")}
+  else if(document.visibilityState==="visible"&&$("#vmodal").classList.contains("on")&&!VR.st&&!VR.cur)vCamOn().then(ok=>ok&&vUI("cam"))});
 
 /* ===== Tableau de bord en direct (enseignant) ===== */
 const zCls=z=>z==="Zone 100"?"z100":z==="Zone 10"?"z10":z==="Zone 1"?"z1":z===HZ?"hz":"";
