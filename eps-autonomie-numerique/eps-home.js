@@ -1202,6 +1202,7 @@
      L'appli peut fournir window.epsTeacherEntry() ; sinon : celle de l'écran de classe, sinon le code enseignant commun. */
   var LOGOS = ".mark,.epsg-ic,header .mk,.ebar .ei,.top h1 .ei,.brand .ei,.topline .ei,.chd h1,[data-eps-logo]";
   function teacherEntry() {
+    if (window.EPS_VUE_ELEVE) return; /* cadre « Vue élève » : pas d'accès enseignant */
     try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
     if (HUB) { if (!isTeacher()) window.EPSD.teacherToggle(); return; }
     if (typeof window.epsTeacherEntry === "function") { gateClose(); try { window.epsTeacherEntry(); } catch (e) {} return; }

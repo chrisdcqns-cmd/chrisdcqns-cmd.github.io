@@ -62,6 +62,8 @@
       ".epse-bar select,.epse-bar button{width:auto!important;max-width:45%;flex:none;margin:0}",
       ".epse-tabs{display:flex;gap:6px;padding:0 18px;background:#14171C}.epse-tabs button{border:0;background:transparent;color:#B9BEC7;font:700 15px system-ui,sans-serif;padding:10px 16px;border-radius:10px 10px 0 0}.epse-tabs button.on{background:var(--app);color:#fff}",
       ".epse-in{max-width:1100px;margin:0 auto;padding:16px 18px 60px}",
+      ".epse-card input[type=checkbox],.epse input[type=checkbox]{width:22px!important;height:22px!important;min-height:0!important;margin:0 6px 0 0;vertical-align:middle;accent-color:var(--app)}.epse-card label,.epse-sub label{display:inline-flex;align-items:center;gap:6px;width:auto;font-weight:700}.epse-card input[type=date]{width:auto!important;display:inline-block}",
+      ".epse-host .epse-in{padding:8px 0 40px}.epse-sub{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 6px}.epse-sub button{height:40px;border-radius:10px;border:2px solid #E2DDD2;background:#fff;font:800 14px system-ui,sans-serif;padding:0 14px;cursor:pointer}.epse-sub button.on{background:var(--app);border-color:var(--app);color:#fff}.epse-sub select{height:40px;border-radius:10px;border:2px solid #E2DDD2;padding:0 10px;font:700 14px system-ui,sans-serif;margin-left:6px}",
       ".epse-card{background:#fff;border:1px solid #E6E1D6;border-radius:16px;padding:14px 16px;margin:0 0 14px;box-shadow:0 1px 0 #E6E1D6}",
       ".epse-card h2{margin:0 0 10px;font-size:18px}.epse-mut{color:#6A6F78;font-size:14px}",
       ".epse-btn{height:44px;border-radius:12px;border:2px solid #E2DDD2;background:#FBFAF7;font:800 15px system-ui,sans-serif;color:#14171C;padding:0 14px;cursor:pointer}",
@@ -418,13 +420,15 @@
 
     /* ---------- écran Évaluation (enseignant) ---------- */
     var UI = { open: false, tab: "eval", cls: null, el: -1 };
-    function root() { var v = document.getElementById("epse-" + o.app); if (!v) { css(); v = document.createElement("div"); v.id = "epse-" + o.app; v.className = "epse"; v.style.setProperty("--app", o.color); document.body.appendChild(v); } return v; }
+    function root() { if (UI.host) { UI.host.classList.add("epse-host"); UI.host.style.setProperty("--app", o.color); return UI.host; } var v = document.getElementById("epse-" + o.app); if (!v) { css(); v = document.createElement("div"); v.id = "epse-" + o.app; v.className = "epse"; v.style.setProperty("--app", o.color); document.body.appendChild(v); } return v; }
     function curC() { var L = classes(); var c = L.filter(function (x) { return x.nom === UI.cls; })[0] || L[0] || null; if (c) UI.cls = c.nom; return c; }
     function render() {
       var R = root(), L = classes(), c = curC(), G = grid();
-      var head = '<div class="epse-bar"><span class="ei">' + (o.icon || "") + "</span><b>" + esc(o.nom) + "</b><small>Évaluation · " + esc(o.ca) + "</small>" +
-        (L.length ? '<select data-cls>' + L.map(function (x) { return "<option" + (c && x.nom === c.nom ? " selected" : "") + ">" + esc(x.nom) + "</option>"; }).join("") + "</select>" : "") + '<button data-close>✕ Fermer</button></div>' +
-        '<div class="epse-tabs">' + [["eval", "Évaluer"], ["bilan", "Bilan & export"], ["grille", "Grille"]].map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + "</div>";
+      var sel = L.length ? '<select data-cls>' + L.map(function (x) { return "<option" + (c && x.nom === c.nom ? " selected" : "") + ">" + esc(x.nom) + "</option>"; }).join("") + "</select>" : "";
+      var tabsH = [["eval", "Évaluer"], ["bilan", "Bilan & export"], ["grille", "Grille"]].filter(function (t) { return !UI.only || UI.only.indexOf(t[0]) >= 0; });
+      var head = UI.host ? '<div class="epse-sub">' + (tabsH.length > 1 ? tabsH.map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") : "") + '<span style="flex:1"></span>' + (sel ? '<label class="epse-mut">Classe ' + sel + "</label>" : "") + "</div>"
+        : '<div class="epse-bar"><span class="ei">' + (o.icon || "") + "</span><b>" + esc(o.nom) + "</b><small>Évaluation · " + esc(o.ca) + "</small>" + sel + '<button data-close>✕ Fermer</button></div>' +
+        '<div class="epse-tabs">' + tabsH.map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + "</div>";
       var body = "";
       if (!c) body = '<div class="epse-card"><p>Aucune classe pour cette activité. Importe une liste d\'élèves dans Réglages (accueil) et vérifie que l\'activité est cochée pour la classe.</p></div>';
       else if (UI.tab === "eval") body = UI.el >= 0 && c.eleves[UI.el] ? sheet(c, c.eleves[UI.el]) : '<div class="epse-card"><h2>' + esc(c.nom) + " · " + c.eleves.length + ' élèves</h2><p class="epse-mut">Touche un élève pour le positionner sur la grille.</p><div class="epse-chips">' +
@@ -432,7 +436,7 @@
       else if (UI.tab === "bilan") body = table(c) + M.card(c) + M.exportsHtml();
       else body = gridEditor(G);
       R.innerHTML = head + '<div class="epse-in">' + body + "</div>";
-      R.querySelector("[data-close]").onclick = close;
+      if (R.querySelector("[data-close]")) R.querySelector("[data-close]").onclick = close;
       var s = R.querySelector("[data-cls]"); if (s) s.onchange = function () { UI.cls = s.value; UI.el = -1; render(); };
       R.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.tab; UI.el = -1; render(); }; });
       R.querySelectorAll("[data-el]").forEach(function (b) { b.onclick = function () { UI.el = +b.dataset.el; render(); R.scrollTop = 0; }; });
@@ -478,9 +482,12 @@
         setCfg({ grid: G }); toast("Grille enregistrée"); }; });
       R.querySelector("[data-g-reset]").onclick = function () { if (confirm("Revenir à la grille proposée ? Les textes modifiés seront remplacés.")) { setCfg({ grid: JSON.parse(JSON.stringify(o.grid)) }); render(); } };
     }
-    function open(cls) { UI.open = true; if (cls) UI.cls = cls; UI.el = -1; render(); document.documentElement.style.overflow = "hidden"; }
+    /* affichage dans un onglet de l'espace enseignant (eps-shell.js) : mount(élément, ['eval','grille'] | ['bilan']) */
+    function mount(el, only, cls) { UI.host = el; UI.open = true; UI.only = only || null; if (only && only.indexOf(UI.tab) < 0) UI.tab = only[0]; if (cls) UI.cls = cls; UI.el = -1; render();
+      var obs = setInterval(function () { if (!document.body.contains(el)) { clearInterval(obs); if (UI.host === el) { UI.host = null; UI.open = false; UI.only = null; } } }, 1000); }
+    function open(cls) { UI.host = null; UI.only = null; UI.open = true; if (cls) UI.cls = cls; UI.el = -1; render(); document.documentElement.style.overflow = "hidden"; }
     function close() { UI.open = false; var v = document.getElementById("epse-" + o.app); if (v) v.remove(); document.documentElement.style.overflow = ""; }
-    M.open = open; M.close = close; M.classes = classes; M.adapter = A;
+    M.open = open; M.close = close; M.mount = mount; M.classes = classes; M.adapter = A;
     return M;
   }
 

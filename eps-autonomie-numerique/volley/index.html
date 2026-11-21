@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="../eps-lists.js"></script>
+<script src="../eps-shell.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#1B1E24">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -286,6 +287,7 @@ nav button.on{background:var(--app);color:#fff}
 @media print{.apv{display:none!important}}
 /* en mode élève, tout le reste de l'appli est masqué (barre, boutons communs, autres écrans) */
 body.apmode>*:not(#apv):not(script):not(.toast):not(.epp){display:none!important}
+html.epst-on header nav#nav{display:none!important}
 </style>
 </head>
 <body>
@@ -2068,6 +2070,13 @@ async function exportZip(){
 renderClassSel();renderList();setLock();apShow();syUpd();syncSoon(800);if(coachOn()&&!isUnlocked())renderCoach();
 /* listes de classes communes (eps-home.js) : mise à jour en direct quand une liste arrive */
 window.epsListsHook={save:()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},reload:()=>{try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&typeof v==='object')S=v}catch(e){}fixState();refresh();if(coachOn()&&!isUnlocked())renderCoach()}};
+/* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
+const tabNow=()=>{const b=document.querySelector('#nav button.on');return b?b.dataset.t:''};
+window.EPSTV=window.EPST?EPST.init({app:'vol',nom:'Volley-ball',color:'#6B3FA0',isTeacher:()=>isUnlocked()&&!(typeof coachOn==='function'&&coachOn()),anchor:'header',main:'main',home:'seq',
+ tabs:{seq:{go:()=>showTab('seq'),on:()=>tabNow()==='seq'},
+  eval:{go:()=>showTab('eval'),on:()=>['eval','bareme'].includes(tabNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>showTab('eval')},{ico:'🧮',label:'Barème et critères',go:()=>showTab('bareme')}]},
+  cls:{go:()=>showTab('eleves'),on:()=>['eleves','equipes'].includes(tabNow()),actions:[{ico:'👥',label:'Élèves',go:()=>showTab('eleves')},{ico:'🏐',label:'Équipes',go:()=>showTab('equipes')}]},
+  bil:{go:()=>showTab('bilan'),on:()=>tabNow()==='bilan'}}}):null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, puis son équipe (tablette du coach) */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'Volley-ball',sub:'CA4 · Tablette du coach',color:'#6B3FA0',
  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 4 9M12 12a9 9 0 0 1-8 4.5M12 12a9 9 0 0 1 8.5 3.5"/><path d="M12 12 7.5 4.5"/></svg>',

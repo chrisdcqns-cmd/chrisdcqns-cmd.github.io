@@ -8,6 +8,18 @@
      retire les élèves supprimés de la liste commune (rm) seulement s'ils n'ont encore aucune donnée.
    - EPSL.collect() (appelé par eps-home.js) : ce qui a été importé / ajouté / supprimé dans une appli remonte dans les listes communes.
    Applis : esc (Escalade), rel (Relais), vol (Volley), bad (Badminton), dan (Danse). OrienRun (IndexedDB) et Acrosport sont gérés à part. */
+/* « Vue élève » de l'espace enseignant (eps-shell.js) : l'appli est ouverte dans un cadre avec ?vue=eleve.
+   Le mode enseignant y est ignoré (lecture du jeton enseignant neutralisée, aucune écriture), pour voir l'appli exactement comme un élève. */
+(function () {
+  if (!/[?&]vue=eleve\b/.test(location.search)) return;
+  window.EPS_VUE_ELEVE = true;
+  var T = { "eps.teach.until": 1, "tpw": 1, "acro.tpw": 1 };
+  try {
+    var g = Storage.prototype.getItem, st = Storage.prototype.setItem;
+    Storage.prototype.getItem = function (k) { return T[k] ? null : g.call(this, k); };
+    Storage.prototype.setItem = function (k, v) { if (T[k]) return; return st.call(this, k, v); };
+  } catch (e) {}
+})();
 (function () {
   var KL = "eps.lists.v1";
   function norm(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }

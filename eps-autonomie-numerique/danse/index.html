@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script src="../eps-lists.js"></script>
+<script src="../eps-shell.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1d1530">
 <title>Danse EPS — Évaluation et positionnement</title>
@@ -210,6 +211,7 @@ details.edit{border:1px solid var(--line);border-radius:12px;padding:10px 12px;m
 #hdrClasse.lnk{color:#fff}
 /* lien personnel du bilan : l'élève n'a accès qu'à son auto-positionnement */
 body.lien-mode #tabs,body.lien-mode #bLock,body.lien-mode [data-eps-bar],body.lien-mode #eps-home,body.lien-mode #eps-upd,body.lien-mode #epsd-pill,body.lien-mode .epsg{display:none!important}
+html.epst-on header.top #tabs{display:none!important}
 </style>
 </head>
 <body>
@@ -3342,6 +3344,14 @@ route();
 synchroBientot(1200);
 /* listes de classes communes (eps-home.js) : mise à jour en direct quand une liste arrive */
 window.epsListsHook = { save: () => saveNow(), reload: () => { S = load(); route(); } };
+/* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
+window.EPSTD = window.EPST ? EPST.init({ app: 'dan', nom: 'Danse', color: '#C2185B', isTeacher: () => isTeacher(), anchor: 'header.top', main: '#view', home: 'seq',
+  tabs: { seq: { go: () => aller('observation'), on: () => vue === 'observation' },
+    eval: { go: () => aller('evaluation'), on: () => vue === 'evaluation' },
+    cls: { go: () => aller('classe'), on: () => vue === 'classe' },
+    bil: { go: () => aller('bilan'), on: () => vue === 'bilan' } },
+  biblio: [{ ico: '💃', label: 'Procédés & défis', sub: 'Procédés de composition, défis', go: () => aller('procedes') }],
+  reglages: [{ ico: '⚙', label: 'Réglages de Danse', sub: 'Grille, auto-positionnement, envoi automatique', go: () => aller('reglages') }] }) : null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 (window.EPSG_Q = window.EPSG_Q || []).push({ app: 'Danse', sub: 'CA3 · Composer, observer', color: '#C2185B',
   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M4 9l5-1 4 2 5-3"/><path d="M13 10l-1 5 4 3 1 4"/><path d="M12 15l-4 2-2 4"/></svg>',

@@ -2,6 +2,7 @@
 <html lang="fr"><head><meta charset="utf-8">
 <script src="../eps-lists.js"></script>
 <script src="../eps-eval.js"></script>
+<script src="../eps-shell.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Escalade EPS</title>
 <style>
@@ -333,6 +334,7 @@ nav{box-shadow:inset 0 -4px 0 var(--app);padding-bottom:14px}
 .homeW .tile.tprof::before{content:"Enseignant";display:block;position:absolute;right:12px;bottom:10px;top:auto;width:auto;height:auto;border-radius:6px;background:#14171C;color:#fff;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px}
 .homeW .tile.tprof .tib{background:#14171C;color:#ffc93c}
 header [data-eps-bar]{margin-left:8px}
+html.epst-on #nav{display:none!important}
 .homeW .tile.tprof::before{display:none!important}
 .card{box-shadow:0 1px 0 #E6E1D6,0 8px 20px -16px #14171C66}
 .sea{background:var(--appt);color:var(--app2)}
@@ -443,7 +445,8 @@ function roleScr(){return `<div class="role"><h2>Escalade EPS</h2>${cls()&&seaOK
  <div class="rbtns"><button class="tile" style="background:#2e7d4f" onclick="eleve()"><b>🧗 Je suis élève</b><span>Se préparer, renseigner une grimpe, mes résultats…</span></button>
  </div></div>`}
 function render(){
- if(S.t==='evl'){S.t='home';if(window.EVESC)EVESC.open(cls()&&cls().nom);}
+ if(S.t==='evl'){S.t='set';if(window.EPSTESC)EPSTESC.go('eval');}
+ if(S.T&&S.t==='home')S.t='set'; /* mode enseignant : on arrive sur la Séquence (espace enseignant commun) */
  if(!S.T&&['role','pickcl'].includes(S.t)&&window.EPSG&&EPSG.open&&!document.querySelector('.epsg'))setTimeout(()=>{if(!S.T&&['role','pickcl'].includes(S.t))EPSG.open()},0);
  if(!S.T&&!seaOK()&&['set','home','gr','mr','cot','the'].includes(S.t))S.t='wait';
  if(S.t=='tcl'&&!S.T)S.t='role';
@@ -453,7 +456,7 @@ function render(){
  if(S.t!='cot')S.cm='';
  if(S.t!='set'){S.le=null;S.lv=null}
  if(S.t!='mr'){S.mr='';S.ml=''}
- $('#tm').innerHTML=S.T?(['gr','res','home','set','ctl','cls','ped'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b g" onclick="S.t='set';S.ce=null;render()">Leçon</button><button class="b g" onclick="pin()">Code</button><button class="b on" onclick="quitT()">Quitter mode prof</button>`:`<button class="b g" onclick="unlock('set')">🔒 Enseignant</button>`;
+ $('#tm').innerHTML=S.T?(['gr','res','home','set','ctl','cls','ped'].includes(S.t)?'':`<button class="b g" onclick="S.e=!S.e;render()">${S.e?'Terminer':'Modifier'}</button>`)+`<button class="b on" onclick="quitT()">Quitter mode prof</button>`:'';
  $('#nav').style.display=['home','set','ctl','cls','ped'].includes(S.t)?'none':'';
  $('#nav').innerHTML=TABS.filter(([k])=>k!='res'||S.T).map(([k,n])=>`<button class="${S.t==k?'on':''}" onclick="S.t='${k}';render()">${n}</button>`).join('');
  document.body.dataset.t=S.t;document.documentElement.style.setProperty('--hh',$('header').offsetHeight+($('#nav').style.display=='none'?0:$('#nav').offsetHeight)+'px');
@@ -1506,6 +1509,19 @@ window.EVESC=window.EPSE?EPSE.store({app:'esc',nom:'Escalade',ca:'CA2',color:'#2
   {id:'sec',afl:'AFL3',max:4,nom:'Assurer et sécuriser la cordée',but:"Assurer un camarade en continu, contrôler la cordée (nœud, baudrier, système d'assurage), parer.",nomEl:"J'assure mon camarade",butEl:'Je vérifie la cordée et j\'assure sans jamais lâcher la corde.',
    desc:["Assurage irrégulier, mou dans la corde ; vérifications oubliées ; besoin d'un contre-assureur.","Assure correctement sur une voie facile ; vérifications faites quand on les lui rappelle.","Assure en continu (main sous le frein), contrôle seul nœud et baudrier, descend le grimpeur en douceur.","Assure de façon dynamique et attentive à toute la cordée ; repère et corrige les erreurs des autres."],
    descEl:["J'ai encore besoin d'un contre-assureur.","J'assure bien sur une voie facile, je vérifie quand on me le rappelle.","J'assure sans lâcher la corde, je vérifie tout seul et je descends doucement.","J'assure parfaitement et je corrige les erreurs des autres cordées."]}]}}):null;
+/* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
+window.EPSTESC=window.EPST?EPST.init({app:'esc',nom:'Escalade',color:'#2E7D4F',isTeacher:()=>!!S.T,anchor:'header',main:'#m,#nav',home:'seq',
+ tabs:{
+  seq:{go:()=>{S.t='set';S.ce=null;render();scrollTo(0,0)},on:()=>['set','ctl','ped','tcl'].includes(S.t),
+   actions:[{ico:'📅',label:'Leçons',go:()=>{S.t='set';S.ce=null;render()}},{ico:'🖥️',label:'Tablette de contrôle',go:()=>{S.t='ctl';render()}}]},
+  eval:{panel:el=>{if(window.EVESC)EVESC.mount(el,['eval','grille'],cls()&&cls().nom);else el.innerHTML='<p>Évaluation indisponible.</p>'}},
+  cls:{go:()=>{S.t='cls';render();scrollTo(0,0)},on:()=>S.t==='cls'},
+  bil:{panel:el=>{el.innerHTML='<h2>📄 Bilans</h2><p class="mut">Résultats des grimpes (Excel, Google Sheets, QR codes) et fiches d\'évaluation (PDF, .zip, auto-positionnement).</p><div class="epst-grid"><button type="button" class="epst-card" id="bil-res"><i>🧗</i><span><b>Résultats des grimpes et QR codes</b><small>Excel, Google Sheets, regroupement</small></span></button></div><div id="bil-ev"></div>';
+    el.querySelector('#bil-res').onclick=()=>{EPSTESC.closePanel();EPSTESC.mark('bil');S.t='res';render();scrollTo(0,0)};
+    if(window.EVESC)EVESC.mount(el.querySelector('#bil-ev'),['bilan'],cls()&&cls().nom)},on:()=>S.t==='res'}},
+ biblio:TILES.map(([k,n,c,x,d])=>({ico:{prep:'🪢',cot:'⛰️',gr:'📝',mr:'📈',the:'💡',sec:'🛡️'}[k]||'•',label:n,sub:d,go:()=>{S.t=k;render();scrollTo(0,0)}})),
+ reglages:[{ico:'🔑',label:'Code enseignant',sub:'Changer le code d\'Escalade',go:()=>pin()}]
+}):null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'Escalade',sub:'CA2 · Moulinette',color:'#2E7D4F',
  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg>',

@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script src="../eps-lists.js"></script>
+<script src="../eps-shell.js"></script>
 <script src="../eps-eval.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -3710,6 +3711,14 @@ $("#lkStudent").addEventListener("click",()=>{UNLOCK_UNTIL=0;hubOn(false);updLoc
 /* liste de classe reçue d'une autre tablette (page d'accueil commune) */
 window.addEventListener("eps-lists",()=>{const d=load(K.data,null);if(d&&Array.isArray(d.classes)){DATA=d;try{syRefresh()}catch(e){}}});
 hubSync();updLock();
+/* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
+const viewNow=()=>{const v=document.querySelector('.view.on');return v?v.id.slice(2):''};
+window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
+ tabs:{seq:{go:()=>go(CLE()?'home':'lecons'),on:()=>['lecons','home','course','perf'].includes(viewNow()),actions:[{ico:'📅',label:'Leçons',go:()=>go('lecons')},{ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')}]},
+  eval:{go:()=>go('eval'),on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>go('eval')},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}]},
+  cls:{go:()=>go(CL()?'liste':'classes'),on:()=>['liste','groupes','classes','import'].includes(viewNow()),actions:[{ico:'🏫',label:'Toutes les classes',go:()=>go('classes')},{ico:'👥',label:'Élèves',go:()=>go('liste')},{ico:'🔀',label:'Groupes',go:()=>go('groupes')}]},
+  bil:{go:()=>go('bilan'),on:()=>viewNow()==='bilan'}},
+ biblio:[{ico:'📐',label:'Dispositif',sub:'Zones, plots, témoin',go:()=>{DISPO_BACK='lecons';go('dispo')}},{ico:'📚',label:'Situations',sub:'Situations d\'apprentissage',go:()=>{SITS_BACK='lecons';SIT_OPEN=null;go('sits')}}]}):null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 /* évaluation commune (eps-eval.js) : auto-positionnement par QR code et fiches PDF au format Danse / Volley-ball,
    branchés sur l'évaluation du relais (EVE, evals de chaque classe). Réglages : DATA.ap. Positionnement reçu : evals[id].ap (+ auto « qr »). */
