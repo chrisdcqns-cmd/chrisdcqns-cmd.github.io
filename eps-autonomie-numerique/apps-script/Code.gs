@@ -26,6 +26,7 @@ function doPost(e) {
   if (data.key !== SECRET) return json_({ ok: false, error: 'key' });
   if (data.sync) return json_(syncPush_(data.sync));
   if (data.aiReq) return json_(aiReq_(data.aiReq));
+  if (data.bil) { try { return json_(Object.assign({ ok: true }, bilansPut_(data.bil))); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); } }
   if (data.lc) { try { return json_(Object.assign({ ok: true }, lecon_(data.lc))); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); } }
   return json_({ ok: false, error: 'requête' });
 }
@@ -37,6 +38,7 @@ function doGet(e) {
   if (res.keyOk) res.sync = 1;
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
+  if (p.bil) { try { res.bil = bilansGet_(String(p.bil)); res.bilv = 1; } catch (err) { res.bilErr = String(err && err.message || err); } }
   res.aiv = 2; /* 2 : bilan de leçon (ai=lecon) */
   if (res.keyOk && p.aiget) { const c = CacheService.getScriptCache().get('ai_' + String(p.aiget).slice(0, 40)); res.aiRes = c ? JSON.parse(c) : null; }
   if (res.keyOk && p.ai) { try { res.ai = reformuler_(p); } catch (err) { res.aiErr = String(err && err.message || err); } }
@@ -397,4 +399,29 @@ function badCoach_(key, p) {
 /** À lancer une fois depuis l'éditeur pour vérifier « Décris ta situation » (Badminton). */
 function testerBadminton() {
   Logger.log(badSituation_(PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), { t: 'match en 11 points, le fond rapporte 3 points, le milieu est interdit' }));
+}
+
+/* ================= Bilans en ligne (page « Mon bilan ») =================
+ * Chaque fiche PDF est chiffrée sur la tablette avec le code personnel de l'élève (6 caractères) : le script ne stocke que des données illisibles.
+ * Feuille « Bilans » : A = identifiant (empreinte du code | appli), B = n° de morceau, C = données chiffrées, D = date.
+ * POST {key, bil:{put:[{id, parts:[…]}], del:[id]}} (enseignant, clé du partage) ; GET ?bil=<empreinte> (élève, sans clé) → morceaux de ses bilans. */
+const BIL_SHEET = 'Bilans';
+function bilSheet_() { const ss = SpreadsheetApp.getActiveSpreadsheet(); return ss.getSheetByName(BIL_SHEET) || ss.insertSheet(BIL_SHEET); }
+function bilansPut_(b) {
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = bilSheet_(), last = sh.getLastRow(), now = new Date();
+    const ids = {}; (b.put || []).forEach(function (x) { ids[String(x.id)] = 1; }); (b.del || []).forEach(function (id) { ids[String(id)] = 1; });
+    if (last) { const A = sh.getRange(1, 1, last, 1).getValues(); for (let r = last; r >= 1; r--) if (ids[String(A[r - 1][0])]) sh.deleteRow(r); }
+    const rows = []; (b.put || []).forEach(function (x) { (x.parts || []).forEach(function (d, i) { rows.push([String(x.id).slice(0, 80), i, String(d), now]); }); });
+    if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, 4).setValues(rows);
+    return { n: (b.put || []).length };
+  } finally { lock.releaseLock(); }
+}
+function bilansGet_(h) {
+  if (!/^[A-Za-z0-9_-]{16,40}$/.test(h)) return [];
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BIL_SHEET); if (!sh || !sh.getLastRow()) return [];
+  const V = sh.getRange(1, 1, sh.getLastRow(), 4).getValues(), out = {};
+  V.forEach(function (r) { const id = String(r[0]); if (id.indexOf(h + '|') !== 0) return; (out[id] = out[id] || { id: id, parts: [], t: r[3] }).parts[Number(r[1])] = String(r[2]); });
+  return Object.keys(out).map(function (k) { return out[k]; });
 }

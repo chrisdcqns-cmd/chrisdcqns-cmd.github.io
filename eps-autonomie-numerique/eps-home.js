@@ -1328,6 +1328,7 @@
     reformuler: function (t, o) { return reformuler(t, o); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
     search: function () { searchStudents(); },
+    publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
     bulletin: function () { bulletin(); },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
     /* synchro immédiate d'un seul magasin (ex. leçon en cours : relevé toutes les quelques secondes) */
@@ -1509,6 +1510,61 @@
     q.oninput = draw; draw(); setTimeout(function () { q.focus(); }, 50);
     var bb = document.createElement("button"); bb.type = "button"; bb.textContent = "📝 Appréciations de bulletin"; bb.onclick = bulletin;
     var act = o.querySelector(".epsd-act"); if (act) act.insertBefore(bb, act.firstChild);
+  }
+  /* ================= 🌐 Bilans en ligne (codes personnels, page « Mon bilan ») =================
+     Code personnel de 6 caractères par élève (commun à toutes les applis, partagé entre tablettes : eps.codes.v1).
+     Chaque fiche PDF est chiffrée AVEC LE CODE DE L'ÉLÈVE (PBKDF2 + AES-GCM) puis déposée sur le script commun (feuille « Bilans ») :
+     sans le code, personne (ni le script) ne peut la lire. Lien unique à envoyer par Pronote : …/mon-bilan/#s=<script>. */
+  var KC = "eps.codes.v1", ALPH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  STORES.push({ pre: "cd|", key: KC });
+  function codeId(cls, full) { return cmp(cls) + "|" + nkey(full); }
+  function codeGet(cls, full) { var o = stLd(KC).items[codeId(cls, full)]; return o && !o.del ? o : null; }
+  function codePut(o) { var V = stLd(KC), old = V.items[o.id]; o.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[o.id] = o; V.pend[o.id] = o.u; try { localStorage.setItem(KC, JSON.stringify(V)); } catch (e) {} if (window.EPSD) EPSD.syncSoon(); }
+  function newCode() { var r = crypto.getRandomValues(new Uint8Array(6)), c = ""; r.forEach(function (x) { c += ALPH[x % ALPH.length]; }); return c; }
+  function codeFor(cls, full, renew) { var o = codeGet(cls, full); if (o && !renew) return o; o = { id: codeId(cls, full), cls: cls, n: full, c: newCode(), pub: (o && o.pub) || {}, old: o ? o.c : "" }; codePut(o); return o; }
+  function b64url(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  async function bilHid(code) { return b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("eps-bilan|" + code)))).slice(0, 22); }
+  async function bilKey(code, hid) { var base = await crypto.subtle.importKey("raw", new TextEncoder().encode(code), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: new TextEncoder().encode("eps-bilan|" + hid), iterations: 150000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]); }
+  async function bilPack(code, obj) { var hid = await bilHid(code), k = await bilKey(code, hid), iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(obj)))), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
+    var t = b64url(all), parts = []; for (var i = 0; i < t.length; i += 40000) parts.push(t.slice(i, i + 40000)); return { hid: hid, parts: parts }; }
+  function bilLink() { var cfg = shCfg(), m = cfg && /\/macros\/s\/([^/]+)\/exec/.exec(cfg.url); return m ? location.origin + BASE + "mon-bilan/#s=" + m[1] : ""; }
+  function u8b64plain(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x); }
+  /* o = {app, nom, color, classe, eleves:[{full, bytes: () => Promise<Uint8Array>}]} (appelé par eps-eval.js : « 🌐 Publier en ligne ») */
+  function publish(o) {
+    if (!shCfg()) { alert("Règle d'abord le partage entre tablettes (Réglages) : la publication passe par le script commun."); return; }
+    var link = bilLink();
+    var ov = overlay('<div id="epsbil"><h3>🌐 Bilans en ligne · ' + esc(o.nom) + " · " + esc(o.classe) + '</h3><p class="m">Chaque fiche est chiffrée avec le code personnel de l\'élève : sans son code, personne ne peut la lire. Envoie le lien ci-dessous par Pronote et donne à chaque élève son code (étiquettes à imprimer). Le code est le même pour toutes les activités.</p>' +
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="epsd-in" readonly value="' + esc(link) + '" style="flex:1;min-width:240px;margin:0"></div>' +
+      '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap"><button type="button" id="bil-go">🌐 Publier les fiches</button><button type="button" id="bil-cp">📋 Copier le lien</button><button type="button" id="bil-pr">🖨 Codes à distribuer</button><button type="button" id="bil-rm">🗑 Retirer en ligne</button></div><p class="m" id="bil-m"></p><div id="bil-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
+    var msg = ov.querySelector("#bil-m"), list = ov.querySelector("#bil-l");
+    function draw() { list.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:15px">' + o.eleves.map(function (e, i) { var c = codeGet(o.classe, e.full), p = c && c.pub && c.pub[o.app];
+      return '<tr style="border-top:1px solid #E6E1D6"><td style="padding:6px 4px;text-align:left">' + esc(e.full) + '</td><td style="font:800 16px ui-monospace,monospace;letter-spacing:.12em">' + (c ? esc(c.c) : "—") + '</td><td class="m" style="font-size:13px">' + (p ? "en ligne le " + new Date(p).toLocaleDateString("fr-FR") : "non publié") + '</td><td><button type="button" data-rn="' + i + '" title="Code perdu : nouveau code" style="height:34px;border-radius:10px;border:1.5px solid #ccc;background:#fff;padding:0 8px">↻ Nouveau code</button></td></tr>'; }).join("") + "</table>";
+      list.querySelectorAll("[data-rn]").forEach(function (b) { b.onclick = function () { var e = o.eleves[+b.dataset.rn]; if (!confirm("Donner un nouveau code à " + e.full + " ? L'ancien ne marchera plus (toutes activités) : republie ensuite ses bilans.")) return; renew(e); }; }); }
+    async function renew(e) { var c = codeGet(o.classe, e.full), del = []; if (c && c.c) { var h = await bilHid(c.c); Object.keys(c.pub || {}).forEach(function (a) { del.push(h + "|" + a); }); }
+      var n = codeFor(o.classe, e.full, true); n.pub = {}; codePut(n); if (del.length) { try { await EPSD.post({ bil: { del: del } }); } catch (x) {} }
+      msg.textContent = "Nouveau code pour " + e.full + " : " + n.c + ". Republie ses fiches (« 🌐 Publier les fiches »)."; draw(); }
+    ov.querySelector("#bil-cp").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function () { msg.textContent = "📋 Lien copié : colle-le dans un message Pronote à la classe."; }, function () { msg.textContent = "Sélectionne le lien et copie-le."; }); };
+    ov.querySelector("#bil-pr").onclick = function () { o.eleves.forEach(function (e) { codeFor(o.classe, e.full); }); draw();
+      var w = window.open("", "_blank"); if (!w) { msg.textContent = "Autorise les fenêtres pour imprimer."; return; }
+      w.document.write('<!doctype html><meta charset="utf-8"><title>Codes ' + esc(o.classe) + '</title><style>body{font-family:system-ui,sans-serif;margin:10mm}.g{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.e{border:1px dashed #999;border-radius:6px;padding:4mm;break-inside:avoid}.c{font:800 22px ui-monospace,monospace;letter-spacing:.2em;margin:2mm 0}.l{font-size:10px;color:#555;word-break:break-all}</style><div class="g">' +
+        o.eleves.map(function (e) { var c = codeGet(o.classe, e.full); return '<div class="e"><b>' + esc(e.full) + "</b> · " + esc(o.classe) + '<div>Ton code pour voir tes bilans d\'EPS :</div><div class="c">' + esc(c.c) + '</div><div class="l">' + esc(link) + "</div></div>"; }).join("") + "</div><script>print()<\/script>"); w.document.close(); };
+    ov.querySelector("#bil-rm").onclick = async function () { if (!confirm("Retirer en ligne les fiches " + o.nom + " de " + o.classe + " ?")) return; var del = [];
+      for (var i = 0; i < o.eleves.length; i++) { var c = codeGet(o.classe, o.eleves[i].full); if (c && c.pub && c.pub[o.app]) { del.push((await bilHid(c.c)) + "|" + o.app); delete c.pub[o.app]; codePut(c); } }
+      if (!del.length) { msg.textContent = "Rien en ligne."; return; } try { await EPSD.post({ bil: { del: del } }); msg.textContent = "🗑 " + del.length + " fiche(s) retirée(s)."; } catch (e) { msg.textContent = "⚠ " + e.message; } draw(); };
+    ov.querySelector("#bil-go").onclick = async function () { var b = this; b.disabled = true; var batch = [], done = 0, date = new Date().toLocaleDateString("fr-FR");
+      try {
+        for (var i = 0; i < o.eleves.length; i++) { var e = o.eleves[i], c = codeFor(o.classe, e.full); msg.textContent = "Chiffrement " + (i + 1) + " / " + o.eleves.length + "…";
+          var bytes = await e.bytes(), pk = await bilPack(c.c, { app: o.nom, color: o.color, classe: o.classe, eleve: e.full, date: date, pdf: u8b64plain(new Uint8Array(bytes)) });
+          batch.push({ id: pk.hid + "|" + o.app, parts: pk.parts, e: e }); var size = batch.reduce(function (s, x) { return s + x.parts.join("").length; }, 0);
+          if (size > 400000 || i === o.eleves.length - 1) { msg.textContent = "Envoi au script…"; var r = await EPSD.post({ bil: { put: batch.map(function (x) { return { id: x.id, parts: x.parts }; }) } });
+            if (!r || !r.ok) throw new Error(r && r.error === "requête" ? "le script n'est pas à jour : colle le nouveau Code.gs et redéploie" : (r && r.error) || "pas de réponse");
+            batch.forEach(function (x) { var cc = codeGet(o.classe, x.e.full); cc.pub = cc.pub || {}; cc.pub[o.app] = Date.now(); codePut(cc); done++; }); batch = []; } }
+        msg.textContent = "✓ " + done + " fiche(s) en ligne. Envoie le lien par Pronote et distribue les codes.";
+      } catch (x) { msg.textContent = "⚠ " + (x.message || x) + (done ? " (" + done + " déjà en ligne)" : ""); }
+      b.disabled = false; draw(); };
+    draw();
   }
   /* 📝 appréciations de bulletin : Claude rédige à partir de TES commentaires et évaluations (toutes activités), sans aucun nom d'élève ;
      tu relis, corriges, coches ✓, puis copies vers Pronote. Gardées sur cette tablette seulement (eps.bulletin.v1). */

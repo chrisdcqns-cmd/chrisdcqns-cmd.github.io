@@ -60,3 +60,7 @@ Les fiches de leçon (toutes les applis d'activité) utilisent aussi la clé `AN
 - Les PDF et les photos déposés dans « 📂 Mes documents » sont lus par Claude (9 Mo au plus par fichier ; coupe un gros PDF en plusieurs).
 - Les brouillons de leçon utilisent le modèle `CLAUDE_MODEL_LECON` (en haut de la partie « Leçons » du script), plus précis pour un travail long ; les reformulations courtes gardent `CLAUDE_MODEL`.
 - Aucun nom d'élève n'est envoyé à Claude : seulement tes documents et tes fiches de leçon.
+
+## 🌐 Bilans en ligne (page « Mon bilan »)
+
+Le script crée tout seul une feuille « Bilans » (données chiffrées avec le code de chaque élève : illisibles sans lui). Après avoir collé le nouveau `Code.gs` : **Déployer > Gérer les déploiements > ✏️ > Nouvelle version**. Le déploiement doit rester accessible à « Tout le monde » (c'est déjà le cas pour le partage entre tablettes) pour que la page « Mon bilan » puisse lire les fiches.
