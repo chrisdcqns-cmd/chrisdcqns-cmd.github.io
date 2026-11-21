@@ -188,7 +188,7 @@
       document.head.appendChild(s);
     });
   }
-  var busy = false, timer = null, lastErr = "", lastOk = 0;
+  var busy = false, timer = null, lastErr = "", lastOk = 0, lastBackup = null;
   function stamp() { return Math.max(Date.now(), (D.maxU || 0) + 1); }
   async function sync() {
     var cfg = shCfg();
@@ -219,7 +219,7 @@
       for (var loop = 0; loop < 20; loop++) {
         var r = await jsonp(cfg, { pull: 1, since: D.since || 0, pre: "disp|" });
         if (!r || !r.keyOk || !r.sync) { lastErr = !r ? "pas de connexion" : !r.keyOk ? "clé" : "script à mettre à jour"; break; }
-        lastErr = ""; lastOk = Date.now();
+        lastErr = ""; lastOk = Date.now(); if (r.sauv != null) lastBackup = r.sauv;
         var L = r.recs || [];
         for (var j = 0; j < L.length; j++) {
           var k = L[j][1], uu = +L[j][2], del = +L[j][3], x = L[j][4];
@@ -1467,9 +1467,10 @@
     else if (lastErr && (!lastOk || Date.now() - lastOk > 120000)) { st = "⚠"; t = lastErr === "clé" ? "Clé refusée" : lastErr === "script à mettre à jour" ? "Script à mettre à jour" : "Hors ligne"; }
     else if (p) { st = "⏳"; t = p + " à envoyer"; }
     else if (lastOk) { st = "✓"; t = ago < 1 ? "À jour" : "À jour (" + ago + " min)"; }
+    if (st === "✓" && lastBackup != null && (!lastBackup || Date.now() - lastBackup > 9 * 864e5)) { st = "⚠"; t = lastBackup ? "Sauvegarde Drive en retard" : "Sauvegarde Drive à installer"; }
     else { st = "⟳"; t = "Synchro…"; }
     b.style.color = st === "✓" ? "#7FD49A" : st === "⚠" ? "#FF8A7A" : st === "⏳" ? "#F5C76B" : "#D5D8DE";
-    b.title = "Partage entre tablettes : " + t + (lastOk ? " · dernier échange " + new Date(lastOk).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "") + " · toucher pour synchroniser";
+    b.title = "Partage entre tablettes : " + t + (lastOk ? " · dernier échange " + new Date(lastOk).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "") + " · " + (lastBackup ? "sauvegarde Drive du " + new Date(lastBackup).toLocaleDateString("fr-FR") : lastBackup === 0 ? "sauvegarde Drive non installée (script : installerSauvegarde)" : "") + " · toucher pour synchroniser";
     b.innerHTML = st + " <span>" + t + "</span>";
   }
   setInterval(function () { try { syncBadge(); } catch (e) {} }, 3000);

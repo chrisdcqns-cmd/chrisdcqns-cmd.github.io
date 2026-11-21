@@ -59,6 +59,7 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 ## Synchronisation entre tablettes
 - Recherche d'élève `#eps-find` / `EPSD.search()` (eps-home.js, mode enseignant) : lit les listes communes, les dispenses et les magasins `eps.eval.<app>.v1`.
 - Appréciations de bulletin `EPSD.bulletin()` (depuis la recherche 🔍) : `reformuler(…, {mode:'bulletin'})` élève par élève à partir d'`evalsOf()`, sans nom ; relecture et ✓ obligatoires avant copie ; `eps.bulletin.v1` local.
+- Sauvegarde Drive hebdomadaire : `installerSauvegarde()` / `sauvegardeHebdo()` du script commun (copie du tableur, dossier « Sauvegardes EPS », 10 gardées) ; `doGet` renvoie `sauv` (date de la dernière) → ⚠ sur la pastille si absente ou > 9 jours.
 - Pastille d'état `#eps-sync` (eps-home.js, mode enseignant, dans `[data-eps-bar]`) : ✓ / ⏳ / ⚠ / ○ ; tout nouveau magasin passe par `EPSD.store` pour y être compté.
 - Script Google commun (`apps-script/Code.gs`, `eps.share.v1`) : enregistrements chiffrés `<appli>|…`, envoi peu après chaque modification, relevé régulier ; le plus récent l'emporte, élément par élément. Sauvegarde / restauration dans Réglages.
 - Script commun, bilan de leçon par Claude : `doPost` `aiReq:{id,mode:"bilan",act,t}` → `aiReq_`/`bilan_` (Sonnet, clé `ANTHROPIC_KEY`, réponse JSON rangée 6 h dans `CacheService` sous `ai_<id>`) ; `doGet` renvoie toujours `aiv:1` et `aiRes` avec `aiget=<id>`. Les applis n'envoient que des codes E1, E2… à la place des prénoms.

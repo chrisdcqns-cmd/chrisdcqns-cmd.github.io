@@ -64,3 +64,7 @@ Les fiches de leçon (toutes les applis d'activité) utilisent aussi la clé `AN
 ## 🌐 Bilans en ligne (page « Mon bilan »)
 
 Le script crée tout seul une feuille « Bilans » (données chiffrées avec le code de chaque élève : illisibles sans lui). Après avoir collé le nouveau `Code.gs` : **Déployer > Gérer les déploiements > ✏️ > Nouvelle version**. Le déploiement doit rester accessible à « Tout le monde » (c'est déjà le cas pour le partage entre tablettes) pour que la page « Mon bilan » puisse lire les fiches.
+
+## 💾 Sauvegarde hebdomadaire sur Drive
+
+Une seule fois, après avoir collé le nouveau `Code.gs` : en haut de l'éditeur, choisis la fonction **installerSauvegarde**, puis **▶ Exécuter** et accepte l'autorisation (Drive). Une première copie est faite tout de suite, puis chaque dimanche vers 20 h dans le dossier Drive « Sauvegardes EPS » (les 10 dernières sont gardées). La pastille de synchronisation des applis affiche ⚠ si la sauvegarde n'est pas installée ou a plus de 9 jours.

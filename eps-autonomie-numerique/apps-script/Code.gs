@@ -39,6 +39,7 @@ function doGet(e) {
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
   if (p.bil) { try { res.bil = bilansGet_(String(p.bil)); res.bilv = 1; } catch (err) { res.bilErr = String(err && err.message || err); } }
+  if (res.keyOk) { const lb = PropertiesService.getScriptProperties().getProperty('LAST_BACKUP'); res.sauv = lb ? Number(lb) : 0; }
   res.aiv = 2; /* 2 : bilan de leçon (ai=lecon) */
   if (res.keyOk && p.aiget) { const c = CacheService.getScriptCache().get('ai_' + String(p.aiget).slice(0, 40)); res.aiRes = c ? JSON.parse(c) : null; }
   if (res.keyOk && p.ai) { try { res.ai = reformuler_(p); } catch (err) { res.aiErr = String(err && err.message || err); } }
@@ -424,4 +425,26 @@ function bilansGet_(h) {
   const V = sh.getRange(1, 1, sh.getLastRow(), 4).getValues(), out = {};
   V.forEach(function (r) { const id = String(r[0]); if (id.indexOf(h + '|') !== 0) return; (out[id] = out[id] || { id: id, parts: [], t: r[3] }).parts[Number(r[1])] = String(r[2]); });
   return Object.keys(out).map(function (k) { return out[k]; });
+}
+
+/* ================= Sauvegarde hebdomadaire sur Drive =================
+ * Une fois : sélectionne « installerSauvegarde » en haut puis ▶ Exécuter (et accepte l'autorisation Drive).
+ * Chaque dimanche soir, une copie complète du tableur (données chiffrées de toutes les tablettes, bilans, appel AS…)
+ * est rangée dans le dossier Drive « Sauvegardes EPS » ; les 10 plus récentes sont gardées. Restaurer : ouvrir la copie,
+ * Fichier > Créer une copie, puis remplacer l'adresse du tableur… ou plus simple, recopier l'onglet « Sync » dans le tableur actuel. */
+const BACKUP_FOLDER = 'Sauvegardes EPS', BACKUP_KEEP = 10;
+function installerSauvegarde() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'sauvegardeHebdo') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('sauvegardeHebdo').timeBased().everyWeeks(1).onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(20).create();
+  sauvegardeHebdo();
+  Logger.log('Sauvegarde installée : chaque dimanche vers 20 h, dossier Drive « ' + BACKUP_FOLDER + ' ». Une première copie vient d\'être faite.');
+}
+function sauvegardeHebdo() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet(), it = DriveApp.getFoldersByName(BACKUP_FOLDER);
+  const dir = it.hasNext() ? it.next() : DriveApp.createFolder(BACKUP_FOLDER);
+  const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  DriveApp.getFileById(ss.getId()).makeCopy('Sauvegarde EPS ' + d, dir);
+  const L = []; const f = dir.getFiles(); while (f.hasNext()) { const x = f.next(); if (/^Sauvegarde EPS /.test(x.getName())) L.push(x); }
+  L.sort(function (a, b) { return b.getDateCreated() - a.getDateCreated(); }).slice(BACKUP_KEEP).forEach(function (x) { x.setTrashed(true); });
+  PropertiesService.getScriptProperties().setProperty('LAST_BACKUP', String(Date.now()));
 }
