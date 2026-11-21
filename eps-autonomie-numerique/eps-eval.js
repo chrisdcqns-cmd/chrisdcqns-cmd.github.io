@@ -377,9 +377,12 @@
         dos.file("_Recapitulatif_" + safe(c.nom) + ".pdf", await recapBytes(c));
         download(await zip.generateAsync({ type: "blob" }), safe(A.nom) + "_" + safe(c.nom) + "_" + dateFR().replace(/\//g, "-") + ".zip"); toast(c.eleves.length + " PDF prêts dans le ZIP"); } catch (e) { err(e); } };
     M.exportsHtml = function () { return '<div class="epse-card"><h2>📄 Fiches PDF</h2><p class="epse-mut">Une fiche par élève (grille en langage élève, positionnement de l\'enseignant et de l\'élève, note, commentaire' + (ouvert() ? ", QR code d'auto-positionnement" : "") + "), récapitulatif de la classe, ou tout dans un .zip.</p>" +
-      '<div class="epse-row"><button class="epse-btn p" data-x-zip>🗂 Tout en .zip</button><button class="epse-btn" data-x-all>📄 Toutes les fiches (un PDF)</button><button class="epse-btn" data-x-rec>📊 Récapitulatif</button><label class="epse-mut"><input type="checkbox" data-x-prof> grille enseignant</label></div></div>'; };
+      '<div class="epse-row"><button class="epse-btn p" data-x-zip>🗂 Tout en .zip</button><button class="epse-btn" data-x-all>📄 Toutes les fiches (un PDF)</button><button class="epse-btn" data-x-rec>📊 Récapitulatif</button><button class="epse-btn" data-x-pn>📋 Pronote</button><label class="epse-mut"><input type="checkbox" data-x-prof> grille enseignant</label></div></div>'; };
     M.bindExports = function (root, c) { var el = function () { var x = root.querySelector("[data-x-prof]"); return !(x && x.checked); };
-      root.querySelector("[data-x-zip]").onclick = function () { M.zip(c, el()); }; root.querySelector("[data-x-all]").onclick = function () { M.pdfTous(c, el()); }; root.querySelector("[data-x-rec]").onclick = function () { M.pdfRecap(c); }; };
+      root.querySelector("[data-x-zip]").onclick = function () { M.zip(c, el()); }; root.querySelector("[data-x-all]").onclick = function () { M.pdfTous(c, el()); }; root.querySelector("[data-x-rec]").onclick = function () { M.pdfRecap(c); }; var pn = root.querySelector("[data-x-pn]"); if (pn) pn.onclick = function () { M.pronote(c); }; };
+    /* notes à coller dans Pronote (fenêtre commune EPSR.pronote d'eps-home.js) */
+    M.pronote = function (c) { if (!(window.EPSR && EPSR.pronote)) { toast("Export Pronote indisponible (recharge la page)"); return; }
+      EPSR.pronote({ app: A.nom, classe: c.nom, color: A.color, cols: [{ t: "Note /20" }], rows: c.eleves.map(function (E) { var n = A.name(E), ab = A.absent(E); return { nom: n.nom, prenom: n.prenom || "", st: ab || "", v: [ab ? null : A.note(E)] }; }) }); };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
     return M;
   }

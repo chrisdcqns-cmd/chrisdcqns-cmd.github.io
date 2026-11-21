@@ -8,6 +8,7 @@ window.EPS_GUIDES = {
     ["Classes et élèves", "Une liste importée sur l'accueil ou dans une appli apparaît dans toutes les applis et sur toutes les tablettes. Dans Réglages communs → Listes d'élèves : renommer, corriger, choisir les activités de chaque classe, supprimer (double confirmation), fusionner deux listes proches."],
     ["Évaluation et auto-positionnement", "Grille par degrés avec curseur dans le degré, note /20. Dans Bilans : ouvrir l'auto-positionnement jusqu'à une date. Chaque fiche PDF porte alors un QR code personnel ; la réponse de l'élève arrive chiffrée, à côté de ton positionnement. Si l'envoi échoue, l'élève te transmet un code à coller. Tu peux aussi passer une tablette en mode élève."],
     ["Fiches PDF", "Une fiche par élève (paysage), toutes les fiches en un PDF, le récapitulatif de classe, ou tout dans un .zip (fichiers « Nom_Prénom_… »)."],
+    ["📋 Pronote", "Dans Bilans, bouton 📋 Pronote : les notes dans l'ordre de Pronote (NOM puis prénom), à la virgule, avec les codes A (absent), D (dispensé), N (non noté). Crée le devoir dans Pronote, touche « Copier la colonne », clique dans la note du premier élève puis Ctrl + V ; vérifie 2 ou 3 élèves. Sinon : « Fichier Excel » pour l'import du Client PRONOTE."],
     ["🎤 Dicter et ✨ Reformuler", "Sous chaque commentaire : 🎤 dicte avec le micro de la tablette ; ✨ Claude reformule tes notes (seulement tes notes, les degrés et la note : jamais le nom de l'élève). ↶ Annuler revient à ton texte. Relis toujours avant d'enregistrer."],
     ["✨ Adapter une consigne", "Bibliothèque : Claude propose une consigne simplifiée (élève dys) ou traduite (12 langues). Rien n'est montré à l'élève avant ta relecture (« 📺 Afficher en grand »)."],
     ["Dispensés", "La pastille 🩹 de la barre compte les dispensés du jour : ceux de la classe choisie, sinon tous."],
@@ -32,9 +33,11 @@ window.EPS_GUIDES = {
   vol: { nom: "Volley-ball", items: [
     ["📅 Séquence", "Leçons (objectifs, contenus, routines de mobilisation), échauffement, AFL & évaluation, idées ; PDF de la séquence."],
     ["📋 Évaluation", "Critères CA4 notés avec curseur intra-degré ; raccourci 🧮 Barème et critères (textes enseignant et élève)."],
-    ["👥 Classe", "Élèves (import, correction) et équipes."],
+    ["🏐 Évaluer en direct", "Évaluation › 🏐 Évaluer en direct : choisis les élèves qui jouent (Terrain 1, 2, 3 d'après les tablettes des coachs, par équipe ou un par un), le critère (AFL1 par défaut), puis touche le degré observé pendant le match ; − / + pour affiner. « Vu aujourd'hui : D3×2 » garde la trace de tes observations."],
+    ["👥 Classe", "Élèves (import, correction) et équipes. 📡 Tableau de bord de la leçon (en haut d'Équipes) : les 3 terrains en direct, avec pour chaque équipe le coach, l'appel, le match en cours, les situations validées, la remédiation et les alertes (installation, absents, matchs perdus)."],
     ["📄 Bilans", "Fiches PDF au format Danse, une par élève, .zip et récapitulatif ; auto-positionnement par QR code et suivi."],
-    ["Tablette coach (côté élève)", "L'élève choisit sa classe puis son équipe : leçon du jour, matchs, observation. ⌂ Accueil ramène au choix de la classe."]
+    ["Tablette coach (côté élève)", "L'élève choisit sa classe puis son équipe : leçon du jour, matchs, observation. ⌂ Accueil ramène au choix de la classe."],
+    ["📜 Fil de la leçon", "En fin de leçon, la tablette du coach résume ce que l'équipe a fait (coach et rôles, appel, matchs, situations validées, remédiations, bilan, rangement). Le coach de la leçon suivante le retrouve dans l'onglet Leçon, et toi dans le tableau de bord."]
   ] },
   bad: { nom: "Badminton", items: [
     ["📅 Séquence", "Séquence (lycée général ou lycée pro), raccourcis 📊 Matchs & stats et 🏸 Terrain & scoring (tablette de terrain)."],

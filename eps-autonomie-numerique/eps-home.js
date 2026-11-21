@@ -1228,7 +1228,75 @@
   })();
   (window.EPSG_Q || []).forEach(gateRegister);
   window.EPSG_Q = { push: gateRegister };
-  window.EPSR = { get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
+  /* ================= Export Pronote (commun à toutes les applis) =================
+     EPSR.pronote({app, classe, titre, cols:[{t:'Note /20'}, …], rows:[{nom, prenom, v:[valeurs], st:'ABS'|'DISP'|''}]})
+     → fenêtre : élèves dans l'ordre alphabétique de Pronote (NOM puis prénom), notes à la virgule, codes Pronote
+       A (absent), D (dispensé / inapte), N (non noté) ; copie de la colonne à coller dans le devoir, copie noms + notes,
+       fichier .csv (Excel) pour l'import du Client PRONOTE. */
+  function pnCode(v, st) {
+    st = String(st || "");
+    if (/disp|inap|^d$/i.test(st)) return "D";
+    if (/abs|^a$/i.test(st)) return "A";
+    if (v == null || v === "" || isNaN(v)) return "N";
+    return String(Math.round(+v * 100) / 100).replace(".", ",");
+  }
+  function pronote(o) {
+    o = o || {}; var cols = o.cols && o.cols.length ? o.cols : [{ t: "Note /20" }];
+    var col = new Intl.Collator("fr", { sensitivity: "base" });
+    var rows = (o.rows || []).slice().sort(function (a, b) { return col.compare(a.nom || "", b.nom || "") || col.compare(a.prenom || "", b.prenom || ""); });
+    var cell = function (r, i) { return pnCode(r.v ? r.v[i] : null, r.st); };
+    var sel = 0, avecNoms = false;
+    if (!document.getElementById("epspn-css")) { var st = document.createElement("style"); st.id = "epspn-css"; st.textContent =
+      ".epspn{position:fixed;inset:0;z-index:2147483300;background:rgba(20,22,27,.55);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#14171C}" +
+      ".epspn .bx{background:#fff;border-radius:18px;max-width:760px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}" +
+      ".epspn .hd{background:#14171C;color:#fff;padding:14px 18px;box-shadow:inset 0 -4px 0 var(--pn,#666);display:flex;align-items:center;gap:10px}.epspn .hd b{font-size:18px}.epspn .hd small{display:block;color:#A9AEB8}" +
+      ".epspn .hd button{margin-left:auto;background:transparent;border:1.5px solid #3A3F47;color:#D5D8DE;border-radius:10px;height:38px;padding:0 12px;font:700 14px system-ui,sans-serif;cursor:pointer}" +
+      ".epspn .bd{padding:14px 18px;overflow:auto}.epspn .m{color:#6A6F78;font-size:14px;margin:4px 0 10px}" +
+      ".epspn .cs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.epspn .cs button{border:2px solid #E6E1D6;background:#fff;border-radius:999px;padding:6px 12px;font:700 14px system-ui,sans-serif;cursor:pointer}.epspn .cs button.on{border-color:var(--pn,#666);background:var(--pn,#666);color:#fff}" +
+      ".epspn table{border-collapse:collapse;width:100%;font-size:14px}.epspn th,.epspn td{border-bottom:1px solid #E6E1D6;padding:5px 8px;text-align:left}.epspn th{background:#F5F3EE;font-size:12px;color:#6A6F78}.epspn td.n{text-align:center;font-weight:800;font-variant-numeric:tabular-nums}.epspn td.k{color:#9aa0a8;width:28px}.epspn td.hl{background:#f3eef8}" +
+      ".epspn .cd{display:inline-block;min-width:22px;border-radius:6px;padding:0 5px;font-size:12px;background:#F5F3EE;color:#6A6F78}" +
+      ".epspn .ft{padding:12px 18px;border-top:1px solid #E6E1D6;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.epspn .ft button{height:42px;border-radius:12px;border:2px solid var(--pn,#666);background:#fff;font:800 14px system-ui,sans-serif;padding:0 14px;cursor:pointer;color:#14171C}.epspn .ft button.p{background:var(--pn,#666);color:#fff}" +
+      ".epspn ol{margin:6px 0 0;padding-left:20px;font-size:14px;color:#3a3f47}.epspn ol li{margin:3px 0}.epspn label{font-size:14px;display:flex;align-items:center;gap:6px}";
+      document.head.appendChild(st); }
+    var ov = document.createElement("div"); ov.className = "epspn"; ov.style.setProperty("--pn", o.color || "#6B3FA0");
+    var nb = { A: 0, D: 0, N: 0 }; rows.forEach(function (r) { var c = cell(r, 0); if (nb[c] != null) nb[c]++; });
+    function texte(tout) {
+      return rows.map(function (r) {
+        var v = tout ? cols.map(function (c, i) { return cell(r, i); }) : [cell(r, sel)];
+        return (avecNoms ? [r.nom || "", r.prenom || ""] : []).concat(v).join("\t");
+      }).join("\r\n");
+    }
+    function copier(t, msg) {
+      var ok = function () { var b = ov.querySelector("[data-msg]"); if (b) b.textContent = "✓ " + msg; };
+      try { navigator.clipboard.writeText(t).then(ok, function () { fb(); }); } catch (e) { fb(); }
+      function fb() { var ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); ok(); } catch (x) { prompt("Copie ces notes :", t); } ta.remove(); }
+    }
+    function csv() {
+      var q = function (x) { x = String(x == null ? "" : x); return /[;"\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+      var lines = [["Nom", "Prénom"].concat(cols.map(function (c) { return c.t; })).map(q).join(";")].concat(rows.map(function (r) { return [r.nom, r.prenom].concat(cols.map(function (c, i) { return cell(r, i); })).map(q).join(";"); }));
+      var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+      var sf = function (x) { return String(x || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_"); };
+      a.download = sf(o.app || "EPS") + "_" + sf(o.classe) + "_Pronote.csv"; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    }
+    function render() {
+      ov.innerHTML = '<div class="bx"><div class="hd"><div><b>📋 Notes pour Pronote</b><small>' + esc((o.app || "") + (o.classe ? " · " + o.classe : "") + (o.titre ? " · " + o.titre : "")) + '</small></div><button data-x>✕ Fermer</button></div><div class="bd">' +
+        (cols.length > 1 ? '<div class="m">Colonne à copier (un devoir Pronote par colonne) :</div><div class="cs">' + cols.map(function (c, i) { return '<button data-c="' + i + '" class="' + (i === sel ? "on" : "") + '">' + esc(c.t) + "</button>"; }).join("") + "</div>" : "") +
+        '<p class="m">Élèves dans l\'ordre de Pronote (NOM puis prénom). Codes : <span class="cd">A</span> absent · <span class="cd">D</span> dispensé · <span class="cd">N</span> non noté.' + (nb.N ? " <b>" + nb.N + " élève(s) non noté(s).</b>" : "") + "</p>" +
+        '<table><tr><th></th><th>NOM Prénom</th>' + cols.map(function (c, i) { return "<th style=\"text-align:center\">" + esc(c.t) + "</th>"; }).join("") + "</tr>" +
+        rows.map(function (r, k) { return '<tr><td class="k">' + (k + 1) + "</td><td><b>" + esc(r.nom || "") + "</b> " + esc(r.prenom || "") + "</td>" + cols.map(function (c, i) { return '<td class="n' + (i === sel ? " hl" : "") + '">' + esc(cell(r, i)) + "</td>"; }).join("") + "</tr>"; }).join("") + "</table>" +
+        '<ol><li>Dans Pronote : <b>Notes › Saisie des notes</b>, crée le devoir (sur 20, ou sur le barème de la colonne).</li><li>Ici : <b>Copier la colonne</b>.</li><li>Dans Pronote, clique dans la case de note du <b>premier élève</b> puis <b>Ctrl + V</b> (ou appui long › Coller). Vérifie 2 ou 3 élèves : l\'ordre doit être le même.</li><li>Si le collage ne prend pas sur ton navigateur : <b>Fichier Excel</b>, puis « Importer des notes » depuis le Client PRONOTE.</li></ol>' +
+        '</div><div class="ft"><button class="p" data-cp>📋 Copier la colonne</button>' + (cols.length > 1 ? "<button data-all>📋 Copier toutes les colonnes</button>" : "") + '<button data-csv>⬇ Fichier Excel (.csv)</button><label><input type="checkbox" data-nm ' + (avecNoms ? "checked" : "") + "> avec les noms</label><span data-msg style=\"font-weight:700;color:#2e7d4f\"></span></div></div>";
+      ov.querySelector("[data-x]").onclick = function () { ov.remove(); };
+      ov.querySelectorAll("[data-c]").forEach(function (b) { b.onclick = function () { sel = +b.dataset.c; render(); }; });
+      ov.querySelector("[data-cp]").onclick = function () { copier(texte(false), rows.length + " notes copiées (" + cols[sel].t + ")"); };
+      var al = ov.querySelector("[data-all]"); if (al) al.onclick = function () { copier(texte(true), rows.length + " lignes copiées (" + cols.length + " colonnes)"); };
+      ov.querySelector("[data-csv]").onclick = csv;
+      ov.querySelector("[data-nm]").onchange = function (e) { avecNoms = e.target.checked; };
+    }
+    ov.addEventListener("click", function (e) { if (e.target === ov) ov.remove(); });
+    render(); document.body.appendChild(ov);
+  }
+  window.EPSR = { pronote: pronote, get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
     reformuler: function (t, o) { return reformuler(t, o); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },

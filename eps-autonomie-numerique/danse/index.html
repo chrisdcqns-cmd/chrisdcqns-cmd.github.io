@@ -1783,6 +1783,12 @@ function defPos(c, d) {
 function pts(c, x) { if (!x || !x.d) return null; const b = bande(x.d); return c.poids * (b.min + x.pos * (b.max - b.min)) / 100; }
 function sumPoids() { return S.criteres.reduce((a, c) => a + (+c.poids || 0), 0); }
 function arr(v) { const st = +S.reglages.arrondi || 0.01; return Math.round(v / st + 1e-9) * st; }
+/* notes à coller dans Pronote (fenêtre commune EPSR.pronote d'eps-home.js) : note /20 et points de chaque AFL */
+function exportPronote(cl) {
+  if (!(window.EPSR && EPSR.pronote)) { toast('Export Pronote indisponible (recharge la page)'); return; }
+  EPSR.pronote({ app: 'Danse', classe: cl.nom, color: '#C2185B', cols: [{ t: 'Note /20' }].concat(S.criteres.map(c => ({ t: c.court + ' /' + fmt(c.poids) }))),
+    rows: cl.eleves.map(e => ({ nom: e.nom, prenom: e.prenom || '', st: e.statut === 'abs' ? 'ABS' : e.statut ? 'DISP' : '', v: [note(e)].concat(S.criteres.map(c => { const x = (e.ev || {})[c.id]; return x && x.d ? pts(c, x) : null; })) })) });
+}
 function note(e) {
   if (e.statut) return null;
   let t = 0;
@@ -2377,7 +2383,8 @@ function rBilan() {
     <div class="row wrap"><h3>Exports</h3><span class="grow"></span>
       <button class="btn primary" id="xZip">Bilans élèves (ZIP de PDF)</button>
       <button class="btn" id="xRecap">Récapitulatif classe (PDF)</button>
-      <button class="btn" id="xCsv">Tableau (CSV)</button></div>
+      <button class="btn" id="xCsv">Tableau (CSV)</button>
+      <button class="btn" id="xPn">📋 Pronote</button></div>
     <p class="muted">Le ZIP contient un PDF par élève (prêt à déposer sur Pronote) et le récapitulatif de la classe. Langage du PDF élève : <b>${S.reglages.langPDF === 'eleve' ? 'version élève simplifiée' : 'version enseignant'}</b> · note ${S.reglages.noteSurPDF ? 'affichée' : 'masquée'} (modifiable dans Réglages).</p>
     <h4>Lien d'auto-positionnement sur les bilans</h4>
     ${autoCtlHTML()}
@@ -2395,6 +2402,7 @@ function rBilan() {
   $('#xZip').onclick = () => exportZip(cl);
   $('#xRecap').onclick = () => exportRecap(cl);
   $('#xCsv').onclick = () => exportCsv(cl);
+  $('#xPn').onclick = () => exportPronote(cl);
   $('.tbl').onclick = ev => { const b = ev.target.closest('[data-pdf]'); if (b) exportPdfEleve(cl.eleves.find(e => e.id === b.dataset.pdf)); };
 }
 
