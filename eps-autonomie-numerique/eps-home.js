@@ -188,7 +188,7 @@
       document.head.appendChild(s);
     });
   }
-  var busy = false, timer = null, lastErr = "";
+  var busy = false, timer = null, lastErr = "", lastOk = 0;
   function stamp() { return Math.max(Date.now(), (D.maxU || 0) + 1); }
   async function sync() {
     var cfg = shCfg();
@@ -219,7 +219,7 @@
       for (var loop = 0; loop < 20; loop++) {
         var r = await jsonp(cfg, { pull: 1, since: D.since || 0, pre: "disp|" });
         if (!r || !r.keyOk || !r.sync) { lastErr = !r ? "pas de connexion" : !r.keyOk ? "clé" : "script à mettre à jour"; break; }
-        lastErr = "";
+        lastErr = ""; lastOk = Date.now();
         var L = r.recs || [];
         for (var j = 0; j < L.length; j++) {
           var k = L[j][1], uu = +L[j][2], del = +L[j][3], x = L[j][4];
@@ -257,7 +257,7 @@
       try { edtApply(); } catch (e) {}
       for (var si = 0; si < STORES.length; si++) { try { await syncStore(cfg, STORES[si]); } catch (e) {} }
     } catch (e) { lastErr = "réseau"; }
-    finally { busy = false; sched(); }
+    finally { busy = false; sched(); try { syncBadge(); } catch (e) {} }
   }
   /* magasins de données génériques (ex. évaluations d'eps-eval.js) : {pre, key, onChange} ;
      localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
@@ -1452,10 +1452,28 @@
     for (var i = 0; i < L.length; i++) if (L[i].getClientRects().length) return L[i];
     return L[0] || null;
   }
+  /* pastille d'état du partage entre tablettes (mode enseignant) : ✓ à jour · ⏳ envoi en attente · ⚠ problème · ○ non réglé */
+  function nPend() { var n = Object.keys(D.pend || {}).length + Object.keys(lld().pend || {}).length; STORES.forEach(function (st) { n += Object.keys(stLd(st.key).pend || {}).length; }); return n; }
+  function syncBadge() {
+    var b = document.getElementById("eps-sync"), sl = epsSlot();
+    if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-sync"; b.className = "epsb"; sl.insertBefore(b, sl.firstChild);
+      b.onclick = function () { if (!shCfg()) { try { shareSettings(); } catch (e) {} return; } b.innerHTML = "⟳ <span>Synchro…</span>"; sync(); }; }
+    b.style.display = isTeacher() ? "" : "none";
+    var cfg = shCfg(), p = cfg ? nPend() : 0, ago = lastOk ? Math.round((Date.now() - lastOk) / 60000) : -1, st, t;
+    if (!cfg) { st = "○"; t = "Partage non réglé"; }
+    else if (lastErr && (!lastOk || Date.now() - lastOk > 120000)) { st = "⚠"; t = lastErr === "clé" ? "Clé refusée" : lastErr === "script à mettre à jour" ? "Script à mettre à jour" : "Hors ligne"; }
+    else if (p) { st = "⏳"; t = p + " à envoyer"; }
+    else if (lastOk) { st = "✓"; t = ago < 1 ? "À jour" : "À jour (" + ago + " min)"; }
+    else { st = "⟳"; t = "Synchro…"; }
+    b.style.color = st === "✓" ? "#7FD49A" : st === "⚠" ? "#FF8A7A" : st === "⏳" ? "#F5C76B" : "#D5D8DE";
+    b.title = "Partage entre tablettes : " + t + (lastOk ? " · dernier échange " + new Date(lastOk).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "") + " · toucher pour synchroniser";
+    b.innerHTML = st + " <span>" + t + "</span>";
+  }
+  setInterval(function () { try { syncBadge(); } catch (e) {} }, 3000);
   function redock() {
     var L = document.querySelectorAll("[data-eps-bar]"); if (L.length < 2) return;
     var sl = epsSlot();
-    ["epsd-pill", "eps-upd", "eps-home"].forEach(function (id) {
+    ["eps-sync", "epsd-pill", "eps-upd", "eps-home"].forEach(function (id) {
       var e = document.getElementById(id);
       if (e && e.parentNode && e.parentNode !== sl && e.parentNode.hasAttribute && e.parentNode.hasAttribute("data-eps-bar")) sl.appendChild(e);
     });
