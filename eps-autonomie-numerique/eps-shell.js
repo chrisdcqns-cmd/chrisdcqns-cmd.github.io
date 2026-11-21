@@ -67,7 +67,7 @@
     function mains(show) { String(C.main || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean).forEach(function (sel) { document.querySelectorAll(sel).forEach(function (el) { el.style.display = show ? "" : "none"; }); }); }
     function mark(id) { M.cur = id; nav.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.t === id); });
       /* raccourcis propres à l'onglet (ex. Séquence : leçon en cours, tablette de contrôle) */
-      var A = ((C.tabs || {})[id] || {}).actions || [];
+      var A = (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []); /* + leçons communes (eps-lecons.js) */
       document.documentElement.classList.toggle("epst-acts-on", A.length > 0);
       acts.innerHTML = A.map(function (x, i) { return '<button type="button" data-a="' + i + '">' + (x.ico ? x.ico + " " : "") + esc(x.label) + "</button>"; }).join("");
       acts.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { try { A[+b.dataset.a].go(); } catch (e) { console.warn(e); } }; }); }
@@ -88,7 +88,7 @@
       mark(id);
       var t = (C.tabs || {})[id];
       if (id === "vue") { openVue(); return; }
-      if (id === "bib") { var p = panel("<h2>📚 Bibliothèque</h2><p class=\"mut\">Les ressources et les écrans de l'appli, à consulter ou à montrer aux élèves.</p>" + cards(C.biblio || []) + adaptHtml()); bindCards(p, C.biblio || [], "bib"); bindAdapt(p); return; }
+      if (id === "bib") { var BL = (window.EPSLC ? EPSLC.biblio() : []).concat(C.biblio || []); var p = panel("<h2>📚 Bibliothèque</h2><p class=\"mut\">Tes documents et tes leçons, puis les ressources et les écrans de l'appli, à consulter ou à montrer aux élèves.</p>" + cards(BL) + adaptHtml()); bindCards(p, BL, "bib"); bindAdapt(p); return; }
       if (id === "reg") {
         var R = [{ ico: "📖", label: "Fiche d'utilisation", sub: "Tout ce que permet " + C.nom + " et les fonctions communes", go: guide }].concat(C.reglages || []).concat([{ ico: "🏫", label: "Réglages communs", sub: "Établissement, enseignant, listes d'élèves, activités des classes, partage entre tablettes", go: function () { try { EPSR.open(); } catch (e) {} } }]);
         var q = panel("<h2>⚙ Réglages</h2><p class=\"mut\">Réglages de " + esc(C.nom) + " et réglages communs à toutes les applis.</p>" + cards(R)); bindCards(q, R, "reg"); return;
@@ -105,6 +105,7 @@
       if (on && !was) { if (!M.cur) go(C.home || "seq"); }
       if (!on && was) { closePanel(); closeVue(); M.cur = null; }
       was = on;
+      if (on && window.EPSLC && !M.lc) { M.lc = 1; if (M.cur && M.cur !== "vue") mark(M.cur); } /* leçons chargées après coup : raccourcis ajoutés */
       if (on && !document.documentElement.classList.contains("epst-pan") && M.cur !== "vue") { /* onglet actif suivant l'écran affiché par l'appli */
         var T = C.tabs || {}, k = Object.keys(T).filter(function (id) { return T[id].on && (function () { try { return T[id].on(); } catch (e) { return false; } })(); })[0];
         if (k && k !== M.cur && !(M.cur === "bib" || M.cur === "reg")) mark(k);

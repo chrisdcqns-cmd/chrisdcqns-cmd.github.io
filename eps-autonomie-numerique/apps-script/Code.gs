@@ -26,6 +26,7 @@ function doPost(e) {
   if (data.key !== SECRET) return json_({ ok: false, error: 'key' });
   if (data.sync) return json_(syncPush_(data.sync));
   if (data.aiReq) return json_(aiReq_(data.aiReq));
+  if (data.lc) { try { return json_(Object.assign({ ok: true }, lecon_(data.lc))); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); } }
   return json_({ ok: false, error: 'requête' });
 }
 
@@ -203,6 +204,55 @@ function reformuler_(p) {
               : 'Écris un commentaire adressé directement à l\'élève (tutoiement), en 2 ou 3 phrases (350 caractères maximum) : ce qui est réussi, puis ce qu\'il faut travailler.') +
     ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
   return claude_(key, system, 'Activité : ' + act + '\n' + (ctx ? 'Éléments d\'évaluation : ' + ctx + '\n' : '') + 'Notes de l\'enseignant : ' + (notes || '(aucune)'));
+}
+/* ================= Leçons (eps-lecons.js) =================
+ * POST {key, lc:{op:'transcrire', nom, mime, b64}} → {texte} : lecture d'un PDF ou d'une photo déposés par l'enseignant.
+ * POST {key, lc:{op:'lecon', mode, act, docs:[{nom,txt}], lecons:[…], base, consigne}} → {lecon} : brouillon de leçon (JSON),
+ *   à partir des documents de l'enseignant EN PRIORITÉ. Le brouillon reste invisible pour les élèves tant que l'enseignant ne l'a pas validé.
+ * Aucun nom d'élève n'est envoyé. Modèle : CLAUDE_MODEL_LECON (plus précis pour un travail long). */
+const CLAUDE_MODEL_LECON = 'claude-sonnet-5-5';
+function lecon_(q) {
+  const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY');
+  if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
+  const act = String(q.act || 'EPS').slice(0, 60);
+  if (q.op === 'transcrire') {
+    const mime = String(q.mime || '');
+    const block = mime === 'application/pdf' ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: String(q.b64 || '') } }
+      : { type: 'image', source: { type: 'base64', media_type: /^image\/(png|gif|webp)$/.test(mime) ? mime : 'image/jpeg', data: String(q.b64 || '') } };
+    const sys = 'Tu transcris fidèlement un document d\'un enseignant d\'EPS (activité : ' + act + ') : séquence, fiche de leçon, situations, grille. ' +
+      'Recopie tout le texte, dans l\'ordre, sans résumer ni corriger, en gardant la structure (titres, listes ; tableaux en lignes « colonne : valeur »). ' +
+      'Décris chaque schéma en une ligne entre crochets : [Schéma : …]. Réponds uniquement par la transcription.';
+    return { texte: claude_(key, sys, [block, { type: 'text', text: 'Transcris ce document : ' + String(q.nom || '').slice(0, 120) }], CLAUDE_MODEL_LECON, 8000) };
+  }
+  if (q.op !== 'lecon') throw new Error('opération inconnue');
+  const MODES = {
+    importer: 'Mets en forme dans la structure LA leçon contenue dans le document fourni (si le document en contient plusieurs, celle indiquée dans les précisions, sinon la première). Recopie les formulations de l\'enseignant ; n\'invente RIEN : laisse vide ("") toute rubrique absente du document.',
+    suivante: 'Propose la leçon suivante de la séquence, dans la continuité des leçons existantes et en reprenant en priorité les situations, critères et progressions prévus dans les documents.',
+    nouvelle: 'Propose une leçon, en reprenant en priorité ce que prévoient les documents.',
+    completer: 'Complète UNIQUEMENT les rubriques vides de la leçon fournie (« base »), en cohérence avec ce qui est déjà écrit et avec les documents ; renvoie la leçon complète, rubriques déjà remplies inchangées.',
+    simple: 'Adapte la leçon fournie (« base ») en une version PLUS SIMPLE pour des élèves en difficulté : mêmes objectifs de fond, tâches simplifiées, critères de réussite plus accessibles, aménagements (espace, temps, matériel, rôles).',
+    difficile: 'Adapte la leçon fournie (« base ») en une version PLUS DIFFICILE pour des élèves avancés : mêmes objectifs de fond, contraintes et critères plus exigeants, incertitude accrue.',
+    variante: 'Propose une variante de même niveau de la leçon fournie (« base ») : mêmes objectifs, autres situations d\'apprentissage.'
+  };
+  const mode = MODES[q.mode] ? q.mode : 'nouvelle';
+  const sys = 'Tu es un enseignant d\'EPS de lycée, en France, qui prépare les leçons d\'un collègue (activité : ' + act + '). ' +
+    'RÈGLE PRINCIPALE : tu t\'appuies d\'abord sur les documents de l\'enseignant (sa séquence, ses leçons, ses situations, son vocabulaire) ; tu reprends ses formulations quand elles existent et tu ne proposes du nouveau que pour combler un manque. ' +
+    'Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »). Consignes adressées aux élèves (tutoiement), concrètes, avec les chiffres utiles (durées, distances, nombres de réussites). Pas de nom d\'élève. ' +
+    'Structure de la leçon (réponds UNIQUEMENT par un objet JSON valide, sans texte autour) : ' +
+    '{"seq":"séquence","num":"n° de leçon","titre":"","duree":"","objM":"objectif moteur","objMe":"objectif méthodologique","objS":"objectif social","but":"but de la leçon",' +
+    '"disp":"dispositif","mat":"matériel","ech":"échauffement : consigne","sits":[{"t":"titre","cons":"consigne","crQ":"critères de réussite quantitatifs","crQl":"critères de réussite qualitatifs","crR":"critères de réalisation (ce qu\'il y a à faire pour réussir)","simp":"variables de simplification","comp":"variables de complexification"}],' +
+    '"rem":"remise en action : match ou situation plus large","remCr":"critères de réussite de la remise en action","bilan":"bilan de la leçon","sources":"ce qui vient des documents et ce que tu proposes"}. ' +
+    'En général deux situations. ' + MODES[mode];
+  let docs = '';
+  (q.docs || []).forEach(function (d) { if (docs.length < 160000) docs += '\n\n=== Document : ' + String(d.nom || '').slice(0, 120) + ' ===\n' + String(d.txt || '').slice(0, 160000 - docs.length); });
+  const user = (docs ? 'DOCUMENTS DE L\'ENSEIGNANT :' + docs + '\n\n' : 'Aucun document déposé.\n\n') +
+    ((q.lecons || []).length ? 'LEÇONS DÉJÀ ÉCRITES :\n' + JSON.stringify(q.lecons).slice(0, 40000) + '\n\n' : '') +
+    (q.base ? 'LEÇON DE BASE (« base ») :\n' + JSON.stringify(q.base).slice(0, 12000) + '\n\n' : '') +
+    (q.consigne ? 'PRÉCISIONS DE L\'ENSEIGNANT : ' + String(q.consigne).slice(0, 1500) + '\n\n' : '') + 'Réponds par l\'objet JSON de la leçon.';
+  const t = claude_(key, sys, user, CLAUDE_MODEL_LECON, 4000);
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
+  return { lecon: JSON.parse(t.slice(a, b + 1)) };
 }
 function claude_(key, system, user, model, maxTokens) {
   const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {

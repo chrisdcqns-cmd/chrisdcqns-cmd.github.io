@@ -1301,7 +1301,15 @@
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
     reformuler: function (t, o) { return reformuler(t, o); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
-    syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); }, applyLists: function () { return applyLocal(); }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
+    syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
+    /* synchro immédiate d'un seul magasin (ex. leçon en cours : relevé toutes les quelques secondes) */
+    syncOne: function (k) { var cfg = shCfg(), st = STORES.filter(function (x) { return x.key === k; })[0]; if (!cfg || !st || st._busy || navigator.onLine === false) return Promise.resolve(false);
+      st._busy = true; return syncStore(cfg, st).then(function () { st._busy = false; return true; }, function () { st._busy = false; return false; }); },
+    /* requête longue au script commun (POST, réponse lisible) : ex. {lc:{…}} pour les leçons (Claude) */
+    post: function (body) { var cfg = shCfg(); if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
+      body = Object.assign({ key: cfg.key }, body);
+      return fetch(cfg.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }); },
+    shared: function () { return !!shCfg(); }, applyLists: function () { return applyLocal(); }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================
@@ -1438,6 +1446,8 @@
     setTimeout(sync, 1500);
     /* listes de classes communes (eps-lists.js) : chargé ici s'il ne l'est pas déjà par l'appli */
     var goL = function () { setTimeout(function () { collectLists().then(applyLocal).catch(function () {}); }, 600); setInterval(function () { collectLists().catch(function () {}); }, 5000); };
+    /* leçons communes (eps-lecons.js) : dans les applis d'activité seulement */
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
     if (window.EPSL) goL(); else { var ls = document.createElement("script"); ls.src = BASE + "eps-lists.js"; ls.onload = goL; document.head.appendChild(ls); }
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);

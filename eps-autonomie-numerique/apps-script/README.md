@@ -52,3 +52,11 @@ Même clé `ANTHROPIC_KEY`. Après avoir collé ce `Code.gs` et redéployé (nou
 - « Décris ta situation » (Terrain & scoring, mode enseignant) : modèle `CLAUDE_MODEL_SIT` (Claude Sonnet 5.5), réponse structurée (outil `regler_situation`), validée par l'enseignant dans l'appli.
 - Coach virtuel (tablette de terrain, élèves choisis par l'enseignant) : `CLAUDE_MODEL` (Haiku), statistiques anonymes seulement.
 - Garde-fou : 300 demandes par heure au plus (`quota_`).
+
+## 📝 Fiches de leçon (Claude)
+
+Les fiches de leçon (toutes les applis d'activité) utilisent aussi la clé `ANTHROPIC_KEY` : rien de plus à créer.
+- Après avoir collé le nouveau `Code.gs` : **Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer** (la même adresse reste valable).
+- Les PDF et les photos déposés dans « 📂 Mes documents » sont lus par Claude (9 Mo au plus par fichier ; coupe un gros PDF en plusieurs).
+- Les brouillons de leçon utilisent le modèle `CLAUDE_MODEL_LECON` (en haut de la partie « Leçons » du script), plus précis pour un travail long ; les reformulations courtes gardent `CLAUDE_MODEL`.
+- Aucun nom d'élève n'est envoyé à Claude : seulement tes documents et tes fiches de leçon.
