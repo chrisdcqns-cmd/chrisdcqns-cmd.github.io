@@ -415,6 +415,16 @@
     function maxOf(cr) { return +cr.max || 0; }
     function prof(cr, e) { var r = rec(e._c, e), v = r.ev && r.ev[cr.id]; if (!v || v.d == null) return null; var pos = v.pos == null ? .5 : v.pos; return { d: v.d, pos: pos, pts: Math.round(maxOf(cr) * (v.d + pos) / 4 * 4) / 4 }; }
     function note(e) { var G = grid(), tot = 0, max = 0, n = 0; G.criteres.forEach(function (cr) { var v = prof(cr, e); max += maxOf(cr); if (v) { tot += v.pts; n++; } }); if (!n || !max) return null; return Math.round(tot / max * 20 * 4) / 4; }
+    /* 🧪 classe de démonstration (Réglages communs) : évaluations et auto-positionnements fictifs, une seule fois */
+    function demoSeed() {
+      if (!jget("eps.demo.v1", null)) return; var c = classes().filter(function (x) { return /^DÉMO/.test(x.nom); })[0]; if (!c) return;
+      var G = grid(), R = [["J'ai réussi à rester concentré(e) toute la leçon.", "Je dois mieux m'organiser avant d'agir."], ["J'ai bien aidé mon binôme.", "Je dois prendre plus de risques."], ["J'ai progressé sur la situation 1.", "Je dois être plus régulier(e)."]];
+      c.eleves.forEach(function (e, i) { var id = sid(c.nom, e); if (ld().items[id]) return; var ev = {}, ap = null;
+        G.criteres.forEach(function (cr, k) { if ((i + k) % 5 !== 4) ev[cr.id] = { d: (i + k) % 4, pos: .5 }; });
+        if (i % 2 === 0) { var a = {}; G.criteres.forEach(function (cr, k) { a[cr.id] = { d: Math.min(3, ((i + k) % 4) + (k % 2)), pos: .5 }; }); ap = { ev: a, r: R[i % 3][0], m: R[i % 3][1], t: Date.now() - 3600000, via: "tablette" }; }
+        put(id, { c: c.nom, n: e.nom, p: e.prenom || "", ev: ev, ap: ap, comm: i % 3 === 0 ? "Investi(e), progrès nets sur la situation 1." : "", st: "", demo: 1 }); });
+    }
+    setTimeout(function () { try { demoSeed(); } catch (e) {} }, 2500); setInterval(function () { try { demoSeed(); } catch (e) {} }, 20000);
     var A = { app: o.app, nom: o.nom, ca: o.ca, color: o.color, icon: o.icon, pfx: o.pfx, code: o.code, url: o.url,
       grid: function () { var G = grid(); G.criteres.forEach(function (cr) { if (!cr.descEl) cr.descEl = cr.desc; }); return G; },
       classes: classes, name: function (e) { return { nom: e.nom, prenom: e.prenom }; }, prof: prof, note: note,

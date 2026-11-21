@@ -384,7 +384,8 @@
   function showStudent(l, v, prev) {
     css(); var o = document.getElementById("lc-st"); if (!o) { o = document.createElement("div"); o.id = "lc-st"; o.className = "lc-st"; document.body.appendChild(o); }
     o.dataset.lec = l ? l.id : ""; o.dataset.prev = prev ? "1" : ""; o.style.zIndex = prev ? "2147481400" : ""; var part = (v && v.part) || "", img = function (id) { var im = id && get(KI, id); return im ? '<img class="lc-img" src="' + im.d + '" alt="schéma">' : ""; };
-    var bk = function (key, title, inner) { return inner ? '<div class="bk' + (part === key ? " now" : "") + '" data-p="' + key + '"><h3>' + title + (part === key ? '<span class="now-tag">maintenant</span>' : "") + "</h3>" + inner + "</div>" : ""; };
+    var say = window.speechSynthesis ? '<button type="button" class="say" title="Écouter la consigne" style="float:right;height:40px;min-width:44px;border-radius:12px;border:1.5px solid #E6E1D6;background:#fff;font-size:20px">🔊</button>' : "";
+    var bk = function (key, title, inner) { return inner ? '<div class="bk' + (part === key ? " now" : "") + '" data-p="' + key + '">' + say + "<h3>" + title + (part === key ? '<span class="now-tag">maintenant</span>' : "") + "</h3>" + inner + "</div>" : ""; };
     var k = function (lab, t) { return t ? '<div class="k">' + lab + '</div><div class="lc-pre">' + esc(t) + "</div>" : ""; };
     var h = '<div class="hd"><b>📅 ' + esc(l ? titreL(l) : "Leçon") + '</b><button type="button" data-x>✕ Fermer</button></div><div class="in">';
     if (v && v.rang && v.rang.g != null) h += '<div class="bk rang"><h3>🧹 Rangement aujourd\'hui : groupe ' + (v.rang.g + 1) + '</h3><div>' + esc((v.rang.noms || []).join(", ")) + "</div></div>";
@@ -395,7 +396,11 @@
       h += bk("rem", "🏆 Remise en action", (l.rem ? '<div class="lc-pre">' + esc(l.rem) + "</div>" : "") + k("✅ Je réussis si…", l.remCr));
     } else h += '<div class="bk">La leçon a commencé. Écoute les consignes de ton professeur.</div>';
     o.innerHTML = h + "</div>"; o.style.display = "block";
-    o.querySelector("[data-x]").onclick = function () { o.style.display = "none"; };
+    o.querySelector("[data-x]").onclick = function () { try { speechSynthesis.cancel(); } catch (e) {} o.style.display = "none"; };
+    /* 🔊 lecture à voix haute par la tablette elle-même (aucune donnée envoyée) */
+    o.querySelectorAll(".say").forEach(function (b) { b.onclick = function () { try { var S = window.speechSynthesis; if (S.speaking) { S.cancel(); return; }
+      var t = b.parentNode.innerText.replace(/🔊/g, "").replace(/maintenant/g, "").replace(/[✅💡⬇⬆🔥🏃🏆]/g, ""), u = new SpeechSynthesisUtterance(t); u.lang = "fr-FR"; u.rate = 0.95;
+      var v = S.getVoices().filter(function (x) { return /^fr/i.test(x.lang); })[0]; if (v) u.voice = v; S.speak(u); } catch (e) {} }; });
     var n = o.querySelector(".bk.now"); if (n) n.scrollIntoView({ block: "center" });
   }
   var CHIP = null, TIM = null, SEEN = jget("eps.lcseen", {}), LASTPART = {}, FAST = 0;

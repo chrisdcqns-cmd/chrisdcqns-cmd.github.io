@@ -1022,10 +1022,15 @@
       '<p class="m">Les listes sont communes : une classe importée ici ou dans n\'importe quelle application apparaît dans toutes les applications (Escalade, Relais Vitesse, OrienRun, Volley-ball, Badminton, Danse, Acrosport) et sur toutes tes tablettes.</p>' +
       '<div id="er-cls" class="m" style="margin:6px 0 4px">…</div>' +
       '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-edit">✏️ Modifier les listes</button><button type="button" class="p" id="er-imp">📥 Importer une liste d\'élèves</button></div>' +
+      '<div class="epsd-cls" style="margin-top:18px">🧪 Classe de démonstration</div>' +
+      '<p class="m">' + (demoOn() ? "La classe « " + DEMO + " » (8 élèves fictifs) est en place dans toutes les activités, avec une fiche de leçon programmée et quelques observations. Explore l'espace enseignant, ouvre 👁 Vue élève pour jouer l'élève, puis retire-la : tout ce qui la concerne est effacé, partout." : "Crée une classe fictive de 8 élèves dans toutes les activités, avec une fiche de leçon validée qui s'ouvre côté élève dans 2 minutes, des observations, et dans Escalade, Acrosport et OrienRun des évaluations et auto-positionnements fictifs. Idéal pour tout essayer sans toucher à tes vraies classes.") + '</p>' +
+      '<div class="dbtns epsd-act" style="margin-top:8px">' + (demoOn() ? '<button type="button" id="er-demo-x">🗑 Retirer la classe de démonstration</button>' : '<button type="button" class="p" id="er-demo">🧪 Créer la classe de démonstration</button>') + '</div>' +
       '<div class="epsd-cls" style="margin-top:18px">Sauvegarde</div>' +
       '<p class="m">Fichier de sauvegarde de toutes les applications de cette tablette (classes, leçons, évaluations, réglages), à garder sur ton ordinateur ou ta clé USB. Les vidéos et les cartes d\'OrienRun n\'y sont pas.</p>' +
       '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-save">💾 Enregistrer une sauvegarde</button><label style="height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;display:inline-flex;align-items:center;font:800 17px system-ui,sans-serif;cursor:pointer">♻️ Restaurer<input type="file" accept=".json,.eps,application/json" id="er-load" style="display:none"></label></div>' +
       '<div class="epsd-act"><button data-x>Fermer</button><button class="p" id="er-ok">Enregistrer les réglages</button></div>');
+    var dm = o.querySelector("#er-demo"); if (dm) dm.onclick = function () { dm.disabled = true; demoCreate().then(function () { o.remove(); reglages("🧪 Classe « " + DEMO + " » créée. La fiche de leçon s'ouvre côté élève dans 2 minutes (👁 Vue élève, classe DÉMO)."); }); };
+    var dx = o.querySelector("#er-demo-x"); if (dx) dx.onclick = function () { if (!confirm("Retirer la classe de démonstration et tout ce qui la concerne (évaluations, leçons, observations), sur toutes les tablettes ?")) return; dx.disabled = true; demoRemove().then(function () { o.remove(); reglages("🗑 Classe de démonstration retirée."); }); };
     function readForm() {
       r.etab = o.querySelector("#er-etab").value.trim(); r.ville = o.querySelector("#er-ville").value.trim(); r.annee = o.querySelector("#er-annee").value.trim() || anneeDef();
       r.prof = o.querySelector("#er-prof").value.replace(/\s+/g, " ").trim();
@@ -1524,6 +1529,47 @@
     q.oninput = draw; draw(); setTimeout(function () { q.focus(); }, 50);
     var bb = document.createElement("button"); bb.type = "button"; bb.textContent = "📝 Appréciations de bulletin"; bb.onclick = bulletin;
     var act = o.querySelector(".epsd-act"); if (act) act.insertBefore(bb, act.firstChild);
+  }
+  /* ================= 🧪 Classe de démonstration (Réglages communs) =================
+     Classe fictive attribuée à toutes les activités, fiche de leçon validée programmée dans 2 minutes dans chaque appli,
+     quelques observations ; évaluations et auto-positionnements fictifs semés par eps-eval.js (Escalade, Acrosport, OrienRun).
+     « Retirer » efface tout ce qui concerne la classe, partout (même ce que tu y as saisi). */
+  var DEMO = "DÉMO (fictive)", DEMO_EL = ["Léa Démo", "Hugo Démo", "Inès Démo", "Tom Démo", "Sarah Démo", "Noah Démo", "Jade Démo", "Yanis Démo"];
+  var DEMO_APPS = { escalade: "Escalade", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", acrosport: "Acrosport", orientation: "OrienRun" };
+  function demoOn() { return !!jget("eps.demo.v1", null); }
+  function stPutRaw(k, it) { var V = stLd(k), o = V.items[it.id]; it.u = Math.max(Date.now(), ((o && o.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u; try { localStorage.setItem(k, JSON.stringify(V)); } catch (e) {} }
+  function demoLesson(a, nom, at) {
+    return { id: "demo-" + a, demo: 1, seq: "Séquence de démonstration", num: "1", titre: "Leçon de démonstration", duree: "1 h 45", statut: "ok", ai: {}, cr: Date.now(), prog: [{ c: DEMO, at: at }],
+      objM: "Enchaîner les actions clés de l'activité avec plus de précision.", objMe: "Observer un camarade et lui donner un conseil.", objS: "Respecter les règles de sécurité et les rôles.",
+      but: "Réussir 3 fois de suite l'action travaillée dans la situation 1.", disp: "Classe en 4 groupes, un atelier par groupe, rotation toutes les 10 minutes.", mat: "Matériel habituel de " + nom + ", plots, chasubles, tablettes.",
+      ech: "Échauffement général 8 minutes (course, mobilisation articulaire), puis 5 minutes d'échauffement spécifique par deux.",
+      sits: [{ t: "Situation 1 · l'action de base", cons: "Par deux : l'un réalise l'action, l'autre observe avec la fiche. On change toutes les 5 réussites.", crQ: "5 réussites sur 8 essais.", crQl: "Action fluide, sans arrêt.", crR: "Regarder loin, s'organiser avant d'agir.", simp: "Réduire la distance ou la vitesse.", comp: "Ajouter une contrainte de temps." },
+        { t: "Situation 2 · en opposition ou en enchaînement", cons: "Par groupes de 4 : enchaîner l'action dans une situation proche du jeu ou de la performance.", crQ: "3 enchaînements réussis.", crQl: "Choix adapté à la situation.", crR: "Prendre l'information avant d'agir.", simp: "Supprimer l'opposition.", comp: "Réduire l'espace ou le temps." }],
+      rem: "Situation de référence : match ou épreuve complète, avec un observateur par élève.", remCr: "Réussir au moins une fois l'action travaillée dans la situation complète.", bilan: "Chacun dit ce qu'il a réussi et ce qu'il travaillera la prochaine fois." };
+  }
+  async function demoCreate() {
+    var L = lld(), id = clsId(DEMO), it = { id: id, nom: DEMO, el: DEMO_EL.slice(), st: {}, rm: [], ts: Date.now(), man: 1, demo: 1, off: [] };
+    L.items[id] = it; L.pend[id] = stamp(); L.app[id] = JSON.stringify(it); lsv(L);
+    try { localStorage.setItem("eps.demo.v1", JSON.stringify({ t: Date.now() })); } catch (e) {}
+    var at = Date.now() + 2 * 60000, today = new Date(), dk = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
+    Object.keys(DEMO_APPS).forEach(function (a) {
+      stPutRaw("eps.lecons." + a + ".v1", demoLesson(a, DEMO_APPS[a], at));
+      [["Hugo Démo", "Très actif, encourage ses camarades."], ["Inès Démo", "Bonne lecture de la situation, manque de vitesse dans l'exécution."], ["Tom Démo", "S'arrête souvent ; à relancer sur la situation 1."]].forEach(function (x, i) {
+        stPutRaw("eps.obs.v1", { id: "demo-" + a + "-" + i, demo: 1, app: a, cls: DEMO, el: x[0], txt: x[1], raw: x[1], t: Date.now() - (3 - i) * 600000, day: dk }); });
+    });
+    await applyLocal(); setTimeout(sync, 300);
+  }
+  async function demoRemove() {
+    STORES.concat([{ key: "eps.obs.v1" }, { key: KC }]).forEach(function (st) { var V = stLd(st.key), ch = false;
+      Object.keys(V.items).forEach(function (k) { var o = V.items[k]; if (!o || o.del) return;
+        if (o.demo || /^demo-/.test(k) || (o.cls && cmp(o.cls) === cmp(DEMO)) || (o.c && cmp(o.c) === cmp(DEMO))) { V.items[k] = { id: k, del: 1, u: Date.now() }; V.pend[k] = Date.now(); ch = true; } });
+      if (ch) try { localStorage.setItem(st.key, JSON.stringify(V)); } catch (e) {} });
+    for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (!/^eps\.(lecons\.[a-z]+|eval\.[a-z]+)\.v1$/.test(k || "")) continue; var V = stLd(k), ch = false;
+      Object.keys(V.items).forEach(function (id) { var o = V.items[id]; if (o && !o.del && (o.demo || /^demo-/.test(id) || (o.c && cmp(o.c) === cmp(DEMO)))) { V.items[id] = { id: id, del: 1, u: Date.now() }; V.pend[id] = Date.now(); ch = true; } });
+      if (ch) try { localStorage.setItem(k, JSON.stringify(V)); } catch (e) {} }
+    var L = lld(); Object.keys(L.items).forEach(function (k) { var o = L.items[k]; if (o && o.nom && cmp(o.nom) === cmp(DEMO)) { o.demo = 1; L.app[k] = JSON.stringify(o); } }); lsv(L);
+    try { localStorage.removeItem("eps.demo.v1"); } catch (e) {}
+    await deleteList(DEMO);
   }
   /* ================= 🌐 Bilans en ligne (codes personnels, page « Mon bilan ») =================
      Code personnel de 6 caractères par élève (commun à toutes les applis, partagé entre tablettes : eps.codes.v1).

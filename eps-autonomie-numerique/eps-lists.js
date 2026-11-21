@@ -86,7 +86,7 @@
   /* listes communes → données de l'appli (à l'ouverture de l'appli) */
   function apply(app) {
     var A = APPS[app]; if (!A) return false;
-    var v = ld(), its = items(v); if (!its.length) return false;
+    var v = ld(), its = items(v); if (!Object.keys(v.items || {}).length) return false; /* (une liste supprimée doit aussi être retirée, même si c'était la dernière) */
     var d = jget(A.key, null);
     if (d == null) { if (!A.init) d = []; else d = A.init(); }
     var L = A.list(d); if (!Array.isArray(L)) return false;
@@ -95,7 +95,7 @@
     /* liste supprimée, ou classe non attribuée à cette activité : la classe est retirée de l'appli si elle n'y a encore aucune donnée */
     Object.keys(v.items).map(function (k) { return v.items[k]; }).filter(function (o) { return o && o.nom && offFor(o, app); }).forEach(function (o) {
       for (var i = L.length - 1; i >= 0; i--) { var c = L[i]; if (!same(o, c[A.nom])) continue;
-        if (A.data && A.data(c)) continue;
+        if (A.data && A.data(c) && !(o.demo && o.del)) continue; /* la classe de démonstration est retirée même avec des données */
         L.splice(i, 1); ch = true; delete v.snap[app + "|" + norm(c[A.nom])]; vch = true;
         if (d && !Array.isArray(d)) { if (typeof d.cur === "number" && d.cur >= L.length) d.cur = 0; if (d.classeId === c.id && L[0]) d.classeId = L[0].id; } }
     });
