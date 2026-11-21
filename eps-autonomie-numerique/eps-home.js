@@ -612,7 +612,7 @@
   }
   function edtApply() {
     var E = edtActs(); if (!E || !E.moi) return { n: 0, moi: E && E.moi, edt: !!E };
-    var ALL = ["esc", "rel", "ori", "vol", "bad", "dan", "acro"], L = lld(), n = 0;
+    var ALL = ["esc", "rel", "ori", "vol", "bad", "dan", "acro", "ct"], L = lld(), n = 0;
     Object.keys(L.items).forEach(function (k) { var it = L.items[k]; if (!it || it.del || it.man || !it.nom) return;
       var S = {}; Object.keys(E.map).forEach(function (c) { var parts = [c].concat(String(c).split(/[\/+,&]| et /)); if (parts.some(function (p) { return p.trim() && cmp(p) === cmp(it.nom); })) Object.keys(E.map[c]).forEach(function (a) { S[a] = 1; }); });
       if (!Object.keys(S).length) return;
@@ -1000,7 +1000,7 @@
     }
   }
   window.EPSE = { get: eget, set: function (data) { var E = eget(); E.data = data; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); } };
-  var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["badminton", "Badminton"], ["danse", "Danse"], ["co-eval", "CO – Évaluation"]];
+  var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["badminton", "Badminton"], ["danse", "Danse"], ["co-eval", "CO – Évaluation"], ["crosstraining", "Cross-training"]];
   function reglages(msg) {
     var r = rget();
     var chips = function (L, on, attr) { return L.map(function (x) { return '<button type="button" ' + attr + '="' + esc(x[0]) + '" class="' + (on(x[0]) ? "on" : "") + '">' + esc(x[1]) + "</button>"; }).join(""); };
@@ -1715,8 +1715,8 @@
     /* listes de classes communes (eps-lists.js) : chargé ici s'il ne l'est pas déjà par l'appli */
     var goL = function () { setTimeout(function () { collectLists().then(applyLocal).catch(function () {}); }, 600); setInterval(function () { collectLists().catch(function () {}); }, 5000); };
     /* leçons communes (eps-lecons.js) : dans les applis d'activité seulement */
-    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
-    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
     if (window.EPSL) goL(); else { var ls = document.createElement("script"); ls.src = BASE + "eps-lists.js"; ls.onload = goL; document.head.appendChild(ls); }
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);

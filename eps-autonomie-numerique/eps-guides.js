@@ -90,6 +90,12 @@ window.EPS_GUIDES = {
     ["Côté élève", "La classe et la course viennent du QR code de départ ; le coureur suit son parcours, sa trace est envoyée en direct."],
     ["Pose des balises", "Outil enseignant sur iPhone : poser les balises au GPS (photos, Google Maps) et tracer les chemins pour OrienRun."]
   ] },
+  ct: { nom: "Cross-training", items: [
+    ["Vidéos sur le Drive", "Un dossier « Vidéo crosstraining » avec un sous-dossier par exercice (Squat, Burpee…) : N1.mp4, N2.mp4, N3.mp4. Jusqu'à 3 vidéos par niveau : N2.mp4, N2-2.mp4, N2-3.mp4 (ou un sous-dossier N2/). Vidéos verticales, moins de 10 Mo."],
+    ["Régler le dossier", "Bibliothèque → 🎬 Vidéos et fiches : colle le lien du dossier, « Enregistrer le dossier » (les vidéos sont partagées par lien), puis « Lire le Drive » : le rapport montre les vidéos trouvées par niveau, les fichiers mal nommés et les dossiers nouveaux (fiche « à compléter », invisible des élèves)."],
+    ["Fiches d'exercice", "20 fiches prêtes : nom culturel et français, 3 niveaux (consigne, Rep, No rep), muscles principaux et secondaires, PASER, sécurité, thèmes, impact. Modifier puis « Publier pour les élèves »."],
+    ["Hors ligne", "Sur chaque tablette, en Wi-Fi : Bibliothèque → « Télécharger ». Les vidéos sont gardées sur la tablette et lues sans réseau."],
+    ["Côté élève", "Choisis ta classe → Bibliothèque (filtres thème, zone du corps) → fiche → « Ajouter à ma leçon ». Ma leçon : thème (Renforcement, Mental, Cardio), format (Circuit, EMOM, AMRAP, For Time, Intervalles), bilan d'équilibre et WOD à enregistrer."]]},
   ccf: { nom: "CCF", items: [
     ["📅 Leçons et observations", "Onglet 📅 Séquence : fiches de leçon (dont la leçon du CCF), programmation pour une classe et 📡 Leçon en cours (messages, minuteur, rangement) comme dans les autres applis. Bouton 🎙 : observations dictées par élève pendant l'épreuve, retrouvées dans 📋 Traces et dans la recherche 🔍."],
     ["Ouvrir le CCF", "Tuile CCF sur l'accueil, puis choisis l'activité (Escalade, Badminton, Cross training). 🔀 Activité dans la barre pour en changer. Les protocoles Bac pro sont recopiés à la lettre ; le Bac général arrivera quand les protocoles seront envoyés."],

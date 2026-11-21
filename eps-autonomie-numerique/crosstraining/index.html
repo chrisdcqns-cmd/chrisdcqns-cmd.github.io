@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script src="../eps-lists.js"></script>
+<script src="../eps-shell.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14171C">
+<title>Cross-training · EPS Autonomie et Numérique</title>
+<style>
+:root{
+  --fond:#F5F3EE; --carte:#fff; --encre:#14171C; --doux:#6A6F78; --ligne:#E6E1D6;
+  --ct:#4D7C0F; --app:#4D7C0F; --ct-clair:#eef5e4; --nuit:#14171C;
+  --R:#2f6fdb; --R-c:#e9f0fd; --M:#8a3fd1; --M-c:#f3eafc; --C:#d93a3a; --C-c:#fdeaea;
+  --ok:#1e8a4c; --ok-c:#e6f5ec; --ko:#c0392b; --ko-c:#fbeae8;
+  --r:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--fond);color:var(--encre);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.app{max-width:620px;margin:0 auto;min-height:100vh;padding-bottom:84px}
+
+/* Bandeau */
+header{position:sticky;top:0;z-index:20;background:#14171C;color:#fff;padding:10px 14px 14px;display:flex;align-items:center;gap:12px;box-shadow:inset 0 -4px 0 var(--app)}
+header .mk{width:36px;height:36px;border-radius:10px;background:var(--app);padding:6px;flex:none}
+header h1{font-size:20px;margin:0;line-height:1.1;font-weight:800}
+header small{display:block;color:#A9AEB8;font-weight:500;font-size:13px}
+header [data-eps-bar]{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+/* Onglets bas */
+nav.onglets{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid var(--ligne);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+nav.onglets .in{display:flex;width:100%;max-width:620px}
+nav.onglets button{flex:1;border:0;background:none;padding:9px 4px 10px;font-size:12px;color:var(--doux);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.onglets button b{font-size:20px;line-height:1}
+nav.onglets button.actif{color:var(--ct);font-weight:700}
+nav.onglets .compteur{background:var(--ct);color:#fff;border-radius:99px;font-size:10px;padding:0 6px;margin-left:2px}
+
+main{padding:14px}
+h2{font-size:20px;margin:6px 0 12px}
+h3{font-size:15px;margin:18px 0 8px}
+.carte{background:var(--carte);border-radius:var(--r);padding:14px;box-shadow:0 1px 0 rgba(0,0,0,.04);border:1px solid var(--ligne);margin-bottom:12px}
+.doux{color:var(--doux)}
+.petit{font-size:13px}
+.ligne{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:700;background:var(--nuit);color:#fff}
+.btn.ct{background:var(--ct)}
+.btn.clair{background:#efece6;color:var(--encre)}
+.btn.contour{background:#fff;border:1.5px solid var(--ligne);color:var(--encre)}
+.btn.danger{background:var(--ko-c);color:var(--ko)}
+.btn.plein{width:100%}
+.btn:disabled{opacity:.45}
+input[type=text],input[type=number],input[type=url],input[type=password],select,textarea{width:100%;border:1.5px solid var(--ligne);border-radius:10px;padding:9px 10px;background:#fff}
+textarea{min-height:58px;resize:vertical}
+label.champ{display:block;font-size:12px;font-weight:700;color:var(--doux);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.3px}
+
+/* Recherche et filtres */
+.recherche{position:relative;margin-bottom:10px}
+.recherche input{padding-left:36px;border-radius:12px;height:44px}
+.recherche span{position:absolute;left:12px;top:11px;color:var(--doux)}
+.filtres{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.filtres::-webkit-scrollbar{display:none}
+.puce{flex:none;border:1.5px solid var(--ligne);background:#fff;border-radius:99px;padding:6px 12px;font-size:13px;font-weight:600;white-space:nowrap}
+.puce.on{background:var(--nuit);border-color:var(--nuit);color:#fff}
+.puce.R.on{background:var(--R);border-color:var(--R)} .puce.M.on{background:var(--M);border-color:var(--M)} .puce.C.on{background:var(--C);border-color:var(--C)}
+
+/* Grille d'exercices */
+.grille{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.ex{background:#fff;border:1px solid var(--ligne);border-radius:var(--r);overflow:hidden;text-align:left;padding:0;display:flex;flex-direction:column}
+.vign{aspect-ratio:3/4;background:#2a2d34 center/cover no-repeat;position:relative;display:grid;place-items:center;color:#fff}
+.vign .sans{font-size:34px;opacity:.5}
+.vign .nbv{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);border-radius:99px;padding:2px 8px;font-size:11px}
+.vign .fam{position:absolute;left:8px;top:8px;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:800;background:#fff;color:var(--nuit)}
+.vign .acomp{position:absolute;right:8px;top:8px;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:800;background:#ffd43b;color:#000}
+.ex .txt{padding:9px 10px 11px}
+.ex .en{font-weight:800;font-size:15px;line-height:1.2}
+.ex .fr{font-size:12px;color:var(--doux)}
+.ex .th{display:flex;gap:4px;margin-top:6px}
+.dot{width:20px;height:20px;border-radius:6px;font-size:11px;font-weight:800;display:grid;place-items:center;color:#fff}
+.dot.R{background:var(--R)} .dot.M{background:var(--M)} .dot.C{background:var(--C)}
+
+/* Fiche */
+.voile{position:fixed;inset:0;background:rgba(10,11,14,.55);z-index:50;display:flex;justify-content:center;align-items:flex-end}
+.feuille{background:var(--fond);width:100%;max-width:620px;max-height:96vh;overflow:auto;border-radius:20px 20px 0 0;padding-bottom:90px;animation:monte .22s ease}
+@keyframes monte{from{transform:translateY(40px);opacity:0}}
+.feuille .tete{position:sticky;top:0;background:var(--fond);z-index:2;padding:14px 14px 8px;display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid var(--ligne)}
+.feuille .tete .t{flex:1}
+.feuille .tete .en{font-size:22px;font-weight:800;line-height:1.1}
+.fermer{border:0;background:#e6e2da;width:36px;height:36px;border-radius:99px;font-size:18px;flex:none}
+.niveaux{display:flex;background:#e9e5de;border-radius:12px;padding:4px;gap:4px;margin:12px 14px 0}
+.niveaux button{flex:1;border:0;background:none;border-radius:9px;padding:8px 4px;font-weight:700;font-size:13px;line-height:1.15}
+.niveaux button small{display:block;font-weight:500;font-size:11px;color:var(--doux)}
+.niveaux button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.corps{padding:12px 14px}
+
+/* Vidéos verticales */
+.carrousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;scrollbar-width:none;margin:0 -14px;padding:0 14px}
+.carrousel::-webkit-scrollbar{display:none}
+.diapo{flex:none;width:min(62vw,300px);aspect-ratio:9/16;border-radius:18px;overflow:hidden;background:#1f2228 center/cover no-repeat;scroll-snap-align:center;position:relative;display:grid;place-items:center;color:#fff;border:0;padding:0}
+.carrousel.seule{justify-content:center}
+.diapo iframe,.diapo video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;object-fit:cover}
+.lecture{width:64px;height:64px;border-radius:99px;background:rgba(232,89,12,.92);display:grid;place-items:center;font-size:26px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.diapo .etq{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.55);border-radius:99px;padding:3px 9px;font-size:12px}
+.diapo.vide{background:repeating-linear-gradient(135deg,#e7e3dc 0 12px,#efebe5 12px 24px);color:var(--doux);font-weight:600;text-align:center;padding:20px}
+.points{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.points i{width:7px;height:7px;border-radius:9px;background:#cfc9bf}
+.points i.on{background:var(--ct);width:18px}
+
+.consigne{font-size:16px;font-weight:600;margin:14px 0 10px}
+.std{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.std div{border-radius:12px;padding:10px;font-size:13px}
+.std b{display:block;font-size:12px;letter-spacing:.3px;margin-bottom:2px}
+.std .rep{background:var(--ok-c);color:#174d2f} .std .rep b{color:var(--ok)}
+.std .norep{background:var(--ko-c);color:#6d2219} .std .norep b{color:var(--ko)}
+.muscles{display:flex;flex-wrap:wrap;gap:6px}
+.m{border-radius:99px;padding:4px 10px;font-size:13px;font-weight:600}
+.m.p{background:var(--nuit);color:#fff}
+.m.s{background:#fff;border:1.5px dashed #b9b3a8;color:var(--encre)}
+.paser{display:grid;gap:6px}
+.paser div{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--ligne);border-radius:12px;padding:8px 10px;font-size:14px}
+.paser b{flex:none;width:28px;height:28px;border-radius:8px;background:var(--ct);color:#fff;display:grid;place-items:center}
+.paser em{font-style:normal;font-weight:700;display:block;font-size:12px;color:var(--doux)}
+.alerte{background:#fff7db;border:1px solid #f2dd8f;border-radius:12px;padding:10px;font-size:14px}
+.barre-action{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:center;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--fond) 30%)}
+.barre-action .in{width:100%;max-width:592px;display:flex;gap:8px}
+.barre-action .btn{flex:1;padding:14px}
+
+/* Ma leçon */
+.themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.theme{border:2px solid var(--ligne);border-radius:14px;background:#fff;padding:10px 8px;text-align:left}
+.theme b{display:block;font-size:15px}
+.theme small{display:block;font-size:11px;color:var(--doux);line-height:1.25}
+.theme .fc{display:inline-block;margin-top:6px;font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px}
+.theme.R .fc{background:var(--R-c);color:var(--R)} .theme.M .fc{background:var(--M-c);color:var(--M)} .theme.C .fc{background:var(--C-c);color:var(--C)}
+.theme.R.on{border-color:var(--R);background:var(--R-c)} .theme.M.on{border-color:var(--M);background:var(--M-c)} .theme.C.on{border-color:var(--C);background:var(--C-c)}
+.formats{display:flex;flex-wrap:wrap;gap:6px}
+.formats .puce small{font-weight:500;opacity:.8}
+.formats .puce.conseil::after{content:" ★";color:#e0a800}
+.params{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:10px}
+.params label{font-size:12px;color:var(--doux);font-weight:700}
+.item{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--ligne);border-radius:14px;padding:8px;margin-bottom:8px}
+.item .mini{width:46px;height:62px;border-radius:9px;background:#2a2d34 center/cover;flex:none;display:grid;place-items:center;color:#fff;font-weight:800}
+.item .nom{flex:1;min-width:0}
+.item .nom b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .nom .ligne{gap:4px;margin-top:4px}
+.niv-mini{display:flex;border:1.5px solid var(--ligne);border-radius:8px;overflow:hidden}
+.niv-mini button{border:0;background:#fff;padding:3px 8px;font-size:12px;font-weight:700}
+.niv-mini button.on{background:var(--nuit);color:#fff}
+.qte{width:64px!important;padding:5px 6px!important;text-align:center;font-weight:700}
+.outils{display:flex;flex-direction:column;gap:4px}
+.outils button{border:0;background:#efece6;border-radius:8px;width:30px;height:26px;font-size:13px}
+.tableau{background:var(--nuit);color:#f5f5f5;border-radius:var(--r);padding:16px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;white-space:pre-wrap;line-height:1.55}
+.tableau .titre{font-family:system-ui;font-weight:800;font-size:18px;color:#ffb38a}
+.bilan{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.bilan div{background:#fff;border:1px solid var(--ligne);border-radius:12px;padding:8px;text-align:center}
+.bilan b{display:block;font-size:20px}
+.bilan .zero{border-color:#f2dd8f;background:#fff7db}
+.conseils li{margin-bottom:4px}
+.vide-lecon{text-align:center;padding:26px 10px;color:var(--doux);border:2px dashed var(--ligne);border-radius:var(--r)}
+
+/* Enseignant */
+.rapport{width:100%;border-collapse:collapse;font-size:13px}
+.rapport th,.rapport td{border-bottom:1px solid var(--ligne);padding:6px 4px;text-align:left}
+.rapport td.c{text-align:center}
+.ok{color:var(--ok);font-weight:800} .ko{color:var(--ko);font-weight:800} .att{color:#b07a00;font-weight:800}
+.liste-ex{display:grid;gap:6px}
+.liste-ex button{display:flex;gap:10px;align-items:center;text-align:left;background:#fff;border:1px solid var(--ligne);border-radius:12px;padding:8px 10px}
+.liste-ex button span{flex:1}
+.muscle-choix{display:flex;flex-wrap:wrap;gap:6px}
+.muscle-choix button{border:1.5px solid var(--ligne);background:#fff;border-radius:99px;padding:5px 10px;font-size:13px;font-weight:600}
+.muscle-choix button.p{background:var(--nuit);border-color:var(--nuit);color:#fff}
+.muscle-choix button.s{border-style:dashed;border-color:#8d877c;background:#f6f3ee}
+.bloc-niv{border:1.5px solid var(--ligne);border-radius:14px;padding:10px;margin-top:10px;background:#fbfaf8}
+.bloc-niv h4{margin:0 0 4px}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--nuit);color:#fff;padding:10px 16px;border-radius:12px;z-index:99;font-weight:600;max-width:90vw;text-align:center}
+.bandeau-maj{background:#fff7db;border-bottom:1px solid #f2dd8f;padding:8px 14px;font-size:13px;display:flex;gap:8px;align-items:center}
+.bandeau-maj button{margin-left:auto}
+.cache{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+<svg class="mk" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="7"/><path d="M12 10v4l2.5 2"/><path d="M9.5 2h5"/><path d="M12 2v5"/><path d="M19 6l1.5-1.5"/></svg>
+    <div><h1>Cross-training<small id="sousTitre">CA5 · S'entraîner</small></h1></div>
+    <span data-eps-bar></span>
+  </header>
+  <div id="bandeau"></div>
+  <main id="vue"></main>
+</div>
+<nav class="onglets"><div class="in" id="onglets"></div></nav>
+<div id="calque"></div>
+
+<script>
+/* ======================= RÉGLAGES DE DÉPLOIEMENT =======================
+   Collez ici l'URL du script Google (…/exec) avant de publier sur GitHub :
+   les téléphones des élèves s'en servent pour lire la bibliothèque.      */
+const CONFIG = { SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzMC68J_J-iKj6mCi9sIkxYTQoW8w5Qsool00ng1mwwRN4BVOAu9l0FN8_pVSPp0oh1lQ/exec" }; // script commun par défaut
+
+/* ===== Bibliothèque par défaut : 20 exercices sans matériel × 3 niveaux =====
+   famille : G = gymnastique (poids du corps, force) · M = métabolique (cardio)
+   mesure  : reps | temps (secondes) | distance (allers-retours)
+   impact  : faible | moyen | fort (sauts, bruit, articulations)
+   themes  : R = Renforcement · M = Mental · C = Cardio
+   dossier : nom du sous-dossier Drive (ex. « Squat » → Squat/N1.mp4)          */
+const BIBLIO_DEFAUT = {
+version: 1,
+exercices: [
+{ id:"squat", dossier:"Squat", en:"Air squat", fr:"Squat au poids du corps", famille:"G", mesure:"reps", qte:15, impact:"faible", themes:["R","M","C"], echauffement:true,
+  prim:["Quadriceps","Fessiers"], sec:["Ischio-jambiers","Adducteurs","Lombaires"],
+  paser:{P:"Pieds largeur d'épaules, pointes légèrement ouvertes.",A:"Pli de hanche sous le haut du genou.",S:"Genoux dans l'axe des pieds, poids réparti sur tout le pied.",E:"Souffler en remontant.",R:"Descente contrôlée (2 s), remontée dynamique."},
+  secu:"Dos neutre, talons au sol, genoux qui ne rentrent pas vers l'intérieur.",
+  niveaux:[
+   {nom:"Demi-squat",consigne:"Descendre jusqu'à mi-chemin, cuisses à 45°, bras tendus devant.",rep:"Cuisses à 45° puis hanches et genoux tendus en haut.",norep:"Talons décollés, dos arrondi, pas d'extension en haut."},
+   {nom:"Air squat",consigne:"Descendre fesses en arrière jusqu'à passer sous le genou, puis se relever complètement.",rep:"Pli de hanche sous le haut du genou ET hanches + genoux tendus en haut.",norep:"Profondeur insuffisante, talons décollés, pas d'extension complète."},
+   {nom:"Squat sauté",consigne:"Air squat complet puis saut, réception amortie pieds à plat.",rep:"Profondeur du squat + les deux pieds quittent le sol.",norep:"Réception jambes tendues ou bruyante, squat trop haut."}]},
+
+{ id:"fente", dossier:"Fente", en:"Lunge", fr:"Fente", famille:"G", mesure:"reps", qte:12, impact:"faible", themes:["R","M"],
+  prim:["Quadriceps","Fessiers"], sec:["Ischio-jambiers","Adducteurs","Transverse"],
+  paser:{P:"Grand pas, buste droit, mains sur les hanches.",A:"Genou arrière qui effleure le sol.",S:"Alterner les jambes, même amplitude des deux côtés.",E:"Souffler en remontant.",R:"Descente lente, remontée en poussant sur le talon avant."},
+  secu:"Genou avant au-dessus de la cheville, sans rentrer vers l'intérieur.",
+  niveaux:[
+   {nom:"Fente statique",consigne:"Pieds fixes en position de fente, descendre et remonter sur place.",rep:"Genou arrière proche du sol puis jambes tendues.",norep:"Genou arrière trop haut, buste penché en avant."},
+   {nom:"Fente alternée",consigne:"Pas en avant, descendre, revenir debout, changer de jambe.",rep:"Genou arrière effleure le sol ET retour pieds joints debout.",norep:"Genou ne descend pas, genou avant qui rentre."},
+   {nom:"Fente sautée",consigne:"En fente, sauter et changer de jambe en l'air.",rep:"Genou arrière proche du sol + changement de jambe en l'air.",norep:"Amplitude réduite, réception déséquilibrée."}]},
+
+{ id:"pompe", dossier:"Pompe", en:"Push-up", fr:"Pompe", famille:"G", mesure:"reps", qte:10, impact:"faible", themes:["R","M"],
+  prim:["Pectoraux","Triceps"], sec:["Épaules","Transverse","Abdominaux"],
+  paser:{P:"Mains un peu plus larges que les épaules, doigts vers l'avant.",A:"Poitrine au sol, bras tendus en haut.",S:"Coudes à 45° du corps, des deux côtés pareil.",E:"Souffler en poussant.",R:"Descente 2 s, poussée dynamique."},
+  secu:"Corps gainé en planche : ni bassin qui tombe, ni fesses en l'air.",
+  niveaux:[
+   {nom:"Pompe sur les genoux",consigne:"Genoux au sol, alignement genoux-hanches-épaules.",rep:"Poitrine proche du sol puis bras tendus, corps aligné.",norep:"Seule la tête descend, bassin cassé."},
+   {nom:"Pompe",consigne:"Sur les pieds, corps gainé de la tête aux talons.",rep:"Poitrine touche le sol ET bras tendus en haut.",norep:"Amplitude incomplète, bassin qui tombe ou se lève."},
+   {nom:"Pompe explosive",consigne:"Pousser assez fort pour que les mains quittent le sol.",rep:"Poitrine au sol + mains décollées en haut.",norep:"Mains qui ne décollent pas, réception bras tendus."}]},
+
+{ id:"situp", dossier:"Sit-up", en:"Sit-up", fr:"Relevé de buste", famille:"G", mesure:"reps", qte:15, impact:"faible", themes:["R","M"],
+  prim:["Abdominaux","Fléchisseurs de hanche"], sec:["Obliques"],
+  paser:{P:"Dos au sol, pieds à plat ou plante contre plante.",A:"Épaules au sol en bas, mains devant les pieds en haut.",S:"Monter droit, sans tourner.",E:"Souffler en montant.",R:"Montée dynamique, descente freinée."},
+  secu:"Ne pas tirer sur la nuque avec les mains.",
+  niveaux:[
+   {nom:"Crunch",consigne:"Décoller seulement les épaules, bas du dos au sol.",rep:"Omoplates décollées puis reposées.",norep:"Tirage sur la nuque, épaules qui ne décollent pas."},
+   {nom:"Sit-up",consigne:"Dérouler jusqu'à s'asseoir, toucher devant les pieds.",rep:"Épaules touchent le sol ET mains touchent devant les pieds.",norep:"Épaules pas au sol, mains qui n'atteignent pas les pieds."},
+   {nom:"V-up",consigne:"Bras et jambes tendus se rejoignent au-dessus des hanches.",rep:"Mains touchent les pieds, bras et jambes tendus.",norep:"Jambes très fléchies, mains loin des pieds."}]},
+
+{ id:"planche", dossier:"Planche", en:"Plank", fr:"Gainage ventral", famille:"G", mesure:"temps", qte:30, impact:"faible", themes:["R","M"],
+  prim:["Transverse","Abdominaux"], sec:["Épaules","Fessiers"],
+  paser:{P:"Coudes sous les épaules, regard vers le sol.",A:"Corps aligné tête-épaules-hanches-chevilles.",S:"Poids réparti sur les deux bras.",E:"Respirer calmement, ne pas bloquer.",R:"Tenir sans bouger."},
+  secu:"Arrêter si douleur dans le bas du dos.",
+  niveaux:[
+   {nom:"Planche sur les genoux",consigne:"Avant-bras et genoux au sol, corps aligné.",rep:"Alignement genoux-hanches-épaules tenu.",norep:"Fesses en l'air ou bassin creusé → chrono arrêté."},
+   {nom:"Planche sur les avant-bras",consigne:"Avant-bras et pointes de pieds, corps gainé.",rep:"Alignement tenu pendant toute la durée.",norep:"Bassin qui tombe ou monte → chrono arrêté."},
+   {nom:"Planche + levée de jambe",consigne:"En planche, lever une jambe tendue 2 s, alterner.",rep:"Bassin immobile pendant la levée.",norep:"Bassin qui tourne ou se creuse."}]},
+
+{ id:"hollow", dossier:"Hollow", en:"Hollow", fr:"Gainage creux", famille:"G", mesure:"temps", qte:20, impact:"faible", themes:["R","M"],
+  prim:["Abdominaux","Transverse"], sec:["Fléchisseurs de hanche"],
+  paser:{P:"Allongé sur le dos, bras le long des oreilles.",A:"Épaules et jambes décollées.",S:"Corps en forme de banane, symétrique.",E:"Respirer court, sans bloquer.",R:"Tenir, ou balancer régulièrement (N3)."},
+  secu:"Le bas du dos reste plaqué au sol : sinon, revenir au niveau inférieur.",
+  niveaux:[
+   {nom:"Tuck hold",consigne:"Genoux pliés vers la poitrine, épaules décollées.",rep:"Lombaires au sol, épaules décollées.",norep:"Bas du dos qui se décolle."},
+   {nom:"Hollow hold",consigne:"Bras et jambes tendus, décollés du sol.",rep:"Lombaires au sol, bras et jambes décollés.",norep:"Bas du dos décollé, pieds au sol."},
+   {nom:"Hollow rock",consigne:"En position hollow, se balancer d'avant en arrière.",rep:"Forme gardée pendant tout le balancement.",norep:"Le corps se casse, jambes qui retombent."}]},
+
+{ id:"superman", dossier:"Superman", en:"Superman", fr:"Gainage dorsal", famille:"G", mesure:"reps", qte:12, impact:"faible", themes:["R"],
+  prim:["Lombaires","Fessiers"], sec:["Dorsaux","Épaules","Ischio-jambiers"],
+  paser:{P:"Allongé sur le ventre, bras devant.",A:"Bras et jambes décollés de quelques centimètres.",S:"Lever les deux côtés à la même hauteur.",E:"Souffler en montant.",R:"Maintien 2 s en haut."},
+  secu:"Regard vers le sol, nuque dans l'axe : ne pas relever la tête.",
+  niveaux:[
+   {nom:"Superman alterné",consigne:"Lever un bras et la jambe opposée, alterner.",rep:"Bras et jambe opposés décollés 2 s.",norep:"Tête relevée, membre qui ne décolle pas."},
+   {nom:"Superman",consigne:"Lever bras et jambes en même temps, tenir 2 s.",rep:"Bras, buste et jambes décollés 2 s.",norep:"Pieds au sol, nuque en arrière."},
+   {nom:"Superman nageur",consigne:"En position haute, battements bras et jambes comme en crawl.",rep:"Position haute tenue pendant les battements.",norep:"Retombée au sol pendant la série."}]},
+
+{ id:"pont", dossier:"Pont fessier", en:"Glute bridge", fr:"Pont fessier", famille:"G", mesure:"reps", qte:15, impact:"faible", themes:["R"],
+  prim:["Fessiers","Ischio-jambiers"], sec:["Lombaires","Transverse"],
+  paser:{P:"Dos au sol, pieds à plat près des fesses.",A:"Hanches montées jusqu'à l'alignement.",S:"Bassin horizontal, genoux écartés largeur de hanches.",E:"Souffler en montant.",R:"Montée dynamique, 1 s en haut, descente lente."},
+  secu:"Serrer les fessiers en haut, sans cambrer le bas du dos.",
+  niveaux:[
+   {nom:"Pont fessier",consigne:"Monter les hanches, redescendre sans poser.",rep:"Épaules-hanches-genoux alignés en haut.",norep:"Hanches trop basses, dos cambré."},
+   {nom:"Pont fessier tenu",consigne:"Monter, tenir 3 s en haut, redescendre.",rep:"Alignement tenu 3 s.",norep:"Hanches qui retombent pendant le maintien."},
+   {nom:"Pont sur une jambe",consigne:"Une jambe tendue en l'air, monter sur l'autre.",rep:"Alignement + bassin qui ne bascule pas.",norep:"Bassin qui penche d'un côté."}]},
+
+{ id:"chaise", dossier:"Chaise", en:"Wall sit", fr:"Chaise", famille:"G", mesure:"temps", qte:30, impact:"faible", themes:["R","M"],
+  prim:["Quadriceps"], sec:["Fessiers","Adducteurs"],
+  paser:{P:"Dos plaqué au mur, pieds largeur de hanches.",A:"Cuisses horizontales (N2).",S:"Poids égal sur les deux pieds.",E:"Respirer régulièrement.",R:"Tenir sans bouger."},
+  secu:"Genoux au-dessus des chevilles, pas en avant des orteils.",
+  niveaux:[
+   {nom:"Chaise haute",consigne:"Dos au mur, genoux pliés à environ 120°.",rep:"Position tenue, dos au mur.",norep:"Mains sur les cuisses, remontée."},
+   {nom:"Chaise",consigne:"Cuisses horizontales, genoux à 90°.",rep:"Angle de 90° tenu.",norep:"Hanches qui remontent, mains en appui."},
+   {nom:"Chaise sur une jambe",consigne:"Chaise à 90°, une jambe tendue devant, alterner toutes les 10 s.",rep:"90° tenu sur une jambe.",norep:"Pied qui se repose, angle qui s'ouvre."}]},
+
+{ id:"ours", dossier:"Bear crawl", en:"Bear crawl", fr:"Marche de l'ours", famille:"G", mesure:"distance", qte:2, impact:"faible", themes:["R","M","C"],
+  prim:["Épaules","Transverse"], sec:["Quadriceps","Triceps","Abdominaux"],
+  paser:{P:"Mains sous les épaules, genoux sous les hanches.",A:"Genoux à quelques centimètres du sol.",S:"Main et pied opposés avancent ensemble.",E:"Respirer régulièrement.",R:"Petits pas, sans précipitation."},
+  secu:"Dos plat comme une table, regard vers le sol.",
+  niveaux:[
+   {nom:"Bear hold",consigne:"Position de l'ours sur place, genoux décollés.",rep:"Genoux décollés, dos plat, tenu.",norep:"Genoux qui touchent, fesses en l'air."},
+   {nom:"Bear crawl",consigne:"Avancer à quatre pattes genoux décollés (aller-retour).",rep:"Genoux ne touchent jamais le sol.",norep:"Genou au sol, fesses très hautes."},
+   {nom:"Bear crawl multidirectionnel",consigne:"Avant, arrière puis côté sur le même trajet.",rep:"Dos plat dans les trois directions.",norep:"Hanches qui balancent, genoux au sol."}]},
+
+{ id:"shouldertap", dossier:"Shoulder tap", en:"Shoulder tap", fr:"Toucher d'épaule", famille:"G", mesure:"reps", qte:16, impact:"faible", themes:["R","M"],
+  prim:["Transverse","Épaules"], sec:["Obliques","Pectoraux","Triceps"],
+  paser:{P:"Planche haute, mains sous les épaules.",A:"La main touche l'épaule opposée.",S:"Alterner gauche/droite.",E:"Respirer à chaque touche.",R:"Lent et contrôlé."},
+  secu:"Le bassin ne tourne pas : écarter les pieds si besoin.",
+  niveaux:[
+   {nom:"Sur les genoux",consigne:"Planche haute sur les genoux, toucher l'épaule opposée.",rep:"Touche nette, bassin stable.",norep:"Bassin qui tourne fortement."},
+   {nom:"Shoulder tap",consigne:"Planche haute sur les pieds, pieds écartés.",rep:"Touche + bassin immobile.",norep:"Bassin qui roule, fesses en l'air."},
+   {nom:"Pieds serrés",consigne:"Planche haute pieds joints (plus instable).",rep:"Touche + bassin immobile.",norep:"Bassin qui roule, pieds qui s'écartent."}]},
+
+{ id:"chenille", dossier:"Inchworm", en:"Inchworm", fr:"Chenille", famille:"G", mesure:"reps", qte:6, impact:"faible", themes:["R","M"], echauffement:true,
+  prim:["Épaules","Transverse"], sec:["Ischio-jambiers","Triceps","Pectoraux"],
+  paser:{P:"Debout, pieds largeur de hanches.",A:"Mains jusqu'en planche haute.",S:"Avancer une main puis l'autre.",E:"Souffler en avançant les mains.",R:"Régulier, sans à-coups."},
+  secu:"Plier les genoux si l'arrière des cuisses tire trop.",
+  niveaux:[
+   {nom:"Chenille genoux pliés",consigne:"Poser les mains genoux pliés, marcher jusqu'en planche, revenir.",rep:"Planche haute atteinte puis retour debout.",norep:"Planche non atteinte, bassin qui tombe."},
+   {nom:"Inchworm",consigne:"Jambes tendues, marcher avec les mains jusqu'en planche, revenir.",rep:"Planche haute alignée puis retour debout.",norep:"Planche non atteinte, retour non complet."},
+   {nom:"Inchworm + pompe",consigne:"Ajouter une pompe complète en planche.",rep:"Planche + pompe valide + retour debout.",norep:"Pompe incomplète."}]},
+
+{ id:"russiantwist", dossier:"Russian twist", en:"Russian twist", fr:"Rotation russe", famille:"G", mesure:"reps", qte:20, impact:"faible", themes:["R","M"],
+  prim:["Obliques"], sec:["Abdominaux","Fléchisseurs de hanche"],
+  paser:{P:"Assis, buste incliné en arrière, dos droit.",A:"Les mains touchent le sol de chaque côté.",S:"Même amplitude à gauche et à droite.",E:"Souffler à chaque rotation.",R:"Régulier."},
+  secu:"Dos droit, pas arrondi ; les épaules tournent, pas seulement les bras.",
+  niveaux:[
+   {nom:"Pieds au sol",consigne:"Talons posés, tourner les épaules de chaque côté.",rep:"Mains au sol de chaque côté.",norep:"Seuls les bras bougent."},
+   {nom:"Russian twist",consigne:"Pieds décollés du sol, tourner de chaque côté.",rep:"Pieds décollés + mains au sol de chaque côté.",norep:"Pieds qui se posent, dos arrondi."},
+   {nom:"Russian twist jambes tendues",consigne:"Pieds décollés, jambes presque tendues, rotation large.",rep:"Jambes décollées et tendues + touches.",norep:"Jambes qui retombent."}]},
+
+{ id:"jumpingjack", dossier:"Jumping jack", en:"Jumping jack", fr:"Jumping jack", famille:"M", mesure:"reps", qte:30, impact:"moyen", themes:["C","M"], echauffement:true,
+  prim:["Mollets","Épaules"], sec:["Adducteurs","Fessiers"],
+  paser:{P:"Debout, pieds joints, bras le long du corps.",A:"Mains au-dessus de la tête, pieds écartés.",S:"Bras et jambes ensemble.",E:"Respirer en rythme.",R:"Rapide et régulier."},
+  secu:"Atterrir sur l'avant du pied, genoux souples.",
+  niveaux:[
+   {nom:"Step jack",consigne:"Sans saut : un pied sur le côté en levant les bras, alterner.",rep:"Bras au-dessus de la tête, pied écarté.",norep:"Bras sous les épaules."},
+   {nom:"Jumping jack",consigne:"Sauter pieds écartés en levant les bras, revenir.",rep:"Mains au-dessus de la tête ET pieds écartés puis rassemblés.",norep:"Bras à mi-hauteur, pieds qui ne se rassemblent pas."},
+   {nom:"Star jump",consigne:"Depuis un demi-squat, saut en étoile bras et jambes écartés.",rep:"Corps en étoile en l'air, réception amortie.",norep:"Pas d'écart en l'air, réception jambes tendues."}]},
+
+{ id:"grimpeur", dossier:"Mountain climber", en:"Mountain climber", fr:"Grimpeur", famille:"M", mesure:"reps", qte:20, impact:"moyen", themes:["C","M"],
+  prim:["Transverse","Fléchisseurs de hanche"], sec:["Épaules","Quadriceps"],
+  paser:{P:"Planche haute, mains sous les épaules.",A:"Le genou vient sous la poitrine.",S:"Alterner gauche/droite.",E:"Respiration rapide et régulière.",R:"Le plus rapide possible en gardant le bassin bas."},
+  secu:"Bassin bas, épaules au-dessus des mains. 1 répétition = gauche + droite.",
+  niveaux:[
+   {nom:"Grimpeur en pas",consigne:"Sans saut : amener un genou puis l'autre, lentement.",rep:"Genou sous la poitrine, bassin bas.",norep:"Fesses en l'air, genou qui n'avance pas."},
+   {nom:"Mountain climber",consigne:"Alterner les genoux vers la poitrine rapidement.",rep:"Genou sous la hanche à chaque pas.",norep:"Petits mouvements, fesses en l'air."},
+   {nom:"Cross-body",consigne:"Genou vers le coude opposé, rapidement.",rep:"Genou qui croise sous le corps.",norep:"Genou qui reste dans l'axe, bassin qui monte."}]},
+
+{ id:"burpee", dossier:"Burpee", en:"Burpee", fr:"Burpee", famille:"M", mesure:"reps", qte:10, impact:"fort", themes:["C","M"],
+  prim:["Pectoraux","Quadriceps"], sec:["Épaules","Triceps","Fessiers","Transverse"],
+  paser:{P:"Mains à plat largeur d'épaules.",A:"Poitrine au sol, puis corps tendu en l'air.",S:"Pieds qui partent et reviennent ensemble.",E:"Souffler en remontant.",R:"Enchaîner sans pause."},
+  secu:"Poser les mains avant de jeter les pieds ; réception amortie.",
+  niveaux:[
+   {nom:"Burpee sans pompe ni saut",consigne:"Mains au sol, pieds en arrière en pas, revenir, se lever.",rep:"Planche haute puis debout bras en haut.",norep:"Planche non atteinte, pas de retour debout."},
+   {nom:"Burpee",consigne:"Poitrine et cuisses au sol, se relever, sauter mains au-dessus de la tête.",rep:"Poitrine au sol ET saut avec claquement des mains au-dessus de la tête.",norep:"Poitrine qui ne touche pas, pas d'extension en haut."},
+   {nom:"Burpee + saut groupé",consigne:"Burpee complet terminé par un saut genoux à la poitrine.",rep:"Poitrine au sol + genoux à hauteur de hanche en l'air.",norep:"Genoux bas, poitrine pas au sol."}]},
+
+{ id:"montees", dossier:"High knees", en:"High knees", fr:"Montées de genoux", famille:"M", mesure:"reps", qte:30, impact:"moyen", themes:["C"], echauffement:true,
+  prim:["Fléchisseurs de hanche","Mollets"], sec:["Quadriceps","Abdominaux"],
+  paser:{P:"Debout, buste droit.",A:"Genou à hauteur de hanche.",S:"Alterner, bras opposés qui accompagnent.",E:"Respiration rapide.",R:"Le plus vite possible."},
+  secu:"Sur l'avant du pied, buste droit sans se pencher en arrière.",
+  niveaux:[
+   {nom:"Marche genoux hauts",consigne:"Marcher sur place en montant les genoux.",rep:"Genou à hauteur de hanche.",norep:"Genou sous la hanche."},
+   {nom:"High knees",consigne:"Courir sur place en montant les genoux.",rep:"Chaque genou à hauteur de hanche.",norep:"Genoux bas, buste penché en arrière."},
+   {nom:"High knees sprint",consigne:"Fréquence maximale, bras actifs.",rep:"Hauteur gardée à fréquence maximale.",norep:"La fréquence monte mais les genoux baissent."}]},
+
+{ id:"navette", dossier:"Shuttle run", en:"Shuttle run", fr:"Course navette", famille:"M", mesure:"distance", qte:4, impact:"moyen", themes:["C","M"],
+  prim:["Quadriceps","Mollets"], sec:["Fessiers","Ischio-jambiers"],
+  paser:{P:"Départ derrière la ligne.",A:"Toucher au-delà de la ligne à chaque demi-tour.",S:"Changer de pied d'appui au demi-tour.",E:"Respirer en rythme.",R:"Accélérer, freiner, repartir."},
+  secu:"Freiner en abaissant le centre de gravité ; zone dégagée.",
+  niveaux:[
+   {nom:"Navette en footing",consigne:"Allers-retours en courant léger entre deux lignes.",rep:"Pied au-delà de la ligne.",norep:"Demi-tour avant la ligne."},
+   {nom:"Shuttle run",consigne:"Allers-retours rapides, toucher la ligne avec la main.",rep:"Main au-delà de la ligne.",norep:"Main qui ne touche pas."},
+   {nom:"Navette départ couché",consigne:"Départ allongé ventre au sol, puis navette rapide.",rep:"Poitrine au sol au départ + main au-delà de la ligne.",norep:"Départ non allongé, ligne non touchée."}]},
+
+{ id:"patineur", dossier:"Skater", en:"Skater", fr:"Pas du patineur", famille:"M", mesure:"reps", qte:20, impact:"moyen", themes:["C","M"],
+  prim:["Fessiers","Quadriceps"], sec:["Adducteurs","Mollets","Obliques"],
+  paser:{P:"Demi-flexion, buste légèrement penché.",A:"Bond latéral le plus large possible.",S:"Même distance des deux côtés.",E:"Souffler à la réception.",R:"Bond, stabilisation, bond."},
+  secu:"Réception amortie, genou dans l'axe du pied.",
+  niveaux:[
+   {nom:"Pas du patineur sans saut",consigne:"Grand pas latéral, la jambe libre croise derrière.",rep:"Pas large, équilibre sur une jambe.",norep:"Pied libre qui se pose."},
+   {nom:"Skater",consigne:"Bond latéral d'une jambe sur l'autre.",rep:"Réception stabilisée sur une jambe.",norep:"Pied libre qui touche, déséquilibre."},
+   {nom:"Skater tenu",consigne:"Bond le plus large, tenir 1 s en équilibre à chaque réception.",rep:"Grande amplitude + 1 s d'équilibre.",norep:"Réception instable, pas de maintien."}]},
+
+{ id:"saut", dossier:"Broad jump", en:"Broad jump", fr:"Saut en longueur sans élan", famille:"M", mesure:"reps", qte:6, impact:"fort", themes:["C","M"],
+  prim:["Quadriceps","Fessiers"], sec:["Mollets","Ischio-jambiers","Lombaires"],
+  paser:{P:"Pieds largeur de hanches derrière la ligne.",A:"Bras qui balancent, extension complète en l'air.",S:"Décollage et réception pieds joints.",E:"Souffler à l'impulsion.",R:"Se stabiliser avant le saut suivant."},
+  secu:"Réception genoux fléchis, pieds à plat, genoux dans l'axe.",
+  niveaux:[
+   {nom:"Petit bond pieds joints",consigne:"Petit saut vers l'avant, réception stabilisée.",rep:"Décollage et réception pieds joints, stable.",norep:"Pas de rattrapage, pieds décalés."},
+   {nom:"Broad jump",consigne:"Saut le plus loin possible pieds joints.",rep:"Pieds joints + réception tenue 1 s.",norep:"Un pied part avant l'autre, chute vers l'avant."},
+   {nom:"Broad jump enchaînés",consigne:"Trois sauts enchaînés sans arrêt.",rep:"Trois réceptions pieds joints maîtrisées.",norep:"Arrêt entre les sauts, réception jambes tendues."}]}
+]};
+
+/* Zones pour l'équilibre d'une leçon */
+const ZONES = {
+  "Jambes":["Quadriceps","Fessiers","Ischio-jambiers","Mollets","Adducteurs"],
+  "Haut du corps":["Pectoraux","Épaules","Triceps","Dorsaux"],
+  "Tronc":["Abdominaux","Obliques","Transverse","Lombaires","Fléchisseurs de hanche"]
+};
+const MUSCLES = [].concat(...Object.values(ZONES));
+
+
+const THEMES = {
+  R:{nom:"Renforcement", accroche:"Je renforce mes muscles", fc:"60-70 % FCM", indic:"Ressenti musculaire",
+     formats:["circuit","emom"], repere:"12 à 15 répétitions, récupération de 30 s maximum"},
+  M:{nom:"Mental", accroche:"Je me dépasse et je tiens", fc:"70-80 % FCM", indic:"Tenir l'allure fixée",
+     formats:["amrap","fortime"], repere:"AMRAP à allure imposée (score cible) ou For Time avec time cap"},
+  C:{nom:"Cardio", accroche:"Je développe mon souffle", fc:"80-90 % FCM", indic:"FC relevée en fin de bloc",
+     formats:["intervalles","emom","e2mom"], repere:"Intervalles 30/30 ou 40/20, EMOM, E2MOM"}
+};
+const FORMATS = {
+  circuit:    {nom:"Circuit", fr:"atelier après atelier", p:[["tours","Tours",3],["recupEx","Récup entre exercices (s)",30],["recupTour","Récup entre tours (s)",90]]},
+  emom:       {nom:"EMOM", fr:"chaque minute", p:[["minutes","Durée (min)",12]]},
+  e2mom:      {nom:"E2MOM", fr:"toutes les 2 min", p:[["minutes","Durée (min)",16]]},
+  amrap:      {nom:"AMRAP", fr:"max de tours", p:[["minutes","Durée (min)",12],["cible","Score cible (tours)",4]]},
+  fortime:    {nom:"For Time", fr:"le plus vite", p:[["tours","Tours",3],["cap","Time cap (min)",15]]},
+  intervalles:{nom:"Intervalles", fr:"travail / repos", p:[["travail","Travail (s)",40],["repos","Repos (s)",20],["tours","Tours",3]]}
+};
+const MESURE = {reps:"rép.", temps:"s", distance:"A/R"};
+const FAMILLE = {G:"Gymnastique · poids du corps", M:"Métabolique · cardio"};
+
+/* ======================= ÉTAT ======================= */
+const LS = {
+  get(k,d){ try{ const v=localStorage.getItem("ct_"+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem("ct_"+k, JSON.stringify(v)); }catch(e){} }
+};
+const S = {
+  onglet:"biblio", get prof(){ return estProf(); }, classe: sessionStorage.getItem("ct_classe")||"",
+  fiches: LS.get("fiches", null) || JSON.parse(JSON.stringify(BIBLIO_DEFAUT)),
+  drive: LS.get("drive", null),
+  nonPublie: LS.get("nonPublie", false),
+  reglages: LS.get("reglages", {scriptUrl:"", cle:"", dossier:""}),
+  lecons: LS.get("lecons", []),
+  lecon: LS.get("lecon", null),
+  filtre:{q:"", theme:"", zone:"", famille:""},
+  rapport:null
+};
+if(!S.lecon) S.lecon = nouvelleLecon();
+function estProf(){ if(window.EPS_VUE_ELEVE) return false; try{ return Date.now() < +(localStorage.getItem("eps.teach.until")||0); }catch(e){ return false; } }
+function partage(){ try{ return JSON.parse(localStorage.getItem("eps.share.v1")||"{}")||{}; }catch(e){ return {}; } }
+function classesCT(){ try{ return (window.EPSL?EPSL.items():[]).filter(it=>it&&it.nom&&!it.del&&!it.demo&&!(it.off||[]).includes("ct")); }catch(e){ return []; } }
+function nouvelleLecon(){ return {id:Date.now().toString(36), titre:"", theme:"R", format:"circuit", params:{}, items:[]}; }
+function sauver(){ LS.set("fiches",S.fiches); LS.set("drive",S.drive); LS.set("nonPublie",S.nonPublie);
+  LS.set("reglages",S.reglages); LS.set("lecons",S.lecons); LS.set("lecon",S.lecon); }
+const urlScript = () => (partage().url || CONFIG.SCRIPT_URL || "").trim();
+
+/* ======================= OUTILS ======================= */
+const h = s => String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+const $ = s => document.querySelector(s);
+function toast(t){ const d=document.createElement("div"); d.className="toast"; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),2600); }
+const exParId = id => S.fiches.exercices.find(e=>e.id===id);
+const visibleEleve = e => !e.aCompleter;
+
+/* ======================= VIDÉOS DU DRIVE ======================= */
+/* Nom de fichier → niveau et ordre.
+   N1.mp4 · N1-2.mp4 · N1_3.mp4 · N1b.mp4 · N1 (2).mp4 · N2/vue-face.mp4 (sous-dossier par niveau) */
+function lireNomVideo(nom){
+  let m = nom.match(/^n\s?([123])\/(.+)$/i);
+  if(m) return {niv:+m[1], cle:m[2].toLowerCase()};
+  m = nom.match(/^n\s?([123])\s*(?:[-_ .]?\s*([1-9a-c])|\(\s*(\d)\s*\))?\s*\.[a-z0-9]+$/i);
+  if(!m) return null;
+  const o = m[2]||m[3]||"1";
+  return {niv:+m[1], cle: isNaN(o) ? String("abc".indexOf(o.toLowerCase())+1) : o};
+}
+let INDEX = {};           // id d'exercice → [[vidéos N1],[N2],[N3]]
+function indexerDrive(){
+  INDEX = {}; const rap = {lignes:[], nouveaux:[], ignores:[], nonPartages:[], sansDossier:[], tropNombreuses:[]};
+  if(!S.drive || !S.drive.dossiers){ S.rapport=null; return; }
+  const parCle = {};
+  S.fiches.exercices.forEach(e=>[e.dossier,e.en,e.fr,e.id].forEach(k=>{ if(k) parCle[norm(k)] ??= e; }));
+  for(const d of S.drive.dossiers){
+    let ex = parCle[norm(d.nom)];
+    if(!ex){
+      ex = {id:"x"+norm(d.nom).slice(0,24)+Math.random().toString(36).slice(2,5), dossier:d.nom, en:d.nom, fr:"", famille:"G", mesure:"reps", qte:10, impact:"faible",
+            themes:["R"], prim:[], sec:[], paser:{P:"",A:"",S:"",E:"",R:""}, secu:"", aCompleter:true,
+            niveaux:[1,2,3].map(()=>({nom:"",consigne:"",rep:"",norep:""}))};
+      S.fiches.exercices.push(ex); parCle[norm(d.nom)] = ex; S.nonPublie = true; rap.nouveaux.push(d.nom);
+    }
+    const niv = [[],[],[]];
+    for(const f of d.fichiers){
+      const l = lireNomVideo(f.nom);
+      if(!l){ rap.ignores.push(d.nom+"/"+f.nom); continue; }
+      niv[l.niv-1].push({id:f.id, nom:f.nom, cle:l.cle});
+      if(f.partage && !/ANYONE/.test(f.partage)) rap.nonPartages.push(d.nom+"/"+f.nom);
+    }
+    niv.forEach((t,i)=>{ t.sort((a,b)=>a.cle.localeCompare(b.cle,undefined,{numeric:true}));
+      if(t.length>3){ rap.tropNombreuses.push(`${d.nom} N${i+1}`); t.length=3; } });
+    INDEX[ex.id] = niv;
+    rap.lignes.push({nom:d.nom, ex, n:niv.map(t=>t.length)});
+  }
+  rap.sansDossier = S.fiches.exercices.filter(e=>!INDEX[e.id]).map(e=>e.en);
+  S.rapport = rap;
+}
+const videos = (ex,n) => (INDEX[ex.id]||[[],[],[]])[n-1] || [];
+const nbVideos = ex => (INDEX[ex.id]||[]).reduce((a,t)=>a+t.length,0);
+const vignette = v => v.url ? "" : `https://drive.google.com/thumbnail?id=${encodeURIComponent(v.id)}&sz=w480`;
+function vignetteEx(ex){ for(const n of [2,1,3]){ const v=videos(ex,n)[0]; if(v) return vignette(v); } return ""; }
+
+/* ======================= HORS LIGNE : vidéos stockées sur la tablette ======================= */
+const HL = {
+  db:null,
+  ouvrir(){ return this.db || (this.db = new Promise((ok,ko)=>{ const r=indexedDB.open("ct_videos",1);
+    r.onupgradeneeded=()=>r.result.createObjectStore("v"); r.onsuccess=()=>ok(r.result); r.onerror=()=>ko(r.error); })); },
+  async op(mode, f){ const db=await this.ouvrir(); return new Promise((ok,ko)=>{ const t=db.transaction("v",mode); const r=f(t.objectStore("v")); t.oncomplete=()=>ok(r&&r.result); t.onerror=()=>ko(t.error); }); },
+  get(id){ return this.op("readonly", s=>s.get(id)); },
+  put(id,blob){ return this.op("readwrite", s=>s.put(blob,id)); },
+  cles(){ return this.op("readonly", s=>s.getAllKeys()); },
+  vider(){ return this.op("readwrite", s=>s.clear()); }
+};
+let PRESENTS = new Set(), TELECH = null;   // ids déjà sur la tablette · progression en cours
+async function majPresents(){ try{ PRESENTS = new Set(await HL.cles()); }catch(e){} }
+function toutesVideos(){ const t=[]; Object.values(INDEX).forEach(n=>n.forEach(l=>l.forEach(v=>v.id&&t.push(v.id)))); return [...new Set(t)]; }
+async function telechargerTout(){
+  const url=urlScript(); if(!url) return toast("Adresse du script manquante");
+  if(!navigator.onLine) return toast("Pas de connexion : connectez la tablette au Wi-Fi");
+  try{ navigator.storage?.persist?.(); }catch(e){}
+  const manquantes = toutesVideos().filter(id=>!PRESENTS.has(id));
+  TELECH = {fait:0, total:manquantes.length, erreurs:0}; rendre();
+  for(const id of manquantes){
+    try{
+      const r = await fetch(url+(url.includes("?")?"&":"?")+"ct=video&id="+encodeURIComponent(id));
+      const j = await r.json(); if(!j.ok) throw new Error(j.erreur);
+      const blob = await (await fetch(`data:${j.type};base64,${j.b64}`)).blob();
+      await HL.put(id, blob); PRESENTS.add(id);
+    }catch(e){ TELECH.erreurs++; }
+    TELECH.fait++; const z=$("#hlTexte"); if(z) z.textContent=`Téléchargement… ${TELECH.fait}/${TELECH.total}`;
+  }
+  const err=TELECH.erreurs; TELECH=null; rendre();
+  toast(err?`${err} vidéo(s) non téléchargée(s) : relancez`:"Toutes les vidéos sont sur la tablette ✓");
+}
+function carteHorsLigne(){
+  const tot=toutesVideos(), ok=tot.filter(id=>PRESENTS.has(id)).length;
+  if(!tot.length) return "";
+  if(TELECH) return `<div class="carte ligne"><span id="hlTexte" style="flex:1">Téléchargement… ${TELECH.fait}/${TELECH.total}</span></div>`;
+  const complet = ok===tot.length;
+  return `<div class="carte ligne" style="padding:10px 12px"><span style="flex:1" class="petit"><b>${complet?"✓ Hors ligne prêt":"Hors ligne"}</b> · ${ok}/${tot.length} vidéos sur la tablette</span>
+    ${complet?"":`<button class="btn ct petit" data-act="telecharger" style="padding:8px 12px">Télécharger</button>`}</div>`;
+}
+
+/* ======================= CHARGEMENT ======================= */
+async function synchroniser(silencieux){
+  const url = urlScript(); if(!url){ if(!silencieux) toast("Aucune adresse de script dans les réglages"); return false; }
+  try{
+    const r = await fetch(url + (url.includes("?")?"&":"?") + "ct=biblio");
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.erreur||"réponse invalide");
+    S.drive = {racine:j.racine, date:j.date, dossiers:j.dossiers};
+    if(j.fiches && j.fiches.exercices && !(S.prof && S.nonPublie)) S.fiches = j.fiches;
+    indexerDrive(); sauver(); rendre();
+    if(!silencieux) toast(`Drive lu : ${j.dossiers.length} dossier(s)`);
+    return true;
+  }catch(e){ if(!silencieux) toast("Lecture impossible : "+e.message); return false; }
+}
+const idDossier = s => { const m=String(s).match(/folders\/([\w-]+)/)||String(s).match(/id=([\w-]+)/); return m?m[1]:String(s).trim(); };
+
+async function envoyer(ct){
+  const p=partage(); if(!p.url||!p.key) throw new Error("règle d'abord le partage entre tablettes (Réglages communs)");
+  const r = await fetch(p.url,{method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify({key:p.key, ct})});
+  const j = await r.json(); if(!j.ok) throw new Error(j.erreur||j.error); return j;
+}
+async function reglerDossier(){
+  const v=($("#rgDossier")||{}).value||""; if(!v.trim()) return toast("Colle le lien du dossier Drive");
+  try{ const j=await envoyer({dossier:v.trim()}); S.reglages.dossier=v.trim(); sauver();
+    toast(`Dossier enregistré · ${j.partagees} vidéo(s) partagée(s)${j.refus?` · ${j.refus} refus`:""}`); synchroniser(false); }
+  catch(e){ toast("Impossible : "+e.message); }
+}
+async function publier(){
+  try{
+    await envoyer({fiches:S.fiches});
+    S.nonPublie=false; sauver(); rendre(); toast("Bibliothèque publiée pour les élèves ✓");
+  }catch(e){ toast("Publication impossible : "+e.message); }
+}
+
+/* ======================= RENDU GÉNÉRAL ======================= */
+function rendre(){
+  if(!S.prof && !S.classe && classesCT().length && !window.EPS_SANS_CLASSE){ /* l'écran commun « Choisis ta classe » s'affiche */ }
+  const ong = [["biblio","▦","Bibliothèque"],["lecon","⏱","Ma leçon"],["mes","☰","Mes leçons"]];
+  if(S.prof) ong.push(["gerer","⚙","Gérer"]);
+  $("#onglets").innerHTML = ong.map(([k,i,t])=>`<button class="${S.onglet===k?"actif":""}" data-onglet="${k}"><b>${i}</b><span>${t}${k==="lecon"&&S.lecon.items.length?`<span class="compteur">${S.lecon.items.length}</span>`:""}</span></button>`).join("");
+  $("#bandeau").innerHTML = S.prof && S.nonPublie ? `<div class="bandeau-maj">● Modifications non publiées pour les élèves<button class="btn ct petit" data-act="publier" style="padding:6px 10px">Publier</button></div>` : "";
+  ({biblio:vueBiblio, lecon:vueLecon, mes:vueMesLecons, gerer:vueGerer})[S.onglet]();
+}
+
+/* ---------- Bibliothèque ---------- */
+function exFiltres(){
+  const f=S.filtre, q=norm(f.q);
+  return S.fiches.exercices.filter(e=>(S.prof||visibleEleve(e))
+    && (!q || norm(e.en+e.fr+e.prim.join("")+e.sec.join("")+e.niveaux.map(n=>n.nom).join("")).includes(q))
+    && (!f.theme || e.themes.includes(f.theme))
+    && (!f.famille || e.famille===f.famille)
+    && (!f.zone || (f.zone==="Échauffement" ? e.echauffement : e.prim.some(m=>ZONES[f.zone].includes(m)))));
+}
+function vueBiblio(){
+  const f=S.filtre, liste=exFiltres();
+  const puce=(cle,val,txt,cls="")=>`<button class="puce ${cls} ${f[cle]===val?"on":""}" data-filtre="${cle}" data-val="${val}">${txt}</button>`;
+  $("#vue").innerHTML = carteHorsLigne() + `
+    <div class="recherche"><span>⌕</span><input type="text" id="q" placeholder="Exercice, muscle, niveau…" value="${h(f.q)}"></div>
+    <div class="filtres">${puce("theme","R","Renforcement","R")}${puce("theme","M","Mental","M")}${puce("theme","C","Cardio","C")}</div>
+    <div class="filtres">${Object.keys(ZONES).map(z=>puce("zone",z,z)).join("")}${puce("zone","Échauffement","Échauffement")}${puce("famille","G","G · poids du corps")}${puce("famille","M","M · cardio")}</div>
+    <p class="petit doux" style="margin:0 0 8px">${liste.length} exercice${liste.length>1?"s":""} · touche une carte pour voir les 3 niveaux</p>
+    <div class="grille">${liste.map(carteEx).join("") || `<p class="doux">Aucun exercice avec ces filtres.</p>`}</div>`;
+  const q=$("#q"); q.oninput=()=>{ f.q=q.value; const pos=q.selectionStart; vueBiblio(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); };
+}
+function carteEx(e){
+  const v=vignetteEx(e), n=nbVideos(e);
+  return `<button class="ex" data-fiche="${e.id}">
+    <div class="vign" style="${v?`background-image:url('${v}')`:""}">${v?"":`<span class="sans">▶</span>`}
+      <span class="fam">${e.famille}</span>${e.aCompleter?`<span class="acomp">à compléter</span>`:""}
+      ${n?`<span class="nbv">${n} vidéo${n>1?"s":""}</span>`:""}</div>
+    <div class="txt"><div class="en">${h(e.en)}</div><div class="fr">${h(e.fr)}</div>
+      <div class="th">${e.themes.map(t=>`<span class="dot ${t}" title="${THEMES[t].nom}">${t}</span>`).join("")}</div></div></button>`;
+}
+
+/* ---------- Fiche d'un exercice ---------- */
+let FICHE = {id:null, niv:2};
+function ouvrirFiche(id, niv){ FICHE={id, niv:niv||2}; rendreFiche(); }
+function rendreFiche(){
+  const e=exParId(FICHE.id); if(!e) return fermer();
+  const n=FICHE.niv, L=e.niveaux[n-1]||{}, vids=videos(e,n);
+  const dejaDansLecon = S.lecon.items.some(i=>i.exId===e.id && i.niv===n);
+  $("#calque").innerHTML = `<div class="voile" data-act="fermer-fond"><div class="feuille">
+    <div class="tete"><div class="t"><div class="en">${h(e.en)}</div><div class="doux">${h(e.fr)} · ${FAMILLE[e.famille]}</div></div>
+      <button class="fermer" data-act="fermer">✕</button></div>
+    <div class="niveaux">${[1,2,3].map(k=>`<button class="${k===n?"on":""}" data-niv="${k}">N${k}<small>${h(e.niveaux[k-1]?.nom||"—")}</small></button>`).join("")}</div>
+    <div class="corps">
+      ${lecteur(vids, `${e.en} · N${n}`)}
+      <div class="consigne">${h(L.consigne||"Consigne à compléter.")}</div>
+      <div class="std"><div class="rep"><b>✓ REP</b>${h(L.rep||"—")}</div><div class="norep"><b>✗ NO REP</b>${h(L.norep||"—")}</div></div>
+      <h3>Muscles sollicités</h3>
+      <div class="muscles">${e.prim.map(m=>`<span class="m p">${h(m)}</span>`).join("")}${e.sec.map(m=>`<span class="m s">${h(m)}</span>`).join("")}</div>
+      <p class="petit doux" style="margin:6px 0 0">Plein : principaux · pointillés : secondaires</p>
+      ${e.secu?`<h3>Sécurité</h3><div class="alerte">⚠ ${h(e.secu)}</div>`:""}
+      <h3>Repères PASER</h3>
+      <div class="paser">${[["P","Placement"],["A","Amplitude"],["S","Symétrie"],["E","Expiration"],["R","Rythme"]].filter(([k])=>e.paser?.[k]).map(([k,t])=>`<div><b>${k}</b><span><em>${t}</em>${h(e.paser[k])}</span></div>`).join("")}</div>
+      <h3>Pour quels thèmes ?</h3>
+      <div class="ligne">${e.themes.map(t=>`<span class="m" style="background:var(--${t}-c);color:var(--${t})">${THEMES[t].nom}</span>`).join("")}
+        <span class="m s">Impact ${e.impact}</span>${e.echauffement?`<span class="m s">Bon pour l'échauffement</span>`:""}</div>
+    </div></div></div>
+    <div class="barre-action"><div class="in">
+      ${S.prof?`<button class="btn clair" data-edit="${e.id}">Modifier</button>`:""}
+      <button class="btn ct" data-ajout="${e.id}" data-n="${n}">${dejaDansLecon?"✓ Déjà dans ma leçon · ajouter encore":`＋ Ajouter N${n} à ma leçon`}</button>
+    </div></div>`;
+  brancherCarrousel();
+}
+function lecteur(vids, titre){
+  if(!vids.length) return `<div class="carrousel seule"><div class="diapo vide">Vidéo à venir<br><span class="petit">(dossier Drive : N1.mp4, N2.mp4, N3.mp4)</span></div></div>`;
+  return `<div class="carrousel ${vids.length===1?"seule":""}" id="carrousel">${vids.map((v,i)=>{
+      const vg=vignette(v);
+      return `<button class="diapo" data-video="${h(v.id||"")}" data-url="${h(v.url||"")}" style="${vg?`background-image:url('${vg}')`:""}" aria-label="Lire ${h(titre)}">
+        ${vids.length>1?`<span class="etq">Vue ${i+1}/${vids.length}</span>`:""}<span class="lecture">▶</span></button>`;}).join("")}</div>
+    ${vids.length>1?`<div class="points" id="points">${vids.map((_,i)=>`<i class="${i?"":"on"}"></i>`).join("")}</div>`:""}`;
+}
+function brancherCarrousel(){
+  const c=$("#carrousel"), p=$("#points"); if(!c||!p) return;
+  c.onscroll=()=>{ const i=Math.round(c.scrollLeft/(c.firstElementChild.offsetWidth+10)); [...p.children].forEach((d,k)=>d.classList.toggle("on",k===i)); };
+}
+async function lancerVideo(el){
+  if(el.querySelector("iframe,video")) return;
+  const id=el.dataset.video, url=el.dataset.url;
+  let local=null; try{ if(id) local=await HL.get(id); }catch(e){}
+  if(local){ el.innerHTML=`<video src="${URL.createObjectURL(local)}" autoplay loop muted playsinline controls></video>`; return; }
+  if(url){ el.innerHTML=`<video src="${h(url)}" autoplay loop muted playsinline controls></video>`; return; }
+  if(!navigator.onLine){ toast("Vidéo pas encore téléchargée sur cette tablette"); return; }
+  el.innerHTML=`<iframe src="https://drive.google.com/file/d/${encodeURIComponent(id)}/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+}
+function fermer(){ $("#calque").innerHTML=""; }
+
+/* ---------- Ma leçon ---------- */
+function params(l){ const f=FORMATS[l.format], p={}; f.p.forEach(([k,,d])=>p[k]= l.params[k]??d); return p; }
+function qteAffichee(it,e,l){
+  if(l.format==="intervalles") return params(l).travail+" s";
+  return `${it.qte} ${MESURE[e.mesure]}`;
+}
+function vueLecon(){
+  const l=S.lecon, T=THEMES[l.theme], p=params(l);
+  $("#vue").innerHTML = `
+    <h2>Ma leçon</h2>
+    <input type="text" id="titre" placeholder="Nom de ma leçon (ex. WOD du mardi)" value="${h(l.titre)}" style="margin-bottom:12px">
+    <div class="themes">${Object.entries(THEMES).map(([k,t])=>`<button class="theme ${k} ${l.theme===k?"on":""}" data-theme="${k}"><b>${t.nom}</b><small>${t.accroche}</small><span class="fc">${t.fc}</span></button>`).join("")}</div>
+    <p class="petit doux" style="margin:8px 2px 0">Indicateur principal : <b>${T.indic}</b> · ${T.repere}</p>
+    <h3>Format <span class="petit doux">(★ conseillé pour ${T.nom})</span></h3>
+    <div class="formats">${Object.entries(FORMATS).map(([k,f])=>`<button class="puce ${l.format===k?"on":""} ${T.formats.includes(k)?"conseil":""}" data-format="${k}">${f.nom} <small>${f.fr}</small></button>`).join("")}</div>
+    <div class="params">${FORMATS[l.format].p.map(([k,t])=>`<div><label>${t}</label><input type="number" min="0" data-param="${k}" value="${p[k]}"></div>`).join("")}</div>
+    ${l.theme==="M"&&l.format==="amrap"?`<p class="petit doux">Allure imposée : vise ${p.cible} tours en ${p.minutes} min, soit environ un tour toutes les ${allure(p)}.</p>`:""}
+    <h3>Exercices (${l.items.length})</h3>
+    ${l.items.length? l.items.map((it,i)=>ligneItem(it,i,l)).join("") : `<div class="vide-lecon">Ta leçon est vide.<br>Va dans <b>Bibliothèque</b>, ouvre un exercice, choisis ton niveau puis « Ajouter ».<br><br><button class="btn ct" data-onglet="biblio">Ouvrir la bibliothèque</button></div>`}
+    ${l.items.length?analyse(l):""}
+    ${l.items.length?`<h3>Mon WOD</h3><div class="tableau" id="wod">${tableauWod(l)}</div>
+    <div class="ligne" style="margin-top:10px"><button class="btn ct" data-act="enregistrer" style="flex:1">Enregistrer</button><button class="btn contour" data-act="copier">Copier</button><button class="btn danger" data-act="vider">Vider</button></div>`:""}`;
+  $("#titre").oninput=e=>{ l.titre=e.target.value; sauver(); const w=$("#wod"); if(w) w.innerHTML=tableauWod(l); };
+}
+function allure(p){ const s=Math.round(p.minutes*60/Math.max(1,p.cible)); return `${Math.floor(s/60)} min ${String(s%60).padStart(2,"0")}`; }
+function ligneItem(it,i,l){
+  const e=exParId(it.exId); if(!e) return "";
+  const v=videos(e,it.niv)[0], vg=v?vignette(v):"";
+  const fixe = l.format==="intervalles";
+  return `<div class="item">
+    <button class="mini" data-fiche="${e.id}" data-n="${it.niv}" style="${vg?`background-image:url('${vg}')`:""}">${vg?"":"N"+it.niv}</button>
+    <div class="nom"><b>${i+1}. ${h(e.en)}</b><span class="petit doux">${h(e.niveaux[it.niv-1]?.nom||"")}</span>
+      <div class="ligne"><div class="niv-mini">${[1,2,3].map(k=>`<button class="${k===it.niv?"on":""}" data-item="${i}" data-setniv="${k}">N${k}</button>`).join("")}</div>
+      ${fixe?`<span class="petit"><b>${params(l).travail} s</b></span>`:`<input class="qte" type="number" min="1" data-item="${i}" data-qte value="${it.qte}"><span class="petit doux">${MESURE[e.mesure]}</span>`}</div></div>
+    <div class="outils"><button data-item="${i}" data-move="-1" aria-label="Monter">▲</button><button data-item="${i}" data-move="1" aria-label="Descendre">▼</button><button data-item="${i}" data-suppr aria-label="Retirer">✕</button></div></div>`;
+}
+function zonesDe(e){ return Object.keys(ZONES).filter(z=>e.prim.some(m=>ZONES[z].includes(m))); }
+function dureeEstimee(l){
+  const p=params(l), ex=l.items.map(it=>[it,exParId(it.exId)]).filter(x=>x[1]);
+  const t1 = ([it,e]) => e.mesure==="temps"? +it.qte : e.mesure==="distance"? it.qte*15 : it.qte*3;
+  switch(l.format){
+    case "circuit": return (ex.reduce((a,x)=>a+t1(x)+ +p.recupEx,0)*p.tours + p.recupTour*(p.tours-1))/60;
+    case "intervalles": return (+p.travail + +p.repos)*ex.length*p.tours/60;
+    case "fortime": return Math.min(+p.cap, ex.reduce((a,x)=>a+t1(x),0)*p.tours/60);
+    default: return +p.minutes;
+  }
+}
+function analyse(l){
+  const T=THEMES[l.theme], ex=l.items.map(it=>({it,e:exParId(it.exId)})).filter(x=>x.e);
+  const cpt={}; Object.keys(ZONES).forEach(z=>cpt[z]=0); let cardio=0;
+  ex.forEach(({e})=>{ zonesDe(e).forEach(z=>cpt[z]++); if(e.famille==="M") cardio++; });
+  const c=[];
+  const hors = ex.filter(({e})=>!e.themes.includes(l.theme)).map(({e})=>e.en);
+  if(hors.length) c.push(`<b>${[...new Set(hors)].join(", ")}</b> ${hors.length>1?"sont":"est"} plutôt conseillé${hors.length>1?"s":""} pour un autre thème que ${T.nom}.`);
+  if(ex.length>=3) Object.entries(cpt).filter(([,n])=>!n).forEach(([z])=>{
+    const idees=S.fiches.exercices.filter(e=>visibleEleve(e)&&e.themes.includes(l.theme)&&zonesDe(e)[0]===z).slice(0,2).map(e=>e.en);
+    c.push(`Aucun exercice pour <b>${z.toLowerCase()}</b>${idees.length?` : pense à ${idees.join(" ou ")}.`:"."}`); });
+  if(l.theme==="R"){
+    for(let i=1;i<ex.length;i++){ const a=zonesDe(ex[i-1].e)[0], b=zonesDe(ex[i].e)[0];
+      if(a&&a===b){ c.push(`${ex[i-1].e.en} puis ${ex[i].e.en} travaillent la même zone (${a.toLowerCase()}) : alterne pour mieux récupérer.`); break; } }
+    if(l.format!=="intervalles"){ const peu=ex.filter(({e,it})=>e.mesure==="reps"&&it.qte<12).map(({e})=>e.en);
+      if(peu.length) c.push(`Renforcement : vise 12 à 15 répétitions (${peu.join(", ")} en dessous). Si tu en as encore 3 en réserve, passe au niveau supérieur.`); }
+  }
+  if(l.theme==="C" && cardio < Math.ceil(ex.length/2)) c.push(`Cardio : moins de la moitié des exercices sont métaboliques (M). Ajoute par exemple Burpee ou Jumping jack.`);
+  const forts=ex.filter(({e})=>e.impact==="fort").length; if(forts>=3) c.push(`${forts} exercices à fort impact (sauts) : attention aux réceptions, prévois un niveau 1 si besoin.`);
+  if(l.format==="emom" && ex.length) c.push(`EMOM : ${ex.length} exercice${ex.length>1?"s":""} à tour de rôle, chacun en début de minute ; le reste de la minute = repos. Si tu ne finis pas en 40 s, baisse le nombre de répétitions.`);
+  const d=dureeEstimee(l);
+  return `<h3>Bilan de ma leçon</h3>
+    <div class="bilan">${Object.entries(cpt).map(([z,n])=>`<div class="${n?"":"zero"}"><b>${n}</b><span class="petit">${z}</span></div>`).join("")}</div>
+    <p class="petit doux" style="margin:0 0 8px">Durée estimée : <b>≈ ${Math.round(d)} min</b> · ${cardio} exercice${cardio>1?"s":""} cardio (M)</p>
+    ${c.length?`<div class="alerte"><ul class="conseils" style="margin:0;padding-left:18px">${c.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:`<div class="alerte" style="background:var(--ok-c);border-color:#bfe3cd">✓ Leçon équilibrée pour le thème ${T.nom}.</div>`}`;
+}
+function texteWod(l){
+  const T=THEMES[l.theme], F=FORMATS[l.format], p=params(l);
+  let tete = {circuit:`Circuit · ${p.tours} tours · récup ${p.recupEx} s / ${p.recupTour} s`, emom:`EMOM ${p.minutes} min`, e2mom:`E2MOM ${p.minutes} min`,
+    amrap:`AMRAP ${p.minutes} min · cible ${p.cible} tours`, fortime:`For Time · ${p.tours} tours · time cap ${p.cap} min`,
+    intervalles:`Intervalles ${p.travail}/${p.repos} · ${p.tours} tours`}[l.format];
+  const lignes = l.items.map((it,i)=>{ const e=exParId(it.exId); if(!e) return "";
+    const q = l.format==="intervalles" ? `${p.travail} s` : `${it.qte} ${MESURE[e.mesure]}`;
+    const pre = l.format==="emom"?`Min ${i+1}`: l.format==="e2mom"?`${i*2}-${i*2+2} min`:"•";
+    return `${pre}  ${q}  ${e.en} (N${it.niv} ${e.niveaux[it.niv-1]?.nom||""})`; });
+  return {titre:(l.titre||"Mon WOD")+" · "+T.nom, tete, lignes, fin:`Zone visée : ${T.fc} · ${T.indic}`};
+}
+function tableauWod(l){ const w=texteWod(l); return `<div class="titre">${h(w.titre)}</div>${h(w.tete)}\n\n${h(w.lignes.join("\n"))}\n\n<span style="color:#9aa0aa">${h(w.fin)}</span>`; }
+
+/* ---------- Mes leçons ---------- */
+function nomClasse(){ const c=classesCT().find(x=>x.id===S.classe); return c?c.nom:""; }
+function vueMesLecons(){
+  const nc=nomClasse(), vis=S.lecons.map((l,i)=>[l,i]).filter(([l])=>S.prof||!nc||!l.classe||l.classe===nc);
+  $("#vue").innerHTML = `<h2>Mes leçons${nc?` <span class="petit doux">· ${h(nc)}</span>`:""}</h2>${vis.length? vis.map(([l,i])=>`<div class="carte">
+    <div class="ligne"><b style="flex:1">${h(l.titre||"Sans nom")}</b><span class="m" style="background:var(--${l.theme}-c);color:var(--${l.theme})">${THEMES[l.theme].nom}</span></div>
+    <div class="petit doux">${l.classe&&S.prof?h(l.classe)+" · ":""}${FORMATS[l.format].nom} · ${l.items.length} exercice${l.items.length>1?"s":""} · ${new Date(l.date).toLocaleDateString("fr-FR")}</div>
+    <div class="ligne" style="margin-top:8px"><button class="btn clair" data-ouvrir="${i}">Ouvrir</button><button class="btn contour" data-dupliquer="${i}">Dupliquer</button><button class="btn danger" data-effacer="${i}">Supprimer</button></div></div>`).join("")
+    : `<div class="vide-lecon">Aucune leçon enregistrée pour l'instant.</div>`}`;
+}
+
+/* ======================= ENSEIGNANT ======================= */
+function vueGerer(){
+  const r=S.rapport, g=S.reglages;
+  const cel = n => n===0?`<td class="c ko">—</td>`: n===1?`<td class="c ok">✓</td>`:`<td class="c ok">✓×${n}</td>`;
+  $("#vue").innerHTML = `
+    <h2>Gérer la bibliothèque</h2>
+    <div class="carte">
+      <b>1 · Dossier Drive des vidéos</b>
+      <p class="petit doux" style="margin:4px 0 0">Un sous-dossier par exercice, un fichier par niveau : <code>Squat/N1.mp4</code>, <code>N2.mp4</code>, <code>N3.mp4</code>. Jusqu'à 3 vidéos par niveau : <code>N2.mp4</code>, <code>N2-2.mp4</code>, <code>N2-3.mp4</code> (ou un sous-dossier <code>N2/</code>). Vidéos verticales (9:16).</p>
+      <label class="champ">Lien du dossier « Vidéo crosstraining »</label><input type="text" id="rgDossier" value="${h(g.dossier)}" placeholder="https://drive.google.com/drive/folders/…">
+      <p class="petit doux" style="margin:6px 0 0">Passe par le script commun (partage entre tablettes${partage().key?" ✓":" : ⚠ à régler dans les Réglages communs"}).</p>
+      <div class="ligne" style="margin-top:12px"><button class="btn contour" data-act="dossier" style="flex:1">Enregistrer le dossier</button><button class="btn ct" data-act="lire" style="flex:1">Lire le Drive</button></div>
+      <button class="btn clair plein" data-act="partager" style="margin-top:8px">Partager toutes les vidéos par lien (après un ajout)</button>
+    </div>
+    ${r?`<div class="carte"><b>2 · Rapport d'import</b> <span class="petit doux">· ${h(S.drive.racine||"")} · ${new Date(S.drive.date).toLocaleString("fr-FR")}</span>
+      <table class="rapport" style="margin-top:8px"><tr><th>Dossier</th><th>Exercice</th><th class="c">N1</th><th class="c">N2</th><th class="c">N3</th></tr>
+      ${r.lignes.map(x=>`<tr><td>${h(x.nom)}</td><td>${x.ex.aCompleter?`<span class="att">nouveau</span>`:h(x.ex.fr||x.ex.en)}</td>${x.n.map(cel).join("")}</tr>`).join("")}</table>
+      ${r.nouveaux.length?`<p class="petit"><span class="att">●</span> ${r.nouveaux.length} nouveau(x) dossier(s) ajouté(s) comme fiche « à compléter » (invisible des élèves tant qu'elle n'est pas complétée) : ${r.nouveaux.map(h).join(", ")}.</p>`:""}
+      ${r.nonPartages.length?`<p class="petit"><span class="ko">●</span> ${r.nonPartages.length} vidéo(s) non partagée(s) par lien : les élèves ne pourront pas les lire. Utilisez « Partager toutes les vidéos par lien ». <span class="doux">${r.nonPartages.slice(0,6).map(h).join(", ")}${r.nonPartages.length>6?"…":""}</span></p>`:""}
+      ${r.ignores.length?`<p class="petit"><span class="att">●</span> Fichiers ignorés (nom non reconnu, attendu N1.mp4, N1-2.mp4…) : ${r.ignores.map(h).join(", ")}</p>`:""}
+      ${r.tropNombreuses.length?`<p class="petit"><span class="att">●</span> Plus de 3 vidéos (seules les 3 premières sont gardées) : ${r.tropNombreuses.map(h).join(", ")}</p>`:""}
+      ${r.sansDossier.length?`<p class="petit doux">Fiches sans dossier vidéo : ${r.sansDossier.map(h).join(", ")}</p>`:""}
+    </div>`:""}
+    <div class="carte"><b>3 · Publier</b>
+      <p class="petit doux" style="margin:4px 0 10px">Les fiches (muscles, niveaux, Rep / No rep…) sont enregistrées dans le dossier Drive (bibliotheque.json) et lues par les téléphones des élèves.</p>
+      <div class="ligne"><button class="btn ct" data-act="publier" style="flex:1" ${S.nonPublie?"":"disabled"}>${S.nonPublie?"Publier pour les élèves":"✓ À jour"}</button></div>
+      <div class="ligne" style="margin-top:8px"><button class="btn contour" data-act="exporter" style="flex:1">Exporter (.json)</button><button class="btn contour" data-act="importer" style="flex:1">Importer un fichier</button></div>
+      <input type="file" id="fichier" accept=".json,application/json" class="cache">
+    </div>
+    <h3>Fiches (${S.fiches.exercices.length})</h3>
+    <div class="liste-ex">${S.fiches.exercices.map(e=>`<button data-edit="${e.id}"><span><b>${h(e.en)}</b> <span class="doux petit">${h(e.fr)}</span></span>${e.aCompleter?`<span class="att petit">à compléter</span>`:""}<span class="petit doux">${nbVideos(e)} ▶</span></button>`).join("")}</div>
+    <div class="ligne" style="margin-top:10px"><button class="btn clair" data-act="nouveau" style="flex:1">＋ Nouvel exercice</button><button class="btn danger" data-act="defaut">Fiches par défaut</button></div>
+    `;
+  $("#fichier").onchange=importerFichier;
+}
+
+/* ---------- Éditeur de fiche ---------- */
+let EDIT=null;
+function editer(id){
+  const e=exParId(id); EDIT=JSON.parse(JSON.stringify(e)); rendreEditeur();
+}
+function rendreEditeur(){
+  const e=EDIT, sel=(k,o)=>`<select data-e="${k}">${Object.entries(o).map(([v,t])=>`<option value="${v}" ${e[k]===v?"selected":""}>${t}</option>`).join("")}</select>`;
+  const etat = m => e.prim.includes(m)?"p":e.sec.includes(m)?"s":"";
+  $("#calque").innerHTML = `<div class="voile"><div class="feuille">
+    <div class="tete"><div class="t"><div class="en">${h(e.en||"Nouvel exercice")}</div><div class="doux">Fiche exercice</div></div><button class="fermer" data-act="fermer">✕</button></div>
+    <div class="corps">
+      <div class="ligne"><div style="flex:1"><label class="champ">Nom culturel (EN)</label><input type="text" data-e="en" value="${h(e.en)}"></div>
+        <div style="flex:1"><label class="champ">Nom français</label><input type="text" data-e="fr" value="${h(e.fr)}"></div></div>
+      <label class="champ">Sous-dossier Drive</label><input type="text" data-e="dossier" value="${h(e.dossier)}">
+      <div class="ligne"><div style="flex:1"><label class="champ">Famille</label>${sel("famille",{G:"G · poids du corps",M:"M · métabolique"})}</div>
+        <div style="flex:1"><label class="champ">Mesure</label>${sel("mesure",{reps:"Répétitions",temps:"Temps (s)",distance:"Allers-retours"})}</div></div>
+      <div class="ligne"><div style="flex:1"><label class="champ">Quantité par défaut</label><input type="number" data-e="qte" value="${e.qte}"></div>
+        <div style="flex:1"><label class="champ">Impact</label>${sel("impact",{faible:"Faible",moyen:"Moyen",fort:"Fort (sauts)"})}</div></div>
+      <label class="champ">Thèmes conseillés</label>
+      <div class="ligne">${Object.entries(THEMES).map(([k,t])=>`<button class="puce ${k} ${e.themes.includes(k)?"on":""}" data-etheme="${k}">${t.nom}</button>`).join("")}
+        <button class="puce ${e.echauffement?"on":""}" data-eechauff>Échauffement</button></div>
+      <label class="champ">Muscles · 1 appui = principal · 2 = secondaire · 3 = retirer</label>
+      ${Object.entries(ZONES).map(([z,ms])=>`<p class="petit doux" style="margin:8px 0 4px">${z}</p><div class="muscle-choix">${ms.map(m=>`<button class="${etat(m)}" data-muscle="${h(m)}">${h(m)}</button>`).join("")}</div>`).join("")}
+      <label class="champ">Sécurité</label><textarea data-e="secu">${h(e.secu)}</textarea>
+      <label class="champ">PASER</label>
+      ${[["P","Placement"],["A","Amplitude"],["S","Symétrie"],["E","Expiration"],["R","Rythme"]].map(([k,t])=>`<input type="text" data-paser="${k}" placeholder="${t}" value="${h(e.paser?.[k])}" style="margin-bottom:6px">`).join("")}
+      ${[1,2,3].map(n=>{ const L=e.niveaux[n-1], v=videos(exParId(e.id)||e,n);
+        return `<div class="bloc-niv"><h4>Niveau ${n}</h4>
+        <input type="text" data-niv="${n}" data-champ="nom" placeholder="Nom du niveau" value="${h(L.nom)}">
+        <label class="champ">Consigne</label><textarea data-niv="${n}" data-champ="consigne">${h(L.consigne)}</textarea>
+        <label class="champ">✓ Rep si…</label><textarea data-niv="${n}" data-champ="rep">${h(L.rep)}</textarea>
+        <label class="champ">✗ No rep si…</label><textarea data-niv="${n}" data-champ="norep">${h(L.norep)}</textarea>
+        <p class="petit ${v.length?"ok":"ko"}" style="margin:8px 0 0">${v.length?`▶ ${v.length} vidéo(s) : ${v.map(x=>h(x.nom)).join(", ")}`:`Aucune vidéo (${h(e.dossier)}/N${n}.mp4)`}</p></div>`;}).join("")}
+    </div></div></div>
+    <div class="barre-action"><div class="in"><button class="btn danger" data-act="supprimer-ex">Supprimer</button><button class="btn ct" data-act="valider-ex">Enregistrer la fiche</button></div></div>`;
+  $("#calque").querySelectorAll("[data-e]").forEach(el=>el.oninput=()=>{ const k=el.dataset.e; EDIT[k]= k==="qte"? +el.value : el.value; });
+  $("#calque").querySelectorAll("[data-paser]").forEach(el=>el.oninput=()=>{ EDIT.paser=EDIT.paser||{}; EDIT.paser[el.dataset.paser]=el.value; });
+  $("#calque").querySelectorAll("[data-champ]").forEach(el=>el.oninput=()=>{ EDIT.niveaux[el.dataset.niv-1][el.dataset.champ]=el.value; });
+}
+function validerEdition(){
+  const e=EDIT; if(!e.en.trim()) return toast("Le nom culturel est obligatoire");
+  if(!e.prim.length) return toast("Choisissez au moins un muscle principal");
+  e.aCompleter = !(e.fr.trim() && e.niveaux.every(n=>n.nom.trim()));
+  const i=S.fiches.exercices.findIndex(x=>x.id===e.id);
+  if(i<0) S.fiches.exercices.push(e); else S.fiches.exercices[i]=e;
+  S.nonPublie=true; indexerDrive(); sauver(); fermer(); rendre();
+  toast(e.aCompleter?"Fiche enregistrée (encore incomplète : nom français et 3 niveaux)":"Fiche enregistrée ✓");
+}
+
+/* ---------- Fichiers ---------- */
+function exporter(){
+  const blob=new Blob([JSON.stringify({version:1, date:new Date().toISOString(), fiches:S.fiches, drive:S.drive},null,1)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="bibliotheque-crosstraining.json"; a.click(); URL.revokeObjectURL(a.href);
+}
+function importerFichier(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{ try{
+      const j=JSON.parse(rd.result), fiches=j.fiches||j;
+      if(!fiches.exercices) throw new Error("pas de liste d'exercices");
+      S.fiches=fiches; if(j.drive) S.drive=j.drive; S.nonPublie=true; indexerDrive(); sauver(); rendre();
+      toast(`${fiches.exercices.length} fiches importées`);
+    }catch(e){ toast("Fichier invalide : "+e.message); } };
+  rd.readAsText(f);
+}
+
+/* ======================= ÉVÉNEMENTS ======================= */
+document.addEventListener("click", ev=>{
+  const t=ev.target.closest("button,[data-act]"); if(!t) return;
+  const d=t.dataset, l=S.lecon;
+  if(d.act==="fermer-fond"){ if(ev.target===t) fermer(); return; }
+  if(d.onglet){ S.onglet=d.onglet; fermer(); rendre(); scrollTo(0,0); return; }
+  if(d.filtre){ S.filtre[d.filtre] = S.filtre[d.filtre]===d.val ? "" : d.val; vueBiblio(); return; }
+  if(d.fiche){ ouvrirFiche(d.fiche, +d.n||2); return; }
+  if(d.video!==undefined && t.classList.contains("diapo")){ lancerVideo(t); return; }
+  if(d.niv && !d.champ){ FICHE.niv=+d.niv; rendreFiche(); return; }
+  if(d.ajout){ const e=exParId(d.ajout); l.items.push({exId:e.id, niv:+d.n, qte: l.theme==="R"&&e.mesure==="reps"?Math.max(12,e.qte):e.qte});
+    sauver(); rendre(); rendreFiche(); toast(`${e.en} N${d.n} ajouté · ${l.items.length} exercice(s)`); return; }
+  if(d.theme){ l.theme=d.theme; if(!THEMES[d.theme].formats.includes(l.format)) l.format=THEMES[d.theme].formats[0]; sauver(); rendre(); return; }
+  if(d.format){ l.format=d.format; sauver(); rendre(); return; }
+  if(d.setniv){ l.items[d.item].niv=+d.setniv; sauver(); rendre(); return; }
+  if(d.move){ const i=+d.item, j=i+ +d.move; if(j<0||j>=l.items.length) return; [l.items[i],l.items[j]]=[l.items[j],l.items[i]]; sauver(); rendre(); return; }
+  if(d.suppr!==undefined){ l.items.splice(+d.item,1); sauver(); rendre(); return; }
+  if(d.ouvrir){ S.lecon=JSON.parse(JSON.stringify(S.lecons[d.ouvrir])); S.onglet="lecon"; sauver(); rendre(); return; }
+  if(d.dupliquer){ const c=JSON.parse(JSON.stringify(S.lecons[d.dupliquer])); c.id=Date.now().toString(36); c.titre+=" (copie)"; c.date=Date.now(); S.lecons.unshift(c); sauver(); rendre(); return; }
+  if(d.effacer){ if(confirm("Supprimer cette leçon ?")){ S.lecons.splice(d.effacer,1); sauver(); rendre(); } return; }
+  if(d.edit){ editer(d.edit); return; }
+  if(d.etheme){ const a=EDIT.themes; a.includes(d.etheme)? a.splice(a.indexOf(d.etheme),1) : a.push(d.etheme); t.classList.toggle("on"); return; }
+  if(d.eechauff!==undefined){ EDIT.echauffement=!EDIT.echauffement; t.classList.toggle("on"); return; }
+  if(d.muscle){ const m=d.muscle, P=EDIT.prim, Sc=EDIT.sec;
+    if(P.includes(m)){ P.splice(P.indexOf(m),1); Sc.push(m); t.className="s"; }
+    else if(Sc.includes(m)){ Sc.splice(Sc.indexOf(m),1); t.className=""; }
+    else { P.push(m); t.className="p"; } return; }
+  switch(d.act){
+    case "fermer": fermer(); break;
+    case "enregistrer": { l.date=Date.now(); l.classe=nomClasse(); const i=S.lecons.findIndex(x=>x.id===l.id); const c=JSON.parse(JSON.stringify(l));
+      if(i<0) S.lecons.unshift(c); else S.lecons[i]=c; sauver(); toast("Leçon enregistrée ✓"); break; }
+    case "copier": { const w=texteWod(l); navigator.clipboard?.writeText(`${w.titre}\n${w.tete}\n\n${w.lignes.join("\n")}\n\n${w.fin}`).then(()=>toast("WOD copié")); break; }
+    case "vider": if(confirm("Commencer une nouvelle leçon ?")){ S.lecon=nouvelleLecon(); sauver(); rendre(); } break;
+    case "lire": synchroniser(false); break;
+    case "dossier": reglerDossier(); break;
+    case "partager": envoyer({partager:1}).then(j=>{toast(`${j.partagees} vidéo(s) partagée(s)${j.refus?` · ${j.refus} refus (règles du domaine ?)`:""}`); synchroniser(true);}).catch(e=>toast("Impossible : "+e.message)); break;
+    case "telecharger": telechargerTout(); break;
+    case "publier": publier(); break;
+    case "exporter": exporter(); break;
+    case "importer": $("#fichier").click(); break;
+    case "nouveau": EDIT={id:"x"+Date.now().toString(36), dossier:"", en:"", fr:"", famille:"G", mesure:"reps", qte:10, impact:"faible", themes:["R"], prim:[], sec:[],
+        paser:{P:"",A:"",S:"",E:"",R:""}, secu:"", niveaux:[1,2,3].map(()=>({nom:"",consigne:"",rep:"",norep:""}))}; rendreEditeur(); break;
+    case "valider-ex": validerEdition(); break;
+    case "supprimer-ex": if(confirm("Supprimer cette fiche ? (les vidéos du Drive ne sont pas touchées)")){
+        S.fiches.exercices=S.fiches.exercices.filter(x=>x.id!==EDIT.id); S.nonPublie=true; indexerDrive(); sauver(); fermer(); rendre(); } break;
+    case "defaut": if(confirm("Remplacer toutes les fiches par les 20 fiches d'origine ?")){ S.fiches=JSON.parse(JSON.stringify(BIBLIO_DEFAUT)); S.nonPublie=true; indexerDrive(); sauver(); rendre(); } break;
+  }
+});
+document.addEventListener("input", ev=>{
+  const t=ev.target, l=S.lecon;
+  if(t.dataset.param){ l.params[t.dataset.param]=Math.max(0,+t.value); sauver(); majLeconSansFocus(); }
+  if(t.dataset.qte!==undefined){ l.items[t.dataset.item].qte=Math.max(1,+t.value||1); sauver(); majLeconSansFocus(); }
+});
+function majLeconSansFocus(){ // met à jour le WOD et le bilan sans casser la saisie en cours
+  const w=$("#wod"); if(w) w.innerHTML=tableauWod(S.lecon);
+}
+document.addEventListener("change", ev=>{ if(ev.target.dataset.param||ev.target.dataset.qte!==undefined) rendre(); });
+
+
+window.epsCurrentClass=()=>{ const c=classesCT().find(x=>x.id===S.classe); return c?{nom:c.nom, eleves:(c.el||[])}:null; };
+function aller(o){ S.onglet=o; fermer(); if(window.EPSTCT) EPSTCT.closePanel&&EPSTCT.closePanel(); rendre(); scrollTo(0,0); }
+/* espace enseignant commun (eps-shell.js) */
+window.EPSTCT = window.EPST ? EPST.init({app:"ct", nom:"Cross-training", color:"#4D7C0F", isTeacher:()=>estProf(), anchor:"header", main:"#vue,#bandeau,nav.onglets", home:"seq",
+  tabs:{ seq:{go:()=>aller("lecon"), on:()=>S.onglet==="lecon"||S.onglet==="mes"} },
+  biblio:[{ico:"🏋️",label:"Bibliothèque d'exercices",sub:"20 exercices sans matériel × 3 niveaux, vidéos",go:()=>aller("biblio")},
+          {ico:"⏱",label:"Créer une leçon (WOD)",sub:"thème, format, exercices, bilan",go:()=>aller("lecon")},
+          {ico:"🎬",label:"Vidéos et fiches",sub:"dossier Drive, rapport d'import, édition, publication",go:()=>aller("gerer")}],
+  reglages:[{ico:"🎬",label:"Vidéos du cross-training",sub:"lien du dossier Drive, partage, hors ligne",go:()=>aller("gerer")}]
+}) : null;
+/* écran élève commun « Choisis ta classe » (eps-home.js) */
+const ICONE_CT = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="7"/><path d="M12 10v4l2.5 2"/><path d="M9.5 2h5"/><path d="M12 2v5"/><path d="M19 6l1.5-1.5"/></svg>';
+(window.EPSG_Q=window.EPSG_Q||[]).push({app:"Cross-training", sub:"CA5 · S'entraîner", color:"#4D7C0F", icon:ICONE_CT,
+  isTeacher:()=>estProf(), when:()=>!estProf() && !S.classe,
+  classes:()=>classesCT().map(c=>({id:c.id, nom:c.nom, note:(c.el||[]).length+" élèves"})),
+  current:()=>S.classe,
+  select:id=>{ S.classe=id; sessionStorage.setItem("ct_classe",id); aller("biblio"); },
+  noClass:{label:"Sans classe", sub:"utiliser la bibliothèque", open:()=>{ S.classe="-"; sessionStorage.setItem("ct_classe","-"); aller("biblio"); }},
+  resources:[{ico:"🏋️",label:"Bibliothèque d'exercices",sub:"vidéos et niveaux",open:()=>aller("biblio")},
+             {ico:"⏱",label:"Créer ma leçon",sub:"WOD",open:()=>aller("lecon")}]});
+indexerDrive(); majPresents().then(rendre); rendre(); synchroniser(true);
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>

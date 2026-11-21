@@ -27,6 +27,7 @@ function doPost(e) {
   if (data.sync) return json_(syncPush_(data.sync));
   if (data.aiReq) return json_(aiReq_(data.aiReq));
   if (data.bil) { try { return json_(Object.assign({ ok: true }, bilansPut_(data.bil))); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); } }
+  if (data.ct) { try { return json_(ctPost_(data.ct)); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); } }
   if (data.lc) { try { return json_(Object.assign({ ok: true }, lecon_(data.lc))); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); } }
   return json_({ ok: false, error: 'requête' });
 }
@@ -34,6 +35,7 @@ function doPost(e) {
 /** Test de connexion et récupération des changements (JSONP). */
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  if (p.ct) return json_(ctGet_(p)); /* Cross-training : bibliothèque et vidéos (sans clé : fiches et vidéos publiques) */
   const res = { ok: true, app: 'EPS commun', keyOk: p.key === SECRET };
   if (res.keyOk) res.sync = 1;
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
@@ -453,4 +455,70 @@ function sauvegardeHebdo() {
   const L = []; const f = dir.getFiles(); while (f.hasNext()) { const x = f.next(); if (/^Sauvegarde EPS /.test(x.getName())) L.push(x); }
   L.sort(function (a, b) { return b.getDateCreated() - a.getDateCreated(); }).slice(BACKUP_KEEP).forEach(function (x) { x.setTrashed(true); });
   PropertiesService.getScriptProperties().setProperty('LAST_BACKUP', String(Date.now()));
+}
+
+/* ===================== Cross-training : bibliothèque d'exercices et vidéos du Drive =====================
+   Dossier Drive « Vidéo crosstraining » : un sous-dossier par exercice (Squat/N1.mp4, N2.mp4, N2-2.mp4, N3.mp4 ou Squat/N2/…).
+   L'enseignant colle le lien du dossier dans l'appli (⚙ Réglages → Vidéos et fiches) : il est gardé ici (CT_DOSSIER).
+   GET ?ct=biblio → fiches (bibliotheque.json du dossier) + liste des vidéos · GET ?ct=video&id=… → vidéo en base64 (hors ligne).
+   POST {key, ct:{dossier}} règle le dossier et partage les vidéos par lien · POST {key, ct:{fiches}} publie les fiches. */
+const CT_EXT = /\.(mp4|mov|m4v|webm|3gp)$/i;
+function ctDossier_() { const id = PropertiesService.getScriptProperties().getProperty('CT_DOSSIER'); if (!id) throw new Error('Dossier des vidéos non réglé'); return DriveApp.getFolderById(id); }
+function ctVideos_(dossier, prefixe) {
+  const out = [], it = dossier.getFiles();
+  while (it.hasNext()) { const x = it.next(); if (!CT_EXT.test(x.getName())) continue;
+    let pa = 'inconnu'; try { pa = String(x.getSharingAccess()); } catch (err) {}
+    out.push({ nom: prefixe + x.getName(), id: x.getId(), partage: pa }); }
+  return out;
+}
+function ctGet_(p) {
+  try {
+    const racine = ctDossier_();
+    if (p.ct === 'video') {
+      const f = DriveApp.getFileById(String(p.id || ''));
+      if (!ctDans_(f, racine.getId(), 3)) return { ok: false, erreur: 'Hors du dossier' };
+      const b = f.getBlob();
+      return { ok: true, type: b.getContentType() || 'video/mp4', b64: Utilities.base64Encode(b.getBytes()) };
+    }
+    const res = { ok: true, racine: racine.getName(), date: new Date().toISOString(), fiches: null, dossiers: [] };
+    const fj = racine.getFilesByName('bibliotheque.json');
+    if (fj.hasNext()) { try { res.fiches = JSON.parse(fj.next().getBlob().getDataAsString('UTF-8')); } catch (err) {} }
+    const sous = racine.getFolders();
+    while (sous.hasNext()) {
+      const d = sous.next(); let f = ctVideos_(d, ''); const n = d.getFolders();
+      while (n.hasNext()) { const x = n.next(); f = f.concat(ctVideos_(x, x.getName() + '/')); }
+      res.dossiers.push({ nom: d.getName(), id: d.getId(), fichiers: f });
+    }
+    res.dossiers.sort(function (a, b) { return a.nom.localeCompare(b.nom); });
+    return res;
+  } catch (err) { return { ok: false, erreur: String(err && err.message || err) }; }
+}
+function ctDans_(item, rid, prof) {
+  if (prof < 0) return false; const p = item.getParents();
+  while (p.hasNext()) { const d = p.next(); if (d.getId() === rid || ctDans_(d, rid, prof - 1)) return true; }
+  return false;
+}
+function ctPost_(c) {
+  if (c.dossier) {
+    const id = (String(c.dossier).match(/folders\/([\w-]+)/) || String(c.dossier).match(/id=([\w-]+)/) || [0, String(c.dossier).trim()])[1];
+    DriveApp.getFolderById(id); PropertiesService.getScriptProperties().setProperty('CT_DOSSIER', id);
+    return Object.assign({ ok: true }, ctPartager_());
+  }
+  if (c.partager) return Object.assign({ ok: true }, ctPartager_());
+  if (c.fiches) {
+    const r = ctDossier_(), t = JSON.stringify(c.fiches), f = r.getFilesByName('bibliotheque.json');
+    if (f.hasNext()) f.next().setContent(t); else r.createFile('bibliotheque.json', t, MimeType.PLAIN_TEXT);
+    return { ok: true };
+  }
+  return { ok: false, error: 'ct' };
+}
+/** Met toutes les vidéos du dossier en « Tous les utilisateurs disposant du lien · Lecteur » (lecture par les élèves). */
+function ctPartager_() {
+  let n = 0, refus = 0;
+  (function tour(d) {
+    const it = d.getFiles(); while (it.hasNext()) { const x = it.next(); if (!CT_EXT.test(x.getName())) continue;
+      try { if (String(x.getSharingAccess()).indexOf('ANYONE') < 0) x.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); n++; } catch (err) { refus++; } }
+    const s = d.getFolders(); while (s.hasNext()) tour(s.next());
+  })(ctDossier_());
+  return { partagees: n, refus: refus };
 }

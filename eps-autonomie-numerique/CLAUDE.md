@@ -19,7 +19,7 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - Barre du haut `#14171C` avec liseré de 4 px à la couleur de l'appli (`--app`, `box-shadow:inset 0 -4px 0 var(--app)`), icône au trait blanche dans un carré de 36 px (rayon 10 px) à la couleur de l'appli, nom de l'appli en 20 px gras, sous-titre gris `#A9AEB8` (ex. « CA4 »).
 - Accents (boutons principaux, onglet actif) à la couleur de l'appli. Boutons de la barre : contour `#3A3F47`, texte `#D5D8DE`, hauteur 40 px, rayon 10 px.
 - Dans la barre : `<span data-eps-bar></span>` où `eps-home.js` loge ⌂ Accueil, ⟳ et la pastille 🩹 des dispensés (plusieurs emplacements possibles, un par écran : le visible est utilisé).
-- Couleurs : Acrosport `#1F4FA3`, Escalade `#2E7D4F`, OrienRun `#E8701A`, Relais `#D9481F`, Volley `#6B3FA0`, Danse `#C2185B`, Badminton `#0B7A75`, CO-Éval `#14213D`, Appel AS `#475569`, EDT `#1F5F8B`, Pose des balises `#8A5A1F`, CCF `#B8860B`. Une nouvelle appli prend une couleur bien distincte de celles-ci.
+- Couleurs : Acrosport `#1F4FA3`, Escalade `#2E7D4F`, OrienRun `#E8701A`, Relais `#D9481F`, Volley `#6B3FA0`, Danse `#C2185B`, Badminton `#0B7A75`, CO-Éval `#14213D`, Appel AS `#475569`, EDT `#1F5F8B`, Pose des balises `#8A5A1F`, CCF `#B8860B`, Cross-training `#4D7C0F`. Une nouvelle appli prend une couleur bien distincte de celles-ci.
 - Une seule icône par appli (pictogramme au trait, `viewBox 0 0 24 24`, `stroke-width 2`), identique sur l'accueil, dans la barre et sur l'écran « Choisis ta classe ».
 
 ## Espace enseignant (commun)

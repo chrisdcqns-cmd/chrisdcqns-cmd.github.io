@@ -13,8 +13,8 @@
    eps.live.<appli>.v1 (leçon en cours), eps.rang.v1 (groupes de rangement, communs à toutes les applis). */
 (function () {
   if (window.EPSLC) return;
-  var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"] };
-  var m = location.pathname.match(/\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf)\//);
+  var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"], crosstraining: ["ct", "Cross-training", "#4D7C0F"] };
+  var m = location.pathname.match(/\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//);
   if (!m) return;
   var APP = m[1], CODE = APPS[APP][0], NOM = APPS[APP][1], COL = APPS[APP][2];
   var BASE = ((document.currentScript && document.currentScript.src) || "").replace(/eps-lecons\.js.*$/, "");
