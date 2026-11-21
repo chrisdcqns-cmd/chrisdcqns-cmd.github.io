@@ -193,6 +193,12 @@ function reformuler_(p) {
       'Pas de mise en gras ni de tableau ; 1400 caractères maximum. Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »).';
     return claude_(key, sysL + COMMUN, (ctx ? 'Situations disponibles : ' + ctx + '\n' : '') + 'Résultats de la leçon :\n' + notes);
   }
+  if (p.ai === 'obs') {
+    const sysO = 'Tu condenses les observations dictées par un enseignant d\'EPS sur UN élève pendant une leçon (activité : ' + act + '). ' +
+      'Écris pour l\'enseignant, à la 3e personne, en style télégraphique : 1 à 3 phrases courtes, factuelles, regroupant ce qui est réussi puis ce qui reste à travailler. ' +
+      'Garde le vocabulaire technique de l\'enseignant ; n\'invente rien ; pas de nom ni de prénom (les camarades sont désignés « un camarade »).';
+    return claude_(key, sysO + COMMUN, notes);
+  }
   if (p.ai === 'eleve' || p.ai === 'simple' || p.ai === 'trad') {
     const sys = p.ai === 'eleve'
       ? 'Tu réécris pour des lycéens un descripteur de grille d\'évaluation en EPS (activité : ' + act + '). Écris à la 1re personne (« Je… »), en une ou deux phrases courtes, avec des mots simples et concrets, sans perdre le niveau d\'exigence ni inventer de critère. Vocabulaire : « leçon », « séquence ».'

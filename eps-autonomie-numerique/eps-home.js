@@ -1517,6 +1517,7 @@
         return '<div style="border:1px solid #E6E1D6;border-radius:14px;padding:10px 14px;margin:0 0 8px"><b style="font-size:18px">' + esc(p.full) + '</b> <span style="color:#6A6F78">· ' + esc(p.cls) + "</span>" +
           (d ? '<div style="color:#9C2B10;font-weight:700;margin-top:4px">🩹 ' + esc(label(d)) + "</div>" : "") +
           '<div style="color:#6A6F78;font-size:14px;margin-top:4px">Activités de la classe : ' + esc(acts.join(", ") || "aucune") + "</div>" +
+          (function () { var O = window.EPSOB ? EPSOB.of(p.full, p.cls) : []; return O.length ? '<div style="font-size:14px;margin-top:4px">🎙 <b>' + O.length + " observation(s)</b>, dernière le " + new Date(O[O.length - 1].t).toLocaleDateString("fr-FR") + ' : <span style="color:#6A6F78">« ' + esc(O[O.length - 1].txt.slice(0, 140)) + " »</span></div>" : ""; })() +
           (E.length ? E.map(function (e) { return '<div style="font-size:14px;margin-top:4px">📋 <b>' + esc(e.app) + "</b> : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.auto ? " · auto-positionnement reçu" : "") + (e.comm ? '<div style="color:#6A6F78;margin-left:22px">« ' + esc(e.comm.slice(0, 160)) + (e.comm.length > 160 ? "…" : "") + " »</div>" : "") + "</div>"; }).join("") : '<div style="color:#9AA0A6;font-size:14px;margin-top:4px">Pas encore d\'évaluation sur cette tablette.</div>') + "</div>"; }).join("")
         : '<p class="m">Aucun élève trouvé.</p>';
     }
@@ -1612,7 +1613,9 @@
       '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><div id="bu-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
     var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m");
     function people(c) { var P = []; try { EPSL.items().forEach(function (it) { if (it.nom === c) P = EPSL.people(it).map(function (p) { return p.full; }); }); } catch (e) {} return P; }
-    function notes(c, n) { return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n"); }
+    function notes(c, n) { var O = window.EPSOB ? EPSOB.of(n, c) : [], fs = people(c).map(function (x) { return x.split(" ")[0]; });
+      var ob = O.length ? "\nObservations du professeur pendant les leçons : " + O.slice(-12).map(function (o) { var t = o.txt; fs.forEach(function (f) { if (f) t = t.replace(new RegExp("\\b" + f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "un camarade"); }); return t; }).join(" ; ") : "";
+      return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob; }
     function save() { B._cls = sel.value; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) {} }
     function draw() {
       var c = sel.value, R = B[c] = B[c] || {}, P = people(c);
@@ -1667,6 +1670,7 @@
     var goL = function () { setTimeout(function () { collectLists().then(applyLocal).catch(function () {}); }, 600); setInterval(function () { collectLists().catch(function () {}); }, 5000); };
     /* leçons communes (eps-lecons.js) : dans les applis d'activité seulement */
     if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
     if (window.EPSL) goL(); else { var ls = document.createElement("script"); ls.src = BASE + "eps-lists.js"; ls.onload = goL; document.head.appendChild(ls); }
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);
