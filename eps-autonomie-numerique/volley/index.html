@@ -311,6 +311,17 @@ html.epst-on header nav#nav{display:none!important}
 .dbt{background:#fff;border:1px solid var(--line);border-left:7px solid var(--ch);border-radius:12px;padding:10px 12px;display:grid;gap:4px;font-size:.92rem}.dbt.warn{border-color:#f0c36a;border-left-color:var(--ch);box-shadow:0 0 0 2px #fff1d0 inset}
 .dbh{display:flex;align-items:center;gap:8px}.dbh i{width:14px;height:14px;border-radius:50%;background:var(--ch);border:1px solid #bbb}.dbh b{flex:1;font-size:1.02rem}
 .dbm{background:#fde7e7;border-radius:8px;padding:4px 8px;font-weight:700}.dbm span{font-size:1.15rem;margin-left:4px}.dba{color:#8a5a00;font-weight:700}.dbt summary{cursor:pointer;color:var(--navy);font-weight:700}
+
+/* plan des terrains */
+.plan .pter{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}.plan .pter>div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.pvs{display:grid;gap:4px;margin-top:4px}.pvs span{text-align:center;font-size:.8rem;color:var(--muted)}
+.parb{background:#fff;border:1px solid var(--line);border-left:5px solid var(--d2);border-radius:12px;padding:8px 10px;margin-top:8px}.prow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0;border-top:1px solid #f1ede5}.prow>span{flex:1;min-width:140px}
+.pok{color:#1d6b44;font-weight:800}.pwait{color:#8a5a00;font-weight:700}.dbarb{background:#fff8e6;border-radius:10px;padding:6px 10px;display:grid;gap:3px;font-size:.9rem}
+.aff{display:flex;align-items:center;gap:14px;background:#fff8e6;border:2px solid var(--d2);border-radius:16px;padding:12px 14px;margin-bottom:12px}.aff.ok{background:#e8f6ee;border-color:var(--d4)}
+.affk{flex:none;width:58px;height:58px;border-radius:14px;background:var(--navy);color:#fff;font-size:2rem;font-weight:900;display:flex;align-items:center;justify-content:center}.aff.arb .affk{background:#f0a030}
+.aff .pbtn{width:auto;flex:none;padding:14px 18px;margin:0}.aff>div:nth-child(2){min-width:220px}
+.affl{display:grid;gap:2px;margin-top:4px}.affv{font-weight:800;color:#1d6b44;white-space:nowrap}
+@media(max-width:760px){.plan .pter{grid-template-columns:1fr}.aff{flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -642,7 +653,7 @@ function lvSet(ids){LV.sel=LV.sel||{};LV.sel[C().id]=[...new Set(ids)];lvSave()}
 function lvCr(){const cs=B().criteres;return cs.find(x=>x.id===LV.cr)||cs.find(x=>x.afl==='AFL1')||cs[0]}
 function openLive(){curEl=null;document.getElementById('evList').style.display='none';document.getElementById('evPanel').style.display='none';document.getElementById('evLive').style.display='block';LV.choix=!lvIds().length;renderLive();scrollTo(0,0)}
 function closeLive(){document.getElementById('evLive').style.display='none';document.getElementById('evList').style.display='block';renderList()}
-function lvTerrains(){const c=C(),d=today(),T={};(c.equipes||[]).forEach(t=>{const j=t.jours&&t.jours[d];if(j&&j.terrain)(T[j.terrain]=T[j.terrain]||[]).push(t)});return T}
+function lvTerrains(){const c=C(),d=today(),T={};(c.equipes||[]).forEach(t=>{const j=t.jours&&t.jours[d],a=affOf(c,t),k=a?(a.mode==='jeu'?a.k:0):j&&j.terrain;if(k)(T[k]=T[k]||[]).push(t)});return T}
 function lvEquipeIds(t){const c=C(),j=t.jours&&t.jours[today()];return (t.el||[]).filter(id=>c.eleves.some(e=>e.id===id)&&!(j&&j.pres&&j.pres[id]===0))}
 function lvVu(e,cr){const L=((e.vu||{})[cr.id]||[]).filter(x=>x.t===today()),n=[0,0,0,0];L.forEach(x=>n[x.d]++);return n}
 function lvCard(e,cr){
@@ -976,7 +987,7 @@ function renderCoach(){
     <span class="tm" id="tmHead" onclick="CO.tab='timer';renderCoach()"></span><button class="lockbtn" onclick="if(confirm('Changer l\'équipe de cette tablette ?')){CO.tid=null;coSave();renderCoach()}">Changer d'équipe</button><button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button><button class="lockbtn" onclick="unlock()">🔒</button></div>`;
   if(need){box.innerHTML=head+`<div class="cbody"><div class="steps">${steps.map((x,i)=>`<span class="${i===CO.step?'on':i<CO.step?'ok':''}">${i+1}. ${x[0]}</span>`).join('')}<span>5. Leçon du jour</span></div>${coStep(c,t,j)}</div>`;return}
   const tabs=[['lecon','📋 Leçon'],['timer','⏱ Déroulé'],['match','🏐 Match'],['tournoi','🏆 Tournoi'],['sit','✅ Situations'],['rem','🔁 Remédiation'],['video','🎥 Vidéo'],['auto','🪞 Je me positionne'],['fin','🏁 Fin de leçon'],['bilan','📊 Bilan']];
-  box.innerHTML=head+`<div class="ctabs">${tabs.map(([k,n])=>`<button class="${CO.tab===k?'on':''}" onclick="CO.tab='${k}';CO.pt=null;renderCoach()">${n}</button>`).join('')}</div><div class="cbody">${
+  box.innerHTML=head+`<div class="ctabs">${tabs.map(([k,n])=>`<button class="${CO.tab===k?'on':''}" onclick="CO.tab='${k}';CO.pt=null;renderCoach()">${n}</button>`).join('')}</div><div class="cbody">${coAff(c,t)}${
     CO.tab==='lecon'?coLecon(c,t,j):CO.tab==='timer'?coTimer():CO.tab==='match'?coMatch(c,t):CO.tab==='tournoi'?coTournoi(c,t):CO.tab==='sit'?coSit(c,t):CO.tab==='rem'?coRem(c,t):CO.tab==='video'?coVideo(c,t):CO.tab==='auto'?coAuto(c,t,j):CO.tab==='fin'?coFin(c,t,j):bilanEquipe(c,t)}</div>`;
   if(CO.tab==='video')vidBind();tmTick();
 }
@@ -998,7 +1009,8 @@ function coStep(c,t,j){
      <div class="chas">${CHAS.map(([n,col])=>`<button class="${j.chas===n?'on':''}" style="background:${col};color:${['Blanc','Jaune'].includes(n)?'#222':'#fff'}" onclick="coSet(t=>{jour(t).chas='${n}'})">${n}</button>`).join('')}</div>
      <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=1;renderCoach()">←</button><button class="pbtn" style="background:var(--vol);flex:1" onclick="if(!jour(coT()).chas){toast('Choisis une couleur');return}CO.step=3;renderCoach()">Continuer →</button></div></div>`}
   const used=(c.equipes||[]).filter(x=>x.id!==t.id).map(x=>({t:x,j:(x.jours||{})[today()]})).filter(x=>x.j&&x.j.terrain);
-  return `<div class="card"><h2>🏐 Notre terrain</h2><div class="tiles">${[1,2,3].map(n=>{const o=used.filter(x=>x.j.terrain===n).map(x=>x.t.nom);return `<button class="tile ${j.terrain===n?'on':''}" onclick="coSet(t=>{jour(t).terrain=${n}})">Terrain ${n}${o.length?`<br><small class="muted">avec ${esc(o.join(', '))}</small>`:''}</button>`}).join('')}</div></div>
+  const aff=affOf(c,t);if(aff&&aff.mode==='jeu'&&!j.terrain)j.terrain=aff.k;
+  return `${coAff(c,t)}<div class="card"><h2>🏐 Notre terrain</h2><div class="tiles">${[1,2,3].map(n=>{const o=used.filter(x=>x.j.terrain===n).map(x=>x.t.nom);return `<button class="tile ${j.terrain===n?'on':''}" onclick="coSet(t=>{jour(t).terrain=${n}})">Terrain ${n}${o.length?`<br><small class="muted">avec ${esc(o.join(', '))}</small>`:''}</button>`}).join('')}</div></div>
    <div class="card"><h2>🧰 Matériel installé</h2><p class="muted">Coche ce que votre équipe a pris et installé.</p>
     <div class="pres">${MAT.map(([k,n])=>`<button class="${j.mat[k]?'p':''}" onclick="coSet(t=>{const J=jour(t);J.mat['${k}']=J.mat['${k}']?0:1})">${j.mat[k]?'✓ ':''}${n}</button>`).join('')}</div>
     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=2;renderCoach()">←</button><button class="pbtn" style="background:var(--d4);flex:1" onclick="if(!jour(coT()).terrain){toast('Choisis votre terrain');return}coSet(t=>{jour(t).ok=1});CO.tab='lecon'">✓ Terrain prêt : voir la leçon</button></div></div>`;
@@ -1126,7 +1138,8 @@ function coMatch(c,t){
   if(m&&m.mode==='obs')return obsMatch(c,t,m);
   if(!m&&OBS)return obsSetup(c,t);
   if(!m){const others=(c.equipes||[]).filter(x=>x.id!==t.id),today_=teamMatches(t,today()),tr=tourn(c),nx=tr&&tr.rc.find(r=>(r.a===t.id||r.b===t.id)&&!rcScore(c,r));
-    return `${nx?`<div class="card" style="border-left:6px solid var(--vol)"><h2>🏆 Match du tournoi</h2><p class="big">Tour ${nx.tour} · terrain ${nx.terrain} contre <b>${esc(tnom(c,nx.a===t.id?nx.b:nx.a))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'")}','${nx.id}')">▶ Commencer</button></div>`:''}<div class="card" style="border-left:6px solid #0f3d7a"><h2>👀 Match observé par une autre équipe</h2><p class="muted">Une équipe au repos prend notre tablette (et celle de nos adversaires) : elle arbitre, tient la table de marque et observe. À la pause, elle nous rend la tablette pour qu'on analyse le match.</p>
+    const af=affOf(c,t),pm=af&&af.mode==='jeu'&&af.adv&&!nx?`<div class="card" style="border-left:6px solid var(--d4)"><h2>📍 Match prévu par ton enseignant</h2><p class="big">Terrain ${af.k} contre <b>${esc(tnom(c,af.adv))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${esc(tnom(c,af.adv)).replace(/'/g,"\\'")}')">▶ Commencer</button></div>`:'';
+    return `${pm}${nx?`<div class="card" style="border-left:6px solid var(--vol)"><h2>🏆 Match du tournoi</h2><p class="big">Tour ${nx.tour} · terrain ${nx.terrain} contre <b>${esc(tnom(c,nx.a===t.id?nx.b:nx.a))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'")}','${nx.id}')">▶ Commencer</button></div>`:''}<div class="card" style="border-left:6px solid #0f3d7a"><h2>👀 Match observé par une autre équipe</h2><p class="muted">Une équipe au repos prend notre tablette (et celle de nos adversaires) : elle arbitre, tient la table de marque et observe. À la pause, elle nous rend la tablette pour qu'on analyse le match.</p>
      <button class="pbtn" style="background:#0f3d7a" onclick="OBS={adv:'${nx?esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'"):''}',rid:'${nx?nx.id:''}',cible:15,pause:8};renderCoach()">👀 Transformer en tablette d'observation</button></div>
     <div class="card"><h2>🏐 ${nx?'Autre match':'Nouveau match'}</h2><p class="muted">Contre quelle équipe ?</p><div class="tiles">${others.map(x=>`<button class="tile" onclick="coNewMatch('${esc(x.nom).replace(/'/g,"\\'")}')">${esc(x.nom)}</button>`).join('')}</div>
      <div class="row" style="margin-top:10px"><input type="text" id="coAdv" placeholder="Autre adversaire" style="flex:1"><button class="btn" onclick="coNewMatch(document.getElementById('coAdv').value||'Adversaire')">Commencer</button></div></div>
@@ -1302,6 +1315,62 @@ function parcours(c,t){const D=new Set(Object.keys(t.jours||{}));(t.matchs||[]).
 function coEquipe(c,t,j){return `<div class="card"><h2>👥 ${esc(t.nom)}</h2><p class="muted">Pour corriger l'appel, la chasuble, le terrain ou le matériel d'aujourd'hui.</p>
   <button class="btn" onclick="coSet(t=>{jour(t).ok=0});CO.step=0">Refaire l'installation (coach, présents, chasuble, matériel)</button></div>`}
 
+/* ================== PLAN DES TERRAINS (l'enseignant envoie les équipes) ==================
+   c.plans[date] = {u, ter:{1:[tidA,tidB], 2:[…], 3:[…]}, arb:{tid:{eid:{k:terrain, r:'arbitre'|'marqueur'}}}}
+   écrit seulement par l'enseignant (enregistrement synchronisé « pl|classe|date »).
+   La tablette de l'équipe affiche son affectation et le coach confirme « nous sommes au terrain 1 » :
+   jour(t).ici = {sig, t} (sig = empreinte de l'affectation, la confirmation tombe si l'enseignant change le plan). */
+function planOf(c,d){return ((c&&c.plans)||{})[d||today()]||null}
+function planEdit(c,fn){PLO=true;c.plans=c.plans||{};const d=today(),p=c.plans[d]||(c.plans[d]={ter:{},arb:{}});p.ter=p.ter||{};p.arb=p.arb||{};fn(p);p.u=Date.now();save()}
+function terOf(p,tid){if(!p)return 0;for(const k of Object.keys(p.ter||{}))if((p.ter[k]||[]).includes(tid))return +k;return 0}
+function affOf(c,t){const p=planOf(c);if(!p)return null;const k=terOf(p,t.id);
+  if(k){const adv=(p.ter[k]||[]).find(x=>x&&x!==t.id);return{mode:'jeu',k,adv:adv||''}}
+  const A=(p.arb||{})[t.id];if(A&&Object.keys(A).length){const L=(t.el||[]).filter(id=>A[id]&&A[id].k).map(id=>({eid:id,k:A[id].k,r:A[id].r||'arbitre'}));if(L.length)return{mode:'arb',L}}
+  return null}
+function affSig(a){return a?h32(JSON.stringify(a)):''}
+function affOk(c,t){const a=affOf(c,t),j=(t.jours||{})[today()];return !!(a&&j&&j.ici&&j.ici.sig===affSig(a))}
+function rLbl(r){return r==='marqueur'?'📋 marqueur':'🟨 arbitre'}
+/* --- côté coach : bandeau d'affectation --- */
+function coAff(c,t){const a=affOf(c,t);if(!a)return '';const ok=affOk(c,t),j=(t.jours||{})[today()];
+  if(a.mode==='jeu'){const advN=a.adv?tnom(c,a.adv):'';
+    return `<div class="aff ${ok?'ok':''}"><div class="affk">${a.k}</div><div style="flex:1"><b>Ton enseignant vous envoie au terrain ${a.k}</b>${advN?`<br>Vous jouez contre <b>${esc(advN)}</b>`:''}${!ok&&j&&j.terrain&&j.terrain!==a.k?`<br><small>Vous aviez choisi le terrain ${j.terrain} : allez au terrain ${a.k}.</small>`:''}</div>
+     ${ok?'<span class="affv">✓ Vous y êtes</span>':`<button class="pbtn" style="background:var(--d4)" onclick="coIci()">✓ Nous sommes au terrain ${a.k}</button>`}</div>`}
+  return `<div class="aff arb ${ok?'ok':''}"><div class="affk">🟨</div><div style="flex:1"><b>Votre équipe arbitre</b><div class="affl">${a.L.map(x=>`<span><b>${esc(shortName(elOf(c,x.eid)))}</b> → terrain ${x.k} · ${rLbl(x.r)}</span>`).join('')}</div></div>
+   ${ok?'<span class="affv">✓ Tout le monde est en place</span>':`<button class="pbtn" style="background:var(--d4)" onclick="coIci()">✓ Chacun est à son terrain</button>`}</div>`}
+function coIci(){const c=coC(),t=coT();if(!c||!t)return;const a=affOf(c,t);if(!a)return;coSet(t=>{const J=jour(t);if(a.mode==='jeu')J.terrain=a.k;J.ici={sig:affSig(a),t:Date.now()}});toast('Confirmé : ton enseignant le voit sur sa tablette')}
+/* --- côté enseignant : envoyer les équipes --- */
+let PLO=false;
+function planHtml(c){
+  const E=c.equipes||[],p=planOf(c)||{ter:{},arb:{}},tr=tourn(c),opt=(sel,k,i)=>`<select class="f" onchange="planSet(${k},${i},this.value)"><option value="">—</option>${E.map(t=>`<option value="${t.id}" ${sel===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select>`;
+  const jouent=new Set(Object.values(p.ter||{}).flat().filter(Boolean)),libres=E.filter(t=>!jouent.has(t.id));
+  const used=[1,2,3].filter(k=>(p.ter[k]||[]).some(Boolean));
+  const arbT=E.filter(t=>p.arb&&p.arb[t.id]&&!jouent.has(t.id));
+  return `<div class="plan">
+   <div class="row" style="justify-content:space-between"><h3 style="margin:0">📍 Envoyer les équipes sur les terrains</h3>
+    <div class="row">${tr?`<select class="f" style="width:auto" onchange="if(this.value)planTour(+this.value);this.value=''"><option value="">Reprendre un tour du tournoi…</option>${[...new Set(tr.rc.map(r=>r.tour))].map(n=>`<option value="${n}">Tour ${n}</option>`).join('')}</select>`:''}
+     ${planOf(c)?`<button class="btn red sm" onclick="if(confirm('Effacer le plan des terrains du jour ?')){delete C().plans[today()];save();renderEquipes()}">Effacer</button>`:''}</div></div>
+   <div class="pter">${[1,2,3].map(k=>{const P=p.ter[k]||[];return `<div><b>Terrain ${k}</b><div class="pvs">${opt(P[0],k,0)}<span>contre</span>${opt(P[1],k,1)}</div></div>`}).join('')}</div>
+   <div style="margin-top:10px"><b>🟨 À l'arbitrage</b> <span class="muted">(équipes qui ne jouent pas : touche pour les envoyer arbitrer)</span>
+    <div class="row" style="margin-top:6px">${libres.map(t=>`<button class="btn alt sm ${p.arb&&p.arb[t.id]?'lvon':''}" onclick="planArb('${t.id}')">${p.arb&&p.arb[t.id]?'✓ ':''}${esc(t.nom)}</button>`).join('')||'<span class="muted">Toutes les équipes jouent.</span>'}</div>
+    ${arbT.map(t=>{const A=p.arb[t.id]||{};return `<div class="parb"><div class="row" style="justify-content:space-between"><b>${esc(t.nom)}</b><button class="btn alt sm" onclick="planSplit('${t.id}')">⚖ Répartir sur les terrains en jeu</button></div>
+      ${(t.el||[]).map(id=>{const e=elOf(c,id);if(!e)return '';const x=A[id]||{};return `<div class="prow"><span>${esc(fullName(e))}</span><div class="seg">${[0,1,2,3].map(k=>`<button class="${(x.k||0)===k?'on':''}" onclick="planEl('${t.id}','${id}',${k})">${k?'T'+k:'—'}</button>`).join('')}</div>
+        ${x.k?`<button class="btn alt sm" onclick="planRole('${t.id}','${id}')">${rLbl(x.r)}</button>`:''}</div>`}).join('')}</div>`}).join('')}</div>
+   <p class="muted" style="margin-top:8px">Chaque tablette d'équipe affiche aussitôt son terrain et son adversaire (ou les arbitres et leur terrain). Le coach confirme « nous sommes au terrain » : ✓ apparaît ci-dessous.</p></div>`}
+function planSet(k,i,tid){const c=C();planEdit(c,p=>{Object.keys(p.ter).forEach(K=>{p.ter[K]=(p.ter[K]||[]).map(x=>x===tid?'':x)});const P=p.ter[k]=p.ter[k]||['',''];P[i]=tid||'';if(tid&&p.arb)delete p.arb[tid]});renderEquipes()}
+function planArb(tid){const c=C();planEdit(c,p=>{if(p.arb[tid])delete p.arb[tid];else{p.arb[tid]={};planSplitIn(c,p,tid)}});renderEquipes()}
+function planSplitIn(c,p,tid){const t=(c.equipes||[]).find(x=>x.id===tid);if(!t)return;const K=[1,2,3].filter(k=>(p.ter[k]||[]).some(Boolean)),j=(t.jours||{})[today()];
+  const L=(t.el||[]).filter(id=>elOf(c,id)&&!(j&&j.pres&&j.pres[id]===0));const A={};
+  if(!K.length){L.forEach(id=>A[id]={k:0,r:'arbitre'});p.arb[tid]=A;return}
+  /* chaque terrain en jeu reçoit d'abord un arbitre, puis un marqueur, puis les suivants en renfort */
+  L.forEach((id,i)=>{const k=K[i%K.length],r=Math.floor(i/K.length)%2?'marqueur':'arbitre';A[id]={k,r}});
+  /* les autres équipes à l'arbitrage couvrent déjà certains terrains : on garde la répartition simple */
+  p.arb[tid]=A}
+function planSplit(tid){const c=C();planEdit(c,p=>planSplitIn(c,p,tid));renderEquipes()}
+function planEl(tid,eid,k){const c=C();planEdit(c,p=>{const A=p.arb[tid]=p.arb[tid]||{},x=A[eid]=A[eid]||{r:'arbitre'};x.k=k});renderEquipes()}
+function planRole(tid,eid){const c=C();planEdit(c,p=>{const x=(p.arb[tid]||{})[eid];if(x)x.r=x.r==='marqueur'?'arbitre':'marqueur'});renderEquipes()}
+function planTour(n){const c=C(),tr=tourn(c);if(!tr)return;planEdit(c,p=>{p.ter={};tr.rc.filter(r=>r.tour===n).forEach(r=>{p.ter[r.terrain]=[r.a,r.b]});
+  const jouent=new Set(Object.values(p.ter).flat());p.arb={};(c.equipes||[]).filter(t=>!jouent.has(t.id)).forEach(t=>{p.arb[t.id]={};planSplitIn(c,p,t.id)})});renderEquipes();toast('Tour '+n+' envoyé aux tablettes')}
+
 /* ================== FIL DE LA LEÇON (résumé automatique d'une équipe pour un jour) ==================
    Construit à partir de ce que la tablette du coach a enregistré : coach, rôles, appel, terrain, matchs,
    situations validées, remédiations, bilan, rangement. Affiché au coach de la leçon suivante, en fin de leçon
@@ -1343,6 +1412,7 @@ function dbEquipe(c,t){
   return `<div class="dbt ${A.length?'warn':''}" style="--ch:${ch?ch[1]:'#d9d4c9'}">
    <div class="dbh"><i></i><b>${esc(t.nom)}</b><button class="btn alt sm" onclick="EQT='${t.id}';DBV=false;renderEquipes()">📊</button></div>
    <div class="muted">${j?`🧢 ${esc(shortName(elOf(c,j.coach)))} · ${pres}/${n} présent(s)${abs.length?' · abs. '+abs.map(id=>esc(shortName(elOf(c,id)))).join(', '):''}`:'tablette pas encore ouverte'}</div>
+   ${(()=>{const af=affOf(c,t);if(!af||af.mode!=='jeu')return '';const ok=affOk(c,t);return `<div class="${ok?'pok':'pwait'}">${ok?`✓ Au terrain ${af.k} (confirmé par le coach)`:j&&j.terrain&&j.terrain!==af.k?`⚠ Envoyée au terrain ${af.k}, la tablette indique le terrain ${j.terrain}`:`⏳ Envoyée au terrain ${af.k} : pas encore confirmé`}${af.adv?' · contre '+esc(tnom(c,af.adv)):''}</div>`})()}
    ${live}
    ${M.length?`<div>🏐 ${a.G}G ${a.N}N ${a.P}P · ${a.w}/${a.l} pts</div>`:''}
    ${V.length?`<div>✅ ${V.map(x=>esc(x.nom)).join(', ')}</div>`:''}
@@ -1353,13 +1423,17 @@ function dbEquipe(c,t){
 }
 function dashHtml(c){
   const E=c.equipes||[],d=today(),T={0:[]},tr=tourn(c);
-  E.forEach(t=>{const j=(t.jours||{})[d],k=j&&j.terrain?j.terrain:0;(T[k]=T[k]||[]).push(t)});
+  const P=planOf(c),AR={};
+  E.forEach(t=>{const j=(t.jours||{})[d],a=affOf(c,t);if(a&&a.mode==='arb'){a.L.forEach(x=>{(AR[x.k]=AR[x.k]||[]).push({t,...x})});return}
+    const k=a?a.k:j&&j.terrain?j.terrain:0;(T[k]=T[k]||[]).push(t)});
   const ter=[1,2,3].concat(Object.keys(T).map(Number).filter(k=>k>3));
   const actifs=E.filter(t=>(t.jours||{})[d]).length,enMatch=E.filter(t=>curMatch(t)).length;
   return `<div class="card dbcard"><div class="row" style="justify-content:space-between"><h2 style="margin:0">📡 Tableau de bord de la leçon</h2>
    <div class="row"><span class="muted">${actifs}/${E.length} équipe(s) installée(s) · ${enMatch} match(s) en cours</span>${syOk()?`<button class="btn alt sm" onclick="syCycle().then(()=>renderEquipes())">⟳ Actualiser</button>`:''}<button class="btn alt sm" onclick="DBV=!DBV;renderEquipes()">${DBV?'Masquer':'Afficher'}</button></div></div>
    ${DBV?`${E.length?'':'<p class="muted">Crée d\'abord les équipes (plus bas).</p>'}
-   <div class="dbg">${ter.map(k=>`<div class="dbter"><h3>Terrain ${k}${tr?` <small class="muted">${tr.rc.filter(r=>+r.terrain===k&&!rcScore(c,r)).length} match(s) de tournoi à jouer</small>`:''}</h3>${(T[k]||[]).map(t=>dbEquipe(c,t)).join('')||'<p class="muted">Aucune équipe.</p>'}</div>`).join('')}</div>
+   ${PLO||!P?`<div class="card" style="background:#faf8f4">${planHtml(c)}</div>`:''}<div class="row"><button class="btn sm" style="background:var(--vol)" onclick="PLO=!PLO;renderEquipes()">📍 ${PLO?'Fermer le plan des terrains':P?'Modifier le plan des terrains':'Envoyer les équipes sur les terrains'}</button></div>
+   <div class="dbg">${ter.map(k=>{const L=T[k]||[],ok=L.length&&L.every(t=>!affOf(c,t)||affOk(c,t)),R=AR[k]||[];return `<div class="dbter"><h3>Terrain ${k}${L.length===2?` <small>${esc(L[0].nom)} – ${esc(L[1].nom)}</small>`:''}${P&&L.length?(ok?' <span class="pok">✓ en place</span>':' <span class="pwait">⏳</span>'):''}${tr?` <small class="muted">${tr.rc.filter(r=>+r.terrain===k&&!rcScore(c,r)).length} match(s) de tournoi à jouer</small>`:''}</h3>${L.map(t=>dbEquipe(c,t)).join('')||'<p class="muted">Aucune équipe.</p>'}
+     ${R.length?`<div class="dbarb">${R.map(x=>`<div>${rLbl(x.r)} <b>${esc(shortName(elOf(c,x.eid)))}</b> <small class="muted">(${esc(x.t.nom)})</small> ${affOk(c,x.t)?'<span class="pok">✓</span>':'<span class="pwait">⏳</span>'}</div>`).join('')}</div>`:''}</div>`}).join('')}</div>
    ${(T[0]||[]).length?`<h3 style="margin:12px 0 6px">Sans terrain aujourd'hui</h3><div class="dbg">${T[0].map(t=>dbEquipe(c,t)).join('')}</div>`:''}
    <p class="muted">Mis à jour automatiquement à partir des tablettes des coachs (synchronisation entre tablettes${syOk()?' active':' non réglée : seules les données de cette tablette apparaissent'}).</p>`:''}</div>`;
 }
@@ -1791,7 +1865,8 @@ function syRecords(){const O={};
     O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,ord:c.eleves.map(e=>e.id)});
     c.eleves.forEach(e=>{O['el|'+c.id+'|'+e.id]=JSON.stringify(e)});
     (c.equipes||[]).forEach(t=>{O['eq|'+c.id+'|'+t.id]=JSON.stringify(t)});
-    Object.keys(c.tournois||{}).forEach(d=>{O['to|'+c.id+'|'+d]=JSON.stringify(c.tournois[d])})});
+    Object.keys(c.tournois||{}).forEach(d=>{O['to|'+c.id+'|'+d]=JSON.stringify(c.tournois[d])});
+    Object.keys(c.plans||{}).forEach(d=>{O['pl|'+c.id+'|'+d]=JSON.stringify(c.plans[d])})});
   O.bar=JSON.stringify(S.bareme);if(S.seq)O.seq=JSON.stringify(S.seq);return O}
 function syChan(){const c=SYC(),sig=c.url+'|'+h32(c.key);if(SY.ch!==sig){Object.assign(SY,{ch:sig,init:false,since:0,h:{},pend:{},err:''});sySave()}return c}
 function syScan(){const O=syRecords();let n=0;
@@ -1821,6 +1896,7 @@ function syApply(k,o){const p=k.split('|'),t=p[0];
     if(!c){c=S.classes.find(x=>norm(x.nom)===norm(o.nom));if(c)c.id=o.id;else{S.classes=S.classes.filter(x=>!(x.nom==='Ma classe'&&!x.eleves.length));c={id:o.id,nom:o.nom,eleves:[]};S.classes.push(c)}}
     c.nom=o.nom;const ord=o.ord||[];c.eleves.sort((a,b)=>{const i=ord.indexOf(a.id),j=ord.indexOf(b.id);return (i<0?1e6:i)-(j<0?1e6:j)});return}
   if(t==='to'){const c=S.classes.find(x=>x.id===p[1]);if(c){c.tournois=c.tournois||{};c.tournois[p[2]]=o}return}
+  if(t==='pl'){const c=S.classes.find(x=>x.id===p[1]);if(c){c.plans=c.plans||{};c.plans[p[2]]=o}return}
   if(t==='eq'){const cid=p[1];let c=S.classes.find(x=>x.id===cid);
     if(!c){S.classes=S.classes.filter(x=>!(x.nom==='Ma classe'&&!x.eleves.length));c={id:cid,nom:'…',eleves:[],equipes:[]};S.classes.push(c)}
     c.equipes=c.equipes||[];const i=c.equipes.findIndex(x=>x.id===o.id);if(i>=0)c.equipes[i]=o;else c.equipes.push(o);return}
@@ -1834,7 +1910,8 @@ function syRemove(k){const p=k.split('|'),t=p[0];
   if(t==='cl')S.classes=S.classes.filter(c=>c.id!==p[1]);
   else if(t==='el'){const c=S.classes.find(x=>x.id===p[1]);if(c)c.eleves=c.eleves.filter(e=>e.id!==p[2])}
   else if(t==='eq'){const c=S.classes.find(x=>x.id===p[1]);if(c)c.equipes=(c.equipes||[]).filter(e=>e.id!==p[2])}
-  else if(t==='to'){const c=S.classes.find(x=>x.id===p[1]);if(c&&c.tournois)delete c.tournois[p[2]]}}
+  else if(t==='to'){const c=S.classes.find(x=>x.id===p[1]);if(c&&c.tournois)delete c.tournois[p[2]]}
+  else if(t==='pl'){const c=S.classes.find(x=>x.id===p[1]);if(c&&c.plans)delete c.plans[p[2]]}}
 async function syPull(){const ch=SYC();
   for(let loop=0;loop<30;loop++){
     const r=await syJ({pull:1,since:SY.since,pre:ch.pre},25000);

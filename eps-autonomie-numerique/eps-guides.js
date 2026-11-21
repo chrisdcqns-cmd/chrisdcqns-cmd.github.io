@@ -43,6 +43,7 @@ window.EPS_GUIDES = {
     ["👥 Classe", "Élèves (import, correction) et équipes. 📡 Tableau de bord de la leçon (en haut d'Équipes) : les 3 terrains en direct, avec pour chaque équipe le coach, l'appel, le match en cours, les situations validées, la remédiation et les alertes (installation, absents, matchs perdus)."],
     ["📄 Bilans", "Fiches PDF au format Danse, une par élève, .zip et récapitulatif ; auto-positionnement par QR code et suivi."],
     ["Tablette coach (côté élève)", "L'élève choisit sa classe puis son équipe : leçon du jour, matchs, observation. ⌂ Accueil ramène au choix de la classe."],
+    ["📍 Envoyer les équipes sur les terrains", "Classe › 📡 Tableau de bord › « Envoyer les équipes » : pour chaque terrain, choisis les deux équipes face à face (ou reprends un tour du tournoi). Les équipes qui ne jouent pas peuvent partir à l'arbitrage : « Répartir » envoie leurs joueurs sur les terrains en jeu (arbitre, marqueur), modifiable joueur par joueur. Chaque tablette d'équipe affiche son terrain et son adversaire, ou la répartition des arbitres ; le coach confirme « nous sommes au terrain » et tu vois ✓ (ou ⏳ / ⚠ si la tablette indique un autre terrain)."],
     ["📜 Fil de la leçon", "En fin de leçon, la tablette du coach résume ce que l'équipe a fait (coach et rôles, appel, matchs, situations validées, remédiations, bilan, rangement). Le coach de la leçon suivante le retrouve dans l'onglet Leçon, et toi dans le tableau de bord."]
   ] },
   bad: { nom: "Badminton", items: [
