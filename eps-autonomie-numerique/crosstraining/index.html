@@ -177,6 +177,33 @@ label.champ{display:block;font-size:12px;font-weight:700;color:var(--doux);margi
 .bandeau-maj{background:#fff7db;border-bottom:1px solid #f2dd8f;padding:8px 14px;font-size:13px;display:flex;gap:8px;align-items:center}
 .bandeau-maj button{margin-left:auto}
 .cache{display:none!important}
+/* Timer */
+.feuille.tm{max-height:100vh;border-radius:0;background:#14171C;color:#fff;padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px;text-align:center}
+.tm-haut{display:flex;justify-content:space-between;align-items:center}
+.tm-x{border:0;background:#2a2f37;color:#fff;width:40px;height:40px;border-radius:99px;font-size:18px}
+.tm-nom{font-size:30px;font-weight:800;line-height:1.1}
+.tm-niv{color:#c9e7a1;font-weight:700;font-size:16px;margin-top:4px}
+.tm-clip{width:min(36vw,150px);aspect-ratio:9/16;margin:0 auto;border-radius:14px;overflow:hidden;background:#1f232a center/cover no-repeat;position:relative}
+.tm-clip video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .3s}
+.tm-temps{font:800 88px/1 ui-monospace,Menlo,monospace;letter-spacing:-2px}
+.tm-barre{height:8px;background:#2a2f37;border-radius:9px;overflow:hidden}.tm-barre div{height:100%;width:0}
+.tm-tours{font-weight:800;color:#c9e7a1}
+.tm-reste{font-size:22px}.tm-reste b{font-size:40px;color:#fff}.tm-reste.ok{color:#7fd69a;font-weight:800}
+.tm-valid{color:#A9AEB8;font-size:14px}
+.tm-btns{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+.tm-btns button{border:0;border-radius:16px;color:#fff;font:800 24px system-ui,sans-serif;padding:24px 6px;touch-action:manipulation}
+.tm-rep{background:#1e8a4c}.tm-no{background:#c0392b}
+.tm-btns button:active{transform:scale(.97);filter:brightness(1.15)}
+.tm-suite{background:#1f232a;border-radius:14px;padding:8px 10px;text-align:left}
+.tm-st{font-size:12px;color:#A9AEB8;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.tm-l{display:flex;gap:10px;align-items:baseline;padding:5px 0;border-top:1px solid #2a2f37}.tm-l:first-of-type{border-top:0}
+.tm-l b{min-width:62px;color:#c9e7a1}.tm-l span{flex:1;font-weight:700}.tm-l small{color:#A9AEB8}
+.tm-l.tour{color:#A9AEB8;font-style:italic}
+.tm-bas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
+html.tel .tm-temps{font-size:72px}
+html.tel .tm-clip{width:min(28vw,112px)}
+html.tel .feuille.tm{gap:8px;padding:10px 12px 14px}
+html.tel .tm-nom{font-size:26px}
 header .aff{margin-left:auto;height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 10px;white-space:nowrap}
 header .aff + [data-eps-bar]{margin-left:6px}
 /* Tablette : plus large, plus de colonnes */
@@ -655,9 +682,9 @@ function rendreFiche(){
   $("#calque").innerHTML = `<div class="voile" data-act="fermer-fond"><div class="feuille">
     <div class="tete"><div class="t"><div class="en">${h(e.en)}</div><div class="doux">${h(e.fr)} · ${FAMILLE[e.famille]}</div></div>
       <button class="fermer" data-act="fermer">✕</button></div>
-    <div class="niveaux">${[1,2,3].map(k=>`<button class="${k===n?"on":""}" data-niv="${k}">N${k}<small>${h(e.niveaux[k-1]?.nom||"—")}</small></button>`).join("")}</div>
+    <div class="niveaux">${[1,2,3].map(k=>`<button class="${k===n?"on":""}" data-niv="${k}">Niveau ${k}<small>${h(e.niveaux[k-1]?.nom||"—")}</small></button>`).join("")}</div>
     <div class="corps">
-      ${lecteur(vids, `${e.en} · N${n}`)}
+      ${lecteur(vids, `${e.en} · niveau ${n}`)}
       <div class="consigne">${h(L.consigne||"Consigne à compléter.")}</div>
       <div class="std"><div class="rep"><b>✓ REP</b>${h(L.rep||"—")}</div><div class="norep"><b>✗ NO REP</b>${h(L.norep||"—")}</div></div>
       <h3>Muscles sollicités</h3>
@@ -672,7 +699,7 @@ function rendreFiche(){
     </div></div></div>
     <div class="barre-action"><div class="in">
       ${S.prof?`<button class="btn clair" data-edit="${e.id}">Modifier</button>`:""}
-      ${!S.prof&&!aClasse()?"":`<button class="btn ct" data-ajout="${e.id}" data-n="${n}">${dejaDansLecon?"✓ Déjà dans ma leçon · ajouter encore":`＋ Ajouter N${n} à ma leçon`}</button>`}
+      ${!S.prof&&!aClasse()?"":`<button class="btn ct" data-ajout="${e.id}" data-n="${n}">${dejaDansLecon?"✓ Déjà dans ma leçon · ajouter encore":`＋ Ajouter le niveau ${n} à ma leçon`}</button>`}
     </div></div>`;
   brancherCarrousel();
 }
@@ -711,7 +738,7 @@ function vueLecon(){
   $("#vue").innerHTML = `
     <h2>${S.prof?"Créer un WOD":"Mon WOD"}</h2>
     ${J?`<div class="alerte" style="margin-bottom:12px"><b>📌 ${h(J.titre||"Leçon du jour")}</b>${J.consigne?`<br>${h(J.consigne)}`:""}${J.theme?`<br>Thème imposé : <b>${THEMES[J.theme].nom}</b>`:""}${J.format?` · format imposé : <b>${FORMATS[J.format].nom}</b>`:""}
-      <br><b>${V.wod?"🔒 Réalise le WOD de ton enseignant (tu peux adapter le niveau N1 / N2 / N3).":V.forme?"🧩 Forme de travail imposée : choisis tes exercices dans la bibliothèque.":"✏️ WOD libre : crée le WOD de ton choix."}</b></div>`:""}
+      <br><b>${V.wod?"🔒 Réalise le WOD de ton enseignant (tu peux adapter le niveau 1, 2 ou 3).":V.forme?"🧩 Forme de travail imposée : choisis tes exercices dans la bibliothèque.":"✏️ WOD libre : crée le WOD de ton choix."}</b></div>`:""}
     <input type="text" id="titre" placeholder="Nom de ma leçon (ex. WOD du mardi)" value="${h(l.titre)}" style="margin-bottom:12px">
     <div class="themes">${Object.entries(THEMES).map(([k,t])=>`<button class="theme ${k} ${l.theme===k?"on":""}" data-theme="${k}" ${V.forme&&l.theme!==k?"disabled style='opacity:.35'":""}><b>${t.nom}</b><small>${t.accroche}</small><span class="fc">${t.fc}</span></button>`).join("")}</div>
     <p class="petit doux" style="margin:8px 2px 0">Indicateur principal : <b>${T.indic}</b> · ${T.repere}</p>
@@ -735,9 +762,9 @@ function ligneItem(it,i,l,fige){
   const v=videos(e,it.niv)[0], vg=v?vignette(v):"";
   const fixe = l.format==="intervalles";
   return `<div class="item">
-    <button class="mini" data-fiche="${e.id}" data-n="${it.niv}" style="${vg?`background-image:url('${vg}')`:""}">${vg?"":"N"+it.niv}</button>
+    <button class="mini" data-fiche="${e.id}" data-n="${it.niv}" style="${vg?`background-image:url('${vg}')`:""}">${vg?"":"Niv. "+it.niv}</button>
     <div class="nom"><b>${i+1}. ${h(e.en)}</b><span class="petit doux">${h(e.niveaux[it.niv-1]?.nom||"")}</span>
-      <div class="ligne"><div class="niv-mini">${[1,2,3].map(k=>`<button class="${k===it.niv?"on":""}" data-item="${i}" data-setniv="${k}">N${k}</button>`).join("")}</div>
+      <div class="ligne"><div class="niv-mini">${[1,2,3].map(k=>`<button class="${k===it.niv?"on":""}" data-item="${i}" data-setniv="${k}">Niveau ${k}</button>`).join("")}</div>
       ${fixe?`<span class="petit"><b>${params(l).travail} s</b></span>`:fige?`<span class="petit"><b>${it.qte}</b></span>`:`<input class="qte" type="number" min="1" data-item="${i}" data-qte value="${it.qte}"><span class="petit doux">${MESURE[e.mesure]}</span>`}</div></div>
     <div class="outils" ${fige?'style="display:none"':""}><button data-item="${i}" data-move="-1" aria-label="Monter">▲</button><button data-item="${i}" data-move="1" aria-label="Descendre">▼</button><button data-item="${i}" data-suppr aria-label="Retirer">✕</button></div></div>`;
 }
@@ -785,7 +812,7 @@ function texteWod(l){
   const lignes = l.items.map((it,i)=>{ const e=exParId(it.exId); if(!e) return "";
     const q = l.format==="intervalles" ? `${p.travail} s` : `${it.qte} ${MESURE[e.mesure]}`;
     const pre = l.format==="emom"?`Min ${i+1}`: l.format==="e2mom"?`${i*2}-${i*2+2} min`:"•";
-    return `${pre}  ${q}  ${e.en} (N${it.niv} ${e.niveaux[it.niv-1]?.nom||""})`; });
+    return `${pre}  ${q}  ${e.en} (niveau ${it.niv} · ${e.niveaux[it.niv-1]?.nom||""})`; });
   return {titre:(l.titre||"Mon WOD")+" · "+T.nom, tete, lignes, fin:`Zone visée : ${T.fc} · ${T.indic}`};
 }
 function tableauWod(l){ const w=texteWod(l); return `<div class="titre">${h(w.titre)}</div>${h(w.tete)}\n\n${h(w.lignes.join("\n"))}\n\n<span style="color:#9aa0aa">${h(w.fin)}</span>`; }
@@ -913,7 +940,7 @@ document.addEventListener("click", ev=>{
   if(d.video!==undefined && t.classList.contains("diapo")){ lancerVideo(t); return; }
   if(d.niv && !d.champ){ FICHE.niv=+d.niv; rendreFiche(); return; }
   if(d.ajout){ if(verrou().wod) return toast("Aujourd'hui, tu réalises le WOD de ton enseignant"); const e=exParId(d.ajout); l.items.push({exId:e.id, niv:+d.n, qte: l.theme==="R"&&e.mesure==="reps"?Math.max(12,e.qte):e.qte});
-    sauver(); rendre(); rendreFiche(); toast(`${e.en} N${d.n} ajouté · ${l.items.length} exercice(s)`); return; }
+    sauver(); rendre(); rendreFiche(); toast(`${e.en} niveau ${d.n} ajouté · ${l.items.length} exercice(s)`); return; }
   if(d.theme){ S.conseil=null; l.theme=d.theme; if(!THEMES[d.theme].formats.includes(l.format)) l.format=THEMES[d.theme].formats[0]; sauver(); rendre(); return; }
   if(d.format){ l.format=d.format; sauver(); rendre(); return; }
   if(d.setniv){ l.items[d.item].niv=+d.setniv; sauver(); rendre(); return; }
@@ -922,9 +949,7 @@ document.addEventListener("click", ev=>{
   if(d.ouvrir){ S.lecon=JSON.parse(JSON.stringify(S.lecons[d.ouvrir])); S.onglet="lecon"; sauver(); rendre(); return; }
   if(d.dupliquer){ const c=JSON.parse(JSON.stringify(S.lecons[d.dupliquer])); c.id=Date.now().toString(36); c.titre+=" (copie)"; c.date=Date.now(); S.lecons.unshift(c); sauver(); rendre(); return; }
   if(d.effacer){ if(confirm("Supprimer cette leçon ?")){ S.lecons.splice(d.effacer,1); sauver(); rendre(); } return; }
-  if(d.cpt&&TM){ const ph=TM.P[TM.i], k=d.k||(ph.ex&&ph.ex.exId+"|"+ph.niv); if(!k) return; const c=TM.cpt[k]=TM.cpt[k]||{rep:0,no:0}; c[d.cpt]++;
-    bip(d.cpt==="rep"?1320:220,.07); try{ navigator.vibrate&&navigator.vibrate(d.cpt==="rep"?25:[40,40,40]); }catch(e){}
-    if(d.k){ const z=document.querySelector(`[data-c="${k}|${d.cpt}"]`); if(z) z.textContent=c[d.cpt]; } else { const z=$(d.cpt==="rep"?"#cRep":"#cNo"); if(z) z.textContent=c[d.cpt]; } return; }
+  if(d.cpt&&TM){ compter(d.cpt); return; }
   if(d.edit){ editer(d.edit); return; }
   if(d.fmode){ S.formJour.mode=d.fmode; vueJour(); return; }
   if(d.gmode){ S.choixGroupe.mode=d.gmode; vueGroupe(); return; }
@@ -943,7 +968,6 @@ document.addEventListener("click", ev=>{
     case "affichage": { const o=["auto","tel","tab"], m=LS.get("affichage","auto"); LS.set("affichage", o[(o.indexOf(m)+1)%3]); appliquerAffichage(); toast({auto:"Affichage automatique",tel:"Affichage téléphone",tab:"Affichage tablette"}[LS.get("affichage")]); rendre(); break; }
     case "tmPause": if(TM.enPause){ TM.debut+=Date.now()-TM.pause; TM.enPause=false; } else { TM.pause=Date.now(); TM.enPause=true; } dessinerTimer(); break;
     case "tmSuiv": suivante(); break;
-    case "tmTour": TM.tours++; bip(1100,.08); if(TM.P[TM.i].tours&&TM.tours>=TM.P[TM.i].tours) finTimer(); else dessinerTimer(); break;
     case "tmFini": finTimer(); break;
     case "tmStop": if(confirm("Arrêter le WOD ?")){ clearInterval(TM.iv); TM=null; fermer(); } break;
     case "tmSave": sauverResultat(); break;
@@ -1025,14 +1049,18 @@ function vueGroupe(){
     <div style="display:grid;gap:8px;margin-top:14px">${P.length?Array.from({length:n},(_,i)=>sel(i)).join(""):`<p class="doux">Pas de liste pour cette classe : écris vos prénoms.</p>${Array.from({length:n},(_,i)=>`<input type="text" data-gnom="${i}" placeholder="${i?"Partenaire "+i:"Mon prénom"}" value="${h(ch.noms[i]||"")}">`).join("")}`}</div>
     <button class="btn ct plein" data-act="groupeOk" style="margin-top:14px">C'est parti</button>`;
 }
-/* ======================= TIMER ======================= */
+/* ======================= TIMER =======================
+   Écran : phase · exercice et niveau · petite boucle vidéo (2 s au milieu, sans appui) · chrono · REP / NO REP · « il reste … » · à suivre.
+   Les appuis REP font avancer le WOD : AMRAP / For Time (exercice suivant puis tour suivant), circuit (atelier suivant),
+   EMOM (minute terminée). En intervalles (temps fixe), on compte seulement. Les exercices « temps » se valident par « ✓ Tenu ». */
 let TM=null, AC=null;
+const NIV = n => "Niveau "+n;
 function bip(f,d){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); const o=AC.createOscillator(), g=AC.createGain(); o.frequency.value=f; o.connect(g); g.connect(AC.destination); g.gain.setValueAtTime(.25,AC.currentTime); o.start(); o.stop(AC.currentTime+d); }catch(e){} }
 function phases(l){
   const p=params(l), it=l.items.map(x=>({...x, e:exParId(x.exId)})).filter(x=>x.e), P=[{t:"pret",s:10,lab:"Prêt ?"}];
-  const W=(x,s,extra)=>({t:"work",s,lab:x.e.en,niv:x.niv,q:l.format==="intervalles"?"":`${x.qte} ${MESURE[x.e.mesure]}`,ex:x,...extra});
+  const W=(x,s,extra)=>({t:"work",s,lab:x.e.en,niv:x.niv,ex:x,...extra});
   const R_=(s,lab)=>({t:"rest",s,lab:lab||"Récupération"});
-  if(l.format==="intervalles") for(let t=0;t<p.tours;t++) it.forEach((x,i)=>{ P.push(W(x,+p.travail,{tour:t+1})); if(!(t===p.tours-1&&i===it.length-1)&&+p.repos) P.push(R_(+p.repos)); });
+  if(l.format==="intervalles") for(let t=0;t<p.tours;t++) it.forEach((x,i)=>{ P.push(W(x,+p.travail,{tour:t+1,libre:1})); if(!(t===p.tours-1&&i===it.length-1)&&+p.repos) P.push(R_(+p.repos)); });
   else if(l.format==="emom"||l.format==="e2mom"){ const d=l.format==="emom"?60:120, n=Math.floor(p.minutes*60/d); for(let m=0;m<n;m++) P.push(W(it[m%it.length],d,{tour:m+1,emom:1})); }
   else if(l.format==="amrap") P.push({t:"bloc",s:p.minutes*60,lab:`AMRAP ${p.minutes} min`,cible:+p.cible,it});
   else if(l.format==="fortime") P.push({t:"bloc",s:p.cap*60,lab:`For Time · ${p.tours} tours`,up:1,tours:+p.tours,it});
@@ -1041,7 +1069,7 @@ function phases(l){
 }
 function lancerTimer(){
   const l=S.lecon; if(!l.items.length) return toast("Ajoute d'abord des exercices");
-  TM={cpt:{}, P:phases(l), i:0, debut:Date.now(), pause:0, enPause:false, tours:0, total0:Date.now(), fin:null};
+  TM={cpt:{}, P:phases(l), i:0, debut:Date.now(), pause:0, enPause:false, tours:0, k:0, fait:0, total0:Date.now()};
   try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>TM.lock=w); }catch(e){}
   bip(880,.15); dessinerTimer(); TM.iv=setInterval(tick,200);
 }
@@ -1051,47 +1079,95 @@ function tick(){
   const e=ecoule()/1000, rest=ph.s?Math.ceil(ph.s-e):null;
   if(ph.s&&rest!==TM.dern){ TM.dern=rest; if(rest<=3&&rest>0) bip(660,.12); }
   if(ph.s&&e>=ph.s){ if(ph.t==="bloc"&&ph.up) TM.capAtteint=1; suivante(); return; }
-  majTimer();
+  majChrono();
 }
-function suivante(){ TM.i++; TM.debut=Date.now(); TM.dern=null; if(TM.i>=TM.P.length) return finTimer(); bip(TM.P[TM.i].t==="rest"?440:990,.35); dessinerTimer(); }
+function suivante(){ TM.i++; TM.debut=Date.now(); TM.dern=null; TM.fait=0; if(TM.i>=TM.P.length) return finTimer(); bip(TM.P[TM.i].t==="rest"?440:990,.35); dessinerTimer(); }
 const mmss = s => `${Math.floor(s/60)}:${String(Math.max(0,Math.floor(s%60))).padStart(2,"0")}`;
-function majTimer(){
+/* exercice en cours (objet de la leçon) */
+function exCourant(){ const ph=TM.P[TM.i]; return ph.t==="bloc" ? ph.it[TM.k] : ph.t==="work" ? ph.ex : null; }
+function cible(x){ return x ? +x.qte : 0; }
+function aSuivre(){
+  const ph=TM.P[TM.i], L=[];
+  if(ph.t==="bloc"){ ph.it.slice(TM.k+1).forEach(x=>L.push(x)); L.push({tourSuiv:1}); ph.it.slice(0,Math.max(0,4-L.length)).forEach(x=>L.push(x)); }
+  else TM.P.slice(TM.i+1).filter(x=>x.t==="work").slice(0,4).forEach(x=>L.push({...x.ex, dureeFixe: x.libre?x.s:0}));
+  return L.slice(0,5);
+}
+const qteTxt = x => x.dureeFixe ? `${x.dureeFixe} s` : `${x.qte} ${x.e.mesure==="reps"?"rép.":MESURE[x.e.mesure]}`;
+function zoneHtml(){
+  const ph=TM.P[TM.i], x=exCourant(), rep = x && x.e.mesure!=="temps";
+  let info="";
+  if(x){
+    const c=TM.cpt[x.exId+"|"+x.niv]||{rep:0,no:0};
+    if(ph.libre) info=`<div class="tm-reste"><b>${TM.fait}</b> répétition${TM.fait>1?"s":""} valide${TM.fait>1?"s":""}</div>`;
+    else if(x.e.mesure==="temps") info=`<div class="tm-reste">Tiens <b>${x.qte} s</b> puis valide</div>`;
+    else { const r=Math.max(0,cible(x)-TM.fait); info = r ? `<div class="tm-reste">Il reste <b>${r}</b> ${x.e.mesure==="distance"?"aller-retour"+(r>1?"s":""):"répétition"+(r>1?"s":"")}</div>` : `<div class="tm-reste ok">✓ Terminé${ph.emom?" · repos jusqu'à la minute suivante":""}</div>`; }
+    info += `<div class="tm-valid">${c.rep} ✓ · ${c.no} ✗ No rep</div>`;
+  }
+  const btns = !x ? "" : rep ? `<div class="tm-btns"><button class="tm-rep" data-cpt="rep">✓ REP</button><button class="tm-no" data-cpt="no">✗ NO REP</button></div>`
+                             : `<div class="tm-btns"><button class="tm-rep" data-cpt="tenu">✓ Tenu</button><button class="tm-no" data-cpt="no">✗ Lâché</button></div>`;
+  const tours = ph.t==="bloc" ? `<div class="tm-tours">Tour ${TM.tours+1}${ph.tours?" / "+ph.tours:""}${ph.cible?` · cible ${ph.cible} tours`:""}<span id="tmAllure"></span></div>` : "";
+  const L=aSuivre();
+  return tours + info + btns + (L.length?`<div class="tm-suite"><div class="tm-st">À suivre</div>${L.map(y=>y.tourSuiv?`<div class="tm-l tour">↻ Tour suivant</div>`:`<div class="tm-l"><b>${qteTxt(y)}</b><span>${h(y.e.en)}</span><small>${NIV(y.niv)}</small></div>`).join("")}</div>`:"");
+}
+function majZone(){ const z=$("#tmZone"); if(z) z.innerHTML=zoneHtml(); majChrono(); }
+function majChrono(){
   const ph=TM.P[TM.i], e=ecoule()/1000, z=$("#tmTemps"); if(!z) return;
   z.textContent = ph.up||ph.ouvert ? mmss(e) : mmss(Math.max(0,ph.s-e));
   const b=$("#tmBarre"); if(b&&ph.s) b.style.width=Math.min(100,e/ph.s*100)+"%";
-  if(ph.cible){ const att=e/(ph.s/ph.cible), a=$("#tmAllure"); if(a) a.textContent=`Allure : ${TM.tours} tour(s) faits · cible ${att.toFixed(1)} à cet instant ${TM.tours+0.5<att?"→ accélère":TM.tours>att+1?"→ tu es en avance":"✓"}`; }
+  if(ph.cible){ const att=e/(ph.s/ph.cible), a=$("#tmAllure"); if(a) a.textContent=` · ${(()=>{ const f=TM.tours+TM.k/ph.it.length; return f>att+.5?"en avance":f+.5<att?"accélère":"bonne allure"; })()}`; }
+}
+/* petite boucle de 2 s au milieu de la vidéo, sans appui (vidéo de la tablette, sinon Drive) ; image fixe si impossible */
+function clipHtml(x){ const v=x?videos(x.e,x.niv)[0]:null; return v?`<div class="tm-clip" style="background-image:url('${vignette(v)}')" data-clip="${h(v.id)}"></div>`:""; }
+async function animerClips(){
+  for(const el of document.querySelectorAll("[data-clip]")){
+    const id=el.dataset.clip; let src=null; try{ const b=await HL.get(id); if(b) src=URL.createObjectURL(b); }catch(e){}
+    if(!src) src="https://drive.google.com/uc?export=download&id="+encodeURIComponent(id);
+    const v=document.createElement("video"); v.muted=true; v.playsInline=true; v.setAttribute("playsinline",""); v.autoplay=true; v.preload="auto";
+    let a=0; v.onloadedmetadata=()=>{ a=Math.max(0,(v.duration||4)/2-1); v.currentTime=a; v.play().catch(()=>{}); };
+    v.ontimeupdate=()=>{ if(v.currentTime>a+2||v.currentTime<a-.2) v.currentTime=a; };
+    v.onplaying=()=>{ el.innerHTML=""; el.appendChild(v); v.style.opacity=1; };
+    v.onerror=()=>{}; v.src=src; v.style.opacity=0; v.load();
+  }
 }
 function dessinerTimer(){
-  const ph=TM.P[TM.i], suiv=TM.P.slice(TM.i+1).find(x=>x.t!=="rest"), col={pret:"#B08900",work:"var(--app)",rest:"#2f6fdb",bloc:"var(--app)"}[ph.t];
-  const cible = ph.ex ? ph : (ph.t==="rest"||ph.t==="pret") ? suiv : null, vg = cible&&cible.ex ? videos(cible.ex.e,cible.niv)[0] : null;
-  const cle = ph.ex ? ph.ex.exId+"|"+ph.niv : null, c0 = cle ? (TM.cpt[cle]||{rep:0,no:0}) : null;
-  $("#calque").innerHTML = `<div class="voile" style="align-items:stretch"><div class="feuille" style="max-height:100vh;border-radius:0;background:#14171C;color:#fff;padding:18px;display:flex;flex-direction:column;gap:12px;text-align:center">
-    <div class="ligne" style="justify-content:space-between"><span class="m" style="background:${col};color:#fff">${{pret:"PRÊT",work:"TRAVAIL",rest:"REPOS",bloc:"WOD"}[ph.t]}${ph.tour?` · ${ph.emom?"min":"tour"} ${ph.tour}`:""}</span><span class="petit" style="color:#A9AEB8">${TM.i}/${TM.P.length-1}</span></div>
-    <div style="font-size:26px;font-weight:800">${h(ph.lab)}${ph.niv?` <span style="color:#A9AEB8;font-size:18px">N${ph.niv}</span>`:""}</div>
-    ${ph.q?`<div style="font-size:22px;color:#c9e7a1;font-weight:800">${h(ph.q)}</div>`:""}
-    ${vg?`<div><div class="petit" style="color:#A9AEB8;margin-bottom:4px">${ph.ex?"Vidéo de l'exercice":"Prochain exercice : "+h(cible.lab)+" N"+cible.niv}</div><button class="diapo" style="width:min(40vw,170px);margin:0 auto;background-image:url('${vignette(vg)}')" data-video="${h(vg.id)}"><span class="lecture">▶</span></button></div>`:""}
-    ${c0?`<div class="obs"><div class="petit" style="color:#A9AEB8">Observateur : appuie à chaque répétition</div>
-      <div class="ligne" style="gap:10px;flex-wrap:nowrap"><button class="btn" data-cpt="rep" style="flex:1;background:#1e8a4c;font-size:22px;padding:18px 6px">✓ REP <span id="cRep">${c0.rep}</span></button>
-      <button class="btn" data-cpt="no" style="flex:1;background:#c0392b;font-size:22px;padding:18px 6px">✗ NO REP <span id="cNo">${c0.no}</span></button></div></div>`:""}
-    ${ph.it?`<div class="obs petit" style="color:#A9AEB8">Observateur : touche ✓ ou ✗ sur la ligne de l'exercice</div>${ph.it.map(x=>{ const k=x.exId+"|"+x.niv, c=TM.cpt[k]||{rep:0,no:0}; return `<div class="ligne" style="flex-wrap:nowrap;background:#1f232a;border-radius:12px;padding:6px 8px"><span style="flex:1;text-align:left">${x.qte} ${MESURE[x.e.mesure]} · <b>${h(x.e.en)}</b> N${x.niv}</span><button class="btn" data-cpt="rep" data-k="${k}" style="background:#1e8a4c;padding:10px 12px">✓ <span data-c="${k}|rep">${c.rep}</span></button><button class="btn" data-cpt="no" data-k="${k}" style="background:#c0392b;padding:10px 12px">✗ <span data-c="${k}|no">${c.no}</span></button></div>`; }).join("")}`:""}
-    <div id="tmTemps" style="font:800 84px/1 ui-monospace,Menlo,monospace;letter-spacing:-2px">0:00</div>
-    <div style="height:8px;background:#2a2f37;border-radius:9px;overflow:hidden"><div id="tmBarre" style="height:100%;width:0;background:${col}"></div></div>
-    ${ph.cible||ph.tours?`<div id="tmAllure" class="petit" style="color:#c9e7a1"></div><button class="btn" style="background:#fff;color:#14171C;font-size:20px;padding:16px" data-act="tmTour">＋1 tour (${TM.tours})</button>`:""}
-    ${ph.ouvert?`<button class="btn ct" style="font-size:20px;padding:16px" data-act="tmSuiv">✓ Fait</button>`:""}
-    ${ph.up?`<button class="btn ct" style="font-size:20px;padding:16px" data-act="tmFini">🏁 Terminé</button>`:""}
-    ${suiv?`<div class="petit" style="color:#A9AEB8">Ensuite : ${h(suiv.lab)}${suiv.niv?" N"+suiv.niv:""}</div>`:""}
-    <div class="ligne" style="justify-content:center;margin-top:auto"><button class="btn contour" data-act="tmPause">${TM.enPause?"▶ Reprendre":"⏸ Pause"}</button><button class="btn contour" data-act="tmSuiv">⏭ Passer</button><button class="btn danger" data-act="tmStop">✕ Arrêter</button></div>
+  const ph=TM.P[TM.i], col={pret:"#B08900",work:"var(--app)",rest:"#2f6fdb",bloc:"var(--app)"}[ph.t];
+  const x=exCourant(), prochain = !x ? (TM.P.slice(TM.i+1).find(y=>y.t==="work")||TM.P.find(y=>y.t==="bloc")) : null;
+  const montre = x || (prochain && (prochain.ex || prochain.it&&prochain.it[0]));
+  const titre = x ? `${h(x.e.en)}` : h(ph.lab);
+  $("#calque").innerHTML = `<div class="voile" style="align-items:stretch"><div class="feuille tm">
+    <div class="tm-haut"><span class="m" style="background:${col};color:#fff">${{pret:"PRÊT",work:"TRAVAIL",rest:"REPOS",bloc:ph.lab}[ph.t]}${ph.tour?` · ${ph.emom?"minute":"tour"} ${ph.tour}`:""}</span><button class="tm-x" data-act="tmStop">✕</button></div>
+    <div class="tm-ex"><div class="tm-nom">${titre}</div>${x?`<div class="tm-niv">${NIV(x.niv)} · ${h(x.e.niveaux[x.niv-1]?.nom||"")} · ${ph.libre?ph.s+" s":qteTxt(x)}</div>`:prochain?`<div class="tm-niv">Ensuite : ${h(montre.e.en)} · ${NIV(montre.niv)}</div>`:""}</div>
+    <div id="tmVid">${clipHtml(montre)}</div>
+    <div id="tmTemps" class="tm-temps">0:00</div>
+    <div class="tm-barre"><div id="tmBarre" style="background:${col}"></div></div>
+    <div id="tmZone">${zoneHtml()}</div>
+    <div class="tm-bas"><button class="btn contour" data-act="tmPause">${TM.enPause?"▶ Reprendre":"⏸ Pause"}</button>${ph.up?`<button class="btn ct" data-act="tmFini">🏁 Terminé</button>`:`<button class="btn contour" data-act="tmSuiv">⏭ Passer</button>`}</div>
   </div></div>`;
-  majTimer();
+  majChrono(); animerClips();
+}
+/* appui REP / NO REP / Tenu */
+function compter(type){
+  const ph=TM.P[TM.i], x=exCourant(); if(!x) return;
+  const k=x.exId+"|"+x.niv, c=TM.cpt[k]=TM.cpt[k]||{rep:0,no:0};
+  if(type==="no"){ c.no++; bip(220,.1); try{ navigator.vibrate&&navigator.vibrate([40,40,40]); }catch(e){} return majZone(); }
+  c.rep += type==="tenu" ? 0 : 1; TM.fait += type==="tenu" ? cible(x) : 1; bip(1320,.06); try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
+  if(ph.libre || TM.fait < cible(x)) return majZone();
+  /* objectif atteint */
+  if(ph.t==="bloc"){ TM.k++; TM.fait=0; bip(990,.25);
+    if(TM.k>=ph.it.length){ TM.k=0; TM.tours++; bip(1200,.4); if(ph.tours&&TM.tours>=ph.tours) return finTimer(); }
+    $("#tmVid").innerHTML=clipHtml(exCourant()); animerClips(); const n=$(".tm-nom"), nv=$(".tm-niv"), y=exCourant(); if(n) n.textContent=y.e.en; if(nv) nv.textContent=`${NIV(y.niv)} · ${y.e.niveaux[y.niv-1]?.nom||""} · ${qteTxt(y)}`;
+    return majZone(); }
+  if(ph.ouvert) return suivante();
+  majZone();
 }
 function finTimer(fini){
   clearInterval(TM.iv); try{ TM.lock&&TM.lock.release(); }catch(e){} bip(1200,.6);
   const l=S.lecon, duree=Math.round((Date.now()-TM.total0)/1000), ph=TM.P.find(x=>x.t==="bloc");
   const cpt=Object.entries(TM.cpt).map(([k,c])=>{ const [id,n]=k.split("|"), e=exParId(id); return {ex:e?e.en:id, niv:+n, rep:c.rep, no:c.no}; }).filter(x=>x.rep||x.no);
-  TM.res={cpt, score: l.format==="amrap"?`${TM.tours} tours (cible ${params(l).cible})`: l.format==="fortime"?(TM.capAtteint?`time cap atteint · ${TM.tours} tours`:`${mmss(ecoule()/1000)}`):"WOD terminé", duree};
+  TM.res={cpt, score: l.format==="amrap"?`${TM.tours} tours + ${TM.k} exercice(s) (cible ${params(l).cible} tours)`: l.format==="fortime"?(TM.capAtteint?`time cap atteint · ${TM.tours} tours`:`${mmss(ecoule()/1000)}`):"WOD terminé", duree};
   const OMNI=["Très très facile","","Facile","","Plutôt dur","","Dur","","Très dur","","Extrêmement dur"];
   $("#calque").innerHTML = `<div class="voile"><div class="feuille"><div class="tete"><div class="t"><div class="en">🏁 Bravo !</div><div class="doux">${h(TM.res.score)} · ${mmss(duree)}</div></div><button class="fermer" data-act="fermer">✕</button></div>
-    <div class="corps">${TM.res.cpt.length?`<label class="champ">Comptage de l'observateur</label><table class="rapport"><tr><th>Exercice</th><th class="c">Rep</th><th class="c">No rep</th><th class="c">Validité</th></tr>${TM.res.cpt.map(x=>`<tr><td>${h(x.ex)} N${x.niv}</td><td class="c ok">${x.rep}</td><td class="c ko">${x.no}</td><td class="c">${Math.round(x.rep/(x.rep+x.no)*100)} %</td></tr>`).join("")}</table>${TM.res.cpt.some(x=>x.no/(x.rep+x.no)>.2)?`<p class="petit alerte" style="margin-top:6px">Plus de 20 % de No rep sur un exercice : si… alors je baisse d'un niveau ou je ralentis pour garder l'amplitude.</p>`:""}`:""}
+    <div class="corps">${TM.res.cpt.length?`<label class="champ">Comptage de l'observateur</label><table class="rapport"><tr><th>Exercice</th><th class="c">Rep</th><th class="c">No rep</th><th class="c">Validité</th></tr>${TM.res.cpt.map(x=>`<tr><td>${h(x.ex)} · niveau ${x.niv}</td><td class="c ok">${x.rep}</td><td class="c ko">${x.no}</td><td class="c">${Math.round(x.rep/(x.rep+x.no)*100)} %</td></tr>`).join("")}</table>${TM.res.cpt.some(x=>x.no/(x.rep+x.no)>.2)?`<p class="petit alerte" style="margin-top:6px">Plus de 20 % de No rep sur un exercice : si… alors je baisse d'un niveau ou je ralentis pour garder l'amplitude.</p>`:""}`:""}
     <label class="champ">Mon ressenti (0 à 10)</label><input type="range" min="0" max="10" value="6" id="rpe" style="width:100%"><div class="petit" id="rpeTxt">6 · Dur</div>
     <label class="champ">Ma FC en fin de bloc (battements / min, facultatif)</label><input type="number" id="fc" placeholder="ex. 165">
     <label class="champ">Mon analyse : si… alors… (facultatif)</label><textarea id="comm" placeholder="ex. j'avais 3 répétitions en réserve → la prochaine fois je passe en N3"></textarea>
