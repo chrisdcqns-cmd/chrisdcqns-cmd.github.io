@@ -1328,6 +1328,7 @@
     reformuler: function (t, o) { return reformuler(t, o); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
     search: function () { searchStudents(); },
+    bulletin: function () { bulletin(); },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
     /* synchro immédiate d'un seul magasin (ex. leçon en cours : relevé toutes les quelques secondes) */
     syncOne: function (k) { var cfg = shCfg(), st = STORES.filter(function (x) { return x.key === k; })[0]; if (!cfg || !st || st._busy || navigator.onLine === false) return Promise.resolve(false);
@@ -1506,6 +1507,44 @@
         : '<p class="m">Aucun élève trouvé.</p>';
     }
     q.oninput = draw; draw(); setTimeout(function () { q.focus(); }, 50);
+    var bb = document.createElement("button"); bb.type = "button"; bb.textContent = "📝 Appréciations de bulletin"; bb.onclick = bulletin;
+    var act = o.querySelector(".epsd-act"); if (act) act.insertBefore(bb, act.firstChild);
+  }
+  /* 📝 appréciations de bulletin : Claude rédige à partir de TES commentaires et évaluations (toutes activités), sans aucun nom d'élève ;
+     tu relis, corriges, coches ✓, puis copies vers Pronote. Gardées sur cette tablette seulement (eps.bulletin.v1). */
+  function bulletin() {
+    var KB = "eps.bulletin.v1", B = jget(KB, {}), C = []; try { C = (window.EPSL ? EPSL.items() : []).map(function (it) { return it.nom; }); } catch (e) {}
+    var cur = B._cls && C.indexOf(B._cls) >= 0 ? B._cls : C[0];
+    var o = overlay('<div id="epsbu"><h3>📝 Appréciations de bulletin</h3><p class="m">Claude part de tes commentaires et évaluations de toutes les activités (aucun nom ne lui est envoyé). Relis, corrige, coche ✓ : seules les appréciations cochées sont copiées.</p>' +
+      '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><div id="bu-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
+    var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m");
+    function people(c) { var P = []; try { EPSL.items().forEach(function (it) { if (it.nom === c) P = EPSL.people(it).map(function (p) { return p.full; }); }); } catch (e) {} return P; }
+    function notes(c, n) { return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n"); }
+    function save() { B._cls = sel.value; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) {} }
+    function draw() {
+      var c = sel.value, R = B[c] = B[c] || {}, P = people(c);
+      list.innerHTML = P.map(function (n, i) { var r = R[n] || {}, has = !!notes(c, n);
+        return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><label style="display:flex;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + '</label><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px;margin-top:6px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + "</textarea></div>"; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
+      list.querySelectorAll("[data-t]").forEach(function (ta) { ta.oninput = function () { var n = P[+ta.dataset.t]; R[n] = R[n] || {}; R[n].t = ta.value; R[n].ai = 0; ta.style.background = ""; save(); }; });
+      list.querySelectorAll("[data-ok]").forEach(function (cb) { cb.onchange = function () { var n = P[+cb.dataset.ok]; R[n] = R[n] || {}; R[n].ok = cb.checked; if (cb.checked) R[n].ai = 0; save(); draw(); }; });
+    }
+    sel.onchange = function () { save(); draw(); };
+    o.querySelector("#bu-go").onclick = function () {
+      var b = this, c = sel.value, R = B[c] = B[c] || {}, P = people(c).filter(function (n) { return notes(c, n) && !(R[n] && (R[n].ok || (R[n].t && !R[n].ai))); }), i = 0;
+      if (!P.length) { msg.textContent = "Rien à proposer : appréciations déjà écrites ou validées, ou aucune donnée."; return; }
+      b.disabled = true;
+      (function next() {
+        if (i >= P.length) { b.disabled = false; msg.textContent = "✓ " + P.length + " proposition(s) en jaune : relis, corrige et coche ✓."; save(); draw(); return; }
+        var n = P[i++]; msg.textContent = "Claude rédige " + i + " / " + P.length + "…";
+        reformuler(notes(c, n), { mode: "bulletin", act: "EPS (toutes activités)", ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
+          .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); draw(); next(); })
+          .catch(function (e) { b.disabled = false; msg.textContent = "⚠ " + e.message; save(); draw(); });
+      })();
+    };
+    o.querySelector("#bu-cp").onclick = function () { var c = sel.value, R = B[c] || {}, txt = people(c).filter(function (n) { return R[n] && R[n].ok && R[n].t; }).map(function (n) { return n + " : " + R[n].t; }).join("\n");
+      if (!txt) { msg.textContent = "Coche ✓ les appréciations relues pour les copier."; return; }
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { msg.textContent = "📋 Copié : colle dans Pronote ou un document."; }, function () { var ta = document.createElement("textarea"); ta.value = txt; o.appendChild(ta); ta.select(); try { document.execCommand("copy"); msg.textContent = "📋 Copié."; } catch (e) {} ta.remove(); }); };
+    draw();
   }
   function searchBtn() {
     var b = document.getElementById("eps-find"), sl = epsSlot();
