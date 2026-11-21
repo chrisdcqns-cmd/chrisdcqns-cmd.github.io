@@ -40,7 +40,7 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 
 ## Classes et élèves (communs à toutes les applis et tablettes)
 - Une classe importée n'importe où (accueil ou appli) apparaît partout. Toute appli qui gère des classes s'inscrit dans `APPS` de `eps-lists.js` (`key, list, nom, names, make, add, del, data`) et fournit `window.epsListsHook = {save, reload}` pour la mise à jour en direct.
-- Activités par classe (Réglages → Listes d'élèves) : champ `off` de la liste commune ; une classe non attribuée à l'activité n'y apparaît pas. Suppression (double confirmation) et fusion de listes : dans Réglages.
+- Activités par classe (Réglages → Listes d'élèves) : champ `off` de la liste commune, déduit de l'emploi du temps (`edtApply()` d'`eps-home.js`, enseignant `eps.edt.moi`) sauf si choisi à la main (`man:1`, prioritaire) ; une classe non attribuée à l'activité n'y apparaît pas. Suppression (double confirmation) et fusion de listes : dans Réglages.
 - Ne jamais effacer une classe ou un élève qui a déjà des données (évaluations, grimpes, courses).
 - `window.epsCurrentClass()` → `{nom, eleves}` : la pastille des dispensés ne compte alors que la classe choisie (sinon tous).
 

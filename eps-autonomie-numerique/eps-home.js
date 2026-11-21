@@ -254,6 +254,7 @@
       if (lch) { try { await applyLocal(); } catch (e) {} if (HUB) try { window.dispatchEvent(new CustomEvent("eps-lists")); } catch (e) {} }
       try { await syncReg(cfg); } catch (e) {}
       try { await syncEdt(cfg); } catch (e) {}
+      try { edtApply(); } catch (e) {}
       for (var si = 0; si < STORES.length; si++) { try { await syncStore(cfg, STORES[si]); } catch (e) {} }
     } catch (e) { lastErr = "réseau"; }
     finally { busy = false; sched(); }
@@ -592,9 +593,33 @@
     if (exact) (it.el || []).forEach(function (n) { var k = nkey(n); if (!keep[k] && it.rm.indexOf(k) < 0) it.rm.push(k); });
     else (it.el || []).forEach(function (n) { if (!keep[nkey(n)]) { names.push(n); keep[nkey(n)] = 1; } });
     it.old = old && norm(old) !== norm(nom) ? old : ""; it.nom = nom; it.el = names; it.ts = Date.now(); it.del = false;
-    if (off) it.off = off.slice();
+    if (off) { it.off = off.slice(); it.man = 1; } /* activités choisies à la main : l'emploi du temps ne les change plus */
     L.pend[it.id] = stamp(); L.app[it.id] = JSON.stringify(it); lsv(L);
     applyLocal(); setTimeout(sync, 300);
+  }
+  /* activités des classes déduites de l'emploi du temps (appli EDT, enseignant choisi dans « Qui es-tu ? » ou nom de l'enseignant des réglages).
+     Une classe dont les activités ont été choisies à la main dans Réglages (it.man) n'est jamais modifiée. */
+  function actCode(a) { a = norm(a); if (/escalad/.test(a)) return "esc"; if (/relais|vitesse/.test(a)) return "rel"; if (/orientation|^co$|^co /.test(a)) return "ori"; if (/volley/.test(a)) return "vol"; if (/badminton|^bad/.test(a)) return "bad"; if (/danse/.test(a)) return "dan"; if (/acro/.test(a)) return "acro"; return null; }
+  function cmp(x) { return norm(x).replace(/ /g, ""); }
+  function edtActs() {
+    var D = (eget() || {}).data; if (!D || !D.R || !D.T) return null;
+    var moi = null; try { moi = localStorage.getItem("eps.edt.moi"); } catch (e) {}
+    if (!moi) { var prof = String(rget().prof || "").toLowerCase(); D.T.forEach(function (t) { if (!moi && prof && prof.indexOf(String(t[0]).toLowerCase()) >= 0) moi = t[0]; }); }
+    var ti = D.T.map(function (t) { return t[0]; }).indexOf(moi); if (ti < 0) return { moi: null, map: {} };
+    var out = {};
+    D.R.forEach(function (r) { if (r[3] !== ti) return; String(r[6] || "").split(",").forEach(function (t) { if (!t || /^[scou]$/.test(t)) return; var c = actCode((D.acts || [])[+t.split("~")[0].split(".")[0]]); if (c) (out[r[4]] = out[r[4]] || {})[c] = 1; }); });
+    return { moi: moi, map: out };
+  }
+  function edtApply() {
+    var E = edtActs(); if (!E || !E.moi) return { n: 0, moi: E && E.moi, edt: !!E };
+    var ALL = ["esc", "rel", "ori", "vol", "bad", "dan", "acro"], L = lld(), n = 0;
+    Object.keys(L.items).forEach(function (k) { var it = L.items[k]; if (!it || it.del || it.man || !it.nom) return;
+      var S = {}; Object.keys(E.map).forEach(function (c) { var parts = [c].concat(String(c).split(/[\/+,&]| et /)); if (parts.some(function (p) { return p.trim() && cmp(p) === cmp(it.nom); })) Object.keys(E.map[c]).forEach(function (a) { S[a] = 1; }); });
+      if (!Object.keys(S).length) return;
+      var off = ALL.filter(function (a) { return !S[a]; }); if (JSON.stringify(off) === JSON.stringify(it.off || [])) return;
+      it.off = off; it.ts = Date.now(); L.pend[it.id] = stamp(); L.app[it.id] = JSON.stringify(it); n++; });
+    if (n) { lsv(L); try { applyLocal(); } catch (e) {} setTimeout(sync, 300); }
+    return { n: n, moi: E.moi, edt: true };
   }
   /* suppression d'une liste commune (partout) : la classe disparaît des applis où elle n'a pas encore de données */
   async function deleteList(nom) {
@@ -711,7 +736,8 @@
           var act = APPS.filter(function (a) { return off.indexOf(a[0]) < 0; });
           return '<button data-k="' + esc(k) + '">' + esc(x.name) + " <small>(" + n + " · " + (act.length === APPS.length ? "toutes les activités" : act.length ? act.map(function (a) { return a[1].split(" ")[0]; }).join(", ") : "aucune activité") + ")</small></button>"; }).join("") + "</div>"
           : '<p class="m">Aucune liste pour l\'instant. Importe d\'abord une liste d\'élèves.</p>') +
-        '<div class="epsd-act"><button data-x>Fermer</button></div>';
+        '<div class="epsd-act"><button data-x>Fermer</button><button data-edt>📅 Activités depuis l\'emploi du temps</button></div><p class="m" style="margin-top:8px">Les activités de chaque classe sont déduites de ton emploi du temps (appli EDT) ; une classe dont tu as choisi les activités à la main garde ton choix.</p>';
+      box.querySelector("[data-edt]").onclick = function () { var r = edtApply(); listView(!r.edt ? "Aucun emploi du temps sur cette tablette (appli EDT)." : !r.moi ? "Ouvre l'appli EDT et choisis ton prénom (« Qui es-tu ? »)." : r.n ? r.n + " classe(s) mise(s) à jour d'après l'emploi du temps de " + r.moi + "." : "Tout est déjà à jour d'après l'emploi du temps de " + r.moi + ".", !r.edt || !r.moi); };
       box.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { cur = b.dataset.k; editView(); }; });
       box.querySelectorAll("[data-m]").forEach(function (b) { b.onclick = function () { mergeView(sim[+b.dataset.m]); }; });
     }
