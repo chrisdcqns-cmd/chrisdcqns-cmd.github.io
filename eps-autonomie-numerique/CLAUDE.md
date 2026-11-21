@@ -22,6 +22,11 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 - Couleurs : Acrosport `#1F4FA3`, Escalade `#2E7D4F`, OrienRun `#E8701A`, Relais `#D9481F`, Volley `#6B3FA0`, Danse `#C2185B`, Badminton `#0B7A75`, CO-Éval `#14213D`, Appel AS `#475569`, EDT `#1F5F8B`, Pose des balises `#8A5A1F`. Une nouvelle appli prend une couleur bien distincte de celles-ci.
 - Une seule icône par appli (pictogramme au trait, `viewBox 0 0 24 24`, `stroke-width 2`), identique sur l'accueil, dans la barre et sur l'écran « Choisis ta classe ».
 
+## Espace enseignant (commun)
+- `eps-shell.js` : `EPST.init({app, nom, color, isTeacher, anchor, main, tabs:{seq, eval, cls, bil}, biblio:[…], reglages:[…]})` ; onglets toujours dans cet ordre : 📅 Séquence · 👁 Vue élève · 📚 Bibliothèque · 📋 Évaluation · 👥 Classe · 📄 Bilans · ⚙ Réglages. On arrive sur Séquence. Pas d'appli « élève avec des cases enseignant ».
+- Vue élève : l'appli dans un cadre `?vue=eleve` (mode enseignant ignoré par `eps-lists.js`), sans quitter le mode enseignant.
+- Claude (API, par le script commun, clé `ANTHROPIC_KEY` côté serveur) : ✨ Reformuler / 🎤 Dicter sur tout `textarea[data-eps-comment]`, version élève d'une grille, consigne simplifiée ou traduite (Bibliothèque). Jamais de nom d'élève envoyé ; tout ce qui va aux élèves est relu et validé par l'enseignant.
+
 ## Mode élève
 - En mode élève, l'appli s'ouvre sur l'écran commun « Choisis ta classe » : `(window.EPSG_Q=window.EPSG_Q||[]).push({app, sub, color, icon, classes(), current(), select(id), resources:[{ico,label,sub,open}], teacher(), isTeacher(), when()})`. Les ressources utiles sans classe (dispositif, sécurité, échauffement…) y figurent. Le bouton Accueil de l'appli, côté élève, ramène à cet écran.
 - **Aucun bouton « enseignant » visible par les élèves.** Accès enseignant : appui long de 3 s sur le logo (barre, écran de classe, titre des écrans tablette coach / terrain), géré par `eps-home.js` ; l'appli peut fournir `window.epsTeacherEntry()`.

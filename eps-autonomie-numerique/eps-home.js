@@ -1149,7 +1149,7 @@
   function reformuler(texte, o) {
     o = o || {}; var cfg = shCfg();
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
-    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, 1500), act: o.act || actName(), ctx: String(o.ctx || "").slice(0, 600) }).then(function (r) {
+    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, 1500), act: o.act || actName(), ctx: String(o.ctx || "").slice(0, 600), lang: o.lang || "" }).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script (connexion ?)");
       if (!r.keyOk) throw new Error("Clé du partage refusée par le script");
       if (r.aiErr) throw new Error(/ANTHROPIC_KEY/.test(r.aiErr) ? "Clé Claude absente du script (Propriétés du script → ANTHROPIC_KEY)" : r.aiErr);

@@ -1,5 +1,5 @@
 // Escalade EPS — service worker : appli à jour quand il y a du réseau, utilisable hors connexion sinon.
-const CORE = "escalade-core-v7";
+const CORE = "escalade-core-v8";
 const CORE_FILES = ["./", "index.html"];
 
 self.addEventListener("install", e => {

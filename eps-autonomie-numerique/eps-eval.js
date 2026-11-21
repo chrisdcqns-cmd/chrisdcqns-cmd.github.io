@@ -471,7 +471,7 @@
     function gridEditor(G) {
       return '<div class="epse-card"><h2>Grille d\'évaluation</h2><p class="epse-mut">Proposition à adapter : intitulés, points et textes des 4 degrés (enseignant et élève). Les modifications valent pour toutes les tablettes.</p>' +
         '<div class="epse-row">' + [0, 1, 2, 3].map(function (d) { return '<label class="epse-mut">D' + (d + 1) + ' <input type="text" data-g="degres.' + d + '" value="' + esc(G.degres[d]) + '" style="width:140px"></label>'; }).join("") + "</div>" +
-        G.criteres.map(function (cr, i) { return '<div class="epse-crit"><div class="epse-row"><input type="text" data-g="c.' + i + '.nom" value="' + esc(cr.nom) + '" style="flex:2"><input type="text" data-g="c.' + i + '.afl" value="' + esc(cr.afl || "") + '" style="width:90px"><label class="epse-mut">pts <input type="text" data-g="c.' + i + '.max" value="' + esc(cr.max) + '" style="width:60px"></label></div>' +
+        G.criteres.map(function (cr, i) { return '<div class="epse-crit"><div class="epse-row" style="justify-content:flex-end;margin:0 0 4px"><button class="epse-btn" data-gel="' + i + '">✨ Proposer la version élève</button></div><div class="epse-row"><input type="text" data-g="c.' + i + '.nom" value="' + esc(cr.nom) + '" style="flex:2"><input type="text" data-g="c.' + i + '.afl" value="' + esc(cr.afl || "") + '" style="width:90px"><label class="epse-mut">pts <input type="text" data-g="c.' + i + '.max" value="' + esc(cr.max) + '" style="width:60px"></label></div>' +
           '<input type="text" data-g="c.' + i + '.but" value="' + esc(cr.but || "") + '" placeholder="Ce qui est attendu">' +
           '<div class="epse-degs" style="margin-top:6px">' + [0, 1, 2, 3].map(function (d) { return '<div><small class="epse-mut">D' + (d + 1) + ' (enseignant)</small><textarea rows="3" data-g="c.' + i + '.desc.' + d + '">' + esc(cr.desc[d] || "") + '</textarea><small class="epse-mut">D' + (d + 1) + ' (élève)</small><textarea rows="3" data-g="c.' + i + '.descEl.' + d + '">' + esc((cr.descEl || cr.desc)[d] || "") + "</textarea></div>"; }).join("") + "</div></div>"; }).join("") +
         '<div class="epse-row"><button class="epse-btn" data-g-reset>↺ Revenir à la grille proposée</button></div></div>';
@@ -480,6 +480,17 @@
       R.querySelectorAll("[data-g]").forEach(function (i) { i.onchange = function () { var G = JSON.parse(JSON.stringify(grid())), p = i.dataset.g.split("."), v = i.value;
         if (p[0] === "degres") G.degres[+p[1]] = v; else { var cr = G.criteres[+p[1]]; if (p[2] === "desc" || p[2] === "descEl") { cr[p[2]] = (cr[p[2]] || cr.desc).slice(); cr[p[2]][+p[3]] = v; } else cr[p[2]] = p[2] === "max" ? (+String(v).replace(",", ".") || 0) : v; }
         setCfg({ grid: G }); toast("Grille enregistrée"); }; });
+      /* ✨ version élève proposée par Claude : affichée dans les champs « élève », enregistrée seulement après relecture (« Valider ») */
+      R.querySelectorAll("[data-gel]").forEach(function (b) { b.onclick = async function () {
+        var i = +b.dataset.gel, cr = grid().criteres[i]; if (!window.EPSD || !EPSD.reformuler) return toast("Indisponible");
+        b.disabled = true; b.textContent = "Claude rédige…"; var props = [];
+        try { for (var d = 0; d < 4; d++) props.push(await EPSD.reformuler(cr.desc[d] || "", { mode: "eleve", act: o.nom })); }
+        catch (e) { b.disabled = false; b.textContent = "✨ Proposer la version élève"; return toast("⚠ " + (e && e.message || e)); }
+        [0, 1, 2, 3].forEach(function (d) { var t = R.querySelector('[data-g="c.' + i + '.descEl.' + d + '"]'); if (t) { t.value = props[d]; t.style.background = "#FFF6E0"; t.dataset.pending = "1"; } });
+        b.disabled = false; b.textContent = "✓ Valider la version élève (après relecture)";
+        b.onclick = function () { var G = JSON.parse(JSON.stringify(grid())), c = G.criteres[i]; c.descEl = [0, 1, 2, 3].map(function (d) { var t = R.querySelector('[data-g="c.' + i + '.descEl.' + d + '"]'); return t ? t.value : (c.descEl || c.desc)[d]; });
+          setCfg({ grid: G }); toast("Version élève enregistrée"); render(); };
+      }; });
       R.querySelector("[data-g-reset]").onclick = function () { if (confirm("Revenir à la grille proposée ? Les textes modifiés seront remplacés.")) { setCfg({ grid: JSON.parse(JSON.stringify(o.grid)) }); render(); } };
     }
     /* affichage dans un onglet de l'espace enseignant (eps-shell.js) : mount(élément, ['eval','grille'] | ['bilan']) */

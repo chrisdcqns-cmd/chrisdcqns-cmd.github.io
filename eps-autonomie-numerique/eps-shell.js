@@ -34,6 +34,7 @@
       ".epst-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:0 0 18px}",
       ".epst-card{display:flex;gap:12px;align-items:center;text-align:left;background:#fff;border:1px solid #E6E1D6;border-left:5px solid var(--epst,#666);border-radius:14px;padding:14px;font:inherit;color:inherit;cursor:pointer;min-height:76px}",
       ".epst-card:active{transform:scale(.99)}.epst-card i{font-style:normal;font-size:26px;flex:none}.epst-card b{display:block;font-size:16px}.epst-card small{display:block;color:#6A6F78;font-size:13px;margin-top:2px}",
+      ".epst-b{height:40px;border-radius:10px;border:2px solid var(--epst,#666);background:#fff;color:#14171C;font:800 14px system-ui,sans-serif;padding:0 14px;cursor:pointer}.epst-b:disabled{opacity:.5}",
       ".epst-vue{position:fixed;left:0;right:0;bottom:0;z-index:2147481500;background:#F5F3EE;display:none;flex-direction:column}",
       "html.epst-vue-on .epst-vue{display:flex}",
       ".epst-vue .h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#FFF6E0;border-bottom:1px solid #F0D58A;font:600 14px system-ui,sans-serif;color:#6b4e00}",
@@ -52,7 +53,7 @@
     nav.className = "epst-nav"; nav.style.setProperty("--epst", C.color); pan.className = "epst-panel"; pan.style.setProperty("--epst", C.color);
     vue.className = "epst-vue";
     vue.innerHTML = '<div class="h">👁 Vue élève : l\'appli telle que la voit un élève (avec tes vraies données). Tu restes en mode enseignant.<button type="button">✕ Revenir à l\'espace enseignant</button></div><iframe title="Vue élève"></iframe>';
-    var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" && C.biblio || t[0] === "reg" || (C.tabs && C.tabs[t[0]]); });
+    var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (C.tabs && C.tabs[t[0]]); });
     nav.innerHTML = tabs.map(function (t) { return '<button type="button" data-t="' + t[0] + '"><span>' + t[1] + "</span>" + t[2] + "</button>"; }).join("");
     function place() {
       var a = $(C.anchor); if (a && a.parentNode) { if (nav.previousElementSibling !== a) a.insertAdjacentElement("afterend", nav); }
@@ -85,7 +86,7 @@
       mark(id);
       var t = (C.tabs || {})[id];
       if (id === "vue") { openVue(); return; }
-      if (id === "bib") { var p = panel("<h2>📚 Bibliothèque</h2><p class=\"mut\">Les ressources et les écrans de l'appli, à consulter ou à montrer aux élèves.</p>" + cards(C.biblio || [])); bindCards(p, C.biblio || [], "bib"); return; }
+      if (id === "bib") { var p = panel("<h2>📚 Bibliothèque</h2><p class=\"mut\">Les ressources et les écrans de l'appli, à consulter ou à montrer aux élèves.</p>" + cards(C.biblio || []) + adaptHtml()); bindCards(p, C.biblio || [], "bib"); bindAdapt(p); return; }
       if (id === "reg") {
         var R = (C.reglages || []).concat([{ ico: "🏫", label: "Réglages communs", sub: "Établissement, enseignant, listes d'élèves, activités des classes, partage entre tablettes", go: function () { try { EPSR.open(); } catch (e) {} } }]);
         var q = panel("<h2>⚙ Réglages</h2><p class=\"mut\">Réglages de " + esc(C.nom) + " et réglages communs à toutes les applis.</p>" + cards(R)); bindCards(q, R, "reg"); return;
@@ -106,6 +107,31 @@
         var T = C.tabs || {}, k = Object.keys(T).filter(function (id) { return T[id].on && (function () { try { return T[id].on(); } catch (e) { return false; } })(); })[0];
         if (k && k !== M.cur && !(M.cur === "bib" || M.cur === "reg")) mark(k);
       }
+    }
+    /* ✨ Adapter une consigne (Claude) : simplifiée pour un élève dys, ou traduite pour un élève allophone.
+       Rien n'est montré à l'élève sans que l'enseignant ait relu (texte modifiable, puis « Afficher en grand »). */
+    var LANGS = ["anglais", "espagnol", "portugais", "italien", "allemand", "arabe", "turc", "roumain", "ukrainien", "russe", "chinois", "albanais"];
+    function adaptHtml() {
+      return '<div class="epst-adapt" style="background:#fff;border:1px solid #E6E1D6;border-radius:16px;padding:14px 16px;margin-top:6px"><h3 style="margin:0 0 4px;font-size:18px">✨ Adapter une consigne</h3>' +
+        '<p class="mut">Colle ou dicte une consigne : Claude propose une version simplifiée (élève dys) ou traduite (élève allophone). Tu relis et corriges avant de la montrer.</p>' +
+        '<textarea id="epst-src" rows="4" style="width:100%;box-sizing:border-box;border:2px solid #E6E1D6;border-radius:12px;padding:10px;font:15px system-ui,sans-serif" placeholder="Ex. : Par deux, un grimpeur et un assureur…"></textarea>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0"><button type="button" class="epst-b" data-ad="simple">✨ Simplifier (dys)</button><button type="button" class="epst-b" data-ad="trad">🌍 Traduire en</button><select id="epst-lang" style="height:40px;border-radius:10px;border:2px solid #E6E1D6;padding:0 8px">' + LANGS.map(function (l) { return "<option>" + l + "</option>"; }).join("") + '</select><span id="epst-msg" class="mut" style="margin:0"></span></div>' +
+        '<textarea id="epst-out" rows="6" style="width:100%;box-sizing:border-box;border:2px solid var(--epst,#666);border-radius:12px;padding:10px;font:16px/1.5 system-ui,sans-serif;display:none"></textarea>' +
+        '<div id="epst-ok" style="display:none;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="epst-b" data-ad="show">📺 Afficher en grand (relu ✓)</button><button type="button" class="epst-b" data-ad="copy">📋 Copier</button></div></div>';
+    }
+    function bindAdapt(root) {
+      var src = root.querySelector("#epst-src"), out = root.querySelector("#epst-out"), msg = root.querySelector("#epst-msg"), ok = root.querySelector("#epst-ok");
+      root.querySelectorAll("[data-ad]").forEach(function (b) { b.onclick = function () {
+        var m = b.dataset.ad;
+        if (m === "copy") { try { navigator.clipboard.writeText(out.value); msg.textContent = "Copié."; } catch (e) {} return; }
+        if (m === "show") { var v = document.createElement("div"); v.style.cssText = "position:fixed;inset:0;z-index:2147483400;background:#fff;color:#14171C;padding:40px 6vw;overflow:auto;font:700 clamp(22px,3.4vw,40px)/1.5 system-ui,sans-serif;white-space:pre-wrap";
+          v.textContent = out.value; var x = document.createElement("button"); x.textContent = "✕ Fermer"; x.style.cssText = "position:fixed;top:14px;right:14px;height:44px;border-radius:12px;border:2px solid #ccc;background:#fff;font:800 16px system-ui"; x.onclick = function () { v.remove(); }; v.appendChild(x); document.body.appendChild(v); return; }
+        if (!src.value.trim()) { msg.textContent = "Écris d'abord la consigne."; return; }
+        if (!window.EPSD || !EPSD.reformuler) { msg.textContent = "Indisponible."; return; }
+        b.disabled = true; msg.textContent = "Claude adapte la consigne…";
+        EPSD.reformuler(src.value, { mode: m, lang: root.querySelector("#epst-lang").value, act: C.nom }).then(function (t) { out.value = t; out.style.display = ""; ok.style.display = "flex"; msg.textContent = "✓ Proposition : relis-la et corrige-la si besoin."; })
+          .catch(function (e) { msg.textContent = "⚠ " + (e && e.message || e); }).then(function () { b.disabled = false; });
+      }; });
     }
     M.go = go; M.closePanel = closePanel; M.tick = tick; M.mark = mark;
     if (document.body) tick(); else document.addEventListener("DOMContentLoaded", tick);
