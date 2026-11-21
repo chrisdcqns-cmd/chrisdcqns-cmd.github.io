@@ -341,6 +341,10 @@ html.epst-on #nav{display:none!important}
 .sum{background:var(--appt)}
 .sywarn{background:#fff3cd;border:2px solid #e0a800;border-radius:12px;padding:10px 12px;margin:8px 0;font-weight:700;color:#5c4400;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;text-align:left}.sywarn .b{min-height:40px}
 .devs .devr{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-left:5px solid #2b8a3e;background:#f3f7f4;border-radius:8px;margin:6px 0}.devr span{font-size:14px}.devr small{color:#667}.devr em{color:#a33;font-style:normal;font-weight:700;font-size:13px}.devr.old{border-left-color:#999;opacity:.8}.devr.err{border-left-color:#d33}
+.aib{border-left:5px solid #6b4fbb}.aib .ch .b[disabled]{opacity:.7}.aierr{color:#a33;font-weight:700;margin:8px 0 0}
+.aiout h4{margin:14px 0 6px;font-size:16px}.aiout ul{margin:0;padding-left:20px}.aiout li{margin:3px 0}.aisyn{font-size:16px;line-height:1.45;margin:12px 0 0;background:#f4f1fb;border-radius:10px;padding:10px 12px}
+.aip{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;background:#f6f7f6;margin:6px 0}.aip span{font-size:14px}.aip em{font-style:normal;color:#2b6a46;font-weight:600;font-size:14px}
+.helpb .hpmore{font-weight:800;border-style:dashed}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg>Escalade EPS</b><span id="tm"></span><span data-eps-bar></span></header>
 <nav id="nav"></nav>
@@ -416,7 +420,7 @@ function tclScr(){const t=today();
  <div class="rbtns cl">${[...CL].sort((a,b)=>a.nom.localeCompare(b.nom,'fr')).map(c=>{const L=lecFor(c.id,t),n=recOf(c.nom,t).length;return `<button class="tile ${CF.sel==c.id?'cur':''}" style="background:#16252d" onclick="tPick('${c.id}')"><b>${esc(c.nom)}</b><span>${c.el.length} élève(s)${L?' · leçon prête':' · pas de leçon aujourd\'hui'}${n?' · '+n+' '+pw(n,'grimpe')+' aujourd\'hui':''}</span></button>`}).join('')}
  <button class="tile" style="background:#5b6b75" onclick="tPick('')"><b>Sans liste</b><span>l'élève tape son prénom</span></button></div>
  ${cls()&&seaOK()?`<p style="margin-top:18px;text-align:center"><button class="b g" onclick="S.t='home';render()">Garder ${esc(cls().nom)}</button></p>`:''}</div>`}
-function tPick(id){CF.sel=id;const L=lecFor(id,today());if(L){CF.sea=clone(L);fresh()}save();S.t=L?'home':'set';S.ce=null;render();scrollTo(0,0)}
+function tPick(id){S.tcl0=1;CF.sel=id;const L=lecFor(id,today());if(L){CF.sea=clone(L);fresh()}save();S.t=L?'home':'set';S.ce=null;render();scrollTo(0,0)}
 function pickCl(id){if(!S.T&&!lecFor(id,today())){CF.wcl=id;save();S.t='wait';render();scrollTo(0,0);return}activate(id);fresh();const k=cls();S.gs=[];S.gid=null;S.t=k&&k.el.length?'grp':'home';render();scrollTo(0,0)}
 /* ---------- groupe ---------- */
 function grpScr(){const k=cls();if(!k)return '';const sel=S.gs||[],n=sel.length;
@@ -537,7 +541,7 @@ function setup(){
  const fut=LEC().filter(l=>l.cl==sel&&l.d>t).sort((a,b)=>a.d.localeCompare(b.d));
  const pastD=[...new Set([...LEC().filter(l=>l.cl==sel&&l.d<t).map(l=>l.d),...R.filter(r=>(r.cl||'')==nomC).map(r=>String(r.ts).slice(0,10)).filter(d=>d<t)])].sort().reverse();
  const nT=recOf(nomC,t);
- return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.ce=null;S.t='home';render();scrollTo(0,0)">← Retour</button></p><h2 style="margin-top:4px">Leçons et classes</h2><div class="tb"><button class="b g" onclick="S.t='ped';render();scrollTo(0,0)">📚 Situations, cycle et assurage</button></div>
+ return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.ce=null;S.t='home';render();scrollTo(0,0)">← Retour</button></p><h2 style="margin-top:4px">Leçons et classes</h2><div class="tb"><button class="b g" onclick="S.t='ped';render();scrollTo(0,0)">📚 Situations, séquence et assurage</button></div>
  <div class="card"><h3 style="margin-top:0">Classe</h3>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'} clsb" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}<small>${c.el.length} élève(s)</small></button>`).join('')}
  <button class="b ${sel?'g':'on'} clsb" onclick="CF.sel='';save();render()">Sans liste<small>l'élève tape son prénom</small></button></div>
@@ -575,7 +579,7 @@ const PED=()=>CF.ped||PED0,sitOf=id=>PED().sit.find(x=>x.id==id);
 function pedW(){if(!CF.ped)CF.ped=clone(PED0);return CF.ped}
 function pedSet(path,v){const P=pedW(),k=path.split('.');let o=P;for(let i=0;i<k.length-1;i++)o=o[k[i]];o[k[k.length-1]]=v;save()}
 function pedDo(fn){fn(pedW());save();const y=scrollY;render();scrollTo(0,y)}
-/* proposition du cycle pour une classe et une date (n-ième leçon de la classe) */
+/* proposition de la séquence pour une classe et une date (n-ième leçon de la classe) */
 function cycFor(cl,d){const n=LEC().filter(l=>(l.cl||'')==(cl||'')&&l.d<d).length,c=PED().cyc[n];return c?{n:n+1,obj:c.obj,sit:[...(c.sit||[])]}:null}
 function sitDlg(id){const x=sitOf(id);if(x)dlg({msg:'📋 '+x.ti+'\n\n'+x.cons+(x.but?'\n\n🎯 But : '+x.but:'')+(x.crit?'\n✓ Réussi si : '+x.crit:''),ok:'Compris'})}
 const sitBox=L=>{const X=(L?.sit||[]).map(sitOf).filter(Boolean);return X.length?`<div class="sitb">${X.map(x=>`<div><b>📋 ${esc(x.ti)}</b><span>${esc(x.cons)}</span>${x.crit?`<small>✓ Réussi si : ${esc(x.crit)}</small>`:''}</div>`).join('')}</div>`:''};
@@ -610,12 +614,12 @@ function remBox(){const r=R.find(x=>x.id==F.last);if(!r||!r.why||Number(r.h)!==0
  return `<div class="remb"><b>💡 Pour la prochaine fois</b><p>${esc(m.t)}</p>${x?`<div class="sitb"><div><b>📋 ${esc(x.ti)}</b><span>${esc(x.cons)}</span>${x.crit?`<small>✓ Réussi si : ${esc(x.crit)}</small>`:''}</div></div>`:''}</div>`}
 /* écran enseignant : contenu pédagogique modifiable */
 function pedScr(){const P=PED(),inp=(p,v,ph='')=>`<input value="${esc(v||'')}" placeholder="${esc(ph)}" oninput="pedSet('${p}',this.value)">`,ta=(p,v)=>`<textarea oninput="pedSet('${p}',this.value)">${esc(v||'')}</textarea>`;
- return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.t='set';render();scrollTo(0,0)">← Leçons et classes</button></p><h2 style="margin-top:4px">Situations, cycle et assurage</h2>
+ return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.t='set';render();scrollTo(0,0)">← Leçons et classes</button></p><h2 style="margin-top:4px">Situations, séquence et assurage</h2>
  <p class="mut">Tout ce contenu est modifiable ; les changements sont partagés avec les autres tablettes.</p>
  <div class="card"><h3 style="margin-top:0">Situations d'apprentissage</h3>${P.sit.map((x,i)=>`<div class="pedi"><div class="ch"><b>${i+1}.</b>${inp('sit.'+i+'.ti',x.ti,'Titre')}<button class="b d" onclick="pedDo(P=>{P.sit.splice(${i},1)})">✕</button></div>
   <label class="l">Consigne pour les élèves</label>${ta('sit.'+i+'.cons',x.cons)}<label class="l">But</label>${inp('sit.'+i+'.but',x.but)}<label class="l">Réussi si…</label>${inp('sit.'+i+'.crit',x.crit)}</div>`).join('')}
   <button class="b g" onclick="pedDo(P=>P.sit.push({id:'s'+uid(),ti:'Nouvelle situation',cons:'',but:'',crit:''}))">+ Ajouter une situation</button></div>
- <div class="card"><h3 style="margin-top:0">Cycle de leçons</h3><p class="mut">Quand tu prépares la n-ième leçon d'une classe, l'objectif et les situations de la ligne n sont proposés.</p>${P.cyc.map((c,i)=>`<div class="pedi"><div class="ch"><b>Leçon ${i+1}</b>${inp('cyc.'+i+'.obj',c.obj,'Objectif')}</div>
+ <div class="card"><h3 style="margin-top:0">Séquence de leçons</h3><p class="mut">Quand tu prépares la n-ième leçon d'une classe, l'objectif et les situations de la ligne n sont proposés.</p>${P.cyc.map((c,i)=>`<div class="pedi"><div class="ch"><b>Leçon ${i+1}</b>${inp('cyc.'+i+'.obj',c.obj,'Objectif')}</div>
   <div class="lchips">${P.sit.map(x=>`<button class="${(c.sit||[]).includes(x.id)?'on':''}" onclick="pedDo(P=>{const s=new Set(P.cyc[${i}].sit||[]);s.has('${x.id}')?s.delete('${x.id}'):s.add('${x.id}');P.cyc[${i}].sit=[...s]})">${esc(x.ti)}</button>`).join('')}</div></div>`).join('')}
   <div class="tb"><button class="b g" onclick="pedDo(P=>P.cyc.push({obj:'',sit:[]}))">+ Ajouter une leçon</button>${P.cyc.length?`<button class="b g" onclick="pedDo(P=>P.cyc.pop())">Retirer la dernière</button>`:''}</div></div>
  <div class="card"><h3 style="margin-top:0">Sous la ligne rouge : conseils selon le « pourquoi »</h3><p class="mut">Chaque conseil peut être montré automatiquement à l'élève, ou proposé par toi au cas par cas (tablette de contrôle → « 💡 Proposer un conseil »).</p>${WHY.map(w=>{const m=P.rem[w]||{t:'',s:''};return `<div class="pedi"><b>${esc(w)}</b><textarea oninput="pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]={...(pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]||{}),t:this.value};save()">${esc(m.t)}</textarea>
@@ -683,11 +687,11 @@ function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.n
  const act=names.filter(n=>L.some(r=>r.el==n)).length;
  return `<div class="ctlh"><div><h2 style="margin:0">Tablette de contrôle</h2><p class="mut" style="margin:2px 0 0">${k?esc(k.nom):'Sans liste'} · ${cap(fday(t,true))}${cfg?.obj?' · 🎯 '+esc(cfg.obj):''} · mise à jour automatique</p></div>
  <div class="cols">${CL.map(c=>`<button class="b ${sel==c.id?'on':'g'}" onclick="CF.sel='${c.id}';save();render()">${esc(c.nom)}</button>`).join('')}</div></div>
- ${syWarn()}<p style="margin:0 0 8px"><button class="b g" onclick="ctlRefresh()">⟳ Rafraîchir</button> <button class="b g" onclick="S.cdev=!S.cdev;render()">📡 Tablettes${S.cdev?' ▲':''}</button> <small class="mut" id="ctlst">${esc(syOk()?syTxt():'')}</small></p>
+ ${syWarn()}<p style="margin:0 0 8px"><button class="b g" onclick="ctlRefresh()">⟳ Rafraîchir</button> <button class="b g" onclick="S.cdev=!S.cdev;render()">📡 Tablettes${S.cdev?' ▲':''}</button> <button class="b g" onclick="S.t='set';S.lv=today();S.le=null;render();scrollTo(0,0)">🤖 Bilan de la leçon</button> <small class="mut" id="ctlst">${esc(syOk()?syTxt():'')}</small></p>
  ${S.cdev?`<div class="card devs"><h3 style="margin:0 0 6px">Tablettes vues par la synchronisation</h3><p class="mut" style="margin:0 0 8px">Chaque tablette donne de ses nouvelles toutes les 2 minutes environ : nombre de grimpes qu'elle contient, envois en attente, problème éventuel.</p>${syDevsHTML()}
  <div class="row" style="margin-top:10px"><button class="b g" onclick="syResend()">⬆️ Renvoyer tout ce qui est sur cette tablette</button><button class="b g" onclick="syRefetch()">⬇️ Tout récupérer</button></div></div>`:''}
  <div class="sub ctab"><button class="b ${S.cv2!='a'?'':'g'}" onclick="S.cv2='g';render()">🧗 Grimpes</button><button class="b ${S.cv2=='a'?'':'g'}" onclick="S.cv2='a';render()">🪢 Assurage</button></div>
- ${S.cv2=='a'?belGrid(names,sel):`${(()=>{const H=names.map(n=>[n,helpOf(L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1))]).filter(x=>x[1]&&!msgOf(x[0],nom,t).some(m=>!m.seen));return H.length?`<div class="helpb"><b>🆘 À aider (${H.length})</b>${H.map(([n,h])=>`<button class="b g" data-n="${esc(n)}" data-w="${esc(h.why)}" onclick="msgDlg(this.dataset.n,this.dataset.w)">${esc(n)} <small>${esc(h.t)}</small> · 💡 conseil</button>`).join('')}</div>`:''})()}
+ ${S.cv2=='a'?belGrid(names,sel):`${(()=>{const H=names.map(n=>[n,helpOf(L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1))]).filter(x=>x[1]&&!msgOf(x[0],nom,t).some(m=>!m.seen));const H2=S.hpAll?H:H.slice(0,4);return H.length?`<div class="helpb"><b>🆘 À aider (${H.length})</b>${H2.map(([n,h])=>`<button class="b g" data-n="${esc(n)}" data-w="${esc(h.why)}" onclick="msgDlg(this.dataset.n,this.dataset.w)">${esc(n)} <small>${esc(h.t)}</small> · 💡 conseil</button>`).join('')}${H.length>4?`<button class="b g hpmore" onclick="S.hpAll=!S.hpAll;render()">${S.hpAll?'Réduire':'+ '+(H.length-4)+' autre'+(H.length-4>1?'s':'')}</button>`:''}</div>`:''})()}
  <div class="stats">${stx(act+' / '+names.length,'élèves ont grimpé'+(absent.length?' ('+absent.length+' absent'+(absent.length>1?'s':'')+')':''))}${stx(L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée'))}${stx(L.filter(r=>Number(r.h)==TOP).length,'Top')}${min?stx(names.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+names.length,'objectif atteint ('+min+' voie'+(min>1?'s':'')+')'):''}</div>
  ${names.length?(()=>{ /* regroupement par groupe du jour (suivi groupe par groupe), puis les élèves sans groupe */
   const DG=dayG(sel),seen=new Set(),blocks=[];
@@ -741,7 +745,7 @@ function lecEdit(){const L=S.le,k=CL.find(c=>c.id==L.cl),isT=L.d==today();
  <div class="card"><h3 style="margin-top:0">Éléments travaillés</h3><p class="mut">Seuls les éléments cochés seront proposés aux élèves. « Obligatoire » : l'élève ne peut pas enregistrer sa grimpe sans cet élément.</p>
  ${CRIT.map(([c,n])=>{const on=L.cr.includes(c),q=on&&L.req.includes(c);return `<div class="ck"><label class="ckl"><input type="checkbox" ${on?'checked':''} onchange="tgCr('${c}',this.checked)">${n}</label><button class="rq ${q?'on':''}" ${on?'':'disabled'} onclick="tgReq('${c}')">${q?'★ Obligatoire':'Facultatif'}</button></div>`}).join('')}
  <div class="tb"><button class="b g" onclick="S.le.cr=[...ALL];render()">Tout cocher</button><button class="b g" onclick="S.le.cr=[];S.le.req=[];render()">Tout décocher</button></div></div>
- ${(()=>{const y=cycFor(L.cl,L.d);return y?`<div class="card cycp"><b>📚 Leçon ${y.n} du cycle</b> · proposé : « ${esc(y.obj)} »${y.sit.length?' · '+y.sit.map(i=>esc(sitOf(i)?.ti||'')).join(', '):''}<button class="b g" onclick="S.le.obj=${esc(JSON.stringify(y.obj))};S.le.sit=${esc(JSON.stringify(y.sit))};render()">Utiliser</button></div>`:''})()}
+ ${(()=>{const y=cycFor(L.cl,L.d);return y?`<div class="card cycp"><b>📚 Leçon ${y.n} de la séquence</b> · proposé : « ${esc(y.obj)} »${y.sit.length?' · '+y.sit.map(i=>esc(sitOf(i)?.ti||'')).join(', '):''}<button class="b g" onclick="S.le.obj=${esc(JSON.stringify(y.obj))};S.le.sit=${esc(JSON.stringify(y.sit))};render()">Utiliser</button></div>`:''})()}
  <div class="card"><h3 style="margin-top:0">Situations d'apprentissage</h3><p class="mut">Affichées aux élèves sur l'accueil et pendant la saisie d'une grimpe. <button class="lnk" onclick="S.le=null;S.t='ped';render();scrollTo(0,0)">Modifier les situations</button></p>
  <div class="lchips">${PED().sit.map(x=>`<button class="${(L.sit||[]).includes(x.id)?'on':''}" onclick="const s=new Set(S.le.sit||[]);s.has('${x.id}')?s.delete('${x.id}'):s.add('${x.id}');S.le.sit=[...s];render()">${esc(x.ti)}</button>`).join('')}</div></div>
  <div class="card"><h3 style="margin-top:0">Objectif</h3><label class="l" style="margin-top:0">Objectif de la leçon (affiché sur l'accueil des élèves)</label><input value="${esc(L.obj||'')}" maxlength="140" placeholder="Ex. : Travailler le placement des pieds" oninput="S.le.obj=this.value">
@@ -761,6 +765,62 @@ function xlLe(){const k=CL.find(c=>c.id==(CF.sel||''));xl(recOf(k?.nom||'',S.lv)
 window.epsCurrentClass=()=>{const c=seaOK()&&cls();return c?{nom:c.nom,eleves:c.el||[]}:null};
 window.epsAppHome=()=>{document.querySelector('.vmod')?.remove();document.querySelector('.dlg')?.remove();fresh();S.e=false;S.le=null;S.lv=null;S.mr='';S.t=S.T||seaOK()?'home':'role';render();scrollTo(0,0)};
 /* consultation d'une leçon (enseignant) */
+/* ---------- 🤖 Bilan de la leçon par Claude (script commun ; les prénoms sont remplacés par E1, E2… et ne quittent pas la tablette) ---------- */
+const hTxt=h=>!isNum(h)?'hauteur non notée':Number(h)==TOP?'Top':Number(h)==0?'sous la ligne rouge (3 m)':h+' dég.';
+function aiData(d){const sel=CF.sel||'',k=CL.find(c=>c.id==sel),nom=k?.nom||'',L=recOf(nom,d).sort((a,b)=>a.ts<b.ts?-1:1),cfg=lecFor(sel,d)||{},P=PED();
+ const ab=absL(sel,d),names=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr')),code={};names.forEach((n,i)=>code[n]='E'+(i+1));
+ const cn=n=>code[n]||'un élève hors liste',out=[],num=LEC().filter(l=>(l.cl||'')==sel&&l.d<d).length+1;
+ out.push(`Leçon d'escalade en moulinette (lycée), ${fday(d,true)}, leçon n° ${num} de la séquence. Groupe de ${names.length} élèves${ab.length?', dont '+ab.length+' absent(s)':''}.`);
+ if(cfg.obj)out.push('Objectif de la leçon : '+cfg.obj);
+ if(cfg.min)out.push('Nombre de voies visé par élève : '+cfg.min);
+ const st=(cfg.sit||[]).map(id=>P.sit.find(x=>x.id==id)).filter(Boolean);if(st.length)out.push('Situations prévues : '+st.map(x=>x.id+' « '+x.ti+' »').join(' ; '));
+ if(cfg.cr?.length)out.push('Critères relevés par les élèves : '+cfg.cr.map(c=>(CRIT.find(x=>x[0]==c)||[c,c])[1]).join(', '));
+ const ok=L.filter(r=>Number(r.h)==TOP),H=L.map(r=>r.h).filter(isNum).map(Number);
+ out.push(`Bilan du groupe : ${L.length} voies, ${ok.length} Tops, ${L.filter(r=>Number(r.h)==0).length} sous la ligne rouge, hauteur moyenne ${H.length?fnum(avg(H)):'–'} (Top = 9), meilleure réussite ${bestOk(L)||'aucune'}.`);
+ /* leçon précédente de la classe (pour voir la progression) */
+ const pd=[...new Set(R.filter(r=>(r.cl||'')==nom&&String(r.ts).slice(0,10)<d).map(r=>String(r.ts).slice(0,10)))].sort().pop();
+ if(pd){const Q=recOf(nom,pd),HQ=Q.map(r=>r.h).filter(isNum).map(Number);out.push(`Leçon précédente (${fday(pd,true)}) : ${Q.length} voies, ${Q.filter(r=>Number(r.h)==TOP).length} Tops, hauteur moyenne ${HQ.length?fnum(avg(HQ)):'–'}, meilleure réussite ${bestOk(Q)||'aucune'}.`)}
+ out.push('','Détail par élève (voies dans l\'ordre : cotation, hauteur atteinte ; « pourquoi » = raison donnée par l\'élève sous la ligne rouge) :');
+ const BL={green:'validé',yellow:'pénalité en cours',red:'révoqué',grey:'en cours de validation'};
+ names.forEach(n=>{if(ab.includes(n)&&!L.some(r=>r.el==n))return out.push(cn(n)+' : absent');const M=L.filter(r=>r.el==n);
+  if(!M.length)return out.push(cn(n)+' : aucune voie ; rôles : assureur '+L.filter(r=>r.asr==n).length+', contre-assureur '+L.filter(r=>r.cas==n).length+', observateur '+L.filter(r=>r.obs==n).length+' ; permis d\'assurer '+BL[belLvl(belOf(n,sel))]);
+  const v=M.map(r=>(r.d||'?')+' '+hTxt(r.h)+(r.why?' (pourquoi : '+String(r.why).split(' – ')[0]+')':'')).join(' ; ');
+  const Q=M.filter(r=>rpR(r)!=null),rp=Q.length?fnum(Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0)):'';
+  const pm=M.filter(r=>/^o/i.test(String(r.pm||''))).length,as=M.filter(r=>/^o/i.test(String(r.a||''))).length;
+  out.push(`${cn(n)} : ${M.length} voie(s) — ${v}${rp?' ; pieds/mains '+rp:''}${cfg.cr?.includes('pm')?' ; PME '+pm+'/'+M.length:''}${cfg.cr?.includes('a')&&as?' ; assis dans le baudrier '+as+' fois':''} ; rôles : assureur ${L.filter(r=>r.asr==n).length}, contre-assureur ${L.filter(r=>r.cas==n).length}, observateur ${L.filter(r=>r.obs==n).length} ; permis d'assurer ${BL[belLvl(belOf(n,sel))]}`)});
+ out.push('','Situations d\'apprentissage disponibles (identifiant : titre — but) :');P.sit.forEach(x=>out.push(x.id+' : '+x.ti+' — '+(x.but||'')));
+ const nx=cycFor(sel,new Date(new Date(d+'T12:00').getTime()+864e5).toLocaleDateString('fr-CA'));if(nx)out.push('','Prévu dans la séquence pour la leçon suivante : '+nx.obj+(nx.sit?.length?' (situations '+nx.sit.join(', ')+')':''));
+ return {t:out.join('\n').slice(0,11000),code}}
+const aiStore=(sel,d)=>{const L=lecFor(sel,d);return L&&LEC().includes(L)?L:((CF.aiB=CF.aiB||{})[sel+'|'+d]=(CF.aiB||{})[sel+'|'+d]||{})};
+const aiGet=(sel,d)=>{const L=lecFor(sel,d);return (L&&L.ai)||(CF.aiB||{})[sel+'|'+d]?.ai||null};
+async function aiBilan(d){const c=SYC(),sel=CF.sel||'';if(!c.key||!c.common)return say("Le bilan par Claude passe par le script commun : règle d'abord le partage entre tablettes (page d'accueil → Réglages).");
+ const {t,code}=aiData(d),back={};Object.entries(code).forEach(([n,cd])=>back[cd]=n);
+ S.aiw=d;S.aie='';const y=scrollY;render();scrollTo(0,y);const id=uid()+uid();
+ try{await fetch(c.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:c.key,aiReq:{id,mode:'bilan',act:'Escalade',t}})})}catch(e){}
+ let res=null,old=false;for(let i=0;i<30&&!res;i++){const r=await lgJ({url:c.url,key:c.key},{aiget:id},20000);if(r&&r.keyOk&&!('aiv' in r)){old=true;break}if(r&&r.aiRes)res=r.aiRes;else await new Promise(z=>setTimeout(z,3000))}
+ S.aiw=null;
+ if(old)S.aie="Le script commun n'est pas à jour : colle le nouveau Code.gs dans l'éditeur Apps Script puis Déployer → Gérer les déploiements → Nouvelle version.";
+ else if(!res)S.aie="Pas de réponse du script (connexion ?). Réessaie dans un moment.";
+ else if(!res.ok)S.aie=/ANTHROPIC_KEY/.test(res.err||'')?"La clé Claude n'est pas réglée dans le script commun (Paramètres du projet → Propriétés du script → ANTHROPIC_KEY).":'Erreur : '+(res.err||'inconnue');
+ else{try{const j=JSON.parse(res.t),fix=x=>typeof x=='string'?x.replace(/\bE(\d+)\b/g,(m)=>back[m]||m):Array.isArray(x)?x.map(fix):x&&typeof x=='object'?Object.fromEntries(Object.entries(x).map(([a,b])=>[a,a=='code'?(back[b]||b):fix(b)])):x;
+  const o=aiStore(sel,d);o.ai={at:new Date().toLocaleString('sv').slice(0,16),j:fix(j)};save()}catch(e){S.aie='Réponse de Claude illisible : réessaie.'}}
+ const y2=scrollY;render();scrollTo(0,y2)}
+function aiCard(d){const A=aiGet(CF.sel||'',d),j=A?.j,P=PED(),busy=S.aiw==d;
+ const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+ return `<div class="card aib"><div class="ch"><h3 style="margin:0">🤖 Bilan de la leçon par Claude</h3><button class="b ${A?'g':''}" ${busy?'disabled':''} onclick="aiBilan('${d}')">${busy?'⏳ Analyse en cours… (jusqu\'à une minute)':A?'↻ Refaire le bilan':'Faire le bilan de cette leçon'}</button></div>
+ <p class="mut" style="margin:6px 0 0">Claude analyse les grimpes, les rôles et les « pourquoi » de la leçon et te propose des pistes. Les prénoms ne sont pas envoyés (codes E1, E2…). À relire : c'est une aide, pas un verdict.</p>
+ ${S.aie&&!busy?`<p class="aierr">⚠️ ${esc(S.aie)}</p>`:''}
+ ${j?`<div class="aiout"><p class="aisyn">${esc(j.synthese||'')}</p>
+ ${j.reussites?.length?`<h4>✅ Ce qui a marché</h4><ul>${li(j.reussites)}</ul>`:''}
+ ${j.points?.length?`<h4>🎯 À retravailler</h4>${j.points.map(p=>`<div class="aip"><b>${esc(p.titre||'')}</b><span>${esc(p.constat||'')}</span><em>→ ${esc(p.piste||'')}</em></div>`).join('')}`:''}
+ ${j.eleves?.length?`<h4>👀 Élèves à suivre</h4>${j.eleves.map(e=>`<div class="aip"><b>${esc(e.code||'')}</b><span>${esc(e.pourquoi||'')}</span>${e.conseil?`<em>💬 « ${esc(e.conseil)} »</em>`:''}</div>`).join('')}`:''}
+ ${j.prochaine?`<h4>➡️ Proposition pour la prochaine leçon</h4><div class="aip"><b>${esc(j.prochaine.objectif||'')}</b>${(j.prochaine.situations||[]).length?`<span>Situations : ${j.prochaine.situations.map(x=>{const q=P.sit.find(y=>y.id==x||y.ti==x);return esc(q?q.ti:x)}).join(' · ')}</span>`:''}${j.prochaine.organisation?`<em>${esc(j.prochaine.organisation)}</em>`:''}</div>
+  <p><button class="b" onclick="aiNext('${d}')">Préparer la prochaine leçon avec ces propositions</button></p>`:''}
+ <p class="mut" style="margin:8px 0 0;font-size:12px">Bilan fait le ${esc(String(A.at).slice(8,10)+'/'+String(A.at).slice(5,7)+' à '+String(A.at).slice(11,16))}.</p></div>`:''}</div>`}
+function aiNext(d){const sel=CF.sel||'',j=aiGet(sel,d)?.j,pr=j?.prochaine;if(!pr)return;const P=PED(),ids=(pr.situations||[]).map(x=>P.sit.find(y=>y.id==x||y.ti==x)?.id).filter(Boolean);
+ const nx=LEC().filter(l=>(l.cl||'')==sel&&l.d>d).sort((a,b)=>a.d<b.d?-1:1)[0];S.t='set';S.lv=null;
+ if(nx){S.le=clone(nx)}else{newLe();if(!S.le)return}
+ if(pr.objectif)S.le.obj=pr.objectif;if(ids.length)S.le.sit=ids;render();scrollTo(0,0);say('Prochaine leçon préremplie avec l\'objectif et les situations proposés. Vérifie, modifie si besoin, puis enregistre.')}
 function lecView(){const d=S.lv,k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',L=recOf(nom,d).sort((a,b)=>a.ts<b.ts?-1:1),cfg=lecFor(CF.sel||'',d);
  const el=[...new Set(L.map(r=>r.el))].sort((a,b)=>a.localeCompare(b,'fr')),ok=L.filter(r=>Number(r.h)==TOP),best=bestOk(L),min=cfg?.min||0;
  const per=el.map(n=>{const M=L.filter(r=>r.el==n),H=M.map(r=>r.h).filter(isNum).map(Number);return `<tr><td><b>${esc(n)}</b> <button class="b g pdfs" data-n="${esc(n)}" onclick="pdfLe(this.dataset.n)">PDF</button></td><td>${M.length}${min?(M.length>=min?' <span class="top">✓</span>':` <small class="mut">/ ${min}</small>`):''}</td><td>${M.filter(r=>Number(r.h)==TOP).length}</td><td>${esc(bestOk(M)||'–')}</td><td>${H.length?fnum(avg(H)):'–'}</td><td>${(()=>{const Q=M.filter(r=>rpR(r)!=null);return Q.length?fnum(Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0)):'–'})()}</td><td>${ROLES.map(([x])=>L.filter(r=>r[x]==n).length).join(' / ')}</td></tr>`}).join('');
@@ -768,6 +828,7 @@ function lecView(){const d=S.lv,k=CL.find(c=>c.id==(CF.sel||'')),nom=k?.nom||'',
  return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.lv=null;render();scrollTo(0,0)">← Retour aux leçons</button></p><h2 style="margin-top:4px">${cap(fday(d,true))}</h2><span class="sea">${k?esc(k.nom):'Sans liste'}</span>
  ${cfg?`<div class="lchips" style="margin-top:10px">${lecChips(cfg)}</div>`:''}
  <div class="stats">${stx(L.length,pw(L.length,'grimpe'))}${stx(el.length,pw(el.length,'élève'))}${stx(ok.length,'Top')}${stx(best?esc(best):'–','meilleure difficulté réussie')}${rpTile(L)}${min?stx(el.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+el.length,'élèves ont atteint l\'objectif'):''}</div>
+ ${L.length?aiCard(d):''}
  ${L.length?`<div class="card"><div class="ch"><h3 style="margin:0">Par élève</h3><span class="tb" style="margin:0"><button class="b g" onclick="pdfLe()">📄 PDF de tous les élèves</button><button class="b" onclick="zipLe()">🗜️ Bilans de la classe (.zip)</button></span></div><div class="tw"><table><tr><th>Élève</th><th>Voies</th><th>Tops</th><th>Meilleure réussite</th><th>Hauteur moy.</th><th>Pieds/mains</th><th>Assur. / contre / obs.</th></tr>${per}</table></div></div>
  ${diffsBlock(L)}
  <div class="card"><div class="ch"><h3 style="margin:0">Toutes les grimpes</h3><button class="b" onclick="xlLe()">Exporter cette leçon (Excel)</button></div><div class="tw"><table><tr><th>Heure</th><th>Élève</th><th>Voie</th><th>Hauteur</th><th>Assureur / contre</th><th></th></tr>${det}</table></div></div>`:'<div class="card"><p class="mut">Aucune grimpe enregistrée pendant cette leçon.</p></div>'}`}
@@ -1512,7 +1573,7 @@ window.EVESC=window.EPSE?EPSE.store({app:'esc',nom:'Escalade',ca:'CA2',color:'#2
 /* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 window.EPSTESC=window.EPST?EPST.init({app:'esc',nom:'Escalade',color:'#2E7D4F',isTeacher:()=>!!S.T,anchor:'header',main:'#m,#nav',home:'seq',
  tabs:{
-  seq:{go:()=>{S.t='set';S.ce=null;render();scrollTo(0,0)},on:()=>['set','ctl','ped','tcl'].includes(S.t),
+  seq:{go:()=>{S.t=CL.length&&!S.tcl0?'tcl':'set';S.ce=null;render();scrollTo(0,0)},on:()=>['set','ctl','ped','tcl'].includes(S.t),
    actions:[{ico:'📅',label:'Leçons',go:()=>{S.t='set';S.ce=null;render()}},{ico:'🖥️',label:'Tablette de contrôle',go:()=>{S.t='ctl';render()}}]},
   eval:{panel:el=>{if(window.EVESC)EVESC.mount(el,['eval','grille'],cls()&&cls().nom);else el.innerHTML='<p>Évaluation indisponible.</p>'}},
   cls:{go:()=>{S.t='cls';render();scrollTo(0,0)},on:()=>S.t==='cls'},

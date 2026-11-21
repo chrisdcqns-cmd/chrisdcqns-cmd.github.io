@@ -25,6 +25,7 @@ function doPost(e) {
   try { data = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'json' }); }
   if (data.key !== SECRET) return json_({ ok: false, error: 'key' });
   if (data.sync) return json_(syncPush_(data.sync));
+  if (data.aiReq) return json_(aiReq_(data.aiReq));
   return json_({ ok: false, error: 'requête' });
 }
 
@@ -35,6 +36,8 @@ function doGet(e) {
   if (res.keyOk) res.sync = 1;
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
+  res.aiv = 1;
+  if (res.keyOk && p.aiget) { const c = CacheService.getScriptCache().get('ai_' + String(p.aiget).slice(0, 40)); res.aiRes = c ? JSON.parse(c) : null; }
   if (res.keyOk && p.ai) { try { res.ai = reformuler_(p); } catch (err) { res.aiErr = String(err && err.message || err); } }
   const body = JSON.stringify(res);
   if (p.callback && /^[A-Za-z0-9_]+$/.test(p.callback)) {
@@ -189,11 +192,11 @@ function reformuler_(p) {
     ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
   return claude_(key, system, 'Activité : ' + act + '\n' + (ctx ? 'Éléments d\'évaluation : ' + ctx + '\n' : '') + 'Notes de l\'enseignant : ' + (notes || '(aucune)'));
 }
-function claude_(key, system, user) {
+function claude_(key, system, user, model, maxTokens) {
   const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 700, system: system, messages: [{ role: 'user', content: user }] })
+    payload: JSON.stringify({ model: model || CLAUDE_MODEL, max_tokens: maxTokens || 700, system: system, messages: [{ role: 'user', content: user }] })
   });
   const code = r.getResponseCode(), out = JSON.parse(r.getContentText() || '{}');
   if (code !== 200) throw new Error('API ' + code + ' : ' + ((out.error && out.error.message) || ''));
@@ -203,4 +206,47 @@ function claude_(key, system, user) {
 /** À lancer une fois depuis l'éditeur (▶ Exécuter) : autorise l'appel à Claude et vérifie la clé. */
 function testerClaude() {
   Logger.log(reformuler_({ ai: 'fiche', act: 'Escalade', t: 'pieds précis, lit bien la voie, mais assurage encore hésitant' }));
+}
+
+/* ================= 🤖 Bilan de leçon pour l'enseignant (Claude, API d'Anthropic) =================
+ * L'appli envoie par POST { key, aiReq:{ id, mode:'bilan', act, t } } : t = résumé chiffré de la leçon, élèves désignés
+ * par des codes E1, E2… (jamais de prénom : la correspondance reste sur la tablette). Le résultat (JSON) est rangé
+ * 6 heures dans le cache du script ; l'appli le lit en JSONP avec ?aiget=<id>. */
+const CLAUDE_MODEL_BILAN = 'claude-sonnet-5-5';
+function aiReq_(r) {
+  const id = String((r && r.id) || '').slice(0, 40), cache = CacheService.getScriptCache();
+  if (!id) return { ok: false, error: 'id' };
+  let out;
+  try {
+    const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY');
+    if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
+    if (r.mode !== 'bilan') throw new Error('mode inconnu');
+    out = { ok: true, t: bilan_(key, r) };
+  } catch (err) { out = { ok: false, err: String(err && err.message || err) }; }
+  cache.put('ai_' + id, JSON.stringify(out), 21600);
+  return { ok: out.ok };
+}
+function bilan_(key, r) {
+  const act = String(r.act || 'EPS').slice(0, 60), data = String(r.t || '').slice(0, 12000);
+  if (!data.trim()) throw new Error('Leçon vide');
+  const system = 'Tu es un enseignant d\'EPS expérimenté de lycée, en France, et tu aides un collègue à analyser la leçon qu\'il vient de faire (activité : ' + act + '). ' +
+    'Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »). Les élèves sont désignés par des codes (E1, E2…) : réutilise exactement ces codes, n\'invente aucun prénom. ' +
+    'Appuie-toi uniquement sur les données fournies, cite des chiffres précis, ne déduis rien qui n\'y figure pas ; si les données sont trop minces pour conclure, dis-le. ' +
+    'Sois concret et bref : des phrases courtes, directement utilisables en classe. La sécurité (assurage, ligne rouge, permis d\'assurer) passe avant tout. ' +
+    'Pour la prochaine leçon, choisis de préférence parmi les situations d\'apprentissage listées (cite leur identifiant). ' +
+    'Réponds uniquement par un objet JSON valide, sans texte autour, de la forme : ' +
+    '{"synthese":"2 ou 3 phrases","reussites":["…"],"points":[{"titre":"…","constat":"chiffres à l\'appui","piste":"ce que l\'enseignant peut faire"}],' +
+    '"eleves":[{"code":"E3","pourquoi":"…","conseil":"phrase adressée à l\'élève, tutoiement"}],' +
+    '"prochaine":{"objectif":"une phrase","situations":["s1"],"organisation":"…"}} ' +
+    '— au plus 3 réussites, 3 points à retravailler et 6 élèves à suivre.';
+  const t = claude_(key, system, data, CLAUDE_MODEL_BILAN, 2000);
+  const m = t.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('Réponse illisible');
+  JSON.parse(m[0]);
+  return m[0];
+}
+
+/** À lancer une fois depuis l'éditeur (▶ Exécuter) pour vérifier le bilan de leçon. */
+function testerBilan() {
+  Logger.log(bilan_(PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), { act: 'Escalade', t: 'Leçon de test : 2 élèves.\nE1 : 3 voies (4b Top ; 5a Top ; 5b 5 dég.)\nE2 : 1 voie (4a sous la ligne rouge, pourquoi : J\'ai eu peur)' }));
 }

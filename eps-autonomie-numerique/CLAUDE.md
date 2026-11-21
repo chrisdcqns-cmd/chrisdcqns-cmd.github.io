@@ -50,6 +50,7 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 
 ## Synchronisation entre tablettes
 - Script Google commun (`apps-script/Code.gs`, `eps.share.v1`) : enregistrements chiffrés `<appli>|…`, envoi peu après chaque modification, relevé régulier ; le plus récent l'emporte, élément par élément. Sauvegarde / restauration dans Réglages.
+- Script commun, bilan de leçon par Claude : `doPost` `aiReq:{id,mode:"bilan",act,t}` → `aiReq_`/`bilan_` (Sonnet, clé `ANTHROPIC_KEY`, réponse JSON rangée 6 h dans `CacheService` sous `ai_<id>`) ; `doGet` renvoie toujours `aiv:1` et `aiRes` avec `aiget=<id>`. Les applis n'envoient que des codes E1, E2… à la place des prénoms.
 
 ## Avant de publier
 - Tester dans un navigateur (élève et enseignant), sans erreur de page ; vérifier l'écran « Choisis ta classe » et la barre.
