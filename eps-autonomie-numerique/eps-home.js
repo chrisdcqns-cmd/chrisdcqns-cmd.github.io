@@ -1140,6 +1140,63 @@
   }
   window.EPSG = { register: gateRegister, open: gateOpen, close: gateClose };
 
+  /* ================= Commentaires : 🎤 dictée (reconnaissance vocale de la tablette) et ✨ Reformuler (Claude, par le script commun) =================
+     Toute appli marque ses champs de commentaire avec l'attribut data-eps-comment (facultatif : data-eps-ctx = éléments d'évaluation, data-eps-mode = "fiche" | "bulletin").
+     Le texte envoyé ne contient jamais le nom de l'élève. Barre visible seulement en mode enseignant. */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition, DICT = null;
+  function setVal(ta, v) { ta.value = v; ["input", "change"].forEach(function (ev) { try { ta.dispatchEvent(new Event(ev, { bubbles: true })); } catch (e) {} }); }
+  function actName() { return (GATE && GATE.app) || String(document.title || "EPS").split(/[–—·|-]/)[0].trim(); }
+  function reformuler(texte, o) {
+    o = o || {}; var cfg = shCfg();
+    if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
+    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, 1500), act: o.act || actName(), ctx: String(o.ctx || "").slice(0, 600) }).then(function (r) {
+      if (!r) throw new Error("Pas de réponse du script (connexion ?)");
+      if (!r.keyOk) throw new Error("Clé du partage refusée par le script");
+      if (r.aiErr) throw new Error(/ANTHROPIC_KEY/.test(r.aiErr) ? "Clé Claude absente du script (Propriétés du script → ANTHROPIC_KEY)" : r.aiErr);
+      if (r.ai == null) throw new Error("Le script n'est pas encore à jour : colle le nouveau Code.gs et redéploie (nouvelle version)");
+      return r.ai; });
+  }
+  function dicter(ta, b) {
+    if (DICT) { try { DICT.stop(); } catch (e) {} return; }
+    var r = new SR(); r.lang = "fr-FR"; r.continuous = true; r.interimResults = false; DICT = r;
+    var base = ta.value; b.classList.add("on"); b.innerHTML = "⏹ Arrêter";
+    r.onresult = function (ev) { var t = ""; for (var i = ev.resultIndex; i < ev.results.length; i++) if (ev.results[i].isFinal) t += ev.results[i][0].transcript; if (!t) return;
+      t = t.trim(); base = (base ? base.replace(/\s*$/, "") + (/[.!?]$/.test(base.trim()) ? " " : (base.trim() ? ". " : "")) : "") + t.charAt(0).toUpperCase() + t.slice(1); setVal(ta, base); };
+    r.onend = function () { DICT = null; b.classList.remove("on"); b.innerHTML = "🎤 Dicter"; };
+    r.onerror = function (e) { if (e.error === "not-allowed") alert("Autorise le micro pour ce site dans les réglages de la tablette."); };
+    try { r.start(); } catch (e) { DICT = null; }
+  }
+  function commentBars() {
+    var t = isTeacher() || HUB;
+    document.querySelectorAll("textarea[data-eps-comment]").forEach(function (ta) {
+      var bar = ta.nextElementSibling && ta.nextElementSibling.classList && ta.nextElementSibling.classList.contains("eps-cbar") ? ta.nextElementSibling : null;
+      if (!bar) {
+        bar = document.createElement("div"); bar.className = "eps-cbar";
+        bar.innerHTML = (SR ? '<button type="button" data-cb="dict">🎤 Dicter</button>' : "") + '<button type="button" data-cb="ai">✨ Reformuler</button><button type="button" data-cb="undo" hidden>↶ Annuler</button><span></span>';
+        ta.insertAdjacentElement("afterend", bar); var prev = null, msg = bar.querySelector("span");
+        bar.addEventListener("click", function (e) {
+          var b = e.target.closest("button"); if (!b) return; e.preventDefault();
+          if (b.dataset.cb === "dict") return dicter(ta, b);
+          if (b.dataset.cb === "undo") { if (prev != null) setVal(ta, prev); prev = null; b.hidden = true; msg.textContent = ""; return; }
+          if (!ta.value.trim() && !ta.dataset.epsCtx) { msg.textContent = "Dicte ou tape d'abord quelques notes."; return; }
+          b.disabled = true; msg.textContent = "Claude reformule…";
+          reformuler(ta.value, { mode: ta.dataset.epsMode, ctx: ta.dataset.epsCtx }).then(function (v) {
+            prev = ta.value; setVal(ta, v); bar.querySelector('[data-cb="undo"]').hidden = false; msg.textContent = "✓ Reformulé (vérifie avant d'enregistrer)"; })
+            .catch(function (err) { msg.textContent = "⚠ " + (err && err.message || err); })
+            .then(function () { b.disabled = false; });
+        });
+      }
+      bar.style.display = t ? "" : "none";
+    });
+  }
+  (function () {
+    var st = document.createElement("style");
+    st.textContent = ".eps-cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 4px}.eps-cbar button{height:36px;border-radius:10px;border:1.5px solid #D8D2C4;background:#fff;color:#14171C;font:700 14px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding:0 12px;cursor:pointer}" +
+      ".eps-cbar button.on{background:#C0392B;border-color:#C0392B;color:#fff}.eps-cbar button:disabled{opacity:.5}.eps-cbar span{font:600 13px system-ui,sans-serif;color:#6A6F78}";
+    (document.head || document.documentElement).appendChild(st);
+    setInterval(commentBars, 1200);
+  })();
+
   /* ================= Accès enseignant caché : maintenir 3 s le logo =================
      Logos : barre de l'accueil (.mark), barre de chaque appli, écran « Choisis ta classe ».
      L'appli peut fournir window.epsTeacherEntry() ; sinon : celle de l'écran de classe, sinon le code enseignant commun. */
@@ -1172,6 +1229,7 @@
   window.EPSG_Q = { push: gateRegister };
   window.EPSR = { get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
+    reformuler: function (t, o) { return reformuler(t, o); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); }, applyLists: function () { return applyLocal(); }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };

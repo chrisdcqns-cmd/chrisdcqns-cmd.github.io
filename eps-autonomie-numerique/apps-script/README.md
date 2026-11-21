@@ -40,3 +40,9 @@ L'application **Appel AS** lit et coche le fichier d'appel de l'association spor
 5. Dans l'application : ⚙️ Réglages → « Lien du fichier d'appel de l'association sportive » (ou directement dans Appel AS au premier lancement).
 
 Structure reconnue automatiquement : un onglet par mois (l'onglet du mois en cours s'ouvre seul), une ligne d'en-tête juste au-dessus des cases (Prénom, Nom, Classe, puis une colonne par date) ; la colonne du jour (« ven. 20/11 ») est choisie automatiquement.
+
+## ✨ Reformuler (Claude)
+1. Propriétés du script (roue dentée « Paramètres du projet ») : `ANTHROPIC_KEY` = la clé créée sur platform.claude.com (jamais dans les applis ni dans le dépôt).
+2. Colle ce `Code.gs`, enregistre, puis ▶ Exécuter `testerClaude` une fois : Google demande l'autorisation « se connecter à un service externe » ; le journal affiche un commentaire reformulé.
+3. Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer (même adresse /exec).
+Les applis envoient seulement les notes de l'enseignant, l'activité et les degrés (jamais le nom de l'élève). Modèle : `CLAUDE_MODEL` (Claude Haiku 5.5).

@@ -35,6 +35,7 @@ function doGet(e) {
   if (res.keyOk) res.sync = 1;
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
+  if (res.keyOk && p.ai) { try { res.ai = reformuler_(p); } catch (err) { res.aiErr = String(err && err.message || err); } }
   const body = JSON.stringify(res);
   if (p.callback && /^[A-Za-z0-9_]+$/.test(p.callback)) {
     return ContentService.createTextOutput(p.callback + '(' + body + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
@@ -155,4 +156,38 @@ function appelAS_(p) {
 function autoriserAppelAS() {
   SpreadsheetApp.openById(SpreadsheetApp.getActiveSpreadsheet().getId());
   Logger.log('Autorisation OK : l\'Appel AS peut ouvrir ton fichier d\'appel.');
+}
+
+
+/* ================= ✨ Reformuler (Claude, API d'Anthropic) =================
+ * La clé reste ici, côté serveur : Paramètres du projet > Propriétés du script > ANTHROPIC_KEY.
+ * Les applis n'envoient que le texte du commentaire (jamais le nom de l'élève) et l'activité.
+ * p.ai = 'fiche' (commentaire adressé à l'élève, tutoiement) ou 'bulletin' (appréciation de bulletin, 3e personne, sans prénom).
+ * p.t = notes de l'enseignant (dictées ou tapées) ; p.act = activité ; p.ctx = éléments d'évaluation (degrés, note), facultatif. */
+const CLAUDE_MODEL = 'claude-haiku-5-5';
+function reformuler_(p) {
+  const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY');
+  if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
+  const notes = String(p.t || '').slice(0, 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, 600);
+  if (!notes.trim() && !ctx.trim()) throw new Error('Texte vide');
+  const bulletin = p.ai === 'bulletin';
+  const system = 'Tu es un enseignant d\'EPS de lycée, en France. Tu rédiges en français correct, bienveillant, précis et concret, sans formules creuses. ' +
+    'Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »). N\'invente aucun fait absent des notes. Pas de nom ni de prénom. ' +
+    (bulletin ? 'Écris une appréciation de bulletin trimestriel à la 3e personne, en 2 phrases (300 caractères maximum) : le bilan, puis le conseil pour progresser.'
+              : 'Écris un commentaire adressé directement à l\'élève (tutoiement), en 2 ou 3 phrases (350 caractères maximum) : ce qui est réussi, puis ce qu\'il faut travailler.') +
+    ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
+  const user = 'Activité : ' + act + '\n' + (ctx ? 'Éléments d\'évaluation : ' + ctx + '\n' : '') + 'Notes de l\'enseignant : ' + (notes || '(aucune)');
+  const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 400, system: system, messages: [{ role: 'user', content: user }] })
+  });
+  const code = r.getResponseCode(), out = JSON.parse(r.getContentText() || '{}');
+  if (code !== 200) throw new Error('API ' + code + ' : ' + ((out.error && out.error.message) || ''));
+  return (out.content || []).filter(function (c) { return c.type === 'text'; }).map(function (c) { return c.text; }).join('').trim();
+}
+
+/** À lancer une fois depuis l'éditeur (▶ Exécuter) : autorise l'appel à Claude et vérifie la clé. */
+function testerClaude() {
+  Logger.log(reformuler_({ ai: 'fiche', act: 'Escalade', t: 'pieds précis, lit bien la voie, mais assurage encore hésitant' }));
 }

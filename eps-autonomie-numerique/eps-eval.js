@@ -449,7 +449,7 @@
             '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
             (v ? '<div class="epse-intra" style="--dc:' + DCOL[v.d] + '"><span>Dans le degré :</span><input type="range" min="0" max="4" step="1" value="' + Math.round((v.pos == null ? .5 : v.pos) * 4) + '" data-p="' + esc(cr.id) + '"><b style="color:' + DCOL[v.d] + '">' + esc(posLbl(v.d, v.pos == null ? .5 : v.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
         (ap && (ap.r || ap.m) ? '<div class="epse-card"><h2>🙋 Les mots de l\'élève</h2>' + (ap.r ? "<p>✓ " + esc(ap.r) + "</p>" : "") + (ap.m ? "<p>→ " + esc(ap.m) + "</p>" : "") + "</div>" : "") +
-        '<div class="epse-card"><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm>' + esc(r.comm || "") + "</textarea></label></div>";
+        '<div class="epse-card"><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
     }
     function bindSheet(R, c, e) {
       var up = function (f) { var r = rec(e._c, e); f(r); save(e._c, e, r); render(); };
@@ -459,7 +459,7 @@
       R.querySelector("[data-pdf]").onclick = function () { M.pdfEleve(c, e, true); };
       R.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { up(function (r) { r.ev = r.ev || {}; var id = b.dataset.c, d = +b.dataset.d; if (r.ev[id] && r.ev[id].d === d) delete r.ev[id]; else r.ev[id] = { d: d, pos: .5 }; }); }; });
       R.querySelectorAll("[data-p]").forEach(function (i) { i.onchange = function () { up(function (r) { r.ev[i.dataset.p].pos = (+i.value) / 4; }); }; });
-      var t = R.querySelector("[data-comm]"); t.onchange = function () { var r = rec(e._c, e); r.comm = t.value; save(e._c, e, r); };
+      var t = R.querySelector("[data-comm]"); t.oninput = t.onchange = function () { var r = rec(e._c, e); r.comm = t.value; save(e._c, e, r); };
     }
     function table(c) { var G = grid();
       return '<div class="epse-card"><h2>📋 ' + esc(c.nom) + '</h2><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + G.criteres.map(function (cr) { return "<th>" + esc(cr.nom) + "</th>"; }).join("") + "<th>Note /20</th></tr>" +

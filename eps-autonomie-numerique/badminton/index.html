@@ -872,7 +872,7 @@ function renderEval(){
    ${st.mj||st.ex.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,[st]),[{nom:fullName(e),c:'#0B7A75'}],300)}</div><div style="flex:1;min-width:220px">${statLines(st)}${B().optMatchs?`<div class="ok" style="margin-top:8px">Option active : le curseur des critères ${isLP()?'AFLP1 et AFLP2':'AFL1'} se place selon la part de matchs gagnés (${st.mj?Math.round((st.mg+st.mn*.5)/st.mj*100):0} %).</div>`:''}</div></div>`
      :'<p class="muted">Aucun match ni exercice saisi sur le terrain pour cet élève.</p>'}</div>
   <div id="crits" ${isAbs(e)?'style="opacity:.4;pointer-events:none"':''}>${b.criteres.map(cr=>critHtml(cr,e)).join('')}</div>
-  <div class="card"><h2>Commentaire / bilan pour l'élève</h2><textarea rows="3" oninput="curE().comment=this.value;save()" placeholder="Points forts, axes de progrès…">${esc(e.comment||'')}</textarea></div>
+  <div class="card"><h2>Commentaire / bilan pour l'élève</h2><textarea data-eps-comment rows="3" oninput="curE().comment=this.value;save()" placeholder="Points forts, axes de progrès…">${esc(e.comment||'')}</textarea></div>
   <div class="total" id="totBar"></div>`;
   renderTotal();
 }
