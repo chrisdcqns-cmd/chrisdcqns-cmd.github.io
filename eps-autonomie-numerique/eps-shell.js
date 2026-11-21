@@ -57,6 +57,20 @@
     vue.innerHTML = '<div class="h">👁 Vue élève : l\'appli telle que la voit un élève (avec tes vraies données). Tu restes en mode enseignant.<button type="button">✕ Revenir à l\'espace enseignant</button></div><iframe title="Vue élève"></iframe>';
     var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (C.tabs && C.tabs[t[0]]); });
     nav.innerHTML = tabs.map(function (t) { return '<button type="button" data-t="' + t[0] + '"><span>' + t[1] + "</span>" + t[2] + "</button>"; }).join("");
+    /* deux bandeaux (barre de l'appli + onglets enseignant) : en descendant, seuls les onglets restent en haut ;
+       la barre de l'appli revient dès qu'on remonte */
+    var barHidden = false, lastY = {};
+    function stickyBar() { var el = $(C.anchor); while (el && el !== document.body) { var p = getComputedStyle(el).position; if (p === "sticky" || p === "fixed") return el; el = el.parentElement; }
+      var pv = nav.previousElementSibling; return pv && /sticky|fixed/.test(getComputedStyle(pv).position) ? pv : null; }
+    function setHidden(h) { var b = stickyBar(), H = b ? b.offsetHeight : 0; barHidden = !!(h && b);
+      if (b) { b.style.transition = "top .2s ease"; b.style.top = barHidden ? (-H - 8) + "px" : ""; }
+      nav.style.transition = "top .2s ease"; nav.style.top = (barHidden || !b) ? "0px" : H + "px"; }
+    document.addEventListener("scroll", function (e) {
+      if (!nav.offsetParent) return; var t = (e.target === document || e.target === document.documentElement) ? (document.scrollingElement || document.documentElement) : e.target;
+      if (!t || t.scrollTop == null || (t !== document.scrollingElement && t !== document.documentElement && !t.contains(nav))) return;
+      var k = t === document.scrollingElement ? "w" : "x", y = t.scrollTop, prev = lastY[k] || 0; if (Math.abs(y - prev) < 6) return; lastY[k] = y;
+      var h = y > prev && y > 80; if (h !== barHidden) setHidden(h);
+    }, true);
     function place() {
       var a = $(C.anchor); if (a && a.parentNode) { if (nav.previousElementSibling !== a) a.insertAdjacentElement("afterend", nav); }
       else if (!nav.parentNode) document.body.insertBefore(nav, document.body.firstChild);
@@ -105,6 +119,7 @@
       if (on && !was) { if (!M.cur) go(C.home || "seq"); }
       if (!on && was) { closePanel(); closeVue(); M.cur = null; }
       was = on;
+      if (on && !barHidden) setHidden(false); else if (!on && barHidden) { barHidden = false; var sb = stickyBar(); if (sb) sb.style.top = ""; }
       if (on && window.EPSLC && !M.lc) { M.lc = 1; if (M.cur && M.cur !== "vue") mark(M.cur); } /* leçons chargées après coup : raccourcis ajoutés */
       if (on && !document.documentElement.classList.contains("epst-pan") && M.cur !== "vue") { /* onglet actif suivant l'écran affiché par l'appli */
         var T = C.tabs || {}, k = Object.keys(T).filter(function (id) { return T[id].on && (function () { try { return T[id].on(); } catch (e) { return false; } })(); })[0];
