@@ -12,6 +12,7 @@
    « Vue élève » : l'appli s'ouvre dans un cadre avec ?vue=eleve (le mode enseignant y est ignoré : voir eps-lists.js),
    sans quitter le mode enseignant. */
 (function () {
+  var BASE = ((document.currentScript && document.currentScript.src) || "").replace(/eps-shell\.js.*$/, "");
   var ORDER = [["seq", "📅", "Séquence"], ["vue", "👁", "Vue élève"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluation"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
   var VUE = /[?&]vue=eleve\b/.test(location.search);
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -35,6 +36,7 @@
       ".epst-card{display:flex;gap:12px;align-items:center;text-align:left;background:#fff;border:1px solid #E6E1D6;border-left:5px solid var(--epst,#666);border-radius:14px;padding:14px;font:inherit;color:inherit;cursor:pointer;min-height:76px}",
       ".epst-card:active{transform:scale(.99)}.epst-card i{font-style:normal;font-size:26px;flex:none}.epst-card b{display:block;font-size:16px}.epst-card small{display:block;color:#6A6F78;font-size:13px;margin-top:2px}",
       ".epst-b{height:40px;border-radius:10px;border:2px solid var(--epst,#666);background:#fff;color:#14171C;font:800 14px system-ui,sans-serif;padding:0 14px;cursor:pointer}.epst-b:disabled{opacity:.5}",
+      "@media print{html.epst-pan body>*:not(.epst-panel){display:none!important}html.epst-pan .epst-panel{display:block!important;padding:0}.epst-panel button{display:none!important}}",
       ".epst-vue{position:fixed;left:0;right:0;bottom:0;z-index:2147481500;background:#F5F3EE;display:none;flex-direction:column}",
       "html.epst-vue-on .epst-vue{display:flex}",
       ".epst-vue .h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#FFF6E0;border-bottom:1px solid #F0D58A;font:600 14px system-ui,sans-serif;color:#6b4e00}",
@@ -43,7 +45,7 @@
     ].join("\n");
     document.head.appendChild(st);
   }
-  function $(s) { return typeof s === "string" ? document.querySelector(s) : s; }
+  function $(s) { return typeof s === "function" ? s() : typeof s === "string" ? document.querySelector(s) : s; }
 
   function init(C) {
     if (VUE) return null; /* dans le cadre « Vue élève » : pas d'espace enseignant */
@@ -88,7 +90,7 @@
       if (id === "vue") { openVue(); return; }
       if (id === "bib") { var p = panel("<h2>📚 Bibliothèque</h2><p class=\"mut\">Les ressources et les écrans de l'appli, à consulter ou à montrer aux élèves.</p>" + cards(C.biblio || []) + adaptHtml()); bindCards(p, C.biblio || [], "bib"); bindAdapt(p); return; }
       if (id === "reg") {
-        var R = (C.reglages || []).concat([{ ico: "🏫", label: "Réglages communs", sub: "Établissement, enseignant, listes d'élèves, activités des classes, partage entre tablettes", go: function () { try { EPSR.open(); } catch (e) {} } }]);
+        var R = [{ ico: "📖", label: "Fiche d'utilisation", sub: "Tout ce que permet " + C.nom + " et les fonctions communes", go: guide }].concat(C.reglages || []).concat([{ ico: "🏫", label: "Réglages communs", sub: "Établissement, enseignant, listes d'élèves, activités des classes, partage entre tablettes", go: function () { try { EPSR.open(); } catch (e) {} } }]);
         var q = panel("<h2>⚙ Réglages</h2><p class=\"mut\">Réglages de " + esc(C.nom) + " et réglages communs à toutes les applis.</p>" + cards(R)); bindCards(q, R, "reg"); return;
       }
       if (t && t.panel) { var el = panel(""); try { t.panel(el); } catch (e) { console.warn(e); } return; }
@@ -133,10 +135,28 @@
           .catch(function (e) { msg.textContent = "⚠ " + (e && e.message || e); }).then(function () { b.disabled = false; });
       }; });
     }
+    /* 📖 Fiche d'utilisation (eps-guides.js) */
+    function guide() {
+      var show = function () {
+        var G = window.EPS_GUIDES || {}, A = G[C.app] || { nom: C.nom, items: [] }, sec = function (t, L) { return "<h3 style=\"margin:18px 0 8px;font-size:18px\">" + t + "</h3>" + L.map(function (x) { return '<div style="background:#fff;border:1px solid #E6E1D6;border-radius:12px;padding:10px 14px;margin:0 0 8px"><b>' + esc(x[0]) + '</b><div style="margin-top:3px;line-height:1.45">' + esc(x[1]) + "</div></div>"; }).join(""); };
+        var p = panel('<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="flex:1">📖 Fiche d\'utilisation · ' + esc(A.nom) + '</h2><button type="button" class="epst-b" id="epst-gb">← Réglages</button><button type="button" class="epst-b" id="epst-gp">🖨 Imprimer</button></div>' +
+          sec("Dans " + esc(A.nom), A.items || []) + sec("Commun à toutes les applis", G.commun || []));
+        mark("reg"); p.querySelector("#epst-gb").onclick = function () { go("reg"); }; p.querySelector("#epst-gp").onclick = function () { window.print(); };
+      };
+      if (window.EPS_GUIDES) show(); else { var sc = document.createElement("script"); sc.src = BASE + "eps-guides.js"; sc.onload = show; document.head.appendChild(sc); }
+    }
     M.go = go; M.closePanel = closePanel; M.tick = tick; M.mark = mark;
     if (document.body) tick(); else document.addEventListener("DOMContentLoaded", tick);
     setInterval(tick, 700);
     return M;
   }
-  window.EPST = { init: init, vueEleve: VUE };
+  /* Vue élève seule (appli qui garde sa propre organisation, ex. OrienRun) */
+  function openVue(color) {
+    css(); var v = document.getElementById("epst-vue1");
+    if (!v) { v = document.createElement("div"); v.id = "epst-vue1"; v.className = "epst-vue"; v.style.top = "0";
+      v.innerHTML = '<div class="h">👁 Vue élève : l\'appli telle que la voit un élève (avec tes vraies données). Tu restes en mode enseignant.<button type="button">✕ Revenir à l\'espace enseignant</button></div><iframe title="Vue élève"></iframe>';
+      v.querySelector("button").onclick = function () { v.style.display = "none"; }; document.body.appendChild(v); }
+    v.querySelector("iframe").src = location.pathname + "?vue=eleve"; v.style.display = "flex";
+  }
+  window.EPST = { init: init, vueEleve: VUE, openVue: openVue };
 })();

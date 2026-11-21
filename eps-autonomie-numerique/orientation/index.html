@@ -181,7 +181,7 @@ html:not(.eps-teach) #goProf{display:none}
 </div>
 <div id="prof" class="hidden">
   <header>
-    <div class="topline"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg></span><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button><button class="epse-open" onclick="window.EVORI&&EVORI.open()">📋 Évaluation</button><span data-eps-bar></span></div>
+    <div class="topline"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg></span><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button><button class="epse-open" onclick="window.EPST&&EPST.openVue()">👁 Vue élève</button><button class="epse-open" onclick="window.EVORI&&EVORI.open()">📋 Évaluation</button><span data-eps-bar></span></div>
     <nav class="tabs" id="ptabs">
       <button class="tab" data-t="carte">🗺 Carte</button><button class="tab" data-t="balises">🚩 Balises</button><button class="tab" data-t="parcours">〰 Parcours</button><button class="tab" data-t="biblio">📚 Bibliothèque</button><button class="tab" data-t="seance">📡 Leçon live<span class="bdg hidden" id="alertBdg"></span></button><button class="tab" data-t="resultats">🏁 Résultats</button><button class="tab" data-t="reglages">⚙ Réglages</button>
     </nav>
@@ -191,6 +191,7 @@ html:not(.eps-teach) #goProf{display:none}
 <div id="eleve" class="hidden"></div>
 <div id="modalRoot"></div>
 <input type="file" id="fileIn" class="hidden">
+<script src="../eps-lists.js"></script>
 <script>
 // ===== QR code : encodeur autonome (mode octets, versions 1-40, d'après l'algorithme de Nayuki, MIT) =====
 const QR = (() => {
@@ -3134,6 +3135,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") navigator.se
 
 </script>
 <script src="../eps-eval.js"></script>
+<script src="../eps-shell.js"></script>
 <script>/* évaluation commune (eps-eval.js) : grille par degrés, auto-positionnement par QR code, fiches PDF au format Danse / Volley-ball.
    Grille proposée (CA2, lycée), modifiable dans Évaluation → Grille ; données « eps.eval.ori.v1 », synchronisées entre tablettes. */
 window.EVORI=window.EPSE?EPSE.store({app:'ori',nom:'Course d\'orientation',ca:'CA2',color:'#E8701A',pfx:'or',code:'ORI1',url:'https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/orientation/',

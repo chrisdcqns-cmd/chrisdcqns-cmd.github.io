@@ -1,0 +1,66 @@
+/* Fiches d'utilisation (Réglages → 📖 Fiche d'utilisation), chargées à la demande par eps-shell.js.
+   À tenir à jour quand une appli gagne ou perd une fonction (voir CLAUDE.md). */
+window.EPS_GUIDES = {
+  commun: [
+    ["Ouvrir le mode enseignant", "Maintiens le logo de l'appli 3 secondes (le carré coloré de la barre, ou le grand logo de l'écran « Choisis ta classe »), puis tape ton code. Aucun bouton enseignant n'est visible par les élèves. « Quitter » ou le verrou referme le mode enseignant."],
+    ["Les onglets de l'espace enseignant", "Toujours dans le même ordre : 📅 Séquence (leçons, leçon du jour) · 👁 Vue élève (l'appli comme la voit un élève, sans quitter le mode enseignant) · 📚 Bibliothèque (ressources) · 📋 Évaluation · 👥 Classe · 📄 Bilans · ⚙ Réglages. Sous certains onglets, des raccourcis propres à l'activité."],
+    ["Côté élève", "L'élève arrive sur « Choisis ta classe ». Les ressources utiles sans classe (sécurité, échauffement…) sont proposées sur ce même écran. Le bouton ⌂ Accueil le ramène à ce choix."],
+    ["Classes et élèves", "Une liste importée sur l'accueil ou dans une appli apparaît dans toutes les applis et sur toutes les tablettes. Dans Réglages communs → Listes d'élèves : renommer, corriger, choisir les activités de chaque classe, supprimer (double confirmation), fusionner deux listes proches."],
+    ["Évaluation et auto-positionnement", "Grille par degrés avec curseur dans le degré, note /20. Dans Bilans : ouvrir l'auto-positionnement jusqu'à une date. Chaque fiche PDF porte alors un QR code personnel ; la réponse de l'élève arrive chiffrée, à côté de ton positionnement. Si l'envoi échoue, l'élève te transmet un code à coller. Tu peux aussi passer une tablette en mode élève."],
+    ["Fiches PDF", "Une fiche par élève (paysage), toutes les fiches en un PDF, le récapitulatif de classe, ou tout dans un .zip (fichiers « Nom_Prénom_… »)."],
+    ["🎤 Dicter et ✨ Reformuler", "Sous chaque commentaire : 🎤 dicte avec le micro de la tablette ; ✨ Claude reformule tes notes (seulement tes notes, les degrés et la note : jamais le nom de l'élève). ↶ Annuler revient à ton texte. Relis toujours avant d'enregistrer."],
+    ["✨ Adapter une consigne", "Bibliothèque : Claude propose une consigne simplifiée (élève dys) ou traduite (12 langues). Rien n'est montré à l'élève avant ta relecture (« 📺 Afficher en grand »)."],
+    ["Dispensés", "La pastille 🩹 de la barre compte les dispensés du jour : ceux de la classe choisie, sinon tous."],
+    ["Tablettes et mises à jour", "⟳ dans la barre récupère la dernière version de l'appli. Les données passent d'une tablette à l'autre par ton script Google (partage réglé dans Réglages communs), chiffrées."]
+  ],
+  esc: { nom: "Escalade", items: [
+    ["📅 Séquence", "Leçons et classes : préparer la leçon du jour (ou reprendre les réglages de la dernière), leçons à venir. Raccourci 🖥️ Tablette de contrôle : tous les élèves en direct."],
+    ["📚 Bibliothèque", "Se préparer et assurer (échauffement, nœud de huit, assurage), Cotation (chercher une voie), Renseigner une grimpe (corde, voie, cordée), Mes résultats, Thématiques (pistes de travail), Sécurité (règles et vérifications)."],
+    ["📋 Évaluation", "Grille CA2 proposée : difficulté de la voie, efficacité et fluidité (AFL1), se préparer et s'entraîner (AFL2), assurer et sécuriser la cordée (AFL3). Onglet Grille : textes et points modifiables, ✨ version élève proposée par Claude (à valider)."],
+    ["👥 Classe", "Importer une liste (Excel ou CSV), créer, renommer, corriger les élèves ; regrouper plusieurs classes en un seul groupe EPS (ex. TMELEC et TTBMA)."],
+    ["📄 Bilans", "Résultats des grimpes et QR codes (Excel, Google Sheets, regroupement) ; fiches d'évaluation, récapitulatif, .zip, auto-positionnement."],
+    ["Côté élève", "Choisis ta classe, puis son nom ; ressources sans classe : échauffement, s'encorder, assurage, sécurité. Pendant la leçon : renseigner ses grimpes, voir ses résultats."]
+  ] },
+  rel: { nom: "Relais Vitesse", items: [
+    ["📅 Séquence", "Leçons de la classe, Leçon du jour (vitesse cible à atteindre pour une paire de coureurs, consulter les vitesses, enregistrer les courses), Courses."],
+    ["📚 Bibliothèque", "Dispositif (zones, plots, témoin) et Situations d'apprentissage."],
+    ["📋 Évaluation", "Performance, Transmission (AFL1), Mise en projet (AFL2), Vivre les rôles (AFL3), répartition des points AFL2 / AFL3. Raccourci 🙋 Auto-évaluations. Fiches PDF au format commun avec QR d'auto-positionnement."],
+    ["👥 Classe", "Toutes les classes, élèves (import, correction), groupes."],
+    ["📄 Bilans", "Bilan de l'évaluation (moyennes, répartition par degré), PDF de la classe, fiches élèves (.zip), Excel."],
+    ["Côté élève", "Choisis ta classe ; dispositif et situations accessibles sans classe ; la leçon lancée par l'enseignant s'ouvre sur la tablette."]
+  ] },
+  vol: { nom: "Volley-ball", items: [
+    ["📅 Séquence", "Leçons (objectifs, contenus, routines de mobilisation), échauffement, AFL & évaluation, idées ; PDF de la séquence."],
+    ["📋 Évaluation", "Critères CA4 notés avec curseur intra-degré ; raccourci 🧮 Barème et critères (textes enseignant et élève)."],
+    ["👥 Classe", "Élèves (import, correction) et équipes."],
+    ["📄 Bilans", "Fiches PDF au format Danse, une par élève, .zip et récapitulatif ; auto-positionnement par QR code et suivi."],
+    ["Tablette coach (côté élève)", "L'élève choisit sa classe puis son équipe : leçon du jour, matchs, observation. ⌂ Accueil ramène au choix de la classe."]
+  ] },
+  bad: { nom: "Badminton", items: [
+    ["📅 Séquence", "Séquence (lycée général ou lycée pro), raccourcis 📊 Matchs & stats et 🏸 Terrain & scoring (tablette de terrain)."],
+    ["📋 Évaluation", "Évaluer (critères CA4, curseur), raccourci 🧮 Barème et critères."],
+    ["👥 Classe", "Élèves, groupes par tablette."],
+    ["📄 Bilans", "Notes, fiches PDF au format commun, .zip, récapitulatif, auto-positionnement par QR code."],
+    ["Côté élève", "Choisis ta classe : la tablette de terrain démarre (score, matchs, routines). ⌂ Accueil ramène au choix de la classe."]
+  ] },
+  dan: { nom: "Danse", items: [
+    ["📅 Séquence", "Fiche d'observation de la leçon, par groupes de création."],
+    ["📚 Bibliothèque", "Procédés de composition et défis."],
+    ["📋 Évaluation", "Grille de la séquence (degrés, curseur), positionnement de l'élève à côté du tien."],
+    ["👥 Classe", "Élèves, groupes de création, auto-positionnement (ouverture, suivi)."],
+    ["📄 Bilans", "Fiches PDF par élève, .zip, récapitulatif."],
+    ["⚙ Réglages de Danse", "Grille, auto-positionnement, script d'envoi automatique (utilisé aussi par les autres applis pour les QR codes)."],
+    ["Côté élève", "« Je me positionne » quand tu l'ouvres ; procédés et défis accessibles."]
+  ] },
+  acro: { nom: "Acrosport", items: [
+    ["Côté élève", "Vidéothèque des figures, Mon enchaînement, Observation, Mon parcours (paliers), Bonus."],
+    ["📋 Évaluation", "Grille CA3 proposée : difficulté et réalisation des figures, composition (AFL1), se préparer et répéter (AFL2), pareur et juge (AFL3). Onglet Grille modifiable, ✨ version élève."],
+    ["Classes", "Les classes viennent du Google Sheet d'Acrosport et des listes communes ; en mode enseignant, les classes importées ailleurs y sont écrites automatiquement."]
+  ] },
+  ori: { nom: "OrienRun", items: [
+    ["Espace enseignant", "Carte (création de cartes), Balises, Parcours, Bibliothèque, Leçon live (suivi GPS en direct, messages), Résultats, Réglages ; bouton 👁 Vue élève dans la barre."],
+    ["📋 Évaluation", "Grille CA2 proposée : lecture de carte et choix d'itinéraire, efficacité et performance (AFL1), analyser sa course (AFL2), sécurité et rôles (AFL3)."],
+    ["Côté élève", "La classe et la course viennent du QR code de départ ; le coureur suit son parcours, sa trace est envoyée en direct."],
+    ["Pose des balises", "Outil enseignant sur iPhone : poser les balises au GPS (photos, Google Maps) et tracer les chemins pour OrienRun."]
+  ] }
+};

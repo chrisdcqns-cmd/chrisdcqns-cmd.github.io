@@ -24,6 +24,7 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 
 ## Espace enseignant (commun)
 - `eps-shell.js` : `EPST.init({app, nom, color, isTeacher, anchor, main, tabs:{seq, eval, cls, bil}, biblio:[…], reglages:[…]})` ; onglets toujours dans cet ordre : 📅 Séquence · 👁 Vue élève · 📚 Bibliothèque · 📋 Évaluation · 👥 Classe · 📄 Bilans · ⚙ Réglages. On arrive sur Séquence. Pas d'appli « élève avec des cases enseignant ».
+- Fiche d'utilisation (Réglages → 📖) : `eps-guides.js`, à mettre à jour à chaque nouvelle fonction ou nouvelle appli.
 - Vue élève : l'appli dans un cadre `?vue=eleve` (mode enseignant ignoré par `eps-lists.js`), sans quitter le mode enseignant.
 - Claude (API, par le script commun, clé `ANTHROPIC_KEY` côté serveur) : ✨ Reformuler / 🎤 Dicter sur tout `textarea[data-eps-comment]`, version élève d'une grille, consigne simplifiée ou traduite (Bibliothèque). Jamais de nom d'élève envoyé ; tout ce qui va aux élèves est relu et validé par l'enseignant.
 
