@@ -1474,12 +1474,20 @@
   /* 🔍 recherche rapide d'un élève (mode enseignant) : classes, activités de la classe, dispense du jour, évaluations et commentaires dans chaque appli */
   var ACTN = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport" };
   function evalsOf(nomComplet, classe) {
-    var out = [], k = nkey(nomComplet), c = norm(classe);
+    var out = [], k = nkey(nomComplet), c = cmp(classe);
     for (var i = 0; i < localStorage.length; i++) { var key = localStorage.key(i), m = /^eps\.eval\.([a-z]+)\.v1$/.exec(key || ""); if (!m) continue;
       var V = jget(key, {}), I = (V && V.items) || {};
-      Object.keys(I).forEach(function (id) { var r = I[id]; if (!r || id === "cfg" || nkey((r.p || "") + " " + (r.n || "")) !== k || (c && r.c && norm(r.c) !== c)) return;
+      Object.keys(I).forEach(function (id) { var r = I[id]; if (!r || id === "cfg" || nkey((r.p || "") + " " + (r.n || "")) !== k || (c && r.c && cmp(r.c) !== c)) return;
         var n = r.ev ? Object.keys(r.ev).filter(function (x) { return r.ev[x] && r.ev[x].d != null; }).length : 0;
         out.push({ app: ACTN[m[1]] || ({ escalade: "Escalade", acrosport: "Acrosport", orientation: "OrienRun", ori: "OrienRun" }[m[1]]) || m[1], n: n, comm: r.comm || "", st: r.st || "", auto: !!(r.ap && r.ap.ev) }); }); }
+    /* applis à évaluation propre : Volley, Badminton, Danse (e.ev, commentaire, auto-positionnement), Relais (évaluations de course) */
+    [["eps_volley_eval_v1", "Volley-ball"], ["eps_badminton_v1", "Badminton"], ["danse-eps-v1", "Danse"], ["relais-vitesse-data-v3", "Relais Vitesse"]].forEach(function (A) {
+      var d = jget(A[0], null); ((d && d.classes) || []).forEach(function (cl) { if (c && cmp(cl.nom || cl.name) !== c) return;
+        (cl.eleves || []).forEach(function (e) { if (nkey((e.prenom || "") + " " + (e.nom || "")) !== k) return;
+          var n = e.ev ? Object.keys(e.ev).filter(function (x) { return e.ev[x] != null && e.ev[x] !== ""; }).length : (e.ea || []).concat(e.el || []).filter(function (x) { return x != null; }).length;
+          var st = String(e.statut || "").toUpperCase(); st = /ABS/.test(st) ? "ABS" : /DISP/.test(st) ? "DISP" : "";
+          if (n || e.comment || e.comm || st) out.push({ app: A[1], n: n, comm: e.comment || e.comm || "", st: st, auto: !!((e.ap && e.ap.ev) || (e.auto && e.auto.ev)) }); }); });
+    });
     return out;
   }
   function searchStudents() {
