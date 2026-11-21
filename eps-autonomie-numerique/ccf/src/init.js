@@ -4,7 +4,7 @@ window.EPSTCCF=window.EPST?EPST.init({app:'ccf',nom:'CCF',color:COL,isTeacher:()
  tabs:{eval:{go:()=>go(T.view==='fiche'?'fiche':'eval'),on:()=>['eval','fiche'].includes(T.view)},
   cls:{go:()=>go('cls'),on:()=>['cls','team','match'].includes(T.view)},
   bil:{go:()=>go('bil'),on:()=>T.view==='bil'}},
- biblio:[{ico:'📜',label:'Le protocole',sub:'Lecture et impression (Bac pro, Bac général)',go:()=>go('proto')},{ico:'📚',label:'Ressources de l\'activité',sub:'Celles de l\'appli de l\'activité + celles ajoutées ici, visibles par les élèves',go:()=>go('res')}],
+ biblio:[{ico:'🖨',label:'Documents à imprimer',sub:'La leçon du CCF, le terrain / le mur, les fiches à remplir sans tablette',go:()=>go('print')},{ico:'📜',label:'Le protocole',sub:'Lecture et impression (Bac pro, Bac général)',go:()=>go('proto')},{ico:'📚',label:'Ressources de l\'activité',sub:'Celles de l\'appli de l\'activité + celles ajoutées ici, visibles par les élèves',go:()=>go('res')}],
  reglages:[{ico:'✏️',label:'Modifier le protocole',sub:'Textes, degrés, points, AFLP retenus, forme de pratique',go:()=>go('edit',{pv:(T.cls&&ses(T.act,T.cls).voie)||T.pv||'pro'})},{ico:'🔀',label:'Changer d\'activité',sub:'Escalade, Badminton, Cross training',go:()=>go('act')}]}):null;
 /* écran commun « Choisis ta classe » (mode élève) */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'CCF',sub:'Contrôle en cours de formation',color:COL,icon:svgIco(ICO_CCF),

@@ -1,7 +1,7 @@
 // EPS – Autonomie et Numérique : service worker de la racine.
 // Il ne gère que la page d'accueil (/eps-autonomie-numerique/), le bouton Accueil partagé, Relais Vitesse, Volley-ball, Badminton, Danse, Emploi du temps et Appel AS (qui n'ont pas de service worker propre).
 // Acrosport, Escalade et OrienRun gardent leur propre service worker : leurs requêtes ne sont pas touchées ici.
-const CORE = "eps-core-v54";
+const CORE = "eps-core-v55";
 const B = "/eps-autonomie-numerique/"; // adresse des applications
 const CORE_FILES = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", B, B + "index.html", B + "eps-home.js", B + "eps-lists.js", B + "eps-eval.js", B + "eps-shell.js", B + "eps-guides.js", B + "eps-lecons.js", B + "eps-obs.js", B + "eps-qr.js", B + "relais/", B + "relais/index.html", B + "volley/", B + "volley/index.html", B + "badminton/", B + "badminton/index.html", B + "badminton/echauffement-deplacements.webp", B + "danse/", B + "danse/index.html", B + "edt/", B + "edt/index.html", B + "appel-as/", B + "appel-as/index.html", B + "ccf/", B + "ccf/index.html"];
 // Bibliothèques externes utilisées par Relais Vitesse (lecture Excel, polices)

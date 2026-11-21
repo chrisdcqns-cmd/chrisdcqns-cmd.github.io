@@ -39,7 +39,7 @@ const PROTOS={
    regles:["10 minutes : projet points d'équipe à prévoir en début de leçon : points de la hauteur de grimpe + 2 prises bonus (+ ordre de passage)","Choix de 2 prises bonus (1 si la zone 1 est la zone à atteindre) : prise en Z1 = ×1 ; prise en Z2 = ×2 ; prise en Z3 = ×3 ; prise en Z4 = ×4","Au cours de la grimpe, si la prise est utilisée, elle vaudra 10 × le coef zone ; si elle n'est pas prise/oubliée, elle vaudra −10 × coef zone","Régulation possible pendant 4 minutes après le passage du premier grimpeur"],auto:'esc-prises',
    deg:["Projet individuel aléatoire (prises et hauteur)","Projet individuel réfléchi sur la hauteur mais mauvais choix de prises","Projet individuel réfléchi mais 1 erreur de prise","Projet individuel concerté collectivement pour le valider dans sa totalité"]},
   {id:'p6',code:'AFLP6',off:"S'enrichir de la connaissance de productions de qualité issues du patrimoine culturel artistique et gymnique pour progresser dans sa propre pratique et aiguiser son regard de spectateur",decl:'',regles:[],deg:['','','','']}]},
- jeu:{nEq:4,echauf:45,dureeEq:20,projet:10,regul:4,nDeg:8,b1:2,b2:4,b3:7,z1:10,z2:20,z3:30,z4:40,top:100,bonusN:2,bonusVal:10}},
+ jeu:{nEq:4,echauf:45,dureeEq:20,projet:10,regul:4,nDeg:8,b1:2,b2:4,b3:7,z1:10,z2:20,z3:30,z4:40,top:100,bonusN:2,bonusVal:10,exact:1,cumul:0,bonusNeg:1,verrou:1}},
 
 'bad-pro':{id:'bad-pro',act:'bad',voie:'pro',apsa:'Badminton',ca:'CA4',session:'2024',etab:ETAB0,ref:'FCE_BacPro_CA4_Badminton_LP_CamilleClaudel_Fourmies_0590083V_Session_2024',
  oe:"S'organiser collectivement pour choisir ses matchs afin d'en remporter un maximum en utilisant différentes stratégies de jeu pour cacher la sienne.",
@@ -68,7 +68,7 @@ const PROTOS={
    deg:["Choix aléatoire de l'adversaire","Choix valorisant un seul des adversaires","Choix valorisant les deux partenaires","Choix permettant de gagner l'ensemble des matchs"]},
   {id:'p5',code:'AFLP5',off:"Savoir se préparer, s'entraîner et récupérer pour faire preuve d'autonomie",decl:'',regles:[],deg:['','','','']},
   {id:'p6',code:'AFLP6',off:"Porter un regard critique sur les pratiques sportives pour comprendre le sens des pratiques scolaires",decl:'',regles:[],deg:['','','','']}]},
- jeu:{pts:11,sets:2,pFaute:1,pDirect:10,pHors:1,pDevine:5,nStrat:4,tPanel:5,tChoix:3,tTM:30,tEntre:3,tOrga:5,poule:5,c1:34,c2:67,nul:1}},
+ jeu:{pts:11,sets:2,pFaute:1,pDirect:10,pHors:1,pDevine:5,nStrat:4,tPanel:5,tChoix:3,tTM:30,tEntre:3,tOrga:5,poule:5,c1:34,c2:67,nul:1,ecart:0,max:15,devine:0,tmN:1}},
 
 'ct-pro':{id:'ct-pro',act:'ct',voie:'pro',apsa:'Cross training',ca:'CA5',session:'2024',etab:ETAB0,ref:'FCE_BacPro_CA5_Crosstraining_LP_CamilleClaudel_Fourmies_0590083V_Session_2024',
  oe:"Concevoir et produire une séance en binôme tout en pratiquant de manière sécuritaire afin de répondre à un objectif personnel. Maîtriser différentes connaissances musculaires pour construire une séance en lien avec son objectif avec des temps de travail, de récupération et des exercices adaptés.",
@@ -102,10 +102,18 @@ const PROTOS={
 };
 /* paramètres de la forme de pratique, affichés dans l'éditeur du protocole */
 const JEU_LAB={
- esc:[['nEq','Élèves par équipe'],['echauf','Échauffement sur la voie (s)'],['dureeEq','Temps par équipe (min)'],['projet','Projet d\'équipe (min)'],['regul','Régulation après le 1er grimpeur (min)'],['nDeg','Nombre de dégaines'],['b1','Fin de la zone 1 (dégaine n°)'],['b2','Fin de la zone 2 (dégaine n°)'],['b3','Fin de la zone 3 (dégaine n°)'],['z1','Points zone 1'],['z2','Points zone 2'],['z3','Points zone 3'],['z4','Points zone 4'],['top','Points TOP (en plus)'],['bonusN','Prises bonus (1 si zone 1)'],['bonusVal','Valeur d\'une prise bonus (× coef zone)']],
- bad:[['pts','Points par set'],['sets','Nombre de sets'],['pFaute','Point : adversaire touche/faute'],['pDirect','Point direct dans la stratégie'],['pHors','Point direct hors stratégie'],['pDevine','Stratégie adverse devinée (bonus)'],['nStrat','Stratégies dans le panel'],['tPanel','Création du panel (min)'],['tChoix','Choix du coach (min)'],['tTM','Temps mort (s)'],['tEntre','Entre les deux sets (min)'],['tOrga','Organisation des matchs (min)'],['poule','Binômes par poule'],['c1','Découpe fond / milieu (% depuis le fond)'],['c2','Découpe milieu / avant (% depuis le fond)'],['nul','1 set partout : victoire au plus de points (1 = oui, 0 = match nul)']],
+ esc:[['nEq','Élèves par équipe'],['echauf','Échauffement sur la voie (s)'],['dureeEq','Temps par équipe (min)'],['projet','Projet d\'équipe (min)'],['regul','Régulation après le 1er grimpeur (min)'],['nDeg','Nombre de dégaines'],['b1','Fin de la zone 1 (dégaine n°)'],['b2','Fin de la zone 2 (dégaine n°)'],['b3','Fin de la zone 3 (dégaine n°)'],['z1','Points zone 1'],['z2','Points zone 2'],['z3','Points zone 3'],['z4','Points zone 4'],['top','Points TOP (en plus)'],['bonusN','Prises bonus (1 si zone 1)'],['bonusVal','Valeur d\'une prise bonus (× coef zone)'],
+  ['exact','Points de la zone',[[1,'seulement si la zone annoncée est atteinte exactement (protocole : n\'atteint pas ou dépasse = 0)'],[2,'si la zone annoncée est atteinte ou dépassée (points de la zone annoncée)'],[0,'toujours les points de la zone réellement atteinte']]],
+  ['cumul','Calcul des points de zone',[[0,'points de la seule zone (10, 20, 30 ou 40)'],[1,'cumul des zones validées (ex. Z3 = 10 + 20 + 30)']]],
+  ['bonusNeg','Prise bonus oubliée',[[1,'retire 10 × coef (protocole)'],[0,'ne rapporte rien (0)']]],
+  ['verrou','Après la régulation',[[1,'les projets se verrouillent'],[0,'les projets restent modifiables jusqu\'au passage']]]],
+ bad:[['pts','Points par set'],['sets','Nombre de sets'],['pFaute','Point : adversaire touche/faute'],['pDirect','Point direct dans la stratégie'],['pHors','Point direct hors stratégie'],['pDevine','Stratégie adverse devinée (bonus)'],['nStrat','Stratégies dans le panel'],['tPanel','Création du panel (min)'],['tChoix','Choix du coach (min)'],['tTM','Temps mort (s)'],['tmN','Temps morts par set et par équipe'],['tEntre','Entre les deux sets (min)'],['tOrga','Organisation des matchs (min)'],['poule','Binômes par poule'],['c1','Découpe fond / milieu (% depuis le fond)'],['c2','Découpe milieu / avant (% depuis le fond)'],
+  ['ecart','Fin du set',[[0,'au premier qui atteint les points du set'],[1,'2 points d\'écart (avec un maximum)']]],['max','Maximum du set avec 2 points d\'écart'],
+  ['nul','1 set partout',[[1,'victoire à l\'équipe qui a marqué le plus de points'],[0,'match nul']]],
+  ['devine','Stratégie adverse devinée si elle correspond à',[[0,'une des stratégies utilisées pendant le match'],[1,'la dernière stratégie utilisée'],[2,'la première stratégie choisie']]]],
  ct:[['pratique','Pratique (min)'],['concert','Concertation (min)'],['seanceMin','Séance : durée mini (min)'],['seanceMax','Séance : durée maxi (min)'],['emom','EMOM : minutes par défaut'],['amrap','AMRAP : minutes par défaut'],['cap','FOR TIME : temps limite par défaut (min)']]
 };
+const jeuTxt=(act,k,v)=>{const L=(JEU_LAB[act]||[]).find(x=>x[0]===k);if(L&&L[2]){const o=L[2].find(x=>+x[0]===+v);return o?o[1]:v}return v};
 /* activités du CCF : code = code de l'appli d'activité (activités des classes, ressources) */
 const ACTS={
  esc:{nom:'Escalade',app:'escalade',color:'#2E7D4F',eq:'Équipe de 4',icon:'<path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/>'},

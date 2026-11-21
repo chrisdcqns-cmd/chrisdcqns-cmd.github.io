@@ -4,7 +4,7 @@ function lset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 let T=Object.assign({act:'',cls:'',view:'eval',el:'',all:false,pv:'pro'},lget('ccf.t',{}));
 let E=Object.assign({cls:'',act:'',team:'',tab:'pra',me:''},lget('ccf.e',{}));
 const saveT=()=>lset('ccf.t',T),saveE=()=>lset('ccf.e',E);
-const TABOF={eval:'eval',fiche:'eval',cls:'cls',team:'cls',match:'cls',bil:'bil',proto:'bib',res:'bib',edit:'reg',act:'reg'};
+const TABOF={eval:'eval',fiche:'eval',cls:'cls',team:'cls',match:'cls',bil:'bil',proto:'bib',res:'bib',print:'bib',edit:'reg',act:'reg'};
 function go(v,o){Object.assign(T,o||{});T.view=v;saveT();try{if(window.EPSTCCF&&isT()){EPSTCCF.closePanel();EPSTCCF.mark(TABOF[v]||'eval')}}catch(e){}render();window.scrollTo(0,0)}
 
 /* ================== BARRE DU HAUT ================== */
@@ -18,8 +18,8 @@ function bar(){const t=isT(),A=ACTS[t?T.act:E.act],c=clsById(t?T.cls:E.cls),S=A&
 /* ================== RENDU ================== */
 function render(){DB=ld();bar();const m=$('#m');if(isT())renderT(m);else renderE(m)}
 function renderT(m){if(!T.act||T.view==='act')return actScreen(m);
- if(!['eval','fiche','cls','bil','proto','edit','res','team','match'].includes(T.view))T.view='eval';
- ({eval:evalScreen,fiche:ficheScreen,cls:clsScreen,bil:bilScreen,proto:protoScreen,edit:editScreen,res:resScreen,team:teamScreenT,match:matchScreenT})[T.view](m)}
+ if(!['eval','fiche','cls','bil','proto','edit','res','team','match','print'].includes(T.view))T.view='eval';
+ ({eval:evalScreen,fiche:ficheScreen,cls:clsScreen,bil:bilScreen,proto:protoScreen,edit:editScreen,res:resScreen,team:teamScreenT,match:matchScreenT,print:printScreen})[T.view](m)}
 
 /* ---------- choix de l'activité ---------- */
 function actScreen(m){
@@ -91,7 +91,7 @@ function clsScreen(m){const c=needCls(m,'👥 Classe et équipes');if(!c)return;
  const free=L.filter(p=>!teamOf(S,p.k));
  let h=`<div class="wrap"><h2 class="h2">👥 Équipes · ${esc(A.nom)}</h2>${clsChips()}
  <p class="mut">${esc(A.eq)}. Les élèves retrouvent leur équipe sur les tablettes (onglet « Mon équipe »). Pour changer un élève d'équipe, choisis sa nouvelle équipe dans la liste.</p>
- <div class="row wrapf"><button class="b" onclick="eqNew()">➕ Nouvelle équipe</button><button class="b" onclick="eqAuto()">🎲 Former les équipes au hasard (${eqSize()} par équipe)</button><button class="b" onclick="eqClear()">🧹 Défaire les équipes</button></div>
+ <div class="row wrapf"><button class="b" onclick="eqNew()">➕ Nouvelle équipe</button><button class="b" onclick="eqAuto()">🎲 Former les équipes au hasard (${eqSize()} par équipe)</button><button class="b" onclick="eqClear()">🧹 Défaire les équipes</button><button class="b" onclick="go('print')">🖨 Fiches papier (si pas assez de tablettes)</button></div>
  <div class="teams">${(S.eq||[]).map(t=>`<div class="team"><div class="row"><input class="tn" value="${esc(t.nom)}" onchange="eqRen('${t.id}',this.value)">${T.act==='bad'?`<input class="tg2" placeholder="poule" value="${esc(t.g||'')}" onchange="eqG('${t.id}',this.value)">`:''}<button class="b s" title="Feuille de l'équipe" onclick="go('team',{tm:'${t.id}'})">👁</button><button class="b s" onclick="eqDel('${t.id}')">🗑</button></div>
   ${(t.el||[]).map(k=>`<div class="mem">${esc(pname(c,k))}${eqSel(S,k)}</div>`).join('')||'<p class="mut sm">Aucun élève</p>'}</div>`).join('')}</div>
  ${free.length?`<h3 class="h3">Sans équipe (${free.length})</h3><div class="teams"><div class="team">${free.map(p=>`<div class="mem">${esc(p.full)}${eqSel(S,p.k)}</div>`).join('')}</div></div>`:''}`;
@@ -115,10 +115,19 @@ function bilScreen(m){const c=needCls(m,'📄 Bilans');if(!c)return;const S=ses(
  const cols=P.fin.afl.map(a=>a.code+' /'+a.pts).concat(P.fil.retenus.map(id=>(aflFil(P,id)||{}).code));
  m.innerHTML=`<div class="wrap"><h2 class="h2">📄 Bilans · CCF ${esc(ACTS[T.act].nom)}</h2>${clsChips()}
  <p class="mut">${ok.length} élève(s) noté(s) sur ${L.length} · moyenne de la classe : <b>${fr(moy)}</b> /20 · ${esc(VOIES[S.voie])} · ${esc(dFR(S.date))}</p>
- <div class="row wrapf"><button class="b p" onclick="bilPronote()">📋 Pronote</button><button class="b" onclick="bilZip()">🗂 Fiches PDF (.zip)</button><button class="b" onclick="bilPdf()">📄 Toutes les fiches (un PDF)</button><button class="b" onclick="bilPub()">🌐 Publier en ligne</button><button class="b" onclick="window.print()">🖨 Imprimer le tableau</button></div>
+ <div class="row wrapf"><button class="b p" onclick="bilPronote()">📋 Pronote</button><button class="b" onclick="bilZip()">🗂 Fiches PDF (.zip)</button><button class="b" onclick="bilPdf()">📄 Toutes les fiches (un PDF)</button><button class="b" onclick="bilPub()">🌐 Publier en ligne</button><button class="b" onclick="window.print()">🖨 Imprimer le tableau</button><button class="b" onclick="go('print')">🖨 Documents de la leçon</button></div>
+ ${repBilan(P,c,R)}
  <div class="print">${window.EPSR?EPSR.htmlHead({act:'CCF '+ACTS[T.act].nom,titre:VOIES[S.voie],ca:P.ca,ac:COL,nom:'Récapitulatif',classe:c.nom,date:dFR(S.date)}):''}
  <div class="tblw"><table class="tbl"><thead><tr><th>Élève</th>${cols.map(x=>`<th>${esc(x)}</th>`).join('')}<th>Rép.</th><th>/20</th></tr></thead><tbody>${R.map(r=>`<tr onclick="go('fiche',{el:'${r.p.k}'})"><td>${esc(r.p.full)}</td>${r.ev.st?`<td colspan="${cols.length+1}" class="st">${r.ev.st==='abs'?'Absent(e)':'Dispensé(e)'}</td>`:r.N.aff.map(v=>`<td>${fr(v)}</td>`).join('')+`<td>${esc(repOf(P,r.ev,r.ix)||'—')}</td>`}<td><b>${r.ev.st?(r.ev.st==='abs'?'A':'D'):fr(r.N.tot)}</b></td></tr>`).join('')}</tbody></table></div></div></div>`}
 function bilRows(){const c=clsById(T.cls),S=ses(T.act,T.cls),P=proto(T.act,S.voie);return {c,S,P,L:people(c).map(p=>{const ev=evOf(T.act,c.id,p.k),ix=ixOf(T.act,c.id,p.k);return {p,ev,ix,N:notes(P,ev,ix)}})}}
 function bilPronote(){if(!window.EPSR||!EPSR.pronote)return toast('Indisponible');const {c,P,L}=bilRows();
  EPSR.pronote({app:'ccf',classe:c.nom,titre:'CCF '+ACTS[T.act].nom,color:COL,cols:[{t:'Note /20'}].concat(P.fin.afl.map(a=>({t:a.code+' /'+a.pts}))).concat(P.fil.retenus.map(id=>({t:(aflFil(P,id)||{}).code}))),
   rows:L.map(r=>({nom:r.p.nom,prenom:r.p.prenom,st:r.ev.st==='abs'?'ABS':r.ev.st==='disp'?'DISP':'',v:[r.N.tot].concat(r.N.aff)}))})}
+
+/* bilan des répartitions choisies (fil de séquence) */
+function repBilan(P,c,R){const X=P.fil.retenus.map(id=>(aflFil(P,id)||{}).code||id),G={};P.fil.reps.forEach(r=>G[r]=[]);const none=[];
+ R.forEach(r=>{const rep=repOf(P,r.ev,r.ix);if(!rep){none.push(r);return}(G[rep]=G[rep]||[]).push(r)});
+ const who=r=>`<span class="rn">${esc(r.p.full)}${r.ev.rep&&r.ev.rep!==r.ix.rep?' <i title="saisi ou modifié par toi">✏️</i>':r.ix.rep?' <i title="choisi par l\'élève">🙋</i>':''}</span>`;
+ return `<div class="card"><h3 class="h3" style="margin-top:0">🎯 Répartitions choisies · ${esc(P.fil.titre)}</h3><div class="repg">${Object.keys(G).map(r=>{const n=repPts(r);return `<div class="repc"><b>${X.map((x,j)=>esc(x)+' '+n[j]).join(' / ')}</b><span class="rk">${G[r].length}</span><div>${G[r].map(who).join('')||'<span class="mut sm">personne</span>'}</div></div>`}).join('')}
+ <div class="repc no"><b>Pas encore choisi</b><span class="rk">${none.length}</span><div>${none.map(who).join('')||'<span class="mut sm">tout le monde a choisi</span>'}</div></div></div>
+ <p class="mut sm">🙋 choisi par l'élève sur la tablette · ✏️ saisi ou modifié par toi (fiche de l'élève). Les élèves choisissent dans « Mon choix » ou au moment de remplir leur feuille de pratique.</p></div>`}

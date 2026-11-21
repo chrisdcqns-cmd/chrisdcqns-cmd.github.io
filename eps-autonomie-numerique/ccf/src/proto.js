@@ -12,10 +12,10 @@ function protoHtml(P,eleve){const J=P.jeu;
  h+=`<table class="tbl bar"><thead><tr><th></th>${[1,2,3,4].map(d=>`<th>Degré ${d}</th>`).join('')}</tr></thead><tbody>${Object.keys(P.fil.bareme).map(n=>`<tr><td>Note sur ${n} points</td>${P.fil.bareme[n].map(v=>`<td>${fr(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>
  <p class="rap">${nl2br(P.fil.rappel)}</p>`;
  if(!eleve){const NA=P.fil.afl.filter(a=>!P.fil.retenus.includes(a.id));if(NA.length)h+=`<details><summary>AFLP non retenus (${NA.map(a=>esc(a.code)).join(', ')})</summary>${NA.map(a=>`<p><b>${esc(a.code)}</b> — ${esc(a.off)}</p>`).join('')}</details>`;
-  h+=`<details><summary>Réglages de la forme de pratique</summary><ul>${(JEU_LAB[P.act]||[]).map(([k,l])=>`<li>${esc(l)} : <b>${esc(J[k])}</b></li>`).join('')}</ul></details><p class="sm mut">${esc(P.ref||'')}</p>`}
+  h+=`<details open><summary>Règles de calcul et réglages de la forme de pratique</summary><ul>${(JEU_LAB[P.act]||[]).map(([k,l])=>`<li>${esc(l)} : <b>${esc(jeuTxt(P.act,k,J[k]))}</b></li>`).join('')}</ul></details><p class="sm mut">${esc(P.ref||'')}</p>`}
  return h+'</div>'}
 function protoScreen(m){const v=T.pv||'pro',P=proto(T.act,v);
- m.innerHTML=`<div class="wrap"><div class="row wrapf noprint"><h2 class="h2" style="flex:1;margin:0">📜 Protocole · ${esc(ACTS[T.act].nom)}</h2>${['pro','gt'].map(x=>`<button class="b s${v===x?' p':''}" onclick="go('proto',{pv:'${x}'})">${VOIES[x]}</button>`).join('')}${P?`<button class="b s" onclick="go('edit',{pv:'${v}'})">✏️ Modifier</button><button class="b s" onclick="window.print()">🖨 Imprimer</button>`:''}</div>
+ m.innerHTML=`<div class="wrap"><div class="row wrapf noprint"><h2 class="h2" style="flex:1;margin:0">📜 Protocole · ${esc(ACTS[T.act].nom)}</h2>${['pro','gt'].map(x=>`<button class="b s${v===x?' p':''}" onclick="go('proto',{pv:'${x}'})">${VOIES[x]}</button>`).join('')}${P?`<button class="b s p" onclick="go('edit',{pv:'${v}'})">✏️ Modifier le protocole et les règles</button><button class="b s" onclick="window.print()">🖨 Imprimer</button>`:''}</div>
  ${P?(protoModifie(T.act,v)?'<p class="mut noprint">✏️ Version modifiée par toi (le texte d\'origine reste disponible : Modifier → Revenir au texte d\'origine).</p>':'')+'<div class="print">'+protoHtml(P)+'</div>':`<div class="card warn"><b>Pas encore de protocole ${esc(VOIES[v])}.</b><p>Envoie-le à Claude dans la conversation : il sera ajouté ici.</p></div>`}</div>`}
 
 /* ================== ✏️ MODIFIER LE PROTOCOLE ================== */
@@ -24,7 +24,7 @@ function editScreen(m){const v=T.pv||'pro';if(!EDP||EDP.id!==protoId(T.act,v))ED
  if(!P){m.innerHTML=`<div class="wrap"><button class="b" onclick="go('proto')">← Protocole</button><div class="card warn">Pas de protocole ${esc(VOIES[v])} pour cette activité.</div></div>`;return}
  const ta=(path,val,r)=>`<textarea rows="${r||2}" data-p="${path}">${esc(val)}</textarea>`,inp=(path,val,t)=>`<input type="${t||'text'}" data-p="${path}" value="${esc(val)}"${t==='number'?' step="0.25"':''}>`;
  let h=`<div class="wrap ed"><div class="row wrapf"><button class="b" onclick="EDP=null;go('proto')">← Protocole</button><h2 class="h2" style="flex:1;margin:0">✏️ ${esc(P.apsa)} · ${esc(VOIES[v])}</h2><button class="b" onclick="edReset()">↺ Revenir au texte d'origine</button><button class="b p" onclick="edSave()">✓ Enregistrer</button></div>
- <p class="mut">Tout est modifiable. Une ligne = une puce. Les notes des élèves sont recalculées avec le protocole enregistré.</p>
+ <p class="mut">Tout est modifiable : textes, règles de l'épreuve, degrés, points, et en bas les règles de calcul de la forme de pratique. Une ligne = une puce. Les notes des élèves sont recalculées avec le protocole enregistré.</p>
  <div class="card"><h3 class="h3">En-tête</h3><div class="g3"><label>APSA${inp('apsa',P.apsa)}</label><label>Champ d'apprentissage${inp('ca',P.ca)}</label><label>Session${inp('session',P.session)}</label></div><label>Établissement${inp('etab',P.etab)}</label>
  <label>Objectif de l'épreuve (OE)${ta('oe',P.oe,3)}</label><label>Principe d'élaboration de l'épreuve (une ligne par puce)${ta('principe',P.principe.join('\n'),7)}</label></div>
  <div class="card"><h3 class="h3">${esc(P.fin.titre)}</h3><label>Titre${inp('fin.titre',P.fin.titre)}</label>`;
@@ -38,10 +38,11 @@ function editScreen(m){const v=T.pv||'pro';if(!EDP||EDP.id!==protoId(T.act,v))ED
   <label>AFLP officiel${ta(`fil.afl.${i}.off`,a.off)}</label><label>AFLP décliné dans l'activité${ta(`fil.afl.${i}.decl`,a.decl)}</label><label>Règles (une ligne par puce)${ta(`fil.afl.${i}.regles`,(a.regles||[]).join('\n'),2)}</label>
   <div class="g4">${a.deg.map((g,d)=>`<div class="edd d${d}"><b>Degré ${d+1}</b>${ta(`fil.afl.${i}.deg.${d}`,g,3)}</div>`).join('')}</div></div>`});
  h+=`<label>Rappels${ta('fil.rappel',P.fil.rappel,5)}</label><label>Note de l'équipe EPS${ta('fil.note',P.fil.note||'',2)}</label></div>
- <div class="card"><h3 class="h3">Forme de pratique (tablettes des élèves)</h3><div class="g3">${(JEU_LAB[P.act]||[]).map(([k,l])=>`<label>${esc(l)}${inp('jeu.'+k,P.jeu[k],'number')}</label>`).join('')}</div></div>
+ <div class="card"><h3 class="h3">Forme de pratique : règles de calcul</h3><p class="mut sm">Les règles du protocole qui peuvent se lire de plusieurs façons : choisis celle de ton équipe EPS.</p>${(JEU_LAB[P.act]||[]).filter(x=>x[2]).map(([k,l,o])=>`<label>${esc(l)}<select data-p="jeu.${k}" data-num="1">${o.map(([v,t])=>`<option value="${v}"${+P.jeu[k]===+v?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`).join('')||'<p class="mut">Aucune.</p>'}</div>
+ <div class="card"><h3 class="h3">Forme de pratique : valeurs</h3><div class="g3">${(JEU_LAB[P.act]||[]).filter(x=>!x[2]).map(([k,l])=>`<label>${esc(l)}${inp('jeu.'+k,P.jeu[k],'number')}</label>`).join('')}</div></div>
  <div class="row end"><button class="b p" onclick="edSave()">✓ Enregistrer le protocole</button></div></div>`;
  m.innerHTML=h;
- m.querySelectorAll('[data-p]').forEach(el=>el.onchange=()=>edSet(el.dataset.p,el.value,el.type));
+ m.querySelectorAll('[data-p]').forEach(el=>el.onchange=()=>edSet(el.dataset.p,el.value,el.dataset.num?'number':el.type));
  m.querySelectorAll('[data-ret]').forEach(el=>el.onchange=()=>{const id=el.dataset.ret,R=EDP.fil.retenus.filter(x=>x!==id);if(el.checked)R.push(id);EDP.fil.retenus=R;editScreen(m)})}
 function edSet(path,val,type){const ks=path.split('.');let o=EDP;for(let i=0;i<ks.length-1;i++)o=o[ks[i]];const k=ks[ks.length-1];
  if(['principe','regles'].includes(k))val=lines(val);else if(k==='reps')val=val.split(',').map(x=>x.trim().replace(/\s*-\s*/,'-')).filter(x=>/^\d+-\d+$/.test(x));else if(type==='number')val=val===''?0:+String(val).replace(',','.');

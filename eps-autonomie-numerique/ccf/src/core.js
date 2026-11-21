@@ -120,21 +120,22 @@ function sameSet(a,b){a=[...(a||[])].sort().join(',');b=[...(b||[])].sort().join
 function escZoneOf(J,dg){if(dg==null||dg==='')return null;dg=+dg;if(dg>J.nDeg)return 4;if(dg>=J.b3)return 3;if(dg>=J.b2)return 2;if(dg>=J.b1)return 1;return 0}
 function escZoneBorne(J,z){return z>=4?J.nDeg+1:[0,J.b1,J.b2,J.b3][z]}
 function escNbBonus(J,z){return +z===1?1:(J.bonusN||2)}
-function escPts(J,p){/* p = passage {zone, bonus:[{z, ok}], dg} */
- const zp=[0,J.z1,J.z2,J.z3,J.z4];let pz=0;const zr=escZoneOf(J,p.dg);
- if(p.dg!=null&&p.dg!==''&&+zr===+p.zone)pz=zp[+p.zone]+(+p.zone===4?J.top:0);
- let pb=0;(p.bonus||[]).slice(0,escNbBonus(J,p.zone)).forEach(b=>{if(!b||!b.z)return;if(b.ok===true)pb+=J.bonusVal*b.z;else if(b.ok===false)pb-=J.bonusVal*b.z});
+function escZPts(J,z){z=+z;if(!z)return 0;const zp=[0,J.z1,J.z2,J.z3,J.z4];let s=+J.cumul?zp.slice(1,z+1).reduce((a,b)=>a+(+b||0),0):+zp[z];if(z===4)s+=+J.top;return s}
+function escPts(J,p){/* p = passage {zone, bonus:[{z, ok}], dg} ; règles réglables : exact, cumul, bonusNeg */
+ let pz=0;const zr=escZoneOf(J,p.dg),z=+p.zone,ex=J.exact==null?1:+J.exact;
+ if(p.dg!=null&&p.dg!==''){if(ex===1)pz=+zr===z?escZPts(J,z):0;else if(ex===2)pz=z&&+zr>=z?escZPts(J,z):0;else pz=escZPts(J,zr)}
+ let pb=0;(p.bonus||[]).slice(0,escNbBonus(J,p.zone)).forEach(b=>{if(!b||!b.z)return;if(b.ok===true)pb+=J.bonusVal*b.z;else if(b.ok===false&&+J.bonusNeg!==0)pb-=J.bonusVal*b.z});
  return {zone:pz,bonus:pb,tot:pz+pb,zr}}
-function escPrevu(J,p){const zp=[0,J.z1,J.z2,J.z3,J.z4];return (p.zone?zp[+p.zone]+(+p.zone===4?J.top:0):0)+(p.bonus||[]).slice(0,escNbBonus(J,p.zone)).reduce((s,b)=>s+(b&&b.z?J.bonusVal*b.z:0),0)}
+function escPrevu(J,p){return escZPts(J,p.zone)+(p.bonus||[]).slice(0,escNbBonus(J,p.zone)).reduce((s,b)=>s+(b&&b.z?J.bonusVal*b.z:0),0)}
 /* BADMINTON — score stratégique d'un match ; stratégie active d'un camp à un point donné */
 function badStratAt(m,side,i){const L=(m.strat&&m.strat[side])||[];let s=null;L.forEach(x=>{if(x.i<=i)s=x});return s}
 function badCalc(J,m){const R={sets:[],a:0,b:0,sa:0,sb:0,setsA:0,setsB:0,dev:{a:false,b:false},fini:!!m.fin,used:{a:[],b:[]}};
  let set=0,ca=0,cb=0;(m.pts||[]).forEach((p,i)=>{const w=p.w,st=badStratAt(m,w,i);let v=J.pFaute;if(p.k==='d')v=st&&(st.z||[]).includes(+p.z)?J.pDirect:J.pHors;
   if(w==='a'){ca++;R.a+=v}else{cb++;R.b+=v}
-  if(ca>=J.pts||cb>=J.pts){R.sets.push([ca,cb]);if(ca>cb)R.setsA++;else R.setsB++;ca=0;cb=0;set++}});
+  if((ca>=J.pts||cb>=J.pts)&&(!+J.ecart||Math.abs(ca-cb)>=2||Math.max(ca,cb)>=+J.max)){R.sets.push([ca,cb]);if(ca>cb)R.setsA++;else R.setsB++;ca=0;cb=0;set++}});
  if(ca||cb)R.sets.push([ca,cb]);R.cur=[ca,cb];R.set=set;
  ['a','b'].forEach(s=>{((m.strat&&m.strat[s])||[]).forEach(x=>{if(!R.used[s].some(y=>sameSet(y,x.z)))R.used[s].push(x.z)})});
- const o={a:'b',b:'a'};['a','b'].forEach(s=>{const g=m.guess&&m.guess[s];if(g&&R.used[o[s]].some(z=>sameSet(z,g))){R.dev[s]=true;if(s==='a')R.a+=J.pDevine;else R.b+=J.pDevine}});
+ const o={a:'b',b:'a'};['a','b'].forEach(s=>{const g=m.guess&&m.guess[s],L=(m.strat&&m.strat[o[s]])||[],cand=+J.devine===1?(L.length?[L[L.length-1].z]:[]):+J.devine===2?(L.length?[L[0].z]:[]):R.used[o[s]];if(g&&cand.some(z=>sameSet(z,g))){R.dev[s]=true;if(s==='a')R.a+=J.pDevine;else R.b+=J.pDevine}});
  R.over=R.set>=J.sets;
  R.win=!R.over?null:R.setsA>R.setsB?'a':R.setsB>R.setsA?'b':(+J.nul?(R.a>R.b?'a':R.b>R.a?'b':'='):'=');
  R.changes={a:Math.max(0,((m.strat&&m.strat.a)||[]).length-1),b:Math.max(0,((m.strat&&m.strat.b)||[]).length-1)};
