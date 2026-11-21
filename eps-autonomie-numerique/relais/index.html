@@ -2716,6 +2716,12 @@ function evTotal(sel,rep){let t=0,n=0;EVE.forEach(x=>{const p=evPts(sel,x.k,rep)
 function autoSources(e){const C=CL(),out=[];if(!C||!e)return out;const k=ekey(e),n=nrm(C.name);
   DATA.classes.forEach(c=>{if(c!==C&&nrm(c.name)!==n)return;const x=c===C?e:(c.eleves||[]).find(y=>ekey(y)===k);if(!x)return;const o=(c.evals||{})[x.id];
     if(o&&o.auto)Object.values(o.auto).forEach(a=>{if(a&&a.sel)out.push(a)})});return out}
+/* 🙋 bulle commune d'auto-positionnement : tablette (auto) ou lien / code (EVRL) ; commentaires « réussi » / « à améliorer » */
+document.addEventListener("input",ev=>{const t=ev.target.closest&&ev.target.closest("[data-aucom]");if(!t||AU_SEL==null||!CLE())return;const e=byId(AU_SEL);if(!e)return;const o=evOf(e.id),lid=CLE().id,a=o.auto[lid]||(o.auto[lid]={sel:{}});a[t.dataset.aucom]=t.value;a.at=new Date().toISOString();clearTimeout(window._auT);window._auT=setTimeout(()=>{persist()},600)});
+function apRel(e){const o=(CL().evals||{})[e.id];return o&&o.ap&&o.ap.ev&&Object.keys(o.ap.ev).length?o.ap:null}
+function apChipRel(e){if(!window.epsApChip)return"";const la=lastAutoE(e),ap=apRel(e);if(!la&&!ap)return"";const o=(CL().evals||{})[e.id]||{prof:{}};
+  return epsApChip({nom:(e.prenom+" "+e.nom).trim(),date:la&&la.at?new Date(la.at).toLocaleDateString("fr-FR"):ap&&ap.t?new Date(ap.t).toLocaleDateString("fr-FR"):"",r:(la&&la.r)||(ap&&ap.r)||"",m:(la&&la.m)||(ap&&ap.m)||"",
+    crit:EVE.map(x=>{const p=o.prof&&o.prof[x.k],s=la&&la.sel[x.k],z=ap&&ap.ev[x.k];return{l:x.t,p:p&&p.d?p.d:"",e:s&&s.d?s.d:z?z.d+1:""}})})}
 function lastAutoE(e){return autoSources(e).sort((x,y)=>(y.at||"").localeCompare(x.at||""))[0]||null}
 function lastAuto(o){return Object.values((o&&o.auto)||{}).filter(a=>a&&a.sel).sort((x,y)=>(y.at||"").localeCompare(x.at||""))[0]||null}
 const fmtP=v=>(Math.round(v*100)/100).toLocaleString("fr-FR",{maximumFractionDigits:2});
@@ -2776,7 +2782,7 @@ function evGridHTML(mode,e){
   const sel=prof?o.prof:((o.auto[lid]||{}).sel||{});
   const la=prof?lastAutoE(e):null,sg=prof?evSuggest(e):null;
   const repLab=r=>r.replace("-"," / ");
-  let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}</div>
+  let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}${prof?apChipRel(e):""}</div>
     <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
       :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts${prof?" (répartition fixée dans les réglages de la leçon)":""}</span>`}</div>
     ${prof?evStatsHTML(e,sg):""}${prof?`<div class="evleg mt">${la?`<span><i></i>bleu : auto-positionnement de ${esc(e.prenom)}</span>`:""}${sg&&(sg.perf||sg.trans)?`<span><i class="r"></i>rouge : suggestion d'après les résultats</span>`:""}</div>`:""}
@@ -2792,6 +2798,7 @@ function evGridHTML(mode,e){
         +`</div>`});
   });
   h+=`</div>`;
+  if(!prof){const a=o.auto[lid]||{};h+=`<div class="card mt"><label class="label">✓ Ce que j'ai réussi</label><textarea data-aucom="r" rows="2" style="width:100%;font-size:17px;border-radius:12px;padding:8px">${esc(a.r||"")}</textarea><label class="label mt">→ Ce que je dois améliorer</label><textarea data-aucom="m" rows="2" style="width:100%;font-size:17px;border-radius:12px;padding:8px">${esc(a.m||"")}</textarea></div>`}
   const t0=evTotal(sel,rp);
   if(prof){const inf=[];
     if(la){const ta=evTotal(la.sel,rp);inf.push("Auto-évaluation de l'élève"+(la.at?" du "+fmtShort(la.at.slice(0,10)):"")+(la.tab?" ("+la.tab+")":"")+" : "+(ta.n===4?fmtP(ta.t)+" / 20":"incomplète"))}
@@ -2813,7 +2820,7 @@ function renderEval(){
   try{if(EVRL&&CL()){const b=$("#ev-bilan"),c={nom:CL().name,eleves:CL().eleves||[]};(c.eleves).forEach(e=>EVCL.set(e,CL()));const d=document.createElement("div");d.innerHTML=EVRL.exportsHtml()+EVRL.card(c);b.appendChild(d);EVRL.bindExports(d,c);EVRL.bindCard(d,c)}}catch(e){console.warn(e)}
   const L=evList(true);if(EV_SEL!=null&&!L.some(e=>e.id===EV_SEL))EV_SEL=null;
   const lid=CLE()?CLE().id:null;
-  $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=lastAutoE(e);return (p||a)?`<small>${p?"✓":""}${a?"🙋":""}</small>`:""});
+  $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=lastAutoE(e);return (p||a||apRel(e))?`<small>${p?"✓":""}</small>${apChipRel(e)}`:""});
   const e=EV_SEL!=null?byId(EV_SEL):null;
   const cell=(o,k,rp)=>{const s=o&&o.prof[k];return s?`<span class="dg d${s.d}">${s.d}</span> ${fmtP(evPts(o.prof,k,rp))}`:"–"};
   const ev0=CL().evals||{};

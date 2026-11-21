@@ -383,6 +383,11 @@
     /* notes à coller dans Pronote (fenêtre commune EPSR.pronote d'eps-home.js) */
     M.pronote = function (c) { if (!(window.EPSR && EPSR.pronote)) { toast("Export Pronote indisponible (recharge la page)"); return; }
       EPSR.pronote({ app: A.nom, classe: c.nom, color: A.color, cols: [{ t: "Note /20" }], rows: c.eleves.map(function (E) { var n = A.name(E), ab = A.absent(E); return { nom: n.nom, prenom: n.prenom || "", st: ab || "", v: [ab ? null : A.note(E)] }; }) }); };
+    /* données de la bulle 🙋 commune (window.epsApChip) */
+    M.apData = function (E) { var a = A.getAp(E); if (!a || !a.ev || !Object.keys(a.ev).length) return null; var n = A.name(E);
+      return { nom: ((n.prenom || "") + " " + (n.nom || "")).trim(), date: a.t ? new Date(a.t).toLocaleDateString("fr-FR") : "", r: a.r || "", m: a.m || "",
+        crit: A.grid().criteres.map(function (cr) { var v = A.prof(cr, E), x = a.ev[cr.id]; return { l: cr.nom, p: v && v.d != null ? v.d + 1 : "", e: x ? x.d + 1 : "" }; }) }; };
+    M.apChip = function (E) { return window.epsApChip ? window.epsApChip(M.apData(E)) : ""; };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
     return M;
   }
@@ -435,7 +440,7 @@
       var body = "";
       if (!c) body = '<div class="epse-card"><p>Aucune classe pour cette activité. Importe une liste d\'élèves dans Réglages (accueil) et vérifie que l\'activité est cochée pour la classe.</p></div>';
       else if (UI.tab === "eval") body = UI.el >= 0 && c.eleves[UI.el] ? sheet(c, c.eleves[UI.el]) : '<div class="epse-card"><h2>' + esc(c.nom) + " · " + c.eleves.length + ' élèves</h2><p class="epse-mut">Touche un élève pour le positionner sur la grille.</p><div class="epse-chips">' +
-        c.eleves.map(function (e, i) { var n = note(e), r = rec(e._c, e); return '<button class="epse-chip' + (n != null ? " ok" : "") + '" data-el="' + i + '">' + esc(e.prenom + " " + e.nom) + (r.ap ? " 🙋" : "") + "<small>" + (r.st ? r.st : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></button>"; }).join("") + "</div></div>";
+        c.eleves.map(function (e, i) { var n = note(e), r = rec(e._c, e); return '<button class="epse-chip' + (n != null ? " ok" : "") + '" data-el="' + i + '">' + esc(e.prenom + " " + e.nom) + (r.ap ? M.apChip(e) : "") + "<small>" + (r.st ? r.st : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></button>"; }).join("") + "</div></div>";
       else if (UI.tab === "bilan") body = table(c) + M.card(c) + M.exportsHtml();
       else body = gridEditor(G);
       R.innerHTML = head + '<div class="epse-in">' + body + "</div>";

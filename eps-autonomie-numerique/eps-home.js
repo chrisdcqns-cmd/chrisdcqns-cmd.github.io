@@ -1567,6 +1567,30 @@
       b.disabled = false; draw(); };
     draw();
   }
+  /* 🙋 bulle d'auto-positionnement (pastilles créées par window.epsApChip d'eps-lists.js, dans l'onglet Évaluation de chaque appli) */
+  function apPop(el) {
+    var o; try { o = JSON.parse(el.getAttribute("data-eps-ap")); } catch (e) { return; }
+    var old = document.getElementById("eps-appop"); if (old) old.remove();
+    var DC = ["", "#C0392B", "#E67E22", "#2E86C1", "#1E8449"], deg = function (d) { return d ? '<b style="display:inline-block;min-width:30px;text-align:center;border-radius:8px;padding:1px 6px;color:#fff;background:' + (DC[d] || "#888") + '">D' + d + "</b>" : '<span style="color:#9AA0A6">–</span>'; };
+    var p = document.createElement("div"); p.id = "eps-appop";
+    p.style.cssText = "position:fixed;z-index:2147483600;max-width:min(440px,92vw);background:#fff;color:#14171C;border:1px solid #E6E1D6;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:14px 16px;font:15px/1.4 system-ui,sans-serif";
+    p.innerHTML = '<div style="display:flex;gap:8px;align-items:center"><b style="font-size:17px;flex:1">🙋 ' + esc(o.nom || "Auto-positionnement") + '</b><button type="button" data-c style="border:0;background:#F1EEE6;border-radius:10px;height:32px;padding:0 10px;font-weight:800">✕</button></div>' +
+      (o.date ? '<div style="color:#6A6F78;font-size:13px">envoyé le ' + esc(o.date) + "</div>" : "") +
+      ((o.crit || []).length ? '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:14px"><tr style="color:#6A6F78;font-size:12px"><td></td><td style="text-align:center">Toi (prof)</td><td style="text-align:center">Élève</td></tr>' + o.crit.map(function (c) { var g = c.p && c.e ? c.e - c.p : 0;
+        return '<tr style="border-top:1px solid #F0ECE3"><td style="padding:5px 4px">' + esc(c.l) + '</td><td style="text-align:center">' + deg(c.p) + '</td><td style="text-align:center">' + deg(c.e) + (g > 0 ? " ▲" : g < 0 ? " ▼" : "") + "</td></tr>"; }).join("") + "</table>" : "") +
+      (o.r ? '<div style="margin-top:10px"><div style="font-weight:800;color:#1D6B3A;font-size:13px">✓ CE QUE J\'AI RÉUSSI</div>' + esc(o.r) + "</div>" : "") +
+      (o.m ? '<div style="margin-top:8px"><div style="font-weight:800;color:#9A5B00;font-size:13px">→ CE QUE JE DOIS AMÉLIORER</div>' + esc(o.m) + "</div>" : "") +
+      (!o.r && !o.m ? '<div style="margin-top:8px;color:#9AA0A6">Pas de commentaire de l\'élève.</div>' : "");
+    document.body.appendChild(p);
+    var r = el.getBoundingClientRect(), w = p.offsetWidth, h = p.offsetHeight;
+    p.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + "px"; p.style.top = (r.bottom + h + 12 < innerHeight ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + "px";
+    p.querySelector("[data-c]").onclick = function () { p.remove(); };
+  }
+  document.addEventListener("click", function (e) {
+    var c = e.target.closest && e.target.closest("[data-eps-ap]");
+    if (c) { e.preventDefault(); e.stopPropagation(); apPop(c); return; }
+    var p = document.getElementById("eps-appop"); if (p && !p.contains(e.target)) p.remove();
+  }, true);
   /* 📝 appréciations de bulletin : Claude rédige à partir de TES commentaires et évaluations (toutes activités), sans aucun nom d'élève ;
      tu relis, corriges, coches ✓, puis copies vers Pronote. Gardées sur cette tablette seulement (eps.bulletin.v1). */
   function bulletin() {

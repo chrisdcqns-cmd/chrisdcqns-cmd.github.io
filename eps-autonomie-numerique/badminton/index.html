@@ -853,7 +853,7 @@ function renderList(){
     const dots=cs.map(cr=>{const v=e.ev&&e.ev[cr.id];return `<span class="dot ${v&&v.d!=null?'bg'+(v.d+1):''}"></span>`}).join('');
     const right=isAbs(e)?`<span class="tag abs">${e.statut}</span>`:`<span class="note">${n!=null?fr(n):'–'}</span>`;
     const dp=dispOf(e);
-    return `<button class="chip ${cls}" onclick="openEval(${i})"><span class="n">${esc(fullName(e))}${dp?' <span class="disp" title="'+esc(EPSD.label(dp))+'">🩹</span>':''}</span>
+    return `<button class="chip ${cls}" onclick="openEval(${i})"><span class="n">${esc(fullName(e))}${(typeof EVB!=='undefined'&&EVB&&EVB.apChip)?EVB.apChip(e):''}${dp?' <span class="disp" title="'+esc(EPSD.label(dp))+'">🩹</span>':''}</span>
       <span class="muted" style="font-size:.75rem">${st.mj?`🏸 ${st.mj} match${st.mj>1?'s':''} · ${st.mg} G`:'aucun match'}</span><span class="s"><span class="dots">${dots}</span>${right}</span></button>`}).join('')}</div>`;
 }
 function openEval(i){curEl=i;document.getElementById('evList').style.display='none';const p=document.getElementById('evPanel');p.style.display='block';renderEval();window.scrollTo(0,0)}
@@ -866,7 +866,7 @@ function renderEval(){
   p.innerHTML=`
   <div class="evhead">
     <button class="btn alt" onclick="closeEval()">← Liste</button>
-    <h2>${esc(fullName(e))}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
+    <h2>${esc(fullName(e))}${(typeof EVB!=='undefined'&&EVB&&EVB.apChip)?EVB.apChip(e):''}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
     <button class="btn alt sm" onclick="navEl(-1)" ${curEl===0?'disabled':''}>◀ Préc.</button>
     <button class="btn alt sm" onclick="navEl(1)" ${curEl===c.eleves.length-1?'disabled':''}>Suiv. ▶</button>
   </div>

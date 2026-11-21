@@ -2117,6 +2117,10 @@ function elevesFiltres(cl) {
   const q = norm(UI.q);
   return trierEleves(cl.eleves).filter(e => (!UI.filtreG || e.groupeId === UI.filtreG) && (!q || norm(nomComplet(e)).includes(q)));
 }
+/* 🙋 bulle commune d'auto-positionnement (window.epsApChip d'eps-lists.js) */
+function apChipDan(e) { const a = e.auto; if (!a || !a.ev || !Object.keys(a.ev).length || !window.epsApChip) return '';
+  return epsApChip({ nom: ((e.prenom || '') + ' ' + (e.nom || '')).trim(), date: a.date || '', r: a.reussi || '', m: a.ameliorer || '',
+    crit: S.criteres.map(c => { const x = e.ev && e.ev[c.id], y = a.ev[c.id]; return { l: c.titre || c.court || c.nom || '', p: x && x.d ? x.d : '', e: y && y.d ? y.d : '' }; }) }); }
 function puce(e) {
   if (e.statut) return '<i class="dot abs" title="Absent / dispensé"></i>';
   const n = nbEval(e);
@@ -2128,7 +2132,7 @@ function rListe() {
   L.innerHTML = list.map(e => {
     const g = groupeDe(cl, e); const n = note(e);
     const dp = dispOf(cl, e);
-    return `<button class="ev-it ${e.id === UI.selId ? 'on' : ''}" data-id="${e.id}">${puce(e)}<span class="nm"><b>${esc(e.nom)}</b> ${esc(e.prenom || '')}${dp ? ' <span title="' + esc(dispLabel(dp)) + '">🩹</span>' : ''}<small>${g ? esc(g.nom) : 'Sans groupe'}${e.auto ? ' · auto ✓' : ''}</small></span><span class="nt">${e.statut ? esc(e.statut === 'abs' ? 'Abs.' : 'Disp.') : n != null ? fmt(n) : ''}</span></button>`;
+    return `<button class="ev-it ${e.id === UI.selId ? 'on' : ''}" data-id="${e.id}">${puce(e)}<span class="nm"><b>${esc(e.nom)}</b> ${esc(e.prenom || '')}${dp ? ' <span title="' + esc(dispLabel(dp)) + '">🩹</span>' : ''}<small>${g ? esc(g.nom) : 'Sans groupe'}</small>${apChipDan(e)}</span><span class="nt">${e.statut ? esc(e.statut === 'abs' ? 'Abs.' : 'Disp.') : n != null ? fmt(n) : ''}</span></button>`;
   }).join('') || '<p class="muted pad">Aucun élève.</p>';
   L.onclick = ev => { const b = ev.target.closest('.ev-it'); if (b) { UI.selId = b.dataset.id; rListe(); rEvMain(); if (window.innerWidth < 860) $('#evMain').scrollIntoView({ behavior: 'smooth' }); } };
 }

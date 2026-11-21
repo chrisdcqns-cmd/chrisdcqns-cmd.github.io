@@ -637,7 +637,7 @@ function renderList(){
     const dots=cs.map(cr=>{const v=e.ev&&e.ev[cr.id];return `<span class="dot ${v&&v.d!=null?'bg'+(v.d+1):''}"></span>`}).join('');
     const right=isAbs(e)?`<span class="tag abs">${e.statut}</span>`:`<span class="note">${n!=null?fr(n):'–'}</span>`;
     const dp=dispOf(e);
-    return `<button class="chip ${cls}" onclick="openEval(${i})"><span class="n">${esc(fullName(e))}${e.ap&&e.ap.ev?' <span title="S\'est auto-positionné(e)">🙋</span>':''}${dp?' <span class="disp" title="'+esc(EPSD.label(dp))+'">🩹</span>':''}</span><span class="s"><span class="dots">${dots}</span>${right}</span></button>`;
+    return `<button class="chip ${cls}" onclick="openEval(${i})"><span class="n">${esc(fullName(e))}${apChipVol(e)}${dp?' <span class="disp" title="'+esc(EPSD.label(dp))+'">🩹</span>':''}</span><span class="s"><span class="dots">${dots}</span>${right}</span></button>`;
   }).join('')}</div>`;
 }
 
@@ -708,7 +708,7 @@ function renderEval(){
   p.innerHTML=`
   <div class="evhead">
     <button class="btn alt" onclick="closeEval()">← Liste</button>
-    <h2>${esc(fullName(e))}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
+    <h2>${esc(fullName(e))}${apChipVol(e)}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
     <button class="btn alt sm" onclick="nav(-1)" ${curEl===0?'disabled':''}>◀ Préc.</button>
     <button class="btn alt sm" onclick="nav(1)" ${curEl===c.eleves.length-1?'disabled':''}>Suiv. ▶</button>
   </div>
@@ -2279,6 +2279,9 @@ async function recapBytes(c){
   if(y<M+40)entete();y-=20;const moy=notes.length?notes.reduce((s,v)=>s+v,0)/notes.length:null;
   PT(page,`Élèves notés : ${notes.length} / ${c.eleves.length}    Moyenne : ${fr(moy)}    Min : ${notes.length?fr(Math.min(...notes)):'—'}    Max : ${notes.length?fr(Math.max(...notes)):'—'}`,M,y,9,F.b,ink);
   return doc.save()}
+/* 🙋 bulle commune d'auto-positionnement (window.epsApChip d'eps-lists.js) */
+function apChipVol(e){const a=e.ap;if(!a||!a.ev||!Object.keys(a.ev).length||!window.epsApChip)return'';const b=B();
+  return epsApChip({nom:fullName(e),date:a.t?new Date(a.t).toLocaleDateString('fr-FR'):'',r:a.r||'',m:a.m||'',crit:b.criteres.map(cr=>{const v=e.ev&&e.ev[cr.id],x=a.ev[cr.id];return{l:cr.nom,p:v&&v.d!=null?v.d+1:'',e:x?x.d+1:''}})})}
 /* bilans en ligne (commun, eps-home.js) : fiche chiffrée avec le code personnel de l'élève, page « Mon bilan » */
 function publierEnLigne(){const c=C();if(!(window.EPSD&&EPSD.publish)){toast('Publication indisponible (recharge la page)');return}
   EPSD.publish({app:'volley',nom:'Volley-ball',color:'#6B3FA0',classe:c.nom,eleves:c.eleves.map(e=>({full:((e.prenom||'')+' '+(e.nom||'')).trim(),bytes:()=>pdfEleveBytes(c,e)}))})}

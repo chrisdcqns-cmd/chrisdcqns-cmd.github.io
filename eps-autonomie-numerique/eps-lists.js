@@ -162,3 +162,11 @@
   try { if (APP) apply(APP); } catch (e) {}
   window.EPSL = { apply: apply, collect: collect, app: APP, items: function () { return items(ld()); }, people: people, norm: norm, nkey: nkey, KEY: KL };
 })();
+/* 🙋 pastille d'auto-positionnement commune (toutes les applis) : epsApChip({nom, date, crit:[{l, p, e}], r, m})
+   p / e = degré du professeur / de l'élève (1, 2, 3, 4 ou ""), r = « ce que j'ai réussi », m = « ce que je dois améliorer ».
+   Un appui ouvre la bulle (eps-home.js) sans ouvrir la fiche de l'élève. */
+window.epsApChip = function (o) {
+  if (!o) return "";
+  var j = JSON.stringify(o).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  return '<span class="eps-apc" role="button" tabindex="0" title="Auto-positionnement de l\'élève : toucher pour voir" data-eps-ap="' + j + '" style="display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FFF1BF;border:1px solid #E9CF6A;color:#6b4e00;font:700 13px system-ui,sans-serif;cursor:pointer;vertical-align:middle">🙋' + (o.r || o.m ? "💬" : "") + "</span>";
+};
