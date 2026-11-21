@@ -36,7 +36,7 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 
 ## Mode élève
 - En mode élève, l'appli s'ouvre sur l'écran commun « Choisis ta classe » : `(window.EPSG_Q=window.EPSG_Q||[]).push({app, sub, color, icon, classes(), current(), select(id), resources:[{ico,label,sub,open}], teacher(), isTeacher(), when()})`. Les ressources utiles sans classe (dispositif, sécurité, échauffement…) y figurent. Le bouton Accueil de l'appli, côté élève, ramène à cet écran.
-- **Aucun bouton « enseignant » visible par les élèves.** Accès enseignant : appui long de 3 s sur le logo (barre, écran de classe, titre des écrans tablette coach / terrain), géré par `eps-home.js` ; l'appli peut fournir `window.epsTeacherEntry()`.
+- **Aucun bouton « enseignant » visible par les élèves.** Accès enseignant : appui long de 2 s sur le logo (barre, écran de classe, titre des écrans tablette coach / terrain), géré par `eps-home.js` ; l'appli peut fournir `window.epsTeacherEntry()`.
 
 ## Classes et élèves (communs à toutes les applis et tablettes)
 - Une classe importée n'importe où (accueil ou appli) apparaît partout. Toute appli qui gère des classes s'inscrit dans `APPS` de `eps-lists.js` (`key, list, nom, names, make, add, del, data`) et fournit `window.epsListsHook = {save, reload}` pour la mise à jour en direct.

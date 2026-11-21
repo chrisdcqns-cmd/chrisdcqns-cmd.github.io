@@ -1247,7 +1247,7 @@
       var l = e.target.closest && e.target.closest(LOGOS); if (!l) return;
       stop(); el = l; sx = e.clientX; sy = e.clientY;
       t2 = setTimeout(function () { if (el) el.classList.add("eps-hold"); }, 1200);
-      tm = setTimeout(function () { stop(); teacherEntry(); }, 3000);
+      tm = setTimeout(function () { stop(); teacherEntry(); }, 2000);
     }, true);
     document.addEventListener("pointermove", function (e) { if (el && Math.hypot(e.clientX - sx, e.clientY - sy) > 14) stop(); }, true);
     ["pointerup", "pointercancel"].forEach(function (ev) { document.addEventListener(ev, stop, true); });
@@ -1349,11 +1349,11 @@
     location.href = appRoot();
   }
   function addHome() {
-    var HOLD = 3000;
+    var HOLD = 2000;
     var b = document.createElement("button");
     b.type = "button"; b.id = "eps-home";
-    b.setAttribute("aria-label", "Accueil de l'application (maintenir 3 secondes : toutes les applications EPS)");
-    b.title = "Appui : accueil de l'application · Maintenir 3 s : toutes les applications";
+    b.setAttribute("aria-label", "Accueil de l'application (maintenir 2 secondes : toutes les applications EPS)");
+    b.title = "Appui : accueil de l'application · Maintenir 2 s : toutes les applications";
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="position:relative"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>';
     var s = b.style, BG = "rgba(27,30,36,.78)", slot = epsSlot();
     if (slot) { /* bouton logé dans la barre du haut de l'appli (charte commune) */

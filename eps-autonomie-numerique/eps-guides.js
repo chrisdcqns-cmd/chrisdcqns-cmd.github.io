@@ -2,7 +2,7 @@
    À tenir à jour quand une appli gagne ou perd une fonction (voir CLAUDE.md). */
 window.EPS_GUIDES = {
   commun: [
-    ["Ouvrir le mode enseignant", "Maintiens le logo de l'appli 3 secondes (le carré coloré de la barre, ou le grand logo de l'écran « Choisis ta classe »), puis tape ton code. Aucun bouton enseignant n'est visible par les élèves. « Quitter » ou le verrou referme le mode enseignant."],
+    ["Ouvrir le mode enseignant", "Maintiens le logo de l'appli 2 secondes (le carré coloré de la barre, ou le grand logo de l'écran « Choisis ta classe »), puis tape ton code. Aucun bouton enseignant n'est visible par les élèves. « Quitter » ou le verrou referme le mode enseignant."],
     ["Les onglets de l'espace enseignant", "Toujours dans le même ordre : 📅 Séquence (leçons, leçon du jour) · 👁 Vue élève (l'appli comme la voit un élève, sans quitter le mode enseignant) · 📚 Bibliothèque (ressources) · 📋 Évaluation · 👥 Classe · 📄 Bilans · ⚙ Réglages. Sous certains onglets, des raccourcis propres à l'activité."],
     ["Côté élève", "L'élève arrive sur « Choisis ta classe ». Les ressources utiles sans classe (sécurité, échauffement…) sont proposées sur ce même écran. Le bouton ⌂ Accueil le ramène à ce choix."],
     ["Classes et élèves", "Une liste importée sur l'accueil ou dans une appli apparaît dans toutes les applis et sur toutes les tablettes. Dans Réglages communs → Listes d'élèves : renommer, corriger, choisir les activités de chaque classe, supprimer (double confirmation), fusionner deux listes proches."],
