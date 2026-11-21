@@ -89,5 +89,14 @@ window.EPS_GUIDES = {
     ["📋 Évaluation", "Grille CA2 proposée : lecture de carte et choix d'itinéraire, efficacité et performance (AFL1), analyser sa course (AFL2), sécurité et rôles (AFL3)."],
     ["Côté élève", "La classe et la course viennent du QR code de départ ; le coureur suit son parcours, sa trace est envoyée en direct."],
     ["Pose des balises", "Outil enseignant sur iPhone : poser les balises au GPS (photos, Google Maps) et tracer les chemins pour OrienRun."]
+  ] },
+  ccf: { nom: "CCF", items: [
+    ["Ouvrir le CCF", "Tuile CCF sur l'accueil, puis choisis l'activité (Escalade, Badminton, Cross training). 🔀 Activité dans la barre pour en changer. Les protocoles Bac pro sont recopiés à la lettre ; le Bac général arrivera quand les protocoles seront envoyés."],
+    ["📋 Évaluation", "Choisis la classe, la voie (Bac pro / Bac général, devinée d'après le nom de la classe), la date, puis coche « Ouvert sur les tablettes élèves ». Touche un élève : fin de séquence (degré puis curseur dans la fourchette du degré, au 0,25) et fil de séquence (2 AFLP retenus, points selon la répartition 4-4, 6-2 ou 2-6 choisie par l'élève, modifiable). Les données de la pratique (passages, matchs, feuilles de séance) s'affichent sous chaque AFLP avec une aide au positionnement."],
+    ["👥 Classe", "Former les équipes (au hasard ou à la main ; poules en badminton), ouvrir et corriger la feuille d'une équipe, voir les matchs et le classement."],
+    ["Côté élève", "Choisis ta classe → ton équipe → Pratique (escalade : projet d'équipe, passages, score ; badminton : panel de stratégies, matchs organisés par les élèves, tablette de match avec stratégies secrètes, temps morts, stratégie devinée ; cross training : feuille de séance, production avec minuteurs EMOM / AMRAP / FOR TIME, FC, réchappe, fiche individuelle), Mon choix (répartition des 8 points), Le protocole, Ressources."],
+    ["📄 Bilans", "Tableau de la classe, 📋 Pronote (note /20 et une colonne par AFLP), fiches PDF (une par élève, .zip ou un seul PDF), 🌐 Publier en ligne, impression."],
+    ["✏️ Modifier le protocole", "Réglages → Modifier le protocole : tous les textes, les fourchettes des degrés, le barème, les répartitions, les 2 AFLP retenus et les réglages de la forme de pratique (points des zones, durées…). « Revenir au texte d'origine » remet le protocole de l'établissement."],
+    ["📚 Ressources", "Les contenus de l'appli Escalade et les fiches techniques de l'appli Badminton apparaissent automatiquement ; tu peux en ajouter dans le CCF (texte, lien, photo). Les élèves les voient dans l'onglet Ressources."]
   ] }
 };

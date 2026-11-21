@@ -1,0 +1,12 @@
+# CCF — notes pour Claude
+
+> Lire d'abord la charte commune : `../CLAUDE.md`.
+
+Appli « CCF » (contrôle en cours de formation), couleur `#B8860B`. **Ne pas modifier `index.html` à la main** : éditer `src/` puis `python3 build.py` (assemble `src/shell.html` + scripts dans l'ordre de `ORDER`).
+
+- `src/protocoles.js` : `PROTOS` (textes officiels de l'établissement, recopiés à la lettre ; seules l'orthographe et « séance » → « leçon » quand il s'agit de la leçon d'EPS ont été corrigées), `JEU_LAB` (réglages de la forme de pratique affichés dans l'éditeur), `ACTS` (esc, bad, ct ; code = code d'activité des listes communes `off`), `EXOS`, `FORMES`. Pour un nouveau protocole (Bac général, autre activité) : ajouter `PROTOS['<act>-gt']` sur la même structure (`fin.afl` avec fourchettes par degré, `fil` avec barème, répartitions, `retenus`), et si nouvelle activité, `ACTS`, `JEU_LAB` et sa forme de pratique dans `pratique.js`.
+- Données `eps.ccf.v1` (synchronisées par `EPSD.store`, préfixe `ccf|`) : `pr:` protocole modifié, `ss:<act>:<classe>` session (voie, date, `open`, équipes `eq`), `tm:` feuille d'équipe (élèves), `ix:` feuille individuelle (répartition `rep`, panel `strat`, ressentis), `ev:` évaluation enseignant (`st`, `fin{id:{d,v}}`, `fil{id:{d}}`, `rep`, `comm`), `mt:<classe>:<id>` matchs de badminton, `rs:<act>` ressources ajoutées. Écrire toujours avec `upd`/`put` (relecture du stockage avant écriture).
+- Notes : `eval.js` (`notes()`, aides `aideHtml(auto)`), fin = degré + curseur au 0,25 dans la fourchette ; fil = barème selon la répartition (`repPts`).
+- Escalade : zone validée quand le bassin dépasse la dégaine de fin de zone (`b1`, `b2`, `b3`, TOP = `nDeg+1`) ; points de la zone seulement si zone atteinte = zone annoncée (non cumulés) ; régulation `regul` min après le 1er passage puis verrouillage (l'enseignant peut rouvrir).
+- Badminton : demi-terrain horizontal (fond à gauche, filet à droite), zones 1 2 3 / 6 5 4 comme le schéma du protocole, découpes `c1`, `c2` en %. Point : faute/touche = `pFaute`, point direct dans la stratégie active = `pDirect`, ailleurs `pHors` ; stratégie devinée (une des stratégies utilisées) = `pDevine` ; 1 set partout : victoire au plus de points si `nul`=1.
+- Ressources : `appRes()` lit `escalade.c`, `eps_badminton_v1.tech` et `eps.res.<act>` ; la liste des muscles (cross training) n'est montrée qu'à l'enseignant (AFLP6 évalué).

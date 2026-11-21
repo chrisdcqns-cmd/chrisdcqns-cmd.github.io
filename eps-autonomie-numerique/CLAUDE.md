@@ -1,6 +1,6 @@
 # EPS · Autonomie et numérique — charte commune (à lire avant toute modification)
 
-Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escalade, OrienRun, Relais Vitesse, Volley-ball, Badminton, Danse, CO-Évaluation, Appel AS, EDT, Pose des balises) **et pour toute nouvelle application**. Elles ont été fixées par l'enseignant (seul utilisateur, lycée, plusieurs tablettes). Quand une amélioration est faite dans une appli, se demander si elle doit être reportée dans les autres et dans ce fichier. Les notes propres à chaque appli sont dans `<appli>/CLAUDE.md`.
+Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, OrienRun, Relais Vitesse, Volley-ball, Badminton, Danse, CO-Évaluation, Appel AS, EDT, Pose des balises) **et pour toute nouvelle application**. Elles ont été fixées par l'enseignant (seul utilisateur, lycée, plusieurs tablettes). Quand une amélioration est faite dans une appli, se demander si elle doit être reportée dans les autres et dans ce fichier. Les notes propres à chaque appli sont dans `<appli>/CLAUDE.md`.
 
 ## Langue et vocabulaire
 - Tout en français. Élèves tutoyés. Dire « leçon » (jamais « séance ») et « séquence » (jamais « cycle »).
@@ -19,7 +19,7 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 - Barre du haut `#14171C` avec liseré de 4 px à la couleur de l'appli (`--app`, `box-shadow:inset 0 -4px 0 var(--app)`), icône au trait blanche dans un carré de 36 px (rayon 10 px) à la couleur de l'appli, nom de l'appli en 20 px gras, sous-titre gris `#A9AEB8` (ex. « CA4 »).
 - Accents (boutons principaux, onglet actif) à la couleur de l'appli. Boutons de la barre : contour `#3A3F47`, texte `#D5D8DE`, hauteur 40 px, rayon 10 px.
 - Dans la barre : `<span data-eps-bar></span>` où `eps-home.js` loge ⌂ Accueil, ⟳ et la pastille 🩹 des dispensés (plusieurs emplacements possibles, un par écran : le visible est utilisé).
-- Couleurs : Acrosport `#1F4FA3`, Escalade `#2E7D4F`, OrienRun `#E8701A`, Relais `#D9481F`, Volley `#6B3FA0`, Danse `#C2185B`, Badminton `#0B7A75`, CO-Éval `#14213D`, Appel AS `#475569`, EDT `#1F5F8B`, Pose des balises `#8A5A1F`. Une nouvelle appli prend une couleur bien distincte de celles-ci.
+- Couleurs : Acrosport `#1F4FA3`, Escalade `#2E7D4F`, OrienRun `#E8701A`, Relais `#D9481F`, Volley `#6B3FA0`, Danse `#C2185B`, Badminton `#0B7A75`, CO-Éval `#14213D`, Appel AS `#475569`, EDT `#1F5F8B`, Pose des balises `#8A5A1F`, CCF `#B8860B`. Une nouvelle appli prend une couleur bien distincte de celles-ci.
 - Une seule icône par appli (pictogramme au trait, `viewBox 0 0 24 24`, `stroke-width 2`), identique sur l'accueil, dans la barre et sur l'écran « Choisis ta classe ».
 
 ## Espace enseignant (commun)
@@ -73,3 +73,7 @@ Ces règles valent pour **toutes** les applications du dossier (Acrosport, Escal
 - Tester dans un navigateur (élève et enseignant), sans erreur de page ; vérifier l'écran « Choisis ta classe » et la barre.
 - `git pull --rebase` avant de pousser (d'autres sessions travaillent en parallèle) ; en cas de conflit sur `/sw.js`, garder le `CORE` le plus haut + 1.
 - Mettre à jour `README.md` et ce fichier si une règle commune change.
+
+## CCF (contrôle en cours de formation)
+- Appli `ccf/` (tuile sur l'accueil) : une seule appli pour toutes les activités ; on n'ajoute rien du CCF dans les applis d'activité. Protocoles dans `ccf/src/protocoles.js` (`PROTOS['<act>-<voie>']`, voie `pro` | `gt`) : recopier à la lettre les protocoles envoyés par l'enseignant. Voir `ccf/CLAUDE.md`.
+- Une appli d'activité peut publier des ressources pour le CCF dans localStorage `eps.res.<code>` = `[{titre, texte, lien, img}]`.
