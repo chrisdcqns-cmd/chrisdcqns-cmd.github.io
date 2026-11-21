@@ -76,4 +76,5 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 
 ## CCF (contrôle en cours de formation)
 - Appli `ccf/` (tuile sur l'accueil) : une seule appli pour toutes les activités ; on n'ajoute rien du CCF dans les applis d'activité. Protocoles dans `ccf/src/protocoles.js` (`PROTOS['<act>-<voie>']`, voie `pro` | `gt`) : recopier à la lettre les protocoles envoyés par l'enseignant. Voir `ccf/CLAUDE.md`.
+- La CCF a aussi les fiches de leçon et la leçon en cours (onglet 📅 Séquence → `EPSLC.open('lec')`) et le bouton 🎙 des observations : `ccf` est dans `APPS` d'eps-lecons.js / eps-obs.js et dans les tests de dossier d'eps-home.js.
 - Une appli d'activité peut publier des ressources pour le CCF dans localStorage `eps.res.<code>` = `[{titre, texte, lien, img}]`.

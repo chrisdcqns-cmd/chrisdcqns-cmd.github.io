@@ -91,6 +91,7 @@ window.EPS_GUIDES = {
     ["Pose des balises", "Outil enseignant sur iPhone : poser les balises au GPS (photos, Google Maps) et tracer les chemins pour OrienRun."]
   ] },
   ccf: { nom: "CCF", items: [
+    ["📅 Leçons et observations", "Onglet 📅 Séquence : fiches de leçon (dont la leçon du CCF), programmation pour une classe et 📡 Leçon en cours (messages, minuteur, rangement) comme dans les autres applis. Bouton 🎙 : observations dictées par élève pendant l'épreuve, retrouvées dans 📋 Traces et dans la recherche 🔍."],
     ["Ouvrir le CCF", "Tuile CCF sur l'accueil, puis choisis l'activité (Escalade, Badminton, Cross training). 🔀 Activité dans la barre pour en changer. Les protocoles Bac pro sont recopiés à la lettre ; le Bac général arrivera quand les protocoles seront envoyés."],
     ["📋 Évaluation", "Choisis la classe, la voie (Bac pro / Bac général, devinée d'après le nom de la classe), la date, puis coche « Ouvert sur les tablettes élèves ». Touche un élève : fin de séquence (degré puis curseur dans la fourchette du degré, au 0,25) et fil de séquence (2 AFLP retenus, points selon la répartition 4-4, 6-2 ou 2-6 choisie par l'élève, modifiable). Les données de la pratique (passages, matchs, feuilles de séance) s'affichent sous chaque AFLP avec une aide au positionnement."],
     ["👥 Classe", "Former les équipes (au hasard ou à la main ; poules en badminton), ouvrir et corriger la feuille d'une équipe, voir les matchs et le classement."],

@@ -1715,8 +1715,8 @@
     /* listes de classes communes (eps-lists.js) : chargé ici s'il ne l'est pas déjà par l'appli */
     var goL = function () { setTimeout(function () { collectLists().then(applyLocal).catch(function () {}); }, 600); setInterval(function () { collectLists().catch(function () {}); }, 5000); };
     /* leçons communes (eps-lecons.js) : dans les applis d'activité seulement */
-    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
-    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
     if (window.EPSL) goL(); else { var ls = document.createElement("script"); ls.src = BASE + "eps-lists.js"; ls.onload = goL; document.head.appendChild(ls); }
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);

@@ -1008,7 +1008,8 @@ function pdCtFormes(c,S,P){return pg(`${pdHead(P,S,c,'Les formes de travail')}${
 /* ================== DÉMARRAGE ================== */
 /* espace enseignant commun (eps-shell.js) : Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 window.EPSTCCF=window.EPST?EPST.init({app:'ccf',nom:'CCF',color:COL,isTeacher:()=>isT(),anchor:'#hd',main:'#m',home:'eval',
- tabs:{eval:{go:()=>go(T.view==='fiche'?'fiche':'eval'),on:()=>['eval','fiche'].includes(T.view)},
+ tabs:{seq:{go:()=>{if(window.EPSLC)EPSLC.open('lec')},on:()=>false}, /* fiches de leçon et leçon en cours communes (eps-lecons.js) */
+  eval:{go:()=>go(T.view==='fiche'?'fiche':'eval'),on:()=>['eval','fiche'].includes(T.view)},
   cls:{go:()=>go('cls'),on:()=>['cls','team','match'].includes(T.view)},
   bil:{go:()=>go('bil'),on:()=>T.view==='bil'}},
  biblio:[{ico:'🖨',label:'Documents à imprimer',sub:'La leçon du CCF, le terrain / le mur, les fiches à remplir sans tablette',go:()=>go('print')},{ico:'📜',label:'Le protocole',sub:'Lecture et impression (Bac pro, Bac général)',go:()=>go('proto')},{ico:'📚',label:'Ressources de l\'activité',sub:'Celles de l\'appli de l\'activité + celles ajoutées ici, visibles par les élèves',go:()=>go('res')}],
