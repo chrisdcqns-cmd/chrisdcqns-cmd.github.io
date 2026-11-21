@@ -46,3 +46,9 @@ Structure reconnue automatiquement : un onglet par mois (l'onglet du mois en cou
 2. Colle ce `Code.gs`, enregistre, puis ▶ Exécuter `testerClaude` une fois : Google demande l'autorisation « se connecter à un service externe » ; le journal affiche un commentaire reformulé.
 3. Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer (même adresse /exec).
 Les applis envoient seulement les notes de l'enseignant, l'activité et les degrés (jamais le nom de l'élève). Modèle : `CLAUDE_MODEL` (Claude Haiku 5.5).
+
+## 🏸 Badminton : « Décris ta situation » et coach virtuel (Claude)
+Même clé `ANTHROPIC_KEY`. Après avoir collé ce `Code.gs` et redéployé (nouvelle version), ▶ Exécuter `testerBadminton` une fois : le journal affiche le réglage d'une situation (JSON).
+- « Décris ta situation » (Terrain & scoring, mode enseignant) : modèle `CLAUDE_MODEL_SIT` (Claude Sonnet 5.5), réponse structurée (outil `regler_situation`), validée par l'enseignant dans l'appli.
+- Coach virtuel (tablette de terrain, élèves choisis par l'enseignant) : `CLAUDE_MODEL` (Haiku), statistiques anonymes seulement.
+- Garde-fou : 300 demandes par heure au plus (`quota_`).

@@ -281,6 +281,15 @@ table.kv td,table.kv th{text-align:left;padding:5px 6px}table.kv td:first-child{
 .astuce{background:#fff8e1;border-radius:10px;padding:8px 10px;margin:6px 0}
 .seg.big button{padding:12px 18px;font-size:1.05rem}
 #play{z-index:45}
+.newsit .nsb{display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left;border:2px solid var(--line);background:#fff;border-radius:14px;padding:14px;color:var(--ink)}
+.newsit .nsb span{font-size:1.8rem}.newsit .nsb small{color:var(--muted)}.newsit .nsb:hover,.newsit .nsb:active{border-color:var(--vol);background:#eef8f6}
+.asst .steps{display:flex;gap:6px;margin:8px 0 4px}.asst .steps span{flex:1;height:6px;border-radius:3px;background:#e3e8ef}.asst .steps span.on{background:var(--vol)}
+.asst .tile.on{border-color:var(--vol);background:#e3f4f1}
+.tplg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:6px}
+.tplc{border:3px solid var(--line);background:#fff;border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:4px;align-items:center;color:var(--ink)}
+.tplc.on{border-color:var(--vol);background:#e3f4f1}
+.asst .prev{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:#f3f6fa;border-radius:14px;padding:10px;margin-top:12px}.asst .prev .cw{flex:1 1 380px;max-width:560px}.asst .prev>p,.asst .prev>div:last-child{flex:1 1 220px}
+.coach2{border:2px solid var(--vol)}.coachtxt{font-size:1.1rem;line-height:1.6;background:#eef8f6;border-radius:12px;padding:12px 14px;margin-top:10px}
 .lecrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:2px solid var(--line);border-radius:14px;padding:10px 14px;margin:8px 0;color:var(--ink)}
 .lecrow .ln{flex:0 0 40px;height:40px;border-radius:12px;background:var(--navy);color:#fff;font-weight:900;font-size:1.2rem;display:flex;align-items:center;justify-content:center}
 .lecrow.done .ln{background:var(--d4)}.lecrow.prop{background:#f1faf8}
@@ -1006,11 +1015,136 @@ function svgPt(svg,ev){const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.cli
 /* ================== ONGLET TERRAIN & SCORING (enseignant) ================== */
 let PRE=null,ZSEL=null,CIBADD=false;
 function preById(id){return S.presets.find(p=>p.id===id)}
+/* ================== CRÉER UNE SITUATION : assistant en 3 questions (hors ligne) et « Décris ta situation » (Claude) ================== */
+const BUTS=[
+ ['prof',"Jouer en profondeur","Faire reculer l'adversaire : dégagé, service long.",['ar','avar','amf'],{z:'b'}],
+ ['filet',"Jouer au filet","Amorti, contre-amorti, service court.",['av','avar','amf'],{z:'b'}],
+ ['avar',"Alterner avant / arrière","Rompre par le rythme : court, long, court…",['avar','amf','4c'],{z:'b'}],
+ ['lat',"Jouer en largeur","Viser les couloirs, là où l'adversaire n'est pas.",['2l','1lg','1ld','8z'],{z:'b'}],
+ ['varier',"Varier ses zones de marque","Casser le jeu prévisible : zones dégressives 1000 / 100 / 10 / 1.",['8z','4c','9z'],{z:'g'}],
+ ['rupt',"Rompre l'échange","Reconnaître le volant favorable : smash, kill.",['tout','amf'],{z:'n',coups:{sma:2,kil:2}}],
+ ['interdit',"S'adapter (zone interdite)","Priver l'adversaire d'une zone : il doit changer son jeu.",['amf','2l','av','ar'],{z:'x'}],
+ ['libre',"Match libre ou CCF","Score classique, sans zone.",['tout'],{z:'n'}]];
+let ASST=null; /* {step,but,tpl,v,contrat,fin,cible,ecart,man,hand,type,essais,obj,txt,busy,res,err} */
+function asstOpen(){ASST={step:1,but:'',tpl:'',v:3,contrat:3,fin:'classique',cible:11,ecart:false,man:false,hand:false,type:'match',essais:20,obj:14};renderTerrain();scrollTo(0,0)}
+function asstBuild(){const A=ASST,b=BUTS.find(x=>x[0]===A.but)||BUTS[7],t=(TPL.find(x=>x[0]===A.tpl)||TPL[0])[2],mode=b[4].z;
+  const p=P_('p'+uid(),'',"",{np:t.np,nl:t.nl,prof:(t.prof||[]).slice(),lat:(t.lat||[]).slice(),type:A.type});p.profB=p.prof.slice();p.latB=p.lat.slice();
+  const ids=zoneIds(p);
+  ids.forEach(id=>{const m=t.z[id];if(m==='o'){p.zones[id]={m:mode==='x'?'n':'o',v:mode==='x'?2:0};if(mode==='x')p.zones[id]={m:'n',v:2}}
+    else if(mode==='g')p.zones[id]={m:'g',v:1};
+    else if(m==='b'||(t.np*t.nl===1&&mode==='b'))p.zones[id]={m:'b',v:A.v}});
+  if(mode==='x'){/* la zone « supprimée » du modèle devient la zone interdite ; à défaut, le milieu */
+    const o=ids.filter(id=>t.z[id]==='o');const tgt=o.length?o:ids.length===3&&t.np===3?['r1c0']:ids.length===3?['r0c1']:[ids[Math.floor(ids.length/2)]];
+    ids.forEach(id=>{p.zones[id]=tgt.includes(id)?{m:'x',v:0}:{m:'n',v:2}})}
+  if(b[4].coups)p.coups=Object.assign({},b[4].coups);
+  if(A.type==='exo'){p.essais=A.essais;p.obj=A.obj;if(!ids.some(id=>(p.zones[id]||{}).m==='b'))ids.forEach(id=>{if(t.z[id]!=='o')p.zones[id]={m:'b',v:1}})}
+  else{p.score=mode==='g'?'zones':A.fin;p.cible=mode==='g'&&A.fin!=='zones'?0:A.cible;p.ecart=A.ecart;p.contrat=ids.some(id=>(p.zones[id]||{}).m==='b')?A.contrat:0;
+    if(A.man)p.man=Object.assign(defMan(),{on:true});if(A.hand){p.asym=true}}
+  const tn=(TPL.find(x=>x[0]===A.tpl)||TPL[0])[1];
+  p.nom=(A.type==='exo'?'Exercice : ':'')+b[1]+(A.tpl!=='tout'?' · '+tn.toLowerCase():'');
+  const zp=id=>{const n=zoneName(p,id).toLowerCase();return /^(couloir|côté)/.test(n)?'dans le '+n:/^centre/.test(n)?'au '+n:/^milieu$/.test(n)?'au milieu':'en zone '+n};
+  const bz=ids.filter(id=>(p.zones[id]||{}).m==='b').map(zp),xz=ids.filter(id=>(p.zones[id]||{}).m==='x').map(zp);
+  p.desc=A.type==='exo'?`${A.essais} essais chacun. Réussite = volant dans la zone 🎯${A.obj?' : objectif '+A.obj+' réussites':''}.`
+   :[`Match en ${p.score==='zones'?(p.cible?p.cible+' points de zones':'temps limité, aux points de zones'):p.cible+' points'}${p.ecart?' (2 points d\'écart)':''}.`,
+    mode==='g'?"Le 1er point marqué dans une zone vaut 1000, puis 100, 10, 1 : varie tes zones !":'',
+    bz.length?`Un point marqué ${bz.join(' ou ')} vaut ${A.v} points${p.contrat?' et compte pour le contrat ('+p.contrat+' points)':''}.`:'',
+    xz.length?`Volant ${xz.join(' ou ')} = point pour l'adversaire.`:'',p.coups&&Object.keys(p.coups).length?"Un point gagné en smash ou en kill rapporte un bonus.":'',
+    A.man?"Chacun joue avec sa manière : choisis ta façon de marquer avant le match.":''].filter(Boolean).join(' ');
+  return p}
+function asstHtml(){const A=ASST;
+  if(A.step==='ia')return iaHtml();
+  const head=`<div class="row" style="justify-content:space-between"><h2 style="margin:0">✨ Nouvelle situation · ${A.step} / 3</h2><button class="btn alt sm" onclick="ASST=null;renderTerrain()">Fermer</button></div><div class="steps">${[1,2,3].map(n=>`<span class="${A.step>=n?'on':''}"></span>`).join('')}</div>`;
+  if(A.step===1)return `<div class="card asst">${head}<h3>Qu'est-ce que tu veux faire travailler ?</h3>
+   <div class="tiles">${BUTS.map(([k,n,d])=>`<button class="tile ${A.but===k?'on':''}" onclick="ASST.but='${k}';ASST.tpl='${BUTS.find(x=>x[0]===k)[3][0]}';ASST.step=2;renderTerrain()"><b>${n}</b><br><small class="muted" style="font-weight:600">${d}</small></button>`).join('')}</div>
+   <div class="row" style="margin-top:10px"><span class="muted">Type :</span><div class="seg"><button class="${A.type!=='exo'?'on':''}" onclick="ASST.type='match';renderTerrain()">🏸 Match</button><button class="${A.type==='exo'?'on':''}" onclick="ASST.type='exo';renderTerrain()">🎯 Exercice</button></div></div></div>`;
+  const b=BUTS.find(x=>x[0]===A.but),sug=b[3],rest=TPL.map(x=>x[0]).filter(k=>!sug.includes(k));
+  const mini=k=>{const save_=A.tpl;A.tpl=k;const p=asstBuild();A.tpl=save_;return `<button class="tplc ${A.tpl===k?'on':''}" onclick="ASST.tpl='${k}';renderTerrain()"><div class="cw">${courtSvg({pre:p,mode:'view',id:'t'+k,labels:true})}</div><b>${TPL.find(x=>x[0]===k)[1]}</b></button>`};
+  if(A.step===2)return `<div class="card asst">${head}<h3>Quelles zones ? <small class="muted">(proposées pour « ${b[1]} »)</small></h3>
+   <div class="tplg">${sug.map(mini).join('')}</div>
+   <details style="margin-top:8px"><summary class="muted" style="cursor:pointer;font-weight:700">Autres découpages</summary><div class="tplg">${rest.map(mini).join('')}</div></details>
+   ${A.type!=='exo'?`<label class="sw" style="margin-top:10px"><input type="checkbox" ${A.hand?'checked':''} onchange="ASST.hand=this.checked"><span></span>Zones de taille différente pour chaque joueur (réguler le niveau)</label>`:''}
+   <div class="row" style="margin-top:12px"><button class="btn alt" onclick="ASST.step=1;renderTerrain()">← Retour</button><span style="flex:1"></span><button class="btn" onclick="ASST.step=3;renderTerrain()">Suivant →</button></div></div>`;
+  const p=asstBuild(),hasB=zoneIds(p).some(id=>(p.zones[id]||{}).m==='b'),isG=b[4].z==='g';
+  const num=(k,lab,mn,mx)=>`<div><label class="l">${lab}</label><div class="cnt"><button onclick="ASST.${k}=Math.max(${mn},ASST.${k}-1);renderTerrain()">−</button><b>${A[k]}</b><button onclick="ASST.${k}=Math.min(${mx},ASST.${k}+1);renderTerrain()">+</button></div></div>`;
+  return `<div class="card asst">${head}<h3>Combien ça rapporte ?</h3>
+   <div class="g2">${A.type==='exo'?num('essais','Essais par joueur',5,40)+num('obj','Objectif (réussites)',1,40):
+     `${hasB&&!isG?num('v','Valeur d\'un point dans la zone ★',2,10)+num('contrat','Contrat : points en zone ★ (0 = aucun)',0,11):''}
+     <div><label class="l">Le match se gagne</label><div class="seg"><button class="${A.fin!=='zones'?'on':''}" onclick="ASST.fin='classique';ASST.cible=11;renderTerrain()">au score</button><button class="${A.fin==='zones'?'on':''}" onclick="ASST.fin='zones';ASST.cible=isFinite(ASST.cible)?ASST.cible:21;renderTerrain()">aux points de zones</button></div></div>
+     ${num('cible',A.fin==='zones'?'Points de zones à atteindre (0 = au temps)':'En combien de points',0,60)}
+     <div style="display:flex;flex-direction:column;gap:8px;justify-content:end">${A.fin!=='zones'?`<label class="sw"><input type="checkbox" ${A.ecart?'checked':''} onchange="ASST.ecart=this.checked;renderTerrain()"><span></span>2 points d'écart</label>`:''}
+      <label class="sw"><input type="checkbox" ${A.man?'checked':''} onchange="ASST.man=this.checked;renderTerrain()"><span></span>Jouer avec la manière</label></div>`}</div>
+   <div class="prev"><div class="cw">${courtSvg({pre:p,mode:'view',id:'aprev'})}</div><p><b>${esc(p.nom)}</b><br>${esc(p.desc)}</p></div>
+   <div class="row" style="margin-top:12px"><button class="btn alt" onclick="ASST.step=2;renderTerrain()">← Retour</button><span style="flex:1"></span><button class="btn or big" onclick="asstSave()">✓ Créer la situation</button></div></div>`}
+function asstSave(){const p=ASST.res||asstBuild();p.id='p'+uid();S.presets.push(p);PRE=p.id;ZSEL=null;ASST=null;save();renderTerrain();toast('Situation créée : ajuste-la aux curseurs si besoin')}
+/* ---- « Décris ta situation » : Claude règle le terrain (par le script commun, clé côté serveur) ---- */
+function iaOpen(){ASST={step:'ia',txt:'',busy:false,res:null,err:'',exp:''};renderTerrain();scrollTo(0,0);setTimeout(()=>{const t=document.getElementById('iatxt');if(t)t.focus()},50)}
+const IA_EX=["Match en 11 points, le fond rapporte 3, le milieu est interdit","Zone à 1000 points sur 8 zones autour du centre, gagnant aux points de zones","Le plus fort a des zones arrière plus petites que son adversaire","Exercice de service court : 20 essais, réussite juste derrière la ligne de service court, objectif 14","Couloirs latéraux bonifiés, un point gagné en smash vaut 2 points de plus"];
+function iaHtml(){const A=ASST,p=A.res;
+  return `<div class="card asst"><div class="row" style="justify-content:space-between"><h2 style="margin:0">💬 Décris ta situation <small class="muted" style="font-weight:600">avec Claude</small></h2><button class="btn alt sm" onclick="ASST=null;renderTerrain()">Fermer</button></div>
+   <p class="muted">Écris comme tu l'expliquerais aux élèves : zones, valeurs, zone interdite, contrat, handicap, fin du match… Claude règle le terrain ; tu vérifies, tu ajustes aux curseurs, puis tu gardes.</p>
+   <textarea id="iatxt" rows="3" placeholder="Ex. : match en 11 points, le fond rapporte 3 points, le milieu est interdit" oninput="ASST.txt=this.value">${esc(A.txt)}</textarea>
+   <div class="snap" style="margin-top:6px">${IA_EX.map((x,i)=>`<button onclick="ASST.txt=IA_EX[${i}];renderTerrain()">${esc(x)}</button>`).join('')}</div>
+   <div class="row" style="margin-top:10px"><button class="btn or" ${A.busy?'disabled':''} onclick="iaGo()">${A.busy?'⏳ Claude règle le terrain…':'✨ Régler le terrain'}</button>${A.err?`<span class="warn" style="margin:0">${esc(A.err)}</span>`:''}</div>
+   ${p?`<div class="prev"><div class="cw">${courtSvg({pre:p,mode:'view',id:'iaprev'})}</div><div><p><b>${esc(p.nom)}</b><br>${esc(p.desc)}</p>${A.exp?`<p class="astuce">💡 ${esc(A.exp)}</p>`:''}
+     <p class="muted" style="margin:4px 0">${esc(regleResume(p))}</p></div></div>
+     <div class="row" style="margin-top:10px"><button class="btn alt" onclick="ASST.res=null;renderTerrain()">Effacer</button><span style="flex:1"></span><button class="btn or big" onclick="asstSave()">✓ Garder cette situation</button></div>`:''}</div>`}
+function regleResume(p){const z=zoneIds(p).map(id=>{const r=zoneRule(p,id);return r.m==='n'&&r.v===1?null:zoneName(p,id)+' : '+({n:r.v+' pt',b:'★ '+r.v+' pts',x:'interdite',g:'dégressive',o:'supprimée'}[r.m])}).filter(Boolean);
+  return [p.type==='exo'?`Exercice : ${p.essais||20} essais, objectif ${p.obj||0}`:`Fin : ${p.score==='zones'?(p.cible?p.cible+' points de zones':'au temps'):p.cible+' points'}${p.ecart?', 2 d\'écart':''}`,z.join(' · '),p.contrat?'contrat '+p.contrat:'',p.asym?'zones différentes pour B':'',p.pour&&p.pour!=='ab'?'règles pour le joueur '+p.pour.toUpperCase()+' seulement':'',Object.keys(p.coups||{}).length?'bonus : '+Object.entries(p.coups).map(([k,v])=>coupNom(k)+' +'+v).join(', '):''].filter(Boolean).join(' — ')}
+function iaClean(o){const num=(v,a,b,d)=>{v=+v;return isFinite(v)?Math.max(a,Math.min(b,v)):d},arr=(v,n,a,b)=>(Array.isArray(v)?v:[]).map(Number).filter(isFinite).map(x=>Math.max(a,Math.min(b,x))).sort((x,y)=>x-y).slice(0,n);
+  const np=Math.round(num(o.np,1,3,1)),nl=Math.round(num(o.nl,1,3,1));
+  const p=P_('p'+uid(),String(o.nom||'Situation').slice(0,60),String(o.desc||'').slice(0,500),{type:o.type==='exo'?'exo':'match',jeu:o.jeu==='double'?'double':'simple',np,nl});
+  const dP=np===2?[4.7]:[SSL,4.72],dL=nl===2?[CW/2]:[1.7,4.4];
+  p.prof=arr(o.prof,np-1,0.4,6.5);if(p.prof.length!==np-1)p.prof=dP.slice(0,np-1);p.lat=arr(o.lat,nl-1,0.3,5.8);if(p.lat.length!==nl-1)p.lat=dL.slice(0,nl-1);
+  p.asym=!!o.asym;p.profB=p.asym?arr(o.profB,np-1,0.4,6.5):[];if(p.profB.length!==np-1)p.profB=p.prof.slice();p.latB=p.asym?arr(o.latB,nl-1,0.3,5.8):[];if(p.latB.length!==nl-1)p.latB=p.lat.slice();
+  (Array.isArray(o.zones)?o.zones:[]).forEach(z=>{const r=Math.round(num(z.r,0,np-1,0)),c=Math.round(num(z.c,0,nl-1,0)),m=['n','b','x','g','o'].includes(z.m)?z.m:'n';p.zones['r'+r+'c'+c]={m,v:m==='x'||m==='o'?0:Math.round(num(z.v,0,1000,m==='b'?3:1))}});
+  p.pour=['ab','a','b'].includes(o.pour)?o.pour:'ab';p.score=o.score==='zones'?'zones':'classique';p.cible=Math.round(num(o.cible,0,60,p.score==='zones'?0:11));if(p.score==='classique'&&!p.cible)p.cible=11;
+  p.ecart=!!o.ecart;p.faute=Math.round(num(o.faute,0,10,1));p.contrat=Math.round(num(o.contrat,0,11,0));
+  p.coups={};if(o.coups&&typeof o.coups==='object')Object.entries(o.coups).forEach(([k,v])=>{if(COUPS.some(c=>c[0]===k)&&+v)p.coups[k]=Math.round(num(v,0,20,0))});
+  if(Array.isArray(o.deg)&&o.deg.length)p.deg=o.deg.map(Number).filter(isFinite).slice(0,8);
+  if(p.type==='exo'){p.essais=Math.round(num(o.essais,1,60,20));p.obj=Math.round(num(o.obj,0,60,0));if(!zoneIds(p).some(id=>(p.zones[id]||{}).m==='b'))p.zones[zoneIds(p).slice(-1)[0]]={m:'b',v:1}}
+  return p}
+async function iaGo(){const A=ASST,t=(A.txt||'').trim();if(!t){toast('Décris la situation');return}
+  if(!window.EPSD||!EPSD.reformuler){A.err="Partage entre tablettes non disponible sur cette page.";renderTerrain();return}
+  A.busy=true;A.err='';renderTerrain();
+  try{const l=lessonObj(lessonNow()),r=await EPSD.reformuler(t,{mode:'badsit',act:'Badminton',ctx:(VOIES[S.voie]||'')+(l?' · leçon '+l.n+' : '+l.obj:'')});
+    const o=JSON.parse(r);A.res=iaClean(o);A.exp=String(o.explication||'').slice(0,300)}
+  catch(e){A.err=String(e&&e.message||e).replace(/^Error: /,'')}
+  A.busy=false;if(ASST===A)renderTerrain()}
+
+/* ================== COACH VIRTUEL (Claude, en option pour les élèves choisis par l'enseignant) ================== */
+function coachOn(c,e){return !!(e&&(e.coach||(c&&c.coachAll)))}
+function coachData(c,e){const st=elStats(c,e.id),P0=profil(st).map(([k,v])=>k+' '+Math.round(v*100)+'%').join(', ');
+  const o={matchs:st.mj+' (gagnés '+st.mg+')',points:st.pts+' gagnés, '+st.pl+' perdus dont '+st.fd+' fautes directes',profil:P0,
+    zones_de_marque:topZones(st,4).join(', ')||'–',coups_gagnants:Object.entries(st.co).map(([k,v])=>coupNom(k)+' '+v).join(', ')||'–',
+    nature:NAT.filter(([k])=>st.nat[k]).map(([k,n])=>n+' '+st.nat[k]).join(', ')||'–'};
+  if(st.man.n)o.maniere=st.man.ok+'/'+st.man.n+' contrats réussis, '+Math.round(st.man.pct/st.man.n)+' % en moyenne';
+  if(st.ex.length)o.exercices=st.ex.map(x=>x.nom.replace(/^Exercice : /,'')+' '+x.ok+'/'+x.n).join(', ');
+  return JSON.stringify(o).slice(0,1450)}
+const COACHC={};
+async function coachAsk(eid){const c=classById(TERR.cls)||C(),e=elById(c,eid);if(!e)return;const k=eid+'|'+today();
+  COACHC[k]={busy:true};renderTerr();
+  try{const l=lessonObj(lessonNow());const t=await EPSD.reformuler(coachData(c,e),{mode:'badcoach',act:'Badminton',ctx:l?l.titre+' — objectif : '+l.obj:''});COACHC[k]={txt:t}}
+  catch(er){COACHC[k]={err:String(er&&er.message||er)}}
+  if(curTabTerr()==='stats')renderTerr()}
+function curTabTerr(){return typeof TERRT!=='undefined'?TERRT:''}
+function coachCard(c,e){if(!coachOn(c,e))return '';const k=e.id+'|'+today(),r=COACHC[k]||{};
+  return `<div class="card coach2"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🤖 Mon coach virtuel</h2><button class="btn or" ${r.busy?'disabled':''} onclick="coachAsk('${e.id}')">${r.busy?'⏳ Il réfléchit…':r.txt?'↻ Un autre conseil':'Que dois-je travailler ?'}</button></div>
+   ${r.txt?`<div class="coachtxt">${esc(r.txt).replace(/\n/g,'<br>')}</div>`:r.err?`<p class="warn">${esc(r.err)}</p>`:'<p class="muted" style="margin:6px 0 0">Il lit tes statistiques (sans ton nom) et l\'objectif de la leçon, puis te donne une priorité.</p>'}</div>`}
+function coachAdmin(c){return `<div class="card"><h2>🤖 Coach virtuel (Claude)</h2>
+  <p class="muted">Sur la tablette de terrain, dans « Mes stats », l'élève touche « Que dois-je travailler ? » : Claude lit ses statistiques (sans son nom) et l'objectif de la leçon, et lui donne une priorité. Active-le pour les élèves qui en ont besoin.</p>
+  <label class="sw"><input type="checkbox" ${c.coachAll?'checked':''} onchange="C().coachAll=this.checked;save();renderEleves()"><span></span>Pour toute la classe</label>
+  ${c.coachAll?'':`<div class="pres" style="margin-top:8px">${c.eleves.map((e,i)=>`<button class="${e.coach?'p':''}" onclick="C().eleves[${i}].coach=!C().eleves[${i}].coach;save();renderEleves()">${e.coach?'🤖 ':''}${esc(fullName(e))}</button>`).join('')}</div>`}</div>`}
+
 function renderTerrain(){
   const el=document.getElementById('t-terrain');if(!PRE||!preById(PRE))PRE=S.presets[0]&&S.presets[0].id;
   const p=preById(PRE);
-  el.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Situations de scoring</h2>
-     <div class="row"><button class="btn sm" onclick="preNew()">+ Nouvelle situation</button><button class="btn alt sm" onclick="preReset()">Rétablir les situations proposées</button></div></div>
+  if(ASST){el.innerHTML=asstHtml();return}
+  el.innerHTML=`<div class="card newsit"><h2 style="margin:0 0 8px">Créer une situation</h2><div class="g3">
+     <button class="nsb" onclick="asstOpen()"><span>🧭</span><b>Assistant en 3 questions</b><small>Ce que tu veux travailler → les zones → les points</small></button>
+     <button class="nsb" onclick="iaOpen()"><span>💬</span><b>Décris ta situation</b><small>Écris-la en une phrase : Claude règle le terrain</small></button>
+     <button class="nsb" onclick="preNew()"><span>⚙️</span><b>Partir de zéro</b><small>Tous les réglages à la main</small></button></div></div>
+   <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Situations de scoring</h2>
+     <div class="row"><button class="btn alt sm" onclick="preReset()">Rétablir les situations proposées</button></div></div>
    <p class="muted">Découpe le terrain en zones avec les curseurs, puis touche une zone pour régler sa valeur : normale, bonifiée (compte pour le contrat), interdite (le point va à l'adversaire) ou dégressive (1000, 100, 10, 1…). Ajoute des cibles précises et des coups valorisés. Chaque situation peut être reliée à une leçon : elle est proposée en premier sur la tablette de terrain ce jour-là.</p>
    <div class="prelist">${S.presets.map(x=>`<button class="${x.id===PRE?'on':''}" onclick="PRE='${x.id}';ZSEL=null;CIBADD=false;renderTerrain()">${x.type==='exo'?'🎯':'🏸'} ${esc(x.nom)}${x.vis?' 👁':''}${x.lec?` <small>L${x.lec}</small>`:''}</button>`).join('')}</div></div>
   ${p?preEditor(p):''}
@@ -1770,7 +1904,7 @@ function renderTerr(){
   else{const e=elById(c,TSTAT);
     b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${grpMembers(c,g).map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
      ${e?(()=>{const st=elStats(c,e.id),sd=elStats(c,e.id,today());return `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(fullName(e))}</h2><div class="seg">${['profil','zones','coups'].map(k=>`<button class="${RADK===k?'on':''}" onclick="RADK='${k}';renderTerr()">${{profil:'Mon profil',zones:'Mes zones',coups:'Mes coups'}[k]}</button>`).join('')}</div></div>
-       ${st.ms.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,sd.ms.length&&sd.ms.length<st.ms.length?[st,sd]:[st]),sd.ms.length&&sd.ms.length<st.ms.length?[{nom:'Toute la séquence',c:'#0B7A75'},{nom:"Aujourd'hui",c:'#D9481F'}]:[{nom:'',c:'#0B7A75'}],340)}</div><div style="flex:1;min-width:240px">${statLines(st)}<p class="astuce">💡 ${conseil(st)}</p></div></div><h3>Où je marque mes points</h3><div class="cw mini">${heatSvg(st)}</div>`:'<p class="muted">Pas encore de match saisi.</p>'}</div>`})():''}`}
+       ${st.ms.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,sd.ms.length&&sd.ms.length<st.ms.length?[st,sd]:[st]),sd.ms.length&&sd.ms.length<st.ms.length?[{nom:'Toute la séquence',c:'#0B7A75'},{nom:"Aujourd'hui",c:'#D9481F'}]:[{nom:'',c:'#0B7A75'}],340)}</div><div style="flex:1;min-width:240px">${statLines(st)}<p class="astuce">💡 ${conseil(st)}</p></div></div><h3>Où je marque mes points</h3><div class="cw mini">${heatSvg(st)}</div>`:'<p class="muted">Pas encore de match saisi.</p>'}</div>${coachCard(c,e)}`})():''}`}
 }
 let TRES=null;
 function renderTerrRes(){const c=classById(TERR.cls),m=c&&c.matchs[TRES];if(!m)return;
@@ -1929,7 +2063,7 @@ function impGo(){
 
 /* ================== ÉLÈVES ================== */
 function renderEleves(){
-  renderImport();const c=C();
+  renderImport();const c=C();{let ca=document.getElementById('coachAdm');if(!ca){ca=document.createElement('div');ca.id='coachAdm';document.getElementById('elist').closest('.card').insertAdjacentElement('afterend',ca)}ca.innerHTML=coachAdmin(c)}
   document.getElementById('elist').innerHTML=`<h3>${esc(c.nom)} – ${c.eleves.length} élève(s) · ${VOIES[c.voie]}</h3>`+c.eleves.map((e,i)=>`
    <div class="erow"><span class="nm">${esc(fullName(e))}</span><button class="btn alt sm" onclick="editEleve(${i})">✎</button><button class="btn red sm" onclick="delEleve(${i})">✕</button></div>`).join('');
 }
@@ -2115,7 +2249,7 @@ function blankClass(c){return c.nom==='Ma classe'&&!c.eleves.length&&!Object.key
 function seqMeta(q){const o=Object.assign({},q);o.ord=(q.lecons||[]).map(l=>l.id);delete o.lecons;return o}
 function syRecords(){const O={};
   S.classes.forEach(c=>{if(blankClass(c))return;
-    O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,voie:c.voie,ord:c.eleves.map(e=>e.id),tour:c.tour||null});
+    O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,voie:c.voie,ord:c.eleves.map(e=>e.id),tour:c.tour||null,coachAll:!!c.coachAll});
     Object.values(c.groupes||{}).forEach(g=>{O['gr|'+c.id+'|'+g.id]=JSON.stringify(g)});
     c.eleves.forEach(e=>{O['el|'+c.id+'|'+e.id]=JSON.stringify(e)});
     Object.values(c.matchs||{}).forEach(m=>{O['ma|'+c.id+'|'+m.id]=JSON.stringify(m)});
@@ -2161,7 +2295,7 @@ function syApply(k,o){const p=k.split('|'),t=p[0];
   if(t==='ctr'){S.contrats=o;return}
   if(t==='cl'){let c=S.classes.find(x=>x.id===o.id);
     if(!c){c=S.classes.find(x=>norm(x.nom)===norm(o.nom)&&x.voie===(o.voie||'gt'));if(c)c.id=o.id;else c=syCls(o.id,o.nom)}
-    c.nom=o.nom;c.voie=o.voie==='pro'?'pro':'gt';c.tour=o.tour||null;sortBy(c.eleves,o.ord);return}
+    c.nom=o.nom;c.voie=o.voie==='pro'?'pro':'gt';c.tour=o.tour||null;c.coachAll=!!o.coachAll;sortBy(c.eleves,o.ord);return}
   const c=syCls(p[1]);
   if(t==='ma'){c.matchs[o.id]=o;return}
   if(t==='po'){c.poules[o.id]=o;return}

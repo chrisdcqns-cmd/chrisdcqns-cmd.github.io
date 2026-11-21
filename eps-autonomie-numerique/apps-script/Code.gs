@@ -173,6 +173,8 @@ const CLAUDE_MODEL = 'claude-haiku-5-5';
 function reformuler_(p) {
   const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY');
   if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
+  if (p.ai === 'badsit') return badSituation_(key, p);
+  if (p.ai === 'badcoach') return badCoach_(key, p);
   const notes = String(p.t || '').slice(0, 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, 600);
   if (!notes.trim() && !ctx.trim()) throw new Error('Texte vide');
   const bulletin = p.ai === 'bulletin';
@@ -208,7 +210,7 @@ function testerClaude() {
   Logger.log(reformuler_({ ai: 'fiche', act: 'Escalade', t: 'pieds précis, lit bien la voie, mais assurage encore hésitant' }));
 }
 
-/* ================= 🤖 Bilan de leçon pour l'enseignant (Claude, API d'Anthropic) =================
+/* ================= 🤖 Bilan de leçon pour l'enseignant (Claude, API d'Anthropic) ==========
  * L'appli envoie par POST { key, aiReq:{ id, mode:'bilan', act, t } } : t = résumé chiffré de la leçon, élèves désignés
  * par des codes E1, E2… (jamais de prénom : la correspondance reste sur la tablette). Le résultat (JSON) est rangé
  * 6 heures dans le cache du script ; l'appli le lit en JSONP avec ?aiget=<id>. */
@@ -249,4 +251,85 @@ function bilan_(key, r) {
 /** À lancer une fois depuis l'éditeur (▶ Exécuter) pour vérifier le bilan de leçon. */
 function testerBilan() {
   Logger.log(bilan_(PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), { act: 'Escalade', t: 'Leçon de test : 2 élèves.\nE1 : 3 voies (4b Top ; 5a Top ; 5b 5 dég.)\nE2 : 1 voie (4a sous la ligne rouge, pourquoi : J\'ai eu peur)' }));
+}
+
+/* ================= 🏸 Badminton : « Décris ta situation » et coach virtuel (Claude) =================
+ * badsit : l'enseignant décrit une situation en une phrase → Claude renvoie le réglage du terrain à zones (JSON) que l'appli affiche pour validation.
+ * badcoach : statistiques ANONYMES d'un élève (aucun nom) + objectif de la leçon → un conseil court en langage élève.
+ * Garde-fou : 300 demandes par heure au maximum pour l'ensemble des tablettes. */
+const CLAUDE_MODEL_SIT = 'claude-sonnet-5-5';
+function quota_() {
+  const c = CacheService.getScriptCache(), k = 'aiq' + Math.floor(Date.now() / 3600000), n = Number(c.get(k) || 0);
+  if (n >= 300) throw new Error('Trop de demandes cette heure-ci, réessaie plus tard');
+  c.put(k, String(n + 1), 3700);
+}
+const BAD_SIT_SCHEMA = {
+  type: 'object',
+  properties: {
+    nom: { type: 'string', description: 'Nom court de la situation (5 mots max)' },
+    desc: { type: 'string', description: 'Consigne lue par les élèves : règles et but, 2 à 3 phrases, tutoiement' },
+    type: { type: 'string', enum: ['match', 'exo'], description: 'match à 2 joueurs, ou exercice (compteur de réussites : réussite = volant dans une zone b)' },
+    jeu: { type: 'string', enum: ['simple', 'double'] },
+    np: { type: 'integer', minimum: 1, maximum: 3, description: 'Nombre de bandes en profondeur sur chaque demi-terrain' },
+    prof: { type: 'array', items: { type: 'number' }, description: 'np-1 limites en mètres depuis le filet, croissantes, entre 0.4 et 6.5' },
+    nl: { type: 'integer', minimum: 1, maximum: 3, description: 'Nombre de bandes en largeur' },
+    lat: { type: 'array', items: { type: 'number' }, description: 'nl-1 limites en mètres depuis le bord gauche du joueur qui reçoit, croissantes, entre 0.3 et 5.8' },
+    zones: { type: 'array', description: 'Règle de chaque zone qui n\'est pas normale à 1 point', items: { type: 'object', properties: {
+      r: { type: 'integer', minimum: 0, maximum: 2, description: 'bande de profondeur : 0 = près du filet' },
+      c: { type: 'integer', minimum: 0, maximum: 2, description: 'bande de largeur : 0 = gauche du receveur' },
+      m: { type: 'string', enum: ['n', 'b', 'x', 'g', 'o'], description: 'n normale, b bonifiée (compte pour le contrat), x interdite (le volant qui y tombe donne le point à l\'adversaire), g dégressive (1000, 100, 10, 1…), o supprimée (0 point de zone)' },
+      v: { type: 'integer', minimum: 0, maximum: 1000, description: 'points de zone d\'un point marqué ici (modes n et b)' } }, required: ['r', 'c', 'm'] } },
+    asym: { type: 'boolean', description: 'true si les zones n\'ont pas la même taille pour les deux joueurs (handicap)' },
+    profB: { type: 'array', items: { type: 'number' }, description: 'si asym : limites de profondeur des zones visées par le joueur B' },
+    latB: { type: 'array', items: { type: 'number' }, description: 'si asym : limites de largeur des zones visées par le joueur B' },
+    pour: { type: 'string', enum: ['ab', 'a', 'b'], description: 'les règles de zones s\'appliquent aux deux joueurs, au joueur A seul ou au joueur B seul' },
+    score: { type: 'string', enum: ['classique', 'zones'], description: 'le match se gagne au score classique ou aux points de zones' },
+    cible: { type: 'integer', minimum: 0, maximum: 60, description: 'points à atteindre (0 = au temps, seulement pour le mode zones)' },
+    ecart: { type: 'boolean', description: '2 points d\'écart' },
+    faute: { type: 'integer', minimum: 0, maximum: 10, description: 'points de zone d\'un point gagné sur faute adverse' },
+    contrat: { type: 'integer', minimum: 0, maximum: 11, description: 'nombre de points à marquer en zones b pour réussir le contrat (0 = aucun)' },
+    coups: { type: 'object', description: 'bonus en points de zone quand le point est gagné avec ce coup ; clés possibles : svl (service long), svc (service court), deg (dégagé), amo (amorti), cam (contre-amorti), lob, dri (drive), sma (smash), kil (kill)', additionalProperties: { type: 'integer' } },
+    deg: { type: 'array', items: { type: 'integer' }, description: 'suite des valeurs des zones dégressives' },
+    essais: { type: 'integer', description: 'exercice : nombre d\'essais par joueur' },
+    obj: { type: 'integer', description: 'exercice : objectif de réussites' },
+    explication: { type: 'string', description: 'Pour l\'enseignant : en 1 ou 2 phrases, comment la demande a été traduite et ce qu\'il peut ajuster' }
+  },
+  required: ['nom', 'desc', 'type', 'np', 'nl', 'score', 'explication']
+};
+function badSituation_(key, p) {
+  quota_();
+  const texte = String(p.t || '').slice(0, 1200), ctx = String(p.ctx || '').slice(0, 600);
+  if (!texte.trim()) throw new Error('Décris la situation');
+  const system = 'Tu aides un enseignant d\'EPS de lycée à régler une situation de badminton sur un terrain à zones interactif (tablette). ' +
+    'Chaque demi-terrain mesure 6,70 m de profondeur (du filet au fond) et 6,10 m de large. Repères depuis le filet : ligne de service court 1,98 m, ligne de service long double 5,94 m, fond 6,70 m. Couloirs de simple : 0,46 m de chaque côté. ' +
+    'Les zones sont les mêmes sur les deux demi-terrains (vues par le joueur qui reçoit) : np bandes en profondeur séparées par les limites prof (mètres depuis le filet), nl bandes en largeur séparées par les limites lat (mètres depuis la gauche du receveur). Zone (r, c) : r = 0 près du filet, c = 0 à gauche. ' +
+    'Exemples de découpage : avant seule = np 2, prof [1.98] ; avant / milieu / fond = np 3, prof [1.98, 4.72] ; couloirs latéraux = nl 3, lat [1.7, 4.4] ; 4 coins = np 2, prof [3.35], nl 2, lat [3.05]. ' +
+    'Une zone qui n\'apparaît pas dans zones est normale et vaut 1. Pour « zone à 1000 points » ou « plus une zone est atteinte, moins elle rapporte », utilise le mode g. Pour un contrat (« un point marqué dans la zone X = point de contrat »), mets la zone en b avec une valeur de 2 ou 3 et un contrat de 3 à 5 points. ' +
+    'Pour réguler le niveau (« zones plus petites pour le plus fort »), utilise asym avec profB/latB (zones visées par B) ou pour = a / b. Par défaut : match en simple, 11 points, score classique, faute = 1. ' +
+    'Respecte exactement la demande, ne rajoute pas de règle non demandée. Vocabulaire : « leçon », « séquence ». Rédige desc pour des lycéens (tutoiement, phrases courtes).';
+  const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify({ model: CLAUDE_MODEL_SIT, max_tokens: 1500, system: system,
+      tools: [{ name: 'regler_situation', description: 'Réglage complet de la situation de badminton', input_schema: BAD_SIT_SCHEMA }],
+      tool_choice: { type: 'tool', name: 'regler_situation' },
+      messages: [{ role: 'user', content: (ctx ? 'Contexte : ' + ctx + '\n' : '') + 'Situation voulue : ' + texte }] })
+  });
+  const code = r.getResponseCode(), out = JSON.parse(r.getContentText() || '{}');
+  if (code !== 200) throw new Error('API ' + code + ' : ' + ((out.error && out.error.message) || ''));
+  const t = (out.content || []).filter(function (c) { return c.type === 'tool_use'; })[0];
+  if (!t) throw new Error('Pas de réglage renvoyé');
+  return JSON.stringify(t.input);
+}
+function badCoach_(key, p) {
+  quota_();
+  const stats = String(p.t || '').slice(0, 1500), ctx = String(p.ctx || '').slice(0, 600);
+  const system = 'Tu es le coach virtuel d\'un élève de lycée en badminton (EPS), en France. On te donne ses statistiques de matchs (anonymes) et l\'objectif de la leçon. ' +
+    'Réponds en tutoyant l\'élève, avec des mots simples, en 3 courtes lignes commençant par : « ✅ », « 🎯 » et « 🏸 » : ce qui marche déjà (appuyé sur un chiffre), LA priorité à travailler, puis un conseil concret pour le prochain match ou exercice, en lien avec l\'objectif de la leçon. ' +
+    '450 caractères au maximum. N\'invente aucun chiffre. Si les données sont trop peu nombreuses (moins de 5 points), encourage-le à jouer d\'abord un match. Pas de nom, pas de jugement sur la personne. Vocabulaire : « leçon », jamais « séance ».';
+  return claude_(key, system + ' Réponds uniquement par les 3 lignes.', (ctx ? 'Leçon : ' + ctx + '\n' : '') + 'Statistiques : ' + stats);
+}
+/** À lancer une fois depuis l'éditeur pour vérifier « Décris ta situation » (Badminton). */
+function testerBadminton() {
+  Logger.log(badSituation_(PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), { t: 'match en 11 points, le fond rapporte 3 points, le milieu est interdit' }));
 }
