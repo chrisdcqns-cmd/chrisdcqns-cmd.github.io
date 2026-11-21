@@ -2384,7 +2384,7 @@ function rBilan() {
       <button class="btn primary" id="xZip">Bilans élèves (ZIP de PDF)</button>
       <button class="btn" id="xRecap">Récapitulatif classe (PDF)</button>
       <button class="btn" id="xCsv">Tableau (CSV)</button>
-      <button class="btn" id="xPn">📋 Pronote</button></div>
+      <button class="btn" id="xPn">📋 Pronote</button><button class="btn" id="xPub">🌐 Publier en ligne</button></div>
     <p class="muted">Le ZIP contient un PDF par élève (prêt à déposer sur Pronote) et le récapitulatif de la classe. Langage du PDF élève : <b>${S.reglages.langPDF === 'eleve' ? 'version élève simplifiée' : 'version enseignant'}</b> · note ${S.reglages.noteSurPDF ? 'affichée' : 'masquée'} (modifiable dans Réglages).</p>
     <h4>Lien d'auto-positionnement sur les bilans</h4>
     ${autoCtlHTML()}
@@ -2403,6 +2403,7 @@ function rBilan() {
   $('#xRecap').onclick = () => exportRecap(cl);
   $('#xCsv').onclick = () => exportCsv(cl);
   $('#xPn').onclick = () => exportPronote(cl);
+  $('#xPub').onclick = () => { if (!(window.EPSD && EPSD.publish)) { toast('Publication indisponible (recharge la page)'); return; } EPSD.publish({ app: 'danse', nom: 'Danse', color: '#C2185B', classe: cl.nom, eleves: cl.eleves.map(e => ({ full: ((e.prenom || '') + ' ' + (e.nom || '')).trim(), bytes: () => pdfEleveBytes(cl, e) })) }); };
   $('.tbl').onclick = ev => { const b = ev.target.closest('[data-pdf]'); if (b) exportPdfEleve(cl.eleves.find(e => e.id === b.dataset.pdf)); };
 }
 

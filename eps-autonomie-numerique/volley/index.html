@@ -1781,7 +1781,7 @@ function renderBilan(){
       <button class="btn" onclick="exportPdfTous()">📄 Toutes les fiches (un PDF)</button>
       <button class="btn alt" onclick="exportRecap()">📄 Récapitulatif (PDF)</button>
       <button class="btn alt" onclick="exportCSV()">⬇ Tableur (.csv)</button>
-      <button class="btn alt" onclick="exportPronote()">📋 Pronote</button>
+      <button class="btn alt" onclick="exportPronote()">📋 Pronote</button><button class="btn alt" onclick="publierEnLigne()">🌐 Publier en ligne</button>
     </div>
     <div class="row" style="margin-top:10px"><b style="color:var(--navy)">Langage des fiches élèves (PDF et .zip) :</b>
      <div class="seg"><button class="${B().langFiche!=='prof'?'on':''}" onclick="B().langFiche='eleve';save();renderBilan()">Version élève (simplifiée)</button><button class="${B().langFiche==='prof'?'on':''}" onclick="B().langFiche='prof';save();renderBilan()">Version enseignant</button></div></div>
@@ -2279,6 +2279,9 @@ async function recapBytes(c){
   if(y<M+40)entete();y-=20;const moy=notes.length?notes.reduce((s,v)=>s+v,0)/notes.length:null;
   PT(page,`Élèves notés : ${notes.length} / ${c.eleves.length}    Moyenne : ${fr(moy)}    Min : ${notes.length?fr(Math.min(...notes)):'—'}    Max : ${notes.length?fr(Math.max(...notes)):'—'}`,M,y,9,F.b,ink);
   return doc.save()}
+/* bilans en ligne (commun, eps-home.js) : fiche chiffrée avec le code personnel de l'élève, page « Mon bilan » */
+function publierEnLigne(){const c=C();if(!(window.EPSD&&EPSD.publish)){toast('Publication indisponible (recharge la page)');return}
+  EPSD.publish({app:'volley',nom:'Volley-ball',color:'#6B3FA0',classe:c.nom,eleves:c.eleves.map(e=>({full:((e.prenom||'')+' '+(e.nom||'')).trim(),bytes:()=>pdfEleveBytes(c,e)}))})}
 /* notes à coller dans Pronote (fenêtre commune EPSR.pronote d'eps-home.js) : note /20 et points par AFL */
 function exportPronote(){const c=C();if(!(window.EPSR&&EPSR.pronote)){toast('Export Pronote indisponible (recharge la page)');return}
   const A=['AFL1','AFL2','AFL3'].filter(x=>B().criteres.some(cr=>cr.afl===x)),mx=x=>{for(const e of c.eleves){const r=aflPts(e,x);if(r)return r.max}return null};
