@@ -36,7 +36,7 @@ function doGet(e) {
   if (res.keyOk) res.sync = 1;
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
-  res.aiv = 1;
+  res.aiv = 2; /* 2 : bilan de leçon (ai=lecon) */
   if (res.keyOk && p.aiget) { const c = CacheService.getScriptCache().get('ai_' + String(p.aiget).slice(0, 40)); res.aiRes = c ? JSON.parse(c) : null; }
   if (res.keyOk && p.ai) { try { res.ai = reformuler_(p); } catch (err) { res.aiErr = String(err && err.message || err); } }
   const body = JSON.stringify(res);
@@ -168,6 +168,7 @@ function autoriserAppelAS() {
  * p.ai = 'fiche' (commentaire adressé à l'élève, tutoiement), 'bulletin' (appréciation de bulletin, 3e personne, sans prénom),
  *        'eleve' (texte d'une grille d'évaluation réécrit en langage élève), 'simple' (consigne simplifiée, lisible par un élève dys),
  *        'trad' (consigne traduite dans la langue p.lang, en restant simple).
+ *        'lecon' (bilan d'une leçon pour l'enseignant, à partir de résultats anonymes E1, E2…).
  * p.t = notes de l'enseignant (dictées ou tapées) ; p.act = activité ; p.ctx = éléments d'évaluation (degrés, note), facultatif. */
 const CLAUDE_MODEL = 'claude-haiku-5-5';
 function reformuler_(p) {
@@ -175,10 +176,19 @@ function reformuler_(p) {
   if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
   if (p.ai === 'badsit') return badSituation_(key, p);
   if (p.ai === 'badcoach') return badCoach_(key, p);
-  const notes = String(p.t || '').slice(0, 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, 600);
+  const notes = String(p.t || '').slice(0, p.ai === 'lecon' ? 3200 : 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, 600);
   if (!notes.trim() && !ctx.trim()) throw new Error('Texte vide');
   const bulletin = p.ai === 'bulletin';
   const COMMUN = ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
+  if (p.ai === 'lecon') {
+    const sysL = 'Tu es enseignant d\'EPS en lycée, en France. Tu analyses les résultats d\'une leçon (activité : ' + act + ') saisis sur tablette par les élèves. ' +
+      'Les élèves sont désignés par des codes (E1, E2…) : réutilise exactement ces codes, n\'invente aucun nom, aucun chiffre, aucun fait absent des données. ' +
+      'Écris pour l\'enseignant, en français simple, avec ces quatre titres sur leur propre ligne : « Ce qui marche », « À aider en priorité », « Pour la prochaine leçon », « Un mot pour la classe ». ' +
+      'Sous chaque titre, 2 à 4 tirets courts. « À aider en priorité » : les binômes ou élèves en difficulté avec la cause probable (départ du receveur, prise de marque, ralentissement, transmission trop tôt) et ce qu\'il faut leur dire. ' +
+      '« Pour la prochaine leçon » : 2 ou 3 situations, de préférence choisies dans la liste fournie, avec la consigne clé. « Un mot pour la classe » : une phrase à dire aux élèves. ' +
+      'Pas de mise en gras ni de tableau ; 1400 caractères maximum. Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »).';
+    return claude_(key, sysL + COMMUN, (ctx ? 'Situations disponibles : ' + ctx + '\n' : '') + 'Résultats de la leçon :\n' + notes);
+  }
   if (p.ai === 'eleve' || p.ai === 'simple' || p.ai === 'trad') {
     const sys = p.ai === 'eleve'
       ? 'Tu réécris pour des lycéens un descripteur de grille d\'évaluation en EPS (activité : ' + act + '). Écris à la 1re personne (« Je… »), en une ou deux phrases courtes, avec des mots simples et concrets, sans perdre le niveau d\'exigence ni inventer de critère. Vocabulaire : « leçon », « séquence ».'

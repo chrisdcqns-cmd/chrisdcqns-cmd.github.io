@@ -24,10 +24,16 @@ window.EPS_GUIDES = {
   ] },
   rel: { nom: "Relais Vitesse", items: [
     ["📅 Séquence", "Leçons de la classe, Leçon du jour (vitesse cible à atteindre pour une paire de coureurs, consulter les vitesses, enregistrer les courses), Courses."],
+    ["👟 Choix des coureurs", "Les élèves touchent leur prénom sur des tuiles (coureur 1 en orange, coureur 2 en bleu), avec leur vitesse et le nombre de courses déjà faites dans ce rôle ; « + Élève d'un autre groupe » ouvre le reste de la classe."],
+    ["🎯 Marque du binôme", "Dès que les deux coureurs sont choisis, l'appli rappelle leur marque d'après leur dernière course (même d'une leçon précédente) : plot à garder, à reculer ou à avancer ; le plot conseillé est entouré en bleu."],
+    ["🎥 Filmer la transmission", "Sur Enregistrer une course : la tablette filme la zone en continu ; juste après la course, « Revoir les dernières secondes » rejoue la transmission au ralenti (× 0,25 / × 0,5). Rien n'est enregistré ni envoyé."],
+    ["📡 En direct", "Séquence › En direct (ou bouton de la leçon du jour) : courses, élèves qui ont couru, objectif atteint, zones, et « À aller voir » (binôme qui répète la même erreur, groupe sans course depuis 10 min, élèves qui n'ont pas couru). Les tablettes et leur dernière synchro sont en bas. La pastille Synchro (en bas à droite) est verte si la tablette est à jour, orange si elle attend ; touche-la pour ouvrir En direct."],
+    ["✨ Bilan de la leçon", "Dans En direct : Claude analyse les courses (élèves envoyés sous forme de codes, jamais de nom) et propose ce qui marche, qui aider en priorité, les situations pour la prochaine leçon et un mot pour la classe. À copier ou partager ; à vérifier avec ce que tu as vu."],
     ["📚 Bibliothèque", "Dispositif (zones, plots, témoin) et Situations d'apprentissage."],
     ["📋 Évaluation", "Performance, Transmission (AFL1), Mise en projet (AFL2), Vivre les rôles (AFL3), répartition des points AFL2 / AFL3. Raccourci 🙋 Auto-évaluations. Fiches PDF au format commun avec QR d'auto-positionnement."],
     ["👥 Classe", "Toutes les classes, élèves (import, correction), groupes."],
-    ["📄 Bilans", "Bilan de l'évaluation (moyennes, répartition par degré), PDF de la classe, fiches élèves (.zip), Excel."],
+    ["📄 Bilans", "Bilan de l'évaluation (moyennes, répartition par degré), PDF de la classe, fiches élèves (.zip), Excel (avec les appréciations)."],
+    ["✍️ Appréciations", "Dans la grille de chaque élève : 🎤 Dicter ou taper quelques mots, puis ✨ Reformuler (Claude, à partir des degrés et des courses, sans nom). « ✨ Rédiger les appréciations manquantes » dans le bilan le fait pour toute la classe (grilles complètes). Relis avant de les utiliser."],
     ["Côté élève", "Choisis ta classe ; dispositif et situations accessibles sans classe ; la leçon lancée par l'enseignant s'ouvre sur la tablette."]
   ] },
   vol: { nom: "Volley-ball", items: [
