@@ -2807,7 +2807,7 @@ function rReglages() {
     ${S.criteres.map((c, i) => `<details class="edit"><summary><b>${esc(c.court)}</b> — ${esc(c.titre)}</summary>
       <div class="two"><label>Titre<input data-t="${i}" data-k="titre" value="${esc(c.titre)}"></label><label>Titre (langage élève)<input data-t="${i}" data-k="titreEleve" value="${esc(c.titreEleve)}"></label></div>
       <label>Description<textarea rows="2" data-t="${i}" data-k="sous">${esc(c.sous)}</textarea></label>
-      ${[0, 1, 2, 3].map(d => `<div class="two"><label>Degré ${d + 1} — enseignant<textarea rows="3" data-t="${i}" data-k="d" data-d="${d}">${esc(c.d[d])}</textarea></label><label>Degré ${d + 1} — élève<textarea rows="3" data-t="${i}" data-k="e" data-d="${d}">${esc(c.e[d])}</textarea></label></div>`).join('')}
+      ${[0, 1, 2, 3].map(d => `<div class="two"><label>Degré ${d + 1} — enseignant<textarea rows="3" data-t="${i}" data-k="d" data-d="${d}">${esc(c.d[d])}</textarea></label><label>Degré ${d + 1} — élève<textarea rows="3" data-t="${i}" data-k="e" data-d="${d}">${esc(c.e[d])}</textarea></label></div>`).join('')}<button class="btn" type="button" style="margin:6px 0" onclick="window.EPSD&&EPSD.versionEleve(this,S.criteres[${i}].d,document.querySelectorAll('[data-t=&quot;${i}&quot;][data-k=&quot;e&quot;]'),v=>{S.criteres[${i}].e=v;save()})">✨ Proposer la version élève</button>
     </details>`).join('')}
   </section>
   <section class="card">

@@ -1556,7 +1556,7 @@ function renderBareme(){
       <details style="margin-top:8px;background:#f8f3fb;border-radius:10px;padding:8px 10px"><summary style="cursor:pointer;font-weight:700;color:var(--vol)">🧒 Version élève de ce critère (fiches, PDF élève, « Texte élève », auto-positionnement)</summary>
        <label class="l">Titre pour l'élève</label><input type="text" value="${esc(c.nomEl||'')}" onchange="setC(${k},'nomEl',this.value)">
        <label class="l">Objectif pour l'élève</label><input type="text" value="${esc(c.butEl||'')}" onchange="setC(${k},'butEl',this.value)">
-       <div class="g4">${[0,1,2,3].map(d=>`<div><label class="l">${esc((b.degresEl||[])[d]||'D'+(d+1))}</label><textarea rows="4" onchange="B().criteres[${k}].descEl[${d}]=this.value;save()">${esc((c.descEl||[])[d]||'')}</textarea></div>`).join('')}</div></details>
+       <div class="g4">${[0,1,2,3].map(d=>`<div><label class="l">${esc((b.degresEl||[])[d]||'D'+(d+1))}</label><textarea rows="4" onchange="B().criteres[${k}].descEl[${d}]=this.value;save()">${esc((c.descEl||[])[d]||'')}</textarea></div>`).join('')}</div><button class="btn alt sm" type="button" style="margin-top:6px" onclick="window.EPSD&&EPSD.versionEleve(this,B().criteres[${k}].desc,this.closest('details').querySelectorAll('.g4 textarea'),v=>{B().criteres[${k}].descEl=v;save()})">✨ Proposer la version élève</button></details>
       <div class="row" style="margin-top:8px">
         <button class="btn alt sm" onclick="moveC(${k},-1)">↑</button><button class="btn alt sm" onclick="moveC(${k},1)">↓</button>
         <button class="btn red sm" onclick="delC(${k})">Supprimer ce critère</button></div>

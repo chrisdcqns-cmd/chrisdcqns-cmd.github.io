@@ -1327,6 +1327,18 @@
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
     reformuler: function (t, o) { return reformuler(t, o); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
+    /* ✨ version élève d'un critère (éditeurs de grille propres à Volley, Badminton, Danse) : Claude propose les 4 descripteurs « Je… »
+       dans les champs élève (en jaune, non enregistrés) ; enregistrement seulement au 2e appui « ✓ Valider » après relecture. */
+    versionEleve: function (btn, srcs, dsts, save) {
+      dsts = Array.prototype.slice.call(dsts || []);
+      if (btn.dataset.pending === "1") { save(dsts.map(function (t) { return t.value; })); dsts.forEach(function (t) { t.style.background = ""; }); btn.dataset.pending = ""; btn.textContent = "✓ Version élève enregistrée"; setTimeout(function () { btn.textContent = "✨ Proposer la version élève"; }, 2500); return; }
+      btn.disabled = true; btn.textContent = "Claude rédige…"; var out = [], i = 0;
+      (function next() {
+        if (i >= dsts.length) { dsts.forEach(function (t, k) { t.value = out[k]; t.style.background = "#FFF6E0"; }); btn.disabled = false; btn.dataset.pending = "1"; btn.textContent = "✓ Valider la version élève (après relecture)"; return; }
+        reformuler(String(srcs[i] || ""), { mode: "eleve" }).then(function (t) { out.push(String(t || "").trim()); i++; next(); },
+          function (e) { btn.disabled = false; btn.textContent = "✨ Proposer la version élève"; alert("⚠ " + (e && e.message || e)); });
+      })();
+    },
     search: function () { searchStudents(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
     bulletin: function () { bulletin(); },
