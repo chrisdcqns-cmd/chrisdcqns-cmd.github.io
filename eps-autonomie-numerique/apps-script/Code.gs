@@ -372,14 +372,19 @@ function badSituation_(key, p) {
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     payload: JSON.stringify({ model: CLAUDE_MODEL_SIT, max_tokens: 1500, system: system,
       tools: [{ name: 'regler_situation', description: 'Réglage complet de la situation de badminton', input_schema: BAD_SIT_SCHEMA }],
-      tool_choice: { type: 'tool', name: 'regler_situation' },
-      messages: [{ role: 'user', content: (ctx ? 'Contexte : ' + ctx + '\n' : '') + 'Situation voulue : ' + texte }] })
+      tool_choice: { type: 'auto' },
+      messages: [{ role: 'user', content: (ctx ? 'Contexte : ' + ctx + '\n' : '') + 'Situation voulue : ' + texte + '\n\nRéponds uniquement en appelant l\'outil regler_situation.' }] })
   });
   const code = r.getResponseCode(), out = JSON.parse(r.getContentText() || '{}');
   if (code !== 200) throw new Error('API ' + code + ' : ' + ((out.error && out.error.message) || ''));
   const t = (out.content || []).filter(function (c) { return c.type === 'tool_use'; })[0];
-  if (!t) throw new Error('Pas de réglage renvoyé');
-  return JSON.stringify(t.input);
+  if (t) return JSON.stringify(t.input);
+  // Secours : le modèle a répondu en texte → on récupère le JSON s'il y en a un.
+  const txt = (out.content || []).filter(function (c) { return c.type === 'text'; }).map(function (c) { return c.text; }).join('\n');
+  const m = txt.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('Pas de réglage renvoyé : reformule la demande');
+  JSON.parse(m[0]);
+  return m[0];
 }
 function badCoach_(key, p) {
   quota_();
