@@ -6,4 +6,8 @@
 - Script commun (`../apps-script/Code.gs`) : `GET ?ct=biblio` (fiches + liste), `GET ?ct=video&id=` (base64, pour le hors ligne), `POST {key, ct:{dossier|partager|fiches}}`.
 - Hors ligne : vidéos dans IndexedDB `ct_videos` (bouton « Télécharger » de la Bibliothèque) ; lecture locale sinon lecteur Drive.
 - Thèmes (version du livret, améliorée) : Renforcement 60-70 % FCM (circuit, EMOM ; 12-15 rép.), Mental 70-80 % (AMRAP à allure imposée, For Time), Cardio 80-90 % (intervalles 30/30 ou 40/20, EMOM, E2MOM ; FC relevée en fin de bloc).
-- Leçons des élèves : locales à la tablette (`ct_lecons`), rangées par classe. Pas encore d'évaluation (onglets Évaluation / Bilans à brancher sur `eps-eval.js`).
+- Élève : classe (écran commun ; sans classe = bibliothèque seule) → groupe (solo / binôme / trinôme selon `cfg.groupes`) → Mon WOD → ▶ timer → résultat dans le carnet.
+- Magasin synchronisé `ct.v1` (`EPSD.store`, préfixe `ct|`) : `cfg` (groupes, `ia` élèves, `iaProf`), `j|<classe>|<date>` leçon du jour (consigne, thème / format imposés, `wod` imposé), `w|<id>` résultats (classe, noms du groupe, WOD, score, RPE 0-10, FC, analyse).
+- WOD enregistrés (modèles) : locaux à la tablette (`ct_lecons`).
+- Évaluation : `EPSE.store` (`EVCT`, grille CA5 AFL1 6+6, AFL2 4, AFL3 4) ; Bilans = carnets de la classe + bilan commun.
+- Claude (script commun, `lecon_`) : `op:'ctwod'` (WOD proposé à l'enseignant, brouillon), `op:'ctconseil'` (conseils à l'élève, seulement si `cfg.ia`), `op:'grille'` (import Additio, commun à toutes les applis via eps-eval.js).

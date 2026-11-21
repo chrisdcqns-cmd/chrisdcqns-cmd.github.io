@@ -235,6 +235,35 @@ function lecon_(q) {
       'Décris chaque schéma en une ligne entre crochets : [Schéma : …]. Réponds uniquement par la transcription.';
     return { texte: claude_(key, sys, [block, { type: 'text', text: 'Transcris ce document : ' + String(q.nom || '').slice(0, 120) }], CLAUDE_MODEL_LECON, 8000) };
   }
+  /* Import d'une grille d'évaluation (export Additio en PDF, Excel/CSV, ou photo) → grille par degrés de eps-eval.js. */
+  if (q.op === 'grille') {
+    const mime = String(q.mime || ''), parts = [];
+    if (q.b64) parts.push(mime === 'application/pdf' ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: String(q.b64) } }
+      : { type: 'image', source: { type: 'base64', media_type: /^image\/(png|gif|webp)$/.test(mime) ? mime : 'image/jpeg', data: String(q.b64) } });
+    parts.push({ type: 'text', text: (q.txt ? 'CONTENU DU FICHIER :\n' + String(q.txt).slice(0, 60000) + '\n\n' : '') + 'Convertis cette grille.' });
+    const sys = 'Tu convertis une grille d\'évaluation d\'EPS (activité : ' + act + ', souvent exportée d\'Additio) en JSON, SANS rien inventer : recopie les intitulés, points et descripteurs tels quels. ' +
+      'Chaque critère a exactement 4 degrés (si la grille en a 3 ou 5, regroupe ou répartis le plus fidèlement possible et signale-le dans "remarque"). ' +
+      'Réponds UNIQUEMENT par : {"degres":["Degré 1","Degré 2","Degré 3","Degré 4"],"criteres":[{"id":"c1","afl":"AFL1","max":nombre de points,"nom":"","but":"","desc":["D1","D2","D3","D4"]}],"remarque":""}.';
+    const t = claude_(key, sys, parts, CLAUDE_MODEL_LECON, 6000), a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
+    return { grille: JSON.parse(t.slice(a, b + 1)) };
+  }
+  /* Cross-training : WOD proposé à l'enseignant (brouillon) ou conseil sur le WOD d'un élève (si l'enseignant l'a activé). Jamais de nom d'élève. */
+  if (q.op === 'ctwod' || q.op === 'ctconseil') {
+    const base = 'Tu es enseignant d\'EPS en lycée, spécialiste du cross-training (CA5, sans matériel). Vocabulaire culturel (WOD, AMRAP, EMOM, For Time, Rep / No rep) avec le français. ' +
+      'Thèmes : Renforcement (60-70 % FCM, 12-15 répétitions, récupération ≤ 30 s, circuit ou EMOM), Mental (70-80 % FCM, AMRAP à allure imposée ou For Time avec time cap), Cardio (80-90 % FCM, intervalles 30/30 ou 40/20, EMOM, E2MOM, FC relevée en fin de bloc). ' +
+      'Exercices disponibles (id : nom) : ' + String(q.biblio || '').slice(0, 4000) + '. ';
+    if (q.op === 'ctwod') {
+      const sys = base + 'Propose le WOD de la leçon pour la classe, en tenant compte des précisions de l\'enseignant. Réponds UNIQUEMENT par : ' +
+        '{"titre":"","theme":"R|M|C","format":"circuit|emom|e2mom|amrap|fortime|intervalles","params":{},"items":[{"exId":"","niv":1,"qte":10}],"consigne":"consigne aux élèves (tutoiement, 2 phrases)","pourquoi":"justification pour l\'enseignant"}. ' +
+        'params selon le format : circuit {tours,recupEx,recupTour} ; emom/e2mom {minutes} ; amrap {minutes,cible} ; fortime {tours,cap} ; intervalles {travail,repos,tours}. 3 à 6 exercices, zones du corps équilibrées.';
+      const t = claude_(key, sys, 'Classe / niveau : ' + String(q.niveau || '').slice(0, 200) + '\nPrécisions : ' + String(q.consigne || '').slice(0, 1500), CLAUDE_MODEL_LECON, 1500), a = t.indexOf('{'), b = t.lastIndexOf('}');
+      if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
+      return { wod: JSON.parse(t.slice(a, b + 1)) };
+    }
+    const sys = base + 'Un élève te montre son WOD. Donne-lui 3 conseils courts (tutoiement, 25 mots maximum chacun), concrets, sur la cohérence entre son thème, son format, ses quantités et ses exercices, et sur la sécurité. Ne le décourage pas. Réponds par les 3 conseils, un par ligne, commençant par « • ».';
+    return { texte: claude_(key, sys, String(q.wod || '').slice(0, 3000), CLAUDE_MODEL, 500) };
+  }
   if (q.op !== 'lecon') throw new Error('opération inconnue');
   const MODES = {
     importer: 'Mets en forme dans la structure LA leçon contenue dans le document fourni (si le document en contient plusieurs, celle indiquée dans les précisions, sinon la première). Recopie les formulations de l\'enseignant ; n\'invente RIEN : laisse vide ("") toute rubrique absente du document.',
