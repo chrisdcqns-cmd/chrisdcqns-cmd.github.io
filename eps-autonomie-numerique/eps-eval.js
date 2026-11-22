@@ -440,8 +440,25 @@
     var UI = { open: false, tab: "eval", cls: null, el: -1 };
     function root() { if (UI.host) { UI.host.classList.add("epse-host"); UI.host.style.setProperty("--app", o.color); return UI.host; } var v = document.getElementById("epse-" + o.app); if (!v) { css(); v = document.createElement("div"); v.id = "epse-" + o.app; v.className = "epse"; v.style.setProperty("--app", o.color); document.body.appendChild(v); } return v; }
     function curC() { var L = classes(); var c = L.filter(function (x) { return x.nom === UI.cls; })[0] || L[0] || null; if (c) UI.cls = c.nom; return c; }
+    /* groupes enregistrés dans l'appli (option o.groups(classe) → [{nom, membres:["Prénom NOM", …]}]) : élèves rangés par groupe dans Évaluer */
+    function grouper(c) {
+      var GR = []; try { if (o.groups) GR = o.groups(c.nom) || []; } catch (e) {}
+      if (!GR.length) return null;
+      var pris = {}, out = [], ordre = [];
+      GR.forEach(function (g) {
+        var ids = [];
+        (g.membres || []).forEach(function (m) { var k = nkey(m); c.eleves.forEach(function (e, i) { if (!pris[i] && nkey((e.prenom || "") + " " + (e.nom || "")) === k) { pris[i] = 1; ids.push(i); } }); });
+        if (ids.length) out.push({ nom: g.nom, ids: ids });
+      });
+      if (!out.length) return null;
+      var reste = c.eleves.map(function (e, i) { return i; }).filter(function (i) { return !pris[i]; });
+      if (reste.length) out.push({ nom: "Sans groupe", ids: reste });
+      var el = []; out.forEach(function (g) { g.ids = g.ids.map(function (i) { el.push(c.eleves[i]); return el.length - 1; }); });
+      c.eleves = el; return out;
+    }
     function render() {
       var R = root(), L = classes(), c = curC(), G = grid();
+      var GRP = c && UI.tab === "eval" ? grouper(c) : null;
       var sel = L.length ? '<select data-cls>' + L.map(function (x) { return "<option" + (c && x.nom === c.nom ? " selected" : "") + ">" + esc(x.nom) + "</option>"; }).join("") + "</select>" : "";
       var tabsH = [["eval", "Évaluer"], ["bilan", "Bilan & export"], ["grille", "Grille"]].filter(function (t) { return !UI.only || UI.only.indexOf(t[0]) >= 0; });
       var head = UI.host ? '<div class="epse-sub">' + (tabsH.length > 1 ? tabsH.map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") : "") + '<span style="flex:1"></span>' + (sel ? '<label class="epse-mut">Classe ' + sel + "</label>" : "") + "</div>"
@@ -450,7 +467,9 @@
       var body = "";
       if (!c) body = '<div class="epse-card"><p>Aucune classe pour cette activité. Importe une liste d\'élèves dans Réglages (accueil) et vérifie que l\'activité est cochée pour la classe.</p></div>';
       else if (UI.tab === "eval") body = UI.el >= 0 && c.eleves[UI.el] ? sheet(c, c.eleves[UI.el]) : '<div class="epse-card"><h2>' + esc(c.nom) + " · " + c.eleves.length + ' élèves</h2><p class="epse-mut">Touche un élève pour le positionner sur la grille.</p><div class="epse-chips">' +
-        c.eleves.map(function (e, i) { var n = note(e), r = rec(e._c, e); return '<button class="epse-chip' + (n != null ? " ok" : "") + '" data-el="' + i + '">' + esc(e.prenom + " " + e.nom) + (r.ap ? M.apChip(e) : "") + "<small>" + (r.st ? r.st : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></button>"; }).join("") + "</div></div>";
+        (function () { function chip(i) { var e = c.eleves[i], n = note(e), r = rec(e._c, e); return '<button class="epse-chip' + (n != null ? " ok" : "") + '" data-el="' + i + '">' + esc(e.prenom + " " + e.nom) + (r.ap ? M.apChip(e) : "") + "<small>" + (r.st ? r.st : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></button>"; }
+          if (!GRP) return c.eleves.map(function (e, i) { return chip(i); }).join("");
+          return "</div>" + GRP.map(function (g) { return '<h3 style="margin:14px 0 4px;font-size:15px">' + esc(g.nom) + ' <small class="epse-mut">· ' + g.ids.length + "</small></h3><div class=\"epse-chips\">" + g.ids.map(chip).join("") + "</div>"; }).join("") + "<div>"; })() + "</div></div>";
       else if (UI.tab === "bilan") body = table(c) + M.card(c) + M.exportsHtml();
       else body = gridEditor(G);
       R.innerHTML = head + '<div class="epse-in">' + body + "</div>";

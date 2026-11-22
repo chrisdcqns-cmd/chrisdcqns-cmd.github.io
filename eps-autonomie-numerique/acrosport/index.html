@@ -2404,9 +2404,15 @@ window.epsListsHook={reload:()=>{try{renderClassPick()}catch(e){}if(homeClass)lo
 setTimeout(pushCommonToSheet,4000);setInterval(pushCommonToSheet,120000);
 /* évaluation commune (eps-eval.js) : grille par degrés, auto-positionnement par QR code, fiches PDF au format Danse / Volley-ball.
    Grille proposée (CA3, lycée), modifiable dans Évaluation → Grille ; données « eps.eval.acro.v1 », synchronisées entre tablettes. */
+const acroGrpAsked={};
 window.EVACRO=window.EPSE?EPSE.store({app:'acro',nom:'Acrosport',ca:'CA3',color:'#1F4FA3',pfx:'ac',code:'ACRO1',url:'https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/acrosport/',
  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="3.5" r="1.8"/><path d="M8 7.5h8M12 7.5v3"/><circle cx="7.5" cy="11.5" r="1.8"/><circle cx="16.5" cy="11.5" r="1.8"/><path d="M7.5 13.5v7M16.5 13.5v7M5 16h5M14 16h5"/></svg>',
- isTeacher:()=>{try{return Number(localStorage.getItem('eps.teach.until')||0)>Date.now()||!!teacherPw}catch(e){return !!teacherPw}},unlock:()=>new Promise(r=>{try{openProf()}catch(e){}r()}),
+ isTeacher:()=>{try{return Number(localStorage.getItem('eps.teach.until')||0)>Date.now()||!!teacherPw}catch(e){return !!teacherPw}},
+ groups:cls=>{const seen={},out=[];const add=(nom,m)=>{const k=norm(nom);if(!nom||seen[k])return;seen[k]=1;out.push({nom,membres:(Array.isArray(m)?m:String(m||"").split(",")).map(x=>String(x).trim()).filter(Boolean)})};
+   try{(store.get(K_CACHE,{})[norm(cls)]||[]).forEach(g=>add(g.nom,g.membres))}catch(e){}
+   Object.values(groups).filter(g=>norm(g.classe)===norm(cls)).forEach(g=>add(g.name||(g.members||[]).join(" · "),g.members));
+   if(!acroGrpAsked[norm(cls)]&&apiUrl()){acroGrpAsked[norm(cls)]=1;groupsOfClass(cls).then(()=>{try{EVACRO.changed()}catch(e){}}).catch(()=>{})}
+   return out.sort((a,b)=>a.nom.localeCompare(b.nom,"fr",{numeric:true}))},unlock:()=>new Promise(r=>{try{openProf()}catch(e){}r()}),
  grid:{degres:['Degré 1','Degré 2','Degré 3','Degré 4'],degresEl:['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'],criteres:[
   {id:'dif',afl:'AFL1',max:6,nom:'Difficulté et réalisation des figures',but:"Réaliser des figures de difficulté choisie, stables (3 s), avec placements et gainage corrects.",nomEl:'Mes figures',butEl:'Je réalise des figures difficiles, stables et propres.',
    desc:["Figures simples, instables ou tenues moins de 3 s ; placements approximatifs, chutes.","Figures de difficulté moyenne tenues 3 s ; montages et démontages hésitants.","Figures de difficulté choisie stables et gainées ; montages et démontages contrôlés.","Figures difficiles, tenues avec aisance ; placements précis, éléments de liaison maîtrisés."],
