@@ -2627,6 +2627,8 @@ async function coeDialog(proj = P) {
    <p class="muted">La carte « <b>${esc(proj.nom)}</b> » et ses <b>${B.length} balises</b> remplacent la carte et la liste des balises de l'appli <b>CO – Préparation à l'évaluation</b>. Les téléphones des élèves la reçoivent en moins de 15 s. Tes réglages de parcours, tes listes d'élèves et les résultats sont gardés.</p>
    <div class="field"><label>Version de la carte envoyée aux élèves</label><select class="inp" id="coV"><option value="eleve">Numéros des balises, sans code</option><option value="vierge">Cercles seuls, sans numéro ni code</option></select></div>
    ${bad.length ? `<p class="chip ko" style="display:inline-block">${bad.length} balise(s) sans code de 3 lettres (${bad.slice(0, 8).map(c => esc(c.n)).join(", ")}${bad.length > 8 ? "…" : ""}) : l'appli élève a besoin des codes. Saisis-les d'abord (onglet Balises → ⌨ Saisir les codes).</p>` : ""}
+   <div class="field"><label>Cartes de l'évaluation (facultatif) : un parcours d'OrienRun = une carte avec seulement ses balises</label>
+    ${proj.courses.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${[["coK0", "👥 Carte du collectif"], ["coK1", "👤 Carte individuelle 1"], ["coK2", "👤 Carte individuelle 2"]].map(([id, l]) => `<label style="flex:1;min-width:180px"><small>${l}</small><select class="inp" id="${id}"><option value="">— aucune —</option>${proj.courses.map(k => `<option value="${k.id}">${esc(k.nom)} (${k.ctrl.length} balises)</option>`).join("")}</select></label>`).join("")}</div><small class="muted">Les 2 cartes individuelles se partagent dans le binôme : si un élève prend la carte 1, son binôme a la carte 2. Sans choix : tous les élèves ont la carte complète.</small>` : `<small class="muted">Crée d'abord des parcours (onglet Parcours) pour proposer plusieurs cartes (1 collective, 2 individuelles).</small>`}</div>
    <div style="max-height:46vh;overflow:auto;border-radius:10px;background:#eee"><svg id="coPrev" viewBox="0 0 ${proj.map.w} ${proj.map.h}" style="width:100%;display:block"></svg></div>
    <p id="coSt" class="muted"></p>
    <p class="muted" style="font-size:.75rem;margin:0 0 6px">envoi v2</p><div class="row"><button class="btn or" id="coGo" ${bad.length || !B.length ? "disabled" : ""}>📲 Envoyer vers CO éval</button><a class="btn ghost" href="../co-eval/" target="_blank">Ouvrir CO éval</a></div>`, { wide: true });
@@ -2645,7 +2647,20 @@ async function coeDialog(proj = P) {
       const W = proj.map.w, H = proj.map.h, dep = proj.controls.find(c => c.type === "S" && c.x != null);
       conf.balises = B.map(c => ({ n: +c.n, code: String(c.code).toUpperCase(), x: +(c.x / W).toFixed(4), y: +(c.y / H).toFixed(4), ...(c.niv ? { niv: +c.niv } : {}) })); if (conf.balises.some(b => b.niv)) conf.niv = true;
       conf.depart = dep ? { x: +(dep.x / W).toFixed(4), y: +(dep.y / H).toFixed(4) } : null;
-      conf.carteNom = proj.nom; conf.demo = false;
+      conf.carteNom = proj.nom; conf.demo = false; conf.orT = Date.now();
+      // cartes de l'évaluation : une image par parcours d'OrienRun (seulement ses balises)
+      const roles = ["coK0", "coK1", "coK2"].map(id => $("#" + id, m) && $("#" + id, m).value).map(v => v ? proj.courses.find(k => k.id === v) : null), cartes = [];
+      for (let i = 0; i < 3; i++) { const k = roles[i]; if (!k) continue;
+        const keep = new Set(k.ctrl), pc = { ...proj, controls: proj.controls.filter(c => c.type !== "C" || keep.has(c.id)) };
+        st.textContent = `⏳ Carte « ${k.nom} »…`; let im = await mapImage(pc, $("#coV", m).value, 2600, "image/jpeg", .85), q2 = .75; while (im.length > 1.4e6 && q2 > .45) { im = await mapImage(pc, $("#coV", m).value, 2400, "image/jpeg", q2); q2 -= .1; }
+        const r = await apiCall(apiUrl(), "coeSave", { teacher: tpw(), cle: "carte_m" + i, data: im }, 90000);
+        cartes.push({ id: "m" + i, role: i, nom: k.nom, bal: k.ctrl.map(id => proj.controls.find(c => c.id === id)).filter(c => c && c.type === "C").map(c => +c.n), v: (r && r.v) || String(Date.now()) }); }
+      conf.cartes = cartes;
+      if (Array.isArray(conf.parcours)) { const ix = role => cartes.findIndex(c => c.role === role), duo = conf.parcours.find(p => p.type === "duo"), ind = conf.parcours.find(p => p.type !== "duo");
+        conf.parcours.forEach(p => p.cartes = []);
+        if (duo && ix(0) >= 0) duo.cartes = [ix(0)];
+        if (ind) ind.cartes = [ix(1), ix(2)].filter(i => i >= 0);
+        conf.parcours.forEach(p => { const c = p.cartes.length === 1 ? cartes[p.cartes[0]] : null; if (c && p.oblig && !c.bal.includes(+p.oblig)) p.oblig = null; if (c && p.nb > c.bal.length) p.nb = c.bal.length; }); }
       if (Array.isArray(conf.parcours)) conf.parcours.forEach(p => { if (p.oblig && !nums.includes(+p.oblig)) p.oblig = null; if (p.nb > nums.length) p.nb = nums.length; });
       st.textContent = `⏳ Envoi de la carte (${Math.round(img.length / 1024)} Ko)…`;
       await apiCall(apiUrl(), "coeSave", { teacher: tpw(), cle: "carte", data: img }, 90000);

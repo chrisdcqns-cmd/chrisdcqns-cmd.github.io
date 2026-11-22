@@ -141,6 +141,11 @@ function traiter_(req) {
     return { ok: true };
   }
 
+  if (a === 'coeMap') { // cartes de l'évaluation (une par parcours, envoyées par OrienRun) : lues par les téléphones des élèves
+    const cle = String(req.cle || ''); if (!/^carte_m[0-9]{1,2}$/.test(cle)) throw new Error('Carte inconnue');
+    return { ok: true, data: coeLire_(cle), v: PropertiesService.getScriptProperties().getProperty('coe_v_' + cle) || '' };
+  }
+
   // ----- enseignant -----
   if (!estProf) throw new Error('Mot de passe enseignant incorrect');
 

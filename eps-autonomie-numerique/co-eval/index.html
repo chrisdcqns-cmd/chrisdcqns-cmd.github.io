@@ -343,6 +343,7 @@ const emptyRuns = () => C.parcours.map(() => null);
 function fitRuns() { if (!Array.isArray(RUNS)) RUNS = []; const n = C.parcours.length; let ch = RUNS.length !== n; while (RUNS.length < n) RUNS.push(null); RUNS.length = n; RUNS.forEach((x, k) => { if (x) x.k = k; }); return ch; }
 let C = fixConf(Object.assign(clone(DEF), LS.get("conf", {})));
 let VC = LS.get("vc", ""), VM = LS.get("vm", "");
+let BAL_EDIT = false; // balises venues d'OrienRun : modifiables ici seulement après confirmation
 let VIEW = null, C_LIVE = null, ARCH_ERR = ""; // évaluation sauvegardée consultée par l'enseignant (lecture seule)
 // ---------- Simulation (👁 Vue élève de l'enseignant) ----------
 // Paramètres et carte de l'enseignant (lus sur sa tablette), classe fictive, aucun envoi au serveur.
@@ -365,7 +366,7 @@ const P = k => C.parcours[k];
 let ME = LS.get("me", null);          // {prenom, nom, classe, prof, id}
 let RUNS = (r => { r = Array.isArray(r) ? r : []; if (r.length === 3 && C.parcours.length === 2) r = [r[0] || r[1] || null, r[2] || null]; return r; })(LS.get("runs", null)); fitRuns();
 // chaque modification est gardée sur le téléphone ET envoyée (sauvegarde + suivi par l'enseignant)
-const runSig = r => JSON.stringify([r.plan, r.trace ? JSON.stringify(r.trace).length : 0, r.prevu, r.debut, r.fin, r.saisies.length, r.idx, r.ress, r.pilot, teamOf(r).map(x => x.id)]);
+const runSig = r => JSON.stringify([r.carte, r.plan, r.trace ? JSON.stringify(r.trace).length : 0, r.prevu, r.debut, r.fin, r.saisies.length, r.idx, r.ress, r.pilot, teamOf(r).map(x => x.id)]);
 const saveRuns = (quiet) => { RUNS.forEach(r => { if (!r) return; const g = runSig(r); if (r._sig !== g) { r._sig = g; if (!quiet) r.u = now(); } }); LS.set("runs", RUNS); backup(); if (!quiet) pushState(); };
 // Copie de secours dans IndexedDB (survit si le navigateur vide le localStorage) + carnet de balises permanent
 let bakT = null;
@@ -424,10 +425,25 @@ function demoMap() {
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 function idb() { return new Promise((res, rej) => { const r = indexedDB.open("coe", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
-async function idbGet(k) { if (SIM && k !== "carte") k = "sim:" + k; try { const d = await idb(); return await new Promise(r => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); } catch (e) { return null; } }
-async function idbSet(k, v) { if (SIM) { if (k === "carte") return; k = "sim:" + k; } try { const d = await idb(); await new Promise(r => { const t = d.transaction("kv", "readwrite"); v == null ? t.objectStore("kv").delete(k) : t.objectStore("kv").put(v, k); t.oncomplete = r; t.onerror = r; }); } catch (e) {} }
+async function idbGet(k) { if (SIM && k !== "carte" && !k.startsWith("cmap_")) k = "sim:" + k; try { const d = await idb(); return await new Promise(r => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); } catch (e) { return null; } }
+async function idbSet(k, v) { if (SIM) { if (k === "carte" || k.startsWith("cmap_")) return; k = "sim:" + k; } try { const d = await idb(); await new Promise(r => { const t = d.transaction("kv", "readwrite"); v == null ? t.objectStore("kv").delete(k) : t.objectStore("kv").put(v, k); t.oncomplete = r; t.onerror = r; }); } catch (e) {} }
 async function blobURL(data) { try { if (!data || !data.startsWith("data:image/jpeg") && !data.startsWith("data:image/png")) return data; const b = await (await fetch(data)).blob(); return URL.createObjectURL(b); } catch (e) { return data; } }
-async function loadMap() { MAPIMG = (await blobURL(await idbGet("carte"))) || demoMap(); }
+async function loadMap() { MAPIMG = (await blobURL(await idbGet("carte"))) || demoMap(); await loadCartes(); }
+// Cartes de l'évaluation envoyées par OrienRun : C.cartes = [{ id, nom, bal: [numéros], v }] ; parcours p.cartes = [indices] ; run r.carte = indice
+// (ex. collectif → carte 0 ; individuel → cartes 1 et 2 partagées dans le binôme : chacun la sienne)
+const CMAP = {};
+async function loadCartes() {
+  const vs = LS.get("cmv", {});
+  for (const c of C.cartes || []) {
+    if (!c || !c.id) continue;
+    let d = await idbGet("cmap_" + c.id);
+    if ((!d || vs[c.id] !== c.v) && !SIM) try { const j = await api("coeMap", { cle: "carte_" + c.id }, 60000); if (j.data) { d = j.data; await idbSet("cmap_" + c.id, d); vs[c.id] = c.v; LS.set("cmv", vs); } } catch (e) {}
+    if (d && !CMAP[c.id + "|" + c.v]) CMAP[c.id + "|" + c.v] = await blobURL(d);
+  }
+}
+const carteOf = r => r && r.carte != null ? (C.cartes || [])[r.carte] || null : null;
+const imgOf = r => { const c = carteOf(r); return (c && CMAP[c.id + "|" + c.v]) || MAPIMG; };
+const allowedOf = r => { const c = carteOf(r); return c ? new Set(c.bal.map(Number)) : null; };
 
 // Visionneuse de carte : zoom/déplacement à deux doigts, dessin à un doigt (si un outil de dessin est actif)
 function mapViewer(box, o = {}) {
@@ -440,7 +456,7 @@ function mapViewer(box, o = {}) {
   const zoomAt = (f, cx, cy) => { const ns = Math.max(minS(), Math.min(s * f, 8)), k = ns / s; tx = cx - (cx - tx) * k; ty = cy - (cy - ty) * k; s = ns; apply(); };
   const draw = () => { ov.setAttribute("width", W); ov.setAttribute("height", H); ov.setAttribute("viewBox", `0 0 ${W} ${H}`); ov.innerHTML = o.overlay ? o.overlay(W, H) : ""; };
   img.onload = () => { W = img.naturalWidth || 1000; H = img.naturalHeight || 1300; img.width = W; img.height = H; ready = true; draw(); fit(); };
-  img.src = MAPIMG;
+  img.src = o.img || MAPIMG;
   try { new ResizeObserver(() => ready && fit()).observe(box); } catch (e) {}
   $$("[data-z]", box).forEach(b => { b.onpointerdown = e => e.stopPropagation(); b.onclick = e => { e.stopPropagation(); const z = +b.dataset.z; if (!z) return fit(); zoomAt(z > 0 ? 1.6 : 1 / 1.6, box.clientWidth / 2, box.clientHeight / 2); }; });
   const pts = new Map(); let last = null, drawing = false, tap = null;
@@ -480,9 +496,9 @@ function planSVG(plan, W, H, done = -1) {
 const nivOf = n => C.niv ? Math.max(0, Math.min(3, +((balise(n) || {}).niv || 0))) : 0;
 const ptsOf = plan => (plan || []).reduce((a, n) => a + nivOf(n), 0);
 const nivTag = n => nivOf(n) ? `<span class="tg" style="background:#d9a400;color:#fff;left:auto;right:-6px;top:-8px;bottom:auto;transform:none">${nivOf(n)} pt${nivOf(n) > 1 ? "s" : ""}</span>` : "";
-function nivSVG(W, H) {
+function nivSVG(W, H, al = null) {
   if (!C.niv || !hasPos()) return ""; const K = Math.max(W, H) / 1000;
-  return C.balises.map(b => { const v = nivOf(b.n); if (!v || b.x == null) return ""; const x = b.x * W + 26 * K, y = b.y * H - 26 * K;
+  return C.balises.map(b => { const v = nivOf(b.n); if (!v || b.x == null || (al && !al.has(+b.n))) return ""; const x = b.x * W + 26 * K, y = b.y * H - 26 * K;
     return `<rect x="${x - 17 * K}" y="${y - 11 * K}" width="${34 * K}" height="${21 * K}" rx="${10 * K}" fill="#ffd23f" stroke="#7a5a00" stroke-width="${1.5 * K}"/><text x="${x}" y="${y + 5 * K}" text-anchor="middle" font-family="Arial" font-weight="900" font-size="${14 * K}" fill="#3d2d00">${"★".repeat(v)}</text>`; }).join("");
 }
 // balises déjà choisies dans un autre parcours : étiquette bleue « P1 »
@@ -525,7 +541,7 @@ function drawEditor(r, onClose) {
   // en mode « Lignes », un bout de trait près d'une balise (ou du départ) se colle sur son centre
   const snap = (p, v) => { let best = p, bd = thr(v) * 1.5; [...C.balises, C.depart].forEach(b => { if (!b || b.x == null) return; const d = dist([b.x, b.y], p, v); if (d < bd) { bd = d; best = [b.x, b.y]; } }); return best; };
   const erase = (p, v) => { const i = r.trace.findIndex(t => t.p.some((x, j) => j ? segD(p, t.p[j - 1], x, v) < thr(v) : dist(x, p, v) < thr(v))); if (i >= 0) { push(); r.trace.splice(i, 1); vib(20); save(); } };
-  const mv = mapViewer($("#dM", d), {
+  const mv = mapViewer($("#dM", d), { img: imgOf(r),
     overlay: (W, H) => { r.mapAR = H / W; return planSVG(r.plan, W, H) + traceSVG(r.trace, W, H, tmp); }, mode: () => st.mode,
     onDown(q, v) {
       const p = rd(q);
@@ -566,6 +582,7 @@ async function sync() {
     NET = true; let conf = false, map = false;
     if (j.conf != null && j.vc && j.vc !== VC) { try { const o = JSON.parse(j.conf), stable = x => JSON.stringify({ ...x, msgs: 0, rappel: 0, retour: 0 }), before = stable(C); if (VIEW) archOff(); C = fixConf(Object.assign(clone(DEF), o)); if (!TPW && fitRuns()) saveRuns(true); if (TPW) { statP = null; await ensureStat(); } LS.set("conf", o); VC = j.vc; LS.set("vc", VC); conf = true; if (ME && (C.moves || {})[ME.id]) { ME = moved(ME); LS.set("me", ME); } if (stable(C) === before) { VC = j.vc; LS.set("vc", VC); checkAlerts(); $("#hT").textContent = C.titre; syncing = false; setNet(); return flushOut(); } } catch (e) {} }
     if (j.carte != null && j.vm && j.vm !== VM) { await idbSet("carte", j.carte || null); VM = j.vm; LS.set("vm", VM); MAPIMG = (await blobURL(j.carte)) || demoMap(); map = true; }
+    if (conf) await loadCartes();
     if (conf || map) { if (conf && !TPW) { if (evCheck() && !ME) { go("ident"); flash("🆕 Nouvelle évaluation : choisis ton nom"); } } if (conf) applyDeletions(); onRemote(conf, map); checkAlerts(); }
     if (!j.vm) OFF.nomap = true; // pas de carte publiée : la carte de démonstration suffit
     flushOut(); if (!OFF.ready && CUR.v !== "prof") checkOffline();
@@ -941,12 +958,24 @@ function startPrep(k) {
     if (!mates().length) { flash("Choisis d'abord ton binôme"); return go("binome"); }
     // le binôme a peut-être déjà commencé à préparer le parcours collectif
     $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2rem">⏳</div><p>Vérification avec le téléphone de ${esc(mates().map(m => m.prenom).join(", "))}…</p></div>`;
-    refreshStates(5000).then(() => { if (RUNS[k] && !RUNS[k].fin) return startPrep(k); RUNS[k] = newRun(k, mates()); saveRuns(); pushState(true); go("prep", k); });
+    refreshStates(5000).then(() => { if (RUNS[k] && !RUNS[k].fin) return startPrep(k); RUNS[k] = newRun(k, mates(), cartesOf(k)[0] ?? null); saveRuns(); pushState(true); go("prep", k); });
     return;
   }
-  RUNS[k] = newRun(k); saveRuns(); go("prep", k);
+  const mk = c => { RUNS[k] = newRun(k, null, c); saveRuns(); pushState(true); go("prep", k); };
+  if (cartesOf(k).length > 1 && mates().length) { $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2rem">⏳</div><p>Quelle carte a pris ${esc(mates().map(m => m.prenom).join(", "))} ?</p></div>`; refreshStates(5000).then(() => chooseCarte(k, mk)); }
+  else chooseCarte(k, mk);
 }
-const newRun = (k, team = null) => ({ k, duo: team && team.length ? team[0] : null, team: team && team.length ? team.slice() : null, owner: ME.id, prepT: now(), plan: P(k).oblig ? [+P(k).oblig] : [], sel: {}, trace: [], prevu: null, debut: null, fin: null, saisies: [], auto: {} });
+const newRun = (k, team = null, carte = null) => { const c = carte != null ? (C.cartes || [])[carte] : null, ob = P(k).oblig && (!c || c.bal.map(Number).includes(+P(k).oblig)) ? +P(k).oblig : null;
+  return { k, duo: team && team.length ? team[0] : null, team: team && team.length ? team.slice() : null, owner: ME.id, prepT: now(), plan: ob ? [ob] : [], sel: {}, trace: [], prevu: null, debut: null, fin: null, saisies: [], auto: {}, carte: c ? carte : null, ct: now() }; };
+// cartes du parcours k encore libres dans le binôme / groupe (individuel : une carte chacun)
+const cartesOf = k => (P(k).cartes || []).filter(i => (C.cartes || [])[i]);
+function freeCartes(k) { const L = cartesOf(k), pris = Object.values(PARTNERS).map(P0 => P0.runs[k]).filter(x => x && x.carte != null && !(isDeleted(x) && canRedo(x))).map(x => x.carte); const f = L.filter(i => !pris.includes(i)); return { L, pris, f: f.length ? f : L }; }
+function chooseCarte(k, then) {
+  const { L, pris, f } = freeCartes(k); if (L.length < 2) return then(L[0] ?? null);
+  if (f.length === 1) { if (pris.length) flash(`Ton ${teamWord()} a pris ${C.cartes[pris[0]].nom} : tu as ${C.cartes[f[0]].nom}`); return then(f[0]); }
+  const m = modal(`<h2 style="margin:0 0 6px">🗺 Choisis ta carte</h2><p class="small muted" style="margin-top:0">${mates().length ? `Ton ${teamWord()} aura l'autre carte.` : "Une carte par élève du binôme."}</p>${f.map(i => `<button class="btn big or" data-ch="${i}" style="width:100%;margin-bottom:8px">🗺 ${esc(C.cartes[i].nom)}</button>`).join("")}<button class="btn gh" id="chX" style="width:100%">Annuler</button>`);
+  $$("[data-ch]", m).forEach(b => b.onclick = () => { m.close(); then(+b.dataset.ch); }); $("#chX", m).onclick = () => { m.close(); go("home"); };
+}
 // balises choisies dans les autres parcours : { numéro: ["Parcours 1", …] }
 const usedElsewhere = k => { const o = {}; RUNS.forEach((r, j) => { if (j !== k && r?.plan) r.plan.forEach(n => (o[n] = o[n] || []).push(j)); }); return o; };
 const usedBefore = k => C.reuse ? [] : Object.keys(usedElsewhere(k)).map(Number);
@@ -976,10 +1005,12 @@ function vPrep(k) {
   if (RUNS[k].debut) return go(RUNS[k].pilot && RUNS[k].pilot !== ME.id ? "follow" : "run", k);
   const p = P(k), r = RUNS[k], other = usedElsewhere(k), fb = forbidden(k), used = Object.keys(fb).map(Number);
   r.sel = r.sel || {};
-  if (p.oblig && !r.plan.includes(+p.oblig)) r.plan.unshift(+p.oblig);
+  const al = allowedOf(r), crt = carteOf(r);
+  if (p.oblig && !r.plan.includes(+p.oblig) && (!al || al.has(+p.oblig))) r.plan.unshift(+p.oblig);
   const dep = startOf(k); if (dep && balise(dep)) { r.plan = [dep, ...r.plan.filter(n => +n !== dep)]; r.sel[dep] = r.sel[dep] || 1; }
   const conflicts = () => r.plan.filter(n => fb[n]);
   $("#app").innerHTML = `<div class="prep" id="pBar"><div><div class="small" style="opacity:.8">Préparation · ${esc(p.nom)}</div><div class="timer" id="pT">–</div></div><div style="text-align:right" class="small"><b id="pCnt"></b><br><span style="opacity:.8">balises choisies</span>${C.niv ? '<br><span id="pPts"></span>' : ""}</div></div>
+   ${crt ? `<div class="card small row" style="border:2px solid var(--vi)"><span class="grow">🗺 Ta carte : <b>${esc(crt.nom)}</b> (${crt.bal.length} balises)</span>${cartesOf(k).length > 1 && !r.debut ? '<button class="btn sm gh" id="pCarte">🔄 Changer de carte</button>' : ""}</div>` : ""}
    ${r.duo ? `<div class="card small">👥 Équipe : <b>${esc(studentName(ME))}</b> et <b>${esc(teamNames(r, " et "))}</b><br><span class="muted">Ce parcours est partagé : ce que vous choisissez apparaît aussi sur le téléphone de ${esc(teamFirst(r, " et "))} (en moins de 10 s). Préparez-le ensemble sur un seul téléphone ; pendant la course, les autres téléphones suivent la progression en direct.</span></div>` : ""}
    ${hasPos() ? `<div class="card" style="padding:10px"><h2 style="margin:4px 4px 4px">1. Choisis ${p.nb} balises sur la carte</h2><p class="muted small" style="margin:0 4px 8px">Touche un rond violet pour ajouter ou retirer la balise. Zoome à deux doigts.</p><div class="mapv" id="pMap" style="height:44vh"></div></div>` : ""}
    <div class="card"><h2>${hasPos() ? "… ou dans la liste" : `1. Choisis ${p.nb} balises`}</h2><p class="muted small" style="margin-top:0">Touche une balise pour l'ajouter ou la retirer.${dep ? ` 🚩 Tu commences obligatoirement par la balise <b style="color:var(--vi)">${dep}</b>.` : ""}${p.oblig ? ` La balise <b style="color:var(--vi)">${p.oblig}</b> ★ est obligatoire.` : ""}${used.length ? " Les balises en pointillé sont interdites (obligatoire d'un autre parcours" + (!isDuoK(k) && mates().length ? `, ou déjà choisie par ton ${teamWord()}` : "") + ")." : ""}${Object.keys(other).length && C.reuse ? ` Une étiquette <span class="chip" style="background:#1d4ed8;color:#fff">P1</span> signale une balise de ton autre parcours.` : ""}</p><div class="bgrid" id="pGrid"></div></div>
@@ -992,15 +1023,15 @@ function vPrep(k) {
    <button class="btn sm gh" id="pSos" style="width:100%;margin-top:8px;color:var(--ko)">🆘 SMS de secours à mon enseignant</button><p class="small muted" style="text-align:center;margin-top:4px">Pour changer de parcours, de camarade ou de coureur.</p>`;
   $("#pSos").onclick = () => sos(k);
   $("#pCancel").onclick = async () => { if (!(await ask("Annuler la préparation ?", "Tes balises choisies et ton tracé pour ce parcours seront effacés.", "Oui, effacer", "ko"))) return; RUNS[k] = null; saveRuns(); go("home"); };
-  const mv = mapViewer($("#pMap"), { overlay: (W, H) => { r.mapAR = H / W; return nivSVG(W, H) + forbidSVG(fb, W, H) + otherSVG(other, r.plan, W, H) + planSVG(r.plan, W, H) + traceSVG(r.trace, W, H); }, onTap: (q, v) => { const b = baliseAt(q, v); if (b) toggle(b.n); } });
+  const mv = mapViewer($("#pMap"), { img: imgOf(r), overlay: (W, H) => { r.mapAR = H / W; return nivSVG(W, H, al) + forbidSVG(fb, W, H) + otherSVG(other, r.plan, W, H) + planSVG(r.plan, W, H) + traceSVG(r.trace, W, H); }, onTap: (q, v) => { const b = baliseAt(q, v); if (b) toggle(b.n); } });
   const miss = () => { const e = $("#pMiss"); if (!e) return; const M = traceMissing(r); e.innerHTML = !r.trace?.length ? "Facultatif : tu peux tracer ton itinéraire si tu le souhaites." : M.length ? `⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : r.plan.length ? "✓ Ton tracé passe par toutes tes balises." : ""; };
   $("#pDraw").onclick = () => drawEditor(r, () => { mv.redraw(); miss(); $("#pDraw").textContent = "✏️ " + (r.trace.length ? "Modifier mon tracé" : "Tracer sur la carte"); });
   const grid = $("#pGrid"), list = $("#pList");
   if (r.prevu == null) r.prevu = Math.max(5, p.nb * 2) * 60;
-  function toggle(n) { n = +n; if (n === dep) return flash("🚩 Balise de départ imposée"); if (n === +p.oblig) return flash("Balise obligatoire ★"); const i = r.plan.indexOf(n); if (i < 0 && fb[n]) return flash(`Interdite : ${fb[n]}`); if (i >= 0) { r.plan.splice(i, 1); delete r.sel[n]; } else { if (r.plan.length >= p.nb) return flash(`${p.nb} balises maximum`); r.plan.push(n); r.sel[n] = now(); if (other[n]) flash(`⚠ Déjà choisie dans ${other[n].map(j => P(j).nom).join(", ")}`); } vib(10); saveRuns(); render(); }
+  function toggle(n) { n = +n; if (al && !al.has(n)) return flash(`La balise ${n} n'est pas sur ta carte`); if (n === dep) return flash("🚩 Balise de départ imposée"); if (n === +p.oblig) return flash("Balise obligatoire ★"); const i = r.plan.indexOf(n); if (i < 0 && fb[n]) return flash(`Interdite : ${fb[n]}`); if (i >= 0) { r.plan.splice(i, 1); delete r.sel[n]; } else { if (r.plan.length >= p.nb) return flash(`${p.nb} balises maximum`); r.plan.push(n); r.sel[n] = now(); if (other[n]) flash(`⚠ Déjà choisie dans ${other[n].map(j => P(j).nom).join(", ")}`); } vib(10); saveRuns(); render(); }
   function render() {
     r.plan = r.plan.filter(n => balise(n));
-    grid.innerHTML = C.balises.map(b => `<button data-b="${b.n}" class="${r.plan.includes(+b.n) ? "on" : ""} ${+b.n === +p.oblig || +b.n === dep ? "ob" : ""} ${fb[b.n] ? "used" : ""}" style="position:relative">${b.n}${nivTag(b.n)}${fb[b.n] ? `<span class="tg" style="background:#6b7280">${/obligatoire/.test(fb[b.n]) ? "★ autre" : /choisie par/.test(fb[b.n]) ? esc(fb[b.n].replace("choisie par ", "")) : "pris"}</span>` : other[b.n] ? `<span class="tg">${other[b.n].map(shortP).join(" ")}</span>` : ""}</button>`).join("");
+    grid.innerHTML = C.balises.filter(b => !al || al.has(+b.n)).map(b => `<button data-b="${b.n}" class="${r.plan.includes(+b.n) ? "on" : ""} ${+b.n === +p.oblig || +b.n === dep ? "ob" : ""} ${fb[b.n] ? "used" : ""}" style="position:relative">${b.n}${nivTag(b.n)}${fb[b.n] ? `<span class="tg" style="background:#6b7280">${/obligatoire/.test(fb[b.n]) ? "★ autre" : /choisie par/.test(fb[b.n]) ? esc(fb[b.n].replace("choisie par ", "")) : "pris"}</span>` : other[b.n] ? `<span class="tg">${other[b.n].map(shortP).join(" ")}</span>` : ""}</button>`).join("");
     $$("[data-b]", grid).forEach(b => b.onclick = () => toggle(b.dataset.b));
     list.innerHTML = r.plan.map((n, i) => `<li data-i="${i}"${dep && i === 0 ? ' style="background:#fff4ea;border-color:var(--or)"' : ""}><span class="o">${i + 1}</span><span class="bn">${n}</span><b class="grow">${nivOf(n) ? `<span class="chip" style="background:#ffd23f;color:#3d2d00">${"★".repeat(nivOf(n))} ${nivOf(n)} pt${nivOf(n) > 1 ? "s" : ""}</span> ` : ""}${dep && i === 0 ? "🚩 départ imposé" : ""}${+n === +p.oblig ? " ★ obligatoire" : ""}${fb[n] ? ` <span class="chip ko">⚠ ${esc(fb[n])} : retire-la</span>` : ""}${other[n] ? ` <span class="chip" style="background:#dbe4ff;color:#1d4ed8">déjà dans ${other[n].map(j => esc(P(j).nom)).join(", ")}</span>` : ""}</b>${+n === +p.oblig || (dep && i === 0) ? "" : `<button class="x" data-rm="${n}">✕</button>`}${dep && i === 0 ? '<span style="width:52px"></span>' : '<span class="h">≡</span>'}</li>`).join("") || `<li style="justify-content:center;color:var(--mu);border-style:dashed">Aucune balise choisie</li>`;
     $$("[data-rm]", list).forEach(b => b.onclick = () => toggle(b.dataset.rm));
@@ -1018,8 +1049,10 @@ function vPrep(k) {
   }
   const upd = () => { const left = end() - now(); const t = $("#pT"); if (!t) return; t.textContent = left > 0 ? fmt(left) : "Temps écoulé"; $("#pBar").classList.toggle("low", left < 60000); if (left <= 0 && !r.auto.prepEnd) { r.auto.prepEnd = 1; saveRuns(); vib([200, 100, 200]); flash("⏰ Fin de la préparation"); } ok(); };
   render(); upd(); tick = setInterval(upd, 500);
+  $("#pCarte") && ($("#pCarte").onclick = () => refreshStates(5000).then(() => { const { f } = freeCartes(k), L = f.filter(i => i !== r.carte); if (!L.length) return flash(`Ton ${teamWord()} a déjà l'autre carte`); const nc = L[0], A = new Set(C.cartes[nc].bal.map(Number)); r.carte = nc; r.ct = now(); r.plan = r.plan.filter(n => A.has(+n)); r.trace = []; saveRuns(); pushState(true); flash("🗺 " + C.cartes[nc].nom); go("prep", k); }));
   $("#pGo").onclick = async () => {
-    if (!isDuoK(k) && mates().length) { const okNet = await refreshStates(5000); const cf = r.plan.filter(n => forbidden(k)[n]); if (cf.length) { flash(`La balise ${cf.join(", ")} vient d'être choisie par ton ${teamWord()}`); return go("prep", k); }
+    if (!isDuoK(k) && mates().length) { const okNet = await refreshStates(5000);
+      if (r.carte != null && cartesOf(k).length > 1) { const same = Object.values(PARTNERS).map(P0 => P0.runs[k]).find(x => x && x.carte === r.carte && !(isDeleted(x) && canRedo(x)) && (x.debut || (x.ct || 0) < (r.ct || 0))); if (same) return flash(`Ton ${teamWord()} a déjà ${C.cartes[r.carte].nom} : touche « 🔄 Changer de carte »`); } const cf = r.plan.filter(n => forbidden(k)[n]); if (cf.length) { flash(`La balise ${cf.join(", ")} vient d'être choisie par ton ${teamWord()}`); return go("prep", k); }
       if (!okNet && !(await ask("Pas de réseau", `Impossible de vérifier que ${esc(mates().map(m => m.prenom).join(", "))} n'a pas choisi les mêmes balises que toi. Attends le réseau quelques secondes, ou pars quand même.`, "Partir quand même", "or"))) return; }
     const M = traceMissing(r), warn = hasPos() ? (!r.trace?.length ? "" : M.length ? `<br><br>⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : "") : ""; if (!(await ask("Prêt·e ?", `Le chronomètre démarre dès que tu touches « Partir ».<br>Ordre : <b>${r.plan.join(" → ")}</b>${warn}`, warn ? "▶ Partir quand même" : "▶ Partir", "gr"))) return; r.debut = now(); r.pilot = ME.id; journal(r, { e: "depart", plan: r.plan.join("-") }); saveRuns(); pushState(true); locate({ n: "départ", k }); vib(300); try { "Notification" in window && Notification.permission === "default" && Notification.requestPermission(); } catch (e) {} go("run", k); };
 }
@@ -1074,7 +1107,7 @@ function vRun(k) {
     $("#rOk") && ($("#rOk").onclick = () => { if (code.length !== 3) return; punch(r, code); const s0 = r.saisies[r.saisies.length - 1]; journal(r, { e: "balise", n: s0.bal || s0.attendu, code: s0.code, st: s0.st }); code = ""; saveRuns(); pushState(true); locate({ n: s0.attendu, k }, s0); vib(60); flash("✓ Enregistré"); draw(); });
     $("#rSkip") && ($("#rSkip").onclick = async () => { if (!(await ask(`Passer la balise ${n} ?`, `Elle sera comptée comme <b>non trouvée</b> (pénalité). Tu continues vers ${i + 1 < r.plan.length ? "la balise <b>" + r.plan[i + 1] + "</b>" : "l'arrivée"}.`, "⏭ Passer", "ko"))) return; const s0 = { t: now(), code: "", attendu: n, st: "passe", bal: null }; r.saisies.push(s0); r.idx = i + 1; code = ""; journal(r, { e: "passe", n }); saveRuns(); pushState(true); locate({ n, k, passe: 1 }, s0); draw(); });
     $("#rSos").onclick = () => sos(k);
-    $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { overlay: (W, H) => nivSVG(W, H) + planSVG(r.plan, W, H, r.idx || 0) + traceSVG(r.trace, W, H) }); };
+    $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { img: imgOf(r), overlay: (W, H) => nivSVG(W, H, allowedOf(r)) + planSVG(r.plan, W, H, r.idx || 0) + traceSVG(r.trace, W, H) }); };
     $("#rBack").onclick = async () => { const left = r.plan.length - (r.idx || 0); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return; r.fin = now(); journal(r, { e: "retour", temps: fmt(r.fin - r.debut) }); saveRuns(); pushState(true); locate({ n: "arrivée", k }); vib([100, 60, 300]); queueResult(k); go("end", k); };
     upd();
   };
@@ -1095,7 +1128,7 @@ function vFollow(k) {
    <div class="row"><button class="btn gh grow" id="fMap">🗺 Notre carte et notre tracé</button><button class="btn ko" id="fSos">🆘 SOS</button></div>
    <button class="btn gh" id="fTake" style="width:100%;margin-top:12px">📱 Le téléphone de ${esc(who)} ne marche plus : continuer la saisie ici</button>`;
   const upd = () => { const e = $("#fT"); if (e) e.textContent = fmt(now() - r.debut); }; upd(); tick = setInterval(upd, 500);
-  $("#fMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Votre carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { overlay: (W, H) => nivSVG(W, H) + planSVG(r.plan, W, H, r.idx || 0) + traceSVG(r.trace, W, H) }); };
+  $("#fMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Votre carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { img: imgOf(r), overlay: (W, H) => nivSVG(W, H, allowedOf(r)) + planSVG(r.plan, W, H, r.idx || 0) + traceSVG(r.trace, W, H) }); };
   $("#fSos").onclick = () => sos(k);
   $("#fTake").onclick = async () => { if (!(await ask("Continuer la saisie ici ?", `À faire seulement si le téléphone de ${esc(who)} ne fonctionne plus : la saisie des codes passe sur ce téléphone, avec le même chrono.`, "Continuer ici", "or"))) return; await refreshStates(5000); const x = RUNS[k]; if (x.fin) return go("bilan", k); x.pilot = ME.id; saveRuns(); pushState(true); go("run", k); };
 }
@@ -1160,7 +1193,7 @@ function bilanHTML(k, teacher) {
    </tbody></table>
    ${legs.length > 1 ? `<p class="small">🟢 Tronçon le plus rapide : <b>${from(legs.indexOf(best))} → ${best.attendu}</b> (${fmt(best.leg)}) · 🔴 le plus long : <b>${from(legs.indexOf(worst))} → ${worst.attendu}</b> (${fmt(worst.leg)}). Moyenne : ${fmt(a.chrono / (legs.length + 1))} par tronçon.</p>` : ""}
    ${r.ress && Object.keys(r.ress).length ? `<h3 style="margin:12px 0 4px;font-size:1rem">Ressenti</h3><p class="small" style="margin:0">${Q.filter(q => r.ress[q.id] && (!Array.isArray(r.ress[q.id]) || r.ress[q.id].length)).map(q => `${q.t} : <b>${esc([].concat(r.ress[q.id]).join(", "))}</b>`).join("<br>")}${r.ress.conseil ? `<br>Conseil : <b>${esc(r.ress.conseil)}</b>` : ""}</p>` : ""}
-   ${r.trace?.length ? `<h3 style="margin:12px 0 4px;font-size:1rem">Itinéraire tracé</h3><div class="bmap" data-k="${k}" style="position:relative;max-width:520px"><img src="${MAPIMG}" style="width:100%;display:block;border-radius:10px"><svg style="position:absolute;inset:0;width:100%;height:100%"></svg></div>` : ""}
+   ${r.trace?.length ? `<h3 style="margin:12px 0 4px;font-size:1rem">Itinéraire tracé</h3><div class="bmap" data-k="${k}" style="position:relative;max-width:520px"><img src="${imgOf(r)}" style="width:100%;display:block;border-radius:10px"><svg style="position:absolute;inset:0;width:100%;height:100%"></svg></div>` : ""}
    <div class="ref">réf. ${refCode(a, r)}</div></div>`;
 }
 // dessine le tracé par-dessus les images de carte des bilans
@@ -1195,8 +1228,8 @@ function vFull(teacher) {
 }
 
 // ---------- Résultats : envoi au serveur + secours par QR code ----------
-function packRun(r) { return { k: r.k, d: r.duo || 0, ...(r.team && r.team.length > 1 ? { g: r.team } : {}), p: r.plan, v: r.prevu, t0: r.debut, t1: r.fin, s: r.saisies.map(s => s.g ? [s.t - r.debut, s.code, s.attendu, s.st, s.bal, s.g] : [s.t - r.debut, s.code, s.attendu, s.st, s.bal]), q: r.ress || {}, tr: r.trace || [] }; }
-function unpackRun(x) { return x ? { k: x.k, duo: x.d || null, team: x.g || (x.d ? [x.d] : null), plan: x.p, prevu: x.v, debut: x.t0, fin: x.t1, saisies: (x.s || []).map(s => ({ t: x.t0 + s[0], code: s[1], attendu: s[2], st: s[3], bal: s[4], g: s[5] || null })), ress: x.q || {}, trace: x.tr || [] } : null; }
+function packRun(r) { return { k: r.k, d: r.duo || 0, ...(r.team && r.team.length > 1 ? { g: r.team } : {}), p: r.plan, v: r.prevu, t0: r.debut, t1: r.fin, s: r.saisies.map(s => s.g ? [s.t - r.debut, s.code, s.attendu, s.st, s.bal, s.g] : [s.t - r.debut, s.code, s.attendu, s.st, s.bal]), q: r.ress || {}, tr: r.trace || [], ...(r.carte != null ? { c: r.carte, ct: r.ct } : {}) }; }
+function unpackRun(x) { return x ? { k: x.k, duo: x.d || null, team: x.g || (x.d ? [x.d] : null), plan: x.p, prevu: x.v, debut: x.t0, fin: x.t1, saisies: (x.s || []).map(s => ({ t: x.t0 + s[0], code: s[1], attendu: s[2], st: s[3], bal: s[4], g: s[5] || null })), ress: x.q || {}, trace: x.tr || [], carte: x.c ?? null, ct: x.ct || 0 } : null; }
 const KEY = "orienrun-eps";
 function enc(o) { const b = new TextEncoder().encode(JSON.stringify(o)); let s = ""; b.forEach((v, i) => s += String.fromCharCode(v ^ KEY.charCodeAt(i % KEY.length))); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
 function dec(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(s), b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length); return JSON.parse(new TextDecoder().decode(b)); }
@@ -1289,7 +1322,11 @@ async function openProf() {
 let pubTimer = null, PUB = { st: "ok", t: null, err: "" }, profTick = null;
 function pubUI() { const e = $("#pub"); if (!e) return; e.className = "pub " + (PUB.st === "ok" ? "" : PUB.st === "wait" ? "wait" : "ko"); e.textContent = PUB.st === "wait" ? "⏳ Publication en cours…" : PUB.st === "ko" ? "⚠ Non publié : " + PUB.err : PUB.t ? `✓ Publié à ${new Date(PUB.t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} : les élèves le reçoivent en moins de ${SYNC_MS / 1000} s` : "Chaque modification est publiée automatiquement chez les élèves."; }
 function confChanged() { if (VIEW) archOff(); C.demo = false; LS.set("conf", C); PUB.st = "wait"; pubUI(); clearTimeout(pubTimer); pubTimer = setTimeout(publish, 900); }
+// les balises et les cartes viennent d'OrienRun (C.orT = date d'envoi) : si OrienRun a envoyé depuis, on les reprend avant de publier
+const OR_KEYS = ["balises", "depart", "carteNom", "cartes", "orT", "niv"];
+function mergeOrienRun(o) { if (!o || (o.orT || 0) <= (C.orT || 0)) return false; OR_KEYS.forEach(k => { if (o[k] !== undefined) C[k] = o[k]; }); (o.parcours || []).forEach((q, i) => { const p = C.parcours[i]; if (p) { p.cartes = q.cartes || []; if (q.oblig !== undefined) p.oblig = q.oblig; if (q.nb) p.nb = q.nb; } }); LS.set("conf", C); return true; }
 async function publish() {
+  try { const g = await api("coeGet", { vc: VC }, 15000); if (g.conf) { try { if (mergeOrienRun(JSON.parse(g.conf))) { await loadCartes(); flash("🔄 Balises reprises d'OrienRun"); } } catch (e) {} } } catch (e) {}
   try { const j = await api("coeSave", { teacher: TPW, cle: "conf", data: JSON.stringify(C) }); VC = j.v; LS.set("vc", VC); PUB = { st: "ok", t: now() }; }
   catch (e) { PUB = { st: "ko", err: /Action inconnue/.test(e.message) ? "le script Google n'est pas à jour (voir les instructions)" : e.message }; if (/Mot de passe/.test(e.message)) { TPW = ""; LS.del("tpw"); } }
   pubUI();
@@ -1615,7 +1652,7 @@ function profRes(box) {
      <div class="card"><div class="row"><h2 class="grow" style="margin:0">Résultats ${f ? "· " + esc(f) : "· tous les enseignants"}</h2><span class="small muted" id="rSt"></span></div>
       <p class="small muted">Touche ⋯ pour marquer un élève absent ou dispensé, ou le basculer vers un autre enseignant. Les résultats arrivent tout seuls à la fin de chaque parcours. ${C.noPen ? "Évaluation sans pénalités : temps final = temps de course." : `Temps final = temps de course + pénalités (balise non validée ${fmtMin(C.penOubli)}, obligatoire manquée ${fmtMin(C.penOblig)}${C.parcours.some(p => p.max) ? `, ${fmtMin(C.penRetard)} par minute de retard` : ""}).`}</p>
       ${Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)} <span class="chip">${cls[c].length} élèves</span> <span class="chip ok">${cls[c].filter(x => x.runs.some(r => r?.fin)).length} avec résultat</span>${cls[c].some(x => x.abs) ? ` <span class="chip ko">${[["absent", "absent(s)"], ["dispense", "dispensé(s)"]].map(([k, l]) => { const n = cls[c].filter(x => x.st === k).length; return n ? n + " " + l : ""; }).filter(Boolean).join(" · ")}</span>` : ""}</h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th>${!f ? "<th>Enseignant</th>" : ""}${C.parcours.map(p => `<th class="n">${esc(p.nom)}</th>`).join("")}<th></th></tr></thead><tbody>
-       ${cls[c].sort((a, b) => byFr(a.me.nom, b.me.nom) || byFr(a.me.prenom, b.me.prenom)).map(x => `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}</td>${!f ? `<td class="small">${esc(x.me.prof)}</td>` : ""}${x.runs.map(r => { if (!r?.fin) return x.abs ? `<td class="n"><span class="chip ko">${STAT_LBL[x.st] || "absent"}</span></td>` : '<td class="n muted">–</td>'; const a = withStudent(x, () => analyse(r)); return `<td class="n"><b>${fmt(a.final)}</b><br><small>${fmt(a.chrono)}${a.pen ? ` +${fmt(a.pen)}` : ""}</small>${C.niv ? `<br><small>🎯 ${a.pts} pt${a.pts > 1 ? "s" : ""}${P(r.k).pts ? " / " + P(r.k).pts : ""}</small>` : ""} ${a.nErr ? `<span class="chip ko">${a.nErr}</span>` : '<span class="chip ok">✓</span>'}${r.duo ? `<br><small class="muted">👥 ${esc(r.duo.prenom)} ${esc(r.duo.nom)}</small>` : ""}</td>`; }).join("")}<td style="white-space:nowrap">${x.runs.some(r => r?.fin) ? `<button class="btn sm gh" data-v="${esc(x.me.id)}">Bilan</button> ` : ""}${VIEW ? "" : `<button class="btn sm gh" data-sm="${esc(x.me.id)}" title="Absent / changer d'enseignant">⋯</button>`}</td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun résultat pour l\'instant.</p>'}
+       ${cls[c].sort((a, b) => byFr(a.me.nom, b.me.nom) || byFr(a.me.prenom, b.me.prenom)).map(x => `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}</td>${!f ? `<td class="small">${esc(x.me.prof)}</td>` : ""}${x.runs.map(r => { if (!r?.fin) return x.abs ? `<td class="n"><span class="chip ko">${STAT_LBL[x.st] || "absent"}</span></td>` : '<td class="n muted">–</td>'; const a = withStudent(x, () => analyse(r)); return `<td class="n"><b>${fmt(a.final)}</b><br><small>${fmt(a.chrono)}${a.pen ? ` +${fmt(a.pen)}` : ""}</small>${C.niv ? `<br><small>🎯 ${a.pts} pt${a.pts > 1 ? "s" : ""}${P(r.k).pts ? " / " + P(r.k).pts : ""}</small>` : ""} ${a.nErr ? `<span class="chip ko">${a.nErr}</span>` : '<span class="chip ok">✓</span>'}${r.duo ? `<br><small class="muted">👥 ${esc(r.duo.prenom)} ${esc(r.duo.nom)}</small>` : ""}${carteOf(r) ? `<br><small class="muted">🗺 ${esc(carteOf(r).nom)}</small>` : ""}</td>`; }).join("")}<td style="white-space:nowrap">${x.runs.some(r => r?.fin) ? `<button class="btn sm gh" data-v="${esc(x.me.id)}">Bilan</button> ` : ""}${VIEW ? "" : `<button class="btn sm gh" data-sm="${esc(x.me.id)}" title="Absent / changer d'enseignant">⋯</button>`}</td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun résultat pour l\'instant.</p>'}
       <div class="row" style="margin-top:14px">${VIEW ? "" : '<button class="btn sm or" id="rSms">📥 Importer des SMS</button>'}<button class="btn sm gh" id="rCsv">⬇ Tableur (CSV)</button><button class="btn sm gh" id="rPr">🖨 Imprimer ce tableau</button><button class="btn sm gh" id="rAll">🖨 Bilans complets de ces élèves</button>${VIEW ? "" : '<button class="btn sm gh" id="rDel" style="color:var(--ko)">🗑 Supprimer tous les résultats</button>'}</div></div>`;
     $("#evBack") && ($("#evBack").onclick = () => { archOff(); go("prof", "res"); });
     $("#evNew") && ($("#evNew").onclick = newEvalDialog); $("#evArch") && ($("#evArch").onclick = archDialog);
@@ -1631,13 +1668,13 @@ function profRes(box) {
       // une ligne par élève ; pour chaque parcours : balises, temps, pénalités, final, bonnes / erreurs, temps moyen par tronçon (+ équipe pour le collectif)
       const hms = ms => { const t = Math.round(Math.max(0, ms) / 1000); return `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`; }; // h:mm:ss, reconnu comme une durée par Excel
       const isDuo = k => isDuoK(k);
-      const cols = k => { const n = C.parcours[k].nom; return [...(isDuo(k) ? [n + " · binôme / groupe"] : []), n + " · balises du parcours", n + " · temps réalisé", n + " · pénalités", n + " · temps final", n + " · balises bonnes", n + " · erreurs", n + " · balises ratées", n + " · temps moyen entre balises", n + " · temps prévu", ...(C.niv ? [n + " · points obtenus", n + " · points à viser"] : [])]; };
+      const cols = k => { const n = C.parcours[k].nom; return [...(isDuo(k) ? [n + " · binôme / groupe"] : []), ...((C.cartes || []).length ? [n + " · carte"] : []), n + " · balises du parcours", n + " · temps réalisé", n + " · pénalités", n + " · temps final", n + " · balises bonnes", n + " · erreurs", n + " · balises ratées", n + " · temps moyen entre balises", n + " · temps prévu", ...(C.niv ? [n + " · points obtenus", n + " · points à viser"] : [])]; };
       const rows = [["Enseignant", "Classe", "Nom", "Prénom", ...C.parcours.flatMap((p, k) => cols(k))]];
       L.forEach(x => rows.push([x.me.prof, x.me.classe || "", x.me.nom, x.me.prenom, ...C.parcours.flatMap((p, k) => {
         const r = x.runs[k], w = cols(k).length;
         if (!r?.fin) { const e = Array(w).fill(""); if (x.abs) e[0] = STAT_LBL[x.st] || "absent"; return e; }
         const a = withStudent(x, () => analyse(r)), bonnes = r.plan.length - a.oublis.length, tron = r.saisies.length + 1; // départ → chaque balise → arrivée
-        return [...(isDuo(k) ? [r.duo ? teamNames(r) : ""] : []), r.plan.join(" - "), hms(a.chrono), a.pen ? hms(a.pen) : "0:00:00", hms(a.final), bonnes, a.oublis.length, a.oublis.join(" - "), hms(a.chrono / tron), r.prevu ? hms(r.prevu * 1000) : "", ...(C.niv ? [a.pts, C.parcours[k].pts || ""] : [])];
+        return [...(isDuo(k) ? [r.duo ? teamNames(r) : ""] : []), ...((C.cartes || []).length ? [carteOf(r) ? carteOf(r).nom : ""] : []), r.plan.join(" - "), hms(a.chrono), a.pen ? hms(a.pen) : "0:00:00", hms(a.final), bonnes, a.oublis.length, a.oublis.join(" - "), hms(a.chrono / tron), r.prevu ? hms(r.prevu * 1000) : "", ...(C.niv ? [a.pts, C.parcours[k].pts || ""] : [])];
       })]));
       const csv = "﻿" + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n"), a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `resultats-CO${VIEW ? "-" + (VIEW.nom || "").normalize("NFD").replace(/[^\w]+/g, "-") : C.ev ? "-" + C.ev.nom.normalize("NFD").replace(/[^\w]+/g, "-") : ""}${f ? "-" + f : ""}.csv`; a.click();
@@ -1652,14 +1689,14 @@ function profConf(box) {
     <label class="l">Enseignants (un par ligne)</label><textarea class="inp" id="cPr" rows="2">${esc(C.profs.join("\n"))}</textarea>
     <label class="l">Téléphone des enseignants (SMS de secours et résultats par SMS)</label><div id="cTel"></div><p class="small muted" style="margin:4px 0 0">Les numéros sont envoyés aux téléphones des élèves pour préparer le SMS.</p></div>
    <div class="card"><h2>Les parcours (${C.parcours.length})</h2><p class="small muted" style="margin-top:0">De 1 à ${MAXP} parcours, individuels ou collectifs. La balise obligatoire d'un parcours (facultative) est interdite dans les autres.</p>${C.parcours.map((p, k) => `<div class="${k ? "sec" : ""}"><div class="row"><span class="chip" style="background:${COLS[k % COLS.length]};color:#fff">P${k + 1}</span><input class="inp" style="flex:1;min-width:140px" data-f="nom" data-k="${k}" value="${esc(p.nom)}"><select class="inp" style="width:auto;padding:8px" data-f="type" data-k="${k}"><option value="indiv" ${p.type !== "duo" ? "selected" : ""}>👤 individuel</option><option value="duo" ${p.type === "duo" ? "selected" : ""}>👥 collectif (binôme / groupe)</option></select>${C.parcours.length > 1 && k === C.parcours.length - 1 ? `<button class="btn sm gh" id="cPDel" style="color:var(--ko)" title="Retirer ce parcours">✕ Retirer</button>` : ""}</div>
-     <div class="row small" style="margin-top:6px"><label>Balises à choisir <input class="inp" style="width:70px;padding:8px" type="number" min="1" data-f="nb" data-k="${k}" value="${p.nb}"></label><label>Obligatoire n° <select class="inp" style="width:auto;padding:8px" data-f="oblig" data-k="${k}"><option value="">aucune</option>${C.balises.map(b => `<option ${+b.n === +p.oblig ? "selected" : ""}>${b.n}</option>`).join("")}</select></label><label>Préparation (min) <input class="inp" style="width:70px;padding:8px" type="number" min="0" step="0.5" data-f="prep" data-k="${k}" value="${p.prep}"></label><label>🚩 Balise de départ imposée <select class="inp" style="width:auto;padding:8px" data-f="dmode" data-k="${k}"><option value="" ${!p.dmode ? "selected" : ""}>aucune</option><option value="tous" ${p.dmode === "tous" ? "selected" : ""}>la même pour tous</option><option value="groupe" ${p.dmode === "groupe" ? "selected" : ""}>différente par binôme</option></select></label>${p.dmode === "tous" ? `<label>n° <select class="inp" style="width:auto;padding:8px" data-f="dn" data-k="${k}"><option value="">?</option>${C.balises.map(b => `<option ${+b.n === +p.dn ? "selected" : ""}>${b.n}</option>`).join("")}</select></label>` : p.dmode === "groupe" ? `<button class="btn sm or" data-grp="${k}">🚩 Attribuer par binôme</button>` : ""}<label>Temps max (min, 0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="max" data-k="${k}" value="${p.max}"></label>${C.niv ? `<label>🎯 Points à viser (0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="pts" data-k="${k}" value="${p.pts || 0}"></label>` : ""}</div></div>`).join("")}${C.parcours.length < MAXP ? `<div class="row" style="margin-top:12px"><button class="btn sm gh" data-padd="indiv">＋ Parcours individuel</button><button class="btn sm gh" data-padd="duo">＋ Parcours collectif</button><span class="small muted">en option</span></div>` : ""}</div>
+     <div class="row small" style="margin-top:6px"><label>Balises à choisir <input class="inp" style="width:70px;padding:8px" type="number" min="1" data-f="nb" data-k="${k}" value="${p.nb}"></label><label>Obligatoire n° <select class="inp" style="width:auto;padding:8px" data-f="oblig" data-k="${k}"><option value="">aucune</option>${C.balises.map(b => `<option ${+b.n === +p.oblig ? "selected" : ""}>${b.n}</option>`).join("")}</select></label><label>Préparation (min) <input class="inp" style="width:70px;padding:8px" type="number" min="0" step="0.5" data-f="prep" data-k="${k}" value="${p.prep}"></label><label>🚩 Balise de départ imposée <select class="inp" style="width:auto;padding:8px" data-f="dmode" data-k="${k}"><option value="" ${!p.dmode ? "selected" : ""}>aucune</option><option value="tous" ${p.dmode === "tous" ? "selected" : ""}>la même pour tous</option><option value="groupe" ${p.dmode === "groupe" ? "selected" : ""}>différente par binôme</option></select></label>${p.dmode === "tous" ? `<label>n° <select class="inp" style="width:auto;padding:8px" data-f="dn" data-k="${k}"><option value="">?</option>${C.balises.map(b => `<option ${+b.n === +p.dn ? "selected" : ""}>${b.n}</option>`).join("")}</select></label>` : p.dmode === "groupe" ? `<button class="btn sm or" data-grp="${k}">🚩 Attribuer par binôme</button>` : ""}<label>Temps max (min, 0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="max" data-k="${k}" value="${p.max}"></label>${(C.cartes || []).length ? `<span class="row" style="gap:4px">🗺 Carte(s) : ${C.cartes.map((c, i) => `<label class="chip" style="cursor:pointer"><input type="checkbox" data-pc="${k}|${i}" ${(p.cartes || []).includes(i) ? "checked" : ""}> ${esc(c.nom)}</label>`).join("")}<small class="muted">${p.type === "duo" ? "" : "2 cartes = une chacun dans le binôme"}</small></span>` : ""}${C.niv ? `<label>🎯 Points à viser (0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="pts" data-k="${k}" value="${p.pts || 0}"></label>` : ""}</div></div>`).join("")}${C.parcours.length < MAXP ? `<div class="row" style="margin-top:12px"><button class="btn sm gh" data-padd="indiv">＋ Parcours individuel</button><button class="btn sm gh" data-padd="duo">＋ Parcours collectif</button><span class="small muted">en option</span></div>` : ""}</div>
    <div class="card"><h2>Pénalités et options</h2><label class="row small" style="margin-bottom:8px"><input type="checkbox" data-o="noPen" ${C.noPen ? "checked" : ""}> <b>Pas de pénalités</b> (temps final = temps de course)</label><div class="row small" id="cPen" style="${C.noPen ? "opacity:.4;pointer-events:none" : ""}"><label>Balise non validée (s) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penOubli" value="${C.penOubli}"></label><label>Obligatoire manquée (s, en plus) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penOblig" value="${C.penOblig}"></label><label>Par minute de retard (s) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penRetard" value="${C.penRetard}"></label></div>
     <label class="row small" style="margin-top:10px"><input type="checkbox" data-o="voirErr" ${C.voirErr ? "checked" : ""}> Montrer les erreurs et pénalités dans le bilan de l'élève</label>
     <label class="row small"><input type="checkbox" data-o="avance" ${C.avance ? "checked" : ""}> L'élève peut partir avant la fin du temps de préparation</label>
     <label class="row small"><input type="checkbox" data-o="prevu" ${C.prevu ? "checked" : ""}> Demander une estimation du temps de course</label>
     <label class="row small"><input type="checkbox" data-o="reuse" ${C.reuse ? "checked" : ""}> Une balise peut être reprise d'un parcours à l'autre</label>
     <label class="row small"><input type="checkbox" data-o="niv" ${C.niv ? "checked" : ""}> <b>Niveaux de difficulté des balises</b> (1, 2 ou 3 : une balise de niveau 3 rapporte 3 points ; points à viser par parcours)</label></div>
-   <div class="card"><h2>Balises (${C.balises.length})</h2><p class="small muted" style="margin-top:0">Numéro (celui du rond violet sur la carte) et code de 3 lettres écrit sur la balise.</p><div id="cB"></div>
+   <div class="card"><h2>Balises (${C.balises.length})</h2>${C.carteNom ? `<p class="small" style="margin-top:0;background:#eef6ff;border:1px solid #9cc3ff;border-radius:10px;padding:8px">🔗 Liste envoyée par <b>OrienRun</b> (carte « ${esc(C.carteNom)} »${(C.cartes || []).length ? `, ${C.cartes.length} carte(s) : ${C.cartes.map(c => esc(c.nom)).join(", ")}` : ""}) : c'est la même liste que dans OrienRun. Pour la modifier : OrienRun → onglet Balises, puis « 📲 Utiliser dans CO éval ».${BAL_EDIT ? " <b style=\"color:var(--ko)\">Modification ici : la liste ne correspondra plus à OrienRun.</b>" : ' <button class="btn sm gh" id="cUnlock">✏️ Modifier ici quand même</button>'}</p>` : ""}<p class="small muted" style="margin-top:0">Numéro (celui du rond violet sur la carte) et code de 3 lettres écrit sur la balise.</p><div id="cB"></div>
     <div class="row" style="margin-top:8px"><button class="btn sm gh" id="cAdd">＋ Balise</button><button class="btn sm gh" id="cMany">＋ Plusieurs balises</button><button class="btn sm gh" id="cGen">🎲 Nouveaux codes au hasard</button><button class="btn sm or" id="cCodes">🖨 Fiche des codes (tableau A4)</button><button class="btn sm gh" id="cPrint">🖨 Étiquettes à coller sur les balises</button><button class="btn sm gh" id="cBal">🗺 Balises utilisées (trace)</button></div></div>
    <button class="btn sm gh" id="cReset">Revenir aux paramètres de démonstration</button>`;
   const ch = () => confChanged();
@@ -1672,6 +1709,7 @@ function profConf(box) {
   $$("[data-grp]", box).forEach(b => b.onclick = () => groupDialog());
   $$("[data-g]", box).forEach(x => x.oninput = () => { C[x.dataset.g] = Math.max(0, +x.value || 0); ch(); });
   $$("[data-o]", box).forEach(x => x.onchange = () => { C[x.dataset.o] = x.checked; ch(); if (["noPen", "niv"].includes(x.dataset.o)) go("prof", "conf"); });
+  $$("[data-pc]", box).forEach(x => x.onchange = () => { const [k, i] = x.dataset.pc.split("|").map(Number), p = C.parcours[k]; p.cartes = (p.cartes || []).filter(j => j !== i); if (x.checked) p.cartes.push(i); p.cartes.sort(); ch(); });
   $$("[data-padd]", box).forEach(b => b.onclick = () => { const t = b.dataset.padd, n = C.parcours.filter(p => p.type === t).length + 1; C.parcours.push({ nom: (t === "duo" ? "Parcours collectif " : "Parcours individuel ") + n, type: t, nb: t === "duo" ? 8 : 6, oblig: null, prep: 5, max: 0 }); ch(); go("prof", "conf"); flash("Parcours ajouté ✓"); });
   $("#cPDel") && ($("#cPDel").onclick = async () => { const k = C.parcours.length - 1; if (!(await ask(`Retirer « ${esc(P(k).nom)} » ?`, "Les élèves ne le verront plus. Les résultats déjà reçus pour ce parcours restent dans la Google Sheet.", "Retirer", "ko"))) return; C.parcours.pop(); ch(); go("prof", "conf"); });
   $$("[data-f=type]", box).forEach(x => x.addEventListener("change", () => setTimeout(() => go("prof", "conf"), 50)));
@@ -1685,6 +1723,8 @@ function profConf(box) {
     check();
   };
   drawB();
+  const lock = C.carteNom && !BAL_EDIT; if (lock) { $$("#cB input, #cB select, #cB button").forEach(e => e.disabled = true); ["#cAdd", "#cMany", "#cGen"].forEach(q => $(q).style.display = "none"); }
+  $("#cUnlock") && ($("#cUnlock").onclick = () => { BAL_EDIT = true; go("prof", "conf"); });
   $("#cAdd").onclick = () => { C.balises.push({ n: Math.max(30, ...C.balises.map(b => +b.n)) + 1, code: rndCode() }); drawB(); ch(); };
   $("#cMany").onclick = () => { const v = prompt("Numéros des balises (ex. 31-50, ou 31,32,40) :"); if (!v) return; const L = []; v.split(/[,; ]+/).forEach(x => { const m = x.match(/^(\d+)-(\d+)$/); if (m) for (let i = +m[1]; i <= +m[2]; i++) L.push(i); else if (+x) L.push(+x); }); L.forEach(n => { if (!balise(n)) C.balises.push({ n, code: rndCode() }); }); C.balises.sort((a, b) => a.n - b.n); drawB(); ch(); };
   $("#cGen").onclick = async () => { if (!(await ask("Nouveaux codes ?", "Tous les codes seront remplacés par des codes tirés au hasard. Pense à réimprimer la fiche des balises.", "Remplacer", "ko"))) return; C.balises.forEach(b => b.code = ""); C.balises.forEach(b => b.code = rndCode()); drawB(); ch(); };
