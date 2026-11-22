@@ -586,7 +586,7 @@ async function sync() {
     if (j.conf != null && j.vc && j.vc !== VC) { try { const o = JSON.parse(j.conf), stable = x => JSON.stringify({ ...x, msgs: 0, rappel: 0, retour: 0 }), before = stable(C); if (VIEW) archOff(); C = fixConf(Object.assign(clone(DEF), o)); if (!TPW && fitRuns()) saveRuns(true); if (TPW) { statP = null; await ensureStat(); } LS.set("conf", o); VC = j.vc; LS.set("vc", VC); conf = true; if (ME && (C.moves || {})[ME.id]) { ME = moved(ME); LS.set("me", ME); } if (stable(C) === before) { VC = j.vc; LS.set("vc", VC); checkAlerts(); $("#hT").textContent = C.titre; syncing = false; setNet(); return flushOut(); } } catch (e) {} }
     if (j.carte != null && j.vm && j.vm !== VM) { await idbSet("carte", j.carte || null); VM = j.vm; LS.set("vm", VM); MAPIMG = (await blobURL(j.carte)) || demoMap(); map = true; }
     if (conf) await loadCartes();
-    if (conf || map) { if (conf && !TPW) { if (evCheck() && !ME) { go("ident"); flash("🆕 Nouvelle évaluation : choisis ton nom"); } } if (conf) applyDeletions(); onRemote(conf, map); checkAlerts(); }
+    if (conf || map) { if (conf && !TPW) { if (evCheck() && !ME) { go("ident"); flash("👋 Ton enseignant a remis ce téléphone à zéro : choisis ton nom"); } } if (conf) applyDeletions(); onRemote(conf, map); checkAlerts(); }
     if (!j.vm) OFF.nomap = true; // pas de carte publiée : la carte de démonstration suffit
     flushOut(); if (!OFF.ready && CUR.v !== "prof") checkOffline();
   } catch (e) { NET = false; }
@@ -627,11 +627,11 @@ function checkAlerts() {
   if (!ME || CUR.v === "prof") return;
   const seen = LS.get("seen", {}), t = now();
   const rp = C.rappel; if (rp && rp.id && seen.rappel !== rp.id) { seen.rappel = rp.id; LS.set("seen", seen); if (t - rp.id < 5 * 60000 && (!rp.prof || rp.prof === ME.prof)) alarm("RETOUR !", `${esc(rp.prof || "Tes enseignants")} demande${rp.prof ? "" : "nt"} à tout le monde de <b>revenir à l'arrivée maintenant</b>.${C.retour ? `<br>Heure de retour : <b>${hhmm(C.retour)}</b>` : ""}`); }
-  const R = C.retour; if (R && t < R + 30 * 60000) {
+  const R = retourAt(); if (R && t < R + 30 * 60000) {
     if (t >= R - 10 * 60000 && t < R && seen.r10 !== R) { seen.r10 = R; LS.set("seen", seen); alarm("Plus que 10 minutes !", `Retour à l'arrivée à <b>${hhmm(R)}</b>. Commence à revenir maintenant.`, "warn"); }
     if (t >= R && seen.r0 !== R) { seen.r0 = R; seen.r10 = R; LS.set("seen", seen); if (t - R < 15 * 60000) alarm("C'est l'heure du retour !", `Il est <b>${hhmm(R)}</b> : reviens tout de suite à l'arrivée.`); }
   }
-  const e = $("#rRet"); if (e) { const L = C.retour ? C.retour - t : null; e.innerHTML = L == null ? "" : L > 0 ? `⏰ Retour à <b>${hhmm(C.retour)}</b> · encore ${fmt(L)}` : `⏰ Heure de retour dépassée (${hhmm(C.retour)})`; e.style.display = L == null ? "none" : ""; }
+  const e = $("#rRet"); if (e) { const L = R ? R - t : null; e.innerHTML = L == null ? "" : L > 0 ? `⏰ Retour à <b>${hhmm(R)}</b> · encore ${fmt(L)}` : `⏰ Heure de retour dépassée (${hhmm(R)})`; e.style.display = L == null ? "none" : ""; }
 }
 function onRemote(conf) {
   $("#hT").textContent = C.titre;
@@ -690,7 +690,7 @@ function handleStates(L) {
   const sigP = () => JSON.stringify([mates().map(m => m.id), Object.values(PARTNERS).map(P0 => [P0.runs.map(r => r && [r.plan, r.sel, r.debut]), P0.me && P0.me.binome, P0.me && P0.me.groupe])]);
   const before = sigP(), mine = L.find(x => x.eleve === ME.id);
   // ma propre sauvegarde (autre téléphone) : équipe la plus récente
-  if (mine && mine.d && mine.d.me && (!C.ev || mine.d.me.ev === C.ev.id)) { const m = mine.d.me; if ((m.binome && !ME.binome && !ME.groupe) || (m.gu || 0) > (ME.gu || 0)) { ME.binome = m.binome || ME.binome; ME.groupe = m.groupe || null; ME.gu = m.gu || ME.gu; LS.set("me", ME); } }
+  if (mine && mine.d && mine.d.me && (!C.ev || mine.d.me.ev === C.ev.id) && !((C.kick || {})[ME.id] > (mine.t || 0))) { const m = mine.d.me; if ((m.binome && !ME.binome && !ME.groupe) || (m.gu || 0) > (ME.gu || 0)) { ME.binome = m.binome || ME.binome; ME.groupe = m.groupe || null; ME.gu = m.gu || ME.gu; LS.set("me", ME); } }
   // groupe créé ou modifié sur le téléphone d'un partenaire (avec le code enseignant) : il se propage à tout le groupe
   const look = () => { const ids = mates().map(m => m.id), o = {}; ids.forEach(id => { const x = L.find(y => y.eleve === id); if (x && x.d) o[id] = { me: x.d.me || mates().find(m => m.id === id), runs: (x.d.runs || []).map((y, k) => unpackLive(y, k)), t: x.t }; else if (PARTNERS[id]) o[id] = PARTNERS[id]; }); PARTNERS = o; };
   look();
@@ -700,7 +700,7 @@ function handleStates(L) {
     else return;
     ME.gu = pm.gu; LS.set("me", ME); pushState(true); duoKs().forEach(k => { const R = RUNS[k]; if (R && !R.debut && !R.fin) { R.team = mates().slice(); R.duo = R.team[0] || null; } }); });
   look();
-  const adopt = (k, r) => { if (!r || k >= C.parcours.length || (isDeleted(r) && canRedo(r))) return; const loc = RUNS[k]; if (!loc || (r.u || 0) > (loc.u || 0)) { r._sig = runSig(r); RUNS[k] = r; ch = true; } };
+  const adopt = (k, r) => { if (!r || k >= C.parcours.length || (!r.fin && (C.kick || {})[ME.id] > (r.u || r.prepT || 0)) || (isDeleted(r) && canRedo(r))) return; const loc = RUNS[k]; if (!loc || (r.u || 0) > (loc.u || 0)) { r._sig = runSig(r); RUNS[k] = r; ch = true; } };
   if (mine && mine.d && mine.d.runs) mine.d.runs.forEach((x, k) => adopt(k, unpackLive(x, k)));
   // parcours collectif : la version la plus récente parmi les téléphones de l'équipe (si je fais bien partie de son équipe)
   Object.values(PARTNERS).forEach(P0 => duoKs().forEach(k => { const pd = P0.runs[k]; if (!pd || !teamOf(pd).some(x => x.id === ME.id)) return;
@@ -840,13 +840,24 @@ const evHas = (prof, classe) => !C.ev || !(C.ev.cls || []).length || C.ev.cls.in
 const dKey = t => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const hm2t = (d, h) => { const [a, b] = String(h || "0:0").split(":").map(Number); const x = new Date(d + "T00:00:00"); x.setHours(a || 0, b || 0, 0, 0); return x.getTime(); };
 function slotsNow() { const t = now(), today = dKey(t); return (C.slots || []).filter(sl => sl.d === today && t >= hm2t(sl.d, sl.h1) - 15 * 60000 && t <= hm2t(sl.d, sl.h2) + 30 * 60000); }
+// heure de retour : celle du créneau de l'élève s'il y en a une, sinon l'heure générale
+function retourAt() { if (ME && !TPW) { const sl = slotsNow().find(x => x.ret && (x.cls || []).includes(ME.prof + "|" + ME.classe)); if (sl) return hm2t(sl.d, sl.ret); } return C.retour || null; }
 function slotCls() { const S = slotsNow(); return S.length ? S.flatMap(sl => sl.cls || []) : null; }
 const pickHas = (prof, classe) => evHas(prof, classe) && (TPW || !slotCls() || slotCls().includes(prof + "|" + classe));
 const isDeleted = r => !!r && ((evStart() && t0Of(r) && t0Of(r) < evStart()) || (C.evEnd && t0Of(r) >= C.evEnd) || (C.suppr || []).some(x => x === runKey(r) || x === runKey(r) + ":r"));
 const canRedo = r => (evStart() && t0Of(r) < evStart()) || (C.suppr || []).includes(runKey(r) + ":r");
 // côté élève : un parcours effacé par l'enseignant peut être refait
 // nouvelle évaluation publiée par l'enseignant : l'élève repart de zéro (parcours, binôme) ; s'il n'est pas d'une classe concernée, il se réidentifie
+// élève déconnecté par l'enseignant (C.kick[id] = date) : retour à l'identification ; ses camarades l'enlèvent de leur binôme
+function kickCheck() {
+  if (!ME) return false; const K = C.kick || {}, since = ME.at || ME.gu || 0;
+  if (K[ME.id] && K[ME.id] > since) { RUNS = RUNS.map(r => r && r.fin ? r : null); ME = null; LS.del("me"); PARTNERS = {}; RUNS = emptyRuns(); LS.set("runs", RUNS); idbSet("bak", null); return true; }
+  const bad = mates().filter(m => K[m.id] && K[m.id] > (ME.gu || 0)); if (!bad.length) return false;
+  const rest = mates().filter(m => !bad.includes(m)); ME.groupe = rest.length > 1 ? rest : null; ME.binome = rest[0] || null; ME.gu = now(); PARTNERS = {}; LS.set("me", ME);
+  RUNS.forEach((r, k) => { if (r && !r.debut && !r.fin && isDuoK(k)) RUNS[k] = null; }); saveRuns(); pushState(true); return false;
+}
 function evCheck() {
+  if (kickCheck()) return true;
   if (!ME || !C.ev || ME.ev === C.ev.id) return false;
   if (!evHas(ME.prof, ME.classe)) { ME = null; LS.del("me"); RUNS = emptyRuns(); LS.set("runs", RUNS); PARTNERS = {}; return true; }
   ME.ev = C.ev.id; ME.binome = null; ME.groupe = null; ME.gu = now(); PARTNERS = {}; LS.set("me", ME); applyDeletions(); pushState(true); return true;
@@ -888,10 +899,12 @@ function msgDialog(target) {
 }
 function studentMenu(e, after, runs) {
   const st = statOf(e), others = C.profs.filter(p => p && p !== e.prof);
+  setTimeout(() => { const b = $("#smKick"); if (b) b.onclick = async () => { if (!(await ask(`Déconnecter ${esc(e.prenom)} ?`, "Sur son téléphone (et sur celui où il a été choisi par erreur), l'élève revient à « Qui es-tu ? » : identification et binôme à refaire. Ses parcours non terminés sont effacés ; ses résultats déjà reçus sont gardés.", "🔌 Déconnecter", "ko"))) return; C.kick = C.kick || {}; C.kick[studentId(e)] = now(); confChanged(); $$(".modal").forEach(x => x.remove()); flash(`🔌 ${e.prenom} déconnecté`); after && after(); }; }, 0);
   const m = modal(`<h2 style="margin:0 0 4px">${esc(e.prenom)} ${esc(e.nom)}</h2><p class="small muted" style="margin-top:0">${esc(e.classe || "")} · ${esc(e.prof)}</p>
    <div class="row"><button class="btn grow ${st === "absent" ? "ko" : "gh"}" data-st="absent">🚫 Absent</button><button class="btn grow ${st === "dispense" ? "ko" : "gh"}" data-st="dispense">🩺 Dispensé</button><button class="btn grow ${!st ? "gr" : "gh"}" data-st="">✓ Présent</button></div>
    <p class="small muted">Un élève absent ou dispensé n'apparaît plus dans la liste des prénoms, ni comme camarade possible. 🔒 Les élèves ne voient jamais ce statut : leur téléphone reçoit seulement une empreinte anonyme, et le mot « dispensé » est chiffré avec ton mot de passe.</p>
    <button class="btn vi" id="smMsg" style="width:100%;margin-top:10px">💬 Envoyer un message à ${esc(e.prenom)}</button>
+   <button class="btn gh" id="smKick" style="width:100%;margin-top:8px">🔌 Déconnecter ${esc(e.prenom)} (connecté par erreur)</button>
    ${runs && runs.some(r => r?.fin) ? `<h3 style="margin:12px 0 6px">🗑 Supprimer un résultat</h3><div class="row">${runs.map((r, k) => r?.fin ? `<button class="btn sm gh" data-delr="${k}" style="color:var(--ko)">🗑 ${esc(P(k).nom)} (${fmt(r.fin - r.debut)})</button>` : "").join("")}</div>` : ""}
    ${others.length ? `<h3 style="margin:14px 0 6px">↔ Basculer vers un autre enseignant</h3><label class="l">Classe chez le nouvel enseignant</label><input class="inp" id="smC" value="${esc(e.classe || "")}" list="smCl"><datalist id="smCl"></datalist>
    <div class="pick" style="margin-top:8px">${others.map(p => `<button data-to="${esc(p)}">→ ${esc(p)}</button>`).join("")}</div><p class="small muted">Ses résultats déjà envoyés passent aussi chez le nouvel enseignant.</p>` : ""}
@@ -907,7 +920,7 @@ function studentMenu(e, after, runs) {
 function vIdent() {
   $("#app").innerHTML = `<div class="card"><h2>👋 Qui es-tu ?</h2><div id="iBox"></div></div>`;
   picker($("#iBox"), {}, async e => { if (!(await ask("C'est bien toi ?", `<b style="font-size:1.2rem">${esc(e.prenom)} ${esc(e.nom)}</b><br>${e.classe ? esc(e.classe) + " · " : ""}${esc(e.prof)}`, "Oui, c'est moi", "gr"))) return;
-    ME = { ...e, id: studentId(e), ...(C.ev ? { ev: C.ev.id } : {}) }; LS.set("me", ME); RUNS = emptyRuns(); LS.set("runs", RUNS);
+    ME = { ...e, id: studentId(e), at: now(), ...(C.ev ? { ev: C.ev.id } : {}) }; LS.set("me", ME); RUNS = emptyRuns(); LS.set("runs", RUNS);
     $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2rem">⏳</div><p>Recherche de ta progression…</p></div>`;
     await restore();
     if (!RUNS.some(Boolean)) { const b = await idbGet("bak:" + ME.id); if (b && b.runs) { RUNS = b.runs.map((x, k) => x && unpackLive(x, k)); if (b.me) { ME.binome = ME.binome || b.me.binome; ME.groupe = ME.groupe || b.me.groupe; ME.gu = ME.gu || b.me.gu; LS.set("me", ME); } saveRuns(true); flash("✓ Ta progression a été retrouvée sur ce téléphone"); } }
@@ -1029,7 +1042,7 @@ function vPrep(k) {
     <ul class="sl"><li class="st"><span class="o"></span><span class="bn" style="border-radius:8px">▲</span><b>Départ</b></li></ul><ul class="sl" id="pList"></ul><ul class="sl"><li class="fi"><span class="o"></span><span class="bn">◎</span><b>Retour à l'arrivée</b></li></ul></div>
    <div class="card" style="padding:10px"><h2 style="margin:4px 4px 8px">3. Trace ton itinéraire <span class="chip">facultatif</span></h2>${hasPos() ? '<p class="muted small" style="margin:0 4px 8px" id="pMiss"></p>' : '<div class="mapv" id="pMap" style="height:38vh"></div>'}<button class="btn big or" id="pDraw" style="margin-top:10px">✏️ ${r.trace?.length ? "Modifier mon tracé" : "Tracer sur la carte"}</button></div>
    ${C.prevu ? `<div class="card"><h2>4. Combien de temps vas-tu mettre ?</h2><p class="muted small" style="margin-top:0">Ton estimation sera comparée à ton temps réel dans le bilan.</p><div class="row"><button class="btn gh" data-pv="-60">−1 min</button><div class="timer grow" style="text-align:center;font-size:1.8rem" id="pPv">–</div><button class="btn gh" data-pv="60">+1 min</button></div><div class="row" style="justify-content:center;margin-top:6px"><button class="btn sm gh" data-pv="-15">−15 s</button><button class="btn sm gh" data-pv="15">+15 s</button></div></div>` : ""}
-   ${C.retour ? `<div class="retour" style="text-align:center;margin-bottom:8px">⏰ Retour à l'arrivée avant <b>${hhmm(C.retour)}</b></div>` : ""}<button class="btn big gr" id="pGo" disabled>▶ Départ</button><p class="small muted" id="pWhy" style="text-align:center"></p>
+   ${retourAt() ? `<div class="retour" style="text-align:center;margin-bottom:8px">⏰ Retour à l'arrivée avant <b>${hhmm(retourAt())}</b></div>` : ""}<button class="btn big gr" id="pGo" disabled>▶ Départ</button><p class="small muted" id="pWhy" style="text-align:center"></p>
    <button class="btn gh" id="pCancel" style="width:100%;margin-top:6px">↩ Annuler et revenir à l'accueil</button>
    <button class="btn sm gh" id="pSos" style="width:100%;margin-top:8px;color:var(--ko)">🆘 SMS de secours à mon enseignant</button><p class="small muted" style="text-align:center;margin-top:4px">Pour changer de parcours, de camarade ou de coureur.</p>`;
   $("#pSos").onclick = () => sos(k);
@@ -1374,7 +1387,7 @@ async function pullLive() {
   finally { setNet(); }
 }
 // élèves de l'évaluation en cours seulement (les téléphones restés sur une évaluation précédente sont ignorés)
-const liveCur = () => Object.values(LIVE.st).filter(x => !C.ev || ((x.d || {}).me || {}).ev === C.ev.id);
+const liveCur = () => Object.values(LIVE.st).filter(x => (!C.ev || ((x.d || {}).me || {}).ev === C.ev.id) && !((C.kick || {})[x.eleve] > (x.t || 0)));
 function liveInfo(x) {
   const x0id = x.eleve;
   const runs = (x.d.runs || []).slice(0, C.parcours.length).map((y, k) => unpackLive(y, k)), me = moved(x.d.me || {}), pos = x.d.pos;
@@ -1619,9 +1632,9 @@ function slotsDialog() {
    <p class="small muted" style="margin-top:0">Un créneau = un jour, une heure de début et de fin, et le groupe évalué (une ou plusieurs classes, d'un ou deux enseignants). Pendant le créneau (de 15 min avant à 30 min après), les élèves ne peuvent choisir que les élèves de ces classes, pour eux comme pour leur binôme. En dehors des créneaux, toutes les classes restent visibles.</p>
    <div id="slL"></div><button class="btn sm gh" id="slAdd" style="margin-top:6px">＋ Ajouter un créneau</button>
    <div class="row" style="margin-top:12px"><button class="btn gh grow" id="slC">Annuler</button><button class="btn or grow" id="slOk">✓ Enregistrer et publier</button></div>`);
-  const draw = () => { $("#slL", m).innerHTML = S.map((sl, i) => `<div class="card" style="margin:0 0 8px;padding:10px;border:2px solid ${sl.d === today ? "var(--vi)" : "var(--line)"}"><div class="row"><input class="inp" type="date" data-sd="${i}" value="${esc(sl.d)}" style="width:auto;padding:6px"><input class="inp" type="time" data-s1="${i}" value="${esc(sl.h1)}" style="width:auto;padding:6px"> → <input class="inp" type="time" data-s2="${i}" value="${esc(sl.h2)}" style="width:auto;padding:6px"><span class="grow"></span><button class="btn sm gh" data-sx="${i}" style="color:var(--ko)">✕</button></div>
+  const draw = () => { $("#slL", m).innerHTML = S.map((sl, i) => `<div class="card" style="margin:0 0 8px;padding:10px;border:2px solid ${sl.d === today ? "var(--vi)" : "var(--line)"}"><div class="row"><input class="inp" type="date" data-sd="${i}" value="${esc(sl.d)}" style="width:auto;padding:6px"><input class="inp" type="time" data-s1="${i}" value="${esc(sl.h1)}" style="width:auto;padding:6px"> → <input class="inp" type="time" data-s2="${i}" value="${esc(sl.h2)}" style="width:auto;padding:6px"><label class="small">⏰ retour <input class="inp" type="time" data-sr="${i}" value="${esc(sl.ret || "")}" style="width:auto;padding:6px"></label><span class="grow"></span><button class="btn sm gh" data-sx="${i}" style="color:var(--ko)">✕</button></div>
      ${Object.entries(L).map(([p, cl]) => `<div class="small" style="margin-top:6px"><b>👤 ${esc(p)}</b></div><div class="row small">${Object.keys(cl).sort(byFr).map(c => `<label class="chip" style="cursor:pointer"><input type="checkbox" data-sc="${i}" value="${esc(p + "|" + c)}" ${(sl.cls || []).includes(p + "|" + c) ? "checked" : ""}> ${esc(c)}</label>`).join("")}</div>`).join("") || '<p class="small muted">Importe d\'abord tes listes d\'élèves.</p>'}</div>`).join("") || '<p class="muted small">Aucun créneau : toutes les classes sont visibles à tout moment.</p>';
-    $$("[data-sd]", m).forEach(x => x.onchange = () => S[+x.dataset.sd].d = x.value); $$("[data-s1]", m).forEach(x => x.onchange = () => S[+x.dataset.s1].h1 = x.value); $$("[data-s2]", m).forEach(x => x.onchange = () => S[+x.dataset.s2].h2 = x.value);
+    $$("[data-sd]", m).forEach(x => x.onchange = () => S[+x.dataset.sd].d = x.value); $$("[data-s1]", m).forEach(x => x.onchange = () => S[+x.dataset.s1].h1 = x.value); $$("[data-s2]", m).forEach(x => x.onchange = () => S[+x.dataset.s2].h2 = x.value); $$("[data-sr]", m).forEach(x => x.onchange = () => S[+x.dataset.sr].ret = x.value);
     $$("[data-sc]", m).forEach(x => x.onchange = () => { const sl = S[+x.dataset.sc]; sl.cls = (sl.cls || []).filter(v => v !== x.value); if (x.checked) sl.cls.push(x.value); });
     $$("[data-sx]", m).forEach(b => b.onclick = () => { S.splice(+b.dataset.sx, 1); draw(); }); };
   draw();
@@ -1679,7 +1692,7 @@ function profRes(box) {
     L.forEach(x => (cls[x.me.classe || "Sans classe"] = cls[x.me.classe || "Sans classe"] || []).push(x));
     box.innerHTML = `<div class="tabs2">${C.profs.filter(Boolean).map(p => `<button class="btn sm ${p === f ? "vi" : "gh"}" data-pf="${esc(p)}">👤 ${esc(p)} (${all.filter(x => x.me.prof === p).length})</button>`).join("")}<button class="btn sm ${!f ? "vi" : "gh"}" data-pf="">Tous (${all.length})</button></div>
      <div class="card" style="border:2px solid ${VIEW ? "var(--or)" : "var(--nv)"}"><div class="row"><div class="grow"><b>${VIEW ? "📚 Évaluation sauvegardée : " + esc(VIEW.nom) : "🗂 " + esc(C.ev ? C.ev.nom : "Évaluation en cours")}</b><br><small class="muted">${VIEW ? `${dShort(VIEW.from)} → ${dShort(VIEW.to)} · lecture seule` : C.ev ? "depuis le " + dShort(C.ev.date) : "pas encore de nouvelle évaluation"} · ${esc(clsTxt(C.ev && C.ev.cls))}</small></div>
-      ${VIEW ? '<button class="btn or" id="evBack">← Revenir à l\'évaluation en cours</button>' : '<button class="btn sm or" id="evNew">🆕 Nouvelle évaluation</button><button class="btn sm gh" id="evArch">📚 Évaluations précédentes</button><button class="btn sm vi" id="evSlots">📅 Créneaux${(C.slots || []).length ? " (" + C.slots.length + ")" : ""}</button>'}</div>
+      ${VIEW ? '<button class="btn or" id="evBack">← Revenir à l\'évaluation en cours</button>' : '<button class="btn sm or" id="evNew">🆕 Nouvelle évaluation</button><button class="btn sm gh" id="evArch">📚 Évaluations précédentes</button><button class="btn sm vi" id="evSlots">📅 Créneaux' + ((C.slots || []).length ? " (" + C.slots.length + ")" : "") + '</button>'}</div>
       <div class="row" style="margin-top:8px"><button class="btn sm gh" id="evBal">🖨 Balises utilisées</button>${VIEW ? "" : '<button class="btn sm gh" id="evPap">📄 Version papier (sans téléphone)</button><button class="btn sm gh" id="evSai">✍ Saisir un résultat papier</button>'}</div></div>
      <div class="card"><div class="row"><h2 class="grow" style="margin:0">Résultats ${f ? "· " + esc(f) : "· tous les enseignants"}</h2><span class="small muted" id="rSt"></span></div>
       <p class="small muted">Touche ⋯ pour marquer un élève absent ou dispensé, ou le basculer vers un autre enseignant. Les résultats arrivent tout seuls à la fin de chaque parcours. ${C.noPen ? "Évaluation sans pénalités : temps final = temps de course." : `Temps final = temps de course + pénalités (balise non validée ${fmtMin(C.penOubli)}, obligatoire manquée ${fmtMin(C.penOblig)}${C.parcours.some(p => p.max) ? `, ${fmtMin(C.penRetard)} par minute de retard` : ""}).`}</p>
