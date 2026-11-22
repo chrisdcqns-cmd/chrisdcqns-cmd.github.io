@@ -1034,7 +1034,7 @@ function vPrep(k) {
    <button class="btn sm gh" id="pSos" style="width:100%;margin-top:8px;color:var(--ko)">🆘 SMS de secours à mon enseignant</button><p class="small muted" style="text-align:center;margin-top:4px">Pour changer de parcours, de camarade ou de coureur.</p>`;
   $("#pSos").onclick = () => sos(k);
   $("#pCancel").onclick = async () => { if (!(await ask("Annuler la préparation ?", "Tes balises choisies et ton tracé pour ce parcours seront effacés.", "Oui, effacer", "ko"))) return; RUNS[k] = null; saveRuns(); go("home"); };
-  const mv = mapViewer($("#pMap"), { img: imgOf(r), overlay: (W, H) => { r.mapAR = H / W; return nivSVG(W, H, al) + forbidSVG(fb, W, H) + planSVG(r.plan, W, H) + traceSVG(r.trace, W, H); }, onTap: (q, v) => { const b = baliseAt(q, v); if (b) toggle(b.n); } });
+  const mv = mapViewer($("#pMap"), { img: imgOf(r), overlay: (W, H) => { r.mapAR = H / W; return nivSVG(W, H, al) + planSVG(r.plan, W, H) + traceSVG(r.trace, W, H); }, onTap: (q, v) => { const b = baliseAt(q, v); if (b) toggle(b.n); } });
   const miss = () => { const e = $("#pMiss"); if (!e) return; const M = traceMissing(r); e.innerHTML = !r.trace?.length ? "Facultatif : tu peux tracer ton itinéraire si tu le souhaites." : M.length ? `⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : r.plan.length ? "✓ Ton tracé passe par toutes tes balises." : ""; };
   $("#pDraw").onclick = () => drawEditor(r, () => { mv.redraw(); miss(); $("#pDraw").textContent = "✏️ " + (r.trace.length ? "Modifier mon tracé" : "Tracer sur la carte"); });
   const grid = $("#pGrid"), list = $("#pList");
@@ -1500,10 +1500,12 @@ function printDoc(title, body, css = "") {
   w.document.close();
 }
 // carte telle que la voient les élèves (les ronds et numéros sont déjà dessus) ; code = true : codes ajoutés à côté de chaque balise (version enseignant)
-function mapPrintHTML(src, code, mh = "120mm") {
+function mapPrintHTML(src, code, mh = "120mm", crt = null) {
   if (!src) return "";
-  const B = code ? C.balises.filter(b => b.x != null) : [];
-  return `<div style="text-align:center;margin:2mm 0"><div class="mp" style="--mh:${mh}"><img src="${src}">${B.map(b => `<span class="bn" style="left:${b.x * 100}%;top:${b.y * 100}%;transform:translate(-50%,3.2mm);background:#fff;border:.3mm solid #c21fbf;border-radius:1mm;padding:0 .6mm;font-family:'Courier New',monospace">${esc(b.code)}</span>`).join("")}</div></div>`;
+  const BB = crt && Array.isArray(crt.balx) && crt.balx.length ? crt.balx : crt ? C.balises.filter(b => crt.bal.map(Number).includes(+b.n)) : C.balises;
+  const B = code ? BB.filter(b => b.x != null) : [], S = C.niv ? BB.filter(b => b.x != null && +b.niv > 0) : [];
+  const stars = S.map(b => `<span class="bn" style="left:${b.x * 100}%;top:${b.y * 100}%;transform:translate(1.8mm,-7.5mm);background:#ffd23f;color:#3d2d00;border:.3mm solid #7a5a00;border-radius:2mm;padding:0 .8mm;font-size:8pt">${"★".repeat(Math.min(3, +b.niv))}</span>`).join("");
+  return `<div style="text-align:center;margin:2mm 0"><div class="mp" style="--mh:${mh}"><img src="${src}">${B.map(b => `<span class="bn" style="left:${b.x * 100}%;top:${b.y * 100}%;transform:translate(-50%,3.2mm);background:#fff;border:.3mm solid #c21fbf;border-radius:1mm;padding:0 .6mm;font-family:'Courier New',monospace">${esc(b.code)}</span>`).join("")}${stars}</div>${S.length ? '<div style="font-size:8.5pt;margin-top:1mm">★ = 1 point · ★★ = 2 points · ★★★ = 3 points</div>' : ""}</div>`;
 }
 const evHead = () => `${esc(C.titre)}${C.ev ? " · " + esc(C.ev.nom) : ""}`;
 // fiche des codes : tableau A4 (document enseignant)
@@ -1548,7 +1550,7 @@ function paperDialog() {
       return `<div class="pg"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h1>🧭 ${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}${crt ? ` · 🗺 ${esc(crt.nom)}` : ""}</h1><p class="sub">${evHead()} · carton de contrôle papier</p></div><div style="font-size:9pt;text-align:right">Date : ${new Date().toLocaleDateString("fr-FR")}</div></div>
        <p style="margin:1mm 0">Nom : ${e ? `<b>${esc(e.nom)}</b>` : '<span class="ln"></span>'} &nbsp; Prénom : ${e ? `<b>${esc(e.prenom)}</b>` : '<span class="ln"></span>'} &nbsp; Classe : ${e ? `<b>${esc(e.classe)}</b>` : '<span class="ln" style="min-width:20mm"></span>'}${p.type === "duo" ? ' <br>Binôme / groupe : <span class="ln" style="min-width:110mm"></span>' : ""}</p>
        <p style="margin:1.5mm 0;font-size:9.5pt">Choisis <b>${p.libre ? "tes balises (nombre au choix)" : p.nb + " balises"}</b>${p.oblig ? `, dont la n° <b class="num">${p.oblig}</b> obligatoire` : ""}${dn ? `, en commençant par la n° <b class="num">${dn}</b>` : ""}. Préparation : ${fmtMin(p.prep * 60)}${p.max ? ` · temps maximum : ${p.max} min` : ""}. Écris d'abord les numéros dans l'ordre de ton parcours, puis pendant la course le <b>code de 3 lettres</b> écrit sur chaque balise. Balise pas trouvée : écris un tiret « – ».</p>
-       ${src ? mapPrintHTML(src, false, "112mm") : `<p style="font-size:9pt">Balises : ${(crt ? crt.bal : C.balises.map(b => b.n)).join(" · ")}</p>`}
+       ${src ? mapPrintHTML(src, false, "112mm", crt) : `<p style="font-size:9pt">Balises : ${(crt ? crt.bal : C.balises.map(b => b.n)).join(" · ")}</p>`}
        <table style="margin-top:2mm"><thead><tr><th style="width:16mm">Ordre</th><th style="width:30mm">N° de balise</th><th style="width:45mm">Code (3 lettres)</th><th>Remarque</th></tr></thead><tbody>${Array.from({ length: rows }, (_, i) => `<tr style="height:8.5mm"><td><b>${i + 1}</b></td><td class="num">${i === 0 && dn ? dn : ""}</td><td></td><td></td></tr>`).join("")}</tbody></table>
        <p style="margin-top:3mm">Temps estimé : <span class="ln" style="min-width:25mm"></span> &nbsp; Heure de départ : <span class="ln" style="min-width:25mm"></span> &nbsp; Heure d'arrivée : <span class="ln" style="min-width:25mm"></span></p>
        <p style="font-size:9pt;color:#555;border-top:.3mm dashed #999;padding-top:1.5mm">Cadre enseignant · temps de course : ______ · saisi dans l'appli ☐</p></div>`; };
