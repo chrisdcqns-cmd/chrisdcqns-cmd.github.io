@@ -2597,14 +2597,35 @@ async function newMapDialog() {
     } catch (e) { toast(e.message, "ko"); $("#nmOk", m).disabled = false; }
   };
 }
+// Carte mère : regroupe les balises de plusieurs cartes (même fond) sur une seule carte, pour l'enseignant
+function mereDialog(L) {
+  if (L.length < 2) return toast("Il faut au moins 2 cartes dans la bibliothèque", "ko");
+  const m = openModal(`<h2>🧩 Créer une carte mère</h2><p class="muted">Coche les cartes à regrouper (par ex. la carte du collectif et les 2 cartes individuelles). La carte mère reprend le fond de la 1re carte cochée et toutes les balises des cartes cochées. Elle n'est que pour toi : envoie-la dans CO éval en choisissant « 🗺 Carte mère ».</p>
+   <div class="list">${L.map((x, i) => `<label class="item" style="cursor:pointer"><input type="checkbox" data-mc="${i}"> <div class="body"><b>${esc(x.nom)}</b> <span class="muted">${x.n} balise(s)</span></div></label>`).join("")}</div>
+   <div class="field"><label>Nom</label><input class="inp" id="mcN" value="Carte mère"></div><p id="mcE" class="muted"></p>
+   <div class="row"><button class="btn or" id="mcOk">🧩 Créer et ouvrir</button><button class="btn ghost" id="mcX">Annuler</button></div>`, { wide: true });
+  $("#mcX", m).onclick = m.close;
+  $("#mcOk", m).onclick = async () => {
+    const pick = $$("[data-mc]:checked", m).map(x => L[+x.dataset.mc]); if (pick.length < 2) return toast("Coche au moins 2 cartes", "ko");
+    const projs = []; for (const x of pick) { const p = await DB.get("carte:" + x.id); if (p) projs.push(p); }
+    const Q = JSON.parse(JSON.stringify(projs[0])), W0 = Q.map.w, H0 = Q.map.h, seen = {}, conflit = [];
+    Q.controls.forEach(c => { if (c.type === "C") seen[c.n] = String(c.code || "").toUpperCase(); });
+    projs.slice(1).forEach(p => { const kx = W0 / (p.map.w || W0), ky = H0 / (p.map.h || H0);
+      p.controls.filter(c => c.type === "C").forEach(c => { const code = String(c.code || "").toUpperCase(); if (seen[c.n] !== undefined) { if (seen[c.n] !== code) conflit.push(c.n); return; } seen[c.n] = code; Q.controls.push({ ...JSON.parse(JSON.stringify(c)), id: uid(6), x: c.x != null ? c.x * kx : null, y: c.y != null ? c.y * ky : null }); }); });
+    Q.courses = []; Q.nom = $("#mcN", m).value.trim() || "Carte mère"; Q.salt = uid(6); delete Q.libId;
+    P = Q; undoStack.length = 0; ED.sel = null; saveP(true); await libSave(Q.nom, null); m.close(); setPTab("carte"); $("#projName") && ($("#projName").textContent = Q.nom);
+    toast(`Carte mère : ${Q.controls.filter(c => c.type === "C").length} balises${conflit.length ? ` · ⚠ numéros en double ignorés : ${[...new Set(conflit)].join(", ")}` : ""}`, conflit.length ? "ko" : "ok");
+  };
+}
 async function libraryDialog() {
   const L = await libList();
   const m = openModal(`<h2>📚 Bibliothèque de cartes</h2><p class="muted">Tes cartes enregistrées sur cet appareil. Ouvre une carte pour la modifier, ou envoie-la comme parcours dans l'appli CO éval.</p>
-   <div class="row" style="margin-bottom:10px"><button class="btn or small" id="lbSave">💾 Enregistrer la carte actuelle</button><button class="btn ghost small" id="lbExp">⬇ Sauvegarder la bibliothèque (fichier)</button><button class="btn ghost small" id="lbImp">📥 Importer un fichier</button></div>
+   <div class="row" style="margin-bottom:10px"><button class="btn or small" id="lbSave">💾 Enregistrer la carte actuelle</button><button class="btn alt small" id="lbMere">🧩 Créer une carte mère</button><button class="btn ghost small" id="lbExp">⬇ Sauvegarder la bibliothèque (fichier)</button><button class="btn ghost small" id="lbImp">📥 Importer un fichier</button></div>
    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px">${L.map(x => `<div class="card" style="padding:10px;margin:0;${x.id === P.libId ? "outline:3px solid var(--or)" : ""}">${x.thumb ? `<img src="${x.thumb}" style="width:100%;height:140px;object-fit:contain;background:#eee;border-radius:8px">` : ""}
      <b style="display:block;margin-top:6px">${esc(x.nom)}</b><span class="muted" style="font-size:.8rem">${x.n} balise(s) · ${new Date(x.date).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${x.id === P.libId ? " · ouverte" : ""}</span>
      <div class="row" style="margin-top:6px;gap:4px"><button class="btn small or" data-op="${x.id}">Ouvrir</button><button class="btn small alt" data-coe="${x.id}">📲 CO éval</button><button class="btn small ghost" data-rn="${x.id}">✏️</button><button class="btn small ghost" data-dp="${x.id}">⧉</button><button class="btn small ghost" data-rm="${x.id}" style="color:#d62839">✕</button></div></div>`).join("") || '<p class="muted">Aucune carte enregistrée pour l\'instant.</p>'}</div>`, { wide: true });
   $("#lbSave", m).onclick = () => { m.close(); saveAsDialog(); };
+  $("#lbMere", m).onclick = () => { m.close(); mereDialog(L); };
   $$("[data-op]", m).forEach(b => b.onclick = async () => {
     const x = L.find(y => y.id === b.dataset.op), cur = P.libId && L.find(y => y.id === P.libId);
     if (x.id !== P.libId && !confirm(`Ouvrir « ${x.nom} » ?\nLa carte actuelle${cur ? ` (« ${cur.nom} »)` : ""} sera remplacée à l'écran${cur ? " : pense à la mettre à jour si tu l'as modifiée" : " : enregistre-la d'abord si tu veux la garder"}.`)) return;
@@ -2627,7 +2648,7 @@ async function coeDialog(proj = P) {
    <p class="muted">La carte « <b>${esc(proj.nom)}</b> » et ses <b>${B.length} balises</b> remplacent la carte et la liste des balises de l'appli <b>CO – Préparation à l'évaluation</b>. Les téléphones des élèves la reçoivent en moins de 15 s. Tes réglages de parcours, tes listes d'élèves et les résultats sont gardés.</p>
    <div class="field"><label>Version de la carte envoyée aux élèves</label><select class="inp" id="coV"><option value="eleve">Numéros des balises, sans code</option><option value="vierge">Cercles seuls, sans numéro ni code</option></select></div>
    ${bad.length ? `<p class="chip ko" style="display:inline-block">${bad.length} balise(s) sans code de 3 lettres (${bad.slice(0, 8).map(c => esc(c.n)).join(", ")}${bad.length > 8 ? "…" : ""}) : l'appli élève a besoin des codes. Saisis-les d'abord (onglet Balises → ⌨ Saisir les codes).</p>` : ""}
-   <div class="field" style="background:#fff4ea;border:2px solid var(--or);border-radius:12px;padding:10px"><label><b>Utiliser cette carte comme…</b></label><select class="inp" id="coR"><option value="">Carte générale de l'évaluation (remplace la carte et toutes les balises)</option><option value="0">👥 Carte du parcours collectif</option><option value="1">👤 Carte individuelle 1</option><option value="2">👤 Carte individuelle 2</option></select>
+   <div class="field" style="background:#fff4ea;border:2px solid var(--or);border-radius:12px;padding:10px"><label><b>Utiliser cette carte comme…</b></label><select class="inp" id="coR"><option value="">Carte unique (remplace la carte, les balises et les 3 cartes)</option><option value="0">👥 Carte du parcours collectif</option><option value="1">👤 Carte individuelle 1</option><option value="2">👤 Carte individuelle 2</option><option value="m">🗺 Carte mère (pour l'enseignant : toutes les balises, les 3 cartes sont gardées)</option></select>
     <small class="muted">Avec 3 cartes différentes (bibliothèque de cartes) : envoie chacune à son tour en choisissant son rôle. Les autres cartes déjà envoyées sont gardées, et la liste des balises de CO éval regroupe celles des 3 cartes. Les 2 cartes individuelles se partagent dans le binôme.</small></div>
    <div class="field" id="coKs"><label>… ou, dans cette carte, un parcours d'OrienRun = une carte avec seulement ses balises (facultatif)</label>
     ${proj.courses.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${[["coK0", "👥 Carte du collectif"], ["coK1", "👤 Carte individuelle 1"], ["coK2", "👤 Carte individuelle 2"]].map(([id, l]) => `<label style="flex:1;min-width:180px"><small>${l}</small><select class="inp" id="${id}"><option value="">— aucune —</option>${proj.courses.map(k => `<option value="${k.id}">${esc(k.nom)} (${k.ctrl.length} balises)</option>`).join("")}</select></label>`).join("")}</div><small class="muted">Les 2 cartes individuelles se partagent dans le binôme : si un élève prend la carte 1, son binôme a la carte 2. Sans choix : tous les élèves ont la carte complète.</small>` : `<small class="muted">Crée d'abord des parcours (onglet Parcours) pour proposer plusieurs cartes (1 collective, 2 individuelles).</small>`}</div>
@@ -2650,14 +2671,23 @@ async function coeDialog(proj = P) {
       const nums = B.map(c => +c.n);
       const W = proj.map.w, H = proj.map.h, dep = proj.controls.find(c => c.type === "S" && c.x != null);
       const balx = B.map(c => ({ n: +c.n, code: String(c.code).toUpperCase(), x: +(c.x / W).toFixed(4), y: +(c.y / H).toFixed(4), ...(c.niv ? { niv: +c.niv } : {}) })), role = $("#coR", m).value;
+      if (role === "m") { // carte mère : carte générale (suivi de l'enseignant), les cartes des parcours sont gardées
+        st.textContent = `⏳ Envoi de la carte mère (${Math.round(img.length / 1024)} Ko)…`;
+        await apiCall(apiUrl(), "coeSave", { teacher: tpw(), cle: "carte", data: img }, 90000);
+        const have = new Set(balx.map(b => b.n + b.code)), extra = []; (conf.cartes || []).forEach(c => (c.balx || []).forEach(b => { if (!have.has(b.n + b.code)) { have.add(b.n + b.code); extra.push(b); } }));
+        conf.balises = [...balx, ...extra].sort((a, b) => a.n - b.n); if (conf.balises.some(b => b.niv)) conf.niv = true;
+        conf.depart = dep ? { x: +(dep.x / W).toFixed(4), y: +(dep.y / H).toFixed(4) } : conf.depart || null; conf.mereNom = proj.nom; conf.demo = false; conf.orT = Date.now();
+        await apiCall(apiUrl(), "coeSave", { teacher: tpw(), cle: "conf", data: JSON.stringify(conf) }, 30000);
+        st.innerHTML = `✅ Carte mère envoyée (${balx.length} balises)${extra.length ? ` · ⚠ ${extra.length} balise(s) des cartes des parcours absentes de la carte mère : ${extra.map(b => b.n).join(", ")}` : ""}. Les cartes des parcours sont gardées.`; btn.disabled = false; return;
+      }
       if (role !== "") { // une des 3 cartes de l'évaluation (collectif, individuelle 1 ou 2)
         const i = +role; st.textContent = `⏳ Envoi de la carte (${Math.round(img.length / 1024)} Ko)…`;
         const r = await apiCall(apiUrl(), "coeSave", { teacher: tpw(), cle: "carte_m" + i, data: img }, 90000);
         const L = (Array.isArray(conf.cartes) ? conf.cartes : []).filter(c => c.role !== i && c.id !== "m" + i);
         L.push({ id: "m" + i, role: i, nom: proj.nom, bal: balx.map(b => b.n), balx, dep: dep ? { x: +(dep.x / W).toFixed(4), y: +(dep.y / H).toFixed(4) } : null, v: (r && r.v) || String(Date.now()) }); L.sort((a, b) => a.role - b.role);
-        const all = {}; L.forEach(c => (c.balx || []).forEach(b => { all[b.n + b.code] = all[b.n + b.code] || b; }));
+        const all = {}; (conf.mereNom && Array.isArray(conf.balises) ? conf.balises : []).forEach(b => { all[b.n + b.code] = b; }); L.forEach(c => (c.balx || []).forEach(b => { all[b.n + b.code] = all[b.n + b.code] || b; }));
         conf.cartes = L; conf.balises = Object.values(all).sort((a, b) => a.n - b.n); if (conf.balises.some(b => b.niv)) conf.niv = true;
-        conf.carteNom = L.map(c => c.nom).join(" + "); conf.demo = false; conf.orT = Date.now();
+        conf.carteNom = (conf.mereNom ? conf.mereNom + " · " : "") + L.map(c => c.nom).join(" + "); conf.demo = false; conf.orT = Date.now();
         if (Array.isArray(conf.parcours)) { const ix = ro => L.findIndex(c => c.role === ro), duo = conf.parcours.find(p => p.type === "duo"), ind = conf.parcours.find(p => p.type !== "duo");
           if (duo) duo.cartes = ix(0) >= 0 ? [ix(0)] : []; if (ind) ind.cartes = [ix(1), ix(2)].filter(x => x >= 0); }
         st.textContent = "⏳ Envoi des balises…";
@@ -2668,7 +2698,7 @@ async function coeDialog(proj = P) {
       }
       conf.balises = balx; if (conf.balises.some(b => b.niv)) conf.niv = true;
       conf.depart = dep ? { x: +(dep.x / W).toFixed(4), y: +(dep.y / H).toFixed(4) } : null;
-      conf.carteNom = proj.nom; conf.demo = false; conf.orT = Date.now();
+      conf.carteNom = proj.nom; delete conf.mereNom; conf.demo = false; conf.orT = Date.now();
       // cartes de l'évaluation : une image par parcours d'OrienRun (seulement ses balises)
       const roles = ["coK0", "coK1", "coK2"].map(id => $("#" + id, m) && $("#" + id, m).value).map(v => v ? proj.courses.find(k => k.id === v) : null), cartes = [];
       for (let i = 0; i < 3; i++) { const k = roles[i]; if (!k) continue;

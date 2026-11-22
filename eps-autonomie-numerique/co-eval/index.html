@@ -349,7 +349,7 @@ let VIEW = null, C_LIVE = null, ARCH_ERR = ""; // évaluation sauvegardée consu
 // Paramètres et carte de l'enseignant (lus sur sa tablette), classe fictive, aucun envoi au serveur.
 const SIM_CL = "Classe test (simulation)", SIM_EL = [["TEST", "Alice"], ["TEST", "Bilal"], ["TEST", "Chloé"], ["TEST", "Dylan"], ["TEST", "Emma"], ["TEST", "Farid"]];
 function simRaw() { try { return localStorage.getItem("coe.conf") || "{}"; } catch (e) { return "{}"; } }
-function simPatch(c) { const L = {}; (c.profs && c.profs.length ? c.profs : DEF.profs).filter(Boolean).forEach(p => L[p] = { [SIM_CL]: SIM_EL.map(x => x.slice()) }); c.listes = L; c.moves = {}; c.dels = []; if (c.ev) c.ev = { ...c.ev, cls: [] }; return c; }
+function simPatch(c) { const L = {}; (c.profs && c.profs.length ? c.profs : DEF.profs).filter(Boolean).forEach(p => L[p] = { [SIM_CL]: SIM_EL.map(x => x.slice()) }); c.listes = L; c.moves = {}; c.dels = []; if (c.ev) c.ev = { ...c.ev, cls: [] }; c.slots = []; return c; }
 const simHash = t => { let h = 7; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return "sim" + (h >>> 0).toString(36); };
 async function simApi(action, p) {
   await new Promise(r => setTimeout(r, 80));
@@ -778,10 +778,10 @@ function picker(box, opt, onPick) {
   const draw = () => {
     const L = C.listes || {};
     if (st.prof && !C.profs.includes(st.prof)) st.prof = null;
-    const cls = st.prof ? Object.keys(L[st.prof] || {}).filter(c => evHas(st.prof, c)).sort(byFr) : [];
+    const cls = st.prof ? Object.keys(L[st.prof] || {}).filter(c => pickHas(st.prof, c)).sort(byFr) : [];
     if (st.classe && !cls.includes(st.classe)) st.classe = null;
     const crumb = `<div class="crumb">${st.prof ? `<button data-cb="prof">👤 ${esc(st.prof)} ✕</button>` : ""}${st.classe ? `<button data-cb="classe">🏫 ${esc(st.classe)} ✕</button>` : ""}</div>`;
-    if (!st.prof) box.innerHTML = `<h3 style="margin:4px 0 8px">${opt.q1 || "Qui est ton enseignant ?"}</h3><div class="pick big">${C.profs.filter(Boolean).filter(p => !C.ev || !(C.ev.cls || []).length || C.ev.cls.some(x => x.startsWith(p + "|"))).map(p => `<button data-pf="${esc(p)}">${esc(p)}</button>`).join("")}</div>`;
+    if (!st.prof) box.innerHTML = `<h3 style="margin:4px 0 8px">${opt.q1 || "Qui est ton enseignant ?"}</h3>${!TPW && slotsNow().length ? `<p class="small" style="margin:0 0 8px;color:var(--vi);font-weight:700">📅 Créneau ${slotsNow().map(sl => sl.h1 + "–" + sl.h2).join(", ")} : ${esc(slotCls().map(x => x.split("|")[1]).join(", "))}</p>` : ""}<div class="pick big">${C.profs.filter(Boolean).filter(p => !Object.keys((C.listes || {})[p] || {}).length || Object.keys(C.listes[p]).some(c => pickHas(p, c))).map(p => `<button data-pf="${esc(p)}">${esc(p)}</button>`).join("")}</div>`;
     else if (st.manual || !cls.length) box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">${cls.length ? "Écris le prénom et le nom" : "Pas encore de liste pour cet enseignant : écris le prénom et le nom"}</h3><label class="l">Prénom</label><input class="inp" id="kP"><label class="l">Nom</label><input class="inp" id="kN"><label class="l">Classe</label><input class="inp" id="kC" value="${esc(st.classe || "")}"><button class="btn big or" id="kGo" style="margin-top:12px">Valider</button>${cls.length ? '<button class="btn gh" id="kBack" style="width:100%;margin-top:8px">← Revenir à la liste</button>' : ""}`;
     else if (!st.classe) box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">Quelle classe ?</h3><div class="pick big">${cls.map(c => `<button data-cl="${esc(c)}">${esc(c)}</button>`).join("")}</div>`;
     else { const el = L[st.prof][st.classe].map(([nom, prenom]) => ({ nom, prenom, classe: st.classe, prof: st.prof })).filter(e => !isAbs(e) && (!opt.exclude || opt.exclude(e))).sort((a, b) => byFr(a.prenom, b.prenom) || byFr(a.nom, b.nom));
@@ -835,6 +835,13 @@ const runKey = r => r.k + ":" + Math.round(r.debut / 1000);
 const evStart = () => Math.max(C.supprAvant || 0, (C.ev && C.ev.date) || 0);
 const t0Of = r => r.debut || r.prepT || 0;
 const evHas = (prof, classe) => !C.ev || !(C.ev.cls || []).length || C.ev.cls.includes(prof + "|" + classe);
+// Créneaux de l'évaluation : C.slots = [{ d: "AAAA-MM-JJ", h1: "08:00", h2: "10:00", cls: ["enseignant|classe", …] }]
+// Pendant un créneau (de 15 min avant à 30 min après), les élèves ne voient que les classes de ce créneau (identification et choix du binôme).
+const dKey = t => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const hm2t = (d, h) => { const [a, b] = String(h || "0:0").split(":").map(Number); const x = new Date(d + "T00:00:00"); x.setHours(a || 0, b || 0, 0, 0); return x.getTime(); };
+function slotsNow() { const t = now(), today = dKey(t); return (C.slots || []).filter(sl => sl.d === today && t >= hm2t(sl.d, sl.h1) - 15 * 60000 && t <= hm2t(sl.d, sl.h2) + 30 * 60000); }
+function slotCls() { const S = slotsNow(); return S.length ? S.flatMap(sl => sl.cls || []) : null; }
+const pickHas = (prof, classe) => evHas(prof, classe) && (TPW || !slotCls() || slotCls().includes(prof + "|" + classe));
 const isDeleted = r => !!r && ((evStart() && t0Of(r) && t0Of(r) < evStart()) || (C.evEnd && t0Of(r) >= C.evEnd) || (C.suppr || []).some(x => x === runKey(r) || x === runKey(r) + ":r"));
 const canRedo = r => (evStart() && t0Of(r) < evStart()) || (C.suppr || []).includes(runKey(r) + ":r");
 // côté élève : un parcours effacé par l'enseignant peut être refait
@@ -1328,7 +1335,7 @@ let pubTimer = null, PUB = { st: "ok", t: null, err: "" }, profTick = null;
 function pubUI() { const e = $("#pub"); if (!e) return; e.className = "pub " + (PUB.st === "ok" ? "" : PUB.st === "wait" ? "wait" : "ko"); e.textContent = PUB.st === "wait" ? "⏳ Publication en cours…" : PUB.st === "ko" ? "⚠ Non publié : " + PUB.err : PUB.t ? `✓ Publié à ${new Date(PUB.t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} : les élèves le reçoivent en moins de ${SYNC_MS / 1000} s` : "Chaque modification est publiée automatiquement chez les élèves."; }
 function confChanged() { if (VIEW) archOff(); C.demo = false; LS.set("conf", C); PUB.st = "wait"; pubUI(); clearTimeout(pubTimer); pubTimer = setTimeout(publish, 900); }
 // les balises et les cartes viennent d'OrienRun (C.orT = date d'envoi) : si OrienRun a envoyé depuis, on les reprend avant de publier
-const OR_KEYS = ["balises", "depart", "carteNom", "cartes", "orT", "niv"];
+const OR_KEYS = ["balises", "depart", "carteNom", "mereNom", "cartes", "orT", "niv"];
 function mergeOrienRun(o) { if (!o || (o.orT || 0) <= (C.orT || 0)) return false; OR_KEYS.forEach(k => { if (o[k] !== undefined) C[k] = o[k]; }); (o.parcours || []).forEach((q, i) => { const p = C.parcours[i]; if (p) { p.cartes = q.cartes || []; if (q.oblig !== undefined) p.oblig = q.oblig; if (q.nb) p.nb = q.nb; } }); LS.set("conf", C); return true; }
 async function publish() {
   try { const g = await api("coeGet", { vc: VC }, 15000); if (g.conf) { try { if (mergeOrienRun(JSON.parse(g.conf))) { await loadCartes(); flash("🔄 Balises reprises d'OrienRun"); } } catch (e) {} } } catch (e) {}
@@ -1602,6 +1609,22 @@ function archOn(a) {
 }
 function archOff() { if (!VIEW) return; C = C_LIVE; C_LIVE = null; VIEW = null; statP = null; STAT = null; ensureStat(); }
 const countRes = () => allStudents().reduce((n, x) => n + x.runs.filter(r => r?.fin).length, 0);
+function slotsDialog() {
+  const L = C.listes || {}, S = clone(C.slots || []), today = dKey(now());
+  const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">📅 Créneaux de l'évaluation</h2><button class="btn sm gh" id="slX">Fermer</button></div>
+   <p class="small muted" style="margin-top:0">Un créneau = un jour, une heure de début et de fin, et le groupe évalué (une ou plusieurs classes, d'un ou deux enseignants). Pendant le créneau (de 15 min avant à 30 min après), les élèves ne peuvent choisir que les élèves de ces classes, pour eux comme pour leur binôme. En dehors des créneaux, toutes les classes restent visibles.</p>
+   <div id="slL"></div><button class="btn sm gh" id="slAdd" style="margin-top:6px">＋ Ajouter un créneau</button>
+   <div class="row" style="margin-top:12px"><button class="btn gh grow" id="slC">Annuler</button><button class="btn or grow" id="slOk">✓ Enregistrer et publier</button></div>`);
+  const draw = () => { $("#slL", m).innerHTML = S.map((sl, i) => `<div class="card" style="margin:0 0 8px;padding:10px;border:2px solid ${sl.d === today ? "var(--vi)" : "var(--line)"}"><div class="row"><input class="inp" type="date" data-sd="${i}" value="${esc(sl.d)}" style="width:auto;padding:6px"><input class="inp" type="time" data-s1="${i}" value="${esc(sl.h1)}" style="width:auto;padding:6px"> → <input class="inp" type="time" data-s2="${i}" value="${esc(sl.h2)}" style="width:auto;padding:6px"><span class="grow"></span><button class="btn sm gh" data-sx="${i}" style="color:var(--ko)">✕</button></div>
+     ${Object.entries(L).map(([p, cl]) => `<div class="small" style="margin-top:6px"><b>👤 ${esc(p)}</b></div><div class="row small">${Object.keys(cl).sort(byFr).map(c => `<label class="chip" style="cursor:pointer"><input type="checkbox" data-sc="${i}" value="${esc(p + "|" + c)}" ${(sl.cls || []).includes(p + "|" + c) ? "checked" : ""}> ${esc(c)}</label>`).join("")}</div>`).join("") || '<p class="small muted">Importe d\'abord tes listes d\'élèves.</p>'}</div>`).join("") || '<p class="muted small">Aucun créneau : toutes les classes sont visibles à tout moment.</p>';
+    $$("[data-sd]", m).forEach(x => x.onchange = () => S[+x.dataset.sd].d = x.value); $$("[data-s1]", m).forEach(x => x.onchange = () => S[+x.dataset.s1].h1 = x.value); $$("[data-s2]", m).forEach(x => x.onchange = () => S[+x.dataset.s2].h2 = x.value);
+    $$("[data-sc]", m).forEach(x => x.onchange = () => { const sl = S[+x.dataset.sc]; sl.cls = (sl.cls || []).filter(v => v !== x.value); if (x.checked) sl.cls.push(x.value); });
+    $$("[data-sx]", m).forEach(b => b.onclick = () => { S.splice(+b.dataset.sx, 1); draw(); }); };
+  draw();
+  $("#slAdd", m).onclick = () => { const last = S[S.length - 1]; S.push({ d: last ? last.d : today, h1: last ? last.h2 : "08:00", h2: last ? (+last.h2.slice(0, 2) + 2 + "").padStart(2, "0") + last.h2.slice(2) : "10:00", cls: [] }); draw(); };
+  $("#slX", m).onclick = $("#slC", m).onclick = m.close;
+  $("#slOk", m).onclick = () => { const bad = S.find(sl => !sl.d || !sl.h1 || !sl.h2 || sl.h2 <= sl.h1 || !(sl.cls || []).length); if (bad) return flash("Chaque créneau : un jour, une fin après le début et au moins une classe"); C.slots = S.sort((a, b) => (a.d + a.h1).localeCompare(b.d + b.h1)); confChanged(); m.close(); go("prof", "res"); flash("📅 Créneaux publiés"); };
+}
 function newEvalDialog() {
   const L = C.listes || {}, cur = C.ev ? C.ev.cls || [] : [];
   const m = modal(`<h2 style="margin:0 0 6px">🆕 Nouvelle évaluation</h2>
@@ -1652,7 +1675,7 @@ function profRes(box) {
     L.forEach(x => (cls[x.me.classe || "Sans classe"] = cls[x.me.classe || "Sans classe"] || []).push(x));
     box.innerHTML = `<div class="tabs2">${C.profs.filter(Boolean).map(p => `<button class="btn sm ${p === f ? "vi" : "gh"}" data-pf="${esc(p)}">👤 ${esc(p)} (${all.filter(x => x.me.prof === p).length})</button>`).join("")}<button class="btn sm ${!f ? "vi" : "gh"}" data-pf="">Tous (${all.length})</button></div>
      <div class="card" style="border:2px solid ${VIEW ? "var(--or)" : "var(--nv)"}"><div class="row"><div class="grow"><b>${VIEW ? "📚 Évaluation sauvegardée : " + esc(VIEW.nom) : "🗂 " + esc(C.ev ? C.ev.nom : "Évaluation en cours")}</b><br><small class="muted">${VIEW ? `${dShort(VIEW.from)} → ${dShort(VIEW.to)} · lecture seule` : C.ev ? "depuis le " + dShort(C.ev.date) : "pas encore de nouvelle évaluation"} · ${esc(clsTxt(C.ev && C.ev.cls))}</small></div>
-      ${VIEW ? '<button class="btn or" id="evBack">← Revenir à l\'évaluation en cours</button>' : '<button class="btn sm or" id="evNew">🆕 Nouvelle évaluation</button><button class="btn sm gh" id="evArch">📚 Évaluations précédentes</button>'}</div>
+      ${VIEW ? '<button class="btn or" id="evBack">← Revenir à l\'évaluation en cours</button>' : '<button class="btn sm or" id="evNew">🆕 Nouvelle évaluation</button><button class="btn sm gh" id="evArch">📚 Évaluations précédentes</button><button class="btn sm vi" id="evSlots">📅 Créneaux${(C.slots || []).length ? " (" + C.slots.length + ")" : ""}</button>'}</div>
       <div class="row" style="margin-top:8px"><button class="btn sm gh" id="evBal">🖨 Balises utilisées</button>${VIEW ? "" : '<button class="btn sm gh" id="evPap">📄 Version papier (sans téléphone)</button><button class="btn sm gh" id="evSai">✍ Saisir un résultat papier</button>'}</div></div>
      <div class="card"><div class="row"><h2 class="grow" style="margin:0">Résultats ${f ? "· " + esc(f) : "· tous les enseignants"}</h2><span class="small muted" id="rSt"></span></div>
       <p class="small muted">Touche ⋯ pour marquer un élève absent ou dispensé, ou le basculer vers un autre enseignant. Les résultats arrivent tout seuls à la fin de chaque parcours. ${C.noPen ? "Évaluation sans pénalités : temps final = temps de course." : `Temps final = temps de course + pénalités (balise non validée ${fmtMin(C.penOubli)}, obligatoire manquée ${fmtMin(C.penOblig)}${C.parcours.some(p => p.max) ? `, ${fmtMin(C.penRetard)} par minute de retard` : ""}).`}</p>
@@ -1660,7 +1683,7 @@ function profRes(box) {
        ${cls[c].sort((a, b) => byFr(a.me.nom, b.me.nom) || byFr(a.me.prenom, b.me.prenom)).map(x => `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}</td>${!f ? `<td class="small">${esc(x.me.prof)}</td>` : ""}${x.runs.map(r => { if (!r?.fin) return x.abs ? `<td class="n"><span class="chip ko">${STAT_LBL[x.st] || "absent"}</span></td>` : '<td class="n muted">–</td>'; const a = withStudent(x, () => analyse(r)); return `<td class="n"><b>${fmt(a.final)}</b><br><small>${fmt(a.chrono)}${a.pen ? ` +${fmt(a.pen)}` : ""}</small>${C.niv ? `<br><small>🎯 ${a.pts} pt${a.pts > 1 ? "s" : ""}${P(r.k).pts ? " / " + P(r.k).pts : ""}</small>` : ""} ${a.nErr ? `<span class="chip ko">${a.nErr}</span>` : '<span class="chip ok">✓</span>'}${r.duo ? `<br><small class="muted">👥 ${esc(r.duo.prenom)} ${esc(r.duo.nom)}</small>` : ""}${carteOf(r) ? `<br><small class="muted">🗺 ${esc(carteOf(r).nom)}</small>` : ""}</td>`; }).join("")}<td style="white-space:nowrap">${x.runs.some(r => r?.fin) ? `<button class="btn sm gh" data-v="${esc(x.me.id)}">Bilan</button> ` : ""}${VIEW ? "" : `<button class="btn sm gh" data-sm="${esc(x.me.id)}" title="Absent / changer d'enseignant">⋯</button>`}</td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun résultat pour l\'instant.</p>'}
       <div class="row" style="margin-top:14px">${VIEW ? "" : '<button class="btn sm or" id="rSms">📥 Importer des SMS</button>'}<button class="btn sm gh" id="rCsv">⬇ Tableur (CSV)</button><button class="btn sm gh" id="rPr">🖨 Imprimer ce tableau</button><button class="btn sm gh" id="rAll">🖨 Bilans complets de ces élèves</button>${VIEW ? "" : '<button class="btn sm gh" id="rDel" style="color:var(--ko)">🗑 Supprimer tous les résultats</button>'}</div></div>`;
     $("#evBack") && ($("#evBack").onclick = () => { archOff(); go("prof", "res"); });
-    $("#evNew") && ($("#evNew").onclick = newEvalDialog); $("#evArch") && ($("#evArch").onclick = archDialog);
+    $("#evNew") && ($("#evNew").onclick = newEvalDialog); $("#evSlots") && ($("#evSlots").onclick = slotsDialog); $("#evArch") && ($("#evArch").onclick = archDialog);
     $("#evBal").onclick = () => printBalises(VIEW); $("#evPap") && ($("#evPap").onclick = paperDialog); $("#evSai") && ($("#evSai").onclick = () => paperEntry(draw));
     $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); go("prof", "res"); });
     $$("[data-v]", box).forEach(b => b.onclick = () => { const x = all.find(y => y.me.id === b.dataset.v); SW = SW || { ME, RUNS }; ME = x.me; RUNS = x.runs; go("full", true); });
