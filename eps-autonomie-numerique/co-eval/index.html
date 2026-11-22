@@ -359,7 +359,10 @@ async function simApi(action, p) {
 }
 if (SIM) { try { C = fixConf(Object.assign(clone(DEF), simPatch(JSON.parse(simRaw())))); } catch (e) { C = fixConf(simPatch(clone(DEF))); } VC = simHash(simRaw()); VM = VM || "sim"; }
 window.simReset = () => { Object.keys(localStorage).filter(k => k.startsWith("coesim.")).forEach(k => localStorage.removeItem(k)); ["bak", "jr", "out"].forEach(k => idbSet(k, null)); Promise.all(SIM_EL.map(([n, pr]) => idbSet("bak:" + studentId({ prenom: pr, nom: n, classe: SIM_CL, prof: (C.profs.filter(Boolean)[0] || "") }), null))).finally(() => location.reload()); };
-const balise = n => C.balises.find(b => +b.n === +n);
+// carte de l'élève en cours d'affichage (ses balises ont leurs propres positions : carte envoyée à part depuis OrienRun)
+let CTXC = null;
+const balsCtx = () => CTXC && Array.isArray(CTXC.balx) && CTXC.balx.length ? CTXC.balx : C.balises;
+const balise = n => { if (CTXC && CTXC.balx) { const b = CTXC.balx.find(b => +b.n === +n); if (b) return b; } return C.balises.find(b => +b.n === +n); };
 const P = k => C.parcours[k];
 
 // ---------------- Données de l'élève (cet appareil) ----------------
@@ -485,7 +488,7 @@ function mapViewer(box, o = {}) {
 // ---------------- Tracé de l'élève (stylo / lignes) ----------------
 const COLS = ["#e63946", "#1d4ed8", "#f47a20", "#16a34a", "#111111", "#c21fbf"];
 const WIDTHS = [0, 3, 6, 11];
-const hasPos = () => C.balises.some(b => b.x != null);
+const hasPos = () => balsCtx().some(b => b.x != null);
 // balises choisies (anneau orange) + numéro d'ordre dans une pastille
 function planSVG(plan, W, H, done = -1) {
   if (!plan || !hasPos()) return ""; const K = Math.max(W, H) / 1000, R = 21 * K;
@@ -498,7 +501,7 @@ const ptsOf = plan => (plan || []).reduce((a, n) => a + nivOf(n), 0);
 const nivTag = n => nivOf(n) ? `<span class="tg" style="background:#d9a400;color:#fff;left:auto;right:-6px;top:-8px;bottom:auto;transform:none">${nivOf(n)} pt${nivOf(n) > 1 ? "s" : ""}</span>` : "";
 function nivSVG(W, H, al = null) {
   if (!C.niv || !hasPos()) return ""; const K = Math.max(W, H) / 1000;
-  return C.balises.map(b => { const v = nivOf(b.n); if (!v || b.x == null || (al && !al.has(+b.n))) return ""; const x = b.x * W + 26 * K, y = b.y * H - 26 * K;
+  return balsCtx().map(b => { const v = nivOf(b.n); if (!v || b.x == null || (al && !al.has(+b.n))) return ""; const x = b.x * W + 26 * K, y = b.y * H - 26 * K;
     return `<rect x="${x - 17 * K}" y="${y - 11 * K}" width="${34 * K}" height="${21 * K}" rx="${10 * K}" fill="#ffd23f" stroke="#7a5a00" stroke-width="${1.5 * K}"/><text x="${x}" y="${y + 5 * K}" text-anchor="middle" font-family="Arial" font-weight="900" font-size="${14 * K}" fill="#3d2d00">${"★".repeat(v)}</text>`; }).join("");
 }
 // balises déjà choisies dans un autre parcours : étiquette bleue « P1 »
@@ -510,7 +513,7 @@ function otherSVG(other, plan, W, H) {
 // balises interdites : croix grise
 function forbidSVG(fb, W, H) { if (!hasPos()) return ""; const K = Math.max(W, H) / 1000, R = 24 * K; return Object.keys(fb).map(n => { const b = balise(n); if (!b || b.x == null) return ""; const x = b.x * W, y = b.y * H; return `<g opacity=".8"><circle cx="${x}" cy="${y}" r="${R}" fill="#6b7280" fill-opacity=".45"/><path d="M${x - R * .6} ${y - R * .6}L${x + R * .6} ${y + R * .6}M${x + R * .6} ${y - R * .6}L${x - R * .6} ${y + R * .6}" stroke="#fff" stroke-width="${5 * K}"/></g>`; }).join(""); }
 // balise touchée sur la carte (la plus proche, à moins de ~28 px à l'écran)
-function baliseAt(q, v) { let best = null, bd = 1e9; C.balises.forEach(b => { if (b.x == null) return; const d = Math.hypot((b.x - q.x) * v.W, (b.y - q.y) * v.H) * v.s; if (d < bd) { bd = d; best = b; } }); return bd < 30 ? best : null; }
+function baliseAt(q, v) { let best = null, bd = 1e9; balsCtx().forEach(b => { if (b.x == null) return; const d = Math.hypot((b.x - q.x) * v.W, (b.y - q.y) * v.H) * v.s; if (d < bd) { bd = d; best = b; } }); return bd < 30 ? best : null; }
 // vérifie que le tracé passe près de chaque balise choisie
 function traceMissing(r) {
   if (!hasPos()) return []; const pts = (r.trace || []).flatMap(t => t.p.length > 1 ? t.p.flatMap((q, j) => j ? Array.from({ length: 6 }, (_, k) => [t.p[j - 1][0] + (q[0] - t.p[j - 1][0]) * k / 5, t.p[j - 1][1] + (q[1] - t.p[j - 1][1]) * k / 5]) : [q]) : t.p);
@@ -732,6 +735,7 @@ function locate(info, s) {
 // ======================= ÉCRANS ÉLÈVE =======================
 function go(v, ...a) {
   if (VIEW && !(v === "full" || (v === "prof" && (a[0] || "res") === "res"))) archOff();
+  CTXC = ["prep", "run", "follow", "bilan", "end"].includes(v) && a[0] != null ? carteOf(RUNS[a[0]]) : null;
   if (SW && v !== "full") { ME = SW.ME; RUNS = SW.RUNS; SW = null; }
   stopTick(); if (v !== "prof") { clearInterval(profTick); profTick = null; }
   if (CUR.v !== v || v === "prof") window.scrollTo(0, 0); CUR = { v, a };
@@ -1031,7 +1035,7 @@ function vPrep(k) {
   function toggle(n) { n = +n; if (al && !al.has(n)) return flash(`La balise ${n} n'est pas sur ta carte`); if (n === dep) return flash("🚩 Balise de départ imposée"); if (n === +p.oblig) return flash("Balise obligatoire ★"); const i = r.plan.indexOf(n); if (i < 0 && fb[n]) return flash(`Interdite : ${fb[n]}`); if (i >= 0) { r.plan.splice(i, 1); delete r.sel[n]; } else { if (!p.libre && r.plan.length >= p.nb) return flash(`${p.nb} balises maximum`); r.plan.push(n); r.sel[n] = now(); if (other[n]) flash(`⚠ Déjà choisie dans ${other[n].map(j => P(j).nom).join(", ")}`); } vib(10); saveRuns(); render(); }
   function render() {
     r.plan = r.plan.filter(n => balise(n));
-    grid.innerHTML = C.balises.filter(b => !al || al.has(+b.n)).map(b => `<button data-b="${b.n}" class="${r.plan.includes(+b.n) ? "on" : ""} ${+b.n === +p.oblig || +b.n === dep ? "ob" : ""} ${fb[b.n] ? "used" : ""}" style="position:relative">${b.n}${nivTag(b.n)}${fb[b.n] ? `<span class="tg" style="background:#6b7280">${/obligatoire/.test(fb[b.n]) ? "★ autre" : /choisie par/.test(fb[b.n]) ? esc(fb[b.n].replace("choisie par ", "")) : "pris"}</span>` : other[b.n] ? `<span class="tg">${other[b.n].map(shortP).join(" ")}</span>` : ""}</button>`).join("");
+    grid.innerHTML = balsCtx().filter(b => !al || al.has(+b.n)).map(b => `<button data-b="${b.n}" class="${r.plan.includes(+b.n) ? "on" : ""} ${+b.n === +p.oblig || +b.n === dep ? "ob" : ""} ${fb[b.n] ? "used" : ""}" style="position:relative">${b.n}${nivTag(b.n)}${fb[b.n] ? `<span class="tg" style="background:#6b7280">${/obligatoire/.test(fb[b.n]) ? "★ autre" : /choisie par/.test(fb[b.n]) ? esc(fb[b.n].replace("choisie par ", "")) : "pris"}</span>` : other[b.n] ? `<span class="tg">${other[b.n].map(shortP).join(" ")}</span>` : ""}</button>`).join("");
     $$("[data-b]", grid).forEach(b => b.onclick = () => toggle(b.dataset.b));
     list.innerHTML = r.plan.map((n, i) => `<li data-i="${i}"${dep && i === 0 ? ' style="background:#fff4ea;border-color:var(--or)"' : ""}><span class="o">${i + 1}</span><span class="bn">${n}</span><b class="grow">${nivOf(n) ? `<span class="chip" style="background:#ffd23f;color:#3d2d00">${"★".repeat(nivOf(n))} ${nivOf(n)} pt${nivOf(n) > 1 ? "s" : ""}</span> ` : ""}${dep && i === 0 ? "🚩 départ imposé" : ""}${+n === +p.oblig ? " ★ obligatoire" : ""}${fb[n] ? ` <span class="chip ko">⚠ ${esc(fb[n])} : retire-la</span>` : ""}${other[n] ? ` <span class="chip" style="background:#dbe4ff;color:#1d4ed8">déjà dans ${other[n].map(j => esc(P(j).nom)).join(", ")}</span>` : ""}</b>${+n === +p.oblig || (dep && i === 0) ? "" : `<button class="x" data-rm="${n}">✕</button>`}${dep && i === 0 ? '<span style="width:52px"></span>' : '<span class="h">≡</span>'}</li>`).join("") || `<li style="justify-content:center;color:var(--mu);border-style:dashed">Aucune balise choisie</li>`;
     $$("[data-rm]", list).forEach(b => b.onclick = () => toggle(b.dataset.rm));
@@ -1197,8 +1201,9 @@ function bilanHTML(k, teacher) {
    <div class="ref">réf. ${refCode(a, r)}</div></div>`;
 }
 // dessine le tracé par-dessus les images de carte des bilans
-function fillBilanMaps(root = document, runs = RUNS) {
-  $$(".bmap", root).forEach(b => { const img = $("img", b), sv = $("svg", b), r = runs[+b.dataset.k]; const f = () => { const W = img.naturalWidth || 1000, H = img.naturalHeight || 1300; sv.setAttribute("viewBox", `0 0 ${W} ${H}`); sv.innerHTML = planSVG(r?.plan, W, H) + traceSVG(r?.trace, W, H); }; img.complete ? f() : img.onload = f; });
+function fillBilanMaps(root = document, runs = RUNS) { const keep = CTXC; try { return fillBilanMaps0(root, runs); } finally { CTXC = keep; } }
+function fillBilanMaps0(root, runs) {
+  $$(".bmap", root).forEach(b => { const img = $("img", b), sv = $("svg", b), r = runs[+b.dataset.k]; const f = () => { const W = img.naturalWidth || 1000, H = img.naturalHeight || 1300; sv.setAttribute("viewBox", `0 0 ${W} ${H}`); const kc = CTXC; CTXC = carteOf(r); try { sv.innerHTML = planSVG(r?.plan, W, H) + traceSVG(r?.trace, W, H); } finally { CTXC = kc; } }; img.complete ? f() : img.onload = f; });
 }
 function vBilan(k, teacher) {
   $("#app").innerHTML = bilanHTML(k, teacher) + `<div class="row noprint"><button class="btn gh grow" id="bHome">← ${teacher ? "Retour" : "Mes parcours"}</button><button class="btn or grow" id="bPr">🖨 Imprimer / PDF</button></div>`;
