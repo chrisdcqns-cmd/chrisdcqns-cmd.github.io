@@ -844,8 +844,9 @@ function slotsNow() { const t = now(), today = dKey(t); return (C.slots || []).f
 function retourAt() { if (ME && !TPW) { const sl = slotsNow().find(x => x.ret && (x.cls || []).includes(ME.prof + "|" + ME.classe)); if (sl) return hm2t(sl.d, sl.ret); } return C.retour || null; }
 function slotCls() { const S = slotsNow(); return S.length ? S.flatMap(sl => sl.cls || []) : null; }
 const pickHas = (prof, classe) => evHas(prof, classe) && (TPW || !slotCls() || slotCls().includes(prof + "|" + classe));
-const isDeleted = r => !!r && ((evStart() && t0Of(r) && t0Of(r) < evStart()) || (C.evEnd && t0Of(r) >= C.evEnd) || (C.suppr || []).some(x => x === runKey(r) || x === runKey(r) + ":r"));
-const canRedo = r => (evStart() && t0Of(r) < evStart()) || (C.suppr || []).includes(runKey(r) + ":r");
+const inExclu = t => (C.exclu || []).some(([a, b]) => t >= a && t < b);
+const isDeleted = r => !!r && ((evStart() && t0Of(r) && t0Of(r) < evStart()) || (t0Of(r) && inExclu(t0Of(r))) || (C.evEnd && t0Of(r) >= C.evEnd) || (C.suppr || []).some(x => x === runKey(r) || x === runKey(r) + ":r"));
+const canRedo = r => (evStart() && t0Of(r) < evStart()) || inExclu(t0Of(r)) || (C.suppr || []).includes(runKey(r) + ":r");
 // côté élève : un parcours effacé par l'enseignant peut être refait
 // nouvelle évaluation publiée par l'enseignant : l'élève repart de zéro (parcours, binôme) ; s'il n'est pas d'une classe concernée, il se réidentifie
 // élève déconnecté par l'enseignant (C.kick[id] = date) : retour à l'identification ; ses camarades l'enlèvent de leur binôme
@@ -863,7 +864,7 @@ function evCheck() {
   ME.ev = C.ev.id; ME.binome = null; ME.groupe = null; ME.gu = now(); PARTNERS = {}; LS.set("me", ME); applyDeletions(); pushState(true); return true;
 }
 function applyDeletions() {
-  let ch = false; RUNS.forEach((r, k) => { if (r && (r.fin ? isDeleted(r) && canRedo(r) : C.ev && t0Of(r) < C.ev.date)) { const old = C.ev && t0Of(r) < C.ev.date; RUNS[k] = null; ch = true; if (!old) setOut(LS.get("out", []).filter(x => !(x.k === k && x.data?.run?.t0 === r.debut))); if (r.fin && !old) flash(`Ton enseignant a effacé ton ${P(k).nom} : tu peux le refaire.`); } });
+  let ch = false; RUNS.forEach((r, k) => { const oldEv = (C.ev && t0Of(r || {}) < C.ev.date) || (r && inExclu(t0Of(r))); if (r && (r.fin ? isDeleted(r) && canRedo(r) : oldEv)) { const old = oldEv; RUNS[k] = null; ch = true; if (!old) setOut(LS.get("out", []).filter(x => !(x.k === k && x.data?.run?.t0 === r.debut))); if (r.fin && !old) flash(`Ton enseignant a effacé ton ${P(k).nom} : tu peux le refaire.`); } });
   if (ch) { saveRuns(); if (["home", "bilan", "full"].includes(CUR.v)) go("home"); }
 }
 // confirmation par le mot de passe enseignant
@@ -1672,13 +1673,32 @@ function newEvalDialog() {
     flash(err ? "⚠ Nouvelle évaluation créée (archive gardée sur cette tablette : " + err + ")" : "✓ Évaluation sauvegardée · nouvelle évaluation publiée");
   };
 }
+// reprendre une évaluation sauvegardée : l'évaluation en cours est sauvegardée à son tour ; ses parcours ne comptent pas dans l'évaluation reprise
+async function resumeEval(L, i) {
+  const a = L[i]; if (!a || !a.conf) return flash("Sauvegarde incomplète");
+  if (!(await ask(`Reprendre « ${esc(a.nom)} » ?`, `L'évaluation en cours « ${esc(C.ev ? C.ev.nom : "Évaluation en cours")} » est sauvegardée (comme pour une nouvelle évaluation). « ${esc(a.nom)} » redevient l'évaluation en cours, avec ses réglages, ses créneaux, ses résultats et ses absents. Les élèves déjà connectés repartent de zéro (identification et binôme).`, "▶ Reprendre", "or"))) return;
+  if (VIEW) archOff();
+  const cur = { id: C.ev ? C.ev.id : "e" + now().toString(36), nom: C.ev ? C.ev.nom : "Évaluation précédente", from: C.ev ? C.ev.date : 0, to: now(), cls: C.ev ? C.ev.cls || [] : [], n: countRes(), conf: archSnap(), carte: false };
+  const img = await idbGet("carte"); if (img) { await idbSet("carte_" + cur.id, img); try { await api("coeSave", { teacher: TPW, cle: "carte_" + cur.id, data: img }, 90000); cur.carte = true; } catch (e) { cur.carte = "local"; } }
+  const keep = { listes: C.listes, tels: C.tels, kick: C.kick }, x = clone(a.conf);
+  C = fixConf(Object.assign(clone(DEF), x, keep));
+  C.ev = x.ev && x.ev.id ? { ...x.ev } : { id: a.id, nom: a.nom, date: a.from || 1, cls: a.cls || [] };
+  C.exclu = [...(x.exclu || []), [a.to, now()]]; delete C.evEnd; C.msgs = []; C.rappel = null;
+  // carte générale de cette évaluation
+  let mi = await idbGet("carte_" + a.id); if (!mi && a.carte === true) try { mi = (await api("coeLoad", { teacher: TPW, cle: "carte_" + a.id }, 60000)).data || null; } catch (e) {}
+  if (mi) try { const j = await api("coeSave", { teacher: TPW, cle: "carte", data: mi }, 90000); VM = j.v; LS.set("vm", VM); await idbSet("carte", mi); MAPIMG = await blobURL(mi); } catch (e) {}
+  const L2 = L.filter((_, j) => j !== i); L2.unshift(cur); const err = await saveArchList(L2);
+  statP = null; STAT = null; ensureStat(); confChanged(); await loadCartes(); go("prof", "res");
+  flash(`▶ « ${a.nom} » reprise${err ? " (⚠ sauvegarde : " + err + ")" : ""}`);
+}
 async function archDialog() {
   const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">📚 Évaluations précédentes</h2><button class="btn sm gh" id="adX">Fermer</button></div><div id="adL"><p class="muted">⏳ Chargement…</p></div>`);
   $("#adX", m).onclick = m.close;
   const draw = L => {
     $("#adL", m).innerHTML = (ARCH_ERR ? `<p class="small" style="color:var(--ko)">⚠ ${esc(ARCH_ERR)}</p>` : "") + (L.length ? L.map((a, i) => `<div class="card" style="margin:0 0 8px;padding:10px"><div class="row"><div class="grow"><b>${esc(a.nom)}</b><br><small class="muted">${dShort(a.from)} → ${dShort(a.to)} · ${esc(clsTxt(a.cls))} · ${a.n || 0} résultat(s) · ${(a.conf?.balises || []).length} balises${a.up === false ? " · ⚠ sur cette tablette seulement" : ""}</small></div></div>
-      <div class="row" style="margin-top:6px"><button class="btn sm or" data-av="${i}">📋 Résultats</button><button class="btn sm gh" data-ab="${i}">🖨 Balises utilisées</button><button class="btn sm gh" data-af="${i}">⬇ Fichier de sauvegarde</button><span class="grow"></span><button class="btn sm gh" data-ad="${i}" style="color:var(--ko)">✕</button></div></div>`).join("") : '<p class="muted">Aucune évaluation sauvegardée pour l\'instant. « ＋ Nouvelle évaluation » sauvegarde l\'évaluation en cours avant d\'en commencer une autre.</p>');
+      <div class="row" style="margin-top:6px"><button class="btn sm or" data-av="${i}">📋 Résultats</button><button class="btn sm vi" data-ar="${i}">▶ Reprendre</button><button class="btn sm gh" data-ab="${i}">🖨 Balises utilisées</button><button class="btn sm gh" data-af="${i}">⬇ Fichier de sauvegarde</button><span class="grow"></span><button class="btn sm gh" data-ad="${i}" style="color:var(--ko)">✕</button></div></div>`).join("") : '<p class="muted">Aucune évaluation sauvegardée pour l\'instant. « ＋ Nouvelle évaluation » sauvegarde l\'évaluation en cours avant d\'en commencer une autre.</p>');
     $$("[data-av]", m).forEach(b => b.onclick = () => { m.close(); archOn(L[+b.dataset.av]); go("prof", "res"); });
+    $$("[data-ar]", m).forEach(b => b.onclick = () => { m.close(); resumeEval(L, +b.dataset.ar); });
     $$("[data-ab]", m).forEach(b => b.onclick = () => { const a = L[+b.dataset.ab]; archOn(a); try { printBalises(a); } finally { archOff(); } });
     $$("[data-af]", m).forEach(b => b.onclick = () => { const a = L[+b.dataset.af], rows = SRV.rows.filter(r => r.d?.run && r.d.run.t0 >= (a.from || 0) && r.d.run.t0 < a.to); const x = document.createElement("a"); x.href = URL.createObjectURL(new Blob([JSON.stringify({ app: "co-eval-archive", v: 1, archive: a, resultats: rows })], { type: "application/json" })); x.download = `CO-eval-${(a.nom || "evaluation").normalize("NFD").replace(/[^\w]+/g, "-")}.json`; x.click(); });
     $$("[data-ad]", m).forEach(b => b.onclick = async () => { const a = L[+b.dataset.ad]; if (!(await ask("Retirer cette sauvegarde ?", `« ${esc(a.nom)} » disparaît de la liste (les résultats restent dans la Google Sheet, onglet CO_Resultats).`, "Retirer", "ko"))) return; if (!(await ask("Vraiment ?", "Cette action ne peut pas être annulée depuis l'appli.", "Oui, retirer", "ko"))) return; L.splice(+b.dataset.ad, 1); const e = await saveArchList(L); if (e) flash("⚠ " + e); draw(L); });
