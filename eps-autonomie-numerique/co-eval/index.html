@@ -103,6 +103,8 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 .modal{position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
 .modal>div{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 .hide{display:none!important}
+.simview{position:fixed;inset:0;z-index:48;background:#14171Cee;display:flex;flex-direction:column}.simview .sv-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#fff;padding:8px 12px}.simview .sv-h .small{color:#c9ccd3}.simview .sv-b{flex:1;display:flex;justify-content:center;align-items:center;padding:6px 6px 12px;min-height:0}.simview iframe{width:min(420px,100%);height:min(860px,100%);border:10px solid #000;border-radius:34px;background:#f5f2ea;box-shadow:0 10px 40px #0008}
+.simbar{position:sticky;margin:6px 6px 0;z-index:19;display:flex;align-items:center;gap:5px;background:#fff7d6;border:2px dashed #d9a400;border-radius:12px;padding:4px 6px;font-size:.8rem;box-shadow:0 4px 14px #0002}.simbar .tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.simbar button{flex:none;border:1px solid #d9a400;background:#fff;border-radius:8px;padding:4px 7px;font:inherit;font-weight:700;cursor:pointer}.simbar .cd{font-family:monospace;font-weight:900;color:var(--vi);font-size:1rem}
 @media print{header,.noprint,#eps-home-btn{display:none!important}body{background:#fff}main{padding:0;max-width:none}.card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;padding:10px}.pb{break-before:page}}
 
 .net{font-size:.72rem;font-weight:800;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.14)}
@@ -120,7 +122,7 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 .dr .dbar.bot{padding:6px 8px calc(env(safe-area-inset-bottom) + 6px)}
 .dr .mapv{flex:1;border-radius:0;height:auto;min-height:0}
 .tb{border:0;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-weight:800;padding:7px 9px;font-size:.84rem;min-height:40px}
-body:has(.dr) #eps-home-btn{display:none!important}
+body:has(.dr) #eps-home-btn,body:has(.simbar) #eps-home-btn{display:none!important}
 html,body,button,input,a,label,.card,.pc,.kb,.boxes{touch-action:manipulation}html{-webkit-text-size-adjust:100%}
 .dr,.dr *,.mapv,.mapv *{touch-action:none}.dr{overscroll-behavior:none}
 html:has(.dr),body:has(.dr){overscroll-behavior:none;touch-action:none}
@@ -284,12 +286,14 @@ const API = "https://script.google.com/macros/s/AKfycbyRGDLL7S2-5FNmWz9C0cGt1jxD
 const SYNC_MS = 15000;
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const LS = { get(k, d) { try { const v = localStorage.getItem("coe." + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem("coe." + k, JSON.stringify(v)); } catch (e) {} }, del(k) { try { localStorage.removeItem("coe." + k); } catch (e) {} } };
+// Vue élève de l'enseignant (?sim=1) : simulation sur sa tablette, données à part, rien n'est envoyé
+const SIM = /[?&]sim=1\b/.test(location.search), LSP = SIM ? "coesim." : "coe.";
+const LS = { get(k, d) { try { const v = localStorage.getItem(LSP + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(LSP + k, JSON.stringify(v)); } catch (e) {} }, del(k) { try { localStorage.removeItem(LSP + k); } catch (e) {} } };
 const clone = o => JSON.parse(JSON.stringify(o));
 const pad = n => String(n).padStart(2, "0");
 const fmt = ms => { if (ms == null || isNaN(ms)) return "–"; const neg = ms < 0; ms = Math.abs(ms); const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (neg ? "−" : "") + (h ? h + ":" + pad(m) : m) + ":" + pad(x); };
 const fmtMin = s => s % 60 ? fmt(s * 1000) : (s / 60) + " min";
-const now = () => Date.now();
+const now = () => Date.now() + (SIM ? +(localStorage.getItem("coesim.off") || 0) : 0); // en simulation : avance rapide du temps
 const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 const byFr = (a, b) => String(a).localeCompare(String(b), "fr", { sensitivity: "base" });
 function flash(t) { const d = document.createElement("div"); d.className = "flash"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 950); }
@@ -297,6 +301,7 @@ function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {
 function modal(html) { const m = document.createElement("div"); m.className = "modal"; m.innerHTML = `<div>${html}</div>`; m.onclick = e => { if (e.target === m) m.remove(); }; document.body.appendChild(m); m.close = () => m.remove(); return m; }
 function ask(title, text, okTxt = "Oui", cls = "or") { return new Promise(res => { const m = modal(`<h2 style="margin:0 0 8px">${title}</h2><p>${text}</p><div class="row"><button class="btn gh grow" id="mN">Annuler</button><button class="btn ${cls} grow" id="mY">${okTxt}</button></div>`); $("#mN", m).onclick = () => { m.close(); res(false); }; $("#mY", m).onclick = () => { m.close(); res(true); }; }); }
 async function api(action, payload = {}, timeout = 20000) {
+  if (SIM) return simApi(action, payload);
   const ctl = new AbortController(), h = setTimeout(() => ctl.abort(), timeout);
   try { const r = await fetch(API, { method: "POST", body: JSON.stringify({ action, ...payload }), signal: ctl.signal, redirect: "follow" }); const j = await r.json(); if (!j.ok) throw new Error(j.error || "Erreur du serveur"); return j; }
   catch (e) { if (e.name === "AbortError") throw new Error("Le serveur ne répond pas"); throw e; }
@@ -331,6 +336,20 @@ function fixConf(c) {
 }
 let C = fixConf(Object.assign(clone(DEF), LS.get("conf", {})));
 let VC = LS.get("vc", ""), VM = LS.get("vm", "");
+// ---------- Simulation (👁 Vue élève de l'enseignant) ----------
+// Paramètres et carte de l'enseignant (lus sur sa tablette), classe fictive, aucun envoi au serveur.
+const SIM_CL = "Classe test (simulation)", SIM_EL = [["TEST", "Alice"], ["TEST", "Bilal"], ["TEST", "Chloé"], ["TEST", "Dylan"], ["TEST", "Emma"], ["TEST", "Farid"]];
+function simRaw() { try { return localStorage.getItem("coe.conf") || "{}"; } catch (e) { return "{}"; } }
+function simPatch(c) { const L = {}; (c.profs && c.profs.length ? c.profs : DEF.profs).filter(Boolean).forEach(p => L[p] = { [SIM_CL]: SIM_EL.map(x => x.slice()) }); c.listes = L; c.moves = {}; c.dels = []; return c; }
+const simHash = t => { let h = 7; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return "sim" + (h >>> 0).toString(36); };
+async function simApi(action, p) {
+  await new Promise(r => setTimeout(r, 80));
+  if (action === "coeGet") { const raw = simRaw(); let o = {}; try { o = JSON.parse(raw); } catch (e) {} return { ok: true, conf: JSON.stringify(simPatch(o)), vc: simHash(raw), vm: VM || "sim", states: [] }; }
+  if (action === "teacherCheck") { if (!p.teacher) throw new Error("Code vide"); return { ok: true }; }
+  return { ok: true, v: "sim", rows: [], since: 0, states: [] };
+}
+if (SIM) { try { C = fixConf(Object.assign(clone(DEF), simPatch(JSON.parse(simRaw())))); } catch (e) { C = fixConf(simPatch(clone(DEF))); } VC = simHash(simRaw()); VM = VM || "sim"; }
+window.simReset = () => { Object.keys(localStorage).filter(k => k.startsWith("coesim.")).forEach(k => localStorage.removeItem(k)); ["bak", "jr", "out"].forEach(k => idbSet(k, null)); Promise.all(SIM_EL.map(([n, pr]) => idbSet("bak:" + studentId({ prenom: pr, nom: n, classe: SIM_CL, prof: (C.profs.filter(Boolean)[0] || "") }), null))).finally(() => location.reload()); };
 const balise = n => C.balises.find(b => +b.n === +n);
 const P = k => C.parcours[k];
 
@@ -345,6 +364,7 @@ let bakT = null;
 function backup() { clearTimeout(bakT); bakT = setTimeout(() => { if (!ME || SW) return; const b = { me: ME, runs: RUNS.map(r => r && packLive(r)), t: now() }; idbSet("bak", b); idbSet("bak:" + ME.id, b); }, 250); }
 const OFF = { ready: false, why: "" };
 async function checkOffline() {
+  if (SIM) { OFF.ready = true; OFF.why = ""; return; }
   const sw = "serviceWorker" in navigator, ctl = sw && !!navigator.serviceWorker.controller, map = !!(await idbGet("carte")) || !!VM || OFF.nomap, conf = !C.demo;
   let persist = false; try { persist = navigator.storage && navigator.storage.persist ? await navigator.storage.persist() : false; } catch (e) {}
   const was = OFF.ready; OFF.ready = (!sw || ctl) && map && conf; OFF.persist = persist;
@@ -396,8 +416,8 @@ function demoMap() {
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 function idb() { return new Promise((res, rej) => { const r = indexedDB.open("coe", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
-async function idbGet(k) { try { const d = await idb(); return await new Promise(r => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); } catch (e) { return null; } }
-async function idbSet(k, v) { try { const d = await idb(); await new Promise(r => { const t = d.transaction("kv", "readwrite"); v == null ? t.objectStore("kv").delete(k) : t.objectStore("kv").put(v, k); t.oncomplete = r; t.onerror = r; }); } catch (e) {} }
+async function idbGet(k) { if (SIM && k !== "carte") k = "sim:" + k; try { const d = await idb(); return await new Promise(r => { const q = d.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(null); }); } catch (e) { return null; } }
+async function idbSet(k, v) { if (SIM) { if (k === "carte") return; k = "sim:" + k; } try { const d = await idb(); await new Promise(r => { const t = d.transaction("kv", "readwrite"); v == null ? t.objectStore("kv").delete(k) : t.objectStore("kv").put(v, k); t.oncomplete = r; t.onerror = r; }); } catch (e) {} }
 async function blobURL(data) { try { if (!data || !data.startsWith("data:image/jpeg") && !data.startsWith("data:image/png")) return data; const b = await (await fetch(data)).blob(); return URL.createObjectURL(b); } catch (e) { return data; } }
 async function loadMap() { MAPIMG = (await blobURL(await idbGet("carte"))) || demoMap(); }
 
@@ -1243,16 +1263,25 @@ async function publish() {
   catch (e) { PUB = { st: "ko", err: /Action inconnue/.test(e.message) ? "le script Google n'est pas à jour (voir les instructions)" : e.message }; if (/Mot de passe/.test(e.message)) { TPW = ""; LS.del("tpw"); } }
   pubUI();
 }
+// 👁 Vue élève : l'appli élève dans un cadre de téléphone, en simulation (?sim=1)
+function openSimView() {
+  $(".simview")?.remove(); const d = document.createElement("div"); d.className = "simview";
+  const src = "index.html?vue=eleve&sim=1";
+  d.innerHTML = `<div class="sv-h"><b>👁 Vue élève · simulation</b><span class="small grow">Tes paramètres et ta carte, avec une classe fictive. Rien n'est envoyé : aucun résultat, aucun suivi. Les codes sont donnés dans la barre jaune.</span><button class="btn sm gh" id="svR">↺ Recommencer</button><button class="btn sm" id="svX">✕ Fermer</button></div><div class="sv-b"><iframe id="svF" src="${src}" title="Vue élève"></iframe></div>`;
+  document.body.appendChild(d);
+  $("#svX", d).onclick = () => d.remove();
+  $("#svR", d).onclick = async () => { if (await ask("Recommencer la simulation ?", "L'élève fictif, ses parcours et ses saisies de simulation sont effacés.", "↺ Recommencer", "ko")) { const w = $("#svF", d).contentWindow; if (w && w.simReset) w.simReset(); else $("#svF", d).src = src; } };
+}
 function vProf(tab = "res") {
   if (!TPW) return openProf();
   if (!statP) { ensureStat().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0] || tab); }); }
   clearInterval(profTick); profTick = null;
-  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
+  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><button class="btn sm vi" id="pSim" title="L'appli comme la voit un élève, avec un élève fictif : rien n'est envoyé">👁 Vue élève</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
   $("#hRet").onchange = e => { const v = e.target.value; if (!v) return; const [h, mi] = v.split(":").map(Number), d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < now() - 6 * 3600000) d.setDate(d.getDate() + 1); C.retour = d.getTime(); confChanged(); flash(`Heure de retour : ${hhmm(C.retour)} ✓`); };
   $("#hRetX").onclick = () => { C.retour = null; $("#hRet").value = ""; confChanged(); };
   $("#bMsg").onclick = () => msgDialog();
   $("#bRetour").onclick = () => { const L = C.profs.filter(Boolean); const m = modal(`<h2 style="margin:0 0 6px">📢 Appel RETOUR</h2><p class="small muted" style="margin-top:0">Les téléphones des élèves sonnent, vibrent et affichent « RETOUR ! » (dans les 15 secondes).</p><div class="pick big"><button data-rp="">Tous les élèves</button>${L.map(p => `<button data-rp="${esc(p)}">Élèves de ${esc(p)}</button>`).join("")}</div><button class="btn gh" id="rpX" style="width:100%;margin-top:10px">Annuler</button>`); $("#rpX", m).onclick = m.close; $$("[data-rp]", m).forEach(b => b.onclick = () => { C.rappel = { id: now(), prof: b.dataset.rp }; confChanged(); m.close(); flash("📢 Appel RETOUR envoyé"); }); };
-  $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home");
+  $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home"); $("#pSim").onclick = openSimView;
   $("#pUp").onclick = async () => { const b = $("#pUp"); b.disabled = true; b.textContent = "⏳ Mise à jour…"; clearTimeout(pubTimer); if (PUB.st === "wait") await publish(); VC = ""; VM = ""; LS.set("vc", ""); LS.set("vm", ""); LS.set("reopen", CUR.a[0] || "res"); location.replace(location.pathname + "?maj=" + Date.now()); };
   pubUI();
   ({ suivi: profSuivi, res: profRes, conf: profConf, eleves: profEleves, carte: profCarte, dev: profDev })[tab]($("#pv"));
@@ -1363,7 +1392,7 @@ function profSuivi(box) {
     const plan = window.L.tileLayer("https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}", { maxZoom: 19, attribution: "© IGN" }).addTo(LMAP);
     const photo = window.L.tileLayer("https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}", { maxZoom: 19, attribution: "© IGN" });
     window.L.control.layers({ "Plan IGN": plan, "Photo aérienne": photo }).addTo(LMAP); LLAYER = window.L.layerGroup().addTo(LMAP); draw(); })
-    .catch(() => { $("#lvMap").innerHTML = '<p class="muted" style="padding:20px">Carte GPS indisponible (pas d\'accès internet) : utilise la carte de la course ou les liens 📍 GPS de la liste.</p>'; });
+    .catch(() => { const e = $("#lvMap"); if (e) e.innerHTML = '<p class="muted" style="padding:20px">Carte GPS indisponible (pas d\'accès internet) : utilise la carte de la course ou les liens 📍 GPS de la liste.</p>'; });
   if (mode === "co") $("#lvFit").onclick = () => coMv && coMv.fit();
   const refresh = async () => { const st = $("#lvSt"); if (st) st.textContent = "⏳"; const ok = await pullLive(); if (CUR.v !== "prof" || CUR.a[0] !== "suivi") return; draw(); const e = $("#lvSt"); if (e) e.textContent = ok === true ? "● à jour " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "⚠ " + ok; };
   draw(); refresh(); profTick = setInterval(refresh, 10000);
@@ -1560,15 +1589,32 @@ document.addEventListener("gesturestart", e => { if (!e.target.closest?.(".mapv"
 document.addEventListener("dblclick", e => e.preventDefault(), { passive: false });
 let lastTouch = 0; document.addEventListener("touchend", e => { const t = Date.now(); if (t - lastTouch < 350 && !e.target.closest(".mapv,.kb,.sl,input,textarea,select")) { e.preventDefault(); e.target.closest("button")?.click(); } lastTouch = t; }, { passive: false });
 setInterval(checkAlerts, 3000); document.addEventListener("visibilitychange", () => { if (!document.hidden) checkAlerts(); });
+// Barre de simulation : code de la balise attendue, avance rapide du temps, recommencer
+function simBar() {
+  const d = document.createElement("div"); d.className = "simbar noprint"; const hd = $("header"); hd.after(d); const top = () => d.style.top = (hd.offsetHeight + 4) + "px"; top(); addEventListener("resize", top);
+  const off = () => +(localStorage.getItem("coesim.off") || 0);
+  const draw = () => {
+    const k = CUR.v === "run" ? CUR.a[0] : null, r = k != null ? RUNS[k] : null, i = r ? r.idx || 0 : 0, n = r && i < r.plan.length ? r.plan[i] : null, b = n != null ? balise(n) : null;
+    const k2 = CUR.v === "prep" ? CUR.a[0] : null, r2 = k2 != null ? RUNS[k2] : null;
+    d.innerHTML = `<span class="tx">🧪 ${b ? `Balise <b>${esc(n)}</b> → <b class="cd">${esc(b.code)}</b>` : r2 && r2.plan.length ? r2.plan.map(x => `${esc(x)} <span class="cd">${esc((balise(x) || {}).code || "?")}</span>`).join(" · ") : "<b>Simulation</b> : rien n'est envoyé"}</span><button data-s="codes" title="Codes de toutes les balises">🔑</button><button data-s="ff" title="Avancer le temps d'1 minute">⏩ 1 min${off() ? ` <small>(+${Math.round(off() / 60000)})</small>` : ""}</button><button data-s="ff5" title="Avancer le temps de 5 minutes">+5</button><button data-s="rz" title="Recommencer la simulation">↺</button>`;
+  };
+  d.onclick = async e => {
+    const t = e.target.closest("[data-s]")?.dataset.s; if (!t) return;
+    if (t === "ff" || t === "ff5") { localStorage.setItem("coesim.off", off() + (t === "ff" ? 60000 : 300000)); draw(); flash(t === "ff" ? "⏩ +1 min" : "⏩ +5 min"); }
+    if (t === "codes") { const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">🔑 Codes des balises</h2><button class="btn sm gh" id="scX">Fermer</button></div><p class="small muted" style="margin-top:0">Pour la simulation seulement : tape le bon code pour valider une balise, ou un autre pour voir une erreur.</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px">${C.balises.map(b => `<div class="card" style="margin:0;padding:6px;text-align:center"><b style="color:var(--vi);font-size:1.2rem">${esc(b.n)}</b><br><span style="font-family:monospace;font-weight:800">${esc(b.code)}</span></div>`).join("")}</div>`); $("#scX", m).onclick = m.close; }
+    if (t === "rz") { if (await ask("Recommencer la simulation ?", "L'élève fictif, ses parcours et ses saisies de simulation sont effacés.", "↺ Recommencer", "ko")) window.simReset(); }
+  };
+  draw(); setInterval(draw, 700);
+}
 // ======================= DÉMARRAGE =======================
-$("#hProf").onclick = openProf;
+$("#hProf").onclick = openProf; if (SIM) $("#hProf").remove();
 (async () => {
   $("#hT").textContent = C.titre; await loadMap(); setNet();
   if (location.hash.startsWith("#r=") && receiveResults(location.hash.slice(3))) { sync(); return; }
   const reopen = LS.get("reopen", ""); LS.del("reopen"); if (/maj=/.test(location.search)) history.replaceState(null, "", location.pathname);
   if (reopen && TPW) { go("prof", reopen); sync().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0]); flash("✓ Appli et données à jour"); }); setInterval(sync, SYNC_MS); document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); }); addEventListener("online", sync); return; }
   if (await recoverLocal()) flash("✓ Tes saisies ont été récupérées sur ce téléphone");
-  try { if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).then(() => setTimeout(checkOffline, 500)).catch(() => {}); } catch (e) {}
+  if (SIM) simBar(); else try { if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).then(() => setTimeout(checkOffline, 500)).catch(() => {}); } catch (e) {}
   checkOffline(); setTimeout(checkOffline, 8000);
   go("home");
   if (ME && !RUNS.some(Boolean)) restore().then(() => { if (RUNS.some(Boolean) && ["home", "ident"].includes(CUR.v)) go("home"); });
