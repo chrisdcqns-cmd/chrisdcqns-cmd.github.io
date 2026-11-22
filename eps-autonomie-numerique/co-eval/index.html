@@ -773,19 +773,24 @@ function vHome() {
   $("#sos").onclick = () => sos();
 }
 // Choix d'un élève dans les listes : enseignant → classe → prénom
+// élèves « hors liste » connectés (nom écrit à la main) : proposés dans la recherche de binôme
+let HL = [], HLt = 0;
+async function loadHL() { if (SIM || now() - HLt < 20000) return false; HLt = now(); try { const j = await api("coeHors", {}, 8000); const s0 = JSON.stringify(HL); HL = (j.list || []).filter(x => x && x[0]); return JSON.stringify(HL) !== s0; } catch (e) { return false; } }
+function withHL(L0) { const L = {}; Object.entries(L0).forEach(([p, cl]) => { L[p] = {}; Object.entries(cl).forEach(([c, el]) => L[p][c] = el.slice()); });
+  HL.forEach(([prenom, nom, classe, prof]) => { if (!prof || !C.profs.includes(prof)) return; const c = classe || "Sans classe"; L[prof] = L[prof] || {}; const el = L[prof][c] = L[prof][c] || []; if (!el.some(([n, p]) => norm(n) === norm(nom) && norm(p) === norm(prenom))) el.push([nom, prenom, "hl", classe]); }); return L; }
 function picker(box, opt, onPick) {
   const st = { prof: opt.prof || null, classe: opt.classe || null, manual: false };
   const draw = () => {
-    const L = C.listes || {};
+    const L = opt.hl ? withHL(C.listes || {}) : C.listes || {}, isHL = (p, c) => opt.hl && (L[p]?.[c] || []).some(x => x[2] === "hl");
     if (st.prof && !C.profs.includes(st.prof)) st.prof = null;
-    const cls = st.prof ? Object.keys(L[st.prof] || {}).filter(c => pickHas(st.prof, c)).sort(byFr) : [];
+    const cls = st.prof ? Object.keys(L[st.prof] || {}).filter(c => pickHas(st.prof, c) || isHL(st.prof, c)).sort(byFr) : [];
     if (st.classe && !cls.includes(st.classe)) st.classe = null;
     const crumb = `<div class="crumb">${st.prof ? `<button data-cb="prof">👤 ${esc(st.prof)} ✕</button>` : ""}${st.classe ? `<button data-cb="classe">🏫 ${esc(st.classe)} ✕</button>` : ""}</div>`;
     if (!st.prof) box.innerHTML = `<h3 style="margin:4px 0 8px">${opt.q1 || "Qui est ton enseignant ?"}</h3>${!TPW && slotsNow().length ? `<p class="small" style="margin:0 0 8px;color:var(--vi);font-weight:700">📅 Créneau ${slotsNow().map(sl => sl.h1 + "–" + sl.h2).join(", ")} : ${esc(slotCls().map(x => x.split("|")[1]).join(", "))}</p>` : ""}<div class="pick big">${C.profs.filter(Boolean).filter(p => !Object.keys((C.listes || {})[p] || {}).length || Object.keys(C.listes[p]).some(c => pickHas(p, c))).map(p => `<button data-pf="${esc(p)}">${esc(p)}</button>`).join("")}</div>`;
     else if (st.manual || !cls.length) box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">${cls.length ? "Écris le prénom et le nom" : "Pas encore de liste pour cet enseignant : écris le prénom et le nom"}</h3><label class="l">Prénom</label><input class="inp" id="kP"><label class="l">Nom</label><input class="inp" id="kN"><label class="l">Classe</label><input class="inp" id="kC" value="${esc(st.classe || "")}"><button class="btn big or" id="kGo" style="margin-top:12px">Valider</button>${cls.length ? '<button class="btn gh" id="kBack" style="width:100%;margin-top:8px">← Revenir à la liste</button>' : ""}`;
     else if (!st.classe) box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">Quelle classe ?</h3><div class="pick big">${cls.map(c => `<button data-cl="${esc(c)}">${esc(c)}</button>`).join("")}</div>`;
-    else { const el = L[st.prof][st.classe].map(([nom, prenom]) => ({ nom, prenom, classe: st.classe, prof: st.prof })).filter(e => !isAbs(e) && (!opt.exclude || opt.exclude(e))).sort((a, b) => byFr(a.prenom, b.prenom) || byFr(a.nom, b.nom));
-      box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">${opt.q3 || "Touche ton prénom"}</h3><div class="pick">${el.map((e, i) => `<button data-el="${i}">${esc(e.prenom)}<small>${esc(e.nom)}</small></button>`).join("")}</div><button class="btn sm gh" id="kMan" style="margin-top:12px">${opt.q3 ? "Pas dans la liste" : "Je ne suis pas dans la liste"}</button>`;
+    else { const el = L[st.prof][st.classe].map(([nom, prenom, hl, cl0]) => ({ nom, prenom, classe: hl ? cl0 || "" : st.classe, prof: st.prof, ...(hl ? { hl: 1 } : {}) })).filter(e => !isAbs(e) && (!opt.exclude || opt.exclude(e))).sort((a, b) => byFr(a.prenom, b.prenom) || byFr(a.nom, b.nom));
+      box.innerHTML = crumb + `<h3 style="margin:4px 0 8px">${opt.q3 || "Touche ton prénom"}</h3><div class="pick">${el.map((e, i) => `<button data-el="${i}">${esc(e.prenom)}<small>${esc(e.nom)}${e.hl ? " ✍" : ""}</small></button>`).join("")}</div><button class="btn sm gh" id="kMan" style="margin-top:12px">${opt.q3 ? "Pas dans la liste" : "Je ne suis pas dans la liste"}</button>`;
       $$("[data-el]", box).forEach(b => b.onclick = () => onPick(el[+b.dataset.el])); }
     $$("[data-pf]", box).forEach(b => b.onclick = () => { st.prof = b.dataset.pf; st.classe = null; draw(); });
     $$("[data-cl]", box).forEach(b => b.onclick = () => { st.classe = b.dataset.cl; draw(); });
@@ -930,7 +935,7 @@ function studentMenu(e, after, runs) {
 function vIdent() {
   $("#app").innerHTML = `<div class="card"><h2>👋 Qui es-tu ?</h2><div id="iBox"></div></div>`;
   picker($("#iBox"), {}, async e => { if (!(await ask("C'est bien toi ?", `<b style="font-size:1.2rem">${esc(e.prenom)} ${esc(e.nom)}</b><br>${e.classe ? esc(e.classe) + " · " : ""}${esc(e.prof)}`, "Oui, c'est moi", "gr"))) return;
-    ME = { ...e, id: studentId(e), at: now(), ...(C.ev ? { ev: C.ev.id } : {}) }; LS.set("me", ME); RUNS = emptyRuns(); LS.set("runs", RUNS);
+    ME = { ...e, id: studentId(e), at: now(), ...(C.ev ? { ev: C.ev.id } : {}), ...(e.manuel || !inList(e) ? { hl: 1 } : {}) }; delete ME.manuel; LS.set("me", ME); RUNS = emptyRuns(); LS.set("runs", RUNS);
     $("#app").innerHTML = `<div class="card" style="text-align:center"><div style="font-size:2rem">⏳</div><p>Recherche de ta progression…</p></div>`;
     await restore();
     if (!RUNS.some(Boolean)) { const b = await idbGet("bak:" + ME.id); if (b && b.runs) { RUNS = b.runs.map((x, k) => x && unpackLive(x, k)); if (b.me) { ME.binome = ME.binome || b.me.binome; ME.groupe = ME.groupe || b.me.groupe; ME.gu = ME.gu || b.me.gu; LS.set("me", ME); } saveRuns(true); flash("✓ Ta progression a été retrouvée sur ce téléphone"); } }
@@ -957,7 +962,8 @@ function vBinome() {
      : `<p class="small muted" style="margin-top:0">C'est ton ou ta partenaire pour le parcours collectif. Vos choix seront partagés entre vos téléphones : une balise choisie par l'un pour son parcours individuel ne pourra pas être choisie par l'autre.</p><div id="bBox"></div>`}
    <div class="row" style="margin-top:12px">${isG ? "" : '<button class="btn sm gh" id="bSkip">Plus tard</button>'}<span class="grow"></span><button class="btn sm or" id="bGrp">🔒 ${isG ? "Modifier le groupe" : "Passer en groupe (3 élèves ou plus)"}</button></div>
    ${isG ? '<button class="btn gh" id="bHome" style="width:100%;margin-top:10px">← Accueil</button>' : ""}</div>`;
-  if (!isG) picker($("#bBox"), { q1: "Qui est l'enseignant de ton binôme ?", q3: "Touche le prénom de ton binôme", exclude: e => studentId(e) !== ME.id }, e => {
+  if (!isG) loadHL().then(ch => { if (ch && CUR.v === "binome" && !$("#bBox .crumb button")) go("binome"); });
+  if (!isG) picker($("#bBox"), { hl: 1, q1: "Qui est l'enseignant de ton binôme ?", q3: "Touche le prénom de ton binôme", exclude: e => studentId(e) !== ME.id }, e => {
     setTeam([{ prenom: e.prenom, nom: e.nom, classe: e.classe, prof: e.prof, id: studentId(e) }]); flash(`Binôme : ${e.prenom} ✓`); go("home");
   });
   $("#bSkip") && ($("#bSkip").onclick = () => go("home"));

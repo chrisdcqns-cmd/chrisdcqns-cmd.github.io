@@ -141,6 +141,12 @@ function traiter_(req) {
     return { ok: true };
   }
 
+  if (a === 'coeHors') { // élèves « hors liste » (nom écrit à la main) connectés depuis moins de 12 h : pour la recherche de binôme
+    const c = CacheService.getScriptCache(), h = c.get('coe_hl'); if (h) return { ok: true, list: JSON.parse(h) };
+    const sh = feuille_(T_COES), n = sh.getLastRow() - 1, lim = Date.now() - 12 * 3600000, out = [];
+    if (n > 0) sh.getRange(2, 1, n, 3).getValues().forEach(v => { if (Number(v[1]) < lim) return; try { const me = (JSON.parse(v[2] || '{}').me) || {}; if (me.hl && me.prenom) out.push([String(me.prenom), String(me.nom || ''), String(me.classe || ''), String(me.prof || '')]); } catch (e) {} });
+    c.put('coe_hl', JSON.stringify(out), 30); return { ok: true, list: out };
+  }
   if (a === 'coeMap') { // cartes de l'évaluation (une par parcours, envoyées par OrienRun) : lues par les téléphones des élèves
     const cle = String(req.cle || ''); if (!/^carte_m[0-9]{1,2}$/.test(cle)) throw new Error('Carte inconnue');
     return { ok: true, data: coeLire_(cle), v: PropertiesService.getScriptProperties().getProperty('coe_v_' + cle) || '' };
