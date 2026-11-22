@@ -1143,6 +1143,7 @@ function editControl(id) {
    <div class="field"><label>Position GPS</label><input class="inp" id="eGps" value="${c.lat != null ? c.lat.toFixed(6) + ", " + c.lon.toFixed(6) : ""}" placeholder="lat, lon ou lien Google Maps"><small class="muted">${c.lat != null ? `±${Math.round(c.acc || 0)} m · <a target="_blank" href="${gmapsUrl(c.lat, c.lon)}">Google Maps</a>` : ""}</small></div>
    ${c.photos?.length ? `<div class="field"><label>Photos du terrain</label><div class="row" style="gap:6px">${c.photos.map(p => `<a href="${p}" target="_blank"><img src="${p}" style="width:84px;height:84px;object-fit:cover;border-radius:10px"></a>`).join("")}</div></div>` : ""}
    <label class="row" style="gap:6px"><input type="checkbox" id="eCal" ${c.calage !== false ? "checked" : ""}> Utiliser cette balise pour caler la carte</label>
+   <div class="row" style="gap:6px;margin-top:6px"><label class="row" style="gap:6px"><input type="checkbox" id="eNivOn" ${c.niv ? "checked" : ""} onchange="document.getElementById('eNiv').disabled=!this.checked"> Niveau de difficulté</label><select class="inp" id="eNiv" style="width:auto" ${c.niv ? "" : "disabled"}>${[1, 2, 3].map(v => `<option value="${v}" ${+c.niv === v ? "selected" : ""}>${v} ${"★".repeat(v)}</option>`).join("")}</select></div>
    </div><div style="text-align:center"><div style="max-width:220px;margin:0 auto" id="eQr"></div><small class="muted" style="word-break:break-all">${esc(baliseUrl(c))}</small></div></div>
    <div class="row" style="margin-top:14px"><button class="btn green" id="eSave">Enregistrer</button><button class="btn or" id="eGeo">📍 Géolocaliser</button><button class="btn alt" id="ePlace">🗺 ${c.x == null ? "Placer" : "Déplacer"} sur la carte</button><button class="btn red" id="eDel">Supprimer</button></div>`, { onClose: () => { if (ptab === "balises") setPTab("balises"); } });
   const qr = () => $("#eQr", m).innerHTML = QR.svg(baliseUrl({ ...c, n: $("#eN", m).value, code: $("#eCode", m).value.toUpperCase() }));
@@ -1152,7 +1153,7 @@ function editControl(id) {
     const n = c.type === "C" ? parseInt($("#eN", m).value) : $("#eN", m).value.trim();
     if (c.type === "C" && (!n || P.controls.some(x => x !== c && x.type === "C" && +x.n === n))) { toast("Numéro invalide ou déjà utilisé", "ko"); return false; }
     if (c.type === "C" && n !== +c.n && numAmbigu(n) && !confirm(`Le numéro ${n} peut se lire autrement une fois la balise retournée. Le garder quand même ?`)) return false;
-    pushUndo(); c.n = n; c.code = ($("#eCode", m).value.trim().toUpperCase() || randCode(3)); c.desc = $("#eDesc", m).value.trim(); c.calage = $("#eCal", m).checked;
+    pushUndo(); c.n = n; c.code = ($("#eCode", m).value.trim().toUpperCase() || randCode(3)); c.desc = $("#eDesc", m).value.trim(); c.calage = $("#eCal", m).checked; if ($("#eNivOn", m).checked) c.niv = +$("#eNiv", m).value; else delete c.niv;
     const g = parseLatLon($("#eGps", m).value); if (g && (c.lat == null || Math.abs(g.lat - c.lat) > 1e-6 || Math.abs(g.lon - c.lon) > 1e-6)) { c.lat = g.lat; c.lon = g.lon; c.acc = null; } if (!$("#eGps", m).value.trim()) { c.lat = c.lon = c.acc = null; }
     saveP(); return true;
   };
@@ -2642,7 +2643,7 @@ async function coeDialog(proj = P) {
       let conf = {}; try { conf = g.conf ? JSON.parse(g.conf) : {}; } catch (e) {}
       const nums = B.map(c => +c.n);
       const W = proj.map.w, H = proj.map.h, dep = proj.controls.find(c => c.type === "S" && c.x != null);
-      conf.balises = B.map(c => ({ n: +c.n, code: String(c.code).toUpperCase(), x: +(c.x / W).toFixed(4), y: +(c.y / H).toFixed(4) }));
+      conf.balises = B.map(c => ({ n: +c.n, code: String(c.code).toUpperCase(), x: +(c.x / W).toFixed(4), y: +(c.y / H).toFixed(4), ...(c.niv ? { niv: +c.niv } : {}) })); if (conf.balises.some(b => b.niv)) conf.niv = true;
       conf.depart = dep ? { x: +(dep.x / W).toFixed(4), y: +(dep.y / H).toFixed(4) } : null;
       conf.carteNom = proj.nom; conf.demo = false;
       if (Array.isArray(conf.parcours)) conf.parcours.forEach(p => { if (p.oblig && !nums.includes(+p.oblig)) p.oblig = null; if (p.nb > nums.length) p.nb = nums.length; });
