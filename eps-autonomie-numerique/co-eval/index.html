@@ -139,7 +139,7 @@ html:has(.dr),body:has(.dr){overscroll-behavior:none;touch-action:none}
 .pub.wait{background:#fff1d6;color:#7a4b00}.pub.ko{background:#fbd5d9;color:#8c1020}
 .tabs2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .retb{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border-radius:16px;padding:10px 12px;margin-bottom:10px;border:2px solid #fbd5d9}
-.alarm{position:fixed;inset:0;z-index:90;background:rgba(214,40,57,.96);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;animation:pul 1s infinite alternate}
+.alarm{position:fixed;inset:0;z-index:90;background:rgba(214,40,57,.96);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;animation:pul 1s infinite alternate}.alarm.mini{bottom:auto;padding:8px 12px calc(10px);animation:none;box-shadow:0 6px 20px #0005}.alarm.mini>div:first-child{font-size:1.5rem!important}.alarm.mini h1{font-size:1.1rem;margin:2px 0}.alarm.mini p{margin:2px 0;font-size:.9rem}.alarm.mini #alOk{margin-top:6px!important;padding:8px;min-height:0}
 .alarm.warn{background:rgba(244,122,32,.97)}
 .alarm h1{font-size:2.4rem;margin:8px 0}.alarm p{font-size:1.2rem;max-width:520px}
 @keyframes pul{from{filter:brightness(1)}to{filter:brightness(1.15)}}
@@ -568,7 +568,8 @@ async function sync() {
 function beep() { try { const a = new (window.AudioContext || window.webkitAudioContext)(); [0, .35, .7].forEach(t => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; o.type = "square"; g.gain.value = .25; o.connect(g); g.connect(a.destination); o.start(a.currentTime + t); o.stop(a.currentTime + t + .22); }); } catch (e) {} }
 function notifySys(title, body) { try { if ("Notification" in window && Notification.permission === "granted" && document.hidden) new Notification(title, { body, icon: "icon-192.png", tag: "coe-retour", renotify: true, requireInteraction: true }); } catch (e) {} }
 function alarm(title, text, kind = "") {
-  $(".alarm")?.remove(); const d = document.createElement("div"); d.className = "alarm " + kind;
+  // pendant la course (ou le suivi du collectif) : bandeau en haut, la saisie des balises reste possible
+  $(".alarm")?.remove(); const d = document.createElement("div"); d.className = "alarm " + kind + (["run", "follow"].includes(CUR.v) ? " mini" : "");
   d.innerHTML = `<div style="font-size:4rem">${kind === "warn" ? "⏰" : "📢"}</div><h1>${title}</h1><p>${text}</p><button class="btn big" style="max-width:360px;background:#fff;color:var(--nv);margin-top:18px" id="alOk">J'ai compris</button>`;
   document.body.appendChild(d); vib([400, 150, 400, 150, 600]); beep(); notifySys(title.replace(/<[^>]+>/g, ""), text.replace(/<[^>]+>/g, ""));
   const rep = setInterval(() => { vib([300, 150, 300]); beep(); }, 6000); $("#alOk", d).onclick = () => { clearInterval(rep); d.remove(); };
