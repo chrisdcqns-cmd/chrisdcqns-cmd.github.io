@@ -1034,7 +1034,7 @@ function vPrep(k) {
    <button class="btn sm gh" id="pSos" style="width:100%;margin-top:8px;color:var(--ko)">🆘 SMS de secours à mon enseignant</button><p class="small muted" style="text-align:center;margin-top:4px">Pour changer de parcours, de camarade ou de coureur.</p>`;
   $("#pSos").onclick = () => sos(k);
   $("#pCancel").onclick = async () => { if (!(await ask("Annuler la préparation ?", "Tes balises choisies et ton tracé pour ce parcours seront effacés.", "Oui, effacer", "ko"))) return; RUNS[k] = null; saveRuns(); go("home"); };
-  const mv = mapViewer($("#pMap"), { img: imgOf(r), overlay: (W, H) => { r.mapAR = H / W; return nivSVG(W, H, al) + forbidSVG(fb, W, H) + otherSVG(other, r.plan, W, H) + planSVG(r.plan, W, H) + traceSVG(r.trace, W, H); }, onTap: (q, v) => { const b = baliseAt(q, v); if (b) toggle(b.n); } });
+  const mv = mapViewer($("#pMap"), { img: imgOf(r), overlay: (W, H) => { r.mapAR = H / W; return nivSVG(W, H, al) + forbidSVG(fb, W, H) + planSVG(r.plan, W, H) + traceSVG(r.trace, W, H); }, onTap: (q, v) => { const b = baliseAt(q, v); if (b) toggle(b.n); } });
   const miss = () => { const e = $("#pMiss"); if (!e) return; const M = traceMissing(r); e.innerHTML = !r.trace?.length ? "Facultatif : tu peux tracer ton itinéraire si tu le souhaites." : M.length ? `⚠ Ton tracé ne passe pas par la ou les balises <b>${M.join(", ")}</b>.` : r.plan.length ? "✓ Ton tracé passe par toutes tes balises." : ""; };
   $("#pDraw").onclick = () => drawEditor(r, () => { mv.redraw(); miss(); $("#pDraw").textContent = "✏️ " + (r.trace.length ? "Modifier mon tracé" : "Tracer sur la carte"); });
   const grid = $("#pGrid"), list = $("#pList");
@@ -1541,16 +1541,18 @@ function paperDialog() {
   $("#ppGo", m).onclick = async () => {
     const ks = $$("[data-ppk]:checked", m).map(x => +x.dataset.ppk), o = opts[+$("#ppC", m).value], who = o ? $$("[data-ppe]:checked", m).map(x => { const [nom, prenom] = L[o[0]][o[1]][+x.dataset.ppe]; return { nom, prenom, classe: o[1], prof: o[0] }; }) : [];
     const n = Math.max(0, Math.min(40, +$("#ppN", m).value || 0)); if (!ks.length || (!who.length && !n)) return flash("Choisis au moins un parcours et un élève (ou des cartons vierges)");
-    const c = await idbGet("carte"), src = $("#ppM", m).checked ? (c || MAPIMG) : null;
-    const card = (e, k) => { const p = C.parcours[k], dn = p.dmode === "tous" && p.dn ? +p.dn : null, rows = Math.max(p.nb, 1);
-      return `<div class="pg"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h1>🧭 ${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}</h1><p class="sub">${evHead()} · carton de contrôle papier</p></div><div style="font-size:9pt;text-align:right">Date : ${new Date().toLocaleDateString("fr-FR")}</div></div>
+    const c = await idbGet("carte"), withMap = $("#ppM", m).checked, gen = c || MAPIMG, imgs = {};
+    for (const x of C.cartes || []) imgs[x.id] = (await idbGet("cmap_" + x.id)) || null;
+    const variants = k => { const L = (C.parcours[k].cartes || []).map(i => (C.cartes || [])[i]).filter(Boolean); return L.length ? L : [null]; };
+    const card = (e, k, crt) => { const p = C.parcours[k], src = withMap ? (crt ? imgs[crt.id] || gen : gen) : null, dn = p.dmode === "tous" && p.dn ? +p.dn : null, rows = Math.max(p.nb, 1);
+      return `<div class="pg"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h1>🧭 ${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}${crt ? ` · 🗺 ${esc(crt.nom)}` : ""}</h1><p class="sub">${evHead()} · carton de contrôle papier</p></div><div style="font-size:9pt;text-align:right">Date : ${new Date().toLocaleDateString("fr-FR")}</div></div>
        <p style="margin:1mm 0">Nom : ${e ? `<b>${esc(e.nom)}</b>` : '<span class="ln"></span>'} &nbsp; Prénom : ${e ? `<b>${esc(e.prenom)}</b>` : '<span class="ln"></span>'} &nbsp; Classe : ${e ? `<b>${esc(e.classe)}</b>` : '<span class="ln" style="min-width:20mm"></span>'}${p.type === "duo" ? ' <br>Binôme / groupe : <span class="ln" style="min-width:110mm"></span>' : ""}</p>
        <p style="margin:1.5mm 0;font-size:9.5pt">Choisis <b>${p.libre ? "tes balises (nombre au choix)" : p.nb + " balises"}</b>${p.oblig ? `, dont la n° <b class="num">${p.oblig}</b> obligatoire` : ""}${dn ? `, en commençant par la n° <b class="num">${dn}</b>` : ""}. Préparation : ${fmtMin(p.prep * 60)}${p.max ? ` · temps maximum : ${p.max} min` : ""}. Écris d'abord les numéros dans l'ordre de ton parcours, puis pendant la course le <b>code de 3 lettres</b> écrit sur chaque balise. Balise pas trouvée : écris un tiret « – ».</p>
-       ${src ? mapPrintHTML(src, false, "112mm") : `<p style="font-size:9pt">Balises : ${C.balises.map(b => b.n).join(" · ")}</p>`}
+       ${src ? mapPrintHTML(src, false, "112mm") : `<p style="font-size:9pt">Balises : ${(crt ? crt.bal : C.balises.map(b => b.n)).join(" · ")}</p>`}
        <table style="margin-top:2mm"><thead><tr><th style="width:16mm">Ordre</th><th style="width:30mm">N° de balise</th><th style="width:45mm">Code (3 lettres)</th><th>Remarque</th></tr></thead><tbody>${Array.from({ length: rows }, (_, i) => `<tr style="height:8.5mm"><td><b>${i + 1}</b></td><td class="num">${i === 0 && dn ? dn : ""}</td><td></td><td></td></tr>`).join("")}</tbody></table>
        <p style="margin-top:3mm">Temps estimé : <span class="ln" style="min-width:25mm"></span> &nbsp; Heure de départ : <span class="ln" style="min-width:25mm"></span> &nbsp; Heure d'arrivée : <span class="ln" style="min-width:25mm"></span></p>
        <p style="font-size:9pt;color:#555;border-top:.3mm dashed #999;padding-top:1.5mm">Cadre enseignant · temps de course : ______ · saisi dans l'appli ☐</p></div>`; };
-    const pages = ks.flatMap(k => [...who.map(e => card(e, k)), ...Array.from({ length: n }, () => card(null, k))]);
+    const pages = ks.flatMap(k => variants(k).flatMap(crt => [...who.map(e => card(e, k, crt)), ...Array.from({ length: n }, () => card(null, k, crt))]));
     printDoc("Version papier", pages.join("")); m.close();
   };
 }
