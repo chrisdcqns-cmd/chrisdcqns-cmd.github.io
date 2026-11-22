@@ -16,7 +16,7 @@
  *  - Messages     : messages de l'enseignant aux élèves
  *  - Lecons       : leçons en cours (les élèves les voient dans l'appli sans scanner de QR)
  *  - Classes      : tes listes d'élèves (elles ne sont jamais publiées sur GitHub)
- *  - CO_Eval      : appli « CO – préparation à l'évaluation » : paramètres, listes et carte (mis à jour en direct chez les élèves)
+ *  - CO_Eval      : appli « CO – préparation à l'évaluation » : paramètres, listes et carte (mis à jour en direct chez les élèves), évaluations sauvegardées (arch, carte_…)
  *  - CO_Resultats : appli « CO – préparation à l'évaluation » : résultats envoyés par les élèves
  *  - CO_Etat      : appli « CO éval » : progression de chaque élève (sauvegarde, binôme, suivi en direct)
  *  - CO_Log       : appli « CO éval » : erreurs techniques signalées par les téléphones
@@ -145,7 +145,8 @@ function traiter_(req) {
   if (!estProf) throw new Error('Mot de passe enseignant incorrect');
 
   if (a === 'coeSave') {
-    const cle = req.cle === 'carte' ? 'carte' : 'conf', txt = String(req.data || '');
+    // conf, carte, arch (liste des évaluations sauvegardées), carte_<id> (carte d'une évaluation sauvegardée)
+    const c0 = String(req.cle || ''), cle = /^(conf|carte|arch|carte_[A-Za-z0-9]{1,24})$/.test(c0) ? c0 : 'conf', txt = String(req.data || '');
     const lock = LockService.getScriptLock(); lock.waitLock(20000);
     try {
       const sh = feuille_(T_COE);
@@ -156,6 +157,10 @@ function traiter_(req) {
       if (cle === 'conf' && txt.length < 95000) CacheService.getScriptCache().put('coe_conf_' + v, txt, DUREE_CACHE);
       return { ok: true, v: v };
     } finally { lock.releaseLock(); }
+  }
+  if (a === 'coeLoad') { // évaluations sauvegardées (enseignant)
+    const cle = String(req.cle || ''); if (!/^(arch|carte_[A-Za-z0-9]{1,24})$/.test(cle)) throw new Error('Clé inconnue');
+    return { ok: true, data: coeLire_(cle) };
   }
   if (a === 'coeAllStates') {
     const sh = feuille_(T_COES), n = sh.getLastRow() - 1, since = Number(req.since) || 0, out = [];
