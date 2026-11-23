@@ -1357,7 +1357,7 @@ function importSMSDialog() {
   const m = modal(`<h2 style="margin:0 0 6px">📥 Importer des SMS de résultats</h2><p class="small muted" style="margin-top:0">Copie le texte des SMS reçus (lignes qui commencent par <b>COE1|</b>) et colle-le ici. Tu peux en coller plusieurs à la fois. L'ordre des balises, les temps de passage et les erreurs sont recalculés.</p><textarea class="inp" id="smT" rows="7" placeholder="COE1|Léa|MARTIN|TMELEC|…"></textarea><p class="small" id="smR"></p><div class="row"><button class="btn gh grow" id="smX">Fermer</button><button class="btn or grow" id="smOk">Importer</button></div>`);
   $("#smX", m).onclick = m.close;
   $("#smOk", m).onclick = () => { const L = parseSMS($("#smT", m).value); if (!L.length) { $("#smR", m).textContent = "Aucune ligne COE1 reconnue."; return; }
-    const R = LS.get("res", {}); L.forEach(({ me, r }) => { const x = R[me.id] = R[me.id] || { me, runs: [null, null], recu: now() }; x.runs[r.duo ? 1 : 0] = packRun(r); x.recu = now(); }); LS.set("res", R);
+    const R = LS.get("res", {}); L.forEach(({ me, r }) => { const x = R[me.id] = R[me.id] || { me, runs: emptyRuns(), recu: now() }; while (x.runs.length < C.parcours.length) x.runs.push(null); x.runs[r.k >= 0 && r.k < C.parcours.length ? r.k : r.duo ? (duoKs()[0] ?? 0) : 0] = packRun(r); x.recu = now(); }); LS.set("res", R);
     m.close(); flash(`${L.length} parcours importé(s) ✓`); go("prof", "res"); };
 }
 function receiveResults(code) {
