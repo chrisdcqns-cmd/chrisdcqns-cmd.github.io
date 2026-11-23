@@ -1547,14 +1547,26 @@ function printDoc(title, body, css = "") {
   w.document.close();
 }
 // carte telle que la voient les élèves (les ronds et numéros sont déjà dessus) ; code = true : codes ajoutés à côté de chaque balise (version enseignant)
-function mapPrintHTML(src, code, mh = "120mm", crt = null) {
+function mapPrintHTML(src, code, mh = "120mm", crt = null, forceNiv = false) {
   if (!src) return "";
   const BB = crt && Array.isArray(crt.balx) && crt.balx.length ? crt.balx : crt ? C.balises.filter(b => crt.bal.map(Number).includes(+b.n)) : C.balises;
-  const B = code ? BB.filter(b => b.x != null) : [], S = C.niv ? BB.filter(b => b.x != null && +b.niv > 0) : [];
+  const B = code ? BB.filter(b => b.x != null) : [], S = C.niv || forceNiv ? BB.filter(b => b.x != null && +b.niv > 0) : [];
   const stars = S.map(b => `<span class="bn" style="left:${b.x * 100}%;top:${b.y * 100}%;transform:translate(1.8mm,-7.5mm);background:#ffd23f;color:#3d2d00;border:.3mm solid #7a5a00;border-radius:2mm;padding:0 .8mm;font-size:8pt">${"★".repeat(Math.min(3, +b.niv))}</span>`).join("");
   return `<div style="text-align:center;margin:2mm 0"><div class="mp" style="--mh:${mh}"><img src="${src}">${B.map(b => `<span class="bn" style="left:${b.x * 100}%;top:${b.y * 100}%;transform:translate(-50%,3.2mm);background:#fff;border:.3mm solid #c21fbf;border-radius:1mm;padding:0 .6mm;font-family:'Courier New',monospace">${esc(b.code)}</span>`).join("")}${stars}</div>${S.length ? `<div style="font-size:8.5pt;margin-top:1mm">${[1, 2, 3].filter(v => S.some(b => Math.min(3, +b.niv) === v)).map(v => `${"★".repeat(v)} = ${v} point${v > 1 ? "s" : ""}`).join(" · ")}</div>` : ""}</div>`;
 }
 const evHead = () => `${esc(C.titre)}${C.ev ? " · " + esc(C.ev.nom) : ""}`;
+// cartes A4 avec le niveau des balises (étoiles) : carte générale / mère et cartes des parcours
+async function printMapsDialog() {
+  const gen = (await idbGet("carte")) || MAPIMG, L = [{ nom: C.mereNom ? "Carte mère : " + C.mereNom : "Carte générale" + (C.carteNom ? " : " + C.carteNom : ""), src: gen, crt: null }];
+  for (const c of C.cartes || []) L.push({ nom: c.nom, src: (await idbGet("cmap_" + c.id)) || null, crt: c });
+  const m = modal(`<h2 style="margin:0 0 6px">🖨 Cartes avec le niveau des balises</h2><p class="small muted" style="margin-top:0">Une carte par page A4, avec les étoiles de difficulté à côté des balises et la légende.</p>
+   ${L.map((x, i) => `<label class="row small" style="margin:4px 0"><input type="checkbox" data-mp="${i}" ${x.src ? "checked" : "disabled"}> ${esc(x.nom)}${x.src ? "" : " <span class='muted'>(pas encore téléchargée sur cette tablette)</span>"}</label>`).join("")}
+   <label class="row small" style="margin-top:8px"><input type="checkbox" id="mpC"> Ajouter les codes (version enseignant, à ne pas distribuer)</label>
+   <div class="row" style="margin-top:10px"><button class="btn gh grow" id="mpX">Annuler</button><button class="btn or grow" id="mpGo">🖨 Imprimer</button></div>`);
+  $("#mpX", m).onclick = m.close;
+  $("#mpGo", m).onclick = () => { const sel = $$("[data-mp]:checked", m).map(x => L[+x.dataset.mp]); if (!sel.length) return flash("Coche au moins une carte"); const code = $("#mpC", m).checked;
+    printDoc("Cartes", sel.map(x => `<div class="pg"><h1>🗺 ${esc(x.nom)}</h1><p class="sub">${evHead()}${code ? ' · <span class="warn">avec les codes : document enseignant</span>' : ""}</p>${mapPrintHTML(x.src, code, "250mm", x.crt, true)}</div>`).join("")); m.close(); };
+}
 // fiche des codes : tableau A4 (document enseignant)
 function printCodes() {
   const B = C.balises.slice().sort((a, b) => a.n - b.n), half = Math.ceil(B.length / 2), cols = B.length > 22 ? [B.slice(0, half), B.slice(half)] : [B];
@@ -1796,7 +1808,7 @@ function profConf(box) {
     <label class="row small"><input type="checkbox" data-o="reuse" ${C.reuse ? "checked" : ""}> Une balise peut être reprise d'un parcours à l'autre</label>
     <label class="row small"><input type="checkbox" data-o="niv" ${C.niv ? "checked" : ""}> <b>Niveaux de difficulté des balises</b> (1, 2 ou 3 : une balise de niveau 3 rapporte 3 points ; points à viser par parcours)</label></div>
    <div class="card"><h2>Balises (${C.balises.length})</h2>${C.carteNom ? `<p class="small" style="margin-top:0;background:#eef6ff;border:1px solid #9cc3ff;border-radius:10px;padding:8px">🔗 Liste envoyée par <b>OrienRun</b> (carte « ${esc(C.carteNom)} »${(C.cartes || []).length ? `, ${C.cartes.length} carte(s) : ${C.cartes.map(c => esc(c.nom)).join(", ")}` : ""}) : c'est la même liste que dans OrienRun. Pour la modifier : OrienRun → onglet Balises, puis « 📲 Utiliser dans CO éval ».${BAL_EDIT ? " <b style=\"color:var(--ko)\">Modification ici : la liste ne correspondra plus à OrienRun.</b>" : ' <button class="btn sm gh" id="cUnlock">✏️ Modifier ici quand même</button>'}</p>` : ""}<p class="small muted" style="margin-top:0">Numéro (celui du rond violet sur la carte) et code de 3 lettres écrit sur la balise.</p><div id="cB"></div>
-    <div class="row" style="margin-top:8px"><button class="btn sm gh" id="cAdd">＋ Balise</button><button class="btn sm gh" id="cMany">＋ Plusieurs balises</button><button class="btn sm gh" id="cGen">🎲 Nouveaux codes au hasard</button><button class="btn sm or" id="cCodes">🖨 Fiche des codes (tableau A4)</button><button class="btn sm gh" id="cPrint">🖨 Étiquettes à coller sur les balises</button><button class="btn sm gh" id="cBal">🗺 Balises utilisées (trace)</button></div></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm gh" id="cAdd">＋ Balise</button><button class="btn sm gh" id="cMany">＋ Plusieurs balises</button><button class="btn sm gh" id="cGen">🎲 Nouveaux codes au hasard</button><button class="btn sm or" id="cCodes">🖨 Fiche des codes (tableau A4)</button><button class="btn sm gh" id="cPrint">🖨 Étiquettes à coller sur les balises</button><button class="btn sm gh" id="cBal">🗺 Balises utilisées (trace)</button><button class="btn sm or" id="cMaps">🖨 Cartes avec niveaux (★)</button></div></div>
    <button class="btn sm gh" id="cReset">Revenir aux paramètres de démonstration</button>`;
   const ch = () => confChanged();
   $("#cT").oninput = e => { C.titre = e.target.value.trim() || DEF.titre; $("#hT").textContent = C.titre; ch(); };
@@ -1830,7 +1842,7 @@ function profConf(box) {
   $("#cAdd").onclick = () => { C.balises.push({ n: Math.max(30, ...C.balises.map(b => +b.n)) + 1, code: rndCode() }); drawB(); ch(); };
   $("#cMany").onclick = () => { const v = prompt("Numéros des balises (ex. 31-50, ou 31,32,40) :"); if (!v) return; const L = []; v.split(/[,; ]+/).forEach(x => { const m = x.match(/^(\d+)-(\d+)$/); if (m) for (let i = +m[1]; i <= +m[2]; i++) L.push(i); else if (+x) L.push(+x); }); L.forEach(n => { if (!balise(n)) C.balises.push({ n, code: rndCode() }); }); C.balises.sort((a, b) => a.n - b.n); drawB(); ch(); };
   $("#cGen").onclick = async () => { if (!(await ask("Nouveaux codes ?", "Tous les codes seront remplacés par des codes tirés au hasard. Pense à réimprimer la fiche des balises.", "Remplacer", "ko"))) return; C.balises.forEach(b => b.code = ""); C.balises.forEach(b => b.code = rndCode()); drawB(); ch(); };
-  $("#cCodes").onclick = printCodes; $("#cBal").onclick = () => printBalises(null);
+  $("#cCodes").onclick = printCodes; $("#cMaps").onclick = printMapsDialog; $("#cBal").onclick = () => printBalises(null);
   $("#cPrint").onclick = () => { const w = open(""); w.document.write(`<title>Balises</title><style>body{font-family:Arial}.g{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.b{border:2px solid #c21fbf;border-radius:4mm;padding:6mm;text-align:center;break-inside:avoid}.n{font-size:28mm;font-weight:900;color:#c21fbf;line-height:1}.c{font-size:22mm;font-weight:900;letter-spacing:4mm}</style><body><div class="g">${C.balises.map(b => `<div class="b"><div class="n">${b.n}</div><div class="c">${esc(b.code)}</div></div>`).join("")}</div><script>print()<\/script>`); w.document.close(); };
   $("#cReset").onclick = async () => { if (!(await ask("Paramètres de démonstration ?", "Tes paramètres seront remplacés par ceux de démonstration, chez toi et chez les élèves (les listes d'élèves sont gardées).", "Remplacer", "ko"))) return; const l = C.listes; C = fixConf(clone(DEF)); C.listes = l; confChanged(); go("prof", "conf"); };
 }
