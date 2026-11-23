@@ -906,11 +906,22 @@ function msgDialog(target) {
   $("#mgOk", m).onclick = () => { const txt = $("#mgT", m).value.trim(); if (!txt) return flash("Écris un message"); const t = now(); C.msgs = (C.msgs || []).filter(x => t - x.id < 3 * 3600000).slice(-29); C.msgs.push({ id: t, de: $("#mgDe", m).value, to: $("#mgTo", m).value, txt }); LS.set("pf", $("#mgDe", m).value); confChanged(); m.close(); flash("💬 Message envoyé"); };
   setTimeout(() => $("#mgT", m).focus(), 50);
 }
+// remettre un élève à zéro : son téléphone revient à « Qui es-tu ? », binôme à refaire (C.kick), résultats supprimés si demandé
+async function kickStudent(e, after) {
+  const id = studentId(e), x = allStudents().find(z => z.me.id === id), R = x ? x.runs.filter(r => r?.fin) : [];
+  const m = modal(`<h2 style="margin:0 0 6px">🔌 Remettre ${esc(e.prenom)} ${esc(e.nom)} à zéro</h2><p class="small">Son téléphone revient à « Qui es-tu ? » : identification et binôme à refaire. Ses parcours en cours sont effacés. Chez son binôme, il est retiré.</p>
+   ${R.length ? `<label class="row small"><input type="checkbox" id="kkR"> Supprimer aussi ses résultats (${R.map(r => esc(P(r.k).nom)).join(", ")})</label>` : ""}
+   <div class="row" style="margin-top:10px"><button class="btn gh grow" id="kkX">Annuler</button><button class="btn ko grow" id="kkOk">🔌 Remettre à zéro</button></div>`);
+  $("#kkX", m).onclick = m.close;
+  $("#kkOk", m).onclick = () => { C.kick = C.kick || {}; C.kick[id] = now();
+    if ($("#kkR", m) && $("#kkR", m).checked) R.forEach(r => { C.suppr = (C.suppr || []).filter(s0 => !s0.startsWith(runKey(r))); C.suppr.push(runKey(r) + ":r"); });
+    confChanged(); m.close(); flash(`🔌 ${e.prenom} remis à zéro`); after && after(); };
+}
 function studentMenu(e, after, runs) {
   const st = statOf(e), others = C.profs.filter(p => p && p !== e.prof);
   setTimeout(() => { const lk = $("#smLink"); if (lk) lk.onclick = () => { $$(".modal").forEach(x => x.remove()); const m2 = modal(`<h2 style="margin:0 0 6px">🔗 Relier « ${esc(e.prenom)} ${esc(e.nom)} »</h2><p class="small muted" style="margin-top:0">Écrit à la main (${esc(e.classe || "sans classe")} · ${esc(e.prof)}). Choisis l'élève de la liste : ses résultats et son téléphone passent sous ce nom.</p><div id="lkP"></div><button class="btn gh" id="lkX" style="width:100%;margin-top:10px">Annuler</button>`); $("#lkX", m2).onclick = m2.close;
       picker($("#lkP", m2), { prof: e.prof, q1: "Enseignant de l'élève ?", q3: "Touche le bon élève" }, t => { if (!inList(t)) return flash("Choisis un élève de la liste"); C.links = C.links || {}; C.links[studentId(e)] = { prenom: t.prenom, nom: t.nom, classe: t.classe, prof: t.prof }; confChanged(); m2.close(); flash(`🔗 Relié à ${t.prenom} ${t.nom}`); after && after(); }); };
-    const b = $("#smKick"); if (b) b.onclick = async () => { if (!(await ask(`Déconnecter ${esc(e.prenom)} ?`, "Sur son téléphone (et sur celui où il a été choisi par erreur), l'élève revient à « Qui es-tu ? » : identification et binôme à refaire. Ses parcours non terminés sont effacés ; ses résultats déjà reçus sont gardés.", "🔌 Déconnecter", "ko"))) return; C.kick = C.kick || {}; C.kick[studentId(e)] = now(); confChanged(); $$(".modal").forEach(x => x.remove()); flash(`🔌 ${e.prenom} déconnecté`); after && after(); }; }, 0);
+    const b = $("#smKick"); if (b) b.onclick = () => { $$(".modal").forEach(x => x.remove()); kickStudent(e, after); }; }, 0);
   const m = modal(`<h2 style="margin:0 0 4px">${esc(e.prenom)} ${esc(e.nom)}</h2><p class="small muted" style="margin-top:0">${esc(e.classe || "")} · ${esc(e.prof)}</p>
    <div class="row"><button class="btn grow ${st === "absent" ? "ko" : "gh"}" data-st="absent">🚫 Absent</button><button class="btn grow ${st === "dispense" ? "ko" : "gh"}" data-st="dispense">🩺 Dispensé</button><button class="btn grow ${!st ? "gr" : "gh"}" data-st="">✓ Présent</button></div>
    <p class="small muted">Un élève absent ou dispensé n'apparaît plus dans la liste des prénoms, ni comme camarade possible. 🔒 Les élèves ne voient jamais ce statut : leur téléphone reçoit seulement une empreinte anonyme, et le mot « dispensé » est chiffré avec ton mot de passe.</p>
@@ -1491,9 +1502,10 @@ function profSuivi(box) {
       (Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)}</h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th><th>Binôme</th><th>Où en est-il ?</th><th>Dernière balise pointée</th><th>Mise à jour</th><th></th></tr></thead><tbody>
         ${cls[c].sort((a, b) => a.ord - b.ord || byFr(a.me.nom, b.me.nom)).map(o => `<tr data-lv="${esc(o.x.eleve)}" style="cursor:pointer${sel === o.x.eleve ? ";background:#fff4ea" : ""}"><td><b>${esc(o.me.nom)}</b> ${esc(o.me.prenom)}</td><td class="small">${o.me.binome ? esc(mates(o.me).map(studentName).join(", ")) + (mates(o.me).length > 1 ? " <span class='chip vi'>groupe</span>" : "") : '<span class="muted">—</span>'}</td><td><span class="chip ${o.cls}">${esc(o.st)}</span></td>
           <td class="small">${o.last && o.last.saisies.length ? (s0 => `${esc(String(s0.bal || s0.attendu))}${s0.st === "passe" ? " (passée)" : ""} à ${hhmm(s0.t)}${o.act ? "" : " <span class='muted'>(fin)</span>"}`)(o.last.saisies[o.last.saisies.length - 1]) : o.act ? "départ" : "—"}${o.pos && o.pos.la != null ? ` · <a href="https://maps.google.com/?q=${o.pos.la},${o.pos.lo}" target="_blank" title="Dernière position GPS (${hhmm(o.pos.t)}, ±${o.pos.acc} m)">📍 GPS</a>` : ""}</td><td class="small" style="${o.late ? "color:var(--ko);font-weight:800" : ""}">${o.late ? "⚠ " : ""}${ago(o.age)}</td>
-          <td style="white-space:nowrap"><button class="btn sm gh" data-lvm="${esc(o.x.eleve)}" title="Message">💬</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun élève connecté pour l\'instant. Les élèves apparaissent dès qu\'ils ont choisi leur nom.</p>');
-    $$("[data-lv]").forEach(tr => tr.onclick = e => { if (e.target.closest("[data-lvm]")) return; sel = tr.dataset.lv; draw(); });
+          <td style="white-space:nowrap"><button class="btn sm gh" data-lvm="${esc(o.x.eleve)}" title="Message">💬</button><button class="btn sm gh" data-lvk="${esc(o.x.eleve)}" title="Remettre à zéro (connecté par erreur)">🔌</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun élève connecté pour l\'instant. Les élèves apparaissent dès qu\'ils ont choisi leur nom.</p>');
+    $$("[data-lv]").forEach(tr => tr.onclick = e => { if (e.target.closest("[data-lvm],[data-lvk]")) return; sel = tr.dataset.lv; draw(); });
     $$("[data-lvm]").forEach(b => b.onclick = () => { const o = L.find(z => z.x.eleve === b.dataset.lvm); msgDialog({ ...o.me, id: studentId(o.me) }); });
+    $$("[data-lvk]").forEach(b => b.onclick = () => { const o = L.find(z => z.x.eleve === b.dataset.lvk); kickStudent(o.me, () => { LIVE.st && delete LIVE.st[b.dataset.lvk]; draw(); }); });
     if (window.L && LMAP) {
       LLAYER.clearLayers(); const pts = [];
       L.forEach(o => { if (!o.pos || o.pos.la == null) return; const col = o.ord === 0 ? "#f47a20" : o.ord === 1 ? "#c21fbf" : o.ord === 2 ? "#2a9d6f" : "#6b7280";
@@ -1540,7 +1552,7 @@ function mapPrintHTML(src, code, mh = "120mm", crt = null) {
   const BB = crt && Array.isArray(crt.balx) && crt.balx.length ? crt.balx : crt ? C.balises.filter(b => crt.bal.map(Number).includes(+b.n)) : C.balises;
   const B = code ? BB.filter(b => b.x != null) : [], S = C.niv ? BB.filter(b => b.x != null && +b.niv > 0) : [];
   const stars = S.map(b => `<span class="bn" style="left:${b.x * 100}%;top:${b.y * 100}%;transform:translate(1.8mm,-7.5mm);background:#ffd23f;color:#3d2d00;border:.3mm solid #7a5a00;border-radius:2mm;padding:0 .8mm;font-size:8pt">${"★".repeat(Math.min(3, +b.niv))}</span>`).join("");
-  return `<div style="text-align:center;margin:2mm 0"><div class="mp" style="--mh:${mh}"><img src="${src}">${B.map(b => `<span class="bn" style="left:${b.x * 100}%;top:${b.y * 100}%;transform:translate(-50%,3.2mm);background:#fff;border:.3mm solid #c21fbf;border-radius:1mm;padding:0 .6mm;font-family:'Courier New',monospace">${esc(b.code)}</span>`).join("")}${stars}</div>${S.length ? '<div style="font-size:8.5pt;margin-top:1mm">★ = 1 point · ★★ = 2 points · ★★★ = 3 points</div>' : ""}</div>`;
+  return `<div style="text-align:center;margin:2mm 0"><div class="mp" style="--mh:${mh}"><img src="${src}">${B.map(b => `<span class="bn" style="left:${b.x * 100}%;top:${b.y * 100}%;transform:translate(-50%,3.2mm);background:#fff;border:.3mm solid #c21fbf;border-radius:1mm;padding:0 .6mm;font-family:'Courier New',monospace">${esc(b.code)}</span>`).join("")}${stars}</div>${S.length ? `<div style="font-size:8.5pt;margin-top:1mm">${[1, 2, 3].filter(v => S.some(b => Math.min(3, +b.niv) === v)).map(v => `${"★".repeat(v)} = ${v} point${v > 1 ? "s" : ""}`).join(" · ")}</div>` : ""}</div>`;
 }
 const evHead = () => `${esc(C.titre)}${C.ev ? " · " + esc(C.ev.nom) : ""}`;
 // fiche des codes : tableau A4 (document enseignant)
