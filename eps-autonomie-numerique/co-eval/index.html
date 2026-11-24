@@ -700,12 +700,14 @@ function handleStates(L) {
     else return;
     ME.gu = pm.gu; LS.set("me", ME); pushState(true); duoKs().forEach(k => { const R = RUNS[k]; if (R && !R.debut && !R.fin) { R.team = mates().slice(); R.duo = R.team[0] || null; } }); });
   look();
-  const adopt = (k, r) => { if (!r || k >= C.parcours.length || (!r.fin && (C.kick || {})[ME.id] > (r.u || r.prepT || 0)) || (isDeleted(r) && canRedo(r))) return; const loc = RUNS[k]; if (!loc || (r.u || 0) > (loc.u || 0)) { r._sig = runSig(r); RUNS[k] = r; ch = true; } };
+  const adopt = (k, r) => { if (!r || k >= C.parcours.length || (!r.fin && (C.kick || {})[ME.id] > (r.u || r.prepT || 0)) || (isDeleted(r) && canRedo(r))) return; const loc = RUNS[k]; const same = loc && r.debut && loc.debut === r.debut;
+    if (same && loc.fin && !r.fin) return; // déjà terminé ici : on garde la fin
+    if (!loc || (same && r.fin && !loc.fin) || (r.u || 0) > (loc.u || 0)) { r._sig = runSig(r); RUNS[k] = r; ch = true; } };
   if (mine && mine.d && mine.d.runs) mine.d.runs.forEach((x, k) => adopt(k, unpackLive(x, k)));
   // parcours collectif : la version la plus récente parmi les téléphones de l'équipe (si je fais bien partie de son équipe)
   Object.values(PARTNERS).forEach(P0 => duoKs().forEach(k => { const pd = P0.runs[k]; if (!pd || !teamOf(pd).some(x => x.id === ME.id)) return;
     const team = [strip(P0.me), ...teamOf(pd).filter(x => x.id !== ME.id && x.id !== (P0.me || {}).id)]; adopt(k, { ...pd, duo: team[0], team }); }));
-  if (ch) { saveRuns(true); return true; }
+  if (ch) { saveRuns(true); const kc = +CUR.a?.[0]; if (["run", "follow"].includes(CUR.v) && RUNS[kc] && RUNS[kc].fin) { flash("🏁 Parcours terminé"); setTimeout(() => go(RUNS[kc].ress && Object.keys(RUNS[kc].ress).length ? "bilan" : "end", kc), 0); } return true; }
   return sigP() !== before ? "partner" : false;
 }
 // synchronisation rapide (toutes les 5 s) quand l'équipe doit se voir : préparation, suivi du collectif, accueil avec un parcours d'équipe en cours
@@ -857,7 +859,14 @@ const canRedo = r => (evStart() && t0Of(r) < evStart()) || inExclu(t0Of(r)) || (
 // côté élève : un parcours effacé par l'enseignant peut être refait
 // nouvelle évaluation publiée par l'enseignant : l'élève repart de zéro (parcours, binôme) ; s'il n'est pas d'une classe concernée, il se réidentifie
 // élève déconnecté par l'enseignant (C.kick[id] = date) : retour à l'identification ; ses camarades l'enlèvent de leur binôme
+// parcours arrêté par l'enseignant (C.stop[id élève][k] = heure) : le téléphone termine le parcours (binôme compris pour le collectif)
+function stopCheck() {
+  if (!ME) return; const S = C.stop || {};
+  RUNS.forEach((r, k) => { if (!r || !r.debut || r.fin) return; const ids = [ME.id, ...teamOf(r).map(x => x.id)], t = Math.max(0, ...ids.map(id => +((S[id] || {})[k] || 0)));
+    if (t > r.debut) { r.fin = Math.min(now(), t); journal(r, { e: "retour", temps: fmt(r.fin - r.debut), par: "enseignant" }); saveRuns(); pushState(true); queueResult(k); flash(`⏹ Ton enseignant a arrêté ton ${P(k).nom}`); if (["run", "follow"].includes(CUR.v) && +CUR.a[0] === k) go("end", k); } });
+}
 function kickCheck() {
+  stopCheck();
   if (!ME) return false;
   const lk = (C.links || {})[ME.id]; if (lk) { ME = { ...ME, ...lk, id: studentId(lk) }; LS.set("me", ME); pushState(true); flash(`🔗 Ton enseignant t'a relié à la liste : ${lk.prenom} ${lk.nom}`); } const K = C.kick || {}, since = ME.at || ME.gu || 0;
   if (K[ME.id] && K[ME.id] > since) { RUNS = RUNS.map(r => r && r.fin ? r : null); ME = null; LS.del("me"); PARTNERS = {}; RUNS = emptyRuns(); LS.set("runs", RUNS); idbSet("bak", null); return true; }
@@ -907,6 +916,15 @@ function msgDialog(target) {
   setTimeout(() => $("#mgT", m).focus(), 50);
 }
 // remettre un élève à zéro : son téléphone revient à « Qui es-tu ? », binôme à refaire (C.kick), résultats supprimés si demandé
+// arrêter à distance le parcours en cours d'un élève : son téléphone s'arrête, et le résultat est enregistré tout de suite depuis le suivi (si le téléphone ne répond plus)
+async function stopRun(o, after) {
+  const r = o.act, k = r.k, e = { ...o.me, id: o.x.eleve };
+  if (!(await ask(`⏹ Arrêter le ${esc(P(k).nom)} de ${esc(e.prenom)} ?`, `Chrono : ${fmt(now() - r.debut)}, ${(r.idx || 0)} balise(s) saisie(s) sur ${r.plan.length}.${isDuoK(k) && r.duo ? " Le parcours s'arrête aussi pour son binôme." : ""} Le temps s'arrête maintenant ; les balises non saisies comptent comme erreurs.`, "⏹ Arrêter", "ko"))) return;
+  const t = now(); C.stop = C.stop || {}; C.stop[e.id] = { ...(C.stop[e.id] || {}), [k]: t }; confChanged();
+  const fin = { ...r, fin: t, ress: { ...(r.ress || {}), arret: 1 } };
+  try { await api("coeResult", { eleve: e.id, nom: e.prenom + " " + e.nom, classe: e.classe || "", prof: e.prof, k, data: { me: strip(e), run: packRun(fin) } }); await pullResults(); } catch (er) { flash("⚠ Résultat pas encore enregistré : " + er.message); }
+  flash(`⏹ Parcours de ${e.prenom} arrêté`); after && after();
+}
 async function kickStudent(e, after) {
   const id = studentId(e), x = allStudents().find(z => z.me.id === id), R = x ? x.runs.filter(r => r?.fin) : [];
   const m = modal(`<h2 style="margin:0 0 6px">🔌 Remettre ${esc(e.prenom)} ${esc(e.nom)} à zéro</h2><p class="small">Son téléphone revient à « Qui es-tu ? » : identification et binôme à refaire. Ses parcours en cours sont effacés. Chez son binôme, il est retiré.</p>
@@ -1513,9 +1531,10 @@ function profSuivi(box) {
       (Object.keys(cls).sort(byFr).map(c => `<h3 style="margin:14px 0 4px">🏫 ${esc(c)}</h3><div style="overflow:auto"><table class="t"><thead><tr><th>Élève</th><th>Binôme</th><th>Où en est-il ?</th><th>Dernière balise pointée</th><th>Mise à jour</th><th></th></tr></thead><tbody>
         ${cls[c].sort((a, b) => a.ord - b.ord || byFr(a.me.nom, b.me.nom)).map(o => `<tr data-lv="${esc(o.x.eleve)}" style="cursor:pointer${sel === o.x.eleve ? ";background:#fff4ea" : ""}"><td><b>${esc(o.me.nom)}</b> ${esc(o.me.prenom)}</td><td class="small">${o.me.binome ? esc(mates(o.me).map(studentName).join(", ")) + (mates(o.me).length > 1 ? " <span class='chip vi'>groupe</span>" : "") : '<span class="muted">—</span>'}</td><td><span class="chip ${o.cls}">${esc(o.st)}</span></td>
           <td class="small">${o.last && o.last.saisies.length ? (s0 => `${esc(String(s0.bal || s0.attendu))}${s0.st === "passe" ? " (passée)" : ""} à ${hhmm(s0.t)}${o.act ? "" : " <span class='muted'>(fin)</span>"}`)(o.last.saisies[o.last.saisies.length - 1]) : o.act ? "départ" : "—"}${o.pos && o.pos.la != null ? ` · <a href="https://maps.google.com/?q=${o.pos.la},${o.pos.lo}" target="_blank" title="Dernière position GPS (${hhmm(o.pos.t)}, ±${o.pos.acc} m)">📍 GPS</a>` : ""}</td><td class="small" style="${o.late ? "color:var(--ko);font-weight:800" : ""}">${o.late ? "⚠ " : ""}${ago(o.age)}</td>
-          <td style="white-space:nowrap"><button class="btn sm gh" data-lvm="${esc(o.x.eleve)}" title="Message">💬</button><button class="btn sm gh" data-lvk="${esc(o.x.eleve)}" title="Remettre à zéro (connecté par erreur)">🔌</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun élève connecté pour l\'instant. Les élèves apparaissent dès qu\'ils ont choisi leur nom.</p>');
-    $$("[data-lv]").forEach(tr => tr.onclick = e => { if (e.target.closest("[data-lvm],[data-lvk]")) return; sel = tr.dataset.lv; draw(); });
+          <td style="white-space:nowrap"><button class="btn sm gh" data-lvm="${esc(o.x.eleve)}" title="Message">💬</button>${o.act ? `<button class="btn sm ko" data-lvs="${esc(o.x.eleve)}" title="Arrêter son parcours en cours">⏹</button>` : ""}<button class="btn sm gh" data-lvk="${esc(o.x.eleve)}" title="Remettre à zéro (connecté par erreur)">🔌</button></td></tr>`).join("")}</tbody></table></div>`).join("") || '<p class="muted">Aucun élève connecté pour l\'instant. Les élèves apparaissent dès qu\'ils ont choisi leur nom.</p>');
+    $$("[data-lv]").forEach(tr => tr.onclick = e => { if (e.target.closest("[data-lvm],[data-lvk],[data-lvs]")) return; sel = tr.dataset.lv; draw(); });
     $$("[data-lvm]").forEach(b => b.onclick = () => { const o = L.find(z => z.x.eleve === b.dataset.lvm); msgDialog({ ...o.me, id: studentId(o.me) }); });
+    $$("[data-lvs]").forEach(b => b.onclick = () => { const o = L.find(z => z.x.eleve === b.dataset.lvs); stopRun(o, draw); });
     $$("[data-lvk]").forEach(b => b.onclick = () => { const o = L.find(z => z.x.eleve === b.dataset.lvk); kickStudent(o.me, () => { LIVE.st && delete LIVE.st[b.dataset.lvk]; draw(); }); });
     if (window.L && LMAP) {
       LLAYER.clearLayers(); const pts = [];
