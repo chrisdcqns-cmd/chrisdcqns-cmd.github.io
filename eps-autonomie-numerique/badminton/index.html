@@ -406,6 +406,23 @@ html.epst-on header nav#nav{display:none!important}
 .pjpar{margin-top:10px;padding-top:8px;border-top:1px solid #eef1f5}.pjl{display:flex;align-items:stretch;gap:4px;overflow-x:auto;padding:6px 0}
 .pjli{flex:0 0 auto;min-width:92px;border:1.5px solid #e2d4ef;background:#faf6fd;border-radius:9px;padding:5px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;font-size:.8em;font-weight:700}
 .pjli small{color:#5b6573;font-weight:700}.pjli .pje2{font-size:1.6em;line-height:1.2}.pjli.vide{opacity:.5}.pjar{align-self:center;color:#9fb0c2;font-style:normal;font-weight:900}
+
+.ess .adv{display:none!important}.essonly{display:none}.ess .essonly{display:block}
+.stepbar{border-left:5px solid #D9481F}.steps2{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.steps2 button{flex:1 1 120px;border:2px solid #d5dde6;background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;text-align:left;color:#1B1E24;font-size:.95rem}
+.steps2 button small{color:#5b6573;font-weight:600;font-size:.78em}.steps2 button.on{border-color:#D9481F;background:#fff1ea;box-shadow:0 0 0 2px #ffd3bf}
+.roles{border-left:5px solid #0B7A75}.rl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:8px}.rl div{background:#f5f8fb;border-radius:9px;padding:7px 10px;display:flex;flex-direction:column}.rl span{font-size:.8em;font-weight:700;color:#5b6573}.rl b{font-size:1.05em}
+.tnum{background:#D9481F;color:#fff;border-radius:8px;padding:1px 8px;font-size:.85em}
+.feel{display:flex;gap:6px;margin-top:4px}.feel button{flex:1;border:2px solid #d5dde6;background:#fff;border-radius:10px;padding:6px;font-size:1.6em;cursor:pointer;display:flex;flex-direction:column;align-items:center}.feel button small{font-size:.45em;font-weight:700;color:#5b6573}.feel button.on{border-color:#0B7A75;background:#e7f6f3}
+.bilc.ok2{border-left:5px solid var(--d4)}.objc{border-left:5px solid #7A3E9D}.objl{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid #eef1f5}.objl b{flex:0 0 110px}
+.livehd{border-left:5px solid #2E7D4F}.sypill{font-weight:800;font-size:.85em;border-radius:14px;padding:4px 10px;background:#e9f6ee;color:#2E7D4F}.sypill.run{background:#fff6e5;color:#B26B00}.sypill.bad{background:#fde5e1;color:#b02a2a}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:12px}.lgrid .card{margin:0}
+.lstep{margin:8px 0;padding:6px 10px;border-radius:8px;font-weight:800;background:#eef1f5;color:#5b6573}.lstep small{font-weight:600}.lstep.ech{background:#fff1e6;color:#B26B00}.lstep.tps{background:#e6f0fa;color:#1F5F8B}.lstep.fin{background:#e9f6ee;color:#2E7D4F}
+.lmem{display:flex;flex-wrap:wrap;gap:4px}.lmem span{font-size:.8em;font-weight:700;border-radius:10px;padding:2px 8px;background:#fde5e1;color:#b02a2a}.lmem span.on{background:#e9f6ee;color:#2E7D4F}.lmem span.abs{background:#eef1f5;color:#9aa3ae}
+.lcur{margin-top:6px;font-size:.9em;background:#f5f8fb;border-radius:8px;padding:5px 8px}.warnc{border-left:5px solid #d68a00}.al{padding:4px 0;border-bottom:1px solid #f3ead6}
+.syb{font-size:.7em;font-weight:700;opacity:.85}
+.wiz{border:2px solid #0B7A75}.wsteps{display:flex;gap:10px;align-items:center;margin:10px 0;font-weight:700;color:#5b6573}.wsteps span{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;background:#eef1f5}.wsteps span.on{background:#0B7A75;color:#fff}.wsteps span.ok{background:#2E7D4F;color:#fff}
+.tile.sel{border-color:#0B7A75;box-shadow:0 0 0 3px #bfe5de}.wizb{border-left:5px solid #D9481F}.prep{border:2px solid #D9481F}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -424,6 +441,7 @@ html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidde
   <nav id="nav">
     <button data-t="seq" class="on">Séquence</button>
     <button data-t="match">Matchs & stats</button>
+    <button data-t="live">Leçon en direct</button>
     <button data-t="terrain">Terrain & scoring</button>
     <button data-t="eval">Évaluer</button>
     <button data-t="bilan">Bilans & export</button>
@@ -434,12 +452,13 @@ html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidde
 <main>
   <section class="tab" id="t-eval"><div id="evList"></div><div id="evPanel" style="display:none"></div></section>
   <section class="tab" id="t-match"></section>
+  <section class="tab" id="t-live"></section>
   <section class="tab" id="t-terrain"></section>
   <section class="tab on" id="t-seq"></section>
   <section class="tab" id="t-bilan"></section>
   <section class="tab" id="t-eleves">
     <div class="card"><h2>Classes / groupes</h2>
-      <div class="row"><button class="btn" onclick="newClass()">+ Nouvelle classe</button><button class="btn alt" onclick="renameClass()">Renommer</button><button class="btn alt" onclick="moveClassVoie()">Changer de voie</button><button class="btn red" onclick="deleteClass()">Supprimer la classe</button></div></div>
+      <div class="row"><button class="btn or" onclick="wizOpen()">🧭 Assistant de démarrage</button><button class="btn" onclick="newClass()">+ Nouvelle classe</button><button class="btn alt" onclick="renameClass()">Renommer</button><button class="btn alt" onclick="moveClassVoie()">Changer de voie</button><button class="btn red" onclick="deleteClass()">Supprimer la classe</button></div></div>
     <div class="card" id="impCard"></div>
     <div class="card"><h2>Élèves de la classe</h2>
       <div class="row"><button class="btn alt" onclick="sortEleves()">Trier A→Z</button><button class="btn alt" onclick="addOne()">+ Un élève</button></div>
@@ -886,7 +905,7 @@ function showTab(t){
   document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));
   if(t==='eval'){LQ=null;closeEval()}if(t==='bilan')renderBilan();if(t==='eleves')renderEleves();if(t==='bareme')renderBareme();
-  if(t==='seq')renderSeq();if(t==='match')renderMatchs();if(t==='terrain')renderTerrain();
+  if(t==='seq')renderSeq();if(t==='match')renderMatchs();if(t==='live')renderLive();if(t==='terrain')renderTerrain();
   window.scrollTo(0,0);
 }
 function renderHead(){
@@ -1164,6 +1183,162 @@ function stkUpd(){let b=0;document.querySelectorAll('header,.epst-nav').forEach(
 let STKT=0;function stkLoop(){stkUpd();if(Date.now()<STKT)requestAnimationFrame(stkLoop)}
 addEventListener('scroll',()=>{const go=Date.now()>=STKT;STKT=Date.now()+450;if(go)requestAnimationFrame(stkLoop)},{passive:true,capture:true});
 addEventListener('resize',stkUpd);setInterval(stkUpd,800);setTimeout(stkUpd,50);
+/* ================== ÉTAPE DU GROUPE (choisie par les élèves, suivie par l'enseignant) ==================
+   g.step = {k:'ech'|'t0'|'t1'…|'fin', lec, at, d} dans l'enregistrement du groupe (gr|) */
+function stepsOf(l){const A=[['ech','🔥 Échauffement','']];(l&&l.temps||[]).forEach((t,i)=>A.push(['t'+i,'Temps '+(i+1),tNom(t)]));A.push(['fin','🏁 Bilan de fin','']);return A}
+function stepLab(l,k){const s=stepsOf(l).find(x=>x[0]===k);return s?s[1]+(s[2]?' · '+s[2]:''):'—'}
+function grpStep(g){return g&&g.step&&g.step.d===today()?g.step:null}
+function sinceTxt(t){const m=Math.max(0,Math.round((Date.now()-t)/60000));return m<1?"à l'instant":m<60?'depuis '+m+' min':'depuis '+Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')}
+function setStep(k,stay){const c=classById(TERR.cls),g=curGrp(c);if(!g)return;const s=grpStep(g);
+  if(!s||s.k!==k){g.step={k,lec:lessonNow(),at:Date.now(),d:today()};save()}
+  if(stay)return;TERRT=k==='ech'?'ech':k==='fin'?'bil':'jouer';renderTerr()}
+function stepBar(c,g,l){const st=grpStep(g);
+  return `<div class="card stepbar"><div class="row" style="justify-content:space-between"><b>📍 Où en est ton groupe ? <small class="muted">(touche l'étape en cours : ton enseignant la voit)</small></b>${st?`<span class="muted">${esc(stepLab(l,st.k))} ${sinceTxt(st.at)}</span>`:''}</div>
+   <div class="steps2">${stepsOf(l).map(([k,lab,nm])=>`<button class="${st&&st.k===k?'on':''}" onclick="setStep('${k}')"><b>${lab}</b>${nm?`<small>${esc(nm)}</small>`:''}</button>`).join('')}</div></div>`}
+/* côté enseignant : petite info quand un groupe change d'étape */
+let STEPQ=[],STEPT=0;
+function stepNotice(c,old,o){if(!isUnlocked()||!o||!o.step||o.step.d!==today())return;if(old&&old.step&&old.step.k===o.step.k&&old.step.d===o.step.d)return;
+  const l=lessonObj(o.step.lec)||lessonObj(lessonNow());STEPQ.push('👥 '+o.nom+' ('+c.nom+') → '+stepLab(l,o.step.k));if(!STEPT)stepFlush()}
+function stepFlush(){const m=STEPQ.shift();if(!m){STEPT=0;return}toast(m);STEPT=setTimeout(stepFlush,2300)}
+
+/* ================== RÔLES QUI TOURNENT + TERRAINS ================== */
+function pairSeq(n){const ids=[...Array(n).keys()];if(n%2)ids.push(-1);const m=ids.length,out=[];let a=ids.slice();
+  for(let r=0;r<m-1;r++){for(let i=0;i<m/2;i++){const x=a[i],y=a[m-1-i];if(x>=0&&y>=0)out.push([x,y])}a=[a[0],a[m-1],...a.slice(1,m-1)]}return out}
+function terrOf(c,g){return c&&c.terr&&c.terr.on&&g?((c.terr.g||{})[g.id]||null):null}
+function rolesOf(c,g){if(!g)return null;const M=grpMembers(c,g).filter(e=>!isAbs(e)&&!absJ(e,c)),n=M.length;if(n<2)return null;
+  const done=matchesOf(c,m=>m.date===today()&&m.fin&&m.pre.type!=='exo'&&g.el.includes(m.a)&&g.el.includes(m.b)).length;
+  const k=done+(g.rot&&g.rot.d===today()?g.rot.n:0),P=pairSeq(n),p=P[((k%P.length)+P.length)%P.length],o=M.filter((_,i)=>i!==p[0]&&i!==p[1]);
+  const arb=o.length?o[k%o.length]:null,coach=o.length>1?o[(k+1)%o.length]:null;
+  return{k,a:M[p[0]],b:M[p[1]],arb,coach,obs:o.filter(x=>x!==arb&&x!==coach)}}
+function rotNext(d){const c=classById(TERR.cls),g=curGrp(c);if(!g)return;const n=g.rot&&g.rot.d===today()?g.rot.n:0;g.rot={d:today(),n:n+d};save();renderTerr()}
+function lessonMatchPre(){const l=lessonObj(lessonNow()),t=l&&(l.temps||[]).map(x=>x.pre&&preById(x.pre)).filter(p=>p&&p.type!=='exo');return t&&t.length?t[t.length-1].id:(preById('libre')?'libre':(S.presets.find(p=>p.type!=='exo')||{}).id)}
+function rolesCard(c,g){const r=rolesOf(c,g),t=terrOf(c,g);if(!r)return'';const pre=preById(lessonMatchPre());
+  return `<div class="card roles"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🔄 Prochain match${t?` · <span class="tnum">Terrain ${esc(String(t))}</span>`:''}</h2><span class="muted">Tour ${r.k+1}</span></div>
+   <div class="rl"><div><span>🏸 Joueurs</span><b>${esc(shortName(r.a))} contre ${esc(shortName(r.b))}</b></div>${r.arb?`<div><span>🧑‍⚖️ Arbitre</span><b>${esc(shortName(r.arb))}</b></div>`:''}${r.coach?`<div><span>🗣 Coach</span><b>${esc(shortName(r.coach))}</b></div>`:''}${r.obs.length?`<div><span>👀 Observateur${r.obs.length>1?'s':''}</span><b>${r.obs.map(x=>esc(shortName(x))).join(', ')}</b></div>`:''}</div>
+   <div class="row" style="margin-top:10px">${pre?`<button class="btn or" onclick="playStart('${pre.id}','${c.id}','${r.a.id}','${r.b.id}')">▶ Lancer ce match${pre?' · '+esc(pre.nom):''}</button>`:''}<button class="btn alt sm" onclick="rotNext(1)">⏭ Tour suivant</button>${r.k?`<button class="btn alt sm" onclick="rotNext(-1)">⏮</button>`:''}</div>
+   <p class="muted" style="margin:6px 0 0">Les rôles changent tout seuls après chaque match terminé.</p></div>`}
+
+/* ================== SAISIE DES POINTS : SIMPLE OU COMPLÈTE ================== */
+function saisieOf(c,g){const o=c&&c.saisieG&&g&&c.saisieG[g.id];return o||(c&&c.saisie)||'complet'}
+
+/* ================== MINI-BILAN DE FIN DE LEÇON (élève) ==================
+   c.bilans[id] = {id, eid, lec, d, f (0-3), t (objectif), at} → enregistrement bi| (écrit par la tablette de terrain) */
+const BFEEL=['😟','🙂','😀','🤩'],BFEELT=['Difficile','Ça va','Bien','Très bien'];
+let BILD={};
+function bilOf(c,eid,d){return Object.values(c.bilans||{}).filter(b=>b.eid===eid&&(!d||b.d===d)).sort((a,b)=>(b.at||0)-(a.at||0))[0]||null}
+function bilLast(c,eid){return Object.values(c.bilans||{}).filter(b=>b.eid===eid&&b.d<today()&&b.t).sort((a,b)=>(b.at||0)-(a.at||0))[0]||null}
+function bilSugg(c,e){const l=lessonObj(lessonNow()),out=[];const p=pjProfil(elStats(c,e.id));if(p)out.push(PJT[p.low.k].dv.replace(/ pour .*$/,'').replace(/\.$/,''));
+  (l&&l.temps||[]).forEach(t=>(t.crq||[]).slice(0,1).forEach(x=>out.push(x)));out.push('Faire moins de fautes directes','Jouer loin de mon adversaire','Mieux me replacer au centre');return [...new Set(out)].slice(0,5)}
+function bilHtml(c,g){const M=grpMembers(c,g).filter(e=>!isAbs(e));
+  return `<div class="card"><h2>🏁 Bilan de fin de leçon</h2><p class="muted">Chacun répond en 30 secondes. Ton objectif s'affichera au début de la prochaine leçon.</p></div>
+  ${M.map(e=>{const b=bilOf(c,e.id,today())||{},dr=BILD[e.id]||{f:b.f,t:b.t||''};BILD[e.id]=dr;
+   return `<div class="card bilc ${b.at?'ok2':''}"><h3 style="margin:0 0 6px">${esc(fullName(e))}${b.at?' <span class="tag" style="background:var(--d4);color:#fff">✓ envoyé</span>':''}</h3>
+    <div class="muted" style="font-weight:700">Comment s'est passée ta leçon ?</div>
+    <div class="feel">${BFEEL.map((x,i)=>`<button class="${dr.f===i?'on':''}" onclick="BILD['${e.id}'].f=${i};renderTerr()">${x}<small>${BFEELT[i]}</small></button>`).join('')}</div>
+    <div class="muted" style="font-weight:700;margin-top:8px">Mon objectif pour la prochaine leçon</div>
+    <div class="chipsel">${bilSugg(c,e).map(s=>`<button class="${dr.t===s?'on':''}" onclick="BILD['${e.id}'].t=this.dataset.s;renderTerr()" data-s="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+    <input type="text" placeholder="…ou écris ton objectif" value="${esc(dr.t)}" oninput="BILD['${e.id}'].t=this.value" style="margin-top:6px">
+    <div class="row" style="margin-top:8px;justify-content:flex-end"><button class="btn" onclick="bilSave('${e.id}')">${b.at?'Mettre à jour':'Envoyer'}</button></div></div>`}).join('')}`}
+function bilSave(eid){const c=classById(TERR.cls),dr=BILD[eid]||{};if(dr.f==null&&!String(dr.t||'').trim()){toast('Choisis un smiley ou écris ton objectif');return}
+  c.bilans=c.bilans||{};const id='b'+eid+'_'+today().replace(/-/g,'');c.bilans[id]={id,eid,lec:lessonNow(),d:today(),f:dr.f==null?null:dr.f,t:String(dr.t||'').trim().slice(0,200),at:Date.now()};save();toast('Merci, c\'est envoyé !');renderTerr()}
+function objCard(c,g){const L=grpMembers(c,g).map(e=>({e,b:bilLast(c,e.id)})).filter(x=>x.b);if(!L.length)return'';
+  return `<div class="card objc"><h2>🎯 Vos objectifs de la dernière fois</h2>${L.map(({e,b})=>`<div class="objl"><b>${esc(shortName(e))}</b><span>${esc(b.t)}</span></div>`).join('')}</div>`}
+
+/* ================== 🟢 LEÇON EN DIRECT (enseignant) ================== */
+function syShort(){const n=Object.keys(SY.pend||{}).length;if(!SYC())return{i:'⚠️',t:'pas de partage',c:'bad'};if(syBusy)return{i:'🔄',t:'synchro…',c:'run'};if(SY.err)return{i:'⚠️',t:'hors ligne',c:'bad'};
+  if(n)return{i:'🔄',t:n+' en attente',c:'run'};return{i:'✓',t:SY.last?'à jour · '+new Date(SY.last).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'à jour',c:'ok'}}
+function lastSignal(c,g){let t=grpStep(g)?g.step.at:0;matchesOf(c,m=>m.date===today()&&(g.el.includes(m.a)||g.el.includes(m.b))).forEach(m=>{t=Math.max(t,m.t1||0,m.t0||0)});
+  Object.values(c.bilans||{}).forEach(b=>{if(b.d===today()&&g.el.includes(b.eid))t=Math.max(t,b.at||0)});return t}
+function liveSet(k,v){const c=C();if(k==='terrOn'){c.terr=Object.assign({on:false,n:7,g:{}},c.terr||{});c.terr.on=v}
+  else if(k==='terrN'){c.terr=Object.assign({on:true,n:7,g:{}},c.terr||{});c.terr.n=Math.max(1,Math.min(20,+v||1))}
+  else if(k==='saisie')c.saisie=v;save();renderLive()}
+function liveGrp(gid,k,v){const c=C();if(k==='terr'){c.terr=Object.assign({on:true,n:7,g:{}},c.terr||{});c.terr.g=Object.assign({},c.terr.g||{});if(v)c.terr.g[gid]=+v;else delete c.terr.g[gid]}
+  else if(k==='saisie'){c.saisieG=Object.assign({},c.saisieG||{});if(v)c.saisieG[gid]=v;else delete c.saisieG[gid]}save();renderLive()}
+function terrAuto(){const c=C(),G=Object.values(c.groupes||{});c.terr=Object.assign({on:true,n:7,g:{}},c.terr||{});c.terr.on=true;c.terr.g={};G.forEach((g,i)=>{c.terr.g[g.id]=(i%c.terr.n)+1});save();renderLive()}
+function liveAlerts(c){const A=[],T=today(),l=lessonObj(lessonNow());
+  c.eleves.forEach(e=>{if(isAbs(e)||absJ(e,c))return;const ms=matchesOf(c,m=>m.date===T&&(m.a===e.id||m.b===e.id));
+    ms.filter(m=>m.pre.type==='exo'&&m.a===e.id&&m.ae!=null).forEach(m=>{const R=replay(m);if(R.n<5)return;const pc=R.ok/R.n,ob=m.pre.obj&&m.pre.essais?m.pre.obj/m.pre.essais:.7;
+      if(m.ae>=2&&pc<ob*.6)A.push(`🙋 <b>${esc(shortName(e))}</b> s'estime D${m.ae+1} sur « ${esc(m.pre.nom)} » mais réussit ${Math.round(pc*100)} % (objectif ${Math.round(ob*100)} %).`);
+      else if(m.ae===0&&pc>=ob)A.push(`🙋 <b>${esc(shortName(e))}</b> se sous-estime sur « ${esc(m.pre.nom)} » : D1 annoncé pour ${Math.round(pc*100)} % de réussite.`)})});
+  return A}
+function renderLive(){const el=document.getElementById('t-live');if(!el)return;const c=C(),T=today(),l=lessonObj(lessonNow()),G=Object.values(c.groupes||{}),sy=syShort(),tr=c.terr||{},tn=tr.n||7;
+  const inG=new Set(G.flatMap(g=>g.el)),sans=c.eleves.filter(e=>!inG.has(e.id)&&!isAbs(e));
+  const rien=c.eleves.filter(e=>!isAbs(e)&&!absJ(e,c)&&!matchesOf(c,m=>m.date===T&&(m.a===e.id||m.b===e.id)).length);
+  const bils=Object.values(c.bilans||{}).filter(b=>b.d===T).sort((a,b)=>(a.at||0)-(b.at||0)),al=liveAlerts(c);
+  const sOpt=(v,cur)=>`<option value="${v}" ${cur===v?'selected':''}>`;
+  el.innerHTML=`<div class="card livehd"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">🟢 Leçon en direct · ${esc(c.nom)}</h2><div class="muted">${l?'Leçon '+l.n+' · '+esc(l.titre):'Pas de leçon'} · ${dateFR(T)} · actualisé à ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div></div>
+     <div class="row"><span class="sypill ${sy.c}">${sy.i} ${esc(sy.t)}</span><button class="btn alt sm" onclick="syncSoon(50);setTimeout(renderLive,2500)">🔄 Actualiser</button></div></div></div>
+   <div class="card"><h2>Réglages de la leçon</h2><div class="g2">
+     <div><label class="l">Saisie des points (toute la classe)</label><div class="seg">${[['complet','Complète'],['simple','Simple']].map(([k,n])=>`<button class="${(c.saisie||'complet')===k?'on':''}" onclick="liveSet('saisie','${k}')">${n}</button>`).join('')}</div>
+       <p class="muted" style="margin:4px 0 0">Simple : on touche seulement où le volant tombe. Complète : on précise aussi le type de point (point direct, faute…).</p></div>
+     <div><label class="l">Terrains</label><label class="sw"><input type="checkbox" ${tr.on?'checked':''} onchange="liveSet('terrOn',this.checked)"><span></span>Répartir les groupes sur des terrains</label>
+       ${tr.on?`<div class="row" style="margin-top:6px"><span>Nombre de terrains</span><input type="number" min="1" max="20" value="${tn}" style="width:80px" onchange="liveSet('terrN',this.value)"><button class="btn alt sm" onclick="terrAuto()">Répartir automatiquement</button></div>`:'<p class="muted" style="margin:4px 0 0">Désactivé : les groupes s\'installent où ils veulent.</p>'}</div></div></div>
+   ${al.length?`<div class="card warnc"><h2>⚠️ À regarder</h2>${al.map(x=>`<div class="al">${x}</div>`).join('')}</div>`:''}
+   <div class="lgrid">${G.length?G.map(g=>{const st=grpStep(g),M=grpMembers(c,g),r=rolesOf(c,g),cur=matchesOf(c,m=>m.date===T&&!m.fin&&(g.el.includes(m.a)||g.el.includes(m.b))),sig=lastSignal(c,g),tg=terrOf(c,g);
+     return `<div class="card lg"><div class="row" style="justify-content:space-between"><h3 style="margin:0">👥 ${esc(g.nom)}${tg?` <span class="tnum">T${tg}</span>`:''}</h3><span class="muted" style="font-size:.8em">${sig?'signal '+sinceTxt(sig).replace('depuis ','il y a '):'aucun signal'}</span></div>
+      <div class="lstep ${st?st.k==='ech'?'ech':st.k==='fin'?'fin':'tps':'none'}">${st?`${esc(stepLab(lessonObj(st.lec)||l,st.k))} <small>${sinceTxt(st.at)}</small>`:'Étape non indiquée'}</div>
+      <div class="lmem">${M.map(e=>{const n=matchesOf(c,m=>m.date===T&&(m.a===e.id||m.b===e.id)).length,b=bilOf(c,e.id,T);return `<span class="${isAbs(e)?'abs':n?'on':''}" title="${n} match(s) ou exercice(s) aujourd'hui">${esc(shortName(e))}${n?' · '+n:''}${b?' 🏁':''}</span>`}).join('')}</div>
+      ${cur.map(m=>{const R=replay(m);return `<div class="lcur">${m.pre.type==='exo'?'🎯 '+esc(m.an)+' · '+R.ok+'/'+R.n:'🏸 '+esc(m.an)+' <b>'+R.sc[0]+' – '+R.sc[1]+'</b> '+esc(m.bn)} <small class="muted">${esc(m.pre.nom)}</small></div>`}).join('')}
+      ${r?`<div class="muted" style="font-size:.85em;margin-top:4px">Prochain : ${esc(shortName(r.a))} – ${esc(shortName(r.b))}${r.arb?' · arbitre '+esc(shortName(r.arb)):''}${r.coach?' · coach '+esc(shortName(r.coach)):''}</div>`:''}
+      <div class="row" style="margin-top:8px;gap:6px">${tr.on?`<select class="f" style="width:auto" onchange="liveGrp('${g.id}','terr',this.value)"><option value="">Terrain —</option>${Array.from({length:tn},(_,i)=>`<option value="${i+1}" ${tg===i+1?'selected':''}>Terrain ${i+1}</option>`).join('')}</select>`:''}
+       <select class="f" style="width:auto" onchange="liveGrp('${g.id}','saisie',this.value)">${sOpt('',(c.saisieG||{})[g.id]||'')}Saisie : comme la classe</option>${sOpt('simple',(c.saisieG||{})[g.id]||'')}Saisie simple</option>${sOpt('complet',(c.saisieG||{})[g.id]||'')}Saisie complète</option></select></div></div>`}).join('')
+     :'<div class="card"><p class="muted">Aucun groupe pour l\'instant : les élèves créent leur groupe sur la tablette de terrain (ou dans Matchs & stats).</p></div>'}</div>
+   ${sans.length&&G.length?`<div class="card"><b>Sans groupe :</b> ${sans.map(e=>esc(shortName(e))).join(', ')}</div>`:''}
+   ${rien.length?`<div class="card"><b>Rien saisi aujourd'hui (${rien.length}) :</b> <span class="muted">${rien.map(e=>esc(shortName(e))).join(', ')}</span></div>`:''}
+   <div class="card"><h2>🏁 Bilans de fin de leçon (${bils.length})</h2>${bils.length?bils.map(b=>{const e=elById(c,b.eid);return e?`<div class="objl"><b>${esc(shortName(e))}</b><span>${b.f!=null?BFEEL[b.f]+' ':''}${esc(b.t||'')}</span></div>`:''}).join(''):'<p class="muted">Les élèves remplissent leur bilan dans l\'étape « 🏁 Bilan de fin » de la tablette de terrain.</p>'}</div>`}
+setInterval(()=>{try{if(curTab()==='live'&&document.visibilityState==='visible'){const a=document.activeElement;if(!(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName)))renderLive()}}catch(e){}},10000);
+
+/* ================== MODE ESSENTIEL / EXPERT ================== */
+let UIM=(()=>{try{return localStorage.getItem('eps_bad_ui')||'ess'}catch(e){return'ess'}})();
+function uiApply(){document.documentElement.classList.toggle('ess',UIM==='ess')}
+function setUI(m){UIM=m;try{localStorage.setItem('eps_bad_ui',m)}catch(e){}uiApply();document.querySelectorAll('.uisw button').forEach(b=>b.classList.toggle('on',b.dataset.m===m))}
+function uiSw(){return `<div class="uisw seg mini" title="Essentiel : les réglages avancés sont cachés"><button data-m="ess" class="${UIM==='ess'?'on':''}" onclick="setUI('ess')">Essentiel</button><button data-m="exp" class="${UIM==='exp'?'on':''}" onclick="setUI('exp')">Expert</button></div>`}
+uiApply();
+
+/* ================== 🧭 ASSISTANT DE DÉMARRAGE ================== */
+let WIZ=null;
+function wizOpen(){WIZ={s:1,nom:'',txt:'',voie:S.voie,d:today(),hebdo:true};showTab('eleves');renderWiz()}
+function wizList(){const rows=String(WIZ.txt||'').split(/\r?\n/).map(l=>l.split(/\t|;/));return parseRows(rows)}
+function renderWiz(){let box=document.getElementById('wizCard');const host=document.getElementById('t-eleves');if(!host)return;
+  if(!box){box=document.createElement('div');box.id='wizCard';box.className='card wiz';host.insertBefore(box,host.firstChild)}
+  if(!WIZ){box.remove();return}
+  const st=n=>`<span class="${WIZ.s===n?'on':WIZ.s>n?'ok':''}">${WIZ.s>n?'✓':n}</span>`;
+  const head=`<div class="row" style="justify-content:space-between"><h2 style="margin:0">🧭 Assistant de démarrage</h2><button class="btn alt sm" onclick="WIZ=null;renderWiz()">✕ Fermer</button></div><div class="wsteps">${st(1)} Classe ${st(2)} Voie ${st(3)} Séquence</div>`;
+  if(WIZ.s===1){const L=wizList();
+    box.innerHTML=head+`<label class="l">Nom de la classe</label><input type="text" id="wzN" value="${esc(WIZ.nom)}" placeholder="ex : TG3" oninput="WIZ.nom=this.value">
+     <label class="l">Colle la liste des élèves (copiée depuis Pronote ou un tableur : une ligne par élève, « NOM Prénom »)</label>
+     <textarea rows="7" id="wzT" oninput="WIZ.txt=this.value;document.getElementById('wzC').textContent=wizList().length+' élève(s) reconnu(s)'">${esc(WIZ.txt)}</textarea>
+     <div class="row" style="justify-content:space-between;margin-top:8px"><span class="muted" id="wzC">${L.length} élève(s) reconnu(s)</span><button class="btn" onclick="if(!WIZ.nom.trim()){toast('Donne un nom à la classe');return}if(!wizList().length){toast('Colle au moins un élève');return}WIZ.s=2;renderWiz()">Suivant ▶</button></div>`;return}
+  if(WIZ.s===2){box.innerHTML=head+`<p>Quelle voie pour <b>${esc(WIZ.nom)}</b> ?</p><div class="tiles">${[['gt','🎓 Lycée général','Grille Terminale générale (AFL1 /12, AFL2-AFL3 /8), séquence de 9 leçons'],['pro','🛠 Lycée pro','Grille AFLP de Terminale pro, séquence de 7 leçons (CCF)']].map(([k,n,d])=>`<button class="tile ${WIZ.voie===k?'sel':''}" onclick="WIZ.voie='${k}';renderWiz()">${n}<br><small class="muted" style="font-weight:600">${d}</small></button>`).join('')}</div>
+     <div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn alt" onclick="WIZ.s=1;renderWiz()">◀ Retour</button><button class="btn" onclick="WIZ.s=3;renderWiz()">Suivant ▶</button></div>`;return}
+  const Lq=S.prof[WIZ.voie].seq.lecons||[];
+  box.innerHTML=head+`<p>La séquence proposée (${Lq.length} leçons) est prête : tu pourras la modifier dans l'onglet Séquence.</p>
+   <div class="g2"><div><label class="l">Date de la première leçon</label><input type="date" value="${esc(WIZ.d)}" onchange="WIZ.d=this.value"></div>
+   <div style="align-self:end"><label class="sw"><input type="checkbox" ${WIZ.hebdo?'checked':''} onchange="WIZ.hebdo=this.checked"><span></span>Une leçon par semaine (dates remplies automatiquement)</label></div><div></div></div>
+   <div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn alt" onclick="WIZ.s=2;renderWiz()">◀ Retour</button><button class="btn or" onclick="wizGo()">✓ C'est prêt</button></div>`}
+function wizGo(){const L=wizList(),nom=WIZ.nom.trim();let c=S.classes.find(x=>norm(x.nom)===norm(nom)&&x.voie===WIZ.voie);
+  if(!c){c={id:clsIdOf(nom),nom,voie:WIZ.voie,eleves:[],matchs:{},poules:{},groupes:{}};S.classes=S.classes.filter(x=>!blankClass(x));S.classes.push(c)}
+  const have=new Set(c.eleves.map(e=>nkey(e.prenom+' '+e.nom)));L.forEach(p=>{if(!have.has(nkey(p.prenom+' '+p.nom)))c.eleves.push(newEl(p,c.id))});
+  S.voie=WIZ.voie;fixState();S.cur=S.classes.indexOf(c);
+  if(WIZ.hebdo&&WIZ.d){const d0=new Date(WIZ.d+'T12:00');(S.prof[WIZ.voie].seq.lecons||[]).forEach((l,i)=>{if(!l.faite){const d=new Date(d0);d.setDate(d.getDate()+7*i);l.date=d.toISOString().slice(0,10)}})}
+  else if(WIZ.d){const l0=(S.prof[WIZ.voie].seq.lecons||[])[0];if(l0&&!l0.date)l0.date=WIZ.d}
+  WIZ=null;save();refresh();showTab('seq');toast('C\'est prêt : '+c.eleves.length+' élèves dans '+c.nom)}
+function wizBanner(){const has=S.classes.some(c=>c.eleves.length);return has?'':`<div class="card wizb"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">👋 Pour commencer</h2><div class="muted">Crée ta classe, choisis la voie et date ta séquence en 3 étapes.</div></div><button class="btn or" onclick="wizOpen()">🧭 Assistant de démarrage</button></div></div>`}
+
+/* ================== ⚡ PRÉPARER LA LEÇON EN UN GESTE ================== */
+let PREP=null;
+function prepOpen(id){const l=SEQ().lecons.find(x=>x.id===id);if(!l)return;PREP={id,d:today(),vis:S.presets.filter(p=>p.vis).map(p=>p.id),prev:true};SEQT='lec';renderSeq();scrollTo(0,0)}
+function prepHtml(){if(!PREP)return'';const l=SEQ().lecons.find(x=>x.id===PREP.id);if(!l){PREP=null;return''}const ids=(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id)),i=SEQ().lecons.indexOf(l),pv=SEQ().lecons[i-1];
+  return `<div class="card prep"><div class="row" style="justify-content:space-between"><h2 style="margin:0">⚡ Préparer la leçon ${l.n} · ${esc(l.titre)}</h2><button class="btn alt sm" onclick="PREP=null;renderSeq()">✕</button></div>
+   <div class="g2"><div><label class="l">Date de la leçon</label><input type="date" value="${esc(PREP.d)}" onchange="PREP.d=this.value"></div>
+    ${pv&&!pv.faite?`<div style="align-self:end"><label class="sw"><input type="checkbox" ${PREP.prev?'checked':''} onchange="PREP.prev=this.checked"><span></span>Marquer la leçon ${pv.n} comme faite</label></div>`:'<div></div>'}<div></div></div>
+   <label class="l">Situations de la leçon (proposées automatiquement aux élèves)</label><div class="chipsel">${ids.map(id=>`<button class="on" disabled>${preById(id).type==='exo'?'🎯':'🏸'} ${esc(preById(id).nom)}</button>`).join('')||'<span class="muted">Aucune : relie une situation à chaque temps (✎ Modifier).</span>'}</div>
+   <label class="l">Autres situations à proposer en plus</label><div class="chipsel">${S.presets.filter(p=>!ids.includes(p.id)).map(p=>`<button class="${PREP.vis.includes(p.id)?'on':''}" onclick="prepTog('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(p.nom)}</button>`).join('')}</div>
+   <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn or" onclick="prepGo()">✓ Prête pour les élèves</button></div></div>`}
+function prepTog(id){const i=PREP.vis.indexOf(id);if(i>=0)PREP.vis.splice(i,1);else PREP.vis.push(id);renderSeq()}
+function prepGo(){const L=SEQ().lecons,l=L.find(x=>x.id===PREP.id),i=L.indexOf(l);L.forEach(x=>{if(x!==l&&x.date===PREP.d)x.date=''});l.date=PREP.d;l.prop=false;
+  if(PREP.prev&&L[i-1]&&!L[i-1].faite){L[i-1].faite=true;if(!L[i-1].date||L[i-1].date>PREP.d)L[i-1].date=''}
+  S.presets.forEach(p=>{p.vis=PREP.vis.includes(p.id)});PREP=null;SEQOPEN={};SEQOPEN[l.id]=1;save();renderSeq();toast(PREP===null&&l.date===today()?'Leçon '+l.n+' prête : elle s\'affiche sur les tablettes de terrain':'Leçon '+l.n+' programmée le '+dateFR(l.date))}
 function critHtml(cr,e){
   const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
@@ -1417,7 +1592,7 @@ function renderTerrain(){
   const el=document.getElementById('t-terrain');if(!PRE||!preById(PRE))PRE=S.presets[0]&&S.presets[0].id;
   const p=preById(PRE);
   if(ASST){el.innerHTML=asstHtml();return}
-  el.innerHTML=`<div class="card newsit"><h2 style="margin:0 0 8px">Créer une situation</h2><div class="g3">
+  el.innerHTML=`<div class="card newsit"><div class="row" style="justify-content:space-between;margin:0 0 8px"><h2 style="margin:0">Créer une situation</h2>${uiSw()}</div><div class="g3">
      <button class="nsb" onclick="asstOpen()"><span>🧭</span><b>Assistant en 3 questions</b><small>Ce que tu veux travailler → les zones → les points</small></button>
      <button class="nsb" onclick="iaOpen()"><span>💬</span><b>Décris ta situation</b><small>Écris-la en une phrase : Claude règle le terrain</small></button>
      <button class="nsb" onclick="preNew()"><span>⚙️</span><b>Partir de zéro</b><small>Tous les réglages à la main</small></button></div></div>
@@ -1439,7 +1614,7 @@ function preEditor(p){
      <div class="snap">${[[SSL,'ligne de service court'],[4.72,'mi-fond'],[CL/2-LSD,'service long double']].map(([s,n])=>`<button onclick="preSl('prof',${i},${s},1,${who})">${n}</button>`).join('')}</div></div>`).join('')};
   const lGrp=who=>{const {pl}=bounds(p,who);return pl.length?`<div class="vsls">${pl.map((v,i)=>`<div class="vsl"><input type="range" min="0.3" max="5.8" step="0.02" value="${v}" style="accent-color:${two?PCOL[who]:'var(--vol)'}" oninput="preSl('lat',${i},this.value,0,${who})">${num('lat',i,v,who,0.3,5.8)}</div>`).join('')}<small>${two?(who?'visé par B':'visé par A'):'largeur (m)'}</small></div>`:''};
   const dSl=two?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[1,0].map(w=>`<div>${dGrp(w)}</div>`).join('')}</div>`:dGrp(0);
-  const blk=(ic,t,body,note)=>`<div class="blk2"><h3>${ic} ${t}</h3>${note?`<p class="muted" style="margin:0 0 8px">${note}</p>`:''}${body}</div>`;
+  const blk=(ic,t,body,note)=>`<div class="blk2 ${['Handicap','Contrat des zones ★'].includes(t)?'adv':''}"><h3>${ic} ${t}</h3>${note?`<p class="muted" style="margin:0 0 8px">${note}</p>`:''}${body}</div>`;
   return `<div class="card"><h2 class="step"><span>1</span>La situation</h2>
    <div class="g2"><div><label class="l">Nom</label><input type="text" value="${esc(p.nom)}" onchange="preSet('nom',this.value,1)"></div>
      <div><label class="l">Type</label><div class="seg"><button class="${!exo?'on':''}" onclick="preSet('type','match',1)">🏸 Match</button><button class="${exo?'on':''}" onclick="preSet('type','exo',1)">🎯 Exercice</button></div></div>
@@ -1480,7 +1655,7 @@ function preEditor(p){
       <label class="sw" style="margin-top:8px"><input type="checkbox" ${p.tous?'checked':''} onchange="preSet('tous',this.checked)"><span></span>Victoire immédiate si un joueur marque dans toutes les zones ★</label>`)}
     ${blk('💯','Valeur des points',`<label class="l">Point gagné sur une faute adverse (filet, dehors…)</label><input type="number" min="0" value="${p.faute==null?1:p.faute}" onchange="preSet('faute',+this.value)">
       ${zs.some(id=>zoneRule(p,id).m==='g')?`<label class="l">Suite dégressive</label><input type="text" value="${esc((p.deg||[]).join(' '))}" onchange="preSet('deg',this.value.split(/[ ;,]+/).map(Number).filter(x=>!isNaN(x)))">`:''}
-      <details style="margin-top:8px"><summary class="muted" style="font-weight:700;cursor:pointer">Coups valorisés (bonus quand le point est gagné avec ce coup)${Object.keys(p.coups||{}).length?' · '+Object.entries(p.coups).map(([k,v])=>coupNom(k)+' +'+v).join(', '):''}</summary>
+      <details class="adv" style="margin-top:8px"><summary class="muted" style="font-weight:700;cursor:pointer">Coups valorisés (bonus quand le point est gagné avec ce coup)${Object.keys(p.coups||{}).length?' · '+Object.entries(p.coups).map(([k,v])=>coupNom(k)+' +'+v).join(', '):''}</summary>
        <div class="coupg" style="margin-top:6px">${COUPS.map(([k,n,c])=>`<div><span style="border-left:5px solid ${c};padding-left:6px">${n}</span><input type="number" min="0" value="${(p.coups||{})[k]||0}" onchange="preCoup('${k}',+this.value)"></div>`).join('')}</div></details>`)}
     ${blk('⭐','Contrat des zones ★',`<label class="l">Nombre de points à marquer en zone ★ (0 = pas de contrat)</label><input type="number" min="0" value="${p.contrat||0}" onchange="preSet('contrat',+this.value)">`,"Compté pour chaque joueur et affiché sur le tableau de score.")}
     ${blk('⚖️','Handicap',`<select class="f" onchange="preSet('pour',this.value)">${[['ab','Les zones valent pour les deux joueurs'],['a','Seulement pour le joueur A'],['b','Seulement pour le joueur B']].map(([k,n])=>`<option value="${k}" ${(p.pour||'ab')===k?'selected':''}>${n}</option>`).join('')}</select>`,"Avec « tailles différentes pour A et B » (étape 2), règle l'écart de niveau.")}
@@ -1564,7 +1739,7 @@ function renderPlay(){
   const card=w=>`<div class="pl p${w}"><div class="nm">${esc(w?nB:nA)}${R.srv===w&&!R.fin?' <span class="srv">🏸 sert à '+srvSide+'</span>':''}</div>
      <div class="big2">${pre.score==='zones'?R.zp[w]:R.sc[w]}</div>${m[w?'sb':'sa']?`<div class="sub">🎯 ${esc(m[w?'sb':'sa'])}</div>`:''}${manBoard(m,R,w)}<div class="sub">${pre.badcode?`code <b>${esc(m[w?'cb':'ca'])}</b> : ${R.cd[w]}/2${R.cd[w]>=2?' ✓':''} <button class="mini" onclick="codeEd(${w})">✎ changer</button> `:''}${pre.score==='zones'?`score : ${R.sc[w]}`:pre.badcode||pre.np*pre.nl===1&&!Object.keys(pre.coups||{}).length?'':`points de zones : <b>${R.zp[w]}</b>`}${pre.contrat?` · contrat ${Math.min(R.ct[w],pre.contrat)}/${pre.contrat}${R.ct[w]>=pre.contrat?' ✓':''}`:''}</div></div>`;
   const pend=PL.pend;
-  box.innerHTML=`<div class="chd"><button class="lockbtn" onclick="playClose()">✕</button><h1>🏸 ${esc(pre.nom)}</h1><button class="lockbtn" onclick="PL.cnt=!PL.cnt;renderPlay()" title="Afficher le nombre et le % de points par zone">${PL.cnt?'🔢 Valeurs':'🔢 Compteurs'}</button><button class="lockbtn" onclick="m_flip()">⇄ Côtés</button><button class="lockbtn" onclick="playEnd()">🏁 Terminer</button></div>
+  box.innerHTML=`<div class="chd"><button class="lockbtn" onclick="playClose()">✕</button><h1>🏸 ${esc(pre.nom)}${m.simple?' <small class="tag" style="background:#eef4fa;color:#1F5F8B">saisie simple</small>':''}</h1><button class="lockbtn" onclick="PL.cnt=!PL.cnt;renderPlay()" title="Afficher le nombre et le % de points par zone">${PL.cnt?'🔢 Valeurs':'🔢 Compteurs'}</button><button class="lockbtn" onclick="m_flip()">⇄ Côtés</button><button class="lockbtn" onclick="playEnd()">🏁 Terminer</button></div>
   <div class="cbody wide">
    <div class="board">${card(m.flip?1:0)}<div class="vs">${pre.score==='zones'?(tgt?'à '+tgt:'au temps'):'en '+tgt}${pre.ecart?'<br>écart 2':''}</div>${card(m.flip?0:1)}</div>
    ${R.fin&&!m.fin?`<div class="ok big" style="text-align:center">🏆 ${R.win<0?'Égalité':esc(R.win?nB:nA)+' gagne'}${R.inst!=null?' instantanément (toutes les zones ★)':''}${R.bc?` · Badcode : ${esc(nA)} ${R.bc[0]} pts, ${esc(nB)} ${R.bc[1]} pts`:''} — touche « Terminer » ou continue.</div>`:''}
@@ -1588,6 +1763,7 @@ function playGo(){const c=classById(PL.cid),pre=preById(PL.pre)||S.presets[0],ex
   if(pre.badcode&&!(/^[1-4]{2}$/.test(PL.ca||'')&&/^[1-4]{2}$/.test(PL.cb||''))){toast('Chaque joueur choisit son code (2 zones)');return}
   const id='m'+Date.now().toString(36)+uid().slice(0,3),ga=grpOf(c,PL.a),gb=exo?null:grpOf(c,PL.b);
   c.matchs[id]={id,date:today(),lec:lessonNow(),t0:Date.now(),pre:JSON.parse(JSON.stringify(pre)),a:PL.a,b:exo?null:PL.b,an:plName(c,PL.a,PL.ga),bn:exo?'':plName(c,PL.b,PL.gb),srv:PL.srv||0,pts:[],fin:false,flip:false,ca:PL.ca||'',cb:PL.cb||'',man:!exo&&PL.manOn?PL.man.map(x=>({mode:x.mode==='verte'?'verte':'pct',v:+x.v||7,num:x.num||'',z:(x.z||[]).slice(),c:(x.c||[]).slice(),s:+x.s||0,min:+x.min||0,pd:!!x.pd})):null,cal:pre.badcode?[[PL.ca],[PL.cb]]:null,sa:(PL.sa||'').trim(),sb:(PL.sb||'').trim(),poule:PL.poule||'',ga:ga?ga.id:'',gb:gb?gb.id:'',dev:terrOn()&&!isUnlocked()?'terrain':'prof'};
+  if(!exo&&saisieOf(c,grpOf(c,PL.a)||grpOf(c,PL.b))==='simple')c.matchs[id].simple=1;
   PL.mid=id;PL.step='play';PL.pend=null;save();renderPlay()}
 function bindPlayCourt(){const svg=document.getElementById('pcourt');if(!svg)return;
   svg.onclick=ev=>{const m=curMatch();if(!m)return;const q=svgPt(svg,ev),pre=m.pre;
@@ -1600,11 +1776,11 @@ function bindPlayCourt(){const svg=document.getElementById('pcourt');if(!svg)ret
     if(!inn){w=owner;f='dehors'}
     else{if(zoneRule(pre,z).m==='x'&&applies(pre,hitter)){w=owner;f='interdit'}
       else (pre.cibles||[]).forEach((t,i)=>{if(cb<0&&Math.hypot(t.d-h.d,t.l-h.l)<=t.r)cb=i})}
-    PL.pend={x:+q.x.toFixed(2),y:+q.y.toFixed(2),w,f,z,cb,t:f?'fd':'pd'};renderPlay()}}
+    PL.pend={x:+q.x.toFixed(2),y:+q.y.toFixed(2),w,f,z,cb,t:f?'fd':'pd'};if(m.simple&&!pre.frappes&&!pre.badcode){pointOk('');return}renderPlay()}}
 function pointOk(coup){const m=curMatch(),p=PL.pend;if(!m||!p)return;
   const o={w:p.w,x:p.x,y:p.y,z:p.z,f:p.f||'',c:p.f?'':coup,cb:p.cb,t:p.t||(p.f?'fd':'pd')};if(p.nf)o.nf=p.nf;if(p.code&&!p.f)o.code=1;if(p.by!=null)o.by=p.by;
   m.pts.push(o);PL.pend=null;save();renderPlay();const R=replay(m);if(R.fin&&!m.fin)toast('🏆 Fin du match !')}
-function pointFault(fautif,type){const m=curMatch();if(!m)return;PL.pend={w:1-fautif,x:null,y:null,z:null,f:type,cb:-1,by:fautif,t:type==='service'?'fs':'fd'};renderPlay()}
+function pointFault(fautif,type){const m=curMatch();if(!m)return;PL.pend={w:1-fautif,x:null,y:null,z:null,f:type,cb:-1,by:fautif,t:type==='service'?'fs':'fd'};if(m.simple&&!m.pre.frappes){pointOk('');return}renderPlay()}
 function exoMiss(){const m=curMatch();if(!m)return;m.pts.push({x:null,y:null,z:null,ok:false});save();renderPlay()}
 function playUndo(){const m=curMatch();if(!m||!m.pts.length)return;m.pts.pop();PL.pend=null;save();renderPlay()}
 function m_flip(){const m=curMatch();m.flip=!m.flip;save();renderPlay()}
@@ -1874,13 +2050,14 @@ function lecHtml(l,i,teach){
    ${(l.temps||[]).map(t=>tempsHtml(t,teach)).join('')}
    ${teach?`<div class="row" style="margin-top:8px">
      <button class="btn ${l.faite?'alt':''} sm" onclick="lecSet(${i},'faite',${!l.faite})">${l.faite?'Annuler « faite »':'✓ Faite'}</button>
+     <button class="btn or sm" onclick="prepOpen('${l.id}')">⚡ Préparer</button>
      <button class="btn alt sm" onclick="SEQEDIT='${l.id}';renderSeq()">✎ Modifier</button>
      ${l.prop?`<button class="btn alt sm" onclick="lecSet(${i},'prop',false)">👍 Garder</button>`:''}
      <button class="btn alt sm" onclick="lecMove(${i},-1)">↑</button><button class="btn alt sm" onclick="lecMove(${i},1)">↓</button>
      <button class="btn alt sm" onclick="lecDup(${i})">Dupliquer</button><button class="btn red sm" onclick="lecDel(${i})">Supprimer</button></div>`:''}</div>`}
 function seqLecons(){
   const L=SEQ().lecons,nf=L.filter(l=>l.faite).length,np=L.filter(l=>l.prop).length;
-  return `<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
+  return `${wizBanner()}${prepHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
     <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="addLecon()">+ Leçon</button></div></div>
     <p class="muted" style="margin:6px 0 0">${S.voie==='pro'?'Les 7 leçons reprennent tes fiches de Terminale pro (leçon 7 : CCF).':'Leçons 1 et 2 reprises de tes fiches ; leçons 3 à 8 proposées à partir de ton projet de séquence (en vert clair : à garder, modifier ou supprimer).'} Chaque temps peut être relié à une situation du terrain : « ▶ Lancer » ouvre directement le scoring. Tout est partagé entre tes tablettes.</p></div>
   ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):(SEQOPEN[l.id]===1||(l.n===lessonNow()&&SEQOPEN[l.id]!==-1))?`<div class="lecwrap"><button class="lecfold" title="Replier" onclick="SEQOPEN['${l.id}']=-1;renderSeq()">▴</button>${lecHtml(l,i,true)}</div>`:lecRow(l,i)).join('')}`}
@@ -2192,21 +2369,22 @@ function renderTerr(){
   const n=lessonNow(),l=lessonObj(n),g=curGrp(c);
   const hdBtns=`${g?`<button class="lockbtn" onclick="gLeave()" title="Changer de groupe">👥 ${esc(g.nom)}</button>`:''}<button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button>`;
   if(!g){box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}</h1>${hdBtns}</div><div class="cbody">${grpScreen(c)}</div>`;return}
-  const tabs=[['jouer','🏸 Jouer'],['poule','🏆 Poule'],['atp','🏅 Défis ATP'],['lecon','📋 Leçon du jour'],['ech','🔥 Échauffement'],['tech','📚 Technique'],['fiche','🗒 Ma fiche'],['stats','📊 Mes stats']];
-  box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}${l?' · Leçon '+l.n:''}</h1>${hdBtns}</div>
+  const tabs=[['jouer','🏸 Jouer'],['poule','🏆 Poule'],['atp','🏅 Défis ATP'],['lecon','📋 Leçon du jour'],['ech','🔥 Échauffement'],['tech','📚 Technique'],['fiche','🗒 Ma fiche'],['stats','📊 Mes stats'],['bil','🏁 Bilan']],tg=terrOf(c,g);
+  box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}${l?' · Leçon '+l.n:''}${tg?` · <span class="tnum">Terrain ${tg}</span>`:''}</h1>${hdBtns}</div>
    <div class="ctabs">${tabs.map(([k,nm])=>`<button class="${TERRT===k?'on':''}" onclick="TERRT='${k}';renderTerr()">${nm}</button>`).join('')}</div>
    <div class="cbody" id="tbody"></div>`;
   const b=document.getElementById('tbody');
   if(TERRT==='jouer'){const ids=l?(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id)):[];const others=S.presets.filter(p=>p.vis&&!ids.includes(p.id));
     const today_=matchesOf(c,m=>m.date===today()&&(g.el.includes(m.a)||g.el.includes(m.b))).reverse();
-    b.innerHTML=`${l?`<div class="card"><h2>Aujourd'hui · ${esc(l.titre)}</h2><p style="margin:0 0 10px"><b>Objectif :</b> ${esc(l.obj)}</p>
-      <div class="tiles">${(l.temps||[]).filter(t=>t.pre&&preById(t.pre)).map(t=>{const p=preById(t.pre);return `<button class="tile" onclick="playStart('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(t.t)}<br><small class="muted" style="font-weight:600">${esc(p.nom)}</small></button>`}).join('')||'<p class="muted">Pas de situation reliée à cette leçon.</p>'}</div></div>`:''}
-     ${others.length?`<div class="card"><h2>Autres situations</h2><div class="tiles">${others.map(p=>`<button class="tile" style="font-size:1rem" onclick="playStart('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(p.nom)}</button>`).join('')}</div></div>`:''}
+    b.innerHTML=`${stepBar(c,g,l)}${objCard(c,g)}${l?`<div class="card"><h2>Aujourd'hui · ${esc(l.titre)}</h2><p style="margin:0 0 10px"><b>Objectif :</b> ${esc(l.obj)}</p>
+      <div class="tiles">${(l.temps||[]).map((t,i)=>[t,i]).filter(([t])=>t.pre&&preById(t.pre)).map(([t,i])=>{const p=preById(t.pre);return `<button class="tile" onclick="setStep('t${i}',true);playStart('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(t.t)}<br><small class="muted" style="font-weight:600">${esc(p.nom)}</small></button>`}).join('')||'<p class="muted">Pas de situation reliée à cette leçon.</p>'}</div></div>`:''}
+     ${rolesCard(c,g)}${others.length?`<div class="card"><h2>Autres situations</h2><div class="tiles">${others.map(p=>`<button class="tile" style="font-size:1rem" onclick="playStart('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(p.nom)}</button>`).join('')}</div></div>`:''}
      <div class="card"><h2>Matchs du jour</h2>${today_.length?`<div class="mlist">${today_.map(m=>{const R=replay(m);return `<button onclick="TRES='${m.id}';renderTerrRes()"><b>${m.pre.type==='exo'?'🎯 '+esc(m.an)+' · '+R.ok+'/'+R.n:esc(m.an)+' <span class="sc2">'+R.sc[0]+' – '+R.sc[1]+'</span> '+esc(m.bn)}</b><small>${esc(m.pre.nom)}${m.fin?'':' · en cours (toucher pour reprendre)'}</small></button>`}).join('')}</div>`:'<p class="muted">Aucun match saisi aujourd\'hui.</p>'}</div>`}
   else if(TERRT==='poule')b.innerHTML=pouleGrpHtml(c);
   else if(TERRT==='atp')b.innerHTML=atpHtml(c,g);
-  else if(TERRT==='lecon')b.innerHTML=l?lecEleveHtml(l):'<p class="muted">Pas de leçon.</p>';
-  else if(TERRT==='ech'){b.innerHTML=`<div class="card">${deplHtml()}</div><div class="card">${routHtml(n)}</div>`}
+  else if(TERRT==='lecon')b.innerHTML=l?stepBar(c,g,l)+lecEleveHtml(l):'<p class="muted">Pas de leçon.</p>';
+  else if(TERRT==='ech'){b.innerHTML=`${stepBar(c,g,l)}<div class="card">${deplHtml()}</div><div class="card">${routHtml(n)}</div>`}
+  else if(TERRT==='bil')b.innerHTML=stepBar(c,g,l)+bilHtml(c,g);
   else if(TERRT==='tech')b.innerHTML=techHtml(false);
   else if(TERRT==='fiche'){const e=elById(c,TSTAT);
     b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${grpMembers(c,g).map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';FMAN=null;renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
@@ -2395,7 +2573,7 @@ function importBackup(inp){const f=inp.files[0];if(!f)return;const r=new FileRea
 function renderBareme(){
   const b=B(),sum=b.criteres.reduce((s,c)=>s+(+c.pts||0),0),cnt=a=>b.criteres.filter(c=>c.afl===a).length,lp=isLP(),offOk=lp?(cnt('AFLP1')+cnt('AFLP2'))&&lpOthers().length===2:cnt('AFL1')&&cnt('AFL2')&&cnt('AFL3');
   document.getElementById('t-bareme').innerHTML=`
-  <div class="card"><h2>Grille de la voie : ${VOIES[S.voie]}</h2>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Grille de la voie : ${VOIES[S.voie]}</h2>${uiSw()}</div>
    <p class="muted">Le bouton « Lycée général / Lycée pro » en haut change de grille, de séquence et de classes. Charge une grille prête, puis modifie-la librement : elle est partagée entre tes tablettes.</p>
    <div class="row">${S.voie==='pro'?`<button class="btn ${b.grille==='lp'?'':'alt'}" onclick="loadGrille('lp')">📙 Terminale pro (ta grille AFLP)</button>`:`<button class="btn ${b.grille==='tleg'?'':'alt'}" onclick="loadGrille('tleg')">📘 Terminale générale (proposée)</button>`}<button class="btn ${b.grille==='origine'?'':'alt'}" onclick="loadGrille('origine')">📗 Grille d'origine (Additio, 4 × 25 %)</button></div>
    ${b.grille==='tleg'?`<div class="ok">Grille Terminale générale : ta grille d'origine a été recentrée sur le référentiel CA4 du lycée. L'AFL1 (12 pts) a deux éléments, « actions techniques d'attaque et de défense » et « choix au regard du rapport de force », comme dans les repères nationaux (chacun noté au moins sur 4 pts). L'AFL2 et l'AFL3 se partagent 8 pts au choix de l'élève. Les textes reprennent ta séquence : service qui crée le danger, volant favorable, zones de marque, coach et statistiques, partenaire en or. L'option « matchs gagnés » est activée : la note est ajustée selon les oppositions gagnées.</div>`:''}
@@ -2404,17 +2582,18 @@ function renderBareme(){
     <div class="seg"><button class="${b.mode==='perso'?'on':''}" onclick="setB('mode','perso')">Mon barème (points par critère)</button><button class="${b.mode==='officiel'?'on':''}" onclick="setB('mode','officiel')">${lp?'Officiel LP : AFLP1-AFLP2 /12 + 2 AFLP /8':'Officiel CA4 : AFL1 /12 + AFL2-AFL3 /8'}</button></div>
     ${b.mode==='perso'?`<p class="muted">Chaque critère vaut le nombre de points indiqué ; la note est ramenée sur 20.</p>${Math.abs(sum-20)>0.001?`<div class="warn">Total actuel : ${fr(sum)} pts — la note sera ramenée sur 20.</div>`:`<div class="ok">Total : 20 pts ✓</div>`}`
       :`<p class="muted">${lp?`Les critères AFLP1 et AFLP2 se partagent 12 pts ; les deux autres AFLP (${lpOthers().join(' et ')||'—'}) se partagent 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.`:'Les critères AFL1 se partagent 12 pts ; les critères AFL2 et AFL3 se partagent 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.'}</p>${offOk?'':`<div class="warn">${lp?'Il faut des critères AFLP1 ou AFLP2, et exactement deux autres AFLP.':'Il faut au moins un critère AFL1, un AFL2 et un AFL3.'}</div>`}`}
-    <div class="g4" style="margin-top:10px"><div><label class="l">Pas du curseur (pt)</label><select class="f" onchange="setB('pas',+this.value)">${[0.1,0.25,0.5].map(v=>`<option value="${v}" ${b.pas==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
+    <div class="g4 adv" style="margin-top:10px"><div><label class="l">Pas du curseur (pt)</label><select class="f" onchange="setB('pas',+this.value)">${[0.1,0.25,0.5].map(v=>`<option value="${v}" ${b.pas==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
       <div><label class="l">Arrondi de la note /20</label><select class="f" onchange="setB('arrondi',+this.value)">${[0.1,0.25,0.5,1].map(v=>`<option value="${v}" ${b.arrondi==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div></div></div>
   <div class="card"><div class="opt ${precMode()!=='off'?'on':''}"><div class="row" style="justify-content:space-between"><b>Évaluation précise de l'AFL1</b>${precSw()}</div>
     <p class="muted"><b>Observables :</b> pour chaque élément, 3 observables simples par degré (dont un chiffré, proposé d'après les matchs). Le degré atteint est le plus haut où au moins 2 cases sur 3 sont cochées, les degrés du dessous étant validés.<br><b>3 critères 1-2-3 :</b> frappes, zones, replacement / construction, adaptation, risque ; total sur 9 → degré (3-4 D1, 5-6 D2, 7-8 D3, 9 D4).</p></div></div>
   <div class="card"><div class="opt ${b.optMatchs?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optMatchs?'checked':''} onchange="setB('optMatchs',this.checked)" style="width:22px;height:22px"><b>Ajuster l'AFL1 selon les matchs gagnés</b></label>
     <p class="muted">Les matchs saisis sur le terrain (toutes tablettes) sont comptés automatiquement. Une fois le degré choisi, le curseur des critères AFL1 se place selon la part de matchs gagnés (nul = ½) : 0 % en bas du degré, 100 % en haut. Tu peux toujours le déplacer à la main.</p></div></div>
-  <div class="card"><h2>Degrés et bornes (en % des points du critère)</h2><div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
+  <div class="card adv"><h2>Degrés et bornes (en % des points du critère)</h2><div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
       <label class="l">Degré ${i+1}</label><input type="text" value="${esc(d)}" onchange="B().degres[${i}]=this.value;save()">
       <label class="l">Version élève</label><input type="text" value="${esc((b.degresEl||[])[i]||'')}" onchange="B().degresEl[${i}]=this.value;save()">
       <div class="row" style="margin-top:6px;flex-wrap:nowrap"><input type="number" min="0" max="100" value="${b.bandes[i][0]}" onchange="setBand(${i},0,this.value)"> à <input type="number" min="0" max="100" value="${b.bandes[i][1]}" onchange="setBand(${i},1,this.value)"> %</div></div>`).join('')}</div></div>
-  <div class="card"><h2>Critères</h2>${b.criteres.map((c,k)=>`<div class="bcrit">
+  <div class="card essonly"><h2>Critères</h2><div class="elist">${b.criteres.map(c=>`<div class="erow"><span class="nm">${esc(c.nom)}</span><span class="tag">${esc(c.afl)}</span>${b.mode==='perso'?`<span class="muted">${fr(+c.pts||0)} pts</span>`:''}</div>`).join('')}</div><p class="muted">Pour modifier les textes des critères, les degrés et les bornes, passe en mode <button class="btn alt sm" onclick="setUI('exp')">Expert</button>.</p></div>
+  <div class="card adv"><h2>Critères</h2>${b.criteres.map((c,k)=>`<div class="bcrit">
       <div class="g2"><div><label class="l">Critère</label><input type="text" value="${esc(c.nom)}" onchange="setC(${k},'nom',this.value)"></div>
         <div><label class="l">AFL</label><select class="f" onchange="setC(${k},'afl',this.value,true)">${(S.voie==='pro'?['AFLP1','AFLP2','AFLP3','AFLP4','AFLP5','AFLP6']:['AFL1','AFL2','AFL3']).map(a=>`<option ${c.afl===a?'selected':''}>${a}</option>`).join('')}</select></div>
         <div><label class="l">Points ${b.mode==='officiel'?'(mode perso)':''}</label><input type="number" step="0.5" min="0" value="${c.pts}" onchange="setC(${k},'pts',+this.value,true)"></div></div>
@@ -2562,7 +2741,8 @@ function blankClass(c){return c.nom==='Ma classe'&&!c.eleves.length&&!Object.key
 function seqMeta(q){const o=Object.assign({},q);o.ord=(q.lecons||[]).map(l=>l.id);delete o.lecons;return o}
 function syRecords(){const O={};
   S.classes.forEach(c=>{if(blankClass(c))return;
-    O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,voie:c.voie,ord:c.eleves.map(e=>e.id),tour:c.tour||null,coachAll:!!c.coachAll});
+    O['cl|'+c.id]=JSON.stringify({id:c.id,nom:c.nom,voie:c.voie,ord:c.eleves.map(e=>e.id),tour:c.tour||null,coachAll:!!c.coachAll,terr:c.terr||null,saisie:c.saisie||'',saisieG:c.saisieG||null});
+    Object.values(c.bilans||{}).forEach(b=>{O['bi|'+c.id+'|'+b.id]=JSON.stringify(b)});
     Object.values(c.groupes||{}).forEach(g=>{O['gr|'+c.id+'|'+g.id]=JSON.stringify(g)});
     c.eleves.forEach(e=>{O['el|'+c.id+'|'+e.id]=JSON.stringify(e)});
     Object.values(c.matchs||{}).forEach(m=>{O['ma|'+c.id+'|'+m.id]=JSON.stringify(m)});
@@ -2608,11 +2788,12 @@ function syApply(k,o){const p=k.split('|'),t=p[0];
   if(t==='ctr'){S.contrats=o;return}
   if(t==='cl'){let c=S.classes.find(x=>x.id===o.id);
     if(!c){c=S.classes.find(x=>norm(x.nom)===norm(o.nom)&&x.voie===(o.voie||'gt'));if(c)c.id=o.id;else c=syCls(o.id,o.nom)}
-    c.nom=o.nom;c.voie=o.voie==='pro'?'pro':'gt';c.tour=o.tour||null;c.coachAll=!!o.coachAll;sortBy(c.eleves,o.ord);return}
+    c.nom=o.nom;c.voie=o.voie==='pro'?'pro':'gt';c.tour=o.tour||null;c.coachAll=!!o.coachAll;c.terr=o.terr||null;c.saisie=o.saisie||'';c.saisieG=o.saisieG||null;sortBy(c.eleves,o.ord);return}
   const c=syCls(p[1]);
   if(t==='ma'){c.matchs[o.id]=o;return}
   if(t==='po'){c.poules[o.id]=o;return}
-  if(t==='gr'){c.groupes=c.groupes||{};c.groupes[o.id]=o;return}
+  if(t==='gr'){c.groupes=c.groupes||{};try{stepNotice(c,c.groupes[o.id],o)}catch(e){}c.groupes[o.id]=o;return}
+  if(t==='bi'){c.bilans=c.bilans||{};c.bilans[o.id]=o;return}
   if(t==='el'){o.ev=o.ev||{};const i=c.eleves.findIndex(e=>e.id===o.id);if(i>=0){c.eleves[i]=o;return}
     const j=c.eleves.findIndex(e=>nkey(e.prenom+' '+e.nom)===nkey(o.prenom+' '+o.nom));if(j>=0&&!hasData(c.eleves[j]))c.eleves[j]=o;else c.eleves.push(o)}}
 function syRemove(k){const p=k.split('|'),t=p[0],c=S.classes.find(x=>x.id===p[1]);
@@ -2621,6 +2802,7 @@ function syRemove(k){const p=k.split('|'),t=p[0],c=S.classes.find(x=>x.id===p[1]
   else if(t==='ma'&&c)delete c.matchs[p[2]];
   else if(t==='po'&&c)delete c.poules[p[2]];
   else if(t==='gr'&&c&&c.groupes)delete c.groupes[p[2]];
+  else if(t==='bi'&&c&&c.bilans)delete c.bilans[p[2]];
   else if(t==='le'){const q=S.prof[p[1]]&&S.prof[p[1]].seq;if(q)q.lecons=q.lecons.filter(l=>l.id!==p[2])}
   else if(t==='te')S.tech=S.tech.filter(f=>f.id!==p[1]);
   else if(t==='pr')S.presets=S.presets.filter(x=>x.id!==p[1])}
@@ -2679,7 +2861,7 @@ function syUpd(){const el=document.getElementById('syncSt'),ic=document.getEleme
   else if(SY.err){txt=SY.err+(n?' ('+n+" élément(s) en attente d'envoi)":'');icon='⚠️'}
   else if(n){txt=n+" élément(s) en attente d'envoi.";icon='🔄'}
   else{txt='✓ Classes, notes, matchs, leçons, situations et fiches techniques sauvegardés en ligne (chiffrés)'+(SY.last?', dernier échange à '+new Date(SY.last).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'')+'. Retrouvés sur toutes tes tablettes.';icon='☁️'}
-  if(el)el.textContent=txt;if(ic){ic.textContent=icon;ic.title=txt}}
+  if(el)el.textContent=txt;if(ic){const q=syShort();ic.innerHTML=icon+' <small class="syb">'+esc(q.t)+'</small>';ic.title=txt}const lp=document.querySelector('#t-live .sypill');if(lp){const q=syShort();lp.className='sypill '+q.c;lp.textContent=q.i+' '+q.t}}
 addEventListener('online',()=>syncSoon(300));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncSoon(300)});
 addEventListener('storage',ev=>{if(ev.key==='eps.share.v1'){syUpd();syncSoon(300)}});
@@ -2703,7 +2885,7 @@ window.epsListsHook={save:()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}c
 /* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 const tabNow=()=>{const b=document.querySelector('#nav button.on');return b?b.dataset.t:''};
 window.EPSTB=window.EPST?EPST.init({app:'bad',nom:'Badminton',color:'#0B7A75',isTeacher:()=>isUnlocked(),anchor:'header',main:'main',home:'seq',
- tabs:{seq:{go:()=>showTab('seq'),on:()=>['seq','match','terrain'].includes(tabNow()),actions:[{ico:'📅',label:'Séquence',go:()=>showTab('seq')},{ico:'📊',label:'Matchs & stats',go:()=>showTab('match')},{ico:'🏸',label:'Terrain & scoring',go:()=>showTab('terrain')}]},
+ tabs:{seq:{go:()=>showTab('seq'),on:()=>['seq','match','terrain','live'].includes(tabNow()),actions:[{ico:'📅',label:'Séquence',go:()=>showTab('seq')},{ico:'🟢',label:'Leçon en direct',go:()=>showTab('live')},{ico:'📊',label:'Matchs & stats',go:()=>showTab('match')},{ico:'🏸',label:'Terrain & scoring',go:()=>showTab('terrain')}]},
   eval:{go:()=>showTab('eval'),on:()=>['eval','bareme'].includes(tabNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>showTab('eval')},{ico:'🧮',label:'Barème et critères',go:()=>showTab('bareme')}]},
   cls:{go:()=>showTab('eleves'),on:()=>tabNow()==='eleves'},
   bil:{go:()=>showTab('bilan'),on:()=>tabNow()==='bilan'}}}):null;
