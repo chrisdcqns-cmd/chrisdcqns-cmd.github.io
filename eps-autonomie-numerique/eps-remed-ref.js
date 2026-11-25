@@ -111,7 +111,7 @@ window.EPS_REMED_REF = {
       src: "ac. Strasbourg, maquette escalade (problèmes de lecture de voie) ; éduscol, contrôle de la chaîne d'assurage" },
     { ap: "assurage, parade", afl: "CA2", t: "Les gestes de l'assurage, au sol",
       cons: "Au sol, sans grimpeur dans la voie : avec un système d'assurage et une corde, répète les gestes de l'assurage (avaler, bloquer, changer de main) en disant chaque étape. Un camarade vérifie avec la fiche. Assurer un grimpeur se fait seulement sous le contrôle de ton professeur.",
-      crQ: "10 cycles de suite sans jamais lâcher la corde côté frein", crQl: "La main de frein reste toujours sous le système",
+      crQ: "10 avalements de corde de suite sans jamais lâcher la corde côté frein", crQl: "La main de frein reste toujours sous le système",
       crR: "Main de frein toujours sur la corde, sous le système ; avaler la corde, bloquer, remonter les mains sans lâcher ; regarder le grimpeur (imaginaire) en permanence",
       simp: "Plus lentement, avec la fiche des étapes", comp: "Un camarade donne des ordres « sec ! », « du mou ! » au hasard",
       src: "Protocoles de sécurité escalade (éduscol, ac. Strasbourg, Grenoble, Nice : vérification par l'enseignant, co-vérification)" }

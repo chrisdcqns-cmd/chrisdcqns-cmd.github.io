@@ -1867,7 +1867,7 @@ function printBilans(list) {
    table{border-collapse:collapse;width:100%;font-size:8.5pt}td,th{border:1px solid #999;padding:1mm 1.5mm;text-align:left}.refl{margin-top:3mm;font-size:9pt}.refl .l{border-bottom:1px solid #999;height:7mm}`);
 }
 
-// ---------- 3. progression sur le cycle (enseignant) ----------
+// ---------- 3. progression sur la séquence (enseignant) ----------
 async function openProgression() {
   const L = (await DB.get("sessions")) || [], sessions = [];
   for (const x of L) { const X = S?.code === x.code ? S : await DB.get("session:" + x.code); if (X) sessions.push(X); }
@@ -1881,7 +1881,7 @@ async function openProgression() {
   }));
   const list = Object.values(people).sort((x, y) => (x.cl || "").localeCompare(y.cl || "") || x.nom.localeCompare(y.nom));
   const cls = [...new Set(list.map(p => p.cl).filter(Boolean))];
-  const m = openModal(`<h2>📈 Progression sur le cycle</h2><p class="muted" style="margin-top:-6px">${sessions.length} leçon(s) · ${list.length} élève(s). Les élèves sont reconnus par leur nom (ordre des mots, accents et majuscules sans importance). Touche un élève pour voir ses courbes.</p>
+  const m = openModal(`<h2>📈 Progression sur la séquence</h2><p class="muted" style="margin-top:-6px">${sessions.length} leçon(s) · ${list.length} élève(s). Les élèves sont reconnus par leur nom (ordre des mots, accents et majuscules sans importance). Touche un élève pour voir ses courbes.</p>
    <div class="row" style="margin-bottom:10px"><select class="inp" id="pCl" style="max-width:220px"><option value="">Toutes les classes</option>${cls.map(c => `<option>${esc(c)}</option>`).join("")}</select><button class="btn alt" id="pCsv">⬇ CSV</button></div>
    <div class="tw" id="pTab"></div>`, { wide: true });
   const cell = r => r ? `<b>${r.a.found}/${r.a.total}</b> · ${fmtDur(r.a.temps)}<br><small class="muted">${r.a.vitesse ? fmtNum(r.a.vitesse) + " km/h" : "–"} · ${r.a.erreurs} err. · ${esc(r.R.c)}</small>` : '<span class="muted">–</span>';
@@ -2227,10 +2227,10 @@ async function viewBiblio(v) {
   const all = [...BIBLIO, ...mine];
   const list = all.filter(L => filt === "tout" || (filt === "mes" ? L.mine : L.cat === filt && !L.mine));
   v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>📚 Bibliothèque de leçons</h2>
-    <p class="muted" style="margin-top:-6px">Un cycle de course d'orientation au format fiche de leçon (CA2 : adapter son déplacement à des environnements variés et/ou incertains), des situations courtes, et tes propres leçons. Chaque fiche peut créer le parcours OrienRun déjà réglé.</p>
-    <div class="row"><div class="cchips">${[["cycle", "Cycle (10 leçons)"], ["situation", "Situations courtes"], ["mes", `Mes leçons (${mine.length})`], ["tout", "Tout"]].map(([k, l]) => `<button class="btn small ${filt === k ? "" : "ghost"}" data-f="${k}">${l}</button>`).join("")}</div><span class="grow"></span>
+    <p class="muted" style="margin-top:-6px">Une séquence de course d'orientation au format fiche de leçon (CA2 : adapter son déplacement à des environnements variés et/ou incertains), des situations courtes, et tes propres leçons. Chaque fiche peut créer le parcours OrienRun déjà réglé.</p>
+    <div class="row"><div class="cchips">${[["cycle", "Séquence (10 leçons)"], ["situation", "Situations courtes"], ["mes", `Mes leçons (${mine.length})`], ["tout", "Tout"]].map(([k, l]) => `<button class="btn small ${filt === k ? "" : "ghost"}" data-f="${k}">${l}</button>`).join("")}</div><span class="grow"></span>
      <div class="cchips"><button class="btn small ${niv === "pro" ? "vi" : "ghost"}" data-niv="pro">Bac pro (AFLP)</button><button class="btn small ${niv === "gt" ? "vi" : "ghost"}" data-niv="gt">Bac GT (AFL)</button></div></div>
-    <div class="row" style="margin-top:10px"><button class="btn or" id="blNew">＋ Nouvelle leçon</button><button class="btn alt" id="blPlan">🖨 Plan de cycle</button><button class="btn ghost" id="blExp">⬇ Exporter mes leçons</button><button class="btn ghost" id="blImp">⬆ Importer</button></div></div>
+    <div class="row" style="margin-top:10px"><button class="btn or" id="blNew">＋ Nouvelle leçon</button><button class="btn alt" id="blPlan">🖨 Plan de séquence</button><button class="btn ghost" id="blExp">⬇ Exporter mes leçons</button><button class="btn ghost" id="blImp">⬆ Importer</button></div></div>
     <div class="grid2" style="margin-top:14px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr))">${list.map(L => `<button class="panel" data-l="${esc(L.id)}" style="margin:0;text-align:left;display:flex;flex-direction:column;gap:6px;border-left:6px solid ${L.mine ? "var(--violet)" : L.cat === "situation" ? "var(--sun)" : "var(--orange)"}">
       <div class="row" style="gap:6px"><span class="chip ${L.cat === "situation" ? "wait" : "or"}">${L.n ? "Leçon " + L.n : L.cat === "situation" ? "Situation" : "Leçon"}</span><span class="chip">${esc(L.duree || "")}</span>${L.mine ? '<span class="chip vi">Ma leçon</span>' : ""}</div>
       <b style="font-family:var(--cond);font-size:1.4rem;line-height:1.05">${esc(L.titre)}</b><span class="muted">${esc(L.theme || "")}</span>
@@ -2293,7 +2293,7 @@ function editLecon(L, isNew) {
   const ta = (id, label, val, rows = 2) => `<div class="field"><label>${label}</label><textarea class="inp" id="${id}" style="min-height:${rows * 26 + 20}px">${esc(Array.isArray(val) ? val.join("\n") : val || "")}</textarea></div>`;
   const m = openModal(`<h2>${isNew ? "Nouvelle leçon" : "Modifier la leçon"}</h2><p class="muted" style="margin-top:-6px">Pour les listes : une ligne = un élément.</p>
    <div class="grid2"><div class="field"><label>Titre</label><input class="inp" id="eT" value="${esc(L.titre)}"></div><div class="field"><label>Thème</label><input class="inp" id="eTh" value="${esc(L.theme || "")}"></div>
-    <div class="field"><label>N° dans le cycle (facultatif)</label><input class="inp" id="eN" type="number" min="1" value="${L.n || ""}"></div><div class="field"><label>Durée</label><input class="inp" id="eD" value="${esc(L.duree || "")}"></div></div>
+    <div class="field"><label>N° dans la séquence (facultatif)</label><input class="inp" id="eN" type="number" min="1" value="${L.n || ""}"></div><div class="field"><label>Durée</label><input class="inp" id="eD" value="${esc(L.duree || "")}"></div></div>
    <div class="lbl">AFLP (bac pro)</div><div class="cchips" style="margin:6px 0 10px">${[1, 2, 3, 4, 5, 6].map(i => `<label class="chip" title="${esc(AFLP[i])}" style="padding:6px 10px"><input type="checkbox" data-aflp="${i}" ${L.aflp?.includes(i) ? "checked" : ""}> AFLP${i}</label>`).join("")}</div>
    <div class="lbl">AFL (bac GT)</div><div class="cchips" style="margin:6px 0 10px">${[1, 2, 3].map(i => `<label class="chip" title="${esc(AFL[i])}" style="padding:6px 10px"><input type="checkbox" data-afl="${i}" ${L.afl?.includes(i) ? "checked" : ""}> AFL${i}</label>`).join("")}</div>
    ${ta("eObj", "Objectif de la leçon", L.objectif)}${ta("eEch", "Échauffement", L.echauffement)}
@@ -2320,7 +2320,7 @@ function editLecon(L, isNew) {
 }
 function printPlan(list) {
   const niv = blibNiv();
-  printWin("Plan de cycle – course d'orientation", `<h1>Plan de cycle — Course d'orientation (CA2)</h1><p>Classe : ……………… · Période : ……………… · Lieu : ………………</p>
+  printWin("Plan de séquence – course d'orientation", `<h1>Plan de séquence — Course d'orientation (CA2)</h1><p>Classe : ……………… · Période : ……………… · Lieu : ………………</p>
    <table><thead><tr><th>Leçon</th><th>Titre et thème</th><th>${niv === "gt" ? "AFL" : "AFLP"}</th><th>Objectif</th><th>Situation principale</th><th>OrienRun</th></tr></thead><tbody>${list.map(L => `<tr><td><b>${L.n || ""}</b></td><td><b>${esc(L.titre)}</b><br><small>${esc(L.theme || "")}</small></td><td>${attendus(L, niv).map(a => a.k).join(", ")}</td><td>${esc(L.objectif || "")}</td><td><b>${esc(L.sit?.nom || "")}</b><br><small>${esc(L.sit?.but || "")}</small></td><td><small>${L.o ? esc(modeNom[L.o.mode] || "") + (L.o.prep ? ` · prépa ${L.o.prep} min` : "") + (L.o.tm ? ` · ${L.o.tm} min` : "") : "–"}</small></td></tr>`).join("")}</tbody></table>
    <h3>${niv === "gt" ? "Attendus de fin de lycée (bac GT)" : "Attendus de fin de lycée professionnel"} — CA2</h3><ul>${Object.entries(niv === "gt" ? AFL : AFLP).map(([i, t]) => `<li><b>${niv === "gt" ? "AFL" : "AFLP"}${i}</b> — ${esc(t)}</li>`).join("")}</ul>`,
     `@page{size:A4 landscape;margin:9mm}h1{font-size:16pt}table{border-collapse:collapse;width:100%;font-size:8.5pt}td,th{border:1px solid #999;padding:1.5mm;vertical-align:top;text-align:left}th{background:#f3efe4}h3{font-size:11pt;margin-top:5mm}li{font-size:9pt}`);

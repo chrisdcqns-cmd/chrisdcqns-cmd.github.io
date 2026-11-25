@@ -15,6 +15,9 @@ Quand l'enseignant demande une nouvelle appli, elle reprend **la même forme que
 - 👁 Vue élève (`EPST.openVue`) et 🧪 leçon simulée doivent fonctionner : vérifier les deux avant de publier.
 - Paramètres réglables déclarés par `EPSP.p` (visibles dans la console, 🎛 Paramètres).
 
+## 🖥 Tablette de contrôle (toutes les activités)
+- eps-lecons.js `ctlOpen({cls})` (action « 🖥 Tablette de contrôle » de 📅 Séquence, `main:1`, et `EPSLC.controle()`) : fenêtre `#lc-ctl` actualisée toutes les 8 s (avec `EPSD.syncSoon`) : leçon lancée et étape, présents (appel), tablettes actives depuis 5 min (`EPSD.tabList(APP)`), résultats du jour par situation (`eps.lecres`, « à reprendre » au-delà de 40 % de ❌), carte par élève (résultats, autonomie `@auto`, remédiation en cours, dernière observation), élèves sans retour, groupes du jour. Lecture seule ; « 📡 Piloter la leçon » ouvre Leçon en cours. Les suivis propres à une appli (grimpes en escalade, tableau de bord acrosport, CO en direct…) restent dans leurs actions.
+
 ## ✋ Confirmation avant tout ajout rédigé par Claude
 - Tout ce que Claude rédige (fiche proposée, variantes d'une séquence, rubriques complétées, remise en forme d'une fiche, situation de remédiation) passe par `aiConfirm(items, {titre, oui})` d'eps-lecons.js : aperçu (`aiSum`), puis « ✓ Ajouter » ou « ✕ Ne rien ajouter » ; rien n'est enregistré avant. Traitements par lot (mise en fiches des documents, remise en forme de toutes les fiches, trames) : confirmation au départ. Les propositions de l'assistant de la console ne s'appliquent qu'au clic. Toute nouvelle fonction qui crée du contenu avec Claude doit faire de même.
 

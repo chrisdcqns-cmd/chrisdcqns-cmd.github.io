@@ -1771,11 +1771,11 @@
         stPutRaw("eps.obs.v1", { id: "demo-" + a + "-" + i, demo: 1, app: a, cls: DEMO, el: x[0], txt: x[1], raw: x[1], t: Date.now() - (3 - i) * 600000, day: dk }); });
       /* 🏁 résultats des situations notés par les élèves (bilan de séquence) : la situation 2 « pèche » */
       var V0 = [2, 2, 1, 0, 2, 2, 1, 2], V1 = [2, 1, 0, 0, 1, 2, 0, 1], V2 = [2, 1, 1, 0, 2, 1, 0, 1], cn = (window.EPSL ? EPSL.norm(DEMO) : norm(DEMO)).replace(/\s+/g, "");
-      DEMO_EL.forEach(function (n, i) { var k = nkey(n), r = {}; r["demo-" + a + ":s0"] = V0[i]; r["demo-" + a + ":s1"] = V1[i]; r["demo-" + a + ":rem"] = V2[i];
+      DEMO_EL.forEach(function (n, i) { if (n === "Jade Démo") return; /* absente à l'appel du jour */ var k = nkey(n), r = {}; r["demo-" + a + ":s0"] = V0[i]; r["demo-" + a + ":s1"] = V1[i]; r["demo-" + a + ":rem"] = V2[i];
         stPutRaw("eps.lecres." + a + ".v1", { id: cn + "|" + dk + "|" + k, demo: 1, cls: DEMO, day: dk, ek: k, r: r }); });
       /* 📊 évaluation de leçon du jour (participation, sérieux, thème) : reprise par la note proposée et le bulletin */
       var LE = [[3, 3, 2], [3, 2, 2], [2, 2, 1], [1, 1, 0], [3, 3, 3], [2, 3, 2], [1, 2, 1], [2, 2, 2]], el = {};
-      DEMO_EL.forEach(function (n, i) { el[nkey(n)] = { p: LE[i][0], s: LE[i][1], t: LE[i][2] }; });
+      DEMO_EL.forEach(function (n, i) { if (n !== "Jade Démo") el[nkey(n)] = { p: LE[i][0], s: LE[i][1], t: LE[i][2] }; });
       stPutRaw("eps.leceval." + a + ".v1", { id: cn + "|" + dk, demo: 1, cls: DEMO, day: dk, lec: "demo-" + a, theme: "Situation de la leçon de démonstration", el: el });
     });
     try { abSet(DEMO, ["Jade Démo"]); } catch (e) {}
