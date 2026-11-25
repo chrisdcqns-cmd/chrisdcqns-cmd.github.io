@@ -393,6 +393,44 @@ body:has(#home.hidden) .homebar{display:none}
 html:not(.eps-teach) #profHome{display:none}
 .epse-open{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer}
 html:not(.eps-teach) .epse-open,html.epst-on .epse-open{display:none}
+/* parcours de leçon */
+.stepBar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 0 4px}
+.stepBar .stp{display:flex;align-items:center;gap:6px;min-height:40px;padding:4px 12px 4px 5px;border-radius:99px;border:1px solid #E6E1D6;background:#fff;color:#14171C;font-weight:700;font-size:.85rem;cursor:pointer}
+.stepBar .stp i{font-style:normal;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#E6E1D6;font-weight:800}
+.stepBar .stp.done{color:#2E7D4F}.stepBar .stp.done i{background:#2E7D4F;color:#fff}
+.stepBar .stp.cur{border-color:#1F4FA3;box-shadow:0 0 0 3px #1F4FA333}.stepBar .stp.cur i{background:#1F4FA3;color:#fff}
+.stepBar .stpSep{color:#6A6F78;font-weight:400}.stepBar .stpAll{margin-left:8px;font-weight:800;color:#2E7D4F}
+.linkBtn{background:none;border:0;color:#1F4FA3;text-decoration:underline;font-weight:600;padding:8px 0;min-height:40px;cursor:pointer}
+.newPw{margin:12px 0;padding:14px;border-radius:14px;background:#FFF6DA;border:2px solid #F4B63F;text-align:center;font-weight:700}
+.newPw b{display:block;font-size:2.6rem;letter-spacing:.2em;margin-top:4px}
+/* mode répétition */
+#repMode{position:fixed;inset:0;z-index:300;background:#F5F3EE;overflow:auto;display:flex;flex-direction:column}
+#repMode .repTop{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;background:#14171C;color:#fff;padding:10px 16px;box-shadow:inset 0 -4px 0 #1F4FA3}
+#repMode .repTop b{font-size:1.4rem}#repMode .repTop small{color:#A9AEB8;font-weight:700}
+#repMode .repX{min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #3A3F47;background:none;color:#D5D8DE;font-weight:700}
+#repMode .repBody{flex:1;padding:14px 16px;max-width:1200px;width:100%;margin:0 auto;box-sizing:border-box}
+#repMode .repParts{display:grid;gap:14px}
+#repMode .repPart{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;background:#fff;border:1px solid #E6E1D6;border-radius:16px;padding:12px}
+@media(max-width:760px){#repMode .repPart{grid-template-columns:1fr}}
+#repMode .repVid video{width:100%;max-height:52vh;border-radius:12px;background:#000}
+#repMode .repInfo h3{margin:0 0 8px;font-size:1.3rem}
+#repMode .repRoles{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}#repMode .repRoles>span{background:#F5F3EE;border-radius:10px;padding:6px 10px;font-weight:700}
+#repMode .desc p{margin:4px 0}
+#repMode .repTimer{display:flex;align-items:center;gap:16px;justify-content:center;margin:16px 0 4px}
+#repMode .repTimer output{font-size:2.6rem;font-weight:900;min-width:3ch;text-align:center}#repMode .repTimer output.go{color:#1F4FA3}#repMode .repTimer output.ok{color:#2E7D4F;font-size:2rem}
+#repMode .repNav{position:sticky;bottom:0;display:flex;gap:10px;justify-content:space-between;padding:10px 16px;background:#F5F3EEee;border-top:1px solid #E6E1D6}
+#repMode .repEnd{text-align:center;padding:30px 10px}#repMode .repBig{font-size:4rem}
+/* observation : grille essentielle, rotation */
+.gridSeg{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.rotNote{background:#EAF0FB;border-color:#1F4FA3}
+/* assistant, tableau de bord */
+.wz{display:grid;gap:10px}.wzRow{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid #E6E1D6;border-radius:14px;padding:10px 12px}
+.wzRow .field{flex:1;margin:0}.wzN{flex:none;width:34px;height:34px;border-radius:50%;background:#1F4FA3;color:#fff;display:grid;place-items:center;font-weight:800}
+.dashSum{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.dashSum span{background:#fff;border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px}
+.tObs.dash td{vertical-align:top}.dThumbs{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;align-items:center}.dThumbs img{width:34px;height:34px;object-fit:cover;border-radius:6px;background:#F5F3EE}.dThumbs .sep{width:6px}
+.dAct{white-space:nowrap}.dAct .btn{margin:2px}
+.rotList{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.rotList span{background:#EAF0FB;border-radius:10px;padding:6px 10px}
+.profTools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 </style>
 </head>
 <body>
@@ -420,6 +458,7 @@ html:not(.eps-teach) .epse-open,html.epst-on .epse-open{display:none}
         <div class="field" style="flex:none"><button class="btn sun" id="enterBtn">Entrer →</button></div>
       </div>
       <p class="muted" id="listStatus" style="margin:0;font-size:.9rem"></p>
+      <button class="linkBtn onlyOnline" id="forgotPw" type="button">Mot de passe oublié ?</button>
       <div class="row" style="margin-top:10px"><button class="btn alt small" id="newGroupBtn">+ Créer un nouveau groupe</button></div>
       <div id="createForm" class="createBox hidden">
         <h3>Nouveau groupe</h3>
@@ -467,6 +506,7 @@ html:not(.eps-teach) .epse-open,html.epst-on .epse-open{display:none}
       <button class="tab profOnly" data-tab="path">Mon parcours</button>
       <button class="tab" data-tab="bonus">Bonus</button>
     </nav>
+    <div id="stepBar" class="stepBar hidden" aria-label="Étapes de la leçon"></div>
   </header>
   <main>
     <div id="tab-videos"></div>
@@ -882,6 +922,7 @@ function renderPicker(){
 }
 document.getElementById("addMember").onclick=()=>{if(draftMembers.length<6){draftMembers.push("");renderMembers();
   document.querySelector(`#members input[data-i="${draftMembers.length-1}"]`).focus()}};
+document.getElementById("forgotPw").onclick=()=>forgotPw();
 document.getElementById("newGroupBtn").onclick=()=>{
   const f=document.getElementById("createForm");f.classList.toggle("hidden");
   if(!f.classList.contains("hidden")) setTimeout(()=>document.getElementById("gName").focus(),50);
@@ -1010,6 +1051,9 @@ function showTab(name){
   if(name==="obs") renderObs();
   if(name==="bonus") renderBonus();
   if(name==="path") renderPath();
+  if(name==="bonus"&&bonusSec==="warm") stepMark("warm");
+  if(name==="obs") refreshClasses().then(()=>{if(curTab==="obs"&&!modalStack.length)renderObs()}).catch(()=>{});
+  renderSteps();
 }
 
 /* ---------- filtres + grille ---------- */
@@ -1295,7 +1339,7 @@ function renderBonus(){
   }
   h+=`<p class="credits">Contenus : répertoire AcroEPS niveau intermédiaire, M. Avisse &amp; Y. Tomaszower – Académie de Créteil.</p>`;
   root.innerHTML=h;
-  root.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{bonusSec=b.dataset.sec;renderBonus()});
+  root.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{bonusSec=b.dataset.sec;if(bonusSec==="warm"){stepMark("warm");renderSteps()}renderBonus()});
   root.querySelectorAll("[data-warm]").forEach(b=>b.onclick=()=>{
     const w=BONUS.warm[+b.dataset.warm];
     const m=openModal(`<div class="sheet"><button class="close" data-close>×</button><span class="fbadge duo">${esc(w.lvl)}</span><h2>${esc(w.title)}</h2>
@@ -1353,13 +1397,13 @@ function pickFor(i,j){
   draw();
 }
 function renderRoutine(){
-  ensureSlots();
+  ensureSlots();setTimeout(()=>{renderSteps();const rb=document.getElementById("repBtn");if(rb)rb.onclick=()=>openRepeat(0)},0);
   const n=lessonN(), c=G.current;
   const root=document.getElementById("tab-routine");
   const filled=c.slots.slice(0,n).filter(s=>partsOf(s).length).length;
   const hiddenCount=c.slots.slice(n).filter(s=>partsOf(s).length).length;
   let html=`<div class="lessonHead"><h2>Mon enchaînement</h2><span class="pill">Leçon du jour : ${n} figure${n>1?"s":""}</span>
-     <span class="muted">${filled}/${n} choisie${n>1?"s":""}</span></div>
+     <span class="muted">${filled}/${n} choisie${n>1?"s":""}</span>${filled?`<button class="btn sun small" id="repBtn" style="margin-left:auto">▶ Mode répétition</button>`:""}</div>
      <p class="muted" style="margin:-6px 0 12px">Une figure peut réunir plusieurs pyramides faites <b>en même temps</b> (ex. un duo + un trio) : elles comptent pour une seule figure.</p>`;
   if(hiddenCount) html+=`<div class="note">${hiddenCount} figure(s) de ta dernière leçon sont gardées en réserve (aujourd'hui l'enseignant demande ${n} figure${n>1?"s":""}).</div>`;
   html+=`<div class="flow">`;
@@ -1693,7 +1737,7 @@ function draft(){if(!G.obsDraft) G.obsDraft=newDraft(); return G.obsDraft}
 function obsSummary(o){let ok=0,total=0;for(const v of Object.values(o.marks||{})){if(v){total++;if(v===3)ok++}}return {ok,total}}
 function markBtn(o,key,ro){const mk=o.marks||{};const v=mk[key]||mk[key.replace(/^f(\d+)p0\|/,"f$1|")]||0;return `<button class="mark m${v}" ${ro?"disabled":""} data-k="${esc(key)}">${MARKS[v]||"·"}</button>`}
 function critColumn(o,group,cols,prefix,ro,extra="",set){
-  const g=(set||CRIT)[group];
+  const g0=(set||CRIT)[group], ess=!ro&&obsEss?essItems(group,set||CRIT):null, g=ess?{label:g0.label,items:g0.items.filter(x=>ess.includes(x[0]))}:g0;
   return `<div class="ocol"><div class="ocolHead"><b>${g.label}</b>${cols.length?`<div class="whos">${cols.map(c=>`<span>${c.label}</span>`).join("")}</div>`:""}</div>${extra}
     ${cols.length?g.items.map(([id,t,dsc])=>{const ik=prefix+"|"+group+"|"+id;return `<div class="crow"><button class="cname" data-info="${ik}">${t} <i>ⓘ</i></button><div class="cm">${cols.map(c=>markBtn(o,prefix+"|"+c.id+"|"+id,ro)).join("")}</div></div>${obsInfo===ik?`<div class="cdesc">${dsc}</div>`:""}`}).join("")
       :`<p class="muted" style="margin:6px 0">Aucun rôle dans cette figure.</p>`}</div>`;
@@ -1789,6 +1833,9 @@ function renderObs(){
   const root=document.getElementById("tab-obs"), o=draft();
   if(obsGroupList===null){root.innerHTML=`<p class="muted">Chargement des groupes…</p>`;obsGroupsLoad();return}
   if(obsHistory===null){obsHistory=[];loadHistory()}
+  const tgt=rotTarget();
+  if(tgt&&!o.observed&&!o.rotTried&&obsGroupList.some(g=>norm(g.nom)===norm(tgt))){o.rotTried=1;persist();root.innerHTML=`<p class="muted">🔄 Rotation du jour : chargement de l'enchaînement de ${esc(tgt)}…</p>`;rotAutoPick(o,tgt);return}
+  obsEss=obsGridMode(o)==="ess";
   const opts=obsGroupList.map(g=>`<option value="${esc(g.nom)}" ${o.observed&&norm(o.observed.nom)===norm(g.nom)?"selected":""}>${esc(g.nom)}${g.membres?" — "+esc(g.membres):""}</option>`).join("");
   let html=`<div class="obsTop">
       <div class="field" style="flex:2;min-width:240px"><label>Groupe observé</label><select class="inp" id="obsGroup"><option value="">— choisir —</option>${opts}</select></div>
@@ -1796,6 +1843,8 @@ function renderObs(){
       <div class="field" style="flex:none"><label>&nbsp;</label><button class="btn alt small" id="obsNew">+ Nouvelle observation</button></div>
     </div>
     <div class="legend"><span>Touche une case :</span><span class="mark m1 lg">✗ non réussi</span><span class="mark m2 lg">~ en cours</span><span class="mark m3 lg">✓ réussi</span><span class="muted">ⓘ = détail du critère</span></div>`;
+  if(tgt) html+=`<div class="note rotNote" style="margin:0 0 10px">🔄 <b>Rotation du jour</b> (réglée par l'enseignant) : ${esc(G.name)} observe <b>${esc(tgt)}</b>.</div>`;
+  if(o.routine) html+=`<div class="gridSeg"><span class="seg" style="margin:0"><span class="lbl" style="min-width:0">Grille</span><button data-grid="ess" class="${obsEss?"on":""}">⭐ Essentielle</button><button data-grid="full" class="${obsEss?"":"on"}">Complète</button></span><span class="muted" style="font-size:.85rem">${obsEss?"Les critères les plus importants (2 ou 3 par rôle). Passe à la grille complète quand tu es à l'aise.":"Tous les critères."}</span></div>`;
   if(o.routine&&o.date) html+=`<div class="note okNote" style="margin:0 0 10px">✓ Observation enregistrée à ${new Date(o.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}. Tu peux la corriger puis l'enregistrer à nouveau. Pour un <b>autre passage</b> : « + Nouvelle observation ».</div>`;
   if(!o.routine) html+=`<div class="panel" style="text-align:center"><p style="margin:0"><b>Choisis le groupe observé</b> : son enchaînement enregistré s'affiche ici avec les critères.</p></div>`;
   else{
@@ -1838,6 +1887,7 @@ function renderObs(){
     const card=b.closest(".figObs"); if(card){const i=card.dataset.fi;let ok=0,t=0;for(const [kk,vv] of Object.entries(o.marks))if((kk.startsWith("f"+i+"p")||kk.startsWith("f"+i+"|"))&&vv){t++;if(vv===3)ok++}card.querySelector(".sc").textContent=t?`${ok}/${t} ✓`:""}
   });
   root.querySelectorAll("[data-moment]").forEach(b=>b.onclick=()=>{safetyMoment=b.dataset.moment;renderObs()});
+  root.querySelectorAll("[data-grid]").forEach(b=>b.onclick=()=>{o.grid=b.dataset.grid;persist();renderObs()});
   const addErr=t=>{o.safety.push({type:t,moment:safetyMoment,t:Date.now()});persist();renderObs();toast("Erreur notée : "+t)};
   root.querySelectorAll("[data-err]").forEach(b=>b.onclick=()=>{
     if(b.dataset.err!=="?"){addErr(b.dataset.err);return}
@@ -1875,7 +1925,7 @@ async function saveProgress(){
       const st=!G.dirty?"ok":credFor(G)?"wait":"nopw";
       const box=m.querySelector("#stBox"); if(box) box.innerHTML=statusBox(st,"La progression est");
     }
-  }finally{saving=false;updateBadge()}
+  }finally{saving=false;updateBadge();renderSteps()}
 }
 async function saveObservation(){
   if(saving) return;
@@ -1899,7 +1949,7 @@ async function saveObservation(){
       const box=m.querySelector("#stBox"); if(box) box.innerHTML=statusBox(outboxState(o.id),"L'observation est");
       obsHistory=null; if(curTab==="obs"&&!modalStack.length) renderObs();
     }
-  }finally{saving=false;updateBadge()}
+  }finally{saving=false;updateBadge();renderSteps()}
 }
 document.getElementById("saveBtn").onclick=()=>curTab==="obs"?saveObservation():saveProgress();
 
@@ -1982,6 +2032,7 @@ function profPanel(){
   const hashN=(location.hash||"").match(/^#pyramides-(\d{1,2})$/);
   const m=openModal(`<div class="sheet" style="max-width:720px"><button class="close" data-close>×</button>
     <h2>Espace enseignant</h2>
+    <div class="profTools"><button class="btn sun small" id="ptWiz">🚀 Démarrer une séquence</button><button class="btn small" id="ptDash">📊 Tableau de bord de la leçon</button><button class="btn alt small" id="ptNames">🔗 Noms à rattacher</button></div>
     <div class="panel"><h2 style="font-size:1.3rem">Leçon du jour</h2>
       <p class="muted" style="margin-top:0">Nombre de figures à construire aujourd'hui. Plusieurs pyramides faites en même temps comptent pour une figure.</p>
       <div class="row" style="gap:16px;align-items:center">
@@ -2031,6 +2082,9 @@ function profPanel(){
       <div class="row"><button class="btn alt small" id="pasteOk">Importer ce code</button><button class="btn coral small" id="wipe">Effacer tous les groupes</button></div></div>
     <div class="row" style="margin-top:16px"><button class="btn sun" id="profSave">Enregistrer les réglages</button></div></div>`);
   const out=m.querySelector("#nOut");
+  m.querySelector("#ptWiz").onclick=()=>{closeModal();seqWizard()};
+  m.querySelector("#ptDash").onclick=()=>{closeModal();lessonDashboard()};
+  m.querySelector("#ptNames").onclick=()=>{closeModal();fixNames()};
   m.querySelector("#nMinus").onclick=()=>{n=Math.max(1,n-1);out.textContent=n};
   m.querySelector("#tPwB").onclick=async()=>{const v=await epsPin({title:"🔒 Mot de passe enseignant",text:"Touche ABC pour les lettres.",min:1,letters:true});if(v===null)return;teacherPw=v;m.querySelector("#tPw").value=v;m.querySelector("#tPwS").textContent="●●●●"};
   m.querySelector("#nClasse").onchange=e=>{n=lessonN(e.target.value);out.textContent=n};
@@ -2041,8 +2095,7 @@ function profPanel(){
     const classe=m.querySelector("#pClasse").value, settings={theme:m.querySelector("#pTheme").value||"",progressif:m.querySelector("#pProg").checked};
     if(!apiUrl()){toast("Il faut l'enregistrement en ligne pour régler toute la classe");return}
     try{
-      await api("teacherSetClassSettings",{teacher:tpw(),classe,settings});
-      const sc=serverClasses.find(x=>norm(x.nom)===norm(classe)); if(sc) sc.reglages=settings; else serverClasses.push({nom:classe,reglages:settings});
+      await saveClassSettings(classe,settings,tpw());
       toast(`${classe} : réglages de progression enregistrés ✓`); refreshClasses();
       if(G){const t=settings.theme;if(t)vFilter.t=t;showTab(curTab)}
     }catch(e){toast(/Action inconnue|introuvable/.test(e.message)?"Mettez d'abord à jour le script Google (nouvelle version)":e.message)}
@@ -2429,14 +2482,324 @@ window.EVACRO=window.EPSE?EPSE.store({app:'acro',nom:'Acrosport',ca:'CA3',color:
   {id:'role',afl:'AFL3',max:4,nom:'Pareur, juge : assumer les rôles',but:"Parer avec efficacité, juger avec rigueur à partir des critères, aider le groupe.",nomEl:'Je pare et je juge',butEl:"Je sécurise mes camarades et je juge avec les critères.",
    desc:["Parade absente ou inefficace ; jugement approximatif.","Pare quand on le lui demande ; juge les figures sans tous les critères.","Pare efficacement et au bon moment ; juge avec les critères de la fiche.","Anticipe la parade sur toutes les figures ; juge avec précision et argumente ses conseils."],
    descEl:["Je pare peu et mon jugement est approximatif.","Je pare quand on me le demande et je juge à peu près.","Je pare au bon moment et je juge avec les critères.","J'anticipe la parade et je juge avec précision en expliquant mes conseils."]}]}}):null;
+/* =====================================================================
+   Améliorations élèves / enseignant :
+   parcours de leçon (étapes), mode répétition, mot de passe oublié,
+   grille d'observation essentielle, rotation d'observation,
+   assistant de séquence, tableau de bord de la leçon, noms à rattacher
+   ===================================================================== */
+const todayKey=()=>dayOf(new Date().toISOString());
+const STEP_K=["warm","figs","rep","obs","save"];
+const STEP_L=EPSP.p({id:'etapes',sec:'Parcours de leçon',label:"Étapes de la leçon affichées aux élèves (dans l'ordre)",type:'list',fixed:5,
+  def:["S'échauffer","Choisir les figures","Répéter","Observer","Enregistrer"],aide:"Barre d'étapes en haut de l'appli des élèves. Elle se masque par classe dans « Démarrer une séquence »."});
+const HOLD_S=EPSP.p({id:'tenue',sec:'Parcours de leçon',label:'Durée de tenue des pyramides en mode répétition (secondes)',type:'number',def:3});
+const holdS=()=>Math.max(1,Math.min(10,Number(HOLD_S)||3));
+
+/* ---------- 2 · parcours de leçon ---------- */
+function stepsOn(){return !!G&&classSettings(G.classe).steps!==false}
+function stepMark(k){if(!G)return;const d=todayKey();if(!G.steps||G.steps.day!==d)G.steps={day:d,v:{}};if(!G.steps.v[k]){G.steps.v[k]=1;persist()}}
+function stepDone(k){
+  if(!G)return false;const d=todayKey(),v=(G.steps&&G.steps.day===d&&G.steps.v)||{};
+  if(k==="figs"){const n=lessonN();return G.current.slots.slice(0,n).filter(s=>partsOf(s).length).length>=n}
+  if(k==="obs")return (G.obsLog||[]).some(o=>o&&o.date&&dayOf(o.date)===d);
+  if(k==="save")return (G.sessions||[]).some(s=>s&&s.date&&dayOf(s.date)===d);
+  return !!v[k];
+}
+function renderSteps(){
+  const bar=document.getElementById("stepBar");if(!bar)return;
+  if(!stepsOn()){bar.innerHTML="";bar.classList.add("hidden");return}
+  bar.classList.remove("hidden");
+  const done=STEP_K.map(stepDone), cur=done.indexOf(false);
+  bar.innerHTML=STEP_K.map((k,i)=>`<button class="stp${done[i]?" done":""}${i===cur?" cur":""}" data-step="${k}"><i>${done[i]?"✓":i+1}</i><span>${esc(STEP_L[i])}</span></button>`).join('<b class="stpSep" aria-hidden="true">›</b>')+
+    (cur<0?`<span class="stpAll">🎉 Leçon complète !</span>`:"");
+  bar.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>stepGo(b.dataset.step));
+}
+function stepGo(k){
+  if(k==="warm"){bonusSec="warm";showTab("bonus")}
+  else if(k==="figs")showTab(stepDone("figs")?"routine":"videos");
+  else if(k==="rep"){showTab("routine");openRepeat(0)}
+  else if(k==="obs")showTab("obs");
+  else{if(curTab==="obs")showTab("routine");saveProgress()}
+  window.scrollTo(0,0);
+}
+
+/* ---------- 4 · mode répétition ---------- */
+let repI=0, repTm=null;
+function repFigs(){const n=lessonN();return G.current.slots.slice(0,n).map((s,k)=>({k,parts:partsOf(s)})).filter(x=>x.parts.length)}
+function closeRepeat(){clearInterval(repTm);const el=document.getElementById("repMode");if(el)el.remove();document.documentElement.style.overflow="";renderSteps()}
+function openRepeat(i){
+  if(!G)return;const figs=repFigs();
+  if(!figs.length){toast("Choisis d'abord tes figures dans « Mon enchaînement »");return}
+  stepMark("rep");repI=Math.max(0,Math.min(i||0,figs.length));
+  let el=document.getElementById("repMode");if(!el){el=document.createElement("div");el.id="repMode";el.setAttribute("role","dialog");el.setAttribute("aria-label","Mode répétition");document.body.appendChild(el)}
+  document.documentElement.style.overflow="hidden";
+  const draw=()=>{
+    clearInterval(repTm);
+    const end=repI>=figs.length, F=figs[repI];
+    let h=`<div class="repTop"><b>${end?"🏁 Fin":"Figure "+(F.k+1)}</b><small>${end?"":(repI+1)+" / "+figs.length}</small><span style="flex:1"></span><button class="repX" data-rx>✕ Fermer</button></div><div class="repBody">`;
+    if(end) h+=`<div class="repEnd"><div class="repBig">🏁</div><h2>Fin de l'enchaînement</h2><p>Terminez par une <b>immobilité totale</b> du groupe, face au public, puis observez un autre groupe ou enregistrez votre leçon.</p><button class="btn sun" data-r0>↺ Recommencer depuis la figure 1</button></div>`;
+    else{
+      if(F.parts.length>1) h+=`<p class="note" style="margin:0 0 10px">${F.parts.length} pyramides <b>en même temps</b> : elles comptent pour une seule figure.</p>`;
+      h+=`<div class="repParts">`+F.parts.map(p=>{const f=byId[p.fig],roles=rolesOf(f);
+        return `<div class="repPart"><div class="repVid"><video src="${f.v}" controls playsinline muted loop autoplay preload="metadata" poster="${f.img}"></video></div>
+          <div class="repInfo"><h3>${esc(f.code)} · ${esc(T_SHORT[f.t])} <span class="fbadge ${f.f}">${f.f==="dyn"?"Dynamique":F_LABEL[f.f]}</span></h3>
+          <div class="repRoles">${roles.map(r=>`<span><span class="role ${r[0]}">${r}</span> ${p.roles&&p.roles[r]?esc(p.roles[r]):'<i class="muted">à choisir</i>'}</span>`).join("")}</div>
+          <div class="desc">${f.d.map(fmtLine).join("")}</div></div></div>`}).join("")+`</div>`;
+      if(!F.parts.every(p=>byId[p.fig].f==="dyn")) h+=`<div class="repTimer"><button class="btn sun" data-hold>⏱ Tenir ${holdS()} secondes</button><output id="repOut" aria-live="polite"></output></div>`;
+    }
+    h+=`</div><div class="repNav"><button class="btn alt" data-prev ${repI?"":"disabled"}>◀ Précédente</button><button class="btn sun" data-next ${end?"disabled":""}>${repI===figs.length-1?"Fin de l'enchaînement ▶":"Figure suivante ▶"}</button></div>`;
+    el.innerHTML=h;el.scrollTop=0;
+    el.querySelector("[data-rx]").onclick=closeRepeat;
+    el.querySelector("[data-prev]").onclick=()=>{if(repI>0){repI--;draw()}};
+    el.querySelector("[data-next]").onclick=()=>{if(repI<figs.length){repI++;draw()}};
+    const r0=el.querySelector("[data-r0]");if(r0)r0.onclick=()=>{repI=0;draw()};
+    const hb=el.querySelector("[data-hold]"),out=el.querySelector("#repOut");
+    if(hb)hb.onclick=()=>{
+      clearInterval(repTm);let s=holdS();out.className="go";out.textContent=s;hb.disabled=true;
+      repTm=setInterval(()=>{s--;if(s>0){out.textContent=s;return}
+        clearInterval(repTm);out.className="ok";out.textContent="✓ Tenu !";hb.disabled=false;try{navigator.vibrate&&navigator.vibrate(200)}catch(e){}},1000);
+    };
+  };
+  draw();
+}
+
+/* ---------- 3 · mot de passe oublié / nouveau mot de passe d'un groupe ---------- */
+async function needTpw(){
+  if(teacherPw)return teacherPw;
+  try{const s=localStorage.getItem("acro.tpw");if(s){teacherPw=s;return s}}catch(e){}
+  const v=await epsPin({title:"🔒 Mot de passe enseignant",text:"Mot de passe Acrosport du script (touche ABC pour les lettres).",min:1,letters:true,
+    check:async v=>{try{await teacherCheck(v);return true}catch(e){if(e.network)return "Pas de connexion.";return /Mot de passe/.test(e.message)?"Mot de passe incorrect.":true}}});
+  if(v===null)return null;
+  teacherPw=v;try{localStorage.setItem("acro.tpw",v)}catch(e){}store.set(K_TPH,await sha("prof|"+v));return v;
+}
+async function resetGroupPw(classe,nom,key){
+  const pw=await needTpw();if(pw===null)return null;
+  const np=String(1000+Math.floor(Math.random()*9000));
+  await api("teacherSetPassword",{teacher:pw,key:key||(norm(classe)+"|"+norm(nom)),password:np});
+  return np;
+}
+function showNewPw(nom,np){
+  openModal(`<div class="sheet" style="max-width:480px"><button class="close" data-close>×</button><h2 style="font-size:1.5rem">🔑 ${esc(nom)}</h2>
+    <div class="newPw">Nouveau mot de passe<b>${np}</b></div>
+    <p class="muted">Notez-le. Les autres tablettes de ce groupe devront se reconnecter avec ce mot de passe.</p>
+    <div class="row"><button class="btn alt" data-close>Fermer</button></div></div>`);
+}
+function forgotPw(){
+  const it=homeList[document.getElementById("gSel").value];
+  if(!it){toast("Choisis d'abord ton groupe dans la liste");return}
+  const m=openModal(`<div class="sheet" style="max-width:520px"><button class="close" data-close>×</button><h2 style="font-size:1.5rem">🔑 Mot de passe oublié</h2>
+    <p>Appelle ton enseignant : il peut donner tout de suite un <b>nouveau mot de passe</b> au groupe « ${esc(it.nom)} », sur cette tablette.</p>
+    <div class="row"><button class="btn sun" id="fpGo">🔒 Enseignant : nouveau mot de passe</button><button class="btn alt" data-close>Fermer</button></div><div id="fpOut"></div></div>`);
+  m.querySelector("#fpGo").onclick=async e=>{
+    const b=e.currentTarget;b.disabled=true;
+    try{const np=await resetGroupPw(homeClass,it.nom);if(np===null)return;
+      m.querySelector("#fpOut").innerHTML=`<div class="newPw">Nouveau mot de passe<b>${np}</b></div><p class="muted">Il est déjà tapé dans la case : touchez « Entrer → ». Les autres tablettes du groupe devront se reconnecter avec ce mot de passe.</p>`;
+      document.getElementById("gPwIn").value=np;
+    }catch(err){toast(err.message)}finally{b.disabled=false}
+  };
+}
+
+/* ---------- 5 · grille d'observation essentielle ---------- */
+const ESS={porteur:["appuis","align","solid"],voltigeur:["appuisV","gainage","maintien"],pareur:["vigil","posit"],collectif:["trans","immob"]};
+const ESS_DYN={porteur:["synchro","rattr"],voltigeur:["gainage","recep"],pareur:["vigil","posit"]};
+let obsEss=false;
+function obsGridMode(o){
+  if(o.grid)return o.grid;
+  const s=classSettings(G.classe).obsGrid||"auto";
+  if(s==="ess"||s==="full")return s;
+  const mine=(G.obsLog||[]).filter(x=>x.id!==o.id).length+(obsHistory||[]).filter(x=>x.o&&x.o.id!==o.id&&x.o.observerGroup&&norm(x.o.observerGroup.nom)===norm(G.name)).length;
+  return mine?"full":"ess";
+}
+function essItems(group,set){return ((set===CRIT_DYN?ESS_DYN:ESS)[group])||null}
+
+/* ---------- 9 · rotation d'observation ---------- */
+function rotTarget(){if(!G)return null;const r=classSettings(G.classe).rot;if(!r||r.day!==todayKey())return null;return (r.pairs||{})[norm(G.name)]||null}
+function makeRotation(names){
+  const a=names.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  const pairs={};if(a.length<2)return pairs;a.forEach((g,i)=>pairs[norm(g)]=a[(i+1)%a.length]);return pairs;
+}
+async function rotAutoPick(o,tgt){
+  try{const r=await fetchRoutine(tgt);G.obsDraft=Object.assign(newDraft(),{observers:o.observers,observed:{classe:G.classe,nom:r.nom||tgt},routine:r,rotTried:1});persist();toast("🔄 Rotation du jour : enchaînement de "+(r.nom||tgt)+" importé")}
+  catch(e){}
+  if(curTab==="obs")renderObs();
+}
+
+/* ---------- réglages de classe (fusion : ne jamais écraser les autres réglages) ---------- */
+async function saveClassSettings(classe,patch,pw){
+  const settings=Object.assign({},classSettings(classe),patch);
+  await api("teacherSetClassSettings",{teacher:pw||teacherPw,classe,settings});
+  const sc=serverClasses.find(x=>norm(x.nom)===norm(classe));if(sc)sc.reglages=settings;else serverClasses.push({nom:classe,reglages:settings});
+  return settings;
+}
+const oldScript=e=>/Action inconnue|introuvable/.test(e.message)?"Mettez d'abord à jour le script Google (Déployer → Gérer les déploiements → ✏️ → Nouvelle version).":e.message;
+const clsOpts=sel=>classes().map(c=>`<option ${norm(c)===norm(sel)?"selected":""}>${esc(c)}</option>`).join("");
+const curCls=()=>(G&&G.classe)||homeClass||classes()[0]||"";
+
+/* ---------- 6 · assistant « Démarrer une séquence » ---------- */
+async function seqWizard(){
+  if(!apiUrl()){toast("Il faut l'enregistrement en ligne pour régler toute la classe");return}
+  const pw=await needTpw();if(pw===null)return;
+  try{await refreshClasses()}catch(e){}
+  let classe=curCls(),n=3;
+  const m=openModal(`<div class="sheet" style="max-width:760px"><button class="close" data-close>×</button><h2>🚀 Démarrer une séquence</h2>
+    <p class="muted" style="margin-top:0">Tous les réglages de la séquence d'une classe sur une seule page. Ils s'appliquent à toutes les tablettes des élèves.</p>
+    <div class="wz">
+      <div class="wzRow"><span class="wzN">1</span><div class="field"><label>Classe</label><select class="inp" id="wCl">${clsOpts(classe)}</select></div></div>
+      <div class="wzRow"><span class="wzN">2</span><div class="field"><label>Dates de la séquence</label><div class="row" style="gap:10px"><label class="muted">du <input class="inp" type="date" id="wD1"></label><label class="muted">au <input class="inp" type="date" id="wD2"></label></div></div></div>
+      <div class="wzRow"><span class="wzN">3</span><div class="field"><label>Figures à construire par leçon</label><div class="stepper"><button id="wM" aria-label="Moins">−</button><output id="wN"></output><button id="wP" aria-label="Plus">+</button></div><small class="muted">Plusieurs pyramides faites en même temps comptent pour une figure.</small></div></div>
+      <div class="wzRow"><span class="wzN">4</span><div class="field"><label>Thématique du jour (position du voltigeur)</label><select class="inp" id="wTh"><option value="">— aucune —</option>${PATH_T.map(t=>`<option value="${t}">${esc(T_LABEL[t])}</option>`).join("")}</select></div></div>
+      <div class="wzRow"><span class="wzN">5</span><div class="field"><label>Ceintures</label><label class="chk"><input type="checkbox" id="wPr"> Activer les ceintures (déblocage progressif des positions)</label></div></div>
+      <div class="wzRow"><span class="wzN">6</span><div class="field"><label>Grille d'observation des élèves</label><select class="inp" id="wGr"><option value="auto">Automatique : essentielle à la 1re observation, complète ensuite</option><option value="ess">Toujours la grille essentielle (2 ou 3 critères par rôle)</option><option value="full">Toujours la grille complète</option></select></div></div>
+      <div class="wzRow"><span class="wzN">7</span><div class="field"><label>Parcours de leçon</label><label class="chk"><input type="checkbox" id="wSt"> Afficher aux élèves la barre d'étapes (${STEP_L.map(esc).join(" → ")})</label></div></div>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="btn sun" id="wGo">✓ Appliquer à toute la classe</button><button class="btn alt" data-close>Annuler</button></div><div id="wOut"></div></div>`);
+  const q=s=>m.querySelector(s);
+  const fill=()=>{const cs=classSettings(classe),sq=cs.seq||{};n=lessonN(classe);q("#wN").textContent=n;q("#wD1").value=sq.debut||"";q("#wD2").value=sq.fin||"";
+    q("#wTh").value=cs.theme||"";q("#wPr").checked=!!cs.progressif;q("#wGr").value=cs.obsGrid||"auto";q("#wSt").checked=cs.steps!==false};
+  fill();
+  q("#wCl").onchange=e=>{classe=e.target.value;fill()};
+  q("#wM").onclick=()=>{n=Math.max(1,n-1);q("#wN").textContent=n};
+  q("#wP").onclick=()=>{n=Math.min(12,n+1);q("#wN").textContent=n};
+  q("#wGo").onclick=async e=>{
+    const b=e.currentTarget;b.disabled=true;b.textContent="Envoi…";
+    try{
+      const s=await saveClassSettings(classe,{theme:q("#wTh").value||"",progressif:q("#wPr").checked,obsGrid:q("#wGr").value,steps:q("#wSt").checked,seq:{debut:q("#wD1").value,fin:q("#wD2").value}},pw);
+      await api("teacherSetLesson",{teacher:pw,classe,n});
+      const sc=serverClasses.find(x=>norm(x.nom)===norm(classe));if(sc)sc.pyramides=n;
+      prof.n=n;store.set(K_PROF,prof);
+      q("#wOut").innerHTML=`<p class="note okNote">✓ ${esc(classe)} : ${n} figure${n>1?"s":""} par leçon${s.theme?" · thématique "+esc(T_SHORT[s.theme]):""} · ceintures ${s.progressif?"activées":"désactivées"} · grille ${s.obsGrid==="ess"?"essentielle":s.obsGrid==="full"?"complète":"automatique"} · étapes ${s.steps?"affichées":"masquées"}. Les tablettes le reçoivent en quelques instants.</p>`;
+      refreshClasses();if(G){ensureSlots();showTab(curTab)}
+    }catch(err){toast(oldScript(err))}finally{b.disabled=false;b.textContent="✓ Appliquer à toute la classe"}
+  };
+}
+
+/* ---------- ouvrir un groupe en mode enseignant ---------- */
+async function teacherOpenGroup(meta,pw){
+  const r=await api("teacherLoad",{teacher:pw,key:meta.key});
+  const g=normGroup(r.data,meta);g.rev=Number(r.data&&r.data.rev)||0;
+  g.online={classe:g.classe,nom:g.name,teacherKey:meta.key};const loc=groups[g.id];if(loc){g.obsDraft=loc.obsDraft;g.obsLog=loc.obsLog}
+  while(modalStack.length)closeModal();teacherPw=pw;G=g;persist();openApp();toast("Groupe ouvert en mode enseignant");
+}
+
+/* ---------- 7 · tableau de bord de la leçon (+ 9 rotation) ---------- */
+async function lessonDashboard(){
+  if(!apiUrl()){toast("Il faut l'enregistrement en ligne pour suivre les groupes");return}
+  const pw=await needTpw();if(pw===null)return;
+  let classe=curCls(),data=null,tm=null,busy=false;
+  const m=openModal(`<div class="sheet" style="max-width:1100px"><button class="close" data-close>×</button><h2>📊 Tableau de bord de la leçon</h2>
+    <div class="row" style="align-items:center;gap:10px"><select class="inp" id="dCl" style="width:auto">${clsOpts(classe)}</select><button class="btn alt small" id="dRef">↻ Actualiser</button><span class="muted" id="dWhen"></span></div>
+    <div id="dBody"><p class="muted">Chargement…</p></div></div>`);
+  const q=s=>m.querySelector(s);
+  const load=async()=>{
+    if(!document.body.contains(m)){clearInterval(tm);return}
+    if(busy)return;busy=true;
+    try{await refreshClasses();data=await api("teacherDashboard",{teacher:pw,classe});draw();q("#dWhen").textContent="Mis à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+" · actualisation automatique"}
+    catch(e){q("#dBody").innerHTML=`<p class="note">${esc(oldScript(e))}</p>`}
+    finally{busy=false}
+  };
+  const draw=()=>{
+    const d=todayKey(),n=lessonN(classe),cs=classSettings(classe);
+    const gs=(data.groups||[]).sort((a,b)=>String(a.nom).localeCompare(String(b.nom),"fr",{numeric:true}));
+    const obsT=(data.observations||[]).filter(o=>o.date&&dayOf(o.date)===d);
+    const rot=cs.rot&&cs.rot.day===d?cs.rot.pairs||{}:null;
+    const saved=gs.filter(g=>g.derniere&&dayOf(g.derniere)===d);
+    const local=Object.values(groups).filter(g=>norm(g.classe)===norm(classe)&&(g.dirty||getBox().some(it=>it.gid===g.id)));
+    const sq=cs.seq||{};
+    const dOnly=x=>{const t=new Date(x+"T12:00");return isNaN(t)?x:t.toLocaleDateString("fr-FR",{day:"numeric",month:"long"})};
+    let h=`<div class="dashSum"><span>Leçon enregistrée aujourd'hui : <b>${saved.length}/${gs.length}</b> groupe${gs.length>1?"s":""}</span><span><b>${obsT.length}</b> observation${obsT.length>1?"s":""} aujourd'hui</span><span>Leçon du jour : <b>${n}</b> figure${n>1?"s":""}${cs.theme?" · "+esc(T_SHORT[cs.theme]):""}</span>${sq.debut||sq.fin?`<span>Séquence ${sq.debut?"du "+dOnly(sq.debut):""} ${sq.fin?"au "+dOnly(sq.fin):""}</span>`:""}</div>`;
+    if(local.length) h+=`<p class="note">⏳ Sur cette tablette, en attente d'envoi en ligne : ${local.map(g=>esc(g.name)).join(", ")}.</p>`;
+    h+=gs.length?`<div class="gList"><table class="tObs dash"><thead><tr><th>Groupe</th><th>Figures choisies</th><th>Leçon du jour</th><th>A observé</th><th>Observé par</th><th></th></tr></thead><tbody>${gs.map((g,k)=>{
+      const sl=(g.slots||[]).slice(0,n),figs=sl.filter(s=>partsOf(s).length);
+      const thumbs=figs.map(s=>partsOf(s).map(p=>byId[p.fig]?`<img src="${byId[p.fig].img}" alt="${esc(byId[p.fig].code)}" title="${esc(byId[p.fig].code)}">`:"").join("")).join('<i class="sep"></i>');
+      const did=obsT.filter(o=>norm(o.observateur)===norm(g.nom)),got=obsT.filter(o=>norm(o.observe)===norm(g.nom));
+      const tg=rot&&rot[norm(g.nom)];
+      const sv=g.derniere&&dayOf(g.derniere)===d;
+      return `<tr><td><b>${esc(g.nom)}</b><br><small class="muted">${esc(g.membres)}</small></td>
+        <td><span class="${figs.length>=n?"okS":"badS"}">${figs.length}/${n}</span><div class="dThumbs">${thumbs}</div></td>
+        <td>${sv?`<span class="okS">✓ ${new Date(g.derniere).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>`:'<span class="muted">pas encore</span>'}${g.maj?`<br><small class="muted">activité ${new Date(g.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</small>`:""}</td>
+        <td>${tg?`🔄 ${esc(tg)} ${did.some(o=>norm(o.observe)===norm(tg))?'<span class="okS">✓</span>':'<span class="muted">à faire</span>'}<br>`:""}${did.filter(o=>!tg||norm(o.observe)!==norm(tg)).map(o=>`${esc(o.observe)} <span class="okS">✓</span>`).join("<br>")||(tg?"":'<span class="muted">—</span>')}</td>
+        <td>${got.map(o=>`${esc(o.observateur||o.observateurs)} <small>${o.reussis}/${o.total} ✓${o.securite?` · <span class="badS">⚠ ${o.securite}</span>`:""}</small>`).join("<br>")||'<span class="muted">—</span>'}</td>
+        <td class="dAct"><button class="btn small" data-open="${k}">Ouvrir</button><button class="btn small alt" data-pw="${k}" title="Nouveau mot de passe">🔑</button></td></tr>`}).join("")}</tbody></table></div>`
+      :`<p class="muted">Aucun groupe en ligne dans cette classe.</p>`;
+    h+=`<div class="panel" style="margin-top:14px"><h2 style="font-size:1.25rem">🔄 Rotation d'observation</h2>
+      ${rot&&Object.keys(rot).length?`<p class="muted" style="margin-top:0">Aujourd'hui, chaque groupe voit directement le groupe qu'il observe (onglet Observation) :</p><div class="rotList">${gs.filter(g=>rot[norm(g.nom)]).map(g=>`<span><b>${esc(g.nom)}</b> → ${esc(rot[norm(g.nom)])}</span>`).join("")}</div>`
+        :`<p class="muted" style="margin-top:0">Pas de rotation aujourd'hui : les groupes choisissent eux-mêmes le groupe observé.</p>`}
+      <div class="row"><button class="btn sun small" id="rGen" ${gs.length<2?"disabled":""}>🔄 ${rot?"Nouvelle rotation":"Générer la rotation du jour"}</button>${rot?`<button class="btn alt small" id="rDel">Retirer la rotation</button>`:""}</div></div>`;
+    q("#dBody").innerHTML=h;
+    q("#dBody").querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{const g=gs[+b.dataset.open];try{await teacherOpenGroup({key:g.key,classe,nom:g.nom,membres:g.membres},pw)}catch(e){toast(e.message)}});
+    q("#dBody").querySelectorAll("[data-pw]").forEach(b=>b.onclick=()=>{const g=gs[+b.dataset.pw];
+      confirmBox(`Donner un nouveau mot de passe au groupe « ${g.nom} » ? Ses tablettes devront se reconnecter.`,async()=>{try{const np=await resetGroupPw(classe,g.nom,g.key);if(np)showNewPw(g.nom,np)}catch(e){toast(e.message)}})});
+    const rg=q("#rGen");if(rg)rg.onclick=async()=>{rg.disabled=true;try{await saveClassSettings(classe,{rot:{day:d,pairs:makeRotation(gs.map(g=>g.nom))}},pw);toast("Rotation enregistrée : les tablettes la reçoivent en quelques instants");draw()}catch(e){toast(oldScript(e))}finally{rg.disabled=false}};
+    const rd=q("#rDel");if(rd)rd.onclick=async()=>{try{await saveClassSettings(classe,{rot:null},pw);draw()}catch(e){toast(oldScript(e))}};
+  };
+  q("#dCl").onchange=e=>{classe=e.target.value;q("#dBody").innerHTML='<p class="muted">Chargement…</p>';load()};
+  q("#dRef").onclick=load;
+  load();tm=setInterval(load,30000);
+}
+
+/* ---------- 10 · noms mal tapés à rattacher à la liste ---------- */
+function nameGuess(m,roster){
+  const t=nkA(m).split(" ").filter(Boolean);let best=null,sc=0;
+  roster.forEach(e=>{const u=nkA(displayName(e)).split(" ");let s=0;t.forEach(w=>{if(u.includes(w))s+=2;else if(w.length>2&&u.some(x=>x.startsWith(w.slice(0,3))))s+=1});if(s>sc){sc=s;best=e}});
+  return best;
+}
+function renameIn(d,from,to){
+  const rep=x=>x===from?to:x;
+  d.members=(d.members||[]).map(rep);
+  const fix=sl=>(sl||[]).forEach(s=>partsOf(s).forEach(p=>{if(p.roles)Object.keys(p.roles).forEach(r=>{if(p.roles[r]===from)p.roles[r]=to})}));
+  if(d.current)fix(d.current.slots);(d.sessions||[]).forEach(s=>fix(s.slots));
+  return d;
+}
+async function fixNames(){
+  if(!apiUrl()){toast("Il faut l'enregistrement en ligne");return}
+  const pw=await needTpw();if(pw===null)return;
+  let classe=curCls();
+  const m=openModal(`<div class="sheet" style="max-width:860px"><button class="close" data-close>×</button><h2>🔗 Noms à rattacher</h2>
+    <p class="muted" style="margin-top:0">Élèves des groupes dont le nom ne correspond à personne de la liste de classe (faute de frappe, « Autre élève »…). Une fois rattachés, ils sont reconnus partout : évaluation par groupe, bilans, rôles.</p>
+    <div class="row"><select class="inp" id="fCl" style="width:auto">${clsOpts(classe)}</select></div><div id="fBody"><p class="muted">Chargement…</p></div></div>`);
+  const q=s=>m.querySelector(s);
+  const load=async()=>{
+    const box=q("#fBody");box.innerHTML='<p class="muted">Chargement…</p>';
+    try{
+      const gl=(await api("teacherList",{teacher:pw})).groups.filter(g=>norm(g.classe)===norm(classe));
+      let roster=[];try{roster=(await api("listStudents",{classe,teacher:pw})).students||[]}catch(e){}
+      commonStudents(classe).forEach(p=>{if(!roster.some(x=>nkA(displayName(x))===nkA(displayName(p))))roster.push(p)});
+      roster.sort((a,b)=>(a.nom+a.prenom).localeCompare(b.nom+b.prenom,"fr"));
+      const known=new Set(roster.map(e=>nkA(displayName(e))));
+      const todo=[];gl.forEach(g=>String(g.membres||"").split(",").map(s=>s.trim()).filter(Boolean).forEach(mm=>{if(!known.has(nkA(mm)))todo.push({g,m:mm,guess:nameGuess(mm,roster)})}));
+      if(!roster.length){box.innerHTML='<p class="note">Aucune liste d\'élèves pour cette classe : importez-la d\'abord (👥 Classe → Listes d\'élèves).</p>';return}
+      box.innerHTML=todo.length?`<div class="gList"><table class="tObs"><thead><tr><th>Groupe</th><th>Nom tapé</th><th>Élève de la liste</th><th></th></tr></thead><tbody>${todo.map((t,k)=>`<tr><td><b>${esc(t.g.nom)}</b></td><td>${esc(t.m)}</td>
+        <td><select class="inp" data-to="${k}"><option value="">— choisir —</option>${roster.map(e=>{const dn=displayName(e);return `<option ${t.guess===e?"selected":""} value="${esc(dn)}">${esc(e.prenom)} ${esc(e.nom)}${e.classe?" ("+esc(e.classe)+")":""}</option>`}).join("")}</select></td>
+        <td><button class="btn small sun" data-fix="${k}">Rattacher</button></td></tr>`).join("")}</tbody></table></div>`
+        :`<p class="note okNote">✓ Tous les élèves des groupes de ${esc(classe)} sont reconnus dans la liste.</p>`;
+      box.querySelectorAll("[data-fix]").forEach(b=>b.onclick=async()=>{
+        const t=todo[+b.dataset.fix],to=box.querySelector(`[data-to="${b.dataset.fix}"]`).value;
+        if(!to){toast("Choisis l'élève de la liste");return}
+        b.disabled=true;
+        try{
+          for(let tries=0;tries<2;tries++){
+            const r=await api("teacherLoad",{teacher:pw,key:t.g.key});const d=renameIn(r.data||{},t.m,to);
+            try{await api("teacherSave",{teacher:pw,key:t.g.key,data:d,baseRev:Number(r.data&&r.data.rev)||0});break}
+            catch(e){if(!(e.data&&e.data.conflict)||tries)throw e}
+          }
+          Object.values(groups).filter(x=>norm(x.classe)===norm(classe)&&norm(x.name)===norm(t.g.nom)).forEach(x=>renameIn(x,t.m,to));saveGroups();
+          toast(`« ${t.m} » → ${to} ✓`);load();
+        }catch(e){toast(e.message);b.disabled=false}
+      });
+    }catch(e){box.innerHTML=`<p class="note">${esc(e.message)}</p>`}
+  };
+  q("#fCl").onchange=e=>{classe=e.target.value;load()};
+  load();
+}
+
 /* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 function acroProfAt(t){try{profPanel()}catch(e){return}if(!t)return;setTimeout(()=>{const h=[...document.querySelectorAll('.sheet h2')].find(x=>x.textContent.indexOf(t)>=0);if(h)h.scrollIntoView({behavior:'smooth',block:'start'})},150)}
 window.EPSTA=window.EPST?EPST.init({app:'acro',nom:'Acrosport',color:'#1F4FA3',isTeacher:()=>!!teacherPw||hubT(),home:'seq',
  anchor:()=>{const a=document.querySelector('#app');return a&&!a.classList.contains('hidden')?a.querySelector('header'):document.querySelector('header.homebar')},
  main:'#home > *:not(header), #app > *:not(header)',
- tabs:{seq:{panel:el=>{el.innerHTML='<h2>📅 Séquence</h2><p class="mut">Leçon du jour (pyramides, thématique) et parcours des ceintures, appliqués à toutes les tablettes.</p><div class="epst-grid"><button type="button" class="epst-card" data-k="Leçon"><i>📅</i><span><b>Leçon du jour</b><small>Numéro de leçon, appliquer à toutes les tablettes</small></span></button><button type="button" class="epst-card" data-k="Ceintures"><i>🥋</i><span><b>Ceintures, parcours et thématique</b><small>Par classe</small></span></button></div>';el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>acroProfAt(b.dataset.k))}},
+ tabs:{seq:{panel:el=>{el.innerHTML='<h2>📅 Séquence</h2><p class="mut">Leçon du jour (pyramides, thématique) et parcours des ceintures, appliqués à toutes les tablettes.</p><div class="epst-grid"><button type="button" class="epst-card" data-f="dash"><i>📊</i><span><b>Tableau de bord de la leçon</b><small>Qui a enregistré, figures choisies, observations, rotation</small></span></button><button type="button" class="epst-card" data-f="wiz"><i>🚀</i><span><b>Démarrer une séquence</b><small>Tous les réglages de la classe sur une page</small></span></button><button type="button" class="epst-card" data-k="Leçon"><i>📅</i><span><b>Leçon du jour</b><small>Numéro de leçon, appliquer à toutes les tablettes</small></span></button><button type="button" class="epst-card" data-k="Ceintures"><i>🥋</i><span><b>Ceintures, parcours et thématique</b><small>Par classe</small></span></button></div>';el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>acroProfAt(b.dataset.k));el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>({dash:lessonDashboard,wiz:seqWizard,names:fixNames})[b.dataset.f]())}},
   eval:{panel:el=>{if(window.EVACRO)EVACRO.mount(el,['eval','grille'],(epsCurrentClass()||{}).nom)}},
-  cls:{panel:el=>{el.innerHTML='<h2>👥 Classe</h2><p class="mut">Listes d\'élèves d\'Acrosport (Google Sheet) et groupes.</p><div class="epst-grid"><button type="button" class="epst-card" data-k="Listes"><i>👥</i><span><b>Listes d\'élèves</b><small>Envoyer la liste en ligne</small></span></button><button type="button" class="epst-card" data-k="En ligne"><i>☁</i><span><b>Groupes et observations</b><small>Tous les groupes en ligne, qui a observé qui</small></span></button></div>';el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>acroProfAt(b.dataset.k))}},
+  cls:{panel:el=>{el.innerHTML='<h2>👥 Classe</h2><p class="mut">Listes d\'élèves d\'Acrosport (Google Sheet) et groupes.</p><div class="epst-grid"><button type="button" class="epst-card" data-k="Listes"><i>👥</i><span><b>Listes d\'élèves</b><small>Envoyer la liste en ligne</small></span></button><button type="button" class="epst-card" data-k="En ligne"><i>☁</i><span><b>Groupes et observations</b><small>Tous les groupes en ligne, qui a observé qui</small></span></button><button type="button" class="epst-card" data-f="names"><i>🔗</i><span><b>Noms à rattacher</b><small>Élèves des groupes mal reconnus dans la liste</small></span></button></div>';el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>acroProfAt(b.dataset.k));el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>({dash:lessonDashboard,wiz:seqWizard,names:fixNames})[b.dataset.f]())}},
   bil:{panel:el=>{el.innerHTML='<h2>📄 Bilans</h2><div class="epst-grid"><button type="button" class="epst-card" id="acz"><i>🗜️</i><span><b>Bilans des groupes (.zip)</b><small>Un PDF par élève, depuis le Google Sheet</small></span></button></div><div id="acev"></div>';el.querySelector('#acz').onclick=()=>acroProfAt('En ligne');if(window.EVACRO)EVACRO.mount(el.querySelector('#acev'),['bilan'],homeClass)}}},
  biblio:[['🎬','Vidéothèque','Les figures en vidéo'],['🤸','Mon enchaînement','Composer l\'enchaînement du groupe'],['👀','Observation','Observer un autre groupe'],['🥋','Mon parcours','Paliers et ceintures'],['⭐','Bonus','Défis bonus']].map(([i,l,d])=>({ico:i,label:l,sub:d+' (dans la Vue élève)',go:()=>EPSTA.go('vue')})),
  reglages:[{ico:'⚙',label:'Espace enseignant complet',sub:'En ligne, hors connexion, sauvegardes de la tablette',go:()=>acroProfAt('')}]}):null;

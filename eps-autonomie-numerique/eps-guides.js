@@ -110,6 +110,11 @@ window.EPS_GUIDES = {
   ] },
   acro: { nom: "Acrosport", items: [
     ["Côté élève", "Vidéothèque des figures, Mon enchaînement, Observation, Mon parcours (paliers), Bonus."],
+    ["🚀 Démarrer une séquence", "Séquence → 🚀 : sur une page, pour une classe : dates, figures par leçon, thématique du jour, ceintures, grille d'observation (automatique : essentielle à la 1re observation puis complète ; ou toujours l'une des deux) et barre d'étapes des élèves. « Appliquer » envoie tout aux tablettes."],
+    ["📊 Tableau de bord de la leçon", "Séquence → 📊 : par groupe, figures choisies, leçon enregistrée aujourd'hui, qui a observé qui (réussites, erreurs de sécurité) ; actualisé toutes les 30 s. « Ouvrir » ouvre le groupe, 🔑 lui donne un nouveau mot de passe à 4 chiffres."],
+    ["🔄 Rotation d'observation", "Dans le tableau de bord : « Générer la rotation du jour » forme une boucle (A observe B, B observe C…). Chaque groupe voit son groupe à observer déjà chargé dans l'onglet Observation."],
+    ["🔗 Noms à rattacher", "Classe → 🔗 : élèves des groupes dont le nom ne correspond à personne de la liste (faute de frappe, « Autre élève »). Choisir l'élève de la liste puis « Rattacher » : le nom est corrigé dans le groupe et ses rôles."],
+    ["Élèves : étapes et répétition", "Barre d'étapes S'échauffer → Choisir les figures → Répéter → Observer → Enregistrer (intitulés et durée de tenue dans 🎛 Paramètres). « ▶ Mode répétition » : figure par figure en plein écran, vidéo, rôles et minuteur de tenue. « Mot de passe oublié ? » sur l'accueil : l'enseignant donne un nouveau mot de passe sur la tablette."],
     ["📋 Évaluation", "Grille CA3 proposée : difficulté et réalisation des figures, composition (AFL1), se préparer et répéter (AFL2), pareur et juge (AFL3). Onglet Grille modifiable, ✨ version élève."],
     ["Classes", "Les classes viennent du Google Sheet d'Acrosport et des listes communes ; en mode enseignant, les classes importées ailleurs y sont écrites automatiquement."]
   ] },

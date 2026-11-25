@@ -123,6 +123,18 @@ function traiter_(req) {
   if (a === 'teacherList') {
     return { ok: true, groups: lignes_(T_GROUPES).map(r => ({ key: r.v[0], classe: r.v[1], nom: r.v[2], membres: r.v[3], maj: r.v[6], seances: r.v[7] })) };
   }
+  // tableau de bord de la leçon : groupes d'une classe (dernière leçon enregistrée, figures choisies) + observations de la classe
+  if (a === 'teacherDashboard') {
+    const c = norm_(req.classe);
+    const groupes = lignes_(T_GROUPES).filter(r => norm_(r.v[1]) === c).map(r => {
+      const d = lireDonnees_(T_GROUPES, r.row) || {};
+      const dates = (d.sessions || []).map(s => String(s && s.date || '')).filter(Boolean).sort();
+      return { key: r.v[0], nom: r.v[2], membres: r.v[3], maj: r.v[6], seances: r.v[7], derniere: dates.length ? dates[dates.length - 1] : '',
+        slots: (d.current && d.current.slots) || [], curAt: d.curAt || '' };
+    });
+    const obs = lignes_(T_OBS).filter(r => norm_(r.v[2]) === c).map(r => resumeObs_(r.v));
+    return { ok: true, groups: groupes, observations: obs };
+  }
   if (a === 'teacherSetStudents') {
     return verrou_(function () {
       const c = norm_(req.classe);
