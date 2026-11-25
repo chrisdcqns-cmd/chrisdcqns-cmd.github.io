@@ -127,7 +127,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
   var ACTS = [["esc", "escalade", "Escalade", "#2E7D4F"], ["rel", "relais", "Relais Vitesse", "#D9481F"], ["vol", "volley", "Volley-ball", "#6B3FA0"], ["bad", "badminton", "Badminton", "#0B7A75"], ["dan", "danse", "Danse", "#C2185B"], ["acro", "acrosport", "Acrosport", "#1F4FA3"], ["ori", "orientation", "OrienRun", "#E8701A"], ["ct", "crosstraining", "Cross-training", "#4D7C0F"]];
   var OUTILS = [["ccf", "CCF", "#B8860B"], ["co-eval", "CO-Évaluation", "#14213D"], ["edt", "Emploi du temps", "#1F5F8B"], ["appel-as", "Appel AS", "#475569"], ["terrain", "Pose des balises", "#8A5A1F"]];
   var NAMES = {}; ACTS.forEach(function (a) { NAMES[a[1]] = a[2]; }); OUTILS.forEach(function (a) { NAMES[a[0]] = a[1]; });
-  var SECTIONS = [["accueil", "🏠", "Accueil"], ["lecons", "📝", "Leçons (atelier)"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"]];
+  var SECTIONS = [["accueil", "🏠", "Accueil"], ["mesclasses", "🏫", "Mes classes"], ["lecons", "📝", "Leçons (atelier)"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"]];
   var KC = "eps.console.v1";
   var AB = { "app:escalade": "Esc", "app:relais": "Rel", "app:volley": "Vol", "app:badminton": "Bad", "app:danse": "Dan", "app:acrosport": "Acr", "app:orientation": "CO", "app:crosstraining": "CT", "app:ccf": "CCF", "app:co-eval": "COé", "app:edt": "EDT", "app:appel-as": "AS", "app:terrain": "Bal" };
   var LDIRS = ACTS.map(function (a) { return a[1]; }).concat(["ccf"]);
@@ -157,8 +157,8 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
 
   /* ---------- menu ---------- */
   function menu() {
-    var h = SECTIONS.slice(0, 2).map(it).join("") + '<div class="grp">Activités</div><div class="sep"></div>' + ACTS.map(function (a) { return it(["app:" + a[1], "", a[2], a[3]]); }).join("") +
-      '<div class="grp">Outils</div><div class="sep"></div>' + OUTILS.map(function (a) { return it(["app:" + a[0], "", a[1], a[2]]); }).join("") + '<div class="grp">Gestion</div><div class="sep"></div>' + SECTIONS.slice(2).map(it).join("");
+    var h = SECTIONS.slice(0, 3).map(it).join("") + '<div class="grp">Activités</div><div class="sep"></div>' + ACTS.map(function (a) { return it(["app:" + a[1], "", a[2], a[3]]); }).join("") +
+      '<div class="grp">Outils</div><div class="sep"></div>' + OUTILS.map(function (a) { return it(["app:" + a[0], "", a[1], a[2]]); }).join("") + '<div class="grp">Gestion</div><div class="sep"></div>' + SECTIONS.slice(3).map(it).join("");
     function it(x) { var on = cur.s === x[0] || (cur.app && x[0] === "app:" + cur.app); return '<button type="button" class="it" data-go="' + x[0] + '"' + (x[3] ? ' style="--c:' + x[3] + '"' : "") + ' aria-current="' + !!on + '" title="' + esc(x[2]) + '">' + (x[1] ? '<span aria-hidden="true">' + x[1] + "</span>" : '<span class="dot"></span><span class="ab">' + esc(AB[x[0]] || "") + "</span>") + '<span class="lb">' + esc(x[2]) + "</span></button>"; }
     $("#menu").innerHTML = h; $$("[data-go]", $("#menu")).forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
     var o = $("#aiCtx"), v = o.value; o.innerHTML = '<option value="">Général</option>' + ACTS.map(function (a) { return '<option value="' + a[1] + '">' + a[2] + "</option>"; }).join("") + OUTILS.map(function (a) { return '<option value="' + a[0] + '">' + a[1] + "</option>"; }).join("");
@@ -173,7 +173,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
       $("[data-rl]").onclick = function () { pg.querySelector("iframe").src = pg.querySelector("iframe").src; };
       return; }
     var S = SECTIONS.filter(function (x) { return x[0] === s; })[0] || SECTIONS[0]; $("#ttl").textContent = S[1] + " " + S[2];
-    ({ accueil: pAccueil, lecons: pLecons, classes: pClasses, groupes: pGroupes, params: pParams, tablettes: pTablettes, demandes: pDemandes }[S[0]] || pAccueil)(pg);
+    ({ accueil: pAccueil, mesclasses: pMesClasses, lecons: pLecons, classes: pClasses, groupes: pGroupes, params: pParams, tablettes: pTablettes, demandes: pDemandes }[S[0]] || pAccueil)(pg);
   }
   window.addEventListener("hashchange", function () { var s = location.hash.slice(1); if (s && s !== (cur.app ? "app:" + cur.app : cur.s)) go(s); });
 
@@ -201,6 +201,25 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
     f("[data-share]", function () { EPSD.shareSettings(); }); f("[data-sync]", function () { this.textContent = "⟳ …"; var b = this; EPSD.syncNow().then(function () { b.textContent = "✓ Synchronisé"; }); });
     f("[data-rest]", function () { EPSD.restoreAll(); }); f("[data-sig]", function () { EPSD.signal(); }); f("[data-ovw]", function () { EPSD.overview(); });
     f("[data-find]", function () { EPSD.search(); }); f("[data-forget]", function () { if (!confirm("Ne plus reconnaître cet ordinateur ? Ton code enseignant sera redemandé à la prochaine ouverture de la console.")) return; try { localStorage.removeItem("eps.console.trust"); localStorage.setItem("eps.teach.until", "0"); } catch (e) {} location.reload(); }); f("[data-bil]", function () { EPSD.bilans(); }); f("[data-ai]", function () { aiShow(true); });
+  }
+
+  /* ---------- 🏫 mes classes : toutes les classes → une classe → ses activités (vue de classe de l'activité, dans l'appli) ---------- */
+  function pMesClasses(pg) {
+    var L = lists(), c = cur.mc && L.some(function (o) { return o.nom === cur.mc; }) ? cur.mc : null;
+    if (!c) {
+      pg.innerHTML = '<h2>🏫 Mes classes</h2><p class="mut">Touche une classe : ses activités, puis pour chacune la vue générale, chaque élève (en général et leçon par leçon), les bilans par séquence, trimestre ou année, et les avis ou appréciations de bulletin.</p><div class="cards">' +
+        L.map(function (o) { var A = ACTS.filter(function (a) { return (o.off || []).indexOf(a[0]) < 0; }), v = window.epsVoie ? epsVoie(o.nom) : "", nx = null; try { nx = (EPSD.edtSlots(o.nom, null, Date.now(), 1) || [])[0]; } catch (e) {}
+          return '<button type="button" class="card" data-mc="' + esc(o.nom) + '" style="text-align:left;cursor:pointer;font:inherit"><h3>' + esc(o.nom) + ' <span class="tag' + (v === "pro" ? " pro" : "") + '">' + (v === "gt" ? "générale" : "pro") + '</span></h3><div class="mut">' + (o.el || []).length + " élèves" + (nx ? " · prochain cours " + new Date(nx.at).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) : "") + '</div><div style="margin-top:6px">' + A.map(function (a) { return '<span class="tag" style="background:' + a[3] + '22;color:#14171C;margin:2px">' + esc(a[2]) + "</span>"; }).join("") + "</div></button>"; }).join("") + "</div>" +
+        (L.length ? "" : '<p class="mut">Aucune classe : règle le partage (🏠 Accueil) ou crée tes classes (👥 Classes et élèves).</p>');
+      $$("[data-mc]", pg).forEach(function (b) { b.onclick = function () { cur.mc = b.dataset.mc; pMesClasses(pg); }; }); return; }
+    var o = L.filter(function (x) { return x.nom === c; })[0], A = ACTS.filter(function (a) { return (o.off || []).indexOf(a[0]) < 0; }), d = cur.mcDir && A.some(function (a) { return a[1] === cur.mcDir; }) ? cur.mcDir : null;
+    pg.className = d ? "pg full" : "pg"; pg.style.flexDirection = "column";
+    pg.innerHTML = '<div class="row" style="margin:0;padding:8px 14px;background:#fff;border-bottom:1.5px solid var(--ln)"><button type="button" class="b" data-back>← Mes classes</button><b style="font-size:18px">' + esc(c) + '</b><span style="flex:1"></span>' + A.map(function (a) { return '<button type="button" class="b" data-md="' + a[1] + '"' + (a[1] === d ? ' style="background:' + a[3] + ';border-color:transparent;color:#fff"' : "") + ">" + esc(a[2]) + "</button>"; }).join("") + '<button type="button" class="b p" data-bul>📝 Bulletin (toutes activités)</button></div>' +
+      (d ? '<iframe title="Vue de la classe" src="../' + d + '/?console=classe&cls=' + encodeURIComponent(c) + '"></iframe>' : '<div style="padding:18px 22px"><h2>🏫 ' + esc(c) + '</h2><p class="mut">Choisis une activité en haut : vue générale, élèves (général et par leçon), bilans et avis de la séquence, du trimestre ou de l\'année. « 📝 Bulletin (toutes activités) » : appréciations du trimestre qui reprennent toutes les activités de la classe, formulées positivement (tu ajoutes tes remarques).</p><div class="cards">' +
+        A.map(function (a) { return '<button type="button" class="card" data-md="' + a[1] + '" style="cursor:pointer;text-align:left;font:inherit;border-left:6px solid ' + a[3] + '"><h3>' + esc(a[2]) + '</h3><div class="mut">Vue de la classe, élèves, bilans et avis</div></button>'; }).join("") + "</div></div>");
+    $("[data-back]", pg).onclick = function () { cur.mc = null; cur.mcDir = null; go("mesclasses"); };
+    $$("[data-md]", pg).forEach(function (b) { b.onclick = function () { cur.mcDir = b.dataset.md; $("#aiCtx").value = cur.mcDir; pMesClasses(pg); }; });
+    $("[data-bul]", pg).onclick = function () { EPSD.bulletin(c); };
   }
 
   /* ---------- 📝 leçons : atelier de conception (liste · fiche · sommaire), une activité à la fois ---------- */

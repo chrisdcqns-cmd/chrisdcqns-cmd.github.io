@@ -197,7 +197,7 @@ function reformuler_(p) {
   if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
   if (p.ai === 'badsit') return badSituation_(key, p);
   if (p.ai === 'badcoach') return badCoach_(key, p);
-  const notes = String(p.t || '').slice(0, p.ai === 'lecon' ? 3200 : 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, 600);
+  const notes = String(p.t || '').slice(0, p.ai === 'lecon' ? 3200 : (p.ai === 'bulletin' || p.ai === 'avis') ? 2200 : 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, 600);
   if (!notes.trim() && !ctx.trim()) throw new Error('Texte vide');
   const bulletin = p.ai === 'bulletin';
   const COMMUN = ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
@@ -226,7 +226,8 @@ function reformuler_(p) {
   }
   const system = 'Tu es un enseignant d\'EPS de lycée, en France. Tu rédiges en français correct, bienveillant, précis et concret, sans formules creuses. ' +
     'Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »). N\'invente aucun fait absent des notes. Pas de nom ni de prénom. ' +
-    (bulletin ? 'Écris une appréciation de bulletin trimestriel à la 3e personne, en 2 phrases (300 caractères maximum) : le bilan, puis le conseil pour progresser.'
+    (bulletin ? 'Écris une appréciation de bulletin trimestriel à la 3e personne, en 2 phrases (300 caractères maximum), formulée de façon POSITIVE et valorisante : les points forts, les progrès et l\'engagement constatés dans les données, puis un encouragement formulé positivement (« peut continuer à… », « gagnera à poursuivre… »). Aucune critique, aucun reproche, aucune tournure négative (pas de « manque », « insuffisant », « doit », « mais ») : l\'enseignant ajoute lui-même ses remarques. Si les données sont maigres, reste sobre et factuel.'
+     : p.ai === 'avis' ? 'Écris l\'avis de bilan de la période pour cet élève, à la 3e personne, en 2 ou 3 phrases (380 caractères maximum) : ce qui est réussi (chiffres utiles), puis un axe de progrès concret formulé de façon constructive.'
               : 'Écris un commentaire adressé directement à l\'élève (tutoiement), en 2 ou 3 phrases (350 caractères maximum) : ce qui est réussi, puis ce qu\'il faut travailler.') +
     ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
   return claude_(key, system, 'Activité : ' + act + '\n' + (ctx ? 'Éléments d\'évaluation : ' + ctx + '\n' : '') + 'Notes de l\'enseignant : ' + (notes || '(aucune)'));

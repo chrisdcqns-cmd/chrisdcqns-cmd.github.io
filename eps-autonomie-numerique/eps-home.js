@@ -236,7 +236,7 @@
   var STORES = [];
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
   var AUTOPAT = [[/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
-    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
+    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
     if (all) { ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "ccf", "crosstraining"].forEach(function (d) { ["lecons", "lcimg", "lcdocs", "live", "leceval", "lecres"].forEach(function (t) { keys.push("eps." + t + "." + d + ".v1"); }); });
@@ -1285,7 +1285,7 @@
   function reformuler(texte, o) {
     o = o || {}; var cfg = shCfg();
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
-    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : 1500), act: o.act || actName(), ctx: String(o.ctx || "").slice(0, 600), lang: o.lang || "" }, 90000).then(function (r) {
+    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : (o.mode === "bulletin" || o.mode === "avis") ? 2200 : 1500), act: o.act || actName(), ctx: String(o.ctx || "").slice(0, 600), lang: o.lang || "" }, 90000).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script en 90 s (connexion ? Claude surchargé ?) : réessaie.");
       if (!r.keyOk) throw new Error("Clé du partage refusée par le script");
       if (r.aiErr) throw new Error(/ANTHROPIC_KEY/.test(r.aiErr) ? "Clé Claude absente du script (Propriétés du script → ANTHROPIC_KEY)" : r.aiErr);
@@ -1867,7 +1867,7 @@
   function abIs(c, n, d) { var o = abGet(c, d), k = nkey(n); return !!o && (o.abs || []).some(function (x) { return nkey(x) === k; }); }
   STORES.push({ pre: "cd|", key: KC });
   STORES.push({ pre: "pa|", key: "eps.param.v1" });
-  STORES.push({ pre: "rm|", key: "eps.remed.v1" }, { pre: "nv|", key: "eps.niv.v1" }, { pre: "gh|", key: "eps.grphist.v1" }, { pre: "cs|", key: "eps.console.v1" });
+  STORES.push({ pre: "av|", key: "eps.avis.v1" }, { pre: "rm|", key: "eps.remed.v1" }, { pre: "nv|", key: "eps.niv.v1" }, { pre: "gh|", key: "eps.grphist.v1" }, { pre: "cs|", key: "eps.console.v1" });
   STORES.push({ pre: "cc|", key: "eps.ccfcfg.v1" }); /* 🎯 réglages CCF des évaluations (eps-eval.js) */ /* 🎛 paramètres des applis (EPSP, eps-lists.js) */
   function codeId(cls, full) { return cmp(cls) + "|" + nkey(full); }
   function codeGet(cls, full) { var o = stLd(KC).items[codeId(cls, full)]; return o && !o.del ? o : null; }
@@ -1983,17 +1983,23 @@
   /* 📝 appréciations de bulletin : Claude rédige à partir de TES commentaires et évaluations (toutes activités), sans aucun nom d'élève ;
      tu relis, corriges, coches ✓, puis copies vers Pronote. Gardées sur cette tablette seulement (eps.bulletin.v1). */
   function bulletin(want) {
-    var KB = "eps.bulletin.v1", B = jget(KB, {}), C = []; try { C = (window.EPSL ? EPSL.items() : []).map(function (it) { return it.nom; }); } catch (e) {}
+    var KB = "eps.bulletin.v1", B = jget(KB, {}), C = [];
+    /* période : trimestre (année scolaire en cours) ou année ; les données datées (observations, évaluations de leçon, résultats, remédiation) sont filtrées */
+    var SY = new Date().getMonth() >= 7 ? new Date().getFullYear() : new Date().getFullYear() - 1, pd = function (y, m, d) { return y + "-" + ("0" + m).slice(-2) + "-" + ("0" + d).slice(-2); };
+    var TR = { 1: [pd(SY, 9, 1), pd(SY, 11, 30)], 2: [pd(SY, 12, 1), pd(SY + 1, 2, new Date(SY + 1, 2, 0).getDate())], 3: [pd(SY + 1, 3, 1), pd(SY + 1, 7, 10)], 0: [pd(SY, 8, 20), pd(SY + 1, 7, 10)] }, TCUR = [1, 2, 3].filter(function (t) { return today() >= TR[t][0] && today() <= TR[t][1]; })[0] || 0;
+    var PER = TR[TCUR], inPer = function (d) { return !d || (d >= PER[0] && d <= PER[1]); }, dOf = function (t) { var x = new Date(t); return pd(x.getFullYear(), x.getMonth() + 1, x.getDate()); }; try { C = (window.EPSL ? EPSL.items() : []).map(function (it) { return it.nom; }); } catch (e) {}
     var cur = want && C.indexOf(want) >= 0 ? want : B._cls && C.indexOf(B._cls) >= 0 ? B._cls : C[0];
-    var o = overlay('<div id="epsbu"><h3>📝 Appréciations de bulletin</h3><p class="m">Claude part de tes commentaires et évaluations de toutes les activités (aucun nom ne lui est envoyé). Relis, corrige, coche ✓ : seules les appréciations cochées sont copiées.</p>' +
-      '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><div id="bu-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
-    var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m");
+    var o = overlay('<div id="epsbu"><h3>📝 Appréciations de bulletin</h3><p class="m">Claude part de tes commentaires et évaluations de toutes les activités de la période (aucun nom ne lui est envoyé) et formule l\'appréciation de façon positive : tu ajoutes tes remarques. Relis, corrige, coche ✓ : seules les appréciations cochées sont copiées.</p>' +
+      '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><select class="epsd-in" id="bu-p" style="width:auto;margin:0" aria-label="Période">' + [1, 2, 3, 0].map(function (t) { return '<option value="' + t + '"' + (t === TCUR ? " selected" : "") + ">" + (t ? "Trimestre " + t : "Toute l'année") + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><div id="bu-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
+    var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m"), psel = o.querySelector("#bu-p");
+    var rk = function (c) { var k = c + "|" + psel.value; if (!B[k] && psel.value === String(TCUR) && B[c] && typeof B[c] === "object") B[k] = B[c]; return k; };
+    psel.onchange = function () { PER = TR[psel.value]; save(); draw(); };
     function people(c) { var P = []; try { EPSL.items().forEach(function (it) { if (it.nom === c) P = EPSL.people(it).map(function (p) { return p.full; }); }); } catch (e) {} return P; }
-    function notes(c, n) { var O = window.EPSOB ? EPSOB.of(n, c) : [], fs = people(c).map(function (x) { return x.split(" ")[0]; });
+    function notes(c, n) { var O = (window.EPSOB ? EPSOB.of(n, c) : []).filter(function (o) { return inPer(o.day); }), fs = people(c).map(function (x) { return x.split(" ")[0]; });
       var LE = []; try { var kk = String(n).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" ");
-        for (var li = 0; li < localStorage.length; li++) { var lk = localStorage.key(li); if (!/^eps\.leceval\.[a-z]+\.v1$/.test(lk || "")) continue; var LV = jget(lk, {}); Object.keys((LV && LV.items) || {}).forEach(function (id) { var o = LV.items[id]; if (!o || o.del || cmp(o.cls) !== cmp(c)) return; var x = (o.el || {})[kk]; if (!x) return; var v = ["p", "s", "t"].filter(function (q) { return x[q] != null; }).map(function (q) { return +x[q]; }); if (v.length) LE.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); }); } } catch (e) {}
-      var RS = [0, 0]; try { for (var lj = 0; lj < localStorage.length; lj++) { var rk = localStorage.key(lj); if (!/^eps\.lecres\.[a-z]+\.v1$/.test(rk || "")) continue; var RV = jget(rk, {}); Object.keys((RV && RV.items) || {}).forEach(function (id) { var o = RV.items[id]; if (!o || o.del || o.ek !== kk || cmp(o.cls) !== cmp(c)) return; Object.keys(o.r || {}).forEach(function (q) { RS[0] += o.r[q] === 2 ? 1 : o.r[q] === 1 ? .5 : 0; RS[1]++; }); }); } } catch (e) {}
-      var RM = []; try { var RMV = jget("eps.remed.v1", {}); Object.keys((RMV && RMV.items) || {}).forEach(function (id) { var o = RMV.items[id]; if (o && !o.del && cmp(o.cls) === cmp(c) && nkey(o.el) === nkey(n)) RM.push(o); }); } catch (e) {}
+        for (var li = 0; li < localStorage.length; li++) { var lk = localStorage.key(li); if (!/^eps\.leceval\.[a-z]+\.v1$/.test(lk || "")) continue; var LV = jget(lk, {}); Object.keys((LV && LV.items) || {}).forEach(function (id) { var o = LV.items[id]; if (!o || o.del || cmp(o.cls) !== cmp(c) || !inPer(o.day)) return; var x = (o.el || {})[kk]; if (!x) return; var v = ["p", "s", "t"].filter(function (q) { return x[q] != null; }).map(function (q) { return +x[q]; }); if (v.length) LE.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); }); } } catch (e) {}
+      var RS = [0, 0]; try { for (var lj = 0; lj < localStorage.length; lj++) { var rk = localStorage.key(lj); if (!/^eps\.lecres\.[a-z]+\.v1$/.test(rk || "")) continue; var RV = jget(rk, {}); Object.keys((RV && RV.items) || {}).forEach(function (id) { var o = RV.items[id]; if (!o || o.del || o.ek !== kk || cmp(o.cls) !== cmp(c) || !inPer(o.day)) return; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; RS[0] += o.r[q] === 2 ? 1 : o.r[q] === 1 ? .5 : 0; RS[1]++; }); }); } } catch (e) {}
+      var RM = []; try { var RMV = jget("eps.remed.v1", {}); Object.keys((RMV && RMV.items) || {}).forEach(function (id) { var o = RMV.items[id]; if (o && !o.del && cmp(o.cls) === cmp(c) && nkey(o.el) === nkey(n) && inPer(dOf(o.at))) RM.push(o); }); } catch (e) {}
       var rm = RM.length ? "\nRemédiation en autonomie : " + RM.length + " situation(s) proposée(s) (" + RM.map(function (o) { return o.tag; }).filter(Boolean).join(", ") + "), " + RM.filter(function (o) { return o.st === 3; }).length + " réussie(s), " + RM.filter(function (o) { return o.st === 2; }).length + " en partie, " + RM.filter(function (o) { return !o.st; }).length + " pas encore essayée(s)" : "";
       var rs = RS[1] ? "\nSituations des leçons (résultats notés par l'élève) : " + Math.round(RS[0] / RS[1] * 100) + " % de réussite sur " + RS[1] + " situation(s)" : "";
       var le = LE.length ? "\nÉvaluations de leçon (participation, sérieux, thème du jour) : moyenne " + (Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length * 10) / 10) + " / 3 sur " + LE.length + " leçon(s)" : "";
@@ -2001,7 +2007,7 @@
       return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob + le + rs + rm; }
     function save() { B._cls = sel.value; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) {} }
     function draw() {
-      var c = sel.value, R = B[c] = B[c] || {}, P = people(c);
+      var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P = people(c);
       list.innerHTML = P.map(function (n, i) { var r = R[n] || {}, has = !!notes(c, n);
         return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><label style="display:flex;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + '</label><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px;margin-top:6px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + "</textarea></div>"; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
       list.querySelectorAll("[data-t]").forEach(function (ta) { ta.oninput = function () { var n = P[+ta.dataset.t]; R[n] = R[n] || {}; R[n].t = ta.value; R[n].ai = 0; ta.style.background = ""; save(); }; });
@@ -2009,18 +2015,18 @@
     }
     sel.onchange = function () { save(); draw(); };
     o.querySelector("#bu-go").onclick = function () {
-      var b = this, c = sel.value, R = B[c] = B[c] || {}, P = people(c).filter(function (n) { return notes(c, n) && !(R[n] && (R[n].ok || (R[n].t && !R[n].ai))); }), i = 0;
+      var b = this, c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P = people(c).filter(function (n) { return notes(c, n) && !(R[n] && (R[n].ok || (R[n].t && !R[n].ai))); }), i = 0;
       if (!P.length) { msg.textContent = "Rien à proposer : appréciations déjà écrites ou validées, ou aucune donnée."; return; }
       b.disabled = true;
       (function next() {
         if (i >= P.length) { b.disabled = false; msg.textContent = "✓ " + P.length + " proposition(s) en jaune : relis, corrige et coche ✓."; save(); draw(); return; }
         var n = P[i++]; msg.textContent = "Claude rédige " + i + " / " + P.length + "…";
-        reformuler(notes(c, n), { mode: "bulletin", act: "EPS (toutes activités)", ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
+        reformuler("Période : " + psel.options[psel.selectedIndex].text + "\n" + notes(c, n), { mode: "bulletin", act: "EPS (toutes activités)", ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité. Appréciation positive : l'enseignant ajoute ses remarques." })
           .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); draw(); next(); })
           .catch(function (e) { b.disabled = false; msg.textContent = "⚠ " + e.message; save(); draw(); });
       })();
     };
-    o.querySelector("#bu-cp").onclick = function () { var c = sel.value, R = B[c] || {}, txt = people(c).filter(function (n) { return R[n] && R[n].ok && R[n].t; }).map(function (n) { return n + " : " + R[n].t; }).join("\n");
+    o.querySelector("#bu-cp").onclick = function () { var c = sel.value, R = B[rk(c)] || {}, txt = people(c).filter(function (n) { return R[n] && R[n].ok && R[n].t; }).map(function (n) { return n + " : " + R[n].t; }).join("\n");
       if (!txt) { msg.textContent = "Coche ✓ les appréciations relues pour les copier."; return; }
       (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { msg.textContent = "📋 Copié : colle dans Pronote ou un document."; }, function () { var ta = document.createElement("textarea"); ta.value = txt; o.appendChild(ta); ta.select(); try { document.execCommand("copy"); msg.textContent = "📋 Copié."; } catch (e) {} ta.remove(); }); };
     draw();
