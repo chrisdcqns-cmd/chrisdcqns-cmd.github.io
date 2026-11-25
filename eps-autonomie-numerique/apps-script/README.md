@@ -5,7 +5,7 @@ réglages communs (établissement, enseignant, année, équipe…), dispenses, l
 
 Il est indépendant des scripts propres à une application :
 - `relais/apps-script/Code.gs` : Relais Vitesse (courses, synchro de Relais) — **rien à changer** ;
-- `danse/apps-script/Code.gs` : Danse (auto-positionnements des élèves).
+- `danse/apps-script/Code.gs` : ancien script des auto-positionnements de Danse — **plus nécessaire** : le script commun les reçoit maintenant (onglet « Depot »), pour toutes les applis.
 
 Tout est **chiffré sur la tablette** avec la clé secrète : la feuille ne contient aucun nom lisible.
 
@@ -68,3 +68,14 @@ Le script crée tout seul une feuille « Bilans » (données chiffrées avec le 
 ## 💾 Sauvegarde hebdomadaire sur Drive
 
 Une seule fois, après avoir collé le nouveau `Code.gs` : en haut de l'éditeur, choisis la fonction **installerSauvegarde**, puis **▶ Exécuter** et accepte l'autorisation (Drive). Une première copie est faite tout de suite, puis chaque dimanche vers 20 h dans le dossier Drive « Sauvegardes EPS » (les 10 dernières sont gardées). La pastille de synchronisation des applis affiche ⚠ si la sauvegarde n'est pas installée ou a plus de 9 jours.
+
+## Auto-positionnements des élèves (mise à jour du script, une seule fois)
+
+Le script commun reçoit maintenant les positionnements envoyés par les élèves depuis le lien (QR code) de leur fiche, pour **toutes les applis** (onglet « Depot », données chiffrées, aucun nom lisible). Il n'y a plus besoin du script de Danse.
+
+1. Ouvre la feuille « EPS – partage commun » → **Extensions → Apps Script**.
+2. Remplace tout le code par le nouveau contenu de [`Code.gs`](Code.gs) — **garde ta ligne `const SECRET = '…';`**.
+3. **Déployer → Gérer les déploiements → ✏️ → Version : Nouvelle version → Déployer** (l'adresse ne change pas).
+4. Dans Danse → ⚙ Réglages : la liste de vérification affiche « Envoi automatique des positionnements ✓ Par ton script commun ». Les fiches PDF générées ensuite portent des liens vers ce script.
+
+Les liens déjà distribués qui pointent vers l'ancien script de Danse continuent d'être relevés tant que cet ancien script reste réglé dans Danse (Réglages → « Ancien script de Danse »).

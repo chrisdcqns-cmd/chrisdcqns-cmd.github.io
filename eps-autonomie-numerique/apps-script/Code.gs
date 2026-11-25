@@ -23,7 +23,9 @@ const SYNC_SHEET = 'Sync';
 function doPost(e) {
   let data;
   try { data = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'json' }); }
+  if (data.drop) return json_(dropPush_(data.drop)); /* auto-positionnement d'un élève : sans clé (chiffré par le lien de sa fiche) */
   if (data.key !== SECRET) return json_({ ok: false, error: 'key' });
+  if (data.purge) return json_(purge_());
   if (data.sync) return json_(syncPush_(data.sync));
   if (data.aiReq) return json_(aiReq_(data.aiReq));
   if (data.bil) { try { return json_(Object.assign({ ok: true }, bilansPut_(data.bil))); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); } }
@@ -38,6 +40,9 @@ function doGet(e) {
   if (p.ct) return json_(ctGet_(p)); /* Cross-training : bibliothèque et vidéos (sans clé : fiches et vidéos publiques) */
   const res = { ok: true, app: 'EPS commun', keyOk: p.key === SECRET };
   if (res.keyOk) res.sync = 1;
+  res.dropv = 1; /* ce script reçoit les auto-positionnements (remplace le script de Danse) */
+  if (res.keyOk && p.drops !== undefined) Object.assign(res, dropPull_(p));
+  if (p.dropchk !== undefined) res.drop = dropCheck_(String(p.dropchk)); /* l'élève vérifie que son dépôt est arrivé (début du texte chiffré seulement) */
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
   if (p.bil) { try { res.bil = bilansGet_(String(p.bil)); res.bilv = 1; } catch (err) { res.bilErr = String(err && err.message || err); } }
@@ -571,3 +576,76 @@ function ctPartager_() {
   })(ctDossier_());
   return { partagees: n, refus: refus };
 }
+
+/* ===================== Auto-positionnements des élèves (boîte de dépôt) =====================
+ * Reprend le script de Danse : le lien personnel de la fiche d'un élève contient un identifiant de dépôt et une clé
+ * de chiffrement calculés à partir de SECRET (jamais dans le lien). Le téléphone dépose son positionnement CHIFFRÉ
+ * dans l'onglet « Depot » ; les tablettes réglées avec la clé le relèvent (?drops=1&since=…). */
+const DROP_SHEET = 'Depot';
+const DROP_MAX = 5000;
+function dropSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(DROP_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(DROP_SHEET);
+    sh.getRange(1, 1, 1, 4).setValues([['seq', 'clé', 'reçu', 'données (chiffrées)']]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+/** Une ligne par élève (clé « dan|… ») : le dernier envoi remplace le précédent. */
+function dropPush_(d) {
+  const k = String((d && d.k) || ''), x = String((d && d.x) || '');
+  if (!/^dan\|[A-Za-z0-9_-]{8,40}$/.test(k) || !/^[A-Za-z0-9_-]{20,8000}$/.test(x)) return { ok: false, error: 'dépôt' };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = dropSheet_();
+    const props = PropertiesService.getScriptProperties();
+    const seq = Number(props.getProperty('drop_seq') || 0) + 1;
+    const last = sh.getLastRow();
+    const keys = last > 1 ? sh.getRange(2, 2, last - 1, 1).getValues().map(r => String(r[0])) : [];
+    const i = keys.indexOf(k);
+    const row = [seq, k, new Date(), x];
+    if (i >= 0) sh.getRange(i + 2, 1, 1, 4).setValues([row]);
+    else if (keys.length >= DROP_MAX) return { ok: false, error: 'plein' };
+    else sh.getRange(last + 1, 1, 1, 4).setValues([row]);
+    props.setProperty('drop_seq', String(seq));
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function dropCheck_(k) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DROP_SHEET);
+  if (!sh || sh.getLastRow() < 2) return '';
+  const rows = sh.getRange(2, 2, sh.getLastRow() - 1, 3).getValues();
+  for (let i = 0; i < rows.length; i++) if (String(rows[i][0]) === k) return String(rows[i][2]).slice(0, 16);
+  return '';
+}
+
+/** Dépôts reçus depuis « since », par paquets de 300. */
+function dropPull_(p) {
+  const since = Number(p.since || 0);
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DROP_SHEET);
+  if (!sh || sh.getLastRow() < 2) return { drops: [], more: false };
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues()
+    .filter(r => Number(r[0]) > since).sort((a, b) => Number(a[0]) - Number(b[0]));
+  return { drops: rows.slice(0, 300).map(r => [Number(r[0]), String(r[1]), 0, String(r[3])]), more: rows.length > 300 };
+}
+
+/** Fin de cycle : supprime tous les dépôts (la numérotation continue, les tablettes ne relisent rien). */
+function purge_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = dropSheet_();
+    const n = sh.getLastRow() - 1;
+    if (n > 0) sh.deleteRows(2, n);
+    return { ok: true, purged: Math.max(0, n) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+

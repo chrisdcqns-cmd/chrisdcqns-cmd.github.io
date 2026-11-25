@@ -275,6 +275,9 @@ nav button.on{background:var(--app);color:#fff}
 .ap-degs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .ap-deg{text-align:left;border:2px solid #e6e1d8;border-top:6px solid var(--dc);background:#fff;border-radius:12px;padding:10px;font:inherit;font-size:.92rem;line-height:1.3;cursor:pointer;display:flex;flex-direction:column;gap:6px;color:var(--ink)}
 .ap-deg.on{background:var(--dt);border-color:var(--dc);box-shadow:0 0 0 3px var(--dc) inset}.ap-dh{font-weight:800;color:var(--dc);font-size:.85rem}
+.ap-prog{display:flex;gap:6px;align-items:center;margin:4px 0 14px}.ap-prog i{flex:1;height:8px;border-radius:4px;background:#E6E1D6}.ap-prog i.ok{background:#6B3FA0}.ap-prog i.on{background:#6B3FA0;opacity:.45}.ap-prog span{flex:none;font-weight:800;color:#6A6F78;margin-left:8px}
+.ap-nav{display:flex;justify-content:space-between;gap:12px;margin:16px 0 40px}.ap-nav .ap-btn{min-width:160px;height:54px;font-size:17px}.ap-nav .ap-btn[disabled]{opacity:.45}
+.ap-ri{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;background:#fff;border:2px solid #E6E1D6;border-left:8px solid var(--dc);border-radius:12px;padding:12px 14px;margin:8px 0;font:inherit;cursor:pointer}.ap-ri b{color:var(--dc);white-space:nowrap}
 .ap-intra{margin-top:12px;background:#faf8f4;border-radius:12px;padding:10px 14px;display:grid;gap:4px}.ap-intra span{font-weight:700}
 .ap-intra input{width:100%;accent-color:var(--dc)}.ap-ticks{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)}.ap-ticks span{font-weight:400}
 .ap-lbl{display:block;font-weight:700;color:var(--navy);margin:6px 0}.ap-lbl input,.ap-lbl select,.ap-lbl textarea{display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1.5px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-weight:400}
@@ -2151,9 +2154,12 @@ function nk(s){return String(s||'').trim().toLowerCase().normalize('NFD').replac
 function b64e(str){const b=new TextEncoder().encode(str);let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function b64d(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new TextDecoder().decode(u)}
 /* envoi : réglage propre à Volley, sinon celui de Danse (même script) */
-function envoiCfg(){const b=B();let url=(b.envoiUrl||'').trim(),key=(b.envoiCle||'').trim(),src='volley';
+/* boîte de dépôt : réglage propre à Volley, sinon le script commun (EPSD.boite), sinon l'ancien script de Danse */
+function apBoite(){const b=B();try{if(window.EPSD&&EPSD.boite)return EPSD.boite({url:b.envoiUrl,key:b.envoiCle})}catch(e){}const c=envoiCfg0();return{envoi:c,lire:c?[c]:[]}}
+function envoiCfg(){return apBoite().envoi}
+function envoiCfg0(){const b=B();let url=(b.envoiUrl||'').trim(),key=(b.envoiCle||'').trim(),src='volley';
   if(!url||!key){const R=((jget('danse-eps-v1',{})||{}).reglages)||{};url=(R.envoiUrl||'').trim();key=(R.envoiCle||'').trim();src='danse'}
-  return /^https:\/\/\S+\/exec$/.test(url)&&key?{url,key,src}:null}
+  return /^https:\/\/\S+\/exec$/.test(url)&&key?{url,key,src,id:src}:null}
 const apCrypto=()=>!!(window.crypto&&crypto.subtle);
 const TE8=new TextEncoder();
 function u8b64(u8){let x='';u8.forEach(c=>x+=String.fromCharCode(c));return btoa(x).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
@@ -2186,20 +2192,23 @@ function apPoser(f,d,via){if(f.e.ap&&(f.e.ap.t||0)>=(d.t||0))return false;f.e.ap
 /* ---- côté enseignant : relevé des dépôts ---- */
 let apReleveEnCours=false,apDernier=0;
 async function apRelever(force){
-  const cfg=envoiCfg();if(!cfg)return{err:'reglage'};
+  const srcs=apBoite().lire;if(!srcs.length)return{err:'reglage'};
   if(!apCrypto()||apReleveEnCours||(!force&&Date.now()-apDernier<15000))return null;
   apReleveEnCours=true;apDernier=Date.now();
-  let since=+(localStorage.getItem('eps_volley_apseq')||0),n=0,inconnus=0,more=true,garde=0;
+  let n=0,inconnus=0,err=null,okUn=false,seqs={};try{seqs=JSON.parse(localStorage.getItem('eps_volley_apseq.m')||'{}')||{}}catch(e){}
   try{
-    while(more&&garde++<20){
-      const r=await jsonpGet(cfg.url,{key:cfg.key,drops:1,since});
-      if(!r)return{err:'connexion'};if(!r.keyOk)return{err:'cle'};if(!Array.isArray(r.drops))return{err:'script'};
-      for(const [seq,k,,x] of r.drops){since=Math.max(since,+seq||0);if(!/^dan\|vb/.test(String(k)))continue;
-        try{const d=await apDechiffrer(await apCle(cfg.key,String(k).slice(4)),x);const f=apTrouver(d.n,d.p,d.c);if(!f){inconnus++;continue}if(apPoser(f,d,'lien'))n++}catch(err){}}
-      more=!!r.more;
+    for(const cfg of srcs){let since=seqs[cfg.id]!=null?seqs[cfg.id]:(cfg.src!=='commun'?+(localStorage.getItem('eps_volley_apseq')||0):0),more=true,garde=0,e1=null;
+      while(more&&garde++<20){
+        const r=await jsonpGet(cfg.url,{key:cfg.key,drops:1,since});
+        if(!r){e1='connexion';break}if(!r.keyOk){e1='cle';break}if(!Array.isArray(r.drops)){e1='script';break}
+        for(const [seq,k,,x] of r.drops){since=Math.max(since,+seq||0);if(!/^dan\|vb/.test(String(k)))continue;
+          try{const d=await apDechiffrer(await apCle(cfg.key,String(k).slice(4)),x);const f=apTrouver(d.n,d.p,d.c);if(!f){inconnus++;continue}if(apPoser(f,d,'lien'))n++}catch(er){}}
+        more=!!r.more;
+      }
+      if(e1)err=err||e1;else okUn=true;seqs[cfg.id]=since;
     }
-    try{localStorage.setItem('eps_volley_apseq',String(since))}catch(e){}if(n)save();
-    return{n,inconnus};
+    try{localStorage.setItem('eps_volley_apseq.m',JSON.stringify(seqs))}catch(e){}if(n)save();
+    return okUn?{n,inconnus}:{err};
   }finally{apReleveEnCours=false}
 }
 function apMsg(r){return !r?'':r.err==='connexion'?'Pas de connexion au script Google.':r.err==='cle'?'Clé secrète refusée par le script.':r.err==='script'?"Ce n'est pas le script des auto-positionnements (vérifie l'adresse).":r.err==='reglage'?"Envoi automatique non réglé.":r.n?`${r.n} nouveau(x) positionnement(s) reçu(s)${r.inconnus?`, ${r.inconnus} élève(s) non reconnu(s)`:''}.`:'Rien de nouveau.'+(r.inconnus?` (${r.inconnus} élève(s) non reconnu(s))`:'')}
@@ -2254,29 +2263,36 @@ function renderAp(){
     ${E.echec?`<p class="ap-warn">L'envoi automatique n'a pas fonctionné (connexion ?). Réessaie, ou utilise le code ci-dessous.</p><button class="ap-btn" onclick="apEnvoyer()">Réessayer l'envoi</button>`:''}
     <p>Copie ce code et <b>envoie-le à ton enseignant</b> par la messagerie Pronote :</p><div class="ap-code">${esc(E.code)}</div>
     <button class="ap-btn" onclick="apCopier(APE.code)">Copier mon code</button> <button class="ap-btn alt" onclick="APE.etape='form';renderAp()">Modifier mes réponses</button>${recap()}</div></div>`;return}
-  let ident;
+  /* pas à pas (règle commune) : 0 = qui es-tu, 1…N = un critère par écran, N+1 = mes mots + récapitulatif */
+  const N=b.criteres.length;if(E.step==null)E.step=0;E.step=Math.max(0,Math.min(N+1,E.step));
+  let ident,ok1=true,corps;
   if(ctx.ident)ident=`<p class="ap-hello">Bonjour <b>${esc((E.prenom+' '+E.nom).trim())}</b>${E.classe?' · '+esc(E.classe):''}</p>`;
-  else if(local)ident=`<label class="ap-lbl">Je suis<select onchange="APE.eleveId=this.value">${'<option value="">— choisis ton nom —</option>'+c.eleves.map(e=>`<option value="${e.id}" ${E.eleveId===e.id?'selected':''}>${esc(fullName(e))}</option>`).join('')}</select></label>`;
-  else ident=`<div class="ap-three"><label class="ap-lbl">Nom<input value="${esc(E.nom)}" oninput="APE.nom=this.value"></label><label class="ap-lbl">Prénom<input value="${esc(E.prenom)}" oninput="APE.prenom=this.value"></label><label class="ap-lbl">Classe<input value="${esc(E.classe)}" oninput="APE.classe=this.value"></label></div>`;
+  else if(local){ident=`<label class="ap-lbl" style="font-size:17px">Je suis<select style="min-height:54px;font-size:17px" onchange="apQui(this.value)">${'<option value="">— choisis ton nom —</option>'+c.eleves.map(e=>`<option value="${e.id}" ${E.eleveId===e.id?'selected':''}>${esc(fullName(e))}</option>`).join('')}</select></label>`;ok1=!!E.eleveId}
+  else{ident=`<div class="ap-three"><label class="ap-lbl">Nom<input value="${esc(E.nom)}" oninput="APE.nom=this.value"></label><label class="ap-lbl">Prénom<input value="${esc(E.prenom)}" oninput="APE.prenom=this.value"></label><label class="ap-lbl">Classe<input value="${esc(E.classe)}" oninput="APE.classe=this.value"></label></div>`}
   const tot=b.criteres.reduce((s,cr)=>s+(+maxPts(cr,null)||0),0)||1;
-  V.innerHTML=top+`<div class="ap-in">
-   <div class="ap-card ap-intro"><h1>Je me positionne en volley-ball</h1>${ident}
-    <p>Pour chaque critère : <b>1.</b> lis les 4 niveaux et touche celui qui te ressemble le plus ; <b>2.</b> précise avec le curseur où tu en es dans ce niveau. Sois honnête : c'est pour t'aider à progresser !</p></div>
-   ${b.criteres.map((cr,i)=>{const x=E.ev[cr.id],X=cTx(cr,true),pc=Math.round((+maxPts(cr,null)||0)/tot*100);
-     return `<div class="ap-card ap-crit" id="apc-${cr.id}"><div class="ap-ch"><span class="ap-num">${i+1}</span><div><b>${esc(X.nom)}</b><small>${esc(X.but)}</small></div><span class="ap-pc">${cr.afl} · ${pc} %</span></div>
+  const prog=`<div class="ap-prog">${Array.from({length:N+2},(_,i)=>`<i class="${i<E.step?'ok':i===E.step?'on':''}"></i>`).join('')}<span>Étape ${E.step+1} / ${N+2}</span></div>`;
+  if(E.step===0)corps=`<div class="ap-card ap-intro"><h1>Je me positionne en volley-ball</h1>${ident}
+    <p>Tu vas répondre à <b>${N} question${N>1?'s':''}</b>, une à la fois. Pour chacune : <b>1.</b> lis les 4 niveaux et touche celui qui te ressemble le plus ; <b>2.</b> précise avec le curseur où tu en es dans ce niveau. Sois honnête : c'est pour t'aider à progresser !</p></div>`;
+  else if(E.step<=N){const i=E.step-1,cr=b.criteres[i],x=E.ev[cr.id],X=cTx(cr,true),pc=Math.round((+maxPts(cr,null)||0)/tot*100);ok1=!!x;
+    corps=`<p class="ap-mut" style="font-weight:800;margin:0 0 6px">Question ${E.step} sur ${N}</p><div class="ap-card ap-crit" id="apc-${cr.id}"><div class="ap-ch"><span class="ap-num">${i+1}</span><div><b>${esc(X.nom)}</b><small>${esc(X.but)}</small></div><span class="ap-pc">${cr.afl} · ${pc} %</span></div>
       <div class="ap-degs">${[0,1,2,3].map(d=>`<button class="ap-deg ${x&&x.d===d?'on':''}" style="--dc:${DCOL[d]};--dt:${DTINT[d]}" onclick="apDeg('${cr.id}',${d})"><span class="ap-dh">Niveau ${d+1} · ${esc(X.deg[d])}</span><span>${esc(X.desc[d]||'')}</span></button>`).join('')}</div>
-      ${x?`<div class="ap-intra"><span>Dans ce niveau, je suis…</span><input type="range" min="0" max="4" step="1" value="${Math.round(x.pos*4)}" style="--dc:${DCOL[x.d]}" oninput="apPos('${cr.id}',this.value)"><div class="ap-ticks"><span>au début</span><span>au milieu</span><span>${x.d===3?'au top':'presque au suivant'}</span></div><b id="apv-${cr.id}" style="color:${DCOL[x.d]}">${esc(posLblEl(x.d,x.pos))}</b></div>`:''}</div>`}).join('')}
-   <div class="ap-card"><label class="ap-lbl">Ce que je pense avoir réussi<textarea rows="2" placeholder="J'ai réussi à…" oninput="APE.reussi=this.value">${esc(E.reussi)}</textarea></label>
-    <label class="ap-lbl">Ce que je veux améliorer<textarea rows="2" placeholder="Je voudrais…" oninput="APE.ameliorer=this.value">${esc(E.ameliorer)}</textarea></label></div>
-   <div style="text-align:center;padding:6px 0 30px"><button class="ap-btn big" onclick="apValider()">Valider mon positionnement</button></div></div>`;
+      ${x?`<div class="ap-intra"><span>Dans ce niveau, je suis…</span><input type="range" min="0" max="4" step="1" value="${Math.round(x.pos*4)}" style="--dc:${DCOL[x.d]}" oninput="apPos('${cr.id}',this.value)"><div class="ap-ticks"><span>au début</span><span>au milieu</span><span>${x.d===3?'au top':'presque au suivant'}</span></div><b id="apv-${cr.id}" style="color:${DCOL[x.d]}">${esc(posLblEl(x.d,x.pos))}</b></div>`:''}</div>`}
+  else corps=`<div class="ap-card"><h2 style="margin-top:0">Pour finir, avec tes mots</h2><label class="ap-lbl">Ce que je pense avoir réussi<textarea rows="3" placeholder="J'ai réussi à…" oninput="APE.reussi=this.value">${esc(E.reussi)}</textarea></label>
+    <label class="ap-lbl">Ce que je veux améliorer<textarea rows="3" placeholder="Je voudrais…" oninput="APE.ameliorer=this.value">${esc(E.ameliorer)}</textarea></label></div>
+    <div class="ap-card"><b>Mes réponses</b> <span class="ap-mut">(touche une réponse pour la changer)</span>${b.criteres.map((cr,i)=>{const x=E.ev[cr.id];return `<button class="ap-ri" style="--dc:${x?DCOL[x.d]:'#bbb'}" onclick="apStep(${i+1})"><span>${esc(cTx(cr,true).nom)}</span><b>${x?'Niveau '+(x.d+1)+' · '+esc(posLblEl(x.d,x.pos)):'à faire'}</b></button>`}).join('')}</div>`;
+  V.innerHTML=top+`<div class="ap-in">${prog}${corps}<div class="ap-nav">${E.step?'<button class="ap-btn alt" onclick="apStep(APE.step-1)">← Retour</button>':'<span></span>'}${E.step<=N?`<button class="ap-btn" ${ok1?'':'disabled'} onclick="apStep(APE.step+1)">Suivant →</button>`:'<button class="ap-btn" onclick="apValider()">Valider mon positionnement</button>'}</div></div>`;
 }
+function apStep(k){APE.step=k;renderAp();scrollTo(0,0)}
+function apQui(id){const e=C().eleves.find(x=>x.id===id);
+  if(e&&e.ap&&e.ap.ev&&Object.keys(e.ap.ev).length&&!confirm((e.prenom||e.nom)+", tu t'es déjà positionné(e)"+(e.ap.t?" le "+new Date(e.ap.t).toLocaleDateString('fr-FR'):'')+".\nSi tu continues, ta nouvelle réponse remplacera l'ancienne.\n\nOK = c'est moi, je recommence · Annuler = ce n'est pas moi")){APE.eleveId='';renderAp();return}
+  APE.eleveId=id;renderAp()}
 function apDeg(id,d){const E=APE;if(!E.ev[id]||E.ev[id].d!==d)E.ev[id]={d,pos:.5};const el=document.getElementById('apc-'+id),y=el?el.getBoundingClientRect().top:0;renderAp();const n=document.getElementById('apc-'+id);if(n)window.scrollBy(0,n.getBoundingClientRect().top-y)}
 function apPos(id,v){const x=APE.ev[id];x.pos=(+v)/4;const s=document.getElementById('apv-'+id);if(s)s.textContent=posLblEl(x.d,x.pos)}
 function apCopier(t){try{navigator.clipboard.writeText(t).then(()=>toast('Copié !'),()=>prompt('Copie ce code :',t))}catch(e){prompt('Copie ce code :',t)}}
 function apValider(){
   const E=APE,b=B(),ctx=apCtx();const manque=b.criteres.filter(cr=>!E.ev[cr.id]);
-  if(manque.length){toast('Choisis un niveau pour : '+manque.map(cr=>cr.nomEl||cr.nom).join(', '));const n=document.getElementById('apc-'+manque[0].id);if(n)n.scrollIntoView({behavior:'smooth'});return}
-  if(!ctx.ident&&C().eleves.length){const e=C().eleves.find(x=>x.id===E.eleveId);if(!e){toast('Choisis ton nom dans la liste');return}
+  if(manque.length){toast('Il te manque une réponse');apStep(b.criteres.indexOf(manque[0])+1);return}
+  if(!ctx.ident&&C().eleves.length){const e=C().eleves.find(x=>x.id===E.eleveId);if(!e){toast('Choisis ton nom dans la liste');apStep(0);return}
     E.nom=e.nom;E.prenom=e.prenom||'';E.classe=C().nom;apPoser({e},apPayload(E),'tablette');save();E.etape='merci';renderAp();scrollTo(0,0);return}
   if(!E.nom.trim()||!E.prenom.trim()){toast('Écris ton nom et ton prénom');return}
   E.code=apCode(E);
@@ -2305,11 +2321,11 @@ function apCardHtml(c){
    <div class="aplg"><div>
     <ul class="muted"><li><b>Lien personnel sur la fiche PDF</b> : quand c'est autorisé, chaque fiche porte un QR code et un lien au nom de l'élève. Il se positionne avec la grille en langage élève (niveau + curseur) ; son choix arrive <b>directement dans Évaluer</b>, à côté du tien.</li>
      <li><b>Sur cette tablette</b> : « Passer en mode élève », chacun choisit son nom et se positionne.</li></ul>
-    <p class="apenv ${cfg?'ok':''}">${cfg?`✓ Envoi automatique actif (script Google ${cfg.src==='danse'?'de Danse, réglé dans Danse':'réglé ici'}, chiffré) : les positionnements arrivent tout seuls.`:"⚠ Envoi automatique inactif sur cette tablette : règle le script Google (le même que Danse) ci-dessous. En attendant, l'élève obtient un code à t'envoyer."}</p>
+    <p class="apenv ${cfg?'ok':''}">${cfg?`✓ Envoi automatique actif (${cfg.src==='commun'?'ton script commun':cfg.src==='danse'?'ancien script de Danse':'script réglé ici'}, chiffré) : les positionnements arrivent tout seuls.`:"⚠ Envoi automatique inactif sur cette tablette : règle le partage entre tablettes (script commun, à jour). En attendant, l'élève obtient un code à t'envoyer."}</p>
     <div class="row"><button class="btn" style="background:var(--vol)" ${apOuvert()?'':'disabled'} onclick="lockApp();location.hash='eleve'">🙋 Passer cette tablette en mode élève</button>${cfg?`<button class="btn alt" onclick="this.disabled=true;apRelever(true).then(r=>{this.disabled=false;const m=apMsg(r);toast(m);if(r&&r.n)renderBilan();else document.getElementById('apRel').textContent=m})">⟳ Récupérer les positionnements</button><span class="muted" id="apRel"></span>`:''}</div>
     <details><summary>Codes reçus (si l'envoi a échoué) · réglage de l'envoi</summary>
      <textarea id="apCodes" rows="2" placeholder="VOLLEY1.eyJu… (tu peux en coller plusieurs)"></textarea><div class="row"><button class="btn alt sm" onclick="apImporterCodes(document.getElementById('apCodes').value)">Importer les codes</button></div>
-     <p class="muted">Script Google des auto-positionnements : le même que Danse (danse/apps-script). Laisse vide pour reprendre automatiquement celui réglé dans Danse.</p>
+     <p class="muted">Script Google des auto-positionnements : laisse vide, ton script commun (Partage entre tablettes) s'en charge. À remplir seulement pour utiliser un autre script.</p>
      <div class="row"><input id="apU" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(b.envoiUrl||'')}" style="flex:2;min-width:220px"><input id="apK" type="password" placeholder="Clé secrète" value="${esc(b.envoiCle||'')}" style="flex:1;min-width:120px"><button class="btn alt sm" onclick="B().envoiUrl=document.getElementById('apU').value.trim();B().envoiCle=document.getElementById('apK').value.trim();save();renderBilan();toast('Réglage enregistré')">Enregistrer</button></div></details>
    </div><div class="apqr"><canvas id="apQr" width="200" height="200"></canvas><small class="muted">Lien général (élève sans fiche, avec un code)</small><button class="btn alt sm" onclick="apCopier(apUrl()+'#eleve')">Copier le lien</button></div></div>
    <h3 style="margin:14px 0 6px;color:var(--navy)">Suivi : ${recu.length} / ${c.eleves.length} élève(s) positionné(s)</h3>

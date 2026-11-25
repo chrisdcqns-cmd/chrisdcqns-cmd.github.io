@@ -98,12 +98,13 @@ window.EPS_GUIDES = {
   ] },
   dan: { nom: "Danse", items: [
     ["📅 Séquence", "Fiche d'observation de la leçon, par groupes de création."],
-    ["📚 Bibliothèque", "Procédés de composition et défis."],
-    ["📋 Évaluation", "Grille de la séquence (degrés, curseur), positionnement de l'élève à côté du tien."],
+    ["📚 Bibliothèque", "Procédés de composition et défis ; 📓 carnets de chorégraphie des groupes."],
+    ["Quelle classe ?", "À l'ouverture de l'Évaluation : choisis la classe (touche son nom en haut pour en changer), ✎ renomme-la (la liste commune et les dispenses suivent), et 🙋 ouvre l'auto-positionnement pour cette classe seulement : « pour la leçon » (jusqu'au soir) ou « 2 semaines » (les fiches PDF portent alors le lien)."],
+    ["📋 Évaluation", "Trois façons d'évaluer : 👤 élève par élève (degrés, curseur, phrases toutes prêtes sous le commentaire), 📋 par critère (toute la classe sur l'AFL1, puis l'AFL2…), 👥 par groupe (un degré pour tout le groupe, puis ajustement de chacun). Le positionnement de l'élève (🙋) est affiché à côté du tien. Phrases toutes prêtes modifiables dans 🎛 Paramètres."],
     ["👥 Classe", "Élèves, groupes de création, auto-positionnement (ouverture, suivi)."],
     ["📄 Bilans", "Fiches PDF par élève, .zip, récapitulatif."],
-    ["⚙ Réglages de Danse", "Grille, auto-positionnement, script d'envoi automatique (utilisé aussi par les autres applis pour les QR codes)."],
-    ["Côté élève", "« Je me positionne » quand tu l'ouvres ; procédés et défis accessibles."]
+    ["⚙ Réglages de Danse", "✅ Liste de vérification en tête (ce qui est prêt, ce qui manque, avec un bouton pour chaque point) ; grille, auto-positionnement, envoi automatique (par ton script commun)."],
+    ["Côté élève", "Après le choix de la classe : 🙋 Je me positionne (une question par écran, nom choisi dans la liste ; prévenu s'il s'est déjà positionné), Observation à gros boutons avec retour immédiat au groupe observé, 📓 Carnet de chorégraphie du groupe (titre, intention, procédés, début / milieu / fin), Procédés & défis. Ressources sans classe : procédés et défis seulement."]
   ] },
   acro: { nom: "Acrosport", items: [
     ["Côté élève", "Vidéothèque des figures, Mon enchaînement, Observation, Mon parcours (paliers), Bonus."],

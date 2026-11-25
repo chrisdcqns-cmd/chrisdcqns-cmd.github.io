@@ -78,6 +78,9 @@
       ".epse-deg b{display:block;font-size:13px;color:var(--dc);margin-bottom:3px}.epse-deg.on{border-color:var(--dc);background:var(--dt)}",
       ".epse-deg .me{display:inline-block;margin-left:6px;border:1.5px solid var(--app);color:var(--app);border-radius:6px;padding:0 5px;font-size:11px;font-weight:800}",
       ".epse-intra{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap}.epse-intra input[type=range]{flex:1;min-width:180px;accent-color:var(--dc)}",
+      ".epse-prog{display:flex;gap:6px;align-items:center;margin:4px 0 14px}.epse-prog i{flex:1;height:8px;border-radius:4px;background:#E6E1D6}.epse-prog i.ok{background:var(--app)}.epse-prog i.on{background:var(--app);opacity:.45}.epse-prog span{flex:none;font-weight:800;color:#6A6F78;margin-left:8px}",
+      ".epse-nav{display:flex;justify-content:space-between;gap:12px;margin:16px 0 40px}.epse-nav .epse-btn{height:54px;font-size:17px;min-width:160px}.epse-nav .epse-btn[disabled]{opacity:.45}",
+      ".epse-ri{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;background:#fff;border:2px solid #E6E1D6;border-left:8px solid var(--dc);border-radius:12px;padding:12px 14px;margin:8px 0;font:inherit;cursor:pointer}.epse-ri b{color:var(--dc);white-space:nowrap}",
       ".epse textarea,.epse input[type=text],.epse input[type=date],.epse input[type=password],.epse select.f{width:100%;border:2px solid #E6E1D6;border-radius:12px;padding:10px 12px;font:500 15px system-ui,sans-serif;background:#FBFAF7}",
       ".epse input[type=date]{width:auto}",
       ".epse table,.epse-card table{border-collapse:collapse;width:100%;font-size:14px}.epse th,.epse td,.epse-card th,.epse-card td{border-bottom:1px solid #EEE9DF;padding:7px 8px;text-align:center}.epse th.l,.epse td.l,.epse-card th.l,.epse-card td.l{text-align:left}",
@@ -110,8 +113,11 @@
     function etat() { var s = S(); if (ouvert()) return s.apJusqua ? "Ouvert jusqu'au " + dIso(s.apJusqua) + " : un lien personnel figure sur chaque fiche PDF." : "Ouvert : un lien personnel figure sur chaque fiche PDF.";
       return s.apOuvert ? "Date dépassée : les liens ne fonctionnent plus." : "Fermé : aucun lien sur les fiches, les élèves ne peuvent pas se positionner."; }
     function pageUrl() { if (/^https?:$/.test(location.protocol)) return location.href.split("#")[0].split("?")[0]; return A.url; }
-    function envoi() { var s = S(), url = (s.envoiUrl || "").trim(), key = (s.envoiCle || "").trim(), src = "appli"; if (!url || !key) { var d = envoiDanse(); url = d.url; key = d.key; src = "danse"; }
-      return /^https:\/\/\S+\/exec$/.test(url) && key ? { url: url, key: key, src: src } : null; }
+    /* boîte de dépôt : réglage propre à l'appli, sinon le script commun (EPSD.boite), sinon l'ancien script de Danse */
+    function boite() { var s = S(); try { if (window.EPSD && EPSD.boite) return EPSD.boite({ url: s.envoiUrl, key: s.envoiCle }); } catch (e) {}
+      var url = (s.envoiUrl || "").trim(), key = (s.envoiCle || "").trim(), src = "appli"; if (!url || !key) { var d = envoiDanse(); url = d.url; key = d.key; src = "danse"; }
+      var c = /^https:\/\/\S+\/exec$/.test(url) && key ? { url: url, key: key, src: src, id: src } : null; return { envoi: c, lire: c ? [c] : [] }; }
+    function envoi() { return boite().envoi; }
     async function cle(secret, id) { return u8b64((await hmac(secret, A.app + "|k|" + id)).slice(0, 16)); }
     async function depot(cfg, cnom, n) { var id = A.pfx + u8b64((await hmac(cfg.key, A.app + "|id|" + nk(cnom) + "|" + nk(n.nom) + "|" + nk(n.prenom))).slice(0, 12)); return { id: id, k: await cle(cfg.key, id) }; }
     async function lien(E, c) {
@@ -130,24 +136,27 @@
     function poser(f, d, via) { var a = A.getAp(f.e); if (a && (a.t || 0) >= (d.t || 0)) return false; A.setAp(f.e, depuis(d, via)); return true; }
     var releve = false, dernier = 0;
     async function relever(force) {
-      var cfg = envoi(); if (!cfg) return { err: "reglage" };
+      var srcs = boite().lire; if (!srcs.length) return { err: "reglage" };
       if (!cryptoOk() || releve || (!force && Date.now() - dernier < 15000)) return null;
       releve = true; dernier = Date.now();
-      var since = +(localStorage.getItem(SEQ) || 0), n = 0, inconnus = 0, more = true, garde = 0, re = new RegExp("^dan\\|" + A.pfx);
+      var n = 0, inconnus = 0, err = null, okUn = false, re = new RegExp("^dan\\|" + A.pfx), seqs = {}; try { seqs = JSON.parse(localStorage.getItem(SEQ + ".m") || "{}") || {}; } catch (e) {}
       try {
-        while (more && garde++ < 20) {
-          var r = await jsonpGet(cfg.url, { key: cfg.key, drops: 1, since: since });
-          if (!r) return { err: "connexion" }; if (!r.keyOk) return { err: "cle" }; if (!Array.isArray(r.drops)) return { err: "script" };
-          for (var i = 0; i < r.drops.length; i++) { var x = r.drops[i]; since = Math.max(since, +x[0] || 0); if (!re.test(String(x[1]))) continue;
-            try { var d = await dechiffrer(await cle(cfg.key, String(x[1]).slice(4)), x[3]), f = trouver(d.n, d.p, d.c); if (!f) { inconnus++; continue; } if (poser(f, d, "lien")) n++; } catch (e) {} }
-          more = !!r.more;
+        for (var si = 0; si < srcs.length; si++) { var cfg = srcs[si], since = seqs[cfg.id] != null ? seqs[cfg.id] : (cfg.src !== "commun" ? +(localStorage.getItem(SEQ) || 0) : 0), more = true, garde = 0, e1 = null;
+          while (more && garde++ < 20) {
+            var r = await jsonpGet(cfg.url, { key: cfg.key, drops: 1, since: since });
+            if (!r) { e1 = "connexion"; break; } if (!r.keyOk) { e1 = "cle"; break; } if (!Array.isArray(r.drops)) { e1 = "script"; break; }
+            for (var i = 0; i < r.drops.length; i++) { var x = r.drops[i]; since = Math.max(since, +x[0] || 0); if (!re.test(String(x[1]))) continue;
+              try { var d = await dechiffrer(await cle(cfg.key, String(x[1]).slice(4)), x[3]), f = trouver(d.n, d.p, d.c); if (!f) { inconnus++; continue; } if (poser(f, d, "lien")) n++; } catch (e) {} }
+            more = !!r.more;
+          }
+          if (e1) err = err || e1; else okUn = true; seqs[cfg.id] = since;
         }
-        try { localStorage.setItem(SEQ, String(since)); } catch (e) {}
-        return { n: n, inconnus: inconnus };
+        try { localStorage.setItem(SEQ + ".m", JSON.stringify(seqs)); } catch (e) {}
+        return okUn ? { n: n, inconnus: inconnus } : { err: err };
       } finally { releve = false; }
     }
     function msg(r) { return !r ? "" : r.err === "connexion" ? "Pas de connexion au script Google." : r.err === "cle" ? "Clé secrète refusée par le script." : r.err === "script" ? "Ce n'est pas le script des auto-positionnements." : r.err === "reglage" ? "Envoi automatique non réglé." : r.n ? r.n + " nouveau(x) positionnement(s) reçu(s)" + (r.inconnus ? ", " + r.inconnus + " élève(s) non reconnu(s)" : "") + "." : "Rien de nouveau."; }
-    setInterval(function () { if (!A.isTeacher() || !envoi() || document.hidden || !ouvert()) return; relever(false).then(function (r) { if (r && r.n) { toast("🙋 " + r.n + " auto-positionnement" + (r.n > 1 ? "s" : "") + " reçu" + (r.n > 1 ? "s" : "")); try { A.changed(); } catch (e) {} } }); }, 30000);
+    setInterval(function () { if (!A.isTeacher() || !boite().lire.length || document.hidden || !ouvert()) return; relever(false).then(function (r) { if (r && r.n) { toast("🙋 " + r.n + " auto-positionnement" + (r.n > 1 ? "s" : "") + " reçu" + (r.n > 1 ? "s" : "")); try { A.changed(); } catch (e) {} } }); }, 30000);
     function codeDe(P) { return A.code + "." + b64e(JSON.stringify(payload(P))); }
     function importer(txt) {
       var codes = String(txt || "").match(new RegExp(A.code.replace(/\./g, "\\.") + "\\.[A-Za-z0-9_-]+", "g")) || []; if (!codes.length) { toast("Aucun code trouvé"); return; }
@@ -188,32 +197,44 @@
       if (P.etape === "envoye") return fin('<div style="font-size:44px">✅</div><h1>Merci ' + esc(P.prenom) + " !</h1><p>Ton positionnement a bien été <b>envoyé à ton enseignant</b>. Tu n'as rien d'autre à faire.</p>" + recap());
       if (P.etape === "code") return fin("<h1>C'est presque fini, " + esc(P.prenom) + " !</h1>" + (P.echec ? '<p style="color:#C0392B;font-weight:700">L\'envoi automatique n\'a pas fonctionné (connexion ?). Réessaie, ou utilise le code ci-dessous.</p><button class="epse-btn" data-retry="1">Réessayer l\'envoi</button>' : "") +
         "<p>Copie ce code et <b>envoie-le à ton enseignant</b> par la messagerie Pronote :</p><div class=\"epse-code\">" + esc(P.code) + '</div><div class="epse-row" style="justify-content:center"><button class="epse-btn p" data-copy="1">Copier mon code</button><button class="epse-btn" data-mod="1">Modifier mes réponses</button></div>' + recap());
-      var ident;
+      /* pas à pas (règle commune) : 0 = qui es-tu, 1…N = un critère par écran, N+1 = mes mots + récapitulatif */
+      var N = G.criteres.length, DGL = G.degresEl || G.degres; if (P.step == null) P.step = 0; P.step = Math.max(0, Math.min(N + 1, P.step));
+      var ident, ok1 = true, corps;
       if (C.ident) ident = '<p>Bonjour <b>' + esc((P.prenom + " " + P.nom).trim()) + "</b>" + (P.classe ? " · " + esc(P.classe) : "") + "</p>";
-      else if (C.classe && C.classe.eleves.length) ident = '<label class="epse-mut" style="font-weight:800">Je suis<select class="f" data-who="1"><option value="-1">— choisis ton nom —</option>' + C.classe.eleves.map(function (e, i) { var n = A.name(e); return '<option value="' + i + '"' + (P.eleve === i ? " selected" : "") + ">" + esc((n.prenom + " " + n.nom).trim()) + "</option>"; }).join("") + "</select></label>";
-      else ident = '<p class="epse-mut">Aucune liste d\'élèves pour cette classe : demande à ton enseignant.</p>';
-      V.innerHTML = top + '<div class="ap-in"><div class="epse-card"><h1>Je me positionne · ' + esc(A.nom) + "</h1>" + ident +
-        "<p>Pour chaque critère : <b>1.</b> lis les 4 niveaux et touche celui qui te ressemble le plus ; <b>2.</b> précise avec le curseur où tu en es dans ce niveau. Sois honnête : c'est pour t'aider à progresser !</p></div>" +
-        G.criteres.map(function (cr, i) { var x = P.ev[cr.id], DG = G.degresEl || G.degres;
-          return '<div class="epse-crit" id="epse-c-' + esc(cr.id) + '"><div class="epse-ch"><b>' + (i + 1) + ". " + esc(cr.nomEl || cr.nom) + "</b><span>" + esc(cr.afl || "") + "</span></div>" + (cr.butEl || cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.butEl || cr.but) + "</p>" : "") +
-            '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (x && x.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>Niveau ' + (d + 1) + " · " + esc(DG[d]) + "</b>" + esc((cr.descEl || cr.desc)[d] || "") + "</button>"; }).join("") + "</div>" +
-            (x ? '<div class="epse-intra" style="--dc:' + DCOL[x.d] + '"><span>Dans ce niveau, je suis…</span><input type="range" min="0" max="4" step="1" value="' + Math.round(x.pos * 4) + '" data-p="' + esc(cr.id) + '"><b id="epse-pv-' + esc(cr.id) + '" style="color:' + DCOL[x.d] + '">' + esc(posLbl(x.d, x.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
-        '<div class="epse-card"><label class="epse-mut" style="font-weight:800">Ce que je pense avoir réussi<textarea rows="2" data-t="reussi" placeholder="J\'ai réussi à…">' + esc(P.reussi) + '</textarea></label><label class="epse-mut" style="font-weight:800">Ce que je veux améliorer<textarea rows="2" data-t="ameliorer" placeholder="Je voudrais…">' + esc(P.ameliorer) + "</textarea></label></div>" +
-        '<div style="text-align:center"><button class="epse-btn p" style="height:54px;font-size:17px" data-ok="1">Valider mon positionnement</button></div></div>';
+      else if (C.classe && C.classe.eleves.length) { ident = '<label class="epse-mut" style="font-weight:800;font-size:17px">Je suis<select class="f" data-who="1" style="min-height:54px;font-size:17px"><option value="-1">— choisis ton nom —</option>' + C.classe.eleves.map(function (e, i) { var n = A.name(e); return '<option value="' + i + '"' + (P.eleve === i ? " selected" : "") + ">" + esc((n.prenom + " " + n.nom).trim()) + "</option>"; }).join("") + "</select></label>"; ok1 = P.eleve >= 0; }
+      else { ident = '<p class="epse-mut">Aucune liste d\'élèves pour cette classe : demande à ton enseignant.</p>'; ok1 = false; }
+      var prog = '<div class="epse-prog">' + Array.apply(null, Array(N + 2)).map(function (_, i) { return '<i class="' + (i < P.step ? "ok" : i === P.step ? "on" : "") + '"></i>'; }).join("") + "<span>Étape " + (P.step + 1) + " / " + (N + 2) + "</span></div>";
+      if (P.step === 0) corps = '<div class="epse-card"><h1>Je me positionne · ' + esc(A.nom) + "</h1>" + ident +
+        "<p>Tu vas répondre à <b>" + N + " question" + (N > 1 ? "s" : "") + "</b>, une à la fois. Pour chacune : <b>1.</b> lis les 4 niveaux et touche celui qui te ressemble le plus ; <b>2.</b> précise avec le curseur où tu en es dans ce niveau. Sois honnête : c'est pour t'aider à progresser !</p></div>";
+      else if (P.step <= N) { var cr = G.criteres[P.step - 1], x = P.ev[cr.id]; ok1 = !!x;
+        corps = '<p class="epse-mut" style="font-weight:800;margin:0 0 6px">Question ' + P.step + " sur " + N + '</p><div class="epse-crit" id="epse-c-' + esc(cr.id) + '"><div class="epse-ch"><b>' + esc(cr.nomEl || cr.nom) + "</b><span>" + esc(cr.afl || "") + "</span></div>" + (cr.butEl || cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.butEl || cr.but) + "</p>" : "") +
+          '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (x && x.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>Niveau ' + (d + 1) + " · " + esc(DGL[d]) + "</b>" + esc((cr.descEl || cr.desc)[d] || "") + "</button>"; }).join("") + "</div>" +
+          (x ? '<div class="epse-intra" style="--dc:' + DCOL[x.d] + '"><span>Dans ce niveau, je suis…</span><input type="range" min="0" max="4" step="1" value="' + Math.round(x.pos * 4) + '" data-p="' + esc(cr.id) + '"><b id="epse-pv-' + esc(cr.id) + '" style="color:' + DCOL[x.d] + '">' + esc(posLbl(x.d, x.pos)) + "</b></div>" : "") + "</div>"; }
+      else corps = '<div class="epse-card"><h2 style="margin-top:0">Pour finir, avec tes mots</h2><label class="epse-mut" style="font-weight:800">Ce que je pense avoir réussi<textarea rows="3" data-t="reussi" placeholder="J\'ai réussi à…">' + esc(P.reussi) + '</textarea></label><label class="epse-mut" style="font-weight:800">Ce que je veux améliorer<textarea rows="3" data-t="ameliorer" placeholder="Je voudrais…">' + esc(P.ameliorer) + "</textarea></label></div>" +
+        '<div class="epse-card"><b>Mes réponses</b> <span class="epse-mut">(touche une réponse pour la changer)</span>' + G.criteres.map(function (cr, i) { var x = P.ev[cr.id];
+          return '<button class="epse-ri" data-go="' + (i + 1) + '" style="--dc:' + (x ? DCOL[x.d] : "#bbb") + '"><span>' + esc(cr.nomEl || cr.nom) + "</span><b>" + (x ? "Niveau " + (x.d + 1) + " · " + esc(posLbl(x.d, x.pos)) : "à faire") + "</b></button>"; }).join("") + "</div>";
+      var nav = '<div class="epse-nav">' + (P.step ? '<button class="epse-btn" data-prev="1">← Retour</button>' : "<span></span>") + (P.step <= N ? '<button class="epse-btn p" data-suiv="1"' + (ok1 ? "" : " disabled") + ">Suivant →</button>" : '<button class="epse-btn p" data-ok="1">Valider mon positionnement</button>') + "</div>";
+      V.innerHTML = top + '<div class="ap-in">' + prog + corps + nav + "</div>";
       bindQ(V);
-      var w = V.querySelector("[data-who]"); if (w) w.onchange = function () { P.eleve = +w.value; };
-      V.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { var id = b.dataset.c, d = +b.dataset.d, el = document.getElementById("epse-c-" + id), y = el ? el.getBoundingClientRect().top : 0; if (!P.ev[id] || P.ev[id].d !== d) P.ev[id] = { d: d, pos: .5 }; renderAp(); var n = document.getElementById("epse-c-" + id); if (n) V.scrollTop += n.getBoundingClientRect().top - y; }; });
+      var go = function (k) { P.step = k; renderAp(); V.scrollTop = 0; };
+      var w = V.querySelector("[data-who]"); if (w) w.onchange = function () { var i = +w.value, e = C.classe && C.classe.eleves[i], a = e && A.getAp(e);
+        if (a && a.ev && Object.keys(a.ev).length && !confirm((A.name(e).prenom || A.name(e).nom) + ", tu t'es déjà positionné(e)" + (a.t ? " le " + new Date(a.t).toLocaleDateString("fr-FR") : "") + ".\nSi tu continues, ta nouvelle réponse remplacera l'ancienne.\n\nOK = c'est moi, je recommence · Annuler = ce n'est pas moi")) { P.eleve = -1; renderAp(); return; }
+        P.eleve = i; renderAp(); };
+      V.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { var id = b.dataset.c, d = +b.dataset.d; if (!P.ev[id] || P.ev[id].d !== d) P.ev[id] = { d: d, pos: .5 }; renderAp(); }; });
       V.querySelectorAll("[data-p]").forEach(function (r) { r.oninput = function () { var x = P.ev[r.dataset.p]; x.pos = (+r.value) / 4; var s = document.getElementById("epse-pv-" + r.dataset.p); if (s) s.textContent = posLbl(x.d, x.pos); }; });
       V.querySelectorAll("[data-t]").forEach(function (t) { t.oninput = function () { P[t.dataset.t] = t.value; }; });
-      V.querySelector("[data-ok]").onclick = valider;
+      V.querySelectorAll("[data-go]").forEach(function (b) { b.onclick = function () { go(+b.dataset.go); }; });
+      var bp = V.querySelector("[data-prev]"); if (bp) bp.onclick = function () { go(P.step - 1); };
+      var bs = V.querySelector("[data-suiv]"); if (bs) bs.onclick = function () { if (ok1) go(P.step + 1); };
+      var bo = V.querySelector("[data-ok]"); if (bo) bo.onclick = valider;
     }
     function bindQ(V) { var q = V.querySelector("[data-q]"); if (q) q.onclick = quitter; }
     async function quitter() { await A.unlock(); if (!A.isTeacher()) return; try { sessionStorage.removeItem(TAB); } catch (e) {} P = null; document.body.classList.remove("epse-lock"); var v = document.getElementById("epse-ap-" + A.app); if (v) v.remove(); try { A.changed(); } catch (e) {} }
     function copier(t) { try { navigator.clipboard.writeText(t).then(function () { toast("Copié !"); }, function () { prompt("Copie ce code :", t); }); } catch (e) { prompt("Copie ce code :", t); } }
     function valider() {
       var G = A.grid(), C = ctx(), manque = G.criteres.filter(function (cr) { return !P.ev[cr.id]; });
-      if (manque.length) { toast("Choisis un niveau pour : " + manque.map(function (cr) { return cr.nomEl || cr.nom; }).join(", ")); var n = document.getElementById("epse-c-" + manque[0].id); if (n) n.scrollIntoView({ behavior: "smooth" }); return; }
-      if (!C.ident) { var c = C.classe, e = c && c.eleves[P.eleve]; if (!e) { toast("Choisis ton nom dans la liste"); return; } var nn = A.name(e); P.nom = nn.nom; P.prenom = nn.prenom || ""; P.classe = c.nom;
+      if (manque.length) { toast("Il te manque une réponse"); P.step = G.criteres.indexOf(manque[0]) + 1; renderAp(); vue().scrollTop = 0; return; }
+      if (!C.ident) { var c = C.classe, e = c && c.eleves[P.eleve]; if (!e) { toast("Choisis ton nom dans la liste"); P.step = 0; renderAp(); return; } var nn = A.name(e); P.nom = nn.nom; P.prenom = nn.prenom || ""; P.classe = c.nom;
         poser({ e: e }, payload(P), "tablette"); try { A.changed(); } catch (x) {} P.etape = "merci"; renderAp(); vue().scrollTop = 0; return; }
       P.code = codeDe(P);
       if (C.ident.drop && cryptoOk()) { envoyer(); return; }
@@ -242,10 +263,10 @@
       return '<div class="epse-card"><h2>🙋 Auto-positionnement des élèves</h2>' +
         '<div class="epse-row"><label><input type="checkbox" data-ap-on' + (s.apOuvert ? " checked" : "") + "> Autoriser l'auto-positionnement</label><label>jusqu'au <input type=\"date\" data-ap-date value=\"" + esc(s.apJusqua || "") + '" min="' + today() + '"></label></div>' +
         '<p class="epse-mut">' + esc(etat()) + "</p>" +
-        '<p class="epse-mut">' + (cfg ? "✓ Envoi automatique actif (script Google " + (cfg.src === "danse" ? "de Danse" : "réglé ici") + ", chiffré) : les positionnements arrivent tout seuls." : "⚠ Envoi automatique inactif : règle le script des auto-positionnements dans Danse (ou ci-dessous). En attendant, l'élève obtient un code à t'envoyer.") + "</p>" +
+        '<p class="epse-mut">' + (cfg ? "✓ Envoi automatique actif (" + (cfg.src === "commun" ? "ton script commun" : cfg.src === "danse" ? "ancien script de Danse" : "script réglé ici") + ", chiffré) : les positionnements arrivent tout seuls." : "⚠ Envoi automatique inactif : règle le partage entre tablettes (script commun, à jour). En attendant, l'élève obtient un code à t'envoyer.") + "</p>" +
         '<div class="epse-row"><button class="epse-btn p" data-ap-tab' + (ouvert() ? "" : " disabled") + ">🙋 Passer cette tablette en mode élève (" + esc(c.nom) + ")</button>" + (cfg ? '<button class="epse-btn" data-ap-rel>Relever maintenant</button>' : "") + "</div>" +
         '<details><summary class="epse-mut" style="cursor:pointer">Codes reçus (si l\'envoi a échoué) · réglage de l\'envoi</summary><textarea rows="2" data-ap-codes placeholder="' + esc(A.code) + '.eyJu…"></textarea><div class="epse-row"><button class="epse-btn" data-ap-imp>Importer les codes</button></div>' +
-        '<div class="epse-row"><input type="text" data-ap-u placeholder="https://script.google.com/macros/s/…/exec (vide = celui de Danse)" value="' + esc(s.envoiUrl || "") + '" style="flex:2"><input type="password" data-ap-k placeholder="Clé secrète" value="' + esc(s.envoiCle || "") + '" style="flex:1"><button class="epse-btn" data-ap-save>Enregistrer</button></div></details>' +
+        '<div class="epse-row"><input type="text" data-ap-u placeholder="https://script.google.com/macros/s/…/exec (vide = ton script commun)" value="' + esc(s.envoiUrl || "") + '" style="flex:2"><input type="password" data-ap-k placeholder="Clé secrète" value="' + esc(s.envoiCle || "") + '" style="flex:1"><button class="epse-btn" data-ap-save>Enregistrer</button></div></details>' +
         '<h3 style="margin:14px 0 6px">Suivi : ' + recu.length + " / " + c.eleves.length + ' élève(s) positionné(s)</h3><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + cs.map(function (cr) { return "<th>" + esc(cr.nomEl || cr.nom) + "</th>"; }).join("") + '<th class="l">Reçu · ses mots</th></tr>' + rows + "</table></div></div>";
     };
     M.bindCard = function (root, c) {

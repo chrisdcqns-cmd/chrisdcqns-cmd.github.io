@@ -223,6 +223,7 @@
         var r = await jsonp(cfg, { pull: 1, since: D.since || 0, pre: "disp|" });
         if (!r || !r.keyOk || !r.sync) { lastErr = !r ? "pas de connexion" : !r.keyOk ? "clé" : "script à mettre à jour"; break; }
         lastErr = ""; lastOk = Date.now(); if (r.sauv != null) lastBackup = r.sauv;
+        try { localStorage.setItem("eps.share.dropv", r.dropv ? "1" : "0"); } catch (e) {} /* le script commun sait-il recevoir les auto-positionnements ? */
         var L = r.recs || [];
         for (var j = 0; j < L.length; j++) {
           var k = L[j][1], uu = +L[j][2], del = +L[j][3], x = L[j][4];
@@ -1450,7 +1451,27 @@
     render(); document.body.appendChild(ov);
   }
   window.EPSR = { pronote: pronote, get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
+  /* ===== Boîte de dépôt des auto-positionnements (lien personnel des fiches élèves) =====
+     Un seul script : le script commun (dès qu'il a la version qui reçoit les dépôts, drapeau « dropv »).
+     Le script de Danse (ancien réglage de Danse) n'est plus utilisé pour les nouveaux liens, mais il est encore relevé
+     tant qu'il est réglé, pour ne pas perdre les positionnements des liens déjà distribués.
+     boite(propre) → {envoi: cfg|null (pour les nouveaux liens), lire: [cfg…] (à relever)} ; cfg = {url, key, src, id} */
+  function boite(propre) {
+    function ok(c, src) { return c && /^https:\/\/\S+\/exec$/.test(String(c.url || "").trim()) && String(c.key || "").trim() ? { url: String(c.url).trim(), key: String(c.key).trim(), src: src, id: (function (t) { var h = 5381; for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); })(String(c.url).trim()) } : null; }
+    var pr = ok(propre, "appli"), dv = false; try { dv = localStorage.getItem("eps.share.dropv") === "1"; } catch (e) {}
+    var co = dv ? ok(shareGet(), "commun") : null, R = {}; try { R = (JSON.parse(localStorage.getItem("danse-eps-v1") || "{}") || {}).reglages || {}; } catch (e) {}
+    var da = ok({ url: R.envoiUrl, key: R.envoiCle }, "danse"), lire = [];
+    [pr, co, da].forEach(function (c) { if (c && !lire.some(function (x) { return x.url === c.url; })) lire.push(c); });
+    return { envoi: pr || co || da, lire: lire };
+  }
+  /* renommer une classe depuis une appli : la liste commune suit (ancien nom gardé), ainsi que les dispenses de cette classe */
+  async function renameClass(old, nom) {
+    if (!old || !nom || norm(old) === norm(nom)) return;
+    all().forEach(function (x) { if (x.classe && norm(x.classe) === norm(old)) { x.classe = nom; put(x); } });
+    try { await shareList(nom, old, { esc: 1, rel: 1, ori: 1, vol: 1, bad: 1, dan: 1 }); } catch (e) {}
+  }
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
+    boite: boite, renameClass: renameClass,
     reformuler: function (t, o) { return reformuler(t, o); },
     shareSettings: function () { return shareSettings(); }, devId: function () { return devInfo().id; }, devName: function () { return devInfo().nom || ""; },
     tabList: function (app) { var V = stLd(KTB), L = Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.at && (!app || x.app === app) && x.mode !== "enseignant" && Date.now() - x.at < 60 * 864e5; }); return L.sort(function (a, b) { return String(a.nom || "zz").localeCompare(String(b.nom || "zz"), "fr", { numeric: true }) || b.at - a.at; }); }, sigCheck: function () { sigCheck(); },

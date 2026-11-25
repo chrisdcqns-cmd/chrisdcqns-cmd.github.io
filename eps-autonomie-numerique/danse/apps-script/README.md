@@ -1,3 +1,5 @@
+> ℹ️ **Plus nécessaire** : le script commun (`apps-script/Code.gs`, mis à jour) reçoit maintenant les auto-positionnements de toutes les applis. Ce script reste utile seulement pour relever les liens déjà distribués qui pointent vers lui.
+
 # Danse EPS — script Google des auto-positionnements
 
 Ce script reçoit les auto-positionnements envoyés par les élèves depuis le lien de leur bilan PDF.
