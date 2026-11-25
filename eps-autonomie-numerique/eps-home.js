@@ -1028,8 +1028,8 @@
   function eset(v) { try { localStorage.setItem(KE, JSON.stringify(v)); } catch (e) {} }
   async function syncEdt(cfg) {
     var E = eget();
-    if (E.pend && E.data) {
-      var x = await enc(cfg.key, JSON.stringify({ data: E.data, u: E.u }));
+    if (E.pend && (E.data || E.add)) {
+      var x = await enc(cfg.key, JSON.stringify({ data: E.data, add: E.add || [], u: E.u }));
       if (x.length < 48000) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, sync: { dev: "edt", recs: [{ k: "edt|equipe", u: E.pend, d: 0, x: x }] } }) });
       E = eget(); delete E.pend; eset(E);
       await new Promise(function (res) { setTimeout(res, 1200); });
@@ -1040,7 +1040,7 @@
       var L = q.recs || [], ch = false;
       for (var i = 0; i < L.length; i++) {
         if (String(L[i][1]) !== "edt|equipe" || +L[i][3]) continue;
-        try { var o = JSON.parse(await dec(cfg.key, L[i][4])); if ((+o.u || 0) > (+E.u || 0) && !E.pend) { E.data = o.data; E.u = o.u; ch = true; } } catch (e) {}
+        try { var o = JSON.parse(await dec(cfg.key, L[i][4])); if ((+o.u || 0) > (+E.u || 0) && !E.pend) { if (o.data) E.data = o.data; if (o.add) E.add = o.add; E.u = o.u; ch = true; } } catch (e) {}
       }
       E.since = L.length ? +L[L.length - 1][0] : Math.max(E.since || 0, +q.seq || 0); eset(E);
       if (ch) try { window.dispatchEvent(new CustomEvent("eps-edt")); } catch (e) {}
@@ -1048,7 +1048,10 @@
     }
   }
   /* emploi du temps : get / set ajoutés à window.EPSE sans écraser le module d'évaluation (eps-eval.js : create, store, libs) */
-  window.EPSE = Object.assign(window.EPSE || {}, { get: eget, set: function (data) { var E = eget(); E.data = data; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); } });
+  window.EPSE = Object.assign(window.EPSE || {}, { get: eget, set: function (data) { var E = eget(); E.data = data; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); },
+    /* cours ajoutés dans l'appli (edt/) : gardés quand l'emploi du temps est remis à jour depuis Planif EPS */
+    getAdd: function () { return eget().add || []; },
+    setAdd: function (L) { var E = eget(); E.add = L; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); } });
   var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["badminton", "Badminton"], ["danse", "Danse"], ["co-eval", "CO Course"], ["crosstraining", "Cross-training"]];
   function reglages(msg) {
     var r = rget();
