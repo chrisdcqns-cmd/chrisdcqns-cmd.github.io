@@ -41,6 +41,7 @@ function evalScreen(m){const c=needCls(m,'📋 Évaluation');if(!c)return;const 
  <div class="card row wrapf"><span class="lab">Voie</span>${['pro','gt'].map(v=>`<button class="b s${S.voie===v?' p':''}" onclick="sesSet('voie','${v}')">${VOIES[v]}</button>`).join('')}
  <span class="lab" style="margin-left:10px">Date du CCF</span><input type="date" value="${esc(S.date||today())}" onchange="sesSet('date',this.value)">
  <label class="tg big"><input type="checkbox" ${S.open?'checked':''} onchange="sesSet('open',this.checked)"> Ouvert sur les tablettes élèves</label></div>`;
+ if(T.act==='ori')h+=coImportCard(c);
  if(!P){m.innerHTML=h+noProto(S)+'</div>';return}
  const ids=P.fin.afl.map(a=>a.code+' /'+a.pts).concat(P.fil.retenus.map(id=>(aflFil(P,id)||{}).code||id));
  h+=`<p class="mut">${(S.eq||[]).length} équipe(s) · touche un élève pour l'évaluer. Fil de séquence : ${P.fil.retenus.map(id=>esc((aflFil(P,id)||{}).code)).join(' et ')} (répartition choisie par l'élève).</p>
@@ -61,7 +62,7 @@ function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');ret
  <div class="row wrapf" style="margin:10px 0">${[['','Présent(e)'],['abs','Absent(e) · A'],['disp','Dispensé(e) / inapte · D']].map(s=>`<button class="b s${(ev.st||'')===s[0]?' p':''}" onclick="evUpd(e=>{e.st='${s[0]}'});render()">${s[1]}</button>`).join('')}
  <button class="b s" onclick="go('team',{tm:'${t?t.id:''}'})" ${t?'':'disabled'}>👁 Feuille de l'équipe</button><button class="b s" onclick="OBS={k:'${k}',by:'',v:{}};go('obs')">👁 Observer</button></div>
  ${(()=>{const R=obsRecs(T.act,c.id,k);return R.length?`<div class="card soft"><b>👁 Observations (élèves observateurs et toi)</b>${obsSummary(P,c,R,{act:T.act,cls:c.id,c,S,P},k)}</div>`:''})()}
- ${pr.length?`<div class="card soft"><b>Pratique le jour du CCF</b><br>${pr.map(esc).join('<br>')}</div>`:''}
+ ${T.act==='ori'?coFicheHtml(X):''}${pr.length?`<div class="card soft"><b>Pratique le jour du CCF</b><br>${pr.map(esc).join('<br>')}</div>`:''}
  <div class="row wrapf" style="margin-top:12px"><button class="b" onclick="proposeAll()">💡 Positionner d'après les données (AFLP non notés)</button><span class="mut sm">Propositions calculées à partir des observations et de la pratique ; tu valides et tu ajustes. 🙋 = auto-positionnement de l'élève.</span></div>
  <h3 class="h3">${esc(P.fin.titre)} · ${finMax(P)} points <span class="mut">(${fr(N.fin)} pt)</span></h3>`;
  P.fin.afl.forEach(a=>{const x=(ev.fin||{})[a.id]||{},v=finV(a,x);

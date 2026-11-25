@@ -13,6 +13,7 @@ function propose(P,ctx,k,id){const I=[],J=P.jeu,R=obsRecs(ctx.act,ctx.cls,k),L=o
   if(it.type==='fc'){const all=vals.flatMap(v=>(v.m||[]).map(m=>m.fc)),c=fcCible(ctx,k),mg=+(it.opts||[])[0]||10;if(all.length&&c)I.push({d:lvl(all.filter(f=>Math.abs(f-c)<=mg).length/all.length),src:'FC dans la zone cible : '+all.filter(f=>Math.abs(f-c)<=mg).length+'/'+all.length})}});
  /* données de la forme de pratique */
  const a=aflAny(P,id)||{},auto=a.auto;
+ if(auto&&auto.indexOf('co-')===0){const s=coSuggest(auto,P,ctx,k);if(s)I.push(s)}
  if(auto==='esc-projet'){const x=escPassOf(ctx.act,ctx.cls,ctx.S,k),sg=x&&x.p&&escSuggest(J,x.p);if(sg)I.push({d:sg.d,src:'passage du CCF : '+sg.t})}
  if(auto==='esc-prises'){const x=escPassOf(ctx.act,ctx.cls,ctx.S,k),p=x&&x.p;if(p&&p.done){const B=(p.bonus||[]).slice(0,escNbBonus(J,p.zone)).filter(b=>b&&b.z),ko=B.filter(b=>b.ok===false).length,zr=escZoneOf(J,p.dg);I.push({d:+zr===+p.zone&&!ko?3:ko===1?2:+zr===+p.zone?1:0,src:'projet : '+(+zr===+p.zone?'hauteur respectée':'hauteur non respectée')+', '+ko+' prise(s) oubliée(s)'})}}
  if(auto==='esc-roles'){const t=teamOf(ctx.S,k),F=t?get('tm:'+ctx.act+':'+ctx.cls+':'+t.id)||{}:{};let as=0,cas=0,fu=0;(F.pass||[]).forEach(p=>{if(p.asr===k){as++;fu+=+p.fus||0}if(p.cas===k)cas++});if(as||cas)I.push({d:!(as&&cas)?0:fu>1?1:fu?2:3,src:'rôles : assureur '+as+', contre-assureur '+cas+', fusibles sautés '+fu})}

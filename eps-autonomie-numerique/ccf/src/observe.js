@@ -24,6 +24,11 @@ function obsDef(act){
   {id:'o2',afl:'p1',type:'deg',titre:'Production sécuritaire'},
   {id:'o3',afl:'p2',type:'check',titre:'Données et régulation',opts:['Relève sa FC aux moments prévus','Note ses ressentis','Régule entre les rounds avec les données','Utilise la réchappe si besoin']},
   {id:'o4',afl:'p2',type:'deg',titre:'Recueil des données'}];
+ if(act==='ori')return [
+  {id:'o1',afl:'p2',type:'check',titre:'Lecture de carte et déplacement',opts:['Oriente sa carte','Lit la carte avant chaque poste','Choisit un itinéraire logique','Court sur les parties simples, ralentit à l\'approche du poste']},
+  {id:'o2',afl:'p2',type:'count',titre:'Balises ramenées',opts:['N2','N3','Erreur de poste']},
+  {id:'o3',afl:'p4',type:'check',titre:'Coopération du binôme',opts:['Se répartissent les cartes selon leurs capacités','Se donnent un point de rendez-vous','Anticipent des balises de réchappe']},
+  {id:'o4',afl:'p3',type:'deg',titre:'Planification'}];
  return []}
 function obsList(P){return P.obs||obsDef(P.act)}
 function aflAny(P,id){return P.fin.afl.find(a=>a.id===id)||aflFil(P,id)}

@@ -19,7 +19,7 @@ function escPassOf(act,cls,S,k){const t=teamOf(S,k);if(!t)return null;const F=ge
 function escSuggest(J,p){if(!p||p.dg==null||p.dg===''||!p.zone)return null;const zr=escZoneOf(J,p.dg);if(+zr===+p.zone)return {d:3,t:'zone annoncée atteinte : projet respecté'};
  const diff=Math.abs(+p.dg-escZoneBorne(J,+p.zone));return {d:diff<=1?2:diff<=2?1:0,t:'écart de '+diff+' dégaine'+(diff>1?'s':'')+' avec la hauteur annoncée'}}
 function dgTxt(J,dg){return dg==null||dg===''?'—':+dg>J.nDeg?'TOP':+dg===0?'sous D1':'D'+dg}
-function aideHtml(auto,P,ctx){const J=P.jeu,{act,cls,S,k}=ctx,c=clsById(cls);
+function aideHtml(auto,P,ctx){if(auto&&auto.indexOf('co-')===0)return coAide(auto,P,ctx);const J=P.jeu,{act,cls,S,k}=ctx,c=clsById(cls);
  if(auto==='esc-projet'){const x=escPassOf(act,cls,S,k),p=x&&x.p;if(!p)return '<p class="mut">Pas encore de passage enregistré pour cet élève.</p>';
   const r=escPts(J,p),sg=escSuggest(J,p);return `<p>Zone annoncée : <b>Z${p.zone||'?'}</b> (${p.zone?dgTxt(J,escZoneBorne(J,+p.zone)):''}) · atteint : <b>${dgTxt(J,p.dg)}</b> (zone ${r.zr==null?'—':r.zr}) · points : <b>${r.tot}</b></p>${sg?`<p>Suggestion : <b>degré ${sg.d+1}</b> (${esc(sg.t)}) <button class="b s" onclick="ficheDeg('${P.fin.afl[0].id}',${sg.d})">Choisir</button></p>`:''}`}
  if(auto==='esc-prises'){const x=escPassOf(act,cls,S,k),p=x&&x.p;if(!p)return '<p class="mut">Pas encore de passage enregistré.</p>';const B=(p.bonus||[]).slice(0,escNbBonus(J,p.zone)).filter(b=>b&&b.z);
@@ -38,6 +38,7 @@ function aideHtml(auto,P,ctx){const J=P.jeu,{act,cls,S,k}=ctx,c=clsById(cls);
  return ''}
 /* résumé de la pratique d'un élève (fiche enseignant, PDF) */
 function pratiqueTxt(act,P,cls,S,k){const J=P.jeu,out=[];
+ if(act==='ori'){const v=coVal(cls,k);if(v)out.push(`Points réalisés ${v.pts} / annoncés ${v.ann} · ${v.nb} balise(s) (N2 ${v.n2}, N3 ${v.n3})${v.over?' · hors temps':''}${v.modif?' · '+v.modif+' poste(s) modifié(s)':''}`)}
  if(act==='esc'){const x=escPassOf(act,cls,S,k);if(x&&x.p){const p=x.p,r=escPts(J,p);out.push(`Voie ${p.voie||'?'} · zone annoncée Z${p.zone||'?'} · atteint ${dgTxt(J,p.dg)} · ${r.tot} pts (zone ${r.zone}, bonus ${r.bonus>=0?'+':''}${r.bonus})`);
   const T=(x.F.pass||[]).reduce((s,q)=>s+escPts(J,q).tot,0);out.push('Total de l\'équipe : '+T+' pts')}}
  if(act==='bad'){const s=badStatsEl(J,cls,k);out.push(`Joueur : ${s.v}/${s.j} matchs gagnés, ${s.pts} points marqués · coach : ${s.coach} match(s), ${s.chg} changement(s) de stratégie, ${s.dev} stratégie(s) devinée(s)`)}

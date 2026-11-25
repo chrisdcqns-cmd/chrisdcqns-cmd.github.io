@@ -4,6 +4,7 @@ const DOCS={
  commun:[['lecon','📅 La leçon du CCF','déroulé minuté, organisation, équipes, rôles'],['proto','📜 Le protocole','à afficher ou à distribuer'],['rep','🎯 Choix de la répartition','liste de la classe, l\'élève coche et signe'],['grille','📋 Grille d\'évaluation enseignant','degrés à entourer, une ligne par élève'],['res','📚 Ressources de l\'activité','celles des applis et celles ajoutées dans le CCF']],
  esc:[['esc-mur','🧗 Le mur et ses zones','dégaines, zones, points, prises bonus'],['esc-projet','📝 Projet d\'équipe','une fiche par équipe : voie, zone visée, prises bonus'],['esc-pass','👁 Fiche de l\'observateur','une fiche par équipe : rôles, hauteur, prises, fusibles, points']],
  bad:[['bad-terrain','🏸 Le terrain découpé en 6 zones','grand format'],['bad-panel','🎯 Panel de stratégies','une fiche par joueur, 4 terrains à colorier'],['bad-score','📝 Fiche score','une par match de poule : points, zones, stratégies'],['bad-coach','🧢 Fiche coach','stratégie choisie, changements, stratégie devinée'],['bad-poule','🏆 Tableau de poule','rencontres et classement']],
+ ori:[['ori-kif','📝 KIFEKOI · projet du binôme','ordre des balises, N2 / N3, points annoncés, réchappes, répartition']],
  ct:[['ct-seance','📝 Feuille de séance collective','une par binôme'],['ct-indiv','❤️ Fiche individuelle','FC, ressentis, sensations, objectif'],['ct-formes','⏱ Les formes de travail','EMOM, AMRAP, FOR TIME']]};
 let PRSEL=lget('ccf.prsel',{});
 function printScreen(m){const c=needCls(m,'🖨 Documents à imprimer');if(!c)return;const S=ses(T.act,c.id),P=proto(T.act,S.voie);
@@ -19,7 +20,7 @@ function prSel(k,on){const L=PRSEL[T.act]||[];PRSEL[T.act]=on?L.concat(k):L.filt
 function prAll(on){PRSEL[T.act]=on?DOCS.commun.concat(DOCS[T.act]||[]).map(x=>x[0]):[];lset('ccf.prsel',PRSEL);render()}
 function prGo(){if(!(PRSEL[T.act]||[]).length){toast('Coche au moins un document');return}document.documentElement.classList.add('prt');setTimeout(()=>{window.print();setTimeout(()=>document.documentElement.classList.remove('prt'),800)},100)}
 addEventListener('afterprint',()=>document.documentElement.classList.remove('prt'));
-function prDocs(sel,c,S,P){const order=DOCS.commun.concat(DOCS[T.act]||[]).map(x=>x[0]).filter(k=>sel.includes(k)),f={lecon:pdLecon,proto:pdProto,rep:pdRep,grille:pdGrille,res:pdRes,'esc-mur':pdEscMur,'esc-projet':pdEscProjet,'esc-pass':pdEscPass,'bad-terrain':pdBadTerrain,'bad-panel':pdBadPanel,'bad-score':pdBadScore,'bad-coach':pdBadCoach,'bad-poule':pdBadPoule,'ct-seance':pdCtSeance,'ct-indiv':pdCtIndiv,'ct-formes':pdCtFormes};
+function prDocs(sel,c,S,P){const order=DOCS.commun.concat(DOCS[T.act]||[]).map(x=>x[0]).filter(k=>sel.includes(k)),f={lecon:pdLecon,proto:pdProto,rep:pdRep,grille:pdGrille,res:pdRes,'esc-mur':pdEscMur,'esc-projet':pdEscProjet,'esc-pass':pdEscPass,'bad-terrain':pdBadTerrain,'bad-panel':pdBadPanel,'bad-score':pdBadScore,'bad-coach':pdBadCoach,'bad-poule':pdBadPoule,'ct-seance':pdCtSeance,'ct-indiv':pdCtIndiv,'ct-formes':pdCtFormes,'ori-kif':pdCoKif};
  return order.map(k=>f[k]?f[k](c,S,P):'').join('')||'<p class="mut">Aucun document coché.</p>'}
 /* en-tête commun + page */
 function pdHead(P,S,c,titre,nom){return window.EPSR?EPSR.htmlHead({act:'CCF '+P.apsa,titre,ca:P.ca,ac:COL,nom:nom||'',classe:c.nom,date:dFR(S.date)}):`<h2>CCF ${esc(P.apsa)} — ${esc(titre)} · ${esc(c.nom)}</h2>`}

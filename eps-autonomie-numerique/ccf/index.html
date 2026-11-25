@@ -64,6 +64,7 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut);margin:4px 0}
 .ocr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid #F1EEE6}.ocr span{flex:1;min-width:180px;font-weight:600}.b.ko{background:#d64545;border-color:#d64545;color:#fff}
 .ocn{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}.occ{position:relative;display:flex;flex-direction:column;gap:4px}.ocb{min-height:86px;border-radius:14px;border:2px solid var(--line);background:#fff;cursor:pointer;font:700 14px system-ui;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center}.ocb b{font-size:30px}.ocb:active{background:#FBF6E6}.occ i{display:block;height:6px;border-radius:3px;background:var(--app)}
 .obsum p{margin:4px 0}
+#m .cof label{margin:4px 0}#m .cof input.edt{background:#FFF3C4;border-color:#E0B84A}.cof small{color:var(--mut);font-weight:400}
 .prop{background:#FFF8E1;border:1px dashed #E0B84A;border-radius:10px;padding:6px 10px;margin-top:6px;font-size:14px}.prop small{display:block;color:var(--mut);margin-top:2px}.rep.best{border-color:#2E9E5B}.rep i{display:block;font-style:normal;color:#2E9E5B;font-weight:800;font-size:14px}.rep .tot2{display:block;font:900 26px system-ui;margin-top:6px}
 .fb{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:start;background:#FBF6E6;border-radius:12px;padding:10px;margin-top:8px}@media(max-width:760px){.fb{grid-template-columns:1fr}}.fb .c{text-align:center;margin:2px 0}.fbt{font-size:15px;line-height:1.5}
 .bars{margin:4px 0 8px}.br{display:grid;grid-template-columns:120px 1fr 30px;gap:6px;align-items:center;font-size:13px;margin:3px 0}.br i{display:block;height:12px;border-radius:6px;min-width:2px}.br b{text-align:right}
@@ -216,6 +217,30 @@ const ACTS={
  bad:{nom:'Badminton',app:'badminton',color:'#0B7A75',eq:'Binôme joueur / coach',icon:'<circle cx="6.5" cy="17.5" r="3"/><path d="M8.6 15.4 18 3l3 3-12.4 9.4"/><path d="M12 10.5 15 13M14.5 7.5 18 10"/>'},
  ct:{nom:'Cross training',app:'',color:'#4C7A1E',eq:'Binôme',icon:'<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>'}
 };
+
+/* ===== Course d'orientation · Bac général (CA2) · AFL1 en 2 éléments, AFL2 et AFL3 au choix 4-4 / 6-2 / 2-6 ===== */
+PROTOS['ori-gt']={id:'ori-gt',act:'ori',voie:'gt',apsa:'Course d\'orientation',ca:'CA2',session:'2024',etab:'LGT Camille Claudel · Fourmies',ref:'FCE_CA2_CourseD\'Orientation_LGT_CamilleClaudel_Fourmies_0590083V_Session_2024 · Circulaire du 25-03-2022',
+ oe:"Planifier un trajet logique et efficient pour récupérer un maximum de postes en deux épreuves de 20 minutes à la fois de manière individuelle que collective.",
+ principe:["Groupe de 2, 3 cartes différentes : 1 carte parcours collectif ; 2 cartes avec parcours individuel","18 postes minimum","Moitié de classe en individuel, l'autre en collectif et inversement","Balise poinçonnée dans l'ordre de récupération (projet = 7, 2, 9 ; carton = 1=7, 2=2, 3=9) sur la carte","Circuit de 16 balises à ramener filles ; 18 balises garçons sur l'ensemble de l'épreuve","7 minutes de planification de conception du projet commun (ordre) + 7 min de planification de répartition des parcours et nombre de balises pour la partie CO individuelle","20 minutes d'épreuve à deux (planification projet, nombre de balises) ; 20 minutes d'épreuve individuelle (coopération, se répartir les parcours et les balises)","Annoncer son projet de points (balises de N2-N3)"],
+ fin:{titre:"Repères d'évaluation de l'AFL1 : « S'engager à l'aide d'une motricité spécifique pour réaliser en sécurité et à son meilleur niveau, un itinéraire dans un contexte incertain »",afl:[
+  {id:'p1',code:'AFL1 (1)',pts:6,off:"S'engager à l'aide d'une motricité spécifique pour réaliser en sécurité et à son meilleur niveau, un itinéraire dans un contexte incertain.",decl:"Lire et analyser les caractéristiques des éléments du milieu pour choisir et conduire son itinéraire",
+   regles:["16 balises à ramener pour les filles ; 18 pour les garçons sur l'ensemble de l'épreuve","40 minutes de course (20 à deux ; 20 seul)","Possibilité de modifier les balises annoncées dans le projet en fonction du temps","Possibilité d'abandonner un poste et combler par un autre (réchappe)","N2 = 2 pts ; N3 = 3 pts"],
+   ajust:"Pour chacun des deux éléments de l'AFL1, les co-évaluateurs positionnent l'élève dans un degré puis ajustent la note en fonction du niveau de difficulté/complexité de l'itinéraire réalisé par l'élève. Chaque élément de l'AFL1 au moins noté sur 4 points. Corrélation erreurs/niveau : chaque erreur induit sur l'ajustement de la note en fonction des niveaux des balises ramenées.",degAj:"Coefficient de difficulté de l'itinéraire",auto:'co-pts',
+   deg:dg(["Total inférieur au nombre de points annoncés","Total identique avec modification de postes trouvés","Total identique au projet de points annoncés","Total de points supérieur à celui annoncé"],[[0,1.5],[1.75,3],[3.25,4.5],[4.75,6]])},
+  {id:'p2',code:'AFL1 (2)',pts:6,off:"S'engager à l'aide d'une motricité spécifique pour réaliser en sécurité et à son meilleur niveau, un itinéraire dans un contexte incertain.",decl:"Adapter son déplacement en fonction des caractéristiques du milieu et de son projet d'itinéraire",
+   regles:["40 minutes de course (20 à deux ; 20 seul)","N2 = 2 pts ; N3 = 3 pts"],ajust:"Corrélation erreurs/niveau : chaque erreur induit sur l'ajustement de la note en fonction des niveaux des balises ramenées.",degAj:"Coefficient de difficulté de l'itinéraire",auto:'co-dep',
+   deg:dg(["Hors temps\nTrop d'erreurs","Dans les temps mais projet incomplet\nMajoritairement de balises de N2","Dans les temps\nMajoritairement de balises de N3","En avance\nToutes les balises N3"],[[0,1.5],[1.75,3],[3.25,4.5],[4.75,6]])}]},
+ fil:{titre:'AFL2 et AFL3',pts:8,reps:['4-4','6-2','2-6'],bareme:BAREME_PRO,retenus:['p3','p4'],
+  rappel:"Les AFL2 et 3 sont notés sur 8 points. La répartition des 8 points est au choix des élèves avec trois possibilités de répartition : AFL2 = 4 pts / AFL3 = 4 pts ; AFL2 = 6 pts / AFL3 = 2 pts ; AFL2 = 2 pts / AFL3 = 6 pts. La répartition choisie doit être annoncée par l'élève avant le début de l'épreuve et ne peut plus être modifiée après le début de l'épreuve. Le choix doit être un objet d'enseignement travaillé au fil de la séquence.",note:'',afl:[
+  {id:'p3',code:'AFL2',off:"S'entraîner individuellement et collectivement, pour se déplacer de manière efficiente et en toute sécurité.",decl:"S'entraîner individuellement et collectivement, pour se déplacer de manière efficiente et en toute sécurité",
+   regles:["Temps de planification = 7 min (nombre de balises - l'ordre - et nombre de points)","Possibilité de chercher des points bonus (nid supplémentaire)","Durée totale 40 min (20 minutes de course collective / 20 minutes de course individuelle)","Écarts entre prévu et réalisé : possibilité de repasser par le départ pour vérifier UNE unique réponse au choix/selon leur doute","Anticipation de balises réchappe/bonus","Annoncer l'ordre fixe des balises (+ indiquer si modifications de l'itinéraire de base) et le noter sur le KIFEKOI","2 possibilités = projet à plus de 16/18 balises annoncées ; projet normal + balises réchappes"],auto:'co-plan',
+   deg:["Projet annoncé mais non réalisé\nPrise de risque non maîtrisée","Projet modifié","Planification respectée (minima : 16 ou 18)","Planification respectée avec points bonus"]},
+  {id:'p4',code:'AFL3',off:"Coopérer pour réaliser un projet de déplacement, en toute sécurité.",decl:"Coopérer pour réaliser un projet de déplacement, en toute sécurité",
+   regles:["Temps de répartition des parcours et des balises au retour du parcours collectif = 7 minutes","Possibilité de s'échanger les cartes (donner un pt de rdv) : 1 élève récupère les balises N2 des deux parcours, l'autre les balises de N3"],auto:'co-coop',
+   deg:["Répartition des cartes et des balises de manière aléatoire","Répartition adaptée à un coureur sur les deux","Répartition adaptée aux capacités de chacun","Répartition optimale permettant de récupérer l'ensemble des balises"]}]},
+ jeu:{nMinF:16,nMinG:18,n2:2,n3:3,tPlan:7,tCol:20,tInd:20,tRep:7,avance:2,postes:18}};
+JEU_LAB.ori=[['nMinF','Balises à ramener (filles)'],['nMinG','Balises à ramener (garçons)'],['n2','Points d\'une balise N2'],['n3','Points d\'une balise N3'],['tPlan','Planification du projet commun (min)'],['tCol','Course collective (min)'],['tInd','Course individuelle (min)'],['tRep','Répartition des parcours (min)'],['avance','« En avance » : minutes d\'avance au moins'],['postes','Postes au minimum']];
+ACTS.ori={nom:'Course d\'orientation',app:'co-eval',color:'#14213D',eq:'Binôme',icon:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'};
 const VOIES={pro:'Bac pro',gt:'Bac général'};
 /* bibliothèque d'exercices sans matériel (cross training) : muscles principaux */
 const EXOS=[
@@ -399,7 +424,7 @@ function escPassOf(act,cls,S,k){const t=teamOf(S,k);if(!t)return null;const F=ge
 function escSuggest(J,p){if(!p||p.dg==null||p.dg===''||!p.zone)return null;const zr=escZoneOf(J,p.dg);if(+zr===+p.zone)return {d:3,t:'zone annoncée atteinte : projet respecté'};
  const diff=Math.abs(+p.dg-escZoneBorne(J,+p.zone));return {d:diff<=1?2:diff<=2?1:0,t:'écart de '+diff+' dégaine'+(diff>1?'s':'')+' avec la hauteur annoncée'}}
 function dgTxt(J,dg){return dg==null||dg===''?'—':+dg>J.nDeg?'TOP':+dg===0?'sous D1':'D'+dg}
-function aideHtml(auto,P,ctx){const J=P.jeu,{act,cls,S,k}=ctx,c=clsById(cls);
+function aideHtml(auto,P,ctx){if(auto&&auto.indexOf('co-')===0)return coAide(auto,P,ctx);const J=P.jeu,{act,cls,S,k}=ctx,c=clsById(cls);
  if(auto==='esc-projet'){const x=escPassOf(act,cls,S,k),p=x&&x.p;if(!p)return '<p class="mut">Pas encore de passage enregistré pour cet élève.</p>';
   const r=escPts(J,p),sg=escSuggest(J,p);return `<p>Zone annoncée : <b>Z${p.zone||'?'}</b> (${p.zone?dgTxt(J,escZoneBorne(J,+p.zone)):''}) · atteint : <b>${dgTxt(J,p.dg)}</b> (zone ${r.zr==null?'—':r.zr}) · points : <b>${r.tot}</b></p>${sg?`<p>Suggestion : <b>degré ${sg.d+1}</b> (${esc(sg.t)}) <button class="b s" onclick="ficheDeg('${P.fin.afl[0].id}',${sg.d})">Choisir</button></p>`:''}`}
  if(auto==='esc-prises'){const x=escPassOf(act,cls,S,k),p=x&&x.p;if(!p)return '<p class="mut">Pas encore de passage enregistré.</p>';const B=(p.bonus||[]).slice(0,escNbBonus(J,p.zone)).filter(b=>b&&b.z);
@@ -418,6 +443,7 @@ function aideHtml(auto,P,ctx){const J=P.jeu,{act,cls,S,k}=ctx,c=clsById(cls);
  return ''}
 /* résumé de la pratique d'un élève (fiche enseignant, PDF) */
 function pratiqueTxt(act,P,cls,S,k){const J=P.jeu,out=[];
+ if(act==='ori'){const v=coVal(cls,k);if(v)out.push(`Points réalisés ${v.pts} / annoncés ${v.ann} · ${v.nb} balise(s) (N2 ${v.n2}, N3 ${v.n3})${v.over?' · hors temps':''}${v.modif?' · '+v.modif+' poste(s) modifié(s)':''}`)}
  if(act==='esc'){const x=escPassOf(act,cls,S,k);if(x&&x.p){const p=x.p,r=escPts(J,p);out.push(`Voie ${p.voie||'?'} · zone annoncée Z${p.zone||'?'} · atteint ${dgTxt(J,p.dg)} · ${r.tot} pts (zone ${r.zone}, bonus ${r.bonus>=0?'+':''}${r.bonus})`);
   const T=(x.F.pass||[]).reduce((s,q)=>s+escPts(J,q).tot,0);out.push('Total de l\'équipe : '+T+' pts')}}
  if(act==='bad'){const s=badStatsEl(J,cls,k);out.push(`Joueur : ${s.v}/${s.j} matchs gagnés, ${s.pts} points marqués · coach : ${s.coach} match(s), ${s.chg} changement(s) de stratégie, ${s.dev} stratégie(s) devinée(s)`)}
@@ -468,6 +494,7 @@ function evalScreen(m){const c=needCls(m,'📋 Évaluation');if(!c)return;const 
  <div class="card row wrapf"><span class="lab">Voie</span>${['pro','gt'].map(v=>`<button class="b s${S.voie===v?' p':''}" onclick="sesSet('voie','${v}')">${VOIES[v]}</button>`).join('')}
  <span class="lab" style="margin-left:10px">Date du CCF</span><input type="date" value="${esc(S.date||today())}" onchange="sesSet('date',this.value)">
  <label class="tg big"><input type="checkbox" ${S.open?'checked':''} onchange="sesSet('open',this.checked)"> Ouvert sur les tablettes élèves</label></div>`;
+ if(T.act==='ori')h+=coImportCard(c);
  if(!P){m.innerHTML=h+noProto(S)+'</div>';return}
  const ids=P.fin.afl.map(a=>a.code+' /'+a.pts).concat(P.fil.retenus.map(id=>(aflFil(P,id)||{}).code||id));
  h+=`<p class="mut">${(S.eq||[]).length} équipe(s) · touche un élève pour l'évaluer. Fil de séquence : ${P.fil.retenus.map(id=>esc((aflFil(P,id)||{}).code)).join(' et ')} (répartition choisie par l'élève).</p>
@@ -488,7 +515,7 @@ function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');ret
  <div class="row wrapf" style="margin:10px 0">${[['','Présent(e)'],['abs','Absent(e) · A'],['disp','Dispensé(e) / inapte · D']].map(s=>`<button class="b s${(ev.st||'')===s[0]?' p':''}" onclick="evUpd(e=>{e.st='${s[0]}'});render()">${s[1]}</button>`).join('')}
  <button class="b s" onclick="go('team',{tm:'${t?t.id:''}'})" ${t?'':'disabled'}>👁 Feuille de l'équipe</button><button class="b s" onclick="OBS={k:'${k}',by:'',v:{}};go('obs')">👁 Observer</button></div>
  ${(()=>{const R=obsRecs(T.act,c.id,k);return R.length?`<div class="card soft"><b>👁 Observations (élèves observateurs et toi)</b>${obsSummary(P,c,R,{act:T.act,cls:c.id,c,S,P},k)}</div>`:''})()}
- ${pr.length?`<div class="card soft"><b>Pratique le jour du CCF</b><br>${pr.map(esc).join('<br>')}</div>`:''}
+ ${T.act==='ori'?coFicheHtml(X):''}${pr.length?`<div class="card soft"><b>Pratique le jour du CCF</b><br>${pr.map(esc).join('<br>')}</div>`:''}
  <div class="row wrapf" style="margin-top:12px"><button class="b" onclick="proposeAll()">💡 Positionner d'après les données (AFLP non notés)</button><span class="mut sm">Propositions calculées à partir des observations et de la pratique ; tu valides et tu ajustes. 🙋 = auto-positionnement de l'élève.</span></div>
  <h3 class="h3">${esc(P.fin.titre)} · ${finMax(P)} points <span class="mut">(${fr(N.fin)} pt)</span></h3>`;
  P.fin.afl.forEach(a=>{const x=(ev.fin||{})[a.id]||{},v=finV(a,x);
@@ -654,7 +681,7 @@ function tmUpd(f,keep){upd(tmIdOf(),{},f);if(!keep)render()}
 function subTabs(L){const cur=SUB[PX.act]||L[0][0];return `<div class="subt">${L.map(([k,l])=>`<button class="${cur===k?'on':''}" onclick="setSub('${k}')">${l}</button>`).join('')}</div>`}
 function curSub(L){const s=SUB[PX.act];return L.some(x=>x[0]===s)?s:L[0][0]}
 function praHtml(ctx){PX=ctx;if(!ctx.t)return '<p class="mut">Choisis d\'abord ton équipe (onglet « Mon équipe »).</p>';
- return ctx.act==='esc'?escHtml():ctx.act==='bad'?badHtml():ctHtml()}
+ return ctx.act==='esc'?escHtml():ctx.act==='bad'?badHtml():ctx.act==='ori'?coHtml():ctHtml()}
 function memNames(){return (PX.t.el||[]).map(k=>({k,n:pfirst(PX.c,k),f:pname(PX.c,k)}))}
 
 /* ================== ESCALADE ================== */
@@ -910,6 +937,7 @@ const DOCS={
  commun:[['lecon','📅 La leçon du CCF','déroulé minuté, organisation, équipes, rôles'],['proto','📜 Le protocole','à afficher ou à distribuer'],['rep','🎯 Choix de la répartition','liste de la classe, l\'élève coche et signe'],['grille','📋 Grille d\'évaluation enseignant','degrés à entourer, une ligne par élève'],['res','📚 Ressources de l\'activité','celles des applis et celles ajoutées dans le CCF']],
  esc:[['esc-mur','🧗 Le mur et ses zones','dégaines, zones, points, prises bonus'],['esc-projet','📝 Projet d\'équipe','une fiche par équipe : voie, zone visée, prises bonus'],['esc-pass','👁 Fiche de l\'observateur','une fiche par équipe : rôles, hauteur, prises, fusibles, points']],
  bad:[['bad-terrain','🏸 Le terrain découpé en 6 zones','grand format'],['bad-panel','🎯 Panel de stratégies','une fiche par joueur, 4 terrains à colorier'],['bad-score','📝 Fiche score','une par match de poule : points, zones, stratégies'],['bad-coach','🧢 Fiche coach','stratégie choisie, changements, stratégie devinée'],['bad-poule','🏆 Tableau de poule','rencontres et classement']],
+ ori:[['ori-kif','📝 KIFEKOI · projet du binôme','ordre des balises, N2 / N3, points annoncés, réchappes, répartition']],
  ct:[['ct-seance','📝 Feuille de séance collective','une par binôme'],['ct-indiv','❤️ Fiche individuelle','FC, ressentis, sensations, objectif'],['ct-formes','⏱ Les formes de travail','EMOM, AMRAP, FOR TIME']]};
 let PRSEL=lget('ccf.prsel',{});
 function printScreen(m){const c=needCls(m,'🖨 Documents à imprimer');if(!c)return;const S=ses(T.act,c.id),P=proto(T.act,S.voie);
@@ -925,7 +953,7 @@ function prSel(k,on){const L=PRSEL[T.act]||[];PRSEL[T.act]=on?L.concat(k):L.filt
 function prAll(on){PRSEL[T.act]=on?DOCS.commun.concat(DOCS[T.act]||[]).map(x=>x[0]):[];lset('ccf.prsel',PRSEL);render()}
 function prGo(){if(!(PRSEL[T.act]||[]).length){toast('Coche au moins un document');return}document.documentElement.classList.add('prt');setTimeout(()=>{window.print();setTimeout(()=>document.documentElement.classList.remove('prt'),800)},100)}
 addEventListener('afterprint',()=>document.documentElement.classList.remove('prt'));
-function prDocs(sel,c,S,P){const order=DOCS.commun.concat(DOCS[T.act]||[]).map(x=>x[0]).filter(k=>sel.includes(k)),f={lecon:pdLecon,proto:pdProto,rep:pdRep,grille:pdGrille,res:pdRes,'esc-mur':pdEscMur,'esc-projet':pdEscProjet,'esc-pass':pdEscPass,'bad-terrain':pdBadTerrain,'bad-panel':pdBadPanel,'bad-score':pdBadScore,'bad-coach':pdBadCoach,'bad-poule':pdBadPoule,'ct-seance':pdCtSeance,'ct-indiv':pdCtIndiv,'ct-formes':pdCtFormes};
+function prDocs(sel,c,S,P){const order=DOCS.commun.concat(DOCS[T.act]||[]).map(x=>x[0]).filter(k=>sel.includes(k)),f={lecon:pdLecon,proto:pdProto,rep:pdRep,grille:pdGrille,res:pdRes,'esc-mur':pdEscMur,'esc-projet':pdEscProjet,'esc-pass':pdEscPass,'bad-terrain':pdBadTerrain,'bad-panel':pdBadPanel,'bad-score':pdBadScore,'bad-coach':pdBadCoach,'bad-poule':pdBadPoule,'ct-seance':pdCtSeance,'ct-indiv':pdCtIndiv,'ct-formes':pdCtFormes,'ori-kif':pdCoKif};
  return order.map(k=>f[k]?f[k](c,S,P):'').join('')||'<p class="mut">Aucun document coché.</p>'}
 /* en-tête commun + page */
 function pdHead(P,S,c,titre,nom){return window.EPSR?EPSR.htmlHead({act:'CCF '+P.apsa,titre,ca:P.ca,ac:COL,nom:nom||'',classe:c.nom,date:dFR(S.date)}):`<h2>CCF ${esc(P.apsa)} — ${esc(titre)} · ${esc(c.nom)}</h2>`}
@@ -1037,6 +1065,11 @@ function obsDef(act){
   {id:'o2',afl:'p1',type:'deg',titre:'Production sécuritaire'},
   {id:'o3',afl:'p2',type:'check',titre:'Données et régulation',opts:['Relève sa FC aux moments prévus','Note ses ressentis','Régule entre les rounds avec les données','Utilise la réchappe si besoin']},
   {id:'o4',afl:'p2',type:'deg',titre:'Recueil des données'}];
+ if(act==='ori')return [
+  {id:'o1',afl:'p2',type:'check',titre:'Lecture de carte et déplacement',opts:['Oriente sa carte','Lit la carte avant chaque poste','Choisit un itinéraire logique','Court sur les parties simples, ralentit à l\'approche du poste']},
+  {id:'o2',afl:'p2',type:'count',titre:'Balises ramenées',opts:['N2','N3','Erreur de poste']},
+  {id:'o3',afl:'p4',type:'check',titre:'Coopération du binôme',opts:['Se répartissent les cartes selon leurs capacités','Se donnent un point de rendez-vous','Anticipent des balises de réchappe']},
+  {id:'o4',afl:'p3',type:'deg',titre:'Planification'}];
  return []}
 function obsList(P){return P.obs||obsDef(P.act)}
 function aflAny(P,id){return P.fin.afl.find(a=>a.id===id)||aflFil(P,id)}
@@ -1190,6 +1223,7 @@ function propose(P,ctx,k,id){const I=[],J=P.jeu,R=obsRecs(ctx.act,ctx.cls,k),L=o
   if(it.type==='fc'){const all=vals.flatMap(v=>(v.m||[]).map(m=>m.fc)),c=fcCible(ctx,k),mg=+(it.opts||[])[0]||10;if(all.length&&c)I.push({d:lvl(all.filter(f=>Math.abs(f-c)<=mg).length/all.length),src:'FC dans la zone cible : '+all.filter(f=>Math.abs(f-c)<=mg).length+'/'+all.length})}});
  /* données de la forme de pratique */
  const a=aflAny(P,id)||{},auto=a.auto;
+ if(auto&&auto.indexOf('co-')===0){const s=coSuggest(auto,P,ctx,k);if(s)I.push(s)}
  if(auto==='esc-projet'){const x=escPassOf(ctx.act,ctx.cls,ctx.S,k),sg=x&&x.p&&escSuggest(J,x.p);if(sg)I.push({d:sg.d,src:'passage du CCF : '+sg.t})}
  if(auto==='esc-prises'){const x=escPassOf(ctx.act,ctx.cls,ctx.S,k),p=x&&x.p;if(p&&p.done){const B=(p.bonus||[]).slice(0,escNbBonus(J,p.zone)).filter(b=>b&&b.z),ko=B.filter(b=>b.ok===false).length,zr=escZoneOf(J,p.dg);I.push({d:+zr===+p.zone&&!ko?3:ko===1?2:+zr===+p.zone?1:0,src:'projet : '+(+zr===+p.zone?'hauteur respectée':'hauteur non respectée')+', '+ko+' prise(s) oubliée(s)'})}}
  if(auto==='esc-roles'){const t=teamOf(ctx.S,k),F=t?get('tm:'+ctx.act+':'+ctx.cls+':'+t.id)||{}:{};let as=0,cas=0,fu=0;(F.pass||[]).forEach(p=>{if(p.asr===k){as++;fu+=+p.fus||0}if(p.cas===k)cas++});if(as||cas)I.push({d:!(as&&cas)?0:fu>1?1:fu?2:3,src:'rôles : assureur '+as+', contre-assureur '+cas+', fusibles sautés '+fu})}
@@ -1233,6 +1267,87 @@ function repPropose(P,ctx,k){const ix=ixOf(ctx.act,ctx.cls,k),X=P.fil.retenus,D=
 function repProposeHtml(P,ctx,k,cur){const p=repPropose(P,ctx,k);if(!p)return '<small class="mut">💡 Pas encore de positionnement de l\'élève ni de données pour proposer une répartition.</small>';
  return `💡 Répartition proposée : <b>${esc(p.r)}</b> (${fr(p.v)} / ${P.fil.pts}) ${cur===p.r?'✓':`<button class="b s" onclick="evUpd(e=>{e.rep='${p.r}'});render()">Appliquer</button>`}<small>${esc(p.why)} · ${p.sc.map(x=>x.r+' → '+fr(x.v)).join(' · ')} (🙋 positionnement de l'élève, 💡 d'après les données)</small>`}
 
+/* ================== COURSE D'ORIENTATION ↔ CO ÉVAL ==================
+   CO Éval (même site, même tablette) garde ses résultats dans localStorage « coe.srv » = {rows:[{k, t, d:{me:{prenom,nom,classe}, run}}]},
+   sa configuration en cours « coe.conf » (C.ev = évaluation en cours) et ses évaluations sauvegardées « coe.arch » = [{id, nom, from, to, cls, conf}].
+   Le CCF lit ces données, calcule pour chaque élève ses points annoncés / réalisés, ses balises N2 / N3, son temps, et les range dans
+   « cx:ori:<classe>:<élève> » = {src, imp:{…}, ed:{…}} : imp = données importées, ed = corrections de l'enseignant (prioritaires). */
+const CO_F=[['ann','Points annoncés (projet)'],['pts','Points réalisés'],['nbPlan','Balises annoncées'],['nb','Balises ramenées'],['n2','dont N2'],['n3','dont N3'],['modif','Postes modifiés / abandonnés'],['oublis','Balises du projet manquées'],['bonus','Balises ou points bonus'],['over','Hors temps (1 = oui)'],['avance','Minutes d\'avance']];
+function coLS(k,d){try{const v=localStorage.getItem('coe.'+k);return v?JSON.parse(v):d}catch(e){return d}}
+function coNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z]+/g,' ').trim().split(' ').filter(Boolean).sort().join(' ')}
+function coSources(){const srv=coLS('srv',{rows:[]}),rows=(srv.rows||[]).filter(r=>r&&r.d&&r.d.me&&r.d.run),conf=coLS('conf',null),arch=coLS('arch',[])||[],L=[];
+ const inWin=(r,a,b)=>{const t=r.d.run.t0||r.t||0;return t>=(a||0)&&t<(b||9e15)};
+ if(conf){const from=(conf.ev&&conf.ev.date)||0;L.push({id:'cur',nom:(conf.ev&&conf.ev.nom)||'Évaluation en cours',conf,rows:rows.filter(r=>inWin(r,from,9e15))})}
+ arch.forEach(a=>{if(a&&a.conf)L.push({id:a.id,nom:a.nom||'Évaluation sauvegardée',conf:a.conf,rows:rows.filter(r=>inWin(r,a.from,a.to)),date:a.to})});
+ return L.filter(x=>x.rows.length)}
+/* une course (format compact de CO Éval) → chiffres */
+function coRun(conf,row,J){const x=row.d.run,p=(conf.parcours||[])[row.k]||{},niv=n=>{const b=(conf.balises||[]).find(b=>+b.n===+n);const v=b?+b.niv||0:0;return v===2?J.n2:v===3?J.n3:v};
+ const S=(x.s||[]).map(s=>({code:s[1],att:s[2],st:s[3],bal:s[4]})),ok=new Set();S.forEach(s=>{if(['ok','saut','retour'].includes(s.st)&&s.bal!=null)ok.add(+s.bal)});
+ const plan=(x.p||[]).map(Number),found=plan.filter(n=>ok.has(n)),extra=[...ok].filter(n=>!plan.includes(n));
+ const lv=n=>{const b=(conf.balises||[]).find(b=>+b.n===+n);return b?+b.niv||0:0};
+ const chrono=((x.t1||x.t0)-x.t0)/60000,max=+p.max||0;
+ return {k:row.k,nom:p.nom||'Parcours '+(+row.k+1),duo:p.type==='duo',ann:plan.reduce((a,n)=>a+niv(n),0),pts:found.reduce((a,n)=>a+niv(n),0)+extra.reduce((a,n)=>a+niv(n),0),nbPlan:plan.length,nb:found.length+extra.length,
+  n2:found.concat(extra).filter(n=>lv(n)===2).length,n3:found.concat(extra).filter(n=>lv(n)===3).length,modif:S.filter(s=>s.st==='passe'||s.st==='retour').length,oublis:plan.length-found.length,bonus:extra.length,
+  over:max&&chrono>max?1:0,avance:max?Math.max(0,Math.round(max-chrono)):0,min:Math.round(chrono*10)/10,faux:S.filter(s=>s.st==='faux'||s.st==='hors').length}}
+function coImport(srcId){const src=coSources().find(s=>s.id===srcId),c=clsById(T.cls);if(!src||!c)return;const P=proto('ori',ses('ori',c.id).voie)||proto('ori','gt'),J=P.jeu;
+ const byName={};people(c).forEach(p=>byName[coNorm(p.full)]=p.k);const R={},miss=new Set();
+ src.rows.forEach(r=>{const me=r.d.me,k=byName[coNorm((me.prenom||'')+' '+(me.nom||''))];if(!k){if(!me.classe||coNorm(me.classe)===coNorm(c.nom))miss.add((me.prenom||'')+' '+(me.nom||''));return}
+  (R[k]=R[k]||{}).runs=(R[k].runs||[]).concat(coRun(src.conf,r,J))});
+ Object.keys(R).forEach(k=>{const L=R[k].runs,imp={runs:L};['ann','pts','nbPlan','nb','n2','n3','modif','oublis','bonus'].forEach(f=>imp[f]=L.reduce((a,x)=>a+(x[f]||0),0));imp.over=L.some(x=>x.over)?1:0;imp.avance=L.length?Math.min(...L.map(x=>x.avance)):0;
+  upd('cx:ori:'+c.id+':'+k,{ed:{}},o=>{o.src=src.nom;o.imp=imp;o.ed=o.ed||{};o.t=Date.now()})});
+ toast(Object.keys(R).length+' élève(s) importé(s) de « '+src.nom+' »'+(miss.size?' · '+miss.size+' nom(s) non reconnu(s)':''));
+ if(miss.size)setTimeout(()=>alert('Noms de CO Éval non trouvés dans la liste '+c.nom+' :\n'+[...miss].join('\n')+'\n\nVérifie l\'orthographe dans les listes, ou saisis leurs données dans leur fiche.'),300);render()}
+function coVal(cls,k){const o=get('cx:ori:'+cls+':'+k);if(!o)return null;const v={};CO_F.forEach(([f])=>{const e=(o.ed||{})[f];v[f]=e!=null&&e!==''?+e:o.imp?o.imp[f]:null});v.runs=(o.imp||{}).runs||[];v.src=o.src||'';v.edited=Object.keys(o.ed||{}).filter(f=>o.ed[f]!=null&&o.ed[f]!=='').length;return v}
+function coEdit(k,f,v){upd('cx:ori:'+T.cls+':'+k,{ed:{}},o=>{o.ed=o.ed||{};o.ed[f]=v===''?null:+String(v).replace(',','.')})}
+
+/* ---------- carte d'import (onglet Évaluation) ---------- */
+function coImportCard(c){const L=coSources(),nb=people(c).filter(p=>get('cx:ori:'+c.id+':'+p.k)).length;
+ return `<div class="card soft"><b>📥 Résultats de CO Éval</b> <span class="mut sm">${nb} élève(s) de ${esc(c.nom)} ont déjà des données</span>
+ ${L.length?`<div class="row wrapf" style="margin-top:6px">${L.map(s=>{const n=s.rows.filter(r=>!r.d.me.classe||coNorm(r.d.me.classe)===coNorm(c.nom)).length;return `<button class="b s" onclick="coImport('${s.id}')">📥 ${esc(s.nom)} <small class="mut">(${s.rows.length} course(s)${n?', '+n+' de la classe':''})</small></button>`}).join('')}</div>`:
+ `<p class="sm">Aucun résultat de CO Éval sur cette tablette. Ouvre <a href="../co-eval/" target="_blank">CO Éval</a> en mode enseignant sur cette tablette (les résultats se chargent), puis reviens ici. Tu peux aussi saisir les données dans la fiche de chaque élève.</p>`}
+ <div class="row wrapf" style="margin-top:6px"><button class="b p" onclick="coPositionClass()">💡 Positionner toute la classe (degrés, notes, répartition)</button><span class="mut sm">Seulement les élèves pas encore notés ; tu ajustes ensuite chaque fiche.</span></div></div>`}
+/* positionnement de toute la classe : degrés proposés, note dans le degré selon le niveau des balises, répartition proposée */
+function coPositionClass(){const c=clsById(T.cls),S=ses(T.act,c.id),P=proto(T.act,S.voie);if(!P)return;let n=0;
+ people(c).forEach(p=>{const ctx={act:T.act,cls:c.id,c,S,P},v=coVal(c.id,p.k),ev0=evOf(T.act,c.id,p.k);if(ev0.st)return;let ch=0;
+  upd(evId(T.act,c.id,p.k),{},e=>{e.fin=e.fin||{};e.fil=e.fil||{};
+   P.fin.afl.forEach(a=>{if(e.fin[a.id]&&e.fin[a.id].d!=null)return;const pr=propose(P,ctx,p.k,a.id);if(!pr)return;const g=a.deg[pr.d],r=v&&v.nb?v.n3/v.nb:.5;e.fin[a.id]={d:pr.d,v:q25(g.min+(g.max-g.min)*r)};ch=1});
+   P.fil.retenus.forEach(id=>{if(e.fil[id]&&e.fil[id].d!=null)return;const pr=propose(P,ctx,p.k,id);if(pr){e.fil[id]={d:pr.d};ch=1}});
+   const ix=ixOf(T.act,c.id,p.k);if(!e.rep&&!ix.rep){const rp=repPropose(P,ctx,p.k);if(rp){e.rep=rp.r;ch=1}}});if(ch)n++});
+ toast(n?n+' élève(s) positionné(s) : vérifie et ajuste chaque fiche':'Rien à positionner (déjà noté ou pas de données)');render()}
+
+/* ---------- fiche élève : données de la course, modifiables ---------- */
+function coFicheHtml(X){const v=coVal(X.cls,X.k)||{runs:[]},o=get('cx:ori:'+X.cls+':'+X.k)||{};
+ return `<div class="card"><b>🧭 Données de la course</b> <span class="mut sm">${v.src?'importées de CO Éval · « '+esc(v.src)+' »':'pas encore importées'}${v.edited?' · '+v.edited+' valeur(s) corrigée(s) par toi':''}</span>
+ ${v.runs.length?`<div class="tblw" style="margin:6px 0"><table class="tbl"><thead><tr><th>Parcours</th><th>Annoncé</th><th>Réalisé</th><th>Balises</th><th>N2 / N3</th><th>Temps</th><th>Modifs</th></tr></thead><tbody>${v.runs.map(r=>`<tr><td>${esc(r.nom)}${r.duo?' 👥':''}</td><td>${r.ann} pts</td><td><b>${r.pts} pts</b></td><td>${r.nb} / ${r.nbPlan}</td><td>${r.n2} / ${r.n3}</td><td>${fr(r.min)} min${r.over?' ⚠ hors temps':''}</td><td>${r.modif}${r.oublis?' · '+r.oublis+' manquée(s)':''}</td></tr>`).join('')}</tbody></table></div>`:''}
+ <div class="g4 cof">${CO_F.map(([f,l])=>{const imp=o.imp?o.imp[f]:null,ed=(o.ed||{})[f];return `<label>${esc(l)}<input type="number" inputmode="decimal" value="${ed!=null&&ed!==''?esc(ed):imp!=null?esc(imp):''}" class="${ed!=null&&ed!==''?'edt':''}" onchange="coEdit('${X.k}','${f}',this.value);render()">${ed!=null&&ed!==''&&imp!=null?`<small>CO Éval : ${esc(imp)}</small>`:''}</label>`}).join('')}</div>
+ <p class="mut sm">Corrige ou complète librement : la valeur corrigée (en jaune) remplace celle de CO Éval et sert aux propositions de degré.</p></div>`}
+
+/* ---------- propositions de degré d'après les données (utilisées par propose()) ---------- */
+function coSuggest(auto,P,ctx,k){const v=coVal(ctx.cls,k);if(!v)return null;const J=P.jeu;
+ if(auto==='co-pts'){if(v.ann==null||v.pts==null||!v.ann)return null;const d=v.pts<v.ann?0:v.pts>v.ann?3:v.modif>0?1:2;return {d,src:'points réalisés '+v.pts+' / annoncés '+v.ann+(v.modif?', '+v.modif+' poste(s) modifié(s)':'')}}
+ if(auto==='co-dep'){if(v.nb==null)return null;const d=v.over?0:v.oublis>0?1:(v.nb&&v.n3===v.nb&&v.avance>=J.avance)?3:v.n3>v.n2?2:1;return {d,src:(v.over?'hors temps':'dans les temps'+(v.avance?' ('+v.avance+' min d\'avance)':''))+', N2 '+v.n2+' / N3 '+v.n3+(v.oublis?', '+v.oublis+' balise(s) manquée(s)':'')}}
+ if(auto==='co-plan'){if(v.nb==null)return null;const mn=J.nMinF;const d=v.nbPlan&&v.nb<v.nbPlan/2?0:(v.modif||v.oublis)?1:v.nb>=mn?((v.bonus||0)>0||v.pts>v.ann?3:2):1;return {d,src:v.nb+' balises (minimum '+J.nMinF+' / '+J.nMinG+'), '+(v.modif||v.oublis?'projet modifié':'projet respecté')+(v.bonus?', '+v.bonus+' bonus':'')}}
+ if(auto==='co-coop'){const ind=v.runs.filter(r=>!r.duo);if(!ind.length)return null;const miss=ind.reduce((a,r)=>a+r.oublis,0),col=v.runs.filter(r=>r.duo),colOk=col.length&&col.every(r=>!r.oublis);return {d:miss?1:colOk?3:2,src:'parcours individuels : '+(miss?miss+' balise(s) manquée(s)':'toutes les balises')+(col.length?', collectif '+(colOk?'complet':'incomplet'):'')}}
+ return null}
+function coAide(auto,P,X){const s=coSuggest(auto,P,X,X.k);return s?`<p>${esc(s.src)} → plutôt <b>degré ${s.d+1}</b></p>`:'<p class="mut">Pas de données de course : importe CO Éval (onglet Évaluation) ou saisis-les dans « Données de la course ».</p>'}
+
+/* ---------- élève : feuille projet (KIFEKOI) du binôme ---------- */
+function coHtml(){const F=F0(),mem=memNames(),J=PX.J,cartes=[['col','Parcours collectif (à deux)'],['i1','Parcours individuel 1'],['i2','Parcours individuel 2']];
+ let h=`<p class="mut">Les courses se font avec <a href="../co-eval/" target="_blank">CO Éval</a>. Ici, le binôme prépare son projet (KIFEKOI) : ordre des balises, points annoncés (N2 = ${J.n2} pts, N3 = ${J.n3} pts), réchappes, répartition des cartes. ${J.nMinF} balises à ramener pour les filles, ${J.nMinG} pour les garçons.</p>
+ <div class="row wrapf">${tmHtml('cop','Planification du projet commun',J.tPlan*60)}${tmHtml('cor','Répartition des parcours',J.tRep*60)}</div>`;
+ cartes.forEach(([id,l])=>{const x=(F.cartes||{})[id]||{};h+=`<div class="card"><b>${l}</b>${id!=='col'?`<div class="row wrapf"><span class="lab">Qui court ?</span>${mem.map(m=>`<button class="b s${x.qui===m.k?' p':''}" onclick="coSet('${id}','qui','${m.k}')">${esc(m.n)}</button>`).join('')}</div>`:''}
+  <div class="g3"><label>Balises annoncées, dans l'ordre<input value="${esc(x.ordre||'')}" placeholder="ex. 7, 2, 9, 14" onchange="coSet('${id}','ordre',this.value,1)"></label><label>Nombre de N2<input type="number" value="${esc(x.n2||'')}" onchange="coSet('${id}','n2',this.value)"></label><label>Nombre de N3<input type="number" value="${esc(x.n3||'')}" onchange="coSet('${id}','n3',this.value)"></label></div>
+  <div class="g2"><label>Balises de réchappe / bonus<input value="${esc(x.rech||'')}" onchange="coSet('${id}','rech',this.value,1)"></label><div class="big" style="align-self:end">Points annoncés : <b>${(+x.n2||0)*J.n2+(+x.n3||0)*J.n3}</b></div></div></div>`});
+ const tot=cartes.reduce((a,[id])=>{const x=(F.cartes||{})[id]||{};return a+(+x.n2||0)*J.n2+(+x.n3||0)*J.n3},0);
+ h+=`<div class="card big">Projet de points du binôme : <b>${tot} pts</b></div><label>Point de rendez-vous / échange de cartes<input value="${esc(F.rdv||'')}" onchange="tmUpd(F=>F.rdv=this.value,1)"></label>${mem.map(m=>repInline(m.k)).join('')}`;
+ return h}
+function coSet(id,f,v,keep){tmUpd(F=>{F.cartes=F.cartes||{};F.cartes[id]=F.cartes[id]||{};F.cartes[id][f]=v},keep)}
+/* document à imprimer : KIFEKOI */
+function pdCoKif(c,S,P){const J=P.jeu;return teamsOr(S,6,2).map(t=>pg(`${pdHead(P,S,c,'KIFEKOI · projet du binôme',t.nom)}<p>${t.el.map(k=>nm(c,k)).join(' · ')} · N2 = ${J.n2} pts, N3 = ${J.n3} pts · ${J.nMinF} balises filles / ${J.nMinG} garçons</p>
+ ${['Parcours collectif (à deux)','Parcours individuel 1 · coureur : …………………','Parcours individuel 2 · coureur : …………………'].map(x=>`<h4>${x}</h4><table class="ptb"><tr><th style="width:150px">Ordre des balises</th>${Array.from({length:12},(_,i)=>`<td class="c" style="height:30px">${i+1}<br>…</td>`).join('')}</tr><tr><th>Niveau (N2 / N3)</th>${Array.from({length:12},()=>'<td></td>').join('')}</tr></table><p class="sm">Points annoncés : ……… · Réchappes / bonus : …………………………… · Réalisé : ……… pts</p>`).join('')}
+ <p>Point de rendez-vous : ……………………………… &nbsp; <b>Projet de points du binôme : ……… pts</b></p>
+ <p>🙋 Répartition (annoncée avant l'épreuve) : ${t.el.map(k=>`${nm(c,k)} : ${P.fil.reps.map(r=>'☐ '+r).join(' ')}`).join(' &nbsp;·&nbsp; ')}</p>`)).join('')}
+
 /* ================== DÉMARRAGE ================== */
 /* espace enseignant commun (eps-shell.js) : Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 window.EPSTCCF=window.EPST?EPST.init({app:'ccf',nom:'CCF',color:COL,isTeacher:()=>isT(),anchor:'#hd',main:'#m',home:'eval',
@@ -1240,7 +1355,7 @@ window.EPSTCCF=window.EPST?EPST.init({app:'ccf',nom:'CCF',color:COL,isTeacher:()
   cls:{go:()=>go('cls'),on:()=>['cls','team','match'].includes(T.view)},
   bil:{go:()=>go('bil'),on:()=>T.view==='bil'}},
  biblio:[{ico:'🖨',label:'Documents à imprimer',sub:'La leçon du CCF, le terrain / le mur, les fiches à remplir sans tablette',go:()=>go('print')},{ico:'📜',label:'Le protocole',sub:'Lecture et impression (Bac pro, Bac général)',go:()=>go('proto')},{ico:'📚',label:'Ressources de l\'activité',sub:'Celles de l\'appli de l\'activité + celles ajoutées ici, visibles par les élèves',go:()=>go('res')}],
- reglages:[{ico:'✏️',label:'Modifier le protocole',sub:'Textes, degrés, points, AFLP retenus, forme de pratique',go:()=>go('edit',{pv:(T.cls&&ses(T.act,T.cls).voie)||T.pv||'pro'})},{ico:'🔀',label:'Changer d\'activité',sub:'Escalade, Badminton, Cross training',go:()=>go('act')}]}):null;
+ reglages:[{ico:'✏️',label:'Modifier le protocole',sub:'Textes, degrés, points, AFLP retenus, forme de pratique',go:()=>go('edit',{pv:(T.cls&&ses(T.act,T.cls).voie)||T.pv||'pro'})},{ico:'🔀',label:'Changer d\'activité',sub:'Escalade, Badminton, Cross training, Course d\'orientation',go:()=>go('act')}]}):null;
 /* écran commun « Choisis ta classe » (mode élève) */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'CCF',sub:'Contrôle en cours de formation',color:COL,icon:svgIco(ICO_CCF),
  isTeacher:()=>isT(),when:()=>!isT()&&!(E.cls&&openActs(E.cls).length)&&!(E.tab==='res'&&E.act),

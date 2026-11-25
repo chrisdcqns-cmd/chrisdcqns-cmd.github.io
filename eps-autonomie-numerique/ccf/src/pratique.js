@@ -8,7 +8,7 @@ function tmUpd(f,keep){upd(tmIdOf(),{},f);if(!keep)render()}
 function subTabs(L){const cur=SUB[PX.act]||L[0][0];return `<div class="subt">${L.map(([k,l])=>`<button class="${cur===k?'on':''}" onclick="setSub('${k}')">${l}</button>`).join('')}</div>`}
 function curSub(L){const s=SUB[PX.act];return L.some(x=>x[0]===s)?s:L[0][0]}
 function praHtml(ctx){PX=ctx;if(!ctx.t)return '<p class="mut">Choisis d\'abord ton équipe (onglet « Mon équipe »).</p>';
- return ctx.act==='esc'?escHtml():ctx.act==='bad'?badHtml():ctHtml()}
+ return ctx.act==='esc'?escHtml():ctx.act==='bad'?badHtml():ctx.act==='ori'?coHtml():ctHtml()}
 function memNames(){return (PX.t.el||[]).map(k=>({k,n:pfirst(PX.c,k),f:pname(PX.c,k)}))}
 
 /* ================== ESCALADE ================== */
