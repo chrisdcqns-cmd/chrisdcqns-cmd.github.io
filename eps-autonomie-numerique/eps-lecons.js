@@ -464,7 +464,8 @@
   boot();
   window.EPSLC = {
     open: open, close: close, app: APP,
-    actions: function () { return [{ ico: "🧪", label: "Leçon simulée", go: simulate }, { ico: "📝", label: "Fiches de leçon", go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", go: function () { open("live"); } }]; },
+    /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
+    actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
     biblio: function () { return [{ ico: "📂", label: "Mes documents", sub: "Ta séquence, tes fiches : Claude s'en sert en priorité pour tes leçons", go: function () { open("docs"); } }, { ico: "📝", label: "Mes fiches de leçon", sub: "Fiches de leçon, brouillons de Claude à valider, programmation", go: function () { open("lec"); } }]; },
     _test: { lecons: lecons, put: put, all: all, KL: KL, KV: KV, KD: KD, KR: KR, fromAI: fromAI, startLive: startLive, sendMsg: sendMsg, extract: extract }
   };
