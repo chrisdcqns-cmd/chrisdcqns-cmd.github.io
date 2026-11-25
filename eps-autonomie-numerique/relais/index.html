@@ -854,7 +854,7 @@ body.eteach .ebar .es{display:block}
     <h2>Groupes · <span class="cname"></span></h2>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
     <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
-    <button class="btn ghost sm teach" id="btnQRG">🔳 QR des groupes</button>
+    <button class="btn ghost sm teach" id="btnQRG">🔳 QR codes</button>
     <button class="btn primary sm" id="btnAddGroupe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Créer un groupe</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span class="on"><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -1202,7 +1202,7 @@ body.eteach .ebar .es{display:block}
 <!-- QR des groupes -->
 <div class="modal" id="qmodal"><div class="box wide">
   <h3>🔳 QR codes des groupes</h3>
-  <p>Imprime-les ou affiche-les au départ : un élève scanne celui de son groupe avec l'appareil photo de la tablette, et l'appli s'ouvre directement sur la leçon du jour de son groupe, sans choisir la classe.</p>
+  <p>Imprime-les ou affiche-les au départ. Avec une seule tablette pour la classe, le premier QR suffit : scanné avec l'appareil photo de la tablette, il ouvre directement la leçon du jour, sans choisir la classe. Ceux des groupes ouvrent la leçon sur un groupe (s'il y a une tablette par groupe).</p>
   <div class="qrg" id="q-list"></div>
   <div class="row mt"><span style="flex:1"></span><button class="btn ghost sm" id="q-close">Fermer</button><button class="btn primary sm" id="q-print">🖨 Imprimer</button></div>
 </div></div>
@@ -3126,8 +3126,8 @@ $("#r-save").addEventListener("click",()=>{
     pm:on("pm",ST.pm),pmd:cfg.pm&&typeof ST.pm==="number"?pmDist(ST.pm):null
   });
   const last=CO()[CO().length-1],pmPrev=ST.pm,res=diagResult();
-  UNDO={cid:last.cid,st:clone(ST),r1:$("#r-r1").value,r2:$("#r-r2").value,until:Date.now()+60000,n:last.n};
-  if(CURG()!=="all"){$("#r-r1").value="";$("#r-r2").value=""} /* ordre de passage : le binôme suivant est proposé */
+  UNDO={cid:last.cid,st:clone(ST),r1:$("#r-r1").value,r2:$("#r-r2").value,until:Date.now()+60000,n:last.n,who:last.p1+" → "+last.p2};
+  $("#r-r1").value="";$("#r-r2").value=""; /* tablette partagée : le binôme suivant est proposé (ordre de passage) */
   persist();renderRes();resetST();onCourse();
   shQueue(last.cid,"up");shFlush();
   if(last.conseil){$("#a-body").innerHTML=conseilHTML({conseil:last.conseil,tone:last.tone,recul:last.recul},typeof pmPrev==="number"?pmPrev:null,cfg);$("#a-who").textContent=last.p1+" & "+last.p2+" · course n°"+last.n;$("#amodal").classList.add("on")}
@@ -4087,25 +4087,30 @@ async function evAppAll(b){
 
 /* ===== Ordre de passage : l'appli propose le prochain binôme du groupe ===== */
 var TURN_SKIP={};
+/* tablette partagée par toute la classe : on propose le binôme suivant parmi tous les groupes (le groupe qui attend depuis le plus longtemps d'abord),
+   les deux coureurs dans le même groupe ; si un groupe est choisi, seulement dans ce groupe ; sans groupe, dans toute la classe */
 function turnCands(){
-  if(!CLE()||CURG()==="all")return [];
-  const opt=id=>[...$(id).children].filter(o=>o.tagName==="OPTION"&&o.value!=="").map(o=>+o.value);
-  const A=opt("#r-r1"),B=opt("#r-r2");if(!A.length||!B.length)return [];
-  const cfg=CFG(),CS=CO().filter(c=>c.gid===CURG()),last=CS[CS.length-1],cD={},cR={},seen={},pairs={};
-  CS.forEach((c,i)=>{cD[c.i1]=(cD[c.i1]||0)+1;cR[c.i2]=(cR[c.i2]||0)+1;seen[c.i1]=seen[c.i2]=i+1;pairs[c.i1+">"+c.i2]=1});
-  const out=[];A.forEach(a=>B.forEach(b=>{if(a===b)return;
-    let sc=((cD[a]||0)+(cR[b]||0))*10;
-    if(last){if(last.i1===a||last.i2===a)sc+=6;if(last.i1===b||last.i2===b)sc+=6;if(last.i1===a&&last.i2===b)sc+=30}
-    if(cfg.allPairs&&pairs[a+">"+b])sc+=25;
-    sc+=((seen[a]||0)+(seen[b]||0))/100;out.push({a,b,sc})}));
+  if(!CLE())return [];
+  const opt=id=>new Set([...$(id).children].filter(o=>o.tagName==="OPTION"&&o.value!=="").map(o=>+o.value));
+  const A=opt("#r-r1"),B=opt("#r-r2");if(!A.size||!B.size)return [];
+  const cfg=CFG(),ALL=CO(),cD={},cR={},seen={},pairs={},gLast={};
+  ALL.forEach((c,i)=>{cD[c.i1]=(cD[c.i1]||0)+1;cR[c.i2]=(cR[c.i2]||0)+1;seen[c.i1]=seen[c.i2]=i+1;pairs[c.i1+">"+c.i2]=1;if(c.gid)gLast[c.gid]=i+1});
+  const last=ALL[ALL.length-1],n=ALL.length;
+  const G=CURG()!=="all"?GR().filter(g=>g.id===CURG()):GR().length?GR():[{id:null,name:"",members:EL().map(e=>e.id)}];
+  const out=[];
+  G.forEach(g=>{const M=(g.id?groupMembers(g).map(e=>e.id):g.members);const gw=g.id&&gLast[g.id]?(gLast[g.id]-n+G.length):0; /* groupe qui vient de courir : attend son tour */
+    M.forEach(a=>{if(!A.has(a))return;M.forEach(b=>{if(a===b||!B.has(b))return;
+      let sc=((cD[a]||0)+(cR[b]||0))*10+Math.max(0,gw)*8;
+      if(last){if(last.i1===a||last.i2===a)sc+=12;if(last.i1===b||last.i2===b)sc+=12;if(last.i1===a&&last.i2===b)sc+=30}
+      if(cfg.allPairs&&pairs[a+">"+b])sc+=25;
+      sc+=((seen[a]||0)+(seen[b]||0))/1000;out.push({a,b,sc,g:g.id?g.name:""})})})});
   return out.sort((x,y)=>x.sc-y.sc);
 }
 function renderTurn(){
   const box=$("#r-turn");if(!box)return;const both=$("#r-r1").value!==""&&$("#r-r2").value!=="";
   const L=both?[]:turnCands();if(!L.length){box.innerHTML="";return}
   const k=CURG(),i=(TURN_SKIP[k]||0)%L.length,p=L[i],e1=byId(p.a),e2=byId(p.b);if(!e1||!e2){box.innerHTML="";return}
-  const g=GR().find(x=>x.id===k),n=CO().filter(c=>c.gid===k).length;
-  box.innerHTML=`<div class="turn"><div class="ti">👟</div><div class="tt"><small>Au tour de${g?" · "+esc(g.name):""}</small><b>${esc(e1.prenom)}<em>donne à</em>${esc(e2.prenom)}</b><span>${n?"Ceux qui ont le moins couru dans ce rôle passent d'abord.":"Première course du groupe."}</span></div><button class="btn primary" data-turn="go">On y va</button><button class="btn ghost sm" data-turn="skip">Autre binôme</button></div>`;
+  box.innerHTML=`<div class="turn"><div class="ti">👟</div><div class="tt"><small>Au tour de${p.g?" · "+esc(p.g):""}</small><b>${esc(e1.prenom)}<em>donne à</em>${esc(e2.prenom)}</b><span>${CO().length?"Ceux qui ont le moins couru passent d'abord, groupe après groupe.":"Première course de la leçon."} Pas là ? « Autre binôme ».</span></div><button class="btn primary" data-turn="go">On y va</button><button class="btn ghost sm" data-turn="skip">Autre binôme</button></div>`;
   box.dataset.a=p.a;box.dataset.b=p.b;
 }
 document.addEventListener("click",e=>{const b=e.target.closest("[data-turn]");if(!b)return;const box=$("#r-turn");
@@ -4116,23 +4121,24 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-turn]");if
 var UNDO=null;
 function nowStep(){
   const cfg=CFG(),[el]=nextStep(),d=diagResult(),both=$("#r-r1").value!==""&&$("#r-r2").value!=="";
-  if(!both)return ["👟",$("#r-turn").innerHTML?"Touchez « On y va » ou choisissez les coureurs":"Choisissez les deux coureurs","Étape 1"];
+  if(!both)return ["👟",$("#r-turn").innerHTML?"Binôme suivant : touchez « On y va »":"Choisissez les deux coureurs","Étape 1"];
+  const e1=byId(+$("#r-r1").value),e2=byId(+$("#r-r2").value),who=e1&&e2?e1.prenom+" et "+e2.prenom:"Étape suivante";
   const blank=["ecart","zone","dep","pt","pm"].every(k=>ST[k]===null);
-  if(blank){const m=markFor(+$("#r-r1").value,+$("#r-r2").value);return ["🏃",(m&&m.np!=null?`Marque sur le plot ${m.np}, puis courez !`:"Placez la marque, puis courez !"),"Après la course : notez le résultat"]}
-  if(cfg.ecart&&ST.ecart===null)return ["⏱","Notez l'écart à la vitesse cible","Étape suivante"];
-  if(cfg.zone&&!ST.zone)return ["📍","Où le témoin a-t-il été transmis ?","Étape suivante"];
-  if(cfg.dep&&!ST.dep)return ["🚦","Comment le receveur est-il parti ?","Étape suivante"];
-  if(cfg.pm&&ST.pm===null)return ["🎯","Sur quel plot était la marque ?","Étape suivante"];
-  if(d.active&&!d.done&&!d.needPt)return ["❓","Répondez aux questions sur la transmission","Étape suivante"];
-  if(ptNeeded()&&ST.pt===null)return ["📏","Sur quel plot le témoin a-t-il été transmis ?","Étape suivante"];
-  return ["💾","Enregistrez la course","C'est complet · touchez ici","ok"];
+  if(blank){const m=markFor(+$("#r-r1").value,+$("#r-r2").value);return ["🏃",(m&&m.np!=null?`Marque sur le plot ${m.np}, puis courez !`:"Placez la marque, puis courez !"),who+" · après la course, notez le résultat"]}
+  if(cfg.ecart&&ST.ecart===null)return ["⏱","Notez l'écart à la vitesse cible",who];
+  if(cfg.zone&&!ST.zone)return ["📍","Où le témoin a-t-il été transmis ?",who];
+  if(cfg.dep&&!ST.dep)return ["🚦","Comment le receveur est-il parti ?",who];
+  if(cfg.pm&&ST.pm===null)return ["🎯","Sur quel plot était la marque ?",who];
+  if(d.active&&!d.done&&!d.needPt)return ["❓","Répondez aux questions sur la transmission",who];
+  if(ptNeeded()&&ST.pt===null)return ["📏","Sur quel plot le témoin a-t-il été transmis ?",who];
+  return ["💾","Enregistrez la course",who+" · c'est complet, touchez ici","ok"];
 }
 function renderNow(){
   const box=$("#r-now");if(!box)return;const on=$("#v-course").classList.contains("on")&&!!CLE();
-  if(UNDO&&Date.now()>UNDO.until)UNDO=null;
+  if(UNDO&&(Date.now()>UNDO.until||$("#r-r1").value!==""||$("#r-r2").value!==""))UNDO=null; /* le binôme suivant a commencé : on ne touche plus à la course d'avant */
   if(!on){box.classList.remove("on");return}
   const [ic,t,sub,cl]=nowStep();
-  box.innerHTML=(UNDO?`<button class="undo" data-now="undo"><i>↩</i><span><small>Erreur de saisie ?</small>Annuler la course n°${UNDO.n} · ${Math.ceil((UNDO.until-Date.now())/1000)} s</span></button>`:"")
+  box.innerHTML=(UNDO?`<button class="undo" data-now="undo"><i>↩</i><span><small>Erreur de saisie ?</small>Annuler la course n°${UNDO.n} (${esc(UNDO.who)}) · ${Math.ceil((UNDO.until-Date.now())/1000)} s</span></button>`:"")
     +`<button class="${cl||""}" data-now="go"><i>${ic}</i><span><small>${esc(sub)}</small>${esc(t)}</span></button>`;
   box.classList.add("on");
 }
@@ -4141,6 +4147,7 @@ $("#r-now").addEventListener("click",e=>{const b=e.target.closest("[data-now]");
   if(!UNDO||Date.now()>UNDO.until){UNDO=null;renderNow();return}
   const u=UNDO;UNDO=null;const c=ALLCO().find(x=>x.cid===u.cid);
   if(c){CL().courses=ALLCO().filter(x=>x.cid!==u.cid);persist();shQueue(u.cid,"del");shFlush()}
+  if(!c){toast("Course déjà supprimée");return}
   $("#amodal").classList.remove("on");$("#r-r1").value=u.r1;$("#r-r2").value=u.r2;ST=u.st;renderRes();onCourse();
   toast("Course n°"+u.n+" annulée : corrige puis enregistre à nouveau");guide()});
 setInterval(()=>{try{if(UNDO&&$("#v-course").classList.contains("on"))renderNow();else if(UNDO&&Date.now()>UNDO.until){UNDO=null;renderNow()}}catch(e){}},1000);
@@ -4152,9 +4159,9 @@ function qrSVG(L,txt){const q=new L.QRCode(-1,L.ECL.M);q.addData(txt);q.make();c
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+=`M${c+4} ${r+4}h1v1h-1z`;
   return `<svg viewBox="0 0 ${n+8} ${n+8}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`}
 const qrURL=(C,g)=>location.origin+location.pathname.replace(/index\.html$/,"")+"#g="+encodeURIComponent(C.id)+"."+encodeURIComponent(g.id)+"."+encodeURIComponent(C.name);
-$("#btnQRG").addEventListener("click",async()=>{const C=CL();if(!C)return;if(!GR().length){toast("Crée d'abord les groupes");return}
+$("#btnQRG").addEventListener("click",async()=>{const C=CL();if(!C)return;
   $("#q-list").innerHTML=`<p class="note">Préparation…</p>`;$("#qmodal").classList.add("on");
-  try{const L=await qrLoad();$("#q-list").innerHTML=GR().map(g=>`<div>${qrSVG(L,qrURL(C,g))}<b>${esc(g.name)}</b><span>Relais vitesse · ${esc(C.name)} · ${groupMembers(g).map(e=>esc(e.prenom)).join(", ")}</span></div>`).join("")}
+  try{const L=await qrLoad();$("#q-list").innerHTML=`<div>${qrSVG(L,qrURL(C,{id:"all"}))}<b>${esc(C.name)} · toute la classe</b><span>Relais vitesse · tablette partagée : ouvre la leçon du jour de la classe</span></div>`+GR().map(g=>`<div>${qrSVG(L,qrURL(C,g))}<b>${esc(g.name)}</b><span>Relais vitesse · ${esc(C.name)} · ${groupMembers(g).map(e=>esc(e.prenom)).join(", ")}</span></div>`).join("")}
   catch(e){$("#q-list").innerHTML=`<p class="note">QR codes indisponibles hors connexion la première fois : réessaie avec Internet.</p>`}});
 $("#q-close").addEventListener("click",()=>$("#qmodal").classList.remove("on"));
 $("#q-print").addEventListener("click",()=>{document.body.classList.add("qrprint");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("qrprint"),500)},50)});
@@ -4164,7 +4171,7 @@ function qrGroupOpen(){
   const cid=decodeURIComponent(m[1]),gid=decodeURIComponent(m[2]),nm=m[3]?decodeURIComponent(m[3]):"";
   const C=DATA.classes.find(c=>c.id===cid)||DATA.classes.find(c=>nm&&c.name===nm);if(!C){toast("Classe inconnue sur cette tablette : touche ⟳ ou demande à ton enseignant");return false}
   const g=(C.groupes||[]).find(x=>x.id===gid),l=(C.lecons||[]).find(x=>x.date===todayISO());
-  DATA.cur=C.id;if(g)C.curg=g.id;WAIT_CL=C.id;WAIT_PICK=false;
+  DATA.cur=C.id;if(g)C.curg=g.id;else if(gid==="all")C.curg="all";WAIT_CL=C.id;WAIT_PICK=false;
   if(!l){WAIT_PICK=false;persist();showWait();toast("Pas encore de leçon aujourd'hui pour "+C.name);return true}
   DATA.lecon=l.id;persist();resetST();try{if(window.EPSG&&EPSG.close)EPSG.close()}catch(e){}go("course");toast((g?g.name:"Groupe")+" · "+C.name);return true;
 }
