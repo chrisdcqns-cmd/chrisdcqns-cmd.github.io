@@ -362,6 +362,17 @@ html.epst-on header nav#nav{display:none!important}
 .spr{font-size:.8em;border:1px solid #9fb6cc;background:#eef4fa;border-radius:14px;padding:3px 9px;cursor:pointer;color:#1F5F8B}.spr.ok{background:#dff3e6;border-color:#2E7D4F;color:#2E7D4F}
 .sres{margin-top:4px;padding-top:6px;border-top:1px solid #e2e8ef}
 @media(max-width:640px){.s3{grid-template-columns:1fr}}
+
+.seg.mini button{font-size:.72em;padding:3px 8px}
+.olvs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.olv{border:1.5px solid #e2e8ef;border-radius:9px;padding:6px;background:#fff}.olv.on{border-color:var(--navy);box-shadow:0 0 0 2px #cfe0f0}
+.olv .oh{font-weight:800;font-size:.8em;margin-bottom:4px}.olv .oh.d1{color:#c0392b}.olv .oh.d2{color:#d68a00}.olv .oh.d3{color:#1F5F8B}.olv .oh.d4{color:#2E7D4F}
+.olv ul{margin:0;padding-left:16px;font-size:.82em}
+.ocb{display:flex;gap:6px;align-items:flex-start;width:100%;text-align:left;border:1px solid #e2e8ef;border-radius:7px;background:#fafcfe;padding:5px 6px;margin:3px 0;font-size:.82em;line-height:1.25;cursor:pointer;color:#1B1E24}
+.ocb .bx{flex:0 0 18px;height:18px;border:2px solid #9fb0c2;border-radius:4px;text-align:center;line-height:14px;font-weight:900;color:#fff}
+.ocb.ck{background:#e9f6ee;border-color:#9fd2b1}.ocb.ck .bx{background:#2E7D4F;border-color:#2E7D4F}
+.ocb small{display:block;color:#5b6573;margin-top:2px}.ocb small.au{color:#1F5F8B}
+@media(max-width:900px){.olvs{grid-template-columns:1fr 1fr}}@media(max-width:520px){.olvs{grid-template-columns:1fr}}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -922,7 +933,8 @@ const SOUS={
    el:["Je joue pareil contre tout le monde.","Je repère les points faibles de l'autre avec mon coach.","Je les repère seul(e) et je change de plan quand je suis mené(e)."]},
   {k:'risq',s:'Risque',nom:'Gérer le risque',t:["Beaucoup de fautes directes, ou un jeu trop passif.","Équilibre fragile entre attaque et sécurité.","Attaque sur volant favorable, joue en sécurité sur volant défavorable : moins de fautes directes que de points gagnants."],
    el:["Je fais beaucoup de fautes, ou je n'ose pas attaquer.","J'attaque parfois au mauvais moment.","J'attaque sur volant favorable, je sécurise sinon : je fais moins de fautes que de points gagnants."]}]};
-function subSet(cr){if(!cr||B().optSous===false)return null;
+function subSet(cr){return precMode()==='sous'?subSetRaw(cr):null}
+function subSetRaw(cr){if(!cr)return null;
   if(['tech','rep','tec'].includes(cr.id))return SOUS.tech;if(['strat','cho','chx'].includes(cr.id))return SOUS.strat;
   if(cr.afl==='AFL1'||lpCore(cr.afl))return /choix|strat|tacti/i.test(cr.nom)?SOUS.strat:SOUS.tech;return null}
 /* proposition tirée des matchs saisis sur le terrain (l'enseignant valide d'un clic) */
@@ -945,9 +957,72 @@ function subHtml(cr,e){const set=subSet(cr);if(!set)return'';const a=(e.sub||{})
      <div class="s3">${[1,2,3].map(n=>`<button class="v${n} ${a[i]===n?'sel':''}" onclick="subClick('${cr.id}',${i},${n})"><b>${n}</b> ${esc(tx[n-1])}</button>`).join('')}</div></div>`}).join('');
   const res=r?`Total <b>${r.s}/9</b> → <b>D${r.d+1} · ${esc(X.deg[r.d])}</b>${r.s===9?'':' ('+(r.s%2?'bas':'haut')+' du degré)'}${B().optMatchs&&st.mj?' · position ajustée avec les matchs gagnés':''}${v&&v.d!=null&&v.d!==r.d?' <span class="warn" style="display:inline;padding:2px 6px">degré modifié à la main</span>':''}`
      :`Note les 3 critères : le degré et les points se calculent tout seuls.`;
-  return `<div class="sousbox"><div class="sbh">🎯 Évaluation précise : 3 critères notés de 1 à 3</div>${rows}<div class="sres">${res}</div></div>`}
+  return `<div class="sousbox"><div class="sbh">🎯 Évaluation précise : 3 critères notés de 1 à 3 ${precSw()}</div>${rows}<div class="sres">${res}</div></div>`}
 function subLine(cr,e,el){const set=subSet(cr),a=(e.sub||{})[cr.id];if(!set||!a||!a.some(Boolean))return'';
   return '<br><small>'+set.map((s,i)=>esc(s.s)+' '+(a[i]||'–')+'/3').join(' · ')+'</small>'}
+/* ================== OBSERVABLES PAR DEGRÉ (« l'escalier ») ==================
+   D1 = repères (non cochés). D2 à D4 : 3 observables chacun, dont un chiffré (📊) proposé d'après les matchs.
+   Degré atteint = le plus haut où au moins 2 cases sur 3 sont cochées, tous les degrés du dessous étant validés.
+   e.obs[critId]['d-i'] = 1 / 0 (choix de l'enseignant) ; absent = proposition des matchs pour un observable chiffré. */
+const NBZ=st=>st.loc>=5?Object.keys(st.z).length:null,
+  RAT=st=>st.pts+st.pl>=10?((st.fd?(st.nat.pd||0)/st.fd:((st.nat.pd||0)?9:0))):null,
+  NBF=st=>{const e=Object.entries(st.co).filter(([c])=>c!=='svl'&&c!=='svc');return e.reduce((s,x)=>s+x[1],0)>=5?e:null};
+const OBS={
+ tech:[
+  {r:["Renvoie surtout haut, vers le centre.","Se déplace peu et ne se replace pas.","Fait plus de fautes directes que de points directs."],
+   el:["Je renvoie haut, au milieu.","Je bouge peu et je ne me replace pas.","Je fais plus de fautes que de points gagnants."]},
+  {o:[{t:"Atteint régulièrement le fond adverse.",el:"J'envoie souvent le volant au fond."},
+      {t:"Tente le smash sur un volant facile.",el:"Je tente le smash quand le volant est facile."},
+      {t:"📊 Marque dans au moins 3 zones différentes.",el:"📊 Je marque dans au moins 3 zones.",a:st=>{const n=NBZ(st);return n==null?null:{v:n>=3,w:n+' zone'+(n>1?'s':'')}}}]},
+  {o:[{t:"Alterne fond et filet dans un même échange.",el:"J'alterne fond et filet dans un échange."},
+      {t:"Se replace au centre après chaque frappe.",el:"Je me replace au centre après chaque frappe."},
+      {t:"📊 Marque dans au moins 5 zones différentes.",el:"📊 Je marque dans au moins 5 zones.",a:st=>{const n=NBZ(st);return n==null?null:{v:n>=5,w:n+' zone'+(n>1?'s':'')}}}]},
+  {o:[{t:"Crée le danger dès le service (court ou long choisi).",el:"Je crée le danger dès mon service."},
+      {t:"Défend un smash (lob, contre-amorti, dégagé défensif).",el:"Je renvoie les smashs."},
+      {t:"📊 Au moins 4 frappes gagnantes différentes, dont le smash ou le kill.",el:"📊 Je gagne avec au moins 4 frappes différentes, dont le smash ou le kill.",
+       a:st=>{const e=NBF(st);if(!e)return null;const ru=e.some(([c])=>c==='sma'||c==='kil');return{v:e.length>=4&&ru,w:e.length+' frappe'+(e.length>1?'s':'')+(ru?', rupture':', sans rupture')}}}]}],
+ strat:[
+  {r:["Joue sans intention, pareil contre tout le monde.","N'utilise pas les conseils du coach.","Subit le rapport de force."],
+   el:["Je joue sans plan, pareil contre tout le monde.","Je n'écoute pas mon coach.","Je subis le jeu de l'autre."]},
+  {o:[{t:"Annonce une intention avant le match (ex. « jouer au fond »).",el:"J'annonce mon plan avant le match."},
+      {t:"Repère un point faible adverse avec l'aide du coach.",el:"Avec mon coach, je repère un point faible de l'autre."},
+      {t:"📊 Au moins 1 point direct pour 2 fautes directes.",el:"📊 Je fais au moins 1 point gagnant pour 2 fautes.",a:st=>{const r=RAT(st);return r==null?null:{v:r>=.5,w:(st.nat.pd||0)+' pt dir. / '+st.fd+' fautes'}}}]},
+  {o:[{t:"Garde son intention pendant tout le match.",el:"Je garde mon plan pendant tout le match."},
+      {t:"Vise le point faible repéré.",el:"Je vise le point faible de l'autre."},
+      {t:"📊 Plus de points directs que de fautes directes.",el:"📊 Je fais plus de points gagnants que de fautes.",a:st=>{const r=RAT(st);return r==null?null:{v:r>=1,w:(st.nat.pd||0)+' pt dir. / '+st.fd+' fautes'}}}]},
+  {o:[{t:"Change de stratégie quand il est mené.",el:"Je change de plan quand je suis mené(e)."},
+      {t:"Prépare sa stratégie selon l'adversaire (stats, observation).",el:"Je prépare mon plan selon l'adversaire."},
+      {t:"📊 Contrat « avec la manière » réussi au moins 3 fois sur 4.",el:"📊 Je réussis mon contrat « avec la manière » au moins 3 fois sur 4.",
+       a:st=>st.man.n>=2?{v:st.man.ok/st.man.n>=.75,w:st.man.ok+'/'+st.man.n+' contrats'}:null}]}]};
+function precMode(){const b=B();return b.precis||(b.optSous===false?'off':'obs')}
+function obsSet(cr){if(precMode()!=='obs')return null;const s=subSetRaw(cr);return s===SOUS.tech?OBS.tech:s===SOUS.strat?OBS.strat:null}
+function obsVal(cr,e,st,d,i){const m=((e.obs||{})[cr.id]||{})[d+'-'+i],o=obsSet(cr)[d].o[i],a=o.a?o.a(st):null;
+  return{v:m!=null?!!m:!!(a&&a.v),auto:a,man:m!=null}}
+function obsCalc(cr,e,st){const set=obsSet(cr);let d=0;const n=[0,0,0,0];
+  for(let k=1;k<4;k++)n[k]=[0,1,2].filter(i=>obsVal(cr,e,st,k,i).v).length;
+  for(let k=1;k<4;k++){if(n[k]>=2)d=k;else break}
+  const nx=d<3?n[d+1]:0;let pos=d===0?(n[1]?.75:.4):d===3?(n[3]===3?1:.5):(n[d]===3?.6:.3)+(nx?.25:0);
+  return{d,pos:Math.min(1,pos),n}}
+function obsApply(cr,e){const st=elStats(C(),e.id),r=obsCalc(cr,e,st),[lo,hi]=band(cr,e,r.d),mx=maxPts(cr,e);let pos=r.pos;
+  if(B().optMatchs&&st.mj)pos=(pos+(st.mg+st.mn*.5)/st.mj)/2;
+  e.ev[cr.id]={d:r.d,f:mx?rnd(lo+pos*(hi-lo),B().pas)/mx:0,obs:1}}
+function obsClick(id,d,i){const e=curE(),cr=B().criteres.find(x=>x.id===id),st=elStats(C(),e.id),cur=obsVal(cr,e,st,d,i).v;
+  e.obs=e.obs||{};const o=e.obs[id]=Object.assign({},e.obs[id]||{});o[d+'-'+i]=cur?0:1;obsApply(cr,e);save();document.getElementById('c-'+id).outerHTML=critHtml(cr,e);renderTotal()}
+function obsGo(id){const e=curE(),cr=B().criteres.find(x=>x.id===id);obsApply(cr,e);save();document.getElementById('c-'+id).outerHTML=critHtml(cr,e);renderTotal()}
+function obsHtml(cr,e){const set=obsSet(cr);if(!set)return'';const st=elStats(C(),e.id),r=obsCalc(cr,e,st),v=e.ev[cr.id],X=cTx(cr,TXEL);
+  const lv=set.map((L,d)=>{const head=`<div class="oh d${d+1}">D${d+1} · ${esc(X.deg[d])}${d?` <span class="muted">${r.n[d]}/3</span>`:''}</div>`;
+    if(!d)return `<div class="olv ${r.d===0?'on':''}">${head}<ul>${(TXEL?L.el:L.r).map(t=>`<li>${esc(t)}</li>`).join('')}</ul><div class="muted" style="font-size:.8em">Degré donné si le D2 n'est pas validé.</div></div>`;
+    return `<div class="olv ${r.d===d?'on':''}">${head}${L.o.map((o,i)=>{const x=obsVal(cr,e,st,d,i);
+      return `<button class="ocb ${x.v?'ck':''}" onclick="obsClick('${cr.id}',${d},${i})"><span class="bx">${x.v?'✓':''}</span><span>${esc(TXEL?o.el:o.t)}${o.a?`<small class="${x.man?'':'au'}">${x.auto?esc(x.auto.w)+(x.man?' · choix manuel':' · proposé par les matchs'):'pas assez de matchs : à cocher toi-même'}</small>`:''}</span></button>`}).join('')}</div>`}).join('');
+  const st0=v&&v.d!=null;
+  const res=`Degré atteint : <b>D${r.d+1} · ${esc(X.deg[r.d])}</b> <span class="muted">(au moins 2 cases sur 3 à chaque marche)</span>${B().optMatchs&&st.mj?' · position ajustée avec les matchs gagnés':''}
+    ${!st0||(!v.obs&&v.d!==r.d)?` <button class="btn sm" onclick="obsGo('${cr.id}')">Appliquer</button>`:v.d!==r.d?' <span class="warn" style="display:inline;padding:2px 6px">degré modifié à la main</span>':''}`;
+  return `<div class="sousbox"><div class="sbh">🎯 Observables par degré ${precSw()}</div><div class="olvs">${lv}</div><div class="sres">${res}</div></div>`}
+function precSw(){const m=precMode();return `<span class="seg mini" style="float:right">${[['obs','Observables'],['sous','3 critères 1-2-3'],['off','Aucun']].map(([k,l])=>`<button class="${m===k?'on':''}" onclick="setPrec('${k}')">${l}</button>`).join('')}</span>`}
+function setPrec(k){B().precis=k;save();if(curEl!=null)renderEval();else renderBareme()}
+function obsLine(cr,e){const set=obsSet(cr),o=(e.obs||{})[cr.id];if(!set||!o)return'';const r=obsCalc(cr,e,elStats(C(),e.id));
+  const ok=set.slice(1).flatMap((L,k)=>L.o.filter((x,i)=>obsVal(cr,e,elStats(C(),e.id),k+1,i).v).map(x=>x.t.replace('📊 ','').replace(/\.$/,'')));
+  return ok.length?'<br><small>Observé : '+ok.map(esc).join(' ; ')+'</small>':''}
 function critHtml(cr,e){
   const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
@@ -957,7 +1032,7 @@ function critHtml(cr,e){
   return `<div class="crit ${TXEL?'el':''}" id="c-${cr.id}">
    <div class="crit-h"><div><b>${esc(X.nom)}</b> <span class="tag">${esc(cr.afl)}</span><div class="muted">${esc(X.but)}</div>${r?`<div class="muted" style="color:var(--vol);font-weight:700;margin-top:3px">Routines renforcées : ${esc(r)}</div>`:''}</div>
    <div class="pts" id="p-${cr.id}">${pts!=null?fr(pts):'–'} <small>/ ${fr(mx)}</small></div></div>
-   ${subHtml(cr,e)}
+   ${subHtml(cr,e)}${obsHtml(cr,e)}${precMode()==='off'&&subSetRaw(cr)?`<div class="muted" style="margin:6px 0">Évaluation précise désactivée ${precSw()}</div>`:''}
    <div class="degs">${[0,1,2,3].map(d=>{const [lo,hi]=band(cr,e,d);return `<button class="deg d${d+1} ${v&&v.d===d?'sel':''}" onclick="setDeg('${cr.id}',${d})">
       <span class="dt">D${d+1} · ${esc(X.deg[d])}</span><span class="rg">${fr(lo)} à ${fr(hi)} pt</span><span>${esc(X.desc[d]||'')}</span></button>`}).join('')}</div>${sl}</div>`;
 }
@@ -2157,8 +2232,8 @@ function renderBareme(){
       :`<p class="muted">${lp?`Les critères AFLP1 et AFLP2 se partagent 12 pts ; les deux autres AFLP (${lpOthers().join(' et ')||'—'}) se partagent 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.`:'Les critères AFL1 se partagent 12 pts ; les critères AFL2 et AFL3 se partagent 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.'}</p>${offOk?'':`<div class="warn">${lp?'Il faut des critères AFLP1 ou AFLP2, et exactement deux autres AFLP.':'Il faut au moins un critère AFL1, un AFL2 et un AFL3.'}</div>`}`}
     <div class="g4" style="margin-top:10px"><div><label class="l">Pas du curseur (pt)</label><select class="f" onchange="setB('pas',+this.value)">${[0.1,0.25,0.5].map(v=>`<option value="${v}" ${b.pas==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
       <div><label class="l">Arrondi de la note /20</label><select class="f" onchange="setB('arrondi',+this.value)">${[0.1,0.25,0.5,1].map(v=>`<option value="${v}" ${b.arrondi==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div></div></div>
-  <div class="card"><div class="opt ${b.optSous!==false?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optSous!==false?'checked':''} onchange="setB('optSous',this.checked)" style="width:22px;height:22px"><b>Évaluation précise de l'AFL1 : 3 critères notés de 1 à 3 par élément</b></label>
-    <p class="muted">Actions techniques : varier les frappes, varier les zones, se replacer et défendre. Choix stratégiques : construire le point, lire l'adversaire et s'adapter, gérer le risque. Total sur 9 : 3-4 → D1, 5-6 → D2, 7-8 → D3, 9 → D4 (total impair = bas du degré, pair = haut). Les matchs saisis proposent une note pour les frappes, les zones et le risque ; tu valides d'un clic.</p></div></div>
+  <div class="card"><div class="opt ${precMode()!=='off'?'on':''}"><div class="row" style="justify-content:space-between"><b>Évaluation précise de l'AFL1</b>${precSw()}</div>
+    <p class="muted"><b>Observables :</b> pour chaque élément, 3 observables simples par degré (dont un chiffré, proposé d'après les matchs). Le degré atteint est le plus haut où au moins 2 cases sur 3 sont cochées, les degrés du dessous étant validés.<br><b>3 critères 1-2-3 :</b> frappes, zones, replacement / construction, adaptation, risque ; total sur 9 → degré (3-4 D1, 5-6 D2, 7-8 D3, 9 D4).</p></div></div>
   <div class="card"><div class="opt ${b.optMatchs?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optMatchs?'checked':''} onchange="setB('optMatchs',this.checked)" style="width:22px;height:22px"><b>Ajuster l'AFL1 selon les matchs gagnés</b></label>
     <p class="muted">Les matchs saisis sur le terrain (toutes tablettes) sont comptés automatiquement. Une fois le degré choisi, le curseur des critères AFL1 se place selon la part de matchs gagnés (nul = ½) : 0 % en bas du degré, 100 % en haut. Tu peux toujours le déplacer à la main.</p></div></div>
   <div class="card"><h2>Degrés et bornes (en % des points du critère)</h2><div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
@@ -2216,7 +2291,7 @@ function ficheHtml(e,c,lang){
   const b=B(),n=note20(e),el=(lang||b.langFiche||'eleve')==='eleve';
   const rows=b.criteres.map(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e),X=cTx(cr,el);
     return `<tr><td style="text-align:left"><b>${esc(X.nom)}</b><br><small>${el?esc(X.but):esc(cr.afl)+' – '+esc(X.but)}</small></td><td>${v&&v.d!=null?(el?esc(X.deg[v.d]):'D'+(v.d+1)+' – '+esc(X.deg[v.d])):'–'}</td>
-      <td style="text-align:left"><small>${v&&v.d!=null?esc(X.desc[v.d]):''}</small>${subLine(cr,e,el)}</td><td><b>${p!=null?fr(p):'–'}</b> / ${fr(maxPts(cr,e))}</td></tr>`}).join('');
+      <td style="text-align:left"><small>${v&&v.d!=null?esc(X.desc[v.d]):''}</small>${subLine(cr,e,el)}${obsLine(cr,e)}</td><td><b>${p!=null?fr(p):'–'}</b> / ${fr(maxPts(cr,e))}</td></tr>`}).join('');
   const afls=aflList().map(a=>{const r=aflPts(e,a);return r?`${a} : ${fr(r.pts)} / ${fr(r.max)}`:null}).filter(Boolean).join(' &nbsp;·&nbsp; ');
   const st=elStats(c,e.id);
   return `${hd({titre:'Évaluation',nom:fullName(e),classe:c.nom})}${b.mode==='officiel'?`<p>Choix ${isLP()?'des AFLP':'AFL2/AFL3'} : ${choixLab(e.choix||'4-4')}</p>`:''}
