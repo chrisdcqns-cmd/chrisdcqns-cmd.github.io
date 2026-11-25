@@ -424,7 +424,7 @@
     function ccPut(o) { var V; try { V = JSON.parse(localStorage.getItem(KCC) || "null"); } catch (e) {} V = V && V.items ? V : { items: {}, pend: {}, since: 0 }; V.pend = V.pend || {};
       var old = V.items[o.id]; o.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[o.id] = o; V.pend[o.id] = o.u; localStorage.setItem(KCC, JSON.stringify(V)); try { EPSD.syncSoon(); } catch (e) {} }
     function ekey(E) { var n = A.name(E); return nkey((n.prenom || "") + " " + (n.nom || "")); }
-    M.ccf = function (cls) { var o = ccGet(A.app + "|" + cls) || {}; return { on: !!o.on, voie: o.voie || "gt" }; };
+    M.ccf = function (cls) { var o = ccGet(A.app + "|" + cls) || {}; return { on: !!o.on, voie: o.voie || (window.epsVoie ? epsVoie(cls) : "gt") }; }; /* voie par défaut : celle de la classe (TGT, 2GT, 1GT = générale ; sinon pro) */
     M.setCcf = function (cls, v) { var o = ccGet(A.app + "|" + cls) || { id: A.app + "|" + cls }; Object.assign(o, v); ccPut(o); };
     M.choix = function (cls, E) { var o = ccGet(A.app + "|" + cls + "|" + ekey(E)); return (o && o.choix) || "4-4"; };
     M.setChoix = function (cls, E, ch) { ccPut({ id: A.app + "|" + cls + "|" + ekey(E), choix: ch }); };
@@ -459,7 +459,9 @@
       var P = M.prop(E, cls), DL = ["Degré 1", "Degré 2", "Degré 3", "Degré 4"], cc = P.ccf;
       var SRC = { eval: ["#E3F4E8", "#1D6B3A", "✓ Calculée à partir de l'évaluation enregistrée"], mixte: ["#FFF6E0", "#7A5A00", "◐ En partie estimée : des critères ne sont pas évalués par toi, l'auto-positionnement de l'élève les complète"], auto: ["#FFF1BF", "#7A5A00", "⚠ Estimation : aucune évaluation enregistrée, seulement l'auto-positionnement de l'élève"], none: ["#F1EEE6", "#6A6F78", "Pas encore d'évaluation ni d'auto-positionnement"] }[P.src];
       var pos = function (p) { return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; };
-      return '<div class="epse-card epse-prop"><h2 style="margin:0 0 6px">🎯 Proposition de positionnement</h2>' +
+      var vo = window.epsVoie && cls ? epsVoie(cls) : "", codes = P.afl.map(function (a) { return a.code; }), aflp = codes.some(function (c) { return /^AFLP/i.test(c); }), afl = codes.some(function (c) { return /^AFL\d/i.test(c); });
+      var vWarn = vo === "pro" && afl && !aflp ? "Classe de voie professionnelle, mais la grille parle d'AFL (lycée général) : pour les textes et le barème Bac pro, mets les codes AFLP1 à AFLP6 dans la grille (champ AFL de chaque critère)." : vo === "gt" && aflp && !afl ? "Classe de voie générale, mais la grille parle d'AFLP (voie pro) : mets les codes AFL1 à AFL3 pour le barème du bac général." : "";
+      return '<div class="epse-card epse-prop"><h2 style="margin:0 0 6px">🎯 Proposition de positionnement' + (vo ? ' <small class="epse-mut" style="font-weight:600">· ' + (vo === "pro" ? "🛠 voie professionnelle" : "🎓 voie générale") + "</small>" : "") + "</h2>" + (vWarn ? '<div style="background:#FFF6E0;border-radius:10px;padding:6px 10px;margin:0 0 6px;font-size:14px">⚠ ' + esc(vWarn) + "</div>" : "") +
         P.afl.map(function (a) { return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid #F0ECE3;padding:6px 0"><b style="min-width:70px">' + esc(a.code) + "</b>" +
           (a.deg == null ? '<span class="epse-mut">non évalué</span>' : '<span style="background:' + DCOL[a.deg] + ';color:#fff;border-radius:8px;padding:2px 8px;font-weight:800">' + DL[a.deg] + "</span><span class=\"epse-mut\">(" + pos(a.pos) + " du degré" + (a.done < a.crit ? " · " + a.done + "/" + a.crit + " critères" : "") + (a.auto ? ", dont " + a.auto + " d'après l'élève" : "") + ")</span>" +
             '<span style="margin-left:auto;font-weight:800">' + (cc.on ? (a.ccf != null ? fr(a.ccf) + " / " + fr(a.ccfMax) + " pts CCF" : "") : fr(a.pts) + " / " + fr(a.mx) + " pts") + "</span>") + "</div>"; }).join("") +
@@ -528,7 +530,11 @@
       var L = []; try { if (window.EPSL) L = EPSL.items().filter(function (it) { return (it.off || []).indexOf(o.app) < 0; }).map(function (it) { return { nom: it.nom, eleves: EPSL.people(it).map(function (p) { return { nom: p.nom || "", prenom: p.prenom || "", _c: it.nom }; }) }; }); } catch (e) {}
       L.sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); }); L.forEach(function (c) { c.eleves.sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); }); }); return L;
     }
-    function grid() { return cfg().grid; }
+    /* 🎓 une grille par voie : cfg.grid (voie générale) et cfg.gridPro (voie professionnelle, copie de la grille générale tant qu'elle n'a pas été modifiée).
+       La voie est celle de la classe ouverte (epsVoie : TGT, 2GT, 1GT = générale ; sinon pro). */
+    function gv() { try { return window.epsVoie && UI && UI.cls ? epsVoie(UI.cls) : "gt"; } catch (e) { return "gt"; } }
+    function grid() { var c = cfg(); return gv() === "pro" && c.gridPro ? c.gridPro : c.grid; }
+    function setGrid(G) { if (gv() === "pro") setCfg({ gridPro: G }); else setCfg({ grid: G }); }
     function maxOf(cr) { return +cr.max || 0; }
     function prof(cr, e) { var r = rec(e._c, e), v = r.ev && r.ev[cr.id]; if (!v || v.d == null) return null; var pos = v.pos == null ? .5 : v.pos; return { d: v.d, pos: pos, pts: Math.round(maxOf(cr) * (v.d + pos) / 4 * 4) / 4 }; }
     function note(e) { var G = grid(), tot = 0, max = 0, n = 0; G.criteres.forEach(function (cr) { var v = prof(cr, e); max += maxOf(cr); if (v) { tot += v.pts; n++; } }); if (!n || !max) return null; return Math.round(tot / max * 20 * 4) / 4; }
@@ -626,7 +632,9 @@
       return '<div class="epse-card"><h2>📋 ' + esc(c.nom) + '</h2><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + G.criteres.map(function (cr) { return "<th>" + esc(cr.nom) + "</th>"; }).join("") + "<th>Note /20</th></tr>" +
         c.eleves.map(function (e) { var r = rec(e._c, e); return '<tr><td class="l">' + esc(e.prenom + " " + e.nom) + "</td>" + G.criteres.map(function (cr) { var p = prof(cr, e); return "<td>" + (p ? '<span class="epse-d" style="background:' + DCOL[p.d] + '">D' + (p.d + 1) + "</span> " + fr(p.pts) : "–") + "</td>"; }).join("") + "<td><b>" + (r.st || fr(note(e))) + "</b></td></tr>"; }).join("") + "</table></div></div>"; }
     function gridEditor(G) {
-      return '<div class="epse-card"><h2>Grille d\'évaluation</h2><p class="epse-mut">Proposition à adapter : intitulés, points et textes des 4 degrés (enseignant et élève). Les modifications valent pour toutes les tablettes.</p>' +
+      var gvv = gv(), cP = cfg().gridPro;
+      return '<div class="epse-card"><h2>Grille d\'évaluation · ' + (gvv === "pro" ? "🛠 voie professionnelle" : "🎓 voie générale et technologique") + '</h2><p class="epse-mut">Grille des classes de la ' + (gvv === "pro" ? "voie professionnelle" : "voie générale") + " (celle de la classe choisie, " + esc(UI.cls || "") + "). Proposition à adapter : intitulés, points, code AFL" + (gvv === "pro" ? "P (AFLP1 à AFLP6)" : " (AFL1 à AFL3)") + " et textes des 4 degrés (enseignant et élève). Les modifications valent pour toutes les tablettes.</p>" +
+        (gvv === "pro" && !cP ? '<div style="background:#FFF6E0;border-radius:10px;padding:8px 12px;margin:0 0 8px">⚠ Pas encore de grille propre à la voie professionnelle : c\'est une copie de la grille générale. Mets les codes AFLP et les textes du référentiel Bac pro, ou importe ta grille ; elle sera enregistrée pour les classes pro seulement.</div>' : "") +
         '<div class="epse-row">' + [0, 1, 2, 3].map(function (d) { return '<label class="epse-mut">D' + (d + 1) + ' <input type="text" data-g="degres.' + d + '" value="' + esc(G.degres[d]) + '" style="width:140px"></label>'; }).join("") + "</div>" +
         G.criteres.map(function (cr, i) { return '<div class="epse-crit"><div class="epse-row" style="justify-content:flex-end;margin:0 0 4px"><button class="epse-btn" data-gel="' + i + '">✨ Proposer la version élève</button></div><div class="epse-row"><input type="text" data-g="c.' + i + '.nom" value="' + esc(cr.nom) + '" style="flex:2"><input type="text" data-g="c.' + i + '.afl" value="' + esc(cr.afl || "") + '" style="width:90px"><label class="epse-mut">pts <input type="text" data-g="c.' + i + '.max" value="' + esc(cr.max) + '" style="width:60px"></label></div>' +
           '<input type="text" data-g="c.' + i + '.but" value="' + esc(cr.but || "") + '" placeholder="Ce qui est attendu">' +
@@ -636,7 +644,7 @@
     function bindGrid(R) {
       R.querySelectorAll("[data-g]").forEach(function (i) { i.onchange = function () { var G = JSON.parse(JSON.stringify(grid())), p = i.dataset.g.split("."), v = i.value;
         if (p[0] === "degres") G.degres[+p[1]] = v; else { var cr = G.criteres[+p[1]]; if (p[2] === "desc" || p[2] === "descEl") { cr[p[2]] = (cr[p[2]] || cr.desc).slice(); cr[p[2]][+p[3]] = v; } else cr[p[2]] = p[2] === "max" ? (+String(v).replace(",", ".") || 0) : v; }
-        setCfg({ grid: G }); toast("Grille enregistrée"); }; });
+        setGrid(G); toast("Grille enregistrée" + (gv() === "pro" ? " (voie professionnelle)" : "")); }; });
       /* ✨ version élève proposée par Claude : affichée dans les champs « élève », enregistrée seulement après relecture (« Valider ») */
       R.querySelectorAll("[data-gel]").forEach(function (b) { b.onclick = async function () {
         var i = +b.dataset.gel, cr = grid().criteres[i]; if (!window.EPSD || !EPSD.reformuler) return toast("Indisponible");
@@ -646,7 +654,7 @@
         [0, 1, 2, 3].forEach(function (d) { var t = R.querySelector('[data-g="c.' + i + '.descEl.' + d + '"]'); if (t) { t.value = props[d]; t.style.background = "#FFF6E0"; t.dataset.pending = "1"; } });
         b.disabled = false; b.textContent = "✓ Valider la version élève (après relecture)";
         b.onclick = function () { var G = JSON.parse(JSON.stringify(grid())), c = G.criteres[i]; c.descEl = [0, 1, 2, 3].map(function (d) { var t = R.querySelector('[data-g="c.' + i + '.descEl.' + d + '"]'); return t ? t.value : (c.descEl || c.desc)[d]; });
-          setCfg({ grid: G }); toast("Version élève enregistrée"); render(); };
+          setGrid(G); toast("Version élève enregistrée"); render(); };
       }; });
       /* 📥 import d'une grille (Additio…) : Claude la convertit, l'enseignant relit l'aperçu avant de remplacer */
       var gf = R.querySelector("[data-g-file]"), gi = R.querySelector("[data-g-imp]");
@@ -665,12 +673,12 @@
           if (confirm("Grille lue (" + ok + " critères) :\n" + apercu + (g.remarque ? "\n\nRemarque : " + g.remarque : "") + "\n\nRemplacer la grille actuelle ? (tu pourras retoucher chaque texte ensuite)")) {
             g.degres = (g.degres && g.degres.length === 4) ? g.degres : grid().degres; g.degresEl = grid().degresEl;
             g.criteres.forEach(function (c, i) { c.id = c.id || "c" + (i + 1); c.max = +String(c.max).replace(",", ".") || 0; c.desc = (c.desc || []).concat(["", "", "", ""]).slice(0, 4); });
-            setCfg({ grid: g }); toast("Grille importée ✓"); render(); return;
+            setGrid(g); toast("Grille importée ✓" + (gv() === "pro" ? " (voie professionnelle)" : "")); render(); return;
           }
         } catch (e) { toast("⚠ " + (e && e.message || e)); }
         gi.disabled = false; gi.textContent = "📥 Importer une grille (Additio : PDF, Excel/CSV, photo)"; gf.value = "";
       }; }
-      R.querySelector("[data-g-reset]").onclick = function () { if (confirm("Revenir à la grille proposée ? Les textes modifiés seront remplacés.")) { setCfg({ grid: JSON.parse(JSON.stringify(o.grid)) }); render(); } };
+      R.querySelector("[data-g-reset]").onclick = function () { if (confirm("Revenir à la grille proposée" + (gv() === "pro" ? " pour la voie professionnelle (copie de la grille générale)" : "") + " ? Les textes modifiés seront remplacés.")) { if (gv() === "pro") setCfg({ gridPro: null }); else setCfg({ grid: JSON.parse(JSON.stringify(o.grid)) }); render(); } };
     }
     /* affichage dans un onglet de l'espace enseignant (eps-shell.js) : mount(élément, ['eval','grille'] | ['bilan']) */
     function mount(el, only, cls) { UI.host = el; UI.open = true; UI.only = only || null; if (only && only.indexOf(UI.tab) < 0) UI.tab = only[0]; if (cls) UI.cls = cls; UI.el = -1; render();

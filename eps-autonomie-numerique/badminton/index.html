@@ -850,6 +850,8 @@ function fixState(){
   if((S.prv||0)<3){const D=defPresets(),i=S.presets.findIndex(p=>p.id==='badcode');if(i>=0)S.presets[i]=D.find(p=>p.id==='badcode');if(!S.presets.some(p=>p.id==='contrat'))S.presets.push(D.find(p=>p.id==='contrat'));S.prv=3}
   if(S.voie!=='pro')S.voie='gt';
   S.classes.forEach(c=>{c.eleves=c.eleves||[];c.matchs=c.matchs||{};c.poules=c.poules||{};c.groupes=c.groupes||{};c.voie=c.voie==='pro'?'pro':'gt';c.eleves.forEach(e=>{e.ev=e.ev||{};e.id=e.id||uid()})});
+  /* 🎓 voie d'après la classe (TGT, 2GT, 1GT = générale ; sinon pro, réglable dans les listes communes) : appliquée une fois aux classes sans évaluation */
+  S.classes.forEach(c=>{if(c.voieAuto||c.voieMan||!window.epsVoie||c.nom==='Ma classe')return;if(!c.eleves.some(e=>Object.keys(e.ev||{}).length))c.voie=epsVoie(c.nom);c.voieAuto=1});
   if(!S.classes.some(c=>c.voie===S.voie))S.classes.push({id:uid(),nom:'Ma classe',voie:S.voie,eleves:[],matchs:{},poules:{}});
   if(!(S.cur>=0&&S.cur<S.classes.length)||S.classes[S.cur].voie!==S.voie)S.cur=S.classes.findIndex(c=>c.voie===S.voie);
 }
@@ -1324,7 +1326,7 @@ function renderWiz(){let box=document.getElementById('wizCard');const host=docum
      <label class="l">Colle la liste des élèves (copiée depuis Pronote ou un tableur : une ligne par élève, « NOM Prénom »)</label>
      <textarea rows="7" id="wzT" oninput="WIZ.txt=this.value;document.getElementById('wzC').textContent=wizList().length+' élève(s) reconnu(s)'">${esc(WIZ.txt)}</textarea>
      <div class="row" style="justify-content:space-between;margin-top:8px"><span class="muted" id="wzC">${L.length} élève(s) reconnu(s)</span><button class="btn" onclick="if(!WIZ.nom.trim()){toast('Donne un nom à la classe');return}if(!wizList().length){toast('Colle au moins un élève');return}WIZ.s=2;renderWiz()">Suivant ▶</button></div>`;return}
-  if(WIZ.s===2){box.innerHTML=head+`<p>Quelle voie pour <b>${esc(WIZ.nom)}</b> ?</p><div class="tiles">${[['gt','🎓 Lycée général','Grille Terminale générale (AFL1 /12, AFL2-AFL3 /8), séquence de 9 leçons'],['pro','🛠 Lycée pro','Grille AFLP de Terminale pro, séquence de 7 leçons (CCF)']].map(([k,n,d])=>`<button class="tile ${WIZ.voie===k?'sel':''}" onclick="WIZ.voie='${k}';renderWiz()">${n}<br><small class="muted" style="font-weight:600">${d}</small></button>`).join('')}</div>
+  if(WIZ.s===2){if(!WIZ.voieVue&&window.epsVoie){WIZ.voie=epsVoie(WIZ.nom);WIZ.voieVue=1}box.innerHTML=head+`<p>Quelle voie pour <b>${esc(WIZ.nom)}</b> ?</p><div class="tiles">${[['gt','🎓 Lycée général','Grille Terminale générale (AFL1 /12, AFL2-AFL3 /8), séquence de 9 leçons'],['pro','🛠 Lycée pro','Grille AFLP de Terminale pro, séquence de 7 leçons (CCF)']].map(([k,n,d])=>`<button class="tile ${WIZ.voie===k?'sel':''}" onclick="WIZ.voie='${k}';renderWiz()">${n}<br><small class="muted" style="font-weight:600">${d}</small></button>`).join('')}</div>
      <div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn alt" onclick="WIZ.s=1;renderWiz()">◀ Retour</button><button class="btn" onclick="WIZ.s=3;renderWiz()">Suivant ▶</button></div>`;return}
   const Lq=S.prof[WIZ.voie].seq.lecons||[];
   box.innerHTML=head+`<p>La séquence proposée (${Lq.length} leçons) est prête : tu pourras la modifier dans l'onglet Séquence.</p>
@@ -1332,7 +1334,7 @@ function renderWiz(){let box=document.getElementById('wizCard');const host=docum
    <div style="align-self:end"><label class="sw"><input type="checkbox" ${WIZ.hebdo?'checked':''} onchange="WIZ.hebdo=this.checked"><span></span>Une leçon par semaine (dates remplies automatiquement)</label></div><div></div></div>
    <div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn alt" onclick="WIZ.s=2;renderWiz()">◀ Retour</button><button class="btn or" onclick="wizGo()">✓ C'est prêt</button></div>`}
 function wizGo(){const L=wizList(),nom=WIZ.nom.trim();let c=S.classes.find(x=>norm(x.nom)===norm(nom)&&x.voie===WIZ.voie);
-  if(!c){c={id:clsIdOf(nom),nom,voie:WIZ.voie,eleves:[],matchs:{},poules:{},groupes:{}};S.classes=S.classes.filter(x=>!blankClass(x));S.classes.push(c)}
+  if(!c){c={id:clsIdOf(nom),nom,voie:WIZ.voie,voieAuto:1,eleves:[],matchs:{},poules:{},groupes:{}};S.classes=S.classes.filter(x=>!blankClass(x));S.classes.push(c)}
   const have=new Set(c.eleves.map(e=>nkey(e.prenom+' '+e.nom)));L.forEach(p=>{if(!have.has(nkey(p.prenom+' '+p.nom)))c.eleves.push(newEl(p,c.id))});
   S.voie=WIZ.voie;fixState();S.cur=S.classes.indexOf(c);
   if(WIZ.hebdo&&WIZ.d){const d0=new Date(WIZ.d+'T12:00');(S.prof[WIZ.voie].seq.lecons||[]).forEach((l,i)=>{if(!l.faite){const d=new Date(d0);d.setDate(d.getDate()+7*i);l.date=d.toISOString().slice(0,10)}})}

@@ -90,7 +90,7 @@
       data: function (c) { return anyEv(c); } },
     bad: { key: "eps_badminton_v1", list: function (d) { return d && d.classes || []; }, nom: "nom", init: function () { return { classes: [], cur: 0 }; },
       names: function (c) { return (c.eleves || []).map(function (e) { return { full: full(e), prenom: e.prenom, nom: e.nom }; }); },
-      make: function (L, o, d) { return { id: freeId(L, clsId(o.nom)), nom: o.nom, voie: d && d.voie === "pro" ? "pro" : "gt", eleves: [], matchs: {}, poules: {} }; },
+      make: function (L, o, d) { return { id: freeId(L, clsId(o.nom)), nom: o.nom, voie: window.epsVoie ? window.epsVoie(o.nom) : (d && d.voie === "pro" ? "pro" : "gt"), eleves: [], matchs: {}, poules: {} }; },
       add: function (c, p) { c.eleves.push({ id: "e" + h32v(p.k + "|" + c.id), nom: p.nom, prenom: p.prenom, ev: {}, choix: "4-4", statut: "", comment: "", rout: {} }); },
       del: function (c, k) { c.eleves = c.eleves.filter(function (e) { return nkey(full(e)) !== k || hasEv(e); }); },
       data: function (c) { return anyEv(c) || nonEmpty(c.matchs) || nonEmpty(c.poules); } },
@@ -180,6 +180,16 @@
   var APP = (function () { var p = location.pathname; return /\/escalade\//.test(p) ? "esc" : /\/relais\//.test(p) ? "rel" : /\/volley\//.test(p) ? "vol" : /\/badminton\//.test(p) ? "bad" : /\/danse\//.test(p) ? "dan" : ""; })();
   try { if (APP) apply(APP); } catch (e) {}
   window.EPSL = { apply: apply, collect: collect, app: APP, items: function () { return items(ld()); }, people: people, norm: norm, nkey: nkey, KEY: KL };
+  /* 🎓 voie de la classe : « gt » (générale et technologique) ou « pro » (professionnelle).
+     Règle de l'enseignant : TGT, 2GT et 1GT = générale, toutes les autres classes = pro. Une classe peut être corrigée à la main
+     (⚙ Réglages → Listes de classes : champ « voie » de la liste commune, qui l'emporte). Sert aux textes officiels (AFL / AFLP),
+     aux barèmes CCF, à Claude pour les leçons, et aux applis qui ont un mode général / pro (Badminton, CCF). */
+  window.epsVoie = function (cls) {
+    try { var k = norm(cls), L = items(ld()); for (var i = 0; i < L.length; i++) if (norm(L[i].nom) === k && (L[i].voie === "pro" || L[i].voie === "gt")) return L[i].voie; } catch (e) {}
+    var n = String(cls || "").replace(/[\s._-]+/g, "").toUpperCase();
+    return /^(TGT|2GT|1GT)/.test(n) ? "gt" : "pro";
+  };
+  window.epsVoieNom = function (v) { return v === "gt" ? "Voie générale et technologique" : "Voie professionnelle"; };
 })();
 /* 🙋 pastille d'auto-positionnement commune (toutes les applis) : epsApChip({nom, date, crit:[{l, p, e}], r, m})
    p / e = degré du professeur / de l'élève (1, 2, 3, 4 ou ""), r = « ce que j'ai réussi », m = « ce que je dois améliorer ».

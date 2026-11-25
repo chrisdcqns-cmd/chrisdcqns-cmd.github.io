@@ -501,7 +501,7 @@
     V.classes = (V.classes || []).filter(function (c) { return !(c.nom === "Ma classe" && !(c.eleves || []).length && !Object.keys(c.matchs || {}).length); });
     var voie = V.voie === "pro" ? "pro" : "gt";
     var c = V.classes.filter(function (x) { return norm(x.nom) === norm(cl); })[0], n = 0;
-    if (!c) { c = { id: freeId(V.classes, clsId(cl)), nom: cl, voie: voie, eleves: [], matchs: {}, poules: {} }; V.classes.push(c); }
+    if (!c) { c = { id: freeId(V.classes, clsId(cl)), nom: cl, voie: window.epsVoie ? epsVoie(cl) : voie, eleves: [], matchs: {}, poules: {} }; V.classes.push(c); }
     L.forEach(function (e) { if (c.eleves.some(function (x) { return nkey(x.prenom + " " + x.nom) === nkey(e.prenom + " " + e.nom); })) return;
       c.eleves.push({ id: "e" + h32v(nkey(e.prenom + " " + e.nom) + "|" + c.id), nom: e.nom, prenom: e.prenom, ev: {}, choix: "4-4", statut: "", comment: "", rout: {} }); n++; });
     c.eleves.sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); });
@@ -856,6 +856,7 @@
         '<span class="epsd-lab">Nom de la classe</span><input class="epsd-in" id="epsl-n" value="' + esc(x.draftName != null ? x.draftName : x.name) + '">' +
         '<span class="epsd-lab">Activités de cette classe <small style="font-weight:600;color:#6A6F78">(touche pour retirer ou ajouter)</small></span><div class="epsd-chips">' +
           APPS.map(function (a) { return '<button data-a="' + a[0] + '"' + (sel[a[0]] ? ' style="border-color:#2E7D4F;background:#E4F1E8;color:#21603B"' : ' style="opacity:.55;text-decoration:line-through"') + ">" + (sel[a[0]] ? "✓ " : "") + a[1] + "</button>"; }).join("") + "</div>" +
+        (function () { if (x.voie == null) x.voie = window.epsVoie ? epsVoie(x.name) : "gt"; return '<span class="epsd-lab">Voie <small style="font-weight:600;color:#6A6F78">(textes officiels AFL / AFLP, barèmes CCF, leçons proposées par Claude)</small></span><div class="epsd-chips">' + [["gt", "🎓 Générale et technologique"], ["pro", "🛠 Professionnelle"]].map(function (v) { return '<button data-voie="' + v[0] + '"' + (x.voie === v[0] ? ' style="border-color:#1F5F8B;background:#E3EEF6;color:#174A6C"' : "") + ">" + (x.voie === v[0] ? "✓ " : "") + v[1] + "</button>"; }).join("") + "</div>"; })() +
         '<span class="epsd-lab">Élèves (un par ligne : Prénom Nom)</span><textarea class="epsd-in" id="epsl-t" style="height:min(34vh,300px);padding:10px 12px;line-height:1.45">' + esc(x.draft != null ? x.draft : names.join("\n")) + "</textarea>" +
         '<p class="m" id="epsl-c" style="margin-top:6px"></p>' +
         '<p class="m">La liste est commune à toutes les tablettes. Une activité décochée ne propose plus cette classe (elle n\'y est gardée que si des évaluations y sont déjà enregistrées). Un élève retiré n\'apparaît plus ; ce qu\'il a déjà fait reste dans les résultats.</p>' +
@@ -865,7 +866,8 @@
       var cnt = function () { var n = ti.value.split("\n").filter(function (l) { return l.trim(); }).length; box.querySelector("#epsl-c").textContent = n + " élève" + (n > 1 ? "s" : ""); };
       ti.oninput = function () { x.draft = ti.value; cnt(); }; ni.oninput = function () { x.draftName = ni.value; }; cnt();
       box.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { sel[b.dataset.a] = sel[b.dataset.a] ? 0 : 1; editView(); }; });
-      box.querySelector("#epsl-b").onclick = function () { x.draft = x.draftName = null; x.sel = null; listView(); };
+      box.querySelectorAll("[data-voie]").forEach(function (b) { b.onclick = function () { x.voie = b.dataset.voie; editView(); }; });
+      box.querySelector("#epsl-b").onclick = function () { x.draft = x.draftName = null; x.sel = null; x.voie = null; listView(); };
       box.querySelector("#epsl-del").onclick = function () { delView(1); };
       box.querySelector("#epsl-ok").onclick = async function () {
         var nn = ni.value.replace(/\s+/g, " ").trim(), old = x.name;
@@ -874,7 +876,8 @@
         var L = []; ti.value.split("\n").forEach(function (l) { l = l.replace(/\s+/g, " ").trim(); if (l && !L.some(function (y) { return nkey(y) === nkey(l); })) L.push(l); });
         var off = APPS.filter(function (a) { return !sel[a[0]]; }).map(function (a) { return a[0]; });
         try { await writeClass(nn, old, L, sel, off); } catch (e) { return editView("Enregistrement impossible : " + (e && e.message || e)); }
-        x.sel = null; M = await allLists();
+        try { var LV = lld(), rule = /^(TGT|2GT|1GT)/.test(String(nn).replace(/[\s._-]+/g, "").toUpperCase()) ? "gt" : "pro"; Object.keys(LV.items).forEach(function (k) { var o = LV.items[k]; if (!o || o.del || norm(o.nom) !== norm(nn)) return; var want = x.voie && x.voie !== rule ? x.voie : undefined; if (o.voie === want) return; if (want) o.voie = want; else delete o.voie; o.ts = Date.now(); LV.pend[o.id] = stamp(); LV.app[o.id] = JSON.stringify(o); }); lsv(LV); setTimeout(sync, 300); } catch (e) {}
+        x.voie = null; x.sel = null; M = await allLists();
         listView(after("✓ « " + nn + " » enregistrée" + (off.length ? " (" + (APPS.length - off.length) + " activité" + (APPS.length - off.length > 1 ? "s" : "") + ")." : " dans toutes les activités.")));
       };
     }

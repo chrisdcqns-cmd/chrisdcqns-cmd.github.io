@@ -98,6 +98,10 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - `git pull --rebase` avant de pousser (d'autres sessions travaillent en parallèle) ; en cas de conflit sur `/sw.js`, garder le `CORE` le plus haut + 1.
 - Mettre à jour `README.md` et ce fichier si une règle commune change.
 
+## Voie générale / professionnelle
+- `epsVoie(classe)` (eps-lists.js) : TGT, 2GT, 1GT (et noms qui commencent ainsi) = `gt`, toutes les autres classes = `pro` (règle de l'enseignant) ; le champ `voie` d'une liste commune (⚙ Réglages → Listes, bouton Voie) l'emporte. Ne jamais deviner autrement.
+- Utilisée par : proposition / CCF d'eps-eval.js (voie par défaut, avertissement si la grille parle d'AFL pour une classe pro ou l'inverse), grille par voie des applis à évaluation commune (`cfg.grid` / `cfg.gridPro`, choisie d'après la classe ouverte), Badminton (voie des classes sans évaluation, assistant), CCF (`guessVoie`), fiches de leçon (`l.voie`, choix « Voie » dans ✨ Proposer avec Claude ; `VOIE_TXT` ajouté à la consigne : programme LGT 17-1-2019 / AFL, programme voie pro 3-4-2019 / AFLP et CCF 29-12-2020), alerte quand on attribue une leçon d'une voie à une classe de l'autre.
+
 ## Mode élève verrouillé, bouton 🔄
 - eps-home.js (`eleveLock`) : hors mode enseignant (`html.eps-teach`), le retour arrière est bloqué (entrée d'historique remise à chaque retour et à chaque appui), la sélection de texte, la loupe et le menu Copier de Chrome sont désactivés (sauf champs de saisie). Aucune appli ne doit utiliser `history.back()` ni `popstate` pour sa navigation.
 - 🔄 Mettre à jour (`#eps-upd`) : visible partout, élèves compris ; dans la barre du haut si elle est visible (`placeUpd`), sinon bouton rond en haut à droite. Pages sans eps-home.js (terrain, mon-bilan) : bouton équivalent dans la page.

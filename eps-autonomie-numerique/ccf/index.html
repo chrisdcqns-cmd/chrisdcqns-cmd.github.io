@@ -311,7 +311,7 @@ function people(o){if(!o)return[];try{return EPSL.people(o).map(p=>({k:p.k,preno
 function pname(o,k){const p=people(o).find(x=>x.k===k);return p?p.full:'?'}
 function pfirst(o,k){const p=people(o).find(x=>x.k===k);return p?(p.prenom||p.full):'?'}
 function classesFor(act,all){const c=act;return lists().filter(o=>all||!(o.off||[]).includes(c)).sort((a,b)=>a.nom.localeCompare(b.nom,'fr',{numeric:true}))}
-function guessVoie(nom){const n=String(nom||'').replace(/\s+/g,'').toUpperCase();return /^(2|SECONDE|2NDE)|^[1T](G|GT|STMG|STI2D|STL|ST2S|STD2A|STAV|STHR)/.test(n)?'gt':'pro'}
+function guessVoie(nom){if(window.epsVoie)return epsVoie(nom);const n=String(nom||'').replace(/\s+/g,'').toUpperCase();return /^(2|SECONDE|2NDE)|^[1T](G|GT|STMG|STI2D|STL|ST2S|STD2A|STAV|STHR)/.test(n)?'gt':'pro'}
 function sesId(act,cls){return 'ss:'+act+':'+cls}
 function ses(act,cls){const o=get(sesId(act,cls));if(o)return o;const c=clsById(cls);return {act,cls,voie:guessVoie(c&&c.nom),date:today(),open:false,eq:[]}}
 function sesPut(act,cls,f){return upd(sesId(act,cls),ses(act,cls),f)}

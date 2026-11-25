@@ -123,8 +123,16 @@
   document.addEventListener("pointerdown", function () { try { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume(); } catch (e) {} }, true);
   function bip(n) { try { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); var t = AC.currentTime; for (var i = 0; i < (n || 3); i++) { var o = AC.createOscillator(), g = AC.createGain(); o.frequency.value = i % 2 ? 660 : 880; o.connect(g); g.connect(AC.destination); g.gain.setValueAtTime(0.0001, t + i * 0.35); g.gain.exponentialRampToValueAtTime(0.5, t + i * 0.35 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.35 + 0.3); o.start(t + i * 0.35); o.stop(t + i * 0.35 + 0.32); } } catch (e) {} try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch (e) {} }
 
+  /* ---------- 🎓 voie (générale / professionnelle) : textes officiels de référence ---------- */
+  function vClasse(c) { try { return window.epsVoie ? epsVoie(c) : "gt"; } catch (e) { return "gt"; } }
+  function voieDe(l) { if (l && (l.voie === "pro" || l.voie === "gt")) return l.voie; var p = l && (l.prog || [])[0]; if (p && p.c) return vClasse(p.c); var c = cur(); if (c) return vClasse(c.nom); if (LIVECLS) return vClasse(LIVECLS); var C = classes(); return C.length ? vClasse(C[0]) : "gt"; }
+  var VOIE_TXT = {
+    gt: "VOIE GÉNÉRALE ET TECHNOLOGIQUE. Appuie-toi sur le programme d'EPS du lycée général et technologique (arrêté du 17 janvier 2019) : champs d'apprentissage et attendus de fin de lycée AFL1, AFL2, AFL3 (écris « AFL », jamais « AFLP »). Évaluation : référentiel du baccalauréat général et technologique (AFL1 sur 12 points ; AFL2 et AFL3 sur 8 points répartis 4-4, 6-2 ou 2-6 au choix de l'élève).",
+    pro: "VOIE PROFESSIONNELLE (CAP / baccalauréat professionnel). Appuie-toi sur le programme d'EPS de la voie professionnelle (arrêté du 3 avril 2019) : champs d'apprentissage et attendus de fin de lycée professionnel AFLP1 à AFLP6 (écris « AFLP »). Évaluation : référentiel CCF de la voie professionnelle (circulaire du 29 décembre 2020) : situation de fin de séquence sur 12 points (AFLP1 sur 7, AFLP2 sur 5), évaluation au fil de la séquence sur 8 points (2 AFLP parmi AFLP3 à AFLP6, répartis 4-4, 6-2 ou 2-6)." };
+  var VOIE_ASK = null;
   /* ---------- Claude (script commun) ---------- */
   function ask(lc) {
+    if (lc && lc.op === "lecon" && lc.mode !== "inventaire") { var vv = lc.voie || VOIE_ASK || voieDe(WORK); lc.voie = vv; lc.consigne = VOIE_TXT[vv] + (lc.consigne ? "\n" + lc.consigne : ""); }
     if (!window.EPSD || !EPSD.post) return Promise.reject(new Error("Module commun indisponible"));
     return EPSD.post({ lc: lc }).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script");
@@ -242,7 +250,7 @@
       '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button>" + '<button type="button" class="lc-b" data-autoprog>📅 Programmer d\'après l\'emploi du temps</button>' +
       (nd ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>" : "") + "</div>" +
       (CC.length ? '<div class="lc-box"><b>👥 Séquence par classe</b><p class="lc-mut" style="margin:2px 0 6px">Touche une ou plusieurs classes, puis « ＋ Attribuer » sur les leçons à leur proposer : chaque classe a sa propre séquence. Une classe sans leçon attribuée garde toutes les leçons.</p><div class="lc-row">' +
-        CC.map(function (c) { var on = SELC.some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-selc="' + esc(c) + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
+        CC.map(function (c) { var on = SELC.some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-selc="' + esc(c) + '" title="' + (vClasse(c) === "pro" ? "Voie professionnelle" : "Voie générale") + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
         (SELC.length ? '<button type="button" class="lc-b s" data-selc0>✕ Aucune</button>' : "") + "</div></div>" : "") +
       (br ? '<div class="lc-warn">✨ ' + br + " brouillon" + (br > 1 ? "s" : "") + " de Claude à relire : invisible" + (br > 1 ? "s" : "") + " pour les élèves tant que tu n'as pas validé.</div>" : "");
     h += '<div data-apbox></div>';
@@ -250,7 +258,7 @@
     function card(l, k) {
       var pg = (l.prog || []).filter(function (p) { return p.at > Date.now() - 3 * 3600e3; }).sort(function (a, b) { return a.at - b.at; })[0];
       var n = SELC.filter(function (c) { return expl(l, c); }).length, all0 = SELC.length && n === SELC.length;
-      return '<div class="lc-card" data-id="' + l.id + '"><div class="t"><b>' + (k ? '<span class="lc-tag pg">' + k + "</span> " : "") + esc(titreL(l)) + (l.statut === "brouillon" ? '<span class="lc-tag br">✨ brouillon à relire</span>' : '<span class="lc-tag ok">✓ validée</span>') + (pg ? '<span class="lc-tag pg">📅 ' + esc(pg.c) + " · " + esc(hm(pg.at)) + "</span>" : "") + "</b><small>" + esc(l.but || l.objM || "") + '</small><small style="display:block">👥 ' + esc(clsTxt(l)) + "</small></div>" +
+      return '<div class="lc-card" data-id="' + l.id + '"><div class="t"><b>' + (k ? '<span class="lc-tag pg">' + k + "</span> " : "") + esc(titreL(l)) + (l.statut === "brouillon" ? '<span class="lc-tag br">✨ brouillon à relire</span>' : '<span class="lc-tag ok">✓ validée</span>') + (l.voie ? '<span class="lc-tag">' + (l.voie === "pro" ? "🛠 voie pro" : "🎓 voie GT") + "</span>" : "") + (pg ? '<span class="lc-tag pg">📅 ' + esc(pg.c) + " · " + esc(hm(pg.at)) + "</span>" : "") + "</b><small>" + esc(l.but || l.objM || "") + '</small><small style="display:block">👥 ' + esc(clsTxt(l)) + "</small></div>" +
         (SELC.length ? '<button type="button" class="lc-b s' + (all0 ? " p" : "") + '" data-att="' + l.id + '">' + (all0 ? "✓ Attribuée" : n ? "◐ " + n + "/" + SELC.length + " · compléter" : "＋ Attribuer") + "</button>" : "<span>›</span>") + "</div>";
     }
     if (SELC.length) {
@@ -270,6 +278,7 @@
     el.querySelectorAll("[data-selc]").forEach(function (b) { b.onclick = function () { var c = b.dataset.selc; SELC = SELC.some(function (x) { return same(x, c); }) ? SELC.filter(function (x) { return !same(x, c); }) : SELC.concat([c]); draw(); }; });
     var s0 = el.querySelector("[data-selc0]"); if (s0) s0.onclick = function () { SELC = []; draw(); };
     el.querySelectorAll("[data-att]").forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); var l = get(KL, b.dataset.att); if (!l) return; var allIn = SELC.every(function (c) { return expl(l, c); });
+      var autres = l.voie ? SELC.filter(function (c) { return vClasse(c) !== l.voie; }) : []; if (!allIn && autres.length && !confirm("Cette leçon est écrite pour la " + (l.voie === "pro" ? "voie professionnelle (AFLP)" : "voie générale (AFL)") + ", mais " + autres.join(", ") + (autres.length > 1 ? " sont" : " est") + " en " + (l.voie === "pro" ? "voie générale" : "voie professionnelle") + ". L'attribuer quand même ?")) return;
       setCls(l, SELC, !allIn); put(KL, l); var y = OV.querySelector(".lc-body").scrollTop; draw(); OV.querySelector(".lc-body").scrollTop = y; }; });
     var im = el.querySelector("[data-imall]"); if (im) im.onclick = importAll;
   }
@@ -285,7 +294,7 @@
     var h = '<div class="lc-row"><button type="button" class="lc-b s" data-back>← Mes fiches de leçon</button><span style="flex:1"></span>' + (br ? '<span class="lc-tag br">✨ brouillon : invisible pour les élèves</span>' : '<span class="lc-tag ok">✓ validée</span>') + "</div>" +
       (br ? '<div class="lc-warn">Relis et corrige les champs en jaune (proposés par Claude), puis « ✓ Valider ». Tant que la leçon n\'est pas validée, elle ne peut être ni programmée ni montrée aux élèves.' + (WORK.sources ? "<br><small>Sources indiquées par Claude : " + esc(WORK.sources) + "</small>" : "") + "</div>" : "") +
       '<div class="lc-box"><div class="lc-g3">' + fld("seq", "Séquence", WORK.seq, A.seq, 'data-f="seq" list="lc-seqs"', true) + fld("num", "N° de leçon", WORK.num, A.num, 'data-f="num"', true) + fld("duree", "Durée", WORK.duree, A.duree, 'data-f="duree" placeholder="ex. 1 h 45"', true) + "</div>" +
-      fld("titre", "Titre", WORK.titre, A.titre, 'data-f="titre"', true) + '<datalist id="lc-seqs">' + seqs().map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("") + "</datalist></div>" +
+      fld("titre", "Titre", WORK.titre, A.titre, 'data-f="titre"', true) + '<label class="lc-f"><span>Voie</span><select class="lc-sel" data-voie style="width:100%"><option value="gt"' + (voieDe(WORK) === "gt" ? " selected" : "") + '>🎓 Générale et technologique (AFL)</option><option value="pro"' + (voieDe(WORK) === "pro" ? " selected" : "") + '>🛠 Professionnelle (AFLP)</option></select></label>' + '<datalist id="lc-seqs">' + seqs().map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("") + "</datalist></div>" +
       '<div class="lc-box"><h3 style="margin-top:4px">🎯 Objectifs et but</h3><div class="lc-g3">' + F.slice(0, 3).map(function (x) { return fld(x[0], x[1], WORK[x[0]], A[x[0]], 'data-f="' + x[0] + '"'); }).join("") + "</div>" + fld("but", "But de la leçon", WORK.but, A.but, 'data-f="but"') + "</div>" +
       '<div class="lc-box"><h3 style="margin-top:4px">🧰 Dispositif et matériel</h3>' + fld("disp", "Dispositif", WORK.disp, A.disp, 'data-f="disp"') + fld("mat", "Matériel", WORK.mat, A.mat, 'data-f="mat"') + "</div>" +
       '<div class="lc-box"><h3 style="margin-top:4px">🔥 Échauffement</h3>' + fld("ech", "Consigne", WORK.ech, A.ech, 'data-f="ech"') + imgBox("ech", WORK.echImg) + "</div>" +
@@ -317,6 +326,7 @@
     el.querySelectorAll("[data-img]").forEach(function (inp) { inp.onchange = function () { var f = inp.files[0]; if (!f) return; var k = inp.dataset.img;
       (function go(max, q) { shrink(f, max, q).then(function (d) { if (d.length > 30000 && max > 240) return go(Math.round(max * 0.8), Math.max(0.35, q - 0.08)); var id = uid(); put(KI, { id: id, d: d }); if (k === "ech") WORK.echImg = id; else WORK.sits[+k.slice(1)].img = id; put(KL, WORK); draw(); }).catch(function (e) { msg.textContent = "⚠ " + e.message; }); })(620, 0.6); }; });
     el.querySelectorAll("[data-noimg]").forEach(function (b) { b.onclick = function () { var k = b.dataset.noimg; if (k === "ech") WORK.echImg = ""; else WORK.sits[+k.slice(1)].img = ""; put(KL, WORK); draw(); }; });
+    var vs = el.querySelector("[data-voie]"); if (vs) vs.onchange = function () { WORK.voie = vs.value; saveEdit(); };
     var ok = el.querySelector("[data-ok]"); if (ok) ok.onclick = function () { WORK.statut = "ok"; WORK.ai = {}; WORK.val = Date.now(); put(KL, WORK); draw(); };
     var un = el.querySelector("[data-unok]"); if (un) un.onclick = function () { WORK.statut = "brouillon"; put(KL, WORK); draw(); };
     el.querySelector("[data-dup]").onclick = function () { saveEdit(); var c = JSON.parse(JSON.stringify(WORK)); c.id = uid(); c.cr = Date.now(); c.prog = []; c.titre = (c.titre || "") + " (copie)"; put(KL, c); EDIT = c.id; draw(); };
@@ -348,6 +358,7 @@
       (S.length ? '<option value="simple">Une séquence parallèle plus simple</option><option value="difficile">Une séquence parallèle plus difficile</option><option value="variante">Une séquence parallèle de même niveau (autres situations)</option>' : "") + "</select></label>" +
       '<label class="lc-f" data-wdoc><span>Document</span><select class="lc-sel" data-doc style="width:100%">' + D.map(function (d) { return '<option value="' + d.id + '">' + esc(d.nom) + "</option>"; }).join("") + "</select></label>" +
       '<label class="lc-f" data-wseq><span>Séquence</span><input data-seq list="lc-seq2" value="' + esc(S[S.length - 1] || "") + '"><datalist id="lc-seq2">' + S.map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("") + "</datalist></label>" +
+      '<label class="lc-f"><span>Voie (textes officiels utilisés)</span><select class="lc-sel" data-voie style="width:100%"><option value="gt"' + (voieDe(null) === "gt" ? " selected" : "") + '>🎓 Voie générale et technologique (AFL, bac général)</option><option value="pro"' + (voieDe(null) === "pro" ? " selected" : "") + '>🛠 Voie professionnelle (AFLP, CCF Bac pro / CAP)</option></select></label>' +
       '<label class="lc-f"><span>Précisions (facultatif)</span><textarea data-cons placeholder="ex. leçon 3 du document ; classe de 2de ; 24 élèves ; gymnase avec 4 terrains…"></textarea></label>' +
       '<div class="lc-row"><button type="button" class="lc-b p" data-go>✨ Proposer</button><button type="button" class="lc-b" data-cancel>Annuler</button></div><p class="lc-mut" data-msg></p></div>';
     document.body.appendChild(md);
@@ -357,6 +368,7 @@
     md.querySelector("[data-cancel]").onclick = function () { md.remove(); };
     md.querySelector("[data-go]").onclick = function () {
       var b = this, mode = sel.value, seq = md.querySelector("[data-seq]").value.trim(), cons = md.querySelector("[data-cons]").value, L = lecons().filter(function (x) { return x.seq === seq; });
+      VOIE_ASK = md.querySelector("[data-voie]").value; setTimeout(function () { VOIE_ASK = null; }, 600000);
       b.disabled = true;
       if (/simple|difficile|variante/.test(mode)) {
         if (!L.length) { msg.textContent = "Cette séquence n'a pas encore de leçon."; b.disabled = false; return; }
@@ -364,14 +376,14 @@
         (function next() {
           if (i >= L.length) { msg.textContent = "✓ " + done + " leçon(s) en brouillon dans « " + nseq + " »."; setTimeout(function () { md.remove(); draw(); }, 900); return; }
           var src = L[i++]; msg.textContent = "Claude adapte la leçon " + i + " / " + L.length + "…";
-          ask({ op: "lecon", mode: mode, act: NOM, consigne: cons, base: compact(src), docs: docsFor(), lecons: [] }).then(function (r) { var l = fromAI(blank(nseq), r.lecon || {}); l.seq = nseq; l.num = src.num; l.cr = Date.now(); l.src = src.id; put(KL, l); done++; next(); })
+          ask({ op: "lecon", mode: mode, act: NOM, consigne: cons, base: compact(src), docs: docsFor(), lecons: [] }).then(function (r) { var l = fromAI(blank(nseq), r.lecon || {}); l.voie = VOIE_ASK || voieDe(src); l.seq = nseq; l.num = src.num; l.cr = Date.now(); l.src = src.id; put(KL, l); done++; next(); })
             .catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; });
         })();
         return;
       }
       msg.textContent = "Claude prépare la proposition…";
       ask({ op: "lecon", mode: mode, act: NOM, consigne: cons, docs: mode === "importer" ? docsFor(md.querySelector("[data-doc]").value) : docsFor(), lecons: (mode === "suivante" ? L : lecons()).slice(-12).map(compact) })
-        .then(function (r) { var l = fromAI(blank(seq), r.lecon || {}); if (!l.seq) l.seq = seq; if (mode === "suivante" && !l.num) l.num = String(L.length + 1); l.cr = Date.now(); put(KL, l); md.remove(); EDIT = l.id; draw(); })
+        .then(function (r) { var l = fromAI(blank(seq), r.lecon || {}); l.voie = VOIE_ASK || voieDe(null); if (!l.seq) l.seq = seq; if (mode === "suivante" && !l.num) l.num = String(L.length + 1); l.cr = Date.now(); put(KL, l); md.remove(); EDIT = l.id; draw(); })
         .catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; });
     };
   }
