@@ -210,6 +210,10 @@ h2{font-size:22px;margin:4px 0 14px}
 .gc-haut{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-weight:800}
 .gc-lab{font:800 clamp(28px,8vmin,90px) system-ui,sans-serif;letter-spacing:2px}
 .gc-sub{font-size:clamp(16px,3.5vmin,34px);font-weight:700}
+.gc-lab.gc-exo{font-size:clamp(34px,11vmin,130px);letter-spacing:0;line-height:1.05;text-transform:uppercase;max-width:95vw;overflow-wrap:anywhere}
+.gc-suiv{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:6px 14px;background:rgba(0,0,0,.18);border-radius:14px;padding:10px 18px;font-size:clamp(16px,3.2vmin,30px);font-weight:700}
+.gc-sl{font-size:.7em;text-transform:uppercase;letter-spacing:1px;opacity:.8}.gc-sd{font-family:ui-monospace,Menlo,monospace}.gc-puis{opacity:.7;font-size:.85em}
+.gc-liste{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:clamp(16px,3.4vmin,32px);font-weight:700}.gc-liste span{background:rgba(255,255,255,.18);border-radius:10px;padding:4px 12px}
 .gc-t{font:800 clamp(90px,30vmin,360px)/1 ui-monospace,Menlo,monospace;letter-spacing:-4px}
 .gc-barre{width:min(90vw,900px);height:14px;background:rgba(255,255,255,.3);border-radius:9px;overflow:hidden}.gc-barre div{height:100%;width:0;background:#fff}
 .gc-bas{display:flex;gap:12px;margin-top:2vmin}.gc-bas .btn{padding:16px 26px;font-size:18px;background:rgba(255,255,255,.18);color:#fff;border:2px solid rgba(255,255,255,.6)}
@@ -1014,7 +1018,7 @@ document.addEventListener("click", ev=>{
   const d=t.dataset, l=S.lecon;
   if(d.act==="fermer-fond"){ if(ev.target===t) fermer(); return; }
   if(d.act==="fcFermerFond"){ if(ev.target===t){ clearInterval(PULS&&PULS.iv); PULS=null; $("#bulleFC").innerHTML=""; } return; }
-  if(d.gclance){ const c=CHRONOS.concat(LS.get("chronos",[])).find(x=>x.id===d.gclance); if(ev.target.closest("[data-gcsuppr]")){ if(confirm("Supprimer ce chrono ?")){ LS.set("chronos",LS.get("chronos",[]).filter(x=>x.id!==d.gclance)); vueChrono(); } return; } if(c) lancerGC(c); return; }
+  if(d.gclance){ const c=CHRONOS.concat(LS.get("chronos",[])).find(x=>x.id===d.gclance); if(ev.target.closest("[data-gcsuppr]")){ if(confirm("Supprimer ce chrono ?")){ LS.set("chronos",LS.get("chronos",[]).filter(x=>x.id!==d.gclance)); vueChrono(); } return; } if(c) lancerGC(c.ex&&c.ex.length?c:Object.assign({},c,{ex:gcExListe()})); return; }
   if(d.gcwod){ lancerGC(chronoDeWod(WODS.find(x=>x.id===d.gcwod))); return; }
   if(d.gctype){ S.gcForm.type=d.gctype; vueChrono(); return; }
   if(d.ptap&&TM){ const x=exCourant(); if(!x) return; const k=x.exId+"|"+x.niv; TM.paser[k]=TM.paser[k]||{}; TM.paser[k][d.ptap]=(TM.paser[k][d.ptap]||0)+1; bip(520,.05); majCoach(); return; }
@@ -1022,6 +1026,7 @@ document.addEventListener("click", ev=>{
   if(d.act==="timerDuo"){ S.duoNext=true; lancerTimer(); S.duoNext=false; return; }
   if(d.act==="changerRole"){ changerRole(); rendre(); toast("Athlète : "+roles().ath+" · coach : "+roles().coach); return; }
   if(d.act==="tmFlip"){ TM.flip=!TM.flip; LS.set("flip",TM.flip); dessinerTimer(); return; }
+  if(d.act==="gcExVider"){ S.gcForm.ex=""; vueChrono(); return; }
   if(d.act==="gcPerso"){ lancerGC(gcDepuisForm()); return; }
   if(d.act==="gcSauver"){ const c=gcDepuisForm(); if(!S.gcForm.nom) return toast("Donne un nom au chrono"); c.id="p"+Date.now().toString(36); LS.set("chronos",LS.get("chronos",[]).concat([c])); toast("Chrono enregistré"); vueChrono(); return; }
   if(d.act==="gcPause"&&GC){ if(GC.enPause){ GC.t0+=Date.now()-GC.pause; GC.enPause=false; } else { GC.pause=Date.now(); GC.enPause=true; } dessinerGC(); return; }
@@ -1105,7 +1110,7 @@ document.addEventListener("click", ev=>{
 });
 document.addEventListener("input", ev=>{
   const t=ev.target, l=S.lecon;
-  if(t.dataset.gc){ S.gcForm[t.dataset.gc]=t.value; const pp=t.closest(".bloc")&&t.closest(".bloc").querySelector("p.petit.doux"); if(pp) pp.textContent=gcResume(gcDepuisForm()); return; }
+  if(t.dataset.gc){ S.gcForm[t.dataset.gc]=t.value; const pp=$("#gcRes"); if(pp) pp.textContent=gcResume(gcDepuisForm()); return; }
   if(t.dataset.gnom!==undefined&&t.tagName==="INPUT"){ S.choixGroupe.noms[+t.dataset.gnom]=t.value; return; }
   if(t.dataset.fj&&t.type!=="checkbox"&&t.tagName!=="SELECT"){ S.formJour[t.dataset.fj]=t.value; return; }
   if(t.dataset.param){ l.params[t.dataset.param]=Math.max(0,+t.value); sauver(); majLeconSansFocus(); }
@@ -1117,6 +1122,7 @@ function majLeconSansFocus(){ // met à jour le WOD et le bilan sans casser la s
 document.addEventListener("change", ev=>{
   const t=ev.target;
   if(t.dataset.gc){ S.gcForm[t.dataset.gc]=t.value; if(t.tagName==="SELECT") vueChrono(); return; }
+  if(t.hasAttribute("data-gcajout")&&t.value){ const f=S.gcForm; f.ex=(String(f.ex||"").replace(/\s+$/,"")+"\n"+t.value).replace(/^\n/,""); vueChrono(); return; }
   if(t.dataset.gnom!==undefined){ S.choixGroupe.noms[+t.dataset.gnom]=t.value; return; }
   if(t.dataset.fjp){ S.formJour.params[t.dataset.fjp]=+t.value; return; }
   if(t.dataset.fj){ S.formJour[t.dataset.fj]= t.type==="checkbox"?t.checked:t.value; if(t.dataset.fj==="format") vueJour(); return; }
@@ -1634,7 +1640,8 @@ const CHRONOS = [
   {id:"ft15", nom:"For Time · time cap 15 min", type:"fortime", cap:15}
 ];
 const GC_TYPES = {int:"Intervalles / circuit", emom:"EMOM / E2MOM", amrap:"AMRAP", fortime:"For Time"};
-function gcResume(c){
+function gcResume(c){ return gcResume0(c)+(c.ex&&c.ex.length?" · "+c.ex.slice(0,4).join(", ")+(c.ex.length>4?"…":""):""); }
+function gcResume0(c){
   if(c.type==="int"){ const tot=(c.travail+c.repos)*c.stations*c.tours + (c.recupTour||0)*(c.tours-1) - c.repos;
     return `${c.travail} s / ${c.repos} s${c.stations>1?` · ${c.stations} ateliers`:""} · ${c.tours} ${c.stations>1?"tours":"séries"}${c.recupTour?` · ${c.recupTour} s entre tours`:""} · ${mmss(tot)}`; }
   if(c.type==="emom") return `une série toutes les ${c.every===60?"minutes":c.every/60+" min"} · ${c.minutes} min`;
@@ -1642,18 +1649,19 @@ function gcResume(c){
   return `le plus vite possible, time cap ${c.cap} min`;
 }
 function gcPhases(c){
-  const P=[{t:"pret",s:10,lab:"Prêt ?"}];
+  const L=(c.ex||[]).filter(Boolean), exN=i=>L.length?L[i%L.length]:"";
+  const P=[{t:"pret",s:10,lab:"Prêt ?"}]; let k=0;
   if(c.type==="int"){
     for(let t=1;t<=c.tours;t++) for(let s=1;s<=c.stations;s++){
-      P.push({t:"work",s:c.travail,lab:c.stations>1?`Atelier ${s}/${c.stations}`:`Série ${t}/${c.tours}`,sub:c.stations>1?`Tour ${t}/${c.tours}`:""});
+      P.push({t:"work",s:c.travail,ex:exN(c.stations>1?s-1:k++),lab:c.stations>1?`Atelier ${s}/${c.stations}`:`Série ${t}/${c.tours}`,sub:c.stations>1?`Tour ${t}/${c.tours}`:""});
       const dernierAtelier=s===c.stations, dernier=dernierAtelier&&t===c.tours;
       if(dernier) continue;
       if(dernierAtelier&&c.recupTour) P.push({t:"rest",s:c.recupTour,lab:"Récupération entre tours"});
       else if(c.repos) P.push({t:"rest",s:c.repos,lab:c.stations>1?"Changement d'atelier":"Repos"});
     }
-  } else if(c.type==="emom"){ const n=Math.floor(c.minutes*60/c.every); for(let i=1;i<=n;i++) P.push({t:"work",s:c.every,lab:`${c.every===60?"Minute":"Bloc"} ${i}/${n}`}); }
-  else if(c.type==="amrap") P.push({t:"work",s:c.minutes*60,lab:`AMRAP ${c.minutes} min`});
-  else P.push({t:"work",s:c.cap*60,lab:`For Time`,sub:`time cap ${c.cap} min`,up:1});
+  } else if(c.type==="emom"){ const n=Math.floor(c.minutes*60/c.every); for(let i=1;i<=n;i++) P.push({t:"work",s:c.every,ex:exN(i-1),lab:`${c.every===60?"Minute":"Bloc"} ${i}/${n}`}); }
+  else if(c.type==="amrap") P.push({t:"work",s:c.minutes*60,liste:L,lab:`AMRAP ${c.minutes} min`});
+  else P.push({t:"work",s:c.cap*60,liste:L,lab:`For Time`,sub:`time cap ${c.cap} min`,up:1});
   return P;
 }
 let GC=null;
@@ -1673,15 +1681,21 @@ function tickGC(){
 function gcSuivante(){ GC.i++; GC.t0=Date.now(); GC.dern=null; if(GC.i>=GC.P.length) return finGC(); bip(GC.P[GC.i].t==="rest"?440:990,.4); dessinerGC(); }
 function finGC(){ clearInterval(GC.iv); try{ GC.lock&&GC.lock.release(); }catch(e){} bip(1200,.7);
   $("#calque").innerHTML=`<div class="voile gc" style="background:#14171C"><div class="gc-in"><div class="gc-lab">Terminé</div><div class="gc-t">🏁</div><div class="gc-bas"><button class="btn ct" data-act="gcRejouer">↻ Relancer</button><button class="btn contour" data-act="gcFermer">Fermer</button></div></div></div>`; }
+const gcNomPhase = ph => ph.t==="rest"?(/atelier/i.test(ph.lab)?"Changement":/tours/.test(ph.lab)?"Récupération":"Repos"):ph.t==="pret"?"Prêt":(ph.ex||"Travail");
 function dessinerGC(){
-  const ph=GC.P[GC.i], col={pret:"#C98A00",work:"#3F8F14",rest:"#2F6FDB"}[ph.t], suiv=GC.P[GC.i+1];
+  const ph=GC.P[GC.i], col={pret:"#C98A00",work:"#3F8F14",rest:"#2F6FDB"}[ph.t], suiv=GC.P[GC.i+1], apres=GC.P[GC.i+2];
+  const prochainEx = GC.P.slice(GC.i+1).find(x=>x.t==="work");
+  const grand = ph.t==="work" ? (ph.ex||(ph.liste&&ph.liste.length?ph.lab.toUpperCase():"TRAVAIL")) : ph.t==="rest" ? gcNomPhase(ph).toUpperCase() : "PRÊT";
+  const petitSous = ph.t!=="work" && prochainEx && prochainEx.ex ? `Prochain exercice : <b>${h(prochainEx.ex)}</b>` : "";
+  const ligneSuiv = x => `<span class="gc-sd">${mmss(x.s)}</span> ${h(gcNomPhase(x))}`;
   $("#calque").innerHTML = `<div class="voile gc" style="background:${col}"><div class="gc-in">
-    <div class="gc-haut"><span>${h(GC.c.nom||GC_TYPES[GC.c.type])}</span><button class="tm-x" data-act="gcStop" aria-label="Arrêter">✕</button></div>
-    <div class="gc-lab">${{pret:"PRÊT",work:"TRAVAIL",rest:"REPOS"}[ph.t]}</div>
-    <div class="gc-sub">${h(ph.lab)}${ph.sub?" · "+h(ph.sub):""}</div>
+    <div class="gc-haut"><span>${h(GC.c.nom||GC_TYPES[GC.c.type])} · ${h(ph.lab)}${ph.sub?" · "+h(ph.sub):""}</span><button class="tm-x" data-act="gcStop" aria-label="Arrêter">✕</button></div>
+    <div class="gc-lab ${ph.t==="work"&&ph.ex?"gc-exo":""}">${h(grand)}</div>
+    ${petitSous?`<div class="gc-sub">${petitSous}</div>`:""}
     <div class="gc-t" id="gcT">${ph.up?"0:00":mmss(ph.s)}</div>
     <div class="gc-barre"><div id="gcB"></div></div>
-    <div class="gc-sub" style="opacity:.85">${suiv?`Ensuite : ${h(suiv.lab)} (${mmss(suiv.s)})`:"Dernière phase"}</div>
+    ${ph.liste&&ph.liste.length?`<div class="gc-liste">${ph.liste.map(x=>`<span>${h(x)}</span>`).join("")}</div>`:""}
+    <div class="gc-suiv">${suiv?`<span class="gc-sl">Ensuite</span>${ligneSuiv(suiv)}${apres?`<span class="gc-puis">puis ${ligneSuiv(apres)}</span>`:""}`:`<span class="gc-sl">Dernière phase</span>`}</div>
     <div class="gc-bas"><button class="btn contour" data-act="gcPause">${GC.enPause?"▶ Reprendre":"⏸ Pause"}</button><button class="btn contour" data-act="gcSuiv">${ph.up?"🏁 Terminé":"⏭ Passer"}</button></div>
   </div></div>`;
 }
@@ -1689,25 +1703,35 @@ function vueChrono(){
   const perso=LS.get("chronos",[]), f=S.gcForm||(S.gcForm={type:"int",travail:40,repos:20,stations:1,tours:8,recupTour:0,minutes:12,every:60,cap:15,nom:""});
   const champ=(k,t,min=0)=>`<div><label>${t}</label><input type="number" min="${min}" data-gc="${k}" value="${f[k]}"></div>`;
   const carte=(c,perso)=>`<button class="liste-ch" data-gclance="${h(c.id)}"><b>${h(c.nom)}</b><span class="petit doux">${h(gcResume(c))}</span>${perso&&S.prof?`<span class="petit" data-gcsuppr="${h(c.id)}" style="color:var(--ko)">supprimer</span>`:""}<span class="lecture" style="width:44px;height:44px;font-size:18px;flex:none">▶</span></button>`;
+  const tri=S.fiches.exercices.slice().sort((a,b)=>(a.fr||a.en).localeCompare(b.fr||b.en));
   $("#vue").innerHTML = `<h2>⏱ Grand chrono</h2>
-    <section class="bloc"><div class="bloc-t"><span>1</span>Chronos préréglés</div><div class="liste-chronos">${CHRONOS.map(c=>carte(c)).join("")}</div></section>
+    <section class="bloc"><div class="bloc-t"><span>1</span>Exercices à afficher <span class="petit doux">(facultatif)</span></div>
+      <p class="petit doux">Un exercice par ligne, dans l'ordre : un par atelier (circuit) ou à tour de rôle (Tabata, intervalles, EMOM). Ils servent aux chronos préréglés comme au chrono personnalisé.</p>
+      <textarea data-gc="ex" rows="4" placeholder="Squat&#10;Burpee&#10;Gainage">${h(f.ex||"")}</textarea>
+      <div class="ligne" style="margin-top:6px"><select data-gcajout style="flex:1"><option value="">+ Ajouter depuis la bibliothèque…</option>${tri.map(e=>`<option>${h(e.fr||e.en)}</option>`).join("")}</select><button class="btn contour" data-act="gcExVider">Vider</button></div>
+    </section>
+    <section class="bloc"><div class="bloc-t"><span>2</span>Chronos préréglés</div><div class="liste-chronos">${CHRONOS.map(c=>carte(c)).join("")}</div></section>
     ${perso.length?`<section class="bloc"><div class="bloc-t"><span>★</span>Mes chronos</div><div class="liste-chronos">${perso.map(c=>carte(c,true)).join("")}</div></section>`:""}
-    <section class="bloc"><div class="bloc-t"><span>2</span>Chrono personnalisé</div>
+    <section class="bloc"><div class="bloc-t"><span>3</span>Chrono personnalisé</div>
       <div class="formats">${Object.entries(GC_TYPES).map(([k,t])=>`<button class="puce ${f.type===k?"on":""}" data-gctype="${k}">${t}</button>`).join("")}</div>
       <div class="params">${f.type==="int"?champ("travail","Travail (s)",5)+champ("repos","Repos (s)")+champ("stations","Ateliers",1)+champ("tours","Tours / séries",1)+champ("recupTour","Récup entre tours (s)")
         : f.type==="emom"?champ("minutes","Durée (min)",1)+`<div><label>Une série toutes les</label><select data-gc="every"><option value="60" ${+f.every===60?"selected":""}>1 min (EMOM)</option><option value="120" ${+f.every===120?"selected":""}>2 min (E2MOM)</option><option value="180" ${+f.every===180?"selected":""}>3 min</option></select></div>`
         : f.type==="amrap"?champ("minutes","Durée (min)",1):champ("cap","Time cap (min)",1)}</div>
-      <p class="petit doux">${h(gcResume(gcDepuisForm()))}</p>
+      <p class="petit doux" id="gcRes">${h(gcResume(gcDepuisForm()))}</p>
       <div class="ligne"><button class="btn ct" data-act="gcPerso" style="flex:1">▶ Lancer</button>${S.prof?`<input type="text" data-gc="nom" placeholder="Nom (ex. Circuit 2nde)" value="${h(f.nom)}" style="flex:1"><button class="btn contour" data-act="gcSauver">Enregistrer</button>`:""}</div>
     </section>`;
 }
-function gcDepuisForm(){ const f=S.gcForm, c={type:f.type, nom:f.nom||GC_TYPES[f.type]};
+const gcExListe = () => String((S.gcForm&&S.gcForm.ex)||"").split("\n").map(x=>x.trim()).filter(Boolean);
+function gcDepuisForm(){ const f=S.gcForm, c={type:f.type, nom:f.nom||GC_TYPES[f.type], ex:gcExListe()};
   if(f.type==="int") Object.assign(c,{travail:+f.travail||20, repos:+f.repos||0, stations:Math.max(1,+f.stations||1), tours:Math.max(1,+f.tours||1), recupTour:+f.recupTour||0});
   else if(f.type==="emom") Object.assign(c,{minutes:Math.max(1,+f.minutes||10), every:+f.every||60});
   else if(f.type==="amrap") c.minutes=Math.max(1,+f.minutes||10); else c.cap=Math.max(1,+f.cap||15);
   return c; }
 /* WOD type → grand chrono */
-function chronoDeWod(w){ const p=w.params;
+function chronoDeWod(w){ const c=chronoDeWod0(w), fmt=w.format;
+  c.ex=w.items.filter(([id])=>exParId(id)).map(([id,niv,q])=>{ const e=exParId(id); return (e.fr||e.en)+(q&&["amrap","fortime","emom","e2mom"].includes(fmt)?" × "+q:""); });
+  return c; }
+function chronoDeWod0(w){ const p=w.params;
   if(w.format==="intervalles") return {nom:w.nom, type:"int", travail:p.travail, repos:p.repos, stations:w.items.length, tours:p.tours, recupTour:0};
   if(w.format==="emom"||w.format==="e2mom") return {nom:w.nom, type:"emom", minutes:p.minutes, every:w.format==="emom"?60:120};
   if(w.format==="amrap") return {nom:w.nom, type:"amrap", minutes:p.minutes};
