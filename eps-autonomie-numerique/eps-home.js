@@ -340,6 +340,7 @@
     ".epsd-chips button.on{border-color:#C0392B;background:#FDF0EE;color:#9C2B10}" +
     ".epsd-in{width:100%;height:48px;border-radius:12px;border:2px solid #E2DDD2;background:#FBFAF7;font:500 17px system-ui,sans-serif;padding:0 12px;color:#1B1E24}" +
     ".epsd-lab{display:block;font-weight:800;font-size:14px;color:#6A6F78;margin:14px 0 6px}" +
+    ".epsd-b2{min-height:44px;padding:0 14px;border-radius:12px;border:2px solid #E6E1D6;background:#fff;color:#14171C;font:800 15px system-ui,sans-serif;cursor:pointer}.epsd-b2:active{transform:scale(.98)}" +
     ".epsd-act{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.epsd-act button{height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;background:#fff;font:800 17px system-ui,sans-serif;color:#1B1E24}" +
     ".epsd-act .p{background:#C0392B;border-color:#C0392B;color:#fff}.epsd-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}" +
     ".epsd-steps{display:flex;gap:8px;margin:4px 0 8px;font-weight:800;font-size:14px;color:#6A6F78}.epsd-steps .on{color:#C0392B}" +
@@ -1357,6 +1358,8 @@
   window.EPSR = { pronote: pronote, get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
     reformuler: function (t, o) { return reformuler(t, o); },
+    shareSettings: function () { return shareSettings(); }, sigCheck: function () { sigCheck(); },
+    tablets: function () { return tablets(); }, signal: function (t, min, tout) { return t ? sigSend(t, min, tout) : signal(); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
     /* ✨ version élève d'un critère (éditeurs de grille propres à Volley, Badminton, Danse) : Claude propose les 4 descripteurs « Je… »
        dans les champs élève (en jaune, non enregistrés) ; enregistrement seulement au 2e appui « ✓ Valider » après relecture. */
@@ -1851,6 +1854,98 @@
     var bx = o.querySelector(".epsd-box"); if (bx) { bx.style.maxWidth = "1100px"; bx.style.width = "96vw"; }
     return o;
   }
+  /* ================= 📱 Tablettes connectées et 📣 signal général (communs) =================
+     Chaque tablette (partage réglé) envoie un signe de vie « tb|<id> » : {id, nom, app, mode, cls, eq, at, ok, err, ver}
+     (toutes les 60 s quand l'écran est allumé, si quelque chose a changé ou toutes les 3 min) → EPSD.tablets().
+     Signal « sg|cur » : {txt, at, until, from, app ('*' = toutes les applis)} envoyé par l'enseignant (EPSD.signal()),
+     relevé toutes les 8 s par les tablettes, affiché en plein écran avec un son ; « J'ai compris » le ferme sur la tablette. */
+  var KTB = "eps.tabs.v1", KSG = "eps.sig.v1";
+  STORES.push({ pre: "tb|", key: KTB });
+  STORES.push({ pre: "sg|", key: KSG, onChange: function () { sigCheck(); } });
+  function devInfo() { var d = jget("eps.dev.v1", null); if (!d || !d.id) { d = { id: "d" + Math.random().toString(36).slice(2, 10), nom: "" }; try { localStorage.setItem("eps.dev.v1", JSON.stringify(d)); } catch (e) {} } return d; }
+  function appDir() { var m = /\/eps-autonomie-numerique\/([^\/]+)\//.exec(location.pathname); return m ? m[1] : "accueil"; }
+  var VER = ""; try { caches.keys().then(function (k) { var v = k.filter(function (x) { return /^eps-core-v\d+$/.test(x); }).map(function (x) { return +x.slice(10); }).sort(function (a, b) { return b - a; })[0]; if (v) VER = v; }); } catch (e) {}
+  var tbLast = { s: "", t: 0 };
+  function beat() {
+    if (!shCfg() || window.EPS_SIM || document.visibilityState === "hidden") return;
+    var o = {}; try { if (typeof window.epsTabInfo === "function") o = window.epsTabInfo() || {}; } catch (e) {}
+    var cc = null; try { cc = window.epsCurrentClass && window.epsCurrentClass(); } catch (e) {}
+    var d = devInfo(), it = { id: d.id, nom: d.nom || "", app: appDir(), mode: isTeacher() ? "enseignant" : (o.mode || "élève"), cls: o.cls || (cc && cc.nom) || "", eq: o.eq || "", ok: lastOk || 0, err: lastErr || "", ver: VER || "" };
+    var sig = JSON.stringify([it.app, it.mode, it.cls, it.eq, it.nom, it.err, it.ver]);
+    if (sig === tbLast.s && Date.now() - tbLast.t < 180000) return;
+    tbLast = { s: sig, t: Date.now() }; it.at = Date.now(); stPutRaw(KTB, it);
+  }
+  setInterval(function () { try { beat(); } catch (e) {} }, 60000); setTimeout(function () { try { beat(); } catch (e) {} }, 8000);
+  document.addEventListener("visibilitychange", function () { try { beat(); } catch (e) {} });
+  var NAPP = { accueil: "Accueil", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", relais: "Relais", escalade: "Escalade", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF", crosstraining: "Cross-training" };
+  function ago(t) { var s = Math.round((Date.now() - t) / 1000); return s < 60 ? "à l'instant" : s < 3600 ? "il y a " + Math.round(s / 60) + " min" : s < 86400 ? "il y a " + Math.round(s / 3600) + " h" : new Date(t).toLocaleDateString("fr-FR"); }
+  function tablets() {
+    var V = stLd(KTB), me = devInfo().id, hide = jget("eps.tabs.hide", {}), L = Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.at && !hide[x.id]; }).sort(function (a, b) { return b.at - a.at; });
+    var vmax = Math.max.apply(null, [+VER || 0].concat(L.map(function (x) { return +x.ver || 0; })));
+    var row = function (x) {
+      var old = Date.now() - x.at > 5 * 60000, st = x.err ? "⚠ partage : " + esc(x.err) : x.ok ? "✓ synchronisée " + ago(x.ok) : "○ pas encore synchronisée";
+      var maj = x.ver && +x.ver < vmax ? '<b style="color:#B4232B">⚠ ancienne version (v' + esc(x.ver) + ") : touche ⟳ sur cette tablette</b>" : x.ver ? "version à jour (v" + esc(x.ver) + ")" : "";
+      return '<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #E6E1D6;' + (old ? "opacity:.6" : "") + '"><div style="font-size:26px">' + (x.mode === "enseignant" ? "🧑‍🏫" : x.mode === "coach" ? "🧢" : "📱") + '</div><div style="flex:1;text-align:left">' +
+        "<b>" + esc(x.nom || (NAPP[x.app] || x.app) + (x.eq ? " · " + x.eq : "")) + "</b>" + (x.id === me ? ' <small style="color:#6B3FA0">(cette tablette)</small>' : "") +
+        '<div class="m" style="margin:2px 0">' + esc((NAPP[x.app] || x.app) + " · " + x.mode + (x.cls ? " · " + x.cls : "") + (x.eq ? " · équipe " + x.eq : "")) + "</div>" +
+        '<div class="m" style="margin:0">' + (old ? "⏸ plus de signe de vie depuis " + ago(x.at).replace("il y a ", "") : "🟢 active " + ago(x.at)) + " · " + st + (maj ? " · " + maj : "") + "</div></div>" +
+        '<button class="epsd-b2" data-hide="' + esc(x.id) + '" title="Retirer de la liste">✕</button></div>';
+    };
+    var act = L.filter(function (x) { return Date.now() - x.at < 15 * 60000; }), anc = L.filter(function (x) { return Date.now() - x.at >= 15 * 60000; });
+    var o = overlay('<h2 style="margin:0 0 4px">📱 Tablettes connectées</h2><p class="m">Chaque tablette se signale toutes les minutes quand elle est allumée (partage entre tablettes réglé). Une tablette « ancienne version » : touche ⟳ dessus.</p>' +
+      '<div style="display:flex;gap:8px;align-items:center;margin:8px 0"><label class="m" style="margin:0">Nom de cette tablette</label><input data-nom value="' + esc(devInfo().nom || "") + '" placeholder="Ex. : Tablette 3" style="flex:1;min-height:40px;border:1.5px solid #E6E1D6;border-radius:10px;padding:0 10px;font:inherit"><button class="epsd-b2" data-sv>Enregistrer</button></div>' +
+      (shCfg() ? "" : '<p style="background:#fff4dc;border-radius:10px;padding:8px">⚠ Partage entre tablettes non réglé sur cette tablette : rien ne peut s\'afficher.</p>') +
+      "<h3 style=\"margin:10px 0 0\">Actives (" + act.length + ")</h3>" + (act.map(row).join("") || '<p class="m">Aucune tablette active depuis 15 min.</p>') +
+      (anc.length ? '<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700">Plus anciennes (' + anc.length + ")</summary>" + anc.map(row).join("") + "</details>" : "") +
+      '<div class="epsd-act"><button data-r>⟳ Actualiser</button><button data-x>Fermer</button></div>');
+    o.querySelector("[data-sv]").onclick = function () { var d = devInfo(); d.nom = o.querySelector("[data-nom]").value.trim(); try { localStorage.setItem("eps.dev.v1", JSON.stringify(d)); } catch (e) {} tbLast.s = ""; beat(); o.remove(); tablets(); };
+    o.querySelector("[data-r]").onclick = function () { var k = KTB; EPSD.syncOne(k).then(function () { o.remove(); tablets(); }); };
+    o.querySelectorAll("[data-hide]").forEach(function (b) { b.onclick = function () { var h = jget("eps.tabs.hide", {}); h[b.dataset.hide] = 1; try { localStorage.setItem("eps.tabs.hide", JSON.stringify(h)); } catch (e) {} o.remove(); tablets(); }; });
+    var bx = o.querySelector(".epsd-box"); if (bx) { bx.style.maxWidth = "720px"; bx.style.width = "96vw"; }
+    return o;
+  }
+  function sigPresets() { try { if (window.EPSP) return EPSP.p({ id: "signaux", sec: "Signal général", label: "Messages prêts à envoyer à toutes les tablettes", type: "list", def: ["📣 Rassemblement auprès de l'enseignant", "⏱ Rotation dans 1 minute", "🔄 Rotation : changez de terrain", "🤫 Silence : écoutez la consigne", "💧 Pause eau", "🧰 Rangement du matériel", "🏁 Fin de la leçon"] }); } catch (e) {} return ["📣 Rassemblement auprès de l'enseignant", "⏱ Rotation dans 1 minute", "🧰 Rangement du matériel"]; }
+  function sigSend(txt, min, tout) {
+    var d = devInfo(), it = { id: "cur", txt: String(txt || "").trim(), at: Date.now(), until: Date.now() + (min || 2) * 60000, from: d.id, app: tout ? "*" : appDir() };
+    if (!it.txt) return; stPutRaw(KSG, it); EPSD.syncOne(KSG);
+  }
+  function signal() {
+    var P = sigPresets(), cur = stLd(KSG).items.cur, on = cur && cur.until > Date.now();
+    var o = overlay('<h2 style="margin:0 0 4px">📣 Signal à toutes les tablettes</h2><p class="m">Le message s\'affiche en plein écran, avec un son, sur les tablettes ' + (NAPP[appDir()] ? "de " + esc(NAPP[appDir()]) : "") + " (8 à 20 s selon la connexion).</p>" +
+      (on ? '<p style="background:#fff4dc;border-radius:10px;padding:8px">En cours : <b>' + esc(cur.txt) + '</b> <button class="epsd-b2" data-stop>■ Arrêter</button></p>' : "") +
+      '<div style="display:grid;gap:8px;margin:10px 0">' + P.map(function (t, i) { return '<button class="epsd-b2" style="min-height:52px;font-size:17px;text-align:left;padding:0 14px" data-p="' + i + '">' + esc(t) + "</button>"; }).join("") + "</div>" +
+      '<div style="display:flex;gap:8px"><input data-t placeholder="Autre message…" style="flex:1;min-height:44px;border:1.5px solid #E6E1D6;border-radius:10px;padding:0 10px;font:inherit"><button class="epsd-b2" data-s>Envoyer</button></div>' +
+      '<label class="m" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" data-all> sur toutes les applis (pas seulement celle-ci)</label>' +
+      '<p class="m">Les messages prêts se modifient dans ⚙ Réglages › Paramètres (Signal général).</p><div class="epsd-act"><button data-x>Fermer</button></div>');
+    var go = function (t) { sigSend(t, 2, o.querySelector("[data-all]").checked); o.remove(); try { (window.toast || function (m) { alert(m); })("Signal envoyé : " + t); } catch (e) {} };
+    o.querySelectorAll("[data-p]").forEach(function (b) { b.onclick = function () { go(P[+b.dataset.p]); }; });
+    o.querySelector("[data-s]").onclick = function () { var t = o.querySelector("[data-t]").value.trim(); if (t) go(t); };
+    var st = o.querySelector("[data-stop]"); if (st) st.onclick = function () { var c = stLd(KSG).items.cur; if (c) { c.until = Date.now(); stPutRaw(KSG, c); EPSD.syncOne(KSG); } o.remove(); };
+    return o;
+  }
+  function bip() { try { var A = window.AudioContext || window.webkitAudioContext, a = new A(); [0, .28, .56].forEach(function (t) { var g = a.createGain(), os = a.createOscillator(); os.frequency.value = 880; os.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.0001, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.4, a.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t + .22); os.start(a.currentTime + t); os.stop(a.currentTime + t + .24); }); } catch (e) {} }
+  function sigCheck() {
+    var c = stLd(KSG).items.cur, seen = +(localStorage.getItem("eps.sig.seen") || 0), el = document.getElementById("eps-sig");
+    var show = c && c.at > seen && c.until > Date.now() && c.from !== devInfo().id && (c.app === "*" || c.app === appDir());
+    if (!show) { if (el && (!c || c.until <= Date.now() || c.at <= seen)) el.remove(); return; }
+    if (el && +el.dataset.at === c.at) return; if (el) el.remove();
+    el = document.createElement("div"); el.id = "eps-sig"; el.dataset.at = c.at;
+    el.style.cssText = "position:fixed;inset:0;z-index:2147483600;background:#14171C;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;text-align:center;font-family:system-ui,sans-serif;box-shadow:inset 0 0 0 14px #F0A030";
+    el.innerHTML = '<div style="font-size:clamp(2rem,7vw,5rem);font-weight:900;line-height:1.15;max-width:1000px">' + esc(c.txt) + '</div><div style="color:#A9AEB8;font-size:18px">Message de ton enseignant · ' + new Date(c.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + '</div><button style="min-height:64px;padding:0 34px;border-radius:18px;border:0;background:#F0A030;color:#14171C;font:900 22px system-ui,sans-serif">✓ J\'ai compris</button>';
+    el.querySelector("button").onclick = function () { try { localStorage.setItem("eps.sig.seen", String(c.at)); } catch (e) {} el.remove(); };
+    document.body.appendChild(el); bip(); try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch (e) {}
+    setTimeout(function () { var x = document.getElementById("eps-sig"); if (x && +x.dataset.at === c.at) x.remove(); }, Math.max(5000, c.until - Date.now()));
+  }
+  setInterval(function () { if (shCfg() && document.visibilityState !== "hidden" && !window.EPS_SIM && !HUB) EPSD.syncOne(KSG).then(sigCheck, sigCheck); }, 8000);
+  function sigBtn() {
+    var b = document.getElementById("eps-sigb"), sl = epsSlot();
+    if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-sigb"; b.className = "epsb"; b.title = "Signal général et tablettes"; b.setAttribute("aria-label", "Signal général et tablettes connectées"); b.innerHTML = "📣";
+      b.onclick = function () { var o = overlay('<h2 style="margin:0 0 10px">Toutes les tablettes</h2><div style="display:grid;gap:10px"><button class="epsd-b2" style="min-height:56px;font-size:18px" data-a>📣 Envoyer un signal (rassemblement, rotation…)</button><button class="epsd-b2" style="min-height:56px;font-size:18px" data-b>📱 Tablettes connectées</button></div><div class="epsd-act"><button data-x>Fermer</button></div>');
+        o.querySelector("[data-a]").onclick = function () { o.remove(); signal(); }; o.querySelector("[data-b]").onclick = function () { o.remove(); tablets(); }; };
+      var f = document.getElementById("eps-ovw"); sl.insertBefore(b, f && f.parentNode === sl ? f : sl.firstChild); }
+    b.style.display = isTeacher() && !HUB ? "" : "none";
+  }
+  setInterval(function () { try { sigBtn(); } catch (e) {} }, 3000);
   function overviewBtn() {
     var b = document.getElementById("eps-ovw"), sl = epsSlot();
     if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-ovw"; b.className = "epsb"; b.title = "Vue d'ensemble des classes"; b.setAttribute("aria-label", "Vue d'ensemble des classes"); b.innerHTML = "📊"; b.onclick = overview; var f = document.getElementById("eps-find"); sl.insertBefore(b, f && f.parentNode === sl ? f : sl.firstChild); }

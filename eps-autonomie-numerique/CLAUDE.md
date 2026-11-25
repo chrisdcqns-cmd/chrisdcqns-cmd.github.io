@@ -82,6 +82,7 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - Script Google commun (`apps-script/Code.gs`, `eps.share.v1`) : enregistrements chiffrés `<appli>|…`, envoi peu après chaque modification, relevé régulier ; le plus récent l'emporte, élément par élément. Sauvegarde / restauration dans Réglages.
 - Script commun, bilan de leçon par Claude : `doPost` `aiReq:{id,mode:"bilan",act,t}` → `aiReq_`/`bilan_` (Sonnet, clé `ANTHROPIC_KEY`, réponse JSON rangée 6 h dans `CacheService` sous `ai_<id>`) ; `doGet` renvoie toujours `aiv:1` et `aiRes` avec `aiget=<id>`. Les applis n'envoient que des codes E1, E2… à la place des prénoms.
 
+- **📱 Tablettes connectées / 📣 signal général** (eps-home.js) : signe de vie `eps.tabs.v1` (`tb|<id tablette>`, `{id, nom, app, mode, cls, eq, at, ok, err, ver}` ; `eps.dev.v1` = id et nom de la tablette ; l'appli peut fournir `window.epsTabInfo()` → `{mode, cls, eq}`), `EPSD.tablets()` ; signal `eps.sig.v1` (`sg|cur`, `{txt, at, until, from, app|'*'}`), relevé toutes les 8 s par `EPSD.syncOne`, plein écran + son, `EPSD.signal()` (messages prêts `EPSP` id `signaux`) ; bouton 📣 `#eps-sigb` dans la barre en mode enseignant. Indépendant du « 📣 Message » de 📡 Leçon en cours (qui exige une leçon démarrée).
 ## Avant de publier
 - Tester dans un navigateur (élève et enseignant), sans erreur de page ; vérifier l'écran « Choisis ta classe » et la barre.
 - `git pull --rebase` avant de pousser (d'autres sessions travaillent en parallèle) ; en cas de conflit sur `/sw.js`, garder le `CORE` le plus haut + 1.
