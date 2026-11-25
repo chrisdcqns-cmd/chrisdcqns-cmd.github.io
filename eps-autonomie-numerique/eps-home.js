@@ -1508,6 +1508,7 @@
     evalsOf: function (n, c) { return evalsOf(n, c); }, qr: function () { return loadQR(); },
     overview: function () { return overview(); },
     edtSlots: function (c, a, f, n) { return edtSlots(c, a, f, n); },
+    edtInfo: function () { var D = (eget() || {}).data; return D && D.w ? { w: D.w.slice(), vac: (D.vac || []).slice() } : null; },
     check: function () { check(); },
     restoreAll: function () { return restoreAll(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); }, bilans: function (c) { bilans(c); },

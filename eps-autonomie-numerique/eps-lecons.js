@@ -256,7 +256,7 @@
     body.onscroll();
   }
   /* console ordinateur, section « 📝 Leçons » : l'appli s'ouvre directement sur les fiches (…/?console=lecons) */
-  if (/[?&]console=lecons/.test(location.search) && !VUE) (function w(n) { if (window.EPSD && document.body) { open("lec"); return; } if (n < 40) setTimeout(function () { w(n + 1); }, 150); })(0);
+  if (/[?&]console=lecons/.test(location.search) && !VUE) (function w(n) { if (window.EPSD && document.body) { var pm = location.search.match(/[?&]prog=([^&]+)/); if (pm) SELC = [decodeURIComponent(pm[1])]; open("lec"); if (pm) setTimeout(function () { var bx = OV && OV.querySelector("[data-apbox]"); if (bx) { autoProg(bx); bx.scrollIntoView({ block: "start" }); } }, 300); return; } if (n < 40) setTimeout(function () { w(n + 1); }, 150); })(0);
   /* ================= 🏫 Ma classe (vue d'ensemble d'une classe dans l'activité) =================
      EPSCL : vue générale (leçons faites, présence, réussite, évaluations), élèves (général et par leçon), bilans et avis
      par séquence / année / trimestre / dates, avis de bilan ou appréciations de bulletin (positives) proposés par Claude
