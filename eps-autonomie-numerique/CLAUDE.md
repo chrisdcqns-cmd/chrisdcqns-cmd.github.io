@@ -6,6 +6,22 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - Tout en français. Élèves tutoyés. Dire « leçon » (jamais « séance ») et « séquence » (jamais « cycle »).
 - Aucun nom d'élève dans le dépôt public : les listes restent sur les tablettes (localStorage / IndexedDB) et dans les Google Sheets ; ce qui part en ligne est chiffré (AES-GCM, clé secrète du partage).
 
+## 🧱 Modèle commun de toute nouvelle appli (demande de l'enseignant)
+Quand l'enseignant demande une nouvelle appli, elle reprend **la même forme que les autres**, sans lui poser de questions sur la structure :
+- `eps-lists.js` (synchrone, en tête) + `eps-home.js` (différé, fin) ; dossier ajouté au test de dossier d'`eps-home.js` (leçons communes), à `APPS` d'`eps-lecons.js` / `eps-obs.js`, à `DEMO_APPS` (simulation), à `/sw.js`, tuile sur l'accueil, couleur dans la charte.
+- **Mode élève** : écran commun « Choisis ta classe » (`EPSG_Q`), ressources sans classe, aucun bouton enseignant visible, pas de 🔄.
+- **Espace enseignant** `EPST.init` (onglets Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages) : barre d'outils commune ; **séquences** par les fiches de leçon communes (`eps-lecons.js` : fiches, banque, leçon en cours, évaluer la leçon, bilan de séquence, Ma classe, leçon simulée), trame `EPS_TRAMES` si l'activité a une séquence type.
+- **Évaluation** `eps-eval.js` (`EPSE.store` ou `EPSE.create` avec un adaptateur complet : `getAp` **et** `setAp`) : grille par degrés avec champ AFL / AFLP, note proposée, auto-positionnement de l'élève, positionnement par AFL, onglet 📜 Protocole pour les terminales (automatique, voir plus bas).
+- 👁 Vue élève (`EPST.openVue`) et 🧪 leçon simulée doivent fonctionner : vérifier les deux avant de publier.
+- Paramètres réglables déclarés par `EPSP.p` (visibles dans la console, 🎛 Paramètres).
+
+## ✋ Confirmation avant tout ajout rédigé par Claude
+- Tout ce que Claude rédige (fiche proposée, variantes d'une séquence, rubriques complétées, remise en forme d'une fiche, situation de remédiation) passe par `aiConfirm(items, {titre, oui})` d'eps-lecons.js : aperçu (`aiSum`), puis « ✓ Ajouter » ou « ✕ Ne rien ajouter » ; rien n'est enregistré avant. Traitements par lot (mise en fiches des documents, remise en forme de toutes les fiches, trames) : confirmation au départ. Les propositions de l'assistant de la console ne s'appliquent qu'au clic. Toute nouvelle fonction qui crée du contenu avec Claude doit faire de même.
+
+## 📜 Protocole (classes de terminale)
+- eps-lecons.js : onglet « 📜 Protocole » de 🏫 Ma classe (`clOpen`, `tab:'proto'`) pour les classes de terminale (`isTerm` : nom qui commence par T suivi d'une lettre, ou « terminale » ; aussi la classe fictive) et action « 📜 Protocole (terminales) » de l'onglet Évaluation (`EPSLC.evalActions()`, ajoutée par eps-shell.js). Ouvrir l'onglet active le barème CCF de la classe (`M.setCcf`). Interprétation du référentiel national : fin de séquence 12 pts (Bac général AFL1 ; Bac pro AFLP1 7 + AFLP2 5), fil de la séquence 8 pts sur 2 AFL / AFLP, répartition 4-4 / 6-2 / 2-6 choisie par l'élève (`M.setChoix`) ; degrés d'après l'évaluation, sinon l'auto-positionnement (`M.prop`). Lien vers l'appli CCF quand l'établissement y a son protocole (escalade, badminton, cross-training, CO).
+- Simulation : la classe fictive reçoit un auto-positionnement de démonstration (eps-eval.js `demoFill`, jamais sur une vraie classe), une évaluation de leçon du jour et un absent à l'appel (eps-home.js `demoCreate`).
+
 ## Structure d'une appli
 - Un dossier `<appli>/` avec un `index.html` autonome (bibliothèques intégrées pour le hors ligne : pdf-lib, JSZip, QR…).
 - En tête, **synchrone**, avant le script de l'appli : `<script src="../eps-lists.js"></script>` (listes de classes communes).

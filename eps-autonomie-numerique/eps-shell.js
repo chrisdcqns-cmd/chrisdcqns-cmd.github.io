@@ -96,7 +96,7 @@
     function mains(show) { String(C.main || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean).forEach(function (sel) { document.querySelectorAll(sel).forEach(function (el) { el.style.display = show ? "" : "none"; }); }); }
     function mark(id) { M.cur = id; nav.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.t === id); });
       /* raccourcis propres à l'onglet (ex. Séquence : leçon en cours, tablette de contrôle) */
-      var A = (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []) /* + leçons communes (eps-lecons.js) */
+      var A = (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []).concat(id === "eval" && window.EPSLC && EPSLC.evalActions ? EPSLC.evalActions() : []) /* + leçons communes (eps-lecons.js) */
         .map(function (a, i) { return [a.ord != null ? a.ord : 1, i, a]; }).sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; }).map(function (x) { return x[2]; });
       document.documentElement.classList.toggle("epst-acts-on", A.length > 0);
       drawActs(A); }

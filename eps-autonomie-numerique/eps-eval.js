@@ -538,6 +538,13 @@
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
     /* instances connues des fiches de leçon (eps-lecons.js : critères des grilles, remédiation) */
     (window.EPSE_INST = window.EPSE_INST || []).push({ A: A, M: M });
+    /* 🧪 classe fictive (simulation, leçon simulée) : auto-positionnement de démonstration pour que la note proposée,
+       le positionnement par AFL et l'onglet Protocole aient des données (jamais sur une vraie classe) */
+    var demoFill = function () { try { if (!(window.EPSD && EPSD.demo && EPSD.demo.on())) return; var DN = EPSD.demo.nom, G = A.grid().criteres || [];
+      (A.classes() || []).filter(function (c) { return nk(c.nom) === nk(DN); }).forEach(function (c) { (c.eleves || []).forEach(function (E, i) { if (A.getAp(E)) return; var ev = {};
+        G.forEach(function (cr, j) { ev[cr.id] = { d: Math.max(0, Math.min(3, ((i * 3 + j * 2) % 4 + (i % 3 === 0 ? 1 : 0)) % 4)), pos: ((i + j) % 4) / 4 + .1 }; });
+        A.setAp(E, { ev: ev, r: "J'ai progressé dans la situation 1.", m: "Je veux être plus régulier.", t: Date.now(), via: "demo" }); }); }); } catch (e) {} };
+    demoFill(); setTimeout(demoFill, 1500);
     return M;
   }
 

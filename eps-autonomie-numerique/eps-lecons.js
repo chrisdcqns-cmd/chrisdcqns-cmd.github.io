@@ -178,6 +178,15 @@
     Object.keys(D).forEach(function (k) { var t = D[k].parts.join("\n"); if (tot + t.length > 150000) t = t.slice(0, Math.max(0, 150000 - tot)); tot += t.length; if (t) out.push({ nom: D[k].nom, txt: t }); });
     return out;
   }
+  /* ✋ confirmation avant tout ajout rédigé par Claude (demande de l'enseignant) : aperçu, puis « ✓ Ajouter » ou « ✕ Ne rien ajouter » */
+  function aiSum(l) { var t = []; if (l.objM) t.push("🎯 " + l.objM); if (l.but) t.push("🏁 " + String(l.but).split("\n")[0]); (l.sits || []).forEach(function (x, i) { t.push("🏃 Situation " + (i + 1) + (x.t ? " · " + x.t : "") + (x.cons ? " : " + String(x.cons).slice(0, 140) + (String(x.cons).length > 140 ? "…" : "") : "")); });
+    return { titre: (l.num ? "Leçon " + l.num + " · " : "") + (l.titre || l.seq || "Fiche"), lignes: t }; }
+  function aiConfirm(items, o) { o = o || {}; css(); return new Promise(function (res) {
+    var md = document.createElement("div"); md.className = "lc-modal"; md.style.zIndex = "2147483500";
+    md.innerHTML = '<div style="max-width:760px"><h2 style="margin:0 0 4px">✋ ' + esc(o.titre || "Ajouter ce que Claude propose ?") + '</h2><p class="lc-mut" style="margin:0 0 10px">Rien n\'est enregistré tant que tu n\'as pas confirmé. Ensuite, tout reste en brouillon à relire et valider.</p>' +
+      '<div style="max-height:55vh;overflow:auto">' + items.map(function (x) { return '<div class="lc-box" style="margin:0 0 8px"><b>' + esc(x.titre) + "</b>" + (x.lignes || []).map(function (y) { return '<div style="font-size:14px;margin-top:3px">' + esc(y) + "</div>"; }).join("") + "</div>"; }).join("") + "</div>" +
+      '<div class="lc-row" style="margin-top:10px"><button type="button" class="lc-b p" data-y>✓ ' + esc(o.oui || "Ajouter") + '</button><button type="button" class="lc-b" data-n>✕ Ne rien ajouter</button></div></div>';
+    document.body.appendChild(md); md.querySelector("[data-y]").onclick = function () { md.remove(); res(true); }; md.querySelector("[data-n]").onclick = function () { md.remove(); res(false); }; }); }
   function fromAI(base, r, keepEmpty, whole) { /* r : leçon renvoyée par Claude ; les champs remplis sont marqués « ai » ; whole = remise en forme (tout est réécrit) */
     var l = base || blank(); l.ai = l.ai || {};
     var okImg = function (id) { return id && get(KI, String(id).replace(/^\[?SCH[ÉE]MA:/i, "").replace(/\]$/, "")) ? String(id).replace(/^\[?SCH[ÉE]MA:/i, "").replace(/\]$/, "") : null; };
@@ -315,6 +324,8 @@
       return { n: n, k: k, E: E, pr: pr, comm: comm, ap: ap, st: st, L: L, nAbs: nAbs, le: evs.length ? evs.reduce(function (a, b) { return a + b; }, 0) / evs.length : null, nle: evs.length, sit: rv[1] ? rv[0] / rv[1] : null, nsit: rv[1], rm: rm, ob: OB.filter(function (o) { return ekey(o.el) === k; }) }; });
     return { cls: cls, P: P, D: D, days: days, EL: EL, X: X, grid: X ? (function () { try { return X.A.grid(); } catch (e) { return null; } })() : null };
   }
+  function isTerm(c) { c = String(c || ""); try { if (window.EPSD && EPSD.demo && same(c, EPSD.demo.nom)) return true; } catch (e) {} /* classe fictive : pour voir l'onglet en simulation */
+    return /^\s*T(?!\d)/i.test(c) || /terminale/i.test(c); }
   function pcs(x) { return x == null ? "—" : Math.round(x * 100) + " %"; }
   function n20(x) { return x == null ? "—" : String(Math.round(x * 4) / 4).replace(".", ","); }
   function factsOf(D, e) { /* faits pour Claude, sans aucun nom (prénoms des camarades remplacés) */
@@ -335,14 +346,17 @@
   function clOpen(o) {
     css(); o = o || {}; var C = classes(), cls = o.cls || (cur() && cur().nom) || edtClass() || C[0] || "", TAB = o.tab || "gen", SEL = null, S0 = seqs(), P = S0.length ? { kind: "seq", seq: S0[S0.length - 1] } : { kind: "dates", from: trim(0)[0], to: trim(0)[1], lab: "année" }, MODE = "bulletin";
     var ov = document.getElementById("lc-cl"); if (!ov) { ov = document.createElement("div"); ov.id = "lc-cl"; ov.className = "lc-ov"; document.body.appendChild(ov); } ov.style.display = "flex"; ov.style.zIndex = "2147483100";
-    function head() { return '<div class="lc-top"><b>🏫 ' + esc(cls) + " · " + esc(NOM) + "</b>" + [["gen", "📊 Vue générale"], ["el", "👤 Élèves"], ["bil", "📝 Bilans & avis"]].map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + (o.noClose ? "" : '<button type="button" class="x" data-x>✕ Fermer</button>') + "</div>"; }
+    function head() { return '<div class="lc-top"><b>🏫 ' + esc(cls) + " · " + esc(NOM) + "</b>" + [["gen", "📊 Vue générale"], ["el", "👤 Élèves"], ["bil", "📝 Bilans & avis"]].concat(isTerm(cls) ? [["proto", "📜 Protocole"]] : []).map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + (o.noClose ? "" : '<button type="button" class="x" data-x>✕ Fermer</button>') + "</div>"; }
     function perBar() { var S = seqs();
       return '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-c>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select><b>Période</b>" +
         S.map(function (q) { var on = P.kind === "seq" && P.seq === q; return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-ps="' + esc(q) + '">' + esc(/^s[ée]quence/i.test(q) ? q : "Séquence " + q) + "</button>"; }).join("") +
         [[1, "Trimestre 1"], [2, "Trimestre 2"], [3, "Trimestre 3"], [0, "Année"]].map(function (t) { var r = trim(t[0]), on = P.kind === "dates" && P.from === r[0] && P.to === r[1]; return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-pt="' + t[0] + '">' + t[1] + "</button>"; }).join("") +
         '<span class="lc-mut" style="margin:0">du</span><input type="date" class="lc-sel" data-pf value="' + (P.kind === "dates" ? P.from : "") + '"><span class="lc-mut" style="margin:0">au</span><input type="date" class="lc-sel" data-pto value="' + (P.kind === "dates" ? P.to : "") + '"></div>'; }
     function draw() {
+      if (TAB === "proto" && !isTerm(cls)) TAB = "gen";
+      var X0 = TAB === "proto" ? inst(cls) : null; if (X0 && !X0.M.ccf(cls).on) X0.M.setCcf(cls, { on: true }); /* terminale : barème du protocole par défaut */
       var D = classData(cls, P), h = head() + '<div class="lc-body"><div class="lc-in" style="max-width:1300px">' + perBar();
+      if (TAB === "proto") { h += protoHtml(D, X0); ov.innerHTML = h + "</div></div>"; bind(D, null); protoBind(D, X0); return; }
       var noted = D.EL.filter(function (e) { return e.pr && e.pr.note != null; }), notes = noted.map(function (e) { return e.pr.note; });
       if (TAB === "gen") {
         var sitAll = D.EL.filter(function (e) { return e.sit != null; }), leAll = D.EL.filter(function (e) { return e.le != null; });
@@ -400,6 +414,33 @@
         var md = document.createElement("div"); md.className = "lc-modal"; md.style.zIndex = "2147483400"; md.innerHTML = '<div style="max-width:1000px;width:100%"><div class="lc-row"><h2 style="flex:1;margin:0">🖨 Bilan de classe</h2><button type="button" class="lc-b p" data-p>🖨 Imprimer / PDF</button><button type="button" class="lc-b" data-x>Fermer</button></div><iframe title="Bilan" style="width:100%;height:70vh;border:1.5px solid #E6E1D6;border-radius:10px;background:#fff"></iframe></div>';
         document.body.appendChild(md); var f = md.querySelector("iframe"); f.srcdoc = t; md.querySelector("[data-x]").onclick = function () { md.remove(); }; md.querySelector("[data-p]").onclick = function () { try { f.contentWindow.print(); } catch (er) {} }; };
     }
+    /* 📜 Protocole (classes de terminale) : interprétation du référentiel national du CCF à partir de la grille de l'appli :
+       fin de séquence 12 pts (Bac général : AFL1 ; Bac pro : AFLP1 7 pts + AFLP2 5 pts), fil de la séquence 8 pts sur 2 AFL / AFLP,
+       répartition 4-4 / 6-2 / 2-6 choisie par l'élève ; degrés d'après l'évaluation, sinon l'auto-positionnement (eps-eval.js M.prop, case CCF). */
+    function protoHtml(D, X) {
+      if (!X) return '<p class="lc-mut">Pas de grille d\'évaluation dans cette appli : le positionnement selon le protocole n\'est pas disponible.</p>';
+      var cc = X.M.ccf(cls), FIN = /^AFL1\b|^AFLP[12]\b/i, codes = ((D.EL.filter(function (e) { return e.pr && e.pr.afl; })[0] || {}).pr || { afl: [] }).afl.map(function (a) { return a.code; });
+      var CC = { escalade: "esc", badminton: "bad", crosstraining: "ct", orientation: "ori" }[APP];
+      var h = '<div class="lc-row"><b>Protocole</b><select class="lc-sel" data-pv><option value="gt"' + (cc.voie !== "pro" ? " selected" : "") + '>🎓 Bac général</option><option value="pro"' + (cc.voie === "pro" ? " selected" : "") + '>🛠 Bac pro</option></select>' +
+        '<span class="lc-mut" style="margin:0">' + (cc.voie === "pro" ? "Fin de séquence 12 pts (AFLP1 7 + AFLP2 5) · au fil de la séquence 8 pts sur 2 AFLP" : "Fin de séquence 12 pts (AFL1) · au fil de la séquence 8 pts (AFL2 + AFL3)") + ", répartition 4-4, 6-2 ou 2-6 choisie par l\'élève.</span>" +
+        (CC ? '<a class="lc-b s" href="../ccf/" target="_top" style="text-decoration:none;display:inline-flex;align-items:center">📜 Protocole de l\'établissement (appli CCF) ↗</a>' : "") + "</div>";
+      if (!codes.length) return h + '<p class="lc-mut">Aucun élève évalué ni auto-positionné pour l\'instant : évalue dans l\'onglet Évaluation (critères rattachés à un AFL), le positionnement apparaîtra ici.</p>';
+      var tot = function (e, f) { var t = 0, ok = false; (e.pr.afl || []).forEach(function (a) { if (f(a.code) && a.ccf != null) { t += a.ccf; ok = true; } }); return ok ? t : null; };
+      h += '<div style="overflow:auto"><table class="lc-tab"><tr><th>Élève</th>' + codes.map(function (c) { return "<th>" + esc(c) + (FIN.test(c) ? " <small>(fin)</small>" : " <small>(fil)</small>") + "</th>"; }).join("") + '<th>Répartition (fil)</th><th>🙋 Auto-pos.</th><th>Fin /12</th><th>Fil /8</th><th>Note /20</th><th>Source</th></tr>' +
+        D.EL.map(function (e) { if (!e.pr || !e.pr.afl) return '<tr><td><b>' + esc(e.n) + '</b></td><td colspan="' + (codes.length + 6) + '" class="lc-mut">' + (e.st || "non évalué") + "</td></tr>";
+          var ch = e.E ? X.M.choix(cls, e.E) : "4-4", fi = tot(e, function (c) { return FIN.test(c); }), fl = tot(e, function (c) { return !FIN.test(c); }), ap = e.ap && (e.ap.ev || e.ap.r || e.ap.m);
+          return "<tr><td><b>" + esc(e.n) + "</b>" + (e.st ? ' <span class="lc-tag">' + esc(e.st) + "</span>" : "") + "</td>" + codes.map(function (c) { var a = e.pr.afl.filter(function (x) { return x.code === c; })[0];
+              return "<td>" + (a && a.deg != null ? '<span class="lc-tag" style="background:' + ["#fbe3e3", "#fdf0d9", "#e1f0f9", "#def1e5"][a.deg] + '">D' + (a.deg + 1) + "</span> " + (a.ccf != null ? n20(a.ccf) + "/" + n20(a.ccfMax) : "") : "—") + "</td>"; }).join("") +
+            '<td><select class="lc-sel" data-ch="' + esc(e.k) + '"' + (e.E ? "" : " disabled") + ">" + ["4-4", "6-2", "2-6"].map(function (o) { return "<option" + (o === ch ? " selected" : "") + ">" + o + "</option>"; }).join("") + "</select></td>" +
+            "<td>" + (ap ? "✓" : "—") + "</td><td>" + n20(fi) + "</td><td>" + n20(fl) + "</td><td><b>" + (e.pr.note != null ? n20(e.pr.note) : "—") + "</b></td><td class=\"lc-mut\">" + ({ eval: "évaluation", mixte: "évaluation + auto-pos.", auto: "auto-positionnement" }[e.pr.src] || "") + "</td></tr>"; }).join("") + "</table></div>" +
+        '<div class="lc-row"><button type="button" class="lc-b" data-pcp>📋 Copier les notes (Pronote)</button><span class="lc-mut" data-pmsg style="margin:0"></span></div>' +
+        '<p class="lc-mut">Interprétation du protocole : chaque critère de la grille compte pour son AFL. Fin de séquence : degré + position dans le degré. Fil de la séquence : barème officiel selon la répartition choisie. L\'enseignant garde la décision.</p>';
+      return h; }
+    function protoBind(D, X) { if (!X) return; var q = function (s) { return ov.querySelector(s); };
+      var pv = q("[data-pv]"); if (pv) pv.onchange = function () { X.M.setCcf(cls, { on: true, voie: pv.value }); draw(); };
+      ov.querySelectorAll("[data-ch]").forEach(function (sl) { sl.onchange = function () { var e = D.EL.filter(function (z) { return z.k === sl.dataset.ch; })[0]; if (e && e.E) { X.M.setChoix(cls, e.E, sl.value); draw(); } }; });
+      var cp = q("[data-pcp]"); if (cp) cp.onclick = function () { var t = D.EL.filter(function (e) { return e.pr && e.pr.note != null; }).map(function (e) { return e.n + "\t" + n20(e.pr.note); }).join("\n"); if (!t) { q("[data-pmsg]").textContent = "Aucune note."; return; }
+        try { navigator.clipboard.writeText(t).then(function () { q("[data-pmsg]").textContent = "✓ Notes copiées (élève, tabulation, note)."; }, function () { prompt("Copie :", t); }); } catch (er) { prompt("Copie :", t); } }; }
     draw();
   }
   if (/[?&]console=classe/.test(location.search) && !VUE) (function w(n) { if (window.EPSD && document.body && (window.EPSE_INST || n > 20)) { var m = location.search.match(/[?&]cls=([^&]+)/); clOpen({ cls: m ? decodeURIComponent(m[1]) : "", noClose: true }); return; } if (n < 60) setTimeout(function () { w(n + 1); }, 150); })(0);
@@ -669,7 +710,8 @@
     md.querySelector("[data-ref]").onclick = function () { md.remove(); refOpen(md.querySelector("[data-ap]").value); };
     md.querySelector("[data-go]").onclick = function () { var b = this, a = md.querySelector("[data-ap]").value.trim(); if (!a) { alert("Indique l'apprentissage."); return; } b.disabled = true; m.textContent = "Claude rédige la situation…";
       ask({ op: "lecon", mode: "situation", act: NOM, docs: docsFor(), lecons: [], consigne: "Apprentissage à travailler en autonomie (remédiation) : " + a + (cr ? "\nCritère d'évaluation : " + (cr.nom || "") + (cr.desc ? " ; niveau visé : " + (cr.desc[2] || "") : "") : "") + (md.querySelector("[data-pr]").value ? "\nPrécisions : " + md.querySelector("[data-pr]").value : "") })
-        .then(function (r) { var R = r.lecon || {}, s0 = (R.sits || [])[0] || {}; s0.ap = s0.ap || a; var l = remLesson(a, s0, true); if (cr) { l.sits[l.sits.length - 1].crit = [cr.id]; put(KL, l); } md.remove(); open("edit", l.id); })
+        .then(function (r) { var R = r.lecon || {}, s0 = (R.sits || [])[0] || {}; s0.ap = s0.ap || a;
+          return aiConfirm([{ titre: "🏃 " + (s0.t || "Situation") + " · apprentissage : " + a, lignes: [s0.cons, s0.crQ && "✅ " + s0.crQ, s0.crR && "💡 " + s0.crR].filter(Boolean).map(String) }], { titre: "Ranger cette situation dans ta banque ?" }).then(function (ok) { if (!ok) { md.remove(); return; } var l = remLesson(a, s0, true); if (cr) { l.sits[l.sits.length - 1].crit = [cr.id]; put(KL, l); } md.remove(); open("edit", l.id); }); })
         .catch(function (e) { m.textContent = "⚠ " + e.message; b.disabled = false; }); };
   }
   /* fiche « Remédiation · <apprentissage> » (séquence « Remédiations ») : une situation par apprentissage, en brouillon */
@@ -753,7 +795,7 @@
     el.querySelectorAll("[data-sauto]").forEach(function (c) { c.onchange = function () { var x = WORK.sits[+c.dataset.sauto]; if (c.checked) delete x.noauto; else x.noauto = 1; put(KL, WORK); }; });
     el.querySelectorAll("[data-recsit]").forEach(function (b) { b.onclick = function () { saveEdit(); var x = WORK.sits[+b.dataset.recsit]; if (!x.t && !x.cons) { alert("Remplis d'abord la situation."); return; } if (WORK.statut === "brouillon") { alert("Valide d'abord la leçon : un brouillon n'est jamais montré aux élèves."); return; } recOpen([{ l: WORK, i: +b.dataset.recsit, s: x, k: WORK.id + ":s" + b.dataset.recsit }]); }; });
     el.querySelector("[data-refmt]").onclick = function () { var b = this; saveEdit(); b.disabled = true; msg.textContent = "Claude remet la fiche en forme selon ton modèle (sans rien inventer)…";
-      refmt(get(KL, EDIT)).then(function () { draw(); }).catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; }); };
+      refmt(get(KL, EDIT), true).then(function () { draw(); }).catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; }); };
     var un = el.querySelector("[data-undo]"); if (un) un.onclick = function () { if (!confirm("Revenir à la fiche d'avant la remise en forme ?")) return; var A0 = WORK.avant; F.concat(RF).forEach(function (x) { WORK[x[0]] = ""; }); WORK.sits = []; delete WORK.echImg; Object.keys(A0).forEach(function (k) { WORK[k] = A0[k]; }); if (!WORK.sits.length) WORK.sits = [{}, {}]; delete WORK.avant; WORK.ai = {}; put(KL, WORK); draw(); };
     el.querySelector("[data-modsave]").onclick = function () { saveEdit(); var both = confirm("Ce modèle sert pour toutes tes activités ?\n\nOK = toutes les activités · Annuler = seulement " + NOM);
       put(KMOD, { id: both ? "lcmod" : "lcmod." + APP, f: modFields(WORK), from: titreL(WORK), at: Date.now() }); if (both) { var o = get(KMOD, "lcmod." + APP); if (o) { o.del = 1; put(KMOD, o); } }
@@ -786,7 +828,7 @@
     el.querySelectorAll("[data-prm]").forEach(function (b) { b.onclick = function () { var p = b.dataset.prm.split("|"); WORK.prog = (WORK.prog || []).filter(function (x) { return !(String(x.at) === p[0] && x.c === p.slice(1).join("|")); }); put(KL, WORK); draw(); }; });
     el.querySelector("[data-fill]").onclick = function () { var b = this; saveEdit(); b.disabled = true; msg.textContent = "Claude complète les rubriques vides à partir de tes documents…";
       ask({ op: "lecon", mode: "completer", act: NOM, base: compact(WORK), docs: docsFor(), lecons: lecons().filter(function (x) { return x.seq === WORK.seq && x.id !== WORK.id; }).map(compact) })
-        .then(function (r) { var l = fromAI(get(KL, EDIT), r.lecon || {}, true); put(KL, l); draw(); }).catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; }); };
+        .then(function (r) { var l = fromAI(get(KL, EDIT), r.lecon || {}, true); return aiConfirm([aiSum(l)], { titre: "Compléter la fiche avec ces propositions ?", oui: "Compléter" }).then(function (ok) { if (ok) put(KL, l); else msg.textContent = "Rien n'a été ajouté."; b.disabled = false; draw(); }); }).catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; }); };
   }
 
   /* ---- Claude : propositions ---- */
@@ -814,18 +856,19 @@
       b.disabled = true;
       if (/simple|difficile|variante/.test(mode)) {
         if (!L.length) { msg.textContent = "Cette séquence n'a pas encore de leçon."; b.disabled = false; return; }
-        var nseq = seq + (mode === "simple" ? " (plus simple)" : mode === "difficile" ? " (plus difficile)" : " (variante)"), i = 0, done = 0;
+        var nseq = seq + (mode === "simple" ? " (plus simple)" : mode === "difficile" ? " (plus difficile)" : " (variante)"), i = 0, done = 0, PEND = [];
         (function next() {
-          if (i >= L.length) { msg.textContent = "✓ " + done + " leçon(s) en brouillon dans « " + nseq + " »."; setTimeout(function () { md.remove(); draw(); }, 900); return; }
+          if (i >= L.length) { aiConfirm(PEND.map(aiSum), { titre: "Ajouter ces " + PEND.length + " leçon(s) dans « " + nseq + " » ?" }).then(function (ok) { if (ok) PEND.forEach(function (l) { put(KL, l); });
+            msg.textContent = ok ? "✓ " + done + " leçon(s) en brouillon dans « " + nseq + " »." : "Rien n'a été ajouté."; b.disabled = false; if (ok) setTimeout(function () { md.remove(); draw(); }, 900); }); return; }
           var src = L[i++]; msg.textContent = "Claude adapte la leçon " + i + " / " + L.length + "…";
-          ask({ op: "lecon", mode: mode, act: NOM, consigne: cons, base: compact(src), docs: docsFor(), lecons: [] }).then(function (r) { var l = fromAI(blank(nseq), r.lecon || {}); l.voie = VOIE_ASK || voieDe(src); l.seq = nseq; l.num = src.num; l.cr = Date.now(); l.src = src.id; put(KL, l); done++; next(); })
+          ask({ op: "lecon", mode: mode, act: NOM, consigne: cons, base: compact(src), docs: docsFor(), lecons: [] }).then(function (r) { var l = fromAI(blank(nseq), r.lecon || {}); l.voie = VOIE_ASK || voieDe(src); l.seq = nseq; l.num = src.num; l.cr = Date.now(); l.src = src.id; PEND.push(l); done++; next(); })
             .catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; });
         })();
         return;
       }
       msg.textContent = "Claude prépare la proposition…";
       ask({ op: "lecon", mode: mode, act: NOM, consigne: cons, docs: mode === "importer" ? docsFor(md.querySelector("[data-doc]").value) : docsFor(), lecons: (mode === "suivante" ? L : lecons()).slice(-12).map(compact) })
-        .then(function (r) { var l = fromAI(blank(seq), r.lecon || {}); l.voie = VOIE_ASK || voieDe(null); if (!l.seq) l.seq = seq; if (mode === "suivante" && !l.num) l.num = String(L.length + 1); l.cr = Date.now(); put(KL, l); md.remove(); EDIT = l.id; draw(); })
+        .then(function (r) { var l = fromAI(blank(seq), r.lecon || {}); l.voie = VOIE_ASK || voieDe(null); if (!l.seq) l.seq = seq; if (mode === "suivante" && !l.num) l.num = String(L.length + 1); l.cr = Date.now(); return aiConfirm([aiSum(l)], { titre: "Ajouter cette leçon proposée par Claude ?" }).then(function (ok) { if (!ok) { msg.textContent = "Rien n'a été ajouté."; b.disabled = false; return; } put(KL, l); md.remove(); EDIT = l.id; draw(); }); })
         .catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; });
     };
   }
@@ -833,9 +876,10 @@
   /* ---- 📥 tous les documents → fiches (brouillons, sans rien inventer) ---- */
   /* 🔁 remise en forme d'une fiche selon le modèle (structure de l'enseignant) : Claude redistribue le texte dans les rubriques,
      sans rien inventer (document source joint s'il existe) ; fiche d'avant gardée (« ↺ Annuler »), résultat en brouillon à relire. */
-  function refmt(l) { if (!l) return Promise.reject(new Error("fiche introuvable"));
+  function refmt(l, conf) { if (!l) return Promise.reject(new Error("fiche introuvable"));
     return ask({ op: "lecon", mode: "reformater", act: NOM, base: compact(l), docs: l.doc ? docsFor(l.doc) : [], lecons: [], consigne: l.titre || l.num ? "Leçon concernée : " + (l.num ? "n° " + l.num + " " : "") + (l.titre ? "« " + l.titre + " »" : "") : "" })
-      .then(function (r) { var L0 = get(KL, l.id) || l, av = JSON.parse(JSON.stringify(compact(L0))); if (L0.statut) av.statut = L0.statut; var n = fromAI(L0, r.lecon || {}, false, true); n.avant = av; put(KL, n); return n; }); }
+      .then(function (r) { var L0 = get(KL, l.id) || l, av = JSON.parse(JSON.stringify(compact(L0))); if (L0.statut) av.statut = L0.statut; var n = fromAI(L0, r.lecon || {}, false, true); n.avant = av; if (!conf) { put(KL, n); return n; }
+        return aiConfirm([aiSum(n)], { titre: "Remplacer la fiche par cette version remise en forme ?", oui: "Remplacer" }).then(function (ok) { if (!ok) throw new Error("rien n'a été changé"); put(KL, n); return n; }); }); }
   function refmtAll() {
     var L = lecons().filter(function (l) { return compact(l) && (l.doc || l.titre || l.disp || l.ech || (l.sits || []).some(function (x) { return x.cons; })); }), md = document.createElement("div"), stop = false, i = 0, ok = 0;
     if (!L.length) { alert("Aucune fiche à remettre en forme."); return; }
@@ -848,6 +892,7 @@
   }
   function importAll() {
     var D = docList().filter(function (d) { return d.use; }), md = document.createElement("div"), stop = false, made = 0;
+    if (D.length && !confirm("Claude va créer des fiches de leçon (en brouillon, à relire et valider) à partir de " + D.length + " document(s). Continuer ?")) return;
     md.className = "lc-modal"; md.innerHTML = '<div><h2>📥 Mettre en fiches mes documents</h2><p class="lc-mut">Claude repère les leçons de chaque document, puis met chacune en forme dans ta structure, avec tes formulations (rien d\'inventé : les rubriques absentes restent vides). Tout arrive en brouillon, à relire et valider. Compte environ 30 s par leçon.</p><p data-m style="font-weight:700"></p><div class="lc-row"><button type="button" class="lc-b" data-stop>Arrêter</button></div></div>';
     document.body.appendChild(md);
     var M = md.querySelector("[data-m]"), sb = md.querySelector("[data-stop]");
@@ -1304,6 +1349,8 @@
   window.EPSLC = {
     open: open, close: close, app: APP, code: CODE, nextProg: function (c) { var p = nextProg(c); return p ? { at: p.at, titre: titreL(p.l), id: p.l.id } : null; }, count: function (c) { return lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c); }).length; },
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
+    evalActions: function () { evInit(); var T = classes().filter(isTerm); if (!T.length) return [];
+      return [{ ico: "📜", label: "Protocole (terminales)", main: 1, ord: 5, go: function () { var c = cur() && cur().nom; clOpen({ cls: c && isTerm(c) ? c : T[0], tab: "proto" }); } }]; },
     actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "✅", label: "Tout est prêt ?", ord: 0.5, go: function () { if (window.EPSD && EPSD.check) EPSD.check(); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "📊", label: "Évaluer la leçon", ord: 2.2, go: function () { open("eval"); } }, { ico: "🏁", label: "Bilan de séquence", ord: 2.4, go: function () { open("bil"); } }, { ico: "🧩", label: "Niveaux & groupes", sub: "Classement par niveau, affinités, groupes", ord: 2.6, go: function () { grOpen(null, "rang"); } }, { ico: "🏫", label: "Ma classe : vue d'ensemble", sub: "Leçons, élèves, bilans et avis", ord: 2.5, go: function () { clOpen({}); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
     classe: function (o) { clOpen(o || {}); }, classData: function (c, P) { return classData(c, P); },
     banque: function (m) { bankOpen(m); }, autonomie: function () { autoOpen(); }, remCard: remCard, grids: grids, recAdd: recAdd, carte: carteHtml, sitNew: sitNew, refOpen: refOpen, print: function (id) { var l = get(KL, id); if (l) printOpen([l], titreL(l)); },
