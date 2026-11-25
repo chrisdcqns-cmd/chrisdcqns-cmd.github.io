@@ -387,6 +387,15 @@
     return { g: G, disp: presents(cls).filter(function (x) { return isDisp(cls, x); }), mode: mode, sans: sans ? 1 : 0, at: Date.now() };
   }
 
+  /* 📂 cadres repliables : un titre h3 en tête d'un cadre .lc-box se touche pour replier / déplier ; l'état est gardé sur la tablette (eps.lcfold) */
+  function foldBoxes(root) {
+    var F = jget("eps.lcfold", {});
+    root.querySelectorAll(".lc-box").forEach(function (bx) { var h = bx.firstElementChild; if (!h || h.tagName !== "H3") return; var key = h.textContent.replace(/[^\p{L}\s]/gu, "").trim().slice(0, 40); if (!key) return;
+      var set = function (closed) { Array.prototype.forEach.call(bx.children, function (c) { if (c !== h) c.style.display = closed ? "none" : ""; }); h.setAttribute("aria-expanded", closed ? "false" : "true"); var ar = h.querySelector(".lc-fold"); if (ar) ar.textContent = closed ? "▸" : "▾"; };
+      h.style.cursor = "pointer"; h.setAttribute("role", "button"); h.tabIndex = 0; h.insertAdjacentHTML("afterbegin", '<span class="lc-fold" aria-hidden="true" style="display:inline-block;width:20px;color:#6A6F78">▾</span>');
+      var tog = function () { var c = !F[key]; if (c) F[key] = 1; else delete F[key]; jset("eps.lcfold", F); set(c); };
+      h.onclick = tog; h.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tog(); } }; set(!!F[key]); });
+  }
   /* ---- leçon en cours (tablette de contrôle) ---- */
   function live(cls) { return all(KV).filter(function (v) { return same(v.cls, cls); })[0] || null; }
   function startLive(cls, lec) { var v = live(cls) || { id: nn(cls) || uid() }; v.cls = cls; v.on = 1; v.st = Date.now(); v.lec = lec || ""; v.part = ""; v.msgs = []; v.tim = null; v.rang = null; v.grp = null; put(KV, v, true); }
@@ -424,7 +433,7 @@
         ((R && R.h && R.h.length) ? '<details><summary class="lc-mut">Trace des rangements</summary>' + R.h.slice().sort(function (a, b) { return b.at - a.at; }).slice(0, 30).map(function (x) { return '<div class="lc-mut">' + esc(hm(x.at)) + " · groupe " + (x.g + 1) + " · " + esc(x.app) + "</div>"; }).join("") + "</details>" : "") + "</div>" +
         '<div class="lc-row">' + (window.EPST && EPST.openVue ? '<button type="button" class="lc-b p" data-vue>👁 Voir côté élève</button>' : "") + '<button type="button" class="lc-b" data-stop style="border-color:#C0392B;color:#C0392B">⏹ Terminer la leçon</button></div>';
     }
-    var el = shell(h);
+    var el = shell(h); foldBoxes(el);
     el.querySelector("[data-cls]").onchange = function () { LIVECLS = this.value; drawLive(); };
     bindAppel(el, cls, drawLive);
     var ls = el.querySelector("[data-lec]"), mp = el.querySelector("[data-matpre]"); if (ls && mp) { var pg = lecons().filter(function (l) { return l.statut !== "brouillon" && (l.prog || []).some(function (p) { return same(p.c, cls) && Math.abs(p.at - Date.now()) < 3 * 3600e3; }); })[0]; if (pg) ls.value = pg.id;
