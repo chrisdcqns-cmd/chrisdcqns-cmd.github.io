@@ -213,6 +213,12 @@ h2{font-size:22px;margin:4px 0 14px}
 .gc-lab.gc-exo{font-size:clamp(34px,11vmin,130px);letter-spacing:0;line-height:1.05;text-transform:uppercase;max-width:95vw;overflow-wrap:anywhere}
 .gc-etapes{display:grid;gap:6px}.gc-et{display:flex;gap:6px;align-items:end;flex-wrap:wrap}.gc-et input[type=text]{flex:1 1 160px}.gc-et label{display:flex;flex-direction:column;font-size:12px;width:78px}.gc-et .btn{padding:8px 10px}
 .gc-n{width:26px;height:26px;border-radius:50%;background:var(--ct-c,#ECF5E0);display:grid;place-items:center;font-weight:800;align-self:center}
+.gc-img{background:#fff;border-radius:18px;padding:6px;width:min(34vmin,300px);aspect-ratio:1}.gc-img.prochain{width:min(24vmin,200px);opacity:.92}
+.voile.gc.avec-img .gc-t{font-size:clamp(70px,20vmin,240px)}.voile.gc.avec-img .gc-lab.gc-exo{font-size:clamp(26px,7vmin,80px)}
+.etir-img svg{width:100%;height:100%;display:block}.etir-img.flip svg{transform:scaleX(-1)}
+.etir-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.etir-carte{display:flex;gap:10px;background:#fff;border:1px solid var(--bord,#E5E7EB);border-radius:14px;padding:10px}.etir-carte .etir-img{flex:none;width:118px;height:118px;background:#F8FAF5;border-radius:10px}
+.etir-txt p{margin:6px 0}.etir-cle{color:#555}.etir-z{margin:18px 2px 8px}.etir-regles ul{margin:4px 0 0;padding-left:18px}.etir-regles li{margin:3px 0}
 .gc-suiv{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:6px 14px;background:rgba(0,0,0,.18);border-radius:14px;padding:10px 18px;font-size:clamp(16px,3.2vmin,30px);font-weight:700}
 .gc-sl{font-size:.7em;text-transform:uppercase;letter-spacing:1px;opacity:.8}.gc-sd{font-family:ui-monospace,Menlo,monospace}.gc-puis{opacity:.7;font-size:.85em}
 .gc-liste{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:clamp(16px,3.4vmin,32px);font-weight:700}.gc-liste span{background:rgba(255,255,255,.18);border-radius:10px;padding:4px 12px}
@@ -707,14 +713,14 @@ addEventListener("resize", appliquerAffichage);
 function rendre(){
   appliquerAffichage();
   let ong;
-  if(RESS && !S.prof){ ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["fc","❤️","Zones et pouls"],["chrono","⏱","Grand chrono"]]; if(!["biblio","wods","fc","chrono"].includes(S.onglet)) S.onglet="biblio"; }
+  if(RESS && !S.prof){ ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["fc","❤️","Zones et pouls"],["chrono","⏱","Grand chrono"],["etir","🧘","Étirements"]]; if(!["biblio","wods","fc","chrono","etir"].includes(S.onglet)) S.onglet="biblio"; }
   else if(S.prof) ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["lecon","⏱","WOD"],["jour","📌","Leçon du jour"],["gerer","⚙","Vidéos"]];
-  else if(!aClasse()){ ong=[["biblio","▦","Bibliothèque"]]; if(S.onglet!=="biblio") S.onglet="biblio"; }
-  else { ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["lecon","⏱","Mon WOD"],["carnet","📒","Carnet"]]; if(!S.groupe) S.onglet="groupe"; }
+  else if(!aClasse()){ ong=[["biblio","▦","Bibliothèque"],["etir","🧘","Étirements"]]; if(!["biblio","etir"].includes(S.onglet)) S.onglet="biblio"; }
+  else { ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["lecon","⏱","Mon WOD"],["etir","🧘","Étirements"],["carnet","📒","Carnet"]]; if(!S.groupe) S.onglet="groupe"; }
   const st=$("#sousTitre"); if(st) st.textContent = RESS&&!S.prof ? "Tablette ressource" : (BOX?"Box "+BOX+" · ":"")+(!S.prof&&aClasse() ? `${nomClasse()}${S.groupe?" · "+S.groupe.noms.join(", "):""}` : "CA5 · S'entraîner");
   $("#onglets").innerHTML = ong.map(([k,i,t])=>`<button class="${S.onglet===k?"actif":""}" data-onglet="${k}"><b>${i}</b><span>${t}${k==="lecon"&&S.lecon.items.length?`<span class="compteur">${S.lecon.items.length}</span>`:""}</span></button>`).join("");
   $("#bandeau").innerHTML = S.prof && S.nonPublie ? `<div class="bandeau-maj">● Modifications non publiées pour les élèves<button class="btn ct petit" data-act="publier" style="padding:6px 10px">Publier</button></div>` : "";
-  ({biblio:vueBiblio, lecon:vueLecon, mes:vueMesLecons, gerer:vueGerer, groupe:vueGroupe, carnet:vueCarnet, wods:vueWods, chrono:vueChrono, fc:vueFCtab, jour:vueJour, param:vueParam})[S.onglet]();
+  ({biblio:vueBiblio, lecon:vueLecon, mes:vueMesLecons, gerer:vueGerer, groupe:vueGroupe, carnet:vueCarnet, wods:vueWods, chrono:vueChrono, etir:vueEtir, fc:vueFCtab, jour:vueJour, param:vueParam})[S.onglet]();
 }
 
 /* ---------- Bibliothèque ---------- */
@@ -1023,6 +1029,9 @@ document.addEventListener("click", ev=>{
   if(d.gclance){ const c=CHRONOS.concat(LS.get("chronos",[])).find(x=>x.id===d.gclance); if(ev.target.closest("[data-gcsuppr]")){ if(confirm("Supprimer ce chrono ?")){ LS.set("chronos",LS.get("chronos",[]).filter(x=>x.id!==d.gclance)); vueChrono(); } return; } if(c) lancerGC(c.ex&&c.ex.length?c:Object.assign({},c,{ex:gcExListe()})); return; }
   if(d.gcwod){ lancerGC(chronoDeWod(WODS.find(x=>x.id===d.gcwod))); return; }
   if(d.gctype){ S.gcForm.type=d.gctype; vueChrono(); return; }
+  if(d.etirtenue){ S.etirTenue=+d.etirtenue; LS.set("etirTenue",+d.etirtenue); vueEtir(); return; }
+  if(d.etirun){ const r=etirRoutine(false); r.etapes=r.etapes.filter(e=>e.img===d.etirun); r.etapes[r.etapes.length-1].repos=0; r.nom="Étirement"; lancerGC(r); return; }
+  if(d.act==="etirTout"||d.act==="etirCourt"){ lancerGC(etirRoutine(d.act==="etirCourt")); return; }
   if(d.gcxp){ S.gcForm.xp=d.gcxp; vueChrono(); return; }
   if(d.gcetsuppr!=null){ S.gcForm.etapes.splice(+d.gcetsuppr,1); vueChrono(); return; }
   if(d.gcmonte!=null){ const E=S.gcForm.etapes, i=+d.gcmonte; if(i>0) [E[i-1],E[i]]=[E[i],E[i-1]]; vueChrono(); return; }
@@ -1668,10 +1677,10 @@ function gcPhases(c){
   const P=[{t:"pret",s:10,lab:"Prêt ?"}]; let k=0;
   if(c.type==="seq"){ const E=c.etapes.filter(e=>+e.travail>0), n=E.length;
     for(let t=1;t<=c.tours;t++) E.forEach((e,i)=>{
-      P.push({t:"work",s:+e.travail,ex:e.ex||"",lab:`Étape ${i+1}/${n}`,sub:c.tours>1?`Tour ${t}/${c.tours}`:""});
+      P.push({t:"work",s:+e.travail,ex:e.ex||"",img:e.img,flip:e.flip,lab:`${c.calme?"Étirement":"Étape"} ${i+1}/${n}`,sub:c.tours>1?`Tour ${t}/${c.tours}`:""});
       const finTour=i===n-1, dernier=finTour&&t===c.tours; if(dernier) return;
       if(finTour&&c.recupTour) P.push({t:"rest",s:+c.recupTour,lab:"Récupération entre tours"});
-      else if(+e.repos) P.push({t:"rest",s:+e.repos,lab:"Repos"}); });
+      else if(+e.repos) P.push({t:"rest",s:+e.repos,lab:e.reposNom||(c.calme?"Mise en place":"Repos"),nomR:e.reposNom||(c.calme?"Mise en place":"")}); });
   } else if(c.type==="int"){
     for(let t=1;t<=c.tours;t++) for(let s=1;s<=c.stations;s++){
       P.push({t:"work",s:c.travail,ex:exN(c.stations>1?s-1:k++),lab:c.stations>1?`Atelier ${s}/${c.stations}`:`Série ${t}/${c.tours}`,sub:c.stations>1?`Tour ${t}/${c.tours}`:""});
@@ -1702,15 +1711,17 @@ function tickGC(){
 function gcSuivante(){ GC.i++; GC.t0=Date.now(); GC.dern=null; if(GC.i>=GC.P.length) return finGC(); bip(GC.P[GC.i].t==="rest"?440:990,.4); dessinerGC(); }
 function finGC(){ clearInterval(GC.iv); try{ GC.lock&&GC.lock.release(); }catch(e){} bip(1200,.7);
   $("#calque").innerHTML=`<div class="voile gc" style="background:#14171C"><div class="gc-in"><div class="gc-lab">Terminé</div><div class="gc-t">🏁</div><div class="gc-bas"><button class="btn ct" data-act="gcRejouer">↻ Relancer</button><button class="btn contour" data-act="gcFermer">Fermer</button></div></div></div>`; }
-const gcNomPhase = ph => ph.t==="rest"?(/atelier/i.test(ph.lab)?"Changement":/tours/.test(ph.lab)?"Récupération":"Repos"):ph.t==="pret"?"Prêt":(ph.ex||"Travail");
+const gcNomPhase = ph => ph.nomR ? ph.nomR : ph.t==="rest"?(/atelier/i.test(ph.lab)?"Changement":/tours/.test(ph.lab)?"Récupération":"Repos"):ph.t==="pret"?"Prêt":(ph.ex||"Travail");
 function dessinerGC(){
-  const ph=GC.P[GC.i], col={pret:"#C98A00",work:"#3F8F14",rest:"#2F6FDB"}[ph.t], suiv=GC.P[GC.i+1], apres=GC.P[GC.i+2];
+  const ph=GC.P[GC.i], col=(GC.c.calme?{pret:"#7C6BC4",work:"#0F766E",rest:"#6D5DB8"}:{pret:"#C98A00",work:"#3F8F14",rest:"#2F6FDB"})[ph.t], suiv=GC.P[GC.i+1], apres=GC.P[GC.i+2];
+  const phImg = ph.img ? ph : (ph.t!=="work" ? GC.P.slice(GC.i+1).find(x=>x.t==="work"&&x.img) : null);
   const prochainEx = GC.P.slice(GC.i+1).find(x=>x.t==="work");
   const grand = ph.t==="work" ? (ph.ex||(ph.liste&&ph.liste.length?ph.lab.toUpperCase():"TRAVAIL")) : ph.t==="rest" ? gcNomPhase(ph).toUpperCase() : "PRÊT";
   const petitSous = ph.t!=="work" && prochainEx && prochainEx.ex ? `Prochain exercice : <b>${h(prochainEx.ex)}</b>` : "";
   const ligneSuiv = x => `<span class="gc-sd">${mmss(x.s)}</span> ${h(gcNomPhase(x))}`;
-  $("#calque").innerHTML = `<div class="voile gc" style="background:${col}"><div class="gc-in">
+  $("#calque").innerHTML = `<div class="voile gc${phImg?" avec-img":""}" style="background:${col}"><div class="gc-in">
     <div class="gc-haut"><span>${h(GC.c.nom||GC_TYPES[GC.c.type])} · ${h(ph.lab)}${ph.sub?" · "+h(ph.sub):""}</span><button class="tm-x" data-act="gcStop" aria-label="Arrêter">✕</button></div>
+    ${phImg?`<div class="gc-img${ph.img?"":" prochain"}">${etirImg(phImg.img,phImg.flip)}</div>`:""}
     <div class="gc-lab ${ph.t==="work"&&ph.ex?"gc-exo":""}">${h(grand)}</div>
     ${petitSous?`<div class="gc-sub">${petitSous}</div>`:""}
     <div class="gc-t" id="gcT">${ph.up?"0:00":mmss(ph.s)}</div>
@@ -1774,6 +1785,105 @@ function chronoDeWod0(w){ const p=w.params;
   if(w.format==="fortime") return {nom:w.nom, type:"fortime", cap:p.cap};
   return {nom:w.nom, type:"int", travail:45, repos:p.recupEx||30, stations:w.items.length, tours:p.tours, recupTour:p.recupTour||0}; }
 
+/* ======================= ÉTIREMENTS (retour au calme, de la tête aux pieds) =======================
+   Dessins originaux : silhouette en traits, muscle étiré en orange. Postures tirées des routines courantes
+   (NHS « How to stretch after exercising », Décathlon Conseil Sport, mobilesport.ch) ; durée : 10-30 s (ACSM). */
+const ETIR_C = {a:"#1F2937", b:"#A8B0BC", h:"#F97316", m:"#CBD5E1"};
+function etirSvg(p){
+  // p.l : [style, x1,y1,x2,y2,…] ; style a (devant), b (derrière), h (muscle étiré), m (mur / sol) ; p.t : tête [x,y]
+  const pl = ([st,...c]) => `<polyline points="${c.join(" ")}" fill="none" stroke="${ETIR_C[st]}" stroke-width="${st==="h"?13:st==="m"?4:9}" stroke-linecap="round" stroke-linejoin="round"${st==="h"?' opacity=".85"':""}/>`;
+  const ordre = s => ({m:0,b:1,a:2,h:3})[s[0]];
+  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img"><line x1="8" y1="192" x2="192" y2="192" stroke="${ETIR_C.m}" stroke-width="4" stroke-linecap="round"/>${
+    p.l.slice().sort((x,y)=>ordre(x)-ordre(y)).map(pl).join("")}<circle cx="${p.t[0]}" cy="${p.t[1]}" r="12" fill="${ETIR_C.a}"/></svg>`;
+}
+const JAMBES_DEBOUT = [["b",100,112,98,150,96,188],["a",100,112,102,150,104,188]];
+const ETIRS = [
+ {id:"nuque", nom:"Nuque", zone:"Haut du corps", muscles:"trapèze supérieur, muscles latéraux du cou", cotes:1,
+  consigne:"Debout, épaules basses. Incline l'oreille vers l'épaule, la main posée sur la tête accompagne sans tirer.",
+  cles:"Ne tourne pas la tête, incline-la. L'épaule opposée reste basse.",
+  dessin:{t:[86,34], l:[["a",100,52,100,112],["a",82,58,118,58],["a",82,58,66,44,80,26],["a",118,58,124,88,126,116],["a",92,112,90,150,88,188],["a",108,112,110,150,112,188],["h",96,44,114,56]]}},
+ {id:"epaules", nom:"Épaule (bras croisé)", zone:"Haut du corps", muscles:"deltoïde postérieur, haut du dos", cotes:1,
+  consigne:"Tends un bras devant la poitrine. L'autre main, sur le coude, le rapproche doucement de toi.",
+  cles:"Épaule basse, loin de l'oreille. Le bras reste à hauteur d'épaule.",
+  dessin:{t:[100,34], l:[["a",100,50,100,112],["a",82,58,118,58],["a",118,58,96,66,70,64],["a",82,58,80,84,96,68],["a",92,112,90,150,88,188],["a",108,112,110,150,112,188],["h",108,62,122,58]]}},
+ {id:"triceps", nom:"Triceps", zone:"Haut du corps", muscles:"triceps brachial", cotes:1,
+  consigne:"Lève un bras, plie-le : la main descend dans le dos. L'autre main pousse le coude vers l'arrière.",
+  cles:"Tête droite, ne la pousse pas vers l'avant. Ventre serré, dos non creusé.",
+  dessin:{t:[100,36], l:[["a",100,52,100,112],["a",82,58,118,58],["a",118,58,120,22,104,44],["a",82,58,80,30,114,20],["a",92,112,90,150,88,188],["a",108,112,110,150,112,188],["h",118,54,120,26]]}},
+ {id:"pecto", nom:"Pectoraux", zone:"Haut du corps", muscles:"grand pectoral, avant des épaules", cotes:0,
+  consigne:"Mains jointes dans le dos, bras tendus. Ouvre la poitrine et monte légèrement les mains.",
+  cles:"Ne creuse pas le bas du dos : ventre serré, regard devant.",
+  dessin:{t:[104,30], l:[["a",100,46,100,110],["b",100,52,86,78,78,98],["a",100,52,84,76,74,96],...JAMBES_DEBOUT,["h",106,54,108,72]]}},
+ {id:"flancs", nom:"Flancs", zone:"Tronc", muscles:"grand dorsal, obliques", cotes:1,
+  consigne:"Pieds écartés, un bras au-dessus de la tête. Penche-toi sur le côté, comme entre deux vitres.",
+  cles:"Ne bascule ni en avant ni en arrière. Le bassin reste au-dessus des pieds.",
+  dessin:{t:[124,40], l:[["a",100,112,114,54],["a",102,52,130,62],["a",102,52,112,22,142,20],["a",130,62,136,90,136,116],["a",92,112,88,150,84,188],["a",108,112,112,150,116,188],["h",96,106,102,60]]}},
+ {id:"avbras", nom:"Avant-bras", zone:"Haut du corps", muscles:"fléchisseurs du poignet et des doigts", cotes:1,
+  consigne:"Bras tendu devant, paume vers le haut. L'autre main tire doucement les doigts vers le bas.",
+  cles:"Coude tendu, sans le verrouiller. Utile après les appuis (pompes, burpees, planche).",
+  dessin:{t:[100,30], l:[["a",100,46,100,110],["a",100,54,128,62,156,64,160,82],["b",100,56,124,78,154,80],...JAMBES_DEBOUT,["h",130,62,154,64]]}},
+ {id:"dos", nom:"Dos (position de l'enfant)", zone:"Tronc", muscles:"muscles du dos, grand dorsal", cotes:0,
+  consigne:"À genoux, fesses sur les talons. Avance les mains au sol loin devant, le front vers le sol.",
+  cles:"Relâche les épaules et respire lentement. Écarte un peu les genoux si c'est plus confortable.",
+  dessin:{t:[136,170], l:[["a",110,184,60,186],["a",66,164,110,182],["a",66,164,90,150,122,164],["a",118,164,152,178,184,182],["h",72,158,92,148,112,156]]}},
+ {id:"rotation", nom:"Rotation au sol", zone:"Tronc", muscles:"bas du dos, fessiers, obliques", cotes:1,
+  consigne:"Sur le dos, bras en croix. Genoux pliés serrés, laisse-les tomber d'un côté, la tête tourne de l'autre.",
+  cles:"Les deux épaules restent au sol. Descends les genoux sans forcer. (Vu de dessus.)",
+  dessin:{t:[38,100], l:[["a",52,100,110,100],["a",60,100,60,62,60,26],["a",60,100,60,138,60,174],["b",110,96,144,124,172,104],["a",110,102,140,132,170,116],["h",92,100,112,102]]}},
+ {id:"fessiers", nom:"Fessiers (le 4)", zone:"Bas du corps", muscles:"grand fessier, piriforme", cotes:1,
+  consigne:"Sur le dos, pose une cheville sur le genou opposé. Attrape la cuisse d'appui et ramène-la vers toi.",
+  cles:"La tête et le bas du dos restent au sol. Pousse doucement le genou croisé vers l'extérieur.",
+  dessin:{t:[30,178], l:[["a",44,180,100,180],["b",100,180,114,138,142,142],["a",100,180,136,160,114,134],["a",54,178,82,150,110,144],["h",90,178,108,172]]}},
+ {id:"psoas", nom:"Avant de hanche (fente basse)", zone:"Bas du corps", muscles:"psoas, droit fémoral", cotes:1,
+  consigne:"Fente, genou arrière posé au sol. Buste droit, avance doucement le bassin.",
+  cles:"Le genou avant reste au-dessus de la cheville. Ventre serré, ne creuse pas le dos.",
+  dessin:{t:[100,50], l:[["a",96,128,98,66],["b",96,128,66,184,30,186],["a",96,128,136,130,138,188],["a",98,72,116,100,134,126],["h",92,136,80,162]]}},
+ {id:"quadri", nom:"Quadriceps", zone:"Bas du corps", muscles:"quadriceps (avant de la cuisse)", cotes:1,
+  consigne:"Debout sur une jambe, attrape la cheville et ramène le talon vers la fesse.",
+  cles:"Genoux côte à côte, bassin droit, ventre serré. Appuie-toi sur un mur ou un partenaire si besoin.",
+  dessin:{t:[100,32], l:[["a",100,48,100,110],["b",100,110,102,150,102,188],["a",100,110,92,150,82,114],["a",100,56,90,86,84,112],["b",100,56,124,74,146,80],["h",99,114,93,148]]}},
+ {id:"ischios", nom:"Ischio-jambiers", zone:"Bas du corps", muscles:"ischio-jambiers (arrière de la cuisse)", cotes:0,
+  consigne:"Assis, jambes tendues. Penche le buste en avant, dos plat, mains vers les pieds.",
+  cles:"Le dos reste plat : l'important est de basculer le bassin, pas de toucher les pieds. Genoux tendus sans les bloquer.",
+  dessin:{t:[110,118], l:[["b",60,176,110,178,160,180],["a",60,180,110,182,160,184],["a",60,178,100,130],["a",98,134,124,152,150,168],["h",64,186,108,188]]}},
+ {id:"adduc", nom:"Adducteurs (papillon)", zone:"Bas du corps", muscles:"adducteurs (intérieur des cuisses)", cotes:0,
+  consigne:"Assis, plantes des pieds l'une contre l'autre. Tiens les pieds, laisse les genoux descendre.",
+  cles:"Dos droit. Les coudes peuvent appuyer doucement sur les genoux, sans à-coups.",
+  dessin:{t:[100,90], l:[["a",100,170,100,108],["a",84,114,116,114],["a",92,172,56,158,96,182],["a",108,172,144,158,104,182],["a",84,114,82,146,96,178],["a",116,114,118,146,104,178],["h",90,172,66,164],["h",110,172,134,164]]}},
+ {id:"mollets", nom:"Mollets (contre un mur)", zone:"Bas du corps", muscles:"gastrocnémiens, soléaire", cotes:1,
+  consigne:"Mains au mur, une jambe derrière, tendue. Pousse le talon arrière vers le sol.",
+  cles:"Le pied arrière pointe vers le mur, talon au sol. Plie un peu le genou arrière pour étirer le bas du mollet.",
+  dessin:{t:[150,58], l:[["m",174,20,174,192],["a",60,186,80,156,100,124],["b",100,124,128,150,124,186],["a",100,124,140,72],["a",138,76,156,84,170,76],["h",64,180,78,158]]}}
+];
+const ETIR_COURTE = ["nuque","epaules","flancs","dos","psoas","quadri","ischios","mollets"];
+function etirRoutine(courte){
+  const tenue=+(S.etirTenue||LS.get("etirTenue",20)), L=ETIRS.filter(e=>!courte||ETIR_COURTE.includes(e.id)), E=[];
+  L.forEach((e,i)=>{ const dernier=i===L.length-1;
+    if(e.cotes){ E.push({ex:e.nom+" · côté droit", travail:tenue, repos:5, reposNom:"Change de côté", img:e.id});
+                 E.push({ex:e.nom+" · côté gauche", travail:tenue, repos:dernier?0:8, img:e.id, flip:1}); }
+    else E.push({ex:e.nom, travail:tenue, repos:dernier?0:8, img:e.id}); });
+  return {type:"seq", calme:1, nom:courte?"Étirements · routine courte":"Étirements · de la tête aux pieds", etapes:E, tours:1, recupTour:0, ex:[]};
+}
+const etirImg = (id,flip) => { const e=ETIRS.find(x=>x.id===id); return e?`<div class="etir-img${flip?" flip":""}">${etirSvg(e.dessin)}</div>`:""; };
+function vueEtir(){
+  const tenue=+(S.etirTenue||LS.get("etirTenue",20)), dur=c=>mmss(gcTot(etirRoutine(c)));
+  const zones=[...new Set(ETIRS.map(e=>e.zone))];
+  $("#vue").innerHTML = `<h2>🧘 Étirements</h2>
+    <section class="bloc"><div class="bloc-t"><span>▶</span>Routine guidée, de la tête aux pieds</div>
+      <p class="petit doux">Au retour au calme : l'appli enchaîne les étirements avec l'image, le chrono et un bip. Les étirements d'un seul côté se font à droite puis à gauche.</p>
+      <div class="formats">${[15,20,30].map(t=>`<button class="puce ${tenue===t?"on":""}" data-etirtenue="${t}">Tenir ${t} s</button>`).join("")}</div>
+      <div class="ligne" style="margin-top:8px"><button class="btn ct" data-act="etirTout" style="flex:1">▶ Routine complète · ${ETIRS.length} étirements · ${dur(false)}</button><button class="btn contour" data-act="etirCourt" style="flex:1">▶ Routine courte · ${ETIR_COURTE.length} étirements · ${dur(true)}</button></div>
+    </section>
+    <section class="bloc etir-regles"><div class="bloc-t"><span>!</span>Les règles</div>
+      <ul class="petit"><li><b>Doux et sans douleur</b> : va jusqu'à sentir une tension, jamais une douleur.</li><li><b>Sans à-coups</b> : tiens la position, immobile, 15 à 30 s.</li><li><b>Respire</b> lentement : souffle en allant un peu plus loin.</li><li>Après un effort très intense, fais des étirements <b>courts et légers</b> (ou marche et respire).</li></ul>
+    </section>
+    ${zones.map(z=>`<h3 class="etir-z">${z}</h3><div class="etir-grille">${ETIRS.filter(e=>e.zone===z).map(e=>`
+      <article class="etir-carte">${etirImg(e.id)}<div class="etir-txt"><b>${h(e.nom)}</b>${e.cotes?` <span class="m">2 côtés</span>`:""}
+        <div class="petit doux">${h(e.muscles)}</div><p class="petit">${h(e.consigne)}</p><p class="petit etir-cle">👉 ${h(e.cles)}</p>
+        <button class="btn clair petit" data-etirun="${e.id}" style="padding:6px 10px">▶ ${tenue} s${e.cotes?" × 2":""}</button></div></article>`).join("")}</div>`).join("")}
+    <p class="petit doux" style="margin-top:14px">Dessins : silhouette, muscle étiré en orange. Durées : 10 à 30 s par étirement (recommandations de l'ACSM). Postures tirées des routines courantes de retour au calme (NHS, Décathlon Conseil Sport, mobilesport.ch).</p>`;
+}
+
 /* ======================= MODE ATHLÈTE / COACH (une tablette, deux moitiés) ======================= */
 const PASER_L = [["P","Placement"],["A","Amplitude"],["S","Symétrie"],["E","Expiration"],["R","Rythme"]];
 const roles = () => { const n=(S.groupe&&S.groupe.noms)||[]; return {ath:n[0]||"Athlète", coach:n[1]||"Coach"}; };
@@ -1827,7 +1937,8 @@ window.EPSTCT = window.EPST ? EPST.init({app:"ct", nom:"Cross-training", color:"
   biblio:[{ico:"🏋️",label:"Bibliothèque d'exercices",sub:"20 exercices sans matériel × 3 niveaux, vidéos",go:()=>aller("biblio")},
           {ico:"⏱",label:"Créer un WOD",sub:"thème, format, exercices, timer",go:()=>aller("lecon")},
           {ico:"🎬",label:"Vidéos et fiches",sub:"dossier Drive, rapport d'import, édition, publication",go:()=>aller("gerer")},
-          {ico:"⏱",label:"Grand chrono",sub:"Tabata, circuit training, EMOM, AMRAP, For Time, chronos enregistrés",go:()=>aller("chrono")}],
+          {ico:"⏱",label:"Grand chrono",sub:"Tabata, circuit training, EMOM, AMRAP, For Time, chronos enregistrés",go:()=>aller("chrono")},
+          {ico:"🧘",label:"Étirements",sub:"14 étirements de la tête aux pieds, images, routine guidée",go:()=>aller("etir")}],
   reglages:[{ico:"📲",label:"Tablette partagée",sub:"tablette scindée (2 boxes, athlète / coach) ou tablette ressource",go:()=>aller("param")},
             {ico:"👥",label:"Groupes et Claude",sub:"solo, binôme, trinôme · IA enseignant / élèves",go:()=>aller("param")},
             {ico:"🎬",label:"Vidéos du cross-training",sub:"lien du dossier Drive, partage, hors ligne",go:()=>aller("gerer")}]
