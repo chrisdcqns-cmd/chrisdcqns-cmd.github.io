@@ -10,6 +10,9 @@
 <meta name="theme-color" content="#14171C">
 <script>
 /* la console est un outil enseignant : mode enseignant prolongé tant qu'elle est ouverte (ordinateur personnel) */
+/* ordinateur de confiance : code demandé une seule fois sur cet ordinateur, ensuite la console s'ouvre directement
+   (l'adresse étant publique, une tablette d'élève qui l'ouvrirait doit toujours donner le code) */
+(function () { try { if (localStorage.getItem("eps.console.trust") === "1" && Date.now() >= +(localStorage.getItem("eps.teach.until") || 0)) localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} })();
 window.epsIsTeacher = function () { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } };
 </script>
 <style>
@@ -98,7 +101,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
 </style>
 </head>
 <body>
-<div id="lock"><div><div class="ic"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 8h5M6 12h8"/></svg></div><h1 style="margin:0 0 6px">Console EPS</h1><p style="color:#A9AEB8;margin:0 0 18px">Espace enseignant sur ordinateur</p><button class="b p" id="unlock" style="height:48px;font-size:16px">🔒 Entrer avec mon code enseignant</button><p style="color:#A9AEB8;font-size:13px;margin-top:16px"><a href="../" style="color:#A9AEB8">← Accueil des applis</a></p></div></div>
+<div id="lock"><script>try{if(localStorage.getItem("eps.console.trust")==="1")document.currentScript.parentNode.style.display="none"}catch(e){}</script><div><div class="ic"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 8h5M6 12h8"/></svg></div><h1 style="margin:0 0 6px">Console EPS</h1><p style="color:#A9AEB8;margin:0 0 18px">Espace enseignant sur ordinateur · ton code ne sera demandé qu'une fois sur cet ordinateur</p><button class="b p" id="unlock" style="height:48px;font-size:16px">🔒 Entrer avec mon code enseignant</button><p style="color:#A9AEB8;font-size:13px;margin-top:16px"><a href="../" style="color:#A9AEB8">← Accueil des applis</a></p></div></div>
 <div id="app">
   <nav aria-label="Menu de la console">
     <div class="brand"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 8h5M6 12h8"/></svg></span><span><b>Console EPS</b><small>Ordinateur · enseignant</small></span></div>
@@ -141,7 +144,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
 
   /* ---------- entrée : code enseignant (le même que sur les tablettes) ---------- */
   function keepAlive() { if (teach()) try { localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} }
-  function unlocked() { $("#lock").style.display = "none"; keepAlive(); try { document.documentElement.classList.add("eps-teach"); } catch (e) {} go(location.hash.slice(1) || "accueil"); }
+  function unlocked() { try { localStorage.setItem("eps.console.trust", "1"); } catch (e) {} $("#lock").style.display = "none"; keepAlive(); try { document.documentElement.classList.add("eps-teach"); } catch (e) {} go(location.hash.slice(1) || "accueil"); }
   function tryUnlock() { if (teach()) { unlocked(); return; } if (!window.EPSD || !EPSD.askCode) { setTimeout(tryUnlock, 300); return; } EPSD.askCode().then(function (ok) { if (ok) unlocked(); }); }
   $("#unlock").onclick = tryUnlock;
   /* menu de gauche repliable (icônes seules), choix gardé sur l'ordinateur */
@@ -182,7 +185,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
     var nReq = all(KC).filter(function (r) { return r.k === "req" && r.st !== "fait"; }).length;
     pg.innerHTML = "<h2>Bonjour 👋</h2><p class=\"mut\">Tout ce que tu règles ici vaut aussi sur tes tablettes (synchronisation chiffrée). Choisis une activité à gauche pour l'ouvrir en grand, en mode enseignant.</p>" +
       '<div class="cards">' +
-      '<div class="card"><h3>🔗 Partage avec les tablettes</h3>' + (shared ? '<p class="ok">✓ Réglé : les données arrivent et partent toutes seules.</p><div class="row"><button class="b" data-sync>⟳ Synchroniser maintenant</button><button class="b" data-share>Réglages du partage</button></div>' : '<p class="ko">⚠ Pas encore réglé sur cet ordinateur.</p><p class="mut">Colle le lien de partage de tes tablettes (Réglages → Partage) : sans lui, l\'ordinateur ne voit pas tes données.</p><div class="row"><button class="b p" data-share>Régler le partage</button></div>') + '<div class="row"><button class="b" data-rest>📥 Tout récupérer ici</button></div></div>' +
+      '<div class="card"><h3>🔗 Partage avec les tablettes</h3>' + (shared ? '<p class="ok">✓ Réglé : les données arrivent et partent toutes seules.</p><div class="row"><button class="b" data-sync>⟳ Synchroniser maintenant</button><button class="b" data-share>Réglages du partage</button></div>' : '<p class="ko">⚠ Pas encore réglé sur cet ordinateur.</p><p class="mut">Colle le lien de partage de tes tablettes (Réglages → Partage) : sans lui, l\'ordinateur ne voit pas tes données.</p><div class="row"><button class="b p" data-share>Régler le partage</button></div>') + '<div class="row"><button class="b" data-rest>📥 Tout récupérer ici</button></div><p class="mut">🔓 Cet ordinateur est reconnu : la console s\'ouvre sans code. <button class="b" data-forget style="min-height:32px">Oublier cet ordinateur</button></p></div>' +
       '<div class="card"><h3>📅 Prochains cours</h3>' + (slots && slots.length ? slots.slice(0, 6).map(function (x) { var d = new Date(x.at); return "<div>" + d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + " · <b>" + esc(x.cls) + "</b> " + esc((ACTS.filter(function (a) { return a[0] === x.act; })[0] || [0, 0, x.act || ""])[2]) + "</div>"; }).join("") : '<p class="mut">Règle ton emploi du temps dans l\'outil Emploi du temps (« Qui es-tu ? ») pour voir tes prochains cours.</p>') + '<div class="row"><button class="b" data-go="app:edt">Emploi du temps</button></div></div>' +
       '<div class="card"><h3>👥 Classes</h3><p>' + L.length + " classe" + (L.length > 1 ? "s" : "") + ", " + L.reduce(function (a, o) { return a + (o.el || []).length; }, 0) + ' élèves.</p><div class="row"><button class="b p" data-go="classes">Gérer classes et activités</button><button class="b" data-go="groupes">🧩 Niveaux & groupes</button></div></div>' +
       '<div class="card"><h3>📱 Tablettes</h3><p>' + (recent.length ? recent.length + " tablette" + (recent.length > 1 ? "s" : "") + " active" + (recent.length > 1 ? "s" : "") + " ces 15 dernières minutes." : "Aucune tablette active ces 15 dernières minutes.") + '</p><div class="row"><button class="b" data-go="tablettes">Voir les tablettes</button><button class="b" data-sig>📣 Signal général</button></div></div>' +
@@ -196,7 +199,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
     var f = function (s, fn) { $$(s, pg).forEach(function (b) { b.onclick = fn; }); };
     f("[data-share]", function () { EPSD.shareSettings(); }); f("[data-sync]", function () { this.textContent = "⟳ …"; var b = this; EPSD.syncNow().then(function () { b.textContent = "✓ Synchronisé"; }); });
     f("[data-rest]", function () { EPSD.restoreAll(); }); f("[data-sig]", function () { EPSD.signal(); }); f("[data-ovw]", function () { EPSD.overview(); });
-    f("[data-find]", function () { EPSD.search(); }); f("[data-bil]", function () { EPSD.bilans(); }); f("[data-ai]", function () { aiShow(true); });
+    f("[data-find]", function () { EPSD.search(); }); f("[data-forget]", function () { if (!confirm("Ne plus reconnaître cet ordinateur ? Ton code enseignant sera redemandé à la prochaine ouverture de la console.")) return; try { localStorage.removeItem("eps.console.trust"); localStorage.setItem("eps.teach.until", "0"); } catch (e) {} location.reload(); }); f("[data-bil]", function () { EPSD.bilans(); }); f("[data-ai]", function () { aiShow(true); });
   }
 
   /* ---------- 👥 classes, élèves, activités, voie ---------- */
