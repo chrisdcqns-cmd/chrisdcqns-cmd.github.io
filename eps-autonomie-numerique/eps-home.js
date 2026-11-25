@@ -154,7 +154,7 @@
       '<span class="epsd-lab">Adresse du script commun (…/exec)</span><input class="epsd-in" id="epsd-surl" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(s.url && s.url !== RELAIS_URL ? s.url : DEF_URL) + '">' +
       '<span class="epsd-lab">Clé secrète (la même que dans le script)</span><input class="epsd-in" id="epsd-skey" type="password" autocomplete="off" value="' + esc(s.key || "") + '">' +
       '<p class="m" id="epsd-sst" style="margin-top:10px"></p>' +
-      '<div class="epsd-act"><button data-x>Fermer</button>' + (shCfg() && s.url !== RELAIS_URL ? '<button id="epsd-sqr">📲 Régler une autre tablette</button>' : "") + '<button id="epsd-stest">Tester</button><button class="p" id="epsd-ssave">Enregistrer</button></div>');
+      '<div class="epsd-act"><button data-x>Fermer</button>' + (shCfg() && s.url !== RELAIS_URL ? '<button id="epsd-sqr">📲 Régler une autre tablette</button>' : "") + '<button id="epsd-ctest">🤖 Tester Claude</button><button id="epsd-stest">Tester</button><button class="p" id="epsd-ssave">Enregistrer</button></div>');
     var bq = o.querySelector("#epsd-sqr"); if (bq) bq.onclick = function () { o.remove(); shareQR(); };
     function val() { return { url: o.querySelector("#epsd-surl").value.trim(), key: o.querySelector("#epsd-skey").value.trim() }; }
     async function test() {
@@ -165,6 +165,8 @@
       return !!(r && r.keyOk);
     }
     o.querySelector("#epsd-stest").onclick = test;
+    o.querySelector("#epsd-ctest").onclick = function () { var b = this, m = o.querySelector("#epsd-cmsg"); if (!m) { m = document.createElement("div"); m.id = "epsd-cmsg"; m.style.cssText = "margin-top:10px;padding:10px 12px;border-radius:12px;background:#F5F3EE;font:15px/1.4 system-ui;white-space:pre-wrap"; b.parentNode.parentNode.appendChild(m); }
+      b.disabled = true; m.textContent = "Test de Claude en cours (jusqu'à 40 s)…"; testClaude().then(function (t) { m.textContent = t; b.disabled = false; }); };
     o.querySelector("#epsd-ssave").onclick = async function () { var v = val(); saveShare(v); var ok = await test(); if (ok) { sync(); setTimeout(function () { o.remove(); if (back) back(); }, 700); } };
   }
   var KEY = null, KEYSRC = null;
@@ -1177,6 +1179,26 @@
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition, DICT = null;
   function setVal(ta, v) { ta.value = v; ["input", "change"].forEach(function (ev) { try { ta.dispatchEvent(new Event(ev, { bubbles: true })); } catch (e) {} }); }
   function actName() { return (GATE && GATE.app) || String(document.title || "EPS").split(/[–—·|-]/)[0].trim(); }
+  /* 🤖 diagnostic de la liaison avec Claude (Réglages → Partage) : dit précisément ce qui bloque et quoi faire */
+  function testClaude() {
+    var cfg = shCfg(); if (!cfg) return Promise.resolve("○ Le partage entre tablettes n'est pas réglé : Claude passe par le script commun. Règle d'abord l'adresse et la clé.");
+    return jsonp(cfg, { ai: "fiche", t: "Test : pieds précis, lit bien la voie, assurage encore hésitant.", act: "Escalade", ctx: "", lang: "" }, 40000).then(function (r) {
+      if (!r) return "⚠ Pas de réponse du script.\n→ Vérifie la connexion, puis dans le script : Déployer > Gérer les déploiements : « Exécuter en tant que : moi » et « Qui a accès : Tout le monde ».";
+      if (!r.keyOk) return "⚠ Le script refuse la clé du partage.\n→ Dans Code.gs, la ligne « const SECRET = '…' » doit contenir TA clé (celle de cette tablette), pas « CHANGE-MOI ». Enregistre puis redéploie (nouvelle version).";
+      var e = String(r.aiErr || "");
+      if (!e && r.ai == null) return "⚠ Le script en ligne est une ancienne version : il ne connaît pas encore Claude.\n→ Colle le dernier Code.gs, puis Déployer > Gérer les déploiements > ✏️ > Version : Nouvelle version > Déployer (enregistrer ne suffit pas).";
+      if (e) { var how = /ANTHROPIC_KEY/.test(e) ? "La clé Claude n'est pas dans le script.\n→ Paramètres du projet (⚙ à gauche) > Propriétés du script > ajouter ANTHROPIC_KEY = ta clé sk-ant-…"
+          : /permission|autoris|UrlFetchApp|external_request/i.test(e) ? "Le script n'a pas encore l'autorisation d'appeler Claude.\n→ Dans l'éditeur, choisis la fonction « testerClaude » puis ▶ Exécuter, et accepte toutes les autorisations. Puis redéploie (nouvelle version)."
+          : /API 401|invalid x-api-key|authentication/i.test(e) ? "La clé Claude est refusée par Anthropic.\n→ Recopie-la sans espace depuis console.anthropic.com (API Keys) dans la propriété ANTHROPIC_KEY."
+          : /credit|billing|balance|API 402/i.test(e) ? "Le crédit de l'API Claude est épuisé ou non activé.\n→ console.anthropic.com > Billing : ajoute du crédit."
+          : /API 404|model/i.test(e) ? "Le modèle demandé n'est pas disponible pour ta clé.\n→ Envoie-moi ce message, je changerai le modèle dans Code.gs."
+          : /API 429|rate/i.test(e) ? "Trop de demandes en même temps.\n→ Réessaie dans une minute."
+          : /API 5\d\d|overloaded/i.test(e) ? "Le service Claude est momentanément surchargé.\n→ Réessaie dans quelques minutes." : "Erreur inattendue.";
+        return "⚠ " + how + "\n\nMessage exact : " + e; }
+      var t = String(r.ai); if (/Ã|Â/.test(t)) return "⚠ Claude répond mais les accents sont mal lus.\n→ Le script en ligne n'est pas la dernière version : colle le dernier Code.gs et redéploie (nouvelle version).\n\nRéponse : " + t;
+      return "✓ Claude répond correctement.\n\nExemple de reformulation : « " + t + " »";
+    });
+  }
   function reformuler(texte, o) {
     o = o || {}; var cfg = shCfg();
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
@@ -1345,6 +1367,7 @@
       })();
     },
     demo: { on: function () { return demoOn(); }, create: function () { return demoCreate(); }, nom: "DÉMO (fictive)" },
+    testClaude: function () { return testClaude(); },
     search: function () { searchStudents(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
     bulletin: function () { bulletin(); },

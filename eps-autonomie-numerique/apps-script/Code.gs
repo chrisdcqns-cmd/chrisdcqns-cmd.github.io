@@ -119,8 +119,8 @@ function asc_(s) { return String(s).replace(/[\u007f-\uffff]/g, function (c) { r
 /* texte de Claude débarrassé de la mise en forme Markdown et des phrases d'introduction */
 function propre_(t) {
   t = String(t || '').replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
-  t = t.replace(/^\s*(voici|voilà|bien sûr|d'accord)[^\n]*:\s*\n+/i, '');
-  t = t.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/(^|\s)\*([^*\n]+)\*/g, '$1$2').replace(/^#{1,6}\s*/gm, '').replace(/^\s*[-*•]\s+/gm, '– ');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '$1');
+  t = t.replace(/^\s*(voici|voilà|bien sûr|d'accord)[^\n]*:\s*\n+/i, '').replace(/(^|\s)\*([^*\n]+)\*/g, '$1$2').replace(/^#{1,6}\s*/gm, '').replace(/^\s*[-*•]\s+/gm, '– ');
   t = t.trim().replace(/^["«»“”]\s*|\s*["«»“”]$/g, '');
   return t.trim();
 }
