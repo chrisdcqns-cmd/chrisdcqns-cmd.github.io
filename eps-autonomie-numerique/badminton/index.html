@@ -437,6 +437,17 @@ details.more{margin-top:6px}details.more>summary{cursor:pointer;font-weight:700;
 .epsbar{order:99;display:inline-flex;gap:6px;align-items:center;min-width:46px;min-height:40px}
 .bigact.def{background:#7A3E9D;box-shadow:0 4px 14px rgba(122,62,157,.25)}.bigact[disabled]{opacity:.5;cursor:default}
 .defi{border:2px solid #7A3E9D}.defib{border-left:5px solid #7A3E9D;background:#faf6fd}
+
+.indb{margin-top:10px;padding:8px 10px;border-radius:10px;background:#f4f8fb;border:1px dashed #9fb6cc}
+.indl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.indc{border:1.5px solid #9fb6cc;background:#fff;border-radius:14px;padding:4px 10px;font-size:.85em;font-weight:700;color:#1F5F8B;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.indc.on{background:#1F5F8B;color:#fff;border-color:#1F5F8B;cursor:default}.indc.on button{border:0;background:rgba(255,255,255,.25);color:#fff;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:.8em}
+.indall{margin-top:8px;display:grid;gap:6px}.indall .indc{margin:2px}
+.indt{border-collapse:collapse;width:100%;font-size:.9em;margin-top:6px}.indt th,.indt td{border-bottom:1px solid #e2e8ef;padding:5px 6px;text-align:left;vertical-align:top}
+.indv{display:inline-block;font-weight:800;border-radius:9px;padding:2px 8px;background:#eef1f5;color:#5b6573;white-space:nowrap}.indv.ok{background:#e9f6ee;color:#2E7D4F}.indv.ko{background:#fff6e5;color:#B26B00}
+.bx.ind{grid-column:1/-1;background:#f4f8fb;border-radius:10px;padding:8px 10px;margin-top:8px}
+.obsp{margin-top:10px;border-left:5px solid #0B7A75}.obsr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.obsr>span:first-child{flex:1 1 200px;font-weight:700}
+.obsb{display:inline-flex;align-items:center;gap:6px;border:2px solid;border-radius:12px;padding:3px}.obsb button{border:0;background:#eef1f5;border-radius:9px;min-width:40px;height:40px;font-size:1.1em;font-weight:800;cursor:pointer}.obsb button.p{background:#0B7A75;color:#fff;min-width:56px}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -1290,7 +1301,7 @@ function renderLive(){const el=document.getElementById('t-live');if(!el)return;c
        <p class="muted" style="margin:4px 0 0">Simple : on touche seulement où le volant tombe. Complète : on précise aussi le type de point (point direct, faute…).</p></div>
      <div><label class="l">Terrains</label><label class="sw"><input type="checkbox" ${tr.on?'checked':''} onchange="liveSet('terrOn',this.checked)"><span></span>Répartir les groupes sur des terrains</label>
        ${tr.on?`<div class="row" style="margin-top:6px"><span>Nombre de terrains</span><input type="number" min="1" max="20" value="${tn}" style="width:80px" onchange="liveSet('terrN',this.value)"><button class="btn alt sm" onclick="terrAuto()">Répartir automatiquement</button></div>`:'<p class="muted" style="margin:4px 0 0">Désactivé : les groupes s\'installent où ils veulent.</p>'}</div></div></div>
-   ${visCard(c)}${al.length?`<div class="card warnc"><h2>⚠️ À regarder</h2>${al.map(x=>`<div class="al">${x}</div>`).join('')}</div>`:''}
+   ${visCard(c)}${indLive(c)}${al.length?`<div class="card warnc"><h2>⚠️ À regarder</h2>${al.map(x=>`<div class="al">${x}</div>`).join('')}</div>`:''}
    <div class="lgrid">${G.length?G.map(g=>{const st=grpStep(g),M=grpMembers(c,g),r=rolesOf(c,g),cur=matchesOf(c,m=>m.date===T&&!m.fin&&(g.el.includes(m.a)||g.el.includes(m.b))),sig=lastSignal(c,g),tg=terrOf(c,g);
      return `<div class="card lg"><div class="row" style="justify-content:space-between"><h3 style="margin:0">👥 ${esc(g.nom)}${tg?` <span class="tnum">T${tg}</span>`:''}</h3><span class="muted" style="font-size:.8em">${sig?'signal '+sinceTxt(sig).replace('depuis ','il y a '):'aucun signal'}</span></div>
       <div class="lstep ${st?st.k==='ech'?'ech':st.k==='fin'?'fin':'tps':'none'}">${st?`${esc(stepLab(lessonObj(st.lec)||l,st.k))} <small>${sinceTxt(st.at)}</small>`:'Étape non indiquée'}</div>
@@ -1393,6 +1404,109 @@ function defiHtml(c,g){const G=Object.values(c.groupes||{}).filter(x=>x.id!==g.i
      <button class="bigact" style="margin-top:12px" ${TDEF.a&&TDEF.b&&pre?`onclick="const a=TDEF.a,b=TDEF.b;TDEF=null;quickMatch('${pid}',a,b)"`:'disabled'}><span class="bi">⚔️</span><span class="bt"><b>${TDEF.a&&TDEF.b?'Lancer : '+esc(shortName(elById(c,TDEF.a)))+' – '+esc(shortName(elById(c,TDEF.b))):'Choisis les deux joueurs'}</b>${pre?`<small>${esc(pre.nom)}</small>`:''}</span><span class="go">▶</span></button>`:''}</div>`}
 function defiBanner(c,g){const L=matchesOf(c,m=>m.date===today()&&!m.fin&&m.pre.type!=='exo'&&m.host&&m.host!==g.id&&(g.el.includes(m.a)||g.el.includes(m.b)));
   return L.map(m=>{const h=c.groupes[m.host],tg=h&&terrOf(c,h),R=replay(m);return `<div class="card defib">⚔️ Match en cours contre <b>${esc(h?h.nom:'un autre groupe')}</b>${tg?' · terrain '+tg:''} : ${esc(m.an)} <b>${R.sc[0]} – ${R.sc[1]}</b> ${esc(m.bn)} <span class="muted">— saisi sur leur tablette</span></div>`}).join('')}
+/* ================== 📈 INDICATEURS DE PERFORMANCE (proposés pour chaque temps de leçon) ==================
+   t.ind = [ids] sur le temps de la leçon (synchronisé avec la leçon). Trois sortes :
+   'auto' = calculé à partir des points saisis (zones, coups, nature du point, contrats, exercice) ;
+   'compte' = compté par l'observateur sur la tablette pendant le match (m.obs[id] = [n joueur A, n joueur B]) ;
+   'obs' = observable qualitatif, rappelé au coach et à l'observateur. */
+const IND_TH={prof:/profondeur|jeu long|dégag|fond de court|zone arrière|éloign/i,filet:/filet|amorti|service court|zone avant/i,avar:/avant ?\/ ?arrière|rythme|altern|varier/i,
+  largeur:/latéral|largeur|couloir|revers|diagonal|là où l'adversaire n'est pas/i,rupture:/ruptur|rompre|smash|kill|favorable|conclu/i,zones:/zones? favorables?|profil|point fort/i,
+  service:/service/i,adv:/adversaire|coach|stratégi|tactiq|ccf|contrat|manière/i,defense:/défen|lob|retard|résist|neutralis/i};
+const pc=(n,d)=>d?Math.round(n/d*100)+' %':'–';
+const IND=[
+ {id:'ar',k:'auto',th:['prof','avar'],nom:'Points marqués en zone arrière',el:'Mes points marqués au fond',crit:'Au moins 1 point sur 2 marqué en zone arrière',
+  f:st=>{if(st.loc<3)return null;const n=sum(st.z,['fg','fc','fd']);return{v:n/st.loc,t:n+'/'+st.loc,ok:n/st.loc>=.5}}},
+ {id:'av',k:'auto',th:['filet','avar'],nom:'Points marqués en zone avant',el:'Mes points marqués au filet',crit:'Au moins 4 points sur 10 marqués en zone avant',
+  f:st=>{if(st.loc<3)return null;const n=sum(st.z,['ag','ac','ad']);return{v:n/st.loc,t:n+'/'+st.loc,ok:n/st.loc>=.4}}},
+ {id:'lat',k:'auto',th:['largeur'],nom:'Points marqués sur les côtés',el:'Mes points marqués sur les côtés',crit:'Au moins 6 points sur 10 marqués sur les côtés',
+  f:st=>{if(st.loc<3)return null;const n=sum(st.z,['fg','fd','mg','md','ag','ad']);return{v:n/st.loc,t:n+'/'+st.loc,ok:n/st.loc>=.6}}},
+ {id:'zon',k:'auto',th:['avar','zones'],nom:'Zones de marque différentes (sur 9)',el:'Le nombre de zones où je marque',crit:'Marquer dans au moins 5 zones différentes',
+  f:st=>{if(st.loc<3)return null;const n=Object.keys(st.z).length;return{v:n,t:n+' zone'+(n>1?'s':''),ok:n>=5}}},
+ {id:'fav',k:'auto',th:['zones'],nom:'Part des points dans sa zone favorable',el:'Mes points dans ma zone favorite',crit:'Au moins 4 points sur 10 marqués dans sa zone favorable',
+  f:st=>{if(st.loc<3)return null;const e=Object.entries(st.z).sort((a,b)=>b[1]-a[1])[0],nm=(AZ.find(x=>x[0]===e[0])||[0,e[0]])[1];return{v:e[1]/st.loc,t:e[1]+'/'+st.loc+' ('+nm+')',ok:e[1]/st.loc>=.4}}},
+ {id:'rup',k:'auto',th:['rupture'],nom:'Points gagnés en smash ou en kill',el:'Mes points en smash ou en kill',crit:'Au moins 3 points gagnés en smash ou en kill',
+  f:st=>{if(!st.mj&&!st.pts)return null;const n=(st.co.sma||0)+(st.co.kil||0);return{v:n,t:String(n),ok:n>=3}}},
+ {id:'off',k:'auto',th:['rupture','adv'],nom:'Efficacité offensive (points directs ÷ points gagnés)',el:'Mes points gagnés par moi-même',crit:'Au moins 1 point sur 2 gagné par un point direct',
+  f:st=>{if(st.pts<3)return null;const n=st.nat.pd||0;return{v:n/st.pts,t:n+'/'+st.pts+' ('+pc(n,st.pts)+')',ok:n/st.pts>=.5}}},
+ {id:'ris',k:'auto',th:['rupture','adv','defense'],nom:'Points directs ÷ fautes directes',el:'Mes points gagnants contre mes fautes',crit:'Plus de points directs que de fautes directes',
+  f:st=>{if(st.pts+st.pl<5)return null;const n=st.nat.pd||0;return{v:st.fd?n/st.fd:n,t:n+' pour '+st.fd+' faute'+(st.fd>1?'s':''),ok:n>st.fd}}},
+ {id:'fs',k:'auto',th:['service'],nom:'Fautes de service',el:'Mes fautes de service',crit:'Aucune faute de service',
+  f:st=>{if(st.pts+st.pl<5)return null;const n=st.fsv||0;return{v:n,t:String(n),ok:n===0}}},
+ {id:'svg',k:'auto',th:['service'],nom:'Points gagnés directement sur le service',el:'Mes points gagnés sur mon service',crit:'Au moins 2 points gagnés directement sur le service',
+  f:st=>{if(st.pts+st.pl<5)return null;const n=(st.co.svl||0)+(st.co.svc||0);return{v:n,t:String(n),ok:n>=2}}},
+ {id:'man',k:'auto',th:['adv','zones'],nom:'Contrats « avec la manière » réussis',el:'Mes contrats réussis',crit:'Réussir son contrat « avec la manière » au moins 1 match sur 2',
+  f:st=>st.man.n?{v:st.man.ok/st.man.n,t:st.man.ok+'/'+st.man.n,ok:st.man.ok/st.man.n>=.5}:null},
+ {id:'exo',k:'auto',th:['exo'],nom:"Réussite à l'exercice (réussis ÷ essais)",el:"Ma réussite à l'exercice",crit:'',
+  f:(st,pre)=>{const x=pre&&st.ex.find(x=>x.nom===pre.nom);if(!x||!x.n)return null;const ob=x.obj&&x.essais?x.obj/x.essais:.7;return{v:x.ok/x.n,t:x.ok+'/'+x.n+' ('+pc(x.ok,x.n)+')',ok:x.ok/x.n>=ob}}},
+ {id:'t3',k:'compte',th:['rupture','service'],nom:'Points gagnés en 3 frappes ou moins',el:'Mes points gagnés en 3 frappes ou moins',crit:'Au moins 4 points gagnés en 3 frappes ou moins',ob:4},
+ {id:'alt',k:'compte',th:['avar','prof','filet'],nom:'Échanges avec alternance fond / filet',el:'Mes échanges où j\'alterne fond et filet',crit:'Au moins 5 échanges avec une alternance fond-filet',ob:5},
+ {id:'def',k:'compte',th:['defense'],nom:'Smashs adverses renvoyés',el:'Les smashs que je renvoie',crit:'Renvoyer au moins 3 smashs adverses',ob:3},
+ {id:'rev',k:'compte',th:['largeur'],nom:'Volants envoyés dans le revers adverse',el:'Mes volants dans le revers de l\'autre',crit:'Au moins 5 volants envoyés dans le revers adverse',ob:5},
+ {id:'str',k:'compte',th:['adv','zones'],nom:'Points marqués avec la stratégie annoncée',el:'Mes points marqués avec ma stratégie',crit:'Au moins 1 point sur 4 marqué avec la stratégie annoncée',ob:3},
+ {id:'o_rec',k:'obs',th:['prof'],nom:"L'adversaire recule-t-il après chaque dégagé ?"},
+ {id:'o_amo',k:'obs',th:['filet'],nom:"L'amorti est-il joué quand l'adversaire est au fond ?"},
+ {id:'o_ryt',k:'obs',th:['avar'],nom:'Le rythme change-t-il (lent au fond, rapide au filet) ?'},
+ {id:'o_vid',k:'obs',th:['largeur'],nom:"Joue-t-il là où l'adversaire n'est pas ?"},
+ {id:'o_fav',k:'obs',th:['rupture'],nom:'Reconnaît-il le volant favorable (haut et devant lui) ?'},
+ {id:'o_dir',k:'obs',th:['zones'],nom:'Sait-il dire où il marque et pourquoi ?'},
+ {id:'o_srv',k:'obs',th:['service'],nom:'Varie-t-il service court et service long ?'},
+ {id:'o_pla',k:'obs',th:['adv'],nom:'Change-t-il de plan quand il est mené ?'},
+ {id:'o_rep',k:'obs',th:['defense'],nom:'Se replace-t-il au centre, raquette haute, avant la frappe adverse ?'}];
+const INDK={auto:'📊 calculé',compte:'👆 compté',obs:'👀 observé'};
+function indById(id){return IND.find(x=>x.id===id)}
+function indThemes(l,t){const p=t.pre&&preById(t.pre),tt=[t.t,t.cons,(t.crq||[]).join(' '),(t.crl||[]).join(' ')].join(' '),lt=[l.titre,l.obj,l.but].join(' '),W={};
+  Object.keys(IND_TH).forEach(k=>{const w=(IND_TH[k].test(tt)?2:0)+(IND_TH[k].test(lt)?1:0);if(w)W[k]=w});if(p&&p.type==='exo')W.exo=3;return W}
+function indSugg(l,t){const W=indThemes(l,t),exo=!!W.exo,sit=!!(t.pre&&preById(t.pre)),have=t.ind||[];
+  const ok=x=>!have.includes(x.id)&&(!sit?x.k==='obs':exo?(x.k==='obs'||x.id==='exo'):x.id!=='exo');
+  const sc=x=>x.th.reduce((a,h)=>a+(W[h]||0),0);
+  const L=IND.filter(x=>ok(x)&&sc(x)).sort((a,b)=>sc(b)-sc(a));
+  const pick=k=>L.filter(x=>x.k===k);const out=[...pick('auto').slice(0,2),...pick('compte').slice(0,1),...pick('obs').slice(0,exo||!sit?2:1)];
+  if(!out.length)out.push(...IND.filter(x=>ok(x)&&(x.id==='ris'||x.id==='off')));return out}
+let INDALL={};
+function indAdd(lid,k,id){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],x=indById(id);if(!t||!x)return;t.ind=(t.ind||[]).concat(t.ind&&t.ind.includes(id)?[]:[id]);
+  if(x.crit&&x.k!=='obs'){t.crq=t.crq||[];if(!t.crq.includes(x.crit))t.crq.push(x.crit)}else if(x.k==='obs'){t.crl=t.crl||[]}
+  save();renderSeq();toast('📈 Indicateur ajouté'+(x.crit&&x.k!=='obs'?' (et son critère de réussite)':''))}
+function indDel(lid,k,id){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],x=indById(id);if(!t)return;t.ind=(t.ind||[]).filter(i=>i!==id);if(x&&x.crit&&t.crq)t.crq=t.crq.filter(c=>c!==x.crit);save();renderSeq()}
+function indTeach(l,k){const t=l.temps[k],have=(t.ind||[]).map(indById).filter(Boolean),sg=indSugg(l,t),key=l.id+'|'+k;
+  return `<div class="indb"><div class="row" style="justify-content:space-between"><b>📈 Indicateurs de performance</b><button class="btn alt sm" onclick="INDALL['${key}']=!INDALL['${key}'];renderSeq()">${INDALL[key]?'Masquer la liste':'Tous les indicateurs'}</button></div>
+   ${have.length?`<div class="indl">${have.map(x=>`<span class="indc on" title="${esc(x.crit||'')}">${INDK[x.k].split(' ')[0]} ${esc(x.nom)}<button onclick="indDel('${l.id}',${k},'${x.id}')" title="Retirer">✕</button></span>`).join('')}</div>`:''}
+   ${sg.length?`<div class="indl"><span class="muted" style="font-weight:700">💡 Proposés pour ce temps :</span>${sg.map(x=>`<button class="indc" onclick="indAdd('${l.id}',${k},'${x.id}')" title="${esc(x.crit||'')}">+ ${INDK[x.k].split(' ')[0]} ${esc(x.nom)}</button>`).join('')}</div>`:''}
+   ${INDALL[key]?`<div class="indall">${['auto','compte','obs'].map(kk=>`<div><span class="lb">${INDK[kk]}</span>${IND.filter(x=>x.k===kk&&!(t.ind||[]).includes(x.id)).map(x=>`<button class="indc" onclick="indAdd('${l.id}',${k},'${x.id}')">+ ${esc(x.nom)}</button>`).join('')}</div>`).join('')}
+     <p class="muted" style="margin:4px 0 0">📊 calculé à partir des points saisis · 👆 compté par l'observateur sur la tablette pendant le match · 👀 à observer par le coach.</p></div>`:''}</div>`}
+/* valeur d'un indicateur pour un élève, sur les matchs du jour de cette situation */
+function indVal(c,eid,x,pre,date){if(x.k==='obs')return null;const st=elStats(c,eid,date||today(),pre&&pre.id);
+  if(x.k==='compte'){const n=(st.tal||{})[x.id];if(n==null)return null;return{v:n,t:String(n),ok:n>=(x.ob||1)}}
+  return x.f(st,pre)}
+function indChip(r){return r?`<span class="indv ${r.ok?'ok':'ko'}">${esc(r.t)}${r.ok?' ✓':''}</span>`:'<span class="indv">–</span>'}
+/* élève : « Ma leçon » */
+function indEleve(l,k){const t=l.temps[k],L=(t.ind||[]).map(indById).filter(Boolean);if(!L.length)return'';const c=classById(TERR.cls)||C(),g=curGrp(c),pre=t.pre&&preById(t.pre),M=g?grpMembers(c,g):[];
+  const q=pre?L.filter(x=>x.k!=='obs'):[],o=L.filter(x=>x.k==='obs');
+  return `<div class="bx ind"><b>📈 Ce qu'on mesure</b>${q.length?`<table class="indt"><tr><th></th>${M.map(e=>`<th>${esc(shortName(e))}</th>`).join('')}</tr>${q.map(x=>`<tr><td>${esc(x.el||x.nom)}${x.k==='compte'?' <small>(compté par l\'observateur)</small>':''}</td>${M.map(e=>`<td>${indChip(indVal(c,e.id,x,pre))}</td>`).join('')}</tr>`).join('')}</table>`:''}
+   ${o.length?`<ul>${o.map(x=>`<li>👀 ${esc(x.nom)}</li>`).join('')}</ul>`:''}</div>`}
+/* match en cours : compteurs de l'observateur + rappel des observables */
+function indOfMatch(m){const l=lessonObj(m.lec)||lessonObj(lessonNow());if(!l)return[];const t=(l.temps||[]).find(t=>t.pre===m.pre.id);return t?(t.ind||[]).map(indById).filter(Boolean):[]}
+function obsInc(id,s,d){const m=curMatch();if(!m)return;m.obs=m.obs||{};const a=m.obs[id]=(m.obs[id]||[0,0]).slice();a[s]=Math.max(0,a[s]+d);m.t1=Date.now();save();const b=document.getElementById('obsPanel');if(b)b.outerHTML=obsPanel(m)}
+function obsPanel(m){const L=indOfMatch(m),T=L.filter(x=>x.k==='compte'),O=L.filter(x=>x.k==='obs');if(!T.length&&!O.length)return'<div id="obsPanel"></div>';const N=[m.an,m.bn];
+  return `<div class="card obsp" id="obsPanel"><b>👆 L'observateur compte</b>${T.map(x=>`<div class="obsr"><span>${esc(x.nom)}</span>${[0,1].map(s=>{const n=((m.obs||{})[x.id]||[0,0])[s];return `<span class="obsb" style="border-color:${PCOL[s]}"><button onclick="obsInc('${x.id}',${s},-1)">−</button><b>${esc(N[s]||'')} : ${n}</b><button class="p" onclick="obsInc('${x.id}',${s},1)">+1</button></span>`}).join('')}</div>`).join('')}
+   ${O.length?`<div class="muted" style="margin-top:6px">👀 À observer : ${O.map(x=>esc(x.nom)).join(' · ')}</div>`:''}</div>`}
+/* fin de match : les indicateurs de ce match */
+function indMatchEnd(m){const L=indOfMatch(m).filter(x=>x.k!=='obs');if(!L.length||m.pre.type==='exo')return'';const c=classById(PL.cid)||C(),ids=[m.a,m.b];
+  const one=(x,s)=>{if(x.k==='compte'){const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}}const st=matchStats(m,s);return x.f(st,m.pre)};
+  return `<div class="card"><h2>📈 Les indicateurs de la leçon</h2><table class="indt"><tr><th></th><th>${esc(m.an)}</th><th>${esc(m.bn)}</th></tr>${L.map(x=>`<tr><td>${esc(x.nom)}<br><small class="muted">${esc(x.crit)}</small></td>${[0,1].map(s=>`<td>${indChip(one(x,s))}</td>`).join('')}</tr>`).join('')}</table></div>`}
+/* statistiques d'un seul match pour un côté (même forme qu'elStats) */
+function matchStats(m,side){const st={mj:1,pts:0,pl:0,fd:0,fsv:0,nat:{},z:{},co:{},loc:0,ex:[],man:{n:0,ok:0},tal:{}};const R=replay(m);
+  if(R.mp&&R.mp[side]){st.man.n=1;st.man.ok=R.mp[side].ok?1:0}
+  R.det.forEach(({p})=>{if(p.w===side){st.pts++;const t=natOf(p);st.nat[t]=(st.nat[t]||0)+1;if(!p.f&&p.x!=null){const a=azOf(p.x,p.y);st.z[a]=(st.z[a]||0)+1;st.loc++}if(p.c)st.co[p.c]=(st.co[p.c]||0)+1}
+    else{st.pl++;if(isFd(p))st.fd++;if(natOf(p)==='fs')st.fsv++}});return st}
+/* enseignant : tableau du jour dans « Leçon en direct » */
+function indLive(c){const l=lessonObj(lessonNow());if(!l)return'';const R=[];(l.temps||[]).forEach((t,k)=>{const pre=t.pre&&preById(t.pre);if(!pre)return;(t.ind||[]).map(indById).filter(x=>x&&x.k!=='obs').forEach(x=>R.push({t,k,x,pre}))});
+  if(!R.length)return `<div class="card"><h2>📈 Indicateurs du jour</h2><p class="muted">Aucun indicateur dans la leçon ${l.n}. Ajoute-en depuis l'onglet Séquence (« 💡 Proposés pour ce temps »).</p></div>`;
+  const E=c.eleves.filter(e=>!isAbs(e));
+  return `<div class="card"><h2>📈 Indicateurs du jour · leçon ${l.n}</h2><div class="tw"><table class="indt"><tr><th>Élève</th>${R.map(r=>`<th title="${esc(r.x.crit||'')}">T${r.k+1} · ${esc(r.x.nom)}</th>`).join('')}</tr>
+   ${E.map(e=>`<tr><td>${esc(shortName(e))}</td>${R.map(r=>`<td>${indChip(indVal(c,e.id,r.x,r.pre))}</td>`).join('')}</tr>`).join('')}</table></div>
+   <p class="muted" style="margin:6px 0 0">Vert : critère de réussite atteint. Calculé sur les matchs du jour de chaque situation.</p></div>`}
+
+(function(){const pe=playEnd;playEnd=function(){const m=curMatch();pe.apply(this,arguments);try{const box=document.getElementById('play'),cb=box&&box.querySelector('.cbody');if(m&&m.fin&&cb){const h=indMatchEnd(m);if(h){if(cb.firstElementChild)cb.firstElementChild.insertAdjacentHTML('afterend',h);else cb.insertAdjacentHTML('afterbegin',h)}}}catch(e){}}})();
 function critHtml(cr,e){
   const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
@@ -1808,7 +1922,7 @@ function renderPlay(){
       <div class="row" style="justify-content:center;margin-top:8px"><button class="btn big" onclick="pointOk('')">✓ Valider</button><button class="btn alt big" onclick="PL.pend=null;renderPlay()">Annuler</button></div></div>`
     :`<p class="muted" style="text-align:center;margin:6px 0">👆 Touche l'endroit où le volant est tombé (dans ou hors du terrain) : l'appli trouve qui gagne le point.</p>
      <div class="row" style="justify-content:center">${[0,1].map(w=>`<button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'filet')">Filet de ${esc(w?nB:nA)}</button><button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'service')">Faute au service de ${esc(w?nB:nA)}</button><button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'faute')">Autre faute de ${esc(w?nB:nA)}</button>`).join('')}<button class="btn alt" onclick="playUndo()">↶ Annuler le dernier point</button></div>`}
-   ${m.pts.length?`<details class="card" style="margin-top:12px"><summary><b>📊 Statistiques du match en direct</b></summary>${matchStatsHtml(m)}</details>`:''}
+   ${obsPanel(m)}${m.pts.length?`<details class="card" style="margin-top:12px"><summary><b>📊 Statistiques du match en direct</b></summary>${matchStatsHtml(m)}</details>`:''}
   </div>`;
   bindPlayCourt();
 }
@@ -1984,18 +2098,18 @@ let STC={},STCv=-1;
 function natOf(p){return p.t||(p.f?'fd':'pd')}
 function isFd(p){return p.t?(p.t==='fd'||p.t==='fs'):!!p.f} /* faute directe commise par le perdant du point */
 function matchesOf(c,f){return Object.values(c.matchs||{}).filter(m=>!f||f(m)).sort((a,b)=>(a.t0||0)-(b.t0||0))}
-function elStats(c,eid,date){
-  const k=c.id+'|'+eid+'|'+(date||'');if(STCv!==STV){STC={};STCv=STV}if(STC[k])return STC[k];
-  const st={mj:0,mg:0,mn:0,mp:0,pts:0,pl:0,fd:0,nat:{},man:{n:0,ok:0,pct:0},z:{},co:{},zp:0,ct:0,loc:0,ex:{},dots:[],ms:[]};
-  matchesOf(c,m=>(m.a===eid||m.b===eid)&&(!date||m.date===date)).forEach(m=>{
+function elStats(c,eid,date,pid){
+  const k=c.id+'|'+eid+'|'+(date||'')+'|'+(pid||'');if(STCv!==STV){STC={};STCv=STV}if(STC[k])return STC[k];
+  const st={mj:0,mg:0,mn:0,mp:0,pts:0,pl:0,fd:0,fsv:0,tal:{},nat:{},man:{n:0,ok:0,pct:0},z:{},co:{},zp:0,ct:0,loc:0,ex:{},dots:[],ms:[]};
+  matchesOf(c,m=>(m.a===eid||m.b===eid)&&(!date||m.date===date)&&(!pid||m.pre.id===pid)).forEach(m=>{
     const R=replay(m);
     if(m.pre.type==='exo'){if(m.a!==eid)return;const x=st.ex[m.pre.nom]=st.ex[m.pre.nom]||{ok:0,n:0,obj:m.pre.obj||0,essais:m.pre.essais||20,ser:0};x.ok+=R.ok;x.n+=R.n;x.ser++;if(m.ae!=null&&(m.t0||0)>=(x.aet||0)){x.ae=m.ae;x.aet=m.t0||0}
       (m.pts||[]).forEach(p=>{if(p.x!=null)st.dots.push({x:p.x,y:p.y,ok:p.ok})});st.ms.push(m);return}
-    const side=m.a===eid?0:1;st.ms.push(m);
+    const side=m.a===eid?0:1;st.ms.push(m);if(m.obs)Object.keys(m.obs).forEach(q=>{st.tal[q]=(st.tal[q]||0)+((m.obs[q]||[])[side]||0)});
     if(m.fin||R.fin){st.mj++;if(R.win===side)st.mg++;else if(R.win<0)st.mn++;else st.mp++}
     st.zp+=R.zp[side];st.ct+=R.ct[side];if(R.mp&&R.mp[side]){st.man.n++;if(R.mp[side].ok)st.man.ok++;st.man.pct+=R.mp[side].pct}
     R.det.forEach(({p})=>{if(p.w===side){st.pts++;const t=natOf(p);st.nat[t]=(st.nat[t]||0)+1;if(!p.f&&p.x!=null){const a=azOf(p.x,p.y);st.z[a]=(st.z[a]||0)+1;st.loc++;st.dots.push({x:p.x,y:p.y,w:0,m:m.flip?1-side:side})}if(p.c)st.co[p.c]=(st.co[p.c]||0)+1}
-      else{st.pl++;if(isFd(p))st.fd++}})});
+      else{st.pl++;if(isFd(p))st.fd++;if(natOf(p)==='fs')st.fsv++}})});
   st.ex=Object.entries(st.ex).map(([nom,x])=>Object.assign({nom},x));
   return STC[k]=st}
 function sum(o,keys){return keys.reduce((s,k)=>s+(o[k]||0),0)}
@@ -2090,12 +2204,12 @@ function renderSeq(){
   const b=document.getElementById('seqBody');
   b.innerHTML=SEQT==='lec'?seqLecons():SEQT==='ech'?seqEch():SEQT==='tech'?techHtml(true):SEQT==='afl'?seqAfl():seqIdees();
 }
-function tempsHtml(t,teach){const pre=t.pre&&preById(t.pre);
+function tempsHtml(t,teach,l,k){const pre=t.pre&&preById(t.pre);
   return `<div class="temps"><div class="row" style="justify-content:space-between"><b>${esc(t.t)}</b>${pre?`<span class="row" style="gap:6px"><span class="ctag ptag">${pre.type==='exo'?'🎯':'🏸'} ${esc(pre.nom)}</span><button class="btn or sm" onclick="playStart('${pre.id}')">▶ Lancer</button>${teach?`<button class="btn alt sm" onclick="PRE='${pre.id}';showTab('terrain')">⚙ Zones</button>`:''}</span>`:''}</div>
    <p style="margin:6px 0;white-space:pre-line">${esc(t.cons)}</p>
    <div class="g3">${(t.crq||[]).length||(t.crl||[]).length?`<div><span class="lb">Critères de réussite</span>${(t.crq||[]).length?'<i>Quantitatif</i><ul>'+t.crq.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}${(t.crl||[]).length?'<i>Qualitatif</i><ul>'+t.crl.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}</div>`:''}
    ${(t.crr||[]).length?`<div><span class="lb">Critères de réalisation</span><ul>${t.crr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-   ${t.vp||t.vm?`<div><span class="lb">Variables</span>${t.vp?`<p style="margin:2px 0"><b>+</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p style="margin:2px 0"><b>−</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div></div>`}
+   ${t.vp||t.vm?`<div><span class="lb">Variables</span>${t.vp?`<p style="margin:2px 0"><b>+</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p style="margin:2px 0"><b>−</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div>${teach&&l?indTeach(l,k):''}</div>`}
 function lecHtml(l,i,teach){
   return `<div class="lec ${l.faite?'done':''} ${l.prop?'prop':''}">
    <h3>Leçon ${l.n} · ${esc(l.titre)} ${l.prop?'<span class="ctag ptag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted" style="font-weight:600">${dateFR(l.date)}</span>`:''}</h3>
@@ -2103,7 +2217,7 @@ function lecHtml(l,i,teach){
    <details ${teach?'':'open'}><summary class="muted" style="cursor:pointer;font-weight:700">Contenus${l.mat?', matériel, dispositif':''}</summary>
     <ul>${l.cont.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>${l.mat?`<p class="muted" style="margin:4px 0"><b>Matériel :</b> ${esc(l.mat)}</p>`:''}${l.disp?`<p class="muted" style="margin:4px 0"><b>Dispositif :</b> ${esc(l.disp)}</p>`:''}${l.consg?`<p class="muted" style="margin:4px 0"><b>Consignes :</b> ${esc(l.consg)}</p>`:''}</details>
    <div style="margin:6px 0"><span class="ctag" style="background:#0f3d7a;cursor:pointer" onclick="SEQR=${l.n};SEQT='ech';renderSeq()">🔥 Déplacements + ${routinesFor(l.n).length} routine(s)</span>${teach?l.crit.map(ctag).join(''):''}</div>
-   ${(l.temps||[]).map(t=>tempsHtml(t,teach)).join('')}
+   ${(l.temps||[]).map((t,k)=>tempsHtml(t,teach,l,k)).join('')}
    ${teach?`<div class="row" style="margin-top:8px">
      <button class="btn ${l.faite?'alt':''} sm" onclick="lecSet(${i},'faite',${!l.faite})">${l.faite?'Annuler « faite »':'✓ Faite'}</button>
      <button class="btn or sm" onclick="prepOpen('${l.id}')">⚡ Préparer</button>
@@ -2304,7 +2418,7 @@ function lecEleveHtml(l){const sit=(l.temps||[]).map(t=>t.pre).filter(id=>id&&pr
     <div class="tcons">${esc(elCons(l,k)).replace(/\n/g,'<br>')}</div>
     <div class="g3">${cr.length?`<div class="bx ok"><b>✅ Je réussis si…</b><ul>${cr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
      ${(t.crr||[]).length?`<div class="bx tip"><b>💡 Pour bien faire</b><ul>${t.crr.map(x=>`<li>${esc(x.replace(/^(Service|Amorti|Dégagé|Smash|Kill|Kill revers) : /,'$1 : '))}</li>`).join('')}</ul></div>`:''}
-     ${t.vp||t.vm?`<div class="bx var">${t.vp?`<p><b>➕ Trop facile ?</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p><b>➖ Trop difficile ?</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div></div>`}).join('')}`}
+     ${t.vp||t.vm?`<div class="bx var">${t.vp?`<p><b>➕ Trop facile ?</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p><b>➖ Trop difficile ?</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div>${indEleve(l,k)}</div>`}).join('')}`}
 
 /* ================== 🏅 CLASSEMENT ATP ET DÉFIS ==================
    Classement individuel de la classe sur toute la séquence, calculé à partir de tous les matchs terminés (tablettes de terrain et enseignant),
