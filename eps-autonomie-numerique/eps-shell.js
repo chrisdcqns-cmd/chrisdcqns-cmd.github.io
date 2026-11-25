@@ -28,7 +28,18 @@
       ".epst-nav button span{margin-right:6px}",
       ".epst-acts{display:none;gap:8px;flex-wrap:wrap;max-width:1100px;margin:10px auto 0;padding:0 18px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
       "html.epst-on.epst-acts-on:not(.epst-pan) .epst-acts{display:flex}",
-      ".epst-acts button{height:42px;border-radius:12px;border:2px solid var(--epst,#666);background:#fff;color:#14171C;font:800 14px system-ui,sans-serif;padding:0 14px;cursor:pointer}",
+      /* barre d'outils : un seul bloc blanc, icône au-dessus du libellé, séparateurs fins ; le reste dans « ⋯ Plus » */
+      "html.epst-on.epst-acts-on:not(.epst-pan) .epst-acts{display:block}",
+      ".epst-tb{display:flex;align-items:stretch;background:#fff;border:1px solid #E6E1D6;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);overflow-x:auto;scrollbar-width:none}.epst-tb::-webkit-scrollbar{display:none}",
+      ".epst-tb>button{flex:1 1 0;min-width:92px;max-width:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-right:1px solid #EFEBE3;background:transparent;color:#14171C;font:700 12.5px/1.2 system-ui,sans-serif;padding:9px 8px 8px;cursor:pointer;text-align:center;position:relative}",
+      ".epst-tb>button:last-child{border-right:0}.epst-tb>button i{font-style:normal;font-size:20px;line-height:1}",
+      ".epst-tb>button:hover{background:#F7F5F0}.epst-tb>button:hover::after,.epst-tb>button.open::after{content:'';position:absolute;left:14px;right:14px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--epst,#666)}",
+      ".epst-tb>button.more{flex:0 0 auto;min-width:76px;color:#4A4F57;position:sticky;right:0;background:#fff;border-left:1px solid #EFEBE3;z-index:1}",
+      ".epst-mn{position:absolute;z-index:70;background:#fff;border:1px solid #E6E1D6;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:6px;min-width:280px;max-height:70vh;overflow:auto;font-family:system-ui,sans-serif}",
+      ".epst-mn .r{display:flex;align-items:center;gap:4px}.epst-mn .r>button:first-child{flex:1;display:flex;align-items:center;gap:10px;border:0;background:none;text-align:left;padding:10px;border-radius:10px;font:700 14.5px system-ui;color:#14171C;cursor:pointer}",
+      ".epst-mn .r>button:first-child:hover{background:#F5F3EE}.epst-mn .r>button:first-child i{font-style:normal;width:24px;text-align:center;font-size:18px}",
+      ".epst-mn .pin{border:0;background:none;font-size:18px;width:38px;height:38px;border-radius:10px;cursor:pointer;color:#B5AFA3}.epst-mn .pin.on{color:#D4A000}.epst-mn .pin:hover{background:#F5F3EE}",
+      ".epst-mn .h{font:800 11px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#8A8F98;padding:8px 10px 4px}",
       ".epst-panel{display:none;max-width:1100px;margin:0 auto;padding:18px 18px 60px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#14171C}",
       "html.epst-pan .epst-panel{display:block}",
       ".epst-panel h2{font-size:22px;margin:0 0 4px}.epst-panel .mut{color:#6A6F78;font-size:14px;margin:0 0 14px}",
@@ -89,8 +100,36 @@
       var A = (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []) /* + leçons communes (eps-lecons.js) */
         .map(function (a, i) { return [a.ord != null ? a.ord : 1, i, a]; }).sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; }).map(function (x) { return x[2]; });
       document.documentElement.classList.toggle("epst-acts-on", A.length > 0);
-      acts.innerHTML = A.map(function (x, i) { return '<button type="button" data-a="' + i + '">' + (x.ico ? x.ico + " " : "") + esc(x.label) + "</button>"; }).join("");
-      acts.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { try { A[+b.dataset.a].go(); } catch (e) { console.warn(e); } }; }); }
+      drawActs(A); }
+    /* actions principales : les 4 communes les plus utilisées + celles que l'appli marque main:1 + celles épinglées ★ par l'enseignant (sur cette tablette) ;
+       un onglet avec 5 actions ou moins les montre toutes. Le reste est dans « ⋯ Plus ». */
+    var MAIN = /^(Fiches de leçon|Leçon en cours|Évaluer la leçon|Ma classe : vue d'ensemble)$/, PKB = "eps.acts.pin." + (C.app || location.pathname);
+    function pins() { try { return JSON.parse(localStorage.getItem(PKB + "." + M.cur) || "null"); } catch (e) { return null; } }
+    function short(l) { return String(l).replace(/\s*\(.*\)\s*$/, "").replace(/ : vue d'ensemble$/, "").replace(/^Tableau de bord de la leçon$/, "Tableau de bord"); }
+    function drawActs(A) {
+      var P = pins(), isMain = function (x) { return P ? P.indexOf(x.label) >= 0 : (x.main || MAIN.test(x.label)); };
+      var top = A.length <= 5 ? A : A.filter(isMain), rest = A.length <= 5 ? [] : A.filter(function (x) { return !isMain(x); });
+      if (!top.length) { top = A.slice(0, 4); rest = A.slice(4); }
+      acts.innerHTML = '<div class="epst-tb">' + top.map(function (x) { return '<button type="button" data-a="' + A.indexOf(x) + '" title="' + esc(x.label) + '"><i>' + (x.ico || "•") + "</i>" + esc(short(x.label)) + "</button>"; }).join("") +
+        (rest.length || A.length > 5 ? '<button type="button" class="more" data-more aria-haspopup="true" title="Autres actions"><i>⋯</i>Plus' + (rest.length ? " (" + rest.length + ")" : "") + "</button>" : "") + "</div>";
+      acts.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { try { A[+b.dataset.a].go(); } catch (e) { console.warn(e); } }; });
+      var mb = acts.querySelector("[data-more]"); if (mb) mb.onclick = function (e) { e.stopPropagation(); menu(mb, A, isMain); }; }
+    function menu(mb, A, isMain) {
+      var old = document.querySelector(".epst-mn"); if (old) { old.remove(); mb.classList.remove("open"); return; }
+      var m = document.createElement("div"); m.className = "epst-mn"; m.setAttribute("role", "menu");
+      var row = function (x) { var on = isMain(x); return '<div class="r"><button type="button" data-g="' + A.indexOf(x) + '"><i>' + (x.ico || "•") + "</i>" + esc(x.label) + '</button><button type="button" class="pin' + (on ? " on" : "") + '" data-pin="' + A.indexOf(x) + '" title="' + (on ? "Retirer de la barre" : "Mettre dans la barre") + '" aria-label="' + (on ? "Retirer de la barre" : "Mettre dans la barre") + '">' + (on ? "★" : "☆") + "</button></div>"; };
+      var rest = A.filter(function (x) { return !isMain(x); }), top = A.filter(isMain);
+      m.innerHTML = (rest.length ? '<div class="h">Autres actions</div>' + rest.map(row).join("") : "") + '<div class="h">Dans la barre (★ pour retirer)</div>' + top.map(row).join("") +
+        (pins() ? '<div class="r"><button type="button" data-reset style="color:#6A6F78;font-weight:600"><i>↺</i>Barre par défaut</button></div>' : "");
+      document.body.appendChild(m); mb.classList.add("open");
+      var r = mb.getBoundingClientRect(), w = m.offsetWidth; m.style.top = (r.bottom + scrollY + 6) + "px"; m.style.left = Math.max(8, Math.min(r.right + scrollX - w, innerWidth - w - 8)) + "px";
+      var close = function () { m.remove(); mb.classList.remove("open"); document.removeEventListener("click", out, true); document.removeEventListener("keydown", key); };
+      var out = function (e) { if (!m.contains(e.target) && e.target !== mb && !mb.contains(e.target)) close(); }, key = function (e) { if (e.key === "Escape") close(); };
+      setTimeout(function () { document.addEventListener("click", out, true); document.addEventListener("keydown", key); }, 0);
+      m.querySelectorAll("[data-g]").forEach(function (b) { b.onclick = function () { close(); try { A[+b.dataset.g].go(); } catch (e) { console.warn(e); } }; });
+      m.querySelectorAll("[data-pin]").forEach(function (b) { b.onclick = function () { var x = A[+b.dataset.pin], P = pins() || A.filter(isMain).map(function (y) { return y.label; }), i = P.indexOf(x.label);
+        if (i >= 0) P.splice(i, 1); else P.push(x.label); try { localStorage.setItem(PKB + "." + M.cur, JSON.stringify(P)); } catch (e) {} close(); drawActs(A); menu(acts.querySelector("[data-more]"), A, function (y) { return P.indexOf(y.label) >= 0; }); }; });
+      var rs = m.querySelector("[data-reset]"); if (rs) rs.onclick = function () { try { localStorage.removeItem(PKB + "." + M.cur); } catch (e) {} close(); drawActs(A); }; }
     function panel(html) { document.documentElement.classList.add("epst-pan"); mains(false); pan.innerHTML = html; window.scrollTo(0, 0); return pan; }
     function closePanel() { document.documentElement.classList.remove("epst-pan"); mains(true); pan.innerHTML = ""; }
     function cards(L) { return '<div class="epst-grid">' + L.map(function (x, i) { return '<button type="button" class="epst-card" data-i="' + i + '"><i>' + (x.ico || "•") + "</i><span><b>" + esc(x.label) + "</b>" + (x.sub ? "<small>" + esc(x.sub) + "</small>" : "") + "</span></button>"; }).join("") + "</div>"; }
