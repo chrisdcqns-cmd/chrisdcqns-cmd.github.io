@@ -289,6 +289,8 @@
     if (ch && st.onChange) try { st.onChange(); } catch (e) {}
   }
   function jsetS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  /* 📶 retour du réseau : envoi tout de suite (sans attendre le prochain tour) */
+  window.addEventListener("online", function () { clearTimeout(timer); timer = setTimeout(sync, 1500); });
   function sched() { clearTimeout(timer); timer = setTimeout(sync, document.visibilityState === "hidden" ? 60000 : 20000); }
   function fire() { try { window.dispatchEvent(new CustomEvent("epsd-change")); } catch (e) {} draw(); }
   function put(it) { it.upd = Date.now(); D.items[it.id] = it; D.pend[it.id] = stamp(); sv(D); fire(); setTimeout(sync, 200); }
@@ -665,6 +667,11 @@
         else h += line(null, "Pas de fiche de leçon pour cette classe", "Facultatif : les fiches s'affichent sur les tablettes élèves.", { label: "📝 Fiches", go: function () { o.remove(); EPSLC.open("lec"); } }); }
       if (cls) { var day = at ? new Date(at - new Date(at).getTimezoneOffset() * 6e4).toISOString().slice(0, 10) : today(), dl = activeOn(day).filter(function (x) { return !x.classe || norm(x.classe) === norm(cls) || clsMatch(cls, x.classe); });
         h += line(null, dl.length ? dl.length + " dispensé(s) ce jour-là" : "Aucun dispensé saisi pour ce jour-là", dl.map(function (x) { return x.nom; }).join(", "), { label: "🩹 Dispenses", go: function () { o.remove(); try { manage(); } catch (e) {} } }); }
+      if (cls) { var vo = window.epsVoie ? epsVoie(cls) : "";
+        if (vo) h += line(null, (vo === "pro" ? "🛠 Voie professionnelle" : "🎓 Voie générale et technologique") + " : " + cls, vo === "pro" ? "Textes AFLP, barème CCF Bac pro, grille de la voie pro." : "Textes AFL, barème du bac général, grille de la voie générale.");
+        var apd = abGet(cls), nP = 0; try { EPSL.items().forEach(function (it) { if (norm(it.nom) === norm(cls)) nP = EPSL.people(it).length; }); } catch (e) {}
+        if (!at || new Date(at).toDateString() === new Date().toDateString()) h += apd ? line(true, "Appel fait : " + (nP - (apd.abs || []).length) + " présent(s)" + ((apd.abs || []).length ? ", absent(s) : " + apd.abs.join(", ") : ""), "Groupes, matériel et évaluations ne comptent que les présents.") : line(null, "Appel pas encore fait", "À faire au début de la leçon (📡 Leçon en cours) : groupes, matériel et évaluations s'adaptent aux présents.", window.EPSLC ? { label: "🙋 Faire l'appel", go: function () { o.remove(); EPSLC.open("live", cls); } } : null); }
+      var TW = tabsWaiting(); if (TW.length) h += line(false, TW.length + " tablette(s) avec des données pas encore envoyées", TW.map(function (x) { return tabName(x) + " (" + x.pend + ", vue " + ago(x.at) + ")"; }).join(" ; ") + ". Allume-les avec le Wi-Fi et ouvre l'appli.", { label: "📱 Tablettes", go: function () { o.remove(); tablets(); } });
       var app = []; try { if (window.epsCheck) app = window.epsCheck(cls, at) || []; } catch (e) { app = [{ ok: false, t: "Vérification de l'appli impossible", d: String(e && e.message || e) }]; }
       app.forEach(function (x) { h += line(x.ok, x.t, x.d, x.fix ? { label: x.fix.label, go: function () { o.remove(); x.fix.go(); } } : null); });
       h += line(navigator.onLine !== false, navigator.onLine !== false ? "Connexion Internet" : "Pas de connexion Internet", navigator.onLine !== false ? "" : "Les données seront envoyées au retour de la connexion.");
@@ -2000,8 +2007,9 @@
     if (!shCfg() || window.EPS_SIM || document.visibilityState === "hidden") return;
     var o = {}; try { if (typeof window.epsTabInfo === "function") o = window.epsTabInfo() || {}; } catch (e) {}
     var cc = null; try { cc = window.epsCurrentClass && window.epsCurrentClass(); } catch (e) {}
-    var d = devInfo(), it = { id: d.id, nom: d.nom || "", app: appDir(), mode: isTeacher() ? "enseignant" : (o.mode || "élève"), cls: o.cls || (cc && cc.nom) || "", eq: o.eq || "", ok: lastOk || 0, err: lastErr || "", ver: VER || "" };
-    var sig = JSON.stringify([it.app, it.mode, it.cls, it.eq, it.nom, it.err, it.ver]);
+    var d = devInfo(), it = { id: d.id, nom: d.nom || "", app: appDir(), mode: isTeacher() ? "enseignant" : (o.mode || "élève"), cls: o.cls || (cc && cc.nom) || "", eq: o.eq || "", ok: lastOk || 0, err: lastErr || "", ver: VER || "", pend: 0 };
+    try { it.pend = nPend(); } catch (e) {}
+    var sig = JSON.stringify([it.app, it.mode, it.cls, it.eq, it.nom, it.err, it.ver, it.pend > 0]);
     if (sig === tbLast.s && Date.now() - tbLast.t < 180000) return;
     tbLast = { s: sig, t: Date.now() }; it.at = Date.now(); stPutRaw(KTB, it);
   }
@@ -2009,11 +2017,18 @@
   document.addEventListener("visibilitychange", function () { try { beat(); } catch (e) {} });
   var NAPP = { accueil: "Accueil", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", relais: "Relais", escalade: "Escalade", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF", crosstraining: "Cross-training" };
   function ago(t) { var s = Math.round((Date.now() - t) / 1000); return s < 60 ? "à l'instant" : s < 3600 ? "il y a " + Math.round(s / 60) + " min" : s < 86400 ? "il y a " + Math.round(s / 3600) + " h" : new Date(t).toLocaleDateString("fr-FR"); }
+  /* ⏳ tablettes qui avaient des données pas encore envoyées à leur dernier signe de vie, et silencieuses depuis plus de 10 min */
+  function tabsWaiting() { var me = devInfo().id, V = stLd(KTB); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.id !== me && x.pend > 0 && x.at && Date.now() - x.at > 10 * 60000 && Date.now() - x.at < 7 * 864e5; }).sort(function (a, b) { return b.at - a.at; }); }
+  function tabName(x) { return x.nom || (NAPP[x.app] || x.app) + (x.cls ? " · " + x.cls : "") + (x.eq ? " · " + x.eq : ""); }
+  var tbWarned = jget("eps.tabs.warned", {});
+  setInterval(function () { try { if (!isTeacher() || document.hidden) return; var W = tabsWaiting().filter(function (x) { return tbWarned[x.id] !== x.at; }); if (!W.length) return;
+    W.forEach(function (x) { tbWarned[x.id] = x.at; }); try { localStorage.setItem("eps.tabs.warned", JSON.stringify(tbWarned)); } catch (e) {}
+    toastHub("⏳ " + W.map(tabName).join(", ") + " : des données (résultats, positionnements…) n'ont pas encore été envoyées. Allume la tablette avec le Wi-Fi et ouvre l'appli."); } catch (e) {} }, 5 * 60000);
   function tablets() {
     var V = stLd(KTB), me = devInfo().id, hide = jget("eps.tabs.hide", {}), L = Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.at && !hide[x.id]; }).sort(function (a, b) { return b.at - a.at; });
     var vmax = Math.max.apply(null, [+VER || 0].concat(L.map(function (x) { return +x.ver || 0; })));
     var row = function (x) {
-      var old = Date.now() - x.at > 5 * 60000, st = x.err ? "⚠ partage : " + esc(x.err) : x.ok ? "✓ synchronisée " + ago(x.ok) : "○ pas encore synchronisée";
+      var old = Date.now() - x.at > 5 * 60000, st = (x.pend > 0 ? '<b style="color:#B4232B">⏳ ' + x.pend + " donnée(s) pas encore envoyée(s)</b> · " : "") + (x.err ? "⚠ partage : " + esc(x.err) : x.ok ? "✓ synchronisée " + ago(x.ok) : "○ pas encore synchronisée");
       var maj = x.ver && +x.ver < vmax ? '<b style="color:#B4232B">⚠ ancienne version (v' + esc(x.ver) + ") : touche ⟳ sur cette tablette</b>" : x.ver ? "version à jour (v" + esc(x.ver) + ")" : "";
       return '<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #E6E1D6;' + (old ? "opacity:.6" : "") + '"><div style="font-size:26px">' + (x.mode === "enseignant" ? "🧑‍🏫" : x.mode === "coach" ? "🧢" : "📱") + '</div><div style="flex:1;text-align:left">' +
         "<b>" + esc(x.nom || (NAPP[x.app] || x.app) + (x.eq ? " · " + x.eq : "")) + "</b>" + (x.id === me ? ' <small style="color:#6B3FA0">(cette tablette)</small>' : "") +
