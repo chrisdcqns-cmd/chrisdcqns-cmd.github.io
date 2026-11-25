@@ -107,7 +107,8 @@ function traiter_(req) {
     if (a === 'myObservations') {
       const n = norm_(ligne.nom), c = norm_(ligne.classe);
       const liste = lignes_(T_OBS).filter(r => norm_(r.v[2]) === c && (norm_(r.v[3]) === n || norm_(r.v[5]) === n));
-      return { ok: true, observations: liste.map(r => ({ resume: resumeObs_(r.v), data: lireDonnees_(T_OBS, r.row) })) };
+      const dg = lireDonnees_(T_GROUPES, ligne.row) || {}, pg = dg.progress || {};
+      return { ok: true, observations: liste.map(r => ({ resume: resumeObs_(r.v), data: lireDonnees_(T_OBS, r.row) })), ov: pg.ov || {}, ovAt: pg.ovAt || '' };
     }
   }
 
@@ -133,6 +134,16 @@ function traiter_(req) {
         slots: (d.current && d.current.slots) || [], curAt: d.curAt || '' };
     });
     const obs = lignes_(T_OBS).filter(r => norm_(r.v[2]) === c).map(r => resumeObs_(r.v));
+    return { ok: true, groups: groupes, observations: obs };
+  }
+  // ceintures de la classe : validations de l'enseignant par groupe + observations complètes de la classe (calcul côté appli)
+  if (a === 'teacherBelts') {
+    const c = norm_(req.classe);
+    const groupes = lignes_(T_GROUPES).filter(r => norm_(r.v[1]) === c).map(r => {
+      const d = lireDonnees_(T_GROUPES, r.row) || {};
+      return { key: r.v[0], nom: r.v[2], membres: r.v[3], ov: (d.progress && d.progress.ov) || {} };
+    });
+    const obs = lignes_(T_OBS).filter(r => norm_(r.v[2]) === c).map(r => lireDonnees_(T_OBS, r.row)).filter(Boolean);
     return { ok: true, groups: groupes, observations: obs };
   }
   if (a === 'teacherSetStudents') {
