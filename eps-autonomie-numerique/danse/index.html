@@ -1699,17 +1699,17 @@ const MEMO = [
     ['Régisseur', 'Gère la musique, le début, la fin et l\'espace scénique.', 'Lance la musique au signal du groupe.']
   ] }
 ];
-const GESTES = ['se brosser les dents', 'enfiler une veste', 'saluer quelqu\'un', 'lacer ses chaussures', 'se recoiffer', 'regarder l\'heure', 'ouvrir une porte', 'écrire un SMS', 'se gratter la tête', 'porter un sac lourd', 's\'étirer au réveil', 'chercher ses clés', 'applaudir', 'boire un verre d\'eau', 'courir après le bus', 'se protéger de la pluie', 's\'asseoir', 'lancer un ballon', 'prendre un selfie', 'éternuer', 'attraper une mouche', 'faire du vélo'];
-const DEFI_PARAM = ['très lentement', 'en accélérant', 'au sol', 'en sautant', 'de façon saccadée', 'de façon fluide, comme dans l\'eau', 'avec une seule partie du corps', 'en tournant', 'sur une trajectoire en spirale', 'très grand puis minuscule', 'avec une énergie explosive puis retenue', 'de dos au public', 'en changeant de niveau à chaque fois', 'avec deux arrêts nets'];
-const OBS_PROC = ['Répétition', 'Accumulation', 'Rétrograde', 'Amplification', 'Réduction', 'Transposition', 'Fragmentation', 'Contraste', 'Arrêt / suspension', 'Unisson', 'Canon', 'Cascade', 'Miroir', 'Question-réponse', 'Contact'];
+const GESTES = EPSP.p({id:'gestes',sec:'Défis de création',label:'Gestes du quotidien proposés dans les défis',type:'list',def:['se brosser les dents', 'enfiler une veste', 'saluer quelqu\'un', 'lacer ses chaussures', 'se recoiffer', 'regarder l\'heure', 'ouvrir une porte', 'écrire un SMS', 'se gratter la tête', 'porter un sac lourd', 's\'étirer au réveil', 'chercher ses clés', 'applaudir', 'boire un verre d\'eau', 'courir après le bus', 'se protéger de la pluie', 's\'asseoir', 'lancer un ballon', 'prendre un selfie', 'éternuer', 'attraper une mouche', 'faire du vélo']}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
+const DEFI_PARAM = EPSP.p({id:'defip',sec:'Défis de création',label:'Façons de transformer le geste (paramètres du défi)',type:'list',def:['très lentement', 'en accélérant', 'au sol', 'en sautant', 'de façon saccadée', 'de façon fluide, comme dans l\'eau', 'avec une seule partie du corps', 'en tournant', 'sur une trajectoire en spirale', 'très grand puis minuscule', 'avec une énergie explosive puis retenue', 'de dos au public', 'en changeant de niveau à chaque fois', 'avec deux arrêts nets']}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
+const OBS_PROC = EPSP.p({id:'obsproc',sec:'Observation',label:'Procédés à repérer',type:'list',def:['Répétition', 'Accumulation', 'Rétrograde', 'Amplification', 'Réduction', 'Transposition', 'Fragmentation', 'Contraste', 'Arrêt / suspension', 'Unisson', 'Canon', 'Cascade', 'Miroir', 'Question-réponse', 'Contact']}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
 const OBS_PARAM = [
   ['Temps', ['Lent / rapide', 'Accélération', 'Arrêts, accents']],
   ['Espace', ['Niveaux (sol / haut)', 'Orientations', 'Trajets', 'Amplitude (grand / petit)']],
   ['Énergie', ['Fluide / saccadé', 'Fort / léger', 'Explosif / retenu']],
   ['Corps', ['Parties du corps', 'Appuis']]
 ];
-const CLARTE = ['Pas du tout', 'Un peu', 'Plutôt oui', 'Très clairement'];
-const OBS_DANSE = ['Danse mémorisée, sans trou', 'Concentrés, sans rire', 'Regard engagé', 'Immobilités tenues', 'Début et fin marqués'];
+const CLARTE = EPSP.p({id:'clarte',sec:'Observation',label:'Échelle « Intention lisible »',type:'list',fixed:4,def:['Pas du tout', 'Un peu', 'Plutôt oui', 'Très clairement']}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
+const OBS_DANSE = EPSP.p({id:'obsdanse',sec:'Observation',label:'« Comment ils dansent » : points à observer',type:'list',def:['Danse mémorisée, sans trou', 'Concentrés, sans rire', 'Regard engagé', 'Immobilités tenues', 'Début et fin marqués']}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
 
 /* ---------- État ---------- */
 function uid() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }

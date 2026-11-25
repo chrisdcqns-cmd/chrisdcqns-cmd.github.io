@@ -1448,7 +1448,7 @@ function drawDojoBg(ctx,W,H){
   ctx.fillText("PUBLIC",W/2,H-m/2+W*0.008);ctx.textAlign="left";
 }
 const MEMBER_COLORS=["#1d4ed8","#16a34a","#9333ea","#ea580c","#0e7490","#db2777"];
-const LINKS=["Roulade avant","Roulade arrière","Roue","Saut extension","Saut ½ tour","Pas chassés","Course","Pose / attitude"];
+const LINKS = EPSP.p({id:'links',sec:'Enchaînement',label:'Éléments de liaison proposés',type:'list',def:["Roulade avant","Roulade arrière","Roue","Saut extension","Saut ½ tour","Pas chassés","Course","Pose / attitude"]}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
 function drawStrokes(ctx,W,H,strokes){
   for(const s of strokes||[]){
     if(!s.p||s.p.length<2) continue;
@@ -1683,7 +1683,7 @@ const CRIT_DYN={
     ["posit","La position","Placé du côté de la réception, mains libres, prêt à intervenir."],
     ["interv","L'intervention","Accompagne ou sécurise la réception si nécessaire, sans gêner le mouvement."]]}
 };
-const SAFETY=["Appui dangereux (dos, articulation)","Bras / jambes non verrouillés","Dos creusé ou gros dos","Montée brutale (choc)","Manque de maintien / déséquilibre","Chute","Démontage non contrôlé (saut, vers l'arrière)","Pareur absent ou inattentif","Réception non contrôlée (dynamique)"];
+const SAFETY = EPSP.p({id:'safety',sec:'Sécurité',label:'Erreurs de sécurité à signaler',type:'list',def:["Appui dangereux (dos, articulation)","Bras / jambes non verrouillés","Dos creusé ou gros dos","Montée brutale (choc)","Manque de maintien / déséquilibre","Chute","Démontage non contrôlé (saut, vers l'arrière)","Pareur absent ou inattentif","Réception non contrôlée (dynamique)"]}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
 const MARKS=["","✗","~","✓"];
 let safetyMoment="Général", obsInfo=null, obsGroupList=null, obsHistory=null;
 function newDraft(){return {id:"o"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),observed:null,routine:null,observers:[],marks:{},pareur:{},safety:[],note:""}}

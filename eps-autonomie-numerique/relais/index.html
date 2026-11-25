@@ -2489,7 +2489,8 @@ function homeStudentScroll(){
 window.addEventListener("orientationchange",()=>setTimeout(()=>{if($("#v-home").classList.contains("on"))homeStudentScroll()},300));
 
 /* ===== Bibliothèque de situations (relais-vitesse) ===== */
-const SIT_CATS=[["echauf","Échauffement athlétique"],["depart","Départ"],["accel","Accélération"],["foulee","Foulée et vitesse"],["marque","Prise de marque"],["trans","Transmission"],["roles","Rôles et projet"]];
+/* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres (seuls les intitulés changent) */
+const SIT_CATS=(()=>{const K=["echauf","depart","accel","foulee","marque","trans","roles"],L=EPSP.p({id:"sitcats",sec:"Situations",label:"Noms des 7 catégories de situations",type:"list",fixed:7,def:["Échauffement athlétique","Départ","Accélération","Foulée et vitesse","Prise de marque","Transmission","Rôles et projet"]});return K.map((k,i)=>[k,L[i]])})();
 const SITS=[
 {id:"gammes",cat:"echauf",t:"Gammes athlétiques",o:"Préparer le corps à courir vite et placer le pied actif.",d:"10 min",
  disp:"Ligne droite de 20 m balisée par 2 plots. Retour en marchant.",
@@ -2952,7 +2953,7 @@ function renderDiag(){
 $("#r-advice").addEventListener("click",e=>{const b=e.target.closest("[data-d]");if(!b)return;const k=b.dataset.d,v=b.dataset.v;
   ST[k]=v;if(k==="dv"){ST.dw=null;ST.de=null}if(k==="zr")ST.za=null;onCourse();
   guide();});
-const ECARTS=[-4,-3,-2,-1,0,1,2,3,4,5];
+const ECARTS=EPSP.p({id:"ecarts",sec:"Course",label:"Écarts proposés pour corriger la marque (en pieds)",type:"list",aide:"Un nombre par ligne, négatif = rapprocher la marque.",def:["-4","-3","-2","-1","0","1","2","3","4","5"]}).map(Number).filter(v=>!isNaN(v));
 const ptDist=n=>n*1, pmDist=n=>3+(n-1);
 /* Zones de l'image (en % de la largeur), de gauche à droite */
 const IMGZONES=[{v:HZ,l:0,r:21.13},{v:"Zone 100",l:21.13,r:41.61},{v:"Zone 10",l:41.61,r:61.71},{v:"Zone 1",l:61.71,r:95.47}];

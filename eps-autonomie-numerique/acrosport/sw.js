@@ -1,5 +1,5 @@
 // Acrosport EPS — service worker : appli toujours à jour quand il y a du réseau, utilisable hors connexion sinon.
-const CORE = "acro-core-v19";
+const CORE = "acro-core-v20";
 const VIDEOS = "acro-videos-v1";
 const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
