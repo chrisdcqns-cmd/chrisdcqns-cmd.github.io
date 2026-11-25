@@ -32,5 +32,9 @@ Application web pour tablette (badminton, CA4, lycée), hébergée sur GitHub Pa
 - Auto-évaluation élève : écran « Exercice terminé » → `m.ae` (0-3, `AEL`), synchronisée avec le match ; dernière valeur dans `elStats().ex[].ae`, affichée dans les stats, le tableau de la classe et le questionnaire de leçon (« 🙋 L'élève s'estime »).
 - Profil de joueur (`pjProfil`/`pjCard`/`pjShort`) : axes de `profil(st)` rapportés à `PJREF` ; profil = axe dominant (≥ 0,8 × réf.), tendance = 2e axe (≥ réf.), défi = axe le plus faible avec situation conseillée (`PJT[k].pre`). Dans Mes stats (élève), la fiche d'évaluation et le tableau de la classe (Matchs & stats). 8 points minimum.
 - Bandeaux : `.evhead` collé sous les bandeaux réellement visibles (`--stk` calculé par `stkUpd`) ; écrans plein écran (`.coach`, `#play`, `#lock`, `#full`) au-dessus de l'onglet enseignant `.epst-nav` (z-index 60).
+<<<<<<< Updated upstream
 
 - 🏅 Défis ATP : `atpRank(c)` recalcule le classement à partir de tous les matchs terminés (ordre `t0`), barème `ATP_P` (EPSP `atp`, 6 valeurs). Défi = match lancé avec `poule = "atp:" + date` (lanceur = `m.a`) ; revanche d'un défi = match normal. Onglet terrain `atp`, carte repliable dans Matchs.
+=======
+- Profil sur la séquence : `pjCard(st,el,who,c,eid)` calcule le profil sur tous les matchs + `pjParcours` (un profil par leçon jouée, regroupé par date, n° de leçon = `m.lec`) affiché en frise ; repris dans le PDF de la fiche d'évaluation.
+>>>>>>> Stashed changes

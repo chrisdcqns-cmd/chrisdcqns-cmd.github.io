@@ -402,6 +402,10 @@ html.epst-on header nav#nav{display:none!important}
 
 /* écrans plein écran (match, exercice, tablette de terrain, verrou) au-dessus du bandeau d'onglets enseignant */
 .coach{z-index:70}#play{z-index:75}#lock{z-index:80}#full{z-index:85}
+
+.pjpar{margin-top:10px;padding-top:8px;border-top:1px solid #eef1f5}.pjl{display:flex;align-items:stretch;gap:4px;overflow-x:auto;padding:6px 0}
+.pjli{flex:0 0 auto;min-width:92px;border:1.5px solid #e2d4ef;background:#faf6fd;border-radius:9px;padding:5px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;font-size:.8em;font-weight:700}
+.pjli small{color:#5b6573;font-weight:700}.pjli .pje2{font-size:1.6em;line-height:1.2}.pjli.vide{opacity:.5}.pjar{align-self:center;color:#9fb0c2;font-style:normal;font-weight:900}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -941,7 +945,7 @@ function renderEval0(){
      <div class="seg" id="evRad">${['profil','zones','coups'].map(k=>`<button class="${RADK===k?'on':''}" onclick="RADK='${k}';renderEval()">${{profil:'Profil',zones:'Zones',coups:'Coups'}[k]}</button>`).join('')}</div></div>
    ${st.mj||st.ex.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,[st]),[{nom:fullName(e),c:'#0B7A75'}],300)}</div><div style="flex:1;min-width:220px">${statLines(st)}${B().optMatchs?`<div class="ok" style="margin-top:8px">Option active : le curseur des critères ${isLP()?'AFLP1 et AFLP2':'AFL1'} se place selon la part de matchs gagnés (${st.mj?Math.round((st.mg+st.mn*.5)/st.mj*100):0} %).</div>`:''}</div></div>`
      :'<p class="muted">Aucun match ni exercice saisi sur le terrain pour cet élève.</p>'}</div>
-  ${st.mj||st.pts?pjCard(st,false):''}
+  ${st.mj||st.pts?pjCard(st,false,'',c,e.id):''}
   <div id="crits" ${isAbs(e)?'style="opacity:.4;pointer-events:none"':''}>${b.criteres.map(cr=>critHtml(cr,e)).join('')}</div>
   <div class="card"><h2>Commentaire / bilan pour l'élève</h2><textarea data-eps-comment rows="3" oninput="curE().comment=this.value;save()" placeholder="Points forts, axes de progrès…">${esc(e.comment||'')}</textarea></div>
   <div class="total" id="totBar"></div>`;
@@ -1133,14 +1137,20 @@ const PJT={
  'Régularité':{e:'🧱',n:'Le mur',el:"Tu fais peu de fautes : c'est souvent ton adversaire qui craque.",pr:"Peu de fautes directes : joue sur la régularité.",dv:"Joue plus en sécurité : vise un peu à l'intérieur des lignes.",pre:'cibles'}};
 function pjProfil(st){if((st.pts+st.pl)<8||st.loc<5)return null;const P=profil(st),sc=P.map(([k,v])=>({k,v,s:v/PJREF[k]})).sort((a,b)=>b.s-a.s);
   const main=sc[0].s>=.8?sc[0]:null,sec=main&&sc[1].s>=1?sc[1]:null,low=sc[sc.length-1];return{main,sec,low,sc}}
-function pjCard(st,el,who){const p=pjProfil(st);
-  if(!p)return `<div class="card pj"><h2>🃏 ${el?'Mon profil de joueur':'Profil de joueur'}</h2><p class="muted">${el?"Joue au moins un match saisi sur la tablette pour découvrir ton profil.":"Pas encore assez de points saisis (8 minimum)."}</p></div>`;
+function pjCard(st,el,who,c,eid){const p=pjProfil(st),par=pjParcHtml(c,eid,el);
+  if(!p)return `<div class="card pj"><h2>🃏 ${el?'Mon profil de joueur':'Profil de joueur'}</h2><p class="muted">${el?"Joue au moins un match saisi sur la tablette pour découvrir ton profil.":"Pas encore assez de points saisis (8 minimum)."}</p>${par}</div>`;
   const T=p.main?PJT[p.main.k]:{e:'🌱',n:'En construction',el:"Ton jeu se met en place : aucun point fort ne ressort encore. Continue à varier !",pr:"Aucun point fort marqué pour l'instant."};
   const L=PJT[p.low.k],pre=preById(L.pre);
-  return `<div class="card pj"><div class="pjh"><div class="pje">${T.e}</div><div><div class="muted" style="font-weight:700">${el?'Mon profil de joueur':'Profil de joueur'}${who?' · '+esc(who):''}</div><div class="pjn">${T.n}${p.sec?` <span class="pjs">${PJT[p.sec.k].e} ${esc(PJT[p.sec.k].n.replace(/^(Le |L')/,'tendance '))}</span>`:''}</div></div></div>
+  return `<div class="card pj"><div class="pjh"><div class="pje">${T.e}</div><div><div class="muted" style="font-weight:700">${el?'Mon profil de joueur':'Profil de joueur'} · sur toute la séquence${who?' · '+esc(who):''}</div><div class="pjn">${T.n}${p.sec?` <span class="pjs">${PJT[p.sec.k].e} ${esc(PJT[p.sec.k].n.replace(/^(Le |L')/,'tendance '))}</span>`:''}</div></div></div>
     <p>${esc(el?T.el:T.pr)}</p>
     <div class="pjbars">${p.sc.map(x=>`<div class="pjb"><span>${esc(x.k)}</span><i><b style="width:${Math.min(100,Math.round(x.s/1.6*100))}%" class="${x===p.main||x===p.sec?'f':x===p.low?'l':''}"></b></i></div>`).join('')}</div>
-    <div class="pjdv">${el?'🚀 Mon défi':'🚀 Axe de progrès'} : <b>${esc(PJT[p.low.k].e+' '+p.low.k)}</b> — ${esc(L.dv)}${pre&&pre.nom?` <span class="muted">Situation conseillée : « ${esc(pre.nom)} ».</span>`:''}</div></div>`}
+    <div class="pjdv">${el?'🚀 Mon défi':'🚀 Axe de progrès'} : <b>${esc(PJT[p.low.k].e+' '+p.low.k)}</b> — ${esc(L.dv)}${pre&&pre.nom?` <span class="muted">Situation conseillée : « ${esc(pre.nom)} ».</span>`:''}</div>${par}</div>`}
+/* le profil suit l'élève sur toute la séquence : un profil par leçon jouée + le profil global */
+function pjParcours(c,eid){if(!c||!eid)return [];const ms=matchesOf(c,m=>(m.a===eid||m.b===eid)&&m.pre.type!=='exo'),ds=[...new Set(ms.map(m=>m.date))].sort();
+  return ds.map(d=>{const st=elStats(c,eid,d),m=ms.find(x=>x.date===d),p=pjProfil(st);return{d,n:m&&m.lec,p,t:p?(p.main?PJT[p.main.k]:{e:'🌱',n:'En construction'}):null}})}
+function pjParcHtml(c,eid,el){const P=pjParcours(c,eid);if(!P.length)return'';const ok=P.filter(x=>x.t);
+  const ev=ok.length>=2&&ok[0].t.n!==ok[ok.length-1].t.n?`<div class="muted" style="margin-top:4px">${el?'Mon évolution':'Évolution'} : ${ok[0].t.e} ${esc(ok[0].t.n)} → ${ok[ok.length-1].t.e} ${esc(ok[ok.length-1].t.n)}</div>`:ok.length>=2?`<div class="muted" style="margin-top:4px">${el?'Mon profil est stable depuis le début.':'Profil stable sur la séquence.'}</div>`:'';
+  return `<div class="pjpar"><b>${el?'📈 Mon parcours, leçon après leçon':'📈 Parcours sur la séquence'}</b><div class="pjl">${P.map(x=>`<div class="pjli ${x.t?'':'vide'}"><small>${x.n?'Leçon '+x.n:dateFR(x.d)}</small><span class="pje2">${x.t?x.t.e:'·'}</span><span>${x.t?esc(x.t.n):'peu de points'}</span></div>`).join('<i class="pjar">›</i>')}</div>${ev}</div>`}
 function pjShort(st){const p=pjProfil(st);if(!p)return '–';const T=p.main?PJT[p.main.k]:{e:'🌱',n:'En construction'};return T.e+' '+T.n}
 /* ================== AUTO-ÉVALUATION DE L'ÉLÈVE APRÈS UN EXERCICE ================== */
 const AEL=["😟 Je n'y arrive pas encore","🙂 J'y arrive parfois","😀 J'y arrive souvent","🤩 Je maîtrise, même en match"];
@@ -2205,7 +2215,7 @@ function renderTerr(){
   else{const e=elById(c,TSTAT);
     b.innerHTML=`<div class="card"><h2>Qui es-tu ?</h2><div class="pres">${grpMembers(c,g).map(x=>`<button class="${x.id===TSTAT?'p':''}" onclick="TSTAT='${x.id}';renderTerr()">${esc(fullName(x))}</button>`).join('')}</div></div>
      ${e?(()=>{const st=elStats(c,e.id),sd=elStats(c,e.id,today());return `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(fullName(e))}</h2><div class="seg">${['profil','zones','coups'].map(k=>`<button class="${RADK===k?'on':''}" onclick="RADK='${k}';renderTerr()">${{profil:'Mon profil',zones:'Mes zones',coups:'Mes coups'}[k]}</button>`).join('')}</div></div>
-       ${st.ms.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,sd.ms.length&&sd.ms.length<st.ms.length?[st,sd]:[st]),sd.ms.length&&sd.ms.length<st.ms.length?[{nom:'Toute la séquence',c:'#0B7A75'},{nom:"Aujourd'hui",c:'#D9481F'}]:[{nom:'',c:'#0B7A75'}],340)}</div><div style="flex:1;min-width:240px">${statLines(st)}<p class="astuce">💡 ${conseil(st)}</p></div></div><h3>Où je marque mes points</h3><div class="cw mini">${heatSvg(st)}</div>`:'<p class="muted">Pas encore de match saisi.</p>'}</div>${pjCard(st,true)}${coachCard(c,e)}`})():''}`}
+       ${st.ms.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,sd.ms.length&&sd.ms.length<st.ms.length?[st,sd]:[st]),sd.ms.length&&sd.ms.length<st.ms.length?[{nom:'Toute la séquence',c:'#0B7A75'},{nom:"Aujourd'hui",c:'#D9481F'}]:[{nom:'',c:'#0B7A75'}],340)}</div><div style="flex:1;min-width:240px">${statLines(st)}<p class="astuce">💡 ${conseil(st)}</p></div></div><h3>Où je marque mes points</h3><div class="cw mini">${heatSvg(st)}</div>`:'<p class="muted">Pas encore de match saisi.</p>'}</div>${pjCard(st,true,'',c,e.id)}${coachCard(c,e)}`})():''}`}
 }
 let TRES=null;
 function renderTerrRes(){const c=classById(TERR.cls),m=c&&c.matchs[TRES];if(!m)return;
@@ -2460,7 +2470,7 @@ function ficheHtml(e,c,lang){
   const st=elStats(c,e.id);
   return `${hd({titre:'Évaluation',nom:fullName(e),classe:c.nom})}${b.mode==='officiel'?`<p>Choix ${isLP()?'des AFLP':'AFL2/AFL3'} : ${choixLab(e.choix||'4-4')}</p>`:''}
    ${isAbs(e)?`<h2>${e.statut==='ABS'?'Absent':'Dispensé'}</h2>`:`<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">${el?'Ce qui est évalué':'Critère'}</th><th>${el?'Mon niveau':'Degré'}</th><th style="text-align:left">${el?"Ce que j'ai montré":'Ce qui a été observé'}</th><th>Points</th></tr>${rows}</table>
-   <p style="font-size:1.1em">${afls}</p>${st.mj?`<p>Matchs : ${st.mg} gagné(s) sur ${st.mj}</p>`:''}<p style="font-size:1.4em"><b>Note : ${n!=null?fr(n):'–'} / 20</b></p>`}
+   <p style="font-size:1.1em">${afls}</p>${st.mj?`<p>Matchs : ${st.mg} gagné(s) sur ${st.mj}</p>`:''}${pjProfil(st)?`<p>Profil de joueur sur la séquence : <b>${pjShort(st)}</b>${(()=>{const P=pjParcours(c,e.id).filter(x=>x.t);return P.length>1?' · parcours : '+P.map(x=>(x.n?'L'+x.n:dateFR(x.d))+' '+x.t.e).join(' → '):''})()}</p>`:''}<p style="font-size:1.4em"><b>Note : ${n!=null?fr(n):'–'} / 20</b></p>`}
    ${e.comment?`<p><b>${el?'Le mot de mon enseignant':'Commentaire'} :</b> ${esc(e.comment).replace(/\n/g,'<br>')}</p>`:''}`}
 /* bilan de leçon d'un élève (date d'une leçon) */
 function leconHtml(e,c,date){
