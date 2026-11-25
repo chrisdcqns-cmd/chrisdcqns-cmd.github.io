@@ -2976,6 +2976,9 @@ function verifHTML() {
   return `<section class="card verif"><details ${n < L.length ? 'open' : ''}><summary><h3>✅ Liste de vérification <small>${n} / ${L.length} prêts</small></h3></summary>
     ${L.map(x => `<div class="vf ${x.ok ? 'ok' : x.w ? 'w' : 'ko'}"><span class="vf-i">${x.ok ? '✓' : x.w ? '•' : '!'}</span><div><b>${esc(x.t)}</b><small>${esc(x.d)}</small></div>${x.ok && x.go !== 'sync' ? '' : `<button class="btn sm" data-vf="${x.go}">${esc(x.b)}</button>`}</div>`).join('')}</details></section>`;
 }
+/* « ✅ Tout est prêt ? » commun (eps-home.js) : vérifications propres à Danse (le partage est déjà vérifié par le contrôle commun) */
+window.epsCheck = () => verifs().filter(x => x.go !== 'share' && x.go !== 'sync').map(x => ({ ok: x.ok ? true : x.w ? null : false, t: x.t, d: x.d,
+  fix: x.ok ? null : { label: x.b, go: () => { if (x.go === 'classe') aller('classe'); else if (x.go === 'classes') { UI.apres = 'evaluation'; aller('classes'); } else { aller('reglages'); setTimeout(() => { const el = $(x.go === 'head' ? '#rHead' : x.go === 'bareme' ? '#rGr' : '#rETest'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 300); } } } }));
 function bindVerif() {
   $$('[data-vf]').forEach(b => b.onclick = async () => {
     const g = b.dataset.vf, vers = sel => { const el = $(sel); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
