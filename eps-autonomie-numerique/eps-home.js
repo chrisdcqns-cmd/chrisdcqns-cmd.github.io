@@ -401,7 +401,7 @@
     try { placeUpd(); } catch (e) {}
     document.querySelectorAll("[data-eps-teach]").forEach(function (el) { el.style.display = t ? "" : "none"; });
     try { document.documentElement.classList.toggle("eps-teach", !!t); } catch (e) {}
-    var b = document.getElementById("eps-teachbtn"); if (b) { b.textContent = "🔓 Quitter le mode enseignant"; b.style.display = t ? "" : "none"; }
+    var b = document.getElementById("eps-teachbtn"); if (b) { b.textContent = innerWidth < 600 ? "🔓 Quitter" : "🔓 Quitter le mode enseignant"; b.title = "Quitter le mode enseignant"; b.style.display = t ? "" : "none"; }
     try { applyReg(); } catch (e) {}
   }
   function askCode() {
@@ -1820,6 +1820,12 @@
     function start() { run(document); try { new MutationObserver(soon).observe(document.body, { childList: true, subtree: true }); } catch (e) {} setInterval(soon, 2500); }
     if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
     window.EPSTIP = { run: run, open: open };
+  })();
+  /* 📱 téléphone : la barre du haut d'une appli passe à la ligne au lieu de déborder (boutons communs, 🎙, 🔄…) */
+  (function narrow() {
+    function fix() { if (innerWidth >= 700) return; document.querySelectorAll("[data-eps-bar]").forEach(function (sl) { var p = sl.parentElement; for (var i = 0; p && i < 2; i++, p = p.parentElement) { var cs = getComputedStyle(p); if (cs.display.indexOf("flex") >= 0 && cs.flexDirection.indexOf("row") === 0) { if (cs.flexWrap === "nowrap") { p.style.flexWrap = "wrap"; p.style.rowGap = "6px"; } if (p.scrollWidth > p.clientWidth + 2) { p.style.flexWrap = "wrap"; } } } });
+      var tb = document.getElementById("eps-teachbtn"); if (tb && tb.style.display !== "none") tb.textContent = "🔓 Quitter"; }
+    setTimeout(fix, 600); setTimeout(fix, 2000); setInterval(fix, 4000); addEventListener("resize", fix);
   })();
   (function a11y() {
     try { var st = document.createElement("style"); st.id = "eps-a11y";
