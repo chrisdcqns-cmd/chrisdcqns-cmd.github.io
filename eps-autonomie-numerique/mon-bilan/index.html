@@ -18,6 +18,11 @@
   .mut { color: #6A6F78; font-size: 14px; }
   input { width: 100%; height: 60px; border: 2px solid #E6E1D6; border-radius: 14px; font: 800 28px ui-monospace, monospace; letter-spacing: .3em; text-align: center; text-transform: uppercase; background: #FBFAF7; }
   input:focus { outline: none; border-color: var(--app); }
+  :focus-visible { outline: 3px solid #1F5F8B; outline-offset: 2px; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  label.l { display: block; font-weight: 800; margin: 10px 0 6px; }
+  @media (max-width: 420px) { main { padding: 16px 12px 80px; } .card { padding: 14px; } button.s { width: 100%; margin: 8px 0 0; height: 48px; } input { font-size: 24px; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   button { height: 52px; border-radius: 14px; border: 0; background: var(--app); color: #fff; font: 800 17px system-ui, sans-serif; padding: 0 18px; cursor: pointer; width: 100%; margin-top: 12px; }
   button.s { background: #fff; color: #14171C; border: 2px solid #E6E1D6; width: auto; height: 44px; margin: 8px 8px 0 0; font-size: 15px; }
   .b { border-left: 6px solid var(--c, #14213D); }
@@ -30,11 +35,12 @@
   <div class="card" id="login">
     <h1>Entre ton code</h1>
     <p class="mut">Ton professeur t'a donné un code personnel de 6 caractères. Il est le même pour toutes les activités. Ne le donne à personne.</p>
-    <input id="code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="······">
+    <label class="l" for="code">Mon code personnel</label>
+    <input id="code" maxlength="6" aria-describedby="msg" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="······">
     <button id="go">Voir mes bilans</button>
-    <p id="msg" class="mut"></p>
+    <p id="msg" class="mut" role="status" aria-live="polite"></p>
   </div>
-  <div id="res"></div>
+  <div id="res" aria-live="polite"></div>
 </main>
 <script>
 (function () {
@@ -67,7 +73,7 @@
       if (!out.length) throw new Error("code");
       msg.textContent = "";
       res.innerHTML = '<p class="mut">Bonjour ' + esc(out[0].eleve) + ' ! Voici tes fiches d\'évaluation.</p>' + out.map(function (o, i) {
-        return '<div class="card b" style="--c:' + esc(o.color || "#14213D") + '"><b style="font-size:18px">' + esc(o.app) + '</b><div class="mut">' + esc(o.classe) + " · publiée le " + esc(o.date) + '</div><button class="s" data-o="' + i + '">📄 Ouvrir ma fiche</button><button class="s" data-d="' + i + '">⬇ Télécharger</button></div>'; }).join("");
+        return '<div class="card b" style="--c:' + esc(o.color || "#14213D") + '"><b style="font-size:18px">' + esc(o.app) + '</b><div class="mut">' + esc(o.classe) + " · publiée le " + esc(o.date) + '</div><button class="s" data-o="' + i + '" aria-label="Ouvrir ma fiche ' + esc(o.app) + '">📄 Ouvrir ma fiche</button><button class="s" data-d="' + i + '" aria-label="Télécharger ma fiche ' + esc(o.app) + '">⬇ Télécharger</button></div>'; }).join("");
       function blob(o) { var u = unb64(o.pdf.replace(/\+/g, "-").replace(/\//g, "_")); return new Blob([u], { type: "application/pdf" }); }
       res.querySelectorAll("[data-o]").forEach(function (b) { b.onclick = function () { window.open(URL.createObjectURL(blob(out[+b.dataset.o])), "_blank"); }; });
       res.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { var o = out[+b.dataset.d], a = document.createElement("a"); a.href = URL.createObjectURL(blob(o)); a.download = "Bilan_" + o.app.replace(/[^A-Za-z0-9]+/g, "_") + ".pdf"; document.body.appendChild(a); a.click(); a.remove(); }; });
