@@ -10,6 +10,8 @@ const EXT = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.google
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CORE).then(c => c.addAll(CORE_FILES)).then(() => self.skipWaiting()));
 });
+/* version de cette tablette, demandée par les pages (pastille 🟢 / 🔴 du bouton 🔄, eps-home.js) */
+self.addEventListener("message", e => { if (e.data === "eps-ver" && e.source) e.source.postMessage({ epsVer: CORE }); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith("eps-core") && k !== CORE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });

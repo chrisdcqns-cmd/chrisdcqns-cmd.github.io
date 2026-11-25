@@ -225,6 +225,9 @@
       try { await syncEdt(cfg); } catch (e) {}
       try { edtApply(); } catch (e) {}
       for (var si = 0; si < STORES.length; si++) { try { await syncStore(cfg, STORES[si]); } catch (e) {} }
+      /* magasins des autres applis présents sur la tablette : leurs données en attente partent d'ici aussi (sinon elles ne partaient
+         qu'appli ouverte, et une saisie suivie d'une sortie rapide restait sur la tablette). Envoi seulement, sauf « Tout récupérer ». */
+      var AU = autoStores(FULLPULL); for (var ai = 0; ai < AU.length; ai++) { if (!FULLPULL && !Object.keys(stLd(AU[ai].key).pend || {}).length) continue; try { await syncStore(cfg, Object.assign({ pushOnly: !FULLPULL }, AU[ai])); } catch (e) {} }
     } catch (e) { lastErr = "réseau"; }
     finally { busy = false; sched(); try { syncBadge(); } catch (e) {} }
   }
@@ -232,6 +235,29 @@
      localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
   var STORES = [];
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+  var AUTOPAT = [[/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
+    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"]], FULLPULL = false;
+  function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
+    var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    if (all) { ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "ccf", "crosstraining"].forEach(function (d) { ["lecons", "lcimg", "lcdocs", "live", "leceval", "lecres"].forEach(function (t) { keys.push("eps." + t + "." + d + ".v1"); }); });
+      ["esc", "acro", "ori", "ct"].forEach(function (a) { keys.push("eps.eval." + a + ".v1"); }); keys.push("eps.obs.v1", "eps.rang.v1", "ct.v1"); }
+    keys.forEach(function (k) { if (!k || seen[k]) return; for (var j = 0; j < AUTOPAT.length; j++) if (AUTOPAT[j][0].test(k)) { seen[k] = 1; out.push({ key: k, pre: k.replace(AUTOPAT[j][0], AUTOPAT[j][1]) }); break; } });
+    return out; }
+  /* 📥 restauration d'une tablette neuve : relevé complet de tous les magasins communs, puis chaque appli ouverte en arrière-plan
+     (cadre invisible) pour qu'elle relève ses propres données (Volley, Badminton, Danse, Relais, Escalade, Acrosport, OrienRun…). */
+  async function restoreAll() {
+    if (!shCfg()) { alert("Règle d'abord le partage entre tablettes (même script et même clé que tes autres tablettes)."); return; }
+    var DIRS = ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "crosstraining", "ccf", "edt", "appel-as"];
+    var o = overlay('<h3>📥 Récupération de toutes les données</h3><p class="m" id="rs-m">Relevé des données communes…</p><div style="height:10px;background:#EEE;border-radius:6px;overflow:hidden"><div id="rs-b" style="height:100%;width:3%;background:#2E7D4F"></div></div><div class="epsd-act"><button data-x>Fermer</button></div>');
+    var m = o.querySelector("#rs-m"), bar = o.querySelector("#rs-b"), step = function (i, t) { m.textContent = t; bar.style.width = Math.round(100 * i / (DIRS.length + 1)) + "%"; };
+    FULLPULL = true; try { await sync(); } catch (e) {} FULLPULL = false;
+    for (var i = 0; i < DIRS.length; i++) { if (!document.body.contains(o)) return; step(i + 1, "Ouverture de " + (NAPP[DIRS[i]] || DIRS[i]) + " (" + (i + 1) + " / " + DIRS.length + ")…");
+      await new Promise(function (res) { var f = document.createElement("iframe"); f.style.cssText = "position:fixed;left:-9999px;top:0;width:1024px;height:768px;opacity:0;pointer-events:none"; f.setAttribute("aria-hidden", "true"); f.src = BASE + DIRS[i] + "/?restauration=1";
+        /* chaque appli relève aussi ses propres données tout de suite (Danse : synchroniser ; toute appli peut fournir window.epsSyncNow) */
+        f.onload = function () { setTimeout(function () { try { var w = f.contentWindow; ["epsSyncNow", "synchroniser"].forEach(function (n) { if (typeof w[n] === "function") try { w[n](); } catch (x) {} }); } catch (x) {} }, 2500); };
+        document.body.appendChild(f); setTimeout(function () { f.remove(); res(); }, 14000); }); }
+    try { await applyLocal(); } catch (e) {}
+    step(DIRS.length + 1, "✓ Terminé. Les données des autres tablettes sont sur celle-ci. Ouvre une appli pour vérifier ; si une donnée manque, attends une minute puis touche 🔄."); }
   async function syncStore(cfg, st) {
     var V = stLd(st.key), pk = Object.keys(V.pend), sent = {};
     if (pk.length) { var recs = [];
@@ -240,6 +266,7 @@
       V = stLd(st.key); Object.keys(sent).forEach(function (k) { if (V.pend[k] === sent[k]) delete V.pend[k]; }); jsetS(st.key, V);
       await new Promise(function (r) { setTimeout(r, 1200); }); }
     var ch = false;
+    if (st.pushOnly) return;
     for (var loop = 0; loop < 20; loop++) {
       V = stLd(st.key); var r = await jsonp(cfg, { pull: 1, since: V.since || 0, pre: st.pre });
       if (!r || !r.keyOk || !r.sync) break;
@@ -1077,10 +1104,13 @@
       '<div class="epsd-cls" style="margin-top:18px">🧪 Simulation</div>' +
       '<p class="m">' + (window.EPS_SIM ? "Tu es en simulation : rien n'est partagé ni gardé. Quitte-la pour retrouver tes vraies données." : "Explore toutes les applis comme un bac à sable : tes données sont mises de côté, le partage est coupé, une classe fictive de 8 élèves est installée avec une leçon, des observations et des évaluations. Tu passes librement d'enseignant à élève. En quittant, la tablette retrouve exactement ses données.") + '</p>' +
       '<div class="dbtns epsd-act" style="margin-top:8px">' + (window.EPS_SIM ? '<button type="button" id="er-sim-x">⏹ Quitter la simulation</button>' : '<button type="button" class="p" id="er-sim">🧪 Entrer en simulation</button>') + (demoOn() && !window.EPS_SIM ? '<button type="button" id="er-demo-x">🗑 Retirer l\'ancienne classe de démonstration</button>' : "") + '</div>' +
+      '<div class="epsd-cls" style="margin-top:18px">📥 Tablette neuve ou remplacée</div><p class="m">Une fois le partage réglé, récupère tout sur cette tablette : classes, leçons, évaluations, résultats et données de chaque appli (les applis sont ouvertes une à une, en arrière-plan ; environ 2 minutes).</p>' +
+      '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-rest">📥 Tout récupérer sur cette tablette</button></div>' +
       '<div class="epsd-cls" style="margin-top:18px">Sauvegarde</div>' +
       '<p class="m">Fichier de sauvegarde de toutes les applications de cette tablette (classes, leçons, évaluations, réglages), à garder sur ton ordinateur ou ta clé USB. Les vidéos et les cartes d\'OrienRun n\'y sont pas.</p>' +
       '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-save">💾 Enregistrer une sauvegarde</button><label style="height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;display:inline-flex;align-items:center;font:800 17px system-ui,sans-serif;cursor:pointer">♻️ Restaurer<input type="file" accept=".json,.eps,application/json" id="er-load" style="display:none"></label></div>' +
       '<div class="epsd-act"><button data-x>Fermer</button><button class="p" id="er-ok">Enregistrer les réglages</button></div>');
+    var rs = o.querySelector("#er-rest"); if (rs) rs.onclick = function () { o.remove(); restoreAll(); };
     var sm = o.querySelector("#er-sim"); if (sm) sm.onclick = function () { sm.disabled = true; simEnter(); };
     var sx = o.querySelector("#er-sim-x"); if (sx) sx.onclick = function () { if (confirm("Quitter la simulation ? Tout ce qui a été fait pendant la simulation est effacé.")) simExit(); };
     var dm = o.querySelector("#er-demo"); if (dm) dm.onclick = function () { dm.disabled = true; demoCreate().then(function () { o.remove(); reglages("🧪 Classe « " + DEMO + " » créée. La fiche de leçon s'ouvre côté élève dans 2 minutes (👁 Vue élève, classe DÉMO)."); }); };
@@ -1478,7 +1508,8 @@
     overview: function () { return overview(); },
     edtSlots: function (c, a, f, n) { return edtSlots(c, a, f, n); },
     check: function () { check(); },
-    publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
+    restoreAll: function () { return restoreAll(); },
+    publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); }, bilans: function (c) { bilans(c); },
     bulletin: function (c) { bulletin(c); },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
     /* synchro immédiate d'un seul magasin (ex. leçon en cours : relevé toutes les quelques secondes) */
@@ -1602,6 +1633,25 @@
      valeur "light" pour un bandeau clair), sinon la barre commune [data-eps-bar] ; si aucun bandeau n'est visible (écran plein recouvrant), masqué. */
   function visibleFree(el) { if (!el || !el.getClientRects().length) return false; var r = el.getBoundingClientRect(); if (!r.width && !r.height) { var p = el.parentElement; if (!p) return false; r = p.getBoundingClientRect(); }
     var y = r.top + Math.max(4, r.height / 2), x = Math.max(r.left + 4, Math.min(r.right - 4, r.left + r.width / 2)); if (y < 0 || y > innerHeight) return false; var t = document.elementFromPoint(x, y); return !!t && (el.contains(t) || t.contains(el) || (el.parentElement && el.parentElement.contains(t) && !t.closest(".epse,.lc-ov,.lc-modal,.epsd-ov,.epspn,.lc-st"))); }
+  /* 🟢 / 🔴 la tablette est-elle à jour ? version installée (cache « eps-core-vN » du service worker) comparée à celle publiée (/sw.js relu sans cache) ;
+     pastille sur le bouton 🔄 : verte = à jour, rouge = nouvelle version publiée → toucher 🔄. Vérifié au chargement puis toutes les 5 min. */
+  var UPD = { loc: 0, net: 0, at: 0 };
+  async function verCheck() {
+    /* version qui a servi CETTE page : demandée une fois au service worker qui la contrôle (une version téléchargée en arrière-plan ne compte qu'après rechargement) */
+    if (!UPD.page && navigator.serviceWorker && navigator.serviceWorker.controller) { try { UPD.page = await new Promise(function (res) { var t = setTimeout(function () { res(0); }, 2500);
+      navigator.serviceWorker.addEventListener("message", function h(ev) { if (ev.data && ev.data.epsVer) { clearTimeout(t); navigator.serviceWorker.removeEventListener("message", h); res(+String(ev.data.epsVer).replace(/\D/g, "") || 0); } });
+      navigator.serviceWorker.controller.postMessage("eps-ver"); }); } catch (e) {} }
+    try { var ks = await caches.keys(); UPD.loc = Math.max.apply(null, [0].concat(ks.filter(function (x) { return /^eps-core-v\d+$/.test(x); }).map(function (x) { return +x.slice(10); }))); } catch (e) {}
+    if (!UPD.loc && navigator.serviceWorker && location.protocol !== "file:") { try { await navigator.serviceWorker.register("/sw.js"); } catch (e) {} }
+    try { var t = await (await fetch("/sw.js?v=" + Date.now(), { cache: "no-store" })).text(), m = /eps-core-v(\d+)/.exec(t); if (m) UPD.net = +m[1]; } catch (e) {}
+    UPD.at = Date.now(); updDot(); }
+  function updDot() { var b = document.getElementById("eps-upd"); if (!b) return; var d = b.querySelector(".eps-dot"); if (!d) { d = document.createElement("i"); d.className = "eps-dot"; d.setAttribute("aria-hidden", "true"); b.appendChild(d); b.style.position = b.style.position || "relative"; }
+    var mine = UPD.page || UPD.loc, st = !UPD.net || !mine ? "?" : mine >= UPD.net ? "ok" : "old";
+    d.style.cssText = "position:absolute;top:3px;right:3px;width:11px;height:11px;border-radius:50%;border:2px solid #14171C;background:" + (st === "ok" ? "#2ECC71" : st === "old" ? "#E53935" : "#9E9E9E") + (st === "old" ? ";animation:epsblink 1s infinite" : "");
+    var t = st === "ok" ? "Tablette à jour (version " + mine + ")" : st === "old" ? "Nouvelle version publiée (" + UPD.net + ", cette page est en " + mine + ") : touche pour mettre à jour" : "Mettre à jour (version non vérifiée : hors ligne ?)";
+    b.title = t; b.setAttribute("aria-label", t); }
+  try { var bk = document.createElement("style"); bk.textContent = "@keyframes epsblink{50%{opacity:.25}}"; document.head.appendChild(bk); } catch (e) {}
+  setTimeout(verCheck, 2500); setInterval(verCheck, 5 * 60000); window.addEventListener("online", function () { setTimeout(verCheck, 2000); });
   function placeUpd() {
     var b = document.getElementById("eps-upd"); if (!b) return; if (window.EPS_VUE_ELEVE && window.top !== window) { b.style.display = "none"; return; }
     var S = Array.prototype.filter.call(document.querySelectorAll("[data-eps-upd-slot]"), function (x) { return visibleFree(x); })[0], sl = S || (function () { var e = epsSlot(); return e && (visibleFree(e) || (b.parentNode === e && visibleFree(b))) ? e : null; })();
@@ -1609,7 +1659,7 @@
       if (nv) { if (b.parentNode !== nv) nv.appendChild(b); b.className = "epsb eps-upd-n"; b.style.display = "inline-flex"; return; }
       b.style.display = "none"; return; }
     if (b.parentNode !== sl) sl.appendChild(b);
-    var cls = S && S.getAttribute("data-eps-upd-slot") === "light" ? "epsb eps-upd-l" : "epsb"; if (b.className !== cls) b.className = cls; b.style.display = "inline-flex";
+    var cls = S && S.getAttribute("data-eps-upd-slot") === "light" ? "epsb eps-upd-l" : "epsb"; if (b.className !== cls) b.className = cls; b.style.display = "inline-flex"; b.style.position = "relative"; if (!b.querySelector(".eps-dot") && UPD.at) updDot();
   }
   /* emplacement(s) des boutons communs dans la barre du haut de l'appli : on utilise celui qui est visible
      (une appli peut en avoir plusieurs, par exemple un par écran) */
@@ -1676,7 +1726,8 @@
     }
     q.oninput = draw; draw(); setTimeout(function () { q.focus(); }, 50);
     var bb = document.createElement("button"); bb.type = "button"; bb.textContent = "📝 Appréciations de bulletin"; bb.onclick = bulletin;
-    var act = o.querySelector(".epsd-act"); if (act) act.insertBefore(bb, act.firstChild);
+    var bn = document.createElement("button"); bn.type = "button"; bn.textContent = "🌐 Bilans en ligne"; bn.onclick = function () { o.remove(); bilans(); };
+    var act = o.querySelector(".epsd-act"); if (act) { act.insertBefore(bb, act.firstChild); act.insertBefore(bn, act.firstChild); }
   }
   /* ================= 🧪 Classe de démonstration (Réglages communs) =================
      Classe fictive attribuée à toutes les activités, fiche de leçon validée programmée dans 2 minutes dans chaque appli,
@@ -1824,6 +1875,44 @@
     var t = b64url(all), parts = []; for (var i = 0; i < t.length; i += 40000) parts.push(t.slice(i, i + 40000)); return { hid: hid, parts: parts }; }
   function bilLink() { var cfg = shCfg(), m = cfg && /\/macros\/s\/([^/]+)\/exec/.exec(cfg.url); return m ? location.origin + BASE + "mon-bilan/#s=" + m[1] : ""; }
   function u8b64plain(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x); }
+  /* ================= 🌐 Bilans en ligne, côté enseignant =================
+     Accès : mode enseignant (ton code à 4 chiffres). Par classe : chaque élève, son code personnel (créé au besoin), les applis où sa fiche est en ligne ;
+     👁 télécharge ses fiches et les déchiffre avec son code (gardé, chiffré, sur tes tablettes) ; 🖨 codes à distribuer ; lien « Mon bilan » à envoyer par Pronote.
+     Entrée : bouton de la recherche 🔍, EPSD.bilans(), ou « Espace enseignant » de la page Mon bilan (accueil#bilans). */
+  async function bilKeyD(code, hid) { var base = await crypto.subtle.importKey("raw", new TextEncoder().encode(code), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: new TextEncoder().encode("eps-bilan|" + hid), iterations: 150000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]); }
+  function unb64u(t) { t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; var s = atob(t), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+  async function bilFetch(code) { var cfg = shCfg(), h = await bilHid(code), r = await jsonp(cfg, { bil: h }, 40000); if (!r) throw new Error("pas de réponse du script"); if (r.bilErr) throw new Error("script : " + r.bilErr);
+    var k = await bilKeyD(code, h), out = []; for (var i = 0; i < (r.bil || []).length; i++) { try { var b = unb64u(r.bil[i].parts.join("")), pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, k, b.slice(12)); out.push(JSON.parse(new TextDecoder().decode(pt))); } catch (e) {} } return out; }
+  function pdfOpen(o) { var u = unb64u(String(o.pdf || "").replace(/\+/g, "-").replace(/\//g, "_")), bl = new Blob([u], { type: "application/pdf" }), url = URL.createObjectURL(bl), w = window.open(url, "_blank");
+    if (!w) { var a = document.createElement("a"); a.href = url; a.download = "Bilan_" + String(o.app || "").replace(/[^A-Za-z0-9]+/g, "_") + "_" + String(o.eleve || "").replace(/[^A-Za-z0-9À-ÿ]+/g, "_") + ".pdf"; document.body.appendChild(a); a.click(); a.remove(); } }
+  function codesPrint(cls, P) { var link = bilLink(), w = window.open("", "_blank"); if (!w) { alert("Autorise les fenêtres pour imprimer les codes."); return; }
+    w.document.write('<!doctype html><meta charset="utf-8"><title>Codes ' + esc(cls) + '</title><style>body{font-family:system-ui,sans-serif;margin:10mm}.g{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.e{border:1px dashed #999;border-radius:6px;padding:4mm;break-inside:avoid}.c{font:800 22px ui-monospace,monospace;letter-spacing:.2em;margin:2mm 0}.l{font-size:11px;word-break:break-all;color:#444}</style><div class="g">' +
+      P.map(function (n) { var c = codeFor(cls, n); return '<div class="e"><b>' + esc(n) + "</b> · " + esc(cls) + "<div>Ton code pour voir tes bilans d'EPS (le même pour toutes les activités, ne le donne à personne) :</div><div class=\"c\">" + esc(c.c) + '</div><div class="l">' + esc(link) + "</div></div>"; }).join("") + "</div><script>setTimeout(function(){print()},300)<\/script>"); w.document.close(); }
+  function bilans(want) {
+    if (!isTeacher()) { askCode().then(function (ok) { if (ok) { setHubTeach(true); bilans(want); } }); return; }
+    if (!shCfg()) { alert("Règle d'abord le partage entre tablettes (Réglages) : les bilans en ligne passent par le script commun."); return; }
+    var CL = []; try { CL = EPSL.items().map(function (it) { return it.nom; }).sort(function (a, b) { return a.localeCompare(b, "fr", { numeric: true }); }); } catch (e) {}
+    var cur = want && CL.indexOf(want) >= 0 ? want : CL[0], link = bilLink();
+    var o = overlay('<div id="epsbp"><h3>🌐 Bilans en ligne des élèves</h3><p class="m">Les élèves ouvrent la page « Mon bilan » (lien ci-dessous, à envoyer par Pronote) et tapent leur code personnel de 6 caractères : ils voient les fiches publiées de toutes les activités. Ici, en mode enseignant, tu vois et ouvres les fiches de chacun.</p>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0"><select class="epsd-in" id="bp-c" style="width:auto;margin:0">' + CL.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><button type="button" id="bp-cp">📋 Copier le lien Mon bilan</button><button type="button" id="bp-pr">🖨 Codes à distribuer</button></div>' +
+      '<input class="epsd-in" readonly value="' + esc(link) + '" style="margin:0 0 8px"><p class="m" id="bp-m"></p><div id="bp-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
+    var bx = o.querySelector(".epsd-box"); if (bx) { bx.style.maxWidth = "820px"; bx.style.width = "96vw"; }
+    var sel = o.querySelector("#bp-c"), list = o.querySelector("#bp-l"), msg = o.querySelector("#bp-m");
+    function people(c) { var P = []; try { EPSL.items().forEach(function (it) { if (it.nom === c) P = EPSL.people(it).map(function (p) { return p.full; }); }); } catch (e) {} return P; }
+    function draw() { var c = sel.value, P = people(c);
+      list.innerHTML = P.length ? '<table style="width:100%;border-collapse:collapse;font-size:15px;text-align:left"><tr class="m"><th style="padding:4px">Élève</th><th>Code</th><th>Fiches en ligne</th><th></th></tr>' + P.map(function (n, i) { var k = codeGet(c, n), pub = k && k.pub ? Object.keys(k.pub) : [];
+        return '<tr style="border-top:1px solid #E6E1D6"><td style="padding:6px 4px"><b>' + esc(n) + '</b></td><td style="font:800 15px ui-monospace,monospace;letter-spacing:.1em">' + (k ? esc(k.c) : '<span class="m">—</span>') + '</td><td class="m" style="font-size:13px">' + (pub.length ? esc(pub.map(function (a) { return ACTN[a] || OV_NOM[a] || a; }).join(", ")) : "aucune") + '</td><td style="white-space:nowrap">' + (k ? '<button type="button" data-v="' + i + '">👁 Voir</button>' : '<button type="button" data-k="' + i + '">🔑 Créer son code</button>') + "</td></tr>" + '<tr><td colspan="4" data-f="' + i + '"></td></tr>'; }).join("") + "</table>"
+        : '<p class="m">Aucun élève dans cette classe.</p>';
+      list.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { codeFor(c, P[+b.dataset.k]); draw(); }; });
+      list.querySelectorAll("[data-v]").forEach(function (b) { b.onclick = async function () { var n = P[+b.dataset.v], k = codeGet(c, n), box = list.querySelector('[data-f="' + b.dataset.v + '"]'); b.disabled = true; box.innerHTML = '<span class="m">Recherche et déchiffrement…</span>';
+        try { var F = await bilFetch(k.c); box.innerHTML = F.length ? F.map(function (f, j) { return '<button type="button" data-o="' + j + '" style="margin:4px 6px 4px 0">📄 ' + esc(f.app) + " · " + esc(f.date || "") + "</button>"; }).join("") : '<span class="m">Aucune fiche en ligne pour ce code : publie-la depuis le bilan de l\'activité (🌐 Publier en ligne).</span>';
+          box.querySelectorAll("[data-o]").forEach(function (x) { x.onclick = function () { pdfOpen(F[+x.dataset.o]); }; }); } catch (e) { box.innerHTML = '<span style="color:#C0392B">⚠ ' + esc(e.message || e) + "</span>"; } b.disabled = false; }; });
+    }
+    sel.onchange = draw; draw();
+    o.querySelector("#bp-cp").onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function () { msg.textContent = "📋 Lien copié : colle-le dans un message Pronote à la classe."; }, function () { prompt("Copie ce lien :", link); }); };
+    o.querySelector("#bp-pr").onclick = function () { var c = sel.value; codesPrint(c, people(c)); draw(); };
+  }
   /* o = {app, nom, color, classe, eleves:[{full, bytes: () => Promise<Uint8Array>}]} (appelé par eps-eval.js : « 🌐 Publier en ligne ») */
   function publish(o) {
     if (!shCfg()) { alert("Règle d'abord le partage entre tablettes (Réglages) : la publication passe par le script commun."); return; }
@@ -2082,6 +2171,7 @@
   }
   function init() {
     addCss();
+    if (HUB && /[#&]bilans\b/.test(location.hash)) setTimeout(function () { try { history.replaceState(null, "", location.pathname); } catch (e) {} bilans(); }, 900);
     addUpdate();
     applyTeach(); setInterval(applyTeach, 1000);
     setInterval(redock, 400);
