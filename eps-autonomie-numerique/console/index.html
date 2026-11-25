@@ -97,6 +97,11 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
 #app.nav-min nav:hover .brand{justify-content:flex-start;padding:14px 14px 12px}#app.nav-min nav:hover button.it,#app.nav-min nav:hover button.it:has(.ab){justify-content:flex-start;padding:9px 16px;flex-direction:row;gap:10px;min-height:40px}
 #app.nav-min nav:hover .lb,#app.nav-min nav:hover .grp,#app.nav-min nav:hover .brand>span:last-child{white-space:nowrap}}
 #navT{width:40px;padding:0;font-size:18px}
+body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.dense .cards{gap:8px}body.dense nav button.it{min-height:34px;padding:6px 16px}body.dense .b,body.dense .in,body.dense .sel{min-height:34px;height:auto}body.dense .row{margin:5px 0}body.dense h3{margin:12px 0 6px}
+.cu{background:#fff;border:1.5px solid var(--ln);border-radius:14px;padding:6px 12px;margin:0 0 10px}.cu .r{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid #F0ECE3}.cu .r:first-child{border-top:0}.cu .r span{flex:1}.cu .r input[type=checkbox]{width:20px;height:20px;accent-color:var(--app)}
+.cu .mv{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--ln);background:#fff;cursor:pointer}.sw{width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px var(--ln);cursor:pointer}.sw.on{box-shadow:0 0 0 3px var(--tx)}
+.fav{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:0 0 14px}.fav button{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--ln);border-left:5px solid var(--c,var(--app));border-radius:12px;padding:12px;font:800 15px system-ui;cursor:pointer;text-align:left;color:var(--tx)}.fav button:hover{background:#FBFAF7}
+@media (max-width:800px){.pg{padding:12px 12px 30px}.top h1{font-size:16px}.top .tb{padding:0 8px}.cards{grid-template-columns:1fr}.pgrid{grid-template-columns:1fr}}
 #lock{position:fixed;inset:0;background:#14171C;display:grid;place-items:center;z-index:100;color:#fff;text-align:center}
 #lock .ic{width:64px;height:64px;border-radius:16px;background:var(--app);display:grid;place-items:center;margin:0 auto 14px}
 </style>
@@ -128,7 +133,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
   var ACTS = [["esc", "escalade", "Escalade", "#2E7D4F"], ["rel", "relais", "Relais Vitesse", "#D9481F"], ["vol", "volley", "Volley-ball", "#6B3FA0"], ["bad", "badminton", "Badminton", "#0B7A75"], ["dan", "danse", "Danse", "#C2185B"], ["acro", "acrosport", "Acrosport", "#1F4FA3"], ["ori", "orientation", "OrienRun", "#E8701A"], ["ct", "crosstraining", "Cross-training", "#4D7C0F"]];
   var OUTILS = [["ccf", "CCF", "#B8860B"], ["co-eval", "CO-Évaluation", "#14213D"], ["edt", "Emploi du temps", "#1F5F8B"], ["appel-as", "Appel AS", "#475569"], ["terrain", "Pose des balises", "#8A5A1F"]];
   var NAMES = {}; ACTS.forEach(function (a) { NAMES[a[1]] = a[2]; }); OUTILS.forEach(function (a) { NAMES[a[0]] = a[1]; });
-  var SECTIONS = [["accueil", "🏠", "Accueil"], ["journee", "📋", "Ma journée"], ["mesclasses", "🏫", "Mes classes"], ["lecons", "📝", "Leçons (atelier)"], ["annee", "🗓", "Programmation annuelle"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"]];
+  var SECTIONS = [["accueil", "🏠", "Accueil"], ["journee", "📋", "Ma journée"], ["mesclasses", "🏫", "Mes classes"], ["lecons", "📝", "Leçons (atelier)"], ["annee", "🗓", "Programmation annuelle"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"], ["perso", "🎨", "Personnaliser la console"]];
   var KC = "eps.console.v1";
   var AB = { "app:escalade": "Esc", "app:relais": "Rel", "app:volley": "Vol", "app:badminton": "Bad", "app:danse": "Dan", "app:acrosport": "Acr", "app:orientation": "CO", "app:crosstraining": "CT", "app:ccf": "CCF", "app:co-eval": "COé", "app:edt": "EDT", "app:appel-as": "AS", "app:terrain": "Bal" };
   var LDIRS = ACTS.map(function (a) { return a[1]; }).concat(["ccf"]);
@@ -146,7 +151,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
 
   /* ---------- entrée : code enseignant (le même que sur les tablettes) ---------- */
   function keepAlive() { if (teach()) try { localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} }
-  function unlocked() { try { localStorage.setItem("eps.console.trust", "1"); } catch (e) {} $("#lock").style.display = "none"; keepAlive(); try { document.documentElement.classList.add("eps-teach"); } catch (e) {} go(location.hash.slice(1) || "accueil"); }
+  function unlocked() { try { localStorage.setItem("eps.console.trust", "1"); } catch (e) {} $("#lock").style.display = "none"; keepAlive(); try { document.documentElement.classList.add("eps-teach"); } catch (e) {} applyUI(); go(location.hash.slice(1) || ui().home || "accueil"); }
   function tryUnlock() { if (teach()) { unlocked(); return; } if (!window.EPSD || !EPSD.askCode) { setTimeout(tryUnlock, 300); return; } EPSD.askCode().then(function (ok) { if (ok) unlocked(); }); }
   $("#unlock").onclick = tryUnlock;
   /* menu de gauche repliable (icônes seules), choix gardé sur l'ordinateur */
@@ -156,10 +161,52 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
   setInterval(function () { if (teach()) keepAlive(); }, 60000);
   ["click", "keydown"].forEach(function (ev) { document.addEventListener(ev, function () { if (teach()) keepAlive(); }, true); });
 
+  /* ---------- 🎨 personnalisation (eps.console.v1, id « ui », partagée entre tes ordinateurs) ---------- */
+  var UI0 = { hide: {}, order: {}, home: "accueil", zoom: 100, dense: false, accent: "#4F46E5", cards: [], chide: {}, favs: [] };
+  var CARDS = [["partage", "🔗 Partage avec les tablettes"], ["cours", "📅 Prochains cours"], ["classes", "👥 Classes"], ["tablettes", "📱 Tablettes"], ["suivi", "🔎 Suivi des élèves"], ["claude", "🤖 Claude"]];
+  function ui() { var o = all(KC).filter(function (r) { return r.id === "ui"; })[0] || {}, d = JSON.parse(JSON.stringify(UI0)); Object.keys(o).forEach(function (k) { d[k] = o[k]; }); return d; }
+  function uiSet(p) { var o = ui(); Object.keys(p).forEach(function (k) { o[k] = p[k]; }); o.id = "ui"; o.k = "ui"; put(KC, o); applyUI(); }
+  function applyUI() { var o = ui(); document.documentElement.style.setProperty("--app", o.accent || "#4F46E5"); document.body.classList.toggle("dense", !!o.dense); var z = (+o.zoom || 100) / 100; $("#pg").style.zoom = z === 1 ? "" : z; $("#menu").style.zoom = z === 1 ? "" : Math.min(z, 1.15); }
+  function groups() { return [{ id: "haut", t: "", L: SECTIONS.slice(0, 5) }, { id: "act", t: "Activités", L: ACTS.map(function (a) { return ["app:" + a[1], "", a[2], a[3]]; }) }, { id: "out", t: "Outils", L: OUTILS.map(function (a) { return ["app:" + a[0], "", a[1], a[2]]; }) }, { id: "gest", t: "Gestion", L: SECTIONS.slice(5) }]; }
+  function ordered(g, U) { var O = (U.order || {})[g.id] || [], L = g.L.slice(); return L.sort(function (a, b) { var i = O.indexOf(a[0]), j = O.indexOf(b[0]); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); }); }
+  function entries() { return groups().reduce(function (a, g) { return a.concat(g.L); }, []); }
+  function pPerso(pg) {
+    var U = ui(), E = entries();
+    var mv = function (k, id) { return '<button class="mv" type="button" data-up="' + k + '|' + id + '" aria-label="Monter">↑</button><button class="mv" type="button" data-dn="' + k + '|' + id + '" aria-label="Descendre">↓</button>'; };
+    pg.innerHTML = '<h2>🎨 Personnaliser la console</h2><p class="mut">Réglages gardés avec tes données : ils te suivent d\'un ordinateur à l\'autre. Le comportement des applis se règle dans 🎛 Paramètres des applis.</p>' +
+      '<div class="pgrid">' +
+      '<div><h3>🖥 Affichage</h3><div class="cu"><div class="r"><span>Page d\'ouverture</span><select class="sel" data-home>' + E.map(function (x) { return '<option value="' + x[0] + '"' + (U.home === x[0] ? " selected" : "") + ">" + esc((x[1] ? x[1] + " " : "") + x[2]) + "</option>"; }).join("") + '</select></div>' +
+        '<div class="r"><span>Taille du texte</span><select class="sel" data-zoom>' + [90, 100, 110, 125].map(function (z) { return '<option value="' + z + '"' + (+U.zoom === z ? " selected" : "") + ">" + z + " %</option>"; }).join("") + '</select></div>' +
+        '<div class="r"><span>Affichage compact (plus de choses à l\'écran)</span><input type="checkbox" data-dense' + (U.dense ? " checked" : "") + '></div>' +
+        '<div class="r"><span>Menu replié par défaut</span><input type="checkbox" data-min' + (localStorage.getItem("eps.console.navmin") ? " checked" : "") + '></div>' +
+        '<div class="r"><span>Couleur</span>' + ["#4F46E5", "#0B7A75", "#2E7D4F", "#C2185B", "#D9481F", "#14171C"].map(function (c) { return '<button type="button" class="sw' + (U.accent === c ? " on" : "") + '" data-acc="' + c + '" style="background:' + c + '" aria-label="Couleur ' + c + '"></button>'; }).join("") + "</div></div>" +
+        '<h3>⭐ Raccourcis en haut de l\'accueil</h3><div class="cu">' + E.filter(function (x) { return x[0] !== "accueil"; }).map(function (x) { return '<label class="r"><span>' + esc((x[1] ? x[1] + " " : "• ") + x[2]) + '</span><input type="checkbox" data-fav="' + x[0] + '"' + (U.favs.indexOf(x[0]) >= 0 ? " checked" : "") + "></label>"; }).join("") + "</div>" +
+        '<h3>🏠 Cartes de l\'accueil</h3><div class="cu">' + cardOrder(U).map(function (c) { return '<div class="r"><input type="checkbox" data-card="' + c[0] + '"' + (U.chide[c[0]] ? "" : " checked") + "><span>" + esc(c[1]) + "</span>" + mv("card", c[0]) + "</div>"; }).join("") + "</div></div>" +
+      '<div><h3>🧭 Menu de gauche</h3><p class="mut">Décoche ce que tu n\'utilises pas, range le reste dans ton ordre.</p>' + groups().map(function (g) { return (g.t ? "<b>" + g.t + "</b>" : "<b>Haut du menu</b>") + '<div class="cu">' + ordered(g, U).map(function (x) { return '<div class="r"><input type="checkbox" data-show="' + x[0] + '"' + (U.hide[x[0]] ? "" : " checked") + (x[0] === "perso" ? " disabled" : "") + "><span>" + esc((x[1] ? x[1] + " " : "• ") + x[2]) + "</span>" + mv(g.id, x[0]) + "</div>"; }).join("") + "</div>"; }).join("") + "</div></div>" +
+      '<div class="row"><button class="b" type="button" data-exp>💾 Exporter mes réglages</button><button class="b" type="button" data-imp>📥 Importer</button><button class="b d" type="button" data-rst>↺ Tout remettre par défaut</button><span class="msg mut" data-msg></span></div>';
+    var redraw = function () { pPerso(pg); menu(); };
+    $("[data-home]", pg).onchange = function () { uiSet({ home: this.value }); };
+    $("[data-zoom]", pg).onchange = function () { uiSet({ zoom: +this.value }); };
+    $("[data-dense]", pg).onchange = function () { uiSet({ dense: this.checked }); };
+    $("[data-min]", pg).onchange = function () { navMin(this.checked); };
+    $$("[data-acc]", pg).forEach(function (b) { b.onclick = function () { uiSet({ accent: b.dataset.acc }); redraw(); }; });
+    $$("[data-fav]", pg).forEach(function (c) { c.onchange = function () { var F = ui().favs.filter(function (x) { return x !== c.dataset.fav; }); if (c.checked) F.push(c.dataset.fav); uiSet({ favs: F }); }; });
+    $$("[data-card]", pg).forEach(function (c) { c.onchange = function () { var H = ui().chide; H[c.dataset.card] = !c.checked; uiSet({ chide: H }); }; });
+    $$("[data-show]", pg).forEach(function (c) { c.onchange = function () { var H = ui().hide; H[c.dataset.show] = !c.checked; uiSet({ hide: H }); menu(); }; });
+    var move = function (v, d) { var p = v.split("|"), k = p[0], id = p.slice(1).join("|"), U2 = ui();
+      if (k === "card") { var L = cardOrder(U2).map(function (c) { return c[0]; }), i = L.indexOf(id), j = i + d; if (j < 0 || j >= L.length) return; L.splice(j, 0, L.splice(i, 1)[0]); uiSet({ cards: L }); return redraw(); }
+      var g = groups().filter(function (x) { return x.id === k; })[0], O = ordered(g, U2).map(function (x) { return x[0]; }), a = O.indexOf(id), b = a + d; if (b < 0 || b >= O.length) return; O.splice(b, 0, O.splice(a, 1)[0]); var OO = U2.order || {}; OO[k] = O; uiSet({ order: OO }); redraw(); };
+    $$("[data-up]", pg).forEach(function (b) { b.onclick = function () { move(b.dataset.up, -1); }; }); $$("[data-dn]", pg).forEach(function (b) { b.onclick = function () { move(b.dataset.dn, 1); }; });
+    $("[data-exp]", pg).onclick = function () { var t = JSON.stringify(ui()); try { navigator.clipboard.writeText(t).then(function () { $("[data-msg]", pg).textContent = "✓ Réglages copiés : colle-les dans « 📥 Importer » sur un autre ordinateur."; }, function () { prompt("Copie :", t); }); } catch (e) { prompt("Copie :", t); } };
+    $("[data-imp]", pg).onclick = function () { var t = prompt("Colle tes réglages :"); if (!t) return; try { var o = JSON.parse(t); delete o.u; uiSet(o); redraw(); } catch (e) { alert("Réglages illisibles."); } };
+    $("[data-rst]", pg).onclick = function () { if (!confirm("Remettre la console comme au départ (menu, accueil, affichage) ?")) return; uiSet(JSON.parse(JSON.stringify(UI0))); redraw(); };
+  }
+  function cardOrder(U) { var O = U.cards || []; return CARDS.slice().sort(function (a, b) { var i = O.indexOf(a[0]), j = O.indexOf(b[0]); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); }); }
+
   /* ---------- menu ---------- */
   function menu() {
-    var h = SECTIONS.slice(0, 5).map(it).join("") + '<div class="grp">Activités</div><div class="sep"></div>' + ACTS.map(function (a) { return it(["app:" + a[1], "", a[2], a[3]]); }).join("") +
-      '<div class="grp">Outils</div><div class="sep"></div>' + OUTILS.map(function (a) { return it(["app:" + a[0], "", a[1], a[2]]); }).join("") + '<div class="grp">Gestion</div><div class="sep"></div>' + SECTIONS.slice(5).map(it).join("");
+    var G = groups(), U = ui(), h = G.map(function (g) { var L = ordered(g, U).filter(function (x) { return !U.hide[x[0]] || x[0] === "perso"; }); if (!L.length) return "";
+      return (g.t ? '<div class="grp">' + g.t + '</div><div class="sep"></div>' : "") + L.map(it).join(""); }).join("");
     function it(x) { var on = cur.s === x[0] || (cur.app && x[0] === "app:" + cur.app); return '<button type="button" class="it" data-go="' + x[0] + '"' + (x[3] ? ' style="--c:' + x[3] + '"' : "") + ' aria-current="' + !!on + '" title="' + esc(x[2]) + '">' + (x[1] ? '<span aria-hidden="true">' + x[1] + "</span>" : '<span class="dot"></span><span class="ab">' + esc(AB[x[0]] || "") + "</span>") + '<span class="lb">' + esc(x[2]) + "</span></button>"; }
     $("#menu").innerHTML = h; $$("[data-go]", $("#menu")).forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
     var o = $("#aiCtx"), v = o.value; o.innerHTML = '<option value="">Général</option>' + ACTS.map(function (a) { return '<option value="' + a[1] + '">' + a[2] + "</option>"; }).join("") + OUTILS.map(function (a) { return '<option value="' + a[0] + '">' + a[1] + "</option>"; }).join("");
@@ -175,7 +222,7 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
       $("[data-rl]").onclick = function () { pg.querySelector("iframe").src = pg.querySelector("iframe").src; };
       return; }
     var S = SECTIONS.filter(function (x) { return x[0] === s; })[0] || SECTIONS[0]; $("#ttl").textContent = S[1] + " " + S[2];
-    ({ accueil: pAccueil, journee: pJournee, annee: pAnnee, mesclasses: pMesClasses, lecons: pLecons, classes: pClasses, groupes: pGroupes, params: pParams, tablettes: pTablettes, demandes: pDemandes }[S[0]] || pAccueil)(pg);
+    ({ accueil: pAccueil, journee: pJournee, annee: pAnnee, mesclasses: pMesClasses, lecons: pLecons, classes: pClasses, groupes: pGroupes, params: pParams, tablettes: pTablettes, demandes: pDemandes, perso: pPerso }[S[0]] || pAccueil)(pg);
   }
   window.addEventListener("hashchange", function () { var s = location.hash.slice(1); if (s && s !== (cur.app ? "app:" + cur.app : cur.s)) go(s); });
 
@@ -195,6 +242,11 @@ nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;fo
       '<div class="card"><h3>🔎 Suivi des élèves</h3><div class="row"><button class="b" data-ovw>📊 Vue d\'ensemble</button><button class="b" data-find>🔍 Rechercher un élève</button><button class="b" data-bil>🌐 Bilans en ligne</button></div></div>' +
       '<div class="card"><h3>🤖 Claude</h3><p class="mut">Demande un réglage en français (« mets 4 terrains par défaut en badminton »), ou une évolution d\'une appli : il prépare la demande pour Claude Code.</p><div class="row"><button class="b p" data-ai>Ouvrir l\'assistant</button><button class="b" data-go="demandes">📝 Demandes (' + nReq + ")</button></div></div>" +
       "</div>";
+    var U = ui(), C = $$(".cards>.card", pg), box = $(".cards", pg); C.forEach(function (c, i) { if (CARDS[i]) c.dataset.card = CARDS[i][0]; });
+    cardOrder(U).forEach(function (c) { var el = $('.card[data-card="' + c[0] + '"]', pg); if (el) { if (U.chide[c[0]]) el.remove(); else box.appendChild(el); } });
+    var E = entries(), F = U.favs.map(function (id) { return E.filter(function (x) { return x[0] === id; })[0]; }).filter(Boolean);
+    if (F.length) box.insertAdjacentHTML("beforebegin", '<div class="fav">' + F.map(function (x) { return '<button type="button" data-go="' + x[0] + '"' + (x[3] ? ' style="--c:' + x[3] + '"' : "") + ">" + (x[1] || '<span style="width:12px;height:12px;border-radius:50%;background:' + (x[3] || "var(--app)") + ';flex:none"></span>') + " " + esc(x[2]) + "</button>"; }).join("") + "</div>");
+    else box.insertAdjacentHTML("beforebegin", '<p class="mut">⭐ Mets tes raccourcis ici : <a href="#perso">🎨 Personnaliser</a>.</p>');
     bindCommon(pg);
   }
   function bindCommon(pg) {
