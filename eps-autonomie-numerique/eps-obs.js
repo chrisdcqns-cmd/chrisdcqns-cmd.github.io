@@ -57,7 +57,7 @@
       ".eob-live{min-height:28px;font-size:18px;font-weight:700;margin:6px 0}.eob-ok{background:#E3F4E8;border:1px solid #9BD3AE;border-radius:14px;padding:10px 12px;margin:8px 0}",
       ".eob-st{background:#fff;border:1px solid #E6E1D6;border-left:5px solid " + COL + ";border-radius:14px;padding:8px 12px;margin:0 0 8px}",
       ".eob-it{display:flex;gap:8px;align-items:flex-start;border-top:1px solid #F0ECE3;padding:6px 0}.eob-it textarea{flex:1;border:1px solid #E6E1D6;border-radius:10px;padding:6px 8px;font:15px/1.35 system-ui,sans-serif;min-height:38px;resize:vertical}",
-      ".eob-it small{color:#9AA0A6;min-width:44px;padding-top:8px}.eob-cond{background:#FFF8D6;border:1px solid #E9CF6A;border-radius:10px;padding:6px 8px;margin:4px 0;font-size:14px}"
+      ".eob-it small{color:#6A6F78;min-width:44px;padding-top:8px}.eob-cond{background:#FFF8D6;border:1px solid #E9CF6A;border-radius:10px;padding:6px 8px;margin:4px 0;font-size:14px}"
     ].join("\n"); document.head.appendChild(st);
   }
   var BTN = null, SH = null, TAB = "dict", DAY = day(), LAST = null;

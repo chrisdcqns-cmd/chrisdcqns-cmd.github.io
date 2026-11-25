@@ -342,7 +342,7 @@
     ".epsd-lab{display:block;font-weight:800;font-size:14px;color:#6A6F78;margin:14px 0 6px}" +
     ".epsd-act{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.epsd-act button{height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;background:#fff;font:800 17px system-ui,sans-serif;color:#1B1E24}" +
     ".epsd-act .p{background:#C0392B;border-color:#C0392B;color:#fff}.epsd-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}" +
-    ".epsd-steps{display:flex;gap:8px;margin:4px 0 8px;font-weight:800;font-size:14px;color:#9AA0A6}.epsd-steps .on{color:#C0392B}" +
+    ".epsd-steps{display:flex;gap:8px;margin:4px 0 8px;font-weight:800;font-size:14px;color:#6A6F78}.epsd-steps .on{color:#C0392B}" +
     "@media print{#epsd-pill{display:none!important}}";
   function addCss() { var s = document.createElement("style"); s.textContent = css; document.head.appendChild(s); }
   var pill = null;
@@ -1553,7 +1553,7 @@
           (d ? '<div style="color:#9C2B10;font-weight:700;margin-top:4px">🩹 ' + esc(label(d)) + "</div>" : "") +
           '<div style="color:#6A6F78;font-size:14px;margin-top:4px">Activités de la classe : ' + esc(acts.join(", ") || "aucune") + "</div>" +
           (function () { var O = window.EPSOB ? EPSOB.of(p.full, p.cls) : []; return O.length ? '<div style="font-size:14px;margin-top:4px">🎙 <b>' + O.length + " observation(s)</b>, dernière le " + new Date(O[O.length - 1].t).toLocaleDateString("fr-FR") + ' : <span style="color:#6A6F78">« ' + esc(O[O.length - 1].txt.slice(0, 140)) + " »</span></div>" : ""; })() +
-          (E.length ? E.map(function (e) { return '<div style="font-size:14px;margin-top:4px">📋 <b>' + esc(e.app) + "</b> : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.auto ? " · auto-positionnement reçu" : "") + (e.comm ? '<div style="color:#6A6F78;margin-left:22px">« ' + esc(e.comm.slice(0, 160)) + (e.comm.length > 160 ? "…" : "") + " »</div>" : "") + "</div>"; }).join("") : '<div style="color:#9AA0A6;font-size:14px;margin-top:4px">Pas encore d\'évaluation sur cette tablette.</div>') + "</div>"; }).join("")
+          (E.length ? E.map(function (e) { return '<div style="font-size:14px;margin-top:4px">📋 <b>' + esc(e.app) + "</b> : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.auto ? " · auto-positionnement reçu" : "") + (e.comm ? '<div style="color:#6A6F78;margin-left:22px">« ' + esc(e.comm.slice(0, 160)) + (e.comm.length > 160 ? "…" : "") + " »</div>" : "") + "</div>"; }).join("") : '<div style="color:#6A6F78;font-size:14px;margin-top:4px">Pas encore d\'évaluation sur cette tablette.</div>') + "</div>"; }).join("")
         : '<p class="m">Aucun élève trouvé.</p>';
     }
     q.oninput = draw; draw(); setTimeout(function () { q.focus(); }, 50);
@@ -1601,6 +1601,26 @@
     try { localStorage.removeItem("eps.demo.v1"); } catch (e) {}
     await deleteList(DEMO);
   }
+  /* ================= ♿ accessibilité commune (toutes les applis, y compris futures) =================
+     contour de focus visible au clavier ; boutons-icônes nommés pour les lecteurs d'écran ; petites cibles agrandies ; champs sans étiquette nommés. */
+  (function a11y() {
+    try { var st = document.createElement("style"); st.id = "eps-a11y";
+      st.textContent = ":focus-visible{outline:3px solid #1F5F8B!important;outline-offset:2px!important}[data-eps-a11y-sm]{min-width:40px!important;min-height:40px!important}.btn.sm,button.sm,.back{min-height:36px!important}@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}";
+      (document.head || document.documentElement).appendChild(st); } catch (e) {}
+    var NOMS = { "↑": "Monter", "↓": "Descendre", "▲": "Monter", "▼": "Descendre", "←": "Retour", "→": "Suivant", "◀": "Précédent", "▶": "Suivant", "✕": "Fermer", "×": "Fermer", "🗑": "Supprimer", "✎": "Modifier", "✏": "Modifier", "✏️": "Modifier", "🖨": "Imprimer", "🖨️": "Imprimer", "⟳": "Synchroniser", "🔍": "Rechercher", "🎙": "Dicter une observation", "🎤": "Dicter", "🔊": "Écouter", "＋": "Ajouter", "+": "Ajouter", "−": "Retirer", "-": "Retirer", "⧉": "Dupliquer", "⚙": "Réglages", "⚙️": "Réglages", "⌂": "Accueil", "📋": "Copier", "↺": "Rétablir", "↶": "Annuler", "✓": "Valider", "★": "Favori" };
+    function pass() {
+      try { document.querySelectorAll("button,[role=button]").forEach(function (b) {
+          if (!b.offsetParent) return; var txt = (b.innerText || "").trim(), letters = txt.replace(/[^A-Za-zÀ-ÿ0-9]/g, "");
+          if (!letters && !b.getAttribute("aria-label")) { var n = b.title || NOMS[txt] || NOMS[txt.replace(/️/g, "")]; if (n) b.setAttribute("aria-label", n); }
+          if (!letters && !b.hasAttribute("data-eps-a11y-sm")) { var r = b.getBoundingClientRect(); if (r.width && (r.width < 32 || r.height < 32)) b.setAttribute("data-eps-a11y-sm", ""); } });
+        document.querySelectorAll("input:not([type=hidden]),select,textarea").forEach(function (f) {
+          if (f.getAttribute("aria-label") || f.getAttribute("aria-labelledby") || (f.labels && f.labels.length) || f.placeholder || f.title) return;
+          var pv = f.previousElementSibling, t = pv && /LABEL|SPAN|B|STRONG|DIV|SMALL/.test(pv.tagName) ? (pv.innerText || "").trim() : "";
+          if (!t) { var c = f.closest("td,th,.field,.row,div"); var h = c && c.querySelector("label,b,strong,span"); t = h && h !== f ? (h.innerText || "").trim() : ""; }
+          if (t) f.setAttribute("aria-label", t.slice(0, 80)); }); } catch (e) {}
+    }
+    setInterval(pass, 1500); setTimeout(pass, 400);
+  })();
   /* ================= 🧪 SIMULATION (bac à sable) =================
      Entrer : toutes les données de la tablette (localStorage + base d'OrienRun) sont mises de côté dans IndexedDB « eps-sim »,
      le partage est coupé (garde d'eps-lists.js), une classe fictive est créée ; on circule librement, en enseignant ou en élève.
@@ -1714,7 +1734,7 @@
   function apPop(el) {
     var o; try { o = JSON.parse(el.getAttribute("data-eps-ap")); } catch (e) { return; }
     var old = document.getElementById("eps-appop"); if (old) old.remove();
-    var DC = ["", "#C0392B", "#E67E22", "#2E86C1", "#1E8449"], deg = function (d) { return d ? '<b style="display:inline-block;min-width:30px;text-align:center;border-radius:8px;padding:1px 6px;color:#fff;background:' + (DC[d] || "#888") + '">D' + d + "</b>" : '<span style="color:#9AA0A6">–</span>'; };
+    var DC = ["", "#C0392B", "#E67E22", "#2E86C1", "#1E8449"], deg = function (d) { return d ? '<b style="display:inline-block;min-width:30px;text-align:center;border-radius:8px;padding:1px 6px;color:#fff;background:' + (DC[d] || "#888") + '">D' + d + "</b>" : '<span style="color:#6A6F78">–</span>'; };
     var p = document.createElement("div"); p.id = "eps-appop";
     p.style.cssText = "position:fixed;z-index:2147483600;max-width:min(440px,92vw);background:#fff;color:#14171C;border:1px solid #E6E1D6;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:14px 16px;font:15px/1.4 system-ui,sans-serif";
     p.innerHTML = '<div style="display:flex;gap:8px;align-items:center"><b style="font-size:17px;flex:1">🙋 ' + esc(o.nom || "Auto-positionnement") + '</b><button type="button" data-c style="border:0;background:#F1EEE6;border-radius:10px;height:32px;padding:0 10px;font-weight:800">✕</button></div>' +
@@ -1723,7 +1743,7 @@
         return '<tr style="border-top:1px solid #F0ECE3"><td style="padding:5px 4px">' + esc(c.l) + '</td><td style="text-align:center">' + deg(c.p) + '</td><td style="text-align:center">' + deg(c.e) + (g > 0 ? " ▲" : g < 0 ? " ▼" : "") + "</td></tr>"; }).join("") + "</table>" : "") +
       (o.r ? '<div style="margin-top:10px"><div style="font-weight:800;color:#1D6B3A;font-size:13px">✓ CE QUE J\'AI RÉUSSI</div>' + esc(o.r) + "</div>" : "") +
       (o.m ? '<div style="margin-top:8px"><div style="font-weight:800;color:#9A5B00;font-size:13px">→ CE QUE JE DOIS AMÉLIORER</div>' + esc(o.m) + "</div>" : "") +
-      (!o.r && !o.m ? '<div style="margin-top:8px;color:#9AA0A6">Pas de commentaire de l\'élève.</div>' : "");
+      (!o.r && !o.m ? '<div style="margin-top:8px;color:#6A6F78">Pas de commentaire de l\'élève.</div>' : "");
     document.body.appendChild(p);
     var r = el.getBoundingClientRect(), w = p.offsetWidth, h = p.offsetHeight;
     p.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + "px"; p.style.top = (r.bottom + h + 12 < innerHeight ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + "px";

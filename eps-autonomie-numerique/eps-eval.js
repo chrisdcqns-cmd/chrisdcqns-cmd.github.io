@@ -392,8 +392,12 @@
        Par AFL / AFLP (champ « afl » des critères) : degré moyen pondéré par les points, et note proposée.
        Source indiquée : évaluation enregistrée (degrés de l'enseignant) ou estimation (auto-positionnement, évaluations de leçon).
        Case CCF : barème officiel (fin d'épreuve 12 pts : Bac général linéaire, Bac pro AFLP1 7 pts / AFLP2 5 pts ;
-       fil de la séquence 8 pts sur 2 AFL, répartition 4-4 / 6-2 / 2-6 au choix de l'élève, valeurs par degré officielles). */
-    var R7 = [[0, 1], [1.5, 3], [3.5, 5], [5.5, 7]], R5 = [[0, .5], [1, 2], [2.5, 4], [4.5, 5]], BAR = { 2: [.5, 1, 1.5, 2], 4: [.5, 1.5, 2.5, 4], 6: [.5, 2, 4, 6] };
+       fil de la séquence 8 pts sur 2 AFL, répartition 4-4 / 6-2 / 2-6 au choix de l'élève, valeurs par degré : voir BAR / BARP). */
+    var R7 = [[0, 1], [1.5, 3], [3.5, 5], [5.5, 7]], R5 = [[0, .5], [1, 2], [2.5, 4], [4.5, 5]], BAR = { 2: [.5, 1, 1.5, 2], 4: [1, 2, 3, 4], 6: [1.5, 2.5, 4.5, 6] },
+      BARP = { 2: [[0, .25], [.5, .75], [1, 1.5], [1.75, 2]], 4: [[0, 1], [1.25, 1.75], [2, 3], [3.25, 4]], 6: [[0, 1.5], [1.75, 2.75], [3, 4.5], [4.75, 6]] };
+    /* Vérifié le 25/11/2026 : Bac GT, table éduscol (2 pts : 0,5/1/1,5/2 ; 4 pts : 1/2/3/4 ; 6 pts : 1,5/2,5/4,5/6).
+       Bac pro : AFLP1 7 pts, AFLP2 5 pts ; AFLP 3-6 « répartis sur les 4 degrés, la moitié des points au début du degré 3 » (circulaire du 29-12-2020) :
+       plages académiques (Grenoble) interpolées selon la position dans le degré. Les plages R7/R5 sont indicatives : le barème précis dépend de l'APSA. */
     var KCC = "eps.ccfcfg.v1";
     function ccGet(id) { try { var V = JSON.parse(localStorage.getItem(KCC) || "null"); var o = V && V.items && V.items[id]; return o && !o.del ? o : null; } catch (e) { return null; } }
     function ccPut(o) { var V; try { V = JSON.parse(localStorage.getItem(KCC) || "null"); } catch (e) {} V = V && V.items ? V : { items: {}, pend: {}, since: 0 }; V.pend = V.pend || {};
@@ -424,7 +428,7 @@
             var R = cc.voie === "pro" && /^AFLP1/i.test(a.code) ? R7 : cc.voie === "pro" && /^AFLP2/i.test(a.code) ? R5 : null, P = 12 / fin.length;
             a.ccf = R ? R[a.deg][0] + a.pos * (R[a.deg][1] - R[a.deg][0]) : P * a.m / 4; a.ccfMax = R ? R[3][1] : P; a.ccf = Math.round(a.ccf * 4) / 4; tot += a.ccf; });
           var ch = (M.choix(cls, E) || "4-4").split("-").map(Number);
-          fil.slice(0, 2).forEach(function (a, i) { var P = ch[i] || 4; a.ccfMax = P; if (a.deg == null) { ok = false; return; } a.ccf = BAR[P][a.deg]; tot += a.ccf; });
+          fil.slice(0, 2).forEach(function (a, i) { var P = ch[i] || 4; a.ccfMax = P; if (a.deg == null) { ok = false; return; } var Rg = cc.voie === "pro" ? BARP[P][a.deg] : null; a.ccf = Rg ? Math.round((Rg[0] + a.pos * (Rg[1] - Rg[0])) * 4) / 4 : BAR[P][a.deg]; tot += a.ccf; });
           if (!fin.length) ok = false; note = Math.round(tot * 4) / 4; detail = "barème CCF " + (cc.voie === "pro" ? "Bac pro" : "Bac général") + " · fil de la séquence " + ch.join("-") + (ok ? "" : " · incomplet : il manque des AFL"); } }
       var src = nT && !nA ? "eval" : nT && nA ? "mixte" : nA ? "auto" : "none";
       var noteLec = lec ? Math.round(lec.m / 3 * 20 * 4) / 4 : null;
