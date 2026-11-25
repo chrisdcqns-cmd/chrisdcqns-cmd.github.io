@@ -763,7 +763,8 @@ function saveLe(go){const L=S.le;if(!L.cr.length)return say('Cochez au moins un 
 async function delLe(){const L=S.le;if(!await ask('Supprimer la leçon du '+fday(L.d,true)+' ?\n(Les grimpes déjà enregistrées restent dans les résultats.)'))return;CF.lec=LEC().filter(l=>l.id!=L.id);if(CF.sea?.id==L.id)CF.sea=null;save();S.le=null;render()}
 function xlLe(){const k=CL.find(c=>c.id==(CF.sel||''));xl(recOf(k?.nom||'',S.lv),S.lv)}
 /* bouton Accueil commun (eps-home.js) : un appui ramène à l'accueil de l'application */
-window.epsCurrentClass=()=>{const c=seaOK()&&cls();return c?{nom:c.nom,eleves:c.el||[]}:null};
+/* classe en cours : en mode enseignant, celle choisie sur « Choisis la classe » (même sans leçon du jour) ; sinon celle de la leçon du jour */
+window.epsCurrentClass=()=>{const c=(S.T&&CF.sel&&CL.find(x=>x.id==CF.sel))||(seaOK()&&cls());return c?{nom:c.nom,eleves:c.el||[]}:null};
 window.epsAppHome=()=>{document.querySelector('.vmod')?.remove();document.querySelector('.dlg')?.remove();fresh();S.e=false;S.le=null;S.lv=null;S.mr='';S.t=S.T||seaOK()?'home':'role';render();scrollTo(0,0)};
 /* consultation d'une leçon (enseignant) */
 /* ---------- 🤖 Bilan de la leçon par Claude (script commun ; les prénoms sont remplacés par E1, E2… et ne quittent pas la tablette) ---------- */
@@ -1576,11 +1577,11 @@ window.EPSTESC=window.EPST?EPST.init({app:'esc',nom:'Escalade',color:'#2E7D4F',i
  tabs:{
   seq:{go:()=>{S.t=CL.length&&!S.tcl0?'tcl':'set';S.ce=null;render();scrollTo(0,0)},on:()=>['set','ctl','ped','tcl'].includes(S.t),
    actions:[{ico:'🧗',label:'Leçon du jour (classe, critères, exercice)',ord:1,go:()=>{S.t='set';S.ce=null;render()}},{ico:'🖥️',label:'Suivi des grimpes en direct',ord:2.5,go:()=>{S.t='ctl';render()}}]},
-  eval:{panel:el=>{if(window.EVESC)EVESC.mount(el,['eval','grille'],cls()&&cls().nom);else el.innerHTML='<p>Évaluation indisponible.</p>'}},
+  eval:{panel:el=>{if(window.EVESC)EVESC.mount(el,['eval','grille'],(epsCurrentClass()||{}).nom);else el.innerHTML='<p>Évaluation indisponible.</p>'}},
   cls:{go:()=>{S.t='cls';render();scrollTo(0,0)},on:()=>S.t==='cls'},
   bil:{panel:el=>{el.innerHTML='<h2>📄 Bilans</h2><p class="mut">Résultats des grimpes (Excel, Google Sheets, QR codes) et fiches d\'évaluation (PDF, .zip, auto-positionnement).</p><div class="epst-grid"><button type="button" class="epst-card" id="bil-res"><i>🧗</i><span><b>Résultats des grimpes et QR codes</b><small>Excel, Google Sheets, regroupement</small></span></button></div><div id="bil-ev"></div>';
     el.querySelector('#bil-res').onclick=()=>{EPSTESC.closePanel();EPSTESC.mark('bil');S.t='res';render();scrollTo(0,0)};
-    if(window.EVESC)EVESC.mount(el.querySelector('#bil-ev'),['bilan'],cls()&&cls().nom)},on:()=>S.t==='res'}},
+    if(window.EVESC)EVESC.mount(el.querySelector('#bil-ev'),['bilan'],(epsCurrentClass()||{}).nom)},on:()=>S.t==='res'}},
  biblio:TILES.map(([k,n,c,x,d])=>({ico:{prep:'🪢',cot:'⛰️',gr:'📝',mr:'📈',the:'💡',sec:'🛡️'}[k]||'•',label:n,sub:d,go:()=>{S.t=k;render();scrollTo(0,0)}})),
  reglages:[{ico:'🔑',label:'Code enseignant',sub:'Changer le code d\'Escalade',go:()=>pin()}]
 }):null;

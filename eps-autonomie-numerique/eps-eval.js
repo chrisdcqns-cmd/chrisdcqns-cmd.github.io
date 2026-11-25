@@ -437,9 +437,9 @@
     setTimeout(function () { try { if (window.EPSD && EPSD.store && !M._reg) { M._reg = 1; EPSD.store({ pre: PRE, key: KEY, onChange: A.changed }); } } catch (e) {} }, 1500);
 
     /* ---------- écran Évaluation (enseignant) ---------- */
-    var UI = { open: false, tab: "eval", cls: null, el: -1 };
+    var KCLS = "eps.eval.cls." + o.app, UI = { open: false, tab: "eval", cls: (function () { try { return localStorage.getItem(KCLS); } catch (e) { return null; } })(), el: -1 }; /* dernière classe choisie, gardée (sinon on retombait sur la 1re classe de la liste) */
     function root() { if (UI.host) { UI.host.classList.add("epse-host"); UI.host.style.setProperty("--app", o.color); return UI.host; } var v = document.getElementById("epse-" + o.app); if (!v) { css(); v = document.createElement("div"); v.id = "epse-" + o.app; v.className = "epse"; v.style.setProperty("--app", o.color); document.body.appendChild(v); } return v; }
-    function curC() { var L = classes(); var c = L.filter(function (x) { return x.nom === UI.cls; })[0] || L[0] || null; if (c) UI.cls = c.nom; return c; }
+    function curC() { var L = classes(); var c = L.filter(function (x) { return x.nom === UI.cls; })[0] || L[0] || null; if (c && c.nom !== UI.cls) { UI.cls = c.nom; } if (c) try { localStorage.setItem(KCLS, c.nom); } catch (e) {} return c; }
     /* groupes enregistrés dans l'appli (option o.groups(classe) → [{nom, membres:["Prénom NOM", …]}]) : élèves rangés par groupe dans Évaluer */
     function grouper(c) {
       var GR = []; try { if (o.groups) GR = o.groups(c.nom) || []; } catch (e) {}

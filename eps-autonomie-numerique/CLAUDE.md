@@ -44,6 +44,7 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - Une classe importée n'importe où (accueil ou appli) apparaît partout. Toute appli qui gère des classes s'inscrit dans `APPS` de `eps-lists.js` (`key, list, nom, names, make, add, del, data`) et fournit `window.epsListsHook = {save, reload}` pour la mise à jour en direct.
 - Activités par classe (Réglages → Listes d'élèves) : champ `off` de la liste commune, déduit de l'emploi du temps (`edtApply()` d'`eps-home.js`, enseignant `eps.edt.moi`) sauf si choisi à la main (`man:1`, prioritaire) ; une classe non attribuée à l'activité n'y apparaît pas. Suppression (double confirmation) et fusion de listes : dans Réglages.
 - Ne jamais effacer une classe ou un élève qui a déjà des données (évaluations, grimpes, courses).
+- `window.epsCurrentClass()` → `{nom, eleves}` doit renvoyer la classe **réellement choisie**, en mode enseignant comme élève (Escalade : `CF.sel` ; Acrosport : `lessonClass` ; CCF : `T.cls`). Les onglets communs (Évaluation, Bilans) passent `(epsCurrentClass()||{}).nom` à `mount`, jamais une variable propre à l'appli. `EPSE.store` garde la dernière classe choisie (`eps.eval.cls.<app>`) au lieu de retomber sur la première.
 - `window.epsCurrentClass()` → `{nom, eleves}` : la pastille des dispensés ne compte alors que la classe choisie (sinon tous).
 
 ## Évaluation, bilans et PDF (modèle : Danse et Volley-ball)

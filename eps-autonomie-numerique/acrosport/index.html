@@ -757,7 +757,8 @@ function fmtDate(iso){try{return new Date(iso).toLocaleDateString("fr-FR",{weekd
 /* ---------- ACCUEIL ---------- */
 const K_CLASS="acro.class";
 let homeClass=null, homeList=[];
-window.epsCurrentClass=()=>homeClass?{nom:homeClass,eleves:[]}:null;
+/* classe en cours : en mode enseignant, celle de la leçon choisie ; sinon celle choisie par l'élève */
+window.epsCurrentClass=()=>{let c=null;try{if(window.epsIsTeacher&&epsIsTeacher()&&typeof lessonClass!=='undefined'&&lessonClass)c=lessonClass}catch(e){}c=c||homeClass;if(!c)return null;let el=[];try{const it=EPSL.items().find(o=>EPSL.norm(o.nom)===EPSL.norm(c));if(it)el=EPSL.people(it).map(p=>p.full)}catch(e){}return{nom:c,eleves:el}};
 let draftMembers=["","",""];
 function classes(){
   const base=["1GT"];
@@ -2432,7 +2433,7 @@ window.EPSTA=window.EPST?EPST.init({app:'acro',nom:'Acrosport',color:'#1F4FA3',i
  anchor:()=>{const a=document.querySelector('#app');return a&&!a.classList.contains('hidden')?a.querySelector('header'):document.querySelector('header.homebar')},
  main:'#home > *:not(header), #app > *:not(header)',
  tabs:{seq:{panel:el=>{el.innerHTML='<h2>📅 Séquence</h2><p class="mut">Leçon du jour (pyramides, thématique) et parcours des ceintures, appliqués à toutes les tablettes.</p><div class="epst-grid"><button type="button" class="epst-card" data-k="Leçon"><i>📅</i><span><b>Leçon du jour</b><small>Numéro de leçon, appliquer à toutes les tablettes</small></span></button><button type="button" class="epst-card" data-k="Ceintures"><i>🥋</i><span><b>Ceintures, parcours et thématique</b><small>Par classe</small></span></button></div>';el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>acroProfAt(b.dataset.k))}},
-  eval:{panel:el=>{if(window.EVACRO)EVACRO.mount(el,['eval','grille'],homeClass)}},
+  eval:{panel:el=>{if(window.EVACRO)EVACRO.mount(el,['eval','grille'],(epsCurrentClass()||{}).nom)}},
   cls:{panel:el=>{el.innerHTML='<h2>👥 Classe</h2><p class="mut">Listes d\'élèves d\'Acrosport (Google Sheet) et groupes.</p><div class="epst-grid"><button type="button" class="epst-card" data-k="Listes"><i>👥</i><span><b>Listes d\'élèves</b><small>Envoyer la liste en ligne</small></span></button><button type="button" class="epst-card" data-k="En ligne"><i>☁</i><span><b>Groupes et observations</b><small>Tous les groupes en ligne, qui a observé qui</small></span></button></div>';el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>acroProfAt(b.dataset.k))}},
   bil:{panel:el=>{el.innerHTML='<h2>📄 Bilans</h2><div class="epst-grid"><button type="button" class="epst-card" id="acz"><i>🗜️</i><span><b>Bilans des groupes (.zip)</b><small>Un PDF par élève, depuis le Google Sheet</small></span></button></div><div id="acev"></div>';el.querySelector('#acz').onclick=()=>acroProfAt('En ligne');if(window.EVACRO)EVACRO.mount(el.querySelector('#acev'),['bilan'],homeClass)}}},
  biblio:[['🎬','Vidéothèque','Les figures en vidéo'],['🤸','Mon enchaînement','Composer l\'enchaînement du groupe'],['👀','Observation','Observer un autre groupe'],['🥋','Mon parcours','Paliers et ceintures'],['⭐','Bonus','Défis bonus']].map(([i,l,d])=>({ico:i,label:l,sub:d+' (dans la Vue élève)',go:()=>EPSTA.go('vue')})),
