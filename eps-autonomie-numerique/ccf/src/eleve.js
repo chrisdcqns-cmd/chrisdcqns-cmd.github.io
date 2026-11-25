@@ -26,14 +26,6 @@ function renderE(m){
 function eqEleveHtml(c,S,t){const L=S.eq||[];
  if(!L.length)return `<div class="empty"><h2>Pas encore d'équipes</h2><p class="mut">Ton enseignant forme les équipes. Patiente un instant.</p></div>`;
  return `<h2 class="h2">👥 Choisis ton équipe</h2><div class="tiles">${L.map(x=>`<button class="tile${t&&t.id===x.id?' on':''}" style="--c:${ACTS[E.act].color}" onclick="E.team='${x.id}';E.tab='pra';saveE();render()"><span><b>${esc(x.nom)}${x.g?' · poule '+esc(x.g):''}</b><small>${(x.el||[]).map(k=>esc(pname(c,k))).join(' · ')||'—'}</small></span></button>`).join('')}</div>`}
-function choixHtml(c,S,P,t){const mem=t?(t.el||[]):people(c).map(p=>p.k),me=E.me&&mem.includes(E.me)?E.me:'',X=P.fil.retenus.map(id=>aflFil(P,id)||{});
- let h=`<h2 class="h2">🎯 Ma répartition des points</h2><p>${esc(P.fil.titre)} : ${P.fil.pts} points sur 2 AFLP. Avant l'évaluation de fin de séquence, je choisis comment répartir ces points.</p>
- ${X.map((a,j)=>`<div class="card"><b>${j?'AFLY':'AFLX'} · ${esc(a.code)}</b> — ${esc(a.decl||a.off)}</div>`).join('')}
- <p class="lab">Qui es-tu ?</p><div class="chips">${mem.map(k=>`<button class="chip${k===me?' on':''}" onclick="E.me='${k}';saveE();render()">${esc(pname(c,k))}</button>`).join('')}</div>`;
- if(me){const ix=ixOf(E.act,E.cls,me),ev=evOf(E.act,E.cls,me);
-  h+=`<div class="reps">${P.fil.reps.map(r=>{const n=repPts(r);return `<button class="rep${ix.rep===r?' on':''}" onclick="choixSet('${me}','${r}')"><b>${X.map((a,j)=>esc(a.code)+' : '+n[j]+' pts').join('<br>')}</b></button>`}).join('')}</div>
-  ${ix.rep?`<p class="ok">✓ Choix enregistré : ${esc(ix.rep)}.</p>`:''}${ev.rep&&ev.rep!==ix.rep?`<p class="mut">Ton enseignant a noté : ${esc(ev.rep)}.</p>`:''}`}
- return h}
 function choixSet(k,r){upd(ixId(E.act,E.cls,k),{},o=>{o.rep=r;o.repAt=Date.now()});toast('Choix enregistré');render()}
 
 /* ================== ENSEIGNANT : feuille d'équipe et match ================== */

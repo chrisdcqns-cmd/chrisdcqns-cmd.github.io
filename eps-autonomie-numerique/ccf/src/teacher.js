@@ -62,11 +62,12 @@ function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');ret
  <button class="b s" onclick="go('team',{tm:'${t?t.id:''}'})" ${t?'':'disabled'}>👁 Feuille de l'équipe</button><button class="b s" onclick="OBS={k:'${k}',by:'',v:{}};go('obs')">👁 Observer</button></div>
  ${(()=>{const R=obsRecs(T.act,c.id,k);return R.length?`<div class="card soft"><b>👁 Observations (élèves observateurs et toi)</b>${obsSummary(P,c,R,{act:T.act,cls:c.id,c,S,P},k)}</div>`:''})()}
  ${pr.length?`<div class="card soft"><b>Pratique le jour du CCF</b><br>${pr.map(esc).join('<br>')}</div>`:''}
+ <div class="row wrapf" style="margin-top:12px"><button class="b" onclick="proposeAll()">💡 Positionner d'après les données (AFLP non notés)</button><span class="mut sm">Propositions calculées à partir des observations et de la pratique ; tu valides et tu ajustes. 🙋 = auto-positionnement de l'élève.</span></div>
  <h3 class="h3">${esc(P.fin.titre)} · ${finMax(P)} points <span class="mut">(${fr(N.fin)} pt)</span></h3>`;
  P.fin.afl.forEach(a=>{const x=(ev.fin||{})[a.id]||{},v=finV(a,x);
   h+=`<div class="afl"><div class="afh"><b>${esc(a.code)}</b> <span class="pill">/${a.pts}</span><span class="dcl">${esc(a.decl)}</span><span class="nt">${fr(v)}</span></div><p class="off">${esc(a.off)}</p>
   ${a.regles&&a.regles.length?`<details><summary>Règles de l'épreuve</summary><ul>${a.regles.map(r=>`<li>${esc(r)}</li>`).join('')}</ul></details>`:''}
-  <div class="degs">${a.deg.map((g,d)=>`<button class="dg d${d}${x.d===d?' on':''}" onclick="ficheDeg('${a.id}',${d})"><b>Degré ${d+1}</b><span>${nl2br(g.t)}</span><i>${fr(g.min)} à ${fr(g.max)} pt</i></button>`).join('')}</div>
+  <div class="degs">${a.deg.map((g,d)=>`<button class="dg d${d}${x.d===d?' on':''}" onclick="ficheDeg('${a.id}',${d})"><b>Degré ${d+1}${(ix.ap||{})[a.id]===d?' 🙋':''}</b><span>${nl2br(g.t)}</span><i>${fr(g.min)} à ${fr(g.max)} pt</i></button>`).join('')}</div>${proposeHtml(P,X,k,a.id,1)}
   ${x.d!=null?`<div class="sl"><span>${esc(a.degAj||'Position dans le degré')}</span><input type="range" min="${a.deg[x.d].min}" max="${a.deg[x.d].max}" step="0.25" value="${v}" oninput="this.nextElementSibling.textContent=fr(+this.value)" onchange="ficheV('${a.id}',+this.value)"><b>${fr(v)}</b></div>`:''}
   ${a.ajust?`<p class="mut sm">${esc(a.ajust)}</p>`:''}${a.auto?`<div class="aide">${aideHtml(a.auto,P,X)}</div>`:''}</div>`});
  const reps=repPts(rep||P.fil.reps[0]);
@@ -76,7 +77,7 @@ function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');ret
  P.fil.retenus.forEach((id,j)=>{const a=aflFil(P,id)||{deg:[]},x=(ev.fil||{})[id]||{},B=P.fil.bareme[reps[j]]||[];
   h+=`<div class="afl"><div class="afh"><b>${esc(a.code)}</b> <span class="pill">/${reps[j]}</span><span class="dcl">${esc(a.decl)}</span><span class="nt">${fr(x.d!=null?B[x.d]:null)}</span></div><p class="off">${esc(a.off)}</p>
   ${a.regles&&a.regles.length?`<details><summary>Règles</summary><ul>${a.regles.map(r=>`<li>${esc(r)}</li>`).join('')}</ul></details>`:''}
-  <div class="degs">${a.deg.map((g,d)=>`<button class="dg d${d}${x.d===d?' on':''}" onclick="ficheFil('${id}',${d})"><b>Degré ${d+1}</b><span>${nl2br(g)}</span><i>${fr(B[d])} pt</i></button>`).join('')}</div>
+  <div class="degs">${a.deg.map((g,d)=>`<button class="dg d${d}${x.d===d?' on':''}" onclick="ficheFil('${id}',${d})"><b>Degré ${d+1}${(ix.ap||{})[id]===d?' 🙋':''}</b><span>${nl2br(g)}</span><i>${fr(B[d])} pt</i></button>`).join('')}</div>${proposeHtml(P,X,k,id,0)}
   ${a.auto?`<div class="aide">${aideHtml(a.auto,P,X)}</div>`:''}</div>`});
  h+=`<h3 class="h3">Commentaire</h3><textarea id="ficom" data-eps-comment rows="3" placeholder="Ce qui est réussi, ce qui reste à travailler…" onchange="evUpd(e=>{e.comm=this.value})">${esc(ev.comm||'')}</textarea>
  <div class="row end" style="margin-top:12px">${i<L.length-1?`<button class="b p" onclick="go('fiche',{el:'${L[i+1].k}'})">Élève suivant ▶</button>`:`<button class="b p" onclick="go('bil')">📄 Bilans de la classe</button>`}</div></div>`;
