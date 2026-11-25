@@ -1621,8 +1621,10 @@
     b.type = "button"; b.id = "eps-upd"; b.title = "Mettre à jour (données et application)"; b.setAttribute("aria-label", "Mettre à jour");
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
     var s = b.style, slot = epsSlot();
-    /* 🔄 visible partout, élèves compris : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
-    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
+    /* 🔄 réservé à l'enseignant (masqué côté élève : html:not(.eps-teach)) : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
+    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}html:not(.eps-teach):not(.eps-tool) #eps-upd{display:none!important}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
+    /* outils réservés à l'enseignant (pas de mode élève) : 🔄 toujours affiché */
+    if (/\/(edt|appel-as|co-eval|terrain|console)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
     b.className = "epsb"; b.style.display = "none"; document.body.appendChild(b); setTimeout(function () { try { placeUpd(); } catch (e) {} }, 50);
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
@@ -1660,6 +1662,9 @@
     var t = st === "ok" ? "Tablette à jour (version " + mine + ")" : st === "old" ? "Nouvelle version publiée (" + UPD.net + ", cette page est en " + mine + ") : touche pour mettre à jour" : "Mettre à jour (version non vérifiée : hors ligne ?)";
     b.title = t; b.setAttribute("aria-label", t); }
   try { var bk = document.createElement("style"); bk.textContent = "@keyframes epsblink{50%{opacity:.25}}"; document.head.appendChild(bk); } catch (e) {}
+  /* côté élève, pas de bouton 🔄 : une nouvelle version publiée s'installe seule quand la tablette revient après au moins 1 min en veille ou sur une autre appli */
+  var hidAt = 0; document.addEventListener("visibilitychange", function () { if (document.hidden) { hidAt = Date.now(); return; }
+    if (!hidAt || Date.now() - hidAt < 60000 || isTeacher() || document.documentElement.classList.contains("eps-tool")) return; hidAt = 0; verCheck().then(function () { var mine = UPD.page || UPD.loc; if (UPD.net && mine && mine < UPD.net && !isTeacher()) location.reload(); }); });
   setTimeout(verCheck, 2500); setInterval(verCheck, 5 * 60000); window.addEventListener("online", function () { setTimeout(verCheck, 2000); });
   function placeUpd() {
     var b = document.getElementById("eps-upd"); if (!b) return; if (window.EPS_VUE_ELEVE && window.top !== window) { b.style.display = "none"; return; }
@@ -1796,7 +1801,8 @@
       (document.head || document.documentElement).appendChild(st); } catch (e) {}
     function plain(el) { if (el.attributes.length > 2 || el.id) return false; for (var i = 0; i < el.attributes.length; i++) { var n = el.attributes[i].name; if (n !== "class" && n !== "style") return false; }
       return !el.querySelector("a,button,input,select,textarea,label,img,svg,table,canvas,[data-msg],[contenteditable]") && !el.closest("[data-eps-longtext],.eps-tipo,[contenteditable],.epsg,.lc-st,#lc-au,#lc-st"); }
-    function short(t) { var m = t.match(/^(.{25,80}?[.:!?])(\s|$)/); if (m) return m[1]; var s = t.slice(0, 70); return s.slice(0, Math.max(30, s.lastIndexOf(" "))) + "…"; }
+    function short(t) { var m = t.match(/^(.{25,80}?[.:!?])(\s|$)/); if (m) return m[1].replace(/\s*:$/, ""); var s = t.slice(0, 80), c = Math.max(s.lastIndexOf(", "), s.lastIndexOf(" ("), s.lastIndexOf(" ;"));
+      if (c >= 30) return s.slice(0, c) + "…"; return s.slice(0, Math.max(30, s.lastIndexOf(" "))) + "…"; }
     function open(html) { var o = document.createElement("div"); o.className = "eps-tipo"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
       o.innerHTML = '<div><div class="t"></div><button type="button">OK</button></div>'; o.querySelector(".t").innerHTML = html;
       var x = function () { o.remove(); }; o.onclick = function (e) { if (e.target === o) x(); }; o.querySelector("button").onclick = x; document.body.appendChild(o); o.querySelector("button").focus(); }
