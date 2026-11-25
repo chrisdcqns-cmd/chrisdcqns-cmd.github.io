@@ -47,3 +47,11 @@ function choixHtml(c,S,P,t){const mem=t?(t.el||[]):people(c).map(p=>p.k),me=E.me
  const ev=evOf(E.act,E.cls,me);if(ev.rep&&ev.rep!==ix.rep)h+=`<p class="mut">Ton enseignant a noté : ${esc(ev.rep)}.</p>`;
  return h}
 function apSet(k,id,d){upd(ixId(E.act,E.cls,k),{},o=>{o.ap=o.ap||{};o.ap[id]=d;o.apAt=Date.now()});render()}
+
+/* ================== 🎯 RÉPARTITION PROPOSÉE (4-4, 6-2, 2-6) ==================
+   d'après le positionnement de l'élève (ix.ap) ou, à défaut, les données (propose) : la répartition qui rapporte le plus */
+function repPropose(P,ctx,k){const ix=ixOf(ctx.act,ctx.cls,k),X=P.fil.retenus,D=X.map(id=>{const a=(ix.ap||{})[id];if(a!=null)return {d:a,s:'🙋'};const p=propose(P,ctx,k,id);return p?{d:p.d,s:'💡'}:null});
+ if(D.some(x=>!x))return null;const sc=P.fil.reps.map(r=>{const n=repPts(r);return {r,v:X.reduce((s,id,j)=>s+((P.fil.bareme[n[j]]||[])[D[j].d]||0),0)}});const best=sc.reduce((a,b)=>b.v>a.v?b:a);
+ return {r:best.r,v:best.v,why:X.map((id,j)=>((aflFil(P,id)||{}).code||id)+' '+D[j].s+' D'+(D[j].d+1)).join(', '),sc}}
+function repProposeHtml(P,ctx,k,cur){const p=repPropose(P,ctx,k);if(!p)return '<small class="mut">💡 Pas encore de positionnement de l\'élève ni de données pour proposer une répartition.</small>';
+ return `💡 Répartition proposée : <b>${esc(p.r)}</b> (${fr(p.v)} / ${P.fil.pts}) ${cur===p.r?'✓':`<button class="b s" onclick="evUpd(e=>{e.rep='${p.r}'});render()">Appliquer</button>`}<small>${esc(p.why)} · ${p.sc.map(x=>x.r+' → '+fr(x.v)).join(' · ')} (🙋 positionnement de l'élève, 💡 d'après les données)</small>`}

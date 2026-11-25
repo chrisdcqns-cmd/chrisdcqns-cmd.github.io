@@ -73,7 +73,7 @@ function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');ret
  const reps=repPts(rep||P.fil.reps[0]);
  h+=`<h3 class="h3">${esc(P.fil.titre)} · ${P.fil.pts} points <span class="mut">(${fr(N.fil)} pt)</span></h3>
  <div class="card row wrapf"><span class="lab">Répartition</span>${P.fil.reps.map(r=>`<button class="b s${rep===r?' p':''}" onclick="evUpd(e=>{e.rep='${r}'});render()">${P.fil.retenus.map(id=>esc((aflFil(P,id)||{}).code)).map((cd,j)=>cd+' '+repPts(r)[j]).join(' / ')}</button>`).join('')}
- <span class="mut">${ix.rep?'🙋 choix de l\'élève : '+esc(ix.rep):'l\'élève n\'a pas encore choisi'}${ev.rep&&ix.rep&&ev.rep!==ix.rep?' (modifié par toi)':''}</span></div>`;
+ <span class="mut">${ix.rep?'🙋 choix de l\'élève : '+esc(ix.rep):'l\'élève n\'a pas encore choisi'}${ev.rep&&ix.rep&&ev.rep!==ix.rep?' (modifié par toi)':''}</span><div class="prop" style="flex-basis:100%">${repProposeHtml(P,X,k,rep)}</div></div>`;
  P.fil.retenus.forEach((id,j)=>{const a=aflFil(P,id)||{deg:[]},x=(ev.fil||{})[id]||{},B=P.fil.bareme[reps[j]]||[];
   h+=`<div class="afl"><div class="afh"><b>${esc(a.code)}</b> <span class="pill">/${reps[j]}</span><span class="dcl">${esc(a.decl)}</span><span class="nt">${fr(x.d!=null?B[x.d]:null)}</span></div><p class="off">${esc(a.off)}</p>
   ${a.regles&&a.regles.length?`<details><summary>Règles</summary><ul>${a.regles.map(r=>`<li>${esc(r)}</li>`).join('')}</ul></details>`:''}
@@ -127,9 +127,9 @@ function bilPronote(){if(!window.EPSR||!EPSR.pronote)return toast('Indisponible'
   rows:L.map(r=>({nom:r.p.nom,prenom:r.p.prenom,st:r.ev.st==='abs'?'ABS':r.ev.st==='disp'?'DISP':'',v:[r.N.tot].concat(r.N.aff)}))})}
 
 /* bilan des répartitions choisies (fil de séquence) */
-function repBilan(P,c,R){const X=P.fil.retenus.map(id=>(aflFil(P,id)||{}).code||id),G={};P.fil.reps.forEach(r=>G[r]=[]);const none=[];
+function repBilan(P,c,R){const CX={act:T.act,cls:c.id,c,S:ses(T.act,c.id),P};const X=P.fil.retenus.map(id=>(aflFil(P,id)||{}).code||id),G={};P.fil.reps.forEach(r=>G[r]=[]);const none=[];
  R.forEach(r=>{const rep=repOf(P,r.ev,r.ix);if(!rep){none.push(r);return}(G[rep]=G[rep]||[]).push(r)});
  const who=r=>`<span class="rn">${esc(r.p.full)}${r.ev.rep&&r.ev.rep!==r.ix.rep?' <i title="saisi ou modifié par toi">✏️</i>':r.ix.rep?' <i title="choisi par l\'élève">🙋</i>':''}</span>`;
  return `<div class="card"><h3 class="h3" style="margin-top:0">🎯 Répartitions choisies · ${esc(P.fil.titre)}</h3><div class="repg">${Object.keys(G).map(r=>{const n=repPts(r);return `<div class="repc"><b>${X.map((x,j)=>esc(x)+' '+n[j]).join(' / ')}</b><span class="rk">${G[r].length}</span><div>${G[r].map(who).join('')||'<span class="mut sm">personne</span>'}</div></div>`}).join('')}
- <div class="repc no"><b>Pas encore choisi</b><span class="rk">${none.length}</span><div>${none.map(who).join('')||'<span class="mut sm">tout le monde a choisi</span>'}</div></div></div>
+ <div class="repc no"><b>Pas encore choisi</b><span class="rk">${none.length}</span><div>${none.map(r=>{const p=repPropose(P,CX,r.p.k);return who(r).replace(/<\/span>$/,p?` <i title="répartition proposée">💡 ${esc(p.r)}</i></span>`:'</span>')}).join('')||'<span class="mut sm">tout le monde a choisi</span>'}</div></div></div>
  <p class="mut sm">🙋 choisi par l'élève sur la tablette · ✏️ saisi ou modifié par toi (fiche de l'élève). Les élèves choisissent dans « Mon choix » ou au moment de remplir leur feuille de pratique.</p></div>`}
