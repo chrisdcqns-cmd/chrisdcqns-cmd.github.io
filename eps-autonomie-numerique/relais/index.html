@@ -4128,11 +4128,12 @@ function renderTurn(){
   const box=$("#r-turn");if(!box)return;const both=$("#r-r1").value!==""&&$("#r-r2").value!=="";
   const L=both?[]:turnCands();if(!L.length){box.innerHTML="";return}
   const k=CURG(),i=(TURN_SKIP[k]||0)%L.length,p=L[i],e1=byId(p.a),e2=byId(p.b);if(!e1||!e2){box.innerHTML="";return}
-  box.innerHTML=`<div class="turn"><div class="ti">👟</div><div class="tt"><small>Au tour de${p.g?" · "+esc(p.g):""}</small><b>${esc(e1.prenom)}<em>donne à</em>${esc(e2.prenom)}</b><span>${!CO().length?"Première course de la leçon.":CURG()!=="all"?"Ceux qui ont le moins couru dans leur rôle passent d'abord.":"Ceux qui ont le moins couru passent d'abord, groupe après groupe."} Pas là ? « Autre binôme ».</span></div><button class="btn primary" data-turn="go">On y va</button><button class="btn ghost sm" data-turn="skip">Autre binôme</button></div>`;
+  box.innerHTML=`<div class="turn"><div class="ti">👟</div><div class="tt"><small>Conseil · au tour de${p.g?" · "+esc(p.g):""}</small><b>${esc(e1.prenom)}<em>donne à</em>${esc(e2.prenom)}</b><span>${!CO().length?"Première course de la leçon.":CURG()!=="all"?"Ceux qui ont le moins couru dans leur rôle passent d'abord.":"Ceux qui ont le moins couru passent d'abord, groupe après groupe."} Ce n'est qu'un conseil : une course oubliée ou un autre binôme ? Choisissez vous-mêmes les coureurs.</span></div><button class="btn primary" data-turn="go">On y va</button><button class="btn ghost sm" data-turn="skip">Autre binôme</button><button class="btn ghost sm" data-turn="own">Choisir nous-mêmes ↓</button></div>`;
   box.dataset.a=p.a;box.dataset.b=p.b;
 }
 document.addEventListener("click",e=>{const b=e.target.closest("[data-turn]");if(!b)return;const box=$("#r-turn");
   if(b.dataset.turn==="skip"){TURN_SKIP[CURG()]=(TURN_SKIP[CURG()]||0)+1;renderTurn();return}
+  if(b.dataset.turn==="own"){$("#r-r1").closest(".grid2").scrollIntoView({behavior:"smooth",block:"start"});return}
   $("#r-r1").value=box.dataset.a;$("#r-r2").value=box.dataset.b;$("#r-r1").dispatchEvent(new Event("change",{bubbles:true}));TURN_SKIP[CURG()]=0;onCourse();guide()});
 
 /* ===== « Et maintenant ? » : l'étape suivante en grand, en bas de l'écran ; « Annuler la course » pendant 1 min ===== */
@@ -4140,7 +4141,7 @@ var UNDO=null;
 function nowStep(){
   const cfg=CFG(),[el]=nextStep(),d=diagResult(),both=$("#r-r1").value!==""&&$("#r-r2").value!=="";
   if(needG())return ["👋","Touchez le nom de votre groupe","Étape 1 · tablette partagée"];
-  if(!both)return ["👟",$("#r-turn").innerHTML?"Binôme suivant : touchez « On y va »":"Choisissez les deux coureurs","Étape 1"];
+  if(!both)return ["👟",$("#r-turn").innerHTML?"« On y va » (conseil) ou choisissez les coureurs":"Choisissez les deux coureurs","Étape 1"];
   const e1=byId(+$("#r-r1").value),e2=byId(+$("#r-r2").value),who=e1&&e2?e1.prenom+" et "+e2.prenom:"Étape suivante";
   const blank=["ecart","zone","dep","pt","pm"].every(k=>ST[k]===null);
   if(blank){const m=markFor(+$("#r-r1").value,+$("#r-r2").value);return ["🏃",(m&&m.np!=null?`Marque sur le plot ${m.np}, puis courez !`:"Placez la marque, puis courez !"),who+" · après la course, notez le résultat"]}
