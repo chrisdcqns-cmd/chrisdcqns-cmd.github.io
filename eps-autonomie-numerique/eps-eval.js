@@ -525,7 +525,10 @@
       try { var d = document.createElement("div"); d.className = "epse-block"; d.innerHTML = M.propHtml(E, cls) +
           '<div class="epse-card"><div class="epse-row" style="margin:0"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button>' + (o.list ? '<button type="button" class="epse-btn" data-pnall>📋 Pronote : toutes les évaluations de la classe</button>' : "") + '</div><div data-phrbox style="margin-top:6px"></div></div>';
         after.parentNode.insertBefore(d, after.nextSibling); M.bindProp(d, E, cls, o.redraw || function () {}, o.take);
-        var pn = d.querySelector("[data-pnall]"); if (pn) pn.onclick = function () { M.pronoteAll(cls, o.list); }; if (o.keep) M.bindPhrase(d, E, cls, o.keep); } catch (e) { console.warn(e); } };
+        var pn = d.querySelector("[data-pnall]"); if (pn) pn.onclick = function () { M.pronoteAll(cls, o.list); }; if (o.keep) M.bindPhrase(d, E, cls, o.keep);
+        /* 🎯 remédiation : critères au degré 1 ou 2 → situation liée à proposer (eps-lecons.js) */
+        try { if (window.EPSLC && EPSLC.remCard) { var lows = []; A.grid().criteres.forEach(function (cr) { var v = A.prof(cr, E); if (v && v.d != null && v.d <= 1) lows.push({ cr: cr, d: v.d }); });
+          var n = A.name(E), rc = EPSLC.remCard(cls, ((n.prenom || "") + " " + (n.nom || "")).trim(), lows); if (rc) { var w = document.createElement("div"); w.innerHTML = rc.html; d.appendChild(w); rc.bind(w); } } } catch (e) { console.warn(e); } } catch (e) { console.warn(e); } };
     M.bindProp = function (R, E, cls, redraw, take) {
       var b = R.querySelector("[data-ccf]"); if (b) b.onchange = function () { M.setCcf(cls, { on: b.checked }); redraw(); };
       var v = R.querySelector("[data-voie]"); if (v) v.onchange = function () { M.setCcf(cls, { voie: v.value }); redraw(); };
@@ -533,6 +536,8 @@
       var t = R.querySelector("[data-take]"); if (t && take) t.onclick = function () { if (confirm("Reprendre les degrés proposés par l'élève pour les critères que tu n'as pas évalués ? Tu pourras les modifier ensuite.")) take(); };
     };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
+    /* instances connues des fiches de leçon (eps-lecons.js : critères des grilles, remédiation) */
+    (window.EPSE_INST = window.EPSE_INST || []).push({ A: A, M: M });
     return M;
   }
 
