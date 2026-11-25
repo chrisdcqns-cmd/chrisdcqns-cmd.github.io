@@ -862,6 +862,7 @@ body.eteach .ebar .es{display:block}
     <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
     <button class="btn ghost sm teach" id="btnQRG">🔳 QR codes</button>
     <button class="btn sm" id="btnDayGroupe" title="Groupes formés dans 📡 Leçon en cours">👥 Groupes du jour</button>
+    <button class="btn sm teach" id="btnNivGroupe" title="Classement par vitesse, affinités">🧩 Niveaux / affinités</button>
     <button class="btn primary sm" id="btnAddGroupe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Créer un groupe</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span class="on"><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -1925,11 +1926,18 @@ function applyGroups(op){
   if(scope)futureLecons(L).forEach(x=>{x.groupes=op(x.groupes)});
 }
 /* 👥 reprend les groupes formés dans 📡 Leçon en cours (présents qui pratiquent) pour la leçon du jour */
-$("#btnDayGroupe").addEventListener("click",async()=>{if(!await requireCode())return;const G=window.epsGroupesJour&&CL()?epsGroupesJour(CL().name):null;
+async function applyDayGroups(G0){const G=G0||(window.epsGroupesJour&&CL()?epsGroupesJour(CL().name):null);
   if(!G){toast("Pas de groupes du jour : forme-les dans 📅 Séquence → 📡 Leçon en cours");return}
   const N=G.map((g,i)=>({id:uid("g"),name:"Groupe "+(i+1),members:g.map(n=>(epsMatchNom(EL(),n,e=>e.prenom+" "+e.nom)||{}).id).filter(x=>x!=null)})).filter(g=>g.members.length);
   if(GR().length&&!confirm("Remplacer les groupes "+(CLE()?"de la leçon du jour":"de la classe")+" par les "+N.length+" groupes du jour ?"))return;
-  const L=CLE();if(L){ensureLeconGroups(L);L.groupes=N}else CL().groupes=N;persist();renderClassAll();toast("✓ "+N.length+" groupes repris de la leçon en cours")});
+  const L=CLE();if(L){ensureLeconGroups(L);L.groupes=N}else CL().groupes=N;try{window.epsGroupesLog&&epsGroupesLog("relais",CL().name,G,"groupes")}catch(x){}persist();renderClassAll();toast("✓ "+N.length+" groupes créés")}
+$("#btnDayGroupe").addEventListener("click",async()=>{if(!await requireCode())return;applyDayGroups()});
+$("#btnNivGroupe").addEventListener("click",async()=>{if(!await requireCode())return;if(!window.EPSGR||!CL()){toast("Module en cours de chargement, réessaie");return}
+  EPSGR.open({dir:"relais",cls:CL().name,tab:"grp",mode:"melange",n:Math.max(2,GR().length||4),useLabel:"🏃 En faire les groupes",onUse:G=>{document.querySelectorAll('[aria-label="Niveaux et groupes"]').forEach(d=>d.parentNode.remove());applyDayGroups(G)}})});
+/* classement proposé au module commun : vitesse moyenne (lancée, sinon départ arrêté), rapportée à la classe */
+window.epsNiveaux=function(cls){const c=(DATA.classes||[]).find(x=>window.EPSL&&EPSL.norm(x.name)===EPSL.norm(cls));if(!c)return null;
+  const V=(c.eleves||[]).map(e=>{const v=parseFloat(e.ml)||parseFloat(e.ma);return v>0?{e,v}:null}).filter(Boolean);if(V.length<2)return null;
+  const lo=Math.min(...V.map(x=>x.v)),hi=Math.max(...V.map(x=>x.v));return V.map(x=>({full:x.e.prenom+" "+x.e.nom,s:hi>lo?(x.v-lo)/(hi-lo):.5,t:"vitesse "+x.v.toFixed(2)}))};
 $("#g-save").addEventListener("click",()=>{
   const name=$("#g-name").value.trim();if(!name){toast("Donne un nom au groupe");return}
   const gid=GEDIT||uid("g"),mem=[...GSEL];

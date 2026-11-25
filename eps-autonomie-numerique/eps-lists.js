@@ -264,6 +264,19 @@ window.epsGroupesJour = function (cls) {
 /* retrouve un élève d'une appli à partir d'un nom complet (ordre des mots et accents indifférents) */
 window.epsMatchNom = function (L, full, nameOf) { var nk = function (s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" "); }, k = nk(full);
   return (L || []).filter(function (e) { return nk(nameOf ? nameOf(e) : typeof e === "string" ? e : ((e.prenom || "") + " " + (e.nom || ""))) === k; })[0] || null; };
+/* 🧩 historique des groupes (affinités, eps-groupes.js) : toute appli qui forme des groupes / équipes / poules appelle
+   epsGroupesLog(dossier, classe, [["Prénom Nom", …], …], source). eps.grphist.v1 (« gh| », synchronisé), une entrée par appli|classe|jour|source. */
+window.epsGroupesLog = function (dir, cls, G, src) {
+  try { if (!cls || !G || !G.length || window.EPS_VUE_ELEVE) return; G = G.map(function (g) { return (g || []).map(function (x) { return String(typeof x === "string" ? x : ((x && (x.full || ((x.prenom || "") + " " + (x.nom || "")))) || "")).replace(/\s+/g, " ").trim(); }).filter(Boolean); }).filter(function (g) { return g.length; });
+    if (G.length < 2 && !(G[0] && G[0].length > 1)) return;
+    var nk = function (s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }, d = new Date(), dy = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+    var K = "eps.grphist.v1", V = JSON.parse(localStorage.getItem(K) || "null"); if (!V || !V.items) V = { items: {}, pend: {}, since: 0 }; V.pend = V.pend || {};
+    var id = (dir || "app") + "|" + nk(cls) + "|" + dy + "|" + (src || "g"), old = V.items[id], sig = JSON.stringify(G.map(function (g) { return g.slice().sort(); }).sort());
+    if (old && JSON.stringify((old.g || []).map(function (g) { return g.slice().sort(); }).sort()) === sig) return;
+    var u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[id] = { id: id, app: dir, cls: cls, day: dy, src: src || "g", g: G, at: Date.now(), u: u }; V.pend[id] = u;
+    localStorage.setItem(K, JSON.stringify(V)); try { window.EPSD && EPSD.syncSoon && EPSD.syncSoon(); } catch (e) {}
+  } catch (e) {}
+};
 window.epsAbsJourN = function (L, cls) { return (L || []).filter(function (e) { return window.epsAbsJour(e, cls); }).length; };
 window.epsApChip = function (o) {
   if (!o) return "";
@@ -276,8 +289,10 @@ window.epsApChip = function (o) {
 (function () {
   var m = location.pathname.match(/eps-autonomie-numerique\/([a-z0-9-]+)\//), APP = m ? m[1] : "";
   function V() { try { return JSON.parse(localStorage.getItem("eps.param.v1") || "null") || { items: {} }; } catch (e) { return { items: {} }; } }
+  /* déclarations gardées sur l'appareil (eps.paramdefs.v1) : la console ordinateur affiche les paramètres de toutes les applis */
+  var dT = 0; function saveDefs() { if (!APP || window.EPS_VUE_ELEVE) return; clearTimeout(dT); dT = setTimeout(function () { try { var A = JSON.parse(localStorage.getItem("eps.paramdefs.v1") || "{}") || {}; A[APP] = { at: Date.now(), defs: P.defs.map(function (d) { return { id: d.id, sec: d.sec, label: d.label, type: d.type, def: d.def, fixed: d.fixed, aide: d.aide }; }) }; localStorage.setItem("eps.paramdefs.v1", JSON.stringify(A)); } catch (e) {} }, 300); }
   var P = window.EPSP = { app: APP, defs: [],
-    reg: function (d) { if (!P.defs.some(function (x) { return x.id === d.id; })) P.defs.push(d); },
+    reg: function (d) { if (!P.defs.some(function (x) { return x.id === d.id; })) { P.defs.push(d); saveDefs(); } },
     get: function (id, def) { var o = (V().items || {})[APP + "|" + id]; if (!o || o.del || o.v == null) return def;
       if (Array.isArray(def) && !Array.isArray(o.v)) return def; return o.v; },
     p: function (d) { P.reg(d); var v = P.get(d.id, d.def); if (d.fixed && Array.isArray(v)) { v = v.slice(0, d.fixed); while (v.length < d.fixed) v.push(d.def[v.length]); } return v; } };

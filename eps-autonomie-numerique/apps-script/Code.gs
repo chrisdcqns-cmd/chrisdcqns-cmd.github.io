@@ -279,6 +279,29 @@ function lecon_(q) {
     const sys = base + 'Un élève te montre son WOD. Donne-lui 3 conseils courts (tutoiement, 25 mots maximum chacun), concrets, sur la cohérence entre son thème, son format, ses quantités et ses exercices, et sur la sécurité. Ne le décourage pas. Réponds par les 3 conseils, un par ligne, commençant par « • ».';
     return { texte: claude_(key, sys, String(q.wod || '').slice(0, 3000), CLAUDE_MODEL, 500) };
   }
+  /* Console ordinateur : l'enseignant demande un réglage en français ; Claude répond et PROPOSE des actions (jamais appliquées
+     sans clic de l'enseignant). Contexte envoyé : paramètres des applis, classes (nom, voie, nombre d'élèves, activités), demandes
+     en cours. Aucun nom d'élève. */
+  if (q.op === 'console') {
+    const ctx = JSON.stringify(q.contexte || {}).slice(0, 60000);
+    const hist = (q.historique || []).slice(-8).map(function (m) { return (m.r === 'u' ? 'Enseignant : ' : 'Assistant : ') + String(m.t || '').slice(0, 1500); }).join('\n');
+    const sys = 'Tu es l\'assistant de la console ordinateur des applications EPS d\'un enseignant d\'EPS de lycée (un seul utilisateur, plusieurs tablettes). ' +
+      'Tu réponds en français, brièvement, en le tutoyant. Vocabulaire : « leçon » (jamais séance), « séquence » (jamais cycle). Classes TGT, 2GT, 1GT = voie générale, les autres = voie professionnelle. ' +
+      'Tu ne modifies rien toi-même : tu PROPOSES des actions que l\'enseignant validera une par une. Actions possibles (JSON) : ' +
+      '{"type":"param","app":"<dossier>","id":"<id du paramètre>","valeur":<valeur complète : tableau de chaînes pour une liste (respecter le nombre de lignes si fixed), nombre, ou texte>,"pourquoi":""} ; ' +
+      '{"type":"activites","classe":"<nom exact>","activites":["<codes>", …],"pourquoi":""} (liste COMPLÈTE des activités de la classe après changement : codes esc, rel, vol, bad, dan, acro, ori, ct) ; ' +
+      '{"type":"voie","classe":"<nom exact>","voie":"gt"|"pro"|"auto"} ; ' +
+      '{"type":"demande","app":"<dossier ou vide>","texte":"<demande de modification du CODE de l\'appli, rédigée clairement pour un développeur : ce qu\'il faut ajouter ou changer, où, pour quoi faire>"} ' +
+      'quand la demande dépasse les réglages (nouvel écran, nouveau bouton, comportement différent, correction d\'un défaut) : elle sera confiée à Claude Code ; ' +
+      '{"type":"ouvrir","cible":"<dossier d\'appli ou accueil|classes|groupes|params|tablettes|demandes>"}. ' +
+      'N\'utilise que les dossiers, identifiants de paramètres et noms de classes présents dans le contexte ; pour un paramètre de type liste, reprends la liste actuelle et modifie-la. ' +
+      'Si tu ne sais pas, dis-le et propose plutôt une « demande ». Réponds UNIQUEMENT par du JSON : {"reponse":"texte pour l\'enseignant","actions":[…]}.';
+    const user = 'CONTEXTE :\n' + ctx + (hist ? '\n\nÉCHANGES PRÉCÉDENTS :\n' + hist : '') + '\n\nDEMANDE (sujet : ' + act + ') :\n' + String(q.demande || '').slice(0, 4000);
+    const t = claude_(key, sys, user, CLAUDE_MODEL_LECON, 3000), a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a < 0 || b < a) return { console: { reponse: t, actions: [] } };
+    let o; try { o = JSON.parse(t.slice(a, b + 1)); } catch (e) { return { console: { reponse: t, actions: [] } }; }
+    return { console: { reponse: String(o.reponse || ''), actions: Array.isArray(o.actions) ? o.actions.slice(0, 20) : [] } };
+  }
   if (q.op !== 'lecon') throw new Error('opération inconnue');
   /* Inventaire : liste des leçons contenues dans un document (pour les mettre en fiches une par une). */
   if (q.mode === 'inventaire') {

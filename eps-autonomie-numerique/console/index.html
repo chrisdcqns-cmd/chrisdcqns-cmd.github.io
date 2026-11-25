@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script src="../eps-lists.js"></script><!-- commun : garde de la simulation, listes, paramètres -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Console EPS · ordinateur</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<meta name="theme-color" content="#14171C">
+<script>
+/* la console est un outil enseignant : mode enseignant prolongé tant qu'elle est ouverte (ordinateur personnel) */
+window.epsIsTeacher = function () { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } };
+</script>
+<style>
+:root{--app:#4F46E5;--bg:#F5F3EE;--ln:#E6E1D6;--tx:#14171C;--mut:#6A6F78}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{display:grid;grid-template-columns:250px 1fr;height:100vh}
+#app.ai-on{grid-template-columns:250px 1fr 420px}
+nav{background:#14171C;color:#D5D8DE;overflow:auto;display:flex;flex-direction:column}
+.brand{display:flex;gap:10px;align-items:center;padding:14px 14px 12px;box-shadow:inset 0 -4px 0 var(--app)}
+.brand .ic{width:36px;height:36px;border-radius:10px;background:var(--app);display:grid;place-items:center;color:#fff;flex:none}
+.brand .ic svg{width:22px;height:22px}
+.brand b{font-size:18px;color:#fff;display:block;line-height:1.1}.brand small{color:#A9AEB8}
+nav .grp{font:800 11px system-ui;letter-spacing:.08em;text-transform:uppercase;color:#8A8F99;padding:14px 16px 4px}
+nav button.it{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:#D5D8DE;font:600 14.5px system-ui;padding:9px 16px;text-align:left;cursor:pointer;min-height:40px}
+nav button.it:hover{background:#1F232A}
+nav button.it[aria-current=true]{background:#262B33;color:#fff;box-shadow:inset 4px 0 0 var(--c,var(--app))}
+nav .dot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--c,#555)}
+nav .foot{margin-top:auto;padding:12px 16px;font-size:12.5px;color:#8A8F99}
+main{overflow:auto;display:flex;flex-direction:column;min-width:0}
+.top{display:flex;align-items:center;gap:10px;background:#14171C;color:#fff;padding:8px 14px;min-height:56px;position:sticky;top:0;z-index:5}
+.top h1{font-size:19px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .tb{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:none;color:#D5D8DE;font:700 14px system-ui;padding:0 12px;cursor:pointer;white-space:nowrap}
+#app.inapp .top [data-eps-bar]{display:none!important}
+.top .tb.on{background:var(--app);border-color:var(--app);color:#fff}
+.pg{padding:18px 22px 40px;max-width:1500px;width:100%}
+.pg.full{padding:0;max-width:none;flex:1;display:flex}
+.pg.full iframe{flex:1;border:0;width:100%;min-height:calc(100vh - 56px);background:#fff}
+h2{font-size:22px;margin:4px 0 6px}h3{font-size:17px;margin:18px 0 8px}
+.mut{color:var(--mut);font-size:13.5px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.card{background:#fff;border:1.5px solid var(--ln);border-radius:14px;padding:14px}
+.card h3{margin:0 0 6px}
+.b{min-height:40px;border-radius:10px;border:1.5px solid var(--ln);background:#fff;font:700 14px system-ui;padding:0 12px;cursor:pointer;color:var(--tx)}
+.b.p{background:var(--app);border-color:var(--app);color:#fff}.b.d{color:#B42318;border-color:#F2C4BF}
+.b:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.in,.sel,textarea{border:1.5px solid var(--ln);border-radius:10px;background:#fff;font:15px system-ui;padding:8px 10px;color:var(--tx)}
+.in,.sel{height:40px;padding:0 10px}
+table.t{border-collapse:separate;border-spacing:0;width:100%;background:#fff;border:1.5px solid var(--ln);border-radius:14px}.t thead th:first-child{border-top-left-radius:14px}.t thead th:last-child{border-top-right-radius:14px}
+.t th,.t td{padding:8px 10px;border-bottom:1px solid var(--ln);text-align:left;vertical-align:middle}
+.t th{background:#FBFAF7;font-size:13px;position:sticky;top:56px;z-index:1}
+.t tr:last-child td{border-bottom:0}
+.t td.c,.t th.c{text-align:center}
+.t input[type=checkbox]{width:20px;height:20px;accent-color:var(--app);cursor:pointer}
+.tag{display:inline-block;padding:1px 8px;border-radius:999px;font:700 12px system-ui;background:#EEF0FF;color:#3730A3}
+.tag.pro{background:#FFF1BF;color:#6b4e00}
+.ok{color:#1E7B45}.ko{color:#B42318}
+.msg{min-height:20px;font-size:13.5px}
+/* tiroir latéral */
+.drawer{position:fixed;inset:0;background:rgba(20,23,28,.45);z-index:50;display:flex;justify-content:flex-end}
+.drawer>div{background:var(--bg);width:min(640px,100%);height:100%;overflow:auto;padding:18px 20px;box-shadow:-10px 0 30px rgba(0,0,0,.2)}
+/* assistant Claude */
+#ai{background:#fff;border-left:1.5px solid var(--ln);display:none;flex-direction:column;min-width:0;height:100vh}
+#app.ai-on #ai{display:flex}
+#ai .hd{padding:12px 14px;border-bottom:1.5px solid var(--ln);display:flex;gap:8px;align-items:center}
+#ai .hd b{flex:1;font-size:16px}
+#ai .lg{flex:1;overflow:auto;padding:12px 14px}
+.m{margin:0 0 10px;padding:9px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+.m.u{background:#EEF0FF;margin-left:30px}.m.a{background:#F5F3EE;margin-right:10px}
+.act{border:1.5px solid var(--ln);border-radius:12px;padding:8px 10px;margin:6px 0;background:#fff}
+.act.done{opacity:.6}.act b{display:block}
+#ai .ft{border-top:1.5px solid var(--ln);padding:10px 14px}
+#ai textarea{width:100%;min-height:80px;resize:vertical}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:10px}
+.pp{background:#fff;border:1.5px solid var(--ln);border-radius:14px;padding:10px 12px}
+.pp textarea,.pp input{width:100%;margin-top:6px}
+.req{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1.5px solid var(--ln);border-radius:12px;padding:10px 12px;margin:6px 0}
+.req p{margin:0;flex:1;white-space:pre-wrap}
+:focus-visible{outline:3px solid var(--app);outline-offset:2px}
+@media (max-width:1100px){#app.ai-on{grid-template-columns:200px 1fr 360px}#app{grid-template-columns:200px 1fr}}
+@media (max-width:800px){#app,#app.ai-on{grid-template-columns:1fr}nav{display:none}#ai{position:fixed;inset:0;z-index:60}}
+#lock{position:fixed;inset:0;background:#14171C;display:grid;place-items:center;z-index:100;color:#fff;text-align:center}
+#lock .ic{width:64px;height:64px;border-radius:16px;background:var(--app);display:grid;place-items:center;margin:0 auto 14px}
+</style>
+</head>
+<body>
+<div id="lock"><div><div class="ic"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 8h5M6 12h8"/></svg></div><h1 style="margin:0 0 6px">Console EPS</h1><p style="color:#A9AEB8;margin:0 0 18px">Espace enseignant sur ordinateur</p><button class="b p" id="unlock" style="height:48px;font-size:16px">🔒 Entrer avec mon code enseignant</button><p style="color:#A9AEB8;font-size:13px;margin-top:16px"><a href="../" style="color:#A9AEB8">← Accueil des applis</a></p></div></div>
+<div id="app">
+  <nav aria-label="Menu de la console">
+    <div class="brand"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 8h5M6 12h8"/></svg></span><span><b>Console EPS</b><small>Ordinateur · enseignant</small></span></div>
+    <div id="menu"></div>
+    <div class="foot">Les données restent chiffrées et partagées avec tes tablettes (même script, même clé). Aucun nom d'élève n'est envoyé à Claude.</div>
+  </nav>
+  <main>
+    <div class="top"><h1 id="ttl">Accueil</h1><span id="tact" style="display:flex;gap:6px"></span><span data-eps-bar></span><button class="tb" id="aiBtn" type="button">🤖 Claude</button></div>
+    <div id="pg" class="pg"></div>
+  </main>
+  <aside id="ai" aria-label="Assistant Claude">
+    <div class="hd"><b>🤖 Assistant Claude</b><select class="sel" id="aiCtx" aria-label="Sujet de la demande" style="max-width:170px"></select><button class="b" id="aiX" type="button" aria-label="Fermer l'assistant">✕</button></div>
+    <div class="lg" id="aiLog"></div>
+    <div class="ft"><textarea id="aiIn" placeholder="Ex. « Mets 5 minutes à la récupération par défaut », « Attribue le volley à la TMELEC », « Ajoute un bouton chrono dans l'appli Relais »…"></textarea>
+      <div class="row" style="margin-bottom:0"><button class="b p" id="aiGo" type="button">Envoyer</button><button class="b" id="aiClr" type="button">Effacer</button><span class="mut" id="aiSt"></span></div>
+      <p class="mut" style="margin:6px 0 0">Claude propose, tu valides : rien n'est appliqué sans ton clic. Il voit les réglages et les classes (sans les élèves). Les changements du code des applis vont dans 📝 Demandes de modification.</p></div>
+  </aside>
+</div>
+<script src="../eps-groupes.js"></script>
+<script>
+(function () {
+  "use strict";
+  var ACTS = [["esc", "escalade", "Escalade", "#2E7D4F"], ["rel", "relais", "Relais Vitesse", "#D9481F"], ["vol", "volley", "Volley-ball", "#6B3FA0"], ["bad", "badminton", "Badminton", "#0B7A75"], ["dan", "danse", "Danse", "#C2185B"], ["acro", "acrosport", "Acrosport", "#1F4FA3"], ["ori", "orientation", "OrienRun", "#E8701A"], ["ct", "crosstraining", "Cross-training", "#4D7C0F"]];
+  var OUTILS = [["ccf", "CCF", "#B8860B"], ["co-eval", "CO-Évaluation", "#14213D"], ["edt", "Emploi du temps", "#1F5F8B"], ["appel-as", "Appel AS", "#475569"], ["terrain", "Pose des balises", "#8A5A1F"]];
+  var NAMES = {}; ACTS.forEach(function (a) { NAMES[a[1]] = a[2]; }); OUTILS.forEach(function (a) { NAMES[a[0]] = a[1]; });
+  var SECTIONS = [["accueil", "🏠", "Accueil"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"]];
+  var KC = "eps.console.v1";
+  var $ = function (s, r) { return (r || document).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+  function ld(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+  function put(k, it) { var V = ld(k), old = V.items[it.id]; it.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u; localStorage.setItem(k, JSON.stringify(V)); try { EPSD.syncSoon(); } catch (e) {} }
+  function all(k) { var V = ld(k); return Object.keys(V.items).map(function (i) { return V.items[i]; }).filter(function (o) { return o && !o.del; }); }
+  function norm(s) { return window.EPSL ? EPSL.norm(s) : String(s || "").toLowerCase(); }
+  function lists() { try { return EPSL.items().slice().sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr", { numeric: true }); }); } catch (e) { return []; } }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function teach() { return window.epsIsTeacher(); }
+  var cur = { s: "accueil", app: null };
+
+  /* ---------- entrée : code enseignant (le même que sur les tablettes) ---------- */
+  function keepAlive() { if (teach()) try { localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} }
+  function unlocked() { $("#lock").style.display = "none"; keepAlive(); try { document.documentElement.classList.add("eps-teach"); } catch (e) {} go(location.hash.slice(1) || "accueil"); }
+  function tryUnlock() { if (teach()) { unlocked(); return; } if (!window.EPSD || !EPSD.askCode) { setTimeout(tryUnlock, 300); return; } EPSD.askCode().then(function (ok) { if (ok) unlocked(); }); }
+  $("#unlock").onclick = tryUnlock;
+  setInterval(function () { if (teach()) keepAlive(); }, 60000);
+  ["click", "keydown"].forEach(function (ev) { document.addEventListener(ev, function () { if (teach()) keepAlive(); }, true); });
+
+  /* ---------- menu ---------- */
+  function menu() {
+    var h = SECTIONS.slice(0, 1).map(it).join("") + '<div class="grp">Activités</div>' + ACTS.map(function (a) { return it(["app:" + a[1], "", a[2], a[3]]); }).join("") +
+      '<div class="grp">Outils</div>' + OUTILS.map(function (a) { return it(["app:" + a[0], "", a[1], a[2]]); }).join("") + '<div class="grp">Gestion</div>' + SECTIONS.slice(1).map(it).join("");
+    function it(x) { var on = cur.s === x[0] || (cur.app && x[0] === "app:" + cur.app); return '<button type="button" class="it" data-go="' + x[0] + '"' + (x[3] ? ' style="--c:' + x[3] + '"' : "") + ' aria-current="' + !!on + '">' + (x[1] ? '<span aria-hidden="true">' + x[1] + "</span>" : '<span class="dot"></span>') + esc(x[2]) + "</button>"; }
+    $("#menu").innerHTML = h; $$("[data-go]", $("#menu")).forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
+    var o = $("#aiCtx"), v = o.value; o.innerHTML = '<option value="">Général</option>' + ACTS.map(function (a) { return '<option value="' + a[1] + '">' + a[2] + "</option>"; }).join("") + OUTILS.map(function (a) { return '<option value="' + a[0] + '">' + a[1] + "</option>"; }).join("");
+    o.value = cur.app || v || "";
+  }
+  function go(s) {
+    if (!teach()) { $("#lock").style.display = ""; return; }
+    var m = /^app:(.+)$/.exec(s); cur.s = m ? "app" : s; cur.app = m ? m[1] : null; if (location.hash.slice(1) !== s) history.replaceState(null, "", "#" + s);
+    var pg = $("#pg"); pg.className = "pg"; $("#tact").innerHTML = ""; $("#app").classList.remove("inapp"); menu();
+    if (m) { pg.className = "pg full"; $("#ttl").textContent = NAMES[cur.app] || cur.app; pg.innerHTML = '<iframe title="' + esc(NAMES[cur.app]) + '" src="../' + cur.app + '/?console=1" allow="clipboard-write; microphone; camera; geolocation"></iframe>';
+      $("#tact").innerHTML = '<a class="tb" style="display:inline-flex;align-items:center;text-decoration:none" href="../' + cur.app + '/" target="_blank" rel="noopener">↗ Ouvrir dans un onglet</a><button class="tb" type="button" data-rl aria-label="Recharger l\'appli">↻ Recharger</button>'; $("#app").classList.add("inapp");
+      $("[data-rl]").onclick = function () { pg.querySelector("iframe").src = pg.querySelector("iframe").src; };
+      return; }
+    var S = SECTIONS.filter(function (x) { return x[0] === s; })[0] || SECTIONS[0]; $("#ttl").textContent = S[1] + " " + S[2];
+    ({ accueil: pAccueil, classes: pClasses, groupes: pGroupes, params: pParams, tablettes: pTablettes, demandes: pDemandes }[S[0]] || pAccueil)(pg);
+  }
+  window.addEventListener("hashchange", function () { var s = location.hash.slice(1); if (s && s !== (cur.app ? "app:" + cur.app : cur.s)) go(s); });
+
+  /* ---------- 🏠 accueil ---------- */
+  function pAccueil(pg) {
+    var L = lists(), shared = window.EPSD && EPSD.shared && EPSD.shared(), slots = null;
+    try { slots = EPSD.edtSlots(null, null, Date.now(), 8); } catch (e) {}
+    var tabs = []; try { tabs = EPSD.tabList() || []; } catch (e) {}
+    var recent = tabs.filter(function (t) { return Date.now() - t.at < 15 * 60000; });
+    var nReq = all(KC).filter(function (r) { return r.k === "req" && r.st !== "fait"; }).length;
+    pg.innerHTML = "<h2>Bonjour 👋</h2><p class=\"mut\">Tout ce que tu règles ici vaut aussi sur tes tablettes (synchronisation chiffrée). Choisis une activité à gauche pour l'ouvrir en grand, en mode enseignant.</p>" +
+      '<div class="cards">' +
+      '<div class="card"><h3>🔗 Partage avec les tablettes</h3>' + (shared ? '<p class="ok">✓ Réglé : les données arrivent et partent toutes seules.</p><div class="row"><button class="b" data-sync>⟳ Synchroniser maintenant</button><button class="b" data-share>Réglages du partage</button></div>' : '<p class="ko">⚠ Pas encore réglé sur cet ordinateur.</p><p class="mut">Colle le lien de partage de tes tablettes (Réglages → Partage) : sans lui, l\'ordinateur ne voit pas tes données.</p><div class="row"><button class="b p" data-share>Régler le partage</button></div>') + '<div class="row"><button class="b" data-rest>📥 Tout récupérer ici</button></div></div>' +
+      '<div class="card"><h3>📅 Prochains cours</h3>' + (slots && slots.length ? slots.slice(0, 6).map(function (x) { var d = new Date(x.at); return "<div>" + d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + " · <b>" + esc(x.cls) + "</b> " + esc((ACTS.filter(function (a) { return a[0] === x.act; })[0] || [0, 0, x.act || ""])[2]) + "</div>"; }).join("") : '<p class="mut">Règle ton emploi du temps dans l\'outil Emploi du temps (« Qui es-tu ? ») pour voir tes prochains cours.</p>') + '<div class="row"><button class="b" data-go="app:edt">Emploi du temps</button></div></div>' +
+      '<div class="card"><h3>👥 Classes</h3><p>' + L.length + " classe" + (L.length > 1 ? "s" : "") + ", " + L.reduce(function (a, o) { return a + (o.el || []).length; }, 0) + ' élèves.</p><div class="row"><button class="b p" data-go="classes">Gérer classes et activités</button><button class="b" data-go="groupes">🧩 Niveaux & groupes</button></div></div>' +
+      '<div class="card"><h3>📱 Tablettes</h3><p>' + (recent.length ? recent.length + " tablette" + (recent.length > 1 ? "s" : "") + " active" + (recent.length > 1 ? "s" : "") + " ces 15 dernières minutes." : "Aucune tablette active ces 15 dernières minutes.") + '</p><div class="row"><button class="b" data-go="tablettes">Voir les tablettes</button><button class="b" data-sig>📣 Signal général</button></div></div>' +
+      '<div class="card"><h3>🔎 Suivi des élèves</h3><div class="row"><button class="b" data-ovw>📊 Vue d\'ensemble</button><button class="b" data-find>🔍 Rechercher un élève</button><button class="b" data-bil>🌐 Bilans en ligne</button></div></div>' +
+      '<div class="card"><h3>🤖 Claude</h3><p class="mut">Demande un réglage en français (« mets 4 terrains par défaut en badminton »), ou une évolution d\'une appli : il prépare la demande pour Claude Code.</p><div class="row"><button class="b p" data-ai>Ouvrir l\'assistant</button><button class="b" data-go="demandes">📝 Demandes (' + nReq + ")</button></div></div>" +
+      "</div>";
+    bindCommon(pg);
+  }
+  function bindCommon(pg) {
+    $$("[data-go]", pg).forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
+    var f = function (s, fn) { $$(s, pg).forEach(function (b) { b.onclick = fn; }); };
+    f("[data-share]", function () { EPSD.shareSettings(); }); f("[data-sync]", function () { this.textContent = "⟳ …"; var b = this; EPSD.syncNow().then(function () { b.textContent = "✓ Synchronisé"; }); });
+    f("[data-rest]", function () { EPSD.restoreAll(); }); f("[data-sig]", function () { EPSD.signal(); }); f("[data-ovw]", function () { EPSD.overview(); });
+    f("[data-find]", function () { EPSD.search(); }); f("[data-bil]", function () { EPSD.bilans(); }); f("[data-ai]", function () { aiShow(true); });
+  }
+
+  /* ---------- 👥 classes, élèves, activités, voie ---------- */
+  function pClasses(pg) {
+    var L = lists();
+    pg.innerHTML = '<h2>👥 Classes et élèves</h2><p class="mut">Coche les activités de chaque classe (une classe non cochée n\'apparaît pas dans l\'appli). Les changements faits ici sont choisis « à la main » : l\'emploi du temps ne les modifie plus. Voie : TGT, 2GT, 1GT = générale, les autres = professionnelle, sauf choix contraire.</p>' +
+      '<div class="row"><button class="b p" data-new>＋ Nouvelle classe</button><input class="in" data-q placeholder="Filtrer…" aria-label="Filtrer les classes" style="width:180px"><span class="msg mut" data-msg></span></div>' +
+      '<table class="t"><thead><tr><th>Classe</th><th>Voie</th><th class="c">Élèves</th>' + ACTS.map(function (a) { return '<th class="c" title="' + esc(a[2]) + '"><span style="color:' + a[3] + '">●</span> ' + esc(a[2].split(" ")[0]) + "</th>"; }).join("") + "<th></th></tr></thead><tbody>" +
+      L.map(function (o, i) { var v = window.epsVoie ? epsVoie(o.nom) : "pro", forced = !!o.voie;
+        return '<tr data-i="' + i + '"><td><b>' + esc(o.nom) + "</b>" + (o.demo ? ' <span class="tag">démo</span>' : "") + (o.man ? ' <span class="mut" title="Activités choisies à la main (l\'emploi du temps ne les change plus)">✋</span>' : "") + '</td><td><select class="sel" data-voie aria-label="Voie de ' + esc(o.nom) + '"><option value="">Auto (' + (v === "gt" ? "générale" : "pro") + ')</option><option value="gt"' + (forced && o.voie === "gt" ? " selected" : "") + '>Générale</option><option value="pro"' + (forced && o.voie === "pro" ? " selected" : "") + ">Pro</option></select></td>" +
+          '<td class="c">' + (o.el || []).length + "</td>" + ACTS.map(function (a) { return '<td class="c"><input type="checkbox" data-act="' + a[0] + '" aria-label="' + esc(o.nom + " : " + a[2]) + '"' + ((o.off || []).indexOf(a[0]) < 0 ? " checked" : "") + "></td>"; }).join("") +
+          '<td style="white-space:nowrap"><button class="b" data-ed>✏ Élèves</button></td></tr>'; }).join("") + "</tbody></table>" +
+      (L.length ? "" : '<p class="mut">Aucune classe : crée-en une, ou règle d\'abord le partage (🏠 Accueil) pour récupérer celles des tablettes.</p>');
+    var msg = $("[data-msg]", pg), flash = function (t) { msg.textContent = t; clearTimeout(flash.t); flash.t = setTimeout(function () { msg.textContent = ""; }, 3000); };
+    $("[data-q]", pg).oninput = function () { var q = norm(this.value); $$("tbody tr", pg).forEach(function (tr) { tr.style.display = !q || norm(L[+tr.dataset.i].nom).indexOf(q) >= 0 ? "" : "none"; }); };
+    $$("tbody tr", pg).forEach(function (tr) { var o = L[+tr.dataset.i];
+      $$("[data-act]", tr).forEach(function (cb) { cb.onchange = function () { var off = ACTS.map(function (a) { return a[0]; }).filter(function (c) { var x = $('[data-act="' + c + '"]', tr); return x && !x.checked; }); EPSD.listSave(o.nom, (o.el || []).slice(), off).then(function () { flash("✓ Activités de " + o.nom + " enregistrées."); }); }; });
+      $("[data-voie]", tr).onchange = function () { EPSD.listVoie(o.nom, this.value); flash("✓ Voie de " + o.nom + " enregistrée."); };
+      $("[data-ed]", tr).onclick = function () { editClass(o); }; });
+    $("[data-new]", pg).onclick = function () { editClass(null); };
+  }
+  function editClass(o) {
+    var d = document.createElement("div"); d.className = "drawer";
+    d.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Élèves de la classe"><h2>' + (o ? "✏ " + esc(o.nom) : "＋ Nouvelle classe") + '</h2><label class="mut" for="cn">Nom de la classe</label><input class="in" id="cn" style="width:100%" value="' + esc(o ? o.nom : "") + '">' +
+      '<p class="mut" style="margin-top:12px">Un élève par ligne, « NOM Prénom » ou « Prénom Nom ». Tu peux coller la liste copiée depuis Pronote ou un tableur. Un élève qui a déjà des données dans une appli n\'y est jamais effacé.</p><textarea id="ce" style="width:100%;min-height:340px;font:15px/1.5 system-ui">' + esc(o ? (o.el || []).join("\n") : "") + "</textarea>" +
+      '<div class="row"><button class="b p" data-ok>💾 Enregistrer</button><button class="b" data-x>Annuler</button>' + (o ? '<span style="flex:1"></span><button class="b d" data-del>🗑 Supprimer la classe</button>' : "") + '</div><p class="mut" data-n></p></div>';
+    document.body.appendChild(d); var ta = $("#ce", d), cnt = function () { $("[data-n]", d).textContent = ta.value.split("\n").filter(function (x) { return x.trim(); }).length + " élèves"; }; ta.oninput = cnt; cnt();
+    d.onclick = function (e) { if (e.target === d) d.remove(); }; $("[data-x]", d).onclick = function () { d.remove(); };
+    $("[data-ok]", d).onclick = function () { var nom = $("#cn", d).value.trim(); if (!nom) { alert("Donne un nom à la classe."); return; }
+      var names = []; ta.value.split("\n").forEach(function (x) { x = x.replace(/[\t;]+/g, " ").replace(/\s+/g, " ").trim(); if (x && !names.some(function (y) { return EPSL.nkey(y) === EPSL.nkey(x); })) names.push(x); });
+      var off = o ? (o.off || []).slice() : null; EPSD.listSave(nom, names, off, o && norm(o.nom) !== norm(nom) ? o.nom : "").then(function () { if (o && norm(o.nom) !== norm(nom)) try { EPSD.renameClass(o.nom, nom); } catch (e) {} d.remove(); go("classes"); }); };
+    var del = $("[data-del]", d); if (del) del.onclick = function () { if (!confirm("Supprimer la classe « " + o.nom + " » sur toutes les tablettes ? (elle reste dans les applis où elle a déjà des données)")) return; if (!confirm("Vraiment ?")) return; EPSD.listDelete(o.nom).then(function () { d.remove(); go("classes"); }); };
+  }
+
+  /* ---------- 🧩 niveaux & groupes ---------- */
+  function pGroupes(pg) { pg.innerHTML = '<h2>🧩 Niveaux & groupes</h2><p class="mut">Classe tes élèves par niveau dans chaque activité, repère les affinités, forme des groupes (de niveau, mélangés, par affinités, en cassant les habitudes). « 📡 En faire les groupes du jour » les envoie aux tablettes : leçon en cours et boutons « 👥 Groupes du jour » des applis.</p><div data-gr></div>';
+    if (window.EPSGR) EPSGR.render($("[data-gr]", pg), { dir: cur.grDir || "badminton" }); }
+
+  /* ---------- 🎛 paramètres de toutes les applis ---------- */
+  var PDIRS = ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "crosstraining", "ccf", "co-eval", "terrain"];
+  function defsAll() { return jget("eps.paramdefs.v1", {}) || {}; }
+  function pval(app, d) { var o = (ld("eps.param.v1").items || {})[app + "|" + d.id]; if (!o || o.del || o.v == null) return d.def; if (Array.isArray(d.def) && !Array.isArray(o.v)) return d.def; return o.v; }
+  function pset(app, id, val) { var K = "eps.param.v1", V = ld(K), k = app + "|" + id, o = V.items[k], u = Math.max(Date.now(), ((o && o.u) || 0) + 1); V.items[k] = val === null ? { id: k, del: 1, u: u } : { id: k, v: val, u: u }; V.pend[k] = u; localStorage.setItem(K, JSON.stringify(V)); try { EPSD.syncSoon(); } catch (e) {} }
+  function txt(v) { return Array.isArray(v) ? v.join("\n") : String(v == null ? "" : v); }
+  function pParams(pg) {
+    var A = defsAll(), apps = PDIRS.filter(function (a) { return A[a] && A[a].defs && A[a].defs.length; }), app = cur.pApp && apps.indexOf(cur.pApp) >= 0 ? cur.pApp : apps[0], miss = PDIRS.filter(function (a) { return !A[a]; });
+    var h = '<h2>🎛 Paramètres des applis</h2><p class="mut">Tout ce qui est modifiable dans chaque appli (messages, rôles, durées, seuils…). Listes : un élément par ligne. Les changements valent sur toutes les tablettes.</p>' +
+      '<div class="row">' + (apps.length ? '<select class="sel" data-app aria-label="Appli">' + apps.map(function (a) { return '<option value="' + a + '"' + (a === app ? " selected" : "") + ">" + esc(NAMES[a] || a) + " (" + A[a].defs.length + ")</option>"; }).join("") + "</select>" : "") +
+      '<button class="b" data-scan>🔎 Recenser les paramètres des applis</button><span class="mut" data-sm>' + (miss.length ? "Pas encore vus ici : " + miss.map(function (a) { return NAMES[a] || a; }).join(", ") + "." : "") + "</span></div>";
+    if (app) { var D = A[app].defs, secs = []; D.forEach(function (d) { var x = d.sec || "Général"; if (secs.indexOf(x) < 0) secs.push(x); });
+      h += secs.map(function (x) { return "<h3>" + esc(x) + '</h3><div class="pgrid">' + D.filter(function (d) { return (d.sec || "Général") === x; }).map(function (d) { var v = pval(app, d), mod = JSON.stringify(v) !== JSON.stringify(d.def);
+        return '<div class="pp"><div class="row" style="margin:0"><b style="flex:1">' + esc(d.label) + (mod ? ' <span style="color:#9A7400;font-size:12px">· modifié</span>' : "") + '</b><button class="b" data-def="' + esc(d.id) + '" style="min-height:32px">↺ Défaut</button></div>' + (d.aide || d.fixed ? '<div class="mut">' + esc(d.aide || "") + (d.fixed ? " (" + d.fixed + " lignes, dans cet ordre : renommer seulement)" : "") + "</div>" : "") +
+          (d.type === "list" ? '<textarea data-p="' + esc(d.id) + '" rows="' + Math.min(10, Math.max(3, (v || []).length + 1)) + '">' + esc(txt(v)) + "</textarea>" : '<input class="in" data-p="' + esc(d.id) + '"' + (d.type === "number" ? ' type="number" step="any"' : "") + ' value="' + esc(txt(v)) + '">') + "</div>"; }).join("") + "</div>"; }).join("") +
+        '<div class="row" style="position:sticky;bottom:0;background:var(--bg);padding:10px 0"><button class="b p" data-save>💾 Enregistrer</button><span class="msg" data-msg></span></div>'; }
+    else h += '<p class="mut">Aucun paramètre connu sur cet ordinateur : touche « 🔎 Recenser » (les applis s\'ouvrent en arrière-plan quelques secondes).</p>';
+    pg.innerHTML = h;
+    var sa = $("[data-app]", pg); if (sa) sa.onchange = function () { cur.pApp = sa.value; pParams(pg); };
+    $("[data-scan]", pg).onclick = function () { var b = this; b.disabled = true; scan(function (t) { $("[data-sm]", pg).textContent = t; }).then(function () { if (cur.s === "params") pParams(pg); }); };
+    if (!app) return; var D2 = A[app].defs;
+    $$("[data-def]", pg).forEach(function (b) { b.onclick = function () { var d = D2.filter(function (x) { return x.id === b.dataset.def; })[0]; $('[data-p="' + CSS.escape(d.id) + '"]', pg).value = txt(d.def); }; });
+    $("[data-save]", pg).onclick = function () { var n = 0, err = "";
+      D2.forEach(function (d) { var f = $('[data-p="' + CSS.escape(d.id) + '"]', pg); if (!f || err) return; var v = d.type === "list" ? f.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean) : d.type === "number" ? Number(f.value) : f.value;
+        if (d.type === "list" && d.fixed && v.length !== d.fixed) { err = "⚠ « " + d.label + " » doit avoir " + d.fixed + " lignes."; return; }
+        if (JSON.stringify(pval(app, d)) === JSON.stringify(v)) return; pset(app, d.id, JSON.stringify(v) === JSON.stringify(d.def) ? null : v); n++; });
+      $("[data-msg]", pg).textContent = err || (n ? "✓ " + n + " paramètre" + (n > 1 ? "s" : "") + " enregistré" + (n > 1 ? "s" : "") + " : les tablettes le reçoivent à leur prochaine synchro (les applis ouvertes se mettent à jour au rechargement)." : "Aucun changement."); if (n) setTimeout(function () { if (cur.s === "params") pParams(pg); }, 1500); };
+  }
+  function scan(say) { var L = PDIRS.slice(), i = 0;
+    return new Promise(function (res) { (function next() { if (i >= L.length) { say("✓ Recensement terminé."); res(); return; } var a = L[i++]; say("Ouverture de " + (NAMES[a] || a) + " (" + i + " / " + L.length + ")…");
+      var f = document.createElement("iframe"); f.style.cssText = "position:fixed;left:-9999px;top:0;width:1200px;height:800px;opacity:0;pointer-events:none"; f.setAttribute("aria-hidden", "true"); f.src = "../" + a + "/?console=1"; document.body.appendChild(f);
+      setTimeout(function () { f.remove(); next(); }, 5000); })(); }); }
+
+  /* ---------- 📱 tablettes ---------- */
+  function ago(t) { var m = Math.round((Date.now() - t) / 60000); return m < 1 ? "à l'instant" : m < 60 ? "il y a " + m + " min" : m < 1440 ? "il y a " + Math.round(m / 60) + " h" : "il y a " + Math.round(m / 1440) + " j"; }
+  function pTablettes(pg) { var T = []; try { T = EPSD.tabList() || []; } catch (e) {}
+    pg.innerHTML = '<h2>📱 Tablettes</h2><p class="mut">Dernier signe de vie de chaque tablette élève (appli, classe, envois en attente). Une tablette avec des envois en attente depuis longtemps : vérifie sa connexion.</p><div class="row"><button class="b" data-sig>📣 Signal général</button><button class="b" data-full>Détail complet</button><button class="b" data-rf>↻ Actualiser</button></div>' +
+      (T.length ? '<table class="t"><thead><tr><th>Tablette</th><th>Appli</th><th>Mode</th><th>Classe</th><th>Vu</th><th>En attente</th><th>Version</th></tr></thead><tbody>' + T.map(function (t) { var on = Date.now() - t.at < 15 * 60000;
+        return "<tr><td><b>" + esc(t.nom || t.id) + "</b></td><td>" + esc(NAMES[t.app] || t.app || "") + "</td><td>" + esc(t.mode || "") + "</td><td>" + esc(t.cls || "") + (t.eq ? " · " + esc(t.eq) : "") + '</td><td class="' + (on ? "ok" : "mut") + '">' + (on ? "🟢 " : "") + ago(t.at) + '</td><td class="' + (t.pend ? "ko" : "") + '">' + (t.pend ? "⏳ " + t.pend : "—") + "</td><td>" + esc(t.ver || "") + "</td></tr>"; }).join("") + "</tbody></table>" : '<p class="mut">Aucune tablette connue pour l\'instant (il faut que le partage soit réglé ici et sur les tablettes).</p>');
+    bindCommon(pg); $("[data-full]", pg).onclick = function () { EPSD.tablets(); }; $("[data-rf]", pg).onclick = function () { EPSD.syncNow().then(function () { if (cur.s === "tablettes") pTablettes(pg); }); };
+  }
+
+  /* ---------- 📝 demandes de modification (évolutions du code, à confier à Claude Code) ---------- */
+  function reqs() { return all(KC).filter(function (r) { return r.k === "req"; }).sort(function (a, b) { return (a.st === "fait") - (b.st === "fait") || b.at - a.at; }); }
+  function addReq(app, t) { put(KC, { id: "r" + uid(), k: "req", app: app || "", txt: t, at: Date.now(), st: "à faire" }); }
+  function prompt4code(L) {
+    return "Dépôt GitHub chrisdcqns-cmd/chrisdcqns-cmd.github.io (applis EPS, GitHub Pages).\nAvant toute modification, lis CLAUDE.md, puis eps-autonomie-numerique/CLAUDE.md (charte commune) et les notes de chaque appli concernée (eps-autonomie-numerique/<appli>/CLAUDE.md).\n\nDemandes de l'enseignant (envoyées depuis la console ordinateur) :\n" +
+      L.map(function (r, i) { return (i + 1) + ". [" + (NAMES[r.app] || r.app || "Général") + "] " + r.txt; }).join("\n") +
+      "\n\nFais-les toutes, teste dans un navigateur (élève et enseignant), mets à jour la charte, les guides (eps-guides.js) et les caches (sw.js), puis pousse. Pas de nom d'élève dans le dépôt. Vocabulaire : « leçon », « séquence ».";
+  }
+  function pDemandes(pg) { var L = reqs(), todo = L.filter(function (r) { return r.st !== "fait"; });
+    pg.innerHTML = '<h2>📝 Demandes de modification des applis</h2><p class="mut">Les évolutions du code (nouveau bouton, nouvel écran, correction…) ne se font pas depuis le navigateur : note-les ici (ou demande à 🤖 Claude de les rédiger), puis « Préparer pour Claude Code » copie une consigne complète à coller dans Claude Code, qui modifie le dépôt, teste et publie. Liste partagée avec tes tablettes.</p>' +
+      '<div class="row"><select class="sel" data-app aria-label="Appli concernée"><option value="">Général</option>' + ACTS.map(function (a) { return '<option value="' + a[1] + '">' + a[2] + "</option>"; }).join("") + OUTILS.map(function (a) { return '<option value="' + a[0] + '">' + a[1] + "</option>"; }).join("") + '</select><input class="in" data-t placeholder="Décris le changement voulu…" style="flex:1;min-width:280px"><button class="b" data-add>＋ Ajouter</button></div>' +
+      '<div class="row"><button class="b p" data-cc' + (todo.length ? "" : " disabled") + '>📋 Préparer pour Claude Code (' + todo.length + ')</button><span class="msg" data-msg></span></div>' +
+      (L.map(function (r) { return '<div class="req" data-id="' + r.id + '"' + (r.st === "fait" ? ' style="opacity:.55"' : "") + '><span class="tag">' + esc(NAMES[r.app] || r.app || "Général") + '</span><p>' + esc(r.txt) + '<br><small class="mut">' + new Date(r.at).toLocaleDateString("fr-FR") + " · " + esc(r.st) + '</small></p><button class="b" data-done>' + (r.st === "fait" ? "↺ À refaire" : "✓ Fait") + '</button><button class="b d" data-rm aria-label="Supprimer">🗑</button></div>'; }).join("") || '<p class="mut">Aucune demande.</p>');
+    $("[data-add]", pg).onclick = function () { var t = $("[data-t]", pg).value.trim(); if (!t) return; addReq($("[data-app]", pg).value, t); pDemandes(pg); };
+    $("[data-t]", pg).onkeydown = function (e) { if (e.key === "Enter") $("[data-add]", pg).click(); };
+    $$(".req", pg).forEach(function (el) { var r = ld(KC).items[el.dataset.id];
+      $("[data-done]", el).onclick = function () { r.st = r.st === "fait" ? "à faire" : "fait"; put(KC, r); pDemandes(pg); };
+      $("[data-rm]", el).onclick = function () { if (confirm("Supprimer cette demande ?")) { r.del = 1; put(KC, r); pDemandes(pg); } }; });
+    $("[data-cc]", pg).onclick = function () { var t = prompt4code(todo); var ok = function () { $("[data-msg]", pg).innerHTML = '✓ Consigne copiée. <a href="https://claude.ai/code" target="_blank" rel="noopener">Ouvrir Claude Code ↗</a>, colle-la (Ctrl+V), puis marque les demandes « ✓ Fait » une fois publiées.'; todo.forEach(function (r) { if (r.st === "à faire") { r.st = "envoyée"; put(KC, r); } }); };
+      try { navigator.clipboard.writeText(t).then(ok, function () { window.prompt("Copie la consigne :", t); ok(); }); } catch (e) { window.prompt("Copie la consigne :", t); ok(); } };
+  }
+
+  /* ---------- 🤖 assistant Claude (réglages proposés, appliqués après validation) ---------- */
+  var LOG = jget("eps.console.chat", []) || [];
+  function aiShow(on) { $("#app").classList.toggle("ai-on", on); $("#aiBtn").classList.toggle("on", on); if (on) { $("#aiCtx").value = cur.app || $("#aiCtx").value; drawLog(); setTimeout(function () { $("#aiIn").focus(); }, 50); } }
+  $("#aiBtn").onclick = function () { aiShow(!$("#app").classList.contains("ai-on")); }; $("#aiX").onclick = function () { aiShow(false); };
+  $("#aiClr").onclick = function () { LOG = []; saveLog(); drawLog(); };
+  function saveLog() { try { localStorage.setItem("eps.console.chat", JSON.stringify(LOG.slice(-40))); } catch (e) {} }
+  function contexte(app) {
+    var A = defsAll(), P = {}; (app ? [app] : Object.keys(A)).forEach(function (a) { if (!A[a]) return; P[a] = A[a].defs.map(function (d) { return { id: d.id, sec: d.sec, label: d.label, type: d.type, fixed: d.fixed, valeur: pval(a, d) }; }); });
+    return { appli: app ? (NAMES[app] || app) : "toutes", dossier: app || "", activites: ACTS.map(function (a) { return { code: a[0], dossier: a[1], nom: a[2] }; }),
+      classes: lists().filter(function (o) { return !o.demo; }).map(function (o) { return { nom: o.nom, voie: window.epsVoie ? epsVoie(o.nom) : "", eleves: (o.el || []).length, activites: ACTS.filter(function (a) { return (o.off || []).indexOf(a[0]) < 0; }).map(function (a) { return a[0]; }) }; }),
+      parametres: P, demandes: reqs().filter(function (r) { return r.st !== "fait"; }).map(function (r) { return "[" + (NAMES[r.app] || r.app || "Général") + "] " + r.txt; }) };
+  }
+  function actLabel(a) {
+    if (a.type === "param") { var d = ((defsAll()[a.app] || {}).defs || []).filter(function (x) { return x.id === a.id; })[0]; return "🎛 " + (NAMES[a.app] || a.app) + " · « " + (d ? d.label : a.id) + " » → " + (Array.isArray(a.valeur) ? a.valeur.join(" / ") : a.valeur); }
+    if (a.type === "activites") return "👥 " + a.classe + " · activités : " + (a.activites || []).map(function (c) { return (ACTS.filter(function (x) { return x[0] === c; })[0] || [0, 0, c])[2]; }).join(", ");
+    if (a.type === "voie") return "🎓 " + a.classe + " · voie " + (a.voie === "gt" ? "générale" : a.voie === "pro" ? "professionnelle" : "automatique");
+    if (a.type === "demande") return "📝 Demande de modification [" + (NAMES[a.app] || a.app || "Général") + "] : " + a.texte;
+    if (a.type === "ouvrir") return "↗ Ouvrir " + (NAMES[a.cible] || a.cible);
+    return JSON.stringify(a); }
+  function apply(a) {
+    if (a.type === "param") { var d = ((defsAll()[a.app] || {}).defs || []).filter(function (x) { return x.id === a.id; })[0]; if (!d) throw new Error("paramètre inconnu"); var v = a.valeur;
+      if (d.type === "list" && !Array.isArray(v)) v = String(v).split("\n"); if (d.type === "number") v = Number(v); if (d.fixed && Array.isArray(v) && v.length !== d.fixed) throw new Error(d.fixed + " lignes attendues"); pset(a.app, a.id, JSON.stringify(v) === JSON.stringify(d.def) ? null : v); return Promise.resolve(); }
+    if (a.type === "activites") { var o = lists().filter(function (x) { return norm(x.nom) === norm(a.classe); })[0]; if (!o) throw new Error("classe inconnue"); return EPSD.listSave(o.nom, (o.el || []).slice(), ACTS.map(function (x) { return x[0]; }).filter(function (c) { return (a.activites || []).indexOf(c) < 0; })); }
+    if (a.type === "voie") { EPSD.listVoie(a.classe, a.voie === "auto" ? "" : a.voie); return Promise.resolve(); }
+    if (a.type === "demande") { addReq(a.app, a.texte); return Promise.resolve(); }
+    if (a.type === "ouvrir") { go(SECTIONS.some(function (s) { return s[0] === a.cible; }) ? a.cible : "app:" + a.cible); return Promise.resolve(); }
+    throw new Error("action inconnue"); }
+  function drawLog() {
+    var lg = $("#aiLog");
+    lg.innerHTML = LOG.length ? LOG.map(function (m, i) { return '<div class="m ' + (m.r === "u" ? "u" : "a") + '">' + esc(m.t) + "</div>" + (m.a || []).map(function (a, j) { return '<div class="act' + (a.done ? " done" : "") + '"><b>' + esc(actLabel(a)) + "</b>" + (a.pourquoi ? '<span class="mut">' + esc(a.pourquoi) + "</span>" : "") + '<div class="row" style="margin:6px 0 0">' + (a.done ? '<span class="ok">✓ ' + esc(a.done) + "</span>" : '<button class="b p" data-ap="' + i + ":" + j + '">Appliquer</button><button class="b" data-ig="' + i + ":" + j + '">Ignorer</button>') + "</div></div>"; }).join(""); }).join("")
+      : '<p class="mut">Demande en français, par exemple :<br>• « Ajoute “Garde le volant haut” aux messages du badminton »<br>• « La 1GT fait aussi du cross-training »<br>• « Quels paramètres puis-je changer en relais ? »<br>• « Je voudrais un chrono par couloir dans Relais » (demande de modification du code)</p>';
+    $$("[data-ap]", lg).forEach(function (b) { b.onclick = function () { var p = b.dataset.ap.split(":"), a = LOG[+p[0]].a[+p[1]]; try { apply(a).then(function () { a.done = "appliqué"; saveLog(); drawLog(); if (cur.s !== "app") go(cur.s); }, function (e) { alert("⚠ " + (e && e.message || e)); }); } catch (e) { alert("⚠ " + e.message); } }; });
+    $$("[data-ig]", lg).forEach(function (b) { b.onclick = function () { var p = b.dataset.ig.split(":"); LOG[+p[0]].a[+p[1]].done = "ignoré"; saveLog(); drawLog(); }; });
+    lg.scrollTop = lg.scrollHeight;
+  }
+  function send() {
+    var t = $("#aiIn").value.trim(); if (!t) return; if (!(EPSD.shared && EPSD.shared())) { alert("Règle d'abord le partage (🏠 Accueil) : il donne accès au script commun, qui interroge Claude."); return; }
+    var app = $("#aiCtx").value; LOG.push({ r: "u", t: t }); saveLog(); drawLog(); $("#aiIn").value = ""; $("#aiGo").disabled = true; $("#aiSt").textContent = "Claude réfléchit…";
+    var hist = LOG.slice(-8, -1).map(function (m) { return { r: m.r, t: m.t }; });
+    EPSD.post({ lc: { op: "console", act: app ? (NAMES[app] || app) : "EPS", demande: t, historique: hist, contexte: contexte(app) } }).then(function (r) {
+      if (!r || r.error || r.err) throw new Error((r && (r.error || r.err)) || "réponse vide");
+      var R = r.console || r; LOG.push({ r: "a", t: R.reponse || "(pas de texte)", a: (R.actions || []).filter(function (a) { return a && a.type; }) }); saveLog(); drawLog();
+    }).catch(function (e) { var m = String(e && e.message || e); LOG.push({ r: "a", t: "⚠ " + (/inconnue/.test(m) ? "Le script commun n'est pas à jour : recolle la dernière version de Code.gs et déploie une nouvelle version." : m) }); saveLog(); drawLog(); })
+      .then(function () { $("#aiGo").disabled = false; $("#aiSt").textContent = ""; });
+  }
+  $("#aiGo").onclick = send; $("#aiIn").onkeydown = function (e) { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send(); };
+
+  /* données reçues d'une autre tablette → la page se met à jour */
+  window.addEventListener("eps-lists", function () { if (["classes", "accueil"].indexOf(cur.s) >= 0) go(cur.s); });
+  window.EPSCONSOLE = { go: go, apply: apply, contexte: contexte, addReq: addReq, prompt4code: prompt4code, ai: aiShow };
+  if (teach()) unlocked(); else setTimeout(function () { if (teach()) unlocked(); }, 600);
+})();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>

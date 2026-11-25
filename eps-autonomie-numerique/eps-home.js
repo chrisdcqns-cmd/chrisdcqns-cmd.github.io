@@ -236,7 +236,7 @@
   var STORES = [];
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
   var AUTOPAT = [[/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
-    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"]], FULLPULL = false;
+    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
     if (all) { ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "ccf", "crosstraining"].forEach(function (d) { ["lecons", "lcimg", "lcdocs", "live", "leceval", "lecres"].forEach(function (t) { keys.push("eps." + t + "." + d + ".v1"); }); });
@@ -1523,6 +1523,12 @@
       return fetch(cfg.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined }).then(function (r) { clearTimeout(tm); return r.json(); },
         function (e) { clearTimeout(tm); throw new Error(e && e.name === "AbortError" ? "pas de réponse après 4 min : réessaie, ou découpe le document" : (navigator.onLine === false ? "pas de connexion Internet" : "réseau : " + (e && e.message || e))); }); },
     shared: function () { return !!shCfg(); }, applyLists: function () { return applyLocal(); }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
+    /* console ordinateur : enregistrer une liste commune (noms exacts, activités) et sa voie */
+    listSave: function (nom, names, off, old) { return shareList(nom, old || "", { esc: 1, rel: 1, ori: 1, vol: 1, bad: 1, dan: 1 }, names, off); },
+    listVoie: function (nom, voie) { var LV = lld(), rule = /^(TGT|2GT|1GT)/.test(String(nom).replace(/[\s._-]+/g, "").toUpperCase()) ? "gt" : "pro";
+      Object.keys(LV.items).forEach(function (k) { var o = LV.items[k]; if (!o || o.del || norm(o.nom) !== norm(nom)) return; var want = voie && voie !== rule ? voie : undefined; if (o.voie === want) return; if (want) o.voie = want; else delete o.voie; o.ts = Date.now(); LV.pend[o.id] = stamp(); LV.app[o.id] = JSON.stringify(o); }); lsv(LV); setTimeout(sync, 300); },
+    askCode: function () { return askCode(); },
+    listDelete: function (nom) { return deleteList(nom); }, syncNow: function () { return sync(); }, isTeacher: function () { return isTeacher(); },
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================
@@ -1860,6 +1866,7 @@
   function abIs(c, n, d) { var o = abGet(c, d), k = nkey(n); return !!o && (o.abs || []).some(function (x) { return nkey(x) === k; }); }
   STORES.push({ pre: "cd|", key: KC });
   STORES.push({ pre: "pa|", key: "eps.param.v1" });
+  STORES.push({ pre: "nv|", key: "eps.niv.v1" }, { pre: "gh|", key: "eps.grphist.v1" }, { pre: "cs|", key: "eps.console.v1" });
   STORES.push({ pre: "cc|", key: "eps.ccfcfg.v1" }); /* 🎯 réglages CCF des évaluations (eps-eval.js) */ /* 🎛 paramètres des applis (EPSP, eps-lists.js) */
   function codeId(cls, full) { return cmp(cls) + "|" + nkey(full); }
   function codeGet(cls, full) { var o = stLd(KC).items[codeId(cls, full)]; return o && !o.del ? o : null; }

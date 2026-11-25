@@ -784,6 +784,7 @@ function normGroup(g,meta){
 let memoryOnly=false, quotaWarned=false;
 // écriture locale : si la mémoire de la tablette est pleine, on allège (caches, puis groupes déjà enregistrés en ligne)
 function saveGroups(){
+  try{if(window.epsGroupesLog)Object.values(groups).forEach(g=>{if(g&&g.classe&&(g.members||[]).length>1)epsGroupesLog('acrosport',g.classe,[g.members],'g'+g.id)})}catch(x){}
   if(store.set(K_GROUPS,groups)){memoryOnly=false;return true}
   for(const g of Object.values(groups)){delete g.obsAboutCache;if(g.obsLog&&g.obsLog.length>5)g.obsLog=g.obsLog.slice(-5)}
   if(store.set(K_GROUPS,groups)){memoryOnly=false;return true}

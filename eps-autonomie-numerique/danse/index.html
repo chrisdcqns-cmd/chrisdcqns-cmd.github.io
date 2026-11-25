@@ -1788,7 +1788,7 @@ function load() {
 }
 let S = load();
 let saveTimer = null, dirty = false;
-function saveNow() { clearTimeout(saveTimer); dirty = false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Impossible d\'enregistrer sur cet appareil'); } }
+function saveNow() { clearTimeout(saveTimer); dirty = false; try { (S.classes || []).forEach(c => { const G = (c.groupes || []).map(g => (c.eleves || []).filter(e => e.groupeId === g.id).map(e => (e.prenom || '') + ' ' + (e.nom || ''))); if (window.epsGroupesLog && G.filter(g => g.length).length > 1) epsGroupesLog('danse', c.nom, G, 'groupes'); }); } catch (x) {} try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Impossible d\'enregistrer sur cet appareil'); } }
 function save() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 200); if (typeof synchroBientot === 'function') synchroBientot(5000); }
 window.addEventListener('beforeunload', () => { if (dirty) saveNow(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && dirty) saveNow(); });

@@ -135,6 +135,7 @@
       if (id === "bib") { var BL = (window.EPSLC ? EPSLC.biblio() : []).concat(C.biblio || []); var p = panel("<h2>📚 Bibliothèque</h2><p class=\"mut\">Tes documents et tes leçons, puis les ressources et les écrans de l'appli, à consulter ou à montrer aux élèves.</p>" + cards(BL) + adaptHtml()); bindCards(p, BL, "bib"); bindAdapt(p); return; }
       if (id === "reg") {
         var R = [{ ico: "📖", label: "Fiche d'utilisation", sub: "Tout ce que permet " + C.nom + " et les fonctions communes", go: guide }]
+          .concat(window.top === window && matchMedia("(min-width: 1000px)").matches ? [{ ico: "🖥", label: "Console ordinateur", sub: "Gérer " + C.nom + " en grand, avec 🤖 Claude à côté pour demander des réglages ou des modifications", go: function () { var m = location.pathname.match(/eps-autonomie-numerique\/([a-z0-9-]+)\//); location.href = "../console/#app:" + (m ? m[1] : ""); } }] : [])
           .concat(window.EPSP && EPSP.defs.length ? [{ ico: "🎛", label: "Paramètres de l'appli", sub: "Toutes les valeurs et listes modifiables de " + C.nom + " (" + EPSP.defs.length + ")", go: params }] : []).concat(C.reglages || []).concat([{ ico: "🏫", label: "Réglages communs", sub: "Établissement, enseignant, listes d'élèves, activités des classes, partage entre tablettes", go: function () { try { EPSR.open(); } catch (e) {} } }]);
         var q = panel("<h2>⚙ Réglages</h2><p class=\"mut\">Réglages de " + esc(C.nom) + " et réglages communs à toutes les applis.</p>" + cards(R)); bindCards(q, R, "reg"); return;
       }
