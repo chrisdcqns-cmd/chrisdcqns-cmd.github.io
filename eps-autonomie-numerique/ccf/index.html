@@ -64,6 +64,10 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut);margin:4px 0}
 .ocr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid #F1EEE6}.ocr span{flex:1;min-width:180px;font-weight:600}.b.ko{background:#d64545;border-color:#d64545;color:#fff}
 .ocn{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}.occ{position:relative;display:flex;flex-direction:column;gap:4px}.ocb{min-height:86px;border-radius:14px;border:2px solid var(--line);background:#fff;cursor:pointer;font:700 14px system-ui;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center}.ocb b{font-size:30px}.ocb:active{background:#FBF6E6}.occ i{display:block;height:6px;border-radius:3px;background:var(--app)}
 .obsum p{margin:4px 0}
+.fb{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:start;background:#FBF6E6;border-radius:12px;padding:10px;margin-top:8px}@media(max-width:760px){.fb{grid-template-columns:1fr}}.fb .c{text-align:center;margin:2px 0}.fbt{font-size:15px;line-height:1.5}
+.bars{margin:4px 0 8px}.br{display:grid;grid-template-columns:120px 1fr 30px;gap:6px;align-items:center;font-size:13px;margin:3px 0}.br i{display:block;height:12px;border-radius:6px;min-width:2px}.br b{text-align:right}
+.chart{width:100%;display:block}.ocourt .court{max-width:560px;cursor:crosshair}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}.bc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px 10px;text-align:left;cursor:pointer;font:inherit;color:inherit;display:flex;flex-direction:column;gap:4px}.bc small{color:var(--mut);font-size:12px}.bc .court{margin:0}.bigv{font:900 34px system-ui;color:#2E7D4F}
 .repg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.repc{border:2px solid var(--line);border-radius:12px;padding:10px}.repc.no{border-style:dashed}.repc .rk{float:right;font:900 24px system-ui;color:var(--app)}.repc .rn{display:inline-block;background:#F1EEE6;border-radius:8px;padding:2px 8px;margin:6px 4px 0 0;font-size:14px}.repc .rn i{font-style:normal}
 .repi{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px dashed var(--line);margin-top:8px;padding-top:8px}
 .proto .ph{background:#14171C;color:#fff;border-left:8px solid var(--c);border-radius:12px;padding:10px 14px}.proto .ph small{color:#A9AEB8}.proto h3{margin:16px 0 6px}.proto h4{margin:10px 0 4px}.oe{background:#FBF6E6;border-radius:12px;padding:8px 12px}.oe p{margin:4px 0}
@@ -269,7 +273,7 @@ function upd(id,def,f){const o=clone(get(id)||def);f(o);put(id,o);return o}
 /* ================== PROTOCOLES ================== */
 function protoId(act,voie){return act+'-'+voie}
 function hasProto(act,voie){return !!(get('pr:'+protoId(act,voie))||PROTOS[protoId(act,voie)])}
-function proto(act,voie){const id=protoId(act,voie),o=get('pr:'+id)||PROTOS[id];if(!o)return null;const P=clone(o);const D=PROTOS[id];if(D){P.jeu=Object.assign({},D.jeu,P.jeu||{})}if(!P.obs&&typeof obsDef==='function')P.obs=obsDef(act);return P}
+function proto(act,voie){const id=protoId(act,voie),o=get('pr:'+id)||PROTOS[id];if(!o)return null;const P=clone(o);const D=PROTOS[id];if(D){P.jeu=Object.assign({},D.jeu,P.jeu||{})}if(typeof obsDef==='function'){if(!P.obs)P.obs=obsDef(act);else if(!P.obs.some(x=>['court','wall','fc'].includes(x.type))){const d=obsDef(act).find(x=>['court','wall','fc'].includes(x.type));if(d)P.obs.unshift(d)}}return P}
 function protoModifie(act,voie){return !!get('pr:'+protoId(act,voie))}
 function aflFil(P,id){return P.fil.afl.find(a=>a.id===id)}
 function repPts(rep){const m=/^(\d+)\s*-\s*(\d+)$/.exec(rep||'');return m?[+m[1],+m[2]]:[4,4]}
@@ -325,7 +329,8 @@ function zoneOrder(){return [[1,2,3],[6,5,4]]}
 function courtSvg(J,o){o=o||{};const sel=o.sel||[],W=320,H=190,x0=12,y0=12,cw=W-2*x0-14,ch=H-2*y0,c1=cw*(J.c1||34)/100,c2=cw*(J.c2||67)/100,cols=[[0,c1],[c1,c2],[c2,cw]],Z=zoneOrder();
  const m=v=>v/6.70*cw,w=v=>v/6.10*ch;let s=`<svg class="court${o.click?' ck':''}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
  s+=`<rect x="${x0}" y="${y0}" width="${cw}" height="${ch}" fill="#2f7d5b" stroke="#fff" stroke-width="2.5"/>`;
- Z.forEach((row,r)=>row.forEach((z,c)=>{const on=sel.includes(z),x=x0+cols[c][0],y=y0+r*ch/2,ww=cols[c][1]-cols[c][0];
+ Z.forEach((row,r)=>row.forEach((z,c)=>{const on=sel.includes(z),x=x0+cols[c][0],y=y0+r*ch/2,ww=cols[c][1]-cols[c][0],hv=o.heat?(o.heat[z]||0):null,hm=o.heat?Math.max(1,...Object.values(o.heat)):1,ht=o.heat?Object.values(o.heat).reduce((a,b)=>a+b,0):0;
+  if(hv!=null){s+=`<g data-z="${z}"><rect x="${x}" y="${y}" width="${ww}" height="${ch/2}" fill="#F2994A" fill-opacity="${(.85*hv/hm).toFixed(2)}"/><text x="${x+ww/2}" y="${y+ch/4}" text-anchor="middle" font-size="20" font-weight="800" fill="#fff" font-family="system-ui,sans-serif">${z}</text><text x="${x+ww/2}" y="${y+ch/4+18}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">${hv}${ht?' · '+Math.round(100*hv/ht)+'%':''}</text></g>`;return}
   s+=`<g data-z="${z}"><rect x="${x}" y="${y}" width="${ww}" height="${ch/2}" fill="${on?(o.color||'#F2C94C'):'transparent'}" fill-opacity="${on?.85:0}"/>`+
   `<text x="${x+ww/2}" y="${y+ch/4+9}" text-anchor="middle" font-size="26" font-weight="800" fill="${on?'#14171C':'#fff'}" font-family="system-ui,sans-serif">${z}</text></g>`}));
  /* lignes du terrain (mètres) : service long double à 0,76 du fond, service court à 1,98 du filet, couloirs 0,46 */
@@ -334,6 +339,7 @@ function courtSvg(J,o){o=o||{};const sel=o.sel||[],W=320,H=190,x0=12,y0=12,cw=W-
  /* découpe des zones : pointillés rouges, comme le schéma du protocole */
  s+=`<line x1="${x0+c1}" y1="${y0}" x2="${x0+c1}" y2="${y0+ch}" stroke="#ff4d4d" stroke-width="2.5" stroke-dasharray="7 5"/><line x1="${x0+c2}" y1="${y0}" x2="${x0+c2}" y2="${y0+ch}" stroke="#ff4d4d" stroke-width="2.5" stroke-dasharray="7 5"/><line x1="${x0}" y1="${y0+ch/2}" x2="${x0+cw}" y2="${y0+ch/2}" stroke="#ff4d4d" stroke-width="2.5" stroke-dasharray="7 5"/>`;
  s+=`<line x1="${x0+cw+5}" y1="${y0-6}" x2="${x0+cw+5}" y2="${y0+ch+6}" stroke="#14171C" stroke-width="3"/><circle cx="${x0+cw+5}" cy="${y0-6}" r="4" fill="#14171C"/><circle cx="${x0+cw+5}" cy="${y0+ch+6}" r="4" fill="#14171C"/>`;
+ (o.dots||[]).forEach(d=>{s+=`<circle cx="${d.x}" cy="${d.y}" r="4.5" fill="${d.r==='d'?'#F2C94C':d.r==='j'?'#d64545':'#fff'}" stroke="#14171C" stroke-width="1.2" pointer-events="none"/>`});
  s+=`<text x="${x0+4}" y="${H-1}" font-size="10" fill="#6A6F78" font-family="system-ui">fond</text><text x="${x0+cw-4}" y="${H-1}" text-anchor="end" font-size="10" fill="#6A6F78" font-family="system-ui">filet</text>`;
  return s+'</svg>'}
 function zonesTxt(z){return (z||[]).length?'zone'+(z.length>1?'s ':' ')+[...z].sort((a,b)=>a-b).join(', '):'aucune zone'}
@@ -480,7 +486,7 @@ function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');ret
  ${dz?`<p class="dz">🩹 ${esc(dz)}</p>`:''}
  <div class="row wrapf" style="margin:10px 0">${[['','Présent(e)'],['abs','Absent(e) · A'],['disp','Dispensé(e) / inapte · D']].map(s=>`<button class="b s${(ev.st||'')===s[0]?' p':''}" onclick="evUpd(e=>{e.st='${s[0]}'});render()">${s[1]}</button>`).join('')}
  <button class="b s" onclick="go('team',{tm:'${t?t.id:''}'})" ${t?'':'disabled'}>👁 Feuille de l'équipe</button><button class="b s" onclick="OBS={k:'${k}',by:'',v:{}};go('obs')">👁 Observer</button></div>
- ${(()=>{const R=obsRecs(T.act,c.id,k);return R.length?`<div class="card soft"><b>👁 Observations (élèves observateurs et toi)</b>${obsSummary(P,c,R)}</div>`:''})()}
+ ${(()=>{const R=obsRecs(T.act,c.id,k);return R.length?`<div class="card soft"><b>👁 Observations (élèves observateurs et toi)</b>${obsSummary(P,c,R,{act:T.act,cls:c.id,c,S,P},k)}</div>`:''})()}
  ${pr.length?`<div class="card soft"><b>Pratique le jour du CCF</b><br>${pr.map(esc).join('<br>')}</div>`:''}
  <h3 class="h3">${esc(P.fin.titre)} · ${finMax(P)} points <span class="mut">(${fr(N.fin)} pt)</span></h3>`;
  P.fin.afl.forEach(a=>{const x=(ev.fin||{})[a.id]||{},v=finV(a,x);
@@ -1019,17 +1025,20 @@ function pdCtFormes(c,S,P){return pg(`${pdHead(P,S,c,'Les formes de travail')}${
    Enregistrements « os:<act>:<classe>:<élève observé>:<id> » = {k, by, t, v:{idItem: valeur}} */
 function obsDef(act){
  if(act==='esc')return [
+  {id:'s1',afl:'p1',type:'wall',titre:'Grimpe chronométrée sur le mur',opts:['Poussée des jambes','Traction des bras','Pause / repos','Hésitation']},
   {id:'o1',afl:'p2',type:'count',titre:'Action des jambes pendant la grimpe',opts:['Poussée des jambes','Traction des bras','Prise hors d\'atteinte atteinte grâce aux jambes']},
   {id:'o2',afl:'p2',type:'deg',titre:'Utilisation des jambes'},
   {id:'o3',afl:'p1',type:'check',titre:'Projet du grimpeur',opts:['Zone annoncée atteinte','Prises bonus utilisées','Trajet planifié (pas d\'hésitation)']},
   {id:'o4',afl:'p4',type:'check',titre:'Assurage et contre-assurage',opts:['Corde toujours tendue, boucle maintenue','Assurage dynamique (suit le grimpeur)','Aucun fusible sauté','Contre-assureur attentif, mains sur la corde']},
   {id:'o5',afl:'p4',type:'deg',titre:'Assurage'}];
  if(act==='bad')return [
+  {id:'s1',afl:'p2',type:'court',titre:'Terrain interactif : où tombe le volant ?',opts:['Amorti','Dégagement','Smash','Lob','Contre-amorti']},
   {id:'o1',afl:'p2',type:'count',titre:'Frappes utilisées',opts:['Amorti','Dégagement','Smash','Lob','Contre-amorti']},
   {id:'o2',afl:'p2',type:'deg',titre:'Panel de frappes'},
   {id:'o3',afl:'p1',type:'check',titre:'Stratégie',opts:['Joue dans les zones de sa stratégie','Varie ses zones pour cacher sa stratégie','Marque des points directs dans sa stratégie','N\'attend pas la faute de l\'adversaire']},
   {id:'o4',afl:'p1',type:'deg',titre:'Choix stratégiques'}];
  if(act==='ct')return [
+  {id:'s1',afl:'p2',type:'fc',titre:'Fréquence cardiaque et zone cible',opts:['10']},
   {id:'o1',afl:'p1',type:'check',titre:'Motricité sécuritaire',opts:['Trajet','Respiration','Posture','Amplitude','Rythme']},
   {id:'o2',afl:'p1',type:'deg',titre:'Production sécuritaire'},
   {id:'o3',afl:'p2',type:'check',titre:'Données et régulation',opts:['Relève sa FC aux moments prévus','Note ses ressentis','Régule entre les rounds avec les données','Utilise la réchappe si besoin']},
@@ -1045,7 +1054,7 @@ let OBS={k:'',by:'',v:{},start:0};
 function obsHtml(ctx){const {P,c,S}=ctx,L=obsList(P),mem=ctx.t?(ctx.t.el||[]):people(c).map(p=>p.k),all=people(c).map(p=>p.k);
  if(!L.length)return '<p class="mut">Pas de grille d\'observation pour cette activité.</p>';
  const pool=ctx.teach?all:(ctx.t?Array.from(new Set(mem.concat(...(S.eq||[]).map(t=>t.el||[])))):all);
- let h=`<p class="mut">Choisis l'élève que tu observes, puis remplis la grille pendant qu'il pratique. Les critères viennent du protocole du CCF.</p>
+ let h=`<p class="mut">Choisis l'élève que tu observes, puis remplis les supports pendant qu'il pratique : le retour s'affiche tout de suite. Les critères viennent du protocole du CCF.</p>
  <p class="lab">J'observe</p><div class="chips">${pool.map(k=>`<button class="chip${OBS.k===k?' on':''}" onclick="obsPick('${k}')">${esc(pname(c,k))}</button>`).join('')}</div>`;
  if(!OBS.k)return h;
  if(!ctx.teach)h+=`<p class="lab">Je suis</p><div class="chips">${mem.filter(k=>k!==OBS.k).map(k=>`<button class="chip${OBS.by===k?' on':''}" onclick="OBS.by='${k}';render()">${esc(pfirst(c,k))}</button>`).join('')||'<span class="mut">—</span>'}</div>`;
@@ -1053,6 +1062,7 @@ function obsHtml(ctx){const {P,c,S}=ctx,L=obsList(P),mem=ctx.t?(ctx.t.el||[]):pe
   h+=`<div class="afl obs"><div class="afh"><b>${esc(a?a.code:'')}</b><span class="dcl">${esc(it.titre)}</span></div>`;
   if(it.type==='deg')h+=`<div class="degs">${(a?a.deg:[]).map((g,d)=>`<button class="dg d${d}${v===d?' on':''}" onclick="obsSet('${it.id}',${d})"><b>Degré ${d+1}</b><span>${nl2br(degTxt(a,d))}</span></button>`).join('')}</div>`;
   if(it.type==='check')h+=`<div class="ock">${(it.opts||[]).map((o,i)=>{const x=(v||{})[i];return `<div class="ocr"><span>${esc(o)}</span><button class="b s${x===1?' p':''}" onclick="obsChk('${it.id}',${i},1)">✓ réussi</button><button class="b s${x===0?' ko':''}" onclick="obsChk('${it.id}',${i},0)">✗ à améliorer</button></div>`}).join('')}</div>`;
+  if(OBSX[it.type])h+=OBSX[it.type].ui(it,v,ctx);
   if(it.type==='count'){const tot=(it.opts||[]).reduce((s,o,i)=>s+((v||{})[i]||0),0);h+=`<div class="ocn">${(it.opts||[]).map((o,i)=>{const n=(v||{})[i]||0;return `<div class="occ"><button class="ocb" onclick="obsCnt('${it.id}',${i},1)"><b>${n}</b><span>${esc(o)}</span></button><button class="b s" onclick="obsCnt('${it.id}',${i},-1)" ${n?'':'disabled'}>−1</button><i style="width:${tot?Math.round(100*n/tot):0}%"></i></div>`}).join('')}</div>`}
   h+='</div>'});
  h+=`<label>Remarque (facultatif)<textarea rows="2" onchange="OBS.rq=this.value">${esc(OBS.rq||'')}</textarea></label><div class="row end"><button class="b" onclick="obsReset()">Effacer</button><button class="b p" onclick="obsSave(${ctx.teach?1:0})" ${Object.keys(OBS.v).length?'':'disabled'}>✓ Enregistrer l'observation</button></div>`;
@@ -1067,8 +1077,9 @@ function obsSave(teach){const ctx=PXO;if(!teach&&!OBS.by){toast('Indique qui obs
  put('os:'+ctx.act+':'+ctx.cls+':'+OBS.k+':'+id,{k:OBS.k,by:teach?'prof':OBS.by,t:Date.now(),v:clone(OBS.v),rq:OBS.rq||''});
  toast('Observation enregistrée');OBS.v={};OBS.rq='';render()}
 /* synthèse des observations reçues (fiche enseignant, écran élève) */
-function obsSummary(P,c,R){const L=obsList(P);
+function obsSummary(P,c,R,ctx,k){const L=obsList(P);ctx=ctx||PXO;k=k||(R[0]&&R[0].k);
  return `<div class="obsum">${L.map(it=>{const a=aflAny(P,it.afl),vals=R.map(r=>r.v&&r.v[it.id]).filter(v=>v!=null);if(!vals.length)return '';
+  if(OBSX[it.type])return `<div><b>${esc(a?a.code:'')} · ${esc(it.titre)}</b>${OBSX[it.type].sum(it,vals,ctx,k)}</div>`;
   let body='';if(it.type==='deg')body=vals.map((d,i)=>`<span class="pill">D${d+1}</span>`).join(' ');
   if(it.type==='check')body=(it.opts||[]).map((o,i)=>{const ok=vals.filter(v=>v[i]===1).length,ko=vals.filter(v=>v[i]===0).length;return ok+ko?`${esc(o)} : <b>${ok}✓ ${ko}✗</b>`:''}).filter(Boolean).join(' · ');
   if(it.type==='count'){const t=(it.opts||[]).map((o,i)=>vals.reduce((s,v)=>s+(v[i]||0),0));body=(it.opts||[]).map((o,i)=>`${esc(o)} <b>${t[i]}</b>`).join(' · ')}
@@ -1077,14 +1088,98 @@ function obsSummary(P,c,R){const L=obsList(P);
 let PXO=null;
 function obsScreenT(m){const c=needCls(m,'👁 Observer');if(!c)return;const S=ses(T.act,c.id),P=proto(T.act,S.voie);if(!P){m.innerHTML='<div class="wrap">'+noProto(S)+'</div>';return}
  PXO={act:T.act,cls:c.id,c,S,P,teach:true};if(T.el&&!OBS.k)OBS.k=T.el;
- m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="go(T.el?'fiche':'eval')">← ${T.el?'Fiche':'Classe'}</button><h2 class="h2" style="flex:1;margin:0">👁 Observer · ${esc(ACTS[T.act].nom)}</h2><button class="b s" onclick="go('edit',{pv:'${S.voie}'})">✏️ Modifier les critères</button></div>${clsChips()}${obsHtml(PXO)}</div>`}
+ m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="go(T.el?'fiche':'eval')">← ${T.el?'Fiche':'Classe'}</button><h2 class="h2" style="flex:1;margin:0">👁 Observer · ${esc(ACTS[T.act].nom)}</h2><button class="b s" onclick="go('edit',{pv:'${S.voie}'})">✏️ Modifier les critères</button></div>${clsChips()}${OBS.k?'<button class="b s" onclick="OBS={k:\'\',by:\'\',v:{}};render()">📊 Retour de la classe</button>':''}${obsHtml(PXO)}${OBS.k?'':classBoard(PXO)}</div>`}
 /* éditeur des grilles d'observation (dans Modifier le protocole) */
 function obsEditHtml(P){const L=P.obs||(P.obs=obsDef(P.act)),A=P.fin.afl.concat(P.fil.afl);
  return `<div class="card"><h3 class="h3">👁 Grilles d'observation (élèves observateurs)</h3><p class="mut sm">Critères observés pendant la pratique. « Degrés » reprend les descripteurs de l'AFLP choisi ; « Critères ✓/✗ » et « Compteurs » : une ligne par critère.</p>
- ${L.map((it,i)=>`<div class="eda"><div class="g3"><label>Titre<input data-p="obs.${i}.titre" value="${esc(it.titre)}"></label><label>AFLP<select data-p="obs.${i}.afl">${A.map(a=>`<option value="${a.id}"${a.id===it.afl?' selected':''}>${esc(a.code)}</option>`).join('')}</select></label><label>Type<select data-p="obs.${i}.type" data-re="1">${[['deg','Degrés de l\'AFLP'],['check','Critères ✓ / ✗'],['count','Compteurs']].map(([v,t])=>`<option value="${v}"${it.type===v?' selected':''}>${t}</option>`).join('')}</select></label></div>
- ${it.type!=='deg'?`<label>Critères (une ligne par critère)<textarea rows="3" data-p="obs.${i}.opts">${esc((it.opts||[]).join('\n'))}</textarea></label>`:''}<div class="row end"><button class="b s" onclick="obsMv(${i},-1)" ${i?'':'disabled'}>↑</button><button class="b s" onclick="obsMv(${i},1)" ${i<L.length-1?'':'disabled'}>↓</button><button class="b s" onclick="EDP.obs.splice(${i},1);render()">🗑 Retirer</button></div></div>`).join('')}
+ ${L.map((it,i)=>`<div class="eda"><div class="g3"><label>Titre<input data-p="obs.${i}.titre" value="${esc(it.titre)}"></label><label>AFLP<select data-p="obs.${i}.afl">${A.map(a=>`<option value="${a.id}"${a.id===it.afl?' selected':''}>${esc(a.code)}</option>`).join('')}</select></label><label>Type<select data-p="obs.${i}.type" data-re="1">${[['deg','Degrés de l\'AFLP'],['check','Critères ✓ / ✗'],['count','Compteurs']].concat(Object.keys(OBSX).map(k=>[k,OBSX[k].lab])).map(([v,t])=>`<option value="${v}"${it.type===v?' selected':''}>${t}</option>`).join('')}</select></label></div>
+ ${it.type!=='deg'?`<label>${it.type==='court'?'Frappes (une par ligne)':it.type==='wall'?'Actions observées (une par ligne)':it.type==='fc'?'Marge autour de la FC cible (bpm)':'Critères (une ligne par critère)'}<textarea rows="3" data-p="obs.${i}.opts">${esc((it.opts||[]).join('\n'))}</textarea></label>`:''}<div class="row end"><button class="b s" onclick="obsMv(${i},-1)" ${i?'':'disabled'}>↑</button><button class="b s" onclick="obsMv(${i},1)" ${i<L.length-1?'':'disabled'}>↓</button><button class="b s" onclick="EDP.obs.splice(${i},1);render()">🗑 Retirer</button></div></div>`).join('')}
  <div class="row wrapf"><button class="b s" onclick="EDP.obs.push({id:'o'+uid(),afl:EDP.fin.afl[0].id,type:'check',titre:'Nouveau critère',opts:['Critère 1']});render()">➕ Ajouter une grille</button><button class="b s" onclick="if(confirm('Remettre les grilles proposées au départ ?')){EDP.obs=obsDef(EDP.act);render()}">↺ Grilles de départ</button></div></div>`}
 function obsMv(i,d){const L=EDP.obs,j=i+d;[L[i],L[j]]=[L[j],L[i]];render()}
+
+/* ================== SUPPORTS INTERACTIFS D'OBSERVATION (avec retour immédiat) ==================
+   court (badminton) : terrain à toucher là où tombe le volant + frappe + issue → carte de chaleur des 6 zones, frappes, % dans la stratégie
+   wall  (escalade)  : grimpe chronométrée, dégaines passées + actions (jambes, bras, pause…) → courbe hauteur / temps, comparaison au projet
+   fc    (cross)     : fréquences cardiaques relevées → courbe avec la zone cible (FC cible ± marge), % dans la cible
+   Enregistrées comme les autres grilles (OBS.v[id]) ; synthèse classe dans 👁 Observer (enseignant). */
+const BAD_RES=[['d','Point direct'],['a','Faute / touche adverse'],['c','Échange continue'],['j','Faute du joueur']];
+let OBSF={f:0,r:'c'};
+/* ---------- couleurs, petits graphiques ---------- */
+function heatOf(pts){const H={};(pts||[]).forEach(p=>{if(p.z)H[p.z]=(H[p.z]||0)+1});return H}
+function barsHtml(L){const mx=Math.max(1,...L.map(x=>x[1]));return `<div class="bars">${L.map(([l,n,c])=>`<div class="br"><span>${esc(l)}</span><i style="width:${Math.round(100*n/mx)}%;background:${c||'var(--app)'}"></i><b>${n}</b></div>`).join('')}</div>`}
+function lineSvg(pts,o){/* pts [{x,y}], o {xmax,ymin,ymax,band:[a,b],marks:[{x,c}],lab} */o=o||{};const W=320,H=150,l=34,b=20,t=8,r=8,X=x=>l+(W-l-r)*x/(o.xmax||1),Y=y=>t+(H-t-b)*(1-(y-o.ymin)/((o.ymax-o.ymin)||1));
+ let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><rect x="${l}" y="${t}" width="${W-l-r}" height="${H-t-b}" fill="#fff" stroke="#E6E1D6"/>`;
+ if(o.band)s+=`<rect x="${l}" y="${Y(o.band[1])}" width="${W-l-r}" height="${Math.max(0,Y(o.band[0])-Y(o.band[1]))}" fill="#2E9E5B" opacity=".18"/>`;
+ (o.yt||[]).forEach(v=>s+=`<text x="${l-4}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="#6A6F78">${esc(o.yl?o.yl(v):v)}</text><line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#F1EEE6"/>`);
+ (o.marks||[]).forEach(m=>s+=`<line x1="${X(m.x)}" x2="${X(m.x)}" y1="${t}" y2="${H-b}" stroke="${m.c}" stroke-width="2" opacity=".7"/>`);
+ if(pts.length)s+=`<polyline fill="none" stroke="${o.col||'#B8860B'}" stroke-width="3" stroke-linejoin="round" points="${pts.map(p=>X(p.x)+','+Y(p.y)).join(' ')}"/>`+pts.map(p=>`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="3.5" fill="${o.col||'#B8860B'}"/>`).join('');
+ s+=`<text x="${W-r}" y="${H-5}" text-anchor="end" font-size="10" fill="#6A6F78">${esc(o.lab||'')}</text></svg>`;return s}
+
+/* ---------- BADMINTON : terrain interactif ---------- */
+function stratOf(cls,k){const M=badMatches(cls).filter(m=>(m.a||{}).j===k||(m.b||{}).j===k);const m=M[M.length-1];if(!m)return null;const s=m.a.j===k?'a':'b',L=(m.strat&&m.strat[s])||[];return L.length?L[L.length-1].z:null}
+function matchPtsOf(cls,k){const R=[];badMatches(cls).forEach(m=>['a','b'].forEach(s=>{if((m[s]||{}).j!==k)return;(m.pts||[]).forEach(p=>{if(p.w===s&&p.k==='d'&&p.z)R.push({z:+p.z,r:'d'})})}));return R}
+function courtFeedback(J,pts,it,ctx,k){const H=heatOf(pts),n=pts.length,st=stratOf(ctx.cls,k),inS=st?pts.filter(p=>st.includes(p.z)).length:0;
+ const fr2=(it.opts||[]).map((o,i)=>[o,pts.filter(p=>p.f===i).length]),rs=BAD_RES.map(([c,l])=>[l,pts.filter(p=>p.r===c).length,c==='d'?'#2E9E5B':c==='j'?'#d64545':'#9CA3AF']);
+ const top=Object.keys(H).sort((a,b)=>H[b]-H[a])[0],nf=fr2.filter(x=>x[1]).length;
+ return `<div class="fb"><div>${courtSvg(J,{heat:H,dots:pts.slice(-40)})}<p class="sm mut c">Carte de chaleur : ${n} volant${n>1?'s':''}${top?' · zone la plus visée : '+top:''}</p></div><div><b>Frappes</b>${barsHtml(fr2)}<b>Issue</b>${barsHtml(rs)}
+ <p class="fbt">${n?`🎯 ${nf} frappe${nf>1?'s':''} différente${nf>1?'s':''} sur ${(it.opts||[]).length} · ${Math.round(100*pts.filter(p=>p.r==='d').length/n)} % de points directs${st?` · ${Math.round(100*inS/n)} % des volants dans sa stratégie (${zonesTxt(st)})`:''}`:'Touche le terrain là où tombe le volant.'}</p></div></div>`}
+function courtUi(it,v,ctx){const J=ctx.P.jeu,pts=(v&&v.pts)||[];
+ return `<div class="row wrapf"><span class="lab">Frappe</span>${(it.opts||[]).map((o,i)=>`<button class="chip${OBSF.f===i?' on':''}" onclick="OBSF.f=${i};render()">${esc(o)}</button>`).join('')}</div>
+ <div class="row wrapf"><span class="lab">Issue</span>${BAD_RES.map(([c,l])=>`<button class="chip${OBSF.r===c?' on':''}" onclick="OBSF.r='${c}';render()">${l}</button>`).join('')}</div>
+ <div class="ocourt" data-it="${it.id}">${courtSvg(J,{click:1,heat:heatOf(pts),dots:pts.slice(-25)})}</div>
+ <div class="row wrapf"><button class="b s" onclick="courtUndo('${it.id}')" ${pts.length?'':'disabled'}>↶ Annuler le dernier volant</button><span class="mut sm">Touche le terrain adverse à l'endroit où tombe chaque volant frappé par l'élève observé.</span></div>
+ ${courtFeedback(J,pts,it,ctx,OBS.k)}`}
+document.addEventListener('click',e=>{const w=e.target.closest('.ocourt');if(!w)return;const g=e.target.closest('[data-z]'),svg=w.querySelector('svg');if(!g||!svg)return;
+ const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse()),id=w.dataset.it;
+ const o=OBS.v[id]||(OBS.v[id]={pts:[]});o.pts=o.pts||[];o.pts.push({x:Math.round(p.x),y:Math.round(p.y),z:+g.dataset.z,f:OBSF.f,r:OBSF.r,t:Date.now()});render()});
+function courtUndo(id){const o=OBS.v[id];if(o&&o.pts)o.pts.pop();render()}
+function courtSum(it,vals,ctx,k){const pts=vals.flatMap(v=>v.pts||[]);return courtFeedback(ctx.P.jeu,pts,it,ctx,k)}
+
+/* ---------- ESCALADE : grimpe chronométrée sur le mur ---------- */
+function wallState(v){return v||{ev:[]}}
+function wallCur(v){return (v.ev||[]).filter(e=>e.k==='dg').reduce((m,e)=>Math.max(m,e.d),0)}
+function wallUi(it,v,ctx){const J=ctx.P.jeu,s=wallState(v),cur=wallCur(s),run=s.t0&&!s.fin,n=J.nDeg;
+ const btn=run?`<button class="b p big" onclick="wallDg('${it.id}')" ${cur>n?'disabled':''}>⬆ Le bassin passe ${cur>=n?'le TOP':'D'+(cur+1)}</button>`:'';
+ return `<div class="row wrapf">${!s.t0?`<button class="b p big" onclick="wallGo('${it.id}')">▶ Départ de la grimpe</button>`:run?`<span class="tmr run"><span class="tl">Grimpe</span><b class="tv" data-wall="${s.t0}">${tmFmt((Date.now()-s.t0)/1000)}</b></span>${btn}<button class="b" onclick="wallEnd('${it.id}')">■ Fin de la grimpe</button>`:`<span class="pill ok">Grimpe terminée</span><button class="b s" onclick="delete OBS.v['${it.id}'];render()">↺ Recommencer</button>`}</div>
+ ${run?`<div class="ocn">${(it.opts||[]).map((o,i)=>`<div class="occ"><button class="ocb" onclick="wallAct('${it.id}',${i})"><b>${(s.ev||[]).filter(e=>e.k==='a'&&e.i===i).length}</b><span>${esc(o)}</span></button></div>`).join('')}</div>`:''}
+ ${wallFeedback(J,[s],it,ctx,OBS.k)}`}
+function wallGo(id){OBS.v[id]={t0:Date.now(),ev:[]};render()}
+function wallDg(id){const s=OBS.v[id];s.ev.push({k:'dg',d:wallCur(s)+1,t:Date.now()-s.t0});if(wallCur(s)>PXO.P.jeu.nDeg)s.fin=Date.now()-s.t0;render()}
+function wallAct(id,i){const s=OBS.v[id];s.ev.push({k:'a',i,t:Date.now()-s.t0});render()}
+function wallEnd(id){const s=OBS.v[id];s.fin=Date.now()-s.t0;render()}
+setInterval(()=>{document.querySelectorAll('[data-wall]').forEach(el=>el.textContent=tmFmt((Date.now()-+el.dataset.wall)/1000))},500);
+function wallFeedback(J,L,it,ctx,k){const s=L.filter(x=>x&&x.t0).slice(-1)[0];if(!s)return '<p class="mut sm">Lance le chrono au départ, puis touche « Le bassin passe… » à chaque dégaine.</p>';
+ const dg=(s.ev||[]).filter(e=>e.k==='dg'),end=(s.fin||Date.now()-s.t0)/1000,cur=wallCur(s),n=J.nDeg,pts=[{x:0,y:0}].concat(dg.map(e=>({x:e.t/1000,y:e.d})));if(!s.fin)pts.push({x:end,y:cur});
+ const cols=['#2E9E5B','#d64545','#3aa0d8','#f0a030','#6B3FA0'],marks=(s.ev||[]).filter(e=>e.k==='a').map(e=>({x:e.t/1000,c:cols[e.i%cols.length]}));
+ const cnt=(it.opts||[]).map((o,i)=>[o,(s.ev||[]).filter(e=>e.k==='a'&&e.i===i).length,cols[i%cols.length]]);
+ const x=escPassOf(ctx.act,ctx.cls,ctx.S,k),p=x&&x.p,zr=escZoneOf(J,cur>n?n+1:cur),gaps=dg.map((e,i)=>e.t-(i?dg[i-1].t:0)),slow=gaps.length?gaps.indexOf(Math.max(...gaps)):-1;
+ return `<div class="fb"><div>${lineSvg(pts,{xmax:Math.max(10,end),ymin:0,ymax:n+1,yt:[0,J.b1,J.b2,J.b3,n+1],yl:v=>v===0?'sol':v>n?'TOP':'D'+v,marks,lab:'temps (s)'})}<p class="sm mut c">Hauteur du bassin pendant la grimpe (traits : actions observées)</p></div>
+ <div><b>Actions</b>${barsHtml(cnt)}<p class="fbt">🧗 Atteint : <b>${cur>n?'TOP':cur?'D'+cur:'sol'}</b> (zone ${zr||0}) en ${tmFmt(end)}${dg.length?` · ${Math.round(end/dg.length)} s par dégaine en moyenne · passage le plus long : ${slow===0?'sol':'D'+slow} → D${slow+1} (${Math.round(gaps[slow]/1000)} s)`:''}${p&&p.zone?` · projet : Z${p.zone} → ${+zr===+p.zone?'✅ projet respecté':'écart de '+Math.abs((cur>n?n+1:cur)-escZoneBorne(J,+p.zone))+' dégaine(s)'}`:''}${cnt.length>1&&cnt[0][1]+cnt[1][1]?` · jambes / bras : ${cnt[0][1]} / ${cnt[1][1]}`:''}</p></div></div>`}
+function wallSum(it,vals,ctx,k){return wallFeedback(ctx.P.jeu,vals,it,ctx,k)}
+
+/* ---------- CROSS TRAINING : courbe de fréquence cardiaque ---------- */
+function fcCible(ctx,k){const t=teamOf(ctx.S,k),F=t?get('tm:'+ctx.act+':'+ctx.cls+':'+t.id)||{}:{};return +((F.fcc||{})[k])||null}
+function fcAll(ctx,k,v){const t=teamOf(ctx.S,k),F=t?get('tm:'+ctx.act+':'+ctx.cls+':'+t.id)||{}:{},I=ixOf(ctx.act,ctx.cls,k);
+ return ((v&&v.m)||[]).map(x=>x.fc).concat((F.log||[]).filter(l=>l.k===k&&l.fc).map(l=>l.fc)).concat(I.fc||[])}
+function fcUi(it,v,ctx){const s=v||{m:[]},c=fcCible(ctx,OBS.k);
+ return `<div class="row wrapf"><button class="b p big" onclick="fcAdd('${it.id}')">❤️ Ajouter une FC</button>${(s.m||[]).length?`<button class="b s" onclick="OBS.v['${it.id}'].m.pop();render()">↶ Annuler</button>`:''}<span class="mut sm">FC cible de l'élève : <b>${c||'non renseignée (feuille de séance)'}</b> · marge ± ${+(it.opts||[])[0]||10} bpm</span></div>${fcFeedback([s],it,ctx,OBS.k)}`}
+async function fcAdd(id){const v=await numPad('Fréquence cardiaque (bpm)');if(!v)return;const s=OBS.v[id]||(OBS.v[id]={m:[]});s.m.push({fc:v,t:Date.now()});render()}
+function fcFeedback(L,it,ctx,k){const own=L.flatMap(s=>(s&&s.m)||[]).map(x=>x.fc),all=own.length?own:fcAll(ctx,k,null),c=fcCible(ctx,k),mg=+(it.opts||[])[0]||10;
+ if(!all.length)return '<p class="mut sm">Ajoute les FC relevées à chaque round : la courbe et la zone cible apparaissent ici.</p>';
+ const mn=Math.min(...all,c?c-mg:999),mx=Math.max(...all,c?c+mg:0),inb=c?all.filter(f=>Math.abs(f-c)<=mg).length:0;
+ return `<div class="fb"><div>${lineSvg(all.map((f,i)=>({x:i+1,y:f})),{xmax:Math.max(2,all.length),ymin:Math.floor((mn-10)/10)*10,ymax:Math.ceil((mx+10)/10)*10,yt:[Math.floor((mn-10)/10)*10,c||Math.round((mn+mx)/2),Math.ceil((mx+10)/10)*10],band:c?[c-mg,c+mg]:null,col:'#d64545',lab:'relevés'})}<p class="sm mut c">${c?'Bande verte : FC cible '+c+' ± '+mg:''}</p></div>
+ <div><p class="fbt">❤️ ${all.length} relevé(s) · mini ${Math.min(...all)} · maxi ${Math.max(...all)} · moyenne ${Math.round(all.reduce((a,b)=>a+b,0)/all.length)} bpm${c?` · <b>${Math.round(100*inb/all.length)} %</b> dans la zone cible${all[all.length-1]>c+mg?' · ⬇ trop haut : allège (réchappe)':all[all.length-1]<c-mg?' · ⬆ trop bas : intensifie':' · ✅ dans la cible'}`:''}</p></div></div>`}
+function fcSum(it,vals,ctx,k){return fcFeedback(vals,it,ctx,k)}
+const OBSX={court:{ui:courtUi,sum:courtSum,lab:'Terrain interactif (badminton)'},wall:{ui:wallUi,sum:wallSum,lab:'Mur chronométré (escalade)'},fc:{ui:fcUi,sum:fcSum,lab:'Courbe de FC (cross training)'}};
+
+/* ---------- 📊 retour de la classe (enseignant) : une carte par élève ---------- */
+function classBoard(ctx){const {P,c}=ctx,L=obsList(P),it=L.find(x=>OBSX[x.type]);
+ return `<h3 class="h3">📊 Retour de la classe${it?' · '+esc(it.titre):''}</h3><p class="mut sm">Données des observations (élèves et toi) et de la pratique. Touche un élève pour l'observer et voir le détail.</p><div class="board">${people(c).map(p=>{const R=obsRecs(ctx.act,ctx.cls,p.k);let viz='';
+  if(it){const vals=R.map(r=>r.v&&r.v[it.id]).filter(Boolean);
+   if(it.type==='court'){const pts=vals.flatMap(v=>v.pts||[]).concat(matchPtsOf(ctx.cls,p.k));viz=pts.length?courtSvg(P.jeu,{heat:heatOf(pts)})+`<small>${pts.length} volants</small>`:''}
+   if(it.type==='wall'){const s=vals.filter(v=>v.t0).slice(-1)[0],x=escPassOf(ctx.act,ctx.cls,ctx.S,p.k),dg=x&&x.p?x.p.dg:null;viz=s||dg!=null?`<div class="bigv">${s?(wallCur(s)>P.jeu.nDeg?'TOP':'D'+wallCur(s)):dgTxt(P.jeu,dg)}</div><small>${x&&x.p&&x.p.zone?'projet Z'+x.p.zone:''}${s?' · '+tmFmt((s.fin||0)/1000):''}</small>`:''}
+   if(it.type==='fc'){const all=vals.flatMap(v=>(v.m||[]).map(m=>m.fc)),A=all.length?all:fcAll(ctx,p.k,null),cb=fcCible(ctx,p.k);viz=A.length?lineSvg(A.map((f,i)=>({x:i+1,y:f})),{xmax:Math.max(2,A.length),ymin:Math.min(...A,cb||999)-15,ymax:Math.max(...A,cb||0)+15,band:cb?[cb-10,cb+10]:null,col:'#d64545'}):''}}
+  return `<button class="bc" onclick="OBS={k:'${p.k}',by:'',v:{}};render()"><b>${esc(p.full)}</b>${viz||'<span class="mut sm">pas encore de données</span>'}<small>${R.length} observation(s)</small></button>`}).join('')}</div>`}
 
 /* ================== DÉMARRAGE ================== */
 /* espace enseignant commun (eps-shell.js) : Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */

@@ -45,7 +45,7 @@ function upd(id,def,f){const o=clone(get(id)||def);f(o);put(id,o);return o}
 /* ================== PROTOCOLES ================== */
 function protoId(act,voie){return act+'-'+voie}
 function hasProto(act,voie){return !!(get('pr:'+protoId(act,voie))||PROTOS[protoId(act,voie)])}
-function proto(act,voie){const id=protoId(act,voie),o=get('pr:'+id)||PROTOS[id];if(!o)return null;const P=clone(o);const D=PROTOS[id];if(D){P.jeu=Object.assign({},D.jeu,P.jeu||{})}if(!P.obs&&typeof obsDef==='function')P.obs=obsDef(act);return P}
+function proto(act,voie){const id=protoId(act,voie),o=get('pr:'+id)||PROTOS[id];if(!o)return null;const P=clone(o);const D=PROTOS[id];if(D){P.jeu=Object.assign({},D.jeu,P.jeu||{})}if(typeof obsDef==='function'){if(!P.obs)P.obs=obsDef(act);else if(!P.obs.some(x=>['court','wall','fc'].includes(x.type))){const d=obsDef(act).find(x=>['court','wall','fc'].includes(x.type));if(d)P.obs.unshift(d)}}return P}
 function protoModifie(act,voie){return !!get('pr:'+protoId(act,voie))}
 function aflFil(P,id){return P.fil.afl.find(a=>a.id===id)}
 function repPts(rep){const m=/^(\d+)\s*-\s*(\d+)$/.exec(rep||'');return m?[+m[1],+m[2]]:[4,4]}
@@ -101,7 +101,8 @@ function zoneOrder(){return [[1,2,3],[6,5,4]]}
 function courtSvg(J,o){o=o||{};const sel=o.sel||[],W=320,H=190,x0=12,y0=12,cw=W-2*x0-14,ch=H-2*y0,c1=cw*(J.c1||34)/100,c2=cw*(J.c2||67)/100,cols=[[0,c1],[c1,c2],[c2,cw]],Z=zoneOrder();
  const m=v=>v/6.70*cw,w=v=>v/6.10*ch;let s=`<svg class="court${o.click?' ck':''}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
  s+=`<rect x="${x0}" y="${y0}" width="${cw}" height="${ch}" fill="#2f7d5b" stroke="#fff" stroke-width="2.5"/>`;
- Z.forEach((row,r)=>row.forEach((z,c)=>{const on=sel.includes(z),x=x0+cols[c][0],y=y0+r*ch/2,ww=cols[c][1]-cols[c][0];
+ Z.forEach((row,r)=>row.forEach((z,c)=>{const on=sel.includes(z),x=x0+cols[c][0],y=y0+r*ch/2,ww=cols[c][1]-cols[c][0],hv=o.heat?(o.heat[z]||0):null,hm=o.heat?Math.max(1,...Object.values(o.heat)):1,ht=o.heat?Object.values(o.heat).reduce((a,b)=>a+b,0):0;
+  if(hv!=null){s+=`<g data-z="${z}"><rect x="${x}" y="${y}" width="${ww}" height="${ch/2}" fill="#F2994A" fill-opacity="${(.85*hv/hm).toFixed(2)}"/><text x="${x+ww/2}" y="${y+ch/4}" text-anchor="middle" font-size="20" font-weight="800" fill="#fff" font-family="system-ui,sans-serif">${z}</text><text x="${x+ww/2}" y="${y+ch/4+18}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">${hv}${ht?' · '+Math.round(100*hv/ht)+'%':''}</text></g>`;return}
   s+=`<g data-z="${z}"><rect x="${x}" y="${y}" width="${ww}" height="${ch/2}" fill="${on?(o.color||'#F2C94C'):'transparent'}" fill-opacity="${on?.85:0}"/>`+
   `<text x="${x+ww/2}" y="${y+ch/4+9}" text-anchor="middle" font-size="26" font-weight="800" fill="${on?'#14171C':'#fff'}" font-family="system-ui,sans-serif">${z}</text></g>`}));
  /* lignes du terrain (mètres) : service long double à 0,76 du fond, service court à 1,98 du filet, couloirs 0,46 */
@@ -110,6 +111,7 @@ function courtSvg(J,o){o=o||{};const sel=o.sel||[],W=320,H=190,x0=12,y0=12,cw=W-
  /* découpe des zones : pointillés rouges, comme le schéma du protocole */
  s+=`<line x1="${x0+c1}" y1="${y0}" x2="${x0+c1}" y2="${y0+ch}" stroke="#ff4d4d" stroke-width="2.5" stroke-dasharray="7 5"/><line x1="${x0+c2}" y1="${y0}" x2="${x0+c2}" y2="${y0+ch}" stroke="#ff4d4d" stroke-width="2.5" stroke-dasharray="7 5"/><line x1="${x0}" y1="${y0+ch/2}" x2="${x0+cw}" y2="${y0+ch/2}" stroke="#ff4d4d" stroke-width="2.5" stroke-dasharray="7 5"/>`;
  s+=`<line x1="${x0+cw+5}" y1="${y0-6}" x2="${x0+cw+5}" y2="${y0+ch+6}" stroke="#14171C" stroke-width="3"/><circle cx="${x0+cw+5}" cy="${y0-6}" r="4" fill="#14171C"/><circle cx="${x0+cw+5}" cy="${y0+ch+6}" r="4" fill="#14171C"/>`;
+ (o.dots||[]).forEach(d=>{s+=`<circle cx="${d.x}" cy="${d.y}" r="4.5" fill="${d.r==='d'?'#F2C94C':d.r==='j'?'#d64545':'#fff'}" stroke="#14171C" stroke-width="1.2" pointer-events="none"/>`});
  s+=`<text x="${x0+4}" y="${H-1}" font-size="10" fill="#6A6F78" font-family="system-ui">fond</text><text x="${x0+cw-4}" y="${H-1}" text-anchor="end" font-size="10" fill="#6A6F78" font-family="system-ui">filet</text>`;
  return s+'</svg>'}
 function zonesTxt(z){return (z||[]).length?'zone'+(z.length>1?'s ':' ')+[...z].sort((a,b)=>a-b).join(', '):'aucune zone'}
