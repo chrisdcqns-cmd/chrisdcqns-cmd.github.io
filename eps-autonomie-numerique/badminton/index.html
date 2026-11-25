@@ -472,6 +472,15 @@ details.more{margin-top:6px}details.more>summary{cursor:pointer;font-weight:700;
 .banner .bt span{font-size:.72em;font-weight:800;color:#5b6573;text-transform:uppercase;letter-spacing:.02em}.banner .bt b{font-size:1.25em}.banner .bt i{font-style:normal}.banner .bt small{font-size:.65em}
 #play.stu .cw.play .court{max-height:calc(100vh - 210px)}#play.stu .hint{display:none}#play.stu .cw.play{max-width:1400px}
 .lvd{margin-top:6px}.lvd>summary{cursor:pointer;font-weight:700;color:#1F5F8B;font-size:.9em}.lgrid .card:has(.lvd[open]){grid-column:1/-1}.lvd .banner{justify-content:flex-start}
+
+.banner2{display:flex;gap:10px;align-items:stretch;margin:8px 0 0}.banner2 .bgap{width:70px;flex:0 0 auto}
+.banner2 .bcol{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;border-left:6px solid;border-radius:12px;background:#fff;padding:8px}
+.banner2 .bt{background:#f5f8fb;border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;justify-content:center}
+.banner2 .bt span{font-size:1rem;font-weight:800;color:#3a4250;line-height:1.2}.banner2 .bt b{font-size:2rem;line-height:1.1;margin-top:2px}.banner2 .bt b small{font-size:.5em}
+.banner2 .bt.ok{background:#e9f6ee}.banner2 .bt.ok b{color:#2E7D4F}
+@media(max-width:700px){.banner2 .bgap{display:none}.banner2 .bt b{font-size:1.5rem}.banner2 .bt span{font-size:.85rem}}
+#play.stu .cw.play .court{max-height:calc(100vh - 290px)}
+.lvd .banner2 .bgap{width:10px}
 </style>
 <style>@media (max-width:1200px){.top .hn,#syncIc small{display:none}.top .voie button{padding:7px 10px}}</style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
@@ -1625,13 +1634,15 @@ function liveVal(k,m,D,s){const {R,S2}=D;
    case 'co':{const t=COUPS.filter(([k])=>S2[s].co[k]).sort((a,b)=>S2[s].co[b[0]]-S2[s].co[a[0]]);return t.length?t.slice(0,2).map(([k,n])=>`${n} ${S2[s].co[k]}`).join(' · '):'–'}
    case 'nat':return NAT.filter(([k])=>S2[s].nat[k]).map(([k,n])=>`${n.toLowerCase()} ${S2[s].nat[k]}`).join(' · ')||'–';}
   return ''}
-/* bannière des élèves : au-dessus du terrain */
-function liveBanner(m){if(m.pre.type==='exo')return'';const K=liveKeys(m.pre).filter(k=>k!=='ind'||indOn());if(!K.length)return'';const D=liveData(m),N=[m.an,m.bn];
-  const tiles=K.map(k=>{const lab=(LIVEW.find(x=>x[0]===k)||[])[1]||k;
-    if(k==='ser')return `<div class="bt"><span>${esc(lab)}</span><b>${D.ser.w==null?'–':`<i style="color:${LCOL[D.ser.w]}">${esc(N[D.ser.w]||'')}</i> ${D.ser.n}`}</b></div>`;
-    if(k==='ind'){const L=indOfMatch(m).filter(x=>x.k!=='obs').slice(0,2);return L.map(x=>`<div class="bt"><span>${esc(x.nom)}</span><b>${[0,1].map(s=>{const r=x.k==='compte'?(()=>{const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}})():x.f(D.S2[s],m.pre);return `<i style="color:${LCOL[s]}">${r?esc(r.t)+(r.ok?' ✓':''):'–'}</i>`}).join(' · ')}</b></div>`).join('')}
-    return `<div class="bt"><span>${esc(lab)}</span><b>${[0,1].map(s=>`<i style="color:${LCOL[s]}">${liveVal(k,m,D,s)}</i>`).join(' · ')}</b></div>`}).join('');
-  return `<div class="banner">${tiles}</div>`}
+/* bannière des élèves : découpée par joueur, sous chaque score (gros libellés, grosses valeurs) */
+function liveBanner(m){if(m.pre.type==='exo')return'';const K=liveKeys(m.pre).filter(k=>k!=='ind'||indOn());if(!K.length)return'';const D=liveData(m);
+  const col=s=>{const T=[];K.forEach(k=>{const lab=(LIVEW.find(x=>x[0]===k)||[])[1]||k;
+      if(k==='ser'){T.push(`<div class="bt"><span>🔥 Série en cours</span><b>${D.ser.w===s?D.ser.n+' d\'affilée':'–'}</b></div>`);return}
+      if(k==='ind'){indOfMatch(m).filter(x=>x.k!=='obs').slice(0,2).forEach(x=>{const r=x.k==='compte'?(()=>{const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}})():x.f(D.S2[s],m.pre);
+        T.push(`<div class="bt ${r&&r.ok?'ok':''}"><span>${esc(x.nom)}</span><b>${r?esc(r.t)+(r.ok?' ✓':''):'–'}</b></div>`)});return}
+      T.push(`<div class="bt"><span>${esc(lab)}</span><b>${liveVal(k,m,D,s)||'–'}</b></div>`)});
+    return `<div class="bcol" style="border-color:${LCOL[s]}">${T.join('')}</div>`};
+  return `<div class="banner2">${col(m.flip?1:0)}<div class="bgap"></div>${col(m.flip?0:1)}</div>`}
 /* vue complète : enseignant, ou « Plus d'infos » chez les élèves */
 function liveHtml(m){if(m.pre.type==='exo')return'';const pre=m.pre,D=liveData(m),{R,S2}=D,N=[m.an,m.bn];
   const K=[...new Set([...liveKeys(pre),'pts','bon','bonp','zp','ser','man','co'])].filter(k=>(k!=='bon'&&k!=='bonp')||hasBonus(pre)).filter(k=>k!=='zp'||(R.zp&&(R.zp[0]||R.zp[1]))||liveKeys(pre).includes('zp')).filter(k=>k!=='man'||R.mp);
