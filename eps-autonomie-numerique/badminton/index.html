@@ -466,6 +466,12 @@ details.more{margin-top:6px}details.more>summary{cursor:pointer;font-weight:700;
 .lv2{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lv2>div{border-left:4px solid;padding-left:8px;display:flex;flex-direction:column}.lv2 small{font-weight:700;color:#5b6573}.lv2 b{font-size:1.15em}.lv2 b small{font-size:.7em}
 .lvbig{font-size:1.2em;font-weight:800}
 .lvchk{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px}
+
+.banner{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:8px auto 0;max-width:1100px}
+.banner .bt{background:#fff;border:1.5px solid #d5dde6;border-radius:12px;padding:5px 12px;display:flex;flex-direction:column;align-items:center;min-width:120px}
+.banner .bt span{font-size:.72em;font-weight:800;color:#5b6573;text-transform:uppercase;letter-spacing:.02em}.banner .bt b{font-size:1.25em}.banner .bt i{font-style:normal}.banner .bt small{font-size:.65em}
+#play.stu .cw.play .court{max-height:calc(100vh - 210px)}#play.stu .hint{display:none}#play.stu .cw.play{max-width:1400px}
+.lvd{margin-top:6px}.lvd>summary{cursor:pointer;font-weight:700;color:#1F5F8B;font-size:.9em}.lgrid .card:has(.lvd[open]){grid-column:1/-1}.lvd .banner{justify-content:flex-start}
 </style>
 <style>@media (max-width:1200px){.top .hn,#syncIc small{display:none}.top .voie button{padding:7px 10px}}</style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
@@ -1325,7 +1331,7 @@ function renderLive(){const el=document.getElementById('t-live');if(!el)return;c
      return `<div class="card lg"><div class="row" style="justify-content:space-between"><h3 style="margin:0">👥 ${esc(g.nom)}${tg?` <span class="tnum">T${tg}</span>`:''}</h3><span class="muted" style="font-size:.8em">${sig?'signal '+sinceTxt(sig).replace('depuis ','il y a '):'aucun signal'}</span></div>
       <div class="lstep ${st?st.k==='ech'?'ech':st.k==='fin'?'fin':'tps':'none'}">${st?`${esc(stepLab(lessonObj(st.lec)||l,st.k))} <small>${sinceTxt(st.at)}</small>`:'Étape non indiquée'}</div>
       <div class="lmem">${M.map(e=>{const n=matchesOf(c,m=>m.date===T&&(m.a===e.id||m.b===e.id)).length,b=bilOf(c,e.id,T);return `<span class="${isAbs(e)?'abs':n?'on':''}" title="${n} match(s) ou exercice(s) aujourd'hui">${esc(shortName(e))}${n?' · '+n:''}${b?' 🏁':''}</span>`}).join('')}</div>
-      ${cur.map(m=>{const R=replay(m);return `<div class="lcur">${m.pre.type==='exo'?'🎯 '+esc(m.an)+' · '+R.ok+'/'+R.n:'🏸 '+esc(m.an)+' <b>'+R.sc[0]+' – '+R.sc[1]+'</b> '+esc(m.bn)} <small class="muted">${esc(m.pre.nom)}</small></div>`}).join('')}
+      ${cur.map(m=>{const R=replay(m);return `<div class="lcur">${m.pre.type==='exo'?'🎯 '+esc(m.an)+' · '+R.ok+'/'+R.n:'🏸 '+esc(m.an)+' <b>'+R.sc[0]+' – '+R.sc[1]+'</b> '+esc(m.bn)} <small class="muted">${esc(m.pre.nom)}</small></div>${m.pre.type==='exo'?'':liveTeacherCur(m)}`}).join('')}
       ${r?`<div class="muted" style="font-size:.85em;margin-top:4px">Prochain : ${esc(shortName(r.a))} – ${esc(shortName(r.b))}${r.arb?' · arbitre '+esc(shortName(r.arb)):''}${r.coach?' · coach '+esc(shortName(r.coach)):''}</div>`:''}
       <div class="row" style="margin-top:8px;gap:6px">${tr.on?`<select class="f" style="width:auto" onchange="liveGrp('${g.id}','terr',this.value)"><option value="">Terrain —</option>${Array.from({length:tn},(_,i)=>`<option value="${i+1}" ${tg===i+1?'selected':''}>Terrain ${i+1}</option>`).join('')}</select>`:''}
        <select class="f" style="width:auto" onchange="liveGrp('${g.id}','saisie',this.value)">${sOpt('',(c.saisieG||{})[g.id]||'')}Saisie : comme la classe</option>${sOpt('simple',(c.saisieG||{})[g.id]||'')}Saisie simple</option>${sOpt('complet',(c.saisieG||{})[g.id]||'')}Saisie complète</option></select></div></div>`}).join('')
@@ -1574,50 +1580,72 @@ function indModal(){let d=document.getElementById('indModal');if(!INDM){if(d)d.r
   d.innerHTML=`<div class="indmbg" onclick="if(event.target===this)indClose()"><div class="indm"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b style="font-size:1.15em">📈 Indicateurs de performance</b><div class="muted">Leçon ${l.n} · ${esc(t.t)}</div></div><button class="btn sm" onclick="indClose()">✓ Terminé</button></div>
    <div class="indmc">${indTeach(l,INDM.k)}</div></div></div>`;
   const c2=d.querySelector('.indmc');if(c2)c2.scrollTop=sc}
-/* ================== 👁 RETOUR EN DIRECT PENDANT LE MATCH (choisi par l'enseignant pour chaque situation) ==================
-   p.live = [clés] sur la situation ; absent = proposition selon la thématique de la situation (liveDef). */
-const LIVEW=[['pts','Points directs et fautes directes'],['ser','Série en cours'],['zp','Points de zones (bonus, contrat)'],['zt','Points marqués par zone'],['map','Carte des impacts'],
-  ['co','Coups gagnants'],['man','Contrat « avec la manière » (en %)'],['srv','Fautes de service'],['nat','Façons de gagner le point'],['rad','Araignée du profil de jeu'],['ind','Indicateurs de la leçon']];
-function liveDef(p){const k=['pts'],zs=zoneIds(p),R=zs.map(id=>zoneRule(p,id).m);
-  if(R.some(m=>m==='b'||m==='g')||(p.cibles||[]).length||p.contrat>0||p.score==='zones')k.push('zp');
-  if(p.np>1||p.nl>1)k.push('zt');if(p.man&&p.man.on)k.push('man');if(Object.values(p.coups||{}).some(v=>+v>0))k.push('co');
-  if(/service/i.test((p.nom||'')+' '+(p.desc||'')))k.push('srv');if(/ruptur|smash|kill/i.test((p.nom||'')+' '+(p.desc||'')))k.push('co');
-  return [...new Set(k)]}
-function liveKeys(p){const q=p&&preById(p.id);const src=q||p;return src&&Array.isArray(src.live)?src.live:liveDef(src||{})}
+/* ================== 👁 RETOUR EN DIRECT PENDANT LE MATCH ==================
+   p.live = clés de la BANNIÈRE des élèves (au-dessus du terrain), choisies par l'enseignant pour chaque situation ;
+   absent = proposition selon la thématique (liveDef). Tout le reste est dans « ℹ️ Plus d'infos » (élèves)
+   et toujours visible sur la tablette de l'enseignant (match joué en mode enseignant, Leçon en direct). */
+const LIVEW=[['pts','Points directs et fautes directes'],['bon','★ Points bonifiés'],['bonp','% de points bonifiés'],['zp','Points de zones (dégressif, cibles, contrat)'],['ser','Série en cours'],
+  ['man','Contrat « avec la manière » (en %)'],['srv','Fautes de service'],['co','Coups gagnants'],['nat','Façons de gagner le point'],['ind','Indicateurs de la leçon']];
+const LIVEBIG=[['zt','Points marqués par zone'],['map','Carte des impacts'],['rad','Araignée du profil de jeu']];
+function hasBonus(p){return zoneIds(p).some(id=>zoneRule(p,id).m==='b')}
+function liveDef(p){const k=[],zs=zoneIds(p),R=zs.map(id=>zoneRule(p,id).m),txt=(p.nom||'')+' '+(p.desc||'');
+  if(hasBonus(p))k.push('bon','bonp');if(R.includes('g')||(p.cibles||[]).length||p.score==='zones')k.push('zp');
+  if(p.man&&p.man.on)k.push('man');if(Object.values(p.coups||{}).some(v=>+v>0)||/ruptur|smash|kill/i.test(txt))k.push('co');
+  if(/service/i.test(txt))k.push('srv');if(!k.length)k.push('pts');return [...new Set(k)]}
+function liveKeys(p){const q=p&&preById(p.id),src=q||p||{};const ok=LIVEW.map(x=>x[0]);return Array.isArray(src.live)?src.live.filter(k=>ok.includes(k)):liveDef(src)}
 function liveTog(pid,k,on){const p=preById(pid);if(!p)return;const L=liveKeys(p).slice(),i=L.indexOf(k);if(on&&i<0)L.push(k);if(!on&&i>=0)L.splice(i,1);p.live=LIVEW.map(x=>x[0]).filter(x=>L.includes(x));save();liveRefresh()}
 function liveReset(pid){const p=preById(pid);if(!p)return;delete p.live;save();liveRefresh()}
 function liveChecks(p){const L=liveKeys(p),D=liveDef(p);
   return `<div class="lvchk">${LIVEW.filter(([k])=>k!=='ind'||indOn()).map(([k,n])=>`<label class="sw"><input type="checkbox" ${L.includes(k)?'checked':''} onchange="liveTog('${p.id}','${k}',this.checked)"><span></span>${esc(n)}${D.includes(k)?' <small class="tag" style="background:#e7f6f3;color:#0B7A75">proposé</small>':''}</label>`).join('')}</div>
-   <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted">${Array.isArray(p.live)?'Choix personnalisé pour cette situation.':'Proposition automatique selon la situation.'}</span>${Array.isArray(p.live)?`<button class="btn alt sm" onclick="liveReset('${p.id}')">Revenir à la proposition</button>`:''}</div>`}
-function liveCard(p){if(p.type==='exo')return'';return `<div class="card"><h2 class="step"><span>6</span>👁 Retour en direct pendant le match</h2>
-  <p class="muted">Coche ce que les élèves voient sous le terrain pendant qu'ils saisissent les points. Le reste reste disponible dans « Toutes les statistiques ».</p>${liveChecks(p)}</div>`}
-/* fenêtre ouverte depuis un temps de la leçon */
+   <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted">${Array.isArray(p.live)?'Choix personnalisé pour cette situation.':'Proposition automatique selon la situation.'} ${L.length>4?'<b>Conseil : 4 au plus pour garder la bannière lisible.</b>':''}</span>${Array.isArray(p.live)?`<button class="btn alt sm" onclick="liveReset('${p.id}')">Revenir à la proposition</button>`:''}</div>
+   <p class="muted" style="margin:8px 0 0">Toujours dans « ℹ️ Plus d'infos » et sur ta tablette : ${LIVEBIG.map(x=>x[1].toLowerCase()).join(', ')}, et tout ce qui n'est pas coché.</p>`}
+function liveCard(p){if(p.type==='exo')return'';return `<div class="card"><h2 class="step"><span>6</span>👁 Bannière des élèves pendant le match</h2>
+  <p class="muted">Ce qui s'affiche au-dessus du terrain, à côté du score. Le terrain reste grand ; le reste est derrière « ℹ️ Plus d'infos ».</p>${liveChecks(p)}</div>`}
 let LIVEM=null;
 function liveBtn(l,k){const t=l.temps[k],p=t.pre&&preById(t.pre);if(!p||p.type==='exo')return'';const n=liveKeys(p).length;
-  return `<button class="btn alt sm" onclick="LIVEM='${p.id}';liveModal()">👁 En direct (${n})</button>`}
+  return `<button class="btn alt sm" onclick="LIVEM='${p.id}';liveModal()">👁 Bannière en direct (${n})</button>`}
 function liveRefresh(){if(LIVEM)liveModal();if(curTab()==='terrain')renderTerrain()}
 function liveModal(){let d=document.getElementById('liveModal');if(!LIVEM||!preById(LIVEM)){LIVEM=null;if(d)d.remove();return}const p=preById(LIVEM);
   if(!d){d=document.createElement('div');d.id='liveModal';document.body.appendChild(d)}
-  d.innerHTML=`<div class="indmbg" onclick="if(event.target===this){LIVEM=null;liveModal();renderSeq()}"><div class="indm"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b style="font-size:1.15em">👁 Retour en direct pendant le match</b><div class="muted">Situation : ${esc(p.nom)}</div></div><button class="btn sm" onclick="LIVEM=null;liveModal();renderSeq()">✓ Terminé</button></div>
-   <div class="indmc"><p class="muted" style="margin-top:0">Ce que les élèves voient sous le terrain interactif pendant le match. S'applique partout où cette situation est jouée.</p>${liveChecks(p)}</div></div></div>`}
-/* affichage pendant le match */
-function liveHtml(m){if(m.pre.type==='exo')return'';const K=liveKeys(m.pre).filter(k=>k!=='ind'||indOn());if(!K.length)return'';
-  const R=replay(m),S2=[matchStats(m,0),matchStats(m,1)],N=[m.an,m.bn],C2=[PCOL[0],'#e0457b'],pre=m.pre;
-  const two=(lab,f)=>`<div class="lvw"><div class="lvt">${lab}</div><div class="lv2">${[0,1].map(s=>`<div style="border-color:${C2[s]}"><small>${esc(N[s]||'')}</small><b>${f(s)}</b></div>`).join('')}</div></div>`;
-  const W={
-   pts:()=>two('Points directs · fautes directes',s=>`${S2[s].nat.pd||0} <small>pts dir.</small> · ${S2[s].fd} <small>fautes</small>`),
-   ser:()=>{const d=R.det;let n=0,w=null;for(let i=d.length-1;i>=0;i--){if(w==null)w=d[i].p.w;if(d[i].p.w!==w)break;n++}return `<div class="lvw"><div class="lvt">Série en cours</div><div class="lvbig">${w==null?'–':`<span style="color:${C2[w]}">${esc(N[w]||'')}</span> : ${n} point${n>1?'s':''} d'affilée`}</div></div>`},
-   zp:()=>two('Points de zones',s=>String(R.zp?R.zp[s]:0)),
-   srv:()=>two('Fautes de service',s=>String(S2[s].fsv)),
-   co:()=>two('Coups gagnants',s=>COUPS.filter(([k])=>S2[s].co[k]).map(([k,n])=>`${n} ${S2[s].co[k]}`).join(' · ')||'–'),
-   man:()=>R.mp?two('Contrat « avec la manière »',s=>R.mp[s]?`${R.mp[s].pct} % ${R.mp[s].ok?'✓':''}`:'–'):'',
-   nat:()=>two('Façons de gagner',s=>NAT.filter(([k])=>S2[s].nat[k]).map(([k,n])=>`${n.toLowerCase()} ${S2[s].nat[k]}`).join(' · ')||'–'),
-   zt:()=>{const zs=zoneIds(pre);if(!(pre.np>1||pre.nl>1))return'';return `<div class="lvw wide"><div class="lvt">Points marqués par zone</div><table class="kv"><tr><th></th><th style="color:${C2[0]}">${esc(N[0])}</th><th style="color:${C2[1]}">${esc(N[1])}</th></tr>${zs.map(z=>`<tr><td>${esc(zoneName(pre,z))}</td>${[0,1].map(s=>`<td>${R.det.filter(({p})=>p.w===s&&!p.f&&p.z===z).length}</td>`).join('')}</tr>`).join('')}</table></div>`},
-   map:()=>`<div class="lvw wide"><div class="lvt">Carte des impacts</div><div class="cw mini">${courtSvg({pre,mode:'view',pts:m.pts,id:'lv'+uid(),flip:m.flip,names:[m.an,m.bn]})}</div></div>`,
-   rad:()=>`<div class="lvw wide"><div class="lvt">Profil de jeu</div>${radarSvg(radarAxes('profil',S2),[{nom:m.an,c:C2[0]},{nom:m.bn,c:C2[1]}],240)}</div>`,
-   ind:()=>{const L=indOfMatch(m).filter(x=>x.k!=='obs');if(!L.length)return'';return `<div class="lvw wide"><div class="lvt">Indicateurs de la leçon</div><table class="kv">${L.map(x=>`<tr><td>${esc(x.nom)}</td>${[0,1].map(s=>{const r=x.k==='compte'?(()=>{const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}})():x.f(S2[s],m.pre);return `<td>${indChip(r)}</td>`}).join('')}</tr>`).join('')}</table></div>`}};
-  const body=K.map(k=>{try{return W[k]?W[k]():''}catch(e){return''}}).join('');if(!body)return'';
-  return `<div class="card lvcard"><b>👁 En direct</b><div class="lvg">${body}</div></div>`}
+  d.innerHTML=`<div class="indmbg" onclick="if(event.target===this){LIVEM=null;liveModal();renderSeq()}"><div class="indm"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b style="font-size:1.15em">👁 Bannière des élèves pendant le match</b><div class="muted">Situation : ${esc(p.nom)}</div></div><button class="btn sm" onclick="LIVEM=null;liveModal();renderSeq()">✓ Terminé</button></div>
+   <div class="indmc"><p class="muted" style="margin-top:0">Coche ce qui s'affiche au-dessus du terrain, à côté du score. S'applique partout où cette situation est jouée.</p>${liveChecks(p)}</div></div></div>`}
+/* calculs communs */
+function liveData(m){const R=replay(m),S2=[matchStats(m,0),matchStats(m,1)],pre=m.pre;
+  const bon=[0,1].map(s=>R.det.filter(({p})=>p.w===s&&!p.f&&p.z&&zoneRule(pre,p.z).m==='b').length);
+  let n=0,w=null;for(let i=R.det.length-1;i>=0;i--){if(w==null)w=R.det[i].p.w;if(R.det[i].p.w!==w)break;n++}
+  return{R,S2,bon,ser:{w,n},won:[0,1].map(s=>R.det.filter(({p})=>p.w===s).length)}}
+const LCOL={get 0(){return PCOL[0]},1:'#e0457b'};
+function liveVal(k,m,D,s){const {R,S2}=D;
+  switch(k){case 'pts':return `${S2[s].nat.pd||0} <small>pts dir.</small> · ${S2[s].fd} <small>f.</small>`;
+   case 'bon':return String(D.bon[s]);
+   case 'bonp':return D.won[s]?Math.round(D.bon[s]/D.won[s]*100)+' %':'–';
+   case 'zp':return String(R.zp?R.zp[s]:0);
+   case 'man':return R.mp&&R.mp[s]?R.mp[s].pct+' %'+(R.mp[s].ok?' ✓':''):'–';
+   case 'srv':return String(S2[s].fsv);
+   case 'co':{const t=COUPS.filter(([k])=>S2[s].co[k]).sort((a,b)=>S2[s].co[b[0]]-S2[s].co[a[0]]);return t.length?t.slice(0,2).map(([k,n])=>`${n} ${S2[s].co[k]}`).join(' · '):'–'}
+   case 'nat':return NAT.filter(([k])=>S2[s].nat[k]).map(([k,n])=>`${n.toLowerCase()} ${S2[s].nat[k]}`).join(' · ')||'–';}
+  return ''}
+/* bannière des élèves : au-dessus du terrain */
+function liveBanner(m){if(m.pre.type==='exo')return'';const K=liveKeys(m.pre).filter(k=>k!=='ind'||indOn());if(!K.length)return'';const D=liveData(m),N=[m.an,m.bn];
+  const tiles=K.map(k=>{const lab=(LIVEW.find(x=>x[0]===k)||[])[1]||k;
+    if(k==='ser')return `<div class="bt"><span>${esc(lab)}</span><b>${D.ser.w==null?'–':`<i style="color:${LCOL[D.ser.w]}">${esc(N[D.ser.w]||'')}</i> ${D.ser.n}`}</b></div>`;
+    if(k==='ind'){const L=indOfMatch(m).filter(x=>x.k!=='obs').slice(0,2);return L.map(x=>`<div class="bt"><span>${esc(x.nom)}</span><b>${[0,1].map(s=>{const r=x.k==='compte'?(()=>{const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}})():x.f(D.S2[s],m.pre);return `<i style="color:${LCOL[s]}">${r?esc(r.t)+(r.ok?' ✓':''):'–'}</i>`}).join(' · ')}</b></div>`).join('')}
+    return `<div class="bt"><span>${esc(lab)}</span><b>${[0,1].map(s=>`<i style="color:${LCOL[s]}">${liveVal(k,m,D,s)}</i>`).join(' · ')}</b></div>`}).join('');
+  return `<div class="banner">${tiles}</div>`}
+/* vue complète : enseignant, ou « Plus d'infos » chez les élèves */
+function liveHtml(m){if(m.pre.type==='exo')return'';const pre=m.pre,D=liveData(m),{R,S2}=D,N=[m.an,m.bn];
+  const K=[...new Set([...liveKeys(pre),'pts','bon','bonp','zp','ser','man','co'])].filter(k=>(k!=='bon'&&k!=='bonp')||hasBonus(pre)).filter(k=>k!=='zp'||(R.zp&&(R.zp[0]||R.zp[1]))||liveKeys(pre).includes('zp')).filter(k=>k!=='man'||R.mp);
+  const two=(lab,f)=>`<div class="lvw"><div class="lvt">${lab}</div><div class="lv2">${[0,1].map(s=>`<div style="border-color:${LCOL[s]}"><small>${esc(N[s]||'')}</small><b>${f(s)}</b></div>`).join('')}</div></div>`;
+  const W=K.map(k=>{const lab=(LIVEW.find(x=>x[0]===k)||[])[1]||k;if(k==='ind')return'';
+    if(k==='ser')return `<div class="lvw"><div class="lvt">${lab}</div><div class="lvbig">${D.ser.w==null?'–':`<span style="color:${LCOL[D.ser.w]}">${esc(N[D.ser.w]||'')}</span> : ${D.ser.n} point${D.ser.n>1?'s':''} d'affilée`}</div></div>`;
+    return two(lab,s=>liveVal(k,m,D,s))}).join('');
+  const zs=zoneIds(pre),zt=(pre.np>1||pre.nl>1)?`<div class="lvw wide"><div class="lvt">Points marqués par zone</div><table class="kv"><tr><th></th><th style="color:${LCOL[0]}">${esc(N[0])}</th><th style="color:${LCOL[1]}">${esc(N[1])}</th></tr>${zs.map(z=>`<tr><td>${esc(zoneName(pre,z))}${zoneRule(pre,z).m==='b'?' ★':''}</td>${[0,1].map(s=>`<td>${R.det.filter(({p})=>p.w===s&&!p.f&&p.z===z).length}</td>`).join('')}</tr>`).join('')}</table></div>`:'';
+  const map=`<div class="lvw wide"><div class="lvt">Carte des impacts</div><div class="cw mini">${courtSvg({pre,mode:'view',pts:m.pts,id:'lv'+uid(),flip:m.flip,names:[m.an,m.bn]})}</div></div>`;
+  const L=indOn()?indOfMatch(m).filter(x=>x.k!=='obs'):[];
+  const ind=L.length?`<div class="lvw wide"><div class="lvt">Indicateurs de la leçon</div><table class="kv">${L.map(x=>`<tr><td>${esc(x.nom)}</td>${[0,1].map(s=>{const r=x.k==='compte'?(()=>{const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}})():x.f(S2[s],m.pre);return `<td>${indChip(r)}</td>`}).join('')}</tr>`).join('')}</table></div>`:'';
+  return `<div class="lvg">${W}${zt}${map}${ind}</div>`}
+let LVOPEN={};
+function liveTeacherCur(m){return `<details class="lvd" ${LVOPEN[m.id]?'open':''} ontoggle="LVOPEN['${m.id}']=this.open"><summary>👁 Voir le match en direct</summary>${liveBanner(m)}${liveHtml(m)}</details>`}
 function critHtml(cr,e){
   const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
@@ -2006,7 +2034,7 @@ function renderPlay(){
      <div class="card"><h2>4 · Qui sert en premier ?</h2><div class="seg big">${[0,1].map(k=>`<button class="${PL.srv===k?'on':''}" onclick="PL.srv=${k};renderPlay()">${k?'B':'A'} · ${esc(PL[k?'b':'a']?plName(c,PL[k?'b':'a'],PL[k?'gb':'ga']):'—')}</button>`).join('')}</div></div>`}
      <button class="btn or big" style="width:100%;padding:18px" onclick="playGo()">▶ C'est parti</button></div>`;return}
   const m=curMatch();if(!m){playClose();return}
-  const pre=m.pre,R=replay(m),exo=pre.type==='exo',nA=m.an,nB=m.bn;
+  const pre=m.pre,R=replay(m),exo=pre.type==='exo',nA=m.an,nB=m.bn,STU0=terrOn()&&!isUnlocked();box.classList.toggle('stu',STU0);
   if(exo){const left=(pre.essais||20)-R.n;
     box.innerHTML=`<div class="chd"><span data-eps-bar class="epsbar"></span><button class="lockbtn" onclick="playClose()">✕</button><h1>🎯 ${esc(pre.nom)} · ${esc(nA)}</h1><button class="lockbtn" onclick="playEnd()">🏁 Terminer</button></div>
     <div class="cbody wide"><div class="board"><div class="sc"><b style="color:#2ee59d">${R.ok}</b><span>réussites</span></div><div class="sc"><b>${R.n}</b><span>essais${left>0?' · reste '+left:''}</span></div><div class="sc"><b>${pre.obj?(R.ok>=pre.obj?'✓':R.ok+'/'+pre.obj):'–'}</b><span>objectif</span></div></div>
@@ -2022,7 +2050,7 @@ function renderPlay(){
   const pend=PL.pend;
   box.innerHTML=`<div class="chd"><span data-eps-bar class="epsbar"></span><button class="lockbtn" onclick="playClose()">✕</button><h1>🏸 ${esc(pre.nom)}${m.simple?' <small class="tag" style="background:#eef4fa;color:#1F5F8B">saisie simple</small>':''}</h1><button class="lockbtn" onclick="PL.cnt=!PL.cnt;renderPlay()" title="Afficher le nombre et le % de points par zone">${PL.cnt?'🔢 Valeurs':'🔢 Compteurs'}</button><button class="lockbtn" onclick="m_flip()">⇄ Côtés</button><button class="lockbtn" onclick="playEnd()">🏁 Terminer</button></div>
   <div class="cbody wide">
-   <div class="board">${card(m.flip?1:0)}<div class="vs">${pre.score==='zones'?(tgt?'à '+tgt:'au temps'):'en '+tgt}${pre.ecart?'<br>écart 2':''}</div>${card(m.flip?0:1)}</div>
+   <div class="board">${card(m.flip?1:0)}<div class="vs">${pre.score==='zones'?(tgt?'à '+tgt:'au temps'):'en '+tgt}${pre.ecart?'<br>écart 2':''}</div>${card(m.flip?0:1)}</div>${liveBanner(m)}
    ${R.fin&&!m.fin?`<div class="ok big" style="text-align:center">🏆 ${R.win<0?'Égalité':esc(R.win?nB:nA)+' gagne'}${R.inst!=null?' instantanément (toutes les zones ★)':''}${R.bc?` · Badcode : ${esc(nA)} ${R.bc[0]} pts, ${esc(nB)} ${R.bc[1]} pts`:''} — touche « Terminer » ou continue.</div>`:''}
    ${PL.cedit!=null?`<div class="pend"><b>Nouveau code de ${esc(PL.cedit?nB:nA)} :</b> ${[0,1].map(j=>`<div class="seg">${[1,2,3,4].map(n=>`<button class="${(PL.nc||'')[j]==String(n)?'on':''}" onclick="codeNew(${j},${n})">${n}</button>`).join('')}</div>`).join(' → ')} <button class="btn alt sm" onclick="PL.cedit=null;renderPlay()">Annuler</button></div>`:''}
    <div class="cw play">${courtSvg({pre,mode:'play',pts:m.pts,R,id:'pcourt',pend,flip:m.flip,names:[nA,nB],counts:!!PL.cnt})}</div>
@@ -2032,9 +2060,10 @@ function renderPlay(){
       ${pre.frappes?`<p class="muted" style="text-align:center;margin:6px 0">Combien de frappes dans l'échange (service compris) ? Le point vaut ${+pre.vf||10} − (frappes − 1).</p><div class="coups">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button style="border-color:#0B7A75;min-width:70px" onclick="PL.pend.nf=${n};pointOk('')">${n}${n===10?'+':''}<br><small>${Math.max(0,(+pre.vf||10)-(n-1))} pts</small></button>`).join('')}</div>`
        :pend.f?'':`${pre.badcode&&BCN[pend.z]&&String(BCN[pend.z])===(m[pend.w?'cb':'ca']||'')[1]?`<div class="row" style="justify-content:center;margin:6px 0"><label class="sw big"><input type="checkbox" ${pend.code?'checked':''} onchange="PL.pend.code=this.checked?1:0"><span></span>Code ${esc(m[pend.w?'cb':'ca'])} réalisé (adversaire d'abord amené en zone ${esc((m[pend.w?'cb':'ca']||'')[0])})</label></div>`:''}<p class="muted" style="text-align:center;margin:6px 0">Avec quel coup ? (facultatif)</p><div class="coups">${COUPS.map(([k,n,c])=>`<button style="border-color:${c}" onclick="pointOk('${k}')">${n}</button>`).join('')}</div>`}
       <div class="row" style="justify-content:center;margin-top:8px"><button class="btn big" onclick="pointOk('')">✓ Valider</button><button class="btn alt big" onclick="PL.pend=null;renderPlay()">Annuler</button></div></div>`
-    :`<p class="muted" style="text-align:center;margin:6px 0">👆 Touche l'endroit où le volant est tombé (dans ou hors du terrain) : l'appli trouve qui gagne le point.</p>
+    :`<p class="muted hint" style="text-align:center;margin:6px 0">👆 Touche l'endroit où le volant est tombé (dans ou hors du terrain) : l'appli trouve qui gagne le point.</p>
      <div class="row" style="justify-content:center">${[0,1].map(w=>`<button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'filet')">Filet de ${esc(w?nB:nA)}</button><button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'service')">Faute au service de ${esc(w?nB:nA)}</button><button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'faute')">Autre faute de ${esc(w?nB:nA)}</button>`).join('')}<button class="btn alt" onclick="playUndo()">↶ Annuler le dernier point</button></div>`}
-   ${obsPanel(m)}${liveHtml(m)}${m.pts.length?`<details class="card" style="margin-top:12px"><summary><b>📊 Toutes les statistiques du match</b></summary>${matchStatsHtml(m)}</details>`:''}
+   ${obsPanel(m)}${STU0?`<div class="row" style="justify-content:center;margin-top:10px"><button class="btn alt" onclick="PL.more2=!PL.more2;renderPlay()">${PL.more2?'▲ Moins d\'infos':'ℹ️ Plus d\'infos'}</button></div>${PL.more2?`<div class="card lvcard">${liveHtml(m)}</div>${m.pts.length?`<details class="card" style="margin-top:12px"><summary><b>📊 Toutes les statistiques du match</b></summary>${matchStatsHtml(m)}</details>`:''}`:''}`
+     :`<div class="card lvcard"><b>👁 En direct</b>${liveHtml(m)}</div>${m.pts.length?`<details class="card" style="margin-top:12px"><summary><b>📊 Toutes les statistiques du match</b></summary>${matchStatsHtml(m)}</details>`:''}`}
   </div>`;
   bindPlayCourt();
 }
