@@ -56,6 +56,20 @@
   var SF = [["t", "Titre de la situation"], ["cons", "Consigne"], ["crQ", "Critères de réussite (pour être en réussite) : quantitatifs"], ["crQl", "Critères de réussite (pour être en réussite) : qualitatifs"], ["crR", "Critères de réalisation (ce qu'il y a à faire pour faire)"], ["simp", "Variables : simplification"], ["comp", "Variables : complexification"]];
   var RF = [["rem", "Remise en action : consigne (match ou situation plus large)"], ["remCr", "Remise en action : critères de réussite"], ["bilan", "Bilan de la leçon"]];
   function blank(seq) { return { id: uid(), seq: seq || "", num: "", titre: "", duree: "", statut: "ok", ai: {}, sits: [{}, {}], prog: [] }; }
+  /* trames de séquence fournies par l'appli (window.EPS_TRAMES, ex. acrosport/trame-1gt.js) : fiches créées en brouillon, sans situations */
+  function trames() { var L = lecons(); return (window.EPS_TRAMES || []).filter(function (t) { return t && t.id && (t.lecons || []).length && !L.some(function (l) { return l.trame === t.id; }); }); }
+  function addTrame(T) {
+    if (!T || !confirm("Créer les " + T.lecons.length + " fiches de « " + T.nom + " » en brouillon ?\nTu pourras tout modifier, ajouter les situations, puis « ✓ Valider » chaque fiche.")) return;
+    var now = Date.now();
+    T.lecons.forEach(function (x, i) {
+      var l = blank(T.seq || T.nom); l.num = String(x.num || i + 1); l.titre = x.titre || ""; l.duree = x.duree || ""; l.sits = []; l.ai = {};
+      F.concat(RF).forEach(function (f) { var v = x[f[0]]; if (v) { l[f[0]] = String(v); l.ai[f[0]] = 1; } });
+      ["num", "titre"].forEach(function (k) { if (l[k]) l.ai[k] = 1; });
+      l.statut = "brouillon"; l.trame = T.id; if (T.voie) l.voie = T.voie; l.cr = now + i; if (T.sources) l.sources = T.sources;
+      put(KL, l);
+    });
+    draw();
+  }
   function lecons() { return all(KL).sort(function (a, b) { return String(a.seq).localeCompare(String(b.seq), "fr") || (parseFloat(a.num) || 0) - (parseFloat(b.num) || 0) || (a.cr || 0) - (b.cr || 0); }); }
   /* attribution aux classes : l.cls = [noms]. Une classe qui a au moins une leçon attribuée a sa propre séquence (seulement ses leçons) ;
      une classe sans aucune leçon attribuée garde toutes les leçons non attribuées. */
@@ -424,7 +438,8 @@
     var nd = docList().filter(function (d) { return d.use && !L.some(function (l) { return l.doc === d.id; }); }).length;
     var h = '<h2>Mes fiches de leçon</h2><p class="lc-mut">Fiches de leçon de ' + esc(NOM) + ". Les élèves ne voient que les leçons validées ✓, programmées ou lancées.</p>" +
       '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button>" + '<button type="button" class="lc-b" data-autoprog>📅 Programmer d\'après l\'emploi du temps</button>' + '<button type="button" class="lc-b" data-bankopen>🏦 Banque & apprentissages</button>' + (L.length ? '<button type="button" class="lc-b" data-printseq>🖨 Imprimer une séquence</button>' : "") + (L.length ? '<button type="button" class="lc-b" data-refall title="Toutes les fiches de l\'activité rangées selon ton modèle (importées de Word, de documents…)">🔁 Remettre en forme toutes les fiches</button>' : "") +
-      (nd ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>" : "") + "</div>" +
+      (nd ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>" : "") +
+      trames().map(function (t, k) { return '<button type="button" class="lc-b" data-trame="' + k + '">📥 Trame proposée : ' + esc(t.nom) + "</button>"; }).join("") + "</div>" +
       (CC.length ? '<div class="lc-box"><b>👥 Séquence par classe</b><p class="lc-mut" style="margin:2px 0 6px">Touche une ou plusieurs classes, puis « ＋ Attribuer » sur les leçons à leur proposer : chaque classe a sa propre séquence. Une classe sans leçon attribuée garde toutes les leçons.</p><div class="lc-row">' +
         CC.map(function (c) { var on = SELC.some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-selc="' + esc(c) + '" title="' + (vClasse(c) === "pro" ? "Voie professionnelle" : "Voie générale") + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
         (SELC.length ? '<button type="button" class="lc-b s" data-selc0>✕ Aucune</button>' : "") + "</div></div>" : "") +
@@ -457,6 +472,7 @@
       var autres = l.voie ? SELC.filter(function (c) { return vClasse(c) !== l.voie; }) : []; if (!allIn && autres.length && !confirm("Cette leçon est écrite pour la " + (l.voie === "pro" ? "voie professionnelle (AFLP)" : "voie générale (AFL)") + ", mais " + autres.join(", ") + (autres.length > 1 ? " sont" : " est") + " en " + (l.voie === "pro" ? "voie générale" : "voie professionnelle") + ". L'attribuer quand même ?")) return;
       setCls(l, SELC, !allIn); put(KL, l); var y = OV.querySelector(".lc-body").scrollTop; draw(); OV.querySelector(".lc-body").scrollTop = y; }; });
     var im = el.querySelector("[data-imall]"); if (im) im.onclick = importAll;
+    el.querySelectorAll("[data-trame]").forEach(function (b) { b.onclick = function () { addTrame(trames()[+b.dataset.trame]); }; });
     var bko = el.querySelector("[data-bankopen]"); if (bko) bko.onclick = function () { bankOpen(); };
     var pq = el.querySelector("[data-printseq]"); if (pq) pq.onclick = function () { var md = document.createElement("div"); md.className = "lc-modal";
       md.innerHTML = '<div><h2>🖨 Quelle séquence ?</h2><div class="lc-row">' + S.map(function (q, i) { return '<button type="button" class="lc-b" data-q="' + i + '">' + esc(q) + " (" + L.filter(function (l) { return (l.seq || "Sans séquence") === q; }).length + ")</button>"; }).join("") + '</div><div class="lc-row"><button type="button" class="lc-b" data-x>Annuler</button></div></div>';

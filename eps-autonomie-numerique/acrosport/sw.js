@@ -1,7 +1,7 @@
 // Acrosport EPS — service worker : appli toujours à jour quand il y a du réseau, utilisable hors connexion sinon.
-const CORE = "acro-core-v32";
+const CORE = "acro-core-v33";
 const VIDEOS = "acro-videos-v1";
-const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "trame-1gt.js"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CORE).then(c => c.addAll(CORE_FILES)).then(() => self.skipWaiting()));
