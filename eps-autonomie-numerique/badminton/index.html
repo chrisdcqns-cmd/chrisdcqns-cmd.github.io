@@ -1606,7 +1606,7 @@ function playEnd(){const m=curMatch();if(!m)return;if(!m.pts.length){if(confirm(
     :`<div class="board"><div class="pl p0"><div class="nm">${esc(m.an)}</div><div class="big2">${R.sc[0]}</div><div class="sub">zones ${R.zp[0]}</div></div><div class="vs">${R.win<0?'Égalité':'🏆 '+esc(R.win?m.bn:m.an)}${R.cp?`<br><small>Points de match : ${[0,1].map(s=>R.cp[s]??'–').join(' – ')}</small>`:R.mp?`<br><small>Manière : ${[0,1].map(s=>R.mp[s]?R.mp[s].pct+' % '+(R.mp[s].ok?'✓':'✗'):'–').join(' – ')}</small>`:''}${R.bc?`<br><small>Badcode : ${R.bc[0]} – ${R.bc[1]} pts</small>`:''}</div><div class="pl p1"><div class="nm">${esc(m.bn)}</div><div class="big2">${R.sc[1]}</div><div class="sub">zones ${R.zp[1]}</div></div></div>`}
    ${m.man?`<div class="card"><h2>🟩 Fiche ${m.man.some(x=>x&&x.mode==='verte')?'contrat':'manière'}</h2>${[0,1].map(s=>ctTable(m,R,s)).join('')}${m.man.some(x=>x&&x.mode==='verte')?ctLegend():''}</div>`:''}
    <div class="card">${matchStatsHtml(m)}</div>
-   <div class="row" style="justify-content:center"><button class="btn or big" onclick="playStart('${m.pre.id}','${PL.cid}',${exo?`'${m.a}',null`:`'${m.b}','${m.a}'`},'${m.poule||''}')">↻ ${exo?'Recommencer':'Revanche'}</button>${m.poule?`<button class="btn big" onclick="playClose();TERRT='poule';renderTerr()">🏆 Retour à la poule</button>`:''}<button class="btn alt big" onclick="playClose()">Terminé</button></div></div>`;
+   <div class="row" style="justify-content:center"><button class="btn or big" onclick="playStart('${m.pre.id}','${PL.cid}',${exo?`'${m.a}',null`:`'${m.b}','${m.a}'`},'${String(m.poule||'').indexOf('atp:')===0?'':(m.poule||'')}')">↻ ${exo?'Recommencer':'Revanche'}</button>${String(m.poule||'').indexOf('atp:')===0?`<button class="btn big" onclick="playClose();TERRT='atp';renderTerr()">🏅 Retour aux défis</button>`:m.poule?`<button class="btn big" onclick="playClose();TERRT='poule';renderTerr()">🏆 Retour à la poule</button>`:''}<button class="btn alt big" onclick="playClose()">Terminé</button></div></div>`;
 }
 
 /* ================== JOUER AVEC LA MANIÈRE (N. Mascret) ==================
@@ -1815,7 +1815,7 @@ function renderMatchs(){
      <button class="btn sm" onclick="playResume('${m.id}')">✎ Reprendre</button><button class="btn red sm" onclick="matchDel('${m.id}')">Supprimer</button></div>${matchStatsHtml(m)}</div>`;return}
   const L=c.eleves.map(e=>({e,st:elStats(c,e.id,MDATE)}));
   const sel=CMP.map(id=>L.find(x=>x.e.id===id)).filter(Boolean);
-  el.innerHTML=grpAdmin(c)+`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Matchs de ${esc(c.nom)}</h2>
+  el.innerHTML=grpAdmin(c)+`<details class="card"${atpRank(c).some(x=>x.v+x.d)?' open':''}><summary style="cursor:pointer"><h2 style="display:inline;margin:0">🏅 Classement ATP de ${esc(c.nom)}</h2></summary><p class="muted">${atpBareme()} Les élèves lancent leurs défis depuis la tablette de terrain (onglet 🏅 Défis ATP). Barème modifiable dans 🎛 Paramètres.</p>${atpTable(c)}</details>`+`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Matchs de ${esc(c.nom)}</h2>
      <div class="row"><select class="f" style="width:auto" onchange="MDATE=this.value;renderMatchs()"><option value="">Toutes les leçons (${all.length})</option>${dates.map(d=>`<option value="${d}" ${d===MDATE?'selected':''}>${dateFR(d)} (${all.filter(m=>m.date===d).length})</option>`).join('')}</select>
      <button class="btn or sm" onclick="playStart(lessonPre())">▶ Nouveau match</button></div></div>
    <p class="muted">Les matchs saisis sur toutes les tablettes (enseignant ou tablette de terrain) arrivent ici automatiquement.</p>
@@ -2063,6 +2063,38 @@ function lecEleveHtml(l){const sit=(l.temps||[]).map(t=>t.pre).filter(id=>id&&pr
      ${(t.crr||[]).length?`<div class="bx tip"><b>💡 Pour bien faire</b><ul>${t.crr.map(x=>`<li>${esc(x.replace(/^(Service|Amorti|Dégagé|Smash|Kill|Kill revers) : /,'$1 : '))}</li>`).join('')}</ul></div>`:''}
      ${t.vp||t.vm?`<div class="bx var">${t.vp?`<p><b>➕ Trop facile ?</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p><b>➖ Trop difficile ?</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div></div>`}).join('')}`}
 
+/* ================== 🏅 CLASSEMENT ATP ET DÉFIS ==================
+   Classement individuel de la classe sur toute la séquence, calculé à partir de tous les matchs terminés (tablettes de terrain et enseignant),
+   dans l'ordre où ils ont été joués. Barème (🎛 Paramètres → Défis ATP) : victoire, + bonus par place d'écart quand on bat un joueur mieux classé
+   (« exploit », plafonné), + bonus si on gagne un défi qu'on a lancé, points de participation pour une défaite.
+   Défi : depuis la tablette de terrain, on défie un joueur classé au plus N places au-dessus (absents de l'appel exclus). */
+const ATP_P=EPSP.p({id:'atp',sec:'Défis ATP',label:"Barème ATP (6 lignes, dans cet ordre) : victoire · bonus par place d'écart · bonus maximum · défi gagné · défaite · places au-dessus qu'on peut défier",type:'list',fixed:6,def:['10','5','30','10','2','3']});
+function atpCfg(){const v=(Array.isArray(ATP_P)?ATP_P:[]).map(x=>parseFloat(String(x).replace(',','.').replace(/[^\d.]/g,'')));return [10,5,30,10,2,3].map((x,i)=>isFinite(v[i])?v[i]:x)}
+function atpRank(c){const [W,PE,MX,DF,LO]=atpCfg(),P={};
+  c.eleves.forEach(e=>P[e.id]={id:e.id,pts:0,v:0,d:0,ex:0,df:0,f:[]});
+  const order=()=>Object.values(P).sort((a,b)=>b.pts-a.pts||b.v-a.v||fullName(elById(c,a.id)).localeCompare(fullName(elById(c,b.id)),'fr'));
+  matchesOf(c,m=>m.fin&&m.pre&&m.pre.type!=='exo'&&P[m.a]&&P[m.b]&&m.a!==m.b).forEach(m=>{const R=replay(m);if(R.win!==0&&R.win!==1)return;
+    const pos={};order().forEach((x,i)=>pos[x.id]=i);const w=R.win?m.b:m.a,l=R.win?m.a:m.b,ec=pos[w]-pos[l];let g=W;
+    if(ec>0&&(P[l].v+P[l].d)>0){g+=Math.min(MX,PE*ec);P[w].ex++}
+    if(String(m.poule||'').indexOf('atp:')===0&&m.a===w){g+=DF;P[w].df++}
+    P[w].pts+=g;P[w].v++;P[w].f.push('V');P[l].pts+=LO;P[l].d++;P[l].f.push('D')});
+  return order().map((x,i)=>Object.assign(x,{rk:i+1}))}
+function atpTable(c,hl){const L=atpRank(c);
+  if(!L.some(x=>x.v+x.d))return '<p class="muted">Aucun match terminé pour l\'instant : le classement se remplit tout seul avec les matchs saisis sur les tablettes.</p>';
+  return `<div class="tw"><table><tr><th>#</th><th>Joueur</th><th>Points ATP</th><th>V</th><th>D</th><th title="victoires contre un joueur mieux classé">Exploits</th><th>Défis gagnés</th><th>Forme</th></tr>${L.map(x=>{const e=elById(c,x.id);return `<tr ${hl&&hl.includes(x.id)?'style="background:#e3f4f1;font-weight:800"':''}><td>${x.rk}</td><td>${esc(fullName(e))}${absJ(e,c)?' <small class="muted">· absent</small>':''}</td><td><b>${x.pts}</b></td><td>${x.v}</td><td>${x.d}</td><td>${x.ex}</td><td>${x.df}</td><td aria-label="5 derniers matchs">${x.f.slice(-5).map(r=>r==='V'?'🟢':'🔴').join('')||'–'}</td></tr>`}).join('')}</table></div>`}
+function atpBareme(){const [W,PE,MX,DF,LO,UP]=atpCfg();return `Victoire ${W} pts · battre un joueur mieux classé : +${PE} par place d'écart (max +${MX}) · défi gagné : +${DF} · défaite : ${LO} pt${LO>1?'s':''}. On peut défier jusqu'à ${UP} place${UP>1?'s':''} au-dessus.`}
+let ATPA='';
+function atpHtml(c,g){const [,,,,,UP]=atpCfg(),L=atpRank(c),R={};L.forEach(x=>R[x.id]=x);
+  const me=grpMembers(c,g).filter(e=>!absJ(e,c)),a=me.some(e=>e.id===ATPA)?ATPA:'',ra=a&&R[a];
+  let opp=[];if(ra){opp=L.filter(x=>x.id!==a&&x.rk<ra.rk&&ra.rk-x.rk<=UP&&!absJ(elById(c,x.id),c));
+    if(!opp.length&&ra.rk>1)opp=L.filter(x=>x.id!==a&&x.rk<ra.rk&&!absJ(elById(c,x.id),c)).slice(-UP);}
+  const dj=matchesOf(c,m=>m.date===today()&&String(m.poule||'').indexOf('atp:')===0).reverse();
+  return `<div class="card"><h2>🏅 Défis ATP</h2><p class="muted">${atpBareme()}</p>
+    <label class="l">Qui lance le défi ?</label><div class="pres">${me.map(e=>`<button class="${e.id===a?'p':''}" onclick="ATPA='${e.id}';renderTerr()">${esc(fullName(e))}<br><small class="muted">${R[e.id]?'n° '+R[e.id].rk+' · '+R[e.id].pts+' pts':''}</small></button>`).join('')||'<p class="muted">Personne de présent dans le groupe.</p>'}</div>
+    ${a?(ra.rk===1?'<p class="big">👑 Tu es n° 1 : à toi de défendre ta place ! Les autres viennent te défier.</p>':opp.length?`<label class="l" style="margin-top:10px">Qui veux-tu défier ?</label><div class="tiles">${opp.map(x=>`<button class="tile" onclick="playStart(lessonPre(),'${c.id}','${a}','${x.id}','atp:'+today())">⚔ ${esc(fullName(elById(c,x.id)))}<br><small class="muted" style="font-weight:600">n° ${x.rk} · ${x.pts} pts</small></button>`).join('')}</div>`:'<p class="muted">Personne de présent à défier au-dessus de toi pour l\'instant.</p>'):''}</div>
+   ${dj.length?`<div class="card"><h3>Défis du jour</h3><div class="mlist">${dj.map(m=>{const R2=replay(m);return `<button onclick="TRES='${m.id}';renderTerrRes()"><b>⚔ ${esc(m.an)} <span class="sc2">${R2.sc[0]} – ${R2.sc[1]}</span> ${esc(m.bn)}</b></button>`}).join('')}</div></div>`:''}
+   <div class="card"><h2>Classement de la classe</h2>${atpTable(c,g.el)}</div>`}
+
 /* ================== GROUPES (une tablette = un groupe d'élèves) ET RENCONTRES ================== */
 const TOURS=[['groupe',"Au sein du groupe","Chaque groupe joue sa poule : tout le monde se rencontre. Seuls les résultats du groupe s'affichent."],['inter',"Entre groupes (défis)","Un groupe défie le groupe de son choix. Tous les groupes et leur classement apparaissent."],['italienne',"Ronde à l'italienne","Chaque groupe rencontre tous les autres groupes, ronde après ronde. Tous les groupes apparaissent."]];
 function grpOf(c,eid){return Object.values(c.groupes||{}).find(g=>g.el.includes(eid))}
@@ -2150,7 +2182,7 @@ function renderTerr(){
   const n=lessonNow(),l=lessonObj(n),g=curGrp(c);
   const hdBtns=`${g?`<button class="lockbtn" onclick="gLeave()" title="Changer de groupe">👥 ${esc(g.nom)}</button>`:''}<button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button>`;
   if(!g){box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}</h1>${hdBtns}</div><div class="cbody">${grpScreen(c)}</div>`;return}
-  const tabs=[['jouer','🏸 Jouer'],['poule','🏆 Poule'],['lecon','📋 Leçon du jour'],['ech','🔥 Échauffement'],['tech','📚 Technique'],['fiche','🗒 Ma fiche'],['stats','📊 Mes stats']];
+  const tabs=[['jouer','🏸 Jouer'],['poule','🏆 Poule'],['atp','🏅 Défis ATP'],['lecon','📋 Leçon du jour'],['ech','🔥 Échauffement'],['tech','📚 Technique'],['fiche','🗒 Ma fiche'],['stats','📊 Mes stats']];
   box.innerHTML=`<div class="chd"><h1>🏸 Badminton · ${esc(c.nom)}${l?' · Leçon '+l.n:''}</h1>${hdBtns}</div>
    <div class="ctabs">${tabs.map(([k,nm])=>`<button class="${TERRT===k?'on':''}" onclick="TERRT='${k}';renderTerr()">${nm}</button>`).join('')}</div>
    <div class="cbody" id="tbody"></div>`;
@@ -2162,6 +2194,7 @@ function renderTerr(){
      ${others.length?`<div class="card"><h2>Autres situations</h2><div class="tiles">${others.map(p=>`<button class="tile" style="font-size:1rem" onclick="playStart('${p.id}')">${p.type==='exo'?'🎯':'🏸'} ${esc(p.nom)}</button>`).join('')}</div></div>`:''}
      <div class="card"><h2>Matchs du jour</h2>${today_.length?`<div class="mlist">${today_.map(m=>{const R=replay(m);return `<button onclick="TRES='${m.id}';renderTerrRes()"><b>${m.pre.type==='exo'?'🎯 '+esc(m.an)+' · '+R.ok+'/'+R.n:esc(m.an)+' <span class="sc2">'+R.sc[0]+' – '+R.sc[1]+'</span> '+esc(m.bn)}</b><small>${esc(m.pre.nom)}${m.fin?'':' · en cours (toucher pour reprendre)'}</small></button>`}).join('')}</div>`:'<p class="muted">Aucun match saisi aujourd\'hui.</p>'}</div>`}
   else if(TERRT==='poule')b.innerHTML=pouleGrpHtml(c);
+  else if(TERRT==='atp')b.innerHTML=atpHtml(c,g);
   else if(TERRT==='lecon')b.innerHTML=l?lecEleveHtml(l):'<p class="muted">Pas de leçon.</p>';
   else if(TERRT==='ech'){b.innerHTML=`<div class="card">${deplHtml()}</div><div class="card">${routHtml(n)}</div>`}
   else if(TERRT==='tech')b.innerHTML=techHtml(false);
