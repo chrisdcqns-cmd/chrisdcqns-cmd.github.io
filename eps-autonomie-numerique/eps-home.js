@@ -1358,7 +1358,8 @@
   window.EPSR = { pronote: pronote, get: rget, set: function (o) { var r = rget(), ch = false; Object.keys(o || {}).forEach(function (k) { if (JSON.stringify(r[k]) !== JSON.stringify(o[k])) { r[k] = o[k]; if (SHARED.indexOf(k) >= 0) ch = true; } }); rset(r, ch); }, open: function () { askCode().then(function (ok) { if (ok) reglages(); }); }, pdfHead: pdfHead, htmlHead: htmlHead, head: headInfo, save: backupSave };
   window.EPSD = { refresh: function () { try { draw(); } catch (e) {} },
     reformuler: function (t, o) { return reformuler(t, o); },
-    shareSettings: function () { return shareSettings(); }, sigCheck: function () { sigCheck(); },
+    shareSettings: function () { return shareSettings(); }, devId: function () { return devInfo().id; }, devName: function () { return devInfo().nom || ""; },
+    tabList: function (app) { var V = stLd(KTB), L = Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.at && (!app || x.app === app) && x.mode !== "enseignant" && Date.now() - x.at < 60 * 864e5; }); return L.sort(function (a, b) { return String(a.nom || "zz").localeCompare(String(b.nom || "zz"), "fr", { numeric: true }) || b.at - a.at; }); }, sigCheck: function () { sigCheck(); },
     tablets: function () { return tablets(); }, signal: function (t, min, tout) { return t ? sigSend(t, min, tout) : signal(); },
     store: function (o) { if (!STORES.some(function (x) { return x.key === o.key; })) STORES.push(o); clearTimeout(timer); timer = setTimeout(sync, 2000); },
     /* ✨ version élève d'un critère (éditeurs de grille propres à Volley, Badminton, Danse) : Claude propose les 4 descripteurs « Je… »

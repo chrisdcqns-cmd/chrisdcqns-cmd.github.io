@@ -350,6 +350,7 @@ html.epst-on header nav#nav{display:none!important}
 .lvone{display:flex;align-items:center;gap:10px;margin-bottom:10px}.lvonec{flex:1;max-width:760px;margin:0 auto}.lvone .lvc{padding:16px}.lvone .lvd button{min-height:80px}.lvone .lvn{font-size:1.35rem}
 .lvnav{flex:none;width:56px;height:120px;border-radius:16px;border:2px solid var(--line);background:#fff;font-size:2.4rem;font-weight:900;color:var(--vol)}.lvnav:disabled{opacity:.3}
 .lvdots{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:10px 0 2px}.lvdots button{width:14px;height:14px;min-height:0;border-radius:50%;border:2px solid var(--vol);background:#fff;padding:0}.lvdots button.ok{background:#b9e2c8;border-color:#2e9e5b}.lvdots button.on{background:var(--vol);border-color:var(--vol)}
+.ptabs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:6px}.ptabs label{display:grid;gap:4px;font-weight:700;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -1449,7 +1450,7 @@ function coEquipe(c,t,j){return `<div class="card"><h2>👥 ${esc(t.nom)}</h2><p
 function planOf(c,d){return ((c&&c.plans)||{})[d||today()]||null}
 let PLD='';/* date du plan en préparation ('' = aujourd'hui) */
 function pld(){return PLD&&PLD>=today()?PLD:today()}
-function planEdit(c,fn){PLO=true;c.plans=c.plans||{};const d=pld(),p=c.plans[d]||(c.plans[d]={ter:{},arb:{}});p.ter=p.ter||{};p.arb=p.arb||{};fn(p);p.u=Date.now();save()}
+function planEdit(c,fn){PLO=true;c.plans=c.plans||{};const d=pld();if(!c.plans[d]){const D=Object.keys(c.plans).filter(x=>x<d).sort(),pr=D.length?c.plans[D[D.length-1]]:null;c.plans[d]={ter:{},arb:{},tab:pr&&pr.tab?{...pr.tab}:{}}}const p=c.plans[d];p.ter=p.ter||{};p.arb=p.arb||{};fn(p);p.u=Date.now();save()}
 function terOf(p,tid){if(!p)return 0;for(const k of Object.keys(p.ter||{}))if((p.ter[k]||[]).includes(tid))return +k;return 0}
 function affOf(c,t){const p=planOf(c);if(!p)return null;const k=terOf(p,t.id);
   if(k){const adv=(p.ter[k]||[]).find(x=>x&&x!==t.id);return{mode:'jeu',k,adv:adv||''}}
@@ -1480,6 +1481,7 @@ function planHtml(c){
    <div class="row pdate"><span>📅 Plan pour</span><button class="btn sm ${pld()===today()?'':'alt'}" onclick="PLD='';renderEquipes()">Aujourd'hui</button><input type="date" min="${today()}" value="${pld()}" onchange="PLD=this.value;PLO=true;renderEquipes()">
     ${pld()!==today()?`<span class="ptag2">Préparé à l'avance : les tablettes l'afficheront le ${dIso(pld())}</span>`:''}
     ${(()=>{const D=Object.keys(c.plans||{}).filter(d=>d<pld()).sort(),last=D[D.length-1];return last&&!planOf(c,pld())?`<button class="btn alt sm" onclick="planCopie('${last}')">📋 Reprendre le plan du ${dIso(last)}</button>`:''})()}</div>
+   ${planTabsHtml(c,p)}
    <label class="l" style="margin-top:8px">📌 Consigne du jour pour toutes les équipes</label><input type="text" placeholder="Ex. : échauffement en autonomie, puis matchs en 15 points ; objectif : attaquer en 3 touches" value="${esc(p.msg||'')}" onchange="planEdit(C(),q=>{q.msg=this.value.trim()});renderEquipes()">
    <div style="margin-top:8px"><b>✅ Situation(s) du jour</b> <span class="muted">(mises en avant sur les tablettes)</span><div class="row" style="margin-top:6px">${(S.seq.situations||[]).map(x=>`<button class="btn alt sm ${(p.sit||[]).includes(x.id)?'lvon':''}" onclick="planSit('${x.id}')">${(p.sit||[]).includes(x.id)?'✓ ':''}${esc(x.nom)}${x.type==='rem'?' <small>(rem.)</small>':''}</button>`).join('')}</div></div>
    <div class="pter">${[1,2,3].map(k=>{const P=p.ter[k]||[];return `<div><b>Terrain ${k}</b><div class="pvs">${opt(P[0],k,0)}<span>contre</span>${opt(P[1],k,1)}</div></div>`}).join('')}</div>
@@ -1490,7 +1492,7 @@ function planHtml(c){
         ${x.k?`<button class="btn alt sm" onclick="planRole('${t.id}','${id}')">${rLbl(x.r)}</button>`:''}</div>`}).join('')}</div>`}).join('')}</div>
    <p class="muted" style="margin-top:8px">Chaque tablette d'équipe affiche aussitôt son terrain et son adversaire (ou les arbitres et leur terrain). Le coach confirme « nous sommes au terrain » : ✓ apparaît ci-dessous.</p></div>`}
 function planSit(id){planEdit(C(),p=>{p.sit=p.sit||[];p.sit=p.sit.includes(id)?p.sit.filter(x=>x!==id):p.sit.concat(id)});renderEquipes()}
-function planCopie(d){const c=C(),o=JSON.parse(JSON.stringify(planOf(c,d)||{}));planEdit(c,p=>{p.ter=o.ter||{};p.arb=o.arb||{};p.msg=o.msg||'';p.sit=o.sit||[]});renderEquipes();toast('Plan repris : modifie ce qui change')}
+function planCopie(d){const c=C(),o=JSON.parse(JSON.stringify(planOf(c,d)||{}));planEdit(c,p=>{p.ter=o.ter||{};p.arb=o.arb||{};p.tab=o.tab||p.tab||{};p.msg=o.msg||'';p.sit=o.sit||[]});renderEquipes();toast('Plan repris : modifie ce qui change')}
 function planSet(k,i,tid){const c=C();planEdit(c,p=>{Object.keys(p.ter).forEach(K=>{p.ter[K]=(p.ter[K]||[]).map(x=>x===tid?'':x)});const P=p.ter[k]=p.ter[k]||['',''];P[i]=tid||'';if(tid&&p.arb)delete p.arb[tid]});renderEquipes()}
 function planArb(tid){const c=C();planEdit(c,p=>{if(p.arb[tid])delete p.arb[tid];else{p.arb[tid]={};planSplitIn(c,p,tid)}});renderEquipes()}
 function planSplitIn(c,p,tid){const t=(c.equipes||[]).find(x=>x.id===tid);if(!t)return;const K=[1,2,3].filter(k=>(p.ter[k]||[]).some(Boolean)),j=(t.jours||{})[today()];
@@ -1508,6 +1510,27 @@ function planTour(n){const c=C(),tr=tourn(c);if(!tr)return;planEdit(c,p=>{p.ter=
 
 /* 📱 ce que fait cette tablette (liste des tablettes connectées, eps-home.js) */
 window.epsTabInfo=()=>{try{if(!isUnlocked()&&coachOn()){const c=coC(),t=coT();return{mode:'coach',cls:c?c.nom:'',eq:t?t.nom:''}}}catch(e){}return{}};
+/* ================== TABLETTE ATTRIBUÉE À UNE ÉQUIPE ==================
+   L'enseignant attribue chaque tablette (identifiant d'eps-home.js, EPSD.devId) à une équipe dans le plan du jour :
+   plan.tab = {idTablette: idÉquipe}. Côté élève, la tablette s'ouvre seule sur sa classe et son équipe ;
+   le coach du jour n'a plus qu'à toucher « C'est moi ». Un nouveau plan reprend les tablettes du plan précédent. */
+function tabNom(x){return x?(x.nom||('Tablette …'+String(x.id).slice(-4))):'?'}
+function tabsVol(){try{return window.EPSD&&EPSD.tabList?EPSD.tabList('volley'):[]}catch(e){return []}}
+function tabOf(p,tid){return Object.keys((p&&p.tab)||{}).find(k=>p.tab[k]===tid)||''}
+function planTab(tid,dev){const c=C();planEdit(c,p=>{p.tab=p.tab||{};Object.keys(p.tab).forEach(k=>{if(p.tab[k]===tid||k===dev)delete p.tab[k]});if(dev)p.tab[dev]=tid});renderEquipes()}
+function tabAuto(){
+  if(isUnlocked()||apOn()||!(window.EPSD&&EPSD.devId))return;const me=EPSD.devId();
+  for(const c of S.classes){const p=planOf(c),tid=p&&p.tab&&p.tab[me];if(!tid||!(c.equipes||[]).some(t=>t.id===tid))continue;
+    if(CO.on&&CO.cid===c.id&&CO.tid===tid)return;
+    CO.on=1;CO.cid=c.id;CO.tid=tid;CO.step=0;CO.tab='lecon';coSave();document.querySelectorAll('.epsg').forEach(x=>x.remove());setLock();renderCoach();
+    toast('Ton enseignant a attribué cette tablette à '+tnom(c,tid));return}
+}
+setTimeout(tabAuto,1500);setInterval(tabAuto,20000);
+function planTabsHtml(c,p){const E=c.equipes||[],L=tabsVol();
+  return `<div style="margin-top:10px"><b>📱 Tablette de chaque équipe</b> <span class="muted">(la tablette s'ouvre seule sur l'équipe : le coach touche juste « C'est moi »)</span>
+   ${L.length?`<div class="ptabs">${E.map(t=>{const cur=tabOf(p,t.id);return `<label>${esc(t.nom)}<select class="f" onchange="planTab('${t.id}',this.value)"><option value="">— choix de l'élève —</option>${L.map(x=>`<option value="${esc(x.id)}" ${cur===x.id?'selected':''}>${esc(tabNom(x))}${x.eq?' (dernièrement : '+esc(x.eq)+')':''}</option>`).join('')}</select></label>`}).join('')}</div>`
+   :`<p class="muted">Aucune tablette connue : ouvre Volley-ball une fois sur chaque tablette (partage entre tablettes réglé), donne-lui un nom dans 📱 Tablettes connectées, puis reviens ici.</p>`}</div>`}
+
 /* ================== FIL DE LA LEÇON (résumé automatique d'une équipe pour un jour) ==================
    Construit à partir de ce que la tablette du coach a enregistré : coach, rôles, appel, terrain, matchs,
    situations validées, remédiations, bilan, rangement. Affiché au coach de la leçon suivante, en fin de leçon
@@ -1547,7 +1570,7 @@ function dbEquipe(c,t){
   if(M.length&&a.w+a.l>0&&a.w/(a.w+a.l)<.35)A.push('marque peu');
   let live='';if(m){const [x,y]=m.mode==='obs'?scOf(m):[(m.pts||[]).filter(p=>p.w).length,(m.pts||[]).filter(p=>!p.w).length];live=`<div class="dbm">🔴 contre <b>${esc(m.adv)}</b> <span>${x} – ${y}</span>${m.mode==='obs'?' <small>👀 observé</small>':''}</div>`}
   return `<div class="dbt ${A.length?'warn':''}" style="--ch:${ch?ch[1]:'#d9d4c9'}">
-   <div class="dbh"><i></i><b>${esc(t.nom)}</b><button class="btn alt sm" onclick="EQT='${t.id}';DBV=false;renderEquipes()">📊</button></div>
+   <div class="dbh"><i></i><b>${esc(t.nom)}</b>${(()=>{const id=tabOf(planOf(c),t.id),x=id&&tabsVol().find(y=>y.id===id);return id?`<small class="muted">📱 ${esc(tabNom(x||{id}))}</small>`:''})()}<button class="btn alt sm" onclick="EQT='${t.id}';DBV=false;renderEquipes()">📊</button></div>
    <div class="muted">${j?`🧢 ${esc(shortName(elOf(c,j.coach)))} · ${pres}/${n} présent(s)${abs.length?' · abs. '+abs.map(id=>esc(shortName(elOf(c,id)))).join(', '):''}`:'tablette pas encore ouverte'}</div>
    ${(()=>{const af=affOf(c,t);if(!af||af.mode!=='jeu')return '';const ok=affOk(c,t);return `<div class="${ok?'pok':'pwait'}">${ok?`✓ Au terrain ${af.k} (confirmé par le coach)`:j&&j.terrain&&j.terrain!==af.k?`⚠ Envoyée au terrain ${af.k}, la tablette indique le terrain ${j.terrain}`:`⏳ Envoyée au terrain ${af.k} : pas encore confirmé`}${af.adv?' · contre '+esc(tnom(c,af.adv)):''}</div>`})()}
    ${live}
@@ -2092,7 +2115,7 @@ async function syCycle(){
   }catch(e){SY.err='Synchronisation impossible pour le moment (réseau ?).'}
   finally{syBusy=false;sySave();syUpd();sySched()}}
 /* après réception : on réaffiche sans perdre l'endroit où l'on est (sauf pendant une saisie) */
-function syRefresh(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!=='checkbox')return;
+function syRefresh(){setTimeout(tabAuto,50);const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!=='checkbox')return;
   const y=scrollY;renderClassSel();const t=document.querySelector('#nav button.on').dataset.t;
   if(t==='eval'){if(curEl!=null)renderEval();else if(document.getElementById('evLive').style.display==='block')renderLive();else renderList()}else if(t==='bilan')renderBilan();else if(t==='eleves')renderEleves();else if(t==='bareme')renderBareme();else if(t==='seq')renderSeq();else if(t==='equipes')renderEquipes();
   if(coachOn())renderCoach();
