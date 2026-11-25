@@ -458,6 +458,14 @@ details.more{margin-top:6px}details.more>summary{cursor:pointer;font-weight:700;
 .indm{background:#fff;border-radius:16px;max-width:820px;width:100%;max-height:88vh;display:flex;flex-direction:column;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
 .indmc{overflow:auto;margin-top:8px}.indm .indb{margin-top:0;border:0;background:transparent;padding:0}
 .indm .indb>.row:first-child{justify-content:flex-end!important}.indm .indb>.row:first-child>b{display:none}
+
+.indmini{margin-top:0}
+.lvcard{margin-top:10px;border-left:5px solid #2E7D4F}.lvg{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:8px}
+.lvw{background:#f5f8fb;border-radius:10px;padding:8px 10px}.lvw.wide{grid-column:span 2}@media(max-width:600px){.lvw.wide{grid-column:auto}}
+.lvt{font-size:.8em;font-weight:800;color:#5b6573;text-transform:uppercase;letter-spacing:.02em;margin-bottom:4px}
+.lv2{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lv2>div{border-left:4px solid;padding-left:8px;display:flex;flex-direction:column}.lv2 small{font-weight:700;color:#5b6573}.lv2 b{font-size:1.15em}.lv2 b small{font-size:.7em}
+.lvbig{font-size:1.2em;font-weight:800}
+.lvchk{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px}
 </style>
 <style>@media (max-width:1200px){.top .hn,#syncIc small{display:none}.top .voie button{padding:7px 10px}}</style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
@@ -1566,6 +1574,50 @@ function indModal(){let d=document.getElementById('indModal');if(!INDM){if(d)d.r
   d.innerHTML=`<div class="indmbg" onclick="if(event.target===this)indClose()"><div class="indm"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b style="font-size:1.15em">📈 Indicateurs de performance</b><div class="muted">Leçon ${l.n} · ${esc(t.t)}</div></div><button class="btn sm" onclick="indClose()">✓ Terminé</button></div>
    <div class="indmc">${indTeach(l,INDM.k)}</div></div></div>`;
   const c2=d.querySelector('.indmc');if(c2)c2.scrollTop=sc}
+/* ================== 👁 RETOUR EN DIRECT PENDANT LE MATCH (choisi par l'enseignant pour chaque situation) ==================
+   p.live = [clés] sur la situation ; absent = proposition selon la thématique de la situation (liveDef). */
+const LIVEW=[['pts','Points directs et fautes directes'],['ser','Série en cours'],['zp','Points de zones (bonus, contrat)'],['zt','Points marqués par zone'],['map','Carte des impacts'],
+  ['co','Coups gagnants'],['man','Contrat « avec la manière » (en %)'],['srv','Fautes de service'],['nat','Façons de gagner le point'],['rad','Araignée du profil de jeu'],['ind','Indicateurs de la leçon']];
+function liveDef(p){const k=['pts'],zs=zoneIds(p),R=zs.map(id=>zoneRule(p,id).m);
+  if(R.some(m=>m==='b'||m==='g')||(p.cibles||[]).length||p.contrat>0||p.score==='zones')k.push('zp');
+  if(p.np>1||p.nl>1)k.push('zt');if(p.man&&p.man.on)k.push('man');if(Object.values(p.coups||{}).some(v=>+v>0))k.push('co');
+  if(/service/i.test((p.nom||'')+' '+(p.desc||'')))k.push('srv');if(/ruptur|smash|kill/i.test((p.nom||'')+' '+(p.desc||'')))k.push('co');
+  return [...new Set(k)]}
+function liveKeys(p){const q=p&&preById(p.id);const src=q||p;return src&&Array.isArray(src.live)?src.live:liveDef(src||{})}
+function liveTog(pid,k,on){const p=preById(pid);if(!p)return;const L=liveKeys(p).slice(),i=L.indexOf(k);if(on&&i<0)L.push(k);if(!on&&i>=0)L.splice(i,1);p.live=LIVEW.map(x=>x[0]).filter(x=>L.includes(x));save();liveRefresh()}
+function liveReset(pid){const p=preById(pid);if(!p)return;delete p.live;save();liveRefresh()}
+function liveChecks(p){const L=liveKeys(p),D=liveDef(p);
+  return `<div class="lvchk">${LIVEW.filter(([k])=>k!=='ind'||indOn()).map(([k,n])=>`<label class="sw"><input type="checkbox" ${L.includes(k)?'checked':''} onchange="liveTog('${p.id}','${k}',this.checked)"><span></span>${esc(n)}${D.includes(k)?' <small class="tag" style="background:#e7f6f3;color:#0B7A75">proposé</small>':''}</label>`).join('')}</div>
+   <div class="row" style="justify-content:space-between;margin-top:6px"><span class="muted">${Array.isArray(p.live)?'Choix personnalisé pour cette situation.':'Proposition automatique selon la situation.'}</span>${Array.isArray(p.live)?`<button class="btn alt sm" onclick="liveReset('${p.id}')">Revenir à la proposition</button>`:''}</div>`}
+function liveCard(p){if(p.type==='exo')return'';return `<div class="card"><h2 class="step"><span>6</span>👁 Retour en direct pendant le match</h2>
+  <p class="muted">Coche ce que les élèves voient sous le terrain pendant qu'ils saisissent les points. Le reste reste disponible dans « Toutes les statistiques ».</p>${liveChecks(p)}</div>`}
+/* fenêtre ouverte depuis un temps de la leçon */
+let LIVEM=null;
+function liveBtn(l,k){const t=l.temps[k],p=t.pre&&preById(t.pre);if(!p||p.type==='exo')return'';const n=liveKeys(p).length;
+  return `<button class="btn alt sm" onclick="LIVEM='${p.id}';liveModal()">👁 En direct (${n})</button>`}
+function liveRefresh(){if(LIVEM)liveModal();if(curTab()==='terrain')renderTerrain()}
+function liveModal(){let d=document.getElementById('liveModal');if(!LIVEM||!preById(LIVEM)){LIVEM=null;if(d)d.remove();return}const p=preById(LIVEM);
+  if(!d){d=document.createElement('div');d.id='liveModal';document.body.appendChild(d)}
+  d.innerHTML=`<div class="indmbg" onclick="if(event.target===this){LIVEM=null;liveModal();renderSeq()}"><div class="indm"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b style="font-size:1.15em">👁 Retour en direct pendant le match</b><div class="muted">Situation : ${esc(p.nom)}</div></div><button class="btn sm" onclick="LIVEM=null;liveModal();renderSeq()">✓ Terminé</button></div>
+   <div class="indmc"><p class="muted" style="margin-top:0">Ce que les élèves voient sous le terrain interactif pendant le match. S'applique partout où cette situation est jouée.</p>${liveChecks(p)}</div></div></div>`}
+/* affichage pendant le match */
+function liveHtml(m){if(m.pre.type==='exo')return'';const K=liveKeys(m.pre).filter(k=>k!=='ind'||indOn());if(!K.length)return'';
+  const R=replay(m),S2=[matchStats(m,0),matchStats(m,1)],N=[m.an,m.bn],C2=[PCOL[0],'#e0457b'],pre=m.pre;
+  const two=(lab,f)=>`<div class="lvw"><div class="lvt">${lab}</div><div class="lv2">${[0,1].map(s=>`<div style="border-color:${C2[s]}"><small>${esc(N[s]||'')}</small><b>${f(s)}</b></div>`).join('')}</div></div>`;
+  const W={
+   pts:()=>two('Points directs · fautes directes',s=>`${S2[s].nat.pd||0} <small>pts dir.</small> · ${S2[s].fd} <small>fautes</small>`),
+   ser:()=>{const d=R.det;let n=0,w=null;for(let i=d.length-1;i>=0;i--){if(w==null)w=d[i].p.w;if(d[i].p.w!==w)break;n++}return `<div class="lvw"><div class="lvt">Série en cours</div><div class="lvbig">${w==null?'–':`<span style="color:${C2[w]}">${esc(N[w]||'')}</span> : ${n} point${n>1?'s':''} d'affilée`}</div></div>`},
+   zp:()=>two('Points de zones',s=>String(R.zp?R.zp[s]:0)),
+   srv:()=>two('Fautes de service',s=>String(S2[s].fsv)),
+   co:()=>two('Coups gagnants',s=>COUPS.filter(([k])=>S2[s].co[k]).map(([k,n])=>`${n} ${S2[s].co[k]}`).join(' · ')||'–'),
+   man:()=>R.mp?two('Contrat « avec la manière »',s=>R.mp[s]?`${R.mp[s].pct} % ${R.mp[s].ok?'✓':''}`:'–'):'',
+   nat:()=>two('Façons de gagner',s=>NAT.filter(([k])=>S2[s].nat[k]).map(([k,n])=>`${n.toLowerCase()} ${S2[s].nat[k]}`).join(' · ')||'–'),
+   zt:()=>{const zs=zoneIds(pre);if(!(pre.np>1||pre.nl>1))return'';return `<div class="lvw wide"><div class="lvt">Points marqués par zone</div><table class="kv"><tr><th></th><th style="color:${C2[0]}">${esc(N[0])}</th><th style="color:${C2[1]}">${esc(N[1])}</th></tr>${zs.map(z=>`<tr><td>${esc(zoneName(pre,z))}</td>${[0,1].map(s=>`<td>${R.det.filter(({p})=>p.w===s&&!p.f&&p.z===z).length}</td>`).join('')}</tr>`).join('')}</table></div>`},
+   map:()=>`<div class="lvw wide"><div class="lvt">Carte des impacts</div><div class="cw mini">${courtSvg({pre,mode:'view',pts:m.pts,id:'lv'+uid(),flip:m.flip,names:[m.an,m.bn]})}</div></div>`,
+   rad:()=>`<div class="lvw wide"><div class="lvt">Profil de jeu</div>${radarSvg(radarAxes('profil',S2),[{nom:m.an,c:C2[0]},{nom:m.bn,c:C2[1]}],240)}</div>`,
+   ind:()=>{const L=indOfMatch(m).filter(x=>x.k!=='obs');if(!L.length)return'';return `<div class="lvw wide"><div class="lvt">Indicateurs de la leçon</div><table class="kv">${L.map(x=>`<tr><td>${esc(x.nom)}</td>${[0,1].map(s=>{const r=x.k==='compte'?(()=>{const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}})():x.f(S2[s],m.pre);return `<td>${indChip(r)}</td>`}).join('')}</tr>`).join('')}</table></div>`}};
+  const body=K.map(k=>{try{return W[k]?W[k]():''}catch(e){return''}}).join('');if(!body)return'';
+  return `<div class="card lvcard"><b>👁 En direct</b><div class="lvg">${body}</div></div>`}
 function critHtml(cr,e){
   const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
@@ -1891,6 +1943,7 @@ function preEditor(p){
   ${!exo?`<div class="card"><h2 class="step"><span>5</span>Jouer avec la manière / contrat</h2>
    <label class="sw"><input type="checkbox" ${p.man&&p.man.on?'checked':''} onchange="manSet('PRE','on',this.checked)"><span></span>Proposé au lancement du match (chaque élève choisit ensuite son contrat)</label>
    ${p.man&&p.man.on?manEd('PRE',p.man):''}</div>`:''}
+  ${liveCard(p)}
   <div class="row" style="margin:4px 0 16px"><button class="btn or big" onclick="playStart('${p.id}')">▶ Lancer ${exo?'cet exercice':'un match'} ici</button><button class="btn alt" onclick="preDup()">Dupliquer</button><button class="btn red" onclick="preDel()">Supprimer</button></div>`;
 }
 function bindEditCourt(){const svg=document.getElementById('ecourt');if(!svg)return;
@@ -1981,7 +2034,7 @@ function renderPlay(){
       <div class="row" style="justify-content:center;margin-top:8px"><button class="btn big" onclick="pointOk('')">✓ Valider</button><button class="btn alt big" onclick="PL.pend=null;renderPlay()">Annuler</button></div></div>`
     :`<p class="muted" style="text-align:center;margin:6px 0">👆 Touche l'endroit où le volant est tombé (dans ou hors du terrain) : l'appli trouve qui gagne le point.</p>
      <div class="row" style="justify-content:center">${[0,1].map(w=>`<button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'filet')">Filet de ${esc(w?nB:nA)}</button><button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'service')">Faute au service de ${esc(w?nB:nA)}</button><button class="btn alt" style="border-left:6px solid ${PCOL[w]}" onclick="pointFault(${w},'faute')">Autre faute de ${esc(w?nB:nA)}</button>`).join('')}<button class="btn alt" onclick="playUndo()">↶ Annuler le dernier point</button></div>`}
-   ${obsPanel(m)}${m.pts.length?`<details class="card" style="margin-top:12px"><summary><b>📊 Statistiques du match en direct</b></summary>${matchStatsHtml(m)}</details>`:''}
+   ${obsPanel(m)}${liveHtml(m)}${m.pts.length?`<details class="card" style="margin-top:12px"><summary><b>📊 Toutes les statistiques du match</b></summary>${matchStatsHtml(m)}</details>`:''}
   </div>`;
   bindPlayCourt();
 }
@@ -2268,7 +2321,7 @@ function tempsHtml(t,teach,l,k){const pre=t.pre&&preById(t.pre);
    <p style="margin:6px 0;white-space:pre-line">${esc(t.cons)}</p>
    <div class="g3">${(t.crq||[]).length||(t.crl||[]).length?`<div><span class="lb">Critères de réussite</span>${(t.crq||[]).length?'<i>Quantitatif</i><ul>'+t.crq.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}${(t.crl||[]).length?'<i>Qualitatif</i><ul>'+t.crl.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}</div>`:''}
    ${(t.crr||[]).length?`<div><span class="lb">Critères de réalisation</span><ul>${t.crr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-   ${t.vp||t.vm?`<div><span class="lb">Variables</span>${t.vp?`<p style="margin:2px 0"><b>+</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p style="margin:2px 0"><b>−</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div>${teach&&l&&indOn()?indBtn(l,k):''}</div>`}
+   ${t.vp||t.vm?`<div><span class="lb">Variables</span>${t.vp?`<p style="margin:2px 0"><b>+</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p style="margin:2px 0"><b>−</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div>${teach&&l?`<div class="row" style="gap:8px;margin-top:8px">${liveBtn(l,k)}${indOn()?indBtn(l,k):''}</div>`:''}</div>`}
 function lecHtml(l,i,teach){
   return `<div class="lec ${l.faite?'done':''} ${l.prop?'prop':''}">
    <h3>Leçon ${l.n} · ${esc(l.titre)} ${l.prop?'<span class="ctag ptag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted" style="font-weight:600">${dateFR(l.date)}</span>`:''}</h3>
