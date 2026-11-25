@@ -184,6 +184,22 @@
 /* 🙋 pastille d'auto-positionnement commune (toutes les applis) : epsApChip({nom, date, crit:[{l, p, e}], r, m})
    p / e = degré du professeur / de l'élève (1, 2, 3, 4 ou ""), r = « ce que j'ai réussi », m = « ce que je dois améliorer ».
    Un appui ouvre la bulle (eps-home.js) sans ouvrir la fiche de l'élève. */
+/* 🙋 appel du jour (eps.appel.v1, saisi dans 📡 Leçon en cours ou 📊 Évaluer la leçon, commun à toutes les applis) :
+   epsAbsJour(élève ou nom, classe?) → true si l'élève est noté absent aujourd'hui. Élève = objet {prenom, nom} / {full} / chaîne.
+   Classe par défaut : epsCurrentClass(). Sert aux outils d'équipes, poules, groupes, cordées propres à chaque appli. */
+window.epsAbsJour = function (e, cls) {
+  try {
+    if (!cls) { var cc = typeof window.epsCurrentClass === "function" && window.epsCurrentClass(); cls = cc && cc.nom; }
+    if (!cls || !e) return false;
+    var nrm = function (s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); };
+    var nk = function (s) { return nrm(s).split(" ").filter(Boolean).sort().join(" "); };
+    var full = typeof e === "string" ? e : e.full || ((e.prenom || "") + " " + (e.nom || "")) || e.name || "";
+    var d = new Date(), day = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+    var V = JSON.parse(localStorage.getItem("eps.appel.v1") || "null"), o = V && V.items && V.items[nrm(cls).replace(/ /g, "") + "|" + day];
+    if (!o || o.del) return false; var k = nk(full); return (o.abs || []).some(function (x) { return nk(x) === k; });
+  } catch (x) { return false; }
+};
+window.epsAbsJourN = function (L, cls) { return (L || []).filter(function (e) { return window.epsAbsJour(e, cls); }).length; };
 window.epsApChip = function (o) {
   if (!o) return "";
   var j = JSON.stringify(o).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");

@@ -677,7 +677,7 @@ function renderLive(){
   const chooser=LV.choix?`<div class="card lvch"><h2>👥 Qui est sur le terrain ?</h2>
     ${Object.keys(T).length?`<div class="row">${Object.keys(T).sort().map(k=>`<button class="btn" style="background:var(--vol)" onclick="lvSet(${JSON.stringify(T[k].flatMap(lvEquipeIds)).replace(/"/g,"'")});LV.choix=false;lvSave();renderLive()">Terrain ${esc(k)} <small>(${T[k].map(t=>esc(t.nom)).join(' – ')})</small></button>`).join('')}</div>`:''}
     ${E.length?`<div class="row">${E.map(t=>{const m=lvEquipeIds(t),on=m.length&&m.every(id=>ids.includes(id));return `<button class="btn alt sm ${on?'lvon':''}" onclick="lvTeam('${t.id}')">${on?'✓ ':''}${esc(t.nom)}</button>`}).join('')}</div>`:''}
-    <div class="lvall">${c.eleves.map(e=>`<button class="${ids.includes(e.id)?'on':''} ${isAbs(e)?'abs':''}" onclick="lvTog('${e.id}')">${esc(fullName(e))}</button>`).join('')}</div>
+    <div class="lvall">${c.eleves.map(e=>{const aj=window.epsAbsJour&&epsAbsJour(e,c.nom);return `<button class="${ids.includes(e.id)?'on':''} ${isAbs(e)||aj?'abs':''}" onclick="lvTog('${e.id}')">${esc(fullName(e))}${aj?' · absent':''}</button>`}).join('')}</div>
     <div class="row"><button class="btn" onclick="LV.choix=false;lvSave();renderLive()" ${ids.length?'':'disabled'}>✓ Évaluer ces ${ids.length} élève(s)</button><button class="btn alt sm" onclick="lvSet([]);renderLive()">Vider</button></div></div>`:'';
   box.innerHTML=`<div class="evhead"><button class="btn alt" onclick="closeLive()">← Liste</button><h2>🏐 En direct · ${esc(c.nom)}</h2>
     <button class="btn alt sm" onclick="LV.choix=!LV.choix;lvSave();renderLive()">👥 Sur le terrain (${ids.length})</button></div>
@@ -970,11 +970,17 @@ function coT(){const c=coC();return c&&(c.equipes||[]).find(t=>t.id===CO.tid)}
 function elOf(c,id){return c.eleves.find(e=>e.id===id)}
 function shortName(e){return e?((e.prenom||'')+' '+(e.nom||'').charAt(0)+'.').trim():'?'}
 function lessonNow(){return nextLesson()}
-function jour(t){const d=today();t.jours=t.jours||{};return t.jours[d]||(t.jours[d]={coach:null,pres:{},chas:'',mat:{},terrain:0,ok:0})}
+function jour(t){const d=today();t.jours=t.jours||{};const J=t.jours[d]||(t.jours[d]={coach:null,pres:{},chas:'',mat:{},terrain:0,ok:0});
+  /* 🙋 appel commun (📡 Leçon en cours) : les absents du jour sont pré-cochés absents */
+  try{const c=(CO&&CO.cid&&coC())||S.classes.find(x=>(x.equipes||[]).includes(t))||C();(t.el||[]).forEach(id=>{const e=elOf(c,id);if(e&&J.pres[id]==null&&window.epsAbsJour&&epsAbsJour(e,c.nom))J.pres[id]=0})}catch(x){}
+  return J}
+/* l'absence notée par le coach rejoint l'appel commun, et inversement */
+function appelSync(c,e,abs){try{if(!window.EPSD||!EPSD.appel||!c||!e)return;const n=(e.prenom?e.prenom+' ':'')+e.nom,L=EPSD.appel.get(c.nom),k=x=>String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().split(' ').sort().join(' '),i=L.findIndex(x=>k(x)===k(n));
+  if(abs&&i<0)L.push(n);else if(!abs&&i>=0)L.splice(i,1);else return;EPSD.appel.set(c.nom,L)}catch(x){}}
 /* le coach change à chaque leçon : chaque nouveau jour de cours de l'équipe passe au joueur suivant (ordre réglable par l'enseignant) */
 function leconsPassees(t){return Object.keys(t.jours||{}).filter(d=>d<today()).length}
 function coachIdx(t){const n=(t.el||[]).length;return n?leconsPassees(t)%n:0}
-function coachAuto(c,t){const pl=(t.el||[]);if(!pl.length)return null;const id=pl[coachIdx(t)];return elOf(c,id)?id:pl.find(x=>elOf(c,x))||null}
+function coachAuto(c,t){const pl=(t.el||[]);if(!pl.length)return null;const J=jour(t),ok=x=>elOf(c,x)&&J.pres[x]!==0;for(let i=0;i<pl.length;i++){const id=pl[(coachIdx(t)+i)%pl.length];if(ok(id))return id}return pl.find(x=>elOf(c,x))||null}
 function coachNext(c,t){const pl=t.el||[];if(!pl.length)return '';const i=(coachIdx(t)+1)%pl.length;return shortName(elOf(c,pl[i]))}
 function coSet(fn){const t=coT();if(!t)return;fn(t);save();renderCoach()}
 function teamMatches(t,d){return (t.matchs||[]).filter(m=>m.fini&&(!d||m.date===d))}
@@ -1027,7 +1033,7 @@ function coStep(c,t,j){
     <div class="pres">${MAT.map(([k,n])=>`<button class="${j.mat[k]?'p':''}" onclick="coSet(t=>{const J=jour(t);J.mat['${k}']=J.mat['${k}']?0:1})">${j.mat[k]?'✓ ':''}${n}</button>`).join('')}</div>
     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=2;renderCoach()">←</button><button class="pbtn" style="background:var(--d4);flex:1" onclick="if(!jour(coT()).terrain){toast('Choisis votre terrain');return}coSet(t=>{jour(t).ok=1});CO.tab='lecon'">✓ Terrain prêt : voir la leçon</button></div></div>`;
 }
-function rolesAuto(c,t,coach){const pl=(t.el||[]).filter(id=>elOf(c,id));if(!pl.length)return{};const i0=Math.max(0,pl.indexOf(coach)),o={};
+function rolesAuto(c,t,coach){const J0=jour(t),pl=(t.el||[]).filter(id=>elOf(c,id)&&J0.pres[id]!==0);if(!pl.length)return{};const i0=Math.max(0,pl.indexOf(coach)),o={};
   ROLES.forEach(([k],r)=>{if(pl.length>r+1)o[k]=pl[(i0+r+1)%pl.length]});return o}
 function rolesHtml(c,t,j,edit){const pl=(t.el||[]).filter(id=>elOf(c,id));return ROLES.map(([k,n,d])=>{const id=(j.roles||{})[k];return `<div class="sit"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${n}</b> : ${id?esc(fullName(elOf(c,id))):'—'}<br><small class="muted">${d}</small></div>
   ${edit?`<select class="f" style="width:auto" onchange="coSet(t=>{const J=jour(t);J.roles=J.roles||{};J.roles['${k}']=this.value})"><option value="">—</option>${pl.map(x=>`<option value="${x}" ${x===id?'selected':''}>${esc(shortName(elOf(c,x)))}</option>`).join('')}</select>`:''}</div></div>`}).join('')}
@@ -1035,7 +1041,7 @@ function rolesHtml(c,t,j,edit){const pl=(t.el||[]).filter(id=>elOf(c,id));return
 function rolesOf(c,eid){const n={coach:0};ROLES.forEach(([k])=>n[k]=0);(c.equipes||[]).forEach(t=>{Object.values(t.jours||{}).forEach(j=>{if(j.coach===eid)n.coach++;Object.entries(j.roles||{}).forEach(([k,v])=>{if(v===eid)n[k]=(n[k]||0)+1})});
   (t.matchs||[]).forEach(m=>{if(!m.obs)return;if(m.obs.arbitre===eid)n.arbitre++;if(m.obs.marqueur===eid)n.marqueur++})});return n}
 function rolesTxt(c,e){const n=rolesOf(c,e.id),L={coach:'coach',marqueur:'marqueur',arbitre:'arbitre',observateur:'observateur'};return Object.entries(n).filter(([k,v])=>v).map(([k,v])=>L[k]+(v>1?' ×'+v:'')).join(' · ')}
-function coPres(id){coSet(t=>{const J=jour(t);J.pres[id]=J.pres[id]===1?0:1})}
+function coPres(id){coSet(t=>{const J=jour(t);J.pres[id]=J.pres[id]===1?0:1;const c=coC()||C();appelSync(c,elOf(c,id),J.pres[id]===0)})}
 function coLecon(c,t,j){
   const n=lessonNow(),l=S.seq.lecons.find(x=>x.n===n),R=routinesFor(n),sits=(S.seq.situations||[]).filter(x=>x.type==='app'&&+x.lec===n);
   const abs=Object.keys(j.pres).filter(id=>j.pres[id]===0).map(id=>shortName(elOf(c,id)));
@@ -1464,7 +1470,7 @@ function renderEquipes(){const c=C(),E=c.equipes=c.equipes||[],box=document.getE
   ${E.map((t,k)=>{const j=(t.jours||{})[today()],ch=j&&CHAS.find(x=>x[0]===j.chas),a=agg(teamMatches(t));return `<div class="card"><div class="row" style="justify-content:space-between">
      <input type="text" value="${esc(t.nom)}" onchange="eqSet(${k},'nom',this.value)" style="max-width:260px;font-weight:800">
      <div class="row"><button class="btn alt sm" onclick="EQT='${t.id}';renderEquipes()">📊 Bilan</button><button class="btn red sm" onclick="eqDel(${k})">Supprimer</button></div></div>
-    <div class="pick" style="margin-top:8px">${(t.el||[]).map((id,i)=>{const e=elOf(c,id);return e?`<label>${i===coachIdx(t)?'🧢 ':''}${esc(fullName(e))} <button class="btn alt sm" style="padding:2px 8px" onclick="eqMv(${k},${i},-1)">↑</button><button class="btn red sm" style="padding:2px 8px" onclick="eqRm(${k},'${id}')">✕</button></label>`:''}).join('')}</div>
+    <div class="pick" style="margin-top:8px">${(t.el||[]).map((id,i)=>{const e=elOf(c,id);return e?`<label${window.epsAbsJour&&epsAbsJour(e,c.nom)?' style="opacity:.55;text-decoration:line-through" title="absent aujourd\'hui"':''}>${i===coachIdx(t)?'🧢 ':''}${esc(fullName(e))} <button class="btn alt sm" style="padding:2px 8px" onclick="eqMv(${k},${i},-1)">↑</button><button class="btn red sm" style="padding:2px 8px" onclick="eqRm(${k},'${id}')">✕</button></label>`:''}).join('')}</div>
     ${free.length?`<select class="f" style="margin-top:6px;max-width:320px" onchange="if(this.value)eqAddEl(${k},this.value)"><option value="">+ Ajouter un joueur…</option>${free.map(e=>`<option value="${e.id}">${esc(fullName(e))}</option>`).join('')}</select>`:''}
     <p class="muted" style="margin-top:8px"><b>Aujourd'hui :</b> ${j?`coach ${esc(shortName(elOf(c,j.coach)))}${ROLES.map(([r,n])=>j.roles&&j.roles[r]?' · '+n.split(' ')[1].toLowerCase()+' '+esc(shortName(elOf(c,j.roles[r]))):'').join('')} · ${Object.values(j.pres).filter(v=>v===1).length} présent(s)${Object.keys(j.pres).filter(id=>j.pres[id]===0).length?' · absents : '+Object.keys(j.pres).filter(id=>j.pres[id]===0).map(id=>esc(shortName(elOf(c,id)))).join(', '):''} · ${ch?`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${ch[1]};border:1px solid #999"></span> ${esc(j.chas)}`:'chasuble ?'} · ${j.terrain?'terrain '+j.terrain:'terrain ?'} · matériel : ${MAT.filter(([m])=>j.mat[m]).map(x=>x[1]).join(', ')||'—'}`:'pas encore installée.'}
      · Matchs : ${a.G}-${a.N}-${a.P} · situations validées : ${Object.keys(t.valid||{}).length}${j&&j.rang?` · rangement : ${MAT.filter(([m])=>j.rang[m]).length}/${MAT.length}`:''}</p>
@@ -1487,7 +1493,7 @@ function eqAuto(){const c=C(),n=+prompt('Combien d\'équipes ?',c.equipes.length
   while(c.equipes.length<n)c.equipes.push({id:'t'+uid(),nom:'Équipe '+(c.equipes.length+1),el:[],jours:{},matchs:[],valid:{},rem:[]});
   const T=c.equipes.slice(0,n);T.forEach(t=>t.el=[]);
   /* équipes équilibrées : élèves classés par leur note AFL1 (ou au hasard), distribués en serpentin */
-  const L=c.eleves.filter(e=>!isAbs(e)).map(e=>({e,v:(aflPts(e,'AFL1')||{}).pts??Math.random()})).sort((a,b)=>b.v-a.v);
+  const L=c.eleves.filter(e=>!isAbs(e)&&!(window.epsAbsJour&&epsAbsJour(e,c.nom))).map(e=>({e,v:(aflPts(e,'AFL1')||{}).pts??Math.random()})).sort((a,b)=>b.v-a.v);
   L.forEach((x,i)=>{const r=Math.floor(i/n),q=i%n;T[r%2?n-1-q:q].el.push(x.e.id)});save();renderEquipes();toast('Équipes équilibrées créées')}
 function sitSet(k,f,v,re){S.seq.situations[k][f]=v;save();if(re)renderEquipes()}
 function sitDel(k){if(!confirm('Supprimer cette situation ?'))return;S.seq.situations.splice(k,1);save();renderEquipes()}

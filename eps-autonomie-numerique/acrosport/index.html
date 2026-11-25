@@ -855,13 +855,15 @@ function renderMembers(){
   box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{draftMembers.splice(+b.dataset.del,1);renderMembers()});
   document.getElementById("addMember").disabled=draftMembers.length>=6;
 }
+/* 🙋 absent aujourd'hui d'après l'appel commun (📡 Leçon en cours) : pas proposé pour former un groupe ni pour un rôle */
+function absA(cls,e){try{return !!(window.epsAbsJour&&epsAbsJour(e,cls||homeClass))}catch(x){return false}}
 function renderPicker(){
   const box=document.getElementById("members"); box.classList.add("picker");
   document.getElementById("addMember").classList.add("hidden");
   const taken={};homeList.forEach(g=>String(g.membres||"").split(",").map(x=>x.trim()).filter(Boolean).forEach(m=>taken[norm(m)]=g.nom));
   const sel=draftMembers.filter(Boolean);
   box.innerHTML=`<div class="pickSel">${sel.length?sel.map((m,i)=>`<span class="pchip on">${esc(m)}<button data-un="${i}" aria-label="Retirer">×</button></span>`).join(""):`<span class="muted">Touche les élèves du groupe (2 à 6) :</span>`}</div>
-    <div class="roster">${homeStudents.map(e=>{const d=displayName(e),on=sel.includes(d),t=taken[norm(d)];
+    <div class="roster">${homeStudents.filter(e=>!absA(homeClass,e)).map(e=>{const d=displayName(e),on=sel.includes(d),t=taken[norm(d)];
       return `<button class="rchip ${on?"on":""} ${t?"taken":""}" data-st="${esc(d)}"><b>${esc(e.prenom)}</b> ${esc(e.nom)}<small>${esc(e.classe)}${t?" · déjà dans "+esc(t):""}</small>${dzA(e.classe,e.nom,e.prenom)}</button>`}).join("")}
       <button class="rchip other" data-other>+ Autre élève</button></div>`;
   box.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{
@@ -979,7 +981,7 @@ function openApp(){
   document.getElementById("home").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
   document.getElementById("memberChips").innerHTML=
-    `<span class="chip" style="background:var(--sun);color:var(--ink)">${esc(G.classe)}</span>`+G.members.map(m=>`<span class="chip">${esc(m)}${dzA(G.classe,m)?" 🩹":""}</span>`).join("")+(G.members.filter(m=>dzA(G.classe,m)).length?`<div class="dzline" style="width:100%;margin-top:6px;padding:6px 10px;border-radius:10px;background:#FDF0EE;color:#9C2B10;font-weight:700;font-size:14px">🩹 ${G.members.filter(m=>dzA(G.classe,m)).map(m=>esc(m)+" "+esc(EPSD.label(EPSD.find(G.classe,m)))).join(" · ")}</div>`:"");
+    `<span class="chip" style="background:var(--sun);color:var(--ink)">${esc(G.classe)}</span>`+G.members.map(m=>`<span class="chip"${absA(G.classe,m)?' style="text-decoration:line-through;opacity:.6"':""}>${esc(m)}${dzA(G.classe,m)?" 🩹":""}${absA(G.classe,m)?" · absent":""}</span>`).join("")+(G.members.filter(m=>dzA(G.classe,m)).length?`<div class="dzline" style="width:100%;margin-top:6px;padding:6px 10px;border-radius:10px;background:#FDF0EE;color:#9C2B10;font-weight:700;font-size:14px">🩹 ${G.members.filter(m=>dzA(G.classe,m)).map(m=>esc(m)+" "+esc(EPSD.label(EPSD.find(G.classe,m)))).join(" · ")}</div>`:"");
   const n=G.members.length;
   const dayTheme=classSettings(G.classe).theme;
   vFilter={f:n===2?"duo":n===3?"trio":n===4?"quatuor":null,t:STATIC_T.includes(dayTheme)?dayTheme:null,lv:null};
@@ -1376,7 +1378,7 @@ function renderRoutine(){
             <h3>${esc(f.code)} · ${esc(T_SHORT[f.t])}</h3><div class="sub">Difficulté ${f.lv} ${lvlDots(f.lv)}</div>
             <div class="roles">${roles.map(r=>`<label class="${p.roles&&p.roles[r]&&dups.includes(p.roles[r])?"dupRole":""}"><span class="role ${r[0]}">${r}</span>
               <select data-slot="${i}" data-part="${j}" data-role="${r}"><option value="">— qui ? —</option>
-              ${G.members.map(mm=>`<option ${p.roles&&p.roles[r]===mm?"selected":""}>${esc(mm)}</option>`).join("")}</select></label>`).join("")}</div>
+              ${G.members.filter(mm=>!absA(G.classe,mm)||(p.roles&&p.roles[r]===mm)).map(mm=>`<option ${p.roles&&p.roles[r]===mm?"selected":""}>${esc(mm)}</option>`).join("")}</select></label>`).join("")}</div>
           </div>
           <div class="acts"><button class="btn small alt" data-view="${i}:${j}">▶ Vidéo</button>
             <button class="btn small alt" data-pick="${i}" data-part="${j}">Changer</button>

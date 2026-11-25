@@ -646,9 +646,13 @@ function pedScr(){const P=PED(),inp=(p,v,ph='')=>`<input value="${esc(v||'')}" p
   <button class="b g" onclick="pedDo(P=>P.pens.push({t:'Nouveau motif',g:0}))">+ Ajouter un motif</button></div>
  <p><button class="b d" onclick="(async()=>{if(await ask('Remettre tout le contenu proposé au départ ?','Remettre'))pedDo(P=>{Object.assign(P,clone(PED0))})})()">Remettre le contenu proposé</button></p>`}
 /* ---------- absents du jour (par classe) et messages de l'enseignant ---------- */
-const abKey=(id,d)=>(id||'')+'|'+(d||today()),absL=(id,d)=>(CF.ab||{})[abKey(id,d)]||[],isAbs=(n,id,d)=>absL(id??cls()?.id,d).includes(n);
+/* + 🙋 appel commun (📡 Leçon en cours, toutes applis) pour aujourd'hui ; un absent noté ici rejoint l'appel commun */
+const abNom=id=>((typeof CL!=='undefined'&&CL.find(c=>c.id===id))||{}).nom||'';
+const abCom=(n,id,d)=>{try{return (!d||d===today())&&!!window.epsAbsJour&&epsAbsJour(n,abNom(id))}catch(x){return false}};
+const abKey=(id,d)=>(id||'')+'|'+(d||today()),absL=(id,d)=>(CF.ab||{})[abKey(id,d)]||[],isAbs=(n,id,d)=>{const i=id??cls()?.id;return absL(i,d).includes(n)||abCom(n,i,d)};
 const presEl=k=>k?k.el.filter(n=>!isAbs(n,k.id)):[];
 function setAbs(n,on){const id=CF.sel||CF.sea?.cl||'',k=abKey(id),L=new Set(absL(id));on?L.add(n):L.delete(n);CF.ab=CF.ab||{};
+ try{if(window.EPSD&&EPSD.appel&&abNom(id)){const A=EPSD.appel.get(abNom(id)),nk=x=>String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim().split(' ').sort().join(' '),i=A.findIndex(x=>nk(x)===nk(n));if(on&&i<0)A.push(n);if(!on&&i>=0)A.splice(i,1);EPSD.appel.set(abNom(id),A)}}catch(x){}
  /* on ne garde que les 30 derniers jours */const lim=new Date(Date.now()-30*864e5).toLocaleDateString('fr-CA');Object.keys(CF.ab).forEach(x=>{if(x.split('|')[1]<lim)delete CF.ab[x]});
  if(L.size)CF.ab[k]=[...L];else delete CF.ab[k];save();const y=scrollY;render();scrollTo(0,y)}
 const MSGS=EPSP.p({id:'msgs',sec:'Messages et retours',label:'Messages rapides envoyés aux élèves',type:'list',aide:'« Pense à l\'exercice du jour. » est complété automatiquement par l\'exercice de la leçon.',def:["Bravo, continue comme ça ! 💪","Pense à l'exercice du jour.","Essaie une voie plus difficile.","Essaie une voie plus facile.","Grimpe avec les jambes : plus de pieds que de mains.","Pense à faire une pause en position de moindre effort.","Viens me voir avant ta prochaine voie."]});

@@ -1768,6 +1768,8 @@ window.addEventListener('storage', ev => { if (ev.key === KEY && ev.newValue && 
 const UI = { token: '', selId: null, filtreG: '', q: '', txtEleve: false, obsG: '', defi: null, defiGroupe: false, emSel: '', em: null, obsForm: null, choisi: false, mode: '' };
 
 function curClasse() { return S.classes.find(c => c.id === S.classeId) || S.classes[0] || null; }
+/* 🙋 absent aujourd'hui d'après l'appel commun (📡 Leçon en cours) */
+function absD(cl, e) { try { return !!(window.epsAbsJour && epsAbsJour(e, cl.nom)); } catch (x) { return false; } }
 function groupeDe(cl, e) { return cl.groupes.find(g => g.id === e.groupeId) || null; }
 function nomComplet(e) { return (e.nom + ' ' + (e.prenom || '')).trim(); }
 function trierEleves(list) { return list.slice().sort((a, b) => nomComplet(a).localeCompare(nomComplet(b), 'fr')); }
@@ -2281,8 +2283,8 @@ function rObs() {
     <h2>Fiche d'observation</h2>
     <p class="muted">Observe la chorégraphie d'un autre groupe, coche ce que tu vois, puis donne un point fort et un conseil.</p>
     <div class="two">
-      <label>Je suis (observateur)<select id="oObs"><option value="">— choisir —</option>${trierEleves(cl.eleves).map(e => `<option value="${e.id}" ${f.obsId === e.id ? 'selected' : ''}>${esc(nomComplet(e))}</option>`).join('')}</select></label>
-      <label>J'observe le groupe<select id="oGrp"><option value="">— choisir —</option>${cl.groupes.map(g => `<option value="${g.id}" ${f.groupeId === g.id ? 'selected' : ''}>${esc(g.nom)}${g.theme ? ' — ' + esc(g.theme) : ''}</option>`).join('')}</select></label>
+      <label>Je suis (observateur)<select id="oObs"><option value="">— choisir —</option>${trierEleves(cl.eleves).filter(e => !absD(cl, e) || f.obsId === e.id).map(e => `<option value="${e.id}" ${f.obsId === e.id ? 'selected' : ''}>${esc(nomComplet(e))}</option>`).join('')}</select></label>
+      <label>J'observe le groupe<select id="oGrp"><option value="">— choisir —</option>${cl.groupes.map(g => `<option value="${g.id}" ${f.groupeId === g.id ? 'selected' : ''}>${esc(g.nom)}${g.theme ? ' — ' + esc(g.theme) : ''}${cl.eleves.filter(e => e.groupeId === g.id && absD(cl, e)).length ? ' (absents : ' + esc(cl.eleves.filter(e => e.groupeId === g.id && absD(cl, e)).map(e => e.prenom || e.nom).join(', ')) + ')' : ''}</option>`).join('')}</select></label>
     </div>
     <h4>1. Les procédés que je repère</h4><div class="chips">${OBS_PROC.map(p => chip(p, 'procedes')).join('')}</div>
     <h4>2. Les paramètres qu'ils transforment</h4>
@@ -2442,7 +2444,7 @@ function rClasse() {
     </section>
     <section class="card">
       <h3>Groupes de création</h3>
-      <div id="gList">${cl.groupes.map(g => `<div class="grow-row" data-g="${g.id}"><input class="gN" value="${esc(g.nom)}" aria-label="Nom du groupe"><input class="gT" value="${esc(g.theme || '')}" placeholder="Thème / intention" aria-label="Thème"><span class="muted">${cl.eleves.filter(e => e.groupeId === g.id).length} él.</span><button class="x" data-delg="${g.id}" aria-label="Supprimer">×</button></div>`).join('') || '<p class="muted">Aucun groupe.</p>'}</div>
+      <div id="gList">${cl.groupes.map(g => `<div class="grow-row" data-g="${g.id}"><input class="gN" value="${esc(g.nom)}" aria-label="Nom du groupe"><input class="gT" value="${esc(g.theme || '')}" placeholder="Thème / intention" aria-label="Thème"><span class="muted">${cl.eleves.filter(e => e.groupeId === g.id).length} él.${cl.eleves.filter(e => e.groupeId === g.id && absD(cl, e)).length ? ' · absent(s) : ' + esc(cl.eleves.filter(e => e.groupeId === g.id && absD(cl, e)).map(e => e.prenom || e.nom).join(', ')) : ''}</span><button class="x" data-delg="${g.id}" aria-label="Supprimer">×</button></div>`).join('') || '<p class="muted">Aucun groupe.</p>'}</div>
       <div class="row"><button class="btn" id="gAdd">+ Ajouter un groupe</button></div>
     </section>
   </div>

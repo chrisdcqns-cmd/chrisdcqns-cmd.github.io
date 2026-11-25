@@ -851,6 +851,8 @@ function band(c,e,d){const m=maxPts(c,e),b=B(),p=b.pas;return [rnd(b.bandes[d][0
 function critPts(c,e){const v=e.ev&&e.ev[c.id];if(!v||v.d==null)return null;return rnd(v.f*maxPts(c,e),B().pas)}
 function totalMax(e){return B().criteres.reduce((s,c)=>s+maxPts(c,e),0)}
 function isAbs(e){return e.statut==='ABS'||e.statut==='DISP'}
+/* 🙋 absent aujourd'hui d'après l'appel commun (📡 Leçon en cours) : écarté des matchs, poules et groupes du jour */
+function absJ(e,c){try{return !!(window.epsAbsJour&&epsAbsJour(e,(c||C()).nom))}catch(x){return false}}
 function nbEval(e){return B().criteres.filter(c=>critPts(c,e)!=null).length}
 function note20(e){if(isAbs(e))return null;const cs=B().criteres;if(!cs.length||nbEval(e)<cs.length)return null;
   const tot=cs.reduce((s,c)=>s+critPts(c,e),0),mx=totalMax(e);return rnd(mx?tot/mx*20:0,B().arrondi)}
@@ -1476,7 +1478,7 @@ function renderPlay(){
     const stu=terrOn()&&!isUnlocked(),lids=lessonPreIds(),gg=stu?curGrp(c):null;
     const opts=S.presets.filter(p=>!stu||lids.includes(p.id)||p.vis||p.id===pre.id).sort((x,y)=>(lids.includes(y.id)?1:0)-(lids.includes(x.id)?1:0));
     const pool=gg&&!PL.all?c.eleves.filter(e=>gg.el.includes(e.id)||e.id===PL.a||e.id===PL.b):c.eleves;
-    const pick=k=>`<div class="pres">${pool.filter(e=>!isAbs(e)).map(e=>`<button class="${PL[k]===e.id?'p':''}" ${(k==='b'&&PL.a===e.id)||(k==='a'&&PL.b===e.id)?'disabled style="opacity:.35"':''} onclick="PL.${k}='${e.id}';renderPlay()">${esc(fullName(e))}</button>`).join('')}
+    const pick=k=>`<div class="pres">${pool.filter(e=>!isAbs(e)&&!absJ(e,c)).map(e=>`<button class="${PL[k]===e.id?'p':''}" ${(k==='b'&&PL.a===e.id)||(k==='a'&&PL.b===e.id)?'disabled style="opacity:.35"':''} onclick="PL.${k}='${e.id}';renderPlay()">${esc(fullName(e))}</button>`).join('')}
       <button class="${PL[k]==='_'?'p':''}" onclick="PL.${k}='_';renderPlay()">👤 Invité</button>${gg?`<button onclick="PL.all=!PL.all;renderPlay()" style="border-style:dashed">${PL.all?'👥 Mon groupe seulement':'➕ Autre élève de la classe'}</button>`:''}</div>${PL[k]==='_'?`<input type="text" placeholder="Prénom" value="${esc(PL['g'+k])}" oninput="PL.g${k}=this.value" style="margin-top:6px">`:''}`;
     box.innerHTML=`<div class="chd"><button class="lockbtn" onclick="playClose()">✕</button><h1>${exo?'🎯 Nouvel exercice':'🏸 Nouveau match'} · ${esc(c.nom)}</h1></div>
     <div class="cbody">
@@ -2028,7 +2030,7 @@ function grpScreen(c){
   if(GNEW){const used={};G.forEach(g=>g.el.forEach(id=>used[id]=g.nom));
     return `<div class="card"><h2>👥 Créer ton groupe</h2><p class="muted">Cette tablette sera celle de ton groupe pendant la séquence. Choisis un nom, les joueurs et un code secret de 4 chiffres pour retrouver le groupe sur une autre tablette.</p>
      <label class="l">Nom du groupe</label><input type="text" id="gnom" value="${esc(GNEW.nom)}" oninput="GNEW.nom=this.value" placeholder="ex. Les volants fous">
-     <label class="l">Joueurs du groupe</label><div class="pres">${c.eleves.map(e=>`<button class="${GNEW.el.includes(e.id)?'p':''}" onclick="gTog('${e.id}')">${esc(fullName(e))}${used[e.id]?`<br><small class="muted">déjà dans ${esc(used[e.id])}</small>`:''}</button>`).join('')}</div>
+     <label class="l">Joueurs du groupe</label><div class="pres">${c.eleves.map(e=>`<button class="${GNEW.el.includes(e.id)?'p':''}" onclick="gTog('${e.id}')"${absJ(e,c)?' style="opacity:.5"':''}>${esc(fullName(e))}${absJ(e,c)?' · absent':''}${used[e.id]?`<br><small class="muted">déjà dans ${esc(used[e.id])}</small>`:''}</button>`).join('')}</div>
      <label class="l">Code secret (4 chiffres)</label><input type="password" inputmode="numeric" maxlength="4" style="width:160px;font-size:1.4rem;letter-spacing:.3em" value="${esc(GNEW.pw)}" oninput="GNEW.pw=this.value.replace(/\\D/g,'')">
      <div class="row" style="margin-top:12px"><button class="btn alt" onclick="GNEW=null;renderTerr()">Annuler</button><button class="btn or big" onclick="gCreate()">Créer le groupe (${GNEW.el.length} joueur${GNEW.el.length>1?'s':''})</button></div></div>`}
   return `<div class="card"><h2>👥 Ton groupe</h2><p class="muted">Rejoins ton groupe (avec son code secret) ou crée-le.</p>
@@ -2154,7 +2156,7 @@ function pouleHtml(c){
      <h3>Classement</h3><table><tr><th>#</th><th>Joueur</th><th>Victoires</th><th>Joués</th><th>Diff.</th>${isBC?'<th>Points de match</th>':''}</tr>${rk.map((id,i)=>`<tr><td>${i+1}</td><td>${esc(fullName(elById(c,id)||{nom:'?'}))}</td><td>${tab[id].v}</td><td>${tab[id].j}</td><td>${tab[id].diff>0?'+':''}${tab[id].diff}</td>${isBC?`<td><b>${tab[id].bc}</b></td>`:''}</tr>`).join('')}</table></div>`}
   return `${P0.length?`<div class="card"><h2>Poules du jour</h2><div class="tiles">${P0.map(p=>`<button class="tile" onclick="POULE='${p.id}';renderTerr()">🏆 ${esc(p.nom)}<br><small class="muted">${p.el.map(id=>esc(shortName(elById(c,id)))).join(', ')}</small></button>`).join('')}</div></div>`:''}
    <div class="card"><h2>Nouvelle poule</h2><p class="muted">Choisis 3 à 5 joueurs : l'appli prépare tous les matchs et le classement.</p>
-    <div class="pres">${c.eleves.filter(e=>!isAbs(e)).map(e=>`<button class="${PSEL.includes(e.id)?'p':''}" onclick="PSEL.includes('${e.id}')?PSEL=PSEL.filter(x=>x!=='${e.id}'):PSEL.push('${e.id}');renderTerr()">${esc(fullName(e))}</button>`).join('')}</div>
+    <div class="pres">${c.eleves.filter(e=>!isAbs(e)&&!absJ(e,c)).map(e=>`<button class="${PSEL.includes(e.id)?'p':''}" onclick="PSEL.includes('${e.id}')?PSEL=PSEL.filter(x=>x!=='${e.id}'):PSEL.push('${e.id}');renderTerr()">${esc(fullName(e))}</button>`).join('')}</div>
     <label class="l">Situation des matchs</label><select class="f" id="psit">${S.presets.filter(p=>p.type!=='exo').map(p=>`<option value="${p.id}" ${p.id===lessonPre()?'selected':''}>${esc(p.nom)}</option>`).join('')}</select>
     <button class="btn or big" style="margin-top:10px" onclick="pouleNew()">Créer la poule (${PSEL.length} joueurs)</button></div>`}
 function pouleNew(){const c=classById(TERR.cls)||C();if(PSEL.length<2){toast('Choisis au moins 2 joueurs');return}

@@ -1863,7 +1863,7 @@ function renderGroupes(){
   if(!GR().length){$("#glist").innerHTML=`<div class="card empty-msg" style="grid-column:1/-1">Aucun groupe pour l'instant. Touche « Créer un groupe » et sélectionne les élèves, ou continue sans groupe.</div>`;return}
   $("#glist").innerHTML=GR().map(g=>{const m=groupMembers(g);
     return `<button class="gitem" data-gedit="${g.id}"><h3>${esc(g.name)}<small>${m.length} élève${m.length>1?"s":""}</small></h3>
-    <div class="names">${m.map(e=>{const dz=dispOf(e)?`<i class="dz" title="${esc(dispTxt(e))}">🩹 ${esc(dispTxt(e).replace("dispensé(e) ",""))}</i>`:"";return isCoachE(e)&&coachOf(g.id)===e.id?`<span class="coach">🏅 ${esc(e.prenom)}${dz}</span>`:`<span>${esc(e.prenom)}${dz}</span>`}).join("")||'<span style="background:none;color:var(--muted)">Aucun élève</span>'}</div>
+    <div class="names">${m.map(e=>{const dz=dispOf(e)?`<i class="dz" title="${esc(dispTxt(e))}">🩹 ${esc(dispTxt(e).replace("dispensé(e) ",""))}</i>`:"";const az=absJ(e)?' style="text-decoration:line-through;opacity:.6" title="absent aujourd\'hui"':"";return isCoachE(e)&&coachOf(g.id)===e.id?`<span class="coach"${az}>🏅 ${esc(e.prenom)}${dz}</span>`:`<span${az}>${esc(e.prenom)}${dz}</span>`}).join("")||'<span style="background:none;color:var(--muted)">Aucun élève</span>'}</div>
     <span class="edit">Modifier →</span></button>`}).join("");
 }
 let GEDIT=null,GSEL=new Set();
@@ -1971,13 +1971,16 @@ document.addEventListener("click",async e=>{
 /* dispenses saisies depuis la page d'accueil des applications (eps-home.js) */
 const dispOf=e=>{try{return window.EPSD&&e?EPSD.find(CL()?CL().name:"",e.nom,e.prenom):null}catch(x){return null}};
 const dispTxt=e=>{const d=dispOf(e);return d?EPSD.label(d):""};
+/* 🙋 absent aujourd'hui d'après l'appel commun (📡 Leçon en cours) : retiré des listes de coureurs et des « encore à courir » */
+const absJ=e=>{try{return !!(window.epsAbsJour&&e&&CL()&&epsAbsJour(e,CL().name))}catch(x){return false}};
 window.addEventListener("epsd-change",()=>{try{syRefreshSoon()}catch(e){}});
 function renderGPicks(){
   if(CURG()!=="all"&&!GR().some(g=>g.id===CURG()))CL().curg="all";
   const html=GR().map(g=>`<button data-g="${g.id}" class="${CURG()===g.id?"on":""}">${esc(g.name)}<small>${groupMembers(g).length}</small></button>`).join("")
     +`<button data-g="all" class="${CURG()==="all"?"on":""}">Toute la classe</button>`;
   const ds=poolFor().filter(e=>dispOf(e));
-  const dl=ds.length?`<div class="displine">🩹 ${ds.map(e=>`<b>${esc(e.prenom)}</b> ${esc(dispTxt(e))}`).join(" · ")}</div>`:"";
+  const ab=poolFor().filter(absJ);
+  const dl=(ds.length?`<div class="displine">🩹 ${ds.map(e=>`<b>${esc(e.prenom)}</b> ${esc(dispTxt(e))}`).join(" · ")}</div>`:"")+(ab.length?`<div class="displine">🙋 Absent${ab.length>1?"s":""} : ${ab.map(e=>`<b>${esc(e.prenom)}</b>`).join(", ")}</div>`:"");
   ["#c-g","#r-g"].forEach(s=>$(s).innerHTML=html+dl);
   try{renderEvAlert()}catch(e){}
   try{renderSitDay()}catch(e){}
@@ -1992,7 +1995,7 @@ function poolFor(){if(CURG()==="all")return EL();const g=GR().find(x=>x.id===CUR
 /* objectif « meilleur rôle » : un receveur n'apparaît pas en coureur 1 (départ arrêté), un donneur pas en coureur 2 */
 function roleOk(e,kind){const c=CFG();if(!(c.goalOn&&c.goalMode==="best")||!e.best)return true;return kind==="A"?e.best==="D":e.best==="R"}
 function fillSelect(sel,kind){
-  const list=poolFor().filter(e=>usable(e,kind)&&roleOk(e,kind)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
+  const list=poolFor().filter(e=>usable(e,kind)&&roleOk(e,kind)&&!absJ(e)).sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
   const dup=p=>list.filter(x=>x.prenom.toLowerCase()===p.toLowerCase()).length>1;
   const lab0=e=>CURG()==="all"?`${e.prenom} ${e.nom}`:(dup(e.prenom)?`${e.prenom} ${e.nom?e.nom[0]+".":""}`:e.prenom);
   const lab=e=>(dispOf(e)?"🩹 ":"")+(isCoachE(e)?"🏅 ":"")+lab0(e)+(dispOf(e)?" ("+dispTxt(e)+")":"");
@@ -3164,7 +3167,7 @@ function renderGoalReminder(){
   const N=cfg.goalN||4,how=cfg.goalMode==="both"?`${N} comme donneur et ${N} comme receveur`:`${N} dans son meilleur rôle`;
   const g=GR().find(x=>x.id===CURG());
   let rest="";
-  if(g){const all=groupMembers(g).filter(e=>e.ma!=="DISP"),m=all.filter(e=>!dispOf(e));
+  if(g){const all=groupMembers(g).filter(e=>e.ma!=="DISP"),m=all.filter(e=>!dispOf(e)&&!absJ(e));
     const left=m.map(e=>{const s=goalStatus(e,cfg,CO());const n=s.lines.reduce((t,[l,v,n])=>t+Math.max(0,n-v),0);return {e,n}}).filter(x=>x.n>0);
     rest=left.length?`<div class="grl">Encore à courir : ${left.map(x=>`<span><b>${esc(x.e.prenom)}</b> ${x.n}</span>`).join("")}</div><div class="grt">⏱ Organisez-vous pour avoir le temps de toutes les faire avant la fin de la leçon !</div>`
       :`<div class="grt ok">✓ Tout le groupe a atteint l'objectif de la leçon. Bravo !</div>`;
