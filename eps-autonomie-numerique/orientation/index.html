@@ -2206,6 +2206,17 @@ const BIBLIO = [
    sit: { nom: "Ma trace", but: "Retrouver sur sa trace l'arrêt le plus long et expliquer ce qui s'est passé.", dispositif: "Analyse d'itinéraire sur le téléphone (après l'arrivée) ou sur la tablette.", organisation: "Par deux : l'un explique, l'autre questionne.", consignes: ["Trouve ton arrêt le plus long (rond jaune).", "Explique : où étais-je ? que cherchais-je ? que ferai-je la prochaine fois ?"], reussite: ["Une explication et une solution notées sur la fiche bilan."], realisation: ["Lien entre la trace et la carte."], simplifier: ["Avec l'aide de l'enseignant."], complexifier: ["Comparer avec la trace d'un camarade."], roles: "" },
    securite: [], materiel: ["Téléphones ou tablette", "Fiches bilan"], o: null }
 ];
+/* Trame de séquence pour les fiches de leçon communes (eps-lecons.js, « 📥 Trame proposée ») : les leçons « cycle » de BIBLIO
+   deviennent des fiches en brouillon, avec leur situation (critères de réussite / réalisation, variables). Mode enseignant seulement. */
+try { (window.EPS_TRAMES = window.EPS_TRAMES || []).push({ id: "ori-cycle", seq: "Course d'orientation",
+  nom: "Course d'orientation · " + BIBLIO.filter(x => x.cat === "cycle").length + " leçons (bibliothèque OrienRun)",
+  sources: "Bibliothèque OrienRun : fiches de leçon du CA2 (AFLP bac pro, AFL bac GT).",
+  lecons: BIBLIO.filter(x => x.cat === "cycle").sort((a, b) => a.n - b.n).map(x => { const S = x.sit || {}, J = a => (a || []).join("\n");
+    return { num: String(x.n), titre: x.titre, duree: x.duree || "", objM: x.objectif || "", but: [x.theme, S.but].filter(Boolean).map(t => String(t).replace(/[.\s]+$/, "")).join(". ") + ".",
+      disp: [S.dispositif, S.organisation, S.roles ? "Rôles : " + S.roles : "", (x.securite || []).length ? "Sécurité : " + x.securite.join(" ; ") : ""].filter(Boolean).join("\n"),
+      mat: (x.materiel || []).join(", "), ech: x.echauffement || "", bilan: x.bilan || "",
+      sits: S.nom ? [{ t: S.nom, cons: [S.but, J(S.consignes)].filter(Boolean).join("\n"), crQ: J(S.reussite), crR: J(S.realisation), simp: J(S.simplifier), comp: J(S.complexifier), ap: x.theme || "" }] : [] }; }) }); } catch (e) {}
+
 
 const blib = () => DB.get("biblio").then(x => x || []);
 const blibNiv = () => LS.get("biblioNiv", "pro");
@@ -3223,7 +3234,7 @@ window.EVORI=window.EPSE?EPSE.store({app:'ori',nom:'Course d\'orientation',ca:'C
 window.EPSTORI=window.EPST?EPST.init({app:'ori',nom:'OrienRun',color:'#E8701A',isTeacher:function(){var p=document.getElementById('prof');return !!p&&!p.classList.contains('hidden')},anchor:'#prof header',main:'#pview',home:'seq',
  tabs:{
   seq:{go:function(){setPTab(['carte','balises','parcours','seance'].indexOf(ptab)>=0?ptab:'seance')},on:function(){return ['carte','balises','parcours','seance'].indexOf(ptab)>=0},
-   actions:[{main:1,ico:'🛰',label:'Leçon live (GPS)',go:function(){setPTab('seance')}},{ico:'🗺',label:'Carte',go:function(){setPTab('carte')}},{ico:'🚩',label:'Balises',go:function(){setPTab('balises')}},{ico:'〰',label:'Parcours',go:function(){setPTab('parcours')}},{ico:'🆕',label:'Nouvelle carte',sub:'Même fond de carte, sans balise',go:function(){newMapDialog()}}]},
+   actions:[{main:1,ord:0.1,ico:'🚀',label:'Créer une séquence',go:function(){if(window.EPSLC)EPSLC.open('lec');else alert('Fiches de leçon encore en chargement : réessaie dans un instant.')}},{main:1,ico:'🛰',label:'Leçon live (GPS)',go:function(){setPTab('seance')}},{ico:'🗺',label:'Carte',go:function(){setPTab('carte')}},{ico:'🚩',label:'Balises',go:function(){setPTab('balises')}},{ico:'〰',label:'Parcours',go:function(){setPTab('parcours')}},{ico:'🆕',label:'Nouvelle carte',sub:'Même fond de carte, sans balise',go:function(){newMapDialog()}}]},
   eval:{panel:function(el){var c=window.epsCurrentClass&&epsCurrentClass();if(window.EVORI&&EVORI.mount)EVORI.mount(el,['eval','grille'],c&&c.nom);else el.innerHTML='<p>Évaluation indisponible.</p>'}},
   cls:{panel:function(el){el.innerHTML='<h2>👥 Classes</h2><p class="mut">Listes d\'élèves d\'OrienRun (communes à toutes les applis).</p><div id="clPanelShell"></div>';classesPanel(el.querySelector('#clPanelShell'))}},
   bil:{panel:function(el){el.innerHTML='<h2>📄 Bilans</h2><p class="mut">Résultats des courses et fiches d\'évaluation (PDF, .zip, Pronote, publication en ligne).</p><div class="epst-grid"><button type="button" class="epst-card" id="ori-res"><i>🏁</i><span><b>Résultats des courses</b><small>Temps, balises, classements</small></span></button></div><div id="ori-ev"></div>';

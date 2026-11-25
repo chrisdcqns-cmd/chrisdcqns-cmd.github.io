@@ -62,10 +62,12 @@
   /* trames de séquence fournies par l'appli (window.EPS_TRAMES, ex. acrosport/trame-1gt.js) : fiches créées en brouillon, sans situations */
   function trames() { var L = lecons(); return (window.EPS_TRAMES || []).filter(function (t) { return t && t.id && (t.lecons || []).length && !L.some(function (l) { return l.trame === t.id; }); }); }
   function addTrame(T) {
-    if (!T || !confirm("Créer les " + T.lecons.length + " fiches de « " + T.nom + " » en brouillon ?\nTu pourras tout modifier, ajouter les situations, puis « ✓ Valider » chaque fiche.")) return;
+    if (!T || !confirm("Créer les " + T.lecons.length + " fiches de « " + T.nom + " » en brouillon ?\nTu pourras tout modifier" + (T.lecons.some(function (x) { return (x.sits || []).length; }) ? "" : ", ajouter les situations") + ", puis « ✓ Valider » chaque fiche.")) return;
     var now = Date.now();
     T.lecons.forEach(function (x, i) {
-      var l = blank(T.seq || T.nom); l.num = String(x.num || i + 1); l.titre = x.titre || ""; l.duree = x.duree || ""; l.sits = []; l.ai = {};
+      var l = blank(T.seq || T.nom); l.num = String(x.num || i + 1); l.titre = x.titre || ""; l.duree = x.duree || ""; l.ai = {};
+      /* situations fournies par la trame (facultatif) : champs SF + ap (apprentissage) */
+      l.sits = (x.sits || []).map(function (y) { var o = {}; SF.forEach(function (f) { if (y[f[0]]) o[f[0]] = String(y[f[0]]); }); if (y.ap) o.ap = String(y.ap); return o; });
       F.concat(RF).forEach(function (f) { var v = x[f[0]]; if (v) { l[f[0]] = String(v); l.ai[f[0]] = 1; } });
       ["num", "titre"].forEach(function (k) { if (l[k]) l.ai[k] = 1; });
       l.statut = "brouillon"; l.trame = T.id; if (T.voie) l.voie = T.voie; l.cr = now + i; if (T.sources) l.sources = T.sources;
