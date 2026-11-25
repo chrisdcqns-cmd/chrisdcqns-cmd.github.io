@@ -67,6 +67,7 @@ label.lbl{display:block;font-weight:800;font-size:.75rem;text-transform:uppercas
 .sheet .x{float:right;width:40px;height:40px;border-radius:50%;background:#fff;font-size:1.2rem}
 .seg{display:flex;background:#fff;border-radius:12px;padding:3px;gap:3px}.seg button{flex:1;padding:9px 4px;border-radius:9px;font-weight:800;font-size:.88rem}.seg button.on{background:var(--ink);color:#fff}
 .tip{background:#fff4e0;border-left:4px solid var(--or);padding:10px 12px;border-radius:10px;font-size:.92rem;margin:10px 0}
+.placer{position:fixed;inset:0;z-index:60;background:#000;display:flex;flex-direction:column}.placer .ph{background:#fff;padding:10px 12px;display:flex;flex-direction:column;gap:2px}.placer .pm{flex:1;position:relative}#plMap{position:absolute;inset:0}.placer .pc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:300 54px system-ui;color:#f47a20;text-shadow:0 0 3px #fff,0 0 6px #fff;pointer-events:none;z-index:500;line-height:1}.placer .pb{display:flex;gap:8px;padding:10px;background:#fff}.placer .pb .btn{flex:1;min-height:52px}[data-el].on{outline:3px solid #f47a20}
 </style>
 </head>
 <body>
@@ -101,6 +102,17 @@ const DENS = { blanc: { nom: "Blanc", aide: "forêt, course facile", col: "#ffff
 // Éléments ponctuels
 const ELEM = { rocher: "Rocher", gros_rocher: "Gros rocher", arbre: "Arbre remarquable", buisson: "Buisson remarquable", butte: "Petite butte", depression: "Petite dépression", trou: "Trou", source: "Point d'eau / fontaine", objet_x: "Objet particulier ×", objet_o: "Objet particulier ○", poteau: "Poteau / pylône" };
 const ELEM_IC = { rocher: "▲", gros_rocher: "⬟", arbre: "◯", buisson: "●", butte: "•", depression: "◡", trou: "∨", source: "💧", objet_x: "×", objet_o: "○", poteau: "⏚" };
+// Éléments remarquables : nom courant → symbole officiel de la carte (ISOM 2017-2 / ISSprOM 2019).
+// Le mobilier urbain (poubelle, plot, banc…) est dessiné avec l'« objet particulier » ○ (530) ou × (531) : sa nature va dans la description de poste.
+const ELTYPES = [
+  ["Mobilier et objets (○ / ×)", [["poubelle", "Poubelle", "objet_x"], ["plot", "Plot en béton / borne", "objet_o"], ["banc", "Banc", "objet_x"], ["panneau", "Panneau", "objet_x"], ["table", "Table", "objet_x"], ["borne_inc", "Borne incendie", "objet_x"], ["statue", "Statue / monument", "objet_o"], ["abri_velo", "Abri / range-vélos", "objet_x"], ["jeu", "Jeu d'enfants", "objet_x"], ["autre_x", "Autre objet (×)", "objet_x"], ["autre_o", "Autre objet (○)", "objet_o"]]],
+  ["Poteaux", [["lampadaire", "Lampadaire", "poteau"], ["poteau", "Poteau / pylône", "poteau"]]],
+  ["Végétation", [["arbre", "Arbre remarquable", "arbre"], ["buisson", "Buisson remarquable", "buisson"]]],
+  ["Rochers et relief", [["rocher", "Rocher", "rocher"], ["gros_rocher", "Gros rocher", "gros_rocher"], ["butte", "Petite butte", "butte"], ["depression", "Petite dépression", "depression"], ["trou", "Trou", "trou"]]],
+  ["Eau", [["source", "Point d'eau / fontaine", "source"]]]];
+const ELT_BY = Object.fromEntries(ELTYPES.flatMap(g => g[1]).map(([k, nom, sym]) => [k, { nom, sym }]));
+const SYMCODE = { objet_x: "531", objet_o: "530", poteau: "524", arbre: "417", buisson: "418", rocher: "204", gros_rocher: "206", butte: "112", depression: "115", trou: "116", source: "312" };
+const eltName = e => (e.type && ELT_BY[e.type] ? ELT_BY[e.type].nom : ELEM[e.sym] || e.sym);
 const DESCRIPTIONS = ["Angle de bâtiment", "Angle de mur", "Angle de clôture", "Bout de mur", "Arbre", "Buisson", "Rocher", "Banc", "Lampadaire / poteau", "Panneau", "Escalier", "Entrée", "Portail", "Croisement de chemins", "Bout de chemin", "Virage", "Fontaine", "Butte", "Dépression", "Talus", "Limite de végétation", "Lisière (coin)", "Objet particulier"];
 
 // ---------- stockage ----------
@@ -305,7 +317,7 @@ function drawTraces() {
   if (!map) return; layers.clearLayers();
   const all = [...TRC.filter(t => !REC.cur || t.id !== REC.cur.id), ...(REC.cur ? [REC.cur] : [])];
   all.forEach(t => { densBands(t, t === REC.cur ? (p => p) : cp).forEach(b => L.polygon(b.poly.map(p => [p.lat, p.lon]), { stroke: false, fillColor: DENS[b.cls].col, fillOpacity: b.cls === "blanc" ? .35 : .6 }).addTo(layers)); if (isZone(t.type)) t.segments.forEach(seg => { if (seg.length > 2) L.polygon(seg.map(p => { const q = t === REC.cur ? p : cp(p); return [q.lat, q.lon]; }), { color: "#14213d", weight: 1, fillColor: TYPE_COL[t.type], fillOpacity: .55 }).addTo(layers); }); });
-  ELT.forEach(e0 => { const e = cp(e0); L.marker([e.lat, e.lon], { icon: L.divIcon({ className: "", html: `<div style="font:800 18px system-ui;color:#14213d;text-shadow:0 0 3px #fff,0 0 3px #fff">${ELEM_IC[e0.sym] || "•"}</div>`, iconSize: [20, 20], iconAnchor: [10, 10] }) }).addTo(layers).bindTooltip(ELEM[e0.sym] + (e0.note ? " · " + e0.note : "")); });
+  ELT.forEach(e0 => { const e = cp(e0); L.marker([e.lat, e.lon], { icon: L.divIcon({ className: "", html: `<div style="font:800 18px system-ui;color:#14213d;text-shadow:0 0 3px #fff,0 0 3px #fff">${ELEM_IC[e0.sym] || "•"}</div>`, iconSize: [20, 20], iconAnchor: [10, 10] }) }).addTo(layers).bindTooltip(eltName(e0) + (e0.note ? " · " + e0.note : "")); });
   all.forEach(t => t.segments.forEach(seg => { if (seg.length > 1 && !isZone(t.type)) L.polyline(seg.map(p => { const q = t === REC.cur ? p : cp(p); return [q.lat, q.lon]; }), { color: TYPE_COL[t.type] || "#111", weight: t === REC.cur ? 5 : 3, opacity: t === REC.cur ? .95 : .55, dashArray: t.type === "sentier" ? "6 6" : t.type === "chemin" ? "12 4" : null }).addTo(layers); }));
   REP.forEach(r => { const q = cp(r); L.circleMarker([q.lat, q.lon], { radius: 7, color: "#fff", weight: 2, fillColor: "#2a9d6f", fillOpacity: 1 }).addTo(layers).bindTooltip("📌 " + r.nom); });
   BAL.forEach(b0 => { const b = cp(b0); L.circleMarker([b.lat, b.lon], { radius: 10, color: "#c21fbf", weight: 3, fillOpacity: 0 }).addTo(layers).bindTooltip(String(b0.n), { permanent: true, direction: "right", className: "" }); });
@@ -362,7 +374,7 @@ function renderRec() {
   box.innerHTML = `<div class="row"><b class="${REC.paused || REC.auto ? "" : "rec"}" style="color:${REC.paused || REC.auto ? "#d97706" : "var(--rd)"}">${st}</b><span class="grow"></span><span class="chip">${esc(TYPES[tr.type])}</span></div><div style="font-weight:800;margin-top:4px">${esc(tr.nom)}</div>
     <div class="stats"><div><b>${fmtD(d)}</b><small>distance</small></div><div><b>${fmtDur(Date.now() - tr.t0)}</b><small>durée</small></div><div><b>${pts}</b><small>points${tr.gaps.length ? ` · ${tr.gaps.length} coupure(s)` : ""}</small></div></div>
     ${isZone(tr.type) ? `<div class="tip" style="margin-top:10px">Zone « ${esc(ZONES[tr.type])} » : fais-en le tour, puis ⏹ Terminer (elle se ferme toute seule).</div>` : `<div style="margin-top:10px"><div class="lbl" style="margin:0">Densité du terrain de part et d'autre (sens de la marche) · bande de ${tr.bande || CFG.bande} m</div>${densRow("g")}${densRow("d")}</div>`}
-    <div class="row" style="margin-top:12px"><button class="btn or grow" id="rBal" style="min-height:58px">🚩 Balise ici</button><button class="btn" id="rElt" style="min-height:58px">📍 Élément</button><button class="btn gr" id="rRep" style="min-height:58px">📌 Repère</button><button class="btn alt" id="rPause" style="min-height:58px">${REC.paused ? "▶ Reprendre" : "⏸ Pause"}</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn or grow" id="rBal" style="min-height:58px">🚩 Balise ici</button><button class="btn" id="rElt" style="min-height:58px">📍 Élément remarquable</button><button class="btn gr" id="rRep" style="min-height:58px">📌 Repère</button><button class="btn alt" id="rPause" style="min-height:58px">${REC.paused ? "▶ Reprendre" : "⏸ Pause"}</button></div>
     <div class="row" style="margin-top:10px"><select class="inp grow" id="rType2" style="width:auto">${typeOptions(tr.type)}</select><button class="btn gr" id="rStop">⏹ Terminer</button></div>
     <button class="btn ghost small" id="rCenter" style="margin-top:10px">◎ Recentrer sur moi</button>`;
   $("#rPause").onclick = () => { REC.paused = !REC.paused; if (!REC.paused) { REC.cur.segments.push([]); keepAwake(true); } saveRecNow(); renderRec(); };
@@ -402,12 +414,41 @@ function repereSheet() {
     notify(`✓ Repère « ${esc(REP.at(-1).nom)} » enregistré (±${r.acc} m). Tu pourras le pointer sur la photo aérienne (🎯 Caler la trace) ou sur ta carte dans OrienRun.`, "ok"); s.remove(); drawTraces(); };
 }
 function elementSheet() {
-  const s = sheet(`<h2 style="margin:0 0 6px">📍 Élément ponctuel</h2><p class="muted" style="margin:0 0 8px">Mets-toi au pied de l'élément et choisis-le : la position est mesurée pendant 6 secondes.</p>
-   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${Object.entries(ELEM).map(([k, v]) => `<button class="btn ghost" data-el="${k}" style="min-height:62px;flex-direction:column;gap:2px;font-size:.78rem;padding:4px"><span style="font-size:1.4rem">${ELEM_IC[k]}</span>${v}</button>`).join("")}</div>
-   <label class="lbl">Précision (facultatif)</label><input class="inp" id="elN" placeholder="ex. gros chêne, borne incendie…"><div id="elRes" class="muted" style="margin-top:8px"></div>`);
-  $$("[data-el]", s).forEach(b => b.onclick = async () => { $$("[data-el]", s).forEach(x => x.disabled = true); const r = await measure(6, CFG.accTrace, p => $("#elRes", s).textContent = `⏳ Mesure… ${Math.ceil(p.left)} s · ${p.good} position(s)`); $$("[data-el]", s).forEach(x => x.disabled = false);
-    if (!r.ok) { notify("⚠ Élément NON enregistré. " + r.why, "ko", true); $("#elRes", s).textContent = r.why; return; }
-    ELT.push({ id: uid(), sym: b.dataset.el, note: $("#elN", s).value.trim(), lat: r.lat, lon: r.lon, acc: r.acc, t: r.t }); saveElt(); notify(`✓ ${ELEM[b.dataset.el]} enregistré (±${r.acc} m).`, "ok"); s.remove(); drawTraces(); });
+  const icn = k => ELEM_IC[ELT_BY[k].sym] || "•";
+  const s = sheet(`<h2 style="margin:0 0 6px">📍 Élément remarquable</h2><p class="muted" style="margin:0 0 8px">Choisis l'élément (légende officielle de course d'orientation), puis comment le placer.</p>
+   <div style="max-height:44vh;overflow:auto">${ELTYPES.map(([g, L]) => `<div class="lbl" style="margin-top:8px">${g}</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${L.map(([k, nom, sym]) => `<button class="btn ghost" data-el="${k}" style="min-height:58px;flex-direction:column;gap:2px;font-size:.76rem;padding:4px"><span style="font-size:1.3rem">${icn(k)}</span>${nom}<small style="opacity:.6">${SYMCODE[sym] || ""}</small></button>`).join("")}</div>`).join("")}</div>
+   <div id="elPlace" style="display:none;margin-top:10px"><div class="card" style="margin:0 0 8px;padding:10px"><b id="elChoix"></b><div class="muted" style="font-size:.8rem" id="elSym"></div></div>
+    <label class="lbl">Précision (facultatif)</label><input class="inp" id="elN" placeholder="ex. poubelle verte, devant le gymnase…">
+    <div class="muted" id="elGps" style="margin:8px 0"></div>
+    <button class="btn gr w100" id="elG" style="min-height:56px">📡 À ma position (GPS, au pied de l'élément)</button>
+    <button class="btn or w100" id="elM" style="min-height:56px;margin-top:8px">👆 Je le place moi-même sur la photo aérienne</button>
+    <div id="elRes" class="muted" style="margin-top:8px"></div></div>`);
+  let type = null;
+  const gps = () => { const f = G.fix, ok = f && Date.now() - f.t < 15000; $("#elGps", s).innerHTML = !ok ? "📡 GPS : en attente…" : f.acc <= 5 ? `📡 GPS <b style="color:var(--gr)">excellent (±${Math.round(f.acc)} m)</b> : tu peux le placer à ta position.` : f.acc <= CFG.accBalise ? `📡 GPS correct (±${Math.round(f.acc)} m).` : `📡 GPS imprécis (±${Math.round(f.acc)} m) : <b>place-le plutôt toi-même</b> sur la photo aérienne.`; };
+  const iv = setInterval(() => { if (!document.body.contains(s)) return clearInterval(iv); gps(); }, 1000); gps();
+  const save = (r, man) => { const t = ELT_BY[type]; ELT.push({ id: uid(), type, sym: t.sym, note: $("#elN", s).value.trim(), lat: r.lat, lon: r.lon, acc: r.acc, t: Date.now(), ...(man ? { man: 1 } : {}) }); saveElt(); notify(`✓ ${t.nom} enregistré${man ? " (placé à la main)" : ` (±${r.acc} m)`}.`, "ok"); s.remove(); drawTraces(); };
+  $$("[data-el]", s).forEach(b => b.onclick = () => { type = b.dataset.el; $$("[data-el]", s).forEach(x => x.classList.toggle("on", x === b)); const t = ELT_BY[type]; $("#elPlace", s).style.display = ""; $("#elChoix", s).textContent = `${icn(type)} ${t.nom}`; $("#elSym", s).textContent = `Symbole sur la carte : ${ELEM[t.sym] || t.sym}${SYMCODE[t.sym] ? " (ISOM " + SYMCODE[t.sym] + ")" : ""}`; $("#elPlace", s).scrollIntoView({ block: "nearest" }); });
+  $("#elG", s).onclick = async () => { const b = $("#elG", s); b.disabled = true; const r = await measure(6, CFG.accTrace, p => $("#elRes", s).textContent = `⏳ Mesure… ${Math.ceil(p.left)} s · ${p.good} position(s)`); b.disabled = false;
+    if (!r.ok) { notify("⚠ Élément NON enregistré. " + r.why + " Tu peux le placer toi-même.", "ko", true); $("#elRes", s).textContent = r.why; return; } save(r, false); };
+  $("#elM", s).onclick = () => placeOnMap(`${icn(type)} ${ELT_BY[type].nom}`, r => save(r, true));
+}
+// placer soi-même un point : photo aérienne centrée sur ma position, croix au centre, je déplace la carte puis « Ici »
+function placeOnMap(titre, done) {
+  if (!window.L) return notify("La photo aérienne demande internet.", "ko", true);
+  const d = document.createElement("div"); d.className = "placer";
+  d.innerHTML = `<div class="ph"><b>${esc(titre)}</b><span class="muted" style="font-size:.8rem">Déplace la carte : la croix doit être exactement sur l'élément.</span></div><div class="pm"><div id="plMap"></div><div class="pc">＋</div></div><div class="pb"><button class="btn ghost" id="plX">Annuler</button><button class="btn ghost" id="plMe">◎ Ma position</button><button class="btn gr" id="plOk">✓ Ici</button></div>`;
+  document.body.appendChild(d);
+  const f = G.fix, mp = L.map($("#plMap", d), { zoomControl: true }).setView(f ? [f.lat, f.lon] : [46.6, 2.4], f ? 19 : 6);
+  const wm = l => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${l}&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=`;
+  const ortho = L.tileLayer(wm("ORTHOIMAGERY.ORTHOPHOTOS") + "image/jpeg", { maxZoom: 21, maxNativeZoom: 19, attribution: "© IGN" }).addTo(mp), plan = L.tileLayer(wm("GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2") + "image/png", { maxZoom: 21, maxNativeZoom: 18, attribution: "© IGN" });
+  L.control.layers({ "Photo aérienne": ortho, "Plan IGN": plan }).addTo(mp);
+  let me = null; const showMe = () => { const g = G.fix; if (!g) return; if (me) me.forEach(x => x.remove()); me = [L.circle([g.lat, g.lon], { radius: g.acc, color: "#1d4ed8", weight: 1, fillOpacity: .12 }).addTo(mp), L.circleMarker([g.lat, g.lon], { radius: 6, color: "#fff", weight: 2, fillColor: "#1d4ed8", fillOpacity: 1 }).addTo(mp)]; };
+  showMe(); const iv = setInterval(showMe, 2000);
+  ELT.forEach(e => L.marker([e.lat, e.lon], { icon: L.divIcon({ className: "", html: `<div style="font:800 15px system-ui;color:#14213d;text-shadow:0 0 3px #fff">${ELEM_IC[e.sym] || "•"}</div>`, iconSize: [18, 18] }) }).addTo(mp));
+  const close = () => { clearInterval(iv); mp.remove(); d.remove(); };
+  $("#plX", d).onclick = close; $("#plMe", d).onclick = () => { const g = G.fix; if (g) mp.setView([g.lat, g.lon], Math.max(mp.getZoom(), 19)); };
+  $("#plOk", d).onclick = () => { const c = mp.getCenter(); close(); done({ lat: c.lat, lon: c.lng, acc: 0 }); };
+  setTimeout(() => mp.invalidateSize(), 100);
 }
 let calMap = null;
 function vCaler() {
@@ -430,7 +471,7 @@ const calState = { step: null, src: null, nom: "" };
 function drawCal() {
   if (calMap) { const g = calMap._lay; g.clearLayers();
     TRC.forEach(t => t.segments.forEach(seg => { if (seg.length < 2) return; L.polyline(seg.map(p => [p.lat, p.lon]), { color: "#666", weight: 3, opacity: .7, dashArray: "4 6" }).addTo(g); if (CAL.length) L.polyline(seg.map(p => { const q = cp(p); return [q.lat, q.lon]; }), { color: "#e63946", weight: 4 }).addTo(g); }));
-    ELT.forEach(e => L.marker([e.lat, e.lon], { icon: L.divIcon({ className: "", html: `<div style="font:800 17px system-ui;color:#14213d;background:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;box-shadow:0 0 0 2px #2a9d6f">${ELEM_IC[e.sym]}</div>`, iconSize: [22, 22], iconAnchor: [11, 11] }) }).addTo(g).bindTooltip(ELEM[e.sym], { direction: "top" }).on("click", ev => calClick(ev.latlng)));
+    ELT.forEach(e => L.marker([e.lat, e.lon], { icon: L.divIcon({ className: "", html: `<div style="font:800 17px system-ui;color:#14213d;background:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;box-shadow:0 0 0 2px #2a9d6f">${ELEM_IC[e.sym]}</div>`, iconSize: [22, 22], iconAnchor: [11, 11] }) }).addTo(g).bindTooltip(eltName(e), { direction: "top" }).on("click", ev => calClick(ev.latlng)));
     REP.forEach(r => L.circleMarker([r.lat, r.lon], { radius: 9, color: "#fff", weight: 2, fillColor: "#2a9d6f", fillOpacity: 1 }).addTo(g).bindTooltip("📌 " + r.nom, { direction: "top" }));
     CAL.forEach(c => { L.polyline([[c.src.lat, c.src.lon], [c.dst.lat, c.dst.lon]], { color: "#ffb703", weight: 3 }).addTo(g); L.circleMarker([c.dst.lat, c.dst.lon], { radius: 7, color: "#14213d", weight: 3, fillColor: "#ffb703", fillOpacity: 1 }).addTo(g).bindTooltip("🎯 " + c.nom, { permanent: true, direction: "right" }); });
     if (calState.src) L.circleMarker([calState.src.lat, calState.src.lon], { radius: 12, color: "#ffb703", weight: 4, fillOpacity: 0 }).addTo(g);
@@ -450,7 +491,7 @@ function calClick(ll) {
   if (!calState.step) return;
   const P = calMap.latLngToContainerPoint(ll), near = (p, px = 28) => calMap.latLngToContainerPoint([p.lat, p.lon]).distanceTo(P) <= px;
   if (calState.step === "src") {
-    const e = ELT.find(x => near(x, 22)); if (e) { calState.src = { lat: e.lat, lon: e.lon }; calState.nom = ELEM[e.sym] + (e.note ? " · " + e.note : ""); calState.step = "dst"; return drawCal(); }
+    const e = ELT.find(x => near(x, 22)); if (e) { calState.src = { lat: e.lat, lon: e.lon }; calState.nom = eltName(e) + (e.note ? " · " + e.note : ""); calState.step = "dst"; return drawCal(); }
     const r = REP.find(x => near(x)); if (r) { calState.src = { lat: r.lat, lon: r.lon }; calState.nom = r.nom; calState.step = "dst"; return drawCal(); }
     let best = null, bd = 1e9; TRC.forEach(t => t.segments.forEach(seg => seg.forEach(p => { const d = calMap.latLngToContainerPoint([p.lat, p.lon]).distanceTo(P); if (d < bd) { bd = d; best = p; } })));
     if (best && bd <= 28) { calState.src = { lat: best.lat, lon: best.lon }; calState.nom = prompt("Nom de ce point (ce que tu vois sur la photo) :", "Point " + (CAL.length + 1)) || "Point " + (CAL.length + 1); calState.step = "dst"; return drawCal(); }
@@ -464,7 +505,7 @@ function vListe() {
   $("#title").textContent = "Mes relevés";
   $("#view").innerHTML = `<div class="card"><h2>🚩 Balises (${BAL.length})</h2>${BAL.map(b => `<div class="item"><div class="num">${b.n}</div><div class="grow"><b>${esc(b.desc || "Balise " + b.n)}</b> ${b.imprecise ? '<span class="chip ko">⚠ imprécise</span>' : `<span class="chip ok">±${b.acc} m</span>`}<div class="muted" style="font-size:.82rem">${fmtT(b.t)} · ${new Date(b.t).toLocaleDateString("fr-FR")}${b.photos?.length ? ` · 📷 ${b.photos.length}` : ""}</div></div><button class="btn small ghost" data-b="${b.id}">Ouvrir</button></div>`).join("") || '<p class="muted">Aucune balise.</p>'}</div>
    <div class="card"><h2>📌 Repères (${REP.length})</h2>${REP.map(r => `<div class="item"><div class="grow"><b>${esc(r.nom)}</b> <span class="chip ok">±${r.acc} m</span><div class="muted" style="font-size:.82rem">${fmtT(r.t)} · <a href="${gmaps(r.lat, r.lon)}" target="_blank">Google Maps</a>${CAL.some(c => Math.abs(c.src.lat - r.lat) < 1e-9 && Math.abs(c.src.lon - r.lon) < 1e-9) ? " · 🎯 calé" : ""}</div></div><button class="btn small ghost" data-rd="${r.id}">✕</button></div>`).join("") || '<p class="muted">Aucun repère. Pendant un tracé : bouton « 📌 Repère ».</p>'}</div>
-   <div class="card"><h2>📍 Éléments (${ELT.length})</h2>${ELT.map(e => `<div class="item"><div class="num" style="background:#fff">${ELEM_IC[e.sym]}</div><div class="grow"><b>${esc(ELEM[e.sym])}</b>${e.note ? " · " + esc(e.note) : ""} <span class="chip ok">±${e.acc} m</span></div><button class="btn small ghost" data-ed="${e.id}">✕</button></div>`).join("") || '<p class="muted">Aucun. Pendant un tracé : bouton « 📍 Élément ».</p>'}</div>
+   <div class="card"><h2>📍 Éléments (${ELT.length})</h2>${ELT.map(e => `<div class="item"><div class="num" style="background:#fff">${ELEM_IC[e.sym]}</div><div class="grow"><b>${esc(eltName(e))}</b>${e.man ? ' <span class="chip">👆 placé à la main</span>' : ""}${e.note ? " · " + esc(e.note) : ""} <span class="chip ok">±${e.acc} m</span></div><button class="btn small ghost" data-ed="${e.id}">✕</button></div>`).join("") || '<p class="muted">Aucun. Pendant un tracé : bouton « 📍 Élément ».</p>'}</div>
    <div class="card"><h2>〰 Tracés et zones (${TRC.length})</h2>${TRC.map(t => `<div class="item"><div class="grow"><b>${esc(t.nom)}</b><div class="muted" style="font-size:.82rem">${esc(TYPES[t.type] || t.type)} · ${fmtD(traceDist(t))} · ${t.segments.length} morceau(x)${t.segments.some(sg => sg.some(p => p.g || p.d)) ? " · densités notées" : ""}</div></div><button class="btn small ghost" data-t="${t.id}">Modifier</button></div>`).join("") || '<p class="muted">Aucun tracé.</p>'}</div>`;
   $$("[data-b]").forEach(x => x.onclick = () => openBal(BAL.find(b => b.id === x.dataset.b)));
   $$("[data-t]").forEach(x => x.onclick = () => editTr(TRC.find(t => t.id === x.dataset.t)));
@@ -516,7 +557,7 @@ function toGPX() {
   const iso = t => new Date(t).toISOString(), x = s => esc(s);
   const BALc = BAL.map(b => ({ ...b, ...cp(b) })), TRCc = TRC.map(t => ({ ...t, segments: t.segments.map(sg => sg.map(cp)) })), REPc = REP.map(r => ({ ...r, ...cp(r) }));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="OrienRun Pose des balises" xmlns="http://www.topografix.com/GPX/1/1">\n` +
-    ELT.map(e0 => { const e = cp(e0); return `<wpt lat="${e.lat.toFixed(7)}" lon="${e.lon.toFixed(7)}"><time>${iso(e0.t)}</time><name>${x(ELEM[e0.sym])}</name><desc>${x(e0.note || "")} (±${e0.acc} m)</desc><type>${e0.sym}</type></wpt>\n`; }).join("") +
+    ELT.map(e0 => { const e = cp(e0); return `<wpt lat="${e.lat.toFixed(7)}" lon="${e.lon.toFixed(7)}"><time>${iso(e0.t)}</time><name>${x(eltName(e0))}</name><desc>${x(e0.note || "")} (±${e0.acc} m)</desc><type>${e0.sym}</type></wpt>\n`; }).join("") +
     REPc.map(r => `<wpt lat="${r.lat.toFixed(7)}" lon="${r.lon.toFixed(7)}"><time>${iso(r.t)}</time><name>${x(r.nom)}</name><desc>Repère (±${r.acc} m)</desc><sym>Pin</sym></wpt>\n`).join("") +
     BALc.map(b => `<wpt lat="${b.lat.toFixed(7)}" lon="${b.lon.toFixed(7)}">${b.alt != null ? `<ele>${b.alt}</ele>` : ""}<time>${iso(b.t)}</time><name>${b.n}</name><desc>${x(b.desc || "")}${b.acc ? ` (±${b.acc} m)` : ""}</desc><sym>Flag</sym></wpt>\n`).join("") +
     TRCc.map(t => `<trk><name>${x(t.nom)}</name><type>${x(TYPES[t.type])}</type>${t.segments.map(sg => `<trkseg>${sg.map(p => `<trkpt lat="${p.lat.toFixed(7)}" lon="${p.lon.toFixed(7)}">${p.alt != null ? `<ele>${p.alt}</ele>` : ""}<time>${iso(p.t)}</time></trkpt>`).join("")}</trkseg>`).join("")}</trk>\n`).join("") + `</gpx>\n`;
@@ -536,7 +577,7 @@ function vExport() {
   $$(".seg").forEach(s => $$("button", s).forEach(b => b.onclick = () => { $$("button", s).forEach(x => x.classList.toggle("on", x === b)); }));
   const val = id => $(`#${id} .on`).dataset.v;
   recalcCorr();
-  const payload = (raw) => { const C = raw ? (p => p) : cp; return JSON.stringify({ app: "orienrun-terrain", v: 2, date: Date.now(), corrige: !raw && CFG.useCal && CAL.length > 0, balises: BAL.map(b => ({ ...b, ...C(b), rawLat: b.lat, rawLon: b.lon })), reperes: REP.map(r => ({ ...r, ...C(r), rawLat: r.lat, rawLon: r.lon })), calage: CAL, elements: ELT.map(e => ({ ...e, ...C(e), rawLat: e.lat, rawLon: e.lon })), traces: TRC.map(t => ({ ...t, zone: isZone(t.type), segments: t.segments.map(s => s.map(p => { const q = C(p); return { lat: q.lat, lon: q.lon, t: p.t, acc: p.acc, alt: p.alt, g: p.g, d: p.d }; })) })) }); };
+  const payload = (raw) => { const C = raw ? (p => p) : cp; return JSON.stringify({ app: "orienrun-terrain", v: 2, date: Date.now(), corrige: !raw && CFG.useCal && CAL.length > 0, balises: BAL.map(b => ({ ...b, ...C(b), rawLat: b.lat, rawLon: b.lon })), reperes: REP.map(r => ({ ...r, ...C(r), rawLat: r.lat, rawLon: r.lon })), calage: CAL, elements: ELT.map(e => ({ ...e, note: [e.type && ELT_BY[e.type] && !/^autre_/.test(e.type) ? ELT_BY[e.type].nom : "", e.note].filter(Boolean).join(" · "), ...C(e), rawLat: e.lat, rawLon: e.lon })), traces: TRC.map(t => ({ ...t, zone: isZone(t.type), segments: t.segments.map(s => s.map(p => { const q = C(p); return { lat: q.lat, lon: q.lon, t: p.t, acc: p.acc, alt: p.alt, g: p.g, d: p.d }; })) })) }); };
   $("#eOR").onclick = () => { if (!BAL.length && !TRC.length) return notify("Rien à exporter pour l'instant.", "warn"); shareFile(`orienrun-terrain-${stamp()}.json`, payload(), "application/json"); };
   $("#eGPX").onclick = () => { if (!BAL.length && !TRC.length) return notify("Rien à exporter pour l'instant.", "warn"); shareFile(`terrain-${stamp()}.gpx`, toGPX(), "application/gpx+xml"); };
   $("#eCSV").onclick = () => { if (!TRC.length && !BAL.length && !REP.length) return notify("Rien à exporter pour l'instant.", "warn"); shareFile(`terrain-points-${stamp()}.csv`, toCSV(), "text/csv"); };
@@ -550,7 +591,7 @@ function toCSV() {
   const rows = [["type", "nom", "morceau", "n°", "heure", "latitude", "longitude", "précision (m)", "UTM zone", "UTM E (m)", "UTM N (m)", "lat. GPS brute", "lon. GPS brute", "densité gauche", "densité droite"]];
   const add = (type, nom, seg, i, p) => { const q = cp(p), u = toUTM(q.lat, q.lon); rows.push([type, nom, seg, i, p.t ? new Date(p.t).toLocaleString("fr-FR") : "", q.lat.toFixed(7), q.lon.toFixed(7), p.acc ?? "", u.zone, u.E.toFixed(1), u.N.toFixed(1), p.lat.toFixed(7), p.lon.toFixed(7), p.g ? DENS[p.g].nom : "", p.d ? DENS[p.d].nom : ""]); };
   TRC.forEach(t => t.segments.forEach((sg, k) => sg.forEach((p, i) => add(isZone(t.type) ? "zone : " + ZONES[t.type] : "trace : " + (LINES[t.type] || t.type), t.nom, k + 1, i + 1, p))));
-  ELT.forEach(e => add("élément", ELEM[e.sym] + (e.note ? " · " + e.note : ""), "", "", e));
+  ELT.forEach(e => add("élément", eltName(e) + (e.note ? " · " + e.note : ""), "", "", e));
   BAL.forEach(b => add("balise", b.desc || "Balise " + b.n, "", b.n, b)); REP.forEach(r => add("repère", r.nom, "", "", r));
   return "\ufeff" + rows.map(r => r.map(v => /[;"\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(";")).join("\r\n");
 }
