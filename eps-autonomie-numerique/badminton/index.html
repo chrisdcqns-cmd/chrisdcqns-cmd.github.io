@@ -452,6 +452,12 @@ details.more{margin-top:6px}details.more>summary{cursor:pointer;font-weight:700;
 .indsw{display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-left:5px solid #1F5F8B}
 .iab{background:#7A3E9D}.india{margin-top:8px;background:#faf6fd;border:1.5px solid #e2d4ef;border-radius:10px;padding:8px 10px}
 .iarow{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eee3f5}.iarow.done{opacity:.6}
+
+.indmini{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.indmini .muted{font-size:.85em}
+.indmbg{position:fixed;inset:0;z-index:90;background:rgba(20,22,27,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.indm{background:#fff;border-radius:16px;max-width:820px;width:100%;max-height:88vh;display:flex;flex-direction:column;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.indmc{overflow:auto;margin-top:8px}.indm .indb{margin-top:0;border:0;background:transparent;padding:0}
+.indm .indb>.row:first-child{justify-content:flex-end!important}.indm .indb>.row:first-child>b{display:none}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -1473,22 +1479,22 @@ async function indIA(lid,k){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temp
     pre?`Situation reliée : ${pre.nom} (${pre.type==='exo'?'exercice : réussis / essais':'match à zones'})${pre.desc?' — '+pre.desc:''}${rg?' — règles : '+rg:''}`:'Aucune situation reliée sur la tablette (seuls des observables ou des comptages sont possibles).',
     (t.crq||[]).length?'Critères de réussite actuels : '+t.crq.join(' ; '):'',(t.crl||[]).length?'Qualitatif : '+t.crl.join(' ; '):'',
     (t.ind||[]).length?'Déjà retenus : '+(t.ind||[]).map(i=>(indById(i)||{}).nom||i).join(' ; '):''].filter(Boolean).join('\n').slice(0,1500);
-  INDIA[key]={busy:true};renderSeq();
+  INDIA[key]={busy:true};indRefresh();
   try{const r=await EPSD.reformuler(txt,{mode:'badind',act:'Badminton',ctx:INDLIB}),o=JSON.parse(r),items=[];
     (o.choix||[]).forEach(c=>{const x=IND.find(y=>y.id===c.id);if(x&&!(t.ind||[]).includes(x.id)&&!items.some(i=>i.id===x.id)&&(pre||x.k==='obs'||x.k==='compte'))items.push({id:x.id,k:x.k,nom:x.nom,crit:x.crit,why:String(c.pourquoi||'').slice(0,160)})});
     (o.nouveaux||[]).slice(0,3).forEach(n=>{const kk=n.type==='compte'?'compte':'obs',nom=String(n.nom||'').trim().slice(0,90);if(!nom)return;const cr=String(n.crit||'').trim().slice(0,120),mm=cr.match(/\d+/);
       items.push({nw:1,k:kk,nom,crit:kk==='obs'?'':cr,ob:mm?+mm[0]:1,why:String(n.pourquoi||'').slice(0,160)})});
     INDIA[key]={items}}
   catch(e){INDIA[key]={err:String(e&&e.message||e).replace(/^Error: /,'')}}
-  renderSeq()}
+  indRefresh()}
 function indIAAdd(lid,k,i){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],key=lid+'|'+k,it=INDIA[key]&&INDIA[key].items[i];if(!t||!it)return;
   if(it.nw){const id='x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);t.indX=(t.indX||[]).concat([{id,k:it.k,nom:it.nom,crit:it.crit,ob:it.ob,el:it.nom,ia:1}]);it.done=1;
-    t.ind=(t.ind||[]).concat([id]);if(it.crit){t.crq=t.crq||[];if(!t.crq.includes(it.crit))t.crq.push(it.crit)}save();renderSeq();toast('✨ Indicateur ajouté');return}
+    t.ind=(t.ind||[]).concat([id]);if(it.crit){t.crq=t.crq||[];if(!t.crq.includes(it.crit))t.crq.push(it.crit)}save();indRefresh();toast('✨ Indicateur ajouté');return}
   it.done=1;indAdd(lid,k,it.id)}
 function indIAHtml(l,k){const key=l.id+'|'+k,A=INDIA[key];if(!A)return'';
   if(A.busy)return '<div class="india muted">✨ Claude réfléchit à des indicateurs pour cet exercice…</div>';
   if(A.err)return `<div class="india"><span class="warn" style="display:inline-block">${esc(A.err)}</span></div>`;
-  return `<div class="india"><div class="row" style="justify-content:space-between"><b>✨ Proposé par Claude pour ce temps</b><button class="btn alt sm" onclick="delete INDIA['${key}'];renderSeq()">✕</button></div>
+  return `<div class="india"><div class="row" style="justify-content:space-between"><b>✨ Proposé par Claude pour ce temps</b><button class="btn alt sm" onclick="delete INDIA['${key}'];indRefresh()">✕</button></div>
    ${A.items.length?A.items.map((it,i)=>`<div class="iarow ${it.done?'done':''}"><div><b>${INDK[it.k].split(' ')[0]} ${esc(it.nom)}</b>${it.nw?' <span class="tag" style="background:#f2eafa;color:#7A3E9D">nouveau</span>':''}${it.crit?`<br><small>Critère : ${esc(it.crit)}</small>`:''}${it.why?`<br><small class="muted">${esc(it.why)}</small>`:''}</div>${it.done?'<span class="muted">✓ ajouté</span>':`<button class="btn sm" onclick="indIAAdd('${l.id}',${k},${i})">+ Ajouter</button>`}</div>`).join(''):'<p class="muted">Rien de plus à proposer pour ce temps.</p>'}</div>`}
 
 function indThemes(l,t){const p=t.pre&&preById(t.pre),tt=[t.t,t.cons,(t.crq||[]).join(' '),(t.crl||[]).join(' ')].join(' '),lt=[l.titre,l.obj,l.but].join(' '),W={};
@@ -1502,10 +1508,10 @@ function indSugg(l,t){const W=indThemes(l,t),exo=!!W.exo,sit=!!(t.pre&&preById(t
 let INDALL={};
 function indAdd(lid,k,id){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],x=indById(id);if(!t||!x)return;t.ind=(t.ind||[]).concat(t.ind&&t.ind.includes(id)?[]:[id]);
   if(x.crit&&x.k!=='obs'){t.crq=t.crq||[];if(!t.crq.includes(x.crit))t.crq.push(x.crit)}else if(x.k==='obs'){t.crl=t.crl||[]}
-  save();renderSeq();toast('📈 Indicateur ajouté'+(x.crit&&x.k!=='obs'?' (et son critère de réussite)':''))}
-function indDel(lid,k,id){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],x=indById(id);if(!t)return;t.ind=(t.ind||[]).filter(i=>i!==id);if(t.indX)t.indX=t.indX.filter(o=>o.id!==id);if(x&&x.crit&&t.crq)t.crq=t.crq.filter(c=>c!==x.crit);save();renderSeq()}
+  save();indRefresh();toast('📈 Indicateur ajouté'+(x.crit&&x.k!=='obs'?' (et son critère de réussite)':''))}
+function indDel(lid,k,id){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],x=indById(id);if(!t)return;t.ind=(t.ind||[]).filter(i=>i!==id);if(t.indX)t.indX=t.indX.filter(o=>o.id!==id);if(x&&x.crit&&t.crq)t.crq=t.crq.filter(c=>c!==x.crit);save();indRefresh()}
 function indTeach(l,k){const t=l.temps[k],have=(t.ind||[]).map(indById).filter(Boolean),sg=indSugg(l,t),key=l.id+'|'+k;
-  return `<div class="indb"><div class="row" style="justify-content:space-between"><b>📈 Indicateurs de performance</b><span class="row" style="gap:6px"><button class="btn sm iab" onclick="indIA('${l.id}',${k})" title="Claude propose des indicateurs adaptés à cet exercice et à la situation reliée">✨ Proposer avec Claude</button><button class="btn alt sm" onclick="INDALL['${key}']=!INDALL['${key}'];renderSeq()">${INDALL[key]?'Masquer la liste':'Tous les indicateurs'}</button></span></div>${indIAHtml(l,k)}
+  return `<div class="indb"><div class="row" style="justify-content:space-between"><b>📈 Indicateurs de performance</b><span class="row" style="gap:6px"><button class="btn sm iab" onclick="indIA('${l.id}',${k})" title="Claude propose des indicateurs adaptés à cet exercice et à la situation reliée">✨ Proposer avec Claude</button><button class="btn alt sm" onclick="INDALL['${key}']=!INDALL['${key}'];indRefresh()">${INDALL[key]?'Masquer la liste':'Tous les indicateurs'}</button></span></div>${indIAHtml(l,k)}
    ${have.length?`<div class="indl">${have.map(x=>`<span class="indc on" title="${esc(x.crit||'')}">${INDK[x.k].split(' ')[0]} ${esc(x.nom)}<button onclick="indDel('${l.id}',${k},'${x.id}')" title="Retirer">✕</button></span>`).join('')}</div>`:''}
    ${sg.length?`<div class="indl"><span class="muted" style="font-weight:700">💡 Proposés pour ce temps :</span>${sg.map(x=>`<button class="indc" onclick="indAdd('${l.id}',${k},'${x.id}')" title="${esc(x.crit||'')}">+ ${INDK[x.k].split(' ')[0]} ${esc(x.nom)}</button>`).join('')}</div>`:''}
    ${INDALL[key]?`<div class="indall">${['auto','compte','obs'].map(kk=>`<div><span class="lb">${INDK[kk]}</span>${IND.filter(x=>x.k===kk&&!(t.ind||[]).includes(x.id)).map(x=>`<button class="indc" onclick="indAdd('${l.id}',${k},'${x.id}')">+ ${esc(x.nom)}</button>`).join('')}</div>`).join('')}
@@ -1544,6 +1550,21 @@ function indLive(c){if(!indOn())return'';const l=lessonObj(lessonNow());if(!l)re
    <p class="muted" style="margin:6px 0 0">Vert : critère de réussite atteint. Calculé sur les matchs du jour de chaque situation.</p></div>`}
 
 (function(){const pe=playEnd;playEnd=function(){const m=curMatch();pe.apply(this,arguments);try{const box=document.getElementById('play'),cb=box&&box.querySelector('.cbody');if(m&&m.fin&&cb){const h=indMatchEnd(m);if(h){if(cb.firstElementChild)cb.firstElementChild.insertAdjacentHTML('afterend',h);else cb.insertAdjacentHTML('afterbegin',h)}}}catch(e){}}})();
+
+/* fenêtre des indicateurs : ouverte seulement quand on clique sur le bouton du temps */
+let INDM=null;
+function indBtn(l,k){const t=l.temps[k],L=(t.ind||[]).map(indById).filter(Boolean);
+  return `<div class="indmini"><button class="btn alt sm" onclick="indOpen('${l.id}',${k})">📈 Indicateurs${L.length?' ('+L.length+')':''}</button></div>`}
+function indOpen(lid,k){INDM={lid,k};indModal()}
+function indClose(){INDM=null;indModal();renderSeq()}
+function indRefresh(){if(INDM)indModal();else renderSeq()}
+function indModal(){let d=document.getElementById('indModal');if(!INDM){if(d)d.remove();return}
+  const l=SEQ().lecons.find(x=>x.id===INDM.lid),t=l&&l.temps[INDM.k];if(!t){INDM=null;if(d)d.remove();return}
+  if(!d){d=document.createElement('div');d.id='indModal';document.body.appendChild(d)}
+  const sc=d.querySelector('.indmc')?d.querySelector('.indmc').scrollTop:0;
+  d.innerHTML=`<div class="indmbg" onclick="if(event.target===this)indClose()"><div class="indm"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><b style="font-size:1.15em">📈 Indicateurs de performance</b><div class="muted">Leçon ${l.n} · ${esc(t.t)}</div></div><button class="btn sm" onclick="indClose()">✓ Terminé</button></div>
+   <div class="indmc">${indTeach(l,INDM.k)}</div></div></div>`;
+  const c2=d.querySelector('.indmc');if(c2)c2.scrollTop=sc}
 function critHtml(cr,e){
   const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
@@ -2246,7 +2267,7 @@ function tempsHtml(t,teach,l,k){const pre=t.pre&&preById(t.pre);
    <p style="margin:6px 0;white-space:pre-line">${esc(t.cons)}</p>
    <div class="g3">${(t.crq||[]).length||(t.crl||[]).length?`<div><span class="lb">Critères de réussite</span>${(t.crq||[]).length?'<i>Quantitatif</i><ul>'+t.crq.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}${(t.crl||[]).length?'<i>Qualitatif</i><ul>'+t.crl.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}</div>`:''}
    ${(t.crr||[]).length?`<div><span class="lb">Critères de réalisation</span><ul>${t.crr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-   ${t.vp||t.vm?`<div><span class="lb">Variables</span>${t.vp?`<p style="margin:2px 0"><b>+</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p style="margin:2px 0"><b>−</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div>${teach&&l&&indOn()?indTeach(l,k):''}</div>`}
+   ${t.vp||t.vm?`<div><span class="lb">Variables</span>${t.vp?`<p style="margin:2px 0"><b>+</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p style="margin:2px 0"><b>−</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div>${teach&&l&&indOn()?indBtn(l,k):''}</div>`}
 function lecHtml(l,i,teach){
   return `<div class="lec ${l.faite?'done':''} ${l.prop?'prop':''}">
    <h3>Leçon ${l.n} · ${esc(l.titre)} ${l.prop?'<span class="ctag ptag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted" style="font-weight:600">${dateFR(l.date)}</span>`:''}</h3>
