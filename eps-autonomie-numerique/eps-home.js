@@ -1785,6 +1785,31 @@
   }
   /* ================= ♿ accessibilité commune (toutes les applis, y compris futures) =================
      contour de focus visible au clavier ; boutons-icônes nommés pour les lecteurs d'écran ; petites cibles agrandies ; champs sans étiquette nommés. */
+  /* ⓘ moins de texte à l'écran (demande de l'enseignant) : les paragraphes d'explication longs (classes mut, lc-mut, gr-mut,
+     epse-mut, m, muted, sans identifiant ni attribut data-) sont raccourcis à leur début + « ⓘ » ; un appui ouvre le texte
+     entier dans une petite fenêtre. Messages d'état, champs, liens et boutons ne sont jamais touchés. Un conteneur
+     [data-eps-longtext] garde ses textes entiers (fiche d'utilisation…). */
+  (function tips() {
+    var SEL = "p.mut,p.lc-mut,p.gr-mut,p.epse-mut,p.m,p.muted,div.lc-mut,div.mut,span.gr-mut,p.mc", LIM = 110;
+    try { var st = document.createElement("style"); st.textContent = ".eps-tipb{border:0;background:none;padding:0 0 0 4px;margin:0;cursor:pointer;vertical-align:middle;min-height:0!important;min-width:0!important}.eps-tipb i{font-style:normal;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#E6E1D6;color:#14171C;font:800 13px system-ui,sans-serif}" +
+      ".eps-tipo{position:fixed;inset:0;z-index:2147483600;background:rgba(20,23,28,.35);display:flex;align-items:center;justify-content:center;padding:16px}.eps-tipo>div{background:#fff;color:#14171C;border-radius:16px;max-width:520px;width:100%;padding:16px 18px;font:16px/1.45 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)}.eps-tipo button{margin-top:12px;min-height:42px;border-radius:10px;border:0;background:#14171C;color:#fff;font:800 15px system-ui;padding:0 18px;cursor:pointer}";
+      (document.head || document.documentElement).appendChild(st); } catch (e) {}
+    function plain(el) { if (el.attributes.length > 2 || el.id) return false; for (var i = 0; i < el.attributes.length; i++) { var n = el.attributes[i].name; if (n !== "class" && n !== "style") return false; }
+      return !el.querySelector("a,button,input,select,textarea,label,img,svg,table,canvas,[data-msg],[contenteditable]") && !el.closest("[data-eps-longtext],.eps-tipo,[contenteditable],.epsg,.lc-st,#lc-au,#lc-st"); }
+    function short(t) { var m = t.match(/^(.{25,80}?[.:!?])(\s|$)/); if (m) return m[1]; var s = t.slice(0, 70); return s.slice(0, Math.max(30, s.lastIndexOf(" "))) + "…"; }
+    function open(html) { var o = document.createElement("div"); o.className = "eps-tipo"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
+      o.innerHTML = '<div><div class="t"></div><button type="button">OK</button></div>'; o.querySelector(".t").innerHTML = html;
+      var x = function () { o.remove(); }; o.onclick = function (e) { if (e.target === o) x(); }; o.querySelector("button").onclick = x; document.body.appendChild(o); o.querySelector("button").focus(); }
+    function run(root) { if (!document.documentElement.classList.contains("eps-teach")) return; /* côté élève, rien n'est caché (consignes, sécurité) */
+      var L; try { L = (root || document).querySelectorAll(SEL); } catch (e) { return; }
+      Array.prototype.forEach.call(L, function (el) { if (el.dataset.epsTip) return; var t = (el.textContent || "").replace(/\s+/g, " ").trim(); if (t.length <= LIM || !plain(el)) return;
+        var html = el.innerHTML; el.dataset.epsTip = "1"; el.textContent = short(t); var b = document.createElement("button"); b.type = "button"; b.className = "eps-tipb"; b.setAttribute("aria-label", "Lire l'explication"); b.title = "Lire l'explication"; b.innerHTML = "<i>i</i>";
+        b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); open(html); }; el.appendChild(b); }); }
+    var T = null; function soon() { if (T) return; T = setTimeout(function () { T = null; run(document); }, 60); }
+    function start() { run(document); try { new MutationObserver(soon).observe(document.body, { childList: true, subtree: true }); } catch (e) {} setInterval(soon, 2500); }
+    if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
+    window.EPSTIP = { run: run, open: open };
+  })();
   (function a11y() {
     try { var st = document.createElement("style"); st.id = "eps-a11y";
       st.textContent = ":focus-visible{outline:3px solid #1F5F8B!important;outline-offset:2px!important}[data-eps-a11y-sm]{min-width:40px!important;min-height:40px!important}.btn.sm,button.sm,.back{min-height:36px!important}@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}";

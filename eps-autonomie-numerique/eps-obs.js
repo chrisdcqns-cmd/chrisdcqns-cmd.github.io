@@ -46,7 +46,7 @@
   function css() {
     if (document.getElementById("eob-css")) return; var st = document.createElement("style"); st.id = "eob-css";
     st.textContent = [
-      "#eob-btn{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:2147481050;width:60px;height:60px;border-radius:50%;border:3px solid #fff;background:" + COL + ";color:#fff;font-size:28px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;display:none}",
+      "#eob-btn{font-size:19px}#eob-btn.eob-nav{flex:none;align-self:center;height:40px;min-width:44px;margin-left:6px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#fff;cursor:pointer}",
       "#eob-btn.rec{background:#C0392B;animation:eobp 1s infinite}@keyframes eobp{50%{transform:scale(1.08)}}",
       ".eob-ov{position:fixed;inset:0;z-index:2147481400;background:rgba(20,23,28,.5);display:flex;align-items:flex-end;justify-content:center;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
       ".eob-sh{background:#F5F3EE;color:#14171C;width:100%;max-width:820px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:16px 18px 26px;box-shadow:0 -8px 30px rgba(0,0,0,.25)}",
@@ -61,10 +61,14 @@
     ].join("\n"); document.head.appendChild(st);
   }
   var BTN = null, SH = null, TAB = "dict", DAY = day(), LAST = null;
+  /* 🎙 dans le bandeau (barre de l'appli, sinon barre des onglets enseignant), jamais flottant : demande de l'enseignant */
+  function slot() { var vis = function (e) { if (!e) return false; var r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight; };
+    var B = Array.prototype.filter.call(document.querySelectorAll("[data-eps-bar]"), vis)[0]; if (B) return B; var n = document.querySelector(".epst-nav"); return vis(n) ? n : null; }
   function btn() {
-    if (!BTN) { css(); BTN = document.createElement("button"); BTN.id = "eob-btn"; BTN.type = "button"; BTN.title = "Observation dictée : dis le prénom puis ton observation"; BTN.textContent = "🎙"; BTN.onclick = function () { open("dict", true); }; document.body.appendChild(BTN); }
-    var lc = document.querySelector(".lc-ov"), hide = !!(lc && lc.style.display !== "none");
-    BTN.style.display = isT() && !hide && !SH ? "block" : "none";
+    if (!BTN) { css(); BTN = document.createElement("button"); BTN.id = "eob-btn"; BTN.type = "button"; BTN.className = "epsb"; BTN.title = "Observation dictée : dis le prénom puis ton observation"; BTN.setAttribute("aria-label", "Observation dictée"); BTN.textContent = "🎙"; BTN.onclick = function () { open("dict", true); }; }
+    var lc = document.querySelector(".lc-ov"), hide = !!(lc && lc.style.display !== "none"), sl = slot();
+    if (sl && BTN.parentNode !== sl) { var u = sl.querySelector("#eps-upd"); sl.insertBefore(BTN, u || null); BTN.classList.toggle("eob-nav", sl.classList.contains("epst-nav")); }
+    BTN.style.display = isT() && !hide && !SH && sl ? "" : "none";
   }
   function close() { if (SH) { SH.remove(); SH = null; } stopRec(); }
   function open(tab, auto) {

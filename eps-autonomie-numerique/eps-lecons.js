@@ -21,6 +21,9 @@
   var KL = "eps.lecons." + APP + ".v1", KI = "eps.lcimg." + APP + ".v1", KD = "eps.lcdocs." + APP + ".v1", KV = "eps.live." + APP + ".v1", KR = "eps.rang.v1";
   var VUE = !!window.EPS_VUE_ELEVE;
   if (!VUE && !window.EPSGR) try { var gsc = document.createElement("script"); gsc.src = BASE + "eps-groupes.js"; gsc.defer = true; document.head.appendChild(gsc); } catch (e) {}
+  /* 📅 classe du cours en cours ou du prochain cours de l'activité (emploi du temps), pour ouvrir directement sur la bonne classe */
+  function edtClass() { try { var S = window.EPSD && EPSD.edtSlots ? EPSD.edtSlots(null, CODE, Date.now() - 2 * 3600e3, 1) : null, x = S && S[0]; if (!x || x.at > Date.now() + 14 * 3600e3) return null;
+    var parts = [x.cls].concat(String(x.cls).split(/[\/+,&]| et /)); return classes().filter(function (c) { return parts.some(function (p) { return p.trim() && same(p.trim(), c); }); })[0] || null; } catch (e) { return null; } }
   function grOpen(cls, tab) { if (!window.EPSGR) { alert("Module en cours de chargement : réessaie dans un instant."); return; } EPSGR.open({ dir: APP, cls: cls || (cur() || {}).nom, tab: tab || "rang", onClose: function () { try { drawLive(); } catch (e) {} } }); }
 
   /* ---------- outils ---------- */
@@ -328,7 +331,7 @@
     return t.join("\n"); }
   function perLabel(P) { return P.kind === "seq" ? "séquence « " + P.seq + " »" : P.lab || ("du " + fr(P.from) + " au " + fr(P.to)); }
   function clOpen(o) {
-    css(); o = o || {}; var C = classes(), cls = o.cls || (cur() && cur().nom) || C[0] || "", TAB = o.tab || "gen", SEL = null, S0 = seqs(), P = S0.length ? { kind: "seq", seq: S0[S0.length - 1] } : { kind: "dates", from: trim(0)[0], to: trim(0)[1], lab: "année" }, MODE = "bulletin";
+    css(); o = o || {}; var C = classes(), cls = o.cls || (cur() && cur().nom) || edtClass() || C[0] || "", TAB = o.tab || "gen", SEL = null, S0 = seqs(), P = S0.length ? { kind: "seq", seq: S0[S0.length - 1] } : { kind: "dates", from: trim(0)[0], to: trim(0)[1], lab: "année" }, MODE = "bulletin";
     var ov = document.getElementById("lc-cl"); if (!ov) { ov = document.createElement("div"); ov.id = "lc-cl"; ov.className = "lc-ov"; document.body.appendChild(ov); } ov.style.display = "flex"; ov.style.zIndex = "2147483100";
     function head() { return '<div class="lc-top"><b>🏫 ' + esc(cls) + " · " + esc(NOM) + "</b>" + [["gen", "📊 Vue générale"], ["el", "👤 Élèves"], ["bil", "📝 Bilans & avis"]].map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + (o.noClose ? "" : '<button type="button" class="x" data-x>✕ Fermer</button>') + "</div>"; }
     function perBar() { var S = seqs();
@@ -530,7 +533,7 @@
   }
   function bankOpen(m0) {
     css();
-    var md = document.createElement("div"), Q = "", TG = "", MODE = m0 || "banque", CSEQ = null, CCLS = (cur() && cur().nom) || classes()[0] || ""; md.className = "lc-modal";
+    var md = document.createElement("div"), Q = "", TG = "", MODE = m0 || "banque", CSEQ = null, CCLS = (cur() && cur().nom) || edtClass() || classes()[0] || ""; md.className = "lc-modal";
     function modes() { return '<div class="lc-row" role="tablist" style="gap:6px">' + [["banque", "🏦 Banque"], ["sugg", "💡 Suggestions de remédiation"], ["carte", "🗺 Carte des apprentissages"]].map(function (m) { return '<button type="button" role="tab" class="lc-b s" data-mode="' + m[0] + '" aria-selected="' + (MODE === m[0]) + '"' + (MODE === m[0] ? ' style="background:' + COL + ';color:#fff;border-color:' + COL + '"' : "") + ">" + m[1] + "</button>"; }).join("") + '<span style="flex:1"></span><button type="button" class="lc-b s" data-ref>📚 Propositions vérifiées</button><button type="button" class="lc-b s" data-snew>✨ Préparer une situation</button></div>'; }
     function bindModes() { md.querySelectorAll("[data-mode]").forEach(function (b) { b.onclick = function () { MODE = b.dataset.mode; draw(); }; }); md.querySelector("[data-ref]").onclick = function () { refOpen(TG || Q); }; md.querySelector("[data-snew]").onclick = function () { sitNew(TG || Q, null); }; }
     function drawOther() {
@@ -975,7 +978,7 @@
   function proposal(r, cls) { if (!r || !r.g || !r.g.length) return -1; var last = r.g.map(function (_, i) { var t = 0; (r.h || []).forEach(function (x) { if (x.g === i) t = Math.max(t, x.at); }); return t; }); var ok = function (i) { return !cls || r.g[i].filter(function (n) { return !isAbs(cls, n); }).length >= 2; }, best = -1; last.forEach(function (t, i) { if (ok(i) && (best < 0 || t < last[best])) best = i; }); return best < 0 ? 0 : best; }
   function drawLive() {
     if (!OV || OV.style.display === "none" || TAB !== "live") return;
-    var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || all(KV).filter(function (v) { return v.on; }).map(function (v) { return v.cls; })[0] || C[0] || ""; }
+    var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || all(KV).filter(function (v) { return v.on; }).map(function (v) { return v.cls; })[0] || edtClass() || C[0] || ""; }
     var cls = LIVECLS, v = live(cls), on = v && v.on, L = lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, cls); }), lec = on && v.lec && get(KL, v.lec);
     var h = '<h2>📡 Leçon en cours</h2><p class="lc-mut">Cette tablette pilote les tablettes élèves de la classe : messages en grand avec un son, minuteur, étape en cours, rangement.</p>' +
       '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-cls>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" + (on ? '<span class="lc-tag ok">● en cours depuis ' + Math.max(1, Math.round((Date.now() - v.st) / 6e4)) + " min</span>" : "") + "</div>";

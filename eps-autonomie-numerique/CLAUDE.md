@@ -133,6 +133,11 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - Tablettes : `reformuler` (JSONP) attend 90 s ; `EPSD.post` (leçons, documents) 4 min avec `AbortController` et message clair ; les erreurs du script sont affichées telles quelles.
 - La barre des onglets enseignant se colle toujours sous la barre de l'appli, à sa hauteur réelle (`fitTop` d'eps-shell.js) : pas de superposition quand l'en-tête tient sur 2 lignes.
 
+## Moins de texte, 🎙 dans le bandeau, lien emploi du temps
+- **ⓘ** (eps-home.js `tips`, mode enseignant seulement) : tout paragraphe d'explication de plus de 110 caractères (`p.mut`, `.lc-mut`, `.gr-mut`, `.epse-mut`, `p.m`, `p.muted`…, sans id ni attribut data-, sans lien ni champ) est réduit à son début + bouton ⓘ qui ouvre le texte entier dans une petite fenêtre (`EPSTIP.open`). Côté élève rien n'est caché. Écrire des explications courtes ; un conteneur `[data-eps-longtext]` garde ses textes entiers.
+- 🎙 des observations dictées (eps-obs.js) : dans le bandeau (`[data-eps-bar]`, sinon barre des onglets enseignant), jamais flottant (demande de l'enseignant).
+- Emploi du temps : « 🏫 Mes classes » n'affiche que les activités de la classe dans l'emploi du temps (`edtActs`, en cours / à venir / terminée, prochain cours ; sinon activités cochées) ; eps-lecons.js `edtClass()` ouvre Leçon en cours, Ma classe et la banque sur la classe du cours en cours ou du prochain cours de l'activité.
+
 ## Accessibilité
 - eps-home.js passe toutes les 1,5 s sur la page : nom accessible (aria-label) pour les boutons à icône seule (dictionnaire `NOMS`) et les champs sans étiquette, cible minimale 40 px pour les petits boutons (`data-eps-a11y-sm`), contour `:focus-visible`, `prefers-reduced-motion`. Gris de texte minimum `#6A6F78` (jamais `#9AA0A6`, contraste insuffisant). Une nouvelle appli : boutons ≥ 40 px, un texte ou un `aria-label` sur chaque bouton.
 
