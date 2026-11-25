@@ -1002,7 +1002,8 @@
       if (!q.more) break;
     }
   }
-  window.EPSE = { get: eget, set: function (data) { var E = eget(); E.data = data; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); } };
+  /* emploi du temps : get / set ajoutés à window.EPSE sans écraser le module d'évaluation (eps-eval.js : create, store, libs) */
+  window.EPSE = Object.assign(window.EPSE || {}, { get: eget, set: function (data) { var E = eget(); E.data = data; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); } });
   var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["badminton", "Badminton"], ["danse", "Danse"], ["co-eval", "CO – Évaluation"], ["crosstraining", "Cross-training"]];
   function reglages(msg) {
     var r = rget();
@@ -1374,7 +1375,7 @@
     testClaude: function () { return testClaude(); },
     search: function () { searchStudents(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
-    bulletin: function () { bulletin(); },
+    bulletin: function (c) { bulletin(c); },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
     /* synchro immédiate d'un seul magasin (ex. leçon en cours : relevé toutes les quelques secondes) */
     syncOne: function (k) { var cfg = shCfg(), st = STORES.filter(function (x) { return x.key === k; })[0]; if (!cfg || !st || st._busy || navigator.onLine === false) return Promise.resolve(false);
@@ -1658,7 +1659,8 @@
      sans le code, personne (ni le script) ne peut la lire. Lien unique à envoyer par Pronote : …/mon-bilan/#s=<script>. */
   var KC = "eps.codes.v1", ALPH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   STORES.push({ pre: "cd|", key: KC });
-  STORES.push({ pre: "pa|", key: "eps.param.v1" }); /* 🎛 paramètres des applis (EPSP, eps-lists.js) */
+  STORES.push({ pre: "pa|", key: "eps.param.v1" });
+  STORES.push({ pre: "cc|", key: "eps.ccfcfg.v1" }); /* 🎯 réglages CCF des évaluations (eps-eval.js) */ /* 🎛 paramètres des applis (EPSP, eps-lists.js) */
   function codeId(cls, full) { return cmp(cls) + "|" + nkey(full); }
   function codeGet(cls, full) { var o = stLd(KC).items[codeId(cls, full)]; return o && !o.del ? o : null; }
   function codePut(o) { var V = stLd(KC), old = V.items[o.id]; o.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[o.id] = o; V.pend[o.id] = o.u; try { localStorage.setItem(KC, JSON.stringify(V)); } catch (e) {} if (window.EPSD) EPSD.syncSoon(); }
@@ -1734,9 +1736,9 @@
   }, true);
   /* 📝 appréciations de bulletin : Claude rédige à partir de TES commentaires et évaluations (toutes activités), sans aucun nom d'élève ;
      tu relis, corriges, coches ✓, puis copies vers Pronote. Gardées sur cette tablette seulement (eps.bulletin.v1). */
-  function bulletin() {
+  function bulletin(want) {
     var KB = "eps.bulletin.v1", B = jget(KB, {}), C = []; try { C = (window.EPSL ? EPSL.items() : []).map(function (it) { return it.nom; }); } catch (e) {}
-    var cur = B._cls && C.indexOf(B._cls) >= 0 ? B._cls : C[0];
+    var cur = want && C.indexOf(want) >= 0 ? want : B._cls && C.indexOf(B._cls) >= 0 ? B._cls : C[0];
     var o = overlay('<div id="epsbu"><h3>📝 Appréciations de bulletin</h3><p class="m">Claude part de tes commentaires et évaluations de toutes les activités (aucun nom ne lui est envoyé). Relis, corrige, coche ✓ : seules les appréciations cochées sont copiées.</p>' +
       '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><div id="bu-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
     var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m");

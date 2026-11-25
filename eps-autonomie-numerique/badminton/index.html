@@ -864,7 +864,9 @@ function openEval(i){curEl=i;document.getElementById('evList').style.display='no
 function closeEval(){curEl=null;document.getElementById('evPanel').style.display='none';document.getElementById('evList').style.display='block';renderList()}
 let TXEL=(()=>{try{return !!localStorage.getItem('eps_bad_txel')}catch(e){return false}})();
 function cTx(cr,el){return el?{nom:cr.nomEl||cr.nom,but:cr.butEl||cr.but,desc:(cr.descEl&&cr.descEl.length?cr.descEl:cr.desc),deg:B().degresEl||B().degres}:{nom:cr.nom,but:cr.but,desc:cr.desc,deg:B().degres}}
-function renderEval(){
+function renderEval(){ renderEval0(); try{const c=C(),e=c.eleves[curEl];if(e&&typeof EVB!=='undefined'&&EVB&&EVB.propBlock)EVB.propBlock(document.querySelector('#evPanel .evhead'),e,c.nom,{redraw:renderEval,keep:t=>{e.comment=t;save();renderEval()}})}catch(x){} }
+/* 🎯 proposition commune (eps-eval.js) ajoutée sous l'en-tête de la fiche */
+function renderEval0(){
   const c=C(),e=c.eleves[curEl];if(!e){closeEval();return}
   e.ev=e.ev||{};const b=B(),p=document.getElementById('evPanel'),st=elStats(c,e.id);
   p.innerHTML=`

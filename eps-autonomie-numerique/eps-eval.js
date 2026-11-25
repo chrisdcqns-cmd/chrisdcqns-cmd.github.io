@@ -388,6 +388,98 @@
       return { nom: ((n.prenom || "") + " " + (n.nom || "")).trim(), date: a.t ? new Date(a.t).toLocaleDateString("fr-FR") : "", r: a.r || "", m: a.m || "",
         crit: A.grid().criteres.map(function (cr) { var v = A.prof(cr, E), x = a.ev[cr.id]; return { l: cr.nom, p: v && v.d != null ? v.d + 1 : "", e: x ? x.d + 1 : "" }; }) }; };
     M.apChip = function (E) { return window.epsApChip ? window.epsApChip(M.apData(E)) : ""; };
+    /* ================= 🎯 Proposition de positionnement et de note (commune) =================
+       Par AFL / AFLP (champ « afl » des critères) : degré moyen pondéré par les points, et note proposée.
+       Source indiquée : évaluation enregistrée (degrés de l'enseignant) ou estimation (auto-positionnement, évaluations de leçon).
+       Case CCF : barème officiel (fin d'épreuve 12 pts : Bac général linéaire, Bac pro AFLP1 7 pts / AFLP2 5 pts ;
+       fil de la séquence 8 pts sur 2 AFL, répartition 4-4 / 6-2 / 2-6 au choix de l'élève, valeurs par degré officielles). */
+    var R7 = [[0, 1], [1.5, 3], [3.5, 5], [5.5, 7]], R5 = [[0, .5], [1, 2], [2.5, 4], [4.5, 5]], BAR = { 2: [.5, 1, 1.5, 2], 4: [.5, 1.5, 2.5, 4], 6: [.5, 2, 4, 6] };
+    var KCC = "eps.ccfcfg.v1";
+    function ccGet(id) { try { var V = JSON.parse(localStorage.getItem(KCC) || "null"); var o = V && V.items && V.items[id]; return o && !o.del ? o : null; } catch (e) { return null; } }
+    function ccPut(o) { var V; try { V = JSON.parse(localStorage.getItem(KCC) || "null"); } catch (e) {} V = V && V.items ? V : { items: {}, pend: {}, since: 0 }; V.pend = V.pend || {};
+      var old = V.items[o.id]; o.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[o.id] = o; V.pend[o.id] = o.u; localStorage.setItem(KCC, JSON.stringify(V)); try { EPSD.syncSoon(); } catch (e) {} }
+    function ekey(E) { var n = A.name(E); return nkey((n.prenom || "") + " " + (n.nom || "")); }
+    M.ccf = function (cls) { var o = ccGet(A.app + "|" + cls) || {}; return { on: !!o.on, voie: o.voie || "gt" }; };
+    M.setCcf = function (cls, v) { var o = ccGet(A.app + "|" + cls) || { id: A.app + "|" + cls }; Object.assign(o, v); ccPut(o); };
+    M.choix = function (cls, E) { var o = ccGet(A.app + "|" + cls + "|" + ekey(E)); return (o && o.choix) || "4-4"; };
+    M.setChoix = function (cls, E, ch) { ccPut({ id: A.app + "|" + cls + "|" + ekey(E), choix: ch }); };
+    function lecAvg(cls, E) { var k = ekey(E), V = null; try { V = JSON.parse(localStorage.getItem("eps.leceval." + A.app + ".v1") || "null"); } catch (e) {}
+      var L = []; Object.keys((V && V.items) || {}).forEach(function (id) { var o = V.items[id]; if (!o || o.del || nk(o.cls) !== nk(cls)) return; var x = (o.el || {})[k]; if (!x) return; var v = []; ["p", "s", "t"].forEach(function (q) { if (x[q] != null) v.push(+x[q]); }); if (v.length) L.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); });
+      return L.length ? { n: L.length, m: L.reduce(function (a, b) { return a + b; }, 0) / L.length } : null; }
+    M.prop = function (E, cls) {
+      var G = A.grid(), ap = A.getAp(E), groups = {}, order = [], nT = 0, nA = 0;
+      G.criteres.forEach(function (cr) { var code = String(cr.afl || "AFL1").trim(), v = A.prof(cr, E), src = "eval";
+        if (!v && ap && ap.ev && ap.ev[cr.id] && ap.ev[cr.id].d != null) { v = { d: ap.ev[cr.id].d, pos: ap.ev[cr.id].pos == null ? .5 : ap.ev[cr.id].pos }; src = "auto"; }
+        var mx = A.max ? A.max(cr, E) : (+cr.max || 1); if (!groups[code]) { groups[code] = { code: code, w: 0, s: 0, mx: 0, crit: 0, done: 0, auto: 0 }; order.push(code); }
+        var g = groups[code]; g.mx += mx; g.crit++; if (v) { g.w += mx; g.s += mx * (v.d + (v.pos == null ? .5 : v.pos)); g.done++; if (src === "auto") { g.auto++; nA++; } else nT++; } });
+      var afl = order.map(function (c) { var g = groups[c]; if (!g.w) return { code: c, deg: null, mx: g.mx, crit: g.crit, done: 0 }; var m = Math.min(3.999, g.s / g.w), d = Math.floor(m);
+        return { code: c, m: m, deg: d, pos: m - d, mx: g.mx, crit: g.crit, done: g.done, auto: g.auto, pts: Math.round(g.mx * m / 4 * 4) / 4 }; });
+      var lec = cls ? lecAvg(cls, E) : null, cc = cls ? M.ccf(cls) : { on: false }, note = null, detail = "";
+      if (afl.some(function (a) { return a.deg != null; })) {
+        if (!cc.on && A.note && nA === 0 && A.note(E) != null) { note = A.note(E); detail = "note calculée par l'appli"; }
+        else if (!cc.on) { var t = 0, mx = 0; afl.forEach(function (a) { mx += a.mx; if (a.deg != null) t += a.pts; }); var mxDone = afl.filter(function (a) { return a.deg != null; }).reduce(function (x, a) { return x + a.mx; }, 0);
+          note = mxDone ? Math.round(t / mxDone * 20 * 4) / 4 : null; detail = "barème de la grille" + (mxDone < mx ? " (sur les AFL évalués)" : ""); }
+        else { var fin = afl.filter(function (a) { return /^AFL1\b|^AFLP[12]\b/i.test(a.code); }), fil = afl.filter(function (a) { return fin.indexOf(a) < 0; }), tot = 0, ok = true;
+          fin.forEach(function (a) { if (a.deg == null) { ok = false; return; }
+            var R = cc.voie === "pro" && /^AFLP1/i.test(a.code) ? R7 : cc.voie === "pro" && /^AFLP2/i.test(a.code) ? R5 : null, P = 12 / fin.length;
+            a.ccf = R ? R[a.deg][0] + a.pos * (R[a.deg][1] - R[a.deg][0]) : P * a.m / 4; a.ccfMax = R ? R[3][1] : P; a.ccf = Math.round(a.ccf * 4) / 4; tot += a.ccf; });
+          var ch = (M.choix(cls, E) || "4-4").split("-").map(Number);
+          fil.slice(0, 2).forEach(function (a, i) { var P = ch[i] || 4; a.ccfMax = P; if (a.deg == null) { ok = false; return; } a.ccf = BAR[P][a.deg]; tot += a.ccf; });
+          if (!fin.length) ok = false; note = Math.round(tot * 4) / 4; detail = "barème CCF " + (cc.voie === "pro" ? "Bac pro" : "Bac général") + " · fil de la séquence " + ch.join("-") + (ok ? "" : " · incomplet : il manque des AFL"); } }
+      var src = nT && !nA ? "eval" : nT && nA ? "mixte" : nA ? "auto" : "none";
+      var noteLec = lec ? Math.round(lec.m / 3 * 20 * 4) / 4 : null;
+      return { afl: afl, note: note, detail: detail, src: src, nT: nT, nA: nA, lec: lec, noteLec: noteLec, ccf: cc };
+    };
+    M.propHtml = function (E, cls) { css(A.color);
+      var P = M.prop(E, cls), DL = ["Degré 1", "Degré 2", "Degré 3", "Degré 4"], cc = P.ccf;
+      var SRC = { eval: ["#E3F4E8", "#1D6B3A", "✓ Calculée à partir de l'évaluation enregistrée"], mixte: ["#FFF6E0", "#7A5A00", "◐ En partie estimée : des critères ne sont pas évalués par toi, l'auto-positionnement de l'élève les complète"], auto: ["#FFF1BF", "#7A5A00", "⚠ Estimation : aucune évaluation enregistrée, seulement l'auto-positionnement de l'élève"], none: ["#F1EEE6", "#6A6F78", "Pas encore d'évaluation ni d'auto-positionnement"] }[P.src];
+      var pos = function (p) { return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; };
+      return '<div class="epse-card epse-prop"><h2 style="margin:0 0 6px">🎯 Proposition de positionnement</h2>' +
+        P.afl.map(function (a) { return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid #F0ECE3;padding:6px 0"><b style="min-width:70px">' + esc(a.code) + "</b>" +
+          (a.deg == null ? '<span class="epse-mut">non évalué</span>' : '<span style="background:' + DCOL[a.deg] + ';color:#fff;border-radius:8px;padding:2px 8px;font-weight:800">' + DL[a.deg] + "</span><span class=\"epse-mut\">(" + pos(a.pos) + " du degré" + (a.done < a.crit ? " · " + a.done + "/" + a.crit + " critères" : "") + (a.auto ? ", dont " + a.auto + " d'après l'élève" : "") + ")</span>" +
+            '<span style="margin-left:auto;font-weight:800">' + (cc.on ? (a.ccf != null ? fr(a.ccf) + " / " + fr(a.ccfMax) + " pts CCF" : "") : fr(a.pts) + " / " + fr(a.mx) + " pts") + "</span>") + "</div>"; }).join("") +
+        '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><span style="font-size:20px;font-weight:900">Note proposée : ' + (P.note == null ? "—" : fr(P.note) + " / 20") + '</span><span class="epse-mut">' + esc(P.detail || "") + "</span></div>" +
+        '<div style="background:' + SRC[0] + ";color:" + SRC[1] + ';border-radius:10px;padding:6px 10px;margin-top:6px;font-weight:700;font-size:14px">' + SRC[2] + "</div>" +
+        (P.lec ? '<div class="epse-mut" style="margin-top:6px">📊 Évaluations de leçon : ' + P.lec.n + " leçon(s), moyenne " + fr(Math.round(P.lec.m * 100) / 100) + " / 3 → " + fr(P.noteLec) + " / 20 (participation, sérieux, thème du jour ; indicatif, hors grille)</div>" : "") +
+        (cls ? '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;border-top:1px solid #F0ECE3;padding-top:8px"><label style="font-weight:800;display:flex;gap:6px;align-items:center"><input type="checkbox" data-ccf' + (cc.on ? " checked" : "") + ' style="width:22px;height:22px"> Évaluation CCF</label>' +
+          (cc.on ? '<select data-voie class="epse-sel"><option value="gt"' + (cc.voie !== "pro" ? " selected" : "") + '>Bac général</option><option value="pro"' + (cc.voie === "pro" ? " selected" : "") + '>Bac pro</option></select><label class="epse-mut">Choix de l\'élève (fil de la séquence) <select data-choix class="epse-sel">' + ["4-4", "6-2", "2-6"].map(function (x) { return "<option" + (M.choix(cls, E) === x ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>" : "") +
+          (P.src === "auto" || P.src === "mixte" ? '<button type="button" class="epse-btn" data-take>✓ Reprendre ces degrés dans mon évaluation</button>' : "") + "</div>" : "") + "</div>";
+    };
+    /* ✨ phrase pour l'élève (fiche) : Claude part des degrés, de l'auto-positionnement et des observations dictées ; aucun nom envoyé ; validée ou non par l'enseignant */
+    M.phraseNotes = function (E, cls) {
+      var G = A.grid(), P = M.prop(E, cls), ap = A.getAp(E), n = A.name(E), full = ((n.prenom || "") + " " + (n.nom || "")).trim(), L = [];
+      G.criteres.forEach(function (cr) { var v = A.prof(cr, E); if (v && v.d != null) L.push(cr.nom + " : degré " + (v.d + 1) + "/4" + (cr.desc && cr.desc[v.d] ? " (" + cr.desc[v.d] + ")" : "")); });
+      P.afl.forEach(function (a) { if (a.deg != null) L.push(a.code + " : degré " + (a.deg + 1) + "/4"); });
+      if (ap && (ap.r || ap.m)) L.push("L'élève dit avoir réussi : " + (ap.r || "—") + " ; vouloir améliorer : " + (ap.m || "—"));
+      try { (window.EPSOB ? EPSOB.of(full, cls) : []).slice(-8).forEach(function (o) { L.push("Observation : " + o.txt); }); } catch (e) {}
+      if (P.lec) L.push("Évaluations de leçon (participation, sérieux, thème) : moyenne " + (Math.round(P.lec.m * 10) / 10) + "/3 sur " + P.lec.n + " leçon(s)");
+      var fs = String(n.prenom || "").trim(); return L.join("\n").replace(fs ? new RegExp("\\b" + fs.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi") : /$^/, "l'élève");
+    };
+    M.bindPhrase = function (R, E, cls, keep) {
+      var b = R.querySelector("[data-phr]"), box = R.querySelector("[data-phrbox]"), bu = R.querySelector("[data-bul]");
+      if (bu) bu.onclick = function () { if (window.EPSD && EPSD.bulletin) EPSD.bulletin(cls); };
+      if (!b || !box) return;
+      b.onclick = function () { var notes = M.phraseNotes(E, cls); if (!notes) { box.innerHTML = '<p class="epse-mut">Évalue d\'abord au moins un critère.</p>'; return; }
+        if (!(window.EPSD && EPSD.reformuler)) { box.innerHTML = '<p class="epse-mut">Module commun indisponible.</p>'; return; }
+        b.disabled = true; box.innerHTML = '<p class="epse-mut">Claude rédige…</p>';
+        EPSD.reformuler(notes, { mode: "fiche", act: A.nom, ctx: "Phrase de bilan pour l'élève, à partir de son évaluation" }).then(function (t) { b.disabled = false;
+          box.innerHTML = '<div style="background:#FFF8D6;border:1px solid #E9CF6A;border-radius:12px;padding:10px 12px;margin:0 0 8px"><textarea rows="3" data-phrt style="width:100%;box-sizing:border-box;border:0;background:transparent;font:15px/1.4 system-ui">' + esc(t) + '</textarea><div class="epse-row" style="margin:6px 0 0"><button type="button" class="epse-btn p" data-phrok>✓ Mettre sur la fiche</button><button type="button" class="epse-btn" data-phrno>✕ Ne pas garder</button></div></div>';
+          box.querySelector("[data-phrok]").onclick = function () { keep(box.querySelector("[data-phrt]").value.trim()); };
+          box.querySelector("[data-phrno]").onclick = function () { box.innerHTML = ""; };
+        }, function (e) { b.disabled = false; box.innerHTML = '<p class="epse-mut">⚠ ' + esc(e && e.message || e) + "</p>"; }); };
+    };
+    /* bloc commun « 🎯 Proposition » + « ✨ phrase pour l'élève » dans la fiche propre d'une appli (Volley, Badminton, Danse, Relais) :
+       M.propBlock(apres, E, classe, {redraw, keep(texte), take}) — inséré juste après l'élément « apres » */
+    M.propBlock = function (after, E, cls, o) { o = o || {}; if (!after || !after.parentNode) return;
+      try { var d = document.createElement("div"); d.className = "epse-block"; d.innerHTML = M.propHtml(E, cls) +
+          '<div class="epse-card"><div class="epse-row" style="margin:0"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button></div><div data-phrbox style="margin-top:6px"></div></div>';
+        after.parentNode.insertBefore(d, after.nextSibling); M.bindProp(d, E, cls, o.redraw || function () {}, o.take); if (o.keep) M.bindPhrase(d, E, cls, o.keep); } catch (e) { console.warn(e); } };
+    M.bindProp = function (R, E, cls, redraw, take) {
+      var b = R.querySelector("[data-ccf]"); if (b) b.onchange = function () { M.setCcf(cls, { on: b.checked }); redraw(); };
+      var v = R.querySelector("[data-voie]"); if (v) v.onchange = function () { M.setCcf(cls, { voie: v.value }); redraw(); };
+      var c = R.querySelector("[data-choix]"); if (c) c.onchange = function () { M.setChoix(cls, E, c.value); redraw(); };
+      var t = R.querySelector("[data-take]"); if (t && take) t.onclick = function () { if (confirm("Reprendre les degrés proposés par l'élève pour les critères que tu n'as pas évalués ? Tu pourras les modifier ensuite.")) take(); };
+    };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
     return M;
   }
@@ -485,12 +577,13 @@
       var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap;
       return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><button class="epse-btn" data-back>← Liste</button><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1">‹</button> <button class="epse-btn" data-nav="1">›</button></span></div>' +
         '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (st) { return '<button class="epse-btn' + ((r.st || "") === st ? " p" : "") + '" data-st="' + st + '">' + (st || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button></div></div>' +
+        M.propHtml(e, e._c) +
         G.criteres.map(function (cr) { var v = r.ev && r.ev[cr.id], x = ap && ap.ev && ap.ev[cr.id], p = prof(cr, e);
           return '<div class="epse-crit"><div class="epse-ch"><b>' + esc(cr.nom) + "</b><span>" + esc(cr.afl || "") + " · " + fr(maxOf(cr)) + " pts" + (p ? " · " + fr(p.pts) + " pts" : "") + "</span></div>" + (cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.but) + "</p>" : "") +
             '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
             (v ? '<div class="epse-intra" style="--dc:' + DCOL[v.d] + '"><span>Dans le degré :</span><input type="range" min="0" max="4" step="1" value="' + Math.round((v.pos == null ? .5 : v.pos) * 4) + '" data-p="' + esc(cr.id) + '"><b style="color:' + DCOL[v.d] + '">' + esc(posLbl(v.d, v.pos == null ? .5 : v.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
         (ap && (ap.r || ap.m) ? '<div class="epse-card"><h2>🙋 Les mots de l\'élève</h2>' + (ap.r ? "<p>✓ " + esc(ap.r) + "</p>" : "") + (ap.m ? "<p>→ " + esc(ap.m) + "</p>" : "") + "</div>" : "") +
-        '<div class="epse-card"><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
+        '<div class="epse-card"><div class="epse-row" style="margin:0 0 6px"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button></div><div data-phrbox></div><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
     }
     function bindSheet(R, c, e) {
       var up = function (f) { var r = rec(e._c, e); f(r); save(e._c, e, r); render(); };
@@ -501,6 +594,8 @@
       R.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { up(function (r) { r.ev = r.ev || {}; var id = b.dataset.c, d = +b.dataset.d; if (r.ev[id] && r.ev[id].d === d) delete r.ev[id]; else r.ev[id] = { d: d, pos: .5 }; }); }; });
       R.querySelectorAll("[data-p]").forEach(function (i) { i.onchange = function () { up(function (r) { r.ev[i.dataset.p].pos = (+i.value) / 4; }); }; });
       var t = R.querySelector("[data-comm]"); t.oninput = t.onchange = function () { var r = rec(e._c, e); r.comm = t.value; save(e._c, e, r); };
+      M.bindProp(R, e, e._c, render, function () { up(function (r) { var a = r.ap; r.ev = r.ev || {}; grid().criteres.forEach(function (cr) { if (!r.ev[cr.id] && a && a.ev && a.ev[cr.id]) r.ev[cr.id] = { d: a.ev[cr.id].d, pos: a.ev[cr.id].pos == null ? .5 : a.ev[cr.id].pos }; }); }); });
+      M.bindPhrase(R, e, e._c, function (txt) { var r = rec(e._c, e); r.comm = txt; save(e._c, e, r); render(); });
     }
     function table(c) { var G = grid();
       return '<div class="epse-card"><h2>📋 ' + esc(c.nom) + '</h2><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + G.criteres.map(function (cr) { return "<th>" + esc(cr.nom) + "</th>"; }).join("") + "<th>Note /20</th></tr>" +

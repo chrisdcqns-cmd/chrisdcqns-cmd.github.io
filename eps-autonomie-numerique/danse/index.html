@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script src="../eps-lists.js"></script>
+<script src="../eps-eval.js"></script>
 <script src="../eps-shell.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1d1530">
@@ -2136,7 +2137,15 @@ function rListe() {
   }).join('') || '<p class="muted pad">Aucun élève.</p>';
   L.onclick = ev => { const b = ev.target.closest('.ev-it'); if (b) { UI.selId = b.dataset.id; rListe(); rEvMain(); if (window.innerWidth < 860) $('#evMain').scrollIntoView({ behavior: 'smooth' }); } };
 }
-function rEvMain() {
+/* adaptateur vers le module commun (eps-eval.js) : 🎯 proposition de positionnement, case CCF, phrase pour l'élève */
+let EVDAN = null;
+function evdan() { if (EVDAN || !window.EPSE) return EVDAN; EVDAN = EPSE.create({ app: 'dan', nom: 'Danse', ca: 'CA3', color: '#C2185B',
+  grid: () => ({ degres: ['Degré 1', 'Degré 2', 'Degré 3', 'Degré 4'], criteres: S.criteres.map(c => ({ id: c.id, afl: c.afl || c.court || 'AFL1', nom: c.titre || c.court || '', desc: c.d, max: c.poids || 1 })) }),
+  prof: (cr, e) => { const x = e.ev && e.ev[cr.id]; return x && x.d ? { d: x.d - 1, pos: x.pos == null ? .5 : x.pos } : null; },
+  getAp: e => { const a = e.auto; if (!a || !a.ev) return null; const ev = {}; Object.keys(a.ev).forEach(k => { const y = a.ev[k]; if (y && y.d) ev[k] = { d: y.d - 1, pos: .5 }; }); return { ev, r: a.reussi || '', m: a.ameliorer || '', t: a.t }; },
+  name: e => ({ nom: e.nom || '', prenom: e.prenom || '' }), note: e => note(e), absent: e => e.statut ? 'ABS' : '' }); return EVDAN; }
+function rEvMain() { rEvMain0(); try { const cl = curClasse(), e = cl.eleves.find(x => x.id === UI.selId), M = evdan(); if (e && M) M.propBlock(document.querySelector('#evMain .ev-head'), e, cl.nom, { redraw: rEvMain, keep: t => { e.comm = t; save(); rEvMain(); } }); } catch (x) { console.warn(x); } }
+function rEvMain0() {
   const cl = curClasse(); const e = cl.eleves.find(x => x.id === UI.selId); const M = $('#evMain');
   if (!e) { M.innerHTML = ''; return; }
   e.ev = e.ev || {};

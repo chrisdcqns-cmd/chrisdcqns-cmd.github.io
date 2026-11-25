@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="../eps-lists.js"></script>
+<script src="../eps-eval.js"></script>
 <script src="../eps-shell.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#1B1E24">
@@ -700,7 +701,14 @@ function lvNudge(eid,dir){const e=C().eleves.find(x=>x.id===eid),cr=lvCr(),v=e&&
 /* ================== ÉVALUER : FICHE ÉLÈVE ================== */
 function openEval(i){curEl=i;document.getElementById('evLive').style.display='none';document.getElementById('evList').style.display='none';const p=document.getElementById('evPanel');p.style.display='block';renderEval();window.scrollTo(0,0)}
 function closeEval(){curEl=null;document.getElementById('evLive').style.display='none';document.getElementById('evPanel').style.display='none';document.getElementById('evList').style.display='block';renderList()}
-function renderEval(){
+/* adaptateur vers le module commun (eps-eval.js) : 🎯 proposition de positionnement, case CCF, phrase pour l'élève */
+var EVVOL=null;function evvol(){if(EVVOL||!window.EPSE)return EVVOL;EVVOL=EPSE.create({app:'vol',nom:'Volley-ball',ca:'CA4',color:'#6B3FA0',
+  grid:()=>({degres:['Degré 1','Degré 2','Degré 3','Degré 4'],criteres:B().criteres.map(c=>({id:c.id,afl:c.afl||'AFL1',nom:c.nom,desc:c.desc,max:maxPts(c,null)}))}),
+  max:(cr,e)=>{const c=B().criteres.find(x=>x.id===cr.id);return c?maxPts(c,e):0},
+  prof:(cr,e)=>{const c=B().criteres.find(x=>x.id===cr.id),v=e.ev&&e.ev[cr.id];if(!c||!v||v.d==null)return null;const bd=B().bandes[v.d],f=(v.f||0)*100;return{d:v.d,pos:bd&&bd[1]>bd[0]?Math.max(0,Math.min(1,(f-bd[0])/(bd[1]-bd[0]))):.5,pts:critPts(c,e)}},
+  getAp:e=>e.ap||null,name:e=>({nom:e.nom||'',prenom:e.prenom||''}),note:e=>note20(e),absent:e=>e.statut||''});return EVVOL}
+function renderEval(){ renderEval0(); try{const c=C(),e=c.eleves[curEl],M=evvol();if(e&&M)M.propBlock(document.querySelector('#evPanel .evhead'),e,c.nom,{redraw:renderEval,keep:t=>{e.comment=t;save();renderEval()}})}catch(x){} }
+function renderEval0(){
   const c=C(),e=c.eleves[curEl];if(!e){closeEval();return}
   e.ev=e.ev||{};
   const b=B(),p=document.getElementById('evPanel');

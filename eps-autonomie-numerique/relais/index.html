@@ -2783,7 +2783,7 @@ function evGridHTML(mode,e){
   const sel=prof?o.prof:((o.auto[lid]||{}).sel||{});
   const la=prof?lastAutoE(e):null,sg=prof?evSuggest(e):null;
   const repLab=r=>r.replace("-"," / ");
-  let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}${prof?apChipRel(e):""}</div>
+  let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}${prof?apChipRel(e):""}</div>${prof?'<div data-relprop></div>':""}
     <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
       :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts${prof?" (répartition fixée dans les réglages de la leçon)":""}</span>`}</div>
     ${prof?evStatsHTML(e,sg):""}${prof?`<div class="evleg mt">${la?`<span><i></i>bleu : auto-positionnement de ${esc(e.prenom)}</span>`:""}${sg&&(sg.perf||sg.trans)?`<span><i class="r"></i>rouge : suggestion d'après les résultats</span>`:""}</div>`:""}
@@ -2830,6 +2830,8 @@ function renderEval(){
       return `<tr data-eve="${st.id}" class="${EV_SEL===st.id?"on":""}"><td><b>${esc(st.prenom)}</b> ${esc(st.nom)}</td>${EVE.map(x=>`<td class="n">${cell(o,x.k,rp)}</td>`).join("")}<td class="n"><b>${t.n?fmtP(t.t):"–"}</b>${t.n&&t.n<4?" *":""}</td><td class="n">${ta&&ta.n===4?fmtP(ta.t):"–"}</td></tr>`}).join("")
     +`</tbody></table><p class="note" style="margin:8px 0 0">* note incomplète (il manque au moins un indicateur).</p>`;
   $("#ev-body").innerHTML=e?evGridHTML("prof",e):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
+  /* 🎯 proposition commune (eps-eval.js) sous le nom de l'élève */
+  try{const h=document.querySelector("#ev-body [data-relprop]");if(e&&h&&EVRL&&EVRL.propBlock)EVRL.propBlock(h,e,CL().name,{redraw:renderEval,keep:t=>{const o=evOf(e.id);o.comm=t;persist();renderEval()}})}catch(x){}
 }
 function renderAuto(){
   const L=evList(false),lid=CLE().id;
