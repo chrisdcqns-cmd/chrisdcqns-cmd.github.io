@@ -1041,7 +1041,7 @@ const aClasse = () => S.classe && S.classe!=="-";
 
 /* ======================= ÉLÈVE : groupe ======================= */
 function vueGroupe(){
-  const g=cfgCT().groupes, P=personnes(), modes=[["solo","Seul(e)",1],["duo","Avec 1 partenaire",2],["trio","Avec 2 partenaires",3]].filter(m=>g[m[0]]);
+  const g=cfgCT().groupes, P=personnes().filter(x=>!(window.epsAbsJour&&epsAbsJour(x,nomClasse()))) /* 🙋 absents de l'appel commun retirés */, modes=[["solo","Seul(e)",1],["duo","Avec 1 partenaire",2],["trio","Avec 2 partenaires",3]].filter(m=>g[m[0]]);
   const ch=S.choixGroupe||{mode:modes[0]&&modes[0][0], noms:[]}; S.choixGroupe=ch; const n=(modes.find(m=>m[0]===ch.mode)||[0,0,1])[2];
   const sel = i => `<select data-gnom="${i}"><option value="">${i?"Partenaire "+i:"Moi"}…</option>${P.map(x=>`<option ${ch.noms[i]===x?"selected":""}>${h(x)}</option>`).join("")}</select>`;
   $("#vue").innerHTML = `<h2>Avec qui travailles-tu ?</h2><p class="doux petit">${h(nomClasse())}</p>

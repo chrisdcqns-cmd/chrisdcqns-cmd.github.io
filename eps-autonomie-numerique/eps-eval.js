@@ -407,7 +407,7 @@
     M.setCcf = function (cls, v) { var o = ccGet(A.app + "|" + cls) || { id: A.app + "|" + cls }; Object.assign(o, v); ccPut(o); };
     M.choix = function (cls, E) { var o = ccGet(A.app + "|" + cls + "|" + ekey(E)); return (o && o.choix) || "4-4"; };
     M.setChoix = function (cls, E, ch) { ccPut({ id: A.app + "|" + cls + "|" + ekey(E), choix: ch }); };
-    function lecAvg(cls, E) { var k = ekey(E), V = null; try { var DIR = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation" }[A.app] || A.app; V = JSON.parse(localStorage.getItem("eps.leceval." + DIR + ".v1") || "null"); } catch (e) {}
+    function lecAvg(cls, E) { var k = ekey(E), V = null; try { var DIR = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining" }[A.app] || A.app; V = JSON.parse(localStorage.getItem("eps.leceval." + DIR + ".v1") || "null"); } catch (e) {}
       var L = []; Object.keys((V && V.items) || {}).forEach(function (id) { var o = V.items[id]; if (!o || o.del || nk(o.cls) !== nk(cls)) return; var x = (o.el || {})[k]; if (!x) return; var v = []; ["p", "s", "t"].forEach(function (q) { if (x[q] != null) v.push(+x[q]); }); if (v.length) L.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); });
       return L.length ? { n: L.length, m: L.reduce(function (a, b) { return a + b; }, 0) / L.length } : null; }
     M.prop = function (E, cls) {

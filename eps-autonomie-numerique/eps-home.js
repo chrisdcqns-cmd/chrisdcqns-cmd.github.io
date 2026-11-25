@@ -1526,7 +1526,7 @@
   }
   setInterval(function () { try { syncBadge(); } catch (e) {} }, 3000);
   /* 🔍 recherche rapide d'un élève (mode enseignant) : classes, activités de la classe, dispense du jour, évaluations et commentaires dans chaque appli */
-  var ACTN = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport" };
+  var ACTN = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ct: "Cross-training" };
   function evalsOf(nomComplet, classe) {
     var out = [], k = nkey(nomComplet), c = cmp(classe);
     for (var i = 0; i < localStorage.length; i++) { var key = localStorage.key(i), m = /^eps\.eval\.([a-z]+)\.v1$/.exec(key || ""); if (!m) continue;
@@ -1569,7 +1569,7 @@
      quelques observations ; évaluations et auto-positionnements fictifs semés par eps-eval.js (Escalade, Acrosport, OrienRun).
      « Retirer » efface tout ce qui concerne la classe, partout (même ce que tu y as saisi). */
   var DEMO = "DÉMO (fictive)", DEMO_EL = ["Léa Démo", "Hugo Démo", "Inès Démo", "Tom Démo", "Sarah Démo", "Noah Démo", "Jade Démo", "Yanis Démo"];
-  var DEMO_APPS = { escalade: "Escalade", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF" };
+  var DEMO_APPS = { escalade: "Escalade", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF", crosstraining: "Cross-training" };
   function demoOn() { return !!jget("eps.demo.v1", null); }
   function stPutRaw(k, it) { var V = stLd(k), o = V.items[it.id]; it.u = Math.max(Date.now(), ((o && o.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u; try { localStorage.setItem(k, JSON.stringify(V)); } catch (e) {} }
   function demoLesson(a, nom, at) {
