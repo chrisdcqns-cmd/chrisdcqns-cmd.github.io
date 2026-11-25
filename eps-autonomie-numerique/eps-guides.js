@@ -120,7 +120,9 @@ window.EPS_GUIDES = {
   ] },
   dan: { nom: "Danse", items: [
     ["📅 Séquence", "Fiche d'observation de la leçon, par groupes de création."],
-    ["📚 Bibliothèque", "Procédés de composition et défis ; 📓 carnets de chorégraphie des groupes."],
+    ["📚 Bibliothèque", "Procédés de composition et défis ; 📓 carnets de chorégraphie des groupes ; 🔥 Jeux & battles."],
+    ["🔥 Jeux d'échauffement", "Banque de 27 jeux classés par thème (son corps, l'autre, l'espace, l'énergie, le temps et le groupe, se montrer) : but, déroulé, pour aller plus loin, vigilance, procédé travaillé. 🎲 Tirer un jeu, 🔥 Composer un échauffement (3 jeux : corps → autre / espace → se montrer), minuteur et plein écran."],
+    ["⚔️ Battle", "Un thème tiré au sort (+ contrainte de composition au choix), format solo à groupe, création chronométrée (1 à 3 min), puis passage face à la classe, seulement devant l'enseignant ou au choix de chacun, puis retour flash. Accessible aussi aux élèves depuis l'écran d'accueil (Battles & jeux)."],
     ["Quelle classe ?", "À l'ouverture de l'Évaluation : choisis la classe (touche son nom en haut pour en changer), ✎ renomme-la (la liste commune et les dispenses suivent), et 🙋 ouvre l'auto-positionnement pour cette classe seulement : « pour la leçon » (jusqu'au soir) ou « 2 semaines » (les fiches PDF portent alors le lien)."],
     ["📋 Évaluation", "Trois façons d'évaluer : 👤 élève par élève (degrés, curseur, phrases toutes prêtes sous le commentaire), 📋 par critère (toute la classe sur l'AFL1, puis l'AFL2…), 👥 par groupe (un degré pour tout le groupe, puis ajustement de chacun). Le positionnement de l'élève (🙋) est affiché à côté du tien. Phrases toutes prêtes modifiables dans 🎛 Paramètres."],
     ["👥 Classe", "Élèves, groupes de création, auto-positionnement (ouverture, suivi)."],

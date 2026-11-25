@@ -44,7 +44,7 @@ body:not(.teach-on) #tabs .t{display:none}
 body.teach-on #tabs .s-auto,body:not(.auto-on) #tabs .s-auto{display:none}
 body.eleve-mode #tabs{visibility:hidden}
 [hidden]{display:none!important}
-body.res-mode #tabs button:not([data-v=procedes]){display:none}
+body.res-mode #tabs button:not([data-v=procedes]):not([data-v=jeux]){display:none}
 .autoctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;background:#FBEAF1;border:1px solid #F2C3D6;border-radius:12px;padding:10px 12px;margin:6px 0 12px}
 .autoctl input[type=date]{width:auto;min-height:38px}
 .aEtat{flex-basis:100%;font-size:.84rem;color:#8a3b57}.aEtat.ok{color:#0f7a5c;font-weight:600}
@@ -209,6 +209,18 @@ details.edit{border:1px solid var(--line);border-radius:12px;padding:10px 12px;m
 .verif summary{list-style:none;cursor:pointer}.verif summary::-webkit-details-marker{display:none}.verif h3{margin:0}.verif h3 small{color:var(--muted);font-weight:600;margin-left:8px}
 .vf{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.vf:last-child{border:0}.vf>div{flex:1}.vf b{display:block}.vf small{color:var(--muted)}
 .vf-i{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;flex:none;color:#fff}.vf.ok .vf-i{background:#0f9d76}.vf.w .vf-i{background:#f59e0b}.vf.ko .vf-i{background:#e5484d}
+.jx-tabs{margin:0 0 12px}.jx-h .chips .chip.on{background:var(--tc);border-color:var(--tc);color:#fff}
+.jx-ech{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding:10px;border-radius:12px;background:#fff6e5}.jx-ech button{background:#fff;border:2px solid #f0c46b;border-radius:20px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}.jx-ech small{width:100%}
+.jx-l{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.jx-c{text-align:left;background:#fff;border:2px solid var(--line);border-top:6px solid var(--tc);border-radius:14px;padding:14px;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:4px}
+.jx-c small{color:var(--tc);font-weight:800;font-size:.74rem;text-transform:uppercase;letter-spacing:.03em}.jx-c b{font-size:1.12rem}.jx-c span{color:#333;font-size:.92rem}.jx-c em{color:var(--muted);font-size:.8rem;font-style:normal}
+.jx-d{border-top:8px solid var(--tc)}.jx-d:fullscreen{overflow:auto;padding:40px;font-size:1.3rem}.jx-dh{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.jx-k{color:var(--tc);font-weight:800;text-transform:uppercase;letter-spacing:.05em;display:block;margin-top:12px}.jx-d h1{margin:.1em 0 .2em;font-size:2rem}
+.jx-but{font-size:1.15rem;font-weight:600}.jx-st{font-size:1.1rem;line-height:1.5}.jx-st li{margin:6px 0}.jx-vig{background:#fff1f0;border-left:5px solid #e5484d;padding:10px 12px;border-radius:8px}
+.jx-tm{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px}.jx-bar{flex:1;min-width:160px;height:12px;background:var(--line);border-radius:6px;overflow:hidden}.jx-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s linear}
+#jxT{font-size:2.6rem;font-variant-numeric:tabular-nums;font-weight:900;min-width:120px;text-align:center}#jxT.urg{color:#e5484d}#jxT.bt-t{font-size:5rem}
+.bt{text-align:center;background:linear-gradient(135deg,#1d1530,#3b1d4f);color:#fff}.bt .btn{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}.bt .btn.primary{background:var(--accent);border-color:var(--accent)}
+.bt-big small{color:#f3a6c3;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.bt-big h1{font-size:3rem;margin:.1em 0}.bt-big p{font-size:1.2rem;color:#e8e1f3}.bt-ph{font-size:1.25rem;color:#fff}.bt .jx-bar{background:rgba(255,255,255,.18)}
+#jxB:fullscreen{background:#1d1530;padding:30px;overflow:auto}#jxB:fullscreen .bt-big h1{font-size:5rem}
+.bt-r label{display:block;font-weight:800;margin:12px 0 6px}.bt-r .sw{margin-top:14px}
 .merci{text-align:center;padding:40px 24px;max-width:720px;margin:30px auto}
 .codebox{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f6f3fa;border:2px dashed var(--accent);border-radius:12px;padding:14px;overflow-wrap:anywhere;user-select:all;font-size:.9rem;text-align:left;margin:14px 0}
 
@@ -255,6 +267,7 @@ html.epst-on header.top #tabs{display:none!important}
     <button data-v="observation">Observation</button>
     <button data-v="carnet">Carnet de chorégraphie</button>
     <button data-v="procedes">Procédés &amp; défis</button>
+    <button data-v="jeux">Jeux &amp; battles</button>
     <button data-v="bilan" class="t">Bilan &amp; export</button>
     <button data-v="classe" class="t">Classe &amp; auto-positionnement</button>
     <button data-v="reglages" class="t">Réglages</button>
@@ -2055,7 +2068,7 @@ function relevéAuto() {
 }
 
 /* ---------- Routage ---------- */
-const VUES = { classes: rChoix, evaluation: rEval, observation: rObs, carnet: rCarnet, procedes: rProc, bilan: rBilan, classe: rClasse, reglages: rReglages, eleve: rEleveMode };
+const VUES = { classes: rChoix, evaluation: rEval, observation: rObs, carnet: rCarnet, procedes: rProc, jeux: rJeux, bilan: rBilan, classe: rClasse, reglages: rReglages, eleve: rEleveMode };
 const TEACH = ['classes', 'evaluation', 'bilan', 'classe', 'reglages'];
 let vue = 'evaluation';
 function parseHash() { const h = decodeURIComponent((location.hash || '').slice(1)); const i = h.indexOf('='); return i < 0 ? { v: h, arg: '' } : { v: h.slice(0, i), arg: h.slice(i + 1) }; }
@@ -2085,8 +2098,9 @@ function route() {
   if (!VUES[v]) v = T ? 'evaluation' : (autoOuvert() ? 'eleve' : 'procedes');
   if (T && !UI.choisi && (v === 'evaluation' || v === 'bilan')) { UI.apres = v; v = 'classes'; }
   if (T) UI.mode = '';
-  else if (UI.mode === 'res' && v !== 'procedes') v = 'procedes'; /* ressources sans classe : procédés et défis seulement */
+  else if (UI.mode === 'res' && v !== 'procedes' && v !== 'jeux') v = 'procedes'; /* ressources sans classe : procédés, défis, jeux et battles seulement */
   if (v !== 'observation') UI.retour = '';
+  if (v !== 'jeux') jxStop();
   if (UI.token !== (v === 'eleve' ? arg : '')) UI.em = null;
   UI.token = v === 'eleve' ? arg : '';
   vue = v;
@@ -2513,6 +2527,132 @@ function nouveauDefi() {
   const procs = MEMO[0].items.map(i => i[0]);
   UI.defi = { geste: tirer(GESTES), proc: tirer(procs), param: tirer(DEFI_PARAM), rel: tirer(MEMO[1].items.map(i => i[0])) };
 }
+/* =========================================================
+   JEUX D'ÉCHAUFFEMENT & BATTLES (banque + minuteur + tirage)
+   ========================================================= */
+const JX_TH = [['corps', 'Son corps', '#C2185B'], ['autre', 'Le corps de l\'autre', '#6B3FA0'], ['espace', 'L\'espace', '#0f766e'], ['energie', 'L\'énergie', '#d97706'], ['temps', 'Le temps et le groupe', '#2563eb'], ['montrer', 'Se montrer', '#be123c']];
+/* [thème, nom, organisation, minutes, but, [déroulé], évolution, vigilance, procédé lié] */
+const JEUX = [
+  ['corps', 'Le réveil qui fond', 'Seul', 4, 'Réveiller le corps articulation par articulation et entrer dans l\'écoute.', ['Debout, yeux fermés, en silence.', 'Réveiller une articulation à la fois, de la tête aux pieds (8 temps chacune).', 'Fondre jusqu\'au sol en 8 temps, puis remonter en 8 temps.'], 'Fondre en 4 puis en 2 temps ; remonter par un autre chemin.', '', 'Vitesse, niveaux'],
+  ['corps', 'La marionnette', 'Duo', 4, 'Sentir d\'où part le mouvement (isoler une partie du corps).', ['A tire un fil imaginaire accroché à une partie du corps de B (poignet, coude, genou, tête…).', 'B suit le fil, le reste du corps accompagne.', 'Au signal, on inverse.'], 'Deux fils à la fois ; le fil est coupé : chute contrôlée vers le sol.', '', 'Isolation, initiation du mouvement'],
+  ['corps', 'Le corps qui écrit', 'Seul', 3, 'Faire varier l\'amplitude et la partie du corps qui mène.', ['Écrire son prénom dans l\'espace avec la main, tout petit.', 'Puis avec le coude, le genou, le bassin, la tête.', 'Finir en écrivant immense, avec tout le corps.'], 'Écrire à l\'envers, au sol, ou en se déplaçant.', '', 'Amplitude, partie du corps'],
+  ['corps', 'Isolations', 'Seul', 3, 'Dissocier : une seule partie bouge, le reste est figé.', ['Bouger seulement la tête, puis une épaule, le bassin, un pied…', 'Choisir 4 isolations et les enchaîner : c\'est une mini-phrase.'], 'La jouer très lente, puis saccadée.', '', 'Précision, contraste'],
+  ['corps', 'Le sculpteur', 'Duo', 5, 'Construire des formes et les habiter.', ['A modèle B en statue (en montrant ou en guidant doucement les bras et les épaules).', 'B anime la statue en 3 mouvements puis se fige.', 'On inverse.'], 'Le sculpteur donne un titre à sa statue ; B la danse avec cette intention.', 'Toucher seulement bras, épaules et dos. Si un élève ne veut pas être touché : sculpteur « à distance », B imite.', 'Formes, intention'],
+  ['autre', 'Aveugle et guide', 'Duo', 6, 'Faire confiance, guider, écouter l\'autre.', ['B ferme les yeux. A le guide main dans la main dans la salle.', 'Puis seulement avec un doigt posé sur l\'épaule.', 'Puis uniquement à la voix ou par un claquement de doigts.', 'On inverse.'], 'Le guide fait changer de vitesse, de niveau, passer au sol ; plusieurs aveugles en file.', 'Yeux fermés, pas de bandeau obligatoire. Espace dégagé. Le guide est responsable de son partenaire. Au « stop », tout le monde s\'arrête.', 'Conduire / suivre, contact'],
+  ['autre', 'Le miroir', 'Duo', 4, 'Se synchroniser avec l\'autre.', ['Face à face, A mène lentement, B reflète comme un miroir.', 'Au signal, on change de meneur.', 'Puis miroir sans meneur : qui guide ? personne ne doit le voir.'], 'Miroir à 4 ; miroir en se déplaçant.', '', 'Unisson, relation'],
+  ['autre', 'L\'ombre', 'Duo ou trio', 4, 'Suivre et reproduire en se déplaçant.', ['B suit A derrière lui comme son ombre et reproduit tout.', 'En trio : file indienne ; quand la file tourne, un autre devient meneur.'], 'L\'ombre a un temps de retard : c\'est un canon.', '', 'Unisson, canon'],
+  ['autre', 'Poids et contrepoids', 'Duo', 5, 'Partager son poids, trouver l\'équilibre à deux.', ['Se tenir par les poignets, s\'éloigner jusqu\'à l\'équilibre.', 'Descendre et remonter ensemble sans se lâcher.', 'Dos à dos assis : se pousser pour se lever ensemble.'], 'Contrepoids à trois ; passer d\'un équilibre à un autre sans se lâcher.', 'Partenaires de gabarit proche, prise aux poignets, on prévient avant de lâcher.', 'Contact, porté simple'],
+  ['autre', 'Question – réponse', 'Duo', 4, 'Dialoguer sans parler.', ['A fait un geste : c\'est la question.', 'B répond par un geste qui la prolonge ou la contredit.', 'Le dialogue continue, de plus en plus fluide.'], 'Dispute, puis réconciliation, sans un mot.', '', 'Question-réponse'],
+  ['autre', 'Le point de contact', 'Duo', 5, 'Bouger ensemble sans perdre le lien.', ['Garder un point de contact (main contre main, épaule, dos).', 'Se déplacer, monter, descendre sans jamais le perdre.', 'Au signal, changer de point de contact.'], 'Le point de contact passe d\'une partie du corps à une autre sans se rompre.', 'Contact consenti ; sinon, relier les deux partenaires par un objet (foulard, balle tenue à deux).', 'Contact, relation'],
+  ['espace', 'Remplir les trous', 'Classe', 4, 'Occuper tout l\'espace et regarder autour de soi.', ['Marcher en équilibrant la salle : pas de trou, pas de paquet.', 'Au « stop », personne ne doit être collé à quelqu\'un.', 'Changer d\'allure, de niveau, de direction.'], 'Se diriger vers un point de la salle et le quitter au dernier moment.', '', 'Occupation de l\'espace'],
+  ['espace', 'Les trajets', 'Seul', 4, 'Dessiner des chemins au sol.', ['Ligne droite, courbe, zigzag, spirale : en parcourir une en dansant.', 'Enchaîner 3 trajets : c\'est le plan au sol d\'une phrase.'], 'Même trajet, mais à reculons, au sol, ou en tournant.', '', 'Trajectoire, orientation'],
+  ['espace', 'Les trois niveaux', 'Classe', 4, 'Explorer le sol, le milieu, le haut.', ['Au signal : 1 = au sol, 2 = à mi-hauteur, 3 = le plus haut possible.', 'Passer d\'un niveau à l\'autre en 8, puis 4, puis 2 temps.'], 'Chaque élève a un niveau différent de son voisin.', 'Descente au sol en douceur : genoux, hanche, épaule, pas de chute.', 'Niveaux'],
+  ['espace', 'Proche – loin', 'Duo', 4, 'Jouer avec la distance entre deux danseurs.', ['A se déplace librement, B garde toujours la même distance (1 m, puis 5 m).', 'Puis : se rapprocher très près sans se toucher, s\'éloigner au plus loin.'], 'Trouver un moment de rencontre et un moment de séparation.', '', 'Relation dans l\'espace'],
+  ['energie', 'Le curseur de 1 à 10', 'Classe', 4, 'Faire varier l\'énergie d\'un même mouvement.', ['Tout le monde marche. L\'enseignant annonce un chiffre.', '1 = très lent, relâché ; 10 = explosif, tonique.', 'Passer brutalement de 2 à 9, puis de 9 à 1.'], 'Même chose avec un geste de la phrase signature.', '', 'Contraste d\'énergie, vitesse'],
+  ['energie', 'Frapper, glisser, flotter, tordre', 'Seul', 5, 'Découvrir des qualités de mouvement très différentes.', ['Un geste simple (lever le bras, faire un pas).', 'Le faire en frappant, puis en glissant, en flottant, en tordant.', 'Enchaîner deux qualités qui contrastent.'], 'À deux : l\'un frappe, l\'autre flotte.', '', 'Contraste, qualité du geste'],
+  ['energie', 'L\'élastique', 'Duo', 4, 'Jouer la tension et le relâchement.', ['Un élastique imaginaire relie A et B.', 'Le tendre, le relâcher, le faire claquer.', 'Le partenaire subit et réagit.'], 'L\'élastique relie deux parties du corps différentes (main – pied).', '', 'Tension / relâchement'],
+  ['energie', 'Accélérer, s\'arrêter net', 'Classe', 3, 'Maîtriser l\'accélération et l\'arrêt.', ['Marcher, puis accélérer jusqu\'à courir.', 'Arrêt net au signal, immobile 3 secondes.', 'Un geste qui accélère jusqu\'à la suspension.'], 'Décélérer jusqu\'à l\'immobilité sur 8 temps.', 'Espace dégagé, tout le monde dans le même sens au début.', 'Accélération, suspension'],
+  ['temps', 'Le banc de poissons', 'Groupe de 5-6', 5, 'Danser ensemble à l\'unisson en suivant un meneur.', ['Groupe en losange, tous tournés du même côté.', 'Celui qui est devant mène, les autres reproduisent.', 'Quand le groupe tourne d\'un quart de tour, un autre se retrouve devant : il devient meneur.'], 'Montrer un banc de poissons à la classe : qui mène ? on ne doit pas le voir.', '', 'Unisson, leader'],
+  ['temps', 'Le stop collectif', 'Classe', 3, 'S\'écouter sans chef.', ['Tout le monde marche dans la salle.', 'Sans signal, tout le groupe s\'arrête en même temps.', 'Puis repart en même temps.'], 'Repartir tous dans une autre allure, ou tous au sol.', '', 'Écoute, unisson'],
+  ['temps', 'La vague', 'Classe', 3, 'Faire passer un mouvement de l\'un à l\'autre.', ['En ligne ou en cercle : un geste passe d\'un élève au suivant.', 'Puis aller-retour, puis de plus en plus vite.'], 'Deux vagues en sens contraire qui se croisent.', '', 'Canon'],
+  ['temps', 'L\'accumulation en cercle', 'Groupe', 5, 'Mémoriser et construire à plusieurs.', ['Le premier fait un geste.', 'Le deuxième le refait et ajoute le sien, et ainsi de suite.', 'À la fin, tout le groupe danse la phrase complète.'], 'Danser la phrase en canon.', '', 'Accumulation, mémorisation'],
+  ['montrer', 'Le podium', 'Classe', 5, 'Accepter d\'être regardé.', ['Traverser la salle, s\'arrêter au centre.', 'Tenir le regard 3 secondes vers le public.', 'Repartir avec une autre démarche.'], 'À trois, puis à deux, puis seul.', 'Règle des spectateurs : on regarde en silence, on applaudit à la fin.', 'Présence, regard'],
+  ['montrer', 'La photo', 'Groupe', 4, 'Créer une image lisible pour le public.', ['L\'enseignant annonce un mot (tempête, attente, fête…).', 'En 5 secondes, le groupe se fige en une image.', 'Le public devine le mot.'], 'Passer d\'une photo à une autre au ralenti.', '', 'Intention, composition'],
+  ['montrer', 'Demi-classe', 'Classe', 3, 'Se montrer à l\'abri du groupe.', ['La moitié de la classe danse 20 secondes sa phrase signature.', 'L\'autre moitié regarde, puis on inverse.', 'On finit par un salut.'], 'Par quart de classe, puis par groupe.', '', 'Présence, début et fin'],
+  ['montrer', 'Le regard qui passe', 'Cercle', 3, 'Être concentré et présent.', ['En cercle, on envoie un regard et un geste à quelqu\'un.', 'Il le reçoit, le transforme et l\'envoie à un autre.'], 'Deux gestes circulent en même temps.', '', 'Concentration, présence']
+];
+const BT_THEMES = ['La tempête', 'Le réveil', 'La foule', 'Le robot qui se dérègle', 'L\'attente', 'La colère', 'La joie', 'Le vent', 'La ville', 'Sur la Lune', 'Dans un ascenseur', 'Sous l\'eau', 'Le feu', 'La glace qui fond', 'Le miroir brisé', 'Les aimants', 'Le marionnettiste', 'Course contre le temps', 'La peur', 'Le rêve', 'La fatigue', 'La victoire', 'La machine', 'Les ombres', 'Le labyrinthe', 'La rencontre', 'La dispute', 'Le départ', 'La chute', 'L\'envol'];
+const BT_CONTR = ['Passer au moins une fois par le sol', 'Un arrêt immobile de 3 secondes', 'Un moment à l\'unisson', 'Un canon', 'Répéter 3 fois le même geste', 'Un contraste lent / rapide', 'Un moment de contact', 'Sans te déplacer', 'Une entrée et une sortie', 'Commencer et finir dans la même position', 'Utiliser les 3 niveaux', 'Un geste du quotidien transformé'];
+const BT_PUB = { classe: ['👥 Face à la classe', 'Les spectateurs s\'assoient en arc de cercle. On regarde en silence, on applaudit à la fin, puis 👍 un point fort et 💡 un conseil.'],
+  prof: ['🧑‍🏫 Seulement devant l\'enseignant', 'Les autres continuent de répéter à l\'autre bout de la salle, dos tourné. Personne d\'autre ne regarde : on ose essayer.'],
+  choix: ['🤝 Au choix de chacun', 'Chacun choisit : face à la classe, ou seulement devant l\'enseignant. Les deux sont valables ; passer face à la classe est un défi bonus.'] };
+let JXT = null; /* minuteur en cours */
+function jxStop() { if (JXT) { clearInterval(JXT); JXT = null; } }
+function bip(f = 880, d = .18) { try { const A = window.__ac || (window.__ac = new (window.AudioContext || window.webkitAudioContext)()); const o = A.createOscillator(), g = A.createGain(); o.frequency.value = f; o.connect(g); g.connect(A.destination); g.gain.setValueAtTime(.25, A.currentTime); g.gain.exponentialRampToValueAtTime(.001, A.currentTime + d); o.start(); o.stop(A.currentTime + d); } catch (e) { } }
+const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+/* minuteur : sec secondes, met à jour #jxT, appelle fin() */
+function jxMinuteur(sec, fin) {
+  jxStop(); const t0 = Date.now(), el = () => $('#jxT');
+  const maj = () => { const r = Math.max(0, sec - Math.floor((Date.now() - t0) / 1000)); const e = el(); if (!e) { jxStop(); return; } e.textContent = mmss(r); e.classList.toggle('urg', r <= 10);
+    const p = $('#jxP'); if (p) p.style.width = (100 - r / sec * 100) + '%';
+    if (r <= 3 && r > 0 && r !== JXT_last) bip(660, .1); JXT_last = r; if (r === 0) { jxStop(); bip(880, .5); fin && fin(); } };
+  let JXT_last = -1; maj(); JXT = setInterval(maj, 250);
+}
+function rJeux() {
+  jxStop(); const J = UI.jx = UI.jx || { tab: 'echauf', th: '', b: { format: 'Duo', crea: 120, pass: 45, pub: 'classe', ct: true, phase: 'reglage' } };
+  const V = $('#view');
+  const onglets = `<div class="seg jx-tabs" id="jxTabs"><button data-t="echauf" class="${J.tab === 'echauf' ? 'on' : ''}">🔥 Jeux d'échauffement</button><button data-t="battle" class="${J.tab === 'battle' ? 'on' : ''}">⚔️ Battle</button></div>`;
+  if (J.tab === 'battle') { V.innerHTML = onglets + '<div id="jxB"></div>'; bindTabs(); rBattle(); return; }
+  if (J.sel != null) { rJeu(J.sel, onglets); return; }
+  const L = JEUX.map((j, i) => [j, i]).filter(([j]) => !J.th || j[0] === J.th);
+  V.innerHTML = onglets + `<div class="card jx-h"><div class="chips">${[['', 'Tous', '#444']].concat(JX_TH).map(([k, t, c]) => `<button class="chip ${J.th === k ? 'on' : ''}" data-th="${k}" style="--tc:${c}">${esc(t)}</button>`).join('')}</div>
+    <div class="row wrap"><button class="btn primary" id="jxTire">🎲 Tirer un jeu</button><button class="btn" id="jxEch">🔥 Composer un échauffement (3 jeux)</button></div>
+    ${J.ech ? `<div class="jx-ech"><b>Échauffement du jour :</b> ${J.ech.map((i, k) => `<button data-j="${i}">${k + 1}. ${esc(JEUX[i][1])} <small>${JEUX[i][3]} min</small></button>`).join('')}<small class="muted">≈ ${J.ech.reduce((a, i) => a + JEUX[i][3], 0)} min · son corps → l'autre / l'espace → se montrer</small></div>` : ''}</div>
+    <div class="jx-l">${L.map(([j, i]) => { const th = JX_TH.find(t => t[0] === j[0]); return `<button class="jx-c" data-j="${i}" style="--tc:${th[2]}"><small>${esc(th[1])} · ${esc(j[2])} · ${j[3]} min</small><b>${esc(j[1])}</b><span>${esc(j[4])}</span><em>${esc(j[8])}</em></button>`; }).join('')}</div>`;
+  bindTabs();
+  V.onclick = ev => {
+    const t = ev.target.closest('[data-th]'); if (t) { J.th = t.dataset.th; rJeux(); return; }
+    const c = ev.target.closest('[data-j]'); if (c) { J.sel = +c.dataset.j; rJeux(); window.scrollTo(0, 0); }
+  };
+  $('#jxTire').onclick = () => { const l = L.map(x => x[1]); J.sel = l[Math.floor(Math.random() * l.length)]; rJeux(); };
+  $('#jxEch').onclick = () => { const pick = ths => { const l = JEUX.map((j, i) => [j, i]).filter(([j]) => ths.includes(j[0])); return l[Math.floor(Math.random() * l.length)][1]; };
+    J.ech = [pick(['corps', 'energie']), pick(['autre', 'espace', 'temps']), pick(['montrer'])]; rJeux(); };
+}
+function bindTabs() { $('#jxTabs').onclick = ev => { const b = ev.target.closest('[data-t]'); if (b) { UI.jx.tab = b.dataset.t; UI.jx.sel = null; rJeux(); } }; }
+function rJeu(i, onglets) {
+  const j = JEUX[i], th = JX_TH.find(t => t[0] === j[0]), J = UI.jx, k = J.ech ? J.ech.indexOf(i) : -1;
+  $('#view').innerHTML = onglets + `<section class="card jx-d" id="jxD" style="--tc:${th[2]}">
+    <div class="jx-dh"><button class="btn" id="jxBack">← Tous les jeux</button><span class="grow"></span>${k >= 0 && k < J.ech.length - 1 ? `<button class="btn" data-j="${J.ech[k + 1]}">Jeu suivant de l'échauffement →</button>` : ''}<button class="btn" id="jxFs">⛶ Plein écran</button></div>
+    <small class="jx-k">${esc(th[1])} · ${esc(j[2])} · ${j[3]} min</small><h1>${esc(j[1])}</h1><p class="jx-but">${esc(j[4])}</p>
+    <ol class="jx-st">${j[5].map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+    ${j[6] ? `<p><b>Pour aller plus loin :</b> ${esc(j[6])}</p>` : ''}${j[7] ? `<p class="jx-vig">⚠ ${esc(j[7])}</p>` : ''}<p class="muted">Procédé travaillé : ${esc(j[8])}</p>
+    <div class="jx-tm"><div class="jx-bar"><i id="jxP"></i></div><b id="jxT">${mmss(j[3] * 60)}</b><button class="btn primary big" id="jxGo">▶ Lancer ${j[3]} min</button></div></section>`;
+  $('#jxBack').onclick = () => { J.sel = null; rJeux(); };
+  bindTabs();
+  $('#view').onclick = ev => { const c = ev.target.closest('[data-j]'); if (c) { J.sel = +c.dataset.j; rJeux(); } };
+  $('#jxFs').onclick = () => { const d = $('#jxD'); try { document.fullscreenElement ? document.exitFullscreen() : d.requestFullscreen(); } catch (e) { } };
+  $('#jxGo').onclick = () => { $('#jxGo').hidden = true; jxMinuteur(j[3] * 60, () => toast('Temps écoulé : ' + j[1])); };
+}
+function rBattle() {
+  const B = UI.jx.b, R = $('#jxB'); jxStop();
+  const tirer = () => { B.theme = BT_THEMES[Math.floor(Math.random() * BT_THEMES.length)]; B.contr = B.ct ? BT_CONTR[Math.floor(Math.random() * BT_CONTR.length)] : ''; };
+  if (!B.theme) tirer();
+  const seg = (k, l) => `<div class="seg">${l.map(([v, t]) => `<button data-bk="${k}" data-bv="${v}" class="${String(B[k]) === String(v) ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  const tete = `<div class="bt-big"><small>${esc(B.format)} · thème</small><h1>${esc(B.theme)}</h1>${B.contr ? `<p>Contrainte : <b>${esc(B.contr)}</b></p>` : ''}</div>`;
+  if (B.phase === 'reglage') {
+    R.innerHTML = `<section class="card bt" id="btS">${tete}
+      <div class="row center wrap"><button class="btn big" id="btRe">🎲 Autre thème</button><button class="btn primary big" id="btGo">▶ Créer (${mmss(B.crea)})</button><button class="btn" id="btFs">⛶ Plein écran</button></div></section>
+      <section class="card bt-r"><h3>Réglages de la battle</h3>
+      <label>Format</label>${seg('format', [['Solo', 'Solo'], ['Duo', 'Duo'], ['Trio', 'Trio'], ['Groupe', 'Groupe']])}
+      <label>Temps de création</label>${seg('crea', [[60, '1 min'], [120, '2 min'], [180, '3 min']])}
+      <label>Durée du passage</label>${seg('pass', [[30, '30 s'], [45, '45 s'], [60, '1 min']])}
+      <label>Devant qui ?</label>${seg('pub', Object.entries(BT_PUB).map(([k, v]) => [k, v[0]]))}<p class="muted">${esc(BT_PUB[B.pub][1])}</p>
+      <label class="sw"><input type="checkbox" id="btCt" ${B.ct ? 'checked' : ''}><span></span>Ajouter une contrainte de composition</label></section>`;
+    R.onclick = ev => { const b = ev.target.closest('[data-bk]'); if (!b) return; const k = b.dataset.bk; B[k] = /^\d+$/.test(b.dataset.bv) ? +b.dataset.bv : b.dataset.bv; rBattle(); };
+    $('#btCt').onchange = ev => { B.ct = ev.target.checked; B.contr = B.ct ? BT_CONTR[Math.floor(Math.random() * BT_CONTR.length)] : ''; rBattle(); };
+    $('#btRe').onclick = () => { tirer(); rBattle(); };
+    $('#btFs').onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : $('#jxB').requestFullscreen(); } catch (e) { } };
+    $('#btGo').onclick = () => { B.phase = 'crea'; rBattle(); };
+    return;
+  }
+  const P = { crea: ['Création', 'Composez votre réponse au thème. Début et fin immobiles !', B.crea, 'pub'], pub: ['Place au passage', BT_PUB[B.pub][1], 0, 'pass'], pass: ['Passage', 'On danse ! ' + (B.pub === 'prof' ? 'Devant l\'enseignant seulement.' : 'Spectateurs : silence et regard bienveillant.'), B.pass, 'retour'],
+    retour: ['Retour flash', 'Spectateurs : 👍 un point fort et 💡 un conseil. Le thème était-il lisible ?', 0, ''] }[B.phase];
+  R.innerHTML = `<section class="card bt bt-${B.phase}" id="btS">${tete}<p class="bt-ph"><b>${P[0]}</b> · ${esc(P[1])}</p>
+    ${P[2] ? `<div class="jx-tm"><div class="jx-bar"><i id="jxP"></i></div><b id="jxT" class="bt-t">${mmss(P[2])}</b></div>` : ''}
+    <div class="row center wrap">${B.phase === 'pub' ? `<button class="btn primary big" id="btN">▶ Lancer le passage (${mmss(B.pass)})</button>` : ''}
+    ${B.phase === 'retour' ? '<button class="btn primary big" id="btNew">🎲 Nouvelle battle</button><button class="btn big" id="btAgain">↻ Même thème, on recommence</button>' : ''}
+    ${P[2] ? '<button class="btn" id="btSkip">Passer ⏭</button>' : ''}<button class="btn ghost" id="btStop">✕ Arrêter</button><button class="btn" id="btFs">⛶</button></div></section>`;
+  const suite = () => { B.phase = P[3]; rBattle(); };
+  if (P[2]) jxMinuteur(P[2], suite);
+  const q = (s, f) => { const e = $(s); if (e) e.onclick = f; };
+  q('#btN', () => { B.phase = 'pass'; rBattle(); });
+  q('#btSkip', suite);
+  q('#btStop', () => { B.phase = 'reglage'; rBattle(); });
+  q('#btNew', () => { B.theme = ''; B.phase = 'reglage'; rBattle(); });
+  q('#btAgain', () => { B.phase = 'crea'; rBattle(); });
+  q('#btFs', () => { try { document.fullscreenElement ? document.exitFullscreen() : $('#jxB').requestFullscreen(); } catch (e) { } });
+}
+
 function rProc() {
   if (!UI.defi) nouveauDefi();
   const D = UI.defi;
@@ -3592,6 +3732,7 @@ window.EPSTD = window.EPST ? EPST.init({ app: 'dan', nom: 'Danse', color: '#C218
     cls: { go: () => aller('classe'), on: () => vue === 'classe' },
     bil: { go: () => aller('bilan'), on: () => vue === 'bilan' } },
   biblio: [{ ico: '💃', label: 'Procédés & défis', sub: 'Procédés de composition, défis', go: () => aller('procedes') },
+    { ico: '🔥', label: 'Jeux d\'échauffement & battles', sub: 'Banque de jeux (corps, autre, espace, énergie, se montrer), tirage, minuteur, battles', go: () => aller('jeux') },
     { ico: '📓', label: 'Carnets de chorégraphie', sub: 'Titre, intention, procédés et trame de chaque groupe', go: () => aller('carnet') }],
   reglages: [{ ico: '⚙', label: 'Réglages de Danse', sub: 'Grille, auto-positionnement, envoi automatique', go: () => aller('reglages') }] }) : null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
@@ -3602,7 +3743,8 @@ window.EPSTD = window.EPST ? EPST.init({ app: 'dan', nom: 'Danse', color: '#C218
   current: () => S.classeId || '',
   select: id => { S.classeId = id; save(); UI.mode = 'cl'; UI.em = null; aller('observation'); route(); },
   resources: [{ ico: '🎭', label: 'Procédés de composition', sub: 'répétition, canon, contraste…', open: () => { UI.mode = 'res'; aller('procedes'); route(); } },
-    { ico: '🎲', label: 'Défis', sub: 'sortir du geste ordinaire', open: () => { UI.mode = 'res'; aller('procedes'); route(); } }],
+    { ico: '🎲', label: 'Défis', sub: 'sortir du geste ordinaire', open: () => { UI.mode = 'res'; aller('procedes'); route(); } },
+    { ico: '⚔️', label: 'Battles & jeux', sub: 'un thème, 2 min pour composer', open: () => { UI.mode = 'res'; UI.jx = null; aller('jeux'); route(); if (UI.jx) { UI.jx.tab = 'battle'; rJeux(); } } }],
   teacher: async () => { if (await demanderCode()) aller('evaluation'); } });
 </script>
 <script src="../eps-home.js" defer></script>
