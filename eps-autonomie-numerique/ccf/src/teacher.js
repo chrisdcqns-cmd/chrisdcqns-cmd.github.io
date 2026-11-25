@@ -4,7 +4,7 @@ function lset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 let T=Object.assign({act:'',cls:'',view:'eval',el:'',all:false,pv:'pro'},lget('ccf.t',{}));
 let E=Object.assign({cls:'',act:'',team:'',tab:'pra',me:''},lget('ccf.e',{}));
 const saveT=()=>lset('ccf.t',T),saveE=()=>lset('ccf.e',E);
-const TABOF={eval:'eval',fiche:'eval',cls:'cls',team:'cls',match:'cls',bil:'bil',proto:'bib',res:'bib',print:'bib',edit:'reg',act:'reg'};
+const TABOF={eval:'eval',fiche:'eval',cls:'cls',team:'cls',match:'cls',bil:'bil',proto:'bib',res:'bib',print:'bib',obs:'eval',edit:'reg',act:'reg'};
 function go(v,o){Object.assign(T,o||{});T.view=v;saveT();try{if(window.EPSTCCF&&isT()){EPSTCCF.closePanel();EPSTCCF.mark(TABOF[v]||'eval')}}catch(e){}render();window.scrollTo(0,0)}
 
 /* ================== BARRE DU HAUT ================== */
@@ -18,8 +18,8 @@ function bar(){const t=isT(),A=ACTS[t?T.act:E.act],c=clsById(t?T.cls:E.cls),S=A&
 /* ================== RENDU ================== */
 function render(){DB=ld();bar();const m=$('#m');if(isT())renderT(m);else renderE(m)}
 function renderT(m){if(!T.act||T.view==='act')return actScreen(m);
- if(!['eval','fiche','cls','bil','proto','edit','res','team','match','print'].includes(T.view))T.view='eval';
- ({eval:evalScreen,fiche:ficheScreen,cls:clsScreen,bil:bilScreen,proto:protoScreen,edit:editScreen,res:resScreen,team:teamScreenT,match:matchScreenT,print:printScreen})[T.view](m)}
+ if(!['eval','fiche','cls','bil','proto','edit','res','team','match','print','obs'].includes(T.view))T.view='eval';
+ ({eval:evalScreen,fiche:ficheScreen,cls:clsScreen,bil:bilScreen,proto:protoScreen,edit:editScreen,res:resScreen,team:teamScreenT,match:matchScreenT,print:printScreen,obs:obsScreenT})[T.view](m)}
 
 /* ---------- choix de l'activité ---------- */
 function actScreen(m){
@@ -37,7 +37,7 @@ function noProto(S){return `<div class="card warn"><b>Pas encore de protocole ${
 
 /* ---------- 📋 Évaluation : la classe ---------- */
 function evalScreen(m){const c=needCls(m,'📋 Évaluation');if(!c)return;const S=ses(T.act,c.id),P=proto(T.act,S.voie),L=people(c);
- let h=`<div class="wrap"><h2 class="h2">📋 Évaluation · ${esc(ACTS[T.act].nom)}</h2>${clsChips()}
+ let h=`<div class="wrap"><div class="row"><h2 class="h2" style="flex:1">📋 Évaluation · ${esc(ACTS[T.act].nom)}</h2><button class="b s" onclick="OBS={k:'',by:'',v:{}};go('obs',{el:''})">👁 Observer</button></div>${clsChips()}
  <div class="card row wrapf"><span class="lab">Voie</span>${['pro','gt'].map(v=>`<button class="b s${S.voie===v?' p':''}" onclick="sesSet('voie','${v}')">${VOIES[v]}</button>`).join('')}
  <span class="lab" style="margin-left:10px">Date du CCF</span><input type="date" value="${esc(S.date||today())}" onchange="sesSet('date',this.value)">
  <label class="tg big"><input type="checkbox" ${S.open?'checked':''} onchange="sesSet('open',this.checked)"> Ouvert sur les tablettes élèves</label></div>`;
@@ -59,7 +59,8 @@ function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');ret
  <h2 class="h2" style="flex:1;margin:0">${esc(p.full)} <small class="mut">${esc(c.nom)}${t?' · '+esc(t.nom):''}</small></h2><div class="tot">${ev.st?(ev.st==='abs'?'Absent(e)':'Dispensé(e)'):fr(N.tot)}<small>/20</small></div></div>
  ${dz?`<p class="dz">🩹 ${esc(dz)}</p>`:''}
  <div class="row wrapf" style="margin:10px 0">${[['','Présent(e)'],['abs','Absent(e) · A'],['disp','Dispensé(e) / inapte · D']].map(s=>`<button class="b s${(ev.st||'')===s[0]?' p':''}" onclick="evUpd(e=>{e.st='${s[0]}'});render()">${s[1]}</button>`).join('')}
- <button class="b s" onclick="go('team',{tm:'${t?t.id:''}'})" ${t?'':'disabled'}>👁 Feuille de l'équipe</button></div>
+ <button class="b s" onclick="go('team',{tm:'${t?t.id:''}'})" ${t?'':'disabled'}>👁 Feuille de l'équipe</button><button class="b s" onclick="OBS={k:'${k}',by:'',v:{}};go('obs')">👁 Observer</button></div>
+ ${(()=>{const R=obsRecs(T.act,c.id,k);return R.length?`<div class="card soft"><b>👁 Observations (élèves observateurs et toi)</b>${obsSummary(P,c,R)}</div>`:''})()}
  ${pr.length?`<div class="card soft"><b>Pratique le jour du CCF</b><br>${pr.map(esc).join('<br>')}</div>`:''}
  <h3 class="h3">${esc(P.fin.titre)} · ${finMax(P)} points <span class="mut">(${fr(N.fin)} pt)</span></h3>`;
  P.fin.afl.forEach(a=>{const x=(ev.fin||{})[a.id]||{},v=finV(a,x);

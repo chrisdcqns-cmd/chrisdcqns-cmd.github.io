@@ -61,6 +61,9 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut);margin:4px 0}
 .rp{width:40px;height:40px;border-radius:10px;border:2px solid var(--line);background:#fff;font:800 15px system-ui;cursor:pointer}.rp.on{background:var(--app);border-color:var(--app);color:#fff}
 .reps{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:10px 0}.rep{background:#fff;border:3px solid var(--line);border-radius:16px;padding:16px;font:17px/1.6 system-ui;cursor:pointer;color:var(--ink)}.rep.on{border-color:var(--app);background:#FBF6E6}
 .empty{text-align:center;padding:50px 10px}
+.ocr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid #F1EEE6}.ocr span{flex:1;min-width:180px;font-weight:600}.b.ko{background:#d64545;border-color:#d64545;color:#fff}
+.ocn{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}.occ{position:relative;display:flex;flex-direction:column;gap:4px}.ocb{min-height:86px;border-radius:14px;border:2px solid var(--line);background:#fff;cursor:pointer;font:700 14px system-ui;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center}.ocb b{font-size:30px}.ocb:active{background:#FBF6E6}.occ i{display:block;height:6px;border-radius:3px;background:var(--app)}
+.obsum p{margin:4px 0}
 .repg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.repc{border:2px solid var(--line);border-radius:12px;padding:10px}.repc.no{border-style:dashed}.repc .rk{float:right;font:900 24px system-ui;color:var(--app)}.repc .rn{display:inline-block;background:#F1EEE6;border-radius:8px;padding:2px 8px;margin:6px 4px 0 0;font-size:14px}.repc .rn i{font-style:normal}
 .repi{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px dashed var(--line);margin-top:8px;padding-top:8px}
 .proto .ph{background:#14171C;color:#fff;border-left:8px solid var(--c);border-radius:12px;padding:10px 14px}.proto .ph small{color:#A9AEB8}.proto h3{margin:16px 0 6px}.proto h4{margin:10px 0 4px}.oe{background:#FBF6E6;border-radius:12px;padding:8px 12px}.oe p{margin:4px 0}
@@ -266,7 +269,7 @@ function upd(id,def,f){const o=clone(get(id)||def);f(o);put(id,o);return o}
 /* ================== PROTOCOLES ================== */
 function protoId(act,voie){return act+'-'+voie}
 function hasProto(act,voie){return !!(get('pr:'+protoId(act,voie))||PROTOS[protoId(act,voie)])}
-function proto(act,voie){const id=protoId(act,voie),o=get('pr:'+id)||PROTOS[id];if(!o)return null;const P=clone(o);const D=PROTOS[id];if(D){P.jeu=Object.assign({},D.jeu,P.jeu||{})}return P}
+function proto(act,voie){const id=protoId(act,voie),o=get('pr:'+id)||PROTOS[id];if(!o)return null;const P=clone(o);const D=PROTOS[id];if(D){P.jeu=Object.assign({},D.jeu,P.jeu||{})}if(!P.obs&&typeof obsDef==='function')P.obs=obsDef(act);return P}
 function protoModifie(act,voie){return !!get('pr:'+protoId(act,voie))}
 function aflFil(P,id){return P.fil.afl.find(a=>a.id===id)}
 function repPts(rep){const m=/^(\d+)\s*-\s*(\d+)$/.exec(rep||'');return m?[+m[1],+m[2]]:[4,4]}
@@ -421,7 +424,7 @@ function lset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 let T=Object.assign({act:'',cls:'',view:'eval',el:'',all:false,pv:'pro'},lget('ccf.t',{}));
 let E=Object.assign({cls:'',act:'',team:'',tab:'pra',me:''},lget('ccf.e',{}));
 const saveT=()=>lset('ccf.t',T),saveE=()=>lset('ccf.e',E);
-const TABOF={eval:'eval',fiche:'eval',cls:'cls',team:'cls',match:'cls',bil:'bil',proto:'bib',res:'bib',print:'bib',edit:'reg',act:'reg'};
+const TABOF={eval:'eval',fiche:'eval',cls:'cls',team:'cls',match:'cls',bil:'bil',proto:'bib',res:'bib',print:'bib',obs:'eval',edit:'reg',act:'reg'};
 function go(v,o){Object.assign(T,o||{});T.view=v;saveT();try{if(window.EPSTCCF&&isT()){EPSTCCF.closePanel();EPSTCCF.mark(TABOF[v]||'eval')}}catch(e){}render();window.scrollTo(0,0)}
 
 /* ================== BARRE DU HAUT ================== */
@@ -435,8 +438,8 @@ function bar(){const t=isT(),A=ACTS[t?T.act:E.act],c=clsById(t?T.cls:E.cls),S=A&
 /* ================== RENDU ================== */
 function render(){DB=ld();bar();const m=$('#m');if(isT())renderT(m);else renderE(m)}
 function renderT(m){if(!T.act||T.view==='act')return actScreen(m);
- if(!['eval','fiche','cls','bil','proto','edit','res','team','match','print'].includes(T.view))T.view='eval';
- ({eval:evalScreen,fiche:ficheScreen,cls:clsScreen,bil:bilScreen,proto:protoScreen,edit:editScreen,res:resScreen,team:teamScreenT,match:matchScreenT,print:printScreen})[T.view](m)}
+ if(!['eval','fiche','cls','bil','proto','edit','res','team','match','print','obs'].includes(T.view))T.view='eval';
+ ({eval:evalScreen,fiche:ficheScreen,cls:clsScreen,bil:bilScreen,proto:protoScreen,edit:editScreen,res:resScreen,team:teamScreenT,match:matchScreenT,print:printScreen,obs:obsScreenT})[T.view](m)}
 
 /* ---------- choix de l'activité ---------- */
 function actScreen(m){
@@ -454,7 +457,7 @@ function noProto(S){return `<div class="card warn"><b>Pas encore de protocole ${
 
 /* ---------- 📋 Évaluation : la classe ---------- */
 function evalScreen(m){const c=needCls(m,'📋 Évaluation');if(!c)return;const S=ses(T.act,c.id),P=proto(T.act,S.voie),L=people(c);
- let h=`<div class="wrap"><h2 class="h2">📋 Évaluation · ${esc(ACTS[T.act].nom)}</h2>${clsChips()}
+ let h=`<div class="wrap"><div class="row"><h2 class="h2" style="flex:1">📋 Évaluation · ${esc(ACTS[T.act].nom)}</h2><button class="b s" onclick="OBS={k:'',by:'',v:{}};go('obs',{el:''})">👁 Observer</button></div>${clsChips()}
  <div class="card row wrapf"><span class="lab">Voie</span>${['pro','gt'].map(v=>`<button class="b s${S.voie===v?' p':''}" onclick="sesSet('voie','${v}')">${VOIES[v]}</button>`).join('')}
  <span class="lab" style="margin-left:10px">Date du CCF</span><input type="date" value="${esc(S.date||today())}" onchange="sesSet('date',this.value)">
  <label class="tg big"><input type="checkbox" ${S.open?'checked':''} onchange="sesSet('open',this.checked)"> Ouvert sur les tablettes élèves</label></div>`;
@@ -476,7 +479,8 @@ function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');ret
  <h2 class="h2" style="flex:1;margin:0">${esc(p.full)} <small class="mut">${esc(c.nom)}${t?' · '+esc(t.nom):''}</small></h2><div class="tot">${ev.st?(ev.st==='abs'?'Absent(e)':'Dispensé(e)'):fr(N.tot)}<small>/20</small></div></div>
  ${dz?`<p class="dz">🩹 ${esc(dz)}</p>`:''}
  <div class="row wrapf" style="margin:10px 0">${[['','Présent(e)'],['abs','Absent(e) · A'],['disp','Dispensé(e) / inapte · D']].map(s=>`<button class="b s${(ev.st||'')===s[0]?' p':''}" onclick="evUpd(e=>{e.st='${s[0]}'});render()">${s[1]}</button>`).join('')}
- <button class="b s" onclick="go('team',{tm:'${t?t.id:''}'})" ${t?'':'disabled'}>👁 Feuille de l'équipe</button></div>
+ <button class="b s" onclick="go('team',{tm:'${t?t.id:''}'})" ${t?'':'disabled'}>👁 Feuille de l'équipe</button><button class="b s" onclick="OBS={k:'${k}',by:'',v:{}};go('obs')">👁 Observer</button></div>
+ ${(()=>{const R=obsRecs(T.act,c.id,k);return R.length?`<div class="card soft"><b>👁 Observations (élèves observateurs et toi)</b>${obsSummary(P,c,R)}</div>`:''})()}
  ${pr.length?`<div class="card soft"><b>Pratique le jour du CCF</b><br>${pr.map(esc).join('<br>')}</div>`:''}
  <h3 class="h3">${esc(P.fin.titre)} · ${finMax(P)} points <span class="mut">(${fr(N.fin)} pt)</span></h3>`;
  P.fin.afl.forEach(a=>{const x=(ev.fin||{})[a.id]||{},v=finV(a,x);
@@ -589,14 +593,15 @@ function editScreen(m){const v=T.pv||'pro';if(!EDP||EDP.id!==protoId(T.act,v))ED
   <label>AFLP officiel${ta(`fil.afl.${i}.off`,a.off)}</label><label>AFLP décliné dans l'activité${ta(`fil.afl.${i}.decl`,a.decl)}</label><label>Règles (une ligne par puce)${ta(`fil.afl.${i}.regles`,(a.regles||[]).join('\n'),2)}</label>
   <div class="g4">${a.deg.map((g,d)=>`<div class="edd d${d}"><b>Degré ${d+1}</b>${ta(`fil.afl.${i}.deg.${d}`,g,3)}</div>`).join('')}</div></div>`});
  h+=`<label>Rappels${ta('fil.rappel',P.fil.rappel,5)}</label><label>Note de l'équipe EPS${ta('fil.note',P.fil.note||'',2)}</label></div>
+ ${obsEditHtml(P)}
  <div class="card"><h3 class="h3">Forme de pratique : règles de calcul</h3><p class="mut sm">Les règles du protocole qui peuvent se lire de plusieurs façons : choisis celle de ton équipe EPS.</p>${(JEU_LAB[P.act]||[]).filter(x=>x[2]).map(([k,l,o])=>`<label>${esc(l)}<select data-p="jeu.${k}" data-num="1">${o.map(([v,t])=>`<option value="${v}"${+P.jeu[k]===+v?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`).join('')||'<p class="mut">Aucune.</p>'}</div>
  <div class="card"><h3 class="h3">Forme de pratique : valeurs</h3><div class="g3">${(JEU_LAB[P.act]||[]).filter(x=>!x[2]).map(([k,l])=>`<label>${esc(l)}${inp('jeu.'+k,P.jeu[k],'number')}</label>`).join('')}</div></div>
  <div class="row end"><button class="b p" onclick="edSave()">✓ Enregistrer le protocole</button></div></div>`;
  m.innerHTML=h;
- m.querySelectorAll('[data-p]').forEach(el=>el.onchange=()=>edSet(el.dataset.p,el.value,el.dataset.num?'number':el.type));
+ m.querySelectorAll('[data-p]').forEach(el=>el.onchange=()=>{edSet(el.dataset.p,el.value,el.dataset.num?'number':el.type);if(el.dataset.re)render()});
  m.querySelectorAll('[data-ret]').forEach(el=>el.onchange=()=>{const id=el.dataset.ret,R=EDP.fil.retenus.filter(x=>x!==id);if(el.checked)R.push(id);EDP.fil.retenus=R;editScreen(m)})}
 function edSet(path,val,type){const ks=path.split('.');let o=EDP;for(let i=0;i<ks.length-1;i++)o=o[ks[i]];const k=ks[ks.length-1];
- if(['principe','regles'].includes(k))val=lines(val);else if(k==='reps')val=val.split(',').map(x=>x.trim().replace(/\s*-\s*/,'-')).filter(x=>/^\d+-\d+$/.test(x));else if(type==='number')val=val===''?0:+String(val).replace(',','.');
+ if(['principe','regles','opts'].includes(k))val=lines(val);else if(k==='reps')val=val.split(',').map(x=>x.trim().replace(/\s*-\s*/,'-')).filter(x=>/^\d+-\d+$/.test(x));else if(type==='number')val=val===''?0:+String(val).replace(',','.');
  o[k]=val;
  if(k==='reps')val.forEach(r=>repPts(r).forEach(n=>{if(!EDP.fil.bareme[n])EDP.fil.bareme[n]=[0,0,0,0]}))}
 function edSave(){const P=EDP;if(P.fil.retenus.length!==2){toast('Coche exactement 2 AFLP retenus');return}
@@ -828,12 +833,13 @@ function renderE(m){
  bar();const S=ses(E.act,E.cls),P=proto(E.act,S.voie);
  if(!P){m.innerHTML=`<div class="wrap"><div class="empty"><h2>CCF ${esc(ACTS[E.act].nom)}</h2><p class="mut">Le protocole n'est pas encore prêt.</p></div></div>`;return}
  let t=(S.eq||[]).find(x=>x.id===E.team);if(!t&&E.team){E.team='';saveE()}
- const TABS=[['pra','🏁 Pratique'],['eq','👥 Mon équipe'],['choix','🎯 Mon choix'],['proto','📜 Le protocole'],['res','📚 Ressources']];
+ const TABS=[['pra','🏁 Pratique'],['eq','👥 Mon équipe'],['obs','👁 Observer'],['choix','🎯 Mon choix'],['proto','📜 Le protocole'],['res','📚 Ressources']];
  if(!t&&(E.tab==='pra'||!E.tab))E.tab='eq';
  let h=`<nav class="etabs" style="--c:${ACTS[E.act].color}">${TABS.map(([k,l])=>`<button class="${E.tab===k?'on':''}" onclick="E.tab='${k}';saveE();MATCH=null;render()">${l}</button>`).join('')}</nav><div class="wrap">`;
  const ctx={act:E.act,cls:E.cls,c,S,P,J:P.jeu,t,teach:false};
  if(E.tab==='pra'){PX=ctx;h+=t?(MATCH&&E.act==='bad'?matchHtml():`<h2 class="h2">${esc(t.nom)} <small class="mut">${(t.el||[]).map(k=>esc(pfirst(c,k))).join(', ')}</small></h2>`+praHtml(ctx)):''}
  else if(E.tab==='eq')h+=eqEleveHtml(c,S,t);
+ else if(E.tab==='obs'){PXO=ctx;h+=`<h2 class="h2">👁 Observer un camarade</h2>`+obsHtml(ctx)}
  else if(E.tab==='choix')h+=choixHtml(c,S,P,t);
  else if(E.tab==='proto')h+=`<h2 class="h2">📜 Le protocole du CCF</h2>`+protoHtml(P,true);
  else h+=`<h2 class="h2">📚 Ressources</h2>`+resHtml(E.act,false);
@@ -1005,11 +1011,85 @@ function pdCtIndiv(c,S,P){const ks=(S.eq||[]).flatMap(t=>t.el||[]),L=ks.length?k
  <p>🙋 Ma répartition : ${P.fil.reps.map(r=>'☐ '+P.fil.retenus.map(id=>(aflFil(P,id)||{}).code).map((x,j)=>x+' '+repPts(r)[j]).join(' / ')).join(' &nbsp; ')}</p>`)).join('')}
 function pdCtFormes(c,S,P){return pg(`${pdHead(P,S,c,'Les formes de travail')}${Object.keys(FORMES).map(f=>`<div class="pres"><b style="font-size:20px">${f}</b><p>${esc(FORMES[f])}</p></div>`).join('')}<div class="pres"><b>Prendre sa fréquence cardiaque</b><p>Deux doigts (index et majeur) sur l'artère du cou ou du poignet, jamais le pouce. Compte les battements pendant 15 secondes et multiplie par 4.</p></div>`)}
 
+/* ================== 👁 OBSERVATION (élèves observateurs et enseignant) ==================
+   Grilles d'observation tirées des critères du protocole, modifiables (P.obs). Types :
+   deg   : choisir le degré de l'AFLP (descripteurs du protocole)
+   check : critères observables, réussi ✓ / à améliorer ✗
+   count : compteurs (frappes, actions…) touchés pendant la pratique
+   Enregistrements « os:<act>:<classe>:<élève observé>:<id> » = {k, by, t, v:{idItem: valeur}} */
+function obsDef(act){
+ if(act==='esc')return [
+  {id:'o1',afl:'p2',type:'count',titre:'Action des jambes pendant la grimpe',opts:['Poussée des jambes','Traction des bras','Prise hors d\'atteinte atteinte grâce aux jambes']},
+  {id:'o2',afl:'p2',type:'deg',titre:'Utilisation des jambes'},
+  {id:'o3',afl:'p1',type:'check',titre:'Projet du grimpeur',opts:['Zone annoncée atteinte','Prises bonus utilisées','Trajet planifié (pas d\'hésitation)']},
+  {id:'o4',afl:'p4',type:'check',titre:'Assurage et contre-assurage',opts:['Corde toujours tendue, boucle maintenue','Assurage dynamique (suit le grimpeur)','Aucun fusible sauté','Contre-assureur attentif, mains sur la corde']},
+  {id:'o5',afl:'p4',type:'deg',titre:'Assurage'}];
+ if(act==='bad')return [
+  {id:'o1',afl:'p2',type:'count',titre:'Frappes utilisées',opts:['Amorti','Dégagement','Smash','Lob','Contre-amorti']},
+  {id:'o2',afl:'p2',type:'deg',titre:'Panel de frappes'},
+  {id:'o3',afl:'p1',type:'check',titre:'Stratégie',opts:['Joue dans les zones de sa stratégie','Varie ses zones pour cacher sa stratégie','Marque des points directs dans sa stratégie','N\'attend pas la faute de l\'adversaire']},
+  {id:'o4',afl:'p1',type:'deg',titre:'Choix stratégiques'}];
+ if(act==='ct')return [
+  {id:'o1',afl:'p1',type:'check',titre:'Motricité sécuritaire',opts:['Trajet','Respiration','Posture','Amplitude','Rythme']},
+  {id:'o2',afl:'p1',type:'deg',titre:'Production sécuritaire'},
+  {id:'o3',afl:'p2',type:'check',titre:'Données et régulation',opts:['Relève sa FC aux moments prévus','Note ses ressentis','Régule entre les rounds avec les données','Utilise la réchappe si besoin']},
+  {id:'o4',afl:'p2',type:'deg',titre:'Recueil des données'}];
+ return []}
+function obsList(P){return P.obs||obsDef(P.act)}
+function aflAny(P,id){return P.fin.afl.find(a=>a.id===id)||aflFil(P,id)}
+function degTxt(a,d){const g=a&&a.deg[d];return g==null?'':typeof g==='string'?g:g.t}
+function obsRecs(act,cls,k){return items('os:'+act+':'+cls+':'+(k?k+':':'')).sort((a,b)=>(b.t||0)-(a.t||0))}
+
+/* ---------- écran d'observation (élève ou enseignant) ---------- */
+let OBS={k:'',by:'',v:{},start:0};
+function obsHtml(ctx){const {P,c,S}=ctx,L=obsList(P),mem=ctx.t?(ctx.t.el||[]):people(c).map(p=>p.k),all=people(c).map(p=>p.k);
+ if(!L.length)return '<p class="mut">Pas de grille d\'observation pour cette activité.</p>';
+ const pool=ctx.teach?all:(ctx.t?Array.from(new Set(mem.concat(...(S.eq||[]).map(t=>t.el||[])))):all);
+ let h=`<p class="mut">Choisis l'élève que tu observes, puis remplis la grille pendant qu'il pratique. Les critères viennent du protocole du CCF.</p>
+ <p class="lab">J'observe</p><div class="chips">${pool.map(k=>`<button class="chip${OBS.k===k?' on':''}" onclick="obsPick('${k}')">${esc(pname(c,k))}</button>`).join('')}</div>`;
+ if(!OBS.k)return h;
+ if(!ctx.teach)h+=`<p class="lab">Je suis</p><div class="chips">${mem.filter(k=>k!==OBS.k).map(k=>`<button class="chip${OBS.by===k?' on':''}" onclick="OBS.by='${k}';render()">${esc(pfirst(c,k))}</button>`).join('')||'<span class="mut">—</span>'}</div>`;
+ L.forEach(it=>{const a=aflAny(P,it.afl),v=OBS.v[it.id];
+  h+=`<div class="afl obs"><div class="afh"><b>${esc(a?a.code:'')}</b><span class="dcl">${esc(it.titre)}</span></div>`;
+  if(it.type==='deg')h+=`<div class="degs">${(a?a.deg:[]).map((g,d)=>`<button class="dg d${d}${v===d?' on':''}" onclick="obsSet('${it.id}',${d})"><b>Degré ${d+1}</b><span>${nl2br(degTxt(a,d))}</span></button>`).join('')}</div>`;
+  if(it.type==='check')h+=`<div class="ock">${(it.opts||[]).map((o,i)=>{const x=(v||{})[i];return `<div class="ocr"><span>${esc(o)}</span><button class="b s${x===1?' p':''}" onclick="obsChk('${it.id}',${i},1)">✓ réussi</button><button class="b s${x===0?' ko':''}" onclick="obsChk('${it.id}',${i},0)">✗ à améliorer</button></div>`}).join('')}</div>`;
+  if(it.type==='count'){const tot=(it.opts||[]).reduce((s,o,i)=>s+((v||{})[i]||0),0);h+=`<div class="ocn">${(it.opts||[]).map((o,i)=>{const n=(v||{})[i]||0;return `<div class="occ"><button class="ocb" onclick="obsCnt('${it.id}',${i},1)"><b>${n}</b><span>${esc(o)}</span></button><button class="b s" onclick="obsCnt('${it.id}',${i},-1)" ${n?'':'disabled'}>−1</button><i style="width:${tot?Math.round(100*n/tot):0}%"></i></div>`}).join('')}</div>`}
+  h+='</div>'});
+ h+=`<label>Remarque (facultatif)<textarea rows="2" onchange="OBS.rq=this.value">${esc(OBS.rq||'')}</textarea></label><div class="row end"><button class="b" onclick="obsReset()">Effacer</button><button class="b p" onclick="obsSave(${ctx.teach?1:0})" ${Object.keys(OBS.v).length?'':'disabled'}>✓ Enregistrer l'observation</button></div>`;
+ const R=obsRecs(ctx.act,ctx.cls,OBS.k);if(R.length)h+=`<h3 class="h3">Observations déjà faites sur ${esc(pfirst(c,OBS.k))}</h3>`+obsSummary(P,c,R);
+ return h}
+function obsPick(k){if(OBS.k!==k)OBS={k,by:OBS.by,v:{},start:Date.now()};render()}
+function obsSet(id,d){OBS.v[id]=OBS.v[id]===d?undefined:d;if(OBS.v[id]===undefined)delete OBS.v[id];render()}
+function obsChk(id,i,x){const o=OBS.v[id]||(OBS.v[id]={});o[i]=o[i]===x?undefined:x;if(o[i]===undefined)delete o[i];render()}
+function obsCnt(id,i,d){const o=OBS.v[id]||(OBS.v[id]={});o[i]=Math.max(0,(o[i]||0)+d);render()}
+function obsReset(){OBS.v={};OBS.rq='';render()}
+function obsSave(teach){const ctx=PXO;if(!teach&&!OBS.by){toast('Indique qui observe');return}const id=uid();
+ put('os:'+ctx.act+':'+ctx.cls+':'+OBS.k+':'+id,{k:OBS.k,by:teach?'prof':OBS.by,t:Date.now(),v:clone(OBS.v),rq:OBS.rq||''});
+ toast('Observation enregistrée');OBS.v={};OBS.rq='';render()}
+/* synthèse des observations reçues (fiche enseignant, écran élève) */
+function obsSummary(P,c,R){const L=obsList(P);
+ return `<div class="obsum">${L.map(it=>{const a=aflAny(P,it.afl),vals=R.map(r=>r.v&&r.v[it.id]).filter(v=>v!=null);if(!vals.length)return '';
+  let body='';if(it.type==='deg')body=vals.map((d,i)=>`<span class="pill">D${d+1}</span>`).join(' ');
+  if(it.type==='check')body=(it.opts||[]).map((o,i)=>{const ok=vals.filter(v=>v[i]===1).length,ko=vals.filter(v=>v[i]===0).length;return ok+ko?`${esc(o)} : <b>${ok}✓ ${ko}✗</b>`:''}).filter(Boolean).join(' · ');
+  if(it.type==='count'){const t=(it.opts||[]).map((o,i)=>vals.reduce((s,v)=>s+(v[i]||0),0));body=(it.opts||[]).map((o,i)=>`${esc(o)} <b>${t[i]}</b>`).join(' · ')}
+  return `<p><b>${esc(a?a.code:'')} · ${esc(it.titre)}</b> : ${body}</p>`}).join('')}
+ <p class="mut sm">${R.length} observation(s) · ${R.slice(0,6).map(r=>(r.by==='prof'?'toi':esc(pfirst(c,r.by)))+' '+new Date(r.t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})).join(' · ')}${R.filter(r=>r.rq).map(r=>'<br>« '+esc(r.rq)+' »').join('')}</p></div>`}
+let PXO=null;
+function obsScreenT(m){const c=needCls(m,'👁 Observer');if(!c)return;const S=ses(T.act,c.id),P=proto(T.act,S.voie);if(!P){m.innerHTML='<div class="wrap">'+noProto(S)+'</div>';return}
+ PXO={act:T.act,cls:c.id,c,S,P,teach:true};if(T.el&&!OBS.k)OBS.k=T.el;
+ m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="go(T.el?'fiche':'eval')">← ${T.el?'Fiche':'Classe'}</button><h2 class="h2" style="flex:1;margin:0">👁 Observer · ${esc(ACTS[T.act].nom)}</h2><button class="b s" onclick="go('edit',{pv:'${S.voie}'})">✏️ Modifier les critères</button></div>${clsChips()}${obsHtml(PXO)}</div>`}
+/* éditeur des grilles d'observation (dans Modifier le protocole) */
+function obsEditHtml(P){const L=P.obs||(P.obs=obsDef(P.act)),A=P.fin.afl.concat(P.fil.afl);
+ return `<div class="card"><h3 class="h3">👁 Grilles d'observation (élèves observateurs)</h3><p class="mut sm">Critères observés pendant la pratique. « Degrés » reprend les descripteurs de l'AFLP choisi ; « Critères ✓/✗ » et « Compteurs » : une ligne par critère.</p>
+ ${L.map((it,i)=>`<div class="eda"><div class="g3"><label>Titre<input data-p="obs.${i}.titre" value="${esc(it.titre)}"></label><label>AFLP<select data-p="obs.${i}.afl">${A.map(a=>`<option value="${a.id}"${a.id===it.afl?' selected':''}>${esc(a.code)}</option>`).join('')}</select></label><label>Type<select data-p="obs.${i}.type" data-re="1">${[['deg','Degrés de l\'AFLP'],['check','Critères ✓ / ✗'],['count','Compteurs']].map(([v,t])=>`<option value="${v}"${it.type===v?' selected':''}>${t}</option>`).join('')}</select></label></div>
+ ${it.type!=='deg'?`<label>Critères (une ligne par critère)<textarea rows="3" data-p="obs.${i}.opts">${esc((it.opts||[]).join('\n'))}</textarea></label>`:''}<div class="row end"><button class="b s" onclick="obsMv(${i},-1)" ${i?'':'disabled'}>↑</button><button class="b s" onclick="obsMv(${i},1)" ${i<L.length-1?'':'disabled'}>↓</button><button class="b s" onclick="EDP.obs.splice(${i},1);render()">🗑 Retirer</button></div></div>`).join('')}
+ <div class="row wrapf"><button class="b s" onclick="EDP.obs.push({id:'o'+uid(),afl:EDP.fin.afl[0].id,type:'check',titre:'Nouveau critère',opts:['Critère 1']});render()">➕ Ajouter une grille</button><button class="b s" onclick="if(confirm('Remettre les grilles proposées au départ ?')){EDP.obs=obsDef(EDP.act);render()}">↺ Grilles de départ</button></div></div>`}
+function obsMv(i,d){const L=EDP.obs,j=i+d;[L[i],L[j]]=[L[j],L[i]];render()}
+
 /* ================== DÉMARRAGE ================== */
 /* espace enseignant commun (eps-shell.js) : Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 window.EPSTCCF=window.EPST?EPST.init({app:'ccf',nom:'CCF',color:COL,isTeacher:()=>isT(),anchor:'#hd',main:'#m',home:'eval',
- tabs:{seq:{go:()=>{if(window.EPSLC)EPSLC.open('lec')},on:()=>false}, /* fiches de leçon et leçon en cours communes (eps-lecons.js) */
-  eval:{go:()=>go(T.view==='fiche'?'fiche':'eval'),on:()=>['eval','fiche'].includes(T.view)},
+ tabs:{eval:{go:()=>go(T.view==='fiche'?'fiche':'eval'),on:()=>['eval','fiche'].includes(T.view)},
   cls:{go:()=>go('cls'),on:()=>['cls','team','match'].includes(T.view)},
   bil:{go:()=>go('bil'),on:()=>T.view==='bil'}},
  biblio:[{ico:'🖨',label:'Documents à imprimer',sub:'La leçon du CCF, le terrain / le mur, les fiches à remplir sans tablette',go:()=>go('print')},{ico:'📜',label:'Le protocole',sub:'Lecture et impression (Bac pro, Bac général)',go:()=>go('proto')},{ico:'📚',label:'Ressources de l\'activité',sub:'Celles de l\'appli de l\'activité + celles ajoutées ici, visibles par les élèves',go:()=>go('res')}],

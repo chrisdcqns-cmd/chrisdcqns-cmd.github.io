@@ -12,12 +12,13 @@ function renderE(m){
  bar();const S=ses(E.act,E.cls),P=proto(E.act,S.voie);
  if(!P){m.innerHTML=`<div class="wrap"><div class="empty"><h2>CCF ${esc(ACTS[E.act].nom)}</h2><p class="mut">Le protocole n'est pas encore prêt.</p></div></div>`;return}
  let t=(S.eq||[]).find(x=>x.id===E.team);if(!t&&E.team){E.team='';saveE()}
- const TABS=[['pra','🏁 Pratique'],['eq','👥 Mon équipe'],['choix','🎯 Mon choix'],['proto','📜 Le protocole'],['res','📚 Ressources']];
+ const TABS=[['pra','🏁 Pratique'],['eq','👥 Mon équipe'],['obs','👁 Observer'],['choix','🎯 Mon choix'],['proto','📜 Le protocole'],['res','📚 Ressources']];
  if(!t&&(E.tab==='pra'||!E.tab))E.tab='eq';
  let h=`<nav class="etabs" style="--c:${ACTS[E.act].color}">${TABS.map(([k,l])=>`<button class="${E.tab===k?'on':''}" onclick="E.tab='${k}';saveE();MATCH=null;render()">${l}</button>`).join('')}</nav><div class="wrap">`;
  const ctx={act:E.act,cls:E.cls,c,S,P,J:P.jeu,t,teach:false};
  if(E.tab==='pra'){PX=ctx;h+=t?(MATCH&&E.act==='bad'?matchHtml():`<h2 class="h2">${esc(t.nom)} <small class="mut">${(t.el||[]).map(k=>esc(pfirst(c,k))).join(', ')}</small></h2>`+praHtml(ctx)):''}
  else if(E.tab==='eq')h+=eqEleveHtml(c,S,t);
+ else if(E.tab==='obs'){PXO=ctx;h+=`<h2 class="h2">👁 Observer un camarade</h2>`+obsHtml(ctx)}
  else if(E.tab==='choix')h+=choixHtml(c,S,P,t);
  else if(E.tab==='proto')h+=`<h2 class="h2">📜 Le protocole du CCF</h2>`+protoHtml(P,true);
  else h+=`<h2 class="h2">📚 Ressources</h2>`+resHtml(E.act,false);

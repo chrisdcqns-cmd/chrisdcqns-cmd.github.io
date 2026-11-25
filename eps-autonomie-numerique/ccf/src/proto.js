@@ -38,14 +38,15 @@ function editScreen(m){const v=T.pv||'pro';if(!EDP||EDP.id!==protoId(T.act,v))ED
   <label>AFLP officiel${ta(`fil.afl.${i}.off`,a.off)}</label><label>AFLP décliné dans l'activité${ta(`fil.afl.${i}.decl`,a.decl)}</label><label>Règles (une ligne par puce)${ta(`fil.afl.${i}.regles`,(a.regles||[]).join('\n'),2)}</label>
   <div class="g4">${a.deg.map((g,d)=>`<div class="edd d${d}"><b>Degré ${d+1}</b>${ta(`fil.afl.${i}.deg.${d}`,g,3)}</div>`).join('')}</div></div>`});
  h+=`<label>Rappels${ta('fil.rappel',P.fil.rappel,5)}</label><label>Note de l'équipe EPS${ta('fil.note',P.fil.note||'',2)}</label></div>
+ ${obsEditHtml(P)}
  <div class="card"><h3 class="h3">Forme de pratique : règles de calcul</h3><p class="mut sm">Les règles du protocole qui peuvent se lire de plusieurs façons : choisis celle de ton équipe EPS.</p>${(JEU_LAB[P.act]||[]).filter(x=>x[2]).map(([k,l,o])=>`<label>${esc(l)}<select data-p="jeu.${k}" data-num="1">${o.map(([v,t])=>`<option value="${v}"${+P.jeu[k]===+v?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`).join('')||'<p class="mut">Aucune.</p>'}</div>
  <div class="card"><h3 class="h3">Forme de pratique : valeurs</h3><div class="g3">${(JEU_LAB[P.act]||[]).filter(x=>!x[2]).map(([k,l])=>`<label>${esc(l)}${inp('jeu.'+k,P.jeu[k],'number')}</label>`).join('')}</div></div>
  <div class="row end"><button class="b p" onclick="edSave()">✓ Enregistrer le protocole</button></div></div>`;
  m.innerHTML=h;
- m.querySelectorAll('[data-p]').forEach(el=>el.onchange=()=>edSet(el.dataset.p,el.value,el.dataset.num?'number':el.type));
+ m.querySelectorAll('[data-p]').forEach(el=>el.onchange=()=>{edSet(el.dataset.p,el.value,el.dataset.num?'number':el.type);if(el.dataset.re)render()});
  m.querySelectorAll('[data-ret]').forEach(el=>el.onchange=()=>{const id=el.dataset.ret,R=EDP.fil.retenus.filter(x=>x!==id);if(el.checked)R.push(id);EDP.fil.retenus=R;editScreen(m)})}
 function edSet(path,val,type){const ks=path.split('.');let o=EDP;for(let i=0;i<ks.length-1;i++)o=o[ks[i]];const k=ks[ks.length-1];
- if(['principe','regles'].includes(k))val=lines(val);else if(k==='reps')val=val.split(',').map(x=>x.trim().replace(/\s*-\s*/,'-')).filter(x=>/^\d+-\d+$/.test(x));else if(type==='number')val=val===''?0:+String(val).replace(',','.');
+ if(['principe','regles','opts'].includes(k))val=lines(val);else if(k==='reps')val=val.split(',').map(x=>x.trim().replace(/\s*-\s*/,'-')).filter(x=>/^\d+-\d+$/.test(x));else if(type==='number')val=val===''?0:+String(val).replace(',','.');
  o[k]=val;
  if(k==='reps')val.forEach(r=>repPts(r).forEach(n=>{if(!EDP.fil.bareme[n])EDP.fil.bareme[n]=[0,0,0,0]}))}
 function edSave(){const P=EDP;if(P.fil.retenus.length!==2){toast('Coche exactement 2 AFLP retenus');return}

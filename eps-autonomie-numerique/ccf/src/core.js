@@ -45,7 +45,7 @@ function upd(id,def,f){const o=clone(get(id)||def);f(o);put(id,o);return o}
 /* ================== PROTOCOLES ================== */
 function protoId(act,voie){return act+'-'+voie}
 function hasProto(act,voie){return !!(get('pr:'+protoId(act,voie))||PROTOS[protoId(act,voie)])}
-function proto(act,voie){const id=protoId(act,voie),o=get('pr:'+id)||PROTOS[id];if(!o)return null;const P=clone(o);const D=PROTOS[id];if(D){P.jeu=Object.assign({},D.jeu,P.jeu||{})}return P}
+function proto(act,voie){const id=protoId(act,voie),o=get('pr:'+id)||PROTOS[id];if(!o)return null;const P=clone(o);const D=PROTOS[id];if(D){P.jeu=Object.assign({},D.jeu,P.jeu||{})}if(!P.obs&&typeof obsDef==='function')P.obs=obsDef(act);return P}
 function protoModifie(act,voie){return !!get('pr:'+protoId(act,voie))}
 function aflFil(P,id){return P.fil.afl.find(a=>a.id===id)}
 function repPts(rep){const m=/^(\d+)\s*-\s*(\d+)$/.exec(rep||'');return m?[+m[1],+m[2]]:[4,4]}
