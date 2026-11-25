@@ -351,6 +351,17 @@ nav button{color:#B9BEC7;border-radius:10px 10px 0 0}
 nav button.on{background:var(--app);color:#fff}
 .chd{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding-bottom:14px}
 html.epst-on header nav#nav{display:none!important}
+
+.sousbox{border:1.5px dashed #b9c6d4;border-radius:10px;padding:8px 10px;margin:10px 0;background:#fafcfe}
+.sousbox .sbh{font-weight:800;color:var(--navy);margin-bottom:6px}
+.sous{margin:6px 0 10px}.sous .sh{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:4px}
+.s3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.s3 button{text-align:left;font-size:.83em;line-height:1.25;padding:7px 8px;border:2px solid #d5dde6;border-radius:8px;background:#fff;color:#1B1E24;cursor:pointer}
+.s3 button b{font-size:1.15em;margin-right:3px}
+.s3 button.v1.sel{background:#fde5e1;border-color:#c0392b}.s3 button.v2.sel{background:#fff1d6;border-color:#d68a00}.s3 button.v3.sel{background:#dff3e6;border-color:#2E7D4F}
+.spr{font-size:.8em;border:1px solid #9fb6cc;background:#eef4fa;border-radius:14px;padding:3px 9px;cursor:pointer;color:#1F5F8B}.spr.ok{background:#dff3e6;border-color:#2E7D4F;color:#2E7D4F}
+.sres{margin-top:4px;padding-top:6px;border-top:1px solid #e2e8ef}
+@media(max-width:640px){.s3{grid-template-columns:1fr}}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -893,6 +904,50 @@ function renderEval0(){
   <div class="total" id="totBar"></div>`;
   renderTotal();
 }
+/* ================== AFL1 PRÉCIS : 3 critères notés 1-2-3 par élément, le degré est calculé ==================
+   e.sub[critId] = [n1,n2,n3] (1 à 3) ; total 3-4 → D1, 5-6 → D2, 7-8 → D3, 9 → D4 (total impair = bas du degré, pair = haut).
+   Avec l'option « matchs gagnés », la position dans le degré est la moyenne de ce repère et de la part de matchs gagnés. */
+const SOUS={
+ tech:[
+  {k:'frap',s:'Frappes',nom:'Varier les frappes',t:["Une ou deux frappes, toujours la même trajectoire.","3 ou 4 frappes (dégagé, amorti, smash…), pas toujours adaptées.","Répertoire large, choisi selon la hauteur du volant : attaque sur volant haut, défense sur volant bas."],
+   el:["J'utilise une ou deux frappes, toujours pareil.","J'utilise 3 ou 4 frappes, pas toujours au bon moment.","J'ai beaucoup de frappes et je les choisis selon la hauteur du volant."]},
+  {k:'zone',s:'Zones',nom:'Varier les zones',t:["Volant renvoyé au centre : l'adversaire bouge peu.","Joue avant/arrière ou droite/gauche.","Vise les quatre coins et les espaces libres, avec peu de fautes directes."],
+   el:["Je renvoie au milieu, l'autre bouge peu.","Je joue devant/derrière ou à droite/à gauche.","Je vise les quatre coins et les espaces libres."]},
+  {k:'repl',s:'Replacement',nom:'Se replacer et défendre',t:["Reste sur place et frappe déséquilibré.","Se replace, mais arrive en retard sur les volants rapides.","Se replace au centre après chaque frappe et renvoie les smashs."],
+   el:["Je reste sur place et je frappe en déséquilibre.","Je me replace, mais je suis en retard sur les volants rapides.","Je me replace au centre après chaque frappe et je renvoie les smashs."]}],
+ strat:[
+  {k:'cons',s:'Construction',nom:'Construire le point',t:["Renvoie sans intention.","Intention visible (par exemple jouer au fond), mais pas tenue.","Déplace l'adversaire, puis rompt l'échange sur un volant favorable."],
+   el:["Je renvoie sans plan.","J'ai une idée (jouer au fond…), mais je ne la garde pas.","Je fais bouger l'autre, puis je conclus sur un volant favorable."]},
+  {k:'lire',s:'Adaptation',nom:"Lire l'adversaire et s'adapter",t:["Joue pareil quel que soit l'adversaire.","Repère ses points faibles avec l'aide du coach.","Les repère seul et change de stratégie quand il est mené."],
+   el:["Je joue pareil contre tout le monde.","Je repère les points faibles de l'autre avec mon coach.","Je les repère seul(e) et je change de plan quand je suis mené(e)."]},
+  {k:'risq',s:'Risque',nom:'Gérer le risque',t:["Beaucoup de fautes directes, ou un jeu trop passif.","Équilibre fragile entre attaque et sécurité.","Attaque sur volant favorable, joue en sécurité sur volant défavorable : moins de fautes directes que de points gagnants."],
+   el:["Je fais beaucoup de fautes, ou je n'ose pas attaquer.","J'attaque parfois au mauvais moment.","J'attaque sur volant favorable, je sécurise sinon : je fais moins de fautes que de points gagnants."]}]};
+function subSet(cr){if(!cr||B().optSous===false)return null;
+  if(['tech','rep','tec'].includes(cr.id))return SOUS.tech;if(['strat','cho','chx'].includes(cr.id))return SOUS.strat;
+  if(cr.afl==='AFL1'||lpCore(cr.afl))return /choix|strat|tacti/i.test(cr.nom)?SOUS.strat:SOUS.tech;return null}
+/* proposition tirée des matchs saisis sur le terrain (l'enseignant valide d'un clic) */
+function subProp(k,st){
+  if(k==='frap'){const e=Object.entries(st.co).filter(([c])=>c!=='svl'&&c!=='svc'),n=e.reduce((s,x)=>s+x[1],0);if(n<6)return null;const u=e.length;
+    return{n:u<=2?1:u<=4?2:3,why:u+' frappe'+(u>1?'s':'')+' gagnante'+(u>1?'s':'')+' différente'+(u>1?'s':'')}}
+  if(k==='zone'){if(st.loc<8)return null;const u=Object.keys(st.z).length;return{n:u<=3?1:u<=6?2:3,why:'points marqués dans '+u+' zone'+(u>1?'s':'')+' sur 9'}}
+  if(k==='risq'){if(st.pts+st.pl<15)return null;const pd=st.nat.pd||0,fd=st.fd,r=fd?pd/fd:(pd?9:0);
+    return{n:r>1?3:r>=.6?2:1,why:pd+' point'+(pd>1?'s':'')+' direct'+(pd>1?'s':'')+' pour '+fd+' faute'+(fd>1?'s':'')+' directe'+(fd>1?'s':'')}}
+  return null}
+function subCalc(a){if(!a||a.length<3||a.some(x=>!x))return null;const s=a[0]+a[1]+a[2];return{s,d:s<=4?0:s<=6?1:s<=8?2:3,pos:s===9?1:s%2?.25:.75}}
+function subApply(cr,e){const r=subCalc((e.sub||{})[cr.id]);if(!r)return;const [lo,hi]=band(cr,e,r.d),mx=maxPts(cr,e);let pos=r.pos;
+  if(B().optMatchs){const st=elStats(C(),e.id);if(st.mj)pos=(pos+(st.mg+st.mn*.5)/st.mj)/2}
+  e.ev[cr.id]={d:r.d,f:mx?rnd(lo+pos*(hi-lo),B().pas)/mx:0,sub:1}}
+function subClick(id,i,n){const e=curE(),cr=B().criteres.find(x=>x.id===id);e.sub=e.sub||{};const a=e.sub[id]=(e.sub[id]||[0,0,0]).slice();a[i]=a[i]===n?0:n;
+  subApply(cr,e);save();document.getElementById('c-'+id).outerHTML=critHtml(cr,e);renderTotal()}
+function subHtml(cr,e){const set=subSet(cr);if(!set)return'';const a=(e.sub||{})[cr.id]||[0,0,0],r=subCalc(a),st=elStats(C(),e.id),v=e.ev[cr.id],X=cTx(cr,TXEL);
+  const rows=set.map((s,i)=>{const p=subProp(s.k,st),tx=TXEL?s.el:s.t;return `<div class="sous"><div class="sh"><b>${i+1}. ${esc(s.nom)}</b>${a[i]?` <span class="muted">: ${a[i]}/3</span>`:''}
+     ${p?`<button class="spr ${a[i]===p.n?'ok':''}" onclick="subClick('${cr.id}',${i},${p.n})" title="Proposition calculée d'après les matchs">📊 Les matchs proposent ${p.n} (${esc(p.why)})</button>`:''}</div>
+     <div class="s3">${[1,2,3].map(n=>`<button class="v${n} ${a[i]===n?'sel':''}" onclick="subClick('${cr.id}',${i},${n})"><b>${n}</b> ${esc(tx[n-1])}</button>`).join('')}</div></div>`}).join('');
+  const res=r?`Total <b>${r.s}/9</b> → <b>D${r.d+1} · ${esc(X.deg[r.d])}</b>${r.s===9?'':' ('+(r.s%2?'bas':'haut')+' du degré)'}${B().optMatchs&&st.mj?' · position ajustée avec les matchs gagnés':''}${v&&v.d!=null&&v.d!==r.d?' <span class="warn" style="display:inline;padding:2px 6px">degré modifié à la main</span>':''}`
+     :`Note les 3 critères : le degré et les points se calculent tout seuls.`;
+  return `<div class="sousbox"><div class="sbh">🎯 Évaluation précise : 3 critères notés de 1 à 3</div>${rows}<div class="sres">${res}</div></div>`}
+function subLine(cr,e,el){const set=subSet(cr),a=(e.sub||{})[cr.id];if(!set||!a||!a.some(Boolean))return'';
+  return '<br><small>'+set.map((s,i)=>esc(s.s)+' '+(a[i]||'–')+'/3').join(' · ')+'</small>'}
 function critHtml(cr,e){
   const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
@@ -902,6 +957,7 @@ function critHtml(cr,e){
   return `<div class="crit ${TXEL?'el':''}" id="c-${cr.id}">
    <div class="crit-h"><div><b>${esc(X.nom)}</b> <span class="tag">${esc(cr.afl)}</span><div class="muted">${esc(X.but)}</div>${r?`<div class="muted" style="color:var(--vol);font-weight:700;margin-top:3px">Routines renforcées : ${esc(r)}</div>`:''}</div>
    <div class="pts" id="p-${cr.id}">${pts!=null?fr(pts):'–'} <small>/ ${fr(mx)}</small></div></div>
+   ${subHtml(cr,e)}
    <div class="degs">${[0,1,2,3].map(d=>{const [lo,hi]=band(cr,e,d);return `<button class="deg d${d+1} ${v&&v.d===d?'sel':''}" onclick="setDeg('${cr.id}',${d})">
       <span class="dt">D${d+1} · ${esc(X.deg[d])}</span><span class="rg">${fr(lo)} à ${fr(hi)} pt</span><span>${esc(X.desc[d]||'')}</span></button>`}).join('')}</div>${sl}</div>`;
 }
@@ -2101,6 +2157,8 @@ function renderBareme(){
       :`<p class="muted">${lp?`Les critères AFLP1 et AFLP2 se partagent 12 pts ; les deux autres AFLP (${lpOthers().join(' et ')||'—'}) se partagent 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.`:'Les critères AFL1 se partagent 12 pts ; les critères AFL2 et AFL3 se partagent 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.'}</p>${offOk?'':`<div class="warn">${lp?'Il faut des critères AFLP1 ou AFLP2, et exactement deux autres AFLP.':'Il faut au moins un critère AFL1, un AFL2 et un AFL3.'}</div>`}`}
     <div class="g4" style="margin-top:10px"><div><label class="l">Pas du curseur (pt)</label><select class="f" onchange="setB('pas',+this.value)">${[0.1,0.25,0.5].map(v=>`<option value="${v}" ${b.pas==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
       <div><label class="l">Arrondi de la note /20</label><select class="f" onchange="setB('arrondi',+this.value)">${[0.1,0.25,0.5,1].map(v=>`<option value="${v}" ${b.arrondi==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div></div></div>
+  <div class="card"><div class="opt ${b.optSous!==false?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optSous!==false?'checked':''} onchange="setB('optSous',this.checked)" style="width:22px;height:22px"><b>Évaluation précise de l'AFL1 : 3 critères notés de 1 à 3 par élément</b></label>
+    <p class="muted">Actions techniques : varier les frappes, varier les zones, se replacer et défendre. Choix stratégiques : construire le point, lire l'adversaire et s'adapter, gérer le risque. Total sur 9 : 3-4 → D1, 5-6 → D2, 7-8 → D3, 9 → D4 (total impair = bas du degré, pair = haut). Les matchs saisis proposent une note pour les frappes, les zones et le risque ; tu valides d'un clic.</p></div></div>
   <div class="card"><div class="opt ${b.optMatchs?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optMatchs?'checked':''} onchange="setB('optMatchs',this.checked)" style="width:22px;height:22px"><b>Ajuster l'AFL1 selon les matchs gagnés</b></label>
     <p class="muted">Les matchs saisis sur le terrain (toutes tablettes) sont comptés automatiquement. Une fois le degré choisi, le curseur des critères AFL1 se place selon la part de matchs gagnés (nul = ½) : 0 % en bas du degré, 100 % en haut. Tu peux toujours le déplacer à la main.</p></div></div>
   <div class="card"><h2>Degrés et bornes (en % des points du critère)</h2><div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
@@ -2158,7 +2216,7 @@ function ficheHtml(e,c,lang){
   const b=B(),n=note20(e),el=(lang||b.langFiche||'eleve')==='eleve';
   const rows=b.criteres.map(cr=>{const v=e.ev&&e.ev[cr.id],p=critPts(cr,e),X=cTx(cr,el);
     return `<tr><td style="text-align:left"><b>${esc(X.nom)}</b><br><small>${el?esc(X.but):esc(cr.afl)+' – '+esc(X.but)}</small></td><td>${v&&v.d!=null?(el?esc(X.deg[v.d]):'D'+(v.d+1)+' – '+esc(X.deg[v.d])):'–'}</td>
-      <td style="text-align:left"><small>${v&&v.d!=null?esc(X.desc[v.d]):''}</small></td><td><b>${p!=null?fr(p):'–'}</b> / ${fr(maxPts(cr,e))}</td></tr>`}).join('');
+      <td style="text-align:left"><small>${v&&v.d!=null?esc(X.desc[v.d]):''}</small>${subLine(cr,e,el)}</td><td><b>${p!=null?fr(p):'–'}</b> / ${fr(maxPts(cr,e))}</td></tr>`}).join('');
   const afls=aflList().map(a=>{const r=aflPts(e,a);return r?`${a} : ${fr(r.pts)} / ${fr(r.max)}`:null}).filter(Boolean).join(' &nbsp;·&nbsp; ');
   const st=elStats(c,e.id);
   return `${hd({titre:'Évaluation',nom:fullName(e),classe:c.nom})}${b.mode==='officiel'?`<p>Choix ${isLP()?'des AFLP':'AFL2/AFL3'} : ${choixLab(e.choix||'4-4')}</p>`:''}
