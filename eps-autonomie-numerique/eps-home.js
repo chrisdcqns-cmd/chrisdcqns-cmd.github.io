@@ -193,6 +193,7 @@
   var busy = false, timer = null, lastErr = "", lastOk = 0, lastBackup = null;
   function stamp() { return Math.max(Date.now(), (D.maxU || 0) + 1); }
   async function sync() {
+    if (window.EPS_SIM) return; /* 🧪 simulation : rien ne part */
     var cfg = shCfg();
     if (!cfg || busy || !(window.crypto && crypto.subtle) || navigator.onLine === false) { sched(); return; }
     busy = true;
@@ -1024,13 +1025,15 @@
       '<p class="m">Les listes sont communes : une classe importée ici ou dans n\'importe quelle application apparaît dans toutes les applications (Escalade, Relais Vitesse, OrienRun, Volley-ball, Badminton, Danse, Acrosport) et sur toutes tes tablettes.</p>' +
       '<div id="er-cls" class="m" style="margin:6px 0 4px">…</div>' +
       '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-edit">✏️ Modifier les listes</button><button type="button" class="p" id="er-imp">📥 Importer une liste d\'élèves</button></div>' +
-      '<div class="epsd-cls" style="margin-top:18px">🧪 Classe de démonstration</div>' +
-      '<p class="m">' + (demoOn() ? "La classe « " + DEMO + " » (8 élèves fictifs) est en place dans toutes les activités, avec une fiche de leçon programmée et quelques observations. Explore l'espace enseignant, ouvre 👁 Vue élève pour jouer l'élève, puis retire-la : tout ce qui la concerne est effacé, partout." : "Crée une classe fictive de 8 élèves dans toutes les activités, avec une fiche de leçon validée qui s'ouvre côté élève dans 2 minutes, des observations, et dans Escalade, Acrosport et OrienRun des évaluations et auto-positionnements fictifs. Idéal pour tout essayer sans toucher à tes vraies classes.") + '</p>' +
-      '<div class="dbtns epsd-act" style="margin-top:8px">' + (demoOn() ? '<button type="button" id="er-demo-x">🗑 Retirer la classe de démonstration</button>' : '<button type="button" class="p" id="er-demo">🧪 Créer la classe de démonstration</button>') + '</div>' +
+      '<div class="epsd-cls" style="margin-top:18px">🧪 Simulation</div>' +
+      '<p class="m">' + (window.EPS_SIM ? "Tu es en simulation : rien n'est partagé ni gardé. Quitte-la pour retrouver tes vraies données." : "Explore toutes les applis comme un bac à sable : tes données sont mises de côté, le partage est coupé, une classe fictive de 8 élèves est installée avec une leçon, des observations et des évaluations. Tu passes librement d'enseignant à élève. En quittant, la tablette retrouve exactement ses données.") + '</p>' +
+      '<div class="dbtns epsd-act" style="margin-top:8px">' + (window.EPS_SIM ? '<button type="button" id="er-sim-x">⏹ Quitter la simulation</button>' : '<button type="button" class="p" id="er-sim">🧪 Entrer en simulation</button>') + (demoOn() && !window.EPS_SIM ? '<button type="button" id="er-demo-x">🗑 Retirer l\'ancienne classe de démonstration</button>' : "") + '</div>' +
       '<div class="epsd-cls" style="margin-top:18px">Sauvegarde</div>' +
       '<p class="m">Fichier de sauvegarde de toutes les applications de cette tablette (classes, leçons, évaluations, réglages), à garder sur ton ordinateur ou ta clé USB. Les vidéos et les cartes d\'OrienRun n\'y sont pas.</p>' +
       '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-save">💾 Enregistrer une sauvegarde</button><label style="height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;display:inline-flex;align-items:center;font:800 17px system-ui,sans-serif;cursor:pointer">♻️ Restaurer<input type="file" accept=".json,.eps,application/json" id="er-load" style="display:none"></label></div>' +
       '<div class="epsd-act"><button data-x>Fermer</button><button class="p" id="er-ok">Enregistrer les réglages</button></div>');
+    var sm = o.querySelector("#er-sim"); if (sm) sm.onclick = function () { sm.disabled = true; simEnter(); };
+    var sx = o.querySelector("#er-sim-x"); if (sx) sx.onclick = function () { if (confirm("Quitter la simulation ? Tout ce qui a été fait pendant la simulation est effacé.")) simExit(); };
     var dm = o.querySelector("#er-demo"); if (dm) dm.onclick = function () { dm.disabled = true; demoCreate().then(function () { o.remove(); reglages("🧪 Classe « " + DEMO + " » créée. La fiche de leçon s'ouvre côté élève dans 2 minutes (👁 Vue élève, classe DÉMO)."); }); };
     var dx = o.querySelector("#er-demo-x"); if (dx) dx.onclick = function () { if (!confirm("Retirer la classe de démonstration et tout ce qui la concerne (évaluations, leçons, observations), sur toutes les tablettes ?")) return; dx.disabled = true; demoRemove().then(function () { o.remove(); reglages("🗑 Classe de démonstration retirée."); }); };
     function readForm() {
@@ -1367,6 +1370,7 @@
       })();
     },
     demo: { on: function () { return demoOn(); }, create: function () { return demoCreate(); }, nom: "DÉMO (fictive)" },
+    sim: { on: function () { return !!window.EPS_SIM; }, enter: function (n) { return simEnter(n); }, exit: function () { return simExit(); } },
     testClaude: function () { return testClaude(); },
     search: function () { searchStudents(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
@@ -1504,7 +1508,8 @@
       b.onclick = function () { if (!shCfg()) { try { shareSettings(); } catch (e) {} return; } b.innerHTML = "⟳ <span>Synchro…</span>"; sync(); }; }
     b.style.display = isTeacher() ? "" : "none";
     var cfg = shCfg(), p = cfg ? nPend() : 0, ago = lastOk ? Math.round((Date.now() - lastOk) / 60000) : -1, st, t;
-    if (!cfg) { st = "○"; t = "Partage non réglé"; }
+    if (window.EPS_SIM) { st = "🧪"; t = "Simulation : partage coupé"; }
+    else if (!cfg) { st = "○"; t = "Partage non réglé"; }
     else if (lastErr && (!lastOk || Date.now() - lastOk > 120000)) { st = "⚠"; t = lastErr === "clé" ? "Clé refusée" : lastErr === "script à mettre à jour" ? "Script à mettre à jour" : "Hors ligne"; }
     else if (p) { st = "⏳"; t = p + " à envoyer"; }
     else if (lastOk) { st = "✓"; t = ago < 1 ? "À jour" : "À jour (" + ago + " min)"; }
@@ -1594,6 +1599,58 @@
     var L = lld(); Object.keys(L.items).forEach(function (k) { var o = L.items[k]; if (o && o.nom && cmp(o.nom) === cmp(DEMO)) { o.demo = 1; L.app[k] = JSON.stringify(o); } }); lsv(L);
     try { localStorage.removeItem("eps.demo.v1"); } catch (e) {}
     await deleteList(DEMO);
+  }
+  /* ================= 🧪 SIMULATION (bac à sable) =================
+     Entrer : toutes les données de la tablette (localStorage + base d'OrienRun) sont mises de côté dans IndexedDB « eps-sim »,
+     le partage est coupé (garde d'eps-lists.js), une classe fictive est créée ; on circule librement, en enseignant ou en élève.
+     Quitter : la tablette retrouve exactement ses données d'avant. Rien de la simulation n'est partagé ni gardé. */
+  function idb(name, ver, up) { return new Promise(function (res, rej) { var r = indexedDB.open(name, ver); if (up) r.onupgradeneeded = function () { up(r.result); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }
+  function tx(db, st, mode, f) { return new Promise(function (res, rej) { var t = db.transaction(st, mode), out = f(t); t.oncomplete = function () { res(out && out.result !== undefined ? out.result : out); }; t.onerror = function () { rej(t.error); }; }); }
+  async function idbDump(name) { var db; try { db = await idb(name); } catch (e) { return null; } var out = {}, S = Array.prototype.slice.call(db.objectStoreNames);
+    for (var i = 0; i < S.length; i++) { out[S[i]] = await new Promise(function (res) { var o = [], t = db.transaction(S[i], "readonly"), c = t.objectStore(S[i]).openCursor(); c.onsuccess = function () { var x = c.result; if (x) { o.push([x.primaryKey, x.value]); x.continue(); } else res(o); }; c.onerror = function () { res(o); }; }); }
+    db.close(); return out; }
+  async function idbLoad(name, dump) { if (!dump) return; var db; try { db = await idb(name); } catch (e) { return; }
+    var S = Array.prototype.slice.call(db.objectStoreNames).filter(function (x) { return dump[x]; });
+    for (var i = 0; i < S.length; i++) await tx(db, S[i], "readwrite", function (t) { var st = t.objectStore(S[i]); st.clear(); dump[S[i]].forEach(function (kv) { try { st.keyPath ? st.put(kv[1]) : st.put(kv[1], kv[0]); } catch (e) {} }); });
+    db.close(); }
+  function simDb() { return idb("eps-sim", 1, function (db) { db.createObjectStore("snap"); }); }
+  async function simEnter(next) {
+    if (window.EPS_SIM) return;
+    var ls = {}; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); ls[k] = localStorage.getItem(k); }
+    var snap = { t: Date.now(), ls: ls, ori: await idbDump("orienrun") };
+    var db = await simDb(); await tx(db, "snap", "readwrite", function (t) { t.objectStore("snap").put(snap, "snap"); });
+    var back = await tx(db, "snap", "readonly", function (t) { return t.objectStore("snap").get("snap"); }); db.close();
+    if (!back || Object.keys(back.ls || {}).length !== Object.keys(ls).length) { alert("Impossible de mettre tes données de côté : simulation annulée (rien n'a changé)."); return; }
+    localStorage.setItem("eps.sim.v1", JSON.stringify({ t: Date.now(), init: 1, next: next || null }));
+    localStorage.setItem("eps.teach.until", String(Date.now() + 12 * 3600e3));
+    location.reload();
+  }
+  async function simExit() {
+    var db = await simDb(), snap = await tx(db, "snap", "readonly", function (t) { return t.objectStore("snap").get("snap"); });
+    if (!snap || !snap.ls) { db.close(); if (!confirm("Aucune copie de tes données n'a été trouvée. Quitter quand même la simulation (les données actuelles de la tablette restent) ?")) return; localStorage.removeItem("eps.sim.v1"); location.reload(); return; }
+    localStorage.clear(); Object.keys(snap.ls).forEach(function (k) { try { localStorage.setItem(k, snap.ls[k]); } catch (e) {} });
+    await idbLoad("orienrun", snap.ori);
+    await tx(db, "snap", "readwrite", function (t) { t.objectStore("snap").delete("snap"); }); db.close();
+    location.reload();
+  }
+  function simBar() {
+    if (!window.EPS_SIM || document.getElementById("eps-simbar")) return;
+    var b = document.createElement("div"); b.id = "eps-simbar"; b.setAttribute("role", "status");
+    b.style.cssText = "position:fixed;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:2147483400;display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 100px);background:repeating-linear-gradient(135deg,#FFB020 0 14px,#FFC54D 14px 28px);color:#14171C;border:2px solid #14171C;border-radius:16px;padding:6px 8px;font:800 14px system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.25)";
+    var t = isTeacher();
+    b.innerHTML = '<span style="background:#fff;border-radius:10px;padding:4px 8px">🧪 SIMULATION · rien n\'est partagé ni gardé</span>' +
+      '<button type="button" data-r style="height:38px;border-radius:10px;border:2px solid #14171C;background:#fff;font:800 14px system-ui;padding:0 10px">' + (t ? "👁 Passer en élève" : "🎓 Passer en enseignant") + '</button>' +
+      '<button type="button" data-q style="height:38px;border-radius:10px;border:2px solid #14171C;background:#14171C;color:#fff;font:800 14px system-ui;padding:0 10px">⏹ Quitter la simulation</button>';
+    b.querySelector("[data-r]").onclick = function () { if (isTeacher()) localStorage.setItem("eps.teach.until", "0"); else localStorage.setItem("eps.teach.until", String(Date.now() + 12 * 3600e3)); location.reload(); };
+    b.querySelector("[data-q]").onclick = function () { if (confirm("Quitter la simulation ? Tout ce que tu as fait pendant la simulation est effacé et la tablette retrouve ses vraies données.")) simExit(); };
+    document.body.appendChild(b);
+  }
+  async function simBoot() {
+    if (!window.EPS_SIM) return; simBar();
+    var F = jget("eps.sim.v1", {}); if (!F.init) return;
+    F.init = 0; localStorage.setItem("eps.sim.v1", JSON.stringify(F));
+    try { await demoCreate(); } catch (e) {}
+    if (!F.next) setTimeout(function () { alert("🧪 Simulation lancée.\n\nLa classe « " + DEMO + " » (8 élèves fictifs) est dans toutes les applis, avec une fiche de leçon, des observations et des évaluations. Circule librement, passe en élève avec le bandeau en bas à gauche, puis « Quitter la simulation » : tes vraies données reviennent telles quelles."); }, 300);
   }
   /* ================= 🌐 Bilans en ligne (codes personnels, page « Mon bilan ») =================
      Code personnel de 6 caractères par élève (commun à toutes les applis, partagé entre tablettes : eps.codes.v1).
@@ -1739,6 +1796,7 @@
     setTimeout(sync, 1500);
     /* listes de classes communes (eps-lists.js) : chargé ici s'il ne l'est pas déjà par l'appli */
     var goL = function () { setTimeout(function () { collectLists().then(applyLocal).catch(function () {}); }, 600); setInterval(function () { collectLists().catch(function () {}); }, 5000); };
+    try { simBoot(); } catch (e) {} /* 🧪 simulation : bandeau, classe fictive au premier chargement */
     /* leçons communes (eps-lecons.js) : dans les applis d'activité seulement */
     if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
     if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }

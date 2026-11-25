@@ -385,9 +385,9 @@
   function simulate() {
     var D = window.EPSD && EPSD.demo; if (!D) { alert("Module commun indisponible : recharge la page."); return; }
     function go() { var l = get(KL, "demo-" + APP); startLive(D.nom, l ? l.id : ""); LIVECLS = D.nom; open("live"); }
-    if (D.on()) return go();
-    if (!confirm("Créer la classe de démonstration « " + D.nom + " » (8 élèves fictifs, à retirer ensuite dans Réglages communs) et lancer une leçon simulée ?")) return;
-    D.create().then(function () { setTimeout(go, 400); });
+    if (EPSD.sim && EPSD.sim.on()) { if (D.on()) return go(); return D.create().then(function () { setTimeout(go, 400); }); }
+    if (!confirm("Entrer en simulation ? Tes données sont mises de côté et le partage est coupé ; une classe fictive est installée et la leçon simulée se lance. Bandeau en bas à gauche pour passer en élève ou quitter.")) return;
+    EPSD.sim.enter({ app: APP, act: "lesson" });
   }
   /* ================= côté élève ================= */
   function showStudent(l, v, prev) {
@@ -458,6 +458,7 @@
     EPSD.store({ pre: "ld." + APP + "|", key: KD, onChange: redraw });
     EPSD.store({ pre: "lv." + APP + "|", key: KV, onChange: function () { if (TAB === "live") redraw(); } });
     EPSD.store({ pre: "rg|", key: KR, onChange: function () { if (TAB === "live") redraw(); } });
+    try { var SF = JSON.parse(localStorage.getItem("eps.sim.v1") || "null"); if (SF && SF.next && SF.next.app === APP && SF.next.act === "lesson") { SF.next = null; localStorage.setItem("eps.sim.v1", JSON.stringify(SF)); setTimeout(simulate, 1500); } } catch (e) {}
     setInterval(function () { try { tickStudent(); } catch (e) { console.warn(e); } }, 1000);
     setInterval(function () { if (OV && OV.style.display !== "none" && TAB === "live") { var tl = OV.querySelector("[data-tleft]"), v = live(LIVECLS); if (tl && v && v.tim) tl.textContent = v.tim.end > Date.now() ? "Reste " + mmss(v.tim.end - Date.now()) + (v.tim.lab ? " · " + v.tim.lab : "") : "⏰ Temps écoulé"; } }, 1000);
   }

@@ -8,6 +8,25 @@
      retire les élèves supprimés de la liste commune (rm) seulement s'ils n'ont encore aucune donnée.
    - EPSL.collect() (appelé par eps-home.js) : ce qui a été importé / ajouté / supprimé dans une appli remonte dans les listes communes.
    Applis : esc (Escalade), rel (Relais), vol (Volley), bad (Badminton), dan (Danse). OrienRun (IndexedDB) et Acrosport sont gérés à part. */
+/* 🧪 SIMULATION (bac à sable, eps-home.js) : tant que « eps.sim.v1 » existe sur la tablette, rien ne part vers Google
+   (script commun, Google Sheets d'Acrosport, scripts d'OrienRun et de CO-Éval) ; seules les demandes à Claude passent. */
+(function () {
+  var on = false; try { on = !!localStorage.getItem("eps.sim.v1"); } catch (e) {}
+  window.EPS_SIM = on; if (!on) return;
+  var G = /script\.google(usercontent)?\.com|docs\.google\.com|googleapis\.com/;
+  function ok(u, body) { u = String(u || ""); if (!G.test(u)) return true;
+    if (/[?&](ai|aiget)=/.test(u) && !/[?&](pull|bil)=/.test(u)) return true; /* Claude (lecture seule) */
+    var b = typeof body === "string" ? body : ""; return /"(lc|aiReq)"\s*:/.test(b) && !/"(sync|bil)"\s*:/.test(b); }
+  var F = window.fetch; if (F) window.fetch = function (u, o) { var s = typeof u === "string" ? u : (u && u.url) || ""; if (!ok(s, o && o.body)) return Promise.reject(new TypeError("Simulation : partage coupé")); return F.apply(this, arguments); };
+  var XO = XMLHttpRequest.prototype.open, XS = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open = function (m, u) { this._simU = u; return XO.apply(this, arguments); };
+  XMLHttpRequest.prototype.send = function (b) { if (!ok(this._simU, b)) { var x = this; setTimeout(function () { try { x.dispatchEvent(new Event("error")); } catch (e) {} }, 0); return; } return XS.apply(this, arguments); };
+  if (navigator.sendBeacon) { var SB = navigator.sendBeacon.bind(navigator); navigator.sendBeacon = function (u, d) { return ok(u, d) ? SB(u, d) : true; }; }
+  var D = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, "src");
+  function blockS(el, v) { if (ok(v)) return false; setTimeout(function () { try { el.dispatchEvent(new Event("error")); } catch (e) {} }, 0); return true; }
+  Object.defineProperty(HTMLScriptElement.prototype, "src", { get: D.get, set: function (v) { if (!blockS(this, v)) D.set.call(this, v); }, configurable: true });
+  var SA = Element.prototype.setAttribute; Element.prototype.setAttribute = function (n, v) { if (this.tagName === "SCRIPT" && String(n).toLowerCase() === "src" && blockS(this, v)) return; return SA.apply(this, arguments); };
+})();
 /* « Vue élève » de l'espace enseignant (eps-shell.js) : l'appli est ouverte dans un cadre avec ?vue=eleve.
    Le mode enseignant y est ignoré (lecture du jeton enseignant neutralisée, aucune écriture), pour voir l'appli exactement comme un élève. */
 (function () {
