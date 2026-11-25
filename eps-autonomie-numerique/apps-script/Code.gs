@@ -44,8 +44,8 @@ function doGet(e) {
   if (res.keyOk) { const lb = PropertiesService.getScriptProperties().getProperty('LAST_BACKUP'); res.sauv = lb ? Number(lb) : 0; }
   res.aiv = 2; /* 2 : bilan de leçon (ai=lecon) */
   if (res.keyOk && p.aiget) { const c = CacheService.getScriptCache().get('ai_' + String(p.aiget).slice(0, 40)); res.aiRes = c ? JSON.parse(c) : null; }
-  if (res.keyOk && p.ai) { try { res.ai = reformuler_(p); } catch (err) { res.aiErr = String(err && err.message || err); } }
-  const body = JSON.stringify(res);
+  if (res.keyOk && p.ai) { try { res.ai = p.ai === 'lecon' ? reformuler_(p) : propre_(reformuler_(p)); } catch (err) { res.aiErr = String(err && err.message || err); } }
+  const body = asc_(JSON.stringify(res));
   if (p.callback && /^[A-Za-z0-9_]+$/.test(p.callback)) {
     return ContentService.createTextOutput(p.callback + '(' + body + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
@@ -114,8 +114,18 @@ function syncPull_(p) {
   return { seq: seq, recs: out, more: rows.length > 300 };
 }
 
+/* accents envoyés en \uXXXX : lisibles sur toutes les tablettes, quel que soit le jeu de caractères du navigateur (sinon « Ã© » au lieu de « é ») */
+function asc_(s) { return String(s).replace(/[\u007f-\uffff]/g, function (c) { return '\\u' + ('000' + c.charCodeAt(0).toString(16)).slice(-4); }); }
+/* texte de Claude débarrassé de la mise en forme Markdown et des phrases d'introduction */
+function propre_(t) {
+  t = String(t || '').replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
+  t = t.replace(/^\s*(voici|voilà|bien sûr|d'accord)[^\n]*:\s*\n+/i, '');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/(^|\s)\*([^*\n]+)\*/g, '$1$2').replace(/^#{1,6}\s*/gm, '').replace(/^\s*[-*•]\s+/gm, '– ');
+  t = t.trim().replace(/^["«»“”]\s*|\s*["«»“”]$/g, '');
+  return t.trim();
+}
 function json_(o) {
-  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(asc_(JSON.stringify(o))).setMimeType(ContentService.MimeType.JSON);
 }
 
 /* ================= Appel AS =================

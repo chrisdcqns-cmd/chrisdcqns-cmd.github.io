@@ -182,7 +182,7 @@
     return new Promise(function (res) {
       var cb = "epsdCb" + Date.now() + Math.floor(Math.random() * 1e4), s = document.createElement("script"), t;
       function end(d) { clearTimeout(t); try { delete window[cb]; } catch (e) {} s.remove(); res(d); }
-      window[cb] = end; s.onerror = function () { end(null); }; t = setTimeout(function () { end(null); }, ms || 15000);
+      window[cb] = end; s.charset = "utf-8"; s.onerror = function () { end(null); }; t = setTimeout(function () { end(null); }, ms || 15000);
       params.key = cfg.key; params.callback = cb;
       s.src = cfg.url + (cfg.url.indexOf("?") >= 0 ? "&" : "?") + Object.keys(params).map(function (k) { return k + "=" + encodeURIComponent(params[k]); }).join("&");
       document.head.appendChild(s);
@@ -1344,6 +1344,7 @@
           function (e) { btn.disabled = false; btn.textContent = "✨ Proposer la version élève"; alert("⚠ " + (e && e.message || e)); });
       })();
     },
+    demo: { on: function () { return demoOn(); }, create: function () { return demoCreate(); }, nom: "DÉMO (fictive)" },
     search: function () { searchStudents(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
     bulletin: function () { bulletin(); },
@@ -1535,7 +1536,7 @@
      quelques observations ; évaluations et auto-positionnements fictifs semés par eps-eval.js (Escalade, Acrosport, OrienRun).
      « Retirer » efface tout ce qui concerne la classe, partout (même ce que tu y as saisi). */
   var DEMO = "DÉMO (fictive)", DEMO_EL = ["Léa Démo", "Hugo Démo", "Inès Démo", "Tom Démo", "Sarah Démo", "Noah Démo", "Jade Démo", "Yanis Démo"];
-  var DEMO_APPS = { escalade: "Escalade", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", acrosport: "Acrosport", orientation: "OrienRun" };
+  var DEMO_APPS = { escalade: "Escalade", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF" };
   function demoOn() { return !!jget("eps.demo.v1", null); }
   function stPutRaw(k, it) { var V = stLd(k), o = V.items[it.id]; it.u = Math.max(Date.now(), ((o && o.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u; try { localStorage.setItem(k, JSON.stringify(V)); } catch (e) {} }
   function demoLesson(a, nom, at) {

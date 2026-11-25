@@ -358,7 +358,7 @@
         '<p class="lc-mut">👉 = proposition (le groupe qui n\'a pas rangé depuis le plus longtemps, toutes activités confondues). ' + ((v.rang && v.rang.g != null) ? "Aujourd'hui : groupe " + (v.rang.g + 1) + "." : "") + "</p>" : '<p class="lc-mut">Pas encore de groupes de rangement pour cette classe.</p>') +
         '<div class="lc-row"><select class="lc-sel" data-ng>' + [2, 3, 4, 5, 6].map(function (n) { return "<option" + (n === ((R && R.g && R.g.length) || 4) ? " selected" : "") + ">" + n + "</option>"; }).join("") + '</select><button type="button" class="lc-b s" data-mk>' + (R && R.g ? "↻ Refaire les groupes" : "Former les groupes") + "</button>" + (R && R.g ? '<button type="button" class="lc-b s" data-edg>✏ Modifier</button>' : "") + "</div>" +
         ((R && R.h && R.h.length) ? '<details><summary class="lc-mut">Trace des rangements</summary>' + R.h.slice().sort(function (a, b) { return b.at - a.at; }).slice(0, 30).map(function (x) { return '<div class="lc-mut">' + esc(hm(x.at)) + " · groupe " + (x.g + 1) + " · " + esc(x.app) + "</div>"; }).join("") + "</details>" : "") + "</div>" +
-        '<div class="lc-row"><button type="button" class="lc-b" data-stop style="border-color:#C0392B;color:#C0392B">⏹ Terminer la leçon</button></div>';
+        '<div class="lc-row">' + (window.EPST && EPST.openVue ? '<button type="button" class="lc-b p" data-vue>👁 Voir côté élève</button>' : "") + '<button type="button" class="lc-b" data-stop style="border-color:#C0392B;color:#C0392B">⏹ Terminer la leçon</button></div>';
     }
     var el = shell(h);
     el.querySelector("[data-cls]").onchange = function () { LIVECLS = this.value; drawLive(); };
@@ -377,9 +377,18 @@
       md.querySelector("[data-ok]").onclick = function () { R.g = R.g.map(function (_, i) { return md.querySelector('[data-g="' + i + '"]').value.split(",").map(function (s) { return s.trim(); }).filter(Boolean); }); put(KR, R); md.remove(); drawLive(); }; };
     el.querySelectorAll("[data-rg]").forEach(function (b) { b.onclick = function () { var R = rang(cls), i = +b.dataset.rg; R.h = (R.h || []).concat([{ at: Date.now(), g: i, app: NOM }]); put(KR, R);
       liveSet(cls, function (x) { x.rang = { g: i, noms: R.g[i] }; x.msgs = (x.msgs || []).concat([{ id: uid(), at: Date.now(), t: "🧹 Rangement : groupe " + (i + 1) + "\n" + R.g[i].join(", ") }]); }); }; });
+    var vu = el.querySelector("[data-vue]"); if (vu) vu.onclick = function () { close(); EPST.openVue(); };
     el.querySelector("[data-stop]").onclick = function () { if (!confirm("Terminer la leçon pour " + cls + " ?")) return; liveSet(cls, function (x) { x.on = 0; x.tim = null; }); };
   }
 
+  /* 🧪 leçon simulée : classe fictive (créée au besoin), fiche de démonstration de l'appli lancée tout de suite, pilotage ouvert */
+  function simulate() {
+    var D = window.EPSD && EPSD.demo; if (!D) { alert("Module commun indisponible : recharge la page."); return; }
+    function go() { var l = get(KL, "demo-" + APP); startLive(D.nom, l ? l.id : ""); LIVECLS = D.nom; open("live"); }
+    if (D.on()) return go();
+    if (!confirm("Créer la classe de démonstration « " + D.nom + " » (8 élèves fictifs, à retirer ensuite dans Réglages communs) et lancer une leçon simulée ?")) return;
+    D.create().then(function () { setTimeout(go, 400); });
+  }
   /* ================= côté élève ================= */
   function showStudent(l, v, prev) {
     css(); var o = document.getElementById("lc-st"); if (!o) { o = document.createElement("div"); o.id = "lc-st"; o.className = "lc-st"; document.body.appendChild(o); }
@@ -455,7 +464,7 @@
   boot();
   window.EPSLC = {
     open: open, close: close, app: APP,
-    actions: function () { return [{ ico: "📝", label: "Fiches de leçon", go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", go: function () { open("live"); } }]; },
+    actions: function () { return [{ ico: "🧪", label: "Leçon simulée", go: simulate }, { ico: "📝", label: "Fiches de leçon", go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", go: function () { open("live"); } }]; },
     biblio: function () { return [{ ico: "📂", label: "Mes documents", sub: "Ta séquence, tes fiches : Claude s'en sert en priorité pour tes leçons", go: function () { open("docs"); } }, { ico: "📝", label: "Mes fiches de leçon", sub: "Fiches de leçon, brouillons de Claude à valider, programmation", go: function () { open("lec"); } }]; },
     _test: { lecons: lecons, put: put, all: all, KL: KL, KV: KV, KD: KD, KR: KR, fromAI: fromAI, startLive: startLive, sendMsg: sendMsg, extract: extract }
   };

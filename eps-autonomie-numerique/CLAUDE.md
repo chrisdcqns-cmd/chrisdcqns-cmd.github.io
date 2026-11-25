@@ -61,6 +61,8 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 
 ## Synchronisation entre tablettes
 - Classe de démonstration (Réglages communs, eps-home.js `demoCreate` / `demoRemove`) : liste `DÉMO (fictive)` marquée `demo:1` (retirée des applis même avec des données), fiches `demo-<appli>`, observations `demo-…`, évaluations semées par `EPSE.store` (`demoSeed`, drapeau `eps.demo.v1`). Toute nouvelle donnée liée à une classe doit porter le nom de classe (`c` ou `cls`) pour être effacée au retrait.
+- 🧪 Leçon simulée : action de l'onglet Séquence (`EPSLC.actions()`), `EPSD.demo.{on,create,nom}` ; lance la fiche `demo-<appli>` sur la classe fictive et ouvre le pilotage (bouton 👁 Voir côté élève → `EPST.openVue()`).
+- Réponses du script commun : JSON envoyé en ASCII (`asc_`, accents en \uXXXX) et textes de Claude nettoyés (`propre_`) ; balise JSONP en `charset=utf-8`. Ne pas revenir en arrière (sinon « Ã© » illisibles sur certaines tablettes).
 - 🔊 lecture des consignes côté élève : `speechSynthesis` fr-FR dans la fiche de leçon élève (eps-lecons.js), rien n'est envoyé.
 - Observations dictées `eps-obs.js` (chargé par eps-home.js dans les applis d'activité, mode enseignant) : bouton 🎙, reconnaissance vocale fr-FR, élève trouvé par le prénom (+ initiale ou nom en cas d'homonymes) dans la liste commune, rangé dans `eps.obs.v1` (`ob|`, {app, cls, el, txt, day}) ; traces éditables ; ✨ Condenser = `reformuler(…, {mode:'obs'})` prénoms remplacés par « un camarade » ; `EPSOB.of(nom, classe)` pour la recherche et le bulletin.
 - Recherche d'élève `#eps-find` / `EPSD.search()` (eps-home.js, mode enseignant) : lit les listes communes, les dispenses et les magasins `eps.eval.<app>.v1`.
