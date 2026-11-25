@@ -83,6 +83,12 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - Script commun, bilan de leçon par Claude : `doPost` `aiReq:{id,mode:"bilan",act,t}` → `aiReq_`/`bilan_` (Sonnet, clé `ANTHROPIC_KEY`, réponse JSON rangée 6 h dans `CacheService` sous `ai_<id>`) ; `doGet` renvoie toujours `aiv:1` et `aiRes` avec `aiget=<id>`. Les applis n'envoient que des codes E1, E2… à la place des prénoms.
 
 - **📱 Tablettes connectées / 📣 signal général** (eps-home.js) : signe de vie `eps.tabs.v1` (`tb|<id tablette>`, `{id, nom, app, mode, cls, eq, at, ok, err, ver}` ; `eps.dev.v1` = id et nom de la tablette ; l'appli peut fournir `window.epsTabInfo()` → `{mode, cls, eq}`), `EPSD.tablets()` ; signal `eps.sig.v1` (`sg|cur`, `{txt, at, until, from, app|'*'}`), relevé toutes les 8 s par `EPSD.syncOne`, plein écran + son, `EPSD.signal()` (messages prêts `EPSP` id `signaux`) ; bouton 📣 `#eps-sigb` dans la barre en mode enseignant. Indépendant du « 📣 Message » de 📡 Leçon en cours (qui exige une leçon démarrée).
+
+## Emploi du temps et contrôle avant la leçon (communs)
+- `EPSD.edtSlots(classe|null, code activité, depuis, max)` (eps-home.js) : prochains cours de l'enseignant (`eps.edt.moi`) d'après l'appli EDT, vacances et fériés exclus → `[{at, end, cls, act}]`, `null` sans emploi du temps. Codes : esc, rel, vol, bad, dan, acro, ori, ct.
+- Fiches de leçon (eps-lecons.js) : chips « Prochains cours » dans « 📅 Programmer pour une classe », et « 📅 Programmer d'après l'emploi du temps » (liste) : leçons validées dans l'ordre de la séquence → prochains créneaux libres de la classe (`progPlan`), aperçu puis confirmation. `EPSLC.nextProg(classe)`, `EPSLC.count(classe)`, `EPSLC.code`.
+- ✅ « Tout est prêt ? » (`EPSD.check()`, action de l'onglet Séquence via `EPSLC.actions()`) : prochain cours, fiche programmée, dispensés du jour, connexion, envois en attente, script à jour (`aiv ≥ 2`), sauvegarde Drive, puis les vérifications propres de l'appli : `window.epsCheck(classe, heure)` → `[{ok:true|false|null, t, d, fix:{label, go}}]` (Relais : vitesses, groupes, leçon du jour préparée, synchro). Toute nouvelle appli d'activité fournit son `epsCheck`.
+
 ## Avant de publier
 - Tester dans un navigateur (élève et enseignant), sans erreur de page ; vérifier l'écran « Choisis ta classe » et la barre.
 - `git pull --rebase` avant de pousser (d'autres sessions travaillent en parallèle) ; en cas de conflit sur `/sw.js`, garder le `CORE` le plus haut + 1.

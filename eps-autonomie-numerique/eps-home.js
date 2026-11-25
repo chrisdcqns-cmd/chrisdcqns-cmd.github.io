@@ -614,6 +614,74 @@
     D.R.forEach(function (r) { if (r[3] !== ti) return; String(r[6] || "").split(",").forEach(function (t) { if (!t || /^[scou]$/.test(t)) return; var c = actCode((D.acts || [])[+t.split("~")[0].split(".")[0]]); if (c) (out[r[4]] = out[r[4]] || {})[c] = 1; }); });
     return { moi: moi, map: out };
   }
+
+  /* créneaux de l'emploi du temps (appli EDT) d'un enseignant : prochains cours d'une classe (ou de toutes) pour une activité.
+     → [{at, end, cls, act}] triés, ou null s'il n'y a pas d'emploi du temps sur la tablette. Vacances et jours fériés exclus. */
+  function edtMe(D) {
+    var moi = null; try { moi = localStorage.getItem("eps.edt.moi"); } catch (e) {}
+    if (!moi) { var prof = String(rget().prof || "").toLowerCase(); D.T.forEach(function (t) { if (!moi && prof && prof.indexOf(String(t[0]).toLowerCase()) >= 0) moi = t[0]; }); }
+    return D.T.map(function (t) { return t[0]; }).indexOf(moi);
+  }
+  function clsMatch(edtName, nom) { if (!nom) return true; var parts = [edtName].concat(String(edtName).split(/[\/+,&]| et /)); return parts.some(function (p) { return p.trim() && cmp(p) === cmp(nom); }); }
+  function edtSlots(nom, act, from, max) {
+    var D = (eget() || {}).data; if (!D || !D.R || !D.T || !D.w) return null;
+    var ti = edtMe(D), out = []; from = from || Date.now();
+    D.R.forEach(function (r) {
+      if (ti >= 0 && r[3] !== ti) return; if (!clsMatch(r[4], nom)) return;
+      var cells = String(r[6] || "").split(",");
+      for (var w = 0; w < D.w.length; w++) {
+        if ((D.vac || []).indexOf(w) >= 0 || (D.fer || []).some(function (x) { return x[0] === r[0] && x[1] === w; })) continue;
+        var t = cells[w]; if (!t || /^[scou]$/.test(t)) continue;
+        var a = actCode((D.acts || [])[+t.split("~")[0].split(".")[0]]); if (act && a !== act) continue;
+        var d = new Date(D.w[w] + "T00:00:00"); d.setDate(d.getDate() + (+r[0] || 0)); d.setHours(Math.floor(r[1]), Math.round((r[1] % 1) * 60), 0, 0);
+        if (d.getTime() + (r[2] - r[1]) * 3600e3 < from) continue;
+        out.push({ at: d.getTime(), end: d.getTime() + (r[2] - r[1]) * 3600e3, cls: r[4], act: a });
+      }
+    });
+    out.sort(function (a, b) { return a.at - b.at; }); return out.slice(0, max || 40);
+  }
+
+  /* ✅ « Tout est prêt ? » : contrôle avant la leçon, commun à toutes les applis (onglet Séquence).
+     L'appli peut ajouter ses propres vérifications : window.epsCheck(classe, heure) → [{ok:true|false|null, t, d, fix:{label, go}}] */
+  var CK_APP = { escalade: "esc", relais: "rel", volley: "vol", badminton: "bad", danse: "dan", acrosport: "acro", orientation: "ori", crosstraining: "ct", ccf: null };
+  function check() {
+    var dir = (location.pathname.match(/\/eps-autonomie-numerique\/([^\/]+)\//) || [])[1] || "", code = CK_APP[dir];
+    var o = overlay('<h3>✅ Tout est prêt pour la leçon ?</h3><div id="epsd-ck"><p class="m">Vérification…</p></div><div class="epsd-act"><button data-x>Fermer</button><button id="epsd-ckr">↻ Revérifier</button></div>');
+    o.querySelector("#epsd-ckr").onclick = function () { run(); };
+    var FIX = [];
+    function line(ok, t, d, fix) { var i = fix ? FIX.push(fix) - 1 : -1;
+      return '<div style="display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-top:1px solid #E6E1D6"><span style="font-size:20px;width:26px;text-align:center;color:' + (ok === true ? "#2E7D4F" : ok === false ? "#C0392B" : "#6A6F78") + '">' + (ok === true ? "✓" : ok === false ? "⚠" : "○") + '</span><div style="flex:1"><b>' + esc(t) + "</b>" + (d ? '<div class="m" style="margin:2px 0 0">' + esc(d) + "</div>" : "") + "</div>" + (i >= 0 ? '<button data-ckfix="' + i + '" style="white-space:nowrap;min-height:40px;padding:0 12px;border:1.5px solid #E6E1D6;border-radius:10px;background:#fff;font:700 14px system-ui;cursor:pointer">' + esc(fix.label) + "</button>" : "") + "</div>"; }
+    function hh(t) { var d = new Date(t); return d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) + " à " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
+    function run() {
+      FIX = []; var box = o.querySelector("#epsd-ck"), h = "", cc = null; try { cc = window.epsCurrentClass && window.epsCurrentClass(); } catch (e) {}
+      var S = code ? edtSlots(null, code, Date.now() - 45 * 60e3, 1) : null, next = S && S[0], cls = next ? next.cls : (cc && cc.nom) || "", at = next ? next.at : null;
+      if (S === null) h += line(null, "Pas d'emploi du temps sur cette tablette", "Ouvre l'appli EDT en mode enseignant et choisis ton prénom : l'appli saura quel est ton prochain cours.");
+      else if (!next) h += line(null, "Aucun cours à venir dans l'emploi du temps pour cette activité", cc && cc.nom ? "Vérifications faites pour la classe choisie : " + cc.nom + "." : "");
+      else h += line(true, "Prochain cours : " + next.cls, hh(next.at) + (next.at <= Date.now() ? " (en cours)" : ""));
+      if (window.EPSLC && cls) { var p = EPSLC.nextProg(cls), n = EPSLC.count(cls);
+        if (p && (!at || Math.abs(p.at - at) < 3 * 3600e3)) h += line(true, "Fiche de leçon programmée", p.titre + " · " + hh(p.at) + " : elle s'ouvrira toute seule sur les tablettes.");
+        else if (n) h += line(false, "Aucune fiche de leçon programmée pour ce cours", n + " fiche(s) validée(s) disponible(s).", { label: "📅 Programmer", go: function () { o.remove(); EPSLC.open("lec"); } });
+        else h += line(null, "Pas de fiche de leçon pour cette classe", "Facultatif : les fiches s'affichent sur les tablettes élèves.", { label: "📝 Fiches", go: function () { o.remove(); EPSLC.open("lec"); } }); }
+      if (cls) { var day = at ? new Date(at - new Date(at).getTimezoneOffset() * 6e4).toISOString().slice(0, 10) : today(), dl = activeOn(day).filter(function (x) { return !x.classe || norm(x.classe) === norm(cls) || clsMatch(cls, x.classe); });
+        h += line(null, dl.length ? dl.length + " dispensé(s) ce jour-là" : "Aucun dispensé saisi pour ce jour-là", dl.map(function (x) { return x.nom; }).join(", "), { label: "🩹 Dispenses", go: function () { o.remove(); try { manage(); } catch (e) {} } }); }
+      var app = []; try { if (window.epsCheck) app = window.epsCheck(cls, at) || []; } catch (e) { app = [{ ok: false, t: "Vérification de l'appli impossible", d: String(e && e.message || e) }]; }
+      app.forEach(function (x) { h += line(x.ok, x.t, x.d, x.fix ? { label: x.fix.label, go: function () { o.remove(); x.fix.go(); } } : null); });
+      h += line(navigator.onLine !== false, navigator.onLine !== false ? "Connexion Internet" : "Pas de connexion Internet", navigator.onLine !== false ? "" : "Les données seront envoyées au retour de la connexion.");
+      var cfg = shCfg(), p0 = cfg ? nPend() : 0;
+      if (!cfg) h += line(false, "Partage entre tablettes non réglé", "Sans lui, chaque tablette garde ses données pour elle.", { label: "Régler", go: function () { o.remove(); try { shareSettings(); } catch (e) {} } });
+      else h += line(!p0, p0 ? p0 + " modification(s) pas encore envoyée(s)" : "Toutes les données de cette tablette sont envoyées", lastOk ? "Dernier échange à " + new Date(lastOk).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "", p0 ? { label: "Envoyer", go: function () { sync(); setTimeout(run, 3000); } } : null) + '<div id="epsd-ckscript">' + line(null, "Script commun : vérification…", "") + "</div>";
+      box.innerHTML = h;
+      box.querySelectorAll("[data-ckfix]").forEach(function (b) { b.onclick = function () { FIX[+b.dataset.ckfix].go(); }; });
+      if (cfg) jsonp(cfg, {}, 12000).then(function (r) { var el = o.querySelector("#epsd-ckscript"); if (!el) return; var t = "";
+        if (!r) t = line(false, "Le script commun ne répond pas", "Vérifie la connexion ; sinon, dans le script : Déployer > Gérer les déploiements, accès « Tout le monde ».");
+        else if (!r.keyOk) t = line(false, "Le script refuse la clé du partage", "La clé de cette tablette doit être celle de Code.gs (SECRET).");
+        else { t = line(!(r.aiv < 2) && "aiv" in r, "aiv" in r && r.aiv >= 2 ? "Script commun à jour" : "Script commun à mettre à jour", "aiv" in r && r.aiv >= 2 ? "" : "Colle le dernier Code.gs (dossier apps-script) puis Déployer > Nouvelle version.");
+          var b = r.sauv ? Math.floor((Date.now() - new Date(r.sauv).getTime()) / 864e5) : null;
+          t += line(b != null && b <= 9, b == null ? "Pas de sauvegarde Drive" : "Sauvegarde Drive il y a " + b + " jour(s)", b == null || b > 9 ? "Dans le script, exécute une fois « installerSauvegarde » : une copie chaque semaine." : ""); }
+        el.innerHTML = t; });
+    }
+    run();
+  }
   function edtApply() {
     var E = edtActs(); if (!E || !E.moi) return { n: 0, moi: E && E.moi, edt: !!E };
     var ALL = ["esc", "rel", "ori", "vol", "bad", "dan", "acro", "ct"], L = lld(), n = 0;
@@ -1382,6 +1450,8 @@
     testClaude: function () { return testClaude(); },
     search: function () { searchStudents(); },
     overview: function () { return overview(); },
+    edtSlots: function (c, a, f, n) { return edtSlots(c, a, f, n); },
+    check: function () { check(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
     bulletin: function (c) { bulletin(c); },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },

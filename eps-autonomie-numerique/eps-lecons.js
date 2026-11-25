@@ -202,6 +202,36 @@
   }
   function draw() { if (!OV || OV.style.display === "none") return; if (TAB === "docs") return drawDocs(); if (TAB === "live") return drawLive(); if (TAB === "eval") return drawLEval(); if (TAB === "bil") return drawBilan(); if (EDIT) return drawEdit(); drawList(); }
 
+
+  /* ---- programmation d'après l'emploi du temps (appli EDT, EPSD.edtSlots) ---- */
+  function edtSlots(c, n) { try { return window.EPSD && EPSD.edtSlots ? EPSD.edtSlots(c, CODE, Date.now(), n || 40) : null; } catch (e) { return null; } }
+  function progPlan(c) {
+    var S = edtSlots(c, 60); if (S === null) return null;
+    var used = []; lecons().forEach(function (l) { (l.prog || []).forEach(function (p) { if (same(p.c, c)) used.push(p.at); }); });
+    S = S.filter(function (x) { return !used.some(function (u) { return Math.abs(u - x.at) < 3600e3; }); });
+    var L = lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c) && !(l.prog || []).some(function (p) { return same(p.c, c); }); }); /* déjà programmée pour cette classe (à venir ou faite) : non reprise */
+    var out = []; for (var i = 0; i < L.length && i < S.length; i++) out.push({ l: L[i], at: S[i].at });
+    return { plan: out, rest: L.length - out.length, slots: S.length };
+  }
+  function autoProg(box) {
+    if (!box) return; var CC = (SELC && SELC.length ? SELC : (cur() ? [cur().nom] : [])).slice();
+    if (!CC.length) { var K = classes(); box.innerHTML = '<div class="lc-box"><b>📅 Pour quelle classe ?</b><div class="lc-row">' + (K.length ? K.map(function (c) { return '<button type="button" class="lc-b s" data-apc="' + esc(c) + '">' + esc(c) + "</button>"; }).join("") : '<span class="lc-mut">Aucune classe : importe d\'abord ta liste.</span>') + "</div></div>";
+      box.querySelectorAll("[data-apc]").forEach(function (b) { b.onclick = function () { SELC = [b.dataset.apc]; autoProg(box); }; }); return; }
+    var P = CC.map(function (c) { return { c: c, r: progPlan(c) }; });
+    if (P.every(function (x) { return x.r === null; })) { box.innerHTML = '<div class="lc-warn">Pas d\'emploi du temps sur cette tablette : ouvre l\'appli EDT (mode enseignant) et choisis ton prénom (« Qui es-tu ? »), puis reviens ici.</div>'; return; }
+    var n = 0, h = '<div class="lc-box"><h3 style="margin-top:4px">📅 Programmer d\'après l\'emploi du temps</h3><p class="lc-mut">Les leçons validées, dans l\'ordre de la séquence, sont placées sur les prochains cours de ' + esc(NOM) + ' de la classe. Le jour venu, chacune s\'ouvre toute seule sur les tablettes élèves (compte à rebours avant). Déjà programmées et brouillons : non touchés.</p>';
+    P.forEach(function (x) { var r = x.r; h += "<p><b>" + esc(x.c) + "</b></p>";
+      if (!r) { h += '<p class="lc-mut">Pas d\'emploi du temps.</p>'; return; }
+      if (!r.plan.length) { h += '<p class="lc-mut">' + (r.slots ? "Aucune leçon validée à programmer (toutes déjà programmées ?)." : "Aucun cours de " + esc(NOM) + " à venir dans l'emploi du temps.") + "</p>"; return; }
+      n += r.plan.length; h += r.plan.map(function (p) { return '<div class="lc-row"><span class="lc-tag pg">📅 ' + esc(hm(p.at)) + "</span> " + esc(titreL(p.l)) + "</div>"; }).join("") + (r.rest > 0 ? '<p class="lc-mut">' + r.rest + " leçon(s) sans cours disponible dans l'emploi du temps.</p>" : ""); });
+    h += '<div class="lc-row">' + (n ? '<button type="button" class="lc-b p" data-apok>✓ Programmer ces ' + n + " leçon(s)</button>" : "") + '<button type="button" class="lc-b" data-apx>Fermer</button></div></div>';
+    box.innerHTML = h;
+    box.querySelector("[data-apx]").onclick = function () { box.innerHTML = ""; };
+    var ok = box.querySelector("[data-apok]"); if (ok) ok.onclick = function () { P.forEach(function (x) { if (!x.r) return; x.r.plan.forEach(function (p) { var l = get(KL, p.l.id) || p.l; l.prog = (l.prog || []).filter(function (q) { return !(same(q.c, x.c) && Math.abs(q.at - p.at) < 6e4); }); l.prog.push({ c: x.c, at: p.at }); put(KL, l); }); });
+      box.innerHTML = '<div class="lc-box">✓ ' + n + " leçon(s) programmée(s). Elles s'ouvriront toutes seules à l'heure du cours.</div>"; setTimeout(draw, 1500); };
+  }
+  /* prochaine leçon programmée pour une classe (contrôle « Tout est prêt ? ») */
+  function nextProg(c) { var best = null; lecons().forEach(function (l) { if (l.statut === "brouillon") return; (l.prog || []).forEach(function (p) { if (same(p.c, c) && p.at > Date.now() - 2 * 3600e3 && (!best || p.at < best.at)) best = { at: p.at, l: l }; }); }); return best; }
   /* ---- liste des leçons ---- */
   function drawList() {
     var L = lecons(), S = seqs(), br = L.filter(function (l) { return l.statut === "brouillon"; }).length, CC = classes();
@@ -209,12 +239,13 @@
     SELC = SELC.filter(function (c) { return CC.some(function (x) { return same(x, c); }); });
     var nd = docList().filter(function (d) { return d.use && !L.some(function (l) { return l.doc === d.id; }); }).length;
     var h = '<h2>Mes fiches de leçon</h2><p class="lc-mut">Fiches de leçon de ' + esc(NOM) + ". Les élèves ne voient que les leçons validées ✓, programmées ou lancées.</p>" +
-      '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button>" +
+      '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button>" + '<button type="button" class="lc-b" data-autoprog>📅 Programmer d\'après l\'emploi du temps</button>' +
       (nd ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>" : "") + "</div>" +
       (CC.length ? '<div class="lc-box"><b>👥 Séquence par classe</b><p class="lc-mut" style="margin:2px 0 6px">Touche une ou plusieurs classes, puis « ＋ Attribuer » sur les leçons à leur proposer : chaque classe a sa propre séquence. Une classe sans leçon attribuée garde toutes les leçons.</p><div class="lc-row">' +
         CC.map(function (c) { var on = SELC.some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-selc="' + esc(c) + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
         (SELC.length ? '<button type="button" class="lc-b s" data-selc0>✕ Aucune</button>' : "") + "</div></div>" : "") +
       (br ? '<div class="lc-warn">✨ ' + br + " brouillon" + (br > 1 ? "s" : "") + " de Claude à relire : invisible" + (br > 1 ? "s" : "") + " pour les élèves tant que tu n'as pas validé.</div>" : "");
+    h += '<div data-apbox></div>';
     if (!L.length) h += '<div class="lc-box">Aucune leçon pour l\'instant. Crée-en une, ou dépose tes documents (séquence, fiches de leçon) puis demande à Claude de les mettre en forme.</div>';
     function card(l, k) {
       var pg = (l.prog || []).filter(function (p) { return p.at > Date.now() - 3 * 3600e3; }).sort(function (a, b) { return a.at - b.at; })[0];
@@ -231,6 +262,7 @@
       L.filter(function (l) { return (l.seq || "Sans séquence") === s; }).forEach(function (l) { h += card(l); });
     });
     var el = shell(h);
+    var apb = el.querySelector("[data-autoprog]"); if (apb) apb.onclick = function () { autoProg(el.querySelector("[data-apbox]")); };
     el.querySelector("[data-new]").onclick = function () { var l = blank(S[S.length - 1] && S[S.length - 1] !== "Sans séquence" ? S[S.length - 1] : ""); l.cr = Date.now(); l.num = String(L.filter(function (x) { return x.seq === l.seq; }).length + 1); put(KL, l); EDIT = l.id; draw(); };
     el.querySelector("[data-ai]").onclick = function () { aiDialog(); };
     el.querySelector("[data-docs]").onclick = function () { TAB = "docs"; draw(); };
@@ -266,7 +298,7 @@
         classes().map(function (c) { var on = (WORK.cls || []).some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-ecl="' + esc(c) + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
         ((WORK.cls || []).length ? '<button type="button" class="lc-b s" data-ecl0>Toutes les classes</button>' : "") + "</div></div>" +
       '<div class="lc-box"><h3 style="margin-top:4px">📅 Programmer pour une classe</h3><p class="lc-mut">À l\'heure prévue, la leçon s\'ouvre toute seule sur les tablettes élèves de la classe (compte à rebours avant).</p>' +
-      (br ? '<div class="lc-warn">Valide d\'abord la leçon pour pouvoir la programmer.</div>' : '<div class="lc-row"><select class="lc-sel" data-pc>' + classes().sort(function (a, b) { return forCls(WORK, b) - forCls(WORK, a); }).map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") + '</select><input type="datetime-local" class="lc-sel" data-pt><button type="button" class="lc-b s" data-padd>📅 Programmer</button><button type="button" class="lc-b s" data-launch>▶ Lancer maintenant…</button></div>') +
+      (br ? '<div class="lc-warn">Valide d\'abord la leçon pour pouvoir la programmer.</div>' : '<div class="lc-row"><select class="lc-sel" data-pc>' + classes().sort(function (a, b) { return forCls(WORK, b) - forCls(WORK, a); }).map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") + '</select><input type="datetime-local" class="lc-sel" data-pt><button type="button" class="lc-b s" data-padd>📅 Programmer</button><button type="button" class="lc-b s" data-launch>▶ Lancer maintenant…</button></div><div class="lc-row" data-slots></div>') +
       (WORK.prog || []).sort(function (a, b) { return a.at - b.at; }).map(function (p, i) { return '<div class="lc-row"><span class="lc-tag pg">📅 ' + esc(p.c) + " · " + esc(hm(p.at)) + (p.at < Date.now() ? " (passée)" : "") + '</span><button type="button" class="lc-b s" data-prm="' + p.at + "|" + esc(p.c) + '">✕</button></div>'; }).join("") + "</div>" +
       '<div class="lc-row"><button type="button" class="lc-b" data-fill>✨ Compléter les rubriques vides avec Claude</button>' + (br ? '<button type="button" class="lc-b p" data-ok>✓ Valider (relu et corrigé)</button>' : '<button type="button" class="lc-b" data-unok>Repasser en brouillon</button>') + '<button type="button" class="lc-b" data-dup>⧉ Dupliquer</button><button type="button" class="lc-b" data-see>👁 Voir comme un élève</button><span style="flex:1"></span><button type="button" class="lc-b" data-del style="border-color:#C0392B;color:#C0392B">🗑 Supprimer</button></div><p class="lc-mut" data-msg></p>';
     var el = shell(h), msg = el.querySelector("[data-msg]");
@@ -293,6 +325,10 @@
     var pa = el.querySelector("[data-padd]"); if (pa) {
       var pt = el.querySelector("[data-pt]"), d0 = new Date(Date.now() + 864e5); d0.setHours(8, 0, 0, 0); pt.value = new Date(d0 - d0.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
       pa.onclick = function () { var c = el.querySelector("[data-pc]").value, at = new Date(pt.value).getTime(); if (!c || !at) { msg.textContent = "Choisis la classe, la date et l'heure."; return; } saveEdit(); WORK.prog = (WORK.prog || []).filter(function (p) { return !(same(p.c, c) && Math.abs(p.at - at) < 6e4); }); WORK.prog.push({ c: c, at: at }); put(KL, WORK); draw(); };
+      var pcs = el.querySelector("[data-pc]"), sb = el.querySelector("[data-slots]");
+      var drawSlots = function () { var S = edtSlots(pcs.value, 6); sb.innerHTML = S === null ? '<span class="lc-mut">Pas d\'emploi du temps sur cette tablette (appli EDT) : choisis la date et l\'heure.</span>' : S.length ? '<span class="lc-mut">Prochains cours (emploi du temps) :</span>' + S.map(function (x) { return '<button type="button" class="lc-b s" data-slot="' + x.at + '">' + esc(hm(x.at)) + "</button>"; }).join("") : '<span class="lc-mut">Aucun cours de ' + esc(NOM) + " à venir pour cette classe dans l'emploi du temps.</span>";
+        sb.querySelectorAll("[data-slot]").forEach(function (b) { b.onclick = function () { var d = new Date(+b.dataset.slot); pt.value = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); sb.querySelectorAll("[data-slot]").forEach(function (x) { x.classList.toggle("p", x === b); }); }; }); };
+      pcs.onchange = drawSlots; drawSlots();
       el.querySelector("[data-launch]").onclick = function () { saveEdit(); var c = el.querySelector("[data-pc]").value; startLive(c, WORK.id); TAB = "live"; EDIT = null; LIVECLS = c; draw(); };
     }
     el.querySelectorAll("[data-prm]").forEach(function (b) { b.onclick = function () { var p = b.dataset.prm.split("|"); WORK.prog = (WORK.prog || []).filter(function (x) { return !(String(x.at) === p[0] && x.c === p.slice(1).join("|")); }); put(KL, WORK); draw(); }; });
@@ -748,9 +784,9 @@
   }
   boot();
   window.EPSLC = {
-    open: open, close: close, app: APP,
+    open: open, close: close, app: APP, code: CODE, nextProg: function (c) { var p = nextProg(c); return p ? { at: p.at, titre: titreL(p.l), id: p.l.id } : null; }, count: function (c) { return lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c); }).length; },
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
-    actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "📊", label: "Évaluer la leçon", ord: 2.2, go: function () { open("eval"); } }, { ico: "🏁", label: "Bilan de séquence", ord: 2.4, go: function () { open("bil"); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
+    actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "✅", label: "Tout est prêt ?", ord: 0.5, go: function () { if (window.EPSD && EPSD.check) EPSD.check(); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "📊", label: "Évaluer la leçon", ord: 2.2, go: function () { open("eval"); } }, { ico: "🏁", label: "Bilan de séquence", ord: 2.4, go: function () { open("bil"); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
     biblio: function () { return [{ ico: "📂", label: "Mes documents", sub: "Ta séquence, tes fiches : Claude s'en sert en priorité pour tes leçons", go: function () { open("docs"); } }, { ico: "📝", label: "Mes fiches de leçon", sub: "Fiches de leçon, brouillons de Claude à valider, programmation", go: function () { open("lec"); } }]; },
     _test: { KS: KS, bilanData: bilanData, lecons: lecons, put: put, all: all, KL: KL, KV: KV, KD: KD, KR: KR, fromAI: fromAI, startLive: startLive, sendMsg: sendMsg, extract: extract }
   };

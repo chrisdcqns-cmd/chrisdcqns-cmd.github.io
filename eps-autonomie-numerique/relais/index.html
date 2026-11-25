@@ -670,6 +670,31 @@ body.eteach .ebar .es{display:block}
 .evappc textarea{width:100%;border:2px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;background:#FBFAF7;resize:vertical}
 #sydot{top:auto}
 #sydot.stale i{background:#EF9F27}
+
+/* ordre de passage */
+.turn{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;padding:14px 18px;border-radius:18px;background:#FFF4EE;border:2px solid #F6C9B4}
+.turn .ti{font-size:30px}.turn .tt{flex:1;min-width:220px}.turn .tt small{display:block;font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.turn .tt b{font-size:24px}.turn .tt b em{font-style:normal;color:var(--muted);font-weight:600;font-size:15px;margin:0 6px}
+.turn .tt span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+/* Et maintenant ? */
+.rnow{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:30;display:none;gap:10px;align-items:stretch;max-width:calc(100vw - 170px)}
+.rnow.on{display:flex}
+.rnow button{display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 22px 8px 14px;border-radius:999px;border:0;background:#14171C;color:#fff;font:800 18px system-ui;box-shadow:0 8px 24px rgba(0,0,0,.25);cursor:pointer;text-align:left}
+.rnow i{font-style:normal;font-size:26px}.rnow small{display:block;font-size:12px;font-weight:700;color:#A9AEB8;text-transform:uppercase;letter-spacing:.05em}
+.rnow .undo{background:#fff;color:#A33A14;border:2px solid #D9481F;font-size:16px}.rnow .undo small{color:#A33A14}.rnow .ok{background:#2E7D4F}.rnow .ok small{color:#CDE9D7}
+#v-course{padding-bottom:96px}
+/* QR des groupes */
+.qrg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.qrg>div{border:2px solid var(--line);border-radius:16px;padding:14px;text-align:center;background:#fff}.qrg svg{width:180px;height:180px}
+.qrg b{display:block;font-size:20px;margin-top:6px}.qrg span{font-size:13px;color:var(--muted)}
+/* assistant de séquence */
+.sqstep{display:flex;gap:8px;margin:4px 0 14px}.sqstep span{flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--soft);font-weight:700;font-size:14px;color:var(--muted)}.sqstep span.on{background:var(--track);color:#fff}
+.sqd{display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;align-items:center;max-height:46vh;overflow:auto;padding-right:4px}
+.sqd .n{font-weight:800;color:var(--muted)}.sqd .s{font-size:13px;color:var(--muted)}.sqd .s.ex{color:var(--warn);font-weight:700}
+.sqd input{height:44px;border:2px solid var(--line);border-radius:10px;padding:0 10px;font:inherit;font-size:16px}
+.sqck{display:flex;gap:10px;align-items:center;font-size:17px;font-weight:600;margin:6px 0}.sqck input{width:22px;height:22px;accent-color:var(--track)}
+.sqsit{font-size:14px;color:var(--ink);grid-column:2/4;margin:-4px 0 6px}
+@media print{body.qrprint>*:not(#qmodal){display:none!important}body.qrprint #qmodal{position:static;background:none}body.qrprint #qmodal .box{box-shadow:none;max-width:none}body.qrprint #qmodal .row{display:none}}
 </style>
 </head>
 <body>
@@ -775,7 +800,7 @@ body.eteach .ebar .es{display:block}
       <button class="btn green" id="l-start">Commencer la leçon →</button>
     </div>
   </div>
-  <div class="row mt"><button class="btn ghost sm" id="l-other">📅 Préparer la leçon de demain ou d'un autre jour</button></div>
+  <div class="row mt"><button class="btn ghost sm" id="l-other">📅 Préparer la leçon de demain ou d'un autre jour</button><button class="btn ghost sm teach" id="l-seq">🧭 Créer toute la séquence</button></div>
   <div id="lnextw" style="display:none"><h3 class="sect" style="margin:24px 0 12px">Leçons à venir</h3><div class="llist" id="lnext"></div></div>
   <div class="row" style="margin:28px 0 12px"><h3 class="sect" style="flex:1">Leçons précédentes</h3>
     <button class="btn ghost sm" id="l-exportall"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Toutes les leçons (Excel)</button></div>
@@ -829,6 +854,7 @@ body.eteach .ebar .es{display:block}
     <h2>Groupes · <span class="cname"></span></h2>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
     <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
+    <button class="btn ghost sm teach" id="btnQRG">🔳 QR des groupes</button>
     <button class="btn primary sm" id="btnAddGroupe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Créer un groupe</button>
   </div>
   <div class="steps"><span><b>1</b>Classe</span><i></i><span><b>2</b>Leçon</span><i></i><span class="on"><b>3</b>Groupes</span><i></i><span><b>4</b>Courses</span></div>
@@ -1014,6 +1040,7 @@ body.eteach .ebar .es{display:block}
 </section>
 
 <!-- COURSES -->
+<div class="rnow" id="r-now"></div>
 <section class="view" id="v-course">
   <div class="top">
     <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Retour</button>
@@ -1022,6 +1049,7 @@ body.eteach .ebar .es{display:block}
     <button class="btn ghost sm" data-vid style="margin-left:auto">🎥 Filmer la transmission</button>
   </div>
   <div class="card gcard"><div class="label">Ton groupe</div><div class="gpick" id="r-g"></div><div class="coachw" id="r-coach"></div></div>
+  <div id="r-turn"></div>
   <div class="goalrem" id="r-goalrem"></div>
   <div class="evalert" id="r-evalert"></div>
   <div class="grid2">
@@ -1171,6 +1199,22 @@ body.eteach .ebar .es{display:block}
 </div></div>
 
 <!-- Préparer une leçon à une autre date -->
+<!-- QR des groupes -->
+<div class="modal" id="qmodal"><div class="box wide">
+  <h3>🔳 QR codes des groupes</h3>
+  <p>Imprime-les ou affiche-les au départ : un élève scanne celui de son groupe avec l'appareil photo de la tablette, et l'appli s'ouvre directement sur la leçon du jour de son groupe, sans choisir la classe.</p>
+  <div class="qrg" id="q-list"></div>
+  <div class="row mt"><span style="flex:1"></span><button class="btn ghost sm" id="q-close">Fermer</button><button class="btn primary sm" id="q-print">🖨 Imprimer</button></div>
+</div></div>
+
+<!-- Assistant de séquence -->
+<div class="modal" id="smodal2"><div class="box wide">
+  <h3>🧭 Créer toute la séquence · <span id="sq-cls"></span></h3>
+  <div class="sqstep"><span data-sqs="1">1 · Leçons</span><span data-sqs="2">2 · Dates</span><span data-sqs="3">3 · Objectif et situations</span></div>
+  <div id="sq-body"></div>
+  <div class="row mt"><button class="btn ghost sm" id="sq-prev">← Retour</button><span style="flex:1"></span><button class="btn ghost sm" id="sq-cancel">Annuler</button><button class="btn primary sm" id="sq-next">Suivant →</button></div>
+</div></div>
+
 <div class="modal" id="dmodal"><div class="box">
   <h3>Préparer une leçon</h3>
   <p>Choisis la date de la leçon à préparer (groupes, éléments à saisir…). Le jour venu, elle s'ouvrira comme leçon du jour.</p>
@@ -1526,7 +1570,7 @@ function go(v){
   if(v==="bilan")renderBilan();
 }
 document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b)go(b.dataset.go)});
-window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(VIEWS.includes(h))go(h)});
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(/^g=/.test(h)&&!teachOn()){QR_HASH=location.hash;qrGroupOpen();return}if(VIEWS.includes(h))go(h)});
 
 /* ===== Étape 1 : classes ===== */
 function renderClasses(){
@@ -3060,6 +3104,7 @@ function onCourse(){
   {const g=GR().find(x=>x.id===CURG());if(cfg.coachOn&&g&&coachOf(g.id)==null)miss.push("l'entraîneur du groupe (en haut de la page)")}
   $("#r-save").disabled=miss.length>0;
   $("#r-missing").textContent=miss.length?"À compléter : "+miss.join(", ")+".":"";
+  try{renderTurn();renderNow()}catch(e){console.warn(e)}
   return r;
 }
 $("#r-save").addEventListener("click",()=>{
@@ -3081,6 +3126,8 @@ $("#r-save").addEventListener("click",()=>{
     pm:on("pm",ST.pm),pmd:cfg.pm&&typeof ST.pm==="number"?pmDist(ST.pm):null
   });
   const last=CO()[CO().length-1],pmPrev=ST.pm,res=diagResult();
+  UNDO={cid:last.cid,st:clone(ST),r1:$("#r-r1").value,r2:$("#r-r2").value,until:Date.now()+60000,n:last.n};
+  if(CURG()!=="all"){$("#r-r1").value="";$("#r-r2").value=""} /* ordre de passage : le binôme suivant est proposé */
   persist();renderRes();resetST();onCourse();
   shQueue(last.cid,"up");shFlush();
   if(last.conseil){$("#a-body").innerHTML=conseilHTML({conseil:last.conseil,tone:last.tone,recul:last.recul},typeof pmPrev==="number"?pmPrev:null,cfg);$("#a-who").textContent=last.p1+" & "+last.p2+" · course n°"+last.n;$("#amodal").classList.add("on")}
@@ -3775,7 +3822,8 @@ $("#b-file").addEventListener("change",async()=>{
 /* la tablette s'ouvre sur la leçon du jour (vue élève) ; sinon sur un écran d'attente avec l'accès enseignant */
 /* côté élève : d'abord « Je choisis ma classe » (ou le dispositif), puis la leçon en cours, la prise de performances ou le dispositif */
 let WAIT_CL=null,WAIT_PICK=false;
-function startStudent(){showWait()}
+var QR_HASH=location.hash;
+function startStudent(){if(qrGroupOpen())return;showWait()}
 function showWait(){
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-wait"));window.scrollTo(0,0);
   try{history.replaceState(null,"",location.pathname)}catch(e){}
@@ -3852,7 +3900,8 @@ function markFor(i1,i2){const c=lastPairCourse(i1,i2);if(!c)return null;const t=
   if(pm!=null){if(/Recule/.test(t)){np=pm+Math.max(1,Math.round(c.recul||1));act="recule"}else if(/Avance/.test(t)){np=Math.max(1,pm-1);act="avance"}}
   return {c,pm,np,act,t}}
 function markHTML(p){
-  const a=$(`#${p}-r1`).value,b=$(`#${p}-r2`).value;if(a===""||b==="")return "";
+  const a=$(`#${p}-r1`).value,b=$(`#${p}-r2`).value;if(a===""||b===""||!CL())return "";
+  if(CLE()&&!CFG().pm&&!ALLCO().some(c=>c.i1===+a&&c.i2===+b&&typeof c.pm==="number"))return "";
   const e1=byId(+a),e2=byId(+b);if(!e1||!e2)return "";const m=markFor(+a,+b);
   if(!m)return `<div class="pmark new"><div class="pmi">🎯</div><div><b>Premier essai de ${esc(e1.prenom)} et ${esc(e2.prenom)}</b><span>Choisissez une marque et notez son plot : l'appli vous dira ensuite s'il faut la reculer ou l'avancer.</span></div></div>`;
   const L=CL().lecons.find(l=>l.id===m.c.lid),when=L&&L.id!==DATA.lecon?"leçon du "+fmtShort(L.date):"cette leçon";
@@ -4035,6 +4084,160 @@ async function evAppAll(b){
     try{const v=await EPSD.reformuler("",{mode:"bulletin",act:"Relais vitesse",ctx:evAppCtx(e)});const o=evOf(e.id);if(!(o.app||"").trim()){o.app=v;ok++}}catch(x){err=x&&x.message||String(x);break}}
   persist();try{renderEval()}catch(e){}const msg2=$("#ev-iamsg");if(msg2)msg2.textContent=(ok?`✓ ${ok} appréciation${ok>1?"s":""} rédigée${ok>1?"s":""} : relis-les dans la grille de chaque élève (et dans l'export Excel).`:"")+(err?" ⚠ "+err:"");
 }
+
+/* ===== Ordre de passage : l'appli propose le prochain binôme du groupe ===== */
+var TURN_SKIP={};
+function turnCands(){
+  if(!CLE()||CURG()==="all")return [];
+  const opt=id=>[...$(id).children].filter(o=>o.tagName==="OPTION"&&o.value!=="").map(o=>+o.value);
+  const A=opt("#r-r1"),B=opt("#r-r2");if(!A.length||!B.length)return [];
+  const cfg=CFG(),CS=CO().filter(c=>c.gid===CURG()),last=CS[CS.length-1],cD={},cR={},seen={},pairs={};
+  CS.forEach((c,i)=>{cD[c.i1]=(cD[c.i1]||0)+1;cR[c.i2]=(cR[c.i2]||0)+1;seen[c.i1]=seen[c.i2]=i+1;pairs[c.i1+">"+c.i2]=1});
+  const out=[];A.forEach(a=>B.forEach(b=>{if(a===b)return;
+    let sc=((cD[a]||0)+(cR[b]||0))*10;
+    if(last){if(last.i1===a||last.i2===a)sc+=6;if(last.i1===b||last.i2===b)sc+=6;if(last.i1===a&&last.i2===b)sc+=30}
+    if(cfg.allPairs&&pairs[a+">"+b])sc+=25;
+    sc+=((seen[a]||0)+(seen[b]||0))/100;out.push({a,b,sc})}));
+  return out.sort((x,y)=>x.sc-y.sc);
+}
+function renderTurn(){
+  const box=$("#r-turn");if(!box)return;const both=$("#r-r1").value!==""&&$("#r-r2").value!=="";
+  const L=both?[]:turnCands();if(!L.length){box.innerHTML="";return}
+  const k=CURG(),i=(TURN_SKIP[k]||0)%L.length,p=L[i],e1=byId(p.a),e2=byId(p.b);if(!e1||!e2){box.innerHTML="";return}
+  const g=GR().find(x=>x.id===k),n=CO().filter(c=>c.gid===k).length;
+  box.innerHTML=`<div class="turn"><div class="ti">👟</div><div class="tt"><small>Au tour de${g?" · "+esc(g.name):""}</small><b>${esc(e1.prenom)}<em>donne à</em>${esc(e2.prenom)}</b><span>${n?"Ceux qui ont le moins couru dans ce rôle passent d'abord.":"Première course du groupe."}</span></div><button class="btn primary" data-turn="go">On y va</button><button class="btn ghost sm" data-turn="skip">Autre binôme</button></div>`;
+  box.dataset.a=p.a;box.dataset.b=p.b;
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-turn]");if(!b)return;const box=$("#r-turn");
+  if(b.dataset.turn==="skip"){TURN_SKIP[CURG()]=(TURN_SKIP[CURG()]||0)+1;renderTurn();return}
+  $("#r-r1").value=box.dataset.a;$("#r-r2").value=box.dataset.b;$("#r-r1").dispatchEvent(new Event("change",{bubbles:true}));TURN_SKIP[CURG()]=0;onCourse();guide()});
+
+/* ===== « Et maintenant ? » : l'étape suivante en grand, en bas de l'écran ; « Annuler la course » pendant 1 min ===== */
+var UNDO=null;
+function nowStep(){
+  const cfg=CFG(),[el]=nextStep(),d=diagResult(),both=$("#r-r1").value!==""&&$("#r-r2").value!=="";
+  if(!both)return ["👟",$("#r-turn").innerHTML?"Touchez « On y va » ou choisissez les coureurs":"Choisissez les deux coureurs","Étape 1"];
+  const blank=["ecart","zone","dep","pt","pm"].every(k=>ST[k]===null);
+  if(blank){const m=markFor(+$("#r-r1").value,+$("#r-r2").value);return ["🏃",(m&&m.np!=null?`Marque sur le plot ${m.np}, puis courez !`:"Placez la marque, puis courez !"),"Après la course : notez le résultat"]}
+  if(cfg.ecart&&ST.ecart===null)return ["⏱","Notez l'écart à la vitesse cible","Étape suivante"];
+  if(cfg.zone&&!ST.zone)return ["📍","Où le témoin a-t-il été transmis ?","Étape suivante"];
+  if(cfg.dep&&!ST.dep)return ["🚦","Comment le receveur est-il parti ?","Étape suivante"];
+  if(cfg.pm&&ST.pm===null)return ["🎯","Sur quel plot était la marque ?","Étape suivante"];
+  if(d.active&&!d.done&&!d.needPt)return ["❓","Répondez aux questions sur la transmission","Étape suivante"];
+  if(ptNeeded()&&ST.pt===null)return ["📏","Sur quel plot le témoin a-t-il été transmis ?","Étape suivante"];
+  return ["💾","Enregistrez la course","C'est complet · touchez ici","ok"];
+}
+function renderNow(){
+  const box=$("#r-now");if(!box)return;const on=$("#v-course").classList.contains("on")&&!!CLE();
+  if(UNDO&&Date.now()>UNDO.until)UNDO=null;
+  if(!on){box.classList.remove("on");return}
+  const [ic,t,sub,cl]=nowStep();
+  box.innerHTML=(UNDO?`<button class="undo" data-now="undo"><i>↩</i><span><small>Erreur de saisie ?</small>Annuler la course n°${UNDO.n} · ${Math.ceil((UNDO.until-Date.now())/1000)} s</span></button>`:"")
+    +`<button class="${cl||""}" data-now="go"><i>${ic}</i><span><small>${esc(sub)}</small>${esc(t)}</span></button>`;
+  box.classList.add("on");
+}
+$("#r-now").addEventListener("click",e=>{const b=e.target.closest("[data-now]");if(!b)return;
+  if(b.dataset.now==="go"){if(nowStep()[3]==="ok"&&!$("#r-save").disabled){$("#r-save").click();return}guide();return}
+  if(!UNDO||Date.now()>UNDO.until){UNDO=null;renderNow();return}
+  const u=UNDO;UNDO=null;const c=ALLCO().find(x=>x.cid===u.cid);
+  if(c){CL().courses=ALLCO().filter(x=>x.cid!==u.cid);persist();shQueue(u.cid,"del");shFlush()}
+  $("#amodal").classList.remove("on");$("#r-r1").value=u.r1;$("#r-r2").value=u.r2;ST=u.st;renderRes();onCourse();
+  toast("Course n°"+u.n+" annulée : corrige puis enregistre à nouveau");guide()});
+setInterval(()=>{try{if(UNDO&&$("#v-course").classList.contains("on"))renderNow();else if(UNDO&&Date.now()>UNDO.until){UNDO=null;renderNow()}}catch(e){}},1000);
+document.addEventListener("click",()=>setTimeout(()=>{try{renderNow()}catch(e){}},0));
+
+/* ===== QR codes des groupes : ouvrent directement la leçon du jour du groupe ===== */
+function qrLoad(){return window.QRLib?Promise.resolve(window.QRLib):new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="../eps-qr.js";sc.onload=()=>res(window.QRLib);sc.onerror=rej;document.head.appendChild(sc)})}
+function qrSVG(L,txt){const q=new L.QRCode(-1,L.ECL.M);q.addData(txt);q.make();const n=q.getModuleCount();let d="";
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+=`M${c+4} ${r+4}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${n+8} ${n+8}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`}
+const qrURL=(C,g)=>location.origin+location.pathname.replace(/index\.html$/,"")+"#g="+encodeURIComponent(C.id)+"."+encodeURIComponent(g.id)+"."+encodeURIComponent(C.name);
+$("#btnQRG").addEventListener("click",async()=>{const C=CL();if(!C)return;if(!GR().length){toast("Crée d'abord les groupes");return}
+  $("#q-list").innerHTML=`<p class="note">Préparation…</p>`;$("#qmodal").classList.add("on");
+  try{const L=await qrLoad();$("#q-list").innerHTML=GR().map(g=>`<div>${qrSVG(L,qrURL(C,g))}<b>${esc(g.name)}</b><span>Relais vitesse · ${esc(C.name)} · ${groupMembers(g).map(e=>esc(e.prenom)).join(", ")}</span></div>`).join("")}
+  catch(e){$("#q-list").innerHTML=`<p class="note">QR codes indisponibles hors connexion la première fois : réessaie avec Internet.</p>`}});
+$("#q-close").addEventListener("click",()=>$("#qmodal").classList.remove("on"));
+$("#q-print").addEventListener("click",()=>{document.body.classList.add("qrprint");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("qrprint"),500)},50)});
+function qrGroupOpen(){
+  const m=/^#g=([^.]*)\.([^.]*)(?:\.(.*))?$/.exec(QR_HASH||"");QR_HASH="";if(!m)return false;
+  try{history.replaceState(null,"",location.pathname)}catch(e){}
+  const cid=decodeURIComponent(m[1]),gid=decodeURIComponent(m[2]),nm=m[3]?decodeURIComponent(m[3]):"";
+  const C=DATA.classes.find(c=>c.id===cid)||DATA.classes.find(c=>nm&&c.name===nm);if(!C){toast("Classe inconnue sur cette tablette : touche ⟳ ou demande à ton enseignant");return false}
+  const g=(C.groupes||[]).find(x=>x.id===gid),l=(C.lecons||[]).find(x=>x.date===todayISO());
+  DATA.cur=C.id;if(g)C.curg=g.id;WAIT_CL=C.id;WAIT_PICK=false;
+  if(!l){WAIT_PICK=false;persist();showWait();toast("Pas encore de leçon aujourd'hui pour "+C.name);return true}
+  DATA.lecon=l.id;persist();resetST();try{if(window.EPSG&&EPSG.close)EPSG.close()}catch(e){}go("course");toast((g?g.name:"Groupe")+" · "+C.name);return true;
+}
+
+/* ===== Assistant : créer toute la séquence (leçons, dates d'après l'emploi du temps, objectif, situations) ===== */
+const SQ_PROG=[["gammes","departsvaries","transarret","roles"],["piedactif","departfente","departreceveur","transfile"],["gammes","accelprog","chatsouris","transfile"],["piedactif","chuteavant","lattesamplitude","departreceveur"],
+  ["gammes","resistance","trans100","chatsouris"],["piedactif","frequence","trans100","gaintemoin"],["gammes","lancee","relache","gaintemoin"],["piedactif","relache","trans100"]];
+var SQ=null;
+function sqSlots(C){try{return window.EPSD&&EPSD.edtSlots?EPSD.edtSlots(C.name,"rel",new Date(todayISO()+"T00:00:00").getTime(),30):null}catch(e){return null}}
+const isoOf=t=>{const d=new Date(t);return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())};
+function sqSits(i,n){const k=n<=1?0:Math.round(i*(SQ_PROG.length-1)/(n-1));return SQ_PROG[k].filter(id=>SITS.some(s=>s.id===id))}
+function sqDates(n){const C=CL(),sl=SQ.slots||[],out=[];const seen=new Set();
+  sl.forEach(x=>{const d=isoOf(x.at);if(!seen.has(d)&&out.length<n){seen.add(d);out.push(d)}});
+  let d=out.length?new Date(out[out.length-1]+"T12:00:00"):new Date(todayISO()+"T12:00:00");if(out.length)d.setDate(d.getDate()+7);
+  while(out.length<n){const v=isoOf(d.getTime());if(!seen.has(v)){out.push(v);seen.add(v)}d.setDate(d.getDate()+7)}
+  return out}
+function sqDraw(){const C=CL(),b=$("#sq-body"),st=SQ.step;
+  document.querySelectorAll("[data-sqs]").forEach(x=>x.classList.toggle("on",+x.dataset.sqs===st));
+  $("#sq-prev").style.visibility=st>1?"":"hidden";$("#sq-next").textContent=st<3?"Suivant →":"✓ Créer les "+SQ.dates.length+" leçons";
+  if(st===1){const n=(SQ.slots||[]).length;
+    b.innerHTML=`<label class="fl" for="sq-n">Combien de leçons de relais dans la séquence ?</label><input class="txt" type="number" min="1" max="20" id="sq-n" value="${SQ.n}" style="max-width:140px">
+      <p class="note">${SQ.slots===null?"Pas d'emploi du temps sur cette tablette (appli EDT) : tu choisiras les dates à l'étape suivante.":n?`D'après ton emploi du temps, ${esc(C.name)} a <b>${new Set(SQ.slots.map(x=>isoOf(x.at))).size} leçon(s) de relais</b> à partir d'aujourd'hui : les dates seront proposées.`:"Ton emploi du temps ne prévoit pas de relais pour cette classe à partir d'aujourd'hui : les dates seront proposées chaque semaine."}</p>
+      <p class="note">Les leçons déjà créées sont gardées (avec leurs courses) ; l'assistant ne fait que compléter.</p>`;return}
+  if(st===2){b.innerHTML=`<p class="note" style="margin-top:0">${(SQ.slots||[]).length?"Dates proposées d'après ton emploi du temps":"Une leçon par semaine"} : modifie-les si besoin.</p><div class="sqd">${SQ.dates.map((d,i)=>{const ex=C.lecons.find(l=>l.date===d);
+      return `<span class="n">Leçon ${i+1}</span><input type="date" data-sqd="${i}" value="${d}"><span class="s ${ex?"ex":""}">${ex?"déjà créée":new Date(d+"T12:00:00").toLocaleDateString("fr-FR",{weekday:"long"})}</span>`}).join("")}</div>
+      <div class="row mt"><button class="btn ghost sm" data-sqadd>＋ Une leçon</button>${SQ.dates.length>1?`<button class="btn ghost sm" data-sqdel>− La dernière</button>`:""}</div>`;return}
+  const cfg=SQ.cfg;
+  b.innerHTML=`<label class="sqck"><input type="checkbox" id="sq-goal" ${cfg.goalOn?"checked":""}> Objectif de courses à chaque leçon</label>
+    <div class="row" style="gap:10px;margin:6px 0 12px;${cfg.goalOn?"":"opacity:.45"}"><input class="txt" type="number" min="1" max="20" id="sq-gn" value="${cfg.goalN||4}" style="max-width:90px"><select class="sel" id="sq-gm" style="max-width:340px"><option value="both" ${cfg.goalMode==="both"?"selected":""}>courses comme donneur ET comme receveur</option><option value="best" ${cfg.goalMode!=="both"?"selected":""}>courses dans son meilleur rôle</option></select></div>
+    <p class="note">Éléments à saisir : ceux de ta dernière leçon (modifiables ensuite leçon par leçon).</p>
+    <label class="sqck"><input type="checkbox" id="sq-sits" ${SQ.sits?"checked":""}> Proposer les situations de la bibliothèque, leçon par leçon (progression départ → marque → transmission à pleine vitesse)</label>
+    ${SQ.sits?`<div class="sqd" style="margin-top:8px">${SQ.dates.map((d,i)=>`<span class="n">L${i+1}</span><span>${fmtShort(d)}</span><span></span><div class="sqsit">${sqSits(i,SQ.dates.length).map(id=>esc((SITS.find(s=>s.id===id)||{}).t||id)).join(" · ")}</div>`).join("")}</div>`:""}`;
+}
+function sqRead(){const b=$("#sq-body");
+  if(SQ.step===1){const v=Math.max(1,Math.min(20,+($("#sq-n").value)||1));if(v!==SQ.n||!SQ.dates.length){SQ.n=v;SQ.dates=sqDates(v)}}
+  if(SQ.step===2)b.querySelectorAll("[data-sqd]").forEach(x=>{if(/^\d{4}-\d\d-\d\d$/.test(x.value))SQ.dates[+x.dataset.sqd]=x.value});
+  if(SQ.step===3){SQ.cfg.goalOn=$("#sq-goal").checked;SQ.cfg.goalN=Math.max(1,+$("#sq-gn").value||4);SQ.cfg.goalMode=$("#sq-gm").value;SQ.sits=$("#sq-sits").checked}}
+$("#l-seq").addEventListener("click",async()=>{if(!await requireCode())return;const C=CL();if(!C)return;
+  const slots=sqSlots(C);SQ={step:1,slots,n:slots&&slots.length?Math.min(12,new Set(slots.map(x=>isoOf(x.at))).size):6,dates:[],cfg:lastCfg(C),sits:true};SQ.dates=sqDates(SQ.n);
+  $("#sq-cls").textContent=C.name;sqDraw();$("#smodal2").classList.add("on")});
+$("#sq-body").addEventListener("change",e=>{if(SQ.step===3){sqRead();sqDraw()}if(SQ.step===2){sqRead();sqDraw()}});
+$("#sq-body").addEventListener("click",e=>{if(e.target.closest("[data-sqadd]")){sqRead();const l=SQ.dates[SQ.dates.length-1],d=new Date((l||todayISO())+"T12:00:00");d.setDate(d.getDate()+7);SQ.dates.push(isoOf(d.getTime()));SQ.n=SQ.dates.length;sqDraw()}
+  if(e.target.closest("[data-sqdel]")){sqRead();SQ.dates.pop();SQ.n=SQ.dates.length;sqDraw()}});
+$("#sq-cancel").addEventListener("click",()=>$("#smodal2").classList.remove("on"));
+$("#sq-prev").addEventListener("click",()=>{sqRead();SQ.step=Math.max(1,SQ.step-1);sqDraw()});
+$("#sq-next").addEventListener("click",()=>{sqRead();if(SQ.step<3){SQ.step++;sqDraw();return}
+  const C=CL(),D=[...new Set(SQ.dates)].sort();let nNew=0,nUp=0;
+  D.forEach((d,i)=>{const sits=SQ.sits?sqSits(i,D.length):[];let l=C.lecons.find(x=>x.date===d);
+    if(l){const used=ALLCO().some(c=>c.lid===l.id);if(!used){Object.assign(l.cfg,{goalOn:SQ.cfg.goalOn,goalN:SQ.cfg.goalN,goalMode:SQ.cfg.goalMode})}if(sits.length&&!(Array.isArray(l.sits)&&l.sits.length))l.sits=sits;nUp++}
+    else{C.lecons.push({id:uid("l"),date:d,cfg:{...clone(SQ.cfg)},sits});nNew++}});
+  persist();$("#smodal2").classList.remove("on");renderLecons();
+  toast(`✓ Séquence prête : ${nNew} leçon(s) créée(s)${nUp?", "+nUp+" complétée(s)":""}. Chaque leçon s'ouvrira le jour venu.`)});
+
+/* ===== ✅ « Tout est prêt ? » (eps-home.js EPSD.check) : vérifications propres à Relais ===== */
+window.epsCheck=function(cls,at){
+  const R=[],norm=x=>String(x||"").toLowerCase().replace(/\s+/g,"");
+  const C=DATA.classes.find(c=>cls&&norm(c.name)===norm(cls))||(!cls?CL():null);
+  if(!C){R.push({ok:false,t:"Classe "+(cls||"")+" absente de Relais",d:"Importe-la (Classe) ou vérifie son nom."});return R}
+  const E=(C.eleves||[]).filter(e=>e.ma!=="DISP"),day=at?isoOf(at):todayISO();
+  R.push({ok:true,t:"Relais : "+C.name+" · "+E.length+" élèves"});
+  const sv=E.filter(e=>{try{return perfState(e)!=="ok"}catch(x){return false}});
+  R.push(sv.length?{ok:false,t:sv.length+" élève(s) sans vitesses (donneur et receveur)",d:sv.slice(0,12).map(e=>e.prenom).join(", ")+(sv.length>12?"…":""),fix:{label:"⏱ Performances",go:()=>{DATA.cur=C.id;persist();go("perf")}}}:{ok:true,t:"Vitesses de tous les élèves"});
+  const G=C.groupes||[],inG=new Set(G.flatMap(g=>g.members||[])),ng=E.filter(e=>!inG.has(e.id));
+  R.push(!G.length?{ok:false,t:"Pas encore de groupes",d:"Les tablettes s'ouvrent par groupe (ordre de passage, QR codes).",fix:{label:"👥 Groupes",go:()=>{DATA.cur=C.id;persist();go("groupes")}}}
+    :ng.length?{ok:false,t:ng.length+" élève(s) sans groupe",d:ng.map(e=>e.prenom).join(", "),fix:{label:"👥 Groupes",go:()=>{DATA.cur=C.id;persist();go("groupes")}}}:{ok:true,t:G.length+" groupes, tous les élèves placés"});
+  const l=(C.lecons||[]).find(x=>x.date===day);
+  R.push(l?{ok:true,t:"Leçon Relais du "+fmtShort(day)+" préparée",d:[l.cfg&&l.cfg.goalOn?"objectif "+(l.cfg.goalN||4)+" courses":"",Array.isArray(l.sits)&&l.sits.length?l.sits.length+" situation(s)":"aucune situation choisie"].filter(Boolean).join(" · ")+" : elle s'ouvrira toute seule ce jour-là."}
+    :{ok:false,t:"Leçon Relais du "+fmtShort(day)+" pas encore préparée",d:"Sans elle, les élèves voient « Aucune leçon aujourd'hui ».",fix:{label:"📅 Préparer",go:()=>{DATA.cur=C.id;persist();openLecon(day)}}});
+  const np=Object.keys(SY.pend||{}).length,dv=Object.values(SY.devs||{}).filter(o=>o&&o.at&&Date.now()-o.at<36e5*24).length;
+  R.push(!syOk()?{ok:false,t:"Courses non partagées entre tablettes (synchro Relais non réglée)",fix:{label:"Régler",go:()=>{try{openSheets()}catch(e){}}}}
+    :{ok:!np&&!SY.err,t:np?np+" envoi(s) Relais en attente":SY.err?"Synchro Relais : problème":"Courses partagées entre tablettes",d:dv?dv+" tablette(s) vue(s) dans les dernières 24 h":""});
+  return R;
+};
 window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
  tabs:{seq:{go:()=>go(CLE()?'home':'lecons'),on:()=>['lecons','home','course','perf','live'].includes(viewNow()),actions:[{ico:'📅',label:'Leçons',go:()=>go('lecons')},{ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')},{ico:'📡',label:'En direct',go:()=>go('live')}]},
   eval:{go:()=>go('eval'),on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>go('eval')},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}]},
