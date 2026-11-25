@@ -282,7 +282,7 @@
     return n === 1 ? [p(y, 9, 1), p(y, 11, 30)] : n === 2 ? [p(y, 12, 1), p(y + 1, 2, new Date(y + 1, 2, 0).getDate())] : n === 3 ? [p(y + 1, 3, 1), p(y + 1, 7, 10)] : [p(y, 8, 20), p(y + 1, 7, 10)]; }
   function dayOf(t) { var d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function fr(d) { return d ? d.split("-").reverse().join("/") : ""; }
-  function inst(cls) { evInit(); var I = window.EPSE_INST || []; for (var i = 0; i < I.length; i++) { try { if ((I[i].A.classes() || []).some(function (c) { return same(c.nom, cls); })) return I[i]; } catch (e) {} } return I[0] || null; }
+  function inst(cls) { evInit(); var I = window.EPSE_INST || []; for (var i = 0; i < I.length; i++) { try { if (typeof I[i].A.classes === "function" && (I[i].A.classes() || []).some(function (c) { return same(c.nom, cls); })) return I[i]; } catch (e) {} } return I[0] || null; }
   /* P = {kind:'seq'|'dates', seq, from, to} */
   function inP(P, day, lecId) { if (P.kind === "seq") { if (!lecId) return false; var l = get(KL, lecId); return !!l && (l.seq || "Sans séquence") === P.seq; } return (!P.from || day >= P.from) && (!P.to || day <= P.to); }
   function classData(cls, P) {
@@ -300,7 +300,7 @@
     var D = Object.keys(days).sort(), RM = all(KRM).filter(function (r) { return r.app === APP && same(r.cls, cls) && (P.kind === "seq" || inP(P, dayOf(r.at))); });
     var OB = []; try { OB = (window.EPSOB ? EPSOB._all() : []).filter(function (o) { return o.app === APP && same(o.cls, cls) && (P.kind === "seq" ? !!days[o.day] : inP(P, o.day)); }); } catch (e) {}
     var EL = R.map(function (n) { var k = ekey(n), E = null, pr = null, comm = "", ap = null, st = "";
-      if (X) try { var c = (X.A.classes() || []).filter(function (c) { return same(c.nom, cls); })[0]; E = c ? window.epsMatchNom(c.eleves, n, function (e) { var m = X.A.name(e); return (m.prenom || "") + " " + (m.nom || ""); }) : null;
+      if (X && typeof X.A.classes === "function") try { var c = (X.A.classes() || []).filter(function (c) { return same(c.nom, cls); })[0]; E = c ? window.epsMatchNom(c.eleves, n, function (e) { var m = X.A.name(e); return (m.prenom || "") + " " + (m.nom || ""); }) : null;
         if (E) { pr = X.M.prop(E, cls); comm = (X.A.comment && X.A.comment(E)) || ""; ap = X.A.getAp && X.A.getAp(E); st = (X.A.absent && X.A.absent(E)) || ""; } } catch (e) {}
       var L = D.map(function (d) { var x = days[d], abs = (x.abs || []).some(function (a) { return ekey(a) === k; }), ev = x.ev && x.ev.el ? x.ev.el[k] : null, rs = {};
         (x.res || []).forEach(function (o) { if (o.ek !== k) return; Object.keys(o.r || {}).filter(keyOk).forEach(function (q) { rs[q] = o.r[q]; }); });
@@ -686,7 +686,7 @@
   /* élèves de la classe et leurs critères au degré 1 ou 2 (évaluations de l'appli, toutes grilles) */
   function lowsFor(cls) { evInit(); var out = [];
     (window.EPSE_INST || []).forEach(function (x) { var A = x.A, G; try { G = A.grid().criteres || []; } catch (e) { return; }
-      ((A.classes() || []).filter(function (c) { return same(c.nom, cls); })[0] || { eleves: [] }).eleves.forEach(function (E) { var n = A.name(E), nom = ((n.prenom || "") + " " + (n.nom || "")).trim(), lows = [];
+      ((typeof A.classes === "function" ? A.classes() || [] : []).filter(function (c) { return same(c.nom, cls); })[0] || { eleves: [] }).eleves.forEach(function (E) { var n = A.name(E), nom = ((n.prenom || "") + " " + (n.nom || "")).trim(), lows = [];
         G.forEach(function (cr) { var v = null; try { v = A.prof(cr, E); } catch (e) {} if (v && v.d != null && v.d <= 1) lows.push({ cr: cr, d: v.d }); });
         if (lows.length) out.push({ nom: nom, lows: lows }); }); });
     return out; }

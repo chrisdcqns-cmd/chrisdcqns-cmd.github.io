@@ -800,6 +800,8 @@ async function openProf() {
   resumeSession();
 }
 function setPTab(t) {
+  /* onglet demandé avant le chargement du projet (onglets communs) : on charge d'abord le projet */
+  if (!P) { DB.get("projet").then(p => { if (!P) { P = p || newProject(); if (!P.salt) P.salt = uid(6); } setPTab(t); }); return; }
   ptab = t; LS.set("ptab", t);
   $$("#ptabs .tab").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   $("#projName").textContent = P.nom;

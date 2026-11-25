@@ -111,6 +111,7 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 
 ## Avant de publier
 - Tester dans un navigateur (élève et enseignant), sans erreur de page ; vérifier l'écran « Choisis ta classe » et la barre.
+- Vérification complète (25/11/2026) : chaque page en élève (1024 × 768 et 390 × 844) et en enseignant (1024 × 768 et 1440 × 900), chaque onglet commun, chaque action et carte, les onglets des fenêtres ouvertes, la console section par section : aucune erreur de page, aucun débordement horizontal. Les adaptateurs `EPSE.create` doivent fournir `classes()` et `comment(E)` (utilisés par les fiches de leçon, la remédiation et « Ma classe »).
 - `git pull --rebase` avant de pousser (d'autres sessions travaillent en parallèle) ; en cas de conflit sur `/sw.js`, garder le `CORE` le plus haut + 1.
 - Mettre à jour `README.md` et ce fichier si une règle commune change.
 
