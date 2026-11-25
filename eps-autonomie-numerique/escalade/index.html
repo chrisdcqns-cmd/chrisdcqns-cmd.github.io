@@ -375,6 +375,12 @@ html.epst-on #nav{display:none!important}
 @keyframes b5pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
 .belact{display:flex;gap:8px;flex-wrap:wrap}.belact .b{min-height:46px}
 @media(max-width:760px){.b5r{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.b5s small{display:none}.b5s{min-height:70px;padding:8px 2px}}
+.indc{border-left:5px solid #6b4fbb}.chr{gap:10px;align-items:center}.chr .b{min-height:56px;font-size:18px}
+.ccard{position:relative}.cind{font-weight:800;font-size:14px;border-radius:8px;padding:3px 8px;align-self:flex-start}.cind small{font-weight:600}
+.cind.good,.indsum .good{background:#e6f4ea;color:#1f7a3d}.cind.mid,.indsum .mid{background:#fff3cd;color:#8a5a00}.cind.bad,.indsum .bad{background:#fdecea;color:#b3261e}
+.ccard.ind-good{border-color:#2b8a3e}.ccard.ind-mid{border-color:#f2c230}.ccard.ind-bad{border-color:#e5534b}
+.indsum{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#fff;border:2px solid var(--ln);border-radius:12px;padding:8px 12px;margin:0 0 10px}.indsum span{font-weight:800;border-radius:99px;padding:3px 10px}.indsum small{flex-basis:100%;color:#5b6a72}
+.indth{gap:14px;align-items:center}.indth input{width:90px;margin-left:6px}
 </style></head><body>
 <header><b id="logo"><svg class="mk" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg>Escalade EPS</b><span id="tm"></span><span data-eps-bar></span></header>
 <nav id="nav"></nav>
@@ -423,7 +429,7 @@ const TABS=[['home','⌂ Accueil'],['prep','Se préparer et assurer'],['cot','Co
 const CRIT=(()=>{const K=['m','p','cp','h','a','pm','pof','k'],L=EPSP.p({id:'crit',sec:'Grimpe : ce que l\'élève renseigne',label:'Intitulés des critères relevés',type:'list',fixed:8,def:['Prises de mains','Prises de pieds','Changements de pieds effectués','Hauteur : dernière dégaine dépassée',"S'est assis dans le baudrier pendant la voie ?",'PME réalisée ? (Position de Moindre Effort)','Utilisation sac à POF','Commentaire']});return K.map((k,i)=>[k,L[i]])})();
 const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
 const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
-function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',pofU:null,com:'',why:'',whyT:'',nr:{},asr:'',cas:'',obs:'',asrX:false,casX:false,obsX:false};S.free=false}fresh();
+function fresh(){F={ann:'',ch:{},step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',pofU:null,com:'',why:'',whyT:'',nr:{},asr:'',cas:'',obs:'',asrX:false,casX:false,obsX:false};S.free=false}fresh();
 /* groupe de l'élève : choisi après la classe, valable pour la journée et la classe sur cette tablette */
 /* groupes du jour, partagés entre les tablettes (CF.gps, synchronisés « gp| ») ; CF.grp = groupe choisi sur cette tablette */
 const dayG=id=>(CF.gps||[]).filter(g=>g.cl==(id??cls()?.id)&&g.d==today());
@@ -600,8 +606,8 @@ const PED0={
   {id:'s6',ti:'Assureur certifié',gt:'AFL3',pro:'AFLP4',cons:"Ton observateur vérifie ton assurage : nœud de 8 vérifié, mousqueton verrouillé, assurage en 5 temps, main frein jamais lâchée, corde sans mou.",but:'3 assurages sans erreur.',crit:"Ton badge d'assurage passe au vert."},
   {id:'s7',ti:'Descente en confiance',gt:'AFL1',pro:'AFLP5',cons:"Grimpe jusqu'à la hauteur que tu as annoncée (d'abord la ligne rouge, puis plus haut). Arrivé(e), dis « Descente ! », attends le « C'est bon ! » de ton assureur, lâche les prises et descends pieds au mur, jambes écartées. Tu ne t'assois jamais dans le baudrier pendant la montée.",but:'Passer la ligne rouge et redescendre en confiance.',crit:"Tu atteins la hauteur annoncée et tu descends pieds au mur, sans t'agripper à la corde."},
   {id:'s8',ti:'Pousser sur les jambes',gt:'AFL1',pro:'AFLP2',draft:1,cons:"Dans une voie facile pour toi : à chaque mouvement, pose d'abord le pied, pousse sur ta jambe jusqu'à avoir le bras tendu, puis seulement attrape la prise suivante. Ton observateur compte les mouvements où tu tires sur les bras (coude plié avant d'avoir poussé).",but:'Atteindre des prises hautes grâce à la poussée des jambes.',crit:"Au moins 3 mouvements sur 4 commencent par une poussée de jambe, et tu atteins une prise que tu ne touchais pas sans te grandir."}],
- cyc:[{obj:'Grimper et assurer en sécurité',sit:['s6']},{obj:'Passer la ligne rouge en confiance',sit:['s7','s4']},{obj:'Grimper avec les jambes',sit:['s1']},{obj:'Économiser ses bras',sit:['s2']},
-  {obj:'Lire sa voie avant de grimper',sit:['s4']},{obj:'Choisir une voie à mon niveau',sit:['s3']},{obj:'Progresser en cordée',sit:['s5']},{obj:'Réussir ma voie projet',sit:['s3']}],
+ cyc:[{obj:'Grimper et assurer en sécurité',sit:['s6']},{obj:'Passer la ligne rouge en confiance',sit:['s7','s4'],ind:'proj'},{obj:'Grimper avec les jambes',sit:['s1'],ind:'mpd'},{obj:'Économiser ses bras',sit:['s2'],ind:'flu'},
+  {obj:'Lire sa voie avant de grimper',sit:['s4'],ind:'proj'},{obj:'Choisir une voie à mon niveau',sit:['s3'],ind:'top'},{obj:'Progresser en cordée',sit:['s5'],ind:'rp'},{obj:'Réussir ma voie projet',sit:['s3'],ind:'perf'}],
  rem:{"J'ai eu peur":{t:"C'est normal d'avoir peur au début. La prochaine fois, apprivoise la hauteur avec ton assureur :",s:'s7'},
   "J'étais fatigué(e)":{t:"Apprends à récupérer dans la voie :",s:'s2'},
   "La voie était trop difficile":{t:"Choisis une voie un peu plus facile (onglet Cotation → « Je cherche une voie ! »), réussis-la, puis remonte d'un cran.",s:'',auto:1},
@@ -609,6 +615,12 @@ const PED0={
   "J'ai eu mal / une gêne":{t:"Préviens ton enseignant avant de repartir.",s:''},
   "Problème de matériel ou de sécurité":{t:"Préviens ton enseignant tout de suite et ne repars pas avant sa vérification.",s:''},
   "Autre raison":{t:"Parles-en à ton enseignant pour choisir ta prochaine voie.",s:''}},
+ ind:[{id:'mpd',ti:'Prises de mains par dégaine',k:'mpd',u:'prises / dégaine',dir:'lo',v:3,o:5,txt:'Économie : moins de prises de mains pour monter = tu grimpes avec les jambes.'},
+  {id:'rp',ti:'Ratio pieds / mains',k:'rp',u:'',dir:'hi',v:1.5,o:1,txt:'Plus de pieds que de mains = tu pousses sur tes jambes.'},
+  {id:'proj',ti:'Écart au projet',k:'proj',u:'dégaine(s)',dir:'hi',v:0,o:-2,txt:'Dégaine atteinte moins dégaine annoncée avant de grimper (0 ou plus = projet tenu).'},
+  {id:'top',ti:'Taux de réussite',k:'top',u:'%',dir:'hi',v:66,o:33,txt:'Voies terminées au Top sur voies tentées : choisis des voies à ton niveau.'},
+  {id:'perf',ti:'Indice de performance',k:'perf',u:'',dir:'hi',v:0.1,o:0,txt:'Cotation × hauteur atteinte : comparé à ta meilleure leçon précédente (vert = tu progresses).'},
+  {id:'flu',ti:'Fluidité (temps d\'arrêt)',k:'flu',u:'% du temps à l\'arrêt',dir:'lo',v:20,o:40,txt:'Part du temps passé immobile, chronométrée par l\'observateur : moins d\'arrêts = grimpe plus fluide.'}],
  b5:['Avaler : tirer le brin du grimpeur, la main frein monte vers le système','Bloquer : la main frein descend sous le système','Pincer : la main haute vient tenir le brin frein sous la main frein','Remonter : la main frein glisse jusqu\'au système','Revenir : la main haute retourne sur le brin du grimpeur'],
  pens:[{t:'Main frein lâchée',g:1},{t:'Mou dans la corde / pas d\'assurage en 5 temps',g:0},{t:"Inattention pendant l'assurage",g:0},{t:'Nœud ou baudrier non vérifié',g:1},{t:'Mousqueton non verrouillé',g:1},{t:'Autre comportement dangereux',g:1}]};
 /* attendus de fin de lycée, champ d'apprentissage 2 : AFL (voie générale et technologique) et AFLP (voie professionnelle) */
@@ -616,6 +628,7 @@ const AFLT={gt:{AFL1:"S'engager à l'aide d'une motricité spécifique pour réa
  pro:{AFLP1:"Anticiper et planifier son itinéraire pour concevoir et conduire dans sa totalité un projet de déplacement.",AFLP2:"Mobiliser des techniques efficaces pour adapter et optimiser son déplacement aux caractéristiques du milieu.",AFLP3:"Analyser sa prestation pour comprendre les alternatives possibles et ajuster son projet en fonction de ses ressources et de celles du milieu.",AFLP4:"Assumer les rôles sociaux pour organiser la pratique des activités de pleine nature.",AFLP5:"Se préparer et maintenir un engagement optimal permettant de garder sa lucidité tout au long de son parcours pour pouvoir réévaluer son itinéraire ou renoncer le cas échéant.",AFLP6:"Respecter et faire respecter la réglementation et les procédures d'urgence pour les mettre en œuvre dans les différents environnements de pratique."}};
 const voieOf=nom=>{try{return window.epsVoie?epsVoie(nom||cls()?.nom||''):'gt'}catch(e){return 'gt'}};
 const aflTag=(x,nom)=>{const v=voieOf(nom),c=x&&x[v];return c?`<span class="afl afl-${v}" title="${esc((AFLT[v]||{})[c]||'')}">🎯 ${esc(c)}</span>`:''};
+(function(){const P=CF.ped;if(P&&!P.ind){P.ind=clone(PED0.ind);(P.cyc||[]).forEach((c,i)=>{const d=PED0.cyc[i];if(d&&c.obj==d.obj&&c.ind===undefined&&d.ind)c.ind=d.ind});SV('cf',CF)}})();
 /* mise à jour des tablettes dont le contenu pédagogique a déjà été enregistré : situations par défaut non modifiées remplacées, nouvelle situation ajoutée */
 (function(){const P=CF.ped;if(!P||P.m3)return;const D=PED0.sit;
  const i2=P.sit.findIndex(x=>x.id=='s2'&&x.ti=='Les trois repos');if(i2>=0)P.sit[i2]=clone(D.find(x=>x.id=='s2'));
@@ -627,7 +640,7 @@ function pedW(){if(!CF.ped)CF.ped=clone(PED0);return CF.ped}
 function pedSet(path,v){const P=pedW(),k=path.split('.');let o=P;for(let i=0;i<k.length-1;i++)o=o[k[i]];o[k[k.length-1]]=v;save()}
 function pedDo(fn){fn(pedW());save();const y=scrollY;render();scrollTo(0,y)}
 /* proposition de la séquence pour une classe et une date (n-ième leçon de la classe) */
-function cycFor(cl,d){const n=LEC().filter(l=>(l.cl||'')==(cl||'')&&l.d<d).length,c=PED().cyc[n];return c?{n:n+1,obj:c.obj,sit:[...(c.sit||[])]}:null}
+function cycFor(cl,d){const n=LEC().filter(l=>(l.cl||'')==(cl||'')&&l.d<d).length,c=PED().cyc[n];return c?{n:n+1,obj:c.obj,sit:[...(c.sit||[])],ind:c.ind||''}:null}
 function sitDlg(id){const x=sitOf(id);if(x)dlg({msg:'📋 '+x.ti+'\n\n'+x.cons+(x.but?'\n\n🎯 But : '+x.but:'')+(x.crit?'\n✓ Réussi si : '+x.crit:''),ok:'Compris'})}
 const sitBox=L=>{const X=(L?.sit||[]).map(sitOf).filter(Boolean);return X.length?`<div class="sitb">${X.map(x=>`<div><b>📋 ${esc(x.ti)} ${aflTag(x)}</b><span>${esc(x.cons)}</span>${x.crit?`<small>✓ Réussi si : ${esc(x.crit)}</small>`:''}</div>`).join('')}</div>`:''};
 /* ----- permis d'assurer : 5 temps validés, pénalités, permis révoqué ----- */
@@ -657,6 +670,35 @@ function belCard(n){const b=belOf(n),l=belLvl(b),P=PED().b5,pe=b.pen||[];
 const remTxt=m=>{const x=m&&m.s&&sitOf(m.s);return [m?.t||'',x?x.ti+' : '+x.cons:''].filter(Boolean).join(' ')};
 const remFor=why=>{const k=Object.keys(PED().rem).find(w=>String(why||'').startsWith(w));return k?PED().rem[k]:null};
 /* remédiation après une grimpe sous la ligne rouge (seulement les conseils marqués « automatique ») */
+/* ---------- 🎨 indicateurs de performance : un par leçon (L.ind), couleur vert / orange / rouge ---------- */
+const INDK={mpd:'Prises de mains par dégaine',rp:'Ratio pieds / mains',proj:'Écart au projet',top:'Taux de réussite',perf:'Indice de performance',flu:'Fluidité'};
+const indOf=id=>(PED().ind||[]).find(x=>x.id==id);
+const dgOf=r=>isNum(r.h)?Number(r.h):null;
+const perfOf=r=>{const g=gk(r.d),h=dgOf(r);return g<999&&h!=null?Math.round(g/10*h/TOP)/10:null};
+function indVal(I,M,prev){if(!I||!M.length)return null;const k=I.k;
+ if(k=='mpd'){const Q=M.filter(r=>isNum(r.m)&&Number(r.m)>0&&dgOf(r)>0);if(!Q.length)return null;return Q.reduce((a,r)=>a+Number(r.m),0)/Q.reduce((a,r)=>a+dgOf(r),0)}
+ if(k=='rp'){const Q=M.filter(r=>rpR(r)!=null);return Q.length?Q.reduce((a,r)=>a+Number(r.p),0)/Q.reduce((a,r)=>a+Number(r.m),0):null}
+ if(k=='proj'){const Q=M.filter(r=>isNum(r.ann)&&dgOf(r)!=null);return Q.length?Q.reduce((a,r)=>a+dgOf(r)-Number(r.ann),0)/Q.length:null}
+ if(k=='top'){const Q=M.filter(r=>dgOf(r)!=null);return Q.length?Q.filter(r=>dgOf(r)==TOP).length/Q.length*100:null}
+ if(k=='perf'){const b=Math.max(...M.map(perfOf).filter(x=>x!=null));if(!isFinite(b))return null;const pb=Math.max(...(prev||[]).map(perfOf).filter(x=>x!=null));return isFinite(pb)?b-pb:b}
+ if(k=='flu'){const Q=M.filter(r=>Number(r.tt)>0&&isNum(r.ta));return Q.length?Q.reduce((a,r)=>a+Number(r.ta),0)/Q.reduce((a,r)=>a+Number(r.tt),0)*100:null}
+ return null}
+const indCol=(I,x)=>x==null?'':I.dir=='lo'?(x<=I.v?'good':x<=I.o?'mid':'bad'):(x>=I.v?'good':x>=I.o?'mid':'bad');
+const indFmt=(I,x)=>x==null?'–':I.k=='proj'||I.k=='perf'?(x>0?'+':'')+fnum(x):I.k=='top'||I.k=='flu'?Math.round(x)+' %':fnum(x);
+const INDMSG={good:'Bravo, c\'est dans le vert !',mid:'Presque : continue dans ce sens.',bad:'À travailler : regarde la consigne de la leçon.'};
+const lecInd=()=>indOf(CF.sea?.ind);
+/* saisie propre à l'indicateur de la leçon : dégaine annoncée (projet), chronomètre (fluidité) */
+function indInput(){const I=lecInd();if(!I)return '';
+ if(I.k=='proj')return `<div class="crit indc"><div class="ch"><b>🎨 Dégaine annoncée avant de grimper</b></div><div class="cv"><p class="mut" style="margin:0 0 8px">Jusqu'où avais-tu annoncé monter ?</p><div class="g10">${[1,2,3,4,5,6,7,8].map(n=>`<button class="b ${F.ann===n?'on':'g'}" onclick="F.ann=${n};const y=scrollY;render();scrollTo(0,y)">${n}</button>`).join('')}<button class="b ${F.ann===TOP?'on':'g'}" onclick="F.ann=TOP;const y=scrollY;render();scrollTo(0,y)">Top</button></div></div></div>`;
+ if(I.k=='flu'){const c=F.ch||{},run=c.t0&&!c.end,st=c.s0;const tt=c.end?c.tt:(run?(Date.now()-c.t0)/1000:0);
+  return `<div class="crit indc"><div class="ch"><b>🎨 Chronomètre de l'observateur</b></div><div class="cv"><p class="mut" style="margin:0 0 8px">L'observateur lance au départ, touche « Il s'arrête » / « Il repart » à chaque arrêt, puis « Arrivé ».</p>
+  <div class="row chr">${!c.t0?`<button class="b" onclick="chr('go')">▶ Départ</button>`:c.end?`<b>${Math.round(c.tt)} s de grimpe · ${Math.round(c.ta)} s à l'arrêt</b><button class="b g" onclick="F.ch={};render()">Recommencer</button>`:`<button class="b ${st?'':'g'}" onclick="chr('stop')">${st?'▶ Il repart':'⏸ Il s\'arrête'}</button><button class="b" onclick="chr('end')">⏹ Arrivé</button><span class="mut">chrono en cours…</span>`}</div></div></div>`}
+ return ''}
+async function indDel(i){const I=(PED().ind||[])[i];if(!I||!await ask('Supprimer l\'indicateur « '+I.ti+' » ?\nTu pourras le remettre avec le bouton « + » en bas de la liste.','Supprimer'))return;pedDo(P=>{const id=P.ind[i].id;P.ind.splice(i,1);(P.cyc||[]).forEach(c=>{if(c.ind==id)c.ind=''})})}
+function chr(a){const c=F.ch=F.ch||{},n=Date.now();if(a=='go'){F.ch={t0:n,ta:0}}else if(a=='stop'){if(c.s0){c.ta+=(n-c.s0)/1000;c.s0=0}else c.s0=n}else if(a=='end'){if(c.s0){c.ta+=(n-c.s0)/1000;c.s0=0}c.end=1;c.tt=(n-c.t0)/1000}const y=scrollY;render();scrollTo(0,y)}
+function indBox(r){const I=lecInd();if(!I||!r)return '';const M=R.filter(x=>x.el==r.el&&String(x.ts).startsWith(today())&&(x.cl||'')==(r.cl||'')),prev=R.filter(x=>x.el==r.el&&(x.cl||'')==(r.cl||'')&&String(x.ts).slice(0,10)<today()),
+ x1=indVal(I,[r],prev),xa=indVal(I,M,prev),c=indCol(I,xa??x1);if(xa==null&&x1==null)return '';
+ return `<div class="rpm indb ${c}" style="text-align:left;margin-bottom:14px"><b>🎨 ${esc(I.ti)} : ${indFmt(I,xa??x1)}${I.u&&I.k!='top'&&I.k!='flu'?' '+esc(I.u):''}${M.length>1?' (sur la leçon)':''}</b><span>${esc(INDMSG[c]||'')} ${esc(I.txt||'')}</span></div>`}
 function remBox(){const r=R.find(x=>x.id==F.last);if(!r||!r.why||Number(r.h)!==0)return '';const m=remFor(r.why);if(!m||!m.auto)return '';const x=m.s&&sitOf(m.s);
  return `<div class="remb"><b>💡 Pour la prochaine fois</b><p>${esc(m.t)}</p>${x?`<div class="sitb"><div><b>📋 ${esc(x.ti)}</b><span>${esc(x.cons)}</span>${x.crit?`<small>✓ Réussi si : ${esc(x.crit)}</small>`:''}</div></div>`:''}</div>`}
 /* écran enseignant : contenu pédagogique modifiable */
@@ -672,7 +714,12 @@ function pedScr(){const P=PED(),inp=(p,v,ph='')=>`<input value="${esc(v||'')}" p
   <label>Voie pro <select onchange="pedSet('sit.${i}.pro',this.value)"><option value="">—</option>${Object.keys(AFLT.pro).map(k=>`<option ${x.pro==k?'selected':''}>${k}</option>`).join('')}</select></label></div>
   <label class="l">Consigne pour les élèves</label>${ta('sit.'+i+'.cons',x.cons)}<label class="l">But</label>${inp('sit.'+i+'.but',x.but)}<label class="l">Réussi si…</label>${inp('sit.'+i+'.crit',x.crit)}</div>`).join('')}
   <button class="b g" onclick="pedDo(P=>P.sit.push({id:'s'+uid(),ti:'Nouvelle situation',cons:'',but:'',crit:''}))">+ Ajouter une situation</button></div>
- <div class="card"><h3 style="margin-top:0">Séquence de leçons</h3><p class="mut">Quand tu prépares la n-ième leçon d'une classe, l'objectif et les situations de la ligne n sont proposés.</p>${P.cyc.map((c,i)=>`<div class="pedi"><div class="ch"><b>Leçon ${i+1}</b>${inp('cyc.'+i+'.obj',c.obj,'Objectif')}</div>
+ <div class="card"><h3 style="margin-top:0">🎨 Indicateurs de performance</h3><p class="mut">Propositions à garder, modifier ou supprimer. Seuils : vert si la valeur est ${'≤'} ou ${'≥'} au seuil vert (selon le sens), orange jusqu'au seuil orange, rouge au-delà.</p>
+ ${(P.ind||[]).map((I,i)=>`<div class="pedi"><div class="ch"><b>${esc(INDK[I.k]||I.k)}</b>${inp('ind.'+i+'.ti',I.ti,'Nom')}<button class="b d" onclick="indDel(${i})">✕</button></div>
+  <label class="l">Explication pour l'élève</label>${inp('ind.'+i+'.txt',I.txt)}
+  <div class="row indth"><label>${I.dir=='lo'?'Vert si ≤':'Vert si ≥'} <input type="number" step="0.1" value="${I.v}" oninput="pedSet('ind.${i}.v',+this.value)"></label><label>${I.dir=='lo'?'Orange si ≤':'Orange si ≥'} <input type="number" step="0.1" value="${I.o}" oninput="pedSet('ind.${i}.o',+this.value)"></label><span class="mut">${esc(I.u||'')}</span></div></div>`).join('')||'<p class="mut">Aucun indicateur.</p>'}
+ ${(()=>{const miss=PED0.ind.filter(d=>!(P.ind||[]).some(x=>x.k==d.k));return miss.length?`<div class="tb">${miss.map(d=>`<button class="b g" onclick="pedDo(P=>{(P.ind=P.ind||[]).push(clone(PED0.ind.find(x=>x.k=='${d.k}')))})">+ ${esc(d.ti)}</button>`).join('')}</div>`:''})()}</div>
+ <div class="card"><h3 style="margin-top:0">Séquence de leçons</h3><p class="mut">Quand tu prépares la n-ième leçon d'une classe, l'objectif et les situations de la ligne n sont proposés.</p>${P.cyc.map((c,i)=>`<div class="pedi"><div class="ch"><b>Leçon ${i+1}</b>${inp('cyc.'+i+'.obj',c.obj,'Objectif')}<select title="Indicateur de la leçon" onchange="pedSet('cyc.${i}.ind',this.value)"><option value="">🎨 aucun indicateur</option>${(P.ind||[]).map(I=>`<option value="${I.id}" ${c.ind==I.id?'selected':''}>🎨 ${esc(I.ti)}</option>`).join('')}</select></div>
   <div class="lchips">${P.sit.map(x=>`<button class="${(c.sit||[]).includes(x.id)?'on':''}" onclick="pedDo(P=>{const s=new Set(P.cyc[${i}].sit||[]);s.has('${x.id}')?s.delete('${x.id}'):s.add('${x.id}');P.cyc[${i}].sit=[...s]})">${esc(x.ti)}</button>`).join('')}</div></div>`).join('')}
   <div class="tb"><button class="b g" onclick="pedDo(P=>P.cyc.push({obj:'',sit:[]}))">+ Ajouter une leçon</button>${P.cyc.length?`<button class="b g" onclick="pedDo(P=>P.cyc.pop())">Retirer la dernière</button>`:''}</div></div>
  <div class="card"><h3 style="margin-top:0">Sous la ligne rouge : conseils selon le « pourquoi »</h3><p class="mut">Chaque conseil peut être montré automatiquement à l'élève, ou proposé par toi au cas par cas (tablette de contrôle → « 💡 Proposer un conseil »).</p>${WHY.map(w=>{const m=P.rem[w]||{t:'',s:''};return `<div class="pedi"><b>${esc(w)}</b><textarea oninput="pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]={...(pedW().rem[${JSON.stringify(w).replace(/"/g,'&quot;')}]||{}),t:this.value};save()">${esc(m.t)}</textarea>
@@ -745,10 +792,11 @@ function helpOf(M){const low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=
 /* ---------- tablette de contrôle (enseignant) : une carte par élève, mise à jour en direct ---------- */
 function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.nom||'',t=today(),L=recOf(nom,t),cfg=lecFor(sel,t)||(CF.sea?.d==t&&(CF.sea.cl||'')==sel?CF.sea:null),min=cfg?.min||0;
  const all=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr')),ab=absL(sel),names=all.filter(n=>!ab.includes(n)||L.some(r=>r.el==n)),absent=all.filter(n=>!names.includes(n));
- const card=n=>{const M=L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1),H=M.map(r=>r.h).filter(isNum).map(Number),best=bestOk(M),low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=M[M.length-1],ok=min&&M.length>=min,dz=typeof EPSD!='undefined'&&EPSD.find&&EPSD.find(nom,n);
+ const IL=indOf(lecFor(sel,t)?.ind),ivOf=n=>{const M=L.filter(r=>r.el==n);return IL?indVal(IL,M,R.filter(r=>r.el==n&&(r.cl||'')==nom&&String(r.ts).slice(0,10)<t)):null};
+ const card=n=>{const M=L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1),iv=ivOf(n),ic=IL?indCol(IL,iv):'',H=M.map(r=>r.h).filter(isNum).map(Number),best=bestOk(M),low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=M[M.length-1],ok=min&&M.length>=min,dz=typeof EPSD!='undefined'&&EPSD.find&&EPSD.find(nom,n);
   const tri=[...new Map(M.map(r=>[r.d,M.some(x=>x.d==r.d&&Number(x.h)==TOP)])).entries()].sort((a,b)=>gk(a[0])-gk(b[0]));
   const ms=msgOf(n,nom,t),lm=ms[ms.length-1],hp=helpOf(M);
-  return `<div class="ccard ${M.length?'':'idle'} ${ok?'done':''} ${low||hp?'low':''}"><div class="cch">${chip(n,{cl:'mini'})}${dz?'<span class="cdz">🩹</span>':''}</div>${belTag(n,sel)}
+  return `<div class="ccard ${M.length?'':'idle'} ${ok?'done':''} ${low||hp?'low':''} ${ic?'ind-'+ic:''}">${IL&&iv!=null?`<div class="cind ${ic}">🎨 ${indFmt(IL,iv)}${IL.u&&IL.k!='top'&&IL.k!='flu'?' <small>'+esc(IL.u)+'</small>':''}</div>`:''}<div class="cch">${chip(n,{cl:'mini'})}${dz?'<span class="cdz">🩹</span>':''}</div>${belTag(n,sel)}
   <div class="cact"><button class="b g" data-n="${esc(n)}" onclick="msgDlg(this.dataset.n)">💬 Message</button>${M.length?'':`<button class="b g" data-n="${esc(n)}" onclick="setAbs(this.dataset.n,1)">Absent</button>`}</div>
   ${lm?`<p class="cmsg ${lm.seen?'seen':''}">💬 « ${esc(lm.t)} »<small>${lm.seen?'lu à '+esc(lm.seen):'envoyé à '+esc(lm.ts)+(lm.gseen?' · transmis par '+esc(lm.gby||'le groupe')+' à '+esc(lm.gseen):' · pas encore lu')}</small></p>`:''}
   <div class="cprog"><b>${M.length}</b>${min?`<span>/ ${min} ${min>1?'voies':'voie'}</span>`:`<span>${M.length>1?'voies':'voie'}</span>`}${ok?'<em>✓</em>':''}</div>${min?`<div class="cbar"><i style="width:${Math.min(100,M.length/min*100)}%"></i></div>`:''}
@@ -764,6 +812,7 @@ function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.n
  <div class="row" style="margin-top:10px"><button class="b g" onclick="syResend()">⬆️ Renvoyer tout ce qui est sur cette tablette</button><button class="b g" onclick="syRefetch()">⬇️ Tout récupérer</button></div></div>`:''}
  <div class="sub ctab"><button class="b ${S.cv2!='a'?'':'g'}" onclick="S.cv2='g';render()">🧗 Grimpes</button><button class="b ${S.cv2=='a'?'':'g'}" onclick="S.cv2='a';render()">🪢 Assurage</button></div>
  ${S.cv2=='a'?belGrid(names,sel):`${(()=>{const H=names.map(n=>[n,helpOf(L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1))]).filter(x=>x[1]&&!msgOf(x[0],nom,t).some(m=>!m.seen));const H2=S.hpAll?H:H.slice(0,4);return H.length?`<div class="helpb"><b>🆘 À aider (${H.length})</b>${H2.map(([n,h])=>`<button class="b g" data-n="${esc(n)}" data-w="${esc(h.why)}" onclick="msgDlg(this.dataset.n,this.dataset.w)">${esc(n)} <small>${esc(h.t)}</small> · 💡 conseil</button>`).join('')}${H.length>4?`<button class="b g hpmore" onclick="S.hpAll=!S.hpAll;render()">${S.hpAll?'Réduire':'+ '+(H.length-4)+' autre'+(H.length-4>1?'s':'')}</button>`:''}</div>`:''})()}
+ ${IL?(()=>{const C={good:0,mid:0,bad:0};names.forEach(n=>{const c=indCol(IL,ivOf(n));if(c)C[c]++});return `<div class="indsum"><b>🎨 ${esc(IL.ti)}</b><span class="good">${C.good} vert</span><span class="mid">${C.mid} orange</span><span class="bad">${C.bad} rouge</span><small>${esc(IL.txt||'')}</small></div>`})():''}
  <div class="stats">${stx(act+' / '+names.length,'élèves ont grimpé'+(absent.length?' ('+absent.length+' absent'+(absent.length>1?'s':'')+')':''))}${stx(L.length,pw(L.length,'voie')+' '+pw(L.length,'grimpée'))}${stx(L.filter(r=>Number(r.h)==TOP).length,'Top')}${min?stx(names.filter(n=>L.filter(r=>r.el==n).length>=min).length+' / '+names.length,'objectif atteint ('+min+' voie'+(min>1?'s':'')+')'):''}</div>
  ${names.length?(()=>{ /* regroupement par groupe du jour (suivi groupe par groupe), puis les élèves sans groupe */
   const DG=dayG(sel),seen=new Set(),blocks=[];
@@ -804,9 +853,9 @@ const litem=(d,sub,act,on)=>{const x=new Date(d+'T12:00');return `<button class=
 function lastCfg(cl,d=today()){const L=LEC().filter(l=>(l.cl||'')==(cl||'')&&l.d<=d).sort((a,b)=>b.d.localeCompare(a.d))[0]||LEC().filter(l=>(l.cl||'')==(cl||'')).sort((a,b)=>b.d.localeCompare(a.d))[0];
  return L?{cr:[...L.cr],req:[...(L.req||[])],min:L.min||0}:{cr:[...ALL],req:[],min:0}}
 /* leçon du jour d'une classe : celle préparée, sinon créée avec les réglages de la dernière leçon */
-function activate(cl){let L=lecFor(cl,today());if(!L){const y=cycFor(cl,today());L={id:uid(),cl:cl||'',d:today(),...lastCfg(cl),...(y?{obj:y.obj,sit:y.sit}:{})};LEC().push(L)}CF.sea=clone(L);save();return L}
+function activate(cl){let L=lecFor(cl,today());if(!L){const y=cycFor(cl,today());L={id:uid(),cl:cl||'',d:today(),...lastCfg(cl),...(y?{obj:y.obj,sit:y.sit,...(y.ind?{ind:y.ind}:{})}:{})};LEC().push(L)}CF.sea=clone(L);save();return L}
 function newLe(d){const sel=CF.sel||'';if(!d){const t=new Date();t.setDate(t.getDate()+1);d=t.toLocaleDateString('fr-CA');while(lecFor(sel,d)){const x=new Date(d+'T12:00');x.setDate(x.getDate()+1);d=x.toLocaleDateString('fr-CA')}}
- const y=cycFor(sel,d);S.le={id:'',cl:sel,d,...lastCfg(sel,d),...(y?{obj:y.obj,sit:y.sit}:{})};render();scrollTo(0,0)}
+ const y=cycFor(sel,d);S.le={id:'',cl:sel,d,...lastCfg(sel,d),...(y?{obj:y.obj,sit:y.sit,...(y.ind?{ind:y.ind}:{})}:{})};render();scrollTo(0,0)}
 function editLe(id){const L=LEC().find(l=>l.id==id);if(L){S.le=clone(L);render();scrollTo(0,0)}}
 function quickLe(){const L=activate(CF.sel||'');startLe(L.id)}
 function startLe(id){const L=LEC().find(l=>l.id==id);if(!L)return;CF.sea=clone(L);CF.sel=L.cl;save();fresh();S.T=false;S.le=null;S.lv=null;S.t=L.cl&&cls()?.el.length?'grp':'home';S.gs=grp();render();scrollTo(0,0);say('Leçon commencée. La tablette est prête pour les élèves.')}
@@ -814,12 +863,14 @@ function lecEdit(){const L=S.le,k=CL.find(c=>c.id==L.cl),isT=L.d==today();
  return `<p style="margin:2px 0 6px"><button class="b g" onclick="S.le=null;render();scrollTo(0,0)">← Retour aux leçons</button></p><h2 style="margin-top:4px">${L.id?'Modifier la leçon':'Préparer une leçon'}</h2>
  <div class="card"><h3 style="margin-top:0">Date et classe</h3><div class="row"><input type="date" value="${L.d}" min="${today()}" onchange="if(this.value){S.le.d=this.value;render()}"><span class="fix sea" style="margin:0">${k?esc(k.nom):'Sans liste'}</span></div>
  <p class="mut">${cap(fday(L.d,true))}${isT?" · c'est aujourd'hui":''}</p></div>
+ <div class="card"><h3 style="margin-top:0">🎨 Indicateur de performance de la leçon</h3><p class="mut">Calculé pour chaque élève, avec une couleur (vert, orange, rouge) à l'écran « Grimpe enregistrée » et sur la tablette de contrôle. <button class="lnk" onclick="S.le=null;S.t='ped';render();scrollTo(0,0)">Modifier ou supprimer les indicateurs</button></p>
+ <div class="lchips"><button class="${L.ind?'':'on'}" onclick="S.le.ind='';render()">Aucun</button>${(PED().ind||[]).map(I=>`<button class="${L.ind==I.id?'on':''}" onclick="S.le.ind='${I.id}';${I.k=='mpd'||I.k=='rp'?`S.le.cr=[...new Set([...S.le.cr,'m'${I.k=='rp'?",'p'":''},'h'])];`:I.k!='flu'?"S.le.cr=[...new Set([...S.le.cr,'h'])];":''}render()">${esc(I.ti)}</button>`).join('')}</div></div>
  <div class="card"><h3 style="margin-top:0">Repère de hauteur</h3><p class="mut">Une dégaine compte comme dépassée quand elle est sous…</p>
  <div class="row"><button class="b ${L.href=='bas'?'g':''}" onclick="S.le.href='ep';render()">Ta ligne d'épaules</button><button class="b ${L.href=='bas'?'':'g'}" onclick="S.le.href='bas';render()">Ton bassin (comme au CCF)</button></div></div>
  <div class="card"><h3 style="margin-top:0">Éléments travaillés</h3><p class="mut">Seuls les éléments cochés seront proposés aux élèves. « Obligatoire » : l'élève ne peut pas enregistrer sa grimpe sans cet élément.</p>
  ${CRIT.map(([c,n])=>{const on=L.cr.includes(c),q=on&&L.req.includes(c);return `<div class="ck"><label class="ckl"><input type="checkbox" ${on?'checked':''} onchange="tgCr('${c}',this.checked)">${n}</label><button class="rq ${q?'on':''}" ${on?'':'disabled'} onclick="tgReq('${c}')">${q?'★ Obligatoire':'Facultatif'}</button></div>`}).join('')}
  <div class="tb"><button class="b g" onclick="S.le.cr=[...ALL];render()">Tout cocher</button><button class="b g" onclick="S.le.cr=[];S.le.req=[];render()">Tout décocher</button></div></div>
- ${(()=>{const y=cycFor(L.cl,L.d);return y?`<div class="card cycp"><b>📚 Leçon ${y.n} de la séquence</b> · proposé : « ${esc(y.obj)} »${y.sit.length?' · '+y.sit.map(i=>esc(sitOf(i)?.ti||'')).join(', '):''}<button class="b g" onclick="S.le.obj=${esc(JSON.stringify(y.obj))};S.le.sit=${esc(JSON.stringify(y.sit))};render()">Utiliser</button></div>`:''})()}
+ ${(()=>{const y=cycFor(L.cl,L.d);return y?`<div class="card cycp"><b>📚 Leçon ${y.n} de la séquence</b> · proposé : « ${esc(y.obj)} »${y.ind&&indOf(y.ind)?' · 🎨 '+esc(indOf(y.ind).ti):''}${y.sit.length?' · '+y.sit.map(i=>esc(sitOf(i)?.ti||'')).join(', '):''}<button class="b g" onclick="S.le.obj=${esc(JSON.stringify(y.obj))};S.le.sit=${esc(JSON.stringify(y.sit))};S.le.ind=${esc(JSON.stringify(y.ind||''))};render()">Utiliser</button></div>`:''})()}
  <div class="card"><h3 style="margin-top:0">Situations d'apprentissage</h3><p class="mut">Affichées aux élèves sur l'accueil et pendant la saisie d'une grimpe. <button class="lnk" onclick="S.le=null;S.t='ped';render();scrollTo(0,0)">Modifier les situations</button></p>
  <div class="lchips">${PED().sit.map(x=>`<button class="${(L.sit||[]).includes(x.id)?'on':''} ${x.draft?'draft':''}" onclick="const s=new Set(S.le.sit||[]);s.has('${x.id}')?s.delete('${x.id}'):s.add('${x.id}');S.le.sit=[...s];render()">${esc(x.ti)}</button>`).join('')}</div></div>
  <div class="card"><h3 style="margin-top:0">Objectif</h3><label class="l" style="margin-top:0">Objectif de la leçon (affiché sur l'accueil des élèves)</label><input value="${esc(L.obj||'')}" maxlength="140" placeholder="Ex. : Travailler le placement des pieds" oninput="S.le.obj=this.value">
@@ -1016,7 +1067,7 @@ function grimpe(){
  if(F.step==2)return `<div class="card">${top}<h3>Numéro de la corde</h3><div class="grid vg">${W.map((_,i)=>`<button class="b ${F.vo==i+1?'on':'g'}" onclick="F.vo=${i+1};go(3)">${i+1}</button>`).join('')}</div>${back(1)}</div>`;
  if(F.step==3)return `<div class="card">${top}<h3>Corde ${F.vo} : couleur de la voie</h3><div class="cols">${w.map(([c],j)=>`<button class="b g colb" onclick="F.c=W[${F.vo-1}][${j}][0];F.d=W[${F.vo-1}][${j}][1];go(4)">${cs(c)}${esc(c)}</button>`).join('')||'<p class="mut">Aucune couleur pour cette corde.</p>'}</div>${back(2)}</div>`;
  if(F.step==4)return `<div class="card">${top}<h3>Vérifie ta voie</h3><div class="conf" style="border-color:${COL[F.c]||'#ccc'}">${cs(F.c)}<div><b>Corde ${F.vo}</b> · voie ${esc(F.c)}<br><span class="mut" style="font-size:18px">Difficulté</span> <span class="cot">${esc(F.d)}</span></div></div><p>Est-ce bien la voie que tu as grimpée ?</p><div class="row"><button class="b g" onclick="go(3)">Non, revenir</button><button class="b" onclick="go(5)">Oui, c'est ça</button></div></div>`;
- if(F.step==6)return `<div class="card ok">${goal()}${(()=>{const r=R.find(x=>x.id==F.last),x=r&&rpR(r);if(x==null||!r)return '';const [c,t]=rpLvl(x);return `<div class="rpm ${c}" style="text-align:left;margin-bottom:14px"><b>Ratio pieds / mains : ${fnum(x)}</b><span>${r.p} pieds pour ${r.m} mains · ${t}</span></div>`})()}${remBox()}<span class="lab">✓ Grimpe enregistrée${F.eleve?' pour <b>'+esc(F.eleve)+'</b>':''}</span><p><button class="b d" onclick="undo()">↶ Annuler cet enregistrement</button></p><div class="row"><button class="b" onclick="again(true)">Autre voie (${esc(F.eleve)||'même élève'})</button><button class="b g" onclick="again(false)">Élève suivant (même groupe)</button></div><p style="margin-top:10px"><button class="b" style="width:100%;background:#16252d" onclick="doneG()">✓ Terminé : retour au choix du groupe</button></p><div></div></div>`;
+ if(F.step==6)return `<div class="card ok">${goal()}${indBox(R.find(x=>x.id==F.last))}${(()=>{const r=R.find(x=>x.id==F.last),x=r&&rpR(r);if(x==null||!r||lecInd()?.k=='rp')return '';const [c,t]=rpLvl(x);return `<div class="rpm ${c}" style="text-align:left;margin-bottom:14px"><b>Ratio pieds / mains : ${fnum(x)}</b><span>${r.p} pieds pour ${r.m} mains · ${t}</span></div>`})()}${remBox()}<span class="lab">✓ Grimpe enregistrée${F.eleve?' pour <b>'+esc(F.eleve)+'</b>':''}</span><p><button class="b d" onclick="undo()">↶ Annuler cet enregistrement</button></p><div class="row"><button class="b" onclick="again(true)">Autre voie (${esc(F.eleve)||'même élève'})</button><button class="b g" onclick="again(false)">Élève suivant (même groupe)</button></div><p style="margin-top:10px"><button class="b" style="width:100%;background:#16252d" onclick="doneG()">✓ Terminé : retour au choix du groupe</button></p><div></div></div>`;
  return `<div class="card">${top}<div class="sum">${esc(F.eleve)} · Corde ${F.vo} · ${cs(F.c)}${esc(F.c)} ${esc(F.d)}<button class="b g" onclick="go(2)">Changer</button></div>
  ${sitBox(LEC().find(l=>l.id==CF.sea?.id)||CF.sea)}
  ${roles()}
@@ -1030,8 +1081,8 @@ function critForm(){const n10=[1,2,3,4,5,6,7,8,9,10];
   pof:()=>`<div class="row"><button class="b ${F.pofU===false?'on':'g'}" onclick="F.pofU=false;F.pof='';render()">Non</button><button class="b ${F.pofU?'on':'g'}" onclick="F.pofU=true;render()">Oui</button></div>${F.pofU?`<p class="mut" style="margin:12px 0 6px">Combien de fois ?</p><div class="g10">${n10.map(n=>`<button class="b ${F.pof===n?'on':'g'}" onclick="F.pof=${n};render()">${n}</button>`).join('')}</div>`:''}`,
   k:()=>`<textarea oninput="F.com=this.value">${esc(F.com)}</textarea>`};
  const ord=[...CRIT.filter(([k])=>k=='h'),...CRIT.filter(([k])=>k!='h')].filter(([k])=>on(k));
- if(low())return crit('h',ord[0][1]+(CF.sea?.href=='bas'?' par ton bassin':' par ta ligne d\'épaules'),I.h())+whyBox();
- return ord.map(([k,n])=>crit(k,k=='h'?n+(CF.sea?.href=='bas'?' par ton bassin':' par ta ligne d\'épaules'):n,I[k]())+(k=='p'&&on('m')?`<div id="rpm">${ratioBox()}</div>`:'')).join('')}
+ if(low())return indInput()+crit('h',ord[0][1]+(CF.sea?.href=='bas'?' par ton bassin':' par ta ligne d\'épaules'),I.h())+whyBox();
+ return indInput()+ord.map(([k,n])=>crit(k,k=='h'?n+(CF.sea?.href=='bas'?' par ton bassin':' par ta ligne d\'épaules'):n,I[k]())+(k=='p'&&on('m')?`<div id="rpm">${ratioBox()}</div>`:'')).join('')}
 /* hauteur 0 : ligne rouge (3 m) non dépassée → les autres critères se ferment, l'élève dit pourquoi */
 const low=()=>on('h')&&!F.nr.h&&F.h===0;
 const WHY=EPSP.p({id:'why',sec:'Grimpe : ce que l\'élève renseigne',label:'Raisons proposées quand la voie n\'est pas terminée (« Pourquoi ? »)',type:'list',def:["J'ai eu peur","J'étais fatigué(e)","La voie était trop difficile","Je n'ai pas trouvé de prise","J'ai eu mal / une gêne","Problème de matériel ou de sécurité","Autre raison"]});
@@ -1070,7 +1121,7 @@ function rec(){ROLES.forEach(([k])=>F[k]=String(F[k]||'').trim());
  if(miss.length){F.miss=miss.map(m=>m[0]);render();document.getElementById('cr_'+F.miss[0]).scrollIntoView({behavior:'smooth',block:'center'});
   return say('Il manque '+(miss.length>1?'des éléments obligatoires':'un élément obligatoire')+' :\n• '+miss.map(m=>m[1].replace(/ \?.*$| :.*$/,'')).join('\n• '))}
  F.miss=[];const n=F.nr,x=(k,v)=>(lw&&k!='h')||(n[k]&&!req(k))||!on(k)?'':v;
- F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,lid:CF.sea?.id||'',ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pofU===false?0:F.pofU?(F.pof===''?1:Number(F.pof)):''),k:x('k',F.com),why:lw?F.why+(wt?' – '+wt:''):'',asr:F.asr,cas:F.cas,obs:F.obs});
+ F.last=Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);R.push({id:F.last,lid:CF.sea?.id||'',ts:new Date().toLocaleString('sv').slice(0,16),tab:CF.tab,cl:cls()?.nom||'',el:F.eleve,vo:F.vo,c:F.c,d:F.d,m:x('m',F.mains),p:x('p',F.pieds),cp:x('cp',F.cp),h:x('h',F.h),a:x('a',F.as?Number(F.asV)||1:0),pm:x('pm',F.pme?Number(F.pmeV)||1:0),pof:x('pof',F.pofU===false?0:F.pofU?(F.pof===''?1:Number(F.pof)):''),k:x('k',F.com),why:lw?F.why+(wt?' – '+wt:''):'',asr:F.asr,cas:F.cas,obs:F.obs,...(isNum(F.ann)?{ann:F.ann}:{}),...(F.ch&&F.ch.end?{tt:Math.round(F.ch.tt),ta:Math.round(F.ch.ta)}:{})});
  save();shAdd(F.last);go(6)}
 /* ---------- mes résultats ---------- */
 const fnum=x=>x.toLocaleString('fr-FR',{maximumFractionDigits:1});
