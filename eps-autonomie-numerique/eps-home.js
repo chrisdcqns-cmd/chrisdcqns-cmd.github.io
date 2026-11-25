@@ -1196,7 +1196,7 @@
     var cur = ""; try { cur = G.current ? G.current() : ""; } catch (e) {}
     var R = G.resources || [];
     var d = document.createElement("div"); d.className = "epsg";
-    d.innerHTML = '<div class="epsg-hd" style="background:#14171C;box-shadow:inset 0 -4px 0 ' + col + '"><div class="epsg-ic" style="background:' + col + '">' + (G.icon || "") + '</div><div><h1>' + esc(G.app || "") + '</h1>' + (G.sub ? "<p>" + esc(G.sub) + "</p>" : "") + '</div><a class="epsg-home" href="' + BASE + '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Accueil</a></div>' +
+    d.innerHTML = '<div class="epsg-hd" style="background:#14171C;box-shadow:inset 0 -4px 0 ' + col + '"><div class="epsg-ic" style="background:' + col + '">' + (G.icon || "") + '</div><div style="flex:1"><h1>' + esc(G.app || "") + '</h1>' + (G.sub ? "<p>" + esc(G.sub) + "</p>" : "") + '</div><span data-eps-upd-slot></span><a class="epsg-home" href="' + BASE + '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Accueil</a></div>' +
       '<div class="epsg-in"><h2>Choisis ta classe</h2>' +
       (L.length || G.noClass ? '<div class="epsg-g">' + L.map(function (c) {
         return '<button class="epsg-c' + (c.id === cur ? " on" : "") + '" data-c="' + esc(c.id) + '"' + (c.id === cur ? ' style="border-color:' + col + '"' : "") + '><b>' + esc(c.nom) + '</b><span>' + esc(c.note || (c.n != null ? c.n + " élève" + (c.n > 1 ? "s" : "") : "")) + "</span></button>";
@@ -1231,7 +1231,7 @@
   /* 🤖 diagnostic de la liaison avec Claude (Réglages → Partage) : dit précisément ce qui bloque et quoi faire */
   function testClaude() {
     var cfg = shCfg(); if (!cfg) return Promise.resolve("○ Le partage entre tablettes n'est pas réglé : Claude passe par le script commun. Règle d'abord l'adresse et la clé.");
-    return jsonp(cfg, { ai: "fiche", t: "Test : pieds précis, lit bien la voie, assurage encore hésitant.", act: "Escalade", ctx: "", lang: "" }, 40000).then(function (r) {
+    return jsonp(cfg, { ai: "fiche", t: "Test : pieds précis, lit bien la voie, assurage encore hésitant.", act: "Escalade", ctx: "", lang: "" }, 90000).then(function (r) {
       if (!r) return "⚠ Pas de réponse du script.\n→ Vérifie la connexion, puis dans le script : Déployer > Gérer les déploiements : « Exécuter en tant que : moi » et « Qui a accès : Tout le monde ».";
       if (!r.keyOk) return "⚠ Le script refuse la clé du partage.\n→ Dans Code.gs, la ligne « const SECRET = '…' » doit contenir TA clé (celle de cette tablette), pas « CHANGE-MOI ». Enregistre puis redéploie (nouvelle version).";
       var e = String(r.aiErr || "");
@@ -1251,8 +1251,8 @@
   function reformuler(texte, o) {
     o = o || {}; var cfg = shCfg();
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
-    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : 1500), act: o.act || actName(), ctx: String(o.ctx || "").slice(0, 600), lang: o.lang || "" }, 40000).then(function (r) {
-      if (!r) throw new Error("Pas de réponse du script (connexion ?)");
+    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : 1500), act: o.act || actName(), ctx: String(o.ctx || "").slice(0, 600), lang: o.lang || "" }, 90000).then(function (r) {
+      if (!r) throw new Error("Pas de réponse du script en 90 s (connexion ? Claude surchargé ?) : réessaie.");
       if (!r.keyOk) throw new Error("Clé du partage refusée par le script");
       if (r.aiErr) throw new Error(/ANTHROPIC_KEY/.test(r.aiErr) ? "Clé Claude absente du script (Propriétés du script → ANTHROPIC_KEY)" : r.aiErr);
       if (r.ai == null) throw new Error("Le script n'est pas encore à jour : colle le nouveau Code.gs et redéploie (nouvelle version)");
@@ -1484,7 +1484,10 @@
     /* requête longue au script commun (POST, réponse lisible) : ex. {lc:{…}} pour les leçons (Claude) */
     post: function (body) { var cfg = shCfg(); if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
       body = Object.assign({ key: cfg.key }, body);
-      return fetch(cfg.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }); },
+      /* attente plafonnée à 4 min (un long document peut prendre du temps), message clair au lieu d'une attente sans fin */
+      var ac = window.AbortController ? new AbortController() : null, tm = setTimeout(function () { try { ac && ac.abort(); } catch (e) {} }, 240000);
+      return fetch(cfg.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined }).then(function (r) { clearTimeout(tm); return r.json(); },
+        function (e) { clearTimeout(tm); throw new Error(e && e.name === "AbortError" ? "pas de réponse après 4 min : réessaie, ou découpe le document" : (navigator.onLine === false ? "pas de connexion Internet" : "réseau : " + (e && e.message || e))); }); },
     shared: function () { return !!shCfg(); }, applyLists: function () { return applyLocal(); }, share: shareSettings,  list: all, active: activeOn, find: find, label: label, manage: manage, importList: importList, editLists: editLists, shareSettings: function () { askCode().then(function (ok) { if (ok) shareSettings(); }); }, show: showList, sync: sync,
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
 
@@ -1576,8 +1579,8 @@
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
     var s = b.style, slot = epsSlot();
     /* 🔄 visible partout, élèves compris : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
-    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-f{position:fixed;z-index:2147483300;bottom:calc(12px + env(safe-area-inset-bottom,0px));right:calc(12px + env(safe-area-inset-right,0px));width:46px;height:46px;border-radius:50%;display:grid;place-items:center;border:0;padding:0;background:rgba(31,95,139,.9);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
-    if (slot) b.className = "epsb"; else b.className = "eps-upd-f";
+    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
+    b.className = "epsb"; b.style.display = "none"; document.body.appendChild(b); setTimeout(function () { try { placeUpd(); } catch (e) {} }, 50);
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
       var tip = document.createElement("div");
@@ -1592,15 +1595,18 @@
     };
     (slot || document.body).appendChild(b);
   }
+  /* 🔄 toujours dans un bandeau : emplacement réservé visible ([data-eps-upd-slot] : écran « Choisis ta classe », pages sans barre commune,
+     valeur "light" pour un bandeau clair), sinon la barre commune [data-eps-bar] ; si aucun bandeau n'est visible (écran plein recouvrant), masqué. */
+  function visibleFree(el) { if (!el || !el.getClientRects().length) return false; var r = el.getBoundingClientRect(); if (!r.width && !r.height) { var p = el.parentElement; if (!p) return false; r = p.getBoundingClientRect(); }
+    var y = r.top + Math.max(4, r.height / 2), x = Math.max(r.left + 4, Math.min(r.right - 4, r.left + r.width / 2)); if (y < 0 || y > innerHeight) return false; var t = document.elementFromPoint(x, y); return !!t && (el.contains(t) || t.contains(el) || (el.parentElement && el.parentElement.contains(t) && !t.closest(".epse,.lc-ov,.lc-modal,.epsd-ov,.epspn,.lc-st"))); }
   function placeUpd() {
     var b = document.getElementById("eps-upd"); if (!b) return; if (window.EPS_VUE_ELEVE && window.top !== window) { b.style.display = "none"; return; }
-    var sl = epsSlot(), ok = false;
-    if (sl && sl.getClientRects().length) { var r = sl.getBoundingClientRect(), x = r.left + Math.min(20, r.width / 2), y = r.top + r.height / 2, top = r.width && y > 0 && y < innerHeight ? document.elementFromPoint(x, y) : null; ok = !!top && (sl.contains(top) || top === sl); if (!ok && b.parentNode === sl) { var r2 = b.getBoundingClientRect(), t2 = r2.width ? document.elementFromPoint(r2.left + r2.width / 2, r2.top + r2.height / 2) : null; ok = !!t2 && (t2 === b || b.contains(t2)); } }
-    if (ok) { if (b.parentNode !== sl) sl.appendChild(b); if (b.className !== "epsb") b.className = "epsb"; b.style.display = "inline-flex"; return; }
-    /* barre absente, ou recouverte par l'écran élève « Choisis ta classe » / en mode élève : bouton rond en bas à droite ;
-       barre recouverte par un écran enseignant (évaluation, fiches…) : masqué, pour ne cacher aucun bouton */
-    var gate = document.querySelector(".epsg"), flot = !sl || !isTeacher() || (gate && gate.getClientRects().length);
-    if (b.parentNode !== document.body) document.body.appendChild(b); if (b.className !== "eps-upd-f") b.className = "eps-upd-f"; b.style.display = flot ? "" : "none";
+    var S = Array.prototype.filter.call(document.querySelectorAll("[data-eps-upd-slot]"), function (x) { return visibleFree(x); })[0], sl = S || (function () { var e = epsSlot(); return e && (visibleFree(e) || (b.parentNode === e && visibleFree(b))) ? e : null; })();
+    if (!sl) { var nv = Array.prototype.filter.call(document.querySelectorAll(".epst-nav"), function (x) { return visibleFree(x); })[0]; /* barre de l'appli cachée en descendant : le 🔄 passe dans la barre des onglets, toujours visible */
+      if (nv) { if (b.parentNode !== nv) nv.appendChild(b); b.className = "epsb eps-upd-n"; b.style.display = "inline-flex"; return; }
+      b.style.display = "none"; return; }
+    if (b.parentNode !== sl) sl.appendChild(b);
+    var cls = S && S.getAttribute("data-eps-upd-slot") === "light" ? "epsb eps-upd-l" : "epsb"; if (b.className !== cls) b.className = cls; b.style.display = "inline-flex";
   }
   /* emplacement(s) des boutons communs dans la barre du haut de l'appli : on utilise celui qui est visible
      (une appli peut en avoir plusieurs, par exemple un par écran) */

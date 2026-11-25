@@ -319,14 +319,38 @@ function lecon_(q) {
   if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
   return { lecon: JSON.parse(t.slice(a, b + 1)) };
 }
+/* Appel à l'API de Claude, robuste : 3 essais si l'API est surchargée ou occupée (429, 500, 502, 503, 504, 529),
+   réponse redemandée plus longue si elle a été coupée (max_tokens), messages d'erreur compréhensibles. */
+function claudeRaw_(key, body) {
+  var last = '', code = 0, out = {};
+  for (var i = 0; i < 3; i++) {
+    var r;
+    try {
+      r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, payload: JSON.stringify(body) });
+    } catch (e) {
+      last = String(e && e.message || e);
+      if (/timeout|délai|timed out/i.test(last)) throw new Error('Claude a mis trop de temps à répondre. Réessaie, ou découpe la demande (document plus court).');
+      Utilities.sleep(1500 * (i + 1)); continue;
+    }
+    code = r.getResponseCode(); out = {}; try { out = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
+    if (code === 200) {
+      if (out.stop_reason === 'max_tokens' && body.max_tokens < 16000 && i < 2) { body.max_tokens = Math.min(16000, Math.round(body.max_tokens * 1.8)); continue; }
+      return out;
+    }
+    last = (out.error && out.error.message) || ('code ' + code);
+    if ([429, 500, 502, 503, 504, 529].indexOf(code) < 0) break;
+    Utilities.sleep(2000 * (i + 1) * (i + 1));
+  }
+  if (code === 401 || code === 403) throw new Error('Clé Claude refusée : vérifie ANTHROPIC_KEY (Propriétés du script). ' + last);
+  if (code === 429) throw new Error('Trop de demandes à Claude en même temps : réessaie dans une minute.');
+  if (code === 529 || code === 503 || code === 500 || code === 502 || code === 504) throw new Error('Claude est surchargé pour le moment : réessaie dans quelques minutes.');
+  if (code === 400 && /model/i.test(last)) throw new Error('Modèle de Claude indisponible (' + (body.model || '') + ') : ' + last);
+  if (code === 400 && /credit|billing|balance/i.test(last)) throw new Error('Crédit Claude épuisé sur le compte Anthropic : ' + last);
+  throw new Error('API ' + (code || '?') + ' : ' + last);
+}
 function claude_(key, system, user, model, maxTokens) {
-  const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({ model: model || CLAUDE_MODEL, max_tokens: maxTokens || 700, system: system, messages: [{ role: 'user', content: user }] })
-  });
-  const code = r.getResponseCode(), out = JSON.parse(r.getContentText() || '{}');
-  if (code !== 200) throw new Error('API ' + code + ' : ' + ((out.error && out.error.message) || ''));
+  const out = claudeRaw_(key, { model: model || CLAUDE_MODEL, max_tokens: maxTokens || 700, system: system, messages: [{ role: 'user', content: user }] });
   return (out.content || []).filter(function (c) { return c.type === 'text'; }).map(function (c) { return c.text; }).join('').trim();
 }
 
@@ -432,16 +456,10 @@ function badSituation_(key, p) {
     'Une zone qui n\'apparaît pas dans zones est normale et vaut 1. Pour « zone à 1000 points » ou « plus une zone est atteinte, moins elle rapporte », utilise le mode g. Pour un contrat (« un point marqué dans la zone X = point de contrat »), mets la zone en b avec une valeur de 2 ou 3 et un contrat de 3 à 5 points. ' +
     'Pour réguler le niveau (« zones plus petites pour le plus fort »), utilise asym avec profB/latB (zones visées par B) ou pour = a / b. Par défaut : match en simple, 11 points, score classique, faute = 1. ' +
     'Respecte exactement la demande, ne rajoute pas de règle non demandée. Vocabulaire : « leçon », « séquence ». Rédige desc pour des lycéens (tutoiement, phrases courtes).';
-  const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({ model: CLAUDE_MODEL_SIT, max_tokens: 1500, system: system,
+  const out = claudeRaw_(key, { model: CLAUDE_MODEL_SIT, max_tokens: 1500, system: system,
       tools: [{ name: 'regler_situation', description: 'Réglage complet de la situation de badminton', input_schema: BAD_SIT_SCHEMA }],
       tool_choice: { type: 'auto' },
-      messages: [{ role: 'user', content: (ctx ? 'Contexte : ' + ctx + '\n' : '') + 'Situation voulue : ' + texte + '\n\nRéponds uniquement en appelant l\'outil regler_situation.' }] })
-  });
-  const code = r.getResponseCode(), out = JSON.parse(r.getContentText() || '{}');
-  if (code !== 200) throw new Error('API ' + code + ' : ' + ((out.error && out.error.message) || ''));
+      messages: [{ role: 'user', content: (ctx ? 'Contexte : ' + ctx + '\n' : '') + 'Situation voulue : ' + texte + '\n\nRéponds uniquement en appelant l\'outil regler_situation.' }] });
   const t = (out.content || []).filter(function (c) { return c.type === 'tool_use'; })[0];
   if (t) return JSON.stringify(t.input);
   // Secours : le modèle a répondu en texte → on récupère le JSON s'il y en a un.

@@ -106,7 +106,12 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 
 ## Mode élève verrouillé, bouton 🔄
 - eps-home.js (`eleveLock`) : hors mode enseignant (`html.eps-teach`), le retour arrière est bloqué (entrée d'historique remise à chaque retour et à chaque appui), la sélection de texte, la loupe et le menu Copier de Chrome sont désactivés (sauf champs de saisie). Aucune appli ne doit utiliser `history.back()` ni `popstate` pour sa navigation.
-- 🔄 Mettre à jour (`#eps-upd`) : visible partout, élèves compris ; dans la barre du haut si elle est visible (`placeUpd`), sinon bouton rond en bas à droite (pas de barre, écran « Choisis ta classe », mode élève) ; masqué quand un écran enseignant recouvre la barre (pour ne cacher aucun bouton « Fermer »). Pages sans eps-home.js (terrain, mon-bilan) : bouton équivalent dans la page. « Mon bilan » (page élève, téléphone) : champ étiqueté, messages annoncés (`aria-live`), boutons pleine largeur sous 420 px.
+- 🔄 Mettre à jour (`#eps-upd`) : **toujours dans un bandeau**, jamais flottant (demande de l'enseignant), élèves compris (`placeUpd`) : 1) emplacement réservé visible `[data-eps-upd-slot]` (`="light"` sur bandeau clair) : écran « Choisis ta classe », CO-Évaluation, EDT, Appel AS ; 2) barre commune `[data-eps-bar]` ; 3) barre des onglets enseignant `.epst-nav` quand la barre de l'appli est cachée au défilement (épinglé à droite) ; sinon masqué. Pose des balises et Mon bilan : bouton dans leur bandeau. Toute nouvelle page sans barre commune met un `<span data-eps-upd-slot>` dans son bandeau.
+
+## Appels à Claude (fiabilité)
+- Script commun : tout appel passe par `claudeRaw_` (3 essais sur 429 / 5xx / 529 avec attente croissante, réponse redemandée plus longue si coupée par `max_tokens`, messages clairs : clé refusée, trop de demandes, surcharge, modèle indisponible, crédit épuisé, délai dépassé). Ne jamais rappeler `UrlFetchApp.fetch` vers l'API ailleurs.
+- Tablettes : `reformuler` (JSONP) attend 90 s ; `EPSD.post` (leçons, documents) 4 min avec `AbortController` et message clair ; les erreurs du script sont affichées telles quelles.
+- La barre des onglets enseignant se colle toujours sous la barre de l'appli, à sa hauteur réelle (`fitTop` d'eps-shell.js) : pas de superposition quand l'en-tête tient sur 2 lignes.
 
 ## Accessibilité
 - eps-home.js passe toutes les 1,5 s sur la page : nom accessible (aria-label) pour les boutons à icône seule (dictionnaire `NOMS`) et les champs sans étiquette, cible minimale 40 px pour les petits boutons (`data-eps-a11y-sm`), contour `:focus-visible`, `prefers-reduced-motion`. Gris de texte minimum `#6A6F78` (jamais `#9AA0A6`, contraste insuffisant). Une nouvelle appli : boutons ≥ 40 px, un texte ou un `aria-label` sur chaque bouton.

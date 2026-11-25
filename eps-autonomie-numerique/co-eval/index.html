@@ -151,7 +151,7 @@ html:has(.dr),body:has(.dr){overscroll-behavior:none;touch-action:none}
 </style>
 </head>
 <body>
-<header><img src="icon-192.png" alt="" style="width:34px;height:34px;border-radius:9px;flex:none"><h1 id="hT">Course d'orientation</h1><span class="net noprint" id="net">…</span><button class="hb noprint" id="hProf" title="Espace enseignant">🔒</button></header>
+<header><img src="icon-192.png" alt="" style="width:34px;height:34px;border-radius:9px;flex:none"><h1 id="hT">Course d'orientation</h1><span data-eps-upd-slot class="noprint"></span><span class="net noprint" id="net">…</span><button class="hb noprint" id="hProf" title="Espace enseignant">🔒</button></header>
 <main id="app"></main>
 <script>
 "use strict";
@@ -1353,9 +1353,47 @@ function fillBilanMaps(root = document, runs = RUNS) { const keep = CTXC; try { 
 function fillBilanMaps0(root, runs) {
   $$(".bmap", root).forEach(b => { const img = $("img", b), sv = $("svg", b), r = runs[+b.dataset.k]; const f = () => { const W = img.naturalWidth || 1000, H = img.naturalHeight || 1300; sv.setAttribute("viewBox", `0 0 ${W} ${H}`); const kc = CTXC; CTXC = carteOf(r); try { sv.innerHTML = planSVG(r?.plan, W, H) + traceSVG(r?.trace, W, H); } finally { CTXC = kc; } }; img.complete ? f() : img.onload = f; });
 }
+/* 📄 Enregistrer le bilan en PDF : sur téléphone (appli installée, APK), « Imprimer » ne s'ouvre souvent pas.
+   Le PDF est fabriqué sur le téléphone (pdf-lib de ../vendor, gardé hors ligne) : textes du bilan + carte avec le tracé ;
+   puis partage (Enregistrer dans Fichiers, Drive, Pronote…) ou téléchargement. */
+function loadPdfLib() { return window.PDFLib ? Promise.resolve(window.PDFLib) : new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "../vendor/pdf-lib.min.js"; s.onload = () => ok(window.PDFLib); s.onerror = () => ko(new Error("pdf-lib")); document.head.appendChild(s); }); }
+async function mapJpeg(b) {
+  const img = $("img", b), sv = $("svg", b); if (!img) return null;
+  if (!img.complete) await new Promise(r => { img.onload = r; img.onerror = r; setTimeout(r, 4000); });
+  const W = img.naturalWidth || 1000, H = img.naturalHeight || 1300, sc = Math.min(1, 1500 / Math.max(W, H)), c = document.createElement("canvas");
+  c.width = Math.round(W * sc); c.height = Math.round(H * sc); const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+  try { x.drawImage(img, 0, 0, c.width, c.height); } catch (e) {}
+  if (sv) try { const s2 = sv.cloneNode(true); s2.setAttribute("xmlns", "http://www.w3.org/2000/svg"); s2.setAttribute("width", W); s2.setAttribute("height", H); s2.removeAttribute("style");
+    const u = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(s2)], { type: "image/svg+xml" })), im = new Image();
+    await new Promise(r => { im.onload = r; im.onerror = r; im.src = u; setTimeout(r, 4000); }); x.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); } catch (e) {}
+  try { return { url: c.toDataURL("image/jpeg", 0.85), w: c.width, h: c.height }; } catch (e) { return null; }
+}
+function pdfTxt(t) { return String(t || "").replace(/[→➜]/g, "->").replace(/[✓✔]/g, "OK").replace(/[✗✘❌]/g, "x").replace(/[·•]/g, "-").replace(/[^\t\n\r -ÿŒœ€‘’“”–—…]/g, "").replace(/[ \t]+/g, " "); }
+async function bilanPdf(btn, titre) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "Préparation du PDF…";
+  try {
+    const L = await loadPdfLib(), doc = await L.PDFDocument.create(), F = await doc.embedFont(L.StandardFonts.Helvetica), FB = await doc.embedFont(L.StandardFonts.HelveticaBold);
+    const PW = 595, PH = 842, M = 40, TW = PW - 2 * M; let pg = doc.addPage([PW, PH]), y = PH - M;
+    const np = h => { if (y - h < M) { pg = doc.addPage([PW, PH]); y = PH - M; } };
+    const line = (t, f, sz) => { const words = pdfTxt(t).split(" "); let cur = ""; const out = []; words.forEach(w => { const tr = cur ? cur + " " + w : w; if (f.widthOfTextAtSize(tr, sz) > TW && cur) { out.push(cur); cur = w; } else cur = tr; }); if (cur) out.push(cur);
+      out.forEach(l => { np(sz + 4); pg.drawText(l, { x: M, y: y - sz, size: sz, font: f, color: L.rgb(.08, .09, .11) }); y -= sz + 4; }); };
+    const blocks = $$("#app .card, #app .pb > .card"); const seen = new Set();
+    for (const card of blocks) { if (seen.has(card) || card.closest(".noprint")) continue; seen.add(card);
+      const cl = card.cloneNode(true); $$(".bmap,.noprint,button", cl).forEach(e => e.remove()); cl.style.position = "absolute"; cl.style.left = "-9999px"; document.body.appendChild(cl);
+      const txt = cl.innerText; cl.remove();
+      const T = txt.split(/\n+/).map(s => s.trim()).filter(Boolean); if (!T.length) continue;
+      np(40); y -= 6; line(T[0], FB, 13); T.slice(1).forEach(s => line(s.replace(/\t+/g, "   "), F, 10));
+      for (const b of $$(".bmap", card)) { const im = await mapJpeg(b); if (!im) continue; const j = await doc.embedJpg(im.url); let w = TW, h = im.h * TW / im.w; if (h > PH - 2 * M) { h = PH - 2 * M; w = im.w * h / im.h; } np(h + 8); pg.drawImage(j, { x: M, y: y - h, width: w, height: h }); y -= h + 8; }
+    }
+    const bytes = await doc.save(), nom = ("Bilan_CO_" + (titre || "") + "_" + studentName(ME)).replace(/[^A-Za-z0-9À-ÿ_-]+/g, "_").replace(/_+/g, "_") + ".pdf", file = new File([bytes], nom, { type: "application/pdf" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: "Mon bilan de course d'orientation" }); flash("📄 PDF prêt"); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); flash("📄 PDF enregistré dans tes téléchargements");
+  } catch (e) { flash("PDF impossible : " + (e && e.message || e) + ". Essaie « Imprimer »."); }
+  finally { btn.disabled = false; btn.textContent = old; }
+}
 function vBilan(k, teacher) {
-  $("#app").innerHTML = bilanHTML(k, teacher) + `<div class="row noprint"><button class="btn gh grow" id="bHome">← ${teacher ? "Retour" : "Mes parcours"}</button><button class="btn or grow" id="bPr">🖨 Imprimer / PDF</button></div>`;
-  fillBilanMaps();
+  $("#app").innerHTML = bilanHTML(k, teacher) + `<div class="row noprint"><button class="btn gh grow" id="bHome">← ${teacher ? "Retour" : "Mes parcours"}</button><button class="btn vi grow" id="bPdf">📄 Enregistrer en PDF</button><button class="btn or grow" id="bPr">🖨 Imprimer</button></div>`;
+  fillBilanMaps(); $("#bPdf").onclick = () => bilanPdf($("#bPdf"), P(k).nom);
   $("#bHome").onclick = () => teacher ? go("prof", "dev") : go("home"); $("#bPr").onclick = () => print();
 }
 function fullHTML(teacher) {
@@ -1376,8 +1414,8 @@ function fullHTML(teacher) {
    ${A.map(x => `<div class="pb">${bilanHTML(x.k, teacher)}</div>`).join("")}`;
 }
 function vFull(teacher) {
-  $("#app").innerHTML = fullHTML(teacher) + `<div class="row noprint"><button class="btn gh grow" id="fH">← Retour</button><button class="btn or grow" id="fP">🖨 Imprimer / PDF</button></div>`;
-  fillBilanMaps(); $("#fH").onclick = () => teacher ? go("prof", "res") : go("home"); $("#fP").onclick = () => print();
+  $("#app").innerHTML = fullHTML(teacher) + `<div class="row noprint"><button class="btn gh grow" id="fH">← Retour</button><button class="btn vi grow" id="fPdf">📄 Enregistrer en PDF</button><button class="btn or grow" id="fP">🖨 Imprimer</button></div>`;
+  fillBilanMaps(); $("#fPdf").onclick = () => bilanPdf($("#fPdf"), "complet"); $("#fH").onclick = () => teacher ? go("prof", "res") : go("home"); $("#fP").onclick = () => print();
 }
 
 // ---------- Résultats : envoi au serveur + secours par QR code ----------

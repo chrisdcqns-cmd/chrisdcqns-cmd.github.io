@@ -171,7 +171,7 @@ function render(){
   app.innerHTML=h;bind();
 }
 function head(withImp){
-  return'<div class="top"><h1 class="grow">Emploi du temps <span>·</span> EPS</h1>'+(withImp?'<button class="btn sm noprint" id="imp2">📥 Mettre à jour</button><button class="btn sm noprint" onclick="window.print()">🖨</button>':"")+'</div><div class="lanes"></div>';
+  return'<div class="top"><h1 class="grow">Emploi du temps <span>·</span> EPS</h1><span data-eps-upd-slot="light" class="noprint"></span>'+(withImp?'<button class="btn sm noprint" id="imp2">📥 Mettre à jour</button><button class="btn sm noprint" onclick="window.print()">🖨</button>':"")+'</div><div class="lanes"></div>';
 }
 function weekNav(){var w=U.w,cw=curW();return'<div class="wk noprint"><button class="nav" data-wk="-1">‹</button><div class="l">Semaine du '+wd(w,0).getDate()+" "+MOIS[wd(w,0).getMonth()]+"<small>Semaine "+par(w)+(vac(w)?" · vacances":"")+(w===cw?" · cette semaine":"")+'</small></div>'+(w!==cw?'<button class="btn sm" data-wk="0">Aujourd\'hui</button>':"")+'<button class="nav" data-wk="1">›</button></div>';}
 function todayIdx(){var n=new Date();return U.w===curW()?(n.getDay()+6)%7:-1;}

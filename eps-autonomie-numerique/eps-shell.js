@@ -65,6 +65,11 @@
     function setHidden(h) { var b = stickyBar(), H = b ? b.offsetHeight : 0; barHidden = !!(h && b);
       if (b) { b.style.transition = "top .2s ease"; b.style.top = barHidden ? (-H - 8) + "px" : ""; }
       nav.style.transition = "top .2s ease"; nav.style.top = (barHidden || !b) ? "0px" : H + "px"; }
+    /* la barre de l'appli peut tenir sur 2 lignes (petits écrans, boutons ajoutés) : les onglets se collent toujours juste en dessous */
+    function fitTop() { if (!nav.offsetParent) return; var b = stickyBar(), H = b ? b.offsetHeight : 0;
+      if (barHidden) { if (b) { var hv = (-H - 8) + "px"; if (b.style.top !== hv) b.style.top = hv; } return; }
+      var v = H + "px"; if (nav.style.top !== v) { nav.style.transition = ""; nav.style.top = v; } }
+    setInterval(fitTop, 700); addEventListener("resize", fitTop);
     document.addEventListener("scroll", function (e) {
       if (!nav.offsetParent) return; var t = (e.target === document || e.target === document.documentElement) ? (document.scrollingElement || document.documentElement) : e.target;
       if (!t || t.scrollTop == null || (t !== document.scrollingElement && t !== document.documentElement && !t.contains(nav))) return;
