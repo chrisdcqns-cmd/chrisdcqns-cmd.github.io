@@ -1290,6 +1290,7 @@
       if (!r.keyOk) throw new Error("Clé du partage refusée par le script");
       if (r.aiErr) throw new Error(/ANTHROPIC_KEY/.test(r.aiErr) ? "Clé Claude absente du script (Propriétés du script → ANTHROPIC_KEY)" : r.aiErr);
       if (r.ai == null) throw new Error("Le script n'est pas encore à jour : colle le nouveau Code.gs et redéploie (nouvelle version)");
+      if (o.mode === "indic" && !(r.aiv >= 3)) throw new Error("Le script Google doit être mis à jour pour proposer des indicateurs : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
       if (o.mode === "lecon" && !(r.aiv >= 2)) throw new Error("Le script Google doit être mis à jour pour le bilan de leçon : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
       return r.ai; });
   }

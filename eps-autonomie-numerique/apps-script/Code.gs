@@ -47,7 +47,7 @@ function doGet(e) {
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
   if (p.bil) { try { res.bil = bilansGet_(String(p.bil)); res.bilv = 1; } catch (err) { res.bilErr = String(err && err.message || err); } }
   if (res.keyOk) { const lb = PropertiesService.getScriptProperties().getProperty('LAST_BACKUP'); res.sauv = lb ? Number(lb) : 0; }
-  res.aiv = 2; /* 2 : bilan de leçon (ai=lecon) */
+  res.aiv = 3; /* 2 : bilan de leçon (ai=lecon) ; 3 : indicateur de performance pour une leçon (ai=indic) */
   if (res.keyOk && p.aiget) { const c = CacheService.getScriptCache().get('ai_' + String(p.aiget).slice(0, 40)); res.aiRes = c ? JSON.parse(c) : null; }
   if (res.keyOk && p.ai) { try { res.ai = p.ai === 'lecon' ? reformuler_(p) : propre_(reformuler_(p)); } catch (err) { res.aiErr = String(err && err.message || err); } }
   const body = asc_(JSON.stringify(res));
@@ -209,6 +209,14 @@ function reformuler_(p) {
       '« Pour la prochaine leçon » : 2 ou 3 situations, de préférence choisies dans la liste fournie, avec la consigne clé. « Un mot pour la classe » : une phrase à dire aux élèves. ' +
       'Pas de mise en gras ni de tableau ; 1400 caractères maximum. Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »).';
     return claude_(key, sysL + COMMUN, (ctx ? 'Situations disponibles : ' + ctx + '\n' : '') + 'Résultats de la leçon :\n' + notes);
+  }
+  if (p.ai === 'indic') {
+    const sysI = 'Tu es enseignant d\'EPS en lycée, en France (activité : ' + act + '). On te donne UNE leçon rédigée par l\'enseignant (titre, objectif, contenus). ' +
+      'Propose 1 ou 2 indicateurs de performance qui correspondent exactement à l\'objectif de cette leçon : des relevés simples, chiffrés, que des élèves observateurs peuvent faire pendant le jeu ' +
+      '(ex. en volley-ball : points bonus / points marqués, points marqués depuis la zone avant ou arrière, balles reçues / renvoyées, attaques en 3 touches, réceptions jouables sur 10). ' +
+      'Pour chacun, une seule ligne au format : « Indicateur · <ce qu\'on relève> : <comment le relever> ; repère de réussite : <seuil ou évolution attendue> ». ' +
+      'Ne réécris pas la leçon, n\'ajoute rien d\'autre, pas de numéro, pas de mise en gras. Vocabulaire : « leçon », « séquence ».';
+    return claude_(key, sysI + COMMUN, (ctx ? 'Indicateurs déjà prévus dans la séquence : ' + ctx + '\n' : '') + 'Leçon :\n' + notes);
   }
   if (p.ai === 'obs') {
     const sysO = 'Tu condenses les observations dictées par un enseignant d\'EPS sur UN élève pendant une leçon (activité : ' + act + '). ' +

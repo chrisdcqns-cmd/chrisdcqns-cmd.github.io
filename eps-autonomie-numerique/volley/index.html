@@ -610,6 +610,16 @@ function seqV3(){const D=defSeq();
 function lecRevHtml(l,i){const R=l.rev||{},ks=Object.keys(R).filter(t=>l.cont.includes(t)||l.obj===t);
   return ks.length?`<div class="revbox">${ks.map(t=>`<div><span class="aclar">${esc(t)}</span><br><span class="revn">✎ ${esc(R[t])}</span> <button class="btn alt sm" onclick="revOk(${i},${JSON.stringify(t).replace(/"/g,'&quot;')})">✓ C'est clair</button></div>`).join('')}</div>`:''}
 function revOk(i,t){const l=S.seq.lecons[i];if(l.rev)delete l.rev[t];save();const y=scrollY;renderSeq();scrollTo(0,y)}
+/* ✨ Claude lit la leçon et propose un indicateur de performance (script commun, ai=indic) : ajouté en rouge dans l.propC */
+async function lecIndic(i,btn){const l=S.seq.lecons[i];if(!(window.EPSD&&EPSD.reformuler)){toast('Fonction indisponible : recharge la page');return}
+  const t='Leçon '+l.n+' · '+l.titre+'\nObjectif : '+l.obj+'\nContenus :\n'+l.cont.map(x=>'- '+x).join('\n'),
+    deja=S.seq.lecons.filter(x=>x!==l).flatMap(x=>(x.cont||[]).concat(x.propC||[])).filter(x=>/^Indicateur/.test(x)).map(x=>x.replace(/^Indicateur\s*[·:]\s*/,'')).slice(0,6).join(' | ');
+  btn.disabled=true;const old=btn.textContent;btn.textContent='✨ Claude lit la leçon…';
+  try{const r=await EPSD.reformuler(t,{mode:'indic',act:'Volley-ball',ctx:deja});
+    const L=String(r||'').split(/\n+/).map(x=>x.replace(/^[-•*\d.\s]+/,'').trim()).filter(x=>x.length>8).map(x=>/^Indicateur/i.test(x)?x.replace(/^Indicateur\s*[·:]\s*/i,'Indicateur · '):'Indicateur · '+x).slice(0,2);
+    if(!L.length)throw new Error('Réponse vide : réessaie');
+    l.propC=(l.propC||[]).concat(L.filter(x=>!(l.propC||[]).includes(x)));save();const y=scrollY;renderSeq();scrollTo(0,y);toast('Proposition ajoutée en rouge')}
+  catch(e){btn.disabled=false;btn.textContent=old;alert(e.message||e)}}
 function propKeep(i,k){const l=S.seq.lecons[i],x=l.propC.splice(k,1)[0];const ind=/^(Indicateur|Bonus) · /.test(x);l.cont.push(ind?x.replace(/^Indicateur · /,'Indicateur : ').replace(/^Bonus · /,'Point bonus : '):x.replace(/^AFL2 · /,''));if(!ind&&!l.crit.includes('ech'))l.crit.push('ech');save();const y=scrollY;renderSeq();scrollTo(0,y)}
 function propDel(i,k){S.seq.lecons[i].propC.splice(k,1);save();const y=scrollY;renderSeq();scrollTo(0,y)}
 function defSeq(){return{v:2,mob:defMob(),routines:defRoutines(),
@@ -1001,6 +1011,7 @@ function seqLecons(){
     <div class="row" style="margin-top:8px">
       <button class="btn ${l.faite?'alt':''} sm" onclick="lecSet(${i},'faite',${!l.faite})">${l.faite?'Annuler « faite »':'✓ Faite'}</button>
       <button class="btn alt sm" onclick="SEQEDIT='${l.id}';renderSeq()">✎ Modifier</button>
+      <button class="btn alt sm" onclick="lecIndic(${i},this)" title="Claude lit la leçon et propose un indicateur de performance (en rouge)">✨ Indicateur</button>
       ${l.prop?`<button class="btn alt sm" onclick="lecSet(${i},'prop',false)">👍 Garder</button>`:''}
       <button class="btn alt sm" onclick="lecMove(${i},-1)">↑</button><button class="btn alt sm" onclick="lecMove(${i},1)">↓</button>
       <button class="btn red sm" onclick="lecDel(${i})">Supprimer</button></div></div>`).join('')}`;
