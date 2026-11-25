@@ -42,3 +42,4 @@ Application web pour tablette (relais-vitesse, lycée), hébergée sur GitHub Pa
 - QR codes (`#btnQRG`, QR « toute la classe » `#g=<idClasse>.all.<nom>` + un par groupe, `#qmodal`, `../eps-qr.js`) : `#g=<idClasse>.<idGroupe>.<nom>` → `qrGroupOpen()` dans `startStudent` (classe retrouvée aussi par le nom), ouvre la leçon du jour du groupe.
 - Assistant de séquence (`#l-seq`, `#smodal2`, `SQ`) : dates d'après `EPSD.edtSlots(classe,"rel")`, sinon hebdomadaires ; progression `SQ_PROG` (8 paliers de situations) ; ne modifie pas une leçon qui a déjà des courses (sauf situations vides).
 - `window.epsCheck` (contrôle « Tout est prêt ? » commun).
+- Identification du groupe (tablette partagée) : `needG()` = élève + groupes + `curg==='all'` → `#v-course.needg` ne montre que « Ton groupe » (bouton « Toute la classe » réservé à l'enseignant) ; `GID_AT` (dernier toucher), `gidExpire()` remet `curg='all'` après 5 min sans action. `curg` n'est pas synchronisé (`SYNC_EXCL`).
