@@ -1377,6 +1377,7 @@
     sim: { on: function () { return !!window.EPS_SIM; }, enter: function (n) { return simEnter(n); }, exit: function () { return simExit(); } },
     testClaude: function () { return testClaude(); },
     search: function () { searchStudents(); },
+    overview: function () { return overview(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); },
     bulletin: function (c) { bulletin(c); },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
@@ -1817,6 +1818,46 @@
     b.style.display = isTeacher() ? "" : "none";
   }
   setInterval(function () { try { searchBtn(); } catch (e) {} }, 3000);
+  /* ================= 📊 Vue d'ensemble (mode enseignant, bouton 📊 de l'en-tête) =================
+     Une carte par classe : appel du jour, dispensés, et pour chaque activité de la classe : leçon en cours ou prochaine leçon programmée,
+     élèves évalués, auto-positionnements reçus, leçons évaluées, réussite des situations notées par les élèves, observations dictées.
+     Tout est lu sur la tablette (données déjà synchronisées) : rien n'est envoyé. Toucher une activité ouvre l'appli. */
+  var OV_DIR = { esc: "escalade", rel: "relais", ori: "orientation", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ct: "crosstraining" };
+  var OV_NOM = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ct: "Cross-training" };
+  function ovItems(k) { var V = jget(k, null); return V && V.items ? Object.keys(V.items).map(function (i) { return V.items[i]; }).filter(function (o) { return o && !o.del; }) : []; }
+  function overview() {
+    var CL = []; try { CL = (window.EPSL ? EPSL.items() : []).slice().sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr", { numeric: true }); }); } catch (e) {}
+    var root = location.pathname.replace(/(\/eps-autonomie-numerique\/).*$/, "$1"), now = Date.now(), d0 = today();
+    var obs = ovItems("eps.obs.v1"), cards = CL.map(function (it) {
+      var P = []; try { P = EPSL.people(it).map(function (p) { return p.full; }); } catch (e) {}
+      var acts = Object.keys(OV_DIR).filter(function (a) { return (it.off || []).indexOf(a) < 0; });
+      var ab = abGet(it.nom), dp = P.filter(function (n) { return !!find(it.nom, n); }).length;
+      var EV = {}; P.forEach(function (n) { evalsOf(n, it.nom).forEach(function (e) { var x = EV[e.app] = EV[e.app] || { n: 0, auto: 0 }; if (e.n > 0 || e.st) x.n++; if (e.auto) x.auto++; }); });
+      var rows = acts.map(function (a) {
+        var dir = OV_DIR[a], live = ovItems("eps.live." + dir + ".v1").filter(function (v) { return v.on && cmp(v.cls) === cmp(it.nom) && v.st > now - 4 * 3600e3; })[0];
+        var nx = null; ovItems("eps.lecons." + dir + ".v1").forEach(function (l) { if (l.statut === "brouillon") return; (l.prog || []).forEach(function (p) { if (cmp(p.c) === cmp(it.nom) && p.at > now && (!nx || p.at < nx.at)) nx = { at: p.at, t: l.titre || "Leçon" }; }); });
+        var le = ovItems("eps.leceval." + dir + ".v1").filter(function (o) { return cmp(o.cls) === cmp(it.nom); }).length;
+        var rs = [0, 0]; ovItems("eps.lecres." + dir + ".v1").forEach(function (o) { if (cmp(o.cls) !== cmp(it.nom)) return; Object.keys(o.r || {}).forEach(function (q) { rs[0] += o.r[q] === 2 ? 1 : o.r[q] === 1 ? .5 : 0; rs[1]++; }); });
+        var ob = obs.filter(function (o) { return o.app === dir && cmp(o.cls) === cmp(it.nom); }).length, ev = EV[OV_NOM[a]] || EV[a === "vol" ? "Volley-ball" : OV_NOM[a]] || { n: 0, auto: 0 };
+        var bits = [live ? '<b style="color:#1E8449">● leçon en cours</b>' : nx ? "📅 " + esc((new Date(nx.at).toDateString() === new Date().toDateString() ? "aujourd'hui" : new Date(nx.at).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })) + " à " + new Date(nx.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })) + " : " + esc(nx.t) : '<span class="m">pas de leçon programmée</span>',
+          "📋 " + ev.n + "/" + P.length + " évalué" + (ev.n > 1 ? "s" : ""), ev.auto ? "🙋 " + ev.auto + " auto-positionnement" + (ev.auto > 1 ? "s" : "") : "", le ? "📊 " + le + " leçon" + (le > 1 ? "s" : "") + " évaluée" + (le > 1 ? "s" : "") : "",
+          rs[1] ? "🏁 " + Math.round(rs[0] / rs[1] * 100) + " % de réussite (" + rs[1] + ")" : "", ob ? "🎙 " + ob + " observation" + (ob > 1 ? "s" : "") : ""].filter(Boolean);
+        return '<a href="' + root + dir + '/" style="display:block;text-decoration:none;color:inherit;border-top:1px solid #F0ECE3;padding:7px 2px"><b>' + esc(OV_NOM[a]) + " ›</b><div style=\"font-size:14px;display:flex;flex-wrap:wrap;gap:4px 12px\">" + bits.map(function (b) { return "<span>" + b + "</span>"; }).join("") + "</div></a>"; }).join("");
+      return '<div style="border:1px solid #E6E1D6;border-radius:14px;padding:10px 14px;background:#fff"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><h4 style="margin:0;font-size:18px">' + esc(it.nom) + '</h4><span class="m" style="margin:0">' + P.length + " élève" + (P.length > 1 ? "s" : "") + "</span></div>" +
+        '<div style="font-size:14px;margin:4px 0 2px">' + (ab ? "🙋 Appel : <b>" + (P.length - (ab.abs || []).length) + " présent" + (P.length - (ab.abs || []).length > 1 ? "s" : "") + "</b>" + ((ab.abs || []).length ? " · absent" + ((ab.abs || []).length > 1 ? "s" : "") + " : " + esc(ab.abs.join(", ")) : "") : '<span class="m">🙋 Appel pas encore fait aujourd\'hui</span>') + (dp ? " · 🩹 " + dp + " dispensé" + (dp > 1 ? "s" : "") : "") + "</div>" +
+        (rows || '<p class="m">Aucune activité attribuée (⚙ Réglages → Listes).</p>') + "</div>"; });
+    var o = overlay("<h3>📊 Vue d'ensemble · " + esc(new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })) + '</h3><p class="m">Tes classes et leurs activités d\'après ce qui est sur cette tablette. Touche une activité pour l\'ouvrir.</p>' +
+      (cards.length ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;text-align:left;align-items:start">' + cards.join("") + "</div>" : '<p class="m">Aucune classe : ajoute tes listes dans ⚙ Réglages.</p>') + '<div class="epsd-act"><button data-x>Fermer</button></div>');
+    var bx = o.querySelector(".epsd-box"); if (bx) { bx.style.maxWidth = "1100px"; bx.style.width = "96vw"; }
+    return o;
+  }
+  function overviewBtn() {
+    var b = document.getElementById("eps-ovw"), sl = epsSlot();
+    if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-ovw"; b.className = "epsb"; b.title = "Vue d'ensemble des classes"; b.setAttribute("aria-label", "Vue d'ensemble des classes"); b.innerHTML = "📊"; b.onclick = overview; var f = document.getElementById("eps-find"); sl.insertBefore(b, f && f.parentNode === sl ? f : sl.firstChild); }
+    b.style.display = isTeacher() ? "" : "none";
+  }
+  setInterval(function () { try { overviewBtn(); } catch (e) {} }, 3000);
+
   function redock() {
     var L = document.querySelectorAll("[data-eps-bar]"); if (L.length < 2) return;
     var sl = epsSlot();
