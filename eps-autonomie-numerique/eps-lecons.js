@@ -402,7 +402,10 @@
       if (stop) return; if (di >= D.length) return fin("✓ " + made + " fiche" + (made > 1 ? "s" : "") + " créée" + (made > 1 ? "s" : "") + " en brouillon.");
       var d = D[di++], have = lecons().filter(function (l) { return l.doc === d.id; });
       M.textContent = "Claude repère les leçons de « " + d.nom + " » (" + di + " / " + D.length + ")…";
-      ask({ op: "lecon", mode: "inventaire", act: NOM, docs: docsFor(d.id) }).then(function (r) {
+      /* repérage sur la tablette (« Leçon 3 », « L3 », « Séance 3 »…) : pas besoin du script ; sinon inventaire par Claude */
+      var tx = (docsFor(d.id)[0] || {}).txt || "", nums = [], re = /(?:^|\n)[ \t#*•-]*(?:le[çc]on|s[ée]ance|L)\s*(?:n\s*[°o]\s*)?(\d{1,2})\b[ \t]*[:.\-–—)]?[ \t]*([^\n]{0,80})/gi, mm;
+      while ((mm = re.exec(tx))) { if (!nums.some(function (x) { return x.num === mm[1]; })) nums.push({ num: mm[1], titre: mm[2].replace(/[|*_#]+/g, " ").trim().slice(0, 70) }); }
+      (nums.length ? Promise.resolve({ liste: nums.map(function (x) { return { num: x.num, titre: x.titre }; }) }) : ask({ op: "lecon", mode: "inventaire", act: NOM, docs: docsFor(d.id) })).then(function (r) {
         var Q = (r.liste || []).filter(function (x) { return !have.some(function (l) { return l.dkey === key(x); }); }), qi = 0;
         if (!r.liste) Q = have.length ? [] : [{ titre: "" }];
         (function nextL() {
