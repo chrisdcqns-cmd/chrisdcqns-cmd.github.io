@@ -12,7 +12,7 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - À la fin : `<script src="../eps-home.js" defer></script>` (réglages, code enseignant, dispenses, écran de classe, boutons communs, synchro des listes).
 - Tuile sur l'accueil `index.html` (section « Activités », ou « Outils enseignant » avec `data-eps-teach`), couleur et icône de l'appli.
 - Mettre à jour `/sw.js` (`CORE` +1, fichiers à mettre en cache) et le `sw.js` propre à l'appli s'il existe, pour que ⟳ sur les tablettes récupère la nouvelle version.
-- Code enseignant commun (pavé `epsPin`, `eps.teach.until`, code `relais-vitesse-code-v1`) : toujours `len:4` (4 chiffres, validé tout seul, pas de bouton Valider) ; un pavé qui accepte aussi un mot de passe plus long (lettres) essaie le code tout seul dès le 4e caractère (`epsPin` : `check` sans `len`, sauf `noAuto`). Le pavé existe en copie dans Escalade, Relais, Acrosport, OrienRun (+ orientation/src/teacher.js) : modifier toutes les copies ; réglages communs `EPSR.get()` (établissement, enseignant, année…), partagés entre tablettes.
+- Code enseignant commun (pavé `epsPin`, `eps.teach.until`, code `relais-vitesse-code-v1`) : toujours `len:4` (4 chiffres, validé tout seul, pas de bouton Valider) ; un pavé qui accepte aussi un mot de passe plus long (lettres) essaie le code tout seul dès le 4e caractère (`epsPin` : `check` sans `len`, sauf `noAuto`). Le pavé n'existe qu'à un seul endroit : `window.epsPin` en tête d'eps-lists.js (chargé en premier partout) ; eps-home.js et les applis l'utilisent, aucune copie ; réglages communs `EPSR.get()` (établissement, enseignant, année…), partagés entre tablettes.
 
 ## Charte visuelle
 - Fond `#F5F3EE`, lignes `#E6E1D6`, texte `#14171C`, police `system-ui`.
