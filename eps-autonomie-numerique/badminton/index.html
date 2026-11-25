@@ -373,6 +373,24 @@ html.epst-on header nav#nav{display:none!important}
 .ocb.ck{background:#e9f6ee;border-color:#9fd2b1}.ocb.ck .bx{background:#2E7D4F;border-color:#2E7D4F}
 .ocb small{display:block;color:#5b6573;margin-top:2px}.ocb small.au{color:#1F5F8B}
 @media(max-width:900px){.olvs{grid-template-columns:1fr 1fr}}@media(max-width:520px){.olvs{grid-template-columns:1fr}}
+
+.lqstart{border-left:5px solid var(--navy)}
+.lqstrip{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px}
+.lqs{flex:0 0 auto;border:1.5px solid #d5dde6;background:#fff;border-radius:9px;padding:5px 10px;font-weight:700;font-size:.85em;cursor:pointer;display:flex;flex-direction:column;align-items:center;color:#1B1E24}
+.lqs small{font-weight:600;color:#5b6573}.lqs.on{border-color:var(--navy);box-shadow:0 0 0 2px #cfe0f0}.lqs.ok{background:#e9f6ee}.lqs.part{background:#fff6e5}.lqs.abs{opacity:.5}
+.lqcard{max-width:900px;margin:0 auto}
+.lqwho{font-size:1.25em;font-weight:800;color:var(--navy)}
+.lqbar{height:6px;background:#e8edf3;border-radius:3px;margin:8px 0 14px;overflow:hidden}.lqbar i{display:block;height:100%;background:var(--navy)}
+.lqcat{display:inline-block;font-weight:800;font-size:.85em;padding:3px 10px;border-radius:12px;background:#eef4fa;color:#1F5F8B}
+.lqcat.prep{background:#fff1e6;color:#B26B00}.lqcat.strat{background:#f2eafa;color:#7A3E9D}.lqcat.roles{background:#e9f6ee;color:#2E7D4F}
+.lqq{font-size:1.45em;font-weight:800;margin:10px 0 6px;line-height:1.25}
+.lqaide{color:#5b6573;font-size:.9em;background:#f5f8fb;border-radius:8px;padding:7px 10px}
+.lqdegs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.lqdegs .deg{min-height:110px}
+@media(max-width:700px){.lqdegs{grid-template-columns:1fr 1fr}}
+.lqsum{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid #eef1f5;cursor:pointer}.lqsum .cat{flex:0 0 160px;font-size:.8em;font-weight:800;color:#5b6573}.lqsum .qq{flex:1}
+.dg{display:inline-block;font-weight:800;font-size:.8em;padding:2px 8px;border-radius:10px;background:#eef1f5;color:#fff}
+.dg.bg1{background:#c0392b}.dg.bg2{background:#d68a00}.dg.bg3{background:#1F5F8B}.dg.bg4{background:#2E7D4F}
+.lqh{margin:8px 0;padding:6px 10px;background:#f5f8fb;border-radius:8px;font-size:.88em;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -850,7 +868,7 @@ function curTab(){const b=document.querySelector('#nav button.on');return b?b.da
 function showTab(t){
   document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));
-  if(t==='eval')closeEval();if(t==='bilan')renderBilan();if(t==='eleves')renderEleves();if(t==='bareme')renderBareme();
+  if(t==='eval'){LQ=null;closeEval()}if(t==='bilan')renderBilan();if(t==='eleves')renderEleves();if(t==='bareme')renderBareme();
   if(t==='seq')renderSeq();if(t==='match')renderMatchs();if(t==='terrain')renderTerrain();
   window.scrollTo(0,0);
 }
@@ -871,7 +889,7 @@ function renderList(){
   const c=C(),cs=B().criteres,el=document.getElementById('evList');
   if(!c.eleves.length){el.innerHTML=`<div class="card"><h2>${esc(c.nom)}</h2><p>Aucun élève dans cette classe.</p><button class="btn" onclick="showTab('eleves')">Ajouter des élèves</button></div>`;return}
   const done=c.eleves.filter(e=>note20(e)!=null).length;
-  el.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px">
+  el.innerHTML=lqCard()+`<div class="row" style="justify-content:space-between;margin-bottom:10px">
     <div class="muted"><b>${esc(c.nom)}</b> · ${done}/${c.eleves.length} élèves notés · ${B().grille==='tleg'?'grille Terminale générale':B().grille==='lp'?'grille Terminale pro':B().grille==='origine'?"grille d'origine":'grille personnalisée'} · ${B().mode==='perso'?'barème personnel':'barème officiel CA4'}</div>
     <div class="legend">${B().degres.map((d,i)=>`<span><i class="bg${i+1}"></i>${esc(d)}</span>`).join('')}</div></div>
   <div class="grid">${c.eleves.map((e,i)=>{
@@ -1023,6 +1041,72 @@ function setPrec(k){B().precis=k;save();if(curEl!=null)renderEval();else renderB
 function obsLine(cr,e){const set=obsSet(cr),o=(e.obs||{})[cr.id];if(!set||!o)return'';const r=obsCalc(cr,e,elStats(C(),e.id));
   const ok=set.slice(1).flatMap((L,k)=>L.o.filter((x,i)=>obsVal(cr,e,elStats(C(),e.id),k+1,i).v).map(x=>x.t.replace('📊 ','').replace(/\.$/,'')));
   return ok.length?'<br><small>Observé : '+ok.map(esc).join(' ; ')+'</small>':''}
+/* ================== ⚡ ÉVALUER LA LEÇON : questions successives selon la thématique ==================
+   Questions tirées de la leçon : échauffement, chaque temps (exercice → aspect moteur, match à thème → aspect stratégique), rôles.
+   Réponse = degré (0-3) dans e.lq[lessonId] = {date, r:{qid:d}} (synchronisé avec l'élève). Repris dans la fiche d'évaluation. */
+const LQD={
+ tech:["Ne réalise pas encore le geste.","Réalise le geste par moments ; critère de réussite rarement atteint.","Geste correct ; critère de réussite atteint.","Geste maîtrisé et réutilisé en match."],
+ strat:["Joue sans tenir compte du thème.","Respecte le thème par moments.","Atteint l'objectif du thème (contrat).","Atteint l'objectif et l'adapte à l'adversaire."],
+ prep:["S'échauffe peu, même guidé.","Échauffement partiel, copie les autres.","Routine complète en autonomie.","Routine complète et spécifique, intensité progressive."],
+ roles:["Refuse ou subit les rôles.","Tient un rôle s'il est sollicité.","Tient ses rôles avec sérieux.","Tient ses rôles avec justesse et aide les autres."]};
+const LQC={tech:'🏸 Aspect moteur',strat:'🧠 Aspect stratégique',prep:'🔥 Échauffement',roles:'🤝 Rôles'};
+let LQ=null;
+function tNom(t){return String(t.t||'').replace(/^Temps[^:]*:\s*/i,'')}
+function lqQuestions(l){const Q=[];if(!l)return Q;const cr=l.crit||[];
+  if(cr.includes('prep')||(l.cont||[]).some(x=>/échauffement/i.test(x)))Q.push({id:'ech',k:'prep',q:"A-t-il réalisé son échauffement en autonomie ?",aide:"Déplacements badiste et routines d'échanges, puis montée progressive en intensité."});
+  (l.temps||[]).forEach((t,i)=>{const p=t.pre?preById(t.pre):null,exo=!p||p.type==='exo'||/^ex_/.test(t.pre);
+    if(exo)Q.push({id:'t'+i,k:'tech',q:`A-t-il maîtrisé : ${tNom(t)} ?`,aide:[(t.crr||[]).length?'Critères de réalisation : '+t.crr.join(' · '):'',(t.crq||[]).length?'Réussite : '+t.crq.join(' · '):''].filter(Boolean).join('\n'),pre:p&&p.type==='exo'?p:null});
+    else{const c=(t.crl||[])[0]||'Atteindre le contrat';Q.push({id:'t'+i,k:'strat',q:`${tNom(t)} : a-t-il su « ${c.charAt(0).toLowerCase()+c.slice(1)} » ?`,aide:[(t.crq||[]).length?'Réussite : '+t.crq.join(' · '):'',t.cons?'Consigne : '+t.cons:''].filter(Boolean).join('\n')})}});
+  if(cr.includes('roles'))Q.push({id:'rol',k:'roles',q:"A-t-il tenu ses rôles (arbitre, coach, observateur, partenaire en or) ?",aide:"Arbitre juste et impliqué, coach qui conseille, observateur qui relève les données."});
+  return Q}
+function lqLesson(){return SEQ().lecons.find(l=>l.n===LQ.lec)}
+function lqProp(q,e,l){if(!q.pre)return null;const st=elStats(C(),e.id,l.date===today()?today():null),x=st.ex.find(x=>x.nom===q.pre.nom);if(!x||x.n<5)return null;
+  const pc=x.ok/x.n,ob=x.obj&&x.essais?x.obj/x.essais:.7,d=pc>=Math.min(.95,ob+.15)?3:pc>=ob?2:pc>=ob*.6?1:0;return{d,w:`${x.ok}/${x.n} réussis sur le terrain (${Math.round(pc*100)} %, objectif ${Math.round(ob*100)} %)`}}
+function lqRec(e){return((e.lq||{})[lqLesson().id]||{r:{}})}
+function lqStart(n){const c=C();if(!c.eleves.length){toast('Aucun élève');return}LQ={lec:+n||lessonNow(),ei:0,qi:0,fin:false};
+  const Q=lqQuestions(lqLesson());const i=c.eleves.findIndex(e=>!isAbs(e)&&Q.some(q=>lqRec(e).r[q.id]==null));LQ.ei=i<0?0:i;
+  document.getElementById('evList').style.display='none';const p=document.getElementById('evPanel');p.style.display='block';renderLQ();window.scrollTo(0,0)}
+function lqQuit(){LQ=null;closeEval()}
+function lqAns(d){const c=C(),e=c.eleves[LQ.ei],l=lqLesson(),Q=lqQuestions(l),q=Q[LQ.qi];e.lq=e.lq||{};const r=e.lq[l.id]=e.lq[l.id]||{date:l.date||today(),r:{}};
+  if(d==null)delete r.r[q.id];else r.r[q.id]=d;r.date=l.date||today();save();
+  if(LQ.qi<Q.length-1)LQ.qi++;else LQ.fin=true;renderLQ()}
+function lqGo(ei,qi){LQ.ei=ei;LQ.qi=qi||0;LQ.fin=false;renderLQ()}
+function lqNext(){const c=C();let i=LQ.ei+1;while(i<c.eleves.length&&isAbs(c.eleves[i]))i++;if(i>=c.eleves.length){LQ.fin='all';renderLQ();return}lqGo(i,0)}
+function lqAbs(){const e=C().eleves[LQ.ei];e.statut=e.statut==='ABS'?'':'ABS';save();if(e.statut)lqNext();else renderLQ()}
+function renderLQ(){const c=C(),l=lqLesson(),Q=lqQuestions(l),p=document.getElementById('evPanel'),e=c.eleves[LQ.ei],D=B().degres;
+  const strip=c.eleves.map((x,i)=>{const r=lqRec(x).r,n=Q.filter(q=>r[q.id]!=null).length;return `<button class="lqs ${i===LQ.ei?'on':''} ${isAbs(x)?'abs':n===Q.length&&n?'ok':n?'part':''}" onclick="lqGo(${i},0)">${esc(shortName(x))}<small>${isAbs(x)?x.statut:n+'/'+Q.length}</small></button>`}).join('');
+  const head=`<div class="evhead"><button class="btn alt" onclick="lqQuit()">← Quitter</button><h2>⚡ Leçon ${l.n} · ${esc(l.titre)}</h2></div>
+    <div class="lqstrip">${strip}</div>`;
+  if(!Q.length){p.innerHTML=head+`<div class="card"><p>Cette leçon n'a ni temps ni critères à évaluer. Complète-la dans l'onglet Séquence.</p></div>`;return}
+  if(LQ.fin==='all'){const done=c.eleves.filter(x=>Q.every(q=>lqRec(x).r[q.id]!=null)).length;
+    p.innerHTML=head+`<div class="card lqcard"><h2>✅ Leçon évaluée</h2><p>${done} élève(s) complètement évalué(s) sur ${c.eleves.length}. Les réponses sont reprises dans la fiche d'évaluation de chaque élève (« 📅 Leçons »).</p><button class="btn" onclick="lqQuit()">Terminer</button></div>`;return}
+  if(LQ.fin){const r=lqRec(e).r;
+    p.innerHTML=head+`<div class="card lqcard"><div class="lqwho">${esc(fullName(e))}</div><h2>Résumé de la leçon</h2>
+      ${Q.map((q,i)=>`<div class="lqsum" onclick="lqGo(${LQ.ei},${i})"><span class="cat">${LQC[q.k]}</span><span class="qq">${esc(q.q)}</span>${r[q.id]!=null?`<span class="dg bg${r[q.id]+1}">D${r[q.id]+1}</span>`:'<span class="dg">–</span>'}</div>`).join('')}
+      <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn alt" onclick="lqGo(${LQ.ei},0)">Revoir</button><button class="btn big" onclick="lqNext()">Élève suivant ▶</button></div></div>`;return}
+  const q=Q[LQ.qi],cur=lqRec(e).r[q.id],pr=lqProp(q,e,l);
+  p.innerHTML=head+`<div class="card lqcard">
+    <div class="row" style="justify-content:space-between"><div class="lqwho">${esc(fullName(e))}</div><div class="muted">Question ${LQ.qi+1} / ${Q.length}</div></div>
+    <div class="lqbar"><i style="width:${Math.round(LQ.qi/Q.length*100)}%"></i></div>
+    <span class="lqcat ${q.k}">${LQC[q.k]}</span>
+    <div class="lqq">${esc(q.q)}</div>
+    ${q.aide?`<div class="lqaide">${esc(q.aide).replace(/\n/g,'<br>')}</div>`:''}
+    ${pr?`<button class="spr" style="margin:8px 0" onclick="lqAns(${pr.d})">📊 Proposé : D${pr.d+1} — ${esc(pr.w)}</button>`:''}
+    <div class="lqdegs">${[0,1,2,3].map(d=>`<button class="deg d${d+1} ${cur===d?'sel':''}" onclick="lqAns(${d})"><span class="dt">D${d+1} · ${esc(D[d])}</span><span>${esc(LQD[q.k][d])}</span></button>`).join('')}</div>
+    <div class="row" style="margin-top:12px;justify-content:space-between">
+      <div class="row"><button class="btn alt sm" ${LQ.qi?'':'disabled'} onclick="lqGo(${LQ.ei},${LQ.qi-1})">◀ Question précédente</button><button class="btn alt sm" onclick="lqAns(null)">Passer</button></div>
+      <div class="row"><button class="btn alt sm" onclick="lqAbs()">${e.statut==='ABS'?'Présent':'Absent'}</button><button class="btn alt sm" onclick="lqNext()">Élève suivant ▶</button></div></div></div>`}
+/* reprise dans la fiche d'évaluation */
+function lqCrit(k){const cs=B().criteres;if(k==='tech')return cs.find(c=>subSetRaw(c)===SOUS.tech);if(k==='strat')return cs.find(c=>subSetRaw(c)===SOUS.strat);
+  if(k==='prep')return cs.find(c=>c.id==='prep')||cs.find(c=>c.afl==='AFL2'||c.afl==='AFLP3');if(k==='roles')return cs.find(c=>c.id==='roles')||cs.find(c=>c.afl==='AFL3'||c.afl==='AFLP5');return null}
+function lqHist(cr,e){const out=[];SEQ().lecons.forEach(l=>{const r=(e.lq||{})[l.id];if(!r)return;const ds=lqQuestions(l).filter(q=>r.r[q.id]!=null&&lqCrit(q.k)===cr).map(q=>r.r[q.id]);
+  if(ds.length)out.push({n:l.n,d:Math.round(ds.reduce((a,b)=>a+b,0)/ds.length)})});return out}
+function lqHistHtml(cr,e){const h=lqHist(cr,e);if(!h.length)return'';const m=Math.round(h.reduce((a,x)=>a+x.d,0)/h.length);
+  return `<div class="lqh">📅 Leçons : ${h.map(x=>`<span class="dg bg${x.d+1}">L${x.n} · D${x.d+1}</span>`).join(' ')} → moyenne <b>D${m+1}</b> <button class="btn alt sm" onclick="setDeg('${cr.id}',${m})">Retenir D${m+1}</button></div>`}
+function lqCard(){const L=SEQ().lecons;if(!L.length)return'';const n=lessonNow();
+  return `<div class="card lqstart"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">⚡ Évaluer la leçon question par question</h2><div class="muted">Une question à la fois (échauffement, aspect moteur, aspect stratégique, rôles), un degré par réponse, puis l'élève suivant.</div></div>
+    <div class="row"><select class="f" id="lqSel" style="width:auto">${L.map(l=>`<option value="${l.n}" ${l.n===n?'selected':''}>Leçon ${l.n} · ${esc(l.titre)}${l.date===today()?' (aujourd\'hui)':''}</option>`).join('')}</select>
+    <button class="btn" onclick="lqStart(document.getElementById('lqSel').value)">Commencer</button></div></div></div>`}
 function critHtml(cr,e){
   const b=B(),v=e.ev[cr.id],mx=maxPts(cr,e),pts=critPts(cr,e),X=cTx(cr,TXEL);
   let sl='';
@@ -1032,7 +1116,7 @@ function critHtml(cr,e){
   return `<div class="crit ${TXEL?'el':''}" id="c-${cr.id}">
    <div class="crit-h"><div><b>${esc(X.nom)}</b> <span class="tag">${esc(cr.afl)}</span><div class="muted">${esc(X.but)}</div>${r?`<div class="muted" style="color:var(--vol);font-weight:700;margin-top:3px">Routines renforcées : ${esc(r)}</div>`:''}</div>
    <div class="pts" id="p-${cr.id}">${pts!=null?fr(pts):'–'} <small>/ ${fr(mx)}</small></div></div>
-   ${subHtml(cr,e)}${obsHtml(cr,e)}${precMode()==='off'&&subSetRaw(cr)?`<div class="muted" style="margin:6px 0">Évaluation précise désactivée ${precSw()}</div>`:''}
+   ${lqHistHtml(cr,e)}${subHtml(cr,e)}${obsHtml(cr,e)}${precMode()==='off'&&subSetRaw(cr)?`<div class="muted" style="margin:6px 0">Évaluation précise désactivée ${precSw()}</div>`:''}
    <div class="degs">${[0,1,2,3].map(d=>{const [lo,hi]=band(cr,e,d);return `<button class="deg d${d+1} ${v&&v.d===d?'sel':''}" onclick="setDeg('${cr.id}',${d})">
       <span class="dt">D${d+1} · ${esc(X.deg[d])}</span><span class="rg">${fr(lo)} à ${fr(hi)} pt</span><span>${esc(X.desc[d]||'')}</span></button>`}).join('')}</div>${sl}</div>`;
 }
