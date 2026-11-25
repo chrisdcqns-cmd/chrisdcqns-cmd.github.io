@@ -701,6 +701,19 @@ body.eteach .ebar .es{display:block}
 #v-course.needg .needgmsg{display:block;margin:10px 0 4px;padding:18px 22px;border-radius:18px;background:#FFF4EE;border:2px solid #F6C9B4;font-size:22px;text-align:center}
 #v-course.needg>*:not(.top):not(.gcard):not(.needgmsg){display:none!important}
 #v-course.needg .gcard .gpick button{min-height:84px;font-size:24px;min-width:180px}
+
+/* remédiations proposées (enseignant) */
+.rem{margin-top:12px;background:#fff;border:2px solid #D9CCF2;border-radius:16px;padding:12px 16px}
+.rem>summary{cursor:pointer;font-weight:800;font-size:17px;list-style:none}.rem>summary::-webkit-details-marker{display:none}
+.rem .rbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.rem .rbar button{border:1.5px solid var(--line);background:#FBFAF7;border-radius:999px;padding:6px 12px;font:700 14px system-ui;cursor:pointer}.rem .rbar button.on{background:#5B3FA8;border-color:#5B3FA8;color:#fff}
+.ri{border-top:1px solid var(--soft);padding:10px 0;display:grid;grid-template-columns:1fr auto;gap:6px 12px}
+.ri h4{margin:0;font-size:16px}.ri h4 small{font-weight:600;color:var(--muted)}
+.ri .ev{font-size:14px;color:var(--muted)}.ri .rm{font-size:15px}.ri .rm b{color:#5B3FA8}
+.ri .cr{font-size:14px;margin-top:2px}.ri .cr span{display:block}
+.ri .jb{display:flex;flex-direction:column;gap:6px}.ri .jb button{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font:700 13px system-ui;cursor:pointer;white-space:nowrap}
+.ri .jb button.ok{background:#2E7D4F;color:#fff;border-color:#2E7D4F}.ri .jb button.no{background:#8A8F98;color:#fff;border-color:#8A8F98}
+.ri.judged-no{opacity:.5}
+.rvoir{border:0;background:none;color:#5B3FA8;font:700 14px system-ui;text-decoration:underline;cursor:pointer;padding:0 4px}
 </style>
 </head>
 <body>
@@ -939,6 +952,7 @@ body.eteach .ebar .es{display:block}
   <div class="lvsum" id="lv-sum"></div>
   <div id="lv-alert"></div>
   <div id="lv-aiout"></div>
+  <div id="lv-rem"></div>
   <div class="lvgrid" id="lv-groups"></div>
   <div class="lvleg"><span><i style="background:#2E7D4F"></i>Zone 100</span><span><i style="background:#8BC34A"></i>Zone 10</span><span><i style="background:#EF9F27"></i>Zone 1</span><span><i style="background:#C0392B"></i>hors zone</span><span><i style="background:#C9C4B8"></i>zone non saisie</span><span>· 5 dernières courses de l'élève, la plus récente à droite · mis à jour en direct</span></div>
   <div class="card mt"><div class="label">📡 Tablettes</div><div id="lv-devs"></div></div>
@@ -2627,14 +2641,45 @@ const SITS=[
  disp:"Un groupe court, un groupe observe. Une tablette par groupe.",
  c:["Le starter vérifie que tout est prêt puis donne le départ (« À vos marques… Partez ! »).","Le chronométreur arrête le chrono au coup de sifflet des 12 s et lit le plot atteint.","L'observateur de zone indique où le témoin a été transmis et répond aux questions de la bulle.","L'entraîneur lit le conseil et fait ajuster la marque."],
  r:["Chaque course est saisie dans l'appli.","Les conseils sont donnés avant la course suivante.","Chacun change de rôle à chaque rotation."],
- s:"Deux rôles seulement (chrono + observateur).",x:"L'entraîneur propose une situation de la bibliothèque à son binôme."}
+ s:"Deux rôles seulement (chrono + observateur).",x:"L'entraîneur propose une situation de la bibliothèque à son binôme."},
+/* situations nouvelles (remédiations) : nv:1 = proposées à l'enseignant, à valider ; les élèves ne les voient que si l'enseignant les ajoute à une leçon */
+{id:"finzone",nv:1,cat:"trans",t:"Le donneur court jusqu'au plot après la zone",o:"Ne pas ralentir avant de transmettre : la course du donneur finit après la zone.",d:"10 min",
+ disp:"Un plot (ou une chasuble au sol) 5 m après la fin de la zone de transmission. Binômes, témoin.",
+ c:["Le donneur court à fond jusqu'au plot, même après avoir donné le témoin.","Le receveur part sur sa marque comme d'habitude.","L'observateur regarde si le donneur ralentit avant la transmission."],
+ r:["Le donneur passe le plot sans avoir ralenti.","La transmission se fait dans la seconde moitié de la zone.","Le receveur n'a pas à attendre le témoin."],
+ s:"Sans témoin : le donneur touche le dos du receveur.",x:"Chronométrer le témoin sur la zone : le temps doit baisser."},
+{id:"signal2m",nv:1,cat:"trans",t:"Le signal à 2 mètres",o:"Déclencher la transmission au bon moment par un signal vocal.",d:"10 min",
+ disp:"Binômes en course à 70 % puis 90 %, sur 40 m. Deux plots écartés de 2 m dans la zone.",
+ c:["Le donneur crie « Hop ! » quand il est à 2 m du receveur (entre les deux plots).","Le receveur tend le bras au signal, pas avant, sans se retourner.","Le témoin passe en 2 foulées au plus après le signal."],
+ r:["Le signal est donné à 2 m (repéré par l'observateur).","Le bras du receveur reste immobile, main ouverte.","Le témoin passe en 2 foulées au plus."],
+ s:"En marchant puis en trottinant.",x:"Signal muet (tape sur l'épaule interdite) : seulement « Hop ! », à pleine vitesse."},
+{id:"couloir",nv:1,cat:"trans",t:"Partager le couloir",o:"Transmettre sans se gêner : donneur à l'intérieur, receveur à l'extérieur.",d:"10 min",
+ disp:"Couloir tracé (ou deux lignes de plots). Témoin tenu main droite par le donneur.",
+ c:["Le donneur court à l'intérieur du couloir, témoin main droite.","Le receveur se place à l'extérieur et reçoit main gauche.","Chacun garde sa moitié de couloir pendant toute la transmission."],
+ r:["Les coureurs ne se touchent pas.","La transmission se fait bras tendus (1 à 1,5 m d'écart).","Personne ne change de moitié de couloir."],
+ s:"Couloir élargi, vitesse réduite.",x:"Enchaîner deux transmissions (A→B→C) en alternant les mains."},
+{id:"appuis20",nv:1,cat:"foulee",t:"Compter ses appuis sur 20 m lancés",o:"Savoir si l'on doit travailler la fréquence ou l'amplitude.",d:"12 min",
+ disp:"20 m chronométrés après 15 m d'élan, un observateur compte les appuis et un chronométreur prend le temps.",
+ c:["Courir les 20 m à pleine vitesse, relâché.","L'observateur compte les appuis entre les deux plots.","Recommencer en cherchant 1 appui de moins (amplitude) puis le même nombre plus vite (fréquence)."],
+ r:["Le nombre d'appuis est connu (souvent entre 9 et 12 sur 20 m).","Le temps baisse sur l'une des deux consignes : c'est la piste de travail.","La course reste relâchée."],
+ s:"Sur 15 m, à 90 %.",x:"Comparer avec sa vitesse lancée de l'appli et la noter dans le carnet."},
+{id:"carnet",nv:1,cat:"marque",t:"Une seule modification à la fois",o:"Régler sa marque avec méthode (AFL2) au lieu de la changer au hasard.",d:"15 min",
+ disp:"Binômes avec un observateur. Carnet (ou fiche) : marque, zone de transmission, décision.",
+ c:["Avant chaque course, noter la marque (en pieds ou en plots).","Après la course, une seule décision : garder, reculer ou avancer d'un pied ou d'un plot.","Trois courses minimum avant de changer de partenaire."],
+ r:["Chaque course est notée avec sa marque.","La marque se stabilise en 3 essais.","Le binôme sait dire pourquoi il a changé (ou gardé) sa marque."],
+ s:"L'enseignant valide chaque décision.",x:"Le binôme prévoit sa marque avec un autre partenaire avant de courir."},
+{id:"jugezone",nv:1,cat:"roles",t:"Le juge de zone",o:"Observer précisément où passe le témoin (AFL3).",d:"Toute la leçon",
+ disp:"Un juge par couloir, au bord de la zone, avec la fiche Zone 1 / Zone 10 / Zone 100 / hors zone.",
+ c:["Se placer au milieu de la zone, sur le côté, sans gêner.","Regarder la main du receveur au moment où il tient le témoin.","Annoncer la zone au binôme, puis la saisir dans l'appli."],
+ r:["Le juge annonce la zone juste après la course.","Ses relevés correspondent à ceux de l'enseignant (sur 3 courses observées ensemble).","Il signale une transmission hors zone sans hésiter."],
+ s:"Deux juges : un pour le début, un pour la fin de zone.",x:"Le juge dit aussi si le receveur a ralenti ou accéléré avec le témoin."}
 ];
 
 let SIT_CAT="all",SITS_BACK="classes",SIT_OPEN=null,SIT_ADV=null;
 const sitsDay=()=>{const l=CLE&&CL()?CLE():null;return l&&Array.isArray(l.sits)?l.sits:[]};
 function sitHTML(s,open){
   const cat=(SIT_CATS.find(c=>c[0]===s.cat)||[])[1]||"";const inDay=sitsDay().includes(s.id);const l=CL()&&CLE()?CLE():null;
-  return `<details class="sit" data-sit="${s.id}" ${open?"open":""}><summary><div><div class="sk">${esc(cat)}</div><div class="st">${esc(s.t)}</div><div class="so">${esc(s.o)}</div></div>${inDay?'<span class="sday">✓ Leçon du jour</span>':""}<span class="sd">⏱ ${esc(s.d)}</span></summary>
+  return `<details class="sit" data-sit="${s.id}" ${open?"open":""}><summary><div><div class="sk">${esc(cat)}</div><div class="st">${esc(s.t)}</div><div class="so">${esc(s.o)}</div></div>${inDay?'<span class="sday">✓ Leçon du jour</span>':""}${s.nv&&teachOn()&&!inDay?'<span class="sday" style="background:#F7F3FF;color:#5B3FA8">🆕 à valider</span>':""}<span class="sd">⏱ ${esc(s.d)}</span></summary>
   <div class="sitb"><h4>Dispositif</h4><p style="margin:0">${esc(s.disp)}</p>
   <h4>Consignes</h4><ul>${s.c.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
   <h4>Critères de réussite</h4><ul>${s.r.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
@@ -4021,6 +4066,7 @@ function renderLive(){
   $("#lv-groups").innerHTML=h;
   try{$("#lv-devs").innerHTML=syOk()?syDevsHTML():`<p class="note" style="margin:4px 0">Synchronisation non réglée : seules les courses de cette tablette sont affichées.</p>`}catch(e){}
   lvAIRender();
+  try{renderRem()}catch(e){console.warn(e)}
 }
 setInterval(()=>{try{if(viewNow()==="live")renderLive()}catch(e){}},15000);
 setInterval(()=>{try{syStatus()}catch(e){}},15000);
@@ -4246,6 +4292,70 @@ window.epsCheck=function(cls,at){
     :{ok:!np&&!SY.err,t:np?np+" envoi(s) Relais en attente":SY.err?"Synchro Relais : problème":"Courses partagées entre tablettes",d:dv?dv+" tablette(s) vue(s) dans les dernières 24 h":""});
   return R;
 };
+
+/* ===== 💡 Remédiations proposées : détectées dans les courses et les performances, visibles par l'enseignant seulement.
+   Rien n'est montré aux élèves : l'enseignant juge chaque proposition (✓ pertinent / ✗ pas pertinent, mémorisé dans CL().remJ, synchronisé). ===== */
+var REM_SCOPE="seq",REM_SHOW="todo";
+const REM_RULES={
+  depart:{pb:"Départ arrêté lent par rapport à sa vitesse lancée",sit:"departfente",alt:["chuteavant","resistance","departsvaries"],real:"Buste incliné sur les 3 ou 4 premiers appuis, pied posé sous le bassin.",reus:"Écart arrêté/lancé réduit à la prochaine prise de performance ; devant son partenaire aux 5 m."},
+  vmax:{pb:"Vitesse lancée parmi les plus faibles de la classe",sit:"appuis20",alt:["frequence","lattesamplitude","piedactif"],real:"Compter ses appuis sur 20 m lancés pour savoir s'il faut chercher la fréquence ou l'amplitude.",reus:"Gagner 0,5 à 1 km/h sur la vitesse lancée."},
+  donneur:{pb:"Le donneur ralentit avant de transmettre",sit:"finzone",alt:["gaintemoin","relache"],real:"Courir à fond jusqu'au plot placé 5 m après la zone.",reus:"Le donneur passe le plot sans ralentir ; transmission dans la seconde moitié de zone."},
+  tropTot:{pb:"Transmission trop tôt (Zone 1 ou témoin donné trop tôt)",sit:"signal2m",alt:["transfile"],real:"Signal « Hop ! » à 2 m, bras tendu au signal seulement.",reus:"Témoin transmis en 2 foulées au plus après le signal, en Zone 10 ou 100."},
+  recevLoin:{pb:"Le receveur part trop tôt ou doit ralentir pour récupérer le témoin",sit:"chatsouris",alt:["departreceveur","carnet"],real:"Avancer la marque d'un pied ou d'un plot à la fois.",reus:"Le receveur ne ralentit plus ; transmission avant la fin de zone."},
+  recevMoment:{pb:"Le receveur ne part pas au bon moment",sit:"departreceveur",alt:["chatsouris"],real:"Regard fixé sur la marque, départ au passage du pied du donneur sur la marque, puis course droit devant sans se retourner.",reus:"Pleine vitesse au milieu de la zone, sans être rattrapé trop tôt."},
+  recevAccel:{pb:"Le receveur accélère encore avec le témoin (pas à pleine vitesse quand il le reçoit)",sit:"departreceveur",alt:["lancee","carnet"],real:"Reculer la marque d'un pied ou d'un plot ; départ franc au passage sur la marque.",reus:"Le receveur reçoit le témoin à pleine vitesse (Zone 100 sans accélération)."},
+  horsZone:{pb:"Transmissions hors zone répétées",sit:"transarret",alt:["couloir","carnet"],real:"Revenir au geste à vitesse réduite, puis reprendre le réglage de la marque.",reus:"3 transmissions de suite dans la zone."},
+  cible:{pb:"Vitesse cible rarement atteinte, quel que soit le partenaire",sit:"relache",alt:["finzone","signal2m"],real:"Observer d'abord son rôle (donneur qui ralentit ? receveur qui part mal ?) avant de changer la marque.",reus:"Atteindre la vitesse cible sur 2 des 3 prochaines courses."},
+  stab:{pb:"Résultats très irréguliers d'une course à l'autre (AFL2)",sit:"carnet",alt:["jugezone"],real:"Une seule modification à la fois, notée avant la course.",reus:"La moitié des courses dans une fourchette de 1 km/h autour de la meilleure."},
+  sansMarque:{pb:"Plot de la marque jamais noté",sit:"carnet",alt:[],real:"Noter le plot de la marque à chaque course (l'appli rappelle ensuite la marque du binôme).",reus:"Marque notée à chaque course ; l'appli peut conseiller le plot suivant."}
+};
+const remMed=a=>{const b=a.filter(x=>typeof x==="number").sort((x,y)=>x-y);if(!b.length)return null;const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2};
+const remSd=a=>{if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/(a.length-1))};
+function remList(){
+  const C=CL();if(!C)return [];const CS=REM_SCOPE==="lec"&&CLE()?CO():ALLCO(),E=EL().filter(e=>e.ma!=="DISP"),cfg=CFG(),out=[];
+  const nm=id=>{const e=byId(id);return e?e.prenom:"?"},add=(r,key,who,ev)=>out.push({r,key:r+"|"+key,who,ev,rule:REM_RULES[r]});
+  /* performances : départ et vitesse lancée (comparaison à la classe) */
+  const okP=E.filter(e=>typeof e.ma==="number"&&typeof e.ml==="number"&&e.ma>0&&e.ml>0),dif=okP.map(e=>e.ml-e.ma),md=remMed(dif),mlm=remMed(okP.map(e=>e.ml));
+  const q=okP.map(e=>e.ml).sort((a,b)=>a-b),q1=q.length>=6?q[Math.floor(q.length/4)]:null;
+  okP.forEach(e=>{const d=e.ml-e.ma;if(md!=null&&d>=3&&d>=md+1.5)add("depart",e.id,e.prenom,`Départ arrêté ${fmt(e.ma)} km/h, lancé ${fmt(e.ml)} km/h : écart de ${fmt(d)} km/h (médiane de la classe ${fmt(md)}).`);
+    if(q1!=null&&e.ml<=q1&&e.ml<mlm-1.5)add("vmax",e.id,e.prenom,`Vitesse lancée ${fmt(e.ml)} km/h (médiane de la classe ${fmt(mlm)}).`)});
+  /* courses : par binôme et par élève */
+  const pairs={};CS.forEach(c=>{(pairs[c.i1+">"+c.i2]=pairs[c.i1+">"+c.i2]||[]).push(c)});
+  Object.entries(pairs).forEach(([k,L])=>{const last=L.slice(-6),w=`${nm(L[0].i1)} → ${nm(L[0].i2)}`,n=f=>last.filter(f).length;
+    const tt=n(c=>c.zone==="Zone 1"||c.dw==="Le donneur a donné trop tôt");if(tt>=2)add("tropTot",k,w,`${tt} fois sur les ${last.length} dernières courses du binôme.`);
+    const rl=n(c=>c.zr==="Oui"||/trop loin devant/.test(c.dw||""));if(rl>=2)add("recevLoin",k,w,`${rl} fois sur les ${last.length} dernières courses : receveur trop loin devant ou qui ralentit.`);
+    const ra=n(c=>c.za==="Oui");if(ra>=2)add("recevAccel",k,w,`${ra} fois sur les ${last.length} dernières courses : le receveur accélère encore avec le témoin.`);
+    const hz=n(c=>c.zone===HZ);if(hz>=2)add("horsZone",k,w,`${hz} transmissions hors zone sur les ${last.length} dernières courses.`);
+    if(cfg.pm&&L.length>=3&&!L.some(c=>typeof c.pm==="number"))add("sansMarque",k,w,`${L.length} courses sans plot de marque noté.`)});
+  E.forEach(e=>{const asD=CS.filter(c=>c.i1===e.id).slice(-6),asR=CS.filter(c=>c.i2===e.id).slice(-6),mine=CS.filter(c=>c.i1===e.id||c.i2===e.id);
+    const dr=asD.filter(c=>c.dw==="Le donneur a ralenti").length;if(dr>=2)add("donneur",e.id,e.prenom,`${dr} fois « le donneur a ralenti » sur ses ${asD.length} dernières courses comme donneur.`);
+    const rm=asR.filter(c=>/pas parti au bon moment/.test(c.dw||"")).length;if(rm>=2)add("recevMoment",e.id,e.prenom,`${rm} fois « le receveur n'est pas parti au bon moment » sur ses ${asR.length} dernières courses comme receveur.`);
+    const ec=mine.map(c=>c.ecart).filter(v=>typeof v==="number"),parts=new Set(mine.map(c=>c.i1===e.id?c.i2:c.i1));
+    if(ec.length>=4&&parts.size>=2){const m=ec.reduce((a,b)=>a+b,0)/ec.length,ok=ec.filter(v=>v>=0).length;if(m<=-1.2&&ok/ec.length<=.25)add("cible",e.id,e.prenom,`Écart moyen ${fmt(m)} km/h sur ${ec.length} courses avec ${parts.size} partenaires ; cible atteinte ${ok} fois.`)}
+    if(ec.length>=5){const sd=remSd(ec.slice(-8));if(sd>=1.3)add("stab",e.id,e.prenom,`Écarts à la cible très dispersés (écart-type ${fmt(sd)} km/h sur ${Math.min(8,ec.length)} courses).`)}});
+  return out;
+}
+function remJ(){const C=CL();if(!C.remJ)C.remJ={};return C.remJ}
+function renderRem(){
+  const box=$("#lv-rem");if(!box||!CL())return;const J=remJ(),all=remList(),open=box.querySelector("details")?box.querySelector("details").open:true;
+  const L=all.filter(x=>REM_SHOW==="all"?true:REM_SHOW==="ok"?J[x.key]==="ok":!J[x.key]);
+  const sitT=id=>{const s=SITS.find(x=>x.id===id);return s?s.t:id};
+  const stats={};Object.entries(J).forEach(([k,v])=>{const r=k.split("|")[0];stats[r]=stats[r]||{ok:0,no:0};stats[r][v]++});
+  const st=Object.entries(stats).map(([r,o])=>`${esc((REM_RULES[r]||{}).pb||r)} : ✓ ${o.ok} · ✗ ${o.no}`);
+  box.innerHTML=`<details class="rem" ${open?"open":""}><summary>💡 Remédiations proposées (${all.filter(x=>!J[x.key]).length} à juger) <small style="font-weight:600;color:var(--muted)">· visibles par toi seulement</small></summary>
+    <div class="rbar"><button data-remscope="seq" class="${REM_SCOPE==="seq"?"on":""}">Toute la séquence</button><button data-remscope="lec" class="${REM_SCOPE==="lec"?"on":""}">Leçon du jour</button><span style="width:12px"></span><button data-remshow="todo" class="${REM_SHOW==="todo"?"on":""}">À juger</button><button data-remshow="ok" class="${REM_SHOW==="ok"?"on":""}">Jugées pertinentes</button><button data-remshow="all" class="${REM_SHOW==="all"?"on":""}">Tout</button></div>
+    ${L.length?L.map(x=>{const r=x.rule,j=J[x.key];return `<div class="ri ${j==="no"?"judged-no":""}"><div><h4>${esc(r.pb)} <small>· ${esc(x.who)}</small></h4><div class="ev">📊 ${esc(x.ev)}</div>
+      <div class="rm">Remédiation : <b>${esc(sitT(r.sit))}</b>${r.alt.length?` <span style="color:var(--muted)">(ou ${r.alt.map(a=>esc(sitT(a))).join(", ")})</span>`:""} <button class="rvoir" data-sitgo="${r.sit}">📚 voir la fiche</button></div>
+      <div class="cr"><span>🔧 Critère de réalisation : ${esc(r.real)}</span><span>🎯 Critère de réussite : ${esc(r.reus)}</span></div></div>
+      <div class="jb"><button data-remj="ok" data-k="${esc(x.key)}" class="${j==="ok"?"ok":""}">✓ Pertinent</button><button data-remj="no" data-k="${esc(x.key)}" class="${j==="no"?"no":""}">✗ Pas pertinent</button></div></div>`}).join("")
+      :`<p class="note">${all.length?"Rien dans ce filtre.":"Aucune difficulté répétée détectée pour l'instant (il faut quelques courses par binôme, et les vitesses de la classe)."}</p>`}
+    ${st.length?`<p class="note" style="margin-top:10px">Tes jugements par type de proposition : ${st.join(" · ")}</p>`:""}
+    <p class="note" style="margin:6px 0 0">Les élèves ne voient rien de cette liste. Les nouvelles situations 🆕 de la bibliothèque ne leur apparaissent que si tu les ajoutes à une leçon.</p></details>`;
+}
+document.addEventListener("click",e=>{
+  const a=e.target.closest("[data-remscope]");if(a){REM_SCOPE=a.dataset.remscope;renderRem();return}
+  const b=e.target.closest("[data-remshow]");if(b){REM_SHOW=b.dataset.remshow;renderRem();return}
+  const j=e.target.closest("[data-remj]");if(j){const J=remJ(),k=j.dataset.k;J[k]=J[k]===j.dataset.remj?undefined:j.dataset.remj;if(!J[k])delete J[k];persist();renderRem()}});
 window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
  tabs:{seq:{go:()=>go(CLE()?'home':'lecons'),on:()=>['lecons','home','course','perf','live'].includes(viewNow()),actions:[{ico:'📅',label:'Leçons',go:()=>go('lecons')},{ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')},{ico:'📡',label:'En direct',go:()=>go('live')}]},
   eval:{go:()=>go('eval'),on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>go('eval')},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}]},
