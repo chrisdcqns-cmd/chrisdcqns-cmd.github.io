@@ -12,7 +12,7 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - À la fin : `<script src="../eps-home.js" defer></script>` (réglages, code enseignant, dispenses, écran de classe, boutons communs, synchro des listes).
 - Tuile sur l'accueil `index.html` (section « Activités », ou « Outils enseignant » avec `data-eps-teach`), couleur et icône de l'appli.
 - Mettre à jour `/sw.js` (`CORE` +1, fichiers à mettre en cache) et le `sw.js` propre à l'appli s'il existe, pour que ⟳ sur les tablettes récupère la nouvelle version.
-- Code enseignant commun (pavé `epsPin`, `eps.teach.until`, code `relais-vitesse-code-v1`) ; réglages communs `EPSR.get()` (établissement, enseignant, année…), partagés entre tablettes.
+- Code enseignant commun (pavé `epsPin`, `eps.teach.until`, code `relais-vitesse-code-v1`) : toujours `len:4` (4 chiffres, validé tout seul, pas de bouton Valider) ; un pavé qui accepte aussi un mot de passe plus long (lettres) essaie le code tout seul dès le 4e caractère (`epsPin` : `check` sans `len`, sauf `noAuto`). Le pavé existe en copie dans Escalade, Relais, Acrosport, OrienRun (+ orientation/src/teacher.js) : modifier toutes les copies ; réglages communs `EPSR.get()` (établissement, enseignant, année…), partagés entre tablettes.
 
 ## Charte visuelle
 - Fond `#F5F3EE`, lignes `#E6E1D6`, texte `#14171C`, police `system-ui`.
@@ -38,7 +38,7 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 
 ## Mode élève
 - En mode élève, l'appli s'ouvre sur l'écran commun « Choisis ta classe » : `(window.EPSG_Q=window.EPSG_Q||[]).push({app, sub, color, icon, classes(), current(), select(id), resources:[{ico,label,sub,open}], teacher(), isTeacher(), when()})`. Les ressources utiles sans classe (dispositif, sécurité, échauffement…) y figurent. Le bouton Accueil de l'appli, côté élève, ramène à cet écran.
-- **Aucun bouton « enseignant » visible par les élèves.** Accès enseignant : appui long de 2 s sur le logo (barre, écran de classe, titre des écrans tablette coach / terrain), géré par `eps-home.js` ; l'appli peut fournir `window.epsTeacherEntry()`.
+- **Aucun bouton « enseignant » visible par les élèves.** Accès enseignant : 3 appuis rapides sur le logo (ou appui long de 2 s) (barre, écran de classe, titre des écrans tablette coach / terrain), géré par `eps-home.js` ; l'appli peut fournir `window.epsTeacherEntry()`.
 
 ## Classes et élèves (communs à toutes les applis et tablettes)
 - Une classe importée n'importe où (accueil ou appli) apparaît partout. Toute appli qui gère des classes s'inscrit dans `APPS` de `eps-lists.js` (`key, list, nom, names, make, add, del, data`) et fournit `window.epsListsHook = {save, reload}` pour la mise à jour en direct.
@@ -93,6 +93,10 @@ Ces règles valent pour **toutes** les applications du dossier (CCF, Escalade, O
 - Tester dans un navigateur (élève et enseignant), sans erreur de page ; vérifier l'écran « Choisis ta classe » et la barre.
 - `git pull --rebase` avant de pousser (d'autres sessions travaillent en parallèle) ; en cas de conflit sur `/sw.js`, garder le `CORE` le plus haut + 1.
 - Mettre à jour `README.md` et ce fichier si une règle commune change.
+
+## Mode élève verrouillé, bouton 🔄
+- eps-home.js (`eleveLock`) : hors mode enseignant (`html.eps-teach`), le retour arrière est bloqué (entrée d'historique remise à chaque retour et à chaque appui), la sélection de texte, la loupe et le menu Copier de Chrome sont désactivés (sauf champs de saisie). Aucune appli ne doit utiliser `history.back()` ni `popstate` pour sa navigation.
+- 🔄 Mettre à jour (`#eps-upd`) : visible partout, élèves compris ; dans la barre du haut si elle est visible (`placeUpd`), sinon bouton rond en haut à droite. Pages sans eps-home.js (terrain, mon-bilan) : bouton équivalent dans la page.
 
 ## Accessibilité
 - eps-home.js passe toutes les 1,5 s sur la page : nom accessible (aria-label) pour les boutons à icône seule (dictionnaire `NOMS`) et les champs sans étiquette, cible minimale 40 px pour les petits boutons (`data-eps-a11y-sm`), contour `:focus-visible`, `prefers-reduced-motion`. Gris de texte minimum `#6A6F78` (jamais `#9AA0A6`, contraste insuffisant). Une nouvelle appli : boutons ≥ 40 px, un texte ou un `aria-label` sur chaque bouton.

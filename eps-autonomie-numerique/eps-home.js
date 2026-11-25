@@ -38,7 +38,7 @@
   function close(r){document.removeEventListener("keydown",kd,true);el.remove();res(r)}
   function fail(m){E.textContent=m||"Code incorrect.";v="";dots();D.classList.remove("s");void D.offsetWidth;D.classList.add("s")}
   function submit(){if(busy||v.length<min)return;var val=v;if(!o.check)return close(val);busy=true;Promise.resolve(o.check(val)).then(function(r){busy=false;if(r===true)close(val);else fail(typeof r=="string"?r:"")},function(){busy=false;fail("Vérification impossible.")})}
-  function add(c){if(busy)return;E.textContent="";if(v.length>=(len||o.max||40))return;v+=c;dots();if(len&&v.length===len)setTimeout(submit,120)}
+  function add(c){if(busy)return;E.textContent="";if(v.length>=(len||o.max||40))return;v+=c;dots();if(len&&v.length===len)setTimeout(submit,120);else if(!len&&o.check&&!o.noAuto&&v.length===4){var tv=v;Promise.resolve().then(function(){return o.check(tv)}).then(function(r){if(r===true&&document.body.contains(el))close(tv)},function(){})}}/* code à 4 caractères : essayé tout seul, sans « Valider » */
   function bs(){if(busy)return;v=v.slice(0,-1);dots()}
   K.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;e.preventDefault();b.blur();if(b.dataset.k)add(b.dataset.k);else if(b.dataset.b)bs();else if(b.dataset.u){up=!up;keys()}else if(b.dataset.m){lt=!lt;keys()}});
   el.querySelector(".no").onclick=function(){close(null)};OK.onclick=submit;
@@ -403,7 +403,7 @@
   function setHubTeach(on) { try { localStorage.setItem("eps.teach.until", on ? String(Date.now() + (rget().teachMin || 60) * 60000) : "0"); } catch (e) {} applyTeach(); }
   function applyTeach() {
     var t = isTeacher();
-    var u = document.getElementById("eps-upd"); if (u) u.style.display = t ? (u.className == "epsb" ? "inline-flex" : "grid") : "none";
+    try { placeUpd(); } catch (e) {}
     document.querySelectorAll("[data-eps-teach]").forEach(function (el) { el.style.display = t ? "" : "none"; });
     try { document.documentElement.classList.toggle("eps-teach", !!t); } catch (e) {}
     var b = document.getElementById("eps-teachbtn"); if (b) { b.textContent = "🔓 Quitter le mode enseignant"; b.style.display = t ? "" : "none"; }
@@ -414,7 +414,7 @@
     var stored = null; try { stored = JSON.parse(localStorage.getItem("relais-vitesse-code-v1") || "null"); } catch (e) {}
     var pin = window.epsPin || epsPin;
     function done() { unlockedUntil = Date.now() + 10 * 60000; setHubTeach(true); return true; }
-    if (stored) return pin({ title: "🔒 Code enseignant", min: 4, max: 12, check: function (v) { return hashCode(v) === stored; } }).then(function (v) { return v === null ? false : done(); });
+    if (stored) return pin({ title: "🔒 Code enseignant", len: 4, check: function (v) { return hashCode(v) === stored; } }).then(function (v) { return v === null ? false : done(); });
     return pin({ title: "🔒 Crée ton code enseignant", text: "4 chiffres, pour toutes les applications.", len: 4 }).then(function (v) {
       if (v === null) return false;
       return pin({ title: "🔒 Confirme le code", text: "Tape le même code une 2e fois.", len: 4, check: function (w) { return w === v || "Les deux codes sont différents."; } }).then(function (w) {
@@ -1229,7 +1229,7 @@
       (R.length ? '<div class="epsg-lab">Ressources · sans classe</div><div class="epsg-g">' + R.map(function (r, i) {
         return '<button class="epsg-r" data-r="' + i + '" style="background:' + tint(col, .12) + ';color:' + col + '"><i>' + (r.ico || "📘") + "</i><span>" + esc(r.label) + (r.sub ? "<small>" + esc(r.sub) + "</small>" : "") + "</span></button>";
       }).join("") + "</div>" : "") +
-      "</div>"; /* accès enseignant : appui long (3 s) sur le logo de l'appli, sans bouton visible pour les élèves */
+      "</div>"; /* accès enseignant : 3 appuis rapides (ou appui long) sur le logo de l'appli, sans bouton visible pour les élèves */
     d.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       if (b.dataset.c != null) { gateClose(); try { G.select(b.dataset.c); } catch (er) {} }
@@ -1324,7 +1324,26 @@
     setInterval(commentBars, 1200);
   })();
 
-  /* ================= Accès enseignant caché : maintenir 3 s le logo =================
+  /* ================= 🔒 Mode élève : pas de retour arrière, pas de sélection de texte =================
+     - Retour arrière (bouton ou geste Android, Chrome) : bloqué tant qu'on n'est pas en mode enseignant (une entrée d'historique est remise à chaque retour).
+     - Sélection de texte, loupe et menu « Copier / Rechercher » de Chrome : désactivés, sauf dans les champs de saisie.
+     En mode enseignant (html.eps-teach), tout redevient normal. Le cadre « Vue élève » n'est pas concerné. */
+  (function eleveLock() {
+    try { var st = document.createElement("style"); st.id = "eps-nosel";
+      st.textContent = "html:not(.eps-teach) body,html:not(.eps-teach) body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}" +
+        "html:not(.eps-teach) input,html:not(.eps-teach) textarea,html:not(.eps-teach) select,html:not(.eps-teach) [contenteditable],html:not(.eps-teach) [contenteditable] *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}";
+      (document.head || document.documentElement).appendChild(st); } catch (e) {}
+    function eleve() { return !document.documentElement.classList.contains("eps-teach") && !isTeacher(); }
+    document.addEventListener("contextmenu", function (e) { if (!eleve()) return; var t = e.target; if (t && t.closest && t.closest("input,textarea,[contenteditable]")) return; e.preventDefault(); }, true);
+    document.addEventListener("selectstart", function (e) { if (!eleve()) return; var t = e.target; if (t && t.closest && t.closest("input,textarea,[contenteditable]")) return; e.preventDefault(); }, true);
+    if (window.top !== window) return; /* aperçu « Vue élève » dans un cadre : pas d'historique à bloquer */
+    function arm() { try { if (!(history.state && history.state.epsLock)) history.pushState(Object.assign({}, history.state || {}, { epsLock: 1 }), "", location.href); } catch (e) {} }
+    window.addEventListener("popstate", function () { if (eleve()) { arm(); } }, true);
+    /* Chrome ne compte une entrée d'historique que si elle suit un geste : on la (re)pose au premier appui */
+    document.addEventListener("pointerdown", function () { if (eleve()) arm(); }, true);
+    setTimeout(function () { if (eleve()) arm(); }, 600);
+  })();
+  /* ================= Accès enseignant caché : 3 appuis rapides sur le logo (ou le maintenir 2 s) =================
      Logos : barre de l'accueil (.mark), barre de chaque appli, écran « Choisis ta classe ».
      L'appli peut fournir window.epsTeacherEntry() ; sinon : celle de l'écran de classe, sinon le code enseignant commun. */
   var LOGOS = ".mark,.epsg-ic,header .mk,.ebar .ei,.top h1 .ei,.brand .ei,.topline .ei,.chd h1,[data-eps-logo]";
@@ -1349,7 +1368,14 @@
       t2 = setTimeout(function () { if (el) el.classList.add("eps-hold"); }, 1200);
       tm = setTimeout(function () { stop(); teacherEntry(); }, 2000);
     }, true);
-    document.addEventListener("pointermove", function (e) { if (el && Math.hypot(e.clientX - sx, e.clientY - sy) > 14) stop(); }, true);
+    document.addEventListener("pointermove", function (e) { if (el && Math.hypot(e.clientX - sx, e.clientY - sy) > 14) { stop(); taps = []; } }, true);
+    /* 👆👆👆 3 appuis rapides sur le logo (en moins de 1,2 s) : accès enseignant, sans attendre */
+    var taps = [], tapEl = null;
+    document.addEventListener("pointerup", function (e) {
+      var l = el; if (!l || !(e.target.closest && e.target.closest(LOGOS))) { taps = []; return; }
+      var now = Date.now(); if (tapEl !== l) { taps = []; tapEl = l; } taps = taps.filter(function (t) { return now - t < 1200; }); taps.push(now);
+      if (taps.length >= 3) { taps = []; stop(); teacherEntry(); }
+    }, true);
     ["pointerup", "pointercancel"].forEach(function (ev) { document.addEventListener(ev, stop, true); });
     document.addEventListener("contextmenu", function (e) { if (e.target.closest && e.target.closest(LOGOS)) e.preventDefault(); }, true);
   })();
@@ -1552,12 +1578,9 @@
     b.type = "button"; b.id = "eps-upd"; b.title = "Mettre à jour (données et application)"; b.setAttribute("aria-label", "Mettre à jour");
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
     var s = b.style, slot = epsSlot();
-    if (slot) { b.className = "epsb"; } else {
-    s.position = "fixed"; s.zIndex = "2147483000"; s.border = "0"; s.padding = "0";
-    s.left = "calc(10px + env(safe-area-inset-left, 0px))"; s.bottom = HUB ? "calc(10px + env(safe-area-inset-bottom, 0px))" : "calc(64px + env(safe-area-inset-bottom, 0px))";
-    s.width = "46px"; s.height = "46px"; s.borderRadius = "50%"; s.display = "grid"; s.placeItems = "center";
-    s.background = "rgba(31,95,139,.85)"; s.color = "#fff"; s.boxShadow = "0 2px 8px rgba(0,0,0,.25)";
-    }
+    /* 🔄 visible partout, élèves compris : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
+    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-f{position:fixed;z-index:2147483300;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));width:46px;height:46px;border-radius:50%;display:grid;place-items:center;border:0;padding:0;background:rgba(31,95,139,.9);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
+    if (slot) b.className = "epsb"; else b.className = "eps-upd-f";
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
       var tip = document.createElement("div");
@@ -1571,6 +1594,13 @@
       location.reload();
     };
     (slot || document.body).appendChild(b);
+  }
+  function placeUpd() {
+    var b = document.getElementById("eps-upd"); if (!b) return; if (window.EPS_VUE_ELEVE && window.top !== window) { b.style.display = "none"; return; }
+    var sl = epsSlot(), ok = false;
+    if (sl && sl.getClientRects().length) { var r = sl.getBoundingClientRect(), x = r.left + Math.min(20, r.width / 2), y = r.top + r.height / 2, top = r.width && y > 0 && y < innerHeight ? document.elementFromPoint(x, y) : null; ok = !!top && (sl.contains(top) || top === sl); if (!ok && b.parentNode === sl) { var r2 = b.getBoundingClientRect(), t2 = r2.width ? document.elementFromPoint(r2.left + r2.width / 2, r2.top + r2.height / 2) : null; ok = !!t2 && (t2 === b || b.contains(t2)); } }
+    if (ok) { if (b.parentNode !== sl) sl.appendChild(b); if (b.className !== "epsb") b.className = "epsb"; b.style.display = "inline-flex"; }
+    else { if (b.parentNode !== document.body) document.body.appendChild(b); if (b.className !== "eps-upd-f") b.className = "eps-upd-f"; b.style.display = ""; }
   }
   /* emplacement(s) des boutons communs dans la barre du haut de l'appli : on utilise celui qui est visible
      (une appli peut en avoir plusieurs, par exemple un par écran) */

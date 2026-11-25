@@ -1942,7 +1942,7 @@ K.innerHTML=h}
 function close(r){document.removeEventListener("keydown",kd,true);el.remove();res(r)}
 function fail(m){E.textContent=m||"Code incorrect.";v="";dots();D.classList.remove("s");void D.offsetWidth;D.classList.add("s")}
 function submit(){if(busy||v.length<min)return;var val=v;if(!o.check)return close(val);busy=true;Promise.resolve(o.check(val)).then(function(r){busy=false;if(r===true)close(val);else fail(typeof r=="string"?r:"")},function(){busy=false;fail("Vérification impossible.")})}
-function add(c){if(busy)return;E.textContent="";if(v.length>=(len||o.max||40))return;v+=c;dots();if(len&&v.length===len)setTimeout(submit,120)}
+function add(c){if(busy)return;E.textContent="";if(v.length>=(len||o.max||40))return;v+=c;dots();if(len&&v.length===len)setTimeout(submit,120);else if(!len&&o.check&&!o.noAuto&&v.length===4){var tv=v;Promise.resolve().then(function(){return o.check(tv)}).then(function(r){if(r===true&&document.body.contains(el))close(tv)},function(){})}}/* code à 4 caractères : essayé tout seul, sans « Valider » */
 function bs(){if(busy)return;v=v.slice(0,-1);dots()}
 K.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;e.preventDefault();b.blur();if(b.dataset.k)add(b.dataset.k);else if(b.dataset.b)bs();else if(b.dataset.u){up=!up;keys()}else if(b.dataset.m){lt=!lt;keys()}});
 el.querySelector(".no").onclick=function(){close(null)};OK.onclick=submit;

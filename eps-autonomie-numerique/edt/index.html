@@ -104,7 +104,7 @@ window.epsIsTeacher=isT;
 function unlock(){
   var stored=null;try{stored=JSON.parse(localStorage.getItem("relais-vitesse-code-v1")||"null");}catch(e){}
   if(!stored){toast("Crée d'abord ton code enseignant depuis la page d'accueil");return;}
-  window.epsPin({title:"🔒 Code enseignant",min:4,max:12,check:function(v){return hashCode(v)===stored;}}).then(function(v){
+  window.epsPin({title:"🔒 Code enseignant",len:4,check:function(v){return hashCode(v)===stored;}}).then(function(v){
     if(v===null)return;var m=60;try{m=+(JSON.parse(localStorage.getItem("eps.reglages.v1")||"{}").teachMin)||60;}catch(e){}
     try{localStorage.setItem("eps.teach.until",String(Date.now()+m*60000));}catch(e){}render();});
 }

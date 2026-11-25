@@ -1872,7 +1872,7 @@ async function unlock(){
   const done=()=>{unlockedUntil=Date.now()+60*60000;try{localStorage.setItem('eps.teach.until',String(unlockedUntil))}catch(e){}setLock();refresh()};
   let stored=null;try{stored=JSON.parse(localStorage.getItem('relais-vitesse-code-v1')||'null')}catch(e){}
   if(!pin){const v=prompt('Code enseignant');if(v==null)return;if(!stored||hashCode(v)===stored){if(!stored)try{localStorage.setItem('relais-vitesse-code-v1',JSON.stringify(hashCode(v)))}catch(e){}done()}else alert('Code incorrect');return}
-  if(stored){const v=await pin({title:'🔒 Code enseignant',min:4,max:12,check:v=>hashCode(v)===stored});if(v!==null)done();return}
+  if(stored){const v=await pin({title:'🔒 Code enseignant',len:4,check:v=>hashCode(v)===stored});if(v!==null)done();return}
   const v=await pin({title:'🔒 Crée ton code enseignant',text:'4 chiffres, pour toutes les applications.',len:4});if(v===null)return;
   const w=await pin({title:'🔒 Confirme le code',text:'Tape le même code une 2e fois.',len:4,check:w=>w===v||'Les deux codes sont différents.'});if(w===null)return;
   try{localStorage.setItem('relais-vitesse-code-v1',JSON.stringify(hashCode(v)))}catch(e){}done();

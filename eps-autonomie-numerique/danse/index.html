@@ -1856,7 +1856,7 @@ async function demanderCode() {
   const ok = () => { unlockedUntil = Date.now() + 60 * 60000; try { localStorage.setItem('eps.teach.until', String(unlockedUntil)); } catch (e) { } return true; };
   const pin = window.epsPin;
   if (pin) {
-    if (stored) { const v = await pin({ title: '🔒 Code enseignant', min: 4, max: 12, check: v => hashCode(v) === stored }); return v !== null ? ok() : false; }
+    if (stored) { const v = await pin({ title: '🔒 Code enseignant', len: 4, check: v => hashCode(v) === stored }); return v !== null ? ok() : false; }
     const v = await pin({ title: '🔒 Crée ton code enseignant', text: '4 chiffres, pour toutes les applications.', len: 4 }); if (v === null) return false;
     const w = await pin({ title: '🔒 Confirme le code', text: 'Tape le même code une 2e fois.', len: 4, check: w => w === v || 'Les deux codes sont différents.' }); if (w === null) return false;
     try { localStorage.setItem('relais-vitesse-code-v1', JSON.stringify(hashCode(v))); } catch (e) { }

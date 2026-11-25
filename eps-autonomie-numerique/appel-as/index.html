@@ -96,7 +96,7 @@ window.epsIsTeacher=isT;
 function unlock(){
   var stored=jget("relais-vitesse-code-v1",null);
   if(!stored){toast("Crée d'abord ton code enseignant depuis la page d'accueil");return;}
-  window.epsPin({title:"🔒 Code enseignant",min:4,max:12,check:function(v){return hashCode(v)===stored;}}).then(function(v){
+  window.epsPin({title:"🔒 Code enseignant",len:4,check:function(v){return hashCode(v)===stored;}}).then(function(v){
     if(v===null)return;var m=+(reg().teachMin)||60;
     try{localStorage.setItem("eps.teach.until",String(Date.now()+m*60000));}catch(e){}render();load();});
 }
