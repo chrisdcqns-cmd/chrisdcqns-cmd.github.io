@@ -402,8 +402,24 @@
     M.bindExports = function (root, c) { var el = function () { var x = root.querySelector("[data-x-prof]"); return !(x && x.checked); };
       root.querySelector("[data-x-zip]").onclick = function () { M.zip(c, el()); }; root.querySelector("[data-x-all]").onclick = function () { M.pdfTous(c, el()); }; root.querySelector("[data-x-rec]").onclick = function () { M.pdfRecap(c); }; var pb = root.querySelector("[data-x-pub]"); if (pb) pb.onclick = function () { if (!(window.EPSD && EPSD.publish)) { toast("Publication indisponible (recharge la page)"); return; } EPSD.publish({ app: A.app, nom: A.nom, color: A.color, classe: c.nom, eleves: c.eleves.map(function (E) { return { full: fullN(E), bytes: function () { return libs().then(function () { return ficheBytes(c, E, true); }); } }; }) }); }; var pn = root.querySelector("[data-x-pn]"); if (pn) pn.onclick = function () { M.pronote(c); }; };
     /* notes à coller dans Pronote (fenêtre commune EPSR.pronote d'eps-home.js) */
-    M.pronote = function (c) { if (!(window.EPSR && EPSR.pronote)) { toast("Export Pronote indisponible (recharge la page)"); return; }
+    M.pronote = function (c) { if (c && c.nom && c.eleves) return M.pronoteAll(c.nom, c.eleves); if (!(window.EPSR && EPSR.pronote)) { toast("Export Pronote indisponible (recharge la page)"); return; }
       EPSR.pronote({ app: A.nom, classe: c.nom, color: A.color, cols: [{ t: "Note /20" }], rows: c.eleves.map(function (E) { var n = A.name(E), ab = A.absent(E); return { nom: n.nom, prenom: n.prenom || "", st: ab || "", v: [ab ? null : A.note(E)] }; }) }); };
+    /* 📋 Pronote de toute l'activité : une colonne par évaluation (note de l'appli, note proposée, points par AFL, chaque évaluation de leçon,
+       moyenne des leçons, réussite aux situations). Dans la fenêtre Pronote : copier une colonne (une évaluation) ou toutes (bilan général). */
+    M.pronoteAll = function (cls, L) { if (!(window.EPSR && EPSR.pronote)) { toast("Export Pronote indisponible (recharge la page)"); return; }
+      L = (typeof L === "function" ? L() : L) || []; var DIR = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining" }[A.app] || A.app, LV = null;
+      try { LV = JSON.parse(localStorage.getItem("eps.leceval." + DIR + ".v1") || "null"); } catch (e) {}
+      var J = Object.keys((LV && LV.items) || {}).map(function (id) { return LV.items[id]; }).filter(function (o) { return o && !o.del && nk(o.cls) === nk(cls); }).sort(function (a, b) { return String(a.day).localeCompare(String(b.day)); });
+      var P0 = L.length ? M.prop(L[0], cls) : { afl: [] }, AF = P0.afl.map(function (a) { return a.code; }), cc = M.ccf(cls);
+      var cols = [{ t: "Note de l'évaluation /20" }, { t: "Note proposée /20" + (cc.on ? " (CCF)" : "") }].concat(AF.map(function (c, i) { var a = P0.afl[i]; return { t: c + " /" + fr(cc.on && a.ccfMax != null ? a.ccfMax : a.mx) }; }))
+        .concat(J.map(function (o) { return { t: "Leçon du " + new Date(o.day + "T12:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) + (o.theme ? " · " + String(o.theme).slice(0, 24) : "") + " /20" }; }))
+        .concat([{ t: "Moyenne des leçons /20" }, { t: "Situations réussies /20" }]);
+      var rows = L.map(function (E) { var n = A.name(E), ab = A.absent(E), P = M.prop(E, cls), k = ekey(E);
+        var v = [A.note ? A.note(E) : null, P.note].concat(AF.map(function (c) { var a = P.afl.filter(function (x) { return x.code === c; })[0]; return !a || a.deg == null ? null : cc.on ? a.ccf : a.pts; }))
+          .concat(J.map(function (o) { var x = (o.el || {})[k]; if (!x) return null; var q = ["p", "s", "t"].filter(function (z) { return x[z] != null; }).map(function (z) { return +x[z]; }); return q.length ? Math.round(q.reduce(function (a, b) { return a + b; }, 0) / q.length / 3 * 20 * 4) / 4 : null; }))
+          .concat([P.noteLec, P.noteSit]);
+        return { nom: n.nom, prenom: n.prenom || "", st: ab || "", v: ab ? v.map(function () { return null; }) : v }; });
+      EPSR.pronote({ app: A.nom, classe: cls, titre: A.nom + " · toutes les évaluations", color: A.color, cols: cols, rows: rows }); };
     /* données de la bulle 🙋 commune (window.epsApChip) */
     M.apData = function (E) { var a = A.getAp(E); if (!a || !a.ev || !Object.keys(a.ev).length) return null; var n = A.name(E);
       return { nom: ((n.prenom || "") + " " + (n.nom || "")).trim(), date: a.t ? new Date(a.t).toLocaleDateString("fr-FR") : "", r: a.r || "", m: a.m || "",
@@ -431,6 +447,11 @@
     function lecAvg(cls, E) { var k = ekey(E), V = null; try { var DIR = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining" }[A.app] || A.app; V = JSON.parse(localStorage.getItem("eps.leceval." + DIR + ".v1") || "null"); } catch (e) {}
       var L = []; Object.keys((V && V.items) || {}).forEach(function (id) { var o = V.items[id]; if (!o || o.del || nk(o.cls) !== nk(cls)) return; var x = (o.el || {})[k]; if (!x) return; var v = []; ["p", "s", "t"].forEach(function (q) { if (x[q] != null) v.push(+x[q]); }); if (v.length) L.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); });
       return L.length ? { n: L.length, m: L.reduce(function (a, b) { return a + b; }, 0) / L.length } : null; }
+    /* 🏁 réussite aux situations notée par l'élève dans les fiches de leçon (eps.lecres.<dossier>.v1) : indicatif */
+    function sitRate(cls, E) { var k = ekey(E), V = null; try { var DIR = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining" }[A.app] || A.app; V = JSON.parse(localStorage.getItem("eps.lecres." + DIR + ".v1") || "null"); } catch (e) {}
+      var last = {}; Object.keys((V && V.items) || {}).map(function (id) { return V.items[id]; }).filter(function (o) { return o && !o.del && o.ek === k && nk(o.cls) === nk(cls); }).sort(function (a, b) { return String(a.day).localeCompare(String(b.day)); }).forEach(function (o) { Object.keys(o.r || {}).forEach(function (q) { last[q] = o.r[q]; }); });
+      var ks = Object.keys(last); if (!ks.length) return null; var pts = ks.reduce(function (a, q) { return a + (last[q] === 2 ? 1 : last[q] === 1 ? .5 : 0); }, 0);
+      return { n: ks.length, t: pts / ks.length, ok: ks.filter(function (q) { return last[q] === 2; }).length, ko: ks.filter(function (q) { return last[q] === 0; }).length }; }
     M.prop = function (E, cls) {
       var G = A.grid(), ap = A.getAp(E), groups = {}, order = [], nT = 0, nA = 0;
       G.criteres.forEach(function (cr) { var code = String(cr.afl || "AFL1").trim(), v = A.prof(cr, E), src = "eval";
@@ -453,7 +474,8 @@
           if (!fin.length) ok = false; note = Math.round(tot * 4) / 4; detail = "barème CCF " + (cc.voie === "pro" ? "Bac pro" : "Bac général") + " · fil de la séquence " + ch.join("-") + (ok ? "" : " · incomplet : il manque des AFL"); } }
       var src = nT && !nA ? "eval" : nT && nA ? "mixte" : nA ? "auto" : "none";
       var noteLec = lec ? Math.round(lec.m / 3 * 20 * 4) / 4 : null;
-      return { afl: afl, note: note, detail: detail, src: src, nT: nT, nA: nA, lec: lec, noteLec: noteLec, ccf: cc };
+      var sit = cls ? sitRate(cls, E) : null;
+      return { afl: afl, note: note, detail: detail, src: src, nT: nT, nA: nA, lec: lec, noteLec: noteLec, sit: sit, noteSit: sit ? Math.round(sit.t * 20 * 4) / 4 : null, ccf: cc };
     };
     M.propHtml = function (E, cls) { css(A.color);
       var P = M.prop(E, cls), DL = ["Degré 1", "Degré 2", "Degré 3", "Degré 4"], cc = P.ccf;
@@ -468,6 +490,7 @@
         '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><span style="font-size:20px;font-weight:900">Note proposée : ' + (P.note == null ? "—" : fr(P.note) + " / 20") + '</span><span class="epse-mut">' + esc(P.detail || "") + "</span></div>" +
         '<div style="background:' + SRC[0] + ";color:" + SRC[1] + ';border-radius:10px;padding:6px 10px;margin-top:6px;font-weight:700;font-size:14px">' + SRC[2] + "</div>" +
         (P.lec ? '<div class="epse-mut" style="margin-top:6px">📊 Évaluations de leçon : ' + P.lec.n + " leçon(s), moyenne " + fr(Math.round(P.lec.m * 100) / 100) + " / 3 → " + fr(P.noteLec) + " / 20 (participation, sérieux, thème du jour ; indicatif, hors grille)</div>" : "") +
+        (P.sit ? '<div class="epse-mut" style="margin-top:4px">🏁 Situations des leçons notées par l\'élève : ' + P.sit.n + " situation(s), ✅ " + P.sit.ok + " réussie(s), ❌ " + P.sit.ko + " pas encore · réussite " + Math.round(P.sit.t * 100) + " % → " + fr(P.noteSit) + " / 20 (déclaré par l'élève ; indicatif, hors grille)</div>" : "") +
         (cls ? '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;border-top:1px solid #F0ECE3;padding-top:8px"><label style="font-weight:800;display:flex;gap:6px;align-items:center"><input type="checkbox" data-ccf' + (cc.on ? " checked" : "") + ' style="width:22px;height:22px"> Évaluation CCF</label>' +
           (cc.on ? '<select data-voie class="epse-sel"><option value="gt"' + (cc.voie !== "pro" ? " selected" : "") + '>Bac général</option><option value="pro"' + (cc.voie === "pro" ? " selected" : "") + '>Bac pro</option></select><label class="epse-mut">Choix de l\'élève (fil de la séquence) <select data-choix class="epse-sel">' + ["4-4", "6-2", "2-6"].map(function (x) { return "<option" + (M.choix(cls, E) === x ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>" : "") +
           (P.src === "auto" || P.src === "mixte" ? '<button type="button" class="epse-btn" data-take>✓ Reprendre ces degrés dans mon évaluation</button>' : "") + "</div>" : "") + "</div>";
@@ -480,6 +503,7 @@
       if (ap && (ap.r || ap.m)) L.push("L'élève dit avoir réussi : " + (ap.r || "—") + " ; vouloir améliorer : " + (ap.m || "—"));
       try { (window.EPSOB ? EPSOB.of(full, cls) : []).slice(-8).forEach(function (o) { L.push("Observation : " + o.txt); }); } catch (e) {}
       if (P.lec) L.push("Évaluations de leçon (participation, sérieux, thème) : moyenne " + (Math.round(P.lec.m * 10) / 10) + "/3 sur " + P.lec.n + " leçon(s)");
+      if (P.sit) L.push("Situations des leçons (résultats notés par l'élève) : " + Math.round(P.sit.t * 100) + " % de réussite sur " + P.sit.n + " situation(s)");
       var fs = String(n.prenom || "").trim(); return L.join("\n").replace(fs ? new RegExp("\\b" + fs.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi") : /$^/, "l'élève");
     };
     M.bindPhrase = function (R, E, cls, keep) {
@@ -499,8 +523,9 @@
        M.propBlock(apres, E, classe, {redraw, keep(texte), take}) — inséré juste après l'élément « apres » */
     M.propBlock = function (after, E, cls, o) { o = o || {}; if (!after || !after.parentNode) return;
       try { var d = document.createElement("div"); d.className = "epse-block"; d.innerHTML = M.propHtml(E, cls) +
-          '<div class="epse-card"><div class="epse-row" style="margin:0"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button></div><div data-phrbox style="margin-top:6px"></div></div>';
-        after.parentNode.insertBefore(d, after.nextSibling); M.bindProp(d, E, cls, o.redraw || function () {}, o.take); if (o.keep) M.bindPhrase(d, E, cls, o.keep); } catch (e) { console.warn(e); } };
+          '<div class="epse-card"><div class="epse-row" style="margin:0"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button>' + (o.list ? '<button type="button" class="epse-btn" data-pnall>📋 Pronote : toutes les évaluations de la classe</button>' : "") + '</div><div data-phrbox style="margin-top:6px"></div></div>';
+        after.parentNode.insertBefore(d, after.nextSibling); M.bindProp(d, E, cls, o.redraw || function () {}, o.take);
+        var pn = d.querySelector("[data-pnall]"); if (pn) pn.onclick = function () { M.pronoteAll(cls, o.list); }; if (o.keep) M.bindPhrase(d, E, cls, o.keep); } catch (e) { console.warn(e); } };
     M.bindProp = function (R, E, cls, redraw, take) {
       var b = R.querySelector("[data-ccf]"); if (b) b.onchange = function () { M.setCcf(cls, { on: b.checked }); redraw(); };
       var v = R.querySelector("[data-voie]"); if (v) v.onchange = function () { M.setCcf(cls, { voie: v.value }); redraw(); };
@@ -614,7 +639,7 @@
             '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
             (v ? '<div class="epse-intra" style="--dc:' + DCOL[v.d] + '"><span>Dans le degré :</span><input type="range" min="0" max="4" step="1" value="' + Math.round((v.pos == null ? .5 : v.pos) * 4) + '" data-p="' + esc(cr.id) + '"><b style="color:' + DCOL[v.d] + '">' + esc(posLbl(v.d, v.pos == null ? .5 : v.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
         (ap && (ap.r || ap.m) ? '<div class="epse-card"><h2>🙋 Les mots de l\'élève</h2>' + (ap.r ? "<p>✓ " + esc(ap.r) + "</p>" : "") + (ap.m ? "<p>→ " + esc(ap.m) + "</p>" : "") + "</div>" : "") +
-        '<div class="epse-card"><div class="epse-row" style="margin:0 0 6px"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button></div><div data-phrbox></div><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
+        '<div class="epse-card"><div class="epse-row" style="margin:0 0 6px"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button><button type="button" class="epse-btn" data-pnall>📋 Pronote : toutes les évaluations de la classe</button></div><div data-phrbox></div><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
     }
     function bindSheet(R, c, e) {
       var up = function (f) { var r = rec(e._c, e); f(r); save(e._c, e, r); render(); };
@@ -627,6 +652,7 @@
       var t = R.querySelector("[data-comm]"); t.oninput = t.onchange = function () { var r = rec(e._c, e); r.comm = t.value; save(e._c, e, r); };
       M.bindProp(R, e, e._c, render, function () { up(function (r) { var a = r.ap; r.ev = r.ev || {}; grid().criteres.forEach(function (cr) { if (!r.ev[cr.id] && a && a.ev && a.ev[cr.id]) r.ev[cr.id] = { d: a.ev[cr.id].d, pos: a.ev[cr.id].pos == null ? .5 : a.ev[cr.id].pos }; }); }); });
       M.bindPhrase(R, e, e._c, function (txt) { var r = rec(e._c, e); r.comm = txt; save(e._c, e, r); render(); });
+      var pna = R.querySelector("[data-pnall]"); if (pna) pna.onclick = function () { M.pronoteAll(e._c, c.eleves); };
     }
     function table(c) { var G = grid();
       return '<div class="epse-card"><h2>📋 ' + esc(c.nom) + '</h2><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + G.criteres.map(function (cr) { return "<th>" + esc(cr.nom) + "</th>"; }).join("") + "<th>Note /20</th></tr>" +

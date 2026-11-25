@@ -2896,7 +2896,7 @@ function renderEval(){
     +`</tbody></table><p class="note" style="margin:8px 0 0">* note incomplète (il manque au moins un indicateur).</p>`;
   $("#ev-body").innerHTML=e?evGridHTML("prof",e):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
   /* 🎯 proposition commune (eps-eval.js) sous le nom de l'élève */
-  try{const h=document.querySelector("#ev-body [data-relprop]");if(e&&h&&EVRL&&EVRL.propBlock)EVRL.propBlock(h,e,CL().name,{redraw:renderEval,keep:t=>{const o=evOf(e.id);o.comm=t;persist();renderEval()}})}catch(x){}
+  try{const h=document.querySelector("#ev-body [data-relprop]");if(e&&h&&EVRL&&EVRL.propBlock)EVRL.propBlock(h,e,CL().name,{list:()=>evList(true),redraw:renderEval,keep:t=>{const o=evOf(e.id);o.comm=t;persist();renderEval()}})}catch(x){}
 }
 function renderAuto(){
   const L=evList(false),lid=CLE().id;
