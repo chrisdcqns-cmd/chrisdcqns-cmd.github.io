@@ -82,6 +82,12 @@ table.t{border-collapse:separate;border-spacing:0;width:100%;background:#fff;bor
 :focus-visible{outline:3px solid var(--app);outline-offset:2px}
 @media (max-width:1100px){#app.ai-on{grid-template-columns:200px 1fr 360px}#app{grid-template-columns:200px 1fr}}
 @media (max-width:800px){#app,#app.ai-on{grid-template-columns:1fr}nav{display:none}#ai{position:fixed;inset:0;z-index:60}}
+#app.nav-min{grid-template-columns:64px 1fr}#app.nav-min.ai-on{grid-template-columns:64px 1fr 420px}
+#app.nav-min .brand>span:last-child,#app.nav-min nav .grp,#app.nav-min nav .foot,#app.nav-min nav .lb{display:none}
+#app.nav-min .brand{justify-content:center;padding:14px 0 12px}#app.nav-min nav button.it{justify-content:center;padding:9px 0}
+#app.nav-min nav .grp+*{margin-top:0}#app.nav-min nav .sep{display:block;height:1px;background:#2A2F37;margin:8px 12px}
+nav .sep{display:none}nav .ab{display:none}#app.nav-min nav .ab{display:block;font:700 10.5px system-ui;color:#A9AEB8}#app.nav-min nav button.it:has(.ab){flex-direction:column;gap:3px;min-height:46px}
+#navT{width:40px;padding:0;font-size:18px}
 #lock{position:fixed;inset:0;background:#14171C;display:grid;place-items:center;z-index:100;color:#fff;text-align:center}
 #lock .ic{width:64px;height:64px;border-radius:16px;background:var(--app);display:grid;place-items:center;margin:0 auto 14px}
 </style>
@@ -95,15 +101,15 @@ table.t{border-collapse:separate;border-spacing:0;width:100%;background:#fff;bor
     <div class="foot">Les données restent chiffrées et partagées avec tes tablettes (même script, même clé). Aucun nom d'élève n'est envoyé à Claude.</div>
   </nav>
   <main>
-    <div class="top"><h1 id="ttl">Accueil</h1><span id="tact" style="display:flex;gap:6px"></span><span data-eps-bar></span><button class="tb" id="aiBtn" type="button">🤖 Claude</button></div>
+    <div class="top"><button class="tb" id="navT" type="button" aria-label="Replier le menu" title="Replier / déplier le menu">☰</button><h1 id="ttl">Accueil</h1><span id="tact" style="display:flex;gap:6px"></span><span data-eps-bar></span><button class="tb" id="aiBtn" type="button">🤖 Claude</button></div>
     <div id="pg" class="pg"></div>
   </main>
   <aside id="ai" aria-label="Assistant Claude">
     <div class="hd"><b>🤖 Assistant Claude</b><select class="sel" id="aiCtx" aria-label="Sujet de la demande" style="max-width:170px"></select><button class="b" id="aiX" type="button" aria-label="Fermer l'assistant">✕</button></div>
     <div class="lg" id="aiLog"></div>
     <div class="ft"><textarea id="aiIn" placeholder="Ex. « Mets 5 minutes à la récupération par défaut », « Attribue le volley à la TMELEC », « Ajoute un bouton chrono dans l'appli Relais »…"></textarea>
-      <div class="row" style="margin-bottom:0"><button class="b p" id="aiGo" type="button">Envoyer</button><button class="b" id="aiClr" type="button">Effacer</button><span class="mut" id="aiSt"></span></div>
-      <p class="mut" style="margin:6px 0 0">Claude propose, tu valides : rien n'est appliqué sans ton clic. Il voit les réglages et les classes (sans les élèves). Les changements du code des applis vont dans 📝 Demandes de modification.</p></div>
+      <div class="row" style="margin-bottom:0"><button class="b p" id="aiGo" type="button">Envoyer</button><button class="b" id="aiClr" type="button">Effacer</button><button class="b" id="aiWeb" type="button" title="Ouvre claude.ai avec ta question et le contexte de l'appli (sans noms d'élèves)">💬 claude.ai ↗</button><span class="mut" id="aiSt"></span></div>
+      <p class="mut" style="margin:6px 0 0">Claude propose, tu valides : rien n'est appliqué sans ton clic. Il voit les réglages et les classes (sans les élèves). Les changements du code des applis vont dans 📝 Demandes de modification. « 💬 claude.ai » : continuer la conversation sur ton compte claude.ai (sans les boutons Appliquer).</p></div>
   </aside>
 </div>
 <script src="../eps-groupes.js"></script>
@@ -115,6 +121,7 @@ table.t{border-collapse:separate;border-spacing:0;width:100%;background:#fff;bor
   var NAMES = {}; ACTS.forEach(function (a) { NAMES[a[1]] = a[2]; }); OUTILS.forEach(function (a) { NAMES[a[0]] = a[1]; });
   var SECTIONS = [["accueil", "🏠", "Accueil"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"]];
   var KC = "eps.console.v1";
+  var AB = { "app:escalade": "Esc", "app:relais": "Rel", "app:volley": "Vol", "app:badminton": "Bad", "app:danse": "Dan", "app:acrosport": "Acr", "app:orientation": "CO", "app:crosstraining": "CT", "app:ccf": "CCF", "app:co-eval": "COé", "app:edt": "EDT", "app:appel-as": "AS", "app:terrain": "Bal" };
   var $ = function (s, r) { return (r || document).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
@@ -132,14 +139,18 @@ table.t{border-collapse:separate;border-spacing:0;width:100%;background:#fff;bor
   function unlocked() { $("#lock").style.display = "none"; keepAlive(); try { document.documentElement.classList.add("eps-teach"); } catch (e) {} go(location.hash.slice(1) || "accueil"); }
   function tryUnlock() { if (teach()) { unlocked(); return; } if (!window.EPSD || !EPSD.askCode) { setTimeout(tryUnlock, 300); return; } EPSD.askCode().then(function (ok) { if (ok) unlocked(); }); }
   $("#unlock").onclick = tryUnlock;
+  /* menu de gauche repliable (icônes seules), choix gardé sur l'ordinateur */
+  function navMin(on) { $("#app").classList.toggle("nav-min", on); $("#navT").setAttribute("aria-label", on ? "Déplier le menu" : "Replier le menu"); $("#navT").setAttribute("aria-expanded", String(!on)); try { localStorage.setItem("eps.console.navmin", on ? "1" : ""); } catch (e) {} }
+  navMin(!!localStorage.getItem("eps.console.navmin"));
+  $("#navT").onclick = function () { navMin(!$("#app").classList.contains("nav-min")); };
   setInterval(function () { if (teach()) keepAlive(); }, 60000);
   ["click", "keydown"].forEach(function (ev) { document.addEventListener(ev, function () { if (teach()) keepAlive(); }, true); });
 
   /* ---------- menu ---------- */
   function menu() {
-    var h = SECTIONS.slice(0, 1).map(it).join("") + '<div class="grp">Activités</div>' + ACTS.map(function (a) { return it(["app:" + a[1], "", a[2], a[3]]); }).join("") +
-      '<div class="grp">Outils</div>' + OUTILS.map(function (a) { return it(["app:" + a[0], "", a[1], a[2]]); }).join("") + '<div class="grp">Gestion</div>' + SECTIONS.slice(1).map(it).join("");
-    function it(x) { var on = cur.s === x[0] || (cur.app && x[0] === "app:" + cur.app); return '<button type="button" class="it" data-go="' + x[0] + '"' + (x[3] ? ' style="--c:' + x[3] + '"' : "") + ' aria-current="' + !!on + '">' + (x[1] ? '<span aria-hidden="true">' + x[1] + "</span>" : '<span class="dot"></span>') + esc(x[2]) + "</button>"; }
+    var h = SECTIONS.slice(0, 1).map(it).join("") + '<div class="grp">Activités</div><div class="sep"></div>' + ACTS.map(function (a) { return it(["app:" + a[1], "", a[2], a[3]]); }).join("") +
+      '<div class="grp">Outils</div><div class="sep"></div>' + OUTILS.map(function (a) { return it(["app:" + a[0], "", a[1], a[2]]); }).join("") + '<div class="grp">Gestion</div><div class="sep"></div>' + SECTIONS.slice(1).map(it).join("");
+    function it(x) { var on = cur.s === x[0] || (cur.app && x[0] === "app:" + cur.app); return '<button type="button" class="it" data-go="' + x[0] + '"' + (x[3] ? ' style="--c:' + x[3] + '"' : "") + ' aria-current="' + !!on + '" title="' + esc(x[2]) + '">' + (x[1] ? '<span aria-hidden="true">' + x[1] + "</span>" : '<span class="dot"></span><span class="ab">' + esc(AB[x[0]] || "") + "</span>") + '<span class="lb">' + esc(x[2]) + "</span></button>"; }
     $("#menu").innerHTML = h; $$("[data-go]", $("#menu")).forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
     var o = $("#aiCtx"), v = o.value; o.innerHTML = '<option value="">Général</option>' + ACTS.map(function (a) { return '<option value="' + a[1] + '">' + a[2] + "</option>"; }).join("") + OUTILS.map(function (a) { return '<option value="' + a[0] + '">' + a[1] + "</option>"; }).join("");
     o.value = cur.app || v || "";
@@ -328,6 +339,16 @@ table.t{border-collapse:separate;border-spacing:0;width:100%;background:#fff;bor
     }).catch(function (e) { var m = String(e && e.message || e); LOG.push({ r: "a", t: "⚠ " + (/inconnue/.test(m) ? "Le script commun n'est pas à jour : recolle la dernière version de Code.gs et déploie une nouvelle version." : m) }); saveLog(); drawLog(); })
       .then(function () { $("#aiGo").disabled = false; $("#aiSt").textContent = ""; });
   }
+  /* 💬 continuer sur claude.ai (ton abonnement, pas l'API) : question + contexte de l'appli sans noms d'élèves, copiés et préremplis */
+  $("#aiWeb").onclick = function () {
+    var app = $("#aiCtx").value, q = $("#aiIn").value.trim(), C = contexte(app);
+    var t = "Je suis enseignant d'EPS en lycée (vocabulaire : « leçon », « séquence » ; TGT, 2GT, 1GT = voie générale, les autres classes = voie pro). J'utilise mes applis EPS (" + (app ? (NAMES[app] || app) : "toutes") + ").\n" +
+      (q ? "\nMa question : " + q + "\n" : "\nMa question : \n") +
+      "\nContexte (réglages de l'appli et classes, sans noms d'élèves) :\n" + JSON.stringify({ classes: C.classes, parametres: C.parametres }).slice(0, 6000);
+    var u = "https://claude.ai/new?q=" + encodeURIComponent(t.slice(0, 7000));
+    var open = function () { window.open(u, "_blank", "noopener"); $("#aiSt").textContent = "✓ Question copiée : si elle n'apparaît pas dans claude.ai, colle-la (Ctrl+V)."; };
+    try { navigator.clipboard.writeText(t).then(open, open); } catch (e) { open(); }
+  };
   $("#aiGo").onclick = send; $("#aiIn").onkeydown = function (e) { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send(); };
 
   /* données reçues d'une autre tablette → la page se met à jour */
