@@ -275,6 +275,16 @@ function lecon_(q) {
     return { texte: claude_(key, sys, String(q.wod || '').slice(0, 3000), CLAUDE_MODEL, 500) };
   }
   if (q.op !== 'lecon') throw new Error('opération inconnue');
+  /* Inventaire : liste des leçons contenues dans un document (pour les mettre en fiches une par une). */
+  if (q.mode === 'inventaire') {
+    let dtx = '';
+    (q.docs || []).forEach(function (d) { if (dtx.length < 160000) dtx += '\n\n=== Document : ' + String(d.nom || '').slice(0, 120) + ' ===\n' + String(d.txt || '').slice(0, 160000 - dtx.length); });
+    const sysI = 'Tu repères les leçons d\'EPS (activité : ' + act + ') contenues dans le document d\'un enseignant : fiches de leçon, ou séquence décrite leçon par leçon. ' +
+      'Vocabulaire : « leçon », « séquence ». Ne compte pas les simples situations, grilles ou annexes. Réponds UNIQUEMENT par : {"liste":[{"seq":"nom de la séquence s\'il figure","num":"n° de leçon s\'il figure","titre":"titre ou thème de la leçon, tel qu\'écrit"}]} (liste vide si le document ne contient aucune leçon).';
+    const t = claude_(key, sysI, 'DOCUMENT :' + dtx, CLAUDE_MODEL_LECON, 2000), a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
+    return { liste: (JSON.parse(t.slice(a, b + 1)).liste || []).slice(0, 40) };
+  }
   const MODES = {
     importer: 'Mets en forme dans la structure LA leçon contenue dans le document fourni (si le document en contient plusieurs, celle indiquée dans les précisions, sinon la première). Recopie les formulations de l\'enseignant ; n\'invente RIEN : laisse vide ("") toute rubrique absente du document.',
     suivante: 'Propose la leçon suivante de la séquence, dans la continuité des leçons existantes et en reprenant en priorité les situations, critères et progressions prévus dans les documents.',

@@ -55,6 +55,17 @@
   var RF = [["rem", "Remise en action : consigne (match ou situation plus large)"], ["remCr", "Remise en action : critères de réussite"], ["bilan", "Bilan de la leçon"]];
   function blank(seq) { return { id: uid(), seq: seq || "", num: "", titre: "", duree: "", statut: "ok", ai: {}, sits: [{}, {}], prog: [] }; }
   function lecons() { return all(KL).sort(function (a, b) { return String(a.seq).localeCompare(String(b.seq), "fr") || (parseFloat(a.num) || 0) - (parseFloat(b.num) || 0) || (a.cr || 0) - (b.cr || 0); }); }
+  /* attribution aux classes : l.cls = [noms]. Une classe qui a au moins une leçon attribuée a sa propre séquence (seulement ses leçons) ;
+     une classe sans aucune leçon attribuée garde toutes les leçons non attribuées. */
+  function expl(l, c) { return (l.cls || []).some(function (x) { return same(x, c); }); }
+  function hasSeq(c) { return all(KL).some(function (l) { return expl(l, c); }); }
+  function forCls(l, c) { return !c || ((l.cls || []).length ? expl(l, c) : !hasSeq(c)); }
+  function clsTxt(l) { return (l.cls || []).length ? l.cls.join(", ") : "pas encore attribuée"; }
+  function setCls(l, C, on) { /* ajoute (on) ou retire les classes C de la leçon l */
+    var cur0 = (l.cls || []).slice();
+    C.forEach(function (c) { cur0 = cur0.filter(function (x) { return !same(x, c); }); if (on) cur0.push(c); });
+    l.cls = cur0.sort(function (a, b) { return a.localeCompare(b, "fr", { numeric: true }); }); }
+  var SELC = null;
   function seqs() { var S = []; lecons().forEach(function (l) { var s = l.seq || "Sans séquence"; if (S.indexOf(s) < 0) S.push(s); }); return S; }
   function titreL(l) { return (l.num ? "Leçon " + l.num + " · " : "") + (l.titre || "Leçon sans titre"); }
   function compact(l) { var o = {}; ["seq", "num", "titre", "duree"].concat(F.map(function (x) { return x[0]; })).concat(RF.map(function (x) { return x[0]; })).forEach(function (k) { if (l[k]) o[k] = l[k]; });
@@ -193,23 +204,42 @@
 
   /* ---- liste des leçons ---- */
   function drawList() {
-    var L = lecons(), S = seqs(), br = L.filter(function (l) { return l.statut === "brouillon"; }).length;
+    var L = lecons(), S = seqs(), br = L.filter(function (l) { return l.statut === "brouillon"; }).length, CC = classes();
+    if (SELC === null) { var c0 = cur(); SELC = c0 ? [c0.nom] : []; }
+    SELC = SELC.filter(function (c) { return CC.some(function (x) { return same(x, c); }); });
+    var nd = docList().filter(function (d) { return d.use && !L.some(function (l) { return l.doc === d.id; }); }).length;
     var h = '<h2>Mes fiches de leçon</h2><p class="lc-mut">Fiches de leçon de ' + esc(NOM) + ". Les élèves ne voient que les leçons validées ✓, programmées ou lancées.</p>" +
-      '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button></div>" +
+      '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button>" +
+      (nd ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>" : "") + "</div>" +
+      (CC.length ? '<div class="lc-box"><b>👥 Séquence par classe</b><p class="lc-mut" style="margin:2px 0 6px">Touche une ou plusieurs classes, puis « ＋ Attribuer » sur les leçons à leur proposer : chaque classe a sa propre séquence. Une classe sans leçon attribuée garde toutes les leçons.</p><div class="lc-row">' +
+        CC.map(function (c) { var on = SELC.some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-selc="' + esc(c) + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
+        (SELC.length ? '<button type="button" class="lc-b s" data-selc0>✕ Aucune</button>' : "") + "</div></div>" : "") +
       (br ? '<div class="lc-warn">✨ ' + br + " brouillon" + (br > 1 ? "s" : "") + " de Claude à relire : invisible" + (br > 1 ? "s" : "") + " pour les élèves tant que tu n'as pas validé.</div>" : "");
     if (!L.length) h += '<div class="lc-box">Aucune leçon pour l\'instant. Crée-en une, ou dépose tes documents (séquence, fiches de leçon) puis demande à Claude de les mettre en forme.</div>';
-    S.forEach(function (s) {
+    function card(l, k) {
+      var pg = (l.prog || []).filter(function (p) { return p.at > Date.now() - 3 * 3600e3; }).sort(function (a, b) { return a.at - b.at; })[0];
+      var n = SELC.filter(function (c) { return expl(l, c); }).length, all0 = SELC.length && n === SELC.length;
+      return '<div class="lc-card" data-id="' + l.id + '"><div class="t"><b>' + (k ? '<span class="lc-tag pg">' + k + "</span> " : "") + esc(titreL(l)) + (l.statut === "brouillon" ? '<span class="lc-tag br">✨ brouillon à relire</span>' : '<span class="lc-tag ok">✓ validée</span>') + (pg ? '<span class="lc-tag pg">📅 ' + esc(pg.c) + " · " + esc(hm(pg.at)) + "</span>" : "") + "</b><small>" + esc(l.but || l.objM || "") + '</small><small style="display:block">👥 ' + esc(clsTxt(l)) + "</small></div>" +
+        (SELC.length ? '<button type="button" class="lc-b s' + (all0 ? " p" : "") + '" data-att="' + l.id + '">' + (all0 ? "✓ Attribuée" : n ? "◐ " + n + "/" + SELC.length + " · compléter" : "＋ Attribuer") + "</button>" : "<span>›</span>") + "</div>";
+    }
+    if (SELC.length) {
+      var A = L.filter(function (l) { return SELC.every(function (c) { return expl(l, c); }); }), O = L.filter(function (l) { return A.indexOf(l) < 0; });
+      h += "<h3>📚 Séquence de " + esc(SELC.join(" + ")) + " (" + A.length + " leçon" + (A.length > 1 ? "s" : "") + ")</h3>" + (A.length ? A.map(function (l, i) { return card(l, "L" + (i + 1)); }).join("") : '<div class="lc-box">Aucune leçon attribuée : touche « ＋ Attribuer » sur les leçons ci-dessous.</div>');
+      if (O.length) h += "<h3>Autres leçons</h3>" + O.map(function (l) { return card(l); }).join("");
+    } else S.forEach(function (s) {
       h += "<h3>📚 " + esc(s) + "</h3>";
-      L.filter(function (l) { return (l.seq || "Sans séquence") === s; }).forEach(function (l) {
-        var pg = (l.prog || []).filter(function (p) { return p.at > Date.now() - 3 * 3600e3; }).sort(function (a, b) { return a.at - b.at; })[0];
-        h += '<div class="lc-card" data-id="' + l.id + '"><div class="t"><b>' + esc(titreL(l)) + (l.statut === "brouillon" ? '<span class="lc-tag br">✨ brouillon à relire</span>' : '<span class="lc-tag ok">✓ validée</span>') + (pg ? '<span class="lc-tag pg">📅 ' + esc(pg.c) + " · " + esc(hm(pg.at)) + "</span>" : "") + "</b><small>" + esc(l.but || l.objM || "") + "</small></div><span>›</span></div>";
-      });
+      L.filter(function (l) { return (l.seq || "Sans séquence") === s; }).forEach(function (l) { h += card(l); });
     });
     var el = shell(h);
     el.querySelector("[data-new]").onclick = function () { var l = blank(S[S.length - 1] && S[S.length - 1] !== "Sans séquence" ? S[S.length - 1] : ""); l.cr = Date.now(); l.num = String(L.filter(function (x) { return x.seq === l.seq; }).length + 1); put(KL, l); EDIT = l.id; draw(); };
     el.querySelector("[data-ai]").onclick = function () { aiDialog(); };
     el.querySelector("[data-docs]").onclick = function () { TAB = "docs"; draw(); };
     el.querySelectorAll("[data-id]").forEach(function (c) { c.onclick = function () { EDIT = c.dataset.id; draw(); }; });
+    el.querySelectorAll("[data-selc]").forEach(function (b) { b.onclick = function () { var c = b.dataset.selc; SELC = SELC.some(function (x) { return same(x, c); }) ? SELC.filter(function (x) { return !same(x, c); }) : SELC.concat([c]); draw(); }; });
+    var s0 = el.querySelector("[data-selc0]"); if (s0) s0.onclick = function () { SELC = []; draw(); };
+    el.querySelectorAll("[data-att]").forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); var l = get(KL, b.dataset.att); if (!l) return; var allIn = SELC.every(function (c) { return expl(l, c); });
+      setCls(l, SELC, !allIn); put(KL, l); var y = OV.querySelector(".lc-body").scrollTop; draw(); OV.querySelector(".lc-body").scrollTop = y; }; });
+    var im = el.querySelector("[data-imall]"); if (im) im.onclick = importAll;
   }
 
   /* ---- éditeur ---- */
@@ -232,8 +262,11 @@
         '<div class="lc-g3">' + SF.slice(5).map(function (x) { return fld(x[0], x[1], s[x[0]], A["s" + i + "." + x[0]], 'data-s="' + i + '" data-f="' + x[0] + '"'); }).join("") + "</div></div>"; }).join("") +
       '<div class="lc-row"><button type="button" class="lc-b s" data-addsit>＋ Ajouter une situation</button></div>' +
       '<div class="lc-box"><h3 style="margin-top:4px">🏆 Remise en action et bilan</h3>' + RF.map(function (x) { return fld(x[0], x[1], WORK[x[0]], A[x[0]], 'data-f="' + x[0] + '"'); }).join("") + "</div>" +
+      '<div class="lc-box"><h3 style="margin-top:4px">👥 Classes concernées</h3><p class="lc-mut">La leçon fait partie de la séquence de ces classes (une classe qui a des leçons attribuées ne voit que les siennes).</p><div class="lc-row">' +
+        classes().map(function (c) { var on = (WORK.cls || []).some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-ecl="' + esc(c) + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
+        ((WORK.cls || []).length ? '<button type="button" class="lc-b s" data-ecl0>Toutes les classes</button>' : "") + "</div></div>" +
       '<div class="lc-box"><h3 style="margin-top:4px">📅 Programmer pour une classe</h3><p class="lc-mut">À l\'heure prévue, la leçon s\'ouvre toute seule sur les tablettes élèves de la classe (compte à rebours avant).</p>' +
-      (br ? '<div class="lc-warn">Valide d\'abord la leçon pour pouvoir la programmer.</div>' : '<div class="lc-row"><select class="lc-sel" data-pc>' + classes().map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") + '</select><input type="datetime-local" class="lc-sel" data-pt><button type="button" class="lc-b s" data-padd>📅 Programmer</button><button type="button" class="lc-b s" data-launch>▶ Lancer maintenant…</button></div>') +
+      (br ? '<div class="lc-warn">Valide d\'abord la leçon pour pouvoir la programmer.</div>' : '<div class="lc-row"><select class="lc-sel" data-pc>' + classes().sort(function (a, b) { return forCls(WORK, b) - forCls(WORK, a); }).map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") + '</select><input type="datetime-local" class="lc-sel" data-pt><button type="button" class="lc-b s" data-padd>📅 Programmer</button><button type="button" class="lc-b s" data-launch>▶ Lancer maintenant…</button></div>') +
       (WORK.prog || []).sort(function (a, b) { return a.at - b.at; }).map(function (p, i) { return '<div class="lc-row"><span class="lc-tag pg">📅 ' + esc(p.c) + " · " + esc(hm(p.at)) + (p.at < Date.now() ? " (passée)" : "") + '</span><button type="button" class="lc-b s" data-prm="' + p.at + "|" + esc(p.c) + '">✕</button></div>'; }).join("") + "</div>" +
       '<div class="lc-row"><button type="button" class="lc-b" data-fill>✨ Compléter les rubriques vides avec Claude</button>' + (br ? '<button type="button" class="lc-b p" data-ok>✓ Valider (relu et corrigé)</button>' : '<button type="button" class="lc-b" data-unok>Repasser en brouillon</button>') + '<button type="button" class="lc-b" data-dup>⧉ Dupliquer</button><button type="button" class="lc-b" data-see>👁 Voir comme un élève</button><span style="flex:1"></span><button type="button" class="lc-b" data-del style="border-color:#C0392B;color:#C0392B">🗑 Supprimer</button></div><p class="lc-mut" data-msg></p>';
     var el = shell(h), msg = el.querySelector("[data-msg]");
@@ -244,6 +277,9 @@
       var lab = t.closest(".lc-f"); if (lab) lab.classList.remove("ai"); later();
     });
     el.querySelector("[data-back]").onclick = function () { saveEdit(); EDIT = null; draw(); };
+    el.querySelectorAll("[data-ecl]").forEach(function (b) { b.onclick = function () { saveEdit(); var c = b.dataset.ecl, on = (WORK.cls || []).some(function (x) { return same(x, c); });
+      WORK.cls = on ? WORK.cls.filter(function (x) { return !same(x, c); }) : (WORK.cls || []).concat([c]); put(KL, WORK); draw(); }; });
+    var e0 = el.querySelector("[data-ecl0]"); if (e0) e0.onclick = function () { saveEdit(); WORK.cls = []; put(KL, WORK); draw(); };
     el.querySelector("[data-addsit]").onclick = function () { saveEdit(); WORK.sits.push({}); put(KL, WORK); draw(); };
     el.querySelectorAll("[data-rmsit]").forEach(function (b) { b.onclick = function () { if (!confirm("Retirer la situation " + (+b.dataset.rmsit + 1) + " ?")) return; WORK.sits.splice(+b.dataset.rmsit, 1); WORK.ai = {}; put(KL, WORK); draw(); }; });
     el.querySelectorAll("[data-img]").forEach(function (inp) { inp.onchange = function () { var f = inp.files[0]; if (!f) return; var k = inp.dataset.img;
@@ -304,14 +340,43 @@
     };
   }
 
+  /* ---- 📥 tous les documents → fiches (brouillons, sans rien inventer) ---- */
+  function importAll() {
+    var D = docList().filter(function (d) { return d.use; }), md = document.createElement("div"), stop = false, made = 0;
+    md.className = "lc-modal"; md.innerHTML = '<div><h2>📥 Mettre en fiches mes documents</h2><p class="lc-mut">Claude repère les leçons de chaque document, puis met chacune en forme dans ta structure, avec tes formulations (rien d\'inventé : les rubriques absentes restent vides). Tout arrive en brouillon, à relire et valider. Compte environ 30 s par leçon.</p><p data-m style="font-weight:700"></p><div class="lc-row"><button type="button" class="lc-b" data-stop>Arrêter</button></div></div>';
+    document.body.appendChild(md);
+    var M = md.querySelector("[data-m]"), sb = md.querySelector("[data-stop]");
+    sb.onclick = function () { stop = true; md.remove(); draw(); };
+    function key(x) { return nn((x.seq || "") + "|" + (x.num || "") + "|" + (x.titre || "")); }
+    function fin(t) { M.textContent = t; sb.textContent = "Fermer"; }
+    var di = 0;
+    (function nextDoc() {
+      if (stop) return; if (di >= D.length) return fin("✓ " + made + " fiche" + (made > 1 ? "s" : "") + " créée" + (made > 1 ? "s" : "") + " en brouillon.");
+      var d = D[di++], have = lecons().filter(function (l) { return l.doc === d.id; });
+      M.textContent = "Claude repère les leçons de « " + d.nom + " » (" + di + " / " + D.length + ")…";
+      ask({ op: "lecon", mode: "inventaire", act: NOM, docs: docsFor(d.id) }).then(function (r) {
+        var Q = (r.liste || []).filter(function (x) { return !have.some(function (l) { return l.dkey === key(x); }); }), qi = 0;
+        if (!r.liste) Q = have.length ? [] : [{ titre: "" }];
+        (function nextL() {
+          if (stop) return; if (qi >= Q.length) return nextDoc();
+          var x = Q[qi++]; M.textContent = "« " + d.nom + " » : leçon " + qi + " / " + Q.length + (x.titre ? " (" + x.titre + ")" : "") + "…";
+          ask({ op: "lecon", mode: "importer", act: NOM, docs: docsFor(d.id), lecons: [], consigne: x.titre || x.num ? "Mets en forme uniquement la leçon " + (x.num ? "n° " + x.num + " " : "") + (x.titre ? "« " + x.titre + " »" : "") + (x.seq ? " de la séquence « " + x.seq + " »" : "") + "." : "" })
+            .then(function (r2) { var l = fromAI(blank(x.seq || ""), r2.lecon || {}); if (!l.seq) l.seq = x.seq || d.nom.replace(/\.[a-z0-9]+$/i, ""); if (!l.num && x.num) l.num = String(x.num); l.cr = Date.now(); l.doc = d.id; l.dkey = key(x); put(KL, l); made++; nextL(); })
+            .catch(function (e) { M.textContent = "⚠ " + e.message; setTimeout(nextL, 2000); });
+        })();
+      }).catch(function (e) { fin("⚠ " + e.message); });
+    })();
+  }
+
   /* ---- documents ---- */
   function drawDocs() {
     var D = docList();
     var h = '<h2>📂 Mes documents</h2><p class="lc-mut">Dépose ici ce que tu as construit (séquence, fiches de leçon, situations, grilles…). Claude s\'en sert en priorité pour tes leçons ; il ne fait des suggestions que pour les rubriques vides ou quand tu le lui demandes. Word, PowerPoint, LibreOffice et texte sont lus sur la tablette ; les PDF et les photos sont lus par Claude.</p>' +
-      '<div class="lc-row"><label class="lc-b p" style="display:inline-flex;align-items:center">⬆ Déposer des documents<input type="file" multiple accept=".docx,.pptx,.odt,.odp,.pdf,.txt,.md,image/*" data-up hidden></label><button type="button" class="lc-b" data-paste>✍ Coller un texte</button></div><p class="lc-mut" data-msg></p>' +
+      '<div class="lc-row">' + (D.some(function (d) { return d.use; }) ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches tous mes documents</button>' : "") + '<label class="lc-b p" style="display:inline-flex;align-items:center">⬆ Déposer des documents<input type="file" multiple accept=".docx,.pptx,.odt,.odp,.pdf,.txt,.md,image/*" data-up hidden></label><button type="button" class="lc-b" data-paste>✍ Coller un texte</button></div><p class="lc-mut" data-msg></p>' +
       (D.length ? "" : '<div class="lc-box">Aucun document déposé.</div>') +
       D.map(function (d) { return '<div class="lc-box"><div class="lc-row" style="margin:0"><b style="flex:1">📄 ' + esc(d.nom) + '</b><small class="lc-mut" style="margin:0">' + Math.round(d.n / 100) / 10 + ' k caractères</small><label style="font-weight:700"><input type="checkbox" data-use="' + d.id + '"' + (d.use ? " checked" : "") + '> utilisé par Claude</label><button type="button" class="lc-b s" data-see="' + d.id + '">Voir</button><button type="button" class="lc-b s" data-rm="' + d.id + '">🗑</button></div><pre class="lc-pre" data-txt="' + d.id + '" style="display:none;max-height:300px;overflow:auto;background:#FBFAF7;border-radius:10px;padding:10px;font:13px/1.4 system-ui"></pre></div>'; }).join("");
-    var el = shell(h), msg = el.querySelector("[data-msg]");
+    var el = shell(h), msg = el.querySelector("[data-msg]"), ia = el.querySelector("[data-imall]");
+    if (ia) ia.onclick = importAll;
     el.querySelector("[data-up]").onchange = function () {
       var files = Array.prototype.slice.call(this.files), i = 0, ok = 0;
       (function next() {
@@ -407,7 +472,7 @@
   function drawLive() {
     if (!OV || OV.style.display === "none" || TAB !== "live") return;
     var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || all(KV).filter(function (v) { return v.on; }).map(function (v) { return v.cls; })[0] || C[0] || ""; }
-    var cls = LIVECLS, v = live(cls), on = v && v.on, L = lecons().filter(function (l) { return l.statut !== "brouillon"; }), lec = on && v.lec && get(KL, v.lec);
+    var cls = LIVECLS, v = live(cls), on = v && v.on, L = lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, cls); }), lec = on && v.lec && get(KL, v.lec);
     var h = '<h2>📡 Leçon en cours</h2><p class="lc-mut">Cette tablette pilote les tablettes élèves de la classe : messages en grand avec un son, minuteur, étape en cours, rangement.</p>' +
       '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-cls>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" + (on ? '<span class="lc-tag ok">● en cours depuis ' + Math.max(1, Math.round((Date.now() - v.st) / 6e4)) + " min</span>" : "") + "</div>";
     h += appelBox(cls, on);
@@ -547,7 +612,7 @@
 
   var BSEQ = null;
   function bilanData(cls, seq) {
-    var L = lecons().filter(function (l) { return (l.seq || "Sans séquence") === seq && l.statut !== "brouillon"; }), ids = L.map(function (l) { return l.id; });
+    var L = lecons().filter(function (l) { return (l.seq || "Sans séquence") === seq && l.statut !== "brouillon" && forCls(l, cls); }), ids = L.map(function (l) { return l.id; });
     var recs = all(KS).filter(function (o) { return same(o.cls, cls); }).sort(function (a, b) { return String(a.day).localeCompare(String(b.day)); });
     var SIT = []; L.forEach(function (l, li) { sitList(l).forEach(function (s) { s.l = l; s.li = li; s.n = [0, 0, 0]; SIT.push(s); }); });
     SIT.forEach(function (s) { recs.forEach(function (o) { var v = o.r && o.r[s.k]; if (v != null) s.n[v]++; }); s.tot = s.n[0] + s.n[1] + s.n[2]; s.taux = s.tot ? (s.n[2] + .5 * s.n[1]) / s.tot : null; });
