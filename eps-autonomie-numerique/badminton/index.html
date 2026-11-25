@@ -412,14 +412,16 @@ const KEY='eps_badminton_v1';
 const VOIES={gt:'Lycée général',pro:'Lycée professionnel'};
 const CHOIX=['4-4','6-2','2-6'];
 /* coups (statistiques et coups valorisés) */
-const COUPS=[['svl','Service long','#14213d'],['svc','Service court','#555b66'],['deg','Dégagé','#1F5F8B'],['amo','Amorti','#2E7D4F'],['cam','Contre-amorti','#3aa0d8'],['lob','Lob','#7A3E9D'],['dri','Drive','#B26B00'],['sma','Smash','#D9481F'],['kil','Kill','#b02a2a']];
+/* 🎛 paramètres modifiables (⚙ Réglages → 🎛 Paramètres de l'appli, EPSP d'eps-lists.js) : seuls les intitulés changent, jamais les clés */
+const PRM=(id,sec,label,keys,labels,aide)=>{const L=EPSP.p({id,sec,label,type:'list',fixed:keys.length,def:labels,aide});return keys.map((k,i)=>[k,L[i]])};
+const COUPS=(()=>{const C=['#14213d','#555b66','#1F5F8B','#2E7D4F','#3aa0d8','#7A3E9D','#B26B00','#D9481F','#b02a2a'];return PRM('coups','Coups et terrain','Noms des 9 coups',['svl','svc','deg','amo','cam','lob','dri','sma','kil'],['Service long','Service court','Dégagé','Amorti','Contre-amorti','Lob','Drive','Smash','Kill']).map((x,i)=>[x[0],x[1],C[i]])})();
 const coupNom=id=>{const c=COUPS.find(x=>x[0]===id);return c?c[1]:''};
 /* terrain (mètres) */
 const CL=13.4,CW=6.1,NET=6.7,SSL=1.98,LSD=0.76,SGL=0.46;
 
 /* ---------- Évaluation ---------- */
-const DEG=['Maîtrise insuffisante','Maîtrise fragile','Maîtrise satisfaisante','Très bonne maîtrise'];
-const DEGEL=['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'];
+const DEG=EPSP.p({id:'deg',sec:'Évaluation',label:'Noms des 4 degrés (enseignant)',type:'list',fixed:4,def:['Maîtrise insuffisante','Maîtrise fragile','Maîtrise satisfaisante','Très bonne maîtrise']});
+const DEGEL=EPSP.p({id:'degel',sec:'Évaluation',label:'Noms des 4 degrés (version élève)',type:'list',fixed:4,def:['Je débute','Je progresse','Je maîtrise','Je suis expert(e)']});
 function C_(id,nom,afl,pts,but,desc,nomEl,butEl,descEl){return{id,nom,afl,pts,but,refs:afl,desc,nomEl:nomEl||nom,butEl:butEl||but,descEl:descEl||desc.slice()}}
 /* grille d'origine (Additio, 4 × 25 %) */
 function grilleOrigine(){return{v:1,grille:'origine',mode:'perso',pas:0.25,arrondi:0.25,degres:DEG.slice(),degresEl:DEGEL.slice(),langFiche:'eleve',bandes:[[0,20],[25,45],[50,70],[75,100]],optMatchs:false,
@@ -688,8 +690,8 @@ function bcPts(win,cd){return win?(cd>=2?5:cd===1?4:3):(cd>=2?2:cd===1?1:0)}
 function T2_(t,cons,crq,crl,crr,vp,vm,pre){return T_(t,cons,crq,crl,crr,vp,vm,pre)}
 const MATP="3 à 4 terrains – raquettes – fiches de scoring – tablette avec contenu technique";
 const DSP=z=>"3 à 4 terrains, "+z+". Les élèves sont en poule de 4. Les dispensés donnent des indications en termes de statistiques via la tablette.";
-const CR_AMO=["Amorti : se préparer comme un dégagé","Amorti : raquette haute","Amorti : frapper le volant devant","Amorti : trajectoire basse","Amorti : réduire la puissance au maximum","Amorti : se replacer"];
-const CR_DEG=["Dégagé : raquette haute","Dégagé : armer son geste","Dégagé : transfert de poids","Dégagé : coude qui amorce","Dégagé : main libre en l'air orientée vers le volant","Dégagé : poussée des appuis","Dégagé : jambe raquette vers l'avant","Dégagé : impact à l'avant du corps"];
+const CR_AMO=EPSP.p({id:'cramo',sec:'Thèmes de travail',label:'Critères de réalisation : amorti',type:'list',def:["Amorti : se préparer comme un dégagé","Amorti : raquette haute","Amorti : frapper le volant devant","Amorti : trajectoire basse","Amorti : réduire la puissance au maximum","Amorti : se replacer"]});
+const CR_DEG=EPSP.p({id:'crdeg',sec:'Thèmes de travail',label:'Critères de réalisation : dégagé',type:'list',def:["Dégagé : raquette haute","Dégagé : armer son geste","Dégagé : transfert de poids","Dégagé : coude qui amorce","Dégagé : main libre en l'air orientée vers le volant","Dégagé : poussée des appuis","Dégagé : jambe raquette vers l'avant","Dégagé : impact à l'avant du corps"]});
 const BADCODE_T=t=>T_(t,"Set en 11 points. Avant le match, l'élève choisit un code de 2 chiffres qui correspondent chacun à une zone. Double objectif : gagner le match et réaliser 2 fois le code. Ex. : code 14 = amener l'adversaire au fond du terrain à gauche et finir par un point direct en zone avant droite.\nPoints : 5 = victoire avec code validé 2 fois · 4 = victoire, code 1 fois · 3 = victoire sans code · 2 = défaite, code 2 fois · 1 = défaite, code 1 fois · 0 = défaite sans code.",["Réaliser au moins 1 code par match"],["Maîtriser deux codes"],["Critères temps 1 et 2","Choisir un code adapté à son profil","Choisir un code en fonction de l'adversaire (+)","Établir un code exploitable (choix technico-tactique)","Réaliser le code rapidement"],"Changer de code à chaque match. Dès qu'un code est réalisé au cours du match, choisir un nouveau code à valider","Valider le code si l'enchaînement est réalisé. Agrandir les zones",'badcode');
 function defSeqPro(){const s=defSeq();
   s.comp="Pour gagner une rencontre, se créer et exploiter des occasions de marquer en déplaçant l'adversaire (profondeur, largeur, rupture) avec un panel technico-tactique adapté à ses capacités, et faire basculer le rapport de force. Analyser ses forces et faiblesses et celles de l'adversaire grâce aux données (statistiques de la tablette) pour choisir sa stratégie. Respecter et faire respecter les règles et assumer plusieurs rôles (arbitre, coach, observateur, partenaire en or).";
@@ -971,7 +973,7 @@ function nextVal(pre,R,w,z){const r=zoneRule(pre,z);if(!applies(pre,w))return 1;
 const ZCOL={o:'rgba(10,30,60,.42)',n:'rgba(255,255,255,0)',b:'rgba(255,190,0,.6)',x:'rgba(220,38,38,.5)',g:'rgba(0,214,170,.32)'};
 const PCOL=['#FFB703','#FF5D8F'];
 /* nature du point (statistiques « gagnant / faute ») */
-const NAT=[['pd','Point direct',"Le volant tombe chez l'adversaire sans qu'il le touche"],['fp','Faute provoquée',"L'adversaire touche le volant mais rate, mis en difficulté"],['fd','Faute directe',"Maladresse adverse sans pression"],['cc','Coup de chance',"Bande du filet, volant chanceux"],['fs','Faute de service',"Service raté"]];
+const NAT=(()=>{const N=PRM('nat','Coups et terrain','Nature du point (5 types)',['pd','fp','fd','cc','fs'],['Point direct','Faute provoquée','Faute directe','Coup de chance','Faute de service']),D=EPSP.p({id:'natd',sec:'Coups et terrain',label:'Explications de la nature du point (même ordre)',type:'list',fixed:5,def:["Le volant tombe chez l'adversaire sans qu'il le touche","L'adversaire touche le volant mais rate, mis en difficulté","Maladresse adverse sans pression","Bande du filet, volant chanceux","Service raté"]});return N.map((x,i)=>[x[0],x[1],D[i]])})();
 function courtSvg(o){
   const pre=o.pre,U=100,R=o.R||null,flip=!!o.flip;let z='';
   /* zones sur les deux moitiés (chaque moitié avec les bornes du joueur qui la vise) */
@@ -1078,7 +1080,7 @@ function asstHtml(){const A=ASST;
 function asstSave(){const p=ASST.res||asstBuild();p.id='p'+uid();S.presets.push(p);PRE=p.id;ZSEL=null;ASST=null;save();renderTerrain();toast('Situation créée : ajuste-la aux curseurs si besoin')}
 /* ---- « Décris ta situation » : Claude règle le terrain (par le script commun, clé côté serveur) ---- */
 function iaOpen(){ASST={step:'ia',txt:'',busy:false,res:null,err:'',exp:''};renderTerrain();scrollTo(0,0);setTimeout(()=>{const t=document.getElementById('iatxt');if(t)t.focus()},50)}
-const IA_EX=["Match en 11 points, le fond rapporte 3, le milieu est interdit","Zone à 1000 points sur 8 zones autour du centre, gagnant aux points de zones","Le plus fort a des zones arrière plus petites que son adversaire","Exercice de service court : 20 essais, réussite juste derrière la ligne de service court, objectif 14","Couloirs latéraux bonifiés, un point gagné en smash vaut 2 points de plus"];
+const IA_EX=EPSP.p({id:'iaex',sec:'Thèmes de travail',label:'Exemples de situations proposés à Claude',type:'list',def:["Match en 11 points, le fond rapporte 3, le milieu est interdit","Zone à 1000 points sur 8 zones autour du centre, gagnant aux points de zones","Le plus fort a des zones arrière plus petites que son adversaire","Exercice de service court : 20 essais, réussite juste derrière la ligne de service court, objectif 14","Couloirs latéraux bonifiés, un point gagné en smash vaut 2 points de plus"]});
 function iaHtml(){const A=ASST,p=A.res;
   return `<div class="card asst"><div class="row" style="justify-content:space-between"><h2 style="margin:0">💬 Décris ta situation <small class="muted" style="font-weight:600">avec Claude</small></h2><button class="btn alt sm" onclick="ASST=null;renderTerrain()">Fermer</button></div>
    <p class="muted">Écris comme tu l'expliquerais aux élèves : zones, valeurs, zone interdite, contrat, handicap, fin du match… Claude règle le terrain ; tu vérifies, tu ajustes aux curseurs, puis tu gardes.</p>

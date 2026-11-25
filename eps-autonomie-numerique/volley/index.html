@@ -924,11 +924,13 @@ function printSeq(){
    Mode élève (sans code, sans accès aux notes). Données par équipe : c.equipes[] = {id,nom,el:[ids],jours:{date:{coach,pres,chas,mat,terrain,ok}},matchs:[],valid:{sitId:date},rem:[]}
    Synchronisées entre tablettes (eq|classe|équipe). */
 const CHAS=[['Rouge','#d63a3a'],['Bleu','#2563c9'],['Jaune','#f2c014'],['Vert','#2e9e5b'],['Orange','#f28c28'],['Violet','#6B3FA0'],['Rose','#e85d9e'],['Blanc','#ffffff'],['Noir','#222']];
-const MAT=[['filet','Filet'],['poteaux','2 poteaux'],['antennes','Antennes'],['ballons','Ballons'],['chasubles','Chasubles'],['plots','Plots / cerceaux']];
-const WIN={a3:'Attaque construite en 3 touches',a12:'Attaque en 1 ou 2 touches',sv:'Service gagnant',fa:'Faute adverse'};
-const LOSS={sv:'Service raté',fa:'Faute de notre équipe (filet, balle tenue, dehors)',rc:'Réception ratée',ad:'Attaque adverse non défendue'};
-const ZONES=[['AG','Fond gauche'],['AC','Fond centre'],['AD','Fond droit'],['VG','Avant gauche'],['VC','Avant centre'],['VD','Avant droit']];
-const PB={sv:"Trop de services ratés",fa:"Trop de fautes (filet, balle tenue, dehors)",rc:"On rate la réception du service",ad:"On ne défend pas les attaques adverses",direct:"On renvoie trop vite (1 ou 2 touches)",zone:"On attaque toujours au même endroit"};
+/* 🎛 paramètres modifiables (⚙ Réglages → 🎛 Paramètres de l'appli, EPSP d'eps-lists.js) : seuls les intitulés changent, jamais les clés */
+const PRM=(id,sec,label,keys,labels,aide)=>{const L=EPSP.p({id,sec,label,type:'list',fixed:keys.length,def:labels,aide});return keys.map((k,i)=>[k,L[i]])};
+const MAT=(()=>{const K=['filet','poteaux','antennes','ballons','chasubles','plots'],L=EPSP.p({id:'mat',sec:'Installation',label:'Matériel à installer (liste à cocher)',type:'list',aide:'Tu peux ajouter ou retirer des lignes.',def:['Filet','2 poteaux','Antennes','Ballons','Chasubles','Plots / cerceaux']});return L.map((l,i)=>[i<K.length&&l?K[i]:'m'+i,l])})();
+const WIN=Object.fromEntries(PRM('win','Match : marque et statistiques','Façons de gagner un point',['a3','a12','sv','fa'],['Attaque construite en 3 touches','Attaque en 1 ou 2 touches','Service gagnant','Faute adverse']));
+const LOSS=Object.fromEntries(PRM('loss','Match : marque et statistiques','Façons de perdre un point',['sv','fa','rc','ad'],['Service raté','Faute de notre équipe (filet, balle tenue, dehors)','Réception ratée','Attaque adverse non défendue']));
+const ZONES=PRM('zones','Match : marque et statistiques','Noms des 6 zones du terrain',['AG','AC','AD','VG','VC','VD'],['Fond gauche','Fond centre','Fond droit','Avant gauche','Avant centre','Avant droit']);
+const PB=Object.fromEntries(PRM('pb','Coach et remédiations','Problèmes repérés par l\'observateur',['sv','fa','rc','ad','direct','zone'],["Trop de services ratés","Trop de fautes (filet, balle tenue, dehors)","On rate la réception du service","On ne défend pas les attaques adverses","On renvoie trop vite (1 ou 2 touches)","On attaque toujours au même endroit"]));
 function S_(id,nom,but,type,lec,pb){return{id,nom,but,type,lec,pb:pb||''}}
 function defSituations(){return[
   S_('s1',"Passe à 3 vers l'avant","10 passes de suite sans faute, chacun touche le ballon.",'app',2),
@@ -946,7 +948,7 @@ function defSituations(){return[
   S_('r5',"3 touches obligatoires","Match : le point ne compte que si l'équipe a joué en 3 touches.",'rem',1,'direct'),
   S_('r6',"Zones imposées","Le coach annonce une zone (cerceau) avant chaque échange : le point compte double s'il y tombe.",'rem',1,'zone')]}
 function defDeroule(){return[{nom:'Installation',min:5},{nom:'Échauffement',min:12},{nom:"Situation d'apprentissage",min:15},{nom:'Matchs',min:15},{nom:'Remédiation',min:8},{nom:'Bilan et rangement',min:5}]}
-const ROLES=[['marqueur','📋 Marqueur','Annonce le score à voix haute, note qui sert, vérifie la rotation.'],['arbitre','🟨 Arbitre','Siffle les fautes (filet, balle tenue, dehors, 4 touches), explique sa décision.'],['observateur','👀 Observateur','Regarde son équipe : où on marque, pourquoi on perd des points ; aide le coach à choisir la remédiation.']];
+const ROLES=(()=>{const N=EPSP.p({id:'roles',sec:'Rôles sociaux',label:'Noms des 3 rôles',type:'list',fixed:3,def:['📋 Marqueur','🟨 Arbitre','👀 Observateur']}),D=EPSP.p({id:'rolesd',sec:'Rôles sociaux',label:'Missions des 3 rôles (même ordre)',type:'list',fixed:3,def:['Annonce le score à voix haute, note qui sert, vérifie la rotation.','Siffle les fautes (filet, balle tenue, dehors, 4 touches), explique sa décision.','Regarde son équipe : où on marque, pourquoi on perd des points ; aide le coach à choisir la remédiation.']});return ['marqueur','arbitre','observateur'].map((k,i)=>[k,N[i],D[i]])})();
 const coachKey='eps_volley_coach_v1';
 let CO=Object.assign({cid:null,tid:null,tab:'lecon',step:0,pt:null},jget(coachKey,{})||{});
 const coSave=()=>{try{localStorage.setItem(coachKey,JSON.stringify({cid:CO.cid,tid:CO.tid,on:CO.on}))}catch(e){}};
@@ -1130,8 +1132,8 @@ function coFin(c,t,j){const b=j.bilan||{},a=agg(teamMatches(t,today())),RG=j.ran
 function curMatch(t){return (t.matchs||[]).find(m=>!m.fini)}
 /* score affiché = points saisis + correction au curseur */
 function scOf(m){const w=(m.pts||[]).filter(x=>x.w).length,l=(m.pts||[]).length-w,a=m.adj||{};return[w+(a.n||0),l+(a.e||0)]}
-const FAUTES=[['dehors','Ballon dehors','↗️'],['filet','Filet touché','🕸️'],['tenue','Balle tenue / portée','✋'],['4t','4 touches','4️⃣'],['service','Service raté','🎯'],['ligne','Pied sur la ligne','🦶'],['autre','Autre faute','❗']];
-const MOTIFS=['Ballon dedans ou dehors ?','Filet touché ?','Balle tenue ?','4 touches ?','Pied sur la ligne ?','Autre'];
+const FAUTES=(()=>{const I=['↗️','🕸️','✋','4️⃣','🎯','🦶','❗'];return PRM('fautes','Arbitrage','Fautes que l\'arbitre peut siffler',['dehors','filet','tenue','4t','service','ligne','autre'],['Ballon dehors','Filet touché','Balle tenue / portée','4 touches','Service raté','Pied sur la ligne','Autre faute']).map((x,i)=>[x[0],x[1],I[i]])})();
+const MOTIFS=EPSP.p({id:'motifs',sec:'Arbitrage',label:'Motifs de contestation proposés',type:'list',def:['Ballon dedans ou dehors ?','Filet touché ?','Balle tenue ?','4 touches ?','Pied sur la ligne ?','Autre']});
 const ISSUES={ok:['✓ Point maintenu','#2e9e5b'],rej:['↺ Point rejoué (annulé)','#f0a030'],inv:["⇄ Point donné à l'autre équipe",'#d64545']};
 function coMatch(c,t){
   const m=curMatch(t);
