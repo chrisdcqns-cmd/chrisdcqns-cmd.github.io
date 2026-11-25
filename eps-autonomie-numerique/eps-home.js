@@ -1371,6 +1371,9 @@
       })();
     },
     demo: { on: function () { return demoOn(); }, create: function () { return demoCreate(); }, nom: "DÉMO (fictive)" },
+    appel: { get: function (c, d) { var o = abGet(c, d); return o ? (o.abs || []).slice() : []; }, fait: function (c, d) { return !!abGet(c, d); }, set: function (c, abs) { abSet(c, abs); },
+      absent: function (c, n, d) { return abIs(c, n, d); }, dispense: function (c, n) { return !!find(c, n); },
+      presents: function (c, R) { return (R || []).filter(function (n) { return !abIs(c, n); }); } },
     sim: { on: function () { return !!window.EPS_SIM; }, enter: function (n) { return simEnter(n); }, exit: function () { return simExit(); } },
     testClaude: function () { return testClaude(); },
     search: function () { searchStudents(); },
@@ -1586,6 +1589,10 @@
       stPutRaw("eps.lecons." + a + ".v1", demoLesson(a, DEMO_APPS[a], at));
       [["Hugo Démo", "Très actif, encourage ses camarades."], ["Inès Démo", "Bonne lecture de la situation, manque de vitesse dans l'exécution."], ["Tom Démo", "S'arrête souvent ; à relancer sur la situation 1."]].forEach(function (x, i) {
         stPutRaw("eps.obs.v1", { id: "demo-" + a + "-" + i, demo: 1, app: a, cls: DEMO, el: x[0], txt: x[1], raw: x[1], t: Date.now() - (3 - i) * 600000, day: dk }); });
+      /* 🏁 résultats des situations notés par les élèves (bilan de séquence) : la situation 2 « pèche » */
+      var V0 = [2, 2, 1, 0, 2, 2, 1, 2], V1 = [2, 1, 0, 0, 1, 2, 0, 1], V2 = [2, 1, 1, 0, 2, 1, 0, 1], cn = (window.EPSL ? EPSL.norm(DEMO) : norm(DEMO)).replace(/\s+/g, "");
+      DEMO_EL.forEach(function (n, i) { var k = nkey(n), r = {}; r["demo-" + a + ":s0"] = V0[i]; r["demo-" + a + ":s1"] = V1[i]; r["demo-" + a + ":rem"] = V2[i];
+        stPutRaw("eps.lecres." + a + ".v1", { id: cn + "|" + dk + "|" + k, demo: 1, cls: DEMO, day: dk, ek: k, r: r }); });
     });
     await applyLocal(); setTimeout(sync, 300);
   }
@@ -1594,8 +1601,8 @@
       Object.keys(V.items).forEach(function (k) { var o = V.items[k]; if (!o || o.del) return;
         if (o.demo || /^demo-/.test(k) || (o.cls && cmp(o.cls) === cmp(DEMO)) || (o.c && cmp(o.c) === cmp(DEMO))) { V.items[k] = { id: k, del: 1, u: Date.now() }; V.pend[k] = Date.now(); ch = true; } });
       if (ch) try { localStorage.setItem(st.key, JSON.stringify(V)); } catch (e) {} });
-    for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (!/^eps\.(lecons\.[a-z]+|eval\.[a-z]+)\.v1$/.test(k || "")) continue; var V = stLd(k), ch = false;
-      Object.keys(V.items).forEach(function (id) { var o = V.items[id]; if (o && !o.del && (o.demo || /^demo-/.test(id) || (o.c && cmp(o.c) === cmp(DEMO)))) { V.items[id] = { id: id, del: 1, u: Date.now() }; V.pend[id] = Date.now(); ch = true; } });
+    for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (!/^eps\.(lecons|eval|leceval|lecres)\.[a-z]+\.v1$/.test(k || "")) continue; var V = stLd(k), ch = false;
+      Object.keys(V.items).forEach(function (id) { var o = V.items[id]; if (o && !o.del && (o.demo || /^demo-/.test(id) || (o.c && cmp(o.c) === cmp(DEMO)) || (o.cls && cmp(o.cls) === cmp(DEMO)))) { V.items[id] = { id: id, del: 1, u: Date.now() }; V.pend[id] = Date.now(); ch = true; } });
       if (ch) try { localStorage.setItem(k, JSON.stringify(V)); } catch (e) {} }
     var L = lld(); Object.keys(L.items).forEach(function (k) { var o = L.items[k]; if (o && o.nom && cmp(o.nom) === cmp(DEMO)) { o.demo = 1; L.app[k] = JSON.stringify(o); } }); lsv(L);
     try { localStorage.removeItem("eps.demo.v1"); } catch (e) {}
@@ -1678,6 +1685,13 @@
      Chaque fiche PDF est chiffrée AVEC LE CODE DE L'ÉLÈVE (PBKDF2 + AES-GCM) puis déposée sur le script commun (feuille « Bilans ») :
      sans le code, personne (ni le script) ne peut la lire. Lien unique à envoyer par Pronote : …/mon-bilan/#s=<script>. */
   var KC = "eps.codes.v1", ALPH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  /* 🙋 appel du jour, commun à toutes les applis et tablettes : eps.appel.v1 (abs|), id = classe|jour → {cls, day, abs:[noms complets], at}.
+     Les applis en tiennent compte : groupes (travail, rangement), matériel pour les présents, évaluation de leçon, élèves proposés sur les tablettes. */
+  var KAB = "eps.appel.v1";
+  STORES.push({ pre: "abs|", key: KAB });
+  function abGet(c, d) { var o = stLd(KAB).items[cmp(c) + "|" + (d || today())]; return o && !o.del ? o : null; }
+  function abSet(c, abs) { stPutRaw(KAB, { id: cmp(c) + "|" + today(), cls: c, day: today(), abs: (abs || []).slice(), at: Date.now() }); clearTimeout(timer); timer = setTimeout(sync, 1500); }
+  function abIs(c, n, d) { var o = abGet(c, d), k = nkey(n); return !!o && (o.abs || []).some(function (x) { return nkey(x) === k; }); }
   STORES.push({ pre: "cd|", key: KC });
   STORES.push({ pre: "pa|", key: "eps.param.v1" });
   STORES.push({ pre: "cc|", key: "eps.ccfcfg.v1" }); /* 🎯 réglages CCF des évaluations (eps-eval.js) */ /* 🎛 paramètres des applis (EPSP, eps-lists.js) */
@@ -1766,9 +1780,11 @@
     function notes(c, n) { var O = window.EPSOB ? EPSOB.of(n, c) : [], fs = people(c).map(function (x) { return x.split(" ")[0]; });
       var LE = []; try { var kk = String(n).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" ");
         for (var li = 0; li < localStorage.length; li++) { var lk = localStorage.key(li); if (!/^eps\.leceval\.[a-z]+\.v1$/.test(lk || "")) continue; var LV = jget(lk, {}); Object.keys((LV && LV.items) || {}).forEach(function (id) { var o = LV.items[id]; if (!o || o.del || cmp(o.cls) !== cmp(c)) return; var x = (o.el || {})[kk]; if (!x) return; var v = ["p", "s", "t"].filter(function (q) { return x[q] != null; }).map(function (q) { return +x[q]; }); if (v.length) LE.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); }); } } catch (e) {}
+      var RS = [0, 0]; try { for (var lj = 0; lj < localStorage.length; lj++) { var rk = localStorage.key(lj); if (!/^eps\.lecres\.[a-z]+\.v1$/.test(rk || "")) continue; var RV = jget(rk, {}); Object.keys((RV && RV.items) || {}).forEach(function (id) { var o = RV.items[id]; if (!o || o.del || o.ek !== kk || cmp(o.cls) !== cmp(c)) return; Object.keys(o.r || {}).forEach(function (q) { RS[0] += o.r[q] === 2 ? 1 : o.r[q] === 1 ? .5 : 0; RS[1]++; }); }); } } catch (e) {}
+      var rs = RS[1] ? "\nSituations des leçons (résultats notés par l'élève) : " + Math.round(RS[0] / RS[1] * 100) + " % de réussite sur " + RS[1] + " situation(s)" : "";
       var le = LE.length ? "\nÉvaluations de leçon (participation, sérieux, thème du jour) : moyenne " + (Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length * 10) / 10) + " / 3 sur " + LE.length + " leçon(s)" : "";
       var ob = O.length ? "\nObservations du professeur pendant les leçons : " + O.slice(-12).map(function (o) { var t = o.txt; fs.forEach(function (f) { if (f) t = t.replace(new RegExp("\\b" + f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "un camarade"); }); return t; }).join(" ; ") : "";
-      return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob + le; }
+      return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob + le + rs; }
     function save() { B._cls = sel.value; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) {} }
     function draw() {
       var c = sel.value, R = B[c] = B[c] || {}, P = people(c);

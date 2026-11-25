@@ -10,7 +10,7 @@
    - leçon en cours (tablette de contrôle) : messages en grand avec son sur toutes les tablettes, minuteur, étape en cours,
      groupes de rangement (trace de qui a rangé, rotation proposée).
    Données (chiffrées dans le partage, comme le reste) : eps.lecons.<appli>.v1, eps.lcimg.<appli>.v1 (schémas), eps.lcdocs.<appli>.v1,
-   eps.live.<appli>.v1 (leçon en cours), eps.rang.v1 (groupes de rangement, communs à toutes les applis). */
+   eps.live.<appli>.v1 (leçon en cours), eps.leceval.<appli>.v1 (évaluation de leçon), eps.lecres.<appli>.v1 (résultats des situations notés par les élèves), eps.rang.v1 (groupes de rangement, communs à toutes les applis). */
 (function () {
   if (window.EPSLC) return;
   var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"], crosstraining: ["ct", "Cross-training", "#4D7C0F"] };
@@ -98,7 +98,11 @@
       ".lc-st .bk.now{border:3px solid " + COL + ";box-shadow:0 0 0 4px " + COL + "22}.lc-st .bk h3{margin:0 0 6px;font-size:20px}.lc-st .bk .k{font-weight:800;color:" + COL + ";font-size:14px;text-transform:uppercase;letter-spacing:.04em;margin-top:10px}",
       ".lc-st .now-tag{background:" + COL + ";color:#fff;border-radius:999px;padding:2px 10px;font-size:13px;margin-left:8px;vertical-align:middle}",
       ".lc-st .rang{background:#FFF6E0;border:2px solid #F0D58A}.lc-pre{white-space:pre-wrap}",
-      "@media print{.lc-ov .lc-top,.lc-b{display:none!important}}"
+      ".lc-st .res{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed #E6E1D6;font:800 15px system-ui}",
+      ".lc-st .res button,.lc-st .lc-who button{min-height:44px;border-radius:12px;border:2px solid #E6E1D6;background:#fff;font:800 15px system-ui;padding:0 12px;color:#14171C}",
+      ".lc-st .res button.on[data-rv='2']{background:#1E8449;border-color:#1E8449;color:#fff}.lc-st .res button.on[data-rv='1']{background:#E67E22;border-color:#E67E22;color:#fff}.lc-st .res button.on[data-rv='0']{background:#C0392B;border-color:#C0392B;color:#fff}",
+      ".lc-st .lc-who{display:flex;gap:8px;flex-wrap:wrap}.lc-st .lc-who button.on{background:" + COL + ";border-color:" + COL + ";color:#fff}.lc-st .bk.who.need{border:3px solid #C0392B}.lc-st .bk.today{background:#F7FBFF}",
+      "@media print{.lc-ov .lc-top,.lc-b{display:none!important}html.lc-print body>*:not(.lc-ov){display:none!important}html.lc-print .lc-ov{position:static!important;display:block!important;height:auto!important}html.lc-print .lc-body{overflow:visible!important;height:auto!important}}"
     ].join("\n");
     document.head.appendChild(st);
   }
@@ -179,13 +183,13 @@
   function close() { if (OV) { OV.style.display = "none"; OV.innerHTML = ""; } EDIT = null; }
   function shell(body) {
     OV.innerHTML = '<div class="lc-top"><b>📝 Fiches de leçon · ' + esc(NOM) + '</b>' +
-      [["lec", "📝 Fiches de leçon"], ["docs", "📂 Mes documents"], ["live", "📡 Leçon en cours"], ["eval", "📊 Évaluer la leçon"]].map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") +
+      [["lec", "📝 Fiches de leçon"], ["docs", "📂 Mes documents"], ["live", "📡 Leçon en cours"], ["eval", "📊 Évaluer la leçon"], ["bil", "🏁 Bilan de séquence"]].map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") +
       '<button type="button" class="x" data-x>✕ Fermer</button></div><div class="lc-body"><div class="lc-in">' + body + "</div></div>";
     OV.querySelector("[data-x]").onclick = close;
     OV.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { saveEdit(); TAB = b.dataset.tab; EDIT = null; draw(); }; });
     return OV.querySelector(".lc-in");
   }
-  function draw() { if (!OV || OV.style.display === "none") return; if (TAB === "docs") return drawDocs(); if (TAB === "live") return drawLive(); if (TAB === "eval") return drawLEval(); if (EDIT) return drawEdit(); drawList(); }
+  function draw() { if (!OV || OV.style.display === "none") return; if (TAB === "docs") return drawDocs(); if (TAB === "live") return drawLive(); if (TAB === "eval") return drawLEval(); if (TAB === "bil") return drawBilan(); if (EDIT) return drawEdit(); drawList(); }
 
   /* ---- liste des leçons ---- */
   function drawList() {
@@ -330,31 +334,90 @@
     });
   }
 
+  /* ================= 🙋 appel du jour (absents) et ses effets =================
+     Absents communs à toutes les applis et tablettes (EPSD.appel, eps.appel.v1). Les présents servent : groupes du jour, matériel calculé,
+     rangement, évaluation de leçon, noms proposés sur les tablettes élèves. 🩹 dispensé = présent, ne pratique pas (rôles). */
+  function APL() { return window.EPSD && EPSD.appel; }
+  function isAbs(cls, n, d) { var A = APL(); try { return !!(A && A.absent(cls, n, d)); } catch (e) { return false; } }
+  function isDisp(cls, n) { var A = APL(); try { return !!(A && A.dispense(cls, n)); } catch (e) { return false; } }
+  function presents(cls) { return roster(cls).filter(function (n) { return !isAbs(cls, n); }); }
+  function pratiquants(cls) { return presents(cls).filter(function (n) { return !isDisp(cls, n); }); }
+  function appelBox(cls, compact) {
+    var A = APL(), R = roster(cls); if (!A || !R.length) return "";
+    var ab = R.filter(function (n) { return isAbs(cls, n); }), dp = R.filter(function (n) { return !isAbs(cls, n) && isDisp(cls, n); }), fait = A.fait(cls);
+    var head = "🙋 Appel · <b>" + (R.length - ab.length) + " présent" + (R.length - ab.length > 1 ? "s" : "") + "</b> / " + R.length + (ab.length ? " · " + ab.length + " absent" + (ab.length > 1 ? "s" : "") : "") + (dp.length ? " · 🩹 " + dp.length + " dispensé" + (dp.length > 1 ? "s" : "") : "") + (fait ? "" : ' <span class="lc-tag" style="background:#FFF1BF;color:#7A5A00">à faire</span>');
+    var body = '<p class="lc-mut" style="margin:4px 0 8px">Touche les absents. Groupes, matériel, rangement et évaluation de la leçon ne comptent que les présents (🩹 dispensé : présent, ne pratique pas). Commun à toutes les applis et tablettes.</p><div class="lc-row" style="gap:6px">' +
+      R.map(function (n, i) { var a = isAbs(cls, n), d = isDisp(cls, n); return '<button type="button" class="lc-b s" data-ab="' + i + '" aria-pressed="' + a + '" style="' + (a ? "background:#C0392B;border-color:#C0392B;color:#fff;text-decoration:line-through" : "") + '">' + esc(n) + (d ? " 🩹" : "") + (a ? " · absent" : "") + "</button>"; }).join("") +
+      '</div><div class="lc-row"><button type="button" class="lc-b s p" data-abok>' + (fait ? "✓ Appel enregistré" : (ab.length ? "✓ Valider l'appel" : "✓ Tout le monde est là")) + "</button>" + (ab.length ? '<button type="button" class="lc-b s" data-ab0>Personne d\'absent</button>' : "") + "</div>";
+    return compact && fait ? '<details class="lc-box" data-appel><summary style="cursor:pointer;font-size:16px">' + head + " <small class=\"lc-mut\">(modifier)</small></summary>" + body + "</details>" : '<div class="lc-box" data-appel><div style="font-size:16px">' + head + "</div>" + body + "</div>";
+  }
+  function bindAppel(el, cls, redraw) {
+    var A = APL(); if (!A) return; var R = roster(cls);
+    el.querySelectorAll("[data-ab]").forEach(function (b) { b.onclick = function () { var n = R[+b.dataset.ab], L = A.get(cls), i = L.indexOf(n); if (i >= 0) L.splice(i, 1); else L.push(n); A.set(cls, L); redraw(); }; });
+    var ok = el.querySelector("[data-abok]"); if (ok) ok.onclick = function () { A.set(cls, A.get(cls)); redraw(); };
+    var z = el.querySelector("[data-ab0]"); if (z) z.onclick = function () { A.set(cls, []); redraw(); };
+  }
+  /* 🧰 matériel recalculé : « 1 ballon pour 2 », « 1 chasuble par élève », « 1 plot par groupe », « 1 corde par binôme » */
+  function nGroupes(lec) { var m = lec && String(lec.disp || "").match(/(\d+)\s*(groupes|ateliers|équipes|equipes|terrains|poules)/i); return m ? +m[1] : 0; }
+  function matCalc(txt, N, G) {
+    return String(txt || "").split(/\n|;/).map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) {
+      var q = null, m = x.match(/(\d+)\s*[^\d]*?\s+pour\s+(\d+)/i);
+      if (m) q = Math.ceil(N / +m[2]) * +m[1];
+      else if (/par\s+(élève|eleve|personne|joueur|joueuse|grimpeur|danseur|coureur|enfant)/i.test(x)) q = N * ((x.match(/^(\d+)/) || [0, 1])[1]);
+      else if (/par\s+(binôme|binome|deux|paire|cordée|cordee|doublette)/i.test(x)) q = Math.ceil(N / 2) * ((x.match(/^(\d+)/) || [0, 1])[1]);
+      else if (/par\s+(trinôme|trinome|trois|triplette)/i.test(x)) q = Math.ceil(N / 3) * ((x.match(/^(\d+)/) || [0, 1])[1]);
+      else if (G && /par\s+(groupe|atelier|équipe|equipe|terrain|poule)/i.test(x)) q = G * ((x.match(/^(\d+)/) || [0, 1])[1]);
+      return { t: x, q: q }; });
+  }
+  function matBox(cls, lec, G) {
+    if (!lec || !lec.mat) return ""; var P = presents(cls), N = pratiquants(cls).length, M = matCalc(lec.mat, N, G), calc = M.some(function (x) { return x.q != null; });
+    return '<div class="lc-box"><h3 style="margin-top:4px">🧰 Matériel à installer · ' + N + " élève" + (N > 1 ? "s" : "") + " qui pratiquent" + (P.length !== N ? " (" + P.length + " présents)" : "") + (G ? " · " + G + " groupes" : "") + "</h3>" +
+      M.map(function (x) { return '<div style="padding:3px 0">• ' + esc(x.t) + (x.q != null ? ' → <b style="font-size:17px">' + x.q + "</b>" : "") + "</div>"; }).join("") +
+      (calc ? "" : '<p class="lc-mut">Astuce : écris dans ta fiche « 1 ballon pour 2 », « 1 chasuble par élève », « 1 plot par groupe » : les quantités se calculent avec les présents.</p>') + "</div>";
+  }
+  /* 👥 groupes du jour, avec les présents seulement (dispensés à part : rôles) */
+  function niveau(cls, n) { var k = ekey(n), L = []; all(KE).forEach(function (o) { if (!same(o.cls, cls)) return; var x = (o.el || {})[k]; if (!x) return; ["p", "s", "t"].forEach(function (q) { if (x[q] != null) L.push(+x[q]); }); }); return L.length ? L.reduce(function (a, b) { return a + b; }, 0) / L.length : null; }
+  function makeWork(cls, n, mode) {
+    var P = pratiquants(cls).map(function (x) { return { n: x, v: niveau(cls, x), r: Math.random() }; }), G = []; n = Math.max(1, Math.min(n, P.length || 1)); for (var i = 0; i < n; i++) G.push([]);
+    if (mode === "hasard" || !P.some(function (x) { return x.v != null; })) { P.sort(function (a, b) { return a.r - b.r; }); P.forEach(function (x, i) { G[i % n].push(x.n); }); }
+    else { P.sort(function (a, b) { return ((b.v == null ? 1.5 : b.v) - (a.v == null ? 1.5 : a.v)) || a.r - b.r; });
+      if (mode === "niveau") { var per = Math.ceil(P.length / n); P.forEach(function (x, i) { G[Math.min(n - 1, Math.floor(i / per))].push(x.n); }); }
+      else P.forEach(function (x, i) { var row = Math.floor(i / n), c = i % n; G[row % 2 ? n - 1 - c : c].push(x.n); }); }
+    return { g: G, disp: presents(cls).filter(function (x) { return isDisp(cls, x); }), mode: mode, at: Date.now() };
+  }
+
   /* ---- leçon en cours (tablette de contrôle) ---- */
   function live(cls) { return all(KV).filter(function (v) { return same(v.cls, cls); })[0] || null; }
-  function startLive(cls, lec) { var v = live(cls) || { id: nn(cls) || uid() }; v.cls = cls; v.on = 1; v.st = Date.now(); v.lec = lec || ""; v.part = ""; v.msgs = []; v.tim = null; v.rang = null; put(KV, v, true); }
+  function startLive(cls, lec) { var v = live(cls) || { id: nn(cls) || uid() }; v.cls = cls; v.on = 1; v.st = Date.now(); v.lec = lec || ""; v.part = ""; v.msgs = []; v.tim = null; v.rang = null; v.grp = null; put(KV, v, true); }
   function liveSet(cls, f) { var v = live(cls); if (!v) return; f(v); put(KV, v, true); drawLive(); }
   function sendMsg(cls, txt) { liveSet(cls, function (v) { v.msgs = (v.msgs || []).filter(function (x) { return x.at > Date.now() - 15 * 6e4; }).concat([{ id: uid(), at: Date.now(), t: txt }]); }); }
   function rang(cls) { return all(KR).filter(function (r) { return same(r.cls, cls); })[0] || null; }
   function makeGroups(cls, n) { var R = roster(cls).slice(); for (var i = R.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = R[i]; R[i] = R[j]; R[j] = t; } var G = []; for (var k = 0; k < n; k++) G.push([]); R.forEach(function (x, i) { G[i % n].push(x); }); var r = rang(cls) || { id: nn(cls) || uid(), cls: cls, h: [] }; r.g = G; put(KR, r); }
-  function proposal(r) { if (!r || !r.g || !r.g.length) return -1; var last = r.g.map(function (_, i) { var t = 0; (r.h || []).forEach(function (x) { if (x.g === i) t = Math.max(t, x.at); }); return t; }); var best = 0; last.forEach(function (t, i) { if (t < last[best]) best = i; }); return best; }
+  function proposal(r, cls) { if (!r || !r.g || !r.g.length) return -1; var last = r.g.map(function (_, i) { var t = 0; (r.h || []).forEach(function (x) { if (x.g === i) t = Math.max(t, x.at); }); return t; }); var ok = function (i) { return !cls || r.g[i].filter(function (n) { return !isAbs(cls, n); }).length >= 2; }, best = -1; last.forEach(function (t, i) { if (ok(i) && (best < 0 || t < last[best])) best = i; }); return best < 0 ? 0 : best; }
   function drawLive() {
     if (!OV || OV.style.display === "none" || TAB !== "live") return;
     var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || all(KV).filter(function (v) { return v.on; }).map(function (v) { return v.cls; })[0] || C[0] || ""; }
     var cls = LIVECLS, v = live(cls), on = v && v.on, L = lecons().filter(function (l) { return l.statut !== "brouillon"; }), lec = on && v.lec && get(KL, v.lec);
     var h = '<h2>📡 Leçon en cours</h2><p class="lc-mut">Cette tablette pilote les tablettes élèves de la classe : messages en grand avec un son, minuteur, étape en cours, rangement.</p>' +
       '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-cls>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" + (on ? '<span class="lc-tag ok">● en cours depuis ' + Math.max(1, Math.round((Date.now() - v.st) / 6e4)) + " min</span>" : "") + "</div>";
-    if (!on) h += '<div class="lc-box"><div class="lc-row"><b>Leçon</b><select class="lc-sel" data-lec><option value="">— sans fiche de leçon —</option>' + L.map(function (l) { return '<option value="' + l.id + '">' + esc((l.seq ? l.seq + " · " : "") + titreL(l)) + "</option>"; }).join("") + '</select><button type="button" class="lc-b p" data-start>▶ Démarrer la leçon</button></div><p class="lc-mut">La fiche choisie s\'ouvre sur les tablettes élèves de la classe (seulement les leçons validées).</p></div>';
+    h += appelBox(cls, on);
+    if (!on) h += '<div class="lc-box"><div class="lc-row"><b>Leçon</b><select class="lc-sel" data-lec><option value="">— sans fiche de leçon —</option>' + L.map(function (l) { return '<option value="' + l.id + '">' + esc((l.seq ? l.seq + " · " : "") + titreL(l)) + "</option>"; }).join("") + '</select><button type="button" class="lc-b p" data-start>▶ Démarrer la leçon</button></div><div data-matpre></div><p class="lc-mut">La fiche choisie s\'ouvre sur les tablettes élèves de la classe (seulement les leçons validées).</p></div>';
     else {
       var parts = [["", "—"], ["ech", "🔥 Échauffement"]].concat(((lec && lec.sits) || [{}, {}]).map(function (s, i) { return ["s" + i, "🏃 Situation " + (i + 1)]; })).concat([["rem", "🏆 Remise en action"], ["bilan", "💬 Bilan"]]);
       h += '<div class="lc-box"><b>' + (lec ? esc(titreL(lec)) : "Sans fiche de leçon") + '</b><div class="lc-row">' + parts.map(function (p) { return '<button type="button" class="lc-b s' + (v.part === p[0] ? " p" : "") + '" data-part="' + p[0] + '">' + p[1] + "</button>"; }).join("") + '</div><p class="lc-mut">Étape mise en avant sur les tablettes élèves.</p></div>' +
+        matBox(cls, lec, (v.grp && v.grp.g && v.grp.g.length) || nGroupes(lec)) +
+        '<div class="lc-box"><h3 style="margin-top:4px">👥 Groupes du jour</h3>' + (v.grp && v.grp.g && v.grp.g.length ? v.grp.g.map(function (g, i) { return '<div class="lc-row" style="align-items:flex-start;margin:4px 0"><b style="min-width:86px">Groupe ' + (i + 1) + '</b><span style="flex:1">' + esc(g.join(", ") || "—") + ' <small class="lc-mut">(' + g.length + ")</small></span></div>"; }).join("") +
+          (v.grp.disp && v.grp.disp.length ? '<div class="lc-mut">🩹 Dispensés (rôles : observateur, arbitre, chrono…) : ' + esc(v.grp.disp.join(", ")) + "</div>" : "") + '<p class="lc-mut">Affichés sur les tablettes élèves. ' + ({ hasard: "Au hasard.", melange: "Niveaux mélangés (d'après tes évaluations de leçon).", niveau: "Groupes de niveau (d'après tes évaluations de leçon)." }[v.grp.mode] || "") + "</p>"
+          : '<p class="lc-mut">Formés avec les présents qui pratiquent (' + pratiquants(cls).length + ").</p>") +
+        '<div class="lc-row"><select class="lc-sel" data-gn aria-label="Nombre de groupes">' + [2, 3, 4, 5, 6, 7, 8, 10, 12].map(function (n) { return '<option value="' + n + '"' + (n === ((v.grp && v.grp.g && v.grp.g.length) || nGroupes(lec) || 4) ? " selected" : "") + ">" + n + " groupes</option>"; }).join("") + '</select><select class="lc-sel" data-gm aria-label="Façon de former les groupes">' + [["hasard", "Au hasard"], ["melange", "Niveaux mélangés"], ["niveau", "Groupes de niveau"]].map(function (m) { return '<option value="' + m[0] + '"' + ((v.grp && v.grp.mode) === m[0] ? " selected" : "") + ">" + m[1] + "</option>"; }).join("") +
+        '</select><button type="button" class="lc-b s p" data-gmk>' + (v.grp && v.grp.g ? "↻ Refaire" : "Former les groupes") + "</button>" + (v.grp && v.grp.g ? '<button type="button" class="lc-b s" data-ged>✏ Modifier</button><button type="button" class="lc-b s" data-gsay>📣 Annoncer</button><button type="button" class="lc-b s" data-gdel>Effacer</button>' : "") + "</div></div>" +
         '<div class="lc-box"><h3 style="margin-top:4px">📣 Message à toutes les tablettes</h3><div class="lc-row">' + ["Il vous reste 5 minutes", "Il vous reste 2 minutes", "Changement de situation", "Regroupement auprès du professeur", "Fin de la leçon : on range le matériel", "Arrêtez-vous et écoutez"].map(function (t) { return '<button type="button" class="lc-b s" data-q="' + esc(t) + '">' + esc(t) + "</button>"; }).join("") +
         '</div><div class="lc-row"><input class="lc-sel" data-mt style="flex:1;min-width:220px" placeholder="Ton message…">' + ((window.SpeechRecognition || window.webkitSpeechRecognition) ? '<button type="button" class="lc-b s" data-dict>🎤</button>' : "") + '<button type="button" class="lc-b p" data-send>📣 Envoyer</button></div>' +
         (v.msgs || []).slice(-3).reverse().map(function (x) { return '<div class="lc-mut">' + new Date(x.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + " · " + esc(x.t) + "</div>"; }).join("") + "</div>" +
         '<div class="lc-box"><h3 style="margin-top:4px">⏱ Minuteur</h3><div class="lc-row"><input class="lc-sel" data-tl placeholder="Intitulé (facultatif)" value="' + esc((v.tim && v.tim.lab) || "") + '">' + [1, 2, 3, 5, 8, 10, 15, 20].map(function (n) { return '<button type="button" class="lc-b s" data-tm="' + n + '">' + n + " min</button>"; }).join("") + (v.tim ? '<button type="button" class="lc-b s" data-tstop>⏹ Arrêter</button>' : "") + "</div>" + (v.tim ? '<div class="lc-mut" data-tleft></div>' : "") + "</div>";
-      var R = rang(cls), pr = proposal(R);
+      var R = rang(cls), pr = proposal(R, cls);
       h += '<div class="lc-box"><h3 style="margin-top:4px">🧹 Rangement</h3>' + (R && R.g && R.g.length ? R.g.map(function (g, i) { var lst = (R.h || []).filter(function (x) { return x.g === i; }).sort(function (a, b) { return b.at - a.at; })[0];
-        return '<div class="lc-row" style="align-items:flex-start"><b style="min-width:86px">Groupe ' + (i + 1) + (i === pr ? " 👉" : "") + '</b><span style="flex:1">' + esc(g.join(", ") || "—") + '<br><small class="lc-mut">' + (lst ? "a rangé le " + esc(hm(lst.at)) + " (" + esc(lst.app) + ")" : "n'a pas encore rangé") + '</small></span><button type="button" class="lc-b s' + (i === pr ? " p" : "") + '" data-rg="' + i + '">🧹 Range aujourd\'hui</button></div>'; }).join("") +
+        return '<div class="lc-row" style="align-items:flex-start"><b style="min-width:86px">Groupe ' + (i + 1) + (i === pr ? " 👉" : "") + '</b><span style="flex:1">' + (g.map(function (n) { return isAbs(cls, n) ? '<s style="color:#6A6F78">' + esc(n) + "</s>" : esc(n); }).join(", ") || "—") + (g.length && g.filter(function (n) { return !isAbs(cls, n); }).length < 2 ? ' <b style="color:#C0392B">⚠ ' + g.filter(function (n) { return !isAbs(cls, n); }).length + " présent</b>" : "") + '<br><small class="lc-mut">' + (lst ? "a rangé le " + esc(hm(lst.at)) + " (" + esc(lst.app) + ")" : "n'a pas encore rangé") + '</small></span><button type="button" class="lc-b s' + (i === pr ? " p" : "") + '" data-rg="' + i + '">🧹 Range aujourd\'hui</button></div>'; }).join("") +
         '<p class="lc-mut">👉 = proposition (le groupe qui n\'a pas rangé depuis le plus longtemps, toutes activités confondues). ' + ((v.rang && v.rang.g != null) ? "Aujourd'hui : groupe " + (v.rang.g + 1) + "." : "") + "</p>" : '<p class="lc-mut">Pas encore de groupes de rangement pour cette classe.</p>') +
         '<div class="lc-row"><select class="lc-sel" data-ng>' + [2, 3, 4, 5, 6].map(function (n) { return "<option" + (n === ((R && R.g && R.g.length) || 4) ? " selected" : "") + ">" + n + "</option>"; }).join("") + '</select><button type="button" class="lc-b s" data-mk>' + (R && R.g ? "↻ Refaire les groupes" : "Former les groupes") + "</button>" + (R && R.g ? '<button type="button" class="lc-b s" data-edg>✏ Modifier</button>' : "") + "</div>" +
         ((R && R.h && R.h.length) ? '<details><summary class="lc-mut">Trace des rangements</summary>' + R.h.slice().sort(function (a, b) { return b.at - a.at; }).slice(0, 30).map(function (x) { return '<div class="lc-mut">' + esc(hm(x.at)) + " · groupe " + (x.g + 1) + " · " + esc(x.app) + "</div>"; }).join("") + "</details>" : "") + "</div>" +
@@ -362,8 +425,18 @@
     }
     var el = shell(h);
     el.querySelector("[data-cls]").onchange = function () { LIVECLS = this.value; drawLive(); };
+    bindAppel(el, cls, drawLive);
+    var ls = el.querySelector("[data-lec]"), mp = el.querySelector("[data-matpre]"); if (ls && mp) { var pg = lecons().filter(function (l) { return l.statut !== "brouillon" && (l.prog || []).some(function (p) { return same(p.c, cls) && Math.abs(p.at - Date.now()) < 3 * 3600e3; }); })[0]; if (pg) ls.value = pg.id;
+      var upm = function () { var l = ls.value && get(KL, ls.value); mp.innerHTML = matBox(cls, l, nGroupes(l)); }; ls.onchange = upm; upm(); }
     var st = el.querySelector("[data-start]"); if (st) st.onclick = function () { startLive(cls, el.querySelector("[data-lec]").value); drawLive(); };
     if (!on) return;
+    var gm = el.querySelector("[data-gmk]"); if (gm) gm.onclick = function () { if (!pratiquants(cls).length) { alert("Aucun élève présent dans la liste de cette classe."); return; } var W = makeWork(cls, +el.querySelector("[data-gn]").value, el.querySelector("[data-gm]").value); liveSet(cls, function (x) { x.grp = W; }); };
+    var gd = el.querySelector("[data-gdel]"); if (gd) gd.onclick = function () { liveSet(cls, function (x) { x.grp = null; }); };
+    var gs = el.querySelector("[data-gsay]"); if (gs) gs.onclick = function () { sendMsg(cls, "👥 Groupes du jour\n" + v.grp.g.map(function (g, i) { return "Groupe " + (i + 1) + " : " + g.join(", "); }).join("\n")); };
+    var ge = el.querySelector("[data-ged]"); if (ge) ge.onclick = function () { var md = document.createElement("div"); md.className = "lc-modal";
+      md.innerHTML = '<div><h2>✏ Groupes du jour · ' + esc(cls) + '</h2><p class="lc-mut">Un groupe par cadre, noms séparés par des virgules.</p>' + v.grp.g.map(function (g, i) { return '<label class="lc-f"><span>Groupe ' + (i + 1) + '</span><textarea data-g="' + i + '">' + esc(g.join(", ")) + "</textarea></label>"; }).join("") + '<div class="lc-row"><button type="button" class="lc-b p" data-ok>Enregistrer</button><button type="button" class="lc-b" data-c>Annuler</button></div></div>';
+      document.body.appendChild(md); md.querySelector("[data-c]").onclick = function () { md.remove(); };
+      md.querySelector("[data-ok]").onclick = function () { var G = v.grp.g.map(function (_, i) { return md.querySelector('[data-g="' + i + '"]').value.split(",").map(function (s) { return s.trim(); }).filter(Boolean); }); md.remove(); liveSet(cls, function (x) { x.grp = Object.assign({}, x.grp, { g: G }); }); }; };
     el.querySelectorAll("[data-part]").forEach(function (b) { b.onclick = function () { liveSet(cls, function (x) { x.part = b.dataset.part; }); }; });
     el.querySelectorAll("[data-q]").forEach(function (b) { b.onclick = function () { sendMsg(cls, b.dataset.q); }; });
     var mt = el.querySelector("[data-mt]"); el.querySelector("[data-send]").onclick = function () { if (mt.value.trim()) sendMsg(cls, mt.value.trim()); };
@@ -376,7 +449,7 @@
       document.body.appendChild(md); md.querySelector("[data-c]").onclick = function () { md.remove(); };
       md.querySelector("[data-ok]").onclick = function () { R.g = R.g.map(function (_, i) { return md.querySelector('[data-g="' + i + '"]').value.split(",").map(function (s) { return s.trim(); }).filter(Boolean); }); put(KR, R); md.remove(); drawLive(); }; };
     el.querySelectorAll("[data-rg]").forEach(function (b) { b.onclick = function () { var R = rang(cls), i = +b.dataset.rg; R.h = (R.h || []).concat([{ at: Date.now(), g: i, app: NOM }]); put(KR, R);
-      liveSet(cls, function (x) { x.rang = { g: i, noms: R.g[i] }; x.msgs = (x.msgs || []).concat([{ id: uid(), at: Date.now(), t: "🧹 Rangement : groupe " + (i + 1) + "\n" + R.g[i].join(", ") }]); }); }; });
+      var NP = R.g[i].filter(function (n) { return !isAbs(cls, n); }); liveSet(cls, function (x) { x.rang = { g: i, noms: NP }; x.msgs = (x.msgs || []).concat([{ id: uid(), at: Date.now(), t: "🧹 Rangement : groupe " + (i + 1) + "\n" + NP.join(", ") }]); }); }; });
     var vu = el.querySelector("[data-vue]"); if (vu) vu.onclick = function () { close(); EPST.openVue(); };
     el.querySelector("[data-stop]").onclick = function () { if (!confirm("Terminer la leçon pour " + cls + " ?")) return; liveSet(cls, function (x) { x.on = 0; x.tim = null; }); };
   }
@@ -405,10 +478,11 @@
     var days = all(KE).filter(function (o) { return same(o.cls, cls); }).map(function (o) { return o.day; }); if (days.indexOf(day) < 0) days.push(day); days.sort().reverse();
     var h = '<h2>📊 Évaluer la leçon</h2><p class="lc-mut">Une note rapide par élève, valorisant ' + esc(CR[0].toLowerCase()) + ", " + esc(CR[1].toLowerCase()) + " et " + esc(CR[2].toLowerCase()) + '. Elle compte dans la note proposée (à titre indicatif) et dans les appréciations.</p>' +
       '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-cls>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><b>Jour</b><select class="lc-sel" data-day>' + days.map(function (d) { return '<option value="' + d + '"' + (d === day ? " selected" : "") + ">" + new Date(d + "T12:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + "</option>"; }).join("") + "</select></div>" +
-      '<label class="lc-f"><span>' + esc(CR[2]) + " : intitulé de cette leçon</span><input data-theme value=\"" + esc(theme) + '" placeholder="ex. Prendre l\'information avant d\'agir"></label>' +
+      (day === today() ? appelBox(cls, true) : "") + '<label class="lc-f"><span>' + esc(CR[2]) + " : intitulé de cette leçon</span><input data-theme value=\"" + esc(theme) + '" placeholder="ex. Prendre l\'information avant d\'agir"></label>' +
       (R.length ? '<div class="lc-row"><button type="button" class="lc-b s" data-all="2">Tous « Satisfaisant »</button><button type="button" class="lc-b s" data-clear>Tout effacer</button><span class="lc-mut" style="margin:0">Touche une case pour changer le niveau.</span></div>' +
         '<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:14px"><tr style="text-align:left;color:#6A6F78;font-size:13px"><th style="padding:8px">Élève</th>' + CR.map(function (c) { return '<th style="padding:8px">' + esc(c) + "</th>"; }).join("") + '<th style="padding:8px">Moy.</th></tr>' +
         R.map(function (n) { var k = ekey(n), x = rec.el[k] || {}, vals = ["p", "s", "t"].map(function (q) { return x[q]; }), done = vals.filter(function (z) { return z != null; });
+          if (isAbs(cls, n, day) && !done.length) return '<tr style="border-top:1px solid #F0ECE3;color:#6A6F78"><td style="padding:6px 8px;font-weight:700"><s>' + esc(n) + '</s></td><td colspan="4" style="padding:6px 8px">Absent(e) à l\'appel : pas évalué(e)</td></tr>';
           return '<tr style="border-top:1px solid #F0ECE3"><td style="padding:6px 8px;font-weight:700">' + esc(n) + "</td>" + ["p", "s", "t"].map(function (q) { var z = x[q];
             return '<td style="padding:4px"><button type="button" data-k="' + esc(k) + '" data-q="' + q + '" aria-label="' + esc(n) + " : " + esc(CR[["p", "s", "t"].indexOf(q)]) + " = " + (z == null ? "non évalué" : LEV_L[z]) + '" style="min-width:112px;height:40px;border-radius:10px;border:2px solid ' + (z == null ? "#E6E1D6" : LEV_C[z]) + ";background:" + (z == null ? "#FBFAF7" : LEV_C[z]) + ";color:" + (z == null ? "#6A6F78" : "#fff") + ';font:700 13px system-ui">' + (z == null ? "—" : LEV_L[z]) + "</button></td>"; }).join("") +
             '<td style="padding:6px 8px;font-weight:800">' + (done.length ? (Math.round(done.reduce(function (a, b) { return a + b; }, 0) / done.length / 3 * 20 * 4) / 4).toString().replace(".", ",") + "/20" : "—") + "</td></tr>"; }).join("") + "</table></div>"
@@ -417,11 +491,106 @@
     function saveRec() { rec.cls = cls; rec.day = day; rec.lec = lec ? lec.id : rec.lec || ""; put(KE, rec); }
     el.querySelector("[data-cls]").onchange = function () { LIVECLS = this.value; drawLEval(); };
     el.querySelector("[data-day]").onchange = function () { LEC_DAY = this.value; drawLEval(); };
+    bindAppel(el, cls, drawLEval);
     var th = el.querySelector("[data-theme]"); th.onchange = function () { rec.theme = th.value.trim(); saveRec(); };
-    var al = el.querySelector("[data-all]"); if (al) al.onclick = function () { R.forEach(function (n) { var k = ekey(n), x = rec.el[k] = rec.el[k] || {}; ["p", "s", "t"].forEach(function (q) { if (x[q] == null) x[q] = 2; }); }); saveRec(); drawLEval(); };
+    var al = el.querySelector("[data-all]"); if (al) al.onclick = function () { R.forEach(function (n) { if (isAbs(cls, n, day)) return; var k = ekey(n), x = rec.el[k] = rec.el[k] || {}; ["p", "s", "t"].forEach(function (q) { if (x[q] == null) x[q] = 2; }); }); saveRec(); drawLEval(); };
     var cl = el.querySelector("[data-clear]"); if (cl) cl.onclick = function () { if (confirm("Effacer l'évaluation de cette leçon pour toute la classe ?")) { rec.el = {}; saveRec(); drawLEval(); } };
     el.querySelectorAll("[data-q]").forEach(function (b) { b.onclick = function () { var x = rec.el[b.dataset.k] = rec.el[b.dataset.k] || {}, q = b.dataset.q; x[q] = x[q] == null ? 2 : x[q] === 3 ? null : x[q] + 1; if (x[q] === null) delete x[q]; saveRec(); drawLEval(); }; });
   }
+  /* ================= 🏁 résultats des situations (déclarés par les élèves) et bilan de fin de séquence =================
+     Côté élève : à la fin de chaque situation (et de la remise en action), « Mon résultat » ✅ Réussi / 🟠 En partie / ❌ Pas encore,
+     pour le ou les élèves qui utilisent la tablette (plusieurs noms si groupe). Un enregistrement par élève et par jour :
+     eps.lecres.<appli>.v1 (pre lr.<appli>|), id = classe|jour|clé du nom, r = { "<idLeçon>:s0": 2, "<idLeçon>:rem": 1 }.
+     Côté enseignant : onglet « 🏁 Bilan de séquence » (situations, taux de réussite, ce qui a péché, bilan par élève, impression). */
+  var KS = "eps.lecres." + APP + ".v1", RES_L = ["Pas encore", "En partie", "Réussi"], RES_I = ["❌", "🟠", "✅"], RES_C = ["#C0392B", "#E67E22", "#1E8449"];
+  function sitList(l) { var S = (l.sits || []).map(function (s, i) { return { k: l.id + ":s" + i, t: "Situation " + (i + 1) + (s.t ? " · " + s.t : ""), crR: s.crR || "", simp: s.simp || "" }; });
+    if (l.rem || l.remCr) S.push({ k: l.id + ":rem", t: "Remise en action", crR: "", simp: "" }); return S; }
+  function resId(cls, day, k) { return nn(cls) + "|" + day + "|" + k; }
+  var PREVRES = {};
+  function resGet(cls, nom, sk, prev) { if (prev) return PREVRES[nom + "|" + sk]; var o = get(KS, resId(cls, today(), ekey(nom))); return o && o.r ? o.r[sk] : undefined; }
+  function resSet(cls, nom, sk, v, prev) { if (prev) { if (v == null) delete PREVRES[nom + "|" + sk]; else PREVRES[nom + "|" + sk] = v; return; }
+    var k = ekey(nom), id = resId(cls, today(), k), o = get(KS, id) || { id: id, cls: cls, day: today(), ek: k, r: {} }; o.r = o.r || {}; if (v == null) delete o.r[sk]; else o.r[sk] = v; put(KS, o); }
+  function whoList(cls) { return roster(cls).filter(function (n) { return !isAbs(cls, n); }); }
+  function whoGet(cls) { try { var w = JSON.parse(sessionStorage.getItem("eps.lcwho." + APP) || "null"); return w && same(w.cls, cls) ? w.n || [] : []; } catch (e) { return []; } }
+  function whoSet(cls, n) { try { sessionStorage.setItem("eps.lcwho." + APP, JSON.stringify({ cls: cls, n: n })); } catch (e) {} }
+  function resRow(sk) { return '<div class="res" data-sk="' + esc(sk) + '"><span>Mon résultat :</span>' + [2, 1, 0].map(function (v) { return '<button type="button" data-rv="' + v + '">' + RES_I[v] + " " + RES_L[v] + "</button>"; }).join("") + "</div>"; }
+  function bindRes(o, l, cls, prev) {
+    var R = cls ? whoList(cls) : [], SL = sitList(l);
+    function upd() { var W = whoGet(cls);
+      o.querySelectorAll(".lc-who button").forEach(function (b) { var on = W.indexOf(R[+b.dataset.who]) >= 0; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+      o.querySelectorAll(".res").forEach(function (r) { var vals = W.map(function (n) { return resGet(cls, n, r.dataset.sk, prev); }), v = vals.length && vals.every(function (x) { return x === vals[0]; }) ? vals[0] : undefined;
+        r.querySelectorAll("[data-rv]").forEach(function (b) { var on = v != null && +b.dataset.rv === v; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); }); });
+      var t = o.querySelector("[data-today]"); if (!t) return;
+      if (!W.length) { t.innerHTML = "<h3>📈 Mon bilan du jour</h3><div>Touche ton nom en haut, puis note ton résultat à la fin de chaque situation.</div>"; return; }
+      var h = "<h3>📈 Mon bilan du jour</h3>", worst = null;
+      W.forEach(function (n) { var c = [0, 0, 0], nb = 0; SL.forEach(function (s) { var v = resGet(cls, n, s.k, prev); if (v != null) { c[v]++; nb++; if (v < 2 && (!worst || v < worst.v)) worst = { s: s, v: v }; } });
+        h += "<div><b>" + esc(n.split(" ")[0]) + "</b> : " + (nb ? "✅ " + c[2] + " réussie" + (c[2] > 1 ? "s" : "") + " · 🟠 " + c[1] + " en partie · ❌ " + c[0] + " pas encore (" + nb + "/" + SL.length + " situations notées)" : "rien de noté pour l'instant") + "</div>"; });
+      if (worst) h += '<div style="margin-top:8px;padding:10px 12px;background:#FFF6E0;border-radius:12px">🎯 <b>Pour la prochaine fois</b> : retravaille « ' + esc(worst.s.t) + " »." + (worst.s.crR ? "<br>💡 " + esc(worst.s.crR) : "") + (worst.v === 0 && worst.s.simp ? "<br>⬇ Pour commencer : " + esc(worst.s.simp) : "") + "</div>";
+      else if (SL.some(function (s) { return W.some(function (n) { return resGet(cls, n, s.k, prev) != null; }); })) h += '<div style="margin-top:8px;padding:10px 12px;background:#E3F4E8;border-radius:12px">👏 Tout est réussi ! La prochaine fois, essaie la variante « plus difficile ».</div>';
+      t.innerHTML = h; }
+    o.querySelectorAll(".lc-who button").forEach(function (b) { b.onclick = function () { var W = whoGet(cls), n = R[+b.dataset.who], i = W.indexOf(n); if (i >= 0) W.splice(i, 1); else W.push(n); whoSet(cls, W); upd(); }; });
+    o.querySelectorAll(".res [data-rv]").forEach(function (b) { b.onclick = function () { var W = whoGet(cls), sk = b.parentNode.dataset.sk, v = +b.dataset.rv;
+      if (!W.length) { var wb = o.querySelector(".bk.who"); if (wb) { wb.scrollIntoView({ block: "center" }); wb.classList.add("need"); setTimeout(function () { wb.classList.remove("need"); }, 1600); } return; }
+      var allSame = W.every(function (n) { return resGet(cls, n, sk, prev) === v; }); W.forEach(function (n) { resSet(cls, n, sk, allSame ? null : v, prev); }); upd(); }; });
+    upd();
+  }
+
+  var BSEQ = null;
+  function bilanData(cls, seq) {
+    var L = lecons().filter(function (l) { return (l.seq || "Sans séquence") === seq && l.statut !== "brouillon"; }), ids = L.map(function (l) { return l.id; });
+    var recs = all(KS).filter(function (o) { return same(o.cls, cls); }).sort(function (a, b) { return String(a.day).localeCompare(String(b.day)); });
+    var SIT = []; L.forEach(function (l, li) { sitList(l).forEach(function (s) { s.l = l; s.li = li; s.n = [0, 0, 0]; SIT.push(s); }); });
+    SIT.forEach(function (s) { recs.forEach(function (o) { var v = o.r && o.r[s.k]; if (v != null) s.n[v]++; }); s.tot = s.n[0] + s.n[1] + s.n[2]; s.taux = s.tot ? (s.n[2] + .5 * s.n[1]) / s.tot : null; });
+    var EV = all(KE).filter(function (o) { return same(o.cls, cls) && (!o.lec || ids.indexOf(o.lec) >= 0); });
+    var EL = roster(cls).map(function (n) { var k = ekey(n), last = {}; recs.forEach(function (o) { if (o.ek !== k) return; Object.keys(o.r || {}).forEach(function (sk) { last[sk] = o.r[sk]; }); });
+      var done = SIT.filter(function (s) { return last[s.k] != null; }), pts = done.reduce(function (a, s) { return a + (last[s.k] === 2 ? 1 : last[s.k] === 1 ? .5 : 0); }, 0);
+      var LE = []; EV.forEach(function (o) { var x = (o.el || {})[k]; if (!x) return; var v = ["p", "s", "t"].filter(function (q) { return x[q] != null; }).map(function (q) { return +x[q]; }); if (v.length) LE.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); });
+      return { n: n, done: done.length, taux: done.length ? pts / done.length : null, le: LE.length ? Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length / 3 * 20 * 4) / 4 : null, nle: LE.length,
+        rate: done.filter(function (s) { return last[s.k] === 0; }), partiel: done.filter(function (s) { return last[s.k] === 1; }) }; });
+    var noted = SIT.filter(function (s) { return s.tot; }), glob = noted.length ? noted.reduce(function (a, s) { return a + s.n[2] + .5 * s.n[1]; }, 0) / noted.reduce(function (a, s) { return a + s.tot; }, 0) : null;
+    var ok = noted.filter(function (s) { return s.taux >= .7; }).sort(function (a, b) { return b.taux - a.taux; }), ko = noted.filter(function (s) { return s.taux < .5; }).sort(function (a, b) { return a.taux - b.taux; });
+    return { L: L, SIT: SIT, EL: EL, glob: glob, ok: ok, ko: ko, nrec: noted.reduce(function (a, s) { return a + s.tot; }, 0) };
+  }
+  function pc(x) { return x == null ? "—" : Math.round(x * 100) + " %"; }
+  function sitName(s) { return "L" + (s.li + 1) + " · " + s.t; }
+  function bilanTexte(cls, seq, B) {
+    var t = "Bilan de séquence · " + NOM + " · " + seq + " · " + cls + "\n" + B.L.length + " leçon(s), " + B.SIT.length + " situation(s), " + B.nrec + " résultat(s) notés par les élèves. Réussite globale : " + pc(B.glob) + ".\n";
+    if (B.ok.length) t += "Ce qui a marché : " + B.ok.slice(0, 3).map(function (s) { return sitName(s) + " (" + pc(s.taux) + ")"; }).join(" ; ") + ".\n";
+    if (B.ko.length) t += "Ce qui a péché : " + B.ko.slice(0, 3).map(function (s) { return sitName(s) + " (" + pc(s.taux) + ", " + s.n[0] + " « pas encore »)"; }).join(" ; ") + ".\n";
+    t += "\nPar élève :\n" + B.EL.map(function (e) { return "- " + e.n + " : " + e.done + "/" + B.SIT.length + " situations notées, réussite " + pc(e.taux) + (e.le != null ? ", évaluation de leçon " + String(e.le).replace(".", ",") + "/20" : "") + (e.rate.length ? ". À retravailler : " + e.rate.map(sitName).join(", ") : "") + "."; }).join("\n");
+    return t;
+  }
+  function drawBilan() {
+    var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || C[0] || ""; }
+    var cls = LIVECLS, S = seqs().filter(function (s) { return lecons().some(function (l) { return (l.seq || "Sans séquence") === s && l.statut !== "brouillon"; }); });
+    if (!BSEQ || S.indexOf(BSEQ) < 0) { var best = null, bn = -1; S.forEach(function (s) { var n = bilanData(cls, s).nrec; if (n > bn) { bn = n; best = s; } }); BSEQ = best; }
+    var seq = BSEQ, B = seq ? bilanData(cls, seq) : null;
+    var bar = function (x) { return x == null ? '<span class="lc-mut" style="margin:0">non notée</span>' : '<span style="display:inline-block;width:110px;height:12px;border-radius:6px;background:#F0ECE3;vertical-align:middle;overflow:hidden"><span style="display:block;height:100%;width:' + Math.round(x * 100) + "%;background:" + (x >= .7 ? RES_C[2] : x >= .5 ? RES_C[1] : RES_C[0]) + '"></span></span> <b>' + pc(x) + "</b>"; };
+    var th = function (t) { return '<th style="padding:8px;text-align:left;color:#6A6F78;font-size:13px">' + t + "</th>"; }, td = function (t, b) { return '<td style="padding:6px 8px;' + (b ? "font-weight:800" : "") + '">' + t + "</td>"; };
+    var h = '<h2>🏁 Bilan de fin de séquence</h2><p class="lc-mut">À partir des résultats que les élèves notent sur leur tablette à la fin de chaque situation (✅ réussi, 🟠 en partie, ❌ pas encore) et de tes évaluations de leçon.</p>' +
+      '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-cls>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" +
+      (S.length ? '<b>Séquence</b><select class="lc-sel" data-seq>' + S.map(function (s) { return "<option" + (s === seq ? " selected" : "") + ">" + esc(s) + "</option>"; }).join("") + "</select>" : "") +
+      (B ? '<button type="button" class="lc-b s" data-copy>📋 Copier le bilan</button><button type="button" class="lc-b s" data-print>🖨 Imprimer</button>' : "") + "</div>";
+    if (!B) h += '<div class="lc-box">Aucune leçon validée pour l\'instant : crée et valide tes fiches de leçon, les élèves pourront y noter leurs résultats.</div>';
+    else {
+      h += '<div class="lc-box" style="font-size:16px;line-height:1.5"><b>' + B.L.length + " leçon" + (B.L.length > 1 ? "s" : "") + ", " + B.SIT.length + " situations, " + B.nrec + " résultats notés.</b> Réussite globale : " + bar(B.glob) +
+        (B.ok.length ? "<div>👍 <b>Ce qui a marché</b> : " + B.ok.slice(0, 3).map(function (s) { return esc(sitName(s)) + " (" + pc(s.taux) + ")"; }).join(" ; ") + "</div>" : "") +
+        (B.ko.length ? '<div style="color:#8E2B1F">⚠ <b>Ce qui a péché</b> : ' + B.ko.slice(0, 3).map(function (s) { return esc(sitName(s)) + " (" + pc(s.taux) + ", " + s.n[0] + " « pas encore »)"; }).join(" ; ") + "</div>" : "") +
+        (!B.nrec ? '<div class="lc-mut" style="margin:6px 0 0">Aucun résultat noté pour cette classe : les élèves le font dans la fiche de leçon (côté élève), à la fin de chaque situation.</div>' : "") + "</div>" +
+        "<h3>🏃 Situations</h3><div style=\"overflow:auto\"><table style=\"width:100%;border-collapse:collapse;background:#fff;border-radius:14px\"><tr>" + th("Leçon") + th("Situation") + th("✅") + th("🟠") + th("❌") + th("Réussite") + "</tr>" +
+        B.SIT.map(function (s) { return '<tr style="border-top:1px solid #F0ECE3">' + td(esc((s.l.num ? "n° " + s.l.num : "L" + (s.li + 1)) + (s.l.titre ? " · " + s.l.titre : "")), 0) + td(esc(s.t), 1) + td(s.n[2]) + td(s.n[1]) + td(s.n[0]) + td(bar(s.taux)) + "</tr>"; }).join("") + "</table></div>" +
+        "<h3>👤 Par élève</h3><div style=\"overflow:auto\"><table style=\"width:100%;border-collapse:collapse;background:#fff;border-radius:14px\"><tr>" + th("Élève") + th("Notées") + th("Réussite") + th("Éval. leçon") + th("À retravailler") + "</tr>" +
+        B.EL.map(function (e) { return '<tr style="border-top:1px solid #F0ECE3">' + td(esc(e.n), 1) + td(e.done + "/" + B.SIT.length) + td(bar(e.taux)) + td(e.le != null ? String(e.le).replace(".", ",") + "/20" : "—") +
+          td((e.rate.length ? "❌ " + e.rate.map(function (s) { return esc(sitName(s)); }).join(", ") : "") + (e.partiel.length ? (e.rate.length ? "<br>" : "") + '<span style="color:#6A6F78">🟠 ' + e.partiel.map(function (s) { return esc(sitName(s)); }).join(", ") + "</span>" : "") || "—") + "</tr>"; }).join("") + "</table></div>" +
+        '<p class="lc-mut">Résultats déclarés par les élèves (dernier résultat noté pour chaque situation). Ce bilan reste sur tes tablettes ; il n\'est pas montré aux élèves.</p>';
+    }
+    var el = shell(h);
+    el.querySelector("[data-cls]").onchange = function () { LIVECLS = this.value; BSEQ = null; drawBilan(); };
+    var sq = el.querySelector("[data-seq]"); if (sq) sq.onchange = function () { BSEQ = this.value; drawBilan(); };
+    var cp = el.querySelector("[data-copy]"); if (cp) cp.onclick = function () { var t = bilanTexte(cls, seq, B); try { navigator.clipboard.writeText(t).then(function () { cp.textContent = "✓ Copié"; }, function () { prompt("Copie ce bilan :", t); }); } catch (e) { prompt("Copie ce bilan :", t); } };
+    var pr = el.querySelector("[data-print]"); if (pr) pr.onclick = function () { document.documentElement.classList.add("lc-print"); setTimeout(function () { window.print(); setTimeout(function () { document.documentElement.classList.remove("lc-print"); }, 500); }, 50); };
+  }
+
   /* ================= côté élève ================= */
   function showStudent(l, v, prev) {
     css(); var o = document.getElementById("lc-st"); if (!o) { o = document.createElement("div"); o.id = "lc-st"; o.className = "lc-st"; document.body.appendChild(o); }
@@ -430,19 +599,24 @@
     var bk = function (key, title, inner) { return inner ? '<div class="bk' + (part === key ? " now" : "") + '" data-p="' + key + '">' + say + "<h3>" + title + (part === key ? '<span class="now-tag">maintenant</span>' : "") + "</h3>" + inner + "</div>" : ""; };
     var k = function (lab, t) { return t ? '<div class="k">' + lab + '</div><div class="lc-pre">' + esc(t) + "</div>" : ""; };
     var h = '<div class="hd"><b>📅 ' + esc(l ? titreL(l) : "Leçon") + '</b><button type="button" data-x>✕ Fermer</button></div><div class="in">';
+    var rcls = (v && v.cls) || (cur() && cur().nom) || (l && (l.prog || []).map(function (p) { return p.c; })[0]) || "", RR = l && rcls ? whoList(rcls) : [];
+    if (RR.length) h += '<div class="bk who"><h3>👥 Qui utilise cette tablette ?</h3><div class="lc-who">' + RR.map(function (n, i) { return '<button type="button" data-who="' + i + '" aria-pressed="false">' + esc(n) + "</button>"; }).join("") + '</div><div style="font-size:15px;color:#6A6F78;margin-top:6px">Touche ton nom (plusieurs si vous êtes en groupe), puis note ton résultat à la fin de chaque situation.' + (prev ? " <b>Aperçu : rien n'est enregistré.</b>" : "") + "</div></div>";
+    if (v && v.grp && v.grp.g && v.grp.g.length) { var Wg = rcls ? whoGet(rcls) : []; h += '<div class="bk"><h3>👥 Groupes du jour</h3>' + v.grp.g.map(function (g, i) { var me = g.some(function (n) { return Wg.indexOf(n) >= 0; }); return '<div style="padding:4px 8px;border-radius:10px;' + (me ? "background:" + COL + "22;font-weight:800" : "") + '">Groupe ' + (i + 1) + " : " + esc(g.join(", ")) + (me ? " 👈" : "") + "</div>"; }).join("") + (v.grp.disp && v.grp.disp.length ? '<div style="font-size:15px;color:#6A6F78">🩹 Rôles : ' + esc(v.grp.disp.join(", ")) + "</div>" : "") + "</div>"; }
     if (v && v.rang && v.rang.g != null) h += '<div class="bk rang"><h3>🧹 Rangement aujourd\'hui : groupe ' + (v.rang.g + 1) + '</h3><div>' + esc((v.rang.noms || []).join(", ")) + "</div></div>";
     if (l) {
       h += (l.but || l.mat) ? '<div class="bk">' + k("But de la leçon", l.but) + k("Matériel", l.mat) + "</div>" : "";
       h += bk("ech", "🔥 Échauffement", (l.ech ? '<div class="lc-pre">' + esc(l.ech) + "</div>" : "") + img(l.echImg));
-      (l.sits || []).forEach(function (s, i) { h += bk("s" + i, "🏃 Situation " + (i + 1) + (s.t ? " · " + esc(s.t) : ""), (s.cons ? '<div class="lc-pre">' + esc(s.cons) + "</div>" : "") + img(s.img) + k("✅ Je réussis si…", [s.crQ, s.crQl].filter(Boolean).join("\n")) + k("💡 Pour réussir…", s.crR) + k("⬇ Plus facile", s.simp) + k("⬆ Plus difficile", s.comp)); });
-      h += bk("rem", "🏆 Remise en action", (l.rem ? '<div class="lc-pre">' + esc(l.rem) + "</div>" : "") + k("✅ Je réussis si…", l.remCr));
+      (l.sits || []).forEach(function (s, i) { h += bk("s" + i, "🏃 Situation " + (i + 1) + (s.t ? " · " + esc(s.t) : ""), (s.cons ? '<div class="lc-pre">' + esc(s.cons) + "</div>" : "") + img(s.img) + k("✅ Je réussis si…", [s.crQ, s.crQl].filter(Boolean).join("\n")) + k("💡 Pour réussir…", s.crR) + k("⬇ Plus facile", s.simp) + k("⬆ Plus difficile", s.comp) + (RR.length ? resRow(l.id + ":s" + i) : "")); });
+      h += bk("rem", "🏆 Remise en action", (l.rem ? '<div class="lc-pre">' + esc(l.rem) + "</div>" : "") + k("✅ Je réussis si…", l.remCr) + (RR.length && (l.rem || l.remCr) ? resRow(l.id + ":rem") : ""));
+      if (RR.length) h += '<div class="bk today" data-today></div>';
     } else h += '<div class="bk">La leçon a commencé. Écoute les consignes de ton professeur.</div>';
     o.innerHTML = h + "</div>"; o.style.display = "block";
     o.querySelector("[data-x]").onclick = function () { try { speechSynthesis.cancel(); } catch (e) {} o.style.display = "none"; };
     /* 🔊 lecture à voix haute par la tablette elle-même (aucune donnée envoyée) */
     o.querySelectorAll(".say").forEach(function (b) { b.onclick = function () { try { var S = window.speechSynthesis; if (S.speaking) { S.cancel(); return; }
-      var t = b.parentNode.innerText.replace(/🔊/g, "").replace(/maintenant/g, "").replace(/[✅💡⬇⬆🔥🏃🏆]/g, ""), u = new SpeechSynthesisUtterance(t); u.lang = "fr-FR"; u.rate = 0.95;
+      var cl = b.parentNode.cloneNode(true); cl.querySelectorAll(".res").forEach(function (z) { z.remove(); }); var t = (cl.innerText || cl.textContent).replace(/🔊/g, "").replace(/maintenant/g, "").replace(/[✅💡⬇⬆🔥🏃🏆]/g, ""), u = new SpeechSynthesisUtterance(t); u.lang = "fr-FR"; u.rate = 0.95;
       var v = S.getVoices().filter(function (x) { return /^fr/i.test(x.lang); })[0]; if (v) u.voice = v; S.speak(u); } catch (e) {} }; });
+    if (l && RR.length) bindRes(o, l, rcls, prev);
     var n = o.querySelector(".bk.now"); if (n) n.scrollIntoView({ block: "center" });
   }
   var CHIP = null, TIM = null, SEEN = jget("eps.lcseen", {}), LASTPART = {}, FAST = 0;
@@ -463,8 +637,8 @@
     if (V) {
       var L = V.lec && get(KL, V.lec); if (L && L.statut === "brouillon") L = null;
       var key = "lv" + V.id + V.st; if (!seen(key)) { markSeen(key); showStudent(L, V); }
-      else if (stOpen && (LASTPART[V.id] !== (V.part || "") + "|" + JSON.stringify(V.rang || ""))) showStudent(L, V);
-      LASTPART[V.id] = (V.part || "") + "|" + JSON.stringify(V.rang || "");
+      else if (stOpen && (LASTPART[V.id] !== (V.part || "") + "|" + JSON.stringify(V.rang || "") + JSON.stringify(V.grp || ""))) showStudent(L, V);
+      LASTPART[V.id] = (V.part || "") + "|" + JSON.stringify(V.rang || "") + JSON.stringify(V.grp || "");
       (V.msgs || []).forEach(function (m) { if (!seen(m.id)) { markSeen(m.id); if (m.at > now - 10 * 6e4) showMsg(m.t); } });
       CHIP.textContent = "📅 Leçon en cours"; CHIP.style.display = "block"; CHIP.onclick = function () { showStudent(L, V); };
       if (V.tim) { var left = V.tim.end - now; TIM.style.display = "block"; TIM.classList.toggle("end", left <= 0); TIM.innerHTML = (left > 0 ? "⏱ " + mmss(left).replace(/ min /, ":").replace(/ s$/, "").replace(/ h /, ":") : "⏰ Temps écoulé") + (V.tim.lab ? "<small>" + esc(V.tim.lab) + "</small>" : "");
@@ -491,6 +665,7 @@
     EPSD.store({ pre: "ld." + APP + "|", key: KD, onChange: redraw });
     EPSD.store({ pre: "lv." + APP + "|", key: KV, onChange: function () { if (TAB === "live") redraw(); } });
     EPSD.store({ pre: "le." + APP + "|", key: KE, onChange: function () { if (TAB === "eval") redraw(); } });
+    EPSD.store({ pre: "lr." + APP + "|", key: KS, onChange: function () { if (TAB === "bil") redraw(); } });
     EPSD.store({ pre: "rg|", key: KR, onChange: function () { if (TAB === "live") redraw(); } });
     try { var SF = JSON.parse(localStorage.getItem("eps.sim.v1") || "null"); if (SF && SF.next && SF.next.app === APP && SF.next.act === "lesson") { SF.next = null; localStorage.setItem("eps.sim.v1", JSON.stringify(SF)); setTimeout(simulate, 1500); } } catch (e) {}
     setInterval(function () { try { tickStudent(); } catch (e) { console.warn(e); } }, 1000);
@@ -500,8 +675,8 @@
   window.EPSLC = {
     open: open, close: close, app: APP,
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
-    actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "📊", label: "Évaluer la leçon", ord: 2.2, go: function () { open("eval"); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
+    actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "📊", label: "Évaluer la leçon", ord: 2.2, go: function () { open("eval"); } }, { ico: "🏁", label: "Bilan de séquence", ord: 2.4, go: function () { open("bil"); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
     biblio: function () { return [{ ico: "📂", label: "Mes documents", sub: "Ta séquence, tes fiches : Claude s'en sert en priorité pour tes leçons", go: function () { open("docs"); } }, { ico: "📝", label: "Mes fiches de leçon", sub: "Fiches de leçon, brouillons de Claude à valider, programmation", go: function () { open("lec"); } }]; },
-    _test: { lecons: lecons, put: put, all: all, KL: KL, KV: KV, KD: KD, KR: KR, fromAI: fromAI, startLive: startLive, sendMsg: sendMsg, extract: extract }
+    _test: { KS: KS, bilanData: bilanData, lecons: lecons, put: put, all: all, KL: KL, KV: KV, KD: KD, KR: KR, fromAI: fromAI, startLive: startLive, sendMsg: sendMsg, extract: extract }
   };
 })();

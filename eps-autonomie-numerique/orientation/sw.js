@@ -1,5 +1,5 @@
 // OrienRun EPS — service worker : appli à jour quand il y a du réseau, utilisable hors connexion sinon.
-const CORE = "orienrun-core-v27";
+const CORE = "orienrun-core-v28";
 const LIBS = "orienrun-libs-v1";
 const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const LIB_FILES = ["https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"]; // lecteur QR pour iPhone (hors connexion)
