@@ -362,6 +362,7 @@ html.epst-on header nav#nav{display:none!important}
 .revbox{background:#fff1f1;border:1.5px solid #f3b6b9;border-radius:12px;padding:8px 12px;margin:6px 0;display:grid;gap:8px;font-size:.92rem}.revn{color:#B4232B;font-weight:600}
 .prpl{color:#B4232B;font-weight:600}.prpl .btn{margin-left:4px}
 .cdr{margin-bottom:8px}.cdr.prp textarea{color:#B4232B;border-color:#f0a5a9;background:#fff8f8}.cdr label{display:flex;align-items:center;gap:8px}
+.cbb{display:block;font-style:normal;color:#F0A030;font-weight:900;font-size:clamp(1rem,3vw,2rem)}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -1372,11 +1373,11 @@ function coMatch(c,t){
   else if(CO.pt&&CO.pt.k)ask=`<div class="card"><h2>Où le ballon est-il tombé ? <small class="muted">(terrain adverse)</small></h2><div class="court">${ZONES.map(([z,n])=>`<button onclick="coZone('${z}')">${n}</button>`).join('')}</div></div>`;
   else if(CO.pt==='l')ask=`<div class="card"><h2>Pourquoi avons-nous perdu le point ?</h2><div class="tiles">${Object.entries(LOSS).map(([k,n])=>`<button class="tile" onclick="coAdd({w:0,k:'${k}'})">${n}</button>`).join('')}</div></div>`;
   if(CO.big)return `<div class="cobig"><div class="cbtop"><b>🏐 ${esc(t.nom)} – ${esc(m.adv)}</b><button onclick="CO.big=0;coSave();renderCoach()">✕ Petit écran</button></div>
-   <div class="cbsc"><div><small>${esc(t.nom)}</small><b>${nous}</b></div><i>–</i><div><small>${esc(m.adv)}</small><b>${eux}</b></div></div>
+   <div class="cbsc"><div><small>${esc(t.nom)}</small><b>${nous}</b>${bonusOn()?`<em class="cbb">⭐ ${bonusOf(m)} bonus</em>`:''}</div><i>–</i><div><small>${esc(m.adv)}</small><b>${eux}</b></div></div>
    ${ask?`<div class="cbask">${ask}<button class="btn alt" onclick="CO.pt=null;renderCoach()">Annuler</button></div>`:`<div class="cbbtn"><button style="background:var(--d4)" onclick="CO.pt='w';renderCoach()">＋ Point pour nous</button><button style="background:var(--d1)" onclick="CO.pt='l';renderCoach()">＋ Point pour eux</button></div>`}
-   <div class="cbfoot"><button onclick="coUndo()" ${m.pts.length?'':'disabled'}>↶ Annuler le dernier point</button><span>${m.pts.length?esc(ptTxt(m.pts[m.pts.length-1])):''}</span><button onclick="coEndMatch()">🏁 Fin du match</button></div></div>`;
-  return `<div class="score"><div><small>${esc(t.nom)}</small><b>${nous}</b></div><div style="font-size:1.5rem">–</div><div><small>${esc(m.adv)}</small><b>${eux}</b></div></div>
-   <div style="text-align:center;margin-top:8px"><button class="btn sm" style="background:var(--navy)" onclick="CO.big=1;coSave();renderCoach()">📺 Grand écran (lisible de loin)</button></div>
+   <div class="cbfoot"><button onclick="coUndo()" ${m.pts.length?'':'disabled'}>↶ Annuler le dernier point</button>${bonusOn()&&m.pts.length&&m.pts[m.pts.length-1].w?`<button style="border-color:#F0A030;color:#F0A030" onclick="coBonus()">⭐ ${ptBon(m.pts[m.pts.length-1])?'Bonus ✓':'+ Bonus'}</button>`:''}<span>${m.pts.length?esc(ptTxt(m.pts[m.pts.length-1])):''}</span><button onclick="coEndMatch()">🏁 Fin du match</button></div></div>`;
+  return `<div class="score"><div><small>${esc(t.nom)}</small><b>${nous}</b>${bonusOn()?`<small style="color:#B26B00;font-weight:800">⭐ ${bonusOf(m)} bonus</small>`:''}</div><div style="font-size:1.5rem">–</div><div><small>${esc(m.adv)}</small><b>${eux}</b></div></div>
+   <div style="text-align:center;margin-top:8px" class="row"><button class="btn sm" style="background:var(--navy)" onclick="CO.big=1;coSave();renderCoach()">📺 Grand écran (lisible de loin)</button>${bonusBtn(m)}</div>
    ${ask||`<div class="row" style="margin-top:12px;flex-wrap:nowrap"><button class="pbtn" style="background:var(--d4)" onclick="CO.pt='w';renderCoach()">＋ Point pour nous</button><button class="pbtn" style="background:var(--d1)" onclick="CO.pt='l';renderCoach()">＋ Point pour eux</button></div>`}
    <div class="row" style="margin-top:12px">${ask?`<button class="btn alt" onclick="CO.pt=null;renderCoach()">Annuler</button>`:`<button class="btn alt" onclick="coUndo()" ${m.pts.length?'':'disabled'}>↶ Annuler le dernier point</button>`}
    <button class="btn red" onclick="coEndMatch()">🏁 Fin du match</button></div>
@@ -1484,6 +1485,14 @@ function coWin(k){if(k==='fa')return coAdd({w:1,k});CO.pt={k};renderCoach()}
 function coZone(z){const k=CO.pt.k;coAdd({w:1,k,z})}
 /* dernier point en clair (grand écran) */
 function ptTxt(p){const n=p.w?(WIN[p.k]||''):(LOSS[p.k]||'');const z=p.z&&(ZONES.find(x=>x[0]===p.z)||[])[1];return 'Dernier point : '+(p.w?'nous':'eux')+(n?' · '+n:'')+(z?' · '+z:'')}
+/* ⭐ bonus d'équipe en match (option B().optBonusM) : règle B().bonusRegle, p.b = choix du coach sur un point (prioritaire) */
+const BONR=[['arr','Attaque qui tombe dans la zone arrière adverse (zones « Fond »)'],['3t','Attaque construite en 3 touches'],['3tarr','Attaque en 3 touches qui tombe dans la zone arrière'],['manuel','À la main seulement (bouton ⭐ sur le dernier point)']];
+function bonusOn(){return !!B().optBonusM}
+function ptBon(p){if(!p||!p.w)return false;if(p.b!=null)return !!p.b;const r=B().bonusRegle||'arr',fond=/^A/.test(p.z||''),att=p.k==='a3'||p.k==='a12';
+  return r==='arr'?att&&fond:r==='3t'?p.k==='a3':r==='3tarr'?p.k==='a3'&&fond:false}
+function bonusOf(m){return ((m&&m.pts)||[]).filter(ptBon).length}
+function coBonus(){coSet(t=>{const m=curMatch(t),p=m&&m.pts[m.pts.length-1];if(p&&p.w)p.b=!ptBon(p)})}
+function bonusBtn(m){const p=m.pts[m.pts.length-1];return bonusOn()&&p&&p.w?`<button class="btn sm" style="background:${ptBon(p)?'#F0A030':'#fff'};color:#14171C;border:2px solid #F0A030" onclick="coBonus()">⭐ ${ptBon(p)?'Bonus compté sur le dernier point':'Ajouter le bonus au dernier point'}</button>`:''}
 function coAdd(pt){CO.pt=null;coSet(t=>{curMatch(t).pts.push(pt)})}
 function coUndo(){coSet(t=>{curMatch(t).pts.pop()})}
 function coEndMatch(){const t=coT(),m=curMatch(t);if(!m)return;if(!confirm('Terminer le match ?'))return;
@@ -1645,7 +1654,7 @@ function filLecon(c,t,d,court){
   if(j.coach)L.push(['🧢',`Coach : <b>${nm(j.coach)}</b>${ROLES.map(([r,n])=>j.roles&&j.roles[r]?' · '+n.split(' ')[1].toLowerCase()+' '+nm(j.roles[r]):'').join('')}`]);
   const pres=Object.values(j.pres||{}).filter(v=>v===1).length,abs=Object.keys(j.pres||{}).filter(id=>j.pres[id]===0);
   if(j.pres&&Object.keys(j.pres).length)L.push(['🙋',`${pres} présent(s)${abs.length?' · absents : '+abs.map(nm).join(', '):''}${j.terrain?' · terrain '+j.terrain:''}${j.chas?' · chasubles '+esc(j.chas):''}`]);
-  if(M.length)L.push(['🏐',`${M.length} match(s) : ${a.G} gagné(s), ${a.N} nul(s), ${a.P} perdu(s) · ${a.w} points marqués / ${a.l} perdus${a.w?' · '+Math.round((a.win.a3||0)/a.w*100)+' % en 3 touches':''}`+(court?'':'<br><small class="muted">'+M.map(m=>`contre ${esc(m.adv)} ${m.nous}–${m.eux}${m.mode==='obs'?' (observé)':''}`).join(' · ')+'</small>')]);
+  if(M.length)L.push(['🏐',`${M.length} match(s) : ${a.G} gagné(s), ${a.N} nul(s), ${a.P} perdu(s) · ${a.w} points marqués / ${a.l} perdus${a.w?' · '+Math.round((a.win.a3||0)/a.w*100)+' % en 3 touches':''}${bonusOn()?' · ⭐ '+M.reduce((x,m)=>x+bonusOf(m),0)+' point(s) bonus':''}`+(court?'':'<br><small class="muted">'+M.map(m=>`contre ${esc(m.adv)} ${m.nous}–${m.eux}${m.mode==='obs'?' (observé)':''}`).join(' · ')+'</small>')]);
   if(V.length)L.push(['✅',`Situation(s) validée(s) : ${V.map(x=>'<b>'+esc(x.nom)+'</b>').join(', ')}`]);
   RR.forEach(r=>{const x=Rm.find(y=>y.id===r.sit)||{nom:'?'};L.push(['🔁',`Remédiation : ${esc(x.nom)} (${esc(PB[r.pb]||'')}) → ${r.ok==null?'en cours':r.ok?'réussie':'à retravailler'}`])});
   const b=j.bilan||{};
@@ -1812,6 +1821,9 @@ function renderBareme(){
       <p class="muted">Un compteur par élève pour un indicateur de jeu, affiché dans la fiche, le bilan et les exports. Il ne change pas la note : c'est un repère pour placer l'élève.</p>
       ${b.optBonus?`<div class="g2"><div><label class="l">Ce qui rapporte un point bonus</label><input type="text" value="${esc(b.bonusLabel||'')}" onchange="setB('bonusLabel',this.value)"></div>
       <div><label class="l">Objectif (0 = aucun)</label><input type="number" min="0" value="${+b.bonusSeuil||0}" onchange="setB('bonusSeuil',+this.value)"></div></div>`:''}</div>
+    <div class="opt ${b.optBonusM?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optBonusM?'checked':''} onchange="setB('optBonusM',this.checked)" style="width:22px;height:22px"><b>⭐ Bonus d'équipe en match (tablette du coach)</b></label>
+      <p class="muted">Option, désactivée par défaut. Pendant le match, la tablette compte les points bonus de l'équipe à côté du score (score à deux colonnes : points / points bonus), d'après la façon et l'endroit où le point a été marqué ; le coach peut aussi ajouter ou retirer le bonus du dernier point (bouton ⭐). Repris dans le fil de la leçon.</p>
+      ${b.optBonusM?`<label class="l">Ce qui rapporte un bonus</label><select class="f" onchange="setB('bonusRegle',this.value)">${BONR.map(([k,l])=>`<option value="${k}" ${(b.bonusRegle||'arr')===k?'selected':''}>${l}</option>`).join('')}</select>`:''}</div>
   </div>
   <div class="card"><h2>Degrés et bornes (en % des points du critère)</h2>
     <p class="muted">Le curseur intra-degré se déplace entre ces bornes. Exemple sur 5 pts → ${ex}</p>
