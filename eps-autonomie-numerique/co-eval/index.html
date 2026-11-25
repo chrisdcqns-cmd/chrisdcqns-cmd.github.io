@@ -104,8 +104,11 @@ table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
 .modal{position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
 .modal>div{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 .hide{display:none!important}
+h2.fold{cursor:pointer;user-select:none}h2.fold::before{content:attr(data-f) " ";color:var(--mu)}
+.scanner{position:fixed;inset:0;z-index:95;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center}.scanner video{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}.scanner .frame{position:relative;width:64vmin;height:64vmin;border:4px solid #fff;border-radius:18px;box-shadow:0 0 0 2000px #0007}.scanner p{position:absolute;top:14px;left:0;right:0;text-align:center;color:#fff;font-weight:700}.scanner .bar{position:absolute;bottom:18px;left:0;right:0;display:flex;gap:8px;justify-content:center}.scanner .bar .btn{background:#fff}
 .simview{position:fixed;inset:0;z-index:48;background:#14171Cee;display:flex;flex-direction:column}.simview .sv-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#fff;padding:8px 12px}.simview .sv-h .small{color:#c9ccd3}.simview .sv-b{flex:1;display:flex;justify-content:center;align-items:center;padding:6px 6px 12px;min-height:0}.simview iframe{width:min(420px,100%);height:min(860px,100%);border:10px solid #000;border-radius:34px;background:#f5f2ea;box-shadow:0 10px 40px #0008}
 .simbar{position:sticky;margin:6px 6px 0;z-index:19;display:flex;align-items:center;gap:5px;background:#fff7d6;border:2px dashed #d9a400;border-radius:12px;padding:4px 6px;font-size:.8rem;box-shadow:0 4px 14px #0002}.simbar .tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.simbar button{flex:none;border:1px solid #d9a400;background:#fff;border-radius:8px;padding:4px 7px;font:inherit;font-weight:700;cursor:pointer}.simbar .cd{font-family:monospace;font-weight:900;color:var(--vi);font-size:1rem}
+body.sun{background:#fff}body.sun .card{border:2px solid #000;box-shadow:none}body.sun .muted,body.sun .small.muted{color:#111!important}body.sun .chrono{font-size:4.2rem}body.sun .bigb{width:180px;height:180px;font-size:4.4rem;border-width:11px}body.sun .kb button{height:62px;font-size:1.5rem;border:2px solid #000;color:#000}body.sun .boxes div{border-width:3px;border-color:#000}body.sun .btn{border:2px solid #000}
 @media print{header,.noprint,#eps-home-btn{display:none!important}body{background:#fff}main{padding:0;max-width:none}.card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;padding:10px}.pb{break-before:page}}
 
 .net{font-size:.72rem;font-weight:800;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.14)}
@@ -739,6 +742,7 @@ function locate(info, s) {
 function go(v, ...a) {
   if (VIEW && !(v === "full" || (v === "prof" && (a[0] || "res") === "res"))) archOff();
   CTXC = ["prep", "run", "follow", "bilan", "end"].includes(v) && a[0] != null ? carteOf(RUNS[a[0]]) : null;
+  wakeLock(!TPW && ["prep", "run", "follow"].includes(v));
   if (SW && v !== "full") { ME = SW.ME; RUNS = SW.RUNS; SW = null; }
   stopTick(); if (v !== "prof") { clearInterval(profTick); profTick = null; }
   if (CUR.v !== v || v === "prof") window.scrollTo(0, 0); CUR = { v, a };
@@ -747,13 +751,23 @@ function go(v, ...a) {
 window.epsAppHome = () => go("home");
 const studentName = m => `${m.prenom} ${m.nom}`;
 
+// le gros bouton « étape suivante » de l'accueil : ce que l'élève doit faire maintenant
+function nextStep() {
+  const hasDuo = duoKs().length > 0, endK = RUNS.findIndex(r => r && r.fin && !(r.ress && Object.keys(r.ress).length));
+  if (endK >= 0) return { label: `📝 Remplis ton bilan · ${esc(P(endK).nom)}`, go: () => go("end", endK) };
+  const k = C.parcours.findIndex((p, j) => !(RUNS[j] && RUNS[j].fin));
+  if (k < 0) return { label: "✅ Tout est fini : voir ma fiche bilan", go: () => go("full") };
+  if (isDuoK(k) && hasDuo && !mates().length) return { label: "👥 Étape suivante : choisis ton binôme", go: () => go("binome") };
+  return { label: `▶ Étape suivante : ${esc(P(k).nom)}`, go: () => startPrep(k) };
+}
 function vHome() {
   $("#hT").textContent = C.titre;
   if (!ME) return go("ident");
   const cur = RUNS.findIndex(r => r && !r.fin && (r.debut || !r.owner || r.owner === ME.id));
   if (cur >= 0) { const r = RUNS[cur]; return r.debut ? go(r.pilot && r.pilot !== ME.id ? "follow" : "run", cur) : go("prep", cur); }
-  const nOut = LS.get("out", []).length;
-  $("#app").innerHTML = `<div class="card"><div class="row"><div class="grow"><div class="muted small">Élève</div><b style="font-size:1.15rem">${esc(studentName(ME))}</b><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}${esc(ME.prof)}</div><div class="small" style="margin-top:4px">👥 ${mates().length > 1 ? "Groupe" : "Binôme"} : <b>${mates().length ? esc(mates().map(studentName).join(", ")) : "pas encore choisi"}</b> <button class="btn sm gh" id="eBin" style="min-height:28px;padding:2px 8px">${mates().length ? "Modifier" : "Choisir"}</button></div></div><button class="btn sm gh" id="eId">↺ Changer de coureur</button></div></div>
+  const nOut = LS.get("out", []).length, nx = nextStep();
+  $("#app").innerHTML = `<button class="btn big or" id="hNext" style="width:100%;margin-bottom:10px;font-size:1.15rem;padding:16px">${nx.label}</button><div style="text-align:right;margin:-4px 0 6px"><button class="btn sm gh" id="hSun">☀️ Plein soleil${LS.get("sun", false) ? " ✓" : ""}</button></div>
+   <div class="card"><div class="row"><div class="grow"><div class="muted small">Élève</div><b style="font-size:1.15rem">${esc(studentName(ME))}</b><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}${esc(ME.prof)}</div><div class="small" style="margin-top:4px">👥 ${mates().length > 1 ? "Groupe" : "Binôme"} : <b>${mates().length ? esc(mates().map(studentName).join(", ")) : "pas encore choisi"}</b> <button class="btn sm gh" id="eBin" style="min-height:28px;padding:2px 8px">${mates().length ? "Modifier" : "Choisir"}</button></div></div><button class="btn sm gh" id="eId">↺ Changer de coureur</button></div></div>
    ${C.demo ? '<p class="chip or" style="margin:0 4px 8px">Mode démonstration : l\'enseignant n\'a pas encore publié ses paramètres.</p>' : ""}
    <h2 style="margin:16px 4px 4px">Choisis ton parcours</h2><p class="small muted" style="margin:0 4px 10px">Tu peux les faire dans l'ordre que tu veux. Ta progression est sauvegardée en ligne : en choisissant ton nom sur un autre téléphone, tu la retrouves.</p>
    ${RUNS.map((r, k) => r && r.debut && !r.fin ? `<div class="card" style="border:3px solid var(--ko);text-align:center"><b>🏃 ${esc(P(k).nom)} en cours</b> · chrono <b>${fmt(now() - r.debut)}</b><div class="row" style="margin-top:8px"><button class="btn or grow" data-go="${k}">▶ Reprendre la course</button><button class="btn ko grow" data-arr="${k}">🏁 Je suis arrivé(e)</button></div></div>` : "").join("")}
@@ -770,6 +784,8 @@ function vHome() {
   $("#eId").onclick = async () => { if (RUNS.some(Boolean) && !(await ask("Changer de coureur ?", "Les parcours enregistrés sur ce téléphone seront effacés de l'écran (ceux déjà envoyés restent chez l'enseignant).", "Changer", "ko"))) return; ME = null; PARTNERS = {}; RUNS = emptyRuns(); idbSet("bak", null); LS.del("me"); LS.del("pos"); LS.set("runs", RUNS); go("ident"); };
   $("#eBin").onclick = () => go("binome");
   $$("[data-p]").forEach(b => b.onclick = () => { const k = +b.dataset.p; if (RUNS[k]?.fin) return go("bilan", k); startPrep(k); });
+  $("#hNext").onclick = nx.go;
+  $("#hSun") && ($("#hSun").onclick = () => { const v = !LS.get("sun", false); LS.set("sun", v); document.body.classList.toggle("sun", v); go("home"); });
   $$("[data-go]").forEach(b => b.onclick = () => startPrep(+b.dataset.go));
   $$("[data-arr]").forEach(b => b.onclick = async () => { const k = +b.dataset.arr, r = RUNS[k]; if (!r || r.fin) return; if (!(await ask("🏁 Tu es arrivé(e) ?", "Le chronomètre s'arrête maintenant.", "Oui, j'arrive", "gr"))) return; r.fin = now(); journal(r, { e: "retour", temps: fmt(r.fin - r.debut) }); saveRuns(); pushState(true); queueResult(k); go("end", k); });
   $("#full") && ($("#full").onclick = () => go("full"));
@@ -927,10 +943,12 @@ function teacherFix(r, id) { if (!r || !r.debut) return r; const sp = stopAt(r, 
 async function stopRun(o, after) {
   const r = o.act, k = r.k, e = { ...o.me, id: o.x.eleve };
   if (!(await ask(`⏹ Arrêter le ${esc(P(k).nom)} de ${esc(e.prenom)} ?`, `Chrono : ${fmt(now() - r.debut)}, ${(r.idx || 0)} balise(s) saisie(s) sur ${r.plan.length}.${isDuoK(k) && r.duo ? " Le parcours s'arrête aussi pour son binôme." : ""} Le temps s'arrête maintenant ; les balises non saisies comptent comme erreurs.`, "⏹ Arrêter", "ko"))) return;
-  const t = now(); C.stop = C.stop || {}; C.stop[e.id] = { ...(C.stop[e.id] || {}), [k]: t }; confChanged();
+  await stopRunNow(o); flash(`⏹ Parcours de ${e.prenom} arrêté`); after && after();
+}
+async function stopRunNow(o) {
+  const r = o.act, k = r.k, e = { ...o.me, id: o.x.eleve }, t = now(); C.stop = C.stop || {}; C.stop[e.id] = { ...(C.stop[e.id] || {}), [k]: t }; confChanged();
   const fin = { ...r, fin: t, ress: { ...(r.ress || {}), arret: 1 } };
   try { await api("coeResult", { eleve: e.id, nom: e.prenom + " " + e.nom, classe: e.classe || "", prof: e.prof, k, data: { me: strip(e), run: packRun(fin) } }); await pullResults(); } catch (er) { flash("⚠ Résultat pas encore enregistré : " + er.message); }
-  flash(`⏹ Parcours de ${e.prenom} arrêté`); after && after();
 }
 async function kickStudent(e, after) {
   const id = studentId(e), x = allStudents().find(z => z.me.id === id), R = x ? x.runs.filter(r => r?.fin) : [];
@@ -1177,13 +1195,14 @@ function vRun(k) {
     const i = r.idx || 0, fini = i >= r.plan.length, n = r.plan[i];
     app.innerHTML = `<div class="card" style="text-align:center;padding-bottom:10px"><div class="small muted">${esc(p.nom)}${r.duo ? " · 👥 " + esc(teamFirst(r)) : ""}</div><div class="chrono" id="rT">0:00</div><div class="small offnote" style="display:${NET === false ? "" : "none"};color:var(--ko);font-weight:700">📴 Hors ligne : chaque balise est enregistrée sur ce téléphone</div><div class="retour" id="rRet" style="display:none"></div>${p.max ? `<div class="small muted" id="rMax"></div>` : ""}
       <div class="steps">${r.plan.map((b, j) => `<span class="${j < i ? "d" : j === i ? "c" : ""}">${b}</span>`).join("")}<span style="border-color:var(--nv);color:var(--nv)">◎</span></div></div>
-     ${fini ? `<div class="card" style="text-align:center"><div style="font-size:3rem">🏁</div><h2>Toutes tes balises sont saisies</h2><p class="muted">Retourne à l'arrivée, puis touche le bouton.</p></div>` :
-      `<div class="card" style="text-align:center;padding-top:10px"><div class="small muted">Balise ${i + 1} sur ${r.plan.length}${+n === +p.oblig ? " · ★ obligatoire" : ""}</div><div class="bigb">${n}</div>
-       <div class="small muted">Tape le code de 3 lettres écrit sur la balise</div><div class="boxes">${[0, 1, 2].map(j => `<div class="${j === code.length ? "cur" : ""}">${code[j] || ""}</div>`).join("")}</div>
+     ${fini && !arrOn() ? `<div class="card" style="text-align:center"><div style="font-size:3rem">🏁</div><h2>Toutes tes balises sont saisies</h2><p class="muted">Retourne à l'arrivée, puis touche le bouton.</p></div>` :
+      `<div class="card" style="text-align:center;padding-top:10px">${fini ? `<div style="font-size:2.4rem">🏁</div><h2 style="margin:0">Toutes tes balises sont saisies</h2><div class="small muted">À l'arrivée, tape (ou scanne) le <b>code de l'arrivée</b> : le chrono s'arrête.</div>` : `<div class="small muted">Balise ${i + 1} sur ${r.plan.length}${+n === +p.oblig ? " · ★ obligatoire" : ""}</div><div class="bigb">${n}</div>
+       <div class="small muted">Tape le code de 3 lettres écrit sur la balise${arrOn() ? " (ou le code de l'arrivée)" : ""}</div>`}<div class="boxes">${[0, 1, 2].map(j => `<div class="${j === code.length ? "cur" : ""}">${code[j] || ""}</div>`).join("")}</div>
        <div class="kb">${"AZERTYUIOPQSDFGHJKLMWXCVBN".split("").map(c => `<button data-k="${c}">${c}</button>`).join("")}<button class="w2" data-k="⌫" style="background:#f5f2ea">⌫</button><button class="w2" data-k="CLR" style="background:#f5f2ea;font-size:.85rem">Effacer</button></div>
-       <button class="btn big or" id="rOk" style="margin-top:12px" ${code.length === 3 ? "" : "disabled"}>✓ Valider la balise ${n}</button>
-       ${i + 1 < r.plan.length ? `<div class="small muted" style="margin-top:8px">Ensuite : balise <b>${r.plan[i + 1]}</b></div>` : `<div class="small muted" style="margin-top:8px">Ensuite : retour à l'arrivée</div>`}
-       <button class="btn sm gh" id="rSkip" style="margin-top:12px">⏭ Je ne la trouve pas : passer la balise ${n}</button></div>`}
+       <button class="btn big or" id="rOk" style="margin-top:12px" ${code.length === 3 ? "" : "disabled"}>${fini ? "🏁 Valider l'arrivée" : "✓ Valider la balise " + n}</button>
+       ${navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? `<button class="btn sm vi" id="rScan" style="margin-top:8px">📷 Scanner le QR code ${fini ? "de l'arrivée" : "de la balise"}</button>` : ""}
+       ${fini ? "" : i + 1 < r.plan.length ? `<div class="small muted" style="margin-top:8px">Ensuite : balise <b>${r.plan[i + 1]}</b></div>` : `<div class="small muted" style="margin-top:8px">Ensuite : retour à l'arrivée</div>`}
+       ${fini ? "" : `<button class="btn sm gh" id="rSkip" style="margin-top:12px">⏭ Je ne la trouve pas : passer la balise ${n}</button>`}</div>`}
      <div class="row"><button class="btn gh grow" id="rMap">🗺 Ma carte et mon tracé</button><button class="btn ko" id="rSos">🆘 SOS</button></div>
      <button class="btn big ${fini ? "gr" : "gh"}" id="rBack" style="margin-top:10px">🏁 Je suis de retour</button>`;
     const kb = $(".kb", app); if (kb) {
@@ -1193,7 +1212,9 @@ function vRun(k) {
       kb.addEventListener("pointerdown", e => { e.preventDefault(); const b = keyAt(e.clientX, e.clientY); if (!b) return; b.classList.add("prs"); setTimeout(() => b.classList.remove("prs"), 140); press(b.dataset.k); });
       kb.addEventListener("click", e => e.preventDefault());
     }
+    $("#rScan") && ($("#rScan").onclick = () => openScanner(txt => { const c = codeFromQR(txt); if (!c) { flash("QR code non reconnu"); return false; } code = c; drawCode(); setTimeout(() => $("#rOk") && $("#rOk").click(), 50); }));
     $("#rOk") && ($("#rOk").onclick = async () => { if (code.length !== 3) return;
+      if (fini || (arrOn() && code === arrCode())) { const c0 = code; code = ""; if (c0 !== arrCode()) { flash("Ce n'est pas le code de l'arrivée"); return draw(); } return arriveNow(); }
       { // code d'une balise plus loin dans le parcours : confirmer avant de sauter les balises intermédiaires
         const i0 = r.idx || 0, att = balise(r.plan[i0]), hit = att && codesOf(att).includes(code) ? att : C.balises.find(b => codesOf(b).includes(code)), j = hit ? r.plan.indexOf(+hit.n) : -1;
         if (hit && j > i0) { const sk = r.plan.slice(i0, j); const c0 = code; if (!(await ask(`⏭ Sauter ${sk.length > 1 ? "les balises" : "la balise"} ${sk.join(", ")} ?`, `Tu as tapé le code de la balise <b>${hit.n}</b>. ${sk.length > 1 ? "Les balises" : "La balise"} <b>${sk.join(", ")}</b> ${sk.length > 1 ? "seront comptées" : "sera comptée"} comme non trouvée${sk.length > 1 ? "s" : ""}.`, `Oui, je suis à la ${hit.n}`, "ko"))) { code = ""; draw(); return; } code = c0; } }
@@ -1201,6 +1222,7 @@ function vRun(k) {
     $("#rSkip") && ($("#rSkip").onclick = async () => { if (!(await ask(`Passer la balise ${n} ?`, `Elle sera comptée comme <b>non trouvée</b> (pénalité). Tu continues vers ${i + 1 < r.plan.length ? "la balise <b>" + r.plan[i + 1] + "</b>" : "l'arrivée"}.`, "⏭ Passer", "ko"))) return; const s0 = { t: now(), code: "", attendu: n, st: "passe", bal: null }; r.saisies.push(s0); r.idx = i + 1; code = ""; journal(r, { e: "passe", n }); saveRuns(); pushState(true); locate({ n, k, passe: 1 }, s0); draw(); });
     $("#rSos").onclick = () => sos(k);
     $("#rMap").onclick = () => { const m = modal(`<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">🗺 Ta carte</h2><button class="btn sm gh" id="mX">Fermer</button></div><div class="mapv" style="height:72vh" id="mm"></div>`); $("#mX", m).onclick = m.close; mapViewer($("#mm", m), { img: imgOf(r), overlay: (W, H) => nivSVG(W, H, allowedOf(r)) + planSVG(r.plan, W, H, r.idx || 0) + traceSVG(r.trace, W, H) }); };
+    async function arriveNow() { const left = r.plan.length - (r.idx || 0); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return draw(); if (r.fin) return go("end", k); r.fin = now(); journal(r, { e: "retour", temps: fmt(r.fin - r.debut) }); saveRuns(); pushState(true); locate({ n: "arrivée", k }); vib([100, 60, 300]); queueResult(k); go("end", k); }
     $("#rBack").onclick = async () => { const left = r.plan.length - (r.idx || 0); if (!(await ask("🏁 Tu es de retour ?", left ? `Attention : il te reste <b>${left}</b> balise(s) de ton parcours. Le chronomètre va s'arrêter définitivement.` : "Le chronomètre va s'arrêter.", "Oui, j'arrive", "gr"))) return; r.fin = now(); journal(r, { e: "retour", temps: fmt(r.fin - r.debut) }); saveRuns(); pushState(true); locate({ n: "arrivée", k }); vib([100, 60, 300]); queueResult(k); go("end", k); };
     upd();
   };
@@ -1226,6 +1248,37 @@ function vFollow(k) {
   $("#fTake").onclick = async () => { if (!(await ask("Continuer la saisie ici ?", `À faire seulement si le téléphone de ${esc(who)} ne fonctionne plus : la saisie des codes passe sur ce téléphone, avec le même chrono.`, "Continuer ici", "or"))) return; await refreshStates(5000); const x = RUNS[k]; if (x.fin) return go("bilan", k); x.pilot = ME.id; saveRuns(); pushState(true); go("run", k); };
 }
 // Saisie d'un code : rien n'est signalé à l'élève, l'analyse est gardée pour l'enseignant
+const arrOn = () => C.arrOn !== false, arrCode = () => String(C.arrCode || "ARR").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3).padEnd(3, "R");
+// QR code d'une balise d'OrienRun (…#b=31.KTR), de l'arrivée, ou texte de 3 lettres
+function codeFromQR(t) { t = String(t || "").trim(); let m = t.match(/#b=([^.&]*)\.([A-Za-z0-9]{3})/); if (m) return m[2].toUpperCase(); m = t.match(/ARRIVEE[:=]([A-Za-z]{3})/i); if (m) return m[1].toUpperCase(); return /^[A-Za-z]{3}$/.test(t) ? t.toUpperCase() : null; }
+function loadScript(src) { return new Promise((res, rej) => { if ([...document.scripts].some(x => x.src === src)) return res(); const x = document.createElement("script"); x.src = src; x.onload = res; x.onerror = rej; document.head.appendChild(x); }); }
+let jsQRLoading = null;
+async function openScanner(onText) {
+  const d = document.createElement("div"); d.className = "scanner";
+  d.innerHTML = `<video playsinline muted></video><div class="frame"></div><p>Vise le QR code de la balise</p><div class="bar"><button class="btn gh" id="scClose">✕ Fermer (taper le code)</button><button class="btn gh" id="scTorch">🔦</button></div>`;
+  document.body.appendChild(d);
+  const video = d.querySelector("video"); let stream = null, stop = false, det = null;
+  const close = () => { stop = true; stream?.getTracks().forEach(t => t.stop()); d.remove(); };
+  d.querySelector("#scClose").onclick = close;
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }, audio: false }); video.srcObject = stream; await video.play();
+    const track = stream.getVideoTracks()[0], caps = track.getCapabilities?.() || {}, tb = d.querySelector("#scTorch"); if (caps.torch) { let on = false; tb.onclick = () => { on = !on; track.applyConstraints({ advanced: [{ torch: on }] }); }; } else tb.remove();
+  } catch (e) { close(); flash(e.name === "NotAllowedError" ? "Caméra refusée : autorise-la, ou tape le code" : "Caméra indisponible : tape le code"); return; }
+  if ("BarcodeDetector" in window) { try { const f = await BarcodeDetector.getSupportedFormats(); if (f.includes("qr_code")) det = new BarcodeDetector({ formats: ["qr_code"] }); } catch (e) {} }
+  if (!det && !window.jsQR) { try { jsQRLoading = jsQRLoading || loadScript("https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"); await jsQRLoading; } catch (e) { jsQRLoading = null; close(); flash("Lecteur QR indisponible sans réseau : tape le code"); return; } }
+  const cv = document.createElement("canvas"), cx = cv.getContext("2d", { willReadFrequently: true });
+  const loop = async () => { if (stop) return;
+    try { let txt = null;
+      if (det) { const r = await det.detect(video); if (r[0]) txt = r[0].rawValue; }
+      else if (window.jsQR && video.videoWidth) { const k = Math.min(1, 800 / video.videoWidth); cv.width = video.videoWidth * k; cv.height = video.videoHeight * k; cx.drawImage(video, 0, 0, cv.width, cv.height); const im = cx.getImageData(0, 0, cv.width, cv.height), q = jsQR(im.data, cv.width, cv.height); if (q) txt = q.data; }
+      if (txt) { vib(60); if (onText(txt) !== false) return close(); await new Promise(r0 => setTimeout(r0, 1200)); }
+    } catch (e) {}
+    setTimeout(loop, 180); };
+  loop();
+}
+// écran toujours allumé pendant la préparation et la course (le téléphone ne se verrouille pas)
+let WL = null, WLon = false;
+async function wakeLock(on) { WLon = on; try { if (on && !WL && "wakeLock" in navigator && document.visibilityState === "visible") { WL = await navigator.wakeLock.request("screen"); WL.addEventListener("release", () => { WL = null; }); } else if (!on && WL) { await WL.release(); WL = null; } } catch (e) { WL = null; } }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && WLon) wakeLock(true); });
 const codesOf = b => b ? [String(b.code).toUpperCase(), ...((C.alt || {})[b.n] || []).map(x => String(x).toUpperCase())] : [];
 function punch(r, code) {
   const i = r.idx || 0, att = balise(r.plan[i]), hit = att && codesOf(att).includes(code) ? att : C.balises.find(b => codesOf(b).includes(code));
@@ -1427,6 +1480,62 @@ async function publish() {
   catch (e) { PUB = { st: "ko", err: /Action inconnue/.test(e.message) ? "le script Google n'est pas à jour (voir les instructions)" : e.message }; if (/Mot de passe/.test(e.message)) { TPW = ""; LS.del("tpw"); } }
   pubUI();
 }
+// Paramètres en sections repliables (titre touché = replier / déplier ; mémorisé sur la tablette)
+function foldCards(box) {
+  const F = LS.get("fold", {});
+  $$(".card", box).forEach(c => { const h = c.querySelector(":scope > h2"); if (!h) return; const key = h.textContent.replace(/\(.*?\)/g, "").replace(/[^\p{L} ]/gu, "").trim(); if (!key) return;
+    const set = f => { [...c.children].forEach(x => { if (x !== h) x.style.display = f ? "none" : ""; }); h.dataset.f = f ? "▸" : "▾"; };
+    h.classList.add("fold"); set(!!F[key]); h.onclick = () => { const G = LS.get("fold", {}); G[key] = !G[key]; LS.set("fold", G); set(G[key]); }; });
+}
+// ---------- Affiche de l'arrivée ----------
+function printArrivee() { const c = arrCode(); printDoc("Arrivée", `<div style="text-align:center;padding-top:10mm"><h1 style="font-size:44pt">🏁 ARRIVÉE</h1><p style="font-size:18pt">Tape ce code dans l'appli (ou scanne le QR code) : ton chrono s'arrête.</p><div style="font-family:'Courier New',monospace;font-size:110pt;font-weight:900;letter-spacing:8mm;margin:6mm 0">${esc(c)}</div><div style="width:95mm;margin:0 auto">${QR.svg("ARRIVEE:" + c, { ecl: "Q", border: 2 })}</div><p style="font-size:13pt;margin-top:6mm">${evHead()}</p></div>`); }
+// ---------- Modèles d'évaluation ----------
+const MODEL_KEYS = ["titre", "parcours", "balises", "depart", "carteNom", "mereNom", "cartes", "orT", "niv", "alt", "penOubli", "penOblig", "penRetard", "noPen", "reuse", "voirErr", "arrOn", "arrCode", "alerteMin", "slotAv", "slotAp", "slots", "profs", "tels", "pv"];
+const modelOf = () => { const o = {}; MODEL_KEYS.forEach(k => { if (C[k] !== undefined) o[k] = clone(C[k]); }); return o; };
+function modelSave() {
+  const m = modal(`<h2 style="margin:0 0 6px">💾 Enregistrer comme modèle</h2><label class="l">Nom du modèle</label><input class="inp" id="mdN" value="${esc((C.ev && C.ev.nom) || "Évaluation CO")} (modèle)"><p class="small muted">Gardé sur cette tablette, et tu peux télécharger le fichier pour un collègue.</p><div class="row"><button class="btn gh grow" id="mdX">Annuler</button><button class="btn gh grow" id="mdDl">⬇ Fichier</button><button class="btn or grow" id="mdOk">💾 Enregistrer</button></div>`);
+  const pack = () => ({ app: "co-eval-modele", v: 1, nom: $("#mdN", m).value.trim() || "Modèle", t: now(), conf: modelOf() });
+  $("#mdX", m).onclick = m.close;
+  $("#mdOk", m).onclick = () => { const o = pack(), L = LS.get("models", []).filter(x => x.nom !== o.nom); L.unshift(o); LS.set("models", L.slice(0, 20)); m.close(); flash("💾 Modèle enregistré"); };
+  $("#mdDl", m).onclick = () => { const o = pack(), a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(o)], { type: "application/json" })); a.download = "modele-CO-" + o.nom.normalize("NFD").replace(/[^\w]+/g, "-") + ".json"; a.click(); };
+}
+function modelLoad() {
+  const L = LS.get("models", []);
+  const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">📂 Charger un modèle</h2><button class="btn sm gh" id="mlX">Fermer</button></div>${L.length ? L.map((x, i) => `<div class="row card" style="margin:0 0 6px;padding:8px"><div class="grow"><b>${esc(x.nom)}</b><br><small class="muted">${dShort(x.t)} · ${(x.conf.parcours || []).length} parcours · ${(x.conf.balises || []).length} balises</small></div><button class="btn sm or" data-ml="${i}">Charger</button><button class="btn sm gh" data-mx="${i}" style="color:var(--ko)">✕</button></div>`).join("") : '<p class="muted">Aucun modèle sur cette tablette. « 📥 Importer un fichier » pour celui d\'un collègue.</p>'}`);
+  $("#mlX", m).onclick = m.close;
+  $$("[data-ml]", m).forEach(b => b.onclick = () => { m.close(); modelApply(L[+b.dataset.ml].conf, L[+b.dataset.ml].nom); });
+  $$("[data-mx]", m).forEach(b => b.onclick = () => { L.splice(+b.dataset.mx, 1); LS.set("models", L); m.close(); modelLoad(); });
+}
+async function modelApply(o, nom) {
+  if (!(await ask(`Charger « ${esc(nom)} » ?`, "Les réglages actuels (parcours, balises, cartes, pénalités, options, créneaux) sont remplacés par ceux du modèle. Les résultats et les listes d'élèves ne changent pas.", "📂 Charger", "or"))) return;
+  MODEL_KEYS.forEach(k => { if (o[k] !== undefined) C[k] = clone(o[k]); }); C = fixConf(C); confChanged(); await loadCartes(); go("prof", "conf"); flash("📂 Modèle chargé");
+}
+// ---------- ✅ Prêt pour l'évaluation ? ----------
+async function checklist() {
+  const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">✅ Prêt pour l'évaluation ?</h2><button class="btn sm gh" id="ckX">Fermer</button></div><div id="ckL"><p class="muted">⏳ Vérification…</p></div>`);
+  $("#ckX", m).onclick = m.close;
+  let script = "ok"; try { await api("coeHors", {}, 10000); } catch (e) { script = /inconnue/i.test(e.message) ? "old" : "net"; }
+  const nCl = Object.values(C.listes || {}).reduce((a, cl) => a + Object.keys(cl).length, 0), nEl = Object.values(C.listes || {}).reduce((a, cl) => a + Object.values(cl).reduce((b, L) => b + L.length, 0), 0);
+  const gen = await idbGet("carte"), cm = []; for (const c of C.cartes || []) cm.push([c, !!(await idbGet("cmap_" + c.id))]);
+  const today = dKey(now()), sl = (C.slots || []).filter(x => x.d >= today), tels = C.profs.filter(p => p && (C.tels || {})[p]);
+  const items = [
+    [script === "ok", "Script Google à jour", script === "old" ? "Pas à jour : recopie Code.gs et redéploie (Nouvelle version)." : script === "net" ? "Pas de réseau pour vérifier." : "Toutes les fonctions sont disponibles."],
+    [!C.demo && nEl > 0, "Listes d'élèves", nEl ? `${nCl} classe(s), ${nEl} élèves.` : "Aucune liste : onglet Listes.", "eleves"],
+    [C.balises.length > 0 && hasPos(), "Balises", `${C.balises.length} balises${C.carteNom ? ` venant d'OrienRun (${esc(C.carteNom)})` : ""}${hasPos() ? ", placées sur la carte" : " — pas placées sur la carte"}.`, "conf"],
+    [!!gen, "Carte générale (suivi)", gen ? (C.mereNom ? `Carte mère « ${esc(C.mereNom)} ».` : "Reçue.") : "Pas de carte : envoie-la depuis OrienRun.", "carte"],
+    ...(cm.length ? [[cm.every(x => x[1]), "Cartes des parcours", cm.map(([c, ok0]) => `${esc(c.nom)} ${ok0 ? "✓" : "✗ pas téléchargée"}`).join(" · ")]] : []),
+    ...C.parcours.map((p, k) => { const c = (p.cartes || []).map(i => (C.cartes || [])[i]).filter(Boolean), nb = c.length ? Math.min(...c.map(x => x.bal.length)) : C.balises.length, okp = p.libre || p.nb <= nb;
+      return [okp, `Parcours « ${esc(p.nom)} »`, `${p.type === "duo" ? "collectif" : "individuel"} · ${p.libre ? "nombre libre" : p.nb + " balises"}${c.length ? " · carte(s) : " + c.map(x => esc(x.nom)).join(", ") : ""}${p.hasard1 ? " · 1re balise au hasard" : ""}${okp ? "" : ` — seulement ${nb} balises sur la carte !`}`, "conf"]; }),
+    [true, "Créneaux", sl.length ? sl.map(x => `${x.d === today ? "aujourd'hui" : x.d} ${x.h1}–${x.h2}${x.ret ? " (retour " + x.ret + ")" : ""} : ${esc(clsTxt(x.cls))}`).join(" · ") : "Aucun créneau à venir (toutes les classes visibles).", "res"],
+    [!!(C.retour || sl.some(x => x.ret)), "Heure de retour", C.retour ? "Générale : " + hhmm(C.retour) : sl.some(x => x.ret) ? "Par créneau." : "Aucune heure de retour programmée."],
+    [arrOn(), "Code de l'arrivée", arrOn() ? `Code « ${arrCode()} » : pense à imprimer l'affiche.` : "Désactivé (bouton « Je suis de retour » seulement).", "conf"],
+    [tels.length > 0, "Numéro pour les SMS de secours", tels.length ? "Enregistré pour " + tels.map(esc).join(", ") + "." : "Aucun numéro : les élèves devront le taper.", "conf"],
+    [true, "Évaluation", `« ${esc(C.ev ? C.ev.nom : "Évaluation en cours")} » · ${countRes()} résultat(s) déjà reçus.`, "res"]];
+  $("#ckL", m).innerHTML = items.map(([ok0, t, d, tab]) => `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--li)"><span style="font-size:1.3rem">${ok0 ? "✅" : "⚠️"}</span><div class="grow"><b>${t}</b><br><small class="${ok0 ? "muted" : ""}" style="${ok0 ? "" : "color:var(--ko)"}">${d}</small></div>${tab ? `<button class="btn sm gh" data-ck="${tab}">Ouvrir</button>` : ""}</div>`).join("") +
+    `<div class="row" style="margin-top:10px"><button class="btn sm gh" id="ckQr">📱 QR code d'accès</button>${arrOn() ? '<button class="btn sm gh" id="ckArr">🖨 Affiche de l\'arrivée</button>' : ""}<button class="btn sm gh" id="ckCodes">🖨 Fiche des codes</button><button class="btn sm vi" id="ckSim">👁 Essayer en vue élève</button></div>`;
+  $$("[data-ck]", m).forEach(b => b.onclick = () => { m.close(); go("prof", b.dataset.ck); });
+  $("#ckQr", m).onclick = () => { m.close(); qrAccess(); }; $("#ckArr", m) && ($("#ckArr", m).onclick = printArrivee); $("#ckCodes", m).onclick = printCodes; $("#ckSim", m).onclick = () => { m.close(); openSimView(); };
+}
 // QR code d'accès direct à l'appli (élèves)
 function qrAccess() {
   const url = location.origin + location.pathname.replace(/index\.html$/, ""), svg = QR.svg(url, { ecl: "M", border: 2 });
@@ -1451,15 +1560,16 @@ function vProf(tab = "res") {
   if (!TPW) return openProf();
   if (!statP) { ensureStat().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0] || tab); }); }
   clearInterval(profTick); profTick = null;
-  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><button class="btn sm gh" id="pQr" title="QR code à afficher ou imprimer pour que les élèves ouvrent l'appli">📱 QR code d'accès</button><button class="btn sm vi" id="pSim" title="L'appli comme la voit un élève, avec un élève fictif : rien n'est envoyé">👁 Vue élève</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
+  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><button class="btn sm or" id="pChk" title="Tout vérifier avant l'évaluation">✅ Prêt ?</button><button class="btn sm gh" id="pQr" title="QR code à afficher ou imprimer pour que les élèves ouvrent l'appli">📱 QR code d'accès</button><button class="btn sm vi" id="pSim" title="L'appli comme la voit un élève, avec un élève fictif : rien n'est envoyé">👁 Vue élève</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
   $("#hRet").onchange = e => { const v = e.target.value; if (!v) return; const [h, mi] = v.split(":").map(Number), d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < now() - 6 * 3600000) d.setDate(d.getDate() + 1); C.retour = d.getTime(); confChanged(); flash(`Heure de retour : ${hhmm(C.retour)} ✓`); };
   $("#hRetX").onclick = () => { C.retour = null; $("#hRet").value = ""; confChanged(); };
   $("#bMsg").onclick = () => msgDialog();
   $("#bRetour").onclick = () => { const L = C.profs.filter(Boolean); const m = modal(`<h2 style="margin:0 0 6px">📢 Appel RETOUR</h2><p class="small muted" style="margin-top:0">Les téléphones des élèves sonnent, vibrent et affichent « RETOUR ! » (dans les 15 secondes).</p><div class="pick big"><button data-rp="">Tous les élèves</button>${L.map(p => `<button data-rp="${esc(p)}">Élèves de ${esc(p)}</button>`).join("")}</div><button class="btn gh" id="rpX" style="width:100%;margin-top:10px">Annuler</button>`); $("#rpX", m).onclick = m.close; $$("[data-rp]", m).forEach(b => b.onclick = () => { C.rappel = { id: now(), prof: b.dataset.rp }; confChanged(); m.close(); flash("📢 Appel RETOUR envoyé"); }); };
-  $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home"); $("#pSim").onclick = openSimView; $("#pQr").onclick = qrAccess;
+  $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home"); $("#pSim").onclick = openSimView; $("#pQr").onclick = qrAccess; $("#pChk").onclick = checklist;
   $("#pUp").onclick = async () => { const b = $("#pUp"); b.disabled = true; b.textContent = "⏳ Mise à jour…"; clearTimeout(pubTimer); if (PUB.st === "wait") await publish(); VC = ""; VM = ""; LS.set("vc", ""); LS.set("vm", ""); LS.set("reopen", CUR.a[0] || "res"); location.replace(location.pathname + "?maj=" + Date.now()); };
   pubUI();
   ({ suivi: profSuivi, res: profRes, conf: profConf, eleves: profEleves, carte: profCarte, dev: profDev })[tab]($("#pv"));
+  if (tab === "conf") foldCards($("#pv"));
 }
 // --- suivi en direct : progression et dernière position connue de chaque élève ---
 const LIVE = { since: 0, st: {} };
@@ -1511,10 +1621,11 @@ async function groupDialog() {
 function profSuivi(box) {
   const f = LS.get("pf", C.profs[0] || "");
   box.innerHTML = `<div class="tabs2">${C.profs.filter(Boolean).map(p => `<button class="btn sm ${p === f ? "vi" : "gh"}" data-pf="${esc(p)}">👤 ${esc(p)}</button>`).join("")}<button class="btn sm ${!f ? "vi" : "gh"}" data-pf="">Tous</button><span class="grow"></span><span class="small muted" id="lvSt"></span></div>
-   <div class="card" style="padding:10px"><div class="row" style="margin:0 4px 8px"><button class="btn sm ${LS.get("lvMode", "co") === "co" ? "" : "gh"}" data-lvmode="co">🗺 Carte de la course</button><button class="btn sm ${LS.get("lvMode", "co") === "gps" ? "" : "gh"}" data-lvmode="gps">🛰 Position GPS (élève perdu)</button><span class="grow"></span>${P(0).dmode === "groupe" || P(1).dmode === "groupe" ? '<button class="btn sm or" id="lvGrp">🚩 Départs par binôme</button>' : ""}<button class="btn sm gh" id="lvFit">Tout voir</button></div>
+   <div class="card" style="padding:10px"><div class="row" style="margin:0 4px 8px"><button class="btn sm ${LS.get("lvMode", "co") === "co" ? "" : "gh"}" data-lvmode="co">🗺 Carte de la course</button><button class="btn sm ${LS.get("lvMode", "co") === "gps" ? "" : "gh"}" data-lvmode="gps">🛰 Position GPS (élève perdu)</button><span class="grow"></span>${C.parcours.some(p => p.dmode === "groupe") ? '<button class="btn sm or" id="lvGrp">🚩 Départs par binôme</button>' : ""}<button class="btn sm gh" id="lvFit">Tout voir</button></div>
     <div class="mapv" id="lvCo" style="height:52vh;${LS.get("lvMode", "co") === "co" ? "" : "display:none"}"></div>
     <div id="lvMap" style="height:52vh;border-radius:12px;background:#e5e7eb;${LS.get("lvMode", "co") === "gps" ? "" : "display:none"}"></div>
     <p class="small muted" style="margin:6px 4px 0" id="lvLeg"></p></div>
+   <div class="card" id="lvDay" style="border:2px solid var(--nv)"></div>
    <div class="card" id="lvList"><p class="muted">Chargement…</p></div>`;
   $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); go("prof", "suivi"); });
   $$("[data-lvmode]", box).forEach(b => b.onclick = () => { LS.set("lvMode", b.dataset.lvmode); go("prof", "suivi"); });
@@ -1543,6 +1654,18 @@ function profSuivi(box) {
   const draw = () => {
     const L = liveCur().map(x => ({ x, ...liveInfo(x) })).filter(o => o.me && o.me.prof && (!f || o.me.prof === f) && !isAbs(o.me)); CUR_L = L;
     const nPrep = L.filter(o => o.ord === 1).length, nDone = L.filter(o => o.ord === 2).length;
+    { // tableau du jour : en course, terminés, pas encore commencés (classes du créneau ou de l'évaluation), sans nouvelles, en retard
+      const run = L.filter(o => o.ord === 0 && o.act), silent = run.filter(o => now() - (o.x.t || 0) > 5 * 60000);
+      const late = run.filter(o => { const p = P(o.act.k); return (p && p.max && now() - o.act.debut > p.max * 60000) || (C.retour && now() > C.retour); });
+      const sc = slotCls(), seen = new Set(L.map(o => o.x.eleve)), res = allStudents();
+      const todo = res.filter(x => !x.abs && (!f || x.me.prof === f) && (sc ? sc.includes(x.me.prof + "|" + x.me.classe) : evHas(x.me.prof, x.me.classe)) && !seen.has(x.me.id) && !x.runs.some(r => r));
+      const nm = A => A.map(o => esc(o.me.prenom + " " + (o.me.nom || "")[0] + ".")).join(", ");
+      $("#lvDay").innerHTML = `<div class="row"><h2 class="grow" style="margin:0">📋 Tableau du jour${sc ? " · créneau en cours" : ""}</h2>${run.length ? `<button class="btn sm ko" id="lvClose">⏹ Clôturer : arrêter les ${run.length} parcours en cours</button>` : ""}</div>
+       <div class="row small" style="margin-top:6px;gap:12px"><span>🏃 <b>${run.length}</b> en course</span><span>⏳ <b>${nPrep}</b> en préparation</span><span>✅ <b>${nDone}</b> terminés</span><span>💤 <b>${todo.length}</b> pas encore connectés</span>${silent.length ? `<span style="color:var(--ko)">📵 <b>${silent.length}</b> sans nouvelles depuis 5 min : ${nm(silent)}</span>` : ""}${late.length ? `<span style="color:var(--ko)">⏰ <b>${late.length}</b> hors temps : ${nm(late)}</span>` : ""}</div>
+       ${todo.length && todo.length <= 40 ? `<p class="small muted" style="margin:6px 0 0">Pas encore connectés : ${todo.map(x => esc(x.me.prenom + " " + (x.me.nom || "")[0] + ".")).join(", ")}</p>` : ""}`;
+      $("#lvClose") && ($("#lvClose").onclick = async () => { if (!(await ask(`⏹ Clôturer le créneau ?`, `Les <b>${run.length}</b> parcours encore en cours s'arrêtent maintenant (temps arrêté, balises non saisies comptées comme erreurs) et les résultats sont enregistrés.`, "⏹ Tout arrêter", "ko"))) return;
+        for (const o of run) await stopRunNow(o); flash(`⏹ ${run.length} parcours arrêtés`); setTimeout(() => go("prof", "res"), 600); });
+    }
     $("#lvLeg").innerHTML = mode === "co" ? `🟠 en course, placé à côté de sa dernière balise pointée · 🔴 sans nouvelle depuis plus de 6 min · touche une étiquette ou un élève de la liste pour voir son trajet de balise en balise. <b>${nPrep}</b> en préparation et <b>${nDone}</b> terminé(s) ne sont pas sur la carte.` : "Position GPS prise au moment de la dernière balise saisie : utile si un élève s'est perdu. 🟠 en course · 🟣 en préparation · 🟢 terminé.";
     if (coMv) coMv.redraw();
     const cls = {}; L.forEach(o => (cls[o.me.classe || "Sans classe"] = cls[o.me.classe || "Sans classe"] || []).push(o));
@@ -1738,7 +1861,7 @@ function slotsDialog() {
    <p class="small muted" style="margin-top:0">Un créneau = un jour, une heure de début et de fin, et le groupe évalué (une ou plusieurs classes, d'un ou deux enseignants). Pendant le créneau (de 15 min avant à 30 min après), les élèves ne peuvent choisir que les élèves de ces classes, pour eux comme pour leur binôme. En dehors des créneaux, toutes les classes restent visibles.</p>
    <div id="slL"></div><button class="btn sm gh" id="slAdd" style="margin-top:6px">＋ Ajouter un créneau</button>
    <div class="row" style="margin-top:12px"><button class="btn gh grow" id="slC">Annuler</button><button class="btn or grow" id="slOk">✓ Enregistrer et publier</button></div>`);
-  const draw = () => { $("#slL", m).innerHTML = S.map((sl, i) => `<div class="card" style="margin:0 0 8px;padding:10px;border:2px solid ${sl.d === today ? "var(--vi)" : "var(--line)"}"><div class="row"><input class="inp" type="date" data-sd="${i}" value="${esc(sl.d)}" style="width:auto;padding:6px"><input class="inp" type="time" data-s1="${i}" value="${esc(sl.h1)}" style="width:auto;padding:6px"> → <input class="inp" type="time" data-s2="${i}" value="${esc(sl.h2)}" style="width:auto;padding:6px"><label class="small">⏰ retour <input class="inp" type="time" data-sr="${i}" value="${esc(sl.ret || "")}" style="width:auto;padding:6px"></label><span class="grow"></span><button class="btn sm gh" data-sx="${i}" style="color:var(--ko)">✕</button></div>
+  const draw = () => { $("#slL", m).innerHTML = S.map((sl, i) => `<div class="card" style="margin:0 0 8px;padding:10px;border:2px solid ${sl.d === today ? "var(--vi)" : "var(--li)"}"><div class="row"><input class="inp" type="date" data-sd="${i}" value="${esc(sl.d)}" style="width:auto;padding:6px"><input class="inp" type="time" data-s1="${i}" value="${esc(sl.h1)}" style="width:auto;padding:6px"> → <input class="inp" type="time" data-s2="${i}" value="${esc(sl.h2)}" style="width:auto;padding:6px"><label class="small">⏰ retour <input class="inp" type="time" data-sr="${i}" value="${esc(sl.ret || "")}" style="width:auto;padding:6px"></label><span class="grow"></span><button class="btn sm gh" data-sx="${i}" style="color:var(--ko)">✕</button></div>
      ${Object.entries(L).map(([p, cl]) => `<div class="small" style="margin-top:6px"><b>👤 ${esc(p)}</b></div><div class="row small">${Object.keys(cl).sort(byFr).map(c => `<label class="chip" style="cursor:pointer"><input type="checkbox" data-sc="${i}" value="${esc(p + "|" + c)}" ${(sl.cls || []).includes(p + "|" + c) ? "checked" : ""}> ${esc(c)}</label>`).join("")}</div>`).join("") || '<p class="small muted">Importe d\'abord tes listes d\'élèves.</p>'}</div>`).join("") || '<p class="muted small">Aucun créneau : toutes les classes sont visibles à tout moment.</p>';
     $$("[data-sd]", m).forEach(x => x.onchange = () => S[+x.dataset.sd].d = x.value); $$("[data-s1]", m).forEach(x => x.onchange = () => S[+x.dataset.s1].h1 = x.value); $$("[data-s2]", m).forEach(x => x.onchange = () => S[+x.dataset.s2].h2 = x.value); $$("[data-sr]", m).forEach(x => x.onchange = () => S[+x.dataset.sr].ret = x.value);
     $$("[data-sc]", m).forEach(x => x.onchange = () => { const sl = S[+x.dataset.sc]; sl.cls = (sl.cls || []).filter(v => v !== x.value); if (x.checked) sl.cls.push(x.value); });
@@ -1860,6 +1983,11 @@ function profConf(box) {
     <label class="l">Téléphone des enseignants (SMS de secours et résultats par SMS)</label><div id="cTel"></div><p class="small muted" style="margin:4px 0 0">Les numéros sont envoyés aux téléphones des élèves pour préparer le SMS.</p></div>
    <div class="card"><h2>Les parcours (${C.parcours.length})</h2><p class="small muted" style="margin-top:0">De 1 à ${MAXP} parcours, individuels ou collectifs. La balise obligatoire d'un parcours (facultative) est interdite dans les autres.</p>${C.parcours.map((p, k) => `<div class="${k ? "sec" : ""}"><div class="row"><span class="chip" style="background:${COLS[k % COLS.length]};color:#fff">P${k + 1}</span><input class="inp" style="flex:1;min-width:140px" data-f="nom" data-k="${k}" value="${esc(p.nom)}"><select class="inp" style="width:auto;padding:8px" data-f="type" data-k="${k}"><option value="indiv" ${p.type !== "duo" ? "selected" : ""}>👤 individuel</option><option value="duo" ${p.type === "duo" ? "selected" : ""}>👥 collectif (binôme / groupe)</option></select>${C.parcours.length > 1 && k === C.parcours.length - 1 ? `<button class="btn sm gh" id="cPDel" style="color:var(--ko)" title="Retirer ce parcours">✕ Retirer</button>` : ""}</div>
      <div class="row small" style="margin-top:6px"><label>Balises à choisir <input class="inp" style="width:70px;padding:8px" type="number" min="1" data-f="nb" data-k="${k}" value="${p.nb}" ${p.libre ? "disabled" : ""}></label><label><input type="checkbox" data-lb="${k}" ${p.libre ? "checked" : ""}> Nombre libre (l'élève choisit combien)</label><label title="${p.type === "duo" ? "Chaque binôme / groupe reçoit une 1re balise tirée au sort" : "Chaque élève reçoit une 1re balise différente de son binôme, pour qu'ils ne se suivent pas"}"><input type="checkbox" data-h1="${k}" ${p.hasard1 ? "checked" : ""}> 🎲 1re balise imposée au hasard</label>${p.hasard1 ? `<span class="small">niveau(x) : ${[1, 2, 3].map(v => `<label style="cursor:pointer"><input type="checkbox" data-hn="${k}|${v}" ${(p.hasardNiv && p.hasardNiv.length ? p.hasardNiv : [1]).map(Number).includes(v) ? "checked" : ""}> ${"★".repeat(v)}</label>`).join(" ")}</span>` : ""}${C.niv ? `<label><input type="checkbox" data-vp="${k}" ${p.voirPts !== false ? "checked" : ""}> L'élève voit ses points</label>` : ""}<label>Obligatoire n° <select class="inp" style="width:auto;padding:8px" data-f="oblig" data-k="${k}"><option value="">aucune</option>${C.balises.map(b => `<option ${+b.n === +p.oblig ? "selected" : ""}>${b.n}</option>`).join("")}</select></label><label>Préparation (min) <input class="inp" style="width:70px;padding:8px" type="number" min="0" step="0.5" data-f="prep" data-k="${k}" value="${p.prep}"></label><label>🚩 Balise de départ imposée <select class="inp" style="width:auto;padding:8px" data-f="dmode" data-k="${k}"><option value="" ${!p.dmode ? "selected" : ""}>aucune</option><option value="tous" ${p.dmode === "tous" ? "selected" : ""}>la même pour tous</option><option value="groupe" ${p.dmode === "groupe" ? "selected" : ""}>différente par binôme</option></select></label>${p.dmode === "tous" ? `<label>n° <select class="inp" style="width:auto;padding:8px" data-f="dn" data-k="${k}"><option value="">?</option>${C.balises.map(b => `<option ${+b.n === +p.dn ? "selected" : ""}>${b.n}</option>`).join("")}</select></label>` : p.dmode === "groupe" ? `<button class="btn sm or" data-grp="${k}">🚩 Attribuer par binôme</button>` : ""}<label>Temps max (min, 0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="max" data-k="${k}" value="${p.max}"></label>${(C.cartes || []).length ? `<span class="row" style="gap:4px">🗺 Carte(s) : ${C.cartes.map((c, i) => `<label class="chip" style="cursor:pointer"><input type="checkbox" data-pc="${k}|${i}" ${(p.cartes || []).includes(i) ? "checked" : ""}> ${esc(c.nom)}</label>`).join("")}<small class="muted">${p.type === "duo" ? "" : "2 cartes = une chacun dans le binôme"}</small></span>` : ""}${C.niv ? `<label>🎯 Points à viser (0 = aucun) <input class="inp" style="width:70px;padding:8px" type="number" min="0" data-f="pts" data-k="${k}" value="${p.pts || 0}"></label>` : ""}</div></div>`).join("")}${C.parcours.length < MAXP ? `<div class="row" style="margin-top:12px"><button class="btn sm gh" data-padd="indiv">＋ Parcours individuel</button><button class="btn sm gh" data-padd="duo">＋ Parcours collectif</button><span class="small muted">en option</span></div>` : ""}</div>
+   <div class="card"><h2>🏁 Arrivée</h2><label class="row small"><input type="checkbox" data-o="arrOn" ${C.arrOn !== false ? "checked" : ""}> Code de l'arrivée : l'élève le tape (ou scanne le QR) à l'arrivée et le chrono s'arrête</label>
+    <div class="row small" style="margin-top:6px">Code <input class="inp" id="cArr" maxlength="3" value="${esc(arrCode())}" style="width:90px;padding:6px;text-transform:uppercase;font-family:monospace;font-weight:900"><button class="btn sm or" id="cArrP">🖨 Affiche de l'arrivée (code + QR)</button></div>
+    <p class="small muted">Le bouton « 🏁 Je suis de retour » reste disponible. Choisis un code qui n'est le code d'aucune balise.</p></div>
+   <div class="card"><h2>📁 Modèles d'évaluation</h2><p class="small muted" style="margin-top:0">Enregistre tous les réglages (parcours, balises, cartes, niveaux, pénalités, options, créneaux…) pour les réutiliser ou les donner à un collègue (fichier).</p>
+    <div class="row"><button class="btn sm or" id="mdSave">💾 Enregistrer comme modèle</button><button class="btn sm gh" id="mdLoad">📂 Charger un modèle</button><label class="btn sm gh" style="cursor:pointer">📥 Importer un fichier<input type="file" id="mdFile" accept=".json,application/json" hidden></label></div></div>
    <div class="card"><h2>Pénalités et options</h2><label class="row small" style="margin-bottom:8px"><input type="checkbox" data-o="noPen" ${C.noPen ? "checked" : ""}> <b>Pas de pénalités</b> (temps final = temps de course)</label><div class="row small" id="cPen" style="${C.noPen ? "opacity:.4;pointer-events:none" : ""}"><label>Balise non validée (s) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penOubli" value="${C.penOubli}"></label><label>Obligatoire manquée (s, en plus) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penOblig" value="${C.penOblig}"></label><label>Par minute de retard (s) <input class="inp" style="width:80px;padding:8px" type="number" data-g="penRetard" value="${C.penRetard}"></label></div>
     <label class="row small" style="margin-top:10px"><input type="checkbox" data-o="voirErr" ${C.voirErr ? "checked" : ""}> Montrer les erreurs et pénalités dans le bilan de l'élève</label>
     <label class="row small"><input type="checkbox" data-o="avance" ${C.avance ? "checked" : ""}> L'élève peut partir avant la fin du temps de préparation</label>
@@ -1882,6 +2010,9 @@ function profConf(box) {
   $$("[data-o]", box).forEach(x => x.onchange = () => { C[x.dataset.o] = x.checked; ch(); if (["noPen", "niv"].includes(x.dataset.o)) go("prof", "conf"); });
   $$("[data-h1]", box).forEach(x => x.onchange = () => { C.parcours[+x.dataset.h1].hasard1 = x.checked; ch(); go("prof", "conf"); });
   $$("[data-hn]", box).forEach(x => x.onchange = () => { const [k, v] = x.dataset.hn.split("|").map(Number), p = C.parcours[k]; let L = (p.hasardNiv && p.hasardNiv.length ? p.hasardNiv : [1]).map(Number).filter(z => z !== v); if (x.checked) L.push(v); if (!L.length) { x.checked = true; return flash("Garde au moins un niveau"); } p.hasardNiv = L.sort(); ch(); });
+  $("#cArr").onchange = () => { const v = $("#cArr").value.toUpperCase().replace(/[^A-Z]/g, ""); if (v.length !== 3) { flash("3 lettres"); $("#cArr").value = arrCode(); return; } if (C.balises.some(b => codesOf(b).includes(v))) { flash("⚠ C'est déjà le code d'une balise"); $("#cArr").value = arrCode(); return; } C.arrCode = v; ch(); };
+  $("#cArrP").onclick = printArrivee;
+  $("#mdSave").onclick = modelSave; $("#mdLoad").onclick = modelLoad; $("#mdFile").onchange = e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { const o = JSON.parse(t); if (!o || o.app !== "co-eval-modele") throw 0; modelApply(o.conf, o.nom); } catch (er) { flash("Fichier de modèle non reconnu"); } }); };
   $$("[data-nv]", box).forEach(x => x.onchange = () => { C[x.dataset.nv] = Math.max(0, +x.value || 0); ch(); });
   $$("[data-lb]", box).forEach(x => x.onchange = () => { C.parcours[+x.dataset.lb].libre = x.checked; ch(); go("prof", "conf"); });
   $$("[data-vp]", box).forEach(x => x.onchange = () => { C.parcours[+x.dataset.vp].voirPts = x.checked; ch(); });
@@ -2027,7 +2158,7 @@ function simBar() {
   draw(); setInterval(draw, 700);
 }
 // ======================= DÉMARRAGE =======================
-$("#hProf").onclick = openProf; if (SIM) $("#hProf").remove();
+$("#hProf").onclick = openProf; document.body.classList.toggle("sun", !!LS.get("sun", false)); if (SIM) $("#hProf").remove();
 (async () => {
   $("#hT").textContent = C.titre; await loadMap(); setNet();
   if (location.hash.startsWith("#r=") && receiveResults(location.hash.slice(3))) { sync(); return; }
