@@ -83,6 +83,11 @@
       ".lc-top b{font-size:19px;margin-right:8px}.lc-top button{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer}",
       ".lc-top button.on{background:" + COL + ";border-color:" + COL + ";color:#fff}.lc-top .x{margin-left:auto}",
       ".lc-body{flex:1;overflow:auto;padding:16px 18px 80px}.lc-in{max-width:1000px;margin:0 auto}",
+      ".lc-st-g{display:grid;grid-template-columns:250px minmax(0,1fr) 210px;gap:18px;max-width:1600px;margin:0 auto;align-items:start}.lc-studio .lc-st-g .lc-in{max-width:none;margin:0}" +
+      ".lc-st-l,.lc-st-r{position:sticky;top:0;max-height:calc(100vh - 110px);overflow:auto;background:#fff;border:1.5px solid #E6E1D6;border-radius:14px;padding:10px}" +
+      ".lc-st-h{font:800 11.5px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#6A6F78;margin:8px 4px 4px}" +
+      ".lc-ov .lc-st-i,.lc-ov .lc-st-t{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:0;background:none;border-radius:9px;padding:7px 8px;font:600 14px system-ui;color:#14171C;cursor:pointer;min-height:36px}.lc-st-i:hover,.lc-st-t:hover{background:#F5F3EE}" +
+      ".lc-st-i b{min-width:22px;color:#6A6F78}.lc-st-i span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lc-st-i i{font-style:normal}.lc-st-l,.lc-st-r{display:block!important}.lc-ov .lc-st-i.lc-cur,.lc-ov .lc-st-t.lc-cur{color:#14171C;background:" + COL + "1F;box-shadow:inset 3px 0 0 " + COL + "}",
       ".lc-ov h2{font-size:22px;margin:4px 0}.lc-ov h3{font-size:17px;margin:18px 0 8px}.lc-mut{color:#6A6F78;font-size:14px;margin:2px 0 12px}",
       ".lc-b{height:42px;border-radius:12px;border:2px solid " + COL + ";background:#fff;color:#14171C;font:800 14px system-ui,sans-serif;padding:0 14px;cursor:pointer}.lc-b.p{background:" + COL + ";color:#fff}.lc-b:disabled{opacity:.45}",
       ".lc-b.s{height:34px;border-radius:10px;font-size:13px;padding:0 10px;border-width:1.5px}.lc-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}",
@@ -210,7 +215,35 @@
     OV.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { saveEdit(); TAB = b.dataset.tab; EDIT = null; draw(); }; });
     return OV.querySelector(".lc-in");
   }
-  function draw() { if (!OV || OV.style.display === "none") return; if (TAB === "docs") return drawDocs(); if (TAB === "live") return drawLive(); if (TAB === "eval") return drawLEval(); if (TAB === "bil") return drawBilan(); if (EDIT) return drawEdit(); drawList(); }
+  function draw() { if (!OV || OV.style.display === "none") return; if (TAB === "docs") return drawDocs(); if (TAB === "live") return drawLive(); if (TAB === "eval") return drawLEval(); if (TAB === "bil") return drawBilan(); if (EDIT) { drawEdit(); studio(); return; } drawList(); }
+
+  /* 🖥 atelier sur grand écran (≥ 1200 px : ordinateur, console) : liste des fiches à gauche (on passe d'une leçon à l'autre sans
+     revenir en arrière), fiche au centre, sommaire à droite (aller directement à une partie, valider) — au lieu d'une longue page seule */
+  function studio() {
+    if (!OV || window.innerWidth < 1200) { if (OV) OV.classList.remove("lc-studio"); return; }
+    var body = OV.querySelector(".lc-body"), inn = OV.querySelector(".lc-in"); if (!body || !inn) return;
+    OV.classList.add("lc-studio");
+    var L = lecons(), S = [], ls = document.createElement("div"), toc = document.createElement("div"); ls.className = "lc-st-l"; toc.className = "lc-st-r"; toc.setAttribute("role", "navigation"); toc.setAttribute("aria-label", "Sommaire de la fiche");
+    L.forEach(function (l) { var q = l.seq || "Sans séquence"; if (S.indexOf(q) < 0) S.push(q); });
+    ls.innerHTML = '<div class="lc-row" style="margin:0 0 8px"><button type="button" class="lc-b s p" data-stnew>＋ Nouvelle leçon</button></div>' + S.map(function (q) { return '<div class="lc-st-h">' + esc(q) + "</div>" + L.filter(function (l) { return (l.seq || "Sans séquence") === q; }).map(function (l) {
+      return '<button type="button" class="lc-st-i' + (l.id === EDIT ? " lc-cur" : "") + '" data-stl="' + esc(l.id) + '"><b>' + esc(l.num || "·") + "</b><span>" + esc(l.titre || "Leçon sans titre") + "</span>" + (l.statut === "brouillon" ? '<i title="brouillon">✨</i>' : "") + "</button>"; }).join(""); }).join("");
+    var boxes = Array.prototype.filter.call(inn.querySelectorAll(".lc-box"), function (b) { return b.querySelector("h3") || b === inn.querySelector(".lc-box"); });
+    toc.innerHTML = '<div class="lc-st-h">Sommaire</div>' + boxes.map(function (b, i) { var h = b.querySelector("h3"); return '<button type="button" class="lc-st-t" data-sto="' + i + '">' + esc(h ? h.textContent.replace(/✕ Retirer/, "").trim() : "📋 En-tête") + "</button>"; }).join("") +
+      '<div class="lc-st-h" style="margin-top:14px">Actions</div><div data-stact></div>';
+    var grid = document.createElement("div"); grid.className = "lc-st-g"; body.innerHTML = ""; grid.appendChild(ls); grid.appendChild(inn); grid.appendChild(toc); body.appendChild(grid);
+    /* boutons d'action de la fiche (valider, Claude, programmer…) repris dans le sommaire : toujours à portée */
+    var act = toc.querySelector("[data-stact]");
+    ["[data-ok]", "[data-fill]", "[data-modfill]", "[data-see]", "[data-launch]", "[data-dup]", "[data-modsave]", "[data-unok]"].map(function (q) { return inn.querySelector(q); }).filter(Boolean).forEach(function (b) { var c = document.createElement("button"); c.type = "button"; c.className = "lc-st-t"; c.textContent = b.textContent; c.onclick = function () { b.scrollIntoView({ block: "center" }); b.click(); }; act.appendChild(c); });
+    ls.querySelectorAll("[data-stl]").forEach(function (b) { b.onclick = function () { saveEdit(); EDIT = b.dataset.stl; draw(); OV.querySelector(".lc-body").scrollTop = 0; }; });
+    ls.querySelector("[data-stnew]").onclick = function () { saveEdit(); var last = L[L.length - 1], l = fromModel(last ? last.seq || "" : ""); l.cr = Date.now(); l.num = String(L.filter(function (x) { return x.seq === l.seq; }).length + 1); put(KL, l); EDIT = l.id; draw(); };
+    var T = toc.querySelectorAll("[data-sto]");
+    T.forEach(function (b) { b.onclick = function () { var x = boxes[+b.dataset.sto]; body.scrollTo({ top: x.offsetTop - 10, behavior: "smooth" }); }; });
+    body.onscroll = function () { var y = body.scrollTop + 60, k = 0; boxes.forEach(function (x, i) { if (x.offsetTop <= y) k = i; }); T.forEach(function (b, i) { b.classList.toggle("lc-cur", i === k); }); };
+    body.onscroll();
+  }
+  /* console ordinateur, section « 📝 Leçons » : l'appli s'ouvre directement sur les fiches (…/?console=lecons) */
+  if (/[?&]console=lecons/.test(location.search) && !VUE) (function w(n) { if (window.EPSD && document.body) { open("lec"); return; } if (n < 40) setTimeout(function () { w(n + 1); }, 150); })(0);
+  window.addEventListener("resize", function () { clearTimeout(studio.t); studio.t = setTimeout(function () { if (OV && OV.style.display !== "none" && EDIT && TAB === "lec") { saveEdit(); draw(); } }, 300); });
 
 
   /* ---- programmation d'après l'emploi du temps (appli EDT, EPSD.edtSlots) ---- */
@@ -273,7 +306,7 @@
     });
     var el = shell(h);
     var apb = el.querySelector("[data-autoprog]"); if (apb) apb.onclick = function () { autoProg(el.querySelector("[data-apbox]")); };
-    el.querySelector("[data-new]").onclick = function () { var l = blank(S[S.length - 1] && S[S.length - 1] !== "Sans séquence" ? S[S.length - 1] : ""); l.cr = Date.now(); l.num = String(L.filter(function (x) { return x.seq === l.seq; }).length + 1); put(KL, l); EDIT = l.id; draw(); };
+    el.querySelector("[data-new]").onclick = function () { var l = fromModel(S[S.length - 1] && S[S.length - 1] !== "Sans séquence" ? S[S.length - 1] : ""); l.cr = Date.now(); l.num = String(L.filter(function (x) { return x.seq === l.seq; }).length + 1); put(KL, l); EDIT = l.id; draw(); };
     el.querySelector("[data-ai]").onclick = function () { aiDialog(); };
     el.querySelector("[data-docs]").onclick = function () { TAB = "docs"; draw(); };
     el.querySelectorAll("[data-id]").forEach(function (c) { c.onclick = function () { EDIT = c.dataset.id; draw(); }; });
@@ -287,7 +320,18 @@
 
   /* ---- éditeur ---- */
   var WORK = null, SAVE_T = null;
-  function fld(k, lab, v, ai, attrs, input) { return '<label class="lc-f' + (ai ? " ai" : "") + '"><span>' + esc(lab) + "</span>" + (input ? '<input ' + attrs + ' value="' + esc(v || "") + '">' : "<textarea " + attrs + ">" + esc(v || "") + "</textarea>") + "</label>"; }
+  /* 📋 modèle de fiche : aide grisée dans chaque rubrique (structure de l'enseignant) + modèle enregistré, appliqué à toute nouvelle leçon */
+  var PH = { objM: "Ce que l'élève apprend à faire (ex. éloigner l'adversaire en jouant en longueur)", objMe: "Comment il s'organise pour apprendre (observer, se fixer un projet, répéter…)", objS: "Rôle, entraide, règles (arbitre, coach, observateur…)",
+    but: "Ce que l'élève doit réussir à la fin de la leçon, dit simplement", disp: "Organisation : groupes, terrains ou ateliers, rotations, espace", mat: "ex. 1 volant pour 2 · 1 chasuble par élève · 1 plot par groupe (les quantités se calculent avec les présents)",
+    ech: "Consigne de l'échauffement (routine, durée, organisation)", t: "Titre court de la situation", cons: "Consigne : ce que font les élèves, organisation, durée, rotations",
+    crQ: "Quantitatif : ce qui se compte (ex. 8 réussites sur 10)", crQl: "Qualitatif : ce qui s'observe (ex. le volant tombe au fond du terrain)", crR: "Ce qu'il y a à faire pour réussir (placements, gestes, prises d'information…)",
+    simp: "− Pour simplifier (espace, distance, matériel, opposition…)", comp: "+ Pour complexifier", rem: "Situation plus large ou match qui reprend les acquis", remCr: "Je réussis si…", bilan: "Questions de bilan, ce qu'on retient, lien avec la leçon suivante" };
+  var KMOD = "eps.console.v1";
+  function modele() { return get(KMOD, "lcmod." + APP) || get(KMOD, "lcmod") || null; }
+  function fromModel(seq) { var l = blank(seq), M = modele(); if (!M || !M.f) return l; var f = JSON.parse(JSON.stringify(M.f)); Object.keys(f).forEach(function (k) { l[k] = f[k]; }); if (!l.sits || !l.sits.length) l.sits = [{}, {}]; return l; }
+  function modFields(l) { var f = {}; F.concat(RF).forEach(function (x) { if (l[x[0]]) f[x[0]] = l[x[0]]; }); if (l.duree) f.duree = l.duree; if (l.echImg) f.echImg = l.echImg;
+    f.sits = (l.sits || []).map(function (s) { var o = {}; SF.forEach(function (x) { if (s[x[0]]) o[x[0]] = s[x[0]]; }); if (s.img) o.img = s.img; return o; }); return f; }
+  function fld(k, lab, v, ai, attrs, input) { if (PH[k] && !/placeholder=/.test(attrs || "")) attrs = (attrs || "") + ' placeholder="' + esc(PH[k]) + '"'; return '<label class="lc-f' + (ai ? " ai" : "") + '"><span>' + esc(lab) + "</span>" + (input ? '<input ' + attrs + ' value="' + esc(v || "") + '">' : "<textarea " + attrs + ">" + esc(v || "") + "</textarea>") + "</label>"; }
   function imgBox(kind, ref) { var im = ref && get(KI, ref); return '<div class="lc-row">' + (im ? '<img class="lc-img" src="' + im.d + '" alt="schéma">' : "") + '<label class="lc-b s" style="display:inline-flex;align-items:center">🖼 ' + (im ? "Changer" : "Ajouter") + ' le schéma<input type="file" accept="image/*" data-img="' + kind + '" hidden></label>' + (im ? '<button type="button" class="lc-b s" data-noimg="' + kind + '">✕ Retirer</button>' : "") + "</div>"; }
   function saveEdit() { if (WORK) { clearTimeout(SAVE_T); put(KL, WORK); } }
   function drawEdit() {
@@ -311,7 +355,7 @@
       '<div class="lc-box"><h3 style="margin-top:4px">📅 Programmer pour une classe</h3><p class="lc-mut">À l\'heure prévue, la leçon s\'ouvre toute seule sur les tablettes élèves de la classe (compte à rebours avant).</p>' +
       (br ? '<div class="lc-warn">Valide d\'abord la leçon pour pouvoir la programmer.</div>' : '<div class="lc-row"><select class="lc-sel" data-pc>' + classes().sort(function (a, b) { return forCls(WORK, b) - forCls(WORK, a); }).map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") + '</select><input type="datetime-local" class="lc-sel" data-pt><button type="button" class="lc-b s" data-padd>📅 Programmer</button><button type="button" class="lc-b s" data-launch>▶ Lancer maintenant…</button></div><div class="lc-row" data-slots></div>') +
       (WORK.prog || []).sort(function (a, b) { return a.at - b.at; }).map(function (p, i) { return '<div class="lc-row"><span class="lc-tag pg">📅 ' + esc(p.c) + " · " + esc(hm(p.at)) + (p.at < Date.now() ? " (passée)" : "") + '</span><button type="button" class="lc-b s" data-prm="' + p.at + "|" + esc(p.c) + '">✕</button></div>'; }).join("") + "</div>" +
-      '<div class="lc-row"><button type="button" class="lc-b" data-fill>✨ Compléter les rubriques vides avec Claude</button>' + (br ? '<button type="button" class="lc-b p" data-ok>✓ Valider (relu et corrigé)</button>' : '<button type="button" class="lc-b" data-unok>Repasser en brouillon</button>') + '<button type="button" class="lc-b" data-dup>⧉ Dupliquer</button><button type="button" class="lc-b" data-see>👁 Voir comme un élève</button><span style="flex:1"></span><button type="button" class="lc-b" data-del style="border-color:#C0392B;color:#C0392B">🗑 Supprimer</button></div><p class="lc-mut" data-msg></p>';
+      '<div class="lc-row"><button type="button" class="lc-b" data-fill>✨ Compléter les rubriques vides avec Claude</button>' + (br ? '<button type="button" class="lc-b p" data-ok>✓ Valider (relu et corrigé)</button>' : '<button type="button" class="lc-b" data-unok>Repasser en brouillon</button>') + '<button type="button" class="lc-b" data-modfill title="Remplit seulement les rubriques vides avec ton modèle">📋 Compléter avec mon modèle</button><button type="button" class="lc-b" data-modsave title="Toute nouvelle leçon partira de cette fiche (sans séquence, numéro ni titre)">📋 En faire mon modèle</button><button type="button" class="lc-b" data-dup>⧉ Dupliquer</button><button type="button" class="lc-b" data-see>👁 Voir comme un élève</button><span style="flex:1"></span><button type="button" class="lc-b" data-del style="border-color:#C0392B;color:#C0392B">🗑 Supprimer</button></div><p class="lc-mut" data-msg></p>';
     var el = shell(h), msg = el.querySelector("[data-msg]");
     function later() { clearTimeout(SAVE_T); SAVE_T = setTimeout(function () { put(KL, WORK); }, 700); }
     el.addEventListener("input", function (e) {
@@ -323,6 +367,13 @@
     el.querySelectorAll("[data-ecl]").forEach(function (b) { b.onclick = function () { saveEdit(); var c = b.dataset.ecl, on = (WORK.cls || []).some(function (x) { return same(x, c); });
       WORK.cls = on ? WORK.cls.filter(function (x) { return !same(x, c); }) : (WORK.cls || []).concat([c]); put(KL, WORK); draw(); }; });
     var e0 = el.querySelector("[data-ecl0]"); if (e0) e0.onclick = function () { saveEdit(); WORK.cls = []; put(KL, WORK); draw(); };
+    el.querySelector("[data-modsave]").onclick = function () { saveEdit(); var both = confirm("Ce modèle sert pour toutes tes activités ?\n\nOK = toutes les activités · Annuler = seulement " + NOM);
+      put(KMOD, { id: both ? "lcmod" : "lcmod." + APP, f: modFields(WORK), from: titreL(WORK), at: Date.now() }); if (both) { var o = get(KMOD, "lcmod." + APP); if (o) { o.del = 1; put(KMOD, o); } }
+      msg.textContent = "✓ Modèle enregistré" + (both ? " pour toutes les activités" : " pour " + NOM) + " : chaque « ＋ Nouvelle leçon » part de cette fiche (sans séquence, numéro ni titre). Les schémas sont repris."; };
+    el.querySelector("[data-modfill]").onclick = function () { var M = modele(); if (!M || !M.f) { alert("Pas encore de modèle : remplis une fiche comme tu les fais d'habitude, puis « 📋 En faire mon modèle »."); return; } var f = M.f, n = 0;
+      Object.keys(f).forEach(function (k) { if (k === "sits") return; if (!WORK[k]) { WORK[k] = f[k]; n++; } });
+      (f.sits || []).forEach(function (fs, i) { var w = WORK.sits[i] || (WORK.sits[i] = {}); Object.keys(fs).forEach(function (k) { if (!w[k]) { w[k] = fs[k]; n++; } }); });
+      put(KL, WORK); draw(); var m2 = OV.querySelector("[data-msg]"); if (m2) m2.textContent = n ? "✓ " + n + " rubrique(s) vide(s) remplie(s) avec ton modèle." : "Rien à compléter : toutes les rubriques du modèle sont déjà remplies."; };
     el.querySelector("[data-addsit]").onclick = function () { saveEdit(); WORK.sits.push({}); put(KL, WORK); draw(); };
     el.querySelectorAll("[data-rmsit]").forEach(function (b) { b.onclick = function () { if (!confirm("Retirer la situation " + (+b.dataset.rmsit + 1) + " ?")) return; WORK.sits.splice(+b.dataset.rmsit, 1); WORK.ai = {}; put(KL, WORK); draw(); }; });
     el.querySelectorAll("[data-img]").forEach(function (inp) { inp.onchange = function () { var f = inp.files[0]; if (!f) return; var k = inp.dataset.img;
