@@ -549,6 +549,20 @@ const PROP3={
  5:["AFL2 · Projet d'attaque choisi avant le match (placé, fort ou rapide), vérifié avec l'indicateur « points bonus / points marqués »."],
  6:["AFL2 · Séries de manchettes avec objectif chiffré (ex. 8 sur 10 vers le passeur) : chacun note son score pour suivre ses progrès."],
  7:["AFL2 · Temps d'analyse entre deux sets : l'observateur repère où l'adversaire perd des points, l'équipe ajuste son schéma."]};
+/* v4 : indicateurs de performance proposés (en rouge, à garder ou retirer), d'après des ressources académiques */
+const IND4={
+ 1:["Indicateur · Balles reçues / balles renvoyées / points marqués (situation de référence, à refaire en fin de séquence)."],
+ 2:["Indicateur · Points marqués depuis la zone avant / depuis la zone arrière : le relais vers l'avant paie-t-il ?"],
+ 3:["Indicateur · Ballons tombés dans notre zone arrière sans être renvoyés : notre placement protège-t-il le terrain ?"],
+ 4:["Indicateur · Part des possessions qui arrivent en zone de marque (attaque depuis la zone avant)."],
+ 5:["Indicateur · Points bonus / points marqués (bonus : attaque intentionnelle en zone arrière, en zone libre ou accélérée)."],
+ 6:["Indicateur · Réceptions jouables sur 10 services : ballon haut, vers le passeur."],
+ 7:["Indicateur · Points marqués après une attaque en 2 ou 3 touches depuis la zone avant / total des points marqués."],
+ 8:["Indicateur · Où l'adversaire perd ses points (zone arrière, zone courte, réception) : relevé à la mi-match, projet ajusté."],
+ 9:["Indicateur · Bonus d'équipe si au moins 10 points sont marqués sur balle placée ou accélérée ; points bonus / points marqués à chaque match."],
+ 10:["Indicateur · Chaque équipe choisit son indicateur (bonus, 3 touches, zone arrière), le relève et fixe son objectif pour l'évaluation."],
+ 11:["Indicateur · Points bonus / points marqués et matchs gagnés : les mêmes repères qu'en leçon 1, pour mesurer les progrès."]};
+function seqV4(){S.seq.lecons.forEach(l=>{const X=IND4[l.n];if(!X)return;l.propC=(l.propC||[]).concat(X.filter(x=>!(l.propC||[]).includes(x)&&!l.cont.includes(x.replace(/^Indicateur · /,'Indicateur : '))))});S.seq.v=4}
 function defCadre(){return{v:{
   ca:"CA4 · Conduire et maîtriser un affrontement collectif ou interindividuel pour gagner",
   afl1:"S'engager pour gagner une rencontre en faisant des choix techniques et tactiques pertinents au regard de l'analyse du rapport de force.",
@@ -582,7 +596,7 @@ function seqV3(){const D=defSeq();
 function lecRevHtml(l,i){const R=l.rev||{},ks=Object.keys(R).filter(t=>l.cont.includes(t)||l.obj===t);
   return ks.length?`<div class="revbox">${ks.map(t=>`<div><span class="aclar">${esc(t)}</span><br><span class="revn">✎ ${esc(R[t])}</span> <button class="btn alt sm" onclick="revOk(${i},${JSON.stringify(t).replace(/"/g,'&quot;')})">✓ C'est clair</button></div>`).join('')}</div>`:''}
 function revOk(i,t){const l=S.seq.lecons[i];if(l.rev)delete l.rev[t];save();const y=scrollY;renderSeq();scrollTo(0,y)}
-function propKeep(i,k){const l=S.seq.lecons[i],x=l.propC.splice(k,1)[0];l.cont.push(x.replace(/^AFL2 · /,''));if(!l.crit.includes('ech'))l.crit.push('ech');save();const y=scrollY;renderSeq();scrollTo(0,y)}
+function propKeep(i,k){const l=S.seq.lecons[i],x=l.propC.splice(k,1)[0];const ind=/^Indicateur · /.test(x);l.cont.push(ind?x.replace(/^Indicateur · /,'Indicateur : '):x.replace(/^AFL2 · /,''));if(!ind&&!l.crit.includes('ech'))l.crit.push('ech');save();const y=scrollY;renderSeq();scrollTo(0,y)}
 function propDel(i,k){S.seq.lecons[i].propC.splice(k,1);save();const y=scrollY;renderSeq();scrollTo(0,y)}
 function defSeq(){return{v:2,mob:defMob(),routines:defRoutines(),
   comp:"Pour gagner le match en 4 contre 4, construire l'attaque à plusieurs, jusqu'à 3 touches, afin de rompre l'échange par un jeu placé, fort ou rapide, tout en protégeant collectivement son terrain. S'échauffer et s'entraîner en autonomie, en enrichissant ses routines avec ballon selon ses besoins. Connaître les règles (dont la règle aménagée de l'autopasse pour les élèves en difficulté) et faire fonctionner le match (score, service, rotation, rôles).",
@@ -624,6 +638,7 @@ function fixState(){
     S.seq.lecons=S.seq.lecons.map(l=>{if(!l.prop)return l;const n=D.lecons.find(x=>x.id===l.id);return n?Object.assign(n,{faite:l.faite,date:l.date}):l});
     S.seq.lecons.forEach(l=>{if(l.ech==='III')l.ech='II'});S.seq.v=2;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
   if((S.seq.v||1)<3){seqV3();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+  if((S.seq.v||1)<4){seqV4();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 }
 function migrateBareme(){
   const b=S.bareme;
@@ -962,7 +977,7 @@ function seqLecons(){
   const L=S.seq.lecons,nf=L.filter(l=>l.faite).length,np=L.filter(l=>l.prop).length;
   return `${startHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="rtag">${np} leçon(s) proposée(s)</span>`:''}</div>
     <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="addLecon()">+ Leçon</button></div></div>
-    <p class="muted" style="margin:6px 0 0"><b style="color:#B4232B">En rouge</b> : mes propositions (leçons, contenus AFL2) et, soulignées, les formulations à préciser. Garde, modifie ou retire. Rien de ce qui est en rouge n'est montré aux élèves. Le cadre de la séquence est dans l'onglet « AFL & évaluation ».</p></div>
+    <p class="muted" style="margin:6px 0 0"><b style="color:#B4232B">En rouge</b> : mes propositions (leçons, contenus AFL2, indicateurs de performance) et, soulignées, les formulations à préciser. Garde, modifie ou retire. Rien de ce qui est en rouge n'est montré aux élèves. Le cadre de la séquence est dans l'onglet « AFL & évaluation ».</p></div>
   ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):`<div class="lec ${l.faite?'done':''} ${l.prop?'prop':''}">
     <h3>Leçon ${l.n} · ${esc(l.titre)} ${l.prop?'<span class="rtag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted" style="font-weight:600">${esc(new Date(l.date+'T12:00').toLocaleDateString('fr-FR'))}</span>`:''}</h3>
     <p style="margin:6px 0"><b>Objectif :</b> ${esc(l.obj)}</p>
