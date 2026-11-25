@@ -2401,9 +2401,16 @@ function lessonPreIds(){const l=lessonObj(lessonNow());return l?(l.temps||[]).ma
 function grpAdmin(c){const G=Object.values(c.groupes||{}),mode=tourMode(c),ms=matchesOf(c,m=>m.date===today()&&m.fin&&m.pre.type!=='exo');
   return `<div class="card"><h2>👥 Groupes et rencontres · ${esc(c.nom)}</h2>
    <p class="muted">Les élèves créent leur groupe sur la tablette de terrain (nom, joueurs, code secret). Choisis ici comment les groupes s'affrontent.</p>
+   <div class="row" style="margin:0 0 8px"><button class="btn alt sm" onclick="grpFromDay()" title="Groupes formés dans 📡 Leçon en cours">👥 Créer les groupes d'après les groupes du jour</button></div>
    <div class="seg">${TOURS.map(([k,n])=>`<button class="${mode===k?'on':''}" onclick="setTour('${k}')">${n}</button>`).join('')}</div><p class="muted" style="margin:6px 0 10px">${TOURS.find(t=>t[0]===mode)[2]}</p>
    ${G.length?`<div class="tw"><table><tr><th>Groupe</th><th>Joueurs</th><th></th></tr>${G.map(g=>`<tr><td><b>👥 ${esc(g.nom)}</b></td><td>${g.el.map(id=>esc(fullName(elById(c,id)||{nom:'?'}))).join(', ')}</td><td style="white-space:nowrap"><button class="btn alt sm" onclick="gPw('${g.id}')">Nouveau code</button> <button class="btn red sm" onclick="gDel('${g.id}')">Supprimer</button></td></tr>`).join('')}</table></div>
    ${mode!=='groupe'?`<h3>Classement des groupes · aujourd'hui</h3>${grpTable(c,ms,'')}`:G.map(g=>`<h3>Poule ${esc(g.nom)} · aujourd'hui</h3>${plTable(c,g.el,ms.filter(m=>g.el.includes(m.a)&&g.el.includes(m.b)))}`).join('')}`:'<p class="muted">Aucun groupe pour le moment.</p>'}</div>`}
+/* 👥 groupes de tablette = groupes du jour formés dans 📡 Leçon en cours ; un code secret commun (4 chiffres) à donner aux groupes */
+async function grpFromDay(){const c=C(),G=window.epsGroupesJour?epsGroupesJour(c.nom):null;if(!G){toast('Pas de groupes du jour : forme-les dans 📅 Séquence → 📡 Leçon en cours');return}
+  if(Object.keys(c.groupes||{}).length&&!confirm('Remplacer les groupes de tablette par les '+G.length+' groupes du jour ? Les matchs joués sont conservés.'))return;
+  const v=window.epsPin?await epsPin({title:'🔒 Code des groupes',text:'4 chiffres, le même pour tous les groupes (à donner aux élèves)',len:4}):prompt('Code des groupes (4 chiffres)');if(v==null||!/^\d{4}$/.test(v))return;
+  c.groupes={};G.forEach((g,i)=>{const id='g'+Date.now().toString(36)+i,el=g.map(n=>(epsMatchNom(c.eleves,n)||{}).id).filter(Boolean);if(el.length)c.groupes[id]={id,nom:'Groupe '+(i+1),el,pw:h32('grp:'+v),t:Date.now()}});
+  save();renderMatchs();toast('✓ '+Object.keys(c.groupes).length+' groupes créés (code '+v.replace(/./g,'•')+')')}
 function setTour(k){const c=C();c.tour=Object.assign({},c.tour||{},{mode:k});save();renderMatchs()}
 function gDel(id){const c=C();if(!confirm('Supprimer le groupe « '+c.groupes[id].nom+' » ? Les matchs joués sont conservés.'))return;delete c.groupes[id];save();renderMatchs()}
 function gPw(id){const c=C(),v=prompt('Nouveau code secret (4 chiffres) pour « '+c.groupes[id].nom+' »');if(v==null)return;if(!/^\d{4}$/.test(v)){alert('4 chiffres');return}c.groupes[id].pw=h32('grp:'+v);c.groupes[id].u=Date.now();save();toast('Code changé')}

@@ -249,6 +249,21 @@ window.epsAbsJour = function (e, cls) {
     if (!o || o.del) return false; var k = nk(full); return (o.abs || []).some(function (x) { return nk(x) === k; });
   } catch (x) { return false; }
 };
+/* 👥 groupes du jour formés dans 📡 Leçon en cours (eps-lecons.js, eps.live.<dossier>.v1 → v.grp) pour la classe, aujourd'hui seulement.
+   → [["Prénom Nom", …], …] (présents qui pratiquent) ou null. Sert aux équipes / poules / groupes propres à chaque appli. */
+window.epsGroupesJour = function (cls) {
+  try {
+    if (!cls) { var cc = typeof window.epsCurrentClass === "function" && window.epsCurrentClass(); cls = cc && cc.nom; }
+    var m = location.pathname.match(/\/eps-autonomie-numerique\/([^\/]+)\//); if (!m || !cls) return null;
+    var nrm = function (s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, ""); };
+    var V = JSON.parse(localStorage.getItem("eps.live." + m[1] + ".v1") || "null"), I = (V && V.items) || {}, t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    var v = Object.keys(I).map(function (k) { return I[k]; }).filter(function (x) { return x && !x.del && nrm(x.cls) === nrm(cls) && x.grp && x.grp.g && x.grp.g.length && (x.grp.at || x.st || 0) >= t0.getTime(); })[0];
+    return v ? v.grp.g.map(function (g) { return g.slice(); }) : null;
+  } catch (e) { return null; }
+};
+/* retrouve un élève d'une appli à partir d'un nom complet (ordre des mots et accents indifférents) */
+window.epsMatchNom = function (L, full, nameOf) { var nk = function (s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" "); }, k = nk(full);
+  return (L || []).filter(function (e) { return nk(nameOf ? nameOf(e) : typeof e === "string" ? e : ((e.prenom || "") + " " + (e.nom || ""))) === k; })[0] || null; };
 window.epsAbsJourN = function (L, cls) { return (L || []).filter(function (e) { return window.epsAbsJour(e, cls); }).length; };
 window.epsApChip = function (o) {
   if (!o) return "";

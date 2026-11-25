@@ -1606,7 +1606,7 @@ let EQT=null,EQV='jour';
 function renderEquipes(){const c=C(),E=c.equipes=c.equipes||[],box=document.getElementById('t-equipes'),free=c.eleves.filter(e=>!E.some(t=>(t.el||[]).includes(e.id)));
   if(EQT){const t=E.find(x=>x.id===EQT);if(t){box.innerHTML=`<div class="row" style="margin-bottom:10px"><button class="btn alt" onclick="EQT=null;renderEquipes()">← Équipes</button><h2 style="margin:0;color:var(--navy)">${esc(t.nom)} · bilan</h2></div>`+bilanEquipe(c,t,1);return}EQT=null}
   box.innerHTML=dashHtml(c)+`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Équipes · ${esc(c.nom)}</h2>
-    <div class="row"><button class="btn alt sm" onclick="eqAuto()">🎲 Répartir automatiquement</button><button class="btn sm" onclick="eqAdd()">+ Équipe</button><button class="btn sm" style="background:var(--vol)" onclick="lockApp();coachStart()">🧢 Passer en tablette du coach</button></div></div>
+    <div class="row"><button class="btn alt sm" onclick="eqAuto()">🎲 Répartir automatiquement</button><button class="btn alt sm" onclick="eqFromDay()" title="Groupes formés dans 📡 Leçon en cours">👥 Groupes du jour</button><button class="btn sm" onclick="eqAdd()">+ Équipe</button><button class="btn sm" style="background:var(--vol)" onclick="lockApp();coachStart()">🧢 Passer en tablette du coach</button></div></div>
     <p class="muted">Les élèves coachs choisissent leur équipe sur la tablette, sans code et sans voir les notes. Une tablette par équipe : elle garde son équipe. Le coach change à chaque leçon, dans l'ordre des joueurs ci-dessous (🧢 = coach du jour ; ↑ pour changer l'ordre) ; s'il est absent, l'équipe en choisit un autre. ${free.length?`<b>${free.length} élève(s) sans équipe.</b>`:''}</p></div>
   <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🏆 Tournoi du jour</h2><button class="btn sm" onclick="${tourn(c)?"if(confirm('Refaire le calendrier du tournoi du jour ?'))":''}{genTournoi(C());renderEquipes()}">${tourn(c)?'↻ Refaire':'Créer'} le tournoi (3 terrains)</button></div>
    ${tourn(c)?tournoiHtml(c,tourn(c),null):'<p class="muted">Toutes les équipes se rencontrent, sur 3 terrains ; les équipes au repos arbitrent. Les coachs lancent leurs matchs depuis leur tablette et le classement se met à jour.</p>'}</div>
@@ -1635,6 +1635,11 @@ function eqDel(k){if(!confirm('Supprimer cette équipe et ses matchs ?'))return;
 function eqAddEl(k,id){C().equipes[k].el.push(id);save();renderEquipes()}
 function eqRm(k,id){const t=C().equipes[k];t.el=t.el.filter(x=>x!==id);save();renderEquipes()}
 function eqMv(k,i,d){const a=C().equipes[k].el,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();renderEquipes()}
+/* 👥 équipes = groupes du jour formés dans 📡 Leçon en cours (présents qui pratiquent) ; matchs et bilans des équipes existantes gardés */
+function eqFromDay(){const c=C(),G=window.epsGroupesJour?epsGroupesJour(c.nom):null;if(!G){toast('Pas de groupes du jour : forme-les dans 📅 Séquence → 📡 Leçon en cours');return}
+  if(c.equipes.length&&!confirm('Répartir les joueurs dans '+G.length+' équipes d\'après les groupes du jour ? (les matchs et bilans des équipes existantes sont gardés)'))return;
+  while(c.equipes.length<G.length)c.equipes.push({id:'t'+uid(),nom:'Équipe '+(c.equipes.length+1),el:[],jours:{},matchs:[],valid:{},rem:[]});
+  c.equipes.forEach(t=>t.el=[]);G.forEach((g,i)=>{c.equipes[i].el=g.map(n=>(epsMatchNom(c.eleves,n)||{}).id).filter(Boolean)});save();renderEquipes();toast('✓ Équipes reprises des groupes du jour')}
 function eqAuto(){const c=C(),n=+prompt('Combien d\'équipes ?',c.equipes.length||4);if(!n||n<1)return;
   if(c.equipes.length&&!confirm('Refaire la répartition des joueurs ? (les matchs et bilans des équipes existantes sont gardés)'))return;
   while(c.equipes.length<n)c.equipes.push({id:'t'+uid(),nom:'Équipe '+(c.equipes.length+1),el:[],jours:{},matchs:[],valid:{},rem:[]});
