@@ -15,3 +15,7 @@
 - WOD enregistrés (modèles) : locaux à la tablette (`ct_lecons`).
 - Évaluation : `EPSE.store` (`EVCT`, grille CA5 AFL1 6+6, AFL2 4, AFL3 4) ; Bilans = carnets de la classe + bilan commun.
 - Claude (script commun, `lecon_`) : `op:'ctwod'` (WOD proposé à l'enseignant, brouillon), `op:'ctconseil'` (conseils à l'élève, seulement si `cfg.ia`), `op:'grille'` (import Additio, commun à toutes les applis via eps-eval.js).
+- Tablette partagée : `scinde.html` = 2 iframes `./?box=1` et `./?box=2`. `BOX` préfixe le sessionStorage (`SS`, clés `ct_bN_…`) et `lecon` / `lecons` en localStorage (`LSK`) ; bip plus grave pour la box 2.
+- `?mode=ressource` (`RESS`) : onglets Exercices / WOD types / Zones et pouls (`vueFCtab`) / Grand chrono, sans écran classe ; FC en mémoire seulement (`MEMFC`).
+- Athlète / coach : `S.duoNext` → `TM.duo` ; `roles()` = noms[0] athlète, noms[1] coach ; `coachHtml` / `majCoach`, PASER (`TM.paser`, `paserResume`), `TM.flip` (LS `flip`) ; résultat `res.duo {ath, coach, paser, rpeCoach}` ; `changerRole()` fait tourner les noms.
+- Grand chrono : préréglages `CHRONOS` (tabata, i3030, i4020, ct6, ct8, emom, e2mom, amrap, ft), chronos perso de l'enseignant en LS `chronos` ; `lancerGC` / `tickGC` / `vueChrono` ; `chronoDeWod` pour un WOD type.
