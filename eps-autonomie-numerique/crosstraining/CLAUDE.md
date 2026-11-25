@@ -8,6 +8,9 @@
 - Thèmes (version du livret, améliorée) : Renforcement 60-70 % FCM (circuit, EMOM ; 12-15 rép.), Mental 70-80 % (AMRAP à allure imposée, For Time), Cardio 80-90 % (intervalles 30/30 ou 40/20, EMOM, E2MOM ; FC relevée en fin de bloc).
 - Élève : classe (écran commun ; sans classe = bibliothèque seule) → groupe (solo / binôme / trinôme selon `cfg.groupes`) → Mon WOD → ▶ timer → résultat dans le carnet.
 - Magasin synchronisé `ct.v1` (`EPSD.store`, préfixe `ct|`) : `cfg` (groupes, `ia` élèves, `iaProf`), `j|<classe>|<date>` leçon du jour (`mode` impose | forme | libre, consigne, thème / format / `params` imposés, `wod` imposé), `w|<id>` résultats (classe, noms du groupe, WOD, score, `cpt` Rep / No rep de l'observateur, RPE 0-10, FC, analyse).
+- Matériel : champ `materiel` (PC, KB, MB, CORDE) ; 12 exercices avec matériel (`EXOS_MATERIEL`, 4 niveaux) ajoutés une seule fois par `completerFiches()` (liste `fiches.vus`, une fiche supprimée ne revient pas). Les niveaux vont jusqu'à 4 (vidéos N1.mp4 à N4.mp4).
+- WOD types : `WODS` (16 WOD, matériel × thème), chargés dans `S.lecon` par `wodEnLecon`.
+- FC : bulle ❤️ (âge et FC de repos en sessionStorage `ct_age`, `ct_fcrepos`), FCM Tanaka, zones % FCM (Karvonen si FC de repos), mesure du pouls 30 s × 2 (refusée sous 10 s).
 - Affichage `ct_affichage` : auto | tel | tab (classe `tel` / `tab` sur `<html>`).
 - WOD enregistrés (modèles) : locaux à la tablette (`ct_lecons`).
 - Évaluation : `EPSE.store` (`EVCT`, grille CA5 AFL1 6+6, AFL2 4, AFL3 4) ; Bilans = carnets de la classe + bilan commun.

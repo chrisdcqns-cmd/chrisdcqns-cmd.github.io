@@ -184,7 +184,7 @@ h2{font-size:22px;margin:4px 0 14px}
 .bloc{background:#fff;border:1px solid var(--ligne);border-radius:18px;padding:16px;margin:0 0 16px;box-shadow:0 2px 6px rgba(20,23,28,.04)}
 .bloc-t{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;margin:0 0 12px}
 .bloc-t span{width:28px;height:28px;border-radius:9px;background:var(--ct-clair);color:var(--app);display:grid;place-items:center;font-size:14px;flex:none}
-.bloc-t small{margin-left:auto;font-weight:600;font-size:12px;color:var(--doux)}
+.bloc-t{flex-wrap:wrap}.bloc-t small{flex:none;margin-left:auto;font-weight:600;font-size:12px;color:var(--doux)}
 .feuille .corps .bloc{margin-bottom:12px}
 .vign{background:linear-gradient(160deg,#F3F8EC,#DCEDC8) center/cover no-repeat}
 .vign .sans{width:56%;color:var(--app);opacity:.55;display:grid;place-items:center}.vign .sans svg{width:100%;height:auto}
@@ -240,6 +240,7 @@ html.tel .tm-btns .nb{font-size:56px}
 html.tel main{padding:12px}
 header .aff{margin-left:auto;height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 10px;white-space:nowrap}
 header .aff + [data-eps-bar]{margin-left:6px}
+header .aff + .aff{margin-left:6px}
 /* Tablette : plus large, plus de colonnes */
 html.tab .app{max-width:1060px}
 html.tab nav.onglets .in{max-width:1060px}
@@ -273,6 +274,7 @@ html.tel .item .mini{width:40px;height:54px}
   <header>
 <svg class="mk" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="7"/><path d="M12 10v4l2.5 2"/><path d="M9.5 2h5"/><path d="M12 2v5"/><path d="M19 6l1.5-1.5"/></svg>
     <div><h1>Cross-training<small id="sousTitre">CA5 · S'entraîner</small></h1></div>
+    <button class="aff" data-act="fcBulle" title="Ma fréquence cardiaque : zones et mesure du pouls">❤️</button>
     <button id="affBtn" class="aff" data-act="affichage" title="Affichage téléphone / tablette"></button>
     <span data-eps-bar></span>
   </header>
@@ -519,7 +521,7 @@ const S = {
   reglages: LS.get("reglages", {scriptUrl:"", cle:"", dossier:""}),
   lecons: LS.get("lecons", []),
   lecon: LS.get("lecon", null),
-  filtre:{q:"", theme:"", zone:"", famille:""},
+  filtre:{q:"", theme:"", zone:"", famille:"", materiel:""},
   rapport:null
 };
 if(!S.lecon) S.lecon = nouvelleLecon();
@@ -543,9 +545,9 @@ const visibleEleve = e => !e.aCompleter;
 /* Nom de fichier → niveau et ordre.
    N1.mp4 · N1-2.mp4 · N1_3.mp4 · N1b.mp4 · N1 (2).mp4 · N2/vue-face.mp4 (sous-dossier par niveau) */
 function lireNomVideo(nom){
-  let m = nom.match(/^n\s?([123])\/(.+)$/i);
+  let m = nom.match(/^n\s?([1-4])\/(.+)$/i);
   if(m) return {niv:+m[1], cle:m[2].toLowerCase()};
-  m = nom.match(/^n\s?([123])\s*(?:[-_ .]?\s*([1-9a-c])|\(\s*(\d)\s*\))?\s*\.[a-z0-9]+$/i);
+  m = nom.match(/^n\s?([1-4])\s*(?:[-_ .]?\s*([1-9a-c])|\(\s*(\d)\s*\))?\s*\.[a-z0-9]+$/i);
   if(!m) return null;
   const o = m[2]||m[3]||"1";
   return {niv:+m[1], cle: isNaN(o) ? String("abc".indexOf(o.toLowerCase())+1) : o};
@@ -564,7 +566,7 @@ function indexerDrive(){
             niveaux:[1,2,3].map(()=>({nom:"",consigne:"",rep:"",norep:""}))};
       S.fiches.exercices.push(ex); parCle[norm(d.nom)] = ex; S.nonPublie = true; rap.nouveaux.push(d.nom);
     }
-    const niv = [[],[],[]];
+    const niv = [[],[],[],[]];
     for(const f of d.fichiers){
       const l = lireNomVideo(f.nom);
       if(!l){ rap.ignores.push(d.nom+"/"+f.nom); continue; }
@@ -579,7 +581,7 @@ function indexerDrive(){
   rap.sansDossier = S.fiches.exercices.filter(e=>!INDEX[e.id]).map(e=>e.en);
   S.rapport = rap;
 }
-const videos = (ex,n) => (INDEX[ex.id]||[[],[],[]])[n-1] || [];
+const videos = (ex,n) => (INDEX[ex.id]||[[],[],[],[]])[n-1] || [];
 const nbVideos = ex => (INDEX[ex.id]||[]).reduce((a,t)=>a+t.length,0);
 const vignette = v => v.url ? "" : `https://drive.google.com/thumbnail?id=${encodeURIComponent(v.id)}&sz=w480`;
 function vignetteEx(ex){ for(const n of [2,1,3]){ const v=videos(ex,n)[0]; if(v) return vignette(v); } return ""; }
@@ -633,7 +635,7 @@ async function synchroniser(silencieux){
     const j = await r.json();
     if(!j.ok) throw new Error(j.erreur||"réponse invalide");
     S.drive = {racine:j.racine, date:j.date, dossiers:j.dossiers};
-    if(j.fiches && j.fiches.exercices && !(S.prof && S.nonPublie)) S.fiches = j.fiches;
+    if(j.fiches && j.fiches.exercices && !(S.prof && S.nonPublie)){ S.fiches = j.fiches; completerFiches(); }
     indexerDrive(); sauver(); rendre();
     if(!silencieux) toast(`Drive lu : ${j.dossiers.length} dossier(s)`);
     return true;
@@ -667,13 +669,13 @@ addEventListener("resize", appliquerAffichage);
 function rendre(){
   appliquerAffichage();
   let ong;
-  if(S.prof) ong=[["biblio","▦","Bibliothèque"],["lecon","⏱","WOD"],["jour","📌","Leçon du jour"],["gerer","⚙","Vidéos"]];
+  if(S.prof) ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["lecon","⏱","WOD"],["jour","📌","Leçon du jour"],["gerer","⚙","Vidéos"]];
   else if(!aClasse()){ ong=[["biblio","▦","Bibliothèque"]]; if(S.onglet!=="biblio") S.onglet="biblio"; }
-  else { ong=[["biblio","▦","Bibliothèque"],["lecon","⏱","Mon WOD"],["carnet","📒","Carnet"]]; if(!S.groupe) S.onglet="groupe"; }
+  else { ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["lecon","⏱","Mon WOD"],["carnet","📒","Carnet"]]; if(!S.groupe) S.onglet="groupe"; }
   const st=$("#sousTitre"); if(st) st.textContent = !S.prof&&aClasse() ? `${nomClasse()}${S.groupe?" · "+S.groupe.noms.join(", "):""}` : "CA5 · S'entraîner";
   $("#onglets").innerHTML = ong.map(([k,i,t])=>`<button class="${S.onglet===k?"actif":""}" data-onglet="${k}"><b>${i}</b><span>${t}${k==="lecon"&&S.lecon.items.length?`<span class="compteur">${S.lecon.items.length}</span>`:""}</span></button>`).join("");
   $("#bandeau").innerHTML = S.prof && S.nonPublie ? `<div class="bandeau-maj">● Modifications non publiées pour les élèves<button class="btn ct petit" data-act="publier" style="padding:6px 10px">Publier</button></div>` : "";
-  ({biblio:vueBiblio, lecon:vueLecon, mes:vueMesLecons, gerer:vueGerer, groupe:vueGroupe, carnet:vueCarnet, jour:vueJour, param:vueParam})[S.onglet]();
+  ({biblio:vueBiblio, lecon:vueLecon, mes:vueMesLecons, gerer:vueGerer, groupe:vueGroupe, carnet:vueCarnet, wods:vueWods, jour:vueJour, param:vueParam})[S.onglet]();
 }
 
 /* ---------- Bibliothèque ---------- */
@@ -683,6 +685,7 @@ function exFiltres(){
     && (!q || norm(e.en+e.fr+e.prim.join("")+e.sec.join("")+e.niveaux.map(n=>n.nom).join("")).includes(q))
     && (!f.theme || e.themes.includes(f.theme))
     && (!f.famille || e.famille===f.famille)
+    && (!f.materiel || materielDe(e)===f.materiel)
     && (!f.zone || (f.zone==="Échauffement" ? e.echauffement : e.prim.some(m=>ZONES[f.zone].includes(m)))));
 }
 function vueBiblio(){
@@ -691,8 +694,9 @@ function vueBiblio(){
   $("#vue").innerHTML = carteHorsLigne() + `
     <section class="bloc" style="padding:12px 12px 4px"><div class="recherche"><span>⌕</span><input type="text" id="q" placeholder="Exercice, muscle, niveau…" value="${h(f.q)}"></div>
     <div class="filtres">${puce("theme","R","Renforcement","R")}${puce("theme","M","Mental","M")}${puce("theme","C","Cardio","C")}</div>
-    <div class="filtres">${Object.keys(ZONES).map(z=>puce("zone",z,z)).join("")}${puce("zone","Échauffement","Échauffement")}${puce("famille","G","G · poids du corps")}${puce("famille","M","M · cardio")}</div></section>
-    <p class="petit doux" style="margin:0 0 8px">${liste.length} exercice${liste.length>1?"s":""} · touche une carte pour voir les 3 niveaux</p>
+    <div class="filtres">${Object.keys(ZONES).map(z=>puce("zone",z,z)).join("")}${puce("zone","Échauffement","Échauffement")}${puce("famille","G","G · poids du corps")}${puce("famille","M","M · cardio")}</div>
+    <div class="filtres">${Object.entries(MATERIELS).map(([k,t])=>puce("materiel",k,t)).join("")}</div></section>
+    <p class="petit doux" style="margin:0 0 8px">${liste.length} exercice${liste.length>1?"s":""} · touche une carte pour voir les niveaux</p>
     <div class="grille">${liste.map(carteEx).join("") || `<p class="doux">Aucun exercice avec ces filtres.</p>`}</div>`;
   const q=$("#q"); q.oninput=()=>{ f.q=q.value; const pos=q.selectionStart; vueBiblio(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); };
 }
@@ -716,7 +720,7 @@ function rendreFiche(){
   $("#calque").innerHTML = `<div class="voile" data-act="fermer-fond"><div class="feuille">
     <div class="tete"><div class="t"><div class="en">${h(e.en)}</div><div class="doux">${h(e.fr)} · ${FAMILLE[e.famille]}</div></div>
       <button class="fermer" data-act="fermer">✕</button></div>
-    <div class="niveaux">${[1,2,3].map(k=>`<button class="${k===n?"on":""}" data-niv="${k}">Niveau ${k}<small>${h(e.niveaux[k-1]?.nom||"—")}</small></button>`).join("")}</div>
+    <div class="niveaux">${e.niveaux.map((_,j)=>j+1).map(k=>`<button class="${k===n?"on":""}" data-niv="${k}">Niveau ${k}<small>${h(e.niveaux[k-1]?.nom||"—")}</small></button>`).join("")}</div>
     <div class="corps">
       ${lecteur(vids, `${e.en} · niveau ${n}`)}
       <section class="bloc"><div class="consigne" style="margin-top:0">${h(L.consigne||"Consigne à compléter.")}</div>
@@ -778,6 +782,7 @@ function vueLecon(){
     <input type="text" id="titre" placeholder="Nom de mon WOD (ex. WOD du mardi)" value="${h(l.titre)}" style="margin-bottom:12px">
     <div class="themes">${Object.entries(THEMES).map(([k,t])=>`<button class="theme ${k} ${l.theme===k?"on":""}" data-theme="${k}" ${V.forme&&l.theme!==k?"disabled style='opacity:.35'":""}><b>${t.nom}</b><small>${t.accroche}</small><span class="fc">${t.fc}</span></button>`).join("")}</div>
     <p class="petit doux" style="margin:8px 2px 0">Indicateur principal : <b>${T.indic}</b> · ${T.repere}</p>
+    <p class="petit" style="margin:6px 2px 0">${FCT.age?`❤️ Ma zone ${T.nom} : <b>${zoneTxt(l.theme)}</b> <button class="btn clair petit" data-act="fcBulle" style="padding:4px 8px">modifier</button>`:`<button class="btn clair petit" data-act="fcBulle" style="padding:6px 10px">❤️ Calculer ma zone de fréquence cardiaque</button>`}</p>
     </section>
     <section class="bloc"><div class="bloc-t"><span>2</span>Ma forme de travail <small>★ conseillé pour ${T.nom}</small></div>
     <div class="formats">${Object.entries(FORMATS).map(([k,f])=>`<button class="puce ${l.format===k?"on":""} ${T.formats.includes(k)?"conseil":""}" data-format="${k}" ${V.forme&&l.format!==k?"disabled style='opacity:.35'":""}>${f.nom} <small>${f.fr}</small></button>`).join("")}</div>
@@ -803,7 +808,7 @@ function ligneItem(it,i,l,fige){
   return `<div class="item">
     <button class="mini" data-fiche="${e.id}" data-n="${it.niv}" style="${vg?`background-image:url('${vg}')`:""}">${vg?"":"Niv. "+it.niv}</button>
     <div class="nom"><b>${i+1}. ${h(e.en)}</b><span class="petit doux">${h(e.niveaux[it.niv-1]?.nom||"")}</span>
-      <div class="ligne"><div class="niv-mini">${[1,2,3].map(k=>`<button class="${k===it.niv?"on":""}" data-item="${i}" data-setniv="${k}">Niveau ${k}</button>`).join("")}</div>
+      <div class="ligne"><div class="niv-mini">${e.niveaux.map((_,j)=>j+1).map(k=>`<button class="${k===it.niv?"on":""}" data-item="${i}" data-setniv="${k}">Niveau ${k}</button>`).join("")}</div>
       ${fixe?`<span class="petit"><b>${params(l).travail} s</b></span>`:fige?`<span class="petit"><b>${it.qte}</b></span>`:`<input class="qte" type="number" min="1" data-item="${i}" data-qte value="${it.qte}"><span class="petit doux">${MESURE[e.mesure]}</span>`}</div></div>
     <div class="outils" ${fige?'style="display:none"':""}><button data-item="${i}" data-move="-1" aria-label="Monter">▲</button><button data-item="${i}" data-move="1" aria-label="Descendre">▼</button><button data-item="${i}" data-suppr aria-label="Retirer">✕</button></div></div>`;
 }
@@ -882,7 +887,7 @@ function vueGerer(){
       <button class="btn clair plein" data-act="partager" style="margin-top:8px">Partager toutes les vidéos par lien (après un ajout)</button>
     </div>
     ${r?`<div class="carte"><b>2 · Rapport d'import</b> <span class="petit doux">· ${h(S.drive.racine||"")} · ${new Date(S.drive.date).toLocaleString("fr-FR")}</span>
-      <table class="rapport" style="margin-top:8px"><tr><th>Dossier</th><th>Exercice</th><th class="c">N1</th><th class="c">N2</th><th class="c">N3</th></tr>
+      <table class="rapport" style="margin-top:8px"><tr><th>Dossier</th><th>Exercice</th><th class="c">N1</th><th class="c">N2</th><th class="c">N3</th><th class="c">N4</th></tr>
       ${r.lignes.map(x=>`<tr><td>${h(x.nom)}</td><td>${x.ex.aCompleter?`<span class="att">nouveau</span>`:h(x.ex.fr||x.ex.en)}</td>${x.n.map(cel).join("")}</tr>`).join("")}</table>
       ${r.nouveaux.length?`<p class="petit"><span class="att">●</span> ${r.nouveaux.length} nouveau(x) dossier(s) ajouté(s) comme fiche « à compléter » (invisible des élèves tant qu'elle n'est pas complétée) : ${r.nouveaux.map(h).join(", ")}.</p>`:""}
       ${r.nonPartages.length?`<p class="petit"><span class="ko">●</span> ${r.nonPartages.length} vidéo(s) non partagée(s) par lien : les élèves ne pourront pas les lire. Utilisez « Partager toutes les vidéos par lien ». <span class="doux">${r.nonPartages.slice(0,6).map(h).join(", ")}${r.nonPartages.length>6?"…":""}</span></p>`:""}
@@ -929,7 +934,7 @@ function rendreEditeur(){
       <label class="champ">Sécurité</label><textarea data-e="secu">${h(e.secu)}</textarea>
       <label class="champ">PASER</label>
       ${[["P","Placement"],["A","Amplitude"],["S","Symétrie"],["E","Expiration"],["R","Rythme"]].map(([k,t])=>`<input type="text" data-paser="${k}" placeholder="${t}" value="${h(e.paser?.[k])}" style="margin-bottom:6px">`).join("")}
-      ${[1,2,3].map(n=>{ const L=e.niveaux[n-1], v=videos(exParId(e.id)||e,n);
+      ${e.niveaux.map((_,j)=>j+1).map(n=>{ const L=e.niveaux[n-1], v=videos(exParId(e.id)||e,n);
         return `<div class="bloc-niv"><h4>Niveau ${n}</h4>
         <input type="text" data-niv="${n}" data-champ="nom" placeholder="Nom du niveau" value="${h(L.nom)}">
         <label class="champ">Consigne</label><textarea data-niv="${n}" data-champ="consigne">${h(L.consigne)}</textarea>
@@ -973,6 +978,18 @@ document.addEventListener("click", ev=>{
   const t=ev.target.closest("button,[data-act]"); if(!t) return;
   const d=t.dataset, l=S.lecon;
   if(d.act==="fermer-fond"){ if(ev.target===t) fermer(); return; }
+  if(d.act==="fcFermerFond"){ if(ev.target===t){ clearInterval(PULS&&PULS.iv); PULS=null; $("#bulleFC").innerHTML=""; } return; }
+  if(d.act==="fcBulle"){ PULS=null; ouvrirFC(null); return; }
+  if(d.act==="fcMesure"){ PULS=null; ouvrirFC("#fc"); return; }
+  if(d.act==="fcFermer"){ clearInterval(PULS&&PULS.iv); PULS=null; $("#bulleFC").innerHTML=""; if(S.onglet==="lecon"&&!$("#calque").innerHTML) rendre(); return; }
+  if(d.act==="pulsStart"){ clearInterval(PULS&&PULS.iv); PULS={t0:Date.now(), fin:null}; bip(990,.2); PULS.iv=setInterval(tickPuls,200); $("#pulsZone").innerHTML=pulsHtml(); return; }
+  if(d.act==="pulsStop"){ if(PULS&&PULS.fin==null){ PULS.fin=Date.now()-PULS.t0; clearInterval(PULS.iv); bip(1200,.3); $("#pulsZone").innerHTML=pulsHtml(); brancherPuls(); } return; }
+  if(d.act==="pulsUtiliser"){ const c=CIBLE_FC&&$(CIBLE_FC); if(c&&PULS&&PULS.fc){ c.value=PULS.fc; toast("FC enregistrée : "+PULS.fc+" bpm"); } $("#bulleFC").innerHTML=""; PULS=null; return; }
+  if(d.fw){ S.filtreW[d.fw] = S.filtreW[d.fw]===d.val ? "" : d.val; vueWods(); return; }
+  if(d.prendrew){ if(!S.prof && verrou().wod) return toast("Aujourd'hui, tu réalises le WOD de ton enseignant");
+    const w=WODS.find(x=>x.id===d.prendrew); const V=verrou();
+    if(!S.prof && V.forme && (w.theme!==S.lecon.theme || w.format!==S.lecon.format)) return toast("Ce WOD ne respecte pas la forme de travail imposée aujourd'hui");
+    S.lecon=wodEnLecon(w); S.conseil=null; sauver(); aller("lecon"); toast("« "+w.nom+" » chargé : adapte les niveaux si besoin"); return; }
   if(d.onglet){ S.onglet=d.onglet; fermer(); rendre(); scrollTo(0,0); return; }
   if(d.filtre){ S.filtre[d.filtre] = S.filtre[d.filtre]===d.val ? "" : d.val; vueBiblio(); return; }
   if(d.fiche){ ouvrirFiche(d.fiche, +d.n||2); return; }
@@ -1176,6 +1193,7 @@ function dessinerTimer(){
     <div class="tm-ex"><div id="tmVid">${clipHtml(montre)}</div><div class="tm-txt"><div class="tm-nom">${titre}</div>${x?`<div class="tm-niv">${NIV(x.niv)} · ${h(x.e.niveaux[x.niv-1]?.nom||"")} · ${ph.libre?ph.s+" s":qteTxt(x)}</div>`:prochain?`<div class="tm-niv">Ensuite : ${h(montre.e.en)} · ${NIV(montre.niv)}</div>`:""}</div></div>
     <div class="tm-chrono"><div id="tmTemps" class="tm-temps">0:00</div>
     <div class="tm-barre"><div id="tmBarre" style="background:${col}"></div></div></div>
+    ${ph.t==="pret"?`<div class="tm-tours">❤️ ${FCT.age?`Ma zone ${THEMES[S.lecon.theme].nom} : ${zoneTxt(S.lecon.theme)}`:`Zone visée : ${THEMES[S.lecon.theme].fc}`}</div>`:""}
     <div id="tmZone">${zoneHtml()}</div>
     <div class="tm-bas"><button class="btn contour" data-act="tmPause">${TM.enPause?"▶ Reprendre":"⏸ Pause"}</button>${ph.up?`<button class="btn ct" data-act="tmFini">🏁 Terminé</button>`:`<button class="btn contour" data-act="tmSuiv">⏭ Passer</button>`}</div>
   </div></div>`;
@@ -1206,7 +1224,8 @@ function finTimer(fini){
     <div class="corps">${TM.res.cpt.length?`<label class="champ">Comptage de l'observateur</label><table class="rapport"><tr><th>Exercice</th><th class="c">Rep</th><th class="c">No rep</th><th class="c">Validité</th></tr>${TM.res.cpt.map(x=>`<tr><td>${h(x.ex)} · niveau ${x.niv}</td><td class="c ok">${x.rep}</td><td class="c ko">${x.no}</td><td class="c">${Math.round(x.rep/(x.rep+x.no)*100)} %</td></tr>`).join("")}</table>${TM.res.cpt.some(x=>x.no/(x.rep+x.no)>.2)?`<p class="petit alerte" style="margin-top:6px">Plus de 20 % de No rep sur un exercice : si… alors je baisse d'un niveau ou je ralentis pour garder l'amplitude.</p>`:""}`:""}
     <label class="champ">Mon ressenti (0 à 10)</label><input type="range" min="0" max="10" value="6" id="rpe" style="width:100%"><div class="petit" id="rpeTxt">6 · Dur</div>
     <label class="champ">Ma FC en fin de bloc (battements / min, facultatif)</label><input type="number" id="fc" placeholder="ex. 165">
-    <label class="champ">Mon analyse : si… alors… (facultatif)</label><textarea id="comm" placeholder="ex. j'avais 3 répétitions en réserve → la prochaine fois je passe en N3"></textarea>
+    <button class="btn clair plein" data-act="fcMesure" style="margin-top:8px">⏱ Mesurer ma FC (30 s × 2)</button>
+    <label class="champ">Mon analyse : si… alors… (facultatif)</label><textarea id="comm" placeholder="ex. j'avais 3 répétitions en réserve → la prochaine fois je passe au niveau 3"></textarea>
     <p class="petit doux">Repère du thème ${THEMES[l.theme].nom} : ${THEMES[l.theme].fc} · ${THEMES[l.theme].indic}</p></div></div></div>
     <div class="barre-action"><div class="in"><button class="btn ct" data-act="tmSave">Enregistrer dans mon carnet</button></div></div>`;
   $("#rpe").oninput=e=>{ const v=+e.target.value; $("#rpeTxt").textContent=v+" · "+(OMNI[v]||OMNI[v-1]); };
@@ -1270,7 +1289,7 @@ async function iaWod(b){
   try{ const f=S.formJour, r=await EPSD.post({lc:{op:"ctwod", act:"Cross-training", niveau:f.c, consigne:[f.titre,f.consigne,f.theme&&"Thème "+THEMES[f.theme].nom,f.format&&"Format "+FORMATS[f.format].nom].filter(Boolean).join(". "), biblio:biblioCourte()}});
     if(!r||!r.ok||!r.wod) throw new Error((r&&r.error)||"réponse vide");
     const w=r.wod; S.lecon={id:Date.now().toString(36), titre:w.titre||"WOD proposé", theme:THEMES[w.theme]?w.theme:"R", format:FORMATS[w.format]?w.format:"circuit", params:w.params||{},
-      items:(w.items||[]).filter(x=>exParId(x.exId)).map(x=>({exId:x.exId, niv:Math.min(3,Math.max(1,+x.niv||2)), qte:+x.qte||exParId(x.exId).qte}))};
+      items:(w.items||[]).filter(x=>exParId(x.exId)).map(x=>({exId:x.exId, niv:Math.min((exParId(x.exId).niveaux||[]).length||3,Math.max(1,+x.niv||2)), qte:+x.qte||exParId(x.exId).qte}))};
     if(w.consigne&&!f.consigne) f.consigne=w.consigne; BROUILLON=w; sauver(); rendre();
   }catch(e){ toast("⚠ "+e.message); b.disabled=false; b.textContent="✨ Proposer le WOD avec Claude"; }
 }
@@ -1310,6 +1329,222 @@ function panneauCarnets(el){
 }
 
 /* ======================= Branchements communs ======================= */
+/* ======================= EXERCICES AVEC MATÉRIEL (4 niveaux) =======================
+   Ajoutés à la bibliothèque s'ils n'y sont pas encore (sans écraser les fiches de l'enseignant). */
+const MATERIELS = {PC:"Poids du corps", KB:"Kettlebell", MB:"Medicine ball", CORDE:"Corde à sauter"};
+const EXOS_MATERIEL = [
+{ id:"wallball", dossier:"Wall ball", en:"Wall ball shot", fr:"Lancer au mur", materiel:"MB", famille:"M", mesure:"reps", qte:10, impact:"moyen", themes:["M","C"],
+  prim:["Quadriceps","Fessiers","Épaules"], sec:["Triceps","Ischio-jambiers","Transverse"],
+  paser:{P:"Ballon contre la poitrine, pieds largeur d'épaules.",A:"Pli de hanche sous le genou, bras tendus au lancer.",S:"Pousser avec les deux mains.",E:"Souffler au lancer.",R:"Rattraper et redescendre sans pause."},
+  secu:"Ballon de 2 à 6 kg ; viser au-dessus de la ligne, pas le visage du voisin.",
+  niveaux:[
+   {nom:"Quart de squat, 2 kg, cible 2 m",consigne:"Petit squat puis lancer contre le mur au-dessus de la ligne.",rep:"Ballon au-dessus de la ligne, rattrapé.",norep:"Ballon sous la ligne."},
+   {nom:"Demi-squat, 3 kg, cible 2,50 m",consigne:"Cuisses à 45° puis lancer.",rep:"Cuisses à 45°, ballon au-dessus de la ligne.",norep:"Squat trop haut, ballon qui ne touche pas le mur."},
+   {nom:"Squat complet, 4 kg, cible 2,74 m",consigne:"Squat complet puis lancer en poussant fort sur les jambes.",rep:"Pli de hanche sous le genou, ballon au-dessus de la ligne.",norep:"Ballon rattrapé après un rebond au sol."},
+   {nom:"Squat complet, 6 kg, cible 3 m",consigne:"Squat complet, lancers enchaînés sans pause.",rep:"Même critère, sans pause.",norep:"Mêmes fautes."}]},
+{ id:"slam", dossier:"Ball slam", en:"Ball slam", fr:"Lancer au sol", materiel:"MB", famille:"M", mesure:"reps", qte:10, impact:"moyen", themes:["C","M"],
+  prim:["Dorsaux","Abdominaux","Épaules"], sec:["Fessiers","Ischio-jambiers","Triceps"],
+  paser:{P:"Pieds largeur d'épaules, ballon au-dessus de la tête.",A:"Extension complète puis lancer jusqu'au sol.",S:"Deux mains, ballon devant les pieds.",E:"Souffler fort au lancer.",R:"Ramasser et enchaîner."},
+  secu:"Slam ball (ballon mou) seulement : un ballon qui rebondit revient au visage.",
+  niveaux:[
+   {nom:"Depuis la poitrine, 2 kg",consigne:"Pousser le ballon au sol depuis la poitrine.",rep:"Ballon poussé au sol devant les pieds.",norep:"Ballon lâché sans poussée."},
+   {nom:"Depuis le dessus de la tête, 3 kg",consigne:"Monter le ballon bras tendus, puis l'écraser au sol.",rep:"Bras tendus en haut, ballon au sol.",norep:"Bras pliés en haut."},
+   {nom:"Avec extension complète, 4 kg",consigne:"Sur la pointe des pieds en haut, puis lancer de tout le corps.",rep:"Extension complète, ramassage dos plat.",norep:"Ramassage dos arrondi."},
+   {nom:"Enchaînés rapides, 4 à 6 kg",consigne:"Lancers enchaînés le plus vite possible.",rep:"Extension complète à chaque lancer.",norep:"Lancer depuis la poitrine."}]},
+{ id:"mbclean", dossier:"Medicine ball clean", en:"Med-ball clean", fr:"Épaulé au medicine ball", materiel:"MB", famille:"G", mesure:"reps", qte:10, impact:"faible", themes:["R","M"],
+  prim:["Quadriceps","Fessiers"], sec:["Ischio-jambiers","Épaules","Lombaires"],
+  paser:{P:"Ballon au sol entre les pieds.",A:"Du sol à la poitrine, puis debout.",S:"Mains de chaque côté du ballon.",E:"Souffler en se relevant.",R:"Coup de jambes sec."},
+  secu:"Dos plat du sol jusqu'à la réception.",
+  niveaux:[
+   {nom:"Ramasser jusqu'aux hanches",consigne:"Soulever le ballon jusqu'aux hanches, dos plat.",rep:"Ballon aux hanches, extension complète.",norep:"Dos arrondi au départ."},
+   {nom:"Ramasser jusqu'à la poitrine",consigne:"Monter le ballon contre la poitrine, sans squat.",rep:"Ballon contre la poitrine, debout.",norep:"Ballon monté avec les bras seuls."},
+   {nom:"Réception en demi-squat",consigne:"Coup de jambes, réception du ballon en demi-squat.",rep:"Réception en demi-squat puis debout.",norep:"Réception bras tendus."},
+   {nom:"Réception en squat complet",consigne:"Coup de jambes, réception en squat complet.",rep:"Pli de hanche sous le genou à la réception.",norep:"Squat trop haut, ballon lâché."}]},
+{ id:"chestpass", dossier:"Chest pass", en:"Chest pass", fr:"Passe à deux mains (binôme)", materiel:"MB", famille:"G", mesure:"reps", qte:10, impact:"faible", themes:["R","M"],
+  prim:["Pectoraux","Triceps"], sec:["Épaules","Transverse","Quadriceps"],
+  paser:{P:"Face au partenaire, ballon contre la poitrine.",A:"Bras tendus à la fin de la passe.",S:"Deux mains.",E:"Souffler à la passe.",R:"Passe et réception enchaînées."},
+  secu:"Partenaire prêt, mains en coupe avant chaque passe.",
+  niveaux:[
+   {nom:"2 kg à 2 m",consigne:"Passe tendue depuis la poitrine.",rep:"Ballon attrapé à hauteur de poitrine.",norep:"Ballon au sol."},
+   {nom:"3 kg à 3 m",consigne:"Passe tendue, coudes tendus à la fin.",rep:"Passe tendue.",norep:"Passe en cloche."},
+   {nom:"4 kg à 4 m",consigne:"Passe tendue plus longue.",rep:"Passe tendue attrapée.",norep:"Lancer d'une main."},
+   {nom:"Squat + passe, 4 kg",consigne:"Squat complet puis passe en se relevant.",rep:"Squat complet puis passe.",norep:"Squat incomplet."}]},
+{ id:"corde", dossier:"Single under", en:"Single-under", fr:"Saut simple à la corde", materiel:"CORDE", famille:"M", mesure:"reps", qte:40, impact:"moyen", themes:["C","M"], echauffement:true,
+  prim:["Mollets"], sec:["Quadriceps","Fessiers","Épaules"],
+  paser:{P:"Pieds joints, coudes près du corps.",A:"Sauter juste assez haut.",S:"Deux poignets qui tournent.",E:"Respirer en rythme.",R:"Sauts réguliers."},
+  secu:"Sol souple ; corde réglée aux aisselles (un pied au milieu de la corde).",
+  niveaux:[
+   {nom:"Sans corde",consigne:"Sauts pieds joints, poignets qui tournent dans le vide.",rep:"Sauts sur l'avant du pied.",norep:"Sauts à plat."},
+   {nom:"Corde sur le côté",consigne:"Les deux poignées dans une main, la corde tourne sur le côté pendant les sauts.",rep:"Un saut à chaque tour.",norep:"Saut en retard."},
+   {nom:"Double rebond permis",consigne:"Corde sous les pieds, petit rebond permis entre deux tours.",rep:"Corde sous les deux pieds.",norep:"Corde arrêtée par les pieds."},
+   {nom:"Un saut par tour",consigne:"Un saut à chaque passage de corde.",rep:"Un saut = un passage, sans arrêt.",norep:"Double rebond, arrêt."}]},
+{ id:"cordecourse", dossier:"Alternate foot", en:"Alternate-foot step", fr:"Course à la corde", materiel:"CORDE", famille:"M", mesure:"reps", qte:40, impact:"moyen", themes:["C"],
+  prim:["Mollets","Fléchisseurs de hanche"], sec:["Quadriceps","Fessiers","Épaules"],
+  paser:{P:"Buste droit, coudes près du corps.",A:"Un pied à chaque passage.",S:"Alterner droite et gauche.",E:"Respirer en rythme.",R:"Cadence régulière."},
+  secu:"Sol souple.",
+  niveaux:[
+   {nom:"Sans corde",consigne:"Course sur place sur l'avant du pied.",rep:"Appuis alternés.",norep:"Talons au sol."},
+   {nom:"Course lente",consigne:"Courir à la corde lentement.",rep:"Un pied différent à chaque passage.",norep:"Corde arrêtée."},
+   {nom:"Course rapide",consigne:"Courir à la corde vite.",rep:"Rythme tenu sans arrêt.",norep:"Arrêt de corde."},
+   {nom:"Montées de genoux",consigne:"Courir à la corde en montant les genoux.",rep:"Genou à hauteur de hanche.",norep:"Genoux bas."}]},
+{ id:"doubleunder", dossier:"Double under", en:"Double-under", fr:"Double saut de corde", materiel:"CORDE", famille:"M", mesure:"reps", qte:10, impact:"fort", themes:["C","M"],
+  prim:["Mollets"], sec:["Épaules","Quadriceps","Abdominaux"],
+  paser:{P:"Corps droit, pieds sous le bassin.",A:"Sauter plus haut, pas tourner plus vite.",S:"Deux poignets ensemble.",E:"Respirer entre les sauts.",R:"Sauter juste après le passage sous les genoux."},
+  secu:"Corde légère, sol souple.",
+  niveaux:[
+   {nom:"Saut + 2 tapes (sans corde)",consigne:"Saut haut avec 2 tapes des mains sur les cuisses.",rep:"Deux tapes pendant un saut.",norep:"Une seule tape."},
+   {nom:"2 simples + 1 double",consigne:"Deux sauts simples puis un double.",rep:"Corde 2 fois sous les pieds pendant le double.",norep:"Deux petits sauts."},
+   {nom:"1 simple + 1 double",consigne:"Alterner simple et double.",rep:"Chaque double valide.",norep:"Double rebond."},
+   {nom:"Doubles enchaînés",consigne:"Doubles sans simple entre eux.",rep:"Chaque saut = 2 passages.",norep:"Pieds qui accrochent, arrêt."}]},
+{ id:"kbdeadlift", dossier:"Kettlebell deadlift", en:"KB deadlift", fr:"Soulevé de terre au kettlebell", materiel:"KB", famille:"G", mesure:"reps", qte:12, impact:"faible", themes:["R"],
+  prim:["Fessiers","Ischio-jambiers"], sec:["Lombaires","Quadriceps","Dorsaux"],
+  paser:{P:"Kettlebell entre les pieds.",A:"Charnière de hanche, puis debout hanches tendues.",S:"Deux mains sur la poignée.",E:"Souffler en se relevant.",R:"Descente contrôlée."},
+  secu:"Dos plat, sans cambrer en haut ; charge légère pour apprendre.",
+  niveaux:[
+   {nom:"Charnière sans charge",consigne:"Mains sur les cuisses, fesses en arrière, buste à 45°.",rep:"Buste à 45°, dos plat.",norep:"Dos arrondi."},
+   {nom:"Kettlebell 4 à 6 kg",consigne:"Soulever le kettlebell en charnière de hanche.",rep:"Du sol à debout, hanches tendues.",norep:"Squat au lieu de charnière."},
+   {nom:"Kettlebell 8 à 12 kg",consigne:"Même mouvement, plus lourd.",rep:"Même critère.",norep:"Dos cambré en haut."},
+   {nom:"Sur une jambe, léger",consigne:"Soulevé de terre sur une jambe, kettlebell dans la main opposée.",rep:"Bassin horizontal, retour stable.",norep:"Pied libre au sol."}]},
+{ id:"goblet", dossier:"Goblet squat", en:"Goblet squat", fr:"Squat gobelet", materiel:"KB", famille:"G", mesure:"reps", qte:12, impact:"faible", themes:["R","M"],
+  prim:["Quadriceps","Fessiers"], sec:["Adducteurs","Transverse","Lombaires"],
+  paser:{P:"Kettlebell contre la poitrine, tenu par les cornes.",A:"Coudes entre les genoux en bas.",S:"Genoux dans l'axe des pieds.",E:"Souffler en remontant.",R:"Descente 2 s."},
+  secu:"Talons au sol, buste droit.",
+  niveaux:[
+   {nom:"Quart de squat, 4 kg",consigne:"Petite flexion, kettlebell contre la poitrine.",rep:"Kettlebell collé à la poitrine.",norep:"Kettlebell qui s'éloigne."},
+   {nom:"Demi-squat",consigne:"Cuisses à 45°.",rep:"Cuisses à 45°, talons au sol.",norep:"Talons décollés."},
+   {nom:"Squat complet",consigne:"Pli de hanche sous le genou.",rep:"Pli de hanche sous le genou, debout en haut.",norep:"Profondeur insuffisante."},
+   {nom:"Complet + 2 s de pause",consigne:"Squat complet, 2 s immobile en bas.",rep:"Pause tenue 2 s.",norep:"Rebond en bas."}]},
+{ id:"swing", dossier:"Kettlebell swing", en:"Russian swing", fr:"Swing russe", materiel:"KB", famille:"M", mesure:"reps", qte:12, impact:"faible", themes:["C","M"],
+  prim:["Fessiers","Ischio-jambiers"], sec:["Lombaires","Transverse","Épaules"],
+  paser:{P:"Kettlebell un pas devant soi.",A:"Hanches tendues en haut, bras tendus.",S:"Deux mains.",E:"Souffler au coup de hanches.",R:"Le kettlebell redescend seul entre les cuisses."},
+  secu:"Ce sont les hanches qui travaillent, pas les bras ; pas au-dessus des yeux.",
+  niveaux:[
+   {nom:"Hike (lancer arrière)",consigne:"Lancer le kettlebell entre les jambes puis le poser devant.",rep:"Charnière dos plat.",norep:"Dos arrondi."},
+   {nom:"Swing aux hanches",consigne:"Coup de hanches, kettlebell à hauteur des hanches.",rep:"Hanches et genoux tendus en haut.",norep:"Bras qui tirent."},
+   {nom:"Swing à la poitrine",consigne:"Kettlebell jusqu'à la poitrine.",rep:"Kettlebell à la poitrine, hanches tendues.",norep:"Dos cambré en haut."},
+   {nom:"Swing aux yeux",consigne:"Kettlebell jusqu'à hauteur des yeux.",rep:"Hauteur des yeux, bras tendus.",norep:"Sous les épaules, genoux pliés en haut."}]},
+{ id:"kbclean", dossier:"Kettlebell clean", en:"KB clean", fr:"Épaulé au kettlebell (un bras)", materiel:"KB", famille:"G", mesure:"reps", qte:8, impact:"faible", themes:["R","M"],
+  prim:["Fessiers","Ischio-jambiers"], sec:["Épaules","Dorsaux","Transverse"],
+  paser:{P:"Kettlebell entre les pieds, une main.",A:"Réception contre l'avant-bras, à l'épaule.",S:"Changer de bras à chaque série.",E:"Souffler à la réception.",R:"Trajectoire courte, près du corps."},
+  secu:"Kettlebell léger ; le poignet reste droit.",
+  niveaux:[
+   {nom:"Swing un bras aux hanches",consigne:"Swing à un bras, hauteur des hanches.",rep:"Bras tendu, hanches tendues.",norep:"Rotation du buste."},
+   {nom:"Swing un bras à la poitrine",consigne:"Swing à un bras, hauteur de poitrine.",rep:"Même critère.",norep:"Bras qui tire."},
+   {nom:"Tirage haut un bras",consigne:"Coude qui monte, kettlebell près du corps.",rep:"Kettlebell à la poitrine, coude haut.",norep:"Kettlebell loin du corps."},
+   {nom:"Clean un bras",consigne:"Réception en position de rack, debout immobile.",rep:"Rack, poignet droit.",norep:"Kettlebell qui tape l'avant-bras."}]},
+{ id:"farmer", dossier:"Farmer carry", en:"Farmer carry", fr:"Marche du fermier", materiel:"KB", famille:"G", mesure:"distance", qte:2, impact:"faible", themes:["R","M"],
+  prim:["Transverse","Obliques"], sec:["Épaules","Fessiers","Mollets"],
+  paser:{P:"Kettlebells le long du corps, bras tendus.",A:"Aller-retour complet.",S:"Même charge des deux côtés (sauf niveau 3).",E:"Respirer calmement.",R:"Pas réguliers."},
+  secu:"Poser les kettlebells en pliant les jambes, dos plat.",
+  niveaux:[
+   {nom:"Deux kettlebells 4 kg",consigne:"Marcher buste droit, épaules basses.",rep:"Kettlebells jamais posés.",norep:"Kettlebell posé."},
+   {nom:"Deux kettlebells 8 kg",consigne:"Même marche, plus lourd.",rep:"Même critère.",norep:"Épaules qui montent."},
+   {nom:"Un seul (valise)",consigne:"Un kettlebell d'un côté, buste droit.",rep:"Buste droit sans pencher.",norep:"Buste qui penche."},
+   {nom:"Un kettlebell à l'épaule (rack)",consigne:"Kettlebell contre l'épaule, avant-bras vertical.",rep:"Rack tenu tout le trajet.",norep:"Kettlebell qui glisse."}]}
+];
+/* Ajout non destructif : une fiche par défaut n'est ajoutée qu'une fois (si l'enseignant la supprime, elle ne revient pas). */
+function completerFiches(){
+  const vus = new Set(S.fiches.vus || S.fiches.exercices.map(e=>e.id)); let ajout=0;
+  for(const e of BIBLIO_DEFAUT.exercices.concat(EXOS_MATERIEL)){
+    if(!vus.has(e.id)){ if(!exParId(e.id)){ S.fiches.exercices.push(JSON.parse(JSON.stringify(e))); ajout++; } vus.add(e.id); }
+  }
+  S.fiches.vus=[...vus]; if(ajout){ sauver(); if(S.prof) S.nonPublie=true; }
+}
+const materielDe = e => e.materiel || "PC";
+
+/* ======================= BIBLIOTHÈQUE DE WOD (adaptés au lycée) ======================= */
+const WODS = [
+ {id:"w1", nom:"Mini-Cindy", mat:["PC"], theme:"M", format:"amrap", params:{minutes:12,cible:6}, items:[["pompe",1,5],["situp",2,10],["squat",2,15]], note:"Inspiré du benchmark « Cindy », sans traction."},
+ {id:"w2", nom:"Escalier poids du corps", mat:["PC"], theme:"M", format:"fortime", params:{tours:3,cap:12}, items:[["squat",2,15],["pompe",1,10],["grimpeur",2,20]], note:"3 tours le plus vite possible, time cap 12 min."},
+ {id:"w3", nom:"Cardio 40/20", mat:["PC"], theme:"C", format:"intervalles", params:{travail:40,repos:20,tours:3}, items:[["jumpingjack",2,0],["montees",2,0],["patineur",2,0],["burpee",1,0]], note:"FC relevée à la fin de chaque tour."},
+ {id:"w4", nom:"Tabata burpees-squats", mat:["PC"], theme:"C", format:"intervalles", params:{travail:20,repos:10,tours:4}, items:[["burpee",1,0],["squat",3,0]], note:"8 intervalles 20/10 « façon Tabata », 4 min."},
+ {id:"w5", nom:"EMOM force", mat:["PC"], theme:"R", format:"emom", params:{minutes:12}, items:[["squat",2,15],["pompe",2,10],["planche",2,30]], note:"Chaque minute, un exercice ; le reste de la minute = repos."},
+ {id:"w6", nom:"Circuit complet", mat:["PC"], theme:"R", format:"circuit", params:{tours:3,recupEx:30,recupTour:90}, items:[["fente",2,12],["pompe",1,12],["pont",2,15],["superman",2,12],["russiantwist",2,20]], note:"Jambes, haut du corps, tronc : toutes les zones."},
+ {id:"w7", nom:"Kettlebell découverte", mat:["KB"], theme:"R", format:"circuit", params:{tours:3,recupEx:30,recupTour:90}, items:[["kbdeadlift",2,12],["goblet",2,12],["farmer",1,2],["planche",2,30]], note:"Pour apprendre la charnière de hanche avant le swing."},
+ {id:"w8", nom:"Swing & squat", mat:["KB"], theme:"C", format:"emom", params:{minutes:10}, items:[["swing",3,12],["goblet",3,10]], note:"Minutes impaires swing, minutes paires goblet squat."},
+ {id:"w9", nom:"AMRAP kettlebell", mat:["KB","PC"], theme:"M", format:"amrap", params:{minutes:10,cible:4}, items:[["swing",2,10],["goblet",2,10],["situp",2,10]], note:"Allure imposée : un tour toutes les 2 min 30."},
+ {id:"w10", nom:"Wall ball 12", mat:["MB","PC"], theme:"M", format:"amrap", params:{minutes:12,cible:4}, items:[["wallball",2,10],["slam",2,10],["burpee",1,5]], note:"Prévoir une ligne au mur par élève."},
+ {id:"w11", nom:"Intervalles medicine ball", mat:["MB","PC"], theme:"C", format:"intervalles", params:{travail:30,repos:30,tours:3}, items:[["wallball",2,0],["slam",2,0],["chestpass",2,0],["grimpeur",2,0]], note:"Passe à deux mains en binôme."},
+ {id:"w12", nom:"Force medicine ball", mat:["MB","PC"], theme:"R", format:"circuit", params:{tours:3,recupEx:30,recupTour:90}, items:[["mbclean",2,12],["wallball",2,12],["russiantwist",2,20],["pompe",1,12]], note:"Ballon de 3 à 4 kg."},
+ {id:"w13", nom:"Corde & squats", mat:["CORDE","PC"], theme:"C", format:"emom", params:{minutes:12}, items:[["corde",3,40],["squat",2,15],["situp",2,10]], note:"Corde au niveau 1 ou 2 pour les débutants."},
+ {id:"w14", nom:"Intervalles corde", mat:["CORDE","PC"], theme:"C", format:"intervalles", params:{travail:30,repos:30,tours:4}, items:[["corde",3,0],["grimpeur",2,0],["cordecourse",2,0],["jumpingjack",2,0]], note:"Sol souple obligatoire."},
+ {id:"w15", nom:"Chipper lycée", mat:["CORDE","MB","KB","PC"], theme:"M", format:"fortime", params:{tours:1,cap:15}, items:[["corde",3,50],["wallball",2,20],["swing",2,20],["goblet",2,20],["burpee",1,15]], note:"Une seule fois chaque exercice, dans l'ordre, time cap 15 min."},
+ {id:"w16", nom:"Triplé matériel", mat:["CORDE","KB","MB"], theme:"M", format:"fortime", params:{tours:3,cap:12}, items:[["corde",3,30],["swing",2,12],["wallball",2,9]], note:"3 tours le plus vite possible."}
+];
+function wodEnLecon(w){
+  return {id:Date.now().toString(36), titre:w.nom, theme:w.theme, format:w.format, params:Object.assign({},w.params),
+    items:w.items.filter(([id])=>exParId(id)).map(([id,niv,q])=>({exId:id, niv:Math.min(niv,(exParId(id).niveaux||[]).length||3), qte:q||exParId(id).qte}))};
+}
+function vueWods(){
+  const f=S.filtreW||(S.filtreW={mat:"",theme:""});
+  const liste=WODS.filter(w=>(!f.mat||w.mat.includes(f.mat))&&(!f.theme||w.theme===f.theme));
+  const puce=(cle,val,txt,cls="")=>`<button class="puce ${cls} ${f[cle]===val?"on":""}" data-fw="${cle}" data-val="${val}">${txt}</button>`;
+  $("#vue").innerHTML = `<h2>📚 Bibliothèque de WOD</h2>
+    <section class="bloc" style="padding:12px 12px 4px">
+      <div class="filtres">${Object.entries(MATERIELS).map(([k,t])=>puce("mat",k,t)).join("")}</div>
+      <div class="filtres">${puce("theme","R","Renforcement","R")}${puce("theme","M","Mental","M")}${puce("theme","C","Cardio","C")}</div></section>
+    ${liste.map(w=>{ const l=wodEnLecon(w), t=texteWod(l);
+      return `<section class="bloc"><div class="bloc-t">${h(w.nom)}<small><span class="m" style="background:var(--${w.theme}-c);color:var(--${w.theme})">${THEMES[w.theme].nom}</span></small></div>
+      <div class="petit" style="margin-bottom:6px"><b>${h(t.tete)}</b> · ${w.mat.map(m=>MATERIELS[m]).join(", ")}</div>
+      <div class="tableau" style="font-size:14px">${h(t.lignes.join("\n"))}</div>
+      <p class="petit doux">${h(w.note)}</p>
+      <button class="btn ct" data-prendrew="${w.id}">${S.prof?"Utiliser ce WOD":"Prendre ce WOD"}</button></section>`; }).join("") || `<p class="doux">Aucun WOD avec ces filtres.</p>`}`;
+}
+
+/* ======================= FRÉQUENCE CARDIAQUE : zones et mesure du pouls ======================= */
+const FCT = { get age(){ return +(sessionStorage.getItem("ct_age")||0); }, get repos(){ return +(sessionStorage.getItem("ct_fcrepos")||0); } };
+const fcm = a => Math.round(208 - 0.7*a);                       /* Tanaka */
+function fcCible(pc, a, r){ const m=fcm(a); return r ? Math.round(r + pc*(m-r)) : Math.round(pc*m); }   /* Karvonen si FC de repos */
+const ZONES_FC = {R:[.60,.70], M:[.70,.80], C:[.80,.90]};
+function zoneTxt(th, a=FCT.age, r=FCT.repos){ if(!a) return ""; const [b,hh]=ZONES_FC[th]; return `${fcCible(b,a,r)} à ${fcCible(hh,a,r)} bpm`; }
+function zoneDeFC(fc, a=FCT.age, r=FCT.repos){ if(!a||!fc) return ""; for(const th of ["C","M","R"]){ const [b,hh]=ZONES_FC[th]; if(fc>=fcCible(b,a,r)&&fc<=fcCible(hh,a,r)) return th; } return fc>fcCible(.90,a,r)?"haut":"bas"; }
+let PULS=null, CIBLE_FC=null;
+function ouvrirFC(versChamp){
+  CIBLE_FC=versChamp||null; const a=FCT.age, r=FCT.repos;
+  const d=document.getElementById("bulleFC")||document.body.appendChild(Object.assign(document.createElement("div"),{id:"bulleFC"}));
+  d.innerHTML = `<div class="voile" style="z-index:80" data-act="fcFermerFond"><div class="feuille" style="padding-bottom:20px">
+    <div class="tete"><div class="t"><div class="en">❤️ Ma fréquence cardiaque</div><div class="doux">Zones de travail et mesure du pouls</div></div><button class="fermer" data-act="fcFermer">✕</button></div>
+    <div class="corps">
+      <section class="bloc"><div class="bloc-t"><span>1</span>Mes zones</div>
+        <div class="ligne"><div style="flex:1"><label class="champ">Mon âge</label><input type="number" id="fcAge" min="10" max="80" value="${a||""}" placeholder="ex. 17"></div>
+          <div style="flex:1"><label class="champ">FC de repos (facultatif)</label><input type="number" id="fcRepos" min="30" max="120" value="${r||""}" placeholder="ex. 65"></div></div>
+        <div id="fcZones" style="margin-top:12px">${zonesHtml(a,r)}</div></section>
+      <section class="bloc"><div class="bloc-t"><span>2</span>Mesurer mon pouls (30 s × 2)</div>
+        <p class="petit doux" style="margin-top:0">Deux doigts sur le poignet ou sur le cou. Appuie sur Start, compte les battements, puis Stop.</p>
+        <div id="pulsZone">${pulsHtml()}</div></section>
+    </div></div></div>`;
+  const maj=()=>{ const A=+$("#fcAge").value||0, R=+$("#fcRepos").value||0; sessionStorage.setItem("ct_age",A||""); sessionStorage.setItem("ct_fcrepos",R||""); $("#fcZones").innerHTML=zonesHtml(A,R); };
+  $("#fcAge").oninput=maj; $("#fcRepos").oninput=maj;
+}
+function zonesHtml(a,r){
+  if(!a) return `<p class="petit doux">Entre ton âge pour voir tes zones.</p>`;
+  return `<div class="petit">FCM estimée : <b style="font-size:20px">${fcm(a)} bpm</b> <span class="doux">(208 − 0,7 × âge)</span>${r?`<br><span class="doux">Calcul avec ta FC de repos (Karvonen).</span>`:""}</div>
+    <table class="rapport" style="margin-top:8px"><tr><th>Thème</th><th>% FCM</th><th>Ma zone</th></tr>
+    ${["R","M","C"].map(t=>`<tr><td><b style="color:var(--${t})">${THEMES[t].nom}</b></td><td>${ZONES_FC[t].map(x=>x*100).join(" à ")} %</td><td><b>${zoneTxt(t,a,r)}</b></td></tr>`).join("")}</table>`;
+}
+function pulsHtml(){
+  const p=PULS;
+  if(!p) return `<button class="btn ct plein" data-act="pulsStart" style="padding:18px;font-size:20px">▶ Start (30 s)</button>`;
+  if(p.fin==null){ const r=Math.max(0,30-Math.floor((Date.now()-p.t0)/1000));
+    return `<div style="text-align:center;font:800 72px/1 ui-monospace,Menlo,monospace" id="pulsT">${r}</div><p class="petit doux" style="text-align:center">Compte les battements…</p><button class="btn danger plein" data-act="pulsStop" style="padding:18px;font-size:20px">■ Stop</button>`; }
+  const sec=Math.round(p.fin/1000), mult=60/sec;
+  if(sec<10) return `<p class="petit alerte">Mesure trop courte (${sec} s) : laisse tourner au moins 10 s, l'idéal étant les 30 s complètes.</p><button class="btn ct plein" data-act="pulsStart">↻ Recommencer</button>`;
+  return `<p class="petit">Mesuré pendant <b>${sec} s</b>${sec===30?" (× 2)":` (× ${Math.round(mult*10)/10})`}. Combien de battements as-tu comptés ?</p>
+    <input type="number" id="pulsN" placeholder="ex. 80" style="font-size:22px;text-align:center">
+    <div id="pulsRes" style="margin-top:10px"></div>
+    <div class="ligne" style="margin-top:10px"><button class="btn contour" data-act="pulsStart" style="flex:1">↻ Recommencer</button>${CIBLE_FC?`<button class="btn ct" data-act="pulsUtiliser" style="flex:1">Utiliser cette FC</button>`:""}</div>
+    <input type="hidden" id="pulsMult" value="${mult}">`;
+}
+function tickPuls(){
+  if(!PULS||PULS.fin!=null) return; const ec=Date.now()-PULS.t0, z=$("#pulsT");
+  if(z) z.textContent=Math.max(0,30-Math.floor(ec/1000));
+  if(ec>=30000){ PULS.fin=30000; bip(1200,.5); clearInterval(PULS.iv); $("#pulsZone").innerHTML=pulsHtml(); brancherPuls(); }
+}
+function brancherPuls(){ const n=$("#pulsN"); if(!n) return; n.focus();
+  n.oninput=()=>{ const fc=Math.round((+n.value||0)*(+$("#pulsMult").value)); const z=zoneDeFC(fc);
+    if(fc && (fc<30 || fc>230)){ $("#pulsRes").innerHTML=`<p class="petit alerte">${fc} bpm n'est pas possible : recompte les battements.</p>`; PULS.fc=0; return; }
+    $("#pulsRes").innerHTML = fc ? `<div style="font-size:18px">Ma FC : <b style="font-size:30px">${fc} bpm</b></div>${z?`<div class="petit">${z==="haut"?"Au-dessus de la zone Cardio : ralentis.":z==="bas"?"Sous la zone Renforcement.":"Dans la zone <b style='color:var(--"+z+")'>"+THEMES[z].nom+"</b>."}</div>`:`<div class="petit doux">Entre ton âge plus haut pour savoir dans quelle zone tu es.</div>`}` : ""; PULS.fc=fc; }; }
+
 window.epsCurrentClass=()=>{ const c=classesCT().find(x=>x.id===S.classe); return c?{nom:c.nom, eleves:(c.el||[])}:null; };
 function aller(o){ S.onglet=o; fermer(); try{ window.EPSTCT&&EPSTCT.closePanel&&EPSTCT.closePanel(); }catch(e){} rendre(); scrollTo(0,0); }
 const ICONE_CT = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="7"/><path d="M12 10v4l2.5 2"/><path d="M9.5 2h5"/><path d="M12 2v5"/><path d="M19 6l1.5-1.5"/></svg>';
@@ -1352,7 +1587,7 @@ window.EPSTCT = window.EPST ? EPST.init({app:"ct", nom:"Cross-training", color:"
   select:id=>{ S.classe=id; sessionStorage.setItem("ct_classe",id); S.groupe=null; sessionStorage.removeItem("ct_groupe"); aller("groupe"); },
   resources:[{ico:"🏋️",label:"Bibliothèque d'exercices",sub:"vidéos et niveaux",open:()=>{ S.classe="-"; sessionStorage.setItem("ct_classe","-"); aller("biblio"); }}]});
 if(!estProf() && aClasse() && !S.groupe) S.onglet="groupe";
-indexerDrive(); majPresents().then(rendre); rendre(); synchroniser(true);
+completerFiches(); indexerDrive(); majPresents().then(rendre); rendre(); synchroniser(true);
 
 </script>
 <script src="../eps-home.js" defer></script>
