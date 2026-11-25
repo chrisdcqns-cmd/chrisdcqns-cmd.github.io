@@ -481,6 +481,26 @@ details.more{margin-top:6px}details.more>summary{cursor:pointer;font-weight:700;
 @media(max-width:700px){.banner2 .bgap{display:none}.banner2 .bt b{font-size:1.5rem}.banner2 .bt span{font-size:.85rem}}
 #play.stu .cw.play .court{max-height:calc(100vh - 290px)}
 .lvd .banner2 .bgap{width:10px}
+
+.board .pl{display:flex;gap:12px;align-items:center}.board .pl .plm{flex:0 0 auto;min-width:120px}
+.pltiles{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.pltiles .bt{background:rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;justify-content:center}
+.pltiles .bt span{font-size:1rem;font-weight:800;color:#cfd8e3;line-height:1.2}.pltiles .bt b{font-size:2.1rem;line-height:1.1;margin-top:2px;color:#fff}.pltiles .bt b small{font-size:.5em}
+.pltiles .bt.ok{background:rgba(46,229,157,.18)}.pltiles .bt.ok b{color:#2ee59d}
+.board .pl.p0 .pltiles .bt b{color:#FFD166}.board .pl.p1 .pltiles .bt b{color:#FF8FB1}
+@media(max-width:700px){.board .pl{flex-wrap:wrap}.pltiles .bt b{font-size:1.5rem}.pltiles .bt span{font-size:.85rem}}
+.banner2 .bcol .bn{grid-column:1/-1}.lvd .pltiles .bt{background:#14213d}
+#play.stu .cw.play .court{max-height:calc(100vh - 230px)}
+
+.banner2.out{margin-top:8px;gap:10px}.banner2.out .bcol{min-width:200px}
+.banner2.out .bcol{display:block;background:#14213d;border-left:10px solid #FFB703;padding:8px}.banner2.out .bcol.p1{border-left-color:#FF5D8F}
+.banner2.out .pltiles{grid-template-columns:repeat(auto-fit,minmax(115px,1fr))}.banner2.out .pltiles .bt{padding:6px 10px}.banner2.out .pltiles .bt span{font-size:.9rem}.banner2.out .pltiles .bt b{font-size:1.7rem}
+.banner2.out .bcol.p0 .pltiles .bt b{color:#FFD166}.banner2.out .bcol.p1 .pltiles .bt b{color:#FF8FB1}
+
+.board .plcol{flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px}.board .plcol .pl{flex:none}
+.board .plout{background:#14213d;border-radius:16px;padding:8px;border-left:10px solid #FFB703}.board .plout.p1{border-left-color:#FF5D8F}
+.board .plout .pltiles{grid-template-columns:repeat(auto-fit,minmax(115px,1fr))}.board .plout .pltiles .bt{padding:6px 10px}.board .plout .pltiles .bt span{font-size:.9rem}.board .plout .pltiles .bt b{font-size:1.7rem}
+.board .plout.p0 .pltiles .bt b{color:#FFD166}.board .plout.p1 .pltiles .bt b{color:#FF8FB1}
 </style>
 <style>@media (max-width:1200px){.top .hn,#syncIc small{display:none}.top .voie button{padding:7px 10px}}</style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
@@ -1634,15 +1654,20 @@ function liveVal(k,m,D,s){const {R,S2}=D;
    case 'co':{const t=COUPS.filter(([k])=>S2[s].co[k]).sort((a,b)=>S2[s].co[b[0]]-S2[s].co[a[0]]);return t.length?t.slice(0,2).map(([k,n])=>`${n} ${S2[s].co[k]}`).join(' · '):'–'}
    case 'nat':return NAT.filter(([k])=>S2[s].nat[k]).map(([k,n])=>`${n.toLowerCase()} ${S2[s].nat[k]}`).join(' · ')||'–';}
   return ''}
-/* bannière des élèves : découpée par joueur, sous chaque score (gros libellés, grosses valeurs) */
-function liveBanner(m){if(m.pre.type==='exo')return'';const K=liveKeys(m.pre).filter(k=>k!=='ind'||indOn());if(!K.length)return'';const D=liveData(m);
-  const col=s=>{const T=[];K.forEach(k=>{const lab=(LIVEW.find(x=>x[0]===k)||[])[1]||k;
-      if(k==='ser'){T.push(`<div class="bt"><span>🔥 Série en cours</span><b>${D.ser.w===s?D.ser.n+' d\'affilée':'–'}</b></div>`);return}
-      if(k==='ind'){indOfMatch(m).filter(x=>x.k!=='obs').slice(0,2).forEach(x=>{const r=x.k==='compte'?(()=>{const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}})():x.f(D.S2[s],m.pre);
-        T.push(`<div class="bt ${r&&r.ok?'ok':''}"><span>${esc(x.nom)}</span><b>${r?esc(r.t)+(r.ok?' ✓':''):'–'}</b></div>`)});return}
-      T.push(`<div class="bt"><span>${esc(lab)}</span><b>${liveVal(k,m,D,s)||'–'}</b></div>`)});
-    return `<div class="bcol" style="border-color:${LCOL[s]}">${T.join('')}</div>`};
-  return `<div class="banner2">${col(m.flip?1:0)}<div class="bgap"></div>${col(m.flip?0:1)}</div>`}
+/* bannière en direct : dans la bande du score, à côté du score de chaque joueur */
+function liveTiles(m,s,D){if(m.pre.type==='exo')return'';const K=liveKeys(m.pre).filter(k=>k!=='ind'||indOn());if(!K.length)return'';D=D||liveData(m);const T=[];
+  K.forEach(k=>{const lab=(LIVEW.find(x=>x[0]===k)||[])[1]||k;
+    if(k==='ser'){T.push(`<div class="bt"><span>🔥 Série</span><b>${D.ser.w===s?D.ser.n+' <small>d\'affilée</small>':'–'}</b></div>`);return}
+    if(k==='ind'){indOfMatch(m).filter(x=>x.k!=='obs').slice(0,2).forEach(x=>{const r=x.k==='compte'?(()=>{const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}})():x.f(D.S2[s],m.pre);
+      T.push(`<div class="bt ${r&&r.ok?'ok':''}"><span>${esc(x.nom)}</span><b>${r?esc(r.t)+(r.ok?' ✓':''):'–'}</b></div>`)});return}
+    T.push(`<div class="bt"><span>${esc(lab)}</span><b>${liveVal(k,m,D,s)||'–'}</b></div>`)});
+  return `<div class="pltiles">${T.join('')}</div>`}
+/* 2 infos au plus par joueur : dans la bande du score ; davantage : sortie sous la bande, une colonne par joueur */
+function liveCount(m){if(m.pre.type==='exo')return 0;return liveKeys(m.pre).filter(k=>k!=='ind'||indOn()).reduce((n,k)=>n+(k==='ind'?Math.min(2,indOfMatch(m).filter(x=>x.k!=='obs').length):1),0)}
+function liveOut(m,D,flip,vs){if(liveCount(m)<=2)return'';const a=liveTiles(m,flip?1:0,D),b=liveTiles(m,flip?0:1,D);
+  return `<div class="banner2 out"><div class="bcol p${flip?1:0}">${a}</div><div class="vs" style="visibility:hidden">${vs||''}</div><div class="bcol p${flip?0:1}">${b}</div></div>`}
+function liveBanner(m){if(m.pre.type==='exo')return'';const D=liveData(m),a=liveTiles(m,0,D),b=liveTiles(m,1,D);if(!a&&!b)return'';
+  return `<div class="banner2"><div class="bcol" style="border-color:${LCOL[0]}"><b class="bn">${esc(m.an)}</b>${a}</div><div class="bcol" style="border-color:${LCOL[1]}"><b class="bn">${esc(m.bn)}</b>${b}</div></div>`}
 /* vue complète : enseignant, ou « Plus d'infos » chez les élèves */
 function liveHtml(m){if(m.pre.type==='exo')return'';const pre=m.pre,D=liveData(m),{R,S2}=D,N=[m.an,m.bn];
   const K=[...new Set([...liveKeys(pre),'pts','bon','bonp','zp','ser','man','co'])].filter(k=>(k!=='bon'&&k!=='bonp')||hasBonus(pre)).filter(k=>k!=='zp'||(R.zp&&(R.zp[0]||R.zp[1]))||liveKeys(pre).includes('zp')).filter(k=>k!=='man'||R.mp);
@@ -2056,12 +2081,12 @@ function renderPlay(){
     bindPlayCourt();return}
   const tgt=pre.score==='zones'?(+pre.cible||0):(+pre.cible||11);
   const srvSide=R.sc[R.srv]%2===0?'droite':'gauche';
-  const card=w=>`<div class="pl p${w}"><div class="nm">${esc(w?nB:nA)}${R.srv===w&&!R.fin?' <span class="srv">🏸 sert à '+srvSide+'</span>':''}</div>
-     <div class="big2">${pre.score==='zones'?R.zp[w]:R.sc[w]}</div>${m[w?'sb':'sa']?`<div class="sub">🎯 ${esc(m[w?'sb':'sa'])}</div>`:''}${manBoard(m,R,w)}<div class="sub">${pre.badcode?`code <b>${esc(m[w?'cb':'ca'])}</b> : ${R.cd[w]}/2${R.cd[w]>=2?' ✓':''} <button class="mini" onclick="codeEd(${w})">✎ changer</button> `:''}${pre.score==='zones'?`score : ${R.sc[w]}`:pre.badcode||pre.np*pre.nl===1&&!Object.keys(pre.coups||{}).length?'':`points de zones : <b>${R.zp[w]}</b>`}${pre.contrat?` · contrat ${Math.min(R.ct[w],pre.contrat)}/${pre.contrat}${R.ct[w]>=pre.contrat?' ✓':''}`:''}</div></div>`;
+  const LD=liveData(m),LOUT=liveCount(m)>2,card=w=>`${LOUT?'<div class="plcol">':''}<div class="pl p${w}"><div class="plm"><div class="nm">${esc(w?nB:nA)}${R.srv===w&&!R.fin?' <span class="srv">🏸 sert à '+srvSide+'</span>':''}</div>
+     <div class="big2">${pre.score==='zones'?R.zp[w]:R.sc[w]}</div>${m[w?'sb':'sa']?`<div class="sub">🎯 ${esc(m[w?'sb':'sa'])}</div>`:''}${manBoard(m,R,w)}<div class="sub">${pre.badcode?`code <b>${esc(m[w?'cb':'ca'])}</b> : ${R.cd[w]}/2${R.cd[w]>=2?' ✓':''} <button class="mini" onclick="codeEd(${w})">✎ changer</button> `:''}${pre.score==='zones'?`score : ${R.sc[w]}`:pre.badcode||pre.np*pre.nl===1&&!Object.keys(pre.coups||{}).length?'':`points de zones : <b>${R.zp[w]}</b>`}${pre.contrat?` · contrat ${Math.min(R.ct[w],pre.contrat)}/${pre.contrat}${R.ct[w]>=pre.contrat?' ✓':''}`:''}</div></div>${LOUT?'':liveTiles(m,w,LD)}</div>${LOUT?`<div class="plout p${w}">${liveTiles(m,w,LD)}</div></div>`:''}`;
   const pend=PL.pend;
   box.innerHTML=`<div class="chd"><span data-eps-bar class="epsbar"></span><button class="lockbtn" onclick="playClose()">✕</button><h1>🏸 ${esc(pre.nom)}${m.simple?' <small class="tag" style="background:#eef4fa;color:#1F5F8B">saisie simple</small>':''}</h1><button class="lockbtn" onclick="PL.cnt=!PL.cnt;renderPlay()" title="Afficher le nombre et le % de points par zone">${PL.cnt?'🔢 Valeurs':'🔢 Compteurs'}</button><button class="lockbtn" onclick="m_flip()">⇄ Côtés</button><button class="lockbtn" onclick="playEnd()">🏁 Terminer</button></div>
   <div class="cbody wide">
-   <div class="board">${card(m.flip?1:0)}<div class="vs">${pre.score==='zones'?(tgt?'à '+tgt:'au temps'):'en '+tgt}${pre.ecart?'<br>écart 2':''}</div>${card(m.flip?0:1)}</div>${liveBanner(m)}
+   <div class="board">${card(m.flip?1:0)}<div class="vs">${pre.score==='zones'?(tgt?'à '+tgt:'au temps'):'en '+tgt}${pre.ecart?'<br>écart 2':''}</div>${card(m.flip?0:1)}</div>
    ${R.fin&&!m.fin?`<div class="ok big" style="text-align:center">🏆 ${R.win<0?'Égalité':esc(R.win?nB:nA)+' gagne'}${R.inst!=null?' instantanément (toutes les zones ★)':''}${R.bc?` · Badcode : ${esc(nA)} ${R.bc[0]} pts, ${esc(nB)} ${R.bc[1]} pts`:''} — touche « Terminer » ou continue.</div>`:''}
    ${PL.cedit!=null?`<div class="pend"><b>Nouveau code de ${esc(PL.cedit?nB:nA)} :</b> ${[0,1].map(j=>`<div class="seg">${[1,2,3,4].map(n=>`<button class="${(PL.nc||'')[j]==String(n)?'on':''}" onclick="codeNew(${j},${n})">${n}</button>`).join('')}</div>`).join(' → ')} <button class="btn alt sm" onclick="PL.cedit=null;renderPlay()">Annuler</button></div>`:''}
    <div class="cw play">${courtSvg({pre,mode:'play',pts:m.pts,R,id:'pcourt',pend,flip:m.flip,names:[nA,nB],counts:!!PL.cnt})}</div>
