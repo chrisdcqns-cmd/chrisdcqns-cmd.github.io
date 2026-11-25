@@ -1499,6 +1499,7 @@
     sim: { on: function () { return !!window.EPS_SIM; }, enter: function (n) { return simEnter(n); }, exit: function () { return simExit(); } },
     testClaude: function () { return testClaude(); },
     search: function () { searchStudents(); },
+    evalsOf: function (n, c) { return evalsOf(n, c); }, qr: function () { return loadQR(); },
     overview: function () { return overview(); },
     edtSlots: function (c, a, f, n) { return edtSlots(c, a, f, n); },
     check: function () { check(); },
@@ -1603,7 +1604,7 @@
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
     var s = b.style, slot = epsSlot();
     /* 🔄 visible partout, élèves compris : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
-    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-f{position:fixed;z-index:2147483300;top:calc(10px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));width:46px;height:46px;border-radius:50%;display:grid;place-items:center;border:0;padding:0;background:rgba(31,95,139,.9);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
+    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-f{position:fixed;z-index:2147483300;bottom:calc(12px + env(safe-area-inset-bottom,0px));right:calc(12px + env(safe-area-inset-right,0px));width:46px;height:46px;border-radius:50%;display:grid;place-items:center;border:0;padding:0;background:rgba(31,95,139,.9);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
     if (slot) b.className = "epsb"; else b.className = "eps-upd-f";
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
@@ -1623,8 +1624,11 @@
     var b = document.getElementById("eps-upd"); if (!b) return; if (window.EPS_VUE_ELEVE && window.top !== window) { b.style.display = "none"; return; }
     var sl = epsSlot(), ok = false;
     if (sl && sl.getClientRects().length) { var r = sl.getBoundingClientRect(), x = r.left + Math.min(20, r.width / 2), y = r.top + r.height / 2, top = r.width && y > 0 && y < innerHeight ? document.elementFromPoint(x, y) : null; ok = !!top && (sl.contains(top) || top === sl); if (!ok && b.parentNode === sl) { var r2 = b.getBoundingClientRect(), t2 = r2.width ? document.elementFromPoint(r2.left + r2.width / 2, r2.top + r2.height / 2) : null; ok = !!t2 && (t2 === b || b.contains(t2)); } }
-    if (ok) { if (b.parentNode !== sl) sl.appendChild(b); if (b.className !== "epsb") b.className = "epsb"; b.style.display = "inline-flex"; }
-    else { if (b.parentNode !== document.body) document.body.appendChild(b); if (b.className !== "eps-upd-f") b.className = "eps-upd-f"; b.style.display = ""; }
+    if (ok) { if (b.parentNode !== sl) sl.appendChild(b); if (b.className !== "epsb") b.className = "epsb"; b.style.display = "inline-flex"; return; }
+    /* barre absente, ou recouverte par l'écran élève « Choisis ta classe » / en mode élève : bouton rond en bas à droite ;
+       barre recouverte par un écran enseignant (évaluation, fiches…) : masqué, pour ne cacher aucun bouton */
+    var gate = document.querySelector(".epsg"), flot = !sl || !isTeacher() || (gate && gate.getClientRects().length);
+    if (b.parentNode !== document.body) document.body.appendChild(b); if (b.className !== "eps-upd-f") b.className = "eps-upd-f"; b.style.display = flot ? "" : "none";
   }
   /* emplacement(s) des boutons communs dans la barre du haut de l'appli : on utilise celui qui est visible
      (une appli peut en avoir plusieurs, par exemple un par écran) */
@@ -1661,14 +1665,15 @@
       var V = jget(key, {}), I = (V && V.items) || {};
       Object.keys(I).forEach(function (id) { var r = I[id]; if (!r || id === "cfg" || nkey((r.p || "") + " " + (r.n || "")) !== k || (c && r.c && cmp(r.c) !== c)) return;
         var n = r.ev ? Object.keys(r.ev).filter(function (x) { return r.ev[x] && r.ev[x].d != null; }).length : 0;
-        out.push({ app: ACTN[m[1]] || ({ escalade: "Escalade", acrosport: "Acrosport", orientation: "OrienRun", ori: "OrienRun" }[m[1]]) || m[1], n: n, comm: r.comm || "", st: r.st || "", auto: !!(r.ap && r.ap.ev) }); }); }
+        out.push({ app: ACTN[m[1]] || ({ escalade: "Escalade", acrosport: "Acrosport", orientation: "OrienRun", ori: "OrienRun" }[m[1]]) || m[1], n: n, comm: r.comm || "", st: r.st || "", auto: !!(r.ap && r.ap.ev), apr: (r.ap && (r.ap.r || r.ap.reussi)) || "", apm: (r.ap && (r.ap.m || r.ap.ameliorer)) || "" }); }); }
     /* applis à évaluation propre : Volley, Badminton, Danse (e.ev, commentaire, auto-positionnement), Relais (évaluations de course) */
     [["eps_volley_eval_v1", "Volley-ball"], ["eps_badminton_v1", "Badminton"], ["danse-eps-v1", "Danse"], ["relais-vitesse-data-v3", "Relais Vitesse"]].forEach(function (A) {
       var d = jget(A[0], null); ((d && d.classes) || []).forEach(function (cl) { if (c && cmp(cl.nom || cl.name) !== c) return;
         (cl.eleves || []).forEach(function (e) { if (nkey((e.prenom || "") + " " + (e.nom || "")) !== k) return;
           var n = e.ev ? Object.keys(e.ev).filter(function (x) { return e.ev[x] != null && e.ev[x] !== ""; }).length : (e.ea || []).concat(e.el || []).filter(function (x) { return x != null; }).length;
           var st = String(e.statut || "").toUpperCase(); st = /ABS/.test(st) ? "ABS" : /DISP/.test(st) ? "DISP" : "";
-          if (n || e.comment || e.comm || st) out.push({ app: A[1], n: n, comm: e.comment || e.comm || "", st: st, auto: !!((e.ap && e.ap.ev) || (e.auto && e.auto.ev)) }); }); });
+          var ap = e.ap || e.auto || null;
+          if (n || e.comment || e.comm || st || ap) out.push({ app: A[1], n: n, comm: e.comment || e.comm || "", st: st, auto: !!(ap && ap.ev), apr: (ap && (ap.reussi || ap.r)) || "", apm: (ap && (ap.ameliorer || ap.m)) || "" }); }); });
     });
     return out;
   }

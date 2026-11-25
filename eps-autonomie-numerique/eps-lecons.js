@@ -630,7 +630,7 @@
      eps.lecres.<appli>.v1 (pre lr.<appli>|), id = classe|jour|clé du nom, r = { "<idLeçon>:s0": 2, "<idLeçon>:rem": 1 }.
      Côté enseignant : onglet « 🏁 Bilan de séquence » (situations, taux de réussite, ce qui a péché, bilan par élève, impression). */
   var KS = "eps.lecres." + APP + ".v1", RES_L = ["Pas encore", "En partie", "Réussi"], RES_I = ["❌", "🟠", "✅"], RES_C = ["#C0392B", "#E67E22", "#1E8449"];
-  function sitList(l) { var S = (l.sits || []).map(function (s, i) { return { k: l.id + ":s" + i, t: "Situation " + (i + 1) + (s.t ? " · " + s.t : ""), crR: s.crR || "", simp: s.simp || "" }; });
+  function sitList(l) { var S = (l.sits || []).map(function (s, i) { return { k: l.id + ":s" + i, t: s.t && /^situation\s*\d/i.test(s.t) ? s.t : "Situation " + (i + 1) + (s.t ? " · " + s.t : ""), crR: s.crR || "", simp: s.simp || "" }; });
     if (l.rem || l.remCr) S.push({ k: l.id + ":rem", t: "Remise en action", crR: "", simp: "" }); return S; }
   function resId(cls, day, k) { return nn(cls) + "|" + day + "|" + k; }
   var PREVRES = {};
@@ -672,7 +672,7 @@
     var EL = roster(cls).map(function (n) { var k = ekey(n), last = {}; recs.forEach(function (o) { if (o.ek !== k) return; Object.keys(o.r || {}).forEach(function (sk) { last[sk] = o.r[sk]; }); });
       var done = SIT.filter(function (s) { return last[s.k] != null; }), pts = done.reduce(function (a, s) { return a + (last[s.k] === 2 ? 1 : last[s.k] === 1 ? .5 : 0); }, 0);
       var LE = []; EV.forEach(function (o) { var x = (o.el || {})[k]; if (!x) return; var v = ["p", "s", "t"].filter(function (q) { return x[q] != null; }).map(function (q) { return +x[q]; }); if (v.length) LE.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); });
-      return { n: n, done: done.length, taux: done.length ? pts / done.length : null, le: LE.length ? Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length / 3 * 20 * 4) / 4 : null, nle: LE.length,
+      return { n: n, last: last, done: done.length, taux: done.length ? pts / done.length : null, le: LE.length ? Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length / 3 * 20 * 4) / 4 : null, nle: LE.length,
         rate: done.filter(function (s) { return last[s.k] === 0; }), partiel: done.filter(function (s) { return last[s.k] === 1; }) }; });
     var noted = SIT.filter(function (s) { return s.tot; }), glob = noted.length ? noted.reduce(function (a, s) { return a + s.n[2] + .5 * s.n[1]; }, 0) / noted.reduce(function (a, s) { return a + s.tot; }, 0) : null;
     var ok = noted.filter(function (s) { return s.taux >= .7; }).sort(function (a, b) { return b.taux - a.taux; }), ko = noted.filter(function (s) { return s.taux < .5; }).sort(function (a, b) { return a.taux - b.taux; });
@@ -687,6 +687,40 @@
     t += "\nPar élève :\n" + B.EL.map(function (e) { return "- " + e.n + " : " + e.done + "/" + B.SIT.length + " situations notées, réussite " + pc(e.taux) + (e.le != null ? ", évaluation de leçon " + String(e.le).replace(".", ",") + "/20" : "") + (e.rate.length ? ". À retravailler : " + e.rate.map(sitName).join(", ") : "") + "."; }).join("\n");
     return t;
   }
+  /* 🖨 fiches élèves de fin de séquence (aperçu puis impression) : situations, réussite, leçons évaluées, auto-positionnement,
+     mot validé du professeur (commentaire de l'évaluation), classement ATP (Badminton), lien « Mon bilan » si les bilans sont en ligne. */
+  function qrSvg(txt) { try { var L = window.QRLib; if (!L || !txt) return ""; var q = new L.QRCode(-1, L.ECL.M); q.addData(txt); q.make(); var n = q.getModuleCount(), p = "";
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) p += "M" + c + " " + r + "h1v1h-1z"; return '<svg viewBox="-2 -2 ' + (n + 4) + " " + (n + 4) + '" width="110" height="110" xmlns="http://www.w3.org/2000/svg"><rect x="-2" y="-2" width="' + (n + 4) + '" height="' + (n + 4) + '" fill="#fff"/><path d="' + p + '" fill="#000"/></svg>'; } catch (e) { return ""; } }
+  function fichesEleves(cls, seq, B) {
+    var link = ""; try { link = window.EPSD && EPSD.bilLink ? EPSD.bilLink() : ""; } catch (e) {}
+    var atp = null; try { var bS = (0, eval)("typeof S!=='undefined'?S:null"); if (APP === "badminton" && typeof window.atpRank === "function" && bS && bS.classes) { var bc = bS.classes.filter(function (c) { return same(c.nom, cls); })[0]; if (bc) { var AR = atpRank(bc); atp = {}; AR.forEach(function (x) { var e = bc.eleves.filter(function (y) { return y.id === x.id; })[0]; if (e && (x.v + x.d)) atp[ekey((e.prenom || "") + " " + (e.nom || ""))] = { rk: x.rk, pts: x.pts, n: AR.length, v: x.v, d: x.d }; }); } } } catch (e) {}
+    var IC = { 2: "✅ Réussi", 1: "🟠 En partie", 0: "❌ Pas encore" }, today_ = new Date().toLocaleDateString("fr-FR");
+    var pages = B.EL.map(function (e) {
+      var ev = []; try { ev = (EPSD.evalsOf ? EPSD.evalsOf(e.n, cls) : []).filter(function (x) { return x.app === NOM; }); } catch (x) {}
+      var apr = ev.map(function (x) { return x.apr; }).filter(Boolean)[0] || "", apm = ev.map(function (x) { return x.apm; }).filter(Boolean)[0] || "", comm = ev.map(function (x) { return x.comm; }).filter(Boolean)[0] || "", a = atp && atp[ekey(e.n)];
+      var sits = B.SIT.map(function (s) { var v = e.last[s.k]; return "<tr><td>" + esc(sitName(s)) + "</td><td>" + (v == null ? '<span style="color:#888">non noté</span>' : IC[v]) + "</td></tr>"; }).join("");
+      var aRet = e.rate.concat(e.partiel).slice(0, 3);
+      return '<section class="lc-fiche"><div class="hd" style="border-bottom:4px solid ' + COL + '"><div><b style="font-size:20px">🏁 Bilan de fin de séquence · ' + esc(NOM) + "</b><br>" + esc(e.n) + " · " + esc(cls) + " · " + esc(seq) + '</div><div style="text-align:right;font-size:13px">' + today_ + "<br>" + (window.epsVoie ? (epsVoie(cls) === "pro" ? "Voie professionnelle" : "Voie générale et technologique") : "") + "</div></div>" +
+        '<div class="g"><div class="k"><b>' + (e.taux == null ? "—" : Math.round(e.taux * 100) + " %") + "</b><span>de réussite aux situations (" + e.done + "/" + B.SIT.length + " notées)</span></div>" +
+        (e.le != null ? '<div class="k"><b>' + String(e.le).replace(".", ",") + " / 20</b><span>évaluation des leçons (" + e.nle + ")</span></div>" : "") +
+        (a ? '<div class="k"><b>n° ' + a.rk + " / " + a.n + "</b><span>classement ATP · " + a.pts + " pts · " + a.v + " V - " + a.d + " D</span></div>" : "") + "</div>" +
+        "<h3>Mes situations</h3><table>" + sits + "</table>" +
+        ((apr || apm) ? "<h3>🙋 Ce que j'ai dit de moi</h3>" + (apr ? "<p>✓ J'ai réussi : " + esc(apr) + "</p>" : "") + (apm ? "<p>→ Je veux améliorer : " + esc(apm) + "</p>" : "") : "") +
+        (comm ? "<h3>💬 Le mot de mon professeur</h3><p>" + esc(comm) + "</p>" : "") +
+        (aRet.length ? "<h3>🎯 Pour la suite</h3><ul>" + aRet.map(function (s) { return "<li>Retravailler « " + esc(sitName(s)) + " »" + (s.crR ? " : " + esc(s.crR) : "") + "</li>"; }).join("") + "</ul>" : "<h3>🎯 Pour la suite</h3><p>Bravo : continue avec les variantes plus difficiles.</p>") +
+        (link ? '<div class="ln">' + qrSvg(link) + "<div><b>Mon bilan en ligne</b><br>" + esc(link) + "<br><small>avec le code personnel donné par ton professeur</small></div></div>" : "") + "</section>"; });
+    var ov = document.createElement("div"); ov.className = "lc-modal lc-fiches"; ov.style.zIndex = "2147483400";
+    ov.innerHTML = '<div style="max-width:860px"><div class="lc-row lc-noprint"><b style="flex:1">🖨 Fiches de fin de séquence · ' + esc(cls) + " (" + pages.length + ')</b><button type="button" class="lc-b p" data-pr>🖨 Imprimer</button><button type="button" class="lc-b" data-x>✕ Fermer</button></div><p class="lc-mut lc-noprint">Une page par élève. Seul ce qui a été validé (ton commentaire) et ce que l\'élève a saisi y figure.</p>' + pages.join("") + "</div>";
+    if (!document.getElementById("lc-fiche-css")) { var st = document.createElement("style"); st.id = "lc-fiche-css"; st.textContent =
+      ".lc-fiche{background:#fff;border:1px solid #E6E1D6;border-radius:14px;padding:16px 20px;margin:12px 0;font:15px/1.45 system-ui,sans-serif;color:#14171C}.lc-fiche .hd{display:flex;justify-content:space-between;gap:10px;padding-bottom:8px;margin-bottom:10px}" +
+      ".lc-fiche .g{display:flex;gap:10px;flex-wrap:wrap}.lc-fiche .k{border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;min-width:150px}.lc-fiche .k b{display:block;font-size:22px}.lc-fiche .k span{font-size:13px;color:#555}" +
+      ".lc-fiche h3{margin:12px 0 4px;font-size:16px}.lc-fiche table{border-collapse:collapse;width:100%}.lc-fiche td{border-bottom:1px solid #EEE;padding:4px 6px}.lc-fiche .ln{display:flex;gap:12px;align-items:center;margin-top:12px;border-top:1px dashed #CCC;padding-top:10px;font-size:13px;word-break:break-all}" +
+      "@media print{html.lc-fprint body>*:not(.lc-fiches){display:none!important}html.lc-fprint .lc-fiches{position:static!important;background:none!important;padding:0!important;display:block!important;overflow:visible!important}html.lc-fprint .lc-noprint{display:none!important}html.lc-fprint .lc-fiche{break-after:page;border:0;margin:0}}";
+      document.head.appendChild(st); }
+    document.body.appendChild(ov);
+    ov.querySelector("[data-x]").onclick = function () { ov.remove(); };
+    ov.querySelector("[data-pr]").onclick = function () { document.documentElement.classList.add("lc-fprint"); setTimeout(function () { window.print(); setTimeout(function () { document.documentElement.classList.remove("lc-fprint"); }, 600); }, 60); };
+  }
   function drawBilan() {
     var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || C[0] || ""; }
     var cls = LIVECLS, S = seqs().filter(function (s) { return lecons().some(function (l) { return (l.seq || "Sans séquence") === s && l.statut !== "brouillon"; }); });
@@ -697,7 +731,7 @@
     var h = '<h2>🏁 Bilan de fin de séquence</h2><p class="lc-mut">À partir des résultats que les élèves notent sur leur tablette à la fin de chaque situation (✅ réussi, 🟠 en partie, ❌ pas encore) et de tes évaluations de leçon.</p>' +
       '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-cls>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" +
       (S.length ? '<b>Séquence</b><select class="lc-sel" data-seq>' + S.map(function (s) { return "<option" + (s === seq ? " selected" : "") + ">" + esc(s) + "</option>"; }).join("") + "</select>" : "") +
-      (B ? '<button type="button" class="lc-b s" data-copy>📋 Copier le bilan</button><button type="button" class="lc-b s" data-print>🖨 Imprimer</button>' : "") + "</div>";
+      (B ? '<button type="button" class="lc-b s" data-copy>📋 Copier le bilan</button><button type="button" class="lc-b s" data-print>🖨 Imprimer</button><button type="button" class="lc-b s p" data-fiches>🖨 Fiches élèves</button>' : "") + "</div>";
     if (!B) h += '<div class="lc-box">Aucune leçon validée pour l\'instant : crée et valide tes fiches de leçon, les élèves pourront y noter leurs résultats.</div>';
     else {
       h += '<div class="lc-box" style="font-size:16px;line-height:1.5"><b>' + B.L.length + " leçon" + (B.L.length > 1 ? "s" : "") + ", " + B.SIT.length + " situations, " + B.nrec + " résultats notés.</b> Réussite globale : " + bar(B.glob) +
@@ -715,6 +749,7 @@
     el.querySelector("[data-cls]").onchange = function () { LIVECLS = this.value; BSEQ = null; drawBilan(); };
     var sq = el.querySelector("[data-seq]"); if (sq) sq.onchange = function () { BSEQ = this.value; drawBilan(); };
     var cp = el.querySelector("[data-copy]"); if (cp) cp.onclick = function () { var t = bilanTexte(cls, seq, B); try { navigator.clipboard.writeText(t).then(function () { cp.textContent = "✓ Copié"; }, function () { prompt("Copie ce bilan :", t); }); } catch (e) { prompt("Copie ce bilan :", t); } };
+    var fi = el.querySelector("[data-fiches]"); if (fi) fi.onclick = function () { var go = function () { fichesEleves(cls, seq, B); }; if (window.QRLib || !(window.EPSD && EPSD.qr && EPSD.bilLink && EPSD.bilLink())) go(); else EPSD.qr().then(go, go); };
     var pr = el.querySelector("[data-print]"); if (pr) pr.onclick = function () { document.documentElement.classList.add("lc-print"); setTimeout(function () { window.print(); setTimeout(function () { document.documentElement.classList.remove("lc-print"); }, 500); }, 50); };
   }
 
