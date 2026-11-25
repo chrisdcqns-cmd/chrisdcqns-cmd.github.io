@@ -53,7 +53,7 @@
 
   /* ---------- structure d'une leçon ---------- */
   var F = [["objM", "Objectif moteur"], ["objMe", "Objectif méthodologique"], ["objS", "Objectif social"], ["but", "But de la leçon"], ["disp", "Dispositif"], ["mat", "Matériel"], ["ech", "Échauffement : consigne"]];
-  var SF = [["t", "Titre de la situation"], ["cons", "Consigne"], ["crQ", "Critères de réussite : quantitatifs"], ["crQl", "Critères de réussite : qualitatifs"], ["crR", "Critères de réalisation (ce qu'il y a à faire pour réussir)"], ["simp", "Variables : simplification"], ["comp", "Variables : complexification"]];
+  var SF = [["t", "Titre de la situation"], ["cons", "Consigne"], ["crQ", "Critères de réussite (pour être en réussite) : quantitatifs"], ["crQl", "Critères de réussite (pour être en réussite) : qualitatifs"], ["crR", "Critères de réalisation (ce qu'il y a à faire pour faire)"], ["simp", "Variables : simplification"], ["comp", "Variables : complexification"]];
   var RF = [["rem", "Remise en action : consigne (match ou situation plus large)"], ["remCr", "Remise en action : critères de réussite"], ["bilan", "Bilan de la leçon"]];
   function blank(seq) { return { id: uid(), seq: seq || "", num: "", titre: "", duree: "", statut: "ok", ai: {}, sits: [{}, {}], prog: [] }; }
   function lecons() { return all(KL).sort(function (a, b) { return String(a.seq).localeCompare(String(b.seq), "fr") || (parseFloat(a.num) || 0) - (parseFloat(b.num) || 0) || (a.cr || 0) - (b.cr || 0); }); }
@@ -71,7 +71,7 @@
   function seqs() { var S = []; lecons().forEach(function (l) { var s = l.seq || "Sans séquence"; if (S.indexOf(s) < 0) S.push(s); }); return S; }
   function titreL(l) { return (l.num ? "Leçon " + l.num + " · " : "") + (l.titre || "Leçon sans titre"); }
   function compact(l) { var o = {}; ["seq", "num", "titre", "duree"].concat(F.map(function (x) { return x[0]; })).concat(RF.map(function (x) { return x[0]; })).forEach(function (k) { if (l[k]) o[k] = l[k]; });
-    o.sits = (l.sits || []).map(function (s) { var r = {}; SF.forEach(function (x) { if (s[x[0]]) r[x[0]] = s[x[0]]; }); return r; }); return o; }
+    if (l.echImg) o.echImg = l.echImg; o.sits = (l.sits || []).map(function (s) { var r = {}; SF.forEach(function (x) { if (s[x[0]]) r[x[0]] = s[x[0]]; }); if (s.img) r.img = s.img; if (s.ap) r.ap = s.ap; return r; }); return o; }
 
   /* ---------- styles ---------- */
   function css() {
@@ -82,6 +82,7 @@
       ".lc-top{display:flex;align-items:center;gap:8px;background:#14171C;color:#fff;padding:10px 14px;box-shadow:inset 0 -4px 0 " + COL + ";flex-wrap:wrap}",
       ".lc-top b{font-size:19px;margin-right:8px}.lc-top button{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer}",
       ".lc-top button.on{background:" + COL + ";border-color:" + COL + ";color:#fff}.lc-top .x{margin-left:auto}",
+      ".lc-au-c{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:1.5px solid #E6E1D6;background:#fff;border-radius:14px;padding:12px 14px;margin:6px 0;font:600 17px system-ui;cursor:pointer;position:relative}.lc-au-c span{font-weight:500;font-size:14.5px;color:#4A4F58}.lc-au-c i{position:absolute;right:12px;top:12px;font-style:normal}.lc-ap{border-top:1.5px dashed #E6E1D6;margin-top:8px;padding-top:6px}" +
       ".lc-body{flex:1;overflow:auto;padding:16px 18px 80px}.lc-in{max-width:1000px;margin:0 auto}",
       ".lc-st-g{display:grid;grid-template-columns:250px minmax(0,1fr) 210px;gap:18px;max-width:1600px;margin:0 auto;align-items:start}.lc-studio .lc-st-g .lc-in{max-width:none;margin:0}" +
       ".lc-st-l,.lc-st-r{position:sticky;top:0;max-height:calc(100vh - 110px);overflow:auto;background:#fff;border:1.5px solid #E6E1D6;border-radius:14px;padding:10px}" +
@@ -118,7 +119,7 @@
       ".lc-st .rang{background:#FFF6E0;border:2px solid #F0D58A}.lc-pre{white-space:pre-wrap}",
       ".lc-st .res{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed #E6E1D6;font:800 15px system-ui}",
       ".lc-st .res button,.lc-st .lc-who button{min-height:44px;border-radius:12px;border:2px solid #E6E1D6;background:#fff;font:800 15px system-ui;padding:0 12px;color:#14171C}",
-      ".lc-st .res button.on[data-rv='2']{background:#1E8449;border-color:#1E8449;color:#fff}.lc-st .res button.on[data-rv='1']{background:#E67E22;border-color:#E67E22;color:#fff}.lc-st .res button.on[data-rv='0']{background:#C0392B;border-color:#C0392B;color:#fff}",
+      ".lc-st .res button.on[data-rv='2'],.res button.on[data-av='2']{background:#1E8449;border-color:#1E8449;color:#fff}.lc-st .res button.on[data-rv='1'],.res button.on[data-av='1']{background:#E67E22;border-color:#E67E22;color:#fff}.lc-st .res button.on[data-rv='0'],.res button.on[data-av='0']{background:#C0392B;border-color:#C0392B;color:#fff}",
       ".lc-st .lc-who{display:flex;gap:8px;flex-wrap:wrap}.lc-st .lc-who button.on{background:" + COL + ";border-color:" + COL + ";color:#fff}.lc-st .bk.who.need{border:3px solid #C0392B}.lc-st .bk.today{background:#F7FBFF}",
       "@media print{.lc-ov .lc-top,.lc-b{display:none!important}html.lc-print body>*:not(.lc-ov){display:none!important}html.lc-print .lc-ov{position:static!important;display:block!important;height:auto!important}html.lc-print .lc-body{overflow:visible!important;height:auto!important}}"
     ].join("\n");
@@ -155,13 +156,16 @@
     Object.keys(D).forEach(function (k) { var t = D[k].parts.join("\n"); if (tot + t.length > 150000) t = t.slice(0, Math.max(0, 150000 - tot)); tot += t.length; if (t) out.push({ nom: D[k].nom, txt: t }); });
     return out;
   }
-  function fromAI(base, r, keepEmpty) { /* r : leçon renvoyée par Claude ; les champs remplis sont marqués « ai » */
+  function fromAI(base, r, keepEmpty, whole) { /* r : leçon renvoyée par Claude ; les champs remplis sont marqués « ai » ; whole = remise en forme (tout est réécrit) */
     var l = base || blank(); l.ai = l.ai || {};
+    var okImg = function (id) { return id && get(KI, String(id).replace(/^\[?SCH[ÉE]MA:/i, "").replace(/\]$/, "")) ? String(id).replace(/^\[?SCH[ÉE]MA:/i, "").replace(/\]$/, "") : null; };
+    if (whole) { F.concat(RF).forEach(function (x) { l[x[0]] = ""; }); var keepImg = (l.sits || []).map(function (q) { return q.img; }); l.sits = (r.sits || []).map(function (q, i) { return keepImg[i] && !q.img ? { img: keepImg[i] } : {}; }); }
+    if (okImg(r.echImg) && !(keepEmpty && l.echImg)) l.echImg = okImg(r.echImg);
     ["seq", "num", "titre", "duree"].concat(F.map(function (x) { return x[0]; })).concat(RF.map(function (x) { return x[0]; })).forEach(function (k) {
       var v = r[k]; if (v == null || v === "") return; v = String(v).trim(); if (!v) return;
       if (keepEmpty && l[k]) return; if (l[k] !== v) { l[k] = v; l.ai[k] = 1; } });
     var S = Array.isArray(r.sits) ? r.sits : []; l.sits = l.sits || [];
-    S.forEach(function (s, i) { var t = l.sits[i] = l.sits[i] || {}; SF.forEach(function (x) { var v = s && s[x[0]]; if (v == null || v === "") return; v = String(v).trim(); if (!v || (keepEmpty && t[x[0]])) return; if (t[x[0]] !== v) { t[x[0]] = v; l.ai["s" + i + "." + x[0]] = 1; } }); });
+    S.forEach(function (s, i) { var t = l.sits[i] = l.sits[i] || {}; if (s && okImg(s.img) && !(keepEmpty && t.img)) t.img = okImg(s.img); if (s && s.ap && !(keepEmpty && t.ap)) { t.ap = String(s.ap).trim(); l.ai["s" + i + ".ap"] = 1; } SF.forEach(function (x) { var v = s && s[x[0]]; if (v == null || v === "") return; v = String(v).trim(); if (!v || (keepEmpty && t[x[0]])) return; if (t[x[0]] !== v) { t[x[0]] = v; l.ai["s" + i + "." + x[0]] = 1; } }); });
     if (r.sources) l.sources = String(r.sources);
     l.statut = "brouillon"; return l;
   }
@@ -176,7 +180,13 @@
     var n = file.name.toLowerCase();
     if (/\.(txt|md|csv)$/.test(n)) return file.text();
     if (/\.(docx|pptx|odt|odp)$/.test(n)) return Promise.all([zip(), file.arrayBuffer()]).then(function (a) { return a[0].loadAsync(a[1]); }).then(function (z) {
-      if (/\.docx$/.test(n)) return z.file("word/document.xml").async("string").then(function (x) { return xmlTxt(x.replace(/<\/w:p>\s*<\/w:tc>/g, " | ").replace(/<\/w:tr>/g, "\n"), /<\/w:p>/g).replace(/ \| *(\n|$)/g, "$1"); });
+      if (/\.docx$/.test(n)) { var rf = z.file("word/_rels/document.xml.rels");
+        return Promise.all([z.file("word/document.xml").async("string"), rf ? rf.async("string") : ""]).then(function (a) {
+          var x = a[0], R = {}, J = [], pre = "dx" + uid(); (a[1].match(/<Relationship\b[^>]*>/g) || []).forEach(function (t) { var i = (t.match(/\bId="([^"]+)"/) || [])[1], g = (t.match(/\bTarget="([^"]+)"/) || [])[1]; if (i && g) R[i] = g; });
+          x = x.replace(/<w:drawing>[\s\S]*?<\/w:drawing>|<w:pict>[\s\S]*?<\/w:pict>/g, function (d) { var r = (d.match(/r:(?:embed|id)="([^"]+)"/) || [])[1], t = r && R[r]; if (!t || !/\.(png|jpe?g|gif|bmp|webp)$/i.test(t)) return ""; var kid = pre + "-" + J.length; J.push({ kid: kid, path: "word/" + t.replace(/^\/?word\//, "") }); return "<w:t>[SCHÉMA:" + kid + "]</w:t>"; });
+          return Promise.all(J.map(function (j) { var f = z.file(j.path); if (!f) return null; return f.async("blob").then(imgData).then(function (d) { put(KI, { id: j.kid, d: d }); return j.kid; }, function () { return null; }); })).then(function (ok) {
+            var t = xmlTxt(x.replace(/<\/w:p>\s*<\/w:tc>/g, " | ").replace(/<\/w:tr>/g, "\n"), /<\/w:p>/g).replace(/ \| *(\n|$)/g, "$1");
+            J.forEach(function (j, i) { if (!ok[i]) t = t.split("[SCHÉMA:" + j.kid + "]").join(""); }); if (ok.filter(Boolean).length) msg("« " + file.name + " » : " + ok.filter(Boolean).length + " schéma(s) repris."); return t; }); }); }
       if (/\.(odt|odp)$/.test(n)) return z.file("content.xml").async("string").then(function (x) { return xmlTxt(x, /<\/text:(p|h)>/g, /<text:tab\/>/g); });
       var S = Object.keys(z.files).filter(function (k) { return /^ppt\/slides\/slide\d+\.xml$/.test(k); }).sort(function (a, b) { return parseInt(a.replace(/\D/g, "")) - parseInt(b.replace(/\D/g, "")); });
       return Promise.all(S.map(function (k) { return z.file(k).async("string"); })).then(function (L) { return L.map(function (x, i) { return "--- Diapositive " + (i + 1) + " ---\n" + xmlTxt(x, /<\/a:p>/g, /<a:tab\/>/g); }).join("\n\n"); });
@@ -190,6 +200,7 @@
     }
     return Promise.reject(new Error("format non lu (docx, pptx, odt, pdf, txt ou photo)"));
   }
+  function imgData(blob) { return new Promise(function (res, rej) { (function go(max, q) { shrink(blob, max, q).then(function (d) { if (d.length > 30000 && max > 240) return go(Math.round(max * 0.8), Math.max(0.35, q - 0.08)); res(d); }, rej); })(900, 0.8); }); }
   function saveDoc(nom, txt, type) {
     var id = uid(), CH = 26000, n = Math.max(1, Math.ceil(txt.length / CH));
     for (var i = 0; i < n; i++) put(KD, { id: id + "." + i, doc: id, nom: nom, type: type || "", part: i, of: n, txt: txt.slice(i * CH, (i + 1) * CH), use: true, cr: Date.now() });
@@ -233,7 +244,7 @@
     var grid = document.createElement("div"); grid.className = "lc-st-g"; body.innerHTML = ""; grid.appendChild(ls); grid.appendChild(inn); grid.appendChild(toc); body.appendChild(grid);
     /* boutons d'action de la fiche (valider, Claude, programmer…) repris dans le sommaire : toujours à portée */
     var act = toc.querySelector("[data-stact]");
-    ["[data-ok]", "[data-fill]", "[data-modfill]", "[data-see]", "[data-launch]", "[data-dup]", "[data-modsave]", "[data-unok]"].map(function (q) { return inn.querySelector(q); }).filter(Boolean).forEach(function (b) { var c = document.createElement("button"); c.type = "button"; c.className = "lc-st-t"; c.textContent = b.textContent; c.onclick = function () { b.scrollIntoView({ block: "center" }); b.click(); }; act.appendChild(c); });
+    ["[data-ok]", "[data-fill]", "[data-refmt]", "[data-modfill]", "[data-see]", "[data-launch]", "[data-dup]", "[data-modsave]", "[data-unok]"].map(function (q) { return inn.querySelector(q); }).filter(Boolean).forEach(function (b) { var c = document.createElement("button"); c.type = "button"; c.className = "lc-st-t"; c.textContent = b.textContent; c.onclick = function () { b.scrollIntoView({ block: "center" }); b.click(); }; act.appendChild(c); });
     ls.querySelectorAll("[data-stl]").forEach(function (b) { b.onclick = function () { saveEdit(); EDIT = b.dataset.stl; draw(); OV.querySelector(".lc-body").scrollTop = 0; }; });
     ls.querySelector("[data-stnew]").onclick = function () { saveEdit(); var last = L[L.length - 1], l = fromModel(last ? last.seq || "" : ""); l.cr = Date.now(); l.num = String(L.filter(function (x) { return x.seq === l.seq; }).length + 1); put(KL, l); EDIT = l.id; draw(); };
     var T = toc.querySelectorAll("[data-sto]");
@@ -282,7 +293,7 @@
     SELC = SELC.filter(function (c) { return CC.some(function (x) { return same(x, c); }); });
     var nd = docList().filter(function (d) { return d.use && !L.some(function (l) { return l.doc === d.id; }); }).length;
     var h = '<h2>Mes fiches de leçon</h2><p class="lc-mut">Fiches de leçon de ' + esc(NOM) + ". Les élèves ne voient que les leçons validées ✓, programmées ou lancées.</p>" +
-      '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button>" + '<button type="button" class="lc-b" data-autoprog>📅 Programmer d\'après l\'emploi du temps</button>' +
+      '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button>" + '<button type="button" class="lc-b" data-autoprog>📅 Programmer d\'après l\'emploi du temps</button>' + '<button type="button" class="lc-b" data-bankopen>🏦 Banque & apprentissages</button>' + (L.length ? '<button type="button" class="lc-b" data-refall title="Toutes les fiches de l\'activité rangées selon ton modèle (importées de Word, de documents…)">🔁 Remettre en forme toutes les fiches</button>' : "") +
       (nd ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>" : "") + "</div>" +
       (CC.length ? '<div class="lc-box"><b>👥 Séquence par classe</b><p class="lc-mut" style="margin:2px 0 6px">Touche une ou plusieurs classes, puis « ＋ Attribuer » sur les leçons à leur proposer : chaque classe a sa propre séquence. Une classe sans leçon attribuée garde toutes les leçons.</p><div class="lc-row">' +
         CC.map(function (c) { var on = SELC.some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-selc="' + esc(c) + '" title="' + (vClasse(c) === "pro" ? "Voie professionnelle" : "Voie générale") + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
@@ -316,6 +327,8 @@
       var autres = l.voie ? SELC.filter(function (c) { return vClasse(c) !== l.voie; }) : []; if (!allIn && autres.length && !confirm("Cette leçon est écrite pour la " + (l.voie === "pro" ? "voie professionnelle (AFLP)" : "voie générale (AFL)") + ", mais " + autres.join(", ") + (autres.length > 1 ? " sont" : " est") + " en " + (l.voie === "pro" ? "voie générale" : "voie professionnelle") + ". L'attribuer quand même ?")) return;
       setCls(l, SELC, !allIn); put(KL, l); var y = OV.querySelector(".lc-body").scrollTop; draw(); OV.querySelector(".lc-body").scrollTop = y; }; });
     var im = el.querySelector("[data-imall]"); if (im) im.onclick = importAll;
+    var bko = el.querySelector("[data-bankopen]"); if (bko) bko.onclick = function () { bankOpen(); };
+    var rfa = el.querySelector("[data-refall]"); if (rfa) rfa.onclick = refmtAll;
   }
 
   /* ---- éditeur ---- */
@@ -324,20 +337,113 @@
   var PH = { objM: "Ce que l'élève apprend à faire (ex. éloigner l'adversaire en jouant en longueur)", objMe: "Comment il s'organise pour apprendre (observer, se fixer un projet, répéter…)", objS: "Rôle, entraide, règles (arbitre, coach, observateur…)",
     but: "Ce que l'élève doit réussir à la fin de la leçon, dit simplement", disp: "Organisation : groupes, terrains ou ateliers, rotations, espace", mat: "ex. 1 volant pour 2 · 1 chasuble par élève · 1 plot par groupe (les quantités se calculent avec les présents)",
     ech: "Consigne de l'échauffement (routine, durée, organisation)", t: "Titre court de la situation", cons: "Consigne : ce que font les élèves, organisation, durée, rotations",
-    crQ: "Quantitatif : ce qui se compte (ex. 8 réussites sur 10)", crQl: "Qualitatif : ce qui s'observe (ex. le volant tombe au fond du terrain)", crR: "Ce qu'il y a à faire pour réussir (placements, gestes, prises d'information…)",
-    simp: "− Pour simplifier (espace, distance, matériel, opposition…)", comp: "+ Pour complexifier", rem: "Situation plus large ou match qui reprend les acquis", remCr: "Je réussis si…", bilan: "Questions de bilan, ce qu'on retient, lien avec la leçon suivante" };
+    crQ: "Ce qu'il y a à faire pour être en réussite, qui se compte (ex. 8 réussites sur 10)", crQl: "Ce qu'il y a à faire pour être en réussite, qui s'observe (ex. le volant tombe au fond du terrain)", crR: "Ce qu'il y a à faire pour faire : comment faire (placements, gestes, prises d'information…)",
+    simp: "− Pour simplifier (espace, distance, matériel, opposition…)", comp: "+ Pour complexifier", rem: "Situation plus large ou match qui reprend les acquis", remCr: "Je réussis si…", bilan: "Questions de bilan, ce qu'on retient, lien avec la leçon suivante", ap: "ex. smash, frappe haute (avec les mots que tu emploies dans tes conseils)" };
   var KMOD = "eps.console.v1";
   function modele() { return get(KMOD, "lcmod." + APP) || get(KMOD, "lcmod") || null; }
   function fromModel(seq) { var l = blank(seq), M = modele(); if (!M || !M.f) return l; var f = JSON.parse(JSON.stringify(M.f)); Object.keys(f).forEach(function (k) { l[k] = f[k]; }); if (!l.sits || !l.sits.length) l.sits = [{}, {}]; return l; }
   function modFields(l) { var f = {}; F.concat(RF).forEach(function (x) { if (l[x[0]]) f[x[0]] = l[x[0]]; }); if (l.duree) f.duree = l.duree; if (l.echImg) f.echImg = l.echImg;
     f.sits = (l.sits || []).map(function (s) { var o = {}; SF.forEach(function (x) { if (s[x[0]]) o[x[0]] = s[x[0]]; }); if (s.img) o.img = s.img; return o; }); return f; }
+  /* 🏦 banque de leçons et 🎯 apprentissages : chaque situation porte les apprentissages qu'elle travaille (s.ap, mots-clés) ;
+     l'enseignant propose une situation à des élèves (eps.remed.v1, « rm| ») ou ses conseils écrits (commentaire validé d'évaluation)
+     et le « à améliorer » de l'élève citent un apprentissage → l'élève retrouve la situation dans « 🎯 Travailler en autonomie ». */
+  var KRM = "eps.remed.v1";
+  function tnorm(t) { return String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
+  function tagsOf(x) { return String((x && x.ap) || "").split(/[,;\n]/).map(function (t) { return t.trim(); }).filter(Boolean); }
+  function allSits(onlyAuto) { var out = []; lecons().forEach(function (l) { if (l.statut === "brouillon") return; (l.sits || []).forEach(function (x, i) { if (onlyAuto && x.noauto) return; var T = tagsOf(x); if (!T.length && onlyAuto) return; out.push({ l: l, i: i, s: x, k: l.id + ":s" + i, tags: T }); }); }); return out; }
+  function allTags() { var M = {}; allSits(false).forEach(function (o) { o.tags.forEach(function (t) { var k = tnorm(t); if (!k) return; (M[k] = M[k] || { t: t, n: 0 }).n++; }); }); return Object.keys(M).map(function (k) { return M[k]; }).sort(function (a, b) { return a.t.localeCompare(b.t, "fr"); }); }
+  function sitTitle(o) { return (o.s.t ? o.s.t : "Situation " + (o.i + 1)) + " · " + titreL(o.l); }
+  /* conseils écrits pour un élève (commentaire validé de l'enseignant, « à améliorer » de l'élève) qui citent un apprentissage */
+  function conseils(cls, nom) {
+    var E = []; try { E = (window.EPSD && EPSD.evalsOf) ? EPSD.evalsOf(nom, cls) : []; } catch (e) {}
+    var P = tnorm(E.map(function (x) { return x.comm || ""; }).join(" ")), M = tnorm(E.map(function (x) { return x.apm || ""; }).join(" ")), out = [];
+    allSits(true).forEach(function (o) { var why = ""; o.tags.forEach(function (t) { var k = tnorm(t); if (k.length < 3) return; if (!why && (" " + P + " ").indexOf(" " + k) >= 0) why = "Conseil de ton professeur : " + t; else if (!why && (" " + M + " ").indexOf(" " + k) >= 0) why = "Tu as écrit vouloir améliorer : " + t; }); if (why) out.push({ o: o, why: why }); });
+    return out; }
+  function recsOf(cls, nom) { return all(KRM).filter(function (r) { return r.app === APP && same(r.cls, cls) && ekey(r.el) === ekey(nom); }).sort(function (a, b) { return b.at - a.at; }); }
+  function recOpen(L) {
+    var C = classes(), c0 = (cur() && cur().nom) || C[0] || "", md = document.createElement("div"); md.className = "lc-modal";
+    function draw(cls) { var R = roster(cls);
+      md.innerHTML = '<div><h2>🎯 Proposer en autonomie</h2><p class="lc-mut">' + L.map(function (o) { return esc(sitTitle(o)); }).join("<br>") + '</p><label class="lc-f"><span>Classe</span><select class="lc-sel" data-c>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select></label>" +
+        '<p class="lc-mut">Touche les élèves concernés : ils retrouveront la situation dans « 🎯 Travailler en autonomie » sur les tablettes.</p><div class="lc-row" style="gap:6px">' + R.map(function (n, i) { var has = L.every(function (o) { return all(KRM).some(function (r) { return r.k === o.k && same(r.cls, cls) && ekey(r.el) === ekey(n); }); }); return '<button type="button" class="lc-b s" data-n="' + i + '" aria-pressed="' + has + '"' + (has ? ' style="background:' + COL + ';color:#fff;border-color:' + COL + '"' : "") + ">" + esc(n) + "</button>"; }).join("") + "</div>" +
+        '<label class="lc-f"><span>Petit mot pour l\'élève (facultatif)</span><input data-t placeholder="ex. Travaille ton smash : frappe haute, devant toi"></label><div class="lc-row"><button type="button" class="lc-b p" data-ok>✓ Enregistrer</button><button type="button" class="lc-b" data-x>Fermer</button></div></div>';
+      md.querySelector("[data-c]").onchange = function () { draw(this.value); }; md.querySelector("[data-x]").onclick = function () { md.remove(); };
+      md.querySelectorAll("[data-n]").forEach(function (b) { b.onclick = function () { var on = b.getAttribute("aria-pressed") !== "true"; b.setAttribute("aria-pressed", String(on)); b.style.cssText = on ? "background:" + COL + ";color:#fff;border-color:" + COL : ""; }; });
+      md.querySelector("[data-ok]").onclick = function () { var t = md.querySelector("[data-t]").value.trim(), n = 0;
+        md.querySelectorAll("[data-n]").forEach(function (b) { var nom = R[+b.dataset.n], on = b.getAttribute("aria-pressed") === "true";
+          L.forEach(function (o) { var id = nn(cls) + "|" + ekey(nom) + "|" + o.k, ex = get(KRM, id);
+            if (on && !ex) { put(KRM, { id: id, app: APP, cls: cls, el: nom, k: o.k, tag: o.tags ? o.tags.join(", ") : tagsOf(o.s).join(", "), txt: t, at: Date.now(), st: 0 }); n++; }
+            else if (on && ex && t) { ex.txt = t; put(KRM, ex); }
+            else if (!on && ex) { ex.del = 1; put(KRM, ex); } }); });
+        md.remove(); try { EPSD.syncSoon(); } catch (e) {} }; }
+    document.body.appendChild(md); draw(c0);
+  }
+  function bankOpen() {
+    var md = document.createElement("div"), Q = "", TG = ""; md.className = "lc-modal";
+    function draw() {
+      var T = allTags(), S = allSits(false).filter(function (o) { var q = tnorm(Q); return (!TG || o.tags.some(function (t) { return tnorm(t) === TG; })) && (!q || tnorm(sitTitle(o) + " " + o.tags.join(" ") + " " + (o.s.cons || "")).indexOf(q) >= 0); });
+      var B = lecons().filter(function (l) { var q = tnorm(Q); return l.banque && !TG && (!q || tnorm(titreL(l) + " " + (l.seq || "") + " " + (l.but || "")).indexOf(q) >= 0); });
+      var RC = all(KRM).filter(function (r) { return r.app === APP; });
+      md.innerHTML = '<div style="max-width:980px"><div class="lc-row"><h2 style="flex:1;margin:0">🏦 Banque & apprentissages · ' + esc(NOM) + '</h2><button type="button" class="lc-b" data-x>✕ Fermer</button></div>' +
+        '<input class="lc-sel" data-q placeholder="Chercher : smash, service, relais…" value="' + esc(Q) + '" style="width:100%;margin:6px 0">' +
+        '<div class="lc-row" style="gap:6px">' + (T.length ? T.map(function (t) { var on = tnorm(t.t) === TG; return '<button type="button" class="lc-b s" data-tg="' + esc(tnorm(t.t)) + '"' + (on ? ' style="background:' + COL + ';color:#fff;border-color:' + COL + '"' : "") + ">🎯 " + esc(t.t) + " <small>(" + t.n + ")</small></button>"; }).join("") : '<span class="lc-mut">Aucun apprentissage noté : dans une fiche, remplis « 🎯 Apprentissage travaillé » sous chaque situation (ex. smash).</span>') + "</div>" +
+        "<h3>🏃 Situations (" + S.length + ")</h3>" + (S.map(function (o, j) { return '<div class="lc-card"><div class="t"><b>' + esc(sitTitle(o)) + "</b>" + o.tags.map(function (t) { return ' <span class="lc-tag">🎯 ' + esc(t) + "</span>"; }).join("") + (o.s.noauto ? ' <span class="lc-tag">pas en autonomie</span>' : "") + '</div><div class="lc-row" style="margin:4px 0 0"><button type="button" class="lc-b s" data-op="' + esc(o.l.id) + '">Ouvrir la fiche</button>' + (o.s.noauto || o.l.statut === "brouillon" ? "" : '<button type="button" class="lc-b s" data-rec="' + j + '">🎯 Proposer à des élèves</button>') + "</div></div>"; }).join("") || '<p class="lc-mut">Aucune situation.</p>') +
+        (TG ? "" : "<h3>⭐ Leçons de ma banque (" + B.length + ")</h3>" + (B.map(function (l) { return '<div class="lc-card"><div class="t"><b>' + esc(titreL(l)) + '</b> <span class="lc-mut">' + esc(l.seq || "") + '</span></div><div class="lc-row" style="margin:4px 0 0"><button type="button" class="lc-b s" data-op="' + esc(l.id) + '">Ouvrir</button><button type="button" class="lc-b s" data-cp="' + esc(l.id) + '">⧉ Copier dans une séquence</button></div></div>'; }).join("") || '<p class="lc-mut">Range une leçon avec « ☆ Ranger dans ma banque » en haut de sa fiche : elle reste disponible d\'une année et d\'une séquence à l\'autre.</p>')) +
+        "<h3>📬 Propositions en cours (" + RC.length + ")</h3>" + (RC.sort(function (a, b) { return b.at - a.at; }).slice(0, 60).map(function (r) { var l = get(KL, String(r.k).split(":")[0]); return '<div class="lc-row" style="margin:3px 0"><b>' + esc(r.el) + '</b> <span class="lc-mut">' + esc(r.cls) + "</span> · " + esc(r.tag || (l ? titreL(l) : "")) + " · " + [ "proposée", "essayée", "🟠 en partie", "✅ réussie"][r.st || 0] + ' <button type="button" class="lc-b s" data-rmr="' + esc(r.id) + '" aria-label="Retirer">✕</button></div>'; }).join("") || '<p class="lc-mut">Aucune.</p>') + "</div>";
+      var q = md.querySelector("[data-q]"); q.oninput = function () { Q = q.value; var p = q.selectionStart; draw(); var q2 = md.querySelector("[data-q]"); q2.focus(); q2.setSelectionRange(p, p); };
+      md.querySelector("[data-x]").onclick = function () { md.remove(); };
+      md.querySelectorAll("[data-tg]").forEach(function (b) { b.onclick = function () { TG = TG === b.dataset.tg ? "" : b.dataset.tg; draw(); }; });
+      md.querySelectorAll("[data-op]").forEach(function (b) { b.onclick = function () { md.remove(); if (!OV || OV.style.display === "none") open("edit", b.dataset.op); else { saveEdit(); TAB = "lec"; EDIT = b.dataset.op; draw(); } }; });
+      md.querySelectorAll("[data-rec]").forEach(function (b) { b.onclick = function () { recOpen([S[+b.dataset.rec]]); }; });
+      md.querySelectorAll("[data-rmr]").forEach(function (b) { b.onclick = function () { var r = get(KRM, b.dataset.rmr); if (r) { r.del = 1; put(KRM, r); } draw(); }; });
+      md.querySelectorAll("[data-cp]").forEach(function (b) { b.onclick = function () { var l = get(KL, b.dataset.cp), sq = prompt("Dans quelle séquence ?", l.seq || ""); if (sq == null) return; var c = JSON.parse(JSON.stringify(l)); c.id = uid(); c.seq = sq; c.prog = []; c.cls = []; c.banque = false; c.cr = Date.now(); c.num = String(lecons().filter(function (x) { return x.seq === sq; }).length + 1); put(KL, c); md.remove(); open("edit", c.id); }; });
+    }
+    document.body.appendChild(md); draw();
+  }
+  /* 🎯 côté élève : « Travailler en autonomie » (aussi aperçu enseignant) */
+  function autoOpen() {
+    css(); var o = document.getElementById("lc-au"); if (!o) { o = document.createElement("div"); o.id = "lc-au"; o.className = "lc-st"; o.style.zIndex = "2147481500"; document.body.appendChild(o); }
+    var C = classes(), cls = (cur() && cur().nom) || (C.length === 1 ? C[0] : ""), nom = "", view = null, TG = "";
+    var img = function (id) { var im = id && get(KI, id); return im ? '<img class="lc-img" src="' + im.d + '" alt="schéma">' : ""; }, k = function (lab, t) { return t ? '<div class="k">' + lab + '</div><div class="lc-pre">' + esc(t) + "</div>" : ""; };
+    function card(x, why, rec) { return '<button type="button" class="lc-au-c" data-k="' + esc(x.k) + '"><b>' + esc(x.s.t || "Situation " + (x.i + 1)) + "</b><span>" + esc(why || x.tags.join(" · ")) + "</span>" + (rec && rec.st ? "<i>" + ["", "essayée", "🟠", "✅"][rec.st] + "</i>" : "") + "</button>"; }
+    function draw() {
+      var h = '<div class="hd"><b>🎯 Travailler en autonomie</b><button type="button" data-x>✕ Fermer</button></div><div class="in">', S = allSits(true);
+      if (!cls) h += '<div class="bk"><h3>Ta classe</h3><div class="lc-who">' + C.map(function (c) { return '<button type="button" data-cl="' + esc(c) + '">' + esc(c) + "</button>"; }).join("") + "</div></div>";
+      else if (!nom) h += '<div class="bk"><h3>👤 Qui es-tu ?</h3><div class="lc-who">' + whoList(cls).map(function (n) { return '<button type="button" data-nm="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div></div>";
+      else if (view) { var x = S.filter(function (z) { return z.k === view; })[0] || allSits(false).filter(function (z) { return z.k === view; })[0]; if (!x) { view = null; return draw(); } var s = x.s, rec = recsOf(cls, nom).filter(function (r) { return r.k === x.k; })[0];
+        h += '<div class="lc-row"><button type="button" class="lc-b s" data-back>← Mes situations</button></div><div class="bk"><h3>🏃 ' + esc(s.t || "Situation") + "</h3>" + (rec && rec.txt ? '<div class="lc-warn">💬 ' + esc(rec.txt) + "</div>" : "") + (s.cons ? '<div class="lc-pre">' + esc(s.cons) + "</div>" : "") + img(s.img) +
+          k("✅ Je suis en réussite si…", [s.crQ, s.crQl].filter(Boolean).join("\n")) + k("💡 Comment faire…", s.crR) + k("⬇ Plus facile", s.simp) + k("⬆ Plus difficile", s.comp) +
+          '<div class="res"><span>Mon résultat :</span>' + [2, 1, 0].map(function (v) { return '<button type="button" data-av="' + v + '">' + RES_I[v] + " " + RES_L[v] + "</button>"; }).join("") + '</div><div data-am style="color:#1E8449;font-weight:700"></div></div>'; }
+      else { var R = recsOf(cls, nom), mine = [];
+        R.forEach(function (r) { var x = S.filter(function (z) { return z.k === r.k; })[0]; if (x) mine.push({ x: x, why: (r.txt ? "💬 " + r.txt : "Proposée par ton professeur") + (r.tag ? " · " + r.tag : ""), r: r }); });
+        conseils(cls, nom).forEach(function (c) { if (!mine.some(function (m) { return m.x.k === c.o.k; })) mine.push({ x: c.o, why: c.why }); });
+        var T = allTags().filter(function (t) { return S.some(function (z) { return z.tags.some(function (u) { return tnorm(u) === tnorm(t.t); }); }); });
+        h += '<div class="lc-row"><b style="flex:1;font-size:18px">👤 ' + esc(nom) + '</b><button type="button" class="lc-b s" data-chg>Changer</button></div>' +
+          '<div class="bk"><h3>🎯 Pour toi</h3>' + (mine.length ? mine.map(function (m) { return card(m.x, m.why, m.r); }).join("") : "<div>Rien de proposé pour l'instant. Choisis ci-dessous ce que tu veux améliorer.</div>") + "</div>" +
+          '<div class="bk"><h3>🔎 Je veux progresser sur…</h3><div class="lc-who">' + T.map(function (t) { return '<button type="button" data-tg="' + esc(tnorm(t.t)) + '" aria-pressed="' + (tnorm(t.t) === TG) + '"' + (tnorm(t.t) === TG ? ' class="on"' : "") + ">" + esc(t.t) + "</button>"; }).join("") + "</div>" +
+          (TG ? S.filter(function (z) { return z.tags.some(function (u) { return tnorm(u) === TG; }); }).map(function (z) { return card(z, titreL(z.l)); }).join("") : "") + "</div>"; }
+      o.innerHTML = h + "</div>"; o.style.display = "block";
+      o.querySelector("[data-x]").onclick = function () { o.style.display = "none"; };
+      o.querySelectorAll("[data-cl]").forEach(function (b) { b.onclick = function () { cls = b.dataset.cl; draw(); }; });
+      o.querySelectorAll("[data-nm]").forEach(function (b) { b.onclick = function () { nom = b.dataset.nm; draw(); }; });
+      o.querySelectorAll("[data-tg]").forEach(function (b) { b.onclick = function () { TG = TG === b.dataset.tg ? "" : b.dataset.tg; draw(); }; });
+      o.querySelectorAll(".lc-au-c").forEach(function (b) { b.onclick = function () { view = b.dataset.k; draw(); o.scrollTop = 0; }; });
+      var bb = o.querySelector("[data-back]"); if (bb) bb.onclick = function () { view = null; draw(); };
+      var ch = o.querySelector("[data-chg]"); if (ch) ch.onclick = function () { nom = ""; view = null; draw(); };
+      o.querySelectorAll("[data-av]").forEach(function (b) { b.onclick = function () { var v = +b.dataset.av; o.querySelectorAll("[data-av]").forEach(function (z) { z.classList.toggle("on", z === b); });
+        if (!isT()) { resSet(cls, nom, view, v); var r = recsOf(cls, nom).filter(function (z) { return z.k === view; })[0]; if (r) { r.st = v === 2 ? 3 : v === 1 ? 2 : 1; r.tried = Date.now(); put(KRM, r); } }
+        o.querySelector("[data-am]").textContent = v === 2 ? "Bravo ! Ton professeur le verra." : "Continue : essaie la version « plus facile », puis reviens à la situation."; }; });
+    }
+    draw();
+  }
+  (window.EPSG_COMMON = window.EPSG_COMMON || []).push({ ico: "🎯", label: "Travailler en autonomie", sub: "Les situations pour progresser", when: function () { return allSits(true).length > 0; }, open: function () { autoOpen(); } });
+  try { if (window.EPSG_REFRESH && document.querySelector(".epsg")) window.EPSG_REFRESH(); } catch (e) {}
   function fld(k, lab, v, ai, attrs, input) { if (PH[k] && !/placeholder=/.test(attrs || "")) attrs = (attrs || "") + ' placeholder="' + esc(PH[k]) + '"'; return '<label class="lc-f' + (ai ? " ai" : "") + '"><span>' + esc(lab) + "</span>" + (input ? '<input ' + attrs + ' value="' + esc(v || "") + '">' : "<textarea " + attrs + ">" + esc(v || "") + "</textarea>") + "</label>"; }
   function imgBox(kind, ref) { var im = ref && get(KI, ref); return '<div class="lc-row">' + (im ? '<img class="lc-img" src="' + im.d + '" alt="schéma">' : "") + '<label class="lc-b s" style="display:inline-flex;align-items:center">🖼 ' + (im ? "Changer" : "Ajouter") + ' le schéma<input type="file" accept="image/*" data-img="' + kind + '" hidden></label>' + (im ? '<button type="button" class="lc-b s" data-noimg="' + kind + '">✕ Retirer</button>' : "") + "</div>"; }
   function saveEdit() { if (WORK) { clearTimeout(SAVE_T); put(KL, WORK); } }
   function drawEdit() {
     var l = get(KL, EDIT); if (!l) { EDIT = null; return drawList(); }
     WORK = JSON.parse(JSON.stringify(l)); var A = WORK.ai || {}, br = WORK.statut === "brouillon";
-    var h = '<div class="lc-row"><button type="button" class="lc-b s" data-back>← Mes fiches de leçon</button><span style="flex:1"></span>' + (br ? '<span class="lc-tag br">✨ brouillon : invisible pour les élèves</span>' : '<span class="lc-tag ok">✓ validée</span>') + "</div>" +
+    var h = '<div class="lc-row"><button type="button" class="lc-b s" data-back>← Mes fiches de leçon</button><span style="flex:1"></span>' + '<button type="button" class="lc-b s" data-bank aria-pressed="' + !!WORK.banque + '">' + (WORK.banque ? "⭐ Dans ma banque" : "☆ Ranger dans ma banque") + "</button>" + (br ? '<span class="lc-tag br">✨ brouillon : invisible pour les élèves</span>' : '<span class="lc-tag ok">✓ validée</span>') + "</div>" +
       (br ? '<div class="lc-warn">Relis et corrige les champs en jaune (proposés par Claude), puis « ✓ Valider ». Tant que la leçon n\'est pas validée, elle ne peut être ni programmée ni montrée aux élèves.' + (WORK.sources ? "<br><small>Sources indiquées par Claude : " + esc(WORK.sources) + "</small>" : "") + "</div>" : "") +
       '<div class="lc-box"><div class="lc-g3">' + fld("seq", "Séquence", WORK.seq, A.seq, 'data-f="seq" list="lc-seqs"', true) + fld("num", "N° de leçon", WORK.num, A.num, 'data-f="num"', true) + fld("duree", "Durée", WORK.duree, A.duree, 'data-f="duree" placeholder="ex. 1 h 45"', true) + "</div>" +
       fld("titre", "Titre", WORK.titre, A.titre, 'data-f="titre"', true) + '<label class="lc-f"><span>Voie</span><select class="lc-sel" data-voie style="width:100%"><option value="gt"' + (voieDe(WORK) === "gt" ? " selected" : "") + '>🎓 Générale et technologique (AFL)</option><option value="pro"' + (voieDe(WORK) === "pro" ? " selected" : "") + '>🛠 Professionnelle (AFLP)</option></select></label>' + '<datalist id="lc-seqs">' + seqs().map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("") + "</datalist></div>" +
@@ -346,7 +452,10 @@
       '<div class="lc-box"><h3 style="margin-top:4px">🔥 Échauffement</h3>' + fld("ech", "Consigne", WORK.ech, A.ech, 'data-f="ech"') + imgBox("ech", WORK.echImg) + "</div>" +
       (WORK.sits || []).map(function (s, i) { return '<div class="lc-box"><div class="lc-row" style="margin:0"><h3 style="margin:4px 0;flex:1">🏃 Situation ' + (i + 1) + "</h3>" + '<button type="button" class="lc-b s" data-rmsit="' + i + '">✕ Retirer</button></div>' + fld("t", SF[0][1], s.t, A["s" + i + ".t"], 'data-s="' + i + '" data-f="t"', true) + fld("cons", SF[1][1], s.cons, A["s" + i + ".cons"], 'data-s="' + i + '" data-f="cons"') + imgBox("s" + i, s.img) +
         '<div class="lc-g3">' + SF.slice(2, 4).map(function (x) { return fld(x[0], x[1], s[x[0]], A["s" + i + "." + x[0]], 'data-s="' + i + '" data-f="' + x[0] + '"'); }).join("") + "</div>" + fld("crR", SF[4][1], s.crR, A["s" + i + ".crR"], 'data-s="' + i + '" data-f="crR"') +
-        '<div class="lc-g3">' + SF.slice(5).map(function (x) { return fld(x[0], x[1], s[x[0]], A["s" + i + "." + x[0]], 'data-s="' + i + '" data-f="' + x[0] + '"'); }).join("") + "</div></div>"; }).join("") +
+        '<div class="lc-g3">' + SF.slice(5).map(function (x) { return fld(x[0], x[1], s[x[0]], A["s" + i + "." + x[0]], 'data-s="' + i + '" data-f="' + x[0] + '"'); }).join("") + "</div>" +
+        '<div class="lc-ap">' + fld("ap", "🎯 Apprentissage travaillé (mots-clés séparés par des virgules)", s.ap, A["s" + i + ".ap"], 'data-s="' + i + '" data-f="ap" list="lc-aps"', true) +
+        '<div class="lc-row" style="margin:2px 0 0"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" data-sauto="' + i + '"' + (s.noauto ? "" : " checked") + ' style="width:20px;height:20px"> Les élèves la retrouvent en autonomie (remédiation)</label><span style="flex:1"></span><button type="button" class="lc-b s" data-recsit="' + i + '">🎯 Proposer à des élèves</button></div></div></div>'; }).join("") +
+      '<datalist id="lc-aps">' + allTags().map(function (t) { return "<option>" + esc(t.t) + "</option>"; }).join("") + "</datalist>" +
       '<div class="lc-row"><button type="button" class="lc-b s" data-addsit>＋ Ajouter une situation</button></div>' +
       '<div class="lc-box"><h3 style="margin-top:4px">🏆 Remise en action et bilan</h3>' + RF.map(function (x) { return fld(x[0], x[1], WORK[x[0]], A[x[0]], 'data-f="' + x[0] + '"'); }).join("") + "</div>" +
       '<div class="lc-box"><h3 style="margin-top:4px">👥 Classes concernées</h3><p class="lc-mut">La leçon fait partie de la séquence de ces classes (une classe qui a des leçons attribuées ne voit que les siennes).</p><div class="lc-row">' +
@@ -355,7 +464,7 @@
       '<div class="lc-box"><h3 style="margin-top:4px">📅 Programmer pour une classe</h3><p class="lc-mut">À l\'heure prévue, la leçon s\'ouvre toute seule sur les tablettes élèves de la classe (compte à rebours avant).</p>' +
       (br ? '<div class="lc-warn">Valide d\'abord la leçon pour pouvoir la programmer.</div>' : '<div class="lc-row"><select class="lc-sel" data-pc>' + classes().sort(function (a, b) { return forCls(WORK, b) - forCls(WORK, a); }).map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") + '</select><input type="datetime-local" class="lc-sel" data-pt><button type="button" class="lc-b s" data-padd>📅 Programmer</button><button type="button" class="lc-b s" data-launch>▶ Lancer maintenant…</button></div><div class="lc-row" data-slots></div>') +
       (WORK.prog || []).sort(function (a, b) { return a.at - b.at; }).map(function (p, i) { return '<div class="lc-row"><span class="lc-tag pg">📅 ' + esc(p.c) + " · " + esc(hm(p.at)) + (p.at < Date.now() ? " (passée)" : "") + '</span><button type="button" class="lc-b s" data-prm="' + p.at + "|" + esc(p.c) + '">✕</button></div>'; }).join("") + "</div>" +
-      '<div class="lc-row"><button type="button" class="lc-b" data-fill>✨ Compléter les rubriques vides avec Claude</button>' + (br ? '<button type="button" class="lc-b p" data-ok>✓ Valider (relu et corrigé)</button>' : '<button type="button" class="lc-b" data-unok>Repasser en brouillon</button>') + '<button type="button" class="lc-b" data-modfill title="Remplit seulement les rubriques vides avec ton modèle">📋 Compléter avec mon modèle</button><button type="button" class="lc-b" data-modsave title="Toute nouvelle leçon partira de cette fiche (sans séquence, numéro ni titre)">📋 En faire mon modèle</button><button type="button" class="lc-b" data-dup>⧉ Dupliquer</button><button type="button" class="lc-b" data-see>👁 Voir comme un élève</button><span style="flex:1"></span><button type="button" class="lc-b" data-del style="border-color:#C0392B;color:#C0392B">🗑 Supprimer</button></div><p class="lc-mut" data-msg></p>';
+      '<div class="lc-row"><button type="button" class="lc-b" data-fill>✨ Compléter les rubriques vides avec Claude</button><button type="button" class="lc-b" data-refmt title="Claude range chaque élément de la fiche dans la bonne rubrique, sans rien inventer">🔁 Remettre en forme (modèle)</button>' + (WORK.avant ? '<button type="button" class="lc-b" data-undo>↺ Annuler la remise en forme</button>' : "") + (br ? '<button type="button" class="lc-b p" data-ok>✓ Valider (relu et corrigé)</button>' : '<button type="button" class="lc-b" data-unok>Repasser en brouillon</button>') + '<button type="button" class="lc-b" data-modfill title="Remplit seulement les rubriques vides avec ton modèle">📋 Compléter avec mon modèle</button><button type="button" class="lc-b" data-modsave title="Toute nouvelle leçon partira de cette fiche (sans séquence, numéro ni titre)">📋 En faire mon modèle</button><button type="button" class="lc-b" data-dup>⧉ Dupliquer</button><button type="button" class="lc-b" data-see>👁 Voir comme un élève</button><span style="flex:1"></span><button type="button" class="lc-b" data-del style="border-color:#C0392B;color:#C0392B">🗑 Supprimer</button></div><p class="lc-mut" data-msg></p>';
     var el = shell(h), msg = el.querySelector("[data-msg]");
     function later() { clearTimeout(SAVE_T); SAVE_T = setTimeout(function () { put(KL, WORK); }, 700); }
     el.addEventListener("input", function (e) {
@@ -367,6 +476,12 @@
     el.querySelectorAll("[data-ecl]").forEach(function (b) { b.onclick = function () { saveEdit(); var c = b.dataset.ecl, on = (WORK.cls || []).some(function (x) { return same(x, c); });
       WORK.cls = on ? WORK.cls.filter(function (x) { return !same(x, c); }) : (WORK.cls || []).concat([c]); put(KL, WORK); draw(); }; });
     var e0 = el.querySelector("[data-ecl0]"); if (e0) e0.onclick = function () { saveEdit(); WORK.cls = []; put(KL, WORK); draw(); };
+    el.querySelector("[data-bank]").onclick = function () { WORK.banque = !WORK.banque; put(KL, WORK); this.textContent = WORK.banque ? "⭐ Dans ma banque" : "☆ Ranger dans ma banque"; this.setAttribute("aria-pressed", String(!!WORK.banque)); };
+    el.querySelectorAll("[data-sauto]").forEach(function (c) { c.onchange = function () { var x = WORK.sits[+c.dataset.sauto]; if (c.checked) delete x.noauto; else x.noauto = 1; put(KL, WORK); }; });
+    el.querySelectorAll("[data-recsit]").forEach(function (b) { b.onclick = function () { saveEdit(); var x = WORK.sits[+b.dataset.recsit]; if (!x.t && !x.cons) { alert("Remplis d'abord la situation."); return; } if (WORK.statut === "brouillon") { alert("Valide d'abord la leçon : un brouillon n'est jamais montré aux élèves."); return; } recOpen([{ l: WORK, i: +b.dataset.recsit, s: x, k: WORK.id + ":s" + b.dataset.recsit }]); }; });
+    el.querySelector("[data-refmt]").onclick = function () { var b = this; saveEdit(); b.disabled = true; msg.textContent = "Claude remet la fiche en forme selon ton modèle (sans rien inventer)…";
+      refmt(get(KL, EDIT)).then(function () { draw(); }).catch(function (e) { msg.textContent = "⚠ " + e.message; b.disabled = false; }); };
+    var un = el.querySelector("[data-undo]"); if (un) un.onclick = function () { if (!confirm("Revenir à la fiche d'avant la remise en forme ?")) return; var A0 = WORK.avant; F.concat(RF).forEach(function (x) { WORK[x[0]] = ""; }); WORK.sits = []; delete WORK.echImg; Object.keys(A0).forEach(function (k) { WORK[k] = A0[k]; }); if (!WORK.sits.length) WORK.sits = [{}, {}]; delete WORK.avant; WORK.ai = {}; put(KL, WORK); draw(); };
     el.querySelector("[data-modsave]").onclick = function () { saveEdit(); var both = confirm("Ce modèle sert pour toutes tes activités ?\n\nOK = toutes les activités · Annuler = seulement " + NOM);
       put(KMOD, { id: both ? "lcmod" : "lcmod." + APP, f: modFields(WORK), from: titreL(WORK), at: Date.now() }); if (both) { var o = get(KMOD, "lcmod." + APP); if (o) { o.del = 1; put(KMOD, o); } }
       msg.textContent = "✓ Modèle enregistré" + (both ? " pour toutes les activités" : " pour " + NOM) + " : chaque « ＋ Nouvelle leçon » part de cette fiche (sans séquence, numéro ni titre). Les schémas sont repris."; };
@@ -442,6 +557,21 @@
   }
 
   /* ---- 📥 tous les documents → fiches (brouillons, sans rien inventer) ---- */
+  /* 🔁 remise en forme d'une fiche selon le modèle (structure de l'enseignant) : Claude redistribue le texte dans les rubriques,
+     sans rien inventer (document source joint s'il existe) ; fiche d'avant gardée (« ↺ Annuler »), résultat en brouillon à relire. */
+  function refmt(l) { if (!l) return Promise.reject(new Error("fiche introuvable"));
+    return ask({ op: "lecon", mode: "reformater", act: NOM, base: compact(l), docs: l.doc ? docsFor(l.doc) : [], lecons: [], consigne: l.titre || l.num ? "Leçon concernée : " + (l.num ? "n° " + l.num + " " : "") + (l.titre ? "« " + l.titre + " »" : "") : "" })
+      .then(function (r) { var L0 = get(KL, l.id) || l, av = JSON.parse(JSON.stringify(compact(L0))); if (L0.statut) av.statut = L0.statut; var n = fromAI(L0, r.lecon || {}, false, true); n.avant = av; put(KL, n); return n; }); }
+  function refmtAll() {
+    var L = lecons().filter(function (l) { return compact(l) && (l.doc || l.titre || l.disp || l.ech || (l.sits || []).some(function (x) { return x.cons; })); }), md = document.createElement("div"), stop = false, i = 0, ok = 0;
+    if (!L.length) { alert("Aucune fiche à remettre en forme."); return; }
+    if (!confirm(L.length + " fiche(s) de " + NOM + " vont être remises en forme selon ton modèle par Claude (sans rien inventer). Chacune repasse en brouillon à relire ; « ↺ Annuler la remise en forme » dans la fiche rend l'ancienne version. Continuer ?")) return;
+    md.className = "lc-modal"; md.innerHTML = '<div><h2>🔁 Remise en forme des fiches</h2><p data-m style="font-weight:700"></p><div class="lc-row"><button type="button" class="lc-b" data-stop>Arrêter</button></div></div>'; document.body.appendChild(md);
+    var M = md.querySelector("[data-m]"), sb = md.querySelector("[data-stop]"); sb.onclick = function () { stop = true; md.remove(); draw(); };
+    (function next() { if (stop) return; if (i >= L.length) { M.textContent = "✓ " + ok + " fiche(s) remise(s) en forme, en brouillon : relis-les puis « ✓ Valider »."; sb.textContent = "Fermer"; return; }
+      var l = L[i++]; M.textContent = "Fiche " + i + " / " + L.length + " : " + titreL(l) + "…";
+      refmt(l).then(function () { ok++; next(); }, function (e) { M.textContent = "⚠ " + e.message; setTimeout(next, 2000); }); })();
+  }
   function importAll() {
     var D = docList().filter(function (d) { return d.use; }), md = document.createElement("div"), stop = false, made = 0;
     md.className = "lc-modal"; md.innerHTML = '<div><h2>📥 Mettre en fiches mes documents</h2><p class="lc-mut">Claude repère les leçons de chaque document, puis met chacune en forme dans ta structure, avec tes formulations (rien d\'inventé : les rubriques absentes restent vides). Tout arrive en brouillon, à relire et valider. Compte environ 30 s par leçon.</p><p data-m style="font-weight:700"></p><div class="lc-row"><button type="button" class="lc-b" data-stop>Arrêter</button></div></div>';
@@ -818,7 +948,7 @@
     var say = window.speechSynthesis ? '<button type="button" class="say" title="Écouter la consigne" style="float:right;height:40px;min-width:44px;border-radius:12px;border:1.5px solid #E6E1D6;background:#fff;font-size:20px">🔊</button>' : "";
     var bk = function (key, title, inner) { return inner ? '<div class="bk' + (part === key ? " now" : "") + '" data-p="' + key + '">' + say + "<h3>" + title + (part === key ? '<span class="now-tag">maintenant</span>' : "") + "</h3>" + inner + "</div>" : ""; };
     var k = function (lab, t) { return t ? '<div class="k">' + lab + '</div><div class="lc-pre">' + esc(t) + "</div>" : ""; };
-    var h = '<div class="hd"><b>📅 ' + esc(l ? titreL(l) : "Leçon") + '</b><button type="button" data-x>✕ Fermer</button></div><div class="in">';
+    var h = '<div class="hd"><b>📅 ' + esc(l ? titreL(l) : "Leçon") + '</b>' + (allSits(true).length ? '<button type="button" data-auto>🎯 En autonomie</button>' : "") + '<button type="button" data-x>✕ Fermer</button></div><div class="in">';
     var rcls = (v && v.cls) || (cur() && cur().nom) || (l && (l.prog || []).map(function (p) { return p.c; })[0]) || "", RR = l && rcls ? whoList(rcls) : [];
     if (RR.length) h += '<div class="bk who"><h3>👥 Qui utilise cette tablette ?</h3><div class="lc-who">' + RR.map(function (n, i) { return '<button type="button" data-who="' + i + '" aria-pressed="false">' + esc(n) + "</button>"; }).join("") + '</div><div style="font-size:15px;color:#6A6F78;margin-top:6px">Touche ton nom (plusieurs si vous êtes en groupe), puis note ton résultat à la fin de chaque situation.' + (prev ? " <b>Aperçu : rien n'est enregistré.</b>" : "") + "</div></div>";
     if (v && v.grp && v.grp.g && v.grp.g.length) { var Wg = rcls ? whoGet(rcls) : []; h += '<div class="bk"><h3>👥 Groupes du jour</h3>' + v.grp.g.map(function (g, i) { var me = g.some(function (n) { return Wg.indexOf(n) >= 0; }); return '<div style="padding:4px 8px;border-radius:10px;' + (me ? "background:" + COL + "22;font-weight:800" : "") + '">Groupe ' + (i + 1) + " : " + esc(g.join(", ")) + (me ? " 👈" : "") + "</div>"; }).join("") + (v.grp.disp && v.grp.disp.length ? '<div style="font-size:15px;color:#6A6F78">🩹 Rôles : ' + esc(v.grp.disp.join(", ")) + "</div>" : "") + "</div>"; }
@@ -826,12 +956,13 @@
     if (l) {
       h += (l.but || l.mat) ? '<div class="bk">' + k("But de la leçon", l.but) + k("Matériel", l.mat) + "</div>" : "";
       h += bk("ech", "🔥 Échauffement", (l.ech ? '<div class="lc-pre">' + esc(l.ech) + "</div>" : "") + img(l.echImg));
-      (l.sits || []).forEach(function (s, i) { h += bk("s" + i, "🏃 Situation " + (i + 1) + (s.t ? " · " + esc(s.t) : ""), (s.cons ? '<div class="lc-pre">' + esc(s.cons) + "</div>" : "") + img(s.img) + k("✅ Je réussis si…", [s.crQ, s.crQl].filter(Boolean).join("\n")) + k("💡 Pour réussir…", s.crR) + k("⬇ Plus facile", s.simp) + k("⬆ Plus difficile", s.comp) + (RR.length ? resRow(l.id + ":s" + i) : "")); });
+      (l.sits || []).forEach(function (s, i) { h += bk("s" + i, "🏃 Situation " + (i + 1) + (s.t ? " · " + esc(s.t) : ""), (s.cons ? '<div class="lc-pre">' + esc(s.cons) + "</div>" : "") + img(s.img) + k("✅ Je réussis si…", [s.crQ, s.crQl].filter(Boolean).join("\n")) + k("💡 Comment faire…", s.crR) + k("⬇ Plus facile", s.simp) + k("⬆ Plus difficile", s.comp) + (RR.length ? resRow(l.id + ":s" + i) : "")); });
       h += bk("rem", "🏆 Remise en action", (l.rem ? '<div class="lc-pre">' + esc(l.rem) + "</div>" : "") + k("✅ Je réussis si…", l.remCr) + (RR.length && (l.rem || l.remCr) ? resRow(l.id + ":rem") : ""));
       if (RR.length) h += '<div class="bk today" data-today></div>';
     } else h += '<div class="bk">La leçon a commencé. Écoute les consignes de ton professeur.</div>';
     o.innerHTML = h + "</div>"; o.style.display = "block";
     o.querySelector("[data-x]").onclick = function () { try { speechSynthesis.cancel(); } catch (e) {} o.style.display = "none"; };
+    var au = o.querySelector("[data-auto]"); if (au) au.onclick = function () { autoOpen(); };
     /* 🔊 lecture à voix haute par la tablette elle-même (aucune donnée envoyée) */
     o.querySelectorAll(".say").forEach(function (b) { b.onclick = function () { try { var S = window.speechSynthesis; if (S.speaking) { S.cancel(); return; }
       var cl = b.parentNode.cloneNode(true); cl.querySelectorAll(".res").forEach(function (z) { z.remove(); }); var t = (cl.innerText || cl.textContent).replace(/🔊/g, "").replace(/maintenant/g, "").replace(/[✅💡⬇⬆🔥🏃🏆]/g, ""), u = new SpeechSynthesisUtterance(t); u.lang = "fr-FR"; u.rate = 0.95;
@@ -896,7 +1027,8 @@
     open: open, close: close, app: APP, code: CODE, nextProg: function (c) { var p = nextProg(c); return p ? { at: p.at, titre: titreL(p.l), id: p.l.id } : null; }, count: function (c) { return lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c); }).length; },
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
     actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "✅", label: "Tout est prêt ?", ord: 0.5, go: function () { if (window.EPSD && EPSD.check) EPSD.check(); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "📊", label: "Évaluer la leçon", ord: 2.2, go: function () { open("eval"); } }, { ico: "🏁", label: "Bilan de séquence", ord: 2.4, go: function () { open("bil"); } }, { ico: "🧩", label: "Niveaux & groupes", sub: "Classement par niveau, affinités, groupes", ord: 2.6, go: function () { grOpen(null, "rang"); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
-    biblio: function () { return [{ ico: "📂", label: "Mes documents", sub: "Ta séquence, tes fiches : Claude s'en sert en priorité pour tes leçons", go: function () { open("docs"); } }, { ico: "📝", label: "Mes fiches de leçon", sub: "Fiches de leçon, brouillons de Claude à valider, programmation", go: function () { open("lec"); } }]; },
+    banque: function () { bankOpen(); }, autonomie: function () { autoOpen(); },
+    biblio: function () { return [{ ico: "🏦", label: "Banque & apprentissages", sub: "Leçons gardées, situations par apprentissage (smash, service…), propositions aux élèves", go: function () { bankOpen(); } }, { ico: "📂", label: "Mes documents", sub: "Ta séquence, tes fiches : Claude s'en sert en priorité pour tes leçons", go: function () { open("docs"); } }, { ico: "📝", label: "Mes fiches de leçon", sub: "Fiches de leçon, brouillons de Claude à valider, programmation", go: function () { open("lec"); } }]; },
     _test: { KS: KS, bilanData: bilanData, lecons: lecons, put: put, all: all, KL: KL, KV: KV, KD: KD, KR: KR, fromAI: fromAI, startLive: startLive, sendMsg: sendMsg, extract: extract }
   };
 })();

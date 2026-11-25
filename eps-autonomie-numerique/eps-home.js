@@ -236,7 +236,7 @@
   var STORES = [];
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
   var AUTOPAT = [[/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
-    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
+    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
     if (all) { ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "ccf", "crosstraining"].forEach(function (d) { ["lecons", "lcimg", "lcdocs", "live", "leceval", "lecres"].forEach(function (t) { keys.push("eps." + t + "." + d + ".v1"); }); });
@@ -1221,13 +1221,14 @@
   }
   function tint(hex, a) { var h = String(hex || "#444").replace("#", ""); if (h.length === 3) h = h.replace(/./g, "$&$&"); var n = parseInt(h, 16); return "rgba(" + (n >> 16 & 255) + "," + (n >> 8 & 255) + "," + (n & 255) + "," + a + ")"; }
   function gateClose() { var g = document.querySelector(".epsg"); if (g) g.remove(); try { document.documentElement.style.overflow = ""; } catch (e) {} }
+  window.EPSG_REFRESH = function () { gateOpen(); };
   function gateOpen() {
     var G = GATE; if (!G) return;
     gateCss(); gateClose();
     var col = G.color || "#1B1E24", L = [];
     try { L = (G.classes && G.classes()) || []; } catch (e) {}
     var cur = ""; try { cur = G.current ? G.current() : ""; } catch (e) {}
-    var R = G.resources || [];
+    var R = (G.resources || []).concat((window.EPSG_COMMON || []).filter(function (r) { try { return !r.when || r.when(); } catch (e) { return false; } }));
     var d = document.createElement("div"); d.className = "epsg";
     d.innerHTML = '<div class="epsg-hd" style="background:#14171C;box-shadow:inset 0 -4px 0 ' + col + '"><div class="epsg-ic" style="background:' + col + '">' + (G.icon || "") + '</div><div style="flex:1"><h1>' + esc(G.app || "") + '</h1>' + (G.sub ? "<p>" + esc(G.sub) + "</p>" : "") + '</div><span data-eps-upd-slot></span><a class="epsg-home" href="' + BASE + '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Accueil</a></div>' +
       '<div class="epsg-in"><h2>Choisis ta classe</h2>' +
@@ -1866,7 +1867,7 @@
   function abIs(c, n, d) { var o = abGet(c, d), k = nkey(n); return !!o && (o.abs || []).some(function (x) { return nkey(x) === k; }); }
   STORES.push({ pre: "cd|", key: KC });
   STORES.push({ pre: "pa|", key: "eps.param.v1" });
-  STORES.push({ pre: "nv|", key: "eps.niv.v1" }, { pre: "gh|", key: "eps.grphist.v1" }, { pre: "cs|", key: "eps.console.v1" });
+  STORES.push({ pre: "rm|", key: "eps.remed.v1" }, { pre: "nv|", key: "eps.niv.v1" }, { pre: "gh|", key: "eps.grphist.v1" }, { pre: "cs|", key: "eps.console.v1" });
   STORES.push({ pre: "cc|", key: "eps.ccfcfg.v1" }); /* 🎯 réglages CCF des évaluations (eps-eval.js) */ /* 🎛 paramètres des applis (EPSP, eps-lists.js) */
   function codeId(cls, full) { return cmp(cls) + "|" + nkey(full); }
   function codeGet(cls, full) { var o = stLd(KC).items[codeId(cls, full)]; return o && !o.del ? o : null; }

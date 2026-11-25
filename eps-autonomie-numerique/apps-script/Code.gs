@@ -320,7 +320,8 @@ function lecon_(q) {
     completer: 'Complète UNIQUEMENT les rubriques vides de la leçon fournie (« base »), en cohérence avec ce qui est déjà écrit et avec les documents ; renvoie la leçon complète, rubriques déjà remplies inchangées.',
     simple: 'Adapte la leçon fournie (« base ») en une version PLUS SIMPLE pour des élèves en difficulté : mêmes objectifs de fond, tâches simplifiées, critères de réussite plus accessibles, aménagements (espace, temps, matériel, rôles).',
     difficile: 'Adapte la leçon fournie (« base ») en une version PLUS DIFFICILE pour des élèves avancés : mêmes objectifs de fond, contraintes et critères plus exigeants, incertitude accrue.',
-    variante: 'Propose une variante de même niveau de la leçon fournie (« base ») : mêmes objectifs, autres situations d\'apprentissage.'
+    variante: 'Propose une variante de même niveau de la leçon fournie (« base ») : mêmes objectifs, autres situations d\'apprentissage.',
+    reformater: 'Remets en forme la leçon fournie (« base »), dont le texte a pu être rangé au mauvais endroit ou en un seul bloc : redistribue CHAQUE élément dans la bonne rubrique de la structure (objectifs, but, dispositif, matériel, échauffement, situations avec consigne, critères de réussite, critères de réalisation, variables, remise en action, bilan) et ajoute les mots-clés d\'apprentissage (« ap ») de chaque situation. Recopie les formulations de l\'enseignant SANS rien inventer ni résumer ; si le document source est fourni, sers-t\'en pour retrouver ce qui manque à cette leçon ; une rubrique sans information reste vide. Garde les ids de schémas existants.'
   };
   const mode = MODES[q.mode] ? q.mode : 'nouvelle';
   const sys = 'Tu es un enseignant d\'EPS de lycée, en France, qui prépare les leçons d\'un collègue (activité : ' + act + '). ' +
@@ -328,9 +329,9 @@ function lecon_(q) {
     'Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »). Consignes adressées aux élèves (tutoiement), concrètes, avec les chiffres utiles (durées, distances, nombres de réussites). Pas de nom d\'élève. ' +
     'Structure de la leçon (réponds UNIQUEMENT par un objet JSON valide, sans texte autour) : ' +
     '{"seq":"séquence","num":"n° de leçon","titre":"","duree":"","objM":"objectif moteur","objMe":"objectif méthodologique","objS":"objectif social","but":"but de la leçon",' +
-    '"disp":"dispositif","mat":"matériel","ech":"échauffement : consigne","sits":[{"t":"titre","cons":"consigne","crQ":"critères de réussite quantitatifs","crQl":"critères de réussite qualitatifs","crR":"critères de réalisation (ce qu\'il y a à faire pour réussir)","simp":"variables de simplification","comp":"variables de complexification"}],' +
+    '"disp":"dispositif","mat":"matériel","ech":"échauffement : consigne","echImg":"id du schéma de l\'échauffement s\'il y en a un","sits":[{"t":"titre","cons":"consigne","img":"id du schéma de la situation s\'il y en a un","crQ":"critères de réussite quantitatifs (ce qu\'il y a à faire pour être en réussite, qui se compte)","crQl":"critères de réussite qualitatifs (ce qu\'il y a à faire pour être en réussite, qui s\'observe)","crR":"critères de réalisation (ce qu\'il y a à faire pour faire : comment faire, placements, gestes, prises d\'information)","simp":"variables de simplification","comp":"variables de complexification","ap":"apprentissage travaillé : 1 à 3 mots-clés courts (ex. smash, frappe haute)"}],' +
     '"rem":"remise en action : match ou situation plus large","remCr":"critères de réussite de la remise en action","bilan":"bilan de la leçon","sources":"ce qui vient des documents et ce que tu proposes"}. ' +
-    'En général deux situations. ' + MODES[mode];
+    'En général deux situations. Les schémas (images) du document sont notés [SCHÉMA:id] à leur place dans le texte : reporte chaque id dans "echImg" ou dans "img" de la situation qu\'il illustre (jamais d\'id inventé). ' + MODES[mode];
   let docs = '';
   (q.docs || []).forEach(function (d) { if (docs.length < 160000) docs += '\n\n=== Document : ' + String(d.nom || '').slice(0, 120) + ' ===\n' + String(d.txt || '').slice(0, 160000 - docs.length); });
   const user = (docs ? 'DOCUMENTS DE L\'ENSEIGNANT :' + docs + '\n\n' : 'Aucun document déposé.\n\n') +
