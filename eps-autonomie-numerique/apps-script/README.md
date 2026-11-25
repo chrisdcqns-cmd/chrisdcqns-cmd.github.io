@@ -79,3 +79,6 @@ Le script commun reçoit maintenant les positionnements envoyés par les élève
 4. Dans Danse → ⚙ Réglages : la liste de vérification affiche « Envoi automatique des positionnements ✓ Par ton script commun ». Les fiches PDF générées ensuite portent des liens vers ce script.
 
 Les liens déjà distribués qui pointent vers l'ancien script de Danse continuent d'être relevés tant que cet ancien script reste réglé dans Danse (Réglages → « Ancien script de Danse »).
+
+### 🏸 Badminton : indicateurs de performance proposés par Claude
+Mode `badind` (Claude Sonnet, outil `proposer_indicateurs`) : l'appli envoie la leçon, le temps et la situation reliée (aucune donnée d'élève) ; Claude choisit 2 à 4 indicateurs dans la liste que l'appli sait calculer ou faire compter, et peut en inventer 2 (comptage par l'observateur ou observable). Même clé `ANTHROPIC_KEY`. Après avoir collé le nouveau `Code.gs` : Déployer → Gérer les déploiements → modifier → Nouvelle version, puis lancer `testerIndicateurs` une fois.

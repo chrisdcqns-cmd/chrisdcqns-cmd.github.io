@@ -448,6 +448,10 @@ details.more{margin-top:6px}details.more>summary{cursor:pointer;font-weight:700;
 .bx.ind{grid-column:1/-1;background:#f4f8fb;border-radius:10px;padding:8px 10px;margin-top:8px}
 .obsp{margin-top:10px;border-left:5px solid #0B7A75}.obsr{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.obsr>span:first-child{flex:1 1 200px;font-weight:700}
 .obsb{display:inline-flex;align-items:center;gap:6px;border:2px solid;border-radius:12px;padding:3px}.obsb button{border:0;background:#eef1f5;border-radius:9px;min-width:40px;height:40px;font-size:1.1em;font-weight:800;cursor:pointer}.obsb button.p{background:#0B7A75;color:#fff;min-width:56px}
+
+.indsw{display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-left:5px solid #1F5F8B}
+.iab{background:#7A3E9D}.india{margin-top:8px;background:#faf6fd;border:1.5px solid #e2d4ef;border-radius:10px;padding:8px 10px}
+.iarow{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eee3f5}.iarow.done{opacity:.6}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -1453,7 +1457,40 @@ const IND=[
  {id:'o_pla',k:'obs',th:['adv'],nom:'Change-t-il de plan quand il est mené ?'},
  {id:'o_rep',k:'obs',th:['defense'],nom:'Se replace-t-il au centre, raquette haute, avant la frappe adverse ?'}];
 const INDK={auto:'📊 calculé',compte:'👆 compté',obs:'👀 observé'};
-function indById(id){return IND.find(x=>x.id===id)}
+function indCustom(){const o={};['gt','pro'].forEach(v=>{const L=(S.prof[v]&&S.prof[v].seq&&S.prof[v].seq.lecons)||[];L.forEach(l=>(l.temps||[]).forEach(t=>(t.indX||[]).forEach(x=>{o[x.id]=x})))});return o}
+function indById(id){return IND.find(x=>x.id===id)||(String(id).startsWith('x')?indCustom()[id]:null)||null}
+function indOn(){return !!B().optInd}
+function setIndOn(v){B().optInd=!!v;save();renderSeq();toast(v?'📈 Indicateurs activés':'Indicateurs masqués (ils restent enregistrés)')}
+function indSwitch(){return `<div class="card indsw"><label class="sw"><input type="checkbox" ${indOn()?'checked':''} onchange="setIndOn(this.checked)"><span></span><b>📈 Indicateurs de performance</b></label>
+  <span class="muted">${indOn()?"Activés : propositions dans chaque temps, compteurs de l'observateur, résultats aux élèves.":"Option désactivée : rien ne s'affiche, ni pour toi ni pour les élèves."}</span></div>`}
+/* ✨ propositions de Claude pour un temps (script commun, mode « badind ») */
+let INDIA={};
+const INDLIB="ar=points marqués en zone arrière; av=points en zone avant; lat=points sur les côtés; zon=nombre de zones de marque; fav=points dans la zone favorite; rup=points en smash ou kill; off=points directs ÷ points gagnés; ris=points directs ÷ fautes directes; fs=fautes de service; svg=points gagnés sur le service; man=contrats « avec la manière » réussis; exo=réussite à l'exercice; t3=points en 3 frappes ou moins (compté); alt=échanges fond/filet (compté); def=smashs renvoyés (compté); rev=volants dans le revers adverse (compté); str=points avec la stratégie annoncée (compté)";
+async function indIA(lid,k){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],key=lid+'|'+k;if(!t)return;
+  if(!window.EPSD||!EPSD.reformuler){toast('Partage entre tablettes non disponible : Claude ne peut pas être appelé');return}
+  const pre=t.pre&&preById(t.pre);let rg='';try{rg=pre&&pre.type!=='exo'&&typeof regleResume==='function'?regleResume(pre):''}catch(e){}
+  const txt=[`Voie : ${VOIES[S.voie]||''}`,`Leçon ${l.n} : ${l.titre}. Objectif : ${l.obj}`,`Temps : ${t.t}`,`Consigne : ${t.cons||''}`,
+    pre?`Situation reliée : ${pre.nom} (${pre.type==='exo'?'exercice : réussis / essais':'match à zones'})${pre.desc?' — '+pre.desc:''}${rg?' — règles : '+rg:''}`:'Aucune situation reliée sur la tablette (seuls des observables ou des comptages sont possibles).',
+    (t.crq||[]).length?'Critères de réussite actuels : '+t.crq.join(' ; '):'',(t.crl||[]).length?'Qualitatif : '+t.crl.join(' ; '):'',
+    (t.ind||[]).length?'Déjà retenus : '+(t.ind||[]).map(i=>(indById(i)||{}).nom||i).join(' ; '):''].filter(Boolean).join('\n').slice(0,1500);
+  INDIA[key]={busy:true};renderSeq();
+  try{const r=await EPSD.reformuler(txt,{mode:'badind',act:'Badminton',ctx:INDLIB}),o=JSON.parse(r),items=[];
+    (o.choix||[]).forEach(c=>{const x=IND.find(y=>y.id===c.id);if(x&&!(t.ind||[]).includes(x.id)&&!items.some(i=>i.id===x.id)&&(pre||x.k==='obs'||x.k==='compte'))items.push({id:x.id,k:x.k,nom:x.nom,crit:x.crit,why:String(c.pourquoi||'').slice(0,160)})});
+    (o.nouveaux||[]).slice(0,3).forEach(n=>{const kk=n.type==='compte'?'compte':'obs',nom=String(n.nom||'').trim().slice(0,90);if(!nom)return;const cr=String(n.crit||'').trim().slice(0,120),mm=cr.match(/\d+/);
+      items.push({nw:1,k:kk,nom,crit:kk==='obs'?'':cr,ob:mm?+mm[0]:1,why:String(n.pourquoi||'').slice(0,160)})});
+    INDIA[key]={items}}
+  catch(e){INDIA[key]={err:String(e&&e.message||e).replace(/^Error: /,'')}}
+  renderSeq()}
+function indIAAdd(lid,k,i){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],key=lid+'|'+k,it=INDIA[key]&&INDIA[key].items[i];if(!t||!it)return;
+  if(it.nw){const id='x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);t.indX=(t.indX||[]).concat([{id,k:it.k,nom:it.nom,crit:it.crit,ob:it.ob,el:it.nom,ia:1}]);it.done=1;
+    t.ind=(t.ind||[]).concat([id]);if(it.crit){t.crq=t.crq||[];if(!t.crq.includes(it.crit))t.crq.push(it.crit)}save();renderSeq();toast('✨ Indicateur ajouté');return}
+  it.done=1;indAdd(lid,k,it.id)}
+function indIAHtml(l,k){const key=l.id+'|'+k,A=INDIA[key];if(!A)return'';
+  if(A.busy)return '<div class="india muted">✨ Claude réfléchit à des indicateurs pour cet exercice…</div>';
+  if(A.err)return `<div class="india"><span class="warn" style="display:inline-block">${esc(A.err)}</span></div>`;
+  return `<div class="india"><div class="row" style="justify-content:space-between"><b>✨ Proposé par Claude pour ce temps</b><button class="btn alt sm" onclick="delete INDIA['${key}'];renderSeq()">✕</button></div>
+   ${A.items.length?A.items.map((it,i)=>`<div class="iarow ${it.done?'done':''}"><div><b>${INDK[it.k].split(' ')[0]} ${esc(it.nom)}</b>${it.nw?' <span class="tag" style="background:#f2eafa;color:#7A3E9D">nouveau</span>':''}${it.crit?`<br><small>Critère : ${esc(it.crit)}</small>`:''}${it.why?`<br><small class="muted">${esc(it.why)}</small>`:''}</div>${it.done?'<span class="muted">✓ ajouté</span>':`<button class="btn sm" onclick="indIAAdd('${l.id}',${k},${i})">+ Ajouter</button>`}</div>`).join(''):'<p class="muted">Rien de plus à proposer pour ce temps.</p>'}</div>`}
+
 function indThemes(l,t){const p=t.pre&&preById(t.pre),tt=[t.t,t.cons,(t.crq||[]).join(' '),(t.crl||[]).join(' ')].join(' '),lt=[l.titre,l.obj,l.but].join(' '),W={};
   Object.keys(IND_TH).forEach(k=>{const w=(IND_TH[k].test(tt)?2:0)+(IND_TH[k].test(lt)?1:0);if(w)W[k]=w});if(p&&p.type==='exo')W.exo=3;return W}
 function indSugg(l,t){const W=indThemes(l,t),exo=!!W.exo,sit=!!(t.pre&&preById(t.pre)),have=t.ind||[];
@@ -1466,9 +1503,9 @@ let INDALL={};
 function indAdd(lid,k,id){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],x=indById(id);if(!t||!x)return;t.ind=(t.ind||[]).concat(t.ind&&t.ind.includes(id)?[]:[id]);
   if(x.crit&&x.k!=='obs'){t.crq=t.crq||[];if(!t.crq.includes(x.crit))t.crq.push(x.crit)}else if(x.k==='obs'){t.crl=t.crl||[]}
   save();renderSeq();toast('📈 Indicateur ajouté'+(x.crit&&x.k!=='obs'?' (et son critère de réussite)':''))}
-function indDel(lid,k,id){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],x=indById(id);if(!t)return;t.ind=(t.ind||[]).filter(i=>i!==id);if(x&&x.crit&&t.crq)t.crq=t.crq.filter(c=>c!==x.crit);save();renderSeq()}
+function indDel(lid,k,id){const l=SEQ().lecons.find(x=>x.id===lid),t=l&&l.temps[k],x=indById(id);if(!t)return;t.ind=(t.ind||[]).filter(i=>i!==id);if(t.indX)t.indX=t.indX.filter(o=>o.id!==id);if(x&&x.crit&&t.crq)t.crq=t.crq.filter(c=>c!==x.crit);save();renderSeq()}
 function indTeach(l,k){const t=l.temps[k],have=(t.ind||[]).map(indById).filter(Boolean),sg=indSugg(l,t),key=l.id+'|'+k;
-  return `<div class="indb"><div class="row" style="justify-content:space-between"><b>📈 Indicateurs de performance</b><button class="btn alt sm" onclick="INDALL['${key}']=!INDALL['${key}'];renderSeq()">${INDALL[key]?'Masquer la liste':'Tous les indicateurs'}</button></div>
+  return `<div class="indb"><div class="row" style="justify-content:space-between"><b>📈 Indicateurs de performance</b><span class="row" style="gap:6px"><button class="btn sm iab" onclick="indIA('${l.id}',${k})" title="Claude propose des indicateurs adaptés à cet exercice et à la situation reliée">✨ Proposer avec Claude</button><button class="btn alt sm" onclick="INDALL['${key}']=!INDALL['${key}'];renderSeq()">${INDALL[key]?'Masquer la liste':'Tous les indicateurs'}</button></span></div>${indIAHtml(l,k)}
    ${have.length?`<div class="indl">${have.map(x=>`<span class="indc on" title="${esc(x.crit||'')}">${INDK[x.k].split(' ')[0]} ${esc(x.nom)}<button onclick="indDel('${l.id}',${k},'${x.id}')" title="Retirer">✕</button></span>`).join('')}</div>`:''}
    ${sg.length?`<div class="indl"><span class="muted" style="font-weight:700">💡 Proposés pour ce temps :</span>${sg.map(x=>`<button class="indc" onclick="indAdd('${l.id}',${k},'${x.id}')" title="${esc(x.crit||'')}">+ ${INDK[x.k].split(' ')[0]} ${esc(x.nom)}</button>`).join('')}</div>`:''}
    ${INDALL[key]?`<div class="indall">${['auto','compte','obs'].map(kk=>`<div><span class="lb">${INDK[kk]}</span>${IND.filter(x=>x.k===kk&&!(t.ind||[]).includes(x.id)).map(x=>`<button class="indc" onclick="indAdd('${l.id}',${k},'${x.id}')">+ ${esc(x.nom)}</button>`).join('')}</div>`).join('')}
@@ -1479,18 +1516,18 @@ function indVal(c,eid,x,pre,date){if(x.k==='obs')return null;const st=elStats(c,
   return x.f(st,pre)}
 function indChip(r){return r?`<span class="indv ${r.ok?'ok':'ko'}">${esc(r.t)}${r.ok?' ✓':''}</span>`:'<span class="indv">–</span>'}
 /* élève : « Ma leçon » */
-function indEleve(l,k){const t=l.temps[k],L=(t.ind||[]).map(indById).filter(Boolean);if(!L.length)return'';const c=classById(TERR.cls)||C(),g=curGrp(c),pre=t.pre&&preById(t.pre),M=g?grpMembers(c,g):[];
+function indEleve(l,k){if(!indOn())return'';const t=l.temps[k],L=(t.ind||[]).map(indById).filter(Boolean);if(!L.length)return'';const c=classById(TERR.cls)||C(),g=curGrp(c),pre=t.pre&&preById(t.pre),M=g?grpMembers(c,g):[];
   const q=pre?L.filter(x=>x.k!=='obs'):[],o=L.filter(x=>x.k==='obs');
   return `<div class="bx ind"><b>📈 Ce qu'on mesure</b>${q.length?`<table class="indt"><tr><th></th>${M.map(e=>`<th>${esc(shortName(e))}</th>`).join('')}</tr>${q.map(x=>`<tr><td>${esc(x.el||x.nom)}${x.k==='compte'?' <small>(compté par l\'observateur)</small>':''}</td>${M.map(e=>`<td>${indChip(indVal(c,e.id,x,pre))}</td>`).join('')}</tr>`).join('')}</table>`:''}
    ${o.length?`<ul>${o.map(x=>`<li>👀 ${esc(x.nom)}</li>`).join('')}</ul>`:''}</div>`}
 /* match en cours : compteurs de l'observateur + rappel des observables */
 function indOfMatch(m){const l=lessonObj(m.lec)||lessonObj(lessonNow());if(!l)return[];const t=(l.temps||[]).find(t=>t.pre===m.pre.id);return t?(t.ind||[]).map(indById).filter(Boolean):[]}
 function obsInc(id,s,d){const m=curMatch();if(!m)return;m.obs=m.obs||{};const a=m.obs[id]=(m.obs[id]||[0,0]).slice();a[s]=Math.max(0,a[s]+d);m.t1=Date.now();save();const b=document.getElementById('obsPanel');if(b)b.outerHTML=obsPanel(m)}
-function obsPanel(m){const L=indOfMatch(m),T=L.filter(x=>x.k==='compte'),O=L.filter(x=>x.k==='obs');if(!T.length&&!O.length)return'<div id="obsPanel"></div>';const N=[m.an,m.bn];
+function obsPanel(m){if(!indOn())return'<div id="obsPanel"></div>';const L=indOfMatch(m),T=L.filter(x=>x.k==='compte'),O=L.filter(x=>x.k==='obs');if(!T.length&&!O.length)return'<div id="obsPanel"></div>';const N=[m.an,m.bn];
   return `<div class="card obsp" id="obsPanel"><b>👆 L'observateur compte</b>${T.map(x=>`<div class="obsr"><span>${esc(x.nom)}</span>${[0,1].map(s=>{const n=((m.obs||{})[x.id]||[0,0])[s];return `<span class="obsb" style="border-color:${PCOL[s]}"><button onclick="obsInc('${x.id}',${s},-1)">−</button><b>${esc(N[s]||'')} : ${n}</b><button class="p" onclick="obsInc('${x.id}',${s},1)">+1</button></span>`}).join('')}</div>`).join('')}
    ${O.length?`<div class="muted" style="margin-top:6px">👀 À observer : ${O.map(x=>esc(x.nom)).join(' · ')}</div>`:''}</div>`}
 /* fin de match : les indicateurs de ce match */
-function indMatchEnd(m){const L=indOfMatch(m).filter(x=>x.k!=='obs');if(!L.length||m.pre.type==='exo')return'';const c=classById(PL.cid)||C(),ids=[m.a,m.b];
+function indMatchEnd(m){if(!indOn())return'';const L=indOfMatch(m).filter(x=>x.k!=='obs');if(!L.length||m.pre.type==='exo')return'';const c=classById(PL.cid)||C(),ids=[m.a,m.b];
   const one=(x,s)=>{if(x.k==='compte'){const n=((m.obs||{})[x.id]||[0,0])[s];return{t:String(n),ok:n>=(x.ob||1)}}const st=matchStats(m,s);return x.f(st,m.pre)};
   return `<div class="card"><h2>📈 Les indicateurs de la leçon</h2><table class="indt"><tr><th></th><th>${esc(m.an)}</th><th>${esc(m.bn)}</th></tr>${L.map(x=>`<tr><td>${esc(x.nom)}<br><small class="muted">${esc(x.crit)}</small></td>${[0,1].map(s=>`<td>${indChip(one(x,s))}</td>`).join('')}</tr>`).join('')}</table></div>`}
 /* statistiques d'un seul match pour un côté (même forme qu'elStats) */
@@ -1499,7 +1536,7 @@ function matchStats(m,side){const st={mj:1,pts:0,pl:0,fd:0,fsv:0,nat:{},z:{},co:
   R.det.forEach(({p})=>{if(p.w===side){st.pts++;const t=natOf(p);st.nat[t]=(st.nat[t]||0)+1;if(!p.f&&p.x!=null){const a=azOf(p.x,p.y);st.z[a]=(st.z[a]||0)+1;st.loc++}if(p.c)st.co[p.c]=(st.co[p.c]||0)+1}
     else{st.pl++;if(isFd(p))st.fd++;if(natOf(p)==='fs')st.fsv++}});return st}
 /* enseignant : tableau du jour dans « Leçon en direct » */
-function indLive(c){const l=lessonObj(lessonNow());if(!l)return'';const R=[];(l.temps||[]).forEach((t,k)=>{const pre=t.pre&&preById(t.pre);if(!pre)return;(t.ind||[]).map(indById).filter(x=>x&&x.k!=='obs').forEach(x=>R.push({t,k,x,pre}))});
+function indLive(c){if(!indOn())return'';const l=lessonObj(lessonNow());if(!l)return'';const R=[];(l.temps||[]).forEach((t,k)=>{const pre=t.pre&&preById(t.pre);if(!pre)return;(t.ind||[]).map(indById).filter(x=>x&&x.k!=='obs').forEach(x=>R.push({t,k,x,pre}))});
   if(!R.length)return `<div class="card"><h2>📈 Indicateurs du jour</h2><p class="muted">Aucun indicateur dans la leçon ${l.n}. Ajoute-en depuis l'onglet Séquence (« 💡 Proposés pour ce temps »).</p></div>`;
   const E=c.eleves.filter(e=>!isAbs(e));
   return `<div class="card"><h2>📈 Indicateurs du jour · leçon ${l.n}</h2><div class="tw"><table class="indt"><tr><th>Élève</th>${R.map(r=>`<th title="${esc(r.x.crit||'')}">T${r.k+1} · ${esc(r.x.nom)}</th>`).join('')}</tr>
@@ -2209,7 +2246,7 @@ function tempsHtml(t,teach,l,k){const pre=t.pre&&preById(t.pre);
    <p style="margin:6px 0;white-space:pre-line">${esc(t.cons)}</p>
    <div class="g3">${(t.crq||[]).length||(t.crl||[]).length?`<div><span class="lb">Critères de réussite</span>${(t.crq||[]).length?'<i>Quantitatif</i><ul>'+t.crq.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}${(t.crl||[]).length?'<i>Qualitatif</i><ul>'+t.crl.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}</div>`:''}
    ${(t.crr||[]).length?`<div><span class="lb">Critères de réalisation</span><ul>${t.crr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-   ${t.vp||t.vm?`<div><span class="lb">Variables</span>${t.vp?`<p style="margin:2px 0"><b>+</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p style="margin:2px 0"><b>−</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div>${teach&&l?indTeach(l,k):''}</div>`}
+   ${t.vp||t.vm?`<div><span class="lb">Variables</span>${t.vp?`<p style="margin:2px 0"><b>+</b> ${esc(t.vp)}</p>`:''}${t.vm?`<p style="margin:2px 0"><b>−</b> ${esc(t.vm)}</p>`:''}</div>`:''}</div>${teach&&l&&indOn()?indTeach(l,k):''}</div>`}
 function lecHtml(l,i,teach){
   return `<div class="lec ${l.faite?'done':''} ${l.prop?'prop':''}">
    <h3>Leçon ${l.n} · ${esc(l.titre)} ${l.prop?'<span class="ctag ptag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted" style="font-weight:600">${dateFR(l.date)}</span>`:''}</h3>
@@ -2227,7 +2264,7 @@ function lecHtml(l,i,teach){
      <button class="btn alt sm" onclick="lecDup(${i})">Dupliquer</button><button class="btn red sm" onclick="lecDel(${i})">Supprimer</button></div>`:''}</div>`}
 function seqLecons(){
   const L=SEQ().lecons,nf=L.filter(l=>l.faite).length,np=L.filter(l=>l.prop).length;
-  return `${wizBanner()}${prepHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
+  return `${wizBanner()}${prepHtml()}${indSwitch()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
     <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="addLecon()">+ Leçon</button></div></div>
     <p class="muted" style="margin:6px 0 0">${S.voie==='pro'?'Les 7 leçons reprennent tes fiches de Terminale pro (leçon 7 : CCF).':'Leçons 1 et 2 reprises de tes fiches ; leçons 3 à 8 proposées à partir de ton projet de séquence (en vert clair : à garder, modifier ou supprimer).'} Chaque temps peut être relié à une situation du terrain : « ▶ Lancer » ouvre directement le scoring. Tout est partagé entre tes tablettes.</p></div>
   ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):(SEQOPEN[l.id]===1||(l.n===lessonNow()&&SEQOPEN[l.id]!==-1))?`<div class="lecwrap"><button class="lecfold" title="Replier" onclick="SEQOPEN['${l.id}']=-1;renderSeq()">▴</button>${lecHtml(l,i,true)}</div>`:lecRow(l,i)).join('')}`}

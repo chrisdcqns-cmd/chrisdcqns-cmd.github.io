@@ -197,6 +197,7 @@ function reformuler_(p) {
   if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
   if (p.ai === 'badsit') return badSituation_(key, p);
   if (p.ai === 'badcoach') return badCoach_(key, p);
+  if (p.ai === 'badind') return badIndic_(key, p);
   const notes = String(p.t || '').slice(0, p.ai === 'lecon' ? 3200 : (p.ai === 'bulletin' || p.ai === 'avis') ? 2200 : 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, 600);
   if (!notes.trim() && !ctx.trim()) throw new Error('Texte vide');
   const bulletin = p.ai === 'bulletin';
@@ -510,6 +511,42 @@ function badCoach_(key, p) {
     'Réponds en tutoyant l\'élève, avec des mots simples, en 3 courtes lignes commençant par : « ✅ », « 🎯 » et « 🏸 » : ce qui marche déjà (appuyé sur un chiffre), LA priorité à travailler, puis un conseil concret pour le prochain match ou exercice, en lien avec l\'objectif de la leçon. ' +
     '450 caractères au maximum. N\'invente aucun chiffre. Si les données sont trop peu nombreuses (moins de 5 points), encourage-le à jouer d\'abord un match. Pas de nom, pas de jugement sur la personne. Vocabulaire : « leçon », jamais « séance ».';
   return claude_(key, system + ' Réponds uniquement par les 3 lignes.', (ctx ? 'Leçon : ' + ctx + '\n' : '') + 'Statistiques : ' + stats);
+}
+/* badind : indicateurs de performance pour un temps de leçon. L'appli envoie la leçon, le temps, la situation reliée (p.t)
+ * et la liste des indicateurs qu'elle sait calculer ou faire compter (p.ctx, « id=libellé ; … »). Aucune donnée d'élève. */
+const BAD_IND_SCHEMA = { type: 'object', properties: {
+  choix: { type: 'array', description: '2 à 4 indicateurs de la liste fournie, les plus pertinents pour cet exercice', items: { type: 'object', properties: { id: { type: 'string' }, pourquoi: { type: 'string' } }, required: ['id', 'pourquoi'] } },
+  nouveaux: { type: 'array', description: '0 à 2 indicateurs nouveaux, absents de la liste', items: { type: 'object', properties: {
+    nom: { type: 'string' }, type: { type: 'string', enum: ['compte', 'obs'] }, crit: { type: 'string' }, pourquoi: { type: 'string' } }, required: ['nom', 'type', 'pourquoi'] } } },
+  required: ['choix'] };
+function badIndic_(key, p) {
+  quota_();
+  const texte = String(p.t || '').slice(0, 1500), lib = String(p.ctx || '').slice(0, 900);
+  if (!texte.trim()) throw new Error('Temps de leçon vide');
+  const system = 'Tu aides un enseignant d\'EPS de lycée (badminton, champ d\'apprentissage 4) à choisir des indicateurs de performance pour un temps de sa leçon. ' +
+    'Un indicateur sert de critère de réussite et d\'outil d\'observation pour les élèves, saisi sur une tablette par un élève observateur. ' +
+    'Trois sortes : les indicateurs de la liste fournie (calculés par l\'appli à partir des points saisis, ou comptés par l\'observateur) ; ' +
+    'des indicateurs nouveaux « compte » (un observateur appuie sur +1 pour un joueur à chaque fois qu\'il voit l\'action : elle doit être simple, visible et sans ambiguïté) ; ' +
+    'des indicateurs nouveaux « obs » (une question d\'observation qualitative pour le coach, réponse oui / non). ' +
+    'Choisis ce qui mesure le mieux l\'objectif du temps et la règle de la situation reliée, pas des généralités. Si la situation est un exercice (réussis / essais), garde l\'indicateur exo et complète par des observables. ' +
+    'Sans situation reliée, ne propose aucun indicateur calculé (zones, coups, fautes) : seulement des comptages ou des observables. Ne propose pas un indicateur déjà retenu. ' +
+    'crit = critère de réussite chiffré et atteignable par des lycéens, commençant par « Au moins » ou « Moins de » (vide pour « obs »). pourquoi = 15 mots au plus. ' +
+    'Vocabulaire : « leçon », « séquence », critère de réussite = ce qu\'il faut atteindre pour réussir. Français, phrases courtes.';
+  const out = claudeRaw_(key, { model: CLAUDE_MODEL_SIT, max_tokens: 900, system: system,
+      tools: [{ name: 'proposer_indicateurs', description: 'Indicateurs de performance proposés pour ce temps de leçon', input_schema: BAD_IND_SCHEMA }],
+      tool_choice: { type: 'auto' },
+      messages: [{ role: 'user', content: 'Indicateurs disponibles dans l\'appli : ' + lib + '\n\n' + texte + '\n\nRéponds uniquement en appelant l\'outil proposer_indicateurs.' }] });
+  const t = (out.content || []).filter(function (c) { return c.type === 'tool_use'; })[0];
+  if (t) return JSON.stringify(t.input);
+  const txt = (out.content || []).filter(function (c) { return c.type === 'text'; }).map(function (c) { return c.text; }).join('\n');
+  const m = txt.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('Pas de proposition renvoyée : réessaie');
+  JSON.parse(m[0]);
+  return m[0];
+}
+/** À lancer une fois depuis l'éditeur pour vérifier les propositions d'indicateurs (Badminton). */
+function testerIndicateurs() {
+  Logger.log(badIndic_(PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), { t: 'Leçon 4 : Travail de latéralité. Objectif : exploiter la largeur.\nTemps : Matchs 3 couloirs\nConsigne : les points marqués dans les couloirs rapportent plus.\nSituation reliée : Latéralité : 3 couloirs (match à zones)', ctx: 'lat=points sur les côtés; ris=points directs ÷ fautes directes; rev=volants dans le revers adverse (compté)' }));
 }
 /** À lancer une fois depuis l'éditeur pour vérifier « Décris ta situation » (Badminton). */
 function testerBadminton() {
