@@ -383,7 +383,8 @@
     else { P.sort(function (a, b) { return ((b.v == null ? 1.5 : b.v) - (a.v == null ? 1.5 : a.v)) || a.r - b.r; });
       if (mode === "niveau") { var per = Math.ceil(P.length / n); P.forEach(function (x, i) { G[Math.min(n - 1, Math.floor(i / per))].push(x.n); }); }
       else P.forEach(function (x, i) { var row = Math.floor(i / n), c = i % n; G[row % 2 ? n - 1 - c : c].push(x.n); }); }
-    return { g: G, disp: presents(cls).filter(function (x) { return isDisp(cls, x); }), mode: mode, at: Date.now() };
+    var sans = mode !== "hasard" && !P.some(function (x) { return x.v != null; });
+    return { g: G, disp: presents(cls).filter(function (x) { return isDisp(cls, x); }), mode: mode, sans: sans ? 1 : 0, at: Date.now() };
   }
 
   /* ---- leçon en cours (tablette de contrôle) ---- */
@@ -407,7 +408,7 @@
       h += '<div class="lc-box"><b>' + (lec ? esc(titreL(lec)) : "Sans fiche de leçon") + '</b><div class="lc-row">' + parts.map(function (p) { return '<button type="button" class="lc-b s' + (v.part === p[0] ? " p" : "") + '" data-part="' + p[0] + '">' + p[1] + "</button>"; }).join("") + '</div><p class="lc-mut">Étape mise en avant sur les tablettes élèves.</p></div>' +
         matBox(cls, lec, (v.grp && v.grp.g && v.grp.g.length) || nGroupes(lec)) +
         '<div class="lc-box"><h3 style="margin-top:4px">👥 Groupes du jour</h3>' + (v.grp && v.grp.g && v.grp.g.length ? v.grp.g.map(function (g, i) { return '<div class="lc-row" style="align-items:flex-start;margin:4px 0"><b style="min-width:86px">Groupe ' + (i + 1) + '</b><span style="flex:1">' + esc(g.join(", ") || "—") + ' <small class="lc-mut">(' + g.length + ")</small></span></div>"; }).join("") +
-          (v.grp.disp && v.grp.disp.length ? '<div class="lc-mut">🩹 Dispensés (rôles : observateur, arbitre, chrono…) : ' + esc(v.grp.disp.join(", ")) + "</div>" : "") + '<p class="lc-mut">Affichés sur les tablettes élèves. ' + ({ hasard: "Au hasard.", melange: "Niveaux mélangés (d'après tes évaluations de leçon).", niveau: "Groupes de niveau (d'après tes évaluations de leçon)." }[v.grp.mode] || "") + "</p>"
+          (v.grp.disp && v.grp.disp.length ? '<div class="lc-mut">🩹 Dispensés (rôles : observateur, arbitre, chrono…) : ' + esc(v.grp.disp.join(", ")) + "</div>" : "") + '<p class="lc-mut">Affichés sur les tablettes élèves. ' + ({ hasard: "Au hasard.", melange: "Niveaux mélangés (d'après tes évaluations de leçon).", niveau: "Groupes de niveau (d'après tes évaluations de leçon)." }[v.grp.mode] || "") + (v.grp.sans ? " Faute d'évaluation de leçon pour cette classe, ils ont été faits au hasard." : "") + "</p>"
           : '<p class="lc-mut">Formés avec les présents qui pratiquent (' + pratiquants(cls).length + ").</p>") +
         '<div class="lc-row"><select class="lc-sel" data-gn aria-label="Nombre de groupes">' + [2, 3, 4, 5, 6, 7, 8, 10, 12].map(function (n) { return '<option value="' + n + '"' + (n === ((v.grp && v.grp.g && v.grp.g.length) || nGroupes(lec) || 4) ? " selected" : "") + ">" + n + " groupes</option>"; }).join("") + '</select><select class="lc-sel" data-gm aria-label="Façon de former les groupes">' + [["hasard", "Au hasard"], ["melange", "Niveaux mélangés"], ["niveau", "Groupes de niveau"]].map(function (m) { return '<option value="' + m[0] + '"' + ((v.grp && v.grp.mode) === m[0] ? " selected" : "") + ">" + m[1] + "</option>"; }).join("") +
         '</select><button type="button" class="lc-b s p" data-gmk>' + (v.grp && v.grp.g ? "↻ Refaire" : "Former les groupes") + "</button>" + (v.grp && v.grp.g ? '<button type="button" class="lc-b s" data-ged>✏ Modifier</button><button type="button" class="lc-b s" data-gsay>📣 Annoncer</button><button type="button" class="lc-b s" data-gdel>Effacer</button>' : "") + "</div></div>" +
