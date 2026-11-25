@@ -179,13 +179,13 @@
   function close() { if (OV) { OV.style.display = "none"; OV.innerHTML = ""; } EDIT = null; }
   function shell(body) {
     OV.innerHTML = '<div class="lc-top"><b>📝 Fiches de leçon · ' + esc(NOM) + '</b>' +
-      [["lec", "📝 Fiches de leçon"], ["docs", "📂 Mes documents"], ["live", "📡 Leçon en cours"]].map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") +
+      [["lec", "📝 Fiches de leçon"], ["docs", "📂 Mes documents"], ["live", "📡 Leçon en cours"], ["eval", "📊 Évaluer la leçon"]].map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") +
       '<button type="button" class="x" data-x>✕ Fermer</button></div><div class="lc-body"><div class="lc-in">' + body + "</div></div>";
     OV.querySelector("[data-x]").onclick = close;
     OV.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { saveEdit(); TAB = b.dataset.tab; EDIT = null; draw(); }; });
     return OV.querySelector(".lc-in");
   }
-  function draw() { if (!OV || OV.style.display === "none") return; if (TAB === "docs") return drawDocs(); if (TAB === "live") return drawLive(); if (EDIT) return drawEdit(); drawList(); }
+  function draw() { if (!OV || OV.style.display === "none") return; if (TAB === "docs") return drawDocs(); if (TAB === "live") return drawLive(); if (TAB === "eval") return drawLEval(); if (EDIT) return drawEdit(); drawList(); }
 
   /* ---- liste des leçons ---- */
   function drawList() {
@@ -389,6 +389,39 @@
     if (!confirm("Entrer en simulation ? Tes données sont mises de côté et le partage est coupé ; une classe fictive est installée et la leçon simulée se lance. Bandeau en bas à gauche pour passer en élève ou quitter.")) return;
     EPSD.sim.enter({ app: APP, act: "lesson" });
   }
+  /* ================= 📊 évaluation de leçon (participation, sérieux, thème du jour) =================
+     eps.leceval.<appli>.v1 : {id: classe|jour, cls, day, lec, theme, el:{<clé élève>:{p, s, t}}} (0 à 3) ; reprise par eps-eval.js (proposition) et le bulletin. */
+  var KE = "eps.leceval." + APP + ".v1";
+  var LEV_L = ["Insuffisant", "Fragile", "Satisfaisant", "Très bien"], LEV_C = ["#C0392B", "#E67E22", "#2E86C1", "#1E8449"];
+  function lecCrit() { var d = ["Participation", "Sérieux", "Thème du jour"]; try { return window.EPSP ? EPSP.p({ id: "leceval", sec: "Évaluation de leçon", label: "Les 3 critères de l'évaluation de leçon (le 3e reprend le thème du jour)", type: "list", fixed: 3, def: d }) : d; } catch (e) { return d; } }
+  function ekey(full) { return String(full || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" "); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  var LEC_DAY = null;
+  function drawLEval() {
+    var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || C[0] || ""; }
+    var cls = LIVECLS, day = LEC_DAY || today(), id = nn(cls) + "|" + day, rec = get(KE, id) || { id: id, cls: cls, day: day, el: {} };
+    var v = live(cls), lec = (v && v.lec && get(KL, v.lec)) || lecons().filter(function (l) { return (l.prog || []).some(function (p) { return same(p.c, cls) && new Date(p.at).toISOString().slice(0, 10) === day; }); })[0] || null;
+    var theme = rec.theme || (lec && (lec.but || lec.objM || lec.titre)) || "", CR = lecCrit(), R = roster(cls);
+    var days = all(KE).filter(function (o) { return same(o.cls, cls); }).map(function (o) { return o.day; }); if (days.indexOf(day) < 0) days.push(day); days.sort().reverse();
+    var h = '<h2>📊 Évaluer la leçon</h2><p class="lc-mut">Une note rapide par élève, valorisant ' + esc(CR[0].toLowerCase()) + ", " + esc(CR[1].toLowerCase()) + " et " + esc(CR[2].toLowerCase()) + '. Elle compte dans la note proposée (à titre indicatif) et dans les appréciations.</p>' +
+      '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-cls>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><b>Jour</b><select class="lc-sel" data-day>' + days.map(function (d) { return '<option value="' + d + '"' + (d === day ? " selected" : "") + ">" + new Date(d + "T12:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + "</option>"; }).join("") + "</select></div>" +
+      '<label class="lc-f"><span>' + esc(CR[2]) + " : intitulé de cette leçon</span><input data-theme value=\"" + esc(theme) + '" placeholder="ex. Prendre l\'information avant d\'agir"></label>' +
+      (R.length ? '<div class="lc-row"><button type="button" class="lc-b s" data-all="2">Tous « Satisfaisant »</button><button type="button" class="lc-b s" data-clear>Tout effacer</button><span class="lc-mut" style="margin:0">Touche une case pour changer le niveau.</span></div>' +
+        '<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;background:#fff;border-radius:14px"><tr style="text-align:left;color:#6A6F78;font-size:13px"><th style="padding:8px">Élève</th>' + CR.map(function (c) { return '<th style="padding:8px">' + esc(c) + "</th>"; }).join("") + '<th style="padding:8px">Moy.</th></tr>' +
+        R.map(function (n) { var k = ekey(n), x = rec.el[k] || {}, vals = ["p", "s", "t"].map(function (q) { return x[q]; }), done = vals.filter(function (z) { return z != null; });
+          return '<tr style="border-top:1px solid #F0ECE3"><td style="padding:6px 8px;font-weight:700">' + esc(n) + "</td>" + ["p", "s", "t"].map(function (q) { var z = x[q];
+            return '<td style="padding:4px"><button type="button" data-k="' + esc(k) + '" data-q="' + q + '" aria-label="' + esc(n) + " : " + esc(CR[["p", "s", "t"].indexOf(q)]) + " = " + (z == null ? "non évalué" : LEV_L[z]) + '" style="min-width:112px;height:40px;border-radius:10px;border:2px solid ' + (z == null ? "#E6E1D6" : LEV_C[z]) + ";background:" + (z == null ? "#FBFAF7" : LEV_C[z]) + ";color:" + (z == null ? "#6A6F78" : "#fff") + ';font:700 13px system-ui">' + (z == null ? "—" : LEV_L[z]) + "</button></td>"; }).join("") +
+            '<td style="padding:6px 8px;font-weight:800">' + (done.length ? (Math.round(done.reduce(function (a, b) { return a + b; }, 0) / done.length / 3 * 20 * 4) / 4).toString().replace(".", ",") + "/20" : "—") + "</td></tr>"; }).join("") + "</table></div>"
+        : '<div class="lc-box">Aucune liste d\'élèves pour cette classe.</div>') + '<p class="lc-mut" data-msg></p>';
+    var el = shell(h);
+    function saveRec() { rec.cls = cls; rec.day = day; rec.lec = lec ? lec.id : rec.lec || ""; put(KE, rec); }
+    el.querySelector("[data-cls]").onchange = function () { LIVECLS = this.value; drawLEval(); };
+    el.querySelector("[data-day]").onchange = function () { LEC_DAY = this.value; drawLEval(); };
+    var th = el.querySelector("[data-theme]"); th.onchange = function () { rec.theme = th.value.trim(); saveRec(); };
+    var al = el.querySelector("[data-all]"); if (al) al.onclick = function () { R.forEach(function (n) { var k = ekey(n), x = rec.el[k] = rec.el[k] || {}; ["p", "s", "t"].forEach(function (q) { if (x[q] == null) x[q] = 2; }); }); saveRec(); drawLEval(); };
+    var cl = el.querySelector("[data-clear]"); if (cl) cl.onclick = function () { if (confirm("Effacer l'évaluation de cette leçon pour toute la classe ?")) { rec.el = {}; saveRec(); drawLEval(); } };
+    el.querySelectorAll("[data-q]").forEach(function (b) { b.onclick = function () { var x = rec.el[b.dataset.k] = rec.el[b.dataset.k] || {}, q = b.dataset.q; x[q] = x[q] == null ? 2 : x[q] === 3 ? null : x[q] + 1; if (x[q] === null) delete x[q]; saveRec(); drawLEval(); }; });
+  }
   /* ================= côté élève ================= */
   function showStudent(l, v, prev) {
     css(); var o = document.getElementById("lc-st"); if (!o) { o = document.createElement("div"); o.id = "lc-st"; o.className = "lc-st"; document.body.appendChild(o); }
@@ -457,6 +490,7 @@
     EPSD.store({ pre: "li." + APP + "|", key: KI, onChange: redraw });
     EPSD.store({ pre: "ld." + APP + "|", key: KD, onChange: redraw });
     EPSD.store({ pre: "lv." + APP + "|", key: KV, onChange: function () { if (TAB === "live") redraw(); } });
+    EPSD.store({ pre: "le." + APP + "|", key: KE, onChange: function () { if (TAB === "eval") redraw(); } });
     EPSD.store({ pre: "rg|", key: KR, onChange: function () { if (TAB === "live") redraw(); } });
     try { var SF = JSON.parse(localStorage.getItem("eps.sim.v1") || "null"); if (SF && SF.next && SF.next.app === APP && SF.next.act === "lesson") { SF.next = null; localStorage.setItem("eps.sim.v1", JSON.stringify(SF)); setTimeout(simulate, 1500); } } catch (e) {}
     setInterval(function () { try { tickStudent(); } catch (e) { console.warn(e); } }, 1000);
@@ -466,7 +500,7 @@
   window.EPSLC = {
     open: open, close: close, app: APP,
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
-    actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
+    actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "📊", label: "Évaluer la leçon", ord: 2.2, go: function () { open("eval"); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
     biblio: function () { return [{ ico: "📂", label: "Mes documents", sub: "Ta séquence, tes fiches : Claude s'en sert en priorité pour tes leçons", go: function () { open("docs"); } }, { ico: "📝", label: "Mes fiches de leçon", sub: "Fiches de leçon, brouillons de Claude à valider, programmation", go: function () { open("lec"); } }]; },
     _test: { lecons: lecons, put: put, all: all, KL: KL, KV: KV, KD: KD, KR: KR, fromAI: fromAI, startLive: startLive, sendMsg: sendMsg, extract: extract }
   };

@@ -1744,8 +1744,11 @@
     var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m");
     function people(c) { var P = []; try { EPSL.items().forEach(function (it) { if (it.nom === c) P = EPSL.people(it).map(function (p) { return p.full; }); }); } catch (e) {} return P; }
     function notes(c, n) { var O = window.EPSOB ? EPSOB.of(n, c) : [], fs = people(c).map(function (x) { return x.split(" ")[0]; });
+      var LE = []; try { var kk = String(n).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" ");
+        for (var li = 0; li < localStorage.length; li++) { var lk = localStorage.key(li); if (!/^eps\.leceval\.[a-z]+\.v1$/.test(lk || "")) continue; var LV = jget(lk, {}); Object.keys((LV && LV.items) || {}).forEach(function (id) { var o = LV.items[id]; if (!o || o.del || cmp(o.cls) !== cmp(c)) return; var x = (o.el || {})[kk]; if (!x) return; var v = ["p", "s", "t"].filter(function (q) { return x[q] != null; }).map(function (q) { return +x[q]; }); if (v.length) LE.push(v.reduce(function (a, b) { return a + b; }, 0) / v.length); }); } } catch (e) {}
+      var le = LE.length ? "\nÉvaluations de leçon (participation, sérieux, thème du jour) : moyenne " + (Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length * 10) / 10) + " / 3 sur " + LE.length + " leçon(s)" : "";
       var ob = O.length ? "\nObservations du professeur pendant les leçons : " + O.slice(-12).map(function (o) { var t = o.txt; fs.forEach(function (f) { if (f) t = t.replace(new RegExp("\\b" + f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "un camarade"); }); return t; }).join(" ; ") : "";
-      return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob; }
+      return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob + le; }
     function save() { B._cls = sel.value; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) {} }
     function draw() {
       var c = sel.value, R = B[c] = B[c] || {}, P = people(c);
