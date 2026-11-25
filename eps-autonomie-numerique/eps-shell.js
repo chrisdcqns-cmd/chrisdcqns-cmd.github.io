@@ -89,6 +89,30 @@
     function closePanel() { document.documentElement.classList.remove("epst-pan"); mains(true); pan.innerHTML = ""; }
     function cards(L) { return '<div class="epst-grid">' + L.map(function (x, i) { return '<button type="button" class="epst-card" data-i="' + i + '"><i>' + (x.ico || "•") + "</i><span><b>" + esc(x.label) + "</b>" + (x.sub ? "<small>" + esc(x.sub) + "</small>" : "") + "</span></button>"; }).join("") + "</div>"; }
     function bindCards(root, L, keepTab) { root.querySelectorAll(".epst-card[data-i]").forEach(function (b) { b.onclick = function () { var x = L[+b.dataset.i]; closePanel(); mark(keepTab); try { x.go(); } catch (e) { console.warn(e); } }; }); }
+    /* 🎛 page commune des paramètres déclarés par l'appli (EPSP.p, eps-lists.js) */
+    function params() {
+      var D = EPSP.defs, secs = [], K = "eps.param.v1";
+      D.forEach(function (d) { var x = d.sec || "Général"; if (secs.indexOf(x) < 0) secs.push(x); });
+      var cur = function (d) { return EPSP.get(d.id, d.def); }, txt = function (v) { return Array.isArray(v) ? v.join("\n") : String(v == null ? "" : v); };
+      var h = "<h2>🎛 Paramètres de " + esc(C.nom) + '</h2><p class="mut">Tout ce qui est modifiable dans l\'appli. Listes : un élément par ligne. Les changements valent sur toutes tes tablettes.</p>' +
+        secs.map(function (x) { return '<details class="epst-sec" open><summary style="font:800 17px system-ui;margin:12px 0 6px;cursor:pointer">' + esc(x) + "</summary>" + D.filter(function (d) { return (d.sec || "Général") === x; }).map(function (d) {
+          var v = cur(d), mod = JSON.stringify(v) !== JSON.stringify(d.def);
+          return '<div style="background:#fff;border:1px solid #E6E1D6;border-radius:14px;padding:10px 12px;margin:0 0 8px"><div style="display:flex;gap:8px;align-items:center"><b style="flex:1">' + esc(d.label) + (mod ? ' <span style="color:#9A7400;font-size:12px">· modifié</span>' : "") + '</b><button type="button" data-def="' + esc(d.id) + '" style="height:32px;border-radius:10px;border:1.5px solid #E6E1D6;background:#fff;font-weight:700">↺ Défaut</button></div>' +
+            (d.aide || d.fixed ? '<div class="mut" style="font-size:13px">' + esc(d.aide || "") + (d.fixed ? " (" + d.fixed + " lignes, dans cet ordre : renommer seulement)" : "") + "</div>" : "") +
+            (d.type === "list" ? '<textarea data-p="' + esc(d.id) + '" rows="' + Math.min(10, Math.max(3, (v || []).length + 1)) + '" style="width:100%;box-sizing:border-box;margin-top:6px;border:2px solid #E6E1D6;border-radius:10px;padding:8px;font:15px/1.4 system-ui">' + esc(txt(v)) + "</textarea>"
+              : '<input data-p="' + esc(d.id) + '"' + (d.type === "number" ? ' type="number" step="any"' : "") + ' value="' + esc(txt(v)) + '" style="width:100%;box-sizing:border-box;margin-top:6px;height:42px;border:2px solid #E6E1D6;border-radius:10px;padding:0 10px;font:15px system-ui">') + "</div>"; }).join("") + "</details>"; }).join("") +
+        '<div style="display:flex;gap:8px;margin:12px 0"><button type="button" data-save style="height:46px;border-radius:12px;border:0;background:' + C.color + ';color:#fff;font:800 15px system-ui;padding:0 18px">💾 Enregistrer et appliquer</button></div><p class="mut" data-msg></p>';
+      var el = panel(h), msg = el.querySelector("[data-msg]");
+      function store(id, val) { var V; try { V = JSON.parse(localStorage.getItem(K) || "null"); } catch (e) {} V = V && V.items ? V : { items: {}, pend: {}, since: 0 }; V.pend = V.pend || {};
+        var k = EPSP.app + "|" + id, o = V.items[k], u = Math.max(Date.now(), ((o && o.u) || 0) + 1); V.items[k] = val === null ? { id: k, del: 1, u: u } : { id: k, v: val, u: u }; V.pend[k] = u; localStorage.setItem(K, JSON.stringify(V)); }
+      el.querySelectorAll("[data-def]").forEach(function (b) { b.onclick = function () { var d = D.filter(function (x) { return x.id === b.dataset.def; })[0], f = el.querySelector('[data-p="' + d.id + '"]'); f.value = txt(d.def); }; });
+      el.querySelector("[data-save]").onclick = function () { var n = 0;
+        D.forEach(function (d) { var f = el.querySelector('[data-p="' + d.id + '"]'); if (!f) return; var v = d.type === "list" ? f.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean) : d.type === "number" ? Number(f.value) : f.value;
+          if (d.type === "list" && d.fixed && v.length !== d.fixed) { msg.textContent = "⚠ « " + d.label + " » doit avoir " + d.fixed + " lignes."; n = -1; return; }
+          if (n < 0) return; var same = JSON.stringify(v) === JSON.stringify(d.def), was = JSON.stringify(cur(d)) === JSON.stringify(v); if (was) return; store(d.id, same ? null : v); n++; });
+        if (n < 0) return; if (!n) { msg.textContent = "Aucun changement."; return; }
+        try { window.EPSD && EPSD.syncSoon && EPSD.syncSoon(); } catch (e) {} msg.textContent = "✓ Enregistré. L'appli se recharge…"; setTimeout(function () { location.reload(); }, 1200); };
+    }
     function openVue() {
       var f = vue.querySelector("iframe"), top = nav.getBoundingClientRect().bottom;
       vue.style.top = Math.max(0, top) + "px";
@@ -104,7 +128,8 @@
       if (id === "vue") { openVue(); return; }
       if (id === "bib") { var BL = (window.EPSLC ? EPSLC.biblio() : []).concat(C.biblio || []); var p = panel("<h2>📚 Bibliothèque</h2><p class=\"mut\">Tes documents et tes leçons, puis les ressources et les écrans de l'appli, à consulter ou à montrer aux élèves.</p>" + cards(BL) + adaptHtml()); bindCards(p, BL, "bib"); bindAdapt(p); return; }
       if (id === "reg") {
-        var R = [{ ico: "📖", label: "Fiche d'utilisation", sub: "Tout ce que permet " + C.nom + " et les fonctions communes", go: guide }].concat(C.reglages || []).concat([{ ico: "🏫", label: "Réglages communs", sub: "Établissement, enseignant, listes d'élèves, activités des classes, partage entre tablettes", go: function () { try { EPSR.open(); } catch (e) {} } }]);
+        var R = [{ ico: "📖", label: "Fiche d'utilisation", sub: "Tout ce que permet " + C.nom + " et les fonctions communes", go: guide }]
+          .concat(window.EPSP && EPSP.defs.length ? [{ ico: "🎛", label: "Paramètres de l'appli", sub: "Toutes les valeurs et listes modifiables de " + C.nom + " (" + EPSP.defs.length + ")", go: params }] : []).concat(C.reglages || []).concat([{ ico: "🏫", label: "Réglages communs", sub: "Établissement, enseignant, listes d'élèves, activités des classes, partage entre tablettes", go: function () { try { EPSR.open(); } catch (e) {} } }]);
         var q = panel("<h2>⚙ Réglages</h2><p class=\"mut\">Réglages de " + esc(C.nom) + " et réglages communs à toutes les applis.</p>" + cards(R)); bindCards(q, R, "reg"); return;
       }
       if (t && t.panel) { var el = panel(""); try { t.panel(el); } catch (e) { console.warn(e); } return; }

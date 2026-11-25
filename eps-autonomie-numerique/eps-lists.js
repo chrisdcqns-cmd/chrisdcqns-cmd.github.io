@@ -170,3 +170,15 @@ window.epsApChip = function (o) {
   var j = JSON.stringify(o).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   return '<span class="eps-apc" role="button" tabindex="0" title="Auto-positionnement de l\'élève : toucher pour voir" data-eps-ap="' + j + '" style="display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FFF1BF;border:1px solid #E9CF6A;color:#6b4e00;font:700 13px system-ui,sans-serif;cursor:pointer;vertical-align:middle">🙋' + (o.r || o.m ? "💬" : "") + "</span>";
 };
+/* 🎛 paramètres de l'appli (commun) : chaque appli déclare ses valeurs modifiables, l'enseignant les change dans ⚙ Réglages → 🎛 Paramètres
+   (eps-shell.js) ; valeurs dans eps.param.v1 (« <dossier>|<id> »), synchronisées par eps-home.js (préfixe « pa| »).
+   const MSGS = EPSP.p({id, sec, label, type:'list'|'text'|'number', def, fixed, aide}) → valeur modifiée ou défaut. */
+(function () {
+  var m = location.pathname.match(/eps-autonomie-numerique\/([a-z0-9-]+)\//), APP = m ? m[1] : "";
+  function V() { try { return JSON.parse(localStorage.getItem("eps.param.v1") || "null") || { items: {} }; } catch (e) { return { items: {} }; } }
+  var P = window.EPSP = { app: APP, defs: [],
+    reg: function (d) { if (!P.defs.some(function (x) { return x.id === d.id; })) P.defs.push(d); },
+    get: function (id, def) { var o = (V().items || {})[APP + "|" + id]; if (!o || o.del || o.v == null) return def;
+      if (Array.isArray(def) && !Array.isArray(o.v)) return def; return o.v; },
+    p: function (d) { P.reg(d); var v = P.get(d.id, d.def); if (d.fixed && Array.isArray(v)) { v = v.slice(0, d.fixed); while (v.length < d.fixed) v.push(d.def[v.length]); } return v; } };
+})();

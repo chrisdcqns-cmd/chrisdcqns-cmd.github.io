@@ -389,7 +389,8 @@ if(!CF.m2){if(Array.isArray(C.enc)){C.enc=C.enc.filter(b=>!(b.t=='p'&&b.v=='Ajou
 C.the?.forEach(b=>{if(b.t=='p'&&typeof b.v=='string')b.v=b.v.replace('• Gestion de la chute (PME)','• Recherche de PME (positions de moindre effort) pour récupérer')});
 let S={t:'home',s:'ech',e:false,T:false,cv:0,ce:null,free:false},F={},QR=[];
 const TABS=[['home','⌂ Accueil'],['prep','Se préparer et assurer'],['cot','Cotation'],['gr','Renseigner une grimpe'],['mr','Mes résultats'],['the','Thématiques'],['sec','Sécurité'],['res','Résultats, QR codes et Google Sheets']];
-const CRIT=[['m','Prises de mains'],['p','Prises de pieds'],['cp','Changements de pieds effectués'],['h','Hauteur : dernière dégaine dépassée'],['a',"S'est assis dans le baudrier ?"],['pm','PME réalisée ? (Position de Moindre Effort)'],['pof','Utilisation sac à POF'],['k','Commentaire']];
+/* 🎛 paramètres modifiables (⚙ Réglages → 🎛 Paramètres de l'appli, EPSP d'eps-lists.js) */
+const CRIT=(()=>{const K=['m','p','cp','h','a','pm','pof','k'],L=EPSP.p({id:'crit',sec:'Grimpe : ce que l\'élève renseigne',label:'Intitulés des critères relevés',type:'list',fixed:8,def:['Prises de mains','Prises de pieds','Changements de pieds effectués','Hauteur : dernière dégaine dépassée',"S'est assis dans le baudrier ?",'PME réalisée ? (Position de Moindre Effort)','Utilisation sac à POF','Commentaire']});return K.map((k,i)=>[k,L[i]])})();
 const ALL=CRIT.map(c=>c[0]),today=()=>new Date().toLocaleDateString('fr-CA');
 const seaOK=()=>CF.sea&&CF.sea.d==today(),cls=()=>CL.find(c=>c.id==CF.sea?.cl),on=k=>(CF.sea?.cr||ALL).includes(k);
 function fresh(){F={step:1,eleve:'',vo:0,c:'',d:'',mains:0,pieds:0,cp:'',h:'',as:false,asV:'',pme:false,pmeV:'',pof:'',pofU:null,com:'',why:'',whyT:'',nr:{},asr:'',cas:'',obs:'',asrX:false,casX:false,obsX:false};S.free=false}fresh();
@@ -587,7 +588,7 @@ const sitBox=L=>{const X=(L?.sit||[]).map(sitOf).filter(Boolean);return X.length
 const belK=(n,id)=>(id??(cls()?.id||CF.sel||''))+'|'+n,belOf=(n,id)=>(CF.bel||{})[belK(n,id)]||{t5:[0,0,0,0,0],pen:[],rev:0};
 const penOn=b=>(b.pen||[]).filter(p=>!p.off);
 function belLvl(b){return b.rev?'red':penOn(b).length?'yellow':(b.t5||[]).every(Boolean)&&(b.t5||[]).length?'green':'grey'}
-const BEL={green:['🟢','Assureur autonome'],yellow:['🟡','À surveiller'],red:['🔴','Permis révoqué'],grey:['⚪','En apprentissage']};
+const BEL=(()=>{const L=EPSP.p({id:'bel',sec:'Permis d\'assurer',label:'Intitulés des 4 statuts (vert, jaune, rouge, gris)',type:'list',fixed:4,def:['Assureur autonome','À surveiller','Permis révoqué','En apprentissage']});return{green:['🟢',L[0]],yellow:['🟡',L[1]],red:['🔴',L[2]],grey:['⚪',L[3]]}})();
 const belTag=(n,id)=>{const l=belLvl(belOf(n,id));return `<span class="bel bel-${l}">${BEL[l][0]} ${BEL[l][1]}</span>`};
 function belW(n,fn){const id=CF.sel||CF.sea?.cl||cls()?.id||'',k=belK(n,id);CF.bel=CF.bel||{};const b=CF.bel[k]||(CF.bel[k]={t5:[0,0,0,0,0],pen:[],rev:0});fn(b);save();const y=scrollY;render();scrollTo(0,y)}
 function tog5(n,i){belW(n,b=>{b.t5=b.t5||[0,0,0,0,0];b.t5[i]=b.t5[i]?0:1})}
@@ -635,7 +636,7 @@ const presEl=k=>k?k.el.filter(n=>!isAbs(n,k.id)):[];
 function setAbs(n,on){const id=CF.sel||CF.sea?.cl||'',k=abKey(id),L=new Set(absL(id));on?L.add(n):L.delete(n);CF.ab=CF.ab||{};
  /* on ne garde que les 30 derniers jours */const lim=new Date(Date.now()-30*864e5).toLocaleDateString('fr-CA');Object.keys(CF.ab).forEach(x=>{if(x.split('|')[1]<lim)delete CF.ab[x]});
  if(L.size)CF.ab[k]=[...L];else delete CF.ab[k];save();const y=scrollY;render();scrollTo(0,y)}
-const MSGS=["Bravo, continue comme ça ! 💪","Pense à l'exercice du jour.","Essaie une voie plus difficile.","Essaie une voie plus facile.","Grimpe avec les jambes : plus de pieds que de mains.","Pense à faire une pause en position de moindre effort.","Viens me voir avant ta prochaine voie."];
+const MSGS=EPSP.p({id:'msgs',sec:'Messages et retours',label:'Messages rapides envoyés aux élèves',type:'list',aide:'« Pense à l\'exercice du jour. » est complété automatiquement par l\'exercice de la leçon.',def:["Bravo, continue comme ça ! 💪","Pense à l'exercice du jour.","Essaie une voie plus difficile.","Essaie une voie plus facile.","Grimpe avec les jambes : plus de pieds que de mains.","Pense à faire une pause en position de moindre effort.","Viens me voir avant ta prochaine voie."]});
 const msgOf=(n,nom,d)=>(CF.msg||[]).filter(m=>m.el==n&&m.cl==(nom||'')&&m.d==(d||today()));
 function msgDlg(n,why){const nom=CL.find(c=>c.id==(CF.sel||CF.sea?.cl||''))?.nom||'',o=String(lecFor(CF.sel||'',today())?.obj||'').trim(),d=document.createElement('div');d.className='dlg';
  const rf=why&&(remFor(why)||PED().rem['La voie était trop difficile']),rems=[...new Set([rf?remTxt(rf):'',...(why?Object.values(PED().rem).map(remTxt):[])].filter(Boolean))];
@@ -993,7 +994,7 @@ function critForm(){const n10=[1,2,3,4,5,6,7,8,9,10];
  return ord.map(([k,n])=>crit(k,n,I[k]())+(k=='p'&&on('m')?`<div id="rpm">${ratioBox()}</div>`:'')).join('')}
 /* hauteur 0 : ligne rouge (3 m) non dépassée → les autres critères se ferment, l'élève dit pourquoi */
 const low=()=>on('h')&&!F.nr.h&&F.h===0;
-const WHY=["J'ai eu peur","J'étais fatigué(e)","La voie était trop difficile","Je n'ai pas trouvé de prise","J'ai eu mal / une gêne","Problème de matériel ou de sécurité","Autre raison"];
+const WHY=EPSP.p({id:'why',sec:'Grimpe : ce que l\'élève renseigne',label:'Raisons proposées quand la voie n\'est pas terminée (« Pourquoi ? »)',type:'list',def:["J'ai eu peur","J'étais fatigué(e)","La voie était trop difficile","Je n'ai pas trouvé de prise","J'ai eu mal / une gêne","Problème de matériel ou de sécurité","Autre raison"]});
 function whyBox(){const miss=(F.miss||[]).includes('why');
  return `<div class="redl" role="status">🟥 Tu n'as pas dépassé la ligne rouge (3 mètres).</div>
  <div class="crit ${miss?'miss':''}" id="cr_why"><div class="ch"><b>Pourquoi ?</b><span class="ob">★ Obligatoire</span></div><div class="cv"><div class="whys">${WHY.map((w,i)=>`<button class="b ${F.why==w?'on':'g'}" onclick="F.why=WHY[${i}];F.miss=(F.miss||[]).filter(x=>x!='why');const y=scrollY;render();scrollTo(0,y)">${esc(w)}</button>`).join('')}</div>
@@ -1005,7 +1006,7 @@ function goal(){const m=CF.sea?.min||0,n=done();if(!m)return '';const r=m-n;
 async function undo(){if(!await ask('Annuler cet enregistrement ?\nLa grimpe sera supprimée et tu pourras la corriger.'))return;shDel([F.last]);R=R.filter(r=>r.id!=F.last);F.last='';save();go(5)}
 async function delRec(id){const r=R.find(x=>x.id==id);if(!r||!await ask('Supprimer la grimpe de '+(r.el||'cet élève')+' (corde '+r.vo+', voie '+r.c+', '+r.ts+') ?'))return;shDel([r.id]);R=R.filter(x=>x!==r);save();render()}
 /* ---------- cordée : assureur, contre-assureur (obligatoires), observateur (facultatif) ---------- */
-const ROLES=[['asr','Assureur',1],['cas','Contre-assureur',1],['obs','Observateur',0]];
+const ROLES=(()=>{const L=EPSP.p({id:'roles',sec:'Grimpe : ce que l\'élève renseigne',label:'Noms des rôles (assureur, contre-assureur, observateur)',type:'list',fixed:3,def:['Assureur','Contre-assureur','Observateur']});return[['asr',L[0],1],['cas',L[1],1],['obs',L[2],0]]})();
 function roleIn(k,label,need){const kk=cls(),all=presEl(kk).filter(n=>n!=F.eleve).sort((a,b)=>a.localeCompare(b,'fr')),g=grp().filter(n=>n!=F.eleve&&!isAbs(n)),v=F[k],miss=(F.miss||[]).includes(k);
  const lab=`<div class="rlh"><b>${label}</b>${need?'<span class="ob">★ Obligatoire</span>':'<small class="mut">facultatif</small>'}</div>`;
  if(!all.length)return `<div class="rl ${miss?'miss':''}" id="cr_${k}">${lab}<input value="${esc(v)}" placeholder="Prénom" autocomplete="off" oninput="F.${k}=this.value"></div>`;

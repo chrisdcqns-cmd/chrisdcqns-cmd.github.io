@@ -1578,6 +1578,7 @@
      sans le code, personne (ni le script) ne peut la lire. Lien unique à envoyer par Pronote : …/mon-bilan/#s=<script>. */
   var KC = "eps.codes.v1", ALPH = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   STORES.push({ pre: "cd|", key: KC });
+  STORES.push({ pre: "pa|", key: "eps.param.v1" }); /* 🎛 paramètres des applis (EPSP, eps-lists.js) */
   function codeId(cls, full) { return cmp(cls) + "|" + nkey(full); }
   function codeGet(cls, full) { var o = stLd(KC).items[codeId(cls, full)]; return o && !o.del ? o : null; }
   function codePut(o) { var V = stLd(KC), old = V.items[o.id]; o.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[o.id] = o; V.pend[o.id] = o.u; try { localStorage.setItem(KC, JSON.stringify(V)); } catch (e) {} if (window.EPSD) EPSD.syncSoon(); }
