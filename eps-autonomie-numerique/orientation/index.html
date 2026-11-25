@@ -853,7 +853,7 @@ function viewCarte(v) {
     <div class="tools">
       <div class="row" style="gap:6px"><button class="btn small or" id="loadMap">📂 Charger ma carte</button><button class="btn small ghost" id="mapSet">⚙</button><button class="btn small ghost" id="undoB" title="Annuler">↶</button></div>
       <h4>Ma carte</h4>
-      <div class="row" style="gap:6px;margin:0 0 8px"><button class="btn small or" id="bLib" style="flex:1 1 100%">📚 Bibliothèque de cartes</button><button class="btn small alt" id="bSaveAs" style="flex:1">💾 Enregistrer</button><button class="btn small alt" id="bDl" style="flex:1">⬇ Télécharger</button><button class="btn small alt" id="bNewMap" style="flex:1 1 100%">🆕 Nouvelle carte (même fond, sans balise)</button><button class="btn small ghost" id="bCoe" style="flex:1 1 100%">📲 Utiliser dans CO éval</button></div>
+      <div class="row" style="gap:6px;margin:0 0 8px"><button class="btn small or" id="bLib" style="flex:1 1 100%">📚 Bibliothèque de cartes</button><button class="btn small alt" id="bSaveAs" style="flex:1">💾 Enregistrer</button><button class="btn small alt" id="bDl" style="flex:1">⬇ Télécharger</button><button class="btn small alt" id="bNewMap" style="flex:1 1 100%">🆕 Nouvelle carte (même fond, sans balise)</button><button class="btn small ghost" id="bCoe" style="flex:1 1 100%">📲 Utiliser dans CO Course</button></div>
       <h4>Outils</h4><div class="tgrid">
         <button class="tool" data-tool="select"><svg viewBox="0 0 26 20"><path d="M8 2l10 9-5 1 3 6-2 1-3-6-3 4z" fill="currentColor"/></svg>Choisir / déplacer</button>
         <button class="tool" data-tool="pan"><svg viewBox="0 0 26 20"><path d="M13 1v18M4 10h18M13 1l-3 3M13 1l3 3M13 19l-3-3M13 19l3-3M4 10l3-3M4 10l3 3M22 10l-3-3M22 10l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>Se déplacer</button>
@@ -2519,7 +2519,7 @@ function mapDist(a, b) {
 }
 
 // =====================================================================
-//  Bibliothèque de cartes, téléchargement (élève / enseignant), envoi vers l'appli CO éval
+//  Bibliothèque de cartes, téléchargement (élève / enseignant), envoi vers l'appli CO Course
 // =====================================================================
 const MAP_VERSIONS = {
   eleve: { nom: "Élève : numéros, sans code", o: { codes: false } },
@@ -2601,7 +2601,7 @@ async function newMapDialog() {
 // Carte mère : regroupe les balises de plusieurs cartes (même fond) sur une seule carte, pour l'enseignant
 function mereDialog(L) {
   if (L.length < 2) return toast("Il faut au moins 2 cartes dans la bibliothèque", "ko");
-  const m = openModal(`<h2>🧩 Créer une carte mère</h2><p class="muted">Coche les cartes à regrouper (par ex. la carte du collectif et les 2 cartes individuelles). La carte mère reprend le fond de la 1re carte cochée et toutes les balises des cartes cochées. Elle n'est que pour toi : envoie-la dans CO éval en choisissant « 🗺 Carte mère ».</p>
+  const m = openModal(`<h2>🧩 Créer une carte mère</h2><p class="muted">Coche les cartes à regrouper (par ex. la carte du collectif et les 2 cartes individuelles). La carte mère reprend le fond de la 1re carte cochée et toutes les balises des cartes cochées. Elle n'est que pour toi : envoie-la dans CO Course en choisissant « 🗺 Carte mère ».</p>
    <div class="list">${L.map((x, i) => `<label class="item" style="cursor:pointer"><input type="checkbox" data-mc="${i}"> <div class="body"><b>${esc(x.nom)}</b> <span class="muted">${x.n} balise(s)</span></div></label>`).join("")}</div>
    <div class="field"><label>Nom</label><input class="inp" id="mcN" value="Carte mère"></div><p id="mcE" class="muted"></p>
    <div class="row"><button class="btn or" id="mcOk">🧩 Créer et ouvrir</button><button class="btn ghost" id="mcX">Annuler</button></div>`, { wide: true });
@@ -2620,11 +2620,11 @@ function mereDialog(L) {
 }
 async function libraryDialog() {
   const L = await libList();
-  const m = openModal(`<h2>📚 Bibliothèque de cartes</h2><p class="muted">Tes cartes enregistrées sur cet appareil. Ouvre une carte pour la modifier, ou envoie-la comme parcours dans l'appli CO éval.</p>
+  const m = openModal(`<h2>📚 Bibliothèque de cartes</h2><p class="muted">Tes cartes enregistrées sur cet appareil. Ouvre une carte pour la modifier, ou envoie-la comme parcours dans l'appli CO Course.</p>
    <div class="row" style="margin-bottom:10px"><button class="btn or small" id="lbSave">💾 Enregistrer la carte actuelle</button><button class="btn alt small" id="lbMere">🧩 Créer une carte mère</button><button class="btn ghost small" id="lbExp">⬇ Sauvegarder la bibliothèque (fichier)</button><button class="btn ghost small" id="lbImp">📥 Importer un fichier</button></div>
    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px">${L.map(x => `<div class="card" style="padding:10px;margin:0;${x.id === P.libId ? "outline:3px solid var(--or)" : ""}">${x.thumb ? `<img src="${x.thumb}" style="width:100%;height:140px;object-fit:contain;background:#eee;border-radius:8px">` : ""}
      <b style="display:block;margin-top:6px">${esc(x.nom)}</b><span class="muted" style="font-size:.8rem">${x.n} balise(s) · ${new Date(x.date).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${x.id === P.libId ? " · ouverte" : ""}</span>
-     <div class="row" style="margin-top:6px;gap:4px"><button class="btn small or" data-op="${x.id}">Ouvrir</button><button class="btn small alt" data-coe="${x.id}">📲 CO éval</button><button class="btn small ghost" data-rn="${x.id}">✏️</button><button class="btn small ghost" data-dp="${x.id}">⧉</button><button class="btn small ghost" data-rm="${x.id}" style="color:#d62839">✕</button></div></div>`).join("") || '<p class="muted">Aucune carte enregistrée pour l\'instant.</p>'}</div>`, { wide: true });
+     <div class="row" style="margin-top:6px;gap:4px"><button class="btn small or" data-op="${x.id}">Ouvrir</button><button class="btn small alt" data-coe="${x.id}">📲 CO Course</button><button class="btn small ghost" data-rn="${x.id}">✏️</button><button class="btn small ghost" data-dp="${x.id}">⧉</button><button class="btn small ghost" data-rm="${x.id}" style="color:#d62839">✕</button></div></div>`).join("") || '<p class="muted">Aucune carte enregistrée pour l\'instant.</p>'}</div>`, { wide: true });
   $("#lbSave", m).onclick = () => { m.close(); saveAsDialog(); };
   $("#lbMere", m).onclick = () => { m.close(); mereDialog(L); };
   $$("[data-op]", m).forEach(b => b.onclick = async () => {
@@ -2641,21 +2641,21 @@ async function libraryDialog() {
   $("#lbImp", m).onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = ".json,application/json"; i.onchange = async () => { try { const j = JSON.parse(await i.files[0].text()); if (j.app !== "orienrun-cartes") throw new Error("Ce n'est pas une bibliothèque de cartes OrienRun"); const L2 = await libList(); let n = 0; for (const { meta, p } of j.cartes) { if (!p) continue; const id = L2.some(y => y.id === meta.id) ? uid(8) : meta.id; await DB.set("carte:" + id, p); L2.unshift({ ...meta, id }); n++; } await DB.set("cartes", L2); toast(`${n} carte(s) importée(s) ✓`, "ok"); m.close(); libraryDialog(); } catch (e) { toast(e.message, "ko"); } }; i.click(); };
 }
 
-// ---------- Envoi vers l'appli CO éval (même script Google) ----------
+// ---------- Envoi vers l'appli CO Course (même script Google) ----------
 async function coeDialog(proj = P) {
   const B = proj.controls.filter(c => c.type === "C" && c.x != null).sort((a, b) => (+a.n) - (+b.n));
   const bad = B.filter(c => !/^[A-Z]{3}$/.test(String(c.code || "").toUpperCase()));
-  const m = openModal(`<h2>📲 Utiliser cette carte dans CO éval</h2>
-   <p class="muted">La carte « <b>${esc(proj.nom)}</b> » et ses <b>${B.length} balises</b> remplacent la carte et la liste des balises de l'appli <b>CO – Préparation à l'évaluation</b>. Les téléphones des élèves la reçoivent en moins de 15 s. Tes réglages de parcours, tes listes d'élèves et les résultats sont gardés.</p>
+  const m = openModal(`<h2>📲 Utiliser cette carte dans CO Course</h2>
+   <p class="muted">La carte « <b>${esc(proj.nom)}</b> » et ses <b>${B.length} balises</b> remplacent la carte et la liste des balises de l'appli <b>CO Course – l'outil des élèves pendant la course</b>. Les téléphones des élèves la reçoivent en moins de 15 s. Tes réglages de parcours, tes listes d'élèves et les résultats sont gardés.</p>
    <div class="field"><label>Version de la carte envoyée aux élèves</label><select class="inp" id="coV"><option value="eleve">Numéros des balises, sans code</option><option value="vierge">Cercles seuls, sans numéro ni code</option></select></div>
    ${bad.length ? `<p class="chip ko" style="display:inline-block">${bad.length} balise(s) sans code de 3 lettres (${bad.slice(0, 8).map(c => esc(c.n)).join(", ")}${bad.length > 8 ? "…" : ""}) : l'appli élève a besoin des codes. Saisis-les d'abord (onglet Balises → ⌨ Saisir les codes).</p>` : ""}
    <div class="field" style="background:#fff4ea;border:2px solid var(--or);border-radius:12px;padding:10px"><label><b>Utiliser cette carte comme…</b></label><select class="inp" id="coR"><option value="">Carte unique (remplace la carte, les balises et les 3 cartes)</option><option value="0">👥 Carte du parcours collectif</option><option value="1">👤 Carte individuelle 1</option><option value="2">👤 Carte individuelle 2</option><option value="m">🗺 Carte mère (pour l'enseignant : toutes les balises, les 3 cartes sont gardées)</option></select>
-    <small class="muted">Avec 3 cartes différentes (bibliothèque de cartes) : envoie chacune à son tour en choisissant son rôle. Les autres cartes déjà envoyées sont gardées, et la liste des balises de CO éval regroupe celles des 3 cartes. Les 2 cartes individuelles se partagent dans le binôme.</small></div>
+    <small class="muted">Avec 3 cartes différentes (bibliothèque de cartes) : envoie chacune à son tour en choisissant son rôle. Les autres cartes déjà envoyées sont gardées, et la liste des balises de CO Course regroupe celles des 3 cartes. Les 2 cartes individuelles se partagent dans le binôme.</small></div>
    <div class="field" id="coKs"><label>… ou, dans cette carte, un parcours d'OrienRun = une carte avec seulement ses balises (facultatif)</label>
     ${proj.courses.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${[["coK0", "👥 Carte du collectif"], ["coK1", "👤 Carte individuelle 1"], ["coK2", "👤 Carte individuelle 2"]].map(([id, l]) => `<label style="flex:1;min-width:180px"><small>${l}</small><select class="inp" id="${id}"><option value="">— aucune —</option>${proj.courses.map(k => `<option value="${k.id}">${esc(k.nom)} (${k.ctrl.length} balises)</option>`).join("")}</select></label>`).join("")}</div><small class="muted">Les 2 cartes individuelles se partagent dans le binôme : si un élève prend la carte 1, son binôme a la carte 2. Sans choix : tous les élèves ont la carte complète.</small>` : `<small class="muted">Crée d'abord des parcours (onglet Parcours) pour proposer plusieurs cartes (1 collective, 2 individuelles).</small>`}</div>
    <div style="max-height:46vh;overflow:auto;border-radius:10px;background:#eee"><svg id="coPrev" viewBox="0 0 ${proj.map.w} ${proj.map.h}" style="width:100%;display:block"></svg></div>
    <p id="coSt" class="muted"></p>
-   <p class="muted" style="font-size:.75rem;margin:0 0 6px">envoi v2</p><div class="row"><button class="btn or" id="coGo" ${bad.length || !B.length ? "disabled" : ""}>📲 Envoyer vers CO éval</button><a class="btn ghost" href="../co-eval/" target="_blank">Ouvrir CO éval</a></div>`, { wide: true });
+   <p class="muted" style="font-size:.75rem;margin:0 0 6px">envoi v2</p><div class="row"><button class="btn or" id="coGo" ${bad.length || !B.length ? "disabled" : ""}>📲 Envoyer vers CO Course</button><a class="btn ghost" href="../co-eval/" target="_blank">Ouvrir CO Course</a></div>`, { wide: true });
   const prev = () => $("#coPrev", m).innerHTML = mapSVG(proj, MAP_VERSIONS[$("#coV", m).value].o);
   prev(); $("#coV", m).onchange = prev; $("#coR", m).onchange = () => { $("#coKs", m).style.display = $("#coR", m).value ? "none" : ""; };
   $("#coGo", m).onclick = async () => {
@@ -2664,7 +2664,7 @@ async function coeDialog(proj = P) {
       if (!tpw()) throw new Error("Connecte-toi d'abord à l'espace enseignant avec ton mot de passe");
       st.textContent = "⏳ Préparation de l'image…";
       let img = await mapImage(proj, $("#coV", m).value, 2600, "image/jpeg", .85), q = .75; while (img.length > 1.4e6 && q > .45) { img = await mapImage(proj, $("#coV", m).value, 2400, "image/jpeg", q); q -= .1; }
-      st.textContent = "⏳ Lecture des réglages de CO éval…";
+      st.textContent = "⏳ Lecture des réglages de CO Course…";
       const g = await apiCall(apiUrl(), "coeGet", { vc: "" }, 20000);
       let conf = {}; try { conf = g.conf ? JSON.parse(g.conf) : {}; } catch (e) {}
       if ($("#coR", m).value !== "" || ["coK0", "coK1", "coK2"].some(id => $("#" + id, m) && $("#" + id, m).value)) { // plusieurs cartes : il faut le script Google à jour (action coeMap)
@@ -2718,8 +2718,8 @@ async function coeDialog(proj = P) {
       await apiCall(apiUrl(), "coeSave", { teacher: tpw(), cle: "carte", data: img }, 90000);
       st.textContent = "⏳ Envoi des balises…";
       await apiCall(apiUrl(), "coeSave", { teacher: tpw(), cle: "conf", data: JSON.stringify(conf) }, 30000);
-      st.innerHTML = `✅ Envoyé : ${B.length} balises. Les élèves la reçoivent en moins de 15 s.${(conf.parcours || []).some(p => !p.oblig) ? " Pense à vérifier les balises obligatoires dans CO éval (⚙ Paramètres)." : ""}`;
-      toast("Carte envoyée vers CO éval ✓", "ok");
+      st.innerHTML = `✅ Envoyé : ${B.length} balises. Les élèves la reçoivent en moins de 15 s.${(conf.parcours || []).some(p => !p.oblig) ? " Pense à vérifier les balises obligatoires dans CO Course (⚙ Paramètres)." : ""}`;
+      toast("Carte envoyée vers CO Course ✓", "ok");
     } catch (e) { st.textContent = "⚠ " + (/Action inconnue/.test(e.message) ? "Ton script Google n'est pas à jour : remplace-le par la dernière version de Code.gs puis redéploie." : e.message); btn.disabled = false; }
   };
 }

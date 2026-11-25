@@ -1268,7 +1268,7 @@ function repProposeHtml(P,ctx,k,cur){const p=repPropose(P,ctx,k);if(!p)return '<
  return `💡 Répartition proposée : <b>${esc(p.r)}</b> (${fr(p.v)} / ${P.fil.pts}) ${cur===p.r?'✓':`<button class="b s" onclick="evUpd(e=>{e.rep='${p.r}'});render()">Appliquer</button>`}<small>${esc(p.why)} · ${p.sc.map(x=>x.r+' → '+fr(x.v)).join(' · ')} (🙋 positionnement de l'élève, 💡 d'après les données)</small>`}
 
 /* ================== COURSE D'ORIENTATION ↔ CO ÉVAL ==================
-   CO Éval (même site, même tablette) garde ses résultats dans localStorage « coe.srv » = {rows:[{k, t, d:{me:{prenom,nom,classe}, run}}]},
+   CO Course (même site, même tablette) garde ses résultats dans localStorage « coe.srv » = {rows:[{k, t, d:{me:{prenom,nom,classe}, run}}]},
    sa configuration en cours « coe.conf » (C.ev = évaluation en cours) et ses évaluations sauvegardées « coe.arch » = [{id, nom, from, to, cls, conf}].
    Le CCF lit ces données, calcule pour chaque élève ses points annoncés / réalisés, ses balises N2 / N3, son temps, et les range dans
    « cx:ori:<classe>:<élève> » = {src, imp:{…}, ed:{…}} : imp = données importées, ed = corrections de l'enseignant (prioritaires). */
@@ -1280,7 +1280,7 @@ function coSources(){const srv=coLS('srv',{rows:[]}),rows=(srv.rows||[]).filter(
  if(conf){const from=(conf.ev&&conf.ev.date)||0;L.push({id:'cur',nom:(conf.ev&&conf.ev.nom)||'Évaluation en cours',conf,rows:rows.filter(r=>inWin(r,from,9e15))})}
  arch.forEach(a=>{if(a&&a.conf)L.push({id:a.id,nom:a.nom||'Évaluation sauvegardée',conf:a.conf,rows:rows.filter(r=>inWin(r,a.from,a.to)),date:a.to})});
  return L.filter(x=>x.rows.length)}
-/* une course (format compact de CO Éval) → chiffres */
+/* une course (format compact de CO Course) → chiffres */
 function coRun(conf,row,J){const x=row.d.run,p=(conf.parcours||[])[row.k]||{},niv=n=>{const b=(conf.balises||[]).find(b=>+b.n===+n);const v=b?+b.niv||0:0;return v===2?J.n2:v===3?J.n3:v};
  const S=(x.s||[]).map(s=>({code:s[1],att:s[2],st:s[3],bal:s[4]})),ok=new Set();S.forEach(s=>{if(['ok','saut','retour'].includes(s.st)&&s.bal!=null)ok.add(+s.bal)});
  const plan=(x.p||[]).map(Number),found=plan.filter(n=>ok.has(n)),extra=[...ok].filter(n=>!plan.includes(n));
@@ -1296,15 +1296,15 @@ function coImport(srcId){const src=coSources().find(s=>s.id===srcId),c=clsById(T
  Object.keys(R).forEach(k=>{const L=R[k].runs,imp={runs:L};['ann','pts','nbPlan','nb','n2','n3','modif','oublis','bonus'].forEach(f=>imp[f]=L.reduce((a,x)=>a+(x[f]||0),0));imp.over=L.some(x=>x.over)?1:0;imp.avance=L.length?Math.min(...L.map(x=>x.avance)):0;
   upd('cx:ori:'+c.id+':'+k,{ed:{}},o=>{o.src=src.nom;o.imp=imp;o.ed=o.ed||{};o.t=Date.now()})});
  toast(Object.keys(R).length+' élève(s) importé(s) de « '+src.nom+' »'+(miss.size?' · '+miss.size+' nom(s) non reconnu(s)':''));
- if(miss.size)setTimeout(()=>alert('Noms de CO Éval non trouvés dans la liste '+c.nom+' :\n'+[...miss].join('\n')+'\n\nVérifie l\'orthographe dans les listes, ou saisis leurs données dans leur fiche.'),300);render()}
+ if(miss.size)setTimeout(()=>alert('Noms de CO Course non trouvés dans la liste '+c.nom+' :\n'+[...miss].join('\n')+'\n\nVérifie l\'orthographe dans les listes, ou saisis leurs données dans leur fiche.'),300);render()}
 function coVal(cls,k){const o=get('cx:ori:'+cls+':'+k);if(!o)return null;const v={};CO_F.forEach(([f])=>{const e=(o.ed||{})[f];v[f]=e!=null&&e!==''?+e:o.imp?o.imp[f]:null});v.runs=(o.imp||{}).runs||[];v.src=o.src||'';v.edited=Object.keys(o.ed||{}).filter(f=>o.ed[f]!=null&&o.ed[f]!=='').length;return v}
 function coEdit(k,f,v){upd('cx:ori:'+T.cls+':'+k,{ed:{}},o=>{o.ed=o.ed||{};o.ed[f]=v===''?null:+String(v).replace(',','.')})}
 
 /* ---------- carte d'import (onglet Évaluation) ---------- */
 function coImportCard(c){const L=coSources(),nb=people(c).filter(p=>get('cx:ori:'+c.id+':'+p.k)).length;
- return `<div class="card soft"><b>📥 Résultats de CO Éval</b> <span class="mut sm">${nb} élève(s) de ${esc(c.nom)} ont déjà des données</span>
+ return `<div class="card soft"><b>📥 Résultats de CO Course</b> <span class="mut sm">${nb} élève(s) de ${esc(c.nom)} ont déjà des données</span>
  ${L.length?`<div class="row wrapf" style="margin-top:6px">${L.map(s=>{const n=s.rows.filter(r=>!r.d.me.classe||coNorm(r.d.me.classe)===coNorm(c.nom)).length;return `<button class="b s" onclick="coImport('${s.id}')">📥 ${esc(s.nom)} <small class="mut">(${s.rows.length} course(s)${n?', '+n+' de la classe':''})</small></button>`}).join('')}</div>`:
- `<p class="sm">Aucun résultat de CO Éval sur cette tablette. Ouvre <a href="../co-eval/" target="_blank">CO Éval</a> en mode enseignant sur cette tablette (les résultats se chargent), puis reviens ici. Tu peux aussi saisir les données dans la fiche de chaque élève.</p>`}
+ `<p class="sm">Aucun résultat de CO Course sur cette tablette. Ouvre <a href="../co-eval/" target="_blank">CO Course</a> en mode enseignant sur cette tablette (les résultats se chargent), puis reviens ici. Tu peux aussi saisir les données dans la fiche de chaque élève.</p>`}
  <div class="row wrapf" style="margin-top:6px"><button class="b p" onclick="coPositionClass()">💡 Positionner toute la classe (degrés, notes, répartition)</button><span class="mut sm">Seulement les élèves pas encore notés ; tu ajustes ensuite chaque fiche.</span></div></div>`}
 /* positionnement de toute la classe : degrés proposés, note dans le degré selon le niveau des balises, répartition proposée */
 function coPositionClass(){const c=clsById(T.cls),S=ses(T.act,c.id),P=proto(T.act,S.voie);if(!P)return;let n=0;
@@ -1317,10 +1317,10 @@ function coPositionClass(){const c=clsById(T.cls),S=ses(T.act,c.id),P=proto(T.ac
 
 /* ---------- fiche élève : données de la course, modifiables ---------- */
 function coFicheHtml(X){const v=coVal(X.cls,X.k)||{runs:[]},o=get('cx:ori:'+X.cls+':'+X.k)||{};
- return `<div class="card"><b>🧭 Données de la course</b> <span class="mut sm">${v.src?'importées de CO Éval · « '+esc(v.src)+' »':'pas encore importées'}${v.edited?' · '+v.edited+' valeur(s) corrigée(s) par toi':''}</span>
+ return `<div class="card"><b>🧭 Données de la course</b> <span class="mut sm">${v.src?'importées de CO Course · « '+esc(v.src)+' »':'pas encore importées'}${v.edited?' · '+v.edited+' valeur(s) corrigée(s) par toi':''}</span>
  ${v.runs.length?`<div class="tblw" style="margin:6px 0"><table class="tbl"><thead><tr><th>Parcours</th><th>Annoncé</th><th>Réalisé</th><th>Balises</th><th>N2 / N3</th><th>Temps</th><th>Modifs</th></tr></thead><tbody>${v.runs.map(r=>`<tr><td>${esc(r.nom)}${r.duo?' 👥':''}</td><td>${r.ann} pts</td><td><b>${r.pts} pts</b></td><td>${r.nb} / ${r.nbPlan}</td><td>${r.n2} / ${r.n3}</td><td>${fr(r.min)} min${r.over?' ⚠ hors temps':''}</td><td>${r.modif}${r.oublis?' · '+r.oublis+' manquée(s)':''}</td></tr>`).join('')}</tbody></table></div>`:''}
- <div class="g4 cof">${CO_F.map(([f,l])=>{const imp=o.imp?o.imp[f]:null,ed=(o.ed||{})[f];return `<label>${esc(l)}<input type="number" inputmode="decimal" value="${ed!=null&&ed!==''?esc(ed):imp!=null?esc(imp):''}" class="${ed!=null&&ed!==''?'edt':''}" onchange="coEdit('${X.k}','${f}',this.value);render()">${ed!=null&&ed!==''&&imp!=null?`<small>CO Éval : ${esc(imp)}</small>`:''}</label>`}).join('')}</div>
- <p class="mut sm">Corrige ou complète librement : la valeur corrigée (en jaune) remplace celle de CO Éval et sert aux propositions de degré.</p></div>`}
+ <div class="g4 cof">${CO_F.map(([f,l])=>{const imp=o.imp?o.imp[f]:null,ed=(o.ed||{})[f];return `<label>${esc(l)}<input type="number" inputmode="decimal" value="${ed!=null&&ed!==''?esc(ed):imp!=null?esc(imp):''}" class="${ed!=null&&ed!==''?'edt':''}" onchange="coEdit('${X.k}','${f}',this.value);render()">${ed!=null&&ed!==''&&imp!=null?`<small>CO Course : ${esc(imp)}</small>`:''}</label>`}).join('')}</div>
+ <p class="mut sm">Corrige ou complète librement : la valeur corrigée (en jaune) remplace celle de CO Course et sert aux propositions de degré.</p></div>`}
 
 /* ---------- propositions de degré d'après les données (utilisées par propose()) ---------- */
 function coSuggest(auto,P,ctx,k){const v=coVal(ctx.cls,k);if(!v)return null;const J=P.jeu;
@@ -1329,11 +1329,11 @@ function coSuggest(auto,P,ctx,k){const v=coVal(ctx.cls,k);if(!v)return null;cons
  if(auto==='co-plan'){if(v.nb==null)return null;const mn=J.nMinF;const d=v.nbPlan&&v.nb<v.nbPlan/2?0:(v.modif||v.oublis)?1:v.nb>=mn?((v.bonus||0)>0||v.pts>v.ann?3:2):1;return {d,src:v.nb+' balises (minimum '+J.nMinF+' / '+J.nMinG+'), '+(v.modif||v.oublis?'projet modifié':'projet respecté')+(v.bonus?', '+v.bonus+' bonus':'')}}
  if(auto==='co-coop'){const ind=v.runs.filter(r=>!r.duo);if(!ind.length)return null;const miss=ind.reduce((a,r)=>a+r.oublis,0),col=v.runs.filter(r=>r.duo),colOk=col.length&&col.every(r=>!r.oublis);return {d:miss?1:colOk?3:2,src:'parcours individuels : '+(miss?miss+' balise(s) manquée(s)':'toutes les balises')+(col.length?', collectif '+(colOk?'complet':'incomplet'):'')}}
  return null}
-function coAide(auto,P,X){const s=coSuggest(auto,P,X,X.k);return s?`<p>${esc(s.src)} → plutôt <b>degré ${s.d+1}</b></p>`:'<p class="mut">Pas de données de course : importe CO Éval (onglet Évaluation) ou saisis-les dans « Données de la course ».</p>'}
+function coAide(auto,P,X){const s=coSuggest(auto,P,X,X.k);return s?`<p>${esc(s.src)} → plutôt <b>degré ${s.d+1}</b></p>`:'<p class="mut">Pas de données de course : importe CO Course (onglet Évaluation) ou saisis-les dans « Données de la course ».</p>'}
 
 /* ---------- élève : feuille projet (KIFEKOI) du binôme ---------- */
 function coHtml(){const F=F0(),mem=memNames(),J=PX.J,cartes=[['col','Parcours collectif (à deux)'],['i1','Parcours individuel 1'],['i2','Parcours individuel 2']];
- let h=`<p class="mut">Les courses se font avec <a href="../co-eval/" target="_blank">CO Éval</a>. Ici, le binôme prépare son projet (KIFEKOI) : ordre des balises, points annoncés (N2 = ${J.n2} pts, N3 = ${J.n3} pts), réchappes, répartition des cartes. ${J.nMinF} balises à ramener pour les filles, ${J.nMinG} pour les garçons.</p>
+ let h=`<p class="mut">Les courses se font avec <a href="../co-eval/" target="_blank">CO Course</a>. Ici, le binôme prépare son projet (KIFEKOI) : ordre des balises, points annoncés (N2 = ${J.n2} pts, N3 = ${J.n3} pts), réchappes, répartition des cartes. ${J.nMinF} balises à ramener pour les filles, ${J.nMinG} pour les garçons.</p>
  <div class="row wrapf">${tmHtml('cop','Planification du projet commun',J.tPlan*60)}${tmHtml('cor','Répartition des parcours',J.tRep*60)}</div>`;
  cartes.forEach(([id,l])=>{const x=(F.cartes||{})[id]||{};h+=`<div class="card"><b>${l}</b>${id!=='col'?`<div class="row wrapf"><span class="lab">Qui court ?</span>${mem.map(m=>`<button class="b s${x.qui===m.k?' p':''}" onclick="coSet('${id}','qui','${m.k}')">${esc(m.n)}</button>`).join('')}</div>`:''}
   <div class="g3"><label>Balises annoncées, dans l'ordre<input value="${esc(x.ordre||'')}" placeholder="ex. 7, 2, 9, 14" onchange="coSet('${id}','ordre',this.value,1)"></label><label>Nombre de N2<input type="number" value="${esc(x.n2||'')}" onchange="coSet('${id}','n2',this.value)"></label><label>Nombre de N3<input type="number" value="${esc(x.n3||'')}" onchange="coSet('${id}','n3',this.value)"></label></div>
