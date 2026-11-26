@@ -170,6 +170,16 @@ window.EPS_GUIDES = {
     ["Côté élève", "La classe et la course viennent du QR code de départ ; le coureur suit son parcours, sa trace est envoyée en direct."],
     ["Pose des balises", "Outil enseignant sur iPhone : poser les balises au GPS (photos, Google Maps) et tracer les chemins pour OrienRun."]
   ] },
+  bk: { nom: "Basket-ball", items: [
+    ["🏀 Forme de jeu du jour", "Séquence → Leçon du jour : choisis 3 contre 3 (demi-terrain, 1 panier) ou 4 contre 4 (tout terrain), le nombre de terrains et les points bonus du jour. Coche « Les équipes peuvent changer de forme » pour laisser le choix aux élèves."],
+    ["👥 Équipes", "Classe : au hasard, d'après les groupes du jour, ou par niveaux / affinités. Touche un élève puis « Placer ici » pour le changer d'équipe. Chaque équipe a sa chasuble. Les absents de l'appel sont barrés."],
+    ["🗓 Rencontres", "« Créer les rencontres » : toutes les équipes se rencontrent, réparties sur tes terrains. À chaque rotation, les équipes qui ne jouent pas arbitrent et observent un terrain. Sans rencontres, les équipes lancent des matchs libres."],
+    ["Table de marque", "Une tablette par équipe : boutons de points de la forme de jeu, qui a marqué, fautes, ⭐ bonus, chrono du match et temps pour tirer, ↩ Annuler, feuille de match. Une seule tablette tient la marque ; les autres voient le score."],
+    ["👁 Fiches d'observation", "Trois fiches : « Notre attaque » (possessions, tirs, balles perdues), « Un joueur », « Carte des tirs » (on touche l'endroit du tir). Les indicateurs se colorent 🟢 🟠 🔴 selon tes seuils. « 🖨 Imprimer les fiches » quand il manque des tablettes."],
+    ["📋 Planche tactique", "Bibliothèque → Systèmes de jeu : schémas prêts pour le 3 contre 3 et le 4 contre 4, à ouvrir, modifier, enregistrer, ou « 📤 Envoyer aux tablettes ». Les équipes dessinent et enregistrent leurs propres schémas, que tu retrouves dans Séquence."],
+    ["📊 Suivi et bilans", "Séquence se met à jour toute seule : scores, classement du jour, observations par équipe, schémas. Bilans : classement de la séquence, points par joueur, joueurs observés, bilans écrits des équipes, export tableur, puis fiches d'évaluation."],
+    ["🎛 Paramètres", "Réglages → Paramètres : durées, score qui arrête le match, boutons de points, règles affichées, points bonus, intitulés des compteurs, seuils, chasubles, questions du bilan, échauffement."]
+  ] },
   ct: { nom: "Cross-training", items: [
     ["Vidéos sur le Drive", "Un dossier « Vidéo crosstraining » avec un sous-dossier par exercice (Squat, Burpee…) : N1.mp4, N2.mp4, N3.mp4. Jusqu'à 3 vidéos par niveau : N2.mp4, N2-2.mp4, N2-3.mp4 (ou un sous-dossier N2/). Vidéos verticales, moins de 10 Mo."],
     ["Régler le dossier", "Bibliothèque → 🎬 Vidéos et fiches : colle le lien du dossier, « Enregistrer le dossier » (les vidéos sont partagées par lien), puis « Lire le Drive » : le rapport montre les vidéos trouvées par niveau, les fichiers mal nommés et les dossiers nouveaux (fiche « à compléter », invisible des élèves)."],

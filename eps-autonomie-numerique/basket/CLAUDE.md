@@ -1,0 +1,11 @@
+# Basket-ball (CA4) — notes de l'appli
+
+- `index.html` autonome (repère `eps-source-directe`), couleur `#A4161A`, code d'appli `bk`, dossier `basket`. Charte commune : `../CLAUDE.md`.
+- Deux formes de jeu (`MODES`) : `3` = 3 contre 3 (demi-terrain, terrain `basket3` d'eps-tactique.js) et `4` = 4 contre 4 (tout terrain, `basket`). Durée, score qui arrête le match, temps pour tirer, boutons de points et règles : paramètres `m3_*` / `m4_*` (`modeCfg`). La forme du jour est choisie par l'enseignant (`j.mode`) ; `j.libre` laisse le choix aux équipes (sessionStorage `bk_mode`).
+- Une tablette par équipe : classe (écran commun) → équipe → accueil d'équipe (leçon du jour commune, match, rencontres, observer, planche, bilan, règles, échauffement). Sans classe : règles, systèmes de jeu, échauffement.
+- Magasin `bk.v1` (`EPSD.store`, préfixe `bk|`, relevé toutes les 6 s par `EPSD.syncOne`) : `e|<classe>` équipes, `j|<classe>|<jour>` leçon du jour (forme, terrains, bonus, rotations `r`), `m|…` matchs (`ev` : points `p`, bonus `b`, fautes `f` ; `by` = tablette qui tient la marque, les autres sont en lecture), `o|…` observations (`coll`, `ind`, `tir`), `p|<classe>|<équipe>|…` schémas, `b|…` bilans d'équipe. Tout élément porte `cls`.
+- Rencontres (`rencontres(ids, nt)`) : toutes les équipes se rencontrent ; par rotation, au plus `nt` matchs, les équipes au repos sont affectées à un terrain (arbitrage, observation). Match d'une rotation : identifiant fixe `matchId` (les tablettes ouvrent le même match).
+- Observation : indicateurs dans `indic(o)` ; seuils `seuil_tir`, `seuil_reu`, `seuil_eff` (« orange ; vert ») ; zones de tir `zoneTir` (raquette, mi-distance, derrière l'arc : distance au panier (16 ; 75) > 67,5).
+- Planche : `SYS` = systèmes de jeu prêts (coordonnées du terrain `basket3` ou `basket`) ; éditeur `EPSTAC.editor` ; l'enseignant envoie par `EPSD.plan.send`.
+- Communs : `EVBK` (`EPSE.store`, grille CA4 proposée, `groups` = équipes), `EPSTBK` (`EPST.init`), `EPS_TRAMES` (`bk-3c3-4c4`, 8 leçons en brouillon), `epsCheck`, `epsNiveaux`, `epsTabInfo` (équipe), `epsGroupesLog`.
+- Tests : scénario complet enseignant / élève et synchronisation avec le faux script (`outils/tests/t_basket.py`, `t_basket_sync.py`).

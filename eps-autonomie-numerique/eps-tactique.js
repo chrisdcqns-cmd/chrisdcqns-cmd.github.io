@@ -13,22 +13,25 @@
   function L(x1, y1, x2, y2, x) { return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '"' + (x || "") + "/>"; }
   function R(x, y, w, h, x2) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"' + (x2 || "") + "/>"; }
   var DASH = ' stroke-dasharray="3 2.4"';
+  /* raquette, arc et panier d'un côté du terrain de basket (s = 0 à gauche, 1 à droite) */
+  function BK(s) { var a = s ? 280 : 0, b = s ? 222 : 58, f = s ? 0 : 1, p = s ? 264 : 16;
+    return R(Math.min(a, b), 50.5, 58, 49) + '<path d="M' + b + ",57 A18,18 0 0 " + f + " " + b + ',93"/>' + '<path d="M' + a + ",9 L" + (s ? 250 : 30) + ",9 A67.5,67.5 0 0 " + f + " " + (s ? 250 : 30) + ",141 L" + a + ',141"/>' + '<circle cx="' + p + '" cy="75" r="2.6"/>' + L(s ? 268 : 12, 66, s ? 268 : 12, 84, ' stroke-width="1.2"'); }
   /* Terrains : w × h (hors marge), fond, lignes (origine au coin du terrain) */
   var T = {
     volley: { nom: "Volley-ball", w: 180, h: 90, bg: "#F6E3C9", d: function () { return R(0, 0, 180, 90) + L(60, 0, 60, 90) + L(120, 0, 120, 90) + L(90, -6, 90, 96, ' stroke-width="1.4"'); } },
     badminton: { nom: "Badminton", w: 134, h: 61, bg: "#DDEFE6", d: function () { return R(0, 0, 134, 61) + L(0, 4.6, 134, 4.6) + L(0, 56.4, 134, 56.4) + L(7.6, 0, 7.6, 61) + L(126.4, 0, 126.4, 61) + L(47.2, 0, 47.2, 61) + L(86.8, 0, 86.8, 61) + L(0, 30.5, 47.2, 30.5) + L(86.8, 30.5, 134, 30.5) + L(67, -4, 67, 65, ' stroke-width="1.2"'); } },
     handball: { nom: "Handball", w: 200, h: 100, bg: "#DCE8F5", d: function () { var z = function (s, r, x) { var a = s ? 200 : 0, f = s ? 0 : 1, b = s ? 200 - r : r; return '<path d="M' + a + "," + (42.5 - r) + " A" + r + "," + r + " 0 0 " + f + " " + b + ",42.5 L" + b + ",57.5 A" + r + "," + r + " 0 0 " + f + " " + a + "," + (57.5 + r) + '"' + (x || "") + "/>"; };
       return R(0, 0, 200, 100) + L(100, 0, 100, 100) + z(0, 30) + z(1, 30) + z(0, 45, DASH) + z(1, 45, DASH) + L(-3, 42.5, -3, 57.5, ' stroke-width="1.4"') + L(203, 42.5, 203, 57.5, ' stroke-width="1.4"'); } },
-    basket: { nom: "Basket-ball", w: 280, h: 150, bg: "#F3DDC2", d: function () { var k = function (s) { var a = s ? 280 : 0, b = s ? 222 : 58, f = s ? 0 : 1, p = s ? 264 : 16;
-        return R(Math.min(a, b), 50.5, 58, 49) + '<path d="M' + b + ",57 A18,18 0 0 " + f + " " + b + ',93"/>' + '<path d="M' + a + ",9 L" + (s ? 250 : 30) + ",9 A67.5,67.5 0 0 " + f + " " + (s ? 250 : 30) + ",141 L" + a + ',141"/>' + '<circle cx="' + p + '" cy="75" r="2.6"/>' + L(s ? 268 : 12, 66, s ? 268 : 12, 84, ' stroke-width="1.2"'); };
-      return R(0, 0, 280, 150) + L(140, 0, 140, 150) + '<circle cx="140" cy="75" r="18"/>' + k(0) + k(1); } },
+    basket: { nom: "Basket-ball", w: 280, h: 150, bg: "#F3DDC2", d: function () { return R(0, 0, 280, 150) + L(140, 0, 140, 150) + '<circle cx="140" cy="75" r="18"/>' + BK(0) + BK(1); } },
+    /* demi-terrain de basket (3 contre 3) : le panier est à gauche, mêmes mesures que la moitié gauche du terrain entier */
+    basket3: { nom: "Basket 3 contre 3 (demi-terrain)", w: 140, h: 150, bg: "#F3DDC2", d: function () { return R(0, 0, 140, 150) + '<path d="M140,57 A18,18 0 0 0 140,93"/>' + BK(0); } },
     foot: { nom: "Football", w: 210, h: 136, bg: "#DCEBD3", d: function () { return R(0, 0, 210, 136) + L(105, 0, 105, 136) + '<circle cx="105" cy="68" r="18.3"/>' + R(0, 27.7, 33, 80.6) + R(177, 27.7, 33, 80.6) + R(0, 49.7, 11, 36.6) + R(199, 49.7, 11, 36.6) + L(-3, 60.7, -3, 75.3, ' stroke-width="1.4"') + L(213, 60.7, 213, 75.3, ' stroke-width="1.4"'); } },
     rugby: { nom: "Rugby", w: 200, h: 140, bg: "#DCEBD3", d: function () { return R(0, 0, 200, 140) + L(100, 0, 100, 140) + L(44, 0, 44, 140) + L(156, 0, 156, 140) + L(80, 0, 80, 140, DASH) + L(120, 0, 120, 140, DASH) + L(10, 0, 10, 140, DASH) + L(190, 0, 190, 140, DASH); } },
     ultimate: { nom: "Ultimate", w: 200, h: 74, bg: "#DCEBD3", d: function () { return R(0, 0, 200, 74) + L(36, 0, 36, 74) + L(164, 0, 164, 74); } },
     demi: { nom: "Demi-terrain", w: 120, h: 100, bg: "#EFEBE0", d: function () { return R(0, 0, 120, 100); } },
     vierge: { nom: "Page blanche", w: 160, h: 100, bg: "#FFFFFF", d: function () { return ""; } }
   };
-  var ORDRE = ["volley", "badminton", "handball", "basket", "foot", "rugby", "ultimate", "demi", "vierge"];
+  var ORDRE = ["volley", "badminton", "handball", "basket", "basket3", "foot", "rugby", "ultimate", "demi", "vierge"];
   var uid = 0;
   function terr(s) { return T[s] || T.vierge; }
   function rad(t) { return Math.max(t.w, t.h) / 30; }
@@ -109,6 +112,7 @@
   function depart(s) { var t = terr(s), I = [], P = function (e, n, x, y) { I.push({ t: "p", e: e, n: String(n), x: x * t.w, y: y * t.h }); };
     if (s === "volley") { [[.42, .2], [.42, .5], [.42, .8], [.14, .8], [.14, .5], [.14, .2]].forEach(function (p, k) { P(0, [4, 3, 2, 1, 6, 5][k], p[0], p[1]); P(1, [2, 3, 4, 5, 6, 1][k], 1 - p[0], p[1]); }); }
     else if (s === "badminton") { P(0, 1, .25, .5); P(1, 1, .75, .5); }
+    else if (s === "basket3") { [[.72, .5], [.36, .14], [.36, .86]].forEach(function (p, k) { P(0, k + 1, p[0], p[1]); }); [[.6, .5], [.3, .26], [.3, .74]].forEach(function (p, k) { P(1, k + 1, p[0], p[1]); }); I.push({ t: "b", x: t.w * .77, y: t.h * .46 }); return { sport: s, items: I }; }
     else if (s !== "vierge") { var n = s === "foot" ? 5 : s === "rugby" ? 5 : s === "ultimate" ? 5 : s === "demi" ? 3 : 4, k; for (k = 0; k < n; k++) { P(0, k + 1, .3, (k + 1) / (n + 1)); P(1, k + 1, .7, (k + 1) / (n + 1)); } }
     if (s !== "vierge") I.push({ t: "b", x: t.w * (s === "volley" ? .28 : s === "badminton" ? .36 : .5), y: t.h * (s === "volley" ? .35 : .5) });
     return { sport: T[s] ? s : "vierge", items: I }; }

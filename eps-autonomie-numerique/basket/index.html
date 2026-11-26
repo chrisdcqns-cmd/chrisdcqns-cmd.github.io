@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<!-- eps-source-directe : cette page est LA source de l'appli, modifiée directement. Ne jamais la remplacer par une page fabriquée ailleurs (autre conversation, anciens fichiers) : repartir de cette page. Voir CLAUDE.md. -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script src="../eps-lists.js"></script>
+<script src="../eps-eval.js"></script>
+<script src="../eps-shell.js"></script>
+<script src="../eps-tactique.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14171C">
+<title>Basket-ball · EPS Autonomie et Numérique</title>
+<style>
+:root{--fond:#F5F3EE;--carte:#fff;--encre:#14171C;--doux:#6A6F78;--ligne:#E6E1D6;--app:#A4161A;--clair:#FBE9E9;--ok:#1E8A4C;--ok-c:#E6F5EC;--or:#B45309;--or-c:#FDF0D9;--ko:#C0392B;--ko-c:#FBEAE8;--r:16px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--fond);color:var(--encre);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+header{position:sticky;top:0;z-index:20;background:#14171C;color:#fff;padding:10px 14px 14px;display:flex;align-items:center;gap:12px;box-shadow:inset 0 -4px 0 var(--app)}
+header .mk{width:36px;height:36px;border-radius:10px;background:var(--app);padding:6px;flex:none}
+header h1{font-size:20px;margin:0;line-height:1.1;font-weight:800}
+header small{display:block;color:#A9AEB8;font-weight:500;font-size:13px}
+header [data-eps-bar]{margin-left:auto;display:flex;gap:6px;align-items:center}
+html:not(.eps-teach) body.gate main{visibility:hidden}
+main{max-width:1040px;margin:0 auto;padding:14px 14px 90px}
+h2{font-size:22px;margin:4px 0 12px}
+h3{font-size:16px;margin:0 0 8px}
+.carte{background:var(--carte);border:1px solid var(--ligne);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.doux{color:var(--doux)}.petit{font-size:14px}
+.ligne{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;min-height:44px;padding:10px 16px;font-weight:700;background:var(--encre);color:#fff}
+.btn.app{background:var(--app)}.btn.clair{background:#EFECE6;color:var(--encre)}.btn.contour{background:#fff;border:1.5px solid var(--ligne);color:var(--encre)}
+.btn.danger{background:var(--ko-c);color:var(--ko)}.btn.plein{width:100%}.btn:disabled{opacity:.45}.btn.gros{min-height:60px;font-size:19px}
+input[type=text],input[type=number],select,textarea{width:100%;border:1.5px solid var(--ligne);border-radius:10px;padding:9px 10px;background:#fff;min-height:44px}
+textarea{min-height:70px;resize:vertical}
+.retour{border:0;background:none;font-weight:700;color:var(--doux);padding:8px 4px;min-height:44px}
+.tuiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.tuile{border:1px solid var(--ligne);background:#fff;border-radius:var(--r);padding:16px;text-align:left;display:flex;gap:12px;align-items:center;min-height:84px}
+.tuile i{font-style:normal;font-size:30px;flex:none}.tuile b{display:block;font-size:17px}.tuile small{color:var(--doux);font-size:13px}
+.tuile.fort{background:var(--app);color:#fff;border-color:var(--app)}.tuile.fort small{color:#F6D5D5}
+.pastille{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:4px 12px;font-weight:800;font-size:14px;background:var(--clair);color:var(--app)}
+.rond{width:16px;height:16px;border-radius:50%;display:inline-block;flex:none;border:1.5px solid rgba(0,0,0,.25)}
+.puce{border:1.5px solid var(--ligne);background:#fff;border-radius:99px;padding:7px 13px;font-weight:600;min-height:40px}
+.puce.on{background:var(--encre);color:#fff;border-color:var(--encre)}
+.bascule{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bascule button{border:2px solid var(--ligne);background:#fff;border-radius:14px;padding:14px;text-align:left;min-height:86px}
+.bascule button.on{border-color:var(--app);background:var(--clair)}
+.bascule b{font-size:22px;display:block}.bascule small{color:var(--doux)}
+table.t{width:100%;border-collapse:collapse;font-size:15px}
+table.t th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--doux);padding:6px}
+table.t td{padding:8px 6px;border-top:1px solid var(--ligne)}table.t .c{text-align:center}
+.eq{border-left:8px solid #999}
+/* match */
+.marque{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cote{background:#fff;border:1px solid var(--ligne);border-top:10px solid #999;border-radius:var(--r);padding:12px;text-align:center}
+.cote .nom{font-weight:800;font-size:19px}.cote .sc{font-size:clamp(64px,13vw,120px);font-weight:900;line-height:1;margin:4px 0 10px;font-variant-numeric:tabular-nums}
+.cote .pts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.cote .pts button{min-width:76px;min-height:64px;border-radius:14px;border:0;background:var(--encre);color:#fff;font-size:24px;font-weight:900}
+.cote .pts button.bo{background:var(--or-c);color:var(--or);font-size:17px}
+.cote .fa{margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:center}
+.chrono{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.chrono .tps{font-size:40px;font-weight:900;font-variant-numeric:tabular-nums;min-width:120px;text-align:center}
+.chrono .poss{font-size:26px;font-weight:900;min-width:60px;text-align:center;border-radius:12px;padding:4px 10px;background:#fff;border:1.5px solid var(--ligne)}
+.chrono .poss.fin{background:var(--ko-c);color:var(--ko);border-color:var(--ko)}
+/* observation */
+.cpts{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.cpt{border:0;border-radius:var(--r);padding:14px 10px;min-height:118px;background:#fff;border:2px solid var(--ligne);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.cpt b{font-size:44px;line-height:1;font-variant-numeric:tabular-nums}.cpt span{font-weight:700;text-align:center}
+.cpt.v{border-color:var(--ok);background:var(--ok-c)}.cpt.r{border-color:var(--ko);background:var(--ko-c)}
+.ind{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.ind div{border-radius:14px;padding:10px 12px;background:#fff;border:1px solid var(--ligne)}
+.ind b{display:block;font-size:26px}.ind small{color:var(--doux);font-size:13px}
+.ind .g{background:var(--ok-c);border-color:var(--ok)}.ind .o{background:var(--or-c);border-color:var(--or)}.ind .k{background:var(--ko-c);border-color:var(--ko)}
+.terrain{background:#fff;border:1px solid var(--ligne);border-radius:var(--r);padding:8px;max-width:620px;margin:0 auto}
+.outils{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.outils button{border:1.5px solid var(--ligne);background:#fff;border-radius:10px;min-height:44px;padding:6px 12px;font-weight:700}
+.outils button.on{background:var(--encre);color:#fff;border-color:var(--encre)}
+.vign{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.vign button{border:1px solid var(--ligne);background:#fff;border-radius:var(--r);padding:8px;text-align:left}
+.vign b{display:block;margin:6px 4px 0}.vign small{display:block;margin:0 4px 4px;color:var(--doux)}
+/* fenêtre */
+#calque:empty{display:none}
+#calque{position:fixed;inset:0;z-index:200;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:14px}
+.feuille{background:#fff;border-radius:20px;padding:18px;width:min(560px,100%);max-height:88vh;overflow:auto}
+.feuille h3{font-size:19px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#14171C;color:#fff;padding:10px 18px;border-radius:99px;font-weight:700;z-index:400;max-width:92vw;text-align:center}
+#impr{display:none}
+@media print{body>*:not(#impr){display:none!important}#impr{display:block;padding:0;font-size:12pt}#impr table{width:100%;border-collapse:collapse}#impr td,#impr th{border:1px solid #000;padding:6px;text-align:left}#impr .case{height:46px}#impr h2{margin:8px 0}}
+@media (max-width:560px){.cote .pts button{min-width:62px;min-height:56px}.chrono .tps{font-size:32px}}
+</style>
+</head>
+<body>
+<header>
+  <svg class="mk" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3v18"/><path d="M5.6 5.6c3 3 3 9.8 0 12.8"/><path d="M18.4 5.6c-3 3-3 9.8 0 12.8"/></svg>
+  <div><h1>Basket-ball<small id="sousTitre">CA4 · 3 contre 3 et 4 contre 4</small></h1></div>
+  <span data-eps-bar></span>
+</header>
+<main id="vue"></main>
+<div id="calque"></div>
+<div id="impr"></div>
+
+<script>
+"use strict";
+/* ======================= BASKET-BALL (CA4) : 3 contre 3 et 4 contre 4 =======================
+   Modèle commun des applis EPS (voir ../CLAUDE.md et CLAUDE.md de ce dossier). Code d'appli « bk », dossier « basket ».
+   Une tablette par équipe : rencontres du jour, table de marque, fiches d'observation, planche tactique, bilan d'équipe.
+   Magasin partagé « bk.v1 » (EPSD.store, préfixe « bk| ») :
+     e|<classe>                équipes de la classe {cls, eq:[{id, nom, col, j:[noms]}]}
+     j|<classe>|<jour>         leçon du jour {cls, day, mode:'3'|'4', libre, nt, bon:[n° de bonus], r:[rotations]}
+     m|<classe>|<jour>|<n°>    match {cls, day, mode, ter, rot, a, b, sa, sb, fa, fb, ev:[], st, t:{d,left,at}, by}
+     o|<classe>|<jour>|<n°>    observation {cls, day, mode, ty:'coll'|'ind'|'tir', eq, who, par, c:[], tirs:[[x,y,ok]], st}
+     p|<classe>|<équipe>|<n°>  schéma d'une équipe {cls, eq, nom, d:{sport, items}}
+     b|<classe>|<jour>|<équipe> bilan d'équipe {cls, day, eq, r:[3 réponses]} */
+const COL="#A4161A", DIR="basket", CODE="bk", KST="bk.v1";
+const $=s=>document.querySelector(s);
+const h=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nk=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+const SS={get:k=>{try{return sessionStorage.getItem("bk_"+k)||""}catch(e){return ""}}, set:(k,v)=>{try{sessionStorage.setItem("bk_"+k,v)}catch(e){}}, del:k=>{try{sessionStorage.removeItem("bk_"+k)}catch(e){}}};
+const auj=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const dateFR=s=>s?new Date(s+"T12:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"}):"";
+const pct=(a,b)=>b?Math.round(a/b*100):null;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function toast(m){document.querySelectorAll(".toast").forEach(x=>x.remove());const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+function estProf(){ if(window.EPS_VUE_ELEVE) return false; try{ return Date.now() < +(localStorage.getItem("eps.teach.until")||0); }catch(e){ return false; } }
+function devId(){ try{ const d=JSON.parse(localStorage.getItem("eps.dev.v1")||"null"); if(d&&d.id) return d.id; }catch(e){} let x=SS.get("dev"); if(!x){ x="t"+uid(); SS.set("dev",x); } return x; }
+function bip(n){ try{ const C=window.AudioContext||window.webkitAudioContext, a=bip.a||(bip.a=new C()); for(let i=0;i<(n||1);i++){ const o=a.createOscillator(), g=a.createGain(); o.frequency.value=880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.25,a.currentTime+i*.35); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+i*.35+.3); o.start(a.currentTime+i*.35); o.stop(a.currentTime+i*.35+.3); } }catch(e){} }
+
+/* ======================= PARAMÈTRES (tout est réglable : ⚙ Réglages → 🎛 Paramètres) ======================= */
+const PRM=d=>{ try{ return window.EPSP?EPSP.p(d):d.def; }catch(e){ return d.def; } };
+const DEFS=[
+ {id:"m3_duree",sec:"3 contre 3",label:"Durée d'un match (minutes)",type:"number",def:6},
+ {id:"m3_cible",sec:"3 contre 3",label:"Score qui arrête le match (0 = au temps seulement)",type:"number",def:21},
+ {id:"m3_poss",sec:"3 contre 3",label:"Temps pour tirer en secondes (0 = pas de décompte)",type:"number",def:12},
+ {id:"m3_pts",sec:"3 contre 3",label:"Boutons de points (points ; intitulé)",type:"list",def:["1 ; Panier à l'intérieur de l'arc","2 ; Panier derrière l'arc"]},
+ {id:"m3_regles",sec:"3 contre 3",label:"Règles affichées aux élèves (une par ligne)",type:"list",def:[
+  "Demi-terrain, 1 panier, 3 joueurs sur le terrain (et 1 remplaçant).",
+  "Panier à l'intérieur de l'arc : 1 point. Derrière l'arc : 2 points. Lancer franc : 1 point.",
+  "Fin du match : au temps, ou dès qu'une équipe atteint le score fixé.",
+  "Après un panier encaissé : je repars sous le panier et je ressors le ballon derrière l'arc, en dribble ou par une passe.",
+  "Après un rebond défensif ou une interception : je ressors le ballon derrière l'arc avant d'attaquer.",
+  "Après une faute ou une sortie : échange de balle entre un défenseur et un attaquant, en haut de l'arc.",
+  "12 secondes pour tirer.",
+  "Entre-deux : le ballon va à l'équipe qui défendait.",
+  "Remplacement : ballon arrêté, je tape dans la main de mon partenaire."]},
+ {id:"m4_duree",sec:"4 contre 4",label:"Durée d'un match (minutes)",type:"number",def:8},
+ {id:"m4_cible",sec:"4 contre 4",label:"Score qui arrête le match (0 = au temps seulement)",type:"number",def:0},
+ {id:"m4_poss",sec:"4 contre 4",label:"Temps pour tirer en secondes (0 = pas de décompte)",type:"number",def:24},
+ {id:"m4_pts",sec:"4 contre 4",label:"Boutons de points (points ; intitulé)",type:"list",def:["2 ; Panier","3 ; Panier à 3 points","1 ; Lancer franc"]},
+ {id:"m4_regles",sec:"4 contre 4",label:"Règles affichées aux élèves (une par ligne)",type:"list",def:[
+  "Tout terrain (ou en largeur), 2 paniers, 4 joueurs sur le terrain (et des remplaçants).",
+  "Panier : 2 points. Derrière la ligne à 3 points : 3 points. Lancer franc : 1 point.",
+  "Marcher : pas plus de 2 appuis ballon en main.",
+  "Reprise de dribble : je ne dribble plus après avoir arrêté mon dribble.",
+  "Pas de contact : la faute donne le ballon à l'adversaire, ou des lancers francs sur un tir.",
+  "Retour en zone : une fois en zone avant, le ballon ne revient pas en zone arrière.",
+  "3 secondes dans la raquette adverse, 5 secondes quand je suis serré de près, 8 secondes pour passer le milieu, 24 secondes pour tirer.",
+  "Remise en jeu derrière la ligne, là où le ballon est sorti."]},
+ {id:"bonus",sec:"Points bonus",label:"Règles de points bonus (intitulé ; points). Tu choisis celles du jour dans Séquence.",type:"list",def:["Panier après une passe décisive ; 1","Panier en contre-attaque ; 1","Tous les joueurs ont touché le ballon avant le tir ; 1","Ballon gagné en défense puis panier ; 1"]},
+ {id:"obs_coll",sec:"Fiches d'observation",label:"Fiche collective : intitulés des 4 compteurs",type:"list",fixed:4,def:["Panier marqué","Tir manqué","Balle perdue","Ballon gagné en défense"]},
+ {id:"obs_ind",sec:"Fiches d'observation",label:"Fiche joueur : intitulés des 6 compteurs",type:"list",fixed:6,def:["Tir réussi","Tir manqué","Passe réussie","Balle perdue","Ballon gagné (interception, rebond)","Passe décisive"]},
+ {id:"seuil_tir",sec:"Fiches d'observation",label:"Possessions qui arrivent au tir, en % (seuil orange ; seuil vert)",type:"text",def:"50 ; 70"},
+ {id:"seuil_reu",sec:"Fiches d'observation",label:"Réussite au tir, en % (seuil orange ; seuil vert)",type:"text",def:"30 ; 50"},
+ {id:"seuil_eff",sec:"Fiches d'observation",label:"Efficacité du joueur, en % (seuil orange ; seuil vert)",type:"text",def:"50 ; 70"},
+ {id:"chasubles",sec:"Équipes",label:"Chasubles (nom ; couleur)",type:"list",def:["Rouges ; #D64545","Bleus ; #2F6FDB","Jaunes ; #E0A800","Verts ; #2E9E5B","Orange ; #E8701A","Violets ; #8A3FD1","Noirs ; #14171C","Blancs ; #C9CDD3"]},
+ {id:"class_pts",sec:"Équipes",label:"Points au classement (victoire ; nul ; défaite)",type:"text",def:"3 ; 2 ; 1"},
+ {id:"bilan_q",sec:"Bilan d'équipe",label:"Les 3 questions du bilan d'équipe",type:"list",fixed:3,def:["Ce qui a bien marché","Ce qu'on doit améliorer","Notre projet pour le prochain match"]},
+ {id:"echauf",sec:"Échauffement",label:"Étapes de l'échauffement (une par ligne)",type:"list",def:[
+  "Mobilisation articulaire : chevilles, genoux, hanches, épaules, poignets, doigts (2 min)",
+  "Courses sur demi-terrain : talons-fesses, montées de genoux, pas chassés défensifs, course arrière (3 min)",
+  "Dribble : main forte, main faible, changements de main, sur un aller-retour (3 min)",
+  "Passes à deux en mouvement : à terre, directe, sans dribble (3 min)",
+  "Tir en course à droite puis à gauche : deux colonnes, un tireur, un rebondeur (4 min)",
+  "Tir à l'arrêt près du panier, puis 1 contre 1 (3 min)"]}
+];
+const D0={}; DEFS.forEach(d=>{ D0[d.id]=d; PRM(d); });
+const P=id=>PRM(D0[id]);
+const duo=(s,a,b)=>{ const x=String(s||"").split(";").map(v=>parseFloat(String(v).replace(",","."))); return [isFinite(x[0])?x[0]:a, isFinite(x[1])?x[1]:b]; };
+const paire=s=>{ const i=String(s||"").indexOf(";"); return i<0?[String(s||"").trim(),""]:[s.slice(0,i).trim(), s.slice(i+1).trim()]; };
+const MODES={ "3":{id:"3",nom:"3 contre 3",court:"basket3",n:3,sub:"Demi-terrain · 1 panier"}, "4":{id:"4",nom:"4 contre 4",court:"basket",n:4,sub:"Tout terrain · 2 paniers"} };
+function modeCfg(m){ m=MODES[m]?m:"3"; const pts=P("m"+m+"_pts").map(paire).map(x=>({v:parseFloat(String(x[0]).replace(",",".")),l:x[1]})).filter(x=>isFinite(x.v)&&x.v>0);
+  return Object.assign({}, MODES[m], {duree:Math.max(0,+P("m"+m+"_duree")||0), cible:Math.max(0,+P("m"+m+"_cible")||0), poss:Math.max(0,+P("m"+m+"_poss")||0), pts:pts.length?pts:[{v:1,l:"Panier"}], regles:P("m"+m+"_regles")}); }
+const bonusList=()=>P("bonus").map(paire).map(x=>({l:x[0], v:parseFloat(String(x[1]).replace(",","."))||1}));
+const chasubles=()=>P("chasubles").map(paire).map(x=>({nom:x[0], col:/^#[0-9a-f]{3,8}$/i.test(x[1])?x[1]:"#6A6F78"}));
+
+/* ======================= DONNÉES PARTAGÉES ENTRE TABLETTES ======================= */
+function stLd(){ let v=null; try{ v=JSON.parse(localStorage.getItem(KST)||"null"); }catch(e){} if(!v||typeof v!=="object"||!v.items||typeof v.items!=="object") v={items:{},pend:{},since:0}; v.pend=v.pend||{}; return v; }
+function stPut(id,obj){ const v=stLd(); obj.id=id; obj.u=Math.max(Date.now(),((v.items[id]||{}).u||0)+1); v.items[id]=obj; v.pend[id]=obj.u; try{ localStorage.setItem(KST,JSON.stringify(v)); }catch(e){ toast("Mémoire de la tablette pleine"); } try{ window.EPSD&&EPSD.syncSoon&&EPSD.syncSoon(); }catch(e){} }
+const stGet=id=>{ const o=stLd().items[id]; return o&&!o.del?o:null; };
+const stDel=id=>{ const o=stLd().items[id]; if(o) stPut(id,{del:1,cls:o.cls}); };
+const stItems=pre=>Object.entries(stLd().items).filter(([k,o])=>k.startsWith(pre)&&o&&!o.del).map(x=>x[1]);
+(function brancher(n){ if(window.EPSD&&EPSD.store){ EPSD.store({pre:"bk|", key:KST, onChange:()=>{ const f=document.activeElement, saisie=f&&/^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName); if(!$("#calque").innerHTML && !saisie && ["prof","home","prog","eq"].includes(S.vue)) rendre(); else if(S.vue==="match"){ const m=matchCur(); if(m&&m.by!==devId()) rendre(); } }}); } else if(n<60) setTimeout(()=>brancher(n+1),250); })(0);
+
+/* relevé rapide (toutes les 6 s, comme la leçon en cours) : scores, équipes et rencontres arrivent sans attendre le relevé général */
+setInterval(()=>{ try{ if(document.visibilityState!=="hidden"&&!window.EPS_SIM&&window.EPSD&&EPSD.syncOne) EPSD.syncOne(KST); }catch(e){} },6000);
+/* ======================= CLASSES, ÉLÈVES, ÉQUIPES ======================= */
+function classesBK(){ try{ return (window.EPSL?EPSL.items():[]).filter(it=>it&&it.nom&&!it.del&&!(it.demo&&!(window.EPSD&&EPSD.demo&&EPSD.demo.on()))&&!(it.off||[]).includes(CODE)); }catch(e){ return []; } }
+const S={classe:SS.get("classe"), eq:SS.get("eq"), vue:"home", pick:"", mid:SS.get("mid"), oid:"", pid:"", sys:"", obsTy:"coll", bilC:"", bilJ:""};
+const aClasse=()=>!!S.classe&&S.classe!=="-";
+const clsObj=()=>classesBK().find(x=>x.id===S.classe)||null;
+const nomClasse=()=>{ const c=clsObj(); return c?c.nom:""; };
+function personnes(cls){ const it=classesBK().find(x=>x.nom===cls); try{ return it&&window.EPSL?EPSL.people(it).map(p=>p.full||((p.prenom||"")+" "+(p.nom||"")).trim()).filter(Boolean):(it?it.el||[]:[]); }catch(e){ return it?it.el||[]:[]; } }
+const absent=(n,cls)=>{ try{ return !!(window.epsAbsJour&&epsAbsJour(n,cls)); }catch(e){ return false; } };
+const presents=cls=>personnes(cls).filter(n=>!absent(n,cls));
+const prenom=n=>{ const p=String(n||"").trim().split(/\s+/), i=p.findIndex(w=>w.length>1&&w!==w.toUpperCase()); return i>=0?p[i]:p[0]||""; };
+function eqs(cls){ const o=stGet("e|"+nk(cls)); return o&&Array.isArray(o.eq)?o.eq.filter(e=>e&&e.id&&Array.isArray(e.j)):[]; }
+function eqSave(cls,L){ stPut("e|"+nk(cls),{cls:cls,eq:L}); try{ window.epsGroupesLog&&epsGroupesLog(DIR,cls,L.map(e=>e.j),"equipes"); }catch(e){} }
+const eqDe=(cls,id)=>eqs(cls).find(e=>e.id===id)||null;
+const eqNom=(cls,id)=>{ const e=eqDe(cls,id); return e?e.nom:id==="prof"?"Enseignant":"Équipe"; };
+const eqCol=(cls,id)=>{ const e=eqDe(cls,id); return e?e.col:"#6A6F78"; };
+function eqFaire(cls,G){ const C=chasubles(); eqSave(cls,G.filter(g=>g&&g.length).map((g,i)=>({id:"q"+uid()+i, nom:(C[i%C.length]||{}).nom||("Équipe "+(i+1)), col:(C[i%C.length]||{}).col||"#6A6F78", j:g.slice()}))); }
+function jourId(cls,d){ return "j|"+nk(cls)+"|"+(d||auj()); }
+function jour(cls,d){ const o=stGet(jourId(cls,d))||{}; return {cls:cls, day:d||auj(), mode:MODES[o.mode]?o.mode:"3", libre:!!o.libre, nt:Math.max(1,Math.min(8,+o.nt||3)), bon:Array.isArray(o.bon)?o.bon:[], r:Array.isArray(o.r)?o.r:null}; }
+function jourSet(cls,ch){ const j=jour(cls); Object.assign(j,ch); stPut(jourId(cls),j); }
+const modeJour=()=>{ const j=jour(nomClasse()); return j.libre&&MODES[SS.get("mode")]?SS.get("mode"):j.mode; };
+
+/* rencontres : toutes les équipes se rencontrent ; à chaque rotation, les équipes qui ne jouent pas arbitrent et observent un terrain */
+function rencontres(ids,nt){
+  const T=ids.slice(); if(T.length<2) return []; if(T.length%2) T.push(null);
+  const n=T.length, M=[]; for(let r=0;r<n-1;r++){ for(let i=0;i<n/2;i++){ const a=T[i], b=T[n-1-i]; if(a&&b) M.push(r%2?[b,a]:[a,b]); } T.splice(1,0,T.pop()); }
+  const R=[], repos={}; ids.forEach(i=>repos[i]=0);
+  while(M.length){ const rot={m:[],off:[]}, pris=new Set();
+    M.sort((x,y)=>(repos[y[0]]+repos[y[1]])-(repos[x[0]]+repos[x[1]]));
+    for(let i=0;i<M.length&&rot.m.length<nt;){ const x=M[i]; if(!pris.has(x[0])&&!pris.has(x[1])){ rot.m.push(x); pris.add(x[0]); pris.add(x[1]); M.splice(i,1); } else i++; }
+    ids.forEach(i=>{ if(pris.has(i)) repos[i]=0; else repos[i]++; });
+    ids.filter(i=>!pris.has(i)).forEach((i,k)=>rot.off.push([i,(k%rot.m.length)+1])); R.push(rot); }
+  return R;
+}
+const matchId=(cls,d,ri,mi)=>"m|"+nk(cls)+"|"+d+"|r"+ri+"t"+mi;
+const matchsDe=(cls,d)=>stItems("m|"+nk(cls)+"|"+(d?d+"|":"")).filter(m=>m.a&&m.b);
+const matchCur=()=>S.mid?stGet(S.mid):null;
+function score(m){ let a=0,b=0,fa=0,fb=0; (m.ev||[]).forEach(e=>{ if(e.k==="f"){ if(e.e) fb++; else fa++; } else { if(e.e) b+=e.v; else a+=e.v; } }); return {a:a,b:b,fa:fa,fb:fb}; }
+function mLeft(m){ const t=m.t||{}; if(!t.d) return null; return Math.max(0, t.at?t.left-(Date.now()-t.at)/1000:t.left); }
+const mmss=s=>{ s=Math.max(0,Math.ceil(s)); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); };
+function classement(cls,d){ const E=eqs(cls), [pv,pn,pd]=(()=>{ const x=String(P("class_pts")).split(";").map(v=>parseFloat(v)); return [isFinite(x[0])?x[0]:3, isFinite(x[1])?x[1]:2, isFinite(x[2])?x[2]:1]; })();
+  const R={}; E.forEach(e=>R[e.id]={id:e.id,nom:e.nom,col:e.col,j:0,v:0,n:0,d:0,p:0,c:0,pts:0});
+  matchsDe(cls,d).filter(m=>m.st===1).forEach(m=>{ const s=score(m), A=R[m.a], B=R[m.b]; if(!A||!B) return; A.j++; B.j++; A.p+=s.a; A.c+=s.b; B.p+=s.b; B.c+=s.a;
+    if(s.a>s.b){ A.v++; B.d++; A.pts+=pv; B.pts+=pd; } else if(s.a<s.b){ B.v++; A.d++; B.pts+=pv; A.pts+=pd; } else { A.n++; B.n++; A.pts+=pn; B.pts+=pn; } });
+  return Object.values(R).sort((x,y)=>y.pts-x.pts||(y.p-y.c)-(x.p-x.c)||y.p-x.p); }
+function marqueurs(cls,d,eq){ const T={}; matchsDe(cls,d).forEach(m=>(m.ev||[]).forEach(e=>{ if(e.k==="f"||!e.j) return; const id=e.e?m.b:m.a; if(eq&&id!==eq) return; T[e.j]=(T[e.j]||0)+e.v; })); return Object.entries(T).sort((a,b)=>b[1]-a[1]); }
+
+/* ======================= OBSERVATION : indicateurs ======================= */
+const OBS={ coll:{ico:"👥",nom:"Notre attaque",sub:"Possessions, tirs, paniers, balles perdues"}, ind:{ico:"👤",nom:"Un joueur",sub:"Tirs, passes, balles perdues, ballons gagnés"}, tir:{ico:"🎯",nom:"Carte des tirs",sub:"Où tire-t-on ? Où marque-t-on ?"} };
+const couleur=(v,seuil)=>{ if(v==null) return ""; const [o,g]=duo(seuil,50,70); return v>=g?"g":v>=o?"o":"k"; };
+function zoneTir(x,y){ if(x<=58&&y>=50.5&&y<=99.5) return 0; return (Math.hypot(x-16,y-75)>67.5||y<9||y>141)?2:1; }
+const ZONES=["Raquette","Mi-distance","Derrière l'arc"];
+function indic(o){ const c=o.c||[], n=i=>+c[i]||0;
+  if(o.ty==="coll"){ const poss=n(0)+n(1)+n(2), tirs=n(0)+n(1); return [{l:"Possessions",v:poss,u:""},{l:"Arrivent au tir",v:pct(tirs,poss),u:"%",c:couleur(pct(tirs,poss),P("seuil_tir"))},{l:"Réussite au tir",v:pct(n(0),tirs),u:"%",c:couleur(pct(n(0),tirs),P("seuil_reu"))},{l:"Balles perdues",v:n(2),u:""},{l:"Ballons gagnés",v:n(3),u:""}]; }
+  if(o.ty==="ind"){ const joues=n(0)+n(1)+n(2)+n(3)+n(5), bons=n(0)+n(2)+n(5); return [{l:"Ballons joués",v:joues,u:""},{l:"Efficacité",v:pct(bons,joues),u:"%",c:couleur(pct(bons,joues),P("seuil_eff"))},{l:"Réussite au tir",v:pct(n(0),n(0)+n(1)),u:"%",c:couleur(pct(n(0),n(0)+n(1)),P("seuil_reu"))},{l:"Ballons gagnés",v:n(4),u:""}]; }
+  const T=Array.isArray(o.tirs)?o.tirs:[], Z=[0,1,2].map(z=>{ const t=T.filter(x=>zoneTir(x[0],x[1])===z); return {l:ZONES[z],v:pct(t.filter(x=>x[2]).length,t.length),u:"%",n:t.length,c:couleur(pct(t.filter(x=>x[2]).length,t.length),P("seuil_reu"))}; });
+  return [{l:"Tirs",v:T.length,u:""},{l:"Réussite",v:pct(T.filter(x=>x[2]).length,T.length),u:"%",c:couleur(pct(T.filter(x=>x[2]).length,T.length),P("seuil_reu"))}].concat(Z.map(z=>({l:z.l+" ("+z.n+")",v:z.v,u:"%",c:z.c}))); }
+const indHtml=o=>`<div class="ind">${indic(o).map(i=>`<div class="${i.c||""}"><b>${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</b><small>${h(i.l)}</small></div>`).join("")}</div>`;
+const obsDe=(cls,d)=>stItems("o|"+nk(cls)+"|"+(d?d+"|":""));
+function obsSomme(L,ty){ const o={ty:ty,c:[],tirs:[]}; L.filter(x=>x.ty===ty).forEach(x=>{ (x.c||[]).forEach((v,i)=>o.c[i]=(o.c[i]||0)+(+v||0)); if(Array.isArray(x.tirs)) o.tirs=o.tirs.concat(x.tirs); }); return o; }
+function terrainTirs(tirs,extra){ const pts=(tirs||[]).map(t=>t[2]?`<circle cx="${t[0]}" cy="${t[1]}" r="4" fill="#1E8A4C" stroke="#fff" stroke-width="1"/>`:`<path d="M${t[0]-3.4},${t[1]-3.4} l6.8,6.8 M${t[0]+3.4},${t[1]-3.4} l-6.8,6.8" stroke="#C0392B" stroke-width="2" stroke-linecap="round"/>`).join("");
+  return EPSTAC.svg({sport:"basket3",items:[]},{extra:pts+(extra||"")}); }
+
+/* ======================= SYSTÈMES DE JEU (planches prêtes, à ouvrir, modifier, envoyer) ======================= */
+const J=(e,n,x,y)=>({t:"p",e:e,n:String(n),x:x,y:y}), FL=(k,a,b,c,d)=>({t:"a",k:k,p:[a,b,c,d]}), BAL=(x,y)=>({t:"b",x:x,y:y}), TX=(x,y,s)=>({t:"x",x:x,y:y,s:s});
+const SYS=[
+ {id:"s3tri",m:"3",nom:"Le triangle",txt:"Un joueur en haut, un de chaque côté : chacun a de la place pour jouer.",d:{sport:"basket3",items:[J(0,1,100,75),J(0,2,45,18),J(0,3,45,132),J(1,1,84,75),J(1,2,38,34),J(1,3,38,116),BAL(107,69)]}},
+ {id:"s3pv",m:"3",nom:"Passe et va",txt:"Je passe, je coupe vers le panier, je redemande le ballon.",d:{sport:"basket3",items:[J(0,1,100,75),J(0,2,55,22),J(0,3,55,128),J(1,1,86,75),FL("p",96,71,60,26),FL("m",95,79,30,70),FL("p",51,27,29,63),BAL(107,69)]}},
+ {id:"s3ecr",m:"3",nom:"Écran sur le porteur",txt:"Mon partenaire bloque mon défenseur, je passe de l'autre côté, il roule vers le panier.",d:{sport:"basket3",items:[J(0,1,96,58),J(0,2,45,20),J(0,3,42,96),J(1,1,86,62),FL("m",46,94,84,74),{t:"f",p:[96,63,93,82,74,90,48,82]},FL("m",84,80,36,84),BAL(103,53)]}},
+ {id:"s3dos",m:"3",nom:"Dans le dos du défenseur",txt:"Mon défenseur me coupe la passe : je pars dans son dos vers le panier.",d:{sport:"basket3",items:[J(0,1,100,75),J(0,2,60,20),J(0,3,55,128),J(1,2,71,27),FL("m",57,24,25,56),FL("p",96,72,29,58),BAL(107,69)]}},
+ {id:"s4los",m:"4",nom:"Le losange (1-2-1)",txt:"Un meneur, deux ailiers, un intérieur près du panier.",d:{sport:"basket3",items:[J(0,1,105,75),J(0,2,60,18),J(0,3,60,132),J(0,4,30,96),BAL(112,69)]}},
+ {id:"s4car",m:"4",nom:"Le carré (2-2)",txt:"Deux arrières, deux intérieurs : des passes courtes de chaque côté.",d:{sport:"basket3",items:[J(0,1,95,45),J(0,2,95,105),J(0,3,30,40),J(0,4,30,110),BAL(102,39)]}},
+ {id:"s4rem",m:"4",nom:"Passe et remplace",txt:"Je passe, je coupe ; mon partenaire prend ma place pour garder le terrain occupé.",d:{sport:"basket3",items:[J(0,1,105,75),J(0,2,60,18),J(0,3,60,132),J(0,4,30,96),FL("p",101,71,65,22),FL("m",100,79,32,66),FL("m",63,128,102,82),BAL(112,69)]}},
+ {id:"s4ca",m:"4",nom:"Contre-attaque en 3 couloirs",txt:"Rebond, première passe sur le côté, puis un joueur par couloir.",d:{sport:"basket",items:[J(0,4,28,78),J(0,1,55,22),J(0,2,72,62),J(0,3,60,126),FL("p",32,74,51,27),{t:"f",p:[59,24,100,50,150,70,200,75]},FL("m",76,58,236,22),FL("m",64,127,236,128),FL("m",33,82,150,96),BAL(22,72)]}},
+ {id:"sdef",m:"*",nom:"Défense individuelle",txt:"Je reste entre mon joueur et le panier.",d:{sport:"basket3",items:[J(0,1,100,75),J(0,2,50,20),J(0,3,50,130),J(1,1,82,75),J(1,2,40,34),J(1,3,40,116),BAL(107,69),TX(70,146,"Entre mon joueur et le panier")]}}
+];
+const schemas=(cls,eq)=>stItems("p|"+nk(cls)+"|"+(eq?eq+"|":"")).filter(p=>p.d);
+
+/* ======================= NAVIGATION ======================= */
+function aller(v){ S.vue=v; fermer(); try{ window.EPSTBK&&EPSTBK.closePanel&&EPSTBK.closePanel(); }catch(e){} rendre(); scrollTo(0,0); }
+function fermer(){ $("#calque").innerHTML=""; }
+function feuille(html){ $("#calque").innerHTML=`<div class="feuille">${html}</div>`; }
+let ED=null;
+function rendre(){
+  const prof=estProf(), V=$("#vue"); document.body.classList.toggle("gate",!prof&&!S.classe); ED=null;
+  if(prof&&["home","eq"].includes(S.vue)) S.vue="prof";
+  if(!prof&&S.vue==="prof") S.vue="home";
+  if(!prof&&!S.classe){ V.innerHTML=""; return; }
+  if(!prof&&aClasse()&&!clsObj()){ S.classe=""; SS.del("classe"); V.innerHTML=""; return; }
+  if(!prof&&aClasse()&&!eqDe(nomClasse(),S.eq)&&!["regles","sys","echauf","planEd"].includes(S.vue)) S.vue="eq";
+  if(!prof&&!aClasse()&&!["regles","sys","echauf","planEd"].includes(S.vue)) S.vue="regles";
+  const f={prof:vProf,eq:vEq,home:vHome,prog:vProg,match:vMatch,obs:vObs,obsRun:vObsRun,plan:vPlan,planEd:vPlanEd,sys:vSys,regles:vRegles,echauf:vEchauf,bilan:vBilan}[S.vue]||vHome;
+  V.innerHTML=f(); if(S.vue==="planEd") monterEditeur(); if(S.vue==="match") tic();
+}
+const retour=(v,l)=>`<button class="retour" data-act="aller" data-v="${v}">← ${l||"Retour"}</button>`;
+const retourEleve=()=>estProf()?retour("prof","Leçon du jour"):aClasse()?retour("home","Mon équipe"):`<button class="retour" data-act="quitter">← Retour</button>`;
+
+/* ======================= ÉLÈVE : équipe, accueil ======================= */
+function vEq(){ const cls=nomClasse(), E=eqs(cls);
+  return `<h2>Quelle est ton équipe ?</h2>`+(E.length?`<div class="tuiles">${E.map(e=>`<button class="tuile eq" style="border-left-color:${h(e.col)}" data-act="eq" data-id="${h(e.id)}"><span><b>${h(e.nom)}</b><small>${e.j.filter(n=>!absent(n,cls)).map(prenom).map(h).join(", ")||"—"}</small></span></button>`).join("")}</div>`
+   :`<div class="carte"><b>Les équipes ne sont pas encore faites.</b><p class="doux">Ton enseignant les prépare : reviens dans un instant.</p></div>`)+
+   `<p style="margin-top:14px"><button class="btn contour" data-act="aller" data-v="regles">📏 Les règles</button> <button class="btn contour" data-act="aller" data-v="echauf">🔥 L'échauffement</button></p>`; }
+function prochain(cls,eq){ const j=jour(cls); if(!j.r) return null;
+  for(let ri=0;ri<j.r.length;ri++){ const rot=j.r[ri]; if(!rot||!Array.isArray(rot.m)) continue; const tous=rot.m.every((x,mi)=>{ const m=stGet(matchId(cls,j.day,ri,mi)); return m&&m.st===1; }); if(tous) continue;
+    const mi=rot.m.findIndex(x=>x[0]===eq||x[1]===eq); if(mi>=0) return {ri:ri,mi:mi,ter:mi+1,a:rot.m[mi][0],b:rot.m[mi][1],joue:true};
+    const o=(rot.off||[]).find(x=>x[0]===eq); if(o&&rot.m[o[1]-1]) return {ri:ri,mi:o[1]-1,ter:o[1],a:rot.m[o[1]-1][0],b:rot.m[o[1]-1][1],joue:false};
+    return {ri:ri,repos:true}; }
+  return {fini:true}; }
+function vHome(){ const cls=nomClasse(), e=eqDe(cls,S.eq), j=jour(cls), md=modeCfg(modeJour()), n=prochain(cls,S.eq);
+  let lv=null; try{ lv=window.EPSLC&&EPSLC.liveFor&&EPSLC.liveFor(cls); }catch(x){}
+  let suite="";
+  if(n&&n.joue) suite=`<button class="tuile fort" data-act="matchRot" data-ri="${n.ri}" data-mi="${n.mi}"><i>🏀</i><span><b>Ton match · terrain ${n.ter}</b><small>${h(eqNom(cls,n.a))} – ${h(eqNom(cls,n.b))} · rotation ${n.ri+1}</small></span></button>`;
+  else if(n&&n.ri!=null&&!n.repos) suite=`<button class="tuile fort" data-act="matchRot" data-ri="${n.ri}" data-mi="${n.mi}"><i>🧑‍⚖️</i><span><b>Tu arbitres et observes · terrain ${n.ter}</b><small>${h(eqNom(cls,n.a))} – ${h(eqNom(cls,n.b))} · rotation ${n.ri+1}</small></span></button>`;
+  else if(n&&n.fini) suite=`<div class="tuile"><i>🏁</i><span><b>Rencontres terminées</b><small>Fais le bilan de ton équipe.</small></span></div>`;
+  else suite=`<button class="tuile fort" data-act="matchLibre"><i>🏀</i><span><b>Jouer un match</b><small>Choisis l'adversaire et le terrain</small></span></button>`;
+  return `<div class="ligne" style="margin-bottom:12px"><span class="rond" style="background:${h(e.col)};width:22px;height:22px"></span><h2 style="margin:0">${h(e.nom)}</h2><span class="pastille">${md.nom}</span>
+    ${j.libre?`<button class="btn contour" data-act="modeEleve">Changer de forme</button>`:""}<button class="btn clair" data-act="changerEq" style="margin-left:auto">Changer d'équipe</button></div>
+   <p class="doux petit" style="margin:-6px 0 12px">${e.j.map(n=>absent(n,cls)?`<s>${h(prenom(n))}</s>`:h(prenom(n))).join(" · ")}</p>
+   <div class="tuiles">
+    ${lv?`<button class="tuile" data-act="lecon"><i>📅</i><span><b>Leçon du jour</b><small>${h(lv.titre)}</small></span></button>`:""}
+    ${suite}
+    ${j.r?`<button class="tuile" data-act="aller" data-v="prog"><i>🗓</i><span><b>Rencontres</b><small>${j.r.length} rotations · ${j.nt} terrain${j.nt>1?"s":""}</small></span></button>`:""}
+    <button class="tuile" data-act="aller" data-v="obs"><i>👁</i><span><b>Observer</b><small>3 fiches d'observation</small></span></button>
+    <button class="tuile" data-act="aller" data-v="plan"><i>📋</i><span><b>Planche tactique</b><small>Systèmes de jeu, nos schémas</small></span></button>
+    <button class="tuile" data-act="aller" data-v="bilan"><i>📊</i><span><b>Bilan de l'équipe</b><small>Matchs, observations, projet</small></span></button>
+    <button class="tuile" data-act="aller" data-v="regles"><i>📏</i><span><b>Règles</b><small>${md.nom}</small></span></button>
+    <button class="tuile" data-act="aller" data-v="echauf"><i>🔥</i><span><b>Échauffement</b><small>${P("echauf").length} étapes</small></span></button>
+   </div>`; }
+function rotHtml(cls,j,moi){ return (j.r||[]).map((rot,ri)=>`<div class="carte"><h3>Rotation ${ri+1}</h3><table class="t">${(rot.m||[]).map((x,mi)=>{ const m=stGet(matchId(cls,j.day,ri,mi)), s=m?score(m):null;
+    return `<tr><td style="width:96px"><b>Terrain ${mi+1}</b></td><td>${[x[0],x[1]].map(id=>`<span class="rond" style="background:${h(eqCol(cls,id))}"></span> ${id===moi?`<b>${h(eqNom(cls,id))}</b>`:h(eqNom(cls,id))}`).join(" &nbsp;–&nbsp; ")}</td><td class="c" style="width:90px;font-weight:800">${s?s.a+" – "+s.b:"—"}</td><td class="c" style="width:120px">${m?(m.st===1?"Terminé":"En cours"):""} <button class="btn contour" style="min-height:40px;padding:6px 12px" data-act="matchRot" data-ri="${ri}" data-mi="${mi}">Ouvrir</button></td></tr>`; }).join("")}</table>
+    ${(rot.off||[]).length?`<p class="doux petit" style="margin:8px 0 0">Arbitrage et observation : ${rot.off.map(o=>`${o[0]===moi?"<b>":""}${h(eqNom(cls,o[0]))}${o[0]===moi?"</b>":""} (terrain ${o[1]})`).join(", ")}</p>`:""}</div>`).join(""); }
+function vProg(){ const cls=nomClasse(), j=jour(cls); return retourEleve()+`<h2>🗓 Rencontres du jour</h2>`+(j.r?rotHtml(cls,j,S.eq):`<div class="carte doux">Pas de rencontres prévues aujourd'hui.</div>`)+classHtml(cls,j.day); }
+function classHtml(cls,d){ const C=classement(cls,d); if(!C.some(x=>x.j)) return ""; return `<div class="carte"><h3>🏆 Classement${d?" du jour":" de la séquence"}</h3><table class="t"><tr><th>Équipe</th><th class="c">J</th><th class="c">V</th><th class="c">N</th><th class="c">D</th><th class="c">Pour</th><th class="c">Contre</th><th class="c">Pts</th></tr>${C.map(x=>`<tr><td><span class="rond" style="background:${h(x.col)}"></span> ${h(x.nom)}</td><td class="c">${x.j}</td><td class="c">${x.v}</td><td class="c">${x.n}</td><td class="c">${x.d}</td><td class="c">${x.p}</td><td class="c">${x.c}</td><td class="c"><b>${x.pts}</b></td></tr>`).join("")}</table></div>`; }
+
+/* ======================= MATCH : table de marque ======================= */
+function matchOuvrir(id,base){ let m=stGet(id); if(!m){ const md=modeCfg(base.mode); m=Object.assign({ev:[],st:0,t:{d:md.duree*60,left:md.duree*60,at:0},by:devId()},base); stPut(id,m); } S.mid=id; SS.set("mid",id); S.poss=null; aller("match"); }
+function vMatch(){ const m=matchCur(); if(!m) return retourEleve()+`<div class="carte doux">Ce match n'existe plus.</div>`;
+  const cls=m.cls, md=modeCfg(m.mode), s=score(m), moi=m.by===devId(), fin=m.st===1, j=jour(cls,m.day), B=bonusList().filter((b,i)=>j.bon.includes(i)), L=mLeft(m);
+  const cote=(e,id,sc,fa)=>`<div class="cote" style="border-top-color:${h(eqCol(cls,id))}"><div class="nom">${h(eqNom(cls,id))}</div><div class="sc">${sc}</div>
+    ${moi&&!fin?`<div class="pts">${md.pts.map((p,i)=>`<button data-act="pt" data-e="${e}" data-i="${i}" title="${h(p.l)}" aria-label="Plus ${p.v} : ${h(p.l)}">+${p.v}</button>`).join("")}${B.length?`<button class="bo" data-act="bonus" data-e="${e}">⭐ Bonus</button>`:""}</div>
+    <div class="fa"><span class="doux">Fautes : <b>${fa}</b></span><button class="btn clair" data-act="faute" data-e="${e}">+ Faute</button></div>`:`<div class="doux">Fautes : <b>${fa}</b></div>`}</div>`;
+  return retourEleve()+`<div class="ligne" style="margin-bottom:8px"><span class="pastille">${md.nom}</span>${m.ter?`<span class="pastille" style="background:#EFECE6;color:#14171C">Terrain ${m.ter}</span>`:""}${fin?`<span class="pastille" style="background:var(--ok-c);color:var(--ok)">Match terminé</span>`:""}</div>
+   ${L!=null?`<div class="chrono"><span class="tps" id="mTps">${mmss(L)}</span>${moi&&!fin?`<button class="btn app" data-act="chrono">${(m.t||{}).at?"⏸ Pause":"▶ Jouer"}</button>`:""}${md.poss&&moi&&!fin?`<span class="poss" id="mPoss">${md.poss}</span><button class="btn clair" data-act="poss">↺ ${md.poss} s</button>`:""}</div>`:""}
+   <div class="marque">${cote(0,m.a,s.a,s.fa)}${cote(1,m.b,s.b,s.fb)}</div>
+   ${md.cible?`<p class="doux petit" style="text-align:center;margin:8px 0 0">Le match s'arrête à ${md.cible} points.</p>`:""}
+   <div class="ligne" style="margin-top:12px;justify-content:center">
+    ${moi&&!fin?`<button class="btn clair" data-act="annulerEv" ${(m.ev||[]).length?"":"disabled"}>↩ Annuler</button>`:""}
+    <button class="btn contour" data-act="feuilleMatch">📜 Feuille de match</button>
+    ${moi&&!fin?`<button class="btn app" data-act="finMatch">🏁 Fin du match</button>`:""}
+    ${!moi&&!fin?`<button class="btn contour" data-act="tenir">Tenir la marque sur cette tablette</button>`:""}
+    ${fin&&estProf()?`<button class="btn clair" data-act="rouvrir">Rouvrir le match</button>`:""}
+    <button class="btn contour" data-act="obsMatch">👁 Observer ce match</button>
+   </div>${!moi&&!fin?`<p class="doux petit" style="text-align:center">La marque est tenue sur une autre tablette : le score se met à jour tout seul.</p>`:""}`; }
+function mMaj(f){ const m=matchCur(); if(!m) return null; f(m); const s=score(m); m.sa=s.a; m.sb=s.b; stPut(S.mid,m); return m; }
+let TIC=0;
+function tic(){ clearInterval(TIC); TIC=setInterval(()=>{ if(S.vue!=="match"){ clearInterval(TIC); return; } const m=matchCur(); if(!m) return; const L=mLeft(m), el=$("#mTps"); if(el&&L!=null) el.textContent=mmss(L);
+  if(L===0&&(m.t||{}).at&&m.by===devId()){ mMaj(x=>{ x.t.left=0; x.t.at=0; }); bip(3); toast("Temps écoulé"); S.poss=null; rendre(); }
+  const p=$("#mPoss"); if(p&&S.poss){ const r=Math.max(0,Math.ceil((S.poss-Date.now())/1000)); p.textContent=r; p.classList.toggle("fin",r<=3); if(r===0){ bip(2); S.poss=null; } } },250); }
+
+/* ======================= OBSERVATION ======================= */
+function vObs(){ const cls=nomClasse(), L=obsDe(cls,auj()).filter(o=>o.par===S.eq||estProf());
+  return retourEleve()+`<h2>👁 Fiches d'observation</h2><div class="tuiles">${Object.keys(OBS).map(k=>`<button class="tuile" data-act="obsNew" data-ty="${k}"><i>${OBS[k].ico}</i><span><b>${OBS[k].nom}</b><small>${OBS[k].sub}</small></span></button>`).join("")}</div>
+   <p style="margin:12px 0"><button class="btn contour" data-act="imprObs">🖨 Imprimer les fiches (sans tablette)</button></p>
+   ${L.length?`<div class="carte"><h3>Observations d'aujourd'hui</h3>${L.sort((a,b)=>b.u-a.u).map(o=>`<div class="ligne" style="padding:8px 0;border-top:1px solid var(--ligne)"><span>${OBS[o.ty].ico} <b>${h(o.who||eqNom(cls,o.eq))}</b> <span class="doux petit">${OBS[o.ty].nom}${o.who?" · "+h(eqNom(cls,o.eq)):""}</span></span><button class="btn contour" style="margin-left:auto;min-height:40px;padding:6px 12px" data-act="obsOuvrir" data-id="${h(o.id)}">${o.st===1?"Voir":"Reprendre"}</button></div>`).join("")}</div>`:""}`; }
+function vObsRun(){ const o=stGet(S.oid); if(!o) return retour("obs")+`<div class="carte doux">Fiche introuvable.</div>`;
+  const cls=o.cls, fin=o.st===1, lab=o.ty==="coll"?P("obs_coll"):P("obs_ind"), cl=o.ty==="coll"?["v","","r","v"]:["v","","v","r","v","v"];
+  const tete=`<div class="ligne" style="margin-bottom:10px"><span class="rond" style="background:${h(eqCol(cls,o.eq))};width:20px;height:20px"></span><h2 style="margin:0">${OBS[o.ty].ico} ${h(o.who||eqNom(cls,o.eq))}</h2><span class="doux">${OBS[o.ty].nom}${o.who?" · "+h(eqNom(cls,o.eq)):""}</span></div>`;
+  let corps;
+  if(o.ty==="tir") corps=`<p class="doux petit">${fin?"":"Touche l'endroit du tir, puis dis s'il est marqué."}</p><div class="terrain" id="tirZone" style="max-width:min(620px,54vh)" ${fin?"":'data-act="tirPos"'}>${terrainTirs(o.tirs, S.tirTmp?`<circle cx="${S.tirTmp[0]}" cy="${S.tirTmp[1]}" r="5.5" fill="#F0A030" stroke="#14171C" stroke-width="1.2"/>`:"")}</div>
+    ${S.tirTmp&&!fin?`<div class="ligne" style="justify-content:center;margin-top:10px"><button class="btn gros" style="background:var(--ok)" data-act="tirOk" data-ok="1">✓ Marqué</button><button class="btn gros" style="background:var(--ko)" data-act="tirOk" data-ok="0">✗ Manqué</button></div>`:""}`;
+  else corps=`<div class="cpts">${lab.map((l,i)=>`<button class="cpt ${cl[i]||""}" ${fin?"disabled":""} data-act="cpt" data-i="${i}"><b>${+(o.c||[])[i]||0}</b><span>${h(l)}</span></button>`).join("")}</div>`;
+  return retour("obs","Fiches")+tete+corps+indHtml(o)+`<div class="ligne" style="justify-content:center">${fin?"":`<button class="btn clair" data-act="obsAnnuler">↩ Annuler</button><button class="btn app" data-act="obsFin">✓ Terminer la fiche</button>`}${fin&&estProf()?`<button class="btn danger" data-act="obsSuppr">Supprimer</button>`:""}</div>`; }
+
+/* ======================= PLANCHE TACTIQUE ======================= */
+function vSys(){ const md=aClasse()||estProf()?modeJour():"3", L=SYS.filter(s=>s.m==="*"||!S.sysM||s.m===S.sysM);
+  return retourEleve()+`<h2>📋 Systèmes de jeu</h2><div class="ligne" style="margin-bottom:12px">${[["","Tous"],["3","3 contre 3"],["4","4 contre 4"]].map(x=>`<button class="puce ${(S.sysM||"")===x[0]?"on":""}" data-act="sysM" data-m="${x[0]}">${x[1]}</button>`).join("")}</div>
+   <div class="vign">${L.map(s=>`<button data-act="sysOuvrir" data-id="${s.id}">${EPSTAC.svg(s.d)}<b>${h(s.nom)}</b><small>${h(s.txt)}</small></button>`).join("")}</div>`; }
+function vPlan(){ const cls=nomClasse(), L=estProf()?schemas(cls):schemas(cls,S.eq);
+  return retourEleve()+`<h2>📋 Planche tactique</h2><div class="tuiles" style="margin-bottom:12px">
+    <button class="tuile" data-act="aller" data-v="sys"><i>📚</i><span><b>Systèmes de jeu</b><small>${SYS.length} schémas prêts à travailler</small></span></button>
+    <button class="tuile fort" data-act="planNew"><i>✏️</i><span><b>Dessiner notre schéma</b><small>Joueurs, passes, déplacements</small></span></button></div>
+   ${L.length?`<h3>${estProf()?"Schémas des équipes":"Nos schémas"}</h3><div class="vign">${L.sort((a,b)=>b.u-a.u).map(p=>`<button data-act="planOuvrir" data-id="${h(p.id)}">${EPSTAC.svg(p.d)}<b>${h(p.nom||"Schéma")}</b><small>${estProf()?h(eqNom(cls,p.eq)):""}</small></button>`).join("")}</div>`:`<p class="doux">Aucun schéma enregistré pour l'instant.</p>`}`; }
+const OUT=[["sel","☝️ Déplacer"],["pa","🔵 Attaquant"],["pb","🟠 Défenseur"],["b","🏀 Ballon"],["am","➡ Déplacement"],["ap","⇢ Passe"],["f","〰 Dribble"],["c","🔺 Plot"],["x","🔤 Texte"]];
+function vPlanEd(){ const p=S.plan||{}; return retour(S.planDe||"plan")+`<div class="ligne" style="margin-bottom:6px"><input type="text" id="planNom" value="${h(p.nom||"")}" placeholder="Nom du schéma" style="max-width:340px" aria-label="Nom du schéma">${p.txt?`<span class="doux petit">${h(p.txt)}</span>`:""}</div>
+   <div class="outils" id="planOut">${OUT.map((o,i)=>`<button data-act="planTool" data-t="${o[0]}" class="${i?"":"on"}">${o[1]}</button>`).join("")}</div>
+   <div class="terrain" style="max-width:${(p.d||{}).sport==="basket"?900:640}px" id="planZone"></div>
+   <div class="outils" style="justify-content:center"><button data-act="planUndo">↩ Annuler</button><button data-act="planDel">🗑 Effacer l'élément</button><button data-act="planTerrain">${(p.d||{}).sport==="basket"?"Demi-terrain":"Terrain entier"}</button>
+    ${aClasse()&&(S.eq||estProf())?`<button data-act="planSave" style="background:var(--app);color:#fff;border-color:var(--app)">💾 Enregistrer</button>`:""}
+    ${estProf()?`<button data-act="planEnvoi">📤 Envoyer aux tablettes</button>`:""}${p.id&&(estProf()||p.eq===S.eq)?`<button data-act="planSuppr">Supprimer</button>`:""}</div>`; }
+function monterEditeur(){ const z=$("#planZone"); if(!z||!window.EPSTAC) return; ED=EPSTAC.editor(z,(S.plan||{}).d||EPSTAC.depart("basket3"),{maxh:"62vh",askText:cb=>{ feuille(`<h3>Texte à écrire</h3><input type="text" id="txtPl" maxlength="60"><div class="ligne" style="margin-top:12px;justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" id="txtOk">OK</button></div>`); $("#txtOk").onclick=()=>{ const v=$("#txtPl").value; fermer(); cb(v); }; $("#txtPl").focus(); }}); }
+function planOuvrir(p,de){ S.plan=JSON.parse(JSON.stringify(p)); S.planDe=de||"plan"; aller("planEd"); }
+
+/* ======================= RÈGLES, ÉCHAUFFEMENT, BILAN ======================= */
+function vRegles(){ const m=S.regM||(aClasse()||estProf()?modeJour():"3"), md=modeCfg(m);
+  return retourEleve()+`<h2>📏 Règles</h2><div class="bascule" style="margin-bottom:12px">${["3","4"].map(k=>`<button class="${k===m?"on":""}" data-act="regM" data-m="${k}"><b>${MODES[k].nom}</b><small>${MODES[k].sub}</small></button>`).join("")}</div>
+   <div class="carte"><div class="ligne" style="margin-bottom:8px">${md.pts.map(p=>`<span class="pastille">+${p.v} · ${h(p.l)}</span>`).join("")}</div>
+   <div class="ligne doux petit" style="margin-bottom:6px"><span>⏱ ${md.duree} min</span>${md.cible?`<span>· 🏁 ${md.cible} points</span>`:""}${md.poss?`<span>· ${md.poss} s pour tirer</span>`:""}</div>
+   <ol style="margin:0;padding-left:22px">${md.regles.map(r=>`<li style="margin:6px 0">${h(r)}</li>`).join("")}</ol></div>
+   ${!aClasse()&&!estProf()?`<p><button class="btn contour" data-act="aller" data-v="sys">📋 Systèmes de jeu</button> <button class="btn contour" data-act="aller" data-v="echauf">🔥 Échauffement</button></p>`:""}`; }
+function vEchauf(){ return retourEleve()+`<h2>🔥 Échauffement</h2><div class="carte"><ol style="margin:0;padding-left:22px">${P("echauf").map(r=>`<li style="margin:8px 0">${h(r)}</li>`).join("")}</ol></div>`; }
+function statsEq(cls,eq,d){ const M=matchsDe(cls,d).filter(m=>m.st===1&&(m.a===eq||m.b===eq)); let v=0,n=0,de=0,p=0,c=0; M.forEach(m=>{ const s=score(m), mo=m.a===eq?s.a:s.b, ad=m.a===eq?s.b:s.a; p+=mo; c+=ad; if(mo>ad) v++; else if(mo<ad) de++; else n++; }); return {M:M,v:v,n:n,d:de,p:p,c:c}; }
+function vBilan(){ const cls=nomClasse(), eq=S.eq, d=S.bilT?"":auj(), st=statsEq(cls,eq,d), O=obsDe(cls,d).filter(o=>o.eq===eq), Q=P("bilan_q"), b=stGet("b|"+nk(cls)+"|"+auj()+"|"+eq)||{r:[]}, mq=marqueurs(cls,d,eq);
+  const bloc=ty=>{ const L=O.filter(o=>o.ty===ty); if(!L.length) return ""; const s=obsSomme(L,ty); return `<div class="carte"><h3>${OBS[ty].ico} ${OBS[ty].nom} <span class="doux petit">${L.length} fiche${L.length>1?"s":""}</span></h3>${ty==="tir"?`<div class="terrain" style="max-width:420px">${terrainTirs(s.tirs)}</div>`:""}${indHtml(s)}</div>`; };
+  const ind=(()=>{ const L=O.filter(o=>o.ty==="ind"), N={}; L.forEach(o=>(N[o.who]=N[o.who]||[]).push(o)); const K=Object.keys(N); if(!K.length) return ""; return `<div class="carte"><h3>👤 Joueurs observés</h3><table class="t"><tr><th>Joueur</th><th class="c">Ballons joués</th><th class="c">Efficacité</th><th class="c">Tir</th><th class="c">Ballons gagnés</th></tr>${K.map(k=>{ const i=indic(obsSomme(N[k],"ind")); return `<tr><td>${h(prenom(k))}</td>${i.map(x=>`<td class="c">${x.v==null?"—":x.v+(x.u?" "+x.u:"")}</td>`).join("")}</tr>`; }).join("")}</table></div>`; })();
+  return retourEleve()+`<h2>📊 Bilan de l'équipe · ${h(eqNom(cls,eq))}</h2><div class="ligne" style="margin-bottom:12px"><button class="puce ${S.bilT?"":"on"}" data-act="bilT" data-t="">Aujourd'hui</button><button class="puce ${S.bilT?"on":""}" data-act="bilT" data-t="1">Toute la séquence</button></div>
+   <div class="ind"><div><b>${st.M.length}</b><small>Matchs joués</small></div><div class="g"><b>${st.v}</b><small>Victoires</small></div><div><b>${st.n}</b><small>Nuls</small></div><div><b>${st.d}</b><small>Défaites</small></div><div><b>${st.p} – ${st.c}</b><small>Points marqués – encaissés</small></div></div>
+   ${mq.length?`<div class="carte"><h3>🏀 Points marqués</h3><div class="ligne">${mq.map(x=>`<span class="pastille">${h(prenom(x[0]))} · ${x[1]}</span>`).join("")}</div></div>`:""}
+   ${bloc("coll")}${bloc("tir")}${ind}
+   ${S.bilT?"":`<div class="carte"><h3>✍️ Notre bilan du jour</h3>${Q.map((q,i)=>`<label class="doux petit" style="display:block;margin:10px 0 4px;font-weight:700">${h(q)}</label><textarea data-bq="${i}" maxlength="400">${h((b.r||[])[i]||"")}</textarea>`).join("")}<p style="margin:12px 0 0"><button class="btn app" data-act="bilSave">💾 Enregistrer le bilan</button></p></div>`}`; }
+
+/* ======================= ENSEIGNANT : leçon du jour (onglet Séquence) ======================= */
+function clsProf(){ const C=classesBK(); if(!C.some(c=>c.id===S.classe)){ let cc=null; try{ cc=C.find(c=>c.nom===(localStorage.getItem("eps.eval.cls.bk")||"")); }catch(e){} S.classe=(cc||C[0]||{}).id||""; SS.set("classe",S.classe); } return nomClasse(); }
+const selCls=()=>`<select data-ch="cls" style="max-width:260px" aria-label="Classe">${classesBK().map(c=>`<option value="${h(c.id)}" ${c.id===S.classe?"selected":""}>${h(c.nom)}</option>`).join("")}</select>`;
+function vProf(){ const cls=clsProf(); if(!cls) return `<div class="carte"><h3>Aucune classe pour le basket-ball</h3><p class="doux">Attribue l'activité à une classe : onglet 👥 Classe → Listes d'élèves.</p></div>`;
+  const j=jour(cls), E=eqs(cls), md=modeCfg(j.mode), B=bonusList(), M=matchsDe(cls,j.day).sort((a,b)=>(a.rot||0)-(b.rot||0)||(a.ter||0)-(b.ter||0)), O=obsDe(cls,j.day), PL=schemas(cls), pr=presents(cls), places=new Set(E.flatMap(e=>e.j)), sans=pr.filter(n=>!places.has(n));
+  return `<div class="ligne" style="margin-bottom:12px">${selCls()}<span class="doux">${dateFR(j.day)} · ${pr.length} présent${pr.length>1?"s":""}</span></div>
+   <div class="carte"><h3>🏀 Forme de jeu du jour</h3><div class="bascule">${["3","4"].map(k=>`<button class="${j.mode===k?"on":""}" data-act="mode" data-m="${k}"><b>${MODES[k].nom}</b><small>${MODES[k].sub} · ${modeCfg(k).duree} min${modeCfg(k).cible?" ou "+modeCfg(k).cible+" pts":""}</small></button>`).join("")}</div>
+    <div class="ligne" style="margin-top:12px"><label class="ligne"><input type="checkbox" data-ch="libre" ${j.libre?"checked":""} style="width:22px;height:22px"> Les équipes peuvent changer de forme</label>
+     <span style="margin-left:auto" class="ligne">Terrains <button class="btn clair" data-act="nt" data-d="-1" aria-label="Un terrain de moins">−</button><b style="min-width:24px;text-align:center">${j.nt}</b><button class="btn clair" data-act="nt" data-d="1" aria-label="Un terrain de plus">+</button></span></div>
+    ${B.length?`<p class="doux petit" style="margin:12px 0 6px">⭐ Points bonus du jour</p><div class="ligne">${B.map((b,i)=>`<button class="puce ${j.bon.includes(i)?"on":""}" data-act="bon" data-i="${i}">${h(b.l)} · +${b.v}</button>`).join("")}</div>`:""}</div>
+   <div class="carte"><div class="ligne"><h3 style="margin:0">👥 Équipes</h3><span class="doux petit">${E.length} équipe${E.length>1?"s":""}${sans.length?` · ${sans.length} élève${sans.length>1?"s":""} sans équipe`:""}</span><button class="btn contour" style="margin-left:auto" data-act="equipes">✏️ Faire les équipes</button></div>
+    ${E.length?`<div class="ligne" style="margin-top:10px">${E.map(e=>`<span class="puce" style="border-left:8px solid ${h(e.col)}"><b>${h(e.nom)}</b> <span class="doux">${e.j.filter(n=>!absent(n,cls)).length}</span></span>`).join("")}</div>`:""}</div>
+   <div class="carte"><div class="ligne"><h3 style="margin:0">🗓 Rencontres</h3><span class="doux petit">${j.r?j.r.length+" rotations":"pas encore créées"}</span>
+    <span style="margin-left:auto" class="ligne">${j.r?`<button class="btn clair" data-act="rencSuppr">Effacer</button>`:""}<button class="btn ${j.r?"contour":"app"}" data-act="renc" ${E.length<2?"disabled":""}>${j.r?"↺ Refaire":"Créer les rencontres"}</button></span></div></div>
+   ${j.r?rotHtml(cls,j,""):""}
+   ${M.filter(m=>m.rot==null).length?`<div class="carte"><h3>Matchs libres</h3><table class="t">${M.filter(m=>m.rot==null).map(m=>{ const s=score(m); return `<tr><td>${m.ter?"Terrain "+m.ter:""}</td><td>${h(eqNom(cls,m.a))} – ${h(eqNom(cls,m.b))}</td><td class="c"><b>${s.a} – ${s.b}</b></td><td class="c">${m.st===1?"Terminé":"En cours"} <button class="btn contour" style="min-height:40px;padding:6px 12px" data-act="matchVoir" data-id="${h(m.id)}">Ouvrir</button></td></tr>`; }).join("")}</table></div>`:""}
+   ${classHtml(cls,j.day)}
+   ${O.length?`<div class="carte"><h3>👁 Observations du jour</h3><table class="t"><tr><th>Équipe</th><th>Fiche</th><th>Indicateurs</th></tr>${E.map(e=>["coll","tir"].map(ty=>{ const L=O.filter(o=>o.eq===e.id&&o.ty===ty); if(!L.length) return ""; return `<tr><td><span class="rond" style="background:${h(e.col)}"></span> ${h(e.nom)}</td><td>${OBS[ty].ico} ${OBS[ty].nom} (${L.length})</td><td>${indic(obsSomme(L,ty)).slice(0,3).map(i=>`<span class="pastille" style="${i.c==="g"?"background:var(--ok-c);color:var(--ok)":i.c==="o"?"background:var(--or-c);color:var(--or)":i.c==="k"?"background:var(--ko-c);color:var(--ko)":"background:#EFECE6;color:#14171C"}">${h(i.l)} ${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</span>`).join(" ")}</td></tr>`; }).join("")).join("")}</table>${O.filter(o=>o.ty==="ind").length?`<p class="doux petit" style="margin:8px 0 0">${O.filter(o=>o.ty==="ind").length} fiche(s) joueur : voir 📄 Bilans.</p>`:""}</div>`:""}
+   ${PL.length?`<div class="carte"><h3>📋 Schémas des équipes</h3><div class="vign">${PL.sort((a,b)=>b.u-a.u).slice(0,8).map(p=>`<button data-act="planOuvrir" data-id="${h(p.id)}">${EPSTAC.svg(p.d)}<b>${h(p.nom||"Schéma")}</b><small>${h(eqNom(cls,p.eq))}</small></button>`).join("")}</div></div>`:""}`; }
+
+/* 👥 Classe : équipes de la classe */
+function panneauClasses(el){ const cls=clsProf(), L=classesBK();
+  if(!cls){ el.innerHTML=`<h2>👥 Classe</h2><p class="mut">Aucune classe n'est attribuée au basket-ball pour l'instant.</p><div class="epst-grid"><button type="button" class="epst-card" data-x="edit"><i>✏️</i><span><b>Listes d'élèves</b><small>Renommer, corriger, choisir les activités</small></span></button><button type="button" class="epst-card" data-x="imp"><i>📥</i><span><b>Importer une liste</b><small>Excel ou CSV</small></span></button></div>`; }
+  else { const E=eqs(cls), pr=presents(cls), places=new Set(E.flatMap(e=>e.j)), sans=pr.filter(n=>!places.has(n)), j=jour(cls), md=modeCfg(j.mode), conseil=Math.max(2,Math.round(pr.length/(md.n+1)));
+   el.innerHTML=`<h2>👥 Classe · équipes</h2><div class="ligne" style="margin-bottom:12px">${selCls()}<span class="mut">${pr.length} présents · ${md.nom} : ${conseil} équipes de ${md.n} à ${md.n+1} conseillées</span></div>
+    <div class="ligne" style="margin-bottom:12px"><label class="ligne">Équipes <input type="number" id="eqN" min="2" max="12" value="${E.length||conseil}" style="width:84px"></label>
+     <button class="btn app" data-act="eqHasard">🎲 Au hasard</button><button class="btn contour" data-act="eqJour">👥 Groupes du jour</button><button class="btn contour" data-act="eqNiv">🧩 Niveaux / affinités</button><button class="btn contour" data-act="eqPlus">＋ Équipe</button></div>
+    ${S.pick?`<div class="carte" style="border-color:var(--app)"><b>${h(S.pick)}</b> : touche « Placer ici » dans une équipe. <button class="btn clair" data-act="pick" data-n="">Annuler</button></div>`:""}
+    ${sans.length?`<div class="carte"><h3>Sans équipe</h3><div class="ligne">${sans.map(n=>`<button class="puce ${S.pick===n?"on":""}" data-act="pick" data-n="${h(n)}">${h(n)}</button>`).join("")}</div></div>`:""}
+    ${E.map((e,i)=>`<div class="carte eq" style="border-left-color:${h(e.col)}"><div class="ligne"><input type="text" data-ch="eqNom" data-i="${i}" value="${h(e.nom)}" style="max-width:220px;font-weight:800" aria-label="Nom de l'équipe"><span class="doux">${e.j.length} joueur${e.j.length>1?"s":""}</span>
+      <span style="margin-left:auto" class="ligne">${S.pick?`<button class="btn app" data-act="placer" data-i="${i}">Placer ici</button>`:""}<button class="btn clair" data-act="eqCol" data-i="${i}">🎽 Chasuble</button><button class="btn danger" data-act="eqSuppr" data-i="${i}">Supprimer</button></span></div>
+      <div class="ligne" style="margin-top:10px">${e.j.map(n=>`<button class="puce ${S.pick===n?"on":""}" data-act="pick" data-n="${h(n)}">${absent(n,cls)?"<s>":""}${h(n)}${absent(n,cls)?"</s> (absent)":""}</button>`).join("")||`<span class="doux">Personne pour l'instant.</span>`}</div></div>`).join("")}
+    <div class="epst-grid"><button type="button" class="epst-card" data-x="edit"><i>✏️</i><span><b>Listes d'élèves</b><small>Renommer, corriger, choisir les activités</small></span></button><button type="button" class="epst-card" data-x="imp"><i>📥</i><span><b>Importer une liste</b><small>Excel ou CSV</small></span></button></div>`; }
+  el.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{ if(!window.EPSD) return; b.dataset.x==="edit"?EPSD.editLists():EPSD.importList(); });
+  PAN=()=>panneauClasses(el); }
+let PAN=null;
+/* 📄 Bilans : classement, marqueurs, observations, bilans d'équipe, puis évaluation commune */
+function panneauBilans(el){ const cls=clsProf(), C=classesBK(); if(!cls){ el.innerHTML=`<h2>📄 Bilans</h2><p class="mut">Aucune classe pour le basket-ball.</p>`; return; }
+  const jours=[...new Set(matchsDe(cls).map(m=>m.day).concat(obsDe(cls).map(o=>o.day)))].sort().reverse(), d=jours.includes(S.bilJ)?S.bilJ:"", E=eqs(cls), mq=marqueurs(cls,d), O=obsDe(cls,d), BE=stItems("b|"+nk(cls)+"|"+(d?d+"|":""));
+  const N={}; O.filter(o=>o.ty==="ind"&&o.who).forEach(o=>(N[o.who]=N[o.who]||[]).push(o));
+  el.innerHTML=`<h2>📄 Bilans</h2><div class="ligne" style="margin-bottom:12px">${selCls()}<select data-ch="bilJ" style="max-width:240px" aria-label="Période"><option value="">Toute la séquence</option>${jours.map(x=>`<option value="${x}" ${x===d?"selected":""}>${dateFR(x)}</option>`).join("")}</select><button class="btn contour" data-act="csv">⬇ Tableur (.csv)</button></div>
+   ${classHtml(cls,d)||`<p class="mut">Aucun match terminé sur cette période.</p>`}
+   ${mq.length?`<div class="carte"><h3>🏀 Points marqués par joueur</h3><div class="ligne">${mq.map(x=>`<span class="pastille">${h(x[0])} · ${x[1]}</span>`).join("")}</div></div>`:""}
+   ${E.some(e=>O.some(o=>o.eq===e.id))?`<div class="carte"><h3>👁 Observations par équipe</h3><table class="t"><tr><th>Équipe</th><th class="c">Possessions</th><th class="c">Arrivent au tir</th><th class="c">Réussite</th><th class="c">Balles perdues</th><th class="c">Ballons gagnés</th></tr>${E.map(e=>{ const L=O.filter(o=>o.eq===e.id&&o.ty==="coll"); if(!L.length) return ""; return `<tr><td><span class="rond" style="background:${h(e.col)}"></span> ${h(e.nom)}</td>${indic(obsSomme(L,"coll")).map(i=>`<td class="c">${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</td>`).join("")}</tr>`; }).join("")}</table></div>`:""}
+   ${Object.keys(N).length?`<div class="carte"><h3>👤 Joueurs observés</h3><table class="t"><tr><th>Joueur</th><th class="c">Fiches</th><th class="c">Ballons joués</th><th class="c">Efficacité</th><th class="c">Tir</th><th class="c">Ballons gagnés</th></tr>${Object.keys(N).sort().map(k=>`<tr><td>${h(k)}</td><td class="c">${N[k].length}</td>${indic(obsSomme(N[k],"ind")).map(i=>`<td class="c">${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</td>`).join("")}</tr>`).join("")}</table></div>`:""}
+   ${BE.length?`<div class="carte"><h3>✍️ Bilans des équipes</h3>${BE.sort((a,b)=>String(b.day).localeCompare(a.day)).map(b=>`<p style="margin:8px 0"><b>${h(eqNom(cls,b.eq))}</b> <span class="doux petit">${dateFR(b.day)}</span><br>${P("bilan_q").map((q,i)=>(b.r||[])[i]?`<span class="doux petit">${h(q)} :</span> ${h(b.r[i])}<br>`:"").join("")}</p>`).join("")}</div>`:""}
+   <div id="bil-ev"></div>`;
+  if(window.EVBK) try{ EVBK.mount(el.querySelector("#bil-ev"),["bilan"],cls); }catch(e){}
+  PAN=()=>panneauBilans(el); }
+function csv(){ const cls=clsProf(), L=[["Date","Forme","Terrain","Équipe A","Score A","Score B","Équipe B","Fautes A","Fautes B","État"]]; matchsDe(cls).sort((a,b)=>String(a.day).localeCompare(b.day)).forEach(m=>{ const s=score(m); L.push([m.day,MODES[m.mode]?MODES[m.mode].nom:"",m.ter||"",eqNom(cls,m.a),s.a,s.b,eqNom(cls,m.b),s.fa,s.fb,m.st===1?"terminé":"en cours"]); });
+  L.push([]); L.push(["Date","Fiche","Équipe","Joueur","Compteurs","Tirs tentés","Tirs marqués"]); obsDe(cls).forEach(o=>L.push([o.day,OBS[o.ty].nom,eqNom(cls,o.eq),o.who||"",(o.c||[]).join(" / "),(o.tirs||[]).length||"",(o.tirs||[]).filter(t=>t[2]).length||""]));
+  const t="﻿"+L.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(";")).join("\r\n"), a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"})); a.download="Basket_"+cls.replace(/[^A-Za-z0-9_-]+/g,"_")+"_"+auj()+".csv"; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500); }
+
+/* 🖨 fiches d'observation à imprimer (quand il n'y a pas assez de tablettes) */
+function imprimer(){ let tete=""; try{ tete=window.EPSR&&EPSR.htmlHead?EPSR.htmlHead({act:"Basket-ball",titre:"Fiches d'observation",ca:"CA4",classe:nomClasse()}):""; }catch(e){}
+  const tab=(titre,L)=>`<h2>${h(titre)}</h2><p>Équipe observée : ……………………… &nbsp; Observateur : ……………………… &nbsp; Match : ………</p><table><tr>${L.map(l=>`<th>${h(l)}</th>`).join("")}</tr><tr>${L.map(()=>`<td class="case"></td>`).join("")}</tr><tr>${L.map(()=>`<td>Total : </td>`).join("")}</tr></table><p>Un bâton par action. À la fin : possessions = paniers + tirs manqués + balles perdues.</p>`;
+  $("#impr").innerHTML=tete+tab("Notre attaque (fiche collective)",P("obs_coll"))+tab("Un joueur (nom : ………………………)",P("obs_ind"))+`<h2>Carte des tirs</h2><p>Un rond pour un tir marqué, une croix pour un tir manqué, à l'endroit du tir.</p><div style="max-width:420px">${terrainTirs([])}</div>`;
+  setTimeout(()=>window.print(),120); }
+
+/* ======================= ACTIONS ======================= */
+const refaire=()=>{ if(PAN&&document.documentElement.classList.contains("epst-pan")) PAN(); else rendre(); };
+const A={
+ aller:b=>aller(b.dataset.v), fermer:()=>fermer(),
+ quitter:()=>{ S.classe=""; SS.del("classe"); S.vue="home"; rendre(); },
+ eq:b=>{ S.eq=b.dataset.id; SS.set("eq",S.eq); aller("home"); },
+ changerEq:()=>{ S.eq=""; SS.del("eq"); aller("eq"); },
+ lecon:()=>{ try{ const lv=EPSLC.liveFor(nomClasse()); lv&&lv.open(); }catch(e){} },
+ modeEleve:()=>feuille(`<h3>Forme de jeu</h3><div class="bascule">${["3","4"].map(k=>`<button data-act="modeEl" data-m="${k}" class="${modeJour()===k?"on":""}"><b>${MODES[k].nom}</b><small>${MODES[k].sub}</small></button>`).join("")}</div><p style="text-align:right;margin:12px 0 0"><button class="btn clair" data-act="fermer">Fermer</button></p>`),
+ modeEl:b=>{ SS.set("mode",b.dataset.m); fermer(); rendre(); },
+ regM:b=>{ S.regM=b.dataset.m; rendre(); }, sysM:b=>{ S.sysM=b.dataset.m; rendre(); }, bilT:b=>{ S.bilT=b.dataset.t; rendre(); },
+ /* match */
+ matchRot:b=>{ const cls=nomClasse(), j=jour(cls), ri=+b.dataset.ri, mi=+b.dataset.mi, x=((j.r||[])[ri]||{m:[]}).m[mi]; if(!x) return; matchOuvrir(matchId(cls,j.day,ri,mi),{cls:cls,day:j.day,mode:j.mode,ter:mi+1,rot:ri,a:x[0],b:x[1]}); },
+ matchVoir:b=>{ S.mid=b.dataset.id; SS.set("mid",S.mid); aller("match"); },
+ matchLibre:()=>{ const cls=nomClasse(), E=eqs(cls).filter(e=>e.id!==S.eq), j=jour(cls); if(!E.length) return toast("Il faut au moins deux équipes");
+   feuille(`<h3>Jouer un match · ${modeCfg(modeJour()).nom}</h3><p class="doux petit">Contre qui ?</p><div class="ligne" id="advs">${E.map((e,i)=>`<button class="puce ${i?"":"on"}" data-act="adv" data-id="${h(e.id)}" style="border-left:8px solid ${h(e.col)}">${h(e.nom)}</button>`).join("")}</div>
+    <p class="doux petit" style="margin-top:12px">Sur quel terrain ?</p><div class="ligne" id="ters">${Array.from({length:j.nt},(x,i)=>`<button class="puce ${i?"":"on"}" data-act="terr" data-t="${i+1}">Terrain ${i+1}</button>`).join("")}</div>
+    <div class="ligne" style="margin-top:16px;justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" data-act="matchGo">▶ Commencer</button></div>`); },
+ adv:b=>{ document.querySelectorAll("#advs .puce").forEach(x=>x.classList.toggle("on",x===b)); }, terr:b=>{ document.querySelectorAll("#ters .puce").forEach(x=>x.classList.toggle("on",x===b)); },
+ matchGo:()=>{ const cls=nomClasse(), a=$("#advs .on"), t=$("#ters .on"); if(!a) return; matchOuvrir("m|"+nk(cls)+"|"+auj()+"|x"+uid(),{cls:cls,day:auj(),mode:modeJour(),ter:t?+t.dataset.t:0,a:S.eq,b:a.dataset.id}); },
+ pt:b=>{ const m=matchCur(); if(!m) return; const e=+b.dataset.e, p=modeCfg(m.mode).pts[+b.dataset.i]; if(!p) return; quiMarque(e,{k:"p",v:p.v,l:p.l}); },
+ bonus:b=>{ const m=matchCur(); if(!m) return; const j=jour(m.cls,m.day), e=+b.dataset.e, B=bonusList().map((x,i)=>Object.assign({i:i},x)).filter(x=>j.bon.includes(x.i));
+   feuille(`<h3>⭐ Point bonus · ${h(eqNom(m.cls,e?m.b:m.a))}</h3><div style="display:grid;gap:8px">${B.map(x=>`<button class="btn clair plein" style="text-align:left" data-act="bonusOk" data-e="${e}" data-i="${x.i}">${h(x.l)} <b style="float:right">+${x.v}</b></button>`).join("")}</div><p style="text-align:right;margin:12px 0 0"><button class="btn clair" data-act="fermer">Annuler</button></p>`); },
+ bonusOk:b=>{ const x=bonusList()[+b.dataset.i]; if(!x) return; evAjout({e:+b.dataset.e,k:"b",v:x.v,l:x.l}); fermer(); },
+ qui:b=>{ const ev=S.evTmp; if(!ev) return; ev.j=b.dataset.n||""; S.evTmp=null; fermer(); evAjout(ev); },
+ faute:b=>{ evAjout({e:+b.dataset.e,k:"f",v:0,l:"Faute"}); },
+ annulerEv:()=>{ mMaj(m=>{ (m.ev=m.ev||[]).pop(); }); rendre(); },
+ chrono:()=>{ mMaj(m=>{ const L=mLeft(m); if(m.t.at){ m.t.left=L; m.t.at=0; } else if(L>0){ m.t.left=L; m.t.at=Date.now(); } }); const m=matchCur(), md=modeCfg(m.mode); S.poss=m.t.at&&md.poss?Date.now()+md.poss*1000:null; rendre(); },
+ poss:()=>{ const m=matchCur(), md=modeCfg(m.mode); S.poss=Date.now()+md.poss*1000; },
+ feuilleMatch:()=>{ const m=matchCur(); if(!m) return; const cls=m.cls, mq={}; (m.ev||[]).forEach(e=>{ if(e.k!=="f"&&e.j) mq[e.j]=(mq[e.j]||0)+e.v; });
+   feuille(`<h3>📜 Feuille de match</h3>${Object.keys(mq).length?`<div class="ligne" style="margin-bottom:10px">${Object.entries(mq).sort((a,b)=>b[1]-a[1]).map(x=>`<span class="pastille">${h(prenom(x[0]))} · ${x[1]}</span>`).join("")}</div>`:""}
+    ${(m.ev||[]).length?`<table class="t">${m.ev.map(e=>`<tr><td><span class="rond" style="background:${h(eqCol(cls,e.e?m.b:m.a))}"></span> ${h(eqNom(cls,e.e?m.b:m.a))}</td><td>${e.k==="f"?"Faute":e.k==="b"?"⭐ "+h(e.l):h(e.l)}${e.j?" · "+h(prenom(e.j)):""}</td><td class="c"><b>${e.k==="f"?"":"+"+e.v}</b></td></tr>`).join("")}</table>`:`<p class="doux">Rien pour l'instant.</p>`}<p style="text-align:right;margin:12px 0 0"><button class="btn clair" data-act="fermer">Fermer</button></p>`); },
+ finMatch:()=>{ const m=matchCur(), s=score(m); feuille(`<h3>Terminer le match ?</h3><p style="font-size:22px;font-weight:800;text-align:center">${h(eqNom(m.cls,m.a))} ${s.a} – ${s.b} ${h(eqNom(m.cls,m.b))}</p><div class="ligne" style="justify-content:flex-end"><button class="btn clair" data-act="fermer">Pas encore</button><button class="btn app" data-act="finOk">🏁 Oui, terminer</button></div>`); },
+ finOk:()=>{ mMaj(m=>{ m.st=1; m.t.left=mLeft(m)||0; m.t.at=0; }); S.poss=null; fermer(); rendre(); toast("Match enregistré"); },
+ rouvrir:()=>{ mMaj(m=>{ m.st=0; m.by=devId(); }); rendre(); },
+ tenir:()=>{ mMaj(m=>{ m.by=devId(); }); rendre(); },
+ obsMatch:()=>{ const m=matchCur(); if(!m) return; S.obsM=m.id; feuille(`<h3>👁 Observer ce match</h3><p class="doux petit">Quelle fiche ?</p><div style="display:grid;gap:8px">${Object.keys(OBS).map(k=>`<button class="btn clair plein" style="text-align:left" data-act="obsNew" data-ty="${k}">${OBS[k].ico} ${OBS[k].nom} <span class="doux petit">· ${OBS[k].sub}</span></button>`).join("")}</div><p style="text-align:right;margin:12px 0 0"><button class="btn clair" data-act="fermer">Annuler</button></p>`); },
+ /* observation */
+ obsNew:b=>{ const cls=nomClasse(), ty=b.dataset.ty, m=S.obsM?stGet(S.obsM):null, E=eqs(cls).filter(e=>!m||e.id===m.a||e.id===m.b); if(!E.length) return toast("Il faut des équipes"); S.obsTy=ty; S.obsEq=(E.find(e=>e.id!==S.eq)||E[0]).id; S.obsWho=""; obsChoix(); },
+ obsEq:b=>{ S.obsEq=b.dataset.id; S.obsWho=""; obsChoix(); }, obsWho:b=>{ S.obsWho=b.dataset.n; obsChoix(); },
+ obsGo:()=>{ const cls=nomClasse(); if(S.obsTy==="ind"&&!S.obsWho) return toast("Choisis le joueur observé"); const id="o|"+nk(cls)+"|"+auj()+"|"+uid(); stPut(id,{cls:cls,day:auj(),mode:modeJour(),ty:S.obsTy,eq:S.obsEq,who:S.obsTy==="ind"?S.obsWho:"",par:S.eq||"",mi:S.obsM||"",c:[],tirs:[],h:[],st:0}); S.obsM=""; S.oid=id; S.tirTmp=null; aller("obsRun"); },
+ obsOuvrir:b=>{ S.oid=b.dataset.id; S.tirTmp=null; aller("obsRun"); },
+ cpt:b=>{ const o=stGet(S.oid); if(!o||o.st===1) return; const i=+b.dataset.i; o.c=o.c||[]; o.c[i]=(+o.c[i]||0)+1; (o.h=o.h||[]).push(i); if(o.h.length>80) o.h.shift(); stPut(S.oid,o); rendre(); },
+ tirPos:(b,ev)=>{ const s=b.querySelector("svg"); if(!s) return; const q=s.createSVGPoint(); q.x=ev.clientX; q.y=ev.clientY; const p=q.matrixTransform(s.getScreenCTM().inverse()); S.tirTmp=[Math.round(Math.max(0,Math.min(140,p.x))*10)/10, Math.round(Math.max(0,Math.min(150,p.y))*10)/10]; rendre(); },
+ tirOk:b=>{ const o=stGet(S.oid); if(!o||!S.tirTmp) return; (o.tirs=Array.isArray(o.tirs)?o.tirs:[]).push([S.tirTmp[0],S.tirTmp[1],+b.dataset.ok]); S.tirTmp=null; stPut(S.oid,o); rendre(); },
+ obsAnnuler:()=>{ const o=stGet(S.oid); if(!o) return; if(o.ty==="tir"){ if(S.tirTmp) S.tirTmp=null; else (o.tirs||[]).pop(); } else { const i=(o.h||[]).pop(); if(i==null) return; o.c[i]=Math.max(0,(+o.c[i]||0)-1); } stPut(S.oid,o); rendre(); },
+ obsFin:()=>{ const o=stGet(S.oid); if(!o) return; o.st=1; delete o.h; stPut(S.oid,o); toast("Fiche enregistrée"); rendre(); },
+ obsSuppr:()=>{ stDel(S.oid); aller("obs"); },
+ imprObs:()=>imprimer(),
+ /* planche */
+ sysOuvrir:b=>{ const s=SYS.find(x=>x.id===b.dataset.id); if(s) planOuvrir({nom:s.nom,txt:s.txt,d:s.d},"sys"); },
+ planNew:()=>planOuvrir({nom:"",d:EPSTAC.depart(modeJour()==="4"?"basket":"basket3")},"plan"),
+ planOuvrir:b=>{ const p=stGet(b.dataset.id); if(p) planOuvrir(p,estProf()&&S.vue==="prof"?"prof":"plan"); },
+ planTool:b=>{ if(!ED) return; ED.tool(b.dataset.t); document.querySelectorAll("#planOut button").forEach(x=>x.classList.toggle("on",x===b)); },
+ planUndo:()=>ED&&ED.undo(), planDel:()=>ED&&ED.del(),
+ planTerrain:()=>{ if(!ED) return; S.plan.nom=$("#planNom").value; S.plan.d=ED.get(); const versEntier=S.plan.d.sport!=="basket"; ED.sport(versEntier?"basket":"basket3"); S.plan.d=ED.get(); rendre(); },
+ planSave:()=>{ if(!ED) return; const cls=nomClasse(), p=S.plan, eq=p.eq||S.eq||"prof", id=p.id&&(estProf()||p.eq===S.eq)?p.id:"p|"+nk(cls)+"|"+eq+"|"+uid(); stPut(id,{cls:cls,eq:eq,nom:($("#planNom").value||"Schéma").slice(0,60),d:ED.get()}); toast("Schéma enregistré"); aller("plan"); },
+ planSuppr:()=>{ if(S.plan&&S.plan.id){ stDel(S.plan.id); aller("plan"); } },
+ planEnvoi:()=>{ if(!ED) return; if(!(window.EPSD&&EPSD.plan&&EPSD.plan.ready&&EPSD.plan.ready())) return toast("Règle d'abord le partage entre tablettes (Réglages communs)");
+   const T=EPSD.plan.tabs().filter(t=>!nomClasse()||!t.cls||nk(t.cls)===nk(nomClasse()));
+   feuille(`<h3>📤 Envoyer ce schéma</h3><p class="doux petit">Il s'affiche en plein écran sur les tablettes, pendant 10 minutes.</p><div style="display:grid;gap:8px"><button class="btn app plein" data-act="planEnvoiOk" data-to="*">À toutes les tablettes</button>${T.map(t=>`<button class="btn clair plein" style="text-align:left" data-act="planEnvoiOk" data-to="${h(t.id)}">${h(t.nom)}</button>`).join("")}</div><p style="text-align:right;margin:12px 0 0"><button class="btn clair" data-act="fermer">Annuler</button></p>`); },
+ planEnvoiOk:b=>{ const to=b.dataset.to==="*"?"*":[b.dataset.to]; try{ EPSD.plan.send({nom:$("#planNom")?$("#planNom").value:"",d:ED.get()},to,10); toast("Schéma envoyé"); }catch(e){ toast("Envoi impossible"); } fermer(); },
+ bilSave:()=>{ const cls=nomClasse(), r=[...document.querySelectorAll("[data-bq]")].map(t=>t.value.trim().slice(0,400)); stPut("b|"+nk(cls)+"|"+auj()+"|"+S.eq,{cls:cls,day:auj(),eq:S.eq,r:r}); toast("Bilan enregistré"); },
+ /* enseignant */
+ mode:b=>{ jourSet(clsProf(),{mode:b.dataset.m}); rendre(); },
+ nt:b=>{ const cls=clsProf(), j=jour(cls); jourSet(cls,{nt:Math.max(1,Math.min(8,j.nt+(+b.dataset.d)))}); rendre(); },
+ bon:b=>{ const cls=clsProf(), j=jour(cls), i=+b.dataset.i; jourSet(cls,{bon:j.bon.includes(i)?j.bon.filter(x=>x!==i):j.bon.concat(i)}); rendre(); },
+ equipes:()=>{ try{ EPSTBK.go("cls"); }catch(e){} },
+ renc:()=>{ const cls=clsProf(), j=jour(cls), E=eqs(cls).filter(e=>e.j.some(n=>!absent(n,cls))); if(E.length<2) return toast("Il faut au moins deux équipes");
+   const go=()=>{ jourSet(cls,{r:rencontres(E.map(e=>e.id),j.nt)}); fermer(); rendre(); };
+   if(j.r&&matchsDe(cls,j.day).some(m=>m.rot!=null)){ feuille(`<h3>Refaire les rencontres ?</h3><p>Des matchs ont déjà commencé : leurs scores restent rattachés à l'ancien programme.</p><div class="ligne" style="justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" id="rencOk">Refaire</button></div>`); $("#rencOk").onclick=go; } else go(); },
+ rencSuppr:()=>{ jourSet(clsProf(),{r:null}); rendre(); },
+ pick:b=>{ S.pick=S.pick===b.dataset.n?"":b.dataset.n; refaire(); },
+ placer:b=>{ const cls=clsProf(), E=eqs(cls), n=S.pick; if(!n) return; E.forEach(e=>e.j=e.j.filter(x=>x!==n)); if(E[+b.dataset.i]) E[+b.dataset.i].j.push(n); S.pick=""; eqSave(cls,E); refaire(); },
+ eqPlus:()=>{ const cls=clsProf(), E=eqs(cls), C=chasubles(), c=C.find(x=>!E.some(e=>e.nom===x.nom))||C[E.length%C.length]||{nom:"Équipe "+(E.length+1),col:"#6A6F78"}; E.push({id:"q"+uid(),nom:c.nom,col:c.col,j:[]}); eqSave(cls,E); refaire(); },
+ eqSuppr:b=>{ const cls=clsProf(), E=eqs(cls), i=+b.dataset.i; if(!E[i]) return; feuille(`<h3>Supprimer l'équipe ${h(E[i].nom)} ?</h3><p class="doux">Ses joueurs redeviennent « sans équipe ». Les matchs déjà joués sont gardés.</p><div class="ligne" style="justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn danger" id="supOk">Supprimer</button></div>`); $("#supOk").onclick=()=>{ E.splice(i,1); eqSave(cls,E); fermer(); refaire(); }; },
+ eqCol:b=>{ const i=+b.dataset.i; feuille(`<h3>🎽 Chasuble</h3><div class="ligne">${chasubles().map((c,k)=>`<button class="puce" data-act="eqColOk" data-i="${i}" data-k="${k}" style="border-left:10px solid ${h(c.col)}">${h(c.nom)}</button>`).join("")}</div><p style="text-align:right;margin:12px 0 0"><button class="btn clair" data-act="fermer">Annuler</button></p>`); },
+ eqColOk:b=>{ const cls=clsProf(), E=eqs(cls), c=chasubles()[+b.dataset.k], e=E[+b.dataset.i]; if(!c||!e) return; if(chasubles().some(x=>x.nom===e.nom)) e.nom=c.nom; e.col=c.col; eqSave(cls,E); fermer(); refaire(); },
+ eqHasard:()=>{ const cls=clsProf(), n=nbEq(); if(!n) return; const L=presents(cls).slice(); for(let i=L.length-1;i>0;i--){ const k=Math.floor(Math.random()*(i+1)); [L[i],L[k]]=[L[k],L[i]]; } const G=Array.from({length:n},()=>[]); L.forEach((x,i)=>G[i%n].push(x)); eqConfirme(cls,G); },
+ eqJour:()=>{ const cls=clsProf(); let G=null; try{ G=window.epsGroupesJour&&epsGroupesJour(cls); }catch(e){} if(!G||!G.length) return toast("Pas de groupes du jour : forme-les dans 📡 Leçon en cours"); const L=personnes(cls); eqConfirme(cls,G.map(g=>g.map(n=>{ const m=window.epsMatchNom?epsMatchNom(L,n):null; return m||n; }))); },
+ eqNiv:()=>{ const cls=clsProf(); if(!window.EPSGR) return toast("Module des groupes pas encore chargé"); EPSGR.open({dir:DIR,cls:cls,tab:"grp",mode:"melange",n:nbEq()||4,noDay:false,useLabel:"🏀 En faire les équipes",onUse:G=>{ const L=personnes(cls); eqFaire(cls,(G||[]).map(g=>(g.membres||g||[]).map(n=>{ const m=window.epsMatchNom?epsMatchNom(L,n):null; return m||n; }))); refaire(); }}); },
+ csv:()=>csv()
+};
+function nbEq(){ const f=$("#eqN"), v=parseInt(f?f.value:"",10); if(!isFinite(v)||v<2||v>12){ toast("Nombre d'équipes : entre 2 et 12"); return 0; } return v; }
+function eqConfirme(cls,G){ const go=()=>{ eqFaire(cls,G); fermer(); refaire(); }; if(!eqs(cls).length) return go();
+  feuille(`<h3>Remplacer les équipes ?</h3><p class="doux">Les équipes actuelles sont remplacées. Les matchs déjà joués restent dans les bilans.</p><div class="ligne" style="justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" id="eqOk">Remplacer</button></div>`); $("#eqOk").onclick=go; }
+function quiMarque(e,ev){ const m=matchCur(), cls=m.cls, t=eqDe(cls,e?m.b:m.a), Jo=t?t.j.filter(n=>!absent(n,cls)):[]; ev.e=e; if(!Jo.length) return evAjout(ev); S.evTmp=ev;
+  feuille(`<h3>+${ev.v} · ${h(eqNom(cls,e?m.b:m.a))}</h3><p class="doux petit">Qui a marqué ?</p><div class="ligne">${Jo.map(n=>`<button class="puce" style="min-height:52px;font-size:18px" data-act="qui" data-n="${h(n)}">${h(prenom(n))}</button>`).join("")}</div><p style="text-align:right;margin:14px 0 0"><button class="btn clair" data-act="qui" data-n="">Passer</button></p>`); }
+function evAjout(ev){ const m=mMaj(x=>{ ev.at=Date.now(); (x.ev=x.ev||[]).push(ev); }); if(!m) return; const md=modeCfg(m.mode), s=score(m); if(ev.k!=="f"&&md.poss&&(m.t||{}).at) S.poss=Date.now()+md.poss*1000;
+  rendre(); if(ev.k!=="f"&&md.cible&&Math.max(s.a,s.b)>=md.cible){ bip(2); A.finMatch(); } }
+function obsChoix(){ const cls=nomClasse(), m=S.obsM?stGet(S.obsM):null, E=eqs(cls).filter(e=>!m||e.id===m.a||e.id===m.b), e=eqDe(cls,S.obsEq)||E[0];
+  feuille(`<h3>${OBS[S.obsTy].ico} ${OBS[S.obsTy].nom}</h3><p class="doux petit">Quelle équipe observes-tu ?</p><div class="ligne">${E.map(x=>`<button class="puce ${x.id===e.id?"on":""}" data-act="obsEq" data-id="${h(x.id)}" style="border-left:8px solid ${h(x.col)}">${h(x.nom)}</button>`).join("")}</div>
+   ${S.obsTy==="ind"?`<p class="doux petit" style="margin-top:12px">Quel joueur ?</p><div class="ligne">${e.j.filter(n=>!absent(n,cls)).map(n=>`<button class="puce ${S.obsWho===n?"on":""}" data-act="obsWho" data-n="${h(n)}">${h(prenom(n))}</button>`).join("")}</div>`:""}
+   <div class="ligne" style="margin-top:16px;justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" data-act="obsGo">▶ Commencer</button></div>`); }
+document.addEventListener("click",ev=>{ const b=ev.target.closest("[data-act]"); if(!b||b.disabled) return; const f=A[b.dataset.act]; if(f){ try{ f(b,ev); }catch(e){ console.warn(e); } } });
+document.addEventListener("change",ev=>{ const t=ev.target, k=t.dataset&&t.dataset.ch; if(!k) return;
+  if(k==="cls"){ S.classe=t.value; SS.set("classe",S.classe); S.pick=""; try{ localStorage.setItem("eps.eval.cls.bk",nomClasse()); }catch(e){} refaire(); }
+  else if(k==="libre"){ jourSet(clsProf(),{libre:t.checked}); }
+  else if(k==="bilJ"){ S.bilJ=t.value; refaire(); }
+  else if(k==="eqNom"){ const cls=clsProf(), E=eqs(cls), e=E[+t.dataset.i], v=t.value.trim().slice(0,30); if(e&&v){ e.nom=v; eqSave(cls,E); } else if(e) t.value=e.nom; } });
+
+/* ======================= BRANCHEMENTS COMMUNS ======================= */
+window.epsCurrentClass=()=>{ const c=clsObj(); return c?{nom:c.nom, eleves:(c.el||[])}:null; };
+window.epsTabInfo=()=>{ try{ if(!estProf()&&aClasse()&&S.eq) return {mode:"équipe", cls:nomClasse(), eq:eqNom(nomClasse(),S.eq)}; }catch(e){} return {}; };
+/* 🧩 niveau proposé pour les groupes : points marqués et efficacité observée */
+window.epsNiveaux=function(cls){ try{ const mq=marqueurs(cls), mx=Math.max(1,...mq.map(x=>x[1])), N={}; obsDe(cls).filter(o=>o.ty==="ind"&&o.who).forEach(o=>(N[o.who]=N[o.who]||[]).push(o)); const R=personnes(cls).map(n=>{ const p=(mq.find(x=>x[0]===n)||[0,0])[1], i=N[n]?indic(obsSomme(N[n],"ind"))[1].v:null; if(!p&&i==null) return null; const s=i==null?p/mx:p?(p/mx+i/100)/2:i/100; return {full:n,s:Math.max(0,Math.min(1,s)),t:(p?p+" pts":"")+(i!=null?(p?" · ":"")+i+" % d'efficacité":"")}; }).filter(Boolean); return R.length?R:null; }catch(e){ return null; } };
+/* ✅ « Tout est prêt ? » */
+window.epsCheck=function(cls){ const R=[], c=classesBK().find(x=>nk(x.nom)===nk(cls)); if(!c){ R.push({ok:false,t:"Classe "+(cls||"")+" absente du basket-ball",d:"Attribue-lui l'activité (Réglages → Listes d'élèves)."}); return R; }
+  const E=eqs(c.nom), j=jour(c.nom), pr=presents(c.nom), pl=new Set(E.flatMap(e=>e.j)), sans=pr.filter(n=>!pl.has(n)), ouvrir=()=>{ S.classe=c.id; SS.set("classe",c.id); try{ EPSTBK.go("cls"); }catch(e){} };
+  R.push({ok:true,t:"Basket-ball : "+c.nom+" · "+MODES[j.mode].nom+" · "+j.nt+" terrain(s)"});
+  R.push(E.length<2?{ok:false,t:"Pas encore d'équipes",d:"Les tablettes s'ouvrent par équipe.",fix:{label:"👥 Équipes",go:ouvrir}}:sans.length?{ok:false,t:sans.length+" élève(s) sans équipe",d:sans.map(prenom).join(", "),fix:{label:"👥 Équipes",go:ouvrir}}:{ok:true,t:E.length+" équipes, tous les présents placés"});
+  R.push(j.r?{ok:true,t:j.r.length+" rotations de rencontres prêtes"}:{ok:null,t:"Rencontres du jour pas encore créées",d:"Séquence → Créer les rencontres (ou matchs libres)."});
+  return R; };
+const ICONE_BK='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3v18"/><path d="M5.6 5.6c3 3 3 9.8 0 12.8"/><path d="M18.4 5.6c-3 3-3 9.8 0 12.8"/></svg>';
+/* évaluation commune (eps-eval.js) : grille CA4 proposée, modifiable ou importée (Additio) dans Évaluation → Grille */
+window.EVBK = window.EPSE ? EPSE.store({
+ app:CODE, nom:"Basket-ball", ca:"CA4", color:COL, pfx:"bk", code:"BK1", url:"https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/basket/", icon:ICONE_BK,
+ isTeacher:()=>estProf(), unlock:()=>Promise.resolve(true),
+ groups:cls=>eqs(cls).map(e=>({nom:e.nom, membres:e.j.slice()})),
+ grid:{degres:["Degré 1","Degré 2","Degré 3","Degré 4"], degresEl:["Je débute","Je progresse","Je maîtrise","Je suis expert(e)"], criteres:[
+  {id:"tech",afl:"AFL1",max:6,nom:"Actions techniques d'attaque et de défense",but:"S'engager et réaliser des actions techniques d'attaque et de défense en relation avec son projet de jeu.",nomEl:"Mes actions avec et sans ballon",butEl:"Je dribble, je passe, je tire et je défends pour aider mon équipe à gagner.",
+   desc:["Porteur : perd souvent le ballon, tire peu ou de trop loin. Non-porteur : statique. Défenseur : spectateur.","Porteur : progresse si la voie est libre, passe au partenaire proche. Non-porteur : se rend disponible près du ballon. Défenseur : gêne son adversaire par moments.","Porteur : choisit entre tirer, passer et dribbler ; tire en course. Non-porteur : se démarque vers le panier ou dans un espace libre. Défenseur : reste entre son joueur et le panier.","Porteur : crée le danger, fixe et donne, tire des deux mains. Non-porteur : enchaîne les démarquages et les aides. Défenseur : récupère des ballons, aide ses partenaires."],
+   descEl:["Je perds souvent le ballon et je bouge peu sans ballon.","J'avance quand c'est libre et je me montre près du ballon.","Je choisis entre tirer, passer et dribbler ; je me démarque et je défends sur mon joueur.","Je crée le danger pour mon équipe et je récupère des ballons en défense."]},
+  {id:"tact",afl:"AFL1",max:6,nom:"Choix au regard du rapport de force",but:"Faire des choix au regard de l'analyse du rapport de force.",nomEl:"Les choix de mon équipe",butEl:"Avec mon équipe, je choisis comment attaquer et défendre selon l'adversaire.",
+   desc:["Jeu en grappe autour du ballon ; pas de projet collectif.","Occupation de l'espace par moments ; le projet est annoncé mais peu appliqué.","Organisation collective repérable (triangle, losange, contre-attaque) et adaptée à l'adversaire entre deux matchs.","Organisation qui s'adapte en cours de match (changement de système, de défense) ; exploite les points faibles adverses."],
+   descEl:["On joue tous autour du ballon.","On se place mieux par moments, mais on oublie notre projet.","On applique notre système de jeu et on le change entre deux matchs.","On s'adapte pendant le match aux forces et faiblesses de l'adversaire."]},
+  {id:"ent",afl:"AFL2",max:4,nom:"Se préparer et s'entraîner",but:"Se préparer et s'entraîner, individuellement ou collectivement, pour conduire et maîtriser un affrontement collectif.",nomEl:"Je m'entraîne pour progresser",butEl:"Je m'échauffe, je m'engage dans les situations et j'utilise les observations pour progresser.",
+   desc:["Échauffement et situations subis ; ne tient pas compte des observations.","S'engage dans les situations ; lit les observations sans s'en servir.","S'échauffe seul, répète pour progresser ; utilise les indicateurs (tirs, balles perdues) pour choisir un axe de travail.","Régule son travail et celui de l'équipe à partir des indicateurs ; propose des exercices adaptés."],
+   descEl:["Je fais ce qu'on me dit sans chercher à progresser.","Je m'engage, mais je ne me sers pas des observations.","Je me sers des observations pour choisir ce que je travaille.","J'aide mon équipe à choisir ce qu'elle doit travailler grâce aux observations."]},
+  {id:"role",afl:"AFL3",max:4,nom:"Rôles : arbitre, observateur, coach",but:"Choisir et assumer les rôles qui permettent un fonctionnement collectif solidaire.",nomEl:"Mes rôles autour du match",butEl:"J'arbitre, j'observe et je conseille pour que tout le monde progresse.",
+   desc:["Rôles subis ou mal tenus ; table de marque et fiche incomplètes.","Tient un rôle avec de l'aide ; siffle les fautes évidentes, remplit la fiche en partie.","Tient ses rôles avec sérieux : arbitre les règles essentielles, fiche d'observation fiable, conseils simples.","Assume plusieurs rôles avec efficacité ; ses observations et ses conseils font progresser son équipe."],
+   descEl:["J'ai du mal à tenir mon rôle.","Je tiens mon rôle avec de l'aide.","J'arbitre, j'observe et je conseille sérieusement.","Mes observations et mes conseils font progresser mon équipe."]}]}}) : null;
+/* 📥 trame de séquence proposée (brouillons à relire : rien n'est montré aux élèves avant « ✓ Valider ») */
+try{ (window.EPS_TRAMES=window.EPS_TRAMES||[]).push({id:"bk-3c3-4c4",seq:"Basket-ball · 3 contre 3 puis 4 contre 4",nom:"Basket-ball · séquence de 8 leçons, du 3 contre 3 au 4 contre 4",sources:"Programmes d'EPS du lycée (CA4), règles FIBA 3x3",lecons:[
+ {num:1,titre:"Découvrir le 3 contre 3 et se situer",objM:"Progresser vers le panier et tirer en position favorable.",objMe:"Tenir la table de marque sur la tablette.",objS:"Respecter les règles et l'adversaire.",but:"Marquer plus de paniers que l'adversaire sur demi-terrain.",
+  sits:[{t:"Matchs de 3 contre 3 et première observation",cons:"Matchs sur demi-terrain. L'équipe qui ne joue pas tient la marque et remplit la fiche « Notre attaque ».",crQ:"Au moins la moitié de nos possessions arrivent au tir.",crQl:"Le ballon avance vers le panier.",crR:"Je regarde le panier dès que j'ai le ballon. Sans ballon, je m'écarte du porteur.",simp:"Défenseurs à distance d'un bras.",comp:"12 secondes pour tirer.",ap:"Occuper l'espace",ind:"Possessions qui arrivent au tir ; 50 ; 70 ; %"}]},
+ {num:2,titre:"Se démarquer pour recevoir",objM:"Se démarquer vers le panier ou dans un espace libre.",objMe:"Observer un partenaire avec la fiche « Un joueur ».",objS:"Conseiller un partenaire à partir de la fiche.",but:"Offrir une solution de passe au porteur.",
+  sits:[{t:"Passe et va en 3 contre 3",cons:"Après chaque passe, le passeur coupe vers le panier et redemande le ballon. Panier après un passe et va : point bonus.",crQ:"3 passe et va réussis par match.",crQl:"Le passeur change de rythme après sa passe.",crR:"Je passe, je pars tout de suite, je montre ma main. Le receveur regarde le coupeur.",simp:"Défense sans interception.",comp:"Le défenseur du passeur défend normalement.",ap:"Démarquage"}]},
+ {num:3,titre:"Tirer en course",objM:"Enchaîner dribble et tir en course.",objMe:"Lire la carte des tirs de son équipe.",objS:"Tenir le rôle de rebondeur et de passeur.",but:"Marquer près du panier.",
+  sits:[{t:"1 contre 1 puis tir en course",cons:"Départ en haut de l'arc, le défenseur part avec un retard. L'observateur remplit la carte des tirs.",crQ:"6 tirs en course marqués sur 10.",crQl:"Deux appuis puis tir, sans s'arrêter.",crR:"Dernier dribble fort, deux appuis, je monte le genou et je vise le carré de la planche.",simp:"Sans défenseur.",comp:"Défenseur à côté du dribbleur.",ap:"Tir en course",ind:"Tirs marqués sur 10 ; 4 ; 6 ; tirs"}]},
+ {num:4,titre:"Défendre sur son joueur",objM:"Rester entre son joueur et le panier.",objMe:"Compter les ballons gagnés en défense.",objS:"Arbitrer les contacts.",but:"Récupérer le ballon sans faute.",
+  sits:[{t:"3 contre 3 : la défense marque",cons:"Un ballon gagné en défense rapporte 1 point à l'équipe qui défend, en plus des paniers.",crQ:"4 ballons gagnés par match.",crQl:"Chaque attaquant a un défenseur.",crR:"Jambes fléchies, un bras vers le ballon, je recule en pas chassés.",simp:"L'attaque joue sans dribble.",comp:"12 secondes pour tirer.",ap:"Défense homme à homme"}]},
+ {num:5,titre:"Passer au 4 contre 4 : occuper le terrain",objM:"Occuper les couloirs en attaque.",objMe:"Choisir un système de jeu sur la planche tactique.",objS:"S'organiser en équipe.",but:"Construire l'attaque à quatre.",
+  sits:[{t:"4 contre 4 en losange ou en carré",cons:"Chaque équipe choisit un système sur la planche et l'enregistre. Matchs sur tout le terrain.",crQ:"Au moins 60 % des possessions arrivent au tir.",crQl:"On reconnaît le système choisi.",crR:"Chacun connaît sa place de départ. Après une passe, je bouge.",simp:"Jeu en largeur, sans contre-attaque.",comp:"Changer de système à la mi-temps.",ap:"Occuper l'espace",ind:"Possessions qui arrivent au tir ; 50 ; 60 ; %"}]},
+ {num:6,titre:"Jouer vite : la contre-attaque",objM:"Enchaîner rebond, première passe et course dans les couloirs.",objMe:"Repérer les paniers marqués en contre-attaque.",objS:"Encourager et replacer ses partenaires.",but:"Marquer avant que la défense soit replacée.",
+  sits:[{t:"Contre-attaque en 3 couloirs",cons:"Après un rebond défensif, première passe sur le côté puis un joueur par couloir. Panier en contre-attaque : point bonus.",crQ:"3 paniers en contre-attaque par match.",crQl:"La première passe part vite.",crR:"Le rebondeur pivote vers l'extérieur. Les ailiers courent le long des lignes.",simp:"Défense à deux joueurs seulement.",comp:"Retour défensif de tous.",ap:"Contre-attaque"}]},
+ {num:7,titre:"Analyser pour choisir son projet",objM:"Adapter son jeu à l'adversaire.",objMe:"Utiliser les indicateurs pour choisir un axe de travail.",objS:"Tenir les rôles d'arbitre, d'observateur et de coach.",but:"Gagner en appliquant un projet d'équipe.",
+  sits:[{t:"Rencontres avec projet d'équipe",cons:"Avant chaque match, l'équipe écrit son projet dans son bilan. Après le match, elle le compare aux observations.",crQ:"Un indicateur de l'équipe progresse d'un match à l'autre.",crQl:"Le projet annoncé se voit sur le terrain.",crR:"Un projet court : un point fort à utiliser, un point faible à corriger.",simp:"Projet proposé par l'enseignant.",comp:"Changer de projet à la mi-temps.",ap:"Projet de jeu"}]},
+ {num:8,titre:"Rencontres d'évaluation",objM:"Montrer ses acquis en match.",objMe:"Se positionner sur la grille.",objS:"Assumer tous les rôles.",but:"Gagner ses matchs dans la forme de jeu choisie.",
+  sits:[{t:"Tournoi en 3 contre 3 ou en 4 contre 4",cons:"Rencontres du jour créées dans l'appli. Chaque équipe joue, arbitre et observe.",crQ:"",crQl:"",crR:"",simp:"",comp:"",ap:"Projet de jeu"}]}
+ ]}); }catch(e){}
+/* espace enseignant commun (eps-shell.js) */
+window.EPSTBK = window.EPST ? EPST.init({app:CODE, nom:"Basket-ball", color:COL, isTeacher:()=>estProf(), anchor:"header", main:"#vue", home:"seq",
+  tabs:{ seq:{go:()=>aller("prof"), on:()=>S.vue==="prof",
+           actions:[{main:1,ico:"🏀",label:"Leçon du jour",go:()=>aller("prof")},
+                    {main:1,ico:"📋",label:"Planche tactique",go:()=>{ try{ EPSD.planche({sport:jour(clsProf()).mode==="4"?"basket":"basket3",cls:clsProf()}); }catch(e){} }},
+                    {ico:"👥",label:"Équipes",go:()=>{ try{ EPSTBK.go("cls"); }catch(e){} }}]},
+         eval:{panel:el=>{ if(window.EVBK) EVBK.mount(el,["eval","grille"],clsProf()); else el.innerHTML="<p>Évaluation indisponible.</p>"; }},
+         cls:{panel:el=>panneauClasses(el)},
+         bil:{panel:el=>panneauBilans(el)} },
+  biblio:[{ico:"📏",label:"Règles",sub:"3 contre 3 et 4 contre 4, points, durées",go:()=>aller("regles")},
+          {ico:"📋",label:"Systèmes de jeu",sub:SYS.length+" schémas prêts à ouvrir, modifier, envoyer aux tablettes",go:()=>aller("sys")},
+          {ico:"✏️",label:"Schémas des équipes",sub:"ce que les équipes ont dessiné",go:()=>aller("plan")},
+          {ico:"👁",label:"Fiches d'observation",sub:"notre attaque, un joueur, carte des tirs ; à l'écran ou à imprimer",go:()=>aller("obs")},
+          {ico:"🔥",label:"Échauffement",sub:"les étapes affichées aux élèves",go:()=>aller("echauf")}],
+  reglages:[]
+}) : null;
+/* écran élève commun « Choisis ta classe » : sans classe, règles, systèmes de jeu et échauffement */
+(window.EPSG_Q=window.EPSG_Q||[]).push({app:"Basket-ball", sub:"CA4 · 3 contre 3 et 4 contre 4", color:COL, icon:ICONE_BK,
+  isTeacher:()=>estProf(), when:()=>!estProf() && !S.classe,
+  classes:()=>classesBK().map(c=>({id:c.id, nom:c.nom, note:(c.el||[]).length+" élèves · "+MODES[jour(c.nom).mode].nom})),
+  current:()=>S.classe,
+  select:id=>{ S.classe=id; SS.set("classe",id); S.eq=""; SS.del("eq"); aller("eq"); },
+  resources:[{ico:"📏",label:"Règles",sub:"3 contre 3 et 4 contre 4",open:()=>{ S.classe="-"; SS.set("classe","-"); aller("regles"); }},
+             {ico:"📋",label:"Systèmes de jeu",sub:"schémas à travailler",open:()=>{ S.classe="-"; SS.set("classe","-"); aller("sys"); }},
+             {ico:"🔥",label:"Échauffement",sub:"les étapes",open:()=>{ S.classe="-"; SS.set("classe","-"); aller("echauf"); }}]});
+if(S.classe==="-"){ S.classe=""; SS.del("classe"); }
+if(estProf()) S.vue="prof"; else if(aClasse()&&S.eq) S.vue=S.mid&&stGet(S.mid)&&stGet(S.mid).st!==1?"match":"home"; else if(aClasse()) S.vue="eq";
+rendre();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>

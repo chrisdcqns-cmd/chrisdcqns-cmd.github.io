@@ -73,6 +73,7 @@ REPERES = {
     "badminton/index.html": ["pd.n=(pd.n||0)+1", "EPSG.sheet(", "Fiches techniques"],
     "acrosport/index.html": ["EPSG.sheet(", "Array.isArray(def)!==Array.isArray(p)", "const autres="],
     "crosstraining/index.html": ["function panneauClasses(", "Array.isArray(f.exercices)"],
+    "basket/index.html": ["EPSD.syncOne(KST)", "function rencontres(", "EPSG_Q", "m.by!==devId()"],
     "ccf/index.html": ["tabs:{ccf:false,seq:"],
     "console/index.html": ["doit être un nombre", "if (sm) sm.textContent"],
     "mon-bilan/index.html": ["ton enseignant", "kind === \"espace\"", "dropchk", "essais automatiques seulement"],

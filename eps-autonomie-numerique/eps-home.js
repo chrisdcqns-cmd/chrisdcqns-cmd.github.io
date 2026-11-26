@@ -242,18 +242,18 @@
   var STORES = [], ESSAIS_MAX = 8; /* essais sans confirmation avant de lever l'attente quand même (évite de renvoyer sans fin) */
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
   var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.carnet\.v1$/, "cn|"], [/^eps\.ref\.v1$/, "rf|"], [/^eps\.analyse\.v1$/, "an|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
-    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
+    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^bk\.v1$/, "bk|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-    if (all) { ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "ccf", "crosstraining"].forEach(function (d) { ["lecons", "lcimg", "lcdocs", "live", "leceval", "lecres"].forEach(function (t) { keys.push("eps." + t + "." + d + ".v1"); }); });
-      ["esc", "acro", "ori", "ct"].forEach(function (a) { keys.push("eps.eval." + a + ".v1"); }); keys.push("eps.obs.v1", "eps.rang.v1", "ct.v1"); }
+    if (all) { ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "ccf", "crosstraining", "basket"].forEach(function (d) { ["lecons", "lcimg", "lcdocs", "live", "leceval", "lecres"].forEach(function (t) { keys.push("eps." + t + "." + d + ".v1"); }); });
+      ["esc", "acro", "ori", "ct", "bk"].forEach(function (a) { keys.push("eps.eval." + a + ".v1"); }); keys.push("eps.obs.v1", "eps.rang.v1", "ct.v1", "bk.v1"); }
     keys.forEach(function (k) { if (!k || seen[k]) return; for (var j = 0; j < AUTOPAT.length; j++) if (AUTOPAT[j][0].test(k)) { seen[k] = 1; out.push({ key: k, pre: k.replace(AUTOPAT[j][0], AUTOPAT[j][1]) }); break; } });
     return out; }
   /* 📥 restauration d'une tablette neuve : relevé complet de tous les magasins communs, puis chaque appli ouverte en arrière-plan
      (cadre invisible) pour qu'elle relève ses propres données (Volley, Badminton, Danse, Relais, Escalade, Acrosport, OrienRun…). */
   async function restoreAll() {
     if (!shCfg()) { alert("Règle d'abord le partage entre tablettes (même script et même clé que tes autres tablettes)."); return; }
-    var DIRS = ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "crosstraining", "ccf", "edt", "appel-as"];
+    var DIRS = ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "crosstraining", "basket", "ccf", "edt", "appel-as"];
     var o = overlay('<h3>📥 Récupération de toutes les données</h3><p class="m" id="rs-m">Relevé des données communes…</p><div style="height:10px;background:#EEE;border-radius:6px;overflow:hidden"><div id="rs-b" style="height:100%;width:3%;background:#2E7D4F"></div></div><div class="epsd-act"><button data-x>Fermer</button></div>');
     var m = o.querySelector("#rs-m"), bar = o.querySelector("#rs-b"), step = function (i, t) { m.textContent = t; bar.style.width = Math.round(100 * i / (DIRS.length + 1)) + "%"; };
     FULLPULL = true; try { await sync(); } catch (e) {} FULLPULL = false;
@@ -626,7 +626,7 @@
   }
   /* activités des classes déduites de l'emploi du temps (appli EDT, enseignant choisi dans « Qui es-tu ? » ou nom de l'enseignant des réglages).
      Une classe dont les activités ont été choisies à la main dans Réglages (it.man) n'est jamais modifiée. */
-  function actCode(a) { a = norm(a); if (/escalad/.test(a)) return "esc"; if (/relais|vitesse/.test(a)) return "rel"; if (/orientation|^co$|^co /.test(a)) return "ori"; if (/volley/.test(a)) return "vol"; if (/badminton|^bad/.test(a)) return "bad"; if (/danse/.test(a)) return "dan"; if (/acro/.test(a)) return "acro"; return null; }
+  function actCode(a) { a = norm(a); if (/escalad/.test(a)) return "esc"; if (/relais|vitesse/.test(a)) return "rel"; if (/orientation|^co$|^co /.test(a)) return "ori"; if (/volley/.test(a)) return "vol"; if (/badminton|^bad/.test(a)) return "bad"; if (/danse/.test(a)) return "dan"; if (/acro/.test(a)) return "acro"; if (/basket/.test(a)) return "bk"; return null; }
   function cmp(x) { return norm(x).replace(/ /g, ""); }
   function edtActs() {
     var D = (eget() || {}).data; if (!D || !D.R || !D.T) return null;
@@ -666,7 +666,7 @@
 
   /* ✅ « Tout est prêt ? » : contrôle avant la leçon, commun à toutes les applis (onglet Séquence).
      L'appli peut ajouter ses propres vérifications : window.epsCheck(classe, heure) → [{ok:true|false|null, t, d, fix:{label, go}}] */
-  var CK_APP = { escalade: "esc", relais: "rel", volley: "vol", badminton: "bad", danse: "dan", acrosport: "acro", orientation: "ori", crosstraining: "ct", ccf: null };
+  var CK_APP = { escalade: "esc", relais: "rel", volley: "vol", badminton: "bad", danse: "dan", acrosport: "acro", orientation: "ori", crosstraining: "ct", basket: "bk", ccf: null };
   function check() {
     var dir = (location.pathname.match(/\/eps-autonomie-numerique\/([^\/]+)\//) || [])[1] || "", code = CK_APP[dir];
     var o = overlay('<h3>✅ Tout est prêt pour la leçon ?</h3><div id="epsd-ck"><p class="m">Vérification…</p></div><div class="epsd-act"><button data-x>Fermer</button><button id="epsd-ckr">↻ Revérifier</button></div>');
@@ -712,7 +712,7 @@
   }
   function edtApply() {
     var E = edtActs(); if (!E || !E.moi) return { n: 0, moi: E && E.moi, edt: !!E };
-    var ALL = ["esc", "rel", "ori", "vol", "bad", "dan", "acro", "ct"], L = lld(), n = 0;
+    var ALL = ["esc", "rel", "ori", "vol", "bad", "dan", "acro", "ct"].concat(Object.keys(E.map).some(function (c) { return E.map[c].bk; }) ? ["bk"] : []) /* basket : seulement si l'emploi du temps en contient */, L = lld(), n = 0;
     Object.keys(L.items).forEach(function (k) { var it = L.items[k]; if (!it || it.del || it.man || !it.nom) return;
       var S = {}; Object.keys(E.map).forEach(function (c) { var parts = [c].concat(String(c).split(/[\/+,&]| et /)); if (parts.some(function (p) { return p.trim() && cmp(p) === cmp(it.nom); })) Object.keys(E.map[c]).forEach(function (a) { S[a] = 1; }); });
       if (!Object.keys(S).length) return;
@@ -792,7 +792,7 @@
   async function editLists() {
     if (!(await askCode())) return;
     var o = overlay('<div id="epsl"></div>'), box = o.querySelector("#epsl"), M = await allLists(), cur = null;
-    var APPS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["bad", "Badminton"], ["dan", "Danse"], ["acro", "Acrosport"]];
+    var APPS = [["esc", "Escalade"], ["rel", "Relais Vitesse"], ["ori", "OrienRun"], ["vol", "Volley-ball"], ["bad", "Badminton"], ["dan", "Danse"], ["acro", "Acrosport"], ["bk", "Basket-ball"]];
     function itemOf(name) { var r = null; try { (window.EPSL ? EPSL.items() : []).forEach(function (it) { if (!r && (norm(it.nom) === norm(name) || (it.old && norm(it.old) === norm(name)))) r = it; }); } catch (e) {} return r; }
     function offOf(name) { var it = itemOf(name); return (it && it.off) || []; }
     function namesOf(x) { var names = []; Object.keys(x.apps).forEach(function (a) { x.apps[a].forEach(function (n) { if (!names.some(function (y) { return nkey(y) === nkey(n); })) names.push(n); }); }); return names; }
@@ -1107,7 +1107,7 @@
     /* cours ajoutés dans l'appli (edt/) : gardés quand l'emploi du temps est remis à jour depuis Planif EPS */
     getAdd: function () { return eget().add || []; },
     setAdd: function (L) { var E = eget(); E.add = L; E.u = Math.max(Date.now(), (+E.u || 0) + 1); E.pend = E.u; eset(E); setTimeout(sync, 300); } });
-  var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["badminton", "Badminton"], ["danse", "Danse"], ["co-eval", "CO Course"], ["crosstraining", "Cross-training"]];
+  var APPS = [["acrosport", "Acrosport"], ["escalade", "Escalade"], ["orientation", "OrienRun"], ["relais", "Relais Vitesse"], ["volley", "Volley-ball"], ["badminton", "Badminton"], ["danse", "Danse"], ["co-eval", "CO Course"], ["crosstraining", "Cross-training"], ["basket", "Basket-ball"]];
   function reglages(msg) {
     var r = rget();
     var chips = function (L, on, attr) { return L.map(function (x) { return '<button type="button" ' + attr + '="' + esc(x[0]) + '" class="' + (on(x[0]) ? "on" : "") + '">' + esc(x[1]) + "</button>"; }).join(""); };
@@ -1767,7 +1767,7 @@
   }
   setInterval(function () { try { syncBadge(); } catch (e) {} }, 3000);
   /* 🔍 recherche rapide d'un élève (mode enseignant) : classes, activités de la classe, dispense du jour, évaluations et commentaires dans chaque appli */
-  var ACTN = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ct: "Cross-training" };
+  var ACTN = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ct: "Cross-training", bk: "Basket-ball" };
   function evalsOf(nomComplet, classe) {
     var out = [], k = nkey(nomComplet), c = cmp(classe);
     for (var i = 0; i < localStorage.length; i++) { var key = localStorage.key(i), m = /^eps\.eval\.([a-z]+)\.v1$/.exec(key || ""); if (!m) continue;
@@ -1812,7 +1812,7 @@
      quelques observations ; évaluations et auto-positionnements fictifs semés par eps-eval.js (Escalade, Acrosport, OrienRun).
      « Retirer » efface tout ce qui concerne la classe, partout (même ce que tu y as saisi). */
   var DEMO = "DÉMO (fictive)", DEMO_EL = ["Léa Démo", "Hugo Démo", "Inès Démo", "Tom Démo", "Sarah Démo", "Noah Démo", "Jade Démo", "Yanis Démo"];
-  var DEMO_APPS = { escalade: "Escalade", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF", crosstraining: "Cross-training" };
+  var DEMO_APPS = { escalade: "Escalade", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF", crosstraining: "Cross-training", basket: "Basket-ball" };
   function demoOn() { return !!jget("eps.demo.v1", null); }
   function stPutRaw(k, it) { var V = stLd(k), o = V.items[it.id]; it.u = Math.max(Date.now(), ((o && o.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u; try { localStorage.setItem(k, JSON.stringify(V)); } catch (e) {} }
   function demoLesson(a, nom, at) {
@@ -2187,8 +2187,8 @@
      Une carte par classe : appel du jour, dispensés, et pour chaque activité de la classe : leçon en cours ou prochaine leçon programmée,
      élèves évalués, auto-positionnements reçus, leçons évaluées, réussite des situations notées par les élèves, observations dictées.
      Tout est lu sur la tablette (données déjà synchronisées) : rien n'est envoyé. Toucher une activité ouvre l'appli. */
-  var OV_DIR = { esc: "escalade", rel: "relais", ori: "orientation", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ct: "crosstraining" };
-  var OV_NOM = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ct: "Cross-training" };
+  var OV_DIR = { esc: "escalade", rel: "relais", ori: "orientation", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ct: "crosstraining", bk: "basket" };
+  var OV_NOM = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ct: "Cross-training", bk: "Basket-ball" };
   function ovItems(k) { var V = jget(k, null); return V && V.items ? Object.keys(V.items).map(function (i) { return V.items[i]; }).filter(function (o) { return o && !o.del; }) : []; }
   function overview() {
     var CL = []; try { CL = (window.EPSL ? EPSL.items() : []).slice().sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr", { numeric: true }); }); } catch (e) {}
@@ -2240,7 +2240,7 @@
   }
   setInterval(function () { try { beat(); } catch (e) {} }, 60000); setTimeout(function () { try { beat(); } catch (e) {} }, 8000);
   document.addEventListener("visibilitychange", function () { try { beat(); } catch (e) {} });
-  var NAPP = { accueil: "Accueil", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", relais: "Relais", escalade: "Escalade", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF", crosstraining: "Cross-training" };
+  var NAPP = { accueil: "Accueil", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", relais: "Relais", escalade: "Escalade", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF", crosstraining: "Cross-training", basket: "Basket-ball" };
   function ago(t) { var s = Math.round((Date.now() - t) / 1000); return s < 60 ? "à l'instant" : s < 3600 ? "il y a " + Math.round(s / 60) + " min" : s < 86400 ? "il y a " + Math.round(s / 3600) + " h" : new Date(t).toLocaleDateString("fr-FR"); }
   /* ⏳ tablettes qui avaient des données pas encore envoyées à leur dernier signe de vie, et silencieuses depuis plus de 10 min */
   function tabsWaiting() { var me = devInfo().id, V = stLd(KTB); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.id !== me && x.pend > 0 && x.at && Date.now() - x.at > 10 * 60000 && Date.now() - x.at < 7 * 864e5; }).sort(function (a, b) { return b.at - a.at; }); }
@@ -2357,7 +2357,7 @@
   };
   /* ouvre la planche par-dessus la page (cadre), sans quitter la leçon en cours */
   EPSD.planche = function (o) { o = o || {}; var old = document.getElementById("eps-planche"); if (old) old.remove();
-    var sp = o.sport || ({ volley: "volley", badminton: "badminton" }[appDir()] || ""), f = document.createElement("div"); f.id = "eps-planche"; f.style.cssText = "position:fixed;inset:0;z-index:2147483000;background:#F5F3EE";
+    var sp = o.sport || ({ volley: "volley", badminton: "badminton", basket: "basket3" }[appDir()] || ""), f = document.createElement("div"); f.id = "eps-planche"; f.style.cssText = "position:fixed;inset:0;z-index:2147483000;background:#F5F3EE";
     f.innerHTML = '<iframe title="Planche tactique" src="' + BASE + "tactique/?embed=1" + (sp ? "&sport=" + encodeURIComponent(sp) : "") + (o.cls ? "&cls=" + encodeURIComponent(o.cls) : "") + '" style="border:0;width:100%;height:100%;display:block"></iframe>'; document.body.appendChild(f); return f; };
   window.addEventListener("message", function (ev) { if (ev.origin === location.origin && ev.data && ev.data.epsPlanche === "close") { var f = document.getElementById("eps-planche"); if (f) f.remove(); } });
   function overviewBtn() {
@@ -2390,8 +2390,8 @@
     var goL = function () { setTimeout(function () { collectLists().then(applyLocal).catch(function () {}); }, 600); setInterval(function () { collectLists().catch(function () {}); }, 5000); };
     try { simBoot(); } catch (e) {} /* 🧪 simulation : bandeau, classe fictive au premier chargement */
     /* leçons communes (eps-lecons.js) : dans les applis d'activité seulement */
-    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
-    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
     /* 🧭 référentiel de compétences (eps-ref.js) : relevé des évaluations de l'appli, en mode enseignant, pour le suivi toutes activités */
     if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|crosstraining)\//.test(location.pathname) && !window.EPSREF) { var rf = document.createElement("script"); rf.src = BASE + "eps-ref.js"; document.head.appendChild(rf); }
     if (window.EPSL) goL(); else { var ls = document.createElement("script"); ls.src = BASE + "eps-lists.js"; ls.onload = goL; document.head.appendChild(ls); }

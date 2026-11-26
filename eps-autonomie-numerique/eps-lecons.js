@@ -13,8 +13,8 @@
    eps.live.<appli>.v1 (leçon en cours), eps.leceval.<appli>.v1 (évaluation de leçon), eps.lecres.<appli>.v1 (résultats des situations notés par les élèves), eps.rang.v1 (groupes de rangement, communs à toutes les applis). */
 (function () {
   if (window.EPSLC) return;
-  var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"], crosstraining: ["ct", "Cross-training", "#4D7C0F"] };
-  var m = location.pathname.match(/\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//);
+  var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"], crosstraining: ["ct", "Cross-training", "#4D7C0F"], basket: ["bk", "Basket-ball", "#A4161A"] };
+  var m = location.pathname.match(/\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket)\//);
   if (!m) return;
   var APP = m[1], CODE = APPS[APP][0], NOM = APPS[APP][1], COL = APPS[APP][2];
   var BASE = ((document.currentScript && document.currentScript.src) || "").replace(/eps-lecons\.js.*$/, "");
@@ -484,7 +484,7 @@
   var VDEF = { badminton: ["Service long", "Service court", "Dégagé", "Amorti", "Smash", "Kill au filet", "Replacement au centre"], volley: ["Passe à dix doigts", "Manchette", "Service par en dessous", "Service par en haut", "Attaque", "Réception et relance"],
     relais: ["Départ du donneur", "Marque de départ", "Transmission à l'arrêt", "Transmission en course", "Course à vitesse maximale"], escalade: ["Nœud de huit", "Assurage en moulinette", "Contre-assurage", "Lecture de voie", "Grimpe en tête"],
     danse: ["Mémoriser sa chorégraphie", "Procédés de composition", "Qualité du geste", "Occupation de l'espace scénique"], orientation: ["Orienter sa carte", "Lire la légende", "Choisir un itinéraire", "Poinçonner sans erreur"],
-    crosstraining: ["Squat", "Gainage", "Burpee", "Gérer son effort (FC)", "Construire son WOD"], acrosport: [] /* Acrosport a déjà ses ceintures */ };
+    crosstraining: ["Squat", "Gainage", "Burpee", "Gérer son effort (FC)", "Construire son WOD"], basket: ["Dribble de progression", "Passe à terre et passe directe", "Tir en course", "Tir à l'arrêt", "Démarquage", "Défense sur son joueur", "Rebond"], acrosport: [] /* Acrosport a déjà ses ceintures */ };
   function vlist() { var d = VDEF[APP] || []; try { return window.EPSP ? EPSP.p({ id: "valid_list", sec: "Validations", label: "Apprentissages à valider (un par ligne)", type: "list", def: d }) : d; } catch (e) { return d; } }
   function vN() { var n = 3; try { n = +(window.EPSP ? EPSP.p({ id: "valid_n", sec: "Validations", label: "Nombre de ✅ pour proposer la validation ⭐", type: "number", def: 3 }) : 3); } catch (e) {} return isFinite(n) && n > 0 ? n : 3; }
   function vGet(cls, n) { return get(KVA, nn(cls) + "|" + ekey(n)) || { id: nn(cls) + "|" + ekey(n), cls: cls, k: ekey(n), n: n, v: {} }; }

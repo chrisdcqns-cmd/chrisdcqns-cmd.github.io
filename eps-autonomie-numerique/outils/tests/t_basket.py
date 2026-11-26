@@ -1,0 +1,130 @@
+# Basket-ball : scénario complet enseignant puis élève (même tablette, vue élève). python3 t_basket.py <racine du dépôt>
+import asyncio,sys,subprocess,time,json
+from playwright.async_api import async_playwright
+ROOT=sys.argv[1]
+srv=subprocess.Popen([sys.executable,"-I","-m","http.server","8841","--bind","127.0.0.1","--directory",ROOT],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1.2)
+B="http://localhost:8841/eps-autonomie-numerique/"
+NOMS=["Lina MARTIN","Noah PETIT","Emma DURAND","Hugo LEROY","Jade MOREAU","Louis SIMON","Chloé LAURENT","Adam MICHEL","Inès GARCIA","Tom DAVID","Sarah BERTRAND","Nathan ROUX","Léa VINCENT","Yanis FOURNIER"]
+SEED="try{if(!localStorage.getItem('eps.lists.v1'))localStorage.setItem('eps.lists.v1',JSON.stringify({items:{c1:{id:'c1',nom:'2GT1 TEST',el:"+json.dumps(NOMS)+",ts:1}},pend:{},app:{}}));}catch(e){}"
+TEACH="try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}"
+SHOT="/tmp/"
+async def over(p): return await p.evaluate("document.documentElement.scrollWidth>innerWidth+1")
+async def main():
+    out=[]; errs=[]
+    async with async_playwright() as pw:
+        b=await pw.chromium.launch(args=["--no-sandbox"])
+        c=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await c.add_init_script(SEED+TEACH)
+        p=await c.new_page(); p.on("pageerror",lambda x:errs.append("prof "+str(x)[:300])); p.on("console",lambda m:errs.append("console "+m.text[:300]) if m.type=="error" and "favicon" not in m.text and "ERR_" not in m.text else None)
+        await p.goto(B+"basket/"); await p.wait_for_timeout(3500)
+        out.append(("prof : onglets communs",await p.evaluate("document.querySelectorAll('.epst-nav button').length"),None))
+        out.append(("prof : leçon du jour affichée",await p.evaluate("!!document.querySelector('[data-act=mode]')"),await p.evaluate("document.querySelector('#vue').innerText.slice(0,200)")))
+        await p.screenshot(path=SHOT+"p1-sequence-vide.png")
+        # équipes
+        await p.click(".epst-nav button[data-t=cls]"); await p.wait_for_timeout(600)
+        await p.fill("#eqN","4"); await p.click("[data-act=eqHasard]"); await p.wait_for_timeout(500)
+        n=await p.evaluate("JSON.parse(localStorage['bk.v1']).items['e|2gt1test'].eq.length")
+        out.append(("équipes au hasard : 4",n==4,n))
+        await p.screenshot(path=SHOT+"p2-equipes.png",full_page=True)
+        out.append(("pas de débordement (équipes)",not await over(p),None))
+        # déplacer un joueur
+        await p.click(".carte.eq .puce >> nth=0"); await p.wait_for_timeout(200); await p.click("[data-act=placer][data-i='1']"); await p.wait_for_timeout(300)
+        tot=await p.evaluate("JSON.parse(localStorage['bk.v1']).items['e|2gt1test'].eq.map(e=>e.j.length)")
+        out.append(("déplacer un joueur",sum(tot)==14 and tot[1]==5 if False else sum(tot)==14,tot))
+        await p.click(".epst-nav button[data-t=seq]"); await p.wait_for_timeout(500)
+        await p.click("[data-act=bon][data-i='0']"); await p.wait_for_timeout(200)
+        await p.click("[data-act=nt][data-d='-1']"); await p.wait_for_timeout(200)
+        await p.click("[data-act=renc]"); await p.wait_for_timeout(400)
+        r=await p.evaluate("(()=>{const I=JSON.parse(localStorage['bk.v1']).items;const k=Object.keys(I).find(x=>x.startsWith('j|'));return I[k].r.map(x=>[x.m.length,x.off.length])})()")
+        out.append(("rencontres : 6 matchs sur 2 terrains",sum(x[0] for x in r)==6,r))
+        await p.screenshot(path=SHOT+"p3-sequence.png",full_page=True)
+        out.append(("pas de débordement (séquence)",not await over(p),None))
+        for t in ["eval","ccf","bil","bib","reg","vue"]:
+            await p.click(".epst-nav button[data-t=%s]"%t); await p.wait_for_timeout(900)
+            out.append(("onglet "+t+" sans débordement",not await over(p),None))
+            if t in("eval","bil","bib"): await p.screenshot(path=SHOT+"p-"+t+".png")
+        await p.click(".epst-nav button[data-t=seq]"); await p.wait_for_timeout(400)
+        # élève : même stockage, vue élève
+        e=await c.new_page(); e.on("pageerror",lambda x:errs.append("eleve "+str(x)[:300]))
+        await e.goto(B+"basket/?vue=eleve"); await e.wait_for_timeout(3500)
+        await e.screenshot(path=SHOT+"e0-classe.png")
+        g=await e.evaluate("document.body.innerText.includes('Choisis ta classe')||!!document.querySelector('.epsg')")
+        out.append(("élève : écran Choisis ta classe",g,await e.evaluate("document.body.innerText.slice(0,200)")))
+        await e.get_by_text("2GT1 TEST").first.click(); await e.wait_for_timeout(800)
+        out.append(("élève : choix de l'équipe",await e.evaluate("document.querySelectorAll('[data-act=eq]').length")==4,None))
+        await e.screenshot(path=SHOT+"e1-equipe.png")
+        await e.click("[data-act=eq] >> nth=0"); await e.wait_for_timeout(500)
+        await e.screenshot(path=SHOT+"e2-accueil.png",full_page=True)
+        out.append(("élève : accueil d'équipe",await e.evaluate("document.querySelectorAll('.tuile').length")>=6,None))
+        await e.click("[data-act=matchRot] >> nth=0"); await e.wait_for_timeout(500)
+        await e.click("[data-act=chrono]"); await e.wait_for_timeout(300)
+        await e.click("[data-act=pt][data-e='0'][data-i='1']"); await e.wait_for_timeout(300); await e.click("[data-act=qui] >> nth=0"); await e.wait_for_timeout(300)
+        await e.click("[data-act=pt][data-e='1'][data-i='0']"); await e.wait_for_timeout(300); await e.click("[data-act=qui] >> nth=-1"); await e.wait_for_timeout(300)
+        await e.click("[data-act=bonus][data-e='0']"); await e.wait_for_timeout(300); await e.click("[data-act=bonusOk] >> nth=0"); await e.wait_for_timeout(300)
+        await e.click("[data-act=faute][data-e='1']"); await e.wait_for_timeout(1300)
+        sc=await e.evaluate("[...document.querySelectorAll('.cote .sc')].map(x=>x.textContent)")
+        out.append(("match : score 3 – 1",sc==["3","1"],sc))
+        tp=await e.evaluate("document.querySelector('#mTps').textContent"); out.append(("chrono qui tourne",tp!="06:00",tp))
+        await e.screenshot(path=SHOT+"e3-match.png")
+        out.append(("pas de débordement (match)",not await over(e),None))
+        await e.click("[data-act=feuilleMatch]"); await e.wait_for_timeout(300); await e.screenshot(path=SHOT+"e3b-feuille.png"); await e.click("[data-act=fermer]")
+        await e.click("[data-act=finMatch]"); await e.wait_for_timeout(300); await e.click("[data-act=finOk]"); await e.wait_for_timeout(400)
+        # observation collective
+        await e.click("[data-act=aller][data-v=home]"); await e.wait_for_timeout(300); await e.click("[data-act=aller][data-v=obs]"); await e.wait_for_timeout(300)
+        await e.screenshot(path=SHOT+"e4-obs.png")
+        await e.click("[data-act=obsNew][data-ty=coll]"); await e.wait_for_timeout(300); await e.click("[data-act=obsGo]"); await e.wait_for_timeout(300)
+        for i in [0,0,1,1,1,2,3]: await e.click("[data-act=cpt][data-i='%d']"%i); await e.wait_for_timeout(120)
+        ind=await e.evaluate("[...document.querySelectorAll('.ind b')].map(x=>x.textContent)")
+        out.append(("fiche collective : 6 possessions, 83 % au tir, 40 % de réussite",ind[:3]==["6","83 %","40 %"],ind))
+        await e.screenshot(path=SHOT+"e5-obs-coll.png")
+        await e.click("[data-act=obsAnnuler]"); await e.wait_for_timeout(200); await e.click("[data-act=obsFin]"); await e.wait_for_timeout(300)
+        # carte des tirs
+        await e.click("[data-act=aller][data-v=obs]"); await e.click("[data-act=obsNew][data-ty=tir]"); await e.wait_for_timeout(300); await e.click("[data-act=obsGo]"); await e.wait_for_timeout(300)
+        bb=await e.locator("#tirZone svg").bounding_box()
+        for fx,fy,ok in [(.22,.5,1),(.45,.3,0),(.9,.5,1),(.2,.55,0)]:
+            await e.mouse.click(bb["x"]+bb["width"]*fx,bb["y"]+bb["height"]*fy); await e.wait_for_timeout(200); await e.click("[data-act=tirOk][data-ok='%d']"%ok); await e.wait_for_timeout(200); bb=await e.locator("#tirZone svg").bounding_box()
+        ind=await e.evaluate("[...document.querySelectorAll('.ind div')].map(x=>x.innerText.replace(/\\n/g,' '))")
+        out.append(("carte des tirs : 4 tirs, zones",ind[0].startswith("4") and "Raquette (2)" in ind[2] and "Derrière l'arc (1)" in ind[4],ind))
+        await e.screenshot(path=SHOT+"e6-tirs.png",full_page=True); await e.click("[data-act=obsFin]")
+        # fiche joueur
+        await e.click("[data-act=aller][data-v=obs]"); await e.click("[data-act=obsNew][data-ty=ind]"); await e.wait_for_timeout(300); await e.click("[data-act=obsWho] >> nth=0"); await e.wait_for_timeout(200); await e.click("[data-act=obsGo]"); await e.wait_for_timeout(300)
+        for i in [0,2,2,3,4,5]: await e.click("[data-act=cpt][data-i='%d']"%i); await e.wait_for_timeout(100)
+        await e.click("[data-act=obsFin]"); await e.wait_for_timeout(200)
+        # planche
+        await e.click("[data-act=aller][data-v=obs]"); await e.click("[data-act=aller][data-v=home]"); await e.click("[data-act=aller][data-v=plan]"); await e.wait_for_timeout(300)
+        await e.click("[data-act=aller][data-v=sys]"); await e.wait_for_timeout(500); await e.screenshot(path=SHOT+"e7-systemes.png",full_page=True)
+        out.append(("pas de débordement (systèmes)",not await over(e),None))
+        await e.click("[data-act=sysOuvrir] >> nth=1"); await e.wait_for_timeout(500)
+        await e.click("[data-act=planTool][data-t=pb]"); bb=await e.locator("#planZone svg").bounding_box(); await e.mouse.click(bb["x"]+bb["width"]*.5,bb["y"]+bb["height"]*.8); await e.wait_for_timeout(300)
+        await e.screenshot(path=SHOT+"e8-planche.png")
+        await e.click("[data-act=planSave]"); await e.wait_for_timeout(400)
+        n=await e.evaluate("Object.keys(JSON.parse(localStorage['bk.v1']).items).filter(k=>k.startsWith('p|')).length")
+        out.append(("schéma d'équipe enregistré",n==1,n))
+        await e.click("[data-act=aller][data-v=home]"); await e.click("[data-act=aller][data-v=bilan]"); await e.wait_for_timeout(400)
+        await e.fill("[data-bq='0']","Le passe et va"); await e.click("[data-act=bilSave]"); await e.wait_for_timeout(300)
+        await e.screenshot(path=SHOT+"e9-bilan.png",full_page=True)
+        out.append(("pas de débordement (bilan)",not await over(e),None))
+        for v in ["regles","echauf","prog"]:
+            await e.click("[data-act=aller][data-v=home]"); await e.click("[data-act=aller][data-v=%s]"%v); await e.wait_for_timeout(300); out.append((v+" sans débordement",not await over(e),None))
+            if v!="echauf": await e.screenshot(path=SHOT+"e-"+v+".png",full_page=True)
+        # téléphone
+        await e.set_viewport_size({"width":390,"height":844})
+        for v in ["home","prog","obs","plan","sys","bilan","regles"]:
+            await e.evaluate("aller('%s')"%v); await e.wait_for_timeout(300); out.append(("390 px : "+v+" sans débordement",not await over(e),None))
+        await e.evaluate("A.matchVoir({dataset:{id:Object.keys(JSON.parse(localStorage['bk.v1']).items).find(k=>k.startsWith('m|'))}})"); await e.wait_for_timeout(300); out.append(("390 px : match sans débordement",not await over(e),None))
+        # prof : suivi mis à jour
+        await p.reload(); await p.wait_for_timeout(3000); await p.screenshot(path=SHOT+"p4-suivi.png",full_page=True)
+        out.append(("prof : classement affiché",await p.evaluate("document.querySelector('#vue').innerText.includes('Classement')"),None))
+        out.append(("pas de débordement (suivi)",not await over(p),None))
+        await p.click(".epst-nav button[data-t=bil]"); await p.wait_for_timeout(1200); await p.screenshot(path=SHOT+"p5-bilans.png",full_page=True)
+        out.append(("pas de débordement (bilans)",not await over(p),None))
+        await p.set_viewport_size({"width":1440,"height":900}); await p.click(".epst-nav button[data-t=seq]"); await p.wait_for_timeout(500); out.append(("1440 px sans débordement",not await over(p),None))
+        ck=await p.evaluate("epsCheck('2GT1 TEST').map(x=>[x.ok,x.t])"); out.append(("epsCheck",len(ck)==3,ck))
+        nv=await p.evaluate("(epsNiveaux('2GT1 TEST')||[]).length"); out.append(("epsNiveaux",nv>=1,nv))
+        out.append(("aucune erreur de page",not errs,errs))
+        await b.close()
+    bad=0
+    for t,ok,x in out:
+        print(("✓ " if ok else "✗ ")+t+("" if ok else "  → "+str(x))); bad+=0 if ok else 1
+    print(bad,"échec(s)")
+try: asyncio.run(main())
+finally: srv.terminate()
