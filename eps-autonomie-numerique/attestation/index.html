@@ -75,6 +75,16 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
 .sheet.a5 .sg div{min-height:22mm;font-size:7.8pt}
 .sheet.a5 .bx{margin-top:3mm;padding:2.5mm 3mm}
 .sheet.a5 .ft{font-size:7.4pt}
+.sheet.a5.one{font-size:var(--a5fs,7pt);line-height:1.22;padding:7mm 8mm;overflow:hidden;height:210mm}
+.sheet.a5.one h3{font-size:1.3em}
+.sheet.a5.one h4{font-size:1.02em;margin:.5em 0 .15em}
+.sheet.a5.one p{margin:0 0 .3em}
+.sheet.a5.one .et{font-size:1em;margin-bottom:1.5mm;padding-bottom:1mm}
+.sheet.a5.one .bx{margin-top:1.6mm;padding:1.4mm 2.4mm}
+.sheet.a5.one .ck{margin:.5mm 0}.sheet.a5.one .ck i{width:1.1em;height:1.1em;margin-top:.1em}
+.sheet.a5.one .sg{gap:3mm;margin-top:1.2mm}.sheet.a5.one .sg div{min-height:13mm;font-size:.9em}
+.sheet.a5.one .ft{font-size:.88em;margin-top:1.5mm}
+#mes{position:absolute;left:-9999px;top:0;visibility:hidden}
 .prev{overflow:auto;background:#E9E5DB;border-radius:14px;padding:14px}
 .prev .sheet{transform-origin:top left}
 @media print{
@@ -143,7 +153,7 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
     image: "Pendant certaines leçons, l'élève peut être filmé pour voir et corriger son geste (retour vidéo). Les images servent uniquement en cours d'EPS, ne sont jamais diffusées hors de la classe et sont effacées au plus tard à la fin de la séquence. Cette autorisation est facultative : un refus n'a aucune conséquence sur la scolarité ni sur la note de l'élève, et elle peut être retirée à tout moment."
   };
   var REG_DEF = { dpd: "", fin: "" };
-  function modele() { var m = item("modele") || {}; var t = {}; CHAMPS.forEach(function (c) { t[c[0]] = (m.t && typeof m.t[c[0]] === "string") ? m.t[c[0]] : DEF[c[0]]; }); return { t: t, dpd: m.dpd || "", fin: m.fin || "", fmt: m.fmt === "a4" ? "a4" : "a5" }; }
+  function modele() { var m = item("modele") || {}; var t = {}; CHAMPS.forEach(function (c) { t[c[0]] = (m.t && typeof m.t[c[0]] === "string") ? m.t[c[0]] : DEF[c[0]]; }); return { t: t, dpd: m.dpd || "", fin: m.fin || "", fmt: m.fmt === "a4" ? "a4" : m.fmt === "a5rv" ? "a5rv" : "a5" }; }
   function reg() { var r = jget(KR, {}) || {}; return { etab: r.etab || "", ville: r.ville || "", annee: r.annee || "", prof: r.prof || "" }; }
   function finDefaut() { var d = new Date(), y = d.getMonth() >= 7 ? d.getFullYear() + 1 : d.getFullYear(); return y + "-07-31"; }
   function fusion(txt, ctx) { return String(txt).replace(/\{(\w+)\}/g, function (m, k) { var v = ctx[k]; return v ? v : (k in ctx ? "…………………………" : m); }); }
@@ -175,9 +185,14 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
         '<div class="sg"><div>L\'élève<br>Date et signature</div><div>Responsable légal 1 (élève mineur)<br>Date et signature</div><div>Responsable légal 2 (élève mineur)<br>Date et signature</div></div></div>' +
       '<div class="ft">Document à rendre à ' + esc(R.prof || "l'enseignant d'EPS") + '. Un élève majeur signe seul.</div>';
     if (M.fmt === "a4") return '<div class="sheet">' + et + info + sign + '</div>';
+    if (M.fmt === "a5") return '<div class="sheet a5 one">' + et + info + sign + '</div>';
     return '<div class="sheet a5">' + et + info + '<div class="ft">Attestation et autorisation à signer au verso.</div></div>' +
       '<div class="sheet a5">' + et + '<h3>' + T("titre") + '</h3>' + qui + sign + '</div>';
   }
+  /* A5 recto : la plus grande taille de texte qui fait tenir toute la feuille (mesurée sur le nom le plus long) */
+  function ajuste(cls, el) { if (modele().fmt !== "a5") return; var m = document.getElementById("mes") || document.body.appendChild(Object.assign(document.createElement("div"), { id: "mes" })), fs = 9;
+    m.innerHTML = sheet(cls, el); var sh = m.firstChild; for (; fs > 5; fs -= .1) { sh.style.fontSize = fs + "pt"; if (sh.scrollHeight <= sh.clientHeight + 1) break; }
+    m.innerHTML = ""; fs = Math.round(fs * 10) / 10; document.documentElement.style.setProperty("--a5fs", fs + "pt"); return fs; }
   function pageCss() { var st = document.getElementById("pgcss") || document.head.appendChild(Object.assign(document.createElement("style"), { id: "pgcss" })); st.textContent = "@media print{@page{size:" + (modele().fmt === "a4" ? "A4" : "A5") + ";margin:0}}"; }
   function imprimer(html) { pageCss(); $("#print").innerHTML = html; setTimeout(function () { window.print(); }, 60); }
 
@@ -197,7 +212,7 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
     var M = modele(), R = reg();
     var h = '<div class="card"><h2>Le texte de l\'attestation</h2><p class="mut">Chaque rubrique est modifiable. Entre accolades, ce qui est rempli tout seul : {enseignant}, {etablissement}, {annee}, {classe}, {dpd}, {fin}. L\'établissement, l\'année et ton nom se règlent sur l\'accueil (Réglages communs).</p>' +
       '<label class="f" for="f-dpd">Contact du délégué à la protection des données de l\'académie</label><input type="text" id="f-dpd" value="' + esc(M.dpd) + '" placeholder="adresse donnée par ton chef d\'établissement">' +
-      '<label class="f" for="f-fmt">Format de la page</label><select id="f-fmt" style="min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;background:#fff"><option value="a5"' + (M.fmt === "a5" ? " selected" : "") + '>A5 recto verso (information au recto, signatures au verso)</option><option value="a4"' + (M.fmt === "a4" ? " selected" : "") + '>A4 (une seule page)</option></select>' +
+      '<label class="f" for="f-fmt">Format de la page</label><select id="f-fmt" style="min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;background:#fff"><option value="a5"' + (M.fmt === "a5" ? " selected" : "") + '>A5 recto (une seule face, texte réduit pour tout faire tenir)</option><option value="a5rv"' + (M.fmt === "a5rv" ? " selected" : "") + '>A5 recto verso (texte plus gros : information au recto, signatures au verso)</option><option value="a4"' + (M.fmt === "a4" ? " selected" : "") + '>A4 (une seule page)</option></select>' +
       '<label class="f" for="f-fin">Date d\'effacement des données</label><input type="date" id="f-fin" value="' + esc(M.fin || finDefaut()) + '">';
     CHAMPS.forEach(function (c) { h += '<label class="f" for="f-' + c[0] + '">' + esc(c[1]) + '</label><textarea id="f-' + c[0] + '" rows="' + c[2] + '">' + esc(M.t[c[0]]) + "</textarea>"; });
     h += '<div class="row"><button type="button" class="btn p" id="save">Enregistrer le texte</button><button type="button" class="btn" id="reset">Rétablir le texte d\'origine</button><span class="saved" id="saved" role="status"></span></div></div>';
@@ -208,15 +223,16 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
     $("#reset").onclick = function () { if (!confirm("Rétablir le texte d'origine ? Tes modifications du texte seront perdues.")) return; var M2 = modele(); put({ id: "modele", t: {}, dpd: M2.dpd, fin: M2.fin, fmt: M2.fmt }); render(); };
   }
   function pImp() {
-    var h = '<div class="card"><h2>Imprimer</h2><p class="mut">Une feuille par élève, à faire signer (A5 recto verso ou A4 : à choisir dans « Le texte »). En A5 : imprime en recto verso sur papier A5, ou 2 pages par feuille A4 puis coupe. Choisis « Enregistrer au format PDF » dans la fenêtre d\'impression pour obtenir un fichier.</p>' + clsChips();
+    var h = '<div class="card"><h2>Imprimer</h2><p class="mut">Une feuille A5 par élève, sur une seule face (A5 recto verso ou A4 : au choix dans « Le texte »). Imprime sur papier A5, ou 2 pages par feuille A4 puis coupe. Choisis « Enregistrer au format PDF » dans la fenêtre d\'impression pour obtenir un fichier.</p>' + clsChips();
     var C = classes().filter(function (o) { return o.nom === UI.cls; })[0];
     h += '<div class="row">' + (C ? '<button type="button" class="btn p" id="pc">Imprimer la classe ' + esc(C.nom) + " (" + eleves(C).length + ' élèves)</button>' : "") + '<button type="button" class="btn" id="pv">Imprimer un exemplaire vierge</button></div></div>';
-    h += '<div class="card"><h2>Aperçu</h2><div class="prev" id="prev">' + sheet(C ? C.nom : "", C && eleves(C)[0] ? eleves(C)[0] : null) + "</div></div>";
+    var E0 = C ? eleves(C) : [], long0 = E0.slice().sort(function (a, b) { return b.full.length - a.full.length; })[0] || null, fs = ajuste(C ? C.nom : "", long0);
+    h += '<div class="card"><h2>Aperçu</h2>' + (fs ? '<p class="mut">Taille du texte : ' + String(fs).replace(".", ",") + ' pt' + (fs < 6.5 ? ' (petit : raccourcis le texte dans « Le texte » pour l\'agrandir, ou passe en recto verso)' : '') + '.</p>' : '') + '<div class="prev" id="prev">' + sheet(C ? C.nom : "", C && eleves(C)[0] ? eleves(C)[0] : null) + "</div></div>";
     $("#pg").innerHTML = h; bindCls();
     var pv = $("#prev"), fit = function () { var hs = 28; Array.prototype.forEach.call(pv.children, function (sh) { var w = pv.clientWidth - 28, z = Math.min(1, w / sh.offsetWidth); sh.style.transform = "scale(" + z + ")"; sh.style.marginBottom = Math.round(sh.offsetHeight * (z - 1) + 14) + "px"; hs += Math.round(sh.offsetHeight * z + 14); }); pv.style.height = hs + "px"; };
     fit(); window.onresize = function () { if ($("#prev")) fit(); };
     if (C) $("#pc").onclick = function () { var E = eleves(C); if (!E.length) { alert("Cette classe n'a pas d'élèves."); return; } imprimer(E.map(function (e) { return sheet(C.nom, e); }).join("")); };
-    $("#pv").onclick = function () { imprimer(sheet(UI.cls || "", null)); };
+    $("#pv").onclick = function () { ajuste(UI.cls || "", null); imprimer(sheet(UI.cls || "", null)); };
   }
   function pSuivi() {
     var h = '<div class="card"><h2>Suivi des retours</h2><p class="mut">Note les attestations rendues et la réponse à l\'autorisation image. Le suivi est partagé entre tes appareils.</p>' + clsChips() + "</div>";
@@ -238,7 +254,7 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
     Array.prototype.forEach.call(document.querySelectorAll("#pg [data-i]"), function (b) { b.onclick = function () { set(E2[+b.dataset.e], function (r) { r.i = b.dataset.i; }); render(); }; });
     $("#all").onclick = function () { if (!confirm("Marquer toutes les attestations de " + C.nom + " comme rendues ?")) return; var S3 = suivi(C.nom); E2.forEach(function (e) { var r = S3.r[e.k] || {}; if (!r.a) { r.a = 1; r.d = today(); } S3.r[e.k] = r; }); S3.cls = C.nom; put(S3); render(); };
     $("#lst").onclick = function () { var S4 = suivi(C.nom), L = E2.filter(function (e) { return (S4.r[e.k] || {}).i !== "o"; });
-      imprimer('<div class="sheet' + (modele().fmt === "a4" ? "" : " a5") + '"><h3>Élèves à ne pas filmer · ' + esc(C.nom) + '</h3><p>Autorisation image refusée ou sans réponse au ' + esc(frDate(today())) + ".</p>" + (L.length ? "<p>" + L.map(function (e) { var r = S4.r[e.k] || {}; return esc(e.nom + " " + e.prenom) + (r.i === "n" ? " (refus)" : " (sans réponse)"); }).join("\n") + "</p>" : "<p>Tous les élèves ont donné leur autorisation.</p>") + "</div>"); };
+      imprimer('<div class="sheet' + (modele().fmt === "a4" ? "" : " a5") + '" style="font-size:10pt"><h3>Élèves à ne pas filmer · ' + esc(C.nom) + '</h3><p>Autorisation image refusée ou sans réponse au ' + esc(frDate(today())) + ".</p>" + (L.length ? "<p>" + L.map(function (e) { var r = S4.r[e.k] || {}; return esc(e.nom + " " + e.prenom) + (r.i === "n" ? " (refus)" : " (sans réponse)"); }).join("\n") + "</p>" : "<p>Tous les élèves ont donné leur autorisation.</p>") + "</div>"); };
   }
   function render() {
     tabs();

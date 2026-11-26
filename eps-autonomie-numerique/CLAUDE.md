@@ -70,7 +70,7 @@ Quand l'enseignant demande une nouvelle appli, elle reprend **la même forme que
 - **Analyse vidéo** (onglet de `boite/`) : fichier vidéo local (`URL.createObjectURL`, jamais envoyé), ralenti, image par image (1/25 s), tracés et angles sur un calque, 2e vidéo côte à côte.
 - **Quiz** `quiz/` (pour tous) : magasin `eps.quiz.v1` (`qz|`) : quiz `{id:"q…", k:"quiz", nom, act, on, q:[{t, c[], ok, exp}]}`, résultat `{id:"r|<quiz>|<classe>|<clé élève>", k:"res", qz, cls, nom, s, n, a[], d, nb}` ; onglets enseignant « Mes quiz » et « Résultats ». Couleur `#7C3AED`.
 - **Carnet de l'élève** `carnet/` (pour tous ; l'élève doit donner son code personnel `eps.codes.v1`, l'enseignant non) : année en cours lue en direct (`courant` : `eps.lecres.<dossier>.v1`, `EPSD.evalsOf`, résultats de quiz), objectifs de l'élève et années gardées dans `eps.carnet.v1` (`cn|`) : `o|<clé élève>|<année>` et `a|<clé élève>|<année>` (résumé écrit par « 📦 Garder l'année », par classe). Clé élève = nom sans accents, mots triés. Toute nouvelle appli d'activité s'ajoute à `DIRS`. Couleur `#BE185D`.
-- Attestation : format `fmt` du modèle (`a5` par défaut : information au recto, signatures au verso ; `a4`).
+- Attestation : format `fmt` du modèle : `a5` par défaut = une seule face, taille du texte ajustée par `ajuste()` (la plus grande qui tient, affichée dans l'aperçu) ; `a5rv` = recto verso ; `a4`.
 - Ces quatre pages (et le quiz) ont leur propre lien « ← Accueil » (`#eps-home` masqué) et sont dans la liste `.eps-tool` d'eps-home.js. Couleurs : planche `#0F766E`, boîte `#9A3412`, attestation `#7F1D1D`, guide `#0E7490`.
 
 ## Charte visuelle
