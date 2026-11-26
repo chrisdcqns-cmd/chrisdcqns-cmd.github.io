@@ -1993,6 +1993,16 @@
   async function bilPack(code, obj) { var hid = await bilHid(code), k = await bilKey(code, hid), iv = crypto.getRandomValues(new Uint8Array(12));
     var ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(obj)))), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
     var t = b64url(all), parts = []; for (var i = 0; i < t.length; i += 40000) parts.push(t.slice(i, i + 40000)); return { hid: hid, parts: parts }; }
+  /* ================= ☀ Contraste fort (soleil), pour tous : gardé sur la tablette (eps.fort) =================
+     Filtre posé sur <html> (la racine : les fenêtres en position fixe ne bougent pas), bouton ☀ dans la barre commune et sur « Choisis ta classe ». */
+  function fortOn() { try { return localStorage.getItem("eps.fort") === "1"; } catch (e) { return false; } }
+  function fortApply() { var on = fortOn(); document.documentElement.classList.toggle("eps-fort", on); Array.prototype.forEach.call(document.querySelectorAll(".eps-fortb"), function (b) { b.setAttribute("aria-pressed", on ? "true" : "false"); b.style.background = on ? "#FFD54A" : ""; b.style.color = on ? "#14171C" : ""; }); }
+  function fortBtn(extra) { var b = document.createElement("button"); b.type = "button"; b.className = "epsb eps-fortb"; b.setAttribute("aria-label", "Contraste fort, pour le soleil"); b.title = "Contraste fort (soleil)"; b.textContent = "☀"; if (extra) b.style.cssText = extra;
+    b.onclick = function (e) { e.stopPropagation(); try { localStorage.setItem("eps.fort", fortOn() ? "0" : "1"); } catch (er) {} fortApply(); }; return b; }
+  try { var fst = document.createElement("style"); fst.textContent = "html.eps-fort{filter:contrast(1.12) saturate(1.2)}html.eps-fort body *:not(svg):not(path):not(circle):not(rect):not(line){border-color:#14171C!important}html.eps-fort button,html.eps-fort .btn,html.eps-fort .tab{font-weight:800}html.eps-fort .mut,html.eps-fort small,html.eps-fort .m{color:#3B4047!important}"; document.head.appendChild(fst); fortApply();
+    setInterval(function () { try { if (HUB) return; var sl = epsSlot(); if (sl && !sl.querySelector(".eps-fortb")) { sl.appendChild(fortBtn()); fortApply(); }
+      var gh = document.querySelector(".epsg .epsg-hd"); if (gh && !gh.querySelector(".eps-fortb")) { var hm = gh.querySelector(".epsg-home"), fb = fortBtn("height:40px;min-width:44px;border-radius:10px;border:1.5px solid #3A3F47;background:none;color:#D5D8DE;font-size:18px;cursor:pointer;margin-right:8px"); if (hm) gh.insertBefore(fb, hm); else gh.appendChild(fb); fortApply(); } } catch (e) {} }, 1500); } catch (e) {}
+
   /* ================= 📖 Lexique de l'activité (ressource sans classe, modifiable : ⚙ Réglages → 🎛 Paramètres → Lexique) ================= */
   var LEX = {
     volley: ["Manchette : frappe à deux bras tendus, mains jointes, pour une balle basse", "Passe haute : frappe au-dessus du front, à dix doigts", "Smash : attaque frappée fort vers le bas, au-dessus du filet", "Contre : mains au-dessus du filet pour arrêter l'attaque adverse", "Rotation : chaque joueur avance d'un poste quand l'équipe récupère le service"],
