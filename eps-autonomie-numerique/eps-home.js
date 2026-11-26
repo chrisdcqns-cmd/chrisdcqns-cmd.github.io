@@ -241,7 +241,7 @@
      localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
   var STORES = [], ESSAIS_MAX = 8; /* essais sans confirmation avant de lever l'attente quand même (évite de renvoyer sans fin) */
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
-  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.carnet\.v1$/, "cn|"], [/^eps\.ref\.v1$/, "rf|"], [/^eps\.analyse\.v1$/, "an|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
+  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.carnet\.v1$/, "cn|"], [/^eps\.ref\.v1$/, "rf|"], [/^eps\.ico\.v1$/, "iq|"], [/^eps\.cdc\.v1$/, "kc|"], [/^eps\.terrain\.v1$/, "tz|"], [/^eps\.coeval\.v1$/, "cv|"], [/^eps\.trash\.v1$/, "tk|"], [/^eps\.analyse\.v1$/, "an|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
     [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^step\.v1$/, "sp|"], [/^bk\.v1$/, "bk|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
@@ -618,7 +618,7 @@
     if (!it) { it = { id: clsId(nom), nom: nom, el: [], st: {}, rm: [] }; L.items[it.id] = it; }
     var keep = {}; names.forEach(function (n) { keep[nkey(n)] = 1; });
     it.rm = (it.rm || []).filter(function (k) { return !keep[k]; });
-    if (exact) (it.el || []).forEach(function (n) { var k = nkey(n); if (!keep[k] && it.rm.indexOf(k) < 0) it.rm.push(k); });
+    if (exact) (it.el || []).forEach(function (n) { var k = nkey(n); if (!keep[k] && it.rm.indexOf(k) < 0) { it.rm.push(k); if (!it.demo) trKeep({ type: "Élève", label: n, sub: it.nom, el: { lid: it.id, nom: n } }); /* 🗑 corbeille */ } });
     else (it.el || []).forEach(function (n) { if (!keep[nkey(n)]) { names.push(n); keep[nkey(n)] = 1; } });
     it.old = old && norm(old) !== norm(nom) ? old : ""; it.nom = nom; it.el = names; it.ts = Date.now(); it.del = false;
     if (off) { it.off = off.slice(); it.man = 1; } /* activités choisies à la main : l'emploi du temps ne les change plus */
@@ -727,6 +727,7 @@
     var L = lld(), it = null;
     Object.keys(L.items).forEach(function (k) { var o = L.items[k]; if (o && !o.del && (norm(o.nom) === norm(nom) || (o.old && norm(o.old) === norm(nom)))) it = it || o; });
     if (!it) { it = { id: clsId(nom), nom: nom, el: [], st: {}, rm: [] }; L.items[it.id] = it; }
+    else if (!it.del && !it.demo) trKeep({ type: "Classe", label: it.nom, sub: (it.el || []).length + " élèves", lst: JSON.parse(JSON.stringify(it)) });   /* 🗑 corbeille */
     it.del = true; it.ts = Date.now(); L.pend[it.id] = stamp(); L.app[it.id] = JSON.stringify(it); lsv(L);
     try { var A = jget("escalade.cl", []) || []; localStorage.setItem("escalade.cl", JSON.stringify(A.filter(function (c) { return norm(c.nom) !== norm(nom); }))); } catch (e) {}
     try { var O = await oriGet(); Object.keys(O).forEach(function (k) { if (norm(k) === norm(nom)) delete O[k]; }); await oriPut(O); } catch (e) {}
@@ -1129,7 +1130,7 @@
       '<div class="epsd-cls" style="margin-top:18px">Listes d\'élèves</div>' +
       '<p class="m">Les listes sont communes : une classe importée ici ou dans n\'importe quelle application apparaît dans toutes les applications (Escalade, Relais Vitesse, OrienRun, Volley-ball, Badminton, Danse, Acrosport) et sur toutes tes tablettes.</p>' +
       '<div id="er-cls" class="m" style="margin:6px 0 4px">…</div>' +
-      '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-edit">✏️ Modifier les listes</button><button type="button" class="p" id="er-imp">📥 Importer une liste d\'élèves</button></div>' +
+      '<div class="dbtns epsd-act" style="margin-top:8px"><button type="button" id="er-edit">✏️ Modifier les listes</button><button type="button" id="er-trash">🗑 Corbeille</button><button type="button" class="p" id="er-imp">📥 Importer une liste d\'élèves</button></div>' +
       '<div class="epsd-cls" style="margin-top:18px">🧪 Simulation</div>' +
       '<p class="m">' + (window.EPS_SIM ? "Tu es en simulation : rien n'est partagé ni gardé. Quitte-la pour retrouver tes vraies données." : "Explore toutes les applis comme un bac à sable : tes données sont mises de côté, le partage est coupé, une classe fictive de 8 élèves est installée avec une leçon, des observations et des évaluations. Tu passes librement d'enseignant à élève. En quittant, la tablette retrouve exactement ses données.") + '</p>' +
       '<div class="dbtns epsd-act" style="margin-top:8px">' + (window.EPS_SIM ? '<button type="button" id="er-sim-x">⏹ Quitter la simulation</button>' : '<button type="button" class="p" id="er-sim">🧪 Entrer en simulation</button>') + (demoOn() && !window.EPS_SIM ? '<button type="button" id="er-demo-x">🗑 Retirer l\'ancienne classe de démonstration</button>' : "") + '</div>' +
@@ -1160,6 +1161,7 @@
     o.querySelector("#er-share").onclick = function () { o.remove(); shareSettings(function () { reglages(); }); };
     o.querySelector("#er-save").onclick = backupSave;
     o.querySelector("#er-edit").onclick = function () { o.remove(); editLists(); };
+    var etr = o.querySelector("#er-trash"); if (etr) etr.onclick = function () { o.remove(); trOpen(); };
     o.querySelector("#er-imp").onclick = function () { o.remove(); importList(); };
     var showCls = function () { return allLists().then(function (M) {
       var el = o.querySelector("#er-cls"); if (!el) return;
@@ -1585,6 +1587,29 @@
     askCode: function () { return askCode(); },
     listDelete: function (nom) { return deleteList(nom); }, syncNow: function () { return sync(); }, isTeacher: function () { return isTeacher(); },
     teacherToggle: function () { if (isTeacher()) { unlockedUntil = 0; setHubTeach(false); } else askCode().then(function (ok) { if (ok) setHubTeach(true); }); } };
+
+  /* ================= 🗑 Corbeille (commune) =================
+     Magasin « eps.trash.v1 » (tk|), synchronisé : {id:"t<date>", k:"t", type, label, sub, at, its:[{key, data}], lst:<liste de classe>, el:{lid, nom}}.
+     EPSD.trash.keep({type, label, sub, items:[{key, id}]}) AVANT d'effacer un élément d'un magasin commun : sa copie est gardée 30 jours.
+     Classes supprimées et élèves retirés d'une liste y passent d'office (deleteList, shareList). Restaurer = réécrire la copie avec une date neuve
+     (elle l'emporte sur l'effacement, sur toutes les tablettes). Toute nouvelle suppression définitive côté enseignant doit passer par keep(). */
+  var KTR = "eps.trash.v1", TR_J = 30;
+  function trKeep(o) { try { o = o || {}; var its = []; (o.items || []).forEach(function (x) { var d = stLd(x.key).items[x.id]; if (d && !d.del) its.push({ key: x.key, data: JSON.parse(JSON.stringify(d)) }); });
+      if (!its.length && !o.lst && !o.el) return false; stPutRaw(KTR, { id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), k: "t", type: String(o.type || "Élément"), label: String(o.label || "").slice(0, 120), sub: String(o.sub || "").slice(0, 120), at: Date.now(), its: its, lst: o.lst || null, el: o.el || null }); try { timer && clearTimeout(timer); timer = setTimeout(sync, 2000); } catch (e) {} return true; } catch (e) { return false; } }
+  function trList() { var V = stLd(KTR), L = [], lim = Date.now() - TR_J * 864e5; Object.keys(V.items).forEach(function (k) { var o = V.items[k]; if (!o || o.del || o.k !== "t") return; if ((o.at || 0) < lim) { stPutRaw(KTR, { id: k, del: 1 }); return; } L.push(o); }); return L.sort(function (a, b) { return b.at - a.at; }); }
+  async function trRestore(id) { var o = stLd(KTR).items[id]; if (!o || o.del) return false;
+    (o.its || []).forEach(function (x) { if (x && x.key && x.data && x.data.id != null) { var d = JSON.parse(JSON.stringify(x.data)); delete d.del; stPutRaw(x.key, d); } });
+    if (o.lst && o.lst.id) { var L = lld(), it = JSON.parse(JSON.stringify(o.lst)); it.del = false; it.ts = Date.now(); L.items[it.id] = it; L.pend[it.id] = stamp(); L.app[it.id] = JSON.stringify(it); lsv(L); await applyLocal(); }
+    if (o.el && o.el.lid && o.el.nom) { var L2 = lld(), it2 = L2.items[o.el.lid]; if (it2 && !it2.del) { var k = nkey(o.el.nom); it2.rm = (it2.rm || []).filter(function (x) { return x !== k; }); if (!(it2.el || []).some(function (n) { return nkey(n) === k; })) (it2.el = it2.el || []).push(o.el.nom); it2.ts = Date.now(); L2.pend[it2.id] = stamp(); L2.app[it2.id] = JSON.stringify(it2); lsv(L2); await applyLocal(); } else return false; }
+    stPutRaw(KTR, { id: id, del: 1 }); try { document.dispatchEvent(new CustomEvent("eps-ref")); document.dispatchEvent(new CustomEvent("eps-trash")); } catch (e) {} setTimeout(sync, 300); return true; }
+  function trOpen() { var o = overlay('<div id="epstr"></div>'), box = o.querySelector("#epstr");
+    function draw() { var L = trList();
+      box.innerHTML = "<h3>🗑 Corbeille</h3><p class=\"m\">Ce que tu as effacé depuis " + TR_J + " jours. Restaurer le remet en place sur toutes les tablettes.</p>" +
+        (L.length ? L.map(function (x, i) { var j = Math.floor((Date.now() - x.at) / 864e5); return '<div class="epsd-row"><b>' + esc(x.label || x.type) + "</b><span>" + esc(x.type) + (x.sub ? " · " + esc(x.sub) : "") + " · " + (j ? "il y a " + j + " j" : "aujourd'hui") + '</span><button type="button" data-tr="' + i + '" style="min-height:40px;padding:0 12px;border-radius:10px;border:1.5px solid #14171C;background:#fff;font-weight:800">↺ Restaurer</button></div>'; }).join("") : '<p class="m">La corbeille est vide.</p>') +
+        '<div class="epsd-act"><button data-x>✕ Fermer</button></div>';
+      box.querySelectorAll("[data-tr]").forEach(function (b) { b.onclick = function () { var x = L[+b.dataset.tr]; b.disabled = true; trRestore(x.id).then(function (ok) { if (!ok) alert("Impossible de restaurer : la classe de cet élève n'existe plus. Restaure d'abord la classe."); draw(); }); }; }); }
+    draw(); try { EPSD.store({ key: KTR, pre: "tk|", onChange: function () { if (document.body.contains(box)) draw(); } }); } catch (e) {} return o; }
+  EPSD.trash = { keep: trKeep, list: trList, restore: trRestore, open: trOpen };
 
   /* ================= Bouton « Accueil » (sauf sur la page d'accueil) =================
      Un appui : accueil de l'application en cours (window.epsAppHome() si l'application le fournit, sinon sa page de départ).

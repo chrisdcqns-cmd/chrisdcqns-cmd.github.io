@@ -27,7 +27,7 @@ async def main():
         out.append(("1c relevé inchangé = aucune réécriture", all(I2[k]["u"] == I[k]["u"] for k in I if k in I2), None))
         # 2. page Référentiel
         await p.goto(B + "referentiel/"); await p.wait_for_timeout(2500)
-        out.append(("2 page ouverte, 6 onglets", await p.locator("#nav button").count() == 6, None))
+        out.append(("2 page ouverte, 7 onglets", await p.locator("#nav button").count() == 7, None))
         await p.click("#cgd"); await p.wait_for_timeout(300)
         out.append(("2b proposition : rien d'ajouté avant confirmation", await p.evaluate("EPSREF.cgs().length") == 0, None))
         await p.click("#dpok"); await p.wait_for_timeout(400)
@@ -91,7 +91,7 @@ async def main():
         # 8. aucun débordement horizontal, tablette et téléphone
         for w, h in [(1024, 768), (390, 844)]:
             await p.set_viewport_size({"width": w, "height": h})
-            for t in ["str", "act", "el", "cl", "cov", "txt"]:
+            for t in ["str", "act", "cdc", "el", "cl", "cov", "txt"]:
                 await p.click("[data-t=%s]" % t); await p.wait_for_timeout(250)
                 ov = await p.evaluate("document.documentElement.scrollWidth - window.innerWidth")
                 if ov > 1: out.append(("8 pas de débordement %s à %d px" % (t, w), False, ov))

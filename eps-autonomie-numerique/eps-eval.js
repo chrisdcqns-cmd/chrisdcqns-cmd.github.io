@@ -104,6 +104,21 @@
            settings() → {apOuvert, apJusqua, envoiUrl, envoiCle}, setSettings(o),
            isTeacher(), unlock() → Promise, changed() (réaffichage) }
      ===================================================================== */
+  /* 👥 Coévaluation entre élèves (commune) : un élève positionne un camarade sur la grille, sur la tablette en mode élève.
+     Magasin eps.coeval.v1 (cv|), synchronisé : id = appli|classe|clé de l'élève observé → {k:"co", app, cls, n, by:{<clé de l'observateur>:{n, ev:{critère:{d, pos}}, t}}}.
+     Réglage par appli : « Autoriser la coévaluation » (settings().coOn), fermé par défaut. Lu aussi par le référentiel (eps-ref.js). */
+  var KCO = "eps.coeval.v1";
+  function coLd() { var v = jget(KCO, null); if (!v || !v.items || typeof v.items !== "object") v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+  function coId(app, cls, full) { return app + "|" + nk(cls) + "|" + nkey(full); }
+  function coGet(app, cls, full) { var o = coLd().items[coId(app, cls, full)]; return o && !o.del && o.by && typeof o.by === "object" ? o : null; }
+  function coAdd(app, cls, cible, obs, ev) { var V = coLd(), id = coId(app, cls, cible), o = V.items[id]; if (!o || o.del || !o.by || typeof o.by !== "object") o = { id: id, k: "co", app: app, cls: cls, n: cible, by: {} };
+    o.by[nkey(obs)] = { n: obs, ev: ev, t: Date.now() }; o.u = Math.max(Date.now(), (o.u || 0) + 1); V.items[id] = o; V.pend[id] = o.u; jset(KCO, V); try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} }
+  /* moyenne des camarades par critère : {n: nombre d'observateurs, ev:{critère:{d, pos, v}}} */
+  function coMoy(app, cls, full) { var o = coGet(app, cls, full); if (!o) return null; var B = Object.keys(o.by).map(function (k) { return o.by[k]; }).filter(function (x) { return x && x.ev; }), T = {}; if (!B.length) return null;
+    B.forEach(function (x) { Object.keys(x.ev).forEach(function (c) { var z = x.ev[c]; if (!z || z.d == null) return; var t = T[c] || (T[c] = { s: 0, n: 0 }); t.s += z.d + (z.pos == null ? .5 : z.pos); t.n++; }); });
+    var ev = {}; Object.keys(T).forEach(function (c) { var v = T[c].s / T[c].n, d = Math.max(0, Math.min(3, Math.floor(v))); ev[c] = { d: d, pos: Math.max(0, Math.min(1, v - d)), v: v }; }); return { n: B.length, ev: ev, qui: B.map(function (x) { return x.n; }) }; }
+  try { (function reg(n) { if (window.EPSD && EPSD.store) { EPSD.store({ key: KCO, pre: "cv|", onChange: function () {} }); return; } if ((n || 0) < 60) setTimeout(function () { reg((n || 0) + 1); }, 500); })(0); } catch (e) {}
+
   function create(A) {
     var HASH = "#auto=", SEQ = "eps.eval.seq." + A.app;
     if (document.head) css(); else document.addEventListener("DOMContentLoaded", function () { css(); });
@@ -188,11 +203,11 @@
     function renderAp() {
       var V = vue(), C = ctx(), G = A.grid(), top = bar("Je me positionne · " + A.ca, !C.ident);
       if (C.err) { V.innerHTML = top + '<div class="ap-in"><div class="epse-card" style="text-align:center"><div style="font-size:44px">🔒</div><h1>Auto-positionnement fermé</h1><p>' + esc(C.err) + "</p></div></div>"; bindQ(V); return; }
-      if (!P) { P = { etape: "form", eleve: -1, nom: "", prenom: "", classe: "", ev: {}, reussi: "", ameliorer: "", code: "" }; if (C.ident) { P.nom = C.ident.n; P.prenom = C.ident.p; P.classe = C.ident.c; } }
+      if (!P) { P = { etape: "form", eleve: -1, cible: -1, nom: "", prenom: "", classe: "", ev: {}, reussi: "", ameliorer: "", code: "" }; if (C.ident) { P.nom = C.ident.n; P.prenom = C.ident.p; P.classe = C.ident.c; } }
       var recap = function () { return '<div class="epse-chips" style="justify-content:center;margin:12px 0">' + G.criteres.map(function (cr) { var x = P.ev[cr.id]; return '<span class="epse-chip" style="border-color:' + (x ? DCOL[x.d] : "#ccc") + '"><b>' + esc(cr.nomEl || cr.nom) + "</b><small>" + (x ? esc((G.degresEl || G.degres)[x.d]) : "—") + "</small></span>"; }).join("") + "</div>"; };
       var fin = function (h) { V.innerHTML = top + '<div class="ap-in"><div class="epse-card" style="text-align:center">' + h + "</div></div>"; bindQ(V); var b = V.querySelector("[data-next]"); if (b) b.onclick = function () { P = null; renderAp(); };
         var r = V.querySelector("[data-retry]"); if (r) r.onclick = envoyer; var cp = V.querySelector("[data-copy]"); if (cp) cp.onclick = function () { copier(P.code); }; var md = V.querySelector("[data-mod]"); if (md) md.onclick = function () { P.etape = "form"; renderAp(); }; };
-      if (P.etape === "merci") return fin('<div style="font-size:44px">✅</div><h1>Merci ' + esc(P.prenom) + " !</h1><p>Ton positionnement est enregistré.</p>" + recap() + '<button class="epse-btn p" data-next="1">Élève suivant</button>');
+      if (P.etape === "merci") return fin('<div style="font-size:44px">✅</div><h1>Merci ' + esc(P.prenom) + " !</h1><p>" + (P.cibleNom ? "Ton observation de <b>" + esc(P.cibleNom) + "</b> est enregistrée. Seul ton enseignant la voit." : "Ton positionnement est enregistré.") + "</p>" + recap() + '<button class="epse-btn p" data-next="1">Élève suivant</button>');
       if (P.etape === "envoi") return fin('<div class="epse-spin"></div><h1>Envoi en cours…</h1><p>Ne ferme pas cette page.</p>');
       if (P.etape === "envoye") return fin('<div style="font-size:44px">✅</div><h1>Merci ' + esc(P.prenom) + " !</h1><p>Ton positionnement a bien été <b>envoyé à ton enseignant</b>. Tu n'as rien d'autre à faire.</p>" + recap());
       if (P.etape === "code") return fin("<h1>C'est presque fini, " + esc(P.prenom) + " !</h1>" + (P.echec ? '<p style="color:#C0392B;font-weight:700">L\'envoi automatique n\'a pas fonctionné (connexion ?). Réessaie, ou utilise le code ci-dessous.</p><button class="epse-btn" data-retry="1">Réessayer l\'envoi</button>' : "") +
@@ -201,25 +216,30 @@
       var N = G.criteres.length, DGL = G.degresEl || G.degres; if (P.step == null) P.step = 0; P.step = Math.max(0, Math.min(N + 1, P.step));
       var ident, ok1 = true, corps;
       if (C.ident) ident = '<p>Bonjour <b>' + esc((P.prenom + " " + P.nom).trim()) + "</b>" + (P.classe ? " · " + esc(P.classe) : "") + "</p>";
-      else if (C.classe && C.classe.eleves.length) { ident = '<label class="epse-mut" style="font-weight:800;font-size:17px">Je suis<select class="f" data-who="1" style="min-height:54px;font-size:17px"><option value="-1">— choisis ton nom —</option>' + C.classe.eleves.map(function (e, i) { var n = A.name(e); return '<option value="' + i + '"' + (P.eleve === i ? " selected" : "") + ">" + esc((n.prenom + " " + n.nom).trim()) + "</option>"; }).join("") + "</select></label>"; ok1 = P.eleve >= 0; }
+      else if (C.classe && C.classe.eleves.length) { ident = '<label class="epse-mut" style="font-weight:800;font-size:17px">Je suis<select class="f" data-who="1" style="min-height:54px;font-size:17px"><option value="-1">— choisis ton nom —</option>' + C.classe.eleves.map(function (e, i) { var n = A.name(e); return '<option value="' + i + '"' + (P.eleve === i ? " selected" : "") + ">" + esc((n.prenom + " " + n.nom).trim()) + "</option>"; }).join("") + "</select></label>"; ok1 = P.eleve >= 0;
+        /* 👥 coévaluation (si l'enseignant l'autorise) : je me positionne, ou j'observe un camarade */
+        if (S().coOn && P.eleve >= 0) ident += '<label class="epse-mut" style="font-weight:800;font-size:17px;display:block;margin-top:10px">Je positionne<select class="f" data-cible="1" style="min-height:54px;font-size:17px"><option value="-1">moi-même</option>' + C.classe.eleves.map(function (e, i) { if (i === P.eleve) return ""; var n = A.name(e); return '<option value="' + i + '"' + (P.cible === i ? " selected" : "") + ">mon camarade : " + esc((n.prenom + " " + n.nom).trim()) + "</option>"; }).join("") + "</select></label>"; }
       else { ident = '<p class="epse-mut">Aucune liste d\'élèves pour cette classe : demande à ton enseignant.</p>'; ok1 = false; }
+      var CO = !C.ident && C.classe && S().coOn && P.cible >= 0 && C.classe.eleves[P.cible] ? (function () { var n = A.name(C.classe.eleves[P.cible]); return (n.prenom + " " + n.nom).trim(); })() : "";
+      var coBan = CO ? '<p style="background:#FFF4D6;border:1.5px solid #E0B040;border-radius:12px;padding:8px 12px;font-weight:800;margin:0 0 8px">👥 Tu observes ' + esc(CO) + " : réponds pour lui / elle, d'après ce que tu as vu.</p>" : "";
       var prog = '<div class="epse-prog">' + Array.apply(null, Array(N + 2)).map(function (_, i) { return '<i class="' + (i < P.step ? "ok" : i === P.step ? "on" : "") + '"></i>'; }).join("") + "<span>Étape " + (P.step + 1) + " / " + (N + 2) + "</span></div>";
-      if (P.step === 0) corps = '<div class="epse-card"><h1>Je me positionne · ' + esc(A.nom) + "</h1>" + ident +
-        "<p>Tu vas répondre à <b>" + N + " question" + (N > 1 ? "s" : "") + "</b>, une à la fois. Pour chacune : <b>1.</b> lis les 4 niveaux et touche celui qui te ressemble le plus ; <b>2.</b> précise avec le curseur où tu en es dans ce niveau. Sois honnête : c'est pour t'aider à progresser !</p></div>";
+      if (P.step === 0) corps = '<div class="epse-card"><h1>' + (CO ? "J'observe un camarade" : "Je me positionne") + " · " + esc(A.nom) + "</h1>" + ident + coBan +
+        "<p>Tu vas répondre à <b>" + N + " question" + (N > 1 ? "s" : "") + "</b>, une à la fois. Pour chacune : <b>1.</b> lis les 4 niveaux et touche celui qui " + (CO ? "ressemble le plus à ce que tu as vu" : "te ressemble le plus") + " ; <b>2.</b> précise avec le curseur " + (CO ? "où il / elle en est" : "où tu en es") + " dans ce niveau. " + (CO ? "Sois juste et bienveillant : c'est pour l'aider à progresser !" : "Sois honnête : c'est pour t'aider à progresser !") + "</p></div>";
       else if (P.step <= N) { var cr = G.criteres[P.step - 1], x = P.ev[cr.id]; ok1 = !!x;
-        corps = '<p class="epse-mut" style="font-weight:800;margin:0 0 6px">Question ' + P.step + " sur " + N + '</p><div class="epse-crit" id="epse-c-' + esc(cr.id) + '"><div class="epse-ch"><b>' + esc(cr.nomEl || cr.nom) + "</b><span>" + esc(cr.afl || "") + "</span></div>" + (cr.butEl || cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.butEl || cr.but) + "</p>" : "") +
+        corps = coBan + '<p class="epse-mut" style="font-weight:800;margin:0 0 6px">Question ' + P.step + " sur " + N + '</p><div class="epse-crit" id="epse-c-' + esc(cr.id) + '"><div class="epse-ch"><b>' + esc(cr.nomEl || cr.nom) + "</b><span>" + esc(cr.afl || "") + "</span></div>" + (cr.butEl || cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.butEl || cr.but) + "</p>" : "") +
           '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (x && x.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>Niveau ' + (d + 1) + " · " + esc(DGL[d]) + "</b>" + esc((cr.descEl || cr.desc)[d] || "") + "</button>"; }).join("") + "</div>" +
           (x ? '<div class="epse-intra" style="--dc:' + DCOL[x.d] + '"><span>Dans ce niveau, je suis…</span><input type="range" min="0" max="4" step="1" value="' + Math.round(x.pos * 4) + '" data-p="' + esc(cr.id) + '"><b id="epse-pv-' + esc(cr.id) + '" style="color:' + DCOL[x.d] + '">' + esc(posLbl(x.d, x.pos)) + "</b></div>" : "") + "</div>"; }
-      else corps = '<div class="epse-card"><h2 style="margin-top:0">Pour finir, avec tes mots</h2><label class="epse-mut" style="font-weight:800">Ce que je pense avoir réussi<textarea rows="3" data-t="reussi" placeholder="J\'ai réussi à…">' + esc(P.reussi) + '</textarea></label><label class="epse-mut" style="font-weight:800">Ce que je veux améliorer<textarea rows="3" data-t="ameliorer" placeholder="Je voudrais…">' + esc(P.ameliorer) + "</textarea></label></div>" +
+      else corps = (CO ? coBan : '<div class="epse-card"><h2 style="margin-top:0">Pour finir, avec tes mots</h2><label class="epse-mut" style="font-weight:800">Ce que je pense avoir réussi<textarea rows="3" data-t="reussi" placeholder="J\'ai réussi à…">' + esc(P.reussi) + '</textarea></label><label class="epse-mut" style="font-weight:800">Ce que je veux améliorer<textarea rows="3" data-t="ameliorer" placeholder="Je voudrais…">' + esc(P.ameliorer) + "</textarea></label></div>") +
         '<div class="epse-card"><b>Mes réponses</b> <span class="epse-mut">(touche une réponse pour la changer)</span>' + G.criteres.map(function (cr, i) { var x = P.ev[cr.id];
           return '<button class="epse-ri" data-go="' + (i + 1) + '" style="--dc:' + (x ? DCOL[x.d] : "#bbb") + '"><span>' + esc(cr.nomEl || cr.nom) + "</span><b>" + (x ? "Niveau " + (x.d + 1) + " · " + esc(posLbl(x.d, x.pos)) : "à faire") + "</b></button>"; }).join("") + "</div>";
-      var nav = '<div class="epse-nav">' + (P.step ? '<button class="epse-btn" data-prev="1">← Retour</button>' : "<span></span>") + (P.step <= N ? '<button class="epse-btn p" data-suiv="1"' + (ok1 ? "" : " disabled") + ">Suivant →</button>" : '<button class="epse-btn p" data-ok="1">Valider mon positionnement</button>') + "</div>";
+      var nav = '<div class="epse-nav">' + (P.step ? '<button class="epse-btn" data-prev="1">← Retour</button>' : "<span></span>") + (P.step <= N ? '<button class="epse-btn p" data-suiv="1"' + (ok1 ? "" : " disabled") + ">Suivant →</button>" : '<button class="epse-btn p" data-ok="1">' + (CO ? "Valider mon observation" : "Valider mon positionnement") + "</button>") + "</div>";
       V.innerHTML = top + '<div class="ap-in">' + prog + corps + nav + "</div>";
       bindQ(V);
       var go = function (k) { P.step = k; renderAp(); V.scrollTop = 0; };
       var w = V.querySelector("[data-who]"); if (w) w.onchange = function () { var i = +w.value, e = C.classe && C.classe.eleves[i], a = e && A.getAp(e);
         if (a && a.ev && Object.keys(a.ev).length && !confirm((A.name(e).prenom || A.name(e).nom) + ", tu t'es déjà positionné(e)" + (a.t ? " le " + new Date(a.t).toLocaleDateString("fr-FR") : "") + ".\nSi tu continues, ta nouvelle réponse remplacera l'ancienne.\n\nOK = c'est moi, je recommence · Annuler = ce n'est pas moi")) { P.eleve = -1; renderAp(); return; }
-        P.eleve = i; renderAp(); };
+        P.eleve = i; if (P.cible === i) P.cible = -1; renderAp(); };
+      var wc = V.querySelector("[data-cible]"); if (wc) wc.onchange = function () { P.cible = +wc.value; P.ev = {}; renderAp(); };
       V.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { var id = b.dataset.c, d = +b.dataset.d; if (!P.ev[id] || P.ev[id].d !== d) P.ev[id] = { d: d, pos: .5 }; renderAp(); }; });
       V.querySelectorAll("[data-p]").forEach(function (r) { r.oninput = function () { var x = P.ev[r.dataset.p]; x.pos = (+r.value) / 4; var s = document.getElementById("epse-pv-" + r.dataset.p); if (s) s.textContent = posLbl(x.d, x.pos); }; });
       V.querySelectorAll("[data-t]").forEach(function (t) { t.oninput = function () { P[t.dataset.t] = t.value; }; });
@@ -242,6 +262,9 @@
       var G = A.grid(), C = ctx(), manque = G.criteres.filter(function (cr) { return !P.ev[cr.id]; });
       if (manque.length) { toast("Il te manque une réponse"); P.step = G.criteres.indexOf(manque[0]) + 1; renderAp(); vue().scrollTop = 0; return; }
       if (!C.ident) { var c = C.classe, e = c && c.eleves[P.eleve]; if (!e) { toast("Choisis ton nom dans la liste"); P.step = 0; renderAp(); return; } var nn = A.name(e); P.nom = nn.nom; P.prenom = nn.prenom || ""; P.classe = c.nom;
+        var e2 = S().coOn && P.cible >= 0 && P.cible !== P.eleve ? c.eleves[P.cible] : null;
+        if (e2) { var n2 = A.name(e2), ev2 = {}; G.criteres.forEach(function (cr) { var x = P.ev[cr.id]; if (x) ev2[cr.id] = { d: x.d, pos: Math.round(x.pos * 100) / 100 }; });
+          P.cibleNom = ((n2.prenom || "") + " " + (n2.nom || "")).trim(); coAdd(A.app, c.nom, P.cibleNom, ((nn.prenom || "") + " " + (nn.nom || "")).trim(), ev2); try { A.changed(); } catch (x) {} P.etape = "merci"; renderAp(); vue().scrollTop = 0; return; }
         poser({ e: e }, payload(P), "tablette"); try { A.changed(); } catch (x) {} P.etape = "merci"; renderAp(); vue().scrollTop = 0; return; }
       P.code = codeDe(P);
       if (C.ident.drop && cryptoOk()) { envoyer(); return; }
@@ -264,21 +287,24 @@
     M.card = function (c) {
       var s = S(), cfg = envoi(), G = A.grid(), cs = G.criteres, recu = c.eleves.filter(function (e) { var a = A.getAp(e); return a && a.ev && Object.keys(a.ev).length; });
       var rows = c.eleves.map(function (e) { var a = A.getAp(e), n = A.name(e);
-        return '<tr><td class="l">' + esc((n.prenom + " " + n.nom).trim()) + "</td>" + cs.map(function (cr) { var v = A.prof(cr, e), x = a && a.ev && a.ev[cr.id], g = ecart(cr, e);
-          return "<td>" + (v && v.d != null ? '<span class="epse-d" style="background:' + DCOL[v.d] + '">D' + (v.d + 1) + "</span>" : "–") + (x ? ' <span class="epse-d e" style="border-color:' + DCOL[x.d] + ";color:" + DCOL[x.d] + '">🙋 D' + (x.d + 1) + "</span>" : "") + (g != null && Math.abs(g) > .6 ? (g > 0 ? " ▲" : " ▼") : "") + "</td>"; }).join("") +
+        var co = coMoy(A.app, c.nom, ((n.prenom || "") + " " + (n.nom || "")).trim());
+        return '<tr><td class="l">' + esc((n.prenom + " " + n.nom).trim()) + (co ? ' <small class="epse-mut" title="Observé par : ' + esc(co.qui.join(", ")) + '">👥 ' + co.n + "</small>" : "") + "</td>" + cs.map(function (cr) { var v = A.prof(cr, e), x = a && a.ev && a.ev[cr.id], g = ecart(cr, e), z = co && co.ev[cr.id];
+          return "<td>" + (v && v.d != null ? '<span class="epse-d" style="background:' + DCOL[v.d] + '">D' + (v.d + 1) + "</span>" : "–") + (x ? ' <span class="epse-d e" style="border-color:' + DCOL[x.d] + ";color:" + DCOL[x.d] + '">🙋 D' + (x.d + 1) + "</span>" : "") + (z ? ' <span class="epse-d e" style="border-style:dashed;border-color:' + DCOL[z.d] + ";color:" + DCOL[z.d] + '">👥 D' + (z.d + 1) + "</span>" : "") + (g != null && Math.abs(g) > .6 ? (g > 0 ? " ▲" : " ▼") : "") + "</td>"; }).join("") +
           '<td class="l"><small>' + (a ? new Date(a.t || Date.now()).toLocaleDateString("fr-FR") + " · " + ({ lien: "lien", code: "code", tablette: "tablette" }[a.via] || "") : '<span class="epse-mut">pas encore</span>') + "</small>" + (a && (a.r || a.m) ? '<div class="epse-mut" style="font-size:12px">' + (a.r ? "✓ " + esc(a.r) : "") + (a.r && a.m ? "<br>" : "") + (a.m ? "→ " + esc(a.m) : "") + "</div>" : "") + "</td></tr>"; }).join("");
       return '<div class="epse-card"><h2>🙋 Auto-positionnement des élèves</h2>' +
         '<div class="epse-row"><label><input type="checkbox" data-ap-on' + (s.apOuvert ? " checked" : "") + "> Autoriser l'auto-positionnement</label><label>jusqu'au <input type=\"date\" data-ap-date value=\"" + esc(s.apJusqua || "") + '" min="' + today() + '"></label></div>' +
         '<p class="epse-mut">' + esc(etat()) + "</p>" +
+        '<div class="epse-row"><label><input type="checkbox" data-co-on' + (s.coOn ? " checked" : "") + "> 👥 Autoriser la coévaluation : sur la tablette en mode élève, un élève peut aussi positionner un camarade</label></div>" +
         '<p class="epse-mut">' + (cfg ? "✓ Envoi automatique actif (" + (cfg.src === "commun" ? "ton script commun" : cfg.src === "danse" ? "ancien script de Danse" : "script réglé ici") + ", chiffré) : les positionnements arrivent tout seuls." : "⚠ Envoi automatique inactif : règle le partage entre tablettes (script commun, à jour). En attendant, l'élève obtient un code à t'envoyer.") + "</p>" +
         '<div class="epse-row"><button class="epse-btn p" data-ap-tab' + (ouvert() ? "" : " disabled") + ">🙋 Passer cette tablette en mode élève (" + esc(c.nom) + ")</button>" + (cfg ? '<button class="epse-btn" data-ap-rel>Relever maintenant</button>' : "") + "</div>" +
         '<details><summary class="epse-mut" style="cursor:pointer">Codes reçus (si l\'envoi a échoué) · réglage de l\'envoi</summary><textarea rows="2" data-ap-codes placeholder="' + esc(A.code) + '.eyJu…"></textarea><div class="epse-row"><button class="epse-btn" data-ap-imp>Importer les codes</button></div>' +
         '<div class="epse-row"><input type="text" data-ap-u placeholder="https://script.google.com/macros/s/…/exec (vide = ton script commun)" value="' + esc(s.envoiUrl || "") + '" style="flex:2"><input type="password" data-ap-k placeholder="Clé secrète" value="' + esc(s.envoiCle || "") + '" style="flex:1"><button class="epse-btn" data-ap-save>Enregistrer</button></div></details>' +
-        '<h3 style="margin:14px 0 6px">Suivi : ' + recu.length + " / " + c.eleves.length + ' élève(s) positionné(s)</h3><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + cs.map(function (cr) { return "<th>" + esc(cr.nomEl || cr.nom) + "</th>"; }).join("") + '<th class="l">Reçu · ses mots</th></tr>' + rows + "</table></div></div>";
+        '<h3 style="margin:14px 0 6px">Suivi : ' + recu.length + " / " + c.eleves.length + ' élève(s) positionné(s)</h3><p class="epse-mut">D = toi · 🙋 = l\'élève · 👥 = moyenne des camarades qui l\'ont observé.</p><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + cs.map(function (cr) { return "<th>" + esc(cr.nomEl || cr.nom) + "</th>"; }).join("") + '<th class="l">Reçu · ses mots</th></tr>' + rows + "</table></div></div>";
     };
     M.bindCard = function (root, c) {
       var q = function (s) { return root.querySelector(s); }, ch = function () { try { A.changed(); } catch (e) {} };
       if (q("[data-ap-on]")) q("[data-ap-on]").onchange = function (e) { var s = S(), o = { apOuvert: e.target.checked }; if (e.target.checked && (!s.apJusqua || s.apJusqua < today())) o.apJusqua = plusJours(14); A.setSettings(o); ch(); };
+      if (q("[data-co-on]")) q("[data-co-on]").onchange = function (e) { A.setSettings({ coOn: e.target.checked }); ch(); };
       if (q("[data-ap-date]")) q("[data-ap-date]").onchange = function (e) { A.setSettings({ apJusqua: e.target.value }); ch(); };
       if (q("[data-ap-tab]")) q("[data-ap-tab]").onclick = function () { M.modeEleve(c.nom); };
       if (q("[data-ap-rel]")) q("[data-ap-rel]").onclick = function (e) { e.target.disabled = true; relever(true).then(function (r) { e.target.disabled = false; toast(msg(r)); if (r && r.n) ch(); }); };

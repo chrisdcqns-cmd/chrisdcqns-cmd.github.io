@@ -118,16 +118,18 @@
     (A.ens || []).forEach(function (p) { if (where[p[0]] != null && where[p[1]] != null && where[p[0]] !== where[p[1]]) out.push("🤝 " + (A.names && A.names[p[0]] || p[0]) + " et " + (A.names && A.names[p[1]] || p[1]) + " sont séparés."); });
     return out; }
   /* groupes du jour de l'activité (repris par 📡 Leçon en cours, les tablettes élèves et les applis) */
-  function sendDay(dir, cls, G, mode) {
+  function sendDay(dir, cls, G, mode, noms) {
     var K = "eps.live." + dir + ".v1", V = ld(K), id = null; Object.keys(V.items).forEach(function (k) { var v = V.items[k]; if (v && !v.del && nn(v.cls) === nn(cls)) id = id || k; });
     var v = id ? V.items[id] : { id: nn(cls), cls: cls }, disp = roster(cls).filter(function (n) { return !absent(cls, n) && dispense(cls, n); });
-    v.grp = { g: G.map(function (g) { return g.slice(); }), disp: disp, mode: mode === "affinite" || mode === "casser" ? "melange" : mode, at: Date.now(), src: "niv", lib: (MODES.filter(function (m) { return m[0] === mode; })[0] || [])[1] };
+    v.grp = { g: G.map(function (g) { return g.slice(); }), disp: disp, mode: mode === "affinite" || mode === "casser" ? "melange" : mode, at: Date.now(), src: noms ? "plan" : "niv", lib: noms ? "Plan de terrain" : (MODES.filter(function (m) { return m[0] === mode; })[0] || [])[1] };
+    if (noms) v.grp.nm = noms.map(String);   /* 🗺 plan de terrain : nom de la zone de chaque groupe */
     put(K, v); try { window.epsGroupesLog && epsGroupesLog(dir, cls, G, "niv"); } catch (e) {}
     try { window.dispatchEvent(new CustomEvent("eps-groupes", { detail: { dir: dir, cls: cls } })); } catch (e) {}
   }
 
   /* ---------- interface ---------- */
-  var CSS = ".gr-w{font:15px/1.4 system-ui,sans-serif;color:#14171C}.gr-w h2{margin:0 0 4px;font-size:22px}.gr-w h3{margin:14px 0 6px;font-size:17px}.gr-mut{color:#6A6F78;font-size:13.5px}.gr-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}" +
+  var CSS = ".tz-t{min-height:40px;padding:0 14px;border-radius:10px;border:1.5px solid #3A3F47;background:none;color:#D5D8DE;font:700 14px system-ui}.tz-z{position:absolute;width:19%;min-width:150px;background:rgba(255,255,255,.96);border:2px solid #14171C;border-radius:14px;overflow:hidden}.tz-z.arr{border-style:dashed}.tz-h{display:flex;align-items:center;gap:6px;background:#14171C;color:#fff;padding:6px 8px;font-size:14px}.tz-z.arr .tz-h{cursor:move;touch-action:none}.tz-h b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tz-h span{background:#fff;color:#14171C;border-radius:999px;padding:0 8px;font-weight:800}.tz-h button{min-width:40px;min-height:40px;border:0;border-radius:8px;background:#3A3F47;color:#fff;font-size:15px}.tz-l{display:flex;flex-wrap:wrap;gap:5px;padding:6px;min-height:44px}.tz-c{min-height:40px;padding:0 10px;border-radius:999px;border:1.5px solid #C9C3B6;background:#fff;font:700 14px system-ui;color:#14171C;touch-action:none;cursor:grab}.tz-c.on{background:#14171C;border-color:#14171C;color:#fff}.tz-banc{margin-top:10px;background:#fff;border:1.5px solid #E6E1D6;border-radius:14px;padding:10px 12px}" +
+    ".gr-w{font:15px/1.4 system-ui,sans-serif;color:#14171C}.gr-w h2{margin:0 0 4px;font-size:22px}.gr-w h3{margin:14px 0 6px;font-size:17px}.gr-mut{color:#6A6F78;font-size:13.5px}.gr-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}" +
     ".gr-b{min-height:40px;border-radius:10px;border:1.5px solid #E6E1D6;background:#fff;font:700 14px system-ui;padding:0 12px;cursor:pointer;color:#14171C}.gr-b.p{background:var(--gr,#14171C);border-color:var(--gr,#14171C);color:#fff}.gr-sel{height:40px;border-radius:10px;border:1.5px solid #E6E1D6;background:#fff;font:600 14px system-ui;padding:0 8px}" +
     ".gr-tabs{display:flex;gap:6px;margin:10px 0;border-bottom:2px solid #E6E1D6}.gr-tabs button{border:0;background:none;font:800 15px system-ui;padding:8px 12px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:#4A4F58}.gr-tabs button[aria-selected=true]{border-color:var(--gr,#14171C);color:#14171C}" +
     ".gr-cols{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:8px;overflow:auto}.gr-col{background:#fff;border:1.5px solid #E6E1D6;border-radius:12px;padding:8px;min-height:120px}.gr-col.over{outline:3px dashed var(--gr,#14171C)}.gr-col h4{margin:0 0 6px;font-size:14px;display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center}" +
@@ -227,6 +229,83 @@
     draw();
     return { redraw: draw, set: function (p) { if (p.dir) dir = p.dir; if (p.cls) cls = p.cls; if (p.tab) tab = p.tab; RES = null; draw(); } };
   }
+
+  /* ================= 🗺 Plan de terrain =================
+     Les groupes du jour posés sur les installations : des zones (terrains, ateliers) que l'enseignant nomme et dispose, sur un schéma
+     ou une photo du lieu s'il en dépose un ; les élèves se déplacent au doigt (glisser, ou toucher l'élève puis la zone).
+     « 📡 Envoyer aux tablettes » = groupes du jour (sendDay, avec le nom des zones : v.grp.nm) : rien d'autre à apprendre aux applis.
+     Magasin eps.terrain.v1 (tz|), synchronisé : lay|<dossier> {zones:[{id, nom, x, y}]} (position en % du plan) ; p|<dossier>|<classe> {cls, day, z:{zone:[noms]}}.
+     Le schéma déposé reste sur la tablette (eps.terrain.img.<dossier>, image réduite) : il n'est pas envoyé. */
+  var KTZ = "eps.terrain.v1";
+  function tzLay(dir) { var o = ld(KTZ).items["lay|" + dir]; if (o && !o.del && Array.isArray(o.zones) && o.zones.length) return o;
+    return { id: "lay|" + dir, zones: [0, 1, 2, 3].map(function (i) { return { id: "z" + (i + 1), nom: "Terrain " + (i + 1), x: 3 + (i % 2) * 50, y: 4 + Math.floor(i / 2) * 48 }; }) }; }
+  function terrain(o) {
+    o = o || {}; css(); var dir = o.dir, cls = o.cls || "", L = tzLay(dir), sel = null, arr = false, msg = "", IMGK = "eps.terrain.img." + dir;
+    var ov = document.createElement("div"); ov.className = "gr-w"; ov.style.cssText = "position:fixed;inset:0;z-index:2147483250;background:#F5F3EE;display:flex;flex-direction:column"; document.body.appendChild(ov);
+    function img() { try { return localStorage.getItem(IMGK) || ""; } catch (e) { return ""; } }
+    function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+    function plan() { var id = "p|" + dir + "|" + nn(cls), p = ld(KTZ).items[id]; if (p && !p.del && p.day === today() && p.z && typeof p.z === "object") return p; return null; }
+    /* répartition de départ : le plan du jour, sinon les groupes du jour de la leçon, sinon tout le monde sur le banc */
+    function depart() { var p = plan(), Z = {}; if (p) { L.zones.forEach(function (z) { Z[z.id] = Array.isArray(p.z[z.id]) ? p.z[z.id].slice() : []; }); return Z; }
+      L.zones.forEach(function (z) { Z[z.id] = []; }); var G = null; try { var V = ld("eps.live." + dir + ".v1"); Object.keys(V.items).forEach(function (k) { var v = V.items[k]; if (v && !v.del && nn(v.cls) === nn(cls) && v.grp && Array.isArray(v.grp.g) && v.grp.g.length) G = G || v.grp.g; }); } catch (e) {}
+      if (G) { while (L.zones.length < G.length && L.zones.length < 12) addZone(true); G.forEach(function (g, i) { var z = L.zones[Math.min(i, L.zones.length - 1)]; Z[z.id] = (Z[z.id] || []).concat(g); }); }
+      return Z; }
+    function addZone(silent) { var n = L.zones.length, id = "z" + Date.now().toString(36) + n; L.zones.push({ id: id, nom: "Terrain " + (n + 1), x: 3 + (n % 4) * 24, y: 4 + (Math.floor(n / 4) % 3) * 32 }); if (!silent) { Z[id] = []; saveLay(); } return id; }
+    function saveLay() { put(KTZ, { id: "lay|" + dir, zones: L.zones.map(function (z) { return { id: z.id, nom: String(z.nom).slice(0, 30), x: Math.round(z.x * 10) / 10, y: Math.round(z.y * 10) / 10 }; }) }); }
+    function savePlan() { var z = {}; L.zones.forEach(function (q) { z[q.id] = (Z[q.id] || []).slice(); }); put(KTZ, { id: "p|" + dir + "|" + nn(cls), cls: cls, day: today(), z: z }); }
+    var Z = depart();
+    function placed() { var P = {}; L.zones.forEach(function (z) { (Z[z.id] || []).forEach(function (n) { P[ek(n)] = z.id; }); }); return P; }
+    function move(n, zid) { L.zones.forEach(function (z) { Z[z.id] = (Z[z.id] || []).filter(function (x) { return ek(x) !== ek(n); }); }); if (zid && Z[zid]) Z[zid].push(n); sel = null; msg = ""; savePlan(); draw(); }
+    function chip(n) { var d = dispense(cls, n); return '<button type="button" class="tz-c' + (sel && ek(sel) === ek(n) ? " on" : "") + '" data-n="' + esc(n) + '">' + (d ? "🩹 " : "") + esc(n) + "</button>"; }
+    function draw() {
+      var R = roster(cls).filter(function (n) { return !absent(cls, n); }), P = placed(), banc = R.filter(function (n) { return !P[ek(n)]; }), C = classes(dir), bg = img();
+      /* un élève retiré de la liste ou absent ne reste pas sur le plan */
+      var ok = {}; R.forEach(function (n) { ok[ek(n)] = 1; }); L.zones.forEach(function (z) { Z[z.id] = (Z[z.id] || []).filter(function (n) { return ok[ek(n)]; }); });
+      ov.innerHTML = '<div style="background:#14171C;color:#fff;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;box-shadow:inset 0 -4px 0 ' + ((DIRS[dir] || [])[2] || "#888") + '"><b style="font-size:18px;flex:1;min-width:150px">🗺 Plan de terrain' + (DIRS[dir] ? " · " + DIRS[dir][1] : "") + "</b>" +
+        '<select data-cls aria-label="Classe" style="min-height:40px;border-radius:10px;padding:0 8px;font:700 15px system-ui">' + C.map(function (c) { return "<option" + (nn(c) === nn(cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" +
+        '<button type="button" class="tz-t" data-x>✕ Fermer</button></div>' +
+        '<div style="padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border-bottom:1px solid #E6E1D6">' +
+        '<button type="button" class="gr-b' + (arr ? " p" : "") + '" data-arr aria-pressed="' + arr + '">' + (arr ? "✓ Disposition terminée" : "✎ Disposer les zones") + "</button>" +
+        (arr ? '<button type="button" class="gr-b" data-add>＋ Zone</button><label class="gr-b" style="display:inline-flex;align-items:center;cursor:pointer">🖼 Schéma du lieu<input type="file" accept="image/*" data-img style="display:none"></label>' + (bg ? '<button type="button" class="gr-b" data-noimg>Retirer le schéma</button>' : "")
+          : '<select data-mode aria-label="Type de groupes" style="min-height:44px;border-radius:12px;border:1.5px solid #E6E1D6;padding:0 8px;font:700 15px system-ui">' + MODES.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + "</option>"; }).join("") + '</select><button type="button" class="gr-b" data-mk>🎲 Répartir</button><button type="button" class="gr-b" data-vide>Tout remettre sur le banc</button><button type="button" class="gr-b p" data-send>📡 Envoyer aux tablettes</button>') +
+        '<span class="gr-mut" data-msg role="status" style="font-weight:800;color:#1E6B3A">' + esc(msg) + "</span></div>" +
+        '<div style="flex:1;overflow:auto;padding:10px 12px"><div data-map style="position:relative;width:100%;min-height:440px;height:62vh;border:2px dashed #C9C3B6;border-radius:16px;background:' + (bg ? "#fff url(" + bg + ") center/contain no-repeat" : "#E9F0E4") + ';touch-action:none">' +
+        L.zones.map(function (z, i) { var g = Z[z.id] || []; return '<div class="tz-z' + (arr ? " arr" : "") + '" data-z="' + esc(z.id) + '" style="left:' + z.x + "%;top:" + z.y + '%"><div class="tz-h" data-zh="' + esc(z.id) + '"><b>' + esc(z.nom) + "</b><span>" + g.length + "</span>" + (arr ? '<button type="button" data-ren="' + i + '" aria-label="Renommer ' + esc(z.nom) + '">✎</button><button type="button" data-delz="' + i + '" aria-label="Supprimer ' + esc(z.nom) + '">✕</button>' : "") + '</div><div class="tz-l">' + (g.map(chip).join("") || '<span class="gr-mut">' + (arr ? "glisse le titre pour déplacer" : "vide") + "</span>") + "</div></div>"; }).join("") + "</div>" +
+        '<div data-z="" class="tz-banc"><b>Banc · ' + banc.length + " élève" + (banc.length > 1 ? "s" : "") + ' à placer</b><div class="tz-l" style="margin-top:6px">' + (banc.map(chip).join("") || '<span class="gr-mut">Tout le monde est placé.</span>') + '</div></div><p class="gr-mut">Glisse un élève vers une zone, ou touche-le puis touche la zone. 🩹 = dispensé (à placer sur un rôle). Les absents à l\'appel ne sont pas affichés.</p></div>';
+      var q = function (x) { return ov.querySelector(x); }, qa = function (x) { return Array.prototype.slice.call(ov.querySelectorAll(x)); };
+      q("[data-x]").onclick = function () { ov.remove(); if (o.onClose) try { o.onClose(); } catch (e) {} };
+      q("[data-cls]").onchange = function () { cls = this.value; sel = null; msg = ""; Z = depart(); draw(); };
+      q("[data-arr]").onclick = function () { arr = !arr; sel = null; msg = ""; draw(); };
+      if (arr) { q("[data-add]").onclick = function () { if (L.zones.length >= 12) { msg = "12 zones au plus."; draw(); return; } addZone(); draw(); };
+        qa("[data-ren]").forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); var z = L.zones[+b.dataset.ren], v = prompt("Nom de la zone (terrain, atelier, rôle…)", z.nom); if (v && v.trim()) { z.nom = v.trim().slice(0, 30); saveLay(); draw(); } }; });
+        qa("[data-delz]").forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); var i = +b.dataset.delz, z = L.zones[i]; if (L.zones.length < 2) { msg = "Garde au moins une zone."; draw(); return; } if ((Z[z.id] || []).length && !confirm("Supprimer « " + z.nom + " » ? Ses élèves retournent sur le banc.")) return; L.zones.splice(i, 1); delete Z[z.id]; saveLay(); savePlan(); draw(); }; });
+        q("[data-img]").onchange = function () { var f = this.files && this.files[0]; if (!f) return; var r = new FileReader(); r.onload = function () { var im = new Image(); im.onload = function () { var k = Math.min(1, 1400 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+              try { localStorage.setItem(IMGK, c.toDataURL("image/jpeg", .6)); msg = "✓ Schéma enregistré sur cette tablette"; } catch (e) { msg = "Image trop lourde pour la mémoire de la tablette."; } draw(); }; im.onerror = function () { msg = "Image illisible."; draw(); }; im.src = r.result; }; r.readAsDataURL(f); };
+        var ni = q("[data-noimg]"); if (ni) ni.onclick = function () { try { localStorage.removeItem(IMGK); } catch (e) {} draw(); };
+      } else {
+        q("[data-mk]").onclick = function () { var R2 = pratiquants(cls); if (!R2.length) { msg = "Aucun élève présent à répartir."; draw(); return; } var r = make({ dir: dir, cls: cls, names: R2, n: L.zones.length, mode: q("[data-mode]").value }), G = (r && r.g) || [];
+          L.zones.forEach(function (z, i) { Z[z.id] = (G[i] || []).slice(); }); sel = null; msg = "✓ " + R2.length + " élèves répartis sur " + L.zones.length + " zones"; savePlan(); draw(); };
+        q("[data-vide]").onclick = function () { L.zones.forEach(function (z) { Z[z.id] = []; }); sel = null; msg = ""; savePlan(); draw(); };
+        q("[data-send]").onclick = function () { var ZN = L.zones.filter(function (z) { return (Z[z.id] || []).length; }); if (!ZN.length) { msg = "Place d'abord des élèves dans les zones."; draw(); return; }
+          sendDay(dir, cls, ZN.map(function (z) { return Z[z.id].filter(function (n) { return !dispense(cls, n); }); }).map(function (g, i) { return g.length ? g : Z[ZN[i].id].slice(); }), "plan", ZN.map(function (z) { return z.nom; }));
+          msg = "✓ Envoyé : les groupes du jour s'affichent sur les tablettes et dans 📡 Leçon en cours"; draw(); }; }
+      /* toucher l'élève puis la zone */
+      qa("[data-n]").forEach(function (b) { b.addEventListener("click", function (e) { e.stopPropagation(); if (arr || b._drag) return; sel = sel && ek(sel) === ek(b.dataset.n) ? null : b.dataset.n; draw(); }); });
+      qa("[data-z]").forEach(function (zd) { zd.addEventListener("click", function () { if (arr || !sel) return; move(sel, zd.dataset.z); }); });
+      /* glisser : un élève vers une zone, ou (mode disposition) une zone sur le plan */
+      var map = q("[data-map]");
+      qa("[data-n]").forEach(function (b) { b.addEventListener("pointerdown", function (e) { if (arr) return; var x0 = e.clientX, y0 = e.clientY, gh = null, n = b.dataset.n;
+          function mv(ev) { if (!gh && Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 10) return; if (!gh) { b._drag = true; gh = b.cloneNode(true); gh.style.cssText = "position:fixed;z-index:2147483600;pointer-events:none;opacity:.9;box-shadow:0 6px 18px rgba(0,0,0,.3)"; document.body.appendChild(gh); } gh.style.left = (ev.clientX - 40) + "px"; gh.style.top = (ev.clientY - 20) + "px"; ev.preventDefault(); }
+          function up(ev) { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up); if (!gh) return; gh.remove(); var t = document.elementFromPoint(ev.clientX, ev.clientY), zd = t && t.closest ? t.closest("[data-z]") : null; setTimeout(function () { b._drag = false; }, 50); if (zd && ov.contains(zd)) move(n, zd.dataset.z); }
+          document.addEventListener("pointermove", mv, { passive: false }); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up); }); });
+      if (arr) qa("[data-zh]").forEach(function (hd) { hd.addEventListener("pointerdown", function (e) { if (e.target.closest("button")) return; var z = L.zones.filter(function (q2) { return q2.id === hd.dataset.zh; })[0], box = hd.parentNode, r = map.getBoundingClientRect(), dx = e.clientX - box.getBoundingClientRect().left, dy = e.clientY - box.getBoundingClientRect().top; if (!z) return; e.preventDefault();
+          function mv(ev) { z.x = Math.max(0, Math.min(80, (ev.clientX - dx - r.left) / r.width * 100)); z.y = Math.max(0, Math.min(82, (ev.clientY - dy - r.top) / r.height * 100)); box.style.left = z.x + "%"; box.style.top = z.y + "%"; ev.preventDefault(); }
+          function up() { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up); saveLay(); }
+          document.addEventListener("pointermove", mv, { passive: false }); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up); }); });
+    }
+    try { if (window.EPSD && EPSD.store) EPSD.store({ key: KTZ, pre: "tz|", onChange: function () {} }); } catch (e) {}
+    draw(); return ov;
+  }
   function open(o) {
     o = o || {}; css(); var ov = document.createElement("div");
     ov.style.cssText = "position:fixed;inset:0;z-index:2147483300;background:rgba(20,23,28,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px";
@@ -235,5 +314,5 @@
     if (!o.cls) try { var c = window.epsCurrentClass && epsCurrentClass(); if (c && c.nom) o.cls = c.nom; } catch (e) {}
     render(ov.querySelector("[data-in]"), Object.assign({ fixDir: !!o.dir }, o)); return ov;
   }
-  window.EPSGR = { open: open, render: render, make: make, levels: levels, auto: auto, manual: manual, pairs: pairs, frequent: frequent, aff: affItem, sendDay: sendDay, classes: classes, pratiquants: pratiquants, DIRS: DIRS, MODES: MODES, ek: ek };
+  window.EPSGR = { open: open, terrain: terrain, render: render, make: make, levels: levels, auto: auto, manual: manual, pairs: pairs, frequent: frequent, aff: affItem, sendDay: sendDay, classes: classes, pratiquants: pratiquants, DIRS: DIRS, MODES: MODES, ek: ek };
 })();

@@ -99,3 +99,4 @@ Page d'accueil → 🔒 Enseignant → carte Listes d'élèves → « ⚙ Partag
 
 ### Référentiel de compétences (`eps-ref.js`, `referentiel/`)
 - Outil enseignant : objectifs généraux, champs d'apprentissage, AFL / AFLP, éléments prioritaires (modifiables), répertoire de compétences générales. Chaque critère de grille (compétence spécifique) est rattaché une seule fois ; les degrés viennent des évaluations des applis (relevé automatique en mode enseignant). Suivi par élève, par classe, couverture par classe ; profil dans le carnet de l'élève si l'enseignant le rend visible. Détails : `eps-autonomie-numerique/CLAUDE.md`.
+- Carnet de classe à colonnes libres (onglet du Référentiel), repères rapides depuis la tablette de contrôle, plan de terrain (`EPSGR.terrain`), coévaluation entre élèves (`eps-eval.js`), corbeille commune (`EPSD.trash`) : voir la charte.
