@@ -43,6 +43,8 @@ function doGet(e) {
   res.dropv = 1; /* ce script reçoit les auto-positionnements (remplace le script de Danse) */
   if (res.keyOk && p.drops !== undefined) Object.assign(res, dropPull_(p));
   if (p.dropchk !== undefined) res.drop = dropCheck_(String(p.dropchk)); /* l'élève vérifie que son dépôt est arrivé (début du texte chiffré seulement) */
+  if (res.keyOk) res.chkv = 1; /* ce script sait confirmer la réception d'un envoi (chk) */
+  if (res.keyOk && p.chk !== undefined) res.chk = syncChk_(p.chk);
   if (res.keyOk && p.pull !== undefined) Object.assign(res, syncPull_(p));
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
   if (p.bil) { try { res.bil = bilansGet_(String(p.bil)); res.bilv = 1; } catch (err) { res.bilErr = String(err && err.message || err); } }
@@ -103,6 +105,20 @@ function syncPush_(s) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/** Confirmation de réception : pour une liste de clés (JSON), la version (u) que le script détient réellement.
+ *  Les tablettes envoient « à l'aveugle » (la réponse d'un envoi n'est pas lisible) : elles ne retirent un envoi de leur
+ *  file d'attente qu'après avoir lu ici que le script l'a bien enregistré. */
+function syncChk_(txt) {
+  let keys = [];
+  try { keys = JSON.parse(String(txt || '[]')); } catch (err) { return {}; }
+  if (!Array.isArray(keys) || !keys.length) return {};
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SYNC_SHEET), out = {};
+  if (!sh || sh.getLastRow() < 2) return out;
+  const want = {}; keys.slice(0, 200).forEach(k => { want[String(k)] = 1; });
+  sh.getRange(2, 2, sh.getLastRow() - 1, 2).getValues().forEach(r => { const k = String(r[0]); if (want[k]) out[k] = Math.max(out[k] || 0, Number(r[1]) || 0); });
+  return out;
 }
 
 /** Éléments modifiés depuis « since » (par paquets de 300) ; « pre » limite à un préfixe de clé (ex. disp|). */

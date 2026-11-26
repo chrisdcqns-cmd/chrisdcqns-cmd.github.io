@@ -68,19 +68,19 @@ for p in list(B.glob("*/index.html")) + [B / "index.html"]:
     if not (p.parent / "src").is_dir() and "eps-source-directe" not in p.read_text(encoding="utf-8", errors="replace")[:600]:
         pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
 REPERES = {
-    "danse/index.html": ["function P01(", "P01(au.pos)", "P01(sel.pos)", "P01(x.pos)", "EPSG_Q", "UI.mode"],
-    "volley/index.html": ["function jsq(", "confirm(&quot;Changer l'équipe", "EPSG.sheet("],
-    "badminton/index.html": ["EPSG.sheet(", "Fiches techniques"],
+    "danse/index.html": ["SY.c[k] = { u: SY.p[k]", "function P01(", "P01(au.pos)", "P01(sel.pos)", "P01(x.pos)", "EPSG_Q", "UI.mode"],
+    "volley/index.html": ["pd.n=(pd.n||0)+1", "function jsq(", "confirm(&quot;Changer l'équipe", "EPSG.sheet("],
+    "badminton/index.html": ["pd.n=(pd.n||0)+1", "EPSG.sheet(", "Fiches techniques"],
     "acrosport/index.html": ["EPSG.sheet(", "Array.isArray(def)!==Array.isArray(p)", "const autres="],
     "crosstraining/index.html": ["function panneauClasses(", "Array.isArray(f.exercices)"],
     "ccf/index.html": ["tabs:{ccf:false,seq:"],
     "console/index.html": ["doit être un nombre", "if (sm) sm.textContent"],
     "mon-bilan/index.html": ["ton enseignant"],
-    "eps-home.js": ["function gateSheet(", "sheet: gateSheet"],
+    "eps-home.js": ["function gateSheet(", "sheet: gateSheet", "async function confirmes(", "ESSAIS_MAX"],
     "eps-lists.js": ["typeof def === \"number\" && (typeof o.v !== \"number\""],
     "eps-shell.js": ["doit être un nombre"],
     "eps-lecons.js": ["if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
-    "apps-script/Code.gs": ["function modele_(", "function sansCache_(", "function lisJson_("],
+    "apps-script/Code.gs": ["function modele_(", "function sansCache_(", "function lisJson_(", "function syncChk_(", "res.chkv = 1"],
 }
 for f, L in REPERES.items():
     t = (B / f).read_text(encoding="utf-8", errors="replace")

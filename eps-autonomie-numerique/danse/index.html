@@ -3671,7 +3671,8 @@ async function synchroniser() {
       if (!q.sync) { SY.err = 'script'; sySave(); return { err: 'script' }; }
       const L = q.recs || [];
       for (const [, kk, u, d, x] of L) {
-        const k = String(kk).slice(6); if ((+u || 0) <= (SY.u[k] || 0)) continue;
+        const k = String(kk).slice(6); if (SY.c && SY.c[k] && (+u || 0) >= SY.c[k].u) delete SY.c[k]; /* le script a bien reçu notre envoi */
+        if ((+u || 0) <= (SY.u[k] || 0)) continue;
         let o = null; if (!+d) { try { o = await syDec(cfg.key, x); } catch (e) { continue; } }
         const t = syAppliquer(k, !!+d, o, +u || 0); if (t) recus = recus.concat(t);
       }
@@ -3679,6 +3680,8 @@ async function synchroniser() {
       if (!q.more) break;
     }
     S.classes.forEach(c => delete c._recu);
+    /* envois jamais confirmés par le script (échec côté Google) : renvoyés, 8 essais au plus */
+    if (SY.c) for (const k of Object.keys(SY.c)) { const c = SY.c[k]; if (Date.now() - c.t < 15000) continue; if (c.n >= 8 || (SY.u[k] || 0) > c.u) { delete SY.c[k]; continue; } if (!SY.p[k]) SY.p[k] = c.u; }
     if (recus.length) {
       const R = enregistrements(); recus.forEach(k => { if (!SY.p[k]) SY.h[k] = k in R ? hs(JSON.stringify(R[k])) : 'DEL'; else if (k in R) SY.h[k] = hs(JSON.stringify(R[k])); });
       saveNow(); syScan();
@@ -3691,7 +3694,8 @@ async function synchroniser() {
         const lot = ks.slice(i, i + 40), recs = [];
         for (const k of lot) { const del = !(k in R); recs.push({ k: 'danse|' + k, u: SY.p[k], d: del ? 1 : 0, x: del ? '' : await syEnc(cfg.key, R[k]) }); }
         await fetch(cfg.url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: cfg.key, sync: { dev: 'danse', recs } }) });
-        lot.forEach(k => { SY.u[k] = SY.p[k]; delete SY.p[k]; });
+        /* envoi « à l'aveugle » : gardé dans SY.c jusqu'à ce que le script le renvoie (confirmation au prochain relevé) */
+        SY.c = SY.c || {}; lot.forEach(k => { SY.c[k] = { u: SY.p[k], t: Date.now(), n: ((SY.c[k] && SY.c[k].n) || 0) + 1 }; SY.u[k] = SY.p[k]; delete SY.p[k]; });
         sySave();
       }
     }

@@ -87,3 +87,6 @@ Mode `badind` (Claude Sonnet, outil `proposer_indicateurs`) : l'appli envoie la 
 - Modèles par défaut : `claude-haiku-5-5` (reformulations courtes) et `claude-sonnet-5-5` (leçons, grilles, bilans, console, situations). Pour en changer sans toucher au code : propriétés du script `CLAUDE_MODELE_RAPIDE` et `CLAUDE_MODELE_PRECIS` (laisser vide = valeur par défaut). Si un modèle est retiré, le message d'erreur le dit et rappelle ces deux propriétés.
 - Fiches de leçon : la consigne générale et les documents de l'enseignant sont marqués pour la mise en cache (`cache_control`, 5 minutes) dès que les documents dépassent 4 000 caractères ; la consigne propre au mode (importer, suivante, variante…) est placée à la fin de la demande pour que le début reste identique d'un appel à l'autre. Si l'API refuse la mise en cache, la même demande repart sans (`sansCache_`).
 - Réponses JSON : `lisJson_` (message clair si la réponse est coupée ou mal formée).
+
+## Confirmation de réception (26/11/2026)
+- `?chk=["clé",…]` (avec la clé) renvoie `chk: {clé: u}` : la version que la feuille détient. Les tablettes ne retirent un envoi de leur file d'attente qu'après cette confirmation (`res.chkv = 1` signale que le script sait le faire). Sans cette version du script, les applis gardent l'ancien comportement.

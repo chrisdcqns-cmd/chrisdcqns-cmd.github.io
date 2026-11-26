@@ -180,8 +180,14 @@
         var lr = [];
         for (var li = 0; li < lk.length; li++) { var lo = LL.items[lk[li]]; if (!lo) continue; lr.push(lo.del ? { k: "lst|" + lk[li], u: LL.pend[lk[li]], d: 1 } : { k: "lst|" + lk[li], u: LL.pend[lk[li]], d: 0, x: await enc(cfg.key, JSON.stringify(lo)) }); }
         if (lr.length) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, sync: { dev: "listes", recs: lr } }) });
-        LL = lld(); lk.forEach(function (k) { delete LL.pend[k]; }); lsv(LL);
         await new Promise(function (r) { setTimeout(r, 1200); });
+        var lw = {}, lcf = null; lk.forEach(function (k) { if (LL.items[k]) lw["lst|" + k] = LL.pend[k]; });
+        try { lcf = lr.length ? await confirmes(cfg, lw) : {}; } catch (e) { lcf = null; }
+        var LN = lld(); LN.essais = LN.essais || {};
+        lk.forEach(function (k) { if (LN.pend[k] !== LL.pend[k]) return;
+          if (!LL.items[k] || lcf === "ancien" || (lcf && lcf["lst|" + k])) { delete LN.pend[k]; delete LN.essais[k]; return; }
+          LN.essais[k] = (LN.essais[k] || 0) + 1; if (LN.essais[k] >= ESSAIS_MAX) { delete LN.pend[k]; delete LN.essais[k]; } });
+        lsv(LN);
       }
       var changed = false;
       for (var loop = 0; loop < 20; loop++) {
@@ -233,7 +239,7 @@
   }
   /* magasins de données génériques (ex. évaluations d'eps-eval.js) : {pre, key, onChange} ;
      localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
-  var STORES = [];
+  var STORES = [], ESSAIS_MAX = 8; /* essais sans confirmation avant de lever l'attente quand même (évite de renvoyer sans fin) */
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
   var AUTOPAT = [[/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
     [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
@@ -258,13 +264,35 @@
         document.body.appendChild(f); setTimeout(function () { f.remove(); res(); }, 14000); }); }
     try { await applyLocal(); } catch (e) {}
     step(DIRS.length + 1, "✓ Terminé. Les données des autres tablettes sont sur celle-ci. Ouvre une appli pour vérifier ; si une donnée manque, attends une minute puis touche 🔄."); }
+  /* ✔ Confirmation de réception. Les envois partent « à l'aveugle » (no-cors : la réponse du script n'est pas lisible) ; si le
+     script échoue (trop de tablettes en même temps, quota Google…), l'ancien code croyait l'envoi fait. confirmes(cfg, {clé: u})
+     demande au script la version qu'il détient et rend {clé: true} pour les envois bien reçus ; null si la question n'a pas
+     abouti (réseau) ; "ancien" si le script n'a pas encore cette fonction (ancien comportement : envoi supposé reçu). */
+  async function confirmes(cfg, want) {
+    var keys = Object.keys(want), ok = {};
+    for (var i = 0; i < keys.length; i += 30) {
+      var lot = keys.slice(i, i + 30), r = await jsonp(cfg, { chk: JSON.stringify(lot) }, 20000);
+      if (!r || !r.keyOk) return null;
+      if (!r.chkv || !r.chk) return "ancien";
+      lot.forEach(function (k) { if ((+r.chk[k] || 0) >= (+want[k] || 0)) ok[k] = true; });
+    }
+    return ok;
+  }
   async function syncStore(cfg, st) {
     var V = stLd(st.key), pk = Object.keys(V.pend), sent = {};
     if (pk.length) { var recs = [];
       for (var i = 0; i < pk.length; i++) { var it = V.items[pk[i]]; if (!it) continue; sent[pk[i]] = V.pend[pk[i]]; recs.push({ k: st.pre + pk[i], u: V.pend[pk[i]], d: 0, x: await enc(cfg.key, JSON.stringify(it)) }); }
       if (recs.length) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, sync: { dev: "eval", recs: recs } }) });
-      V = stLd(st.key); Object.keys(sent).forEach(function (k) { if (V.pend[k] === sent[k]) delete V.pend[k]; }); jsetS(st.key, V);
-      await new Promise(function (r) { setTimeout(r, 1200); }); }
+      await new Promise(function (r) { setTimeout(r, 1200); });
+      /* l'attente n'est levée que pour ce que le script confirme avoir reçu ; le reste repart au prochain tour */
+      var want = {}, cf = null; Object.keys(sent).forEach(function (k) { want[st.pre + k] = sent[k]; });
+      try { cf = recs.length ? await confirmes(cfg, want) : {}; } catch (e) { cf = null; }
+      V = stLd(st.key); V.essais = V.essais || {};
+      Object.keys(sent).forEach(function (k) { if (V.pend[k] !== sent[k]) return; /* modifié entre-temps : reste en attente */
+        if (cf === "ancien" || (cf && cf[st.pre + k])) { delete V.pend[k]; delete V.essais[k]; return; }
+        V.essais[k] = (V.essais[k] || 0) + 1; if (V.essais[k] >= ESSAIS_MAX) { delete V.pend[k]; delete V.essais[k]; } });
+      pk.forEach(function (k) { if (!V.items[k] && V.pend[k]) { delete V.pend[k]; delete V.essais[k]; } }); /* élément disparu : plus rien à envoyer */
+      jsetS(st.key, V); }
     var ch = false;
     if (st.pushOnly) return;
     for (var loop = 0; loop < 20; loop++) {

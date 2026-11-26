@@ -3227,7 +3227,9 @@ async function syCycle(){
         for(const k of keys.slice(i,i+60)){const pd=SY.pend[k];if(!pd)continue;
           if(pd.d)recs.push({k,u:pd.u,d:1});else{if(!O)O=syRecords();if(!(k in O)){delete SY.pend[k];continue}recs.push({k,u:pd.u,d:0,x:await syEnc(O[k])})}}
         if(recs.length)await fetch(ch.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:ch.key,sync:{dev:'badminton',recs:recs.map(r=>({...r,k:ch.pre+r.k}))}})});
-        recs.forEach(r=>{if(SY.pend[r.k]&&SY.pend[r.k].u===r.u)delete SY.pend[r.k]})}
+        /* l'attente n'est plus levée ici : seulement quand le script renvoie l'élément (syPull), sinon il repart au prochain tour ;
+           au bout de 8 essais sans retour, on lève quand même (évite de renvoyer sans fin) */
+         recs.forEach(r=>{const pd=SY.pend[r.k];if(pd&&pd.u===r.u){pd.n=(pd.n||0)+1;if(pd.n>=8)delete SY.pend[r.k]}})}
       await new Promise(r=>setTimeout(r,1200))}
     if(await syPull()){SY.last=Date.now();SY.err=''}
   }catch(e){SY.err='Synchronisation impossible pour le moment (réseau ?).'}
