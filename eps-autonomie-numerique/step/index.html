@@ -81,12 +81,12 @@ svg.sch{display:block;width:100%;height:auto;border-radius:10px;background:#EEF0
 .voile.plein{padding:0;background:#14171C}
 .voile.plein .pl{max-width:none;min-height:100vh;border-radius:0;display:flex;flex-direction:column}
 .voile.plein .pl-corps{flex:1;min-height:0}
-#plSvg{width:min(100%,calc((100vh - 330px)*1.25));min-width:200px;margin:auto}
+#plSvg{width:min(100%,calc((100vh - 390px)*1.25));min-width:200px;margin:auto}
 .pl-prog{height:8px;background:#2A2F37}.pl-prog i{display:block;height:100%;width:0;background:var(--app)}
 .pl-suiv{display:flex;align-items:center;gap:10px}
 .pl-suiv .mini{width:86px;flex:none;opacity:.9}
 .pl-haut{display:flex;align-items:center;gap:10px;padding:12px 14px;box-shadow:inset 0 -4px 0 var(--app)}
-.pl-haut b{flex:1;font-size:26px;line-height:1.1}
+.pl-haut b{flex:1;font-size:clamp(34px,7vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.01em}
 .pl-haut span{color:#A9AEB8;font-weight:700;font-size:13px}
 .pl-x{border:1px solid #3A3F47;background:none;color:#D5D8DE;border-radius:10px;min-width:44px;min-height:44px;font-size:18px}
 .pl-corps{display:grid;grid-template-columns:1fr 130px;gap:12px;padding:12px 14px;align-items:center}
@@ -112,7 +112,7 @@ svg.sch{display:block;width:100%;height:auto;border-radius:10px;background:#EEF0
 table.t{width:100%;border-collapse:collapse;font-size:14px}
 table.t th,table.t td{border-bottom:1px solid var(--ligne);padding:8px 6px;text-align:left;vertical-align:top}
 .obs3{display:flex;gap:6px;flex-wrap:wrap}
-@media (max-width:640px){#plSvg{width:min(100%,calc((100vh - 420px)*1.25))}.pl-suiv .mini{width:64px}.ed{grid-template-columns:1fr}.temps{grid-template-columns:repeat(2,1fr)}.pl-corps{grid-template-columns:1fr}.pl-k{font-size:64px}.ligne .mini{width:56px}}
+@media (max-width:640px){#plSvg{width:min(100%,calc((100vh - 460px)*1.25))}.pl-suiv .mini{width:64px}.ed{grid-template-columns:1fr}.temps{grid-template-columns:repeat(2,1fr)}.pl-corps{grid-template-columns:1fr}.pl-k{font-size:64px}.ligne .mini{width:56px}}
 @media print{header,nav.onglets,.f-haut .btn,.no-print{display:none!important}.voile{position:static;background:none;padding:0}.app{display:none}}
 </style>
 </head>
@@ -392,6 +392,7 @@ function vueBloc(){ const b=blocCourant(); if(!b) return vueGroupe(); const J=jo
      <button type="button" class="btn plein ${b.sym?"on":""}" data-act="blSym" style="margin-top:10px" aria-pressed="${b.sym?"true":"false"}">⇄ Enchaîner aussi de l'autre côté ${b.sym?"· oui":"· non"}</button></div>
    <div class="rang"><button type="button" class="btn p" data-act="blJouer" ${b.items.length?"":"disabled"} style="flex:1">▶ Lancer le bloc</button><button type="button" class="btn" data-act="blFiche" ${b.items.length?"":"disabled"}>📄 Fiche du bloc</button></div>
    ${L.filter(x=>x.items.length).length>1?`<button type="button" class="btn p plein" data-act="blChore" style="margin-top:8px">▶ Suivre toute la chorégraphie · ${L.filter(x=>x.items.length).length} blocs · ${L.reduce((t,x)=>t+tempsBloc(x),0)} temps</button>`:""}
+   <button type="button" class="btn plein" data-act="blExport" ${L.some(x=>x.items.length)?"":"disabled"} style="margin-top:8px">⬇ Exporter ma chorégraphie (PDF ou vidéo)</button>
    <div class="rang" style="margin-top:10px"><button type="button" class="btn" data-act="blNom">✎ Renommer</button>${L.length>1?`<button type="button" class="btn dng" data-act="blSuppr">🗑 Supprimer ce bloc</button>`:""}<button type="button" class="btn" data-act="chgGroupe">👥 Changer de groupe</button></div>
    ${fcCarte(J)}
    ${O.length?`<div class="carte" style="margin-top:14px"><h3>👀 Retours des observateurs</h3>${O.slice(0,6).map(obsHtml).join("")}</div>`:""}`; }
@@ -440,6 +441,14 @@ function plBat(i,d){ if(!PL) return; const n=PL.seq.length;
 }
 function plPause(){ if(!PL) return; if(PL.pause){ plDepart(PL.base,!PL.fin); return; } mtStop(); veille(false); PL.pause=true; const s=PL.seq[PL.cur||0]; PL.base=Math.max(0,(PL.cur||0)-(s.k-1)); /* reprise au début du pas en cours, sans décompte */ $("#plPause").textContent="▶ Reprendre"; }
 function itemsBloc(b){ const A=b.items.map(x=>({p:x.p,m:x.m,b:b.nom,bpm:b.bpm})); return b.sym?A.concat(A.map(x=>({p:x.p,m:x.m?0:1,b:b.nom+" · autre côté",bpm:b.bpm}))):A; }
+/* ⬇ Export (PDF ou vidéo, bloc par bloc ou en entier) : step/export.js, chargé à la demande ; rien n'est envoyé, le fichier est fabriqué sur l'appareil */
+function donneesExport(cls,gk){ const L=blocsDe(cls,gk).filter(b=>b.items.length), P={}; L.forEach(b=>b.items.forEach(x=>{ const p=pasId(x.p); if(p) P[p.id]={nom:p.nom,n:p.n,c:p.c}; }));
+  let R={}; try{ R=(window.EPSR&&EPSR.get&&EPSR.get())||{}; }catch(e){}
+  return {titre:"Chorégraphie",noms:((L[L.length-1]||{}).noms||[]).map(prenom),classe:cls,etab:String(R.etab||""),prof:String(R.prof||""),blocs:L.map(b=>({nom:b.nom,bpm:b.bpm,sym:b.sym,items:b.items})),pas:P,dec:DEC,etats:ETATS,base:"../"}; }
+let EXP_P=null;
+function exporter(cls,gk){ if(!blocsDe(cls,gk).some(b=>b.items.length)) return toast("Rien à exporter : compose d'abord un bloc.");
+  mtStop(); EXP_P=EXP_P||new Promise((ok,ko)=>{ if(window.EPSSTEP) return ok(); const s=document.createElement("script"); s.src="export.js"; s.onload=()=>window.EPSSTEP?ok():ko(); s.onerror=()=>{ EXP_P=null; ko(); }; document.head.appendChild(s); });
+  EXP_P.then(()=>EPSSTEP.open(donneesExport(cls,gk)),()=>toast("L'export demande une première ouverture avec du réseau.")); }
 /* chorégraphie = tous les blocs du groupe, dans l'ordre */
 const choregraphie=L=>L.filter(b=>b.items.length).reduce((A,b)=>A.concat(itemsBloc(b)),[]);
 
@@ -487,6 +496,7 @@ function ctlHtml(cls,court){ const B=blocsDe(cls), J=jourDe(cls), T={}, G={}, F=
       return `<div class="carte" style="margin:0;border-left:6px solid ${frais?"#1E8A4C":on?"#E67E22":"#C9C3B6"}"><h3 style="margin-bottom:4px">👥 ${h(g.noms.map(prenom).join(", ")||"Groupe")}</h3>
        <div class="petit" style="margin-bottom:6px">${on?`<b>${h(ETAT_TXT[t.e]||"connecté")}${t.x?" « "+h(t.x)+" »":""}</b> <span class="doux">· ${depuis(t.at)}${+t.n?" · "+(+t.n)+" lancement(s)":""}</span>`:`<span class="doux">Pas connecté aujourd'hui</span>`}</div>
        ${g.blocs.map(b=>{ const tt=tempsBloc(b); return `<div style="border-top:1px solid var(--ligne);padding:8px 0"><div class="rang" style="justify-content:space-between"><b>${h(b.nom)}</b><span class="rang"><span class="puce ${tt===BLOC_T?"":"g"}">${tt} / ${BLOC_T} temps</span><span class="puce g">${b.bpm} bpm</span>${court?"":`<button type="button" class="btn" data-act="suiviJouer" data-id="${h(b.id)}" ${b.items.length?"":"disabled"}>▶ Voir</button><button type="button" class="btn ic" data-act="suiviFiche" data-id="${h(b.id)}" ${b.items.length?"":"disabled"} aria-label="Fiche du bloc">📄</button>`}</span></div><div class="petit">${b.items.map(x=>{ const p=pasId(x.p); return h(p?p.nom:"?")+(x.m?" ⇄":""); }).join(" → ")||"<span class='doux'>vide</span>"}${b.sym?" · puis de l'autre côté":""}</div></div>`; }).join("")||`<div class="petit doux">Aucun bloc pour l'instant.</div>`}
+       ${!court&&g.blocs.some(b=>b.items.length)?`<button type="button" class="btn plein" data-act="suiviExport" data-gk="${h(k)}" style="margin:2px 0 8px">⬇ Exporter la chorégraphie (PDF ou vidéo)</button>`:""}
        ${Object.keys(der).length?`<div style="border-top:1px solid var(--ligne);padding:8px 0"><div class="petit doux">❤️ Dernière mesure (${f.length} aujourd'hui)</div><div class="rang" style="margin-top:4px">${Object.keys(der).map(n=>fcPuce(J,n,der[n])).join("")}</div></div>`:J&&J.fc&&on?`<div class="petit doux" style="border-top:1px solid var(--ligne);padding-top:8px">❤️ Pas encore de mesure</div>`:""}
        ${o.length||fait?`<div class="petit" style="border-top:1px solid var(--ligne);padding-top:8px">👀 ${o.length} observation(s) reçue(s)${fait?" · "+fait+" faite(s) aujourd'hui":""}${o[0]&&o[0].com?`<br><span class="doux">Dernier conseil reçu : ${h(o[0].com)}</span>`:""}</div>`:""}</div>`; }).join("")}</div>`
     :`<p class="doux">Aucun groupe pour cette classe. Les groupes arrivent ici dès qu'une tablette choisit ses élèves.</p>`;
@@ -555,6 +565,8 @@ const ACT={
   blSym(){ const B=blocCourant(); B.sym=B.sym?0:1; sauverBloc(B); rendre(); },
   blJouer(){ const B=blocCourant(), v=bpmImpose(); lancer(itemsBloc(B),{bpm:v||B.bpm,verrou:!!v,titre:B.nom,src:"bloc"}); },
   blChore(){ const L=blocsDe(nomClasse(),S.groupe.k), v=bpmImpose(), I=choregraphie(L); lancer(I,{bpm:v||(I[0]||{}).bpm||S.bpm,verrou:!!v,titre:"Chorégraphie",src:"bloc"}); },
+  blExport(){ exporter(nomClasse(),S.groupe.k); },
+  suiviExport(b){ exporter(S.clsP,b.dataset.gk); },
   fcMes(){ const B=blocCourant(); fcOuvrir(fcMode()||"fin",B?B.nom:"",B?B.bpm:0); },
   fcGo(){ fcGo(); }, fcOk(){ fcOk(); }, fcPasser(){ fermer(); rendre(); },
   blFiche(){ ficheBloc(blocCourant()); },
@@ -617,7 +629,8 @@ function panneauBilans(el){ const C=classes(); if(!C.some(c=>c.nom===S.clsP)) S.
     return `<tr><td><b>${h(n)}</b></td><td>${mes.length?mes.map(b=>h(b.nom)).join(", "):"—"}</td><td>${mes.length?best+" temps":"—"}</td><td>${fc.length?fc.length+" · moy. "+Math.round(fc.reduce((a,b)=>a+b,0)/fc.length)+" · max "+Math.max(...fc):"—"}</td><td>${vu.length||"—"}</td><td>${fait.length||"—"}</td></tr>`; };
   el.innerHTML=`<h2>📄 Bilans</h2><p class="mut">Blocs composés et observations, puis évaluation : fiches PDF, .zip, Pronote, bilans en ligne.</p>
    <div class="epse-row" style="margin-bottom:10px"><select id="bilC" class="epst-b" aria-label="Classe">${C.map(c=>`<option ${c.nom===S.clsP?"selected":""}>${h(c.nom)}</option>`).join("")}</select></div>
-   <div class="carte" style="overflow:auto"><b>🧱 Blocs et observations · ${h(S.clsP||"")}</b><table class="t"><tr><th>Élève</th><th>Blocs</th><th>Bloc le plus long</th><th>❤️ Mesures (bpm)</th><th>Observations reçues</th><th>Observations faites</th></tr>${P.map(ligne).join("")||`<tr><td colspan="6" class="doux">Aucun élève.</td></tr>`}</table></div><div id="bil-ev"></div>`;
+   <div class="carte" style="overflow:auto"><b>🧱 Blocs et observations · ${h(S.clsP||"")}</b><table class="t"><tr><th>Élève</th><th>Blocs</th><th>Bloc le plus long</th><th>❤️ Mesures (bpm)</th><th>Observations reçues</th><th>Observations faites</th></tr>${P.map(ligne).join("")||`<tr><td colspan="6" class="doux">Aucun élève.</td></tr>`}</table></div>
+   <div class="carte"><b>⬇ Chorégraphies des élèves</b><p class="petit doux" style="margin:4px 0 10px">Chaque groupe exporte la sienne en PDF ou en vidéo depuis « Mon bloc » ; toi, depuis « Groupes en direct ». Publiées dans l'espace élève, elles se revoient et s'exportent sur le téléphone.</p><a class="btn p" href="../espace/">🌐 Publier dans l'espace élève</a></div><div id="bil-ev"></div>`;
   el.querySelector("#bilC").onchange=e=>{ S.clsP=e.target.value; panneauBilans(el); };
   if(window.EVST&&S.clsP) EVST.mount(el.querySelector("#bil-ev"),["bilan"],S.clsP); }
 /* ✅ « Tout est prêt ? » : vérifications propres au step */
