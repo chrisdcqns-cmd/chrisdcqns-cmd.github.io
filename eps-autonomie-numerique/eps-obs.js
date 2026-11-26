@@ -4,8 +4,8 @@
    et dans les appréciations de bulletin. Données : eps.obs.v1 (synchronisées et chiffrées, préfixe « ob| »). */
 (function () {
   if (window.EPSOB) return;
-  var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"], crosstraining: ["ct", "Cross-training", "#4D7C0F"], basket: ["bk", "Basket-ball", "#A4161A"] };
-  var m = location.pathname.match(/\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket)\//); if (!m) return;
+  var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"], crosstraining: ["ct", "Cross-training", "#4D7C0F"], basket: ["bk", "Basket-ball", "#A4161A"], step: ["step", "Step", "#A21CAF"] };
+  var m = location.pathname.match(/\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket|step)\//); if (!m) return;
   var APP = m[1], CODE = APPS[APP][0], NOM = APPS[APP][1], COL = APPS[APP][2], K = "eps.obs.v1", VUE = !!window.EPS_VUE_ELEVE;
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 

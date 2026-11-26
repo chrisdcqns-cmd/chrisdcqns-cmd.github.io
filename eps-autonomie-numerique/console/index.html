@@ -131,12 +131,12 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
 <script>
 (function () {
   "use strict";
-  var ACTS = [["esc", "escalade", "Escalade", "#2E7D4F"], ["rel", "relais", "Relais Vitesse", "#D9481F"], ["vol", "volley", "Volley-ball", "#6B3FA0"], ["bad", "badminton", "Badminton", "#0B7A75"], ["dan", "danse", "Danse", "#C2185B"], ["acro", "acrosport", "Acrosport", "#1F4FA3"], ["ori", "orientation", "OrienRun", "#E8701A"], ["ct", "crosstraining", "Cross-training", "#4D7C0F"], ["bk", "basket", "Basket-ball", "#A4161A"]];
+  var ACTS = [["esc", "escalade", "Escalade", "#2E7D4F"], ["rel", "relais", "Relais Vitesse", "#D9481F"], ["vol", "volley", "Volley-ball", "#6B3FA0"], ["bad", "badminton", "Badminton", "#0B7A75"], ["dan", "danse", "Danse", "#C2185B"], ["acro", "acrosport", "Acrosport", "#1F4FA3"], ["ori", "orientation", "OrienRun", "#E8701A"], ["ct", "crosstraining", "Cross-training", "#4D7C0F"], ["bk", "basket", "Basket-ball", "#A4161A"], ["step", "step", "Step", "#A21CAF"]];
   var OUTILS = [["ccf", "CCF", "#B8860B"], ["co-eval", "CO-Évaluation", "#14213D"], ["edt", "Emploi du temps", "#1F5F8B"], ["appel-as", "Appel AS", "#475569"], ["terrain", "Pose des balises", "#8A5A1F"], ["referentiel", "Référentiel", "#86198F"]];
   var NAMES = {}; ACTS.forEach(function (a) { NAMES[a[1]] = a[2]; }); OUTILS.forEach(function (a) { NAMES[a[0]] = a[1]; });
   var SECTIONS = [["accueil", "🏠", "Accueil"], ["journee", "📋", "Ma journée"], ["mesclasses", "🏫", "Mes classes"], ["lecons", "📝", "Leçons (atelier)"], ["annee", "🗓", "Programmation annuelle"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"], ["perso", "🎨", "Personnaliser la console"]];
   var KC = "eps.console.v1";
-  var AB = { "app:escalade": "Esc", "app:relais": "Rel", "app:volley": "Vol", "app:badminton": "Bad", "app:danse": "Dan", "app:acrosport": "Acr", "app:orientation": "CO", "app:crosstraining": "CT", "app:basket": "BK", "app:ccf": "CCF", "app:co-eval": "COé", "app:edt": "EDT", "app:appel-as": "AS", "app:terrain": "Bal" };
+  var AB = { "app:escalade": "Esc", "app:relais": "Rel", "app:volley": "Vol", "app:badminton": "Bad", "app:danse": "Dan", "app:acrosport": "Acr", "app:orientation": "CO", "app:crosstraining": "CT", "app:basket": "BK", "app:step": "Step", "app:ccf": "CCF", "app:co-eval": "COé", "app:edt": "EDT", "app:appel-as": "AS", "app:terrain": "Bal" };
   var LDIRS = ACTS.map(function (a) { return a[1]; }).concat(["ccf"]);
   var $ = function (s, r) { return (r || document).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -385,7 +385,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
     if (window.EPSGR) EPSGR.render($("[data-gr]", pg), { dir: cur.grDir || "badminton", cls: cur.grCls || "", tab: cur.grCls ? "grp" : "rang" }); cur.grCls = null; }
 
   /* ---------- 🎛 paramètres de toutes les applis ---------- */
-  var PDIRS = ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "crosstraining", "basket", "ccf", "co-eval", "terrain"];
+  var PDIRS = ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "crosstraining", "basket", "step", "ccf", "co-eval", "terrain"];
   function defsAll() { return jget("eps.paramdefs.v1", {}) || {}; }
   function pval(app, d) { var o = (ld("eps.param.v1").items || {})[app + "|" + d.id]; if (!o || o.del || o.v == null) return d.def; if (Array.isArray(d.def) && !Array.isArray(o.v)) return d.def; return o.v; }
   function pset(app, id, val) { var K = "eps.param.v1", V = ld(K), k = app + "|" + id, o = V.items[k], u = Math.max(Date.now(), ((o && o.u) || 0) + 1); V.items[k] = val === null ? { id: k, del: 1, u: u } : { id: k, v: val, u: u }; V.pend[k] = u; localStorage.setItem(K, JSON.stringify(V)); try { EPSD.syncSoon(); } catch (e) {} }

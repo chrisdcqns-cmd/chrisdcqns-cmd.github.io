@@ -13,8 +13,8 @@
    eps.live.<appli>.v1 (leçon en cours), eps.leceval.<appli>.v1 (évaluation de leçon), eps.lecres.<appli>.v1 (résultats des situations notés par les élèves), eps.rang.v1 (groupes de rangement, communs à toutes les applis). */
 (function () {
   if (window.EPSLC) return;
-  var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"], crosstraining: ["ct", "Cross-training", "#4D7C0F"], basket: ["bk", "Basket-ball", "#A4161A"] };
-  var m = location.pathname.match(/\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket)\//);
+  var APPS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], ccf: ["ccf", "CCF", "#B8860B"], crosstraining: ["ct", "Cross-training", "#4D7C0F"], basket: ["bk", "Basket-ball", "#A4161A"], step: ["step", "Step", "#A21CAF"] };
+  var m = location.pathname.match(/\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket|step)\//);
   if (!m) return;
   var APP = m[1], CODE = APPS[APP][0], NOM = APPS[APP][1], COL = APPS[APP][2];
   var BASE = ((document.currentScript && document.currentScript.src) || "").replace(/eps-lecons\.js.*$/, "");
@@ -386,6 +386,8 @@
         '<button type="button" class="lc-b s" data-live>📡 Piloter la leçon</button><button type="button" class="lc-b" data-plan>📋 Planche tactique</button><span class="lc-mut" style="margin:0">Actualisé à ' + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + "</span></div>" +
         '<div class="lc-kpi">' + [["🙋", pres.length + "/" + EL.length, "présents"], ["📱", tabs.length, "tablette" + (tabs.length > 1 ? "s" : "") + " active" + (tabs.length > 1 ? "s" : "") + " (5 min)"], ["🏃", act.length + "/" + pres.length, "élèves avec un résultat aujourd'hui"],
           ["✅", EL.reduce(function (a, e) { return a + e.ok; }, 0), "situations réussies"], ["❌", EL.reduce(function (a, e) { return a + e.ko; }, 0), "pas encore réussies"], ["🎯", EL.reduce(function (a, e) { return a + e.rm.length; }, 0), "remédiations en cours"], ["👁", obs.length, "observations du jour"]].map(function (k) { return "<div><i>" + k[0] + "</i><b>" + k[1] + "</b><span>" + k[2] + "</span></div>"; }).join("") + "</div>";
+      /* suivi propre à l'appli dans la tablette de contrôle : window.epsCtlApp = {label, html(classe), open(classe)} (Step : groupes, blocs, fréquence cardiaque) */
+      var XA = window.epsCtlApp; if (XA && typeof XA.html === "function") { try { h += "<h3>" + esc(XA.label || NOM) + ' <button type="button" class="lc-b s" data-xa style="margin-left:8px">Ouvrir en grand</button></h3>' + XA.html(cls); } catch (e) {} }
       if (SL.length) h += "<h3>🏃 Situations de la leçon</h3>" + '<div class="lc-kpi">' + SL.map(function (s) { var c = [0, 0, 0]; EL.forEach(function (e) { var x = e.r[s.k]; if (x != null) c[x]++; }); var n = c[0] + c[1] + c[2];
           return '<div style="' + (n && c[0] / n > ctlSeuil() ? "border-color:#C0392B" : "") + '"><b style="font-size:15px">' + esc(s.t) + "</b><span>✅ " + c[2] + " · 🟠 " + c[1] + " · ❌ " + c[0] + (n ? "" : " · aucun retour") + (n && c[0] / n > ctlSeuil() ? ' · <b style="color:#C0392B">à reprendre</b>' : "") + "</span></div>"; }).join("") + "</div>";
       if (sans.length && (v && v.on)) h += '<div class="lc-box" style="border-color:#E67E22"><b>⏳ Pas encore de retour : </b>' + sans.map(function (e) { return esc(e.n); }).join(", ") + "</div>";
@@ -401,7 +403,8 @@
       var sy = ov.querySelector(".lc-body"), top = sy ? sy.scrollTop : 0; ov.innerHTML = h + "</div></div>"; var sy2 = ov.querySelector(".lc-body"); if (sy2) sy2.scrollTop = top;
       ov.querySelector("[data-x]").onclick = close; ov.querySelector("[data-c]").onchange = function () { cls = this.value; draw(); };
       ov.querySelector("[data-live]").onclick = function () { close(); LIVECLS = cls; open("live"); };
-      ov.querySelector("[data-plan]").onclick = function () { if (window.EPSD && EPSD.planche) EPSD.planche({ cls: cls }); }; }
+      ov.querySelector("[data-plan]").onclick = function () { if (window.EPSD && EPSD.planche) EPSD.planche({ cls: cls }); };
+      var xb = ov.querySelector("[data-xa]"); if (xb) xb.onclick = function () { close(); try { window.epsCtlApp.open(cls); } catch (e) {} }; }
     draw(); T = setInterval(function () { try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} draw(); }, 8000);
   }
   /* ================= 🧪 Modalités d'évaluation personnalisées + 🧮 notes (leçon, séquence, évaluation) =================
@@ -484,7 +487,7 @@
   var VDEF = { badminton: ["Service long", "Service court", "Dégagé", "Amorti", "Smash", "Kill au filet", "Replacement au centre"], volley: ["Passe à dix doigts", "Manchette", "Service par en dessous", "Service par en haut", "Attaque", "Réception et relance"],
     relais: ["Départ du donneur", "Marque de départ", "Transmission à l'arrêt", "Transmission en course", "Course à vitesse maximale"], escalade: ["Nœud de huit", "Assurage en moulinette", "Contre-assurage", "Lecture de voie", "Grimpe en tête"],
     danse: ["Mémoriser sa chorégraphie", "Procédés de composition", "Qualité du geste", "Occupation de l'espace scénique"], orientation: ["Orienter sa carte", "Lire la légende", "Choisir un itinéraire", "Poinçonner sans erreur"],
-    crosstraining: ["Squat", "Gainage", "Burpee", "Gérer son effort (FC)", "Construire son WOD"], basket: ["Dribble de progression", "Passe à terre et passe directe", "Tir en course", "Tir à l'arrêt", "Démarquage", "Défense sur son joueur", "Rebond"], acrosport: [] /* Acrosport a déjà ses ceintures */ };
+    crosstraining: ["Squat", "Gainage", "Burpee", "Gérer son effort (FC)", "Construire son WOD"], step: ["Rester en rythme", "Pied entier sur le step", "Mémoriser un bloc", "Réaliser des deux côtés", "Composer un bloc"], basket: ["Dribble de progression", "Passe à terre et passe directe", "Tir en course", "Tir à l'arrêt", "Démarquage", "Défense sur son joueur", "Rebond"], acrosport: [] /* Acrosport a déjà ses ceintures */ };
   function vlist() { var d = VDEF[APP] || []; try { return window.EPSP ? EPSP.p({ id: "valid_list", sec: "Validations", label: "Apprentissages à valider (un par ligne)", type: "list", def: d }) : d; } catch (e) { return d; } }
   function vN() { var n = 3; try { n = +(window.EPSP ? EPSP.p({ id: "valid_n", sec: "Validations", label: "Nombre de ✅ pour proposer la validation ⭐", type: "number", def: 3 }) : 3); } catch (e) {} return isFinite(n) && n > 0 ? n : 3; }
   function vGet(cls, n) { return get(KVA, nn(cls) + "|" + ekey(n)) || { id: nn(cls) + "|" + ekey(n), cls: cls, k: ekey(n), n: n, v: {} }; }

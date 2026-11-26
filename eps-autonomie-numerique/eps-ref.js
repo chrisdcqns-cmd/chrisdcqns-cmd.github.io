@@ -198,7 +198,7 @@
     arr(window.EPSE_INST).forEach(function (x) { try { n += snapInst(x); } catch (e) { try { console.warn("eps-ref", e); } catch (z) {} } }); return n; }
 
   /* ---------- ce qui est évalué pendant les leçons (lu en direct, jamais recopié) ---------- */
-  var DIRS = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining", bk: "basket" };
+  var DIRS = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining", bk: "basket", step: "step" };
   var DNOM = { esc: "Escalade", rel: "Relais Vitesse", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ori: "OrienRun", ct: "Cross-training", bk: "Basket-ball" };
   var SC = {};   /* mémoire de lecture : le texte du magasin est comparé à chaque fois, l'analyse n'est refaite que s'il a changé (un tableau de classe relit les mêmes magasins pour chaque élève) */
   function sItems(k) { var raw = null; try { raw = localStorage.getItem(k); } catch (e) {} var c = SC[k]; if (c && c.raw === raw) return c.it; var v = null; try { v = JSON.parse(raw || "null"); } catch (e) {}

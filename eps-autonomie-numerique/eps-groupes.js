@@ -10,8 +10,8 @@
    Enseignant seulement ; aucun nom d'élève n'est envoyé à Claude. */
 (function () {
   if (window.EPSGR) return;
-  var DIRS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], crosstraining: ["ct", "Cross-training", "#4D7C0F"], basket: ["bk", "Basket-ball", "#A4161A"] };
-  var EVK = { escalade: "eps.eval.esc.v1", acrosport: "eps.eval.acro.v1", orientation: "eps.eval.ori.v1", crosstraining: "eps.eval.ct.v1", basket: "eps.eval.bk.v1", volley: "eps_volley_eval_v1", badminton: "eps_badminton_v1", danse: "danse-eps-v1" };
+  var DIRS = { escalade: ["esc", "Escalade", "#2E7D4F"], relais: ["rel", "Relais Vitesse", "#D9481F"], volley: ["vol", "Volley-ball", "#6B3FA0"], badminton: ["bad", "Badminton", "#0B7A75"], danse: ["dan", "Danse", "#C2185B"], acrosport: ["acro", "Acrosport", "#1F4FA3"], orientation: ["ori", "OrienRun", "#E8701A"], crosstraining: ["ct", "Cross-training", "#4D7C0F"], basket: ["bk", "Basket-ball", "#A4161A"], step: ["step", "Step", "#A21CAF"] };
+  var EVK = { escalade: "eps.eval.esc.v1", acrosport: "eps.eval.acro.v1", orientation: "eps.eval.ori.v1", crosstraining: "eps.eval.ct.v1", basket: "eps.eval.bk.v1", step: "eps.eval.step.v1", volley: "eps_volley_eval_v1", badminton: "eps_badminton_v1", danse: "danse-eps-v1" };
   var KN = "eps.niv.v1", KH = "eps.grphist.v1", KA = "eps.nivauto.v1";
   var NIV = ["", "1 · à consolider", "2 · en progrès", "3 · à l'aise", "4 · expert"], NCOL = ["#B8BDC6", "#E57373", "#F0A04B", "#7CB342", "#2E7D4F"];
   var MODES = [["niveau", "Groupes de niveau", "Élèves de niveau proche ensemble (travail adapté, poules de niveau en opposition)."],
