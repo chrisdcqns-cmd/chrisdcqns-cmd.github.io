@@ -46,6 +46,7 @@ th,td{border:1px solid var(--line);padding:7px 9px;text-align:center}
 th:first-child,td:first-child{text-align:left}
 th{background:#FAF8F3;font-size:13px}
 .msg{font-weight:800;font-size:14px;min-height:20px}
+.rfc h3{margin:0 0 6px;font-size:17px}
 @media print{.hd,.noprint{display:none!important}html,body{background:#fff}.wrap{max-width:none;padding:0}.card{border:0;padding:0}}
 </style>
 </head>
@@ -57,6 +58,7 @@ th{background:#FAF8F3;font-size:13px}
   <a class="hb" href="../">← Accueil</a>
 </div>
 <div class="wrap" id="pg"></div>
+<script src="../eps-ref.js"></script><!-- commun : profil de compétences (référentiel) -->
 <script>
 (function () {
   "use strict";
@@ -122,6 +124,8 @@ th{background:#FAF8F3;font-size:13px}
     var h = '<div class="card"><div class="row" style="margin:0"><span style="flex:1;min-width:200px"><b style="font-size:20px">' + esc(e.full) + '</b><br><span class="mut">' + esc(UI.cls) + '</span></span><div class="chips noprint"><button type="button" class="chip' + (UI.per === 1 ? " on" : "") + '" data-per="1">Cette année</button><button type="button" class="chip' + (UI.per === 3 ? " on" : "") + '" data-per="3">Sur 3 ans</button></div></div>' +
       '<div class="row noprint"><button class="btn" id="back" type="button">← ' + (teach() ? "Autre élève" : "Fermer mon carnet") + '</button><button class="btn" id="prt" type="button">🖨 Imprimer</button><span class="msg" id="msg" role="status" style="color:var(--ok)"></span></div></div>';
     if (UI.per === 3) { h += tableau(Ys.slice().reverse()); if (!AR.length) h += '<div class="card"><p class="mut">Les années précédentes apparaîtront ici quand ton enseignant les aura gardées en fin d\'année.</p></div>'; }
+    /* 🧭 mes compétences (référentiel, eps-ref.js) : l'enseignant le voit toujours, l'élève seulement s'il l'a rendu visible */
+    try { if (window.EPSREF && (teach() || EPSREF.cfg().carnet)) { var rf = EPSREF.htmlProfil(e.k, { an: UI.per === 3 ? "" : Y.an, eleve: !teach() }); if (rf) h += '<div class="card rfc">' + rf + "</div>"; } } catch (x) {}
     Ys.forEach(function (y, i) { h += bloc(y, i === 0); });
     $("#pg").innerHTML = h;
     $$("[data-per]").forEach(function (b) { b.onclick = function () { UI.per = +b.dataset.per; render(); }; });
