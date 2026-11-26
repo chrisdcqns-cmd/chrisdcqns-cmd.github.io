@@ -21,6 +21,13 @@ async def main():
         # 1. à tous
         await p.fill("#nom","Test l'envoi"); await p.click("#go"); await p.wait_for_timeout(16000)
         out.append(("1 envoi à tous : reçu par les deux tablettes",await e.evaluate("!!document.querySelector('#eps-plan svg')") and await e3.evaluate("!!document.querySelector('#eps-plan svg')"),await p.evaluate("document.querySelector('#gst').textContent")))
+        # 1b. en direct : l'enseignant ajoute un joueur, la tablette élève suit sans nouvel envoi
+        n0=await e.evaluate("document.querySelectorAll('#eps-plan svg circle').length")
+        bb=await p.locator("#board svg").bounding_box(); await p.evaluate("window.scrollTo(0,0)"); await p.click("[data-t=pa]"); bb=await p.locator("#board svg").bounding_box(); await p.mouse.click(bb["x"]+bb["width"]*.5,bb["y"]+bb["height"]*.2); await p.wait_for_timeout(11000)
+        n1=await e.evaluate("document.querySelectorAll('#eps-plan svg circle').length")
+        dbg=await p.evaluate("(()=>{var c=EPSD.plan.cur()||{};return [c.live,c.rv,c.d&&c.d.items.length,document.querySelectorAll('#board svg circle').length]})()")
+        dbe=await e.evaluate("(()=>{var c=(JSON.parse(localStorage['eps.sig.v1']).items.plan)||{};return [c.live,c.rv,c.d&&c.d.items.length]})()")
+        out.append(("1b en direct : le dessin ajouté arrive tout seul",n1==n0+1,(n0,n1,dbg,dbe)))
         # 2. retirer
         await p.click("#stop"); await p.wait_for_timeout(15000)
         out.append(("2 retirée des tablettes",not await e.evaluate("!!document.querySelector('#eps-plan')"),None))

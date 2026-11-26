@@ -68,14 +68,21 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
 .sheet .sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:2.5mm}
 .sheet .sg div{border-top:.8pt solid #000;padding-top:1mm;font-size:8.2pt;min-height:17mm}
 .sheet .ft{margin-top:3mm;font-size:8pt;color:#333}
+.sheet.a5{width:148mm;min-height:210mm;padding:8mm 9mm;font-size:9pt;line-height:1.3}
+.sheet.a5 h3{font-size:12pt}
+.sheet.a5 h4{font-size:9.2pt;margin:1.8mm 0 .6mm}
+.sheet.a5 .et{font-size:8.3pt;margin-bottom:2mm}
+.sheet.a5 .sg div{min-height:22mm;font-size:7.8pt}
+.sheet.a5 .bx{margin-top:3mm;padding:2.5mm 3mm}
+.sheet.a5 .ft{font-size:7.4pt}
 .prev{overflow:auto;background:#E9E5DB;border-radius:14px;padding:14px}
 .prev .sheet{transform-origin:top left}
 @media print{
-  @page{size:A4;margin:0}
   html,body{background:#fff}
   body>*:not(#print){display:none!important}
   #print{display:block}
   #print .sheet{border:0;margin:0;page-break-after:always;break-after:page;width:210mm;height:297mm;min-height:0;overflow:hidden}
+  #print .sheet.a5{width:148mm;height:210mm}
   #print .sheet:last-child{page-break-after:auto;break-after:auto}
 }
 </style>
@@ -136,7 +143,7 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
     image: "Pendant certaines leçons, l'élève peut être filmé pour voir et corriger son geste (retour vidéo). Les images servent uniquement en cours d'EPS, ne sont jamais diffusées hors de la classe et sont effacées au plus tard à la fin de la séquence. Cette autorisation est facultative : un refus n'a aucune conséquence sur la scolarité ni sur la note de l'élève, et elle peut être retirée à tout moment."
   };
   var REG_DEF = { dpd: "", fin: "" };
-  function modele() { var m = item("modele") || {}; var t = {}; CHAMPS.forEach(function (c) { t[c[0]] = (m.t && typeof m.t[c[0]] === "string") ? m.t[c[0]] : DEF[c[0]]; }); return { t: t, dpd: m.dpd || "", fin: m.fin || "" }; }
+  function modele() { var m = item("modele") || {}; var t = {}; CHAMPS.forEach(function (c) { t[c[0]] = (m.t && typeof m.t[c[0]] === "string") ? m.t[c[0]] : DEF[c[0]]; }); return { t: t, dpd: m.dpd || "", fin: m.fin || "", fmt: m.fmt === "a4" ? "a4" : "a5" }; }
   function reg() { var r = jget(KR, {}) || {}; return { etab: r.etab || "", ville: r.ville || "", annee: r.annee || "", prof: r.prof || "" }; }
   function finDefaut() { var d = new Date(), y = d.getMonth() >= 7 ? d.getFullYear() + 1 : d.getFullYear(); return y + "-07-31"; }
   function fusion(txt, ctx) { return String(txt).replace(/\{(\w+)\}/g, function (m, k) { var v = ctx[k]; return v ? v : (k in ctx ? "…………………………" : m); }); }
@@ -152,26 +159,27 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
   function sheet(cls, el) {
     var M = modele(), R = reg(), ctx = { enseignant: R.prof, etablissement: [R.etab, R.ville].filter(Boolean).join(", "), annee: R.annee, classe: cls || "", eleve: el ? el.full : "", dpd: M.dpd, fin: frDate(M.fin || finDefaut()) };
     var T = function (k) { return esc(fusion(M.t[k], ctx)); };
-    return '<div class="sheet">' +
-      '<div class="et"><span><b>' + esc(ctx.etablissement || "Établissement : ……………………………") + '</b></span><span>EPS · ' + esc(R.annee || "Année scolaire ………") + '</span></div>' +
-      '<h3>' + T("titre") + '</h3>' +
-      '<p><b>Élève :</b> ' + (el ? esc(el.full) : "……………………………………………") + ' &nbsp;·&nbsp; <b>Classe :</b> ' + esc(cls || "…………") + '</p>' +
-      '<p>' + T("intro") + '</p>' +
+    var et = '<div class="et"><span><b>' + esc(ctx.etablissement || "Établissement : ……………………………") + '</b></span><span>EPS · ' + esc(R.annee || "Année scolaire ………") + '</span></div>';
+    var qui = '<p><b>Élève :</b> ' + (el ? esc(el.full) : "……………………………………………") + ' &nbsp;·&nbsp; <b>Classe :</b> ' + esc(cls || "…………") + '</p>';
+    var info = '<h3>' + T("titre") + '</h3>' + qui + '<p>' + T("intro") + '</p>' +
       '<h4>À quoi servent ces outils</h4><p>' + T("finalite") + '</p>' +
       '<h4>Les données enregistrées</h4><p>' + T("donnees") + '</p>' +
       '<h4>Protection des données</h4><p>' + T("protection") + '</p><p>' + T("duree") + '</p>' +
-      '<h4>Vos droits</h4><p>' + T("droits") + '</p>' +
-      '<div class="bx"><h4 style="margin-top:0">1 · Attestation d\'information</h4><p>' + T("attest") + '</p>' +
+      '<h4>Vos droits</h4><p>' + T("droits") + '</p>';
+    var sign = '<div class="bx"><h4 style="margin-top:0">1 · Attestation d\'information</h4><p>' + T("attest") + '</p>' +
         '<div class="sg"><div>L\'élève<br>Date et signature</div><div>Responsable légal 1 (élève mineur)<br>Nom, date et signature</div><div>Responsable légal 2 (élève mineur)<br>Nom, date et signature</div></div></div>' +
       '<div class="bx"><h4 style="margin-top:0">2 · Autorisation image et voix (facultative)</h4><p>' + T("image") + '</p>' +
         '<div class="ck"><i></i><span>J\'autorise / nous autorisons la captation de l\'image et de la voix de l\'élève dans ce cadre.</span></div>' +
         '<div class="ck"><i></i><span>Je n\'autorise pas / nous n\'autorisons pas cette captation.</span></div>' +
         '<div class="ck"><i></i><span>Élève : on m\'a expliqué à quoi servent ces images et je suis d\'accord.</span></div>' +
         '<div class="sg"><div>L\'élève<br>Date et signature</div><div>Responsable légal 1 (élève mineur)<br>Date et signature</div><div>Responsable légal 2 (élève mineur)<br>Date et signature</div></div></div>' +
-      '<div class="ft">Document à rendre à ' + esc(R.prof || "l'enseignant d'EPS") + '. Un élève majeur signe seul.</div>' +
-      '</div>';
+      '<div class="ft">Document à rendre à ' + esc(R.prof || "l'enseignant d'EPS") + '. Un élève majeur signe seul.</div>';
+    if (M.fmt === "a4") return '<div class="sheet">' + et + info + sign + '</div>';
+    return '<div class="sheet a5">' + et + info + '<div class="ft">Attestation et autorisation à signer au verso.</div></div>' +
+      '<div class="sheet a5">' + et + '<h3>' + T("titre") + '</h3>' + qui + sign + '</div>';
   }
-  function imprimer(html) { $("#print").innerHTML = html; setTimeout(function () { window.print(); }, 60); }
+  function pageCss() { var st = document.getElementById("pgcss") || document.head.appendChild(Object.assign(document.createElement("style"), { id: "pgcss" })); st.textContent = "@media print{@page{size:" + (modele().fmt === "a4" ? "A4" : "A5") + ";margin:0}}"; }
+  function imprimer(html) { pageCss(); $("#print").innerHTML = html; setTimeout(function () { window.print(); }, 60); }
 
   /* ---- onglets ---- */
   function tabs() {
@@ -189,22 +197,23 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
     var M = modele(), R = reg();
     var h = '<div class="card"><h2>Le texte de l\'attestation</h2><p class="mut">Chaque rubrique est modifiable. Entre accolades, ce qui est rempli tout seul : {enseignant}, {etablissement}, {annee}, {classe}, {dpd}, {fin}. L\'établissement, l\'année et ton nom se règlent sur l\'accueil (Réglages communs).</p>' +
       '<label class="f" for="f-dpd">Contact du délégué à la protection des données de l\'académie</label><input type="text" id="f-dpd" value="' + esc(M.dpd) + '" placeholder="adresse donnée par ton chef d\'établissement">' +
+      '<label class="f" for="f-fmt">Format de la page</label><select id="f-fmt" style="min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;background:#fff"><option value="a5"' + (M.fmt === "a5" ? " selected" : "") + '>A5 recto verso (information au recto, signatures au verso)</option><option value="a4"' + (M.fmt === "a4" ? " selected" : "") + '>A4 (une seule page)</option></select>' +
       '<label class="f" for="f-fin">Date d\'effacement des données</label><input type="date" id="f-fin" value="' + esc(M.fin || finDefaut()) + '">';
     CHAMPS.forEach(function (c) { h += '<label class="f" for="f-' + c[0] + '">' + esc(c[1]) + '</label><textarea id="f-' + c[0] + '" rows="' + c[2] + '">' + esc(M.t[c[0]]) + "</textarea>"; });
     h += '<div class="row"><button type="button" class="btn p" id="save">Enregistrer le texte</button><button type="button" class="btn" id="reset">Rétablir le texte d\'origine</button><span class="saved" id="saved" role="status"></span></div></div>';
     h += '<div class="card"><h2>Réglages utilisés</h2><p class="mut">Établissement : <b>' + esc([R.etab, R.ville].filter(Boolean).join(", ") || "non renseigné") + '</b> · Année : <b>' + esc(R.annee || "non renseignée") + '</b> · Enseignant : <b>' + esc(R.prof || "non renseigné") + "</b></p></div>";
     $("#pg").innerHTML = h;
     $("#save").onclick = function () { var t = {}; CHAMPS.forEach(function (c) { t[c[0]] = $("#f-" + c[0]).value; });
-      if (put({ id: "modele", t: t, dpd: $("#f-dpd").value.trim(), fin: $("#f-fin").value })) { $("#saved").textContent = "✓ Enregistré"; setTimeout(function () { var s = $("#saved"); if (s) s.textContent = ""; }, 2500); } };
-    $("#reset").onclick = function () { if (!confirm("Rétablir le texte d'origine ? Tes modifications du texte seront perdues.")) return; var M2 = modele(); put({ id: "modele", t: {}, dpd: M2.dpd, fin: M2.fin }); render(); };
+      if (put({ id: "modele", t: t, dpd: $("#f-dpd").value.trim(), fin: $("#f-fin").value, fmt: $("#f-fmt").value })) { $("#saved").textContent = "✓ Enregistré"; setTimeout(function () { var s = $("#saved"); if (s) s.textContent = ""; }, 2500); } };
+    $("#reset").onclick = function () { if (!confirm("Rétablir le texte d'origine ? Tes modifications du texte seront perdues.")) return; var M2 = modele(); put({ id: "modele", t: {}, dpd: M2.dpd, fin: M2.fin, fmt: M2.fmt }); render(); };
   }
   function pImp() {
-    var h = '<div class="card"><h2>Imprimer</h2><p class="mut">Une page A4 par élève, à faire signer. Choisis « Enregistrer au format PDF » dans la fenêtre d\'impression pour obtenir un fichier.</p>' + clsChips();
+    var h = '<div class="card"><h2>Imprimer</h2><p class="mut">Une feuille par élève, à faire signer (A5 recto verso ou A4 : à choisir dans « Le texte »). En A5 : imprime en recto verso sur papier A5, ou 2 pages par feuille A4 puis coupe. Choisis « Enregistrer au format PDF » dans la fenêtre d\'impression pour obtenir un fichier.</p>' + clsChips();
     var C = classes().filter(function (o) { return o.nom === UI.cls; })[0];
-    h += '<div class="row">' + (C ? '<button type="button" class="btn p" id="pc">Imprimer la classe ' + esc(C.nom) + " (" + eleves(C).length + ' pages)</button>' : "") + '<button type="button" class="btn" id="pv">Imprimer un exemplaire vierge</button></div></div>';
+    h += '<div class="row">' + (C ? '<button type="button" class="btn p" id="pc">Imprimer la classe ' + esc(C.nom) + " (" + eleves(C).length + ' élèves)</button>' : "") + '<button type="button" class="btn" id="pv">Imprimer un exemplaire vierge</button></div></div>';
     h += '<div class="card"><h2>Aperçu</h2><div class="prev" id="prev">' + sheet(C ? C.nom : "", C && eleves(C)[0] ? eleves(C)[0] : null) + "</div></div>";
     $("#pg").innerHTML = h; bindCls();
-    var pv = $("#prev"), sh = pv.firstChild, fit = function () { var w = pv.clientWidth - 28, sw = sh.offsetWidth; var z = Math.min(1, w / sw); sh.style.transform = "scale(" + z + ")"; pv.style.height = Math.round(sh.offsetHeight * z + 28) + "px"; };
+    var pv = $("#prev"), fit = function () { var hs = 28; Array.prototype.forEach.call(pv.children, function (sh) { var w = pv.clientWidth - 28, z = Math.min(1, w / sh.offsetWidth); sh.style.transform = "scale(" + z + ")"; sh.style.marginBottom = Math.round(sh.offsetHeight * (z - 1) + 14) + "px"; hs += Math.round(sh.offsetHeight * z + 14); }); pv.style.height = hs + "px"; };
     fit(); window.onresize = function () { if ($("#prev")) fit(); };
     if (C) $("#pc").onclick = function () { var E = eleves(C); if (!E.length) { alert("Cette classe n'a pas d'élèves."); return; } imprimer(E.map(function (e) { return sheet(C.nom, e); }).join("")); };
     $("#pv").onclick = function () { imprimer(sheet(UI.cls || "", null)); };
@@ -229,7 +238,7 @@ table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:mi
     Array.prototype.forEach.call(document.querySelectorAll("#pg [data-i]"), function (b) { b.onclick = function () { set(E2[+b.dataset.e], function (r) { r.i = b.dataset.i; }); render(); }; });
     $("#all").onclick = function () { if (!confirm("Marquer toutes les attestations de " + C.nom + " comme rendues ?")) return; var S3 = suivi(C.nom); E2.forEach(function (e) { var r = S3.r[e.k] || {}; if (!r.a) { r.a = 1; r.d = today(); } S3.r[e.k] = r; }); S3.cls = C.nom; put(S3); render(); };
     $("#lst").onclick = function () { var S4 = suivi(C.nom), L = E2.filter(function (e) { return (S4.r[e.k] || {}).i !== "o"; });
-      imprimer('<div class="sheet"><h3>Élèves à ne pas filmer · ' + esc(C.nom) + '</h3><p>Autorisation image refusée ou sans réponse au ' + esc(frDate(today())) + ".</p>" + (L.length ? "<p>" + L.map(function (e) { var r = S4.r[e.k] || {}; return esc(e.nom + " " + e.prenom) + (r.i === "n" ? " (refus)" : " (sans réponse)"); }).join("\n") + "</p>" : "<p>Tous les élèves ont donné leur autorisation.</p>") + "</div>"); };
+      imprimer('<div class="sheet' + (modele().fmt === "a4" ? "" : " a5") + '"><h3>Élèves à ne pas filmer · ' + esc(C.nom) + '</h3><p>Autorisation image refusée ou sans réponse au ' + esc(frDate(today())) + ".</p>" + (L.length ? "<p>" + L.map(function (e) { var r = S4.r[e.k] || {}; return esc(e.nom + " " + e.prenom) + (r.i === "n" ? " (refus)" : " (sans réponse)"); }).join("\n") + "</p>" : "<p>Tous les élèves ont donné leur autorisation.</p>") + "</div>"); };
   }
   function render() {
     tabs();

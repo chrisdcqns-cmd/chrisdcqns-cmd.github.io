@@ -65,7 +65,10 @@
     function snap() { undo.push(JSON.stringify(d)); if (undo.length > 60) undo.shift(); }
     function changed() { draw(); if (opt.onChange) try { opt.onChange(d); } catch (e) {} }
     function selSet(k) { sel = k; if (opt.onSelect) try { opt.onSelect(k >= 0 ? d.items[k] : null); } catch (e) {} }
-    function pos(ev) { var s = el.querySelector("svg"), b = s.getBoundingClientRect(), W = t().w + 2 * M, H = t().h + 2 * M; return { x: Math.max(-M + 2, Math.min(t().w + M - 2, (ev.clientX - b.left) / b.width * W - M)), y: Math.max(-M + 2, Math.min(t().h + M - 2, (ev.clientY - b.top) / b.height * H - M)) }; }
+    function pos(ev) { var s = el.querySelector("svg"), x, y, m = s.getScreenCTM && s.getScreenCTM();
+      if (m && s.createSVGPoint) { var q = s.createSVGPoint(); q.x = ev.clientX; q.y = ev.clientY; q = q.matrixTransform(m.inverse()); x = q.x; y = q.y; }
+      else { var b = s.getBoundingClientRect(), W = t().w + 2 * M, H = t().h + 2 * M; x = (ev.clientX - b.left) / b.width * W - M; y = (ev.clientY - b.top) / b.height * H - M; }
+      return { x: Math.max(-M + 2, Math.min(t().w + M - 2, x)), y: Math.max(-M + 2, Math.min(t().h + M - 2, y)) }; }
     function hit(p) { var r = rad(t()); for (var k = d.items.length - 1; k >= 0; k--) { var i = d.items[k], q;
         if (i.t === "p" || i.t === "b" || i.t === "c" || i.t === "x") { if (Math.hypot(p.x - i.x, p.y - i.y) < r * (i.t === "x" ? 2.2 : 1.5)) return k; }
         else if (Array.isArray(i.p)) for (q = 0; q + 3 < i.p.length; q += 2) if (segDist(p.x, p.y, i.p[q], i.p[q + 1], i.p[q + 2], i.p[q + 3]) < r * .9) return k; }

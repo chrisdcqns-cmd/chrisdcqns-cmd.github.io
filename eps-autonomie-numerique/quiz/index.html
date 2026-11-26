@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<!-- eps-source-directe : cette page est LA source de l'appli, modifiée directement. Ne jamais la remplacer par une page fabriquée ailleurs (autre conversation, anciens fichiers) : repartir de cette page. Voir CLAUDE.md. -->
+<html lang="fr">
+<head>
+<script src="../eps-lists.js"></script><!-- commun : garde de la simulation, listes -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiz – EPS</title>
+<meta name="theme-color" content="#14171C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#F5F3EE;--ink:#14171C;--muted:#6A6F78;--line:#E6E1D6;--app:#7C3AED;--ok:#1E6B3A;--no:#B3261E}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+#eps-home{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.4}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,select,textarea{font:inherit;color:inherit}
+.hd{background:var(--ink);color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:10px 14px;display:flex;align-items:center;gap:10px}
+.hd .ic{width:36px;height:36px;border-radius:10px;background:var(--app);display:flex;align-items:center;justify-content:center;flex:none}
+.hd h1{margin:0;font-size:20px;font-weight:800;flex:1}
+.hb{color:#D5D8DE;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid #3A3F47;border-radius:10px;padding:0 14px;height:40px;display:inline-flex;align-items:center}
+.wrap{max-width:860px;margin:0 auto;padding:12px 14px 60px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.tab{min-height:48px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-weight:800;cursor:pointer}
+.tab.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 12px}
+.card h2{margin:0 0 6px;font-size:18px;font-weight:800}
+.mut{color:var(--muted);font-size:14px;margin:4px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.btn{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid var(--ink);background:#fff;font-weight:800;cursor:pointer}
+.btn.p{background:var(--app);border-color:var(--app);color:#fff}
+.btn.d{border-color:var(--no);color:var(--no)}
+.btn.big{min-height:56px;font-size:18px;padding:0 24px}
+.btn[disabled]{opacity:.4}
+.in{min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;background:#fff;width:100%}
+.qz{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1.5px solid var(--line);border-radius:14px;background:#fff;padding:14px 16px;margin:0 0 8px;cursor:pointer;min-height:64px}
+.qz b{display:block;font-size:17px}
+.qz small{color:var(--muted)}
+.qz .go{margin-left:auto;font-weight:900;color:var(--app)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-weight:700;cursor:pointer}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:0 0 14px}
+.bar i{display:block;height:100%;background:var(--app)}
+.qt{font-size:22px;font-weight:800;margin:6px 0 14px}
+.ch{display:block;width:100%;text-align:left;border:2px solid var(--line);border-radius:14px;background:#fff;padding:14px 16px;margin:0 0 10px;font-size:18px;font-weight:700;cursor:pointer;min-height:58px}
+.ch.ok{border-color:var(--ok);background:#EAF5EC}
+.ch.ko{border-color:var(--no);background:#FBEDEC}
+.ch[disabled]{cursor:default;color:var(--ink)}
+.fb{border-radius:12px;padding:12px 14px;margin:4px 0 12px;font-weight:700}
+.fb.ok{background:#EAF5EC;color:var(--ok)}.fb.ko{background:#FBEDEC;color:var(--no)}
+.fb span{display:block;font-weight:500;color:var(--ink);margin-top:4px}
+.score{font-size:54px;font-weight:900;text-align:center;margin:10px 0 0}
+.qe{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:#FCFBF8}
+.qe .c{display:flex;gap:8px;align-items:center;margin-top:6px}
+.qe .c input[type=radio]{width:24px;height:24px;flex:none}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left}
+th{background:#FAF8F3;font-size:13px}
+</style>
+</head>
+<body>
+<div class="hd">
+  <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8M12 17h.01"/></svg></div>
+  <h1>Quiz</h1>
+  <span data-eps-upd-slot></span>
+  <a class="hb" href="../">← Accueil</a>
+</div>
+<div class="wrap">
+  <div class="tabs" id="tabs" hidden></div>
+  <div id="pg"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  /* Magasin « eps.quiz.v1 » (qz|), synchronisé par eps-home.js :
+     quiz     {id:"q…", k:"quiz", nom, act, on:0|1, q:[{t, c:[réponses], ok:indice, exp}]}   (del:1 = supprimé)
+     résultat {id:"r|<quiz>|<classe>|<clé élève>", k:"res", qz, cls, nom, s:bonnes réponses, n:questions, a:[indices choisis], d:"aaaa-mm-jj", nb:essais} */
+  var K = "eps.quiz.v1";
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function norm(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function frDate(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? m[3] + "/" + m[2] : ""; }
+  function teach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+  function ld() { var v = null; try { v = JSON.parse(localStorage.getItem(K) || "null"); } catch (e) {} if (!v || typeof v !== "object" || !v.items || Array.isArray(v.items)) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+  function put(it) { var V = ld(), old = V.items[it.id]; it.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u;
+    try { localStorage.setItem(K, JSON.stringify(V)); } catch (e) { alert("La mémoire de la tablette est pleine : l'enregistrement n'a pas pu se faire."); return false; }
+    try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} return true; }
+  function okQ(q) { return q && typeof q.t === "string" && q.t.trim() && Array.isArray(q.c) && q.c.filter(function (x) { return String(x || "").trim(); }).length >= 2 && q.ok >= 0 && q.ok < q.c.length && String(q.c[q.ok] || "").trim(); }
+  function quizzes(all) { var V = ld(); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.k === "quiz" && !x.del && Array.isArray(x.q) && (all || (x.on && x.q.some(okQ))); }).sort(function (a, b) { return String(a.act || "").localeCompare(String(b.act || ""), "fr") || String(a.nom || "").localeCompare(String(b.nom || ""), "fr", { numeric: true }); }); }
+  function results(qid) { var V = ld(); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.k === "res" && x.qz === qid; }); }
+  function classes() { var L = []; try { L = (window.EPSL && EPSL.items()) || []; } catch (e) {} return L.filter(function (o) { return o && o.nom; }).sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr", { numeric: true }); }); }
+  function eleves(o) { var P = []; try { P = EPSL.people(o) || []; } catch (e) {} return P.map(function (p) { return { k: p.k || norm(p.full), full: p.full || ((p.prenom || "") + " " + (p.nom || "")).trim(), prenom: p.prenom || p.full || "" }; }).sort(function (a, b) { return a.full.localeCompare(b.full, "fr"); }); }
+  var ACTS = ["Toutes activités", "Acrosport", "Badminton", "Basket-ball", "Course d'orientation", "Cross-training", "Danse", "Escalade", "Relais Vitesse", "Step", "Volley-ball", "Sécurité", "Échauffement"];
+  var EX = { nom: "Échauffement (exemple à modifier)", act: "Échauffement", q: [
+    { t: "À quoi sert l'échauffement ?", c: ["À préparer le corps et l'attention à l'effort", "À se fatiguer avant de commencer", "À gagner du temps sur la leçon"], ok: 0, exp: "On augmente peu à peu l'intensité pour être prêt et limiter le risque de blessure." },
+    { t: "Dans quel ordre s'échauffer ?", c: ["Tout de suite à fond", "Du général au spécifique, de plus en plus intense", "Uniquement des étirements longs"], ok: 1, exp: "D'abord tout le corps, puis les gestes de l'activité du jour." },
+    { t: "Tu ressens une douleur vive pendant l'effort. Que fais-tu ?", c: ["Je continue sans rien dire", "J'arrête et je préviens l'enseignant"], ok: 1, exp: "Une douleur vive est un signal : on s'arrête et on le dit." },
+    { t: "Pendant la leçon, il vaut mieux…", c: ["Boire de l'eau régulièrement", "Attendre la fin de la journée pour boire"], ok: 0, exp: "Boire un peu et souvent aide à tenir l'effort." }] };
+  var UI = { tab: "jouer", who: null, run: null, edit: null, resq: null, cls: null };
+
+  function tabs() { var t = $("#tabs"); if (!teach()) { t.hidden = true; return; } t.hidden = false;
+    t.innerHTML = [["jouer", "▶ Faire un quiz"], ["mes", "✏ Mes quiz"], ["res", "📊 Résultats"]].map(function (x) { return '<button type="button" class="tab' + (UI.tab === x[0] ? " on" : "") + '" data-t="' + x[0] + '">' + x[1] + "</button>"; }).join("");
+    $$("#tabs .tab").forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.t; UI.run = null; UI.edit = null; render(); }; }); }
+  function render() { tabs(); if (UI.run) return UI.run.done ? fin() : question(); if (teach() && UI.tab === "mes") return UI.edit ? editer() : mes(); if (teach() && UI.tab === "res") return res(); liste(); }
+
+  /* ---------- élève ---------- */
+  function liste() { var Q = quizzes(false), h = "";
+    h += '<div class="card"><h2>Qui es-tu ?</h2>' + (UI.who ? '<p style="margin:6px 0"><b>' + esc(UI.who.full) + "</b> · " + esc(UI.who.cls) + '</p><div class="row"><button class="btn" id="chg" type="button">Changer</button></div>' : qui()) + "</div>";
+    if (!Q.length) h += '<div class="card"><p class="mut">Aucun quiz pour l\'instant.' + (teach() ? " Crée-en un dans « ✏ Mes quiz »." : " Ton enseignant n'en a pas encore ouvert.") + "</p></div>";
+    else { var last = null; Q.forEach(function (q, i) { if (q.act !== last) { h += '<p class="mut" style="font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin:14px 2px 6px">' + esc(q.act || "Toutes activités") + "</p>"; last = q.act; }
+        var n = q.q.filter(okQ).length, r = UI.who ? ld().items["r|" + q.id + "|" + norm(UI.who.cls) + "|" + UI.who.k] : null;
+        h += '<button type="button" class="qz" data-q="' + i + '"><span><b>' + esc(q.nom) + "</b><small>" + n + " question" + (n > 1 ? "s" : "") + (r ? " · ton dernier score : " + r.s + " / " + r.n : "") + '</small></span><span class="go">▶</span></button>'; }); }
+    $("#pg").innerHTML = h;
+    var c = $("#chg"); if (c) c.onclick = function () { UI.who = null; render(); }; bindQui();
+    $$(".qz").forEach(function (b) { b.onclick = function () { var q = Q[+b.dataset.q]; UI.run = { q: q, L: q.q.filter(okQ), i: 0, a: [], pick: -1, done: false }; render(); window.scrollTo(0, 0); }; }); }
+  function qui() { var C = classes(); if (!C.length) return '<p class="mut">Pas de liste de classe sur cette tablette : tu peux faire les quiz, ton score ne sera pas gardé.</p>';
+    var h = '<p class="mut">Choisis ta classe puis ton nom pour garder ton score. Sinon, fais le quiz sans nom.</p><div class="chips">' + C.map(function (o, i) { return '<button type="button" class="chip' + (UI.cls === o.nom ? " on" : "") + '" data-c="' + i + '">' + esc(o.nom) + "</button>"; }).join("") + "</div>";
+    var o = C.filter(function (x) { return x.nom === UI.cls; })[0];
+    if (o) h += '<div class="chips" style="margin-top:10px">' + eleves(o).map(function (e, i) { return '<button type="button" class="chip" data-e="' + i + '">' + esc(e.full) + "</button>"; }).join("") + "</div>";
+    return h; }
+  function bindQui() { var C = classes(); $$("#pg [data-c]").forEach(function (b) { b.onclick = function () { UI.cls = C[+b.dataset.c].nom; render(); }; });
+    var o = C.filter(function (x) { return x.nom === UI.cls; })[0]; if (o) { var E = eleves(o); $$("#pg [data-e]").forEach(function (b) { b.onclick = function () { var e = E[+b.dataset.e]; UI.who = { k: e.k, full: e.full, cls: o.nom }; render(); }; }); } }
+  function question() { var R = UI.run, q = R.L[R.i], ans = R.pick >= 0;
+    var h = '<div class="card"><p class="mut" style="margin:0 0 6px">' + esc(R.q.nom) + " · question " + (R.i + 1) + " / " + R.L.length + '</p><div class="bar"><i style="width:' + Math.round((R.i + (ans ? 1 : 0)) / R.L.length * 100) + '%"></i></div><p class="qt">' + esc(q.t) + "</p>" +
+      q.c.map(function (c, k) { if (!String(c || "").trim()) return ""; return '<button type="button" class="ch' + (ans ? (k === q.ok ? " ok" : (k === R.pick ? " ko" : "")) : "") + '" data-k="' + k + '"' + (ans ? " disabled" : "") + ">" + (ans && k === q.ok ? "✓ " : (ans && k === R.pick ? "✕ " : "")) + esc(c) + "</button>"; }).join("");
+    if (ans) h += '<div class="fb ' + (R.pick === q.ok ? "ok" : "ko") + '" role="status">' + (R.pick === q.ok ? "Bonne réponse !" : "Pas encore. La bonne réponse est en vert.") + (q.exp ? "<span>" + esc(q.exp) + "</span>" : "") + '</div><div class="row" style="justify-content:flex-end"><button type="button" class="btn p big" id="nx">' + (R.i + 1 < R.L.length ? "Question suivante →" : "Voir mon score →") + "</button></div>";
+    h += '<div class="row"><button type="button" class="btn" id="quit">✕ Quitter le quiz</button></div></div>';
+    $("#pg").innerHTML = h;
+    $$(".ch").forEach(function (b) { b.onclick = function () { if (R.pick >= 0) return; R.pick = +b.dataset.k; R.a[R.i] = R.pick; render(); }; });
+    var n = $("#nx"); if (n) n.onclick = function () { R.pick = -1; if (R.i + 1 < R.L.length) R.i++; else { R.done = true; garder(); } render(); window.scrollTo(0, 0); };
+    $("#quit").onclick = function () { if (R.a.length && !confirm("Quitter le quiz ? Ton score ne sera pas gardé.")) return; UI.run = null; render(); }; }
+  function score(R) { return R.L.reduce(function (s, q, i) { return s + (R.a[i] === q.ok ? 1 : 0); }, 0); }
+  function garder() { var R = UI.run; if (!UI.who || (teach() && !UI.who)) return; var id = "r|" + R.q.id + "|" + norm(UI.who.cls) + "|" + UI.who.k, old = ld().items[id];
+    put({ id: id, k: "res", qz: R.q.id, cls: UI.who.cls, nom: UI.who.full, s: score(R), n: R.L.length, a: R.a.slice(0, 60), d: today(), nb: ((old && old.nb) || 0) + 1 }); }
+  function fin() { var R = UI.run, s = score(R);
+    var h = '<div class="card"><h2>' + esc(R.q.nom) + '</h2><p class="score">' + s + " / " + R.L.length + '</p><p class="mut" style="text-align:center">' + (UI.who ? "Score gardé pour " + esc(UI.who.full) + "." : "Quiz fait sans nom : le score n'est pas gardé.") + '</p><div class="row" style="justify-content:center"><button type="button" class="btn p big" id="again">↻ Recommencer</button><button type="button" class="btn big" id="back">Autres quiz</button></div></div><div class="card"><h2>Ce qu\'il fallait répondre</h2>' +
+      R.L.map(function (q, i) { var ok = R.a[i] === q.ok; return '<div class="fb ' + (ok ? "ok" : "ko") + '" style="margin:8px 0">' + (ok ? "✓ " : "✕ ") + esc(q.t) + "<span><b>" + esc(q.c[q.ok]) + "</b>" + (q.exp ? " · " + esc(q.exp) : "") + "</span></div>"; }).join("") + "</div>";
+    $("#pg").innerHTML = h;
+    $("#again").onclick = function () { UI.run = { q: R.q, L: R.L, i: 0, a: [], pick: -1, done: false }; render(); window.scrollTo(0, 0); };
+    $("#back").onclick = function () { UI.run = null; render(); }; }
+
+  /* ---------- enseignant : mes quiz ---------- */
+  function mes() { var Q = quizzes(true);
+    var h = '<div class="card"><h2>✏ Mes quiz</h2><p class="mut">Un quiz « ouvert » apparaît sur les tablettes des élèves. Tout est modifiable.</p><div class="row"><button class="btn p" id="new" type="button">＋ Nouveau quiz</button><button class="btn" id="ex" type="button">＋ Quiz d\'exemple</button></div></div>';
+    h += Q.map(function (q, i) { var n = q.q.filter(okQ).length; return '<div class="card"><div class="row" style="margin:0"><span style="flex:1;min-width:180px"><b style="font-size:17px">' + esc(q.nom || "Sans titre") + '</b><br><span class="mut">' + esc(q.act || "Toutes activités") + " · " + n + " question" + (n > 1 ? "s" : "") + " · " + results(q.id).length + ' résultat(s)</span></span><button class="chip' + (q.on ? " on" : "") + '" data-on="' + i + '" type="button" aria-pressed="' + !!q.on + '">' + (q.on ? "✓ Ouvert aux élèves" : "Fermé") + '</button><button class="btn" data-ed="' + i + '" type="button">✏ Modifier</button><button class="btn" data-cp="' + i + '" type="button">⧉ Copier</button><button class="btn d" data-rm="' + i + '" type="button" aria-label="Supprimer">🗑</button></div></div>'; }).join("");
+    $("#pg").innerHTML = h;
+    $("#new").onclick = function () { UI.edit = { id: "q" + Date.now().toString(36), k: "quiz", nom: "", act: ACTS[0], on: 0, q: [{ t: "", c: ["", "", ""], ok: 0, exp: "" }] }; render(); };
+    $("#ex").onclick = function () { var q = JSON.parse(JSON.stringify(EX)); q.id = "q" + Date.now().toString(36); q.k = "quiz"; q.on = 0; put(q); render(); };
+    $$("[data-on]").forEach(function (b) { b.onclick = function () { var q = Q[+b.dataset.on]; if (!q.on && !q.q.some(okQ)) { alert("Ce quiz n'a pas encore de question complète."); return; } q.on = q.on ? 0 : 1; put(q); render(); }; });
+    $$("[data-ed]").forEach(function (b) { b.onclick = function () { UI.edit = JSON.parse(JSON.stringify(Q[+b.dataset.ed])); render(); }; });
+    $$("[data-cp]").forEach(function (b) { b.onclick = function () { var q = JSON.parse(JSON.stringify(Q[+b.dataset.cp])); q.id = "q" + Date.now().toString(36); q.nom = (q.nom || "Quiz") + " (copie)"; q.on = 0; delete q.u; put(q); render(); }; });
+    $$("[data-rm]").forEach(function (b) { b.onclick = function () { var q = Q[+b.dataset.rm]; if (!confirm("Supprimer le quiz « " + (q.nom || "Sans titre") + " » ? Les résultats déjà enregistrés ne seront plus affichés.")) return; put({ id: q.id, k: "quiz", del: 1 }); render(); }; }); }
+  function lire() { var E = UI.edit; E.nom = $("#e-nom").value; E.act = $("#e-act").value; $$(".qe").forEach(function (el, i) { var q = E.q[i]; q.t = $("textarea", el).value; q.exp = $("[data-x]", el).value; q.c = $$("[data-c]", el).map(function (f) { return f.value; }); var r = $("input[type=radio]:checked", el); q.ok = r ? +r.value : 0; }); }
+  function editer() { var E = UI.edit;
+    var h = '<div class="card"><h2>' + (ld().items[E.id] ? "Modifier le quiz" : "Nouveau quiz") + '</h2><label class="mut" for="e-nom">Titre</label><input class="in" id="e-nom" maxlength="80" value="' + esc(E.nom) + '" placeholder="Ex. Règles du volley-ball"><label class="mut" for="e-act" style="display:block;margin-top:10px">Activité</label><select class="in" id="e-act">' + ACTS.concat(ACTS.indexOf(E.act) < 0 && E.act ? [E.act] : []).map(function (a) { return "<option" + (a === E.act ? " selected" : "") + ">" + esc(a) + "</option>"; }).join("") + "</select>" +
+      E.q.map(function (q, i) { return '<div class="qe"><div class="row" style="margin:0"><b style="flex:1">Question ' + (i + 1) + '</b><button class="btn d" data-qrm="' + i + '" type="button" aria-label="Retirer la question ' + (i + 1) + '">🗑</button></div><textarea class="in" rows="2" maxlength="300" placeholder="La question" aria-label="Question ' + (i + 1) + '" style="margin-top:6px">' + esc(q.t) + '</textarea><p class="mut">Réponses (coche la bonne ; 2 à 4)</p>' +
+          [0, 1, 2, 3].map(function (k) { return '<div class="c"><input type="radio" name="ok' + i + '" value="' + k + '"' + (q.ok === k ? " checked" : "") + ' aria-label="Bonne réponse : ' + (k + 1) + '"><input class="in" data-c maxlength="160" value="' + esc(q.c[k] || "") + '" placeholder="Réponse ' + (k + 1) + (k > 1 ? " (facultative)" : "") + '" aria-label="Réponse ' + (k + 1) + '"></div>'; }).join("") +
+          '<input class="in" data-x maxlength="300" value="' + esc(q.exp || "") + '" placeholder="Explication affichée après la réponse (facultative)" aria-label="Explication" style="margin-top:8px"></div>'; }).join("") +
+      '<div class="row"><button class="btn" id="qadd" type="button">＋ Ajouter une question</button><span style="flex:1"></span><button class="btn" id="cancel" type="button">Annuler</button><button class="btn p" id="save" type="button">💾 Enregistrer</button></div><p class="mut" id="emsg" role="status" style="color:var(--no);font-weight:700"></p></div>';
+    $("#pg").innerHTML = h;
+    $("#qadd").onclick = function () { lire(); if (E.q.length >= 40) return; E.q.push({ t: "", c: ["", "", ""], ok: 0, exp: "" }); render(); window.scrollTo(0, document.body.scrollHeight); };
+    $$("[data-qrm]").forEach(function (b) { b.onclick = function () { lire(); E.q.splice(+b.dataset.qrm, 1); if (!E.q.length) E.q.push({ t: "", c: ["", "", ""], ok: 0, exp: "" }); render(); }; });
+    $("#cancel").onclick = function () { UI.edit = null; render(); };
+    $("#save").onclick = function () { lire(); var m = $("#emsg"); if (!E.nom.trim()) { m.textContent = "Donne un titre au quiz."; $("#e-nom").focus(); return; }
+      var bad = -1; E.q.forEach(function (q, i) { if (bad < 0 && (q.t.trim() || q.c.some(function (x) { return String(x).trim(); })) && !okQ(q)) bad = i; });
+      if (bad >= 0) { m.textContent = "Question " + (bad + 1) + " : il faut la question, au moins 2 réponses, et la bonne réponse cochée sur une réponse remplie."; return; }
+      E.q = E.q.filter(okQ); if (!E.q.length) { m.textContent = "Ajoute au moins une question complète."; E.q = [{ t: "", c: ["", "", ""], ok: 0, exp: "" }]; return; }
+      E.nom = E.nom.trim(); delete E.u; if (put(E)) { UI.edit = null; render(); } }; }
+
+  /* ---------- enseignant : résultats ---------- */
+  function res() { var Q = quizzes(true); if (!UI.resq || !Q.some(function (q) { return q.id === UI.resq; })) UI.resq = Q[0] ? Q[0].id : null;
+    var h = '<div class="card"><h2>📊 Résultats</h2>' + (Q.length ? '<div class="chips">' + Q.map(function (q, i) { return '<button type="button" class="chip' + (q.id === UI.resq ? " on" : "") + '" data-q="' + i + '">' + esc(q.nom || "Sans titre") + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucun quiz.</p>') + "</div>";
+    var q = Q.filter(function (x) { return x.id === UI.resq; })[0];
+    if (q) { var R = results(q.id), L = q.q.filter(okQ), cl = {}; R.forEach(function (r) { (cl[r.cls] = cl[r.cls] || []).push(r); });
+      if (!R.length) h += '<div class="card"><p class="mut">Aucun résultat pour ce quiz. Les scores arrivent quand les élèves ont choisi leur nom avant de répondre.</p></div>';
+      Object.keys(cl).sort(function (a, b) { return a.localeCompare(b, "fr", { numeric: true }); }).forEach(function (c) { var X = cl[c].sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr"); }), moy = X.reduce(function (s, r) { return s + (r.n ? r.s / r.n : 0); }, 0) / X.length;
+        h += '<div class="card"><h2>' + esc(c) + ' <span class="mut">· ' + X.length + " élève" + (X.length > 1 ? "s" : "") + " · réussite moyenne " + Math.round(moy * 100) + ' %</span></h2><table><tr><th>Élève</th><th>Score</th><th>Essais</th><th>Date</th></tr>' + X.map(function (r) { return "<tr><td>" + esc(r.nom) + "</td><td><b>" + r.s + " / " + r.n + "</b></td><td>" + (r.nb || 1) + "</td><td>" + esc(frDate(r.d)) + "</td></tr>"; }).join("") + "</table>";
+        var same = X.filter(function (r) { return r.n === L.length && Array.isArray(r.a); });
+        if (same.length) h += '<p class="mut" style="margin-top:12px;font-weight:800">Réussite par question</p><table>' + L.map(function (qq, i) { var ok = same.filter(function (r) { return r.a[i] === qq.ok; }).length; return "<tr><td>" + esc(qq.t) + '</td><td style="white-space:nowrap"><b>' + Math.round(ok / same.length * 100) + " %</b></td></tr>"; }).join("") + "</table>";
+        h += "</div>"; }); }
+    $("#pg").innerHTML = h; $$("#pg [data-q]").forEach(function (b) { b.onclick = function () { UI.resq = Q[+b.dataset.q].id; render(); }; }); }
+
+  render();
+  function link(n) { if (!window.EPSD || !EPSD.store) { if ((n || 0) < 60) setTimeout(function () { link((n || 0) + 1); }, 250); return; } try { EPSD.store({ key: K, pre: "qz|", onChange: function () { if (!UI.run && !UI.edit) render(); } }); } catch (e) {} tabs(); }
+  link(0);
+  window.addEventListener("eps-lists", function () { if (!UI.run && !UI.edit) render(); });
+  window.epsSyncNow = function () { try { return EPSD.syncOne(K); } catch (e) {} };
+})();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>

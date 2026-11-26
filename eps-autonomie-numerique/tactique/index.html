@@ -106,7 +106,7 @@ button,input,select{font:inherit;color:inherit}
     document.body.appendChild(o); var i = o.querySelector("input"); i.value = val || ""; setTimeout(function () { i.focus(); }, 30);
     var ok = function () { var v = i.value; o.remove(); cb(v); }; o.querySelector("[data-ok]").onclick = ok; o.querySelector("[data-x]").onclick = function () { o.remove(); }; i.onkeydown = function (e) { if (e.key === "Enter") ok(); }; }
   var ED = EPSTAC.editor($("#board"), d0, { maxh: "70vh",
-    onChange: function (d) { try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: d })); } catch (e) {} },
+    onChange: function (d) { livePush(); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: d })); } catch (e) {} },
     onSelect: function (i) { $("#del").disabled = !i; var lab = i && (i.t === "p" || i.t === "x"); $("#lab").hidden = !lab; if (lab) { $("#labt").textContent = i.t === "p" ? "Numéro" : "Texte"; $("#labi").value = i.t === "p" ? (i.n || "") : (i.s || ""); $("#labi").style.width = i.t === "p" ? "80px" : "220px"; } },
     askText: function (cb) { ask("Texte à écrire sur la planche", "", cb); } });
   $("#sport").value = ED.get().sport; $("#nom").value = cur.nom;
@@ -120,7 +120,8 @@ button,input,select{font:inherit;color:inherit}
   if (EMB) { $("#home").hidden = true; $("#close").hidden = false; $("#close").onclick = function () { try { parent.postMessage({ epsPlanche: "close" }, location.origin); } catch (e) {} }; }
 
   /* ---- enseignant : mes planches, envoi ---- */
-  var SEL = { all: true, ids: {} }, MIN = 10, CLS = Q.get("cls") || "";
+  var SEL = { all: true, ids: {} }, MIN = 10, CLS = Q.get("cls") || "", LIVE = true, liveT = 0;
+  function livePush() { clearTimeout(liveT); liveT = setTimeout(function () { var c = P() && EPSD.plan.cur(); if (c && c.live) EPSD.plan.live({ nom: $("#nom").value.trim(), d: ED.get() }); }, 900); }
   function P() { return window.EPSD && EPSD.plan; }
   function lib() { if (!P()) return; var L = EPSD.plan.list();
     $("#lib").innerHTML = L.length ? L.map(function (b, k) { return '<div><div style="pointer-events:none">' + EPSTAC.svg(b.d) + "</div><b>" + esc(b.nom) + '</b><div class="row" style="margin:0"><button class="btn" data-o="' + k + '" type="button">Ouvrir</button><button class="btn d" data-d="' + k + '" type="button" aria-label="Supprimer ' + esc(b.nom) + '">🗑</button></div></div>'; }).join("") : '<p class="mut" style="grid-column:1/-1">Aucune planche enregistrée. Dessine, donne un nom, puis « Enregistrer » : elle sera sur toutes tes tablettes.</p>';
@@ -133,18 +134,18 @@ button,input,select{font:inherit;color:inherit}
     el.innerHTML = '<div class="chips"><button type="button" class="chip' + (SEL.all ? " on" : "") + '" data-all aria-pressed="' + SEL.all + '">👥 Tous les élèves</button>' +
       T.map(function (t, k) { return '<button type="button" class="chip' + (!SEL.all && SEL.ids[t.id] ? " on" : "") + '" data-k="' + k + '" aria-pressed="' + (!SEL.all && !!SEL.ids[t.id]) + '">📱 ' + esc(t.nom) + "</button>"; }).join("") + "</div>" +
       (T.length ? "" : '<p class="mut">Aucune tablette élève active ces 20 dernières minutes : l\'envoi « Tous les élèves » reste possible.</p>') +
-      '<div class="row"><label class="mut" for="min" style="margin:0">Visible pendant</label><select class="in" id="min">' + [2, 5, 10, 20, 45].map(function (m) { return "<option" + (m === MIN ? " selected" : "") + ' value="' + m + '">' + m + " min</option>"; }).join("") + '</select><button class="btn p" id="go" type="button">📤 Envoyer la planche</button>' +
-      (c ? '<button class="btn d" id="stop" type="button">■ Retirer des tablettes</button>' : "") + '<span class="st" id="gst" role="status"></span></div>' +
-      (c ? '<p class="mut">En ce moment sur les tablettes : <b>' + esc(c.nom || "planche") + "</b> (" + (c.to === "*" ? "tous les élèves" : c.to.length + " tablette" + (c.to.length > 1 ? "s" : "")) + ", jusqu'à " + new Date(c.until).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + ").</p>" : "") +
-      '<p class="mut">La planche s\'affiche en plein écran sur les tablettes choisies, en 8 à 20 s selon la connexion.</p>';
+      '<div class="row"><label class="mut" for="min" style="margin:0">Visible pendant</label><select class="in" id="min">' + [2, 5, 10, 20, 45].map(function (m) { return "<option" + (m === MIN ? " selected" : "") + ' value="' + m + '">' + m + " min</option>"; }).join("") + '</select><label style="display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:700"><input type="checkbox" id="live" style="width:22px;height:22px"' + (LIVE ? " checked" : "") + '> 🔴 En direct</label><button class="btn p" id="go" type="button">📤 Envoyer la planche</button>' +
+      (c ? '<button class="btn d" id="stop" type="button">■ Retirer des tablettes</button>' : "") + '<button class="btn" id="save2" type="button">💾 Enregistrer ce schéma</button>' + '<span class="st" id="gst" role="status"></span></div>' +
+      (c ? '<p class="mut">En ce moment sur les tablettes : <b>' + esc(c.nom || "planche") + "</b> (" + (c.to === "*" ? "tous les élèves" : c.to.length + " tablette" + (c.to.length > 1 ? "s" : "")) + (c.live ? ", 🔴 en direct : elle suit ton dessin" : "") + ", jusqu'à " + new Date(c.until).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + ").</p>" : "") +
+      '<p class="mut">La planche s\'affiche en plein écran sur les tablettes choisies, en 8 à 20 s. « En direct » : ce que tu dessines ensuite arrive tout seul, en 3 à 6 s.</p>';
     el.querySelector("[data-all]").onclick = function () { SEL.all = true; SEL.ids = {}; send(); };
     Array.prototype.forEach.call(el.querySelectorAll("[data-k]"), function (b) { b.onclick = function () { var t = T[+b.dataset.k]; SEL.all = false; if (SEL.ids[t.id]) delete SEL.ids[t.id]; else SEL.ids[t.id] = 1; if (!Object.keys(SEL.ids).length) SEL.all = true; send(); }; });
-    $("#min").onchange = function () { MIN = +this.value || 10; };
+    $("#min").onchange = function () { MIN = +this.value || 10; }; $("#live").onchange = function () { LIVE = this.checked; };
     $("#go").onclick = function () { var st = $("#gst"); if (!ED.count()) { st.className = "st ko"; st.textContent = "La planche est vide."; return; }
       var to = SEL.all ? "*" : Object.keys(SEL.ids); st.className = "st"; st.textContent = "Envoi…";
-      EPSD.plan.send({ nom: $("#nom").value.trim(), d: ED.get() }, to, MIN).then(function () { send(); var s2 = $("#gst"); if (s2) { s2.className = "st ok"; s2.textContent = navigator.onLine === false ? "Hors ligne : la planche partira au retour du réseau." : "✓ Envoyée"; } }, function () { st.className = "st ko"; st.textContent = "Envoi impossible pour l'instant."; }); };
-    var sb = $("#stop"); if (sb) sb.onclick = function () { EPSD.plan.stop().then(send, send); }; }
-  $("#save").onclick = function () { if (!P()) return; var n = $("#nom").value.trim(); if (!n) { $("#nom").focus(); $("#sst").className = "st ko"; $("#sst").textContent = "Donne un nom à la planche."; return; }
+      EPSD.plan.send({ nom: $("#nom").value.trim(), d: ED.get() }, to, MIN, LIVE).then(function () { send(); var s2 = $("#gst"); if (s2) { s2.className = "st ok"; s2.textContent = navigator.onLine === false ? "Hors ligne : la planche partira au retour du réseau." : "✓ Envoyée"; } }, function () { st.className = "st ko"; st.textContent = "Envoi impossible pour l'instant."; }); };
+    $("#save2").onclick = function () { $("#save").click(); var g = $("#gst"); if (g) { g.className = $("#sst").className; g.textContent = $("#sst").textContent; } }; var sb = $("#stop"); if (sb) sb.onclick = function () { EPSD.plan.stop().then(send, send); }; }
+  $("#save").onclick = function () { if (!P()) return; var n = $("#nom").value.trim(); if (!ED.count()) { $("#sst").className = "st ko"; $("#sst").textContent = "La planche est vide."; return; } if (!n) { var dt = new Date(); n = "Planche du " + dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); $("#nom").value = n; }
     cur.id = EPSD.plan.save({ id: cur.id, nom: n, d: ED.get() }); cur.nom = n; $("#sst").className = "st ok"; $("#sst").textContent = "✓ Enregistrée"; setTimeout(function () { $("#sst").textContent = ""; }, 2500); lib(); };
   $("#new").onclick = function () { cur = { id: "", nom: "" }; $("#nom").value = ""; ED.set(EPSTAC.depart($("#sport").value)); };
   $("#prt").onclick = function () { window.print(); };

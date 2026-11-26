@@ -241,7 +241,7 @@
      localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
   var STORES = [], ESSAIS_MAX = 8; /* essais sans confirmation avant de lever l'attente quand même (évite de renvoyer sans fin) */
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
-  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
+  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
     [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
@@ -1672,7 +1672,7 @@
     /* 🔄 réservé à l'enseignant (masqué côté élève : html:not(.eps-teach)) : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
     try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}html:not(.eps-teach):not(.eps-tool) #eps-upd{display:none!important}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
     /* outils réservés à l'enseignant (pas de mode élève) : 🔄 toujours affiché */
-    if (/\/(edt|appel-as|co-eval|terrain|console|attestation|guide|tactique|boite)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
+    if (/\/(edt|appel-as|co-eval|terrain|console|attestation|guide|tactique|boite|quiz)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
     b.className = "epsb"; b.style.display = "none"; document.body.appendChild(b); setTimeout(function () { try { placeUpd(); } catch (e) {} }, 50);
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
@@ -2287,23 +2287,31 @@
   function tacLoad(cb) { if (window.EPSTAC) { cb(); return; } var s = document.getElementById("eps-tac-js"); if (!s) { s = document.createElement("script"); s.id = "eps-tac-js"; s.src = BASE + "eps-tactique.js"; document.head.appendChild(s); } s.addEventListener("load", function () { cb(); }); }
   function planCheck() {
     var c = stLd(KSG).items.plan, seen = +(localStorage.getItem("eps.plan.seen") || 0), el = document.getElementById("eps-plan"), me = devInfo().id;
+    if (c && c.live) seen = (localStorage.getItem("eps.plan.seenrv") === c.at + ":" + (c.rv || 0)) ? c.at : 0;
     var show = c && c.d && c.at > seen && c.until > Date.now() && c.from !== me && !isTeacher() && (c.to === "*" || (Array.isArray(c.to) && c.to.indexOf(me) >= 0));
-    if (!show) { if (el) el.remove(); return; }
-    if (el && +el.dataset.at === c.at) return; if (el) el.remove();
-    el = document.createElement("div"); el.id = "eps-plan"; el.dataset.at = c.at;
+    if (!show) { if (el) el.remove(); planFast(!!(c && c.live && c.until > Date.now() && c.from !== me && !isTeacher())); return; }
+    planFast(!!c.live);
+    if (el && +el.dataset.at === c.at) { if (c.live && +el.dataset.rv !== (c.rv || 0)) { el.dataset.rv = c.rv || 0; planDraw(el, c); } return; } if (el) el.remove();
+    el = document.createElement("div"); el.id = "eps-plan"; el.dataset.at = c.at; el.dataset.rv = c.rv || 0;
     el.style.cssText = "position:fixed;inset:0;z-index:2147483590;background:#fff;color:#14171C;display:flex;flex-direction:column;font-family:system-ui,sans-serif;box-shadow:inset 0 0 0 8px #F0A030";
-    el.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px 6px"><b style="font-size:clamp(18px,3vw,28px);flex:1">📋 ' + esc(c.nom || "Planche de ton enseignant") + '</b><button type="button" style="min-height:52px;padding:0 24px;border-radius:14px;border:0;background:#F0A030;color:#14171C;font:900 18px system-ui,sans-serif">✓ Vu</button></div><div data-pl style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 14px 14px"></div>';
-    el.querySelector("button").onclick = function () { try { localStorage.setItem("eps.plan.seen", String(c.at)); } catch (e) {} el.remove(); };
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px 6px"><b style="font-size:clamp(18px,3vw,28px);flex:1">' + (c.live ? "🔴 En direct · " : "📋 ") + esc(c.nom || "Planche de ton enseignant") + '</b><button type="button" style="min-height:52px;padding:0 24px;border-radius:14px;border:0;background:#F0A030;color:#14171C;font:900 18px system-ui,sans-serif">✓ Vu</button></div><div data-pl style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 14px 14px"></div>';
+    el.querySelector("button").onclick = function () { var x = stLd(KSG).items.plan || c; try { if (x.live) localStorage.setItem("eps.plan.seenrv", x.at + ":" + (x.rv || 0)); else localStorage.setItem("eps.plan.seen", String(c.at)); } catch (e) {} el.remove(); };
     document.body.appendChild(el); bip();
-    tacLoad(function () { var bx = el.querySelector("[data-pl]"); if (!bx || !window.EPSTAC) return; var w = document.createElement("div"); w.style.cssText = "width:100%;max-width:" + Math.round((window.innerHeight - 110) * 1.9) + "px"; w.innerHTML = EPSTAC.svg(c.d, { maxh: (window.innerHeight - 100) + "px" }); bx.appendChild(w); });
+    planDraw(el, c);
   }
+  function planDraw(el, c) { tacLoad(function () { var bx = el.querySelector("[data-pl]"); if (!bx || !window.EPSTAC) return; var w = bx.firstChild || bx.appendChild(document.createElement("div")); w.style.cssText = "width:100%;max-width:" + Math.round((window.innerHeight - 110) * 1.9) + "px"; w.innerHTML = EPSTAC.svg(c.d, { maxh: (window.innerHeight - 100) + "px" }); }); }
+  /* planche en direct : la tablette élève relève le signal toutes les 3 s tant que la planche est en cours */
+  var planFastT = 0;
+  function planFast(on) { if (on && !planFastT) planFastT = setInterval(function () { if (!document.hidden && shCfg()) try { EPSD.syncOne(KSG); } catch (e) {} }, 3000); else if (!on && planFastT) { clearInterval(planFastT); planFastT = 0; } }
   STORES.forEach(function (st) { if (st.key === KSG) { var f0 = st.onChange; st.onChange = function () { try { f0 && f0(); } catch (e) {} try { planCheck(); } catch (e) {} }; } });
   setInterval(function () { try { planCheck(); } catch (e) {} }, 4000);
   EPSD.plan = {
     list: function () { var V = stLd(KPL); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.d && !x.del; }).sort(function (a, b) { return (b.u || 0) - (a.u || 0); }); },
     save: function (b) { var id = b.id || "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); stPutRaw(KPL, { id: id, nom: String(b.nom || "Planche").slice(0, 60), d: b.d }); try { EPSD.syncSoon(); } catch (e) {} return id; },
     del: function (id) { stPutRaw(KPL, { id: id, del: 1 }); try { EPSD.syncSoon(); } catch (e) {} },
-    send: function (b, to, min) { stPutRaw(KSG, { id: "plan", nom: String(b.nom || "").slice(0, 60), d: b.d, to: to === "*" ? "*" : (to || []).slice(0, 40), at: Date.now(), until: Date.now() + (min || 10) * 60000, from: devInfo().id }); return EPSD.syncOne(KSG); },
+    send: function (b, to, min, live) { stPutRaw(KSG, { id: "plan", nom: String(b.nom || "").slice(0, 60), d: b.d, to: to === "*" ? "*" : (to || []).slice(0, 40), at: Date.now(), until: Date.now() + (min || 10) * 60000, from: devInfo().id, live: live ? 1 : 0, rv: 0 }); return EPSD.syncOne(KSG); },
+    /* en direct : le dessin en cours remplace celui des tablettes (mêmes destinataires, même durée) */
+    live: function (b) { var c = stLd(KSG).items.plan; if (!c || !c.live || c.until <= Date.now() || c.from !== devInfo().id) return Promise.resolve(false); c.d = b.d; c.nom = String(b.nom || "").slice(0, 60); c.rv = (c.rv || 0) + 1; stPutRaw(KSG, c); return EPSD.syncOne(KSG); },
     stop: function () { var c = stLd(KSG).items.plan; if (c) { c.until = Date.now(); stPutRaw(KSG, c); return EPSD.syncOne(KSG); } return Promise.resolve(false); },
     cur: function () { var c = stLd(KSG).items.plan; return c && c.d && c.until > Date.now() ? c : null; },
     ready: function () { return !!shCfg(); },

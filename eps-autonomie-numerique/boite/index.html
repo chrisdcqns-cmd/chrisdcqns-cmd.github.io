@@ -56,6 +56,13 @@ button,input,select{font:inherit;color:inherit}
 #vbox canvas{width:100%;height:100%;object-fit:contain;display:block}
 #vbox .lb{position:absolute;left:10px;top:10px;background:#000A;color:#fff;font-weight:800;border-radius:8px;padding:4px 10px;font-size:14px}
 #vbox .ph{color:#C9CDD4;text-align:center;padding:20px}
+.vids{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-top:10px}
+.vw{position:relative;background:#000;border-radius:12px;overflow:hidden;min-height:150px;display:flex;align-items:center;justify-content:center}
+.vw video{display:block;width:100%;height:auto;max-height:62vh}
+.vw canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;touch-action:none;max-width:100%;max-height:100%}
+.vw .ph{position:absolute;color:#C9CDD4;text-align:center;padding:16px}
+.vs:not(.on) video{visibility:hidden}
+.sk{width:100%;min-height:40px;margin-top:6px}
 table.t{border-collapse:collapse;margin-top:10px}
 table.t td,table.t th{border:1px solid var(--line);padding:6px 14px;text-align:center;font-variant-numeric:tabular-nums}
 table.t th{background:#FAF8F3;font-size:13px}
@@ -89,11 +96,11 @@ table.t th{background:#FAF8F3;font-size:13px}
   var PRE = [{ n: "Volley-ball", c: ["Service réussi", "Service raté", "Attaque gagnante", "Balle rendue facile", "Faute"] }, { n: "Badminton", c: ["Point gagné au fond", "Point gagné au filet", "Smash gagnant", "Faute directe"] }, { n: "Sports collectifs", c: ["Tir réussi", "Tir raté", "Passe réussie", "Balle perdue", "Balle récupérée"] }, { n: "Réussi / raté", c: ["Réussi", "Raté"] }];
   var S = ld(), TAB = (location.hash || "").slice(1) || "chrono", stopTab = null;
   function fmt(ms, cs) { ms = Math.max(0, ms); var m = Math.floor(ms / 60000), s = Math.floor(ms % 60000 / 1000), c = Math.floor(ms % 1000 / 100); return m + ":" + String(s).padStart(2, "0") + (cs === false ? "" : "," + c); }
-  function tabs() { var L = [["chrono", "⏱ Chrono"], ["compteur", "🔢 Compteur"], ["video", "🎥 Vidéo différée"], ["charge", "🏋 Charge"]];
+  function tabs() { var L = [["chrono", "⏱ Chrono"], ["compteur", "🔢 Compteur"], ["video", "🎥 Vidéo différée"], ["analyse", "🎞 Analyse vidéo"], ["charge", "🏋 Charge"]];
     if (!L.some(function (t) { return t[0] === TAB; })) TAB = "chrono";
     $("#tabs").innerHTML = L.map(function (t) { return '<button type="button" class="tab' + (TAB === t[0] ? " on" : "") + '" data-t="' + t[0] + '">' + t[1] + "</button>"; }).join("");
     $$("#tabs .tab").forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; }); }
-  function go(t) { if (stopTab) { try { stopTab(); } catch (e) {} stopTab = null; } TAB = t; try { history.replaceState(null, "", "#" + t); } catch (e) {} tabs(); ({ chrono: chrono, compteur: compteur, video: video, charge: charge }[TAB] || chrono)(); }
+  function go(t) { if (stopTab) { try { stopTab(); } catch (e) {} stopTab = null; } TAB = t; try { history.replaceState(null, "", "#" + t); } catch (e) {} tabs(); ({ chrono: chrono, compteur: compteur, video: video, analyse: analyse, charge: charge }[TAB] || chrono)(); }
 
   /* ---- ⏱ chrono : plusieurs coureurs, un départ commun, temps de passage ---- */
   var C = { t0: 0, lanes: [] }, lock = null;
@@ -164,6 +171,52 @@ table.t th{background:#FAF8F3;font-size:13px}
     $("#flip").onclick = function () { face = face === "environment" ? "user" : "environment"; start(); };
     $("#dl").oninput = function () { S.delay = +this.value; $("#dv").textContent = S.delay + " s"; sv(); };
     stopTab = stop;
+  }
+
+  /* ---- 🎞 analyse vidéo : ralenti, image par image, tracés et angles ; une ou deux vidéos côte à côte. La vidéo reste sur la tablette. ---- */
+  function analyse() {
+    var slot = function (k) { return '<div class="vs" data-s="' + k + '"' + (k ? " hidden" : "") + '><div class="vw"><video playsinline muted preload="auto"></video><canvas></canvas><div class="ph">' + (k ? "2e vidéo, pour comparer" : "Filme ton geste ou choisis une vidéo.") + '</div></div><input type="range" class="sk" min="0" max="1000" value="0" aria-label="Avancer dans la vidéo ' + (k + 1) + '" disabled><div class="row" style="margin-top:6px"><label class="btn p" style="display:inline-flex;align-items:center">🎥 Filmer<input type="file" accept="video/*" capture="environment" hidden></label><label class="btn" style="display:inline-flex;align-items:center">📂 Choisir une vidéo<input type="file" accept="video/*" hidden></label><span class="time mut" data-tm></span></div></div>'; };
+    $("#pg").innerHTML = '<div class="card"><h2>🎞 Analyse vidéo</h2><p class="mut">Ralenti, image par image, tracés et angles. La vidéo reste sur la tablette : rien n\'est envoyé.</p>' +
+      '<div class="vids">' + slot(0) + slot(1) + "</div>" +
+      '<div class="row"><button class="btn p big" id="pl" type="button" style="min-width:120px">▶ Lire</button><button class="btn" id="pv" type="button" aria-label="Image précédente">◀ Image</button><button class="btn" id="nx" type="button" aria-label="Image suivante">Image ▶</button><span style="flex:1"></span>' + [.25, .5, 1].map(function (v) { return '<button class="tab' + (v === 1 ? " on" : "") + '" data-v="' + v + '" type="button" style="min-height:44px">× ' + String(v).replace(".", ",") + "</button>"; }).join("") + "</div>" +
+      '<div class="row">' + [["", "✋ Lecture"], ["l", "✏ Trait"], ["a", "📐 Angle (3 points)"]].map(function (t) { return '<button class="tab' + (t[0] ? "" : " on") + '" data-tool="' + t[0] + '" type="button" style="min-height:44px">' + t[1] + "</button>"; }).join("") + '<button class="btn d" id="ef" type="button">Effacer les tracés</button><span style="flex:1"></span><button class="btn" id="cmp" type="button">➕ Comparer avec une 2e vidéo</button></div></div>';
+    var SL = $$(".vs").map(function (el) { return { el: el, v: $("video", el), c: $("canvas", el), sh: [], tmp: null, url: "" }; }), tool = "", rate = 1;
+    function vids() { return SL.filter(function (s) { return s.url; }).map(function (s) { return s.v; }); }
+    function fit(s) { var r = s.v.getBoundingClientRect(), d = window.devicePixelRatio || 1, vw = s.v.videoWidth, vh = s.v.videoHeight; if (!r.width || !vw || !vh) return; var k = Math.min(r.width / vw, r.height / vh), w = vw * k, h = vh * k;
+      s.c.style.width = w + "px"; s.c.style.height = h + "px"; s.c.width = Math.round(w * d); s.c.height = Math.round(h * d); draw(s); }
+    function draw(s) { var g = s.c.getContext("2d"), W = s.c.width, H = s.c.height, d = window.devicePixelRatio || 1; g.clearRect(0, 0, W, H); g.lineCap = "round"; g.lineJoin = "round";
+      s.sh.concat(s.tmp ? [s.tmp] : []).forEach(function (o) { var P = []; for (var i = 0; i + 1 < o.p.length; i += 2) P.push([o.p[i] * W, o.p[i + 1] * H]);
+        var line = function (col, w) { g.strokeStyle = col; g.lineWidth = w * d; g.beginPath(); P.forEach(function (q, i) { if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); }); g.stroke(); };
+        if (P.length > 1) { line("#000", 6); line(o.k === "a" ? "#FFD54A" : "#4ADE80", 3.5); }
+        P.forEach(function (q) { g.fillStyle = "#fff"; g.strokeStyle = "#000"; g.lineWidth = 1.5 * d; g.beginPath(); g.arc(q[0], q[1], 5 * d, 0, 6.3); g.fill(); g.stroke(); });
+        if (o.k === "a" && P.length === 3) { var a1 = Math.atan2(P[0][1] - P[1][1], P[0][0] - P[1][0]), a2 = Math.atan2(P[2][1] - P[1][1], P[2][0] - P[1][0]), an = Math.abs(a1 - a2) * 180 / Math.PI; if (an > 180) an = 360 - an;
+          var tx = Math.round(an) + "°"; g.font = "900 " + (20 * d) + "px system-ui,sans-serif"; g.lineWidth = 5 * d; g.strokeStyle = "#000"; g.strokeText(tx, P[1][0] + 12 * d, P[1][1] - 12 * d); g.fillStyle = "#FFD54A"; g.fillText(tx, P[1][0] + 12 * d, P[1][1] - 12 * d); } }); }
+    function load(s, f) { if (!f) return; if (s.url) URL.revokeObjectURL(s.url); s.url = URL.createObjectURL(f); s.sh = []; s.v.src = s.url; s.v.playbackRate = rate; $(".ph", s.el).hidden = true; $(".sk", s.el).disabled = false; s.el.classList.add("on"); }
+    function setPlay(p) { vids().forEach(function (v) { if (p) { v.playbackRate = rate; var r = v.play(); if (r && r.catch) r.catch(function () {}); } else v.pause(); }); $("#pl").textContent = p ? "⏸ Pause" : "▶ Lire"; }
+    function playing() { return vids().some(function (v) { return !v.paused && !v.ended; }); }
+    SL.forEach(function (s) {
+      $$("input[type=file]", s.el).forEach(function (i) { i.onchange = function () { load(s, i.files && i.files[0]); i.value = ""; }; });
+      s.v.addEventListener("loadedmetadata", function () { fit(s); try { s.v.currentTime = 0.001; } catch (e) {} });
+      s.v.addEventListener("error", function () { if (!s.url) return; var p = $(".ph", s.el); p.hidden = false; p.textContent = "Cette vidéo ne peut pas être lue sur cet appareil."; });
+      s.v.addEventListener("timeupdate", function () { var d = s.v.duration || 0; if (d) { $(".sk", s.el).value = Math.round(s.v.currentTime / d * 1000); $("[data-tm]", s.el).textContent = fmt(s.v.currentTime * 1000) + " / " + fmt(d * 1000); } });
+      s.v.addEventListener("ended", function () { if (!playing()) $("#pl").textContent = "▶ Lire"; });
+      $(".sk", s.el).oninput = function () { var d = s.v.duration || 0; if (d) s.v.currentTime = this.value / 1000 * d; };
+      var pt = function (ev) { var r = s.c.getBoundingClientRect(); return [Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (ev.clientY - r.top) / r.height))]; };
+      s.c.addEventListener("pointerdown", function (ev) { if (!tool || !s.url) return; ev.preventDefault(); setPlay(false); var q = pt(ev);
+        if (tool === "l") { try { s.c.setPointerCapture(ev.pointerId); } catch (e) {} s.tmp = { k: "l", p: [q[0], q[1], q[0], q[1]] }; }
+        else { if (!s.tmp || s.tmp.k !== "a") s.tmp = { k: "a", p: [] }; s.tmp.p.push(q[0], q[1]); if (s.tmp.p.length === 6) { s.sh.push(s.tmp); s.tmp = null; } } draw(s); });
+      s.c.addEventListener("pointermove", function (ev) { if (tool !== "l" || !s.tmp || s.tmp.k !== "l") return; var q = pt(ev); s.tmp.p[2] = q[0]; s.tmp.p[3] = q[1]; draw(s); });
+      s.c.addEventListener("pointerup", function () { if (tool !== "l" || !s.tmp || s.tmp.k !== "l") return; var p = s.tmp.p; if (Math.hypot(p[2] - p[0], p[3] - p[1]) > .02) s.sh.push(s.tmp); s.tmp = null; draw(s); });
+    });
+    $("#pl").onclick = function () { if (!vids().length) return; setPlay(!playing()); };
+    function step(d) { setPlay(false); vids().forEach(function (v) { try { v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + d / 25)); } catch (e) {} }); }
+    $("#pv").onclick = function () { step(-1); }; $("#nx").onclick = function () { step(1); };
+    $$("[data-v]").forEach(function (b) { b.onclick = function () { rate = +b.dataset.v; $$("[data-v]").forEach(function (x) { x.classList.toggle("on", x === b); }); vids().forEach(function (v) { v.playbackRate = rate; }); }; });
+    $$("[data-tool]").forEach(function (b) { b.onclick = function () { tool = b.dataset.tool; $$("[data-tool]").forEach(function (x) { x.classList.toggle("on", x === b); }); SL.forEach(function (s) { s.tmp = null; s.c.style.pointerEvents = tool ? "auto" : "none"; draw(s); }); }; });
+    $("#ef").onclick = function () { SL.forEach(function (s) { s.sh = []; s.tmp = null; draw(s); }); };
+    $("#cmp").onclick = function () { SL[1].el.hidden = false; this.hidden = true; SL.forEach(fit); };
+    var rz = function () { SL.forEach(fit); }; window.addEventListener("resize", rz);
+    stopTab = function () { window.removeEventListener("resize", rz); SL.forEach(function (s) { try { s.v.pause(); } catch (e) {} if (s.url) URL.revokeObjectURL(s.url); }); };
   }
 
   /* ---- 🏋 charge : estimation de la charge maximale et des charges de travail ---- */
