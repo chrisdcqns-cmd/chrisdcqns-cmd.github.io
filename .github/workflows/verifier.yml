@@ -1,0 +1,19 @@
+# Contrôle automatique à chaque publication : syntaxe, liens, hors ligne, boutons, repères des pages.
+# Une croix rouge dans l'onglet Actions (et un courriel de GitHub) = une publication a abîmé quelque chose.
+name: Contrôle des applis EPS
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Contrôle
+        run: python3 eps-autonomie-numerique/outils/verifier.py

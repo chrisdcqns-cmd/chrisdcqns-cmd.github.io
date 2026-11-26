@@ -62,6 +62,30 @@ for d, ordre, marque, f in [("ccf", r"ORDER = (\[.*?\])", "/*APP*/", None), ("or
     if f: j = j.replace(f, "")
     if (D / "src" / "shell.html").read_text(encoding="utf-8").replace(marque, j) != (D / "index.html").read_text(encoding="utf-8"):
         av.append("%s : src/ en retard sur index.html (index.html est la référence ; build.py refusera d'écraser)" % d)
+# 7. repères : une page remplacée par une ancienne version ou par une page fabriquée ailleurs les perd
+#    (a) toute appli sans src/ porte le repère « eps-source-directe » ; (b) corrections qui ne doivent jamais disparaître.
+for p in list(B.glob("*/index.html")) + [B / "index.html"]:
+    if not (p.parent / "src").is_dir() and "eps-source-directe" not in p.read_text(encoding="utf-8", errors="replace")[:600]:
+        pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
+REPERES = {
+    "danse/index.html": ["function P01(", "P01(au.pos)", "P01(sel.pos)", "P01(x.pos)", "EPSG_Q", "UI.mode"],
+    "volley/index.html": ["function jsq(", "confirm(&quot;Changer l'équipe", "EPSG.sheet("],
+    "badminton/index.html": ["EPSG.sheet(", "Fiches techniques"],
+    "acrosport/index.html": ["EPSG.sheet(", "Array.isArray(def)!==Array.isArray(p)", "const autres="],
+    "crosstraining/index.html": ["function panneauClasses(", "Array.isArray(f.exercices)"],
+    "ccf/index.html": ["tabs:{ccf:false,seq:"],
+    "console/index.html": ["doit être un nombre", "if (sm) sm.textContent"],
+    "mon-bilan/index.html": ["ton enseignant"],
+    "eps-home.js": ["function gateSheet(", "sheet: gateSheet"],
+    "eps-lists.js": ["typeof def === \"number\" && (typeof o.v !== \"number\""],
+    "eps-shell.js": ["doit être un nombre"],
+    "eps-lecons.js": ["if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
+    "apps-script/Code.gs": ["function modele_(", "function sansCache_(", "function lisJson_("],
+}
+for f, L in REPERES.items():
+    t = (B / f).read_text(encoding="utf-8", errors="replace")
+    for x in L:
+        if x not in t: pb.append("%s : correction disparue (« %s ») : fichier remplacé par une version plus ancienne ?" % (f, x[:50]))
 # 6. code des boutons (attributs on…) : JavaScript valide une fois la page affichée (apostrophe non protégée, etc.)
 r = subprocess.run(["node", str(B / "outils" / "boutons.js")] + [str(p) for p in list(B.glob("*.js")) + pages], capture_output=True, text=True)
 if r.returncode: pb += ["bouton : " + l for l in r.stdout.strip().split("\n")[:-1] if l.strip()]
