@@ -3277,6 +3277,15 @@ window.EPSTB=window.EPST?EPST.init({app:'bad',nom:'Badminton',color:'#0B7A75',is
  select:id=>{TERR.cls=id;terrStart()},
  resources:[],
  teacher:()=>unlock()});
+
+/* 📥 séquences de l'appli reprises dans les fiches de leçon communes (eps-lecons.js seedApp) : une fois, sans écraser tes modifications */
+window.EPS_APP_LECONS=function(){const out=[],J=a=>(a||[]).filter(Boolean).join('\n');
+  ['gt','pro'].forEach(v=>{const q=S&&S.prof&&S.prof[v]&&S.prof[v].seq;if(!q)return;const seq='Badminton · '+(v==='gt'?'Bac général':'Bac pro');
+    (q.lecons||[]).forEach(l=>out.push({key:v+'-'+l.id,seq,voie:v,num:l.n,titre:l.titre,objM:l.obj||'',
+      but:[l.but,(l.cont||[]).length?'Contenus : '+l.cont.join(' ; '):'',l.consg?'Consignes : '+l.consg:''].filter(Boolean).join('\n'),
+      disp:l.disp||'',mat:l.mat||'',ech:q.echTxt||'',prop:!!l.prop,
+      sits:(l.temps||[]).map(t=>({t:t.t,cons:t.cons,crQ:J(t.crq),crQl:J(t.crl),crR:J(t.crr),simp:t.vm||'',comp:t.vp||'',ap:l.titre}))}))});
+  return out};
 </script>
 <script src="../eps-home.js" defer></script>
 </body>

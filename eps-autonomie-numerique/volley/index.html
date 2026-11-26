@@ -2632,6 +2632,12 @@ window.EPSTV=window.EPST?EPST.init({app:'vol',nom:'Volley-ball',color:'#6B3FA0',
  select:id=>{CO.cid=id;CO.tid=null;coachStart()},
  resources:[],
  teacher:()=>unlock()});
+
+/* 📥 séquence de l'appli reprise dans les fiches de leçon communes (eps-lecons.js seedApp) : une fois, sans écraser tes modifications */
+window.EPS_APP_LECONS=function(){const q=S&&S.seq;if(!q)return[];
+  return(q.lecons||[]).map(l=>({key:l.id,seq:'Volley-ball',num:l.n,titre:l.titre,objM:l.obj||'',prop:!!l.prop,
+    but:(l.cont||[]).length?'Contenus :\n'+l.cont.map(x=>'- '+x).join('\n'):'',
+    ech:'Courses temps '+(l.ech||'I')+' et routines avec ballon (schéma dans l\'appli).'}))};
 </script>
 <script src="../eps-home.js" defer></script>
 </body>

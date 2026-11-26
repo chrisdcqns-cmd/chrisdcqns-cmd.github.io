@@ -1618,7 +1618,7 @@
   /* ================= Bouton « Mise à jour » : récupère les nouveautés (données et application) sans quitter ================= */
   function addUpdate() {
     var b = document.createElement("button");
-    b.type = "button"; b.id = "eps-upd"; b.title = "Mettre à jour (données et application)"; b.setAttribute("aria-label", "Mettre à jour");
+    b.type = "button"; b.id = "eps-upd"; b.title = "Forcer la mise à jour (données et application)"; b.setAttribute("aria-label", "Mettre à jour");
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
     var s = b.style, slot = epsSlot();
     /* 🔄 réservé à l'enseignant (masqué côté élève : html:not(.eps-teach)) : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
@@ -1635,8 +1635,7 @@
       var wait = function (p, ms) { return Promise.race([p, new Promise(function (r) { setTimeout(r, ms); })]); };
       try { if (typeof window.epsBeforeUpdate === "function") await wait(Promise.resolve(window.epsBeforeUpdate()), 8000); } catch (e) {}
       try { await wait(sync(), 6000); } catch (e) {}
-      try { if (navigator.serviceWorker) { var regs = await navigator.serviceWorker.getRegistrations(); await wait(Promise.all(regs.map(function (r) { return r.update().catch(function () {}); })), 4000); } } catch (e) {}
-      location.reload();
+      await forceUpd(wait);
     };
     (slot || document.body).appendChild(b);
   }
@@ -1659,13 +1658,30 @@
   function updDot() { var b = document.getElementById("eps-upd"); if (!b) return; var d = b.querySelector(".eps-dot"); if (!d) { d = document.createElement("i"); d.className = "eps-dot"; d.setAttribute("aria-hidden", "true"); b.appendChild(d); b.style.position = b.style.position || "relative"; }
     var mine = UPD.page || UPD.loc, st = !UPD.net || !mine ? "?" : mine >= UPD.net ? "ok" : "old";
     d.style.cssText = "position:absolute;top:3px;right:3px;width:11px;height:11px;border-radius:50%;border:2px solid #14171C;background:" + (st === "ok" ? "#2ECC71" : st === "old" ? "#E53935" : "#9E9E9E") + (st === "old" ? ";animation:epsblink 1s infinite" : "");
-    var t = st === "ok" ? "Tablette à jour (version " + mine + ")" : st === "old" ? "Nouvelle version publiée (" + UPD.net + ", cette page est en " + mine + ") : touche pour mettre à jour" : "Mettre à jour (version non vérifiée : hors ligne ?)";
+    var t = st === "ok" ? "Tablette à jour (version " + mine + ")" : st === "old" ? "Nouvelle version publiée (" + UPD.net + ", cette page est en " + mine + ") : elle s'installe seule dès que la tablette est au repos ; touche pour forcer" : "Mettre à jour (version non vérifiée : hors ligne ?)";
     b.title = t; b.setAttribute("aria-label", t); }
   try { var bk = document.createElement("style"); bk.textContent = "@keyframes epsblink{50%{opacity:.25}}"; document.head.appendChild(bk); } catch (e) {}
-  /* côté élève, pas de bouton 🔄 : une nouvelle version publiée s'installe seule quand la tablette revient après au moins 1 min en veille ou sur une autre appli */
-  var hidAt = 0; document.addEventListener("visibilitychange", function () { if (document.hidden) { hidAt = Date.now(); return; }
-    if (!hidAt || Date.now() - hidAt < 60000 || isTeacher() || document.documentElement.classList.contains("eps-tool")) return; hidAt = 0; verCheck().then(function () { var mine = UPD.page || UPD.loc; if (UPD.net && mine && mine < UPD.net && !isTeacher()) location.reload(); }); });
-  setTimeout(verCheck, 2500); setInterval(verCheck, 5 * 60000); window.addEventListener("online", function () { setTimeout(verCheck, 2000); });
+  /* ⬇ mise à jour forcée (bouton 🔄, enseignant) : données envoyées, service workers relancés, et si une version plus récente est publiée
+     et la tablette en ligne, tous les caches de fichiers vidés (les données des élèves sont ailleurs : rien n'est perdu) puis rechargement */
+  async function forceUpd(wait) {
+    wait = wait || function (p, ms) { return Promise.race([p, new Promise(function (r) { setTimeout(r, ms); })]); };
+    try { await wait(sync(), 6000); } catch (e) {}
+    try { if (navigator.serviceWorker) { var regs = await navigator.serviceWorker.getRegistrations(); await wait(Promise.all(regs.map(function (r) { return r.update().catch(function () {}); })), 4000); } } catch (e) {}
+    try { await wait(verCheck(), 4000); var mine = UPD.page || UPD.loc; if (navigator.onLine !== false && UPD.net && (!mine || mine < UPD.net)) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
+    location.reload();
+  }
+  window.epsForceUpdate = function () { return forceUpd(); };
+  /* 🔄 automatique (élèves ET enseignant) : une nouvelle version publiée s'installe seule, sans rien interrompre :
+     au retour sur la tablette après au moins 1 min en veille / sur une autre appli, ou après 2 min sans toucher l'écran ;
+     jamais pendant une saisie ni avec une fenêtre ouverte (fiche, évaluation, leçon en cours…) */
+  var hidAt = 0, lastAct = Date.now(), autoBusy = false;
+  ["pointerdown", "keydown", "input"].forEach(function (ev) { document.addEventListener(ev, function () { lastAct = Date.now(); }, true); });
+  function busyNow() { var a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== "button") return true; if (a && a.isContentEditable) return true;
+    return Array.prototype.some.call(document.querySelectorAll(".lc-ov,.lc-modal,.epse-ov,.epst-vue,#lc-cl,#lc-ctl,[role=dialog]"), function (e) { return e.getClientRects().length && getComputedStyle(e).display !== "none" && getComputedStyle(e).visibility !== "hidden"; }); }
+  function autoUpd(why) { if (autoBusy || location.protocol === "file:" || window.top !== window) return; verCheck().then(function () { var mine = UPD.page || UPD.loc;
+    if (!(UPD.net && mine && mine < UPD.net) || busyNow()) return; if (why === "idle" && Date.now() - lastAct < 120000) return; autoBusy = true; forceUpd(); }); }
+  document.addEventListener("visibilitychange", function () { if (document.hidden) { hidAt = Date.now(); return; } if (hidAt && Date.now() - hidAt >= 60000) { hidAt = 0; autoUpd("retour"); } });
+  setTimeout(verCheck, 2500); setInterval(function () { verCheck().then(function () { autoUpd("idle"); }); }, 5 * 60000); window.addEventListener("online", function () { setTimeout(verCheck, 2000); });
   function placeUpd() {
     var b = document.getElementById("eps-upd"); if (!b) return; if (window.EPS_VUE_ELEVE && window.top !== window) { b.style.display = "none"; return; }
     var S = Array.prototype.filter.call(document.querySelectorAll("[data-eps-upd-slot]"), function (x) { return visibleFree(x); })[0], sl = S || (function () { var e = epsSlot(); return e && (visibleFree(e) || (b.parentNode === e && visibleFree(b))) ? e : null; })();
