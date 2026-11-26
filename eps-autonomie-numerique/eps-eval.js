@@ -588,7 +588,9 @@
         put(id, { c: c.nom, n: e.nom, p: e.prenom || "", ev: ev, ap: ap, comm: i % 3 === 0 ? "Investi(e), progrès nets sur la situation 1." : "", st: "", demo: 1 }); });
     }
     setTimeout(function () { try { demoSeed(); } catch (e) {} }, 2500); setInterval(function () { try { demoSeed(); } catch (e) {} }, 20000);
-    var A = { app: o.app, nom: o.nom, ca: o.ca, color: o.color, icon: o.icon, pfx: o.pfx, code: o.code, url: o.url,
+    /* grille d'une classe donnée, quelle que soit la classe ouverte (référentiel de compétences, eps-ref.js) */
+    function gridFor(cl) { var c = cfg(), pro = false; try { pro = !!window.epsVoie && epsVoie(cl) === "pro"; } catch (e) {} if (!pro) return c.grid; if (c.gridPro) return c.gridPro; if (o.gridPro && !proData()) return JSON.parse(JSON.stringify(o.gridPro)); return c.grid; }
+    var A = { app: o.app, nom: o.nom, ca: o.ca, color: o.color, icon: o.icon, pfx: o.pfx, code: o.code, url: o.url, gridFor: gridFor,
       grid: function () { var G = grid(); G.criteres.forEach(function (cr) { if (!cr.descEl) cr.descEl = cr.desc; }); return G; },
       classes: classes, name: function (e) { return { nom: e.nom, prenom: e.prenom }; }, prof: prof, note: note,
       absent: function (e) { return rec(e._c, e).st || ""; }, comment: function (e) { return rec(e._c, e).comm || ""; },

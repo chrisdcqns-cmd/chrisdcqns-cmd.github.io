@@ -95,3 +95,6 @@ Page d'accueil → 🔒 Enseignant → carte Listes d'élèves → « ⚙ Partag
 - Accès enseignant caché : appui long 3 s sur le logo (barre de l'accueil, barre des applis, écran « Choisis ta classe », titre des tablettes coach / terrain) ; les boutons « Je suis enseignant » visibles par les élèves sont retirés. `window.epsTeacherEntry` (OrienRun), sinon `teacher()` de l'écran de classe, sinon code commun.
 - Appel AS : élèves présents dans l'onglet « Top licenciés » surlignés (fond doré léger, ★).
 - L'outil « Terrain » s'appelle « Pose des balises » (icône boussole) ; OrienRun prend l'icône de balise.
+
+### Référentiel de compétences (`eps-ref.js`, `referentiel/`)
+- Outil enseignant : objectifs généraux, champs d'apprentissage, AFL / AFLP, éléments prioritaires (modifiables), répertoire de compétences générales. Chaque critère de grille (compétence spécifique) est rattaché une seule fois ; les degrés viennent des évaluations des applis (relevé automatique en mode enseignant). Suivi par élève, par classe, couverture par classe ; profil dans le carnet de l'élève si l'enseignant le rend visible. Détails : `eps-autonomie-numerique/CLAUDE.md`.

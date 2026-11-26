@@ -3259,7 +3259,7 @@ renderHead();showTab('seq');setLock();syUpd();syncSoon(800);
 var EVB=window.EPSE?EPSE.create({app:'bad',nom:'Badminton',ca:'CA4',color:'#0B7A75',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="17.5" r="3"/><path d="M8.6 15.4 18 3l3 3-12.4 9.4"/><path d="M12 10.5 15 13M14.5 7.5 18 10"/></svg>',pfx:'bd',code:'BAD1',url:'https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/badminton/',
  grid:()=>{const b=B();return{criteres:b.criteres.map(cr=>({id:cr.id,afl:cr.afl,nom:cr.nom,but:cr.but,nomEl:cr.nomEl||cr.nom,butEl:cr.butEl||cr.but,desc:cr.desc,descEl:(cr.descEl&&cr.descEl.length?cr.descEl:cr.desc),max:maxPts(cr,null)})),degres:b.degres,degresEl:b.degresEl||b.degres}},
  max:(cr,e)=>maxPts(B().criteres.find(x=>x.id===cr.id)||cr,e),
- classes:()=>S.classes,name:e=>({nom:e.nom||'',prenom:e.prenom||''}),
+ classes:()=>S.classes,voie:()=>S.voie,name:e=>({nom:e.nom||'',prenom:e.prenom||''}),
  prof:(cr,e)=>{const c0=B().criteres.find(x=>x.id===cr.id)||cr,v=e.ev&&e.ev[c0.id];if(!v||v.d==null)return null;const [lo,hi]=band(c0,e,v.d),p=critPts(c0,e);return{d:v.d,pos:hi>lo?Math.max(0,Math.min(1,(p-lo)/(hi-lo))):.5,pts:p}},
  note:e=>note20(e),absent:e=>isAbs(e)?e.statut:'',comment:e=>e.comment||'',
  extras:(c,e)=>{const x=[];['AFL1','AFL2','AFL3','AFLP1','AFLP2'].forEach(a=>{const r=aflPts(e,a);if(r)x.push(a+' : '+fr(r.pts)+' / '+fr(r.max))});return x},

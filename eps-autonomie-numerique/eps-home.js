@@ -241,7 +241,7 @@
      localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
   var STORES = [], ESSAIS_MAX = 8; /* essais sans confirmation avant de lever l'attente quand même (évite de renvoyer sans fin) */
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
-  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.carnet\.v1$/, "cn|"], [/^eps\.analyse\.v1$/, "an|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
+  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.carnet\.v1$/, "cn|"], [/^eps\.ref\.v1$/, "rf|"], [/^eps\.analyse\.v1$/, "an|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
     [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
@@ -1547,7 +1547,7 @@
           function (e) { btn.disabled = false; btn.textContent = "✨ Proposer la version élève"; alert("⚠ " + (e && e.message || e)); });
       })();
     },
-    demo: { on: function () { return demoOn(); }, create: function () { return demoCreate(); }, nom: "DÉMO (fictive)" },
+    demo: { on: function () { return demoOn(); }, create: function () { return demoCreate(); }, remove: function () { return demoRemove(); }, nom: "DÉMO (fictive)" },
     appel: { get: function (c, d) { var o = abGet(c, d); return o ? (o.abs || []).slice() : []; }, fait: function (c, d) { return !!abGet(c, d); }, set: function (c, abs) { abSet(c, abs); },
       absent: function (c, n, d) { return abIs(c, n, d); }, dispense: function (c, n) { return !!find(c, n); },
       presents: function (c, R) { return (R || []).filter(function (n) { return !abIs(c, n); }); } },
@@ -1672,7 +1672,7 @@
     /* 🔄 réservé à l'enseignant (masqué côté élève : html:not(.eps-teach)) : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
     try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}html:not(.eps-teach):not(.eps-tool) #eps-upd{display:none!important}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
     /* outils réservés à l'enseignant (pas de mode élève) : 🔄 toujours affiché */
-    if (/\/(edt|appel-as|co-eval|terrain|console|attestation|guide|tactique|boite|quiz|carnet)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
+    if (/\/(edt|appel-as|co-eval|terrain|console|attestation|guide|tactique|boite|quiz|carnet|referentiel)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
     b.className = "epsb"; b.style.display = "none"; document.body.appendChild(b); setTimeout(function () { try { placeUpd(); } catch (e) {} }, 50);
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
@@ -1846,7 +1846,7 @@
     await applyLocal(); setTimeout(sync, 300);
   }
   async function demoRemove() {
-    STORES.concat([{ key: "eps.obs.v1" }, { key: KC }]).forEach(function (st) { var V = stLd(st.key), ch = false;
+    STORES.concat([{ key: "eps.obs.v1" }, { key: KC }, { key: "eps.ref.v1" }]).forEach(function (st) { var V = stLd(st.key), ch = false;
       Object.keys(V.items).forEach(function (k) { var o = V.items[k]; if (!o || o.del) return;
         if (o.demo || /^demo-/.test(k) || (o.cls && cmp(o.cls) === cmp(DEMO)) || (o.c && cmp(o.c) === cmp(DEMO))) { V.items[k] = { id: k, del: 1, u: Date.now() }; V.pend[k] = Date.now(); ch = true; } });
       if (ch) try { localStorage.setItem(st.key, JSON.stringify(V)); } catch (e) {} });
@@ -2354,6 +2354,8 @@
     /* leçons communes (eps-lecons.js) : dans les applis d'activité seulement */
     if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
     if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
+    /* 🧭 référentiel de compétences (eps-ref.js) : relevé des évaluations de l'appli, en mode enseignant, pour le suivi toutes activités */
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|crosstraining)\//.test(location.pathname) && !window.EPSREF) { var rf = document.createElement("script"); rf.src = BASE + "eps-ref.js"; document.head.appendChild(rf); }
     if (window.EPSL) goL(); else { var ls = document.createElement("script"); ls.src = BASE + "eps-lists.js"; ls.onload = goL; document.head.appendChild(ls); }
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<!-- eps-source-directe : cette page est LA source de l'appli, modifiée directement. Ne jamais la remplacer par une page fabriquée ailleurs (autre conversation, anciens fichiers) : repartir de cette page. Voir CLAUDE.md. -->
+<html lang="fr">
+<head>
+<script src="../eps-lists.js"></script><!-- commun : garde de la simulation, listes -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Référentiel de compétences – EPS</title>
+<meta name="theme-color" content="#14171C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#F5F3EE;--ink:#14171C;--muted:#6A6F78;--line:#E6E1D6;--app:#86198F;--ok:#1E6B3A;--no:#B3261E}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+#eps-home{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.4}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,select,textarea{font:inherit;color:inherit}
+.hd{background:var(--ink);color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:10px 14px;display:flex;align-items:center;gap:10px}
+.hd .ic{width:36px;height:36px;border-radius:10px;background:var(--app);display:flex;align-items:center;justify-content:center;flex:none}
+.hd h1{margin:0;font-size:20px;font-weight:800;flex:1;min-width:0}
+.hb{color:#D5D8DE;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid #3A3F47;border-radius:10px;padding:0 14px;height:40px;display:inline-flex;align-items:center;white-space:nowrap}
+.nav{display:flex;gap:6px;overflow-x:auto;padding:10px 14px 0;max-width:1100px;margin:0 auto}
+.nav button{flex:none;min-height:44px;padding:0 14px;border-radius:12px 12px 0 0;border:1.5px solid var(--line);border-bottom:0;background:#FAF8F3;font-weight:800;cursor:pointer;white-space:nowrap}
+.nav button.on{background:var(--app);border-color:var(--app);color:#fff}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 14px 70px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 12px}
+.card h2{margin:0 0 6px;font-size:18px;font-weight:800}
+.card h3{margin:0 0 6px;font-size:16px;font-weight:800}
+.mut{color:var(--muted);font-size:14px;margin:4px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.btn{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid var(--ink);background:#fff;font-weight:800;cursor:pointer}
+.btn.p{background:var(--app);border-color:var(--app);color:#fff}
+.btn.s{min-height:40px;padding:0 10px;border-color:var(--line);font-weight:700;font-size:14px}
+.in{min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;background:#fff;width:100%}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-weight:700;cursor:pointer}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.tag{display:inline-block;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:800;background:#F1EEE7;color:#3A3F47;margin:1px 3px 1px 0;white-space:nowrap}
+.tag.w{background:#FFF1E6;color:#9A3412}
+.tag.cg{background:#F5E8F7;color:#701A75}
+.og{border:1.5px solid var(--line);border-left:8px solid var(--c,#999);border-radius:14px;background:#fff;padding:12px 14px;margin:0 0 10px}
+.og h3{margin:0 0 6px;font-size:17px}
+.og .l{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:8px 0 3px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:center;vertical-align:middle}
+th:first-child,td:first-child{text-align:left}
+th{background:#FAF8F3;font-size:13px}
+td.l{text-align:left}
+td.z{background:#FDECEA;color:var(--no);font-weight:800}
+.line{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.line:first-of-type{border-top:0}
+.line>span:first-child{flex:1;min-width:0}
+.msg{font-weight:800;font-size:14px;min-height:20px;color:var(--ok)}
+.ov{position:fixed;inset:0;background:rgba(20,23,28,.55);z-index:900;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+.ov>div{background:#fff;border-radius:16px;padding:16px 18px;width:100%;max-width:560px}
+.ov h2{margin:0 0 8px;font-size:18px}
+.ck{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:8px 4px;border-top:1px solid var(--line);cursor:pointer}
+.ck input{width:22px;height:22px;flex:none;margin-top:1px}
+label.f{display:block;font-weight:800;font-size:14px;margin:10px 0 4px}
+@media print{.hd,.nav,.noprint{display:none!important}html,body{background:#fff}.wrap{max-width:none;padding:0}.card{border:0;padding:0 0 10px}}
+</style>
+</head>
+<body>
+<div class="hd">
+  <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5l-5.5 5.2M12 11.5l5.5 5.2"/></svg></div>
+  <h1>Référentiel de compétences</h1>
+  <span data-eps-upd-slot></span>
+  <a class="hb" href="../">← Accueil</a>
+</div>
+<div class="nav noprint" id="nav" hidden></div>
+<div class="wrap" id="pg"><div class="card"><p class="mut">Outil enseignant : le code est demandé.</p></div></div>
+<script>window.EPS_REF_PAGE = 1;</script>
+<script src="../eps-ref.js"></script>
+<script>
+(function () {
+  "use strict";
+  var R = window.EPSREF, esc = R.esc;
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+  function teach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+  var TABS = [["str", "🧭 Structure"], ["act", "🔗 Activités"], ["el", "👤 Élève"], ["cl", "👥 Classe"], ["cov", "🗺 Couverture"], ["txt", "📜 Textes officiels"]];
+  var DIRS = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining" };
+  var UI = { tab: "str", voie: "gt", an: R.annee(), g: "", cls: "", el: "", mode: "og", busy: false };
+  try { var u0 = JSON.parse(sessionStorage.getItem("eps.ref.ui") || "null"); if (u0 && typeof u0 === "object") ["tab", "voie", "g", "cls", "mode"].forEach(function (k) { if (typeof u0[k] === "string") UI[k] = u0[k]; }); } catch (e) {}
+  function keep() { try { sessionStorage.setItem("eps.ref.ui", JSON.stringify({ tab: UI.tab, voie: UI.voie, g: UI.g, cls: UI.cls, mode: UI.mode })); } catch (e) {} }
+  var VN = { gt: "Voie générale et technologique", pro: "Voie professionnelle", x: "Toutes les classes" };
+
+  /* ---- petite fenêtre ---- */
+  function pop(html, bind) { shut(); var o = document.createElement("div"); o.className = "ov"; o.id = "ov"; o.innerHTML = '<div role="dialog" aria-modal="true">' + html + "</div>"; document.body.appendChild(o);
+    o.addEventListener("click", function (e) { if (e.target === o) shut(); }); $$("[data-x]", o).forEach(function (b) { b.onclick = shut; }); if (bind) bind(o); var f = $("input,textarea,select,button", o); if (f) try { f.focus(); } catch (e) {} return o; }
+  function shut() { var o = $("#ov"); if (o) o.remove(); }
+  function voieSw() { return '<div class="chips noprint" style="margin:0 0 12px">' + ["gt", "pro"].map(function (v) { return '<button type="button" class="chip' + (UI.voie === v ? " on" : "") + '" data-voie="' + v + '" aria-pressed="' + (UI.voie === v) + '">' + VN[v] + "</button>"; }).join("") + "</div>"; }
+  function bindVoie() { $$("[data-voie]").forEach(function (b) { b.onclick = function () { UI.voie = b.dataset.voie; render(); }; }); }
+  function gridVoie(g) { return g.gv === "pro" ? "pro" : g.gv === "gt" ? "gt" : UI.voie; }
+
+  /* ================= 🧭 Structure ================= */
+  function specs(voie) { /* compétences spécifiques (critères) par objectif général et par compétence générale, pour les grilles de cette voie */
+    var og = {}, cg = {}, n = 0; R.grids().forEach(function (g) { if (g.gv !== "x" && g.gv !== voie) return; g.crit.forEach(function (cr) { n++; var it = { g: g, cr: cr };
+      R.ogOf(g, cr, voie).forEach(function (id) { (og[id] = og[id] || []).push(it); }); R.link(g.app, g.gv, cr).cg.forEach(function (id) { (cg[id] = cg[id] || []).push(it); }); }); });
+    return { og: og, cg: cg, n: n }; }
+  function vStr() { var v = UI.voie, S = specs(v), C = R.cgs(), h = voieSw();
+    h += '<div class="card"><h2>Une seule structure</h2><p class="mut">Critère de grille (compétence spécifique) → son AFL et son champ d\'apprentissage → objectif général. Tes compétences générales relient les activités entre elles.</p></div>';
+    R.ogs(v).forEach(function (o) { var A = []; R.CAS.forEach(function (ca) { R.aflList(v, ca).forEach(function (a) { if (a.og.indexOf(o.id) >= 0) A.push(ca + " · " + a.code); }); });
+      var G = C.filter(function (c) { return (c.og || []).indexOf(o.id) >= 0; }), sp = S.og[o.id] || [];
+      h += '<div class="og" style="--c:' + o.color + '"><h3><span class="rf-og" style="background:' + o.color + '">' + o.n + "</span> " + esc(o.t) + "</h3>" +
+        '<p class="l">' + (v === "pro" ? "AFLP" : "AFL") + " rattachés</p><div>" + (A.length ? A.map(function (x) { return '<span class="tag">' + x + "</span>"; }).join("") : '<span class="mut">Aucun : à relier par une compétence générale, ou dans 📜 Textes officiels.</span>') + "</div>" +
+        '<p class="l">Compétences générales</p><div>' + (G.length ? G.map(function (c) { return '<span class="tag cg">' + esc(c.nom) + "</span>"; }).join("") : '<span class="mut">Aucune</span>') + "</div>" +
+        '<div class="row" style="margin-top:8px"><button type="button" class="btn s" data-sp="' + o.id + '"' + (sp.length ? "" : " disabled") + ">" + sp.length + " compétence" + (sp.length > 1 ? "s" : "") + " spécifique" + (sp.length > 1 ? "s" : "") + " (critères)</button></div></div>"; });
+    h += '<div class="card"><h2>Mes compétences générales</h2><p class="mut">Ton répertoire, commun à toutes les activités. Chaque critère de grille s\'y rattache dans 🔗 Activités.</p>';
+    C.forEach(function (c, i) { var n = (S.cg[c.id] || []).length; h += '<div class="line"><span><b>' + esc(c.nom) + "</b> " + (c.og || []).map(function (id) { return R.ogChip(id, v, 1); }).join("") + (c.d ? '<br><span class="mut">' + esc(c.d) + "</span>" : "") + '<br><span class="mut">' + n + " critère" + (n > 1 ? "s" : "") + " rattaché" + (n > 1 ? "s" : "") + '</span></span><button type="button" class="btn s" data-cge="' + i + '">✎ Modifier</button></div>'; });
+    if (!C.length) h += '<p class="mut">Ton répertoire est vide.</p>';
+    h += '<div class="row"><button type="button" class="btn p" id="cgn">＋ Nouvelle compétence</button>' + (C.length ? "" : '<button type="button" class="btn" id="cgd">📥 Partir d\'une proposition</button>') + "</div></div>";
+    var on = !!R.cfg().carnet;
+    h += '<div class="card"><h2>Côté élève</h2><p class="mut">Montre à chaque élève son profil de compétences dans son carnet (le carnet doit être ouvert aux élèves).</p><div class="row"><button type="button" class="chip' + (on ? " on" : "") + '" id="cfgc" aria-pressed="' + on + '">' + (on ? "✓ Visible dans le carnet de l'élève" : "Non visible dans le carnet") + "</button></div></div>";
+    $("#pg").innerHTML = h; bindVoie();
+    $$("[data-sp]").forEach(function (b) { b.onclick = function () { var L = S.og[b.dataset.sp] || [], o = R.ogs(v).filter(function (x) { return x.id === b.dataset.sp; })[0];
+      pop("<h2>" + esc(o.t) + "</h2>" + L.map(function (x) { return '<div class="line"><span><b>' + esc(x.cr.nom || x.cr.id) + '</b><br><span class="mut">' + esc(x.g.nom) + " · " + esc(x.g.ca) + (x.cr.afl ? " · " + esc(x.cr.afl) : "") + "</span></span></div>"; }).join("") + '<div class="row"><button type="button" class="btn" data-x>Fermer</button></div>'); }; });
+    $$("[data-cge]").forEach(function (b) { b.onclick = function () { cgEdit(C[+b.dataset.cge]); }; });
+    $("#cgn").onclick = function () { cgEdit(null); };
+    var d = $("#cgd"); if (d) d.onclick = depart;
+    $("#cfgc").onclick = function () { var c = R.cfg(); R.put({ id: "cfg", k: "cfg", carnet: c.carnet ? 0 : 1 }); render(); }; }
+  function cgEdit(c) { var v = UI.voie;
+    pop("<h2>" + (c ? "Modifier la compétence" : "Nouvelle compétence générale") + '</h2><label class="f" for="cgnom">Intitulé</label><input class="in" id="cgnom" maxlength="90" value="' + esc(c ? c.nom : "") + '" placeholder="Ex. Tenir un rôle au service du groupe">' +
+      '<label class="f" for="cgd2">Précision (facultatif)</label><textarea class="in" id="cgd2" rows="2" maxlength="300">' + esc(c ? c.d : "") + '</textarea><p class="f" style="margin-bottom:0">Objectifs généraux visés</p>' +
+      R.ogs(v).map(function (o) { return '<label class="ck"><input type="checkbox" data-og="' + o.id + '"' + (c && (c.og || []).indexOf(o.id) >= 0 ? " checked" : "") + "><span>" + R.ogChip(o.id, v, 1) + " " + esc(o.t) + "</span></label>"; }).join("") +
+      '<p class="msg" id="cgm" role="alert" style="color:var(--no)"></p><div class="row"><button type="button" class="btn p" id="cgok">✓ Enregistrer</button><button type="button" class="btn" data-x>Annuler</button>' + (c ? '<button type="button" class="btn" id="cgdel" style="margin-left:auto;border-color:var(--no);color:var(--no)">Supprimer</button>' : "") + "</div>",
+      function (o) { $("#cgok", o).onclick = function () { var nom = $("#cgnom", o).value.trim(); if (!nom) { $("#cgm", o).textContent = "Donne un intitulé."; return; }
+          var og = $$("[data-og]", o).filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.og; }); if (!og.length) { $("#cgm", o).textContent = "Coche au moins un objectif général."; return; }
+          R.cgPut({ id: c && c.id, nom: nom, d: $("#cgd2", o).value, og: og }); shut(); render(); };
+        var dl = $("#cgdel", o); if (dl) dl.onclick = function () { if (!confirm("Supprimer « " + c.nom + " » ? Les critères qui y sont rattachés ne le seront plus (leurs évaluations ne changent pas).")) return; R.cgDel(c.id); shut(); render(); }; }); }
+  function depart() { /* répertoire proposé par Claude : rien n'est ajouté avant la confirmation */
+    pop('<h2>Proposition de départ</h2><p class="mut">Répertoire rédigé par Claude. Décoche ce que tu ne veux pas ; tu pourras tout modifier ensuite.</p>' +
+      R.DEPART.map(function (d, i) { return '<label class="ck"><input type="checkbox" data-dp="' + i + '" checked><span><b>' + esc(d[0]) + "</b> " + d[1].map(function (id) { return R.ogChip(id, UI.voie, 1); }).join("") + "</span></label>"; }).join("") +
+      '<div class="row"><button type="button" class="btn p" id="dpok">✓ Ajouter</button><button type="button" class="btn" data-x>✕ Ne rien ajouter</button></div>',
+      function (o) { $("#dpok", o).onclick = function () { $$("[data-dp]", o).forEach(function (x, n) { if (x.checked) { var d = R.DEPART[+x.dataset.dp]; R.cgPut({ nom: d[0], og: d[1], o: n }); } }); shut(); render(); }; }); }
+
+  /* ================= 🔗 Activités ================= */
+  function vAct() { var G = R.grids(), C = R.cgs(); var cur = G.filter(function (g) { return g.app + "|" + g.gv === UI.g; })[0] || G[0];
+    var known = {}; G.forEach(function (g) { known[g.app] = 1; }); var miss = Object.keys(DIRS).filter(function (a) { return !known[a]; });
+    var h = '<div class="card"><h2>Rattacher les critères de chaque activité</h2><p class="mut">Les critères viennent des grilles d\'évaluation des applis. Leur AFL se règle dans la grille (Évaluation → Grille), pas ici.</p>' +
+      (G.length ? '<div class="chips">' + G.map(function (g) { return '<button type="button" class="chip' + (cur === g ? " on" : "") + '" data-g="' + esc(g.app + "|" + g.gv) + '">' + esc(g.nom) + (g.gv !== "x" ? " · " + (g.gv === "pro" ? "pro" : "générale") : "") + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucune grille relevée pour l\'instant.</p>') +
+      '<div class="row"><button type="button" class="btn" id="rel"' + (UI.busy ? " disabled" : "") + ">🔄 Relever les grilles et les évaluations</button><span class=\"msg\" id=\"relm\" role=\"status\">" + (UI.busy ? "Relevé en cours…" : "") + "</span></div>" +
+      (miss.length && G.length ? '<p class="mut">Pas encore relevé sur cet appareil : ' + miss.map(function (a) { return DIRS[a]; }).join(", ") + ".</p>" : "") + "</div>";
+    if (cur) { var v = gridVoie(cur), EPL = R.epList(v, cur.ca), n0 = 0;
+      h += (cur.gv === "x" ? voieSw() : "") + '<div class="card"><h2>' + esc(cur.nom) + ' <span class="tag">' + esc(cur.ca || "CA ?") + '</span></h2><p class="mut">' + esc(R.caT(cur.ca)) + '</p><div class="tw"><table><tr><th>Compétence spécifique (critère)</th><th>AFL</th><th>Compétences générales</th><th>Éléments prioritaires</th><th>Objectifs</th><th class="noprint"></th></tr>' +
+        cur.crit.map(function (cr, i) { var L = R.link(cur.app, cur.gv, cr), code = R.aflCode(cr, v), og = R.ogOf(cur, cr, v); if (!L.cg.length) n0++;
+          return '<tr><td class="l"><b>' + esc(cr.nom || cr.id) + "</b></td><td>" + (code ? '<span class="tag">' + code + "</span>" : '<span class="tag w" title="Indique l\'AFL dans la grille de l\'appli">' + (cr.afl ? esc(cr.afl) : "à préciser") + "</span>") + '</td><td class="l">' +
+            (L.cg.length ? L.cg.map(function (id) { var c = C.filter(function (x) { return x.id === id; })[0]; return c ? '<span class="tag cg">' + esc(c.nom) + "</span>" : ""; }).join("") : '<span class="tag w">à rattacher</span>') + '</td><td class="l">' +
+            (L.ep.length ? L.ep.map(function (n) { return '<span class="tag" title="' + esc(EPL[n - 1] || "") + '">' + R.epCode(n) + "</span>"; }).join("") : "–") + "</td><td>" + (og.map(function (id) { return R.ogChip(id, v, 1); }).join("") || "–") +
+            '</td><td class="noprint"><button type="button" class="btn s" data-ln="' + i + '">🔗 Rattacher</button></td></tr>'; }).join("") + "</table></div>" +
+        '<p class="mut">' + (n0 ? n0 + " critère" + (n0 > 1 ? "s" : "") + " sans compétence générale." : "✓ Tous les critères sont rattachés.") + (C.length ? "" : " Crée d'abord ton répertoire dans 🧭 Structure.") + "</p></div>"; }
+    $("#pg").innerHTML = h; bindVoie();
+    $$("[data-g]").forEach(function (b) { b.onclick = function () { UI.g = b.dataset.g; render(); }; });
+    $("#rel").onclick = relever;
+    $$("[data-ln]").forEach(function (b) { b.onclick = function () { lnEdit(cur, cur.crit[+b.dataset.ln]); }; }); }
+  function lnEdit(g, cr) { var v = gridVoie(g), L = R.link(g.app, g.gv, cr), C = R.cgs(), EPL = R.epList(v, g.ca), code = R.aflCode(cr, v);
+    pop("<h2>" + esc(cr.nom || cr.id) + '</h2><p class="mut">' + esc(g.nom) + " · " + esc(g.ca) + (code ? " · " + code : "") + '</p><p class="f" style="margin-bottom:0">Compétences générales</p>' +
+      (C.length ? C.map(function (c) { return '<label class="ck"><input type="checkbox" data-cg="' + esc(c.id) + '"' + (L.cg.indexOf(c.id) >= 0 ? " checked" : "") + "><span><b>" + esc(c.nom) + "</b> " + (c.og || []).map(function (id) { return R.ogChip(id, v, 1); }).join("") + "</span></label>"; }).join("") : '<p class="mut">Ton répertoire est vide : 🧭 Structure → ＋ Nouvelle compétence.</p>') +
+      '<p class="f" style="margin-bottom:0">Éléments prioritaires (' + esc(g.ca) + ")</p>" +
+      (EPL.length ? EPL.map(function (t, i) { return '<label class="ck"><input type="checkbox" data-ep="' + (i + 1) + '"' + (L.ep.indexOf(i + 1) >= 0 ? " checked" : "") + '><span><span class="tag">' + R.epCode(i + 1) + "</span> " + esc(t) + "</span></label>"; }).join("") : '<p class="mut">Aucune liste pour ce champ et cette voie : 📜 Textes officiels → Éléments prioritaires.</p>') +
+      (L.epAuto ? '<p class="mut">Repris du code écrit dans la grille (EP…). Enregistre pour le fixer.</p>' : "") +
+      '<div class="row"><button type="button" class="btn p" id="lnok">✓ Enregistrer</button><button type="button" class="btn" data-x>Annuler</button></div>',
+      function (o) { $("#lnok", o).onclick = function () { R.linkSet(g.app, g.gv, cr.id, { cg: $$("[data-cg]", o).filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.cg; }), ep: $$("[data-ep]", o).filter(function (x) { return x.checked; }).map(function (x) { return +x.dataset.ep; }) }); shut(); render(); }; }); }
+  /* 🔄 chaque appli d'activité est ouverte un instant en arrière-plan : elle refait elle-même son relevé (eps-ref.js) */
+  function relever() { if (UI.busy) return; UI.busy = true; render(); var L = Object.keys(DIRS).map(function (a) { return DIRS[a]; }), i = 0, box = document.createElement("div"); box.style.cssText = "position:fixed;left:-3000px;top:0;width:1024px;height:768px;opacity:0;pointer-events:none"; box.setAttribute("aria-hidden", "true"); document.body.appendChild(box);
+    (function next() { box.innerHTML = ""; if (i >= L.length) { box.remove(); UI.busy = false; render(); var m = $("#relm"); if (m) m.textContent = "✓ Relevé terminé"; return; }
+      var m = $("#relm"); if (m) m.textContent = "Relevé : " + L[i] + " (" + (i + 1) + " / " + L.length + ")…";
+      var f = document.createElement("iframe"); f.title = "Relevé"; f.tabIndex = -1; f.style.cssText = "width:1024px;height:768px;border:0"; f.src = "../" + L[i] + "/?console=1"; box.appendChild(f); i++;
+      var t0 = Date.now(), iv = setInterval(function () { var ok = false; try { var w = f.contentWindow; if (w && w.EPSREF && Date.now() - t0 > 3500) { w.EPSREF.snap(); ok = true; } } catch (e) { ok = Date.now() - t0 > 6000; }
+        if (ok || Date.now() - t0 > 9000) { clearInterval(iv); setTimeout(next, 300); } }, 500); })(); }
+
+  /* ================= 👤 Élève ================= */
+  function anSel() { var A = R.annees(); if (A.length < 2) return ""; return '<select class="in noprint" id="an" style="width:auto" aria-label="Année"><option value="">Toutes les années</option>' + A.map(function (a) { return "<option" + (UI.an === a ? " selected" : "") + ">" + esc(a) + "</option>"; }).join("") + "</select>"; }
+  function bindAn() { var s = $("#an"); if (s) s.onchange = function () { UI.an = s.value; render(); }; }
+  function clsChips(C) { return C.length ? '<div class="chips noprint">' + C.map(function (c, i) { return '<button type="button" class="chip' + (R.ck(UI.cls) === R.ck(c) ? " on" : "") + '" data-c="' + i + '">' + esc(c) + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucune évaluation relevée. Évalue une classe dans une appli, ou 🔗 Activités → 🔄 Relever.</p>'; }
+  function vEl() { var C = R.classes(UI.an), h = '<div class="card noprint"><div class="row" style="margin:0"><h2 style="flex:1;margin:0">Suivi d\'un élève</h2>' + anSel() + "</div>" + clsChips(C);
+    var E = UI.cls ? R.eleves(UI.cls, UI.an) : [];
+    if (UI.cls && E.length) h += '<div class="chips" style="margin-top:12px">' + E.map(function (e, i) { return '<button type="button" class="chip' + (UI.el === e.k ? " on" : "") + '" data-e="' + i + '">' + esc(e.full) + "</button>"; }).join("") + "</div>";
+    h += "</div>";
+    var e = E.filter(function (x) { return x.k === UI.el; })[0];
+    if (e) { var P = R.profil(e.k, { an: UI.an }), Cg = R.cgs(), bloc = R.htmlProfil(e.k, { an: UI.an });
+      h += '<div class="card"><div class="row" style="margin:0"><span style="flex:1;min-width:200px"><b style="font-size:20px">' + esc(e.full) + '</b><br><span class="mut">' + esc(UI.cls) + " · " + (UI.an || "toutes les années") + '</span></span><button type="button" class="btn noprint" id="prt">🖨 Imprimer</button></div></div>';
+      h += '<div class="card">' + (bloc || '<p class="mut">Les critères évalués de cet élève ne sont pas encore rattachés : 🔗 Activités.</p>') + "</div>";
+      /* évolution : une colonne par activité, dans l'ordre des dates */
+      var ids = Cg.filter(function (c) { return P.cg[c.id]; });
+      if (P.acts.length > 1 && ids.length) h += '<div class="card"><h2>Évolution d\'une activité à l\'autre</h2><div class="tw"><table><tr><th>Compétence générale</th>' + P.acts.map(function (a) { return "<th>" + esc(a.sn.nom) + "<br><small>" + esc(String(a.sn.d0).slice(5).split("-").reverse().join("/")) + "</small></th>"; }).join("") + "</tr>" +
+        ids.map(function (c) { var H = P.cg[c.id].hist; return '<tr><td class="l">' + esc(c.nom) + R.trend(H) + "</td>" + P.acts.map(function (a) { var x = H.filter(function (z) { return z.app === a.sn.app && z.an === a.sn.an; })[0]; return "<td>" + (x ? R.pill(x.p != null ? x.p : x.a, x.p == null) : "") + "</td>"; }).join("") + "</tr>"; }).join("") + "</table></div></div>";
+      P.acts.forEach(function (a) { var s = a.sn, EPL = R.epList(s.voie, s.ca);
+        h += '<div class="card" style="border-left:8px solid ' + esc(s.color || "#999") + '"><h2>' + esc(s.nom) + ' <span class="tag">' + esc(s.ca) + '</span></h2><div class="tw"><table><tr><th>Critère</th><th>AFL</th><th>Compétence générale</th><th>Enseignant</th><th>Élève</th><th>Écart</th></tr>' +
+          a.rows.map(function (r) { var g = r.p != null && r.a != null ? R.deg(r.a) - R.deg(r.p) : null;
+            return '<tr><td class="l">' + esc(r.cr.nom || r.cr.id) + (r.ep.length ? " " + r.ep.map(function (n) { return '<span class="tag" title="' + esc(EPL[n - 1] || "") + '">' + R.epCode(n) + "</span>"; }).join("") : "") + "</td><td>" + (r.afl ? '<span class="tag">' + esc(r.afl) + "</span>" : "–") + '</td><td class="l">' + (r.cg.map(function (id) { var c = Cg.filter(function (x) { return x.id === id; })[0]; return c ? '<span class="tag cg">' + esc(c.nom) + "</span>" : ""; }).join("") || "–") + "</td><td>" + R.pill(r.p) + "</td><td>" + R.pill(r.a, 1) + "</td><td>" + (g == null ? "" : g === 0 ? "＝" : g > 0 ? "▲ " + g : "▼ " + (-g)) + "</td></tr>"; }).join("") + "</table></div></div>"; }); }
+    else if (UI.cls && !E.length) h += '<div class="card"><p class="mut">Aucun élève évalué dans cette classe pour cette période.</p></div>';
+    $("#pg").innerHTML = h; bindAn();
+    $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = C[+b.dataset.c]; UI.el = ""; render(); }; });
+    $$("[data-e]").forEach(function (b) { b.onclick = function () { UI.el = E[+b.dataset.e].k; render(); }; });
+    var p = $("#prt"); if (p) p.onclick = function () { window.print(); }; }
+
+  /* ================= 👥 Classe ================= */
+  function vCl() { var C = R.classes(UI.an), M = [["og", "Objectifs généraux"], ["cg", "Compétences générales"], ["afl", "AFL"]];
+    var h = '<div class="card noprint"><div class="row" style="margin:0"><h2 style="flex:1;margin:0">Positionnement de la classe</h2>' + anSel() + "</div>" + clsChips(C) +
+      (UI.cls ? '<div class="chips" style="margin-top:12px">' + M.map(function (m) { return '<button type="button" class="chip' + (UI.mode === m[0] ? " on" : "") + '" data-m="' + m[0] + '">' + m[1] + "</button>"; }).join("") + "</div>" : "") + "</div>";
+    if (UI.cls) { var E = R.eleves(UI.cls, UI.an), v = R.voieOf(UI.cls), cols = [];
+      if (UI.mode === "cg") cols = R.cgs().map(function (c) { return { id: c.id, t: c.nom, s: c.nom }; });
+      else if (UI.mode === "afl") { var N = v === "pro" ? 6 : 3, P0 = v === "pro" ? "AFLP" : "AFL"; for (var i = 1; i <= N; i++) cols.push({ id: P0 + i, t: P0 + i, s: P0 + i }); }
+      else cols = R.ogs(v).map(function (o) { return { id: o.id, t: o.t, s: "OG" + o.n, c: o.color }; });
+      var PR = E.map(function (e) { return { e: e, P: R.profil(e.k, { an: UI.an }) }; }), T = UI.mode;
+      cols = cols.filter(function (c) { return PR.some(function (x) { return x.P[T][c.id]; }); });
+      if (!E.length) h += '<div class="card"><p class="mut">Aucun élève évalué dans cette classe pour cette période.</p></div>';
+      else if (!cols.length) h += '<div class="card"><p class="mut">Rien à afficher dans cette vue : rattache les critères dans 🔗 Activités.</p></div>';
+      else { var moy = cols.map(function () { return { s: 0, n: 0 }; });
+        h += '<div class="card"><div class="row" style="margin:0 0 8px"><h2 style="flex:1;margin:0">' + esc(UI.cls) + '</h2><button type="button" class="btn noprint" id="prt">🖨 Imprimer</button></div><div class="tw"><table><tr><th>Élève</th>' + cols.map(function (c) { return '<th title="' + esc(c.t) + '">' + (c.c ? '<span class="rf-og" style="background:' + c.c + '">' + esc(c.s) + "</span>" : esc(c.s)) + "</th>"; }).join("") + "</tr>" +
+          PR.map(function (x) { return '<tr><td class="l"><button type="button" class="btn s" data-go="' + esc(x.e.k) + '" style="border:0;padding:0;min-height:40px;text-align:left;background:none">' + esc(x.e.full) + "</button></td>" + cols.map(function (c, j) { var b = x.P[T][c.id], val = b ? (b.p != null ? b.p : b.a) : null; if (b && b.p != null) { moy[j].s += b.p; moy[j].n++; } return "<td>" + (b ? R.pill(val, b.p == null) : "") + "</td>"; }).join("") + "</tr>"; }).join("") +
+          '<tr><th>Moyenne de la classe</th>' + moy.map(function (m) { return "<th>" + (m.n ? R.pill(m.s / m.n) : "") + "</th>"; }).join("") + "</tr></table></div>" +
+          '<p class="mut">Degré moyen de l\'enseignant, toutes activités réunies ; sans évaluation de l\'enseignant, l\'auto-positionnement de l\'élève.</p>' +
+          (UI.mode === "og" ? '<p class="mut">' + cols.map(function (c) { return "<b>" + esc(c.s) + "</b> " + esc(c.t); }).join(" · ") + "</p>" : "") + "</div>"; } }
+    $("#pg").innerHTML = h; bindAn();
+    $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = C[+b.dataset.c]; UI.el = ""; render(); }; });
+    $$("[data-m]").forEach(function (b) { b.onclick = function () { UI.mode = b.dataset.m; render(); }; });
+    $$("[data-go]").forEach(function (b) { b.onclick = function () { UI.el = b.dataset.go; UI.tab = "el"; render(); }; });
+    var p = $("#prt"); if (p) p.onclick = function () { window.print(); }; }
+
+  /* ================= 🗺 Couverture ================= */
+  function lists() { var L = []; try { L = (window.EPSL && EPSL.items()) || []; } catch (e) {} return L.filter(function (o) { return o && o.nom; }).sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr", { numeric: true }); }); }
+  function vCov() { var L = lists(), cur = L.filter(function (o) { return R.ck(o.nom) === R.ck(UI.cls); })[0];
+    var h = '<div class="card noprint"><h2>Ce que chaque classe travaille</h2><p class="mut">D\'après les activités attribuées à la classe et les rattachements de leurs critères.</p>' + (L.length ? '<div class="chips">' + L.map(function (o, i) { return '<button type="button" class="chip' + (cur === o ? " on" : "") + '" data-c="' + i + '">' + esc(o.nom) + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucune liste de classe sur cet appareil.</p>') + "</div>";
+    if (cur) { var v = R.voieOf(cur.nom), off = Array.isArray(cur.off) ? cur.off : [], byApp = {};
+      R.grids().forEach(function (g) { if (off.indexOf(g.app) >= 0) return; if (g.gv !== "x" && g.gv !== v) return; byApp[g.app] = g; });
+      var G = Object.keys(byApp).map(function (a) { return byApp[a]; });
+      if (!G.length) h += '<div class="card"><p class="mut">Aucune grille relevée pour les activités de cette classe : 🔗 Activités → 🔄 Relever.</p></div>';
+      else { var rows = function (items, get, lab) { return items.map(function (it) { var tot = 0, cells = G.map(function (g) { var n = g.crit.filter(function (cr) { return get(g, cr, it); }).length; tot += n; return "<td" + (n ? "" : ' style="color:#6A6F78"') + ">" + (n || "–") + "</td>"; }).join(""); return '<tr><td class="l">' + lab(it) + "</td>" + cells + "<td" + (tot ? "" : ' class="z"') + ">" + (tot || "non travaillé") + "</td></tr>"; }).join(""); };
+        var head = "<tr><th></th>" + G.map(function (g) { return "<th>" + esc(g.nom) + "<br><small>" + esc(g.ca) + "</small></th>"; }).join("") + "<th>Total</th></tr>";
+        h += '<div class="card"><div class="row" style="margin:0 0 8px"><h2 style="flex:1;margin:0">' + esc(cur.nom) + ' <span class="tag">' + VN[v] + '</span></h2><button type="button" class="btn noprint" id="prt">🖨 Imprimer</button></div><h3>Objectifs généraux</h3><div class="tw"><table>' + head +
+          rows(R.ogs(v), function (g, cr, o) { return R.ogOf(g, cr, v).indexOf(o.id) >= 0; }, function (o) { return R.ogChip(o.id, v, 1) + " " + esc(o.t); }) + "</table></div>";
+        var C = R.cgs(); if (C.length) h += '<h3 style="margin-top:14px">Compétences générales</h3><div class="tw"><table>' + head + rows(C, function (g, cr, c) { return R.link(g.app, g.gv, cr).cg.indexOf(c.id) >= 0; }, function (c) { return esc(c.nom); }) + "</table></div>";
+        var cas = {}; G.forEach(function (g) { if (g.ca) cas[g.ca] = 1; });
+        h += '<h3 style="margin-top:14px">Champs d\'apprentissage</h3><p>' + R.CAS.map(function (ca) { return '<span class="tag' + (cas[ca] ? "" : " w") + '">' + ca + (cas[ca] ? " ✓" : " : aucune activité relevée") + "</span>"; }).join(" ") + '</p><p class="mut">Nombre de critères de la grille rattachés à chaque ligne.</p></div>'; } }
+    $("#pg").innerHTML = h;
+    $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.c].nom; render(); }; });
+    var p = $("#prt"); if (p) p.onclick = function () { window.print(); }; }
+
+  /* ================= 📜 Textes officiels ================= */
+  function vTxt() { var v = UI.voie, P = v === "pro" ? "AFLP" : "AFL", h = voieSw() +
+      '<div class="card"><h2>Cadre officiel</h2><p class="mut">' + (v === "pro" ? "Programme de la voie professionnelle (arrêté du 3-4-2019), AFLP du baccalauréat professionnel." : "Programme du lycée général et technologique (arrêté du 17-1-2019).") + ' Tout est modifiable.</p><p class="mut"><span class="tag w">à vérifier</span> = texte que Claude n\'a pas pu relire sur le texte officiel : compare-le à ton programme, puis ✎ → « ✓ Texte vérifié ».</p></div>';
+    h += '<div class="card"><h2>Objectifs généraux</h2>' + R.ogs(v).map(function (o) { return '<div class="line"><span>' + R.ogChip(o.id, v, 1) + " <b>" + esc(o.t) + '</b></span><button type="button" class="btn s" data-tx="og|' + v + "|" + o.id + '" aria-label="Modifier">✎</button></div>'; }).join("") + "</div>";
+    R.CAS.forEach(function (ca) { var EPL = R.epList(v, ca);
+      h += '<div class="card"><h2><span class="tag">' + ca + "</span> " + esc(R.caT(ca)) + ' <button type="button" class="btn s noprint" data-tx="ca|' + ca + '" aria-label="Modifier l\'intitulé du champ">✎</button></h2>' +
+        R.aflList(v, ca).map(function (a) { return '<div class="line"><span><span class="tag">' + a.code + "</span> " + (a.sur ? "" : '<span class="tag w">à vérifier</span> ') + a.og.map(function (id) { return R.ogChip(id, v, 1); }).join("") + "<br>" + esc(a.t) + '</span><button type="button" class="btn s" data-afl="' + ca + "|" + a.code + '" aria-label="Modifier ' + a.code + '">✎</button></div>'; }).join("") +
+        '<div class="line"><span><b>Éléments prioritaires</b> ' + (R.epMine(v, ca) ? "" : EPL.length ? '<span class="tag w">liste abrégée proposée</span>' : "") + "<br>" + (EPL.length ? EPL.map(function (t, i) { return '<span class="tag" title="' + esc(t) + '">' + R.epCode(i + 1) + "</span> " + esc(t); }).join("<br>") : '<span class="mut">Aucune liste' + (v === "pro" ? " (le programme de la voie professionnelle n'en donne pas)" : "") + ".</span>") + '</span><button type="button" class="btn s" data-ep="' + ca + '" aria-label="Modifier les éléments prioritaires">✎</button></div></div>'; });
+    $("#pg").innerHTML = h; bindVoie();
+    $$("[data-tx]").forEach(function (b) { b.onclick = function () { var key = b.dataset.tx, p = key.split("|"), def = p[0] === "ca" ? R.caT(p[1]) : R.ogs(v).filter(function (o) { return o.id === p[2]; })[0].t; txEdit(key, def, p[0] === "ca" ? "Intitulé du champ " + p[1] : "Objectif général"); }; });
+    $$("[data-afl]").forEach(function (b) { b.onclick = function () { var p = b.dataset.afl.split("|"), a = R.aflList(v, p[0]).filter(function (x) { return x.code === p[1]; })[0]; aflEdit(v, p[0], a); }; });
+    $$("[data-ep]").forEach(function (b) { b.onclick = function () { epEdit(v, b.dataset.ep); }; }); }
+  function txEdit(key, cur, titre) { pop("<h2>" + esc(titre) + '</h2><textarea class="in" id="txv" rows="3" maxlength="400" aria-label="Texte">' + esc(cur) + '</textarea><div class="row"><button type="button" class="btn p" id="txok">✓ Enregistrer</button><button type="button" class="btn" data-x>Annuler</button><button type="button" class="btn s" id="txdef" style="margin-left:auto">↺ Texte d\'origine</button></div>',
+    function (o) { $("#txok", o).onclick = function () { var t = $("#txv", o).value.trim(); if (!t) return; R.put({ id: "tx|" + key, k: "tx", t: t, ok: 1 }); shut(); render(); }; $("#txdef", o).onclick = function () { if (R.one("tx|" + key)) R.del("tx|" + key); shut(); render(); }; }); }
+  function aflEdit(v, ca, a) { pop("<h2>" + ca + " · " + a.code + '</h2><label class="f" for="txv">Texte</label><textarea class="in" id="txv" rows="5" maxlength="700">' + esc(a.t) + '</textarea><p class="f" style="margin-bottom:0">Objectifs généraux visés</p>' +
+      R.ogs(v).map(function (o) { return '<label class="ck"><input type="checkbox" data-og="' + o.id + '"' + (a.og.indexOf(o.id) >= 0 ? " checked" : "") + "><span>" + R.ogChip(o.id, v, 1) + " " + esc(o.t) + "</span></label>"; }).join("") +
+      '<div class="row"><button type="button" class="btn p" id="txok">✓ Texte vérifié, enregistrer</button><button type="button" class="btn" data-x>Annuler</button><button type="button" class="btn s" id="txdef" style="margin-left:auto">↺ Texte et liens d\'origine</button></div>',
+    function (o) { $("#txok", o).onclick = function () { var t = $("#txv", o).value.trim(); if (!t) return; R.put({ id: "tx|" + a.key, k: "tx", t: t, ok: 1 }); R.put({ id: "ao|" + v + "|" + ca + "|" + a.code, k: "ao", og: $$("[data-og]", o).filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.og; }) }); shut(); render(); };
+      $("#txdef", o).onclick = function () { if (R.one("tx|" + a.key)) R.del("tx|" + a.key); if (R.one("ao|" + v + "|" + ca + "|" + a.code)) R.del("ao|" + v + "|" + ca + "|" + a.code); shut(); render(); }; }); }
+  function epEdit(v, ca) { var L = R.epList(v, ca);
+    pop("<h2>Éléments prioritaires · " + ca + '</h2><p class="mut">Un élément par ligne, dans l\'ordre de ta numérotation (EP01 = 1re ligne). Colle ici la liste de ton tableur ou d\'Additio.</p><textarea class="in" id="epv" rows="10" aria-label="Éléments prioritaires, un par ligne">' + esc(L.join("\n")) + '</textarea><p class="mut">Si tu changes l\'ordre, revois les critères déjà rattachés à un numéro.</p><div class="row"><button type="button" class="btn p" id="epok">✓ Enregistrer</button><button type="button" class="btn" data-x>Annuler</button><button type="button" class="btn s" id="epdef" style="margin-left:auto">↺ Liste proposée</button></div>',
+    function (o) { $("#epok", o).onclick = function () { var l = $("#epv", o).value.split("\n").map(function (s) { return s.replace(/^\s*EP\s*\d+\s*[:.\-–]?\s*/i, "").trim().slice(0, 300); }).filter(Boolean).slice(0, 40); R.put({ id: "ep|" + v + "|" + ca, k: "ep", l: l }); shut(); render(); };
+      $("#epdef", o).onclick = function () { if (R.one("ep|" + v + "|" + ca)) R.del("ep|" + v + "|" + ca); shut(); render(); }; }); }
+
+  /* ================= page ================= */
+  function render() { keep(); R.css(); var n = $("#nav"); n.hidden = false;
+    n.innerHTML = TABS.map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on" aria-current="page"' : "") + ">" + t[1] + "</button>"; }).join("");
+    $$("[data-t]", n).forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.t; render(); window.scrollTo(0, 0); }; });
+    ({ str: vStr, act: vAct, el: vEl, cl: vCl, cov: vCov, txt: vTxt }[UI.tab] || vStr)(); }
+  function start() { try { R.clean(); } catch (e) {} render();
+    document.addEventListener("eps-ref", function () { if (!$("#ov") && !UI.busy) { var y = window.scrollY; render(); window.scrollTo(0, y); } }); }
+  function ask(n) { if (teach()) { start(); return; } if (!window.EPSD || !EPSD.askCode) { if ((n || 0) < 40) setTimeout(function () { ask((n || 0) + 1); }, 250); return; } EPSD.askCode().then(function (ok) { if (ok) start(); }); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { ask(0); }); else ask(0);
+})();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>
