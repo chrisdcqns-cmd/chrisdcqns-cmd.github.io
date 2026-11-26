@@ -1260,7 +1260,10 @@
     var R = (G.resources || []).concat((window.EPSG_COMMON || []).filter(function (r) { try { return !r.when || r.when(); } catch (e) { return false; } }));
     var d = document.createElement("div"); d.className = "epsg";
     d.innerHTML = '<div class="epsg-hd" style="background:#14171C;box-shadow:inset 0 -4px 0 ' + col + '"><div class="epsg-ic" style="background:' + col + '">' + (G.icon || "") + '</div><div style="flex:1"><h1>' + esc(G.app || "") + '</h1>' + (G.sub ? "<p>" + esc(G.sub) + "</p>" : "") + '</div><span data-eps-upd-slot></span><a class="epsg-home" href="' + BASE + '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Accueil</a></div>' +
-      '<div class="epsg-in"><h2>Choisis ta classe</h2>' +
+      '<div class="epsg-in">' + (function () { /* classe déjà choisie aujourd'hui sur cette tablette : un seul appui pour continuer */
+        var last = null; try { last = JSON.parse(localStorage.getItem("eps.gate.last." + appDir()) || "null"); } catch (e) {}
+        var c = last && last.day === today() && !cur ? L.filter(function (x) { return String(x.id) === String(last.id); })[0] : null;
+        return c ? '<button class="epsg-c on" data-c="' + esc(c.id) + '" style="border-color:' + col + ';width:100%;max-width:520px;margin:0 0 14px;display:block;text-align:left"><b>▶ Continuer : ' + esc(c.nom) + '</b><span>Ta classe d\'aujourd\'hui sur cette tablette</span></button>' : ""; })() + '<h2>Choisis ta classe</h2>' +
       (L.length || G.noClass ? '<div class="epsg-g">' + L.map(function (c) {
         return '<button class="epsg-c' + (c.id === cur ? " on" : "") + '" data-c="' + esc(c.id) + '"' + (c.id === cur ? ' style="border-color:' + col + '"' : "") + '><b>' + esc(c.nom) + '</b><span>' + esc(c.note || (c.n != null ? c.n + " élève" + (c.n > 1 ? "s" : "") : "")) + "</span></button>";
       }).join("") + (G.noClass ? '<button class="epsg-c nl" data-nl="1"><b style="font-size:17px">' + esc(G.noClass.label || "Sans liste") + "</b><span>" + esc(G.noClass.sub || "") + "</span></button>" : "") + "</div>"
@@ -1271,7 +1274,7 @@
       "</div>"; /* accès enseignant : 3 appuis rapides (ou appui long) sur le logo de l'appli, sans bouton visible pour les élèves */
     d.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
-      if (b.dataset.c != null) { gateClose(); try { G.select(b.dataset.c); } catch (er) {} }
+      if (b.dataset.c != null) { try { localStorage.setItem("eps.gate.last." + appDir(), JSON.stringify({ id: b.dataset.c, day: today() })); } catch (er) {} gateClose(); try { G.select(b.dataset.c); } catch (er) {} }
       else if (b.dataset.nl) { gateClose(); try { G.noClass.open(); } catch (er) {} }
       else if (b.dataset.r != null) { gateClose(); try { R[+b.dataset.r].open(); } catch (er) {} }
       else if (b.dataset.t) { gateClose(); try { G.teacher(); } catch (er) {} }
@@ -1990,6 +1993,21 @@
   async function bilPack(code, obj) { var hid = await bilHid(code), k = await bilKey(code, hid), iv = crypto.getRandomValues(new Uint8Array(12));
     var ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(obj)))), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
     var t = b64url(all), parts = []; for (var i = 0; i < t.length; i += 40000) parts.push(t.slice(i, i + 40000)); return { hid: hid, parts: parts }; }
+  /* ================= 📖 Lexique de l'activité (ressource sans classe, modifiable : ⚙ Réglages → 🎛 Paramètres → Lexique) ================= */
+  var LEX = {
+    volley: ["Manchette : frappe à deux bras tendus, mains jointes, pour une balle basse", "Passe haute : frappe au-dessus du front, à dix doigts", "Smash : attaque frappée fort vers le bas, au-dessus du filet", "Contre : mains au-dessus du filet pour arrêter l'attaque adverse", "Rotation : chaque joueur avance d'un poste quand l'équipe récupère le service"],
+    badminton: ["Dégagé : frappe haute et longue vers le fond du terrain adverse", "Amorti : frappe douce qui tombe juste derrière le filet", "Smash : frappe forte vers le bas pour finir le point", "Lob : frappe haute par-dessus l'adversaire", "Replacement : revenir au centre après chaque frappe"],
+    escalade: ["Assurer : retenir la corde pour protéger le grimpeur", "Moulinette : la corde passe en haut de la voie avant de grimper", "Dégaine : deux mousquetons reliés par une sangle", "Prise : endroit où poser la main ou le pied", "Cotation : difficulté de la voie (4, 5, 6… puis a, b, c)"],
+    acrosport: ["Porteur : celui qui soutient", "Voltigeur : celui qui monte sur le porteur", "Pareur : celui qui aide et sécurise le montage et le démontage", "Pyramide : figure tenue à plusieurs", "Gainage : corps tenu, solide, sans se relâcher"],
+    relais: ["Témoin : le bâton qu'on se transmet", "Zone de transmission : espace où le témoin doit changer de main", "Marque : repère au sol qui dit au receveur quand partir", "Donneur : celui qui arrive avec le témoin", "Receveur : celui qui part et reçoit le témoin"],
+    danse: ["Unisson : tous le même mouvement en même temps", "Canon : le même mouvement repris en décalé", "Accumulation : on reprend la phrase en ajoutant un mouvement à chaque fois", "Énergie : la qualité du mouvement (fluide, saccadé, fort, léger)", "Espace scénique : l'endroit où l'on danse, face au public"],
+    crosstraining: ["Répétition : un mouvement fait une fois", "Série : plusieurs répétitions à la suite", "Récupération : temps de repos entre deux efforts", "AMRAP : le plus de tours possible dans un temps donné", "EMOM : un exercice à refaire au début de chaque minute"],
+    orientation: ["Balise : repère orange et blanc à trouver, avec un code", "Légende : explication des couleurs et des symboles de la carte", "Orienter sa carte : la tourner pour qu'elle corresponde au terrain", "Ligne d'arrêt : limite à ne pas dépasser (route, clôture, rivière)", "Point d'attaque : repère facile près de la balise, d'où l'on part pour la trouver"],
+    basket: ["Dribble : faire rebondir le ballon pour se déplacer", "Marcher : faute, plus de deux appuis ballon en main sans dribbler", "Reprise de dribble : faute, redribbler après s'être arrêté", "Démarquage : se libérer de son défenseur pour recevoir", "Rebond : récupérer le ballon après un tir manqué"] };
+  try { if (LEX[appDir()] && window.EPSP && EPSP.p) { var LEXV = function () { try { return EPSP.p({ id: "lexique_" + appDir(), sec: "Lexique", label: "Les mots de l'activité (« mot : définition », un par ligne)", type: "list", def: LEX[appDir()] }) || []; } catch (e) { return LEX[appDir()]; } }; LEXV();
+    (window.EPSG_COMMON = window.EPSG_COMMON || []).push({ ico: "📖", label: "Lexique", sub: "Les mots de l'activité", when: function () { return LEXV().length > 0; }, open: function () { var col = (GATE && GATE.color) || "#14171C";
+      window.EPSG.sheet({ titre: "📖 Lexique", color: col, html: LEXV().map(function (t) { var i = String(t).indexOf(":"), m = i > 0 ? String(t).slice(0, i).trim() : String(t), d = i > 0 ? String(t).slice(i + 1).trim() : ""; return '<div class="epsgs-card"><h3 style="margin:0 0 4px">' + esc(m) + "</h3>" + (d ? '<p style="margin:0">' + esc(d) + "</p>" : "") + "</div>"; }).join("") }); } }); } } catch (e) {}
+
   /* ================= 🎒 Espace élève (page mon-bilan/, sur le téléphone de l'élève) =================
      Aucun changement du script : l'espace d'un élève est un « bilan » de plus (id <empreinte du code>|espace), chiffré avec son code personnel :
      {kind:"espace", eleve, classe, date, todo:[{id, ty:'quiz'|'lien'|'txt', t, qz, url}], quiz:{id:{nom, q}}, acts:[…], rid, rk}.

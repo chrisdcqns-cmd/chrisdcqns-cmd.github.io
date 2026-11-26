@@ -185,5 +185,16 @@ if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostnam
 /* Carnet de l'élève : tuile visible des élèves seulement quand l'enseignant l'a ouvert (carnet → « Ouvert aux élèves ») */
 (function () { function f() { var t = document.getElementById("t-carnet"); if (!t) return; var on = false, tc = false; try { var c = (JSON.parse(localStorage.getItem("eps.carnet.v1") || "{}").items || {}).cfg; on = !!(c && c.on); tc = Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) {} t.style.display = on || tc ? "" : "none"; } f(); setInterval(f, 2000); })();
 </script>
+<script>
+/* ▶ Leçon en cours : si une leçon a été lancée il y a moins de 4 h dans une activité (données déjà sur cette tablette), un bouton en haut de l'accueil y mène directement */
+(function () { var N = { escalade: "Escalade", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", acrosport: "Acrosport", orientation: "OrienRun", ccf: "CCF", crosstraining: "Cross-training", basket: "Basket-ball", step: "Step" };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function f() { var L = []; try { Object.keys(N).forEach(function (d) { var I = (JSON.parse(localStorage.getItem("eps.live." + d + ".v1") || "{}") || {}).items || {}; Object.keys(I).forEach(function (k) { var v = I[k]; if (v && v.on && v.cls && Date.now() - (+v.st || 0) < 4 * 3600e3) L.push({ d: d, c: v.cls, st: +v.st }); }); }); } catch (e) {}
+    L.sort(function (a, b) { return b.st - a.st; }); var el = document.getElementById("live-now"), w = document.querySelector(".wrap"), first = w && w.querySelector(".lab");
+    if (!L.length || !first) { if (el) el.remove(); return; }
+    var h = L.slice(0, 3).map(function (x) { return '<a href="' + x.d + '/" style="display:flex;align-items:center;gap:12px;background:#14171C;color:#fff;border-radius:16px;padding:14px 18px;margin:0 0 10px;text-decoration:none;font-weight:800;font-size:18px"><span aria-hidden="true" style="font-size:22px">▶</span><span style="flex:1">Leçon en cours · ' + esc(N[x.d]) + '<small style="display:block;font-weight:500;color:#C9CDD4;font-size:14px">' + esc(x.c) + "</small></span><span aria-hidden=\"true\">›</span></a>"; }).join("");
+    if (!el) { el = document.createElement("div"); el.id = "live-now"; first.parentNode.insertBefore(el, first); } if (el.dataset.h !== h) { el.dataset.h = h; el.innerHTML = h; } }
+  f(); setInterval(f, 5000); })();
+</script>
 </body>
 </html>

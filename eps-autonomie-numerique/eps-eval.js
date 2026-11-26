@@ -223,6 +223,13 @@
       V.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { var id = b.dataset.c, d = +b.dataset.d; if (!P.ev[id] || P.ev[id].d !== d) P.ev[id] = { d: d, pos: .5 }; renderAp(); }; });
       V.querySelectorAll("[data-p]").forEach(function (r) { r.oninput = function () { var x = P.ev[r.dataset.p]; x.pos = (+r.value) / 4; var s = document.getElementById("epse-pv-" + r.dataset.p); if (s) s.textContent = posLbl(x.d, x.pos); }; });
       V.querySelectorAll("[data-t]").forEach(function (t) { t.oninput = function () { P[t.dataset.t] = t.value; }; });
+      /* débuts de phrase à toucher pour aider l'élève à écrire (modifiables : 🎛 Paramètres → Auto-positionnement) */
+      try { var AID = { reussi: ["J'ai réussi à ", "Je sais maintenant ", "Je suis fier de "], ameliorer: ["Je veux améliorer ", "La prochaine fois, je ", "J'ai encore du mal à "] };
+        if (window.EPSP && EPSP.p) { AID.reussi = EPSP.p({ id: "ap_aide_reussi", sec: "Auto-positionnement", label: "Débuts de phrase : ce que j'ai réussi", type: "list", def: AID.reussi }) || AID.reussi; AID.ameliorer = EPSP.p({ id: "ap_aide_ameliorer", sec: "Auto-positionnement", label: "Débuts de phrase : ce que je veux améliorer", type: "list", def: AID.ameliorer }) || AID.ameliorer; }
+        V.querySelectorAll('textarea[data-t="reussi"], textarea[data-t="ameliorer"]').forEach(function (t) { var L = AID[t.dataset.t] || []; if (!L.length || t.parentNode.querySelector(".epse-aide")) return; var d = document.createElement("div"); d.className = "epse-aide"; d.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px";
+          L.forEach(function (x) { var b = document.createElement("button"); b.type = "button"; b.textContent = String(x).trim() + "…"; b.style.cssText = "min-height:40px;padding:0 12px;border-radius:999px;border:1.5px solid #E6E1D6;background:#fff;font:700 14px system-ui,sans-serif;color:#14171C";
+            b.onclick = function (ev) { ev.preventDefault(); var s = String(x).replace(/\s*$/, " "); t.value = (t.value && !/\s$/.test(t.value) ? t.value + " " : t.value) + s; P[t.dataset.t] = t.value; t.focus(); }; d.appendChild(b); });
+          t.parentNode.insertBefore(d, t); }); } catch (e) {}
       V.querySelectorAll("[data-go]").forEach(function (b) { b.onclick = function () { go(+b.dataset.go); }; });
       var bp = V.querySelector("[data-prev]"); if (bp) bp.onclick = function () { go(P.step - 1); };
       var bs = V.querySelector("[data-suiv]"); if (bs) bs.onclick = function () { if (ok1) go(P.step + 1); };
