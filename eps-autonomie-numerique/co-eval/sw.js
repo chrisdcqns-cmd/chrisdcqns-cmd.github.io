@@ -1,5 +1,5 @@
 // CO Course : fonctionnement hors ligne (l'appli reste disponible sans réseau, même après un rechargement)
-const V = "coe-v27", CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "../vendor/pdf-lib.min.js"];
+const V = "coe-v28", CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "../vendor/pdf-lib.min.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(K => Promise.all(K.filter(k => k.startsWith("coe-") && k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {

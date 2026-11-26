@@ -1,0 +1,2 @@
+
+- CO Course · 🎓 Note : degrés D1–D4 modifiables par AFL dans la colonne Proposition (`data-dg`, `o.dm[i]` = choisi par l'enseignant, encadré orange, `o.pend`) ; « 🔄 Repositionner » (par élève `data-rpz`, ou général `#nRpz`) → `noteSet(N, x, true)` = `noteProp(x, dKeep(o))` : AFL1 replacé dans la fourchette du degré choisi, AFL2 / AFL3 au barème de la répartition, note retenue = nouvelle proposition. « Générer » garde les degrés choisis ; ↺ (`data-dgr`) revient aux degrés proposés. Test /tmp/e2e13.js.
