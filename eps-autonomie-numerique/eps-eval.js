@@ -156,7 +156,7 @@
       } finally { releve = false; }
     }
     function msg(r) { return !r ? "" : r.err === "connexion" ? "Pas de connexion au script Google." : r.err === "cle" ? "Clé secrète refusée par le script." : r.err === "script" ? "Ce n'est pas le script des auto-positionnements." : r.err === "reglage" ? "Envoi automatique non réglé." : r.n ? r.n + " nouveau(x) positionnement(s) reçu(s)" + (r.inconnus ? ", " + r.inconnus + " élève(s) non reconnu(s)" : "") + "." : "Rien de nouveau."; }
-    setInterval(function () { if (!A.isTeacher() || !boite().lire.length || document.hidden || !ouvert()) return; relever(false).then(function (r) { if (r && r.n) { toast("🙋 " + r.n + " auto-positionnement" + (r.n > 1 ? "s" : "") + " reçu" + (r.n > 1 ? "s" : "")); try { A.changed(); } catch (e) {} } }); }, 30000);
+    setInterval(function () { if (!isT_() || !boite().lire.length || document.hidden || !ouvert()) return; relever(false).then(function (r) { if (r && r.n) { toast("🙋 " + r.n + " auto-positionnement" + (r.n > 1 ? "s" : "") + " reçu" + (r.n > 1 ? "s" : "")); try { A.changed(); } catch (e) {} } }); }, 30000);
     function codeDe(P) { return A.code + "." + b64e(JSON.stringify(payload(P))); }
     function importer(txt) {
       var codes = String(txt || "").match(new RegExp(A.code.replace(/\./g, "\\.") + "\\.[A-Za-z0-9_-]+", "g")) || []; if (!codes.length) { toast("Aucun code trouvé"); return; }
@@ -229,7 +229,7 @@
       var bo = V.querySelector("[data-ok]"); if (bo) bo.onclick = valider;
     }
     function bindQ(V) { var q = V.querySelector("[data-q]"); if (q) q.onclick = quitter; }
-    async function quitter() { await A.unlock(); if (!A.isTeacher()) return; try { sessionStorage.removeItem(TAB); } catch (e) {} P = null; document.body.classList.remove("epse-lock"); var v = document.getElementById("epse-ap-" + A.app); if (v) v.remove(); try { A.changed(); } catch (e) {} }
+    async function quitter() { await A.unlock(); if (!isT_()) return; try { sessionStorage.removeItem(TAB); } catch (e) {} P = null; document.body.classList.remove("epse-lock"); var v = document.getElementById("epse-ap-" + A.app); if (v) v.remove(); try { A.changed(); } catch (e) {} }
     function copier(t) { try { navigator.clipboard.writeText(t).then(function () { toast("Copié !"); }, function () { prompt("Copie ce code :", t); }); } catch (e) { prompt("Copie ce code :", t); } }
     function valider() {
       var G = A.grid(), C = ctx(), manque = G.criteres.filter(function (cr) { return !P.ev[cr.id]; });
@@ -537,6 +537,7 @@
     };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
     /* instances connues des fiches de leçon (eps-lecons.js : critères des grilles, remédiation) */
+    function isT_() { try { return typeof A.isTeacher === "function" && !!A.isTeacher(); } catch (e) { return false; } } /* adaptateurs réduits (Volley, Danse) : pas de relevé automatique ici */
     (window.EPSE_INST = window.EPSE_INST || []).push({ A: A, M: M });
     /* 🧪 classe fictive (simulation, leçon simulée) : auto-positionnement de démonstration pour que la note proposée,
        le positionnement par AFL et l'onglet Protocole aient des données (jamais sur une vraie classe) */
