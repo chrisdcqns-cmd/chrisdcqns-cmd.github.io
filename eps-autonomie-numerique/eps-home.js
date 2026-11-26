@@ -1672,7 +1672,7 @@
     /* 🔄 réservé à l'enseignant (masqué côté élève : html:not(.eps-teach)) : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
     try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}html:not(.eps-teach):not(.eps-tool) #eps-upd{display:none!important}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
     /* outils réservés à l'enseignant (pas de mode élève) : 🔄 toujours affiché */
-    if (/\/(edt|appel-as|co-eval|terrain|console|attestation|guide|tactique|boite|quiz|carnet)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
+    if (/\/(edt|appel-as|co-eval|terrain|console|attestation|guide|tactique|boite|quiz|carnet|espace)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
     b.className = "epsb"; b.style.display = "none"; document.body.appendChild(b); setTimeout(function () { try { placeUpd(); } catch (e) {} }, 50);
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
@@ -1989,6 +1989,44 @@
   async function bilPack(code, obj) { var hid = await bilHid(code), k = await bilKey(code, hid), iv = crypto.getRandomValues(new Uint8Array(12));
     var ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(obj)))), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
     var t = b64url(all), parts = []; for (var i = 0; i < t.length; i += 40000) parts.push(t.slice(i, i + 40000)); return { hid: hid, parts: parts }; }
+  /* ================= 🎒 Espace élève (page mon-bilan/, sur le téléphone de l'élève) =================
+     Aucun changement du script : l'espace d'un élève est un « bilan » de plus (id <empreinte du code>|espace), chiffré avec son code personnel :
+     {kind:"espace", eleve, classe, date, todo:[{id, ty:'quiz'|'lien'|'txt', t, qz, url}], quiz:{id:{nom, q}}, acts:[…], rid, rk}.
+     Retours du téléphone (quiz faits, tâches cochées) : dépôt « dan|E<rid> » (une ligne par élève, la dernière remplace), chiffré avec la clé rk
+     gardée avec le code de l'élève (eps.codes.v1) ; relever() les range dans eps.quiz.v1 (résultats) et eps.espace.v1 (ep|, r|<classe>|<clé>). */
+  var KEP = "eps.espace.v1";
+  STORES.push({ pre: "ep|", key: KEP });
+  function espRid(cls, full) { var o = codeFor(cls, full); if (!o.rid || !o.rk) { o.rid = b64url(crypto.getRandomValues(new Uint8Array(10))); o.rk = b64url(crypto.getRandomValues(new Uint8Array(32))); codePut(o); } return o; }
+  async function espPublier(cls, eleves, make, prog) {
+    var cfg = shCfg(); if (!cfg) throw new Error("Règle d'abord le partage entre tablettes (Réglages communs).");
+    var put = [], n = 0;
+    for (var i = 0; i < eleves.length; i++) { var o = espRid(cls, eleves[i]), obj = make(eleves[i]); obj.kind = "espace"; obj.eleve = eleves[i]; obj.classe = cls; obj.date = new Date().toLocaleDateString("fr-FR"); obj.rid = o.rid; obj.rk = o.rk;
+      var pk = await bilPack(o.c, obj); put.push({ id: pk.hid + "|espace", parts: pk.parts }); n++; if (prog) prog(n, eleves.length);
+      if (put.length >= 6 || i === eleves.length - 1) { await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, bil: { put: put } }) }); put = []; } }
+    /* contrôle : le premier élève doit retrouver son espace */
+    if (eleves.length) { var ok = false; for (var k = 0; k < 4 && !ok; k++) { await new Promise(function (r) { setTimeout(r, 1500); }); try { ok = (await bilFetch(codeGet(cls, eleves[0]).c)).some(function (x) { return x && x.kind === "espace"; }); } catch (e) {} } if (!ok) throw new Error("L'envoi n'a pas pu être vérifié : réessaie avec du réseau."); }
+    return n; }
+  async function espRelever() {
+    var cfg = shCfg(); if (!cfg) return 0; var since = +(localStorage.getItem("eps.espace.since") || 0), more = true, garde = 0, n = 0, I = stLd(KC).items, byRid = {};
+    Object.keys(I).forEach(function (id) { var o = I[id]; if (o && !o.del && o.rid && o.rk) byRid[o.rid] = o; });
+    while (more && garde++ < 20) { var r = await jsonp(cfg, { key: cfg.key, drops: 1, since: since }, 30000); if (!r || !r.keyOk || !Array.isArray(r.drops)) break;
+      for (var i = 0; i < r.drops.length; i++) { var x = r.drops[i]; since = Math.max(since, +x[0] || 0); var m = /^dan\|E(.+)$/.exec(String(x[1])); if (!m || !byRid[m[1]]) continue; var o = byRid[m[1]];
+        try { var key = await crypto.subtle.importKey("raw", unb64u(o.rk), "AES-GCM", false, ["decrypt"]), b = unb64u(String(x[3])), d = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, key, b.slice(12))));
+          if (!d || typeof d !== "object") continue; var ek = norm(o.n).toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim().split(" ").sort().join(" ");
+          stPutRaw(KEP, { id: "r|" + o.cls + "|" + ek, k: "ret", cls: o.cls, nom: o.n, fait: (d.fait && typeof d.fait === "object") ? d.fait : {}, at: +d.at || Date.now() });
+          var Q = d.quiz && typeof d.quiz === "object" ? d.quiz : {}, QV = stLd("eps.quiz.v1");
+          Object.keys(Q).forEach(function (qid) { var q = Q[qid]; if (!q || !QV.items[qid] || QV.items[qid].del) return; var qn = function (t) { return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }, pk = qn(o.n);
+            try { EPSL.items().forEach(function (it) { if (it.nom === o.cls) EPSL.people(it).forEach(function (pp) { if (nkey(pp.full) === nkey(o.n)) pk = pp.k || qn(pp.full); }); }); } catch (e) {}
+            var rid2 = "r|" + qid + "|" + qn(o.cls) + "|" + pk, old = QV.items[rid2];
+            if (old && (old.nb || 0) >= (+q.nb || 1) && old.d === q.d) return;
+            stPutRaw("eps.quiz.v1", { id: rid2, k: "res", qz: qid, cls: o.cls, nom: o.n, s: +q.s || 0, n: +q.n || 0, a: Array.isArray(q.a) ? q.a.slice(0, 60) : [], d: String(q.d || ""), nb: +q.nb || 1, src: "espace" }); });
+          n++; } catch (e) {} }
+      more = !!r.more; }
+    try { localStorage.setItem("eps.espace.since", String(since)); } catch (e) {} if (n) try { EPSD.syncSoon(); } catch (e) {} return n; }
+  setTimeout(function () { EPSD.espace = { publier: espPublier, relever: espRelever, lien: bilLink, pret: function () { return !!shCfg(); },
+    code: function (cls, full) { var o = codeGet(cls, full); return o ? o.c : ""; },
+    get: function (id) { return stLd(KEP).items[id] || null; }, put: function (it) { stPutRaw(KEP, it); try { EPSD.syncSoon(); } catch (e) {} },
+    retours: function (cls) { var V = stLd(KEP); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.k === "ret" && x.cls === cls; }); } }; }, 0);
   function bilLink() { var cfg = shCfg(), m = cfg && /\/macros\/s\/([^/]+)\/exec/.exec(cfg.url); return m ? location.origin + BASE + "mon-bilan/#s=" + m[1] : ""; }
   function u8b64plain(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x); }
   /* ================= 🌐 Bilans en ligne, côté enseignant =================

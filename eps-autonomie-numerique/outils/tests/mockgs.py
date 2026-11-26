@@ -1,6 +1,6 @@
 # Faux script Google commun (mêmes règles que Code.gs : syncPush_, syncPull_, chk) + commandes de test
 import http.server, json, urllib.parse, threading
-S={"rows":{}, "seq":0, "fail":False, "old":False, "nochk":False, "posts":0}
+S={"bil":{}, "drop":{}, "dseq":0, "rows":{}, "seq":0, "fail":False, "old":False, "nochk":False, "posts":0}
 KEY="CLE"
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self,*a): pass
@@ -14,6 +14,10 @@ class H(http.server.BaseHTTPRequestHandler):
             if "reset" in p: S["rows"]={}; S["seq"]=0; S["posts"]=0
             return self._send(200,json.dumps({"n":len(S["rows"]),"keys":sorted(S["rows"]),"posts":S["posts"],"u":{k:v[1] for k,v in S["rows"].items()}}),"application/json")
         res={"ok":True,"app":"EPS commun","keyOk":p.get("key")==KEY}
+        if "bil" in p: res["bil"]=[{"id":k,"parts":v,"t":""} for k,v in S["bil"].items() if k.startswith(p["bil"]+"|")]; res["bilv"]=1
+        if "dropchk" in p: res["drop"]=(S["drop"].get(p["dropchk"]) or [0,""])[1][:16]
+        if res["keyOk"] and "drops" in p:
+            since=int(float(p.get("since") or 0)); rows=sorted([(v[0],k,0,v[1]) for k,v in S["drop"].items() if v[0]>since]); res.update({"drops":[list(r) for r in rows[:300]],"more":len(rows)>300})
         if res["keyOk"]:
             res["sync"]=1; res["dropv"]=1; res["aiv"]=3
             if not S["old"]: res["chkv"]=1
@@ -30,6 +34,11 @@ class H(http.server.BaseHTTPRequestHandler):
         if S["fail"]: return self._send(500,"Service invoked too many times")
         try: d=json.loads(raw)
         except Exception: return self._send(200,"{}")
+        if d.get("drop"):
+            S["dseq"]+=1; S["drop"][str(d["drop"].get("k"))]=[S["dseq"],str(d["drop"].get("x"))]
+        if d.get("key")==KEY and d.get("bil"):
+            for x in d["bil"].get("put",[]): S["bil"][str(x["id"])]=x.get("parts",[])
+            for i in d["bil"].get("del",[]): S["bil"].pop(str(i),None)
         if d.get("key")==KEY and d.get("sync"):
             for r in d["sync"].get("recs",[]):
                 k=str(r.get("k") or ""); u=float(r.get("u") or 0)

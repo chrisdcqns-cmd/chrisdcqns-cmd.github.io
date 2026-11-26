@@ -5,53 +5,75 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Mon bilan d'EPS</title>
+<title>Mon espace EPS</title>
 <style>
-  :root { --app: #14213D; }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: #F5F3EE; color: #14171C; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  :root { --app: #0369A1; --ok: #1E6B3A; --no: #B3261E; --line: #E6E1D6; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { margin: 0; background: #F5F3EE; color: #14171C; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.4; }
   .bar { background: #14171C; color: #fff; display: flex; align-items: center; gap: 12px; padding: 12px 16px; box-shadow: inset 0 -4px 0 var(--app); }
-  .ic { width: 36px; height: 36px; border-radius: 10px; background: var(--app); display: grid; place-items: center; }
+  .ic { width: 36px; height: 36px; border-radius: 10px; background: var(--app); display: grid; place-items: center; flex: none; }
   .bar b { font-size: 20px; } .bar small { color: #A9AEB8; display: block; font-size: 13px; }
-  main { max-width: 560px; margin: 0 auto; padding: 22px 16px 60px; }
-  .card { background: #fff; border: 1px solid #E6E1D6; border-radius: 18px; padding: 18px; margin: 0 0 14px; }
-  h1 { font-size: 22px; margin: 0 0 6px; } p { line-height: 1.45; }
-  .mut { color: #6A6F78; font-size: 14px; }
-  input { width: 100%; height: 60px; border: 2px solid #E6E1D6; border-radius: 14px; font: 800 28px ui-monospace, monospace; letter-spacing: .3em; text-align: center; text-transform: uppercase; background: #FBFAF7; }
+  .bar button { margin-left: auto; width: auto; height: 40px; margin-top: 0; background: none; border: 1.5px solid #3A3F47; color: #D5D8DE; font-size: 14px; border-radius: 10px; padding: 0 12px; }
+  main { max-width: 560px; margin: 0 auto; padding: 16px 14px 90px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 0 0 12px; }
+  h1 { font-size: 22px; margin: 0 0 6px; } h2 { font-size: 18px; margin: 0 0 8px; }
+  .mut { color: #6A6F78; font-size: 14px; margin: 4px 0; }
+  input#code { width: 100%; height: 60px; border: 2px solid var(--line); border-radius: 14px; font: 800 26px ui-monospace, monospace; letter-spacing: .3em; text-align: center; text-transform: uppercase; background: #FBFAF7; }
   input:focus { outline: none; border-color: var(--app); }
   :focus-visible { outline: 3px solid #1F5F8B; outline-offset: 2px; }
-  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   label.l { display: block; font-weight: 800; margin: 10px 0 6px; }
-  @media (max-width: 420px) { main { padding: 16px 12px 80px; } .card { padding: 14px; } button.s { width: 100%; margin: 8px 0 0; height: 48px; } input { font-size: 24px; } }
+  button { min-height: 52px; border-radius: 14px; border: 0; background: var(--app); color: #fff; font: 800 17px system-ui, sans-serif; padding: 0 18px; cursor: pointer; width: 100%; margin-top: 12px; }
+  button.s { background: #fff; color: #14171C; border: 2px solid var(--line); min-height: 46px; font-size: 15px; }
+  button[disabled] { opacity: .5; }
+  .err { color: var(--no); font-weight: 700; }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 12px; }
+  .tabs button { margin: 0; background: #fff; color: #14171C; border: 2px solid var(--line); }
+  .tabs button.on { background: #14171C; border-color: #14171C; color: #fff; }
+  .tk { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; color: #14171C; border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 0 0 8px; min-height: 64px; font-weight: 700; }
+  .tk .i { font-size: 24px; flex: none; } .tk span.t { flex: 1; } .tk small { display: block; color: #6A6F78; font-weight: 500; }
+  .tk.done { background: #EAF5EC; border-color: var(--ok); }
+  .act { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; color: #14171C; border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 0 0 8px; min-height: 64px; }
+  .act b { font-size: 17px; display: block; } .act small { color: #6A6F78; }
+  .bar2 { height: 12px; background: var(--line); border-radius: 6px; overflow: hidden; margin: 6px 0 10px; } .bar2 i { display: block; height: 100%; background: var(--ok); }
+  .q { margin: 10px 0; } .q b { display: block; font-size: 13px; color: #6A6F78; }
+  .kp { display: flex; gap: 8px; flex-wrap: wrap; } .kp span { background: #F6F3EC; border-radius: 10px; padding: 6px 10px; font-size: 14px; font-weight: 700; }
+  .qt { font-size: 20px; font-weight: 800; margin: 8px 0 12px; }
+  .ch { background: #fff; color: #14171C; border: 2px solid var(--line); text-align: left; font-size: 17px; margin-top: 8px; padding: 12px 14px; }
+  .ch.ok { border-color: var(--ok); background: #EAF5EC; } .ch.ko { border-color: var(--no); background: #FBEDEC; }
+  .fb { border-radius: 12px; padding: 10px 12px; margin: 10px 0 0; font-weight: 700; } .fb.ok { background: #EAF5EC; color: var(--ok); } .fb.ko { background: #FBEDEC; color: var(--no); } .fb span { display: block; color: #14171C; font-weight: 500; }
+  .score { font-size: 48px; font-weight: 900; text-align: center; margin: 6px 0; }
+  #st { position: fixed; left: 0; right: 0; bottom: 0; background: #14171C; color: #fff; font-size: 14px; font-weight: 700; text-align: center; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-  button { height: 52px; border-radius: 14px; border: 0; background: var(--app); color: #fff; font: 800 17px system-ui, sans-serif; padding: 0 18px; cursor: pointer; width: 100%; margin-top: 12px; }
-  button.s { background: #fff; color: #14171C; border: 2px solid #E6E1D6; width: auto; height: 44px; margin: 8px 8px 0 0; font-size: 15px; }
-  .b { border-left: 6px solid var(--c, #14213D); }
-  .err { color: #B3261E; font-weight: 700; }
 </style>
 </head>
 <body>
-<div class="bar"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14l2 2 4-4"/></svg></div><div><b>Mon bilan d'EPS</b><small>Fiches d'évaluation</small></div></div>
+<div class="bar"><div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2M10 7h4M10 10.5h4"/></svg></div><div><b>Mon espace EPS</b><small id="who">À faire · mes activités · mes bilans</small></div><button type="button" id="out" hidden>Quitter</button></div>
 <main>
   <div class="card" id="login">
-    <h1>Entre ton code</h1>
-    <p class="mut">Ton enseignant t'a donné un code personnel de 6 caractères. Il est le même pour toutes les activités. Ne le donne à personne.</p>
-    <label class="l" for="code">Mon code personnel</label>
-    <input id="code" maxlength="6" aria-describedby="msg" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="······">
-    <button id="go">Voir mes bilans</button>
+    <h1>Bonjour !</h1>
+    <p class="mut">Entre le code personnel donné par ton enseignant. Il est à toi : ne le partage pas.</p>
+    <label class="l" for="code">Mon code (6 caractères)</label>
+    <input id="code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
+    <button type="button" id="go">Ouvrir mon espace</button>
     <p id="msg" class="mut" role="status" aria-live="polite"></p>
-    <p class="mut" style="margin-top:14px;border-top:1px solid #E6E1D6;padding-top:10px">Enseignant ? <a href="../#bilans">Voir les bilans de tous les élèves</a> (sur ta tablette, avec ton code enseignant).</p>
   </div>
-  <div id="res" aria-live="polite"></div>
+  <div id="res"></div>
 </main>
+<div id="st" hidden role="status" aria-live="polite"></div>
 <script>
+/* Espace élève (téléphone). Tout arrive chiffré avec le code personnel : fiches PDF publiées par les applis ({app, classe, date, pdf})
+   et l'espace publié par l'enseignant ({kind:"espace", eleve, classe, todo, quiz, acts, rid, rk}). Les retours (quiz faits, tâches cochées)
+   repartent chiffrés avec la clé rk dans le dépôt « dan|E<rid> » du script commun. Le code n'est jamais gardé sur le téléphone. */
 (function () {
   var S = (/[#&]s=([A-Za-z0-9_-]+)/.exec(location.hash) || [])[1] || "";
-  var url = S ? "https://script.google.com/macros/s/" + S + "/exec" : "";
+  var url = S ? "https://script.google.com/macros/s/" + S + "/exec" : (function () { var m = /[#&]u=([^&]+)/.exec(location.hash), u = m ? decodeURIComponent(m[1]) : ""; return /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(u) && /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? u : ""; })() /* essais automatiques seulement */;
   var $ = function (id) { return document.getElementById(id); };
-  var msg = $("msg"), res = $("res");
+  var msg = $("msg"), res = $("res"), ESP = null, PDF = [], ME = { quiz: {}, fait: {}, at: 0 }, HID = "", TAB = "todo", RUN = null, ACT = null;
   if (!url) msg.innerHTML = '<span class="err">Lien incomplet : ouvre le lien envoyé par ton enseignant (sur Pronote).</span>';
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function flat(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }
   function b64url(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
   function unb64(t) { t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; var s = atob(t), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
   function jsonp(params) { return new Promise(function (ok, ko) { var cb = "mb" + Date.now() + Math.floor(Math.random() * 1e4), sc = document.createElement("script"), t = setTimeout(function () { fin(null); }, 30000);
@@ -60,29 +82,85 @@
   async function hid(code) { return b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("eps-bilan|" + code)))).slice(0, 22); }
   async function key(code, h) { var base = await crypto.subtle.importKey("raw", new TextEncoder().encode(code), "PBKDF2", false, ["deriveKey"]);
     return crypto.subtle.deriveKey({ name: "PBKDF2", salt: new TextEncoder().encode("eps-bilan|" + h), iterations: 150000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function okQ(q) { return q && typeof q.t === "string" && Array.isArray(q.c) && q.ok >= 0 && q.ok < q.c.length; }
+
+  /* ---- retours vers l'enseignant ---- */
+  function meLoad() { try { var v = JSON.parse(localStorage.getItem("eps.espace.me." + HID) || "null"); if (v && typeof v === "object") ME = { quiz: v.quiz || {}, fait: v.fait || {}, at: +v.at || 0 }; } catch (e) {} }
+  var sendT = 0, pend = false;
+  function st(t, ms) { var e = $("st"); e.textContent = t; e.hidden = !t; if (ms) setTimeout(function () { if (e.textContent === t) e.hidden = true; }, ms); }
+  function meSave() { ME.at = Date.now(); try { localStorage.setItem("eps.espace.me." + HID, JSON.stringify(ME)); } catch (e) {} pend = true; clearTimeout(sendT); sendT = setTimeout(envoyer, 600); }
+  async function envoyer() { if (!ESP || !ESP.rid || !ESP.rk || !pend) return; st("Envoi à ton enseignant…");
+    try { var k = await crypto.subtle.importKey("raw", unb64(ESP.rk), "AES-GCM", false, ["encrypt"]), iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(ME)))), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
+      var x = b64url(all), dk = "dan|E" + ESP.rid; if (x.length > 7900) throw new Error("trop long");
+      await fetch(url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ drop: { k: dk, x: x } }) });
+      var ok = false; for (var i = 0; i < 3 && !ok; i++) { await new Promise(function (r) { setTimeout(r, 1200); }); try { ok = (await jsonp({ dropchk: dk })).drop === x.slice(0, 16); } catch (e) {} }
+      if (ok) { pend = false; st("✓ Envoyé à ton enseignant", 2500); } else st("Pas encore envoyé : nouvel essai au retour du réseau.", 4000);
+    } catch (e) { st("Pas encore envoyé : nouvel essai au retour du réseau.", 4000); } }
+  window.addEventListener("online", function () { if (pend) envoyer(); });
+
+  /* ---- connexion ---- */
   async function go() {
     var code = $("code").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (code.length !== 6) { msg.innerHTML = '<span class="err">Le code a 6 caractères.</span>'; return; }
     if (!url) return;
-    $("go").disabled = true; msg.textContent = "Recherche de tes bilans…"; res.innerHTML = "";
+    $("go").disabled = true; msg.textContent = "Ouverture de ton espace…";
     try {
       var h = await hid(code), r = await jsonp({ bil: h });
       if (r.bilErr) throw new Error("serveur");
       var L = r.bil || [];
-      if (!L.length) { msg.innerHTML = '<span class="err">Aucun bilan pour ce code. Vérifie-le (O et 0, I et 1 n\'existent pas dans les codes) ou demande à ton enseignant.</span>'; $("go").disabled = false; return; }
+      if (!L.length) { msg.innerHTML = '<span class="err">Rien pour ce code. Vérifie-le (O et 0, I et 1 n\'existent pas dans les codes) ou demande à ton enseignant.</span>'; $("go").disabled = false; return; }
       var k = await key(code, h), out = [];
       for (var i = 0; i < L.length; i++) { try { var b = unb64(L[i].parts.join("")), pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, k, b.slice(12)); out.push(JSON.parse(new TextDecoder().decode(pt))); } catch (e) {} }
       if (!out.length) throw new Error("code");
-      msg.textContent = "";
-      res.innerHTML = '<p class="mut">Bonjour ' + esc(out[0].eleve) + ' ! Voici tes fiches d\'évaluation.</p>' + out.map(function (o, i) {
-        return '<div class="card b" style="--c:' + esc(o.color || "#14213D") + '"><b style="font-size:18px">' + esc(o.app) + '</b><div class="mut">' + esc(o.classe) + " · publiée le " + esc(o.date) + '</div><button class="s" data-o="' + i + '" aria-label="Ouvrir ma fiche ' + esc(o.app) + '">📄 Ouvrir ma fiche</button><button class="s" data-d="' + i + '" aria-label="Télécharger ma fiche ' + esc(o.app) + '">⬇ Télécharger</button></div>'; }).join("");
-      function blob(o) { var u = unb64(o.pdf.replace(/\+/g, "-").replace(/\//g, "_")); return new Blob([u], { type: "application/pdf" }); }
-      res.querySelectorAll("[data-o]").forEach(function (b) { b.onclick = function () { window.open(URL.createObjectURL(blob(out[+b.dataset.o])), "_blank"); }; });
-      res.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { var o = out[+b.dataset.d], a = document.createElement("a"); a.href = URL.createObjectURL(blob(o)); a.download = "Bilan_" + o.app.replace(/[^A-Za-z0-9]+/g, "_") + ".pdf"; document.body.appendChild(a); a.click(); a.remove(); }; });
-    } catch (e) { msg.innerHTML = '<span class="err">' + (e.message === "connexion" ? "Pas de connexion. Réessaie." : "Impossible d'ouvrir tes bilans avec ce code.") + "</span>"; }
+      ESP = out.filter(function (o) { return o && o.kind === "espace"; })[0] || null; PDF = out.filter(function (o) { return o && o.pdf; });
+      HID = h; meLoad(); msg.textContent = ""; $("code").value = ""; $("login").hidden = true; $("out").hidden = false;
+      $("who").textContent = ((ESP && ESP.eleve) || (PDF[0] && PDF[0].eleve) || "") + ((ESP && ESP.classe) ? " · " + ESP.classe : "");
+      TAB = ESP && (ESP.todo || []).length ? "todo" : "acts"; draw(); if (pend) envoyer();
+    } catch (e) { msg.innerHTML = '<span class="err">' + (e.message === "connexion" ? "Pas de connexion. Réessaie." : "Impossible d'ouvrir ton espace avec ce code.") + "</span>"; }
     $("go").disabled = false;
   }
   $("go").onclick = go; $("code").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
+  $("out").onclick = function () { ESP = null; PDF = []; RUN = null; ACT = null; res.innerHTML = ""; $("login").hidden = false; $("out").hidden = true; $("who").textContent = "À faire · mes activités · mes bilans"; };
+
+  /* ---- affichage : deux onglets seulement ---- */
+  function acts() { var A = (ESP && Array.isArray(ESP.acts)) ? ESP.acts.slice() : []; PDF.forEach(function (p) { if (!A.some(function (a) { return flat(a.nom) === flat(p.app); })) A.push({ nom: p.app, lec: 0, pc: null, n: 0, comm: "", apr: "", apm: "" }); }); return A; }
+  function blob(o) { return new Blob([unb64(String(o.pdf).replace(/\+/g, "-").replace(/\//g, "_"))], { type: "application/pdf" }); }
+  function draw() { if (RUN) return quiz(); if (ACT) return fiche();
+    var T = (ESP && ESP.todo) || [], reste = T.filter(function (t) { return !fait(t); }).length;
+    var h = '<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="todo" class="' + (TAB === "todo" ? "on" : "") + '" aria-selected="' + (TAB === "todo") + '">À faire' + (reste ? " (" + reste + ")" : "") + '</button><button type="button" role="tab" data-tab="acts" class="' + (TAB === "acts" ? "on" : "") + '" aria-selected="' + (TAB === "acts") + '">Mes activités</button></div>';
+    if (TAB === "todo") { if (!T.length) h += '<div class="card"><p class="mut">Rien à faire pour l\'instant. Reviens quand ton enseignant te le dira.</p></div>';
+      T.forEach(function (t, i) { var d = fait(t), q = t.ty === "quiz" ? ME.quiz[t.qz] : null;
+        h += '<button type="button" class="tk' + (d ? " done" : "") + '" data-k="' + i + '"><span class="i" aria-hidden="true">' + (d ? "✅" : t.ty === "quiz" ? "❓" : t.ty === "lien" ? "▶️" : "✏️") + '</span><span class="t">' + esc(t.t || "") + "<small>" + (t.ty === "quiz" ? (q ? "Mon score : " + q.s + " / " + q.n + " · recommencer" : "Répondre au quiz") : t.ty === "lien" ? (d ? "Vu · revoir" : "Ouvrir") : (d ? "Fait · toucher pour annuler" : "Toucher quand c'est fait")) + "</small></span></button>"; }); }
+    else { var A = acts(); if (!A.length) h += '<div class="card"><p class="mut">Tes activités apparaîtront ici après tes premières leçons.</p></div>';
+      A.forEach(function (a, i) { h += '<button type="button" class="act" data-a="' + i + '"><span style="flex:1"><b>' + esc(a.nom) + "</b><small>" + (a.pc != null ? "Réussite : " + a.pc + " %" : a.lec ? a.lec + " leçon" + (a.lec > 1 ? "s" : "") : PDF.some(function (p) { return flat(p.app) === flat(a.nom); }) ? "Bilan disponible" : "") + '</small></span><span aria-hidden="true" style="font-weight:900;color:var(--app)">›</span></button>'; }); }
+    res.innerHTML = h;
+    res.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { TAB = b.dataset.tab; draw(); }; });
+    res.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { var t = T[+b.dataset.k];
+      if (t.ty === "quiz") { var q = ESP.quiz && ESP.quiz[t.qz]; if (!q) return; RUN = { id: t.qz, tk: t.id, nom: q.nom, L: (q.q || []).filter(okQ), i: 0, a: [], pick: -1, done: false }; if (RUN.L.length) draw(); else RUN = null; }
+      else if (t.ty === "lien") { if (/^https:\/\//.test(t.url || "")) window.open(t.url, "_blank", "noopener"); ME.fait[t.id] = 1; meSave(); draw(); }
+      else { if (ME.fait[t.id]) delete ME.fait[t.id]; else ME.fait[t.id] = 1; meSave(); draw(); } }; });
+    var A2 = acts(); res.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { ACT = A2[+b.dataset.a]; draw(); window.scrollTo(0, 0); }; }); }
+  function fait(t) { return t.ty === "quiz" ? !!ME.quiz[t.qz] : !!ME.fait[t.id]; }
+  function fiche() { var a = ACT, P = PDF.filter(function (p) { return flat(p.app) === flat(a.nom); }), Q = []; Object.keys((ESP && ESP.quiz) || {}).forEach(function (id) { if (ME.quiz[id]) Q.push({ nom: ESP.quiz[id].nom, r: ME.quiz[id] }); });
+    var h = '<button type="button" class="s" id="bk" style="margin:0 0 12px">← Mes activités</button><div class="card"><h2>' + esc(a.nom) + "</h2>" +
+      '<div class="q"><b>Ma progression</b>' + (a.pc != null ? '<div class="bar2" role="img" aria-label="Réussite ' + a.pc + ' %"><i style="width:' + a.pc + '%"></i></div>' : "") + '<div class="kp">' + (a.pc != null ? "<span>Réussite aux situations : " + a.pc + " %</span>" : "") + (a.lec ? "<span>" + a.lec + " leçon" + (a.lec > 1 ? "s" : "") + "</span>" : "") + (a.n ? "<span>" + a.n + " critère" + (a.n > 1 ? "s" : "") + " évalué" + (a.n > 1 ? "s" : "") + "</span>" : "") + (a.pc == null && !a.lec && !a.n ? '<span>Pas encore de résultats</span>' : "") + "</div></div>" +
+      (a.apr ? '<div class="q"><b>Ce que j\'ai réussi</b>' + esc(a.apr) + "</div>" : "") + (a.apm ? '<div class="q"><b>Ce que je veux améliorer</b>' + esc(a.apm) + "</div>" : "") + (a.comm ? '<div class="q"><b>Le mot de mon enseignant</b>' + esc(a.comm) + "</div>" : "") +
+      (P.length ? '<div class="q"><b>Mon bilan et ma note</b>' + P.map(function (p, i) { return '<button type="button" class="s" data-o="' + i + '">📄 Ouvrir ma fiche du ' + esc(p.date || "") + '</button><button type="button" class="s" data-d="' + i + '">⬇ Télécharger</button>'; }).join("") + "</div>" : '<p class="mut">Ton bilan avec ta note apparaîtra ici quand ton enseignant l\'aura publié.</p>') + "</div>";
+    res.innerHTML = h; $("bk").onclick = function () { ACT = null; draw(); };
+    res.querySelectorAll("[data-o]").forEach(function (b) { b.onclick = function () { window.open(URL.createObjectURL(blob(P[+b.dataset.o])), "_blank"); }; });
+    res.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { var o = P[+b.dataset.d], x = document.createElement("a"); x.href = URL.createObjectURL(blob(o)); x.download = "Bilan_" + String(o.app).replace(/[^A-Za-z0-9]+/g, "_") + ".pdf"; document.body.appendChild(x); x.click(); x.remove(); }; }); }
+  function quiz() { var R = RUN, h;
+    if (R.done) { var s = R.L.reduce(function (n, q, i) { return n + (R.a[i] === q.ok ? 1 : 0); }, 0);
+      h = '<div class="card"><h2>' + esc(R.nom) + '</h2><p class="score">' + s + " / " + R.L.length + '</p><button type="button" id="qb">Retour à « À faire »</button><button type="button" class="s" id="qa">↻ Recommencer</button></div><div class="card"><h2>Ce qu\'il fallait répondre</h2>' + R.L.map(function (q, i) { var ok = R.a[i] === q.ok; return '<div class="fb ' + (ok ? "ok" : "ko") + '">' + (ok ? "✓ " : "✕ ") + esc(q.t) + "<span><b>" + esc(q.c[q.ok]) + "</b>" + (q.exp ? " · " + esc(q.exp) : "") + "</span></div>"; }).join("") + "</div>";
+      res.innerHTML = h; $("qb").onclick = function () { RUN = null; TAB = "todo"; draw(); }; $("qa").onclick = function () { RUN = { id: R.id, tk: R.tk, nom: R.nom, L: R.L, i: 0, a: [], pick: -1, done: false }; draw(); }; return; }
+    var q = R.L[R.i], ans = R.pick >= 0;
+    h = '<div class="card"><p class="mut" style="margin:0">' + esc(R.nom) + " · question " + (R.i + 1) + " / " + R.L.length + '</p><p class="qt">' + esc(q.t) + "</p>" + q.c.map(function (c, k) { if (!String(c || "").trim()) return ""; return '<button type="button" class="ch' + (ans ? (k === q.ok ? " ok" : k === R.pick ? " ko" : "") : "") + '" data-c="' + k + '"' + (ans ? " disabled" : "") + ">" + (ans && k === q.ok ? "✓ " : ans && k === R.pick ? "✕ " : "") + esc(c) + "</button>"; }).join("") +
+      (ans ? '<div class="fb ' + (R.pick === q.ok ? "ok" : "ko") + '" role="status">' + (R.pick === q.ok ? "Bonne réponse !" : "Pas encore. La bonne réponse est en vert.") + (q.exp ? "<span>" + esc(q.exp) + "</span>" : "") + '</div><button type="button" id="qn">' + (R.i + 1 < R.L.length ? "Question suivante →" : "Voir mon score →") + "</button>" : "") + '<button type="button" class="s" id="qq">✕ Quitter le quiz</button></div>';
+    res.innerHTML = h;
+    res.querySelectorAll("[data-c]").forEach(function (b) { b.onclick = function () { if (R.pick >= 0) return; R.pick = +b.dataset.c; R.a[R.i] = R.pick; draw(); }; });
+    var n = $("qn"); if (n) n.onclick = function () { R.pick = -1; if (R.i + 1 < R.L.length) R.i++; else { R.done = true; var s = R.L.reduce(function (m, q2, i) { return m + (R.a[i] === q2.ok ? 1 : 0); }, 0), old = ME.quiz[R.id]; ME.quiz[R.id] = { s: s, n: R.L.length, a: R.a.slice(0, 40), d: today(), nb: ((old && old.nb) || 0) + 1 }; meSave(); } draw(); window.scrollTo(0, 0); };
+    $("qq").onclick = function () { RUN = null; draw(); }; }
 })();
 </script>
 </body>
