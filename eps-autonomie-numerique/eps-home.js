@@ -2393,7 +2393,7 @@
     if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket)\//.test(location.pathname) && !window.EPSLC) { var lc = document.createElement("script"); lc.src = BASE + "eps-lecons.js"; document.head.appendChild(lc); }
     if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|ccf|crosstraining|basket)\//.test(location.pathname) && !window.EPSOB) { var ob = document.createElement("script"); ob.src = BASE + "eps-obs.js"; document.head.appendChild(ob); }
     /* 🧭 référentiel de compétences (eps-ref.js) : relevé des évaluations de l'appli, en mode enseignant, pour le suivi toutes activités */
-    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|crosstraining)\//.test(location.pathname) && !window.EPSREF) { var rf = document.createElement("script"); rf.src = BASE + "eps-ref.js"; document.head.appendChild(rf); }
+    if (!HUB && /\/(escalade|relais|volley|badminton|danse|acrosport|orientation|crosstraining|basket)\//.test(location.pathname) && !window.EPSREF) { var rf = document.createElement("script"); rf.src = BASE + "eps-ref.js"; document.head.appendChild(rf); }
     if (window.EPSL) goL(); else { var ls = document.createElement("script"); ls.src = BASE + "eps-lists.js"; ls.onload = goL; document.head.appendChild(ls); }
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);
