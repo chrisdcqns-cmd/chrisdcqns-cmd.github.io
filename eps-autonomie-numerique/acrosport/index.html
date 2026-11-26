@@ -829,7 +829,10 @@ let homeClass=null, homeList=[];
 window.epsCurrentClass=()=>{let c=null;try{if(window.epsIsTeacher&&epsIsTeacher()&&typeof lessonClass!=='undefined'&&lessonClass)c=lessonClass}catch(e){}c=c||homeClass;if(!c)return null;let el=[];try{const it=EPSL.items().find(o=>EPSL.norm(o.nom)===EPSL.norm(c));if(it)el=EPSL.people(it).map(p=>p.full)}catch(e){}return{nom:c,eleves:el}};
 let draftMembers=["","",""];
 function classes(){
-  const base=["1GT"];
+  /* « 1GT » (classe d'origine de l'appli) : gardée si des groupes y existent déjà ou s'il n'y a aucune autre classe */
+  const autres=(serverClasses||[]).some(c=>c&&c.nom)||commonLists().length>0;
+  let aG=false; try{aG=Object.values(groups||{}).some(g=>g&&norm(g.classe)===norm("1GT"))}catch(e){}
+  const base=(aG||!autres)?["1GT"]:[];
   const out=[...base]; (serverClasses||[]).forEach(c=>{if(c&&c.nom&&!out.some(x=>norm(x)===norm(c.nom))) out.push(c.nom)});
   commonLists().forEach(o=>{if(!out.some(x=>norm(x)===norm(o.nom))) out.push(o.nom)}); /* classes importées ailleurs (listes communes) */
   return out.filter(c=>!notAcro(c));

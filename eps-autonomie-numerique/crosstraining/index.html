@@ -1408,6 +1408,14 @@ function vueParam(){
       <p class="petit doux">Exercices, WOD types, zones et pouls (rien n'est enregistré), grand chrono. Pas de carnet.</p></div>
     <button class="btn clair plein" data-onglet="gerer">🎬 Vidéos et fiches d'exercices</button>`;
 }
+/* 👥 Classe : les classes attribuées au cross-training (listes communes à toutes les applis) */
+function panneauClasses(el){
+  const L=classesCT();
+  el.innerHTML=`<h2>👥 Classe</h2><p class="mut">Classes du cross-training (listes communes à toutes les applis).</p>`+
+    (L.length?`<div class="epst-grid">${L.map(c=>`<div class="epst-card" style="cursor:default"><i>👥</i><span><b>${h(c.nom)}</b><small>${(c.el||[]).length} élèves</small></span></div>`).join("")}</div>`:`<p class="mut">Aucune classe n'est attribuée au cross-training pour l'instant.</p>`)+
+    `<div class="epst-grid"><button type="button" class="epst-card" data-x="edit"><i>✏️</i><span><b>Listes d'élèves</b><small>Renommer, corriger, choisir les activités</small></span></button><button type="button" class="epst-card" data-x="imp"><i>📥</i><span><b>Importer une liste</b><small>Excel ou CSV</small></span></button></div>`;
+  el.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{ if(!window.EPSD) return; b.dataset.x==="edit"?EPSD.editLists():EPSD.importList(); });
+}
 function panneauCarnets(el){
   const C=classesCT(); S.bilC=S.bilC||(C[0]||{}).nom||"";
   const W=stItems("w|").map(x=>x[1]).filter(o=>o.c===S.bilC), parEl={};
@@ -1935,6 +1943,7 @@ window.EPSTCT = window.EPST ? EPST.init({app:"ct", nom:"Cross-training", color:"
   tabs:{ seq:{go:()=>aller("jour"), on:()=>S.onglet==="jour"||S.onglet==="lecon",
            actions:[{main:1,ico:"📌",label:"Leçon du jour (WOD)",go:()=>aller("jour")},{ico:"⏱",label:"Créer un WOD",go:()=>aller("lecon")}]},
          eval:{panel:el=>{ if(window.EVCT) EVCT.mount(el,["eval","grille"],S.bilC||(classesCT()[0]||{}).nom); else el.innerHTML="<p>Évaluation indisponible.</p>"; }},
+         cls:{panel:el=>panneauClasses(el)},
          bil:{panel:el=>panneauCarnets(el)} },
   biblio:[{ico:"🏋️",label:"Bibliothèque d'exercices",sub:"20 exercices sans matériel × 3 niveaux, vidéos",go:()=>aller("biblio")},
           {ico:"⏱",label:"Créer un WOD",sub:"thème, format, exercices, timer",go:()=>aller("lecon")},

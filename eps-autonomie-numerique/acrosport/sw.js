@@ -1,10 +1,12 @@
 // Acrosport EPS — service worker : appli toujours à jour quand il y a du réseau, utilisable hors connexion sinon.
-const CORE = "acro-core-v33";
+const CORE = "acro-core-v34";
 const VIDEOS = "acro-videos-v1";
 const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "trame-1gt.js"];
+const SHARED = ["../eps-lists.js", "../eps-home.js", "../eps-eval.js", "../eps-shell.js", "../eps-lecons.js", "../eps-obs.js", "../eps-groupes.js", "../eps-guides.js", "../eps-remed-ref.js", "../eps-qr.js"]; // fichiers communs (dossier parent), gardés aussi ici pour le hors ligne
+
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CORE).then(c => c.addAll(CORE_FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CORE).then(c => c.addAll(CORE_FILES.concat(SHARED))).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith("acro-core") && k !== CORE).map(k => caches.delete(k)))).then(() => self.clients.claim()));

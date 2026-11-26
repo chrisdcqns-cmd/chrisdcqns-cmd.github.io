@@ -191,7 +191,11 @@ function autoriserAppelAS() {
  *        'trad' (consigne traduite dans la langue p.lang, en restant simple).
  *        'lecon' (bilan d'une leçon pour l'enseignant, à partir de résultats anonymes E1, E2…).
  * p.t = notes de l'enseignant (dictées ou tapées) ; p.act = activité ; p.ctx = éléments d'évaluation (degrés, note), facultatif. */
-const CLAUDE_MODEL = 'claude-haiku-5-5';
+/* Modèles : valeurs par défaut ci-dessous ; pour en changer SANS toucher au code (modèle retiré, nouveau modèle),
+ * ajoute une propriété du script (Paramètres du projet > Propriétés du script) :
+ *   CLAUDE_MODELE_RAPIDE (reformulations courtes)  ·  CLAUDE_MODELE_PRECIS (leçons, grilles, bilans, console). */
+function modele_(prop, defaut) { try { return String(PropertiesService.getScriptProperties().getProperty(prop) || '').trim() || defaut; } catch (e) { return defaut; } }
+const CLAUDE_MODEL = modele_('CLAUDE_MODELE_RAPIDE', 'claude-haiku-5-5');
 function reformuler_(p) {
   const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY');
   if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
@@ -246,7 +250,7 @@ function reformuler_(p) {
  * POST {key, lc:{op:'lecon', mode, act, docs:[{nom,txt}], lecons:[…], base, consigne}} → {lecon} : brouillon de leçon (JSON),
  *   à partir des documents de l'enseignant EN PRIORITÉ. Le brouillon reste invisible pour les élèves tant que l'enseignant ne l'a pas validé.
  * Aucun nom d'élève n'est envoyé. Modèle : CLAUDE_MODEL_LECON (plus précis pour un travail long). */
-const CLAUDE_MODEL_LECON = 'claude-sonnet-5-5';
+const CLAUDE_MODEL_LECON = modele_('CLAUDE_MODELE_PRECIS', 'claude-sonnet-5-5');
 function lecon_(q) {
   const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY');
   if (!key) throw new Error('Clé ANTHROPIC_KEY absente des propriétés du script');
@@ -271,7 +275,7 @@ function lecon_(q) {
       'Réponds UNIQUEMENT par : {"degres":["Degré 1","Degré 2","Degré 3","Degré 4"],"criteres":[{"id":"c1","afl":"AFL1","max":nombre de points,"nom":"","but":"","desc":["D1","D2","D3","D4"]}],"remarque":""}.';
     const t = claude_(key, sys, parts, CLAUDE_MODEL_LECON, 6000), a = t.indexOf('{'), b = t.lastIndexOf('}');
     if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
-    return { grille: JSON.parse(t.slice(a, b + 1)) };
+    return { grille: lisJson_(t) };
   }
   /* Cross-training : WOD proposé à l'enseignant (brouillon) ou conseil sur le WOD d'un élève (si l'enseignant l'a activé). Jamais de nom d'élève. */
   if (q.op === 'ctwod' || q.op === 'ctconseil') {
@@ -284,7 +288,7 @@ function lecon_(q) {
         'params selon le format : circuit {tours,recupEx,recupTour} ; emom/e2mom {minutes} ; amrap {minutes,cible} ; fortime {tours,cap} ; intervalles {travail,repos,tours}. 3 à 6 exercices, zones du corps équilibrées.';
       const t = claude_(key, sys, 'Classe / niveau : ' + String(q.niveau || '').slice(0, 200) + '\nPrécisions : ' + String(q.consigne || '').slice(0, 1500), CLAUDE_MODEL_LECON, 1500), a = t.indexOf('{'), b = t.lastIndexOf('}');
       if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
-      return { wod: JSON.parse(t.slice(a, b + 1)) };
+      return { wod: lisJson_(t) };
     }
     const sys = base + 'Un élève te montre son WOD. Donne-lui 3 conseils courts (tutoiement, 25 mots maximum chacun), concrets, sur la cohérence entre son thème, son format, ses quantités et ses exercices, et sur la sécurité. Ne le décourage pas. Réponds par les 3 conseils, un par ligne, commençant par « • ».';
     return { texte: claude_(key, sys, String(q.wod || '').slice(0, 3000), CLAUDE_MODEL, 500) };
@@ -321,7 +325,7 @@ function lecon_(q) {
       'Vocabulaire : « leçon », « séquence ». Ne compte pas les simples situations, grilles ou annexes. Réponds UNIQUEMENT par : {"liste":[{"seq":"nom de la séquence s\'il figure","num":"n° de leçon s\'il figure","titre":"titre ou thème de la leçon, tel qu\'écrit"}]} (liste vide si le document ne contient aucune leçon).';
     const t = claude_(key, sysI, 'DOCUMENT :' + dtx, CLAUDE_MODEL_LECON, 2000), a = t.indexOf('{'), b = t.lastIndexOf('}');
     if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
-    return { liste: (JSON.parse(t.slice(a, b + 1)).liste || []).slice(0, 40) };
+    return { liste: (lisJson_(t).liste || []).slice(0, 40) };
   }
   const MODES = {
     importer: 'Mets en forme dans la structure LA leçon contenue dans le document fourni (si le document en contient plusieurs, celle indiquée dans les précisions, sinon la première). Recopie les formulations de l\'enseignant ; n\'invente RIEN : laisse vide ("") toute rubrique absente du document.',
@@ -342,17 +346,21 @@ function lecon_(q) {
     '{"seq":"séquence","num":"n° de leçon","titre":"","duree":"","objM":"objectif moteur","objMe":"objectif méthodologique","objS":"objectif social","but":"but de la leçon",' +
     '"disp":"dispositif","mat":"matériel","ech":"échauffement : consigne","echImg":"id du schéma de l\'échauffement s\'il y en a un","sits":[{"t":"titre","cons":"consigne","img":"id du schéma de la situation s\'il y en a un","crQ":"critères de réussite quantitatifs (ce qu\'il y a à faire pour être en réussite, qui se compte)","crQl":"critères de réussite qualitatifs (ce qu\'il y a à faire pour être en réussite, qui s\'observe)","crR":"critères de réalisation (ce qu\'il y a à faire pour faire : comment faire, placements, gestes, prises d\'information)","simp":"variables de simplification","comp":"variables de complexification","ap":"apprentissage travaillé : 1 à 3 mots-clés courts (ex. smash, frappe haute)"}],' +
     '"rem":"remise en action : match ou situation plus large","remCr":"critères de réussite de la remise en action","bilan":"bilan de la leçon","sources":"ce qui vient des documents et ce que tu proposes"}. ' +
-    'En général deux situations. Les schémas (images) du document sont notés [SCHÉMA:id] à leur place dans le texte : reporte chaque id dans "echImg" ou dans "img" de la situation qu\'il illustre (jamais d\'id inventé). ' + MODES[mode];
+    'En général deux situations. Les schémas (images) du document sont notés [SCHÉMA:id] à leur place dans le texte : reporte chaque id dans "echImg" ou dans "img" de la situation qu\'il illustre (jamais d\'id inventé).';
   let docs = '';
   (q.docs || []).forEach(function (d) { if (docs.length < 160000) docs += '\n\n=== Document : ' + String(d.nom || '').slice(0, 120) + ' ===\n' + String(d.txt || '').slice(0, 160000 - docs.length); });
-  const user = (docs ? 'DOCUMENTS DE L\'ENSEIGNANT :' + docs + '\n\n' : 'Aucun document déposé.\n\n') +
+  /* Mise en cache (prompt caching) : la consigne générale et les documents sont identiques d'un appel à l'autre
+     (mise en fiches leçon par leçon, leçon suivante, variantes…) : relus à tarif très réduit pendant 5 minutes. */
+  const tete = docs ? 'DOCUMENTS DE L\'ENSEIGNANT :' + docs + '\n\n' : 'Aucun document déposé.\n\n';
+  const suite = 'TRAVAIL DEMANDÉ : ' + MODES[mode] + '\n\n' +
     ((q.lecons || []).length ? 'LEÇONS DÉJÀ ÉCRITES :\n' + JSON.stringify(q.lecons).slice(0, 40000) + '\n\n' : '') +
     (q.base ? 'LEÇON DE BASE (« base ») :\n' + JSON.stringify(q.base).slice(0, 12000) + '\n\n' : '') +
     (q.consigne ? 'PRÉCISIONS DE L\'ENSEIGNANT : ' + String(q.consigne).slice(0, 1500) + '\n\n' : '') + 'Réponds par l\'objet JSON de la leçon.';
+  const user = docs.length > 4000 ? [{ type: 'text', text: tete, cache_control: { type: 'ephemeral' } }, { type: 'text', text: suite }] : tete + suite;
   const t = claude_(key, sys, user, CLAUDE_MODEL_LECON, 4000);
   const a = t.indexOf('{'), b = t.lastIndexOf('}');
   if (a < 0 || b < a) throw new Error('Réponse de Claude illisible');
-  return { lecon: JSON.parse(t.slice(a, b + 1)) };
+  return { lecon: lisJson_(t) };
 }
 /* Appel à l'API de Claude, robuste : 3 essais si l'API est surchargée ou occupée (429, 500, 502, 503, 504, 529),
    réponse redemandée plus longue si elle a été coupée (max_tokens), messages d'erreur compréhensibles. */
@@ -374,15 +382,29 @@ function claudeRaw_(key, body) {
       return out;
     }
     last = (out.error && out.error.message) || ('code ' + code);
+    if (code === 400 && /cache/i.test(last) && sansCache_(body)) continue; /* mise en cache refusée : même demande, sans cache */
     if ([429, 500, 502, 503, 504, 529].indexOf(code) < 0) break;
     Utilities.sleep(2000 * (i + 1) * (i + 1));
   }
   if (code === 401 || code === 403) throw new Error('Clé Claude refusée : vérifie ANTHROPIC_KEY (Propriétés du script). ' + last);
   if (code === 429) throw new Error('Trop de demandes à Claude en même temps : réessaie dans une minute.');
   if (code === 529 || code === 503 || code === 500 || code === 502 || code === 504) throw new Error('Claude est surchargé pour le moment : réessaie dans quelques minutes.');
-  if (code === 400 && /model/i.test(last)) throw new Error('Modèle de Claude indisponible (' + (body.model || '') + ') : ' + last);
+  if ((code === 400 || code === 404) && /model/i.test(last)) throw new Error('Modèle de Claude indisponible (' + (body.model || '') + ') : indique un modèle actuel dans les propriétés du script (CLAUDE_MODELE_RAPIDE ou CLAUDE_MODELE_PRECIS). ' + last);
   if (code === 400 && /credit|billing|balance/i.test(last)) throw new Error('Crédit Claude épuisé sur le compte Anthropic : ' + last);
   throw new Error('API ' + (code || '?') + ' : ' + last);
+}
+/* Retire les marques de mise en cache d'une demande ; renvoie true s'il y en avait. */
+function sansCache_(body) {
+  var n = 0;
+  (body.messages || []).forEach(function (m) { if (Array.isArray(m.content)) m.content.forEach(function (c) { if (c && c.cache_control) { delete c.cache_control; n++; } }); });
+  if (body.cache_control) { delete body.cache_control; n++; }
+  return n > 0;
+}
+/* JSON renvoyé par Claude → objet, avec un message clair si la réponse est inutilisable. */
+function lisJson_(t) {
+  var a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a < 0 || b < a) throw new Error('Réponse de Claude illisible : réessaie.');
+  try { return JSON.parse(t.slice(a, b + 1)); } catch (e) { throw new Error('Réponse de Claude incomplète ou mal formée : réessaie (ou raccourcis le document).'); }
 }
 function claude_(key, system, user, model, maxTokens) {
   const out = claudeRaw_(key, { model: model || CLAUDE_MODEL, max_tokens: maxTokens || 700, system: system, messages: [{ role: 'user', content: user }] });
@@ -398,7 +420,7 @@ function testerClaude() {
  * L'appli envoie par POST { key, aiReq:{ id, mode:'bilan', act, t } } : t = résumé chiffré de la leçon, élèves désignés
  * par des codes E1, E2… (jamais de prénom : la correspondance reste sur la tablette). Le résultat (JSON) est rangé
  * 6 heures dans le cache du script ; l'appli le lit en JSONP avec ?aiget=<id>. */
-const CLAUDE_MODEL_BILAN = 'claude-sonnet-5-5';
+const CLAUDE_MODEL_BILAN = modele_('CLAUDE_MODELE_PRECIS', 'claude-sonnet-5-5');
 function aiReq_(r) {
   const id = String((r && r.id) || '').slice(0, 40), cache = CacheService.getScriptCache();
   if (!id) return { ok: false, error: 'id' };
@@ -441,7 +463,7 @@ function testerBilan() {
  * badsit : l'enseignant décrit une situation en une phrase → Claude renvoie le réglage du terrain à zones (JSON) que l'appli affiche pour validation.
  * badcoach : statistiques ANONYMES d'un élève (aucun nom) + objectif de la leçon → un conseil court en langage élève.
  * Garde-fou : 300 demandes par heure au maximum pour l'ensemble des tablettes. */
-const CLAUDE_MODEL_SIT = 'claude-sonnet-5-5';
+const CLAUDE_MODEL_SIT = modele_('CLAUDE_MODELE_PRECIS', 'claude-sonnet-5-5');
 function quota_() {
   const c = CacheService.getScriptCache(), k = 'aiq' + Math.floor(Date.now() / 3600000), n = Number(c.get(k) || 0);
   if (n >= 300) throw new Error('Trop de demandes cette heure-ci, réessaie plus tard');

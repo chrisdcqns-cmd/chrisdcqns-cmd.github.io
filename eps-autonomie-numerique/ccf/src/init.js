@@ -1,7 +1,7 @@
 /* ================== DÉMARRAGE ================== */
 /* espace enseignant commun (eps-shell.js) : Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 window.EPSTCCF=window.EPST?EPST.init({app:'ccf',nom:'CCF',color:COL,isTeacher:()=>isT(),anchor:'#hd',main:'#m',home:'eval',
- tabs:{eval:{go:()=>go(T.view==='fiche'?'fiche':'eval'),on:()=>['eval','fiche'].includes(T.view)},
+ tabs:{ccf:false,seq:{panel:el=>{el.innerHTML='<h2>📅 Séquence</h2><p class="mut">Fiches de leçon du CCF, programmation et leçon en cours.</p><div class="epst-grid"><button type="button" class="epst-card" data-o="lec"><i>📝</i><span><b>Fiches de leçon</b><small>Dont la leçon du CCF</small></span></button><button type="button" class="epst-card" data-o="live"><i>📡</i><span><b>Leçon en cours</b><small>Messages, minuteur, rangement</small></span></button></div>';el.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{if(window.EPSLC)EPSLC.open(b.dataset.o)})}},eval:{go:()=>go(T.view==='fiche'?'fiche':'eval'),on:()=>['eval','fiche'].includes(T.view)},
   cls:{go:()=>go('cls'),on:()=>['cls','team','match'].includes(T.view)},
   bil:{go:()=>go('bil'),on:()=>T.view==='bil'}},
  biblio:[{ico:'🖨',label:'Documents à imprimer',sub:'La leçon du CCF, le terrain / le mur, les fiches à remplir sans tablette',go:()=>go('print')},{ico:'📜',label:'Le protocole',sub:'Lecture et impression (Bac pro, Bac général)',go:()=>go('proto')},{ico:'📚',label:'Ressources de l\'activité',sub:'Celles de l\'appli de l\'activité + celles ajoutées ici, visibles par les élèves',go:()=>go('res')}],

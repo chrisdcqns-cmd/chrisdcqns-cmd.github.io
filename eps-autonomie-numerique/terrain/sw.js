@@ -1,6 +1,7 @@
 // Terrain (OrienRun) — service worker : appli utilisable sans réseau ; fonds de carte IGN gardés en cache quand on les a vus.
-const CORE = "terrain-core-v7", LIBS = "terrain-libs-v1", TILES = "terrain-tiles-v1", MAX_TILES = 2500;
-const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const CORE = "terrain-core-v8", LIBS = "terrain-libs-v1", TILES = "terrain-tiles-v1", MAX_TILES = 2500;
+const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "../eps-lists.js"];
+const isShared = p => /\/eps-autonomie-numerique\/(eps-[a-z-]+\.js|vendor\/[^/]+)$/.test(p);
 const LIB_FILES = ["https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"];
 self.addEventListener("install", e => e.waitUntil((async () => {
   const c = await caches.open(CORE); await c.addAll(CORE_FILES);
@@ -17,6 +18,6 @@ self.addEventListener("fetch", e => {
     return;
   }
   if (url.hostname === "unpkg.com") { e.respondWith(caches.open(LIBS).then(async c => (await c.match(req)) || fetch(req).then(r => { if (r.ok) c.put(req, r.clone()); return r; }))); return; }
-  if (url.origin !== location.origin || !url.pathname.startsWith(new URL("./", self.registration.scope).pathname)) return;
+  if (url.origin !== location.origin || !(url.pathname.startsWith(new URL("./", self.registration.scope).pathname) || isShared(url.pathname))) return;
   e.respondWith((async () => { const c = await caches.open(CORE); try { const r = await fetch(req, { cache: "no-cache" }); if (r.ok) c.put(req, r.clone()); return r; } catch (err) { return (await c.match(req, { ignoreSearch: true })) || (await c.match("index.html")); } })());
 });

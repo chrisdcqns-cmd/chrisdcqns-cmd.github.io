@@ -82,3 +82,8 @@ Les liens déjà distribués qui pointent vers l'ancien script de Danse continue
 
 ### 🏸 Badminton : indicateurs de performance proposés par Claude
 Mode `badind` (Claude Sonnet, outil `proposer_indicateurs`) : l'appli envoie la leçon, le temps et la situation reliée (aucune donnée d'élève) ; Claude choisit 2 à 4 indicateurs dans la liste que l'appli sait calculer ou faire compter, et peut en inventer 2 (comptage par l'observateur ou observable). Même clé `ANTHROPIC_KEY`. Après avoir collé le nouveau `Code.gs` : Déployer → Gérer les déploiements → modifier → Nouvelle version, puis lancer `testerIndicateurs` une fois.
+
+## Modèles réglables et mise en cache (26/11/2026)
+- Modèles par défaut : `claude-haiku-5-5` (reformulations courtes) et `claude-sonnet-5-5` (leçons, grilles, bilans, console, situations). Pour en changer sans toucher au code : propriétés du script `CLAUDE_MODELE_RAPIDE` et `CLAUDE_MODELE_PRECIS` (laisser vide = valeur par défaut). Si un modèle est retiré, le message d'erreur le dit et rappelle ces deux propriétés.
+- Fiches de leçon : la consigne générale et les documents de l'enseignant sont marqués pour la mise en cache (`cache_control`, 5 minutes) dès que les documents dépassent 4 000 caractères ; la consigne propre au mode (importer, suivante, variante…) est placée à la fin de la demande pour que le début reste identique d'un appel à l'autre. Si l'API refuse la mise en cache, la même demande repart sans (`sansCache_`).
+- Réponses JSON : `lisJson_` (message clair si la réponse est coupée ou mal formée).
