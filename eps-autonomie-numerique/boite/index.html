@@ -173,14 +173,47 @@ table.t th{background:#FAF8F3;font-size:13px}
     stopTab = stop;
   }
 
+  /* Analyse vidéo réglée par activité : magasin « eps.analyse.v1 » (an|), {id:<clé>, nom, on:0|1, pts:[repères à observer], v:vitesse de départ}. Valeurs d'origine ci-dessous, toutes modifiables par l'enseignant. */
+  var KA = "eps.analyse.v1", ADEF = [
+    ["volley", "Volley-ball", ["Je suis placé sous le ballon avant de le toucher", "Mes bras sont tendus en manchette", "Je pousse avec les jambes", "Mes épaules sont tournées vers la cible"]],
+    ["badminton", "Badminton", ["Je frappe le volant au-dessus de ma tête", "Mon coude est haut avant la frappe", "Je suis de profil au moment de frapper", "Je reviens au centre après ma frappe"]],
+    ["escalade", "Escalade", ["Mes bras sont tendus pour me reposer", "Je pousse sur mes jambes", "Mon bassin reste près du mur", "Je regarde mes pieds avant de les poser"]],
+    ["acrosport", "Acrosport", ["Le porteur a le dos plat et les bras tendus", "Le voltigeur pose ses appuis sur le bassin ou les épaules", "La figure tient 3 secondes sans bouger", "La descente est contrôlée"]],
+    ["relais", "Relais Vitesse", ["Le receveur part sans regarder en arrière", "Le bras du receveur est tendu vers l'arrière", "Le témoin passe dans la zone", "La vitesse du témoin ne baisse pas"]],
+    ["danse", "Danse", ["Les mouvements vont au bout (amplitude)", "Le regard est placé", "Les arrêts sont nets", "Le groupe est ensemble quand il le faut"]],
+    ["crosstraining", "Cross-training", ["Mon dos reste droit", "Mes genoux restent dans l'axe de mes pieds", "Le mouvement est complet", "Mon rythme reste régulier"]]];
+  function aLd() { var v = null; try { v = JSON.parse(localStorage.getItem(KA) || "null"); } catch (e) {} if (!v || typeof v !== "object" || !v.items || Array.isArray(v.items)) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+  function aPut(it) { var V = aLd(), old = V.items[it.id]; it.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u; try { localStorage.setItem(KA, JSON.stringify(V)); } catch (e) { return false; } try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} return true; }
+  function aCfg() { var I = aLd().items, L = ADEF.map(function (d) { var s = I[d[0]]; return (s && !s.del && Array.isArray(s.pts)) ? { id: d[0], nom: s.nom || d[1], on: s.on ? 1 : 0, pts: s.pts.filter(function (x) { return typeof x === "string"; }), v: [.25, .5, 1].indexOf(+s.v) >= 0 ? +s.v : 1 } : { id: d[0], nom: d[1], on: 1, pts: d[2].slice(), v: 1 }; });
+    Object.keys(I).forEach(function (k) { var s = I[k]; if (s && !s.del && Array.isArray(s.pts) && !ADEF.some(function (d) { return d[0] === k; })) L.push({ id: k, nom: s.nom || "Activité", on: s.on ? 1 : 0, pts: s.pts.filter(function (x) { return typeof x === "string"; }), v: [.25, .5, 1].indexOf(+s.v) >= 0 ? +s.v : 1 }); });
+    return L; }
+  function isTeach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+  var AEDIT = false;
+  function analyseRegl() { var L = aCfg();
+    $("#pg").innerHTML = '<div class="card"><h2>⚙ Analyse vidéo : réglages par activité</h2><p class="mut">Pour chaque activité : proposée ou non aux élèves, ce qu\'ils doivent regarder (un repère par ligne), vitesse de départ.</p>' +
+      L.map(function (a, i) { return '<div class="qa" data-a="' + i + '" style="border-top:1px solid var(--line);padding:10px 0"><div class="row" style="margin:0"><input class="in" data-n value="' + esc(a.nom) + '" maxlength="40" style="flex:1;min-width:160px;font-weight:800" aria-label="Nom de l\'activité"><label style="display:inline-flex;gap:8px;align-items:center;min-height:44px;font-weight:700"><input type="checkbox" data-on style="width:22px;height:22px"' + (a.on ? " checked" : "") + '> Proposée aux élèves</label><select class="in" data-v aria-label="Vitesse de départ">' + [1, .5, .25].map(function (v) { return '<option value="' + v + '"' + (v === a.v ? " selected" : "") + ">× " + String(v).replace(".", ",") + "</option>"; }).join("") + '</select></div><textarea class="in" data-p rows="4" style="width:100%;margin-top:6px;padding:8px 12px" aria-label="Repères à observer, un par ligne">' + esc(a.pts.join("\n")) + "</textarea></div>"; }).join("") +
+      '<div class="row"><button class="btn" id="aadd" type="button">＋ Ajouter une activité</button><span style="flex:1"></span><button class="btn" id="acan" type="button">Annuler</button><button class="btn p" id="asav" type="button">💾 Enregistrer</button></div></div>';
+    function lire() { $$(".qa").forEach(function (el) { var a = L[+el.dataset.a]; a.nom = $("[data-n]", el).value.trim() || a.nom; a.on = $("[data-on]", el).checked ? 1 : 0; a.v = +$("[data-v]", el).value; a.pts = $("[data-p]", el).value.split("\n").map(function (x) { return x.trim().slice(0, 120); }).filter(Boolean).slice(0, 10); }); }
+    $("#aadd").onclick = function () { lire(); L.forEach(function (a) { aPut({ id: a.id, nom: a.nom, on: a.on, pts: a.pts, v: a.v }); }); aPut({ id: "a" + Date.now().toString(36), nom: "Nouvelle activité", on: 1, pts: [], v: 1 }); analyseRegl(); window.scrollTo(0, document.body.scrollHeight); };
+    $("#acan").onclick = function () { AEDIT = false; analyse(); };
+    $("#asav").onclick = function () { lire(); L.forEach(function (a) { aPut({ id: a.id, nom: a.nom, on: a.on, pts: a.pts, v: a.v }); }); AEDIT = false; analyse(); }; }
+
   /* ---- 🎞 analyse vidéo : ralenti, image par image, tracés et angles ; une ou deux vidéos côte à côte. La vidéo reste sur la tablette. ---- */
   function analyse() {
+    if (AEDIT && isTeach()) return analyseRegl();
+    var ACT = aCfg().filter(function (a) { return a.on || isTeach(); }), act = ACT.filter(function (a) { return a.id === S.act; })[0] || null, vus = {};
     var slot = function (k) { return '<div class="vs" data-s="' + k + '"' + (k ? " hidden" : "") + '><div class="vw"><video playsinline muted preload="auto"></video><canvas></canvas><div class="ph">' + (k ? "2e vidéo, pour comparer" : "Filme ton geste ou choisis une vidéo.") + '</div></div><input type="range" class="sk" min="0" max="1000" value="0" aria-label="Avancer dans la vidéo ' + (k + 1) + '" disabled><div class="row" style="margin-top:6px"><label class="btn p" style="display:inline-flex;align-items:center">🎥 Filmer<input type="file" accept="video/*" capture="environment" hidden></label><label class="btn" style="display:inline-flex;align-items:center">📂 Choisir une vidéo<input type="file" accept="video/*" hidden></label><span class="time mut" data-tm></span></div></div>'; };
     $("#pg").innerHTML = '<div class="card"><h2>🎞 Analyse vidéo</h2><p class="mut">Ralenti, image par image, tracés et angles. La vidéo reste sur la tablette : rien n\'est envoyé.</p>' +
+      '<div class="row" style="margin-top:6px">' + [{ id: "", nom: "Geste libre" }].concat(ACT).map(function (a) { return '<button type="button" class="tab' + ((act ? act.id : "") === a.id ? " on" : "") + '" data-act="' + esc(a.id) + '" style="min-height:44px">' + esc(a.nom) + (a.on === 0 ? " (masquée)" : "") + "</button>"; }).join("") + (isTeach() ? '<span style="flex:1"></span><button class="btn" id="aregl" type="button">⚙ Régler par activité</button>' : "") + "</div>" +
       '<div class="vids">' + slot(0) + slot(1) + "</div>" +
       '<div class="row"><button class="btn p big" id="pl" type="button" style="min-width:120px">▶ Lire</button><button class="btn" id="pv" type="button" aria-label="Image précédente">◀ Image</button><button class="btn" id="nx" type="button" aria-label="Image suivante">Image ▶</button><span style="flex:1"></span>' + [.25, .5, 1].map(function (v) { return '<button class="tab' + (v === 1 ? " on" : "") + '" data-v="' + v + '" type="button" style="min-height:44px">× ' + String(v).replace(".", ",") + "</button>"; }).join("") + "</div>" +
-      '<div class="row">' + [["", "✋ Lecture"], ["l", "✏ Trait"], ["a", "📐 Angle (3 points)"]].map(function (t) { return '<button class="tab' + (t[0] ? "" : " on") + '" data-tool="' + t[0] + '" type="button" style="min-height:44px">' + t[1] + "</button>"; }).join("") + '<button class="btn d" id="ef" type="button">Effacer les tracés</button><span style="flex:1"></span><button class="btn" id="cmp" type="button">➕ Comparer avec une 2e vidéo</button></div></div>';
-    var SL = $$(".vs").map(function (el) { return { el: el, v: $("video", el), c: $("canvas", el), sh: [], tmp: null, url: "" }; }), tool = "", rate = 1;
+      '<div class="row">' + [["", "✋ Lecture"], ["l", "✏ Trait"], ["a", "📐 Angle (3 points)"]].map(function (t) { return '<button class="tab' + (t[0] ? "" : " on") + '" data-tool="' + t[0] + '" type="button" style="min-height:44px">' + t[1] + "</button>"; }).join("") + '<button class="btn d" id="ef" type="button">Effacer les tracés</button><span style="flex:1"></span><button class="btn" id="cmp" type="button">➕ Comparer avec une 2e vidéo</button></div>' +
+      (act && act.pts.length ? '<h2 style="margin-top:16px">👀 Ce que je regarde · ' + esc(act.nom) + '</h2>' + act.pts.map(function (p, i) { return '<div class="row" style="margin-top:6px;flex-wrap:nowrap"><span style="flex:1">' + esc(p) + '</span><button class="tab" data-vu="' + i + '" data-r="1" type="button" style="min-height:44px;min-width:52px" aria-label="Oui">✅</button><button class="tab" data-vu="' + i + '" data-r="0" type="button" style="min-height:44px;min-width:52px" aria-label="Pas encore">❌</button></div>'; }).join("") : "") + "</div>";
+    var SL = $$(".vs").map(function (el) { return { el: el, v: $("video", el), c: $("canvas", el), sh: [], tmp: null, url: "" }; }), tool = "", rate = act ? act.v : 1;
+    $$("[data-v]").forEach(function (x) { x.classList.toggle("on", +x.dataset.v === rate); });
+    $$("[data-act]").forEach(function (b) { b.onclick = function () { S.act = b.dataset.act; sv(); go("analyse"); }; });
+    var rg = $("#aregl"); if (rg) rg.onclick = function () { AEDIT = true; go("analyse"); };
+    $$("[data-vu]").forEach(function (b) { b.onclick = function () { var i = b.dataset.vu; vus[i] = vus[i] === b.dataset.r ? "" : b.dataset.r; $$('[data-vu="' + i + '"]').forEach(function (x) { x.classList.toggle("on", vus[i] === x.dataset.r); }); }; });
     function vids() { return SL.filter(function (s) { return s.url; }).map(function (s) { return s.v; }); }
     function fit(s) { var r = s.v.getBoundingClientRect(), d = window.devicePixelRatio || 1, vw = s.v.videoWidth, vh = s.v.videoHeight; if (!r.width || !vw || !vh) return; var k = Math.min(r.width / vw, r.height / vh), w = vw * k, h = vh * k;
       s.c.style.width = w + "px"; s.c.style.height = h + "px"; s.c.width = Math.round(w * d); s.c.height = Math.round(h * d); draw(s); }
@@ -231,6 +264,7 @@ table.t th{background:#FAF8F3;font-size:13px}
     $("#kg").oninput = calc; $("#rp").oninput = calc;
   }
   window.addEventListener("pagehide", function () { if (stopTab) try { stopTab(); } catch (e) {} });
+  (function link(n) { if (!window.EPSD || !EPSD.store) { if ((n || 0) < 60) setTimeout(function () { link((n || 0) + 1); }, 250); return; } try { EPSD.store({ key: KA, pre: "an|" }); } catch (e) {} })(0);
   go(TAB);
 })();
 </script>
