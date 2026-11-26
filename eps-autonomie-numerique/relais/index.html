@@ -3895,7 +3895,7 @@ function renderWait(){
         <button class="btn ghost" data-dispo>📐 Dispositif du relais</button>
         <button class="btn ghost teach" data-sits>📚 Situations</button>
       </div>
-      ${!l&&!perf?`<p class="wp" style="margin-top:16px;font-size:18px">Aucune leçon n'est en cours aujourd'hui pour cette classe.<br>Ton enseignant va la lancer.</p>`:""}
+      ${!l&&!perf?((LV=>LV?`<p class="wp" style="margin-top:16px;font-size:18px">📅 <b>${esc(LV.titre)}</b> est en cours.</p><button class="btn" style="margin-top:8px" onclick="EPSLC.liveFor(CL().name).open()">Ouvrir la leçon</button>`:`<p class="wp" style="margin-top:16px;font-size:18px">Aucune leçon n'est en cours aujourd'hui pour cette classe.<br>Ton enseignant va la lancer.</p>`)(window.EPSLC&&EPSLC.liveFor&&EPSLC.liveFor(C.name))):""}
       <button class="btn ghost sm mt" data-wback="1">Changer de classe</button>`;
   }
 }

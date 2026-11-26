@@ -573,7 +573,7 @@ const S = {
 if(!S.lecon) S.lecon = nouvelleLecon();
 function estProf(){ if(window.EPS_VUE_ELEVE) return false; try{ return Date.now() < +(localStorage.getItem("eps.teach.until")||0); }catch(e){ return false; } }
 function partage(){ try{ return JSON.parse(localStorage.getItem("eps.share.v1")||"{}")||{}; }catch(e){ return {}; } }
-function classesCT(){ try{ return (window.EPSL?EPSL.items():[]).filter(it=>it&&it.nom&&!it.del&&!it.demo&&!(it.off||[]).includes("ct")); }catch(e){ return []; } }
+function classesCT(){ try{ return (window.EPSL?EPSL.items():[]).filter(it=>it&&it.nom&&!it.del&&!(it.demo&&!(window.EPSD&&EPSD.demo&&EPSD.demo.on()))&&!(it.off||[]).includes("ct")); }catch(e){ return []; } }
 function nouvelleLecon(){ return {id:Date.now().toString(36), titre:"", theme:"R", format:"circuit", params:{}, items:[]}; }
 function sauver(){ LS.set("fiches",S.fiches); LS.set("drive",S.drive); LS.set("nonPublie",S.nonPublie);
   LS.set("reglages",S.reglages); LS.set("lecons",S.lecons); LS.set("lecon",S.lecon); }

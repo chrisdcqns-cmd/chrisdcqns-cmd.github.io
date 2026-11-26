@@ -1406,6 +1406,8 @@
   setTimeout(function () { try { seedApp(); } catch (e) {} }, 2500);
   window.EPSLC = {
     seedApp: seedApp,
+    /* leçon commune lancée pour cette classe (📡 Leçon en cours) : les écrans « pas encore de leçon » des applis renvoient vers elle au lieu de se contredire */
+    liveFor: function (cls) { try { var v = cls && live(cls); if (!v || !v.on) return null; var l = v.lec ? get(KL, v.lec) : null; return { titre: l ? titreL(l) : "Leçon du jour", open: function () { showStudent(l, v); } }; } catch (e) { return null; } },
     open: open, close: close, app: APP, code: CODE, nextProg: function (c) { var p = nextProg(c); return p ? { at: p.at, titre: titreL(p.l), id: p.l.id } : null; }, count: function (c) { return lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c); }).length; },
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
     controle: function (o) { ctlOpen(o); },
