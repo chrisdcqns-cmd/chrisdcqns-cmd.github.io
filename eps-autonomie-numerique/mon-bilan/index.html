@@ -70,7 +70,7 @@
   var S = (/[#&]s=([A-Za-z0-9_-]+)/.exec(location.hash) || [])[1] || "";
   var url = S ? "https://script.google.com/macros/s/" + S + "/exec" : (function () { var m = /[#&]u=([^&]+)/.exec(location.hash), u = m ? decodeURIComponent(m[1]) : ""; return /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(u) && /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? u : ""; })() /* essais automatiques seulement */;
   var $ = function (id) { return document.getElementById(id); };
-  var msg = $("msg"), res = $("res"), ESP = null, PDF = [], ME = { quiz: {}, fait: {}, at: 0 }, HID = "", TAB = "todo", RUN = null, ACT = null;
+  var msg = $("msg"), res = $("res"), ESP = null, PDF = [], ME = { quiz: {}, fait: {}, obs: {}, at: 0 }, HID = "", TAB = "todo", RUN = null, ACT = null, MIS = null;
   if (!url) msg.innerHTML = '<span class="err">Lien incomplet : ouvre le lien envoyé par ton enseignant (sur Pronote).</span>';
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function flat(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }
@@ -86,17 +86,19 @@
   function okQ(q) { return q && typeof q.t === "string" && Array.isArray(q.c) && q.ok >= 0 && q.ok < q.c.length; }
 
   /* ---- retours vers l'enseignant ---- */
-  function meLoad() { try { var v = JSON.parse(localStorage.getItem("eps.espace.me." + HID) || "null"); if (v && typeof v === "object") ME = { quiz: v.quiz || {}, fait: v.fait || {}, at: +v.at || 0 }; } catch (e) {} }
-  var sendT = 0, pend = false;
+  function meLoad() { try { var v = JSON.parse(localStorage.getItem("eps.espace.me." + HID) || "null"); if (v && typeof v === "object") ME = { quiz: v.quiz || {}, fait: v.fait || {}, obs: v.obs || {}, at: +v.at || 0 }; } catch (e) {} }
+  var sendT = 0, pend = false, busy = false, encore = false;
   function st(t, ms) { var e = $("st"); e.textContent = t; e.hidden = !t; if (ms) setTimeout(function () { if (e.textContent === t) e.hidden = true; }, ms); }
   function meSave() { ME.at = Date.now(); try { localStorage.setItem("eps.espace.me." + HID, JSON.stringify(ME)); } catch (e) {} pend = true; clearTimeout(sendT); sendT = setTimeout(envoyer, 600); }
-  async function envoyer() { if (!ESP || !ESP.rid || !ESP.rk || !pend) return; st("Envoi à ton enseignant…");
+  /* un seul envoi à la fois : une saisie faite pendant l'envoi relance un envoi juste après (sinon le contrôle comparerait deux versions) */
+  async function envoyer() { if (!ESP || !ESP.rid || !ESP.rk || !pend) return; if (busy) { encore = true; return; } busy = true; encore = false; var vu = ME.at; st("Envoi à ton enseignant…");
     try { var k = await crypto.subtle.importKey("raw", unb64(ESP.rk), "AES-GCM", false, ["encrypt"]), iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(ME)))), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
       var x = b64url(all), dk = "dan|E" + ESP.rid; if (x.length > 7900) throw new Error("trop long");
       await fetch(url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ drop: { k: dk, x: x } }) });
       var ok = false; for (var i = 0; i < 3 && !ok; i++) { await new Promise(function (r) { setTimeout(r, 1200); }); try { ok = (await jsonp({ dropchk: dk })).drop === x.slice(0, 16); } catch (e) {} }
-      if (ok) { pend = false; st("✓ Envoyé à ton enseignant", 2500); } else st("Pas encore envoyé : nouvel essai au retour du réseau.", 4000);
-    } catch (e) { st("Pas encore envoyé : nouvel essai au retour du réseau.", 4000); } }
+      if (ok && ME.at === vu) { pend = false; st("✓ Envoyé à ton enseignant", 2500); } else if (!ok && !encore) { st("Pas encore envoyé : nouvel essai dans un instant.", 4000); setTimeout(function () { if (pend) envoyer(); }, 15000); }
+    } catch (e) { st("Pas encore envoyé : nouvel essai au retour du réseau.", 4000); }
+    busy = false; if (pend && (encore || ME.at !== vu)) { encore = false; envoyer(); } }
   window.addEventListener("online", function () { if (pend) envoyer(); });
 
   /* ---- connexion ---- */
@@ -116,31 +118,49 @@
       ESP = out.filter(function (o) { return o && o.kind === "espace"; })[0] || null; PDF = out.filter(function (o) { return o && o.pdf; });
       HID = h; meLoad(); msg.textContent = ""; $("code").value = ""; $("login").hidden = true; $("out").hidden = false;
       $("who").textContent = ((ESP && ESP.eleve) || (PDF[0] && PDF[0].eleve) || "") + ((ESP && ESP.classe) ? " · " + ESP.classe : "");
-      TAB = ESP && (ESP.todo || []).length ? "todo" : "acts"; draw(); if (pend) envoyer();
+      TAB = ESP && ((ESP.todo || []).length || (ESP.mis || []).length) ? "todo" : "acts"; draw(); if (pend) envoyer();
     } catch (e) { msg.innerHTML = '<span class="err">' + (e.message === "connexion" ? "Pas de connexion. Réessaie." : "Impossible d'ouvrir ton espace avec ce code.") + "</span>"; }
     $("go").disabled = false;
   }
   $("go").onclick = go; $("code").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
-  $("out").onclick = function () { ESP = null; PDF = []; RUN = null; ACT = null; res.innerHTML = ""; $("login").hidden = false; $("out").hidden = true; $("who").textContent = "À faire · mes activités · mes bilans"; };
+  $("out").onclick = function () { ESP = null; PDF = []; RUN = null; ACT = null; MIS = null; res.innerHTML = ""; $("login").hidden = false; $("out").hidden = true; $("who").textContent = "À faire · mes activités · mes bilans"; };
 
   /* ---- affichage : deux onglets seulement ---- */
   function acts() { var A = (ESP && Array.isArray(ESP.acts)) ? ESP.acts.slice() : []; PDF.forEach(function (p) { if (!A.some(function (a) { return flat(a.nom) === flat(p.app); })) A.push({ nom: p.app, lec: 0, pc: null, n: 0, comm: "", apr: "", apm: "" }); }); return A; }
   function blob(o) { return new Blob([unb64(String(o.pdf).replace(/\+/g, "-").replace(/\//g, "_"))], { type: "application/pdf" }); }
-  function draw() { if (RUN) return quiz(); if (ACT) return fiche();
-    var T = (ESP && ESP.todo) || [], reste = T.filter(function (t) { return !fait(t); }).length;
+  function draw() { if (RUN) return quiz(); if (ACT) return fiche(); if (MIS) return mission();
+    var MI = (ESP && Array.isArray(ESP.mis)) ? ESP.mis : [], T = (ESP && ESP.todo) || [], reste = T.filter(function (t) { return !fait(t); }).length + MI.filter(function (m) { return !ME.obs[m.id]; }).length;
     var h = '<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="todo" class="' + (TAB === "todo" ? "on" : "") + '" aria-selected="' + (TAB === "todo") + '">À faire' + (reste ? " (" + reste + ")" : "") + '</button><button type="button" role="tab" data-tab="acts" class="' + (TAB === "acts" ? "on" : "") + '" aria-selected="' + (TAB === "acts") + '">Mes activités</button></div>';
-    if (TAB === "todo") { if (!T.length) h += '<div class="card"><p class="mut">Rien à faire pour l\'instant. Reviens quand ton enseignant te le dira.</p></div>';
+    if (TAB === "todo") { MI.forEach(function (m, i) { var d = !!ME.obs[m.id]; h += '<button type="button" class="tk' + (d ? " done" : "") + '" data-mi="' + i + '"><span class="i" aria-hidden="true">' + (d ? "✅" : "🎯") + '</span><span class="t">' + esc(m.t) + "<small>Ma mission du jour · " + (m.ty === "cpt" ? "j'observe et je compte" : "ma fiche de rôle") + (d ? " · envoyée" : "") + "</small></span></button>"; });
+      if (!T.length && !MI.length) h += '<div class="card"><p class="mut">Rien à faire pour l\'instant. Reviens quand ton enseignant te le dira.</p></div>';
       T.forEach(function (t, i) { var d = fait(t), q = t.ty === "quiz" ? ME.quiz[t.qz] : null;
         h += '<button type="button" class="tk' + (d ? " done" : "") + '" data-k="' + i + '"><span class="i" aria-hidden="true">' + (d ? "✅" : t.ty === "quiz" ? "❓" : t.ty === "lien" ? "▶️" : "✏️") + '</span><span class="t">' + esc(t.t || "") + "<small>" + (t.ty === "quiz" ? (q ? "Mon score : " + q.s + " / " + q.n + " · recommencer" : "Répondre au quiz") : t.ty === "lien" ? (d ? "Vu · revoir" : "Ouvrir") : (d ? "Fait · toucher pour annuler" : "Toucher quand c'est fait")) + "</small></span></button>"; }); }
     else { var A = acts(); if (!A.length) h += '<div class="card"><p class="mut">Tes activités apparaîtront ici après tes premières leçons.</p></div>';
       A.forEach(function (a, i) { h += '<button type="button" class="act" data-a="' + i + '"><span style="flex:1"><b>' + esc(a.nom) + "</b><small>" + (a.pc != null ? "Réussite : " + a.pc + " %" : a.lec ? a.lec + " leçon" + (a.lec > 1 ? "s" : "") : PDF.some(function (p) { return flat(p.app) === flat(a.nom); }) ? "Bilan disponible" : "") + '</small></span><span aria-hidden="true" style="font-weight:900;color:var(--app)">›</span></button>'; }); }
     res.innerHTML = h;
     res.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { TAB = b.dataset.tab; draw(); }; });
+    res.querySelectorAll("[data-mi]").forEach(function (b) { b.onclick = function () { var m = MI[+b.dataset.mi], o = ME.obs[m.id] || {}; MIS = { m: m, c: (m.l || []).map(function (x, k) { return +((o.c || [])[k]) || 0; }), who: o.who || "", v: (o.v || []).slice(), r: o.r || "" }; draw(); window.scrollTo(0, 0); }; });
     res.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { var t = T[+b.dataset.k];
       if (t.ty === "quiz") { var q = ESP.quiz && ESP.quiz[t.qz]; if (!q) return; RUN = { id: t.qz, tk: t.id, nom: q.nom, L: (q.q || []).filter(okQ), i: 0, a: [], pick: -1, done: false }; if (RUN.L.length) draw(); else RUN = null; }
       else if (t.ty === "lien") { if (/^https:\/\//.test(t.url || "")) window.open(t.url, "_blank", "noopener"); ME.fait[t.id] = 1; meSave(); draw(); }
       else { if (ME.fait[t.id]) delete ME.fait[t.id]; else ME.fait[t.id] = 1; meSave(); draw(); } }; });
     var A2 = acts(); res.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { ACT = A2[+b.dataset.a]; draw(); window.scrollTo(0, 0); }; }); }
+  /* mission du jour : compteur d'observation ou fiche de rôle ; le retour part chez l'enseignant */
+  function mission() { var X = MIS, m = X.m, h = '<button type="button" class="s" id="mb" style="margin:0 0 12px">← À faire</button><div class="card"><h2>🎯 ' + esc(m.t) + "</h2>";
+    if (m.ty === "cpt") { h += '<label class="l" for="mw">Qui j\'observe</label><input id="mw" maxlength="40" value="' + esc(X.who) + '" style="width:100%;min-height:48px;border:2px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px">' +
+        (m.l || []).map(function (l, k) { return '<div style="display:flex;gap:8px;align-items:stretch;margin-top:10px"><button type="button" class="s" data-p="' + k + '" style="flex:1;margin:0;min-height:72px;text-align:left;display:flex;align-items:center;gap:12px"><b style="font-size:30px;min-width:44px;text-align:center">' + X.c[k] + "</b><span>" + esc(l) + '</span></button><button type="button" class="s" data-m="' + k + '" style="width:64px;margin:0;min-height:72px" aria-label="Retirer 1 à ' + esc(l) + '">− 1</button></div>'; }).join("") +
+        '<button type="button" id="ms">📤 Envoyer mon observation</button>'; }
+    else { h += '<div class="q"><b>Ce que je regarde</b></div>' + (m.l || []).map(function (l, k) { var on = X.v.indexOf(k) >= 0; return '<button type="button" class="tk' + (on ? " done" : "") + '" data-v="' + k + '" style="min-height:56px" aria-pressed="' + on + '"><span class="i" aria-hidden="true">' + (on ? "✅" : "👀") + '</span><span class="t">' + esc(l) + "</span></button>"; }).join("") +
+        ((m.d || []).length ? '<div class="q"><b>Ce que je dis</b>' + m.d.map(function (l) { return '<div class="fb ok" style="margin-top:6px"><span style="margin:0">' + esc(l) + "</span></div>"; }).join("") + "</div>" : "") +
+        '<div class="q"><b>Fin de leçon : j\'ai tenu mon rôle</b></div><div class="tabs"><button type="button" data-r="o" class="' + (X.r === "o" ? "on" : "") + '">Oui</button><button type="button" data-r="p" class="' + (X.r === "p" ? "on" : "") + '">En partie</button></div><button type="button" id="ms"' + (X.r ? "" : " disabled") + ">📤 Envoyer à mon enseignant</button>"; }
+    res.innerHTML = h + "</div>";
+    $("mb").onclick = function () { MIS = null; draw(); };
+    var w = $("mw"); if (w) w.oninput = function () { X.who = w.value; };
+    res.querySelectorAll("[data-p]").forEach(function (b) { b.onclick = function () { X.c[+b.dataset.p]++; draw(); }; });
+    res.querySelectorAll("[data-m]").forEach(function (b) { b.onclick = function () { var k = +b.dataset.m; if (X.c[k] > 0) X.c[k]--; draw(); }; });
+    res.querySelectorAll("[data-v]").forEach(function (b) { b.onclick = function () { var k = +b.dataset.v, i = X.v.indexOf(k); if (i >= 0) X.v.splice(i, 1); else X.v.push(k); draw(); }; });
+    res.querySelectorAll("[data-r]").forEach(function (b) { b.onclick = function () { X.r = b.dataset.r; draw(); }; });
+    $("ms").onclick = function () { ME.obs[m.id] = m.ty === "cpt" ? { c: X.c.slice(), who: String(X.who || "").slice(0, 40), at: Date.now() } : { r: X.r, v: X.v.slice(), at: Date.now() }; meSave(); MIS = null; TAB = "todo"; draw(); }; }
   function fait(t) { return t.ty === "quiz" ? !!ME.quiz[t.qz] : !!ME.fait[t.id]; }
   function fiche() { var a = ACT, P = PDF.filter(function (p) { return flat(p.app) === flat(a.nom); }), Q = []; Object.keys((ESP && ESP.quiz) || {}).forEach(function (id) { if (ME.quiz[id]) Q.push({ nom: ESP.quiz[id].nom, r: ME.quiz[id] }); });
     var h = '<button type="button" class="s" id="bk" style="margin:0 0 12px">← Mes activités</button><div class="card"><h2>' + esc(a.nom) + "</h2>" +

@@ -63,6 +63,10 @@ button,input,select{font:inherit;color:inherit}
 .vw .ph{position:absolute;color:#C9CDD4;text-align:center;padding:16px}
 .vs:not(.on) video{visibility:hidden}
 .sk{width:100%;min-height:40px;margin-top:6px}
+body.fort{--bg:#000;--ink:#fff;--muted:#D0D0D0;--line:#fff;background:#000;color:#fff}
+body.fort .card,body.fort .lane,body.fort .cp,body.fort .cp button,body.fort .tab,body.fort .btn,body.fort .in{background:#000;color:#fff;border-color:#fff}
+body.fort .tab.on,body.fort .btn.p{background:#FFD54A;border-color:#FFD54A;color:#000}
+body.fort .cp .n{font-size:64px}body.fort .cp .l,body.fort .lane .time{font-size:1.25em}body.fort .cp button.plus{min-height:150px}body.fort .cp .ft button{background:#000;min-height:56px}body.fort .lane .btn{min-height:72px;font-size:20px}body.fort .lane.fin{background:#063}
 table.t{border-collapse:collapse;margin-top:10px}
 table.t td,table.t th{border:1px solid var(--line);padding:6px 14px;text-align:center;font-variant-numeric:tabular-nums}
 table.t th{background:#FAF8F3;font-size:13px}
@@ -73,6 +77,7 @@ table.t th{background:#FAF8F3;font-size:13px}
   <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg></div>
   <h1>Boîte à outils</h1>
   <span data-eps-upd-slot></span>
+  <button class="hb" id="fort" type="button" style="background:none;cursor:pointer" aria-pressed="false">☀ Contraste</button>
   <a class="hb" href="../">← Accueil</a>
 </div>
 <div class="wrap">
@@ -129,23 +134,24 @@ table.t th{background:#FAF8F3;font-size:13px}
   }
 
   /* ---- 🔢 compteur d'observation : l'élève choisit ce qu'il compte ---- */
-  var EDIT = false;
+  var EDIT = false, HIST = [];
   function compteur() {
     var tot = S.cpt.c.reduce(function (a, x) { return a + x.n; }, 0);
-    var h = '<div class="card"><h2>🔢 Compteur d\'observation</h2><div class="row" style="margin-top:0"><input class="in" id="who" placeholder="Qui j\'observe (prénom ou équipe)" maxlength="40" value="' + esc(S.cpt.who || "") + '" style="flex:1;min-width:200px" aria-label="Qui j\'observe"><span class="time" style="font-size:20px">Total : ' + tot + '</span><button class="btn" id="ed" type="button">' + (EDIT ? "✓ Terminé" : "✏ Choisir ce que je compte") + '</button><button class="btn d" id="rz" type="button">Remettre à zéro</button></div>';
+    var h = '<div class="card"><h2>🔢 Compteur d\'observation</h2><div class="row" style="margin-top:0"><input class="in" id="who" placeholder="Qui j\'observe (prénom ou équipe)" maxlength="40" value="' + esc(S.cpt.who || "") + '" style="flex:1;min-width:200px" aria-label="Qui j\'observe"><span class="time" style="font-size:20px">Total : ' + tot + '</span><button class="btn" id="ed" type="button">' + (EDIT ? "✓ Terminé" : "✏ Choisir ce que je compte") + '</button><button class="btn" id="undo" type="button"' + (HIST.length ? "" : " disabled") + '>↶ Annuler</button><button class="btn d" id="rz" type="button">Remettre à zéro</button></div>';
     if (EDIT) { h += '<p class="mut">Un modèle, puis change les intitulés comme tu veux.</p><div class="row">' + PRE.map(function (p, k) { return '<button class="btn" data-p="' + k + '" type="button">' + esc(p.n) + "</button>"; }).join("") + "</div>" +
         S.cpt.c.map(function (x, i) { return '<div class="row"><input class="in" data-i="' + i + '" value="' + esc(x.l) + '" maxlength="40" style="flex:1" aria-label="Intitulé ' + (i + 1) + '"><button class="btn d" data-rm="' + i + '" type="button" aria-label="Retirer">🗑</button></div>'; }).join("") +
         (S.cpt.c.length < 8 ? '<div class="row"><button class="btn" id="add" type="button">＋ Ajouter un compteur</button></div>' : ""); }
     else h += '<div class="cpt">' + S.cpt.c.map(function (x, i) { return '<div class="cp"><button class="plus" data-i="' + i + '" type="button"><span class="n">' + x.n + '</span><span class="l">' + esc(x.l) + '</span></button><div class="ft"><button data-m="' + i + '" type="button" aria-label="Retirer 1 à ' + esc(x.l) + '">− 1</button><span>' + (tot ? Math.round(x.n / tot * 100) + " %" : "–") + "</span></div></div>"; }).join("") + "</div>";
     $("#pg").innerHTML = h + "</div>";
     $("#who").oninput = function () { S.cpt.who = this.value; sv(); };
+    $("#undo").onclick = function () { var i = HIST.pop(), x = S.cpt.c[i]; if (x && x.n > 0) x.n--; sv(); compteur(); };
     $("#ed").onclick = function () { EDIT = !EDIT; S.cpt.c = S.cpt.c.filter(function (x) { return x.l.trim(); }); if (!S.cpt.c.length) S.cpt.c = [{ l: "Réussi", n: 0 }]; sv(); compteur(); };
-    $("#rz").onclick = function () { if (tot && !confirm("Remettre tous les compteurs à zéro ?")) return; S.cpt.c.forEach(function (x) { x.n = 0; }); sv(); compteur(); };
+    $("#rz").onclick = function () { if (tot && !confirm("Remettre tous les compteurs à zéro ?")) return; S.cpt.c.forEach(function (x) { x.n = 0; }); HIST = []; sv(); compteur(); };
     if (EDIT) { $$("[data-p]").forEach(function (b) { b.onclick = function () { if (tot && !confirm("Changer de modèle remet les compteurs à zéro. Continuer ?")) return; S.cpt.c = PRE[+b.dataset.p].c.map(function (l) { return { l: l, n: 0 }; }); sv(); compteur(); }; });
       $$("input[data-i]").forEach(function (f) { f.oninput = function () { S.cpt.c[+f.dataset.i].l = f.value; sv(); }; });
       $$("[data-rm]").forEach(function (b) { b.onclick = function () { S.cpt.c.splice(+b.dataset.rm, 1); sv(); compteur(); }; });
       var a = $("#add"); if (a) a.onclick = function () { S.cpt.c.push({ l: "Nouveau", n: 0 }); sv(); compteur(); }; }
-    else { $$(".plus").forEach(function (b) { b.onclick = function () { S.cpt.c[+b.dataset.i].n++; sv(); compteur(); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }; });
+    else { $$(".plus").forEach(function (b) { b.onclick = function () { S.cpt.c[+b.dataset.i].n++; HIST.push(+b.dataset.i); if (HIST.length > 50) HIST.shift(); sv(); compteur(); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }; });
       $$("[data-m]").forEach(function (b) { b.onclick = function () { var x = S.cpt.c[+b.dataset.m]; if (x.n > 0) x.n--; sv(); compteur(); }; }); }
   }
 
@@ -287,6 +293,9 @@ table.t th{background:#FAF8F3;font-size:13px}
       el.innerHTML = '<p style="margin:14px 0 0"><b>Charge maximale estimée : ' + f(m) + ' kg</b> <span class="mut">(formule d\'Epley)</span></p><table class="t"><tr><th>% du maximum</th>' + [50, 60, 70, 80, 90].map(function (p) { return "<th>" + p + " %</th>"; }).join("") + "</tr><tr><th>Charge (kg)</th>" + [50, 60, 70, 80, 90].map(function (p) { return "<td>" + f(m * p / 100) + "</td>"; }).join("") + "</tr></table>"; }
     $("#kg").oninput = calc; $("#rp").oninput = calc;
   }
+  /* ☀ contraste fort (soleil, gros boutons) : gardé sur la tablette */
+  function fort() { document.body.classList.toggle("fort", !!S.fort); $("#fort").setAttribute("aria-pressed", !!S.fort); $("#fort").textContent = S.fort ? "☀ Contraste ✓" : "☀ Contraste"; }
+  $("#fort").onclick = function () { S.fort = S.fort ? 0 : 1; sv(); fort(); }; fort();
   window.addEventListener("pagehide", function () { if (stopTab) try { stopTab(); } catch (e) {} });
   (function link(n) { if (!window.EPSD || !EPSD.store) { if ((n || 0) < 60) setTimeout(function () { link((n || 0) + 1); }, 250); return; } try { EPSD.store({ key: KA, pre: "an|" }); } catch (e) {} })(0);
   go(TAB);

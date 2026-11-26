@@ -80,7 +80,18 @@ th{background:#FAF8F3;font-size:13px}
     E.forEach(function (e) { if (!e || !e.app) return; var a = get(e.app); a.n = Math.max(a.n, +e.n || 0); if (e.comm) a.comm = String(e.comm).slice(0, 600); if (e.apr) a.apr = String(e.apr).slice(0, 300); if (e.apm) a.apm = String(e.apm).slice(0, 300); });
     return Object.keys(A).map(function (x) { return A[x]; }).sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); }); }
 
-  var UI = { cls: null }, TY = { quiz: "❓ Quiz", lien: "🔗 Vidéo ou lien", txt: "✏ Autre" };
+  /* Missions individuelles (dispensés, rôles) : m|<classe>|<clé> {k:"mis", cls, nom, m:[{id, ty:'cpt'|'role', t, l:[lignes], d:[phrases]}]} ; publiées dans l'espace de l'élève (champ mis). */
+  var MOD = [
+    { ty: "cpt", t: "Observateur : volley-ball", l: ["Service réussi", "Service raté", "Attaque gagnante", "Faute"] },
+    { ty: "cpt", t: "Observateur : badminton", l: ["Point gagné au fond", "Point gagné au filet", "Faute directe"] },
+    { ty: "cpt", t: "Observateur : sports collectifs", l: ["Tir réussi", "Tir raté", "Passe réussie", "Balle perdue"] },
+    { ty: "cpt", t: "Observateur : réussi / raté", l: ["Réussi", "Raté"] },
+    { ty: "role", t: "Coach", l: ["Où tombe le ballon chez nous", "Qui fait la deuxième touche", "La zone vide en face"], d: ["Vise la zone vide.", "Annonce « j'ai » avant de toucher."] },
+    { ty: "role", t: "Arbitre", l: ["Les fautes de filet et de ligne", "Le score annoncé à chaque point", "Le respect des décisions"], d: ["J'annonce le score avant chaque service.", "J'explique ma décision en une phrase."] },
+    { ty: "role", t: "Chronométreur", l: ["Le départ au signal", "Le temps de chaque passage"], d: ["J'annonce le temps tout de suite."] }];
+  function mget(cls, full) { var id = "m|" + cls + "|" + nk(full), m = EPSD.espace.get(id); return (m && Array.isArray(m.m)) ? m : { id: id, k: "mis", cls: cls, nom: full, m: [] }; }
+  function lignes(v) { return String(v || "").split("\n").map(function (x) { return x.trim().slice(0, 80); }).filter(Boolean).slice(0, 8); }
+  var UI = { cls: (new URLSearchParams(location.search).get("cls")) || null, el: null }, TY = { quiz: "❓ Quiz", lien: "🔗 Vidéo ou lien", txt: "✏ Autre" };
   function tget(cls) { var t = EPSD.espace.get("t|" + cls); return (t && Array.isArray(t.todo)) ? t : { id: "t|" + cls, k: "todo", cls: cls, todo: [], pub: "" }; }
   function render() { var C = classes(), E = window.EPSD && EPSD.espace;
     if (!E) { $("#pg").innerHTML = '<div class="card"><p class="mut">Chargement…</p></div>'; return; }
@@ -97,7 +108,17 @@ th{background:#FAF8F3;font-size:13px}
         '<div class="row"><button class="btn" data-add="quiz" type="button">＋ Quiz</button><button class="btn" data-add="lien" type="button">＋ Vidéo ou lien</button><button class="btn" data-add="txt" type="button">＋ Autre (auto-positionnement, consigne…)</button></div>' +
         '<div class="row"><button class="btn p" id="pub" type="button"' + (E.pret() && EL.length ? "" : " disabled") + '>🌐 Publier l\'espace de ' + EL.length + ' élèves</button><button class="btn" id="codes" type="button">🔑 Codes des élèves</button><span class="msg" id="pm" role="status"></span></div>' +
         '<p class="mut">' + (T.pub ? "Dernière publication : " + esc(T.pub) + "." : "Pas encore publié.") + " La publication envoie aussi la progression de chaque élève (chiffrée avec son code).</p></div>";
+      var DI = E.dispenses(o.nom).map(nk), ELS = EL.slice().sort(function (a, b) { return (DI.indexOf(nk(b)) >= 0) - (DI.indexOf(nk(a)) >= 0) || a.localeCompare(b, "fr"); });
       var R = E.retours(o.nom), by = {}; R.forEach(function (r) { by[nk(r.nom)] = r; });
+      h += '<div class="card" id="missions"><h2>🎯 Missions individuelles</h2><p class="mut">Pour un élève dispensé ou un rôle du jour : une mission sur son téléphone (ou une tablette), par le même lien et son code. Les dispensés du jour sont en tête.</p><div class="chips">' + ELS.map(function (n, i) { var has = mget(o.nom, n).m.length; return '<button type="button" class="chip' + (UI.el === n ? " on" : "") + '" data-el="' + i + '">' + (DI.indexOf(nk(n)) >= 0 ? "🩹 " : "") + esc(n) + (has ? " · " + has + " 🎯" : "") + "</button>"; }).join("") + "</div>";
+      if (UI.el && EL.indexOf(UI.el) >= 0) { var M = mget(o.nom, UI.el), rr = by[nk(UI.el)], ob = (rr && rr.obs) || {};
+        h += '<h2 style="margin-top:16px">' + esc(UI.el) + "</h2>" + (M.m.length ? M.m.map(function (m, i) { var x = ob[m.id];
+            return '<div class="tk" style="align-items:flex-start"><span class="ty">' + (m.ty === "cpt" ? "🔢 Compteur" : "🎭 Rôle") + '</span><span style="flex:1;min-width:220px"><input class="in" data-mt="' + i + '" value="' + esc(m.t) + '" maxlength="60" style="width:100%;font-weight:800" aria-label="Titre de la mission"><textarea class="in" data-ml="' + i + '" rows="' + Math.max(3, m.l.length) + '" style="width:100%;margin-top:6px" aria-label="' + (m.ty === "cpt" ? "Ce qu\'il compte, un par ligne" : "Ce qu\'il regarde, un par ligne") + '">' + esc(m.l.join("\n")) + "</textarea>" +
+              (m.ty === "role" ? '<textarea class="in" data-md="' + i + '" rows="2" style="width:100%;margin-top:6px" aria-label="Ce qu\'il dit, une phrase par ligne">' + esc((m.d || []).join("\n")) + "</textarea>" : "") +
+              (x ? '<p class="msg" style="color:var(--ok);margin:6px 0 0">Retour : ' + (m.ty === "cpt" ? esc((x.who ? x.who + " · " : "") + m.l.map(function (l, k) { return l + " " + ((x.c || [])[k] || 0); }).join(" · ")) : "rôle tenu : " + (x.r === "o" ? "oui" : x.r === "p" ? "en partie" : "–") + " · " + ((x.v || []).length) + " / " + m.l.length + " repères vus") + "</p>" : "") +
+              '</span><button class="btn d" data-mrm="' + i + '" type="button" aria-label="Retirer la mission">🗑</button></div>'; }).join("") : '<p class="mut">Aucune mission pour cet élève.</p>') +
+          '<div class="row"><select class="in" id="mmod" aria-label="Modèle de mission">' + MOD.map(function (m, i) { return '<option value="' + i + '">' + (m.ty === "cpt" ? "🔢 " : "🎭 ") + esc(m.t) + "</option>"; }).join("") + '</select><button class="btn" id="madd" type="button">＋ Ajouter</button><span style="flex:1"></span><button class="btn p" id="mpub" type="button"' + (E.pret() ? "" : " disabled") + '>🌐 Publier pour cet élève</button><span class="msg" id="mm" role="status"></span></div><p class="mut">Titres et lignes sont modifiables. L\'élève ouvre le lien de l\'espace (QR code en haut) avec son code : ' + esc(E.code(o.nom, UI.el) || "créé à la publication") + ".</p>"; }
+      h += "</div>";
       var QI = (jget("eps.quiz.v1", {}) || {}).items || {};
       h += '<div class="card"><h2>Retours des élèves</h2><div class="row" style="margin-top:0"><button class="btn" id="rel" type="button">📥 Relever les retours</button><span class="msg" id="rm" role="status"></span></div>' +
         (T.todo.length ? '<table><tr><th>Élève</th>' + T.todo.map(function (t, i) { return "<th>" + (i + 1) + " · " + TY[t.ty].slice(0, 2) + "</th>"; }).join("") + "</tr>" + EL.map(function (n) { var r = by[nk(n)];
@@ -115,17 +136,30 @@ th{background:#FAF8F3;font-size:13px}
     $$("[data-q]").forEach(function (f) { f.onchange = function () { T2.todo[+f.dataset.q].qz = f.value; save(); }; });
     $$("[data-t]").forEach(function (f) { f.onchange = function () { T2.todo[+f.dataset.t].t = f.value.trim(); save(); }; });
     $$("[data-u]").forEach(function (f) { f.onchange = function () { T2.todo[+f.dataset.u].url = f.value.trim(); save(); }; });
+    var payload = function (full, qz) { return { todo: T2.todo.map(function (t) { return { id: t.id, ty: t.ty, t: t.ty === "quiz" ? (qz[t.qz] ? qz[t.qz].nom : "Quiz") : t.t, qz: t.qz || "", url: t.url || "" }; }).filter(function (t) { return t.ty !== "quiz" || qz[t.qz]; }), quiz: qz, acts: activites(o.nom, full), mis: mget(o.nom, full).m }; };
+    var qzOf = function () { var QA = quizzes(), qz = {}; T2.todo.forEach(function (t) { if (t.ty === "quiz") { var q = QA.filter(function (x) { return x.id === t.qz; })[0]; if (q) qz[q.id] = { nom: q.nom, q: q.q }; } }); return qz; };
+    var ELS2 = eleves(o), DI2 = E.dispenses(o.nom).map(nk); ELS2.sort(function (a, b) { return (DI2.indexOf(nk(b)) >= 0) - (DI2.indexOf(nk(a)) >= 0) || a.localeCompare(b, "fr"); });
+    $$("[data-el]").forEach(function (b) { b.onclick = function () { UI.el = ELS2[+b.dataset.el]; render(); }; });
+    if (UI.el && $("#madd")) { var M2 = mget(o.nom, UI.el), msave = function () { E.put(M2); };
+      $("#madd").onclick = function () { if (M2.m.length >= 5) return; var d = MOD[+$("#mmod").value]; M2.m.push({ id: "m" + Date.now().toString(36), ty: d.ty, t: d.t, l: d.l.slice(), d: (d.d || []).slice() }); msave(); render(); };
+      $$("[data-mrm]").forEach(function (b) { b.onclick = function () { M2.m.splice(+b.dataset.mrm, 1); msave(); render(); }; });
+      $$("[data-mt]").forEach(function (f) { f.onchange = function () { M2.m[+f.dataset.mt].t = f.value.trim() || "Mission"; msave(); }; });
+      $$("[data-ml]").forEach(function (f) { f.onchange = function () { M2.m[+f.dataset.ml].l = lignes(f.value); msave(); }; });
+      $$("[data-md]").forEach(function (f) { f.onchange = function () { M2.m[+f.dataset.md].d = lignes(f.value); msave(); }; });
+      $("#mpub").onclick = function () { var b = this, m = $("#mm"), who = UI.el; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); b.disabled = true; m.style.color = "var(--muted)"; m.textContent = "Publication…";
+        E.publier(o.nom, [who], function (full) { return payload(full, qzOf()); }).then(function () { render(); var m2 = $("#mm"); if (m2) { m2.style.color = "var(--ok)"; m2.textContent = "✓ Publié pour " + who; } }, function (e) { b.disabled = false; m.style.color = "var(--no)"; m.textContent = String((e && e.message) || e); }); }; }
     $("#codes").onclick = function () { try { EPSD.bilans(o.nom); } catch (e) {} };
     $("#pub").onclick = function () { var b = this, m = $("#pm"), EL2 = eleves(o), QA = quizzes(), bad = T2.todo.filter(function (t) { return (t.ty === "quiz" && !QA.some(function (q) { return q.id === t.qz; })) || (t.ty !== "quiz" && !String(t.t || "").trim()) || (t.ty === "lien" && !/^https:\/\/\S+$/.test(t.url || "")); });
       if (bad.length) { m.style.color = "var(--no)"; m.textContent = "Complète chaque ligne (quiz choisi, intitulé, lien en https://)."; return; }
       var qz = {}; T2.todo.forEach(function (t) { if (t.ty === "quiz") { var q = QA.filter(function (x) { return x.id === t.qz; })[0]; qz[q.id] = { nom: q.nom, q: q.q }; } });
       b.disabled = true; m.style.color = "var(--muted)"; m.textContent = "Publication…";
-      E.publier(o.nom, EL2, function (full) { return { todo: T2.todo.map(function (t) { return { id: t.id, ty: t.ty, t: t.ty === "quiz" ? (qz[t.qz] ? qz[t.qz].nom : "Quiz") : t.t, qz: t.qz || "", url: t.url || "" }; }), quiz: qz, acts: activites(o.nom, full) }; }, function (i, n) { m.textContent = "Publication… " + i + " / " + n; })
+      E.publier(o.nom, EL2, function (full) { return payload(full, qz); }, function (i, n) { m.textContent = "Publication… " + i + " / " + n; })
         .then(function (n) { T2.pub = new Date().toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); save(); render(); var m2 = $("#pm"); m2.style.color = "var(--ok)"; m2.textContent = "✓ Publié pour " + n + " élèves"; },
           function (e) { b.disabled = false; m.style.color = "var(--no)"; m.textContent = String((e && e.message) || e); }); };
     $("#rel").onclick = function () { var m = $("#rm"); m.style.color = "var(--muted)"; m.textContent = "Relevé…"; E.relever().then(function (n) { render(); var m2 = $("#rm"); m2.style.color = "var(--ok)"; m2.textContent = n ? "✓ " + n + " retour" + (n > 1 ? "s" : "") + " relevé" + (n > 1 ? "s" : "") : "Rien de nouveau."; }, function () { m.style.color = "var(--no)"; m.textContent = "Relevé impossible pour l'instant."; }); };
   }
-  function start(n) { $("#lock").hidden = true; $("#pg").hidden = false; if (!window.EPSD || !EPSD.espace) { render(); if ((n || 0) < 60) setTimeout(function () { start((n || 0) + 1); }, 250); return; } render(); try { EPSD.espace.relever().then(function (k) { if (k) render(); }, function () {}); } catch (e) {} }
+  var jumped = false;
+  function start(n) { $("#lock").hidden = true; $("#pg").hidden = false; if (!jumped && location.hash === "#missions") setTimeout(function () { var x = document.getElementById("missions"); if (x) { jumped = true; x.scrollIntoView(); } }, 900); if (!window.EPSD || !EPSD.espace) { render(); if ((n || 0) < 60) setTimeout(function () { start((n || 0) + 1); }, 250); return; } render(); try { EPSD.espace.relever().then(function (k) { if (k) render(); }, function () {}); } catch (e) {} }
   function ask(n) { if (teach()) { start(0); return; } if (!window.EPSD || !EPSD.askCode) { if ((n || 0) < 40) setTimeout(function () { ask((n || 0) + 1); }, 250); return; } EPSD.askCode().then(function (ok) { if (ok) start(0); }); }
   $("#unlock").onclick = function () { ask(0); };
   window.addEventListener("eps-lists", function () { if (!$("#pg").hidden && !document.querySelector("input:focus, select:focus")) render(); });

@@ -407,8 +407,9 @@
       var A = activeOn(), mine = A.filter(function (x) { return inClass(x, cc); }), upm = up.filter(function (x) { return inClass(x, cc); });
       var o = overlay("<h3>🩹 Dispensés · " + esc(cc.nom) + "</h3><p class=\"m\">Aujourd'hui, " + fmt(today()) + "</p>" + (mine.length ? listHTML(mine, false) : '<p class="m">Aucun élève de cette classe n\'est dispensé aujourd\'hui.</p>') +
         (upm.length ? '<h3 style="font-size:18px;margin-top:18px">Dans les 7 prochains jours</h3>' + listHTML(upm, false) : "") +
-        '<div class="epsd-act"><button data-x>Fermer</button><button class="p" id="epsd-all">Voir tous les dispensés (' + A.length + ")</button></div>");
+        '<div class="epsd-act"><button data-x>Fermer</button>' + (isTeacher() ? '<button id="epsd-mis">🎯 Donner une mission</button>' : "") + '<button class="p" id="epsd-all">Voir tous les dispensés (' + A.length + ")</button></div>");
       o.querySelector("#epsd-all").onclick = function () { o.remove(); showList(null, true); };
+      var bm = o.querySelector("#epsd-mis"); if (bm) bm.onclick = function () { location.href = BASE + "espace/?cls=" + encodeURIComponent(cc.nom) + "#missions"; };
       return;
     }
     overlay("<h3>🩹 Élèves dispensés</h3><p class=\"m\">Aujourd'hui, " + fmt(today()) + "</p>" + listHTML(activeOn(), false) +
@@ -2013,7 +2014,7 @@
       for (var i = 0; i < r.drops.length; i++) { var x = r.drops[i]; since = Math.max(since, +x[0] || 0); var m = /^dan\|E(.+)$/.exec(String(x[1])); if (!m || !byRid[m[1]]) continue; var o = byRid[m[1]];
         try { var key = await crypto.subtle.importKey("raw", unb64u(o.rk), "AES-GCM", false, ["decrypt"]), b = unb64u(String(x[3])), d = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, key, b.slice(12))));
           if (!d || typeof d !== "object") continue; var ek = norm(o.n).toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim().split(" ").sort().join(" ");
-          stPutRaw(KEP, { id: "r|" + o.cls + "|" + ek, k: "ret", cls: o.cls, nom: o.n, fait: (d.fait && typeof d.fait === "object") ? d.fait : {}, at: +d.at || Date.now() });
+          stPutRaw(KEP, { id: "r|" + o.cls + "|" + ek, k: "ret", cls: o.cls, nom: o.n, fait: (d.fait && typeof d.fait === "object") ? d.fait : {}, obs: (d.obs && typeof d.obs === "object") ? d.obs : {}, at: +d.at || Date.now() });
           var Q = d.quiz && typeof d.quiz === "object" ? d.quiz : {}, QV = stLd("eps.quiz.v1");
           Object.keys(Q).forEach(function (qid) { var q = Q[qid]; if (!q || !QV.items[qid] || QV.items[qid].del) return; var qn = function (t) { return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }, pk = qn(o.n);
             try { EPSL.items().forEach(function (it) { if (it.nom === o.cls) EPSL.people(it).forEach(function (pp) { if (nkey(pp.full) === nkey(o.n)) pk = pp.k || qn(pp.full); }); }); } catch (e) {}
@@ -2025,6 +2026,7 @@
     try { localStorage.setItem("eps.espace.since", String(since)); } catch (e) {} if (n) try { EPSD.syncSoon(); } catch (e) {} return n; }
   setTimeout(function () { EPSD.espace = { publier: espPublier, relever: espRelever, lien: bilLink, pret: function () { return !!shCfg(); },
     code: function (cls, full) { var o = codeGet(cls, full); return o ? o.c : ""; },
+    dispenses: function (cls) { try { return activeOn().filter(function (x) { return x && x.classe && norm(x.classe) === norm(cls); }).map(function (x) { return x.nom; }); } catch (e) { return []; } },
     get: function (id) { return stLd(KEP).items[id] || null; }, put: function (it) { stPutRaw(KEP, it); try { EPSD.syncSoon(); } catch (e) {} },
     retours: function (cls) { var V = stLd(KEP); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.k === "ret" && x.cls === cls; }); } }; }, 0);
   function bilLink() { var cfg = shCfg(), m = cfg && /\/macros\/s\/([^/]+)\/exec/.exec(cfg.url); return m ? location.origin + BASE + "mon-bilan/#s=" + m[1] : ""; }
