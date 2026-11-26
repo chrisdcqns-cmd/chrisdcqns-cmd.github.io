@@ -81,7 +81,7 @@ REPERES = {
     "eps-shell.js": ["doit être un nombre"],
     "eps-tactique.js": ["function editor(", "function depart("],
     "tactique/index.html": ["EPSD.plan.send(", "EPSD.plan.live(", "data-all"],
-    "boite/index.html": ["function chrono(", "function compteur(", "function video(", "function analyse(", "function aCfg(", "function charge("],
+    "boite/index.html": ["function chrono(", "function compteur(", "function video(", "function analyse(", "function aCfg(", "function marks(", "function rpSet(", "function charge("],
     "attestation/index.html": ["À faire valider par ton chef d'établissement", "pre: \"at|\"", "noindex", "sheet a5 one"],
     "quiz/index.html": ["function okQ(", "var PROPS = ", "pre: \"qz|\"", "function garder("],
     "carnet/index.html": ["function courant(", "function garder(", "function orphelins(", "function ouvert(", "pre: \"cn|\"", "Ce n'est pas le bon code"],
