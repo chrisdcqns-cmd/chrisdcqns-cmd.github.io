@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<!-- eps-source-directe : cette page est LA source de l'appli, modifiée directement. Ne jamais la remplacer par une page fabriquée ailleurs (autre conversation, anciens fichiers) : repartir de cette page. Voir CLAUDE.md. -->
+<html lang="fr">
+<head>
+<script src="../eps-lists.js"></script><!-- commun : garde de la simulation, listes -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Attestation numérique – EPS</title>
+<meta name="theme-color" content="#14171C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#F5F3EE;--card:#fff;--ink:#14171C;--muted:#6A6F78;--line:#E6E1D6;--app:#7F1D1D;--ok:#1E6B3A;--no:#B3261E}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+#eps-home{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.45}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,textarea,select{font:inherit;color:inherit}
+.hd{background:var(--ink);color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.hd .ic{width:44px;height:44px;border-radius:12px;background:var(--app);display:flex;align-items:center;justify-content:center;flex:none}
+.hd h1{margin:0;font-size:22px;font-weight:800;line-height:1.15}
+.hd p{margin:0;color:#C9CDD4;font-size:14px}
+.hd a{margin-left:auto;color:#D5D8DE;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid #3A3F47;border-radius:10px;padding:0 14px;height:40px;display:inline-flex;align-items:center}
+.wrap{max-width:1000px;margin:0 auto;padding:16px 18px 120px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 16px}
+.tab{min-height:44px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-weight:800;cursor:pointer}
+.tab.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:0 0 14px}
+.card h2{margin:0 0 6px;font-size:18px;font-weight:800}
+.mut{color:var(--muted);font-size:14px}
+.warn{background:#FFF7E6;border:1.5px solid #E0A93B;border-radius:14px;padding:12px 16px;margin:0 0 14px}
+.warn b{display:block;margin-bottom:4px}
+.warn ul{margin:6px 0 0;padding-left:20px}
+label.f{display:block;font-weight:800;font-size:14px;margin:14px 0 4px}
+textarea,input[type=text],input[type=date]{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}
+textarea{min-height:84px;resize:vertical}
+.btn{min-height:44px;padding:0 16px;border-radius:12px;border:1.5px solid var(--ink);background:#fff;font-weight:800;cursor:pointer}
+.btn.p{background:var(--app);border-color:var(--app);color:#fff}
+.btn.sm{min-height:40px;padding:0 12px;font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:42px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-weight:700;cursor:pointer}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+table.s{border-collapse:collapse;width:100%}
+table.s th{text-align:left;font-size:13px;color:var(--muted);padding:6px 8px;border-bottom:1.5px solid var(--line)}
+table.s td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{min-height:40px;min-width:54px;padding:0 10px;border:0;background:#fff;font-weight:800;cursor:pointer;border-left:1.5px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button.on.o{background:var(--ok);color:#fff}
+.seg button.on.n{background:var(--no);color:#fff}
+.seg button.on.z{background:#E9E5DB}
+.cnt{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+.cnt span{background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-weight:700;font-size:14px}
+.saved{color:var(--ok);font-weight:800;font-size:14px;min-height:20px}
+/* ---- feuille imprimée (A4) ---- */
+#print{display:none}
+.sheet{background:#fff;color:#000;width:210mm;min-height:297mm;padding:10mm 14mm;margin:0 auto 14px;font-size:9.2pt;line-height:1.3;border:1px solid var(--line)}
+.sheet h3{font-size:13pt;margin:0 0 1mm;font-weight:800}
+.sheet .et{display:flex;justify-content:space-between;gap:10mm;font-size:9.5pt;border-bottom:1.5pt solid #000;padding-bottom:2mm;margin-bottom:3mm}
+.sheet h4{font-size:9.6pt;margin:2.2mm 0 .8mm;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.sheet p{margin:0 0 1.5mm;white-space:pre-line}
+.sheet .bx{border:1pt solid #000;border-radius:2mm;padding:2mm 3mm;margin-top:2mm}
+.sheet .ck{display:flex;gap:2.5mm;align-items:flex-start;margin:1.2mm 0}
+.sheet .ck i{flex:none;width:3.6mm;height:3.6mm;border:1pt solid #000;margin-top:.6mm;display:inline-block}
+.sheet .sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:2.5mm}
+.sheet .sg div{border-top:.8pt solid #000;padding-top:1mm;font-size:8.2pt;min-height:17mm}
+.sheet .ft{margin-top:3mm;font-size:8pt;color:#333}
+.prev{overflow:auto;background:#E9E5DB;border-radius:14px;padding:14px}
+.prev .sheet{transform-origin:top left}
+@media print{
+  @page{size:A4;margin:0}
+  html,body{background:#fff}
+  body>*:not(#print){display:none!important}
+  #print{display:block}
+  #print .sheet{border:0;margin:0;page-break-after:always;break-after:page;width:210mm;height:297mm;min-height:0;overflow:hidden}
+  #print .sheet:last-child{page-break-after:auto;break-after:auto}
+}
+</style>
+</head>
+<body>
+<div class="hd">
+  <div class="ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+  <div><h1>Attestation numérique</h1><p>Information des familles et autorisations</p></div>
+  <span data-eps-upd-slot style="margin-left:auto"></span>
+  <a href="../" style="margin-left:0">← Accueil</a>
+</div>
+<div class="wrap" id="app" hidden>
+  <div class="warn" id="warn"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="pg"></div>
+</div>
+<div class="wrap" id="lock"><div class="card"><h2>Outil réservé à l'enseignant</h2><p class="mut">Saisis ton code enseignant pour ouvrir cet outil.</p><div class="row"><button class="btn p" id="unlock" type="button">Saisir le code</button><a class="btn" href="../" style="display:inline-flex;align-items:center;text-decoration:none">← Accueil</a></div></div></div>
+<div id="print" aria-hidden="true"></div>
+<script>
+(function () {
+  "use strict";
+  var K = "eps.attest.v1", KR = "eps.reglages.v1";
+  function $(s, r) { return (r || document).querySelector(s); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+  function norm(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function frDate(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? m[3] + "/" + m[2] + "/" + m[1] : (iso || ""); }
+
+  /* ---- magasin commun (même forme que les autres : {items, pend, since}), synchronisé par eps-home.js (préfixe « at| ») ---- */
+  function ld() { var v = jget(K, null); if (!v || typeof v !== "object" || !v.items || Array.isArray(v.items)) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+  function put(it) { var V = ld(), old = V.items[it.id]; it.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u;
+    try { localStorage.setItem(K, JSON.stringify(V)); } catch (e) { alert("La mémoire de la tablette est pleine : la modification n'a pas pu être enregistrée."); return false; }
+    try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} return true; }
+  function item(id) { return ld().items[id] || null; }
+
+  /* ---- texte d'origine : tout est modifiable dans « Le texte » ---- */
+  var CHAMPS = [
+    ["titre", "Titre", 1],
+    ["intro", "Présentation", 3],
+    ["finalite", "À quoi servent ces outils", 4],
+    ["donnees", "Les données enregistrées", 4],
+    ["protection", "Où sont les données et comment elles sont protégées", 5],
+    ["duree", "Durée de conservation", 2],
+    ["droits", "Vos droits", 4],
+    ["attest", "Texte de l'attestation", 3],
+    ["image", "Autorisation image et voix", 5]
+  ];
+  var DEF = {
+    titre: "Usage du numérique en EPS : information et attestation",
+    intro: "Dans le cadre des cours d'éducation physique et sportive, {enseignant} utilise avec la classe {classe} une application pédagogique sur les tablettes de l'établissement. Ce document vous informe de cet usage.",
+    finalite: "Ces outils ont un but exclusivement scolaire et pédagogique : aider l'élève à apprendre, à s'organiser et à s'évaluer de façon autonome, suivre ses progrès, et développer ses compétences numériques. Les données ne servent à aucun autre usage : elles ne sont ni vendues, ni diffusées, ni utilisées à des fins commerciales ou publicitaires.",
+    donnees: "Nom, prénom et classe de l'élève ; ses résultats aux situations d'apprentissage ; ses évaluations et ses auto-évaluations ; les observations de l'enseignant ; sa présence ou sa dispense du jour (sans motif médical). En course d'orientation, sa position est suivie pendant la course uniquement.",
+    protection: "Les données sont enregistrées sur les tablettes de l'établissement et, sous forme chiffrée, sur un espace de stockage en ligne (Google) rattaché à l'enseignant : elles y sont illisibles sans la clé détenue par l'enseignant. Aucun nom d'élève ne figure sur le site de l'application. Un assistant d'intelligence artificielle peut aider l'enseignant à rédiger ; aucun nom d'élève ne lui est transmis. Seuls l'enseignant d'EPS, l'élève et sa famille (pour son propre bilan) ont accès aux données.",
+    duree: "Les données sont conservées pendant l'année scolaire {annee} et effacées au plus tard le {fin}.",
+    droits: "Le responsable du traitement est le chef d'établissement ({etablissement}). Le traitement repose sur la mission d'intérêt public d'enseignement. Vous disposez d'un droit d'accès, de rectification, de limitation, d'opposition et d'effacement des données : adressez-vous au chef d'établissement, ou au délégué à la protection des données de l'académie ({dpd}). Vous pouvez aussi adresser une réclamation à la CNIL (www.cnil.fr).",
+    attest: "Nous attestons avoir pris connaissance de cette information sur l'usage du numérique en EPS, dans un but exclusivement scolaire et pédagogique.",
+    image: "Pendant certaines leçons, l'élève peut être filmé pour voir et corriger son geste (retour vidéo). Les images servent uniquement en cours d'EPS, ne sont jamais diffusées hors de la classe et sont effacées au plus tard à la fin de la séquence. Cette autorisation est facultative : un refus n'a aucune conséquence sur la scolarité ni sur la note de l'élève, et elle peut être retirée à tout moment."
+  };
+  var REG_DEF = { dpd: "", fin: "" };
+  function modele() { var m = item("modele") || {}; var t = {}; CHAMPS.forEach(function (c) { t[c[0]] = (m.t && typeof m.t[c[0]] === "string") ? m.t[c[0]] : DEF[c[0]]; }); return { t: t, dpd: m.dpd || "", fin: m.fin || "" }; }
+  function reg() { var r = jget(KR, {}) || {}; return { etab: r.etab || "", ville: r.ville || "", annee: r.annee || "", prof: r.prof || "" }; }
+  function finDefaut() { var d = new Date(), y = d.getMonth() >= 7 ? d.getFullYear() + 1 : d.getFullYear(); return y + "-07-31"; }
+  function fusion(txt, ctx) { return String(txt).replace(/\{(\w+)\}/g, function (m, k) { var v = ctx[k]; return v ? v : (k in ctx ? "…………………………" : m); }); }
+
+  /* ---- classes (listes communes) ---- */
+  function classes() { var L = []; try { L = (window.EPSL && EPSL.items()) || []; } catch (e) {} return L.filter(function (o) { return o && o.nom; }).sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr", { numeric: true }); }); }
+  function eleves(o) { var P = []; try { P = EPSL.people(o) || []; } catch (e) {} return P.map(function (p) { return { k: p.k || norm(p.full), nom: p.nom || "", prenom: p.prenom || "", full: p.full || ((p.prenom || "") + " " + (p.nom || "")).trim() }; }).sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); }); }
+  function suivi(cls) { var it = item("c|" + norm(cls)); return (it && it.r && typeof it.r === "object") ? it : { id: "c|" + norm(cls), cls: cls, r: {} }; }
+
+  var UI = { tab: "txt", cls: null };
+
+  /* ---- feuille ---- */
+  function sheet(cls, el) {
+    var M = modele(), R = reg(), ctx = { enseignant: R.prof, etablissement: [R.etab, R.ville].filter(Boolean).join(", "), annee: R.annee, classe: cls || "", eleve: el ? el.full : "", dpd: M.dpd, fin: frDate(M.fin || finDefaut()) };
+    var T = function (k) { return esc(fusion(M.t[k], ctx)); };
+    return '<div class="sheet">' +
+      '<div class="et"><span><b>' + esc(ctx.etablissement || "Établissement : ……………………………") + '</b></span><span>EPS · ' + esc(R.annee || "Année scolaire ………") + '</span></div>' +
+      '<h3>' + T("titre") + '</h3>' +
+      '<p><b>Élève :</b> ' + (el ? esc(el.full) : "……………………………………………") + ' &nbsp;·&nbsp; <b>Classe :</b> ' + esc(cls || "…………") + '</p>' +
+      '<p>' + T("intro") + '</p>' +
+      '<h4>À quoi servent ces outils</h4><p>' + T("finalite") + '</p>' +
+      '<h4>Les données enregistrées</h4><p>' + T("donnees") + '</p>' +
+      '<h4>Protection des données</h4><p>' + T("protection") + '</p><p>' + T("duree") + '</p>' +
+      '<h4>Vos droits</h4><p>' + T("droits") + '</p>' +
+      '<div class="bx"><h4 style="margin-top:0">1 · Attestation d\'information</h4><p>' + T("attest") + '</p>' +
+        '<div class="sg"><div>L\'élève<br>Date et signature</div><div>Responsable légal 1 (élève mineur)<br>Nom, date et signature</div><div>Responsable légal 2 (élève mineur)<br>Nom, date et signature</div></div></div>' +
+      '<div class="bx"><h4 style="margin-top:0">2 · Autorisation image et voix (facultative)</h4><p>' + T("image") + '</p>' +
+        '<div class="ck"><i></i><span>J\'autorise / nous autorisons la captation de l\'image et de la voix de l\'élève dans ce cadre.</span></div>' +
+        '<div class="ck"><i></i><span>Je n\'autorise pas / nous n\'autorisons pas cette captation.</span></div>' +
+        '<div class="ck"><i></i><span>Élève : on m\'a expliqué à quoi servent ces images et je suis d\'accord.</span></div>' +
+        '<div class="sg"><div>L\'élève<br>Date et signature</div><div>Responsable légal 1 (élève mineur)<br>Date et signature</div><div>Responsable légal 2 (élève mineur)<br>Date et signature</div></div></div>' +
+      '<div class="ft">Document à rendre à ' + esc(R.prof || "l'enseignant d'EPS") + '. Un élève majeur signe seul.</div>' +
+      '</div>';
+  }
+  function imprimer(html) { $("#print").innerHTML = html; setTimeout(function () { window.print(); }, 60); }
+
+  /* ---- onglets ---- */
+  function tabs() {
+    var L = [["txt", "1 · Le texte"], ["imp", "2 · Imprimer"], ["suivi", "3 · Suivi des retours"]];
+    $("#tabs").innerHTML = L.map(function (t) { return '<button type="button" class="tab' + (UI.tab === t[0] ? " on" : "") + '" data-t="' + t[0] + '">' + t[1] + "</button>"; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("#tabs .tab"), function (b) { b.onclick = function () { UI.tab = b.dataset.t; render(); }; });
+  }
+  function clsChips() {
+    var C = classes(); if (!C.length) return '<p class="mut">Aucune classe sur cet appareil. Importe tes listes depuis l\'accueil (Réglages communs → Listes d\'élèves).</p>';
+    return '<div class="chips">' + C.map(function (o, i) { return '<button type="button" class="chip' + (UI.cls === o.nom ? " on" : "") + '" data-c="' + i + '">' + esc(o.nom) + " <small>(" + eleves(o).length + ")</small></button>"; }).join("") + "</div>";
+  }
+  function bindCls() { var C = classes(); Array.prototype.forEach.call(document.querySelectorAll("#pg [data-c]"), function (b) { b.onclick = function () { UI.cls = C[+b.dataset.c].nom; render(); }; }); }
+
+  function pTxt() {
+    var M = modele(), R = reg();
+    var h = '<div class="card"><h2>Le texte de l\'attestation</h2><p class="mut">Chaque rubrique est modifiable. Entre accolades, ce qui est rempli tout seul : {enseignant}, {etablissement}, {annee}, {classe}, {dpd}, {fin}. L\'établissement, l\'année et ton nom se règlent sur l\'accueil (Réglages communs).</p>' +
+      '<label class="f" for="f-dpd">Contact du délégué à la protection des données de l\'académie</label><input type="text" id="f-dpd" value="' + esc(M.dpd) + '" placeholder="adresse donnée par ton chef d\'établissement">' +
+      '<label class="f" for="f-fin">Date d\'effacement des données</label><input type="date" id="f-fin" value="' + esc(M.fin || finDefaut()) + '">';
+    CHAMPS.forEach(function (c) { h += '<label class="f" for="f-' + c[0] + '">' + esc(c[1]) + '</label><textarea id="f-' + c[0] + '" rows="' + c[2] + '">' + esc(M.t[c[0]]) + "</textarea>"; });
+    h += '<div class="row"><button type="button" class="btn p" id="save">Enregistrer le texte</button><button type="button" class="btn" id="reset">Rétablir le texte d\'origine</button><span class="saved" id="saved" role="status"></span></div></div>';
+    h += '<div class="card"><h2>Réglages utilisés</h2><p class="mut">Établissement : <b>' + esc([R.etab, R.ville].filter(Boolean).join(", ") || "non renseigné") + '</b> · Année : <b>' + esc(R.annee || "non renseignée") + '</b> · Enseignant : <b>' + esc(R.prof || "non renseigné") + "</b></p></div>";
+    $("#pg").innerHTML = h;
+    $("#save").onclick = function () { var t = {}; CHAMPS.forEach(function (c) { t[c[0]] = $("#f-" + c[0]).value; });
+      if (put({ id: "modele", t: t, dpd: $("#f-dpd").value.trim(), fin: $("#f-fin").value })) { $("#saved").textContent = "✓ Enregistré"; setTimeout(function () { var s = $("#saved"); if (s) s.textContent = ""; }, 2500); } };
+    $("#reset").onclick = function () { if (!confirm("Rétablir le texte d'origine ? Tes modifications du texte seront perdues.")) return; var M2 = modele(); put({ id: "modele", t: {}, dpd: M2.dpd, fin: M2.fin }); render(); };
+  }
+  function pImp() {
+    var h = '<div class="card"><h2>Imprimer</h2><p class="mut">Une page A4 par élève, à faire signer. Choisis « Enregistrer au format PDF » dans la fenêtre d\'impression pour obtenir un fichier.</p>' + clsChips();
+    var C = classes().filter(function (o) { return o.nom === UI.cls; })[0];
+    h += '<div class="row">' + (C ? '<button type="button" class="btn p" id="pc">Imprimer la classe ' + esc(C.nom) + " (" + eleves(C).length + ' pages)</button>' : "") + '<button type="button" class="btn" id="pv">Imprimer un exemplaire vierge</button></div></div>';
+    h += '<div class="card"><h2>Aperçu</h2><div class="prev" id="prev">' + sheet(C ? C.nom : "", C && eleves(C)[0] ? eleves(C)[0] : null) + "</div></div>";
+    $("#pg").innerHTML = h; bindCls();
+    var pv = $("#prev"), sh = pv.firstChild, fit = function () { var w = pv.clientWidth - 28, sw = sh.offsetWidth; var z = Math.min(1, w / sw); sh.style.transform = "scale(" + z + ")"; pv.style.height = Math.round(sh.offsetHeight * z + 28) + "px"; };
+    fit(); window.onresize = function () { if ($("#prev")) fit(); };
+    if (C) $("#pc").onclick = function () { var E = eleves(C); if (!E.length) { alert("Cette classe n'a pas d'élèves."); return; } imprimer(E.map(function (e) { return sheet(C.nom, e); }).join("")); };
+    $("#pv").onclick = function () { imprimer(sheet(UI.cls || "", null)); };
+  }
+  function pSuivi() {
+    var h = '<div class="card"><h2>Suivi des retours</h2><p class="mut">Note les attestations rendues et la réponse à l\'autorisation image. Le suivi est partagé entre tes appareils.</p>' + clsChips() + "</div>";
+    var C = classes().filter(function (o) { return o.nom === UI.cls; })[0];
+    if (C) { var S = suivi(C.nom), E = eleves(C), nA = 0, nO = 0, nN = 0;
+      E.forEach(function (e) { var r = S.r[e.k] || {}; if (r.a) nA++; if (r.i === "o") nO++; if (r.i === "n") nN++; });
+      h += '<div class="card"><h2>' + esc(C.nom) + '</h2><div class="cnt"><span>Attestations rendues : ' + nA + " / " + E.length + '</span><span>Image autorisée : ' + nO + '</span><span>Image refusée : ' + nN + '</span><span>Sans réponse image : ' + (E.length - nO - nN) + "</span></div>" +
+        '<table class="s"><thead><tr><th>Élève</th><th>Attestation rendue</th><th>Autorisation image</th><th>Date</th></tr></thead><tbody>' +
+        E.map(function (e, i) { var r = S.r[e.k] || {};
+          return "<tr><td><b>" + esc(e.nom) + "</b> " + esc(e.prenom) + '</td><td><div class="seg"><button type="button" class="o' + (r.a ? " on" : "") + '" data-e="' + i + '" data-a="1" aria-pressed="' + (r.a ? "true" : "false") + '">Oui</button><button type="button" class="z' + (!r.a ? " on" : "") + '" data-e="' + i + '" data-a="0" aria-pressed="' + (!r.a ? "true" : "false") + '">Non</button></div></td>' +
+            '<td><div class="seg"><button type="button" class="o' + (r.i === "o" ? " on" : "") + '" data-e="' + i + '" data-i="o">Oui</button><button type="button" class="n' + (r.i === "n" ? " on" : "") + '" data-e="' + i + '" data-i="n">Non</button><button type="button" class="z' + (!r.i ? " on" : "") + '" data-e="' + i + '" data-i="">?</button></div></td><td class="mut">' + esc(frDate(r.d || "")) + "</td></tr>"; }).join("") +
+        '</tbody></table><div class="row"><button type="button" class="btn sm" id="all">Tout marquer « rendue »</button><button type="button" class="btn sm" id="lst">Imprimer la liste des élèves sans autorisation image</button></div></div>';
+    }
+    $("#pg").innerHTML = h; bindCls();
+    if (!C) return;
+    var E2 = eleves(C);
+    function set(e, f) { var S2 = suivi(C.nom), r = S2.r[e.k] || {}; f(r); r.d = today(); S2.r[e.k] = r; S2.cls = C.nom; put(S2); }
+    Array.prototype.forEach.call(document.querySelectorAll("#pg [data-a]"), function (b) { b.onclick = function () { set(E2[+b.dataset.e], function (r) { r.a = b.dataset.a === "1" ? 1 : 0; }); render(); }; });
+    Array.prototype.forEach.call(document.querySelectorAll("#pg [data-i]"), function (b) { b.onclick = function () { set(E2[+b.dataset.e], function (r) { r.i = b.dataset.i; }); render(); }; });
+    $("#all").onclick = function () { if (!confirm("Marquer toutes les attestations de " + C.nom + " comme rendues ?")) return; var S3 = suivi(C.nom); E2.forEach(function (e) { var r = S3.r[e.k] || {}; if (!r.a) { r.a = 1; r.d = today(); } S3.r[e.k] = r; }); S3.cls = C.nom; put(S3); render(); };
+    $("#lst").onclick = function () { var S4 = suivi(C.nom), L = E2.filter(function (e) { return (S4.r[e.k] || {}).i !== "o"; });
+      imprimer('<div class="sheet"><h3>Élèves à ne pas filmer · ' + esc(C.nom) + '</h3><p>Autorisation image refusée ou sans réponse au ' + esc(frDate(today())) + ".</p>" + (L.length ? "<p>" + L.map(function (e) { var r = S4.r[e.k] || {}; return esc(e.nom + " " + e.prenom) + (r.i === "n" ? " (refus)" : " (sans réponse)"); }).join("\n") + "</p>" : "<p>Tous les élèves ont donné leur autorisation.</p>") + "</div>"); };
+  }
+  function render() {
+    tabs();
+    if (!UI.cls) { var C = classes(); if (C.length === 1) UI.cls = C[0].nom; }
+    if (UI.tab === "txt") pTxt(); else if (UI.tab === "imp") pImp(); else pSuivi();
+  }
+  function start() {
+    $("#lock").hidden = true; $("#app").hidden = false;
+    $("#warn").innerHTML = "<b>À faire valider par ton chef d'établissement avant de distribuer</b>Au lycée, c'est lui qui répond des données des élèves. Cette attestation informe les familles ; elle ne remplace pas son accord." +
+      "<ul><li>Lui présenter l'appli et lui demander de saisir le délégué à la protection des données de l'académie.</li><li>Relire le paragraphe « Où sont les données » : il doit rester exact.</li><li>L'autorisation image est facultative : un refus ne doit avoir aucune conséquence pour l'élève.</li></ul>";
+    render();
+    try { if (window.EPSD && EPSD.store) EPSD.store({ key: K, pre: "at|", onChange: function () { if (UI.tab !== "txt") render(); } }); } catch (e) {}
+    window.addEventListener("eps-lists", function () { if (UI.tab !== "txt") render(); });
+  }
+  /* ---- réservé à l'enseignant : mode enseignant en cours, sinon code à 4 chiffres ---- */
+  function teach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+  function ask(n) { if (teach()) { start(); return; } if (!window.EPSD || !EPSD.askCode) { if ((n || 0) < 40) setTimeout(function () { ask((n || 0) + 1); }, 250); return; } EPSD.askCode().then(function (ok) { if (ok) start(); }); }
+  $("#unlock").onclick = function () { ask(0); };
+  window.epsSyncNow = function () { try { return EPSD.syncOne(K); } catch (e) {} };
+  if (teach()) start(); else window.addEventListener("load", function () { setTimeout(function () { ask(0); }, 400); });
+})();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>

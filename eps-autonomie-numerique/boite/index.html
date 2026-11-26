@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<!-- eps-source-directe : cette page est LA source de l'appli, modifiée directement. Ne jamais la remplacer par une page fabriquée ailleurs (autre conversation, anciens fichiers) : repartir de cette page. Voir CLAUDE.md. -->
+<html lang="fr">
+<head>
+<script src="../eps-lists.js"></script><!-- commun : garde de la simulation, listes -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Boîte à outils – EPS</title>
+<meta name="theme-color" content="#14171C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#F5F3EE;--ink:#14171C;--muted:#6A6F78;--line:#E6E1D6;--app:#9A3412}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+#eps-home{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.4}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,select{font:inherit;color:inherit}
+.hd{background:var(--ink);color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:10px 14px;display:flex;align-items:center;gap:10px}
+.hd .ic{width:36px;height:36px;border-radius:10px;background:var(--app);display:flex;align-items:center;justify-content:center;flex:none}
+.hd h1{margin:0;font-size:20px;font-weight:800;flex:1}
+.hb{color:#D5D8DE;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid #3A3F47;border-radius:10px;padding:0 14px;height:40px;display:inline-flex;align-items:center}
+.wrap{max-width:1000px;margin:0 auto;padding:12px 14px 60px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.tab{min-height:48px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-weight:800;cursor:pointer}
+.tab.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 12px}
+.card h2{margin:0 0 6px;font-size:18px;font-weight:800}
+.mut{color:var(--muted);font-size:14px;margin:4px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.btn{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid var(--ink);background:#fff;font-weight:800;cursor:pointer}
+.btn.p{background:var(--app);border-color:var(--app);color:#fff}
+.btn.d{border-color:#B3261E;color:#B3261E}
+.btn.big{min-height:64px;font-size:20px;padding:0 26px}
+.in{min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;background:#fff}
+.time{font-variant-numeric:tabular-nums;font-weight:900}
+.lanes{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:12px}
+.lane{border:1.5px solid var(--line);border-radius:14px;padding:10px;background:#fff}
+.lane.fin{background:#EAF5EC;border-color:#1E6B3A}
+.lane input{width:100%;border:0;border-bottom:1.5px solid var(--line);font-weight:800;padding:4px 0;background:none}
+.lane .time{font-size:30px;display:block;margin:6px 0 2px}
+.lane .laps{font-size:13px;color:var(--muted);min-height:18px;font-variant-numeric:tabular-nums}
+.lane .row{margin-top:6px}
+.lane .btn{flex:1;min-height:52px}
+.cpt{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px}
+.cp{border:1.5px solid var(--line);border-radius:14px;background:#fff;display:flex;flex-direction:column;overflow:hidden}
+.cp button.plus{border:0;background:#fff;min-height:110px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px}
+.cp button.plus:active{background:#F1EDE2}
+.cp .n{font-size:44px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.cp .l{font-weight:800;text-align:center}
+.cp .ft{display:flex;border-top:1px solid var(--line)}
+.cp .ft button{flex:1;min-height:40px;border:0;background:#FAF8F3;font-weight:800;cursor:pointer}
+.cp .ft span{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);font-weight:700}
+#vbox{background:#000;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center}
+#vbox canvas{width:100%;height:100%;object-fit:contain;display:block}
+#vbox .lb{position:absolute;left:10px;top:10px;background:#000A;color:#fff;font-weight:800;border-radius:8px;padding:4px 10px;font-size:14px}
+#vbox .ph{color:#C9CDD4;text-align:center;padding:20px}
+table.t{border-collapse:collapse;margin-top:10px}
+table.t td,table.t th{border:1px solid var(--line);padding:6px 14px;text-align:center;font-variant-numeric:tabular-nums}
+table.t th{background:#FAF8F3;font-size:13px}
+</style>
+</head>
+<body>
+<div class="hd">
+  <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg></div>
+  <h1>Boîte à outils</h1>
+  <span data-eps-upd-slot></span>
+  <a class="hb" href="../">← Accueil</a>
+</div>
+<div class="wrap">
+  <div class="tabs" id="tabs"></div>
+  <div id="pg"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var K = "eps.boite.v1";
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function ld() { var v = null; try { v = JSON.parse(localStorage.getItem(K) || "null"); } catch (e) {} if (!v || typeof v !== "object" || Array.isArray(v)) v = {};
+    if (!v.chr || !Array.isArray(v.chr.names)) v.chr = { names: ["Coureur 1", "Coureur 2", "Coureur 3", "Coureur 4"] };
+    if (!v.cpt || !Array.isArray(v.cpt.c)) v.cpt = { who: "", c: PRE[0].c.map(function (l) { return { l: l, n: 0 }; }) };
+    v.cpt.c = v.cpt.c.filter(function (x) { return x && typeof x.l === "string"; }).map(function (x) { return { l: x.l, n: Math.max(0, Math.round(+x.n) || 0) }; });
+    if (!(+v.delay >= 2 && +v.delay <= 30)) v.delay = 8;
+    return v; }
+  function sv() { try { localStorage.setItem(K, JSON.stringify(S)); } catch (e) {} }
+  var PRE = [{ n: "Volley-ball", c: ["Service réussi", "Service raté", "Attaque gagnante", "Balle rendue facile", "Faute"] }, { n: "Badminton", c: ["Point gagné au fond", "Point gagné au filet", "Smash gagnant", "Faute directe"] }, { n: "Sports collectifs", c: ["Tir réussi", "Tir raté", "Passe réussie", "Balle perdue", "Balle récupérée"] }, { n: "Réussi / raté", c: ["Réussi", "Raté"] }];
+  var S = ld(), TAB = (location.hash || "").slice(1) || "chrono", stopTab = null;
+  function fmt(ms, cs) { ms = Math.max(0, ms); var m = Math.floor(ms / 60000), s = Math.floor(ms % 60000 / 1000), c = Math.floor(ms % 1000 / 100); return m + ":" + String(s).padStart(2, "0") + (cs === false ? "" : "," + c); }
+  function tabs() { var L = [["chrono", "⏱ Chrono"], ["compteur", "🔢 Compteur"], ["video", "🎥 Vidéo différée"], ["charge", "🏋 Charge"]];
+    if (!L.some(function (t) { return t[0] === TAB; })) TAB = "chrono";
+    $("#tabs").innerHTML = L.map(function (t) { return '<button type="button" class="tab' + (TAB === t[0] ? " on" : "") + '" data-t="' + t[0] + '">' + t[1] + "</button>"; }).join("");
+    $$("#tabs .tab").forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; }); }
+  function go(t) { if (stopTab) { try { stopTab(); } catch (e) {} stopTab = null; } TAB = t; try { history.replaceState(null, "", "#" + t); } catch (e) {} tabs(); ({ chrono: chrono, compteur: compteur, video: video, charge: charge }[TAB] || chrono)(); }
+
+  /* ---- ⏱ chrono : plusieurs coureurs, un départ commun, temps de passage ---- */
+  var C = { t0: 0, lanes: [] }, lock = null;
+  function wake(on) { try { if (on && navigator.wakeLock) navigator.wakeLock.request("screen").then(function (l) { lock = l; }, function () {}); else if (lock) { lock.release(); lock = null; } } catch (e) {} }
+  function chrono() {
+    if (C.lanes.length !== S.chr.names.length) C = { t0: 0, lanes: S.chr.names.map(function () { return { laps: [], end: 0 }; }) };
+    var run = !!C.t0;
+    $("#pg").innerHTML = '<div class="card"><h2>⏱ Chrono à plusieurs coureurs</h2><p class="mut">Un seul départ pour tous. Touche « Tour » à chaque passage, « Arrivée » à la fin.</p>' +
+      '<div class="row"><button class="btn p big" id="st" type="button"' + (run ? " disabled" : "") + '>▶ Départ</button><span class="time" id="gt" style="font-size:34px">0:00,0</span><span style="flex:1"></span>' +
+      '<label class="mut" for="nb" style="margin:0">Coureurs</label><select class="in" id="nb"' + (run ? " disabled" : "") + ">" + [1, 2, 3, 4, 5, 6, 7, 8].map(function (n) { return "<option" + (n === S.chr.names.length ? " selected" : "") + ">" + n + "</option>"; }).join("") + '</select><button class="btn" id="cp" type="button">📋 Copier</button><button class="btn d" id="rz" type="button">Remettre à zéro</button></div>' +
+      '<div class="lanes">' + S.chr.names.map(function (n, i) { return '<div class="lane" data-l="' + i + '"><input value="' + esc(n) + '" maxlength="24" aria-label="Nom du coureur ' + (i + 1) + '"><span class="time">0:00,0</span><div class="laps"></div><div class="row"><button class="btn" data-lap type="button">Tour</button><button class="btn p" data-end type="button">Arrivée</button></div></div>'; }).join("") + "</div></div>";
+    function tick() { var now = Date.now(); if (C.t0) $("#gt").textContent = fmt((C.lanes.every(function (l) { return l.end; }) ? Math.max.apply(null, C.lanes.map(function (l) { return l.end; })) : now) - C.t0);
+      $$(".lane").forEach(function (el, i) { var l = C.lanes[i]; el.classList.toggle("fin", !!l.end); $(".time", el).textContent = fmt(C.t0 ? (l.end || now) - C.t0 : 0);
+        var prev = C.t0, parts = l.laps.map(function (t, k) { var d = t - prev; prev = t; return "T" + (k + 1) + " " + fmt(d); }); $(".laps", el).textContent = parts.slice(-4).join(" · ");
+        $("[data-lap]", el).disabled = !C.t0 || !!l.end; $("[data-end]", el).disabled = !C.t0 || !!l.end; }); }
+    var iv = setInterval(tick, 100); tick(); stopTab = function () { clearInterval(iv); };
+    $("#st").onclick = function () { C.t0 = Date.now(); C.lanes.forEach(function (l) { l.laps = []; l.end = 0; }); wake(true); this.disabled = true; $("#nb").disabled = true; };
+    $("#nb").onchange = function () { var n = +this.value; while (S.chr.names.length < n) S.chr.names.push("Coureur " + (S.chr.names.length + 1)); S.chr.names.length = n; sv(); C = { t0: 0, lanes: [] }; go("chrono"); };
+    $("#rz").onclick = function () { if (C.t0 && !confirm("Effacer les temps ?")) return; C = { t0: 0, lanes: [] }; wake(false); go("chrono"); };
+    $("#cp").onclick = function () { var b = this, t = S.chr.names.map(function (n, i) { var l = C.lanes[i], prev = C.t0; return [n, l.end ? fmt(l.end - C.t0) : ""].concat(l.laps.concat(l.end && l.laps.length ? [l.end] : []).map(function (x) { var d = x - prev; prev = x; return fmt(d); })).join("\t"); }).join("\n");
+      var ok = function () { b.textContent = "✓ Copié"; setTimeout(function () { b.textContent = "📋 Copier"; }, 1500); };
+      try { navigator.clipboard.writeText(t).then(ok, function () {}); } catch (e) {} };
+    $$(".lane").forEach(function (el, i) { $("input", el).oninput = function () { S.chr.names[i] = this.value; sv(); };
+      $("[data-lap]", el).onclick = function () { if (C.t0 && !C.lanes[i].end) C.lanes[i].laps.push(Date.now()); tick(); };
+      $("[data-end]", el).onclick = function () { if (C.t0 && !C.lanes[i].end) C.lanes[i].end = Date.now(); if (C.lanes.every(function (l) { return l.end; })) wake(false); tick(); }; });
+  }
+
+  /* ---- 🔢 compteur d'observation : l'élève choisit ce qu'il compte ---- */
+  var EDIT = false;
+  function compteur() {
+    var tot = S.cpt.c.reduce(function (a, x) { return a + x.n; }, 0);
+    var h = '<div class="card"><h2>🔢 Compteur d\'observation</h2><div class="row" style="margin-top:0"><input class="in" id="who" placeholder="Qui j\'observe (prénom ou équipe)" maxlength="40" value="' + esc(S.cpt.who || "") + '" style="flex:1;min-width:200px" aria-label="Qui j\'observe"><span class="time" style="font-size:20px">Total : ' + tot + '</span><button class="btn" id="ed" type="button">' + (EDIT ? "✓ Terminé" : "✏ Choisir ce que je compte") + '</button><button class="btn d" id="rz" type="button">Remettre à zéro</button></div>';
+    if (EDIT) { h += '<p class="mut">Un modèle, puis change les intitulés comme tu veux.</p><div class="row">' + PRE.map(function (p, k) { return '<button class="btn" data-p="' + k + '" type="button">' + esc(p.n) + "</button>"; }).join("") + "</div>" +
+        S.cpt.c.map(function (x, i) { return '<div class="row"><input class="in" data-i="' + i + '" value="' + esc(x.l) + '" maxlength="40" style="flex:1" aria-label="Intitulé ' + (i + 1) + '"><button class="btn d" data-rm="' + i + '" type="button" aria-label="Retirer">🗑</button></div>'; }).join("") +
+        (S.cpt.c.length < 8 ? '<div class="row"><button class="btn" id="add" type="button">＋ Ajouter un compteur</button></div>' : ""); }
+    else h += '<div class="cpt">' + S.cpt.c.map(function (x, i) { return '<div class="cp"><button class="plus" data-i="' + i + '" type="button"><span class="n">' + x.n + '</span><span class="l">' + esc(x.l) + '</span></button><div class="ft"><button data-m="' + i + '" type="button" aria-label="Retirer 1 à ' + esc(x.l) + '">− 1</button><span>' + (tot ? Math.round(x.n / tot * 100) + " %" : "–") + "</span></div></div>"; }).join("") + "</div>";
+    $("#pg").innerHTML = h + "</div>";
+    $("#who").oninput = function () { S.cpt.who = this.value; sv(); };
+    $("#ed").onclick = function () { EDIT = !EDIT; S.cpt.c = S.cpt.c.filter(function (x) { return x.l.trim(); }); if (!S.cpt.c.length) S.cpt.c = [{ l: "Réussi", n: 0 }]; sv(); compteur(); };
+    $("#rz").onclick = function () { if (tot && !confirm("Remettre tous les compteurs à zéro ?")) return; S.cpt.c.forEach(function (x) { x.n = 0; }); sv(); compteur(); };
+    if (EDIT) { $$("[data-p]").forEach(function (b) { b.onclick = function () { if (tot && !confirm("Changer de modèle remet les compteurs à zéro. Continuer ?")) return; S.cpt.c = PRE[+b.dataset.p].c.map(function (l) { return { l: l, n: 0 }; }); sv(); compteur(); }; });
+      $$("input[data-i]").forEach(function (f) { f.oninput = function () { S.cpt.c[+f.dataset.i].l = f.value; sv(); }; });
+      $$("[data-rm]").forEach(function (b) { b.onclick = function () { S.cpt.c.splice(+b.dataset.rm, 1); sv(); compteur(); }; });
+      var a = $("#add"); if (a) a.onclick = function () { S.cpt.c.push({ l: "Nouveau", n: 0 }); sv(); compteur(); }; }
+    else { $$(".plus").forEach(function (b) { b.onclick = function () { S.cpt.c[+b.dataset.i].n++; sv(); compteur(); try { navigator.vibrate && navigator.vibrate(20); } catch (e) {} }; });
+      $$("[data-m]").forEach(function (b) { b.onclick = function () { var x = S.cpt.c[+b.dataset.m]; if (x.n > 0) x.n--; sv(); compteur(); }; }); }
+  }
+
+  /* ---- 🎥 vidéo différée : l'image revient quelques secondes plus tard, rien n'est enregistré ---- */
+  function video() {
+    $("#pg").innerHTML = '<div class="card"><h2>🎥 Vidéo différée</h2><p class="mut">Pose la tablette, fais ton geste, puis viens te regarder : l\'image arrive avec quelques secondes de retard. Rien n\'est enregistré.</p>' +
+      '<div id="vbox"><div class="ph" id="ph">Touche « Démarrer la caméra ».</div><canvas id="cv" hidden></canvas><span class="lb" id="lb" hidden></span></div>' +
+      '<div class="row"><button class="btn p big" id="on" type="button">▶ Démarrer la caméra</button><button class="btn" id="flip" type="button" hidden>🔄 Autre caméra</button><label class="mut" for="dl" style="margin:0">Retard</label><input type="range" id="dl" min="2" max="30" step="1" value="' + S.delay + '" style="flex:1;min-width:160px;min-height:44px"><b id="dv" class="time">' + S.delay + " s</b></div></div>";
+    var stream = null, vid = document.createElement("video"), cap = document.createElement("canvas"), buf = [], on = false, face = "environment", busy = false, shown = 0, t1 = 0, t2 = 0;
+    vid.muted = true; vid.playsInline = true;
+    function stop() { on = false; clearInterval(t1); clearInterval(t2); buf = []; if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; wake(false); }
+    function grab() { if (!on || busy || vid.readyState < 2 || !vid.videoWidth) return; var w = Math.min(640, vid.videoWidth), h = Math.round(w * vid.videoHeight / vid.videoWidth); if (cap.width !== w) { cap.width = w; cap.height = h; }
+      cap.getContext("2d").drawImage(vid, 0, 0, w, h); busy = true; var t = Date.now(); cap.toBlob(function (b) { busy = false; if (b && on) buf.push({ t: t, b: b }); var lim = Date.now() - (S.delay + 3) * 1000; while (buf.length && buf[0].t < lim) buf.shift(); }, "image/jpeg", .6); }
+    function show() { if (!on) return; var want = Date.now() - S.delay * 1000, f = null, i; for (i = buf.length - 1; i >= 0; i--) if (buf[i].t <= want) { f = buf[i]; break; }
+      var lb = $("#lb"); if (!lb) return; if (!f) { lb.textContent = buf.length ? "Image dans " + Math.max(1, Math.ceil((buf[0].t - want) / 1000)) + " s…" : "Démarrage…"; return; }
+      lb.textContent = "Il y a " + S.delay + " s"; if (f.t === shown) return; shown = f.t;
+      createImageBitmap(f.b).then(function (bm) { var cv = $("#cv"); if (!cv) return; if (cv.width !== bm.width) { cv.width = bm.width; cv.height = bm.height; } cv.getContext("2d").drawImage(bm, 0, 0); if (bm.close) bm.close(); }, function () {}); }
+    function start() { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $("#ph").textContent = "La caméra n'est pas disponible sur cet appareil."; return; }
+      stop(); $("#ph").textContent = "Autorise la caméra…";
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: face, width: { ideal: 1280 } }, audio: false }).then(function (s) { stream = s; vid.srcObject = s; vid.play(); on = true; buf = []; $("#ph").hidden = true; $("#cv").hidden = false; $("#lb").hidden = false; $("#flip").hidden = false; $("#on").textContent = "■ Arrêter"; wake(true); t1 = setInterval(grab, 80); t2 = setInterval(show, 60); },
+        function () { var p = $("#ph"); if (p) p.textContent = "Caméra refusée ou indisponible. Autorise la caméra pour ce site dans les réglages du navigateur."; }); }
+    $("#on").onclick = function () { if (on) { stop(); go("video"); } else start(); };
+    $("#flip").onclick = function () { face = face === "environment" ? "user" : "environment"; start(); };
+    $("#dl").oninput = function () { S.delay = +this.value; $("#dv").textContent = S.delay + " s"; sv(); };
+    stopTab = stop;
+  }
+
+  /* ---- 🏋 charge : estimation de la charge maximale et des charges de travail ---- */
+  function nb(v) { v = String(v == null ? "" : v).trim().replace(",", "."); if (!v || !/^\d+(\.\d+)?$/.test(v)) return NaN; return parseFloat(v); }
+  function charge() {
+    $("#pg").innerHTML = '<div class="card"><h2>🏋 Charge de travail</h2><p class="mut">Indique une charge que tu soulèves proprement et le nombre de répétitions réussies (12 au plus). Le calcul est une estimation : il ne remplace pas l\'avis de ton enseignant.</p>' +
+      '<div class="row"><label for="kg">Charge (kg)</label><input class="in" id="kg" inputmode="decimal" style="width:110px"><label for="rp">Répétitions</label><input class="in" id="rp" inputmode="numeric" style="width:90px"></div><div id="res"></div></div>';
+    function calc() { var k = nb($("#kg").value), r = nb($("#rp").value), el = $("#res");
+      if (isNaN(k) || isNaN(r) || k <= 0 || r < 1 || r > 12 || r % 1) { el.innerHTML = ($("#kg").value || $("#rp").value) ? '<p class="mut">Entre une charge en kg et un nombre de répétitions entre 1 et 12.</p>' : ""; return; }
+      var m = r === 1 ? k : k * (1 + r / 30), f = function (x) { return (Math.round(x * 2) / 2).toLocaleString("fr-FR"); };
+      el.innerHTML = '<p style="margin:14px 0 0"><b>Charge maximale estimée : ' + f(m) + ' kg</b> <span class="mut">(formule d\'Epley)</span></p><table class="t"><tr><th>% du maximum</th>' + [50, 60, 70, 80, 90].map(function (p) { return "<th>" + p + " %</th>"; }).join("") + "</tr><tr><th>Charge (kg)</th>" + [50, 60, 70, 80, 90].map(function (p) { return "<td>" + f(m * p / 100) + "</td>"; }).join("") + "</tr></table>"; }
+    $("#kg").oninput = calc; $("#rp").oninput = calc;
+  }
+  window.addEventListener("pagehide", function () { if (stopTab) try { stopTab(); } catch (e) {} });
+  go(TAB);
+})();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>

@@ -383,7 +383,7 @@
       var h = '<div class="lc-top"><b>🖥 Tablette de contrôle · ' + esc(NOM) + '</b><span style="flex:1"></span><button type="button" class="x" data-x>✕ Fermer</button></div><div class="lc-body"><div class="lc-in" style="max-width:1400px">' +
         '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-c>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" +
         (v && v.on ? '<span class="lc-tag ok">● ' + esc(lec ? titreL(lec) : "leçon sans fiche") + (v.part ? " · " + esc({ ech: "échauffement", rem: "remise en action", bilan: "bilan" }[v.part] || "situation " + (+String(v.part).slice(1) + 1)) : "") + " · " + Math.max(1, Math.round((Date.now() - v.st) / 6e4)) + " min</span>" : '<span class="lc-tag">Pas de leçon lancée</span>') +
-        '<button type="button" class="lc-b s" data-live>📡 Piloter la leçon</button><span class="lc-mut" style="margin:0">Actualisé à ' + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + "</span></div>" +
+        '<button type="button" class="lc-b s" data-live>📡 Piloter la leçon</button><button type="button" class="lc-b" data-plan>📋 Planche tactique</button><span class="lc-mut" style="margin:0">Actualisé à ' + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + "</span></div>" +
         '<div class="lc-kpi">' + [["🙋", pres.length + "/" + EL.length, "présents"], ["📱", tabs.length, "tablette" + (tabs.length > 1 ? "s" : "") + " active" + (tabs.length > 1 ? "s" : "") + " (5 min)"], ["🏃", act.length + "/" + pres.length, "élèves avec un résultat aujourd'hui"],
           ["✅", EL.reduce(function (a, e) { return a + e.ok; }, 0), "situations réussies"], ["❌", EL.reduce(function (a, e) { return a + e.ko; }, 0), "pas encore réussies"], ["🎯", EL.reduce(function (a, e) { return a + e.rm.length; }, 0), "remédiations en cours"], ["👁", obs.length, "observations du jour"]].map(function (k) { return "<div><i>" + k[0] + "</i><b>" + k[1] + "</b><span>" + k[2] + "</span></div>"; }).join("") + "</div>";
       if (SL.length) h += "<h3>🏃 Situations de la leçon</h3>" + '<div class="lc-kpi">' + SL.map(function (s) { var c = [0, 0, 0]; EL.forEach(function (e) { var x = e.r[s.k]; if (x != null) c[x]++; }); var n = c[0] + c[1] + c[2];
@@ -400,7 +400,8 @@
       h += tabs.length ? '<details style="margin-top:10px"><summary class="lc-mut">📱 Tablettes actives</summary>' + tabs.map(function (t) { return '<div class="lc-mut">' + esc(t.nom || t.id || "tablette") + " · " + new Date(t.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + (t.mode ? " · " + esc(t.mode) : "") + "</div>"; }).join("") + "</details>" : "";
       var sy = ov.querySelector(".lc-body"), top = sy ? sy.scrollTop : 0; ov.innerHTML = h + "</div></div>"; var sy2 = ov.querySelector(".lc-body"); if (sy2) sy2.scrollTop = top;
       ov.querySelector("[data-x]").onclick = close; ov.querySelector("[data-c]").onchange = function () { cls = this.value; draw(); };
-      ov.querySelector("[data-live]").onclick = function () { close(); LIVECLS = cls; open("live"); }; }
+      ov.querySelector("[data-live]").onclick = function () { close(); LIVECLS = cls; open("live"); };
+      ov.querySelector("[data-plan]").onclick = function () { if (window.EPSD && EPSD.planche) EPSD.planche({ cls: cls }); }; }
     draw(); T = setInterval(function () { try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} draw(); }, 8000);
   }
   /* ================= 🧪 Modalités d'évaluation personnalisées + 🧮 notes (leçon, séquence, évaluation) =================

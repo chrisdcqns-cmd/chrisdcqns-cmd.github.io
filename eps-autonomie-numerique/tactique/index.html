@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!-- eps-source-directe : cette page est LA source de l'appli, modifiée directement. Ne jamais la remplacer par une page fabriquée ailleurs (autre conversation, anciens fichiers) : repartir de cette page. Voir CLAUDE.md. -->
+<html lang="fr">
+<head>
+<script src="../eps-lists.js"></script><!-- commun : garde de la simulation, listes -->
+<script src="../eps-tactique.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planche tactique – EPS</title>
+<meta name="theme-color" content="#14171C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#F5F3EE;--card:#fff;--ink:#14171C;--muted:#6A6F78;--line:#E6E1D6;--app:#0F766E}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+#eps-home{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.4}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,select{font:inherit;color:inherit}
+.hd{background:var(--ink);color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hd .ic{width:36px;height:36px;border-radius:10px;background:var(--app);display:flex;align-items:center;justify-content:center;flex:none}
+.hd h1{margin:0;font-size:20px;font-weight:800}
+.hd select{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:#14171C;color:#fff;padding:0 10px;font-weight:700}
+.hd .sp{flex:1}
+.hb{color:#D5D8DE;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid #3A3F47;border-radius:10px;padding:0 14px;height:40px;display:inline-flex;align-items:center;background:none;cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding:10px 12px 40px}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.tl{min-height:48px;min-width:64px;padding:4px 10px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-weight:800;font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.tl i{font-style:normal;font-size:19px;line-height:1}
+.tl.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.dot{width:18px;height:18px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px #0003}
+#board{background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;cursor:crosshair}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.btn{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid var(--ink);background:#fff;font-weight:800;cursor:pointer}
+.btn.p{background:var(--app);border-color:var(--app);color:#fff}
+.btn.d{border-color:#B3261E;color:#B3261E}
+.btn[disabled]{opacity:.4}
+.in{min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;background:#fff}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:12px}
+.card h2{margin:0 0 8px;font-size:17px;font-weight:800}
+.mut{color:var(--muted);font-size:14px;margin:4px 0}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-weight:700;cursor:pointer}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.lib>div{border:1.5px solid var(--line);border-radius:12px;padding:8px;background:#fff}
+.lib b{display:block;margin:6px 0;font-size:14px}
+.st{font-weight:800;font-size:14px;min-height:20px}
+.ok{color:#1E6B3A}.ko{color:#B3261E}
+#ask{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+#ask>div{background:#fff;border-radius:16px;padding:16px;width:min(460px,100%)}
+@media print{.hd,.tools,.row,.card,#ask{display:none!important}#board{border:0}}
+</style>
+</head>
+<body>
+<div class="hd">
+  <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><circle cx="7.5" cy="10" r="1.3"/><path d="M15 15l3-3m0 0h-2.2m2.2 0v2.2"/></svg></div>
+  <h1>Planche tactique</h1>
+  <label><span style="position:absolute;left:-9999px">Terrain</span><select id="sport" aria-label="Terrain"></select></label>
+  <span class="sp"></span>
+  <span data-eps-upd-slot></span>
+  <a class="hb" id="home" href="../">← Accueil</a>
+  <button class="hb" id="close" type="button" hidden>✕ Fermer</button>
+</div>
+<div class="wrap">
+  <div class="tools" id="tools" role="toolbar" aria-label="Outils de dessin"></div>
+  <div id="board"></div>
+  <div class="row">
+    <button class="btn" id="undo" type="button">↶ Annuler</button>
+    <button class="btn d" id="del" type="button" disabled>🗑 Retirer l'élément</button>
+    <label id="lab" hidden><span class="mut" id="labt">Numéro</span> <input class="in" id="labi" maxlength="60" style="width:110px"></label>
+    <span style="flex:1"></span>
+    <button class="btn" id="dep" type="button">👥 Mise en place</button>
+    <button class="btn d" id="clr" type="button">Tout effacer</button>
+  </div>
+  <div id="prof" hidden>
+    <div class="card">
+      <h2>📤 Envoyer sur les tablettes</h2>
+      <div id="send"></div>
+    </div>
+    <div class="card">
+      <h2>📂 Mes planches</h2>
+      <div class="row" style="margin-top:0"><input class="in" id="nom" placeholder="Nom de la planche" maxlength="60" style="flex:1;min-width:180px" aria-label="Nom de la planche"><button class="btn p" id="save" type="button">💾 Enregistrer</button><button class="btn" id="new" type="button">＋ Nouvelle</button><button class="btn" id="prt" type="button">🖨 Imprimer</button><span class="st ok" id="sst" role="status"></span></div>
+      <div class="lib" id="lib" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var Q = new URLSearchParams(location.search), EMB = Q.get("embed") === "1", KD = "eps.plan.brouillon";
+  function $(s) { return document.querySelector(s); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+  function teach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+  var SP = EPSTAC.sports(), dr = jget(KD, null), cur = { id: "", nom: "" };
+  var d0 = (dr && dr.d && !Q.get("sport")) ? dr.d : (dr && dr.d && dr.d.sport === Q.get("sport") ? dr.d : EPSTAC.depart(Q.get("sport") || "volley"));
+  if (dr && dr.d === d0) cur = { id: dr.id || "", nom: dr.nom || "" };
+  $("#sport").innerHTML = SP.map(function (s) { return '<option value="' + s.id + '">' + esc(s.nom) + "</option>"; }).join("");
+  var TOOLS = [["sel", "✋", "Déplacer"], ["pa", '<span class="dot" style="background:#1F4FA3"></span>', "Joueur"], ["pb", '<span class="dot" style="background:#D9481F"></span>', "Adversaire"], ["b", '<span class="dot" style="background:#F0A030;width:14px;height:14px"></span>', "Ballon"], ["c", "🔺", "Plot"], ["am", "➜", "Déplacement"], ["ap", "⇢", "Passe"], ["f", "✏️", "Tracé libre"], ["x", "T", "Texte"]];
+  var tool = "sel";
+  function drawTools() { $("#tools").innerHTML = TOOLS.map(function (t) { return '<button type="button" class="tl' + (tool === t[0] ? " on" : "") + '" data-t="' + t[0] + '" aria-pressed="' + (tool === t[0]) + '"><i>' + t[1] + "</i>" + t[2] + "</button>"; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("#tools .tl"), function (b) { b.onclick = function () { tool = b.dataset.t; ED.tool(tool); drawTools(); }; }); }
+  function ask(titre, val, cb) { var o = document.createElement("div"); o.id = "ask"; o.innerHTML = '<div><b>' + esc(titre) + '</b><input class="in" style="width:100%;margin:10px 0" maxlength="60"><div class="row" style="justify-content:flex-end;margin:0"><button class="btn" data-x type="button">Annuler</button><button class="btn p" data-ok type="button">OK</button></div></div>';
+    document.body.appendChild(o); var i = o.querySelector("input"); i.value = val || ""; setTimeout(function () { i.focus(); }, 30);
+    var ok = function () { var v = i.value; o.remove(); cb(v); }; o.querySelector("[data-ok]").onclick = ok; o.querySelector("[data-x]").onclick = function () { o.remove(); }; i.onkeydown = function (e) { if (e.key === "Enter") ok(); }; }
+  var ED = EPSTAC.editor($("#board"), d0, { maxh: "70vh",
+    onChange: function (d) { try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: d })); } catch (e) {} },
+    onSelect: function (i) { $("#del").disabled = !i; var lab = i && (i.t === "p" || i.t === "x"); $("#lab").hidden = !lab; if (lab) { $("#labt").textContent = i.t === "p" ? "Numéro" : "Texte"; $("#labi").value = i.t === "p" ? (i.n || "") : (i.s || ""); $("#labi").style.width = i.t === "p" ? "80px" : "220px"; } },
+    askText: function (cb) { ask("Texte à écrire sur la planche", "", cb); } });
+  $("#sport").value = ED.get().sport; $("#nom").value = cur.nom;
+  $("#sport").onchange = function () { if (!ED.count()) ED.set(EPSTAC.depart(this.value)); else ED.sport(this.value); };
+  $("#undo").onclick = function () { ED.undo(); $("#sport").value = ED.get().sport; };
+  $("#del").onclick = function () { ED.del(); };
+  $("#clr").onclick = function () { ED.clear(); };
+  $("#dep").onclick = function () { if (ED.count() && !confirm("Remplacer le dessin par la mise en place de départ ?")) return; var s = ED.get().sport; ED.set(EPSTAC.depart(s)); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: ED.get() })); } catch (e) {} };
+  $("#labi").oninput = function () { ED.label(this.value); };
+  drawTools();
+  if (EMB) { $("#home").hidden = true; $("#close").hidden = false; $("#close").onclick = function () { try { parent.postMessage({ epsPlanche: "close" }, location.origin); } catch (e) {} }; }
+
+  /* ---- enseignant : mes planches, envoi ---- */
+  var SEL = { all: true, ids: {} }, MIN = 10, CLS = Q.get("cls") || "";
+  function P() { return window.EPSD && EPSD.plan; }
+  function lib() { if (!P()) return; var L = EPSD.plan.list();
+    $("#lib").innerHTML = L.length ? L.map(function (b, k) { return '<div><div style="pointer-events:none">' + EPSTAC.svg(b.d) + "</div><b>" + esc(b.nom) + '</b><div class="row" style="margin:0"><button class="btn" data-o="' + k + '" type="button">Ouvrir</button><button class="btn d" data-d="' + k + '" type="button" aria-label="Supprimer ' + esc(b.nom) + '">🗑</button></div></div>'; }).join("") : '<p class="mut" style="grid-column:1/-1">Aucune planche enregistrée. Dessine, donne un nom, puis « Enregistrer » : elle sera sur toutes tes tablettes.</p>';
+    Array.prototype.forEach.call(document.querySelectorAll("#lib [data-o]"), function (b) { b.onclick = function () { var x = L[+b.dataset.o]; cur = { id: x.id, nom: x.nom }; ED.set(x.d); $("#nom").value = x.nom; $("#sport").value = ED.get().sport; window.scrollTo(0, 0); }; });
+    Array.prototype.forEach.call(document.querySelectorAll("#lib [data-d]"), function (b) { b.onclick = function () { var x = L[+b.dataset.d]; if (!confirm("Supprimer la planche « " + x.nom + " » ?")) return; EPSD.plan.del(x.id); if (cur.id === x.id) cur.id = ""; lib(); }; }); }
+  function send() { if (!P()) return; var el = $("#send");
+    if (!EPSD.plan.ready()) { el.innerHTML = '<p class="mut">Le partage entre tablettes n\'est pas encore réglé sur cet appareil (accueil → Réglages communs). Sans lui, la planche reste sur cette tablette.</p>'; return; }
+    var T = EPSD.plan.tabs(), c = EPSD.plan.cur();
+    T.sort(function (a, b) { return (a.cls === CLS ? 0 : 1) - (b.cls === CLS ? 0 : 1); });
+    el.innerHTML = '<div class="chips"><button type="button" class="chip' + (SEL.all ? " on" : "") + '" data-all aria-pressed="' + SEL.all + '">👥 Tous les élèves</button>' +
+      T.map(function (t, k) { return '<button type="button" class="chip' + (!SEL.all && SEL.ids[t.id] ? " on" : "") + '" data-k="' + k + '" aria-pressed="' + (!SEL.all && !!SEL.ids[t.id]) + '">📱 ' + esc(t.nom) + "</button>"; }).join("") + "</div>" +
+      (T.length ? "" : '<p class="mut">Aucune tablette élève active ces 20 dernières minutes : l\'envoi « Tous les élèves » reste possible.</p>') +
+      '<div class="row"><label class="mut" for="min" style="margin:0">Visible pendant</label><select class="in" id="min">' + [2, 5, 10, 20, 45].map(function (m) { return "<option" + (m === MIN ? " selected" : "") + ' value="' + m + '">' + m + " min</option>"; }).join("") + '</select><button class="btn p" id="go" type="button">📤 Envoyer la planche</button>' +
+      (c ? '<button class="btn d" id="stop" type="button">■ Retirer des tablettes</button>' : "") + '<span class="st" id="gst" role="status"></span></div>' +
+      (c ? '<p class="mut">En ce moment sur les tablettes : <b>' + esc(c.nom || "planche") + "</b> (" + (c.to === "*" ? "tous les élèves" : c.to.length + " tablette" + (c.to.length > 1 ? "s" : "")) + ", jusqu'à " + new Date(c.until).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + ").</p>" : "") +
+      '<p class="mut">La planche s\'affiche en plein écran sur les tablettes choisies, en 8 à 20 s selon la connexion.</p>';
+    el.querySelector("[data-all]").onclick = function () { SEL.all = true; SEL.ids = {}; send(); };
+    Array.prototype.forEach.call(el.querySelectorAll("[data-k]"), function (b) { b.onclick = function () { var t = T[+b.dataset.k]; SEL.all = false; if (SEL.ids[t.id]) delete SEL.ids[t.id]; else SEL.ids[t.id] = 1; if (!Object.keys(SEL.ids).length) SEL.all = true; send(); }; });
+    $("#min").onchange = function () { MIN = +this.value || 10; };
+    $("#go").onclick = function () { var st = $("#gst"); if (!ED.count()) { st.className = "st ko"; st.textContent = "La planche est vide."; return; }
+      var to = SEL.all ? "*" : Object.keys(SEL.ids); st.className = "st"; st.textContent = "Envoi…";
+      EPSD.plan.send({ nom: $("#nom").value.trim(), d: ED.get() }, to, MIN).then(function () { send(); var s2 = $("#gst"); if (s2) { s2.className = "st ok"; s2.textContent = navigator.onLine === false ? "Hors ligne : la planche partira au retour du réseau." : "✓ Envoyée"; } }, function () { st.className = "st ko"; st.textContent = "Envoi impossible pour l'instant."; }); };
+    var sb = $("#stop"); if (sb) sb.onclick = function () { EPSD.plan.stop().then(send, send); }; }
+  $("#save").onclick = function () { if (!P()) return; var n = $("#nom").value.trim(); if (!n) { $("#nom").focus(); $("#sst").className = "st ko"; $("#sst").textContent = "Donne un nom à la planche."; return; }
+    cur.id = EPSD.plan.save({ id: cur.id, nom: n, d: ED.get() }); cur.nom = n; $("#sst").className = "st ok"; $("#sst").textContent = "✓ Enregistrée"; setTimeout(function () { $("#sst").textContent = ""; }, 2500); lib(); };
+  $("#new").onclick = function () { cur = { id: "", nom: "" }; $("#nom").value = ""; ED.set(EPSTAC.depart($("#sport").value)); };
+  $("#prt").onclick = function () { window.print(); };
+  function prof(n) { if (!teach()) return; if (!P()) { if ((n || 0) < 60) setTimeout(function () { prof((n || 0) + 1); }, 250); return; } $("#prof").hidden = false; lib(); send(); setInterval(function () { if (!document.hidden && !document.querySelector("#send select:focus")) send(); }, 15000); }
+  prof(0);
+  window.epsSyncNow = function () { try { return EPSD.syncOne("eps.plan.v1"); } catch (e) {} };
+})();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>

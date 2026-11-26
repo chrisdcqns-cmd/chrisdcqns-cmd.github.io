@@ -241,7 +241,7 @@
      localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
   var STORES = [], ESSAIS_MAX = 8; /* essais sans confirmation avant de lever l'attente quand même (évite de renvoyer sans fin) */
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
-  var AUTOPAT = [[/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
+  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
     [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
@@ -1672,7 +1672,7 @@
     /* 🔄 réservé à l'enseignant (masqué côté élève : html:not(.eps-teach)) : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
     try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}html:not(.eps-teach):not(.eps-tool) #eps-upd{display:none!important}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
     /* outils réservés à l'enseignant (pas de mode élève) : 🔄 toujours affiché */
-    if (/\/(edt|appel-as|co-eval|terrain|console)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
+    if (/\/(edt|appel-as|co-eval|terrain|console|attestation|guide|tactique|boite)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
     b.className = "epsb"; b.style.display = "none"; document.body.appendChild(b); setTimeout(function () { try { placeUpd(); } catch (e) {} }, 50);
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
@@ -2272,12 +2272,48 @@
   function sigBtn() {
     var b = document.getElementById("eps-sigb"), sl = epsSlot();
     if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-sigb"; b.className = "epsb"; b.title = "Signal général et tablettes"; b.setAttribute("aria-label", "Signal général et tablettes connectées"); b.innerHTML = "📣";
-      b.onclick = function () { var o = overlay('<h2 style="margin:0 0 10px">Toutes les tablettes</h2><div style="display:grid;gap:10px"><button class="epsd-b2" style="min-height:56px;font-size:18px" data-a>📣 Envoyer un signal (rassemblement, rotation…)</button><button class="epsd-b2" style="min-height:56px;font-size:18px" data-b>📱 Tablettes connectées</button></div><div class="epsd-act"><button data-x>Fermer</button></div>');
-        o.querySelector("[data-a]").onclick = function () { o.remove(); signal(); }; o.querySelector("[data-b]").onclick = function () { o.remove(); tablets(); }; };
+      b.onclick = function () { var o = overlay('<h2 style="margin:0 0 10px">Toutes les tablettes</h2><div style="display:grid;gap:10px"><button class="epsd-b2" style="min-height:56px;font-size:18px" data-a>📣 Envoyer un signal (rassemblement, rotation…)</button><button class="epsd-b2" style="min-height:56px;font-size:18px" data-b>📱 Tablettes connectées</button><button class="epsd-b2" style="min-height:56px;font-size:18px" data-c>📋 Planche tactique (envoyer un schéma)</button></div><div class="epsd-act"><button data-x>Fermer</button></div>');
+        o.querySelector("[data-a]").onclick = function () { o.remove(); signal(); }; o.querySelector("[data-b]").onclick = function () { o.remove(); tablets(); }; o.querySelector("[data-c]").onclick = function () { o.remove(); var cc = null; try { cc = window.epsCurrentClass && window.epsCurrentClass(); } catch (e) {} EPSD.planche({ cls: cc && cc.nom }); }; };
       var f = document.getElementById("eps-ovw"); sl.insertBefore(b, f && f.parentNode === sl ? f : sl.firstChild); }
     b.style.display = isTeacher() && !HUB ? "" : "none";
   }
   setInterval(function () { try { sigBtn(); } catch (e) {} }, 3000);
+
+  /* 📋 Planche tactique (eps-tactique.js, page tactique/) : mes planches « eps.plan.v1 » (pl|), {id, nom, d:{sport, items}} ;
+     planche envoyée aux tablettes : élément « plan » du magasin des signaux (sg|plan, relevé toutes les 8 s avec le signal, aucun trafic en plus) :
+     {nom, d, to:'*' | [id de tablette…], at, until, from}. Les élèves la voient en plein écran (lecture seule). */
+  var KPL = "eps.plan.v1";
+  STORES.push({ pre: "pl|", key: KPL });
+  function tacLoad(cb) { if (window.EPSTAC) { cb(); return; } var s = document.getElementById("eps-tac-js"); if (!s) { s = document.createElement("script"); s.id = "eps-tac-js"; s.src = BASE + "eps-tactique.js"; document.head.appendChild(s); } s.addEventListener("load", function () { cb(); }); }
+  function planCheck() {
+    var c = stLd(KSG).items.plan, seen = +(localStorage.getItem("eps.plan.seen") || 0), el = document.getElementById("eps-plan"), me = devInfo().id;
+    var show = c && c.d && c.at > seen && c.until > Date.now() && c.from !== me && !isTeacher() && (c.to === "*" || (Array.isArray(c.to) && c.to.indexOf(me) >= 0));
+    if (!show) { if (el) el.remove(); return; }
+    if (el && +el.dataset.at === c.at) return; if (el) el.remove();
+    el = document.createElement("div"); el.id = "eps-plan"; el.dataset.at = c.at;
+    el.style.cssText = "position:fixed;inset:0;z-index:2147483590;background:#fff;color:#14171C;display:flex;flex-direction:column;font-family:system-ui,sans-serif;box-shadow:inset 0 0 0 8px #F0A030";
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px 6px"><b style="font-size:clamp(18px,3vw,28px);flex:1">📋 ' + esc(c.nom || "Planche de ton enseignant") + '</b><button type="button" style="min-height:52px;padding:0 24px;border-radius:14px;border:0;background:#F0A030;color:#14171C;font:900 18px system-ui,sans-serif">✓ Vu</button></div><div data-pl style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 14px 14px"></div>';
+    el.querySelector("button").onclick = function () { try { localStorage.setItem("eps.plan.seen", String(c.at)); } catch (e) {} el.remove(); };
+    document.body.appendChild(el); bip();
+    tacLoad(function () { var bx = el.querySelector("[data-pl]"); if (!bx || !window.EPSTAC) return; var w = document.createElement("div"); w.style.cssText = "width:100%;max-width:" + Math.round((window.innerHeight - 110) * 1.9) + "px"; w.innerHTML = EPSTAC.svg(c.d, { maxh: (window.innerHeight - 100) + "px" }); bx.appendChild(w); });
+  }
+  STORES.forEach(function (st) { if (st.key === KSG) { var f0 = st.onChange; st.onChange = function () { try { f0 && f0(); } catch (e) {} try { planCheck(); } catch (e) {} }; } });
+  setInterval(function () { try { planCheck(); } catch (e) {} }, 4000);
+  EPSD.plan = {
+    list: function () { var V = stLd(KPL); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.d && !x.del; }).sort(function (a, b) { return (b.u || 0) - (a.u || 0); }); },
+    save: function (b) { var id = b.id || "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); stPutRaw(KPL, { id: id, nom: String(b.nom || "Planche").slice(0, 60), d: b.d }); try { EPSD.syncSoon(); } catch (e) {} return id; },
+    del: function (id) { stPutRaw(KPL, { id: id, del: 1 }); try { EPSD.syncSoon(); } catch (e) {} },
+    send: function (b, to, min) { stPutRaw(KSG, { id: "plan", nom: String(b.nom || "").slice(0, 60), d: b.d, to: to === "*" ? "*" : (to || []).slice(0, 40), at: Date.now(), until: Date.now() + (min || 10) * 60000, from: devInfo().id }); return EPSD.syncOne(KSG); },
+    stop: function () { var c = stLd(KSG).items.plan; if (c) { c.until = Date.now(); stPutRaw(KSG, c); return EPSD.syncOne(KSG); } return Promise.resolve(false); },
+    cur: function () { var c = stLd(KSG).items.plan; return c && c.d && c.until > Date.now() ? c : null; },
+    ready: function () { return !!shCfg(); },
+    tabs: function () { var V = stLd(KTB), me = devInfo().id; return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.at && x.id !== me && x.mode !== "enseignant" && Date.now() - x.at < 20 * 60000; }).sort(function (a, b) { return tabName(a).localeCompare(tabName(b), "fr", { numeric: true }); }).map(function (x) { return { id: x.id, nom: [x.nom, x.eq, x.cls, NAPP[x.app] || x.app].filter(Boolean).join(" · "), cls: x.cls || "", eq: x.eq || "", at: x.at }; }); }
+  };
+  /* ouvre la planche par-dessus la page (cadre), sans quitter la leçon en cours */
+  EPSD.planche = function (o) { o = o || {}; var old = document.getElementById("eps-planche"); if (old) old.remove();
+    var sp = o.sport || ({ volley: "volley", badminton: "badminton" }[appDir()] || ""), f = document.createElement("div"); f.id = "eps-planche"; f.style.cssText = "position:fixed;inset:0;z-index:2147483000;background:#F5F3EE";
+    f.innerHTML = '<iframe title="Planche tactique" src="' + BASE + "tactique/?embed=1" + (sp ? "&sport=" + encodeURIComponent(sp) : "") + (o.cls ? "&cls=" + encodeURIComponent(o.cls) : "") + '" style="border:0;width:100%;height:100%;display:block"></iframe>'; document.body.appendChild(f); return f; };
+  window.addEventListener("message", function (ev) { if (ev.origin === location.origin && ev.data && ev.data.epsPlanche === "close") { var f = document.getElementById("eps-planche"); if (f) f.remove(); } });
   function overviewBtn() {
     var b = document.getElementById("eps-ovw"), sl = epsSlot();
     if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-ovw"; b.className = "epsb"; b.title = "Vue d'ensemble des classes"; b.setAttribute("aria-label", "Vue d'ensemble des classes"); b.innerHTML = "📊"; b.onclick = overview; var f = document.getElementById("eps-find"); sl.insertBefore(b, f && f.parentNode === sl ? f : sl.firstChild); }
