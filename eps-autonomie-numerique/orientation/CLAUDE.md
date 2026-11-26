@@ -48,3 +48,4 @@ Application web (PWA) de course d'orientation pour l'EPS, hébergée sur GitHub 
 
 ## ⚠ Sources en retard (constaté le 26/11/2026)
 - `index.html` publié contient environ 210 lignes absentes de `src/` : **`index.html` est la référence**. Ne pas lancer `build.py` avant d'avoir reporté ces lignes dans `src/` (sinon elles sont perdues). Vérifier : reconstruire dans un dossier temporaire et comparer avec `index.html`.
+- Garde-fou : `build.py` s'arrête de lui-même tant que `index.html` contient des lignes absentes de `src/` (fichier `.derniere-construction` = empreinte de la dernière construction). Même garde-fou dans `ccf/build.py`.
