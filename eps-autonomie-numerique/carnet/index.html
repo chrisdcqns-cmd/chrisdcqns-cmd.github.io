@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<!-- eps-source-directe : cette page est LA source de l'appli, modifiée directement. Ne jamais la remplacer par une page fabriquée ailleurs (autre conversation, anciens fichiers) : repartir de cette page. Voir CLAUDE.md. -->
+<html lang="fr">
+<head>
+<script src="../eps-lists.js"></script><!-- commun : garde de la simulation, listes -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carnet de l'élève – EPS</title>
+<meta name="theme-color" content="#14171C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg:#F5F3EE;--ink:#14171C;--muted:#6A6F78;--line:#E6E1D6;--app:#BE185D;--ok:#1E6B3A;--no:#B3261E}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+#eps-home{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.4}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,select,textarea{font:inherit;color:inherit}
+.hd{background:var(--ink);color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:10px 14px;display:flex;align-items:center;gap:10px}
+.hd .ic{width:36px;height:36px;border-radius:10px;background:var(--app);display:flex;align-items:center;justify-content:center;flex:none}
+.hd h1{margin:0;font-size:20px;font-weight:800;flex:1}
+.hb{color:#D5D8DE;text-decoration:none;font-weight:700;font-size:14px;border:1.5px solid #3A3F47;border-radius:10px;padding:0 14px;height:40px;display:inline-flex;align-items:center}
+.wrap{max-width:900px;margin:0 auto;padding:12px 14px 60px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 12px}
+.card h2{margin:0 0 6px;font-size:18px;font-weight:800}
+.mut{color:var(--muted);font-size:14px;margin:4px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.btn{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid var(--ink);background:#fff;font-weight:800;cursor:pointer}
+.btn.p{background:var(--app);border-color:var(--app);color:#fff}
+.in{min-height:44px;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;background:#fff;width:100%}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-weight:700;cursor:pointer}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.yr{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;margin:18px 2px 8px;color:var(--app)}
+.act{border:1.5px solid var(--line);border-left:8px solid var(--app);border-radius:14px;background:#fff;padding:12px 14px;margin:0 0 10px;break-inside:avoid}
+.act h3{margin:0 0 6px;font-size:17px}
+.kp{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.kp span{background:#F6F3EC;border-radius:10px;padding:5px 10px;font-size:14px;font-weight:700}
+.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:4px 0 8px;max-width:340px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.q{margin:6px 0;font-size:15px}
+.q b{display:block;font-size:13px;color:var(--muted);font-weight:800}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:center}
+th:first-child,td:first-child{text-align:left}
+th{background:#FAF8F3;font-size:13px}
+.msg{font-weight:800;font-size:14px;min-height:20px}
+@media print{.hd,.noprint{display:none!important}html,body{background:#fff}.wrap{max-width:none;padding:0}.card{border:0;padding:0}}
+</style>
+</head>
+<body>
+<div class="hd">
+  <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6z"/><path d="M6 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2M9 15l2.5-3 2 2L16 10"/></svg></div>
+  <h1>Carnet de l'élève</h1>
+  <span data-eps-upd-slot></span>
+  <a class="hb" href="../">← Accueil</a>
+</div>
+<div class="wrap" id="pg"></div>
+<script>
+(function () {
+  "use strict";
+  /* Magasin « eps.carnet.v1 » (cn|), synchronisé par eps-home.js :
+     objectifs   {id:"o|<clé élève>|<année>", k:"obj", nom, an, o:{<activité>: texte}}
+     année gardée {id:"a|<clé élève>|<année>", k:"arch", nom, cls, an, acts:[{nom, lec, pc, n, comm, apr, apm}], quiz:[{nom, s, n}], o:{…}}
+     L'année en cours est lue en direct dans les données des applis ; « Garder l'année » en fait un résumé (rien d'autre n'est conservé). */
+  var K = "eps.carnet.v1";
+  var DIRS = { acrosport: "Acrosport", escalade: "Escalade", orientation: "OrienRun", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", crosstraining: "Cross-training", basket: "Basket-ball", step: "Step", ccf: "CCF" };
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function flat(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase(); }
+  function nk(s) { return flat(s).split(/[^A-Z0-9]+/).filter(Boolean).sort().join(" "); }   /* « Léa MARTIN » = « MARTIN Léa » */
+  function ck(s) { return flat(s).replace(/[^A-Z0-9]+/g, ""); }
+  function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+  function teach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+  function annee() { var r = jget("eps.reglages.v1", {}) || {}, m = /(20\d\d)\D+(20\d\d)/.exec(String(r.annee || "")); if (m) return m[1] + "-" + m[2]; var d = new Date(), y = d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1; return y + "-" + (y + 1); }
+  function ld() { var v = jget(K, null); if (!v || typeof v !== "object" || !v.items || Array.isArray(v.items)) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
+  function put(it) { var V = ld(), old = V.items[it.id]; it.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u;
+    try { localStorage.setItem(K, JSON.stringify(V)); } catch (e) { alert("La mémoire de la tablette est pleine : l'enregistrement n'a pas pu se faire."); return false; }
+    try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} return true; }
+  function classes() { var L = []; try { L = (window.EPSL && EPSL.items()) || []; } catch (e) {} return L.filter(function (o) { return o && o.nom; }).sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr", { numeric: true }); }); }
+  function eleves(o) { var P = []; try { P = EPSL.people(o) || []; } catch (e) {} return P.map(function (p) { var f = p.full || ((p.prenom || "") + " " + (p.nom || "")).trim(); return { k: nk(f), full: f }; }).sort(function (a, b) { return a.full.localeCompare(b.full, "fr"); }); }
+  function code(cls, full) { var I = (jget("eps.codes.v1", {}) || {}).items || {}, r = ""; Object.keys(I).forEach(function (id) { var o = I[id]; if (o && !o.del && o.c && ck(o.cls) === ck(cls) && nk(o.n) === nk(full)) r = String(o.c); }); return r; }
+
+  /* ---- année en cours, lue dans les données des applis ---- */
+  function dansAnnee(jour) { var m = /^(\d{4})-(\d{2})-\d{2}$/.exec(String(jour || "")); if (!m) return true; var y = +annee().slice(0, 4), d = m[1] + m[2]; return d >= y + "08" && d <= (y + 1) + "07"; }   /* 1er août → 31 juillet */
+  function courant(cls, full) { var k = nk(full), A = {}, get = function (n) { var key = ck(n); return A[key] || (A[key] = { nom: n, lec: 0, pc: null, n: 0, comm: "", apr: "", apm: "" }); };
+    Object.keys(DIRS).forEach(function (d) { var I = (jget("eps.lecres." + d + ".v1", {}) || {}).items || {}, days = 0, s = 0, t = 0;
+      Object.keys(I).forEach(function (id) { var r = I[id], p = String(id).split("|"); if (!r || !r.r || typeof r.r !== "object" || p.length < 3 || ck(p[0]) !== ck(cls) || nk(p.slice(2).join(" ")) !== k || !dansAnnee(p[1])) return; var any = false;
+        Object.keys(r.r).forEach(function (x) { if (/@auto$/.test(x)) return; var v = +r.r[x]; if (v >= 0 && v <= 2) { s += v; t += 2; any = true; } }); if (any) days++; });
+      if (days) { var a = get(DIRS[d]); a.lec = days; a.pc = t ? Math.round(s / t * 100) : null; } });
+    var E = []; try { E = (window.EPSD && EPSD.evalsOf && EPSD.evalsOf(full, cls)) || []; } catch (e) {}
+    E.forEach(function (e) { if (!e || !e.app) return; var a = get(e.app); a.n = Math.max(a.n, +e.n || 0); if (e.comm) a.comm = String(e.comm); if (e.apr) a.apr = String(e.apr); if (e.apm) a.apm = String(e.apm); });
+    var Q = [], QI = (jget("eps.quiz.v1", {}) || {}).items || {}; Object.keys(QI).forEach(function (id) { var r = QI[id]; if (r && r.k === "res" && ck(r.cls) === ck(cls) && nk(r.nom) === k) { var q = QI[r.qz]; if (q && !q.del) Q.push({ nom: q.nom || "Quiz", s: +r.s || 0, n: +r.n || 0 }); } });
+    var o = ld().items["o|" + k + "|" + annee()];
+    return { an: annee(), cls: cls, acts: Object.keys(A).map(function (x) { return A[x]; }).sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); }), quiz: Q, o: (o && o.o) || {}, live: true }; }
+  function archives(full) { var k = nk(full), V = ld(), L = []; Object.keys(V.items).forEach(function (id) { var a = V.items[id]; if (a && a.k === "arch" && !a.del && id.indexOf("a|" + k + "|") === 0 && a.an !== annee()) L.push(a); }); return L.sort(function (a, b) { return String(b.an).localeCompare(String(a.an)); }); }
+
+  var UI = { cls: null, el: null, ok: false, per: 1 };
+  function bloc(Y, edit) { var h = '<p class="yr">' + esc(Y.an) + (Y.cls ? " · " + esc(Y.cls) : "") + (Y.live ? " · année en cours" : "") + "</p>";
+    if (!Y.acts.length && !Y.quiz.length) h += '<div class="card"><p class="mut">Rien d\'enregistré pour l\'instant cette année.</p></div>';
+    Y.acts.forEach(function (a, i) { h += '<div class="act"><h3>' + esc(a.nom) + '</h3><div class="kp">' + (a.lec ? "<span>" + a.lec + " leçon" + (a.lec > 1 ? "s" : "") + " avec résultats</span>" : "") + (a.pc != null ? "<span>Réussite aux situations : " + a.pc + " %</span>" : "") + (a.n ? "<span>" + a.n + " critère" + (a.n > 1 ? "s" : "") + " évalué" + (a.n > 1 ? "s" : "") + "</span>" : "") + "</div>" +
+        (a.pc != null ? '<div class="bar" role="img" aria-label="Réussite ' + a.pc + ' %"><i style="width:' + a.pc + '%"></i></div>' : "") +
+        (a.apr ? '<p class="q"><b>Ce que j\'ai réussi</b>' + esc(a.apr) + "</p>" : "") + (a.apm ? '<p class="q"><b>Ce que je veux améliorer</b>' + esc(a.apm) + "</p>" : "") + (a.comm ? '<p class="q"><b>Le mot de mon enseignant</b>' + esc(a.comm) + "</p>" : "") +
+        (edit ? '<label class="q" style="display:block"><b>Mon objectif pour la suite</b><textarea class="in" rows="2" maxlength="300" data-obj="' + i + '" placeholder="Ce que je veux travailler, et comment">' + esc(Y.o[a.nom] || "") + "</textarea></label>" : (Y.o && Y.o[a.nom] ? '<p class="q"><b>Mon objectif</b>' + esc(Y.o[a.nom]) + "</p>" : "")) + "</div>"; });
+    if (Y.quiz.length) h += '<div class="act"><h3>Quiz</h3><div class="kp">' + Y.quiz.map(function (q) { return "<span>" + esc(q.nom) + " : " + q.s + " / " + q.n + "</span>"; }).join("") + "</div></div>";
+    return h; }
+  function tableau(Ys) { var noms = []; Ys.forEach(function (Y) { Y.acts.forEach(function (a) { if (noms.indexOf(a.nom) < 0) noms.push(a.nom); }); }); if (!noms.length || Ys.length < 2) return "";
+    return '<div class="card"><h2>Mon parcours</h2><table><tr><th>Activité</th>' + Ys.map(function (Y) { return "<th>" + esc(Y.an) + "</th>"; }).join("") + "</tr>" + noms.sort(function (a, b) { return a.localeCompare(b, "fr"); }).map(function (n) { return "<tr><td>" + esc(n) + "</td>" + Ys.map(function (Y) { var a = Y.acts.filter(function (x) { return x.nom === n; })[0]; return "<td>" + (a ? (a.pc != null ? a.pc + " %" : "✓") : "–") + "</td>"; }).join("") + "</tr>"; }).join("") + '</table><p class="mut">Pourcentage = réussite aux situations notées pendant les leçons.</p></div>'; }
+  function carnet() { var e = UI.el, Y = courant(UI.cls, e.full), AR = archives(e.full), Ys = UI.per === 3 ? [Y].concat(AR.slice(0, 2)) : [Y];
+    var h = '<div class="card"><div class="row" style="margin:0"><span style="flex:1;min-width:200px"><b style="font-size:20px">' + esc(e.full) + '</b><br><span class="mut">' + esc(UI.cls) + '</span></span><div class="chips noprint"><button type="button" class="chip' + (UI.per === 1 ? " on" : "") + '" data-per="1">Cette année</button><button type="button" class="chip' + (UI.per === 3 ? " on" : "") + '" data-per="3">Sur 3 ans</button></div></div>' +
+      '<div class="row noprint"><button class="btn" id="back" type="button">← ' + (teach() ? "Autre élève" : "Fermer mon carnet") + '</button><button class="btn" id="prt" type="button">🖨 Imprimer</button><span class="msg" id="msg" role="status" style="color:var(--ok)"></span></div></div>';
+    if (UI.per === 3) { h += tableau(Ys.slice().reverse()); if (!AR.length) h += '<div class="card"><p class="mut">Les années précédentes apparaîtront ici quand ton enseignant les aura gardées en fin d\'année.</p></div>'; }
+    Ys.forEach(function (y, i) { h += bloc(y, i === 0); });
+    $("#pg").innerHTML = h;
+    $$("[data-per]").forEach(function (b) { b.onclick = function () { UI.per = +b.dataset.per; render(); }; });
+    $("#back").onclick = function () { UI.el = null; UI.ok = false; render(); }; $("#prt").onclick = function () { window.print(); };
+    var t = 0; $$("[data-obj]").forEach(function (f) { f.oninput = function () { clearTimeout(t); t = setTimeout(function () { var o = {}; $$("[data-obj]").forEach(function (x) { var a = Y.acts[+x.dataset.obj]; if (a && x.value.trim()) o[a.nom] = x.value.trim().slice(0, 300); });
+        if (put({ id: "o|" + e.k + "|" + Y.an, k: "obj", nom: e.full, an: Y.an, o: o })) { var m = $("#msg"); if (m) { m.textContent = "✓ Objectif enregistré"; setTimeout(function () { if ($("#msg")) $("#msg").textContent = ""; }, 2000); } } }, 700); }; }); }
+  function garder(o) { var E = eleves(o), n = 0; E.forEach(function (e) { var Y = courant(o.nom, e.full); if (!Y.acts.length && !Y.quiz.length) return; if (put({ id: "a|" + e.k + "|" + Y.an, k: "arch", nom: e.full, cls: o.nom, an: Y.an, acts: Y.acts, quiz: Y.quiz, o: Y.o })) n++; }); return n; }
+  function choix() { var C = classes(), T = teach();
+    var h = '<div class="card"><h2>' + (T ? "Carnet d'un élève" : "Mon carnet") + '</h2><p class="mut">' + (T ? "Choisis la classe, puis l'élève." : "Choisis ta classe, puis ton nom. Ton code personnel te sera demandé.") + "</p>" +
+      (C.length ? '<div class="chips">' + C.map(function (o, i) { return '<button type="button" class="chip' + (UI.cls === o.nom ? " on" : "") + '" data-c="' + i + '">' + esc(o.nom) + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucune liste de classe sur cet appareil.</p>');
+    var o = C.filter(function (x) { return x.nom === UI.cls; })[0], E = o ? eleves(o) : [];
+    if (o) h += '<div class="chips" style="margin-top:12px">' + E.map(function (e, i) { return '<button type="button" class="chip' + (UI.el && UI.el.k === e.k ? " on" : "") + '" data-e="' + i + '">' + esc(e.full) + "</button>"; }).join("") + "</div>";
+    if (UI.el && !T) h += '<div class="row"><label for="cd" style="font-weight:800">Mon code personnel</label><input class="in" id="cd" maxlength="6" autocomplete="off" autocapitalize="characters" style="width:150px;letter-spacing:.2em;font-weight:900;text-transform:uppercase"><button class="btn p" id="open" type="button">Ouvrir mon carnet</button></div><p class="msg" id="cm" role="status" style="color:var(--no)"></p><p class="mut">C\'est le code de 6 caractères de « Mon bilan ». Tu ne l\'as pas ? Demande-le à ton enseignant.</p>';
+    h += "</div>";
+    if (T && o) h += '<div class="card"><h2>Fin d\'année : garder le carnet de ' + esc(o.nom) + '</h2><p class="mut">Garde un résumé de l\'année de chaque élève (activités, réussite, commentaires validés, objectifs) pour le carnet sur 3 ans. Rien d\'autre n\'est conservé. Pense à l\'indiquer dans l\'attestation numérique (durée de conservation).</p><div class="row"><button class="btn p" id="keep" type="button">📦 Garder l\'année ' + esc(annee()) + '</button><button class="btn" id="codes" type="button">🔑 Codes des élèves</button><span class="msg" id="km" role="status" style="color:var(--ok)"></span></div></div>';
+    $("#pg").innerHTML = h;
+    $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = C[+b.dataset.c].nom; UI.el = null; render(); }; });
+    $$("[data-e]").forEach(function (b) { b.onclick = function () { UI.el = E[+b.dataset.e]; UI.ok = T; render(); }; });
+    var op = $("#open"); if (op) { var go = function () { var v = ck($("#cd").value), c = code(UI.cls, UI.el.full); if (!c) { $("#cm").textContent = "Ton code n'est pas encore sur cette tablette : demande à ton enseignant."; return; } if (v !== ck(c)) { $("#cm").textContent = "Ce n'est pas le bon code."; return; } UI.ok = true; render(); }; op.onclick = go; $("#cd").onkeydown = function (ev) { if (ev.key === "Enter") go(); }; }
+    var kp = $("#keep"); if (kp) kp.onclick = function () { if (!confirm("Garder le résumé de l'année " + annee() + " pour les élèves de " + o.nom + " ?")) return; var n = garder(o); $("#km").textContent = n ? "✓ " + n + " carnet" + (n > 1 ? "s" : "") + " gardé" + (n > 1 ? "s" : "") : "Aucune donnée à garder pour cette classe."; };
+    var cb = $("#codes"); if (cb) cb.onclick = function () { try { EPSD.bilans(o.nom); } catch (e) {} }; }
+  function render() { if (UI.el && UI.ok) carnet(); else choix(); }
+  render();
+  function link(n) { if (!window.EPSD || !EPSD.store) { if ((n || 0) < 60) setTimeout(function () { link((n || 0) + 1); }, 250); return; } try { EPSD.store({ key: K, pre: "cn|", onChange: function () { if (!document.querySelector("textarea:focus")) render(); } }); } catch (e) {} if (!document.querySelector("textarea:focus, input:focus")) render(); }
+  link(0);
+  window.addEventListener("eps-lists", function () { if (!UI.el) render(); });
+  window.epsSyncNow = function () { try { return EPSD.syncOne(K); } catch (e) {} };
+})();
+</script>
+<script src="../eps-home.js" defer></script>
+</body>
+</html>

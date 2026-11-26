@@ -84,6 +84,7 @@ REPERES = {
     "boite/index.html": ["function chrono(", "function compteur(", "function video(", "function analyse(", "function charge("],
     "attestation/index.html": ["À faire valider par ton chef d'établissement", "pre: \"at|\"", "noindex", "sheet a5"],
     "quiz/index.html": ["function okQ(", "pre: \"qz|\"", "function garder("],
+    "carnet/index.html": ["function courant(", "function garder(", "pre: \"cn|\"", "Ce n'est pas le bon code"],
     "guide/index.html": ["data-ver=\"eleve\"", "data-ver=\"prof\"", "data-ver=\"bilan\"", "noindex", "EPSD.askCode()"],
     "eps-lecons.js": ["if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
     "apps-script/Code.gs": ["function modele_(", "function sansCache_(", "function lisJson_(", "function syncChk_(", "res.chkv = 1"],
