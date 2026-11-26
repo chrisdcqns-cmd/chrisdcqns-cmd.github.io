@@ -169,16 +169,16 @@ const SYM = [
   { id: "interdit_v", k: "area", code: "709", nom: "Zone interdite (violet)", grp: "Surimpression", draw: { pat: "hachV", s: VIOLET, sw: .25 } },
   // ponctuels
   { id: "rocher", k: "point", code: "204", nom: "Rocher", grp: "Rochers" },
-  { id: "gros_rocher", k: "point", code: "206", nom: "Gros rocher", grp: "Rochers" },
+  { id: "gros_rocher", k: "point", code: "205", nom: "Gros rocher", grp: "Rochers" },
   { id: "butte", k: "point", code: "112", nom: "Petite butte", grp: "Relief" },
   { id: "depression", k: "point", code: "115", nom: "Petite dépression", grp: "Relief" },
   { id: "trou", k: "point", code: "116", nom: "Trou", grp: "Relief" },
   { id: "arbre", k: "point", code: "417", nom: "Arbre remarquable", grp: "Végétation" },
   { id: "buisson", k: "point", code: "418", nom: "Buisson remarquable", grp: "Végétation" },
-  { id: "source", k: "point", code: "312", nom: "Point d'eau / fontaine", grp: "Eau" },
-  { id: "objet_x", k: "point", code: "531", nom: "Objet particulier (×)", grp: "Constructions" },
-  { id: "objet_o", k: "point", code: "530", nom: "Objet particulier (○)", grp: "Constructions" },
-  { id: "poteau", k: "point", code: "524", nom: "Poteau / pylône", grp: "Constructions" },
+  { id: "source", k: "point", code: "311", nom: "Fontaine / puits", grp: "Eau" },
+  { id: "objet_x", k: "point", code: "531", nom: "Objet remarquable (×)", grp: "Constructions" },
+  { id: "objet_o", k: "point", code: "530", nom: "Objet remarquable (○)", grp: "Constructions" },
+  { id: "poteau", k: "point", code: "524", nom: "Grand pylône / tour", grp: "Constructions" },
   { id: "interdit_x", k: "point", code: "711", nom: "Passage interdit (× violet)", grp: "Surimpression" },
   { id: "secours", k: "point", code: "712", nom: "Poste de secours", grp: "Surimpression" },
   { id: "nord", k: "point", code: "", nom: "Flèche du nord", grp: "Divers" },
@@ -187,7 +187,7 @@ const SYM = [
 const SYMI = Object.fromEntries(SYM.map(s => [s.id, s]));
 
 // Descriptions de postes (définitions simplifiées pour l'école)
-const DESCRIPTIONS = ["Angle de bâtiment", "Angle de mur", "Angle de clôture", "Bout de mur", "Arbre", "Buisson", "Rocher", "Banc", "Lampadaire / poteau", "Panneau", "Escalier", "Entrée", "Portail", "Croisement de chemins", "Bout de chemin", "Virage", "Fontaine", "Butte", "Dépression", "Talus", "Limite de végétation", "Lisière (coin)", "Objet particulier"];
+const DESCRIPTIONS = EPSP.p({id:'descr',sec:'Balises',label:'Descriptions de poste proposées',type:'list',def:["Angle de bâtiment", "Angle de mur", "Angle de clôture", "Bout de mur", "Arbre", "Buisson", "Rocher", "Banc", "Lampadaire / poteau", "Panneau", "Escalier", "Entrée", "Portail", "Croisement de chemins", "Bout de chemin", "Virage", "Fontaine", "Butte", "Dépression", "Talus", "Limite de végétation", "Lisière (coin)", "Objet particulier"]}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
 
 function polyD(pts, close) { if (!pts || !pts.length) return ""; return "M" + pts.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join("L") + (close ? "Z" : ""); }
 function ticksD(pts, mm, t) {

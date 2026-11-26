@@ -563,7 +563,7 @@ const byId=Object.fromEntries(FIGS.map(f=>[f.id,f]));
 
 /* ---------- stockage ---------- */
 const store={
-  get(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch(e){return def}},
+  get(k,def){try{const v=localStorage.getItem(k);if(!v)return def;const p=JSON.parse(v);/* valeur abîmée (null, ou liste à la place d'un objet) → valeur par défaut */if(p==null||(def!=null&&typeof def==="object"&&(typeof p!=="object"||Array.isArray(def)!==Array.isArray(p))))return def;return p}catch(e){return def}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
 };
 const K_GROUPS="acro.groups.v1", K_PROF="acro.prof.v1";

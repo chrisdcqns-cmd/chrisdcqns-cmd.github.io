@@ -44,6 +44,7 @@ function editControl(id) {
    <div class="field"><label>Position GPS</label><input class="inp" id="eGps" value="${c.lat != null ? c.lat.toFixed(6) + ", " + c.lon.toFixed(6) : ""}" placeholder="lat, lon ou lien Google Maps"><small class="muted">${c.lat != null ? `±${Math.round(c.acc || 0)} m · <a target="_blank" href="${gmapsUrl(c.lat, c.lon)}">Google Maps</a>` : ""}</small></div>
    ${c.photos?.length ? `<div class="field"><label>Photos du terrain</label><div class="row" style="gap:6px">${c.photos.map(p => `<a href="${p}" target="_blank"><img src="${p}" style="width:84px;height:84px;object-fit:cover;border-radius:10px"></a>`).join("")}</div></div>` : ""}
    <label class="row" style="gap:6px"><input type="checkbox" id="eCal" ${c.calage !== false ? "checked" : ""}> Utiliser cette balise pour caler la carte</label>
+   <div class="row" style="gap:6px;margin-top:6px"><label class="row" style="gap:6px"><input type="checkbox" id="eNivOn" ${c.niv ? "checked" : ""} onchange="document.getElementById('eNiv').disabled=!this.checked"> Niveau de difficulté</label><select class="inp" id="eNiv" style="width:auto" ${c.niv ? "" : "disabled"}>${[1, 2, 3].map(v => `<option value="${v}" ${+c.niv === v ? "selected" : ""}>${v} ${"★".repeat(v)}</option>`).join("")}</select></div>
    </div><div style="text-align:center"><div style="max-width:220px;margin:0 auto" id="eQr"></div><small class="muted" style="word-break:break-all">${esc(baliseUrl(c))}</small></div></div>
    <div class="row" style="margin-top:14px"><button class="btn green" id="eSave">Enregistrer</button><button class="btn or" id="eGeo">📍 Géolocaliser</button><button class="btn alt" id="ePlace">🗺 ${c.x == null ? "Placer" : "Déplacer"} sur la carte</button><button class="btn red" id="eDel">Supprimer</button></div>`, { onClose: () => { if (ptab === "balises") setPTab("balises"); } });
   const qr = () => $("#eQr", m).innerHTML = QR.svg(baliseUrl({ ...c, n: $("#eN", m).value, code: $("#eCode", m).value.toUpperCase() }));
@@ -53,7 +54,7 @@ function editControl(id) {
     const n = c.type === "C" ? parseInt($("#eN", m).value) : $("#eN", m).value.trim();
     if (c.type === "C" && (!n || P.controls.some(x => x !== c && x.type === "C" && +x.n === n))) { toast("Numéro invalide ou déjà utilisé", "ko"); return false; }
     if (c.type === "C" && n !== +c.n && numAmbigu(n) && !confirm(`Le numéro ${n} peut se lire autrement une fois la balise retournée. Le garder quand même ?`)) return false;
-    pushUndo(); c.n = n; c.code = ($("#eCode", m).value.trim().toUpperCase() || randCode(3)); c.desc = $("#eDesc", m).value.trim(); c.calage = $("#eCal", m).checked;
+    pushUndo(); c.n = n; c.code = ($("#eCode", m).value.trim().toUpperCase() || randCode(3)); c.desc = $("#eDesc", m).value.trim(); c.calage = $("#eCal", m).checked; if ($("#eNivOn", m).checked) c.niv = +$("#eNiv", m).value; else delete c.niv;
     const g = parseLatLon($("#eGps", m).value); if (g && (c.lat == null || Math.abs(g.lat - c.lat) > 1e-6 || Math.abs(g.lon - c.lon) > 1e-6)) { c.lat = g.lat; c.lon = g.lon; c.acc = null; } if (!$("#eGps", m).value.trim()) { c.lat = c.lon = c.acc = null; }
     saveP(); return true;
   };
@@ -68,7 +69,7 @@ function printWin(title, body, css = "") {
   const w = window.open("", "_blank"); if (!w) return toast("Autorise les fenêtres surgissantes pour imprimer", "ko");
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
   @page{size:A4;margin:10mm}body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#111}h1{font-size:18pt;margin:0 0 4mm}
-  .noprint{position:sticky;top:0;background:#14213d;color:#fff;padding:10px;display:flex;gap:10px;align-items:center;font-size:14px}.noprint button{font-size:16px;padding:8px 16px;border-radius:20px;border:0;background:#f47a20;color:#fff;font-weight:700}
+  .noprint{position:sticky;top:0;background:#14213d;color:#fff;padding:10px;display:flex;gap:10px;align-items:center;font-size:14px}.noprint button{font-size:16px;padding:8px 16px;border-radius:20px;border:0;background:#E8701A;color:#fff;font-weight:700}
   @media print{.noprint{display:none}} ${css}</style></head><body><div class="noprint"><button onclick="print()">🖨 Imprimer</button><span>Conseil : imprime en couleur, à 100 % (sans « ajuster »).</span></div>${body}</body></html>`);
   w.document.close();
 }
@@ -76,12 +77,12 @@ function printBalises() {
   const C = P.controls.slice().sort((a, b) => String(a.type).localeCompare(b.type) || (+a.n || 0) - (+b.n || 0));
   if (!C.length) return toast("Aucune balise", "ko");
   const small = confirm("Format compact : 4 balises par page ?\n(OK = 4 par page, Annuler = 2 grandes par page)");
-  const card = c => `<div class="bal"><div class="hd">COURSE D'ORIENTATION · EPS</div><div class="in"><div class="fl"><svg viewBox="0 0 100 100"><path d="M0 0H100L0 100Z" fill="#fff"/><path d="M100 0V100H0Z" fill="#f47a20"/><rect x="1" y="1" width="98" height="98" fill="none" stroke="#000" stroke-width="2"/></svg><div class="nb">${esc(c.type === "C" ? c.n : c.type === "S" ? "DÉPART" : "ARRIVÉE")}</div></div>
+  const card = c => `<div class="bal"><div class="hd">COURSE D'ORIENTATION · EPS</div><div class="in"><div class="fl"><svg viewBox="0 0 100 100"><path d="M0 0H100L0 100Z" fill="#fff"/><path d="M100 0V100H0Z" fill="#E8701A"/><rect x="1" y="1" width="98" height="98" fill="none" stroke="#000" stroke-width="2"/></svg><div class="nb">${esc(c.type === "C" ? c.n : c.type === "S" ? "DÉPART" : "ARRIVÉE")}</div></div>
     <div class="qr">${QR.svg(baliseUrl(c), { ecl: "Q" })}<div class="cd">Code : <b>${esc(c.code)}</b></div></div></div>
     <div class="ft">Scanne avec l'appli <b>OrienRun</b> (ou l'appareil photo) · Ne pas déplacer, merci !${c.desc ? ` · ${esc(c.desc)}` : ""}</div></div>`;
   printWin("Balises", `<div class="pages">${C.map(card).join("")}</div>`, `
    .pages{display:grid;grid-template-columns:${small ? "1fr 1fr" : "1fr"};gap:6mm}
-   .bal{border:1.5mm solid #f47a20;border-radius:4mm;padding:${small ? 4 : 7}mm;height:${small ? 132 : 132}mm;box-sizing:border-box;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid}
+   .bal{border:1.5mm solid #E8701A;border-radius:4mm;padding:${small ? 4 : 7}mm;height:${small ? 132 : 132}mm;box-sizing:border-box;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid}
    .hd{font-weight:700;letter-spacing:.1em;font-size:${small ? 8 : 12}pt;text-align:center}
    .in{flex:1;display:flex;align-items:center;justify-content:space-around;gap:4mm;${small ? "flex-direction:column" : ""}}
    .fl{position:relative;width:${small ? 40 : 90}mm;height:${small ? 40 : 90}mm}.fl svg{width:100%;height:100%}
@@ -102,7 +103,7 @@ async function satView(extra) {
     loadCss("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"); await loadScript("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js");
     const map = L.map($("#sat", m)); L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 20, maxNativeZoom: 19, attribution: "Esri" }).addTo(map);
     const pts = [];
-    P.controls.filter(c => c.lat != null).forEach(c => { pts.push([c.lat, c.lon]); L.circleMarker([c.lat, c.lon], { radius: 9, color: "#fff", fillColor: "#f47a20", fillOpacity: 1, weight: 2 }).addTo(map).bindTooltip(String(c.n), { permanent: true, direction: "right" }); if (c.acc) L.circle([c.lat, c.lon], { radius: c.acc, color: "#f47a20", weight: 1, fillOpacity: .1 }).addTo(map); });
+    P.controls.filter(c => c.lat != null).forEach(c => { pts.push([c.lat, c.lon]); L.circleMarker([c.lat, c.lon], { radius: 9, color: "#fff", fillColor: "#E8701A", fillOpacity: 1, weight: 2 }).addTo(map).bindTooltip(String(c.n), { permanent: true, direction: "right" }); if (c.acc) L.circle([c.lat, c.lon], { radius: c.acc, color: "#E8701A", weight: 1, fillOpacity: .1 }).addTo(map); });
     P.calib.forEach(c => { pts.push([c.lat, c.lon]); L.circleMarker([c.lat, c.lon], { radius: 6, color: "#fff", fillColor: "#1a9b55", fillOpacity: 1, weight: 2 }).addTo(map); });
     extra && extra(map, pts);
     if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 19 }); else map.setView([46.6, 2.4], 6);

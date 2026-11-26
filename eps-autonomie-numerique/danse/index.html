@@ -1826,7 +1826,9 @@ function defPos(c, d) {
   const p = S.reglages.defaut === 'milieu' ? 0.5 : (b.max > b.min ? (b.def - b.min) / (b.max - b.min) : 1);
   return Math.min(1, Math.max(0, p)); // valeur exacte (identique à Additio) ; le curseur se cale ensuite au 0,25 pt
 }
-function pts(c, x) { if (!x || !x.d) return null; const b = bande(x.d); return c.poids * (b.min + x.pos * (b.max - b.min)) / 100; }
+/* position dans le degré, toujours entre 0 et 1 (0,5 si absente : un positionnement sans curseur cassait la fiche PDF) */
+function P01(v) { v = +v; return isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5; }
+function pts(c, x) { if (!x || !x.d) return null; const b = bande(x.d); return c.poids * (b.min + P01(x.pos) * (b.max - b.min)) / 100; }
 function sumPoids() { return S.criteres.reduce((a, c) => a + (+c.poids || 0), 0); }
 function arr(v) { const st = +S.reglages.arrondi || 0.01; return Math.round(v / st + 1e-9) * st; }
 /* notes à coller dans Pronote (fenêtre commune EPSR.pronote d'eps-home.js) : note /20 et points de chaque AFL */
@@ -2203,7 +2205,7 @@ function miniCtl(c, e) {
   const x = e.ev && e.ev[c.id], a = e.auto && e.auto.ev && e.auto.ev[c.id], p = pts(c, x);
   const n = x && x.d ? nSteps(c, x.d) : 0;
   return `<div class="mc" data-e="${e.id}" data-c="${c.id}"><span class="mc-c">${esc(c.court)}</span><span class="mc-d">${[1, 2, 3, 4].map(d => `<button class="${x && x.d === d ? 'on' : ''}" data-md="${d}" style="--dc:${DEG_COL[d - 1]}" title="Degré ${d}${a && a.d === d ? ' (choix de l\'élève)' : ''}">D${d}${a && a.d === d ? '<i>🙋</i>' : ''}</button>`).join('')}</span>
-    ${x && x.d ? `<input type="range" min="0" max="${n}" step="1" value="${Math.round(x.pos * n)}" data-mr="1" style="--dc:${DEG_COL[x.d - 1]}" aria-label="Ajuster dans le degré">` : '<span class="mc-r"></span>'}<span class="mc-p">${p == null ? '—' : fmt(p)}<small>/${fmt(c.poids)}</small></span></div>`;
+    ${x && x.d ? `<input type="range" min="0" max="${n}" step="1" value="${Math.round(P01(x.pos) * n)}" data-mr="1" style="--dc:${DEG_COL[x.d - 1]}" aria-label="Ajuster dans le degré">` : '<span class="mc-r"></span>'}<span class="mc-p">${p == null ? '—' : fmt(p)}<small>/${fmt(c.poids)}</small></span></div>`;
 }
 function rRapide() {
   const cl = curClasse(), R = $('#evRapide'); if (!R) return;
@@ -2320,8 +2322,8 @@ function critHTML(c, e) {
   }).join('');
   let intra = '';
   if (x && x.d) {
-    const n = nSteps(c, x.d); const k = Math.round(x.pos * n);
-    const am = a && a.d === x.d ? `<i class="automark" style="left:${a.pos * 100}%" title="Auto-positionnement"></i>` : '';
+    const n = nSteps(c, x.d); const k = Math.round(P01(x.pos) * n);
+    const am = a && a.d === x.d ? `<i class="automark" style="left:${P01(a.pos) * 100}%" title="Auto-positionnement"></i>` : '';
     intra = `<div class="intra">
       <span class="intra-l">Ajuster dans le degré</span>
       <button class="step" data-act="moins" data-c="${c.id}" aria-label="Diminuer">−</button>
@@ -2380,7 +2382,7 @@ function bindEval(e) {
     if (act === 'plus' || act === 'moins') {
       const c = S.criteres.find(k => k.id === b.dataset.c); const x = e.ev[c.id]; const n = nSteps(c, x.d);
       x.pos = snap(c, x.d, x.pos + (act === 'plus' ? 1 : -1) / n);
-      const r = $(`input[type=range][data-c="${c.id}"]`); if (r) r.value = Math.round(x.pos * n);
+      const r = $(`input[type=range][data-c="${c.id}"]`); if (r) r.value = Math.round(P01(x.pos) * n);
       $('#iv-' + c.id).textContent = posLbl(x.d, x.pos); majTotaux(e); save(); rListe();
     } else if (act === 'eff') { delete e.ev[b.dataset.c]; save(); rEvMain(); rListe(); }
     else if (act === 'supAuto') { modal({ titre: 'Supprimer l\'auto-positionnement ?', ok: 'Supprimer', danger: true }).then(ok => { if (ok) { delete e.auto; save(); rEvMain(); rListe(); } }); }
@@ -2858,7 +2860,7 @@ function importerListe(cl, txt) {
 function b64urlEnc(str) { const b = new TextEncoder().encode(str); let s = ''; b.forEach(x => s += String.fromCharCode(x)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function b64urlDec(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new TextDecoder().decode(u); }
 function codeAuto(o) {
-  const d = { n: o.nom, p: o.prenom, c: o.classe, a: (EMC || S.criteres).map(c => { const x = o.ev[c.id]; return x ? [x.d, Math.round(x.pos * 100) / 100] : 0; }), r: o.reussi || '', m: o.ameliorer || '', t: Date.now() };
+  const d = { n: o.nom, p: o.prenom, c: o.classe, a: (EMC || S.criteres).map(c => { const x = o.ev[c.id]; return x ? [x.d, Math.round(P01(x.pos) * 100) / 100] : 0; }), r: o.reussi || '', m: o.ameliorer || '', t: Date.now() };
   return 'DANSE1.' + b64urlEnc(JSON.stringify(d));
 }
 function trouverEleve(nom, prenom, classe, pref) {
@@ -3019,7 +3021,7 @@ function rEleveMode() {
 }
 async function envoyerEleve(ctx, E) {
   E.etape = 'envoi'; rEleveMode(); window.scrollTo(0, 0);
-  const payload = { n: E.nom.trim(), p: E.prenom.trim(), c: E.classe.trim(), a: EMC.map(c => { const x = E.ev[c.id]; return x ? [x.d, Math.round(x.pos * 100) / 100] : 0; }), r: E.reussi.trim(), m: E.ameliorer.trim(), t: Date.now() };
+  const payload = { n: E.nom.trim(), p: E.prenom.trim(), c: E.classe.trim(), a: EMC.map(c => { const x = E.ev[c.id]; return x ? [x.d, Math.round(P01(x.pos) * 100) / 100] : 0; }), r: E.reussi.trim(), m: E.ameliorer.trim(), t: Date.now() };
   const ok = await envoyerDepot(ctx.ident.drop, payload);
   E.echec = !ok; E.etape = ok ? 'envoye' : 'code';
   if (vue === 'eleve') { rEleveMode(); window.scrollTo(0, 0); }
@@ -3032,7 +3034,7 @@ function emCrit(c, E) {
   let intra = '';
   if (x) {
     const n = nSteps(c, x.d);
-    intra = `<div class="intra el"><span class="intra-l">Dans ce niveau, je suis…</span><div class="rw"><input type="range" min="0" max="${n}" step="1" value="${Math.round(x.pos * n)}" data-c="${c.id}" style="--dc:${DEG_COL[x.d - 1]}"><div class="ticks"><span>au début</span><span>au milieu</span><span>${x.d === 4 ? 'au top' : 'presque au suivant'}</span></div></div><span class="intra-v" id="emv-${c.id}">${esc(posLblEl(x.d, x.pos))}</span></div>`;
+    intra = `<div class="intra el"><span class="intra-l">Dans ce niveau, je suis…</span><div class="rw"><input type="range" min="0" max="${n}" step="1" value="${Math.round(P01(x.pos) * n)}" data-c="${c.id}" style="--dc:${DEG_COL[x.d - 1]}"><div class="ticks"><span>au début</span><span>au milieu</span><span>${x.d === 4 ? 'au top' : 'presque au suivant'}</span></div></div><span class="intra-v" id="emv-${c.id}">${esc(posLblEl(x.d, x.pos))}</span></div>`;
   }
   const sp = EMC.reduce((a, k) => a + (+k.poids || 0), 0);
   return `<div class="card crit" id="cr-${c.id}"><div class="crit-h"><div><b>${esc(c.titreEleve)}</b><small>${esc(c.court)} · ${sp ? Math.round(c.poids / sp * 100) : 0} % de la note</small></div></div>
@@ -3389,8 +3391,8 @@ function pageEleve(ctx, cl, e, urlLien) {
       const cx = M + LW + d * CW + 3;
       page.drawRectangle({ x: cx, y: gy - 3, width: CW - 6, height: 6, color: sel && sel.d === d + 1 ? rgbH(DEG_COL[d]) : rgbH(DEG_TINT[d]) });
     }
-    if (au && au.d) { const ax = M + LW + (au.d - 1) * CW + 3 + au.pos * (CW - 6); page.drawCircle({ x: ax, y: gy, size: 4.6, borderColor: rgbH('#C2185B'), borderWidth: 1.8, color: white }); }
-    if (sel && sel.d) { const px = M + LW + (sel.d - 1) * CW + 3 + sel.pos * (CW - 6); page.drawSvgPath('M-5 0 L5 0 L0 8 Z', { x: px, y: gy + 13, color: ink }); page.drawLine({ start: { x: px, y: gy + 5 }, end: { x: px, y: gy - 5 }, thickness: 1.6, color: ink }); }
+    if (au && au.d) { const ax = M + LW + (au.d - 1) * CW + 3 + P01(au.pos) * (CW - 6); page.drawCircle({ x: ax, y: gy, size: 4.6, borderColor: rgbH('#C2185B'), borderWidth: 1.8, color: white }); }
+    if (sel && sel.d) { const px = M + LW + (sel.d - 1) * CW + 3 + P01(sel.pos) * (CW - 6); page.drawSvgPath('M-5 0 L5 0 L0 8 Z', { x: px, y: gy + 13, color: ink }); page.drawLine({ start: { x: px, y: gy + 5 }, end: { x: px, y: gy - 5 }, thickness: 1.6, color: ink }); }
     y -= r.gauge;
   }
   // Pied de page

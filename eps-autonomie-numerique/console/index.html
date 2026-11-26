@@ -402,11 +402,12 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
     else h += '<p class="mut">Aucun paramètre connu sur cet ordinateur : touche « 🔎 Recenser » (les applis s\'ouvrent en arrière-plan quelques secondes).</p>';
     pg.innerHTML = h;
     var sa = $("[data-app]", pg); if (sa) sa.onchange = function () { cur.pApp = sa.value; pParams(pg); };
-    $("[data-scan]", pg).onclick = function () { var b = this; b.disabled = true; scan(function (t) { $("[data-sm]", pg).textContent = t; }).then(function () { if (cur.s === "params") pParams(pg); }); };
+    $("[data-scan]", pg).onclick = function () { var b = this; b.disabled = true; scan(function (t) { var sm = $("[data-sm]", pg); if (sm) sm.textContent = t; /* page quittée pendant le recensement : plus rien à écrire */ }).then(function () { if (cur.s === "params") pParams(pg); }); };
     if (!app) return; var D2 = A[app].defs;
     $$("[data-def]", pg).forEach(function (b) { b.onclick = function () { var d = D2.filter(function (x) { return x.id === b.dataset.def; })[0]; $('[data-p="' + CSS.escape(d.id) + '"]', pg).value = txt(d.def); }; });
     $("[data-save]", pg).onclick = function () { var n = 0, err = "";
-      D2.forEach(function (d) { var f = $('[data-p="' + CSS.escape(d.id) + '"]', pg); if (!f || err) return; var v = d.type === "list" ? f.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean) : d.type === "number" ? Number(f.value) : f.value;
+      D2.forEach(function (d) { var f = $('[data-p="' + CSS.escape(d.id) + '"]', pg); if (!f || err) return; var v = d.type === "list" ? f.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean) : d.type === "number" ? Number(String(f.value).trim().replace(",", ".")) : f.value;
+        if (d.type === "number" && (String(f.value).trim() === "" || !isFinite(v))) { err = "⚠ « " + d.label + " » doit être un nombre."; return; }
         if (d.type === "list" && d.fixed && v.length !== d.fixed) { err = "⚠ « " + d.label + " » doit avoir " + d.fixed + " lignes."; return; }
         if (JSON.stringify(pval(app, d)) === JSON.stringify(v)) return; pset(app, d.id, JSON.stringify(v) === JSON.stringify(d.def) ? null : v); n++; });
       $("[data-msg]", pg).textContent = err || (n ? "✓ " + n + " paramètre" + (n > 1 ? "s" : "") + " enregistré" + (n > 1 ? "s" : "") + " : les tablettes le reçoivent à leur prochaine synchro (les applis ouvertes se mettent à jour au rechargement)." : "Aucun changement."); if (n) setTimeout(function () { if (cur.s === "params") pParams(pg); }, 1500); };

@@ -86,13 +86,13 @@ function bilanHTML({ proj, geo, R, course, a, lesson }) {
    <div class="refl"><b>Mon analyse</b><div>Où ai-je perdu le plus de temps ? Pourquoi ?</div><div class="l"></div><div class="l"></div><div>Ce que je ferai mieux la prochaine fois :</div><div class="l"></div><div class="l"></div></div></div>`;
 }
 function printBilans(list) {
-  printWin("Fiche bilan", list.map(bilanHTML).join(""), `@page{size:A4 portrait;margin:9mm}.bilan{page-break-after:always}.bilan:last-child{page-break-after:auto}.bh{display:flex;justify-content:space-between;gap:6mm;border-bottom:1mm solid #f47a20;padding-bottom:2mm}.bh h1{font-size:15pt;margin:0}.who{text-align:right;font-size:10pt}
+  printWin("Fiche bilan", list.map(bilanHTML).join(""), `@page{size:A4 portrait;margin:9mm}.bilan{page-break-after:always}.bilan:last-child{page-break-after:auto}.bh{display:flex;justify-content:space-between;gap:6mm;border-bottom:1mm solid #E8701A;padding-bottom:2mm}.bh h1{font-size:15pt;margin:0}.who{text-align:right;font-size:10pt}
    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;margin:3mm 0}.st{border:1px solid #ccc;border-radius:2mm;padding:1.5mm 2mm}.st small{display:block;color:#666;font-size:7pt;text-transform:uppercase}.st b{font-size:11pt}
    .mapw{border:1px solid #000;height:105mm}.bmap{width:100%;height:100%;display:block}.lg{font-size:7.5pt;color:#555;margin:1mm 0 2mm}
    table{border-collapse:collapse;width:100%;font-size:8.5pt}td,th{border:1px solid #999;padding:1mm 1.5mm;text-align:left}.refl{margin-top:3mm;font-size:9pt}.refl .l{border-bottom:1px solid #999;height:7mm}`);
 }
 
-// ---------- 3. progression sur le cycle (enseignant) ----------
+// ---------- 3. progression sur la séquence (enseignant) ----------
 async function openProgression() {
   const L = (await DB.get("sessions")) || [], sessions = [];
   for (const x of L) { const X = S?.code === x.code ? S : await DB.get("session:" + x.code); if (X) sessions.push(X); }
@@ -106,7 +106,7 @@ async function openProgression() {
   }));
   const list = Object.values(people).sort((x, y) => (x.cl || "").localeCompare(y.cl || "") || x.nom.localeCompare(y.nom));
   const cls = [...new Set(list.map(p => p.cl).filter(Boolean))];
-  const m = openModal(`<h2>📈 Progression sur le cycle</h2><p class="muted" style="margin-top:-6px">${sessions.length} leçon(s) · ${list.length} élève(s). Les élèves sont reconnus par leur nom (ordre des mots, accents et majuscules sans importance). Touche un élève pour voir ses courbes.</p>
+  const m = openModal(`<h2>📈 Progression sur la séquence</h2><p class="muted" style="margin-top:-6px">${sessions.length} leçon(s) · ${list.length} élève(s). Les élèves sont reconnus par leur nom (ordre des mots, accents et majuscules sans importance). Touche un élève pour voir ses courbes.</p>
    <div class="row" style="margin-bottom:10px"><select class="inp" id="pCl" style="max-width:220px"><option value="">Toutes les classes</option>${cls.map(c => `<option>${esc(c)}</option>`).join("")}</select><button class="btn alt" id="pCsv">⬇ CSV</button></div>
    <div class="tw" id="pTab"></div>`, { wide: true });
   const cell = r => r ? `<b>${r.a.found}/${r.a.total}</b> · ${fmtDur(r.a.temps)}<br><small class="muted">${r.a.vitesse ? fmtNum(r.a.vitesse) + " km/h" : "–"} · ${r.a.erreurs} err. · ${esc(r.R.c)}</small>` : '<span class="muted">–</span>';
@@ -159,7 +159,8 @@ function openAppel() {
     $("#apTab", m).innerHTML = `<table class="t"><thead><tr><th>Élève</th><th>Classe</th><th>Présent</th><th>Parti</th><th>Rentré</th><th>Dans l'appli</th></tr></thead><tbody>${S.appel.list.map((e, i) => { const { R, parti, rentre } = appelState(e);
       return `<tr style="${e.present === false ? "opacity:.45" : parti && !rentre ? "background:#fff4f4" : ""}"><td><b>${esc(e.nom)}</b>${dzO(e.cl, e.nom) ? `<br><small style="color:#C0392B;font-weight:700">🩹 ${esc(EPSD.label(dzO(e.cl, e.nom)))}</small>` : ""}</td><td>${esc(e.cl)}</td><td><button class="btn small ${e.present === false ? "ghost" : "green"}" data-pr="${i}">${e.present === false ? "Absent" : "✓ Présent"}</button></td><td>${parti ? `🏃 ${fmtHeure(parti.t)}` : "–"}</td><td>${rentre ? `✅ ${rentre.t ? fmtHeure(rentre.t) : ""}` : parti ? `<button class="btn small alt" data-rt="${i}">Marquer rentré</button>` : "–"}</td>
        <td>${R ? `<button class="btn small ghost" data-det="${R.r}">${esc(R.nom)}</button>` : libres.length ? `<select data-lk="${i}" class="inp" style="min-height:34px;padding:2px 6px"><option value="">— associer —</option>${libres.map(x => `<option value="${x.r}">${esc(x.nom)}</option>`).join("")}</select>` : '<span class="muted">pas encore inscrit</span>'}</td></tr>`; }).join("")}</tbody></table>`;
-    $$("[data-pr]", m).forEach(b => b.onclick = () => { const e = S.appel.list[+b.dataset.pr]; e.present = e.present === false ? true : false; saveS(); draw(); });
+    $$("[data-pr]", m).forEach(b => b.onclick = () => { const e = S.appel.list[+b.dataset.pr]; e.present = e.present === false ? true : false; saveS(); draw();
+      try { if (window.EPSD && EPSD.appel) { const nk = x => String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').sort().join(' '), A = EPSD.appel.get(e.cl), i = A.findIndex(x => nk(x) === nk(e.nom)); if (e.present === false && i < 0) A.push(e.nom); if (e.present !== false && i >= 0) A.splice(i, 1); EPSD.appel.set(e.cl, A); } } catch (x) {} });
     $$("[data-rt]", m).forEach(b => b.onclick = () => { S.appel.list[+b.dataset.rt].rentre = { t: Date.now(), manuel: 1 }; saveS(); draw(); renderLive(); });
     $$("[data-lk]", m).forEach(s => s.onchange = () => { S.appel.list[+s.dataset.lk].r = s.value || null; saveS(); draw(); });
     $$("[data-det]", m).forEach(b => b.onclick = () => runnerDetail(b.dataset.det));
@@ -212,7 +213,7 @@ function openPose() {
     const d = me ? haversine(me, target) : null, b = me ? bearing(me, target) : null, rot = b != null ? (head != null ? b - head : b) : 0;
     if (d != null && d < 10 && Date.now() - lastBuzz > 8000) { lastBuzz = Date.now(); navigator.vibrate?.([200, 100, 200]); }
     box.innerHTML = `<div class="runcard" style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center">
-      <div style="width:150px;height:150px;border-radius:50%;background:#ffffff14;display:grid;place-items:center;position:relative">${head == null ? '<span style="position:absolute;top:4px;font-weight:800">N</span>' : ""}<svg viewBox="-50 -50 100 100" style="width:120px;transform:rotate(${rot}deg);transition:transform .3s"><path d="M0,-44 L22,30 L0,16 L-22,30Z" fill="${d != null && d < 15 ? "#3ddc97" : "#f47a20"}"/></svg></div>
+      <div style="width:150px;height:150px;border-radius:50%;background:#ffffff14;display:grid;place-items:center;position:relative">${head == null ? '<span style="position:absolute;top:4px;font-weight:800">N</span>' : ""}<svg viewBox="-50 -50 100 100" style="width:120px;transform:rotate(${rot}deg);transition:transform .3s"><path d="M0,-44 L22,30 L0,16 L-22,30Z" fill="${d != null && d < 15 ? "#3ddc97" : "#E8701A"}"/></svg></div>
       <div><div class="lbl" style="color:#fff">${mode === "pose" ? "Balise à poser" : "Balise à ramasser"} · ${n}/${L.length} faites</div><div style="font-family:var(--cond);font-size:3rem;font-weight:800;line-height:1">${esc(ctrlLabel(target))}</div>
       <div style="font-size:2rem;font-weight:800">${d == null ? "GPS…" : fmtDist(d)}</div><div class="sub">${target.desc ? esc(target.desc) + " · " : ""}${me ? `ta précision ±${Math.round(me.acc)} m` : ""}${head == null ? " · flèche orientée par rapport au nord (active la boussole ou marche)" : ""}</div></div></div>
      <div class="row" style="margin-top:10px"><button class="btn green" id="poDone" style="min-height:58px;flex:1">✓ ${mode === "pose" ? "Posée" : "Ramassée"}</button><button class="btn alt" id="poSkip">Passer</button><a class="btn ghost" target="_blank" href="${gmapsUrl(target.lat, target.lon)}">Google Maps</a></div>

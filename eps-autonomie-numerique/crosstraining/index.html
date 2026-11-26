@@ -561,7 +561,7 @@ const LS = {
 };
 const S = {
   onglet:"biblio", get prof(){ return estProf(); }, classe: SS.get("classe")||"",
-  fiches: LS.get("fiches", null) || JSON.parse(JSON.stringify(BIBLIO_DEFAUT)),
+  fiches: (f => f && Array.isArray(f.exercices) ? f : JSON.parse(JSON.stringify(BIBLIO_DEFAUT)))(LS.get("fiches", null)), /* données abîmées → fiches d'origine */
   drive: LS.get("drive", null),
   nonPublie: LS.get("nonPublie", false),
   reglages: LS.get("reglages", {scriptUrl:"", cle:"", dossier:""}),

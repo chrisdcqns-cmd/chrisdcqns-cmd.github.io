@@ -695,6 +695,9 @@ const C=()=>S.classes[S.cur]||S.classes[0];
 
 /* ================== OUTILS ================== */
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+/* texte libre (nom d'équipe…) placé entre apostrophes dans un onclick : on protège d'abord pour JavaScript, puis pour le HTML
+   (l'ordre inverse cassait le bouton dès qu'un nom contenait une apostrophe : « Les p'tits loups ») */
+function jsq(s){return esc(String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' '))}
 function rnd(v,p){return Math.round(v/p+1e-9)*p}
 function fr(v,dec){if(v==null||isNaN(v))return '–';let s=(Math.round(v*100)/100).toString();return s.replace('.',',')}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1800)}
@@ -994,7 +997,7 @@ function startHtml(){
   const c=C();if(!c)return '';const L=startSteps(c),n=L.filter(x=>x.ok).length,H=(()=>{try{return JSON.parse(localStorage.getItem('eps_volley_start')||'{}')}catch(e){return {}}})();
   if(H[c.id]&&n===L.length)return '';
   const open=!H[c.id];
-  return `<details class="card stw" ${open?'open':''} ontoggle="const H=JSON.parse(localStorage.getItem('eps_volley_start')||'{}');H[C().id]=!this.open;localStorage.setItem('eps_volley_start',JSON.stringify(H))"><summary><b>🚀 Démarrer la séquence · ${esc(c.nom)}</b> <span class="stn ${n===L.length?'ok':''}">${n}/${L.length} prêt</span></summary>
+  return `<details class="card stw" ${open?'open':''} ontoggle="try{const H=JSON.parse(localStorage.getItem('eps_volley_start')||'{}')||{};H[C().id]=!this.open;localStorage.setItem('eps_volley_start',JSON.stringify(H))}catch(e){}"><summary><b>🚀 Démarrer la séquence · ${esc(c.nom)}</b> <span class="stn ${n===L.length?'ok':''}">${n}/${L.length} prêt</span></summary>
    <div class="stbar"><i style="width:${Math.round(n/L.length*100)}%"></i></div>
    ${L.map((x,i)=>`<div class="stp ${x.ok?'ok':''}"><span class="stk">${x.ok?'✓':i+1}</span><div style="flex:1"><b>${x.t}</b><div class="muted">${x.d}</div></div><div class="row">${x.b.map(([l,f])=>`<button class="btn ${x.ok?'alt':''} sm" onclick="${f}">${l}</button>`).join('')}</div></div>`).join('')}
    ${n===L.length?'<p class="pok">✓ Tout est prêt : bonne séquence ! (replie ce cadre pour le masquer)</p>':''}</details>`}
@@ -1182,7 +1185,7 @@ function renderCoach(){
   const j=jour(t),need=!j.ok,steps=[['Coach'],['Présents'],['Chasuble'],['Matériel']];
   const ch=CHAS.find(k=>k[0]===j.chas);
   const head=`<div class="chd">${ch?`<span class="dot" style="background:${ch[1]}"></span>`:''}<h1>${esc(t.nom)} · ${esc(c.nom)}${j.coach?` · 🧢 ${esc(shortName(elOf(c,j.coach)))}`:''}${j.terrain?` · Terrain ${j.terrain}`:''}</h1>
-    <span class="tm" id="tmHead" onclick="CO.tab='timer';renderCoach()"></span><button class="lockbtn" onclick="if(confirm('Changer l\'équipe de cette tablette ?')){CO.tid=null;coSave();renderCoach()}">Changer d'équipe</button><button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button><button class="lockbtn" onclick="unlock()">🔒</button></div>`;
+    <span class="tm" id="tmHead" onclick="CO.tab='timer';renderCoach()"></span><button class="lockbtn" onclick="if(confirm(&quot;Changer l'équipe de cette tablette ?&quot;)){CO.tid=null;coSave();renderCoach()}">Changer d'équipe</button><button class="lockbtn" onclick="epsAppHome()">⌂ Accueil</button><button class="lockbtn" onclick="unlock()">🔒</button></div>`;
   if(need){box.innerHTML=head+`<div class="cbody"><div class="steps">${steps.map((x,i)=>`<span class="${i===CO.step?'on':i<CO.step?'ok':''}">${i+1}. ${x[0]}</span>`).join('')}<span>5. Leçon du jour</span></div>${coStep(c,t,j)}</div>`;return}
   const tabs=[['lecon','📋 Leçon'],['timer','⏱ Déroulé'],['match','🏐 Match'],['tournoi','🏆 Tournoi'],['sit','✅ Situations'],['rem','🔁 Remédiation'],['video','🎥 Vidéo'],['auto','🪞 Je me positionne'],['fin','🏁 Fin de leçon'],['bilan','📊 Bilan']];
   /* onglets du moment en gros, les autres dans « Plus » (tournoi et remédiation remontent quand ils servent) */
@@ -1324,7 +1327,7 @@ function tournoiHtml(c,tr,me){const tours=[...new Set(tr.rc.map(r=>r.tour))],E=(
 function coTournoi(c,t){const tr=tourn(c);if(!tr)return `<div class="card"><h2>🏆 Tournoi</h2><p>Pas de tournoi aujourd'hui. Ton enseignant le prépare dans son onglet Équipes.</p></div>`;
   const nx=tr.rc.find(r=>(r.a===t.id||r.b===t.id)&&!rcScore(c,r));
   return `${nx?`<div class="card" style="border-left:6px solid var(--vol)"><h2>Notre prochain match</h2><p class="big">Tour ${nx.tour} · <b>terrain ${nx.terrain}</b> contre <b>${esc(tnom(c,nx.a===t.id?nx.b:nx.a))}</b></p>
-    <button class="pbtn" style="background:var(--d4)" onclick="CO.tab='match';coNewMatch('${esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'")}','${nx.id}')">▶ Commencer ce match</button></div>`:'<div class="card"><p>✓ Tous nos matchs du tournoi sont joués.</p></div>'}${tournoiHtml(c,tr,t.id)}`}
+    <button class="pbtn" style="background:var(--d4)" onclick="CO.tab='match';coNewMatch('${jsq(tnom(c,nx.a===t.id?nx.b:nx.a))}','${nx.id}')">▶ Commencer ce match</button></div>`:'<div class="card"><p>✓ Tous nos matchs du tournoi sont joués.</p></div>'}${tournoiHtml(c,tr,t.id)}`}
 
 /* ---- retour vidéo immédiat : la vidéo reste dans la tablette, le temps de la regarder ---- */
 let VID=[];
@@ -1371,10 +1374,10 @@ function coMatch(c,t){
   if(m&&m.mode==='obs')return obsMatch(c,t,m);
   if(!m&&OBS)return obsSetup(c,t);
   if(!m){const others=(c.equipes||[]).filter(x=>x.id!==t.id),today_=teamMatches(t,today()),tr=tourn(c),nx=tr&&tr.rc.find(r=>(r.a===t.id||r.b===t.id)&&!rcScore(c,r));
-    const af=affOf(c,t),pm=af&&af.mode==='jeu'&&af.adv&&!nx?`<div class="card" style="border-left:6px solid var(--d4)"><h2>📍 Match prévu par ton enseignant</h2><p class="big">Terrain ${af.k} contre <b>${esc(tnom(c,af.adv))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${esc(tnom(c,af.adv)).replace(/'/g,"\\'")}')">▶ Commencer</button></div>`:'';
-    return `${pm}${nx?`<div class="card" style="border-left:6px solid var(--vol)"><h2>🏆 Match du tournoi</h2><p class="big">Tour ${nx.tour} · terrain ${nx.terrain} contre <b>${esc(tnom(c,nx.a===t.id?nx.b:nx.a))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'")}','${nx.id}')">▶ Commencer</button></div>`:''}<div class="card" style="border-left:6px solid #0f3d7a"><h2>👀 Match observé par une autre équipe</h2><p class="muted">Une équipe au repos prend notre tablette (et celle de nos adversaires) : elle arbitre, tient la table de marque et observe. À la pause, elle nous rend la tablette pour qu'on analyse le match.</p>
-     <button class="pbtn" style="background:#0f3d7a" onclick="OBS={adv:'${nx?esc(tnom(c,nx.a===t.id?nx.b:nx.a)).replace(/'/g,"\\'"):''}',rid:'${nx?nx.id:''}',cible:15,pause:8};renderCoach()">👀 Transformer en tablette d'observation</button></div>
-    <div class="card"><h2>🏐 ${nx?'Autre match':'Nouveau match'}</h2><p class="muted">Contre quelle équipe ?</p><div class="tiles">${others.map(x=>`<button class="tile" onclick="coNewMatch('${esc(x.nom).replace(/'/g,"\\'")}')">${esc(x.nom)}</button>`).join('')}</div>
+    const af=affOf(c,t),pm=af&&af.mode==='jeu'&&af.adv&&!nx?`<div class="card" style="border-left:6px solid var(--d4)"><h2>📍 Match prévu par ton enseignant</h2><p class="big">Terrain ${af.k} contre <b>${esc(tnom(c,af.adv))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${jsq(tnom(c,af.adv))}')">▶ Commencer</button></div>`:'';
+    return `${pm}${nx?`<div class="card" style="border-left:6px solid var(--vol)"><h2>🏆 Match du tournoi</h2><p class="big">Tour ${nx.tour} · terrain ${nx.terrain} contre <b>${esc(tnom(c,nx.a===t.id?nx.b:nx.a))}</b></p><button class="pbtn" style="background:var(--d4)" onclick="coNewMatch('${jsq(tnom(c,nx.a===t.id?nx.b:nx.a))}','${nx.id}')">▶ Commencer</button></div>`:''}<div class="card" style="border-left:6px solid #0f3d7a"><h2>👀 Match observé par une autre équipe</h2><p class="muted">Une équipe au repos prend notre tablette (et celle de nos adversaires) : elle arbitre, tient la table de marque et observe. À la pause, elle nous rend la tablette pour qu'on analyse le match.</p>
+     <button class="pbtn" style="background:#0f3d7a" onclick="OBS={adv:'${nx?jsq(tnom(c,nx.a===t.id?nx.b:nx.a)):''}',rid:'${nx?nx.id:''}',cible:15,pause:8};renderCoach()">👀 Transformer en tablette d'observation</button></div>
+    <div class="card"><h2>🏐 ${nx?'Autre match':'Nouveau match'}</h2><p class="muted">Contre quelle équipe ?</p><div class="tiles">${others.map(x=>`<button class="tile" onclick="coNewMatch('${jsq(x.nom)}')">${esc(x.nom)}</button>`).join('')}</div>
      <div class="row" style="margin-top:10px"><input type="text" id="coAdv" placeholder="Autre adversaire" style="flex:1"><button class="btn" onclick="coNewMatch(document.getElementById('coAdv').value||'Adversaire')">Commencer</button></div></div>
     ${today_.length?`<div class="card"><h2>Matchs d'aujourd'hui</h2>${today_.map(x=>`<div class="erow"><span class="nm">contre ${esc(x.adv)}</span><b>${x.nous} – ${x.eux}</b> ${x.nous>x.eux?'✅':x.nous<x.eux?'❌':'➖'}</div>`).join('')}
       <button class="btn or" style="margin-top:10px" onclick="CO.tab='rem';renderCoach()">🔁 Temps de remédiation</button></div>`:''}`}
@@ -1406,7 +1409,7 @@ function obsSetup(c,t){const others=(c.equipes||[]).filter(x=>x.id!==t.id),o=OBS
     <label class="l" style="margin-top:10px">📋 Table de marque</label><div class="pres">${pl.map(e=>`<button class="${o.marqueur===e.id?'p':''}" onclick="OBS.marqueur='${e.id}';renderCoach()">${esc(fullName(e))}</button>`).join('')}</div></div>
   <div class="card"><h2>3. Le match</h2>
     <label class="l">Contre</label><input type="text" id="obAdv" value="${esc(o.adv||'')}" placeholder="Équipe adverse" oninput="OBS.adv=this.value">
-    <div class="tiles" style="margin-top:6px">${others.filter(x=>x.id!==o.eq).map(x=>`<button class="tile ${o.adv===x.nom?'on':''}" style="padding:10px" onclick="OBS.adv='${esc(x.nom).replace(/'/g,"\\'")}';renderCoach()">${esc(x.nom)}</button>`).join('')}</div>
+    <div class="tiles" style="margin-top:6px">${others.filter(x=>x.id!==o.eq).map(x=>`<button class="tile ${o.adv===x.nom?'on':''}" style="padding:10px" onclick="OBS.adv='${jsq(x.nom)}';renderCoach()">${esc(x.nom)}</button>`).join('')}</div>
     <label class="l" style="margin-top:12px">Set en <b id="obC">${o.cible}</b> points</label><input class="big" type="range" min="5" max="25" value="${o.cible}" oninput="OBS.cible=+this.value;document.getElementById('obC').textContent=this.value;OBS.pause=Math.ceil(this.value/2);document.getElementById('obP').textContent=OBS.pause;document.getElementById('obPr').value=OBS.pause">
     <label class="l">Pause d'analyse quand une équipe atteint <b id="obP">${o.pause}</b> points</label><input class="big" id="obPr" type="range" min="2" max="24" value="${o.pause}" oninput="OBS.pause=+this.value;document.getElementById('obP').textContent=this.value">
     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="OBS=null;renderCoach()">Annuler</button>

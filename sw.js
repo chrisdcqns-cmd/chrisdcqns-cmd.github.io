@@ -3,7 +3,7 @@
 // leur propre service worker (toute nouvelle appli est donc prise en charge sans rien ajouter à mine()).
 // Acrosport, Escalade, OrienRun, CO Course et Pose des balises (OWN) gardent le leur : leurs requêtes ne sont pas touchées ici ;
 // ces service workers gardent eux-mêmes une copie des fichiers communs (voir SHARED dans chacun).
-const CORE = "eps-core-v156";
+const CORE = "eps-core-v157";
 const B = "/eps-autonomie-numerique/"; // adresse des applications
 const CORE_FILES = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png", B, B + "index.html", B + "course-orientation/", B + "course-orientation/index.html", B + "eps-home.js", B + "eps-lists.js", B + "eps-eval.js", B + "eps-shell.js", B + "eps-guides.js", B + "eps-lecons.js", B + "eps-obs.js", B + "eps-qr.js", B + "eps-groupes.js", B + "eps-remed-ref.js", B + "vendor/qrlib.js", B + "vendor/jszip.min.js", B + "vendor/pdf-lib.min.js", B + "console/", B + "console/index.html", B + "relais/", B + "relais/index.html", B + "volley/", B + "volley/index.html", B + "volley/echauffement-temps1.webp", B + "volley/echauffement-temps2.webp", B + "badminton/", B + "badminton/index.html", B + "badminton/echauffement-deplacements.webp", B + "danse/", B + "danse/index.html", B + "edt/", B + "edt/index.html", B + "appel-as/", B + "appel-as/index.html", B + "ccf/", B + "ccf/index.html", B + "crosstraining/", B + "crosstraining/index.html", B + "crosstraining/scinde.html", B + "mon-bilan/", B + "mon-bilan/index.html"];
 // Bibliothèques externes utilisées par Relais Vitesse (lecture Excel, polices)

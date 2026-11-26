@@ -294,6 +294,8 @@ window.epsApChip = function (o) {
   var P = window.EPSP = { app: APP, defs: [],
     reg: function (d) { if (!P.defs.some(function (x) { return x.id === d.id; })) { P.defs.push(d); saveDefs(); } },
     get: function (id, def) { var o = (V().items || {})[APP + "|" + id]; if (!o || o.del || o.v == null) return def;
-      if (Array.isArray(def) && !Array.isArray(o.v)) return def; return o.v; },
+      if (Array.isArray(def) && !Array.isArray(o.v)) return def;
+      if (typeof def === "number" && (typeof o.v !== "number" || !isFinite(o.v))) return def; /* valeur enregistrée inutilisable : valeur d'origine */
+      return o.v; },
     p: function (d) { P.reg(d); var v = P.get(d.id, d.def); if (d.fixed && Array.isArray(v)) { v = v.slice(0, d.fixed); while (v.length < d.fixed) v.push(d.def[v.length]); } return v; } };
 })();

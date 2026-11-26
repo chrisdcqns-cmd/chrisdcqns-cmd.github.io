@@ -151,8 +151,10 @@
         var k = EPSP.app + "|" + id, o = V.items[k], u = Math.max(Date.now(), ((o && o.u) || 0) + 1); V.items[k] = val === null ? { id: k, del: 1, u: u } : { id: k, v: val, u: u }; V.pend[k] = u; localStorage.setItem(K, JSON.stringify(V)); }
       el.querySelectorAll("[data-def]").forEach(function (b) { b.onclick = function () { var d = D.filter(function (x) { return x.id === b.dataset.def; })[0], f = el.querySelector('[data-p="' + d.id + '"]'); f.value = txt(d.def); }; });
       el.querySelector("[data-save]").onclick = function () { var n = 0;
-        D.forEach(function (d) { var f = el.querySelector('[data-p="' + d.id + '"]'); if (!f) return; var v = d.type === "list" ? f.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean) : d.type === "number" ? Number(f.value) : f.value;
+        D.forEach(function (d) { var f = el.querySelector('[data-p="' + d.id + '"]'); if (!f) return; var v = d.type === "list" ? f.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean) : d.type === "number" ? Number(String(f.value).trim().replace(",", ".")) : f.value;
+          if (n < 0) return;
           if (d.type === "list" && d.fixed && v.length !== d.fixed) { msg.textContent = "⚠ « " + d.label + " » doit avoir " + d.fixed + " lignes."; n = -1; return; }
+          if (d.type === "number" && (String(f.value).trim() === "" || !isFinite(v))) { msg.textContent = "⚠ « " + d.label + " » doit être un nombre."; n = -1; return; } /* champ vidé = 0 enregistré auparavant */
           if (n < 0) return; var same = JSON.stringify(v) === JSON.stringify(d.def), was = JSON.stringify(cur(d)) === JSON.stringify(v); if (was) return; store(d.id, same ? null : v); n++; });
         if (n < 0) return; if (!n) { msg.textContent = "Aucun changement."; return; }
         try { window.EPSD && EPSD.syncSoon && EPSD.syncSoon(); } catch (e) {} msg.textContent = "✓ Enregistré. L'appli se recharge…"; setTimeout(function () { location.reload(); }, 1200); };

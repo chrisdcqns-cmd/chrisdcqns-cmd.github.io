@@ -40,7 +40,7 @@ function viewSeance(v) {
       let hr = null; const hv = $("#sHr").value; if (hv) { const [h, mi] = hv.split(":").map(Number); const d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1); hr = d.getTime(); }
       S = { code: randCode(4), nom: $("#sNom").value.trim(), date: Date.now(), courses: ids, runners: {}, dec: {}, msgs: [], since: 0, active: true, ack: {}, hr, salt: P.salt };
       S.snap = Object.fromEntries(sessionCourses().map(k => [k.k, compactCourse(k)]));
-      const C = await getClasses(); S.cls = cls; S.appel = { list: cls.flatMap(c => (C[c] || []).map(nom => ({ nom, cl: c, present: !dzO(c, nom) }))) };
+      const C = await getClasses(); S.cls = cls; S.appel = { list: cls.flatMap(c => (C[c] || []).map(nom => ({ nom, cl: c, present: !dzO(c, nom) && !(window.epsAbsJour && epsAbsJour(nom, c)) }))) }; /* 🙋 absents de l'appel commun pré-cochés */
       LS.set("curSession", S.code); await saveS(); await publishSession(); startPolling(); setPTab("seance");
     });
     $("#sPerm").onclick = printPermQR;
@@ -184,7 +184,7 @@ function legTable(a, R, withActions) {
    ${a.punches.filter(p => p.status === "hors" || p.status === "code" || p.status === "refus").map(p => `<tr style="background:#fff4f4"><td>Balise ${esc(p.n)}</td><td>${fmtHeure(p.t)}</td><td colspan="7" class="muted">${p.status === "hors" ? "Balise hors de son parcours" : p.status === "code" ? "Code incorrect" : "Refusée par l'enseignant"}</td><td>${withActions ? `${p.status !== "hors" ? `<button class="btn small green" data-ok="${p.id}">✓ Juste</button> ` : ""}<button class="btn small red" data-ko="${p.id}">✕ Fausse</button>${S.dec[p.id] != null ? ` <small class="muted">notifié</small>` : ""}` : '<span class="chip ko">✕</span>'}</td></tr>`).join("")}
    </tbody></table></div>`;
 }
-const QUICK = ["Reviens au point de départ", "Tu es sur la bonne voie 👍", "Attention : tu sors de la zone !", "Appelle-moi", "Regarde bien ta carte", "Plus que 5 minutes !"];
+const QUICK = EPSP.p({id:'quick',sec:'Suivi en direct',label:'Messages rapides envoyés aux coureurs',type:'list',def:["Reviens au point de départ", "Tu es sur la bonne voie 👍", "Attention : tu sors de la zone !", "Appelle-moi", "Regarde bien ta carte", "Plus que 5 minutes !"]}); /* 🎛 modifiable : ⚙ Réglages → 🎛 Paramètres */
 function runnerTrackSVG(R, a, k) {
   const g = georef(); if (!g) return "";
   const mm = mapMM(P), pts = Object.values(R.ev).filter(e => e.la != null).sort((x, y) => x.t - y.t).map(e => g.toPx(e.la, e.lo));
@@ -421,8 +421,8 @@ return {PDFDoc,zip,pFile,foot,dlZip,para,pW,fday};
 
 // ---------- bilans de la leçon : un .zip avec un PDF par élève (à déposer sur Pronote) ----------
 function orienPdf(R, a, k, X) {
-  const doc = EPDF.PDFDoc(), PW = doc.W, M = doc.M, CW = PW - 2 * M, AC = "#f47a20", INK = "#1d2430", MUT = "#5b6370";
-  if (window.EPSR && EPSR.pdfHead) EPSR.pdfHead(doc, { act: "Course d'orientation", titre: "Bilan", ca: "CA2", ac: "#B26B00", nom: R.nom, classe: R.cl || "", lecon: X.nom || "", date: X.date ? EPDF.fday(new Date(X.date).toLocaleDateString("fr-CA")) : "", info: "Parcours : " + (k?.nm || R.c || "–") });
+  const doc = EPDF.PDFDoc(), PW = doc.W, M = doc.M, CW = PW - 2 * M, AC = "#E8701A", INK = "#1d2430", MUT = "#5b6370";
+  if (window.EPSR && EPSR.pdfHead) EPSR.pdfHead(doc, { act: "Course d'orientation", titre: "Bilan", ca: "CA2", ac: "#E8701A", nom: R.nom, classe: R.cl || "", lecon: X.nom || "", date: X.date ? EPDF.fday(new Date(X.date).toLocaleDateString("fr-CA")) : "", info: "Parcours : " + (k?.nm || R.c || "–") });
   else { doc.page(); doc.rect(0, 0, PW, 96, INK); doc.rect(0, 96, PW, 5, AC);
   doc.text(M, 38, "Course d'orientation : bilan", { size: 20, bold: true, color: "#ffffff" });
   doc.text(M, 64, R.nom, { size: 16, bold: true, color: "#ffc08a" });

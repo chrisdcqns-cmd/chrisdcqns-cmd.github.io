@@ -62,6 +62,9 @@ for d, ordre, marque, f in [("ccf", r"ORDER = (\[.*?\])", "/*APP*/", None), ("or
     if f: j = j.replace(f, "")
     if (D / "src" / "shell.html").read_text(encoding="utf-8").replace(marque, j) != (D / "index.html").read_text(encoding="utf-8"):
         av.append("%s : src/ en retard sur index.html (index.html est la référence ; build.py refusera d'écraser)" % d)
+# 6. code des boutons (attributs on…) : JavaScript valide une fois la page affichée (apostrophe non protégée, etc.)
+r = subprocess.run(["node", str(B / "outils" / "boutons.js")] + [str(p) for p in list(B.glob("*.js")) + pages], capture_output=True, text=True)
+if r.returncode: pb += ["bouton : " + l for l in r.stdout.strip().split("\n")[:-1] if l.strip()]
 for x in av: print("⚠ ", x)
 for x in pb: print("✗ ", x)
 print("%d problème(s), %d avertissement(s) · %d pages, %d scripts contrôlés" % (len(pb), len(av), len(pages), len(js)))

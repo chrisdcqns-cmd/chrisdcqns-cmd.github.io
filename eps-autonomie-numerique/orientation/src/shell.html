@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#14213d;--ink2:#56607a;--paper:#f5f2ea;--card:#fff;--line:#e2dccf;--orange:#f47a20;--orange2:#d9600a;--violet:#c21fbf;--green:#2a9d6f;--red:#e63946;--sun:#ffb703;--blue:#1f4fa3;--r:16px;--cond:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif}
+:root{--ink:#14213d;--ink2:#56607a;--paper:#f5f2ea;--card:#fff;--line:#e2dccf;--orange:#E8701A;--orange2:#C45A0E;--violet:#c21fbf;--green:#2a9d6f;--red:#e63946;--sun:#ffb703;--blue:#1f4fa3;--r:16px;--cond:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--paper);color:var(--ink);font-family:Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:17px}
 body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh}
@@ -152,9 +152,24 @@ table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums
 #scanner .frame{position:absolute;left:50%;top:42%;width:min(70vw,320px);aspect-ratio:1;transform:translate(-50%,-50%);border:4px solid #fff;border-radius:24px;box-shadow:0 0 0 2000px #0006}
 #scanner .bar{padding:14px;display:flex;gap:10px;justify-content:center;background:#000}
 @media print{.noprint{display:none!important}}
+
+/* ===== Charte EPS : barre sombre commune, liseré et accents à la couleur de l'appli ===== */
+:root{--app:#E8701A}
+.ebar{background:#14171C;color:#fff;box-shadow:inset 0 -4px 0 var(--app);padding:calc(env(safe-area-inset-top) + 12px) 22px 16px;display:flex;align-items:center;gap:12px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.ei{width:36px;height:36px;border-radius:10px;background:var(--app);display:inline-grid;place-items:center;flex:none}.ei svg{width:22px;height:22px}
+.ebar b{font-size:20px;font-weight:800}.ebar small{color:#A9AEB8;font-weight:600;font-size:14px;flex:1}
+body:has(#home.hidden) .homebar{display:none}
+#prof header{background:#14171C;box-shadow:inset 0 -4px 0 var(--app);padding:10px 14px 4px}
+#prof .topline .logo{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:20px;font-weight:800;text-transform:none}
+#profHome{display:none}
+.tab{color:#B9BEC7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-transform:none;font-size:15px;border-radius:10px 10px 0 0}
+.tab.on{background:var(--app);color:#fff}
+html:not(.eps-teach) #goProf{display:none}
+.epse-open{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer;white-space:nowrap}
 </style>
 </head>
 <body>
+<header class="ebar homebar"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg></span><b>OrienRun</b><small>CA2 · Course d'orientation</small><span data-eps-bar></span></header>
 <div id="home" class="hidden">
   <div class="hero"><span class="tag">EPS · Course d'orientation</span><h1>OrienRun<br>EPS</h1><p>Cartes, balises à QR code, parcours, suivi GPS en direct et résultats.</p></div>
   <div class="bigchoice">
@@ -166,7 +181,7 @@ table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums
 </div>
 <div id="prof" class="hidden">
   <header>
-    <div class="topline"><div class="flag" style="width:30px;height:30px"></div><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button></div>
+    <div class="topline"><span class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg></span><div class="logo">OrienRun · Enseignant</div><span class="grow"></span><span id="projName" class="chip" style="background:#ffffff26;color:#fff"></span><button class="iconbtn" id="profHome" title="Accueil">⌂</button><button class="epse-open" onclick="window.EPST&&EPST.openVue()">👁 Vue élève</button><button class="epse-open" onclick="window.EVORI&&EVORI.open()">📋 Évaluation</button><button class="epse-open" onclick="window.EPSLC&&EPSLC.open('lec')">📝 Fiches de leçon</button><button class="epse-open" onclick="window.EPSLC&&EPSLC.open('live')">📡 Leçon en cours</button><span data-eps-bar></span></div>
     <nav class="tabs" id="ptabs">
       <button class="tab" data-t="carte">🗺 Carte</button><button class="tab" data-t="balises">🚩 Balises</button><button class="tab" data-t="parcours">〰 Parcours</button><button class="tab" data-t="biblio">📚 Bibliothèque</button><button class="tab" data-t="seance">📡 Leçon live<span class="bdg hidden" id="alertBdg"></span></button><button class="tab" data-t="resultats">🏁 Résultats</button><button class="tab" data-t="reglages">⚙ Réglages</button>
     </nav>
@@ -176,10 +191,50 @@ table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums
 <div id="eleve" class="hidden"></div>
 <div id="modalRoot"></div>
 <input type="file" id="fileIn" class="hidden">
+<script src="../eps-lists.js"></script>
 <script>
 /*__JS__*/
 </script>
-<script>window.epsAppHome=function(){try{location.hash="";showHome()}catch(e){location.href=location.pathname}};</script>
+<script src="../eps-eval.js"></script>
+<script src="../eps-shell.js"></script>
+<script>/* évaluation commune (eps-eval.js) : grille par degrés, auto-positionnement par QR code, fiches PDF au format Danse / Volley-ball.
+   Grille proposée (CA2, lycée), modifiable dans Évaluation → Grille ; données « eps.eval.ori.v1 », synchronisées entre tablettes. */
+window.EVORI=window.EPSE?EPSE.store({app:'ori',nom:'Course d\'orientation',ca:'CA2',color:'#E8701A',pfx:'or',code:'ORI1',url:'https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/orientation/',
+ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V3"/><path d="M6 4h13v10H6z"/><path d="M6 4l13 10"/></svg>',
+ isTeacher:function(){try{return Number(localStorage.getItem('eps.teach.until')||0)>Date.now()||!!(typeof tpw==='function'&&tpw())}catch(e){return false}},unlock:function(){return Promise.resolve(typeof profLogin==='function'?profLogin():null)},
+ grid:{degres:['Degré 1','Degré 2','Degré 3','Degré 4'],degresEl:['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'],criteres:[
+  {id:'iti',afl:'AFL1',max:6,nom:"Lecture de carte et choix d'itinéraire",but:"Orienter sa carte, se situer en permanence, choisir l'itinéraire le plus efficace.",nomEl:'Je lis ma carte',butEl:"Je sais où je suis et je choisis le meilleur chemin.",
+   desc:["Carte rarement orientée ; se perd souvent ; suit les autres.","Oriente sa carte aux points de décision ; choix d'itinéraire par les lignes directrices les plus évidentes.","Carte orientée en permanence, pouce sur la carte ; choisit des itinéraires efficaces et anticipe le point d'attaque.","Lit la carte en courant ; compare plusieurs itinéraires et choisit le plus rapide ; corrige seul ses erreurs."],
+   descEl:["Je me perds souvent et je suis les autres.","J'oriente ma carte quand je m'arrête et je suis les chemins.","Ma carte est toujours orientée et je choisis de bons chemins.","Je lis ma carte en courant et je choisis le chemin le plus rapide."]},
+  {id:'perf',afl:'AFL1',max:6,nom:'Efficacité du déplacement et performance',but:"Trouver toutes les balises du parcours le plus vite possible, en sécurité.",nomEl:'Ma course',butEl:'Je trouve toutes mes balises le plus vite possible.',
+   desc:["Parcours incomplet (balises manquantes) ou hors délai ; marche souvent.","Parcours complet du niveau facile ; allure irrégulière, pertes de temps aux balises.","Parcours complet de niveau moyen dans le temps ; allure régulière, peu d'hésitations.","Parcours difficile réussi rapidement ; adapte son allure au terrain et à la difficulté."],
+   descEl:["Il me manque des balises ou je dépasse le temps.","Je fais tout un parcours facile, mais je perds du temps.","Je réussis un parcours moyen dans le temps, sans trop hésiter.","Je réussis un parcours difficile, vite et sans erreur."]},
+  {id:'prep',afl:'AFL2',max:4,nom:"S'entraîner, analyser sa course et ajuster",but:"Analyser sa trace et ses temps, repérer ses erreurs, ajuster son projet de course.",nomEl:'J\'analyse ma course',butEl:'Je regarde ma trace et je corrige mes erreurs.',
+   desc:["Ne revient pas sur sa course.","Repère ses erreurs avec l'aide de l'enseignant ou de la trace.","Analyse sa trace seul, identifie la cause de ses erreurs et choisit un parcours adapté.","Construit son projet de course (niveau, stratégie) et l'ajuste après chaque course ; conseille ses camarades."],
+   descEl:["Je ne regarde pas ma course après.","Je trouve mes erreurs avec l'aide du prof ou de ma trace.","Je comprends seul pourquoi je me suis trompé et je choisis un parcours adapté.","Je prépare ma course, je l'ajuste et je conseille les autres."]},
+  {id:'secu',afl:'AFL3',max:4,nom:'Sécurité et rôles',but:"Respecter les règles de sécurité et les limites, assumer les rôles (contrôleur, poseur de balises, chronométreur).",nomEl:'Sécurité et rôles',butEl:'Je respecte les règles et je joue bien mon rôle.',
+   desc:["Ne respecte pas toujours les limites ou l'heure de retour ; rôles délaissés.","Respecte les règles quand on les lui rappelle ; assume un rôle simple.","Respecte seul les règles de sécurité et les limites ; tient son rôle avec rigueur.","Veille à la sécurité de tous ; organise ou contrôle une partie de la course (balises, départs, résultats)."],
+   descEl:["J'oublie parfois les limites ou l'heure de retour.","Je respecte les règles quand on me les rappelle.","Je respecte seul les règles et je joue bien mon rôle.","Je veille à la sécurité de tous et j'aide à organiser la course."]}]}}):null;
+</script>
+<script>/* accès enseignant caché : appui long (3 s) sur le logo */
+/* espace enseignant commun (eps-shell.js) : les onglets d'OrienRun sont rangés dans les 7 onglets communs ; écrans inchangés (carte, GPS, leçon live) */
+(function(){var st=document.createElement('style');st.textContent='html.epst-on #ptabs,html.epst-on #prof .epse-open{display:none!important}';document.head.appendChild(st)})();
+window.EPSTORI=window.EPST?EPST.init({app:'ori',nom:'OrienRun',color:'#E8701A',isTeacher:function(){var p=document.getElementById('prof');return !!p&&!p.classList.contains('hidden')},anchor:'#prof header',main:'#pview',home:'seq',
+ tabs:{
+  seq:{go:function(){setPTab(['carte','balises','parcours','seance'].indexOf(ptab)>=0?ptab:'seance')},on:function(){return ['carte','balises','parcours','seance'].indexOf(ptab)>=0},
+   actions:[{main:1,ord:0.1,ico:'🚀',label:'Créer une séquence',go:function(){if(window.EPSLC)EPSLC.open('lec');else alert('Fiches de leçon encore en chargement : réessaie dans un instant.')}},{main:1,ico:'🛰',label:'Leçon live (GPS)',go:function(){setPTab('seance')}},{ico:'🗺',label:'Carte',go:function(){setPTab('carte')}},{ico:'🚩',label:'Balises',go:function(){setPTab('balises')}},{ico:'〰',label:'Parcours',go:function(){setPTab('parcours')}},{ico:'🆕',label:'Nouvelle carte',sub:'Même fond de carte, sans balise',go:function(){newMapDialog()}}]},
+  eval:{panel:function(el){var c=window.epsCurrentClass&&epsCurrentClass();if(window.EVORI&&EVORI.mount)EVORI.mount(el,['eval','grille'],c&&c.nom);else el.innerHTML='<p>Évaluation indisponible.</p>'}},
+  cls:{panel:function(el){el.innerHTML='<h2>👥 Classes</h2><p class="mut">Listes d\'élèves d\'OrienRun (communes à toutes les applis).</p><div id="clPanelShell"></div>';classesPanel(el.querySelector('#clPanelShell'))}},
+  bil:{panel:function(el){el.innerHTML='<h2>📄 Bilans</h2><p class="mut">Résultats des courses et fiches d\'évaluation (PDF, .zip, Pronote, publication en ligne).</p><div class="epst-grid"><button type="button" class="epst-card" id="ori-res"><i>🏁</i><span><b>Résultats des courses</b><small>Temps, balises, classements</small></span></button></div><div id="ori-ev"></div>';
+    el.querySelector('#ori-res').onclick=function(){EPSTORI.closePanel();EPSTORI.mark('bil');setPTab('resultats')};
+    var c=window.epsCurrentClass&&epsCurrentClass();if(window.EVORI&&EVORI.mount)EVORI.mount(el.querySelector('#ori-ev'),['bilan'],c&&c.nom)},on:function(){return ptab==='resultats'}}},
+ biblio:[{ico:'📚',label:'Bibliothèque OrienRun',sub:'Cartes, légendes, fiches techniques',go:function(){setPTab('biblio')}}],
+ reglages:[{ico:'⚙',label:'Réglages d\'OrienRun',sub:'Projet, carte, code, sauvegarde',go:function(){setPTab('reglages')}}]
+}):null;
+window.epsTeacherEntry=function(){try{location.hash="";showHome()}catch(e){}var b=document.getElementById("goProf");if(b)b.click()};
+/* dispensés : seulement ceux des classes de la leçon en cours (appel), sinon tous */
+window.epsCurrentClass=function(){try{if(typeof S!=="undefined"&&S&&S.active&&S.cls&&S.cls.length)return{nom:S.cls.join(" + "),eleves:((S.appel&&S.appel.list)||[]).map(function(x){return x.nom})}}catch(e){}return null};
+window.epsAppHome=function(){try{stopMyPos()}catch(e){}try{location.hash="";showHome()}catch(e){location.href=location.pathname}};</script>
 <script src="../eps-home.js" defer></script>
 </body>
 </html>

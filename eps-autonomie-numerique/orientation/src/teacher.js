@@ -71,6 +71,8 @@ async function openProf() {
   resumeSession();
 }
 function setPTab(t) {
+  /* onglet demandé avant le chargement du projet (onglets communs) : on charge d'abord le projet */
+  if (!P) { DB.get("projet").then(p => { if (!P) { P = p || newProject(); if (!P.salt) P.salt = uid(6); } setPTab(t); }); return; }
   ptab = t; LS.set("ptab", t);
   $$("#ptabs .tab").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   $("#projName").textContent = P.nom;
@@ -90,7 +92,7 @@ function viewCarte(v) {
     <div class="tools">
       <div class="row" style="gap:6px"><button class="btn small or" id="loadMap">📂 Charger ma carte</button><button class="btn small ghost" id="mapSet">⚙</button><button class="btn small ghost" id="undoB" title="Annuler">↶</button></div>
       <h4>Ma carte</h4>
-      <div class="row" style="gap:6px;margin:0 0 8px"><button class="btn small or" id="bLib" style="flex:1 1 100%">📚 Bibliothèque de cartes</button><button class="btn small alt" id="bSaveAs" style="flex:1">💾 Enregistrer</button><button class="btn small alt" id="bDl" style="flex:1">⬇ Télécharger</button><button class="btn small ghost" id="bCoe" style="flex:1 1 100%">📲 Utiliser dans CO éval</button></div>
+      <div class="row" style="gap:6px;margin:0 0 8px"><button class="btn small or" id="bLib" style="flex:1 1 100%">📚 Bibliothèque de cartes</button><button class="btn small alt" id="bSaveAs" style="flex:1">💾 Enregistrer</button><button class="btn small alt" id="bDl" style="flex:1">⬇ Télécharger</button><button class="btn small alt" id="bNewMap" style="flex:1 1 100%">🆕 Nouvelle carte (même fond, sans balise)</button><button class="btn small ghost" id="bCoe" style="flex:1 1 100%">📲 Utiliser dans CO Course</button></div>
       <h4>Outils</h4><div class="tgrid">
         <button class="tool" data-tool="select"><svg viewBox="0 0 26 20"><path d="M8 2l10 9-5 1 3 6-2 1-3-6-3 4z" fill="currentColor"/></svg>Choisir / déplacer</button>
         <button class="tool" data-tool="pan"><svg viewBox="0 0 26 20"><path d="M13 1v18M4 10h18M13 1l-3 3M13 1l3 3M13 19l-3-3M13 19l3-3M4 10l3-3M4 10l3 3M22 10l-3-3M22 10l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>Se déplacer</button>
@@ -132,7 +134,7 @@ function viewCarte(v) {
   $("#myPosB").onclick = toggleMyPos;
   $("#pcRep") && ($("#pcRep").onclick = placeReperes);
   $("#bmB").onclick = blankMapDialog;
-  $("#bLib").onclick = libraryDialog; $("#bSaveAs").onclick = saveAsDialog; $("#bDl").onclick = downloadDialog; $("#bCoe").onclick = () => coeDialog(P);
+  $("#bLib").onclick = libraryDialog; $("#bSaveAs").onclick = saveAsDialog; $("#bDl").onclick = downloadDialog; $("#bCoe").onclick = () => coeDialog(P); $("#bNewMap").onclick = newMapDialog;
   const pst = (k, v) => { P.map[k] = v; saveP(); renderEditor(); };
   $("#rCirc").oninput = e => { $("#vCirc").textContent = e.target.value + " %"; P.map.circ = e.target.value / 100; renderEditor(); };
   $("#rTxt").oninput = e => { $("#vTxt").textContent = e.target.value + " %"; P.map.txt = e.target.value / 100; renderEditor(); };
@@ -165,8 +167,8 @@ function renderEditor() {
   const mm = mapMM(P);
   let extra = "";
   if (ED.showCal) P.calib.filter(c => c.x != null && !c.auto).forEach(c => { extra += `<g data-cal="${c.id}"><circle cx="${c.x}" cy="${c.y}" r="${2.2 * mm}" fill="#1a9b5533" stroke="#1a9b55" stroke-width="${.4 * mm}"/><path d="M${c.x} ${c.y - 3.5 * mm}V${c.y + 3.5 * mm}M${c.x - 3.5 * mm} ${c.y}H${c.x + 3.5 * mm}" stroke="#1a9b55" stroke-width="${.3 * mm}"/><text x="${c.x + 2.6 * mm}" y="${c.y - 2.6 * mm}" font-size="${2.6 * mm}" fill="#1a9b55" font-weight="700" font-family="Arial">GPS</text></g>`; });
-  if (ED.draw && ED.draw.pts.length) { const f = { sym: ED.draw.sym, pts: ED.draw.pts }; extra += featureSVG(f, mm).replace(/data-f="[^"]*"/g, "") + ED.draw.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${mm * .9}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .4}"/>`).join(""); }
-  if (ED.sel?.k === "f") { const f = P.features.find(x => x.id === ED.sel.id); if (f?.pts) extra += f.pts.map((p, i) => `<circle data-v="${i}" cx="${p[0]}" cy="${p[1]}" r="${mm * 1.3}" fill="#fff" stroke="#f47a20" stroke-width="${mm * .5}"/>`).join(""); else if (f) extra += `<circle cx="${f.x}" cy="${f.y}" r="${mm * 2.5}" fill="none" stroke="#f47a20" stroke-width="${mm * .5}" stroke-dasharray="${mm} ${mm}"/>`; }
+  if (ED.draw && ED.draw.pts.length) { const f = { sym: ED.draw.sym, pts: ED.draw.pts }; extra += featureSVG(f, mm).replace(/data-f="[^"]*"/g, "") + ED.draw.pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="${mm * .9}" fill="#fff" stroke="#E8701A" stroke-width="${mm * .4}"/>`).join(""); }
+  if (ED.sel?.k === "f") { const f = P.features.find(x => x.id === ED.sel.id); if (f?.pts) extra += f.pts.map((p, i) => `<circle data-v="${i}" cx="${p[0]}" cy="${p[1]}" r="${mm * 1.3}" fill="#fff" stroke="#E8701A" stroke-width="${mm * .5}"/>`).join(""); else if (f) extra += `<circle cx="${f.x}" cy="${f.y}" r="${mm * 2.5}" fill="none" stroke="#E8701A" stroke-width="${mm * .5}" stroke-dasharray="${mm} ${mm}"/>`; }
   if (ED.myPos) { const g = georef(); if (g) { const q = g.toPx(ED.myPos.lat, ED.myPos.lon); extra += `<circle cx="${q.x}" cy="${q.y}" r="${mm * 2}" fill="#2b7bff" stroke="#fff" stroke-width="${mm * .6}"/><circle cx="${q.x}" cy="${q.y}" r="${Math.max(mm * 2, (ED.myPos.acc || 0) / (g.mPerPx || 1))}" fill="#2b7bff22" stroke="#2b7bff" stroke-width="${mm * .2}"/>`; } }
   if (ED.meas?.length) { const [a, b] = ED.meas; extra += `<circle cx="${a.x}" cy="${a.y}" r="${mm * 1.2}" fill="#e63946"/>` + (b ? `<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="#e63946" stroke-width="${mm * .6}" stroke-dasharray="${mm * 2} ${mm}"/><circle cx="${b.x}" cy="${b.y}" r="${mm * 1.2}" fill="#e63946"/>` : ""); }
   s.innerHTML = mapSVG(P, { highlight: ED.sel?.k === "c" ? ED.sel.id : null, under: P.map.showUnder }) + extra;

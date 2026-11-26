@@ -1194,7 +1194,7 @@
     if (!lec || !lec.mat) return ""; var P = presents(cls), N = pratiquants(cls).length, M = matCalc(lec.mat, N, G), calc = M.some(function (x) { return x.q != null; });
     return '<div class="lc-box"><h3 style="margin-top:4px">🧰 Matériel à installer · ' + N + " élève" + (N > 1 ? "s" : "") + " qui pratiquent" + (P.length !== N ? " (" + P.length + " présents)" : "") + (G ? " · " + G + " groupes" : "") + "</h3>" +
       M.map(function (x, i) { var K = "eps.matck." + APP + "|" + nn(cls) + "|" + today(), ck = false; try { ck = !!(JSON.parse(localStorage.getItem(K) || "{}"))[i]; } catch (e) {}
-        return '<label style="display:flex;gap:8px;align-items:center;padding:3px 0;cursor:pointer"><input type="checkbox" style="width:20px;height:20px"' + (ck ? " checked" : "") + ' onchange="try{var K=\'' + K.replace(/'/g, "") + '\',o=JSON.parse(localStorage.getItem(K)||\'{}\');o[' + i + ']=this.checked;localStorage.setItem(K,JSON.stringify(o))}catch(e){}"><span' + (ck ? ' style="text-decoration:line-through;color:#6A6F78"' : "") + ">" + esc(x.t) + (x.q != null ? ' → <b style="font-size:17px">' + x.q + "</b>" : "") + "</span></label>"; }).join("") + /* liste à cocher (reprise de Volley-ball), gardée sur la tablette pour la journée */
+        return '<label style="display:flex;gap:8px;align-items:center;padding:3px 0;cursor:pointer"><input type="checkbox" style="width:20px;height:20px"' + (ck ? " checked" : "") + ' onchange="try{var K=\'' + esc(K.replace(/\\/g, "\\\\").replace(/'/g, "\\'")) + '\',o=JSON.parse(localStorage.getItem(K)||\'{}\');o[' + i + ']=this.checked;localStorage.setItem(K,JSON.stringify(o))}catch(e){}"><span' + (ck ? ' style="text-decoration:line-through;color:#6A6F78"' : "") + ">" + esc(x.t) + (x.q != null ? ' → <b style="font-size:17px">' + x.q + "</b>" : "") + "</span></label>"; }).join("") + /* liste à cocher (reprise de Volley-ball), gardée sur la tablette pour la journée */
       (calc ? "" : '<p class="lc-mut">Astuce : écris dans ta fiche « 1 ballon pour 2 », « 1 chasuble par élève », « 1 plot par groupe » : les quantités se calculent avec les présents.</p>') + "</div>";
   }
   /* 👥 groupes du jour, avec les présents seulement (dispensés à part : rôles) */
@@ -1320,7 +1320,7 @@
   function drawLEval() {
     var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || C[0] || ""; }
     var cls = LIVECLS, day = LEC_DAY || today(), id = nn(cls) + "|" + day, rec = get(KE, id) || { id: id, cls: cls, day: day, el: {} };
-    var v = live(cls), lec = (v && v.lec && get(KL, v.lec)) || lecons().filter(function (l) { return (l.prog || []).some(function (p) { return same(p.c, cls) && new Date(p.at).toISOString().slice(0, 10) === day; }); })[0] || null;
+    var v = live(cls), lec = (v && v.lec && get(KL, v.lec)) || lecons().filter(function (l) { return (l.prog || []).some(function (p) { return same(p.c, cls) && dayOf(p.at) === day; }); })[0] || null;
     var theme = rec.theme || (lec && (lec.but || lec.objM || lec.titre)) || "", CR = lecCrit(), R = roster(cls);
     var days = all(KE).filter(function (o) { return same(o.cls, cls); }).map(function (o) { return o.day; }); if (days.indexOf(day) < 0) days.push(day); days.sort().reverse();
     var h = '<h2>📊 Évaluer la leçon</h2><p class="lc-mut">Une note rapide par élève, valorisant ' + esc(CR[0].toLowerCase()) + ", " + esc(CR[1].toLowerCase()) + " et " + esc(CR[2].toLowerCase()) + '. Elle compte dans la note proposée (à titre indicatif) et dans les appréciations.</p>' +

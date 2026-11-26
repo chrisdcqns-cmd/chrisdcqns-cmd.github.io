@@ -197,6 +197,19 @@ const BIBLIO = [
    sit: { nom: "Ma trace", but: "Retrouver sur sa trace l'arrêt le plus long et expliquer ce qui s'est passé.", dispositif: "Analyse d'itinéraire sur le téléphone (après l'arrivée) ou sur la tablette.", organisation: "Par deux : l'un explique, l'autre questionne.", consignes: ["Trouve ton arrêt le plus long (rond jaune).", "Explique : où étais-je ? que cherchais-je ? que ferai-je la prochaine fois ?"], reussite: ["Une explication et une solution notées sur la fiche bilan."], realisation: ["Lien entre la trace et la carte."], simplifier: ["Avec l'aide de l'enseignant."], complexifier: ["Comparer avec la trace d'un camarade."], roles: "" },
    securite: [], materiel: ["Téléphones ou tablette", "Fiches bilan"], o: null }
 ];
+/* Trame de séquence pour les fiches de leçon communes (eps-lecons.js, « 📥 Trame proposée ») : les leçons « cycle » de BIBLIO
+   deviennent des fiches en brouillon, avec leur situation (critères de réussite / réalisation, variables). Mode enseignant seulement. */
+/* reprise directe dans les fiches communes (seedApp), en brouillon à valider ; la trame reste pour recréer la séquence si besoin */
+/* propositions : à ajouter par « 📥 Trame proposée » (confirmation), jamais reprises d'office */
+try { (window.EPS_TRAMES = window.EPS_TRAMES || []).push({ id: "ori-cycle", seq: "Course d'orientation",
+  nom: "Course d'orientation · " + BIBLIO.filter(x => x.cat === "cycle").length + " leçons (bibliothèque OrienRun)",
+  sources: "Bibliothèque OrienRun : fiches de leçon du CA2 (AFLP bac pro, AFL bac GT).",
+  lecons: BIBLIO.filter(x => x.cat === "cycle").sort((a, b) => a.n - b.n).map(x => { const S = x.sit || {}, J = a => (a || []).join("\n");
+    return { num: String(x.n), titre: x.titre, duree: x.duree || "", objM: x.objectif || "", but: [x.theme, S.but].filter(Boolean).map(t => String(t).replace(/[.\s]+$/, "")).join(". ") + ".",
+      disp: [S.dispositif, S.organisation, S.roles ? "Rôles : " + S.roles : "", (x.securite || []).length ? "Sécurité : " + x.securite.join(" ; ") : ""].filter(Boolean).join("\n"),
+      mat: (x.materiel || []).join(", "), ech: x.echauffement || "", bilan: x.bilan || "",
+      sits: S.nom ? [{ t: S.nom, cons: [S.but, J(S.consignes)].filter(Boolean).join("\n"), crQ: J(S.reussite), crR: J(S.realisation), simp: J(S.simplifier), comp: J(S.complexifier), ap: x.theme || "" }] : [] }; }) }); } catch (e) {}
+
 
 const blib = () => DB.get("biblio").then(x => x || []);
 const blibNiv = () => LS.get("biblioNiv", "pro");
@@ -207,10 +220,10 @@ async function viewBiblio(v) {
   const all = [...BIBLIO, ...mine];
   const list = all.filter(L => filt === "tout" || (filt === "mes" ? L.mine : L.cat === filt && !L.mine));
   v.innerHTML = `<div class="pmain"><div class="panel" style="margin-top:0"><h2>📚 Bibliothèque de leçons</h2>
-    <p class="muted" style="margin-top:-6px">Un cycle de course d'orientation au format fiche de leçon (CA2 : adapter son déplacement à des environnements variés et/ou incertains), des situations courtes, et tes propres leçons. Chaque fiche peut créer le parcours OrienRun déjà réglé.</p>
-    <div class="row"><div class="cchips">${[["cycle", "Cycle (10 leçons)"], ["situation", "Situations courtes"], ["mes", `Mes leçons (${mine.length})`], ["tout", "Tout"]].map(([k, l]) => `<button class="btn small ${filt === k ? "" : "ghost"}" data-f="${k}">${l}</button>`).join("")}</div><span class="grow"></span>
+    <p class="muted" style="margin-top:-6px">Une séquence de course d'orientation au format fiche de leçon (CA2 : adapter son déplacement à des environnements variés et/ou incertains), des situations courtes, et tes propres leçons. Chaque fiche peut créer le parcours OrienRun déjà réglé.</p>
+    <div class="row"><div class="cchips">${[["cycle", "Séquence (10 leçons)"], ["situation", "Situations courtes"], ["mes", `Mes leçons (${mine.length})`], ["tout", "Tout"]].map(([k, l]) => `<button class="btn small ${filt === k ? "" : "ghost"}" data-f="${k}">${l}</button>`).join("")}</div><span class="grow"></span>
      <div class="cchips"><button class="btn small ${niv === "pro" ? "vi" : "ghost"}" data-niv="pro">Bac pro (AFLP)</button><button class="btn small ${niv === "gt" ? "vi" : "ghost"}" data-niv="gt">Bac GT (AFL)</button></div></div>
-    <div class="row" style="margin-top:10px"><button class="btn or" id="blNew">＋ Nouvelle leçon</button><button class="btn alt" id="blPlan">🖨 Plan de cycle</button><button class="btn ghost" id="blExp">⬇ Exporter mes leçons</button><button class="btn ghost" id="blImp">⬆ Importer</button></div></div>
+    <div class="row" style="margin-top:10px"><button class="btn or" id="blNew">＋ Nouvelle leçon</button><button class="btn alt" id="blPlan">🖨 Plan de séquence</button><button class="btn ghost" id="blExp">⬇ Exporter mes leçons</button><button class="btn ghost" id="blImp">⬆ Importer</button></div></div>
     <div class="grid2" style="margin-top:14px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr))">${list.map(L => `<button class="panel" data-l="${esc(L.id)}" style="margin:0;text-align:left;display:flex;flex-direction:column;gap:6px;border-left:6px solid ${L.mine ? "var(--violet)" : L.cat === "situation" ? "var(--sun)" : "var(--orange)"}">
       <div class="row" style="gap:6px"><span class="chip ${L.cat === "situation" ? "wait" : "or"}">${L.n ? "Leçon " + L.n : L.cat === "situation" ? "Situation" : "Leçon"}</span><span class="chip">${esc(L.duree || "")}</span>${L.mine ? '<span class="chip vi">Ma leçon</span>' : ""}</div>
       <b style="font-family:var(--cond);font-size:1.4rem;line-height:1.05">${esc(L.titre)}</b><span class="muted">${esc(L.theme || "")}</span>
@@ -246,10 +259,10 @@ function ficheHTML(L, niv, print) {
    ${o ? `<h4>Réglages OrienRun</h4><p class="or">${esc(modeNom[o.mode] || o.mode)} · ${o.nbB} balises conseillées${o.choix ? ` · l'élève choisit${o.nb ? " " + o.nb : ""} balises` : ""}${o.prep ? ` · préparation ${o.prep} min` : ""}${o.tm ? ` · durée max ${o.tm} min` : ""}${o.so ? " · ordre sanctionné" : ""}${o.ptsOn || o.mode === "score" ? " · points" : ""} · départ : ${esc((DEPART_MODES[o.dm] || "").replace(/«|»/g, ""))}${o.carte ? " · carte sur le téléphone" : " · pas de carte sur le téléphone"}${o.fb ? " · réponse juste/fausse immédiate" : ""}<br><i>${esc(o.conseil || "")}</i></p>` : ""}
   </div>`;
 }
-const FICHE_CSS = `.fiche{font-size:10pt;line-height:1.35}.fiche h4{margin:3mm 0 1mm;font-size:10.5pt;text-transform:uppercase;letter-spacing:.04em;color:#c25200;border-bottom:.3mm solid #f47a20}
+const FICHE_CSS = `.fiche{font-size:10pt;line-height:1.35}.fiche h4{margin:3mm 0 1mm;font-size:10.5pt;text-transform:uppercase;letter-spacing:.04em;color:#c25200;border-bottom:.3mm solid #E8701A}
  .fiche table{border-collapse:collapse;width:100%}.fiche td,.fiche th{border:.3mm solid #999;padding:1.4mm 2mm;vertical-align:top;text-align:left}.fiche th{background:#f3efe4;font-size:9pt}
  .fiche .hd .tt{background:#14213d;color:#fff}.fiche .kick{font-size:8pt;letter-spacing:.12em;text-transform:uppercase;opacity:.85}.fiche .ti{font-size:17pt;font-weight:800}.fiche .th{font-size:10pt;opacity:.9}
- .fiche ul{margin:1mm 0 1mm 4.5mm;padding:0}.fiche li{margin:.4mm 0}.fiche p{margin:1mm 0}.fiche .two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.fiche .muted2{color:#666;font-size:8.5pt}.fiche .vide{color:#999}.fiche .or{background:#fff4e8;border-left:1mm solid #f47a20;padding:1.5mm 2.5mm}
+ .fiche ul{margin:1mm 0 1mm 4.5mm;padding:0}.fiche li{margin:.4mm 0}.fiche p{margin:1mm 0}.fiche .two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.fiche .muted2{color:#666;font-size:8.5pt}.fiche .vide{color:#999}.fiche .or{background:#fff4e8;border-left:1mm solid #E8701A;padding:1.5mm 2.5mm}
  .fiche .att li{list-style:none;margin-left:-4.5mm}`;
 function openFiche(L) {
   const niv = blibNiv();
@@ -273,7 +286,7 @@ function editLecon(L, isNew) {
   const ta = (id, label, val, rows = 2) => `<div class="field"><label>${label}</label><textarea class="inp" id="${id}" style="min-height:${rows * 26 + 20}px">${esc(Array.isArray(val) ? val.join("\n") : val || "")}</textarea></div>`;
   const m = openModal(`<h2>${isNew ? "Nouvelle leçon" : "Modifier la leçon"}</h2><p class="muted" style="margin-top:-6px">Pour les listes : une ligne = un élément.</p>
    <div class="grid2"><div class="field"><label>Titre</label><input class="inp" id="eT" value="${esc(L.titre)}"></div><div class="field"><label>Thème</label><input class="inp" id="eTh" value="${esc(L.theme || "")}"></div>
-    <div class="field"><label>N° dans le cycle (facultatif)</label><input class="inp" id="eN" type="number" min="1" value="${L.n || ""}"></div><div class="field"><label>Durée</label><input class="inp" id="eD" value="${esc(L.duree || "")}"></div></div>
+    <div class="field"><label>N° dans la séquence (facultatif)</label><input class="inp" id="eN" type="number" min="1" value="${L.n || ""}"></div><div class="field"><label>Durée</label><input class="inp" id="eD" value="${esc(L.duree || "")}"></div></div>
    <div class="lbl">AFLP (bac pro)</div><div class="cchips" style="margin:6px 0 10px">${[1, 2, 3, 4, 5, 6].map(i => `<label class="chip" title="${esc(AFLP[i])}" style="padding:6px 10px"><input type="checkbox" data-aflp="${i}" ${L.aflp?.includes(i) ? "checked" : ""}> AFLP${i}</label>`).join("")}</div>
    <div class="lbl">AFL (bac GT)</div><div class="cchips" style="margin:6px 0 10px">${[1, 2, 3].map(i => `<label class="chip" title="${esc(AFL[i])}" style="padding:6px 10px"><input type="checkbox" data-afl="${i}" ${L.afl?.includes(i) ? "checked" : ""}> AFL${i}</label>`).join("")}</div>
    ${ta("eObj", "Objectif de la leçon", L.objectif)}${ta("eEch", "Échauffement", L.echauffement)}
@@ -300,7 +313,7 @@ function editLecon(L, isNew) {
 }
 function printPlan(list) {
   const niv = blibNiv();
-  printWin("Plan de cycle – course d'orientation", `<h1>Plan de cycle — Course d'orientation (CA2)</h1><p>Classe : ……………… · Période : ……………… · Lieu : ………………</p>
+  printWin("Plan de séquence – course d'orientation", `<h1>Plan de séquence — Course d'orientation (CA2)</h1><p>Classe : ……………… · Période : ……………… · Lieu : ………………</p>
    <table><thead><tr><th>Leçon</th><th>Titre et thème</th><th>${niv === "gt" ? "AFL" : "AFLP"}</th><th>Objectif</th><th>Situation principale</th><th>OrienRun</th></tr></thead><tbody>${list.map(L => `<tr><td><b>${L.n || ""}</b></td><td><b>${esc(L.titre)}</b><br><small>${esc(L.theme || "")}</small></td><td>${attendus(L, niv).map(a => a.k).join(", ")}</td><td>${esc(L.objectif || "")}</td><td><b>${esc(L.sit?.nom || "")}</b><br><small>${esc(L.sit?.but || "")}</small></td><td><small>${L.o ? esc(modeNom[L.o.mode] || "") + (L.o.prep ? ` · prépa ${L.o.prep} min` : "") + (L.o.tm ? ` · ${L.o.tm} min` : "") : "–"}</small></td></tr>`).join("")}</tbody></table>
    <h3>${niv === "gt" ? "Attendus de fin de lycée (bac GT)" : "Attendus de fin de lycée professionnel"} — CA2</h3><ul>${Object.entries(niv === "gt" ? AFL : AFLP).map(([i, t]) => `<li><b>${niv === "gt" ? "AFL" : "AFLP"}${i}</b> — ${esc(t)}</li>`).join("")}</ul>`,
     `@page{size:A4 landscape;margin:9mm}h1{font-size:16pt}table{border-collapse:collapse;width:100%;font-size:8.5pt}td,th{border:1px solid #999;padding:1.5mm;vertical-align:top;text-align:left}th{background:#f3efe4}h3{font-size:11pt;margin-top:5mm}li{font-size:9pt}`);
