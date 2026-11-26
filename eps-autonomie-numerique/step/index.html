@@ -88,6 +88,9 @@ svg.sch{display:block;width:100%;height:auto;border-radius:10px;background:#EEF0
 .pl-haut{display:flex;align-items:center;gap:10px;padding:12px 14px;box-shadow:inset 0 -4px 0 var(--app)}
 .pl-haut b{flex:1;font-size:clamp(34px,7vw,72px);font-weight:900;line-height:1.05;letter-spacing:-.01em}
 .pl-haut span{color:#A9AEB8;font-weight:700;font-size:13px}
+/* nom du pas centré (demande de l'enseignant) : la marge de gauche équilibre le bouton ✕ de droite */
+.pl-titre{flex:1;min-width:0;text-align:center;padding-left:54px}
+.pl-titre b{display:block}
 .pl-x{border:1px solid #3A3F47;background:none;color:#D5D8DE;border-radius:10px;min-width:44px;min-height:44px;font-size:18px}
 .pl-corps{display:grid;grid-template-columns:1fr 130px;gap:12px;padding:12px 14px;align-items:center}
 .pl-k{font-size:96px;font-weight:900;text-align:center;line-height:1}
@@ -416,7 +419,7 @@ function lancer(items,o){ o=o||{}; const I=items.map(x=>({p:pasId(x.p),m:x.m?1:0
   if(PL.src==="bloc") etatTab("lance",PL.titre,true); else if(PL.src==="pas") etatTab("fiche",I[0].p.nom);
   $("#calque").innerHTML=`<div class="voile plein"><div class="pl">
     <div class="pl-prog" aria-hidden="true"><i id="plProg"></i></div>
-    <div class="pl-haut"><div style="flex:1;min-width:0"><span id="plPos"></span><br><b id="plNom">Prêt ?</b></div><button type="button" class="pl-x" data-act="fermer" aria-label="Arrêter et fermer">✕</button></div>
+    <div class="pl-haut"><div class="pl-titre"><span id="plPos"></span><br><b id="plNom">Prêt ?</b></div><button type="button" class="pl-x" data-act="fermer" aria-label="Arrêter et fermer">✕</button></div>
     <div class="pl-corps"><div id="plSvg"></div><div class="pl-k" id="plK">–<small id="plMot"></small></div></div>
     <div class="pl-dots" id="plDots"></div><div class="pl-suiv" id="plSuiv"></div>
     <div class="pl-bas"><button type="button" class="btn ic" data-act="plBpm" data-d="-5" ${PL.verrou?"disabled":""} aria-label="Moins vite">−</button><output id="plBpm">${PL.bpm} bpm</output><button type="button" class="btn ic" data-act="plBpm" data-d="5" ${PL.verrou?"disabled":""} aria-label="Plus vite">+</button>

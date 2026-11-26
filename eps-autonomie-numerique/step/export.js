@@ -64,8 +64,9 @@
     var pad = W * 0.04, hTop = H * 0.15, big = Math.round(W * 0.085);
     c.fillStyle = COL; c.fillRect(0, 0, W * (fini ? 1 : b.dec ? 0 : (j - (T[0].dec ? countDec(T) : 0) + 1) / (n - (T[0].dec ? countDec(T) : 0))), Math.max(4, H * 0.008));
     c.textAlign = "left"; c.textBaseline = "alphabetic"; c.fillStyle = "#A9AEB8"; c.font = "700 " + Math.round(W * 0.03) + "px system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
-    c.fillText(b.dec ? "Prêt ?" : (x.b ? x.b + " · " : "") + "Pas " + (b.i + 1) + " sur " + I.length + (x.m ? " · de l'autre côté" : ""), pad, hTop * 0.38, W - 2 * pad);
-    c.fillStyle = "#fff"; c.font = "900 " + big + "px system-ui,-apple-system,Segoe UI,Roboto,sans-serif"; c.fillText(fini ? "Terminé" : x.p.nom, pad, hTop * 0.92, W - 2 * pad);
+    c.textAlign = "center"; /* titre et nom du pas centrés, comme dans le lecteur de l'appli */
+    c.fillText(b.dec ? "Prêt ?" : (x.b ? x.b + " · " : "") + "Pas " + (b.i + 1) + " sur " + I.length + (x.m ? " · de l'autre côté" : ""), W / 2, hTop * 0.38, W - 2 * pad);
+    c.fillStyle = "#fff"; c.font = "900 " + big + "px system-ui,-apple-system,Segoe UI,Roboto,sans-serif"; c.fillText(fini ? "Terminé" : x.p.nom, W / 2, hTop * 0.92, W - 2 * pad);
     c.fillStyle = COL; c.fillRect(0, hTop + H * 0.012, W, Math.max(3, H * 0.006));
     var bas = H * 0.2, zh = H - hTop - bas - H * 0.05, col = Math.min(W * 0.22, 170), sw = Math.min(W - 2 * pad - col, zh * 1.25), sx = pad + (W - 2 * pad - col - sw) / 2, sy = hTop + H * 0.035 + (zh - sw * 0.8) / 2;
     schema(c, sx, sy, sw, e, !!b.dec);
