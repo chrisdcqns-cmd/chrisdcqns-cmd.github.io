@@ -1412,13 +1412,17 @@ function renderWiz(){let box=document.getElementById('wizCard');const host=docum
   const Lq=S.prof[WIZ.voie].seq.lecons||[];
   box.innerHTML=head+`<p>La séquence proposée (${Lq.length} leçons) est prête : tu pourras la modifier dans l'onglet Séquence.</p>
    <div class="g2"><div><label class="l">Date de la première leçon</label><input type="date" value="${esc(WIZ.d)}" onchange="WIZ.d=this.value"></div>
-   <div style="align-self:end"><label class="sw"><input type="checkbox" ${WIZ.hebdo?'checked':''} onchange="WIZ.hebdo=this.checked"><span></span>Une leçon par semaine (dates remplies automatiquement)</label></div><div></div></div>
+   <div style="align-self:end"><label class="sw"><input type="checkbox" ${WIZ.hebdo?'checked':''} onchange="WIZ.hebdo=this.checked"><span></span>Dates d'après ton emploi du temps (sinon une leçon par semaine)</label></div><div></div></div>
    <div class="row" style="justify-content:space-between;margin-top:10px"><button class="btn alt" onclick="WIZ.s=2;renderWiz()">◀ Retour</button><button class="btn or" onclick="wizGo()">✓ C'est prêt</button></div>`}
 function wizGo(){const L=wizList(),nom=WIZ.nom.trim();let c=S.classes.find(x=>norm(x.nom)===norm(nom)&&x.voie===WIZ.voie);
   if(!c){c={id:clsIdOf(nom),nom,voie:WIZ.voie,voieAuto:1,eleves:[],matchs:{},poules:{},groupes:{}};S.classes=S.classes.filter(x=>!blankClass(x));S.classes.push(c)}
   const have=new Set(c.eleves.map(e=>nkey(e.prenom+' '+e.nom)));L.forEach(p=>{if(!have.has(nkey(p.prenom+' '+p.nom)))c.eleves.push(newEl(p,c.id))});
   S.voie=WIZ.voie;fixState();S.cur=S.classes.indexOf(c);
-  if(WIZ.hebdo&&WIZ.d){const d0=new Date(WIZ.d+'T12:00');(S.prof[WIZ.voie].seq.lecons||[]).forEach((l,i)=>{if(!l.faite){const d=new Date(d0);d.setDate(d.getDate()+7*i);l.date=d.toISOString().slice(0,10)}})}
+  if(WIZ.hebdo&&WIZ.d){/* dates : d'abord les cours de l'emploi du temps (même source que « Programmer d'après l'emploi du temps »), sinon une par semaine */
+    const ymd=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+    let sl=[];try{sl=(window.EPSD&&EPSD.edtSlots?EPSD.edtSlots(WIZ.nom,'bad',new Date(WIZ.d+'T00:00').getTime(),40):[])||[]}catch(e){}
+    const days=[...new Set(sl.map(x=>ymd(x.at)))],d0=new Date(WIZ.d+'T12:00');let k=0;
+    (S.prof[WIZ.voie].seq.lecons||[]).forEach((l,i)=>{if(!l.faite){if(days[k]){l.date=days[k++]}else{const d=new Date(d0);d.setDate(d.getDate()+7*i);l.date=ymd(d)}}})}
   else if(WIZ.d){const l0=(S.prof[WIZ.voie].seq.lecons||[])[0];if(l0&&!l0.date)l0.date=WIZ.d}
   WIZ=null;save();refresh();showTab('seq');toast('C\'est prêt : '+c.eleves.length+' élèves dans '+c.nom)}
 function wizBanner(){const has=S.classes.some(c=>c.eleves.length);return has?'':`<div class="card wizb"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">👋 Pour commencer</h2><div class="muted">Crée ta classe, choisis la voie et date ta séquence en 3 étapes.</div></div><button class="btn or" onclick="wizOpen()">🧭 Assistant de démarrage</button></div></div>`}
@@ -2390,7 +2394,7 @@ function critName(id){const c=B().criteres.find(x=>x.id===id);return c?c.nom:id}
 function critAfl(id){const c=B().criteres.find(x=>x.id===id);return c?c.afl:''}
 function aflCls(a){return a==='AFL1'||a==='AFLP1'||a==='AFLP2'?'a1':a==='AFL2'||a==='AFLP3'||a==='AFLP5'?'a2':'a3'}
 function ctag(id){const a=critAfl(id);return `<span class="ctag ${aflCls(a)}">${esc(critName(id))}</span>`}
-function renderSeq(){
+function renderSeq(){try{pullFiches()}catch(e){}
   const el=document.getElementById('t-seq'),tabs=[['lec','📋 Leçons'],['ech','🔥 Échauffement'],['tech','📚 Contenus techniques'],['afl','🎯 AFL & évaluation'],['idees','💡 Idées']];
   el.innerHTML=`<div class="subtabs">${tabs.map(([k,n])=>`<button class="${SEQT===k?'on':''}" onclick="SEQT='${k}';SEQEDIT=null;TECHED=null;renderSeq()">${n}</button>`).join('')}</div>
    <div id="seqBody"></div>`;
@@ -2414,14 +2418,14 @@ function lecHtml(l,i,teach){
    ${teach?`<div class="row" style="margin-top:8px">
      <button class="btn ${l.faite?'alt':''} sm" onclick="lecSet(${i},'faite',${!l.faite})">${l.faite?'Annuler « faite »':'✓ Faite'}</button>
      <button class="btn or sm" onclick="prepOpen('${l.id}')">⚡ Préparer</button>
-     <button class="btn alt sm" onclick="SEQEDIT='${l.id}';renderSeq()">✎ Modifier</button>
+     <button class="btn alt sm" onclick="editLec('${l.id}')">✎ Modifier</button>
      ${l.prop?`<button class="btn alt sm" onclick="lecSet(${i},'prop',false)">👍 Garder</button>`:''}
      <button class="btn alt sm" onclick="lecMove(${i},-1)">↑</button><button class="btn alt sm" onclick="lecMove(${i},1)">↓</button>
      <button class="btn alt sm" onclick="lecDup(${i})">Dupliquer</button><button class="btn red sm" onclick="lecDel(${i})">Supprimer</button></div>`:''}</div>`}
 function seqLecons(){
   const L=SEQ().lecons,nf=L.filter(l=>l.faite).length,np=L.filter(l=>l.prop).length;
-  return `${wizBanner()}${prepHtml()}${indSwitch()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
-    <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="addLecon()">+ Leçon</button></div></div>
+  return `${refBanner()}${wizBanner()}${prepHtml()}${indSwitch()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
+    <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="window.EPSLC?EPSLC.open('lec'):addLecon()">+ Leçon</button></div></div>
     <p class="muted" style="margin:6px 0 0">${S.voie==='pro'?'Les 7 leçons reprennent tes fiches de Terminale pro (leçon 7 : CCF).':'Leçons 1 et 2 reprises de tes fiches ; leçons 3 à 8 proposées à partir de ton projet de séquence (en vert clair : à garder, modifier ou supprimer).'} Chaque temps peut être relié à une situation du terrain : « ▶ Lancer » ouvre directement le scoring. Tout est partagé entre tes tablettes.</p></div>
   ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):(SEQOPEN[l.id]===1||(l.n===lessonNow()&&SEQOPEN[l.id]!==-1))?`<div class="lecwrap"><button class="lecfold" title="Replier" onclick="SEQOPEN['${l.id}']=-1;renderSeq()">▴</button>${lecHtml(l,i,true)}</div>`:lecRow(l,i)).join('')}`}
 let SEQOPEN={};
@@ -3279,6 +3283,16 @@ window.EPSTB=window.EPST?EPST.init({app:'bad',nom:'Badminton',color:'#0B7A75',is
  teacher:()=>unlock()});
 
 /* 📥 séquences de l'appli reprises dans les fiches de leçon communes (eps-lecons.js seedApp) : une fois, sans écraser tes modifications */
+
+/* 📚 La fiche de leçon commune est la version de référence : la page Séquence de l'appli en reprend le contenu
+   (titre, objectif, situations…) et garde ce qui lui est propre (lien « ▶ Lancer » vers le terrain / l'exercice). « ✎ Modifier » ouvre la fiche. */
+function ficheId(l){return 'app-badminton-'+S.voie+'-'+l.id}
+function pullFiches(){if(!window.EPSLC||!EPSLC.fiche)return;let ch=false;const sp=t=>String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  SEQ().lecons.forEach(l=>{const f=EPSLC.fiche(ficheId(l));if(!f||!f.u||f.u<=(l.fu||0))return;l.fu=f.u;ch=true;l.titre=f.titre||l.titre;l.obj=f.objM||'';if(f.mat!=null)l.mat=f.mat;if(f.disp!=null)l.disp=f.disp;(f.sits||[]).forEach((x,i)=>{const t=l.temps[i]||(l.temps[i]={t:'',cons:'',crq:[],crl:[],crr:[],vp:'',vm:'',pre:''});t.t=x.t||'';t.cons=x.cons||'';t.crq=sp(x.crQ);t.crl=sp(x.crQl);t.crr=sp(x.crR);t.vm=x.simp||'';t.vp=x.comp||''});if((f.sits||[]).length<l.temps.length)l.temps.length=(f.sits||[]).length;});
+  if(ch)save()}
+function editLec(id){const l=SEQ().lecons.find(x=>x.id===id);if(l&&window.EPSLC&&EPSLC.fiche&&EPSLC.fiche(ficheId(l))){EPSLC.open('edit',ficheId(l));return}SEQEDIT=id;renderSeq()}
+addEventListener('eps-lecons',()=>{try{const t=document.getElementById('t-seq');if(t&&t.offsetParent&&SEQT==='lec'&&!SEQEDIT)renderSeq()}catch(e){}});
+function refBanner(){return `<div class="card" style="border-left:5px solid var(--accent,#0E7C66)"><b>📚 Tes leçons de référence sont dans les fiches de leçon</b><p class="muted" style="margin:4px 0 8px">Ce que tu modifies dans une fiche apparaît ici. Ici, tu gardes les liens « ▶ Lancer » vers le terrain.</p><div class="row"><button class="btn sm" onclick="window.EPSLC&&EPSLC.open('lec')">📝 Mes fiches de leçon</button><button class="btn alt sm" onclick="window.EPSLC&&EPSLC.open('docs')">📥 Importer mes leçons rédigées</button></div></div>`}
 window.EPS_APP_LECONS=function(){const out=[],J=a=>(a||[]).filter(Boolean).join('\n');
   ['gt','pro'].forEach(v=>{const q=S&&S.prof&&S.prof[v]&&S.prof[v].seq;if(!q)return;const seq='Badminton · '+(v==='gt'?'Bac général':'Bac pro');
     (q.lecons||[]).forEach(l=>out.push({key:v+'-'+l.id,seq,voie:v,num:l.n,titre:l.titre,objM:l.obj||'',

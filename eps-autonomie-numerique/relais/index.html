@@ -4394,11 +4394,12 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
 if(teachOn())go("classes");else startStudent();
 
 /* 📥 séquence type de l'appli (SQ_PROG : 8 leçons faites de situations de la bibliothèque) reprise dans les fiches de leçon communes, en brouillon à valider */
-window.EPS_APP_LECONS=function(){const J=a=>(a||[]).filter(Boolean).join('\n'),S1=id=>SITS.find(s=>s.id===id);
+window.EPS_RELAIS_TRAME=function(){const J=a=>(a||[]).filter(Boolean).join('\n'),S1=id=>SITS.find(s=>s.id===id);
   return SQ_PROG.map((ids,i)=>{const L=ids.map(S1).filter(Boolean),E=L.filter(s=>s.cat==='echauf'),M=L.filter(s=>s.cat!=='echauf');
     return{key:'seq-'+(i+1),seq:'Relais-vitesse · séquence type',num:i+1,titre:M.map(s=>s.t).slice(0,2).join(' · ')||('Leçon '+(i+1)),prop:true,
       objM:(M[0]&&M[0].o)||'',ech:E.map(s=>s.t+' : '+J(s.c)).join('\n'),disp:M.map(s=>s.disp).filter(Boolean).join('\n'),
       sits:M.map(s=>({t:s.t,cons:[s.o,J(s.c)].filter(Boolean).join('\n'),crQl:J(s.r),simp:s.s||'',comp:s.x||'',ap:s.t}))}})};
+try{(window.EPS_TRAMES=window.EPS_TRAMES||[]).push({id:'rel-type',seq:'Relais-vitesse · séquence type',nom:'Relais-vitesse · séquence type de '+SQ_PROG.length+' leçons (situations de la bibliothèque)',lecons:EPS_RELAIS_TRAME()})}catch(e){}
 </script>
 <script>window.epsAppHome=function(){try{if(!teachOn()){WAIT_CL=null;WAIT_PICK=false;showWait();return}go("home")}catch(e){location.href=location.pathname}};</script>
 <script src="../eps-home.js" defer></script>

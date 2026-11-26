@@ -853,6 +853,9 @@ const litem=(d,sub,act,on)=>{const x=new Date(d+'T12:00');return `<button class=
 function lastCfg(cl,d=today()){const L=LEC().filter(l=>(l.cl||'')==(cl||'')&&l.d<=d).sort((a,b)=>b.d.localeCompare(a.d))[0]||LEC().filter(l=>(l.cl||'')==(cl||'')).sort((a,b)=>b.d.localeCompare(a.d))[0];
  return L?{cr:[...L.cr],req:[...(L.req||[])],min:L.min||0}:{cr:[...ALL],req:[],min:0}}
 /* leçon du jour d'une classe : celle préparée, sinon créée avec les réglages de la dernière leçon */
+/* ▶ Leçon en cours (fiches communes) lancée pour une classe : la leçon du jour d'escalade de la classe est créée avec les réglages de la dernière (comme « Commencer avec les réglages de la dernière leçon »), sans changer le rôle de cette tablette */
+window.epsOnLiveStart=function(nom){try{const nk=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''),k=CL.find(c=>nk(c.nom)===nk(nom));if(!k||lecFor(k.id,today()))return;
+  const y=cycFor(k.id,today());LEC().push({id:uid(),cl:k.id,d:today(),...lastCfg(k.id),...(y?{obj:y.obj,sit:y.sit,...(y.ind?{ind:y.ind}:{})}:{})});save();try{render()}catch(e){}}catch(e){}};
 function activate(cl){let L=lecFor(cl,today());if(!L){const y=cycFor(cl,today());L={id:uid(),cl:cl||'',d:today(),...lastCfg(cl),...(y?{obj:y.obj,sit:y.sit,...(y.ind?{ind:y.ind}:{})}:{})};LEC().push(L)}CF.sea=clone(L);save();return L}
 function newLe(d){const sel=CF.sel||'';if(!d){const t=new Date();t.setDate(t.getDate()+1);d=t.toLocaleDateString('fr-CA');while(lecFor(sel,d)){const x=new Date(d+'T12:00');x.setDate(x.getDate()+1);d=x.toLocaleDateString('fr-CA')}}
  const y=cycFor(sel,d);S.le={id:'',cl:sel,d,...lastCfg(sel,d),...(y?{obj:y.obj,sit:y.sit,...(y.ind?{ind:y.ind}:{})}:{})};render();scrollTo(0,0)}

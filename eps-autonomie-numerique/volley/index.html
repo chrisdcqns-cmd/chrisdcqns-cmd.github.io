@@ -970,7 +970,7 @@ function t3Txt(e){const v=Object.values(e.t3||{});if(!v.length)return '';const c
 function critName(id){const c=B().criteres.find(x=>x.id===id);return c?c.nom:id}
 function critAfl(id){const c=B().criteres.find(x=>x.id===id);return c?c.afl:''}
 function ctag(id){const a=critAfl(id);return `<span class="ctag ${a==='AFL1'?'a1':a==='AFL2'?'a2':'a3'}">${esc(critName(id))}</span>`}
-function renderSeq(){
+function renderSeq(){try{pullFiches()}catch(e){}
   const el=document.getElementById('t-seq'),tabs=[['lec','📋 Leçons'],['ech','🔥 Échauffement'],['afl','🎯 AFL & évaluation'],['idees','💡 Idées']];
   el.innerHTML=`<div class="subtabs">${tabs.map(([k,n])=>`<button class="${SEQT===k?'on':''}" onclick="SEQT='${k}';SEQEDIT=null;renderSeq()">${n}</button>`).join('')}</div><div id="seqBody"></div>`;
   const b=document.getElementById('seqBody');
@@ -1000,8 +1000,8 @@ function startHtml(){
    ${n===L.length?'<p class="pok">✓ Tout est prêt : bonne séquence ! (replie ce cadre pour le masquer)</p>':''}</details>`}
 function seqLecons(){
   const L=S.seq.lecons,nf=L.filter(l=>l.faite).length,np=L.filter(l=>l.prop).length;
-  return `${startHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="rtag">${np} leçon(s) proposée(s)</span>`:''}</div>
-    <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="addLecon()">+ Leçon</button></div></div>
+  return `${refBanner()}${startHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="rtag">${np} leçon(s) proposée(s)</span>`:''}</div>
+    <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="window.EPSLC?EPSLC.open('lec'):addLecon()">+ Leçon</button></div></div>
     <p class="muted" style="margin:6px 0 0"><b style="color:#B4232B">En rouge</b> : mes propositions (leçons, contenus AFL2, indicateurs de performance, règles de point bonus) et, soulignées, les formulations à préciser. Garde, modifie ou retire. Rien de ce qui est en rouge n'est montré aux élèves. Le cadre de la séquence est dans l'onglet « AFL & évaluation ».</p></div>
   ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):`<div class="lec ${l.faite?'done':''} ${l.prop?'prop':''}">
     <h3>Leçon ${l.n} · ${esc(l.titre)} ${l.prop?'<span class="rtag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted" style="font-weight:600">${esc(new Date(l.date+'T12:00').toLocaleDateString('fr-FR'))}</span>`:''}</h3>
@@ -1010,7 +1010,7 @@ function seqLecons(){
     <div>${l.ech?`<span class="ctag" style="background:#0f3d7a;cursor:pointer" onclick="SEQR=${l.n};SEQT='ech';renderSeq()">🔥 Mobilisation · courses Temps ${l.ech} · ${routinesFor(l.n).length} routine(s)</span>`:''}${l.crit.map(ctag).join('')}</div>
     <div class="row" style="margin-top:8px">
       <button class="btn ${l.faite?'alt':''} sm" onclick="lecSet(${i},'faite',${!l.faite})">${l.faite?'Annuler « faite »':'✓ Faite'}</button>
-      <button class="btn alt sm" onclick="SEQEDIT='${l.id}';renderSeq()">✎ Modifier</button>
+      <button class="btn alt sm" onclick="editLec('${l.id}')">✎ Modifier</button>
       <button class="btn alt sm" onclick="lecIndic(${i},this)" title="Claude lit la leçon et propose un indicateur de performance (en rouge)">✨ Indicateur</button>
       ${l.prop?`<button class="btn alt sm" onclick="lecSet(${i},'prop',false)">👍 Garder</button>`:''}
       <button class="btn alt sm" onclick="lecMove(${i},-1)">↑</button><button class="btn alt sm" onclick="lecMove(${i},1)">↓</button>
@@ -2634,6 +2634,17 @@ window.EPSTV=window.EPST?EPST.init({app:'vol',nom:'Volley-ball',color:'#6B3FA0',
  teacher:()=>unlock()});
 
 /* 📥 séquence de l'appli reprise dans les fiches de leçon communes (eps-lecons.js seedApp) : une fois, sans écraser tes modifications */
+
+/* 📚 La fiche de leçon commune est la version de référence : la page Séquence de l'appli en reprend le contenu
+   (titre, objectif, contenus) et garde ce qui lui est propre (échauffement, propositions en rouge…). « ✎ Modifier » ouvre la fiche. */
+function ficheId(l){return 'app-volley-'+l.id}
+function pullFiches(){if(!window.EPSLC||!EPSLC.fiche)return;let ch=false;
+  S.seq.lecons.forEach(l=>{const f=EPSLC.fiche(ficheId(l));if(!f||!f.u||f.u<=(l.fu||0))return;l.fu=f.u;ch=true;l.titre=f.titre||l.titre;l.obj=f.objM||'';
+    const c=String(f.but||'').split('\n').filter(x=>/^\s*-\s+/.test(x)).map(x=>x.replace(/^\s*-\s+/,'').trim());if(c.length)l.cont=c});
+  if(ch)save()}
+function editLec(id){const l=S.seq.lecons.find(x=>x.id===id);if(l&&window.EPSLC&&EPSLC.fiche&&EPSLC.fiche(ficheId(l))){EPSLC.open('edit',ficheId(l));return}SEQEDIT=id;renderSeq()}
+addEventListener('eps-lecons',()=>{try{const t=document.getElementById('t-seq');if(t&&t.offsetParent&&SEQT==='lec'&&!SEQEDIT)renderSeq()}catch(e){}});
+function refBanner(){return `<div class="card" style="border-left:5px solid #6B3FA0"><b>📚 Tes leçons de référence sont dans les fiches de leçon</b><p class="muted" style="margin:4px 0 8px">Ce que tu modifies dans une fiche apparaît ici.</p><div class="row"><button class="btn sm" onclick="window.EPSLC&&EPSLC.open('lec')">📝 Mes fiches de leçon</button><button class="btn alt sm" onclick="window.EPSLC&&EPSLC.open('docs')">📥 Importer mes leçons rédigées</button></div></div>`}
 window.EPS_APP_LECONS=function(){const q=S&&S.seq;if(!q)return[];
   return(q.lecons||[]).map(l=>({key:l.id,seq:'Volley-ball',num:l.n,titre:l.titre,objM:l.obj||'',prop:!!l.prop,
     but:(l.cont||[]).length?'Contenus :\n'+l.cont.map(x=>'- '+x).join('\n'):'',

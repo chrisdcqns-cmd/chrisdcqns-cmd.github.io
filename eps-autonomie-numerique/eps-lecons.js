@@ -34,7 +34,8 @@
   function all(k) { var V = ld(k); return Object.keys(V.items).map(function (i) { return V.items[i]; }).filter(function (o) { return o && !o.del; }); }
   function get(k, id) { var o = ld(k).items[id]; return o && !o.del ? o : null; }
   function put(k, it, fast) { var V = ld(k), old = V.items[it.id]; it.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[it.id] = it; V.pend[it.id] = it.u; jset(k, V);
-    if (window.EPSD) { if (fast && EPSD.syncOne) EPSD.syncOne(k); else if (EPSD.syncSoon) EPSD.syncSoon(); } }
+    if (window.EPSD) { if (fast && EPSD.syncOne) EPSD.syncOne(k); else if (EPSD.syncSoon) EPSD.syncSoon(); }
+    if (k === KL) { clearTimeout(put.t); put.t = setTimeout(function () { try { window.dispatchEvent(new Event("eps-lecons")); } catch (e) {} }, 300); } /* les applis qui affichent les fiches (Séquence de Badminton, Volley) se mettent à jour */ }
   function del(k, id) { put(k, { id: id, del: 1 }); }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function nn(s) { return (window.EPSL ? EPSL.norm(s) : String(s || "").toLowerCase()).replace(/\s+/g, ""); }
@@ -68,7 +69,10 @@
      Leçons de l'enseignant → validées ; leçons proposées par Claude (prop) → brouillon à valider. Mode enseignant seulement. */
   function seedApp() { if (!isT() || typeof window.EPS_APP_LECONS !== "function") return 0; var L; try { L = window.EPS_APP_LECONS() || []; } catch (e) { return 0; }
     var V = ld(KL), n = 0;
-    L.forEach(function (x, i) { if (!x || !x.key) return; var id = "app-" + APP + "-" + x.key; if (V.items[id]) return;
+    /* seules les leçons rédigées par l'enseignant sont reprises ; les propositions (de Claude) restent à ajouter par une trame, avec confirmation.
+       Nettoyage : une proposition reprise auparavant et jamais modifiée (u d'origine) est retirée. */
+    Object.keys(V.items).forEach(function (id) { var o = V.items[id]; if (o && !o.del && o.src === "appli" && o.statut === "brouillon" && (o.u || 0) < 5000) { V.items[id] = { id: id, del: 1, u: 4000 }; V.pend[id] = 4000; n++; } });
+    L.forEach(function (x, i) { if (!x || !x.key || x.prop) return; var id = "app-" + APP + "-" + x.key; if (V.items[id]) return;
       var l = blank(x.seq || NOM); l.id = id; l.num = String(x.num || i + 1); l.titre = x.titre || ""; l.duree = x.duree || ""; l.ai = {};
       l.sits = (x.sits || []).map(function (y) { var o = {}; SF.forEach(function (f) { if (y[f[0]]) o[f[0]] = String(y[f[0]]); }); if (y.ap) o.ap = String(y.ap); if (y.img) o.img = y.img; return o; });
       F.concat(RF).forEach(function (f) { var v = x[f[0]]; if (v) l[f[0]] = Array.isArray(v) ? v.join("\n") : String(v); });
@@ -399,19 +403,20 @@
     draw(); T = setInterval(function () { try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} draw(); }, 8000);
   }
   function clOpen(o) {
-    css(); o = o || {}; var C = classes(), cls = o.cls || (cur() && cur().nom) || edtClass() || C[0] || "", TAB = o.tab || "gen", SEL = null, S0 = seqs(), P = S0.length ? { kind: "seq", seq: S0[S0.length - 1] } : { kind: "dates", from: trim(0)[0], to: trim(0)[1], lab: "année" }, MODE = "bulletin";
+    css(); o = o || {}; var C = classes(), cls = o.cls || (cur() && cur().nom) || edtClass() || C[0] || "", TAB = o.tab || "gen", PV = o.pv || "syn", SEL = null, S0 = seqs(), P = S0.length ? { kind: "seq", seq: S0[S0.length - 1] } : { kind: "dates", from: trim(0)[0], to: trim(0)[1], lab: "année" }, MODE = "bulletin";
     var ov = document.getElementById("lc-cl"); if (!ov) { ov = document.createElement("div"); ov.id = "lc-cl"; ov.className = "lc-ov"; document.body.appendChild(ov); } ov.style.display = "flex"; ov.style.zIndex = "2147483100";
-    function head() { return '<div class="lc-top"><b>🏫 ' + esc(cls) + " · " + esc(NOM) + "</b>" + [["gen", "📊 Vue générale"], ["el", "👤 Élèves"], ["bil", "📝 Bilans & avis"]].concat(isTerm(cls) ? [["proto", "📜 Protocole"]] : []).map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + (o.noClose ? "" : '<button type="button" class="x" data-x>✕ Fermer</button>') + "</div>"; }
+    function head() { return '<div class="lc-top"><b>🏫 ' + esc(cls) + " · " + esc(NOM) + "</b>" + [["gen", "📊 Vue générale"], ["el", "👤 Élèves"], ["bil", "📝 Bilans & avis"]].concat(isTerm(cls) || TAB === "proto" ? [["proto", "📜 CCF"]] : []).map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + (o.noClose ? "" : '<button type="button" class="x" data-x>✕ Fermer</button>') + "</div>"; }
     function perBar() { var S = seqs();
       return '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-c>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select><b>Période</b>" +
         S.map(function (q) { var on = P.kind === "seq" && P.seq === q; return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-ps="' + esc(q) + '">' + esc(/^s[ée]quence/i.test(q) ? q : "Séquence " + q) + "</button>"; }).join("") +
         [[1, "Trimestre 1"], [2, "Trimestre 2"], [3, "Trimestre 3"], [0, "Année"]].map(function (t) { var r = trim(t[0]), on = P.kind === "dates" && P.from === r[0] && P.to === r[1]; return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-pt="' + t[0] + '">' + t[1] + "</button>"; }).join("") +
         '<span class="lc-mut" style="margin:0">du</span><input type="date" class="lc-sel" data-pf value="' + (P.kind === "dates" ? P.from : "") + '"><span class="lc-mut" style="margin:0">au</span><input type="date" class="lc-sel" data-pto value="' + (P.kind === "dates" ? P.to : "") + '"></div>'; }
     function draw() {
-      if (TAB === "proto" && !isTerm(cls)) TAB = "gen";
       var X0 = TAB === "proto" ? inst(cls) : null; if (X0 && !X0.M.ccf(cls).on) X0.M.setCcf(cls, { on: true }); /* terminale : barème du protocole par défaut */
       var D = classData(cls, P), h = head() + '<div class="lc-body"><div class="lc-in" style="max-width:1300px">' + perBar();
-      if (TAB === "proto") { h += protoHtml(D, X0); ov.innerHTML = h + "</div></div>"; bind(D, null); protoBind(D, X0); return; }
+      if (TAB === "proto") { h += '<div class="lc-row">' + [["syn", "📋 Évaluations (protocole)"], ["jour", "📅 Leçons du jour"]].map(function (t) { return '<button type="button" class="lc-b' + (PV === t[0] ? " p" : "") + '" data-pv2="' + t[0] + '">' + t[1] + "</button>"; }).join("") + "</div>" +
+          (PV === "jour" ? jourHtml(D) : protoHtml(D, X0)); ov.innerHTML = h + "</div></div>"; bind(D, null);
+        ov.querySelectorAll("[data-pv2]").forEach(function (b) { b.onclick = function () { PV = b.dataset.pv2; draw(); }; }); if (PV !== "jour") protoBind(D, X0); else jourBind(D); return; }
       var noted = D.EL.filter(function (e) { return e.pr && e.pr.note != null; }), notes = noted.map(function (e) { return e.pr.note; });
       if (TAB === "gen") {
         var sitAll = D.EL.filter(function (e) { return e.sit != null; }), leAll = D.EL.filter(function (e) { return e.le != null; });
@@ -472,6 +477,28 @@
     /* 📜 Protocole (classes de terminale) : interprétation du référentiel national du CCF à partir de la grille de l'appli :
        fin de séquence 12 pts (Bac général : AFL1 ; Bac pro : AFLP1 7 pts + AFLP2 5 pts), fil de la séquence 8 pts sur 2 AFL / AFLP,
        répartition 4-4 / 6-2 / 2-6 choisie par l'élève ; degrés d'après l'évaluation, sinon l'auto-positionnement (eps-eval.js M.prop, case CCF). */
+    /* 📅 Leçons du jour : pour chaque leçon (jour) de la classe, positionnement et note par élève d'après ses résultats aux situations
+       (✅ = 2, 🟠 = 1, ❌ = 0 → taux de réussite) et l'évaluation de leçon de l'enseignant (participation, sérieux, thème, 0 à 3) :
+       score = 70 % réussite + 30 % évaluation de leçon (ou l'un des deux s'il manque) ; degré 1 < 25 % ≤ degré 2 < 50 % ≤ degré 3 < 75 % ≤ degré 4 ; note = score × 20. */
+    function jourData(D) { var R = {}, days = {};
+      all(KS).filter(function (x) { return same(x.cls, cls) && inP(x.day); }).forEach(function (x) { days[x.day] = days[x.day] || {}; var r = R[x.ek + "|" + x.day] = R[x.ek + "|" + x.day] || { s: 0, n: 0 };
+        Object.keys(x.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = x.r[q]; if (v === 0 || v === 1 || v === 2) { r.s += v; r.n += 2; } }); });
+      all(KE).filter(function (x) { return same(x.cls, cls) && inP(x.day); }).forEach(function (x) { days[x.day] = days[x.day] || {}; if (x.lec) days[x.day].lec = x.lec; if (x.theme) days[x.day].th = x.theme;
+        Object.keys(x.el || {}).forEach(function (k) { var e = x.el[k], V = ["p", "s", "t"].map(function (f) { return e[f]; }).filter(function (v) { return v != null; }); if (!V.length) return; var r = R[k + "|" + x.day] = R[k + "|" + x.day] || { s: 0, n: 0 }; r.le = V.reduce(function (a, b) { return a + b; }, 0) / (3 * V.length); }); });
+      var DS = Object.keys(days).sort(), cell = function (k, d) { var r = R[k + "|" + d]; if (!r) return null; var t = r.n ? r.s / r.n : null, sc = t != null && r.le != null ? .7 * t + .3 * r.le : t != null ? t : r.le; if (sc == null) return null;
+        return { sc: sc, deg: sc < .25 ? 0 : sc < .5 ? 1 : sc < .75 ? 2 : 3, note: Math.round(sc * 40) / 2 }; };
+      return { DS: DS, days: days, cell: cell }; }
+    function inP(d) { return P && P.from ? d >= P.from && d <= (P.to || "9999") : true; }
+    function jourHtml(D) { var J = jourData(D), DEG = ["#fbe3e3", "#fdf0d9", "#e1f0f9", "#def1e5"];
+      if (!J.DS.length) return '<p class="lc-mut">Aucun résultat de leçon sur la période : les élèves notent leurs situations pendant 📡 Leçon en cours, et tu évalues la leçon avec 📊 Évaluer la leçon.</p>';
+      var h = '<div style="overflow:auto"><table class="lc-tab"><tr><th>Élève</th>' + J.DS.map(function (d) { var x = J.days[d], l = x.lec && get(KL, x.lec); return '<th title="' + esc(l ? titreL(l) : x.th || "") + '">' + d.slice(8, 10) + "/" + d.slice(5, 7) + (l && l.num ? "<br><small>L" + esc(l.num) + "</small>" : "") + "</th>"; }).join("") + "<th>Moyenne</th><th>Degré</th></tr>";
+      h += D.EL.map(function (e) { var C = J.DS.map(function (d) { return J.cell(e.k, d); }), ok = C.filter(Boolean), m = ok.length ? ok.reduce(function (a, c) { return a + c.sc; }, 0) / ok.length : null;
+        return "<tr><td><b>" + esc(e.n) + "</b></td>" + C.map(function (c) { return "<td>" + (c ? '<span class="lc-tag" style="background:' + DEG[c.deg] + '">D' + (c.deg + 1) + "</span> " + n20(c.note) : '<span class="lc-mut">—</span>') + "</td>"; }).join("") +
+          "<td><b>" + (m != null ? n20(Math.round(m * 40) / 2) : "—") + "</b></td><td>" + (m != null ? '<span class="lc-tag" style="background:' + DEG[m < .25 ? 0 : m < .5 ? 1 : m < .75 ? 2 : 3] + '">D' + ((m < .25 ? 0 : m < .5 ? 1 : m < .75 ? 2 : 3) + 1) + "</span>" : "—") + "</td></tr>"; }).join("") + "</table></div>";
+      return h + '<div class="lc-row"><button type="button" class="lc-b" data-jcp>📋 Copier les moyennes (Pronote)</button><span class="lc-mut" data-jmsg style="margin:0"></span></div>' +
+        '<p class="lc-mut">Calcul : 70 % réussite aux situations (✅ 2 · 🟠 1 · ❌ 0) + 30 % évaluation de leçon (participation, sérieux, thème). Degré 1 sous 25 %, degré 2 sous 50 %, degré 3 sous 75 %, sinon degré 4 ; note = score × 20. Proposition : tu gardes la décision.</p>'; }
+    function jourBind(D) { var b = ov.querySelector("[data-jcp]"); if (!b) return; b.onclick = function () { var J = jourData(D), t = D.EL.map(function (e) { var ok = J.DS.map(function (d) { return J.cell(e.k, d); }).filter(Boolean); return ok.length ? e.n + "\t" + n20(Math.round(ok.reduce(function (a, c) { return a + c.sc; }, 0) / ok.length * 40) / 2) : ""; }).filter(Boolean).join("\n");
+      if (!t) return; try { navigator.clipboard.writeText(t).then(function () { ov.querySelector("[data-jmsg]").textContent = "✓ Copié."; }, function () { prompt("Copie :", t); }); } catch (er) { prompt("Copie :", t); } }; }
     function protoHtml(D, X) {
       if (!X) return '<p class="lc-mut">Pas de grille d\'évaluation dans cette appli : le positionnement selon le protocole n\'est pas disponible.</p>';
       var cc = X.M.ccf(cls), FIN = /^AFL1\b|^AFLP[12]\b/i, codes = ((D.EL.filter(function (e) { return e.pr && e.pr.afl; })[0] || {}).pr || { afl: [] }).afl.map(function (a) { return a.code; });
@@ -542,7 +569,8 @@
       trames().map(function (t, k) { return '<button type="button" class="lc-b" data-trame="' + k + '">📥 Trame proposée : ' + esc(t.nom) + "</button>"; }).join("") +
       (nd ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>" : "") +
       '<button type="button" class="lc-b" data-bankopen>🏦 Banque & apprentissages</button><button type="button" class="lc-b" data-autoprog>📅 Programmer d\'après l\'emploi du temps</button>' +
-      '<details class="lc-more"><summary class="lc-b">⋯ Plus</summary><div><button type="button" class="lc-b" data-docs>📂 Mes documents (' + docList().length + ")</button>" + (L.length ? '<button type="button" class="lc-b" data-printseq>🖨 Imprimer une séquence</button>' : "") + (L.length ? '<button type="button" class="lc-b" data-refall title="Toutes les fiches de l\'activité rangées selon ton modèle (importées de Word, de documents…)">🔁 Remettre en forme toutes les fiches</button>' : "") + "</div></details></div>" +
+      '<button type="button" class="lc-b" data-docs title="Tes leçons rédigées (Word, PDF, photo…) : dépose-les, puis « Mettre en fiches » les range selon ton modèle, dans la séquence de ton choix">📥 Importer mes leçons rédigées' + (docList().length ? " (" + docList().length + ")" : "") + "</button>" +
+      '<details class="lc-more"><summary class="lc-b">⋯ Plus</summary><div>' + (L.length ? '<button type="button" class="lc-b" data-printseq>🖨 Imprimer une séquence</button>' : "") + (L.length ? '<button type="button" class="lc-b" data-refall title="Toutes les fiches de l\'activité rangées selon ton modèle (importées de Word, de documents…)">🔁 Remettre en forme toutes les fiches</button>' : "") + "</div></details></div>" +
       (CC.length ? '<div class="lc-box"><b>👥 Séquence par classe</b><p class="lc-mut" style="margin:2px 0 6px">Touche une ou plusieurs classes, puis « ＋ Attribuer » sur les leçons à leur proposer : chaque classe a sa propre séquence. Une classe sans leçon attribuée garde toutes les leçons.</p><div class="lc-row">' +
         CC.map(function (c) { var on = SELC.some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-selc="' + esc(c) + '" title="' + (vClasse(c) === "pro" ? "Voie professionnelle" : "Voie générale") + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
         (SELC.length ? '<button type="button" class="lc-b s" data-selc0>✕ Aucune</button>' : "") + "</div></div>" : "") +
@@ -1074,7 +1102,8 @@
   }
   /* ---- leçon en cours (tablette de contrôle) ---- */
   function live(cls) { return all(KV).filter(function (v) { return same(v.cls, cls); })[0] || null; }
-  function startLive(cls, lec) { var v = live(cls) || { id: nn(cls) || uid() }; v.cls = cls; v.on = 1; v.st = Date.now(); v.lec = lec || ""; v.part = ""; v.msgs = []; v.tim = null; v.rang = null; v.grp = null; put(KV, v, true); }
+  function startLive(cls, lec) { try { if (typeof window.epsOnLiveStart === "function") window.epsOnLiveStart(cls, lec ? get(KL, lec) : null); } catch (e) {} /* l'appli prépare aussi sa propre leçon du jour (un seul bouton) */
+    var v = live(cls) || { id: nn(cls) || uid() }; v.cls = cls; v.on = 1; v.st = Date.now(); v.lec = lec || ""; v.part = ""; v.msgs = []; v.tim = null; v.rang = null; v.grp = null; put(KV, v, true); }
   function liveSet(cls, f) { var v = live(cls); if (!v) return; f(v); put(KV, v, true); drawLive(); }
   function sendMsg(cls, txt) { liveSet(cls, function (v) { v.msgs = (v.msgs || []).filter(function (x) { return x.at > Date.now() - 15 * 6e4; }).concat([{ id: uid(), at: Date.now(), t: txt }]); }); }
   function rang(cls) { return all(KR).filter(function (r) { return same(r.cls, cls); })[0] || null; }
@@ -1406,13 +1435,22 @@
   setTimeout(function () { try { seedApp(); } catch (e) {} }, 2500);
   window.EPSLC = {
     seedApp: seedApp,
+    fiche: function (id) { return get(KL, id); },
     /* leçon commune lancée pour cette classe (📡 Leçon en cours) : les écrans « pas encore de leçon » des applis renvoient vers elle au lieu de se contredire */
     liveFor: function (cls) { try { var v = cls && live(cls); if (!v || !v.on) return null; var l = v.lec ? get(KL, v.lec) : null; return { titre: l ? titreL(l) : "Leçon du jour", open: function () { showStudent(l, v); } }; } catch (e) { return null; } },
     open: open, close: close, app: APP, code: CODE, nextProg: function (c) { var p = nextProg(c); return p ? { at: p.at, titre: titreL(p.l), id: p.l.id } : null; }, count: function (c) { return lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c); }).length; },
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
     controle: function (o) { ctlOpen(o); },
-    evalActions: function () { evInit(); var T = classes().filter(isTerm); if (!T.length) return [];
-      return [{ ico: "📜", label: "Protocole (terminales)", main: 1, ord: 5, go: function () { var c = cur() && cur().nom; clOpen({ cls: c && isTerm(c) ? c : T[0], tab: "proto" }); } }]; },
+    /* onglet 📜 CCF de l'espace enseignant (eps-shell.js) : choix de la classe (terminales en premier), puis 🏫 Ma classe → 📜 CCF */
+    ccfPanel: function (el) { css(); var C = classes(), T = C.filter(isTerm), O = C.filter(function (c) { return !isTerm(c); });
+      var card = function (c) { return '<button type="button" class="lc-b' + (isTerm(c) ? " p" : "") + '" data-cc="' + esc(c) + '" style="min-height:56px;font-size:16px">' + (isTerm(c) ? "🎓 " : "") + esc(c) + "</button>"; };
+      el.innerHTML = '<h2>📜 CCF : positionnement et notes</h2><p class="mut">Degrés par AFL et note selon le protocole (évaluations), et degré + note de chaque leçon du jour d\'après les résultats.</p>' +
+        (T.length ? '<h3>Terminales</h3><div class="lc-row">' + T.map(card).join("") + "</div>" : '<p class="mut">Aucune classe de terminale (nom commençant par T) : choisis une autre classe ci-dessous.</p>') +
+        (O.length ? '<h3>Autres classes</h3><div class="lc-row">' + O.map(card).join("") + "</div>" : "");
+      el.querySelectorAll("[data-cc]").forEach(function (b) { b.onclick = function () { clOpen({ cls: b.dataset.cc, tab: "proto" }); }; }); },
+    evalActions: function () { return []; },
+    /* onglet Bilans des applis : les bilans et avis (séquence, trimestre, bulletin) se font au même endroit, 🏫 Ma classe ; l'onglet de l'appli garde ses chiffres propres */
+    bilActions: function () { return [{ ico: "📝", label: "Bilans & avis de la classe", main: 1, ord: -1, go: function () { clOpen({ tab: "bil" }); } }, { ico: "🏁", label: "Bilan de séquence (situations)", main: 1, ord: -0.5, go: function () { open("bil"); } }]; }, /* remplacé par l'onglet 📜 CCF */
     actions: function () { return [{ ico: "📝", label: "Fiches de leçon", ord: 0, go: function () { open("lec"); } }, { ico: "✅", label: "Tout est prêt ?", ord: 0.5, go: function () { if (window.EPSD && EPSD.check) EPSD.check(); } }, { ico: "📡", label: "Leçon en cours", ord: 2, go: function () { open("live"); } }, { ico: "🖥", label: "Tablette de contrôle", sub: "Retour en direct sur l'activité des élèves", main: 1, ord: 2.1, go: function () { ctlOpen({}); } }, { ico: "📊", label: "Évaluer la leçon", ord: 2.2, go: function () { open("eval"); } }, { ico: "🏁", label: "Bilan de séquence", ord: 2.4, go: function () { open("bil"); } }, { ico: "🧩", label: "Niveaux & groupes", sub: "Classement par niveau, affinités, groupes", ord: 2.6, go: function () { grOpen(null, "rang"); } }, { ico: "🏫", label: "Ma classe : vue d'ensemble", sub: "Leçons, élèves, bilans et avis", ord: 2.5, go: function () { clOpen({}); } }, { ico: "🧪", label: "Leçon simulée", ord: 3, go: simulate }]; },
     classe: function (o) { clOpen(o || {}); }, classData: function (c, P) { return classData(c, P); },
     banque: function (m) { bankOpen(m); }, autonomie: function () { autoOpen(); }, remCard: remCard, grids: grids, recAdd: recAdd, carte: carteHtml, sitNew: sitNew, refOpen: refOpen, print: function (id) { var l = get(KL, id); if (l) printOpen([l], titreL(l)); },

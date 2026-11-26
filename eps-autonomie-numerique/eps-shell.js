@@ -13,7 +13,7 @@
    sans quitter le mode enseignant. */
 (function () {
   var BASE = ((document.currentScript && document.currentScript.src) || "").replace(/eps-shell\.js.*$/, "");
-  var ORDER = [["seq", "📅", "Séquence"], ["vue", "👁", "Vue élève"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluation"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
+  var ORDER = [["seq", "📅", "Séquence"], ["vue", "👁", "Vue élève"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluation"], ["ccf", "📜", "CCF"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
   var VUE = /[?&]vue=eleve\b/.test(location.search);
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function css() {
@@ -65,7 +65,7 @@
     nav.className = "epst-nav"; nav.style.setProperty("--epst", C.color); pan.className = "epst-panel"; pan.style.setProperty("--epst", C.color);
     vue.className = "epst-vue";
     vue.innerHTML = '<div class="h">👁 Vue élève : l\'appli telle que la voit un élève (avec tes vraies données). Tu restes en mode enseignant.<button type="button">✕ Revenir à l\'espace enseignant</button></div><iframe title="Vue élève"></iframe>';
-    var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (C.tabs && C.tabs[t[0]]); });
+    var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (t[0] === "ccf" && !!(C.tabs && C.tabs.eval) && C.tabs.ccf !== false) || (C.tabs && C.tabs[t[0]]); });
     nav.innerHTML = tabs.map(function (t) { return '<button type="button" data-t="' + t[0] + '"><span>' + t[1] + "</span>" + t[2] + "</button>"; }).join("");
     /* deux bandeaux (barre de l'appli + onglets enseignant) : en descendant, seuls les onglets restent en haut ;
        la barre de l'appli revient dès qu'on remonte */
@@ -96,7 +96,7 @@
     function mains(show) { String(C.main || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean).forEach(function (sel) { document.querySelectorAll(sel).forEach(function (el) { el.style.display = show ? "" : "none"; }); }); }
     function mark(id) { M.cur = id; nav.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.t === id); });
       /* raccourcis propres à l'onglet (ex. Séquence : leçon en cours, tablette de contrôle) */
-      var A = (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []).concat(id === "eval" && window.EPSLC && EPSLC.evalActions ? EPSLC.evalActions() : []) /* + leçons communes (eps-lecons.js) */
+      var A = (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []).concat(id === "eval" && window.EPSLC && EPSLC.evalActions ? EPSLC.evalActions() : []).concat(id === "bil" && window.EPSLC && EPSLC.bilActions ? EPSLC.bilActions() : []) /* + leçons communes (eps-lecons.js) */
         .map(function (a, i) { return [a.ord != null ? a.ord : 1, i, a]; }).sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; }).map(function (x) { return x[2]; });
       document.documentElement.classList.toggle("epst-acts-on", A.length > 0);
       drawActs(A); }
@@ -177,6 +177,7 @@
           .concat(window.EPSP && EPSP.defs.length ? [{ ico: "🎛", label: "Paramètres de l'appli", sub: "Toutes les valeurs et listes modifiables de " + C.nom + " (" + EPSP.defs.length + ")", go: params }] : []).concat(C.reglages || []).concat([{ ico: "🏫", label: "Réglages communs", sub: "Établissement, enseignant, listes d'élèves, activités des classes, partage entre tablettes", go: function () { try { EPSR.open(); } catch (e) {} } }]);
         var q = panel("<h2>⚙ Réglages</h2><p class=\"mut\">Réglages de " + esc(C.nom) + " et réglages communs à toutes les applis.</p>" + cards(R)); bindCards(q, R, "reg"); return;
       }
+      if (id === "ccf") { var cp = panel(window.EPSLC ? "" : '<p class="mut">Chargement…</p>'); if (!window.EPSLC) { setTimeout(function () { if (M.cur === "ccf") go("ccf"); }, 1200); return; } try { EPSLC.ccfPanel(cp); } catch (e) { console.warn(e); } return; }
       if (t && t.panel) { var el = panel(""); try { t.panel(el); } catch (e) { console.warn(e); } return; }
       closePanel(); if (t && t.go) try { t.go(); } catch (e) { console.warn(e); }
     }
