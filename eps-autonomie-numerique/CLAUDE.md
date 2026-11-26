@@ -94,6 +94,8 @@ Quand l'enseignant demande une nouvelle appli, elle reprend **la même forme que
 
 ## Mode élève
 - En mode élève, l'appli s'ouvre sur l'écran commun « Choisis ta classe » : `(window.EPSG_Q=window.EPSG_Q||[]).push({app, sub, color, icon, classes(), current(), select(id), resources:[{ico,label,sub,open}], teacher(), isTeacher(), when()})`. Les ressources utiles sans classe (dispositif, sécurité, échauffement…) y figurent. Le bouton Accueil de l'appli, côté élève, ramène à cet écran.
+- **Ressources sans classe quand l'appli n'a pas d'écran ouvert sans classe** (Volley, Badminton, Acrosport, 26/11/2026) : `EPSG.sheet({titre, html, color})` d'eps-home.js ouvre une fiche plein écran (classe `.epsgs` ; contenu : `h3`, `p`, `ul`, `img`, `.epsgs-card`, `.epsgs-grid > figure`) avec « ← Retour » vers « Choisis ta classe ». Volley : échauffement (2 images) ; Badminton : échauffement, fiches techniques (`S.tech`) ; Acrosport : échauffement (`BONUS.warm`), prises de mains (`BONUS.prises`). Toute nouvelle appli propose au moins une ressource.
+- **Tuiles de l'accueil** : une ligne courte (3 ou 4 mots-clés), l'enseignant ne veut pas de texte long.
 - **Aucun bouton « enseignant » visible par les élèves.** Accès enseignant : 3 appuis rapides sur le logo (ou appui long de 2 s) (barre, écran de classe, titre des écrans tablette coach / terrain), géré par `eps-home.js` ; l'appli peut fournir `window.epsTeacherEntry()`.
 
 ## Classes et élèves (communs à toutes les applis et tablettes)

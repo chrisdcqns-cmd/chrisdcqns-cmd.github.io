@@ -2860,7 +2860,8 @@ window.EPSTA=window.EPST?EPST.init({app:'acro',nom:'Acrosport',color:'#1F4FA3',i
  classes:()=>classes().map(c=>({id:c,nom:c,note:""})),
  current:()=>homeClass||"",
  select:c=>selectClass(c),
- resources:[],
+ resources:[{ico:"🔥",label:"Échauffement",sub:"à deux, 3 niveaux",open:()=>EPSG.sheet({titre:"Échauffement",html:["Léger","Modéré","Difficile"].map(l=>{const W=BONUS.warm.filter(w=>w.lvl===l);return W.length?"<h3>"+l+"</h3>"+W.map(w=>'<div class="epsgs-card"><b class="t">'+esc(w.title)+'</b><img src="'+w.img+'" alt="" style="max-width:260px">'+((w.d||[]).length?"<ul>"+w.d.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>":"")+((w.var||[]).length?'<p class="m">Variantes : '+w.var.map(esc).join(" · ")+"</p>":"")+"</div>").join(""):""}).join("")})},
+  {ico:"✋",label:"Prises de mains",sub:"la légende des figures",open:()=>EPSG.sheet({titre:"Prises de mains",html:'<div class="epsgs-grid">'+BONUS.prises.map(p=>'<figure><img src="'+p.img+'" alt="">'+esc(p.label)+"</figure>").join("")+"</div>"})}],
  teacher:()=>openProf()});
 
 /* ---------- curseur de défilement : faire défiler la page sans toucher le tapis ---------- */

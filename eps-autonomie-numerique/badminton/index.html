@@ -3279,7 +3279,9 @@ window.EPSTB=window.EPST?EPST.init({app:'bad',nom:'Badminton',color:'#0B7A75',is
  classes:()=>S.classes.filter(c=>c.eleves.length).map(c=>({id:c.id,nom:c.nom,note:c.eleves.length+' élève'+(c.eleves.length>1?'s':'')+' · '+VOIES[c.voie]})),
  current:()=>TERR.cls||'',
  select:id=>{TERR.cls=id;terrStart()},
- resources:[],
+ resources:[{ico:'🔥',label:'Échauffement',sub:'déplacements',open:()=>EPSG.sheet({titre:'Échauffement',html:'<h3>Déplacements badiste · 5 min</h3><p>'+esc(ECH_TXT)+'</p><img src="echauffement-deplacements.webp" alt="Déplacements badiste : trajet rouge puis vert">'})},
+  {ico:'🎯',label:'Fiches techniques',sub:'les coups à connaître',open:()=>{const L=(S.tech&&S.tech.length?S.tech:defTech()),cats=[...new Set(L.map(f=>f.cat||'Autres'))];
+    EPSG.sheet({titre:'Fiches techniques',html:cats.map(c=>'<h3>'+esc(c)+'</h3>'+L.filter(f=>(f.cat||'Autres')===c).map(f=>'<div class="epsgs-card"><b class="t">'+esc(f.nom)+'</b>'+(f.but?'<p class="m">'+esc(f.but)+'</p>':'')+((f.cr||[]).length?'<p><b>Comment faire</b></p><ul>'+f.cr.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'')+((f.err||[]).length?'<p><b>À éviter</b></p><ul>'+f.err.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'')+(f.astuce?'<p class="m">💡 '+esc(f.astuce)+'</p>':'')+'</div>').join('')).join('')})}}],
  teacher:()=>unlock()});
 
 /* 📥 séquences de l'appli reprises dans les fiches de leçon communes (eps-lecons.js seedApp) : une fois, sans écraser tes modifications */

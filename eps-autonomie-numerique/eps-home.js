@@ -1254,7 +1254,27 @@
     var show = true; try { show = !(cfg.isTeacher ? cfg.isTeacher() : isTeacher()) && (!cfg.when || cfg.when()); } catch (e) { show = false; }
     if (show) { if (document.body) gateOpen(); else document.addEventListener("DOMContentLoaded", gateOpen); }
   }
-  window.EPSG = { register: gateRegister, open: gateOpen, close: gateClose };
+  /* Fiche ressource plein écran pour une appli dont les écrans ne s'ouvrent pas sans classe (Volley, Badminton, Acrosport) :
+     EPSG.sheet({titre, html, color}) ; « ← Retour » ramène à « Choisis ta classe ». Classe .epsgs (et non .epsg) pour ne pas
+     être fermée par un rafraîchissement de l'écran de classe. Contenu : h3, p, img, ul, .epsgs-card, .epsgs-grid. */
+  function gateSheet(o) {
+    o = o || {}; gateCss();
+    if (!document.getElementById("epsgs-css")) { var st = document.createElement("style"); st.id = "epsgs-css";
+      st.textContent = ".epsgs{position:fixed;inset:0;z-index:2147483000;background:#F5F3EE;overflow:auto;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#14171C;-webkit-font-smoothing:antialiased}.epsgs *{box-sizing:border-box}" +
+        ".epsgs-in{max-width:900px;margin:0 auto;padding:18px 22px 120px;font-size:16px;line-height:1.45}.epsgs-in h3{font-size:19px;font-weight:800;margin:22px 0 10px}.epsgs-in p{margin:0 0 10px}.epsgs-in ul{margin:6px 0 10px;padding-left:22px}.epsgs-in li{margin:3px 0}" +
+        ".epsgs-in img{max-width:100%;height:auto;border-radius:12px;display:block;background:#fff}.epsgs-in video{width:100%;max-height:60vh;border-radius:12px;background:#000;display:block;margin-top:8px}" +
+        ".epsgs-card{background:#fff;border:1px solid #E6E1D6;border-radius:14px;padding:14px 16px;margin:0 0 12px}.epsgs-card b.t{display:block;font-size:17px;font-weight:800;margin-bottom:4px}.epsgs-card .m{color:#6A6F78;font-size:14px}" +
+        ".epsgs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.epsgs-grid figure{margin:0;background:#fff;border:1px solid #E6E1D6;border-radius:12px;padding:8px;text-align:center;font-weight:700;font-size:14px}.epsgs-grid figure img{margin:0 auto 6px}" +
+        ".epsgs-back{margin-left:auto;display:inline-flex;align-items:center;gap:7px;height:40px;color:#D5D8DE;background:transparent;font:700 14px system-ui,sans-serif;border:1.5px solid #3A3F47;border-radius:10px;padding:0 14px;white-space:nowrap;cursor:pointer}";
+      document.head.appendChild(st); }
+    var G = GATE || {}, col = o.color || G.color || "#1B1E24", old = document.querySelector(".epsgs"); if (old) old.remove();
+    var d = document.createElement("div"); d.className = "epsgs";
+    d.innerHTML = '<div class="epsg-hd" style="background:#14171C;box-shadow:inset 0 -4px 0 ' + col + '"><div class="epsg-ic" style="background:' + col + '">' + (G.icon || "") + '</div><div style="flex:1;min-width:0"><h1>' + esc(o.titre || "") + "</h1>" + (G.app ? "<p>" + esc(G.app) + "</p>" : "") + '</div><button type="button" class="epsgs-back">← Retour</button></div><div class="epsgs-in">' + (o.html || "") + "</div>";
+    d.querySelector(".epsgs-back").onclick = function () { d.remove(); try { document.documentElement.style.overflow = ""; } catch (e) {} gateOpen(); };
+    document.body.appendChild(d); try { document.documentElement.style.overflow = "hidden"; } catch (e) {} d.scrollTop = 0;
+    return d;
+  }
+  window.EPSG = { register: gateRegister, open: gateOpen, close: gateClose, sheet: gateSheet };
 
   /* ================= Commentaires : 🎤 dictée (reconnaissance vocale de la tablette) et ✨ Reformuler (Claude, par le script commun) =================
      Toute appli marque ses champs de commentaire avec l'attribut data-eps-comment (facultatif : data-eps-ctx = éléments d'évaluation, data-eps-mode = "fiche" | "bulletin").
