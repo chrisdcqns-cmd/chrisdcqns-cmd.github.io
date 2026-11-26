@@ -1296,8 +1296,10 @@ function punch(r, code) {
 }
 function analyse(r) {
   const S0 = r.saisies.map(s => (s.st === "faux" || s.st === "hors") && s.attendu != null && codesOf(balise(s.attendu)).includes(String(s.code || "").toUpperCase()) ? { ...s, st: "ok", bal: +s.attendu, corrige: 1 } : s);
-  const p = P(r.k) || {}, plan = r.plan, ok = new Set(), retards = new Set();
+  const cr = r.debut ? (C.corr || {})[runKey(r)] : null; // corrections de l'enseignant (onglet Note) : projet et balises trouvées
+  const p = P(r.k) || {}, plan = cr && cr.plan ? cr.plan.map(Number) : r.plan, ok = new Set(), retards = new Set();
   S0.forEach(s => { if (s.st === "ok" || s.st === "saut") ok.add(+s.bal); if (s.st === "retour") retards.add(+s.bal); });
+  if (cr && cr.ok) { ok.clear(); retards.clear(); cr.ok.forEach(n => ok.add(+n)); }
   const oublis = plan.filter(n => !ok.has(+n));
   const passees = S0.filter(s => s.st === "passe").map(s => s.attendu);
   const faux = S0.filter(s => s.st === "faux" || s.st === "hors").length;
@@ -1307,7 +1309,7 @@ function analyse(r) {
   const pen = C.noPen ? 0 : (oublis.length * C.penOubli + (obligOk ? 0 : C.penOblig) + (over ? Math.ceil(over / 60000) * C.penRetard : 0)) * 1000;
   let prev = r.debut; const legs = S0.map(s => { const d = s.t - prev; prev = s.t; return { ...s, leg: d, cum: s.t - r.debut }; });
   const pts = plan.filter(n => ok.has(+n) || retards.has(+n)).reduce((a, n) => a + nivOf(n), 0);
-  return { pts, ptsMax: ptsOf(plan), chrono, pen, final: chrono + pen, oublis, passees, faux, obligOk, nErr: oublis.length, over, legs, retour: r.fin ? r.fin - prev : null, ordre: oublis.length === 0 && S0.every(s => s.st === "ok") };
+  return { found: [...ok, ...retards], plan, corrige: !!cr, pts, ptsMax: ptsOf(plan), chrono, pen, final: chrono + pen, oublis, passees, faux, obligOk, nErr: oublis.length, over, legs, retour: r.fin ? r.fin - prev : null, ordre: oublis.length === 0 && S0.every(s => s.st === "ok") };
 }
 
 // ---------- Fin de parcours : ressenti + bilan ----------
@@ -1614,7 +1616,7 @@ function vProf(tab = "res") {
   if (!TPW) return openProf();
   if (!statP) { ensureStat().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0] || tab); }); }
   clearInterval(profTick); profTick = null;
-  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><button class="btn sm or" id="pChk" title="Tout vérifier avant l'évaluation">✅ Prêt ?</button><button class="btn sm gh" id="pQr" title="QR code à afficher ou imprimer pour que les élèves ouvrent l'appli">📱 QR code d'accès</button><button class="btn sm vi" id="pSim" title="L'appli comme la voit un élève, avec un élève fictif : rien n'est envoyé">👁 Vue élève</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
+  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "note" ? "" : "gh"}" data-tb="note">🎓 Note</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><button class="btn sm or" id="pChk" title="Tout vérifier avant l'évaluation">✅ Prêt ?</button><button class="btn sm gh" id="pQr" title="QR code à afficher ou imprimer pour que les élèves ouvrent l'appli">📱 QR code d'accès</button><button class="btn sm vi" id="pSim" title="L'appli comme la voit un élève, avec un élève fictif : rien n'est envoyé">👁 Vue élève</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb"><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
   $("#hRet").onchange = e => { const v = e.target.value; if (!v) return; const [h, mi] = v.split(":").map(Number), d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < now() - 6 * 3600000) d.setDate(d.getDate() + 1); C.retour = d.getTime(); confChanged(); flash(`Heure de retour : ${hhmm(C.retour)} ✓`); };
   $("#hRetX").onclick = () => { C.retour = null; $("#hRet").value = ""; confChanged(); };
   $("#bMsg").onclick = () => msgDialog();
@@ -1622,7 +1624,7 @@ function vProf(tab = "res") {
   $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home"); $("#pSim").onclick = openSimView; $("#pQr").onclick = qrAccess; $("#pChk").onclick = checklist;
   $("#pUp").onclick = async () => { const b = $("#pUp"); b.disabled = true; b.textContent = "⏳ Mise à jour…"; clearTimeout(pubTimer); if (PUB.st === "wait") await publish(); VC = ""; VM = ""; LS.set("vc", ""); LS.set("vm", ""); LS.set("reopen", CUR.a[0] || "res"); location.replace(location.pathname + "?maj=" + Date.now()); };
   pubUI();
-  ({ suivi: profSuivi, res: profRes, conf: profConf, eleves: profEleves, carte: profCarte, dev: profDev })[tab]($("#pv"));
+  ({ suivi: profSuivi, res: profRes, note: profNote, conf: profConf, eleves: profEleves, carte: profCarte, dev: profDev })[tab]($("#pv"));
   if (tab === "conf") foldCards($("#pv"));
 }
 // --- suivi en direct : progression et dernière position connue de chaque élève ---
@@ -2184,6 +2186,97 @@ function profCarte(box) {
   $("#mD") && ($("#mD").onclick = async () => { if (await ask("Carte de démonstration ?", "Ta carte sera retirée chez les élèves.", "Retirer", "ko")) send(""); });
 }
 function shrink(f) { return new Promise(res => { const i = new Image(); i.onload = () => { const k = Math.min(1, 2600 / Math.max(i.width, i.height)), c = document.createElement("canvas"); c.width = Math.round(i.width * k); c.height = Math.round(i.height * k); const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(i, 0, 0, c.width, c.height); let q = .85, u = c.toDataURL("image/jpeg", q); while (u.length > 1.4e6 && q > .5) { q -= .1; u = c.toDataURL("image/jpeg", q); } res(u); }; i.src = URL.createObjectURL(f); }); }
+// ======================= 🎓 NOTE (proposition d'après le protocole CCF de CO) =======================
+// AFL1 = 2 éléments sur 6 (points réalisés / annoncés ; déplacement : temps, erreurs, niveaux) ; AFL2 + AFL3 = 8 pts (répartition 4-4, 6-2 ou 2-6 choisie par l'élève).
+// Balises attendues filles / garçons (CCF : 16 / 18), modifiables. Corrections de l'enseignant (C.corr) appliquées avant de générer.
+const NOTE_DEF = { attF: 16, attG: 18, avance: 2 }, BAREME = { 2: [0.5, 1, 1.5, 2], 4: [0.5, 1.5, 2.5, 4], 6: [0.5, 2, 4, 6] }, DEG1 = [[0, 1.5], [1.75, 3], [3.25, 4.5], [4.75, 6]];
+const ncfg = () => ({ ...NOTE_DEF, ...(C.ncfg || {}) });
+const q25 = v => Math.round(v * 4) / 4;
+const npts = n => C.niv ? nivOf(n) : 1;
+function noteData(x) {
+  const R = x.runs.filter(r => r && r.debut && r.fin); if (!R.length) return null;
+  const g = ncfg(), sx = (C.sexe || {})[x.me.id] || "", att = sx === "F" ? g.attF : g.attG;
+  let ann = 0, pts = 0, nbPlan = 0, nb = 0, n2 = 0, n3 = 0, modif = 0, oublis = 0, bonus = 0, over = 0, avance = 99, indMiss = 0, colOk = null, corr = 0;
+  R.forEach(r => { const a = withStudent(x, () => analyse(r)), F = new Set(a.found.map(Number)), extra = [...F].filter(n => !a.plan.includes(n)), p = P(r.k) || {};
+    ann += a.plan.reduce((s, n) => s + npts(n), 0); pts += [...F].reduce((s, n) => s + npts(n), 0); nbPlan += a.plan.length; nb += F.size; bonus += extra.length; corr += a.corrige ? 1 : 0;
+    F.forEach(n => { const v = +((balise(n) || {}).niv || 0); if (v === 2) n2++; if (v === 3) n3++; });
+    modif += a.passees.length; const miss = a.plan.filter(n => !F.has(+n)).length; oublis += miss; if (a.over) over = 1;
+    if (p.max) avance = Math.min(avance, Math.round((p.max * 60000 - a.chrono) / 60000));
+    if (isDuoK(r.k)) colOk = (colOk !== false) && !miss; else indMiss += miss; });
+  if (avance === 99) avance = 0;
+  return { R, sx, att, ann, pts, nbPlan, nb, n2, n3, modif, oublis, bonus, over, avance, indMiss, colOk, corr, ind: R.some(r => !isDuoK(r.k)) };
+}
+function noteProp(x) {
+  const v = noteData(x); if (!v) return null; const g = ncfg(), ratio = v.att ? Math.min(1, v.nb / v.att) : 0, rp = ((C.repart || {})[x.me.id] || "4-4").split("-").map(Number);
+  const d1 = v.pts < v.ann ? 0 : v.pts > v.ann ? 3 : v.modif > 0 ? 1 : 2;
+  const d2 = v.over ? 0 : v.oublis > 0 ? 1 : (v.nb && v.n3 === v.nb && v.avance >= g.avance) ? 3 : v.n3 > v.n2 ? 2 : 1;
+  const d3 = v.nbPlan && v.nb < v.nbPlan / 2 ? 0 : (v.modif || v.oublis) ? 1 : v.nb >= v.att ? ((v.bonus > 0 || v.pts > v.ann) ? 3 : 2) : 1;
+  const d4 = !v.ind ? 2 : v.indMiss ? 1 : v.colOk ? 3 : 2;
+  const pos = (d) => q25(DEG1[d][0] + (DEG1[d][1] - DEG1[d][0]) * ratio);
+  const a1 = pos(d1), a2 = pos(d2), a3 = BAREME[rp[0]][d3], a4 = BAREME[rp[1]][d4];
+  return { v, d: [d1, d2, d3, d4], a: [a1, a2, a3, a4], rep: rp.join("-"), tot: q25(a1 + a2 + a3 + a4),
+    why: [`${v.pts} pts réalisés / ${v.ann} annoncés${v.modif ? ", " + v.modif + " poste(s) abandonné(s)" : ""}`, `${v.over ? "hors temps" : "dans les temps" + (v.avance > 0 ? " (" + v.avance + " min d'avance)" : "")}, ${v.oublis} balise(s) du projet manquée(s), N2 ${v.n2} / N3 ${v.n3}`, `${v.nb} balises ramenées / ${v.att} attendues${v.bonus ? ", " + v.bonus + " bonus" : ""}`, v.ind ? `individuel : ${v.indMiss ? v.indMiss + " balise(s) manquée(s)" : "complet"}${v.colOk != null ? ", collectif " + (v.colOk ? "complet" : "incomplet") : ""}` : "pas de parcours individuel"] };
+}
+const NK = () => "notes:" + (C.ev ? C.ev.id : "cur");
+function profNote(box) {
+  const f = LS.get("pf", "");
+  const draw = () => { const g = ncfg();
+    const NT = LS.get(NK(), {}), L = allStudents().filter(x => !x.abs && (!f || x.me.prof === f) && x.runs.some(r => r && r.fin)).sort((a, b) => (a.me.classe + a.me.nom).localeCompare(b.me.classe + b.me.nom, "fr"));
+    box.innerHTML = `<div class="card"><h2 style="margin-top:0">🎓 Proposition de note · ${esc(C.ev ? C.ev.nom : "évaluation en cours")}</h2>
+      <p class="small muted" style="margin-top:0">D'après le protocole CCF de course d'orientation (AFL1 : 2 × 6 pts ; AFL2 + AFL3 : 8 pts selon la répartition de l'élève). <b>1.</b> Règle le nombre de balises attendues et le sexe des élèves. <b>2.</b> Corrige si besoin le projet et les balises de chaque élève (✏️). <b>3.</b> Génère les notes, puis ajuste-les.</p>
+      <div class="row small" style="gap:10px">Balises attendues : filles <input class="inp" type="number" min="1" id="nF" value="${g.attF}" style="width:70px;padding:6px"> garçons <input class="inp" type="number" min="1" id="nG" value="${g.attG}" style="width:70px;padding:6px"> <span class="muted">(CCF : 16 / 18)</span> · « en avance » à partir de <input class="inp" type="number" min="0" id="nA" value="${g.avance}" style="width:60px;padding:6px"> min ${g.attF !== 16 || g.attG !== 18 ? '<button class="btn sm gh" id="nCcf">↺ Valeurs du CCF</button>' : ""}</div>
+      <div class="row" style="margin-top:10px"><button class="btn or" id="nGen">🧮 Générer les notes</button><button class="btn sm gh" id="nCsv">⬇ Tableur</button><button class="btn sm gh" id="nPr">🖨 Imprimer</button><span class="small muted grow" style="text-align:right">${L.length} élève(s) avec au moins un parcours terminé${C.niv ? "" : " · sans niveaux de balises : 1 balise = 1 point"}</span></div></div>
+     <div class="card" style="overflow:auto"><table class="t small"><thead><tr><th>Élève</th><th>Sexe</th><th>Répart.</th><th>Balises<br>ramenées / attendues</th><th>Points<br>réalisés / annoncés</th><th>Temps</th><th></th><th>Proposition</th><th>Note retenue</th></tr></thead><tbody>
+      ${L.map(x => { const id = x.me.id, v = noteData(x), sx = (C.sexe || {})[id] || "", rp = (C.repart || {})[id] || "4-4", nt = NT[id];
+        return `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}<br><small class="muted">${esc(x.me.classe)}</small></td>
+         <td><button class="btn sm ${sx === "F" ? "or" : "gh"}" data-sx="F" data-id="${esc(id)}">F</button><button class="btn sm ${sx === "G" ? "or" : "gh"}" data-sx="G" data-id="${esc(id)}">G</button>${sx ? "" : '<br><small style="color:var(--ko)">à préciser</small>'}</td>
+         <td><select class="inp" data-rp="${esc(id)}" style="width:auto;padding:4px">${["4-4", "6-2", "2-6"].map(o => `<option ${o === rp ? "selected" : ""}>${o}</option>`).join("")}</select></td>
+         <td><b style="color:${v && v.nb >= v.att ? "var(--ok)" : "var(--ko)"}">${v ? v.nb : "—"}</b> / ${v ? v.att : "—"}<br><small class="muted">projet : ${v ? v.nbPlan : "—"}</small></td>
+         <td>${v ? `${v.pts} / ${v.ann}` : "—"}</td><td>${v ? (v.over ? '<span style="color:var(--ko)">hors temps</span>' : "dans les temps") : "—"}</td>
+         <td><button class="btn sm gh" data-cr="${esc(id)}">✏️ Corriger${v && v.corr ? " ✓" : ""}</button></td>
+         <td>${nt ? `<b>${fr(nt.prop)}</b> <small class="muted">(${nt.a.map(fr).join(" + ")})</small>` : '<span class="muted">—</span>'}</td>
+         <td>${nt ? `<input class="inp" type="number" step="0.25" min="0" max="20" data-nt="${esc(id)}" value="${nt.note}" style="width:80px;padding:6px;font-weight:800">${nt.note !== nt.prop ? ' <small class="muted">modifiée</small>' : ""}` : ""}</td></tr>`; }).join("") || '<tr><td colspan="9" class="muted">Aucun parcours terminé pour l\'instant.</td></tr>'}
+     </tbody></table><p class="small muted">« ✏️ Corriger » : projet de l'élève et balises réellement trouvées (s'applique aussi aux résultats). La note retenue est modifiable ; « Générer » ne remplace pas une note que tu as modifiée.</p></div>`;
+    const ch = () => { confChanged(); };
+    ["nF", "nG", "nA"].forEach(i => $("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF: +$("#nF").value || 16, attG: +$("#nG").value || 18, avance: +$("#nA").value || 0 }; ch(); draw(); });
+    $("#nCcf") && ($("#nCcf").onclick = () => { C.ncfg = { ...NOTE_DEF }; ch(); draw(); });
+    $$("[data-sx]").forEach(b => b.onclick = () => { const id = b.dataset.id, v = b.dataset.sx; C.sexe = { ...(C.sexe || {}), [id]: v }; ch(); draw(); });
+    $$("[data-rp]").forEach(x => x.onchange = () => { C.repart = { ...(C.repart || {}), [x.dataset.rp]: x.value }; ch(); draw(); });
+    $$("[data-nt]").forEach(x => x.onchange = () => { const N = LS.get(NK(), {}), o = N[x.dataset.nt]; if (!o) return; o.note = Math.max(0, Math.min(20, q25(+String(x.value).replace(",", ".") || 0))); o.man = o.note !== o.prop; LS.set(NK(), N); draw(); });
+    $$("[data-cr]").forEach(b => b.onclick = () => corrDialog(L.find(x => x.me.id === b.dataset.cr), draw));
+    $("#nGen").onclick = async () => { const miss = L.filter(x => !(C.sexe || {})[x.me.id]).length; if (miss && !(await ask("Sexe non précisé", `${miss} élève(s) sans sexe : le nombre de balises attendues des garçons (${ncfg().attG}) leur est appliqué.`, "Générer quand même", "or"))) return;
+      const N = LS.get(NK(), {}); let n = 0; L.forEach(x => { const pr = noteProp(x); if (!pr) return; const o = N[x.me.id]; N[x.me.id] = { prop: pr.tot, a: pr.a, d: pr.d, why: pr.why, rep: pr.rep, note: o && o.man ? o.note : pr.tot, man: !!(o && o.man), t: now() }; n++; }); LS.set(NK(), N); draw(); flash(`🧮 ${n} note(s) proposée(s)`); };
+    $("#nCsv").onclick = () => { const N = LS.get(NK(), {}), rows = [["Nom", "Prénom", "Classe", "Sexe", "Répartition", "Balises ramenées", "Balises attendues", "Balises du projet", "Points réalisés", "Points annoncés", "Hors temps", "AFL1 (1) /6", "AFL1 (2) /6", "AFL2", "AFL3", "Note proposée /20", "Note retenue /20", "Justification"]];
+      L.forEach(x => { const v = noteData(x), o = N[x.me.id]; rows.push([x.me.nom, x.me.prenom, x.me.classe, (C.sexe || {})[x.me.id] || "", (C.repart || {})[x.me.id] || "4-4", v ? v.nb : "", v ? v.att : "", v ? v.nbPlan : "", v ? v.pts : "", v ? v.ann : "", v && v.over ? "oui" : "non", ...(o ? o.a.map(fr) : ["", "", "", ""]), o ? fr(o.prop) : "", o ? fr(o.note) : "", o ? o.why.join(" | ") : ""]); });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n")], { type: "text/csv" })); a.download = `notes-CO-${(C.ev ? C.ev.nom : "evaluation").normalize("NFD").replace(/[^\w]+/g, "-")}.csv`; a.click(); };
+    $("#nPr").onclick = () => { const N = LS.get(NK(), {}); printDoc("Notes CO", `<h1>🎓 Notes de course d'orientation</h1><p class="sub">${evHead()} · balises attendues : filles ${g.attF}, garçons ${g.attG} · protocole CCF (AFL1 12 pts, AFL2 + AFL3 8 pts)</p><table><thead><tr><th>Élève</th><th>Classe</th><th>Sexe</th><th>Balises</th><th>Points</th><th>AFL1 (1)</th><th>AFL1 (2)</th><th>AFL2</th><th>AFL3</th><th>Note /20</th></tr></thead><tbody>${L.map(x => { const v = noteData(x), o = N[x.me.id]; return `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}</td><td>${esc(x.me.classe)}</td><td>${(C.sexe || {})[x.me.id] || ""}</td><td>${v ? v.nb + " / " + v.att : ""}</td><td>${v ? v.pts + " / " + v.ann : ""}</td>${o ? o.a.map(a => `<td>${fr(a)}</td>`).join("") + `<td><b>${fr(o.note)}</b></td>` : '<td colspan="5"></td>'}</tr>`; }).join("")}</tbody></table>`); };
+  };
+  draw();
+}
+const fr = v => String(Math.round(v * 100) / 100).replace(".", ",");
+// corriger le projet et les balises trouvées d'un élève (chaque parcours)
+function corrDialog(x, after) {
+  if (!x) return; const R = x.runs.filter(r => r && r.debut && r.fin);
+  const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">✏️ ${esc(x.me.prenom)} ${esc(x.me.nom)}</h2><button class="btn sm gh" id="crX">Fermer</button></div>
+   <p class="small muted" style="margin-top:0">Projet = balises annoncées (dans l'ordre). Coche les balises réellement trouvées ; ajoute les balises trouvées hors projet (bonus).</p>
+   ${R.map((r, i) => { const a = withStudent(x, () => analyse(r)), F = new Set(a.found.map(Number)), extra = [...F].filter(n => !a.plan.includes(n));
+     return `<div class="card" style="margin:0 0 8px;padding:10px" data-ci="${i}"><b>${esc(P(r.k).nom)}</b>${a.corrige ? ' <span class="chip or">corrigé</span>' : ""}
+      <label class="l">Projet (balises annoncées)</label><input class="inp" data-cp="${i}" value="${a.plan.join(" ")}">
+      <div class="small" style="margin-top:6px">Trouvées :</div><div class="row" style="gap:4px;margin-top:4px" data-cl="${i}">${a.plan.map(n => `<label class="chip" style="cursor:pointer"><input type="checkbox" data-cf="${n}" ${F.has(+n) ? "checked" : ""}> ${n}${npts(n) > 1 ? " <small>(" + npts(n) + " pts)</small>" : ""}</label>`).join("")}</div>
+      <label class="l">Balises bonus trouvées hors projet</label><input class="inp" data-cb="${i}" value="${extra.join(" ")}" placeholder="ex. 41 45">
+      ${a.corrige ? `<button class="btn sm gh" data-cz="${i}" style="margin-top:6px">↺ Revenir aux données du téléphone</button>` : ""}</div>`; }).join("")}
+   <div class="row"><button class="btn or grow" id="crOk">✓ Enregistrer les corrections</button></div>`);
+  $("#crX", m).onclick = m.close;
+  $$("[data-cp]", m).forEach(inp => inp.onchange = () => { const i = inp.dataset.cp, plan = inp.value.split(/[^\d]+/).filter(Boolean).map(Number), box = $(`[data-cl="${i}"]`, m), was = new Set($$("[data-cf]:checked", box).map(c => +c.dataset.cf)); box.innerHTML = plan.map(n => `<label class="chip" style="cursor:pointer"><input type="checkbox" data-cf="${n}" ${was.has(n) ? "checked" : ""}> ${n}</label>`).join(""); });
+  $$("[data-cz]", m).forEach(b => b.onclick = () => { const r = R[+b.dataset.cz]; delete (C.corr || {})[runKey(r)]; confChanged(); m.close(); after && after(); });
+  $("#crOk", m).onclick = () => { const bad = [];
+    R.forEach((r, i) => { const plan = $(`[data-cp="${i}"]`, m).value.split(/[^\d]+/).filter(Boolean).map(Number), ok = $$(`[data-cl="${i}"] [data-cf]:checked`, m).map(c => +c.dataset.cf), bon = $(`[data-cb="${i}"]`, m).value.split(/[^\d]+/).filter(Boolean).map(Number);
+      [...plan, ...bon].forEach(n => { if (!balise(n)) bad.push(n); });
+      const a = withStudent(x, () => analyse(r)), same = JSON.stringify(plan) === JSON.stringify(a.plan) && JSON.stringify([...ok, ...bon].sort()) === JSON.stringify(a.found.map(Number).sort());
+      if (!same) { C.corr = C.corr || {}; C.corr[runKey(r)] = { plan, ok: [...new Set([...ok, ...bon])] }; } });
+    if (bad.length) return flash("Balise inconnue : " + [...new Set(bad)].join(", "));
+    confChanged(); m.close(); flash("✏️ Corrections enregistrées"); after && after(); };
+}
 function profDev(box) {
   box.innerHTML = `<div class="card"><h2>📱 Cet appareil</h2><p class="small">Élève : <b>${ME ? esc(studentName(ME)) + " · " + esc(ME.classe || "") + " · " + esc(ME.prof) : "aucun"}</b> · ${RUNS.filter(r => r?.fin).length} parcours terminé(s)${RUNS.some(r => r && !r.fin) ? " · 1 parcours en cours" : ""}</p>
    ${RUNS.map((r, k) => r?.fin ? `<button class="btn sm gh" data-tb2="${k}" style="margin:0 6px 6px 0">Bilan détaillé ${esc(P(k).nom)}</button>` : "").join("")}
