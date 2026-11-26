@@ -17,7 +17,7 @@ async def main():
         p=await cp.new_page(); p.on("pageerror",lambda x:errs.append(str(x)[:200])); await p.goto(B+"basket/"); await p.wait_for_timeout(3000)
         e=await ce.new_page(); e.on("pageerror",lambda x:errs.append(str(x)[:200])); await e.goto(B+"basket/"); await e.wait_for_timeout(3000)
         await p.click(".epst-nav button[data-t=cls]"); await p.fill("#eqN","2"); await p.click("[data-act=eqHasard]"); await p.wait_for_timeout(500)
-        await p.click(".epst-nav button[data-t=seq]"); await p.click("[data-act=mode][data-m='4']"); await p.click("[data-act=renc]")
+        await p.click(".epst-nav button[data-t=seq]"); await p.click("#modeBar [data-m='4']"); await p.click("[data-act=renc]")
         ok=False
         for i in range(30):
             await e.wait_for_timeout(2000)

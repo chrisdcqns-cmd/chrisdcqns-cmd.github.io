@@ -221,3 +221,5 @@ window.EPS_REMED_REF = {
       src: "ac. Lyon, FPC cross-training 2019 (burpees, critères de validation et de réalisation)" }
   ]
 };
+/* situations fournies par une appli (Basket-ball : window.EPS_REMED_APP.basket, mêmes champs, source indiquée) */
+try { if (window.EPS_REMED_APP) Object.keys(window.EPS_REMED_APP).forEach(function (k) { if (Array.isArray(window.EPS_REMED_APP[k])) window.EPS_REMED_REF[k] = window.EPS_REMED_APP[k]; }); } catch (e) {}

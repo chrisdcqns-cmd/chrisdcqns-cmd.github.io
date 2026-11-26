@@ -7,7 +7,7 @@ B="http://localhost:8841/eps-autonomie-numerique/"
 NOMS=["Lina MARTIN","Noah PETIT","Emma DURAND","Hugo LEROY","Jade MOREAU","Louis SIMON","Chloé LAURENT","Adam MICHEL","Inès GARCIA","Tom DAVID","Sarah BERTRAND","Nathan ROUX","Léa VINCENT","Yanis FOURNIER"]
 SEED="try{if(!localStorage.getItem('eps.lists.v1'))localStorage.setItem('eps.lists.v1',JSON.stringify({items:{c1:{id:'c1',nom:'2GT1 TEST',el:"+json.dumps(NOMS)+",ts:1}},pend:{},app:{}}));}catch(e){}"
 TEACH="try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}"
-SHOT="/tmp/"
+SHOT=(sys.argv[2] if len(sys.argv)>2 else "/tmp")+"/"
 async def over(p): return await p.evaluate("document.documentElement.scrollWidth>innerWidth+1")
 async def main():
     out=[]; errs=[]
@@ -17,7 +17,7 @@ async def main():
         p=await c.new_page(); p.on("pageerror",lambda x:errs.append("prof "+str(x)[:300])); p.on("console",lambda m:errs.append("console "+m.text[:300]) if m.type=="error" and "favicon" not in m.text and "ERR_" not in m.text else None)
         await p.goto(B+"basket/"); await p.wait_for_timeout(3500)
         out.append(("prof : onglets communs",await p.evaluate("document.querySelectorAll('.epst-nav button').length"),None))
-        out.append(("prof : leçon du jour affichée",await p.evaluate("!!document.querySelector('[data-act=mode]')"),await p.evaluate("document.querySelector('#vue').innerText.slice(0,200)")))
+        out.append(("prof : leçon du jour affichée",await p.evaluate("document.querySelectorAll('#modeBar button').length==2 && !!document.querySelector('[data-ch=libre]')"),await p.evaluate("document.querySelector('#vue').innerText.slice(0,200)")))
         await p.screenshot(path=SHOT+"p1-sequence-vide.png")
         # équipes
         await p.click(".epst-nav button[data-t=cls]"); await p.wait_for_timeout(600)
@@ -31,7 +31,17 @@ async def main():
         tot=await p.evaluate("JSON.parse(localStorage['bk.v1']).items['e|2gt1test'].eq.map(e=>e.j.length)")
         out.append(("déplacer un joueur",sum(tot)==14 and tot[1]==5 if False else sum(tot)==14,tot))
         await p.click(".epst-nav button[data-t=seq]"); await p.wait_for_timeout(500)
+        await p.click("#modeBar [data-m='4']"); await p.wait_for_timeout(300)
+        m4=await p.evaluate("(()=>{const I=JSON.parse(localStorage['bk.v1']).items;return I[Object.keys(I).find(x=>x.startsWith('j|'))].mode+document.querySelector('#modeBar .on').dataset.m})()")
+        await p.click("#modeBar [data-m='3']"); await p.wait_for_timeout(300)
+        out.append(("bouton 3 c 3 / 4 c 4 de la barre : change la forme du jour",m4=="44" and await p.evaluate("document.querySelector('#modeBar .on').dataset.m")=="3",m4))
         await p.click("[data-act=bon][data-i='0']"); await p.wait_for_timeout(200)
+        await p.evaluate("aller('sits')"); await p.wait_for_timeout(300); ns=await p.evaluate("document.querySelectorAll('[data-act=sitOuvrir]').length"); await p.screenshot(path=SHOT+"p-situations.png",full_page=True)
+        await p.click("[data-act=sitOuvrir][data-id=carre]"); await p.wait_for_timeout(300); await p.screenshot(path=SHOT+"p-situation.png",full_page=True); out.append(("situation sans débordement",not await over(p),None))
+        await p.click("[data-act=sitVoir]"); await p.wait_for_timeout(200)
+        for sid in ["p10","manege"]: await p.evaluate("A.sitVoir({dataset:{id:'%s'}})"%sid)
+        out.append(("situations : 12 en 3 contre 3, 3 montrées aux élèves",ns==12 and await p.evaluate("JSON.parse(localStorage['bk.v1']).items['c|sits'].on.length")==3,ns))
+        await p.evaluate("aller('prof')"); await p.wait_for_timeout(300)
         await p.click("[data-act=nt][data-d='-1']"); await p.wait_for_timeout(200)
         await p.click("[data-act=renc]"); await p.wait_for_timeout(400)
         r=await p.evaluate("(()=>{const I=JSON.parse(localStorage['bk.v1']).items;const k=Object.keys(I).find(x=>x.startsWith('j|'));return I[k].r.map(x=>[x.m.length,x.off.length])})()")
@@ -74,9 +84,10 @@ async def main():
         await e.click("[data-act=obsNew][data-ty=coll]"); await e.wait_for_timeout(300); await e.click("[data-act=obsGo]"); await e.wait_for_timeout(300)
         for i in [0,0,1,1,1,2,3]: await e.click("[data-act=cpt][data-i='%d']"%i); await e.wait_for_timeout(120)
         ind=await e.evaluate("[...document.querySelectorAll('.ind b')].map(x=>x.textContent)")
-        out.append(("fiche collective : 6 possessions, 83 % au tir, 40 % de réussite",ind[:3]==["6","83 %","40 %"],ind))
+        out.append(("fiche collective : 6 possessions, 17 % de pertes, 83 % au tir, 40 % de réussite",ind[:4]==["6","17 %","83 %","40 %"] and len(ind)==7,ind))
         await e.screenshot(path=SHOT+"e5-obs-coll.png")
         await e.click("[data-act=obsAnnuler]"); await e.wait_for_timeout(200); await e.click("[data-act=obsFin]"); await e.wait_for_timeout(300)
+        cs=await e.evaluate("(document.querySelector('[data-act=sitOuvrir]')||{}).textContent||''"); out.append(("situation conseillée après la fiche (réussite au tir faible : le manège)","manège" in cs,cs))
         # carte des tirs
         await e.click("[data-act=aller][data-v=obs]"); await e.click("[data-act=obsNew][data-ty=tir]"); await e.wait_for_timeout(300); await e.click("[data-act=obsGo]"); await e.wait_for_timeout(300)
         bb=await e.locator("#tirZone svg").bounding_box()
@@ -87,8 +98,11 @@ async def main():
         await e.screenshot(path=SHOT+"e6-tirs.png",full_page=True); await e.click("[data-act=obsFin]")
         # fiche joueur
         await e.click("[data-act=aller][data-v=obs]"); await e.click("[data-act=obsNew][data-ty=ind]"); await e.wait_for_timeout(300); await e.click("[data-act=obsWho] >> nth=0"); await e.wait_for_timeout(200); await e.click("[data-act=obsGo]"); await e.wait_for_timeout(300)
-        for i in [0,2,2,3,4,5]: await e.click("[data-act=cpt][data-i='%d']"%i); await e.wait_for_timeout(100)
-        await e.click("[data-act=obsFin]"); await e.wait_for_timeout(200)
+        out.append(("fiche joueur : 8 compteurs",await e.evaluate("document.querySelectorAll('.cpt').length")==8,None))
+        for i in [0,2,2,3,4,5,7]: await e.click("[data-act=cpt][data-i='%d']"%i); await e.wait_for_timeout(100)
+        await e.screenshot(path=SHOT+"e5b-obs-joueur.png")
+        await e.click("[data-act=obsFin]"); await e.wait_for_timeout(300); await e.fill("#obsPf","Ses passes"); await e.fill("#obsCs","Regarde le panier"); await e.click("[data-act=obsCons]"); await e.wait_for_timeout(300)
+        out.append(("bilan avec le joueur enregistré",await e.evaluate("document.querySelector('#vue').innerText.includes('Regarde le panier')"),None))
         # planche
         await e.click("[data-act=aller][data-v=obs]"); await e.click("[data-act=aller][data-v=home]"); await e.click("[data-act=aller][data-v=plan]"); await e.wait_for_timeout(300)
         await e.click("[data-act=aller][data-v=sys]"); await e.wait_for_timeout(500); await e.screenshot(path=SHOT+"e7-systemes.png",full_page=True)
@@ -100,7 +114,11 @@ async def main():
         n=await e.evaluate("Object.keys(JSON.parse(localStorage['bk.v1']).items).filter(k=>k.startsWith('p|')).length")
         out.append(("schéma d'équipe enregistré",n==1,n))
         await e.click("[data-act=aller][data-v=home]"); await e.click("[data-act=aller][data-v=bilan]"); await e.wait_for_timeout(400)
-        await e.fill("[data-bq='0']","Le passe et va"); await e.click("[data-act=bilSave]"); await e.wait_for_timeout(300)
+        # le contrat se lit sur l'équipe observée (sa fiche « Notre attaque » a été tenue par une autre équipe)
+        await e.evaluate("(()=>{const I=JSON.parse(localStorage['bk.v1']).items;S.eq=I[Object.keys(I).find(k=>k.startsWith('o|')&&I[k].ty==='coll')].eq;aller('bilan')})()"); await e.wait_for_timeout(300)
+        await e.fill("[data-bq='0']","Le passe et va"); await e.select_option("#ctK","perte"); await e.fill("#ctV","30"); await e.click("[data-act=bilSave]"); await e.wait_for_timeout(300)
+        out.append(("contrat d'équipe : balles perdues ≤ 30 %, tenu avec 17 %","Contrat tenu · 17 %" in await e.evaluate("document.querySelector('#vue').innerText"),None))
+        await e.evaluate("aller('home')"); out.append(("élève : tuile Situations, 3 visibles",await e.evaluate("(aller('sits'),document.querySelectorAll('[data-act=sitOuvrir]').length)")==3,None))
         await e.screenshot(path=SHOT+"e9-bilan.png",full_page=True)
         out.append(("pas de débordement (bilan)",not await over(e),None))
         for v in ["regles","echauf","prog"]:
@@ -108,7 +126,7 @@ async def main():
             if v!="echauf": await e.screenshot(path=SHOT+"e-"+v+".png",full_page=True)
         # téléphone
         await e.set_viewport_size({"width":390,"height":844})
-        for v in ["home","prog","obs","plan","sys","bilan","regles"]:
+        for v in ["home","prog","obs","plan","sys","bilan","regles","sits"]:
             await e.evaluate("aller('%s')"%v); await e.wait_for_timeout(300); out.append(("390 px : "+v+" sans débordement",not await over(e),None))
         await e.evaluate("A.matchVoir({dataset:{id:Object.keys(JSON.parse(localStorage['bk.v1']).items).find(k=>k.startsWith('m|'))}})"); await e.wait_for_timeout(300); out.append(("390 px : match sans débordement",not await over(e),None))
         # prof : suivi mis à jour

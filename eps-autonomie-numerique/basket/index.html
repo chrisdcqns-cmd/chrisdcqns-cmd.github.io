@@ -20,12 +20,19 @@ header{position:sticky;top:0;z-index:20;background:#14171C;color:#fff;padding:10
 header .mk{width:36px;height:36px;border-radius:10px;background:var(--app);padding:6px;flex:none}
 header h1{font-size:20px;margin:0;line-height:1.1;font-weight:800}
 header small{display:block;color:#A9AEB8;font-weight:500;font-size:13px}
-header [data-eps-bar]{margin-left:auto;display:flex;gap:6px;align-items:center}
+header{flex-wrap:wrap}
+header [data-eps-bar]{display:flex;gap:6px;align-items:center}
+.modes{margin-left:auto;display:flex;border:1.5px solid #3A3F47;border-radius:10px;overflow:hidden;height:40px;flex:none}
+.modes button{border:0;background:transparent;color:#D5D8DE;font-weight:800;padding:0 13px;font-size:15px;white-space:nowrap}
+.modes button.on{background:var(--app);color:#fff}
+.modes.fixe button:not(.on){opacity:.4}
+.hb{height:40px;min-width:44px;border:1.5px solid #3A3F47;border-radius:10px;background:transparent;font-size:18px;flex:none}
+@media (max-width:620px){header small{display:none}header h1{font-size:17px}.modes button{padding:0 9px;font-size:14px}}
 html:not(.eps-teach) body.gate main{visibility:hidden}
 main{max-width:1040px;margin:0 auto;padding:14px 14px 90px}
 h2{font-size:22px;margin:4px 0 12px}
 h3{font-size:16px;margin:0 0 8px}
-.carte{background:var(--carte);border:1px solid var(--ligne);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.carte{background:var(--carte);border:1px solid var(--ligne);border-radius:var(--r);padding:14px;margin-bottom:12px;overflow-x:auto}
 .doux{color:var(--doux)}.petit{font-size:14px}
 .ligne{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .btn{border:0;border-radius:12px;min-height:44px;padding:10px 16px;font-weight:700;background:var(--encre);color:#fff}
@@ -92,7 +99,9 @@ table.t td{padding:8px 6px;border-top:1px solid var(--ligne)}table.t .c{text-ali
 <body>
 <header>
   <svg class="mk" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3v18"/><path d="M5.6 5.6c3 3 3 9.8 0 12.8"/><path d="M18.4 5.6c-3 3-3 9.8 0 12.8"/></svg>
-  <div><h1>Basket-ball<small id="sousTitre">CA4 · 3 contre 3 et 4 contre 4</small></h1></div>
+  <div><h1>Basket-ball<small id="sousTitre">CA4 · en construction</small></h1></div>
+  <div class="modes" id="modeBar" role="group" aria-label="Forme de jeu"><button type="button" data-act="modeBar" data-m="3">3 c 3</button><button type="button" data-act="modeBar" data-m="4">4 c 4</button></div>
+  <button type="button" class="hb" data-act="planBar" title="Planche tactique" aria-label="Planche tactique">📋</button>
   <span data-eps-bar></span>
 </header>
 <main id="vue"></main>
@@ -155,9 +164,12 @@ const DEFS=[
   "Retour en zone : une fois en zone avant, le ballon ne revient pas en zone arrière.",
   "3 secondes dans la raquette adverse, 5 secondes quand je suis serré de près, 8 secondes pour passer le milieu, 24 secondes pour tirer.",
   "Remise en jeu derrière la ligne, là où le ballon est sorti."]},
- {id:"bonus",sec:"Points bonus",label:"Règles de points bonus (intitulé ; points). Tu choisis celles du jour dans Séquence.",type:"list",def:["Panier après une passe décisive ; 1","Panier en contre-attaque ; 1","Tous les joueurs ont touché le ballon avant le tir ; 1","Ballon gagné en défense puis panier ; 1"]},
- {id:"obs_coll",sec:"Fiches d'observation",label:"Fiche collective : intitulés des 4 compteurs",type:"list",fixed:4,def:["Panier marqué","Tir manqué","Balle perdue","Ballon gagné en défense"]},
- {id:"obs_ind",sec:"Fiches d'observation",label:"Fiche joueur : intitulés des 6 compteurs",type:"list",fixed:6,def:["Tir réussi","Tir manqué","Passe réussie","Balle perdue","Ballon gagné (interception, rebond)","Passe décisive"]},
+ {id:"bonus",sec:"Points bonus",label:"Règles de points bonus (intitulé ; points). Tu choisis celles du jour dans Séquence.",type:"list",def:["Contre-attaque à plusieurs (au moins une passe) qui arrive seul ou à 2 contre 1 près du panier ; 1","Tir en position favorable (près du panier, à 45°, avec la planche) ; 1","Panier après une passe décisive ; 1","Tous les joueurs ont touché le ballon avant le tir ; 1","Ballon gagné en défense puis panier ; 1"]},
+ {id:"obs_coll",sec:"Fiches d'observation",label:"Fiche collective : intitulés des 6 compteurs (la fiche simplifiée garde les 3 premiers)",type:"list",fixed:6,def:["Panier marqué","Tir manqué","Balle perdue","Tir en position favorable","Contre-attaque","Ballon gagné en défense"]},
+ {id:"obs_ind",sec:"Fiches d'observation",label:"Fiche joueur : intitulés des 8 compteurs (la fiche simplifiée garde les 4 premiers)",type:"list",fixed:8,def:["Tir réussi","Tir manqué","Passe réussie","Balle perdue","Ballon gagné","Rebond","Passe décisive","Faute"]},
+ {id:"zone_fav",sec:"Fiches d'observation",label:"Ce qu'est un tir en position favorable (affiché sur la fiche)",type:"text",def:"près du panier, à 45°, en utilisant la planche"},
+ {id:"seuil_perte",sec:"Fiches d'observation",label:"Balles perdues, en % des possessions (seuil orange ; seuil vert)",type:"text",def:"40 ; 25"},
+ {id:"seuil_fav",sec:"Fiches d'observation",label:"Tirs en position favorable, en % des tirs (seuil orange ; seuil vert)",type:"text",def:"40 ; 60"},
  {id:"seuil_tir",sec:"Fiches d'observation",label:"Possessions qui arrivent au tir, en % (seuil orange ; seuil vert)",type:"text",def:"50 ; 70"},
  {id:"seuil_reu",sec:"Fiches d'observation",label:"Réussite au tir, en % (seuil orange ; seuil vert)",type:"text",def:"30 ; 50"},
  {id:"seuil_eff",sec:"Fiches d'observation",label:"Efficacité du joueur, en % (seuil orange ; seuil vert)",type:"text",def:"50 ; 70"},
@@ -209,9 +221,12 @@ const eqNom=(cls,id)=>{ const e=eqDe(cls,id); return e?e.nom:id==="prof"?"Enseig
 const eqCol=(cls,id)=>{ const e=eqDe(cls,id); return e?e.col:"#6A6F78"; };
 function eqFaire(cls,G){ const C=chasubles(); eqSave(cls,G.filter(g=>g&&g.length).map((g,i)=>({id:"q"+uid()+i, nom:(C[i%C.length]||{}).nom||("Équipe "+(i+1)), col:(C[i%C.length]||{}).col||"#6A6F78", j:g.slice()}))); }
 function jourId(cls,d){ return "j|"+nk(cls)+"|"+(d||auj()); }
-function jour(cls,d){ const o=stGet(jourId(cls,d))||{}; return {cls:cls, day:d||auj(), mode:MODES[o.mode]?o.mode:"3", libre:!!o.libre, nt:Math.max(1,Math.min(8,+o.nt||3)), bon:Array.isArray(o.bon)?o.bon:[], r:Array.isArray(o.r)?o.r:null}; }
+function jour(cls,d){ const o=stGet(jourId(cls,d))||{}; return {cls:cls, day:d||auj(), mode:MODES[o.mode]?o.mode:"3", libre:!!o.libre, simple:!!o.simple, nt:Math.max(1,Math.min(8,+o.nt||3)), bon:Array.isArray(o.bon)?o.bon:[], r:Array.isArray(o.r)?o.r:null}; }
 function jourSet(cls,ch){ const j=jour(cls); Object.assign(j,ch); stPut(jourId(cls),j); }
 const modeJour=()=>{ const j=jour(nomClasse()); return j.libre&&MODES[SS.get("mode")]?SS.get("mode"):j.mode; };
+/* forme de jeu affichée (bouton de la barre du haut) : celle du jour de la classe ; sans classe, un choix local pour lire les règles et les schémas */
+function modeVu(){ const loc=MODES[S.modeLoc]?S.modeLoc:"3"; if(estProf()){ const c=clsProf(); return c?jour(c).mode:loc; } return aClasse()?modeJour():loc; }
+function majBarre(){ const b=$("#modeBar"); if(!b) return; const m=modeVu(); b.querySelectorAll("button").forEach(x=>{ x.classList.toggle("on",x.dataset.m===m); x.setAttribute("aria-pressed",x.dataset.m===m?"true":"false"); }); b.classList.toggle("fixe",!estProf()&&aClasse()&&!jour(nomClasse()).libre); }
 
 /* rencontres : toutes les équipes se rencontrent ; à chaque rotation, les équipes qui ne jouent pas arbitrent et observent un terrain */
 function rencontres(ids,nt){
@@ -240,17 +255,21 @@ function marqueurs(cls,d,eq){ const T={}; matchsDe(cls,d).forEach(m=>(m.ev||[]).
 
 /* ======================= OBSERVATION : indicateurs ======================= */
 const OBS={ coll:{ico:"👥",nom:"Notre attaque",sub:"Possessions, tirs, paniers, balles perdues"}, ind:{ico:"👤",nom:"Un joueur",sub:"Tirs, passes, balles perdues, ballons gagnés"}, tir:{ico:"🎯",nom:"Carte des tirs",sub:"Où tire-t-on ? Où marque-t-on ?"} };
-const couleur=(v,seuil)=>{ if(v==null) return ""; const [o,g]=duo(seuil,50,70); return v>=g?"g":v>=o?"o":"k"; };
+/* seuils « orange ; vert » : si le premier est plus grand que le second, plus petit = mieux (balles perdues) */
+const couleur=(v,seuil)=>{ if(v==null) return ""; const [o,g]=duo(seuil,50,70); return o>g?(v<=g?"g":v<=o?"o":"k"):(v>=g?"g":v>=o?"o":"k"); };
 function zoneTir(x,y){ if(x<=58&&y>=50.5&&y<=99.5) return 0; return (Math.hypot(x-16,y-75)>67.5||y<9||y>141)?2:1; }
 const ZONES=["Raquette","Mi-distance","Derrière l'arc"];
 function indic(o){ const c=o.c||[], n=i=>+c[i]||0;
-  if(o.ty==="coll"){ const poss=n(0)+n(1)+n(2), tirs=n(0)+n(1); return [{l:"Possessions",v:poss,u:""},{l:"Arrivent au tir",v:pct(tirs,poss),u:"%",c:couleur(pct(tirs,poss),P("seuil_tir"))},{l:"Réussite au tir",v:pct(n(0),tirs),u:"%",c:couleur(pct(n(0),tirs),P("seuil_reu"))},{l:"Balles perdues",v:n(2),u:""},{l:"Ballons gagnés",v:n(3),u:""}]; }
-  if(o.ty==="ind"){ const joues=n(0)+n(1)+n(2)+n(3)+n(5), bons=n(0)+n(2)+n(5); return [{l:"Ballons joués",v:joues,u:""},{l:"Efficacité",v:pct(bons,joues),u:"%",c:couleur(pct(bons,joues),P("seuil_eff"))},{l:"Réussite au tir",v:pct(n(0),n(0)+n(1)),u:"%",c:couleur(pct(n(0),n(0)+n(1)),P("seuil_reu"))},{l:"Ballons gagnés",v:n(4),u:""}]; }
+  if(o.ty==="coll"){ const poss=n(0)+n(1)+n(2), tirs=n(0)+n(1), fav=tirs?Math.min(100,pct(n(3),tirs)):null;
+    const R=[{k:"poss",l:"Possessions",v:poss,u:""},{k:"perte",l:"Balles perdues",v:pct(n(2),poss),u:"%",c:couleur(pct(n(2),poss),P("seuil_perte"))},{k:"tir",l:"Arrivent au tir",v:pct(tirs,poss),u:"%",c:couleur(pct(tirs,poss),P("seuil_tir"))},{k:"reu",l:"Réussite au tir",v:pct(n(0),tirs),u:"%",c:couleur(pct(n(0),tirs),P("seuil_reu"))}];
+    return o.simple?R:R.concat([{k:"fav",l:"Tirs en position favorable",v:fav,u:"%",c:couleur(fav,P("seuil_fav"))},{k:"ca",l:"Contre-attaques",v:n(4),u:""},{k:"gain",l:"Ballons gagnés",v:n(5),u:""}]); }
+  if(o.ty==="ind"){ const joues=n(0)+n(1)+n(2)+n(3)+n(6), bons=n(0)+n(2)+n(6); const R=[{k:"joues",l:"Ballons joués",v:joues,u:""},{k:"eff",l:"Efficacité",v:pct(bons,joues),u:"%",c:couleur(pct(bons,joues),P("seuil_eff"))},{k:"reu",l:"Réussite au tir",v:pct(n(0),n(0)+n(1)),u:"%",c:couleur(pct(n(0),n(0)+n(1)),P("seuil_reu"))}];
+    return o.simple?R:R.concat([{k:"gain",l:"Ballons gagnés et rebonds",v:n(4)+n(5),u:""},{k:"faute",l:"Fautes",v:n(7),u:""}]); }
   const T=Array.isArray(o.tirs)?o.tirs:[], Z=[0,1,2].map(z=>{ const t=T.filter(x=>zoneTir(x[0],x[1])===z); return {l:ZONES[z],v:pct(t.filter(x=>x[2]).length,t.length),u:"%",n:t.length,c:couleur(pct(t.filter(x=>x[2]).length,t.length),P("seuil_reu"))}; });
   return [{l:"Tirs",v:T.length,u:""},{l:"Réussite",v:pct(T.filter(x=>x[2]).length,T.length),u:"%",c:couleur(pct(T.filter(x=>x[2]).length,T.length),P("seuil_reu"))}].concat(Z.map(z=>({l:z.l+" ("+z.n+")",v:z.v,u:"%",c:z.c}))); }
 const indHtml=o=>`<div class="ind">${indic(o).map(i=>`<div class="${i.c||""}"><b>${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</b><small>${h(i.l)}</small></div>`).join("")}</div>`;
 const obsDe=(cls,d)=>stItems("o|"+nk(cls)+"|"+(d?d+"|":""));
-function obsSomme(L,ty){ const o={ty:ty,c:[],tirs:[]}; L.filter(x=>x.ty===ty).forEach(x=>{ (x.c||[]).forEach((v,i)=>o.c[i]=(o.c[i]||0)+(+v||0)); if(Array.isArray(x.tirs)) o.tirs=o.tirs.concat(x.tirs); }); return o; }
+function obsSomme(L,ty){ const K=L.filter(x=>x.ty===ty), o={ty:ty,c:[],tirs:[],simple:K.length>0&&K.every(x=>x.simple)}; K.forEach(x=>{ (x.c||[]).forEach((v,i)=>o.c[i]=(o.c[i]||0)+(+v||0)); if(Array.isArray(x.tirs)) o.tirs=o.tirs.concat(x.tirs); }); return o; }
 function terrainTirs(tirs,extra){ const pts=(tirs||[]).map(t=>t[2]?`<circle cx="${t[0]}" cy="${t[1]}" r="4" fill="#1E8A4C" stroke="#fff" stroke-width="1"/>`:`<path d="M${t[0]-3.4},${t[1]-3.4} l6.8,6.8 M${t[0]+3.4},${t[1]-3.4} l-6.8,6.8" stroke="#C0392B" stroke-width="2" stroke-linecap="round"/>`).join("");
   return EPSTAC.svg({sport:"basket3",items:[]},{extra:pts+(extra||"")}); }
 
@@ -267,6 +286,40 @@ const SYS=[
  {id:"s4ca",m:"4",nom:"Contre-attaque en 3 couloirs",txt:"Rebond, première passe sur le côté, puis un joueur par couloir.",d:{sport:"basket",items:[J(0,4,28,78),J(0,1,55,22),J(0,2,72,62),J(0,3,60,126),FL("p",32,74,51,27),{t:"f",p:[59,24,100,50,150,70,200,75]},FL("m",76,58,236,22),FL("m",64,127,236,128),FL("m",33,82,150,96),BAL(22,72)]}},
  {id:"sdef",m:"*",nom:"Défense individuelle",txt:"Je reste entre mon joueur et le panier.",d:{sport:"basket3",items:[J(0,1,100,75),J(0,2,50,20),J(0,3,50,130),J(1,1,82,75),J(1,2,40,34),J(1,3,40,116),BAL(107,69),TX(70,146,"Entre mon joueur et le panier")]}}
 ];
+/* ======================= SITUATIONS 3 CONTRE 3 ET 4 CONTRE 4 =======================
+   Propositions rédigées d'après des ressources académiques (source indiquée sur chaque situation, relevées le 26/11/2026).
+   Critères de réussite = ce qu'il y a à faire pour être en réussite ; critères de réalisation = ce qu'il y a à faire pour faire.
+   Jamais montrées aux élèves sans le choix de l'enseignant (« 👁 Montrer aux élèves », élément c|sits du magasin). */
+const NICE1="D'après l'académie de Nice, formation continue basket-ball, 2018", NICE2="D'après l'académie de Nice, basket-ball cycle 4, séquence 2, 2018", LOIRE="D'après l'académie de Lyon (Loire), module basket cycle 3 ; à adapter au lycée", NANCY="D'après l'académie de Nancy-Metz, ressource basket-ball lycée, 2019";
+const SITS=[
+ {id:"street",m:"3",th:"Match",nom:"3 contre 3 : je ressors le ballon",but:"Marquer sur demi-terrain en repartant de derrière l'arc à chaque récupération.",disp:"Demi-terrain, 3 contre 3, un remplaçant qui tourne. Matchs de 6 min. Arbitres et observateurs pris dans l'équipe qui ne joue pas.",cons:"Dès que ton équipe récupère le ballon, il ressort derrière la ligne à 3 points avant d'attaquer. Marcher, reprise de dribble, pas de contact : un bras de distance.",pts:"1 point par panier.",crQ:"Plus de la moitié de nos possessions arrivent au tir.",crR:"Je ressors vite, en dribble ou par une passe. Sans ballon, je m'écarte pour ouvrir la raquette.",simp:"Un ballon bonus après le premier panier.",comp:"12 secondes pour tirer.",src:NICE1,
+  d:{sport:"basket3",items:[J(1,1,30,70),J(0,1,40,92),J(0,2,70,25),J(0,3,60,125),BAL(36,88),{t:"f",p:[44,95,70,104,96,96,104,80]},TX(112,60,"Je ressors")]}},
+ {id:"carre",m:"3",th:"Progresser",nom:"Le carré magique",but:"Traverser le milieu du terrain par des passes pour aller tirer près du panier.",disp:"Équipes de 4, 3 contre 3 sur tout le terrain, matchs de 5 min. Quatre plots forment un carré au milieu.",cons:"Dans le carré, pas de dribble : seulement des passes à rebond vers l'avant. 3 dribbles au plus avant et après le carré.",pts:"Tir qui touche le cercle par le haut : 1 point. Panier marqué loin du panier : 2 points. Panier marqué en zone favorable, près du panier : 4 points.",crQ:"Au moins un tir sur deux est pris en zone favorable.",crR:"Je me démarque en triangle autour du porteur. Passe à rebond, à environ 1,50 m de mon partenaire.",simp:"Carré plus petit.",comp:"Moins de dribbles avant et après le carré.",src:NICE2,
+  d:{sport:"basket",items:[{t:"c",x:110,y:45},{t:"c",x:170,y:45},{t:"c",x:110,y:105},{t:"c",x:170,y:105},J(0,1,95,75),J(0,2,135,55),J(0,3,150,95),J(1,1,125,78),BAL(101,70),FL("p",99,72,132,58),FL("p",139,57,175,80),FL("m",152,97,200,95)]}},
+ {id:"couloirs",m:"3",th:"Progresser",nom:"Les 3 couloirs",but:"Avancer en occupant toute la largeur du terrain.",disp:"3 contre 3 sur tout le terrain, partagé en 3 couloirs dans la longueur. Matchs de 5 min.",cons:"Chaque couloir doit toujours être occupé par un attaquant. Au milieu du terrain, seulement des passes à rebond vers l'avant.",pts:"Tir qui touche le cercle par le haut : 1 point. Panier marqué loin du panier : 2 points. Panier marqué en zone favorable : 4 points.",crQ:"Les 3 couloirs sont occupés à chaque attaque.",crR:"Si un partenaire entre dans mon couloir, j'en change. Je regarde devant avant de recevoir.",simp:"Dribble libre partout.",comp:"3 dribbles au plus par joueur.",src:NICE2,
+  d:{sport:"basket",items:[{t:"f",p:[0,50,280,50]},{t:"f",p:[0,100,280,100]},J(0,1,70,75),J(0,2,95,25),J(0,3,95,125),BAL(77,70),FL("m",99,25,200,25),FL("m",99,125,200,125),FL("m",74,75,170,75)]}},
+ {id:"zones",m:"3",th:"Jeu placé",nom:"Les 4 zones",but:"Écarter la défense pour entrer dans la raquette en mouvement.",disp:"Demi-terrain en 4 zones : le meneur en haut, un ailier de chaque côté, la raquette. 4 matchs de 5 min, auto-arbitrage ; l'équipe qui ne joue pas observe.",cons:"Pas plus de 5 secondes à deux dans une zone extérieure, ni plus de 5 secondes dans la raquette : les remplaçants comptent. Après une récupération, le ballon ressort derrière la ligne à 3 points. 3 dribbles au plus. Défense individuelle.",pts:"",crQ:"Au moins 3 paniers marqués dans la raquette par match.",crR:"Une zone, un joueur. Je coupe dans la raquette, et j'en ressors si je ne reçois pas.",simp:"Dribble libre.",comp:"Le meneur pose un écran pour l'ailier, qui coupe vers le panier.",src:NICE2,
+  d:{sport:"basket3",items:[J(0,1,108,75),J(0,2,55,20),J(0,3,55,130),TX(112,92,"Meneur"),TX(62,8,"Ailier"),TX(62,143,"Ailier"),TX(30,62,"Raquette"),BAL(114,69),FL("p",104,72,60,24),FL("m",104,78,34,74)]}},
+ {id:"attente",m:"3",th:"Jeu rapide",nom:"Le tireur en zone d'attente",but:"Profiter du surnombre : attaquer à 3 contre 2.",disp:"3 contre 3 sur tout le terrain, matchs de 5 à 6 min. Un cerceau « zone d'attente » au milieu du terrain.",cons:"Après chaque tir, le tireur va dans la zone d'attente : l'autre équipe attaque à 3 contre 2. Il revient en jeu quand son équipe récupère le ballon.",pts:"1 point par panier ; 3 points pour un tir en course marqué seul face au panier.",crQ:"3 paniers marqués en surnombre par match.",crR:"Dès la récupération, je regarde devant et le ballon part vers l'avant.",simp:"Zones d'attente sur les côtés, plus loin du jeu.",comp:"Le tireur n'attend que 10 secondes.",src:NICE1+" ; "+NICE2.replace("D'après l'académie de Nice, ","")},
+ {id:"extra",m:"3",th:"Jeu rapide",nom:"L'extra-balle",but:"Jouer vite vers l'avant dès la récupération.",disp:"3 contre 3 sur tout le terrain, matchs de 6 min. Un arbitre par demi-terrain, un élève au score.",cons:"Un panier marqué en contre-attaque, seul face au panier, donne une balle en plus : ton équipe garde le ballon.",pts:"1 point par panier.",crQ:"2 extra-balles par match.",crR:"À la récupération, première passe vers l'avant ; un joueur part tout de suite.",simp:"Après chaque panier, les défenseurs font le tour d'un plot avant de revenir.",comp:"L'extra-balle seulement après un tir en course.",src:NICE1},
+ {id:"cap3",m:"3",th:"Match",nom:"3 contre 3 avec temps mort",but:"Ajuster son organisation pendant le match.",disp:"Demi-terrain, équipes de niveau proche. Matchs en 2 périodes de 5 min, chrono décompté. Les élèves arbitrent à tour de rôle ; un élève tient la feuille de match.",cons:"Un temps mort d'une minute par période et une mi-temps de 2 minutes : l'équipe s'en sert pour décider d'un changement.",pts:"",crQ:"Un changement décidé au temps mort se voit à la reprise.",crR:"Au temps mort : un point fort à garder, un point à changer.",simp:"",comp:"",src:"D'après l'académie de Grenoble, fiche certificative CAP basket-ball 3x3, 2020"},
+ {id:"s2c1",m:"*",th:"Progresser",nom:"2 contre 1",but:"À deux, battre un défenseur et marquer.",disp:"Deux terrains côte à côte, un défenseur par demi-terrain. Au moins 2 passages chacun.",cons:"Un seul tir, pas de rebond. Premier passage sans dribble.",pts:"",crQ:"Le défenseur est battu et le panier marqué à chaque passage.",crR:"Le porteur avance vers le panier. Si le défenseur vient sur lui, il donne avant d'être arrêté.",simp:"3 contre 1.",comp:"10 secondes pour marquer ; sans dribble.",src:NICE1,
+  d:{sport:"basket3",items:[J(0,1,110,55),J(0,2,110,100),J(1,1,62,75),BAL(116,50),{t:"f",p:[106,56,90,60,76,64]},FL("p",74,68,60,98),FL("m",106,100,56,102)]}},
+ {id:"manege",m:"*",th:"Tirer",nom:"Le manège passe et va",but:"Marquer en tir en course après un passe et va.",disp:"Deux colonnes face au panier : les tireurs et les rebondeurs.",cons:"Le tireur passe au rebondeur, coupe vers la raquette, redemande le ballon et tire en course. Il prend son rebond et change de colonne.",pts:"",crQ:"20 tirs marqués par groupe.",crR:"Deux appuis, genou libre monté, tir de ma main forte en visant le carré de la planche.",simp:"Tir à l'arrêt près du panier.",comp:"Ballons à gauche ; premier groupe à 20.",src:NICE2,
+  d:{sport:"basket3",items:[J(0,1,100,45),J(0,2,112,40),J(0,3,60,110),J(0,4,70,120),BAL(106,40),FL("p",96,48,64,106),FL("m",97,50,40,62),FL("p",56,106,38,68)]}},
+ {id:"pours",m:"*",th:"Jeu rapide",nom:"1 contre 1 poursuite",but:"Aller marquer avant le retour du défenseur.",disp:"L'attaquant sur la ligne de touche, le défenseur en colonne derrière lui. 10 passages par joueur.",cons:"À la réception du ballon, et pas avant, l'attaquant part en dribble vers le tir en course ; le défenseur sprinte pour revenir.",pts:"Attaquant : 1 point si le tir touche le cercle par le haut, 2 points si le panier est marqué. Défenseur : 1 point si l'attaquant perd le ballon ou arrête son dribble.",crQ:"12 points sur 20 en attaque.",crR:"Je pousse le ballon loin devant, je regarde le panier, je termine sans m'arrêter.",simp:"Défenseur plus loin au départ.",comp:"Défenseur plus près au départ.",src:NICE2},
+ {id:"bonus",m:"*",th:"Match",nom:"Le match à bonus",but:"Gagner en jouant vite et en tirant près du panier.",disp:"Poules de 3 équipes de niveau proche : 2 matchs joués, 1 match observé. Matchs en 4 périodes de 3 min. L'équipe qui ne joue pas arbitre et tient la table de marque.",cons:"Défense individuelle : chacun défend sur un adversaire de son niveau. Pas de lancers francs.",pts:"1 point par panier. Bonus contre-attaque : à plusieurs, avec au moins une passe, pour arriver seul ou à 2 contre 1 près du panier, même sans tirer. Bonus tir favorable : tir pris près du panier, à 45°, avec la planche.",crQ:"Gagner avec les 2 bonus.",crR:"Dès la récupération, une passe vers l'avant. En attaque placée, on cherche le tir près du panier.",simp:"2 contre 2 en continuité.",comp:"3 fautes : le joueur sort.",src:NANCY},
+ {id:"p10",m:"*",th:"Conserver",nom:"La passe à 10",but:"Garder le ballon : réussir 10 passes de suite.",disp:"Un demi-terrain par groupe, plus d'attaquants que de défenseurs, un arbitre qui compte. Rôles changés toutes les 3 min.",cons:"Si un défenseur intercepte, le ballon repart de la touche et le compte repart à 0. Pas de contact, on ne prend pas le ballon dans les mains.",pts:"",crQ:"10 passes de suite.",crR:"Je me démarque loin de mon défenseur. Je passe à un partenaire libre et proche.",simp:"Moins de défenseurs ; 6 passes.",comp:"Autant d'attaquants que de défenseurs ; espace réduit.",src:LOIRE},
+ {id:"m4sd",m:"4",th:"Match",nom:"4 contre 4 sans dribble",but:"Avancer par les passes pour marquer.",disp:"6 équipes de 4. Deux équipes jouent, deux observent les joueurs, une arbitre. Matchs de 10 à 12 min.",cons:"Dribble interdit : on avance par les passes.",pts:"2 points par panier.",crQ:"Plus de points que l'adversaire, et une fiche d'observation complète.",crR:"Après ma passe, je me déplace vers l'avant pour redevenir une solution.",simp:"Un ou deux dribbles autorisés.",comp:"",src:LOIRE},
+ {id:"q4c2",m:"4",th:"Progresser",nom:"4 contre 2 avec zone de tir",but:"Traverser une zone défendue par des passes, puis tirer.",disp:"Un couloir : une zone défendue par 2 défenseurs, puis une zone de tir où ils n'entrent pas.",cons:"Les 4 attaquants traversent par des passes, sans dribble, puis tirent une seule fois. Ballon intercepté ou sorti : retour au départ.",pts:"2 points par panier. Les défenseurs comptent leurs ballons gagnés.",crQ:"La zone de tir est atteinte à chaque attaque.",crR:"Je me place dans le dos des défenseurs. Passes courtes et rapides.",simp:"Un seul défenseur.",comp:"4 contre 3 ; zone défendue plus large.",src:LOIRE,
+  d:{sport:"basket3",items:[{t:"f",p:[62,0,62,150]},{t:"f",p:[104,0,104,150]},J(1,1,82,50),J(1,2,84,100),J(0,1,125,30),J(0,2,128,75),J(0,3,125,120),J(0,4,45,75),BAL(134,70),TX(83,10,"Défenseurs"),TX(32,10,"Zone de tir"),FL("p",124,78,49,76)]}},
+ {id:"ca3",m:"4",th:"Jeu rapide",nom:"Contre-attaque à trois",but:"Monter le ballon vite, un joueur par couloir.",disp:"Équipes de 4 : un meneur, deux ailiers, un lanceur. 10 passages par équipe.",cons:"Le lanceur envoie le ballon sur la planche. Si le meneur prend le rebond, les ailiers sprintent chacun dans son couloir ; le meneur monte au centre et sert l'ailier le mieux placé, qui tire en course. Si un ailier prend le rebond, il redonne d'abord au meneur.",pts:"",crQ:"8 paniers sur 10 passages.",crR:"Les ailiers partent seulement quand le ballon est récupéré. Un joueur par couloir.",simp:"Sans défenseur.",comp:"Le lanceur revient défendre : 3 contre 1.",src:NICE2,
+  d:{sport:"basket",items:[J(0,1,30,75),J(0,2,45,25),J(0,3,45,125),J(1,4,58,75),BAL(24,70),{t:"f",p:[34,75,80,75,140,75,190,75]},FL("m",49,24,236,22),FL("m",49,126,236,128),FL("p",192,73,234,28)]}},
+ {id:"m4diag",m:"4",th:"Match",nom:"4 contre 4 pour se situer",but:"Jouer pour connaître son niveau et former des équipes.",disp:"6 équipes de 4 sur 2 terrains, matchs de 5 min, 2 arbitres pris dans l'équipe qui ne joue pas.",cons:"Marcher, reprise de dribble, fautes sur le porteur. Le retour en zone est autorisé.",pts:"",crQ:"Chaque joueur est situé : débutant, débrouillé ou confirmé.",crR:"Avec le ballon, je choisis entre tirer, passer et dribbler. Sans ballon, je me démarque.",simp:"",comp:"",src:NICE2},
+ {id:"pro4",m:"4",th:"Match",nom:"4 contre 4 avec temps d'analyse",but:"Adapter sa stratégie à l'adversaire.",disp:"Terrain entier, équipes de niveau proche.",cons:"Entre deux séquences de jeu, un temps d'analyse : l'équipe ajuste sa stratégie selon l'adversaire.",pts:"",crQ:"Un choix annoncé pendant l'analyse se voit à la séquence suivante.",crR:"On s'appuie sur la fiche d'observation : un chiffre, une décision.",simp:"",comp:"",src:"D'après l'académie de Grenoble, fiche certificative Bac pro basket-ball, 2021"}
+];
+/* les mêmes situations dans la banque commune (🏦 Banque & apprentissages → 📚 Propositions vérifiées, ajoutées en brouillon) */
+try{ (window.EPS_REMED_APP=window.EPS_REMED_APP||{}).basket=SITS.map(x=>({ap:x.th.toLowerCase()+(x.m==="*"?"":", "+MODES[x.m].nom),afl:"CA4",t:x.nom,cons:[x.disp,x.cons,x.pts].filter(Boolean).join(" "),crQ:x.crQ,crQl:"",crR:x.crR,simp:x.simp,comp:x.comp,src:x.src})); if(window.EPS_REMED_REF) EPS_REMED_REF.basket=EPS_REMED_APP.basket; }catch(e){}
 const schemas=(cls,eq)=>stItems("p|"+nk(cls)+"|"+(eq?eq+"|":"")).filter(p=>p.d);
 
 /* ======================= NAVIGATION ======================= */
@@ -278,12 +331,12 @@ function rendre(){
   const prof=estProf(), V=$("#vue"); document.body.classList.toggle("gate",!prof&&!S.classe); ED=null;
   if(prof&&["home","eq"].includes(S.vue)) S.vue="prof";
   if(!prof&&S.vue==="prof") S.vue="home";
-  if(!prof&&!S.classe){ V.innerHTML=""; return; }
+  if(!prof&&!S.classe){ V.innerHTML=""; majBarre(); return; }
   if(!prof&&aClasse()&&!clsObj()){ S.classe=""; SS.del("classe"); V.innerHTML=""; return; }
   if(!prof&&aClasse()&&!eqDe(nomClasse(),S.eq)&&!["regles","sys","echauf","planEd"].includes(S.vue)) S.vue="eq";
   if(!prof&&!aClasse()&&!["regles","sys","echauf","planEd"].includes(S.vue)) S.vue="regles";
-  const f={prof:vProf,eq:vEq,home:vHome,prog:vProg,match:vMatch,obs:vObs,obsRun:vObsRun,plan:vPlan,planEd:vPlanEd,sys:vSys,regles:vRegles,echauf:vEchauf,bilan:vBilan}[S.vue]||vHome;
-  V.innerHTML=f(); if(S.vue==="planEd") monterEditeur(); if(S.vue==="match") tic();
+  const f={prof:vProf,eq:vEq,home:vHome,prog:vProg,match:vMatch,obs:vObs,obsRun:vObsRun,plan:vPlan,planEd:vPlanEd,sys:vSys,regles:vRegles,echauf:vEchauf,bilan:vBilan,sits:vSits,sit:vSit}[S.vue]||vHome;
+  V.innerHTML=f(); majBarre(); if(S.vue==="planEd") monterEditeur(); if(S.vue==="match") tic();
 }
 const retour=(v,l)=>`<button class="retour" data-act="aller" data-v="${v}">← ${l||"Retour"}</button>`;
 const retourEleve=()=>estProf()?retour("prof","Leçon du jour"):aClasse()?retour("home","Mon équipe"):`<button class="retour" data-act="quitter">← Retour</button>`;
@@ -307,7 +360,7 @@ function vHome(){ const cls=nomClasse(), e=eqDe(cls,S.eq), j=jour(cls), md=modeC
   else if(n&&n.fini) suite=`<div class="tuile"><i>🏁</i><span><b>Rencontres terminées</b><small>Fais le bilan de ton équipe.</small></span></div>`;
   else suite=`<button class="tuile fort" data-act="matchLibre"><i>🏀</i><span><b>Jouer un match</b><small>Choisis l'adversaire et le terrain</small></span></button>`;
   return `<div class="ligne" style="margin-bottom:12px"><span class="rond" style="background:${h(e.col)};width:22px;height:22px"></span><h2 style="margin:0">${h(e.nom)}</h2><span class="pastille">${md.nom}</span>
-    ${j.libre?`<button class="btn contour" data-act="modeEleve">Changer de forme</button>`:""}<button class="btn clair" data-act="changerEq" style="margin-left:auto">Changer d'équipe</button></div>
+    <button class="btn clair" data-act="changerEq" style="margin-left:auto">Changer d'équipe</button></div>
    <p class="doux petit" style="margin:-6px 0 12px">${e.j.map(n=>absent(n,cls)?`<s>${h(prenom(n))}</s>`:h(prenom(n))).join(" · ")}</p>
    <div class="tuiles">
     ${lv?`<button class="tuile" data-act="lecon"><i>📅</i><span><b>Leçon du jour</b><small>${h(lv.titre)}</small></span></button>`:""}
@@ -315,6 +368,7 @@ function vHome(){ const cls=nomClasse(), e=eqDe(cls,S.eq), j=jour(cls), md=modeC
     ${j.r?`<button class="tuile" data-act="aller" data-v="prog"><i>🗓</i><span><b>Rencontres</b><small>${j.r.length} rotations · ${j.nt} terrain${j.nt>1?"s":""}</small></span></button>`:""}
     <button class="tuile" data-act="aller" data-v="obs"><i>👁</i><span><b>Observer</b><small>3 fiches d'observation</small></span></button>
     <button class="tuile" data-act="aller" data-v="plan"><i>📋</i><span><b>Planche tactique</b><small>Systèmes de jeu, nos schémas</small></span></button>
+    ${SITS.some(x=>sitsVus().includes(x.id)&&(x.m==="*"||x.m===modeVu()))?`<button class="tuile" data-act="aller" data-v="sits"><i>🎯</i><span><b>Situations</b><small>Pour progresser en ${md.nom}</small></span></button>`:""}
     <button class="tuile" data-act="aller" data-v="bilan"><i>📊</i><span><b>Bilan de l'équipe</b><small>Matchs, observations, projet</small></span></button>
     <button class="tuile" data-act="aller" data-v="regles"><i>📏</i><span><b>Règles</b><small>${md.nom}</small></span></button>
     <button class="tuile" data-act="aller" data-v="echauf"><i>🔥</i><span><b>Échauffement</b><small>${P("echauf").length} étapes</small></span></button>
@@ -356,17 +410,18 @@ function vObs(){ const cls=nomClasse(), L=obsDe(cls,auj()).filter(o=>o.par===S.e
    <p style="margin:12px 0"><button class="btn contour" data-act="imprObs">🖨 Imprimer les fiches (sans tablette)</button></p>
    ${L.length?`<div class="carte"><h3>Observations d'aujourd'hui</h3>${L.sort((a,b)=>b.u-a.u).map(o=>`<div class="ligne" style="padding:8px 0;border-top:1px solid var(--ligne)"><span>${OBS[o.ty].ico} <b>${h(o.who||eqNom(cls,o.eq))}</b> <span class="doux petit">${OBS[o.ty].nom}${o.who?" · "+h(eqNom(cls,o.eq)):""}</span></span><button class="btn contour" style="margin-left:auto;min-height:40px;padding:6px 12px" data-act="obsOuvrir" data-id="${h(o.id)}">${o.st===1?"Voir":"Reprendre"}</button></div>`).join("")}</div>`:""}`; }
 function vObsRun(){ const o=stGet(S.oid); if(!o) return retour("obs")+`<div class="carte doux">Fiche introuvable.</div>`;
-  const cls=o.cls, fin=o.st===1, lab=o.ty==="coll"?P("obs_coll"):P("obs_ind"), cl=o.ty==="coll"?["v","","r","v"]:["v","","v","r","v","v"];
+  const cls=o.cls, fin=o.st===1, lab=(o.ty==="coll"?P("obs_coll"):P("obs_ind")).slice(0,o.simple?(o.ty==="coll"?3:4):99), cl=o.ty==="coll"?["v","","r","v","v","v"]:["v","","v","r","v","v","v","r"], cs=conseilSit(o);
   const tete=`<div class="ligne" style="margin-bottom:10px"><span class="rond" style="background:${h(eqCol(cls,o.eq))};width:20px;height:20px"></span><h2 style="margin:0">${OBS[o.ty].ico} ${h(o.who||eqNom(cls,o.eq))}</h2><span class="doux">${OBS[o.ty].nom}${o.who?" · "+h(eqNom(cls,o.eq)):""}</span></div>`;
   let corps;
   if(o.ty==="tir") corps=`<p class="doux petit">${fin?"":"Touche l'endroit du tir, puis dis s'il est marqué."}</p><div class="terrain" id="tirZone" style="max-width:min(620px,54vh)" ${fin?"":'data-act="tirPos"'}>${terrainTirs(o.tirs, S.tirTmp?`<circle cx="${S.tirTmp[0]}" cy="${S.tirTmp[1]}" r="5.5" fill="#F0A030" stroke="#14171C" stroke-width="1.2"/>`:"")}</div>
     ${S.tirTmp&&!fin?`<div class="ligne" style="justify-content:center;margin-top:10px"><button class="btn gros" style="background:var(--ok)" data-act="tirOk" data-ok="1">✓ Marqué</button><button class="btn gros" style="background:var(--ko)" data-act="tirOk" data-ok="0">✗ Manqué</button></div>`:""}`;
-  else corps=`<div class="cpts">${lab.map((l,i)=>`<button class="cpt ${cl[i]||""}" ${fin?"disabled":""} data-act="cpt" data-i="${i}"><b>${+(o.c||[])[i]||0}</b><span>${h(l)}</span></button>`).join("")}</div>`;
-  return retour("obs","Fiches")+tete+corps+indHtml(o)+`<div class="ligne" style="justify-content:center">${fin?"":`<button class="btn clair" data-act="obsAnnuler">↩ Annuler</button><button class="btn app" data-act="obsFin">✓ Terminer la fiche</button>`}${fin&&estProf()?`<button class="btn danger" data-act="obsSuppr">Supprimer</button>`:""}</div>`; }
+  else corps=`<div class="cpts">${lab.map((l,i)=>`<button class="cpt ${cl[i]||""}" ${fin?"disabled":""} data-act="cpt" data-i="${i}"><b>${+(o.c||[])[i]||0}</b><span>${h(l)}</span></button>`).join("")}</div>${o.ty==="coll"&&!o.simple&&!fin?`<p class="doux petit" style="margin:8px 0 0">« ${h(lab[3])} » se touche en plus du panier ou du tir manqué : tir pris ${h(P("zone_fav"))}.</p>`:""}`;
+  const apres=fin?`${o.pf||o.cs?`<div class="carte"><h3>💬 Bilan avec le joueur</h3>${o.pf?`<p style="margin:4px 0"><b>Point fort :</b> ${h(o.pf)}</p>`:""}${o.cs?`<p style="margin:4px 0"><b>Conseil :</b> ${h(o.cs)}</p>`:""}</div>`:""}${cs?`<p style="text-align:center"><button class="btn contour" data-act="sitOuvrir" data-id="${cs.id}">🎯 Situation conseillée : ${h(cs.nom)}</button></p>`:""}`:"";
+  return retour("obs","Fiches")+tete+corps+indHtml(o)+apres+`<div class="ligne" style="justify-content:center">${fin?"":`<button class="btn clair" data-act="obsAnnuler">↩ Annuler</button><button class="btn app" data-act="obsFin">✓ Terminer la fiche</button>`}${fin&&estProf()?`<button class="btn danger" data-act="obsSuppr">Supprimer</button>`:""}</div>`; }
 
 /* ======================= PLANCHE TACTIQUE ======================= */
-function vSys(){ const md=aClasse()||estProf()?modeJour():"3", L=SYS.filter(s=>s.m==="*"||!S.sysM||s.m===S.sysM);
-  return retourEleve()+`<h2>📋 Systèmes de jeu</h2><div class="ligne" style="margin-bottom:12px">${[["","Tous"],["3","3 contre 3"],["4","4 contre 4"]].map(x=>`<button class="puce ${(S.sysM||"")===x[0]?"on":""}" data-act="sysM" data-m="${x[0]}">${x[1]}</button>`).join("")}</div>
+function vSys(){ const m=modeVu(), L=SYS.filter(s=>s.m==="*"||s.m===m);
+  return retourEleve()+`<h2>📋 Systèmes de jeu · ${MODES[m].nom}</h2>
    <div class="vign">${L.map(s=>`<button data-act="sysOuvrir" data-id="${s.id}">${EPSTAC.svg(s.d)}<b>${h(s.nom)}</b><small>${h(s.txt)}</small></button>`).join("")}</div>`; }
 function vPlan(){ const cls=nomClasse(), L=estProf()?schemas(cls):schemas(cls,S.eq);
   return retourEleve()+`<h2>📋 Planche tactique</h2><div class="tuiles" style="margin-bottom:12px">
@@ -384,22 +439,41 @@ function monterEditeur(){ const z=$("#planZone"); if(!z||!window.EPSTAC) return;
 function planOuvrir(p,de){ S.plan=JSON.parse(JSON.stringify(p)); S.planDe=de||"plan"; aller("planEd"); }
 
 /* ======================= RÈGLES, ÉCHAUFFEMENT, BILAN ======================= */
-function vRegles(){ const m=S.regM||(aClasse()||estProf()?modeJour():"3"), md=modeCfg(m);
-  return retourEleve()+`<h2>📏 Règles</h2><div class="bascule" style="margin-bottom:12px">${["3","4"].map(k=>`<button class="${k===m?"on":""}" data-act="regM" data-m="${k}"><b>${MODES[k].nom}</b><small>${MODES[k].sub}</small></button>`).join("")}</div>
+function vRegles(){ const m=modeVu(), md=modeCfg(m);
+  return retourEleve()+`<h2>📏 Règles · ${md.nom}</h2><p class="doux petit" style="margin:-6px 0 12px">${md.sub}</p>
    <div class="carte"><div class="ligne" style="margin-bottom:8px">${md.pts.map(p=>`<span class="pastille">+${p.v} · ${h(p.l)}</span>`).join("")}</div>
    <div class="ligne doux petit" style="margin-bottom:6px"><span>⏱ ${md.duree} min</span>${md.cible?`<span>· 🏁 ${md.cible} points</span>`:""}${md.poss?`<span>· ${md.poss} s pour tirer</span>`:""}</div>
    <ol style="margin:0;padding-left:22px">${md.regles.map(r=>`<li style="margin:6px 0">${h(r)}</li>`).join("")}</ol></div>
    ${!aClasse()&&!estProf()?`<p><button class="btn contour" data-act="aller" data-v="sys">📋 Systèmes de jeu</button> <button class="btn contour" data-act="aller" data-v="echauf">🔥 Échauffement</button></p>`:""}`; }
+/* ======================= SITUATIONS (3 contre 3, 4 contre 4) ======================= */
+const TH=["Match","Conserver","Progresser","Tirer","Jeu rapide","Jeu placé"];
+function sitsVus(){ const o=stGet("c|sits"); return o&&Array.isArray(o.on)?o.on:[]; }
+const sitsListe=()=>{ const m=modeVu(), on=sitsVus(); return SITS.filter(x=>(x.m==="*"||x.m===m)&&(estProf()||on.includes(x.id))&&(!S.sitTh||x.th===S.sitTh)); };
+function vSits(){ const L=sitsListe(), on=sitsVus();
+  return retourEleve()+`<h2>🎯 Situations · ${MODES[modeVu()].nom}</h2>${estProf()?`<p class="doux petit" style="margin:-6px 0 10px">Propositions tirées de ressources académiques. Les élèves ne voient que celles que tu montres (👁).</p>`:""}
+   <div class="ligne" style="margin-bottom:12px"><button class="puce ${S.sitTh?"":"on"}" data-act="sitTh" data-t="">Toutes</button>${TH.map(t=>`<button class="puce ${S.sitTh===t?"on":""}" data-act="sitTh" data-t="${t}">${t}</button>`).join("")}</div>
+   ${L.length?`<div class="tuiles">${L.map(x=>`<button class="tuile" data-act="sitOuvrir" data-id="${x.id}"><span><b>${h(x.nom)}</b><small>${x.th}${x.m==="*"?"":" · "+MODES[x.m].nom}${estProf()?(on.includes(x.id)?" · 👁 montrée":""):""}</small></span></button>`).join("")}</div>`:`<div class="carte doux">${estProf()?"Aucune situation pour ce thème.":"Ton enseignant n'a pas encore choisi de situation pour cette forme de jeu."}</div>`}`; }
+function vSit(){ const x=SITS.find(y=>y.id===S.sit); if(!x||(!estProf()&&!sitsVus().includes(x.id))) return retour("sits","Situations")+`<div class="carte doux">Situation indisponible.</div>`;
+  const on=sitsVus().includes(x.id), l=(t,v)=>v?`<p style="margin:10px 0 0"><b>${t}</b><br>${h(v)}</p>`:"";
+  return retour("sits","Situations")+`<h2>${h(x.nom)}</h2><div class="ligne" style="margin-bottom:10px"><span class="pastille">${x.m==="*"?"3 c 3 et 4 c 4":MODES[x.m].nom}</span><span class="pastille" style="background:#EFECE6;color:#14171C">${x.th}</span></div>
+   ${x.d?`<div class="terrain" style="max-width:${x.d.sport==="basket"?720:460}px;margin-bottom:12px">${EPSTAC.svg(x.d)}</div>`:""}
+   <div class="carte">${l("🎯 But",x.but)}${l("📐 Dispositif",x.disp)}${l("📣 Consigne",x.cons)}${l("🔢 Points",x.pts)}</div>
+   <div class="carte">${l("✅ Je suis en réussite si…",x.crQ)}${l("💡 Comment faire…",x.crR)}</div>
+   <div class="carte">${l("➖ Plus simple",x.simp)}${l("➕ Plus difficile",x.comp)}<p class="doux petit" style="margin:10px 0 0">${h(x.src)}</p></div>
+   ${estProf()?`<div class="ligne"><button class="btn ${on?"clair":"app"}" data-act="sitVoir" data-id="${x.id}">${on?"🙈 Ne plus montrer aux élèves":"👁 Montrer aux élèves"}</button>${x.d?`<button class="btn contour" data-act="sitPlan" data-id="${x.id}">📋 Ouvrir le schéma (modifier, envoyer)</button>`:""}</div>`:""}`; }
 function vEchauf(){ return retourEleve()+`<h2>🔥 Échauffement</h2><div class="carte"><ol style="margin:0;padding-left:22px">${P("echauf").map(r=>`<li style="margin:8px 0">${h(r)}</li>`).join("")}</ol></div>`; }
 function statsEq(cls,eq,d){ const M=matchsDe(cls,d).filter(m=>m.st===1&&(m.a===eq||m.b===eq)); let v=0,n=0,de=0,p=0,c=0; M.forEach(m=>{ const s=score(m), mo=m.a===eq?s.a:s.b, ad=m.a===eq?s.b:s.a; p+=mo; c+=ad; if(mo>ad) v++; else if(mo<ad) de++; else n++; }); return {M:M,v:v,n:n,d:de,p:p,c:c}; }
 function vBilan(){ const cls=nomClasse(), eq=S.eq, d=S.bilT?"":auj(), st=statsEq(cls,eq,d), O=obsDe(cls,d).filter(o=>o.eq===eq), Q=P("bilan_q"), b=stGet("b|"+nk(cls)+"|"+auj()+"|"+eq)||{r:[]}, mq=marqueurs(cls,d,eq);
   const bloc=ty=>{ const L=O.filter(o=>o.ty===ty); if(!L.length) return ""; const s=obsSomme(L,ty); return `<div class="carte"><h3>${OBS[ty].ico} ${OBS[ty].nom} <span class="doux petit">${L.length} fiche${L.length>1?"s":""}</span></h3>${ty==="tir"?`<div class="terrain" style="max-width:420px">${terrainTirs(s.tirs)}</div>`:""}${indHtml(s)}</div>`; };
-  const ind=(()=>{ const L=O.filter(o=>o.ty==="ind"), N={}; L.forEach(o=>(N[o.who]=N[o.who]||[]).push(o)); const K=Object.keys(N); if(!K.length) return ""; return `<div class="carte"><h3>👤 Joueurs observés</h3><table class="t"><tr><th>Joueur</th><th class="c">Ballons joués</th><th class="c">Efficacité</th><th class="c">Tir</th><th class="c">Ballons gagnés</th></tr>${K.map(k=>{ const i=indic(obsSomme(N[k],"ind")); return `<tr><td>${h(prenom(k))}</td>${i.map(x=>`<td class="c">${x.v==null?"—":x.v+(x.u?" "+x.u:"")}</td>`).join("")}</tr>`; }).join("")}</table></div>`; })();
+  const ind=(()=>{ const L=O.filter(o=>o.ty==="ind"), N={}; L.forEach(o=>(N[o.who]=N[o.who]||[]).push(o)); const K=Object.keys(N); if(!K.length) return ""; return `<div class="carte"><h3>👤 Joueurs observés</h3><table class="t"><tr><th>Joueur</th>${indic(obsSomme(L,"ind")).map(x=>`<th class="c">${h(x.l)}</th>`).join("")}</tr>${K.map(k=>{ const i=indic(Object.assign(obsSomme(N[k],"ind"),{simple:obsSomme(L,"ind").simple})); return `<tr><td>${h(prenom(k))}</td>${i.map(x=>`<td class="c">${x.v==null?"—":x.v+(x.u?" "+x.u:"")}</td>`).join("")}</tr>`; }).join("")}</table></div>`; })();
+  const CT=[["tir","Possessions qui arrivent au tir"],["reu","Réussite au tir"],["perte","Balles perdues"],["fav","Tirs en position favorable"]], ct=b.ct&&CT.some(x=>x[0]===b.ct.k)?b.ct:null, fait=ct?(indic(Object.assign(obsSomme(obsDe(cls,auj()).filter(o=>o.eq===eq),"coll"),{simple:false})).find(i=>i.k===ct.k)||{}).v:null, tenu=ct&&fait!=null?(ct.k==="perte"?fait<=ct.v:fait>=ct.v):null;
   return retourEleve()+`<h2>📊 Bilan de l'équipe · ${h(eqNom(cls,eq))}</h2><div class="ligne" style="margin-bottom:12px"><button class="puce ${S.bilT?"":"on"}" data-act="bilT" data-t="">Aujourd'hui</button><button class="puce ${S.bilT?"on":""}" data-act="bilT" data-t="1">Toute la séquence</button></div>
    <div class="ind"><div><b>${st.M.length}</b><small>Matchs joués</small></div><div class="g"><b>${st.v}</b><small>Victoires</small></div><div><b>${st.n}</b><small>Nuls</small></div><div><b>${st.d}</b><small>Défaites</small></div><div><b>${st.p} – ${st.c}</b><small>Points marqués – encaissés</small></div></div>
    ${mq.length?`<div class="carte"><h3>🏀 Points marqués</h3><div class="ligne">${mq.map(x=>`<span class="pastille">${h(prenom(x[0]))} · ${x[1]}</span>`).join("")}</div></div>`:""}
    ${bloc("coll")}${bloc("tir")}${ind}
-   ${S.bilT?"":`<div class="carte"><h3>✍️ Notre bilan du jour</h3>${Q.map((q,i)=>`<label class="doux petit" style="display:block;margin:10px 0 4px;font-weight:700">${h(q)}</label><textarea data-bq="${i}" maxlength="400">${h((b.r||[])[i]||"")}</textarea>`).join("")}<p style="margin:12px 0 0"><button class="btn app" data-act="bilSave">💾 Enregistrer le bilan</button></p></div>`}`; }
+   ${S.bilT?"":`<div class="carte"><h3>🎯 Notre contrat</h3><div class="ligne"><select id="ctK" style="max-width:320px" aria-label="Indicateur du contrat"><option value="">Pas de contrat</option>${CT.map(x=>`<option value="${x[0]}" ${ct&&ct.k===x[0]?"selected":""}>${x[1]}</option>`).join("")}</select><input type="number" id="ctV" min="0" max="100" value="${ct?ct.v:""}" style="width:92px" aria-label="Valeur visée en pourcentage"><span>%</span>
+     ${tenu==null?(ct?`<span class="doux petit">Pas encore de fiche « Notre attaque » aujourd'hui.</span>`:""):`<span class="pastille" style="${tenu?"background:var(--ok-c);color:var(--ok)":"background:var(--or-c);color:var(--or)"}">${tenu?"✓ Contrat tenu":"Pas encore"} · ${fait} %</span>`}</div><p class="doux petit" style="margin:8px 0 0">Pour les balles perdues, on vise moins que la valeur ; pour le reste, plus.</p></div>
+   <div class="carte"><h3>✍️ Notre bilan du jour</h3>${Q.map((q,i)=>`<label class="doux petit" style="display:block;margin:10px 0 4px;font-weight:700">${h(q)}</label><textarea data-bq="${i}" maxlength="400">${h((b.r||[])[i]||"")}</textarea>`).join("")}<p style="margin:12px 0 0"><button class="btn app" data-act="bilSave">💾 Enregistrer le bilan</button></p></div>`}`; }
 
 /* ======================= ENSEIGNANT : leçon du jour (onglet Séquence) ======================= */
 function clsProf(){ const C=classesBK(); if(!C.some(c=>c.id===S.classe)){ let cc=null; try{ cc=C.find(c=>c.nom===(localStorage.getItem("eps.eval.cls.bk")||"")); }catch(e){} S.classe=(cc||C[0]||{}).id||""; SS.set("classe",S.classe); } return nomClasse(); }
@@ -407,8 +481,9 @@ const selCls=()=>`<select data-ch="cls" style="max-width:260px" aria-label="Clas
 function vProf(){ const cls=clsProf(); if(!cls) return `<div class="carte"><h3>Aucune classe pour le basket-ball</h3><p class="doux">Attribue l'activité à une classe : onglet 👥 Classe → Listes d'élèves.</p></div>`;
   const j=jour(cls), E=eqs(cls), md=modeCfg(j.mode), B=bonusList(), M=matchsDe(cls,j.day).sort((a,b)=>(a.rot||0)-(b.rot||0)||(a.ter||0)-(b.ter||0)), O=obsDe(cls,j.day), PL=schemas(cls), pr=presents(cls), places=new Set(E.flatMap(e=>e.j)), sans=pr.filter(n=>!places.has(n));
   return `<div class="ligne" style="margin-bottom:12px">${selCls()}<span class="doux">${dateFR(j.day)} · ${pr.length} présent${pr.length>1?"s":""}</span></div>
-   <div class="carte"><h3>🏀 Forme de jeu du jour</h3><div class="bascule">${["3","4"].map(k=>`<button class="${j.mode===k?"on":""}" data-act="mode" data-m="${k}"><b>${MODES[k].nom}</b><small>${MODES[k].sub} · ${modeCfg(k).duree} min${modeCfg(k).cible?" ou "+modeCfg(k).cible+" pts":""}</small></button>`).join("")}</div>
+   <div class="carte"><div class="ligne"><h3 style="margin:0">🏀 ${md.nom}</h3><span class="doux petit">${md.sub} · ${md.duree} min${md.cible?" ou "+md.cible+" pts":""} · se change avec le bouton de la barre du haut</span></div>
     <div class="ligne" style="margin-top:12px"><label class="ligne"><input type="checkbox" data-ch="libre" ${j.libre?"checked":""} style="width:22px;height:22px"> Les équipes peuvent changer de forme</label>
+     <label class="ligne"><input type="checkbox" data-ch="simple" ${j.simple?"checked":""} style="width:22px;height:22px"> Fiches d'observation simplifiées</label>
      <span style="margin-left:auto" class="ligne">Terrains <button class="btn clair" data-act="nt" data-d="-1" aria-label="Un terrain de moins">−</button><b style="min-width:24px;text-align:center">${j.nt}</b><button class="btn clair" data-act="nt" data-d="1" aria-label="Un terrain de plus">+</button></span></div>
     ${B.length?`<p class="doux petit" style="margin:12px 0 6px">⭐ Points bonus du jour</p><div class="ligne">${B.map((b,i)=>`<button class="puce ${j.bon.includes(i)?"on":""}" data-act="bon" data-i="${i}">${h(b.l)} · +${b.v}</button>`).join("")}</div>`:""}</div>
    <div class="carte"><div class="ligne"><h3 style="margin:0">👥 Équipes</h3><span class="doux petit">${E.length} équipe${E.length>1?"s":""}${sans.length?` · ${sans.length} élève${sans.length>1?"s":""} sans équipe`:""}</span><button class="btn contour" style="margin-left:auto" data-act="equipes">✏️ Faire les équipes</button></div>
@@ -444,9 +519,9 @@ function panneauBilans(el){ const cls=clsProf(), C=classesBK(); if(!cls){ el.inn
   el.innerHTML=`<h2>📄 Bilans</h2><div class="ligne" style="margin-bottom:12px">${selCls()}<select data-ch="bilJ" style="max-width:240px" aria-label="Période"><option value="">Toute la séquence</option>${jours.map(x=>`<option value="${x}" ${x===d?"selected":""}>${dateFR(x)}</option>`).join("")}</select><button class="btn contour" data-act="csv">⬇ Tableur (.csv)</button></div>
    ${classHtml(cls,d)||`<p class="mut">Aucun match terminé sur cette période.</p>`}
    ${mq.length?`<div class="carte"><h3>🏀 Points marqués par joueur</h3><div class="ligne">${mq.map(x=>`<span class="pastille">${h(x[0])} · ${x[1]}</span>`).join("")}</div></div>`:""}
-   ${E.some(e=>O.some(o=>o.eq===e.id))?`<div class="carte"><h3>👁 Observations par équipe</h3><table class="t"><tr><th>Équipe</th><th class="c">Possessions</th><th class="c">Arrivent au tir</th><th class="c">Réussite</th><th class="c">Balles perdues</th><th class="c">Ballons gagnés</th></tr>${E.map(e=>{ const L=O.filter(o=>o.eq===e.id&&o.ty==="coll"); if(!L.length) return ""; return `<tr><td><span class="rond" style="background:${h(e.col)}"></span> ${h(e.nom)}</td>${indic(obsSomme(L,"coll")).map(i=>`<td class="c">${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</td>`).join("")}</tr>`; }).join("")}</table></div>`:""}
-   ${Object.keys(N).length?`<div class="carte"><h3>👤 Joueurs observés</h3><table class="t"><tr><th>Joueur</th><th class="c">Fiches</th><th class="c">Ballons joués</th><th class="c">Efficacité</th><th class="c">Tir</th><th class="c">Ballons gagnés</th></tr>${Object.keys(N).sort().map(k=>`<tr><td>${h(k)}</td><td class="c">${N[k].length}</td>${indic(obsSomme(N[k],"ind")).map(i=>`<td class="c">${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</td>`).join("")}</tr>`).join("")}</table></div>`:""}
-   ${BE.length?`<div class="carte"><h3>✍️ Bilans des équipes</h3>${BE.sort((a,b)=>String(b.day).localeCompare(a.day)).map(b=>`<p style="margin:8px 0"><b>${h(eqNom(cls,b.eq))}</b> <span class="doux petit">${dateFR(b.day)}</span><br>${P("bilan_q").map((q,i)=>(b.r||[])[i]?`<span class="doux petit">${h(q)} :</span> ${h(b.r[i])}<br>`:"").join("")}</p>`).join("")}</div>`:""}
+   ${E.some(e=>O.some(o=>o.eq===e.id))?`<div class="carte"><h3>👁 Observations par équipe</h3><table class="t"><tr><th>Équipe</th>${indic({ty:"coll"}).map(x=>`<th class="c">${h(x.l)}</th>`).join("")}</tr>${E.map(e=>{ const L=O.filter(o=>o.eq===e.id&&o.ty==="coll"); if(!L.length) return ""; return `<tr><td><span class="rond" style="background:${h(e.col)}"></span> ${h(e.nom)}</td>${indic(Object.assign(obsSomme(L,"coll"),{simple:false})).map(i=>`<td class="c">${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</td>`).join("")}</tr>`; }).join("")}</table></div>`:""}
+   ${Object.keys(N).length?`<div class="carte"><h3>👤 Joueurs observés</h3><table class="t"><tr><th>Joueur</th><th class="c">Fiches</th>${indic({ty:"ind"}).map(x=>`<th class="c">${h(x.l)}</th>`).join("")}<th>Dernier conseil reçu</th></tr>${Object.keys(N).sort().map(k=>`<tr><td>${h(k)}</td><td class="c">${N[k].length}</td>${indic(Object.assign(obsSomme(N[k],"ind"),{simple:false})).map(i=>`<td class="c">${i.v==null?"—":i.v+(i.u?" "+i.u:"")}</td>`).join("")}<td class="petit">${h((N[k].filter(o=>o.cs).sort((a,b)=>b.u-a.u)[0]||{}).cs||"")}</td></tr>`).join("")}</table></div>`:""}
+   ${BE.length?`<div class="carte"><h3>✍️ Bilans des équipes</h3>${BE.sort((a,b)=>String(b.day).localeCompare(a.day)).map(b=>`<p style="margin:8px 0"><b>${h(eqNom(cls,b.eq))}</b> <span class="doux petit">${dateFR(b.day)}</span><br>${b.ct?`<span class="doux petit">Contrat :</span> ${h(({tir:"arriver au tir",reu:"réussite au tir",perte:"balles perdues",fav:"tirs en position favorable"})[b.ct.k]||"")} ${b.ct.k==="perte"?"≤":"≥"} ${+b.ct.v} %<br>`:""}${P("bilan_q").map((q,i)=>(b.r||[])[i]?`<span class="doux petit">${h(q)} :</span> ${h(b.r[i])}<br>`:"").join("")}</p>`).join("")}</div>`:""}
    <div id="bil-ev"></div>`;
   if(window.EVBK) try{ EVBK.mount(el.querySelector("#bil-ev"),["bilan"],cls); }catch(e){}
   PAN=()=>panneauBilans(el); }
@@ -468,9 +543,14 @@ const A={
  eq:b=>{ S.eq=b.dataset.id; SS.set("eq",S.eq); aller("home"); },
  changerEq:()=>{ S.eq=""; SS.del("eq"); aller("eq"); },
  lecon:()=>{ try{ const lv=EPSLC.liveFor(nomClasse()); lv&&lv.open(); }catch(e){} },
- modeEleve:()=>feuille(`<h3>Forme de jeu</h3><div class="bascule">${["3","4"].map(k=>`<button data-act="modeEl" data-m="${k}" class="${modeJour()===k?"on":""}"><b>${MODES[k].nom}</b><small>${MODES[k].sub}</small></button>`).join("")}</div><p style="text-align:right;margin:12px 0 0"><button class="btn clair" data-act="fermer">Fermer</button></p>`),
- modeEl:b=>{ SS.set("mode",b.dataset.m); fermer(); rendre(); },
- regM:b=>{ S.regM=b.dataset.m; rendre(); }, sysM:b=>{ S.sysM=b.dataset.m; rendre(); }, bilT:b=>{ S.bilT=b.dataset.t; rendre(); },
+ modeBar:b=>{ const m=b.dataset.m; if(!MODES[m]) return;
+   if(estProf()){ const c=clsProf(); if(c) jourSet(c,{mode:m}); else S.modeLoc=m; }
+   else if(!aClasse()) S.modeLoc=m;
+   else if(jour(nomClasse()).libre) SS.set("mode",m);
+   else return toast("La forme de jeu est choisie par ton enseignant");
+   refaire(); majBarre(); },
+ planBar:()=>{ if(estProf()){ try{ EPSD.planche({sport:modeVu()==="4"?"basket":"basket3",cls:clsProf()}); }catch(e){} } else aller(aClasse()&&S.eq?"plan":"sys"); },
+ bilT:b=>{ S.bilT=b.dataset.t; rendre(); }, sitTh:b=>{ S.sitTh=b.dataset.t; rendre(); },
  /* match */
  matchRot:b=>{ const cls=nomClasse(), j=jour(cls), ri=+b.dataset.ri, mi=+b.dataset.mi, x=((j.r||[])[ri]||{m:[]}).m[mi]; if(!x) return; matchOuvrir(matchId(cls,j.day,ri,mi),{cls:cls,day:j.day,mode:j.mode,ter:mi+1,rot:ri,a:x[0],b:x[1]}); },
  matchVoir:b=>{ S.mid=b.dataset.id; SS.set("mid",S.mid); aller("match"); },
@@ -500,18 +580,23 @@ const A={
  /* observation */
  obsNew:b=>{ const cls=nomClasse(), ty=b.dataset.ty, m=S.obsM?stGet(S.obsM):null, E=eqs(cls).filter(e=>!m||e.id===m.a||e.id===m.b); if(!E.length) return toast("Il faut des équipes"); S.obsTy=ty; S.obsEq=(E.find(e=>e.id!==S.eq)||E[0]).id; S.obsWho=""; obsChoix(); },
  obsEq:b=>{ S.obsEq=b.dataset.id; S.obsWho=""; obsChoix(); }, obsWho:b=>{ S.obsWho=b.dataset.n; obsChoix(); },
- obsGo:()=>{ const cls=nomClasse(); if(S.obsTy==="ind"&&!S.obsWho) return toast("Choisis le joueur observé"); const id="o|"+nk(cls)+"|"+auj()+"|"+uid(); stPut(id,{cls:cls,day:auj(),mode:modeJour(),ty:S.obsTy,eq:S.obsEq,who:S.obsTy==="ind"?S.obsWho:"",par:S.eq||"",mi:S.obsM||"",c:[],tirs:[],h:[],st:0}); S.obsM=""; S.oid=id; S.tirTmp=null; aller("obsRun"); },
+ obsGo:()=>{ const cls=nomClasse(); if(S.obsTy==="ind"&&!S.obsWho) return toast("Choisis le joueur observé"); const id="o|"+nk(cls)+"|"+auj()+"|"+uid(); stPut(id,{cls:cls,day:auj(),mode:modeJour(),simple:jour(cls).simple,ty:S.obsTy,eq:S.obsEq,who:S.obsTy==="ind"?S.obsWho:"",par:S.eq||"",mi:S.obsM||"",c:[],tirs:[],h:[],st:0}); S.obsM=""; S.oid=id; S.tirTmp=null; aller("obsRun"); },
  obsOuvrir:b=>{ S.oid=b.dataset.id; S.tirTmp=null; aller("obsRun"); },
  cpt:b=>{ const o=stGet(S.oid); if(!o||o.st===1) return; const i=+b.dataset.i; o.c=o.c||[]; o.c[i]=(+o.c[i]||0)+1; (o.h=o.h||[]).push(i); if(o.h.length>80) o.h.shift(); stPut(S.oid,o); rendre(); },
  tirPos:(b,ev)=>{ const s=b.querySelector("svg"); if(!s) return; const q=s.createSVGPoint(); q.x=ev.clientX; q.y=ev.clientY; const p=q.matrixTransform(s.getScreenCTM().inverse()); S.tirTmp=[Math.round(Math.max(0,Math.min(140,p.x))*10)/10, Math.round(Math.max(0,Math.min(150,p.y))*10)/10]; rendre(); },
  tirOk:b=>{ const o=stGet(S.oid); if(!o||!S.tirTmp) return; (o.tirs=Array.isArray(o.tirs)?o.tirs:[]).push([S.tirTmp[0],S.tirTmp[1],+b.dataset.ok]); S.tirTmp=null; stPut(S.oid,o); rendre(); },
  obsAnnuler:()=>{ const o=stGet(S.oid); if(!o) return; if(o.ty==="tir"){ if(S.tirTmp) S.tirTmp=null; else (o.tirs||[]).pop(); } else { const i=(o.h||[]).pop(); if(i==null) return; o.c[i]=Math.max(0,(+o.c[i]||0)-1); } stPut(S.oid,o); rendre(); },
- obsFin:()=>{ const o=stGet(S.oid); if(!o) return; o.st=1; delete o.h; stPut(S.oid,o); toast("Fiche enregistrée"); rendre(); },
+ obsFin:()=>{ const o=stGet(S.oid); if(!o) return; o.st=1; delete o.h; stPut(S.oid,o); toast("Fiche enregistrée"); rendre();
+   if(o.ty==="ind") feuille(`<h3>💬 Fais le bilan avec ${h(prenom(o.who))}</h3><label class="doux petit" style="display:block;font-weight:700;margin:8px 0 4px">Son point fort</label><input type="text" id="obsPf" maxlength="140"><label class="doux petit" style="display:block;font-weight:700;margin:10px 0 4px">Ton conseil</label><input type="text" id="obsCs" maxlength="140"><div class="ligne" style="margin-top:14px;justify-content:flex-end"><button class="btn clair" data-act="fermer">Passer</button><button class="btn app" data-act="obsCons">Enregistrer</button></div>`); },
+ obsCons:()=>{ const o=stGet(S.oid); if(!o) return; o.pf=$("#obsPf").value.trim().slice(0,140); o.cs=$("#obsCs").value.trim().slice(0,140); stPut(S.oid,o); fermer(); rendre(); },
  obsSuppr:()=>{ stDel(S.oid); aller("obs"); },
  imprObs:()=>imprimer(),
  /* planche */
  sysOuvrir:b=>{ const s=SYS.find(x=>x.id===b.dataset.id); if(s) planOuvrir({nom:s.nom,txt:s.txt,d:s.d},"sys"); },
- planNew:()=>planOuvrir({nom:"",d:EPSTAC.depart(modeJour()==="4"?"basket":"basket3")},"plan"),
+ planNew:()=>planOuvrir({nom:"",d:EPSTAC.depart(modeVu()==="4"?"basket":"basket3")},"plan"),
+ sitOuvrir:b=>{ S.sit=b.dataset.id; aller("sit"); },
+ sitVoir:b=>{ const on=sitsVus(), id=b.dataset.id; stPut("c|sits",{cls:"",on:on.includes(id)?on.filter(x=>x!==id):on.concat(id)}); rendre(); },
+ sitPlan:b=>{ const x=SITS.find(y=>y.id===b.dataset.id); if(x&&x.d) planOuvrir({nom:x.nom,txt:x.but,d:x.d},"sit"); },
  planOuvrir:b=>{ const p=stGet(b.dataset.id); if(p) planOuvrir(p,estProf()&&S.vue==="prof"?"prof":"plan"); },
  planTool:b=>{ if(!ED) return; ED.tool(b.dataset.t); document.querySelectorAll("#planOut button").forEach(x=>x.classList.toggle("on",x===b)); },
  planUndo:()=>ED&&ED.undo(), planDel:()=>ED&&ED.del(),
@@ -522,9 +607,10 @@ const A={
    const T=EPSD.plan.tabs().filter(t=>!nomClasse()||!t.cls||nk(t.cls)===nk(nomClasse()));
    feuille(`<h3>📤 Envoyer ce schéma</h3><p class="doux petit">Il s'affiche en plein écran sur les tablettes, pendant 10 minutes.</p><div style="display:grid;gap:8px"><button class="btn app plein" data-act="planEnvoiOk" data-to="*">À toutes les tablettes</button>${T.map(t=>`<button class="btn clair plein" style="text-align:left" data-act="planEnvoiOk" data-to="${h(t.id)}">${h(t.nom)}</button>`).join("")}</div><p style="text-align:right;margin:12px 0 0"><button class="btn clair" data-act="fermer">Annuler</button></p>`); },
  planEnvoiOk:b=>{ const to=b.dataset.to==="*"?"*":[b.dataset.to]; try{ EPSD.plan.send({nom:$("#planNom")?$("#planNom").value:"",d:ED.get()},to,10); toast("Schéma envoyé"); }catch(e){ toast("Envoi impossible"); } fermer(); },
- bilSave:()=>{ const cls=nomClasse(), r=[...document.querySelectorAll("[data-bq]")].map(t=>t.value.trim().slice(0,400)); stPut("b|"+nk(cls)+"|"+auj()+"|"+S.eq,{cls:cls,day:auj(),eq:S.eq,r:r}); toast("Bilan enregistré"); },
+ bilSave:()=>{ const cls=nomClasse(), r=[...document.querySelectorAll("[data-bq]")].map(t=>t.value.trim().slice(0,400)), k=$("#ctK")?$("#ctK").value:"", v=parseFloat(String($("#ctV")?$("#ctV").value:"").replace(",","."));
+   if(k&&!(isFinite(v)&&v>=0&&v<=100)) return toast("Contrat : écris un pourcentage entre 0 et 100");
+   stPut("b|"+nk(cls)+"|"+auj()+"|"+S.eq,{cls:cls,day:auj(),eq:S.eq,r:r,ct:k?{k:k,v:v}:null}); toast("Bilan enregistré"); rendre(); },
  /* enseignant */
- mode:b=>{ jourSet(clsProf(),{mode:b.dataset.m}); rendre(); },
  nt:b=>{ const cls=clsProf(), j=jour(cls); jourSet(cls,{nt:Math.max(1,Math.min(8,j.nt+(+b.dataset.d)))}); rendre(); },
  bon:b=>{ const cls=clsProf(), j=jour(cls), i=+b.dataset.i; jourSet(cls,{bon:j.bon.includes(i)?j.bon.filter(x=>x!==i):j.bon.concat(i)}); rendre(); },
  equipes:()=>{ try{ EPSTBK.go("cls"); }catch(e){} },
@@ -553,11 +639,20 @@ function evAjout(ev){ const m=mMaj(x=>{ ev.at=Date.now(); (x.ev=x.ev||[]).push(e
 function obsChoix(){ const cls=nomClasse(), m=S.obsM?stGet(S.obsM):null, E=eqs(cls).filter(e=>!m||e.id===m.a||e.id===m.b), e=eqDe(cls,S.obsEq)||E[0];
   feuille(`<h3>${OBS[S.obsTy].ico} ${OBS[S.obsTy].nom}</h3><p class="doux petit">Quelle équipe observes-tu ?</p><div class="ligne">${E.map(x=>`<button class="puce ${x.id===e.id?"on":""}" data-act="obsEq" data-id="${h(x.id)}" style="border-left:8px solid ${h(x.col)}">${h(x.nom)}</button>`).join("")}</div>
    ${S.obsTy==="ind"?`<p class="doux petit" style="margin-top:12px">Quel joueur ?</p><div class="ligne">${e.j.filter(n=>!absent(n,cls)).map(n=>`<button class="puce ${S.obsWho===n?"on":""}" data-act="obsWho" data-n="${h(n)}">${h(prenom(n))}</button>`).join("")}</div>`:""}
-   <div class="ligne" style="margin-top:16px;justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" data-act="obsGo">▶ Commencer</button></div>`); }
+   <p class="doux petit" style="margin-top:12px">À deux, c'est plus sûr : l'un regarde et annonce, l'autre touche l'écran.</p>
+   <div class="ligne" style="margin-top:10px;justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" data-act="obsGo">▶ Commencer</button></div>`); }
+/* situation conseillée d'après l'indicateur le plus faible de la fiche (seulement parmi celles que l'enseignant montre) */
+function conseilSit(o){ if(!o||o.st!==1) return null; const I={}; indic(o).forEach(i=>I[i.k]=i); const bas=k=>I[k]&&(I[k].c==="k"||I[k].c==="o"), m=MODES[o.mode]?o.mode:"3"; let id="";
+  if(o.ty==="coll") id=bas("perte")?"p10":bas("tir")?"s2c1":bas("reu")?"manege":bas("fav")?"carre":(I.ca&&I.ca.v===0)?(m==="4"?"ca3":"extra"):"";
+  else if(o.ty==="ind") id=bas("eff")?"p10":bas("reu")?"manege":"";
+  else { const T=Array.isArray(o.tirs)?o.tirs:[], ok=pct(T.filter(x=>x[2]).length,T.length); id=T.length<4?"":couleur(ok,P("seuil_reu"))!=="g"?"manege":pct(T.filter(x=>zoneTir(x[0],x[1])===0).length,T.length)<50?"carre":""; }
+  const x=SITS.find(y=>y.id===id); return x&&(estProf()||sitsVus().includes(x.id))?x:null; }
 document.addEventListener("click",ev=>{ const b=ev.target.closest("[data-act]"); if(!b||b.disabled) return; const f=A[b.dataset.act]; if(f){ try{ f(b,ev); }catch(e){ console.warn(e); } } });
 document.addEventListener("change",ev=>{ const t=ev.target, k=t.dataset&&t.dataset.ch; if(!k) return;
   if(k==="cls"){ S.classe=t.value; SS.set("classe",S.classe); S.pick=""; try{ localStorage.setItem("eps.eval.cls.bk",nomClasse()); }catch(e){} refaire(); }
   else if(k==="libre"){ jourSet(clsProf(),{libre:t.checked}); }
+  else if(k==="simple"){ jourSet(clsProf(),{simple:t.checked}); }
+  else if(k==="ctK"||k==="ctV"){ /* contrat : enregistré avec le bilan */ }
   else if(k==="bilJ"){ S.bilJ=t.value; refaire(); }
   else if(k==="eqNom"){ const cls=clsProf(), E=eqs(cls), e=E[+t.dataset.i], v=t.value.trim().slice(0,30); if(e&&v){ e.nom=v; eqSave(cls,E); } else if(e) t.value=e.nom; } });
 
@@ -623,6 +718,7 @@ window.EPSTBK = window.EPST ? EPST.init({app:CODE, nom:"Basket-ball", color:COL,
   biblio:[{ico:"📏",label:"Règles",sub:"3 contre 3 et 4 contre 4, points, durées",go:()=>aller("regles")},
           {ico:"📋",label:"Systèmes de jeu",sub:SYS.length+" schémas prêts à ouvrir, modifier, envoyer aux tablettes",go:()=>aller("sys")},
           {ico:"✏️",label:"Schémas des équipes",sub:"ce que les équipes ont dessiné",go:()=>aller("plan")},
+          {ico:"🎯",label:"Situations 3 contre 3 et 4 contre 4",sub:SITS.length+" situations tirées de ressources académiques ; tu choisis celles que les élèves voient",go:()=>aller("sits")},
           {ico:"👁",label:"Fiches d'observation",sub:"notre attaque, un joueur, carte des tirs ; à l'écran ou à imprimer",go:()=>aller("obs")},
           {ico:"🔥",label:"Échauffement",sub:"les étapes affichées aux élèves",go:()=>aller("echauf")}],
   reglages:[]
