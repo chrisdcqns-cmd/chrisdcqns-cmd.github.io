@@ -41,12 +41,34 @@ async def main():
         await p.click("#lnok"); await p.wait_for_timeout(400)
         ln = await p.evaluate("EPSREF.all('ln')"); out.append(("3b rattachement enregistré (2 compétences générales)", len(ln) == 1 and len(ln[0]["cg"]) == 2, ln))
         # rattacher tous les critères de toutes les grilles (par le module) pour le suivi
-        await p.evaluate("(()=>{var C=EPSREF.cgs();EPSREF.grids().forEach(function(g){g.crit.forEach(function(cr,i){EPSREF.linkSet(g.app,g.gv,cr.id,{cg:[C[i%C.length].id],ep:[1]})})})})()"); await p.wait_for_timeout(400)
+        await p.evaluate("(()=>{var C=EPSREF.cgs();EPSREF.gridsAll().forEach(function(g){g.crit.forEach(function(cr,i){EPSREF.linkSet(g.app,g.gv,cr.id,{cg:[C[i%C.length].id],ep:[1]})})})})()"); await p.wait_for_timeout(400)
+        # 3c. ce qui est évalué pendant les leçons : évaluation de leçon, situations, modalité
+        r = await p.evaluate("""(()=>{var st=function(k,items){var V={items:items,pend:{},since:0};localStorage.setItem(k,JSON.stringify(V))};
+          var g=EPSREF.grids().filter(function(x){return x.app==='vol'})[0],c0=g.crit[0].id,c1=g.crit[1].id,cls=EPSREF.classes().filter(function(c){return /fictive/.test(c)})[0],E=EPSREF.eleves(cls),k=E[0].k.toLowerCase();
+          st('eps.lecons.volley.v1',{L1:{id:'L1',titre:'Leçon test',sits:[{t:'S1',crit:[c0]},{t:'S2',crit:[]}]}});
+          st('eps.leceval.volley.v1',{a:{id:'a',cls:cls,day:'2026-11-20',lec:'L1',el:(function(){var o={};o[k]={p:3,s:2,t:1};return o})()},b:{id:'b',cls:cls,day:'2026-11-23',lec:'',el:(function(){var o={};o[k]={p:3,s:3,t:3};return o})()},
+            z:{id:'z',cls:'2GT9',day:'2026-11-24',lec:'',el:{'test zoe':{p:2,s:2,t:2}}}});
+          var rr={};rr['L1:s0']=2;rr['L1:s1']=0;rr['L1:s0@auto']=0; var lr={};lr[cls+'|2026-11-20|'+k]={id:cls+'|2026-11-20|'+k,r:rr};st('eps.lecres.volley.v1',lr);
+          var el={};el[k]={c1:3,c2:1}; st('eps.evmod.volley.v1',{m1:{id:'m1',k:'mod',nom:'Service',cls:[],total:20,crit:[{id:'c1',t:'Régularité',afl:'AFL1',ty:'deg',w:2},{id:'c2',t:'Réussi',afl:'AFL3',ty:'ok',w:1}]},'r|m1|x':{id:'r|m1|x',k:'res',mod:'m1',cls:cls,u:Date.now(),el:el}});
+          var P=EPSREF.profil(E[0].k,{}),a=P.acts.filter(function(x){return x.sn.app==='vol'})[0],row=function(f){return a.rows.filter(f)[0]||null};
+          var r0=row(function(x){return x.kind==='crit'&&x.cr.id===c0}),r1=row(function(x){return x.kind==='crit'&&x.cr.id===c1});
+          return {r0:r0&&[r0.p,r0.fp,r0.tl.length,r0.tl[0].t,r0.tl[0].e],r1p:r1?r1.fp:null,le:a.rows.filter(function(x){return x.kind==='le'}).map(function(x){return [x.cr.id,x.p,x.tl.length]}),
+            mod:a.rows.filter(function(x){return x.kind==='mod'}).map(function(x){return [x.afl,x.p]}),days:a.days,zc:EPSREF.classes().indexOf('2GT9')>=0,ze:EPSREF.eleves('2GT9').map(function(x){return x.k}),zp:EPSREF.profil('TEST ZOE',{}).acts.length,plus:EPSREF.gridsAll().filter(function(x){return x.plus}).map(function(x){return x.key})}})()""")
+        out.append(("3c thème du jour → critère coché dans la leçon (leçons, pas l'évaluation finale)", r["r0"] is not None and r["r0"][1] is False and r["r0"][2] == 1 and abs(r["r0"][3] - 1.5) < .01 and abs(r["r0"][4] - 3.99) < .01, r["r0"]))
+        out.append(("3d évaluation de leçon : participation, sérieux, et thème d'une leçon sans critère", sorted(x[0] for x in r["le"]) == ["p", "s", "t"] and [x for x in r["le"] if x[0] == "p"][0][2] == 2 and abs([x for x in r["le"] if x[0] == "t"][0][1] - 3.5) < .01, r["le"]))
+        out.append(("3e modalité : critères avec leur AFL, degré 3 → 2,5 ; réussi → haut", len(r["mod"]) == 2 and abs(r["mod"][0][1] - 2.5) < .01 and r["mod"][1][1] > 3.9, r["mod"]))
+        out.append(("3f élève et classe connus par les seules leçons", r["zc"] and r["ze"] == ["TEST ZOE"] and r["zp"] == 1, (r["zc"], r["ze"], r["zp"])))
+        out.append(("3g grilles en plus à rattacher : évaluation de leçon et modalité", "_le|x" in r["plus"] and "vol|m|m1" in r["plus"], r["plus"]))
+        await p.reload(); await p.wait_for_timeout(2000); await p.click("[data-t=act]"); await p.wait_for_timeout(300)
+        await p.locator("[data-g='vol|m|m1']").click(); await p.wait_for_timeout(300); await p.locator("[data-ln]").first.click(); await p.wait_for_timeout(200); await p.locator("#ov [data-cg]").nth(2).check(); await p.click("#lnok"); await p.wait_for_timeout(300)
+        out.append(("3h critère de modalité rattaché", await p.evaluate("!!EPSREF.one('ln|vol|m|m1:c1')"), None))
+        await p.locator("[data-g='_le|x']").click(); await p.wait_for_timeout(300); out.append(("3i évaluation de leçon : 3 critères à rattacher", await p.locator("[data-ln]").count() == 3, None))
         # 4. suivi élève
-        await p.click("[data-t=el]"); await p.wait_for_timeout(300); await p.locator("[data-c]").first.click(); await p.wait_for_timeout(300)
+        await p.click("[data-t=el]"); await p.wait_for_timeout(300); await p.locator("[data-c]", has_text="MO (fictive)").first.click(); await p.wait_for_timeout(300)
         ne = await p.locator("[data-e]").count(); await p.locator("[data-e]").first.click(); await p.wait_for_timeout(400)
         rows = await p.locator(".rf-row").count(); tabs = await p.locator("#pg table").count()
         out.append(("4 élève : profil (objectifs, compétences) et détail par activité", ne > 0 and rows >= 2 and tabs >= 1, (ne, rows, tabs)))
+        out.append(("4b élève : tableau « Au fil des leçons »", "Au fil des leçons" in await p.inner_text("#pg"), None))
         # 5. classe
         await p.click("[data-t=cl]"); await p.wait_for_timeout(400)
         for m in ["og", "cg", "afl"]:
@@ -70,14 +92,14 @@ async def main():
         for w, h in [(1024, 768), (390, 844)]:
             await p.set_viewport_size({"width": w, "height": h})
             for t in ["str", "act", "el", "cl", "cov", "txt"]:
-                await p.click("[data-t=%s]" % t); await p.wait_for_timeout(200)
+                await p.click("[data-t=%s]" % t); await p.wait_for_timeout(250)
                 ov = await p.evaluate("document.documentElement.scrollWidth - window.innerWidth")
                 if ov > 1: out.append(("8 pas de débordement %s à %d px" % (t, w), False, ov))
         out.append(("8 mise en page vérifiée (1024 et 390 px)", True, None))
         await p.set_viewport_size({"width": 1024, "height": 768})
         # 9. carnet : enseignant voit le profil ; élève seulement si rendu visible
         await p.goto(B + "carnet/"); await p.wait_for_timeout(2000)
-        cl = await p.evaluate("EPSREF.classes()[0]"); nomE = await p.evaluate("(c)=>EPSREF.eleves(c)[0].full", cl)
+        cl = await p.evaluate("EPSREF.classes().filter(function(c){return /fictive/.test(c)})[0]"); nomE = await p.evaluate("(c)=>EPSREF.eleves(c)[0].full", cl)
         await p.locator("[data-c]", has_text=cl).first.click(); await p.wait_for_timeout(300); await p.locator("[data-e]", has_text=nomE).first.click(); await p.wait_for_timeout(500)
         out.append(("9 carnet (enseignant) : bloc compétences", await p.locator(".rfc .rf-row").count() >= 1, None))
         # 10. en mode élève : aucun relevé écrit

@@ -15,6 +15,12 @@
      gr|<appli>|<gv>             {k:"gr", app, nom, ca, color, gv, crit:[{id, nom, afl, max}]}   grille connue (pour rattacher avant d'évaluer)
      sn|<année>|<appli>|<classe> {k:"sn", an, app, nom, ca, color, cls, voie, gv, d0, d, crit:[…], el:{clé élève:{n, p:{crit:[d,pos]}, a:{…}}}}
      cfg                         {k:"cfg", carnet:0|1}
+   Ce qui est évalué PENDANT les leçons alimente le même suivi, lu en direct dans les magasins des applis (rien n'est recopié) :
+     📊 Évaluer la leçon (eps.leceval.<dossier>.v1) : « thème du jour » → critères de grille travaillés par la leçon (cases « 📋 Critères d'évaluation
+        travaillés » de ses situations) ; participation et sérieux → critères communs à toutes les activités (appli « _le »), à rattacher une fois ;
+     🏁 résultats des situations notés par les élèves (eps.lecres) → côté élève des critères travaillés par la situation ;
+     🧪 modalités d'évaluation (eps.evmod) : chaque critère de modalité (avec son AFL) est une compétence spécifique (gv « m »).
+   Règle : l'évaluation de fin de séquence l'emporte ; tant qu'elle n'existe pas, la moyenne des leçons tient lieu de positionnement (marquée « leçons »).
    gv = voie de la grille : « gt » / « pro » quand l'appli a une grille par voie, « x » quand la même grille sert à toutes les classes. */
 (function () {
   "use strict";
@@ -191,6 +197,52 @@
     ["evvol", "evdan"].forEach(function (f) { try { if (typeof window[f] === "function") window[f](); } catch (e) {} });   /* Volley, Danse : évaluation créée à la demande */
     arr(window.EPSE_INST).forEach(function (x) { try { n += snapInst(x); } catch (e) { try { console.warn("eps-ref", e); } catch (z) {} } }); return n; }
 
+  /* ---------- ce qui est évalué pendant les leçons (lu en direct, jamais recopié) ---------- */
+  var DIRS = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining", bk: "basket" };
+  var DNOM = { esc: "Escalade", rel: "Relais Vitesse", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ori: "OrienRun", ct: "Cross-training", bk: "Basket-ball" };
+  var SC = {};   /* mémoire de lecture : le texte du magasin est comparé à chaque fois, l'analyse n'est refaite que s'il a changé (un tableau de classe relit les mêmes magasins pour chaque élève) */
+  function sItems(k) { var raw = null; try { raw = localStorage.getItem(k); } catch (e) {} var c = SC[k]; if (c && c.raw === raw) return c.it; var v = null; try { v = JSON.parse(raw || "null"); } catch (e) {}
+    var it = v && v.items && typeof v.items === "object" && !Array.isArray(v.items) ? v.items : {}; SC[k] = { raw: raw, it: it }; return it; }
+  function isDay(d) { return /^\d{4}-\d{2}-\d{2}$/.test(String(d || "")); }
+  function anOf(day) { var m = /^(\d{4})-(\d{2})/.exec(String(day || "")); if (!m) return annee(); var y = +m[2] >= 8 ? +m[1] : +m[1] - 1; return y + "-" + (y + 1); }   /* 1er août → 31 juillet */
+  function dayOfU(u) { var d = new Date(+u > 1e11 ? +u : Date.now()); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function num(x) { return x != null && x !== "" && isFinite(+x); }
+  function people() { var M = { n: {}, c: {} }; try { arr(window.EPSL && EPSL.items()).forEach(function (o) { if (!o || !o.nom) return; M.c[ck(o.nom)] = o.nom; arr(EPSL.people(o)).forEach(function (p) { var f = p.full || ((p.prenom || "") + " " + (p.nom || "")).trim(); if (f) M.n[nk(f)] = f; }); }); } catch (e) {} return M; }
+  function leNoms() { var d = ["Participation", "Sérieux", "Thème du jour"], I = sItems("eps.param.v1"), r = null; Object.keys(DIRS).some(function (a) { var o = I[DIRS[a] + "|leceval"]; if (o && !o.del && Array.isArray(o.v) && o.v.length === 3) { r = o.v.map(String); return true; } return false; }); return r || d; }
+  /* fiches de leçon d'une activité : critères de grille travaillés par chaque leçon et par chaque situation */
+  function lecMap(dir) { var I = sItems("eps.lecons." + dir + ".v1"), L = {}, S = {}; Object.keys(I).forEach(function (id) { var l = I[id]; if (!l || l.del || !Array.isArray(l.sits)) return; var lid = l.id || id, u = [];
+      l.sits.forEach(function (x, i) { var c = arr(x && x.crit).map(String); S[lid + ":s" + i] = c; c.forEach(function (z) { if (u.indexOf(z) < 0) u.push(z); }); }); L[lid] = u; }); return { lec: L, sit: S }; }
+  /* même calcul que modPart d'eps-lecons.js (part de 0 à 1 d'un critère de modalité) */
+  function modPart(c, v) { if (!num(v)) return null; v = +v; if (c.ty === "deg") return Math.max(0, Math.min(1, (v - .5) / 4)); if (c.ty === "pts") return +c.max > 0 ? Math.max(0, Math.min(1, v / +c.max)) : null; if (c.ty === "ok") return v ? 1 : 0;
+    if (c.ty === "perf") { var b = +c.best, w = +c.worst; if (!isFinite(b) || !isFinite(w) || b === w || c.best === "" || c.worst === "") return null; return Math.max(0, Math.min(1, (v - w) / (b - w))); } return null; }
+  function elOf(E, key) { var r = null; Object.keys(obj(E)).some(function (k) { if (nk(k) === key) { r = E[k]; return true; } return false; }); return r && typeof r === "object" ? r : null; }
+  function accu(T, id, v) { var o = T[id] || (T[id] = { s: 0, n: 0 }); o.s += v; o.n++; }
+  /* leçons d'un élève dans une activité → {année: {cls, first, days:{jour:{T:{critère:{s,n}}, E:{…}, le:{p,s,t}}}, mods:[{id, nom, d, rows:[{cr, v}]}]}} (valeurs de 0 à 4) */
+  function lecTr(app, key) { var dir = DIRS[app], out = {}, P = null; if (!dir) return out; var LC = lecMap(dir);
+    var year = function (day, cls) { var an = anOf(day), o = out[an] || (out[an] = { cls: "", first: day, days: {}, mods: [] }); if (day < o.first) o.first = day; if (cls && !o.cls) o.cls = cls; return o; };
+    var slot = function (day, cls) { var o = year(day, cls); return o.days[day] || (o.days[day] = { T: {}, E: {}, le: {} }); };
+    var IE = sItems("eps.leceval." + dir + ".v1"); Object.keys(IE).forEach(function (id) { var r = IE[id]; if (!r || r.del || !isDay(r.day)) return; var x = elOf(r.el, key); if (!x) return; var D = null;
+      ["p", "s"].forEach(function (q) { if (num(x[q])) { D = D || slot(r.day, r.cls); D.le[q] = Math.max(0, Math.min(3, +x[q])) + .5; } });
+      if (num(x.t)) { D = D || slot(r.day, r.cls); var v = Math.max(0, Math.min(3, +x.t)) + .5, cr = LC.lec[r.lec] || []; if (cr.length) cr.forEach(function (c) { accu(D.T, c, v); }); else D.le.t = v; } });
+    var IR = sItems("eps.lecres." + dir + ".v1"); Object.keys(IR).forEach(function (id) { var r = IR[id], p = String(id).split("|"); if (!r || r.del || p.length < 3 || !isDay(p[1]) || !r.r || typeof r.r !== "object" || nk(p.slice(2).join(" ")) !== key) return;
+      var D = null; Object.keys(r.r).forEach(function (k) { if (/@auto$/.test(k)) return; var v = +r.r[k]; if (!(v >= 0 && v <= 2)) return; var cr = LC.sit[k] || []; if (!cr.length) return; if (!D) { P = P || people(); D = slot(p[1], P.c[ck(p[0])] || p[0]); } cr.forEach(function (c) { accu(D.E, c, Math.min(3.99, v * 2)); }); }); });
+    var IM = sItems("eps.evmod." + dir + ".v1"); Object.keys(IM).forEach(function (id) { var r = IM[id]; if (!r || r.del || r.k !== "res") return; var m = IM[r.mod]; if (!m || m.del || !Array.isArray(m.crit)) return; var x = elOf(r.el, key); if (!x) return;
+      var day = dayOfU(r.u), rows = []; m.crit.forEach(function (c) { if (!c || c.id == null) return; var pt = modPart(c, x[c.id]); if (pt == null) return; rows.push({ cr: { id: m.id + ":" + c.id, nom: String(c.t || "Critère"), afl: String(c.afl || ""), max: +c.w > 0 ? +c.w : 1 }, v: Math.min(3.99, pt * 4) }); });
+      if (rows.length) year(day, r.cls).mods.push({ id: m.id, nom: String(m.nom || "Modalité"), d: day, rows: rows }); });
+    return out; }
+  /* grilles « en plus » à rattacher : évaluation de leçon (toutes activités) et critères des modalités d'évaluation */
+  function gridOf(app, voie) { var G = grids().filter(function (g) { return g.app === app; }); return G.filter(function (g) { return g.gv === voie; })[0] || G.filter(function (g) { return g.gv === "x"; })[0] || G[0] || null; }
+  function gridsPlus() { var N = leNoms(), L = [{ key: "_le|x", app: "_le", gv: "x", plus: "le", nom: "Évaluer la leçon (toutes activités)", ca: "", color: "", crit: [{ id: "p", nom: N[0], afl: "", max: 1 }, { id: "s", nom: N[1], afl: "", max: 1 }, { id: "t", nom: N[2] + " (leçon sans critère coché)", afl: "", max: 1 }] }];
+    Object.keys(DIRS).forEach(function (app) { var I = sItems("eps.evmod." + DIRS[app] + ".v1"), g0 = gridOf(app, "gt"); Object.keys(I).forEach(function (id) { var m = I[id]; if (!m || m.del || m.k !== "mod" || !Array.isArray(m.crit) || !m.crit.length) return;
+      L.push({ key: app + "|m|" + m.id, app: app, gv: "m", plus: "mod", nom: DNOM[app] + " · 🧪 " + String(m.nom || "Modalité"), ca: (g0 && g0.ca) || "", color: (g0 && g0.color) || "", crit: m.crit.filter(function (c) { return c && c.id != null; }).map(function (c) { return { id: m.id + ":" + c.id, nom: String(c.t || "Critère"), afl: String(c.afl || ""), max: +c.w > 0 ? +c.w : 1 }; }) }); }); });
+    return L; }
+  function gridsAll() { return grids().map(function (g) { g.key = g.app + "|" + g.gv; return g; }).concat(gridsPlus()); }
+  /* élèves et classes qui n'ont encore que des évaluations de leçon (pas d'évaluation de fin de séquence relevée) */
+  function lecIndex(an) { var M = {}, P = people(), add = function (cls, k, day) { if (!cls || (an && anOf(day) !== an)) return; var c = M[ck(cls)] || (M[ck(cls)] = { cls: P.c[ck(cls)] || cls, el: {} }); k = nk(k); if (k) c.el[k] = P.n[k] || k; };
+    Object.keys(DIRS).forEach(function (a) { var d = DIRS[a], IE = sItems("eps.leceval." + d + ".v1"); Object.keys(IE).forEach(function (id) { var r = IE[id]; if (r && !r.del && isDay(r.day) && r.cls) Object.keys(obj(r.el)).forEach(function (k) { add(r.cls, k, r.day); }); });
+      var IM = sItems("eps.evmod." + d + ".v1"); Object.keys(IM).forEach(function (id) { var r = IM[id]; if (r && !r.del && r.k === "res" && r.cls) Object.keys(obj(r.el)).forEach(function (k) { add(r.cls, k, dayOfU(r.u)); }); }); });
+    return M; }
+
   /* ---------- lecture pour le suivi ---------- */
   function grids() { return all("gr").filter(function (g) { return g.app && Array.isArray(g.crit); }).sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr") || String(a.gv).localeCompare(String(b.gv)); }); }
   function snaps(f) { f = f || {}; return all("sn").filter(function (s) { return s && s.app && Array.isArray(s.crit) && s.el && typeof s.el === "object" && (!f.an || s.an === f.an) && (!f.cls || ck(s.cls) === ck(f.cls)) && (!f.key || s.el[f.key]); })
@@ -201,23 +253,42 @@
   function mk() { return { ps: 0, pw: 0, as: 0, aw: 0, n: 0, hist: [] }; }
   function add(b, w, p, a) { if (p != null) { b.ps += p * w; b.pw += w; } if (a != null) { b.as += a * w; b.aw += w; } if (p != null || a != null) b.n++; }
   function fin(b) { b.p = b.pw ? b.ps / b.pw : null; b.a = b.aw ? b.as / b.aw : null; return b; }
-  /* profil d'un élève : par activité (lignes de critères), puis moyennes pondérées par les points du critère, par compétence générale,
-     par objectif général et par AFL. hist = une valeur par activité, dans l'ordre des dates (évolution). */
-  function profil(key, f) { f = f || {}; var S = snaps({ key: key, an: f.an }), R = { nom: "", acts: [], cg: {}, og: {}, afl: {}, n: 0 };
+  /* profil d'un élève. Une « unité » par année et par activité = évaluation de fin de séquence relevée (sn) et / ou leçons (tr).
+     Par critère : enseignant = évaluation finale, sinon moyenne des leçons (fp = false) ; élève = auto-positionnement, sinon ses résultats aux situations.
+     Puis moyennes pondérées par les points du critère, par compétence générale, objectif général et AFL. hist = une valeur par activité, dans l'ordre des dates. */
+  function moy(L) { var s = 0, n = 0; L.forEach(function (v) { if (v != null) { s += v; n++; } }); return n ? s / n : null; }
+  function profil(key, f) { f = f || {}; var R = { nom: "", acts: [], cg: {}, og: {}, afl: {}, n: 0 }, U = {};
     var slot = function (T, id) { return T[id] || (T[id] = mk()); };
-    S.forEach(function (s) { var e = s.el[key], P = obj(e.p), Ap = obj(e.a), act = { sn: s, rows: [], p: null, a: null }, loc = { cg: {}, og: {}, afl: {} }, tot = mk();
-      R.nom = R.nom || e.n || "";
-      s.crit.forEach(function (cr) { var p = val(P[cr.id]), a = val(Ap[cr.id]); if (p == null && a == null) return; var w = +cr.max > 0 ? +cr.max : 1, L = link(s.app, s.gv, cr), og = ogOf(s, cr, s.voie), code = aflCode(cr, s.voie);
-        act.rows.push({ cr: cr, afl: code || cr.afl || "", cg: L.cg, ep: L.ep, og: og, p: p, a: a }); add(tot, w, p, a); R.n++;
-        L.cg.forEach(function (id) { add(slot(loc.cg, id), w, p, a); }); og.forEach(function (id) { add(slot(loc.og, id), w, p, a); }); if (code) add(slot(loc.afl, code), w, p, a); });
+    snaps({ key: key, an: f.an }).forEach(function (s) { U[s.an + "|" + s.app] = { an: s.an, app: s.app, snap: s, gv: s.gv, crit: s.crit, cls: s.cls, voie: s.voie, d0: s.d0, nom: s.nom, ca: s.ca, color: s.color, tr: null }; R.nom = R.nom || s.el[key].n || ""; });
+    Object.keys(DIRS).forEach(function (app) { var T = lecTr(app, key); Object.keys(T).forEach(function (an) { if (f.an && an !== f.an) return; var t = T[an], u = U[an + "|" + app];
+      if (!u) { var voie = voieOf(t.cls), g = gridOf(app, voie); u = U[an + "|" + app] = { an: an, app: app, snap: null, gv: g ? g.gv : "x", crit: g ? g.crit : [], cls: t.cls, voie: voie, d0: t.first, nom: (g && g.nom) || DNOM[app], ca: (g && g.ca) || "", color: (g && g.color) || "", tr: null }; }
+      u.tr = t; }); });
+    Object.keys(U).map(function (k) { return U[k]; }).sort(function (a, b) { return String(a.d0).localeCompare(String(b.d0)) || String(a.nom).localeCompare(String(b.nom), "fr"); }).forEach(function (u) {
+      var e = u.snap ? u.snap.el[key] : null, P = obj(e && e.p), Ap = obj(e && e.a), act = { sn: u, rows: [], days: [], p: null, a: null }, loc = { cg: {}, og: {}, afl: {} }, tot = mk();
+      var days = u.tr ? Object.keys(u.tr.days).sort() : []; act.days = days;
+      var push = function (g, cr, p, a, o) { if (p == null && a == null) return; var w = +cr.max > 0 ? +cr.max : 1, L = link(g.app, g.gv, cr), og = ogOf(g, cr, u.voie), code = aflCode(cr, u.voie), r = { cr: cr, afl: code || cr.afl || "", cg: L.cg, ep: L.ep, og: og, p: p, a: a, fp: true, fa: true, kind: "crit", tl: [] };
+        Object.keys(o || {}).forEach(function (k) { r[k] = o[k]; }); act.rows.push(r); add(tot, w, p, a); R.n++;
+        L.cg.forEach(function (id) { add(slot(loc.cg, id), w, p, a); }); og.forEach(function (id) { add(slot(loc.og, id), w, p, a); }); if (code) add(slot(loc.afl, code), w, p, a); };
+      /* critères de la grille : évaluation finale, sinon leçons */
+      arr(u.crit).forEach(function (cr) { var p = val(P[cr.id]), a = val(Ap[cr.id]), tl = [];
+        days.forEach(function (d) { var D = u.tr.days[d], t = D.T[cr.id], x = D.E[cr.id]; if (t || x) tl.push({ d: d, t: t ? t.s / t.n : null, e: x ? x.s / x.n : null }); });
+        var lt = moy(tl.map(function (z) { return z.t; })), le = moy(tl.map(function (z) { return z.e; }));
+        push(u, cr, p != null ? p : lt, a != null ? a : le, { fp: p != null, fa: a != null, tl: tl }); });
+      /* évaluation de leçon : critères communs à toutes les activités */
+      if (days.length) { var N = leNoms(); ["p", "s", "t"].forEach(function (q, i) { var tl = []; days.forEach(function (d) { var v = u.tr.days[d].le[q]; if (v != null) tl.push({ d: d, t: v, e: null }); }); if (!tl.length) return;
+        push({ app: "_le", gv: "x", ca: "" }, { id: q, nom: N[i], afl: "", max: 1 }, moy(tl.map(function (z) { return z.t; })), null, { fp: false, kind: "le", tl: tl }); }); }
+      /* modalités d'évaluation */
+      if (u.tr) u.tr.mods.forEach(function (m) { m.rows.forEach(function (x) { push({ app: u.app, gv: "m", ca: u.ca }, x.cr, x.v, null, { kind: "mod", mod: m.nom, tl: [{ d: m.d, t: x.v, e: null }] }); }); });
       if (!act.rows.length) return; fin(tot); act.p = tot.p; act.a = tot.a; R.acts.push(act);
       ["cg", "og", "afl"].forEach(function (t) { Object.keys(loc[t]).forEach(function (id) { var b = fin(loc[t][id]), g = slot(R[t], id);
-        if (b.p != null) { g.ps += b.p * b.pw; g.pw += b.pw; } if (b.a != null) { g.as += b.a * b.aw; g.aw += b.aw; } g.n += b.n; g.hist.push({ app: s.app, nom: s.nom, an: s.an, d: s.d0, p: b.p, a: b.a }); }); }); });
+        if (b.p != null) { g.ps += b.p * b.pw; g.pw += b.pw; } if (b.a != null) { g.as += b.a * b.aw; g.aw += b.aw; } g.n += b.n; g.hist.push({ app: u.app, nom: u.nom, an: u.an, d: u.d0, p: b.p, a: b.a }); }); }); });
     ["cg", "og", "afl"].forEach(function (t) { Object.keys(R[t]).forEach(function (id) { fin(R[t][id]); }); });
+    if (!R.nom) R.nom = people().n[key] || "";
     return R; }
   function eleves(cls, an) { var M = {}; snaps({ cls: cls, an: an }).forEach(function (s) { Object.keys(s.el).forEach(function (k) { if (!M[k]) M[k] = { k: k, full: s.el[k].n || k }; }); });
+    var X = lecIndex(an)[ck(cls)]; if (X) Object.keys(X.el).forEach(function (k) { if (!M[k]) M[k] = { k: k, full: X.el[k] }; });
     return Object.keys(M).map(function (k) { return M[k]; }).sort(function (a, b) { return a.full.localeCompare(b.full, "fr"); }); }
-  function classes(an) { var M = {}; snaps({ an: an }).forEach(function (s) { M[ck(s.cls)] = s.cls; }); return Object.keys(M).map(function (k) { return M[k]; }).sort(function (a, b) { return a.localeCompare(b, "fr", { numeric: true }); }); }
+  function classes(an) { var M = {}; snaps({ an: an }).forEach(function (s) { M[ck(s.cls)] = s.cls; }); var X = lecIndex(an); Object.keys(X).forEach(function (k) { if (!M[k]) M[k] = X[k].cls; }); return Object.keys(M).map(function (k) { return M[k]; }).sort(function (a, b) { return a.localeCompare(b, "fr", { numeric: true }); }); }
 
   /* ---------- affichage commun (page Référentiel et carnet de l'élève) ---------- */
   var DCOL = ["#B3261E", "#C2410C", "#1D4ED8", "#1E6B3A"], DBG = ["#FDECEA", "#FFF1E6", "#E8EEFC", "#E6F4EA"];
@@ -246,7 +317,7 @@
     if (a) h += "<h3>" + (o.eleve ? "Les grands objectifs de l'EPS" : "Objectifs généraux") + "</h3>" + a;
     if (c) h += '<h3 style="margin-top:14px">' + (o.eleve ? "Mes compétences" : "Compétences générales") + "</h3>" + c;
     if (!h) return "";
-    return h + '<p class="rf-leg">Barre et 1re pastille : ' + (o.eleve ? "mon enseignant" : "enseignant") + ' <i></i>trait noir et 2e pastille : ' + (o.eleve ? "mon auto-positionnement" : "auto-positionnement de l'élève") + " · degrés 1 à 4, toutes activités réunies.</p>"; }
+    return h + '<p class="rf-leg">Barre et 1re pastille : ' + (o.eleve ? "mon enseignant" : "enseignant") + ' <i></i>trait noir et 2e pastille : ' + (o.eleve ? "mon auto-positionnement" : "auto-positionnement de l'élève") + " · degrés 1 à 4, toutes activités réunies, leçons comprises.</p>"; }
 
   function cfg() { return obj(one("cfg")); }
   function clean() { /* relevés de la classe de démonstration : retirés quand la classe fictive n'existe plus */
@@ -256,7 +327,7 @@
     ld: ld, put: put, del: del, one: one, all: all, annee: annee, annees: annees, nk: nk, ck: ck, esc: esc, voieOf: voieOf,
     ogs: ogs, caT: caT, caOf: caOf, aflList: aflList, aflOg: aflOg, epList: epList, epMine: epMine, epCode: epCode, tx: tx, txOk: txOk,
     cgs: cgs, cgPut: cgPut, cgDel: cgDel, link: link, linkSet: linkSet, aflCode: aflCode, ogOf: ogOf,
-    grids: grids, snaps: snaps, classes: classes, eleves: eleves, profil: profil, val: val, deg: deg,
+    grids: grids, gridsAll: gridsAll, gridOf: gridOf, DIRS: DIRS, DNOM: DNOM, snaps: snaps, classes: classes, eleves: eleves, profil: profil, val: val, deg: deg,
     pill: pill, bar: bar, trend: trend, ogChip: ogChip, htmlProfil: htmlProfil, css: css, cfg: cfg, snap: snapAll, clean: clean };
 
   /* synchronisation (eps-home.js) et relevé automatique dans les applis d'activité */

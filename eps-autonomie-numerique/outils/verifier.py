@@ -82,7 +82,7 @@ REPERES = {
     "eps-lists.js": ["typeof def === \"number\" && (typeof o.v !== \"number\""],
     "eps-shell.js": ["doit être un nombre"],
     "eps-tactique.js": ["function editor(", "function depart("],
-    "eps-ref.js": ["function snapInst(", "function profil(", "function link(", "if (!nb) return;"],
+    "eps-ref.js": ["function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw"],
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter"],
     "eps-eval.js": ["function gridFor("],
     "tactique/index.html": ["EPSD.plan.send(", "EPSD.plan.live(", "data-all"],
