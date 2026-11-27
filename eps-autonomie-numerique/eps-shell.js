@@ -89,7 +89,8 @@
        jamais dans les autres (précision de l'enseignant : « commun » ne veut pas dire toutes les applis ; Danse, Cross-training, Relais
        gardent l'action « Pilotage de leçon » de Séquence). Le bouton est toujours créé mais reste caché tant que l'appli n'a pas déclaré epsCtlOwn.
        Dans ces applis, le suivi n'est plus une action de Séquence ni de Classe. */
-    var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (t[0] === "suivi" && !!(C.tabs && C.tabs.seq) && C.app !== "ccf" && C.suivi !== false) || (t[0] === "ccf" && !!(C.tabs && C.tabs.eval) && C.tabs.ccf !== false) || (C.tabs && C.tabs[t[0]]); });
+    var EVON0 = C.app !== "ccf" && !!(C.tabs && C.tabs.eval) && C.evalTabs !== false; /* 📄 Bilans retiré (27/11/2026) : tout est dans 📋 Évaluer → 📤 Bilan et export */
+    var tabs = ORDER.filter(function (t) { if (t[0] === "bil" && EVON0) return false; return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (t[0] === "suivi" && !!(C.tabs && C.tabs.seq) && C.app !== "ccf" && C.suivi !== false) || (t[0] === "ccf" && !!(C.tabs && C.tabs.eval) && C.tabs.ccf !== false) || (C.tabs && C.tabs[t[0]]); });
     nav.innerHTML = tabs.map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (t[0] === "suivi" && !window.epsCtlOwn ? ' style="display:none"' : "") + '><span>' + t[1] + "</span>" + t[2] + "</button>"; }).join("");
     /* deux bandeaux (barre de l'appli + onglets enseignant) : en descendant, seuls les onglets restent en haut ;
        la barre de l'appli revient dès qu'on remonte */
@@ -184,11 +185,29 @@
       if (k === "jour") { var ok = !!(window.EPSLC && EPSLC.evalJour); el = panel(ok ? "" : '<p class="mut">Chargement…</p>'); mark("eval");
         if (!ok) { setTimeout(function () { if (M.cur === "eval" && M.ev === "jour") evGo("jour"); }, 1200); return; } try { EPSLC.evalJour(el, { cls: evCls() }); } catch (e) { console.warn(e); } return; }
       if (k === "bil") { var b = t.bilan, I = evInst(), tb = (C.tabs || {}).bil;
-        try { if (b && b.panel) { el = panel(""); b.panel(el); } else if (b && b.go) { closePanel(); b.go(); } else if (I) { el = panel(""); I.mount(el, ["bilan"], evCls()); }
+        try { if (b && b.panel) { el = panel(""); b.panel(el); } else if (b && b.go) { closePanel(); b.go(); }
+          else if (I && tb && tb.panel) { el = panel(""); tb.panel(el); resArrange(el); }
+          else if (I) { el = panel(""); I.mount(el, ["bilan"], evCls()); }
           else if (tb && tb.panel) { el = panel(""); tb.panel(el); } else { closePanel(); if (tb && tb.go) tb.go(); } } catch (e) { console.warn(e); }
         mark("eval"); return; }
       try { if (t.panel) { el = panel(""); t.panel(el); } else { closePanel(); if (t.go) t.go(); } } catch (e) { console.warn(e); }
       mark("eval"); }
+    /* l'ancien panneau « 📄 Bilans » de l'appli (résultats propres + export monté dans un sous-bloc) est remis en ordre : 📤 Export de l'évaluation
+       en tête (ordre de Volley), puis « 🏅 Résultats de l'activité » (grimpes, courses, matchs, carnets…). Refait si l'appli redessine son panneau. */
+    var RESOBS = null;
+    function resArrange(el) { if (RESOBS) { RESOBS.disconnect(); RESOBS = null; }
+      var go = function () { if (!el.isConnected || M.cur !== "eval" || M.ev !== "bil") return; var host = el.querySelector(".epse-host"); if (!host) return;
+        var top = host; while (top.parentNode && top.parentNode !== el) top = top.parentNode; if (top.parentNode !== el) return;
+        if (el.firstElementChild === top && el.querySelector("[data-epst-res]")) return;
+        RESOBS && RESOBS.disconnect();
+        var h = [].filter.call(el.children, function (x) { return x.tagName === "H2" && /Bilans/.test(x.textContent); })[0]; if (h) { var nx = h.nextElementSibling; if (nx && nx.tagName === "P" && nx.classList.contains("mut")) nx.remove(); h.remove(); }
+        el.insertBefore(top, el.firstChild);
+        var rest = [].filter.call(el.children, function (x) { return x !== top && !x.hasAttribute("data-epst-res"); }).filter(function (x) { return x.textContent.trim() || x.querySelector("button,select,table"); });
+        var old = el.querySelector("[data-epst-res]"); if (old) old.remove();
+        if (rest.length) { var t2 = document.createElement("h2"); t2.setAttribute("data-epst-res", ""); t2.style.cssText = "margin:22px 0 8px"; t2.textContent = "🏅 Résultats de l'activité"; el.insertBefore(t2, rest[0]); }
+        RESOBS && RESOBS.observe(el, { childList: true }); };
+      go(); [150, 600, 1500].forEach(function (d) { setTimeout(go, d); });
+      try { RESOBS = new MutationObserver(function () { setTimeout(go, 0); }); RESOBS.observe(el, { childList: true }); } catch (e) {} }
     function evActs() { var t = (C.tabs || {}).eval || {}, ev = evCur(), L = window.EPSLC || {}, drop = /^(Évaluer|Évaluation finale|Bilan (&|et) export)$/;
       var ctx = ev === "fin" ? (t.actions || []).filter(function (a) { return !drop.test(a.label); }).concat(L.evalActions ? L.evalActions() : []) : ev === "bil" ? ((t.bilan && t.bilan.actions) || []).concat(L.evalBilActions ? L.evalBilActions() : []) : [];
       ctx = ctx.map(function (a, i) { return [a.ord != null ? a.ord : 1, i, a]; }).sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; }).map(function (x) { return x[2]; });
@@ -277,6 +296,7 @@
         try { if (window.epsCtlOwn && typeof window.epsCtlOwn.open === "function") window.epsCtlOwn.open((cc && cc.nom) || ""); } catch (e) { console.warn(e); }
         return; }
       if (id === "eval" && EVON) { evGo(evCur()); return; }
+      if (id === "bil" && EVON) { evGo("bil"); return; }
       if (id !== "vue") { closeVue(); M.prev = id; }
       mark(id);
       var t = (C.tabs || {})[id];
@@ -309,8 +329,8 @@
         var sb0 = nav.querySelector('[data-t="suivi"]'); if (sb0) sb0.style.display = window.epsCtlOwn ? "" : "none";
         if (sb0 && window.epsCtlOwn) { if (suiviOn()) k = "suivi"; else if (M.cur === "suivi" && Date.now() - (M.sv || 0) > 1500) k = k || M.back || "seq"; else if (M.cur === "suivi") k = "suivi"; }
         /* 📋 Évaluer → 📤 Bilan et export : quand c'est l'écran de bilan de l'appli qui s'affiche, l'onglet Évaluer reste allumé ; si l'appli revient d'elle-même à son écran d'évaluation, l'entrée suit */
-        if (EVON && M.cur === "eval" && Date.now() - (M.evt || 0) > 900) { var bo = evBilOn(); if (M.ev === "bil" && k === "bil") k = "eval"; else if (M.ev === "bil" && bo === false && k === "eval") { M.ev = "fin"; try { sessionStorage.setItem(EVK, "fin"); } catch (e) {} mark("eval"); } }
-        else if (EVON && M.cur === "eval" && M.ev === "bil" && k === "bil") k = "eval";
+        if (EVON && k === "bil") { k = "eval"; if (M.ev !== "bil") { M.ev = "bil"; M.evt = Date.now(); try { sessionStorage.setItem(EVK, "bil"); } catch (e) {} if (M.cur === "eval") mark("eval"); } }
+        else if (EVON && M.cur === "eval" && M.ev === "bil" && Date.now() - (M.evt || 0) > 900 && evBilOn() === false && k === "eval") { M.ev = "fin"; try { sessionStorage.setItem(EVK, "fin"); } catch (e) {} mark("eval"); }
         if (k && k !== M.cur && !(M.cur === "bib" || M.cur === "reg")) mark(k);
       }
     }

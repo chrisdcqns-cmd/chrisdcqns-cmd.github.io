@@ -48,7 +48,7 @@ async def main():
         out.append(("rencontres : 6 matchs sur 2 terrains",sum(x[0] for x in r)==6,r))
         await p.screenshot(path=SHOT+"p3-sequence.png",full_page=True)
         out.append(("pas de débordement (séquence)",not await over(p),None))
-        for t in ["eval","ccf","bil","bib","reg","vue"]:
+        for t in ["eval","ccf","bib","reg","vue"]:
             await p.click(".epst-nav button[data-t=%s]"%t); await p.wait_for_timeout(900)
             out.append(("onglet "+t+" sans débordement",not await over(p),None))
             if t in("eval","bil","bib"): await p.screenshot(path=SHOT+"p-"+t+".png")
@@ -133,7 +133,7 @@ async def main():
         await p.reload(); await p.wait_for_timeout(3000); await p.evaluate("window.epsCtlOwn.open()"); await p.wait_for_timeout(500); await p.screenshot(path=SHOT+"p4-suivi.png",full_page=True)
         out.append(("prof : classement affiché",await p.evaluate("document.querySelector('#vue').innerText.includes('Classement')"),None))
         out.append(("pas de débordement (suivi)",not await over(p),None))
-        await p.click(".epst-nav button[data-t=bil]"); await p.wait_for_timeout(1200); await p.screenshot(path=SHOT+"p5-bilans.png",full_page=True)
+        await p.click(".epst-nav button[data-t=eval]"); await p.wait_for_timeout(600); await p.click(".epst-tb button.seg[title='Bilan et export']"); await p.wait_for_timeout(1500); await p.screenshot(path=SHOT+"p5-bilans.png",full_page=True)
         out.append(("pas de débordement (bilans)",not await over(p),None))
         await p.set_viewport_size({"width":1440,"height":900}); await p.click(".epst-nav button[data-t=seq]"); await p.wait_for_timeout(500); out.append(("1440 px sans débordement",not await over(p),None))
         ck=await p.evaluate("epsCheck('2GT1 TEST').map(x=>[x.ok,x.t])"); out.append(("epsCheck",len(ck)==3,ck))

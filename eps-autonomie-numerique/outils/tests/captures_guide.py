@@ -62,7 +62,7 @@ async def main():
             await p.goto(B + "volley/"); await p.wait_for_timeout(2500); await p.evaluate("EPSLC.pilotage({cls:EPSD.demo.nom})"); await p.wait_for_timeout(1800); await shot(p, "controle")
             await p.goto(B + "escalade/"); await p.wait_for_timeout(2500); await p.evaluate("EPSLC.classe({cls:EPSD.demo.nom})"); await p.wait_for_timeout(1800); await shot(p, "ma-classe")
             await p.goto(B + "escalade/"); await p.wait_for_timeout(2500); await p.click(".epst-nav button[data-t=eval]"); await p.wait_for_timeout(1500); await shot(p, "evaluation")
-            await p.click(".epst-nav button[data-t=bil]"); await p.wait_for_timeout(1500); await shot(p, "bilans")
+            await p.click(".epst-tb button.seg[title='Bilan et export']"); await p.wait_for_timeout(1500); await shot(p, "bilans")
         await essai("*ens", ens)
         # --- outils
         async def outils():

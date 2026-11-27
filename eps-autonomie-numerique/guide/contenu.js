@@ -63,7 +63,7 @@ window.EPS_GUIDE = (function () {
       ["img", "accueil-prof.jpg", "En mode enseignant, l'accueil montre aussi les outils enseignant."]
     ] },
     { t: "Les onglets, identiques dans chaque activité", b: [
-      ["strip", [["📅 Séquence", "préparer et conduire"], ["👁 Vue élève", "voir comme un élève"], ["📚 Bibliothèque", "documents, banque"], ["📋 Évaluer", "leçons, finale, bilan"], ["📜 CCF", "notes, protocole"], ["👥 Classe", "élèves, groupes"], ["📄 Bilans", "PDF, Pronote, en ligne"], ["⚙ Réglages", "tout est paramétrable"]]],
+      ["strip", [["📅 Séquence", "préparer et conduire"], ["👁 Vue élève", "voir comme un élève"], ["📚 Bibliothèque", "documents, banque"], ["📋 Évaluer", "leçons, finale, bilan"], ["📜 CCF", "notes, protocole"], ["👥 Classe", "élèves, groupes"], ["📤 Bilan et export", "PDF, Pronote, en ligne"], ["⚙ Réglages", "tout est paramétrable"]]],
       ["img", "espace-prof.jpg", "Sous les onglets, la barre d'outils. « ⋯ Plus » contient le reste ; ☆ épingle une action."]
     ] },
     { t: "Les classes, une seule fois pour tout", b: [
@@ -74,7 +74,7 @@ window.EPS_GUIDE = (function () {
       ["two", ["lecon-fiche.jpg", "Avant : la fiche de leçon."], ["lecon-cours.jpg", "Pendant : la leçon en cours."]]
     ] },
     { t: "Évaluer, puis rendre les bilans", b: [
-      ["flow", [["📋 Grille par degrés", "un appui par critère, curseur pour affiner"], ["🙋 L'élève se positionne", "QR code ou tablette, à côté de mon avis"], ["🎯 Note proposée", "je garde la décision"], ["📄 Bilans", "PDF par élève, .zip, Pronote, en ligne"]]],
+      ["flow", [["📋 Grille par degrés", "un appui par critère, curseur pour affiner"], ["🙋 L'élève se positionne", "QR code ou tablette, à côté de mon avis"], ["🎯 Note proposée", "je garde la décision"], ["📤 Bilan et export", "PDF par élève, .zip, Pronote, en ligne"]]],
       ["img", "evaluation.jpg", "L'onglet Évaluer : leçons du jour, évaluation finale, bilan et export."]
     ] },
     { t: "Envoyer quelque chose aux tablettes", b: [
@@ -125,7 +125,7 @@ window.EPS_GUIDE = (function () {
       ["cols", [["Réglages", ["Parts leçons / évaluations, seuils des degrés", "Débuts de phrase de l'auto-positionnement", "Grille par voie : générale ou professionnelle"]], ["Cas particuliers", ["Terminale : case CCF et répartition 4-4, 6-2 ou 2-6 par élève", "Nombres à virgule acceptés ; un champ vide est refusé", "Classe fictive : auto-positionnement de démonstration, jamais sur une vraie classe"]]]]
     ] },
     { t: "Bilans", b: [
-      ["steps", ["Onglet 📄 Bilans de l'activité : fiches PDF, une par élève, dans un seul PDF ou un .zip nommé avec la classe et la date, plus un récapitulatif de classe.", "📋 Pronote : ordre alphabétique de Pronote, virgule décimale, codes A (absent), D (dispensé), N (non noté) ; copie d'une colonne ou fichier .csv.", "🌐 Publier en ligne : chaque fiche est chiffrée avec le code personnel de l'élève (6 caractères).", "📝 Bilans et avis de la classe : appréciation de bulletin formulée positivement, à relire et cocher ✓ avant copie ; tu ajoutes tes remarques.", "🖨 Fiches de fin de séquence, avec le lien et le QR code du bilan."]],
+      ["steps", ["Onglet 📋 Évaluer → 📤 Bilan et export : fiches PDF, une par élève, dans un seul PDF ou un .zip nommé avec la classe et la date, plus un récapitulatif de classe.", "📋 Pronote : ordre alphabétique de Pronote, virgule décimale, codes A (absent), D (dispensé), N (non noté) ; copie d'une colonne ou fichier .csv.", "🌐 Publier en ligne : chaque fiche est chiffrée avec le code personnel de l'élève (6 caractères).", "📝 Bilans et avis de la classe : appréciation de bulletin formulée positivement, à relire et cocher ✓ avant copie ; tu ajoutes tes remarques.", "🖨 Fiches de fin de séquence, avec le lien et le QR code du bilan."]],
       ["img", "bilans.jpg", "L'onglet Bilans."],
       ["cols", [["Cas particuliers", ["L'en-tête des bilans reprend établissement, enseignant, classe, date", "Aucun nom d'élève n'est envoyé à Claude : des codes remplacent les prénoms", "Codes des élèves à imprimer : 🌐 Bilans en ligne"]]]]
     ] },
@@ -269,7 +269,7 @@ window.EPS_GUIDE = (function () {
       { t: "Mes boutons", b: [["strip", [["🏸 Jouer", "les situations de la leçon"], ["📋 Ma leçon", "leçon, échauffement, technique"], ["🙋 Moi", "mes stats, ma fiche, mon bilan"], ["↩ Annuler", "le dernier point"], ["ℹ️ Plus d'infos", "toutes les statistiques"]]]] },
       { t: SI, b: [["strip", [["Code du groupe oublié", "mon enseignant peut recréer le groupe"], ["Zone en pointillés", "c'est la zone qui rapporte"], ["Mon rôle", "joueur, coach, arbitre : la tablette l'indique"]]]] } ],
     [ { t: "L'essentiel", b: [
-        ["cols", [["Avant", ["🧭 Assistant de démarrage", "⚡ Préparer la leçon", "Créer une situation : assistant, description, ou de zéro"]], ["Pendant", ["🟢 Leçon en direct : groupes, matchs, alertes", "👁 Voir le match en direct", "Format des rencontres"]], ["Après", ["⚡ Évaluer la leçon question par question", "📋 Évaluer, profil de joueur", "📄 Bilans, .zip"]]]],
+        ["cols", [["Avant", ["🧭 Assistant de démarrage", "⚡ Préparer la leçon", "Créer une situation : assistant, description, ou de zéro"]], ["Pendant", ["🟢 Leçon en direct : groupes, matchs, alertes", "👁 Voir le match en direct", "Format des rencontres"]], ["Après", ["⚡ Évaluer la leçon question par question", "📋 Évaluer, profil de joueur", "📤 Bilan et export, .zip"]]]],
         ["img", "bad-prof.jpg", "L'espace enseignant de Badminton."] ] },
       { t: "Le propre de l'activité", b: [["strip", [["Lycée général / pro", "une grille et une séquence par voie"], ["Terrain à zones", "bonifiées, interdites, dégressives"], ["Contrats", "gagner avec la manière"], ["🏅 Défis", "classement de la classe"]]]] } ],
     [ { t: "Mise en route", b: [["steps", ["Choisis la voie dans l'en-tête : Lycée général ou Lycée pro.", "Classe → 🧭 Assistant de démarrage : classe, dates d'après l'emploi du temps, groupes.", "Onglet Terrain et scoring : 🧭 assistant en 3 questions, 💬 « Décris ta situation », ou ⚙️ partir de zéro.", "Mode Essentiel ou Expert : dans Barème."]]] },
