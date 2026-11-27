@@ -88,6 +88,16 @@
       ".epse table,.epse-card table{border-collapse:collapse;width:100%;font-size:14px}.epse th,.epse td,.epse-card th,.epse-card td{border-bottom:1px solid #EEE9DF;padding:7px 8px;text-align:center}.epse th.l,.epse td.l,.epse-card th.l,.epse-card td.l{text-align:left}",
       ".epse-d{display:inline-block;min-width:28px;padding:2px 6px;border-radius:7px;color:#fff;font-weight:800;font-size:12px}.epse-d.e{background:#fff;border:1.8px solid;}",
       ".epse-note{font-size:28px;font-weight:900}",
+      /* Évaluation finale (27/11/2026, modèle Danse) : 3 modes, colonne d'élèves à gauche, fiche à droite ; saisie rapide par critère / par groupe */
+      ".epse-seg{display:inline-flex;gap:4px;background:#ECE8DF;border-radius:12px;padding:4px;flex-wrap:wrap}.epse-seg button{height:42px;border:0;border-radius:9px;background:transparent;font:700 14px system-ui,sans-serif;color:#4A4F57;padding:0 12px;cursor:pointer;white-space:nowrap}.epse-seg button.on{background:#fff;color:#14171C;box-shadow:0 1px 2px rgba(0,0,0,.12)}",
+      ".epse-two{display:grid;grid-template-columns:250px minmax(0,1fr);gap:14px;align-items:start}.epse-two>*{min-width:0}",
+      ".epse-col{position:sticky;top:8px;max-height:calc(100vh - 150px);overflow:auto;background:#fff;border:1px solid #E6E1D6;border-radius:16px;padding:6px;-webkit-overflow-scrolling:touch}.epse-host .epse-col{top:118px;max-height:calc(100vh - 136px)}",
+      ".epse-col h3{margin:10px 8px 2px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#8A8F98}",
+      ".epse-li{display:flex;align-items:center;gap:8px;width:100%;min-height:50px;border:0;border-radius:11px;background:transparent;text-align:left;font:700 15px system-ui,sans-serif;color:#14171C;padding:5px 8px;cursor:pointer}.epse-li.on{background:color-mix(in srgb,var(--app) 13%,#fff)}",
+      ".epse-li i{flex:none;width:9px;height:9px;border-radius:50%;background:#D9D5CB}.epse-li.ok i{background:#2e9e5b}.epse-li.st i{background:#8A8F98}.epse-li>span:not(.eps-apc){flex:1;min-width:0}.epse-li>.eps-apc{flex:none;margin-left:0!important}.epse-li small{display:block;color:#6A6F78;font-weight:600;font-size:12px}",
+      "@media(max-width:780px){.epse-two{grid-template-columns:minmax(0,1fr)}.epse-col,.epse-host .epse-col{position:static;max-height:none;display:flex;gap:4px;overflow-x:auto}.epse-col h3{display:none}.epse-li{flex:none;width:auto;max-width:190px}}",
+      ".epse-ql{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #F0ECE3;padding:7px 0}.epse-ql:first-child{border-top:0}.epse-ql>b{flex:1 1 150px;min-width:0;font-size:15px}.epse-ql.off{opacity:.5}.epse-ql>span:last-child{flex:none;min-width:64px;text-align:right;font-weight:800}",
+      ".epse-q{position:relative;width:52px;height:44px;border-radius:11px;border:2px solid var(--dc);background:#fff;color:var(--dc);font:800 15px system-ui,sans-serif;cursor:pointer}.epse-q.on{background:var(--dc);color:#fff}.epse-q:disabled{cursor:default}.epse-q u{position:absolute;top:-9px;right:-7px;font-size:14px;text-decoration:none}",
       ".epse-ap .ap-in{max-width:820px;margin:0 auto;padding:16px 16px 40px}.epse-ap h1{font-size:22px;margin:0 0 8px}",
       ".epse-code{font:700 14px ui-monospace,monospace;word-break:break-all;background:#F1EFE8;border-radius:10px;padding:10px;margin:10px 0}",
       ".epse-spin{width:42px;height:42px;border-radius:50%;border:5px solid #E6E1D6;border-top-color:var(--app);animation:epsespin 1s linear infinite;margin:10px auto}@keyframes epsespin{to{transform:rotate(360deg)}}",
@@ -505,10 +515,18 @@
       try { await libs(); var zip = new JSZip(), dos = zip.folder(safe(A.nom) + "_" + safe(c.nom)); for (var i = 0; i < c.eleves.length; i++) dos.file(nomPdf(c, c.eleves[i]), await ficheBytes(c, c.eleves[i], el !== false));
         dos.file("_Recapitulatif_" + safe(c.nom) + ".pdf", await recapBytes(c));
         download(await zip.generateAsync({ type: "blob" }), safe(A.nom) + "_" + safe(c.nom) + "_" + dateFR().replace(/\//g, "-") + ".zip"); toast(c.eleves.length + " PDF prêts dans le ZIP"); } catch (e) { err(e); } };
-    M.exportsHtml = function () { return '<div class="epse-card"><h2>📄 Fiches PDF</h2><p class="epse-mut">Une fiche par élève (grille en langage élève, positionnement de l\'enseignant et de l\'élève, note, commentaire' + (ouvert() ? ", QR code d'auto-positionnement" : "") + "), récapitulatif de la classe, ou tout dans un .zip.</p>" +
-      '<div class="epse-row"><button class="epse-btn p" data-x-zip>🗂 Tout en .zip</button><button class="epse-btn" data-x-all>📄 Toutes les fiches (un PDF)</button><button class="epse-btn" data-x-rec>📊 Récapitulatif</button><button class="epse-btn" data-x-pn>📋 Pronote</button><button class="epse-btn" data-x-pub>🌐 Publier en ligne</button><label class="epse-mut"><input type="checkbox" data-x-prof> grille enseignant</label></div></div>'; };
+    /* même ordre que Volley (demande du 27/11/2026) : Export en tête (fiches, récapitulatif, tableur, Pronote, publication), puis 🙋 auto-positionnement, puis le tableau */
+    M.exportsHtml = function (c) { return '<div class="epse-card"><h2>📤 Export' + (c && c.nom ? " – " + esc(c.nom) : "") + "</h2>" +
+      '<div class="epse-row"><button class="epse-btn p" data-x-zip>🗂 Fiches PDF + récapitulatif (.zip)</button><button class="epse-btn p" data-x-all>📄 Toutes les fiches (un PDF)</button></div>' +
+      '<div class="epse-row"><button class="epse-btn" data-x-rec>📊 Récapitulatif (PDF)</button><button class="epse-btn" data-x-csv>⬇ Tableur (.csv)</button><button class="epse-btn" data-x-pn>📋 Pronote</button><button class="epse-btn" data-x-pub>🌐 Publier en ligne</button><label class="epse-mut"><input type="checkbox" data-x-prof> grille enseignant</label></div>' +
+      '<p class="epse-mut" style="margin:0">Une fiche par élève : grille en langage élève, ton positionnement et le sien, note, commentaire' + (ouvert() ? ", QR code d'auto-positionnement" : "") + ".</p></div>"; };
+    /* ⬇ tableur : une ligne par élève (degré et points par critère, positionnement de l'élève, note) ; point-virgule et virgule décimale pour Excel en français */
+    M.csv = function (c) { var G = A.grid(), q = function (x) { x = String(x == null ? "" : x); return /[";\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }, L = [["NOM", "Prénom", "Statut"].concat(G.criteres.reduce(function (a, cr) { return a.concat([cr.nom + " (degré)", cr.nom + " (points /" + fr(A.max ? A.max(cr, null) : +cr.max || 0) + ")", cr.nom + " (élève)"]); }, [])).concat(["Note /20", "Note proposée /20"])];
+      c.eleves.forEach(function (E) { var n = A.name(E), ab = A.absent(E) || "", ap = A.getAp(E), P = M.prop(E, c.nom), no = A.note ? A.note(E) : null;
+        L.push([n.nom || "", n.prenom || "", ab].concat(G.criteres.reduce(function (a, cr) { var v = A.prof(cr, E), x = ap && ap.ev && ap.ev[cr.id]; return a.concat([v && v.d != null ? v.d + 1 : "", v && v.pts != null ? fr(v.pts) : "", x && x.d != null ? x.d + 1 : ""]); }, [])).concat([ab || no == null ? "" : fr(no), ab || P.note == null ? "" : fr(P.note)])); });
+      download(new Blob(["\ufeff" + L.map(function (r) { return r.map(q).join(";"); }).join("\r\n")], { type: "text/csv;charset=utf-8" }), safe(A.nom) + "_" + safe(c.nom) + "_" + dateFR().replace(/\//g, "-") + ".csv"); };
     M.bindExports = function (root, c) { var el = function () { var x = root.querySelector("[data-x-prof]"); return !(x && x.checked); };
-      root.querySelector("[data-x-zip]").onclick = function () { M.zip(c, el()); }; root.querySelector("[data-x-all]").onclick = function () { M.pdfTous(c, el()); }; root.querySelector("[data-x-rec]").onclick = function () { M.pdfRecap(c); }; var pb = root.querySelector("[data-x-pub]"); if (pb) pb.onclick = function () { if (!(window.EPSD && EPSD.publish)) { toast("Publication indisponible (recharge la page)"); return; } EPSD.publish({ app: A.app, nom: A.nom, color: A.color, classe: c.nom, eleves: c.eleves.map(function (E) { return { full: fullN(E), bytes: function () { return libs().then(function () { return ficheBytes(c, E, true); }); } }; }) }); }; var pn = root.querySelector("[data-x-pn]"); if (pn) pn.onclick = function () { M.pronote(c); }; };
+      root.querySelector("[data-x-zip]").onclick = function () { M.zip(c, el()); }; root.querySelector("[data-x-all]").onclick = function () { M.pdfTous(c, el()); }; root.querySelector("[data-x-rec]").onclick = function () { M.pdfRecap(c); }; var pb = root.querySelector("[data-x-pub]"); if (pb) pb.onclick = function () { if (!(window.EPSD && EPSD.publish)) { toast("Publication indisponible (recharge la page)"); return; } EPSD.publish({ app: A.app, nom: A.nom, color: A.color, classe: c.nom, eleves: c.eleves.map(function (E) { return { full: fullN(E), bytes: function () { return libs().then(function () { return ficheBytes(c, E, true); }); } }; }) }); }; var pn = root.querySelector("[data-x-pn]"); if (pn) pn.onclick = function () { M.pronote(c); }; var cv = root.querySelector("[data-x-csv]"); if (cv) cv.onclick = function () { try { M.csv(c); } catch (e) { console.error(e); toast("Erreur lors de la création du tableur"); } }; };
     /* notes à coller dans Pronote (fenêtre commune EPSR.pronote d'eps-home.js) */
     M.pronote = function (c) { if (c && c.nom && c.eleves) return M.pronoteAll(c.nom, c.eleves); if (!(window.EPSR && EPSR.pronote)) { toast("Export Pronote indisponible (recharge la page)"); return; }
       EPSR.pronote({ app: A.nom, classe: c.nom, color: A.color, cols: [{ t: "Note /20" }], rows: c.eleves.map(function (E) { var n = A.name(E), ab = A.absent(E); return { nom: n.nom, prenom: n.prenom || "", st: ab || "", v: [ab ? null : A.note(E)] }; }) }); };
@@ -560,10 +578,39 @@
       var last = {}; Object.keys((V && V.items) || {}).map(function (id) { return V.items[id]; }).filter(function (o) { return o && !o.del && o.ek === k && nk(o.cls) === nk(cls); }).sort(function (a, b) { return String(a.day).localeCompare(String(b.day)); }).forEach(function (o) { Object.keys(o.r || {}).forEach(function (q) { last[q] = o.r[q]; }); });
       var ks = Object.keys(last); if (!ks.length) return null; var pts = ks.reduce(function (a, q) { return a + (last[q] === 2 ? 1 : last[q] === 1 ? .5 : 0); }, 0);
       return { n: ks.length, t: pts / ks.length, ok: ks.filter(function (q) { return last[q] === 2; }).length, ko: ks.filter(function (q) { return last[q] === 0; }).length }; }
+    /* 🎯 Sources de la proposition (demande du 27/11/2026) : pour les critères que l'enseignant n'a pas encore évalués, la proposition se calcule d'après
+       les sources qu'il coche, par activité : 🙋 auto-positionnement, 📊 évaluations du jour (participation, sérieux, thème : 0 à 3), 🏁 résultats mesurés
+       en leçon (situations notées ✅ 2 · 🟠 1 · ❌ 0), 👥 coévaluation (seulement si la grille de coévaluation reprend la grille d'évaluation).
+       Paramètres prop_sources et prop_recent (EPSP, section « Proposition de positionnement »), réglés aussi par les cases de la fiche (EPSP.set).
+       Poids des dernières leçons : la leçon i (0 = la plus ancienne) sur n compte 1 + (prop_recent / 25) × i / (n − 1) ; 0 = moyenne simple, 100 = la dernière compte 5 fois plus.
+       Une leçon vaut un score de 0 à 1, ramené sur les 4 degrés (× 4). L'évaluation de l'enseignant l'emporte toujours : rien n'est enregistré sans « ✓ Reprendre ». */
+    var SRC_ID = ["auto", "lecons", "situations", "coeval"], SRC_LBL = { auto: "🙋 Auto-positionnement", lecons: "📊 Évaluations du jour", situations: "🏁 Résultats mesurés en leçon", coeval: "👥 Coévaluation" },
+      SRC_MOT = { auto: "l'auto-positionnement de l'élève", lecons: "les évaluations du jour", situations: "les résultats mesurés en leçon", coeval: "la coévaluation" };
+    function srcCfg() { var d = ["auto"], L = d, r = 0;
+      try { if (window.EPSP) { L = EPSP.p({ id: "prop_sources", sec: "Proposition de positionnement", label: "Sources de la proposition, pour les critères que tu n'as pas encore évalués", type: "list", def: d, aide: "Une par ligne, parmi : auto (auto-positionnement), lecons (évaluations du jour), situations (résultats mesurés en leçon), coeval (coévaluation). Se règle aussi par les cases de la fiche d'un élève." });
+        r = EPSP.p({ id: "prop_recent", sec: "Proposition de positionnement", label: "Poids des dernières leçons, de 0 à 100", type: "number", def: 0, aide: "0 = moyenne simple de toutes les leçons ; 100 = la dernière leçon compte 5 fois plus que la première." }); } } catch (e) {}
+      L = (Array.isArray(L) ? L : d).map(function (x) { return String(x).trim().toLowerCase(); }).filter(function (x, i, T) { return SRC_ID.indexOf(x) >= 0 && T.indexOf(x) === i; });
+      r = +r; return { on: L, rec: isFinite(r) ? Math.max(0, Math.min(100, r)) : 0 }; }
+    function dirApp() { return { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining", bk: "basket" }[A.app] || A.app; }
+    function magasin(k) { var V = jget("eps." + k + "." + dirApp() + ".v1", null), I = V && V.items && typeof V.items === "object" ? V.items : {}; return Object.keys(I).map(function (id) { return I[id]; }).filter(function (o) { return o && !o.del && typeof o === "object"; }); }
+    /* une valeur de 0 à 1 par leçon, dans l'ordre des dates */
+    function serieLec(cls, E) { var k = ekey(E), S = []; magasin("leceval").forEach(function (o) { if (nk(o.cls) !== nk(cls) || !o.day) return; var x = (o.el || {})[k]; if (!x) return; var v = []; ["p", "s", "t"].forEach(function (q) { if (x[q] != null && isFinite(+x[q])) v.push(+x[q]); }); if (v.length) S.push({ day: String(o.day), v: v.reduce(function (a, b) { return a + b; }, 0) / v.length / 3 }); });
+      return S.sort(function (a, b) { return a.day.localeCompare(b.day); }); }
+    function serieSit(cls, E) { var k = ekey(E), S = []; magasin("lecres").forEach(function (o) { if (o.ek !== k || nk(o.cls) !== nk(cls) || !o.day) return; var s = 0, n = 0; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = o.r[q]; if (v === 0 || v === 1 || v === 2) { s += v; n += 2; } }); if (n) S.push({ day: String(o.day), v: s / n }); });
+      return S.sort(function (a, b) { return a.day.localeCompare(b.day); }); }
+    function moyPond(S, rec) { var n = S.length; if (!n) return null; var s = 0, w = 0; S.forEach(function (x, i) { var k = 1 + (rec / 25) * (n > 1 ? i / (n - 1) : 0); s += k * x.v; w += k; }); return s / w; }
+    M.propCfg = srcCfg; M.propSources = SRC_ID.map(function (id) { return { id: id, label: SRC_LBL[id] }; }); M._moyPond = moyPond;
     M.prop = function (E, cls) {
-      var G = A.grid(), ap = A.getAp(E), groups = {}, order = [], nT = 0, nA = 0;
+      var G = A.grid(), ap = A.getAp(E), groups = {}, order = [], nT = 0, nA = 0, CF = srcCfg(), on = function (x) { return CF.on.indexOf(x) >= 0; }, used = {}, est = {};
+      var sL = cls ? serieLec(cls, E) : [], sS = cls ? serieSit(cls, E) : [], vL = on("lecons") ? moyPond(sL, CF.rec) : null, vS = on("situations") ? moyPond(sS, CF.rec) : null, co = null;
+      if (on("coeval") && cls) { try { var nm = A.name(E); co = coMoy(A.app, cls, ((nm.prenom || "") + " " + (nm.nom || "")).trim()); } catch (e) { co = null; } }
       G.criteres.forEach(function (cr) { var code = String(cr.afl || "AFL1").trim(), v = A.prof(cr, E), src = "eval";
-        if (!v && ap && ap.ev && ap.ev[cr.id] && ap.ev[cr.id].d != null) { v = { d: ap.ev[cr.id].d, pos: ap.ev[cr.id].pos == null ? .5 : ap.ev[cr.id].pos }; src = "auto"; }
+        if (!v) { var W = [], U = [], a = ap && ap.ev && ap.ev[cr.id], c = co && co.ev && co.ev[cr.id];
+          if (on("auto") && a && a.d != null) { W.push(a.d + (a.pos == null ? .5 : a.pos)); U.push("auto"); }
+          if (c && c.v != null && isFinite(+c.v)) { W.push(+c.v); U.push("coeval"); }
+          if (vL != null) { W.push(vL * 4); U.push("lecons"); }
+          if (vS != null) { W.push(vS * 4); U.push("situations"); }
+          if (W.length) { var mm = Math.max(0, Math.min(3.999, W.reduce(function (x, y) { return x + y; }, 0) / W.length)), dd = Math.floor(mm); v = { d: dd, pos: mm - dd }; src = "auto"; est[cr.id] = { d: dd, pos: Math.round((mm - dd) * 4) / 4 }; U.forEach(function (u) { used[u] = 1; }); } }
         var mx = A.max ? A.max(cr, E) : (+cr.max || 1); if (!groups[code]) { groups[code] = { code: code, w: 0, s: 0, mx: 0, crit: 0, done: 0, auto: 0 }; order.push(code); }
         var g = groups[code]; g.mx += mx; g.crit++; if (v) { g.w += mx; g.s += mx * (v.d + (v.pos == null ? .5 : v.pos)); g.done++; if (src === "auto") { g.auto++; nA++; } else nT++; } });
       var afl = order.map(function (c) { var g = groups[c]; if (!g.w) return { code: c, deg: null, mx: g.mx, crit: g.crit, done: 0 }; var m = Math.min(3.999, g.s / g.w), d = Math.floor(m);
@@ -583,22 +630,31 @@
       var src = nT && !nA ? "eval" : nT && nA ? "mixte" : nA ? "auto" : "none";
       var noteLec = lec ? Math.round(lec.m / 3 * 20 * 4) / 4 : null;
       var sit = cls ? sitRate(cls, E) : null;
-      return { afl: afl, note: note, detail: detail, src: src, nT: nT, nA: nA, lec: lec, noteLec: noteLec, sit: sit, noteSit: sit ? Math.round(sit.t * 20 * 4) / 4 : null, ccf: cc };
+      return { afl: afl, note: note, detail: detail, src: src, nT: nT, nA: nA, lec: lec, noteLec: noteLec, sit: sit, noteSit: sit ? Math.round(sit.t * 20 * 4) / 4 : null, ccf: cc,
+        cfg: CF, used: SRC_ID.filter(function (x) { return used[x]; }), est: est, nLec: sL.length, nSit: sS.length };
     };
     M.propHtml = function (E, cls) { css(A.color);
       var P = M.prop(E, cls), DL = ["Degré 1", "Degré 2", "Degré 3", "Degré 4"], cc = P.ccf;
-      var SRC = { eval: ["#E3F4E8", "#1D6B3A", "✓ Calculée à partir de l'évaluation enregistrée"], mixte: ["#FFF6E0", "#7A5A00", "◐ En partie estimée : des critères ne sont pas évalués par toi, l'auto-positionnement de l'élève les complète"], auto: ["#FFF1BF", "#7A5A00", "⚠ Estimation : aucune évaluation enregistrée, seulement l'auto-positionnement de l'élève"], none: ["#F1EEE6", "#6A6F78", "Pas encore d'évaluation ni d'auto-positionnement"] }[P.src];
+      var dap = P.used.map(function (x) { return SRC_MOT[x]; }).join(", ");
+      var SRC = { eval: ["#E3F4E8", "#1D6B3A", "✓ Calculée à partir de l'évaluation enregistrée"], mixte: ["#FFF6E0", "#7A5A00", "◐ En partie estimée : les critères que tu n'as pas évalués sont proposés d'après " + dap], auto: ["#FFF1BF", "#7A5A00", "⚠ Estimation : aucune évaluation enregistrée, proposition d'après " + dap], none: ["#F1EEE6", "#6A6F78", P.cfg.on.length ? "Pas encore d'évaluation, et rien à proposer d'après les sources cochées" : "Pas encore d'évaluation (aucune source cochée pour la proposition)"] }[P.src];
+      var cnt = { auto: "", lecons: P.nLec ? P.nLec + " leçon" + (P.nLec > 1 ? "s" : "") : "aucune", situations: P.nSit ? P.nSit + " leçon" + (P.nSit > 1 ? "s" : "") : "aucune", coeval: "" };
+      var recL = P.cfg.rec <= 0 ? "moyenne simple" : "la dernière compte × " + fr(Math.round((1 + P.cfg.rec / 25) * 10) / 10);
+      var srcBox = '<details class="epse-src" style="margin-top:8px;border-top:1px solid #F0ECE3"><summary style="cursor:pointer;font-weight:800;font-size:14px;padding:13px 0">⚙ Proposer d\'après : ' + (P.cfg.on.length ? P.cfg.on.map(function (x) { return SRC_LBL[x].split(" ")[0]; }).join(" ") : "rien") + (P.cfg.rec > 0 ? " · dernières leçons ×" + fr(Math.round((1 + P.cfg.rec / 25) * 10) / 10) : "") + "</summary>" +
+        '<div style="display:flex;gap:6px 14px;flex-wrap:wrap;margin:8px 0 4px">' + SRC_ID.map(function (x) { return '<label style="font-weight:700;display:inline-flex;gap:6px;align-items:center;min-height:40px"><input type="checkbox" data-ps="' + x + '"' + (P.cfg.on.indexOf(x) >= 0 ? " checked" : "") + ' style="width:22px;height:22px">' + SRC_LBL[x] + (cnt[x] ? ' <small class="epse-mut">(' + cnt[x] + ")</small>" : "") + "</label>"; }).join("") + "</div>" +
+        '<label style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-weight:700">Poids des dernières leçons<input type="range" min="0" max="100" step="25" value="' + Math.round(P.cfg.rec / 25) * 25 + '" data-pr style="flex:1;min-width:160px;max-width:320px"><small class="epse-mut" data-prl>' + recL + "</small></label>" +
+        '<p class="epse-mut" style="margin:6px 0 0">Seulement pour les critères que tu n\'as pas encore évalués. Rien n\'est enregistré sans ton accord.</p></details>';
       var pos = function (p) { return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; };
       var vo = window.epsVoie && cls ? epsVoie(cls) : "", codes = P.afl.map(function (a) { return a.code; }), aflp = codes.some(function (c) { return /^AFLP/i.test(c); }), afl = codes.some(function (c) { return /^AFL\d/i.test(c); });
       var vWarn = vo === "pro" && afl && !aflp ? "Classe de voie professionnelle, mais la grille parle d'AFL (lycée général) : pour les textes et le barème Bac pro, mets les codes AFLP1 à AFLP6 dans la grille (champ AFL de chaque critère)." : vo === "gt" && aflp && !afl ? "Classe de voie générale, mais la grille parle d'AFLP (voie pro) : mets les codes AFL1 à AFL3 pour le barème du bac général." : "";
       return '<div class="epse-card epse-prop"><h2 style="margin:0 0 6px">🎯 Proposition de positionnement' + (vo ? ' <small class="epse-mut" style="font-weight:600">· ' + (vo === "pro" ? "🛠 voie professionnelle" : "🎓 voie générale") + "</small>" : "") + "</h2>" + (vWarn ? '<div style="background:#FFF6E0;border-radius:10px;padding:6px 10px;margin:0 0 6px;font-size:14px">⚠ ' + esc(vWarn) + "</div>" : "") +
         P.afl.map(function (a) { return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid #F0ECE3;padding:6px 0"><b style="min-width:70px">' + esc(a.code) + "</b>" +
-          (a.deg == null ? '<span class="epse-mut">non évalué</span>' : '<span style="background:' + DCOL[a.deg] + ';color:#fff;border-radius:8px;padding:2px 8px;font-weight:800">' + DL[a.deg] + "</span><span class=\"epse-mut\">(" + pos(a.pos) + " du degré" + (a.done < a.crit ? " · " + a.done + "/" + a.crit + " critères" : "") + (a.auto ? ", dont " + a.auto + " d'après l'élève" : "") + ")</span>" +
+          (a.deg == null ? '<span class="epse-mut">non évalué</span>' : '<span style="background:' + DCOL[a.deg] + ';color:#fff;border-radius:8px;padding:2px 8px;font-weight:800">' + DL[a.deg] + "</span><span class=\"epse-mut\">(" + pos(a.pos) + " du degré" + (a.done < a.crit ? " · " + a.done + "/" + a.crit + " critères" : "") + (a.auto ? ", dont " + a.auto + " proposé" + (a.auto > 1 ? "s" : "") : "") + ")</span>" +
             '<span style="margin-left:auto;font-weight:800">' + (cc.on ? (a.ccf != null ? fr(a.ccf) + " / " + fr(a.ccfMax) + " pts CCF" : "") : fr(a.pts) + " / " + fr(a.mx) + " pts") + "</span>") + "</div>"; }).join("") +
         '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><span style="font-size:20px;font-weight:900">Note proposée : ' + (P.note == null ? "—" : fr(P.note) + " / 20") + '</span><span class="epse-mut">' + esc(P.detail || "") + "</span></div>" +
         '<div style="background:' + SRC[0] + ";color:" + SRC[1] + ';border-radius:10px;padding:6px 10px;margin-top:6px;font-weight:700;font-size:14px">' + SRC[2] + "</div>" +
-        (P.lec ? '<div class="epse-mut" style="margin-top:6px">📊 Évaluations de leçon : ' + P.lec.n + " leçon(s), moyenne " + fr(Math.round(P.lec.m * 100) / 100) + " / 3 → " + fr(P.noteLec) + " / 20 (participation, sérieux, thème du jour ; indicatif, hors grille)</div>" : "") +
-        (P.sit ? '<div class="epse-mut" style="margin-top:4px">🏁 Situations des leçons notées par l\'élève : ' + P.sit.n + " situation(s), ✅ " + P.sit.ok + " réussie(s), ❌ " + P.sit.ko + " pas encore · réussite " + Math.round(P.sit.t * 100) + " % → " + fr(P.noteSit) + " / 20 (déclaré par l'élève ; indicatif, hors grille)</div>" : "") +
+        (P.lec ? '<div class="epse-mut" style="margin-top:6px">📊 Évaluations de leçon : ' + P.lec.n + " leçon(s), moyenne " + fr(Math.round(P.lec.m * 100) / 100) + " / 3 → " + fr(P.noteLec) + " / 20 (participation, sérieux, thème du jour ; " + (P.cfg.on.indexOf("lecons") >= 0 ? "comptées dans la proposition" : "indicatif, hors grille") + ")</div>" : "") +
+        (P.sit ? '<div class="epse-mut" style="margin-top:4px">🏁 Situations des leçons notées par l\'élève : ' + P.sit.n + " situation(s), ✅ " + P.sit.ok + " réussie(s), ❌ " + P.sit.ko + " pas encore · réussite " + Math.round(P.sit.t * 100) + " % → " + fr(P.noteSit) + " / 20 (déclaré par l'élève ; " + (P.cfg.on.indexOf("situations") >= 0 ? "comptées dans la proposition" : "indicatif, hors grille") + ")</div>" : "") +
+        (cls ? srcBox : "") +
         (cls ? '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;border-top:1px solid #F0ECE3;padding-top:8px"><label style="font-weight:800;display:flex;gap:6px;align-items:center"><input type="checkbox" data-ccf' + (cc.on ? " checked" : "") + ' style="width:22px;height:22px"> Évaluation CCF</label>' +
           (cc.on ? '<select data-voie class="epse-sel"><option value="gt"' + (cc.voie !== "pro" ? " selected" : "") + '>Bac général</option><option value="pro"' + (cc.voie === "pro" ? " selected" : "") + '>Bac pro</option></select><label class="epse-mut">Choix de l\'élève (fil de la séquence) <select data-choix class="epse-sel">' + ["4-4", "6-2", "2-6"].map(function (x) { return "<option" + (M.choix(cls, E) === x ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>" : "") +
           (P.src === "auto" || P.src === "mixte" ? '<button type="button" class="epse-btn" data-take>✓ Reprendre ces degrés dans mon évaluation</button>' : "") + "</div>" : "") + "</div>";
@@ -641,7 +697,14 @@
       var b = R.querySelector("[data-ccf]"); if (b) b.onchange = function () { M.setCcf(cls, { on: b.checked }); redraw(); };
       var v = R.querySelector("[data-voie]"); if (v) v.onchange = function () { M.setCcf(cls, { voie: v.value }); redraw(); };
       var c = R.querySelector("[data-choix]"); if (c) c.onchange = function () { M.setChoix(cls, E, c.value); redraw(); };
-      var t = R.querySelector("[data-take]"); if (t && take) t.onclick = function () { if (confirm("Reprendre les degrés proposés par l'élève pour les critères que tu n'as pas évalués ? Tu pourras les modifier ensuite.")) take(); };
+      /* « ✓ Reprendre » : l'appli fournit take(), sinon l'adaptateur sait écrire un degré (setProf) ; sans l'un ni l'autre, le bouton n'est pas montré (il ne faisait rien) */
+      if (!take && typeof A.setProf === "function") take = function () { var P = M.prop(E, cls); A.grid().criteres.forEach(function (cr) { var x = P.est[cr.id]; if (x && !A.prof(cr, E)) { try { A.setProf(cr, E, { d: x.d, pos: x.pos }); } catch (e) { console.warn(e); } } }); redraw(); };
+      var t = R.querySelector("[data-take]"); if (t && take) t.onclick = function () { if (confirm("Reprendre les degrés proposés pour les critères que tu n'as pas encore évalués ? Tu pourras les modifier ensuite.")) take(); }; else if (t) t.remove();
+      var det = R.querySelector(".epse-src"); if (det) { try { det.open = sessionStorage.getItem("epse.src.open") === "1"; } catch (e) {} det.addEventListener("toggle", function () { try { sessionStorage.setItem("epse.src.open", det.open ? "1" : "0"); } catch (e) {} }); }
+      [].forEach.call(R.querySelectorAll("[data-ps]"), function (k) { k.onchange = function () { var L = [].filter.call(R.querySelectorAll("[data-ps]"), function (x) { return x.checked; }).map(function (x) { return x.dataset.ps; });
+        try { if (window.EPSP && EPSP.set) EPSP.set("prop_sources", L.length === 1 && L[0] === "auto" ? null : L); } catch (e) {} redraw(); }; });
+      var pr = R.querySelector("[data-pr]"); if (pr) { pr.oninput = function () { var l = R.querySelector("[data-prl]"), n = +pr.value; if (l) l.textContent = n <= 0 ? "moyenne simple" : "la dernière compte × " + fr(Math.round((1 + n / 25) * 10) / 10); };
+        pr.onchange = function () { var n = Math.max(0, Math.min(100, +pr.value || 0)); try { if (window.EPSP && EPSP.set) EPSP.set("prop_recent", n === 0 ? null : n); } catch (e) {} redraw(); }; }
     };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
     /* instances connues des fiches de leçon (eps-lecons.js : critères des grilles, remédiation) */
@@ -710,7 +773,7 @@
     setTimeout(function () { try { if (window.EPSD && EPSD.store && !M._reg) { M._reg = 1; EPSD.store({ pre: PRE, key: KEY, onChange: A.changed }); } } catch (e) {} }, 1500);
 
     /* ---------- écran Évaluation (enseignant) ---------- */
-    var KCLS = "eps.eval.cls." + o.app, UI = { open: false, tab: "eval", cls: (function () { try { return localStorage.getItem(KCLS); } catch (e) { return null; } })(), el: -1 }; /* dernière classe choisie, gardée (sinon on retombait sur la 1re classe de la liste) */
+    var KCLS = "eps.eval.cls." + o.app, KMODE = "eps.eval.mode." + o.app, UI = { open: false, tab: "eval", cls: (function () { try { return localStorage.getItem(KCLS); } catch (e) { return null; } })(), el: -1, mode: (function () { try { var m = localStorage.getItem(KMODE); return m === "crit" || m === "groupe" ? m : "eleve"; } catch (e) { return "eleve"; } })(), crit: "", grp: 0 }; /* dernière classe choisie, gardée (sinon on retombait sur la 1re classe de la liste) */
     function root() { if (UI.host) { UI.host.classList.add("epse-host"); UI.host.style.setProperty("--app", o.color); return UI.host; } var v = document.getElementById("epse-" + o.app); if (!v) { css(); v = document.createElement("div"); v.id = "epse-" + o.app; v.className = "epse"; v.style.setProperty("--app", o.color); document.body.appendChild(v); } return v; }
     function curC() { var L = classes(); var c = L.filter(function (x) { return x.nom === UI.cls; })[0] || L[0] || null; if (c && c.nom !== UI.cls) { UI.cls = c.nom; } if (c) try { localStorage.setItem(KCLS, c.nom); } catch (e) {} return c; }
     /* groupes enregistrés dans l'appli (option o.groups(classe) → [{nom, membres:["Prénom NOM", …]}]) : élèves rangés par groupe dans Évaluer */
@@ -733,30 +796,37 @@
       var R = root(), L = classes(), c = curC(), G = grid();
       var GRP = c && UI.tab === "eval" ? grouper(c) : null;
       var sel = L.length ? '<select data-cls>' + L.map(function (x) { return "<option" + (c && x.nom === c.nom ? " selected" : "") + ">" + esc(x.nom) + "</option>"; }).join("") + "</select>" : "";
-      var tabsH = [["eval", "Évaluer"], ["bilan", "Bilan & export"], ["grille", "Grille"]].filter(function (t) { return !UI.only || UI.only.indexOf(t[0]) >= 0; });
-      var head = UI.host ? '<div class="epse-sub">' + (tabsH.length > 1 ? tabsH.map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") : "") + '<span style="flex:1"></span>' + (sel ? '<label class="epse-mut">Classe ' + sel + "</label>" : "") + "</div>"
+      var tabsH = [["eval", "Évaluation finale"], ["bilan", "Bilan et export"], ["grille", "Grille"]].filter(function (t) { return !UI.only || UI.only.indexOf(t[0]) >= 0; });
+      var MODES = [["eleve", "👤 Élève par élève"], ["crit", "📋 Par critère"], ["groupe", "👥 Par groupe"]], modesH = '<div class="epse-seg" role="tablist" aria-label="Façon d\'évaluer">' + MODES.map(function (m) { return '<button type="button" role="tab" aria-selected="' + (UI.mode === m[0]) + '" data-mode="' + m[0] + '"' + (UI.mode === m[0] ? ' class="on"' : "") + ">" + m[1] + "</button>"; }).join("") + "</div>";
+      /* dans l'onglet Évaluer de l'espace enseignant : les 3 modes à gauche, la grille et la classe à droite (plus de sous-onglets « Évaluer / Grille ») */
+      var gOk = !UI.only || UI.only.indexOf("grille") >= 0, head = UI.host ? '<div class="epse-sub">' + (UI.tab === "eval" ? modesH : UI.tab === "grille" ? '<button data-tab="eval">← Retour</button><b style="font-size:17px">🧩 Grille d\'évaluation</b>' : "") + '<span style="flex:1"></span>' + (UI.tab === "eval" && gOk ? '<button data-tab="grille">🧩 Grille</button>' : "") + (sel ? '<label class="epse-mut">Classe ' + sel + "</label>" : "") + "</div>"
         : '<div class="epse-bar"><span class="ei">' + (o.icon || "") + "</span><b>" + esc(o.nom) + "</b><small>Évaluation · " + esc(o.ca) + "</small>" + sel + '<button data-close>✕ Fermer</button></div>' +
         '<div class="epse-tabs">' + tabsH.map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + "</div>";
       var body = "";
       if (!c) body = '<div class="epse-card"><p>Aucune classe pour cette activité. Importe une liste d\'élèves dans Réglages (accueil) et vérifie que l\'activité est cochée pour la classe.</p></div>';
-      else if (UI.tab === "eval") body = UI.el >= 0 && c.eleves[UI.el] ? sheet(c, c.eleves[UI.el]) : '<div class="epse-card"><h2>' + esc(c.nom) + " · " + c.eleves.length + ' élèves</h2><p class="epse-mut">Touche un élève pour le positionner sur la grille.</p><div class="epse-chips">' +
-        (function () { function chip(i) { var e = c.eleves[i], n = note(e), r = rec(e._c, e); return '<button class="epse-chip' + (n != null ? " ok" : "") + '" data-el="' + i + '">' + esc(e.prenom + " " + e.nom) + (r.ap ? M.apChip(e) : "") + "<small>" + (r.st ? r.st : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></button>"; }
-          if (!GRP) return c.eleves.map(function (e, i) { return chip(i); }).join("");
-          return "</div>" + GRP.map(function (g) { return '<h3 style="margin:14px 0 4px;font-size:15px">' + esc(g.nom) + ' <small class="epse-mut">· ' + g.ids.length + "</small></h3><div class=\"epse-chips\">" + g.ids.map(chip).join("") + "</div>"; }).join("") + "<div>"; })() + "</div></div>";
-      else if (UI.tab === "bilan") body = table(c) + M.card(c) + M.exportsHtml();
+      else if (UI.tab === "eval" && !c.eleves.length) body = '<div class="epse-card"><p>Aucun élève dans cette classe.</p></div>';
+      else if (UI.tab === "eval" && UI.mode === "eleve") { if (!(UI.el >= 0 && c.eleves[UI.el])) UI.el = 0;
+        var item = function (i) { var e = c.eleves[i], n = note(e), r = rec(e._c, e); return '<button type="button" class="epse-li' + (i === UI.el ? " on" : "") + (r.st ? " st" : n != null ? " ok" : "") + '" data-el="' + i + '"' + (i === UI.el ? ' aria-current="true"' : "") + "><i></i><span>" + esc(e.prenom + " " + e.nom) + "<small>" + (r.st ? r.st : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></span>" + (r.ap ? M.apChip(e) : "") + "</button>"; };
+        body = (UI.host ? "" : modesH) + '<div class="epse-two"' + (UI.host ? "" : ' style="margin-top:12px"') + '><div class="epse-col" role="navigation" aria-label="Élèves de la classe">' + (GRP ? GRP.map(function (g) { return "<h3>" + esc(g.nom) + "</h3>" + g.ids.map(item).join(""); }).join("") : c.eleves.map(function (e, i) { return item(i); }).join("")) + '</div><div class="epse-fiche">' + sheet(c, c.eleves[UI.el]) + "</div></div>"; }
+      else if (UI.tab === "eval") body = (UI.host ? "" : modesH + '<div style="height:12px"></div>') + rapide(c, G, GRP);
+      else if (UI.tab === "bilan") body = M.exportsHtml(c) + M.card(c) + table(c);
       else body = gridEditor(G);
+      var oc = R.querySelector(".epse-col"), ocY = oc ? oc.scrollTop : 0, ocX = oc ? oc.scrollLeft : 0;
       R.innerHTML = head + '<div class="epse-in">' + body + "</div>";
+      var nc = R.querySelector(".epse-col"); if (nc) { nc.scrollTop = ocY; nc.scrollLeft = ocX; var cu = nc.querySelector(".epse-li.on"); if (cu && cu.scrollIntoView && (cu.offsetTop < nc.scrollTop || cu.offsetTop + cu.offsetHeight > nc.scrollTop + nc.clientHeight)) nc.scrollTop = Math.max(0, cu.offsetTop - 60); }
+      R.querySelectorAll("[data-mode]").forEach(function (b) { b.onclick = function () { UI.mode = b.dataset.mode; try { localStorage.setItem(KMODE, UI.mode); } catch (e) {} render(); }; });
+      if (c && UI.tab === "eval" && UI.mode !== "eleve" && c.eleves.length) bindRapide(R, c, G, GRP);
       if (R.querySelector("[data-close]")) R.querySelector("[data-close]").onclick = close;
       var s = R.querySelector("[data-cls]"); if (s) s.onchange = function () { UI.cls = s.value; UI.el = -1; render(); };
-      R.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.tab; UI.el = -1; render(); }; });
-      R.querySelectorAll("[data-el]").forEach(function (b) { b.onclick = function () { UI.el = +b.dataset.el; render(); R.scrollTop = 0; }; });
-      if (c && UI.tab === "eval" && UI.el >= 0) bindSheet(R, c, c.eleves[UI.el]);
+      R.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.tab; render(); }; });
+      R.querySelectorAll("[data-el]").forEach(function (b) { b.onclick = function (ev) { if (ev.target.closest && ev.target.closest("[data-eps-ap]")) return; UI.el = +b.dataset.el; render(); if (!UI.host) R.scrollTop = 0; else { var f = R.querySelector(".epse-fiche"); if (f && f.getBoundingClientRect().top < 0) f.scrollIntoView({ block: "start" }); } }; });
+      if (c && UI.tab === "eval" && UI.mode === "eleve" && c.eleves[UI.el]) bindSheet(R, c, c.eleves[UI.el]);
       if (c && UI.tab === "bilan") { M.bindCard(R, c); M.bindExports(R, c); }
       if (UI.tab === "grille") bindGrid(R);
     }
     function sheet(c, e) {
       var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap;
-      return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><button class="epse-btn" data-back>← Retour</button><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1">‹</button> <button class="epse-btn" data-nav="1">›</button></span></div>' +
+      return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1" aria-label="Élève précédent" style="min-width:46px">‹</button> <button class="epse-btn" data-nav="1" aria-label="Élève suivant" style="min-width:46px">›</button></span></div>' +
         '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (st) { return '<button class="epse-btn' + ((r.st || "") === st ? " p" : "") + '" data-st="' + st + '">' + (st || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button></div></div>' +
         M.propHtml(e, e._c) +
         G.criteres.map(function (cr) { var v = r.ev && r.ev[cr.id], x = ap && ap.ev && ap.ev[cr.id], p = prof(cr, e);
@@ -768,16 +838,40 @@
     }
     function bindSheet(R, c, e) {
       var up = function (f) { var r = rec(e._c, e); f(r); save(e._c, e, r); render(); };
-      R.querySelector("[data-back]").onclick = function () { UI.el = -1; render(); };
       R.querySelectorAll("[data-nav]").forEach(function (b) { b.onclick = function () { var n = UI.el + (+b.dataset.nav); if (n >= 0 && n < c.eleves.length) { UI.el = n; render(); } }; });
       R.querySelectorAll("[data-st]").forEach(function (b) { b.onclick = function () { up(function (r) { r.st = b.dataset.st; }); }; });
       R.querySelector("[data-pdf]").onclick = function () { M.pdfEleve(c, e, true); };
       R.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { up(function (r) { r.ev = r.ev || {}; var id = b.dataset.c, d = +b.dataset.d; if (r.ev[id] && r.ev[id].d === d) delete r.ev[id]; else r.ev[id] = { d: d, pos: .5 }; }); }; });
       R.querySelectorAll("[data-p]").forEach(function (i) { i.onchange = function () { up(function (r) { r.ev[i.dataset.p].pos = (+i.value) / 4; }); }; });
       var t = R.querySelector("[data-comm]"); t.oninput = t.onchange = function () { var r = rec(e._c, e); r.comm = t.value; save(e._c, e, r); };
-      M.bindProp(R, e, e._c, render, function () { up(function (r) { var a = r.ap; r.ev = r.ev || {}; grid().criteres.forEach(function (cr) { if (!r.ev[cr.id] && a && a.ev && a.ev[cr.id]) r.ev[cr.id] = { d: a.ev[cr.id].d, pos: a.ev[cr.id].pos == null ? .5 : a.ev[cr.id].pos }; }); }); });
+      M.bindProp(R, e, e._c, render, function () { var P = M.prop(e, e._c); up(function (r) { r.ev = r.ev || {}; grid().criteres.forEach(function (cr) { var x = P.est[cr.id]; if (!r.ev[cr.id] && x) r.ev[cr.id] = { d: x.d, pos: x.pos }; }); }); });
       M.bindPhrase(R, e, e._c, function (txt) { var r = rec(e._c, e); r.comm = txt; save(e._c, e, r); render(); });
       var pna = R.querySelector("[data-pnall]"); if (pna) pna.onclick = function () { M.pronoteAll(e._c, c.eleves); };
+    }
+    /* groupes pour « 👥 Par groupe » : ceux de l'appli (o.groups), sinon les groupes du jour de 📡 Leçon en cours */
+    function groupesDe(c, GRP) { if (GRP) return GRP; var J = null; try { J = window.epsGroupesJour && window.epsGroupesJour(c.nom); } catch (e) {} if (!Array.isArray(J) || !J.length) return [];
+      var pris = {}; return J.map(function (g, i) { var ids = []; (Array.isArray(g) ? g : []).forEach(function (n) { var k = nkey(n); c.eleves.forEach(function (e, j) { if (!pris[j] && nkey((e.prenom || "") + " " + (e.nom || "")) === k) { pris[j] = 1; ids.push(j); } }); }); return { nom: "Groupe " + (i + 1), ids: ids }; }).filter(function (g) { return g.ids.length; }); }
+    function absJ(e, c) { try { return !!(window.epsAbsJour && window.epsAbsJour(((e.prenom || "") + " " + (e.nom || "")).trim(), c.nom)); } catch (x) { return false; } }
+    function rapide(c, G, GRP) {
+      var CR = G.criteres, cr = CR.filter(function (x) { return x.id === UI.crit; })[0] || CR[0]; if (!cr) return '<div class="epse-card"><p>La grille n\'a pas encore de critère : touche « 🧩 Grille ».</p></div>'; UI.crit = cr.id;
+      var GS = UI.mode === "groupe" ? groupesDe(c, GRP) : null, ids = c.eleves.map(function (e, i) { return i; }), h = "";
+      if (GS) { if (!GS.length) return '<div class="epse-card"><h2>Pas encore de groupes</h2><p class="epse-mut">Forme les groupes du jour dans 📡 Leçon en cours (onglet Séquence) : ils apparaîtront ici.</p></div>';
+        var g = GS[UI.grp] || GS[0]; UI.grp = GS.indexOf(g); ids = g.ids;
+        h += '<div class="epse-card"><div class="epse-chips">' + GS.map(function (x, i) { return '<button type="button" class="epse-chip' + (i === UI.grp ? " ok" : "") + '" data-gr="' + i + '">' + esc(x.nom) + "<small>" + x.ids.length + " élève" + (x.ids.length > 1 ? "s" : "") + "</small></button>"; }).join("") + "</div></div>"; }
+      h += '<div class="epse-card"><div class="epse-chips">' + CR.map(function (x) { return '<button type="button" class="epse-chip' + (x.id === cr.id ? " ok" : "") + '" data-cr="' + esc(x.id) + '">' + esc(x.nom) + "<small>" + esc(x.afl || "") + " · " + fr(maxOf(x)) + " pts</small></button>"; }).join("") + "</div>" +
+        '<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:800;color:var(--app)">Voir les 4 degrés de ce critère</summary><div class="epse-degs" style="margin-top:8px">' + [0, 1, 2, 3].map(function (d) { return '<div class="epse-deg on" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + ';cursor:default"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + "</b>" + esc(cr.desc[d] || "") + "</div>"; }).join("") + "</div></details></div>";
+      var btns = function (attr, cur, apd, dis) { return [0, 1, 2, 3].map(function (d) { return '<button type="button" class="epse-q' + (cur === d ? " on" : "") + '" style="--dc:' + DCOL[d] + '" ' + attr + ' data-qd="' + d + '"' + (dis ? " disabled" : "") + ' aria-pressed="' + (cur === d) + '" aria-label="Degré ' + (d + 1) + '">D' + (d + 1) + (apd === d ? '<u title="Auto-positionnement de l\'élève">🙋</u>' : "") + "</button>"; }).join(""); };
+      h += '<div class="epse-card">' + (GS ? '<div class="epse-ql" style="background:#FBFAF7;border-radius:12px;padding:8px 10px;margin:0 0 6px"><b>Même degré pour tout le groupe</b>' + btns("data-gall", -1, -1, false) + "<span></span></div>" : "") +
+        ids.map(function (i) { var e = c.eleves[i], r = rec(e._c, e), v = r.ev && r.ev[cr.id], a = r.ap && r.ap.ev && r.ap.ev[cr.id], p = prof(cr, e), ab = absJ(e, c);
+          return '<div class="epse-ql' + (r.st ? " off" : "") + '"><b>' + esc(e.prenom + " " + e.nom) + (r.st ? ' <small class="epse-mut">(' + esc(r.st) + ")</small>" : ab ? ' <small class="epse-mut">(absent aujourd\'hui)</small>' : "") + "</b>" + btns('data-qe="' + i + '"', v && v.d != null ? v.d : -1, a && a.d != null ? a.d : -1, !!r.st) + "<span>" + (p ? fr(p.pts) : "—") + " / " + fr(maxOf(cr)) + "</span></div>"; }).join("") + "</div>";
+      return h; }
+    function bindRapide(R, c, G, GRP) {
+      var keep = function (f) { var y = window.scrollY, ry = R.scrollTop; f(); render(); if (UI.host) window.scrollTo(0, y); else R.scrollTop = ry; };
+      R.querySelectorAll("[data-cr]").forEach(function (b) { b.onclick = function () { keep(function () { UI.crit = b.dataset.cr; }); }; });
+      R.querySelectorAll("[data-gr]").forEach(function (b) { b.onclick = function () { keep(function () { UI.grp = +b.dataset.gr; }); }; });
+      R.querySelectorAll("[data-qe]").forEach(function (b) { b.onclick = function () { var e = c.eleves[+b.dataset.qe], d = +b.dataset.qd; if (!e) return; keep(function () { var r = rec(e._c, e); r.ev = r.ev || {}; if (r.ev[UI.crit] && r.ev[UI.crit].d === d) delete r.ev[UI.crit]; else r.ev[UI.crit] = { d: d, pos: .5 }; save(e._c, e, r); }); }; });
+      /* même degré pour tout le groupe : ni les absents du jour, ni les élèves notés ABS / DISP */
+      R.querySelectorAll("[data-gall]").forEach(function (b) { b.onclick = function () { var GS = groupesDe(c, GRP), g = GS[UI.grp], d = +b.dataset.qd; if (!g) return; keep(function () { g.ids.forEach(function (i) { var e = c.eleves[i], r = rec(e._c, e); if (r.st || absJ(e, c)) return; r.ev = r.ev || {}; if (!r.ev[UI.crit] || r.ev[UI.crit].d !== d) { r.ev[UI.crit] = { d: d, pos: .5 }; save(e._c, e, r); } }); }); }; });
     }
     function table(c) { var G = grid();
       return '<div class="epse-card"><h2>📋 ' + esc(c.nom) + '</h2><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + G.criteres.map(function (cr) { return "<th>" + esc(cr.nom) + "</th>"; }).join("") + "<th>Note /20</th></tr>" +

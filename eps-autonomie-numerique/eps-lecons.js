@@ -274,7 +274,8 @@
     if (!OV) { OV = document.createElement("div"); OV.className = "lc-ov" + (ATEL ? " lc-atel" : ""); document.body.appendChild(OV); }
     OV.style.display = "flex"; draw();
   }
-  function close() { try { saveEdit(); } catch (e) {} if (OV) { OV.style.display = "none"; OV.innerHTML = ""; } EDIT = null; }
+  var ONCLOSE = null; /* à la fermeture des fiches : l'écran qui les a ouvertes se redessine (📅 Leçons du jour de l'onglet Évaluer) */
+  function close() { try { saveEdit(); } catch (e) {} if (OV) { OV.style.display = "none"; OV.innerHTML = ""; } EDIT = null; if (ONCLOSE) { var f = ONCLOSE; ONCLOSE = null; try { f(); } catch (e) { console.warn(e); } } }
   function shell(body) {
     OV.innerHTML = '<div class="lc-top"><b>📝 Fiches de leçon · ' + esc(NOM) + '</b>' +
       [["lec", "📝 Fiches de leçon"], ["docs", "📂 Mes documents"], ["live", "📡 Leçon en cours"], ["eval", "📊 Évaluer la leçon"], ["bil", "🏁 Bilan de séquence"]].map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") +
@@ -1680,7 +1681,66 @@
   }
   boot();
   setTimeout(function () { try { seedApp(); } catch (e) {} }, 2500);
+  /* ================= 📅 Leçons du jour (onglet Évaluer de l'espace enseignant, demande du 27/11/2026) =================
+     Les évaluations de leçon (📊 Évaluer la leçon : participation, sérieux, thème) et les résultats des situations notés par les élèves se
+     retrouvent ICI, leçon par leçon, en CONSULTATION : rien ne se modifie d'un appui. Pour modifier toute l'évaluation d'un jour : double appui
+     sur sa date (un seul accès pour la leçon, pas un bouton par ligne ; un appui simple rappelle le geste). La saisie reste celle de
+     📊 Évaluer la leçon, ouverte sur ce jour. Note et degré du jour : même calcul que 📜 CCF → « 📅 Note de leçon » (note_jour_sit, note_seuils).
+     📤 Exporter : fenêtre commune EPSR.pronote (copie d'une colonne, de tout, fichier .csv). */
+  var EJ = { cls: "", shut: {}, tap: { d: "", t: 0, tm: 0 } };
+  function ejData(cls) { var D = {};
+    all(KE).filter(function (o) { return same(o.cls, cls) && o.day && o.el && typeof o.el === "object"; }).forEach(function (o) { (D[o.day] = D[o.day] || { res: {} }).le = o; });
+    all(KS).filter(function (o) { return same(o.cls, cls) && o.day && o.ek; }).forEach(function (o) { var s = 0, n = 0, ok = 0; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = o.r[q]; if (v === 0 || v === 1 || v === 2) { s += v; n += 2; if (v === 2) ok++; } }); if (n) (D[o.day] = D[o.day] || { res: {} }).res[o.ek] = { t: s / n, ok: ok, n: n / 2 }; });
+    return D; }
+  function ejCell(d, k) { var x = d.le && d.le.el && d.le.el[k], V = x ? ["p", "s", "t"].map(function (f) { return x[f]; }).filter(function (v) { return v != null && isFinite(+v); }).map(Number) : [], le = V.length ? V.reduce(function (a, b) { return a + b; }, 0) / (3 * V.length) : null, r = d.res[k] || null, t = r ? r.t : null;
+    var a = Math.max(0, Math.min(100, noteCfg().jourSit)) / 100, sc = t != null && le != null ? a * t + (1 - a) * le : t != null ? t : le;
+    return { x: x || {}, r: r, sc: sc, deg: sc == null ? null : degOf(sc), note: sc == null ? null : Math.round(sc * 80) / 4 }; }
+  function ejFr(d, long) { return new Date(d + "T12:00").toLocaleDateString("fr-FR", long ? { weekday: "long", day: "numeric", month: "long" } : { day: "2-digit", month: "2-digit" }); }
+  function ejEdit(cls, day, redraw) { LIVECLS = cls; LEC_DAY = day; ONCLOSE = function () { LEC_DAY = null; redraw(); }; open("eval"); }
+  function ejExport(cls) { if (!(window.EPSR && EPSR.pronote)) { alert("Export indisponible : recharge la page."); return; }
+    var D = ejData(cls), DS = Object.keys(D).sort(), R = roster(cls);
+    var rows = R.map(function (n) { var k = ekey(n), C = DS.map(function (d) { return ejCell(D[d], k); }), ok = C.filter(function (c) { return c.sc != null; }), sp = String(n).split(" "), ini = /^[A-ZÀ-Ý' -]+$/, nom = sp.filter(function (w) { return ini.test(w) && w.length > 1; }).join(" "), pre = sp.filter(function (w) { return !(ini.test(w) && w.length > 1); }).join(" ");
+      return { nom: nom || n, prenom: nom ? pre : "", st: "", v: C.map(function (c) { return c.note; }).concat([ok.length ? Math.round(ok.reduce(function (a, c) { return a + c.sc; }, 0) / ok.length * 80) / 4 : null]) }; });
+    EPSR.pronote({ app: NOM, classe: cls, titre: NOM + " · leçons du jour", color: COL, cols: DS.map(function (d) { return { t: "Leçon du " + ejFr(d) + " /20" }; }).concat([{ t: "Moyenne des leçons /20" }]), rows: rows }); }
+  function evalJour(el, o) { css(); o = o || {};
+    var C = classes(); if (o.cls && C.some(function (c) { return same(c, o.cls); })) EJ.cls = o.cls; if (!EJ.cls || !C.some(function (c) { return same(c, EJ.cls); })) { var c0 = cur(); EJ.cls = (c0 && C.filter(function (c) { return same(c, c0.nom); })[0]) || C[0] || ""; }
+    var cls = EJ.cls, redraw = function () { if (el.isConnected) evalJour(el, {}); };
+    if (!cls) { el.innerHTML = '<h2>📅 Leçons du jour</h2><p class="mut">Aucune classe pour cette activité : importe une liste d\'élèves dans ⚙ Réglages.</p>'; return; }
+    var D = ejData(cls), DS = Object.keys(D).sort().reverse(), R = roster(cls), CR = lecCrit(), DEG = ["#fbe3e3", "#fdf0d9", "#e1f0f9", "#def1e5"], tj = today(), fait = !!(D[tj] && D[tj].le && Object.keys(D[tj].le.el || {}).length);
+    var pill = function (z) { return z == null || !LEV_L[z] ? '<span class="lc-mut" style="margin:0">—</span>' : '<span style="display:inline-block;border-radius:8px;padding:2px 8px;font:700 12.5px system-ui;color:#fff;background:' + LEV_C[z] + '">' + LEV_L[z] + "</span>"; };
+    var h = '<div class="lc-row" style="margin:0 0 4px"><h2 style="flex:1;margin:0">📅 Leçons du jour</h2>' + (C.length > 1 ? '<select class="lc-sel" data-ejc aria-label="Classe" style="min-height:44px">' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" : '<b>' + esc(cls) + "</b>") +
+      (fait ? "" : '<button type="button" class="lc-b p" data-ejnew>📊 Évaluer la leçon d\'aujourd\'hui</button>') + (DS.length ? '<button type="button" class="lc-b" data-ejx>📤 Exporter</button>' : "") + "</div>" +
+      '<p class="mut">' + (DS.length ? "Consultation. Double appui sur une date pour modifier la leçon." : "Aucune leçon évaluée pour cette classe : évalue la leçon du jour, ou laisse les élèves noter leurs situations pendant 📡 Leçon en cours.") + "</p>";
+    h += DS.map(function (d, i) { var x = D[d], l = x.le && x.le.lec && get(KL, x.le.lec), th = (x.le && x.le.theme) || "", shut = EJ.shut[cls + "|" + d] != null ? EJ.shut[cls + "|" + d] : i > 0, hasR = Object.keys(x.res).length > 0;
+      var rows = R.map(function (n) { return { n: n, c: ejCell(x, ekey(n)) }; }), ok = rows.filter(function (r) { return r.c.sc != null; }), moy = ok.length ? ok.reduce(function (a, r) { return a + r.c.sc; }, 0) / ok.length : null;
+      var top = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" data-ejd="' + d + '" title="Double appui pour modifier cette leçon" style="border:0;background:#F1EEE6;border-radius:10px;min-height:44px;padding:0 12px;font:800 16px system-ui;color:#14171C;cursor:pointer">' + esc(ejFr(d, true).replace(/^./, function (c) { return c.toUpperCase(); })) + "</button>" +
+        '<span style="flex:1;min-width:120px;font-weight:700">' + esc(l ? titreL(l) : "") + (th ? ' <span class="lc-mut" style="margin:0;font-weight:500">' + (l ? "· " : "") + esc(th) + "</span>" : "") + "</span>" +
+        '<span class="lc-mut" style="margin:0">' + ok.length + " / " + R.length + " élèves</span>" + (moy != null ? '<span class="lc-tag" style="background:' + DEG[degOf(moy)] + ';margin:0">D' + (degOf(moy) + 1) + '</span><b>' + n20(Math.round(moy * 80) / 4) + ' / 20</b>' : "") +
+        '<button type="button" class="lc-b s" data-ejf="' + d + '" aria-expanded="' + !shut + '" aria-label="' + (shut ? "Déplier" : "Replier") + ' cette leçon" style="min-width:44px;min-height:44px">' + (shut ? "▸" : "▾") + "</button></div>";
+      if (shut) return '<div class="lc-box">' + top + "</div>";
+      var tab = '<div style="overflow:auto;margin-top:8px"><table class="lc-tab"><tr><th>Élève</th>' + (x.le ? CR.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") : "") + (hasR ? "<th>Situations réussies</th>" : "") + "<th>Note</th><th>Degré</th></tr>" +
+        rows.map(function (r) { var c = r.c, ab = isAbs(cls, r.n, d);
+          if (c.sc == null) return '<tr style="color:#6A6F78"><td>' + (ab ? "<s>" + esc(r.n) + "</s>" : esc(r.n)) + '</td><td colspan="' + ((x.le ? 3 : 0) + (hasR ? 1 : 0) + 2) + '">' + (ab ? "Absent(e) à l'appel" : "Pas évalué(e)") + "</td></tr>";
+          return "<tr><td><b>" + esc(r.n) + "</b></td>" + (x.le ? ["p", "s", "t"].map(function (q) { return "<td>" + pill(c.x[q]) + "</td>"; }).join("") : "") + (hasR ? "<td>" + (c.r ? "✅ " + c.r.ok + " / " + c.r.n + ' <span class="lc-mut" style="margin:0">· ' + Math.round(c.r.t * 100) + " %</span>" : '<span class="lc-mut" style="margin:0">—</span>') + "</td>" : "") +
+            "<td><b>" + n20(c.note) + '</b></td><td><span class="lc-tag" style="background:' + DEG[c.deg] + ';margin:0">D' + (c.deg + 1) + "</span></td></tr>"; }).join("") + "</table></div>";
+      return '<div class="lc-box">' + top + (R.length ? tab : '<p class="lc-mut">Aucune liste d\'élèves pour cette classe.</p>') + "</div>"; }).join("");
+    el.innerHTML = h;
+    var q = function (x) { return el.querySelector(x); }, qa = function (x) { return [].slice.call(el.querySelectorAll(x)); };
+    if (q("[data-ejc]")) q("[data-ejc]").onchange = function () { EJ.cls = this.value; redraw(); };
+    if (q("[data-ejnew]")) q("[data-ejnew]").onclick = function () { ejEdit(cls, tj, redraw); };
+    if (q("[data-ejx]")) q("[data-ejx]").onclick = function () { ejExport(cls); };
+    qa("[data-ejf]").forEach(function (b) { b.onclick = function () { var k = cls + "|" + b.dataset.ejf; EJ.shut[k] = b.getAttribute("aria-expanded") === "true"; redraw(); }; });
+    /* double appui sur la date = modifier toute la leçon (reconnu ici, car « dblclick » n'arrive pas sur toutes les tablettes) ; un appui seul rappelle le geste */
+    qa("[data-ejd]").forEach(function (b) { b.onclick = function () { var T = EJ.tap, now = Date.now(), d = b.dataset.ejd; clearTimeout(T.tm);
+      if (T.d === d && now - T.t < 450) { T.d = ""; ejEdit(cls, d, redraw); return; }
+      T.d = d; T.t = now; T.tm = setTimeout(function () { T.d = ""; ejHint(b); }, 460); }; });
+  }
+  function ejHint(b) { var old = document.getElementById("lc-ejh"); if (old) old.remove(); if (!b.isConnected) return; var t = document.createElement("div"); t.id = "lc-ejh"; t.setAttribute("role", "status"); t.textContent = "Double appui pour modifier";
+    var r = b.getBoundingClientRect(); t.style.cssText = "position:fixed;z-index:2147483000;left:" + Math.max(8, Math.round(r.left)) + "px;top:" + Math.round(r.bottom + 6) + "px;background:#14171C;color:#fff;border-radius:10px;padding:8px 12px;font:700 14px system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.25)"; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 1800); }
   window.EPSLC = {
+    /* onglet Évaluer (eps-shell.js) : 📅 Leçons du jour, et les actions de « 📤 Bilan et export » (génération du bilan et de l'appréciation : 🏫 Ma classe → 📝 Bilans & avis) */
+    evalJour: function (el, o) { evalJour(el, o); },
+    evalBilActions: function () { return [{ ico: "📝", label: "Bilan et appréciation", sub: "Avis de bilan ou appréciation de bulletin : toute la classe d'un coup, ou élève par élève, à relire et valider", main: 1, go: function () { clOpen({ tab: "bil", cls: (cur() && cur().nom) || undefined }); } }, { ico: "🏁", label: "Bilan de séquence", sub: "Résultats des situations, leçon par leçon", main: 1, go: function () { open("bil"); } }]; },
     seedApp: seedApp,
     fiche: function (id) { return get(KL, id); },
     /* leçon commune lancée pour cette classe (📡 Leçon en cours) : les écrans « pas encore de leçon » des applis renvoient vers elle au lieu de se contredire */

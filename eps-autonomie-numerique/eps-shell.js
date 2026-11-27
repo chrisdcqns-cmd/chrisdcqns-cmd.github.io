@@ -1,5 +1,8 @@
 /* EPS – Autonomie et numérique : espace enseignant commun (mêmes onglets, même ordre, dans toutes les applis).
-   Onglets : 📅 Séquence · 👁 Vue élève · 📚 Bibliothèque · 📋 Évaluation · 👥 Classe · 📄 Bilans · ⚙ Réglages.
+   Onglets : 📅 Séquence · 📡 Suivi · 👁 Vue élève · 📚 Bibliothèque · 📋 Évaluer · 📜 CCF · 👥 Classe · 📄 Bilans · ⚙ Réglages.
+   📋 Évaluer (27/11/2026) : trois entrées, toujours les mêmes et dans le même ordre, dans toutes les applis d'activité :
+     📅 Leçons du jour (EPSLC.evalJour) · 🏁 Évaluation finale (tabs.eval.go | panel) · 📤 Bilan et export (tabs.eval.bilan {go|panel, on, actions},
+     sinon l'évaluation commune EPSE.store montée sur « bilan », sinon tabs.bil).
    EPST.init({
      app, nom, color, isTeacher(),                     // obligatoire
      anchor: élément ou sélecteur après lequel la barre d'onglets s'insère (en général la barre du haut de l'appli),
@@ -13,7 +16,7 @@
    sans quitter le mode enseignant. */
 (function () {
   var BASE = ((document.currentScript && document.currentScript.src) || "").replace(/eps-shell\.js.*$/, "");
-  var ORDER = [["seq", "📅", "Séquence"], ["suivi", "📡", "Suivi"], ["vue", "👁", "Vue élève"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluation"], ["ccf", "📜", "CCF"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
+  var ORDER = [["seq", "📅", "Séquence"], ["suivi", "📡", "Suivi"], ["vue", "👁", "Vue élève"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluer"], ["ccf", "📜", "CCF"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
   var VUE = /[?&]vue=eleve\b/.test(location.search);
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function css() {
@@ -33,6 +36,9 @@
       ".epst-tb>button{flex:1 1 0;min-width:92px;max-width:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-right:1px solid #EFEBE3;background:transparent;color:#14171C;font:700 12.5px/1.2 system-ui,sans-serif;padding:9px 8px 8px;cursor:pointer;text-align:center;position:relative}",
       ".epst-tb>button:last-child{border-right:0}.epst-tb>button i{font-style:normal;font-size:20px;line-height:1}",
       ".epst-tb>button:hover{background:#F7F5F0}.epst-tb>button:hover::after,.epst-tb>button.open::after{content:'';position:absolute;left:14px;right:14px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--epst,#666)}",
+      /* 📋 Évaluer : les trois entrées de l'onglet (segments), l'entrée affichée à la couleur de l'appli, puis les actions de cette entrée */
+      ".epst-tb>button.seg{flex:0 0 auto;min-width:124px;max-width:none;background:#F7F5F0;color:#4A4F57;border-radius:0;margin:0;box-shadow:none}.epst-tb>button.seg.on{background:var(--epst,#666);color:#fff}.epst-tb>button.seg.on::after{display:none}.epst-tb>button.seg+button:not(.seg){border-left:3px solid #E6E1D6}",
+      "@media(max-width:560px){.epst-tb>button.seg{min-width:96px;padding-left:4px;padding-right:4px}}",
       ".epst-tb>button.more{flex:0 0 auto;margin-left:auto;min-width:76px;color:#4A4F57;position:sticky;right:0;background:#fff;border-left:1px solid #EFEBE3;z-index:1}",
       ".epst-mn{position:absolute;z-index:70;background:#fff;border:1px solid #E6E1D6;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:6px;min-width:280px;max-height:70vh;overflow:auto;font-family:system-ui,sans-serif}",
       ".epst-mn .r{display:flex;align-items:center;gap:4px}.epst-mn .r>button:first-child{flex:1;display:flex;align-items:center;gap:10px;border:0;background:none;text-align:left;padding:10px;border-radius:10px;font:700 14.5px system-ui;color:#14171C;cursor:pointer}",
@@ -165,9 +171,31 @@
     }
     var dq = 0; try { new MutationObserver(function () { if (dq) return; dq = 1; (window.requestAnimationFrame || setTimeout)(function () { dq = 0; if (H.classList.contains("epst-docked") || document.body.querySelector(AUTO)) dockSync(); }); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] }); } catch (e) {}
     setInterval(dockSync, 400); addEventListener("resize", dockSync);
+    /* 📋 Évaluer (demande de l'enseignant, 27/11/2026) : tout ce qui s'évalue au même endroit, dans toutes les applis d'activité.
+       Trois entrées fixes : 📅 Leçons du jour (les évaluations de leçon, en consultation) · 🏁 Évaluation finale (positionnement par AFL, l'écran
+       de l'appli) · 📤 Bilan et export (récapitulatif et exports ; « 📝 Bilan et appréciation » en action à côté : deux choses distinctes).
+       La dernière entrée ouverte est gardée le temps de la session. La CCF garde son onglet d'origine. */
+    var EVON = C.app !== "ccf" && !!(C.tabs && C.tabs.eval) && C.evalTabs !== false, EVK = "eps.evtab." + (C.app || location.pathname), EVS = [["jour", "📅", "Leçons du jour"], ["fin", "🏁", "Évaluation finale"], ["bil", "📤", "Bilan et export"]];
+    function evCur() { var v = M.ev; if (!v) { try { v = sessionStorage.getItem(EVK); } catch (e) {} } return v === "jour" || v === "bil" ? v : "fin"; }
+    function evInst() { var L = (window.EPSE_INST || []).filter(function (x) { return x && x.A && x.A.app === C.app && x.M && typeof x.M.mount === "function"; }); return L[0] ? L[0].M : null; }
+    function evCls() { var cc = null; try { cc = window.epsCurrentClass && window.epsCurrentClass(); } catch (e) {} return (cc && cc.nom) || ""; }
+    function evBilOn() { var t = (C.tabs || {}).eval || {}, tb = (C.tabs || {}).bil; try { if (t.bilan && typeof t.bilan.on === "function") return !!t.bilan.on(); if (!t.bilan && !evInst() && tb && typeof tb.on === "function") return !!tb.on(); } catch (e) {} return null; }
+    function evGo(k) { var t = (C.tabs || {}).eval || {}, el; M.ev = k; try { sessionStorage.setItem(EVK, k); } catch (e) {} closeVue(); M.prev = "eval"; M.evt = Date.now();
+      if (k === "jour") { var ok = !!(window.EPSLC && EPSLC.evalJour); el = panel(ok ? "" : '<p class="mut">Chargement…</p>'); mark("eval");
+        if (!ok) { setTimeout(function () { if (M.cur === "eval" && M.ev === "jour") evGo("jour"); }, 1200); return; } try { EPSLC.evalJour(el, { cls: evCls() }); } catch (e) { console.warn(e); } return; }
+      if (k === "bil") { var b = t.bilan, I = evInst(), tb = (C.tabs || {}).bil;
+        try { if (b && b.panel) { el = panel(""); b.panel(el); } else if (b && b.go) { closePanel(); b.go(); } else if (I) { el = panel(""); I.mount(el, ["bilan"], evCls()); }
+          else if (tb && tb.panel) { el = panel(""); tb.panel(el); } else { closePanel(); if (tb && tb.go) tb.go(); } } catch (e) { console.warn(e); }
+        mark("eval"); return; }
+      try { if (t.panel) { el = panel(""); t.panel(el); } else { closePanel(); if (t.go) t.go(); } } catch (e) { console.warn(e); }
+      mark("eval"); }
+    function evActs() { var t = (C.tabs || {}).eval || {}, ev = evCur(), L = window.EPSLC || {}, drop = /^(Évaluer|Évaluation finale|Bilan (&|et) export)$/;
+      var ctx = ev === "fin" ? (t.actions || []).filter(function (a) { return !drop.test(a.label); }).concat(L.evalActions ? L.evalActions() : []) : ev === "bil" ? ((t.bilan && t.bilan.actions) || []).concat(L.evalBilActions ? L.evalBilActions() : []) : [];
+      ctx = ctx.map(function (a, i) { return [a.ord != null ? a.ord : 1, i, a]; }).sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; }).map(function (x) { return x[2]; });
+      return EVS.map(function (x) { return { seg: 1, on: x[0] === ev, ico: x[1], label: x[2], go: function () { evGo(x[0]); } }; }).concat(ctx); }
     function mark(id) { M.cur = id; nav.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.t === id); });
       /* raccourcis propres à l'onglet (ex. Séquence : leçon en cours, tablette de contrôle) */
-      var A = (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []).concat(id === "eval" && window.EPSLC && EPSLC.evalActions ? EPSLC.evalActions() : []).concat(id === "bil" && window.EPSLC && EPSLC.bilActions ? EPSLC.bilActions() : []) /* + leçons communes (eps-lecons.js) */
+      var A = id === "eval" && EVON ? evActs() : (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []).concat(id === "eval" && window.EPSLC && EPSLC.evalActions ? EPSLC.evalActions() : []).concat(id === "bil" && window.EPSLC && EPSLC.bilActions ? EPSLC.bilActions() : []) /* + leçons communes (eps-lecons.js) */
         .map(function (a, i) { return [a.ord != null ? a.ord : 1, i, a]; }).sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; }).map(function (x) { return x[2]; });
       /* console (mode de préparation) : pas d'action de leçon en direct tournée vers les élèves (planche à envoyer, signal) ; a.live = 1 pour en déclarer une */
       if (window.EPS_NOLIVE) A = A.filter(function (a) { return !a.live && !/^(Planche tactique|Signal|Message)/.test(a.label || ""); });
@@ -179,18 +207,18 @@
     function pins() { try { return JSON.parse(localStorage.getItem(PKB + "." + M.cur) || "null"); } catch (e) { return null; } }
     function short(l) { return String(l).replace(/\s*\(.*\)\s*$/, "").replace(/ : vue d'ensemble$/, "").replace(/^Tableau de bord de la leçon$/, "Tableau de bord"); }
     function drawActs(A) {
-      var P = pins(), isMain = function (x) { return P ? P.indexOf(x.label) >= 0 : (x.main || MAIN.test(x.label)); };
-      var top = A.length <= 5 ? A : A.filter(isMain), rest = A.length <= 5 ? [] : A.filter(function (x) { return !isMain(x); });
+      var P = pins(), isMain = function (x) { return !!x.seg || (P ? P.indexOf(x.label) >= 0 : (x.main || MAIN.test(x.label))); }, N = A.filter(function (x) { return !x.seg; }).length; /* les entrées d'un onglet (segments) restent toujours dans la barre et ne comptent pas */
+      var top = N <= 5 ? A : A.filter(isMain), rest = N <= 5 ? [] : A.filter(function (x) { return !isMain(x); });
       if (!top.length) { top = A.slice(0, 4); rest = A.slice(4); }
-      acts.innerHTML = '<div class="epst-tb">' + top.map(function (x) { return '<button type="button" data-a="' + A.indexOf(x) + '" title="' + esc(x.label) + '"><i>' + (x.ico || "•") + "</i>" + esc(short(x.label)) + "</button>"; }).join("") +
-        (rest.length || A.length > 5 ? '<button type="button" class="more" data-more aria-haspopup="true" title="Autres actions"><i>⋯</i>Plus' + (rest.length ? " (" + rest.length + ")" : "") + "</button>" : "") + "</div>";
+      acts.innerHTML = '<div class="epst-tb">' + top.map(function (x) { return '<button type="button"' + (x.seg ? ' class="seg' + (x.on ? " on" : "") + '" aria-pressed="' + !!x.on + '"' : "") + ' data-a="' + A.indexOf(x) + '" title="' + esc(x.label) + '"><i>' + (x.ico || "•") + "</i>" + esc(short(x.label)) + "</button>"; }).join("") +
+        (rest.length || N > 5 ? '<button type="button" class="more" data-more aria-haspopup="true" title="Autres actions"><i>⋯</i>Plus' + (rest.length ? " (" + rest.length + ")" : "") + "</button>" : "") + "</div>";
       acts.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { run(A[+b.dataset.a]); }; }); hilite();
       var mb = acts.querySelector("[data-more]"); if (mb) mb.onclick = function (e) { e.stopPropagation(); menu(mb, A, isMain); }; }
     function menu(mb, A, isMain) {
       var old = document.querySelector(".epst-mn"); if (old) { old.remove(); mb.classList.remove("open"); return; }
       var m = document.createElement("div"); m.className = "epst-mn"; m.setAttribute("role", "menu");
       var row = function (x) { var on = isMain(x); return '<div class="r"><button type="button" data-g="' + A.indexOf(x) + '"><i>' + (x.ico || "•") + "</i>" + esc(x.label) + '</button><button type="button" class="pin' + (on ? " on" : "") + '" data-pin="' + A.indexOf(x) + '" title="' + (on ? "Retirer de la barre" : "Mettre dans la barre") + '" aria-label="' + (on ? "Retirer de la barre" : "Mettre dans la barre") + '">' + (on ? "★" : "☆") + "</button></div>"; };
-      var rest = A.filter(function (x) { return !isMain(x); }), top = A.filter(isMain);
+      var rest = A.filter(function (x) { return !isMain(x); }), top = A.filter(function (x) { return isMain(x) && !x.seg; });
       m.innerHTML = (rest.length ? '<div class="h">Autres actions</div>' + rest.map(row).join("") : "") + '<div class="h">Dans la barre (★ pour retirer)</div>' + top.map(row).join("") +
         (pins() ? '<div class="r"><button type="button" data-reset style="color:#6A6F78;font-weight:600"><i>↺</i>Barre par défaut</button></div>' : "");
       document.body.appendChild(m); mb.classList.add("open");
@@ -248,6 +276,7 @@
         mark("suivi"); M.sv = Date.now();
         try { if (window.epsCtlOwn && typeof window.epsCtlOwn.open === "function") window.epsCtlOwn.open((cc && cc.nom) || ""); } catch (e) { console.warn(e); }
         return; }
+      if (id === "eval" && EVON) { evGo(evCur()); return; }
       if (id !== "vue") { closeVue(); M.prev = id; }
       mark(id);
       var t = (C.tabs || {})[id];
@@ -279,6 +308,9 @@
         /* 📡 Suivi : actif tant que l'écran de suivi est affiché (il l'emporte sur l'onglet qui portait cet écran) ; refermé, on revient à l'onglet d'avant */
         var sb0 = nav.querySelector('[data-t="suivi"]'); if (sb0) sb0.style.display = window.epsCtlOwn ? "" : "none";
         if (sb0 && window.epsCtlOwn) { if (suiviOn()) k = "suivi"; else if (M.cur === "suivi" && Date.now() - (M.sv || 0) > 1500) k = k || M.back || "seq"; else if (M.cur === "suivi") k = "suivi"; }
+        /* 📋 Évaluer → 📤 Bilan et export : quand c'est l'écran de bilan de l'appli qui s'affiche, l'onglet Évaluer reste allumé ; si l'appli revient d'elle-même à son écran d'évaluation, l'entrée suit */
+        if (EVON && M.cur === "eval" && Date.now() - (M.evt || 0) > 900) { var bo = evBilOn(); if (M.ev === "bil" && k === "bil") k = "eval"; else if (M.ev === "bil" && bo === false && k === "eval") { M.ev = "fin"; try { sessionStorage.setItem(EVK, "fin"); } catch (e) {} mark("eval"); } }
+        else if (EVON && M.cur === "eval" && M.ev === "bil" && k === "bil") k = "eval";
         if (k && k !== M.cur && !(M.cur === "bib" || M.cur === "reg")) mark(k);
       }
     }
@@ -317,7 +349,7 @@
       };
       if (window.EPS_GUIDES) show(); else { var sc = document.createElement("script"); sc.src = BASE + "eps-guides.js"; sc.onload = show; document.head.appendChild(sc); }
     }
-    M.go = go; M.closePanel = closePanel; M.tick = tick; M.mark = mark;
+    M.go = go; M.closePanel = closePanel; M.tick = tick; M.mark = mark; M.evGo = function (k) { if (EVON) { undock(true); evGo(k === "jour" || k === "bil" ? k : "fin"); } };
     if (document.body) tick(); else document.addEventListener("DOMContentLoaded", tick);
     setInterval(tick, 700);
     return M;

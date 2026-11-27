@@ -63,7 +63,7 @@ window.EPS_GUIDE = (function () {
       ["img", "accueil-prof.jpg", "En mode enseignant, l'accueil montre aussi les outils enseignant."]
     ] },
     { t: "Les onglets, identiques dans chaque activité", b: [
-      ["strip", [["📅 Séquence", "préparer et conduire"], ["👁 Vue élève", "voir comme un élève"], ["📚 Bibliothèque", "documents, banque"], ["📋 Évaluation", "grille par degrés"], ["📜 CCF", "notes, protocole"], ["👥 Classe", "élèves, groupes"], ["📄 Bilans", "PDF, Pronote, en ligne"], ["⚙ Réglages", "tout est paramétrable"]]],
+      ["strip", [["📅 Séquence", "préparer et conduire"], ["👁 Vue élève", "voir comme un élève"], ["📚 Bibliothèque", "documents, banque"], ["📋 Évaluer", "leçons, finale, bilan"], ["📜 CCF", "notes, protocole"], ["👥 Classe", "élèves, groupes"], ["📄 Bilans", "PDF, Pronote, en ligne"], ["⚙ Réglages", "tout est paramétrable"]]],
       ["img", "espace-prof.jpg", "Sous les onglets, la barre d'outils. « ⋯ Plus » contient le reste ; ☆ épingle une action."]
     ] },
     { t: "Les classes, une seule fois pour tout", b: [
@@ -75,7 +75,7 @@ window.EPS_GUIDE = (function () {
     ] },
     { t: "Évaluer, puis rendre les bilans", b: [
       ["flow", [["📋 Grille par degrés", "un appui par critère, curseur pour affiner"], ["🙋 L'élève se positionne", "QR code ou tablette, à côté de mon avis"], ["🎯 Note proposée", "je garde la décision"], ["📄 Bilans", "PDF par élève, .zip, Pronote, en ligne"]]],
-      ["img", "evaluation.jpg", "L'onglet Évaluation : la classe, puis un élève."]
+      ["img", "evaluation.jpg", "L'onglet Évaluer : leçons du jour, évaluation finale, bilan et export."]
     ] },
     { t: "Envoyer quelque chose aux tablettes", b: [
       ["flow", [["📣 dans le bandeau", "sur ma tablette"], ["Signal ou planche", "message en grand avec un son, ou schéma dessiné"], ["À qui ?", "tous les élèves, ou les tablettes choisies"], ["Reçu", "en plein écran ; « 🔴 En direct » suit mon dessin"]]],
@@ -120,7 +120,7 @@ window.EPS_GUIDE = (function () {
       ["img", "ma-classe.jpg", "Ma classe : la vue d'ensemble d'une séquence."]
     ] },
     { t: "Évaluation", b: [
-      ["steps", ["Onglet 📋 Évaluation : choisis la classe, puis un élève.", "Touche le degré de chaque critère ; le curseur affine dans le degré, la note se calcule au 0,25 point.", "🙋 Auto-positionnement : l'élève scanne le QR code de sa fiche ou utilise la tablette. Son avis s'affiche à côté du tien ; un appui sur la pastille 🙋 ouvre le détail.", "🎯 Proposition : positionnement par AFL, note proposée et sa source. Tu gardes la décision.", "Onglet Grille : textes, points, AFL ; ✨ version élève ; 📥 Importer une grille (PDF, Excel, photo), aperçu avant remplacement.", "🧪 Modalités d'évaluation : tes épreuves (degrés, points, réussi / pas encore, performance) avec leur poids.", "Onglet 📜 CCF : 📅 note de leçon, 🏁 note de séquence, 📋 protocole, 🧪 mes modalités."]],
+      ["steps", ["Onglet 📋 Évaluer → 🏁 Évaluation finale : choisis la classe, puis un élève dans la colonne.", "Touche le degré de chaque critère ; le curseur affine dans le degré, la note se calcule au 0,25 point.", "🙋 Auto-positionnement : l'élève scanne le QR code de sa fiche ou utilise la tablette. Son avis s'affiche à côté du tien ; un appui sur la pastille 🙋 ouvre le détail.", "🎯 Proposition : positionnement par AFL, note proposée et sa source. Tu gardes la décision.", "Onglet Grille : textes, points, AFL ; ✨ version élève ; 📥 Importer une grille (PDF, Excel, photo), aperçu avant remplacement.", "🧪 Modalités d'évaluation : tes épreuves (degrés, points, réussi / pas encore, performance) avec leur poids.", "Onglet 📜 CCF : 📅 note de leçon, 🏁 note de séquence, 📋 protocole, 🧪 mes modalités."]],
       ["img", "evaluation.jpg", "L'évaluation par degrés."],
       ["cols", [["Réglages", ["Parts leçons / évaluations, seuils des degrés", "Débuts de phrase de l'auto-positionnement", "Grille par voie : générale ou professionnelle"]], ["Cas particuliers", ["Terminale : case CCF et répartition 4-4, 6-2 ou 2-6 par élève", "Nombres à virgule acceptés ; un champ vide est refusé", "Classe fictive : auto-positionnement de démonstration, jamais sur une vraie classe"]]]]
     ] },

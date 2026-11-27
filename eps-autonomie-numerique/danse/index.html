@@ -2274,6 +2274,8 @@ function evdan() { if (EVDAN || !window.EPSE) return EVDAN; EVDAN = EPSE.create(
   prof: (cr, e) => { const x = e.ev && e.ev[cr.id]; return x && x.d ? { d: x.d - 1, pos: x.pos == null ? .5 : x.pos } : null; },
   getAp: e => { const a = e.auto; if (!a || !a.ev) return null; const ev = {}; Object.keys(a.ev).forEach(k => { const y = a.ev[k]; if (y && y.d) ev[k] = { d: y.d - 1, pos: .5 }; }); return { ev, r: a.reussi || '', m: a.ameliorer || '', t: a.t }; },
   setAp: (e, ap) => { const ev = {}; Object.keys((ap && ap.ev) || {}).forEach(k => { ev[k] = { d: ap.ev[k].d + 1 }; }); e.auto = { ev, reussi: ap.r || '', ameliorer: ap.m || '', t: ap.t || Date.now(), via: ap.via }; save(); },
+  /* « ✓ Reprendre ces degrés » de la proposition commune (sources cochées par l'enseignant) : écrit un degré seulement s'il n'y en a pas déjà un */
+  setProf: (cr, e, v) => { const c = S.criteres.find(k => k.id === cr.id); if (!c || !v || v.d == null) return; e.ev = e.ev || {}; if (e.ev[c.id] && e.ev[c.id].d) return; const d = Math.max(1, Math.min(4, Math.round(+v.d) + 1)); e.ev[c.id] = { d, pos: snap(c, d, P01(v.pos)) }; save(); },
   name: e => ({ nom: e.nom || '', prenom: e.prenom || '' }), note: e => note(e), absent: e => e.statut ? 'ABS' : '', classes: () => (S.classes || []).map(c => ({ nom: c.nom, eleves: c.eleves || [] })), comment: e => e.commentaire || e.comment || e.comm || '' }); return EVDAN; }
 function rEvMain() { rEvMain0(); try { const cl = curClasse(), e = cl.eleves.find(x => x.id === UI.selId), M = evdan(); if (e && M) M.propBlock(document.querySelector('#evMain .ev-head'), e, cl.nom, { list: () => cl.eleves, redraw: rEvMain, keep: t => { e.comm = t; save(); rEvMain(); } }); } catch (x) { console.warn(x); } }
 function rEvMain0() {
@@ -3740,7 +3742,8 @@ window.EPSTD = window.EPST ? EPST.init({ app: 'dan', nom: 'Danse', color: '#C218
   tabs: { seq: { go: () => aller('observation'), on: () => vue === 'observation' },
     /* « Bilan & export » aussi dans l'onglet Évaluation, à côté de Modalités et Coévaluation (demande du 27/11/2026) : UI.bilEv = ouvert depuis Évaluation */
     eval: { go: () => { UI.bilEv = 0; aller('evaluation'); }, on: () => vue === 'evaluation' || (vue === 'bilan' && !!UI.bilEv),
-      actions: [{ ico: '📋', label: 'Évaluer', go: () => { UI.bilEv = 0; aller('evaluation'); } }, { ico: '📄', label: 'Bilan & export', main: 1, go: () => { UI.bilEv = 1; aller('bilan'); } }] },
+      /* 📤 Bilan et export : entrée commune de l'onglet Évaluer (eps-shell.js), qui ouvre le bilan de Danse */
+      bilan: { go: () => { UI.bilEv = 1; aller('bilan'); }, on: () => vue === 'bilan' && !!UI.bilEv } },
     cls: { go: () => aller('classe'), on: () => vue === 'classe' },
     bil: { go: () => { UI.bilEv = 0; aller('bilan'); }, on: () => vue === 'bilan' && !UI.bilEv } },
   biblio: [{ ico: '💃', label: 'Procédés & défis', sub: 'Procédés de composition, défis', go: () => aller('procedes') },

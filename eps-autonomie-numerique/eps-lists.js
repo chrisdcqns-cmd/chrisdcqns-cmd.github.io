@@ -297,6 +297,10 @@ window.epsApChip = function (o) {
       if (Array.isArray(def) && !Array.isArray(o.v)) return def;
       if (typeof def === "number" && (typeof o.v !== "number" || !isFinite(o.v))) return def; /* valeur enregistrée inutilisable : valeur d'origine */
       return o.v; },
+    /* enregistre une valeur depuis un écran de l'appli (cases à cocher, curseur) : même magasin que 🎛 Paramètres, synchronisé ; null = revenir à la valeur d'origine */
+    set: function (id, val) { var S; try { S = JSON.parse(localStorage.getItem("eps.param.v1") || "null"); } catch (e) {} S = S && S.items && typeof S.items === "object" ? S : { items: {}, pend: {}, since: 0 }; S.pend = S.pend && typeof S.pend === "object" ? S.pend : {};
+      var k = APP + "|" + id, o = S.items[k], u = Math.max(Date.now(), ((o && o.u) || 0) + 1); S.items[k] = val == null ? { id: k, del: 1, u: u } : { id: k, v: val, u: u }; S.pend[k] = u;
+      try { localStorage.setItem("eps.param.v1", JSON.stringify(S)); } catch (e) {} try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} },
     p: function (d) { P.reg(d); var v = P.get(d.id, d.def); if (d.fixed && Array.isArray(v)) { v = v.slice(0, d.fixed); while (v.length < d.fixed) v.push(d.def[v.length]); } return v; } };
 })();
 
