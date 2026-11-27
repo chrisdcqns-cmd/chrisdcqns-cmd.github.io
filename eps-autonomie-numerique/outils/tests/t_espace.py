@@ -9,12 +9,14 @@ async def main():
     out=[]; errs=[]
     async with async_playwright() as pw:
         b=await pw.chromium.launch(args=["--no-sandbox"])
-        cp=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await cp.add_init_script("try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.share.v1',JSON.stringify({url:'"+G+"',key:'CLE'}))}catch(e){}")
+        cp=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await cp.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.share.v1',JSON.stringify({url:'"+G+"',key:'CLE'}))}catch(e){}")
         p=await cp.new_page(); p.on("pageerror",lambda x:errs.append("prof "+str(x)[:200])); p.on("dialog",lambda d:asyncio.ensure_future(d.accept()))
         await p.goto(B); await p.wait_for_timeout(2500); await p.evaluate("(async()=>{var x=EPSD.demo.create();if(x&&x.then)await x})()"); await p.wait_for_timeout(1200)
         await p.goto(B+"volley/"); await p.wait_for_timeout(3500)
         await p.goto(B+"quiz/"); await p.wait_for_timeout(1500); await p.click("[data-t=mes]"); await p.click("#ex"); await p.wait_for_timeout(300)
-        await p.goto(B+"espace/"); await p.wait_for_timeout(2500); await p.click("[data-c]")
+        await p.goto(B+"espace/"); await p.wait_for_timeout(2500)
+        out_vue=await p.evaluate("!!document.querySelector('#vfr')||!!document.querySelector('[data-mode=vue].p')")  # 27/11/2026 : la page s'ouvre sur 👁 Vue élève
+        await p.click("[data-mode=prep]"); await p.wait_for_timeout(300); await p.click("[data-c]")
         await p.click("[data-add=quiz]"); await p.click("[data-add=txt]"); await p.fill("[data-t='1']","Auto-positionne-toi avec le QR code de ta fiche"); await p.keyboard.press("Tab"); await p.wait_for_timeout(200)
         await p.click("#pub"); await p.wait_for_timeout(12000)
         out.append(("1 publication vérifiée","Publié pour" in await p.evaluate("document.querySelector('#pm').textContent"),await p.evaluate("document.querySelector('#pm').textContent")))

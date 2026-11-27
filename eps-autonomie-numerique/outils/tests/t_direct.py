@@ -22,7 +22,7 @@ async def main():
     async with async_playwright() as pw:
         b=await pw.chromium.launch(args=["--no-sandbox","--disable-dev-shm-usage"])
         urllib.request.urlopen("http://127.0.0.1:8899/ctl?reset=1&fail=0&old=0&nochk=0").read()
-        cp=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await cp.add_init_script("try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));"+SH+"}catch(e){}")
+        cp=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await cp.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));"+SH+"}catch(e){}")
         cp.on("request",lambda r:sent.append((r.url,r.post_data or "")) if "8899" in r.url else None)
         p=await cp.new_page(); p.on("dialog",lambda d:asyncio.ensure_future(d.accept()))
         await p.goto(B); await p.wait_for_timeout(2500); await p.evaluate("()=>{EPSD.demo.create()}"); await p.wait_for_timeout(4000); print("démo créée",flush=True)

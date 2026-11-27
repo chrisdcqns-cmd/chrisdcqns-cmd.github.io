@@ -40,7 +40,7 @@ async def main():
         # préparation : classe fictive
         c0=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await c0.add_init_script(TEACH)
         p=await c0.new_page(); await p.goto(B); await p.wait_for_timeout(2500)
-        await p.evaluate("EPSD.demo.create()"); await p.wait_for_timeout(2500)
+        await p.evaluate("(localStorage.setItem('eps.demo.eleve','1'),EPSD.demo.create())"); await p.wait_for_timeout(2500)
         st=await c0.storage_state(); await c0.close()
         json.dump(st,open(SH+"/state.json","w"))
         for mode in ("eleve","prof"):
@@ -66,6 +66,9 @@ async def main():
                             await p.wait_for_timeout(1800); del errs[:len(rec['errs'])]
                             m=await p.evaluate(MES); R.append({"page":d,"mode":mode,"vp":vk,"etape":"classe DÉMO","errs":list(errs),**m})
                             await p.screenshot(path=SH+"/%s-%s-%s-1.png"%(d.strip("/"),mode,vk))
+                            # 27/11/2026 : fenêtre commune « 👥 Groupes / 📖 La leçon » après le choix de la classe
+                            if await p.evaluate("()=>{const b=document.querySelector('.epsg2 [data-go=g]');if(b){b.click();return true}return false}"):
+                                await p.wait_for_timeout(1200); k2=len(errs); m=await p.evaluate(MES); R.append({"page":d,"mode":mode,"vp":vk,"etape":"groupes","errs":list(errs),**m})
                         if mode=="prof":
                             n=await p.evaluate("document.querySelectorAll('.epst-nav button[data-t]').length")
                             for i in range(n):

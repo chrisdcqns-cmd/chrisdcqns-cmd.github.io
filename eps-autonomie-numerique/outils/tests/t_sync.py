@@ -11,7 +11,7 @@ async def main():
     async with async_playwright() as pw:
         b=await pw.chromium.launch(args=["--no-sandbox"])
         ctx=await b.new_context(service_workers="block")
-        await ctx.add_init_script("try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));if(!localStorage.getItem('eps.share.v1'))localStorage.setItem('eps.share.v1',JSON.stringify({url:'"+G+"',key:'CLE'}))}catch(e){}")
+        await ctx.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));if(!localStorage.getItem('eps.share.v1'))localStorage.setItem('eps.share.v1',JSON.stringify({url:'"+G+"',key:'CLE'}))}catch(e){}")
         p=await ctx.new_page(); await p.goto(B); await p.wait_for_timeout(2500)
         async def cycle(n=1):
             for _ in range(n):

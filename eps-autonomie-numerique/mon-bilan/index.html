@@ -71,7 +71,8 @@
   var url = S ? "https://script.google.com/macros/s/" + S + "/exec" : (function () { var m = /[#&]u=([^&]+)/.exec(location.hash), u = m ? decodeURIComponent(m[1]) : ""; return /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(u) && /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? u : ""; })() /* essais automatiques seulement */;
   var $ = function (id) { return document.getElementById(id); };
   var msg = $("msg"), res = $("res"), ESP = null, PDF = [], ME = { quiz: {}, fait: {}, obs: {}, at: 0 }, HID = "", TAB = "todo", RUN = null, ACT = null, MIS = null;
-  if (!url) msg.innerHTML = '<span class="err">Lien incomplet : ouvre le lien envoyé par ton enseignant (sur Pronote).</span>';
+  var APERCU = /[#&]apercu\b/.test(location.hash) && window.top !== window;
+  if (!url && !APERCU) msg.innerHTML = '<span class="err">Lien incomplet : ouvre le lien envoyé par ton enseignant (sur Pronote).</span>';
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function flat(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }
   function b64url(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
@@ -89,7 +90,7 @@
   function meLoad() { try { var v = JSON.parse(localStorage.getItem("eps.espace.me." + HID) || "null"); if (v && typeof v === "object") ME = { quiz: v.quiz || {}, fait: v.fait || {}, obs: v.obs || {}, at: +v.at || 0 }; } catch (e) {} }
   var sendT = 0, pend = false, busy = false, encore = false;
   function st(t, ms) { var e = $("st"); e.textContent = t; e.hidden = !t; if (ms) setTimeout(function () { if (e.textContent === t) e.hidden = true; }, ms); }
-  function meSave() { ME.at = Date.now(); try { localStorage.setItem("eps.espace.me." + HID, JSON.stringify(ME)); } catch (e) {} pend = true; clearTimeout(sendT); sendT = setTimeout(envoyer, 600); }
+  function meSave() { if (APERCU) { ME.at = Date.now(); return; } ME.at = Date.now(); try { localStorage.setItem("eps.espace.me." + HID, JSON.stringify(ME)); } catch (e) {} pend = true; clearTimeout(sendT); sendT = setTimeout(envoyer, 600); }
   /* un seul envoi à la fois : une saisie faite pendant l'envoi relance un envoi juste après (sinon le contrôle comparerait deux versions) */
   async function envoyer() { if (!ESP || !ESP.rid || !ESP.rk || !pend) return; if (busy) { encore = true; return; } busy = true; encore = false; var vu = ME.at; st("Envoi à ton enseignant…");
     try { var k = await crypto.subtle.importKey("raw", unb64(ESP.rk), "AES-GCM", false, ["encrypt"]), iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(ME)))), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
@@ -122,6 +123,13 @@
     } catch (e) { msg.innerHTML = '<span class="err">' + (e.message === "connexion" ? "Pas de connexion. Réessaie." : "Impossible d'ouvrir ton espace avec ce code.") + "</span>"; }
     $("go").disabled = false;
   }
+  /* 👁 Aperçu enseignant (27/11/2026, espace/ → « Vue élève ») : page ouverte dans un cadre du même site avec #apercu ; l'espace de l'élève arrive
+     par postMessage, rien n'est demandé au serveur, rien n'est enregistré ni envoyé (meSave ne garde rien). Jamais actif hors d'un cadre. */
+  if (APERCU) { msg.textContent = ""; $("login").hidden = true;
+    window.addEventListener("message", function (ev) { if (ev.origin !== location.origin || !ev.data || !ev.data.epsApercu || typeof ev.data.epsApercu !== "object") return;
+      ESP = ev.data.epsApercu; PDF = []; ME = { quiz: {}, fait: {}, obs: {}, at: 0 }; HID = "apercu"; RUN = null; ACT = null; MIS = null;
+      $("who").textContent = (ESP.eleve || "") + (ESP.classe ? " · " + ESP.classe : ""); TAB = ((ESP.todo || []).length || (ESP.mis || []).length) ? "todo" : "acts"; draw(); st("👁 Aperçu : rien n'est envoyé"); });
+    try { parent.postMessage({ epsApercu: "pret" }, location.origin); } catch (e) {} }
   $("go").onclick = go; $("code").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
   $("out").onclick = function () { ESP = null; PDF = []; RUN = null; ACT = null; MIS = null; res.innerHTML = ""; $("login").hidden = false; $("out").hidden = true; $("who").textContent = "À faire · mes activités · mes bilans"; };
 
