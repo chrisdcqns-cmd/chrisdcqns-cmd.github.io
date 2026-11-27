@@ -36,6 +36,16 @@ async def main():
             if SHOTS: await p.screenshot(path=os.path.join(SHOTS, "terrains-" + app + ".png"))
             await p.click("[data-eps-call]"); await p.wait_for_timeout(500)
             st = await p.evaluate("JSON.parse(localStorage.getItem('eps.sig.v1')).items['call|x1'].st"); out.append((app + " : « J'y vais » pris en compte depuis cet écran", st == 1, st))
+            # 🚫 fermer le terrain 2 depuis « 🏟 Terrains » : grisé à sa place, écarté des répartitions
+            await p.click(".epsct-cfg button"); await p.wait_for_timeout(300); await p.click(".epsd-ov [data-k='2']"); await p.wait_for_timeout(400); await p.click(".epsd-ov [data-x]"); await p.wait_for_timeout(400)
+            f = await p.evaluate("({off:EPSD.courtsOff('%s'),fer:[].map.call(document.querySelectorAll('.epsct-t.ferme'),function(t){return t.innerText.replace(/\\s+/g,' ')}),n:document.querySelectorAll('.epsct-t').length,btn:document.querySelector('.epsct-cfg button').innerText})" % app)
+            out.append((app + " : terrain 2 fermé, grisé à sa place, les autres inchangés", f["off"] == [2] and len(f["fer"]) == 1 and "Terrain 2" in f["fer"][0] and f["n"] == n and "1 fermé" in f["btn"], f))
+            if app == "badminton":
+                g = await p.evaluate("(function(){terrAuto();return Object.values(C().terr.g)})()"); out.append(("badminton : la répartition automatique n'envoie plus personne sur le terrain fermé", len(g) == 6 and 2 not in g, g))
+            if app == "basket":
+                g = await p.evaluate("(function(){var j=jour(clsProf());return [terA(j),terN(j,0),terN(j,1)]})()"); out.append(("basket : un seul terrain utilisé, le match se joue sur le terrain 1", g[0] == [1] and g[1] == 1, g))
+            if app == "volley":
+                g = await p.evaluate("terOffV()"); out.append(("volley : le terrain 2 n'est plus proposé aux équipes ni dans le plan", g == [2], g))
             await p.evaluate("EPSLC.reperes({cls:'" + CL + "'})"); await p.wait_for_timeout(300); nb = await p.locator("#lc-rep [data-r]").count(); await p.locator("#lc-rep [data-r]").first.click(); await p.wait_for_timeout(300)
             out.append((app + " : ⚡ repères rapides : un élève puis la palette", nb == 8 and await p.locator("#lc-ico [data-i]").count() >= 3, nb)); await p.close()
         await b.close()

@@ -231,6 +231,10 @@ function modeVu(){ const loc=MODES[S.modeLoc]?S.modeLoc:"3"; if(estProf()){ cons
 function majBarre(){ const b=$("#modeBar"); if(!b) return; const m=modeVu(); b.querySelectorAll("button").forEach(x=>{ x.classList.toggle("on",x.dataset.m===m); x.setAttribute("aria-pressed",x.dataset.m===m?"true":"false"); }); b.classList.toggle("fixe",!estProf()&&aClasse()&&!jour(nomClasse()).libre); }
 
 /* rencontres : toutes les équipes se rencontrent ; à chaque rotation, les équipes qui ne jouent pas arbitrent et observent un terrain */
+/* 🚫 terrains fermés par l'enseignant (🏟 Terrains de la leçon du jour) : terA(j) = numéros des terrains utilisés ; le match n° mi d'une rotation
+   se joue sur le terrain terN(j,mi). Fermer un terrain après avoir créé les rencontres : les refaire (↺ Refaire). */
+function terA(j){ let off=[]; try{ off=window.EPSD&&EPSD.courtsOff?EPSD.courtsOff("basket"):[]; }catch(e){} const A=Array.from({length:j.nt},(x,i)=>i+1).filter(n=>!off.includes(n)); return A.length?A:[1]; }
+function terN(j,mi){ const A=terA(j); return A[mi]||mi+1; }
 function rencontres(ids,nt){
   const T=ids.slice(); if(T.length<2) return []; if(T.length%2) T.push(null);
   const n=T.length, M=[]; for(let r=0;r<n-1;r++){ for(let i=0;i<n/2;i++){ const a=T[i], b=T[n-1-i]; if(a&&b) M.push(r%2?[b,a]:[a,b]); } T.splice(1,0,T.pop()); }
@@ -350,8 +354,8 @@ function vEq(){ const cls=nomClasse(), E=eqs(cls);
    `<p style="margin-top:14px"><button class="btn contour" data-act="aller" data-v="regles">📏 Les règles</button> <button class="btn contour" data-act="aller" data-v="echauf">🔥 L'échauffement</button></p>`; }
 function prochain(cls,eq){ const j=jour(cls); if(!j.r) return null;
   for(let ri=0;ri<j.r.length;ri++){ const rot=j.r[ri]; if(!rot||!Array.isArray(rot.m)) continue; const tous=rot.m.every((x,mi)=>{ const m=stGet(matchId(cls,j.day,ri,mi)); return m&&m.st===1; }); if(tous) continue;
-    const mi=rot.m.findIndex(x=>x[0]===eq||x[1]===eq); if(mi>=0) return {ri:ri,mi:mi,ter:mi+1,a:rot.m[mi][0],b:rot.m[mi][1],joue:true};
-    const o=(rot.off||[]).find(x=>x[0]===eq); if(o&&rot.m[o[1]-1]) return {ri:ri,mi:o[1]-1,ter:o[1],a:rot.m[o[1]-1][0],b:rot.m[o[1]-1][1],joue:false};
+    const mi=rot.m.findIndex(x=>x[0]===eq||x[1]===eq); if(mi>=0) return {ri:ri,mi:mi,ter:terN(j,mi),a:rot.m[mi][0],b:rot.m[mi][1],joue:true};
+    const o=(rot.off||[]).find(x=>x[0]===eq); if(o&&rot.m[o[1]-1]) return {ri:ri,mi:o[1]-1,ter:terN(j,o[1]-1),a:rot.m[o[1]-1][0],b:rot.m[o[1]-1][1],joue:false};
     return {ri:ri,repos:true}; }
   return {fini:true}; }
 function vHome(){ const cls=nomClasse(), e=eqDe(cls,S.eq), j=jour(cls), md=modeCfg(modeJour()), n=prochain(cls,S.eq);
@@ -376,8 +380,8 @@ function vHome(){ const cls=nomClasse(), e=eqDe(cls,S.eq), j=jour(cls), md=modeC
     <button class="tuile" data-act="aller" data-v="echauf"><i>🔥</i><span><b>Échauffement</b><small>${P("echauf").length} étapes</small></span></button>
    </div>`; }
 function rotHtml(cls,j,moi){ return (j.r||[]).map((rot,ri)=>`<div class="carte"><h3>Rotation ${ri+1}</h3><table class="t">${(rot.m||[]).map((x,mi)=>{ const m=stGet(matchId(cls,j.day,ri,mi)), s=m?score(m):null;
-    return `<tr><td style="width:96px"><b>Terrain ${mi+1}</b></td><td>${[x[0],x[1]].map(id=>`<span class="rond" style="background:${h(eqCol(cls,id))}"></span> ${id===moi?`<b>${h(eqNom(cls,id))}</b>`:h(eqNom(cls,id))}`).join(" &nbsp;–&nbsp; ")}</td><td class="c" style="width:90px;font-weight:800">${s?s.a+" – "+s.b:"—"}</td><td class="c" style="width:120px">${m?(m.st===1?"Terminé":"En cours"):""} <button class="btn contour" style="min-height:40px;padding:6px 12px" data-act="matchRot" data-ri="${ri}" data-mi="${mi}">Ouvrir</button></td></tr>`; }).join("")}</table>
-    ${(rot.off||[]).length?`<p class="doux petit" style="margin:8px 0 0">Arbitrage et observation : ${rot.off.map(o=>`${o[0]===moi?"<b>":""}${h(eqNom(cls,o[0]))}${o[0]===moi?"</b>":""} (terrain ${o[1]})`).join(", ")}</p>`:""}</div>`).join(""); }
+    return `<tr><td style="width:96px"><b>Terrain ${terN(j,mi)}</b></td><td>${[x[0],x[1]].map(id=>`<span class="rond" style="background:${h(eqCol(cls,id))}"></span> ${id===moi?`<b>${h(eqNom(cls,id))}</b>`:h(eqNom(cls,id))}`).join(" &nbsp;–&nbsp; ")}</td><td class="c" style="width:90px;font-weight:800">${s?s.a+" – "+s.b:"—"}</td><td class="c" style="width:120px">${m?(m.st===1?"Terminé":"En cours"):""} <button class="btn contour" style="min-height:40px;padding:6px 12px" data-act="matchRot" data-ri="${ri}" data-mi="${mi}">Ouvrir</button></td></tr>`; }).join("")}</table>
+    ${(rot.off||[]).length?`<p class="doux petit" style="margin:8px 0 0">Arbitrage et observation : ${rot.off.map(o=>`${o[0]===moi?"<b>":""}${h(eqNom(cls,o[0]))}${o[0]===moi?"</b>":""} (terrain ${terN(j,o[1]-1)})`).join(", ")}</p>`:""}</div>`).join(""); }
 function vProg(){ const cls=nomClasse(), j=jour(cls); return retourEleve()+`<h2>🗓 Rencontres du jour</h2>`+(j.r?rotHtml(cls,j,S.eq):`<div class="carte doux">Pas de rencontres prévues aujourd'hui.</div>`)+classHtml(cls,j.day); }
 function classHtml(cls,d){ const C=classement(cls,d); if(!C.some(x=>x.j)) return ""; return `<div class="carte"><h3>🏆 Classement${d?" du jour":" de la séquence"}</h3><table class="t"><tr><th>Équipe</th><th class="c">J</th><th class="c">V</th><th class="c">N</th><th class="c">D</th><th class="c">Pour</th><th class="c">Contre</th><th class="c">Pts</th></tr>${C.map(x=>`<tr><td><span class="rond" style="background:${h(x.col)}"></span> ${h(x.nom)}</td><td class="c">${x.j}</td><td class="c">${x.v}</td><td class="c">${x.n}</td><td class="c">${x.d}</td><td class="c">${x.p}</td><td class="c">${x.c}</td><td class="c"><b>${x.pts}</b></td></tr>`).join("")}</table></div>`; }
 
@@ -481,15 +485,15 @@ function vBilan(){ const cls=nomClasse(), eq=S.eq, d=S.bilT?"":auj(), st=statsEq
 function clsProf(){ const C=classesBK(); if(!C.some(c=>c.id===S.classe)){ let cc=null; try{ cc=C.find(c=>c.nom===(localStorage.getItem("eps.eval.cls.bk")||"")); }catch(e){} S.classe=(cc||C[0]||{}).id||""; SS.set("classe",S.classe); } return nomClasse(); }
 const selCls=()=>`<select data-ch="cls" style="max-width:260px" aria-label="Classe">${classesBK().map(c=>`<option value="${h(c.id)}" ${c.id===S.classe?"selected":""}>${h(c.nom)}</option>`).join("")}</select>`;
 /* 🏟 les terrains du jour pour le suivi de l'enseignant : match en cours sur chaque terrain, sinon le prochain match de la rotation */
-function terrainsBK(cls,j,M){ return Array.from({length:j.nt},(x,i)=>{ const t=i+1, m=M.filter(m=>+m.ter===t&&m.st!==1).sort((a,b)=>(b.u||0)-(a.u||0))[0];
-  const off=ri=>(((j.r||[])[ri]||{}).off||[]).filter(x=>+x[1]===t).map(x=>eqNom(cls,x[0]));
-  if(m){ const s=score(m); return {n:t,a:eqNom(cls,m.a),b:eqNom(cls,m.b),sc:s.a+" – "+s.b,etat:"jeu",sub:m.rot!=null?"Rotation "+(m.rot+1):"",obs:m.rot!=null?off(m.rot):[]}; }
-  const R=j.r||[]; for(let ri=0;ri<R.length;ri++){ const x=(R[ri].m||[])[i]; if(!x) continue; const d=stGet(matchId(cls,j.day,ri,i)); if(d&&d.st===1) continue; return {n:t,a:eqNom(cls,x[0]),b:eqNom(cls,x[1]),sc:"",etat:"attente",sub:"Rotation "+(ri+1)+" à jouer",obs:off(ri)}; }
+function terrainsBK(cls,j,M){ const A=terA(j); return Array.from({length:j.nt},(x,i)=>{ const t=i+1, k=A.indexOf(t), m=M.filter(m=>+m.ter===t&&m.st!==1).sort((a,b)=>(b.u||0)-(a.u||0))[0];
+  const off=ri=>(((j.r||[])[ri]||{}).off||[]).filter(x=>+x[1]===k+1).map(x=>eqNom(cls,x[0]));
+  if(m){ const s=score(m); return {n:t,a:eqNom(cls,m.a),b:eqNom(cls,m.b),sc:s.a+" – "+s.b,etat:"jeu",sub:m.rot!=null?"Rotation "+(m.rot+1):"",obs:m.rot!=null&&k>=0?off(m.rot):[]}; }
+  const R=j.r||[]; if(k>=0) for(let ri=0;ri<R.length;ri++){ const x=(R[ri].m||[])[k]; if(!x) continue; const d=stGet(matchId(cls,j.day,ri,k)); if(d&&d.st===1) continue; return {n:t,a:eqNom(cls,x[0]),b:eqNom(cls,x[1]),sc:"",etat:"attente",sub:"Rotation "+(ri+1)+" à jouer",obs:off(ri)}; }
   return {n:t,a:"",b:"",etat:"libre"}; }); }
 function vProf(){ const cls=clsProf(); if(!cls) return `<div class="carte"><h3>Aucune classe pour le basket-ball</h3><p class="doux">Attribue l'activité à une classe : onglet 👥 Classe → Listes d'élèves.</p></div>`;
   const j=jour(cls), E=eqs(cls), md=modeCfg(j.mode), B=bonusList(), M=matchsDe(cls,j.day).sort((a,b)=>(a.rot||0)-(b.rot||0)||(a.ter||0)-(b.ter||0)), O=obsDe(cls,j.day), PL=schemas(cls), pr=presents(cls), places=new Set(E.flatMap(e=>e.j)), sans=pr.filter(n=>!places.has(n));
   return `<div class="ligne" style="margin-bottom:12px">${selCls()}<span class="doux">${dateFR(j.day)} · ${pr.length} présent${pr.length>1?"s":""}</span></div>
-   ${window.EPSD&&EPSD.appels?EPSD.appels.html("basket"):""}${window.EPSD&&EPSD.courts?EPSD.courts({dispo:j.nt===2?"duo":"ligne",app:"basket",color:"#A4161A",cts:terrainsBK(cls,j,M)}):""}
+   ${window.EPSD&&EPSD.appels?EPSD.appels.html("basket"):""}${window.EPSD&&EPSD.courts?EPSD.courts({dispo:j.nt===2?"duo":"ligne",app:"basket",color:"#A4161A",cfg:1,redraw:"rendre",cts:terrainsBK(cls,j,M)}):""}
    <div class="carte"><div class="ligne"><h3 style="margin:0">🏀 ${md.nom}</h3><span class="doux petit">${md.sub} · ${md.duree} min${md.cible?" ou "+md.cible+" pts":""} · se change avec le bouton de la barre du haut</span></div>
     <div class="ligne" style="margin-top:12px"><label class="ligne"><input type="checkbox" data-ch="libre" ${j.libre?"checked":""} style="width:22px;height:22px"> Les équipes peuvent changer de forme</label>
      <label class="ligne"><input type="checkbox" data-ch="simple" ${j.simple?"checked":""} style="width:22px;height:22px"> Fiches d'observation simplifiées</label>
@@ -561,11 +565,11 @@ const A={
  planBar:()=>{ if(estProf()){ try{ EPSD.planche({sport:modeVu()==="4"?"basket":"basket3",cls:clsProf()}); }catch(e){} } else aller(aClasse()&&S.eq?"plan":"sys"); },
  bilT:b=>{ S.bilT=b.dataset.t; rendre(); }, sitTh:b=>{ S.sitTh=b.dataset.t; rendre(); },
  /* match */
- matchRot:b=>{ const cls=nomClasse(), j=jour(cls), ri=+b.dataset.ri, mi=+b.dataset.mi, x=((j.r||[])[ri]||{m:[]}).m[mi]; if(!x) return; matchOuvrir(matchId(cls,j.day,ri,mi),{cls:cls,day:j.day,mode:j.mode,ter:mi+1,rot:ri,a:x[0],b:x[1]}); },
+ matchRot:b=>{ const cls=nomClasse(), j=jour(cls), ri=+b.dataset.ri, mi=+b.dataset.mi, x=((j.r||[])[ri]||{m:[]}).m[mi]; if(!x) return; matchOuvrir(matchId(cls,j.day,ri,mi),{cls:cls,day:j.day,mode:j.mode,ter:terN(j,mi),rot:ri,a:x[0],b:x[1]}); },
  matchVoir:b=>{ S.mid=b.dataset.id; SS.set("mid",S.mid); aller("match"); },
  matchLibre:()=>{ const cls=nomClasse(), E=eqs(cls).filter(e=>e.id!==S.eq), j=jour(cls); if(!E.length) return toast("Il faut au moins deux équipes");
    feuille(`<h3>Jouer un match · ${modeCfg(modeJour()).nom}</h3><p class="doux petit">Contre qui ?</p><div class="ligne" id="advs">${E.map((e,i)=>`<button class="puce ${i?"":"on"}" data-act="adv" data-id="${h(e.id)}" style="border-left:8px solid ${h(e.col)}">${h(e.nom)}</button>`).join("")}</div>
-    <p class="doux petit" style="margin-top:12px">Sur quel terrain ?</p><div class="ligne" id="ters">${Array.from({length:j.nt},(x,i)=>`<button class="puce ${i?"":"on"}" data-act="terr" data-t="${i+1}">Terrain ${i+1}</button>`).join("")}</div>
+    <p class="doux petit" style="margin-top:12px">Sur quel terrain ?</p><div class="ligne" id="ters">${terA(j).map((t,i)=>`<button class="puce ${i?"":"on"}" data-act="terr" data-t="${t}">Terrain ${t}</button>`).join("")}</div>
     <div class="ligne" style="margin-top:16px;justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" data-act="matchGo">▶ Commencer</button></div>`); },
  adv:b=>{ document.querySelectorAll("#advs .puce").forEach(x=>x.classList.toggle("on",x===b)); }, terr:b=>{ document.querySelectorAll("#ters .puce").forEach(x=>x.classList.toggle("on",x===b)); },
  matchGo:()=>{ const cls=nomClasse(), a=$("#advs .on"), t=$("#ters .on"); if(!a) return; matchOuvrir("m|"+nk(cls)+"|"+auj()+"|x"+uid(),{cls:cls,day:auj(),mode:modeJour(),ter:t?+t.dataset.t:0,a:S.eq,b:a.dataset.id}); },
@@ -624,7 +628,7 @@ const A={
  bon:b=>{ const cls=clsProf(), j=jour(cls), i=+b.dataset.i; jourSet(cls,{bon:j.bon.includes(i)?j.bon.filter(x=>x!==i):j.bon.concat(i)}); rendre(); },
  equipes:()=>{ try{ EPSTBK.go("cls"); }catch(e){} },
  renc:()=>{ const cls=clsProf(), j=jour(cls), E=eqs(cls).filter(e=>e.j.some(n=>!absent(n,cls))); if(E.length<2) return toast("Il faut au moins deux équipes");
-   const go=()=>{ jourSet(cls,{r:rencontres(E.map(e=>e.id),j.nt)}); fermer(); rendre(); };
+   const go=()=>{ jourSet(cls,{r:rencontres(E.map(e=>e.id),terA(j).length)}); fermer(); rendre(); };
    if(j.r&&matchsDe(cls,j.day).some(m=>m.rot!=null)){ feuille(`<h3>Refaire les rencontres ?</h3><p>Des matchs ont déjà commencé : leurs scores restent rattachés à l'ancien programme.</p><div class="ligne" style="justify-content:flex-end"><button class="btn clair" data-act="fermer">Annuler</button><button class="btn app" id="rencOk">Refaire</button></div>`); $("#rencOk").onclick=go; } else go(); },
  rencSuppr:()=>{ jourSet(clsProf(),{r:null}); rendre(); },
  pick:b=>{ S.pick=S.pick===b.dataset.n?"":b.dataset.n; refaire(); },
