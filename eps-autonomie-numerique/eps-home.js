@@ -1951,7 +1951,8 @@
      entier dans une petite fenêtre. Messages d'état, champs, liens et boutons ne sont jamais touchés. Un conteneur
      [data-eps-longtext] garde ses textes entiers (fiche d'utilisation…). */
   (function tips() {
-    var SEL = "p.mut,p.lc-mut,p.gr-mut,p.epse-mut,p.m,p.muted,div.lc-mut,div.mut,span.gr-mut,p.mc", LIM = 110;
+    /* 27/11/2026 : seuil abaissé de 110 à 70 caractères et classes « petit / doux » ajoutées (demande de l'enseignant : encore trop de texte) */
+    var SEL = "p.mut,p.lc-mut,p.gr-mut,p.epse-mut,p.m,p.muted,div.lc-mut,div.mut,span.gr-mut,p.mc,p.petit,p.doux", LIM = 70;
     try { var st = document.createElement("style"); st.textContent = ".eps-tipb{border:0;background:none;padding:0 0 0 4px;margin:0;cursor:pointer;vertical-align:middle;min-height:0!important;min-width:0!important;position:relative}.eps-tipb::after{content:'';position:absolute;inset:-11px -9px}.eps-tipb i{font-style:normal;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#E6E1D6;color:#14171C;font:800 13px system-ui,sans-serif}" +
       ".eps-tipo{position:fixed;inset:0;z-index:2147483600;background:rgba(20,23,28,.35);display:flex;align-items:center;justify-content:center;padding:16px}.eps-tipo>div{background:#fff;color:#14171C;border-radius:16px;max-width:520px;width:100%;padding:16px 18px;font:16px/1.45 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)}.eps-tipo button{margin-top:12px;min-height:42px;border-radius:10px;border:0;background:#14171C;color:#fff;font:800 15px system-ui;padding:0 18px;cursor:pointer}";
       (document.head || document.documentElement).appendChild(st); } catch (e) {}
@@ -2607,6 +2608,42 @@
     b.style.display = isTeacher() ? "" : "none";
   }
   setInterval(function () { try { overviewBtn(); } catch (e) {} }, 3000);
+
+  /* ================= Catégories de blocs (27/11/2026, demande de l'enseignant : trop de blocs empilés qui donnent trop d'informations) =================
+     Un écran ne doit plus empiler ses blocs : chaque bloc porte data-sec="Catégorie" (libellé court choisi à la main) ; les blocs frères sont alors
+     rangés derrière une rangée de catégories et un seul groupe est visible à la fois. Plusieurs blocs peuvent partager la même catégorie.
+     Un bloc sans data-sec reste toujours visible (sélecteur de classe, chiffres clés). Moins de 2 catégories : rien ne change.
+     - le choix est gardé pendant la session, par écran (data-sec-key sur le parent, sinon la liste des catégories) ;
+     - scrollIntoView() sur un élément d'un bloc replié ouvre sa catégorie ; EPSD.secShow(el) fait de même ; l'impression montre tout ;
+     - tests automatiques : localStorage eps.sec = "0" laisse tout déplié.
+     Tout nouvel écran qui dépasse 3 blocs utilise ce mécanisme plutôt que d'empiler. */
+  (function () {
+    var SEL = {}, T = 0; try { if (localStorage.getItem("eps.sec") === "0") return; } catch (e) {}
+    try { var st = document.createElement("style"); st.textContent = ".epss-bar{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 12px;padding:4px;background:#E9E5DC;border-radius:14px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
+      ".epss-bar button{flex:1 1 auto;min-height:44px;border:0;border-radius:10px;background:transparent;font:800 15px system-ui,sans-serif;color:#4A4F58;padding:0 14px;cursor:pointer;white-space:nowrap}" +
+      ".epss-bar button.on{background:#fff;color:#14171C;box-shadow:0 1px 4px rgba(0,0,0,.16)}[data-epss-hid]{display:none!important}@media print{.epss-bar{display:none!important}}"; document.head.appendChild(st); } catch (e) {}
+    function keyOf(p, labels) { return p.getAttribute("data-sec-key") || labels.join("|"); }
+    function labelsOf(kids) { var L = []; kids.forEach(function (k) { var l = k.getAttribute("data-sec"); if (L.indexOf(l) < 0) L.push(l); }); return L; }
+    function kidsOf(p) { return Array.prototype.filter.call(p.children, function (c) { return c.hasAttribute("data-sec"); }); }
+    function apply(all) {
+      var els = document.querySelectorAll("[data-sec]"), P = []; els.forEach(function (e) { var p = e.parentNode; if (p && P.indexOf(p) < 0) P.push(p); });
+      P.forEach(function (p) { var kids = kidsOf(p), L = labelsOf(kids), bar = Array.prototype.filter.call(p.children, function (c) { return c.classList.contains("epss-bar"); })[0];
+        if (L.length < 2 || all) { if (bar) bar.remove(); kids.forEach(function (k) { k.removeAttribute("data-epss-hid"); }); return; }
+        var key = keyOf(p, L), cur = SEL[key]; if (L.indexOf(cur) < 0) { var op = kids.filter(function (k) { return k.hasAttribute("data-sec-open"); })[0]; cur = SEL[key] = op ? op.getAttribute("data-sec") : L[0]; }
+        var sig = L.join("|") + "#" + cur;
+        if (!bar) { bar = document.createElement("div"); bar.className = "epss-bar"; bar.setAttribute("role", "tablist"); bar.setAttribute("aria-label", "Catégories");
+          bar.addEventListener("click", function (e) { var b = e.target.closest("button[data-s]"); if (!b) return; SEL[bar.dataset.key] = b.dataset.s; apply(); }); }
+        if (bar.nextElementSibling !== kids[0]) p.insertBefore(bar, kids[0]);
+        if (bar.dataset.sig !== sig) { bar.dataset.sig = sig; bar.dataset.key = key; bar.innerHTML = L.map(function (l) { return '<button type="button" role="tab" data-s="' + esc(l) + '" aria-selected="' + (l === cur) + '"' + (l === cur ? ' class="on"' : "") + ">" + esc(l) + "</button>"; }).join(""); }
+        kids.forEach(function (k) { var h = k.getAttribute("data-sec") !== cur; if (h !== k.hasAttribute("data-epss-hid")) { if (h) k.setAttribute("data-epss-hid", ""); else k.removeAttribute("data-epss-hid"); } }); });
+    }
+    function show(el) { var h = el && el.closest && el.closest("[data-epss-hid]"), n = 0; while (h && n++ < 6) { var p = h.parentNode; SEL[keyOf(p, labelsOf(kidsOf(p)))] = h.getAttribute("data-sec"); apply(); h = el.closest("[data-epss-hid]"); } }
+    function later() { if (T) return; T = setTimeout(function () { T = 0; try { apply(); } catch (e) { console.warn(e); } }, 30); }
+    try { new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { setInterval(later, 800); }
+    try { var siv = Element.prototype.scrollIntoView; Element.prototype.scrollIntoView = function () { try { show(this); } catch (e) {} return siv.apply(this, arguments); }; } catch (e) {}
+    window.addEventListener("beforeprint", function () { try { apply(true); } catch (e) {} }); window.addEventListener("afterprint", later);
+    window.EPSD = window.EPSD || {}; window.EPSD.secShow = show; window.EPSD.secApply = apply; later();
+  })();
 
   /* ================= Barre allégée (27/11/2026, demande de l'enseignant : trop d'icônes, l'écran bougeait) =================
      Dans la barre il ne reste que : ce que l'appli y met, 🎙, 🩹, 🔄 (mise à jour + état du partage sur sa pastille), ⌂ Accueil et « ⋯ ».

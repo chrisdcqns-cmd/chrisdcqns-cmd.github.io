@@ -518,6 +518,7 @@ details.more{margin-top:6px}details.more>summary{cursor:pointer;font-weight:700;
 .board .pl:not(:has(.bt)) .plm{flex:1;text-align:center}.board .pl:not(:has(.bt)) .big2{font-size:7rem}
 .board .pl:not(:has(.bt)) .nm{justify-content:center}.board .pl:not(:has(.bt)) .pltiles{display:none}
 @media (max-width:760px){.board .pl:not(:has(.bt)) .big2{font-size:4.4rem}}
+.badpop{position:fixed;inset:0;z-index:900;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:14px}.badpop>div{background:var(--bg,#F5F3EE);border-radius:18px;width:min(620px,100%);max-height:92vh;overflow:auto;padding:16px}
 </style>
 <style>@media (max-width:1200px){.top .hn,#syncIc small{display:none}.top .voie button{padding:7px 10px}}</style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
@@ -553,13 +554,13 @@ html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidde
   <section class="tab on" id="t-seq"></section>
   <section class="tab" id="t-bilan"></section>
   <section class="tab" id="t-eleves">
-    <div class="card"><h2>Classes / groupes</h2>
+    <div class="card" data-sec="🗂 Classes"><h2>Classes / groupes</h2>
       <div class="row"><button class="btn or" onclick="wizOpen()">🧭 Assistant de démarrage</button><button class="btn" onclick="newClass()">+ Nouvelle classe</button><button class="btn alt" onclick="renameClass()">Renommer</button><button class="btn alt" onclick="moveClassVoie()">Changer de voie</button><button class="btn red" onclick="deleteClass()">Supprimer la classe</button></div></div>
-    <div class="card" id="impCard"></div>
-    <div class="card"><h2>Élèves de la classe</h2>
+    <div class="card" data-sec="📥 Importer" id="impCard"></div>
+    <div class="card" data-sec="📋 Liste" data-sec-open><h2>Élèves de la classe</h2>
       <div class="row"><button class="btn alt" onclick="sortEleves()">Trier A→Z</button><button class="btn alt" onclick="addOne()">+ Un élève</button></div>
       <div class="elist" id="elist"></div></div>
-    <div class="card"><h2>Sauvegarde</h2>
+    <div class="card" data-sec="💾 Sauvegarde"><h2>Sauvegarde</h2>
       <p id="syncSt" style="font-weight:600;margin:0 0 8px"></p>
       <div class="row" style="margin-bottom:10px"><button class="btn alt" onclick="syncSoon(50)">🔄 Synchroniser maintenant</button></div>
       <p class="muted">Tout est enregistré sur la tablette, et en ligne (chiffré) dès que le partage entre tablettes est réglé sur la page d'accueil : notes, matchs saisis sur les tablettes de terrain, leçons, situations de scoring et fiches techniques.</p>
@@ -1431,7 +1432,7 @@ function wizBanner(){const has=S.classes.some(c=>c.eleves.length);return has?'':
 
 /* ================== ⚡ PRÉPARER LA LEÇON EN UN GESTE ================== */
 let PREP=null;
-function prepOpen(id){const l=SEQ().lecons.find(x=>x.id===id);if(!l)return;PREP={id,d:today(),vis:S.presets.filter(p=>p.vis).map(p=>p.id),prev:true};SEQT='lec';renderSeq();scrollTo(0,0)}
+function prepOpen(id){const l=SEQ().lecons.find(x=>x.id===id);if(!l)return;PREP={id,d:today(),vis:S.presets.filter(p=>p.vis).map(p=>p.id),prev:true};SEQT='lec';SEQSEL=id;renderSeq();scrollTo(0,0)}
 function prepHtml(){if(!PREP)return'';const l=SEQ().lecons.find(x=>x.id===PREP.id);if(!l){PREP=null;return''}const ids=(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id)),i=SEQ().lecons.indexOf(l),pv=SEQ().lecons[i-1];
   return `<div class="card prep"><div class="row" style="justify-content:space-between"><h2 style="margin:0">⚡ Préparer la leçon ${l.n} · ${esc(l.titre)}</h2><button class="btn alt sm" onclick="PREP=null;renderSeq()">✕</button></div>
    <div class="g2"><div><label class="l">Date de la leçon</label><input type="date" value="${esc(PREP.d)}" onchange="PREP.d=this.value"></div>
@@ -1442,7 +1443,7 @@ function prepHtml(){if(!PREP)return'';const l=SEQ().lecons.find(x=>x.id===PREP.i
 function prepTog(id){const i=PREP.vis.indexOf(id);if(i>=0)PREP.vis.splice(i,1);else PREP.vis.push(id);renderSeq()}
 function prepGo(){const L=SEQ().lecons,l=L.find(x=>x.id===PREP.id),i=L.indexOf(l);L.forEach(x=>{if(x!==l&&x.date===PREP.d)x.date=''});l.date=PREP.d;l.prop=false;
   if(PREP.prev&&L[i-1]&&!L[i-1].faite){L[i-1].faite=true;if(!L[i-1].date||L[i-1].date>PREP.d)L[i-1].date=''}
-  S.presets.forEach(p=>{p.vis=PREP.vis.includes(p.id)});PREP=null;SEQOPEN={};SEQOPEN[l.id]=1;save();renderSeq();toast(PREP===null&&l.date===today()?'Leçon '+l.n+' prête : elle s\'affiche sur les tablettes de terrain':'Leçon '+l.n+' programmée le '+dateFR(l.date))}
+  S.presets.forEach(p=>{p.vis=PREP.vis.includes(p.id)});PREP=null;SEQSEL=l.id;save();renderSeq();toast(PREP===null&&l.date===today()?'Leçon '+l.n+' prête : elle s\'affiche sur les tablettes de terrain':'Leçon '+l.n+' programmée le '+dateFR(l.date))}
 
 /* ================== TABLETTE ÉLÈVE SIMPLIFIÉE ================== */
 let TMORE=false;
@@ -1533,7 +1534,7 @@ function indCustom(){const o={};['gt','pro'].forEach(v=>{const L=(S.prof[v]&&S.p
 function indById(id){return IND.find(x=>x.id===id)||(String(id).startsWith('x')?indCustom()[id]:null)||null}
 function indOn(){return !!B().optInd}
 function setIndOn(v){B().optInd=!!v;save();renderSeq();toast(v?'📈 Indicateurs activés':'Indicateurs masqués (ils restent enregistrés)')}
-function indSwitch(){return `<div class="card indsw"><label class="sw"><input type="checkbox" ${indOn()?'checked':''} onchange="setIndOn(this.checked)"><span></span><b>📈 Indicateurs de performance</b></label>
+function indSwitch(){return `<div class="card indsw" data-sec="📈 Indicateurs"><label class="sw"><input type="checkbox" ${indOn()?'checked':''} onchange="setIndOn(this.checked)"><span></span><b>📈 Indicateurs de performance</b></label>
   <span class="muted">${indOn()?"Activés : propositions dans chaque temps, compteurs de l'observateur, résultats aux élèves.":"Option désactivée : rien ne s'affiche, ni pour toi ni pour les élèves."}</span></div>`}
 /* ✨ propositions de Claude pour un temps (script commun, mode « badind ») */
 let INDIA={};
@@ -2370,16 +2371,16 @@ function renderMatchs(){
      <button class="btn sm" onclick="playResume('${m.id}')">✎ Reprendre</button><button class="btn red sm" onclick="matchDel('${m.id}')">Supprimer</button></div>${matchStatsHtml(m)}</div>`;return}
   const L=c.eleves.map(e=>({e,st:elStats(c,e.id,MDATE)}));
   const sel=CMP.map(id=>L.find(x=>x.e.id===id)).filter(Boolean);
-  el.innerHTML=grpAdmin(c)+`<details class="card"${atpRank(c).some(x=>x.v+x.d)?' open':''}><summary style="cursor:pointer"><h2 style="display:inline;margin:0">🏅 Classement ATP de ${esc(c.nom)}</h2></summary><p class="muted">${atpBareme()} Les élèves lancent leurs défis depuis la tablette de terrain (onglet 🏅 Défis ATP). Barème modifiable dans 🎛 Paramètres.</p>${atpTable(c)}</details>`+`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Matchs de ${esc(c.nom)}</h2>
+  el.innerHTML=grpAdmin(c)+`<details class="card" data-sec="🏅 Classement"${atpRank(c).some(x=>x.v+x.d)?' open':''}><summary style="cursor:pointer"><h2 style="display:inline;margin:0">🏅 Classement ATP de ${esc(c.nom)}</h2></summary><p class="muted">${atpBareme()} Les élèves lancent leurs défis depuis la tablette de terrain (onglet 🏅 Défis ATP). Barème modifiable dans 🎛 Paramètres.</p>${atpTable(c)}</details>`+`<div class="card" data-sec="🏸 Matchs" data-sec-open><div class="row" style="justify-content:space-between"><h2 style="margin:0">Matchs de ${esc(c.nom)}</h2>
      <div class="row"><select class="f" style="width:auto" onchange="MDATE=this.value;renderMatchs()"><option value="">Toutes les leçons (${all.length})</option>${dates.map(d=>`<option value="${d}" ${d===MDATE?'selected':''}>${dateFR(d)} (${all.filter(m=>m.date===d).length})</option>`).join('')}</select>
      <button class="btn or sm" onclick="playStart(lessonPre())">▶ Nouveau match</button></div></div>
    <p class="muted">Les matchs saisis sur toutes les tablettes (enseignant ou tablette de terrain) arrivent ici automatiquement.</p>
    ${ms.length?`<div class="mlist">${ms.map(m=>{const R=replay(m);return `<button onclick="MOPEN='${m.id}';renderMatchs()"><b>${m.pre.type==='exo'?'🎯 '+esc(m.an)+' · '+R.ok+'/'+R.n:esc(m.an)+' <span class="sc2">'+R.sc[0]+' – '+R.sc[1]+'</span> '+esc(m.bn)}</b><small>${esc(m.pre.nom)} · ${dateFR(m.date)}${m.fin?'':' · en cours'}</small></button>`}).join('')}</div>`:'<p class="muted">Aucun match pour le moment.</p>'}</div>
-  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Comparer en araignée</h2><div class="seg">${['profil','zones','coups'].map(k=>`<button class="${RADK===k?'on':''}" onclick="RADK='${k}';renderMatchs()">${{profil:'Profil de jeu',zones:'Zones de marque',coups:'Coups gagnants'}[k]}</button>`).join('')}</div></div>
+  <div class="card" data-sec="🕸 Comparer"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Comparer en araignée</h2><div class="seg">${['profil','zones','coups'].map(k=>`<button class="${RADK===k?'on':''}" onclick="RADK='${k}';renderMatchs()">${{profil:'Profil de jeu',zones:'Zones de marque',coups:'Coups gagnants'}[k]}</button>`).join('')}</div></div>
    <p class="muted">Touche 1 à 3 élèves pour superposer leurs araignées${MDATE?' (leçon du '+dateFR(MDATE)+')':''}. Profil : profondeur, filet, largeur (part des points gagnants), rupture (smash/kill), variété des zones et des coups, régularité (peu de fautes directes).</p>
    <div class="pick">${L.filter(x=>x.st.mj||x.st.ms.length).map(x=>`<label class="${CMP.includes(x.e.id)?'':'off'}" style="text-decoration:none"><input type="checkbox" ${CMP.includes(x.e.id)?'checked':''} onchange="cmpTog('${x.e.id}')">${esc(fullName(x.e))}</label>`).join('')||'<span class="muted">Aucun élève n\'a encore joué.</span>'}</div>
    ${sel.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,sel.map(x=>x.st)),sel.map((x,i)=>({nom:fullName(x.e),c:['#0B7A75','#D9481F','#7A3E9D'][i]})),360)}</div>${sel.length===1?`<div style="flex:1;min-width:240px">${statLines(sel[0].st)}<div class="cw mini">${heatSvg(sel[0].st)}</div></div>`:''}</div>`:''}</div>
-  <div class="card"><h2>Tableau de la classe</h2><div class="tw"><table><thead><tr><th>Élève</th><th>Matchs</th><th>G</th><th>Points</th><th>Fautes dir.</th><th>Profil de joueur</th><th>Zones favorites</th><th>Coup favori</th><th>Exercices</th></tr></thead><tbody>
+  <div class="card" data-sec="📊 Tableau"><h2>Tableau de la classe</h2><div class="tw"><table><thead><tr><th>Élève</th><th>Matchs</th><th>G</th><th>Points</th><th>Fautes dir.</th><th>Profil de joueur</th><th>Zones favorites</th><th>Coup favori</th><th>Exercices</th></tr></thead><tbody>
    ${L.map(({e,st})=>`<tr><td>${esc(fullName(e))}</td><td>${st.mj}</td><td>${st.mg}</td><td>${st.pts}</td><td>${st.fd}</td><td style="white-space:nowrap">${pjShort(st)}</td><td>${topZones(st,2).join(', ')||'–'}</td><td>${topCoup(st)}</td><td>${st.ex.map(x=>esc(x.nom.replace(/^Exercice : /,''))+' '+x.ok+'/'+x.n+(x.ae!=null?' 🙋D'+(x.ae+1):'')).join('<br>')||'–'}</td></tr>`).join('')}</tbody></table></div></div>`;
 }
 function cmpTog(id){if(CMP.includes(id))CMP=CMP.filter(x=>x!==id);else{CMP.push(id);if(CMP.length>3)CMP.shift()}renderMatchs()}
@@ -2416,7 +2417,7 @@ function lecHtml(l,i,teach){
    <details ${teach?'':'open'}><summary class="muted" style="cursor:pointer;font-weight:700">Contenus${l.mat?', matériel, dispositif':''}</summary>
     <ul>${l.cont.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>${l.mat?`<p class="muted" style="margin:4px 0"><b>Matériel :</b> ${esc(l.mat)}</p>`:''}${l.disp?`<p class="muted" style="margin:4px 0"><b>Dispositif :</b> ${esc(l.disp)}</p>`:''}${l.consg?`<p class="muted" style="margin:4px 0"><b>Consignes :</b> ${esc(l.consg)}</p>`:''}</details>
    <div style="margin:6px 0"><span class="ctag" style="background:#0f3d7a;cursor:pointer" onclick="SEQR=${l.n};SEQT='ech';renderSeq()">🔥 Déplacements + ${routinesFor(l.n).length} routine(s)</span>${teach?l.crit.map(ctag).join(''):''}</div>
-   ${(l.temps||[]).map((t,k)=>tempsHtml(t,teach,l,k)).join('')}
+   ${(l.temps||[]).map((t,k)=>{const h=tempsHtml(t,teach,l,k);/* 27/11/2026 : côté enseignant, un temps à la fois (catégories « Temps 1 · Temps 2… ») */return teach&&(l.temps||[]).length>1?h.replace(/^\s*<div /,`<div data-sec="Temps ${k+1}" `):h}).join('')}
    ${teach?`<div class="row" style="margin-top:8px">
      <button class="btn ${l.faite?'alt':''} sm" onclick="lecSet(${i},'faite',${!l.faite})">${l.faite?'Annuler « faite »':'✓ Faite'}</button>
      <button class="btn or sm" onclick="prepOpen('${l.id}')">⚡ Préparer</button>
@@ -2426,10 +2427,22 @@ function lecHtml(l,i,teach){
      <button class="btn alt sm" onclick="lecDup(${i})">Dupliquer</button><button class="btn red sm" onclick="lecDel(${i})">Supprimer</button></div>`:''}</div>`}
 function seqLecons(){
   const L=SEQ().lecons,nf=L.filter(l=>l.faite).length,np=L.filter(l=>l.prop).length;
-  return `${refBanner()}${wizBanner()}${prepHtml()}${indSwitch()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
-    <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="window.EPSLC?EPSLC.open('lec'):addLecon()">+ Leçon</button></div></div>
-    <p class="muted" style="margin:6px 0 0">${S.voie==='pro'?'Les 7 leçons reprennent tes fiches de Terminale pro (leçon 7 : CCF).':'Leçons 1 et 2 reprises de tes fiches ; leçons 3 à 8 proposées à partir de ton projet de séquence (en vert clair : à garder, modifier ou supprimer).'} Chaque temps peut être relié à une situation du terrain : « ▶ Lancer » ouvre directement le scoring. Tout est partagé entre tes tablettes.</p></div>
-  ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):(SEQOPEN[l.id]===1||(l.n===lessonNow()&&SEQOPEN[l.id]!==-1))?`<div class="lecwrap"><button class="lecfold" title="Replier" onclick="SEQOPEN['${l.id}']=-1;renderSeq()">▴</button>${lecHtml(l,i,true)}</div>`:lecRow(l,i)).join('')}`}
+  const sel=seqSel(),k=L.findIndex(l=>l.id===sel),cur=L[k];
+  return `${wizBanner()}${prepHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="ctag ptag">${np} proposition(s) à valider</span>`:''}</div>
+    <div class="row"><button class="btn sm" onclick="window.EPSLC?EPSLC.open('lec'):addLecon()">📝 Mes fiches de leçon</button><button class="btn alt sm" onclick="window.EPSLC&&EPSLC.open('docs')">📥 Importer</button><button class="btn alt sm" onclick="printSeq()">📄 PDF</button></div></div></div>
+  ${cur?`<div class="card" style="display:flex;gap:8px;align-items:center"><button class="btn alt" aria-label="Leçon précédente" ${k<=0?'disabled':''} onclick="seqGo(-1)">‹</button><button class="btn" style="flex:1;min-height:48px;justify-content:space-between;background:var(--vol)" onclick="seqPick()"><span style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Leçon ${cur.n} · ${esc(cur.titre)}</span><span style="flex:none;margin-left:10px">${k+1}/${L.length} ▾</span></button><button class="btn alt" aria-label="Leçon suivante" ${k>=L.length-1?'disabled':''} onclick="seqGo(1)">›</button></div>
+  ${SEQEDIT===cur.id?lecEdit(cur,k):lecHtml(cur,k,true)}`:''}`}
+/* 27/11/2026 (demande de l'enseignant : toutes les leçons étaient visibles) : une seule leçon à l'écran ; ‹ › ou la fenêtre « Quelle leçon ? » pour en changer.
+   Par défaut : la leçon en cours de modification, sinon celle du jour (lessonNow), sinon la première qui n'est pas faite. */
+let SEQSEL=null;
+function seqSel(){const L=SEQ().lecons||[];if(SEQEDIT&&L.some(l=>l.id===SEQEDIT))return SEQSEL=SEQEDIT;if(SEQSEL&&L.some(l=>l.id===SEQSEL))return SEQSEL;const l=L.find(x=>x.n===lessonNow())||L.find(x=>!x.faite)||L[L.length-1];return SEQSEL=l?l.id:null}
+function seqGo(d){const L=SEQ().lecons||[],k=L.findIndex(l=>l.id===seqSel()),l=L[k+d];if(l){SEQSEL=l.id;SEQEDIT=null;renderSeq()}}
+function badPopClose(){const o=document.getElementById('badpop');if(o)o.remove()}
+function badPop(titre,inner){badPopClose();const o=document.createElement('div');o.id='badpop';o.className='badpop';o.setAttribute('role','dialog');o.setAttribute('aria-label',titre);
+  o.innerHTML=`<div><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">${esc(titre)}</h2><button class="btn alt" onclick="badPopClose()">✕ Fermer</button></div>${inner}</div>`;
+  o.addEventListener('click',e=>{if(e.target===o)badPopClose()});document.body.appendChild(o)}
+function seqPick(){const L=SEQ().lecons||[],sel=seqSel();
+  badPop('Quelle leçon ?',`<div style="display:grid;gap:8px">${L.map((l,i)=>`<button class="btn ${l.id===sel?'':'alt'}" style="justify-content:space-between;min-height:50px;text-align:left${l.id===sel?';background:var(--vol)':''}" onclick="SEQSEL=SEQ().lecons[${i}].id;SEQEDIT=null;badPopClose();renderSeq()"><span>Leçon ${l.n} · ${esc(l.titre)}</span><span>${l.faite?'✓ faite':l.prop?'proposition':''}</span></button>`).join('')}</div>`)}
 let SEQOPEN={};
 function lecRow(l,i){const pre=(l.temps||[]).map(t=>t.pre).filter(id=>id&&preById(id));
   return `<button class="lecrow ${l.faite?'done':''} ${l.prop?'prop':''}" onclick="SEQOPEN['${l.id}']=1;renderSeq()"><span class="ln">${l.n}</span><span class="tt"><b>${esc(l.titre)}</b><small>${esc(l.obj)}</small></span>
@@ -2476,14 +2489,14 @@ function showFull(what){const f=document.getElementById('full');
   f.innerHTML=what==='img'?'<img src="echauffement-deplacements.webp" alt="">':what==='rout'?'<div style="padding:16px;width:100%">'+routHtml(SEQR||lessonNow())+'</div>':'';f.classList.add('on')}
 function seqEch(){
   const c=C(),d=today(),n=SEQR||lessonNow(),RR=routinesFor(n),all=SEQ().routines||[];
-  return `<div class="card"><h2>Routine d'échauffement badminton</h2><p class="muted">1. Déplacements badiste (5 min, schéma affiché) · 2. Routines d'échanges, enrichies au fil de la séquence. Dès la leçon 3, les élèves la mènent en autonomie (AFL2). Touche « Afficher en grand » pour la montrer.</p></div>
-  <div class="card">${deplHtml()}<label class="l">Texte des déplacements</label><textarea rows="3" onchange="SEQ().echTxt=this.value;save();toast('Enregistré')">${esc(SEQ().echTxt||ECH_TXT)}</textarea></div>
-  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Routines d'échanges</h2>
+  return `<div class="card" data-sec="🔥 Routine"><h2>Routine d'échauffement badminton</h2><p class="muted">1. Déplacements badiste (5 min, schéma affiché) · 2. Routines d'échanges, enrichies au fil de la séquence. Dès la leçon 3, les élèves la mènent en autonomie (AFL2). Touche « Afficher en grand » pour la montrer.</p></div>
+  <div class="card" data-sec="🔥 Routine">${deplHtml()}<label class="l">Texte des déplacements</label><textarea rows="3" onchange="SEQ().echTxt=this.value;save();toast('Enregistré')">${esc(SEQ().echTxt||ECH_TXT)}</textarea></div>
+  <div class="card" data-sec="🔁 Échanges"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Routines d'échanges</h2>
      <div class="row"><label class="muted" style="font-weight:700">Leçon</label><select class="f" style="width:auto" onchange="SEQR=+this.value;renderSeq()">${SEQ().lecons.map(l=>`<option value="${l.n}" ${l.n===n?'selected':''}>${l.n}. ${esc(l.titre)}</option>`).join('')}</select>
      <button class="btn sm" onclick="showFull('rout')">⛶ Afficher en grand</button></div></div>
    <div style="margin-top:8px">${routHtml(n)}</div></div>
-  <div class="card"><h2>Partenaire en or (à partir de la leçon 2)</h2><label class="l">Consignes (une par ligne)</label><textarea rows="4" onchange="SEQ().or=lines(this.value);save();toast('Enregistré')">${esc((SEQ().or||[]).join('\n'))}</textarea></div>
-  <div class="card"><h2>Routines de la séquence</h2>
+  <div class="card" data-sec="🤝 Partenaire en or"><h2>Partenaire en or (à partir de la leçon 2)</h2><label class="l">Consignes (une par ligne)</label><textarea rows="4" onchange="SEQ().or=lines(this.value);save();toast('Enregistré')">${esc((SEQ().or||[]).join('\n'))}</textarea></div>
+  <div class="card" data-sec="📋 Routines de la séquence"><h2>Routines de la séquence</h2>
    <p class="muted">Leçons 1 et 2 : tes routines. À partir de la leçon 3 : propositions (en vert clair) liées aux contenus de chaque leçon. Change la leçon d'ajout, les consignes, ajoutes-en.</p>
    ${all.map((r,k)=>`<div class="bcrit" ${r.prop?'style="background:#f1faf8"':''}><div class="g2"><div><label class="l">Routine ${r.prop?'<span class="ctag ptag">Proposition</span>':''}</label><input type="text" value="${esc(r.nom)}" onchange="routSet(${k},'nom',this.value)"></div>
      <div><label class="l">Ajoutée en leçon</label><input type="number" min="1" value="${r.lec}" onchange="routSet(${k},'lec',+this.value)"></div>
@@ -2491,7 +2504,7 @@ function seqEch(){
      <label class="l">Consignes (une par ligne)</label><textarea rows="2" onchange="routSet(${k},'cons',lines(this.value))">${esc(r.cons.join('\n'))}</textarea>
      <div class="row" style="margin-top:6px">${r.prop?`<button class="btn alt sm" onclick="routSet(${k},'prop',false)">👍 Garder</button>`:''}<button class="btn red sm" onclick="routDel(${k})">Supprimer</button></div></div>`).join('')}
    <button class="btn" onclick="routAdd()">+ Routine</button></div>
-  <div class="card"><h2>Routine renforcée par chaque élève · ${esc(c.nom)} · aujourd'hui</h2>
+  <div class="card" data-sec="📋 Routines de la séquence"><h2>Routine renforcée par chaque élève · ${esc(c.nom)} · aujourd'hui</h2>
    <p class="muted">Facultatif : quand un élève insiste sur une routine parce qu'il en a besoin, note-la. Ses choix apparaissent dans sa fiche, sous le critère ${S.voie==='pro'?'AFLP3':'AFL2'}.</p>
    ${c.eleves.length?`<div class="elist">${c.eleves.map((e,i)=>{const v=(e.rout||{})[d];return `<div class="erow" style="flex-wrap:wrap"><span class="nm">${esc(fullName(e))}<br><small class="muted" style="font-weight:400">${routTxt(e)||'aucun relevé'}</small></span>
      ${RR.map(r=>`<button class="btn sm" style="background:${v===r.id?r.c:'#e8eef6'};color:${v===r.id?'#fff':'var(--navy)'}" onclick="setRout(${i},'${r.id}')">${esc(r.nom)}</button>`).join('')}</div>`}).join('')}</div>`:'<p class="muted">Aucun élève dans cette classe.</p>'}</div>`}
@@ -2537,14 +2550,14 @@ function techReset(){if(!confirm('Remettre les fiches proposées ? Tes fiches aj
 function seqAfl(){
   const L=SEQ().lecons,cs=B().criteres,Q=SEQ();
   const AFL=isLP()||S.voie==='pro'?AFL_LP:AFL_GT,keys=[...new Set(Object.keys(AFL).filter(a=>cs.some(c=>c.afl===a)||/^AFL\d$/.test(a)))];
-  return `<div class="card"><h2>Compétence de fin de séquence (CA4)</h2><textarea rows="4" onchange="SEQ().comp=this.value;save();toast('Enregistré')">${esc(Q.comp)}</textarea></div>
-  ${Q.axes?`<div class="card"><h2>Axes de transformation prioritaires</h2>${[['mot','Moteur'],['meth','Méthodologique'],['soc','Social']].map(([k,n])=>`<label class="l">${n}</label><textarea rows="2" onchange="SEQ().axes.${k}=this.value;save()">${esc(Q.axes[k]||'')}</textarea>`).join('')}
+  return indSwitch()+`<div class="card" data-sec="Compétence"><h2>Compétence de fin de séquence (CA4)</h2><textarea rows="4" onchange="SEQ().comp=this.value;save();toast('Enregistré')">${esc(Q.comp)}</textarea></div>
+  ${Q.axes?`<div class="card" data-sec="Compétence"><h2>Axes de transformation prioritaires</h2>${[['mot','Moteur'],['meth','Méthodologique'],['soc','Social']].map(([k,n])=>`<label class="l">${n}</label><textarea rows="2" onchange="SEQ().axes.${k}=this.value;save()">${esc(Q.axes[k]||'')}</textarea>`).join('')}
    <label class="l">Démarche d'enseignement (une par ligne)</label><textarea rows="5" onchange="SEQ().demarche=lines(this.value);save()">${esc((Q.demarche||[]).join('\n'))}</textarea></div>`:''}
-  ${Q.duree?`<div class="card"><b>Temps de pratique :</b> ${esc(Q.duree)}</div>`:''}<div class="card"><h2>Les ${keys.length} ${S.voie==='pro'?'AFLP':'AFL'} et tes critères</h2>
+  ${Q.duree?`<div class="card" data-sec="Compétence"><b>Temps de pratique :</b> ${esc(Q.duree)}</div>`:''}<div class="card" data-sec="AFL et critères"><h2>Les ${keys.length} ${S.voie==='pro'?'AFLP':'AFL'} et tes critères</h2>
    ${keys.map(a=>{const cc=cs.filter(c=>c.afl===a);return `<div style="margin-bottom:12px"><span class="ctag ${aflCls(a)}">${a}</span> <i>${AFL[a]}</i>
      <ul style="margin:6px 0">${cc.map(c=>{const ls=L.filter(l=>l.crit.includes(c.id));return `<li><b>${esc(c.nom)}</b> (${fr(B().mode==='perso'?c.pts:maxPts(c,null))} pts) — travaillé en leçon${ls.length>1?'s':''} ${ls.map(l=>l.n).join(', ')||'<span style="color:var(--d1)">aucune</span>'}</li>`}).join('')||'<li class="muted">Aucun critère</li>'}</ul></div>`}).join('')}</div>
-  ${Q.evalAflp?`<div class="card"><h2>Évaluation des AFLP : ce qui est observé</h2>${Object.entries(Q.evalAflp).map(([k,v])=>`<b>${esc(k)}</b><ul style="margin:4px 0 10px">${v.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`).join('')}</div>`:''}
-  <div class="card"><h2>Où chaque critère est travaillé</h2><div class="tw"><table class="mx"><tr><th>Leçon</th>${cs.map(c=>`<th>${esc(c.nom)}<br><small>${c.afl}</small></th>`).join('')}</tr>
+  ${Q.evalAflp?`<div class="card" data-sec="AFL et critères"><h2>Évaluation des AFLP : ce qui est observé</h2>${Object.entries(Q.evalAflp).map(([k,v])=>`<b>${esc(k)}</b><ul style="margin:4px 0 10px">${v.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`).join('')}</div>`:''}
+  <div class="card" data-sec="Où c'est travaillé"><h2>Où chaque critère est travaillé</h2><div class="tw"><table class="mx"><tr><th>Leçon</th>${cs.map(c=>`<th>${esc(c.nom)}<br><small>${c.afl}</small></th>`).join('')}</tr>
    ${L.map(l=>`<tr><td>${l.n}. ${esc(l.titre)}${l.prop?' <small style="color:var(--vol)">(prop.)</small>':''}</td>${cs.map(c=>l.crit.includes(c.id)?'<td class="y">●</td>':'<td></td>').join('')}</tr>`).join('')}</table></div>
    ${cs.filter(c=>L.filter(l=>l.crit.includes(c.id)).length<3).map(c=>`<div class="warn">« ${esc(c.nom)} » n'est travaillé que dans ${L.filter(l=>l.crit.includes(c.id)).length} leçon(s).</div>`).join('')}</div>`}
 function seqIdees(){
@@ -2958,27 +2971,27 @@ function importBackup(inp){const f=inp.files[0];if(!f)return;const r=new FileRea
 function renderBareme(){
   const b=B(),sum=b.criteres.reduce((s,c)=>s+(+c.pts||0),0),cnt=a=>b.criteres.filter(c=>c.afl===a).length,lp=isLP(),offOk=lp?(cnt('AFLP1')+cnt('AFLP2'))&&lpOthers().length===2:cnt('AFL1')&&cnt('AFL2')&&cnt('AFL3');
   document.getElementById('t-bareme').innerHTML=`
-  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Grille de la voie : ${VOIES[S.voie]}</h2>${uiSw()}</div>
+  <div class="card" data-sec="Notation"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Grille de la voie : ${VOIES[S.voie]}</h2>${uiSw()}</div>
    <p class="muted">Le bouton « Lycée général / Lycée pro » en haut change de grille, de séquence et de classes. Charge une grille prête, puis modifie-la librement : elle est partagée entre tes tablettes.</p>
    <div class="row">${S.voie==='pro'?`<button class="btn ${b.grille==='lp'?'':'alt'}" onclick="loadGrille('lp')">📙 Terminale pro (ta grille AFLP)</button>`:`<button class="btn ${b.grille==='tleg'?'':'alt'}" onclick="loadGrille('tleg')">📘 Terminale générale (proposée)</button>`}<button class="btn ${b.grille==='origine'?'':'alt'}" onclick="loadGrille('origine')">📗 Grille d'origine (Additio, 4 × 25 %)</button></div>
    ${b.grille==='tleg'?`<div class="ok">Grille Terminale générale : ta grille d'origine a été recentrée sur le référentiel CA4 du lycée. L'AFL1 (12 pts) a deux éléments, « actions techniques d'attaque et de défense » et « choix au regard du rapport de force », comme dans les repères nationaux (chacun noté au moins sur 4 pts). L'AFL2 et l'AFL3 se partagent 8 pts au choix de l'élève. Les textes reprennent ta séquence : service qui crée le danger, volant favorable, zones de marque, coach et statistiques, partenaire en or. L'option « matchs gagnés » est activée : la note est ajustée selon les oppositions gagnées.</div>`:''}
    ${b.grille==='lp'?`<div class="ok">Ta grille Terminale pro : AFLP1 30 %, AFLP2 30 %, AFLP3 20 %, AFLP4 20 % (6 + 6 + 4 + 4 pts). Le mode officiel donne 12 pts à l'AFLP1 et l'AFLP2, et 8 pts à l'AFLP3 et l'AFLP4 selon le choix de l'élève (4-4, 6-2, 2-6).</div>`:''}</div>
-  <div class="card"><h2>Mode de notation</h2>
+  <div class="card" data-sec="Notation"><h2>Mode de notation</h2>
     <div class="seg"><button class="${b.mode==='perso'?'on':''}" onclick="setB('mode','perso')">Mon barème (points par critère)</button><button class="${b.mode==='officiel'?'on':''}" onclick="setB('mode','officiel')">${lp?'Officiel LP : AFLP1-AFLP2 /12 + 2 AFLP /8':'Officiel CA4 : AFL1 /12 + AFL2-AFL3 /8'}</button></div>
     ${b.mode==='perso'?`<p class="muted">Chaque critère vaut le nombre de points indiqué ; la note est ramenée sur 20.</p>${Math.abs(sum-20)>0.001?`<div class="warn">Total actuel : ${fr(sum)} pts — la note sera ramenée sur 20.</div>`:`<div class="ok">Total : 20 pts ✓</div>`}`
       :`<p class="muted">${lp?`Les critères AFLP1 et AFLP2 se partagent 12 pts ; les deux autres AFLP (${lpOthers().join(' et ')||'—'}) se partagent 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.`:'Les critères AFL1 se partagent 12 pts ; les critères AFL2 et AFL3 se partagent 8 pts selon le choix de chaque élève (4-4, 6-2, 2-6), à saisir dans sa fiche.'}</p>${offOk?'':`<div class="warn">${lp?'Il faut des critères AFLP1 ou AFLP2, et exactement deux autres AFLP.':'Il faut au moins un critère AFL1, un AFL2 et un AFL3.'}</div>`}`}
     <div class="g4 adv" style="margin-top:10px"><div><label class="l">Pas du curseur (pt)</label><select class="f" onchange="setB('pas',+this.value)">${[0.1,0.25,0.5].map(v=>`<option value="${v}" ${b.pas==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
       <div><label class="l">Arrondi de la note /20</label><select class="f" onchange="setB('arrondi',+this.value)">${[0.1,0.25,0.5,1].map(v=>`<option value="${v}" ${b.arrondi==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div></div></div>
-  <div class="card"><div class="opt ${precMode()!=='off'?'on':''}"><div class="row" style="justify-content:space-between"><b>Évaluation précise de l'AFL1</b>${precSw()}</div>
+  <div class="card" data-sec="Options"><div class="opt ${precMode()!=='off'?'on':''}"><div class="row" style="justify-content:space-between"><b>Évaluation précise de l'AFL1</b>${precSw()}</div>
     <p class="muted"><b>Observables :</b> pour chaque élément, 3 observables simples par degré (dont un chiffré, proposé d'après les matchs). Le degré atteint est le plus haut où au moins 2 cases sur 3 sont cochées, les degrés du dessous étant validés.<br><b>3 critères 1-2-3 :</b> frappes, zones, replacement / construction, adaptation, risque ; total sur 9 → degré (3-4 D1, 5-6 D2, 7-8 D3, 9 D4).</p></div></div>
-  <div class="card"><div class="opt ${b.optMatchs?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optMatchs?'checked':''} onchange="setB('optMatchs',this.checked)" style="width:22px;height:22px"><b>Ajuster l'AFL1 selon les matchs gagnés</b></label>
+  <div class="card" data-sec="Options"><div class="opt ${b.optMatchs?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optMatchs?'checked':''} onchange="setB('optMatchs',this.checked)" style="width:22px;height:22px"><b>Ajuster l'AFL1 selon les matchs gagnés</b></label>
     <p class="muted">Les matchs saisis sur le terrain (toutes tablettes) sont comptés automatiquement. Une fois le degré choisi, le curseur des critères AFL1 se place selon la part de matchs gagnés (nul = ½) : 0 % en bas du degré, 100 % en haut. Tu peux toujours le déplacer à la main.</p></div></div>
-  <div class="card adv"><h2>Degrés et bornes (en % des points du critère)</h2><div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
+  <div class="card adv" data-sec="Degrés"><h2>Degrés et bornes (en % des points du critère)</h2><div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
       <label class="l">Degré ${i+1}</label><input type="text" value="${esc(d)}" onchange="B().degres[${i}]=this.value;save()">
       <label class="l">Version élève</label><input type="text" value="${esc((b.degresEl||[])[i]||'')}" onchange="B().degresEl[${i}]=this.value;save()">
       <div class="row" style="margin-top:6px;flex-wrap:nowrap"><input type="number" min="0" max="100" value="${b.bandes[i][0]}" onchange="setBand(${i},0,this.value)"> à <input type="number" min="0" max="100" value="${b.bandes[i][1]}" onchange="setBand(${i},1,this.value)"> %</div></div>`).join('')}</div></div>
-  <div class="card essonly"><h2>Critères</h2><div class="elist">${b.criteres.map(c=>`<div class="erow"><span class="nm">${esc(c.nom)}</span><span class="tag">${esc(c.afl)}</span>${b.mode==='perso'?`<span class="muted">${fr(+c.pts||0)} pts</span>`:''}</div>`).join('')}</div><p class="muted">Pour modifier les textes des critères, les degrés et les bornes, passe en mode <button class="btn alt sm" onclick="setUI('exp')">Expert</button>.</p></div>
-  <div class="card adv"><h2>Critères</h2>${b.criteres.map((c,k)=>`<div class="bcrit">
+  <div class="card essonly" data-sec="Critères"><h2>Critères</h2><div class="elist">${b.criteres.map(c=>`<div class="erow"><span class="nm">${esc(c.nom)}</span><span class="tag">${esc(c.afl)}</span>${b.mode==='perso'?`<span class="muted">${fr(+c.pts||0)} pts</span>`:''}</div>`).join('')}</div><p class="muted">Pour modifier les textes des critères, les degrés et les bornes, passe en mode <button class="btn alt sm" onclick="setUI('exp')">Expert</button>.</p></div>
+  <div class="card adv" data-sec="Critères"><h2>Critères</h2>${b.criteres.map((c,k)=>`<div class="bcrit">
       <div class="g2"><div><label class="l">Critère</label><input type="text" value="${esc(c.nom)}" onchange="setC(${k},'nom',this.value)"></div>
         <div><label class="l">AFL</label><select class="f" onchange="setC(${k},'afl',this.value,true)">${(S.voie==='pro'?['AFLP1','AFLP2','AFLP3','AFLP4','AFLP5','AFLP6']:['AFL1','AFL2','AFL3']).map(a=>`<option ${c.afl===a?'selected':''}>${a}</option>`).join('')}</select></div>
         <div><label class="l">Points ${b.mode==='officiel'?'(mode perso)':''}</label><input type="number" step="0.5" min="0" value="${c.pts}" onchange="setC(${k},'pts',+this.value,true)"></div></div>
@@ -3006,17 +3019,17 @@ function renderBilan(){
   const dates=[...new Set(matchesOf(c).map(m=>m.date))].sort().reverse();if(!BDATE||!dates.includes(BDATE))BDATE=dates[0]||'';
   const crit=B().criteres.map(cr=>{const cnt=[0,0,0,0];c.eleves.forEach(e=>{const v=e.ev&&e.ev[cr.id];if(!isAbs(e)&&v&&v.d!=null)cnt[v.d]++});return{cr,cnt,t:cnt.reduce((a,b)=>a+b,0)||1}});
   document.getElementById('t-bilan').innerHTML=`
-  <div class="card"><h2>Bilans de leçon · ${esc(c.nom)}</h2>
+  <div class="card" data-sec="🗜 Bilans de leçon"><h2>Bilans de leçon · ${esc(c.nom)}</h2>
    <p class="muted">Un bilan par élève pour la leçon choisie : matchs et scores, araignée du profil de jeu, carte des points marqués, exercices, routine renforcée et un conseil. Fichier .zip à décompresser, puis à publier élève par élève sur Pronote.</p>
    ${dates.length?`<div class="row"><select class="f" style="width:auto" onchange="BDATE=this.value">${dates.map(d=>`<option value="${d}" ${d===BDATE?'selected':''}>Leçon du ${dateFR(d)}</option>`).join('')}</select>
      <button class="btn or" onclick="zipLecon()">🗜 Bilans de la leçon (.zip)</button><button class="btn alt" onclick="printLecon()">📄 PDF (impression)</button></div>`:'<p class="muted">Aucun match saisi pour cette classe.</p>'}</div>
-  <div class="card"><h2>Évaluation · ${esc(c.nom)}</h2>
+  <div class="card" data-sec="📈 Évaluation"><h2>Évaluation · ${esc(c.nom)}</h2>
    <div class="row"><button class="btn or" onclick="printPDF('classe')">📄 PDF : notes + statistiques</button><button class="btn" onclick="printPDF('fiches')">📄 PDF : fiches individuelles</button><button class="btn alt" onclick="exportCSV()">⬇ Tableur (.csv)</button><button class="btn alt" onclick="zipEval()">🗜 Fiches d'évaluation (.zip)</button></div>
    <div class="row" style="margin-top:10px"><b style="color:var(--navy)">Langage des fiches élèves :</b><div class="seg"><button class="${B().langFiche!=='prof'?'on':''}" onclick="B().langFiche='eleve';save();renderBilan()">Version élève</button><button class="${B().langFiche==='prof'?'on':''}" onclick="B().langFiche='prof';save();renderBilan()">Version enseignant</button></div></div>
    <div class="stats" style="margin-top:12px"><div class="stat"><b>${moy!=null?fr(Math.round(moy*100)/100):'–'}</b><span>Moyenne /20</span></div><div class="stat"><b>${notes.length?fr(Math.min(...notes)):'–'}</b><span>Min.</span></div><div class="stat"><b>${notes.length?fr(Math.max(...notes)):'–'}</b><span>Max.</span></div><div class="stat"><b>${ev.length}/${c.eleves.length}</b><span>Élèves notés</span></div></div>
    <h3>Répartition des degrés</h3><div class="legend">${B().degres.map((d,i)=>`<span><i class="bg${i+1}"></i>D${i+1} ${esc(d)}</span>`).join('')}</div>
    ${crit.map(x=>`<div><b>${esc(x.cr.nom)}</b> <span class="tag">${x.cr.afl}</span><div class="bar">${x.cnt.map((n,i)=>n?`<div class="bg${i+1}" style="width:${n/x.t*100}%">${n}</div>`:'').join('')}</div></div>`).join('')}</div>
-  <div class="card"><h2>Notes</h2><div class="tw">${tableHtml(c)}</div></div><div id="evb-bilan">${EVB?EVB.exportsHtml()+EVB.card(c):''}</div>`;
+  <div class="card" data-sec="📊 Notes" data-sec-open><h2>Notes</h2><div class="tw">${tableHtml(c)}</div></div><div id="evb-bilan" data-sec="🧪 Mes épreuves">${EVB?EVB.exportsHtml()+EVB.card(c):''}</div>`;
   if(EVB){const R=document.getElementById('evb-bilan');EVB.bindExports(R,c);EVB.bindCard(R,c)}
 }
 function tableHtml(c){const b=B(),afls=aflList();

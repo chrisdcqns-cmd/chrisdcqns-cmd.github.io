@@ -2,6 +2,7 @@
    À tenir à jour quand une appli gagne ou perd une fonction (voir CLAUDE.md). */
 window.EPS_GUIDES = {
   commun: [
+    ["Catégories à l'écran", "Les écrans chargés sont rangés par catégories : une rangée de boutons (par exemple Export · Auto-positionnement · Statistiques · Notes) et un seul bloc affiché à la fois. Les actions d'un onglet sont regroupées de la même façon : 📖 Leçon, 🖥 Terrain, 📊 Suivi. Les explications longues sont raccourcies : touche ⓘ pour lire la suite."],
     ["📍 Leçon (1er onglet)", "L'espace enseignant s'ouvre sur la leçon du jour de la classe : une seule leçon à l'écran, avec ▶ Lancer la leçon (ou 📡 Piloter), 👁 Vue élève, 🔁 Changer de leçon et 📝 Fiche. La classe et la leçon se changent dans une petite fenêtre. En dessous : Groupes, Tablette de contrôle, Planche tactique, Évaluer la leçon."],
     ["👁 Vue élève sur la classe fictive", "L'onglet Vue élève montre l'appli comme un élève, avec la classe fictive et une leçon prête. « 👥 Classe ▾ » passe à une vraie classe, « ↺ Début » repart de l'arrivée de l'élève. Les élèves ne voient jamais la classe fictive sur leur tablette."],
     ["Barre du haut allégée", "Il reste 🎙, 🔄, ⌂ Accueil et ⋯. La pastille du 🔄 dit tout : verte = à jour et synchronisé, orange = envois en attente, rouge fixe = partage en panne, rouge clignotant = nouvelle version. ⋯ ouvre : synchroniser, planche tactique, signal, tablettes, vue d'ensemble, recherche, contraste, partage."],

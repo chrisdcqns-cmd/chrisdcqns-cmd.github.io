@@ -1425,10 +1425,10 @@ function panneauCarnets(el){
   const noms=[...new Set(P.concat(Object.keys(parEl)))];
   el.innerHTML = `<h2>📄 Bilans</h2><p class="mut">Carnets d'entraînement (AFL2) puis évaluation : fiches PDF, .zip, Pronote, bilans en ligne.</p>
     <div class="epse-row" style="margin-bottom:10px"><select id="bilC" class="epst-b">${C.map(c=>`<option ${c.nom===S.bilC?"selected":""}>${h(c.nom)}</option>`).join("")}</select></div>
-    <div class="carte" style="overflow:auto"><b>📒 Carnets · ${h(S.bilC)}</b> <span class="petit doux">${W.length} WOD terminé(s)</span>
+    <div class="carte" data-sec="📒 Carnets" data-sec-open style="overflow:auto"><b>📒 Carnets · ${h(S.bilC)}</b> <span class="petit doux">${W.length} WOD terminé(s)</span>
     <table class="rapport" style="margin-top:8px"><tr><th>Élève</th><th class="c">WOD</th><th>Dernier</th><th class="c">Ressenti</th><th>Analyse</th></tr>
     ${noms.map(n=>{ const L=(parEl[n]||[]).sort((a,b)=>b.u-a.u), d=L[0]; return `<tr><td>${h(n)}</td><td class="c ${L.length?"ok":"ko"}">${L.length}</td><td>${d?dateFR(d.date)+" · "+THEMES[d.wod.theme].nom+" · "+h(d.res.score):"—"}</td><td class="c">${d?d.res.rpe+"/10":"—"}</td><td class="petit">${d&&d.res.comm?h(d.res.comm):""}</td></tr>`; }).join("")}</table></div>
-    <div id="bil-ev"></div>`;
+    <div id="bil-ev" data-sec="📋 Évaluation"></div>`;
   el.querySelector("#bilC").onchange=e=>{ S.bilC=e.target.value; panneauCarnets(el); };
   if(window.EVCT) EVCT.mount(el.querySelector("#bil-ev"),["bilan"],S.bilC);
 }

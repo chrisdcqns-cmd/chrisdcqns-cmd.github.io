@@ -2695,12 +2695,12 @@ function rBilan() {
     <div class="card st"><small>Auto-positionnements reçus</small><b>${nAuto}</b></div>
     <div class="card st"><small>Fiches d'observation</small><b>${S.obs.filter(o => o.classeId === cl.id).length}</b></div>
   </div>
-  <div class="card">
+  <div class="card" data-sec="📈 Répartition">
     <h3>Répartition dans les degrés</h3>
     ${S.criteres.map((c, i) => { const r = repart[i]; const t = r.reduce((a, b) => a + b, 0) || 1; return `<div class="rep"><span>${esc(c.court)}</span><div class="bar">${r.map((v, k) => v ? `<i style="width:${v / t * 100}%;background:${DEG_COL[k]}" title="Degré ${k + 1} : ${v}">${v}</i>` : '').join('')}</div></div>`; }).join('')}
     <div class="leg">${[1, 2, 3, 4].map(d => `<span><i style="background:${DEG_COL[d - 1]}"></i>Degré ${d}</span>`).join('')}</div>
   </div>
-  <div class="card">
+  <div class="card" data-sec="📤 Exports">
     <div class="row wrap"><h3>Exports</h3><span class="grow"></span>
       <button class="btn primary" id="xZip">Bilans élèves (ZIP de PDF)</button>
       <button class="btn" id="xRecap">Récapitulatif classe (PDF)</button>
@@ -2710,7 +2710,7 @@ function rBilan() {
     <h4>Lien d'auto-positionnement sur les bilans</h4>
     ${autoCtlHTML()}
   </div>
-  <div class="card tblw"><table class="tbl"><thead><tr><th>Élève</th><th>Groupe</th>${S.criteres.map(c => `<th>${esc(c.court)}<small>/${fmt(c.poids)}</small></th>`).join('')}<th>/20</th><th>Auto</th><th></th></tr></thead>
+  <div class="card tblw" data-sec="📊 Notes" data-sec-open><table class="tbl"><thead><tr><th>Élève</th><th>Groupe</th>${S.criteres.map(c => `<th>${esc(c.court)}<small>/${fmt(c.poids)}</small></th>`).join('')}<th>/20</th><th>Auto</th><th></th></tr></thead>
   <tbody>${el.map(e => {
     const g = groupeDe(cl, e); const n = note(e);
     return `<tr><td><b>${esc(e.nom)}</b> ${esc(e.prenom || '')}</td><td>${g ? esc(g.nom) : ''}</td>
@@ -2739,7 +2739,7 @@ function rClasse() {
     <label class="inl">Classe <select id="cSel">${S.classes.map(c => `<option value="${c.id}" ${c.id === cl.id ? 'selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></label>
     <button class="btn" id="cNew">+ Nouvelle classe</button><button class="btn" id="cRen">Renommer</button><button class="btn ghost danger-t" id="cDel">Supprimer la classe</button>
   </div>
-  <div class="cgrid">
+  <div class="cgrid" data-sec="📥 Listes et groupes">
     <section class="card">
       <h3>Importer une liste d'élèves</h3>
       <p class="muted">Colle la liste (une ligne par élève). Formats acceptés : <code>NOM Prénom</code> · <code>NOM;Prénom</code> · <code>NOM;Prénom;Groupe</code> (CSV ou copier-coller Pronote).</p>
@@ -2754,7 +2754,7 @@ function rClasse() {
       <div class="row"><button class="btn" id="gAdd">+ Ajouter un groupe</button></div>
     </section>
   </div>
-  <section class="card">
+  <section class="card" data-sec="👥 Élèves" data-sec-open>
     <div class="row wrap"><h3>Élèves (${cl.eleves.length})</h3><span class="grow"></span><button class="btn" id="eAdd">+ Ajouter un élève</button></div>
     <div class="tblw"><table class="tbl"><thead><tr><th>Nom</th><th>Prénom</th><th>Groupe</th><th></th></tr></thead><tbody>
     ${trierEleves(cl.eleves).map(e => `<tr data-e="${e.id}"><td><input class="eN" value="${esc(e.nom)}"></td><td><input class="eP" value="${esc(e.prenom || '')}"></td>
@@ -2762,7 +2762,7 @@ function rClasse() {
       <td><button class="x" data-dele="${e.id}" aria-label="Supprimer">×</button></td></tr>`).join('')}
     </tbody></table></div>
   </section>
-  <section class="card lien">
+  <section class="card lien" data-sec="🙋 Auto-positionnement">
     <h3>Auto-positionnement des élèves</h3>
     ${autoCtlHTML()}
     <div class="lgrid">
@@ -3135,7 +3135,7 @@ function bindVerif() {
 function rReglages() {
   const R = S.reglages; const V = $('#view'); const EG = entG();
   V.innerHTML = verifHTML() + `
-  <div class="cgrid">
+  <div class="cgrid" data-sec="📄 PDF et barème">
   <section class="card" id="rHead">
     <h3>En-tête des PDF</h3>
     ${EG.commun ? `<p class="muted">Établissement et enseignant : <b>${esc([EG.etab, EG.prof].filter(Boolean).join(' · '))}</b><br>À modifier dans ⚙️ Réglages, sur l'accueil des applications EPS (mode enseignant).</p>` : `<label>Établissement<input data-r="etab" value="${esc(R.etab)}" placeholder="Lycée …"></label>
@@ -3171,7 +3171,7 @@ function rReglages() {
     <label>Arrondi de la note /20<select id="rArr">${[0.01, 0.1, 0.25, 0.5, 1].map(v => `<option value="${v}" ${+R.arrondi === v ? 'selected' : ''}>${v === 0.01 ? 'au centième' : 'à ' + fmt(v) + ' pt'}</option>`).join('')}</select></label>
   </section>
   </div>
-  <section class="card">
+  <section class="card" data-sec="✏️ Grille">
     <h3>Textes de la grille</h3>
     <p class="muted">Modifie librement les descripteurs (enseignant et élève). Les évaluations déjà saisies sont conservées.</p>
     ${S.criteres.map((c, i) => `<details class="edit"><summary><b>${esc(c.court)}</b> — ${esc(c.titre)}</summary>
@@ -3180,12 +3180,12 @@ function rReglages() {
       ${[0, 1, 2, 3].map(d => `<div class="two"><label>Degré ${d + 1} — enseignant<textarea rows="3" data-t="${i}" data-k="d" data-d="${d}">${esc(c.d[d])}</textarea></label><label>Degré ${d + 1} — élève<textarea rows="3" data-t="${i}" data-k="e" data-d="${d}">${esc(c.e[d])}</textarea></label></div>`).join('')}<button class="btn" type="button" style="margin:6px 0" onclick="window.EPSD&&EPSD.versionEleve(this,S.criteres[${i}].d,document.querySelectorAll('[data-t=&quot;${i}&quot;][data-k=&quot;e&quot;]'),v=>{S.criteres[${i}].e=v;save()})">✨ Proposer la version élève</button>
     </details>`).join('')}
   </section>
-  <section class="card">
+  <section class="card" data-sec="🔄 Synchronisation">
     <h3>Synchronisation entre tes appareils</h3>
     <p class="envoi ${etatSynchro().ok ? 'ok' : ''}" id="rSyEtat">${esc(etatSynchro().t)}</p>
     <div class="row wrap"><button class="btn" id="rSyGo" ${communCfg() ? '' : 'disabled'}>⟳ Synchroniser maintenant</button><span class="muted" id="rSyRes"></span></div>
   </section>
-  <section class="card row wrap">
+  <section class="card row wrap" data-sec="💾 Sauvegarde">
     <h3>Sauvegarde</h3><span class="grow"></span>
     <button class="btn" id="rSave">Exporter mes données (.json)</button>
     <label class="btn"><input type="file" id="rLoad" accept=".json,application/json" hidden>Restaurer…</label>
