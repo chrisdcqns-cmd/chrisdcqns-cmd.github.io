@@ -24,6 +24,7 @@ async def main():
             if app == "badminton": await p.evaluate("(function(){var c=C();c.groupes=c.groupes||{};['A','B','C','D','E','F'].forEach(function(n,i){c.groupes['g'+i]={id:'g'+i,nom:'Groupe '+n,el:[]}});terrAuto()})()"); await p.wait_for_timeout(500)
             r = await p.evaluate("(function(){var g=document.querySelector('.epsct'),T=[].slice.call(document.querySelectorAll('.epsct-t'));return {n:T.length,cl:g?g.className:'',noms:T.map(function(t){return t.querySelector('.epsct-h').childNodes[0].textContent.trim()}),call:T.filter(function(t){return t.classList.contains('call')}).map(function(t){return t.innerText}).join('|'),pos:T.map(function(t){var q=t.getBoundingClientRect();return [Math.round(q.left),Math.round(q.top),Math.round(q.width),Math.round(q.height)]}),lc:!!(document.getElementById('lc-ctl')&&document.getElementById('lc-ctl').style.display!=='none'),ap:document.querySelectorAll('[data-eps-appels] [data-eps-call]').length}})()")
             out.append((app + " : %d terrains numérotés, disposition « %s », dans l'écran de l'appli" % (n, dispo), r["n"] == n and dispo in r["cl"] and not r["lc"] and all(("Terrain %d" % (i + 1)) in r["noms"][i] for i in range(n)), r))
+            nbg = await p.evaluate("document.querySelectorAll('.epsct-t.sp > svg.epsct-bg').length"); out.append((app + " : tracé du terrain en fond de chaque terrain", nbg >= n, nbg))
             out.append((app + " : l'appel est en tête et sur le terrain 2 (motif affiché)", r["ap"] == 1 and "Terrain 2" in r["call"] and "bloqué" in r["call"], r["call"]))
             if app == "badminton":
                 P = r["pos"]; out.append(("badminton : 2 terrains de chaque côté en parallèle (1-2 à gauche, 4-5 à droite), le 3 au centre et à la verticale", P[0][0] == P[1][0] and P[3][0] == P[4][0] and P[0][0] < P[2][0] < P[3][0] and P[0][1] == P[3][1] and P[2][3] > P[2][2] and P[0][2] > P[0][3], P))
@@ -32,7 +33,7 @@ async def main():
             if app == "volley":
                 P = r["pos"]; out.append(("volley : 3 terrains à la verticale, côte à côte, de même taille", P[0][1] == P[1][1] == P[2][1] and P[0][0] < P[1][0] < P[2][0] and all(q[3] > q[2] and q[2] == P[0][2] and q[3] == P[0][3] for q in P), P))
             if app == "basket":
-                P = r["pos"]; out.append(("basket : 2 terrains côte à côte", P[0][1] == P[1][1] and P[0][0] < P[1][0], P))
+                P = r["pos"]; out.append(("basket : 2 terrains côte à côte, de même taille, aux proportions d'un terrain de basket (28 × 15)", P[0][1] == P[1][1] and P[0][0] < P[1][0] and P[0][2] == P[1][2] and abs(P[0][2] / P[0][3] - 28 / 15) < 0.06, P))
             if SHOTS: await p.screenshot(path=os.path.join(SHOTS, "terrains-" + app + ".png"))
             await p.click("[data-eps-call]"); await p.wait_for_timeout(500)
             st = await p.evaluate("JSON.parse(localStorage.getItem('eps.sig.v1')).items['call|x1'].st"); out.append((app + " : « J'y vais » pris en compte depuis cet écran", st == 1, st))

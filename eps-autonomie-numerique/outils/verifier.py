@@ -73,7 +73,7 @@ REPERES = {
     "eps-lecons.js": ["window.epsCtlAlerts", "function ctlDet(", "ctl_inactif_min", "Pilotage de leçon", "function icoPop(", "function gNom(", "EPSD.trash.keep(", "if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
     "escalade/index.html": ["window.epsCtlOwn=", "window.epsTabInfo=", ".ccard.blink", "EPSD.appels.html('escalade')"],
     "danse/index.html": ["Demande à ton enseignant de créer les groupes.", "SY.c[k] = { u: SY.p[k]", "function P01(", "P01(au.pos)", "P01(sel.pos)", "P01(x.pos)", "EPSG_Q", "UI.mode"],
-    "volley/index.html": ["pd.n=(pd.n||0)+1", "function jsq(", "confirm(&quot;Changer l'équipe", "EPSG.sheet(", "window.epsCtlOwn=", "EPSD.courts({dispo:'vert'"],
+    "volley/index.html": ["pd.n=(pd.n||0)+1", "function jsq(", "confirm(&quot;Changer l'équipe", "EPSG.sheet(", "window.epsCtlOwn=", "EPSD.courts({dispo:'vert',sport:'volley'"],
     "badminton/index.html": ["pd.n=(pd.n||0)+1", "EPSG.sheet(", "Fiches techniques", "window.epsCtlOwn=", "dispo:tn===5?'bad5':'ligne'"],
     "acrosport/index.html": ["EPSG.sheet(", "Array.isArray(def)!==Array.isArray(p)", "const autres="],
     "crosstraining/index.html": ["function panneauClasses(", "Array.isArray(f.exercices)"],
