@@ -69,7 +69,7 @@ for p in list(B.glob("*/index.html")) + [B / "index.html"]:
         pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
 REPERES = {
     "co-eval/index.html": ["function profCorr(", "function noteDetail(", "cr.temps === \"in\"", "REPL = {", "function code4(", "function vPwd(", "header .epsb{", "openProf(inConsole", "retb\" data-nolive", "const pnClasses = ", "data-pn="],
-    "console/index.html": ["window.epsConsoleOk", "function codeAsk(", "function pTransfert(", "function xUnpack(", "data-live", "doit être un nombre", "if (sm) sm.textContent", "Séquences terminées", 'id="seqan"'],
+    "console/index.html": ["window.epsConsoleOk", "function codeAsk(", "function pTransfert(", "function xUnpack(", "data-live", "doit être un nombre", "if (sm) sm.textContent", "Séquences terminées", 'id="seqan"', "function merge(fr)", "epsc-x"],
     "eps-lists.js": ["set: function (id, val)", "EPS_NOLIVE", "eps-nolive-css", "typeof def === \"number\" && (typeof o.v !== \"number\"", "eps-console-css", "window.EPS_CONSOLE = true", "#eps-callb:not("],
     "eps-eval.js": ["function rapide(", "function srcCfg(", "M.csv = function", "epse-col", "data-g-exp", 'jx.kind === "evaluation"', "function pnOpen(", "pronote: pnOpen", ".epse-ged textarea", "function gridFor(", "function coAdd(", "function coEdit(", "function coEleve(", "n !== P.moi", "J'observe un camarade"],
     "orientation/index.html": ["console ordinateur (cadre"],

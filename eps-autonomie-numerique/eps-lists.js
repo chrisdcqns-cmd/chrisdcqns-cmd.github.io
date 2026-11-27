@@ -338,7 +338,10 @@ window.epsApChip = function (o) {
     /* la console sert à configurer (demande de l'enseignant, 27/11/2026) : rien du mode élève n'y apparaît. Les boutons qui font passer la
        tablette en mode élève (quitter le mode prof, verrouiller, mode élève) et le bouton élève « ✋ Enseignant » y sont masqués (pas la pastille « ✋ N » des appels reçus) ; l'élève se voit
        seulement dans l'onglet 👁 Vue élève (cadre ?vue=eleve, qui ne porte pas html.eps-console). */
-    C + ' button[onclick="quitT()"],' + C + " .lockbtn," + C + ' button[onclick="lockApp()"],' + C + " #bLock," + C + ' #eps-callb:not([title="Appels des élèves"]),' + C + " #profHome{display:none!important}"; /* la pastille « ✋ N » des appels reçus (côté enseignant) reste */
+    C + ' button[onclick="quitT()"],' + C + ' button[onclick="toTerrain()"],' + C + ' button[onclick="lockApp()"],' + C + " #bLock," + C + ' #eps-callb:not([title="Appels des élèves"]),' + C + " #profHome{display:none!important}"; /* la pastille « ✋ N » des appels reçus (côté enseignant) reste */
+  /* une seule barre dans la console (27/11/2026) : la barre de l'appli reçoit aussi les boutons de la console, elle reste sur une ligne */
+  st.textContent += "@media (min-width:1100px){" + C + "[data-eps-dir=badminton] header .top{flex-wrap:nowrap;gap:6px}" + C + "[data-eps-dir=badminton] header .top h1{min-width:0;flex:0 1 auto;margin-right:auto;white-space:nowrap;overflow:hidden}" + C + "[data-eps-dir=badminton] header .top h1 small{display:none}" + C + "[data-eps-dir=badminton] header .top select{min-width:0;max-width:140px}" +
+    C + "[data-eps-dir=volley] header h1{white-space:nowrap}" + C + " [data-eps-bar] .epsb{padding:0 9px!important}}";
   window.EPS_CONSOLE = true;
   (document.head || H).appendChild(st);
 })();

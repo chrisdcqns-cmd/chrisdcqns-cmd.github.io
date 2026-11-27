@@ -41,6 +41,8 @@ main{overflow:auto;display:flex;flex-direction:column;min-width:0}
 .top h1{font-size:19px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top .tb{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:none;color:#D5D8DE;font:700 14px system-ui;padding:0 12px;cursor:pointer;white-space:nowrap}
 #app.inapp .top [data-eps-bar]{display:none!important}
+/* une seule barre (27/11/2026) : appli ouverte → les boutons de la console passent dans la barre de l'appli, la barre de la console disparaît */
+#app.inapp.merged .top{display:none}#app.inapp.merged .pg.full iframe{min-height:100vh}
 .top .tb.on{background:var(--app);border-color:var(--app);color:#fff}
 .pg{padding:18px 22px 40px;max-width:1800px;width:100%}
 .pg.full{padding:0;max-width:none;flex:1;display:flex}
@@ -240,9 +242,43 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
     if (m) { pg.className = "pg full"; $("#ttl").textContent = NAMES[cur.app] || cur.app; pg.innerHTML = '<iframe title="' + esc(NAMES[cur.app]) + '" src="../' + cur.app + '/?console=1" allow="clipboard-write; microphone; camera; geolocation"></iframe>';
       $("#tact").innerHTML = '<a class="tb" style="display:inline-flex;align-items:center;text-decoration:none" href="../' + cur.app + '/" target="_blank" rel="noopener">↗ Ouvrir dans un onglet</a><button class="tb" type="button" data-rl aria-label="Recharger l\'appli">↻ Recharger</button>'; $("#app").classList.add("inapp");
       $("[data-rl]").onclick = function () { pg.querySelector("iframe").src = pg.querySelector("iframe").src; };
+      merge(pg.querySelector("iframe"));
       return; }
     var S = SECTIONS.filter(function (x) { return x[0] === s; })[0] || SECTIONS[0]; $("#ttl").textContent = S[1] + " " + S[2];
     ({ accueil: pAccueil, journee: pJournee, annee: pAnnee, mesclasses: pMesClasses, lecons: pLecons, classes: pClasses, groupes: pGroupes, params: pParams, transfert: pTransfert, tablettes: pTablettes, demandes: pDemandes, perso: pPerso }[S[0]] || pAccueil)(pg);
+  }
+  /* ===== Une seule barre (demande de l'enseignant, 27/11/2026 : « l'onglet Badminton, et en dessous à nouveau l'onglet Badminton ») =====
+     Quand une appli est ouverte, ses boutons de console (☰ menu, ↗ ouvrir dans un onglet, ↻ recharger, 🤖 Claude) sont posés dans la barre de
+     l'appli (juste avant son emplacement commun [data-eps-bar], sinon [data-eps-upd-slot]) et la barre de la console est masquée : rien n'est
+     perdu. Si l'appli n'a pas de barre visible (écran plein écran, outil sans barre), la barre de la console revient d'elle-même. */
+  var MT = null;
+  function merge(fr) {
+    clearInterval(MT); $("#app").classList.remove("merged");
+    var lum = function (el, w) { for (; el && el.nodeType === 1; el = el.parentElement) { var c = w.getComputedStyle(el).backgroundColor.match(/[\d.]+/g); if (c && (c.length < 4 || +c[3] > 0.5)) return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255; } return 1; };
+    function tick() {
+      if (!fr.isConnected || !cur.app) { clearInterval(MT); $("#app").classList.remove("merged"); return; }
+      var d, w; try { d = fr.contentDocument; w = fr.contentWindow; } catch (e) { return; } if (!d || !d.body) return;
+      var vis = function (e) { if (!e || !e.isConnected) return false; var r = e.getBoundingClientRect(), st = w.getComputedStyle(e); return r.bottom > 0 && r.top < 140 && st.visibility !== "hidden" && !!(e.offsetParent || st.position === "fixed"); };
+      var x = d.getElementById("epsc-x");
+      if (!(x && vis(x.parentElement) && x.parentElement.getBoundingClientRect().height > 0 && x.getBoundingClientRect().width > 0)) {
+        var S = Array.prototype.filter.call(d.querySelectorAll("[data-eps-bar],[data-eps-upd-slot],#eps-upd"), vis)[0];
+        if (x) x.remove(); x = null;
+        if (S && S.parentNode) {
+          if (!d.getElementById("epsc-css")) { var st = d.createElement("style"); st.id = "epsc-css";
+            st.textContent = "#epsc-x{display:inline-flex;gap:6px;align-items:center;flex:none}#epsc-x button{height:40px;min-width:38px;padding:0 8px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 15px system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}#epsc-x button.on{background:#4F46E5;border-color:#4F46E5;color:#fff}#epsc-x.cl button{border-color:#D8D3C7;color:#14171C}#epsc-x i{font-style:normal}@media print{#epsc-x{display:none}}";
+            d.head.appendChild(st); }
+          x = d.createElement("span"); x.id = "epsc-x"; x.setAttribute("data-eps-a11y-h", "0");
+          x.innerHTML = '<button type="button" data-c="nav" title="Menu de la console" aria-label="Menu de la console">☰</button><button type="button" data-c="tab" title="Ouvrir l\'appli dans un onglet" aria-label="Ouvrir dans un onglet">↗</button><button type="button" data-c="rl" title="Recharger l\'appli" aria-label="Recharger l\'appli">↻</button><button type="button" data-c="ai" title="Assistant Claude" aria-label="Assistant Claude">🤖</button>';
+          if (lum(S.parentNode, w) > 0.6) x.className = "cl";
+          S.parentNode.insertBefore(x, S);
+          x.addEventListener("click", function (e) { var b = e.target.closest("[data-c]"); if (!b) return; var c = b.dataset.c;
+            if (c === "nav") $("#navT").click(); else if (c === "tab") window.open("../" + cur.app + "/", "_blank", "noopener"); else if (c === "rl") fr.src = fr.src; else if (c === "ai") $("#aiBtn").click(); });
+        }
+      }
+      if (x) { var ai = x.querySelector('[data-c="ai"]'); ai.classList.toggle("on", $("#app").classList.contains("ai-on")); }
+      $("#app").classList.toggle("merged", !!x);
+    }
+    MT = setInterval(tick, 500); fr.addEventListener("load", tick);
   }
   window.addEventListener("hashchange", function () { var s = location.hash.slice(1); if (s && s !== (cur.app ? "app:" + cur.app : cur.s)) go(s); });
 
