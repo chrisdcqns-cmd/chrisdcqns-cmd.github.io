@@ -653,6 +653,10 @@ body.eteach .ebar .es{display:block}
 
 .vnote{font-size:13px;color:#A9AEB8;text-align:center;margin:0}
 /* tableau de bord en direct */
+.fe .bstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px}.fe .bstats div{background:var(--soft);border-radius:12px;padding:10px 12px}
+.fe .bstats b{display:block;font-size:22px;font-weight:900}.fe .bstats span{font-size:13px;color:var(--muted)}.fe h3{margin:18px 0 0;font-size:17px}.fe h3 small{font-weight:600;color:var(--muted)}
+.fe .evrec{margin-top:8px;font-size:16px}.fe .evrec td{padding:9px 10px}.fe .pos{color:#2E7D4F;font-weight:800}.fe .neg{color:#C0392B;font-weight:800}
+.fe .zt{display:inline-block;padding:2px 9px;border-radius:999px;color:#fff;font-weight:800;font-size:13px;white-space:nowrap}
 .lvctl{padding:10px 12px;margin-top:6px}.lvctl .r{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.lvctl .r+.r{margin-top:10px;padding-top:10px;border-top:1.5px solid var(--line)}
 .lvctl button{min-height:44px;padding:0 14px;border-radius:12px;border:2px solid var(--line);background:#fff;font:inherit;font-weight:800;font-size:15px;cursor:pointer;color:var(--ink,#14171C)}
 .lvctl button.on{background:#D9481F;border-color:#D9481F;color:#fff}.lvctl button.go{background:#2E7D4F;border-color:#2E7D4F;color:#fff}.lvctl button.end{border-color:#C0392B;color:#C0392B;margin-left:auto}
@@ -1063,6 +1067,13 @@ body.eteach .ebar .es{display:block}
   </div>
   <div class="card"><div class="label">Qui es-tu ?</div><div class="evnames" id="au-names"></div></div>
   <div id="au-body"></div>
+</section>
+
+<!-- FICHE ÉLÈVE : toutes ses courses et ses performances (enseignant) -->
+<section class="view" id="v-eleve">
+  <div class="top"><button class="back" id="fe-back">Retour</button><h2>Fiche élève · <span class="cname"></span></h2></div>
+  <div class="card"><div class="label">Élève</div><div class="evnames" id="fe-names"></div></div>
+  <div id="fe-body"></div>
 </section>
 
 <!-- VITESSES -->
@@ -1549,9 +1560,9 @@ $("#lkChange").addEventListener("click",async()=>{
 });
 
 /* ===== Navigation ===== */
-const VIEWS=["seq","classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto","dispo","sits","live"];
+const VIEWS=["seq","eleve","classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto","dispo","sits","live"];
 /* Espace enseignant : ces écrans demandent le code */
-const TEACH_VIEWS=["seq","classes","import","lecons","bilan","eval","live"];
+const TEACH_VIEWS=["seq","eleve","classes","import","lecons","bilan","eval","live"];
 let GO_AFTER=null;
 /* Onglet Bilans : ouvre le bilan de la dernière leçon qui a des courses (sinon la dernière leçon passée) au lieu de retomber sur « Leçons » ;
    aucune leçon : le bilan de l'évaluation. Sans classe choisie : comme pour l'évaluation (seule classe, sinon on la demande). */
@@ -1572,7 +1583,7 @@ function seqClose(){clearTimeout(SEQ_T);if(!SEQ_ON)return;SEQ_ON=false;try{if(wi
 /* RL_LB : résultats d'une leçon ouverts depuis Évaluer → « Bilan des leçons (courses) » (l'onglet Évaluer reste allumé) ; sinon ils font partie de 👥 Classe */
 var RL_LB=0;
 function go(v){
-  if(v!=="eval")RL_BIL=0;if(v!=="bilan")RL_LB=0; /* « Bilan et export » ne vaut que pour l'écran d'où on l'a ouvert */
+  if(v!=="eval")RL_BIL=0;if(v!=="bilan")RL_LB=0;if(v!=="eleve")FE_BACK=null; /* « Bilan et export » ne vaut que pour l'écran d'où on l'a ouvert */
   if(TEACH_VIEWS.includes(v)&&!teachOn()){requireCode().then(ok=>{if(ok)go(v)});return}
   if(v==="wait"){showWait();return}
   /* Évaluation : accessible sans leçon ouverte (elle porte sur toute la séquence). Sans classe choisie : la seule classe est prise d'office,
@@ -1591,6 +1602,7 @@ function go(v){
   try{history.replaceState(null,"",v==="classes"?location.pathname:"#"+v)}catch(e){}
   if(v==="classes"){renderClasses();updLock()}
   if(v==="seq")seqOpen();
+  if(v==="eleve"){renderClassAll();renderFiche()}
   if(v==="import")resetImport();
   if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto","live"].includes(v))renderClassAll();
   if(v==="auto"){AU_SEL=null;renderAuto()}
@@ -2885,6 +2897,52 @@ function evCourses(e){
     (c.courses||[]).forEach(co=>{if(!is(co.i1,co.p1,co.n1)&&!is(co.i2,co.p2,co.n2))return;if(co.cid){if(seen.has(co.cid))return;seen.add(co.cid)}
       const d=evCoDay(c,co);if(d)out.push({c:co,date:d})})});
   return out}
+/* 👤 Fiche élève (demande de l'enseignant, 27/11/2026 : « sélectionner une classe, un élève et avoir un récapitulatif de toutes ses courses et de
+   ses performances », pour vérifier ce qu'affiche l'évaluation) : vue v-eleve, depuis 👥 Classe → Fiche élève ou « 🔎 Toutes ses courses » de
+   l'évaluation (FE_BACK="eval"). Mêmes courses que l'évaluation (evCourses), sans rien cacher : comptes bruts, puis ce que l'évaluation en déduit. */
+let FE_SEL=null,FE_BACK=null;
+function renderFiche(){
+  const C=CL();if(!C)return;const L=EL().slice().sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
+  if(FE_SEL!=null&&!L.some(e=>e.id===FE_SEL))FE_SEL=null;
+  $("#fe-back").textContent=FE_BACK==="eval"?"← Évaluation":"← Classe";
+  $("#fe-names").innerHTML=L.map(e=>`<button data-fe="${e.id}" class="${FE_SEL===e.id?"on":""}">${esc(e.prenom)} <small>${esc(e.nom?e.nom[0]+".":"")}</small></button>`).join("")||`<span class="note">Aucun élève</span>`;
+  const e=FE_SEL!=null?byId(FE_SEL):null,box=$("#fe-body");
+  if(!e){box.innerHTML=`<div class="card mt empty-msg">Touche un élève : ses vitesses, toutes ses courses leçon par leçon, et le calcul de l'évaluation.</div>`;return}
+  const sc=EV_SCOPE;EV_SCOPE="all";const s=evStats(e);EV_SCOPE=sc;
+  const mine=evCourses(e).sort((a,b)=>b.date.localeCompare(a.date)||(b.c.n||0)-(a.c.n||0)),k=ekey(e);
+  const isD=c=>c.i1===e.id||(c.i2!==e.id&&ekey({prenom:c.p1,nom:c.n1})===k);
+  const tr=a=>(a||[]).filter(v=>typeof v==="number").map(v=>fmt(v)).join(" · ")||"–",sp=v=>typeof v==="number"?fmt(v)+" km/h":"–";
+  const ec=mine.map(x=>x.c.ecart).filter(v=>typeof v==="number"),zs=mine.map(x=>x.c.zone).filter(z=>typeof z==="string"&&z&&z!==NR);
+  const nD=mine.filter(x=>isD(x.c)).length,over=ec.filter(v=>v>0).length,reach=ec.filter(v=>v>=0).length,inz=zs.filter(z=>z!==HZ).length,z100=zs.filter(z=>z==="Zone 100").length;
+  const ZC={"Zone 100":"#2E7D4F","Zone 10":"#8BC34A","Zone 1":"#EF9F27"};ZC[HZ]="#C0392B";
+  const zt=z=>typeof z==="string"&&z&&z!==NR?`<span class="zt" style="background:${ZC[z]||"#8A8F98"}">${esc(z)}</span>`:"–";
+  let h=`<div class="card mt fe"><div class="label" style="font-size:22px">${esc(e.prenom)} ${esc(e.nom)}${e.ma==="DISP"?' <span class="flag">dispensé</span>':""}</div>
+    <h3>⏱ Vitesses <small>· prise de performances</small></h3>
+    <div class="bstats"><div><b>${sp(e.ma)}</b><span>départ arrêté · essais : ${tr(e.ea)}</span></div><div><b>${sp(e.ml)}</b><span>départ lancé · essais : ${tr(e.el)}</span></div></div>
+    <h3>🏃 Ses courses <small>· ${mine.length} course${mine.length>1?"s":""} sur ${new Set(mine.map(x=>x.date)).size} leçon${new Set(mine.map(x=>x.date)).size>1?"s":""}</small></h3>`;
+  if(!mine.length)h+=`<p class="note">Aucune course enregistrée au nom de ${esc(e.prenom)}.</p></div>`;
+  else{
+    h+=`<div class="bstats"><div><b>${nD} · ${mine.length-nD}</b><span>donneur · receveur</span></div>
+      <div><b>${ec.length?over+" / "+ec.length:"–"}</b><span>cible dépassée${ec.length?" ("+pc(over/ec.length)+")":""}</span></div>
+      <div><b>${ec.length?reach+" / "+ec.length:"–"}</b><span>cible atteinte ou dépassée${ec.length?" ("+pc(reach/ec.length)+")":""}</span></div>
+      <div><b>${ec.length?sgn(ec.reduce((a,b)=>a+b,0)/ec.length)+" km/h":"–"}</b><span>écart moyen à la cible</span></div>
+      <div><b>${zs.length?inz+" / "+zs.length:"–"}</b><span>dans la zone${zs.length?" ("+pc(inz/zs.length)+")":""}</span></div>
+      <div><b>${zs.length?z100+" / "+zs.length:"–"}</b><span>en Zone 100${zs.length?" ("+pc(z100/zs.length)+")":""}</span></div></div>`;
+    if(s.perf||s.trans)h+=`<h3>📋 Ce que l'évaluation en déduit <small>· les dernières leçons comptent plus (coefficient ${s.les.map(l=>"×"+l.k).join(", ")})</small></h3>
+      <ul class="evsugg" style="margin:8px 0 0;padding:0 0 0 20px;font-size:16px;border:0;background:none">${s.perf?`<li><span class="dg d${s.perf}">${s.perf}</span> <b>Performance : degré ${s.perf}</b> — ${s.perfWhy}</li>`:""}${s.trans?`<li><span class="dg d${s.trans}">${s.trans}</span> <b>Transmission : degré ${s.trans}</b> — ${s.transWhy}</li>`:""}</ul>`;
+    [...new Set(mine.map(x=>x.date))].forEach(d=>{const M=mine.filter(x=>x.date===d),le=s.les.find(l=>l.date===d);
+      h+=`<h3>📅 ${cap(fmtLong(d))} <small>· ${M.length} course${M.length>1?"s":""}${le?" · coefficient ×"+le.k:""}</small></h3>
+        <div class="scroll"><table class="evrec"><thead><tr><th class="n">N°</th><th>Rôle</th><th>Avec</th><th class="n">Cible</th><th class="n">Écart</th><th class="n">Réalisé</th><th class="n">Zone</th><th class="n">Marque</th></tr></thead><tbody>`
+        +M.map(x=>{const c=x.c,d1=isD(c),v=typeof c.ecart==="number";
+          return `<tr><td class="n">${c.n||"–"}${c.heure?`<br><small style="color:var(--muted)">${esc(c.heure)}</small>`:""}</td><td><b>${d1?"Donneur":"Receveur"}</b></td><td>${esc(d1?c.p2:c.p1)} <small>${esc(((d1?c.n2:c.n1)||"")[0]||"")}${(d1?c.n2:c.n1)?".":""}</small></td>
+            <td class="n">${typeof c.cible==="number"?fmt(c.cible):"–"}</td><td class="n ${v?(c.ecart>=0?"pos":"neg"):""}">${v?sgn(c.ecart):"–"}</td><td class="n">${typeof c.realise==="number"?fmt(c.realise):"–"}</td><td class="n">${zt(c.zone)}</td><td class="n">${typeof c.pm==="number"?c.pm:"–"}</td></tr>`}).join("")+`</tbody></table></div>`});
+    h+=`</div>`}
+  box.innerHTML=h;
+}
+document.addEventListener("click",ev=>{
+  const a=ev.target.closest("#fe-names [data-fe]");if(a){FE_SEL=+a.dataset.fe;renderFiche();$("#fe-body").scrollIntoView({behavior:"smooth",block:"start"});return}
+  const g=ev.target.closest("[data-fego]");if(g){FE_SEL=+g.dataset.fego;const fb=viewNow()==="eval"?"eval":null;go("eleve");FE_BACK=fb;renderFiche();return}
+  if(ev.target.closest("#fe-back")){if(FE_BACK==="eval"){RL_BIL=0;go("eval")}else go(CL()?"lecons":"classes")}});
 function evStats(e){
   const mine=evCourses(e),all=new Set(mine.map(x=>x.date));
   evClsSame().forEach(c=>(c.courses||[]).forEach(co=>{const d=evCoDay(c,co);if(d)all.add(d)}));
@@ -2923,7 +2981,7 @@ function evStatsHTML(e,s){
   h+=`<div><b>Transmission</b>${s.pIn!=null?`<div class="evbig">${pc(s.pIn)}</div>dans la zone de transmission ${badge(s.pIn)}<small>en Zone 100 : ${pc(s.pZ100)}</small>`:`<small>zone non renseignée</small>`}</div></div>`;
   h+=`<table class="evrec evles"><thead><tr><th>Leçon</th><th class="n">Coef.</th><th class="n">Courses</th><th class="n">Cible dépassée</th><th class="n">Dans la zone</th><th class="n">Zone 100</th></tr></thead><tbody>`
     +s.les.slice().reverse().map(l=>`<tr><td>${fmtShort(l.date)}</td><td class="n">×${l.k}</td><td class="n">${l.n}</td><td class="n">${l.ne?l.over+" / "+l.ne:"–"}</td><td class="n">${l.nz?l.inz+" / "+l.nz:"–"}</td><td class="n">${l.nz?l.z100+" / "+l.nz:"–"}</td></tr>`).join("")
-    +`</tbody></table><p class="evrs" style="margin-top:6px">${s.scope==="all"?"Pourcentages pondérés par les coefficients. ":""}Degré 4 si ≥ 70 % (cible dépassée / Zone 100), degré 3 si ≥ 70 % (cible atteinte / dans la zone). Mise en projet et Vivre les rôles restent à ton appréciation.</p></div>`;
+    +`</tbody></table><p style="margin:10px 0 0"><button class="btn ghost sm" data-fego="${e.id}">🔎 Toutes ses courses, une par une</button></p><p class="evrs" style="margin-top:6px">${s.scope==="all"?"Pourcentages pondérés par les coefficients. ":""}Degré 4 si ≥ 70 % (cible dépassée / Zone 100), degré 3 si ≥ 70 % (cible atteinte / dans la zone). Mise en projet et Vivre les rôles restent à ton appréciation.</p></div>`;
   return h;
 }
 function evNamesHTML(list,sel,mark){
@@ -3878,7 +3936,7 @@ function syRefresh(){
     if(!CL()){if(!teachOn())showWait();else go("classes");return}
     if(["groupes","home","course","auto"].includes(v)&&!CLE()){if(!teachOn())startStudent();else go("lecons");return} /* pas « live » (📡 Suivi), pas « eval » : l'évaluation n'a pas besoin de leçon ouverte */
     if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto","live"].includes(v))renderClassAll();
-    if(v==="live")renderLive();if(v==="lecons")renderLecons();if(v==="perf")renderPerf();if(v==="bilan")renderBilan();if(v==="eval")renderEval();if(v==="auto")renderAuto();
+    if(v==="eleve")renderFiche();if(v==="live")renderLive();if(v==="lecons")renderLecons();if(v==="perf")renderPerf();if(v==="bilan")renderBilan();if(v==="eval")renderEval();if(v==="auto")renderAuto();
     if(v==="course")try{renderGoalReminder()}catch(e){}
   }catch(e){}
 }
@@ -4484,14 +4542,18 @@ document.addEventListener("click",e=>{
   const a=e.target.closest("[data-remscope]");if(a){REM_SCOPE=a.dataset.remscope;renderRem();return}
   const b=e.target.closest("[data-remshow]");if(b){REM_SHOW=b.dataset.remshow;renderRem();return}
   const j=e.target.closest("[data-remj]");if(j){const J=remJ(),k=j.dataset.k;J[k]=J[k]===j.dataset.remj?undefined:j.dataset.remj;if(!J[k])delete J[k];persist();renderRem()}});
+/* ▶ Leçon du jour / ⏱ Courses (bug signalé par l'enseignant, 27/11/2026 : « il m'amène vers Classe ») : la leçon d'aujourd'hui s'ouvre d'elle-même ;
+   s'il n'y en a pas encore (ou pas de classe choisie), on arrive sur 📡 Suivi et son bouton « Démarrer la leçon », jamais sur la préparation de la classe. */
+function goJour(v){const C=CL();if(C&&!CLE()){const l=(C.lecons||[]).find(x=>x.date===todayISO());if(l){DATA.lecon=l.id;ensureLeconGroups(l);persist()}}
+  if(CL()&&CLE())go(v);else{go("live");if(CL())toast("Pas encore de leçon aujourd'hui : démarre-la ici")}}
 window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
  /* Onglets (demande de l'enseignant, 27/11/2026) : 📅 Séquence = fiches de leçon communes (plus une classe) ; 👥 Classe = vue générale de toutes
     les classes, puis la préparation de la classe choisie (leçons, vitesses, groupes), jamais directement le tableau des vitesses. */
- tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course'].includes(viewNow()),actions:[{main:1,ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')}]},
-  eval:{go:()=>{RL_BIL=0;go('eval')},on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>{RL_BIL=0;go('eval')}},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}],
+ tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course'].includes(viewNow()),actions:[{main:1,ico:'▶',label:'Leçon du jour',go:()=>goJour('home')},{ico:'⏱',label:'Courses',go:()=>goJour('course')}]},
+  eval:{go:()=>{RL_BIL=0;go('eval')},on:()=>['eval','auto'].includes(viewNow())||(viewNow()==='eleve'&&FE_BACK==='eval'),actions:[{ico:'📋',label:'Évaluer',go:()=>{RL_BIL=0;go('eval')}},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}],
   /* 📤 Bilan et export (onglet Évaluer) : le bilan de l'évaluation (chiffres, PDF, .zip, Pronote) ; le bilan des leçons (courses) en action à côté */
   bilan:{go:()=>{RL_BIL=1;if(!CL()&&DATA.classes.length===1){DATA.cur=DATA.classes[0].id;persist()}go('eval')},on:()=>(viewNow()==='bilan'&&!!RL_LB)||(viewNow()==='eval'&&RL_BIL),actions:[{ico:'🏃',label:'Bilan des leçons (courses)',main:1,go:()=>{RL_BIL=0;RL_LB=1;goBilans()}}]}},
-  cls:{go:()=>go('classes'),on:()=>['classes','import','lecons','perf','liste','groupes'].includes(viewNow())||(viewNow()==='bilan'&&!RL_LB),actions:[{ico:'🏫',label:'Toutes les classes',go:()=>go('classes')},{ico:'📅',label:'Préparation',go:()=>go('lecons')},{ico:'⏱',label:'Vitesses',go:()=>go('liste')},{ico:'🔀',label:'Groupes',go:()=>go('groupes')}]},
+  cls:{go:()=>go('classes'),on:()=>['classes','import','lecons','perf','liste','groupes'].includes(viewNow())||(viewNow()==='bilan'&&!RL_LB)||(viewNow()==='eleve'&&FE_BACK!=='eval'),actions:[{ico:'🏫',label:'Toutes les classes',go:()=>go('classes')},{ico:'📅',label:'Préparation',go:()=>go('lecons')},{ico:'👤',label:'Fiche élève',go:()=>go('eleve')},{ico:'⏱',label:'Vitesses',go:()=>go('liste')},{ico:'🔀',label:'Groupes',go:()=>go('groupes')}]},
   bil:{go:()=>goBilans(),on:()=>false}},
  biblio:[{ico:'📐',label:'Dispositif',sub:'Zones, plots, témoin',go:()=>{DISPO_BACK='lecons';go('dispo')}},{ico:'📚',label:'Situations',sub:'Situations d\'apprentissage',go:()=>{SITS_BACK='lecons';SIT_OPEN=null;go('sits')}}]}):null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
