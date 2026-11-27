@@ -46,6 +46,16 @@
   .score { font-size: 48px; font-weight: 900; text-align: center; margin: 6px 0; }
   #st { position: fixed; left: 0; right: 0; bottom: 0; background: #14171C; color: #fff; font-size: 14px; font-weight: 700; text-align: center; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  /* ---- Mode ordinateur : la liste passe sur 2 colonnes, les vues détail restent sur 1 ---- */
+  @media (min-width: 880px) {
+    main { max-width: 900px; }
+    #login { max-width: 560px; margin-left: auto; margin-right: auto; }
+    #res:has(.tabs) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; align-items: start; }
+    #res:has(.tabs) .tabs { grid-column: 1 / -1; margin: 0 0 4px; }
+    #res:has(.tabs) > .card { grid-column: 1 / -1; }
+    #res:has(.tabs) .tk, #res:has(.tabs) .act { margin: 0; }
+  }
 </style>
 </head>
 <body>
@@ -185,6 +195,49 @@
     res.querySelectorAll("[data-c]").forEach(function (b) { b.onclick = function () { if (R.pick >= 0) return; R.pick = +b.dataset.c; R.a[R.i] = R.pick; draw(); }; });
     var n = $("qn"); if (n) n.onclick = function () { R.pick = -1; if (R.i + 1 < R.L.length) R.i++; else { R.done = true; var s = R.L.reduce(function (m, q2, i) { return m + (R.a[i] === q2.ok ? 1 : 0); }, 0), old = ME.quiz[R.id]; ME.quiz[R.id] = { s: s, n: R.L.length, a: R.a.slice(0, 40), d: today(), nb: ((old && old.nb) || 0) + 1 }; meSave(); } draw(); window.scrollTo(0, 0); };
     $("qq").onclick = function () { RUN = null; draw(); }; }
+  /* ---- Simulation (démonstration). N'accède à AUCUNE donnée réelle et ne contacte pas le réseau.
+     Accès : ajouter ?demo=1 à l'adresse, ou appui long (2 s) sur le logo en haut à gauche. ---- */
+  (function () {
+    function lancerSimu() {
+      ESP = {
+        eleve: "Léa (démo)", classe: "2GT",
+        todo: [
+          { id: "d1", ty: "quiz", t: "Quiz : les règles du volley-ball", qz: "q1" },
+          { id: "d2", ty: "lien", t: "Regarde la vidéo de la passe à 10 doigts", url: "https://exemple.fr" },
+          { id: "d3", ty: "txt", t: "Auto-positionne-toi en volley avec le QR code de ta fiche" },
+          { id: "d4", ty: "txt", t: "Apporte une tenue adaptée pour la prochaine leçon" }
+        ],
+        mis: [ { id: "m1", t: "Observer les montées au filet de ton binôme", ty: "cpt", l: ["Attaques gagnantes", "Fautes au filet"] } ],
+        acts: [
+          { nom: "Volley-ball", lec: 4, pc: 72, n: 3, comm: "Beau travail au service, continue sur les déplacements.", apr: "Mes services sont plus réguliers.", apm: "Me placer plus tôt sous le ballon." },
+          { nom: "Badminton", lec: 3, pc: null, n: 0, comm: "" },
+          { nom: "Relais-vitesse", lec: 2, pc: 85, n: 2, comm: "" }
+        ],
+        quiz: { q1: { nom: "Règles du volley", q: [
+          { t: "Combien de touches de balle maximum par équipe ?", c: ["2", "3", "4"], ok: 1, exp: "3 touches avant de renvoyer." },
+          { t: "Le ballon touche la ligne de fond : que se passe-t-il ?", c: ["Point pour l'adversaire", "La balle est bonne"], ok: 1, exp: "La ligne fait partie du terrain." }
+        ] } }
+      };
+      ME = { quiz: {}, fait: { d3: 1 }, obs: {}, at: 0 };
+      HID = "demo";
+      msg.textContent = "";
+      $("who").textContent = ESP.eleve + " · " + ESP.classe;
+      $("login").hidden = true; $("out").hidden = false;
+      TAB = "todo"; draw();
+      st("Simulation — données de démonstration (aucune donnée réelle n'est utilisée).");
+    }
+    if (/[?&]demo=1\b/.test(location.search) || /(^|[#&])demo\b/.test(location.hash)) lancerSimu();
+    var ic = document.querySelector(".bar .ic"), tmr = 0;
+    if (ic) {
+      ic.style.cursor = "pointer"; ic.title = "Appui long : simulation";
+      var start = function () { tmr = setTimeout(lancerSimu, 2000); };
+      var stop = function () { clearTimeout(tmr); };
+      ic.addEventListener("pointerdown", start);
+      ic.addEventListener("pointerup", stop);
+      ic.addEventListener("pointerleave", stop);
+    }
+  })();
+
 })();
 </script>
 </body>
