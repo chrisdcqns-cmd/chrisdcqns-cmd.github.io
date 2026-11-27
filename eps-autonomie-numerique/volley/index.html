@@ -2343,6 +2343,10 @@ async function lienEleve(e,c){
   if(cfg&&apCrypto()){try{const d=await apDepot(cfg,c.nom,e);t.push(d.id,d.k,sidDe(cfg.url)||cfg.url)}catch(err){console.warn(err)}}
   return apUrl()+'#eleve='+b64e(JSON.stringify(t));
 }
+/* 📲 auto-positionnement sans QR (eps-eval.js EPSE.autopos, action de l'onglet Évaluation) : adaptateur de l'écran propre de Volley */
+window.epsApAdapt={app:'vol',nom:'Volley-ball',classes:()=>S.classes||[],name:e=>({nom:e.nom||'',prenom:e.prenom||''}),absent:()=>false,
+  ouvert:()=>apOuvert(),jusqua:()=>B().apJusqua||'',ouvrir:()=>{B().apOuvert=true;if(!B().apJusqua||B().apJusqua<today())B().apJusqua=plusJours(14);save()},
+  envoiOk:()=>!!envoiCfg(),lien:(e,c)=>lienEleve(e,c),tablette:()=>{if(!apOuvert()){toast("L'auto-positionnement n'est pas ouvert pour le moment.");return}location.hash='#eleve'}};
 function apTrouver(nom,prenom,classe){const cible=nk(nom+' '+prenom),inv=nk(prenom+' '+nom),ok=x=>{const a=nk(x.nom+' '+(x.prenom||''));return a===cible||a===inv};
   const ordre=S.classes.filter(c=>nk(c.nom)===nk(classe)).concat(S.classes.filter(c=>nk(c.nom)!==nk(classe)));
   for(const c of ordre){const e=c.eleves.find(ok);if(e)return{c,e}}return null}

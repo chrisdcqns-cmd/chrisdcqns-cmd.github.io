@@ -2088,6 +2088,29 @@
     /* contrôle : le premier élève doit retrouver son espace */
     if (eleves.length) { var ok = false; for (var k = 0; k < 4 && !ok; k++) { await new Promise(function (r) { setTimeout(r, 1500); }); try { ok = (await bilFetch(codeGet(cls, eleves[0]).c)).some(function (x) { return x && x.kind === "espace"; }); } catch (e) {} } if (!ok) throw new Error("L'envoi n'a pas pu être vérifié : réessaie avec du réseau."); }
     return n; }
+  /* 📲 Auto-positionnement proposé dans l'espace élève (27/11/2026, eps-eval.js apOpen) : un bilan de plus par élève et par activité,
+     id « <empreinte>|auto|<appli> », chiffré avec son code, À CÔTÉ de son espace (ne le remplace pas, Code.gs inchangé) :
+     {kind:"auto", app, act, eleve, classe, url, jusqua, date} ; url = lien personnel de la grille (celui du QR, M.lien d'eps-eval.js).
+     mon-bilan en fait une tâche « 🎯 M'auto-positionner » d'« À faire ». Suivi local et synchronisé : ep| « a|<classe>|<appli> » {el:[noms]}. */
+  async function espAuto(cls, app, act, items, jusqua, prog) {
+    var cfg = shCfg(); if (!cfg) throw new Error("Règle d'abord le partage entre tablettes (Réglages communs).");
+    var put = [], n = 0, neuf = 0, first = null;
+    for (var i = 0; i < items.length; i++) { var x = items[i]; if (!x || !x.full || !/^https?:\/\//.test(String(x.url || ""))) continue; if (!codeGet(cls, x.full)) neuf++;
+      var o = codeFor(cls, x.full), obj = { kind: "auto", app: app, act: String(act || ""), eleve: x.full, classe: cls, url: x.url, jusqua: jusqua || "", date: new Date().toLocaleDateString("fr-FR") };
+      var pk = await bilPack(o.c, obj); put.push({ id: pk.hid + "|auto|" + app, parts: pk.parts }); n++; if (!first) first = o.c; if (prog) prog(n, items.length);
+      if (put.length >= 8) { await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, bil: { put: put } }) }); put = []; } }
+    if (put.length) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, bil: { put: put } }) });
+    /* contrôle (envoi en no-cors, réponse illisible) : le premier élève doit retrouver sa tâche */
+    if (first) { var ok = false; for (var k = 0; k < 4 && !ok; k++) { await new Promise(function (r) { setTimeout(r, 1500); }); try { ok = (await bilFetch(first)).some(function (y) { return y && y.kind === "auto" && y.app === app; }); } catch (e) {} } if (!ok) throw new Error("L'envoi n'a pas pu être vérifié : réessaie avec du réseau."); }
+    stPutRaw(KEP, { id: "a|" + cls + "|" + app, k: "auto", cls: cls, app: app, act: String(act || ""), at: Date.now(), jusqua: jusqua || "", el: items.map(function (y) { return y && y.full; }).filter(Boolean) }); try { EPSD.syncSoon(); } catch (e) {}
+    return { n: n, nouveaux: neuf }; }
+  async function espAutoStop(cls, app) {
+    var cfg = shCfg(); if (!cfg) throw new Error("Règle d'abord le partage entre tablettes (Réglages communs).");
+    var a = stLd(KEP).items["a|" + cls + "|" + app], el = (a && !a.del && Array.isArray(a.el)) ? a.el : [], del = [];
+    for (var i = 0; i < el.length; i++) { var o = codeGet(cls, el[i]); if (o) del.push((await bilHid(o.c)) + "|auto|" + app); }
+    for (var j = 0; j < del.length; j += 40) await fetch(cfg.url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ key: cfg.key, bil: { del: del.slice(j, j + 40) } }) });
+    if (a) { a.del = true; a.at = Date.now(); stPutRaw(KEP, a); try { EPSD.syncSoon(); } catch (e) {} }
+    return del.length; }
   async function espRelever() {
     var cfg = shCfg(); if (!cfg) return 0; var since = +(localStorage.getItem("eps.espace.since") || 0), more = true, garde = 0, n = 0, I = stLd(KC).items, byRid = {};
     Object.keys(I).forEach(function (id) { var o = I[id]; if (o && !o.del && o.rid && o.rk) byRid[o.rid] = o; });
@@ -2109,7 +2132,9 @@
     code: function (cls, full) { var o = codeGet(cls, full); return o ? o.c : ""; },
     dispenses: function (cls) { try { return activeOn().filter(function (x) { return x && x.classe && norm(x.classe) === norm(cls); }).map(function (x) { return x.nom; }); } catch (e) { return []; } },
     get: function (id) { return stLd(KEP).items[id] || null; }, put: function (it) { stPutRaw(KEP, it); try { EPSD.syncSoon(); } catch (e) {} },
-    retours: function (cls) { var V = stLd(KEP); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.k === "ret" && x.cls === cls; }); } }; }, 0);
+    retours: function (cls) { var V = stLd(KEP); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.k === "ret" && x.cls === cls; }); },
+    auto: espAuto, autoStop: espAutoStop, autoEtat: function (cls, app) { var a = stLd(KEP).items["a|" + cls + "|" + app]; return a && a.k === "auto" ? a : null; } };
+    EPSD.apSignal = apSignal; }, 0);
   function bilLink() { var cfg = shCfg(), m = cfg && /\/macros\/s\/([^/]+)\/exec/.exec(cfg.url); return m ? location.origin + BASE + "mon-bilan/#s=" + m[1] : ""; }
   function u8b64plain(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x); }
   /* ================= 🌐 Bilans en ligne, côté enseignant =================
@@ -2363,6 +2388,20 @@
     var d = devInfo(), it = { id: "cur", txt: String(txt || "").trim(), at: Date.now(), until: Date.now() + (min || 2) * 60000, from: d.id, app: tout ? "*" : appDir() };
     if (!it.txt) return; stPutRaw(KSG, it); EPSD.syncOne(KSG);
   }
+  /* 📲 demande d'auto-positionnement sur les tablettes de la leçon (eps-eval.js apOpen) : même signal « cur » (relevé toutes les 8 s),
+     marqué ap:1 avec l'appli d'évaluation (aapp) et la classe ; la tablette affiche « tu » (un seul élève, epsTabInfo().who)
+     ou « vous », et un bouton qui ouvre la grille (M.modeEleve). Messages réglables (Pilotage de leçon). */
+  function apMsgs() { var d = { tu: "🎯 L'enseignant veut que tu t'auto-positionnes", vous: "🎯 L'enseignant veut que vous vous auto-positionniez" };
+    try { if (window.EPSP) { d.tu = String(EPSP.p({ id: "ap_msg_tu", sec: "Pilotage de leçon", label: "Demande d'auto-positionnement : tablette d'un seul élève", type: "text", def: d.tu }) || d.tu);
+      d.vous = String(EPSP.p({ id: "ap_msg_vous", sec: "Pilotage de leçon", label: "Demande d'auto-positionnement : tablette de groupe ou toute la classe", type: "text", def: d.vous }) || d.vous); } } catch (e) {} return d; }
+  function apSignal(cls, app) { var d = devInfo(); stPutRaw(KSG, { id: "cur", txt: apMsgs().vous, at: Date.now(), until: Date.now() + 15 * 60000, from: d.id, app: appDir(), ap: 1, aapp: String(app || ""), cls: String(cls || "") }); return EPSD.syncOne(KSG); }
+  function apOuvrir(c, cls) { var X = null; try { X = window.EPSE && EPSE.apAdapt && EPSE.apAdapt(c.aapp); } catch (e) {}
+    if (!X) { ["evvol", "evdan"].forEach(function (g) { try { if (typeof window[g] === "function") window[g](); } catch (e) {} }); try { X = window.EPSE && EPSE.apAdapt && EPSE.apAdapt(c.aapp); } catch (e) {} }
+    if (!X || !X.tablette) { toastHub("Ouvre l'appli de l'activité pour t'auto-positionner."); return; }
+    var go = function () { X.tablette(cls || c.cls); };
+    /* tablette pas encore à jour (ouverture faite à l'instant par l'enseignant) : relever les réglages d'évaluation avant d'ouvrir */
+    var n = 0, essai = function () { if (!X.sync || !X.ouvert || X.ouvert() || n >= 5) return go(); if (!n) toastHub("Un instant…"); n++; X.sync().then(function () { setTimeout(essai, n > 1 ? 2500 : 0); }, function () { setTimeout(essai, 2500); }); };
+    essai(); }
   function signal() {
     var P = sigPresets(), cur = stLd(KSG).items.cur, on = cur && cur.until > Date.now();
     var o = overlay('<h2 style="margin:0 0 4px">📣 Signal à toutes les tablettes</h2><p class="m">Le message s\'affiche en plein écran, avec un son, sur les tablettes ' + (NAPP[appDir()] ? "de " + esc(NAPP[appDir()]) : "") + " (8 à 20 s selon la connexion).</p>" +
@@ -2380,13 +2419,20 @@
   function bip() { try { var A = window.AudioContext || window.webkitAudioContext, a = new A(); [0, .28, .56].forEach(function (t) { var g = a.createGain(), os = a.createOscillator(); os.frequency.value = 880; os.connect(g); g.connect(a.destination); g.gain.setValueAtTime(.0001, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.4, a.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t + .22); os.start(a.currentTime + t); os.stop(a.currentTime + t + .24); }); } catch (e) {} }
   function sigCheck() {
     var c = stLd(KSG).items.cur, seen = +(localStorage.getItem("eps.sig.seen") || 0), el = document.getElementById("eps-sig");
-    var show = c && c.at > seen && c.until > Date.now() && c.from !== devInfo().id && (c.app === "*" || c.app === appDir());
+    var show = c && c.at > seen && c.until > Date.now() && c.from !== devInfo().id && (c.app === "*" || c.app === appDir()), W = null, txt = c && c.txt;
+    /* demande d'auto-positionnement : tablettes élèves seulement, de la classe visée (classe inconnue de la tablette → affiché) */
+    if (show && c.ap) { if (document.documentElement.classList.contains("eps-teach")) show = false;
+      else { try { W = callWho(); } catch (e) { W = { cls: "", who: [] }; } if (c.cls && W.cls && cmp(W.cls) !== cmp(c.cls)) show = false; var AM = apMsgs(); txt = (W.who || []).length === 1 ? AM.tu : AM.vous; } }
     if (!show) { if (el && (!c || c.until <= Date.now() || c.at <= seen)) el.remove(); return; }
     if (el && +el.dataset.at === c.at) return; if (el) el.remove();
     el = document.createElement("div"); el.id = "eps-sig"; el.dataset.at = c.at;
     el.style.cssText = "position:fixed;inset:0;z-index:2147483600;background:#14171C;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;text-align:center;font-family:system-ui,sans-serif;box-shadow:inset 0 0 0 14px #F0A030";
-    el.innerHTML = '<div style="font-size:clamp(2rem,7vw,5rem);font-weight:900;line-height:1.15;max-width:1000px">' + esc(c.txt) + '</div><div style="color:#A9AEB8;font-size:18px">Message de ton enseignant · ' + new Date(c.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + '</div><button style="min-height:64px;padding:0 34px;border-radius:18px;border:0;background:#F0A030;color:#14171C;font:900 22px system-ui,sans-serif">✓ J\'ai compris</button>';
-    el.querySelector("button").onclick = function () { try { localStorage.setItem("eps.sig.seen", String(c.at)); } catch (e) {} el.remove(); };
+    var BS = "min-height:64px;padding:0 34px;border-radius:18px;border:0;background:#F0A030;color:#14171C;font:900 22px system-ui,sans-serif";
+    el.innerHTML = '<div style="font-size:clamp(2rem,7vw,5rem);font-weight:900;line-height:1.15;max-width:1000px">' + esc(txt) + '</div><div style="color:#A9AEB8;font-size:18px">Message de ton enseignant · ' + new Date(c.at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + "</div>" +
+      (c.ap ? '<div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center"><button data-ap style="' + BS + '">🎯 M\'auto-positionner</button><button data-ok style="' + BS + ';background:none;color:#D5D8DE;border:2px solid #3A3F47">Plus tard</button></div>' : '<button data-ok style="' + BS + '">✓ J\'ai compris</button>');
+    var vu = function () { try { localStorage.setItem("eps.sig.seen", String(c.at)); } catch (e) {} el.remove(); };
+    el.querySelector("[data-ok]").onclick = vu;
+    if (c.ap) el.querySelector("[data-ap]").onclick = function () { vu(); apOuvrir(c, W && W.cls); };
     document.body.appendChild(el); bip(); try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch (e) {}
     setTimeout(function () { var x = document.getElementById("eps-sig"); if (x && +x.dataset.at === c.at) x.remove(); }, Math.max(5000, c.until - Date.now()));
   }

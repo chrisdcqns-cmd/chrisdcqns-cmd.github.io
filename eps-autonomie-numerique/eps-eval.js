@@ -142,6 +142,67 @@
     coCss(); var old = document.getElementById("co-pn"); if (old) old.remove(); var ov = document.createElement("div"); ov.className = "co-ov"; ov.id = "co-pn"; document.body.appendChild(ov);
     ov.innerHTML = '<div role="dialog" aria-modal="true"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">📋 Pronote : quelle classe ?</h2><button type="button" class="co-t" data-x>✕ Fermer</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px">' + C.map(function (x, i) { return '<button type="button" class="co-t p" data-pncl="' + i + '">' + esc(x.nom) + "</button>"; }).join("") + "</div></div>";
     ov.addEventListener("click", function (e) { var t = e.target; if (t === ov || (t.closest && t.closest("[data-x]"))) { ov.remove(); return; } var b = t.closest && t.closest("[data-pncl]"); if (!b) return; var x = C[+b.dataset.pncl]; ov.remove(); I.M.pronoteAll(x.nom, x.eleves); }); }
+  /* 📲 Auto-positionnement SANS QR (27/11/2026, action commune de l'onglet Évaluation, EPSE.autopos({app, nom, color, cls})) :
+     la grille ouverte est proposée 1) dans l'espace EPS de chaque élève (EPSD.espace.auto : lien personnel chiffré avec son code,
+     tâche « 🎯 M'auto-positionner » de mon-bilan), 2) sur les tablettes de la leçon (EPSD.apSignal : message plein écran
+     « L'enseignant veut que tu t'auto-positionnes / que vous vous auto-positionniez » + bouton qui ouvre la grille, M.modeEleve),
+     3) par liens personnels à copier. Le lien est TOUJOURS celui du QR de la fiche (M.lien) : jamais de seconde fabrique de jetons. */
+  function apCopy(t, b) { var ok = function () { if (b) { var o = b.textContent; b.textContent = "✓ Copié"; setTimeout(function () { b.textContent = o; }, 1500); } };
+    try { navigator.clipboard.writeText(t).then(ok, function () { apCopy2(t); ok(); }); } catch (e) { apCopy2(t); ok(); } }
+  function apCopy2(t) { var x = document.createElement("textarea"); x.value = t; x.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(x); x.select(); try { document.execCommand("copy"); } catch (e) {} x.remove(); }
+  /* adaptateur d'auto-positionnement d'une appli : celui que fournit l'appli (window.epsApAdapt : Volley, Danse, écrans propres en #eleve=),
+     sinon l'instance commune (create / store, lien en #auto=) quand elle a ses réglages. {app, nom, classes(), name(E), absent(E),
+     ouvert(c), jusqua(c), ouvrir(c), envoiOk(), lien(E, c) → Promise<url>, tablette(classe) : ouvre la grille sur la tablette en mode élève}. */
+  function apAdapt(app) { var W = window.epsApAdapt; if (W && W.app === app && typeof W.lien === "function") return W;
+    var I = coInst(app); if (!I || !I.M || !I.M.lien || !I.M.modeEleve) return null; try { I.A.settings(); } catch (e) { return null; }
+    return { app: app, nom: I.A.nom, classes: function () { return I.A.classes(); }, name: function (E) { return I.A.name(E); }, absent: function (E) { return I.A.absent ? I.A.absent(E) : false; },
+      ouvert: function () { return I.M.ouvert(); }, jusqua: function () { return I.M.jusqua(); }, ouvrir: function () { I.M.ouvrir(); }, envoiOk: function () { return I.M.envoiOk(); },
+      lien: function (E, c) { return I.M.lien(E, c); }, tablette: function (cls) { I.M.modeEleve(cls); },
+      sync: function () { try { return window.EPSD && EPSD.syncOne ? Promise.resolve(EPSD.syncOne("eps.eval." + app + ".v1")) : Promise.resolve(); } catch (e) { return Promise.resolve(); } } }; }
+  function apOpen(o) { o = o || {}; var X = apAdapt(o.app), C = [];
+    try { C = ((X && X.classes()) || []).filter(function (c) { return c && c.nom && (c.eleves || []).length; }); } catch (e) {}
+    if (!X) { toast("Auto-positionnement indisponible sur cet écran : recharge la page."); return; }
+    if (!C.length) { toast("Aucune classe avec des élèves pour l'instant."); return; }
+    coCss(); var old = document.getElementById("co-ap"); if (old) old.remove();
+    var ov = document.createElement("div"); ov.className = "co-ov"; ov.id = "co-ap"; document.body.appendChild(ov);
+    var nom = String(o.nom || X.nom || "l'activité"), c = C.filter(function (x) { return nk(x.nom) === nk(o.cls); })[0] || (C.length === 1 ? C[0] : null), msg = "", liens = "", busy = false;
+    var E = function () { return window.EPSD && EPSD.espace; };
+    function full(e) { var n = X.name(e); return ((n.prenom || "") + " " + (n.nom || "")).trim(); }
+    function abs(e) { try { return !!(X.absent && X.absent(e)); } catch (er) { return false; } }
+    function dFr(d) { return d ? d.split("-").reverse().join("/") : ""; }
+    function mail() { var L = E() && E().pret() ? E().lien() : ""; return "Bonjour,\n\nDepuis votre espace EPS" + (L ? " (" + L + ")" : "") + ", vous pouvez vous auto-positionner en " + nom + (X.jusqua(c) ? " jusqu'au " + dFr(X.jusqua(c)) : "") + ".\nEntrez votre code personnel, puis touchez « 🎯 M'auto-positionner » dans « À faire ».\n\nBonne journée."; }
+    function card(t, s, btns) { return '<div style="border:1px solid #E6E1D6;border-radius:14px;padding:12px;margin-top:10px;background:#fff"><b style="font-size:17px">' + t + '</b><p style="margin:4px 0 8px;color:#6A6F78;font-size:14px">' + s + '</p><div style="display:flex;gap:8px;flex-wrap:wrap">' + btns + "</div></div>"; }
+    function draw() { var on = c && X.ouvert(c), st = c && E() && E().autoEtat ? E().autoEtat(c.nom, o.app) : null, dis = on && !busy ? "" : " disabled";
+      var h = '<div role="dialog" aria-modal="true" aria-label="Auto-positionnement sans QR"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">📲 Auto-positionnement · ' + esc(nom) + '</h2><button type="button" class="co-t" data-x>✕ Fermer</button></div>';
+      if (C.length > 1) h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">' + C.map(function (x, i) { return '<button type="button" class="co-t' + (c === x ? " p" : "") + '" data-apcl="' + i + '">' + esc(x.nom) + "</button>"; }).join("") + "</div>";
+      if (!c) { h += '<p style="margin-top:12px">Choisis la classe.</p></div>'; ov.innerHTML = h; return; }
+      h += '<p style="margin:10px 0 0;font-weight:700">' + (on ? "✅ Ouvert jusqu'au " + esc(dFr(X.jusqua(c)) || "—") : "🔒 Fermé : les élèves ne peuvent pas se positionner.") + (on ? "" : ' <button type="button" class="co-t p" data-apopen>Ouvrir pour 14 jours</button>') + "</p>";
+      if (!X.envoiOk()) h += '<p style="color:#B3261E;margin:6px 0 0">⚠ Envoi des positionnements non réglé (partage entre tablettes) : ils ne te reviendraient pas.</p>';
+      h += card("📱 Dans leur espace EPS", "Chaque élève voit « 🎯 M'auto-positionner » dans « À faire » : un appui ouvre sa grille, sans QR. Puis un simple mail à la classe suffit." + (st && !st.del ? " <b>Proposé le " + esc(new Date(st.at).toLocaleDateString("fr-FR")) + " à " + (st.el || []).length + " élèves.</b>" : ""),
+          '<button type="button" class="co-t p" data-apesp' + dis + ">" + (st && !st.del ? "↻ Proposer de nouveau" : "Proposer à la classe") + "</button>" + (st && !st.del ? '<button type="button" class="co-t" data-apespx' + (busy ? " disabled" : "") + ">Retirer de l'espace</button>" : "") + '<button type="button" class="co-t" data-apmail>📧 Copier le texte du mail</button>') +
+        card("📣 Sur les tablettes de la leçon", "Message plein écran avec son sur les tablettes de la classe : « L'enseignant veut que vous vous auto-positionniez » (« que tu t'auto-positionnes » sur la tablette d'un seul élève), avec un bouton qui ouvre la grille.",
+          '<button type="button" class="co-t p" data-apsig' + dis + ">Envoyer aux tablettes</button>") +
+        card("🔗 Par lien", "Un lien personnel par élève (le même que le QR de sa fiche), à envoyer à chacun.",
+          '<button type="button" class="co-t" data-aplien' + dis + ">Préparer les liens</button>" + (liens ? '<button type="button" class="co-t p" data-apcp>📋 Copier tous les liens</button>' : "")) +
+        (liens ? '<textarea readonly style="width:100%;min-height:140px;margin-top:8px;border:1.5px solid #E6E1D6;border-radius:10px;padding:8px;font:13px ui-monospace,monospace" aria-label="Liens personnels">' + esc(liens) + "</textarea>" : "") +
+        '<p role="status" style="margin:10px 0 0;font-weight:700">' + esc(msg) + "</p></div>";
+      ov.innerHTML = h; }
+    async function links(fn) { var R = []; for (var i = 0; i < c.eleves.length; i++) { var e = c.eleves[i]; if (abs(e)) continue; var u = await X.lien(e, c); R.push({ full: full(e), url: u }); if (fn) fn(i + 1, c.eleves.length); } return R; }
+    ov.addEventListener("click", async function (ev) { var t = ev.target, b = t.closest && t.closest("button"); if (t === ov || (t.closest && t.closest("[data-x]"))) { ov.remove(); return; } if (!b || b.disabled) return;
+      if (b.dataset.apcl != null) { c = C[+b.dataset.apcl]; msg = ""; liens = ""; draw(); return; }
+      if (b.hasAttribute("data-apopen")) { X.ouvrir(c); msg = ""; draw(); return; }
+      if (b.hasAttribute("data-apmail")) { apCopy(mail(), b); return; }
+      if (b.hasAttribute("data-apcp")) { apCopy(liens, b); return; }
+      if (b.hasAttribute("data-apsig")) { if (!(window.EPSD && EPSD.apSignal)) { msg = "Signal indisponible : recharge la page."; draw(); return; } busy = true; msg = "Envoi…"; draw(); try { if (X.sync) await X.sync(); } catch (er) {} /* réglages (ouverture) partis avant le signal */ busy = false; EPSD.apSignal(c.nom, o.app); msg = "✓ Envoyé aux tablettes de " + c.nom + " (8 à 20 s)."; draw(); return; }
+      if (b.hasAttribute("data-aplien")) { busy = true; msg = "Préparation des liens…"; draw(); try { liens = (await links()).map(function (x) { return x.full + " : " + x.url; }).join("\n"); msg = ""; } catch (er) { msg = "Liens impossibles : " + (er && er.message || er); } busy = false; draw(); return; }
+      if (b.hasAttribute("data-apesp") || b.hasAttribute("data-apespx")) { if (!E() || !E().pret()) { msg = "Règle d'abord le partage entre tablettes (Réglages communs)."; draw(); return; }
+        busy = true; msg = "Envoi…"; draw();
+        try { if (b.hasAttribute("data-apespx")) { var k = await E().autoStop(c.nom, o.app); msg = "✓ Retiré de l'espace de " + k + " élève" + (k > 1 ? "s" : "") + "."; }
+          else { var R = await links(function (i, n) { msg = "Liens… " + i + " / " + n; draw(); }), r = await E().auto(c.nom, o.app, nom, R, X.jusqua(c), function (i, n) { msg = "Envoi… " + i + " / " + n; draw(); });
+            msg = "✓ Proposé dans l'espace EPS de " + r.n + " élève" + (r.n > 1 ? "s" : "") + "." + (r.nouveaux ? " " + r.nouveaux + " n'avaient pas encore de code : donne-le-leur (Espace élève → 🔑 Codes des élèves)." : " Envoie maintenant le mail à la classe."); } }
+        catch (er) { msg = String((er && er.message) || er); }
+        busy = false; draw(); } });
+    draw(); }
   /* critères proposés à l'observateur : la grille de l'enseignant, ou celle de l'évaluation (formulée pour l'élève quand elle existe) */
   function coCrits(app) { var g = coGrid(app), N = coNiv(); if (g.src === "eval") { var I = coInst(app), G = null; try { G = I && I.A.grid(); } catch (e) {} return ((G && G.criteres) || []).map(function (cr) { var d = (cr.descEl && cr.descEl.length === 4 && cr.descEl.join("").trim() ? cr.descEl : cr.desc) || []; return { id: String(cr.id), nom: String(cr.nomEl || cr.nom || ""), desc: [0, 1, 2, 3].map(function (i) { return String(d[i] || N[i]); }) }; }); }
     return g.crit.filter(function (c) { return c && c.id && String(c.nom || "").trim(); }).map(function (c) { var d = Array.isArray(c.desc) ? c.desc : []; return { id: String(c.id), nom: String(c.nom), desc: [0, 1, 2, 3].map(function (i) { return String(d[i] || "").trim() || N[i]; }) }; }); }
@@ -153,7 +214,7 @@
   function coClasses(app) { var L = []; try { if (window.EPSL) L = EPSL.items().filter(function (it) { return it && it.nom && (it.off || []).indexOf(app) < 0; }).map(function (it) { return { nom: it.nom, el: EPSL.people(it).map(function (p) { return p.full || ((p.prenom || "") + " " + (p.nom || "")).trim(); }).filter(Boolean) }; }); } catch (e) {} return L.sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr", { numeric: true }); }); }
   function coAbs(n, cls) { try { return !!(window.epsAbsJour && epsAbsJour(n, cls)); } catch (e) { return false; } }
   var COCSS = ".co-b{min-height:54px;border-radius:14px;border:2px solid #E2DDD2;background:#FBFAF7;font:800 17px system-ui,sans-serif;color:#14171C;padding:8px 14px;cursor:pointer;text-align:left;width:100%;display:block;margin:0 0 8px}.co-b.on{border-color:#14171C;background:#14171C;color:#fff}.co-b small{display:block;font-weight:600;font-size:14px;opacity:.85}.co-s{width:100%;min-height:54px;border-radius:12px;border:2px solid #E2DDD2;background:#fff;font:700 17px system-ui;padding:0 10px;margin:4px 0 12px}.co-n{display:flex;gap:10px;margin-top:14px}.co-n button{flex:1;min-height:54px;border-radius:14px;border:2px solid #14171C;background:#fff;font:800 17px system-ui;cursor:pointer}.co-n button.p{background:#14171C;color:#fff}.co-n button[disabled]{opacity:.4}.co-ban{background:#FFF4D6;border:1.5px solid #E0B040;border-radius:12px;padding:8px 12px;font-weight:800;margin:0 0 12px}" +
-    ".co-ov{position:fixed;inset:0;z-index:2147483100;background:rgba(20,23,28,.55);display:flex;align-items:flex-start;justify-content:center;padding:3vh 12px;overflow:auto;font-family:system-ui,sans-serif;color:#14171C}.co-ov>div{background:#fff;border-radius:16px;padding:16px 18px;width:100%;max-width:820px}.co-ov h2{margin:0 0 6px;font-size:20px}.co-ov h3{margin:16px 0 6px;font-size:16px}.co-ov .m{color:#6A6F78;font-size:14px;margin:4px 0}.co-ov input[type=text]{width:100%;border:1.5px solid #E6E1D6;border-radius:10px;padding:8px 10px;font:inherit;min-height:44px}.co-ov table{border-collapse:collapse;width:100%;font-size:14px}.co-ov th,.co-ov td{border:1px solid #E6E1D6;padding:6px 8px;text-align:center}.co-ov th:first-child,.co-ov td:first-child{text-align:left}.co-ed{border:1.5px solid #E6E1D6;border-radius:12px;padding:10px;margin:0 0 8px}.co-ed .g{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}@media(max-width:640px){.co-ed .g{grid-template-columns:1fr 1fr}}.co-t{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid #14171C;background:#fff;font:800 15px system-ui;cursor:pointer}.co-t.p{background:#14171C;color:#fff}.co-t.on{background:#1E6B3A;border-color:#1E6B3A;color:#fff}";
+    ".co-ov{position:fixed;inset:0;z-index:2147483100;background:rgba(20,23,28,.55);display:flex;align-items:flex-start;justify-content:center;padding:3vh 12px;overflow:auto;font-family:system-ui,sans-serif;color:#14171C}.co-ov>div{background:#fff;border-radius:16px;padding:16px 18px;width:100%;max-width:820px}.co-ov h2{margin:0 0 6px;font-size:20px}.co-ov h3{margin:16px 0 6px;font-size:16px}.co-ov .m{color:#6A6F78;font-size:14px;margin:4px 0}.co-ov input[type=text]{width:100%;border:1.5px solid #E6E1D6;border-radius:10px;padding:8px 10px;font:inherit;min-height:44px}.co-ov table{border-collapse:collapse;width:100%;font-size:14px}.co-ov th,.co-ov td{border:1px solid #E6E1D6;padding:6px 8px;text-align:center}.co-ov th:first-child,.co-ov td:first-child{text-align:left}.co-ed{border:1.5px solid #E6E1D6;border-radius:12px;padding:10px;margin:0 0 8px}.co-ed .g{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}@media(max-width:640px){.co-ed .g{grid-template-columns:1fr 1fr}}.co-t{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid #14171C;background:#fff;font:800 15px system-ui;cursor:pointer}.co-t.p{background:#14171C;color:#fff}.co-t.on{background:#1E6B3A;border-color:#1E6B3A;color:#fff}.co-t[disabled]{opacity:.45;cursor:default}";
   function coCss() { if (document.getElementById("co-css")) return; var st = document.createElement("style"); st.id = "co-css"; st.textContent = COCSS; document.head.appendChild(st); }
   /* ---- côté élève : un critère par écran ---- */
   function coEleve(o) { o = o || {}; coCss(); var app = o.app, CR = coCrits(app), CL = coClasses(app), P = { cls: o.cls && CL.some(function (c) { return c.nom === o.cls; }) ? o.cls : (CL.length === 1 ? CL[0].nom : ""), moi: "", cible: "", step: 0, ev: {}, fin: false };
@@ -769,6 +830,9 @@
       el.innerHTML = '<div class="epse-sub epse-modes">' + M.modesHtml() + '<span style="flex:1"></span>' + (o.right || "") + M.classBtnsHtml() + "</div>" + M.quickHtml(c, o);
       M.bindModes(el, o.onMode || function () {}); M.bindClassBtns(el, c.nom, c.eleves); M.bindQuick(el, c, o.redraw || function () {}, o); };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
+    /* 📲 auto-positionnement sans QR (apOpen) : boîte de dépôt réglée ?, date limite, ouverture pour 14 jours */
+    M.envoiOk = function () { return !!envoi(); }; M.jusqua = function () { return S().apJusqua || ""; };
+    M.ouvrir = function () { var s = S(), o = { apOuvert: true }; if (!s.apJusqua || s.apJusqua < today()) o.apJusqua = plusJours(14); A.setSettings(o); try { A.changed(); } catch (e) {} };
     /* instances connues des fiches de leçon (eps-lecons.js : critères des grilles, remédiation) */
     function isT_() { try { return typeof A.isTeacher === "function" && !!A.isTeacher(); } catch (e) { return false; } } /* adaptateurs réduits (Volley, Danse) : pas de relevé automatique ici */
     (window.EPSE_INST = window.EPSE_INST || []).push({ A: A, M: M });
@@ -990,5 +1054,5 @@
     return M;
   }
 
-  window.EPSE = { create: create, store: store, libs: libs, DCOL: DCOL, DTINT: DTINT, pronote: pnOpen, coeval: { edit: coEdit, eleve: coEleve, grid: coGrid, crits: coCrits, moy: coMoy, DIR: CODIR } };
+  window.EPSE = { create: create, store: store, libs: libs, DCOL: DCOL, DTINT: DTINT, pronote: pnOpen, autopos: apOpen, apAdapt: apAdapt, coeval: { edit: coEdit, eleve: coEleve, grid: coGrid, crits: coCrits, moy: coMoy, DIR: CODIR } };
 })();

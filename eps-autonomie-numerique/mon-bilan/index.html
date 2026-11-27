@@ -80,7 +80,7 @@
   var S = (/[#&]s=([A-Za-z0-9_-]+)/.exec(location.hash) || [])[1] || "";
   var url = S ? "https://script.google.com/macros/s/" + S + "/exec" : (function () { var m = /[#&]u=([^&]+)/.exec(location.hash), u = m ? decodeURIComponent(m[1]) : ""; return /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(u) && /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? u : ""; })() /* essais automatiques seulement */;
   var $ = function (id) { return document.getElementById(id); };
-  var msg = $("msg"), res = $("res"), ESP = null, PDF = [], ME = { quiz: {}, fait: {}, obs: {}, at: 0 }, HID = "", TAB = "todo", RUN = null, ACT = null, MIS = null;
+  var msg = $("msg"), res = $("res"), ESP = null, PDF = [], AUTO = [], ME = { quiz: {}, fait: {}, obs: {}, at: 0 }, HID = "", TAB = "todo", RUN = null, ACT = null, MIS = null;
   if (!url) msg.innerHTML = '<span class="err">Lien incomplet : ouvre le lien envoyé par ton enseignant (sur Pronote).</span>';
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function flat(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }
@@ -125,24 +125,25 @@
       var k = await key(code, h), out = [];
       for (var i = 0; i < L.length; i++) { try { var b = unb64(L[i].parts.join("")), pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, k, b.slice(12)); out.push(JSON.parse(new TextDecoder().decode(pt))); } catch (e) {} }
       if (!out.length) throw new Error("code");
-      ESP = out.filter(function (o) { return o && o.kind === "espace"; })[0] || null; PDF = out.filter(function (o) { return o && o.pdf; });
+      ESP = out.filter(function (o) { return o && o.kind === "espace"; })[0] || null; PDF = out.filter(function (o) { return o && o.pdf; }); AUTO = out.filter(function (o) { return o && o.kind === "auto" && /^https?:\/\//.test(String(o.url || "")); });
       HID = h; meLoad(); msg.textContent = ""; $("code").value = ""; $("login").hidden = true; $("out").hidden = false;
-      $("who").textContent = ((ESP && ESP.eleve) || (PDF[0] && PDF[0].eleve) || "") + ((ESP && ESP.classe) ? " · " + ESP.classe : "");
-      TAB = ESP && ((ESP.todo || []).length || (ESP.mis || []).length) ? "todo" : "acts"; draw(); if (pend) envoyer();
+      $("who").textContent = ((ESP && ESP.eleve) || (PDF[0] && PDF[0].eleve) || (AUTO[0] && AUTO[0].eleve) || "") + ((ESP && ESP.classe) ? " · " + ESP.classe : "");
+      TAB = (ESP && ((ESP.todo || []).length || (ESP.mis || []).length)) || autos().length ? "todo" : "acts"; draw(); if (pend) envoyer();
     } catch (e) { msg.innerHTML = '<span class="err">' + (e.message === "connexion" ? "Pas de connexion. Réessaie." : "Impossible d'ouvrir ton espace avec ce code.") + "</span>"; }
     $("go").disabled = false;
   }
   $("go").onclick = go; $("code").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
-  $("out").onclick = function () { ESP = null; PDF = []; RUN = null; ACT = null; MIS = null; res.innerHTML = ""; $("login").hidden = false; $("out").hidden = true; $("who").textContent = "À faire · mes activités · mes bilans"; };
+  $("out").onclick = function () { ESP = null; PDF = []; AUTO = []; RUN = null; ACT = null; MIS = null; res.innerHTML = ""; $("login").hidden = false; $("out").hidden = true; $("who").textContent = "À faire · mes activités · mes bilans"; };
 
   /* ---- affichage : deux onglets seulement ---- */
   function acts() { var A = (ESP && Array.isArray(ESP.acts)) ? ESP.acts.slice() : []; PDF.forEach(function (p) { if (!A.some(function (a) { return flat(a.nom) === flat(p.app); })) A.push({ nom: p.app, lec: 0, pc: null, n: 0, comm: "", apr: "", apm: "" }); }); return A; }
   function blob(o) { return new Blob([unb64(String(o.pdf).replace(/\+/g, "-").replace(/\//g, "_"))], { type: "application/pdf" }); }
   function draw() { if (RUN) return quiz(); if (ACT) return fiche(); if (MIS) return mission();
-    var MI = (ESP && Array.isArray(ESP.mis)) ? ESP.mis : [], T = (ESP && ESP.todo) || [], reste = T.filter(function (t) { return !fait(t); }).length + MI.filter(function (m) { return !ME.obs[m.id]; }).length;
+    var AU = autos(), MI = (ESP && Array.isArray(ESP.mis)) ? ESP.mis : [], T = (ESP && ESP.todo) || [], reste = AU.filter(function (a) { return !ME.fait["auto|" + a.app]; }).length + T.filter(function (t) { return !fait(t); }).length + MI.filter(function (m) { return !ME.obs[m.id]; }).length;
     var h = '<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="todo" class="' + (TAB === "todo" ? "on" : "") + '" aria-selected="' + (TAB === "todo") + '">À faire' + (reste ? " (" + reste + ")" : "") + '</button><button type="button" role="tab" data-tab="acts" class="' + (TAB === "acts" ? "on" : "") + '" aria-selected="' + (TAB === "acts") + '">Mes activités</button></div>';
     if (TAB === "todo") { MI.forEach(function (m, i) { var d = !!ME.obs[m.id]; h += '<button type="button" class="tk' + (d ? " done" : "") + '" data-mi="' + i + '"><span class="i" aria-hidden="true">' + (d ? "✅" : "🎯") + '</span><span class="t">' + esc(m.t) + "<small>Ma mission du jour · " + (m.ty === "cpt" ? "j'observe et je compte" : "ma fiche de rôle") + (d ? " · envoyée" : "") + "</small></span></button>"; });
-      if (!T.length && !MI.length) h += '<div class="card"><p class="mut">Rien à faire pour l\'instant. Reviens quand ton enseignant te le dira.</p></div>';
+      AU.forEach(function (a, i) { var d = !!ME.fait["auto|" + a.app]; h += '<button type="button" class="tk' + (d ? " done" : "") + '" data-au="' + i + '"><span class="i" aria-hidden="true">' + (d ? "✅" : "🎯") + '</span><span class="t">M\'auto-positionner en ' + esc(a.act || a.app) + "<small>" + (d ? "Ouvert · rouvrir ma grille" : "Ouvrir ma grille") + (a.jusqua ? " · jusqu'au " + esc(a.jusqua.split("-").reverse().join("/")) : "") + "</small></span></button>"; });
+      if (!T.length && !MI.length && !AU.length) h += '<div class="card"><p class="mut">Rien à faire pour l\'instant. Reviens quand ton enseignant te le dira.</p></div>';
       T.forEach(function (t, i) { var d = fait(t), q = t.ty === "quiz" ? ME.quiz[t.qz] : null;
         h += '<button type="button" class="tk' + (d ? " done" : "") + '" data-k="' + i + '"><span class="i" aria-hidden="true">' + (d ? "✅" : t.ty === "quiz" ? "❓" : t.ty === "lien" ? "▶️" : "✏️") + '</span><span class="t">' + esc(t.t || "") + "<small>" + (t.ty === "quiz" ? (q ? "Mon score : " + q.s + " / " + q.n + " · recommencer" : "Répondre au quiz") : t.ty === "lien" ? (d ? "Vu · revoir" : "Ouvrir") : (d ? "Fait · toucher pour annuler" : "Toucher quand c'est fait")) + "</small></span></button>"; }); }
     else { var A = acts(); if (!A.length) h += '<div class="card"><p class="mut">Tes activités apparaîtront ici après tes premières leçons.</p></div>';
@@ -150,6 +151,7 @@
     res.innerHTML = h;
     res.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { TAB = b.dataset.tab; draw(); }; });
     res.querySelectorAll("[data-mi]").forEach(function (b) { b.onclick = function () { var m = MI[+b.dataset.mi], o = ME.obs[m.id] || {}; MIS = { m: m, c: (m.l || []).map(function (x, k) { return +((o.c || [])[k]) || 0; }), who: o.who || "", v: (o.v || []).slice(), r: o.r || "" }; draw(); window.scrollTo(0, 0); }; });
+    res.querySelectorAll("[data-au]").forEach(function (b) { b.onclick = function () { var a = AU[+b.dataset.au]; window.open(a.url, "_blank", "noopener"); ME.fait["auto|" + a.app] = 1; meSave(); draw(); }; });
     res.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { var t = T[+b.dataset.k];
       if (t.ty === "quiz") { var q = ESP.quiz && ESP.quiz[t.qz]; if (!q) return; RUN = { id: t.qz, tk: t.id, nom: q.nom, L: (q.q || []).filter(okQ), i: 0, a: [], pick: -1, done: false }; if (RUN.L.length) draw(); else RUN = null; }
       else if (t.ty === "lien") { if (/^https:\/\//.test(t.url || "")) window.open(t.url, "_blank", "noopener"); ME.fait[t.id] = 1; meSave(); draw(); }
@@ -171,6 +173,8 @@
     res.querySelectorAll("[data-v]").forEach(function (b) { b.onclick = function () { var k = +b.dataset.v, i = X.v.indexOf(k); if (i >= 0) X.v.splice(i, 1); else X.v.push(k); draw(); }; });
     res.querySelectorAll("[data-r]").forEach(function (b) { b.onclick = function () { X.r = b.dataset.r; draw(); }; });
     $("ms").onclick = function () { ME.obs[m.id] = m.ty === "cpt" ? { c: X.c.slice(), who: String(X.who || "").slice(0, 40), at: Date.now() } : { r: X.r, v: X.v.slice(), at: Date.now() }; meSave(); MIS = null; TAB = "todo"; draw(); }; }
+  /* 📲 auto-positionnements proposés par l'enseignant (bilans « kind:auto », un par activité), encore ouverts */
+  function autos() { var by = {}; AUTO.forEach(function (a) { if (a.jusqua && a.jusqua < today()) return; by[a.app] = a; }); return Object.keys(by).map(function (k) { return by[k]; }); }
   function fait(t) { return t.ty === "quiz" ? !!ME.quiz[t.qz] : !!ME.fait[t.id]; }
   function fiche() { var a = ACT, P = PDF.filter(function (p) { return flat(p.app) === flat(a.nom); }), Q = []; Object.keys((ESP && ESP.quiz) || {}).forEach(function (id) { if (ME.quiz[id]) Q.push({ nom: ESP.quiz[id].nom, r: ME.quiz[id] }); });
     var h = '<button type="button" class="s" id="bk" style="margin:0 0 12px">← Retour</button><div class="card"><h2>' + esc(a.nom) + "</h2>" +
@@ -218,6 +222,7 @@
           { t: "Le ballon touche la ligne de fond : que se passe-t-il ?", c: ["Point pour l'adversaire", "La balle est bonne"], ok: 1, exp: "La ligne fait partie du terrain." }
         ] } }
       };
+      AUTO = [{ kind: "auto", app: "vol", act: "Volley-ball", eleve: "Léa (démo)", url: "https://exemple.fr", jusqua: "" }];
       ME = { quiz: {}, fait: { d3: 1 }, obs: {}, at: 0 };
       HID = "demo";
       msg.textContent = "";

@@ -1964,6 +1964,11 @@ async function lienEleve(e, cl) {
   }
   return urlAppli() + '#eleve=' + b64urlEnc(JSON.stringify(t));
 }
+/* 📲 auto-positionnement sans QR (eps-eval.js EPSE.autopos, action de l'onglet Évaluation) : adaptateur de l'écran propre de Danse (ouverture par classe) */
+window.epsApAdapt = { app: 'dan', nom: 'Danse', classes: () => S.classes || [], name: e => ({ nom: e.nom || '', prenom: e.prenom || '' }), absent: () => false,
+  ouvert: cl => autoOuvert(cl), jusqua: cl => { const f = autoFin(cl); return f && f < '9999' ? f : ''; }, ouvrir: cl => { if (cl) autoClasse(cl, 14); },
+  envoiOk: () => !!envoiCfg(), lien: (e, cl) => lienEleve(e, cl),
+  tablette: cls => { const c = S.classes.find(x => x.nom === cls); if (c) S.classeId = c.id; if (!autoOuvert(c || undefined)) { toast("L'auto-positionnement n'est pas ouvert pour le moment."); return; } aller('eleve'); } };
 
 /* ---------- Envoi automatique par le script Google de Danse (danse/apps-script/Code.gs) ----------
    Script réservé à Danse, indépendant du script commun. La tablette de l'enseignant dérive, avec la clé secrète
