@@ -9,7 +9,7 @@ B = "http://localhost:8848/eps-autonomie-numerique/"; CL = "2GT1 TEST"
 NOMS = ["Lina MARTIN", "Noah PETIT", "Emma DURAND", "Hugo LEROY", "Jade MOREAU", "Louis SIMON", "Tom ROUX", "Ines FAURE"]
 SEED = "try{localStorage.setItem('eps.share.v1',JSON.stringify({url:'http://127.0.0.1:1/exec',key:'CLE'}));if(!localStorage.getItem('eps.lists.v1'))localStorage.setItem('eps.lists.v1',JSON.stringify({items:{c1:{id:'c1',nom:'" + CL + "',el:" + json.dumps(NOMS) + ",u:1}},pend:{},since:0}));localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}"
 FAKE = "(function(){var V=JSON.parse(localStorage.getItem('eps.sig.v1')||'{\"items\":{},\"pend\":{}}');V.items['call|x1']={id:'call|x1',k:'call',app:'%s',cls:'" + CL + "',who:[],eq:'Les Aigles',tab:'',lieu:'Terrain 2',motif:'🆘 Je suis bloqué',at:Date.now()-90000,st:0,from:'x1',u:Date.now()};localStorage.setItem('eps.sig.v1',JSON.stringify(V));})()"
-APPS = [("volley", 3, "ligne"), ("badminton", 5, "bad5"), ("basket", 2, "duo")]
+APPS = [("volley", 3, "vert"), ("badminton", 5, "bad5"), ("basket", 2, "duo")]
 async def main():
     out = []; errs = []
     async with async_playwright() as pw:
@@ -29,6 +29,8 @@ async def main():
                 P = r["pos"]; out.append(("badminton : 2 terrains de chaque côté en parallèle (1-2 à gauche, 4-5 à droite), le 3 au centre et à la verticale", P[0][0] == P[1][0] and P[3][0] == P[4][0] and P[0][0] < P[2][0] < P[3][0] and P[0][1] == P[3][1] and P[2][3] > P[2][2] and P[0][2] > P[0][3], P))
                 out.append(("badminton : les 5 terrains ont la même taille (le 3 est le même terrain tourné)", all(abs(P[i][2] - P[0][2]) <= 1 and abs(P[i][3] - P[0][3]) <= 1 for i in (1, 3, 4)) and abs(P[2][2] - P[0][3]) <= 1 and abs(P[2][3] - P[0][2]) <= 1, P))
                 hd = await p.evaluate("document.querySelector('#t-live .livehd').getBoundingClientRect().height"); out.append(("badminton : bandeau « Leçon en direct » sur une seule ligne", hd <= 60, hd))
+            if app == "volley":
+                P = r["pos"]; out.append(("volley : 3 terrains à la verticale, côte à côte, de même taille", P[0][1] == P[1][1] == P[2][1] and P[0][0] < P[1][0] < P[2][0] and all(q[3] > q[2] and q[2] == P[0][2] and q[3] == P[0][3] for q in P), P))
             if app == "basket":
                 P = r["pos"]; out.append(("basket : 2 terrains côte à côte", P[0][1] == P[1][1] and P[0][0] < P[1][0], P))
             if SHOTS: await p.screenshot(path=os.path.join(SHOTS, "terrains-" + app + ".png"))
