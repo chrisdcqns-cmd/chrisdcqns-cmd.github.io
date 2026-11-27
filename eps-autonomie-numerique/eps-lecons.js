@@ -677,11 +677,12 @@
         bx.querySelector("[data-one]").onclick = function () { gen([k]); }; });
       /* génération : chaque texte est enregistré dès qu'il arrive, même si l'écran a été fermé ou a changé d'onglet entre-temps (27/11/2026) */
       /* plusieurs élèves en même temps (EPSD.pool, demande du 27/11/2026 : « c'est 1 par 1, donc c'est long ») ; une erreur n'arrête pas les autres */
-      function gen(K) { var C0 = cls, M0 = MODE, PL0 = perLabel(P), ID = {}; K.forEach(function (k) { ID[k] = aid(k); });
+      function gen(K) { var C0 = cls, M0 = MODE, PL0 = perLabel(P), ID = {}, ok = function (e) { return e && e.pr && e.pr.note != null && /^(eval|mixte)$/.test(e.pr.src || ""); }; K.forEach(function (k) { ID[k] = aid(k); });
+        var NS = D.EL.filter(ok).map(function (e) { return +e.pr.note; }), MC = NS.length >= 3 ? NS.reduce(function (a, v) { return a + v; }, 0) / NS.length : null;
         if (!(window.EPSD && EPSD.reformuler && EPSD.pool)) { msg.textContent = "⚠ module commun indisponible (recharge la page)"; return; }
         msg.textContent = "Claude rédige (0 / " + K.length + ")…";
         EPSD.pool(K, function (k) { var e = D.EL.filter(function (z) { return z.k === k; })[0]; if (!e) return null;
-          return EPSD.reformuler(factsOf(D, e), { mode: M0, act: NOM, eleve: e.n, periode: PL0, note: e.pr && e.pr.note != null && /^(eval|mixte)$/.test(e.pr.src || "") ? e.pr.note : null }).then(function (t) { t = String(t || "").trim(); put(KAV, { id: ID[k], app: APP, cls: C0, mode: M0, per: PL0, k: k, t: t, ok: false });
+          return EPSD.reformuler(factsOf(D, e), { mode: M0, act: NOM, eleve: e.n, periode: PL0, moyClasse: MC, note: ok(e) ? e.pr.note : null }).then(function (t) { t = String(t || "").trim(); put(KAV, { id: ID[k], app: APP, cls: C0, mode: M0, per: PL0, k: k, t: t, ok: false });
             var bx = ov.querySelector('[data-av="' + k + '"]'); if (bx && bx.getAttribute("data-aid") === ID[k]) { var tx = bx.querySelector("[data-tx]"); if (document.activeElement !== tx) tx.value = t; bx.querySelector("[data-ok]").checked = false; } }); },
           function (f, N) { msg.textContent = "Claude rédige (" + f + " / " + N + ")…"; })
           .then(function (errs) { msg.textContent = (errs.length < K.length ? "✓ Terminé : relis et coche ✓." : "") + (errs.length ? " ⚠ " + errs.length + " non rédigé(s) (" + errs[0] + ") : ✨ sur la ligne pour réessayer." : ""); }); }

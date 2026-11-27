@@ -49,7 +49,7 @@ function doGet(e) {
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
   if (p.bil) { try { res.bil = bilansGet_(String(p.bil)); res.bilv = 1; } catch (err) { res.bilErr = String(err && err.message || err); } }
   if (res.keyOk) { const lb = PropertiesService.getScriptProperties().getProperty('LAST_BACKUP'); res.sauv = lb ? Number(lb) : 0; }
-  res.aiv = 5; /* 2 : bilan de leçon (ai=lecon) ; 3 : indicateur de performance pour une leçon (ai=indic) ; 4 : appréciation de bulletin générale, sans l'activité ; 5 : bulletin avec [Prénom], accords fille / garçon, aucun chiffre ni critère */
+  res.aiv = 6; /* 2 : bilan de leçon (ai=lecon) ; 3 : indicateur de performance pour une leçon (ai=indic) ; 4 : appréciation de bulletin générale, sans l'activité ; 5 : bulletin avec [Prénom], accords fille / garçon, aucun chiffre ni critère ; 6 : thèmes variés, moyenne de la classe */
   if (res.keyOk && p.aiget) { const c = CacheService.getScriptCache().get('ai_' + String(p.aiget).slice(0, 40)); res.aiRes = c ? JSON.parse(c) : null; }
   if (res.keyOk && p.ai) { try { res.ai = p.ai === 'lecon' ? reformuler_(p) : propre_(reformuler_(p)); } catch (err) { res.aiErr = String(err && err.message || err); } }
   const body = asc_(JSON.stringify(res));
@@ -218,7 +218,7 @@ function reformuler_(p) {
   if (p.ai === 'badsit') return badSituation_(key, p);
   if (p.ai === 'badcoach') return badCoach_(key, p);
   if (p.ai === 'badind') return badIndic_(key, p);
-  const notes = String(p.t || '').slice(0, p.ai === 'lecon' ? 3200 : (p.ai === 'bulletin' || p.ai === 'avis') ? 2200 : 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, p.ai === 'bulletin' ? 900 : 600);
+  const notes = String(p.t || '').slice(0, p.ai === 'lecon' ? 3200 : (p.ai === 'bulletin' || p.ai === 'avis') ? 2200 : 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, p.ai === 'bulletin' ? 1200 : 600);
   if (!notes.trim() && !ctx.trim()) throw new Error('Texte vide');
   const bulletin = p.ai === 'bulletin';
   const COMMUN = ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
@@ -255,7 +255,7 @@ function reformuler_(p) {
   }
   const system = 'Tu es un enseignant d\'EPS de lycée, en France. Tu rédiges en français correct, bienveillant, précis et concret, sans formules creuses. ' +
     'Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »). N\'invente aucun fait absent des notes. Pas de nom ni de prénom' + (bulletin ? ' (seulement le repère [Prénom] quand la consigne le demande). ' : '. ') +
-    (bulletin ? 'Écris une appréciation de bulletin trimestriel GÉNÉRALE, 255 caractères maximum, en 2 phrases courtes, simples et naturelles (pas de tournure « IA »), formulée de façon POSITIVE : un jugement d\'ensemble sur la période (« Très bon trimestre », « Bon trimestre », « Trimestre satisfaisant »…), l\'investissement et les progrès, puis les résultats et l\'attitude. Modèle de ton : « Très bon trimestre, [Prénom] a su s\'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l\'attitude sont remarquables. » ' +
+    (bulletin ? 'Écris une appréciation de bulletin trimestriel GÉNÉRALE, 255 caractères maximum, en 2 phrases courtes, simples et naturelles (pas de tournure « IA »), formulée de façon POSITIVE : le jugement d\'ensemble fixé par la consigne (il dépend de la note et de la moyenne de la classe : pas de « résultats solides » pour un élève sous la moyenne de sa classe), puis les thèmes indiqués par la consigne, en variant le vocabulaire d\'un élève à l\'autre (progrès, attitude, sérieux, engagement, consolidation, régularité, autonomie…), sans parler de « méthode de travail » si ce n\'est pas demandé. Modèle de ton : « Très bon trimestre, [Prénom] a su s\'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l\'attitude sont remarquables. » ' +
       'Désigne l\'élève par le repère [Prénom] (une fois) si la consigne le demande, jamais par un autre nom ; accorde au féminin ou au masculin selon la consigne. Ne nomme jamais l\'activité ni aucun sport, aucun geste technique, aucune règle ni aucun vocabulaire propre à une activité, et ne cite aucun chiffre, aucune note, aucun degré, aucun critère, aucun nombre de leçons ou de situations, aucun pourcentage : les données servent seulement à juger le niveau d\'ensemble. Aucune critique, aucun reproche, aucune tournure négative (pas de « manque », « insuffisant », « doit », « mais ») : l\'enseignant ajoute lui-même ses remarques. Si les données sont maigres, reste sobre.'
      : p.ai === 'avis' ? 'Écris l\'avis de bilan de la période pour cet élève, à la 3e personne, en 2 ou 3 phrases (380 caractères maximum) : ce qui est réussi (chiffres utiles), puis un axe de progrès concret formulé de façon constructive.'
               : 'Écris un commentaire adressé directement à l\'élève (tutoiement), en 2 ou 3 phrases (350 caractères maximum) : ce qui est réussi, puis ce qu\'il faut travailler.') +
