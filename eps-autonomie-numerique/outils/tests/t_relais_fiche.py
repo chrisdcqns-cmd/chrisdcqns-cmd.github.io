@@ -18,10 +18,10 @@ async def main():
     V="viewNow()"; cur="(document.querySelector('.epst-nav button.on')||{}).dataset.t"
     act=lambda t:"[...document.querySelectorAll('.epst-tb button')].find(b=>b.title==='%s').click()"%t
     # 1. Leçon du jour
-    await p.evaluate("DATA.cur=DATA.classes[0].id;DATA.lecon=null;CL().lecons=[];persist()"); await p.evaluate(act("Écran des élèves")); await p.wait_for_timeout(1500)
+    await p.evaluate("DATA.cur=DATA.classes[0].id;DATA.lecon=null;CL().lecons=[];persist()"); await p.evaluate("goJour('home')"); await p.wait_for_timeout(1500)
     chk(await p.evaluate(V)=="live" and await p.evaluate(cur)=="suivi" and "Démarrer" in await p.evaluate("document.querySelector('#lv-ctl').innerText"),"Leçon du jour sans leçon aujourd'hui : Suivi avec « Démarrer la leçon », pas Classe ("+str(await p.evaluate(V))+")")
     await p.evaluate("(()=>{CL().lecons.push({id:'lj',date:todayISO(),cfg:JSON.parse(JSON.stringify(DEFCFG))});DATA.lecon=null;persist()})()")
-    await p.click(".epst-nav [data-t=seq]"); await p.wait_for_timeout(900); await p.evaluate(act("Écran des élèves")); await p.wait_for_timeout(1500)
+    await p.click(".epst-nav [data-t=seq]"); await p.wait_for_timeout(900); await p.evaluate("goJour('home')"); await p.wait_for_timeout(1500)
     chk(await p.evaluate(V)=="home" and await p.evaluate(cur)=="seq" and await p.evaluate("CLE().id")=="lj","Leçon du jour avec une leçon aujourd'hui : elle s'ouvre toute seule")
     await p.evaluate("DATA.lecon=null;persist()"); await p.click(".epst-nav [data-t=seq]"); await p.wait_for_timeout(900); await p.evaluate("goJour('course')"); await p.wait_for_timeout(1500)
     chk(await p.evaluate(V)=="course","Courses : écran des courses de la leçon du jour")

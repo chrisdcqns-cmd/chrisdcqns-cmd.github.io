@@ -43,6 +43,15 @@
   function pause(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function loadJs(src) { return new Promise(function (ok, ko) { var s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
   async function libs() { if (!window.PDFLib) await loadJs(BASE + "vendor/pdf-lib.min.js"); if (!window.JSZip) await loadJs(BASE + "vendor/jszip.min.js"); if (!window.QRLib) await loadJs(BASE + "vendor/qrlib.js"); }
+  /* 📏 Répartition des points dans les degrés (demande de l'enseignant, 28/11/2026 : « le haut du degré 2 ne doit jamais donner la même note que le bas
+     du degré 3 ») : chaque degré couvre une plage en % des points du critère, avec un écart entre deux degrés (valeurs de Badminton) ; paramètre
+     « eval_bandes » (🎛 Paramètres → Notes et évaluation), 4 lignes « début-fin ». Part des points = début + position × (fin − début).
+     Volley, Badminton, Relais ont leurs propres plages (déjà avec écart) ; Danse reprend les valeurs d'Additio. */
+  var BANDES0 = ["0-20", "25-45", "50-70", "75-100"];
+  function bandes() { var L = BANDES0; try { if (window.EPSP && EPSP.p) L = EPSP.p({ id: "eval_bandes", sec: "Notes et évaluation", label: "Part des points par degré, en % (« début-fin », du degré 1 au degré 4 ; laisse un écart entre deux degrés)", type: "list", fixed: 4, def: BANDES0 }) || BANDES0; } catch (e) {}
+    var B = [0, 1, 2, 3].map(function (i) { var m = /(\d+(?:[.,]\d+)?)\D+(\d+(?:[.,]\d+)?)/.exec(String(L[i] || "")), d = /(\d+)\D+(\d+)/.exec(BANDES0[i]); var a = m ? +m[1].replace(",", ".") : +d[1], b = m ? +m[2].replace(",", ".") : +d[2]; a = Math.max(0, Math.min(100, a)); b = Math.max(a, Math.min(100, b)); return [a, b]; });
+    return B; }
+  function partPts(d, pos) { var b = bandes()[Math.max(0, Math.min(3, Math.round(+d)))], p = pos == null || !isFinite(+pos) ? .5 : Math.max(0, Math.min(1, +pos)); return (b[0] + p * (b[1] - b[0])) / 100; }
   function posLbl(d, pos) { return pos < .2 ? "au début du niveau" : pos < .45 ? "plutôt au début" : pos < .7 ? "au milieu" : pos < .9 ? "bien avancé" : d === 3 ? "au top" : "presque au niveau suivant"; }
   /* envoi automatique : script Google de Danse (réglé dans Danse, ou propre à l'appli) */
   function envoiDanse() { var R = ((jget("danse-eps-v1", {}) || {}).reglages) || {}; return { url: (R.envoiUrl || "").trim(), key: (R.envoiCle || "").trim() }; }
@@ -673,9 +682,9 @@
           if (vS != null) { W.push(vS * 4); U.push("situations"); }
           if (W.length) { var mm = Math.max(0, Math.min(3.999, W.reduce(function (x, y) { return x + y; }, 0) / W.length)), dd = Math.floor(mm); v = { d: dd, pos: mm - dd }; src = "auto"; est[cr.id] = { d: dd, pos: Math.round((mm - dd) * 4) / 4 }; U.forEach(function (u) { used[u] = 1; }); } }
         var mx = A.max ? A.max(cr, E) : (+cr.max || 1); if (!groups[code]) { groups[code] = { code: code, w: 0, s: 0, mx: 0, crit: 0, done: 0, auto: 0 }; order.push(code); }
-        var g = groups[code]; g.mx += mx; g.crit++; if (v) { g.w += mx; g.s += mx * (v.d + (v.pos == null ? .5 : v.pos)); g.done++; if (src === "auto") { g.auto++; nA++; } else nT++; } });
+        var g = groups[code]; g.mx += mx; g.crit++; if (v) { g.w += mx; g.s += mx * (v.d + (v.pos == null ? .5 : v.pos)); g.p = (g.p || 0) + (v.pts != null && isFinite(+v.pts) ? +v.pts : mx * partPts(v.d, v.pos)); g.done++; if (src === "auto") { g.auto++; nA++; } else nT++; } });
       var afl = order.map(function (c) { var g = groups[c]; if (!g.w) return { code: c, deg: null, mx: g.mx, crit: g.crit, done: 0 }; var m = Math.min(3.999, g.s / g.w), d = Math.floor(m);
-        return { code: c, m: m, deg: d, pos: m - d, mx: g.mx, crit: g.crit, done: g.done, auto: g.auto, pts: Math.round(g.mx * m / 4 * 4) / 4 }; });
+        return { code: c, m: m, deg: d, pos: m - d, mx: g.mx, crit: g.crit, done: g.done, auto: g.auto, pts: Math.round(g.mx * (g.p || 0) / g.w * 4) / 4 }; });
       var lec = cls ? lecAvg(cls, E) : null, cc = cls ? M.ccf(cls) : { on: false }, note = null, detail = "";
       if (afl.some(function (a) { return a.deg != null; })) {
         if (!cc.on && A.note && nA === 0 && A.note(E) != null) { note = A.note(E); detail = "note calculée par l'appli"; }
@@ -684,7 +693,7 @@
         else { var fin = afl.filter(function (a) { return /^AFL1\b|^AFLP[12]\b/i.test(a.code); }), fil = afl.filter(function (a) { return fin.indexOf(a) < 0; }), tot = 0, ok = true;
           fin.forEach(function (a) { if (a.deg == null) { ok = false; return; }
             var R = cc.voie === "pro" && /^AFLP1/i.test(a.code) ? R7 : cc.voie === "pro" && /^AFLP2/i.test(a.code) ? R5 : null, P = 12 / fin.length;
-            a.ccf = R ? R[a.deg][0] + a.pos * (R[a.deg][1] - R[a.deg][0]) : P * a.m / 4; a.ccfMax = R ? R[3][1] : P; a.ccf = Math.round(a.ccf * 4) / 4; tot += a.ccf; });
+            a.ccf = R ? R[a.deg][0] + a.pos * (R[a.deg][1] - R[a.deg][0]) : P * (a.mx ? a.pts / a.mx : 0); a.ccfMax = R ? R[3][1] : P; a.ccf = Math.round(a.ccf * 4) / 4; tot += a.ccf; });
           var ch = (M.choix(cls, E) || "4-4").split("-").map(Number);
           fil.slice(0, 2).forEach(function (a, i) { var P = ch[i] || 4; a.ccfMax = P; if (a.deg == null) { ok = false; return; } var Rg = cc.voie === "pro" ? BARP[P][a.deg] : null; a.ccf = Rg ? Math.round((Rg[0] + a.pos * (Rg[1] - Rg[0])) * 4) / 4 : BAR[P][a.deg]; tot += a.ccf; });
           if (!fin.length) ok = false; note = Math.round(tot * 4) / 4; detail = "barème CCF " + (cc.voie === "pro" ? "Bac pro" : "Bac général") + " · fil de la séquence " + ch.join("-") + (ok ? "" : " · incomplet : il manque des AFL"); } }
@@ -873,7 +882,7 @@
     function grid() { var c = cfg(); if (gv() !== "pro") return c.grid; if (c.gridPro) return c.gridPro; if (o.gridPro && !proData()) return JSON.parse(JSON.stringify(o.gridPro)); return c.grid; }
     function setGrid(G) { if (gv() === "pro") setCfg({ gridPro: G }); else setCfg({ grid: G }); }
     function maxOf(cr) { return +cr.max || 0; }
-    function prof(cr, e) { var r = rec(e._c, e), v = r.ev && r.ev[cr.id]; if (!v || v.d == null) return null; var pos = v.pos == null ? .5 : v.pos; return { d: v.d, pos: pos, pts: Math.round(maxOf(cr) * (v.d + pos) / 4 * 4) / 4 }; }
+    function prof(cr, e) { var r = rec(e._c, e), v = r.ev && r.ev[cr.id]; if (!v || v.d == null) return null; var pos = v.pos == null ? .5 : v.pos; return { d: v.d, pos: pos, pts: Math.round(maxOf(cr) * partPts(v.d, pos) * 4) / 4 }; }
     function note(e) { var G = grid(), tot = 0, max = 0, n = 0; G.criteres.forEach(function (cr) { var v = prof(cr, e); max += maxOf(cr); if (v) { tot += v.pts; n++; } }); if (!n || !max) return null; return Math.round(tot / max * 20 * 4) / 4; }
     /* 🧪 classe de démonstration (Réglages communs) : évaluations et auto-positionnements fictifs, une seule fois */
     function demoSeed() {

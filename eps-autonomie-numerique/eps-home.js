@@ -351,7 +351,7 @@
     "[data-eps-bar] .epsb:active{background:#ffffff14}[data-eps-bar] .epsb svg{width:20px;height:20px;flex:none}" +
     "[data-eps-bar] #epsd-pill{position:static;height:40px;border-radius:10px;box-shadow:none;padding:0 12px}" +
     "@media (max-width:620px){[data-eps-bar] .epsb span{display:none}}" +
-    ".epsd-ov{position:fixed;inset:0;z-index:2147483001;background:rgba(27,30,36,.55);display:flex;align-items:center;justify-content:center;padding:18px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
+    ".epsd-ov{position:fixed;inset:0;z-index:2147483250;background:rgba(27,30,36,.55);display:flex;align-items:center;justify-content:center;padding:18px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
     ".epsd-box{background:#fff;color:#1B1E24;border-radius:20px;width:min(720px,100%);max-height:92vh;overflow:auto;padding:22px 24px;box-shadow:0 10px 40px rgba(0,0,0,.3)}" +
     ".epsd-box h3{margin:0 0 6px;font-size:24px;font-weight:900}.epsd-box .m{color:#6A6F78;font-size:15px;margin:0 0 12px}" +
     ".epsd-cls{margin-top:12px;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6A6F78}" +
@@ -1903,12 +1903,13 @@
     if (!UPD.loc && navigator.serviceWorker && location.protocol !== "file:") { try { await navigator.serviceWorker.register("/sw.js"); } catch (e) {} }
     try { var t = await (await fetch("/sw.js?v=" + Date.now(), { cache: "no-store" })).text(), m = /eps-core-v(\d+)/.exec(t); if (m) UPD.net = +m[1]; } catch (e) {}
     UPD.at = Date.now(); updDot(); }
-  function updDot() { var b = document.getElementById("eps-upd"); if (!b) return; var d = b.querySelector(".eps-dot"); if (!d) { d = document.createElement("i"); d.className = "eps-dot"; d.setAttribute("aria-hidden", "true"); b.appendChild(d); b.style.position = b.style.position || "relative"; }
+  /* 🔄 plus de pastille : c'est la couleur du bouton qui parle (demande du 28/11/2026) : vert un peu sombre = à jour, rouge = nouvelle version / problème, inchangé = non vérifié */
+  function updDot() { var b = document.getElementById("eps-upd"); if (!b) return; var d = b.querySelector(".eps-dot"); if (d) d.remove();
     var mine = UPD.page || UPD.loc, st = !UPD.net || !mine ? "?" : mine >= UPD.net ? "ok" : "old";
-    d.style.cssText = "position:absolute;top:3px;right:3px;width:11px;height:11px;border-radius:50%;border:2px solid #14171C;background:" + (st === "ok" ? "#2ECC71" : st === "old" ? "#E53935" : "#9E9E9E") + (st === "old" ? ";animation:epsblink 1s infinite" : "");
+    b.classList.toggle("eps-upd-ok", st === "ok"); b.classList.toggle("eps-upd-old", st === "old");
     var t = st === "ok" ? "Tablette à jour (version " + mine + ")" : st === "old" ? "Nouvelle version publiée (" + UPD.net + ", cette page est en " + mine + ") : elle s'installe seule dès que la tablette est au repos ; touche pour forcer" : "Mettre à jour (version non vérifiée : hors ligne ?)";
     b.title = t; b.setAttribute("aria-label", t); }
-  try { var bk = document.createElement("style"); bk.textContent = "@keyframes epsblink{50%{opacity:.25}}"; document.head.appendChild(bk); } catch (e) {}
+  try { var bk = document.createElement("style"); bk.textContent = "@keyframes epsblink{50%{opacity:.25}}#eps-upd.eps-upd-ok{background:#1E6B3F!important;border-color:#1E6B3F!important;color:#fff!important}#eps-upd.eps-upd-old{background:#C62828!important;border-color:#C62828!important;color:#fff!important}"; document.head.appendChild(bk); } catch (e) {}
   /* ⬇ mise à jour forcée (bouton 🔄, enseignant) : données envoyées, service workers relancés, et si une version plus récente est publiée
      et la tablette en ligne, tous les caches de fichiers vidés (les données des élèves sont ailleurs : rien n'est perdu) puis rechargement */
   async function forceUpd(wait) {
@@ -2521,6 +2522,7 @@
   function ovItems(k) { var V = jget(k, null); return V && V.items ? Object.keys(V.items).map(function (i) { return V.items[i]; }).filter(function (o) { return o && !o.del; }) : []; }
   function overview() {
     var CL = []; try { CL = (window.EPSL ? EPSL.items() : []).slice().sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr", { numeric: true }); }); } catch (e) {}
+    CL = CL.filter(function (it) { return !it.demo && cmp(it.nom) !== cmp(DEMO_NOM); }); /* la classe fictive ne se voit que dans la 👁 Vue élève (demande du 28/11/2026) */
     var root = location.pathname.replace(/(\/eps-autonomie-numerique\/).*$/, "$1"), now = Date.now(), d0 = today();
     var obs = ovItems("eps.obs.v1"), cards = CL.map(function (it) {
       var P = []; try { P = EPSL.people(it).map(function (p) { return p.full; }); } catch (e) {}

@@ -3151,7 +3151,7 @@ function evClick(mode,ev){
   if(aj){const k=aj.dataset.evk2,s=o.prof[k];if(!s)return;const r=EVR[evMax(k,evRepOf(o))][s.d];const cur=evPts(o.prof,k,evRepOf(o));
     s.p=Math.min(r[1],Math.max(r[0],Math.round((cur+0.25*(+aj.dataset.evadj))*4)/4));o.prof.at=new Date().toISOString();persist();evKeep(aj,renderEval);return}
   const c=t.closest("[data-evk]");if(!c)return;const k=c.dataset.evk,d=+c.dataset.evd;
-  if(mode==="prof"){const s=o.prof[k];if(!(s&&s.d===d))o.prof[k]={d};o.prof.at=new Date().toISOString();persist();evKeep(c,renderEval);return}
+  if(mode==="prof"){const s=o.prof[k];if(!(s&&s.d===d)){const r0=EVR[evMax(k,evRepOf(o))][d];o.prof[k]=r0?{d,p:Math.round((r0[0]+r0[1])/2*4)/4}:{d}}/* un appui = milieu du degré, puis − / + (28/11/2026) */o.prof.at=new Date().toISOString();persist();evKeep(c,renderEval);return}
   const was=autoDone(e,lid);const a=o.auto[lid]||(o.auto[lid]={sel:{}});a.sel[k]={d};a.at=new Date().toISOString();a.tab=(typeof SY!=="undefined"&&SY.nom)||"";persist();evKeep(c,renderAuto);renderEvAlert();
   if(!was&&autoDone(e,lid))toast("✓ Auto-évaluation enregistrée : "+fmtP(evTotal(a.sel,evRepOf(o)).t)+" / 20");
 }
@@ -4621,7 +4621,7 @@ function goJour(v){const C=CL();if(C&&!CLE()){const l=(C.lecons||[]).find(x=>x.d
 window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
  /* Onglets (demande de l'enseignant, 27/11/2026) : 📅 Séquence = fiches de leçon communes (plus une classe) ; 👥 Classe = vue générale de toutes
     les classes, puis la préparation de la classe choisie (leçons, vitesses, groupes), jamais directement le tableau des vitesses. */
- tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course'].includes(viewNow()),actions:[{main:1,ico:'📱',label:'Écran des élèves',sub:'La leçon du jour telle que la tablette de la classe l\'affiche',go:()=>goJour('home')},{ico:'⏱',label:'Courses',go:()=>goJour('course')}]},
+ tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course'].includes(viewNow()),/* « 📱 Écran des élèves » retiré (demande du 28/11/2026 : il renvoyait vers Suivi ; l'écran des élèves se voit dans 👁 Vue élève) */actions:[{ico:'⏱',label:'Courses',go:()=>goJour('course')}]},
   eval:{go:()=>{RL_BIL=0;go('eval')},on:()=>['eval','auto'].includes(viewNow())||(viewNow()==='eleve'&&FE_BACK==='eval'),actions:[{ico:'📋',label:'Évaluer',go:()=>{RL_BIL=0;go('eval')}},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}],
   /* 📤 Bilan et export (onglet Évaluer) : le bilan de l'évaluation (chiffres, PDF, .zip, Pronote) ; le bilan des leçons (courses) en action à côté */
   bilan:{go:()=>{RL_BIL=1;if(!CL()&&DATA.classes.length===1){DATA.cur=DATA.classes[0].id;persist()}go('eval')},on:()=>(viewNow()==='bilan'&&!!RL_LB)||(viewNow()==='eval'&&RL_BIL),actions:[{ico:'🏃',label:'Bilan des leçons (courses)',main:1,go:()=>{RL_BIL=0;RL_LB=1;goBilans()}}]}},
@@ -4645,7 +4645,7 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  extras:(c,e)=>{const o=evrO(e);return o?['Répartition AFL2 / AFL3 : '+evRepOf(o).replace('-',' / ')]:[]},
  getAp:e=>{const o=evrO(e);return o&&o.ap||null},
  /* saisie rapide commune (par critère / par groupe) et « ✓ Reprendre ces degrés » ; groupes = ceux de la leçon du jour, sinon de la classe */
- setDeg:(cr,e,d)=>{const o=evrO(e);if(!o)return;if(d==null)delete o.prof[cr.id];else o.prof[cr.id]={d:d+1};o.prof.at=new Date().toISOString();persist()},
+ setDeg:(cr,e,d)=>{const o=evrO(e);if(!o)return;if(d==null)delete o.prof[cr.id];else{const r0=EVR[evMax(cr.id,evRepOf(o))][d+1];o.prof[cr.id]=r0?{d:d+1,p:Math.round((r0[0]+r0[1])/2*4)/4}:{d:d+1}}o.prof.at=new Date().toISOString();persist()},
  setProf:(cr,e,v)=>{const o=evrO(e);if(!o||!v||v.d==null||(o.prof[cr.id]&&o.prof[cr.id].d))return;const d=Math.max(1,Math.min(4,Math.round(+v.d)+1)),b=EVR[evMax(cr.id,evRepOf(o))][d],p=isFinite(+v.pos)?Math.max(0,Math.min(1,+v.pos)):.5;o.prof[cr.id]=b&&b[1]>b[0]?{d,p:Math.round((b[0]+p*(b[1]-b[0]))*4)/4}:{d};o.prof.at=new Date().toISOString();persist()},
  groups:()=>{const G=(CLE()&&CLE().groupes)||CL().groupes||[];return G.map(g=>({nom:g.name||'Groupe',eleves:(g.members||[]).map(byId).filter(x=>x&&x.ma!=="DISP")})).filter(g=>g.eleves.length)},
  setAp:(e,ap)=>{const o=evrO(e);if(!o)return;o.ap=ap;const sel={};Object.keys(ap.ev||{}).forEach(k=>{sel[k]={d:ap.ev[k].d+1}});o.auto.qr={sel,at:new Date(ap.t||Date.now()).toISOString(),via:ap.via};persist()},

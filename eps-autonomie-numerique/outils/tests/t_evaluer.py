@@ -48,10 +48,10 @@ async def main():
         ok("un appui sur la date : rappel « Double appui pour modifier », la leçon ne s'ouvre pas", await p.evaluate("!!document.getElementById('lc-ejh')&&!(document.querySelector('.lc-ov')&&document.querySelector('.lc-ov').style.display!=='none')"))
         await p.wait_for_timeout(1300); await p.dblclick("[data-ejd]"); await p.wait_for_timeout(1200)
         e = await p.evaluate("(function(){var o=document.querySelector('.lc-ov'),s=o&&o.querySelector('[data-day]');return {v:!!o&&o.style.display!=='none',t:o?o.innerText.slice(0,400):'',d:s?s.value:''}})()")
-        ok("double appui sur la date : « Évaluer la leçon » s'ouvre sur ce jour, pour toute la leçon", e["v"] and "Tous « Satisfaisant »" in e["t"] and e["d"] == day, e)
+        ok("double appui sur la date : « Évaluer la leçon » s'ouvre sur ce jour, pour toute la leçon", e["v"] and "Tous au degré 3" in e["t"] and e["d"] == day, e)
         if SHOTS: await p.screenshot(path=os.path.join(SHOTS, "evaluer-jour-modifier.png"))
-        av = await p.evaluate("document.querySelector('.lc-ov [data-k][data-q=p]').innerText")
-        await p.click(".lc-ov [data-k][data-q=p]"); await p.wait_for_timeout(500); ap = await p.evaluate("document.querySelector('.lc-ov [data-k][data-q=p]').innerText")
+        AV = "(function(){var r=document.querySelector('.lc-ov [data-moy]');return r?r.textContent:''})()"; av = await p.evaluate(AV)
+        await p.evaluate("(function(){var b=document.querySelector('.lc-ov [data-k][data-q=p][data-d]:not([aria-pressed=true])');b.click()})()"); await p.wait_for_timeout(500); ap = await p.evaluate(AV)
         # l'écran de saisie est rangé sous le bandeau (pas de « ✕ Fermer ») : on revient en touchant « Leçons du jour »
         await p.click(".epst-tb button.seg[title='Leçons du jour']"); await p.wait_for_timeout(1100)
         ok("après la modification, la consultation est à jour (" + av + " → " + ap + ")", av != ap and await p.evaluate("!!document.querySelector('.epst-panel [data-ejd]')&&document.querySelector('.lc-ov').style.display==='none'"))
