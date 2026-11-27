@@ -3078,7 +3078,7 @@ function evGridHTML(mode,e){
       +EVE.map(x=>{const s=sel[x.k],pt=evPts(sel,x.k,rp),mx=evMax(x.k,rp),as=la&&la.sel[x.k],ap=la?evPts(la.sel,x.k,rp):null;
         return `<tr><td><b>${x.t}</b> <small style="color:var(--muted)">${x.s}</small></td><td class="n">${s?`<span class="dg d${s.d}">${s.d}</span>`:"–"}</td><td class="n"><b>${pt!=null?fmtP(pt):"–"}</b> / ${mx}</td>${la?`<td class="n">${as?`<span class="dg d${as.d}">${as.d}</span> ${fmtP(ap)} / ${mx}`:"–"}</td>`:""}</tr>`}).join("")
       +`<tr class="tot"><td>Note générale</td><td></td><td class="n">${t0.n?fmtP(t0.t):"–"} / 20${t0.n<4?` <small style="font-weight:600;color:var(--muted)">(incomplète)</small>`:""}</td>${la?`<td class="n">${ta.n?fmtP(ta.t):"–"} / 20</td>`:""}</tr></tbody></table>`
-    h+=`<div class="evappc mt"><div class="label">✍️ Appréciation (bulletin et fiche PDF)</div><textarea rows="3" data-evapp="${e.id}" data-eps-comment data-eps-mode="bulletin" data-eps-ctx="${esc(evAppCtx(e))}" placeholder="Quelques mots (ou 🎤 Dicter), puis ✨ Reformuler : Claude rédige l'appréciation à partir de la grille et des courses. Relis avant de l'utiliser.">${esc(o.app||"")}</textarea></div>`}
+    h+=`<div class="evappc mt"><div class="label">✍️ Appréciation (bulletin et fiche PDF)</div><textarea rows="3" data-evapp="${e.id}" data-eps-comment data-eps-mode="bulletin" data-eps-eleve="${esc(((e.prenom||"")+" "+(e.nom||"")).trim())}" data-eps-ctx="${esc(evAppCtx(e))}" placeholder="Quelques mots (ou 🎤 Dicter), puis ✨ Reformuler : Claude rédige l'appréciation à partir de la grille et des courses. Relis avant de l'utiliser.">${esc(o.app||"")}</textarea></div>`}
   const t=evTotal(sel,rp);
   h+=st?`<div class="evtot"><div class="big">${evStLab(st,1)}</div><div class="det">Pas de note · touche « Présent » pour noter</div>`
     +`<button class="btn ghost sm" style="margin-left:auto;background:transparent;color:#fff;border-color:#fff" data-evnext="1">Élève suivant →</button></div></div>`:`<div class="evtot"><div class="big">${t.n?fmtP(t.t):"–"} / 20</div><div class="det">${t.n===4?(prof?"Note enregistrée ✓ · touche une autre case pour changer":"Auto-évaluation enregistrée ✓ · tu peux encore changer tes cases"):`${4-t.n} élément(s) à compléter`}</div>`
@@ -4382,7 +4382,7 @@ async function evAppAll(b){
   const msg=$("#ev-iamsg");if(!L.length){msg.textContent="Aucune appréciation à rédiger : il faut une grille complète (4 indicateurs) et une appréciation vide.";return}
   b.disabled=true;let ok=0,err="";
   for(let i=0;i<L.length;i++){const e=L[i];msg.textContent=`Claude rédige… ${i+1} / ${L.length} (aucun nom n'est envoyé)`;
-    try{const v=await EPSD.reformuler("",{mode:"bulletin",act:"Relais vitesse",ctx:evAppCtx(e)});const o=evOf(e.id);if(!(o.app||"").trim()){o.app=v;ok++}}catch(x){err=x&&x.message||String(x);break}}
+    try{const v=await EPSD.reformuler("",{mode:"bulletin",act:"Relais vitesse",ctx:evAppCtx(e),eleve:((e.prenom||"")+" "+(e.nom||"")).trim()});const o=evOf(e.id);if(!(o.app||"").trim()){o.app=v;ok++}}catch(x){err=x&&x.message||String(x);break}}
   persist();try{renderEval()}catch(e){}const msg2=$("#ev-iamsg");if(msg2)msg2.textContent=(ok?`✓ ${ok} appréciation${ok>1?"s":""} rédigée${ok>1?"s":""} : relis-les dans la grille de chaque élève (et dans l'export Excel).`:"")+(err?" ⚠ "+err:"");
 }
 

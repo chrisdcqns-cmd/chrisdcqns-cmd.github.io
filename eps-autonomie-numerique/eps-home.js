@@ -241,7 +241,7 @@
      localStorage[key] = {items:{id:{…, u}}, pend:{id:u}, since} ; le plus récent (u) l'emporte, élément par élément */
   var STORES = [], ESSAIS_MAX = 8; /* essais sans confirmation avant de lever l'attente quand même (évite de renvoyer sans fin) */
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
-  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.carnet\.v1$/, "cn|"], [/^eps\.ref\.v1$/, "rf|"], [/^eps\.ico\.v1$/, "iq|"], [/^eps\.cdc\.v1$/, "kc|"], [/^eps\.terrain\.v1$/, "tz|"], [/^eps\.coeval\.v1$/, "cv|"], [/^eps\.trash\.v1$/, "tk|"], [/^eps\.analyse\.v1$/, "an|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
+  var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.carnet\.v1$/, "cn|"], [/^eps\.ref\.v1$/, "rf|"], [/^eps\.ico\.v1$/, "iq|"], [/^eps\.cdc\.v1$/, "kc|"], [/^eps\.terrain\.v1$/, "tz|"], [/^eps\.coeval\.v1$/, "cv|"], [/^eps\.trash\.v1$/, "tk|"], [/^eps\.genre\.v1$/, "gn|"], [/^eps\.analyse\.v1$/, "an|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
     [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^step\.v1$/, "sp|"], [/^bk\.v1$/, "bk|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
@@ -369,6 +369,8 @@
     ".epsd-wtop button{height:44px;padding:0 16px;border-radius:12px;border:2px solid #1B1E24;background:#fff;font:800 16px system-ui,sans-serif;color:#1B1E24;cursor:pointer}" +
     ".epsd-wbody{flex:1;overflow:auto;padding:14px 18px 30px}.epsd-win .epsd-box{width:min(1000px,100%);max-height:none;overflow:visible;margin:0 auto;box-shadow:none;border:1.5px solid #E6E1D6;border-radius:16px}" +
     ".epst-dock.epsd-win>.epsd-wtop{display:none!important}.epsd-ok{color:#1E7B45;font-weight:700}" +
+    ".epsd-gn{height:34px;padding:0 10px;border-radius:999px;border:1.5px solid #E6E1D6;background:#fff;font:700 14px system-ui,sans-serif;color:#14171C;cursor:pointer;flex:none;width:auto;margin:0}" +
+    ".epsd-one{height:34px;padding:0 10px;border-radius:10px;border:1.5px solid #E6E1D6;background:#fff;font:700 14px system-ui,sans-serif;cursor:pointer;flex:none;width:auto;margin:0}.epsd-cnt{font-size:12px;color:#6A6F78;text-align:right;margin-top:2px}.epsd-cnt.over{color:#B42318;font-weight:700}" +
     ".epsd-act{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.epsd-act button{height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;background:#fff;font:800 17px system-ui,sans-serif;color:#1B1E24}" +
     ".epsd-act .p{background:#C0392B;border-color:#C0392B;color:#fff}.epsd-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}" +
     ".epsd-steps{display:flex;gap:8px;margin:4px 0 8px;font-weight:800;font-size:14px;color:#6A6F78}.epsd-steps .on{color:#C0392B}" +
@@ -1348,7 +1350,7 @@
   window.EPSG = { register: gateRegister, open: gateOpen, close: gateClose, sheet: gateSheet };
 
   /* ================= Commentaires : 🎤 dictée (reconnaissance vocale de la tablette) et ✨ Reformuler (Claude, par le script commun) =================
-     Toute appli marque ses champs de commentaire avec l'attribut data-eps-comment (facultatif : data-eps-ctx = éléments d'évaluation, data-eps-mode = "fiche" | "bulletin").
+     Toute appli marque ses champs de commentaire avec l'attribut data-eps-comment (facultatif : data-eps-ctx = éléments d'évaluation, data-eps-mode = "fiche" | "bulletin", data-eps-eleve = nom complet de l'élève pour le prénom et les accords d'une appréciation de bulletin).
      Le texte envoyé ne contient jamais le nom de l'élève. Barre visible seulement en mode enseignant. */
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition, DICT = null;
   function setVal(ta, v) { ta.value = v; ["input", "change"].forEach(function (ev) { try { ta.dispatchEvent(new Event(ev, { bubbles: true })); } catch (e) {} }); }
@@ -1373,14 +1375,36 @@
       return "✓ Claude répond correctement.\n\nExemple de reformulation : « " + t + " »";
     });
   }
-  /* 📝 Appréciation de bulletin GÉNÉRALE (demande de l'enseignant, 27/11/2026, pour toutes les évaluations) : jamais le nom de l'activité
-     ni son vocabulaire technique. Règle posée ICI pour tout appel mode "bulletin" (applis actuelles et futures) : l'activité n'est pas
-     envoyée (act = "EPS") et la consigne part en tête du contexte, pour qu'elle s'applique même avec un script Google pas encore redéployé
-     (le script à jour, aiv ≥ 4, porte la même consigne). */
-  var BUL_GEN = "Consigne : appréciation générale de l'élève en EPS. Ne nomme aucune activité ni aucun sport, aucun geste technique ni vocabulaire propre à une activité : parle de l'engagement, des progrès, de l'attitude, de l'autonomie, de la coopération et des rôles.";
+  /* 📝 Appréciation de bulletin (demandes de l'enseignant, 27/11/2026, pour toutes les évaluations) : GÉNÉRALE (jamais l'activité, aucun chiffre,
+     critère, degré, nombre de leçons…), avec le PRÉNOM de l'élève et les accords fille / garçon, sur le modèle :
+     « Très bon trimestre, Héloïse a su s'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l'attitude sont remarquables. »
+     Règle posée ICI pour tout appel mode "bulletin" (applis actuelles et futures) : l'activité n'est pas envoyée (act = "EPS"), la consigne part
+     dans le contexte (elle s'applique même avec un script Google pas encore redéployé ; le script à jour, aiv ≥ 5, porte la même), les données
+     de l'appli passent dans le texte. Le prénom n'est JAMAIS envoyé : Claude écrit [Prénom], remplacé ici sur la tablette.
+     Options : eleve (nom complet : prénom et genre retrouvés), prenom, genre ("f" | "g"). */
+  function bulConsigne(pr, g) {
+    return "Consigne de l'enseignant : appréciation de bulletin générale et positive, 255 caractères maximum, 2 phrases simples et naturelles. Modèle de ton : « Très bon trimestre, [Prénom] a su s'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l'attitude sont remarquables. »" +
+      (pr ? " Écris [Prénom] à la place du prénom de l'élève (une fois)." : " Ne nomme pas l'élève.") +
+      (g === "f" ? " L'élève est une fille : accorde au féminin." : g === "g" ? " L'élève est un garçon : accorde au masculin." : " Évite les accords qui dépendent du genre de l'élève.") +
+      " Ne cite ni l'activité, ni aucun chiffre, note, degré, critère, nombre de leçons ou de situations, pourcentage : les données servent seulement à juger le niveau d'ensemble.";
+  }
+  /* 👧 / 👦 fille ou garçon : deviné d'après le prénom, corrigé d'un appui (bouton [data-eps-genre], n'importe où) et alors gardé dans
+     « eps.genre.v1 » (gn|, synchronisé et chiffré comme les listes) : {id: clé de l'élève (nkey), g: "f" | "g"}. À Claude ne part que « fille » / « garçon ». */
+  var KGN = "eps.genre.v1";
+  var GN_F = " ines agnes lou manon margaux anais maelys maylis mailys nais thais alix lilou elif nour myriam maryam meryem mariam sarah deborah hannah judith ruth esther carmen romy lily lilly emily abigail rachel lys louann nell maud gwen alison allison ashley kelly jenny cindy wendy fanny lucy mary nelly emy amy ilham siham aylin evy ivy shirin farah yasmin jasmin lilas marion ninon louison lison suzon eden kim rym rim dounia ", 
+      GN_M = " baptiste jerome maxime guillaume pierre antoine alexandre theophile philippe christophe stephane jeremie andre rene noe jose aime timothee elie emile luca louka luka nicola nikola joshua elia ilia ilya mustapha moussa issa hamza yahya zakaria zacharia ibrahima souleymane lamine amine yassine yacine sofiane rayane ilyane achille auguste eugene gustave octave maxence ange basile cyrille hippolyte lazare theodore arsene ambroise come anthime leandre evariste moise abdoulaye ousmane redouane marwane marouane zinedine nordine nourdine lassana idrissa sacha steve mike dave kyle clyde blaise aristide alcide jeremy remy anthony tony jimmy teddy eddy andy harry henry willy rudy ";
+  function prenomDe(full) { var w = String(full || "").trim().split(/\s+/).filter(Boolean), up = function (x) { return x.length > 1 && x === x.toUpperCase() && /[A-ZÀ-Ý]/.test(x); }, p = w.filter(function (x) { return !up(x); });
+    var r = p.length && p.length < w.length ? p.join(" ") : (w[0] || ""); if (r === r.toUpperCase()) r = r.toLowerCase();
+    return r.replace(/(^|[\s-])([a-zà-ÿ])/g, function (m, a, c) { return a + c.toUpperCase(); }); }
+  function gnDevine(full) { var p = norm(prenomDe(full)).split(" ")[0] || ""; if (!p) return ""; if (GN_M.indexOf(" " + p + " ") >= 0) return "g"; if (GN_F.indexOf(" " + p + " ") >= 0) return "f"; return /[ae]$/.test(p) ? "f" : "g"; }
+  function gnGet(full) { var o = stLd(KGN).items[nkey(full)]; return o && !o.del && (o.g === "f" || o.g === "g") ? { g: o.g, sure: true } : { g: gnDevine(full), sure: false }; }
+  function gnSet(full, g) { stPutRaw(KGN, { id: nkey(full), g: g }); try { clearTimeout(timer); timer = setTimeout(sync, 2000); } catch (e) {} }
+  function gnLab(g) { return g === "f" ? "👧 Fille" : "👦 Garçon"; }
+  function gnBtn(full) { return '<button type="button" class="epsd-gn" data-eps-genre="' + esc(full) + '" title="Fille ou garçon (accords de l\'appréciation) : touche pour changer">' + gnLab(gnGet(full).g) + "</button>"; }
+  document.addEventListener("click", function (e) { var b = e.target && e.target.closest && e.target.closest("[data-eps-genre]"); if (!b) return; var n = b.getAttribute("data-eps-genre"), g = gnGet(n).g === "f" ? "g" : "f"; gnSet(n, g); b.textContent = gnLab(g); });
   function reformuler(texte, o) {
-    o = o || {}; var cfg = shCfg(), bul = o.mode === "bulletin", ctx = String(o.ctx || "");
-    if (bul) ctx = BUL_GEN + (ctx ? " " + ctx : "");
+    o = o || {}; var cfg = shCfg(), bul = o.mode === "bulletin", ctx = String(o.ctx || ""), pr = "";
+    if (bul) { pr = o.prenom || (o.eleve ? prenomDe(o.eleve) : ""); texte = (ctx ? "Éléments d'évaluation : " + ctx + "\n" : "") + String(texte || ""); ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : "")); }
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
     return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : (bul || o.mode === "avis") ? 2200 : 1500), act: bul ? "EPS" : (o.act || actName()), ctx: ctx.slice(0, bul ? 900 : 600), lang: o.lang || "" }, 90000).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script en 90 s (connexion ? Claude surchargé ?) : réessaie.");
@@ -1389,6 +1413,7 @@
       if (r.ai == null) throw new Error("Le script n'est pas encore à jour : colle le nouveau Code.gs et redéploie (nouvelle version)");
       if (o.mode === "indic" && !(r.aiv >= 3)) throw new Error("Le script Google doit être mis à jour pour proposer des indicateurs : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
       if (o.mode === "lecon" && !(r.aiv >= 2)) throw new Error("Le script Google doit être mis à jour pour le bilan de leçon : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
+      if (bul) { var t = String(r.ai).replace(/\s*[\[{(]\s*pr[ée]nom( de l'élève)?\s*[\]})]/gi, function (m) { return (/^\s/.test(m) ? " " : "") + (pr || "l'élève"); }); return t.replace(/^\s+/, ""); }
       return r.ai; });
   }
   function dicter(ta, b) {
@@ -1415,7 +1440,7 @@
           if (b.dataset.cb === "undo") { if (prev != null) setVal(ta, prev); prev = null; b.hidden = true; msg.textContent = ""; return; }
           if (!ta.value.trim() && !ta.dataset.epsCtx) { msg.textContent = "Dicte ou tape d'abord quelques notes."; return; }
           b.disabled = true; msg.textContent = "Claude reformule…";
-          reformuler(ta.value, { mode: ta.dataset.epsMode, ctx: ta.dataset.epsCtx }).then(function (v) {
+          reformuler(ta.value, { mode: ta.dataset.epsMode, ctx: ta.dataset.epsCtx, eleve: ta.dataset.epsEleve || "" }).then(function (v) {
             prev = ta.value; setVal(ta, v); bar.querySelector('[data-cb="undo"]').hidden = false; msg.textContent = "✓ Reformulé (vérifie avant d'enregistrer)"; })
             .catch(function (err) { msg.textContent = "⚠ " + (err && err.message || err); })
             .then(function () { b.disabled = false; });
@@ -1611,6 +1636,7 @@
     restoreAll: function () { return restoreAll(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); }, bilans: function (c) { bilans(c); },
     bulletin: function (c) { bulletin(c); },
+    genre: { get: function (n) { return gnGet(n); }, set: function (n, g) { gnSet(n, g); }, btn: function (n) { return gnBtn(n); }, prenom: function (n) { return prenomDe(n); } },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
     /* synchro immédiate d'un seul magasin (ex. leçon en cours : relevé toutes les quelques secondes) */
     syncOne: function (k) { var cfg = shCfg(), st = STORES.filter(function (x) { return x.key === k; })[0]; if (!cfg || !st || st._busy || navigator.onLine === false) return Promise.resolve(false);
@@ -2270,13 +2296,14 @@
      tu relis, corriges, coches ✓, puis copies vers Pronote. Gardées sur cette tablette seulement (eps.bulletin.v1). */
   function bulletin(want) {
     var W0 = document.getElementById("epsbu-w"); if (W0 && W0._open) { W0._open(want); return; } /* génération en cours, saisies : tout est gardé */
+    try { EPSD.store({ key: KGN, pre: "gn|", onChange: function () { var w = document.getElementById("epsbu-w"); if (w) w.querySelectorAll("[data-eps-genre]").forEach(function (b) { b.textContent = gnLab(gnGet(b.getAttribute("data-eps-genre")).g); }); } }); } catch (e) {}
     var KB = "eps.bulletin.v1", B = jget(KB, {}), C = [];
     /* période : trimestre (année scolaire en cours) ou année ; les données datées (observations, évaluations de leçon, résultats, remédiation) sont filtrées */
     var SY = new Date().getMonth() >= 7 ? new Date().getFullYear() : new Date().getFullYear() - 1, pd = function (y, m, d) { return y + "-" + ("0" + m).slice(-2) + "-" + ("0" + d).slice(-2); };
     var TR = { 1: [pd(SY, 9, 1), pd(SY, 11, 30)], 2: [pd(SY, 12, 1), pd(SY + 1, 2, new Date(SY + 1, 2, 0).getDate())], 3: [pd(SY + 1, 3, 1), pd(SY + 1, 7, 10)], 0: [pd(SY, 8, 20), pd(SY + 1, 7, 10)] }, TCUR = [1, 2, 3].filter(function (t) { return today() >= TR[t][0] && today() <= TR[t][1]; })[0] || 0;
     var PER = TR[TCUR], inPer = function (d) { return !d || (d >= PER[0] && d <= PER[1]); }, dOf = function (t) { var x = new Date(t); return pd(x.getFullYear(), x.getMonth() + 1, x.getDate()); }; try { C = (window.EPSL ? EPSL.items() : []).map(function (it) { return it.nom; }); } catch (e) {}
     var cur = want && C.indexOf(want) >= 0 ? want : B._cls && C.indexOf(B._cls) >= 0 ? B._cls : C[0];
-    var o = win("epsbu-w", "📝 Appréciations de bulletin", '<div id="epsbu"><p class="m">Positives et générales (sans nommer l\'activité), à partir de toutes les activités de la période ; aucun nom envoyé à Claude. Relis, corrige, coche ✓ : seules les cochées sont copiées.</p>' +
+    var o = win("epsbu-w", "📝 Appréciations de bulletin", '<div id="epsbu"><p class="m">Générales et positives, avec le prénom (accords fille / garçon : 👧 / 👦 à toucher pour corriger) ; aucun nom envoyé à Claude. Relis, corrige, coche ✓ : seules les cochées sont copiées.</p>' +
       '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><select class="epsd-in" id="bu-p" style="width:auto;margin:0" aria-label="Période">' + [1, 2, 3, 0].map(function (t) { return '<option value="' + t + '"' + (t === TCUR ? " selected" : "") + ">" + (t ? "Trimestre " + t : "Toute l'année") + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><p class="m" id="bu-s" style="margin-top:-6px">💾 Tout est enregistré au fur et à mesure sur cette tablette, même si tu fermes la fenêtre pendant que Claude rédige.</p><div id="bu-l"></div></div>');
     var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m"), psel = o.querySelector("#bu-p");
     var rk = function (c) { var k = c + "|" + psel.value; if (!B[k] && psel.value === String(TCUR) && B[c] && typeof B[c] === "object") B[k] = B[c]; return k; };
@@ -2291,7 +2318,7 @@
       var rs = RS[1] ? "\nSituations des leçons (résultats notés par l'élève) : " + Math.round(RS[0] / RS[1] * 100) + " % de réussite sur " + RS[1] + " situation(s)" : "";
       var le = LE.length ? "\nÉvaluations de leçon (participation, sérieux, thème du jour) : moyenne " + (Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length * 10) / 10) + " / 3 sur " + LE.length + " leçon(s)" : "";
       var ob = O.length ? "\nObservations du professeur pendant les leçons : " + O.slice(-12).map(function (o) { var t = o.txt; fs.forEach(function (f) { if (f) t = t.replace(new RegExp("\\b" + f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "un camarade"); }); return t; }).join(" ; ") : "";
-      return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob + le + rs + rm; }
+      return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : "évalué(e)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob + le + rs + rm; }
     var stat = o.querySelector("#bu-s"), sT = 0;
     function save() { B._cls = sel.value; var ok = true; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) { ok = false; }
       stat.className = ok ? "m epsd-ok" : "m"; stat.textContent = ok ? "💾 Enregistré (" + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + ")" : "⚠ Enregistrement impossible sur cette tablette (mémoire pleine ?) : copie tes appréciations.";
@@ -2299,22 +2326,32 @@
     function draw() {
       var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P = people(c);
       list.innerHTML = P.map(function (n, i) { var r = R[n] || {}, has = !!notes(c, n);
-        return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><label style="display:flex;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + '</label><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px;margin-top:6px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + "</textarea></div>"; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
-      list.querySelectorAll("[data-t]").forEach(function (ta) { ta.oninput = function () { var n = P[+ta.dataset.t]; R[n] = R[n] || {}; R[n].t = ta.value; R[n].ai = 0; ta.style.background = ""; save(); }; });
+        return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><div style="display:flex;gap:8px;align-items:center"><label style="display:flex;flex:1;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left;margin:0"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + "</label>" + gnBtn(n) + (has ? '<button type="button" class="epsd-one" data-one="' + i + '" title="Proposer l\'appréciation de cet élève">✨</button>' : "") + '</div><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px;margin-top:6px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + '</textarea><div class="epsd-cnt" data-cn="' + i + '"></div></div>'; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
+      var cnt = function (i) { var ta = list.querySelector('[data-t="' + i + '"]'), d = list.querySelector('[data-cn="' + i + '"]'); if (!ta || !d) return; var L = ta.value.length; d.textContent = L ? L + " / 255" : ""; d.classList.toggle("over", L > 255); };
+      P.forEach(function (n, i) { cnt(i); });
+      list.querySelectorAll("[data-t]").forEach(function (ta) { ta.oninput = function () { var n = P[+ta.dataset.t]; R[n] = R[n] || {}; R[n].t = ta.value; R[n].ai = 0; ta.style.background = ""; cnt(ta.dataset.t); save(); }; });
+      list.querySelectorAll("[data-one]").forEach(function (b) { b.onclick = function () { gen([P[+b.dataset.one]], b); }; });
       list.querySelectorAll("[data-ok]").forEach(function (cb) { cb.onchange = function () { var n = P[+cb.dataset.ok]; R[n] = R[n] || {}; R[n].ok = cb.checked; if (cb.checked) R[n].ai = 0; save(); draw(); }; });
     }
     sel.onchange = function () { save(); draw(); };
-    o.querySelector("#bu-go").onclick = function () {
-      var b = this, c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P = people(c).filter(function (n) { return notes(c, n) && !(R[n] && (R[n].ok || (R[n].t && !R[n].ai))); }), i = 0;
+    /* génération : toute la classe (« ✨ Proposer les appréciations ») ou un seul élève (✨ de sa ligne, qui remplace sa proposition) */
+    var GO = false;
+    function gen(P, b) {
+      var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, per = psel.options[psel.selectedIndex].text, i = 0, bb = o.querySelector("#bu-go");
       if (!P.length) { msg.textContent = "Rien à proposer : appréciations déjà écrites ou validées, ou aucune donnée."; return; }
-      b.disabled = true;
+      if (GO) { msg.textContent = "Claude rédige déjà : attends la fin."; return; }
+      GO = true; bb.disabled = true; if (b) b.disabled = true;
       (function next() {
-        if (i >= P.length) { b.disabled = false; msg.textContent = "✓ " + P.length + " proposition(s) en jaune : relis, corrige et coche ✓."; save(); draw(); return; }
+        if (i >= P.length) { GO = false; bb.disabled = false; msg.textContent = "✓ " + P.length + " proposition(s) en jaune : relis, corrige et coche ✓."; save(); draw(); return; }
         var n = P[i++]; msg.textContent = "Claude rédige " + i + " / " + P.length + "…";
-        reformuler("Période : " + psel.options[psel.selectedIndex].text + "\n" + notes(c, n), { mode: "bulletin", ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité. Appréciation positive : l'enseignant ajoute ses remarques." })
+        reformuler("Période : " + per + "\n" + notes(c, n), { mode: "bulletin", eleve: n, ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
           .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); draw(); next(); })
-          .catch(function (e) { b.disabled = false; msg.textContent = "⚠ " + e.message; save(); draw(); });
+          .catch(function (e) { GO = false; bb.disabled = false; msg.textContent = "⚠ " + e.message; save(); draw(); });
       })();
+    }
+    o.querySelector("#bu-go").onclick = function () {
+      var c = sel.value, R = B[rk(c)] = B[rk(c)] || {};
+      gen(people(c).filter(function (n) { return notes(c, n) && !(R[n] && (R[n].ok || (R[n].t && !R[n].ai))); }));
     };
     o.querySelector("#bu-cp").onclick = function () { var c = sel.value, R = B[rk(c)] || {}, txt = people(c).filter(function (n) { return R[n] && R[n].ok && R[n].t; }).map(function (n) { return n + " : " + R[n].t; }).join("\n");
       if (!txt) { msg.textContent = "Coche ✓ les appréciations relues pour les copier."; return; }
