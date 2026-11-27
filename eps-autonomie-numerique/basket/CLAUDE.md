@@ -13,3 +13,4 @@
 - Communs : `EVBK` (`EPSE.store`, grille CA4 proposée, `groups` = équipes), `EPSTBK` (`EPST.init`), `EPS_TRAMES` (`bk-3c3-4c4`, 8 leçons en brouillon), `epsCheck`, `epsNiveaux`, `epsTabInfo` (équipe), `epsGroupesLog`.
 - Tests : scénario complet enseignant / élève et synchronisation avec le faux script (`outils/tests/t_basket.py`, `t_basket_sync.py`).
 - 27/11/2026 : la leçon du jour de l'enseignant (`vProf`) est le seul écran de suivi (`window.epsCtlOwn`) : ✋ appels en tête, puis les terrains (`terrainsBK` → `EPSD.courts`, 2 terrains côte à côte par défaut : `nt` vaut 2 quand rien n'est réglé). `epsTabInfo().lieu` = terrain du match en cours.
+- Terrains dessinés : 👁 équipes au repos de la rotation (`rot.off`) sur le côté extérieur de leur terrain.
