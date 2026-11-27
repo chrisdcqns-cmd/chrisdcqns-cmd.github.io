@@ -2037,7 +2037,15 @@
   function codeId(cls, full) { return cmp(cls) + "|" + nkey(full); }
   function codeGet(cls, full) { var o = stLd(KC).items[codeId(cls, full)]; return o && !o.del ? o : null; }
   function codePut(o) { var V = stLd(KC), old = V.items[o.id]; o.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[o.id] = o; V.pend[o.id] = o.u; try { localStorage.setItem(KC, JSON.stringify(V)); } catch (e) {} if (window.EPSD) EPSD.syncSoon(); }
-  function newCode() { var r = crypto.getRandomValues(new Uint8Array(6)), c = ""; r.forEach(function (x) { c += ALPH[x % ALPH.length]; }); return c; }
+  /* code élève : tiré au hasard ET jamais déjà pris (ni code actuel ni ancien code d'un autre élève), sinon deux élèves partageraient un espace */
+  function codesPris() { var I = stLd(KC).items, P = {}; Object.keys(I).forEach(function (k) { var o = I[k]; if (o && !o.del) { if (o.c) P[o.c] = k; if (o.old) P[o.old] = P[o.old] || k; } }); return P; }
+  function newCode() { var P = codesPris(), c = ""; for (var t = 0; t < 50; t++) { var r = crypto.getRandomValues(new Uint8Array(6)); c = ""; r.forEach(function (x) { c += ALPH[x % ALPH.length]; }); if (!P[c]) return c; } return c; }
+  /* deux élèves avec le même code (créés au même moment sur deux tablettes avant la synchro) : le plus récent reçoit un nouveau code */
+  function codesUniques() { var I = stLd(KC).items, vu = {}, refaits = [];
+    Object.keys(I).map(function (k) { return I[k]; }).filter(function (o) { return o && !o.del && o.c; }).sort(function (a, b) { return (a.u || 0) - (b.u || 0); })
+      .forEach(function (o) { if (vu[o.c] && vu[o.c] !== o.id) { var n = codeFor(o.cls, o.n, true); refaits.push(o.n + " (" + o.cls + ") : " + n.c); } else vu[o.c] = o.id; });
+    if (refaits.length) try { toastHub("🔑 Code en double corrigé : " + refaits.join(" · ") + ". Donne-lui ce nouveau code."); } catch (e) {}
+    return refaits; }
   function codeFor(cls, full, renew) { var o = codeGet(cls, full); if (o && !renew) return o; o = { id: codeId(cls, full), cls: cls, n: full, c: newCode(), pub: (o && o.pub) || {}, old: o ? o.c : "" }; codePut(o); return o; }
   function b64url(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
   async function bilHid(code) { return b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("eps-bilan|" + code)))).slice(0, 22); }
@@ -2080,6 +2088,7 @@
   STORES.push({ pre: "ep|", key: KEP });
   function espRid(cls, full) { var o = codeFor(cls, full); if (!o.rid || !o.rk) { o.rid = b64url(crypto.getRandomValues(new Uint8Array(10))); o.rk = b64url(crypto.getRandomValues(new Uint8Array(32))); codePut(o); } return o; }
   async function espPublier(cls, eleves, make, prog) {
+    try { codesUniques(); } catch (e) {}
     var cfg = shCfg(); if (!cfg) throw new Error("Règle d'abord le partage entre tablettes (Réglages communs).");
     var put = [], n = 0;
     for (var i = 0; i < eleves.length; i++) { var o = espRid(cls, eleves[i]), obj = make(eleves[i]); obj.kind = "espace"; obj.eleve = eleves[i]; obj.classe = cls; obj.date = new Date().toLocaleDateString("fr-FR"); obj.rid = o.rid; obj.rk = o.rk;
@@ -2093,6 +2102,7 @@
      {kind:"auto", app, act, eleve, classe, url, jusqua, date} ; url = lien personnel de la grille (celui du QR, M.lien d'eps-eval.js).
      mon-bilan en fait une tâche « 🎯 M'auto-positionner » d'« À faire ». Suivi local et synchronisé : ep| « a|<classe>|<appli> » {el:[noms]}. */
   async function espAuto(cls, app, act, items, jusqua, prog) {
+    try { codesUniques(); } catch (e) {}
     var cfg = shCfg(); if (!cfg) throw new Error("Règle d'abord le partage entre tablettes (Réglages communs).");
     var put = [], n = 0, neuf = 0, first = null;
     for (var i = 0; i < items.length; i++) { var x = items[i]; if (!x || !x.full || !/^https?:\/\//.test(String(x.url || ""))) continue; if (!codeGet(cls, x.full)) neuf++;
@@ -2133,7 +2143,7 @@
     dispenses: function (cls) { try { return activeOn().filter(function (x) { return x && x.classe && norm(x.classe) === norm(cls); }).map(function (x) { return x.nom; }); } catch (e) { return []; } },
     get: function (id) { return stLd(KEP).items[id] || null; }, put: function (it) { stPutRaw(KEP, it); try { EPSD.syncSoon(); } catch (e) {} },
     retours: function (cls) { var V = stLd(KEP); return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.k === "ret" && x.cls === cls; }); },
-    auto: espAuto, autoStop: espAutoStop, autoEtat: function (cls, app) { var a = stLd(KEP).items["a|" + cls + "|" + app]; return a && a.k === "auto" ? a : null; } };
+    auto: espAuto, autoStop: espAutoStop, codesUniques: function () { return codesUniques(); }, autoEtat: function (cls, app) { var a = stLd(KEP).items["a|" + cls + "|" + app]; return a && a.k === "auto" ? a : null; } };
     EPSD.apSignal = apSignal; }, 0);
   function bilLink() { var cfg = shCfg(), m = cfg && /\/macros\/s\/([^/]+)\/exec/.exec(cfg.url); return m ? location.origin + BASE + "mon-bilan/#s=" + m[1] : ""; }
   function u8b64plain(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x); }
