@@ -5,6 +5,7 @@
 #   et dans 🏫 Ma classe → 📝 Bilans & avis : génération enregistrée même si l'on change d'onglet pendant qu'elle tourne.
 #   Appréciation générale avec le prénom et les accords (demande du 27/11/2026) : prénom jamais envoyé ([Prénom] remplacé sur la tablette),
 #   « fille » / « garçon » deviné d'après le prénom et corrigé d'un appui (👧 / 👦, gardé), aucune activité ni nombre de critères envoyés.
+#   Niveau d'après la NOTE de l'enseignant (demande du 27/11/2026 : « très bon trimestre » à un 13, « bon trimestre » à un 19,75) : début imposé.
 # python3 t_bulletin_fenetre.py <racine du dépôt>      (classe fictive, Claude simulé : rien n'est envoyé en ligne)
 import asyncio, sys, subprocess, time, json, urllib.parse
 from playwright.async_api import async_playwright
@@ -89,6 +90,18 @@ async def main():
         ok("📋 Copier à côté de chaque appréciation : texte de l'élève copié", cp == tx and "Copié" in bt and await p.evaluate("document.querySelectorAll('#epsbu-w .epsd-cpw [data-eps-copy]').length") == await p.evaluate("document.querySelectorAll('#epsbu-w textarea[data-t]').length"), (cp, bt))
         cn = await p.evaluate("[].map.call(document.querySelectorAll('#epsbu-w .epsd-cnt'),function(d){return d.textContent}).filter(Boolean)")
         ok("compteur de caractères (/ 255)", any("/ 255" in x for x in cn), cn)
+        # niveau d'après la note : un élève à 19,75 et un à 13 en Escalade (degrés posés, relevé du référentiel)
+        await p.goto(B + "escalade/"); await p.wait_for_timeout(4200)
+        NM = await p.evaluate("""(function(){var x=(window.EPSE_INST||[]).filter(function(i){return i.A.app==='esc'})[0],A=x.A,c=A.classes().filter(function(c){return /D.MO/.test(c.nom)})[0],G=A.grid(),R=[];
+          [[3,.95],[2,.6]].forEach(function(v,i){var E=c.eleves[i];G.criteres.forEach(function(cr){A.setProf(cr,E,{d:v[0],pos:v[1]})});var nm=A.name(E);R.push(((nm.prenom||'')+' '+(nm.nom||'')).trim())});
+          EPSREF.snap();R.push(c.nom);return R})()""")
+        await p.evaluate("(c)=>{localStorage.removeItem('eps.bulletin.v1');var w=document.getElementById('epsbu-w');if(w)w.remove();EPSD.bulletin(c)}", NM[2]); await p.wait_for_timeout(900)
+        CAP.clear()
+        for who in NM[:2]:
+            await p.evaluate("(n)=>{var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return b.getAttribute('data-eps-genre')===n})[0];b.parentNode.querySelector('[data-one]').click()}", who); await p.wait_for_timeout(1800)
+        TX = await p.evaluate("(N)=>N.map(function(n){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return b.getAttribute('data-eps-genre')===n})[0];return b.closest('div[style]').parentNode.querySelector('textarea').value})", NM[:2])
+        nts = [(__import__('re').search(r"note (\d+(?:,\d+)?)/20", q["t"]) or [None, None])[1] for q in CAP]
+        ok("niveau d'après la note : " + str(nts) + " → " + str([t[:22] for t in TX]), len(CAP) == 2 and TX[0].startswith("Excellent trimestre, ") and TX[1].startswith("Bon trimestre, ") and "Niveau fixé par la note" in CAP[0]["ctx"] and "résultats :" in CAP[0]["t"], [q["ctx"][:220] for q in CAP] + [q["t"][:220] for q in CAP])
         ok("aucune erreur de page", not errs, errs)
         await b.close()
     print(("✅ " if all(out) else "❌ ") + str(sum(out)) + " / " + str(len(out)))

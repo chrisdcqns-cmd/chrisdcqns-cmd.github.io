@@ -190,7 +190,10 @@
         var p = {}, a = {}, any = false, ap = null; try { ap = A.getAp ? A.getAp(E) : null; } catch (e) {}
         (G.criteres || []).forEach(function (cr) { if (!cr || cr.id == null) return; var v = null; try { v = pair(A.prof(cr, E)); } catch (e) {} if (v) { p[cr.id] = v; any = true; }
           var z = ap && ap.ev ? pair(ap.ev[cr.id]) : null; if (z) { a[cr.id] = z; any = true; } });
-        if (any) { el[nk(full)] = { n: full, p: p, a: a }; nb++; } });
+        /* note de l'enseignant (M.prop : barème, répartition CCF) et niveau par AFL, pour l'appréciation de bulletin (27/11/2026) */
+        if (any) { var o = { n: full, p: p, a: a }; if (Object.keys(p).length && x.M && typeof x.M.prop === "function") { try { var pr = x.M.prop(E, c.nom);
+            if (pr && pr.note != null && isFinite(+pr.note) && (pr.src === "eval" || pr.src === "mixte")) { o.nt = r2(+pr.note); o.af = arr(pr.afl).filter(function (z) { return z && z.deg != null && isFinite(+z.m); }).map(function (z) { return [String(z.code), r2(+z.m)]; }); } } catch (e) {} }
+          el[nk(full)] = o; nb++; } });
       if (!nb) return;                                                   /* rien d'évalué : on garde l'ancien relevé tel quel */
       var id = "sn|" + an + "|" + A.app + "|" + ck(c.nom), old = one(id);
       if (old && same(old.crit, crit) && same(old.el, el)) return;

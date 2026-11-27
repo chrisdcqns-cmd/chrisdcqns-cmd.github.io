@@ -1383,12 +1383,27 @@
      dans le contexte (elle s'applique même avec un script Google pas encore redéployé ; le script à jour, aiv ≥ 5, porte la même), les données
      de l'appli passent dans le texte. Le prénom n'est JAMAIS envoyé : Claude écrit [Prénom], remplacé ici sur la tablette.
      Options : eleve (nom complet : prénom et genre retrouvés), prenom, genre ("f" | "g"). */
-  function bulConsigne(pr, g) {
-    return "Consigne de l'enseignant : appréciation de bulletin générale et positive, 255 caractères maximum, 2 phrases simples et naturelles. Modèle de ton : « Très bon trimestre, [Prénom] a su s'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l'attitude sont remarquables. »" +
-      (pr ? " Écris [Prénom] à la place du prénom de l'élève (une fois)." : " Ne nomme pas l'élève.") +
-      (g === "f" ? " L'élève est une fille : accorde au féminin." : g === "g" ? " L'élève est un garçon : accorde au masculin." : " Évite les accords qui dépendent du genre de l'élève.") +
-      " Ne cite ni l'activité, ni aucun chiffre, note, degré, critère, nombre de leçons ou de situations, pourcentage : les données servent seulement à juger le niveau d'ensemble.";
+  /* 🎯 Niveau d'ensemble d'après la NOTE de l'enseignant (demande du 27/11/2026 : « très bon trimestre » à un 13, « bon trimestre » à un 19,75) :
+     le début de l'appréciation est fixé ici, sur la tablette, selon des seuils réglables (paramètre « bul_niveaux », section « Appréciations de
+     bulletin » ; la dernière valeur modifiée, dans n'importe quelle appli, vaut pour toutes) ; Claude reçoit le niveau et doit commencer par ce début,
+     sinon il est remis à la place du sien. La note vient de l'évaluation (barème, répartition CCF comprise : M.prop d'eps-eval.js). */
+  var BUL_NIV = ["17 : Excellent trimestre", "14 : Très bon trimestre", "12 : Bon trimestre", "10 : Trimestre satisfaisant", "0 : Trimestre encourageant"];
+  function bulNiveaux() { var L = BUL_NIV;
+    try { if (window.EPSP && EPSP.p && EPSP.app) EPSP.p({ id: "bul_niveaux", sec: "Appréciations de bulletin", label: "Début de l'appréciation selon la note sur 20 (« note minimale : début », un par ligne ; vaut pour toutes les activités)", type: "list", def: BUL_NIV }); } catch (e) {}
+    try { var S = jget("eps.param.v1", {}), I = (S && S.items) || {}, best = null; Object.keys(I).forEach(function (k) { var x = I[k]; if (/\|bul_niveaux$/.test(k) && x && !x.del && Array.isArray(x.v) && x.v.length && (!best || (x.u || 0) > (best.u || 0))) best = x; }); if (best) L = best.v; } catch (e) {}
+    return L.map(function (x) { var m = /^\s*(\d+(?:[.,]\d+)?)\s*[:=–-]\s*(.+)$/.exec(String(x)); return m ? { min: +m[1].replace(",", "."), t: m[2].trim() } : null; }).filter(Boolean).sort(function (a, b) { return b.min - a.min; }); }
+  function bulNiveau(note) { if (note == null || note === "" || !isFinite(+note)) return null; var L = bulNiveaux(), q = Math.round(+note * 4) / 4; if (!L.length) return null;
+    for (var i = 0; i < L.length; i++) if (q >= L[i].min) return { t: L[i].t, top: i === 0, note: q }; return { t: L[L.length - 1].t, top: false, note: q }; }
+  function noteDans(s) { var m = /note[^0-9\n]{0,25}(\d{1,2}(?:[.,]\d+)?)\s*\/\s*20/i.exec(String(s || "")); return m ? +m[1].replace(",", ".") : null; }
+  function bulConsigne(pr, g, nv) {   /* 900 caractères au plus (limite du script) */
+    return "Consigne de l'enseignant : appréciation de bulletin générale et positive, 255 caractères maximum, 2 phrases simples et naturelles." +
+      (nv ? " Niveau fixé par la note (" + String(nv.note).replace(".", ",") + "/20) : " + (nv.libre ? "« " + nv.t + " »" : "commence exactement par « " + nv.t + ", »") + ", ton à ce niveau" + (nv.top ? "" : " (« remarquable », « excellent » réservés aux meilleures notes)") + ". Dis ce qui réussit le mieux d'après la répartition (résultats ; méthode, engagement et attitude)." : "") +
+      " Modèle (très bon niveau) : « Très bon trimestre, [Prénom] a su s'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l'attitude sont remarquables. »" +
+      (pr ? " Écris [Prénom] à la place du prénom (une fois)." : " Ne nomme pas l'élève.") +
+      (g === "f" ? " L'élève est une fille : accorde au féminin." : g === "g" ? " L'élève est un garçon : accorde au masculin." : " Évite les accords liés au genre.") +
+      " Ne cite ni l'activité, ni chiffre, note, degré, critère, nombre de leçons, pourcentage.";
   }
+
   /* 👧 / 👦 fille ou garçon : deviné d'après le prénom, corrigé d'un appui (bouton [data-eps-genre], n'importe où) et alors gardé dans
      « eps.genre.v1 » (gn|, synchronisé et chiffré comme les listes) : {id: clé de l'élève (nkey), g: "f" | "g"}. À Claude ne part que « fille » / « garçon ». */
   var KGN = "eps.genre.v1";
@@ -1413,7 +1428,10 @@
   document.addEventListener("click", function (e) { var b = e.target && e.target.closest && e.target.closest("[data-eps-genre]"); if (!b) return; var n = b.getAttribute("data-eps-genre"), g = gnGet(n).g === "f" ? "g" : "f"; gnSet(n, g); b.textContent = gnLab(g); });
   function reformuler(texte, o) {
     o = o || {}; var cfg = shCfg(), bul = o.mode === "bulletin", ctx = String(o.ctx || ""), pr = "";
-    if (bul) { pr = o.prenom || (o.eleve ? prenomDe(o.eleve) : ""); texte = (ctx ? "Éléments d'évaluation : " + ctx + "\n" : "") + String(texte || ""); ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : "")); }
+    var nv = null;
+    if (bul) { pr = o.prenom || (o.eleve ? prenomDe(o.eleve) : ""); texte = (ctx ? "Éléments d'évaluation : " + ctx + "\n" : "") + String(texte || "");
+      nv = bulNiveau("note" in o ? o.note : noteDans(texte)); if (nv && /ann[ée]e/i.test(String(o.periode || ""))) nv.libre = true;
+      ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : ""), nv); }
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
     return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : (bul || o.mode === "avis") ? 2200 : 1500), act: bul ? "EPS" : (o.act || actName()), ctx: ctx.slice(0, bul ? 900 : 600), lang: o.lang || "" }, 90000).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script en 90 s (connexion ? Claude surchargé ?) : réessaie.");
@@ -1422,7 +1440,10 @@
       if (r.ai == null) throw new Error("Le script n'est pas encore à jour : colle le nouveau Code.gs et redéploie (nouvelle version)");
       if (o.mode === "indic" && !(r.aiv >= 3)) throw new Error("Le script Google doit être mis à jour pour proposer des indicateurs : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
       if (o.mode === "lecon" && !(r.aiv >= 2)) throw new Error("Le script Google doit être mis à jour pour le bilan de leçon : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
-      if (bul) { var t = String(r.ai).replace(/\s*[\[{(]\s*pr[ée]nom( de l'élève)?\s*[\]})]/gi, function (m) { return (/^\s/.test(m) ? " " : "") + (pr || "l'élève"); }); return t.replace(/^\s+/, ""); }
+      if (bul) { var t = String(r.ai).replace(/\s*[\[{(]\s*pr[ée]nom( de l'élève)?\s*[\]})]/gi, function (m) { return (/^\s/.test(m) ? " " : "") + (pr || "l'élève"); }).replace(/^\s+/, "");
+        /* début imposé par la note : remis à la place de celui de Claude s'il l'a changé */
+        if (nv && !nv.libre && t.toLowerCase().indexOf(nv.t.toLowerCase()) !== 0) { var m0 = /^[^,.!;]*\b(trimestre|ann[ée]e|s[ée]quence)\b[^,.!;]*[,.!;]\s*/i.exec(t); t = m0 ? nv.t + ", " + t.slice(m0[0].length) : nv.t + ". " + t; }
+        return t; }
       return r.ai; });
   }
   function dicter(ta, b) {
@@ -1878,6 +1899,21 @@
   setInterval(function () { try { syncBadge(); } catch (e) {} }, 3000);
   /* 🔍 recherche rapide d'un élève (mode enseignant) : classes, activités de la classe, dispense du jour, évaluations et commentaires dans chaque appli */
   var ACTN = { esc: "Escalade", rel: "Relais Vitesse", ori: "OrienRun", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ct: "Cross-training", bk: "Basket-ball", step: "Step" };
+  /* 🎯 notes de l'enseignant d'un élève, toutes activités, pour le bulletin : relevés du référentiel (eps.ref.v1, « sn|<année>|<appli>|<classe> »,
+     faits par chaque appli ouverte en mode enseignant : nt = note sur 20 de M.prop, barème et répartition CCF compris ; af = [[AFL, niveau 0 à 4]]).
+     Période : relevé mis à jour après le début et commencé avant la fin. Le plus récent par activité. → [{app, nom, nt, rep}] */
+  function notesOf(full, classe, from, to) { var k = nkey(full).toUpperCase(), c = cmp(classe), best = {};
+    try { var I = stLd("eps.ref.v1").items; Object.keys(I).forEach(function (id) { var s = I[id]; if (!s || s.del || s.k !== "sn" || !s.el || (c && cmp(s.cls) !== c)) return;
+      if (from && s.d && s.d < from) return; if (to && s.d0 && s.d0 > to) return; var e = s.el[k]; if (!e) return; var nt = e.nt, af = Array.isArray(e.af) ? e.af : null;
+      if (nt == null || !isFinite(+nt)) { /* relevé plus ancien (sans note) : note approchée d'après les degrés et le barème de la grille */
+        var sp = 0, sm = 0, G = {}; (s.crit || []).forEach(function (cr) { var v = e.p && e.p[cr.id], mx = +cr.max > 0 ? +cr.max : 1; if (!Array.isArray(v) || !isFinite(+v[0])) return; var m = Math.min(4, +v[0] + (isFinite(+v[1]) ? +v[1] : .5)); sp += mx * m / 4; sm += mx;
+          var g = G[cr.afl || "AFL1"] || (G[cr.afl || "AFL1"] = [0, 0]); g[0] += mx * m; g[1] += mx; });
+        if (!sm) return; nt = sp / sm * 20; af = Object.keys(G).map(function (a) { return [a, G[a][0] / G[a][1]]; }); }
+      if (best[s.app] && (best[s.app].d || "") >= (s.d || "")) return; best[s.app] = { app: s.app, nom: String(s.nom || s.app), nt: Math.round(+nt * 4) / 4, af: af || [], d: s.d || "" }; }); } catch (e) {}
+    var lv = function (m) { return m >= 3.25 ? "très bon niveau" : m >= 2.5 ? "bon niveau" : m >= 1.75 ? "niveau correct" : "niveau en construction"; };
+    return Object.keys(best).map(function (a) { var x = best[a], R = [], M = []; x.af.forEach(function (z) { if (!z || !isFinite(+z[1])) return; (/^AFLP?1$|^AFLP2$/i.test(String(z[0]).replace(/\s+/g, "")) ? R : M).push(+z[1]); });
+      var avg = function (L) { return L.reduce(function (a, b) { return a + b; }, 0) / L.length; };
+      x.rep = [R.length ? "résultats : " + lv(avg(R)) : "", M.length ? "méthode, engagement et attitude : " + lv(avg(M)) : ""].filter(Boolean).join(" ; "); return x; }); }
   function evalsOf(nomComplet, classe) {
     var out = [], k = nkey(nomComplet), c = cmp(classe);
     for (var i = 0; i < localStorage.length; i++) { var key = localStorage.key(i), m = /^eps\.eval\.([a-z]+)\.v1$/.exec(key || ""); if (!m) continue;
@@ -2328,8 +2364,13 @@
       var rs = RS[1] ? "\nSituations des leçons (résultats notés par l'élève) : " + Math.round(RS[0] / RS[1] * 100) + " % de réussite sur " + RS[1] + " situation(s)" : "";
       var le = LE.length ? "\nÉvaluations de leçon (participation, sérieux, thème du jour) : moyenne " + (Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length * 10) / 10) + " / 3 sur " + LE.length + " leçon(s)" : "";
       var ob = O.length ? "\nObservations du professeur pendant les leçons : " + O.slice(-12).map(function (o) { var t = o.txt; fs.forEach(function (f) { if (f) t = t.replace(new RegExp("\\b" + f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "un camarade"); }); return t; }).join(" ; ") : "";
-      return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : "évalué(e)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob + le + rs + rm; }
+      /* notes de l'enseignant (relevés « sn| » du référentiel, faits par chaque appli : note = barème et répartition CCF, niveaux par AFL) */
+      var NT = notesOf(n, c, PER[0], PER[1]), vu = {}, mv = function (L) { return L.reduce(function (a, b) { return a + b; }, 0) / L.length; };
+      REF[n] = NT.length ? mv(NT.map(function (x) { return x.nt; })) : LE.length ? mv(LE) / 3 * 20 : RS[1] ? RS[0] / RS[1] * 20 : null;
+      var lnN = NT.map(function (x) { vu[norm(x.nom)] = 1; return x.nom + " : note " + String(x.nt).replace(".", ",") + "/20" + (x.rep ? " ; " + x.rep : ""); });
+      return lnN.concat(evalsOf(n, c).filter(function (e) { return !vu[norm(e.app)] || e.comm; }).map(function (e) { return e.app + " : " + (vu[norm(e.app)] ? "" : e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : "évalué(e)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); })).join("\n") + ob + le + rs + rm; }
     var stat = o.querySelector("#bu-s"), sT = 0;
+    var REF = {}; try { if (window.EPSREF && EPSREF.snap) EPSREF.snap(); } catch (e) {} /* relevé frais de l'appli ouverte */
     function save() { B._cls = sel.value; var ok = true; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) { ok = false; }
       stat.className = ok ? "m epsd-ok" : "m"; stat.textContent = ok ? "💾 Enregistré (" + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + ")" : "⚠ Enregistrement impossible sur cette tablette (mémoire pleine ?) : copie tes appréciations.";
       clearTimeout(sT); if (ok) sT = setTimeout(function () { stat.className = "m"; }, 1500); }
@@ -2350,11 +2391,11 @@
       var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, per = psel.options[psel.selectedIndex].text, i = 0, bb = o.querySelector("#bu-go");
       if (!P.length) { msg.textContent = "Rien à proposer : appréciations déjà écrites ou validées, ou aucune donnée."; return; }
       if (GO) { msg.textContent = "Claude rédige déjà : attends la fin."; return; }
-      GO = true; bb.disabled = true; if (b) b.disabled = true;
+      GO = true; bb.disabled = true; if (b) b.disabled = true; try { if (window.EPSREF && EPSREF.snap) EPSREF.snap(); } catch (e) {}
       (function next() {
         if (i >= P.length) { GO = false; bb.disabled = false; msg.textContent = "✓ " + P.length + " proposition(s) en jaune : relis, corrige et coche ✓."; save(); draw(); return; }
         var n = P[i++]; msg.textContent = "Claude rédige " + i + " / " + P.length + "…";
-        reformuler("Période : " + per + "\n" + notes(c, n), { mode: "bulletin", eleve: n, ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
+        var dn = notes(c, n); reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], periode: per, ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
           .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); draw(); next(); })
           .catch(function (e) { GO = false; bb.disabled = false; msg.textContent = "⚠ " + e.message; save(); draw(); });
       })();
