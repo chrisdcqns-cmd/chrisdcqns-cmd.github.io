@@ -117,7 +117,7 @@
        4 actions ou moins : affichées telles quelles. Davantage : rangées en catégories (📖 Leçon · 🖥 Terrain · 📊 Suivi · 🧰 Autres) ;
        toucher une catégorie ouvre une petite fenêtre avec ses actions. Une appli peut fixer la catégorie d'une action : {cat:"lec"|"ter"|"sui"|"aut"}.
        Les épingles ★ de l'ancienne barre ne sont plus utilisées. */
-    var CATS = [["lec", "📖", "Leçon", /^(Fiches de leçon|Leçon|Tout est prêt|Créer un|Importer)/], ["ter", "🖥", "Terrain", /^(Tablette de contrôle|Plan de terrain|Planche tactique|Équipes|Niveaux & groupes|Groupes|Terrain|Suivi des grimpes)/], ["sui", "📊", "Suivi", /^(Évaluer|Bilan|Ma classe|Validations|Matchs|Tableau de bord)/], ["aut", "🧰", "Autres", /./]];
+    var CATS = [["lec", "📖", "Leçon", /^(Fiches de leçon|Leçon|Tout est prêt|Créer un|Importer)/], ["ter", "🖥", "Terrain", /^(Pilotage|Tablette de contrôle|Plan de terrain|Planche tactique|Équipes|Niveaux & groupes|Groupes|Terrain|Suivi des grimpes)/], ["sui", "📊", "Suivi", /^(Évaluer|Bilan|Ma classe|Validations|Matchs|Tableau de bord)/], ["aut", "🧰", "Autres", /./]];
     function catOf(x) { for (var i = 0; i < CATS.length; i++) if (x.cat ? x.cat === CATS[i][0] : CATS[i][3].test(x.label)) return i; return CATS.length - 1; }
     function short(l) { return String(l).replace(/\s*\(.*\)\s*$/, "").replace(/ : vue d'ensemble$/, "").replace(/^Tableau de bord de la leçon$/, "Tableau de bord"); }
     function popActs(titre, L) { var d = document.createElement("div"); d.className = "epst-pop"; d.style.setProperty("--epst", C.color); d.setAttribute("role", "dialog"); d.setAttribute("aria-label", titre);
@@ -213,10 +213,16 @@
       was = on;
       if (on && !barHidden) setHidden(false); else if (!on && barHidden) { barHidden = false; var sb = stickyBar(); if (sb) sb.style.top = ""; }
       if (on && window.EPSLC && !M.lc) { M.lc = 1; if (M.cur && M.cur !== "vue") mark(M.cur); } /* leçons chargées après coup : raccourcis ajoutés */
+      var T = C.tabs || {}, k = on ? Object.keys(T).filter(function (id) { return T[id].on && (function () { try { return T[id].on(); } catch (e) { return false; } })(); })[0] : null;
       if (on && !document.documentElement.classList.contains("epst-pan") && M.cur !== "vue") { /* onglet actif suivant l'écran affiché par l'appli */
-        var T = C.tabs || {}, k = Object.keys(T).filter(function (id) { return T[id].on && (function () { try { return T[id].on(); } catch (e) { return false; } })(); })[0];
         if (k && k !== M.cur && !(M.cur === "bib" || M.cur === "reg")) mark(k);
       }
+      /* 27/11/2026 : on arrive sur le panneau « 📍 Leçon », qui recouvre l'appli. Si l'appli change d'écran pendant ce temps (bouton d'une fenêtre commune
+         qui ouvre un écran de l'appli, ex. « Ouvrir en grand » du pilotage), le panneau se retire pour le montrer. Appel direct : EPST.showApp(). */
+      if (on && M.cur === "lec" && document.documentElement.classList.contains("epst-pan")) { if (M.lecK === undefined || (k && !M.lecK)) M.lecK = k || ""; /* l'appli n'avait pas encore dessiné son écran */ else if (k && k !== M.lecK) showApp(); } else M.lecK = undefined;
+    }
+    function showApp() { var T = C.tabs || {}, k = Object.keys(T).filter(function (id) { return T[id].on && (function () { try { return T[id].on(); } catch (e) { return false; } })(); })[0];
+      closeVue(); closePanel(); M.lecK = undefined; mark(k || "seq"); M.prev = k || "seq";
     }
     /* ✨ Adapter une consigne (Claude) : simplifiée pour un élève dys, ou traduite pour un élève allophone.
        Rien n'est montré à l'élève sans que l'enseignant ait relu (texte modifiable, puis « Afficher en grand »). */
@@ -256,7 +262,7 @@
     M.go = go; M.closePanel = closePanel; M.tick = tick; M.mark = mark;
     if (document.body) tick(); else document.addEventListener("DOMContentLoaded", tick);
     setInterval(tick, 700);
-    try { window.EPST.last = M; } catch (e) {}
+    M.showApp = showApp; try { window.EPST.last = M; window.EPST.showApp = showApp; } catch (e) {}
     return M;
   }
   /* Vue élève seule (appli qui garde sa propre organisation, ex. OrienRun) */
