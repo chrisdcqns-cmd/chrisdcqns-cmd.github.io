@@ -91,7 +91,7 @@ REPERES = {
     "eps-ref.js": ["function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw", "function coVals(", "function colPut(", "EPSD.trash.keep("],
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter", "function vCdc(", "function saisie(", "function nbr("],
     "relais/index.html": ["function zK(z)", "zs=L.map(c=>zK(c.zone))", "DIAG[zK(ST.zone)]", "function fePop(", "fePop(+g.dataset.fego)", "var RL_BIL=0", "setDeg:(cr,e,d)", "function goBilans(", "let GO_AFTER=null", "lid=CLE()?CLE().id:null,prof", "function seqOpen(", "function evCourses(", "let EV_SCOPE=", "go:()=>go('seq')", "cls:{go:()=>go('classes')", "function renderLvCtl(", "function renderFiche(", "function goJour(", "window.epsCtlOwn={ctl:1", "label:'Écran des élèves'"],
-    "eps-groupes.js": ["function terrain(", "v.grp.nm = noms", "function imgSet(", "TZC = 24000"],
+    "eps-groupes.js": ["data-sc style=", "position:sticky;bottom:0", "function terrain(", "v.grp.nm = noms", "function imgSet(", "TZC = 24000"],
     "tactique/index.html": ["EPSD.plan.send(", "EPSD.plan.live(", "data-all"],
     "boite/index.html": ["function chrono(", "function compteur(", "function video(", "function analyse(", "function aCfg(", "function marks(", "function rpSet(", "function charge("],
     "attestation/index.html": ["À faire valider par ton chef d'établissement", "pre: \"at|\"", "noindex", "sheet a5 one"],

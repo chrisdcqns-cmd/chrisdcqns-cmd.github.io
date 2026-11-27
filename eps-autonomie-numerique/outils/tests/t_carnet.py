@@ -71,6 +71,8 @@ async def main():
         # ---------- 4. plan de terrain ----------
         await p.locator("#lc-ctl [data-terr]").click(); await p.wait_for_timeout(600)
         nz = await p.locator(".tz-z").count(); nbanc = await p.locator(".tz-banc [data-n]").count(); out.append(("4 plan de terrain : 4 zones, élèves sur le banc", nz == 4 and nbanc >= 6, (nz, nbanc)))
+        bv = await p.evaluate("(function(){var b=document.querySelector('.tz-banc [data-n]').getBoundingClientRect(),s=document.querySelector('.tz-banc select');return [b.top>=0&&b.bottom<=innerHeight,getComputedStyle(document.querySelector('[data-cls]')).color]})()")
+        out.append(("4a le banc est à l'écran sans faire défiler, la classe se lit dans le bandeau", bv[0] and bv[1] == "rgb(20, 23, 28)", bv))
         await p.locator(".tz-banc [data-n]").first.click(); await p.locator(".tz-z").nth(1).click(); await p.wait_for_timeout(200)
         out.append(("4b toucher l'élève puis la zone", await p.locator(".tz-z").nth(1).locator("[data-n]").count() == 1, None))
         src = p.locator(".tz-banc [data-n]").first; nm = await src.inner_text(); sb = await src.bounding_box(); zb = await p.locator(".tz-z").nth(2).bounding_box()
