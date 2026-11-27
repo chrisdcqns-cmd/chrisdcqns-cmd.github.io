@@ -2428,7 +2428,8 @@ function noteProp(x, dk, rpf) {
   const PC = ptsCfg(g, v.un), mp = PC.on;
   let d1 = mp ? (v.pts >= PC.s[2] ? 3 : v.pts >= PC.s[1] ? 2 : v.pts >= PC.s[0] ? 1 : 0) : v.pts < v.ann ? 0 : v.pts > v.ann ? 3 : v.modif > 0 ? 1 : 2;
   let d2 = v.over ? 0 : v.oublis > 0 ? 1 : (v.nb && v.nh === v.nb && v.avance >= g.avance) ? 3 : v.nh > v.nl ? 2 : 1;
-  let d3 = v.nbPlan && v.nb < v.nbPlan / 2 ? 0 : (v.modif || v.oublis) ? 1 : v.nb >= v.att ? ((v.bonus > 0 || (!mp && v.pts > v.ann)) ? 3 : 2) : 1;
+  const r4 = a2Of(g), plus = v.bonus > 0 || (r4 === "pts" && v.pts >= PC.s[2]) || (r4 === "ann" && v.pts > v.ann);
+  let d3 = v.nbPlan && v.nb < v.nbPlan / 2 ? 0 : (v.modif || v.oublis) ? 1 : v.nb >= v.att ? (plus ? 3 : 2) : 1;
   let d4 = !v.ind ? 2 : v.indMiss ? 1 : v.colOk ? 3 : 2;
   const auto = [d1, d2, d3, d4]; [d1, d2, d3, d4] = auto.map((d, i) => dk && dk[i] != null ? +dk[i] : d);
   const pos = (d, rt) => q25(DEG1[d][0] + (DEG1[d][1] - DEG1[d][0]) * rt), r1 = mp ? ptsBand(PC, d1, v.pts) : ratio;
@@ -2472,7 +2473,7 @@ function profNote(box) {
     const num = (id, d) => { const k = parseFloat(String($("#" + id).value).replace(",", ".")); return k >= 0 ? Math.round(k) : d; };
     ["nF", "nG", "nA"].forEach(i => $("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF: num("nF", 16) || 16, attG: num("nG", 18) || 18, avance: num("nA", 0) }; ch(); draw(); });
     ["nF1", "nG1"].forEach(i => $("#" + i) && ($("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF1: num("nF1", null) || null, attG1: num("nG1", null) || null }; ch(); draw(); }));
-    $("#nCcf") && ($("#nCcf").onclick = () => { const o = C.ncfg || {}, keep = {}; ["nh", "nl", "gt", "attF1", "attG1", "e1", "ppp", "ps"].forEach(k => { if (k in o) keep[k] = o[k]; }); C.ncfg = { ...NOTE_DEF, ...keep }; ch(); draw(); });
+    $("#nCcf") && ($("#nCcf").onclick = () => { const o = C.ncfg || {}, keep = {}; ["nh", "nl", "gt", "attF1", "attG1", "e1", "ppp", "ps", "a2"].forEach(k => { if (k in o) keep[k] = o[k]; }); C.ncfg = { ...NOTE_DEF, ...keep }; ch(); draw(); });
     $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); draw(); });
     $$("[data-sx]", box).forEach(b => b.onclick = () => { const id = b.dataset.id, v = b.dataset.sx; C.sexe = { ...(C.sexe || {}), [id]: v }; ch(); draw(); });
     $$("[data-rp]", box).forEach(x => x.onchange = () => { C.repart = { ...(C.repart || {}), [x.dataset.rp]: x.value }; ch(); renote(L, [x.dataset.rp]); draw(); });
@@ -2512,7 +2513,12 @@ const AFLD = [
 const AFLD_PTS = {
   0: ["AFL1 · élément 1 : les points rapportés", "Points rapportés par les balises trouvées (une balise de niveau 2 rapporte 2 points), sur {max} points possibles.", ["moins de {p2} points", "de {p2} à moins de {p3} points", "de {p3} à moins de {p4} points", "{p4} points ou plus"]],
   2: ["AFL2 : les balises ramenées", "Balises ramenées comparées aux balises attendues et au projet.", ["moins de la moitié du projet ramenée", "abandon, oubli, ou moins de balises que le nombre attendu", "au moins le nombre de balises attendu", "nombre attendu atteint, avec des balises bonus"]] };
-const afld = (k, e1) => ((e1 || ncfg().e1) !== "projet" && AFLD_PTS[k]) || AFLD[k];
+/* AFL2 degré 4 (demande de l'enseignant, 27/11/2026 : « laisse-moi la possibilité de modifier ») : C.ncfg.a2 = "bonus" (balises bonus seules,
+   défaut en points rapportés) | "pts" (bonus ou au moins le seuil du degré 4 de l'élément 1) | "ann" (bonus ou plus de points qu'annoncé, défaut en « projet ») */
+const A2L = { bonus: "nombre attendu atteint, avec des balises bonus", pts: "nombre attendu atteint, avec des balises bonus ou au moins {p4} points", ann: "nombre attendu atteint, avec des balises bonus ou plus de points qu'annoncé" };
+const a2Of = g => { g = g || ncfg(); return A2L[g.a2] ? g.a2 : g.e1 === "projet" ? "ann" : "bonus"; };
+const afld = (k, e1, a2) => { e1 = e1 || ncfg().e1; const A = (e1 !== "projet" && AFLD_PTS[k]) || AFLD[k]; if (k !== 2) return A;
+  const w = A2L[a2] ? a2 : a2Of({ ...ncfg(), e1 }); return [A[0], A[1], [...A[2].slice(0, 3), A2L[w]]]; };
 const DCOL = ["#d62839", "#f47a20", "#3aa0d8", "#2a9d6f"], DBG = ["#fdecee", "#fff1e4", "#e6f3fb", "#e3f5ec"];
 /* 📝 Grille d'évaluation modifiable (demande de l'enseignant, 27/11/2026 : « on parle de balises de niveau 1, 2 et 3, j'ai posé des balises de niveau 1 et 2 ») :
    - niveaux comparés pour l'AFL1 élément 2 : C.ncfg.nh (niveau « haut ») / C.ncfg.nl (niveau « bas ») ; absents = d'après les balises posées
@@ -2525,14 +2531,14 @@ function nivPair(g) { g = g || C.ncfg || {}; const u = nivUsed(); let hi = Math.
   if (!hi) hi = u.length ? u[u.length - 1] : 3;
   if (lo == null || lo >= hi) { const b = u.filter(v => v < hi); lo = b.length ? b[b.length - 1] : hi - 1; }
   return { hi, lo, auto: !(+g.nh), autoLo: !(g.nl === 0 || +g.nl > 0), u }; }
-const gridRaw = k => { const o = (((C.ncfg || {}).gt) || {})[k] || {}, A = afld(k); return { t: o.t || A[0], s: o.s != null ? o.s : A[1], d: A[2].map((x, i) => o.d && o.d[i] ? o.d[i] : x), mod: !!(o.t || o.s != null || (o.d || []).some(Boolean)) }; };
+const gridRaw = k => { const o = (((C.ncfg || {}).gt) || {})[k] || {}, A = afld(k, null, a2Of()); return { t: o.t || A[0], s: o.s != null ? o.s : A[1], d: A[2].map((x, i) => o.d && o.d[i] ? o.d[i] : x), mod: !!(o.t || o.s != null || (o.d || []).some(Boolean)) }; };
 const gridFill = (x, g) => { g = g || ncfg(); const n = nivPair(g), pc = ptsCfg(g); return String(x).replace(/\{haut\}/g, nivLbl(n.hi)).replace(/\{bas\}/g, nivLbl(n.lo)).replace(/\{avance\}/g, g.avance + " min")
   .replace(/\{max\}/g, fr(pc.full)).replace(/\{p2\}/g, fr(pc.sFull[0])).replace(/\{p3\}/g, fr(pc.sFull[1])).replace(/\{p4\}/g, fr(pc.sFull[2])); };
 const gridTxt = k => { const g = ncfg(), r = gridRaw(k); return { t: gridFill(r.t, g), s: gridFill(r.s, g), d: r.d.map(x => gridFill(x, g)) }; };
 function gridEdit(after) {
   const g0 = ncfg(), N0 = nivPair(g0), gt = JSON.parse(JSON.stringify(g0.gt || {}));
-  let nh = +g0.nh || 0, nl = g0.nl === 0 || +g0.nl > 0 ? +g0.nl : "", e1 = g0.e1 === "projet" ? "projet" : "pts", ppp = +g0.ppp || 15, ps = Array.isArray(g0.ps) ? g0.ps.slice() : null;
-  const gx = () => ({ ...g0, nh, nl, e1, ppp, ps });
+  let nh = +g0.nh || 0, nl = g0.nl === 0 || +g0.nl > 0 ? +g0.nl : "", e1 = g0.e1 === "projet" ? "projet" : "pts", ppp = +g0.ppp || 15, ps = Array.isArray(g0.ps) ? g0.ps.slice() : null, a2 = A2L[g0.a2] ? g0.a2 : "";
+  const gx = () => ({ ...g0, nh, nl, e1, ppp, ps, a2 }), a2e = () => a2Of(gx());
   const m = modal(""), box = m.firstElementChild; m.classList.add("big"); m.onclick = null;
   const opt = (v, cur, l) => `<option value="${v}" ${String(v) === String(cur) ? "selected" : ""}>${l}</option>`;
   const draw = () => { const n = nivPair({ ...g0, nh, nl }), u = n.u, pc = ptsCfg(gx());
@@ -2541,13 +2547,15 @@ function gridEdit(after) {
       ${e1 === "pts" ? `<div class="row small" style="gap:10px;margin-top:8px">Points possibles par parcours <input class="inp" type="number" min="1" id="gePp" value="${ppp}" style="width:70px;padding:6px"> <span class="muted">× ${C.parcours.length} parcours = <b>${fr(pc.full)} points</b></span></div>
        <div class="row small" style="gap:10px;margin-top:6px">Degré 2 à partir de <input class="inp" type="number" min="0" step="0.5" data-ps="0" value="${pc.sFull[0]}" style="width:70px;padding:6px"> pts · degré 3 à partir de <input class="inp" type="number" min="0" step="0.5" data-ps="1" value="${pc.sFull[1]}" style="width:70px;padding:6px"> pts · degré 4 à partir de <input class="inp" type="number" min="0" step="0.5" data-ps="2" value="${pc.sFull[2]}" style="width:70px;padding:6px"> pts
         ${pc.a ? '<span class="muted">(automatique : 25 / 50 / 75 %)</span>' : '<button class="btn sm gh" id="gePsZ">↺ Automatique</button>'}</div>
-       <p class="small muted" style="margin:6px 0 0">Une balise rapporte autant de points que son niveau${C.niv ? "" : ' <b style="color:var(--ko)">(niveaux désactivés dans ⚙ Paramètres : 1 balise = 1 point)</b>'}. La place dans le degré suit les points entre deux seuils. Élève noté sur 1 parcours : seuils et points possibles ramenés à 1 parcours. En AFL2, le degré 4 demande alors des balises bonus (plus de « points supérieurs à l'annonce »).</p>` : '<p class="small muted" style="margin:6px 0 0">Règle du protocole : moins de points qu\'annoncés (D1), annoncés avec abandon (D2), annoncés sans abandon (D3), plus qu\'annoncés (D4).</p>'}</div>
+       <p class="small muted" style="margin:6px 0 0">Une balise rapporte autant de points que son niveau${C.niv ? "" : ' <b style="color:var(--ko)">(niveaux désactivés dans ⚙ Paramètres : 1 balise = 1 point)</b>'}. La place dans le degré suit les points entre deux seuils. Élève noté sur 1 parcours : seuils et points possibles ramenés à 1 parcours.</p>` : '<p class="small muted" style="margin:6px 0 0">Règle du protocole : moins de points qu\'annoncés (D1), annoncés avec abandon (D2), annoncés sans abandon (D3), plus qu\'annoncés (D4).</p>'}</div>
+     <div class="card" style="margin:0 0 10px;padding:12px"><b>AFL2 · degré 4</b> <small class="muted">(le nombre de balises attendu est atteint, et en plus…)</small>
+      <select class="inp" id="geA2" style="width:auto;padding:6px;margin-left:6px">${opt("", a2, "automatique (" + (e1 === "projet" ? "bonus ou plus qu'annoncé" : "balises bonus") + ")")}${opt("bonus", a2, "des balises bonus")}${opt("pts", a2, "des balises bonus ou au moins " + fr(pc.sFull[2]) + " points")}${opt("ann", a2, "des balises bonus ou plus de points qu'annoncé")}</select></div>
      <div class="card" style="margin:0 0 10px;padding:12px"><b>Niveaux des balises</b> <small class="muted">(AFL1 · élément 2 : le déplacement)</small>
       <p class="small" style="margin:6px 0">Niveaux posés sur tes balises : <b>${u.length ? u.map(v => "N" + v).join(", ") : "aucun"}</b>${C.niv ? "" : ' <span style="color:var(--ko)">· niveaux de difficulté désactivés (⚙ Paramètres)</span>'}</p>
       <div class="row small" style="gap:10px">Balises difficiles : <select class="inp" id="geH" style="width:auto;padding:6px">${opt(0, nh, "automatique (" + nivLbl(nivPair({ ...g0, nh: 0, nl }).hi) + ")")}${[1, 2, 3].map(v => opt(v, nh, "N" + v)).join("")}</select>
        comparées aux balises : <select class="inp" id="geL" style="width:auto;padding:6px">${opt("", nl, "automatique (" + nivLbl(nivPair({ ...g0, nh, nl: "" }).lo) + ")")}${[0, 1, 2].filter(v => v < n.hi).map(v => opt(v, nl, nivLbl(v))).join("")}</select>
        <span class="muted">→ dans la grille : {haut} = <b>${nivLbl(n.hi)}</b>, {bas} = <b>${nivLbl(n.lo)}</b>, {avance} = <b>${g0.avance} min</b>${e1 === "pts" ? `, {max} = <b>${fr(pc.full)}</b>, {p2} {p3} {p4} = <b>${pc.sFull.map(fr).join(" · ")}</b>` : ""}</span></div></div>
-     ${AFLD.map((A0, k) => { const A = afld(k, e1); const o = gt[k] || {}, r = { t: o.t || A[0], s: o.s != null ? o.s : A[1], d: A[2].map((x, i) => o.d && o.d[i] ? o.d[i] : x) };
+     ${AFLD.map((A0, k) => { const A = afld(k, e1, a2e()); const o = gt[k] || {}, r = { t: o.t || A[0], s: o.s != null ? o.s : A[1], d: A[2].map((x, i) => o.d && o.d[i] ? o.d[i] : x) };
        return `<div class="card" style="margin:0 0 10px;padding:12px" data-gk="${k}"><div class="row"><input class="inp grow" data-ge="t" value="${esc(r.t)}" style="font-weight:800;padding:8px">${o.t || o.s != null || (o.d || []).some(Boolean) ? `<button class="btn sm gh" data-gz="${k}" title="Textes d'origine">↺</button>` : ""}</div>
         <input class="inp" data-ge="s" value="${esc(r.s)}" style="margin-top:6px;padding:8px" placeholder="Description">
         <div class="geg">${r.d.map((x, i) => `<label style="--dc:${DCOL[i]}"><b>Degré ${i + 1}</b><textarea class="inp" data-ge="d${i}" rows="3">${esc(x)}</textarea><small class="muted">${/\{/.test(x) ? "→ " + esc(gridFill(x, gx())) : ""}</small></label>`).join("")}</div></div>`; }).join("")}
@@ -2559,6 +2567,7 @@ function gridEdit(after) {
     $$("[data-gz]", m).forEach(b => b.onclick = () => { delete gt[b.dataset.gz]; draw(); });
     $("#geZ", m).onclick = () => { Object.keys(gt).forEach(k => delete gt[k]); nh = 0; nl = ""; draw(); };
     $$("[data-ge]", m).forEach(x => x.oninput = () => { const s2 = x.nextElementSibling; if (s2 && s2.tagName === "SMALL") s2.textContent = /\{/.test(x.value) ? "→ " + gridFill(x.value, gx()) : ""; });
+    $("#geA2", m).onchange = e => { read(); a2 = e.target.value; if (gt[2] && gt[2].d) { gt[2].d[3] = ""; if (!gt[2].d.some(Boolean)) delete gt[2].d; if (!Object.keys(gt[2]).length) delete gt[2]; } draw(); };
     $("#geE", m).onchange = e => { read(); [0, 2].forEach(k => delete gt[k]); e1 = e.target.value; draw(); };
     $("#gePp", m) && ($("#gePp", m).onchange = e => { const k = parseFloat(String(e.target.value).replace(",", ".")); if (k > 0) { ppp = k; ps = null; } read(); draw(); });
     $$("[data-ps]", m).forEach(x => x.onchange = () => { const cur = ptsCfg(gx()).sFull.slice(), k = parseFloat(String(x.value).replace(",", ".")); if (!(k >= 0)) { draw(); return; } cur[+x.dataset.ps] = k;
@@ -2567,12 +2576,12 @@ function gridEdit(after) {
     $("#geOk", m).onclick = () => { read(); const c = { ...(C.ncfg || {}) };
       if (nh) c.nh = nh; else delete c.nh; if (nl !== "") c.nl = nl; else delete c.nl;
       if (Object.keys(gt).length) c.gt = gt; else delete c.gt;
-      c.e1 = e1; c.ppp = ppp; if (ps) c.ps = ps; else delete c.ps;
-      const o0 = C.ncfg || {}, sig = o => JSON.stringify([o.nh, o.nl, o.e1 || "pts", o.ppp || 15, o.ps || null]), chg = sig(o0) !== sig(c);
+      c.e1 = e1; c.ppp = ppp; if (ps) c.ps = ps; else delete c.ps; if (a2) c.a2 = a2; else delete c.a2;
+      const o0 = C.ncfg || {}, sig = o => JSON.stringify([o.nh, o.nl, o.e1 || "pts", o.ppp || 15, o.ps || null, o.a2 || ""]), chg = sig(o0) !== sig(c);
       C.ncfg = c; confChanged(); m.remove(); flash("📝 Grille enregistrée"); after && after(chg); };
   };
   /* lit les champs : garde seulement ce qui diffère des textes d'origine */
-  const read = () => $$("[data-gk]", m).forEach(cd => { const k = +cd.dataset.gk, A = afld(k, e1), v = f => ($(`[data-ge="${f}"]`, cd).value || "").trim(), o = {};
+  const read = () => $$("[data-gk]", m).forEach(cd => { const k = +cd.dataset.gk, A = afld(k, e1, a2e()), v = f => ($(`[data-ge="${f}"]`, cd).value || "").trim(), o = {};
     if (v("t") && v("t") !== A[0]) o.t = v("t"); if (v("s") !== A[1]) o.s = v("s");
     const d = A[2].map((x, i) => v("d" + i) && v("d" + i) !== x ? v("d" + i) : ""); if (d.some(Boolean)) o.d = d;
     if (Object.keys(o).length) gt[k] = o; else delete gt[k]; });
