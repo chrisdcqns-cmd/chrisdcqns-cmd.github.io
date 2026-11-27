@@ -87,7 +87,7 @@ REPERES = {
     "eps-tactique.js": ["function editor(", "function depart("],
     "eps-ref.js": ["function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw", "function coVals(", "function colPut(", "EPSD.trash.keep("],
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter", "function vCdc(", "function saisie(", "function nbr("],
-    "eps-eval.js": ["function gridFor(", "function coAdd(", "function coEdit(", "function coEleve(", "n !== P.moi", "J'observe un camarade"],
+    "eps-eval.js": ["function gridFor(", "function coAdd(", "function coEdit(", "function coEleve(", "n !== P.moi", "J'observe un camarade", "function coNames(", "data-pass", "data-fdef", "coLive", "function coGrids(", "var COIDEES", "data-pick", "Proposition à relire"],
     "eps-groupes.js": ["function terrain(", "v.grp.nm = noms", "function imgSet(", "TZC = 24000"],
     "tactique/index.html": ["EPSD.plan.send(", "EPSD.plan.live(", "data-all"],
     "boite/index.html": ["function chrono(", "function compteur(", "function video(", "function analyse(", "function aCfg(", "function marks(", "function rpSet(", "function charge("],

@@ -440,7 +440,7 @@
       var h = '<div class="lc-top"><b>🧭 Pilotage de leçon · ' + esc(NOM) + '</b><span style="flex:1"></span><button type="button" class="x" data-x>✕ Fermer</button></div><div class="lc-body"><div class="lc-in" style="max-width:1400px">' +
         '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-c>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" +
         (on ? '<span class="lc-tag ok">● ' + esc(lec ? titreL(lec) : "leçon sans fiche") + (v.part ? " · " + esc({ ech: "échauffement", rem: "remise en action", bilan: "bilan" }[v.part] || "situation " + (+String(v.part).slice(1) + 1)) : "") + " · " + Math.max(1, Math.round((now - v.st) / 6e4)) + " min</span>" : '<span class="lc-tag">Pas de leçon lancée</span>') +
-        '<span style="flex:1"></span><button type="button" class="lc-b s" data-live>📡 Leçon en cours</button><button type="button" class="lc-b" data-sig>📣 Message à tous</button><button type="button" class="lc-b" data-plan>📋 Planche</button><button type="button" class="lc-b" data-terr>🗺 Plan</button></div>';
+        '<span style="flex:1"></span><button type="button" class="lc-b s" data-live>📡 Leçon en cours</button><button type="button" class="lc-b" data-sig>📣 Message à tous</button><button type="button" class="lc-b" data-plan>📋 Planche</button><button type="button" class="lc-b" data-terr>🗺 Plan</button><button type="button" class="lc-b" data-coev>👥 Coévaluation</button></div>';
       /* 1 · appels et sécurité */
       var SEC = EL.filter(function (e) { return e.x && e.x.niv === "secu" && !e.abs; });
       h += '<h3 style="margin-bottom:6px">✋ Appels' + (CA.length ? " (" + CA.length + ")" : "") + "</h3>" + (CA.length || SEC.length ? CA.map(function (c) { var lieu = c.lieu || ((c.who || [])[0] ? grpOf(c.who[0]) : "") || "", qui = (c.who && c.who.length ? c.who.join(", ") : c.eq || c.tab || (c.cls ? "Une tablette · " + c.cls : "Une tablette")), mn = Math.max(0, Math.round((now - c.at) / 6e4));
@@ -469,6 +469,7 @@
       ov.querySelector("[data-sig]").onclick = function () { try { EPSD.signal(); } catch (e) {} };
       ov.querySelector("[data-plan]").onclick = function () { if (window.EPSD && EPSD.planche) EPSD.planche({ cls: cls }); };
       ov.querySelector("[data-terr]").onclick = function () { terrOpen(cls); };
+      ov.querySelector("[data-coev]").onclick = function () { if (window.EPSE && EPSE.coeval) EPSE.coeval.edit({ app: CODE, nom: NOM, color: COL, cls: cls, tab: "r" }); };
       ov.querySelector("[data-vue]").ontoggle = function () { CTL_VUE = this.open; };
       var xd = ov.querySelector("[data-xad]"); if (xd) xd.ontoggle = function () { CTL_XA = this.open; };
       ov.querySelectorAll("[data-f]").forEach(function (b) { b.onclick = function () { CTL_F = b.dataset.f; draw(); }; });
