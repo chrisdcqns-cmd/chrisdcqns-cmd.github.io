@@ -1094,13 +1094,13 @@ document.addEventListener("click", ev=>{
     else if(Sc.includes(m)){ Sc.splice(Sc.indexOf(m),1); t.className=""; }
     else { P.push(m); t.className="p"; } return; }
   switch(d.act){
-    case "fermer": if(TM){ clearInterval(TM.iv); TM=null; } fermer(); break;
+    case "fermer": if(TM){ clearInterval(TM.iv); if(!TM.res) livePub("stop"); TM=null; } fermer(); break;
     case "timer": lancerTimer(); break;
     case "affichage": { const o=["auto","tel","tab"], m=LS.get("affichage","auto"); LS.set("affichage", o[(o.indexOf(m)+1)%3]); appliquerAffichage(); toast({auto:"Affichage automatique",tel:"Affichage téléphone",tab:"Affichage tablette"}[LS.get("affichage")]); rendre(); break; }
     case "tmPause": if(TM.enPause){ TM.debut+=Date.now()-TM.pause; TM.enPause=false; } else { TM.pause=Date.now(); TM.enPause=true; } dessinerTimer(); break;
     case "tmSuiv": suivante(); break;
     case "tmFini": finTimer(); break;
-    case "tmStop": if(confirm("Arrêter le WOD ?")){ clearInterval(TM.iv); TM=null; fermer(); } break;
+    case "tmStop": if(confirm("Arrêter le WOD ?")){ clearInterval(TM.iv); livePub("stop"); TM=null; fermer(); } break;
     case "tmSave": sauverResultat(); break;
     case "groupeOk": { const c=S.choixGroupe, n={solo:1,duo:2,trio:3}[c.mode]||1, noms=c.noms.slice(0,n).map(x=>(x||"").trim());
       if(noms.length<n||noms.some(x=>!x)) return toast("Choisis tous les noms"); if(new Set(noms).size<n) return toast("Deux fois le même nom");
@@ -1210,12 +1210,36 @@ function lancerTimer(){
   try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>TM.lock=w); }catch(e){}
   bip(880,.15); dessinerTimer(); TM.iv=setInterval(tick,200);
 }
+/* ======================= WOD EN DIRECT (🧭 pilotage de leçon : timer et descriptif sous le nom de chaque élève) =======================
+   La tablette élève pose son état dans le magasin partagé : « l|<tablette> » (un seul par tablette et par box, remplacé à chaque étape).
+   {c, date, noms, duo, st: run | pause | fin | stop, tete, ph, lab, tour, emom, s (durée de la phase, 0 = libre), up (chrono montant),
+    e (ms écoulées dans la phase à l'envoi), at (heure de l'envoi), tot (ms depuis le début du WOD), ex, niv, q, fait, cib, tours, nt, cible, ens (suite), rep, no, score}
+   Envoi : à chaque phase, exercice, tour, pause, fin ; toutes les 5 s au plus pendant les appuis ; toutes les 60 s sinon (tablette toujours là). */
+const LIVE_K = () => { let id=LS.get("dev",""); if(!id){ try{ id=(JSON.parse(localStorage.getItem("eps.dev.v1")||"{}")||{}).id||""; }catch(e){} id=id||"c"+Math.random().toString(36).slice(2,10); LS.set("dev",id); } return "l|"+id+(BOX?"-"+BOX:""); }; /* identifiant gardé : une tablette n'a jamais deux états */
+let LIVE_T=0;
+function livePub(st, doux){
+  try{
+    if(window.EPS_VUE_ELEVE||!aClasse()||!TM) return;
+    if(doux && Date.now()-(TM.liveAt||0)<5000) return;
+    const ph=TM.P[Math.min(TM.i,TM.P.length-1)]||{}, x=(st||!TM.P[TM.i])?null:exCourant(), l=S.lecon, w=texteWod(l);
+    const nx = x ? null : TM.P.slice(TM.i+1).find(y=>y.t==="work"||y.t==="bloc"), nxe = nx && (nx.ex || (nx.it&&nx.it[0]));
+    let rep=0, no=0; Object.values(TM.cpt).forEach(c=>{ rep+=c.rep; no+=c.no; });
+    TM.liveAt=Date.now();
+    stPut(LIVE_K(), {c:nomClasse(), date:auj(), noms:((S.groupe&&S.groupe.noms)||[]).filter(Boolean), duo:TM.duo?1:0, st: st||(TM.enPause?"pause":"run"),
+      titre:w.titre, tete:w.tete, ph:ph.t||"", lab:ph.lab||"", tour:ph.tour||0, emom:ph.emom?1:0, s:ph.s||0, up:(ph.up||ph.ouvert)?1:0,
+      e: st?0:Math.max(0,Math.round(ecoule())), at:Date.now(), tot:Date.now()-TM.total0,
+      ex:x?x.e.en:"", niv:x?x.niv:0, q:x?(ph.libre?ph.s+" s":qteTxt(x)):"", fait:TM.fait, cib:x&&!ph.libre&&x.e.mesure!=="temps"?cible(x):0,
+      tours:TM.tours, nt:ph.tours||0, cible:ph.cible||0, ens:nxe?nxe.e.en+" · N"+nxe.niv:"", rep, no, score:(TM.res&&TM.res.score)||""});
+    clearTimeout(LIVE_T); LIVE_T=setTimeout(()=>{ try{ window.EPSD&&EPSD.syncOne&&EPSD.syncOne(KST); }catch(e){} },700);
+  }catch(e){}
+}
 function ecoule(){ return (TM.enPause?TM.pause:Date.now())-TM.debut; }
 function tick(){
   if(!TM||TM.enPause) return; const ph=TM.P[TM.i]; if(!ph) return;
   const e=ecoule()/1000, rest=ph.s?Math.ceil(ph.s-e):null;
   if(ph.s&&rest!==TM.dern){ TM.dern=rest; if(rest<=3&&rest>0) bip(660,.12); }
   if(ph.s&&e>=ph.s){ if(ph.t==="bloc"&&ph.up) TM.capAtteint=1; suivante(); return; }
+  if(Date.now()-(TM.liveAt||0)>60000) livePub();
   majChrono();
 }
 function suivante(){ TM.i++; TM.debut=Date.now(); TM.dern=null; TM.fait=0; if(TM.i>=TM.P.length) return finTimer(); bip(TM.P[TM.i].t==="rest"?440:990,.35); dessinerTimer(); }
@@ -1280,28 +1304,29 @@ function dessinerTimer(){
   $("#calque").innerHTML = TM.duo
     ? `<div class="voile" style="align-items:stretch"><div class="feuille tm tm-duo ${TM.flip?"face":""}"><div class="pane-ath tm tm-${ph.t}">${ath}</div><div class="pane-coach ${TM.flip?"retourne":""}" id="tmCoach">${coachHtml()}</div></div></div>`
     : `<div class="voile" style="align-items:stretch"><div class="feuille tm tm-${ph.t}">${ath}</div></div>`;
-  majChrono(); animerClips();
+  majChrono(); animerClips(); livePub();
 }
 /* appui REP / NO REP / Tenu */
 function compter(type){
   const ph=TM.P[TM.i], x=exCourant(); if(!x) return;
   const k=x.exId+"|"+x.niv, c=TM.cpt[k]=TM.cpt[k]||{rep:0,no:0};
-  if(type==="no"){ c.no++; bip(220,.1); try{ navigator.vibrate&&navigator.vibrate([40,40,40]); }catch(e){} return majZone("no"); }
+  if(type==="no"){ c.no++; bip(220,.1); try{ navigator.vibrate&&navigator.vibrate([40,40,40]); }catch(e){} livePub("",1); return majZone("no"); }
   c.rep += type==="tenu" ? 0 : 1; TM.fait += type==="tenu" ? cible(x) : 1; bip(1320,.06); try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
-  if(ph.libre || TM.fait < cible(x)) return majZone("rep");
+  if(ph.libre || TM.fait < cible(x)){ livePub("",1); return majZone("rep"); }
   /* objectif atteint */
   if(ph.t==="bloc"){ TM.k++; TM.fait=0; bip(990,.25);
     if(TM.k>=ph.it.length){ TM.k=0; TM.tours++; bip(1200,.4); if(ph.tours&&TM.tours>=ph.tours) return finTimer(); }
     $("#tmVid").innerHTML=clipHtml(exCourant()); animerClips(); const n=$(".tm-nom"), nv=$(".tm-niv"), y=exCourant(); if(n) n.textContent=y.e.en; if(nv) nv.textContent=`${NIV(y.niv)} · ${y.e.niveaux[y.niv-1]?.nom||""} · ${qteTxt(y)}`;
-    return majZone(); }
+    livePub(); return majZone(); }
   if(ph.ouvert) return suivante();
-  majZone();
+  livePub(); majZone();
 }
 function finTimer(fini){
   clearInterval(TM.iv); try{ TM.lock&&TM.lock.release(); }catch(e){} bip(1200,.6);
   const l=S.lecon, duree=Math.round((Date.now()-TM.total0)/1000), ph=TM.P.find(x=>x.t==="bloc");
   const cpt=Object.entries(TM.cpt).map(([k,c])=>{ const [id,n]=k.split("|"), e=exParId(id); return {ex:e?e.en:id, niv:+n, rep:c.rep, no:c.no}; }).filter(x=>x.rep||x.no);
   TM.res={cpt, score: l.format==="amrap"?`${TM.tours} tours + ${TM.k} exercice(s) (cible ${params(l).cible} tours)`: l.format==="fortime"?(TM.capAtteint?`time cap atteint · ${TM.tours} tours`:`${mmss(ecoule()/1000)}`):"WOD terminé", duree};
+  livePub("fin");
   const OMNI=["Très très facile","","Facile","","Plutôt dur","","Dur","","Très dur","","Extrêmement dur"];
   $("#calque").innerHTML = `<div class="voile"><div class="feuille"><div class="tete"><div class="t"><div class="en">🏁 Bravo !</div><div class="doux">${h(TM.res.score)} · ${mmss(duree)}</div></div><button class="fermer" data-act="fermer">✕</button></div>
     <div class="corps">${TM.res.cpt.length?`<label class="champ">Comptage de l'observateur</label><table class="rapport"><tr><th>Exercice</th><th class="c">Rep</th><th class="c">No rep</th><th class="c">Validité</th></tr>${TM.res.cpt.map(x=>`<tr><td>${h(x.ex)} · niveau ${x.niv}</td><td class="c ok">${x.rep}</td><td class="c ko">${x.no}</td><td class="c">${Math.round(x.rep/(x.rep+x.no)*100)} %</td></tr>`).join("")}</table>${TM.res.cpt.some(x=>x.no/(x.rep+x.no)>.2)?`<p class="petit alerte" style="margin-top:6px">Plus de 20 % de No rep sur un exercice : si… alors je baisse d'un niveau ou je ralentis pour garder l'amplitude.</p>`:""}`:""}
@@ -1326,6 +1351,33 @@ function sauverResultat(){
   const duo=TM.duo; TM=null; fermer(); toast("Enregistré dans ton carnet ✓");
   if(duo && confirm("Changer de rôle pour le prochain WOD ? ("+roles().coach+" devient athlète)")){ changerRole(); aller("lecon"); } else aller("carnet");
 }
+/* 🧭 Pilotage de leçon : sous le nom de chaque élève, le timer de son WOD (tm, tenu à la seconde par eps-lecons.js) et ce qu'il fait (t).
+   Sans WOD en cours : son dernier WOD terminé du jour. Une tablette sans nouvelle depuis 2 min 30 n'est plus comptée comme « en cours ». */
+const mmssL = s => { s=Math.max(0,Math.floor(s)); return s>=3600 ? Math.floor(s/3600)+":"+String(Math.floor(s%3600/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0") : Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+function liveLigne(o){
+  const PH={pret:"Se prépare", work:"Travail", rest:"Repos", bloc:o.lab||"WOD"}, COL={pret:"#C98A00", work:"#3F8F14", rest:"#2F6FDB", bloc:"#3F8F14"};
+  const ex = o.ex ? o.ex+" · N"+o.niv+(o.q?" · "+o.q:"")+(o.cib?" ("+Math.min(o.fait||0,o.cib)+"/"+o.cib+")":"") : "";
+  const tour = o.ph==="bloc" ? "tour "+((o.tours||0)+1)+(o.nt?"/"+o.nt:"")+(o.cible?" (cible "+o.cible+")":"") : o.tour ? (o.emom?"minute ":"tour ")+o.tour : "";
+  let t = o.ph==="pret" ? (o.tete||"WOD")+(o.ens?" · d'abord "+o.ens:"") : o.ph==="rest" ? (o.lab||"Récupération")+(o.ens?" · ensuite "+o.ens:"") : [ex, tour].filter(Boolean).join(" · ");
+  return {lab:o.st==="pause"?"Pause":PH[o.ph]||"WOD", col:o.st==="pause"?"#6A6F78":COL[o.ph]||"#3F8F14", t:t||o.tete||"WOD en cours"};
+}
+window.epsCtlAlerts = function(cls){
+  const now=Date.now(), d=auj(), meme=a=>String(a||"").trim().toLowerCase()===String(cls||"").trim().toLowerCase(), par={};
+  const poser=(n,v)=>{ n=String(n||"").trim(); if(!n) return; if(!par[n]||(v.at||0)>(par[n].at||0)) par[n]=Object.assign({n},v); };
+  stItems("w|").forEach(([,o])=>{ if(!meme(o.c)||o.date!==d||!o.res) return; const w=o.texte||{};
+    (o.noms||[]).forEach(n=>poser(n,{niv:"", at:o.u||0, t:"🏁 WOD terminé · "+(o.res.score||"")+(o.res.duree?" · "+mmssL(o.res.duree):""),
+      d:[w.titre||"", w.tete||""].concat(w.lignes||[]).concat([o.res.rpe!=null?"Ressenti : "+o.res.rpe+" / 10":"", o.res.fc?"FC en fin de bloc : "+o.res.fc:""]).filter(Boolean)})); });
+  stItems("l|").forEach(([,o])=>{ if(!meme(o.c)||o.date!==d||!Array.isArray(o.noms)) return;
+    const at=Math.min(+o.at||0,now), perdu=o.st==="run"&&now-at>150000, L=liveLigne(o), det=[o.titre||"", o.tete||"", "Depuis le début : "+mmssL(((o.tot||0)+(o.st==="run"&&!perdu?now-at:0))/1000), (o.rep||o.no)?"Rep "+(o.rep||0)+" · No rep "+(o.no||0):""].filter(Boolean);
+    o.noms.forEach((n,i)=>{ const role = o.duo ? (i===0?"🏋 Athlète · ":i===1?"👁 Coach de "+String(o.noms[0]||"").split(" ")[0]+" · ":"") : "";
+      if(o.st==="stop") return poser(n,{niv:"", at:o.u||at, t:"⏹ WOD arrêté · "+(o.tete||""), d:det});
+      if(o.st==="fin") return poser(n,{niv:"", at:o.u||at, t:"🏁 WOD terminé"+(o.score?" · "+o.score:"")+" · "+mmssL((o.tot||0)/1000), d:det});
+      if(perdu) return poser(n,{niv:"", at, t:"📵 Tablette sans nouvelle · "+role+L.t, d:det});
+      poser(n,{niv:"", at:o.st==="run"?now:(o.u||at), t:role+L.t, d:det, tm:{e:+o.e||0, at, s:+o.s||0, up:o.up?1:0, run:o.st==="run"?1:0, lab:L.lab, col:L.col}}); }); });
+  return Object.values(par);
+};
+/* tablette de l'enseignant : le magasin est relevé toutes les 6 s tant que le pilotage est ouvert */
+setInterval(()=>{ try{ const p=document.getElementById("lc-ctl"); if(p&&p.style.display!=="none"&&estProf()&&document.visibilityState!=="hidden"&&!window.EPS_SIM&&window.EPSD&&EPSD.syncOne) EPSD.syncOne(KST); }catch(e){} },6000);
 /* ======================= ÉLÈVE : carnet ======================= */
 function vueCarnet(){
   const g=S.groupe||{noms:[]}, mes=stItems("w|").map(x=>x[1]).filter(o=>S.prof||(o.c===nomClasse()&&o.noms.some(n=>g.noms.includes(n)))).sort((a,b)=>b.u-a.u);
