@@ -208,8 +208,8 @@
         RESOBS && RESOBS.observe(el, { childList: true }); };
       go(); [150, 600, 1500].forEach(function (d) { setTimeout(go, d); });
       try { RESOBS = new MutationObserver(function () { setTimeout(go, 0); }); RESOBS.observe(el, { childList: true }); } catch (e) {} }
-    function evActs() { var t = (C.tabs || {}).eval || {}, ev = evCur(), L = window.EPSLC || {}, drop = /^(Évaluer|Évaluation finale|Bilan (&|et) export)$/;
-      var ctx = ev === "fin" ? (t.actions || []).filter(function (a) { return !drop.test(a.label); }).concat(L.evalActions ? L.evalActions() : []) : ev === "bil" ? ((t.bilan && t.bilan.actions) || []).concat(L.evalBilActions ? L.evalBilActions() : []) : [];
+    function evActs() { var t = (C.tabs || {}).eval || {}, ev = evCur(), L = window.EPSLC || {}, drop = /^(Évaluer|Évaluation finale|Bilan (&|et) export|Pronote)$/; /* 📋 Pronote : bouton « Export Pronote » à droite des trois modes (27/11/2026), pas en double dans la barre */
+      var ctx = ev === "fin" ? (t.actions || []).concat(L.evalActions ? L.evalActions() : []).filter(function (a) { return !drop.test(a.label); }) : ev === "bil" ? ((t.bilan && t.bilan.actions) || []).concat(L.evalBilActions ? L.evalBilActions() : []) : [];
       ctx = ctx.map(function (a, i) { return [a.ord != null ? a.ord : 1, i, a]; }).sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; }).map(function (x) { return x[2]; });
       return EVS.map(function (x) { return { seg: 1, on: x[0] === ev, ico: x[1], label: x[2], go: function () { evGo(x[0]); } }; }).concat(ctx); }
     function mark(id) { M.cur = id; nav.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b.dataset.t === id); });

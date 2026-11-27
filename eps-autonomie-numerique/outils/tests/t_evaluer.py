@@ -136,6 +136,21 @@ async def main():
             ok(app + " : par groupe : les groupes de l'appli, ou un message clair s'il n'y en a pas", await p.evaluate("!!document.querySelector('[data-gr]')&&document.querySelectorAll('.epse-ql').length>1||/Pas encore de groupes/.test(document.body.innerText)"), await p.evaluate("document.querySelector('.epse-host')?document.querySelector('.epse-host').innerText.slice(0,300):document.body.innerText.slice(-300)"))
             await p.evaluate("document.querySelector('[data-mode=eleve]').click()"); await p.wait_for_timeout(900)
             ok(app + " : retour à « élève par élève » sur le même élève", await p.evaluate("document.querySelectorAll('.epse-col .epse-li')[3].classList.contains('on')"))
+        # ---------- 4 ter. 📝 Appréciations de bulletin et 📋 Export Pronote : à droite des trois modes, dans les 10 applis, plus dans la fiche de l'élève
+        CHK = "(function(){var all=[].filter.call(document.querySelectorAll('button'),function(b){return b.offsetParent&&/Appréciations de bulletin|Export Pronote|Pronote : toutes/.test(b.innerText)});var seg=document.querySelector('[data-mode=groupe],[data-m=groupe]');var bar=all.filter(function(b){return b.closest('.epse-sub,.ev-bar')});return {n:all.length,bar:bar.length,droite:!!seg&&bar.every(function(b){var r=b.getBoundingClientRect(),q=seg.getBoundingClientRect();return r.left>q.right&&Math.abs(r.top-q.top)<40}),tb:[].some.call(document.querySelectorAll('.epst-tb button'),function(b){return b.title==='Pronote'})}})()"
+        for app in APPS:
+            await p.goto(B + app + "/"); await p.wait_for_timeout(4000)
+            if app == "orientation": await p.evaluate("(function(){try{sessionStorage.setItem('tpw','eps');openProf()}catch(e){}})()"); await p.wait_for_timeout(1200)
+            if app == "badminton": await p.evaluate("setVoie('pro')"); await p.wait_for_timeout(800)
+            if app == "relais": await p.evaluate("(()=>{const c=DATA.classes.find(c=>/D.MO/.test(c.name))||DATA.classes[0];DATA.cur=c.id;persist()})()")
+            await p.evaluate(INST[app] + ".go('eval')"); await p.wait_for_timeout(500); await p.evaluate(INST[app] + ".evGo('fin')"); await p.wait_for_timeout(1500)
+            if app == "danse": await p.evaluate("(function(){var x=[].filter.call(document.querySelectorAll('*'),function(e){return e.children.length===0&&/D.MO \\(fictive\\)/.test(e.textContent)&&e.offsetParent})[0];if(x)x.click()})()"); await p.wait_for_timeout(1200)
+            await p.evaluate("var b=document.querySelector('[data-mode=eleve],[data-m=eleve]');b&&b.click()"); await p.wait_for_timeout(900)
+            r1 = await p.evaluate(CHK)
+            await p.evaluate("var b=document.querySelector('[data-mode=crit],[data-m=crit]');b&&b.click()"); await p.wait_for_timeout(900)
+            r2 = await p.evaluate(CHK)
+            await p.evaluate("var b=document.querySelector('[data-mode=eleve],[data-m=eleve]');b&&b.click()"); await p.wait_for_timeout(700)
+            ok(app + " : « Appréciations de bulletin » et « Export Pronote » à droite des trois modes (fiche et par critère), une seule fois, pas dans la fiche", r1 == r2 == {"n": 2, "bar": 2, "droite": True, "tb": False} or (r1["n"] == 2 and r1["bar"] == 2 and r1["droite"] and not r1["tb"] and r2["n"] == 2 and r2["bar"] == 2 and r2["droite"]), (r1, r2))
         for app, code in (("badminton", "bad"), ("relais", "rel")):
             await p.goto(B + app + "/"); await p.wait_for_timeout(4200)
             r = await p.evaluate("(function(){var I=(window.EPSE_INST||[]).filter(function(x){return x.A.app==='" + code + "'})[0];if(!I)return 'pas d instance';var A=I.A,c=A.classes().filter(function(x){return /D.MO/.test(x.nom)})[0],E=c.eleves[1],G=A.grid(),a=G.criteres[0],b=G.criteres[1];A.setProf(a,E,{d:2,pos:.5});var v1=A.prof(a,E);A.setProf(a,E,{d:0,pos:.5});var v2=A.prof(a,E);A.setDeg(a,E,null);return {t:typeof A.setProf,v1:v1&&v1.d,v2:v2&&v2.d,autre:!!A.prof(b,E),efface:!A.prof(a,E)}})()")

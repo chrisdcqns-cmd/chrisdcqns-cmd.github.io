@@ -43,9 +43,9 @@ async def main():
 
     chk("Note" in txt,"fenêtre Pronote ouverte avec des colonnes")
     await p.evaluate("(()=>{const m=[...document.querySelectorAll('body > div')].filter(d=>/Notes pour Pronote/.test(d.innerText)).pop();const b=m&&[...m.querySelectorAll('button')].find(x=>/Fermer/.test(x.innerText));if(b)b.click()})()")
-    # 4. bouton Pronote commun de l'onglet Évaluation (barre d'actions)
-    r=await p.evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.offsetParent&&/^📋\\s*Pronote/.test(x.innerText.trim())&&!x.hasAttribute('data-x-pn'));if(!b)return 'absent';b.click();return 'ok'})()"); await p.wait_for_timeout(1000)
-    chk(r=="ok" and await p.evaluate("/Notes pour Pronote/.test(document.body.innerText)"),"bouton Pronote de la barre de l'onglet Évaluation ("+r+")")
+    # 4. bouton « 📋 Export Pronote » commun, à droite des trois modes de l'évaluation finale
+    r=await p.evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.offsetParent&&/^📋\\s*(Export )?Pronote/.test(x.innerText.trim())&&!x.hasAttribute('data-x-pn'));if(!b)return 'absent';b.click();return 'ok'})()"); await p.wait_for_timeout(1000)
+    chk(r=="ok" and await p.evaluate("/Notes pour Pronote/.test(document.body.innerText)"),"bouton Export Pronote à côté des modes ("+r+")")
     await p.evaluate("(()=>{const m=[...document.querySelectorAll('body > div')].filter(d=>/Notes pour Pronote/.test(d.innerText)).pop();const b=m&&[...m.querySelectorAll('button')].find(x=>/Fermer/.test(x.innerText));if(b)b.click()})()")
     # 5. Évaluer → 📤 Bilan et export : le bilan de l'évaluation seul (la grille est cachée) ; « Bilan des leçons (courses) » (goBilans) : bilan de la leçon
     await p.evaluate("EPSTR.go('bil')"); await p.wait_for_timeout(1000)

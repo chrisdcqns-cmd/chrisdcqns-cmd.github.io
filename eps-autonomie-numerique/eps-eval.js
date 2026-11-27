@@ -687,9 +687,9 @@
        M.propBlock(apres, E, classe, {redraw, keep(texte), take}) — inséré juste après l'élément « apres » */
     M.propBlock = function (after, E, cls, o) { o = o || {}; if (!after || !after.parentNode) return;
       try { var d = document.createElement("div"); d.className = "epse-block"; d.innerHTML = M.propHtml(E, cls) +
-          '<div class="epse-card"><div class="epse-row" style="margin:0"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button>' + (o.list ? '<button type="button" class="epse-btn" data-pnall>📋 Pronote : toutes les évaluations de la classe</button>' : "") + '</div><div data-phrbox style="margin-top:6px"></div></div>';
+          '<div class="epse-card"><div class="epse-row" style="margin:0"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button></div><div data-phrbox style="margin-top:6px"></div></div>';
         after.parentNode.insertBefore(d, after.nextSibling); M.bindProp(d, E, cls, o.redraw || function () {}, o.take);
-        var pn = d.querySelector("[data-pnall]"); if (pn) pn.onclick = function () { M.pronoteAll(cls, o.list); }; if (o.keep) M.bindPhrase(d, E, cls, o.keep);
+        if (o.keep) M.bindPhrase(d, E, cls, o.keep);
         /* 🎯 remédiation : critères au degré 1 ou 2 → situation liée à proposer (eps-lecons.js) */
         try { if (window.EPSLC && EPSLC.remCard) { var lows = []; A.grid().criteres.forEach(function (cr) { var v = A.prof(cr, E); if (v && v.d != null && v.d <= 1) lows.push({ cr: cr, d: v.d }); });
           var n = A.name(E), rc = EPSLC.remCard(cls, ((n.prenom || "") + " " + (n.nom || "")).trim(), lows); if (rc) { var w = document.createElement("div"); w.innerHTML = rc.html; d.appendChild(w); rc.bind(w); } } } catch (e) { console.warn(e); } } catch (e) { console.warn(e); } };
@@ -714,6 +714,12 @@
     function qName(E) { var n = A.name(E); return ((n.prenom || "") + " " + (n.nom || "")).trim(); }
     function qAbsJ(E, cls) { try { return !!(window.epsAbsJour && window.epsAbsJour(qName(E), cls)); } catch (x) { return false; } }
     function qMax(cr, E) { try { if (A.max && E) return A.max(cr, E); } catch (e) {} return +cr.max || 0; }
+    /* 📝 Appréciations de bulletin et 📋 Export Pronote de l'évaluation finale (demande du 27/11/2026) : à droite de la barre
+       « Élève par élève · Par critère · Par groupe », dans toutes les applis ; plus dans la fiche de l'élève */
+    M.classBtnsHtml = function () { return '<button type="button" data-bul>📝 Appréciations de bulletin</button><button type="button" data-pnall>📋 Export Pronote</button>'; };
+    M.bindClassBtns = function (root, cls, list) { var b = root.querySelector("[data-bul]"), p = root.querySelector("[data-pnall]");
+      if (b) b.onclick = function () { if (window.EPSD && EPSD.bulletin) EPSD.bulletin(cls); else toast("Appréciations indisponibles (recharge la page)"); };
+      if (p) p.onclick = function () { M.pronoteAll(cls, list); }; };
     M.mode = function () { return Q.mode; };
     M.setMode = function (m) { Q.mode = m === "crit" || m === "groupe" ? m : "eleve"; try { localStorage.setItem(KMODE, Q.mode); } catch (e) {} };
     M.modesHtml = function () { return '<div class="epse-seg" role="tablist" aria-label="Façon d\'évaluer">' + [["eleve", "👤 Élève par élève"], ["crit", "📋 Par critère"], ["groupe", "👥 Par groupe"]].map(function (m) { return '<button type="button" role="tab" aria-selected="' + (Q.mode === m[0]) + '" data-mode="' + m[0] + '"' + (Q.mode === m[0] ? ' class="on"' : "") + ">" + m[1] + "</button>"; }).join("") + "</div>"; };
@@ -727,12 +733,12 @@
       var oc = el.querySelector(".epse-col"), y = oc ? oc.scrollTop : (el._colY || 0), x = oc ? oc.scrollLeft : (el._colX || 0); /* la fiche de l'appli peut avoir tout redessiné : position de la colonne gardée sur l'élément */
       if (box) { fiche = box.querySelector(".epse-fiche"); } else { fiche = document.createElement("div"); fiche.className = "epse-fiche"; while (el.firstChild) fiche.appendChild(el.firstChild); }
       el.classList.add("epse-host"); el.style.setProperty("--app", A.color);
-      var top = document.createElement("div"); top.className = "epse-sub epse-modes"; top.innerHTML = M.modesHtml() + '<span style="flex:1"></span>' + (o.right || "");
+      var top = document.createElement("div"); top.className = "epse-sub epse-modes"; top.innerHTML = M.modesHtml() + '<span style="flex:1"></span>' + (o.right || "") + M.classBtnsHtml();
       var two = document.createElement("div"); two.className = "epse-two"; two.innerHTML = M.colHtml(c, cur, o.groups || null); two.appendChild(fiche);
       el.innerHTML = ""; if (!o.noModes) el.appendChild(top); el.appendChild(two);
       var nc = el.querySelector(".epse-col"); nc.scrollTop = y; nc.scrollLeft = x; nc.addEventListener("scroll", function () { el._colY = nc.scrollTop; el._colX = nc.scrollLeft; }); var cu = nc.querySelector(".epse-li.on"); if (cu && (cu.offsetTop < nc.scrollTop || cu.offsetTop + cu.offsetHeight > nc.scrollTop + nc.clientHeight)) nc.scrollTop = Math.max(0, cu.offsetTop - 60);
       [].forEach.call(nc.querySelectorAll("[data-el]"), function (b) { b.onclick = function (ev) { if (ev.target.closest && ev.target.closest("[data-eps-ap]")) return; if (o.pick) o.pick(+b.dataset.el); }; });
-      M.bindModes(el, o.onMode || function () {}); };
+      M.bindModes(el, o.onMode || function () {}); M.bindClassBtns(el, c.nom, c.eleves); };
     function qGroups(c, given) { if (given) return given; var G = null; try { if (A.groups) G = A.groups(c.nom); } catch (e) {}
       if (Array.isArray(G) && G.length) return G.map(function (g) { return { nom: g.nom, ids: (g.eleves || []).map(function (E) { return c.eleves.indexOf(E); }).filter(function (i) { return i >= 0; }) }; }).filter(function (g) { return g.ids.length; });
       var J = null; try { J = window.epsGroupesJour && window.epsGroupesJour(c.nom); } catch (e) {} if (!Array.isArray(J) || !J.length) return [];
@@ -760,8 +766,8 @@
     };
     /* écran complet « par critère / par groupe » dans un élément (applis à écran propre : Volley, Badminton, Relais) */
     M.quickInto = function (el, c, o) { o = o || {}; el.classList.add("epse-host"); el.style.setProperty("--app", A.color);
-      el.innerHTML = '<div class="epse-sub epse-modes">' + M.modesHtml() + '<span style="flex:1"></span>' + (o.right || "") + "</div>" + M.quickHtml(c, o);
-      M.bindModes(el, o.onMode || function () {}); M.bindQuick(el, c, o.redraw || function () {}, o); };
+      el.innerHTML = '<div class="epse-sub epse-modes">' + M.modesHtml() + '<span style="flex:1"></span>' + (o.right || "") + M.classBtnsHtml() + "</div>" + M.quickHtml(c, o);
+      M.bindModes(el, o.onMode || function () {}); M.bindClassBtns(el, c.nom, c.eleves); M.bindQuick(el, c, o.redraw || function () {}, o); };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
     /* instances connues des fiches de leçon (eps-lecons.js : critères des grilles, remédiation) */
     function isT_() { try { return typeof A.isTeacher === "function" && !!A.isTeacher(); } catch (e) { return false; } } /* adaptateurs réduits (Volley, Danse) : pas de relevé automatique ici */
@@ -857,9 +863,10 @@
       var tabsH = [["eval", "Évaluation finale"], ["bilan", "Bilan et export"], ["grille", "Grille"]].filter(function (t) { return !UI.only || UI.only.indexOf(t[0]) >= 0; });
       var MODES = [["eleve", "👤 Élève par élève"], ["crit", "📋 Par critère"], ["groupe", "👥 Par groupe"]], modesH = '<div class="epse-seg" role="tablist" aria-label="Façon d\'évaluer">' + MODES.map(function (m) { return '<button type="button" role="tab" aria-selected="' + (UI.mode === m[0]) + '" data-mode="' + m[0] + '"' + (UI.mode === m[0] ? ' class="on"' : "") + ">" + m[1] + "</button>"; }).join("") + "</div>";
       /* dans l'onglet Évaluer de l'espace enseignant : les 3 modes à gauche, la grille et la classe à droite (plus de sous-onglets « Évaluer / Grille ») */
-      var gOk = !UI.only || UI.only.indexOf("grille") >= 0, head = UI.host ? '<div class="epse-sub">' + (UI.tab === "eval" ? modesH : UI.tab === "grille" ? '<button data-tab="eval">← Retour</button><b style="font-size:17px">🧩 Grille d\'évaluation</b>' : "") + '<span style="flex:1"></span>' + (UI.tab === "eval" && gOk ? '<button data-tab="grille">🧩 Grille</button>' : "") + (sel ? '<label class="epse-mut">Classe ' + sel + "</label>" : "") + "</div>"
+      var gOk = !UI.only || UI.only.indexOf("grille") >= 0, head = UI.host ? '<div class="epse-sub">' + (UI.tab === "eval" ? modesH : UI.tab === "grille" ? '<button data-tab="eval">← Retour</button><b style="font-size:17px">🧩 Grille d\'évaluation</b>' : "") + '<span style="flex:1"></span>' + (UI.tab === "eval" && c ? M.classBtnsHtml() : "") + (UI.tab === "eval" && gOk ? '<button data-tab="grille">🧩 Grille</button>' : "") + (sel ? '<label class="epse-mut">Classe ' + sel + "</label>" : "") + "</div>"
         : '<div class="epse-bar"><span class="ei">' + (o.icon || "") + "</span><b>" + esc(o.nom) + "</b><small>Évaluation · " + esc(o.ca) + "</small>" + sel + '<button data-close>✕ Fermer</button></div>' +
         '<div class="epse-tabs">' + tabsH.map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + "</div>";
+      if (!UI.host && UI.tab === "eval" && c) modesH = '<div class="epse-sub">' + modesH + '<span style="flex:1"></span>' + M.classBtnsHtml() + "</div>";
       var body = "";
       if (!c) body = '<div class="epse-card"><p>Aucune classe pour cette activité. Importe une liste d\'élèves dans Réglages (accueil) et vérifie que l\'activité est cochée pour la classe.</p></div>';
       else if (UI.tab === "eval" && !c.eleves.length) body = '<div class="epse-card"><p>Aucun élève dans cette classe.</p></div>';
@@ -874,6 +881,7 @@
       var nc = R.querySelector(".epse-col"); if (nc) { nc.scrollTop = ocY; nc.scrollLeft = ocX; var cu = nc.querySelector(".epse-li.on"); if (cu && cu.scrollIntoView && (cu.offsetTop < nc.scrollTop || cu.offsetTop + cu.offsetHeight > nc.scrollTop + nc.clientHeight)) nc.scrollTop = Math.max(0, cu.offsetTop - 60); }
       R.querySelectorAll("[data-mode]").forEach(function (b) { b.onclick = function () { M.setMode(b.dataset.mode); UI.mode = M.mode(); render(); }; });
       if (c && UI.tab === "eval" && UI.mode !== "eleve" && c.eleves.length) bindRapide(R, c, G, GRP);
+      if (c && UI.tab === "eval") M.bindClassBtns(R, c.nom, c.eleves);
       if (R.querySelector("[data-close]")) R.querySelector("[data-close]").onclick = close;
       var s = R.querySelector("[data-cls]"); if (s) s.onchange = function () { UI.cls = s.value; UI.el = -1; render(); };
       R.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.tab; render(); }; });
@@ -892,7 +900,7 @@
             '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
             (v ? '<div class="epse-intra" style="--dc:' + DCOL[v.d] + '"><span>Dans le degré :</span><input type="range" min="0" max="4" step="1" value="' + Math.round((v.pos == null ? .5 : v.pos) * 4) + '" data-p="' + esc(cr.id) + '"><b style="color:' + DCOL[v.d] + '">' + esc(posLbl(v.d, v.pos == null ? .5 : v.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
         (ap && (ap.r || ap.m) ? '<div class="epse-card"><h2>🙋 Les mots de l\'élève</h2>' + (ap.r ? "<p>✓ " + esc(ap.r) + "</p>" : "") + (ap.m ? "<p>→ " + esc(ap.m) + "</p>" : "") + "</div>" : "") +
-        '<div class="epse-card"><div class="epse-row" style="margin:0 0 6px"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button><button type="button" class="epse-btn" data-bul>📝 Appréciations de bulletin (classe)</button><button type="button" class="epse-btn" data-pnall>📋 Pronote : toutes les évaluations de la classe</button></div><div data-phrbox></div><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
+        '<div class="epse-card"><div class="epse-row" style="margin:0 0 6px"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button></div><div data-phrbox></div><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
     }
     function bindSheet(R, c, e) {
       var up = function (f) { var r = rec(e._c, e); f(r); save(e._c, e, r); render(); };
@@ -904,7 +912,6 @@
       var t = R.querySelector("[data-comm]"); t.oninput = t.onchange = function () { var r = rec(e._c, e); r.comm = t.value; save(e._c, e, r); };
       M.bindProp(R, e, e._c, render, function () { var P = M.prop(e, e._c); up(function (r) { r.ev = r.ev || {}; grid().criteres.forEach(function (cr) { var x = P.est[cr.id]; if (!r.ev[cr.id] && x) r.ev[cr.id] = { d: x.d, pos: x.pos }; }); }); });
       M.bindPhrase(R, e, e._c, function (txt) { var r = rec(e._c, e); r.comm = txt; save(e._c, e, r); render(); });
-      var pna = R.querySelector("[data-pnall]"); if (pna) pna.onclick = function () { M.pronoteAll(e._c, c.eleves); };
     }
     /* « 👥 Par groupe » : groupes de l'appli (o.groups, rangés par grouper) sinon groupes du jour ; la saisie rapide est celle du module (M.quickHtml) */
     function rapide(c, G, GRP) { if (!G.criteres.length) return '<div class="epse-card"><p>La grille n\'a pas encore de critère : touche « 🧩 Grille ».</p></div>'; return M.quickHtml(c, { groups: GRP || null }); }

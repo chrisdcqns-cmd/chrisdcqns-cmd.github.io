@@ -2183,8 +2183,10 @@ function rEval() {
   }
   let liste = trierEleves(cl.eleves);
   if (!UI.selId || !cl.eleves.some(e => e.id === UI.selId)) UI.selId = liste[0].id;
-  const modes = `<div class="seg ev-modes" id="evModes">${[['eleve', '👤 Élève par élève'], ['crit', '📋 Par critère'], ['groupe', '👥 Par groupe']].map(([k, t]) => `<button data-m="${k}" class="${(UI.evMode || 'eleve') === k ? 'on' : ''}">${t}</button>`).join('')}</div>`;
-  if (UI.evMode === 'crit' || UI.evMode === 'groupe') { V.innerHTML = modes + '<div id="evRapide"></div>'; $('#evModes').onclick = evModeClic; rRapide(); return; }
+  /* 📝 Appréciations de bulletin et 📋 Export Pronote à droite des trois modes (demande du 27/11/2026, comme dans toutes les applis) */
+  const modes = `<div class="ev-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px"><div class="seg ev-modes" id="evModes" style="margin:0">${[['eleve', '👤 Élève par élève'], ['crit', '📋 Par critère'], ['groupe', '👥 Par groupe']].map(([k, t]) => `<button data-m="${k}" class="${(UI.evMode || 'eleve') === k ? 'on' : ''}">${t}</button>`).join('')}</div><span style="flex:1"></span><button class="btn" id="evBul">📝 Appréciations de bulletin</button><button class="btn" id="evPn">📋 Export Pronote</button></div>`;
+  const barBind = () => { const b = $('#evBul'), p = $('#evPn'); if (b) b.onclick = () => { if (window.EPSD && EPSD.bulletin) EPSD.bulletin(cl.nom); else toast('Appréciations indisponibles (recharge la page)'); }; if (p) p.onclick = () => { const M = evdan(); if (M && M.pronoteAll) M.pronoteAll(cl.nom, cl.eleves); else exportPronote(cl); }; };
+  if (UI.evMode === 'crit' || UI.evMode === 'groupe') { V.innerHTML = modes + '<div id="evRapide"></div>'; $('#evModes').onclick = evModeClic; barBind(); rRapide(); return; }
   V.innerHTML = modes + `<div class="ev-layout">
     <aside class="ev-side card">
       <div class="side-f">
@@ -2197,7 +2199,7 @@ function rEval() {
   </div>`;
   $('#fG').onchange = ev => { UI.filtreG = ev.target.value; rListe(); };
   $('#fQ').oninput = ev => { UI.q = ev.target.value; rListe(); };
-  $('#evModes').onclick = evModeClic;
+  $('#evModes').onclick = evModeClic; barBind();
   rListe(); rEvMain();
 }
 function evModeClic(ev) { const b = ev.target.closest('[data-m]'); if (!b) return; UI.evMode = b.dataset.m; rEval(); }
