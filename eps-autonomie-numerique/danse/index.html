@@ -2689,6 +2689,18 @@ function rBilan() {
   const nAuto = el.filter(e => e.auto).length;
   const repart = S.criteres.map(c => { const r = [0, 0, 0, 0]; el.forEach(e => { const x = (e.ev || {})[c.id]; if (x && x.d && !e.statut) r[x.d - 1]++; }); return r; });
   V.innerHTML = `
+  <div class="card">
+    <div class="row wrap"><h3>Export – ${esc(cl.nom)}</h3><span class="grow"></span>
+      <button class="btn primary" id="xZip">Bilans élèves (ZIP de PDF)</button>
+      <button class="btn" id="xRecap">Récapitulatif classe (PDF)</button>
+      <button class="btn" id="xCsv">Tableau (CSV)</button>
+      <button class="btn" id="xPn">📋 Pronote</button><button class="btn" id="xPub">🌐 Publier en ligne</button></div>
+    <p class="muted">Le ZIP contient un PDF par élève (prêt à déposer sur Pronote) et le récapitulatif de la classe. Langage du PDF élève : <b>${S.reglages.langPDF === 'eleve' ? 'version élève simplifiée' : 'version enseignant'}</b> · note ${S.reglages.noteSurPDF ? 'affichée' : 'masquée'} (modifiable dans Réglages).</p>
+  </div>
+  <div class="card">
+    <h3>🙋 Auto-positionnement des élèves</h3>
+    ${autoCtlHTML()}
+  </div>
   <div class="stats">
     <div class="card st"><small>Élèves évalués</small><b>${notes.length} / ${el.length}</b></div>
     <div class="card st"><small>Moyenne de la classe</small><b>${fmt(moy, 2)}</b></div>
@@ -2699,16 +2711,6 @@ function rBilan() {
     <h3>Répartition dans les degrés</h3>
     ${S.criteres.map((c, i) => { const r = repart[i]; const t = r.reduce((a, b) => a + b, 0) || 1; return `<div class="rep"><span>${esc(c.court)}</span><div class="bar">${r.map((v, k) => v ? `<i style="width:${v / t * 100}%;background:${DEG_COL[k]}" title="Degré ${k + 1} : ${v}">${v}</i>` : '').join('')}</div></div>`; }).join('')}
     <div class="leg">${[1, 2, 3, 4].map(d => `<span><i style="background:${DEG_COL[d - 1]}"></i>Degré ${d}</span>`).join('')}</div>
-  </div>
-  <div class="card">
-    <div class="row wrap"><h3>Exports</h3><span class="grow"></span>
-      <button class="btn primary" id="xZip">Bilans élèves (ZIP de PDF)</button>
-      <button class="btn" id="xRecap">Récapitulatif classe (PDF)</button>
-      <button class="btn" id="xCsv">Tableau (CSV)</button>
-      <button class="btn" id="xPn">📋 Pronote</button><button class="btn" id="xPub">🌐 Publier en ligne</button></div>
-    <p class="muted">Le ZIP contient un PDF par élève (prêt à déposer sur Pronote) et le récapitulatif de la classe. Langage du PDF élève : <b>${S.reglages.langPDF === 'eleve' ? 'version élève simplifiée' : 'version enseignant'}</b> · note ${S.reglages.noteSurPDF ? 'affichée' : 'masquée'} (modifiable dans Réglages).</p>
-    <h4>Lien d'auto-positionnement sur les bilans</h4>
-    ${autoCtlHTML()}
   </div>
   <div class="card tblw"><table class="tbl"><thead><tr><th>Élève</th><th>Groupe</th>${S.criteres.map(c => `<th>${esc(c.court)}<small>/${fmt(c.poids)}</small></th>`).join('')}<th>/20</th><th>Auto</th><th></th></tr></thead>
   <tbody>${el.map(e => {
@@ -3736,9 +3738,11 @@ window.epsListsHook = { save: () => saveNow(), reload: () => { S = load(); route
 /* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 window.EPSTD = window.EPST ? EPST.init({ app: 'dan', nom: 'Danse', color: '#C2185B', isTeacher: () => isTeacher(), anchor: 'header.top', main: '#view', home: 'seq',
   tabs: { seq: { go: () => aller('observation'), on: () => vue === 'observation' },
-    eval: { go: () => aller('evaluation'), on: () => vue === 'evaluation' },
+    /* « Bilan & export » aussi dans l'onglet Évaluation, à côté de Modalités et Coévaluation (demande du 27/11/2026) : UI.bilEv = ouvert depuis Évaluation */
+    eval: { go: () => { UI.bilEv = 0; aller('evaluation'); }, on: () => vue === 'evaluation' || (vue === 'bilan' && !!UI.bilEv),
+      actions: [{ ico: '📋', label: 'Évaluer', go: () => { UI.bilEv = 0; aller('evaluation'); } }, { ico: '📄', label: 'Bilan & export', main: 1, go: () => { UI.bilEv = 1; aller('bilan'); } }] },
     cls: { go: () => aller('classe'), on: () => vue === 'classe' },
-    bil: { go: () => aller('bilan'), on: () => vue === 'bilan' } },
+    bil: { go: () => { UI.bilEv = 0; aller('bilan'); }, on: () => vue === 'bilan' && !UI.bilEv } },
   biblio: [{ ico: '💃', label: 'Procédés & défis', sub: 'Procédés de composition, défis', go: () => aller('procedes') },
     { ico: '🔥', label: 'Jeux d\'échauffement & battles', sub: 'Banque de jeux (corps, autre, espace, énergie, se montrer), tirage, minuteur, battles', go: () => aller('jeux') },
     { ico: '📓', label: 'Carnets de chorégraphie', sub: 'Titre, intention, procédés et trame de chaque groupe', go: () => aller('carnet') }],

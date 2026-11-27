@@ -118,7 +118,10 @@
       ".lc-ov{position:fixed;inset:0;z-index:2147481200;background:#F5F3EE;color:#14171C;display:flex;flex-direction:column;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
       ".lc-top{display:flex;align-items:center;gap:8px;background:#14171C;color:#fff;padding:10px 14px;box-shadow:inset 0 -4px 0 " + COL + ";flex-wrap:wrap}",
       ".lc-top b{font-size:19px;margin-right:8px}.lc-top button{height:40px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer}",
-      ".lc-top button.on{background:" + COL + ";border-color:" + COL + ";color:#fff}.lc-top .x{margin-left:auto}",
+      ".lc-top button.on{background:" + COL + ";border-color:" + COL + ";color:#fff}.lc-top .x{margin-left:auto}.lc-top button{width:auto;min-width:44px;flex:none;white-space:nowrap}",
+      /* fenêtre ouverte DANS la page, sous les onglets de l'espace enseignant (inl(), modalités d'évaluation) : pas de bandeau noir, les onglets restent visibles */
+      ".lc-ov.lc-inl{box-shadow:none}.lc-inl .lc-top{background:transparent;color:#14171C;box-shadow:none;padding:4px 18px 0;max-width:1100px;width:100%;box-sizing:border-box;margin:0 auto}.lc-inl .lc-top b{font-size:18px}" +
+      ".lc-inl .lc-top button{border-color:#D8D2C4;background:#fff;color:#14171C}.lc-inl .lc-body .lc-in{max-width:1100px!important}.epst-tb>button.lc-act::after{content:'';position:absolute;left:14px;right:14px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--epst,#666)}",
       ".lc-kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:8px 0}.lc-kpi>div{background:#fff;border:1.5px solid #E6E1D6;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column}.lc-kpi i{font-style:normal;font-size:20px}.lc-kpi b{font-size:22px}.lc-kpi span{color:#6A6F78;font-size:13px}" +
       ".lc-tab{border-collapse:collapse;background:#fff;width:100%}.lc-tab th,.lc-tab td{border-bottom:1px solid #E6E1D6;padding:7px 9px;text-align:left;vertical-align:top;font-size:14.5px}.lc-tab th{background:#FBFAF7;font-size:13px;color:#4A4F58}.lc-tab tr[data-el]:hover{background:#F5F3EE}" +
       ".lc-carte{border-collapse:collapse;background:#fff;min-width:100%}.lc-carte th,.lc-carte td{border:1px solid #E6E1D6;padding:4px 7px;text-align:center;font-size:14px}.lc-carte td:first-child,.lc-carte th:first-child{text-align:left;min-width:200px}.lc-carte td small{font-size:10px;color:#6A6F78;margin-left:2px}.lc-carte tr.vide td:first-child{background:#FDECEA}.lc-carte tr.une td:first-child{background:#FFF1BF}" +
@@ -503,8 +506,23 @@
     if (kind === "ccf") return { nom: "Épreuve type CCF", total: 20, crit: [c("AFL1 : motricité / performance", "AFL1", "deg", 12), c("AFL2 : s'entraîner, s'engager", "AFL2", "deg", 4), c("AFL3 : rôles, coopération", "AFL3", "deg", 4)] };
     if (kind === "perf") return { nom: "Performance chronométrée", total: 20, crit: [Object.assign(c("Temps réalisé", "AFL1", "perf", 12), { best: "", worst: "", unit: "s" }), c("Respect de la technique", "AFL1", "deg", 4), c("Gestion de l'effort / échauffement", "AFL2", "deg", 4)] };
     return { nom: "Nouvelle modalité", total: 20, crit: [c("Critère 1", "", "deg", 1)] }; }
+  /* Ouvre une fenêtre .lc-ov DANS la page quand l'espace enseignant est affiché (demande du 27/11/2026 : les modalités s'ouvrent simplement, pas dans une fenêtre) :
+     posée sous la barre d'actions, onglets visibles ; un appui sur un onglet ou une autre action la referme. Sans espace enseignant (console, autre écran) : plein écran comme avant.
+     Renvoie { on, close } ; `close` est à appeler par le bouton ✕ Fermer. */
+  function inl(ov, label) {
+    var bar = document.querySelector(".epst-acts"), on = !!(bar && bar.offsetParent && document.documentElement.classList.contains("epst-on"));
+    ov.classList.toggle("lc-inl", on); if (ov._inlOff) ov._inlOff();
+    if (!on) { ov.style.top = ""; ov.style.zIndex = "2147483100"; return { on: false, close: function () { ov.style.display = "none"; } }; }
+    try { window.scrollTo(0, 0); } catch (e) {}
+    var btn = function () { return [].filter.call(bar.querySelectorAll(".epst-tb>button"), function (b) { return b.title === label; })[0]; };
+    function fit() { if (ov.style.display === "none") return; var r = bar.getBoundingClientRect(), nv = document.querySelector(".epst-nav"), nb = nv ? nv.getBoundingClientRect().bottom : 0; ov.style.top = Math.max(0, Math.round(Math.max(nb, r.bottom + 6))) + "px"; var b = btn(); if (b) b.classList.add("lc-act"); }
+    function out(e) { var t = e.target; if (t && t.closest && t.closest(".epst-nav button,.epst-tb button,.epst-mn button")) close(); }
+    function close() { ov.style.display = "none"; ov.classList.remove("lc-inl"); ov.style.top = ""; clearInterval(iv); removeEventListener("resize", fit); removeEventListener("scroll", fit, true); document.removeEventListener("click", out, true); var b = btn(); if (b) b.classList.remove("lc-act"); ov._inlOff = null; }
+    ov.style.zIndex = "60"; var iv = setInterval(fit, 500); addEventListener("resize", fit); addEventListener("scroll", fit, true); document.addEventListener("click", out, true); ov._inlOff = close; ov.style.display = "flex"; fit();
+    return { on: true, close: close };
+  }
   function modOpen(o) { css(); o = o || {}; var C = classes(), cls = o.cls || (cur() && cur().nom) || edtClass() || C[0] || "", ED = null, EV = null;
-    var ov = document.getElementById("lc-em"); if (!ov) { ov = document.createElement("div"); ov.id = "lc-em"; ov.className = "lc-ov"; document.body.appendChild(ov); } ov.style.display = "flex"; ov.style.zIndex = "2147483100";
+    var ov = document.getElementById("lc-em"); if (!ov) { ov = document.createElement("div"); ov.id = "lc-em"; ov.className = "lc-ov"; document.body.appendChild(ov); } ov.style.display = "flex"; var INL = inl(ov, "Modalités d'évaluation");
     var top = function (t) { return '<div class="lc-top"><b>🧪 ' + t + " · " + esc(NOM) + '</b><span style="flex:1"></span>' + (ED || EV ? '<button type="button" class="x" data-bk>← Retour</button>' : "") + '<button type="button" class="x" data-x>✕ Fermer</button></div><div class="lc-body"><div class="lc-in" style="max-width:1300px">'; };
     function draw() { if (ED) return edit(); if (EV) return evals();
       var M = mods(), h = top("Modalités d'évaluation") + '<p class="lc-mut">Crée tes propres modalités : critères en degrés, en points, réussi / pas encore ou en performance, avec leur poids. La note se calcule toute seule.</p>' +
@@ -515,7 +533,7 @@
       ov.querySelectorAll("[data-ed]").forEach(function (b) { b.onclick = function () { ED = JSON.parse(JSON.stringify(get(KM, b.dataset.ed))); draw(); }; });
       ov.querySelectorAll("[data-dup]").forEach(function (b) { b.onclick = function () { var m = JSON.parse(JSON.stringify(get(KM, b.dataset.dup))); m.id = "m" + uid(); m.nom += " (copie)"; delete m.u; put(KM, m); draw(); }; });
       ov.querySelectorAll("[data-ev]").forEach(function (b) { b.onclick = function () { EV = b.dataset.ev; draw(); }; }); }
-    function bindTop() { ov.querySelector("[data-x]").onclick = function () { ov.style.display = "none"; }; var bk = ov.querySelector("[data-bk]"); if (bk) bk.onclick = function () { ED = null; EV = null; draw(); }; }
+    function bindTop() { ov.querySelector("[data-x]").onclick = function () { INL.close(); }; var bk = ov.querySelector("[data-bk]"); if (bk) bk.onclick = function () { ED = null; EV = null; draw(); }; }
     function edit() { var m = ED, tw = (m.crit || []).reduce(function (a, c) { return a + (+c.w || 0); }, 0);
       var h = top("Modalité") + '<div class="lc-row"><b>Nom</b><input class="lc-sel" style="flex:1;min-width:240px" data-f="nom" value="' + esc(m.nom) + '"><b>Note sur</b><input class="lc-sel" type="number" style="width:80px" data-f="total" value="' + esc(m.total || 20) + '"></div>' +
         '<div class="lc-row"><b>Classes</b>' + C.map(function (c) { var on = (m.cls || []).some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-cl="' + esc(c) + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") + '<span class="lc-mut" style="margin:0">aucune cochée = toutes</span></div>' +
