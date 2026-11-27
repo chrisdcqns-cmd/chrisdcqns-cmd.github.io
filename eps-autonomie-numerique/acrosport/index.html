@@ -576,6 +576,8 @@ let G=null;               // groupe courant
 const API_DEFAULT="https://script.google.com/macros/s/AKfycbzCW8b2vq-REokxUCdkbKyHf_nHJf4khfcCueu1AKKGlJVAiiSsiB7I-beOmjsUpE25Qg/exec";      // URL du script Google (…/exec) : peut aussi être collée dans l'espace enseignant
 /* dispenses communes (page d'accueil EPS, eps-home.js) */
 window.epsIsTeacher=()=>!!teacherPw;
+/* un seul écran de suivi en acrosport : le 📊 tableau de bord de la leçon (✋ appels en tête ; le pilotage commun n'est pas proposé) */
+window.epsCtlOwn={open:()=>{if(!document.getElementById("dBody"))lessonDashboard()}};
 function dzA(c,n,p){try{const d=window.EPSD&&EPSD.find(c||"",n,p);return d?` <small style="display:block;color:#C0392B;font-weight:700">🩹 ${esc(EPSD.label(d))}</small>`:""}catch(e){return ""}}
 const K_PENDING="acro.pending.v1", K_OUTBOX="acro.outbox.v1", K_CACHE="acro.cache.v1";
 const PW={};               // mots de passe de la session en cours
@@ -2690,7 +2692,7 @@ async function lessonDashboard(){
   let classe=curCls(),data=null,tm=null,busy=false;
   const m=openModal(`<div class="sheet" style="max-width:1100px"><button class="close" data-close>×</button><h2>📊 Tableau de bord de la leçon</h2>
     <div class="row" style="align-items:center;gap:10px"><select class="inp" id="dCl" style="width:auto">${clsOpts(classe)}</select><button class="btn alt small" id="dRef">↻ Actualiser</button><span class="muted" id="dWhen"></span></div>
-    <div id="dBody"><p class="muted">Chargement…</p></div></div>`);
+    <div id="dCalls"></div><div id="dBody"><p class="muted">Chargement…</p></div></div>`);
   const q=s=>m.querySelector(s);
   const load=async()=>{
     if(!document.body.contains(m)){clearInterval(tm);return}
@@ -2700,6 +2702,7 @@ async function lessonDashboard(){
     finally{busy=false}
   };
   const draw=()=>{
+    try{q("#dCalls").innerHTML=window.EPSD&&EPSD.appels?EPSD.appels.html("acrosport"):""}catch(e){}
     const d=todayKey(),n=lessonN(classe),cs=classSettings(classe);
     const gs=(data.groups||[]).sort((a,b)=>String(a.nom).localeCompare(String(b.nom),"fr",{numeric:true}));
     const obsT=(data.observations||[]).filter(o=>o.date&&dayOf(o.date)===d);

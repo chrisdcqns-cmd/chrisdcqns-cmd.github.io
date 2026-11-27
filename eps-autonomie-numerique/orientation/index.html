@@ -1418,7 +1418,8 @@ function renderLive() {
   if (!$("#runners")) return;
   renderRunnerList();
   const al = checkAlerts();
-  $("#alerts").innerHTML = al.map(({ R, e, ids }) => `<div class="alertbar" style="margin-bottom:8px">🆘 ALERTE — ${esc(R.nom)} (${esc(R.c)}) à ${fmtHeure(e.first)}${e.la != null ? ` · <a style="color:#fff" target="_blank" href="${gmapsUrl(e.la, e.lo)}">voir la position</a>` : ""}${e.txt ? " · « " + esc(e.txt) + " »" : ""}<span class="grow"></span><button class="btn small alt" data-det="${R.r}">Détails</button><button class="btn small sun" data-ack="${ids.join(",")}">Pris en charge</button></div>`).join("");
+  /* ✋ appels des élèves en tête du suivi en direct (seul écran de suivi en course d'orientation) */
+  $("#alerts").innerHTML = (window.EPSD && EPSD.appels ? EPSD.appels.html("orientation") : "") + al.map(({ R, e, ids }) => `<div class="alertbar" style="margin-bottom:8px">🆘 ALERTE — ${esc(R.nom)} (${esc(R.c)}) à ${fmtHeure(e.first)}${e.la != null ? ` · <a style="color:#fff" target="_blank" href="${gmapsUrl(e.la, e.lo)}">voir la position</a>` : ""}${e.txt ? " · « " + esc(e.txt) + " »" : ""}<span class="grow"></span><button class="btn small alt" data-det="${R.r}">Détails</button><button class="btn small sun" data-ack="${ids.join(",")}">Pris en charge</button></div>`).join("");
   const imm = Object.values(S.runners).map(R => ({ R, x: immobility(R, runnerSummary(R)) })).filter(o => o.x && (S.immAck || {})[o.R.r] !== o.x.since);
   $("#alerts").innerHTML += imm.map(({ R, x }) => `<div class="alertbar" style="margin-bottom:8px;background:#f4a261;color:#14213d">🟠 ${esc(R.nom)} (${esc(R.c)}) ne bouge plus depuis <b>${fmtDur(x.dur)}</b>, loin des balises · <a target="_blank" href="${gmapsUrl(x.la, x.lo)}">voir la position</a><span class="grow"></span><button class="btn small alt" data-det2="${R.r}">Détails</button><button class="btn small" data-imm="${R.r}" data-since="${x.since}">Vu</button></div>`).join("");
   S._immBeep = S._immBeep || {}; imm.forEach(({ R, x }) => { if (S._immBeep[R.r] !== x.since) { S._immBeep[R.r] = x.since; beep(); } });
@@ -1946,6 +1947,8 @@ function openAppel() {
 // ---------- 11. listes de classe (Réglages enseignant) ----------
 // dispenses communes (page d'accueil EPS, eps-home.js)
 window.epsIsTeacher = () => !!sessionStorage.getItem("tpw");
+/* un seul écran de suivi en course d'orientation : le suivi en direct de la leçon (le pilotage commun n'est pas proposé) */
+window.epsCtlOwn = { open: () => { try { setPTab("seance"); scrollTo(0, 0); } catch (e) {} } };
 function dzO(c, n) { try { return window.EPSD ? EPSD.find(c || "", n) : null; } catch (e) { return null; } }
 async function getClasses() { return (await DB.get("classes")) || {}; }
 async function classesPanel(box) {

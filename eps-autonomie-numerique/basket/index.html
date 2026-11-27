@@ -223,7 +223,7 @@ const eqNom=(cls,id)=>{ const e=eqDe(cls,id); return e?e.nom:id==="prof"?"Enseig
 const eqCol=(cls,id)=>{ const e=eqDe(cls,id); return e?e.col:"#6A6F78"; };
 function eqFaire(cls,G){ const C=chasubles(); eqSave(cls,G.filter(g=>g&&g.length).map((g,i)=>({id:"q"+uid()+i, nom:(C[i%C.length]||{}).nom||("Équipe "+(i+1)), col:(C[i%C.length]||{}).col||"#6A6F78", j:g.slice()}))); }
 function jourId(cls,d){ return "j|"+nk(cls)+"|"+(d||auj()); }
-function jour(cls,d){ const o=stGet(jourId(cls,d))||{}; return {cls:cls, day:d||auj(), mode:MODES[o.mode]?o.mode:"3", libre:!!o.libre, simple:!!o.simple, nt:Math.max(1,Math.min(8,+o.nt||3)), bon:Array.isArray(o.bon)?o.bon:[], r:Array.isArray(o.r)?o.r:null}; }
+function jour(cls,d){ const o=stGet(jourId(cls,d))||{}; return {cls:cls, day:d||auj(), mode:MODES[o.mode]?o.mode:"3", libre:!!o.libre, simple:!!o.simple, nt:Math.max(1,Math.min(8,+o.nt||2)), bon:Array.isArray(o.bon)?o.bon:[], r:Array.isArray(o.r)?o.r:null}; }
 function jourSet(cls,ch){ const j=jour(cls); Object.assign(j,ch); stPut(jourId(cls),j); }
 const modeJour=()=>{ const j=jour(nomClasse()); return j.libre&&MODES[SS.get("mode")]?SS.get("mode"):j.mode; };
 /* forme de jeu affichée (bouton de la barre du haut) : celle du jour de la classe ; sans classe, un choix local pour lire les règles et les schémas */
@@ -480,9 +480,15 @@ function vBilan(){ const cls=nomClasse(), eq=S.eq, d=S.bilT?"":auj(), st=statsEq
 /* ======================= ENSEIGNANT : leçon du jour (onglet Séquence) ======================= */
 function clsProf(){ const C=classesBK(); if(!C.some(c=>c.id===S.classe)){ let cc=null; try{ cc=C.find(c=>c.nom===(localStorage.getItem("eps.eval.cls.bk")||"")); }catch(e){} S.classe=(cc||C[0]||{}).id||""; SS.set("classe",S.classe); } return nomClasse(); }
 const selCls=()=>`<select data-ch="cls" style="max-width:260px" aria-label="Classe">${classesBK().map(c=>`<option value="${h(c.id)}" ${c.id===S.classe?"selected":""}>${h(c.nom)}</option>`).join("")}</select>`;
+/* 🏟 les terrains du jour pour le suivi de l'enseignant : match en cours sur chaque terrain, sinon le prochain match de la rotation */
+function terrainsBK(cls,j,M){ return Array.from({length:j.nt},(x,i)=>{ const t=i+1, m=M.filter(m=>+m.ter===t&&m.st!==1).sort((a,b)=>(b.u||0)-(a.u||0))[0];
+  if(m){ const s=score(m); return {n:t,a:eqNom(cls,m.a),b:eqNom(cls,m.b),sc:s.a+" – "+s.b,etat:"jeu",sub:m.rot!=null?"Rotation "+(m.rot+1):""}; }
+  const R=j.r||[]; for(let ri=0;ri<R.length;ri++){ const x=(R[ri].m||[])[i]; if(!x) continue; const d=stGet(matchId(cls,j.day,ri,i)); if(d&&d.st===1) continue; return {n:t,a:eqNom(cls,x[0]),b:eqNom(cls,x[1]),sc:"",etat:"attente",sub:"Rotation "+(ri+1)+" à jouer"}; }
+  return {n:t,a:"",b:"",etat:"libre"}; }); }
 function vProf(){ const cls=clsProf(); if(!cls) return `<div class="carte"><h3>Aucune classe pour le basket-ball</h3><p class="doux">Attribue l'activité à une classe : onglet 👥 Classe → Listes d'élèves.</p></div>`;
   const j=jour(cls), E=eqs(cls), md=modeCfg(j.mode), B=bonusList(), M=matchsDe(cls,j.day).sort((a,b)=>(a.rot||0)-(b.rot||0)||(a.ter||0)-(b.ter||0)), O=obsDe(cls,j.day), PL=schemas(cls), pr=presents(cls), places=new Set(E.flatMap(e=>e.j)), sans=pr.filter(n=>!places.has(n));
   return `<div class="ligne" style="margin-bottom:12px">${selCls()}<span class="doux">${dateFR(j.day)} · ${pr.length} présent${pr.length>1?"s":""}</span></div>
+   ${window.EPSD&&EPSD.appels?EPSD.appels.html("basket"):""}${window.EPSD&&EPSD.courts?EPSD.courts({dispo:j.nt===2?"duo":"ligne",app:"basket",color:"#A4161A",cts:terrainsBK(cls,j,M)}):""}
    <div class="carte"><div class="ligne"><h3 style="margin:0">🏀 ${md.nom}</h3><span class="doux petit">${md.sub} · ${md.duree} min${md.cible?" ou "+md.cible+" pts":""} · se change avec le bouton de la barre du haut</span></div>
     <div class="ligne" style="margin-top:12px"><label class="ligne"><input type="checkbox" data-ch="libre" ${j.libre?"checked":""} style="width:22px;height:22px"> Les équipes peuvent changer de forme</label>
      <label class="ligne"><input type="checkbox" data-ch="simple" ${j.simple?"checked":""} style="width:22px;height:22px"> Fiches d'observation simplifiées</label>
@@ -660,7 +666,9 @@ document.addEventListener("change",ev=>{ const t=ev.target, k=t.dataset&&t.datas
 
 /* ======================= BRANCHEMENTS COMMUNS ======================= */
 window.epsCurrentClass=()=>{ const c=clsObj(); return c?{nom:c.nom, eleves:(c.el||[])}:null; };
-window.epsTabInfo=()=>{ try{ if(!estProf()&&aClasse()&&S.eq) return {mode:"équipe", cls:nomClasse(), eq:eqNom(nomClasse(),S.eq)}; }catch(e){} return {}; };
+window.epsTabInfo=()=>{ try{ if(!estProf()&&aClasse()&&S.eq){ const m=matchCur(); return {mode:"équipe", cls:nomClasse(), eq:eqNom(nomClasse(),S.eq), lieu:m&&m.ter&&m.st!==1?"Terrain "+m.ter:""}; } }catch(e){} return {}; };
+/* un seul écran de suivi en basket : la leçon du jour de l'enseignant (terrains dessinés, ✋ appels en tête) ; le pilotage commun n'est pas proposé */
+window.epsCtlOwn={open:cls=>{ try{ const c=classesBK().find(x=>nk(x.nom)===nk(cls)); if(c){ S.classe=c.id; SS.set("classe",S.classe); } }catch(e){} aller("prof"); scrollTo(0,0); }};
 /* 🧩 niveau proposé pour les groupes : points marqués et efficacité observée */
 window.epsNiveaux=function(cls){ try{ const mq=marqueurs(cls), mx=Math.max(1,...mq.map(x=>x[1])), N={}; obsDe(cls).filter(o=>o.ty==="ind"&&o.who).forEach(o=>(N[o.who]=N[o.who]||[]).push(o)); const R=personnes(cls).map(n=>{ const p=(mq.find(x=>x[0]===n)||[0,0])[1], i=N[n]?indic(obsSomme(N[n],"ind"))[1].v:null; if(!p&&i==null) return null; const s=i==null?p/mx:p?(p/mx+i/100)/2:i/100; return {full:n,s:Math.max(0,Math.min(1,s)),t:(p?p+" pts":"")+(i!=null?(p?" · ":"")+i+" % d'efficacité":"")}; }).filter(Boolean); return R.length?R:null; }catch(e){ return null; } };
 /* ✅ « Tout est prêt ? » */

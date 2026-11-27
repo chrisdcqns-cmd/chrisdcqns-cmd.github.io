@@ -59,7 +59,7 @@ async def main():
         out.append(("5c compétence générale supprimée puis restaurée", n9 == 9 and await p.evaluate("EPSREF.cgs().length") == 10, n9))
         # ---------- 2. repères rapides depuis la tablette de contrôle ----------
         await p.goto(B + "volley/"); await p.wait_for_timeout(6000)
-        await p.evaluate("EPSLC.controle({cls:'" + CL + "'})"); await p.wait_for_timeout(700)
+        await p.evaluate("EPSLC.pilotage({cls:'" + CL + "'})"); await p.wait_for_timeout(700)
         nb = await p.locator("#lc-ctl [data-el]").count(); out.append(("2 pilotage de leçon : une carte par élève", nb >= 6, nb))
         await p.locator("#lc-ctl [data-el]").first.click(); await p.wait_for_timeout(300); await p.locator("#lc-det [data-ico]").click(); await p.wait_for_timeout(300); await p.locator("#lc-ico [data-i='0']").click(); await p.locator("#lc-ico [data-i='2']").click(); await p.locator("#lc-ico [data-i='2']").click(); await p.wait_for_timeout(200)
         await shot(p, "3-reperes-rapides", False)

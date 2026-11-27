@@ -1348,25 +1348,26 @@ function syShort(){const n=Object.keys(SY.pend||{}).length;if(!SYC())return{i:'�
   if(n)return{i:'🔄',t:n+' en attente',c:'run'};return{i:'✓',t:SY.last?'à jour · '+new Date(SY.last).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'à jour',c:'ok'}}
 function lastSignal(c,g){let t=grpStep(g)?g.step.at:0;matchesOf(c,m=>m.date===today()&&(g.el.includes(m.a)||g.el.includes(m.b))).forEach(m=>{t=Math.max(t,m.t1||0,m.t0||0)});
   Object.values(c.bilans||{}).forEach(b=>{if(b.d===today()&&g.el.includes(b.eid))t=Math.max(t,b.at||0)});return t}
-function liveSet(k,v){const c=C();if(k==='terrOn'){c.terr=Object.assign({on:false,n:7,g:{}},c.terr||{});c.terr.on=v}
-  else if(k==='terrN'){c.terr=Object.assign({on:true,n:7,g:{}},c.terr||{});c.terr.n=Math.max(1,Math.min(20,+v||1))}
+function liveSet(k,v){const c=C();if(k==='terrOn'){c.terr=Object.assign({on:false,n:5,g:{}},c.terr||{});c.terr.on=v}
+  else if(k==='terrN'){c.terr=Object.assign({on:true,n:5,g:{}},c.terr||{});c.terr.n=Math.max(1,Math.min(20,+v||1))}
   else if(k==='saisie')c.saisie=v;save();renderLive()}
-function liveGrp(gid,k,v){const c=C();if(k==='terr'){c.terr=Object.assign({on:true,n:7,g:{}},c.terr||{});c.terr.g=Object.assign({},c.terr.g||{});if(v)c.terr.g[gid]=+v;else delete c.terr.g[gid]}
+function liveGrp(gid,k,v){const c=C();if(k==='terr'){c.terr=Object.assign({on:true,n:5,g:{}},c.terr||{});c.terr.g=Object.assign({},c.terr.g||{});if(v)c.terr.g[gid]=+v;else delete c.terr.g[gid]}
   else if(k==='saisie'){c.saisieG=Object.assign({},c.saisieG||{});if(v)c.saisieG[gid]=v;else delete c.saisieG[gid]}save();renderLive()}
-function terrAuto(){const c=C(),G=Object.values(c.groupes||{});c.terr=Object.assign({on:true,n:7,g:{}},c.terr||{});c.terr.on=true;c.terr.g={};G.forEach((g,i)=>{c.terr.g[g.id]=(i%c.terr.n)+1});save();renderLive()}
+function terrAuto(){const c=C(),G=Object.values(c.groupes||{});c.terr=Object.assign({on:true,n:5,g:{}},c.terr||{});c.terr.on=true;c.terr.g={};G.forEach((g,i)=>{c.terr.g[g.id]=(i%c.terr.n)+1});save();renderLive()}
 function liveAlerts(c){const A=[],T=today(),l=lessonObj(lessonNow());
   c.eleves.forEach(e=>{if(isAbs(e)||absJ(e,c))return;const ms=matchesOf(c,m=>m.date===T&&(m.a===e.id||m.b===e.id));
     ms.filter(m=>m.pre.type==='exo'&&m.a===e.id&&m.ae!=null).forEach(m=>{const R=replay(m);if(R.n<5)return;const pc=R.ok/R.n,ob=m.pre.obj&&m.pre.essais?m.pre.obj/m.pre.essais:.7;
       if(m.ae>=2&&pc<ob*.6)A.push(`🙋 <b>${esc(shortName(e))}</b> s'estime D${m.ae+1} sur « ${esc(m.pre.nom)} » mais réussit ${Math.round(pc*100)} % (objectif ${Math.round(ob*100)} %).`);
       else if(m.ae===0&&pc>=ob)A.push(`🙋 <b>${esc(shortName(e))}</b> se sous-estime sur « ${esc(m.pre.nom)} » : D1 annoncé pour ${Math.round(pc*100)} % de réussite.`)})});
   return A}
-function renderLive(){const el=document.getElementById('t-live');if(!el)return;const c=C(),T=today(),l=lessonObj(lessonNow()),G=Object.values(c.groupes||{}),sy=syShort(),tr=c.terr||{},tn=tr.n||7;
+function renderLive(){const el=document.getElementById('t-live');if(!el)return;const c=C(),T=today(),l=lessonObj(lessonNow()),G=Object.values(c.groupes||{}),sy=syShort(),tr=c.terr||{},tn=tr.n||5;
   const inG=new Set(G.flatMap(g=>g.el)),sans=c.eleves.filter(e=>!inG.has(e.id)&&!isAbs(e));
   const rien=c.eleves.filter(e=>!isAbs(e)&&!absJ(e,c)&&!matchesOf(c,m=>m.date===T&&(m.a===e.id||m.b===e.id)).length);
   const bils=Object.values(c.bilans||{}).filter(b=>b.d===T).sort((a,b)=>(a.at||0)-(b.at||0)),al=liveAlerts(c);
   const sOpt=(v,cur)=>`<option value="${v}" ${cur===v?'selected':''}>`;
   el.innerHTML=`<div class="card livehd"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">🟢 Leçon en direct · ${esc(c.nom)}</h2><div class="muted">${l?'Leçon '+l.n+' · '+esc(l.titre):'Pas de leçon'} · ${dateFR(T)} · actualisé à ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div></div>
      <div class="row"><span class="sypill ${sy.c}">${sy.i} ${esc(sy.t)}</span><button class="btn alt sm" onclick="syncSoon(50);setTimeout(renderLive,2500)">🔄 Actualiser</button></div></div></div>
+   ${typeof EPSD!='undefined'&&EPSD.appels?EPSD.appels.html('badminton'):''}${tr.on?(typeof EPSD!='undefined'&&EPSD.courts?EPSD.courts({dispo:tn===5?'bad5':'ligne',app:'badminton',color:'#0B7A75',click:'badCt',cts:Array.from({length:tn},(x,i)=>{const n=i+1,Gn=G.filter(g=>terrOf(c,g)===n),ids=Gn.flatMap(g=>g.el),m=matchesOf(c,m=>m.date===T&&!m.fin&&m.pre.type!=='exo'&&(ids.includes(m.a)||ids.includes(m.b)))[0],R=m?replay(m):null,st=Gn[0]&&grpStep(Gn[0]);return{n,a:m?m.an:Gn.map(g=>g.nom).join(' · '),b:m?m.bn:'',sc:R?R.sc[0]+' – '+R.sc[1]:'',etat:m?'jeu':Gn.length?'attente':'libre',sub:m?Gn.map(g=>g.nom).join(' · '):st?stepLab(lessonObj(st.lec)||l,st.k):''}})}):''):`<div class="card"><div class="row" style="justify-content:space-between"><b>🏸 Les ${tn} terrains</b><button class="btn sm" onclick="terrAuto()">Répartir les groupes sur les terrains</button></div></div>`}
    <div class="card"><h2>Réglages de la leçon</h2><div class="g2">
      <div><label class="l">Saisie des points (toute la classe)</label><div class="seg">${[['complet','Complète'],['simple','Simple']].map(([k,n])=>`<button class="${(c.saisie||'complet')===k?'on':''}" onclick="liveSet('saisie','${k}')">${n}</button>`).join('')}</div>
        <p class="muted" style="margin:4px 0 0">Simple : on touche seulement où le volant tombe. Complète : on précise aussi le type de point (point direct, faute…).</p></div>
@@ -1374,7 +1375,7 @@ function renderLive(){const el=document.getElementById('t-live');if(!el)return;c
        ${tr.on?`<div class="row" style="margin-top:6px"><span>Nombre de terrains</span><input type="number" min="1" max="20" value="${tn}" style="width:80px" onchange="liveSet('terrN',this.value)"><button class="btn alt sm" onclick="terrAuto()">Répartir automatiquement</button></div>`:'<p class="muted" style="margin:4px 0 0">Désactivé : les groupes s\'installent où ils veulent.</p>'}</div></div></div>
    ${visCard(c)}${indLive(c)}${al.length?`<div class="card warnc"><h2>⚠️ À regarder</h2>${al.map(x=>`<div class="al">${x}</div>`).join('')}</div>`:''}
    <div class="lgrid">${G.length?G.map(g=>{const st=grpStep(g),M=grpMembers(c,g),r=rolesOf(c,g),cur=matchesOf(c,m=>m.date===T&&!m.fin&&(g.el.includes(m.a)||g.el.includes(m.b))),sig=lastSignal(c,g),tg=terrOf(c,g);
-     return `<div class="card lg"><div class="row" style="justify-content:space-between"><h3 style="margin:0">👥 ${esc(g.nom)}${tg?` <span class="tnum">T${tg}</span>`:''}</h3><span class="muted" style="font-size:.8em">${sig?'signal '+sinceTxt(sig).replace('depuis ','il y a '):'aucun signal'}</span></div>
+     return `<div class="card lg" data-ter="${tg||0}"><div class="row" style="justify-content:space-between"><h3 style="margin:0">👥 ${esc(g.nom)}${tg?` <span class="tnum">T${tg}</span>`:''}</h3><span class="muted" style="font-size:.8em">${sig?'signal '+sinceTxt(sig).replace('depuis ','il y a '):'aucun signal'}</span></div>
       <div class="lstep ${st?st.k==='ech'?'ech':st.k==='fin'?'fin':'tps':'none'}">${st?`${esc(stepLab(lessonObj(st.lec)||l,st.k))} <small>${sinceTxt(st.at)}</small>`:'Étape non indiquée'}</div>
       <div class="lmem">${M.map(e=>{const n=matchesOf(c,m=>m.date===T&&(m.a===e.id||m.b===e.id)).length,b=bilOf(c,e.id,T);return `<span class="${isAbs(e)?'abs':n?'on':''}" title="${n} match(s) ou exercice(s) aujourd'hui">${esc(shortName(e))}${n?' · '+n:''}${b?' 🏁':''}</span>`}).join('')}</div>
       ${cur.map(m=>{const R=replay(m);return `<div class="lcur">${m.pre.type==='exo'?'🎯 '+esc(m.an)+' · '+R.ok+'/'+R.n:'🏸 '+esc(m.an)+' <b>'+R.sc[0]+' – '+R.sc[1]+'</b> '+esc(m.bn)} <small class="muted">${esc(m.pre.nom)}</small></div>${m.pre.type==='exo'?'':liveTeacherCur(m)}`}).join('')}
@@ -3103,6 +3104,11 @@ function lockApp(){unlockedUntil=0;try{localStorage.setItem('eps.teach.until','0
 function toTerrain(){TERR.cls=C().id;lockApp();terrStart()}
 setInterval(setLock,30000);
 window.epsAppHome=function(){if(document.getElementById('play').classList.contains('on'))return;if(!isUnlocked()){TERR.cls='';terrSave();if(window.EPSG&&EPSG.open){TERR.on=false;terrSave();setLock()}else{TERRT='jouer';renderTerr()}}else showTab('seq')};
+/* un seul écran de suivi en badminton : 🟢 Leçon en direct (5 terrains dessinés, ✋ appels en tête) ; le pilotage commun n'est pas proposé */
+window.epsCtlOwn={open:()=>{showTab('live');scrollTo(0,0)}};
+function badCt(n){const e=document.querySelector('#t-live .lg[data-ter="'+n+'"]');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
+/* ✋ appel de l'enseignant : classe, groupe et terrain de la tablette */
+window.epsTabInfo=()=>{try{if(terrOn()&&!isUnlocked()){const c=classById(TERR.cls),g=c&&TERR.grp&&(c.groupes||{})[TERR.grp],t=g&&terrOf(c,g);return{mode:'terrain',cls:c?c.nom:'',eq:g?g.nom:'',lieu:t?'Terrain '+t:''}}}catch(e){}return{}};
 window.epsCurrentClass=()=>{const c=terrOn()&&!isUnlocked()?classById(TERR.cls):C();return c?{nom:c.nom,eleves:c.eleves.map(e=>((e.prenom||'')+' '+e.nom).trim())}:null};
 
 /* ================== SYNCHRONISATION ENTRE TABLETTES ==================

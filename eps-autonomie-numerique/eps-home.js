@@ -2440,14 +2440,14 @@
     /* à défaut, la classe choisie aujourd'hui sur l'écran « Choisis ta classe » de cette tablette */
     if (!cl) try { var gl = JSON.parse(localStorage.getItem("eps.gate.last." + appDir()) || "null"); if (gl && gl.day === today() && gl.nom) cl = String(gl.nom); } catch (e) {}
     if (!R.length && cl && window.EPSL) try { EPSL.items().forEach(function (it) { if (EPSL.norm(it.nom) === EPSL.norm(cl)) R = EPSL.people(it).map(function (x) { return x.full; }); }); } catch (e) {}
-    return { cls: cl, eq: String(o.eq || ""), who: n, liste: R }; }
+    return { cls: cl, eq: String(o.eq || ""), who: n, liste: R, lieu: String(o.lieu || "") }; }
   function callZones() { try { var o = stLd("eps.terrain.v1").items["lay|" + appDir()]; if (o && !o.del && Array.isArray(o.zones)) return o.zones.map(function (z) { return String(z.nom || "").trim(); }).filter(Boolean).slice(0, 16); } catch (e) {} return []; }
   function callAsk() {
-    var mine = callMine(), M = callMotifs(), Z = callZones(), lieu = (mine && mine.lieu) || "", W = callWho(), QUI = [], ask = !W.who.length && !W.eq && W.liste.length > 0 && W.liste.length <= 45;
+    var mine = callMine(), M = callMotifs(), Z = callZones(), W = callWho(), lieu = (mine && mine.lieu) || W.lieu || "", QUI = [], ask = !W.who.length && !W.eq && W.liste.length > 0 && W.liste.length <= 45;
     var o = overlay('<h2 style="margin:0 0 6px">✋ Appeler l\'enseignant</h2>' +
       (mine ? '<p style="background:' + (mine.st === 1 ? "#E3F4E8" : "#fff4dc") + ';border-radius:10px;padding:10px;font-weight:700;margin:0 0 10px">' + (mine.st === 1 ? "👍 Ton enseignant arrive." : "⏳ Appel envoyé : " + esc(mine.motif) + ". Ton enseignant le voit sur sa tablette.") + '</p><div class="epsd-act"><button data-stop>✕ Annuler mon appel</button><button data-x>✕ Fermer</button></div>' :
       (ask ? '<p class="m" style="margin:0 0 4px">Qui appelle ?</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;max-height:150px;overflow:auto">' + W.liste.map(function (n, i) { return '<button type="button" class="epsd-b2" data-qi="' + i + '" aria-pressed="false" style="min-height:40px">' + esc(n) + "</button>"; }).join("") + "</div>" : "") +
-      (Z.length ? '<p class="m" style="margin:0 0 4px">Où es-tu ?</p><div data-z style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px">' + Z.map(function (z, i) { return '<button type="button" class="epsd-b2" data-zi="' + i + '" aria-pressed="false" style="min-height:44px">' + esc(z) + "</button>"; }).join("") + "</div>" : "") +
+      (Z.length && !W.lieu ? '<p class="m" style="margin:0 0 4px">Où es-tu ?</p><div data-z style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px">' + Z.map(function (z, i) { return '<button type="button" class="epsd-b2" data-zi="' + i + '" aria-pressed="false" style="min-height:44px">' + esc(z) + "</button>"; }).join("") + "</div>" : "") +
       '<p class="m" style="margin:0 0 4px">Pourquoi ?</p><div style="display:grid;gap:8px">' + M.map(function (t, i) { return '<button type="button" class="epsd-b2" data-mi="' + i + '" style="min-height:56px;font-size:18px;text-align:left;padding:0 14px">' + esc(t) + "</button>"; }).join("") + '</div><div class="epsd-act"><button data-x>✕ Fermer</button></div>'));
     var st = o.querySelector("[data-stop]"); if (st) st.onclick = function () { callSet(mine.id, 2); o.remove(); callDraw(); };
     Array.prototype.forEach.call(o.querySelectorAll("[data-zi]"), function (b) { b.onclick = function () { lieu = lieu === Z[+b.dataset.zi] ? "" : Z[+b.dataset.zi]; Array.prototype.forEach.call(o.querySelectorAll("[data-zi]"), function (x) { var on = Z[+x.dataset.zi] === lieu; x.setAttribute("aria-pressed", on ? "true" : "false"); x.style.background = on ? "#14171C" : ""; x.style.color = on ? "#fff" : ""; }); }; });
@@ -2459,8 +2459,9 @@
     return o;
   }
   var callSeen = +(sessionStorage.getItem("eps.call.seen") || 0) || Date.now() - 60000, callAck = 0;
+  function callT() { if (window.EPS_VUE_ELEVE) return false; if (isTeacher()) return true; var H = document.documentElement.classList; return H.contains("eps-teach") || H.contains("epst-on"); }
   function callDraw() {
-    var T = isTeacher(), okApp = CALL_APPS.indexOf(appDir()) >= 0, b = document.getElementById("eps-callb"), sl = callHost() || (b && b.parentNode);
+    var T = callT(), okApp = CALL_APPS.indexOf(appDir()) >= 0, b = document.getElementById("eps-callb"), sl = callHost() || (b && b.parentNode);
     if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-callb"; b.className = "epsb"; b.setAttribute("data-eps-a11y-h", "0"); }
     if (sl && b.parentNode !== sl) { var slot = sl.hasAttribute("data-eps-bar");
       /* hors de la barre commune (écran plein écran d'une appli) : le bouton porte lui-même son style, à la fin du bandeau de cet écran */
@@ -2500,8 +2501,29 @@
   function callHtml(app) { var L = callAll().filter(function (c) { return !app || c.app === app; }), now = Date.now(); if (!L.length) return "";
     return '<div data-eps-appels style="display:grid;gap:6px;margin:0 0 10px">' + L.map(function (c) { var mn = Math.max(0, Math.round((now - c.at) / 6e4));
       return '<div style="display:flex;gap:10px;align-items:center;background:#fff;border:2px solid ' + (c.st ? "#1E8449" : "#B4232B") + ';border-radius:12px;padding:8px 10px"><div style="flex:1;min-width:0;text-align:left"><b>✋ ' + esc(callNom(c)) + '</b><div style="font-size:13px;color:#5b6a72">' + esc(c.motif) + " · " + (mn ? mn + " min" : "à l'instant") + (c.st ? " · pris en charge" : "") + '</div></div><button type="button" data-eps-call="' + esc(c.id) + '" data-st="' + (c.st ? 2 : 1) + '" style="min-height:44px;padding:0 16px;border-radius:10px;border:0;font:800 15px system-ui,sans-serif;color:#fff;background:' + (c.st ? "#1E8449" : "#B4232B") + '">' + (c.st ? "✓ Fait" : "J'y vais") + "</button></div>"; }).join("") + "</div>"; }
-  document.addEventListener("click", function (e) { var b = e.target && e.target.closest ? e.target.closest("[data-eps-call]") : null; if (!b || !isTeacher()) return; callSet(b.getAttribute("data-eps-call"), b.getAttribute("data-st") === "2" ? 2 : 1); callDraw();
+  document.addEventListener("click", function (e) { var b = e.target && e.target.closest ? e.target.closest("[data-eps-call]") : null; if (!b || !callT()) return; callSet(b.getAttribute("data-eps-call"), b.getAttribute("data-st") === "2" ? 2 : 1); callDraw();
     var bx = b.closest("[data-eps-appels]"); if (bx) bx.outerHTML = callHtml(bx.getAttribute("data-app") || appDir()); try { window.dispatchEvent(new CustomEvent("eps-appels")); } catch (x) {} });
+  /* 🏟 Plan des terrains d'un écran de suivi (Volley 3 terrains, Badminton 5, Basket 2 ; demande de l'enseignant, 27/11/2026) :
+     EPSD.courts({dispo:"ligne"|"bad5"|"duo", color, click:"nomDeFonctionGlobale", app, cts:[{n, a, b, sc, sub, etat:"jeu"|"attente"|"libre", al}]})
+     → HTML. bad5 = 2 terrains de chaque côté en parallèle, 1 au centre. Un terrain d'où part un ✋ appel (lieu « Terrain n ») le montre ;
+     al = à regarder (le terrain clignote). L'appli fournit seulement ses données ; aucun autre écran, aucune autre ligne. */
+  function courtsCss() { if (document.getElementById("eps-ct-css")) return; var st = document.createElement("style"); st.id = "eps-ct-css";
+    st.textContent = ".epsct{display:grid;gap:10px;margin:0 0 12px}.epsct.ligne{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.epsct.duo{grid-template-columns:repeat(2,minmax(0,1fr))}" +
+      ".epsct.bad5{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,auto)}.epsct.bad5>:nth-child(1){grid-column:1;grid-row:1}.epsct.bad5>:nth-child(2){grid-column:1;grid-row:2}.epsct.bad5>:nth-child(3){grid-column:2;grid-row:1/span 2;align-self:center}.epsct.bad5>:nth-child(4){grid-column:3;grid-row:1}.epsct.bad5>:nth-child(5){grid-column:3;grid-row:2}" +
+      "div.epsct-t{cursor:default}.epsct-t{position:relative;display:flex;flex-direction:column;gap:4px;min-height:132px;padding:8px 10px;border-radius:12px;border:3px solid var(--ct,#14171C);background:#fff;color:#14171C;font:inherit;text-align:center;cursor:pointer;overflow:hidden}" +
+      ".epsct-t:before{content:'';position:absolute;top:34px;bottom:8px;left:50%;border-left:2px dashed var(--ct,#14171C);opacity:.25}.epsct-t.libre{background:#F5F3EE;border-style:dashed;color:#6A6F78}" +
+      ".epsct-h{display:flex;align-items:center;gap:6px;font:800 14px system-ui,sans-serif;position:relative}.epsct-h span{margin-left:auto;font-weight:700;font-size:12px;border-radius:999px;padding:2px 8px;background:#EFECE6;color:#14171C}.epsct-t.jeu .epsct-h span{background:#E3F4E8;color:#1D6B3A}" +
+      ".epsct-m{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;flex:1;position:relative}.epsct-m b{font:800 15px system-ui,sans-serif;overflow-wrap:anywhere}.epsct-m i{font:900 24px system-ui,sans-serif;font-style:normal;background:#fff;padding:0 6px;border-radius:8px;white-space:nowrap}" +
+      ".epsct-s{font-size:12.5px;color:#5b6a72;position:relative;background:#ffffffcc;border-radius:6px}.epsct-t.al{border-color:#B4232B;animation:epsctal 1.2s ease-in-out infinite}.epsct-t.call{border-color:#B4232B;background:#FDECEC}" +
+      "@keyframes epsctal{50%{box-shadow:0 0 0 5px #B4232B40;border-color:#F3B4B4}}@media (prefers-reduced-motion:reduce){.epsct-t.al{animation:none;box-shadow:0 0 0 4px #B4232B40}}" +
+      "@media (max-width:620px){.epsct.bad5,.epsct.duo{grid-template-columns:minmax(0,1fr);grid-template-rows:none}.epsct.bad5>*{grid-column:auto!important;grid-row:auto!important}}";
+    document.head.appendChild(st); }
+  function courtsHtml(o) { courtsCss(); o = o || {}; var C = Array.isArray(o.cts) ? o.cts : [], dispo = o.dispo === "bad5" && C.length === 5 ? "bad5" : o.dispo === "duo" && C.length === 2 ? "duo" : "ligne", LB = { jeu: "en jeu", attente: "en attente", libre: "libre" };
+    var appels = {}; try { callAll().forEach(function (c) { var m = /^terrain\s*(\d+)$/i.exec(String(c.lieu || "").trim()); if (m && (!o.app || c.app === o.app)) appels[+m[1]] = c; }); } catch (e) {}
+    var fn = /^[A-Za-z_$][\w$]*$/.test(o.click || "") ? o.click : "";
+    return '<div class="epsct ' + dispo + '" style="--ct:' + esc(o.color || "#14171C") + '">' + C.map(function (t) { var et = LB[t.etat] ? t.etat : "libre", ap = appels[+t.n];
+      var tg = fn ? "button" : "div"; return "<" + tg + (fn ? ' type="button"' : "") + ' class="epsct-t ' + et + (t.al ? " al" : "") + (ap ? " call" : "") + '" data-eps-a11y-h="0"' + (fn ? ' onclick="' + fn + "(" + (+t.n) + ')"' : "") + '><div class="epsct-h">' + (ap ? "✋ " : "") + "Terrain " + (+t.n) + "<span>" + LB[et] + '</span></div><div class="epsct-m"><b>' + esc(t.a || "") + "</b><i>" + esc(t.sc || (t.a || t.b ? "–" : "")) + "</i><b>" + esc(t.b || "") + '</b></div>' + (ap ? '<div class="epsct-s" style="color:#B4232B;font-weight:800">' + esc(ap.motif) + "</div>" : t.sub ? '<div class="epsct-s">' + esc(t.sub) + "</div>" : "") + "</" + tg + ">"; }).join("") + "</div>"; }
+  EPSD.courts = courtsHtml;
   EPSD.appels = { html: callHtml, list: function (app) { return callAll().filter(function (c) { return !app || c.app === app; }); }, take: function (id) { var p = callSet(id, 1); callDraw(); return p; }, done: function (id) { var p = callSet(id, 2); callDraw(); return p; }, nom: callNom, ask: callAsk };
   /* ouvre la planche par-dessus la page (cadre), sans quitter la leçon en cours */
   EPSD.planche = function (o) { o = o || {}; var old = document.getElementById("eps-planche"); if (old) old.remove();

@@ -48,3 +48,4 @@ Application web (PWA) de course d'orientation pour l'EPS, hébergée sur GitHub 
 
 ## Sources et construction (26/11/2026)
 - `src/` a été remis à niveau : `python3 build.py` redonne `index.html` à l'identique (vérifié). Modifier `src/` puis reconstruire ; si la page est modifiée directement, `build.py` s'arrête (garde-fou, fichier `.derniere-construction`) tant que le changement n'est pas reporté dans `src/`. `outils/verifier.py` signale tout écart.
+- 27/11/2026 : le suivi en direct (`setPTab("seance")`, `renderLive`) est le seul écran de suivi (`window.epsCtlOwn`) ; les ✋ appels des élèves s'affichent en tête de `#alerts` (`EPSD.appels.html("orientation")`). Modification faite aussi dans `src/` (teacher3.js, extras.js) pour que le contrôle reste à 0 avertissement.

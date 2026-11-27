@@ -39,3 +39,5 @@ Application web (PWA) d'acrosport pour tablettes, hébergée sur GitHub Pages de
 
 - Trame de séquence `trame-1gt.js` (`EPS_TRAMES`, id `acro-1gt-8`) : 8 leçons pour la 1re générale (horizontale → équerre → redressée → ATR → composition → répétition générale → évaluation de fin de séquence), sans situations ; bouton « 📥 Trame proposée » des fiches de leçon communes. Cadre : programme LGT 2019 CA3, référentiel CCF (BO n° 9 du 26-2-2026, référentiels inchangés) ; en 1re pas de CCF (terminale).
 - Outils de leçon communs (eps-lecons.js) : barre d'actions au-dessus des cartes de l'onglet 📅 Séquence (Fiches de leçon, Leçon en cours, Évaluer la leçon, Ma classe, ⋯ Plus), mode enseignant seulement.
+
+- 27/11/2026 : le 📊 tableau de bord de la leçon (`lessonDashboard`) est le seul écran de suivi (`window.epsCtlOwn`) ; les ✋ appels des élèves s'affichent en tête (`#dCalls`, `EPSD.appels.html("acrosport")`).
