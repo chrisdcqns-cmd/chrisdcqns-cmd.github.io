@@ -299,3 +299,27 @@ window.epsApChip = function (o) {
       return o.v; },
     p: function (d) { P.reg(d); var v = P.get(d.id, d.def); if (d.fixed && Array.isArray(v)) { v = v.slice(0, d.fixed); while (v.length < d.fixed) v.push(d.def[v.length]); } return v; } };
 })();
+
+/* 🖥 Grand écran de la console ordinateur (27/11/2026, demande de l'enseignant : « la console n'est pas adaptée à l'écran d'ordinateur,
+   elle est de la taille d'une tablette »). Une appli ouverte DANS la console (cadre …/?console=…) porte html.eps-console et
+   data-eps-dir="<dossier>" : ses blocs prévus pour une tablette (1000 à 1100 px) s'élargissent jusqu'à --epsw. Rien ne change sur
+   tablette ni quand l'appli est ouverte seule. Toute nouvelle appli ajoute ici son bloc principal s'il a une largeur maximale. */
+(function () {
+  var inC = /[?&]console=/.test(location.search);
+  try { if (!inC && window.parent !== window && /\/console\/(index\.html)?$/.test(window.parent.location.pathname)) inC = true; } catch (e) {}
+  if (!inC) return;
+  var H = document.documentElement, m = location.pathname.match(/eps-autonomie-numerique\/([a-z0-9-]+)\//);
+  H.classList.add("eps-console"); if (m) H.setAttribute("data-eps-dir", m[1]);
+  var C = "html.eps-console", st = document.createElement("style"); st.id = "eps-console-css";
+  st.textContent = "@media (min-width:1200px){" + C + "{--epsw:1560px}" +
+    /* blocs communs : barre d'actions, panneaux d'onglet, grille d'évaluation, écran de classe */
+    [".epst-acts", ".epst-panel", ".epse-in", ".epsg-in",
+    /* blocs principaux des applis */
+    "[data-eps-dir=escalade] main#m", "[data-eps-dir=relais] .wrap", "[data-eps-dir=volley] main", "[data-eps-dir=badminton] main", "[data-eps-dir=danse] main#view",
+    "[data-eps-dir=acrosport] section#home", "[data-eps-dir=orientation] #home", "[data-eps-dir=crosstraining] .app", "[data-eps-dir=crosstraining] #onglets.in",
+    "[data-eps-dir=basket] main#vue", "[data-eps-dir=step] .app", "[data-eps-dir=step] #onglets.in", "[data-eps-dir=ccf] .wrap", "[data-eps-dir=co-eval] main#app",
+    "[data-eps-dir=edt] .wrap", "[data-eps-dir=appel-as] .wrap", "[data-eps-dir=course-orientation] .wrap", "[data-eps-dir=course-orientation] .in",
+    "[data-eps-dir=referentiel] .wrap", "[data-eps-dir=referentiel] #nav"].map(function (s) { return C + (s.charAt(0) === "[" ? s : " " + s); }).join(",") +
+    "{max-width:min(var(--epsw),100%)!important}}";
+  (document.head || H).appendChild(st);
+})();

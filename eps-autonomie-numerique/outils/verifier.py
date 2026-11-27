@@ -82,7 +82,7 @@ REPERES = {
     "console/index.html": ["doit être un nombre", "if (sm) sm.textContent"],
     "mon-bilan/index.html": ["ton enseignant", "kind === \"espace\"", "dropchk", "function mission(", "un seul envoi à la fois", "essais automatiques seulement", "../step/export.js"],
     "espace/index.html": ["E.publier(", "E.relever()", "noindex", "function mget(", "E.dispenses(", "get(DIRS.step).step"],
-    "eps-lists.js": ["typeof def === \"number\" && (typeof o.v !== \"number\""],
+    "eps-lists.js": ["typeof def === \"number\" && (typeof o.v !== \"number\"", "eps-console-css"],
     "eps-shell.js": ["doit être un nombre", ">✕ Fermer</button></div><iframe"],
     "eps-tactique.js": ["function editor(", "function depart("],
     "eps-ref.js": ["function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw", "function coVals(", "function colPut(", "EPSD.trash.keep("],
