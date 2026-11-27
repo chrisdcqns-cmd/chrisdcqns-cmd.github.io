@@ -56,7 +56,7 @@ function ficheCtx(){const c=clsById(T.cls),S=ses(T.act,T.cls);return {c,S,P:prot
 function evUpd(f){upd(evId(T.act,T.cls,T.el),{},f)}
 function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');return}const L=people(c),i=L.findIndex(p=>p.k===k),p=L[i];if(!p){go('eval');return}
  const ev=evOf(T.act,c.id,k),ix=ixOf(T.act,c.id,k),N=notes(P,ev,ix),t=teamOf(S,k),rep=repOf(P,ev,ix),dz=dispOf(c.nom,p.full),pr=pratiqueTxt(T.act,P,c.id,S,k);
- let h=`<div class="wrap"><div class="row wrapf"><button class="b" onclick="go('eval')">← Classe</button><button class="b" ${i>0?'':'disabled'} onclick="go('fiche',{el:'${(L[i-1]||{}).k}'})">◀</button><button class="b" ${i<L.length-1?'':'disabled'} onclick="go('fiche',{el:'${(L[i+1]||{}).k}'})">▶</button>
+ let h=`<div class="wrap"><div class="row wrapf"><button class="b" onclick="go('eval')">← Retour</button><button class="b" ${i>0?'':'disabled'} onclick="go('fiche',{el:'${(L[i-1]||{}).k}'})">◀</button><button class="b" ${i<L.length-1?'':'disabled'} onclick="go('fiche',{el:'${(L[i+1]||{}).k}'})">▶</button>
  <h2 class="h2" style="flex:1;margin:0">${esc(p.full)} <small class="mut">${esc(c.nom)}${t?' · '+esc(t.nom):''}</small></h2><div class="tot">${ev.st?(ev.st==='abs'?'Absent(e)':'Dispensé(e)'):fr(N.tot)}<small>/20</small></div></div>
  ${dz?`<p class="dz">🩹 ${esc(dz)}</p>`:''}
  <div class="row wrapf" style="margin:10px 0">${[['','Présent(e)'],['abs','Absent(e) · A'],['disp','Dispensé(e) / inapte · D']].map(s=>`<button class="b s${(ev.st||'')===s[0]?' p':''}" onclick="evUpd(e=>{e.st='${s[0]}'});render()">${s[1]}</button>`).join('')}

@@ -50,7 +50,7 @@
       ".epst-vue{position:fixed;left:0;right:0;bottom:0;z-index:2147481500;background:#F5F3EE;display:none;flex-direction:column}",
       "html.epst-vue-on .epst-vue{display:flex}",
       ".epst-vue .h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#FFF6E0;border-bottom:1px solid #F0D58A;font:600 14px system-ui,sans-serif;color:#6b4e00}",
-      ".epst-vue .h button{margin-left:auto;height:36px;border-radius:10px;border:1.5px solid #D8C27A;background:#fff;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer}",
+      ".epst-vue .h button{margin-left:auto;height:44px;flex:none;border-radius:10px;border:1.5px solid #D8C27A;background:#fff;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer}",
       ".epst-vue iframe{flex:1;border:0;width:100%;background:#F5F3EE}"
     ].join("\n");
     document.head.appendChild(st);
@@ -64,7 +64,7 @@
     acts.className = "epst-acts"; acts.style.setProperty("--epst", C.color);
     nav.className = "epst-nav"; nav.style.setProperty("--epst", C.color); pan.className = "epst-panel"; pan.style.setProperty("--epst", C.color);
     vue.className = "epst-vue";
-    vue.innerHTML = '<div class="h">👁 Vue élève : l\'appli telle que la voit un élève (avec tes vraies données). Tu restes en mode enseignant.<button type="button">✕ Revenir à l\'espace enseignant</button></div><iframe title="Vue élève"></iframe>';
+    vue.innerHTML = '<div class="h">👁 Vue élève · tes vraies données, tu restes en mode enseignant.<button type="button">✕ Fermer</button></div><iframe title="Vue élève"></iframe>';
     var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (t[0] === "ccf" && !!(C.tabs && C.tabs.eval) && C.tabs.ccf !== false) || (C.tabs && C.tabs[t[0]]); });
     nav.innerHTML = tabs.map(function (t) { return '<button type="button" data-t="' + t[0] + '"><span>' + t[1] + "</span>" + t[2] + "</button>"; }).join("");
     /* deux bandeaux (barre de l'appli + onglets enseignant) : en descendant, seuls les onglets restent en haut ;
@@ -228,7 +228,7 @@
     function guide() {
       var show = function () {
         var G = window.EPS_GUIDES || {}, A = G[C.app] || { nom: C.nom, items: [] }, sec = function (t, L) { return "<h3 style=\"margin:18px 0 8px;font-size:18px\">" + t + "</h3>" + L.map(function (x) { return '<div style="background:#fff;border:1px solid #E6E1D6;border-radius:12px;padding:10px 14px;margin:0 0 8px"><b>' + esc(x[0]) + '</b><div style="margin-top:3px;line-height:1.45">' + esc(x[1]) + "</div></div>"; }).join(""); };
-        var p = panel('<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="flex:1">📖 Fiche d\'utilisation · ' + esc(A.nom) + '</h2><button type="button" class="epst-b" id="epst-gb">← Réglages</button><button type="button" class="epst-b" id="epst-gp">🖨 Imprimer</button></div>' +
+        var p = panel('<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="flex:1">📖 Fiche d\'utilisation · ' + esc(A.nom) + '</h2><button type="button" class="epst-b" id="epst-gb">← Retour</button><button type="button" class="epst-b" id="epst-gp">🖨 Imprimer</button></div>' +
           sec("Dans " + esc(A.nom), A.items || []) + sec("Commun à toutes les applis", G.commun || []));
         mark("reg"); p.querySelector("#epst-gb").onclick = function () { go("reg"); }; p.querySelector("#epst-gp").onclick = function () { window.print(); };
       };
@@ -243,7 +243,7 @@
   function openVue(color) {
     css(); var v = document.getElementById("epst-vue1");
     if (!v) { v = document.createElement("div"); v.id = "epst-vue1"; v.className = "epst-vue"; v.style.top = "0";
-      v.innerHTML = '<div class="h">👁 Vue élève : l\'appli telle que la voit un élève (avec tes vraies données). Tu restes en mode enseignant.<button type="button">✕ Revenir à l\'espace enseignant</button></div><iframe title="Vue élève"></iframe>';
+      v.innerHTML = '<div class="h">👁 Vue élève · tes vraies données, tu restes en mode enseignant.<button type="button">✕ Fermer</button></div><iframe title="Vue élève"></iframe>';
       v.querySelector("button").onclick = function () { v.style.display = "none"; }; document.body.appendChild(v); }
     v.querySelector("iframe").src = location.pathname + "?vue=eleve"; v.style.display = "flex";
   }

@@ -3,7 +3,7 @@ function openActs(cls){return Object.keys(ACTS).filter(a=>{const s=get(sesId(a,c
 function openClasses(){return lists().filter(o=>openActs(o.id).length).sort((a,b)=>a.nom.localeCompare(b.nom,'fr',{numeric:true}))}
 function eleveClasse(){E.cls='';E.team='';E.act='';saveE();MATCH=null;render();try{window.EPSG&&EPSG.open()}catch(e){}}
 function renderE(m){
- if(!E.cls){if(E.tab==='res'&&E.act&&ACTS[E.act]){m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="E.tab='pra';E.act='';saveE();eleveClasse()">← Choisis ta classe</button><h2 class="h2" style="flex:1;margin:0">📚 Ressources · ${esc(ACTS[E.act].nom)}</h2></div>${resHtml(E.act,false)}</div>`;return}
+ if(!E.cls){if(E.tab==='res'&&E.act&&ACTS[E.act]){m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="E.tab='pra';E.act='';saveE();eleveClasse()">← Accueil</button><h2 class="h2" style="flex:1;margin:0">📚 Ressources · ${esc(ACTS[E.act].nom)}</h2></div>${resHtml(E.act,false)}</div>`;return}
   m.innerHTML=`<div class="wrap"><div class="empty"><h2>Choisis ta classe</h2><p class="mut">Le CCF s'affiche quand ton enseignant l'ouvre pour ta classe.</p><button class="b p" onclick="eleveClasse()">Choisir ma classe</button></div></div>`;
   setTimeout(()=>{if(!isT()&&!E.cls&&!document.querySelector('.epsg'))try{EPSG.open()}catch(e){}},50);return}
  const c=clsById(E.cls),A=openActs(E.cls);
@@ -31,7 +31,7 @@ function choixSet(k,r){upd(ixId(E.act,E.cls,k),{},o=>{o.rep=r;o.repAt=Date.now()
 /* ================== ENSEIGNANT : feuille d'équipe et match ================== */
 function teamScreenT(m){const S=ses(T.act,T.cls),c=clsById(T.cls),P=c&&proto(T.act,S.voie),t=(S.eq||[]).find(x=>x.id===T.tm);
  if(!t||!P){go('cls');return}
- m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="MATCH=null;go('cls')">← Équipes</button><h2 class="h2" style="flex:1;margin:0">${esc(t.nom)} <small class="mut">${(t.el||[]).map(k=>esc(pfirst(c,k))).join(', ')}</small></h2></div><p class="mut">Feuille de l'équipe, comme sur la tablette des élèves : tu peux la corriger.</p>`+
+ m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="MATCH=null;go('cls')">← Retour</button><h2 class="h2" style="flex:1;margin:0">${esc(t.nom)} <small class="mut">${(t.el||[]).map(k=>esc(pfirst(c,k))).join(', ')}</small></h2></div><p class="mut">Feuille de l'équipe, comme sur la tablette des élèves : tu peux la corriger.</p>`+
  (MATCH&&T.act==='bad'?(PX={act:T.act,cls:T.cls,c,S,P,J:P.jeu,t,teach:true},matchHtml()):praHtml({act:T.act,cls:T.cls,c,S,P,J:P.jeu,t,teach:true}))+'</div>'}
 function matchScreenT(m){const S=ses(T.act,T.cls),c=clsById(T.cls),P=c&&proto(T.act,S.voie);if(!P){go('cls');return}
  PX={act:'bad',cls:T.cls,c,S,P,J:P.jeu,t:null,teach:true};MATCH=T.mt;const h=matchHtml();if(!MATCH){go('cls');return}

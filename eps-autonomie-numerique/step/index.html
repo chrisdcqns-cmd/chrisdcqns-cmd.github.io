@@ -16,14 +16,14 @@ html,body{margin:0;background:var(--fond);color:var(--encre);font:15px/1.45 syst
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 [hidden]{display:none!important}
-.app{max-width:900px;margin:0 auto;min-height:100vh;padding-bottom:84px}
+.app{max-width:1100px;margin:0 auto;min-height:100vh;padding-bottom:84px}
 header{position:sticky;top:0;z-index:20;background:#14171C;color:#fff;padding:10px 14px 14px;display:flex;align-items:center;gap:12px;box-shadow:inset 0 -4px 0 var(--app)}
 header .mk{width:36px;height:36px;border-radius:10px;background:var(--app);padding:6px;flex:none}
 header h1{font-size:20px;margin:0;line-height:1.1;font-weight:800}
 header small{display:block;color:#A9AEB8;font-weight:500;font-size:13px}
 header [data-eps-bar]{margin-left:auto;display:flex;gap:6px;align-items:center}
 nav.onglets{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid var(--ligne);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
-nav.onglets .in{display:flex;width:100%;max-width:900px}
+nav.onglets .in{display:flex;width:100%;max-width:1100px}
 nav.onglets button{flex:1;border:0;background:none;padding:9px 4px 10px;font-size:12px;color:var(--doux);display:flex;flex-direction:column;align-items:center;gap:2px;min-height:54px}
 nav.onglets button b{font-size:20px;line-height:1}
 nav.onglets button.actif{color:var(--app);font-weight:700}
@@ -277,7 +277,9 @@ function mtStop(){ MT.on=false; clearInterval(MT.timer); MT.timer=null; }
 /* ======================= ÉTAT ======================= */
 const S={ onglet:"pas", classe:SS.get("classe")||null, groupe:null, prof:false, bid:null, bpm:BPM_DEF, clsP:null, ed:null, obs:null, choix:[] };
 try{ const g=JSON.parse(SS.get("groupe")||"null"); if(g&&Array.isArray(g.noms)&&g.noms.length&&g.k) S.groupe={noms:g.noms.map(String),k:String(g.k)}; }catch(e){}
-function classes(){ try{ return (window.EPSL?EPSL.items():[]).filter(it=>it&&it.nom&&!it.del&&!(it.demo&&!(window.EPSD&&EPSD.demo&&EPSD.demo.on()))&&!(it.off||[]).includes("step")); }catch(e){ return []; } }
+/* classe fictive : lue directement (eps-home.js arrive après le premier affichage, sinon « Aucune classe » en mode enseignant) */
+function demoActif(){ try{ return !!JSON.parse(localStorage.getItem("eps.demo.v1")||"null"); }catch(e){ return false; } }
+function classes(){ try{ return (window.EPSL?EPSL.items():[]).filter(it=>it&&it.nom&&!it.del&&!(it.demo&&!demoActif())&&!(it.off||[]).includes("step")); }catch(e){ return []; } }
 const laClasse=()=>classes().find(x=>x.id===S.classe)||null;
 const nomClasse=()=>{ const c=laClasse(); return c?c.nom:""; };
 const aClasse=()=>!!laClasse();
@@ -372,7 +374,7 @@ function vueGroupe(){ const P=presents(nomClasse());
    ${P.length?`<div class="rang">${P.map((x,i)=>`<button type="button" class="btn ${S.choix.includes(x)?"on":""}" data-act="grpNom" data-i="${i}">${h(x)}</button>`).join("")}</div>`
      :`<p class="doux">Pas de liste pour cette classe : écrivez vos prénoms, séparés par une virgule.</p><label class="champ">Prénoms<input id="grpTxt" autocomplete="off" value="${h(S.choix.join(", "))}"></label>`}
    <button type="button" class="btn p plein" data-act="grpOk" style="margin-top:14px">C'est parti</button>
-   <button type="button" class="btn plein" data-act="chgClasse" style="margin-top:8px">← Changer de classe</button>`; }
+   <button type="button" class="btn plein" data-act="chgClasse" style="margin-top:8px">← Accueil</button>`; }
 function groupeOk(){ const t=$("#grpTxt"); if(t) S.choix=t.value.split(/[,;\n]/).map(x=>x.trim()).filter(Boolean).slice(0,GRP_MAX);
   if(!S.choix.length) return toast("Choisis au moins un élève.");
   const noms=S.choix.slice().sort((a,b)=>a.localeCompare(b,"fr")); S.groupe={noms,k:noms.map(norm).sort().join("+")}; SS.set("groupe",JSON.stringify(S.groupe)); S.bid=null;

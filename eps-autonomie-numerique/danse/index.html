@@ -1641,7 +1641,7 @@ const GRILLES = {
     ]
   },
   court: {
-    nom: 'Grille ajustée — cycle court (4 leçons)',
+    nom: 'Grille ajustée — séquence courte (4 leçons)',
     poids: [10, 5, 5],
     criteres: [
       {
@@ -2407,7 +2407,7 @@ function rObs() {
   if (!UI.obsForm) UI.obsForm = obsFormVide();
   const f = UI.obsForm; if (!f.danse) f.danse = [];
   if (!cl || !cl.groupes.length) {
-    V.innerHTML = `<div class="empty card"><h2>Crée d'abord les groupes</h2><p>La fiche d'observation s'appuie sur les groupes de création de la classe.</p><button class="btn primary" onclick="aller('classe')">Gérer la classe</button></div>`; return;
+    V.innerHTML = `<div class="empty card"><h2>${isTeacher() ? "Crée d'abord les groupes" : "Pas encore de groupes"}</h2><p>La fiche d'observation s'appuie sur les groupes de création de la classe.${isTeacher() ? '' : ' Demande à ton enseignant de créer les groupes.'}</p>${isTeacher() ? '<button class="btn primary" onclick="aller(\'classe\')">Gérer la classe</button>' : ''}</div>`; return;
   }
   if (!UI.obsG || !cl.groupes.some(g => g.id === UI.obsG)) UI.obsG = cl.groupes[0].id;
   if (UI.retour) { const o = S.obs.find(x => x.id === UI.retour); if (o) { rRetour(cl, o); return; } UI.retour = ''; }
@@ -2476,7 +2476,7 @@ function rRetour(cl, o) {
    ========================================================= */
 function rCarnet() {
   const cl = curClasse(); const V = $('#view');
-  if (!cl || !cl.groupes.length) { V.innerHTML = `<div class="empty card"><h2>Pas encore de groupes</h2><p>Le carnet de chorégraphie se remplit par groupe de création. ${isTeacher() ? 'Crée les groupes dans l\'onglet Classe.' : 'Demande à ton professeur de créer les groupes.'}</p>${isTeacher() ? '<button class="btn primary" onclick="aller(\'classe\')">Gérer la classe</button>' : ''}</div>`; return; }
+  if (!cl || !cl.groupes.length) { V.innerHTML = `<div class="empty card"><h2>Pas encore de groupes</h2><p>Le carnet de chorégraphie se remplit par groupe de création. ${isTeacher() ? 'Crée les groupes dans l\'onglet Classe.' : 'Demande à ton enseignant de créer les groupes.'}</p>${isTeacher() ? '<button class="btn primary" onclick="aller(\'classe\')">Gérer la classe</button>' : ''}</div>`; return; }
   if (!UI.carG || !cl.groupes.some(g => g.id === UI.carG)) UI.carG = '';
   const choix = `<div class="obs-gb car-gb">${cl.groupes.map(g => { const n = cl.eleves.filter(e => e.groupeId === g.id).map(e => e.prenom || e.nom); const k = g.carnet || {};
     return `<button data-g="${g.id}" class="${UI.carG === g.id ? 'on' : ''}"><b>${esc(g.nom)}</b><small>${esc(n.join(', ') || 'aucun élève')}</small>${k.titre ? `<small>📓 « ${esc(k.titre)} »</small>` : ''}</button>`; }).join('')}</div>`;
@@ -2606,7 +2606,7 @@ function bindTabs() { $('#jxTabs').onclick = ev => { const b = ev.target.closest
 function rJeu(i, onglets) {
   const j = JEUX[i], th = JX_TH.find(t => t[0] === j[0]), J = UI.jx, k = J.ech ? J.ech.indexOf(i) : -1;
   $('#view').innerHTML = onglets + `<section class="card jx-d" id="jxD" style="--tc:${th[2]}">
-    <div class="jx-dh"><button class="btn" id="jxBack">← Tous les jeux</button><span class="grow"></span>${k >= 0 && k < J.ech.length - 1 ? `<button class="btn" data-j="${J.ech[k + 1]}">Jeu suivant de l'échauffement →</button>` : ''}<button class="btn" id="jxFs">⛶ Plein écran</button></div>
+    <div class="jx-dh"><button class="btn" id="jxBack">← Retour</button><span class="grow"></span>${k >= 0 && k < J.ech.length - 1 ? `<button class="btn" data-j="${J.ech[k + 1]}">Jeu suivant de l'échauffement →</button>` : ''}<button class="btn" id="jxFs">⛶ Plein écran</button></div>
     <small class="jx-k">${esc(th[1])} · ${esc(j[2])} · ${j[3]} min</small><h1>${esc(j[1])}</h1><p class="jx-but">${esc(j[4])}</p>
     <ol class="jx-st">${j[5].map(x => `<li>${esc(x)}</li>`).join('')}</ol>
     ${j[6] ? `<p><b>Pour aller plus loin :</b> ${esc(j[6])}</p>` : ''}${j[7] ? `<p class="jx-vig">⚠ ${esc(j[7])}</p>` : ''}<p class="muted">Procédé travaillé : ${esc(j[8])}</p>

@@ -146,7 +146,7 @@
       else { if (ME.fait[t.id]) delete ME.fait[t.id]; else ME.fait[t.id] = 1; meSave(); draw(); } }; });
     var A2 = acts(); res.querySelectorAll("[data-a]").forEach(function (b) { b.onclick = function () { ACT = A2[+b.dataset.a]; draw(); window.scrollTo(0, 0); }; }); }
   /* mission du jour : compteur d'observation ou fiche de rôle ; le retour part chez l'enseignant */
-  function mission() { var X = MIS, m = X.m, h = '<button type="button" class="s" id="mb" style="margin:0 0 12px">← À faire</button><div class="card"><h2>🎯 ' + esc(m.t) + "</h2>";
+  function mission() { var X = MIS, m = X.m, h = '<button type="button" class="s" id="mb" style="margin:0 0 12px">← Retour</button><div class="card"><h2>🎯 ' + esc(m.t) + "</h2>";
     if (m.ty === "cpt") { h += '<label class="l" for="mw">Qui j\'observe</label><input id="mw" maxlength="40" value="' + esc(X.who) + '" style="width:100%;min-height:48px;border:2px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px">' +
         (m.l || []).map(function (l, k) { return '<div style="display:flex;gap:8px;align-items:stretch;margin-top:10px"><button type="button" class="s" data-p="' + k + '" style="flex:1;margin:0;min-height:72px;text-align:left;display:flex;align-items:center;gap:12px"><b style="font-size:30px;min-width:44px;text-align:center">' + X.c[k] + "</b><span>" + esc(l) + '</span></button><button type="button" class="s" data-m="' + k + '" style="width:64px;margin:0;min-height:72px" aria-label="Retirer 1 à ' + esc(l) + '">− 1</button></div>'; }).join("") +
         '<button type="button" id="ms">📤 Envoyer mon observation</button>'; }
@@ -163,7 +163,7 @@
     $("ms").onclick = function () { ME.obs[m.id] = m.ty === "cpt" ? { c: X.c.slice(), who: String(X.who || "").slice(0, 40), at: Date.now() } : { r: X.r, v: X.v.slice(), at: Date.now() }; meSave(); MIS = null; TAB = "todo"; draw(); }; }
   function fait(t) { return t.ty === "quiz" ? !!ME.quiz[t.qz] : !!ME.fait[t.id]; }
   function fiche() { var a = ACT, P = PDF.filter(function (p) { return flat(p.app) === flat(a.nom); }), Q = []; Object.keys((ESP && ESP.quiz) || {}).forEach(function (id) { if (ME.quiz[id]) Q.push({ nom: ESP.quiz[id].nom, r: ME.quiz[id] }); });
-    var h = '<button type="button" class="s" id="bk" style="margin:0 0 12px">← Mes activités</button><div class="card"><h2>' + esc(a.nom) + "</h2>" +
+    var h = '<button type="button" class="s" id="bk" style="margin:0 0 12px">← Retour</button><div class="card"><h2>' + esc(a.nom) + "</h2>" +
       '<div class="q"><b>Ma progression</b>' + (a.pc != null ? '<div class="bar2" role="img" aria-label="Réussite ' + a.pc + ' %"><i style="width:' + a.pc + '%"></i></div>' : "") + '<div class="kp">' + (a.pc != null ? "<span>Réussite aux situations : " + a.pc + " %</span>" : "") + (a.lec ? "<span>" + a.lec + " leçon" + (a.lec > 1 ? "s" : "") + "</span>" : "") + (a.n ? "<span>" + a.n + " critère" + (a.n > 1 ? "s" : "") + " évalué" + (a.n > 1 ? "s" : "") + "</span>" : "") + (a.pc == null && !a.lec && !a.n ? '<span>Pas encore de résultats</span>' : "") + "</div></div>" +
       (a.apr ? '<div class="q"><b>Ce que j\'ai réussi</b>' + esc(a.apr) + "</div>" : "") + (a.apm ? '<div class="q"><b>Ce que je veux améliorer</b>' + esc(a.apm) + "</div>" : "") + (a.comm ? '<div class="q"><b>Le mot de mon enseignant</b>' + esc(a.comm) + "</div>" : "") +
       (a.step && Array.isArray(a.step.blocs) && a.step.blocs.length ? '<div class="q"><b>Ma chorégraphie</b><button type="button" id="stepgo">🎵 Voir et exporter ma chorégraphie (PDF ou vidéo)</button></div>' : "") +

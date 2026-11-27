@@ -509,7 +509,7 @@ function ficheCtx(){const c=clsById(T.cls),S=ses(T.act,T.cls);return {c,S,P:prot
 function evUpd(f){upd(evId(T.act,T.cls,T.el),{},f)}
 function ficheScreen(m){const X=ficheCtx(),{c,S,P,k}=X;if(!c||!P){go('eval');return}const L=people(c),i=L.findIndex(p=>p.k===k),p=L[i];if(!p){go('eval');return}
  const ev=evOf(T.act,c.id,k),ix=ixOf(T.act,c.id,k),N=notes(P,ev,ix),t=teamOf(S,k),rep=repOf(P,ev,ix),dz=dispOf(c.nom,p.full),pr=pratiqueTxt(T.act,P,c.id,S,k);
- let h=`<div class="wrap"><div class="row wrapf"><button class="b" onclick="go('eval')">← Classe</button><button class="b" ${i>0?'':'disabled'} onclick="go('fiche',{el:'${(L[i-1]||{}).k}'})">◀</button><button class="b" ${i<L.length-1?'':'disabled'} onclick="go('fiche',{el:'${(L[i+1]||{}).k}'})">▶</button>
+ let h=`<div class="wrap"><div class="row wrapf"><button class="b" onclick="go('eval')">← Retour</button><button class="b" ${i>0?'':'disabled'} onclick="go('fiche',{el:'${(L[i-1]||{}).k}'})">◀</button><button class="b" ${i<L.length-1?'':'disabled'} onclick="go('fiche',{el:'${(L[i+1]||{}).k}'})">▶</button>
  <h2 class="h2" style="flex:1;margin:0">${esc(p.full)} <small class="mut">${esc(c.nom)}${t?' · '+esc(t.nom):''}</small></h2><div class="tot">${ev.st?(ev.st==='abs'?'Absent(e)':'Dispensé(e)'):fr(N.tot)}<small>/20</small></div></div>
  ${dz?`<p class="dz">🩹 ${esc(dz)}</p>`:''}
  <div class="row wrapf" style="margin:10px 0">${[['','Présent(e)'],['abs','Absent(e) · A'],['disp','Dispensé(e) / inapte · D']].map(s=>`<button class="b s${(ev.st||'')===s[0]?' p':''}" onclick="evUpd(e=>{e.st='${s[0]}'});render()">${s[1]}</button>`).join('')}
@@ -611,9 +611,9 @@ function protoScreen(m){const v=T.pv||'pro',P=proto(T.act,v);
 /* ================== ✏️ MODIFIER LE PROTOCOLE ================== */
 let EDP=null;
 function editScreen(m){const v=T.pv||'pro';if(!EDP||EDP.id!==protoId(T.act,v))EDP=proto(T.act,v);const P=EDP;
- if(!P){m.innerHTML=`<div class="wrap"><button class="b" onclick="go('proto')">← Protocole</button><div class="card warn">Pas de protocole ${esc(VOIES[v])} pour cette activité.</div></div>`;return}
+ if(!P){m.innerHTML=`<div class="wrap"><button class="b" onclick="go('proto')">← Retour</button><div class="card warn">Pas de protocole ${esc(VOIES[v])} pour cette activité.</div></div>`;return}
  const ta=(path,val,r)=>`<textarea rows="${r||2}" data-p="${path}">${esc(val)}</textarea>`,inp=(path,val,t)=>`<input type="${t||'text'}" data-p="${path}" value="${esc(val)}"${t==='number'?' step="0.25"':''}>`;
- let h=`<div class="wrap ed"><div class="row wrapf"><button class="b" onclick="EDP=null;go('proto')">← Protocole</button><h2 class="h2" style="flex:1;margin:0">✏️ ${esc(P.apsa)} · ${esc(VOIES[v])}</h2><button class="b" onclick="edReset()">↺ Revenir au texte d'origine</button><button class="b p" onclick="edSave()">✓ Enregistrer</button></div>
+ let h=`<div class="wrap ed"><div class="row wrapf"><button class="b" onclick="EDP=null;go('proto')">← Retour</button><h2 class="h2" style="flex:1;margin:0">✏️ ${esc(P.apsa)} · ${esc(VOIES[v])}</h2><button class="b" onclick="edReset()">↺ Revenir au texte d'origine</button><button class="b p" onclick="edSave()">✓ Enregistrer</button></div>
  <p class="mut">Tout est modifiable : textes, règles de l'épreuve, degrés, points, et en bas les règles de calcul de la forme de pratique. Une ligne = une puce. Les notes des élèves sont recalculées avec le protocole enregistré.</p>
  <div class="card"><h3 class="h3">En-tête</h3><div class="g3"><label>APSA${inp('apsa',P.apsa)}</label><label>Champ d'apprentissage${inp('ca',P.ca)}</label><label>Session${inp('session',P.session)}</label></div><label>Établissement${inp('etab',P.etab)}</label>
  <label>Objectif de l'épreuve (OE)${ta('oe',P.oe,3)}</label><label>Principe d'élaboration de l'épreuve (une ligne par puce)${ta('principe',P.principe.join('\n'),7)}</label></div>
@@ -766,7 +766,7 @@ function mId(){return 'mt:'+PX.cls+':'+MATCH}
 function mUpd(f){upd(mId(),{},f);render()}
 function matchHtml(){const J=PX.J,S=PX.S,m=get(mId());if(!m){MATCH=null;return ''}const R=badCalc(J,m),nA=eqNom(S,m.a.eq),nB=eqNom(S,m.b.eq),side={a:nA,b:nB};
  const tA=(S.eq||[]).find(x=>x.id===m.a.eq)||{el:[]},tB=(S.eq||[]).find(x=>x.id===m.b.eq)||{el:[]},TS={a:tA,b:tB};
- let h=`<div class="match"><div class="row"><button class="b" onclick="MATCH=null;render()">← Matchs</button><h2 class="h2" style="flex:1;margin:0">${esc(nA)} <span class="mut">contre</span> ${esc(nB)}</h2>${PX.teach?`<button class="b s" onclick="badDel()">🗑 Supprimer</button>`:''}</div>`;
+ let h=`<div class="match"><div class="row"><button class="b" onclick="MATCH=null;render()">← Retour</button><h2 class="h2" style="flex:1;margin:0">${esc(nA)} <span class="mut">contre</span> ${esc(nB)}</h2>${PX.teach?`<button class="b s" onclick="badDel()">🗑 Supprimer</button>`:''}</div>`;
  const ph=m.fin?'fin':m.ph||'prep';
  if(ph==='prep'){h+=`<p class="mut">Pour chaque binôme : qui joue, qui coache ?</p>${['a','b'].map(s=>`<div class="card"><b>${esc(side[s])}</b><div class="row wrapf"><span class="lab">Joueur</span>${(TS[s].el||[]).map(k=>`<button class="b s${m[s].j===k?' p':''}" onclick="mUpd(m=>{m.${s}.j='${k}';const o=(${JSON.stringify(TS[s].el||[]).replace(/"/g,"'")}).filter(x=>x!=='${k}');if(o.length===1)m.${s}.c=o[0]})">${esc(pfirst(PX.c,k))}</button>`).join('')}</div>
   <div class="row wrapf"><span class="lab">Coach</span>${(TS[s].el||[]).map(k=>`<button class="b s${m[s].c===k?' p':''}" onclick="mUpd(m=>{m.${s}.c='${k}'})">${esc(pfirst(PX.c,k))}</button>`).join('')}</div></div>`).join('')}
@@ -859,7 +859,7 @@ function openActs(cls){return Object.keys(ACTS).filter(a=>{const s=get(sesId(a,c
 function openClasses(){return lists().filter(o=>openActs(o.id).length).sort((a,b)=>a.nom.localeCompare(b.nom,'fr',{numeric:true}))}
 function eleveClasse(){E.cls='';E.team='';E.act='';saveE();MATCH=null;render();try{window.EPSG&&EPSG.open()}catch(e){}}
 function renderE(m){
- if(!E.cls){if(E.tab==='res'&&E.act&&ACTS[E.act]){m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="E.tab='pra';E.act='';saveE();eleveClasse()">← Choisis ta classe</button><h2 class="h2" style="flex:1;margin:0">📚 Ressources · ${esc(ACTS[E.act].nom)}</h2></div>${resHtml(E.act,false)}</div>`;return}
+ if(!E.cls){if(E.tab==='res'&&E.act&&ACTS[E.act]){m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="E.tab='pra';E.act='';saveE();eleveClasse()">← Accueil</button><h2 class="h2" style="flex:1;margin:0">📚 Ressources · ${esc(ACTS[E.act].nom)}</h2></div>${resHtml(E.act,false)}</div>`;return}
   m.innerHTML=`<div class="wrap"><div class="empty"><h2>Choisis ta classe</h2><p class="mut">Le CCF s'affiche quand ton enseignant l'ouvre pour ta classe.</p><button class="b p" onclick="eleveClasse()">Choisir ma classe</button></div></div>`;
   setTimeout(()=>{if(!isT()&&!E.cls&&!document.querySelector('.epsg'))try{EPSG.open()}catch(e){}},50);return}
  const c=clsById(E.cls),A=openActs(E.cls);
@@ -887,7 +887,7 @@ function choixSet(k,r){upd(ixId(E.act,E.cls,k),{},o=>{o.rep=r;o.repAt=Date.now()
 /* ================== ENSEIGNANT : feuille d'équipe et match ================== */
 function teamScreenT(m){const S=ses(T.act,T.cls),c=clsById(T.cls),P=c&&proto(T.act,S.voie),t=(S.eq||[]).find(x=>x.id===T.tm);
  if(!t||!P){go('cls');return}
- m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="MATCH=null;go('cls')">← Équipes</button><h2 class="h2" style="flex:1;margin:0">${esc(t.nom)} <small class="mut">${(t.el||[]).map(k=>esc(pfirst(c,k))).join(', ')}</small></h2></div><p class="mut">Feuille de l'équipe, comme sur la tablette des élèves : tu peux la corriger.</p>`+
+ m.innerHTML=`<div class="wrap"><div class="row"><button class="b" onclick="MATCH=null;go('cls')">← Retour</button><h2 class="h2" style="flex:1;margin:0">${esc(t.nom)} <small class="mut">${(t.el||[]).map(k=>esc(pfirst(c,k))).join(', ')}</small></h2></div><p class="mut">Feuille de l'équipe, comme sur la tablette des élèves : tu peux la corriger.</p>`+
  (MATCH&&T.act==='bad'?(PX={act:T.act,cls:T.cls,c,S,P,J:P.jeu,t,teach:true},matchHtml()):praHtml({act:T.act,cls:T.cls,c,S,P,J:P.jeu,t,teach:true}))+'</div>'}
 function matchScreenT(m){const S=ses(T.act,T.cls),c=clsById(T.cls),P=c&&proto(T.act,S.voie);if(!P){go('cls');return}
  PX={act:'bad',cls:T.cls,c,S,P,J:P.jeu,t:null,teach:true};MATCH=T.mt;const h=matchHtml();if(!MATCH){go('cls');return}

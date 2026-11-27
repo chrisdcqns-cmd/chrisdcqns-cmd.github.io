@@ -93,7 +93,7 @@ function mId(){return 'mt:'+PX.cls+':'+MATCH}
 function mUpd(f){upd(mId(),{},f);render()}
 function matchHtml(){const J=PX.J,S=PX.S,m=get(mId());if(!m){MATCH=null;return ''}const R=badCalc(J,m),nA=eqNom(S,m.a.eq),nB=eqNom(S,m.b.eq),side={a:nA,b:nB};
  const tA=(S.eq||[]).find(x=>x.id===m.a.eq)||{el:[]},tB=(S.eq||[]).find(x=>x.id===m.b.eq)||{el:[]},TS={a:tA,b:tB};
- let h=`<div class="match"><div class="row"><button class="b" onclick="MATCH=null;render()">← Matchs</button><h2 class="h2" style="flex:1;margin:0">${esc(nA)} <span class="mut">contre</span> ${esc(nB)}</h2>${PX.teach?`<button class="b s" onclick="badDel()">🗑 Supprimer</button>`:''}</div>`;
+ let h=`<div class="match"><div class="row"><button class="b" onclick="MATCH=null;render()">← Retour</button><h2 class="h2" style="flex:1;margin:0">${esc(nA)} <span class="mut">contre</span> ${esc(nB)}</h2>${PX.teach?`<button class="b s" onclick="badDel()">🗑 Supprimer</button>`:''}</div>`;
  const ph=m.fin?'fin':m.ph||'prep';
  if(ph==='prep'){h+=`<p class="mut">Pour chaque binôme : qui joue, qui coache ?</p>${['a','b'].map(s=>`<div class="card"><b>${esc(side[s])}</b><div class="row wrapf"><span class="lab">Joueur</span>${(TS[s].el||[]).map(k=>`<button class="b s${m[s].j===k?' p':''}" onclick="mUpd(m=>{m.${s}.j='${k}';const o=(${JSON.stringify(TS[s].el||[]).replace(/"/g,"'")}).filter(x=>x!=='${k}');if(o.length===1)m.${s}.c=o[0]})">${esc(pfirst(PX.c,k))}</button>`).join('')}</div>
   <div class="row wrapf"><span class="lab">Coach</span>${(TS[s].el||[]).map(k=>`<button class="b s${m[s].c===k?' p':''}" onclick="mUpd(m=>{m.${s}.c='${k}'})">${esc(pfirst(PX.c,k))}</button>`).join('')}</div></div>`).join('')}

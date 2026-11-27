@@ -655,7 +655,7 @@
     }
     function sheet(c, e) {
       var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap;
-      return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><button class="epse-btn" data-back>← Liste</button><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1">‹</button> <button class="epse-btn" data-nav="1">›</button></span></div>' +
+      return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><button class="epse-btn" data-back>← Retour</button><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1">‹</button> <button class="epse-btn" data-nav="1">›</button></span></div>' +
         '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (st) { return '<button class="epse-btn' + ((r.st || "") === st ? " p" : "") + '" data-st="' + st + '">' + (st || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button></div></div>' +
         M.propHtml(e, e._c) +
         G.criteres.map(function (cr) { var v = r.ev && r.ev[cr.id], x = ap && ap.ev && ap.ev[cr.id], p = prof(cr, e);

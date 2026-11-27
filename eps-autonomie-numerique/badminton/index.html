@@ -1045,7 +1045,7 @@ function renderEval0(){
   e.ev=e.ev||{};const b=B(),p=document.getElementById('evPanel'),st=elStats(c,e.id);
   p.innerHTML=`
   <div class="evhead">
-    <button class="btn alt" onclick="closeEval()">← Liste</button>
+    <button class="btn alt" onclick="closeEval()">← Retour</button>
     <h2>${esc(fullName(e))}${(typeof EVB!=='undefined'&&EVB&&EVB.apChip)?EVB.apChip(e):''}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
     <button class="btn alt sm" onclick="navEl(-1)" ${curEl===0?'disabled':''}>◀ Préc.</button>
     <button class="btn alt sm" onclick="navEl(1)" ${curEl===c.eleves.length-1?'disabled':''}>Suiv. ▶</button>
@@ -1210,7 +1210,7 @@ function lqNext(){const c=C();let i=LQ.ei+1;while(i<c.eleves.length&&isAbs(c.ele
 function lqAbs(){const e=C().eleves[LQ.ei];e.statut=e.statut==='ABS'?'':'ABS';save();if(e.statut)lqNext();else renderLQ()}
 function renderLQ(){const c=C(),l=lqLesson(),Q=lqQuestions(l),p=document.getElementById('evPanel'),e=c.eleves[LQ.ei],D=B().degres;
   const strip=c.eleves.map((x,i)=>{const r=lqRec(x).r,n=Q.filter(q=>r[q.id]!=null).length;return `<button class="lqs ${i===LQ.ei?'on':''} ${isAbs(x)?'abs':n===Q.length&&n?'ok':n?'part':''}" onclick="lqGo(${i},0)">${esc(shortName(x))}<small>${isAbs(x)?x.statut:n+'/'+Q.length}</small></button>`}).join('');
-  const head=`<div class="evhead"><button class="btn alt" onclick="lqQuit()">← Quitter</button><h2>⚡ Leçon ${l.n} · ${esc(l.titre)}</h2></div>
+  const head=`<div class="evhead"><button class="btn alt" onclick="lqQuit()">← Retour</button><h2>⚡ Leçon ${l.n} · ${esc(l.titre)}</h2></div>
     <div class="lqstrip">${strip}</div>`;
   if(!Q.length){p.innerHTML=head+`<div class="card"><p>Cette leçon n'a ni temps ni critères à évaluer. Complète-la dans l'onglet Séquence.</p></div>`;return}
   if(LQ.fin==='all'){const done=c.eleves.filter(x=>Q.every(q=>lqRec(x).r[q.id]!=null)).length;
@@ -2365,7 +2365,7 @@ function renderMatchs(){
   if(MDATE&&!dates.includes(MDATE))MDATE='';
   const ms=all.filter(m=>!MDATE||m.date===MDATE).reverse();
   if(MOPEN&&c.matchs[MOPEN]){const m=c.matchs[MOPEN],R=replay(m);
-    el.innerHTML=`<div class="card"><div class="row"><button class="btn alt" onclick="MOPEN=null;renderMatchs()">← Matchs</button><h2 style="margin:0;flex:1">${m.pre.type==='exo'?'🎯 '+esc(m.an):esc(m.an)+' '+R.sc[0]+' – '+R.sc[1]+' '+esc(m.bn)} · ${esc(m.pre.nom)}</h2><span class="muted">${dateFR(m.date)}</span>
+    el.innerHTML=`<div class="card"><div class="row"><button class="btn alt" onclick="MOPEN=null;renderMatchs()">← Retour</button><h2 style="margin:0;flex:1">${m.pre.type==='exo'?'🎯 '+esc(m.an):esc(m.an)+' '+R.sc[0]+' – '+R.sc[1]+' '+esc(m.bn)} · ${esc(m.pre.nom)}</h2><span class="muted">${dateFR(m.date)}</span>
      <button class="btn sm" onclick="playResume('${m.id}')">✎ Reprendre</button><button class="btn red sm" onclick="matchDel('${m.id}')">Supprimer</button></div>${matchStatsHtml(m)}</div>`;return}
   const L=c.eleves.map(e=>({e,st:elStats(c,e.id,MDATE)}));
   const sel=CMP.map(id=>L.find(x=>x.e.id===id)).filter(Boolean);
@@ -2799,7 +2799,7 @@ function pouleHtml(c){
     const ms=matchesOf(c,m=>m.poule===p.id&&m.fin);const tab={};p.el.forEach(id=>tab[id]={v:0,j:0,diff:0,bc:0});const pp=preById(p.pre)||{},isBC=!!(pp.badcode||(pp.man&&pp.man.on&&pp.man.mode==='verte'));
     ms.forEach(m=>{const R=replay(m);[m.a,m.b].forEach((id,s)=>{if(!tab[id])return;tab[id].j++;if(R.win===s)tab[id].v++;tab[id].diff+=R.sc[s]-R.sc[1-s];if(R.bc)tab[id].bc+=R.bc[s];else if(R.cp&&R.cp[s]!=null)tab[id].bc+=R.cp[s]})});
     const rk=p.el.slice().sort((a,b)=>(isBC?tab[b].bc-tab[a].bc:0)||tab[b].v-tab[a].v||tab[b].diff-tab[a].diff);
-    return `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🏆 ${esc(p.nom)}</h2><button class="btn alt sm" onclick="POULE=null;renderTerr()">← Poules</button></div>
+    return `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🏆 ${esc(p.nom)}</h2><button class="btn alt sm" onclick="POULE=null;renderTerr()">← Retour</button></div>
      <p class="muted">Situation : ${esc((preById(p.pre)||{nom:'—'}).nom)}</p>
      <div class="mlist">${pairs.map(([a,b])=>{const m=ms.filter(x=>(x.a===a&&x.b===b)||(x.a===b&&x.b===a)).pop();const R=m&&replay(m);
        return `<button onclick="${m?`TRES='${m.id}';renderTerrRes()`:`playStart('${p.pre}','${c.id}','${a}','${b}','${p.id}')`}"><b>${esc(shortName(elById(c,a)))} ${m?`<span class="sc2">${R.sc[m.a===a?0:1]} – ${R.sc[m.a===a?1:0]}</span>`:'<span class="sc2">▶</span>'} ${esc(shortName(elById(c,b)))}</b><small>${m?'joué':'à jouer'}</small></button>`}).join('')}</div>

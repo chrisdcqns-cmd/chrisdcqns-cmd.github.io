@@ -21,9 +21,9 @@ function protoScreen(m){const v=T.pv||'pro',P=proto(T.act,v);
 /* ================== ✏️ MODIFIER LE PROTOCOLE ================== */
 let EDP=null;
 function editScreen(m){const v=T.pv||'pro';if(!EDP||EDP.id!==protoId(T.act,v))EDP=proto(T.act,v);const P=EDP;
- if(!P){m.innerHTML=`<div class="wrap"><button class="b" onclick="go('proto')">← Protocole</button><div class="card warn">Pas de protocole ${esc(VOIES[v])} pour cette activité.</div></div>`;return}
+ if(!P){m.innerHTML=`<div class="wrap"><button class="b" onclick="go('proto')">← Retour</button><div class="card warn">Pas de protocole ${esc(VOIES[v])} pour cette activité.</div></div>`;return}
  const ta=(path,val,r)=>`<textarea rows="${r||2}" data-p="${path}">${esc(val)}</textarea>`,inp=(path,val,t)=>`<input type="${t||'text'}" data-p="${path}" value="${esc(val)}"${t==='number'?' step="0.25"':''}>`;
- let h=`<div class="wrap ed"><div class="row wrapf"><button class="b" onclick="EDP=null;go('proto')">← Protocole</button><h2 class="h2" style="flex:1;margin:0">✏️ ${esc(P.apsa)} · ${esc(VOIES[v])}</h2><button class="b" onclick="edReset()">↺ Revenir au texte d'origine</button><button class="b p" onclick="edSave()">✓ Enregistrer</button></div>
+ let h=`<div class="wrap ed"><div class="row wrapf"><button class="b" onclick="EDP=null;go('proto')">← Retour</button><h2 class="h2" style="flex:1;margin:0">✏️ ${esc(P.apsa)} · ${esc(VOIES[v])}</h2><button class="b" onclick="edReset()">↺ Revenir au texte d'origine</button><button class="b p" onclick="edSave()">✓ Enregistrer</button></div>
  <p class="mut">Tout est modifiable : textes, règles de l'épreuve, degrés, points, et en bas les règles de calcul de la forme de pratique. Une ligne = une puce. Les notes des élèves sont recalculées avec le protocole enregistré.</p>
  <div class="card"><h3 class="h3">En-tête</h3><div class="g3"><label>APSA${inp('apsa',P.apsa)}</label><label>Champ d'apprentissage${inp('ca',P.ca)}</label><label>Session${inp('session',P.session)}</label></div><label>Établissement${inp('etab',P.etab)}</label>
  <label>Objectif de l'épreuve (OE)${ta('oe',P.oe,3)}</label><label>Principe d'élaboration de l'épreuve (une ligne par puce)${ta('principe',P.principe.join('\n'),7)}</label></div>

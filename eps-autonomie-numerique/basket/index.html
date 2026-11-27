@@ -205,7 +205,9 @@ const stItems=pre=>Object.entries(stLd().items).filter(([k,o])=>k.startsWith(pre
 /* relevé rapide (toutes les 6 s, comme la leçon en cours) : scores, équipes et rencontres arrivent sans attendre le relevé général */
 setInterval(()=>{ try{ if(document.visibilityState!=="hidden"&&!window.EPS_SIM&&window.EPSD&&EPSD.syncOne) EPSD.syncOne(KST); }catch(e){} },6000);
 /* ======================= CLASSES, ÉLÈVES, ÉQUIPES ======================= */
-function classesBK(){ try{ return (window.EPSL?EPSL.items():[]).filter(it=>it&&it.nom&&!it.del&&!(it.demo&&!(window.EPSD&&EPSD.demo&&EPSD.demo.on()))&&!(it.off||[]).includes(CODE)); }catch(e){ return []; } }
+/* classe fictive : lue directement (eps-home.js arrive après le premier affichage, sinon « Aucune classe » en mode enseignant) */
+function demoActif(){ try{ return !!JSON.parse(localStorage.getItem("eps.demo.v1")||"null"); }catch(e){ return false; } }
+function classesBK(){ try{ return (window.EPSL?EPSL.items():[]).filter(it=>it&&it.nom&&!it.del&&!(it.demo&&!demoActif())&&!(it.off||[]).includes(CODE)); }catch(e){ return []; } }
 const S={classe:SS.get("classe"), eq:SS.get("eq"), vue:"home", pick:"", mid:SS.get("mid"), oid:"", pid:"", sys:"", obsTy:"coll", bilC:"", bilJ:""};
 const aClasse=()=>!!S.classe&&S.classe!=="-";
 const clsObj=()=>classesBK().find(x=>x.id===S.classe)||null;

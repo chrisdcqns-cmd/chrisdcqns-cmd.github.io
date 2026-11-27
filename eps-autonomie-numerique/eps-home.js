@@ -1674,9 +1674,11 @@
     b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4"/></svg>';
     var s = b.style, slot = epsSlot();
     /* 🔄 réservé à l'enseignant (masqué côté élève : html:not(.eps-teach)) : dans la barre du haut si elle est visible, sinon bouton rond en haut à droite (placeUpd) */
-    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}html:not(.eps-teach):not(.eps-tool) #eps-upd{display:none!important}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
+    try { var cs = document.createElement("style"); cs.textContent = "#eps-upd.eps-upd-n{margin-left:auto;align-self:center;flex:none;position:sticky;right:4px;z-index:3;background:#14171C!important}#eps-upd.eps-upd-l{background:#fff!important;color:#14171C!important;border:1.5px solid #E6E1D6!important}[data-eps-upd-slot]{display:inline-flex;align-items:center;gap:6px}html:not(.eps-teach):not(.eps-tool) #eps-upd{display:none!important}html.eps-tous:not(.eps-teach) #eps-upd{display:none!important}@media print{#eps-upd{display:none!important}}"; document.head.appendChild(cs); } catch (e) {}
     /* outils réservés à l'enseignant (pas de mode élève) : 🔄 toujours affiché */
     if (/\/(edt|appel-as|co-eval|terrain|console|attestation|guide|tactique|boite|quiz|carnet|espace|referentiel)\//.test(location.pathname)) document.documentElement.classList.add("eps-tool");
+    /* pages ouvertes aux élèves (planche, boîte à outils, quiz, carnet) : jamais de 🔄 côté élève (demande de l'enseignant) */
+    if (/\/(tactique|boite|quiz|carnet)\//.test(location.pathname)) document.documentElement.classList.add("eps-tous");
     b.className = "epsb"; b.style.display = "none"; document.body.appendChild(b); setTimeout(function () { try { placeUpd(); } catch (e) {} }, 50);
     b.onclick = async function () {
       if (b.dataset.busy) return; b.dataset.busy = "1"; s.opacity = ".6";
@@ -1869,7 +1871,7 @@
      [data-eps-longtext] garde ses textes entiers (fiche d'utilisation…). */
   (function tips() {
     var SEL = "p.mut,p.lc-mut,p.gr-mut,p.epse-mut,p.m,p.muted,div.lc-mut,div.mut,span.gr-mut,p.mc", LIM = 110;
-    try { var st = document.createElement("style"); st.textContent = ".eps-tipb{border:0;background:none;padding:0 0 0 4px;margin:0;cursor:pointer;vertical-align:middle;min-height:0!important;min-width:0!important}.eps-tipb i{font-style:normal;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#E6E1D6;color:#14171C;font:800 13px system-ui,sans-serif}" +
+    try { var st = document.createElement("style"); st.textContent = ".eps-tipb{border:0;background:none;padding:0 0 0 4px;margin:0;cursor:pointer;vertical-align:middle;min-height:0!important;min-width:0!important;position:relative}.eps-tipb::after{content:'';position:absolute;inset:-11px -9px}.eps-tipb i{font-style:normal;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#E6E1D6;color:#14171C;font:800 13px system-ui,sans-serif}" +
       ".eps-tipo{position:fixed;inset:0;z-index:2147483600;background:rgba(20,23,28,.35);display:flex;align-items:center;justify-content:center;padding:16px}.eps-tipo>div{background:#fff;color:#14171C;border-radius:16px;max-width:520px;width:100%;padding:16px 18px;font:16px/1.45 system-ui,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)}.eps-tipo button{margin-top:12px;min-height:42px;border-radius:10px;border:0;background:#14171C;color:#fff;font:800 15px system-ui;padding:0 18px;cursor:pointer}";
       (document.head || document.documentElement).appendChild(st); } catch (e) {}
     function plain(el) { if (el.attributes.length > 2 || el.id) return false; for (var i = 0; i < el.attributes.length; i++) { var n = el.attributes[i].name; if (n !== "class" && n !== "style") return false; }
@@ -1897,14 +1899,18 @@
   })();
   (function a11y() {
     try { var st = document.createElement("style"); st.id = "eps-a11y";
-      st.textContent = ":focus-visible{outline:3px solid #1F5F8B!important;outline-offset:2px!important}[data-eps-a11y-sm]{min-width:40px!important;min-height:40px!important}.btn.sm,button.sm,.back{min-height:36px!important}@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}";
+      st.textContent = ":focus-visible{outline:3px solid #1F5F8B!important;outline-offset:2px!important}[data-eps-a11y-sm]{min-width:44px!important;min-height:44px!important}[data-eps-a11y-h='1'][data-eps-a11y-h][data-eps-a11y-h]{min-height:44px!important}a[data-eps-a11y-h='1']{display:inline-flex!important;align-items:center}.btn.sm,button.sm,.back{min-height:36px!important}@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}";
       (document.head || document.documentElement).appendChild(st); } catch (e) {}
     var NOMS = { "↑": "Monter", "↓": "Descendre", "▲": "Monter", "▼": "Descendre", "←": "Retour", "→": "Suivant", "◀": "Précédent", "▶": "Suivant", "✕": "Fermer", "×": "Fermer", "🗑": "Supprimer", "✎": "Modifier", "✏": "Modifier", "✏️": "Modifier", "🖨": "Imprimer", "🖨️": "Imprimer", "⟳": "Synchroniser", "🔍": "Rechercher", "🎙": "Dicter une observation", "🎤": "Dicter", "🔊": "Écouter", "＋": "Ajouter", "+": "Ajouter", "−": "Retirer", "-": "Retirer", "⧉": "Dupliquer", "⚙": "Réglages", "⚙️": "Réglages", "⌂": "Accueil", "📋": "Copier", "↺": "Rétablir", "↶": "Annuler", "✓": "Valider", "★": "Favori" };
+    var TOUCH = false; try { TOUCH = navigator.maxTouchPoints > 0 || matchMedia("(pointer:coarse)").matches; } catch (e) {}
     function pass() {
-      try { document.querySelectorAll("button,[role=button]").forEach(function (b) {
+      try { document.querySelectorAll("button,[role=button],a.btn,a.back,a.hb,a.lien44,select").forEach(function (b) {
+          if (b.tagName === "SELECT") { if (TOUCH && !b.hasAttribute("data-eps-a11y-h") && !b.multiple) { var rs = b.getBoundingClientRect(); if (rs.height >= 16 && rs.height < 43.5) b.setAttribute("data-eps-a11y-h", "1"); } return; }
           if (!b.offsetParent) return; var txt = (b.innerText || "").trim(), letters = txt.replace(/[^A-Za-zÀ-ÿ0-9]/g, "");
           if (!letters && !b.getAttribute("aria-label")) { var n = b.title || NOMS[txt] || NOMS[txt.replace(/️/g, "")]; if (n) b.setAttribute("aria-label", n); }
-          if (!letters && !b.hasAttribute("data-eps-a11y-sm")) { var r = b.getBoundingClientRect(); if (r.width && (r.width < 32 || r.height < 32)) b.setAttribute("data-eps-a11y-sm", ""); } });
+          if (!letters && !b.hasAttribute("data-eps-a11y-sm")) { var r = b.getBoundingClientRect(); if (r.width && (r.width < 32 || r.height < 32)) b.setAttribute("data-eps-a11y-sm", ""); }
+          /* écran tactile (tablette, téléphone) : aucun bouton de moins de 44 px de haut (demande de l'enseignant, 27/11/2026) ; les boutons posés à un endroit précis (plan, carte) et les ⓘ ne bougent pas */
+          if (TOUCH && !b.hasAttribute("data-eps-a11y-h")) { var r2 = b.getBoundingClientRect(); if (r2.height >= 16 && r2.height < 43.5) { var cs = getComputedStyle(b), ok = cs.position !== "absolute" && cs.position !== "fixed" && !/eps-tipb/.test(b.className) && !b.closest("svg,[data-eps-compact]"); b.setAttribute("data-eps-a11y-h", ok ? "1" : "0"); } } });
         document.querySelectorAll("input:not([type=hidden]),select,textarea").forEach(function (f) {
           if (f.getAttribute("aria-label") || f.getAttribute("aria-labelledby") || (f.labels && f.labels.length) || f.placeholder || f.title) return;
           var pv = f.previousElementSibling, t = pv && /LABEL|SPAN|B|STRONG|DIV|SMALL/.test(pv.tagName) ? (pv.innerText || "").trim() : "";
@@ -2073,8 +2079,9 @@
   function codesPrint(cls, P) { var link = bilLink(), w = window.open("", "_blank"); if (!w) { alert("Autorise les fenêtres pour imprimer les codes."); return; }
     w.document.write('<!doctype html><meta charset="utf-8"><title>Codes ' + esc(cls) + '</title><style>body{font-family:system-ui,sans-serif;margin:10mm}.g{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.e{border:1px dashed #999;border-radius:6px;padding:4mm;break-inside:avoid}.c{font:800 22px ui-monospace,monospace;letter-spacing:.2em;margin:2mm 0}.l{font-size:11px;word-break:break-all;color:#444}</style><div class="g">' +
       P.map(function (n) { var c = codeFor(cls, n); return '<div class="e"><b>' + esc(n) + "</b> · " + esc(cls) + "<div>Ton code pour voir tes bilans d'EPS (le même pour toutes les activités, ne le donne à personne) :</div><div class=\"c\">" + esc(c.c) + '</div><div class="l">' + esc(link) + "</div></div>"; }).join("") + "</div><script>setTimeout(function(){print()},300)<\/script>"); w.document.close(); }
-  function bilans(want) {
-    if (!isTeacher()) { askCode().then(function (ok) { if (ok) { setHubTeach(true); bilans(want); } }); return; }
+  function bilans(want, sur) {
+    /* « sur » : le code vient d'être donné. Hors de l'accueil (carnet, espace élève…), isTeacher() reste faux : sans ce repère la fonction se rappelait sans fin et figeait la tablette (corrigé le 27/11/2026) */
+    if (!sur && !isTeacher()) { askCode().then(function (ok) { if (ok) { setHubTeach(true); bilans(want, true); } }); return; }
     if (!shCfg()) { alert("Règle d'abord le partage entre tablettes (Réglages) : les bilans en ligne passent par le script commun."); return; }
     var CL = []; try { CL = EPSL.items().map(function (it) { return it.nom; }).sort(function (a, b) { return a.localeCompare(b, "fr", { numeric: true }); }); } catch (e) {}
     var cur = want && CL.indexOf(want) >= 0 ? want : CL[0], link = bilLink();

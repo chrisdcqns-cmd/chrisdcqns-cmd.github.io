@@ -68,7 +68,7 @@ for p in list(B.glob("*/index.html")) + [B / "index.html"]:
     if not (p.parent / "src").is_dir() and "eps-source-directe" not in p.read_text(encoding="utf-8", errors="replace")[:600]:
         pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
 REPERES = {
-    "danse/index.html": ["SY.c[k] = { u: SY.p[k]", "function P01(", "P01(au.pos)", "P01(sel.pos)", "P01(x.pos)", "EPSG_Q", "UI.mode"],
+    "danse/index.html": ["Demande à ton enseignant de créer les groupes.", "SY.c[k] = { u: SY.p[k]", "function P01(", "P01(au.pos)", "P01(sel.pos)", "P01(x.pos)", "EPSG_Q", "UI.mode"],
     "volley/index.html": ["pd.n=(pd.n||0)+1", "function jsq(", "confirm(&quot;Changer l'équipe", "EPSG.sheet("],
     "badminton/index.html": ["pd.n=(pd.n||0)+1", "EPSG.sheet(", "Fiches techniques"],
     "acrosport/index.html": ["EPSG.sheet(", "Array.isArray(def)!==Array.isArray(p)", "const autres="],
@@ -79,9 +79,9 @@ REPERES = {
     "console/index.html": ["doit être un nombre", "if (sm) sm.textContent"],
     "mon-bilan/index.html": ["ton enseignant", "kind === \"espace\"", "dropchk", "function mission(", "un seul envoi à la fois", "essais automatiques seulement", "../step/export.js"],
     "espace/index.html": ["E.publier(", "E.relever()", "noindex", "function mget(", "E.dispenses(", "get(DIRS.step).step"],
-    "eps-home.js": ["function fortApply(", "var LEX = {", "eps.gate.last.", "async function espPublier(", "async function espRelever(", "EPSD.plan = {", "function planCheck(", "function gateSheet(", "sheet: gateSheet", "async function confirmes(", "ESSAIS_MAX"],
+    "eps-home.js": ["bilans(want, true)", "html.eps-tous:not(.eps-teach) #eps-upd{display:none!important}", "data-eps-a11y-h", "function fortApply(", "var LEX = {", "eps.gate.last.", "async function espPublier(", "async function espRelever(", "EPSD.plan = {", "function planCheck(", "function gateSheet(", "sheet: gateSheet", "async function confirmes(", "ESSAIS_MAX"],
     "eps-lists.js": ["typeof def === \"number\" && (typeof o.v !== \"number\""],
-    "eps-shell.js": ["doit être un nombre"],
+    "eps-shell.js": ["doit être un nombre", ">✕ Fermer</button></div><iframe"],
     "eps-tactique.js": ["function editor(", "function depart("],
     "eps-ref.js": ["function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw"],
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter"],
@@ -91,7 +91,9 @@ REPERES = {
     "attestation/index.html": ["À faire valider par ton chef d'établissement", "pre: \"at|\"", "noindex", "sheet a5 one"],
     "quiz/index.html": ["function okQ(", "var PROPS = ", "pre: \"qz|\"", "function garder("],
     "carnet/index.html": ["function courant(", "function garder(", "function orphelins(", "function ouvert(", "pre: \"cn|\"", "Ce n'est pas le bon code"],
-    "guide/index.html": ["data-ver=\"eleve\"", "data-ver=\"prof\"", "data-ver=\"bilan\"", "noindex", "EPSD.askCode()"],
+    "guide/index.html": ["data-niv=\"a\"", "data-niv=\"b\"", "data-niv=\"c\"", "function rendre(", "function chercher(", "function imprimer(", "noindex", "EPSD.askCode()", "contenu.js"],
+    "guide/contenu.js": ["G.a.gen = [", "G.b.gen = [", "G.c.gen = [", "act(\"ccf\"", "[\"aide\", \"commun\"]", "ce qu'il y a à faire pour être en réussite", "ce qu'il y a à faire pour faire"],
+    "eps-guides.js": ["← Accueil · ← Retour · ✕ Fermer", "📖 Guides"],
     "eps-lecons.js": ["if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
     "apps-script/Code.gs": ["function modele_(", "function sansCache_(", "function lisJson_(", "function syncChk_(", "res.chkv = 1"],
 }
@@ -99,6 +101,19 @@ for f, L in REPERES.items():
     t = (B / f).read_text(encoding="utf-8", errors="replace")
     for x in L:
         if x not in t: pb.append("%s : correction disparue (« %s ») : fichier remplacé par une version plus ancienne ?" % (f, x[:50]))
+# 8. guides : images citées présentes et gardées hors ligne, trois niveaux pour « Général » et chaque activité, vocabulaire
+gc = (B / "guide" / "contenu.js").read_text(encoding="utf-8")
+for im in sorted(set(re.findall(r'"([a-z0-9-]+\.jpg)"', gc))):
+    if not (B / "guide" / "img" / im).exists(): pb.append("guide : image citée introuvable : " + im)
+    elif ("B + ", "guide/img/" + im) not in core: pb.append("guide : image non gardée hors ligne (CORE_FILES) : " + im)
+for im in sorted(x.name for x in (B / "guide" / "img").glob("*.jpg")):
+    if '"%s"' % im not in gc: pb.append("guide : image inutilisée dans guide/img : " + im)
+ga = re.findall(r'\{ k: "([a-z]+)", nom:', gc.split("var NIV")[0])
+for k in ga[1:]:
+    if 'act("%s"' % k not in gc: pb.append("guide : pas de guide pour l'activité « %s »" % k)
+    elif '["aide", "%s"]' % k not in gc: pb.append("guide : le niveau détaillé de « %s » ne reprend pas eps-guides.js" % k)
+for mot in ("séance", "Séance", " cycle ", "ce qui manque", "pas encore disponible", "à venir"):
+    if mot in gc.split("window.EPS_GUIDE")[1]: pb.append("guide : mot à éviter « %s » (leçon / séquence ; ne jamais lister ce qui manque)" % mot.strip())
 # 6. code des boutons (attributs on…) : JavaScript valide une fois la page affichée (apostrophe non protégée, etc.)
 r = subprocess.run(["node", str(B / "outils" / "boutons.js")] + [str(p) for p in list(B.glob("*.js")) + pages], capture_output=True, text=True)
 if r.returncode: pb += ["bouton : " + l for l in r.stdout.strip().split("\n")[:-1] if l.strip()]

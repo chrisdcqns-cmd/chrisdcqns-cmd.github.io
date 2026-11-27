@@ -833,7 +833,7 @@ function renderLive(){
   const body=!ids.length?(LV.choix?'':'<div class="card"><p>Choisis les élèves qui jouent avec « 👥 Sur le terrain ».</p></div>')
     :one?`<div class="lvone" id="lvOne"><button class="lvnav" onclick="lvGo(-1)" ${LV.idx?'':'disabled'} aria-label="Élève précédent">‹</button><div class="lvonec">${lvCard(c.eleves.find(e=>e.id===ids[LV.idx]))}<div class="lvdots">${ids.map((id,k)=>{const e=c.eleves.find(x=>x.id===id),ok=crs.every(cr=>e.ev&&e.ev[cr.id]&&e.ev[cr.id].d!=null);return `<button class="${k===LV.idx?'on':''} ${ok?'ok':''}" onclick="LV.idx=${k};lvSave();renderLive()" aria-label="${esc(fullName(e))}"></button>`}).join('')}</div><p class="muted" style="text-align:center">${LV.idx+1} / ${ids.length} · glisse vers la gauche ou la droite pour changer d'élève</p></div><button class="lvnav" onclick="lvGo(1)" ${LV.idx<ids.length-1?'':'disabled'} aria-label="Élève suivant">›</button></div>`
     :`<div class="lvgrid">${ids.map(id=>lvCard(c.eleves.find(e=>e.id===id))).join('')}</div>`;
-  box.innerHTML=`<div class="evhead"><button class="btn alt" onclick="closeLive()">← Liste</button><h2>🏐 En direct · ${esc(c.nom)}</h2>
+  box.innerHTML=`<div class="evhead"><button class="btn alt" onclick="closeLive()">← Retour</button><h2>🏐 En direct · ${esc(c.nom)}</h2>
     <div class="seg"><button class="${one?'':'on'}" onclick="LV.one=0;lvSave();renderLive()">▦ Tous</button><button class="${one?'on':''}" onclick="LV.one=1;lvSave();renderLive()">◻ Un par un</button></div>
     <button class="btn alt sm" onclick="LV.choix=!LV.choix;lvSave();renderLive()">👥 Sur le terrain (${ids.length})</button></div>
    <div class="seg lvcr">${b.criteres.map(x=>`<button class="${crs.some(y=>y.id===x.id)?'on':''}" onclick="lvTogCr('${x.id}')">${crs.some(y=>y.id===x.id)?'✓ ':''}${esc(x.nom)} <small>${esc(x.afl)}</small></button>`).join('')}</div>
@@ -876,7 +876,7 @@ function renderEval0(){
      <span class="muted">à annoncer avant l'épreuve</span></div></div>`:'';
   p.innerHTML=`
   <div class="evhead">
-    <button class="btn alt" onclick="closeEval()">← Liste</button>
+    <button class="btn alt" onclick="closeEval()">← Retour</button>
     <h2>${esc(fullName(e))}${apChipVol(e)}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
     <button class="btn alt sm" onclick="nav(-1)" ${curEl===0?'disabled':''}>◀ Préc.</button>
     <button class="btn alt sm" onclick="nav(1)" ${curEl===c.eleves.length-1?'disabled':''}>Suiv. ▶</button>
@@ -1209,17 +1209,17 @@ function coStep(c,t,j){
      <button class="pbtn" style="background:var(--vol);margin-top:14px" onclick="CO.step=1;save();renderCoach()">C'est moi, on continue →</button></div>`}
   if(CO.step===1){return `<div class="card"><h2>✋ Qui est présent ?</h2><p class="muted">Touche un joueur pour le passer présent (vert) ou absent (rouge).</p>
      <div class="pres">${pl.map(e=>{const v=j.pres[e.id],dp=dispOf(e);return `<button class="${v===1?'p':v===0?'a':''}" onclick="coPres('${e.id}')">${esc(fullName(e))}${dp?' 🩹':''}<br><small class="muted">${v===1?'présent':v===0?'absent':'à cocher'}${dp?' · dispensé(e)':''}</small></button>`}).join('')}</div>
-     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=0;renderCoach()">←</button><button class="btn alt" onclick="coSet(t=>{const J=jour(t);(t.el||[]).forEach(id=>{if(J.pres[id]==null)J.pres[id]=1})})">Tous présents</button>
+     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=0;renderCoach()" aria-label="Retour">← Retour</button><button class="btn alt" onclick="coSet(t=>{const J=jour(t);(t.el||[]).forEach(id=>{if(J.pres[id]==null)J.pres[id]=1})})">Tous présents</button>
      <button class="pbtn" style="background:var(--vol);flex:1" onclick="if(${pl.length}&&Object.keys(jour(coT()).pres).length<${pl.length}){toast('Coche tous les joueurs');return}CO.step=2;renderCoach()">Continuer →</button></div></div>`}
   if(CO.step===2){return `<div class="card"><h2>🎽 Couleur de nos chasubles</h2>
      <div class="chas">${CHAS.map(([n,col])=>`<button class="${j.chas===n?'on':''}" style="background:${col};color:${['Blanc','Jaune'].includes(n)?'#222':'#fff'}" onclick="coSet(t=>{jour(t).chas='${n}'})">${n}</button>`).join('')}</div>
-     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=1;renderCoach()">←</button><button class="pbtn" style="background:var(--vol);flex:1" onclick="if(!jour(coT()).chas){toast('Choisis une couleur');return}CO.step=3;renderCoach()">Continuer →</button></div></div>`}
+     <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=1;renderCoach()" aria-label="Retour">← Retour</button><button class="pbtn" style="background:var(--vol);flex:1" onclick="if(!jour(coT()).chas){toast('Choisis une couleur');return}CO.step=3;renderCoach()">Continuer →</button></div></div>`}
   const used=(c.equipes||[]).filter(x=>x.id!==t.id).map(x=>({t:x,j:(x.jours||{})[today()]})).filter(x=>x.j&&x.j.terrain);
   const aff=affOf(c,t);if(aff&&aff.mode==='jeu'&&!j.terrain)j.terrain=aff.k;
   return `${coAff(c,t)}<div class="card"><h2>🏐 Notre terrain</h2><div class="tiles">${[1,2,3].map(n=>{const o=used.filter(x=>x.j.terrain===n).map(x=>x.t.nom);return `<button class="tile ${j.terrain===n?'on':''}" onclick="coSet(t=>{jour(t).terrain=${n}})">Terrain ${n}${o.length?`<br><small class="muted">avec ${esc(o.join(', '))}</small>`:''}</button>`}).join('')}</div></div>
    <div class="card"><h2>🧰 Matériel installé</h2><p class="muted">Coche ce que votre équipe a pris et installé.</p>
     <div class="pres">${MAT.map(([k,n])=>`<button class="${j.mat[k]?'p':''}" onclick="coSet(t=>{const J=jour(t);J.mat['${k}']=J.mat['${k}']?0:1})">${j.mat[k]?'✓ ':''}${n}</button>`).join('')}</div>
-    <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=2;renderCoach()">←</button><button class="pbtn" style="background:var(--d4);flex:1" onclick="if(!jour(coT()).terrain){toast('Choisis votre terrain');return}coSet(t=>{jour(t).ok=1});CO.tab='lecon'">✓ Terrain prêt : voir la leçon</button></div></div>`;
+    <div class="row" style="margin-top:12px"><button class="btn alt" onclick="CO.step=2;renderCoach()" aria-label="Retour">← Retour</button><button class="pbtn" style="background:var(--d4);flex:1" onclick="if(!jour(coT()).terrain){toast('Choisis votre terrain');return}coSet(t=>{jour(t).ok=1});CO.tab='lecon'">✓ Terrain prêt : voir la leçon</button></div></div>`;
 }
 function rolesAuto(c,t,coach){const J0=jour(t),pl=(t.el||[]).filter(id=>elOf(c,id)&&J0.pres[id]!==0);if(!pl.length)return{};const i0=Math.max(0,pl.indexOf(coach)),o={};
   ROLES.forEach(([k],r)=>{if(pl.length>r+1)o[k]=pl[(i0+r+1)%pl.length]});return o}
@@ -1348,7 +1348,7 @@ function coAuto(c,t,j){const pl=(t.el||[]).map(id=>elOf(c,id)).filter(Boolean).f
   const e=elOf(c,AUTOEL);if(!e){AUTOEL=null;return ''}const a=(e.auto&&e.auto.date===today())?e.auto:{date:today(),d:{}};
   return `<div class="card"><h2>🪞 ${esc(fullName(e))}</h2><p class="muted">Pour chaque critère, touche la phrase qui te ressemble.</p></div>
   ${B().criteres.map(cr=>{const X=cTx(cr,true);return `<div class="crit"><b>${esc(X.nom)}</b><div class="muted">${esc(X.but)}</div><div class="degs" style="margin-top:8px">${[0,1,2,3].map(d=>`<button class="deg d${d+1} ${a.d[cr.id]===d?'sel':''}" onclick="autoSet('${cr.id}',${d})"><span class="dt">${esc(X.deg[d])}</span><span>${esc(X.desc[d]||'')}</span></button>`).join('')}</div></div>`}).join('')}
-  <div class="row"><button class="btn alt" onclick="AUTOEL=null;renderCoach()">← Joueurs</button><button class="pbtn" style="background:var(--d4);flex:1" onclick="AUTOEL=null;renderCoach();toast('Merci !')">✓ J'ai terminé</button></div>`}
+  <div class="row"><button class="btn alt" onclick="AUTOEL=null;renderCoach()">← Retour</button><button class="pbtn" style="background:var(--d4);flex:1" onclick="AUTOEL=null;renderCoach();toast('Merci !')">✓ J'ai terminé</button></div>`}
 function autoSet(id,d){const c=coC(),e=elOf(c,AUTOEL);if(!e)return;if(!e.auto||e.auto.date!==today())e.auto={date:today(),d:{}};e.auto.d[id]=d;save();const y=scrollY;renderCoach();scrollTo(0,y)}
 
 /* ---- fin de leçon : bilan en 3 questions (transmis au coach suivant) + rangement ---- */
@@ -1727,7 +1727,7 @@ function dashHtml(c){
 let EQT=null,EQV='jour';
 function renderEquipes(){const c=C(),E=c.equipes=c.equipes||[],box=document.getElementById('t-equipes'),free=c.eleves.filter(e=>!E.some(t=>(t.el||[]).includes(e.id)));
   try{if(E.length>1&&window.epsGroupesLog)epsGroupesLog('volley',c.nom,E.map(t=>(t.el||[]).map(id=>{const e=c.eleves.find(x=>x.id===id);return e?(e.prenom||'')+' '+(e.nom||''):''})),'equipes')}catch(x){}
-  if(EQT){const t=E.find(x=>x.id===EQT);if(t){box.innerHTML=`<div class="row" style="margin-bottom:10px"><button class="btn alt" onclick="EQT=null;renderEquipes()">← Équipes</button><h2 style="margin:0;color:var(--navy)">${esc(t.nom)} · bilan</h2></div>`+bilanEquipe(c,t,1);return}EQT=null}
+  if(EQT){const t=E.find(x=>x.id===EQT);if(t){box.innerHTML=`<div class="row" style="margin-bottom:10px"><button class="btn alt" onclick="EQT=null;renderEquipes()">← Retour</button><h2 style="margin:0;color:var(--navy)">${esc(t.nom)} · bilan</h2></div>`+bilanEquipe(c,t,1);return}EQT=null}
   box.innerHTML=dashHtml(c)+`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Équipes · ${esc(c.nom)}</h2>
     <div class="row"><button class="btn alt sm" onclick="eqAuto()">🎲 Répartir automatiquement</button><button class="btn alt sm" onclick="eqNiv()">🧩 Équipes de niveau / affinités</button><button class="btn alt sm" onclick="eqFromDay()" title="Groupes formés dans 📡 Leçon en cours">👥 Groupes du jour</button><button class="btn sm" onclick="eqAdd()">+ Équipe</button><button class="btn sm" style="background:var(--vol)" onclick="lockApp();coachStart()">🧢 Passer en tablette du coach</button></div></div>
     <p class="muted">Les élèves coachs choisissent leur équipe sur la tablette, sans code et sans voir les notes. Une tablette par équipe : elle garde son équipe. Le coach change à chaque leçon, dans l'ordre des joueurs ci-dessous (🧢 = coach du jour ; ↑ pour changer l'ordre) ; s'il est absent, l'équipe en choisit un autre. ${free.length?`<b>${free.length} élève(s) sans équipe.</b>`:''}</p></div>
