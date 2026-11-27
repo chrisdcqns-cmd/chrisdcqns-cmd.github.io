@@ -232,6 +232,11 @@ window.EPSTORI=window.EPST?EPST.init({app:'ori',nom:'OrienRun',color:'#E8701A',i
  reglages:[{ico:'⚙',label:'Réglages d\'OrienRun',sub:'Projet, carte, code, sauvegarde',go:function(){setPTab('reglages')}}]
 }):null;
 window.epsTeacherEntry=function(){try{location.hash="";showHome()}catch(e){}var b=document.getElementById("goProf");if(b)b.click()};
+/* 🖥 console ordinateur (cadre …/?console=…, 27/11/2026) : le code enseignant a déjà été donné à l'ouverture de la console → l'espace enseignant
+   s'ouvre tout seul, sans passer par « ✋ Enseignant » (profLogin ne redemande rien quand le mode enseignant commun est ouvert et que le mot de passe
+   du script est connu de l'ordinateur ; sinon il le demande une fois). */
+if(/[?&]console=/.test(location.search))(function w(n){var b=document.getElementById("goProf"),ok=false;try{ok=Date.now()<+(localStorage.getItem("eps.teach.until")||0)&&typeof b.onclick==="function"}catch(e){}
+  if(b&&ok){b.click();return}if(n<40)setTimeout(function(){w(n+1)},250)})(0);
 /* dispensés : seulement ceux des classes de la leçon en cours (appel), sinon tous */
 window.epsCurrentClass=function(){try{if(typeof S!=="undefined"&&S&&S.active&&S.cls&&S.cls.length)return{nom:S.cls.join(" + "),eleves:((S.appel&&S.appel.list)||[]).map(function(x){return x.nom})}}catch(e){}return null};
 window.epsAppHome=function(){try{stopMyPos()}catch(e){}try{location.hash="";showHome()}catch(e){location.href=location.pathname}};</script>

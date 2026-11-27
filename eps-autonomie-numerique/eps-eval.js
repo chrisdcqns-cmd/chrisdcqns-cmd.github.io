@@ -790,7 +790,7 @@
         G.criteres.map(function (cr, i) { return '<div class="epse-crit"><div class="epse-row" style="justify-content:flex-end;margin:0 0 4px"><button class="epse-btn" data-gel="' + i + '">✨ Proposer la version élève</button></div><div class="epse-row"><input type="text" data-g="c.' + i + '.nom" value="' + esc(cr.nom) + '" style="flex:2"><input type="text" data-g="c.' + i + '.afl" value="' + esc(cr.afl || "") + '" style="width:90px"><label class="epse-mut">pts <input type="text" data-g="c.' + i + '.max" value="' + esc(cr.max) + '" style="width:60px"></label></div>' +
           '<input type="text" data-g="c.' + i + '.but" value="' + esc(cr.but || "") + '" placeholder="Ce qui est attendu">' +
           '<div class="epse-degs" style="margin-top:6px">' + [0, 1, 2, 3].map(function (d) { return '<div><small class="epse-mut">D' + (d + 1) + ' (enseignant)</small><textarea rows="3" data-g="c.' + i + '.desc.' + d + '">' + esc(cr.desc[d] || "") + '</textarea><small class="epse-mut">D' + (d + 1) + ' (élève)</small><textarea rows="3" data-g="c.' + i + '.descEl.' + d + '">' + esc((cr.descEl || cr.desc)[d] || "") + "</textarea></div>"; }).join("") + "</div></div>"; }).join("") +
-        '<div class="epse-row"><button class="epse-btn" data-g-imp>📥 Importer une grille (Additio : PDF, Excel/CSV, photo)</button><button class="epse-btn" data-g-reset>↺ Revenir à la grille proposée</button><input type="file" data-g-file accept=".pdf,.csv,.txt,.xlsx,image/*" style="display:none"></div></div>';
+        '<div class="epse-row"><button class="epse-btn" data-g-imp>📥 Importer une grille (Additio : PDF, Excel/CSV, photo)</button><button class="epse-btn" data-g-exp title="Fichier .json à garder ou à passer à un collègue : il se réimporte avec « Importer une grille » (ou dans la console, 📦 Import / export)">📤 Exporter la grille</button><button class="epse-btn" data-g-reset>↺ Revenir à la grille proposée</button><input type="file" data-g-file accept=".json,.pdf,.csv,.txt,.xlsx,image/*" style="display:none"></div></div>';
     }
     function bindGrid(R) {
       R.querySelectorAll("[data-g]").forEach(function (i) { i.onchange = function () { var G = JSON.parse(JSON.stringify(grid())), p = i.dataset.g.split("."), v = i.value;
@@ -810,7 +810,16 @@
       /* 📥 import d'une grille (Additio…) : Claude la convertit, l'enseignant relit l'aperçu avant de remplacer */
       var gf = R.querySelector("[data-g-file]"), gi = R.querySelector("[data-g-imp]");
       if (gi && gf) { gi.onclick = function () { gf.click(); }; gf.onchange = async function () {
-        var f = gf.files[0]; if (!f) return; if (!window.EPSD || !EPSD.post) return toast("Indisponible (recharge la page)");
+        var f = gf.files[0]; if (!f) return;
+        /* 📦 fichier exporté par « 📤 Exporter la grille » ou la console (type eps-export, kind evaluation) : repris tel quel, sans Claude ni connexion */
+        if (/\.json$/i.test(f.name)) { try { var jx = JSON.parse(await f.text()), gx = jx && jx.type === "eps-export" && jx.kind === "evaluation" ? jx.grille : null, nx = gx && (gx.criteres || []).length;
+            if (!nx) throw new Error("ce fichier n'est pas une grille exportée");
+            if (confirm("Grille de " + (jx.nom || "?") + " (" + (jx.voie === "pro" ? "voie professionnelle" : "voie générale") + ", " + nx + " critères) :\n" + gx.criteres.map(function (c) { return "• " + (c.afl ? c.afl + " · " : "") + c.nom + " (" + c.max + " pts)"; }).join("\n") + "\n\nRemplacer la grille actuelle de la " + (gv() === "pro" ? "voie professionnelle" : "voie générale") + " ?")) {
+              gx = JSON.parse(JSON.stringify(gx)); gx.degres = (gx.degres && gx.degres.length === 4) ? gx.degres : grid().degres; gx.degresEl = gx.degresEl || grid().degresEl;
+              gx.criteres.forEach(function (c, i) { c.id = c.id || "c" + (i + 1); c.max = +String(c.max).replace(",", ".") || 0; c.desc = (c.desc || []).concat(["", "", "", ""]).slice(0, 4); });
+              setGrid(gx); toast("Grille importée ✓"); render(); return; }
+          } catch (e) { toast("⚠ " + (e && e.message || e)); } gf.value = ""; return; }
+        if (!window.EPSD || !EPSD.post) return toast("Indisponible (recharge la page)");
         gi.disabled = true; gi.textContent = "Claude lit la grille…";
         try {
           var q = { op: "grille", act: o.nom, nom: f.name, mime: f.type };
@@ -829,6 +838,9 @@
         } catch (e) { toast("⚠ " + (e && e.message || e)); }
         gi.disabled = false; gi.textContent = "📥 Importer une grille (Additio : PDF, Excel/CSV, photo)"; gf.value = "";
       }; }
+      var gx0 = R.querySelector("[data-g-exp]"); if (gx0) gx0.onclick = function () { var d = new Date(), day = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        var blob = new Blob([JSON.stringify({ type: "eps-export", v: 1, kind: "evaluation", code: o.app, nom: o.nom, voie: gv() === "pro" ? "pro" : "gt", date: day, grille: grid() })], { type: "application/json" }), a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = "EPS_grille_" + safe(o.nom) + (gv() === "pro" ? "_pro" : "_GT") + "_" + day + ".json"; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800); toast("Grille exportée ✓ (dossier Téléchargements)"); };
       var gp = R.querySelector("[data-g-proto]"); if (gp) gp.onclick = function () { if (confirm("Remplacer la grille des classes pro par celle de ton protocole CCF Bac pro ? Les évaluations déjà faites avec l'ancienne grille ne seront plus affichées dans la grille (elles restent enregistrées).")) { setCfg({ gridPro: JSON.parse(JSON.stringify(o.gridPro)) }); render(); } };
       R.querySelector("[data-g-reset]").onclick = function () { if (confirm("Revenir à la grille proposée" + (gv() === "pro" ? " pour la voie professionnelle (copie de la grille générale)" : "") + " ? Les textes modifiés seront remplacés.")) { if (gv() === "pro") setCfg({ gridPro: o.gridPro ? JSON.parse(JSON.stringify(o.gridPro)) : null }); else setCfg({ grid: JSON.parse(JSON.stringify(o.grid)) }); render(); } };
     }

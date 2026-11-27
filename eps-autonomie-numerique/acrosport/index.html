@@ -575,7 +575,8 @@ let G=null;               // groupe courant
 /* ---------- en ligne ---------- */
 const API_DEFAULT="https://script.google.com/macros/s/AKfycbzCW8b2vq-REokxUCdkbKyHf_nHJf4khfcCueu1AKKGlJVAiiSsiB7I-beOmjsUpE25Qg/exec";      // URL du script Google (…/exec) : peut aussi être collée dans l'espace enseignant
 /* dispenses communes (page d'accueil EPS, eps-home.js) */
-window.epsIsTeacher=()=>!!teacherPw;
+/* mode enseignant commun (code donné sur l'accueil ou à l'ouverture de la console) : vaut aussi ici, comme dans les autres applis */
+window.epsIsTeacher=()=>{if(teacherPw)return true;try{return Date.now()<+(localStorage.getItem("eps.teach.until")||0)}catch(e){return false}};
 /* un seul écran de suivi en acrosport : le 📊 tableau de bord de la leçon (✋ appels en tête ; le pilotage commun n'est pas proposé) */
 window.epsCtlOwn={on:()=>!!document.getElementById("dBody"),open:()=>{if(!document.getElementById("dBody"))lessonDashboard()}};
 function dzA(c,n,p){try{const d=window.EPSD&&EPSD.find(c||"",n,p);return d?` <small style="display:block;color:#C0392B;font-weight:700">🩹 ${esc(EPSD.label(d))}</small>`:""}catch(e){return ""}}

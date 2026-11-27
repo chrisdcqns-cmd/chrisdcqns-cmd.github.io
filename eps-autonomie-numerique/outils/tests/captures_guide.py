@@ -10,7 +10,7 @@ srv = subprocess.Popen([sys.executable, "-I", "-m", "http.server", str(PORT), "-
 gs = subprocess.Popen([sys.executable, "-I", "mockgs.py"], cwd=os.path.dirname(os.path.abspath(__file__))); time.sleep(1.5)
 B = "http://localhost:%d/eps-autonomie-numerique/" % PORT; G = "http://127.0.0.1:8899/exec"
 SH = "localStorage.setItem('eps.share.v1',JSON.stringify({url:'" + G + "',key:'CLE'}));"
-TEACH = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');" + SH + "}catch(e){}"
+TEACH = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');localStorage.setItem('eps.console.ask','0');" + SH + "}catch(e){}"
 ELEVE = "try{localStorage.removeItem('eps.teach.until');localStorage.removeItem('eps.console.trust');" + SH + "}catch(e){}"
 APPS = [("acro", "acrosport"), ("esc", "escalade"), ("ori", "orientation"), ("rel", "relais"), ("vol", "volley"), ("bad", "badminton"), ("dan", "danse"), ("ct", "crosstraining"), ("bk", "basket"), ("step", "step"), ("ccf", "ccf")]
 DEMO = "()=>{const b=[...document.querySelectorAll('button')].find(x=>/DÉMO/.test(x.innerText)&&x.offsetParent);if(b){b.click();return true}return false}"

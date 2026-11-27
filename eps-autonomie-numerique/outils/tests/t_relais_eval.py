@@ -4,7 +4,7 @@ from playwright.async_api import async_playwright
 ROOT=sys.argv[1]; PORT=8876
 srv=subprocess.Popen([sys.executable,"-I","-m","http.server",str(PORT),"--bind","127.0.0.1","--directory",ROOT],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1.2)
 B="http://localhost:%d/eps-autonomie-numerique/"%PORT
-TEACH="try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1')}catch(e){}"
+TEACH="try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');localStorage.setItem('eps.console.ask','0')}catch(e){}"
 ok=True
 def chk(c,m):
     global ok; print(("OK  " if c else "ÉCHEC ")+m,flush=True); ok=ok and bool(c)

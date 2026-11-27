@@ -11,7 +11,7 @@ B="http://localhost:%d/eps-autonomie-numerique/"%PORT
 E=ROOT+"/eps-autonomie-numerique"
 DIRS=[""]+sorted(d+"/" for d in os.listdir(E) if os.path.exists(E+"/"+d+"/index.html"))
 VP={"tab":(1024,768),"tel":(390,844),"ord":(1440,900)}
-TEACH="try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1')}catch(e){}"
+TEACH="try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');localStorage.setItem('eps.console.ask','0')}catch(e){}"
 MES="""()=>{
  const vis=e=>{const r=e.getBoundingClientRect();if(r.width<2||r.height<2)return false;const s=getComputedStyle(e);if(s.visibility=='hidden'||s.display=='none'||+s.opacity===0)return false;
    if(r.bottom<0||r.top>innerHeight*6)return false; const el=document.elementFromPoint(Math.min(innerWidth-1,Math.max(0,r.left+r.width/2)),Math.min(innerHeight-1,Math.max(0,r.top+r.height/2)));return r.top>innerHeight||r.top<0||!el||e.contains(el)||el.contains(e)};

@@ -11,9 +11,12 @@
 <meta name="theme-color" content="#14171C">
 <script>
 /* la console est un outil enseignant : mode enseignant prolongé tant qu'elle est ouverte (ordinateur personnel) */
-/* ordinateur de confiance : code demandé une seule fois sur cet ordinateur, ensuite la console s'ouvre directement
-   (l'adresse étant publique, une tablette d'élève qui l'ouvrirait doit toujours donner le code) */
-(function () { try { if (localStorage.getItem("eps.console.trust") === "1" && Date.now() >= +(localStorage.getItem("eps.teach.until") || 0)) localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} })();
+/* 🔐 entrée (27/11/2026, demande de l'enseignant) : le code enseignant est demandé À L'OUVERTURE de la console, une fois par onglet
+   (sessionStorage « eps.console.ok » : recharger la page ne le redemande pas) ; ensuite le mode enseignant vaut dans toutes les applis
+   tant que la console est ouverte, veille de l'ordinateur comprise. « eps.console.ask » = "0" (🎨 Personnaliser, choix gardé sur
+   l'ordinateur) : ordinateur reconnu, ouverture sans code. L'adresse étant publique, une tablette d'élève doit toujours donner le code. */
+window.epsConsoleOk = function () { try { return sessionStorage.getItem("eps.console.ok") === "1" || localStorage.getItem("eps.console.ask") === "0"; } catch (e) { return false; } };
+(function () { try { if (window.epsConsoleOk() && Date.now() >= +(localStorage.getItem("eps.teach.until") || 0)) localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} })();
 window.epsIsTeacher = function () { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } };
 </script>
 <style>
@@ -108,7 +111,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
 </style>
 </head>
 <body>
-<div id="lock"><script>try{if(localStorage.getItem("eps.console.trust")==="1")document.currentScript.parentNode.style.display="none"}catch(e){}</script><div><div class="ic"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 8h5M6 12h8"/></svg></div><h1 style="margin:0 0 6px">Console EPS</h1><p style="color:#A9AEB8;margin:0 0 18px">Espace enseignant sur ordinateur · ton code ne sera demandé qu'une fois sur cet ordinateur</p><button class="b p" id="unlock" style="height:48px;font-size:16px">🔒 Entrer avec mon code enseignant</button><p style="color:#A9AEB8;font-size:13px;margin-top:16px"><a class="lien44" href="../" style="color:#A9AEB8;display:inline-flex;align-items:center;min-height:44px;padding:0 10px">← Accueil</a></p></div></div>
+<div id="lock"><script>try{if(window.epsConsoleOk())document.currentScript.parentNode.style.display="none"}catch(e){}</script><div><div class="ic"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 8h5M6 12h8"/></svg></div><h1 style="margin:0 0 6px">Console EPS</h1><p style="color:#A9AEB8;margin:0 0 18px">Espace enseignant sur ordinateur · ton code ouvre le mode enseignant de toutes les applications</p><button class="b p" id="unlock" style="height:48px;font-size:16px">🔒 Entrer avec mon code enseignant</button><p style="color:#A9AEB8;font-size:13px;margin-top:16px"><a class="lien44" href="../" style="color:#A9AEB8;display:inline-flex;align-items:center;min-height:44px;padding:0 10px">← Accueil</a></p></div></div>
 <div id="app">
   <nav aria-label="Menu de la console">
     <div class="brand"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 8h5M6 12h8"/></svg></span><span><b>Console EPS</b><small>Ordinateur · enseignant</small></span></div>
@@ -134,7 +137,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
   var ACTS = [["esc", "escalade", "Escalade", "#2E7D4F"], ["rel", "relais", "Relais Vitesse", "#D9481F"], ["vol", "volley", "Volley-ball", "#6B3FA0"], ["bad", "badminton", "Badminton", "#0B7A75"], ["dan", "danse", "Danse", "#C2185B"], ["acro", "acrosport", "Acrosport", "#1F4FA3"], ["ori", "orientation", "OrienRun", "#E8701A"], ["ct", "crosstraining", "Cross-training", "#4D7C0F"], ["bk", "basket", "Basket-ball", "#A4161A"], ["step", "step", "Step", "#A21CAF"]];
   var OUTILS = [["ccf", "CCF", "#B8860B"], ["co-eval", "CO-Évaluation", "#14213D"], ["edt", "Emploi du temps", "#1F5F8B"], ["appel-as", "Appel AS", "#475569"], ["terrain", "Pose des balises", "#8A5A1F"], ["referentiel", "Référentiel", "#86198F"]];
   var NAMES = {}; ACTS.forEach(function (a) { NAMES[a[1]] = a[2]; }); OUTILS.forEach(function (a) { NAMES[a[0]] = a[1]; });
-  var SECTIONS = [["accueil", "🏠", "Accueil"], ["journee", "📋", "Ma journée"], ["mesclasses", "🏫", "Mes classes"], ["lecons", "📝", "Leçons (atelier)"], ["annee", "🗓", "Programmation annuelle"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"], ["perso", "🎨", "Personnaliser la console"]];
+  var SECTIONS = [["accueil", "🏠", "Accueil"], ["journee", "📋", "Ma journée"], ["mesclasses", "🏫", "Mes classes"], ["lecons", "📝", "Leçons (atelier)"], ["annee", "🗓", "Programmation annuelle"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["transfert", "📦", "Import / export"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"], ["perso", "🎨", "Personnaliser la console"]];
   var KC = "eps.console.v1";
   var AB = { "app:escalade": "Esc", "app:relais": "Rel", "app:volley": "Vol", "app:badminton": "Bad", "app:danse": "Dan", "app:acrosport": "Acr", "app:orientation": "CO", "app:crosstraining": "CT", "app:basket": "BK", "app:step": "Step", "app:ccf": "CCF", "app:co-eval": "COé", "app:edt": "EDT", "app:appel-as": "AS", "app:terrain": "Bal" };
   var LDIRS = ACTS.map(function (a) { return a[1]; }).concat(["ccf"]);
@@ -151,16 +154,27 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
   var cur = { s: "accueil", app: null };
 
   /* ---------- entrée : code enseignant (le même que sur les tablettes) ---------- */
-  function keepAlive() { if (teach()) try { localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} }
-  function unlocked() { try { localStorage.setItem("eps.console.trust", "1"); } catch (e) {} $("#lock").style.display = "none"; keepAlive(); try { document.documentElement.classList.add("eps-teach"); } catch (e) {} applyUI(); go(location.hash.slice(1) || ui().home || "accueil"); }
-  function tryUnlock() { if (teach()) { unlocked(); return; } if (!window.EPSD || !EPSD.askCode) { setTimeout(tryUnlock, 300); return; } EPSD.askCode().then(function (ok) { if (ok) unlocked(); }); }
+  /* OK = code donné dans cet onglet (ou ordinateur reconnu) : la console tient alors le mode enseignant ouvert pour toutes les applis,
+     même après une veille de l'ordinateur (avant : au bout d'une heure de veille, les applis redemandaient le code) */
+  var OK = false;
+  function keepAlive() { if (OK) try { localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} }
+  function unlocked() { OK = true; try { sessionStorage.setItem("eps.console.ok", "1"); localStorage.removeItem("eps.console.trust"); } catch (e) {} $("#lock").style.display = "none"; keepAlive(); try { document.documentElement.classList.add("eps-teach"); } catch (e) {} applyUI(); go(location.hash.slice(1) || ui().home || "accueil"); }
+  function hcode(c) { var h = 5381, s = "relais:" + c; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); }
+  /* le code est vraiment demandé (EPSD.askCode répond « oui » tout seul quand une tablette est déjà en mode enseignant) ; pas encore de code : EPSD.askCode le fait créer */
+  function codeAsk() { var st = jget("relais-vitesse-code-v1", null);
+    if (st == null || !window.epsPin) { try { localStorage.setItem("eps.teach.until", "0"); } catch (e) {} return EPSD.askCode(); }
+    return window.epsPin({ title: "🔒 Code enseignant", text: "Console EPS : il ouvre le mode enseignant de toutes les applications.", len: 4, check: function (v) { return hcode(v) === String(st); } }).then(function (v) { return v !== null; }); }
+  var asking = false;
+  function tryUnlock() { if (window.epsConsoleOk()) { unlocked(); return; } if (!window.EPSD || !EPSD.askCode) { setTimeout(tryUnlock, 300); return; } if (asking) return; asking = true; codeAsk().then(function (ok) { asking = false; if (ok) unlocked(); }, function () { asking = false; }); }
+  function lockNow() { OK = false; try { sessionStorage.removeItem("eps.console.ok"); localStorage.setItem("eps.teach.until", "0"); } catch (e) {} location.reload(); }
   $("#unlock").onclick = tryUnlock;
   /* menu de gauche repliable (icônes seules), choix gardé sur l'ordinateur */
   function navMin(on) { $("#app").classList.toggle("nav-min", on); $("#navT").setAttribute("aria-label", on ? "Déplier le menu" : "Replier le menu"); $("#navT").setAttribute("aria-expanded", String(!on)); try { localStorage.setItem("eps.console.navmin", on ? "1" : ""); } catch (e) {} }
   navMin(!!localStorage.getItem("eps.console.navmin"));
   $("#navT").onclick = function () { navMin(!$("#app").classList.contains("nav-min")); };
-  setInterval(function () { if (teach()) keepAlive(); }, 60000);
-  ["click", "keydown"].forEach(function (ev) { document.addEventListener(ev, function () { if (teach()) keepAlive(); }, true); });
+  setInterval(keepAlive, 60000);
+  ["click", "keydown"].forEach(function (ev) { document.addEventListener(ev, keepAlive, true); });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") keepAlive(); });
 
   /* ---------- 🎨 personnalisation (eps.console.v1, id « ui », partagée entre tes ordinateurs) ---------- */
   var UI0 = { hide: {}, order: {}, home: "accueil", zoom: 100, dense: false, accent: "#4F46E5", cards: [], chide: {}, favs: [] };
@@ -181,6 +195,8 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
         '<div class="r"><span>Affichage compact (plus de choses à l\'écran)</span><input type="checkbox" data-dense' + (U.dense ? " checked" : "") + '></div>' +
         '<div class="r"><span>Menu replié par défaut</span><input type="checkbox" data-min' + (localStorage.getItem("eps.console.navmin") ? " checked" : "") + '></div>' +
         '<div class="r"><span>Couleur</span>' + ["#4F46E5", "#0B7A75", "#2E7D4F", "#C2185B", "#D9481F", "#14171C"].map(function (c) { return '<button type="button" class="sw' + (U.accent === c ? " on" : "") + '" data-acc="' + c + '" style="background:' + c + '" aria-label="Couleur ' + c + '"></button>'; }).join("") + "</div></div>" +
+        '<h3>🔐 Accès et mode de préparation</h3><div class="cu"><label class="r"><span>Demander mon code enseignant à chaque ouverture de la console<br><small class="mut">Décoché : cet ordinateur est reconnu, la console s\'ouvre sans code. Dans les deux cas, le mode enseignant est ouvert dans toutes les applis.</small></span><input type="checkbox" data-ask' + (localStorage.getItem("eps.console.ask") === "0" ? "" : " checked") + '></label>' +
+        '<label class="r"><span>Outils de leçon en direct (📣 message à tous / signal, 📋 planche tactique à envoyer)<br><small class="mut">Décoché : masqués dans la console et dans les applis qu\'elle ouvre. Rien ne change sur les tablettes.</small></span><input type="checkbox" data-live' + (localStorage.getItem("eps.console.live") === "1" ? " checked" : "") + '></label></div>' +
         '<h3>⭐ Raccourcis en haut de l\'accueil</h3><div class="cu">' + E.filter(function (x) { return x[0] !== "accueil"; }).map(function (x) { return '<label class="r"><span>' + esc((x[1] ? x[1] + " " : "• ") + x[2]) + '</span><input type="checkbox" data-fav="' + x[0] + '"' + (U.favs.indexOf(x[0]) >= 0 ? " checked" : "") + "></label>"; }).join("") + "</div>" +
         '<h3>🏠 Cartes de l\'accueil</h3><div class="cu">' + cardOrder(U).map(function (c) { return '<div class="r"><input type="checkbox" data-card="' + c[0] + '"' + (U.chide[c[0]] ? "" : " checked") + "><span>" + esc(c[1]) + "</span>" + mv("card", c[0]) + "</div>"; }).join("") + "</div></div>" +
       '<div><h3>🧭 Menu de gauche</h3><p class="mut">Décoche ce que tu n\'utilises pas, range le reste dans ton ordre.</p>' + groups().map(function (g) { return (g.t ? "<b>" + g.t + "</b>" : "<b>Haut du menu</b>") + '<div class="cu">' + ordered(g, U).map(function (x) { return '<div class="r"><input type="checkbox" data-show="' + x[0] + '"' + (U.hide[x[0]] ? "" : " checked") + (x[0] === "perso" ? " disabled" : "") + "><span>" + esc((x[1] ? x[1] + " " : "• ") + x[2]) + "</span>" + mv(g.id, x[0]) + "</div>"; }).join("") + "</div>"; }).join("") + "</div></div>" +
@@ -190,6 +206,9 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
     $("[data-zoom]", pg).onchange = function () { uiSet({ zoom: +this.value }); };
     $("[data-dense]", pg).onchange = function () { uiSet({ dense: this.checked }); };
     $("[data-min]", pg).onchange = function () { navMin(this.checked); };
+    /* choix gardés sur l'ordinateur (pas synchronisés : un autre ordinateur garde les siens) */
+    $("[data-ask]", pg).onchange = function () { try { if (this.checked) localStorage.removeItem("eps.console.ask"); else localStorage.setItem("eps.console.ask", "0"); } catch (e) {} };
+    $("[data-live]", pg).onchange = function () { try { if (this.checked) localStorage.setItem("eps.console.live", "1"); else localStorage.removeItem("eps.console.live"); } catch (e) {} location.reload(); };
     $$("[data-acc]", pg).forEach(function (b) { b.onclick = function () { uiSet({ accent: b.dataset.acc }); redraw(); }; });
     $$("[data-fav]", pg).forEach(function (c) { c.onchange = function () { var F = ui().favs.filter(function (x) { return x !== c.dataset.fav; }); if (c.checked) F.push(c.dataset.fav); uiSet({ favs: F }); }; });
     $$("[data-card]", pg).forEach(function (c) { c.onchange = function () { var H = ui().chide; H[c.dataset.card] = !c.checked; uiSet({ chide: H }); }; });
@@ -214,7 +233,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
     o.value = cur.app || v || "";
   }
   function go(s) {
-    if (!teach()) { $("#lock").style.display = ""; return; }
+    if (!OK) { $("#lock").style.display = ""; return; } keepAlive();
     if (!window.EPSD) { setTimeout(function () { go(s); }, 150); return; } /* eps-home.js (différé) pas encore chargé */
     var m = /^app:(.+)$/.exec(s); cur.s = m ? "app" : s; cur.app = m ? m[1] : null; if (location.hash.slice(1) !== s) history.replaceState(null, "", "#" + s);
     var pg = $("#pg"); pg.className = "pg"; pg.style.flexDirection = ""; $("#tact").innerHTML = ""; $("#app").classList.remove("inapp"); menu();
@@ -223,7 +242,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
       $("[data-rl]").onclick = function () { pg.querySelector("iframe").src = pg.querySelector("iframe").src; };
       return; }
     var S = SECTIONS.filter(function (x) { return x[0] === s; })[0] || SECTIONS[0]; $("#ttl").textContent = S[1] + " " + S[2];
-    ({ accueil: pAccueil, journee: pJournee, annee: pAnnee, mesclasses: pMesClasses, lecons: pLecons, classes: pClasses, groupes: pGroupes, params: pParams, tablettes: pTablettes, demandes: pDemandes, perso: pPerso }[S[0]] || pAccueil)(pg);
+    ({ accueil: pAccueil, journee: pJournee, annee: pAnnee, mesclasses: pMesClasses, lecons: pLecons, classes: pClasses, groupes: pGroupes, params: pParams, transfert: pTransfert, tablettes: pTablettes, demandes: pDemandes, perso: pPerso }[S[0]] || pAccueil)(pg);
   }
   window.addEventListener("hashchange", function () { var s = location.hash.slice(1); if (s && s !== (cur.app ? "app:" + cur.app : cur.s)) go(s); });
 
@@ -236,7 +255,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
     var nReq = all(KC).filter(function (r) { return r.k === "req" && r.st !== "fait"; }).length;
     pg.innerHTML = "<h2>Bonjour 👋</h2><p class=\"mut\">Tout ce que tu règles ici vaut aussi sur tes tablettes (synchronisation chiffrée). Choisis une activité à gauche pour l'ouvrir en grand, en mode enseignant.</p>" +
       '<div class="cards">' +
-      '<div class="card"><h3>🔗 Partage avec les tablettes</h3>' + (shared ? '<p class="ok">✓ Réglé : les données arrivent et partent toutes seules.</p><div class="row"><button class="b" data-sync>⟳ Synchroniser maintenant</button><button class="b" data-share>Réglages du partage</button></div>' : '<p class="ko">⚠ Pas encore réglé sur cet ordinateur.</p><p class="mut">Colle le lien de partage de tes tablettes (Réglages → Partage) : sans lui, l\'ordinateur ne voit pas tes données.</p><div class="row"><button class="b p" data-share>Régler le partage</button></div>') + '<div class="row"><button class="b" data-rest>📥 Tout récupérer ici</button></div><p class="mut" title="La console s\'ouvre sans code sur cet ordinateur.">🔓 Ordinateur reconnu <button class="b" data-forget style="min-height:32px">Oublier cet ordinateur</button></p></div>' +
+      '<div class="card"><h3>🔗 Partage avec les tablettes</h3>' + (shared ? '<p class="ok">✓ Réglé : les données arrivent et partent toutes seules.</p><div class="row"><button class="b" data-sync>⟳ Synchroniser maintenant</button><button class="b" data-share>Réglages du partage</button></div>' : '<p class="ko">⚠ Pas encore réglé sur cet ordinateur.</p><p class="mut">Colle le lien de partage de tes tablettes (Réglages → Partage) : sans lui, l\'ordinateur ne voit pas tes données.</p><div class="row"><button class="b p" data-share>Régler le partage</button></div>') + '<div class="row"><button class="b" data-rest>📥 Tout récupérer ici</button></div><p class="mut">' + (localStorage.getItem("eps.console.ask") === "0" ? "🔓 Ordinateur reconnu : pas de code à l\'ouverture" : "🔐 Code demandé à l\'ouverture · mode enseignant ouvert dans toutes les applis") + ' ' + (localStorage.getItem("eps.console.ask") === "0" ? "" : '<button class="b" data-forget style="min-height:32px">🔒 Verrouiller la console</button>') + '</p></div>' +
       '<div class="card"><h3>📅 Prochains cours</h3>' + (slots && slots.length ? slots.slice(0, 6).map(function (x) { var d = new Date(x.at); return "<div>" + d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + " · <b>" + esc(x.cls) + "</b> " + esc((ACTS.filter(function (a) { return a[0] === x.act; })[0] || [0, 0, x.act || ""])[2]) + "</div>"; }).join("") : '<p class="mut">Règle ton emploi du temps dans l\'outil Emploi du temps (« Qui es-tu ? ») pour voir tes prochains cours.</p>') + '<div class="row"><button class="b" data-go="app:edt">Emploi du temps</button></div></div>' +
       '<div class="card"><h3>👥 Classes</h3><p>' + L.length + " classe" + (L.length > 1 ? "s" : "") + ", " + L.reduce(function (a, o) { return a + (o.el || []).length; }, 0) + ' élèves.</p><div class="row"><button class="b p" data-go="classes">Gérer classes et activités</button><button class="b" data-go="groupes">🧩 Niveaux & groupes</button></div></div>' +
       '<div class="card"><h3>📱 Tablettes</h3><p>' + (recent.length ? recent.length + " tablette" + (recent.length > 1 ? "s" : "") + " active" + (recent.length > 1 ? "s" : "") + " ces 15 dernières minutes." : "Aucune tablette active ces 15 dernières minutes.") + '</p><div class="row"><button class="b" data-go="tablettes">Voir les tablettes</button><button class="b" data-sig>📣 Signal général</button></div></div>' +
@@ -255,7 +274,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
     var f = function (s, fn) { $$(s, pg).forEach(function (b) { b.onclick = fn; }); };
     f("[data-share]", function () { EPSD.shareSettings(); }); f("[data-sync]", function () { this.textContent = "⟳ …"; var b = this; EPSD.syncNow().then(function () { b.textContent = "✓ Synchronisé"; }); });
     f("[data-rest]", function () { EPSD.restoreAll(); }); f("[data-sig]", function () { EPSD.signal(); }); f("[data-ovw]", function () { EPSD.overview(); });
-    f("[data-find]", function () { EPSD.search(); }); f("[data-forget]", function () { if (!confirm("Ne plus reconnaître cet ordinateur ? Ton code enseignant sera redemandé à la prochaine ouverture de la console.")) return; try { localStorage.removeItem("eps.console.trust"); localStorage.setItem("eps.teach.until", "0"); } catch (e) {} location.reload(); }); f("[data-bil]", function () { EPSD.bilans(); }); f("[data-ai]", function () { aiShow(true); });
+    f("[data-find]", function () { EPSD.search(); }); f("[data-forget]", function () { lockNow(); }); f("[data-bil]", function () { EPSD.bilans(); }); f("[data-ai]", function () { aiShow(true); });
   }
 
   /* ---------- 📋 ma journée : chaque cours du jour choisi (emploi du temps) avec leçon programmée, matériel, groupes, manques ---------- */
@@ -384,6 +403,131 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
   function pGroupes(pg) { pg.innerHTML = '<h2>🧩 Niveaux & groupes</h2><p class="mut">Classe tes élèves par niveau dans chaque activité, repère les affinités, forme des groupes (de niveau, mélangés, par affinités, en cassant les habitudes). « 📡 En faire les groupes du jour » les envoie aux tablettes : leçon en cours et boutons « 👥 Groupes du jour » des applis.</p><div data-gr></div>';
     if (window.EPSGR) EPSGR.render($("[data-gr]", pg), { dir: cur.grDir || "badminton", cls: cur.grCls || "", tab: cur.grCls ? "grp" : "rang" }); cur.grCls = null; }
 
+  /* ---------- 📦 import / export (27/11/2026, demande de l'enseignant : la console est son mode de préparation) ----------
+     Un fichier .json par envoi : {type:"eps-export", v:1, kind:"lecons"|"situations"|"evaluation"|"parametres", app, nom, date, …}.
+     - lecons : fiches d'« eps.lecons.<dossier>.v1 » avec leurs schémas (« eps.lcimg.<dossier>.v1 ») ; ni programmation ni classes attribuées.
+     - situations : situations d'apprentissage (l.sits) choisies dans les fiches, avec leur schéma ; à l'import : nouvelle fiche ou fiche existante.
+     - evaluation : grille commune d'eps-eval.js (cfg.grid / cfg.gridPro d'« eps.eval.<code>.v1 ») ; même fichier que « 📤 Exporter la grille » de l'appli.
+     - parametres : valeurs d'« eps.param.v1 ».
+     Jamais de nom d'élève ni de note dans ces fichiers. À l'import : aperçu, cases à cocher, nouveaux identifiants (rien n'est écrasé). */
+  var XEV = { esc: 1, acro: 1, ori: 1, ct: 1, bk: 1, step: 1 }, XOWN = { rel: 1, vol: 1, bad: 1, dan: 1 };
+  function xDay() { return ymd(new Date()); }
+  function xSafe(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "EPS"; }
+  function xSave(name, obj) { obj.type = "eps-export"; obj.v = 1; obj.date = xDay();
+    var a = document.createElement("a"), u = URL.createObjectURL(new Blob([JSON.stringify(obj)], { type: "application/json" })); a.href = u; a.download = name + "_" + xDay() + ".json"; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(u); a.remove(); }, 800); }
+  function xRead(file) { return new Promise(function (ok, ko) { var r = new FileReader(); r.onload = function () { try { var j = JSON.parse(r.result); if (!j || j.type !== "eps-export") throw 0; ok(j); } catch (e) { ko(new Error(j && j.type === "eps-autonomie-numerique" ? "C'est une sauvegarde complète : elle se restaure dans Accueil → Réglages → ♻️ Restaurer." : "Ce fichier n'est pas un export de la console EPS.")); } }; r.onerror = function () { ko(new Error("Fichier illisible.")); }; r.readAsText(file); }); }
+  function xLecons(dir) { return all("eps.lecons." + dir + ".v1").sort(function (a, b) { return String(a.seq || "").localeCompare(String(b.seq || ""), "fr") || (parseFloat(a.num) || 0) - (parseFloat(b.num) || 0) || (a.cr || 0) - (b.cr || 0); }); }
+  function xTitre(l) { return (l.num ? "Leçon " + l.num + " · " : "") + (l.titre || "Sans titre"); }
+  /* schémas : toute propriété « img » ou « …Img » d'une fiche ou d'une situation désigne un schéma du magasin des images */
+  function xImgKeys(o) { return Object.keys(o || {}).filter(function (k) { return (k === "img" || /Img$/.test(k)) && typeof o[k] === "string" && o[k]; }); }
+  function xPack(dir, objs) { var I = ld("eps.lcimg." + dir + ".v1").items, out = {}; objs.forEach(function (o) { xImgKeys(o).forEach(function (k) { var im = I[o[k]]; if (im && !im.del && im.d) out[o[k]] = im.d; }); }); return out; }
+  function xClean(l) { var c = JSON.parse(JSON.stringify(l)); ["u", "prog", "cls", "avant", "del"].forEach(function (k) { delete c[k]; }); return c; }
+  /* écrit les schémas d'un fichier sous de nouveaux identifiants et corrige les renvois ; un schéma absent du fichier est retiré */
+  function xUnpack(dir, obj, imgs, map) { xImgKeys(obj).forEach(function (k) { var old = obj[k]; if (!imgs || !imgs[old]) { delete obj[k]; return; } if (!map[old]) { map[old] = uid(); put("eps.lcimg." + dir + ".v1", { id: map[old], d: imgs[old] }); } obj[k] = map[old]; }); }
+  function xModal(html) { var d = document.createElement("div"); d.style.cssText = "position:fixed;inset:0;background:rgba(20,23,28,.55);z-index:90;display:grid;place-items:center;padding:20px";
+    d.innerHTML = '<div role="dialog" aria-modal="true" style="background:#fff;border-radius:16px;padding:18px 20px;width:min(760px,100%);max-height:88vh;overflow:auto">' + html + "</div>"; document.body.appendChild(d); d.onclick = function (e) { if (e.target === d) d.remove(); }; return d; }
+  function xActSel(sel, only) { return '<select class="sel" data-xact aria-label="Activité">' + ACTS.filter(function (a) { return !only || only[a[0]]; }).map(function (a) { return '<option value="' + a[1] + '"' + (a[1] === sel ? " selected" : "") + ">" + esc(a[2]) + "</option>"; }).join("") + "</select>"; }
+  function pTransfert(pg) {
+    var tab = cur.xTab || "lecons", dir = cur.xDir && NAMES[cur.xDir] ? cur.xDir : (localStorage.getItem("eps.console.ldir") || ACTS[0][1]); if (!ACTS.some(function (a) { return a[1] === dir; })) dir = ACTS[0][1];
+    var A = ACTS.filter(function (a) { return a[1] === dir; })[0], L = xLecons(dir);
+    var TABS = [["lecons", "📝 Leçons"], ["sits", "🏃 Situations d'apprentissage"], ["eval", "📋 Évaluations"], ["tout", "🎛 Paramètres et sauvegarde"]];
+    var h = "<h2>📦 Import / export</h2><p class=\"mut\">Un fichier par envoi, à garder d'une année à l'autre, à passer d'un ordinateur à l'autre ou à un collègue. Aucun nom d'élève, aucune note dans ces fichiers.</p>" +
+      '<div class="row" role="tablist">' + TABS.map(function (t) { return '<button type="button" role="tab" class="b' + (tab === t[0] ? " p" : "") + '" aria-selected="' + (tab === t[0]) + '" data-xt="' + t[0] + '">' + t[1] + "</button>"; }).join("") + "</div>";
+    var file = '<input type="file" accept=".json,application/json" data-xf hidden>';
+    if (tab === "lecons") {
+      h += '<div class="row"><b>Activité</b>' + xActSel(dir) + '<span style="flex:1"></span><button class="b p" type="button" data-xexp>📤 Exporter la sélection</button><button class="b" type="button" data-ximp>📥 Importer des leçons</button>' + file + "</div>" +
+        (L.length ? '<table class="t"><thead><tr><th style="width:44px"><input type="checkbox" data-xall checked aria-label="Tout cocher"></th><th>Séquence</th><th>Leçon</th><th class="c">Situations</th><th>État</th></tr></thead><tbody>' +
+          L.map(function (l, i) { return '<tr><td><input type="checkbox" data-xi="' + i + '" checked aria-label="' + esc(xTitre(l)) + '"></td><td>' + esc(l.seq || "—") + "</td><td><b>" + esc(xTitre(l)) + "</b></td><td class=\"c\">" + (l.sits || []).filter(function (s) { return s && (s.t || s.cons); }).length + "</td><td>" + (l.statut === "brouillon" ? '<span class="tag" style="background:#FFF6E0;color:#8A5A00">brouillon</span>' : '<span class="tag" style="background:#E3F4E8;color:#1E6B3A">validée</span>') + (l.banque ? ' <span class="tag">⭐ banque</span>' : "") + "</td></tr>"; }).join("") + "</tbody></table>"
+          : '<p class="mut">Aucune fiche de leçon en ' + esc(A[2]) + " sur cet ordinateur.</p>");
+    } else if (tab === "sits") {
+      var S = []; L.forEach(function (l) { (l.sits || []).forEach(function (s) { if (s && (s.t || s.cons)) S.push({ s: s, l: l }); }); }); pg._S = S;
+      h += '<div class="row"><b>Activité</b>' + xActSel(dir) + '<span style="flex:1"></span><button class="b p" type="button" data-xexp>📤 Exporter la sélection</button><button class="b" type="button" data-ximp>📥 Importer des situations</button>' + file + "</div>" +
+        (S.length ? '<table class="t"><thead><tr><th style="width:44px"><input type="checkbox" data-xall aria-label="Tout cocher"></th><th>Situation</th><th>Apprentissage</th><th>Dans la leçon</th></tr></thead><tbody>' +
+          S.map(function (o, i) { return '<tr><td><input type="checkbox" data-xi="' + i + '" aria-label="' + esc(o.s.t || "Situation") + '"></td><td><b>' + esc(o.s.t || "Sans titre") + "</b>" + (o.s.img ? " 🖼" : "") + '</td><td>' + esc(o.s.ap || "—") + '</td><td class="mut">' + esc(xTitre(o.l)) + "</td></tr>"; }).join("") + "</tbody></table>"
+          : '<p class="mut">Aucune situation d\'apprentissage dans les fiches de ' + esc(A[2]) + ".</p>");
+    } else if (tab === "eval") {
+      h += '<p class="mut">Grille par degrés (critères, AFL / AFLP, points, textes des 4 degrés, version élève). Les évaluations des élèves ne sont jamais dans le fichier.</p><table class="t nost"><thead><tr><th>Activité</th><th>🎓 Voie générale et technologique</th><th>🛠 Voie professionnelle</th><th></th></tr></thead><tbody>' +
+        ACTS.map(function (a) { if (XOWN[a[0]]) return '<tr><td><b style="color:' + a[3] + '">' + esc(a[2]) + '</b></td><td colspan="2" class="mut">Barème propre à l\'appli : il se règle dans l\'appli (📋 Évaluation) et il est compris dans la sauvegarde complète.</td><td><button class="b" type="button" data-go="app:' + a[1] + '">Ouvrir</button></td></tr>';
+          var c = ld("eps.eval." + a[0] + ".v1").items.cfg || {}, cell = function (k, lab) { var g = c[k]; return g && g.criteres ? g.criteres.length + ' critères <button class="b" type="button" data-xg="' + a[0] + "|" + k + '">📤 Exporter</button>' : '<span class="mut">' + lab + "</span>"; };
+          return '<tr><td><b style="color:' + a[3] + '">' + esc(a[2]) + "</b></td><td>" + cell("grid", "grille proposée par l'appli (pas encore modifiée)") + "</td><td>" + cell("gridPro", "pas de grille propre enregistrée") + '</td><td><button class="b" type="button" data-xgi="' + a[0] + '">📥 Importer</button></td></tr>'; }).join("") + "</tbody></table>" + file +
+        '<p class="mut">Une grille pas encore modifiée s\'exporte depuis l\'appli : 📋 Évaluation → grille → « 📤 Exporter la grille ».</p>';
+    } else {
+      var P = all("eps.param.v1").filter(function (o) { return o.v != null; });
+      h += '<div class="cards"><div class="card"><h3>🎛 Paramètres des applis</h3><p>' + P.length + " réglage" + (P.length > 1 ? "s" : "") + ' modifié' + (P.length > 1 ? "s" : "") + ' (messages, durées, seuils, listes…).</p><div class="row"><button class="b p" type="button" data-xpe>📤 Exporter</button><button class="b" type="button" data-ximp>📥 Importer</button>' + file + '</div></div>' +
+        '<div class="card"><h3>💾 Sauvegarde complète</h3><p>Tout l\'ordinateur dans un seul fichier, élèves et notes compris : à garder pour toi.</p><div class="row"><button class="b p" type="button" data-xall2>💾 Enregistrer la sauvegarde</button></div><p class="mut">Pour la remettre : Accueil des applis → Réglages → ♻️ Restaurer.</p></div>' +
+        '<div class="card"><h3>🎨 Réglages de la console</h3><p>Menu, accueil, affichage.</p><div class="row"><button class="b" type="button" data-go="perso">Ouvrir Personnaliser</button></div></div></div>';
+    }
+    pg.innerHTML = h + '<p class="msg mut" data-xm role="status"></p>';
+    var msg = function (t) { $("[data-xm]", pg).textContent = t; }, redo = function (t) { pTransfert(pg); if (t) $("[data-xm]", pg).textContent = t; };
+    $$("[data-xt]", pg).forEach(function (b) { b.onclick = function () { cur.xTab = b.dataset.xt; pTransfert(pg); }; });
+    $$("[data-go]", pg).forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
+    var sa = $("[data-xact]", pg); if (sa) sa.onchange = function () { cur.xDir = sa.value; pTransfert(pg); };
+    var al = $("[data-xall]", pg); if (al) al.onchange = function () { $$("[data-xi]", pg).forEach(function (c) { c.checked = al.checked; }); };
+    var picked = function () { return $$("[data-xi]", pg).filter(function (c) { return c.checked; }).map(function (c) { return +c.dataset.xi; }); };
+    var xf = $("[data-xf]", pg), imp = $("[data-ximp]", pg), want = null;
+    if (imp) imp.onclick = function () { want = null; xf.click(); };
+    if (xf) xf.onchange = function () { var f = xf.files[0]; xf.value = ""; if (!f) return; xRead(f).then(function (j) {
+        if (tab === "lecons") { if (j.kind !== "lecons") throw new Error("Ce fichier contient " + xKind(j) + ", pas des leçons."); xImpLecons(j, dir, redo); }
+        else if (tab === "sits") { if (j.kind !== "situations" && j.kind !== "lecons") throw new Error("Ce fichier contient " + xKind(j) + ", pas des situations."); xImpSits(j, dir, redo); }
+        else if (tab === "eval") { if (j.kind !== "evaluation") throw new Error("Ce fichier contient " + xKind(j) + ", pas une grille d'évaluation."); xImpGrid(j, want, redo); }
+        else { if (j.kind !== "parametres") throw new Error("Ce fichier contient " + xKind(j) + ", pas des paramètres."); xImpParams(j, redo); }
+      }).catch(function (e) { msg("⚠ " + (e && e.message || e)); }); };
+    var ex = $("[data-xexp]", pg); if (ex) ex.onclick = function () { var I = picked(); if (!I.length) { msg("Coche au moins une ligne."); return; }
+      if (tab === "lecons") { var LL = I.map(function (i) { return xClean(L[i]); }), objs = []; LL.forEach(function (l) { objs.push(l); (l.sits || []).forEach(function (s) { if (s) objs.push(s); }); });
+        xSave("EPS_lecons_" + xSafe(A[2]), { kind: "lecons", app: dir, nom: A[2], lecons: LL, imgs: xPack(dir, objs) }); msg("✓ " + LL.length + " leçon" + (LL.length > 1 ? "s" : "") + " dans le fichier (dossier Téléchargements)."); }
+      else { var SS = I.map(function (i) { var o = pg._S[i], s = JSON.parse(JSON.stringify(o.s)); return { s: s, de: xTitre(o.l), seq: o.l.seq || "" }; });
+        xSave("EPS_situations_" + xSafe(A[2]), { kind: "situations", app: dir, nom: A[2], sits: SS, imgs: xPack(dir, SS.map(function (x) { return x.s; })) }); msg("✓ " + SS.length + " situation" + (SS.length > 1 ? "s" : "") + " dans le fichier (dossier Téléchargements)."); } };
+    $$("[data-xg]", pg).forEach(function (b) { b.onclick = function () { var p = b.dataset.xg.split("|"), a = DIRC[p[0]], g = (ld("eps.eval." + p[0] + ".v1").items.cfg || {})[p[1]]; if (!g) return;
+      xSave("EPS_grille_" + xSafe(a[2]) + (p[1] === "gridPro" ? "_pro" : "_GT"), { kind: "evaluation", app: a[1], code: a[0], nom: a[2], voie: p[1] === "gridPro" ? "pro" : "gt", grille: g }); msg("✓ Grille de " + a[2] + " dans le fichier (dossier Téléchargements)."); }; });
+    $$("[data-xgi]", pg).forEach(function (b) { b.onclick = function () { want = b.dataset.xgi; xf.click(); }; });
+    var pe = $("[data-xpe]", pg); if (pe) pe.onclick = function () { var P2 = all("eps.param.v1").filter(function (o) { return o.v != null; }).map(function (o) { return { id: o.id, v: o.v }; }); if (!P2.length) { msg("Aucun réglage modifié : rien à exporter."); return; } xSave("EPS_parametres", { kind: "parametres", params: P2 }); msg("✓ " + P2.length + " réglages dans le fichier (dossier Téléchargements)."); };
+    var sv = $("[data-xall2]", pg); if (sv) sv.onclick = function () { try { EPSR.save(); } catch (e) { msg("⚠ Sauvegarde indisponible : recharge la page."); } };
+  }
+  function xKind(j) { return { lecons: "des leçons", situations: "des situations", evaluation: "une grille d'évaluation", parametres: "des paramètres" }[j.kind] || "autre chose"; }
+  function xTarget(j, dir) { return ACTS.some(function (a) { return a[1] === j.app; }) ? j.app : dir; }
+  function xImpLecons(j, dir, done) {
+    var LL = (j.lecons || []).filter(function (l) { return l && typeof l === "object"; }), tg = xTarget(j, dir); if (!LL.length) { done("⚠ Aucune leçon dans ce fichier."); return; }
+    var key = function (l) { return norm((l.seq || "") + "|" + (l.num || "") + "|" + (l.titre || "")); };
+    var d = xModal("<h2 style=\"margin:0 0 6px\">📥 Importer des leçons</h2><p class=\"mut\">Fichier : " + esc(j.nom || j.app || "") + " · " + esc(j.date || "") + " · " + LL.length + " leçon" + (LL.length > 1 ? "s" : "") + '. Elles s\'ajoutent à tes fiches, rien n\'est remplacé.</p><div class="row"><b>Vers</b>' + xActSel(tg) + '<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-br> en brouillon (à relire avant que les élèves les voient)</label></div><div data-ls></div><div class="row" style="justify-content:flex-end"><button class="b" type="button" data-x>Annuler</button><button class="b p" type="button" data-ok>📥 Importer</button></div>');
+    var draw = function () { var have = {}; xLecons($("[data-xact]", d).value).forEach(function (l) { have[key(l)] = 1; });
+      $("[data-ls]", d).innerHTML = '<div class="cu">' + LL.map(function (l, i) { var dup = have[key(l)]; return '<label class="r"><input type="checkbox" data-li="' + i + '"' + (dup ? "" : " checked") + "><span><b>" + esc(xTitre(l)) + "</b> <small class=\"mut\">" + esc(l.seq || "") + (dup ? " · déjà dans tes fiches (même séquence, même titre)" : "") + "</small></span></label>"; }).join("") + "</div>"; };
+    draw(); $("[data-xact]", d).onchange = draw; $("[data-x]", d).onclick = function () { d.remove(); };
+    $("[data-ok]", d).onclick = function () { var to = $("[data-xact]", d).value, br = $("[data-br]", d).checked, map = {}, n = 0, now = Date.now();
+      try { $$("[data-li]", d).forEach(function (c) { if (!c.checked) return; var l = xClean(LL[+c.dataset.li]); l.id = uid() + n; l.cr = now + n; l.prog = []; delete l.trame; delete l.src; if (br) l.statut = "brouillon"; if (!Array.isArray(l.sits)) l.sits = [{}, {}]; l.ai = l.ai || {};
+          xUnpack(to, l, j.imgs, map); l.sits.forEach(function (s) { if (s) xUnpack(to, s, j.imgs, map); }); put("eps.lecons." + to + ".v1", l); n++; }); }
+      catch (e) { d.remove(); done("⚠ Mémoire de l'ordinateur pleine : " + n + " leçon(s) importée(s) seulement."); return; }
+      d.remove(); cur.xDir = to; done(n ? "✓ " + n + " leçon" + (n > 1 ? "s importées" : " importée") + " dans " + (NAMES[to] || to) + (br ? " (en brouillon)" : "") + "." : "Rien d'importé."); };
+  }
+  function xImpSits(j, dir, done) {
+    var SS = j.kind === "lecons" ? [] : (j.sits || []).filter(function (x) { return x && x.s; }); if (j.kind === "lecons") (j.lecons || []).forEach(function (l) { (l.sits || []).forEach(function (s) { if (s && (s.t || s.cons)) SS.push({ s: s, de: xTitre(l), seq: l.seq || "" }); }); });
+    var tg = xTarget(j, dir); if (!SS.length) { done("⚠ Aucune situation dans ce fichier."); return; }
+    var d = xModal("<h2 style=\"margin:0 0 6px\">📥 Importer des situations</h2><p class=\"mut\">Fichier : " + esc(j.nom || j.app || "") + " · " + esc(j.date || "") + " · " + SS.length + " situation" + (SS.length > 1 ? "s" : "") + '.</p><div class="row"><b>Vers</b>' + xActSel(tg) + '<select class="sel" data-fi aria-label="Fiche de destination" style="max-width:360px"></select></div><div class="cu">' +
+      SS.map(function (x, i) { return '<label class="r"><input type="checkbox" data-si="' + i + '" checked><span><b>' + esc(x.s.t || "Sans titre") + "</b> <small class=\"mut\">" + esc([x.s.ap ? "🎯 " + x.s.ap : "", x.de || ""].filter(Boolean).join(" · ")) + "</small></span></label>"; }).join("") +
+      '</div><p class="mut">Nouvelle fiche : créée en brouillon dans la séquence « Bibliothèque ». Valide-la pour retrouver ses situations dans 🏦 Banque & apprentissages.</p><div class="row" style="justify-content:flex-end"><button class="b" type="button" data-x>Annuler</button><button class="b p" type="button" data-ok>📥 Importer</button></div>');
+    var fill = function () { $("[data-fi]", d).innerHTML = '<option value="">＋ Nouvelle fiche « Situations importées »</option>' + xLecons($("[data-xact]", d).value).map(function (l) { return '<option value="' + esc(l.id) + '">Ajouter à : ' + esc(xTitre(l)) + "</option>"; }).join(""); };
+    fill(); $("[data-xact]", d).onchange = fill; $("[data-x]", d).onclick = function () { d.remove(); };
+    $("[data-ok]", d).onclick = function () { var to = $("[data-xact]", d).value, id = $("[data-fi]", d).value, K = "eps.lecons." + to + ".v1", map = {}, n = 0;
+      var l = id ? ld(K).items[id] : { id: uid(), seq: "Bibliothèque", num: "", titre: "Situations importées (" + new Date().toLocaleDateString("fr-FR") + ")", duree: "", statut: "brouillon", ai: {}, sits: [], prog: [], cr: Date.now() };
+      if (!l || l.del) { d.remove(); done("⚠ Fiche introuvable."); return; } l.sits = (l.sits || []).filter(function (s) { return s && Object.keys(s).length; });
+      try { $$("[data-si]", d).forEach(function (c) { if (!c.checked) return; var s = JSON.parse(JSON.stringify(SS[+c.dataset.si].s)); xUnpack(to, s, j.imgs, map); l.sits.push(s); n++; }); if (n) put(K, l); }
+      catch (e) { d.remove(); done("⚠ Mémoire de l'ordinateur pleine : import interrompu."); return; }
+      d.remove(); cur.xDir = to; done(n ? "✓ " + n + " situation" + (n > 1 ? "s ajoutées" : " ajoutée") + " à « " + xTitre(l) + " » (" + (NAMES[to] || to) + ")." : "Rien d'importé."); };
+  }
+  function xImpGrid(j, code, done) {
+    var g = j.grille, C = g && g.criteres; if (!C || !C.length) { done("⚠ Aucun critère dans ce fichier."); return; }
+    if (!code || !XEV[code]) code = XEV[j.code] ? j.code : "esc";
+    var d = xModal("<h2 style=\"margin:0 0 6px\">📥 Importer une grille d'évaluation</h2><p class=\"mut\">Fichier : " + esc(j.nom || "") + " · " + (j.voie === "pro" ? "voie professionnelle" : "voie générale") + " · " + esc(j.date || "") + '</p><div class="row"><b>Vers</b>' + xActSel((DIRC[code] || [])[1], XEV) + '<select class="sel" data-vo aria-label="Voie"><option value="grid"' + (j.voie === "pro" ? "" : " selected") + '>🎓 Voie générale et technologique</option><option value="gridPro"' + (j.voie === "pro" ? " selected" : "") + '>🛠 Voie professionnelle</option></select></div><div class="cu">' +
+      C.map(function (c) { return '<div class="r"><span><b>' + esc(c.nom || "") + "</b> <small class=\"mut\">" + esc((c.afl || "") + " · " + (c.max != null ? c.max + " pts" : "")) + "</small></span></div>"; }).join("") +
+      '</div><p class="ko">La grille actuelle de cette voie est remplacée. Les évaluations déjà faites avec l\'ancienne grille ne s\'affichent plus dans la grille (elles restent enregistrées).</p><div class="row" style="justify-content:flex-end"><button class="b" type="button" data-x>Annuler</button><button class="b p" type="button" data-ok>📥 Remplacer la grille</button></div>');
+    $("[data-x]", d).onclick = function () { d.remove(); };
+    $("[data-ok]", d).onclick = function () { var dr = $("[data-xact]", d).value, a = ACTS.filter(function (x) { return x[1] === dr; })[0], vo = $("[data-vo]", d).value, K = "eps.eval." + a[0] + ".v1", c = ld(K).items.cfg || {}, G = JSON.parse(JSON.stringify(g));
+      G.degres = G.degres && G.degres.length === 4 ? G.degres : ["Degré 1", "Degré 2", "Degré 3", "Degré 4"]; G.criteres.forEach(function (cr, i) { cr.id = cr.id || "c" + (i + 1); cr.max = +String(cr.max).replace(",", ".") || 0; cr.desc = (cr.desc || []).concat(["", "", "", ""]).slice(0, 4); });
+      c = JSON.parse(JSON.stringify(c)); c.id = "cfg"; c[vo] = G; put(K, c); d.remove(); done("✓ Grille importée dans " + a[2] + " (" + (vo === "gridPro" ? "voie professionnelle" : "voie générale") + ")."); };
+  }
+  function xImpParams(j, done) { var P = (j.params || []).filter(function (o) { return o && o.id && o.v != null; }); if (!P.length) { done("⚠ Aucun réglage dans ce fichier."); return; }
+    if (!confirm(P.length + " réglage(s) des applis vont être repris de ce fichier (ils remplacent les valeurs actuelles des mêmes réglages). Continuer ?")) return;
+    P.forEach(function (o) { var i = o.id.indexOf("|"); pset(o.id.slice(0, i), o.id.slice(i + 1), o.v); }); try { EPSD.syncSoon(); } catch (e) {} done("✓ " + P.length + " réglages importés."); }
+
   /* ---------- 🎛 paramètres de toutes les applis ---------- */
   var PDIRS = ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "crosstraining", "basket", "step", "ccf", "co-eval", "terrain"];
   function defsAll() { return jget("eps.paramdefs.v1", {}) || {}; }
@@ -509,7 +653,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
   /* données reçues d'une autre tablette → la page se met à jour */
   window.addEventListener("eps-lists", function () { if (["classes", "accueil"].indexOf(cur.s) >= 0) go(cur.s); });
   window.EPSCONSOLE = { go: go, apply: apply, contexte: contexte, addReq: addReq, prompt4code: prompt4code, ai: aiShow };
-  if (teach()) unlocked(); else setTimeout(function () { if (teach()) unlocked(); }, 600);
+  tryUnlock(); /* ordinateur reconnu ou page rechargée : ouverture directe ; sinon le pavé du code s'ouvre tout de suite */
 })();
 </script>
 <script src="../eps-home.js" defer></script>

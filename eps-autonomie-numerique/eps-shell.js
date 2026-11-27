@@ -103,6 +103,8 @@
       /* raccourcis propres à l'onglet (ex. Séquence : leçon en cours, tablette de contrôle) */
       var A = (((C.tabs || {})[id] || {}).actions || []).concat(id === "seq" && window.EPSLC ? EPSLC.actions() : []).concat(id === "eval" && window.EPSLC && EPSLC.evalActions ? EPSLC.evalActions() : []).concat(id === "bil" && window.EPSLC && EPSLC.bilActions ? EPSLC.bilActions() : []) /* + leçons communes (eps-lecons.js) */
         .map(function (a, i) { return [a.ord != null ? a.ord : 1, i, a]; }).sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; }).map(function (x) { return x[2]; });
+      /* console (mode de préparation) : pas d'action de leçon en direct tournée vers les élèves (planche à envoyer, signal) ; a.live = 1 pour en déclarer une */
+      if (window.EPS_NOLIVE) A = A.filter(function (a) { return !a.live && !/^(Planche tactique|Signal|Message)/.test(a.label || ""); });
       document.documentElement.classList.toggle("epst-acts-on", A.length > 0);
       drawActs(A); }
     /* actions principales : les 4 communes les plus utilisées + celles que l'appli marque main:1 + celles épinglées ★ par l'enseignant (sur cette tablette) ;

@@ -307,6 +307,16 @@ window.epsApChip = function (o) {
 (function () {
   var inC = /[?&]console=/.test(location.search);
   try { if (!inC && window.parent !== window && /\/console\/(index\.html)?$/.test(window.parent.location.pathname)) inC = true; } catch (e) {}
+  /* 🔧 Console = mode de préparation (27/11/2026, demande de l'enseignant : « mode de configuration, je n'ai pas besoin d'outils pour
+     rappeler mes élèves ») : dans la console et dans les applis qu'elle ouvre, les outils de leçon en direct tournés vers les élèves
+     (📣 signal / message à tous, 📋 planche tactique à envoyer) sont masqués : html.eps-nolive + window.EPS_NOLIVE.
+     Réglage « Outils de leçon en direct » de 🎨 Personnaliser la console (eps.console.live = "1") pour les retrouver.
+     Tout nouveau bouton de ce type porte data-sig, data-plan ou data-nolive (ou teste window.EPS_NOLIVE). */
+  var isC = /\/console\/(index\.html)?$/.test(location.pathname);
+  if (inC || isC) { var live = false; try { live = localStorage.getItem("eps.console.live") === "1"; } catch (e) {}
+    if (!live) { window.EPS_NOLIVE = true; document.documentElement.classList.add("eps-nolive"); var sn = document.createElement("style"); sn.id = "eps-nolive-css";
+      sn.textContent = 'html.eps-nolive #eps-sigb,html.eps-nolive [data-sig],html.eps-nolive [data-plan],html.eps-nolive [data-nolive],html.eps-nolive [data-act="planBar"],html.eps-nolive button[onclick="EPSD.signal()"]{display:none!important}';
+      (document.head || document.documentElement).appendChild(sn); } }
   if (!inC) return;
   var H = document.documentElement, m = location.pathname.match(/eps-autonomie-numerique\/([a-z0-9-]+)\//);
   H.classList.add("eps-console"); if (m) H.setAttribute("data-eps-dir", m[1]);
