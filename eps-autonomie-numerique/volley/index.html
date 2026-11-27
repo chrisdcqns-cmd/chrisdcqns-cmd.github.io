@@ -768,9 +768,15 @@ function refresh(){try{window.EPSD&&EPSD.refresh&&EPSD.refresh()}catch(e){}rende
 
 /* ================== ÉVALUER : LISTE ================== */
 let curEl=null;
+/* Évaluation finale au modèle Danse (27/11/2026) : 👤 élève par élève = la fiche avec la colonne des élèves (plus de grille de cartes),
+   📋 par critère / 👥 par groupe (équipes) = saisie rapide commune d'eps-eval.js ; 🏐 Évaluer en direct reste une action de la barre */
+let VOL_LAST=0;
 function renderList(){
-  const c=C(),cs=B().criteres;
+  const c=C(),cs=B().criteres,M=evvol();
   const el=document.getElementById('evList');
+  if(M&&c.eleves.length){
+    if(M.mode()==='eleve'){openEval(Math.min(VOL_LAST,c.eleves.length-1));return}
+    el.classList.remove('epse-host');M.quickInto(el,{nom:c.nom,eleves:c.eleves},{redraw:renderList,onMode:renderList,noGroups:"Forme d'abord les équipes (onglet Classe → Équipes) : elles apparaîtront ici."});return}
   if(!c.eleves.length){el.innerHTML=`<div class="card"><h2>${esc(c.nom)}</h2><p>Aucun élève dans cette classe.</p><button class="btn" onclick="showTab('eleves')">Ajouter des élèves</button></div>`;return}
   const done=c.eleves.filter(e=>note20(e)!=null).length;
   el.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px">
@@ -866,9 +872,14 @@ var EVVOL=null;function evvol(){if(EVVOL||!window.EPSE)return EVVOL;EVVOL=EPSE.c
   max:(cr,e)=>{const c=B().criteres.find(x=>x.id===cr.id);return c?maxPts(c,e):0},
   prof:(cr,e)=>{const c=B().criteres.find(x=>x.id===cr.id),v=e.ev&&e.ev[cr.id];if(!c||!v||v.d==null)return null;const bd=B().bandes[v.d],f=(v.f||0)*100;return{d:v.d,pos:bd&&bd[1]>bd[0]?Math.max(0,Math.min(1,(f-bd[0])/(bd[1]-bd[0]))):.5,pts:critPts(c,e)}},
   /* « ✓ Reprendre ces degrés » de la proposition commune (sources cochées par l'enseignant) : écrit un degré seulement s'il n'y en a pas déjà un */
+  /* saisie rapide commune (par critère / par groupe) : poser ou effacer un degré ; groupes = équipes de la classe */
+  setDeg:(cr,e,d)=>{const c=B().criteres.find(x=>x.id===cr.id);if(!c)return;e.ev=e.ev||{};if(d==null){delete e.ev[c.id];save();return}const[lo,hi]=band(c,e,d),mx=maxPts(c,e);e.ev[c.id]={d,f:mx?rnd((lo+hi)/2,B().pas)/mx:0};autoPos(c,e);save()},
+  groups:()=>{const c=C();return (c.equipes||[]).map(t=>({nom:t.nom||'Équipe',eleves:(t.el||[]).map(id=>c.eleves.find(e=>e.id===id)).filter(Boolean)})).filter(g=>g.eleves.length)},
   setProf:(cr,e,v)=>{const c=B().criteres.find(x=>x.id===cr.id);if(!c||!v||v.d==null)return;e.ev=e.ev||{};if(e.ev[c.id]&&e.ev[c.id].d!=null)return;const d=Math.max(0,Math.min(3,Math.round(+v.d))),[lo,hi]=band(c,e,d),mx=maxPts(c,e),p=isFinite(+v.pos)?Math.max(0,Math.min(1,+v.pos)):.5;e.ev[c.id]={d,f:mx?rnd(lo+(hi-lo)*p,B().pas)/mx:0};autoPos(c,e);save()},
   getAp:e=>e.ap||null,setAp:(e,ap)=>{e.ap=ap;save()},name:e=>({nom:e.nom||'',prenom:e.prenom||''}),note:e=>note20(e),absent:e=>e.statut||'',classes:()=>(S.classes||[]).map(c=>({nom:c.nom,eleves:c.eleves||[]})),comment:e=>e.comment||''});return EVVOL}
-function renderEval(){ renderEval0(); try{const c=C(),e=c.eleves[curEl],M=evvol();if(e&&M)M.propBlock(document.querySelector('#evPanel .evhead'),e,c.nom,{list:()=>c.eleves,redraw:renderEval,keep:t=>{e.comment=t;save();renderEval()}})}catch(x){} }
+function renderEval(){ renderEval0(); try{const c=C(),e=c.eleves[curEl],M=evvol();if(e&&M){VOL_LAST=curEl;M.propBlock(document.querySelector('#evPanel .evhead'),e,c.nom,{list:()=>c.eleves,redraw:renderEval,keep:t=>{e.comment=t;save();renderEval()}});
+  const p=document.getElementById('evPanel'),rt=p.querySelector('.evhead [onclick="closeEval()"]');if(rt)rt.remove();
+  M.layout(p,{nom:c.nom,eleves:c.eleves},curEl,{pick:i=>openEval(i),onMode:()=>{curEl=null;document.getElementById('evPanel').style.display='none';document.getElementById('evList').style.display='block';renderList()}})}}catch(x){console.warn(x)} }
 function renderEval0(){
   const c=C(),e=c.eleves[curEl];if(!e){closeEval();return}
   e.ev=e.ev||{};

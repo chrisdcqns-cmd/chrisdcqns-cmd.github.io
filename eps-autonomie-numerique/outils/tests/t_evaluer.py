@@ -115,6 +115,31 @@ async def main():
         ok("téléphone (390 px) : l'écran d'évaluation tient dans la largeur, les 3 entrées restent accessibles", await p.evaluate("(function(){var P=document.querySelector('.epst-panel'),W=innerWidth;return [].every.call(P.querySelectorAll('.epse-two,.epse-col,.epse-fiche,.epse-card,.epse-sub'),function(e){var r=e.getBoundingClientRect();return r.right<=W+1&&r.left>=-1})})()") and await p.evaluate("document.querySelectorAll('.epst-tb button.seg').length") == 3)
         await p.set_viewport_size({"width": 1024, "height": 768})
         # ---------- 4. Danse et Volley : « ✓ Reprendre ces degrés » écrit dans l'évaluation de l'appli, sans écraser
+        # ---------- 4 bis. Volley, Badminton, Relais : colonne des élèves et trois modes (saisie rapide commune)
+        for app, I, code in (("volley", "EPSTV", "vol"), ("badminton", "EPSTB", "bad"), ("relais", "EPSTR", "rel")):
+            await p.goto(B + app + "/"); await p.wait_for_timeout(4200)
+            if app == "badminton": await p.evaluate("setVoie('pro')"); await p.wait_for_timeout(800)
+            if app == "relais": await p.evaluate("(()=>{const c=DATA.classes.find(c=>/D.MO/.test(c.name))||DATA.classes[0];DATA.cur=c.id;persist()})()")
+            await p.evaluate(I + ".evGo('fin')"); await p.wait_for_timeout(1500)   # .go('eval') rouvre la dernière entrée de la session
+            f = await p.evaluate("(function(){var on=document.querySelector('.epse-li.on'),f=document.querySelector('.epse-fiche');return {col:document.querySelectorAll('.epse-col .epse-li').length,modes:document.querySelectorAll('[data-mode]').length,on:on?on.innerText.split('\\n')[0]:'',fiche:!!f&&f.innerText.length>50,cl:(window.C&&C().nom)||(window.CL&&CL()&&CL().name)||'',vue:(document.querySelector('#evPanel')||{style:{}}).style.display,txt:document.body.innerText.slice(0,300)}})()")
+            ok(app + " : évaluation finale, colonne des 8 élèves et 3 modes, la fiche à droite", f["col"] == 8 and f["modes"] == 3 and f["fiche"], f)
+            await p.evaluate("document.querySelectorAll('.epse-col .epse-li')[3].click()"); await p.wait_for_timeout(800)
+            ok(app + " : toucher un élève de la colonne ouvre sa fiche", await p.evaluate("document.querySelectorAll('.epse-li.on').length===1&&document.querySelectorAll('.epse-col .epse-li')[3].classList.contains('on')"))
+            await p.evaluate("document.querySelector('[data-mode=crit]').click()"); await p.wait_for_timeout(900)
+            n0 = await p.evaluate("document.querySelectorAll('.epse-ql').length")
+            await p.evaluate("document.querySelectorAll('.epse-ql')[0].querySelectorAll('[data-qe]')[2].click()"); await p.wait_for_timeout(700)
+            on1 = await p.evaluate("!!document.querySelectorAll('.epse-ql')[0].querySelector('[data-qd=\"2\"].on')")
+            await p.evaluate("document.querySelectorAll('.epse-ql')[0].querySelectorAll('[data-qe]')[2].click()"); await p.wait_for_timeout(700)
+            on2 = await p.evaluate("!!document.querySelectorAll('.epse-ql')[0].querySelector('[data-qe].on')")
+            ok(app + " : par critère, 8 élèves ; un appui pose le degré dans l'évaluation de l'appli, un second l'enlève", n0 == 8 and on1 and not on2, (n0, on1, on2))
+            await p.evaluate("document.querySelector('[data-mode=groupe]').click()"); await p.wait_for_timeout(800)
+            ok(app + " : par groupe : les groupes de l'appli, ou un message clair s'il n'y en a pas", await p.evaluate("!!document.querySelector('[data-gr]')&&document.querySelectorAll('.epse-ql').length>1||/Pas encore de groupes/.test(document.body.innerText)"), await p.evaluate("document.querySelector('.epse-host')?document.querySelector('.epse-host').innerText.slice(0,300):document.body.innerText.slice(-300)"))
+            await p.evaluate("document.querySelector('[data-mode=eleve]').click()"); await p.wait_for_timeout(900)
+            ok(app + " : retour à « élève par élève » sur le même élève", await p.evaluate("document.querySelectorAll('.epse-col .epse-li')[3].classList.contains('on')"))
+        for app, code in (("badminton", "bad"), ("relais", "rel")):
+            await p.goto(B + app + "/"); await p.wait_for_timeout(4200)
+            r = await p.evaluate("(function(){var I=(window.EPSE_INST||[]).filter(function(x){return x.A.app==='" + code + "'})[0];if(!I)return 'pas d instance';var A=I.A,c=A.classes().filter(function(x){return /D.MO/.test(x.nom)})[0],E=c.eleves[1],G=A.grid(),a=G.criteres[0],b=G.criteres[1];A.setProf(a,E,{d:2,pos:.5});var v1=A.prof(a,E);A.setProf(a,E,{d:0,pos:.5});var v2=A.prof(a,E);A.setDeg(a,E,null);return {t:typeof A.setProf,v1:v1&&v1.d,v2:v2&&v2.d,autre:!!A.prof(b,E),efface:!A.prof(a,E)}})()")
+            ok(app + " : « ✓ Reprendre ces degrés » possible (setProf), sans jamais remplacer un degré déjà donné", isinstance(r, dict) and r["t"] == "function" and r["v1"] == 2 and r["v2"] == 2 and not r["autre"] and r["efface"], r)
         for app, code in (("danse", "dan"), ("volley", "vol")):
             await p.goto(B + app + "/"); await p.wait_for_timeout(4200)
             r = await p.evaluate("(function(){try{window.evdan&&evdan();window.evvol&&evvol()}catch(e){}var I=(window.EPSE_INST||[]).filter(function(x){return x.A.app==='" + code + "'})[0];if(!I)return 'pas d instance';var A=I.A,c=A.classes().filter(function(x){return /D.MO/.test(x.nom)})[0],E=c.eleves[0],G=A.grid(),a=G.criteres[0],b=G.criteres[1];A.setProf(a,E,{d:2,pos:.5});var v1=A.prof(a,E);A.setProf(a,E,{d:0,pos:.5});var v2=A.prof(a,E);return {t:typeof A.setProf,v1:v1&&v1.d,v2:v2&&v2.d,autre:!!A.prof(b,E)}})()")

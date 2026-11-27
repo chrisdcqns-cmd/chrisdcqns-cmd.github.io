@@ -1036,7 +1036,8 @@ body.eteach .ebar .es{display:block}
   </div>
   <div class="dupw" id="ev-dupw"></div>
   <div class="card evbil" id="ev-bilan"></div>
-  <div class="card"><div class="label">Élève à évaluer <small style="font-weight:600;color:var(--muted)">✓ évalué · 🙋 auto-évalué</small></div><div class="evnames" id="ev-names"></div></div>
+  <div id="ev-q" style="display:none"></div><div id="ev-host"></div>
+  <div class="card" id="ev-namesc"><div class="label">Élève à évaluer <small style="font-weight:600;color:var(--muted)">✓ évalué · 🙋 auto-évalué</small></div><div class="evnames" id="ev-names"></div></div>
   <div id="ev-body"></div>
   <div class="card mt"><div class="label">Récapitulatif de la classe <small style="font-weight:600;color:var(--muted)">touche une ligne pour ouvrir la grille</small></div><div class="scroll" id="ev-recap"></div></div>
 </section>
@@ -1549,6 +1550,7 @@ function goBilans(){
   if(BILAN)go("bilan");else{go("eval");toast("Pas encore de leçon : voici le bilan de l'évaluation")}
 }
 function go(v){
+  if(v!=="eval")RL_BIL=0; /* « Bilan et export » ne vaut que pour l'écran d'où on l'a ouvert */
   if(TEACH_VIEWS.includes(v)&&!teachOn()){requireCode().then(ok=>{if(ok)go(v)});return}
   if(v==="wait"){showWait();return}
   /* Évaluation : accessible sans leçon ouverte (elle porte sur toute la séquence). Sans classe choisie : la seule classe est prise d'office,
@@ -2925,7 +2927,11 @@ function evGridHTML(mode,e){
   return h;
 }
 let EV_SEL=null,AU_SEL=null;
+/* RL_BIL : l'écran Évaluation montré comme « 📤 Bilan et export » (bilan de l'évaluation seul) ; sinon la grille seule (évaluation finale) */
+var RL_BIL=0;
 function renderEval(){
+  try{const bv=!!RL_BIL;$("#ev-bilan").style.display=bv?"":"none";["#ev-namesc","#ev-host","#ev-q","#ev-body"].forEach(x=>{const n=$(x);if(n)n.style.display=bv||x==="#ev-q"?"none":""});const rc=$("#ev-recap");if(rc&&rc.closest(".card"))rc.closest(".card").style.display=bv?"":"none";
+    const h2=document.querySelector("#v-eval .top h2");if(h2)h2.firstChild.textContent=bv?"Bilan de l'évaluation · ":"Évaluation · "}catch(e){}
   try{dupBanner()}catch(e){}try{renderEvBilan()}catch(e){}
   try{if(EVRL&&CL()){const b=$("#ev-bilan"),c={nom:CL().name,eleves:CL().eleves||[]};(c.eleves).forEach(e=>EVCL.set(e,CL()));const d=document.createElement("div");d.innerHTML=EVRL.exportsHtml()+EVRL.card(c);b.appendChild(d);EVRL.bindExports(d,c);EVRL.bindCard(d,c)}}catch(e){console.warn(e)}
   const L=evList(true);if(EV_SEL!=null&&!L.some(e=>e.id===EV_SEL))EV_SEL=null;
@@ -2938,9 +2944,17 @@ function renderEval(){
     +L.map(st=>{const o=ev0[st.id],rp=evRepOf(o),t=o?evTotal(o.prof,rp):{n:0},la=lastAutoE(st),ta=la?evTotal(la.sel,rp):null;
       return `<tr data-eve="${st.id}" class="${EV_SEL===st.id?"on":""}"><td><b>${esc(st.prenom)}</b> ${esc(st.nom)}</td>${EVE.map(x=>`<td class="n">${cell(o,x.k,rp)}</td>`).join("")}<td class="n"><b>${t.n?fmtP(t.t):"–"}</b>${t.n&&t.n<4?" *":""}</td><td class="n">${ta&&ta.n===4?fmtP(ta.t):"–"}</td></tr>`}).join("")
     +`</tbody></table><p class="note" style="margin:8px 0 0">* note incomplète (il manque au moins un indicateur).</p>`;
-  $("#ev-body").innerHTML=e?evGridHTML("prof",e):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
+  /* Évaluation finale au modèle Danse (27/11/2026) : 👤 élève par élève = la grille avec la colonne des élèves ; 📋 par critère / 👥 par groupe = saisie rapide commune */
+  const QM=EVRL&&EVRL.quickInto?EVRL.mode():"",QC={nom:CL().name,eleves:L},qOn=QM&&QM!=="eleve",qEl=$("#ev-q"),host=$("#ev-host"),bod=$("#ev-body");
+  if(QM&&!RL_BIL){$("#ev-namesc").style.display="none";if(host&&bod&&bod.parentNode!==host&&!host.querySelector("#ev-body"))host.appendChild(bod);
+    if(!qOn&&EV_SEL==null&&L.length)EV_SEL=L[0].id}
+  const e2=EV_SEL!=null?byId(EV_SEL):null;
+  if(qOn&&!RL_BIL){host.style.display="none";qEl.style.display="";EVRL.quickInto(qEl,QC,{redraw:renderEval,onMode:renderEval,noGroups:"Forme d'abord les groupes (Leçon du jour → Groupes) : ils apparaîtront ici."});return}
+  if(QM&&!RL_BIL){qEl.style.display="none";host.style.display=""}
+  $("#ev-body").innerHTML=e2?evGridHTML("prof",e2):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
   /* 🎯 proposition commune (eps-eval.js) sous le nom de l'élève */
-  try{const h=document.querySelector("#ev-body [data-relprop]");if(e&&h&&EVRL&&EVRL.propBlock)EVRL.propBlock(h,e,CL().name,{list:()=>evList(true),redraw:renderEval,keep:t=>{const o=evOf(e.id);o.comm=t;persist();renderEval()}})}catch(x){}
+  if(QM&&!RL_BIL&&L.length){const i=Math.max(0,L.findIndex(x=>x.id===EV_SEL));EVRL.layout(host,QC,i,{pick:j=>{EV_SEL=L[j].id;renderEval()},onMode:renderEval})}
+  try{const h=document.querySelector("#ev-body [data-relprop]");if(e2&&h&&EVRL&&EVRL.propBlock)EVRL.propBlock(h,e2,CL().name,{list:()=>evList(true),redraw:renderEval,keep:t=>{const o=evOf(e.id);o.comm=t;persist();renderEval()}})}catch(x){}
 }
 function renderAuto(){
   const L=evList(false),lid=CLE().id;
@@ -4376,7 +4390,9 @@ document.addEventListener("click",e=>{
   const j=e.target.closest("[data-remj]");if(j){const J=remJ(),k=j.dataset.k;J[k]=J[k]===j.dataset.remj?undefined:j.dataset.remj;if(!J[k])delete J[k];persist();renderRem()}});
 window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
  tabs:{seq:{go:()=>go(CLE()?'home':'lecons'),on:()=>['lecons','home','course','perf','live'].includes(viewNow()),actions:[{ico:'📅',label:'Leçons',go:()=>go('lecons')},{main:1,ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')},{main:1,ico:'📡',label:'En direct',go:()=>go('live')}]},
-  eval:{go:()=>go('eval'),on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>go('eval')},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}]},
+  eval:{go:()=>{RL_BIL=0;go('eval')},on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>{RL_BIL=0;go('eval')}},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}],
+  /* 📤 Bilan et export (onglet Évaluer) : le bilan de l'évaluation (chiffres, PDF, .zip, Pronote) ; le bilan des leçons (courses) en action à côté */
+  bilan:{go:()=>{RL_BIL=1;if(!CL()&&DATA.classes.length===1){DATA.cur=DATA.classes[0].id;persist()}go('eval')},on:()=>viewNow()==='bilan'||(viewNow()==='eval'&&RL_BIL),actions:[{ico:'🏃',label:'Bilan des leçons (courses)',main:1,go:()=>{RL_BIL=0;goBilans()}}]}},
   cls:{go:()=>go(CL()?'liste':'classes'),on:()=>['liste','groupes','classes','import'].includes(viewNow()),actions:[{ico:'🏫',label:'Toutes les classes',go:()=>go('classes')},{ico:'👥',label:'Élèves',go:()=>go('liste')},{ico:'🔀',label:'Groupes',go:()=>go('groupes')}]},
   bil:{go:()=>goBilans(),on:()=>viewNow()==='bilan'}},
  biblio:[{ico:'📐',label:'Dispositif',sub:'Zones, plots, témoin',go:()=>{DISPO_BACK='lecons';go('dispo')}},{ico:'📚',label:'Situations',sub:'Situations d\'apprentissage',go:()=>{SITS_BACK='lecons';SIT_OPEN=null;go('sits')}}]}):null;
@@ -4396,6 +4412,10 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  note:e=>{const o=evrO(e);if(!o)return null;const t=evTotal(o.prof,evRepOf(o));return t.n===4?t.t:null},absent:e=>'',comment:e=>{const o=evrO(e);return (o&&(o.comm||o.app))||''},
  extras:(c,e)=>{const o=evrO(e);return o?['Répartition AFL2 / AFL3 : '+evRepOf(o).replace('-',' / ')]:[]},
  getAp:e=>{const o=evrO(e);return o&&o.ap||null},
+ /* saisie rapide commune (par critère / par groupe) et « ✓ Reprendre ces degrés » ; groupes = ceux de la leçon du jour, sinon de la classe */
+ setDeg:(cr,e,d)=>{const o=evrO(e);if(!o)return;if(d==null)delete o.prof[cr.id];else o.prof[cr.id]={d:d+1};o.prof.at=new Date().toISOString();persist()},
+ setProf:(cr,e,v)=>{const o=evrO(e);if(!o||!v||v.d==null||(o.prof[cr.id]&&o.prof[cr.id].d))return;const d=Math.max(1,Math.min(4,Math.round(+v.d)+1)),b=EVR[evMax(cr.id,evRepOf(o))][d],p=isFinite(+v.pos)?Math.max(0,Math.min(1,+v.pos)):.5;o.prof[cr.id]=b&&b[1]>b[0]?{d,p:Math.round((b[0]+p*(b[1]-b[0]))*4)/4}:{d};o.prof.at=new Date().toISOString();persist()},
+ groups:()=>{const G=(CLE()&&CLE().groupes)||CL().groupes||[];return G.map(g=>({nom:g.name||'Groupe',eleves:(g.members||[]).map(byId).filter(x=>x&&x.ma!=="DISP")})).filter(g=>g.eleves.length)},
  setAp:(e,ap)=>{const o=evrO(e);if(!o)return;o.ap=ap;const sel={};Object.keys(ap.ev||{}).forEach(k=>{sel[k]={d:ap.ev[k].d+1}});o.auto.qr={sel,at:new Date(ap.t||Date.now()).toISOString(),via:ap.via};persist()},
  settings:()=>DATA.ap||{},setSettings:o=>{DATA.ap=Object.assign(DATA.ap||{},o);persist()},
  isTeacher:()=>teachOn(),unlock:()=>requireCode(),changed:()=>{try{if($("#v-eval").classList.contains("on"))renderEval()}catch(e){}}}):null;

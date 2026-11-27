@@ -47,14 +47,15 @@ async def main():
     r=await p.evaluate("(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.offsetParent&&/^📋\\s*Pronote/.test(x.innerText.trim())&&!x.hasAttribute('data-x-pn'));if(!b)return 'absent';b.click();return 'ok'})()"); await p.wait_for_timeout(1000)
     chk(r=="ok" and await p.evaluate("/Notes pour Pronote/.test(document.body.innerText)"),"bouton Pronote de la barre de l'onglet Évaluation ("+r+")")
     await p.evaluate("(()=>{const m=[...document.querySelectorAll('body > div')].filter(d=>/Notes pour Pronote/.test(d.innerText)).pop();const b=m&&[...m.querySelectorAll('button')].find(x=>/Fermer/.test(x.innerText));if(b)b.click()})()")
-    # 5. Évaluer → Bilan et export (ancien onglet Bilans) : sans leçon -> bilan de l'évaluation ; avec une leçon -> bilan de la leçon
-    bil="EPSTR.go('bil')"
-    await p.evaluate(bil); await p.wait_for_timeout(900); chk(await p.evaluate("viewNow()")=="eval","Bilans sans leçon : bilan de l'évaluation")
+    # 5. Évaluer → 📤 Bilan et export : le bilan de l'évaluation seul (la grille est cachée) ; « Bilan des leçons (courses) » (goBilans) : bilan de la leçon
+    await p.evaluate("EPSTR.go('bil')"); await p.wait_for_timeout(1000)
+    chk(await p.evaluate("viewNow()==='eval'&&$('#ev-bilan').style.display!=='none'&&$('#ev-host').style.display==='none'&&$('#ev-namesc').style.display==='none'"),"Bilan et export : bilan de l'évaluation, sans la grille")
+    await p.evaluate("EPSTR.evGo('fin')"); await p.wait_for_timeout(1000)
+    chk(await p.evaluate("viewNow()==='eval'&&$('#ev-bilan').style.display==='none'&&!!document.querySelector('#ev-host .epse-col')"),"Évaluation finale : la grille avec la colonne des élèves, sans le bilan")
     await p.evaluate("(()=>{const C=CL();C.lecons.push({id:'lz1',date:todayISO(),cfg:JSON.parse(JSON.stringify(DEFCFG)),groupes:[]});persist()})()")
-    await p.evaluate(bil); await p.wait_for_timeout(900); chk(await p.evaluate("viewNow()")=="bilan","Bilans avec une leçon : bilan de la leçon ("+await p.evaluate("viewNow()")+")")
-    pass
-    await p.evaluate("DATA.cur=null;persist();go('classes')"); await p.evaluate(bil); await p.wait_for_timeout(600)
-    chk("bilans" in await p.evaluate("document.querySelector('#cl-hint').textContent"),"Bilans sans classe (2 classes) : on demande la classe")
+    await p.evaluate("goBilans()"); await p.wait_for_timeout(900); chk(await p.evaluate("viewNow()")=="bilan","Bilan des leçons avec une leçon : bilan de la leçon ("+await p.evaluate("viewNow()")+")")
+    await p.evaluate("DATA.cur=null;persist();go('classes')"); await p.evaluate("goBilans()"); await p.wait_for_timeout(600)
+    chk("bilans" in await p.evaluate("document.querySelector('#cl-hint').textContent"),"Bilan des leçons sans classe (2 classes) : on demande la classe")
     await p.evaluate("document.querySelector('#clist [data-class]').click()"); await p.wait_for_timeout(900); chk(await p.evaluate("viewNow()")=="bilan","puis bilan de la leçon")
     print("erreurs:",errs)
     chk(not [e for e in errs if e.startswith("ERR")],"aucune erreur de page")

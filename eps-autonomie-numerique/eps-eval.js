@@ -706,6 +706,62 @@
       var pr = R.querySelector("[data-pr]"); if (pr) { pr.oninput = function () { var l = R.querySelector("[data-prl]"), n = +pr.value; if (l) l.textContent = n <= 0 ? "moyenne simple" : "la dernière compte × " + fr(Math.round((1 + n / 25) * 10) / 10); };
         pr.onchange = function () { var n = Math.max(0, Math.min(100, +pr.value || 0)); try { if (window.EPSP && EPSP.set) EPSP.set("prop_recent", n === 0 ? null : n); } catch (e) {} redraw(); }; }
     };
+    /* ================= 🏁 Évaluation finale, modèle Danse, pour TOUTES les applis (27/11/2026) =================
+       Trois modes (M.mode, gardé par appli : eps.eval.mode.<app>) : 👤 élève par élève (colonne des élèves + fiche de l'appli), 📋 par critère,
+       👥 par groupe (saisie rapide commune). L'adaptateur fournit setDeg(cr, E, d | null) pour écrire / effacer un degré (d de 0 à 3) et
+       peut fournir groups(classe) → [{nom, eleves:[E]}] ; à défaut, les groupes du jour de 📡 Leçon en cours. */
+    var KMODE = "eps.eval.mode." + A.app, Q = { mode: (function () { try { var m = localStorage.getItem(KMODE); return m === "crit" || m === "groupe" ? m : "eleve"; } catch (e) { return "eleve"; } })(), crit: "", grp: 0 };
+    function qName(E) { var n = A.name(E); return ((n.prenom || "") + " " + (n.nom || "")).trim(); }
+    function qAbsJ(E, cls) { try { return !!(window.epsAbsJour && window.epsAbsJour(qName(E), cls)); } catch (x) { return false; } }
+    function qMax(cr, E) { try { if (A.max && E) return A.max(cr, E); } catch (e) {} return +cr.max || 0; }
+    M.mode = function () { return Q.mode; };
+    M.setMode = function (m) { Q.mode = m === "crit" || m === "groupe" ? m : "eleve"; try { localStorage.setItem(KMODE, Q.mode); } catch (e) {} };
+    M.modesHtml = function () { return '<div class="epse-seg" role="tablist" aria-label="Façon d\'évaluer">' + [["eleve", "👤 Élève par élève"], ["crit", "📋 Par critère"], ["groupe", "👥 Par groupe"]].map(function (m) { return '<button type="button" role="tab" aria-selected="' + (Q.mode === m[0]) + '" data-mode="' + m[0] + '"' + (Q.mode === m[0] ? ' class="on"' : "") + ">" + m[1] + "</button>"; }).join("") + "</div>"; };
+    M.bindModes = function (root, redraw) { [].forEach.call(root.querySelectorAll("[data-mode]"), function (b) { b.onclick = function () { M.setMode(b.dataset.mode); redraw(); }; }); };
+    /* colonne des élèves (mode élève par élève) */
+    M.colHtml = function (c, cur, GR) { var L = c.eleves; var item = function (i) { var E = L[i], n = A.note ? A.note(E) : null, st = A.absent ? A.absent(E) : "";
+        return '<button type="button" class="epse-li' + (i === cur ? " on" : "") + (st ? " st" : n != null ? " ok" : "") + '" data-el="' + i + '"' + (i === cur ? ' aria-current="true"' : "") + "><i></i><span>" + esc(qName(E)) + "<small>" + (st ? esc(st) : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></span>" + M.apChip(E) + "</button>"; };
+      return '<div class="epse-col" role="navigation" aria-label="Élèves de la classe">' + (GR ? GR.map(function (g) { return "<h3>" + esc(g.nom) + "</h3>" + g.ids.map(item).join(""); }).join("") : L.map(function (E, i) { return item(i); }).join("")) + "</div>"; };
+    /* pose la fiche de l'appli (el) à droite de la colonne, la barre des modes au-dessus ; pick(i) ouvre l'élève i */
+    M.layout = function (el, c, cur, o) { css(); o = o || {}; if (!el) return; var box = el.querySelector(":scope > .epse-two"), fiche;
+      var oc = el.querySelector(".epse-col"), y = oc ? oc.scrollTop : (el._colY || 0), x = oc ? oc.scrollLeft : (el._colX || 0); /* la fiche de l'appli peut avoir tout redessiné : position de la colonne gardée sur l'élément */
+      if (box) { fiche = box.querySelector(".epse-fiche"); } else { fiche = document.createElement("div"); fiche.className = "epse-fiche"; while (el.firstChild) fiche.appendChild(el.firstChild); }
+      el.classList.add("epse-host"); el.style.setProperty("--app", A.color);
+      var top = document.createElement("div"); top.className = "epse-sub epse-modes"; top.innerHTML = M.modesHtml() + '<span style="flex:1"></span>' + (o.right || "");
+      var two = document.createElement("div"); two.className = "epse-two"; two.innerHTML = M.colHtml(c, cur, o.groups || null); two.appendChild(fiche);
+      el.innerHTML = ""; if (!o.noModes) el.appendChild(top); el.appendChild(two);
+      var nc = el.querySelector(".epse-col"); nc.scrollTop = y; nc.scrollLeft = x; nc.addEventListener("scroll", function () { el._colY = nc.scrollTop; el._colX = nc.scrollLeft; }); var cu = nc.querySelector(".epse-li.on"); if (cu && (cu.offsetTop < nc.scrollTop || cu.offsetTop + cu.offsetHeight > nc.scrollTop + nc.clientHeight)) nc.scrollTop = Math.max(0, cu.offsetTop - 60);
+      [].forEach.call(nc.querySelectorAll("[data-el]"), function (b) { b.onclick = function (ev) { if (ev.target.closest && ev.target.closest("[data-eps-ap]")) return; if (o.pick) o.pick(+b.dataset.el); }; });
+      M.bindModes(el, o.onMode || function () {}); };
+    function qGroups(c, given) { if (given) return given; var G = null; try { if (A.groups) G = A.groups(c.nom); } catch (e) {}
+      if (Array.isArray(G) && G.length) return G.map(function (g) { return { nom: g.nom, ids: (g.eleves || []).map(function (E) { return c.eleves.indexOf(E); }).filter(function (i) { return i >= 0; }) }; }).filter(function (g) { return g.ids.length; });
+      var J = null; try { J = window.epsGroupesJour && window.epsGroupesJour(c.nom); } catch (e) {} if (!Array.isArray(J) || !J.length) return [];
+      var pris = {}; return J.map(function (g, i) { var ids = []; (Array.isArray(g) ? g : []).forEach(function (n) { var k = nkey(n); c.eleves.forEach(function (E, j) { if (!pris[j] && nkey(qName(E)) === k) { pris[j] = 1; ids.push(j); } }); }); return { nom: "Groupe " + (i + 1), ids: ids }; }).filter(function (g) { return g.ids.length; }); }
+    /* saisie rapide (par critère / par groupe) : un appui pose le degré, un second l'enlève */
+    M.quickHtml = function (c, o) { css(); o = o || {}; var G = A.grid(), CR = G.criteres, cr = CR.filter(function (x) { return x.id === Q.crit; })[0] || CR[0]; if (!cr) return '<div class="epse-card"><p>La grille n\'a pas encore de critère.</p></div>'; Q.crit = cr.id;
+      var GS = Q.mode === "groupe" ? qGroups(c, o.groups) : null, ids = c.eleves.map(function (E, i) { return i; }), h = "";
+      if (GS) { if (!GS.length) return '<div class="epse-card"><h2>Pas encore de groupes</h2><p class="epse-mut">' + esc(o.noGroups || "Forme les groupes du jour dans 📡 Leçon en cours (onglet Séquence) : ils apparaîtront ici.") + "</p></div>";
+        var g = GS[Q.grp] || GS[0]; Q.grp = GS.indexOf(g); ids = g.ids;
+        h += '<div class="epse-card"><div class="epse-chips">' + GS.map(function (x, i) { return '<button type="button" class="epse-chip' + (i === Q.grp ? " ok" : "") + '" data-gr="' + i + '">' + esc(x.nom) + "<small>" + x.ids.length + " élève" + (x.ids.length > 1 ? "s" : "") + "</small></button>"; }).join("") + "</div></div>"; }
+      h += '<div class="epse-card"><div class="epse-chips">' + CR.map(function (x) { return '<button type="button" class="epse-chip' + (x.id === cr.id ? " ok" : "") + '" data-cr="' + esc(x.id) + '">' + esc(x.nom) + "<small>" + esc(x.afl || "") + " · " + fr(x.max != null && isFinite(+x.max) ? +x.max : qMax(x, c.eleves[0])) + " pts</small></button>"; }).join("") + "</div>" +
+        '<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:800;color:var(--app);padding:10px 0">Voir les 4 degrés de ce critère</summary><div class="epse-degs" style="margin-top:8px">' + [0, 1, 2, 3].map(function (d) { return '<div class="epse-deg on" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + ';cursor:default"><b>D' + (d + 1) + " · " + esc((G.degres || [])[d] || "") + "</b>" + esc((cr.desc || [])[d] || "") + "</div>"; }).join("") + "</div></details></div>";
+      var btns = function (attr, cur, apd, dis) { return [0, 1, 2, 3].map(function (d) { return '<button type="button" class="epse-q' + (cur === d ? " on" : "") + '" style="--dc:' + DCOL[d] + '" ' + attr + ' data-qd="' + d + '"' + (dis ? " disabled" : "") + ' aria-pressed="' + (cur === d) + '" aria-label="Degré ' + (d + 1) + '">D' + (d + 1) + (apd === d ? '<u title="Auto-positionnement de l\'élève">🙋</u>' : "") + "</button>"; }).join(""); };
+      h += '<div class="epse-card">' + (GS ? '<div class="epse-ql" style="background:#FBFAF7;border-radius:12px;padding:8px 10px;margin:0 0 6px"><b>Même degré pour tout le groupe</b>' + btns("data-gall", -1, -1, false) + "<span></span></div>" : "") +
+        ids.map(function (i) { var E = c.eleves[i], st = A.absent ? A.absent(E) : "", p = A.prof(cr, E), ap = A.getAp(E), a = ap && ap.ev && ap.ev[cr.id], ab = qAbsJ(E, c.nom);
+          return '<div class="epse-ql' + (st ? " off" : "") + '"><b>' + esc(qName(E)) + (st ? ' <small class="epse-mut">(' + esc(st) + ")</small>" : ab ? ' <small class="epse-mut">(absent aujourd\'hui)</small>' : "") + "</b>" + btns('data-qe="' + i + '"', p && p.d != null ? p.d : -1, a && a.d != null ? a.d : -1, !!st || !A.setDeg) + "<span>" + (p && p.pts != null ? fr(p.pts) : p ? "D" + (p.d + 1) : "—") + " / " + fr(qMax(cr, E)) + "</span></div>"; }).join("") + "</div>";
+      return h; };
+    M.bindQuick = function (R, c, redraw, o) { o = o || {}; var keep = function (f) { var y = window.scrollY; f(); redraw(); window.scrollTo(0, y); };
+      [].forEach.call(R.querySelectorAll("[data-cr]"), function (b) { b.onclick = function () { keep(function () { Q.crit = b.dataset.cr; }); }; });
+      [].forEach.call(R.querySelectorAll("[data-gr]"), function (b) { b.onclick = function () { keep(function () { Q.grp = +b.dataset.gr; }); }; });
+      var cr = function () { return A.grid().criteres.filter(function (x) { return x.id === Q.crit; })[0]; };
+      [].forEach.call(R.querySelectorAll("[data-qe]"), function (b) { b.onclick = function () { var E = c.eleves[+b.dataset.qe], d = +b.dataset.qd, k = cr(); if (!E || !k || !A.setDeg) return; keep(function () { var p = A.prof(k, E); A.setDeg(k, E, p && p.d === d ? null : d); }); }; });
+      /* même degré pour tout le groupe : ni les absents du jour, ni les élèves notés ABS / DISP */
+      [].forEach.call(R.querySelectorAll("[data-gall]"), function (b) { b.onclick = function () { var GS = qGroups(c, o.groups), g = GS[Q.grp], d = +b.dataset.qd, k = cr(); if (!g || !k || !A.setDeg) return; keep(function () { g.ids.forEach(function (i) { var E = c.eleves[i]; if ((A.absent && A.absent(E)) || qAbsJ(E, c.nom)) return; var p = A.prof(k, E); if (!p || p.d !== d) A.setDeg(k, E, d); }); }); }; });
+    };
+    /* écran complet « par critère / par groupe » dans un élément (applis à écran propre : Volley, Badminton, Relais) */
+    M.quickInto = function (el, c, o) { o = o || {}; el.classList.add("epse-host"); el.style.setProperty("--app", A.color);
+      el.innerHTML = '<div class="epse-sub epse-modes">' + M.modesHtml() + '<span style="flex:1"></span>' + (o.right || "") + "</div>" + M.quickHtml(c, o);
+      M.bindModes(el, o.onMode || function () {}); M.bindQuick(el, c, o.redraw || function () {}, o); };
     M.ouvert = ouvert; M.relever = relever; M.lien = lien; M.ecart = ecart;
     /* instances connues des fiches de leçon (eps-lecons.js : critères des grilles, remédiation) */
     function isT_() { try { return typeof A.isTeacher === "function" && !!A.isTeacher(); } catch (e) { return false; } } /* adaptateurs réduits (Volley, Danse) : pas de relevé automatique ici */
@@ -765,6 +821,8 @@
       grid: function () { var G = grid(); G.criteres.forEach(function (cr) { if (!cr.descEl) cr.descEl = cr.desc; }); return G; },
       classes: classes, name: function (e) { return { nom: e.nom, prenom: e.prenom }; }, prof: prof, note: note,
       absent: function (e) { return rec(e._c, e).st || ""; }, comment: function (e) { return rec(e._c, e).comm || ""; },
+      setDeg: function (cr, e, d) { var r = rec(e._c, e); r.ev = r.ev || {}; if (d == null) delete r.ev[cr.id]; else r.ev[cr.id] = { d: d, pos: .5 }; save(e._c, e, r); },
+      setProf: function (cr, e, v) { var r = rec(e._c, e); r.ev = r.ev || {}; if (r.ev[cr.id] || !v || v.d == null) return; r.ev[cr.id] = { d: v.d, pos: v.pos == null ? .5 : v.pos }; save(e._c, e, r); },
       extras: function (c, e) { try { return o.extras ? o.extras(c, e) : []; } catch (x) { return []; } },
       getAp: function (e) { return rec(e._c, e).ap; }, setAp: function (e, ap) { var r = rec(e._c, e); r.ap = ap; save(e._c, e, r); },
       settings: function () { return cfg(); }, setSettings: setCfg, isTeacher: o.isTeacher, unlock: o.unlock, changed: function () { if (UI.open) render(); } };
@@ -814,7 +872,7 @@
       var oc = R.querySelector(".epse-col"), ocY = oc ? oc.scrollTop : 0, ocX = oc ? oc.scrollLeft : 0;
       R.innerHTML = head + '<div class="epse-in">' + body + "</div>";
       var nc = R.querySelector(".epse-col"); if (nc) { nc.scrollTop = ocY; nc.scrollLeft = ocX; var cu = nc.querySelector(".epse-li.on"); if (cu && cu.scrollIntoView && (cu.offsetTop < nc.scrollTop || cu.offsetTop + cu.offsetHeight > nc.scrollTop + nc.clientHeight)) nc.scrollTop = Math.max(0, cu.offsetTop - 60); }
-      R.querySelectorAll("[data-mode]").forEach(function (b) { b.onclick = function () { UI.mode = b.dataset.mode; try { localStorage.setItem(KMODE, UI.mode); } catch (e) {} render(); }; });
+      R.querySelectorAll("[data-mode]").forEach(function (b) { b.onclick = function () { M.setMode(b.dataset.mode); UI.mode = M.mode(); render(); }; });
       if (c && UI.tab === "eval" && UI.mode !== "eleve" && c.eleves.length) bindRapide(R, c, G, GRP);
       if (R.querySelector("[data-close]")) R.querySelector("[data-close]").onclick = close;
       var s = R.querySelector("[data-cls]"); if (s) s.onchange = function () { UI.cls = s.value; UI.el = -1; render(); };
@@ -848,31 +906,9 @@
       M.bindPhrase(R, e, e._c, function (txt) { var r = rec(e._c, e); r.comm = txt; save(e._c, e, r); render(); });
       var pna = R.querySelector("[data-pnall]"); if (pna) pna.onclick = function () { M.pronoteAll(e._c, c.eleves); };
     }
-    /* groupes pour « 👥 Par groupe » : ceux de l'appli (o.groups), sinon les groupes du jour de 📡 Leçon en cours */
-    function groupesDe(c, GRP) { if (GRP) return GRP; var J = null; try { J = window.epsGroupesJour && window.epsGroupesJour(c.nom); } catch (e) {} if (!Array.isArray(J) || !J.length) return [];
-      var pris = {}; return J.map(function (g, i) { var ids = []; (Array.isArray(g) ? g : []).forEach(function (n) { var k = nkey(n); c.eleves.forEach(function (e, j) { if (!pris[j] && nkey((e.prenom || "") + " " + (e.nom || "")) === k) { pris[j] = 1; ids.push(j); } }); }); return { nom: "Groupe " + (i + 1), ids: ids }; }).filter(function (g) { return g.ids.length; }); }
-    function absJ(e, c) { try { return !!(window.epsAbsJour && window.epsAbsJour(((e.prenom || "") + " " + (e.nom || "")).trim(), c.nom)); } catch (x) { return false; } }
-    function rapide(c, G, GRP) {
-      var CR = G.criteres, cr = CR.filter(function (x) { return x.id === UI.crit; })[0] || CR[0]; if (!cr) return '<div class="epse-card"><p>La grille n\'a pas encore de critère : touche « 🧩 Grille ».</p></div>'; UI.crit = cr.id;
-      var GS = UI.mode === "groupe" ? groupesDe(c, GRP) : null, ids = c.eleves.map(function (e, i) { return i; }), h = "";
-      if (GS) { if (!GS.length) return '<div class="epse-card"><h2>Pas encore de groupes</h2><p class="epse-mut">Forme les groupes du jour dans 📡 Leçon en cours (onglet Séquence) : ils apparaîtront ici.</p></div>';
-        var g = GS[UI.grp] || GS[0]; UI.grp = GS.indexOf(g); ids = g.ids;
-        h += '<div class="epse-card"><div class="epse-chips">' + GS.map(function (x, i) { return '<button type="button" class="epse-chip' + (i === UI.grp ? " ok" : "") + '" data-gr="' + i + '">' + esc(x.nom) + "<small>" + x.ids.length + " élève" + (x.ids.length > 1 ? "s" : "") + "</small></button>"; }).join("") + "</div></div>"; }
-      h += '<div class="epse-card"><div class="epse-chips">' + CR.map(function (x) { return '<button type="button" class="epse-chip' + (x.id === cr.id ? " ok" : "") + '" data-cr="' + esc(x.id) + '">' + esc(x.nom) + "<small>" + esc(x.afl || "") + " · " + fr(maxOf(x)) + " pts</small></button>"; }).join("") + "</div>" +
-        '<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:800;color:var(--app)">Voir les 4 degrés de ce critère</summary><div class="epse-degs" style="margin-top:8px">' + [0, 1, 2, 3].map(function (d) { return '<div class="epse-deg on" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + ';cursor:default"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + "</b>" + esc(cr.desc[d] || "") + "</div>"; }).join("") + "</div></details></div>";
-      var btns = function (attr, cur, apd, dis) { return [0, 1, 2, 3].map(function (d) { return '<button type="button" class="epse-q' + (cur === d ? " on" : "") + '" style="--dc:' + DCOL[d] + '" ' + attr + ' data-qd="' + d + '"' + (dis ? " disabled" : "") + ' aria-pressed="' + (cur === d) + '" aria-label="Degré ' + (d + 1) + '">D' + (d + 1) + (apd === d ? '<u title="Auto-positionnement de l\'élève">🙋</u>' : "") + "</button>"; }).join(""); };
-      h += '<div class="epse-card">' + (GS ? '<div class="epse-ql" style="background:#FBFAF7;border-radius:12px;padding:8px 10px;margin:0 0 6px"><b>Même degré pour tout le groupe</b>' + btns("data-gall", -1, -1, false) + "<span></span></div>" : "") +
-        ids.map(function (i) { var e = c.eleves[i], r = rec(e._c, e), v = r.ev && r.ev[cr.id], a = r.ap && r.ap.ev && r.ap.ev[cr.id], p = prof(cr, e), ab = absJ(e, c);
-          return '<div class="epse-ql' + (r.st ? " off" : "") + '"><b>' + esc(e.prenom + " " + e.nom) + (r.st ? ' <small class="epse-mut">(' + esc(r.st) + ")</small>" : ab ? ' <small class="epse-mut">(absent aujourd\'hui)</small>' : "") + "</b>" + btns('data-qe="' + i + '"', v && v.d != null ? v.d : -1, a && a.d != null ? a.d : -1, !!r.st) + "<span>" + (p ? fr(p.pts) : "—") + " / " + fr(maxOf(cr)) + "</span></div>"; }).join("") + "</div>";
-      return h; }
-    function bindRapide(R, c, G, GRP) {
-      var keep = function (f) { var y = window.scrollY, ry = R.scrollTop; f(); render(); if (UI.host) window.scrollTo(0, y); else R.scrollTop = ry; };
-      R.querySelectorAll("[data-cr]").forEach(function (b) { b.onclick = function () { keep(function () { UI.crit = b.dataset.cr; }); }; });
-      R.querySelectorAll("[data-gr]").forEach(function (b) { b.onclick = function () { keep(function () { UI.grp = +b.dataset.gr; }); }; });
-      R.querySelectorAll("[data-qe]").forEach(function (b) { b.onclick = function () { var e = c.eleves[+b.dataset.qe], d = +b.dataset.qd; if (!e) return; keep(function () { var r = rec(e._c, e); r.ev = r.ev || {}; if (r.ev[UI.crit] && r.ev[UI.crit].d === d) delete r.ev[UI.crit]; else r.ev[UI.crit] = { d: d, pos: .5 }; save(e._c, e, r); }); }; });
-      /* même degré pour tout le groupe : ni les absents du jour, ni les élèves notés ABS / DISP */
-      R.querySelectorAll("[data-gall]").forEach(function (b) { b.onclick = function () { var GS = groupesDe(c, GRP), g = GS[UI.grp], d = +b.dataset.qd; if (!g) return; keep(function () { g.ids.forEach(function (i) { var e = c.eleves[i], r = rec(e._c, e); if (r.st || absJ(e, c)) return; r.ev = r.ev || {}; if (!r.ev[UI.crit] || r.ev[UI.crit].d !== d) { r.ev[UI.crit] = { d: d, pos: .5 }; save(e._c, e, r); } }); }); }; });
-    }
+    /* « 👥 Par groupe » : groupes de l'appli (o.groups, rangés par grouper) sinon groupes du jour ; la saisie rapide est celle du module (M.quickHtml) */
+    function rapide(c, G, GRP) { if (!G.criteres.length) return '<div class="epse-card"><p>La grille n\'a pas encore de critère : touche « 🧩 Grille ».</p></div>'; return M.quickHtml(c, { groups: GRP || null }); }
+    function bindRapide(R, c, G, GRP) { M.bindQuick(R, c, function () { render(); }, { groups: GRP || null }); }
     function table(c) { var G = grid();
       return '<div class="epse-card"><h2>📋 ' + esc(c.nom) + '</h2><div style="overflow:auto"><table><tr><th class="l">Élève</th>' + G.criteres.map(function (cr) { return "<th>" + esc(cr.nom) + "</th>"; }).join("") + "<th>Note /20</th></tr>" +
         c.eleves.map(function (e) { var r = rec(e._c, e); return '<tr><td class="l">' + esc(e.prenom + " " + e.nom) + "</td>" + G.criteres.map(function (cr) { var p = prof(cr, e); return "<td>" + (p ? '<span class="epse-d" style="background:' + DCOL[p.d] + '">D' + (p.d + 1) + "</span> " + fr(p.pts) : "–") + "</td>"; }).join("") + "<td><b>" + (r.st || fr(note(e))) + "</b></td></tr>"; }).join("") + "</table></div></div>"; }
