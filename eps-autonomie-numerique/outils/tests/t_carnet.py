@@ -60,8 +60,8 @@ async def main():
         # ---------- 2. repères rapides depuis la tablette de contrôle ----------
         await p.goto(B + "volley/"); await p.wait_for_timeout(6000)
         await p.evaluate("EPSLC.controle({cls:'" + CL + "'})"); await p.wait_for_timeout(700)
-        nb = await p.locator("#lc-ctl [data-ico]").count(); out.append(("2 tablette de contrôle : un bouton ⚡ par élève présent", nb >= 6, nb))
-        await p.locator("#lc-ctl [data-ico]").first.click(); await p.wait_for_timeout(300); await p.locator("#lc-ico [data-i='0']").click(); await p.locator("#lc-ico [data-i='2']").click(); await p.locator("#lc-ico [data-i='2']").click(); await p.wait_for_timeout(200)
+        nb = await p.locator("#lc-ctl [data-el]").count(); out.append(("2 pilotage de leçon : une carte par élève", nb >= 6, nb))
+        await p.locator("#lc-ctl [data-el]").first.click(); await p.wait_for_timeout(300); await p.locator("#lc-det [data-ico]").click(); await p.wait_for_timeout(300); await p.locator("#lc-ico [data-i='0']").click(); await p.locator("#lc-ico [data-i='2']").click(); await p.locator("#lc-ico [data-i='2']").click(); await p.wait_for_timeout(200)
         await shot(p, "3-reperes-rapides", False)
         await p.locator("#lc-ico [data-undo]").click(); await p.wait_for_timeout(200); await p.locator("#lc-ico [data-x]").click(); await p.wait_for_timeout(400)
         ic = await p.evaluate("Object.values(" + IT("eps.ico.v1") + ").map(function(r){return [r.cls,r.app,Object.values(r.el)[0].map(function(x){return x.i})]})")

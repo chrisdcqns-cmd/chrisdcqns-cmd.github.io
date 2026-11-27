@@ -790,6 +790,17 @@ function all5(n,v){belW(n,b=>{b.t5=PED().b5.map(()=>v?1:0)});try{navigator.vibra
 /* élève à aider : passé sous la ligne rouge, ou 3 dernières voies sans Top (aujourd'hui) */
 function helpOf(M){const low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=M.slice(-3),fails=last.length>=3&&last.every(r=>isNum(r.h)&&Number(r.h)!=TOP);
  return low?{t:low+'× sous la ligne rouge',why:M.filter(r=>r.why).slice(-1)[0]?.why||'Autre raison'}:fails?{t:'3 voies sans Top d\'affilée',why:'Échecs répétés'}:null}
+/* 🧭 Pilotage de leçon (commun, eps-lecons.js) : qui est en échec en escalade. En échec = sous la ligne rouge, 3 voies sans Top d'affilée
+   (helpOf) ou assis dans le baudrier à la dernière grimpe (règle de l'enseignant : s'asseoir pendant la voie = échec) ; sécurité = dernière
+   grimpe arrêtée pour un problème de matériel ou de sécurité ; en réussite = objectif de voies atteint, sinon au moins un Top. */
+window.epsCtlAlerts=cls=>{const nk=s=>String(s||'').toLowerCase().replace(/\s+/g,''),k=CL.find(c=>nk(c.nom)==nk(cls));if(!k)return[];const t=today(),L=recOf(k.nom,t),min=lecFor(k.id,t)?.min||0;
+ return [...new Set(L.map(r=>r.el))].filter(Boolean).map(n=>{const M=L.filter(r=>r.el==n).sort((a,b)=>a.ts<b.ts?-1:1),hp=helpOf(M),last=M[M.length-1],as=Number(last.a)>0,secu=/mat[ée]riel|s[ée]curit/i.test(last.why||''),tops=M.filter(r=>Number(r.h)==TOP).length,best=bestOk(M);
+  return {n,niv:secu?'secu':hp||as?'echec':(min?M.length>=min:tops)?'ok':'',
+   t:[secu?'Sécurité : '+String(last.why).split(' – ')[0]:'',hp?hp.t:'',as?'assis dans le baudrier':''].filter(Boolean).join(' · ')||`${M.length}${min?' / '+min:''} voie${M.length>1?'s':''}${best?' · '+best:''}`,
+   d:[`${M.length}${min?' / '+min:''} voie${M.length>1?'s':''} · ${tops} Top${best?' · meilleure réussite '+best:''}`,...M.slice(-4).map(r=>`${String(r.ts).slice(11,16)} · ${r.d||'?'} → ${hTxt(r.h)}${Number(r.a)>0?' · assis':''}${r.why?' · '+String(r.why).split(' – ')[0]:''}`)],
+   at:new Date(String(last.ts).replace(' ','T')).getTime()||0}})};
+/* le 🧭 Pilotage de leçon commun renvoie vers la tablette de contrôle des grimpes (écran propre, inchangé : demande de l'enseignant) */
+window.epsCtlApp={label:'🧗 Tablette de contrôle des grimpes',html:()=>'<p class="lc-mut" style="margin:0">Toutes les grimpes du jour, élève par élève : voies, heures, cotations, hauteur, ligne rouge, messages, assurage.</p>',open:cls=>{try{const nk=s=>String(s||'').toLowerCase().replace(/\s+/g,''),k=CL.find(c=>nk(c.nom)==nk(cls));if(k){CF.sel=k.id;save()}}catch(e){}S.t='ctl';render()}};
 /* ---------- tablette de contrôle (enseignant) : une carte par élève, mise à jour en direct ---------- */
 function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.nom||'',t=today(),L=recOf(nom,t),cfg=lecFor(sel,t)||(CF.sea?.d==t&&(CF.sea.cl||'')==sel?CF.sea:null),min=cfg?.min||0;
  const all=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr')),ab=absL(sel),names=all.filter(n=>!ab.includes(n)||L.some(r=>r.el==n)),absent=all.filter(n=>!names.includes(n));
@@ -892,6 +903,8 @@ async function delLe(){const L=S.le;if(!await ask('Supprimer la leçon du '+fday
 function xlLe(){const k=CL.find(c=>c.id==(CF.sel||''));xl(recOf(k?.nom||'',S.lv),S.lv)}
 /* bouton Accueil commun (eps-home.js) : un appui ramène à l'accueil de l'application */
 /* classe en cours : en mode enseignant, celle choisie sur « Choisis la classe » (même sans leçon du jour) ; sinon celle de la leçon du jour */
+/* ✋ appel de l'enseignant, 📱 tablettes : la classe et le groupe du jour qui utilise cette tablette */
+window.epsTabInfo=()=>{try{const k=cls();if(!S.T&&k){const g=grp();return{mode:'élève',cls:k.nom,who:(Array.isArray(g)?g:[]).filter(n=>typeof n=='string').slice(0,6)}}}catch(e){}return{}};
 window.epsCurrentClass=()=>{const c=(S.T&&CF.sel&&CL.find(x=>x.id==CF.sel))||(seaOK()&&cls());return c?{nom:c.nom,eleves:c.el||[]}:null};
 window.epsAppHome=()=>{document.querySelector('.vmod')?.remove();document.querySelector('.dlg')?.remove();fresh();S.e=false;S.le=null;S.lv=null;S.mr='';S.t=S.T||seaOK()?'home':'role';render();scrollTo(0,0)};
 /* consultation d'une leçon (enseignant) */

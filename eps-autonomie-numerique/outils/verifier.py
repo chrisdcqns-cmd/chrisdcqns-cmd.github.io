@@ -68,6 +68,9 @@ for p in list(B.glob("*/index.html")) + [B / "index.html"]:
     if not (p.parent / "src").is_dir() and "eps-source-directe" not in p.read_text(encoding="utf-8", errors="replace")[:600]:
         pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
 REPERES = {
+    "eps-home.js": ["function callHost(", "EPSD.appels = {", "appel_motifs", "function trKeep(", "function trRestore(", "bilans(want, true)", "html.eps-tous:not(.eps-teach) #eps-upd{display:none!important}", "data-eps-a11y-h", "function fortApply(", "var LEX = {", "eps.gate.last.", "async function espPublier(", "async function espRelever(", "EPSD.plan = {", "function planCheck(", "function gateSheet(", "sheet: gateSheet", "async function confirmes(", "ESSAIS_MAX"],
+    "eps-lecons.js": ["window.epsCtlAlerts", "function ctlDet(", "ctl_inactif_min", "Pilotage de leçon", "function icoPop(", "function gNom(", "EPSD.trash.keep(", "if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
+    "escalade/index.html": ["window.epsCtlAlerts=", "window.epsTabInfo="],
     "danse/index.html": ["Demande à ton enseignant de créer les groupes.", "SY.c[k] = { u: SY.p[k]", "function P01(", "P01(au.pos)", "P01(sel.pos)", "P01(x.pos)", "EPSG_Q", "UI.mode"],
     "volley/index.html": ["pd.n=(pd.n||0)+1", "function jsq(", "confirm(&quot;Changer l'équipe", "EPSG.sheet("],
     "badminton/index.html": ["pd.n=(pd.n||0)+1", "EPSG.sheet(", "Fiches techniques"],
@@ -79,7 +82,6 @@ REPERES = {
     "console/index.html": ["doit être un nombre", "if (sm) sm.textContent"],
     "mon-bilan/index.html": ["ton enseignant", "kind === \"espace\"", "dropchk", "function mission(", "un seul envoi à la fois", "essais automatiques seulement", "../step/export.js"],
     "espace/index.html": ["E.publier(", "E.relever()", "noindex", "function mget(", "E.dispenses(", "get(DIRS.step).step"],
-    "eps-home.js": ["function trKeep(", "function trRestore(", "bilans(want, true)", "html.eps-tous:not(.eps-teach) #eps-upd{display:none!important}", "data-eps-a11y-h", "function fortApply(", "var LEX = {", "eps.gate.last.", "async function espPublier(", "async function espRelever(", "EPSD.plan = {", "function planCheck(", "function gateSheet(", "sheet: gateSheet", "async function confirmes(", "ESSAIS_MAX"],
     "eps-lists.js": ["typeof def === \"number\" && (typeof o.v !== \"number\""],
     "eps-shell.js": ["doit être un nombre", ">✕ Fermer</button></div><iframe"],
     "eps-tactique.js": ["function editor(", "function depart("],
@@ -87,7 +89,6 @@ REPERES = {
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter", "function vCdc(", "function saisie(", "function nbr("],
     "eps-eval.js": ["function gridFor(", "function coAdd(", "function coEdit(", "function coEleve(", "n !== P.moi", "J'observe un camarade"],
     "eps-groupes.js": ["function terrain(", "v.grp.nm = noms", "function imgSet(", "TZC = 24000"],
-    "eps-lecons.js": ["function icoPop(", "function gNom(", "EPSD.trash.keep("],
     "tactique/index.html": ["EPSD.plan.send(", "EPSD.plan.live(", "data-all"],
     "boite/index.html": ["function chrono(", "function compteur(", "function video(", "function analyse(", "function aCfg(", "function marks(", "function rpSet(", "function charge("],
     "attestation/index.html": ["À faire valider par ton chef d'établissement", "pre: \"at|\"", "noindex", "sheet a5 one"],
@@ -96,7 +97,6 @@ REPERES = {
     "guide/index.html": ["data-niv=\"a\"", "data-niv=\"b\"", "data-niv=\"c\"", "function rendre(", "function chercher(", "function imprimer(", "noindex", "EPSD.askCode()", "contenu.js"],
     "guide/contenu.js": ["G.a.gen = [", "G.b.gen = [", "G.c.gen = [", "act(\"ccf\"", "[\"aide\", \"commun\"]", "ce qu'il y a à faire pour être en réussite", "ce qu'il y a à faire pour faire"],
     "eps-guides.js": ["← Accueil · ← Retour · ✕ Fermer", "📖 Guides"],
-    "eps-lecons.js": ["if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
     "apps-script/Code.gs": ["function modele_(", "function sansCache_(", "function lisJson_(", "function syncChk_(", "res.chkv = 1"],
 }
 for f, L in REPERES.items():

@@ -39,7 +39,7 @@ window.EPS_GUIDE = (function () {
       ["strip", [["✅ Je suis en réussite si…", "ce qu'il y a à faire pour être en réussite"], ["💡 Comment faire…", "ce qu'il y a à faire pour faire"], ["− / +", "plus simple ou plus difficile"], ["🎭 Mon rôle", "coach, arbitre, observateur…"], ["⏱ Minuteur", "le temps qu'il reste"], ["🎯 En autonomie", "une situation pour progresser"]]]
     ] },
     { t: "Quand mon enseignant m'envoie quelque chose", b: [
-      ["strip", [["📣 Message en grand", "je lis, puis « ✓ J'ai compris »"], ["📋 Planche", "un schéma pour mon équipe, puis « ✓ Vu »"], ["🟢 🟠 🔴", "mon résultat par rapport au seuil"]]],
+      ["strip", [["✋ Enseignant", "dans le bandeau : je dis où je suis et pourquoi, mon enseignant est prévenu"], ["📣 Message en grand", "je lis, puis « ✓ J'ai compris »"], ["📋 Planche", "un schéma pour mon équipe, puis « ✓ Vu »"], ["🟢 🟠 🔴", "mon résultat par rapport au seuil"]]],
       ["img", "planche-recue.jpg", "Une planche envoyée par l'enseignant s'affiche en plein écran."]
     ] },
     { t: "Je me positionne", b: [
@@ -70,7 +70,7 @@ window.EPS_GUIDE = (function () {
       ["flow", [["J'importe", "Excel ou CSV, depuis l'accueil ou une appli"], ["Visible partout", "toutes les applis, toutes les tablettes"], ["Activités de la classe", "d'après l'emploi du temps, ou cochées à la main"], ["Pour essayer", "la classe « DÉMO (fictive) »"]]]
     ] },
     { t: "Une leçon : avant, pendant, après", b: [
-      ["cols", [["Avant", ["📝 Fiche de leçon (ou document déposé → « Mettre en fiches »)", "✓ Valider, puis 📅 programmer", "✅ Tout est prêt ?"]], ["Pendant", ["📡 Leçon en cours : appel, ▶ Démarrer", "🧩 Groupes et 🎭 rôles du jour", "📣 Message, ⏱ minuteur, 📋 planche", "🖥 Tablette de contrôle", "🎙 Observation dictée"]], ["Après", ["📊 Évaluer la leçon", "🏁 Bilan de séquence", "🎯 Remédiation proposée", "🏫 Ma classe : vue d'ensemble"]]]],
+      ["cols", [["Avant", ["📝 Fiche de leçon (ou document déposé → « Mettre en fiches »)", "✓ Valider, puis 📅 programmer", "✅ Tout est prêt ?"]], ["Pendant", ["📡 Leçon en cours : appel, ▶ Démarrer", "🧩 Groupes et 🎭 rôles du jour", "📣 Message, ⏱ minuteur, 📋 planche", "🧭 Pilotage de leçon", "🎙 Observation dictée"]], ["Après", ["📊 Évaluer la leçon", "🏁 Bilan de séquence", "🎯 Remédiation proposée", "🏫 Ma classe : vue d'ensemble"]]]],
       ["two", ["lecon-fiche.jpg", "Avant : la fiche de leçon."], ["lecon-cours.jpg", "Pendant : la leçon en cours."]]
     ] },
     { t: "Évaluer, puis rendre les bilans", b: [
@@ -111,9 +111,9 @@ window.EPS_GUIDE = (function () {
       ["cols", [["Réglages", ["📋 En faire mon modèle : toute nouvelle leçon part de ton modèle", "🏦 Banque : leçons et situations gardées, par apprentissage", "🖨 Fiche imprimable, ou toute la séquence", "📥 Trame de séquence proposée par certaines activités"]], ["Cas particuliers", ["Un brouillon n'est jamais montré aux élèves", "🔁 Remettre en forme : l'ancienne version reste récupérable", "🧪 Leçon simulée : la fiche de démonstration sur la classe fictive"]]]]
     ] },
     { t: "Leçon · pendant", b: [
-      ["steps", ["📅 Séquence → 📡 Leçon en cours. Choisis la classe et la fiche.", "Fais l'appel du jour (touche les absents), puis ▶ Démarrer : la fiche s'ouvre sur les tablettes des élèves.", "🧩 Groupes du jour : au hasard, par niveau, par affinités ou « casser les habitudes ». Les présents non dispensés sont répartis.", "🎭 Rôles du jour : touche les rôles utiles ; « ↻ Faire tourner » pour changer.", "Avance d'étape en étape ; 📣 Message en grand avec un son, ⏱ minuteur.", "🖥 Tablette de contrôle : présents, tablettes actives, résultats par situation, carte de chaque élève. Actualisée toutes les 8 s.", "🎙 dans le bandeau : dicte une observation, l'élève est reconnu par son prénom.", "Les élèves notent chaque situation : ✅ réussi, 🟠 en partie, ❌ pas encore."]],
-      ["two", ["lecon-cours.jpg", "La leçon en cours, côté enseignant."], ["controle.jpg", "La tablette de contrôle."]],
-      ["cols", [["Réglages", ["Messages rapides, rôles, matériel : 🎛 Paramètres", "Seuil « à reprendre » de la tablette de contrôle", "Cadres repliables : touche leur titre"]], ["Cas particuliers", ["📣 du bandeau : signal à toutes les tablettes, même sans leçon lancée", "🎨 Indicateur coloré d'une situation : l'élève tape sa valeur, 🟢 🟠 🔴", "🎯 Remédiation en autonomie : proposée à un élève, jamais sans ton clic"]]]]
+      ["steps", ["📅 Séquence → 📡 Leçon en cours. Choisis la classe et la fiche.", "Fais l'appel du jour (touche les absents), puis ▶ Démarrer : la fiche s'ouvre sur les tablettes des élèves.", "🧩 Groupes du jour : au hasard, par niveau, par affinités ou « casser les habitudes ». Les présents non dispensés sont répartis.", "🎭 Rôles du jour : touche les rôles utiles ; « ↻ Faire tourner » pour changer.", "Avance d'étape en étape ; 📣 Message en grand avec un son, ⏱ minuteur.", "🧭 Pilotage de leçon : ✋ appels des élèves, puis la classe en cartes filtrées (🆘 en échec, ⏳ inactifs, ✅ en réussite) ; touche une carte pour le détail. Actualisé toutes les 8 s.", "🎙 dans le bandeau : dicte une observation, l'élève est reconnu par son prénom.", "Les élèves notent chaque situation : ✅ réussi, 🟠 en partie, ❌ pas encore."]],
+      ["two", ["lecon-cours.jpg", "La leçon en cours, côté enseignant."], ["controle.jpg", "Le pilotage de leçon."]],
+      ["cols", [["Réglages", ["Messages rapides, rôles, matériel : 🎛 Paramètres", "Seuils du pilotage de leçon", "Cadres repliables : touche leur titre"]], ["Cas particuliers", ["📣 du bandeau : signal à toutes les tablettes, même sans leçon lancée", "🎨 Indicateur coloré d'une situation : l'élève tape sa valeur, 🟢 🟠 🔴", "🎯 Remédiation en autonomie : proposée à un élève, jamais sans ton clic"]]]]
     ] },
     { t: "Leçon · après", b: [
       ["steps", ["📊 Évaluer la leçon : participation, sérieux, thème du jour, de 0 à 3, élève par élève. Critères modifiables.", "🏁 Bilan de séquence : résultats des situations, leçon par leçon.", "🏫 Ma classe : vue générale, élèves, 📝 bilans et avis, 🥋 validations, 📜 protocole pour les terminales.", "Période au choix : séquence, trimestre, année ou dates."]],
@@ -143,7 +143,7 @@ window.EPS_GUIDE = (function () {
       ["img", "carnet.jpg", "Le carnet d'un élève de la classe fictive."]
     ] },
     { t: "Planche tactique", b: [
-      ["steps", ["Tuile 📋 Planche tactique, 📣 du bandeau, ou bouton de la 🖥 Tablette de contrôle.", "Choisis le terrain, place les joueurs et le ballon, trace déplacements et passes, ajoute un texte.", "💾 Enregistrer : la planche se retrouve sur toutes tes tablettes.", "📤 Envoyer : à tous les élèves, ou aux tablettes choisies, pour la durée voulue.", "« 🔴 En direct » : la planche envoyée suit ensuite ton dessin, sans se rouvrir.", "Les élèves touchent « ✓ Vu » ; « Retirer » l'enlève de leurs écrans."]],
+      ["steps", ["Tuile 📋 Planche tactique, 📣 du bandeau, ou bouton du 🧭 Pilotage de leçon.", "Choisis le terrain, place les joueurs et le ballon, trace déplacements et passes, ajoute un texte.", "💾 Enregistrer : la planche se retrouve sur toutes tes tablettes.", "📤 Envoyer : à tous les élèves, ou aux tablettes choisies, pour la durée voulue.", "« 🔴 En direct » : la planche envoyée suit ensuite ton dessin, sans se rouvrir.", "Les élèves touchent « ✓ Vu » ; « Retirer » l'enlève de leurs écrans."]],
       ["two", ["planche-prof.jpg", "Côté enseignant."], ["planche-recue.jpg", "Côté équipe."]]
     ] },
     { t: "Boîte à outils", b: [

@@ -21,7 +21,8 @@ MES="""()=>{
  const noname=B.filter(e=>e.tagName!='SELECT'&&!nm(e)).map(e=>(e.id||e.className||e.outerHTML).toString().slice(0,60));
  const ov=document.documentElement.scrollWidth>innerWidth+1;
  let wide=[];if(ov){wide=[...document.body.querySelectorAll('*')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.right>innerWidth+2&&getComputedStyle(e).position!='fixed'}).slice(0,4).map(e=>e.tagName+'.'+(e.id||e.className||'').toString().slice(0,30)+' r='+Math.round(e.getBoundingClientRect().right))}
- const teach=B.filter(e=>/enseignant|🔒|Mettre à jour/i.test(nm(e))||e.id=='eps-upd').map(nm);
+ /* #eps-callb = « ✋ Enseignant » : le bouton d'APPEL de l'enseignant, voulu côté élève (ce n'est pas un accès enseignant) */
+ const teach=B.filter(e=>e.id!='eps-callb'&&(/enseignant|🔒|Mettre à jour/i.test(nm(e))||e.id=='eps-upd')).map(nm);
  return {small:[...new Set(small)].slice(0,12),nsmall:small.length,noname:[...new Set(noname)].slice(0,6),ov,wide,teach,nb:B.length,txt:document.body.innerText.length,title:(document.querySelector('h1,h2')||{}).innerText||''}}"""
 def show(r):
     pb=[]

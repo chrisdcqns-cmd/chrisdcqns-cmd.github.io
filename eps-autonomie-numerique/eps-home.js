@@ -2417,6 +2417,83 @@
     ready: function () { return !!shCfg(); },
     tabs: function () { var V = stLd(KTB), me = devInfo().id; return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (x) { return x && x.at && x.id !== me && x.mode !== "enseignant" && Date.now() - x.at < 20 * 60000; }).sort(function (a, b) { return tabName(a).localeCompare(tabName(b), "fr", { numeric: true }); }).map(function (x) { return { id: x.id, nom: [x.nom, x.eq, x.cls, NAPP[x.app] || x.app].filter(Boolean).join(" · "), cls: x.cls || "", eq: x.eq || "", at: x.at }; }); }
   };
+  /* ✋ Appeler l'enseignant (27/11/2026) : bouton « ✋ Enseignant » dans le bandeau des tablettes élèves des applis d'activité
+     (jamais flottant). Un appui : « Où es-tu ? » (zones du 🗺 plan de terrain, facultatif) puis le motif (liste réglable appel_motifs).
+     L'appel est un élément du magasin des signaux (sg|call|<id tablette>, relevé toutes les 8 s avec le signal : aucun autre relevé) :
+     {k:"call", app, cls, who[], eq, tab, lieu, motif, at, st: 0 envoyé · 1 « J'y vais » · 2 terminé, from}. Un seul appel par tablette.
+     Côté enseignant : pastille « ✋ N » dans le bandeau (son réglable), file d'attente dans 🧭 Pilotage de leçon (eps-lecons.js). */
+  var CALL_APPS = ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "crosstraining", "basket", "step"];
+  function callP(id, label, type, def) { try { if (window.EPSP) return EPSP.p({ id: id, sec: "Pilotage de leçon", label: label, type: type, def: def }); } catch (e) {} return def; }
+  function callMotifs() { var d = ["🆘 Je suis bloqué", "🛡 Vérification sécurité", "✅ J'ai terminé", "🧰 Problème de matériel", "❓ J'ai une question"], v = callP("appel_motifs", "✋ Appeler l'enseignant : motifs proposés aux élèves (une icône puis l'intitulé)", "list", d);
+    v = (Array.isArray(v) ? v : d).map(function (x) { return String(x).trim(); }).filter(Boolean); return v.length ? v : d; }
+  function callMin() { var v = +callP("appel_duree", "✋ Un appel sans réponse s'efface après (minutes)", "number", 20); return isFinite(v) && v > 0 ? v : 20; }
+  function callSon() { var v = +callP("appel_son", "✋ Son et vibration à l'arrivée d'un appel (1 = oui, 0 = non)", "number", 1); return v !== 0; }
+  function callOn() { var v = +callP("appel_actif", "✋ Bouton « Enseignant » sur les tablettes élèves (1 = affiché, 0 = masqué)", "number", 1); return v !== 0; }
+  function callAll() { var V = stLd(KSG), lim = Date.now() - callMin() * 60000; return Object.keys(V.items).map(function (k) { return V.items[k]; }).filter(function (c) { return c && c.k === "call" && !c.del && (c.st || 0) < 2 && c.at > lim; }).sort(function (a, b) { return a.at - b.at; }); }
+  function callMine() { return callAll().filter(function (c) { return c.id === "call|" + devInfo().id; })[0] || null; }
+  function callSet(id, st) { var c = stLd(KSG).items[id]; if (!c || c.k !== "call") return Promise.resolve(false); c.st = st; if (st === 1) c.tk = Date.now(); stPutRaw(KSG, c); return EPSD.syncOne(KSG); }
+  function callWho() { var o = {}, cc = null, n = []; try { if (typeof window.epsTabInfo === "function") o = window.epsTabInfo() || {}; } catch (e) {} try { cc = window.epsCurrentClass && window.epsCurrentClass(); } catch (e) {}
+    try { var w = JSON.parse(sessionStorage.getItem("eps.lcwho." + appDir()) || "null"); if (w && Array.isArray(w.n)) n = w.n.slice(0, 6); } catch (e) {}
+    if (!n.length && Array.isArray(o.who)) n = o.who.map(function (x) { return String(x); }).filter(Boolean).slice(0, 6);
+    var R = []; try { R = ((cc && cc.eleves) || []).map(function (x) { return String(typeof x === "string" ? x : (x && (x.full || ((x.prenom || "") + " " + (x.nom || "")))) || "").trim(); }).filter(Boolean); } catch (e) {}
+    var cl = o.cls || (cc && cc.nom) || "";
+    if (!R.length && cl && window.EPSL) try { EPSL.items().forEach(function (it) { if (EPSL.norm(it.nom) === EPSL.norm(cl)) R = EPSL.people(it).map(function (x) { return x.full; }); }); } catch (e) {}
+    return { cls: cl, eq: String(o.eq || ""), who: n, liste: R }; }
+  function callZones() { try { var o = stLd("eps.terrain.v1").items["lay|" + appDir()]; if (o && !o.del && Array.isArray(o.zones)) return o.zones.map(function (z) { return String(z.nom || "").trim(); }).filter(Boolean).slice(0, 16); } catch (e) {} return []; }
+  function callAsk() {
+    var mine = callMine(), M = callMotifs(), Z = callZones(), lieu = (mine && mine.lieu) || "", W = callWho(), QUI = [], ask = !W.who.length && !W.eq && W.liste.length > 0 && W.liste.length <= 45;
+    var o = overlay('<h2 style="margin:0 0 6px">✋ Appeler l\'enseignant</h2>' +
+      (mine ? '<p style="background:' + (mine.st === 1 ? "#E3F4E8" : "#fff4dc") + ';border-radius:10px;padding:10px;font-weight:700;margin:0 0 10px">' + (mine.st === 1 ? "👍 Ton enseignant arrive." : "⏳ Appel envoyé : " + esc(mine.motif) + ". Ton enseignant le voit sur sa tablette.") + '</p><div class="epsd-act"><button data-stop>✕ Annuler mon appel</button><button data-x>✕ Fermer</button></div>' :
+      (ask ? '<p class="m" style="margin:0 0 4px">Qui appelle ?</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;max-height:150px;overflow:auto">' + W.liste.map(function (n, i) { return '<button type="button" class="epsd-b2" data-qi="' + i + '" aria-pressed="false" style="min-height:40px">' + esc(n) + "</button>"; }).join("") + "</div>" : "") +
+      (Z.length ? '<p class="m" style="margin:0 0 4px">Où es-tu ?</p><div data-z style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px">' + Z.map(function (z, i) { return '<button type="button" class="epsd-b2" data-zi="' + i + '" aria-pressed="false" style="min-height:44px">' + esc(z) + "</button>"; }).join("") + "</div>" : "") +
+      '<p class="m" style="margin:0 0 4px">Pourquoi ?</p><div style="display:grid;gap:8px">' + M.map(function (t, i) { return '<button type="button" class="epsd-b2" data-mi="' + i + '" style="min-height:56px;font-size:18px;text-align:left;padding:0 14px">' + esc(t) + "</button>"; }).join("") + '</div><div class="epsd-act"><button data-x>✕ Fermer</button></div>'));
+    var st = o.querySelector("[data-stop]"); if (st) st.onclick = function () { callSet(mine.id, 2); o.remove(); callDraw(); };
+    Array.prototype.forEach.call(o.querySelectorAll("[data-zi]"), function (b) { b.onclick = function () { lieu = lieu === Z[+b.dataset.zi] ? "" : Z[+b.dataset.zi]; Array.prototype.forEach.call(o.querySelectorAll("[data-zi]"), function (x) { var on = Z[+x.dataset.zi] === lieu; x.setAttribute("aria-pressed", on ? "true" : "false"); x.style.background = on ? "#14171C" : ""; x.style.color = on ? "#fff" : ""; }); }; });
+    Array.prototype.forEach.call(o.querySelectorAll("[data-qi]"), function (b) { b.onclick = function () { var n = W.liste[+b.dataset.qi], i = QUI.indexOf(n); if (i >= 0) QUI.splice(i, 1); else if (QUI.length < 6) QUI.push(n); var on = QUI.indexOf(n) >= 0; b.setAttribute("aria-pressed", on ? "true" : "false"); b.style.background = on ? "#14171C" : ""; b.style.color = on ? "#fff" : ""; }; });
+    Array.prototype.forEach.call(o.querySelectorAll("[data-mi]"), function (b) { b.onclick = function () { o.remove();
+      if (window.EPS_VUE_ELEVE) { toastHub("Aperçu : en vue élève, aucun appel n'est envoyé."); return; }
+      var w = callWho(), d = devInfo(); if (!w.who.length && QUI.length) w.who = QUI.slice(); stPutRaw(KSG, { id: "call|" + d.id, k: "call", app: appDir(), cls: w.cls, who: w.who, eq: w.eq, tab: d.nom || "", lieu: lieu, motif: M[+b.dataset.mi], at: Date.now(), st: 0, from: d.id });
+      try { EPSD.syncOne(KSG); } catch (e) {} toastHub(shCfg() ? "✋ Appel envoyé à ton enseignant." : "✋ Appel noté. Sans partage entre tablettes, lève aussi la main."); callDraw(); }; });
+    return o;
+  }
+  var callSeen = +(sessionStorage.getItem("eps.call.seen") || 0) || Date.now() - 60000, callAck = 0;
+  function callDraw() {
+    var T = isTeacher(), okApp = CALL_APPS.indexOf(appDir()) >= 0, b = document.getElementById("eps-callb"), sl = callHost() || (b && b.parentNode);
+    if (!b) { if (!sl) return; b = document.createElement("button"); b.type = "button"; b.id = "eps-callb"; b.className = "epsb"; b.setAttribute("data-eps-a11y-h", "0"); }
+    if (sl && b.parentNode !== sl) { var slot = sl.hasAttribute("data-eps-bar");
+      /* hors de la barre commune (écran plein écran d'une appli) : le bouton porte lui-même son style, à la fin du bandeau de cet écran */
+      b.style.cssText = slot ? "" : "flex:none;height:40px;min-width:40px;padding:0 12px;margin:0 6px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#14171C;font:700 14px system-ui,sans-serif;white-space:nowrap";
+      b.dataset.out = slot ? "" : callSombre(sl) ? "d" : "c"; if (slot) sl.insertBefore(b, sl.firstChild); else sl.insertBefore(b, sl.lastElementChild && sl.children.length > 1 ? sl.lastElementChild : null); }
+    var D0 = b.dataset.out === "c" ? "#fff" : b.dataset.out ? "transparent" : "", D1 = b.dataset.out === "c" ? "#14171C" : b.dataset.out ? "#D5D8DE" : "", D2 = b.dataset.out ? "#3A3F47" : "";
+    if (T) { var L = callAll().filter(function (c) { return c.from !== devInfo().id && (HUB || c.app === appDir()); }), n0 = L.filter(function (c) { return !c.st; }).length;
+      b.style.display = L.length && (HUB || okApp) ? "" : "none"; b.textContent = "✋ " + L.length; b.title = "Appels des élèves"; b.setAttribute("aria-label", L.length + " appel" + (L.length > 1 ? "s" : "") + " d'élèves");
+      b.style.background = n0 ? "#B4232B" : "#1E8449"; b.style.color = "#fff"; b.style.borderColor = "transparent"; b.style.fontWeight = "800";
+      b.onclick = function () { if (window.EPSLC && EPSLC.controle) EPSLC.controle({ cls: (L[0] && L[0].cls) || undefined }); else callListe(); };
+      var nv = L.filter(function (c) { return !c.st && c.at > callSeen; });
+      if (nv.length) { callSeen = Math.max.apply(null, nv.map(function (c) { return c.at; })); try { sessionStorage.setItem("eps.call.seen", String(callSeen)); } catch (e) {}
+        if (callSon()) { bip(); try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) {} }
+        toastHub("✋ " + nv.map(function (c) { return callNom(c) + " : " + c.motif; }).join(" · ")); }
+      return; }
+    var mine = callMine(); b.style.display = okApp && !HUB && callOn() ? "" : "none";
+    b.textContent = mine ? (mine.st === 1 ? "👍 Il arrive" : "⏳ Appel envoyé") : "✋ Enseignant"; b.title = "Appeler l'enseignant"; b.setAttribute("aria-label", "Appeler l'enseignant");
+    b.style.background = mine ? (mine.st === 1 ? "#1E8449" : "#F0A030") : D0; b.style.color = mine ? (mine.st === 1 ? "#fff" : "#14171C") : D1; b.style.borderColor = mine ? "transparent" : D2; b.style.fontWeight = mine ? "800" : "";
+    b.onclick = callAsk;
+    if (mine && mine.st === 1 && callAck !== mine.at) { callAck = mine.at; bip(); toastHub("👍 Ton enseignant arrive."); }
+  }
+  /* où poser le bouton : la barre commune si elle est vraiment à l'écran ; si un écran plein écran de l'appli la recouvre
+     (tablette du coach de Volley, groupes de Badminton, Acrosport, fiche de leçon), le bandeau du haut de cet écran. */
+  function callHost() { var sl = epsSlot();
+    if (sl) { var r = sl.getBoundingClientRect(), t = r.width ? document.elementFromPoint(Math.min(innerWidth - 2, Math.max(1, r.left + r.width / 2)), Math.min(innerHeight - 2, Math.max(1, r.top + r.height / 2))) : null; if (!r.width && sl.getClientRects().length) return sl; if (t && (sl.contains(t) || (sl.parentNode && sl.parentNode.contains(t)))) return sl; }
+    var e = document.elementFromPoint(Math.max(1, innerWidth - 24), 26); if (e && e.id === "eps-callb") e = e.parentNode;
+    while (e && e !== document.body && e.nodeType === 1) { if (e.closest && e.closest(".epsd-ov,#eps-sig,#eps-plan,#lc-ico,#lc-det")) return null; var q = e.getBoundingClientRect(); if (q.top <= 6 && q.top >= -2 && q.width >= innerWidth * .8 && q.height <= 130 && q.height >= 36 && /flex/.test(getComputedStyle(e).display)) return e; e = e.parentNode; }
+    return null; }
+  function callSombre(e) { while (e && e.nodeType === 1) { var m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(getComputedStyle(e).backgroundColor || ""); if (m && (m[4] == null || +m[4] > .5)) return (+m[1] * .299 + +m[2] * .587 + +m[3] * .114) < 120; e = e.parentNode; } return false; }
+  function callNom(c) { return ((c.who && c.who.length ? c.who.join(", ") : c.eq || c.tab || (c.cls ? "Une tablette · " + c.cls : "Une tablette")) + (c.lieu ? " · " + c.lieu : "")); }
+  function callListe() { var L = callAll(); var o = overlay('<h2 style="margin:0 0 8px">✋ Appels des élèves</h2>' + (L.map(function (c) { return '<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #E6E1D6"><div style="flex:1;text-align:left"><b>' + esc(callNom(c)) + '</b><div class="m" style="margin:0">' + esc((NAPP[c.app] || c.app) + (c.cls ? " · " + c.cls : "") + " · " + c.motif + " · " + ago(c.at)) + '</div></div><button class="epsd-b2" data-go="' + esc(c.id) + '">' + (c.st ? "✓ Fait" : "J'y vais") + "</button></div>"; }).join("") || '<p class="m">Aucun appel.</p>') + '<div class="epsd-act"><button data-x>✕ Fermer</button></div>');
+    Array.prototype.forEach.call(o.querySelectorAll("[data-go]"), function (b) { b.onclick = function () { var c = stLd(KSG).items[b.dataset.go]; callSet(b.dataset.go, c && c.st ? 2 : 1); o.remove(); callDraw(); if (callAll().length) callListe(); }; }); return o; }
+  STORES.forEach(function (st) { if (st.key === KSG) { var f1 = st.onChange; st.onChange = function () { try { f1 && f1(); } catch (e) {} try { callDraw(); } catch (e) {} try { window.dispatchEvent(new CustomEvent("eps-appels")); } catch (e) {} }; } });
+  setInterval(function () { try { callDraw(); } catch (e) {} }, 1500); setTimeout(function () { try { callDraw(); } catch (e) {} }, 1200);
+  EPSD.appels = { list: function (app) { return callAll().filter(function (c) { return !app || c.app === app; }); }, take: function (id) { var p = callSet(id, 1); callDraw(); return p; }, done: function (id) { var p = callSet(id, 2); callDraw(); return p; }, nom: callNom, ask: callAsk };
   /* ouvre la planche par-dessus la page (cadre), sans quitter la leçon en cours */
   EPSD.planche = function (o) { o = o || {}; var old = document.getElementById("eps-planche"); if (old) old.remove();
     var sp = o.sport || ({ volley: "volley", badminton: "badminton", basket: "basket3" }[appDir()] || ""), f = document.createElement("div"); f.id = "eps-planche"; f.style.cssText = "position:fixed;inset:0;z-index:2147483000;background:#F5F3EE";
