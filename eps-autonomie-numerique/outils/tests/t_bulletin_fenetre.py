@@ -22,7 +22,7 @@ async def main():
     def ok(t, c, d=""): out.append(bool(c)); print(("✅ " if c else "❌ ") + t + ("" if c else "  → " + str(d)[:400]), flush=True)
     async with async_playwright() as pw:
         b = await pw.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
-        c = await b.new_context(service_workers="block", viewport={"width": 1024, "height": 768}); await c.add_init_script(INIT)
+        c = await b.new_context(service_workers="block", viewport={"width": 1024, "height": 768}); await c.add_init_script(INIT); await c.grant_permissions(["clipboard-read", "clipboard-write"], origin="http://localhost:8874")
         async def route(r):
             q = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(r.request.url).query))
             if "ai" in q: CAP.append(q); await asyncio.sleep(0.7)
@@ -67,6 +67,7 @@ async def main():
         await p.evaluate("document.querySelector('#lc-cl [data-t=bil]').click()"); await p.wait_for_timeout(900)
         shown = await p.evaluate("[].filter.call(document.querySelectorAll('#lc-cl [data-tx]'),function(t){return /remarquables/.test(t.value)}).length")
         ok("Ma classe : avis retrouvés en revenant sur l'onglet", shown == nb0, (shown, nb0))
+        ok("Ma classe : 📋 Copier à côté de chaque avis", await p.evaluate("document.querySelectorAll('#lc-cl .epsd-cpw [data-eps-copy]').length") == nb0)
         # prénom, accords, rien de trop envoyé
         B1 = [q for q in CAP if q.get("ai") == "bulletin"]
         ok("bulletin : ni prénom ni nom de famille ni activité envoyés", B1 and all(("Démo" not in q["t"] + q["ctx"]) and ("Léa" not in q["t"] + q["ctx"]) and q["act"] == "EPS" for q in B1), [(q["act"], q["t"][:80]) for q in B1[:2]])
@@ -83,6 +84,9 @@ async def main():
         await p.evaluate("(function(){var r=[].filter.call(document.querySelectorAll('#epsbu-w [data-one]'),function(b){return /Hugo/.test(b.closest('div[style]').innerText)})[0];r.click()})()"); await p.wait_for_timeout(2200)
         tx = await p.evaluate("(function(){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return /^Hugo/.test(b.getAttribute('data-eps-genre'))})[0];return b.closest('div[style]').parentNode.querySelector('textarea').value})()")
         ok("✨ d'un seul élève : prénom remis sur la tablette, accords d'après la correction", tx.startswith("Très bon trimestre, Hugo a su") and CAP and "est une fille" in CAP[-1]["ctx"] and "Hugo" not in CAP[-1]["t"] + CAP[-1]["ctx"], (tx, CAP[-1]["ctx"][-200:] if CAP else ""))
+        await p.evaluate("(function(){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return /^Hugo/.test(b.getAttribute('data-eps-genre'))})[0];b.closest('div[style]').parentNode.querySelector('[data-eps-copy]').click()})()"); await p.wait_for_timeout(400)
+        cp = await p.evaluate("navigator.clipboard.readText()"); bt = await p.evaluate("(function(){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return /^Hugo/.test(b.getAttribute('data-eps-genre'))})[0];return b.closest('div[style]').parentNode.querySelector('[data-eps-copy]').textContent})()")
+        ok("📋 Copier à côté de chaque appréciation : texte de l'élève copié", cp == tx and "Copié" in bt and await p.evaluate("document.querySelectorAll('#epsbu-w .epsd-cpw [data-eps-copy]').length") == await p.evaluate("document.querySelectorAll('#epsbu-w textarea[data-t]').length"), (cp, bt))
         cn = await p.evaluate("[].map.call(document.querySelectorAll('#epsbu-w .epsd-cnt'),function(d){return d.textContent}).filter(Boolean)")
         ok("compteur de caractères (/ 255)", any("/ 255" in x for x in cn), cn)
         ok("aucune erreur de page", not errs, errs)

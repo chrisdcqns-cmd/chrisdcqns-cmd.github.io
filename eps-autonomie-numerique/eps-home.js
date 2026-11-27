@@ -369,6 +369,7 @@
     ".epsd-wtop button{height:44px;padding:0 16px;border-radius:12px;border:2px solid #1B1E24;background:#fff;font:800 16px system-ui,sans-serif;color:#1B1E24;cursor:pointer}" +
     ".epsd-wbody{flex:1;overflow:auto;padding:14px 18px 30px}.epsd-win .epsd-box{width:min(1000px,100%);max-height:none;overflow:visible;margin:0 auto;box-shadow:none;border:1.5px solid #E6E1D6;border-radius:16px}" +
     ".epst-dock.epsd-win>.epsd-wtop{display:none!important}.epsd-ok{color:#1E7B45;font-weight:700}" +
+    ".epsd-cpw{display:flex;gap:8px;align-items:stretch}.epsd-cpw textarea{flex:1;min-width:0;margin:0!important}.epsd-cp{flex:none;width:auto;min-width:96px;margin:0;padding:0 12px;border-radius:10px;border:1.5px solid #E6E1D6;background:#fff;font:700 14px system-ui,sans-serif;color:#14171C;cursor:pointer}.epsd-cp.ok{border-color:#1E7B45;color:#1E7B45}" +
     ".epsd-gn{height:34px;padding:0 10px;border-radius:999px;border:1.5px solid #E6E1D6;background:#fff;font:700 14px system-ui,sans-serif;color:#14171C;cursor:pointer;flex:none;width:auto;margin:0}" +
     ".epsd-one{height:34px;padding:0 10px;border-radius:10px;border:1.5px solid #E6E1D6;background:#fff;font:700 14px system-ui,sans-serif;cursor:pointer;flex:none;width:auto;margin:0}.epsd-cnt{font-size:12px;color:#6A6F78;text-align:right;margin-top:2px}.epsd-cnt.over{color:#B42318;font-weight:700}" +
     ".epsd-act{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.epsd-act button{height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;background:#fff;font:800 17px system-ui,sans-serif;color:#1B1E24}" +
@@ -1401,6 +1402,14 @@
   function gnSet(full, g) { stPutRaw(KGN, { id: nkey(full), g: g }); try { clearTimeout(timer); timer = setTimeout(sync, 2000); } catch (e) {} }
   function gnLab(g) { return g === "f" ? "👧 Fille" : "👦 Garçon"; }
   function gnBtn(full) { return '<button type="button" class="epsd-gn" data-eps-genre="' + esc(full) + '" title="Fille ou garçon (accords de l\'appréciation) : touche pour changer">' + gnLab(gnGet(full).g) + "</button>"; }
+  /* 📋 Copier à côté de chaque appréciation (demande de l'enseignant, 27/11/2026) : <div class="epsd-cpw"><textarea>…</textarea>` + cpBtn() + `</div>,
+     n'importe où (bulletin, 🏫 Ma classe) ; un écouteur commun copie le texte de la zone voisine, pour le coller dans Pronote élève par élève. */
+  function copyTxt(t) { return new Promise(function (res) { function fb() { var ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand("copy"); } catch (x) {} ta.remove(); res(ok); }
+    try { navigator.clipboard.writeText(t).then(function () { res(true); }, fb); } catch (e) { fb(); } }); }
+  function cpBtn() { return '<button type="button" class="epsd-cp" data-eps-copy title="Copier cette appréciation">📋 Copier</button>'; }
+  document.addEventListener("click", function (e) { var b = e.target && e.target.closest && e.target.closest("[data-eps-copy]"); if (!b) return; var w = b.closest(".epsd-cpw"), ta = w && w.querySelector("textarea"), t = ta ? ta.value.replace(/\s+/g, " ").trim() : "";
+    if (!t) { b.textContent = "Rien à copier"; } else { copyTxt(t).then(function (ok) { b.textContent = ok ? "✓ Copié" : "⚠ Copie impossible"; b.classList.toggle("ok", ok); }); }
+    clearTimeout(b._t); b._t = setTimeout(function () { b.textContent = "📋 Copier"; b.classList.remove("ok"); }, 1600); });
   document.addEventListener("click", function (e) { var b = e.target && e.target.closest && e.target.closest("[data-eps-genre]"); if (!b) return; var n = b.getAttribute("data-eps-genre"), g = gnGet(n).g === "f" ? "g" : "f"; gnSet(n, g); b.textContent = gnLab(g); });
   function reformuler(texte, o) {
     o = o || {}; var cfg = shCfg(), bul = o.mode === "bulletin", ctx = String(o.ctx || ""), pr = "";
@@ -1636,6 +1645,7 @@
     restoreAll: function () { return restoreAll(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); }, bilans: function (c) { bilans(c); },
     bulletin: function (c) { bulletin(c); },
+    copier: function (t) { return copyTxt(String(t || "")); }, copyBtn: function () { return cpBtn(); },
     genre: { get: function (n) { return gnGet(n); }, set: function (n, g) { gnSet(n, g); }, btn: function (n) { return gnBtn(n); }, prenom: function (n) { return prenomDe(n); } },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
     /* synchro immédiate d'un seul magasin (ex. leçon en cours : relevé toutes les quelques secondes) */
@@ -2326,7 +2336,7 @@
     function draw() {
       var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P = people(c);
       list.innerHTML = P.map(function (n, i) { var r = R[n] || {}, has = !!notes(c, n);
-        return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><div style="display:flex;gap:8px;align-items:center"><label style="display:flex;flex:1;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left;margin:0"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + "</label>" + gnBtn(n) + (has ? '<button type="button" class="epsd-one" data-one="' + i + '" title="Proposer l\'appréciation de cet élève">✨</button>' : "") + '</div><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px;margin-top:6px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + '</textarea><div class="epsd-cnt" data-cn="' + i + '"></div></div>'; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
+        return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><div style="display:flex;gap:8px;align-items:center"><label style="display:flex;flex:1;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left;margin:0"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + "</label>" + gnBtn(n) + (has ? '<button type="button" class="epsd-one" data-one="' + i + '" title="Proposer l\'appréciation de cet élève">✨</button>' : "") + '</div><div class="epsd-cpw" style="margin-top:6px"><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + "</textarea>" + cpBtn() + '</div><div class="epsd-cnt" data-cn="' + i + '"></div></div>'; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
       var cnt = function (i) { var ta = list.querySelector('[data-t="' + i + '"]'), d = list.querySelector('[data-cn="' + i + '"]'); if (!ta || !d) return; var L = ta.value.length; d.textContent = L ? L + " / 255" : ""; d.classList.toggle("over", L > 255); };
       P.forEach(function (n, i) { cnt(i); });
       list.querySelectorAll("[data-t]").forEach(function (ta) { ta.oninput = function () { var n = P[+ta.dataset.t]; R[n] = R[n] || {}; R[n].t = ta.value; R[n].ai = 0; ta.style.background = ""; cnt(ta.dataset.t); save(); }; });
