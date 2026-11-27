@@ -49,7 +49,7 @@ function doGet(e) {
   if (res.keyOk && p.as) { try { Object.assign(res, appelAS_(p)); } catch (err) { res.asErr = String(err && err.message || err); } }
   if (p.bil) { try { res.bil = bilansGet_(String(p.bil)); res.bilv = 1; } catch (err) { res.bilErr = String(err && err.message || err); } }
   if (res.keyOk) { const lb = PropertiesService.getScriptProperties().getProperty('LAST_BACKUP'); res.sauv = lb ? Number(lb) : 0; }
-  res.aiv = 3; /* 2 : bilan de leçon (ai=lecon) ; 3 : indicateur de performance pour une leçon (ai=indic) */
+  res.aiv = 4; /* 2 : bilan de leçon (ai=lecon) ; 3 : indicateur de performance pour une leçon (ai=indic) ; 4 : appréciation de bulletin générale, sans l'activité */
   if (res.keyOk && p.aiget) { const c = CacheService.getScriptCache().get('ai_' + String(p.aiget).slice(0, 40)); res.aiRes = c ? JSON.parse(c) : null; }
   if (res.keyOk && p.ai) { try { res.ai = p.ai === 'lecon' ? reformuler_(p) : propre_(reformuler_(p)); } catch (err) { res.aiErr = String(err && err.message || err); } }
   const body = asc_(JSON.stringify(res));
@@ -202,7 +202,7 @@ function autoriserAppelAS() {
 /* ================= ✨ Reformuler (Claude, API d'Anthropic) =================
  * La clé reste ici, côté serveur : Paramètres du projet > Propriétés du script > ANTHROPIC_KEY.
  * Les applis n'envoient que le texte du commentaire (jamais le nom de l'élève) et l'activité.
- * p.ai = 'fiche' (commentaire adressé à l'élève, tutoiement), 'bulletin' (appréciation de bulletin, 3e personne, sans prénom),
+ * p.ai = 'fiche' (commentaire adressé à l'élève, tutoiement), 'bulletin' (appréciation de bulletin, 3e personne, sans prénom, GÉNÉRALE : jamais le nom de l'activité),
  *        'eleve' (texte d'une grille d'évaluation réécrit en langage élève), 'simple' (consigne simplifiée, lisible par un élève dys),
  *        'trad' (consigne traduite dans la langue p.lang, en restant simple).
  *        'lecon' (bilan d'une leçon pour l'enseignant, à partir de résultats anonymes E1, E2…).
@@ -218,7 +218,7 @@ function reformuler_(p) {
   if (p.ai === 'badsit') return badSituation_(key, p);
   if (p.ai === 'badcoach') return badCoach_(key, p);
   if (p.ai === 'badind') return badIndic_(key, p);
-  const notes = String(p.t || '').slice(0, p.ai === 'lecon' ? 3200 : (p.ai === 'bulletin' || p.ai === 'avis') ? 2200 : 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, 600);
+  const notes = String(p.t || '').slice(0, p.ai === 'lecon' ? 3200 : (p.ai === 'bulletin' || p.ai === 'avis') ? 2200 : 1500), act = String(p.act || 'EPS').slice(0, 60), ctx = String(p.ctx || '').slice(0, p.ai === 'bulletin' ? 900 : 600);
   if (!notes.trim() && !ctx.trim()) throw new Error('Texte vide');
   const bulletin = p.ai === 'bulletin';
   const COMMUN = ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
@@ -255,11 +255,11 @@ function reformuler_(p) {
   }
   const system = 'Tu es un enseignant d\'EPS de lycée, en France. Tu rédiges en français correct, bienveillant, précis et concret, sans formules creuses. ' +
     'Vocabulaire : « leçon » (jamais « séance »), « séquence » (jamais « cycle »). N\'invente aucun fait absent des notes. Pas de nom ni de prénom. ' +
-    (bulletin ? 'Écris une appréciation de bulletin trimestriel à la 3e personne, en 2 phrases (300 caractères maximum), formulée de façon POSITIVE et valorisante : les points forts, les progrès et l\'engagement constatés dans les données, puis un encouragement formulé positivement (« peut continuer à… », « gagnera à poursuivre… »). Aucune critique, aucun reproche, aucune tournure négative (pas de « manque », « insuffisant », « doit », « mais ») : l\'enseignant ajoute lui-même ses remarques. Si les données sont maigres, reste sobre et factuel.'
+    (bulletin ? 'Écris une appréciation de bulletin trimestriel à la 3e personne, en 2 phrases (300 caractères maximum), formulée de façon POSITIVE et valorisante : les points forts, les progrès et l\'engagement constatés dans les données, puis un encouragement formulé positivement (« peut continuer à… », « gagnera à poursuivre… »). Aucune critique, aucun reproche, aucune tournure négative (pas de « manque », « insuffisant », « doit », « mais ») : l\'enseignant ajoute lui-même ses remarques. Reste GÉNÉRAL : l\'appréciation vaut pour l\'EPS dans son ensemble ; ne nomme jamais l\'activité ni aucun sport, aucun geste technique, aucune règle ni aucun vocabulaire propre à une activité : les données servent seulement à juger l\'engagement, les progrès, l\'attitude, l\'autonomie, la coopération et les rôles tenus. Si les données sont maigres, reste sobre et factuel.'
      : p.ai === 'avis' ? 'Écris l\'avis de bilan de la période pour cet élève, à la 3e personne, en 2 ou 3 phrases (380 caractères maximum) : ce qui est réussi (chiffres utiles), puis un axe de progrès concret formulé de façon constructive.'
               : 'Écris un commentaire adressé directement à l\'élève (tutoiement), en 2 ou 3 phrases (350 caractères maximum) : ce qui est réussi, puis ce qu\'il faut travailler.') +
     ' Réponds uniquement par le texte final, sans guillemets ni introduction.';
-  return claude_(key, system, 'Activité : ' + act + '\n' + (ctx ? 'Éléments d\'évaluation : ' + ctx + '\n' : '') + 'Notes de l\'enseignant : ' + (notes || '(aucune)'));
+  return claude_(key, system, (bulletin ? '' : 'Activité : ' + act + '\n') + (ctx ? 'Éléments d\'évaluation : ' + ctx + '\n' : '') + 'Notes de l\'enseignant : ' + (notes || '(aucune)'));
 }
 /* ================= Leçons (eps-lecons.js) =================
  * POST {key, lc:{op:'transcrire', nom, mime, b64}} → {texte} : lecture d'un PDF ou d'une photo déposés par l'enseignant.

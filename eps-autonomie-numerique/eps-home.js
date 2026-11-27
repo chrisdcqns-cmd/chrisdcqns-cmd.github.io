@@ -1358,10 +1358,16 @@
       return "✓ Claude répond correctement.\n\nExemple de reformulation : « " + t + " »";
     });
   }
+  /* 📝 Appréciation de bulletin GÉNÉRALE (demande de l'enseignant, 27/11/2026, pour toutes les évaluations) : jamais le nom de l'activité
+     ni son vocabulaire technique. Règle posée ICI pour tout appel mode "bulletin" (applis actuelles et futures) : l'activité n'est pas
+     envoyée (act = "EPS") et la consigne part en tête du contexte, pour qu'elle s'applique même avec un script Google pas encore redéployé
+     (le script à jour, aiv ≥ 4, porte la même consigne). */
+  var BUL_GEN = "Consigne : appréciation générale de l'élève en EPS. Ne nomme aucune activité ni aucun sport, aucun geste technique ni vocabulaire propre à une activité : parle de l'engagement, des progrès, de l'attitude, de l'autonomie, de la coopération et des rôles.";
   function reformuler(texte, o) {
-    o = o || {}; var cfg = shCfg();
+    o = o || {}; var cfg = shCfg(), bul = o.mode === "bulletin", ctx = String(o.ctx || "");
+    if (bul) ctx = BUL_GEN + (ctx ? " " + ctx : "");
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
-    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : (o.mode === "bulletin" || o.mode === "avis") ? 2200 : 1500), act: o.act || actName(), ctx: String(o.ctx || "").slice(0, 600), lang: o.lang || "" }, 90000).then(function (r) {
+    return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : (bul || o.mode === "avis") ? 2200 : 1500), act: bul ? "EPS" : (o.act || actName()), ctx: ctx.slice(0, bul ? 900 : 600), lang: o.lang || "" }, 90000).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script en 90 s (connexion ? Claude surchargé ?) : réessaie.");
       if (!r.keyOk) throw new Error("Clé du partage refusée par le script");
       if (r.aiErr) throw new Error(/ANTHROPIC_KEY/.test(r.aiErr) ? "Clé Claude absente du script (Propriétés du script → ANTHROPIC_KEY)" : r.aiErr);
@@ -2254,7 +2260,7 @@
     var TR = { 1: [pd(SY, 9, 1), pd(SY, 11, 30)], 2: [pd(SY, 12, 1), pd(SY + 1, 2, new Date(SY + 1, 2, 0).getDate())], 3: [pd(SY + 1, 3, 1), pd(SY + 1, 7, 10)], 0: [pd(SY, 8, 20), pd(SY + 1, 7, 10)] }, TCUR = [1, 2, 3].filter(function (t) { return today() >= TR[t][0] && today() <= TR[t][1]; })[0] || 0;
     var PER = TR[TCUR], inPer = function (d) { return !d || (d >= PER[0] && d <= PER[1]); }, dOf = function (t) { var x = new Date(t); return pd(x.getFullYear(), x.getMonth() + 1, x.getDate()); }; try { C = (window.EPSL ? EPSL.items() : []).map(function (it) { return it.nom; }); } catch (e) {}
     var cur = want && C.indexOf(want) >= 0 ? want : B._cls && C.indexOf(B._cls) >= 0 ? B._cls : C[0];
-    var o = overlay('<div id="epsbu"><h3>📝 Appréciations de bulletin</h3><p class="m">Claude part de tes commentaires et évaluations de toutes les activités de la période (aucun nom ne lui est envoyé) et formule l\'appréciation de façon positive : tu ajoutes tes remarques. Relis, corrige, coche ✓ : seules les appréciations cochées sont copiées.</p>' +
+    var o = overlay('<div id="epsbu"><h3>📝 Appréciations de bulletin</h3><p class="m">Claude part de tes commentaires et évaluations de toutes les activités de la période (aucun nom ne lui est envoyé) et formule une appréciation positive et générale, sans nommer l\'activité : tu ajoutes tes remarques. Relis, corrige, coche ✓ : seules les appréciations cochées sont copiées.</p>' +
       '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><select class="epsd-in" id="bu-p" style="width:auto;margin:0" aria-label="Période">' + [1, 2, 3, 0].map(function (t) { return '<option value="' + t + '"' + (t === TCUR ? " selected" : "") + ">" + (t ? "Trimestre " + t : "Toute l'année") + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><div id="bu-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
     var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m"), psel = o.querySelector("#bu-p");
     var rk = function (c) { var k = c + "|" + psel.value; if (!B[k] && psel.value === String(TCUR) && B[c] && typeof B[c] === "object") B[k] = B[c]; return k; };
@@ -2286,7 +2292,7 @@
       (function next() {
         if (i >= P.length) { b.disabled = false; msg.textContent = "✓ " + P.length + " proposition(s) en jaune : relis, corrige et coche ✓."; save(); draw(); return; }
         var n = P[i++]; msg.textContent = "Claude rédige " + i + " / " + P.length + "…";
-        reformuler("Période : " + psel.options[psel.selectedIndex].text + "\n" + notes(c, n), { mode: "bulletin", act: "EPS (toutes activités)", ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité. Appréciation positive : l'enseignant ajoute ses remarques." })
+        reformuler("Période : " + psel.options[psel.selectedIndex].text + "\n" + notes(c, n), { mode: "bulletin", ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité. Appréciation positive : l'enseignant ajoute ses remarques." })
           .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); draw(); next(); })
           .catch(function (e) { b.disabled = false; msg.textContent = "⚠ " + e.message; save(); draw(); });
       })();
