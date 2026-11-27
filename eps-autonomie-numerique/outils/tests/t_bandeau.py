@@ -22,7 +22,8 @@ BAD = """()=>{const nb=document.querySelector('.epst-nav').getBoundingClientRect
 LIST = "(()=>{const m=document.querySelector('.epst-acts [data-more]');if(m)m.click();const L=[...document.querySelectorAll('.epst-acts [data-a]')].map(b=>b.dataset.a+'|'+b.title).concat([...document.querySelectorAll('.epst-mn [data-g]')].map(b=>b.dataset.g+'|'+b.innerText.trim().replace(/\\s+/g,' ')));document.body.click();return L})()"
 CLICK = "(i)=>{let b=document.querySelector('.epst-acts [data-a=\"'+i+'\"]');if(b){b.click();return 1}const m=document.querySelector('.epst-acts [data-more]');if(!m)return 0;m.click();b=document.querySelector('.epst-mn [data-g=\"'+i+'\"]');if(b){b.click();return 2}return 0}"
 TAB = "(t)=>{const b=document.querySelector('.epst-nav button[data-t=\"'+t+'\"]');if(b)b.click()}"
-ELEVE = "()=>[...document.querySelectorAll('button[onclick=\"quitT()\"],.lockbtn,button[onclick=\"lockApp()\"],#bLock,#eps-callb:not([title=\"Appels des élèves\"]),#profHome')].filter(b=>b.offsetParent&&getComputedStyle(b).display!='none').map(b=>(b.id||b.innerText||b.className).toString().trim().slice(0,24))"
+# #syncIc (☁️ Sauvegarde en ligne de Volley et Badminton) porte la classe .lockbtn pour son style : c'est un bouton enseignant, pas un bouton du mode élève.
+ELEVE = "()=>[...document.querySelectorAll('button[onclick=\"quitT()\"],.lockbtn:not(#syncIc),button[onclick=\"lockApp()\"],#bLock,#eps-callb:not([title=\"Appels des élèves\"]),#profHome')].filter(b=>b.offsetParent&&getComputedStyle(b).display!='none').map(b=>(b.id||b.innerText||b.className).toString().trim().slice(0,24))"
 async def main():
     pb = 0
     async with async_playwright() as pw:
