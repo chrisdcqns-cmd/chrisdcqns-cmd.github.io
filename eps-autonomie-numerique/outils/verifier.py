@@ -68,7 +68,7 @@ for p in list(B.glob("*/index.html")) + [B / "index.html"]:
     if not (p.parent / "src").is_dir() and "eps-source-directe" not in p.read_text(encoding="utf-8", errors="replace")[:600]:
         pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
 REPERES = {
-    "co-eval/index.html": ["openProf(\"res\")", "retb\" data-nolive"],
+    "co-eval/index.html": ["function code4(", "function vPwd(", "header .epsb{", "openProf(inConsole", "retb\" data-nolive"],
     "console/index.html": ["window.epsConsoleOk", "function codeAsk(", "function pTransfert(", "function xUnpack(", "data-live"],
     "eps-lists.js": ["EPS_NOLIVE", "eps-nolive-css"],
     "eps-eval.js": ["data-g-exp", 'jx.kind === "evaluation"'],

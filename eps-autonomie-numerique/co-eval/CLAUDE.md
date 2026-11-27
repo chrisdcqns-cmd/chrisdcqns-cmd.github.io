@@ -1,3 +1,5 @@
 # CO – Évaluation — notes de l'appli
 
 - 📄 « Enregistrer en PDF » (fiche bilan d'un parcours et bilan complet) : `bilanPdf` fabrique le PDF sur le téléphone (pdf-lib `../vendor`, mis en cache par `sw.js`), textes des cartes + carte avec tracé (image + SVG dessinés sur un canvas), puis partage (`navigator.share` avec fichier) ou téléchargement. « 🖨 Imprimer » reste à côté : sur téléphone / appli installée, l'impression ne s'ouvre souvent pas.
+
+- 🔒 Entrée enseignant (27/11/2026, demande de l'enseignant) : code à 4 chiffres commun (`code4`, `relais-vitesse-code-v1`, ouvre `eps.teach.until`), puis mot de passe du script une seule fois par appareil (`vPwd`, vue `pwd`, retenu dans `coe.tpw`, repris d'`orienrun.tpw`). Au démarrage, console (`?console=`) ou mode enseignant commun ouvert → `openProf` (console : onglet `res`). Téléphone d'élève : pas de code commun ni de mot de passe, il reste bloqué au mot de passe du script. Bandeau « Heure de retour / Message / RETOUR » : `data-nolive` (masqué dans la console). 🔄 du bandeau : style `header .epsb` (sinon carré blanc par défaut du navigateur). Test : `outils/tests/t_coeval_entree.py`.

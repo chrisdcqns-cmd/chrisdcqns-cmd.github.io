@@ -21,6 +21,7 @@ button{font:inherit;cursor:pointer}
 header{position:sticky;top:0;z-index:20;background:var(--nv);color:#fff;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px}
 header h1{font-size:1.05rem;margin:0;flex:1;line-height:1.15;font-weight:800}
 header .ic{width:34px;height:34px;border-radius:9px;background:var(--or);display:grid;place-items:center;font-weight:900;flex:none}
+header .epsb{background:rgba(255,255,255,.12)!important;color:#fff!important;border:0!important;border-radius:10px!important;box-shadow:none!important;width:40px;height:40px;display:inline-grid;place-items:center;padding:0}header .epsb svg{stroke:#fff}
 .hb{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:10px;padding:7px 10px;font-weight:700;font-size:.85rem}
 main{max-width:720px;margin:0 auto;padding:14px 14px calc(90px + env(safe-area-inset-bottom))}
 .card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 1px 0 rgba(0,0,0,.04)}
@@ -749,7 +750,7 @@ function go(v, ...a) {
   if (SW && v !== "full") { ME = SW.ME; RUNS = SW.RUNS; SW = null; }
   stopTick(); if (v !== "prof") { clearInterval(profTick); profTick = null; }
   if (CUR.v !== v || v === "prof") window.scrollTo(0, 0); CUR = { v, a };
-  ({ home: vHome, ident: vIdent, binome: vBinome, prep: vPrep, run: vRun, follow: vFollow, end: vEnd, bilan: vBilan, full: vFull, prof: vProf })[v](...a);
+  ({ home: vHome, ident: vIdent, binome: vBinome, prep: vPrep, run: vRun, follow: vFollow, end: vEnd, bilan: vBilan, full: vFull, prof: vProf, pwd: vPwd })[v](...a);
 }
 window.epsAppHome = () => go("home");
 const studentName = m => `${m.prenom} ${m.nom}`;
@@ -1507,13 +1508,31 @@ function receiveResults(code) {
 }
 
 // ======================= ESPACE ENSEIGNANT =======================
+/* 🔒 Entrée enseignant (27/11/2026, demande de l'enseignant) : ton code à 4 chiffres, le même que dans toutes les applis.
+   Les résultats sont sur le script Google de CO Course, qui exige SON mot de passe (le même qu'OrienRun) : il n'est demandé qu'une fois par
+   appareil (repris d'OrienRun s'il y est déjà), puis retenu ; ensuite le code à 4 chiffres suffit. Mode enseignant commun déjà ouvert
+   (accueil, console) : pas de code. Le téléphone d'un élève n'a ni le code ni le mot de passe : il reste bloqué au mot de passe du script. */
+const hubT = () => { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } };
+const hubOn = () => { try { localStorage.setItem("eps.teach.until", String(Date.now() + 3600000)); } catch (e) {} };
+function code4() { let st = null; try { st = JSON.parse(localStorage.getItem("relais-vitesse-code-v1") || "null"); } catch (e) {}
+  if (st == null || hubT()) return Promise.resolve(true);
+  const hc = v => { let h = 5381; for (const ch of "relais:" + v) h = ((h << 5) + h + ch.charCodeAt(0)) | 0; return String(h); };
+  if (!window.epsPin) return Promise.resolve(prompt("Code enseignant") !== null);
+  return window.epsPin({ title: "🔒 Code enseignant", len: 4, check: v => hc(v) === String(st) }).then(v => { if (v === null) return false; hubOn(); return true; }); }
 async function openProf(tab) {
   tab = typeof tab === "string" ? tab : "suivi"; /* appelée aussi comme gestionnaire de clic (reçoit alors l'évènement) */
+  if (!(await code4())) return;
   if (TPW) return go("prof", tab);
-  const m = modal(`<h2 style="margin:0 0 6px">🔒 Espace enseignant</h2><p class="muted small" style="margin-top:0">Mot de passe enseignant : le même que pour OrienRun (celui écrit dans ton script Google).</p><input class="inp" type="password" id="tp" autocomplete="current-password"><p class="small" id="tpE" style="color:var(--ko)"></p><div class="row"><button class="btn gh grow" id="tpX">Annuler</button><button class="btn or grow" id="tpOk">Entrer</button></div>`);
-  $("#tp", m).focus(); $("#tpX", m).onclick = m.close;
-  const tryIt = async () => { const v = $("#tp", m).value; if (!v) return; $("#tpOk", m).disabled = true; $("#tpE", m).textContent = "Vérification…"; try { await api("teacherCheck", { teacher: v }); TPW = v; LS.set("tpw", v); m.close(); go("prof", tab); } catch (e) { $("#tpE", m).textContent = e.message; } finally { $("#tpOk", m).disabled = false; } };
-  $("#tpOk", m).onclick = tryIt; $("#tp", m).onkeydown = e => { if (e.key === "Enter") tryIt(); };
+  let o = null; try { o = localStorage.getItem("orienrun.tpw"); } catch (e) {}
+  if (o) try { await api("teacherCheck", { teacher: o }, 10000); TPW = o; LS.set("tpw", o); return go("prof", tab); } catch (e) {}
+  go("pwd", tab);
+}
+/* mot de passe du script, une seule fois sur cet appareil : écran enseignant (pas l'écran élève « Qui es-tu ? » derrière) */
+function vPwd(tab = "suivi") {
+  $("#app").innerHTML = `<div class="card" style="max-width:520px;margin:30px auto"><h2>🔒 Espace enseignant</h2><p class="small">Première fois sur cet appareil : les résultats de tes élèves sont sur ton script Google, protégé par son propre mot de passe (<b>le même que pour OrienRun</b>, celui écrit dans le script). Il est demandé une seule fois ici ; ensuite ton code à 4 chiffres suffit.</p><label class="l" for="tp">Mot de passe du script</label><input class="inp" type="password" id="tp" autocomplete="current-password"><p class="small" id="tpE" style="color:var(--ko)"></p><div class="row"><button class="btn gh grow" id="tpX">← Écran élève</button><button class="btn or grow" id="tpOk">Entrer</button></div></div>`;
+  $("#tp").focus(); $("#tpX").onclick = () => go("home");
+  const tryIt = async () => { const v = $("#tp").value; if (!v) return; $("#tpOk").disabled = true; $("#tpE").textContent = "Vérification…"; try { await api("teacherCheck", { teacher: v }); TPW = v; LS.set("tpw", v); go("prof", tab); } catch (e) { const x = $("#tpE"); if (x) x.textContent = /fetch|network|répond/i.test(e.message) ? "Pas de connexion au script : vérifie internet, puis réessaie." : e.message; } finally { const b = $("#tpOk"); if (b) b.disabled = false; } };
+  $("#tpOk").onclick = tryIt; $("#tp").onkeydown = e => { if (e.key === "Enter") tryIt(); };
 }
 let pubTimer = null, PUB = { st: "ok", t: null, err: "" }, profTick = null;
 function pubUI() { const e = $("#pub"); if (!e) return; e.className = "pub " + (PUB.st === "ok" ? "" : PUB.st === "wait" ? "wait" : "ko"); e.textContent = PUB.st === "wait" ? "⏳ Publication en cours…" : PUB.st === "ko" ? "⚠ Non publié : " + PUB.err : PUB.t ? `✓ Publié à ${new Date(PUB.t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} : les élèves le reçoivent en moins de ${SYNC_MS / 1000} s` : "Chaque modification est publiée automatiquement chez les élèves."; }
@@ -1616,7 +1635,7 @@ function openSimView() {
   $("#svR", d).onclick = async () => { if (await ask("Recommencer la simulation ?", "L'élève fictif, ses parcours et ses saisies de simulation sont effacés.", "↺ Recommencer", "ko")) { const w = $("#svF", d).contentWindow; if (w && w.simReset) w.simReset(); else $("#svF", d).src = src; } };
 }
 function vProf(tab = "res") {
-  if (!TPW) return openProf();
+  if (!TPW) return go("pwd", tab);
   if (!statP) { ensureStat().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0] || tab); }); }
   clearInterval(profTick); profTick = null;
   $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "note" ? "" : "gh"}" data-tb="note">🎓 Note</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><button class="btn sm or" id="pChk" title="Tout vérifier avant l'évaluation">✅ Prêt ?</button><button class="btn sm gh" id="pQr" title="QR code à afficher ou imprimer pour que les élèves ouvrent l'appli">📱 QR code d'accès</button><button class="btn sm vi" id="pSim" title="L'appli comme la voit un élève, avec un élève fictif : rien n'est envoyé">👁 Vue élève</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb" data-nolive><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
@@ -2346,13 +2365,10 @@ $("#hProf").onclick = openProf; document.body.classList.toggle("sun", !!LS.get("
   if (SIM) simBar(); else try { if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).then(() => setTimeout(checkOffline, 500)).catch(() => {}); } catch (e) {}
   checkOffline(); setTimeout(checkOffline, 8000);
   go("home");
-  /* 🖥 console ordinateur (cadre …/?console=…, 27/11/2026, demande de l'enseignant : retrouver les évaluations des élèves) : pas d'écran élève
-     « Qui es-tu ? » ; ouverture directe sur 📋 Résultats. Mot de passe du script : celui déjà retenu ici, sinon celui d'OrienRun (le même,
-     vérifié par le script), sinon il est demandé une fois. */
-  if (/[?&]console=/.test(location.search) && !SIM) (async () => {
-    if (!TPW) { let o = null; try { o = localStorage.getItem("orienrun.tpw"); } catch (e) {}
-      if (o) try { await api("teacherCheck", { teacher: o }, 10000); TPW = o; LS.set("tpw", o); } catch (e) {} }
-    openProf("res"); })();
+  /* enseignant (console ordinateur, ou mode enseignant commun ouvert sur cet appareil) : directement l'espace enseignant, jamais « Qui es-tu ? »
+     (demande de l'enseignant, 27/11/2026) ; console : onglet 📋 Résultats. Le téléphone d'un élève n'a pas le mode enseignant : écran élève. */
+  const inConsole = /[?&]console=/.test(location.search);
+  if (!SIM && (inConsole || hubT())) openProf(inConsole ? "res" : "suivi");
   if (ME && !RUNS.some(Boolean)) restore().then(() => { if (RUNS.some(Boolean) && ["home", "ident"].includes(CUR.v)) go("home"); });
   sync(); setInterval(sync, SYNC_MS); setInterval(fastSync, 5000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); });
