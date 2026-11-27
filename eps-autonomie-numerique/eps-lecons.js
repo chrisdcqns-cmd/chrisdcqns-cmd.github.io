@@ -146,6 +146,14 @@
       ".lc-modal{position:fixed;inset:0;z-index:2147481300;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:16px}",
       ".lc-modal>div{background:#fff;border-radius:18px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:18px 20px}",
       ".lc-chip{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:2147481100;border:0;border-radius:999px;background:" + COL + ";color:#fff;font:800 16px system-ui,sans-serif;padding:12px 18px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;display:none}",
+      /* 27/11/2026 : plus de bulle qui se balade : la pastille de leçon se loge dans la barre du haut dès qu'il y en a une */
+      ".lc-chip.in{position:static;box-shadow:none;height:40px;padding:0 12px;border-radius:10px;font-size:14px;white-space:nowrap;flex:none}",
+      ".lp{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#14171C}.lp-cls{height:46px;border-radius:12px;border:2px solid #E6E1D6;background:#fff;font:800 16px system-ui,sans-serif;padding:0 16px;cursor:pointer;color:#14171C;margin:0 0 12px}",
+      ".lp-card{background:#fff;border:1px solid #E6E1D6;border-left:6px solid " + COL + ";border-radius:18px;padding:18px 20px;margin:0 0 14px}.lp-k{font:800 12px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6A6F78;display:flex;gap:8px;align-items:center;flex-wrap:wrap}",
+      ".lp-card h2{font-size:26px;line-height:1.15;margin:6px 0 6px}.lp-but{margin:0 0 8px;font-size:16px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.lp-steps{color:#6A6F78;font-weight:700;font-size:14px;margin:0 0 14px}",
+      ".lp-row{display:flex;gap:10px;flex-wrap:wrap}.lp-row button{min-height:52px;border-radius:14px;border:2px solid #E6E1D6;background:#fff;font:800 16px system-ui,sans-serif;padding:0 18px;cursor:pointer;color:#14171C}.lp-row button.p{background:" + COL + ";border-color:" + COL + ";color:#fff;font-size:18px;padding:0 24px}",
+      ".lp-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}@media (max-width:640px){.lp-tiles{grid-template-columns:1fr 1fr}}.lp-tiles button{min-height:84px;border-radius:16px;border:1px solid #E6E1D6;background:#fff;font:800 14px/1.2 system-ui,sans-serif;color:#14171C;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px}.lp-tiles button i{font-style:normal;font-size:26px;line-height:1}",
+      ".lp-list{display:grid;gap:8px;margin:10px 0}.lp-list button{display:flex;gap:10px;align-items:center;text-align:left;min-height:54px;border-radius:12px;border:2px solid #E6E1D6;background:#fff;font:700 16px system-ui,sans-serif;padding:8px 14px;cursor:pointer;color:#14171C}.lp-list button.on{border-color:" + COL + "}.lp-list button span{flex:1}.lp-list button small{color:#6A6F78;font-weight:700;white-space:nowrap}",
       ".lc-tim{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top,0px));z-index:2147481350;background:#14171C;color:#fff;border-radius:16px;padding:8px 18px;font:900 26px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none;border:3px solid " + COL + "}",
       ".lc-tim small{display:block;font:700 13px system-ui,sans-serif;color:#C9CDD3;text-align:center}.lc-tim.end{background:#C0392B}",
       ".lc-msg{position:fixed;inset:0;z-index:2147483200;background:" + COL + ";color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6vw;text-align:center;font-family:system-ui,sans-serif}",
@@ -267,7 +275,7 @@
     if (!OV) { OV = document.createElement("div"); OV.className = "lc-ov"; document.body.appendChild(OV); }
     OV.style.display = "flex"; draw();
   }
-  function close() { if (OV) { OV.style.display = "none"; OV.innerHTML = ""; } EDIT = null; }
+  function close() { if (OV) { OV.style.display = "none"; OV.innerHTML = ""; } EDIT = null; try { window.dispatchEvent(new Event("eps-lc-close")); } catch (e) {} }
   function shell(body) {
     OV.innerHTML = '<div class="lc-top"><b>📝 Fiches de leçon · ' + esc(NOM) + '</b>' +
       [["lec", "📝 Fiches de leçon"], ["docs", "📂 Mes documents"], ["live", "📡 Leçon en cours"], ["eval", "📊 Évaluer la leçon"], ["bil", "🏁 Bilan de séquence"]].map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") +
@@ -413,7 +421,7 @@
     m.querySelector("[data-x]").onclick = shut; var bi = m.querySelector("[data-ico]"); if (bi) bi.onclick = function () { m.remove(); icoPop(cls, e.n, after); };
     m.addEventListener("click", function (ev) { if (ev.target === m) shut(); }); document.body.appendChild(m); }
   function ctlOpen(o) { css(); o = o || {};
-    var C = classes(), lv = all(KV).filter(function (v) { return v.on; })[0], cls = o.cls || (lv && lv.cls) || (cur() && cur().nom) || edtClass() || C[0] || "", T = null;
+    var C = classes(), lv = all(KV).filter(function (v) { return v.on && v.cls !== "DÉMO (fictive)"; /* la leçon fictive de 👁 Vue élève ne décide jamais de la classe ouverte */ })[0], cls = o.cls || (lv && lv.cls) || (cur() && cur().nom) || edtClass() || C[0] || "", T = null;
     var ov = document.getElementById("lc-ctl"); if (!ov) { ov = document.createElement("div"); ov.id = "lc-ctl"; ov.className = "lc-ov"; document.body.appendChild(ov); } ov.style.display = "flex"; ov.style.zIndex = "2147483100";
     if (ov._t) clearInterval(ov._t); if (ov._h) window.removeEventListener("eps-appels", ov._h);
     function close() { ov.style.display = "none"; clearInterval(T); window.removeEventListener("eps-appels", ov._h); }
@@ -1315,12 +1323,12 @@
     G.forEach(function (g) { var L = D.concat(g.filter(function (n) { return D.indexOf(n) < 0; })); ON.forEach(function (r, i) { var n = L.length ? L[(i + sh) % L.length] : null; if (n && !who[n]) who[n] = r; }); }); return who; }
   function drawLive() {
     if (!OV || OV.style.display === "none" || TAB !== "live") return;
-    var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || all(KV).filter(function (v) { return v.on; }).map(function (v) { return v.cls; })[0] || edtClass() || C[0] || ""; }
+    var C = classes(); if (!LIVECLS) { var c0 = cur(); LIVECLS = (c0 && c0.nom) || all(KV).filter(function (v) { return v.on && v.cls !== "DÉMO (fictive)"; /* la leçon fictive de 👁 Vue élève ne décide jamais de la classe ouverte */ }).map(function (v) { return v.cls; })[0] || edtClass() || C[0] || ""; }
     var cls = LIVECLS, v = live(cls), on = v && v.on, L = lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, cls); }), lec = on && v.lec && get(KL, v.lec);
     var h = '<h2>📡 Leçon en cours</h2><p class="lc-mut">Cette tablette pilote les tablettes élèves de la classe : messages en grand avec un son, minuteur, étape en cours, rangement.</p>' +
       '<div class="lc-row"><b>Classe</b><select class="lc-sel" data-cls>' + C.map(function (c) { return "<option" + (same(c, cls) ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select>" + (on ? '<span class="lc-tag ok">● en cours depuis ' + Math.max(1, Math.round((Date.now() - v.st) / 6e4)) + " min</span>" : "") + "</div>";
     h += appelBox(cls, on);
-    if (!on) h += '<div class="lc-box"><div class="lc-row"><b>Leçon</b><select class="lc-sel" data-lec><option value="">— sans fiche de leçon —</option>' + L.map(function (l) { return '<option value="' + l.id + '">' + esc((l.seq ? l.seq + " · " : "") + titreL(l)) + "</option>"; }).join("") + '</select><button type="button" class="lc-b p" data-start>▶ Démarrer la leçon</button></div><div data-matpre></div><p class="lc-mut">La fiche choisie s\'ouvre sur les tablettes élèves de la classe (seulement les leçons validées).</p></div>';
+    if (!on) h += '<div class="lc-box"><div class="lc-row"><b>Leçon</b><select class="lc-sel" data-lec><option value="">— sans fiche de leçon —</option>' + L.map(function (l) { return '<option value="' + l.id + '"' + (PRELEC === l.id ? " selected" : "") + ">" + esc((l.seq ? l.seq + " · " : "") + titreL(l)) + "</option>"; }).join("") + '</select><button type="button" class="lc-b p" data-start>▶ Démarrer la leçon</button></div><div data-matpre></div><p class="lc-mut">La fiche choisie s\'ouvre sur les tablettes élèves de la classe (seulement les leçons validées).</p></div>';
     else {
       var parts = [["", "—"], ["ech", "🔥 Échauffement"]].concat(((lec && lec.sits) || [{}, {}]).map(function (s, i) { return ["s" + i, "🏃 Situation " + (i + 1)]; })).concat([["rem", "🏆 Remise en action"], ["bilan", "💬 Bilan"]]);
       h += '<div class="lc-box"><b>' + (lec ? esc(titreL(lec)) : "Sans fiche de leçon") + '</b><div class="lc-row">' + parts.map(function (p) { return '<button type="button" class="lc-b s' + (v.part === p[0] ? " p" : "") + '" data-part="' + p[0] + '">' + p[1] + "</button>"; }).join("") + '</div><p class="lc-mut">Étape mise en avant sur les tablettes élèves.</p></div>' +
@@ -1603,6 +1611,66 @@
     if (l && RR.length) bindRes(o, l, rcls, prev);
     var n = o.querySelector(".bk.now"); if (n) n.scrollIntoView({ block: "center" });
   }
+  var DEMO_NOM = "DÉMO (fictive)", PRELEC = "";
+  function demoOk() { try { return VUE || !!window.EPS_SIM || isT() || localStorage.getItem("eps.demo.eleve") === "1"; } catch (e) { return VUE; } }
+  /* la leçon de la classe fictive ne s'affiche que là où la classe fictive est réellement choisie (ou regardée en vue élève) : jamais à une autre classe */
+  function demoHere() { var c = cur(); if (c) return same(c.nom, DEMO_NOM); var q = /[?&]cls=([^&]+)/.exec(location.search); if (VUE && q) { try { return same(decodeURIComponent(q[1]), DEMO_NOM); } catch (e) {} } return !!window.EPS_SIM; }
+  /* pastille de leçon : dans la barre du haut quand elle est affichée ; sinon en bas à droite, et seulement si elle ouvre quelque chose */
+  function dockChip() { if (!CHIP || CHIP.style.display === "none") return; var sl = null, L = document.querySelectorAll("[data-eps-bar]");
+    for (var i = 0; i < L.length; i++) if (L[i].getClientRects().length) { sl = L[i]; break; }
+    if (sl) { if (CHIP.parentNode !== sl) sl.insertBefore(CHIP, sl.firstChild); CHIP.classList.add("in"); CHIP.style.display = "inline-flex"; CHIP.style.alignItems = "center"; }
+    else { if (CHIP.parentNode !== document.body) document.body.appendChild(CHIP); CHIP.classList.remove("in"); if (!CHIP.onclick) CHIP.style.display = "none"; } }
+  /* ================= 📍 Point sur la leçon (1er onglet de l'espace enseignant, 27/11/2026) =================
+     Une seule leçon à l'écran : celle du jour pour la classe choisie (en cours, sinon choisie à la main aujourd'hui, sinon programmée,
+     sinon la suivante de la séquence). Classe et leçon se changent dans une petite fenêtre : rien ne s'accumule. */
+  var PCLS = null, PKEY = "eps.lcpoint." + APP;
+  function doneLec(l, c) { var now = Date.now(); if ((l.prog || []).some(function (p) { return (!c || same(p.c, c)) && p.at < now - 3600e3; })) return true; return all(KE).some(function (e) { return e.lec === l.id && (!c || same(e.cls, c)); }); }
+  function pointLec(c) {
+    var L = lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c) && (!l.demo || same(c, DEMO_NOM)); }), v = live(c), now = Date.now();
+    if (same(c, DEMO_NOM)) { var dl = L.filter(function (l) { return l.demo; }); if (dl.length) L = dl; }
+    if (v && v.on && v.st > now - 4 * 3600e3) return { L: L, l: (v.lec && get(KL, v.lec)) || null, v: v, why: "live" };
+    var P = jget(PKEY, {}) || {}, m = P[nn(c)], pl = m && m.day === today() ? L.filter(function (l) { return l.id === m.id; })[0] : null; if (pl) return { L: L, l: pl, why: "choix" };
+    var np = nextProg(c); if (np && np.at < now + 20 * 3600e3 && L.indexOf(np.l) >= 0) return { L: L, l: np.l, why: "prog", at: np.at };
+    var last = -1; L.forEach(function (l, i) { if (doneLec(l, c)) last = i; });
+    var nx = L[Math.min(L.length - 1, last + 1)] || null; return { L: L, l: nx, why: nx ? (last >= 0 ? "suite" : "debut") : "" };
+  }
+  function pickModal(titre, items, cur0, cb) { css(); var md = document.createElement("div"); md.className = "lc-modal"; md.setAttribute("role", "dialog");
+    md.innerHTML = "<div><h2>" + esc(titre) + '</h2><div class="lp-list">' + items.map(function (x, i) { return '<button type="button" data-k="' + i + '"' + (x.id === cur0 ? ' class="on"' : "") + "><span>" + esc(x.t) + "</span>" + (x.s ? "<small>" + esc(x.s) + "</small>" : "") + "</button>"; }).join("") + '</div><div class="lc-row"><button type="button" class="lc-b" data-x>✕ Fermer</button></div></div>';
+    document.body.appendChild(md); md.querySelector("[data-x]").onclick = function () { md.remove(); };
+    md.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { md.remove(); cb(items[+b.dataset.k]); }; }); }
+  function pointPanel(el, api) {
+    css(); api = api || {}; var C = classes(), real = C.filter(function (c) { return !same(c, DEMO_NOM); });
+    if (!PCLS || !C.some(function (x) { return same(x, PCLS); })) { var c0 = cur(); PCLS = (c0 && c0.nom) || all(KV).filter(function (v) { return v.on && v.st > Date.now() - 4 * 3600e3 && !same(v.cls, DEMO_NOM); }).map(function (v) { return v.cls; })[0] || edtClass() || real[0] || C[0] || ""; }
+    var c = PCLS, D = c ? pointLec(c) : { L: [], l: null, why: "" }, l = D.l, on = D.why === "live", redraw = function () { pointPanel(el, api); };
+    var tag = on ? '<span class="lc-tag ok">● en cours depuis ' + Math.max(1, Math.round((Date.now() - D.v.st) / 6e4)) + " min</span>" : D.why === "prog" ? '<span class="lc-tag pg">📅 ' + esc(hm(D.at)) + "</span>" : D.why === "choix" ? '<span class="lc-tag">choisie pour aujourd\'hui</span>' : D.why === "suite" ? '<span class="lc-tag">suite de la séquence</span>' : "";
+    var st = l ? [l.ech ? "🔥 Échauffement" : "", (l.sits || []).length ? "🏃 " + l.sits.length + " situation" + (l.sits.length > 1 ? "s" : "") : "", l.rem ? "🏆 Remise en action" : "", l.bilan ? "💬 Bilan" : ""].filter(Boolean).join(" · ") : "";
+    var h = '<div class="lp"><button type="button" class="lp-cls" data-pc>👥 ' + esc(c || "Choisir une classe") + " ▾</button>";
+    if (!c) h += '<div class="lp-card"><h2>Aucune classe</h2><p class="lp-but">Importe une liste d\'élèves dans l\'onglet 👥 Classe, ou regarde l\'appli avec la classe fictive.</p><div class="lp-row"><button type="button" class="p" data-vue>👁 Vue élève (classe fictive)</button></div></div>';
+    else if (!l && !on) h += '<div class="lp-card"><div class="lp-k">Leçon du jour</div><h2>Pas encore de leçon validée</h2><div class="lp-row"><button type="button" class="p" data-fiches>📝 Mes fiches de leçon</button><button type="button" data-pilot>📡 Lancer sans fiche</button><button type="button" data-vue>👁 Vue élève</button></div></div>';
+    else h += '<div class="lp-card"><div class="lp-k">Leçon du jour ' + tag + "</div><h2>" + esc(l ? titreL(l) : "Leçon sans fiche") + "</h2>" + (l && (l.but || l.objM) ? '<p class="lp-but">🎯 ' + esc(l.but || l.objM) + "</p>" : "") + (st ? '<div class="lp-steps">' + st + "</div>" : "") +
+      '<div class="lp-row">' + (on ? '<button type="button" class="p" data-pilot>📡 Piloter la leçon</button>' : '<button type="button" class="p" data-start>▶ Lancer la leçon</button>') + '<button type="button" data-vue>👁 Vue élève</button>' + (!on && D.L.length > 1 ? '<button type="button" data-chg>🔁 Changer de leçon</button>' : "") + (l ? '<button type="button" data-fiche>📝 Fiche</button>' : "") + "</div></div>";
+    if (c) h += '<div class="lp-tiles"><button type="button" data-t="grp"><i>👥</i>Groupes</button><button type="button" data-t="ctl"><i>🖥</i>Tablette de contrôle</button><button type="button" data-t="pl"><i>📋</i>Planche tactique</button><button type="button" data-t="ev"><i>📊</i>Évaluer la leçon</button></div>';
+    el.innerHTML = h + "</div>";
+    var q = function (sel, f) { var b = el.querySelector(sel); if (b) b.onclick = f; };
+    q("[data-pc]", function () { if (!C.length) { alert("Aucune classe pour cette activité : importe une liste dans l'onglet Classe."); return; } pickModal("Quelle classe ?", C.map(function (x) { var v = live(x); return { id: x, t: x, s: v && v.on && v.st > Date.now() - 4 * 3600e3 ? "● leçon en cours" : "" }; }), c, function (x) { PCLS = x.id; redraw(); }); });
+    q("[data-start]", function () { PRELEC = l ? l.id : ""; open("live", c); });
+    q("[data-pilot]", function () { open("live", c); });
+    q("[data-vue]", function () { if (api.vue) api.vue(c); });
+    q("[data-fiches]", function () { open("lec"); });
+    q("[data-fiche]", function () { open("edit", l.id); });
+    q("[data-chg]", function () { pickModal("Quelle leçon pour " + c + " ?", D.L.map(function (x, i) { return { id: x.id, t: titreL(x), s: doneLec(x, c) ? "✅ faite" : "" }; }), l && l.id, function (x) { var P = jget(PKEY, {}) || {}; P[nn(c)] = { id: x.id, day: today() }; jset(PKEY, P); redraw(); }); });
+    el.querySelectorAll("[data-t]").forEach(function (b) { b.onclick = function () { var k = b.dataset.t; try { if (k === "grp") { if (on) open("live", c); else grOpen(c, "grp"); } else if (k === "ctl") ctlOpen({ cls: c }); else if (k === "pl") { if (window.EPSD && EPSD.planche) EPSD.planche({ cls: c }); } else if (k === "ev") { LIVECLS = c; open("eval"); } } catch (e) { console.warn(e); } }; });
+  }
+  /* côté élève : « 📖 La leçon » de la fenêtre qui suit le choix de la classe (eps-home.js gateStep2) : seulement une leçon lancée ou programmée */
+  function eleveLecon(cls) { try { var D = pointLec(cls); if (D.why === "live") return showStudent(D.l, D.v); if (D.l && D.why === "prog") return showStudent(D.l, null); } catch (e) { console.warn(e); }
+    css(); var o = document.createElement("div"); o.className = "lc-msg"; o.innerHTML = "<p>Ton enseignant n'a pas encore lancé la leçon.</p><button type=\"button\">OK</button>"; o.querySelector("button").onclick = function () { o.remove(); }; document.body.appendChild(o); setTimeout(function () { if (o.parentNode) o.remove(); }, 20000); }
+  /* ressource commune sans classe : les leçons de la séquence, faites ou à faire, avec leurs situations (demande de l'enseignant) */
+  function seqL() { var dOk = demoOk(); return lecons().filter(function (l) { return l.statut !== "brouillon" && (!l.demo || dOk) && ((l.sits || []).length || l.but); }); }
+  function seqSheet() { if (!window.EPSG || !EPSG.sheet) return; var k = function (lab, t) { return t ? '<p style="margin:8px 0 2px;font-weight:800">' + lab + '</p><p style="margin:0;white-space:pre-wrap">' + esc(t) + "</p>" : ""; };
+    EPSG.sheet({ titre: "📋 Leçons et situations", color: COL, html: seqL().map(function (l) { var d = doneLec(l, null);
+      return '<div class="epsgs-card"><b class="t">' + esc(titreL(l)) + ' <span style="font:800 13px system-ui;border-radius:999px;padding:3px 10px;margin-left:6px;white-space:nowrap;' + (d ? "background:#E3F4E8;color:#1E6B3A\">✅ faite" : "background:#FFF1D6;color:#8A5A1F\">▶ à faire") + "</span></b>" + (l.but ? '<p class="m" style="margin:0 0 6px">🎯 ' + esc(l.but) + "</p>" : "") +
+        (l.sits || []).map(function (x, i) { return '<details style="border-top:1px solid #EFEBE3;padding:8px 0"><summary style="font-weight:800;font-size:16px;cursor:pointer;min-height:36px">🏃 ' + esc(x.t || "Situation " + (i + 1)) + "</summary>" + k("Consigne", x.cons) + k("✅ Je suis en réussite si…", [x.crQ, x.crQl].filter(Boolean).join("\n")) + k("💡 Comment faire…", x.crR) + "</details>"; }).join("") + "</div>"; }).join("") }); }
+  (window.EPSG_COMMON = window.EPSG_COMMON || []).push({ ico: "📋", label: "Leçons et situations", sub: "Faites · à faire", when: function () { return seqL().length > 0; }, open: seqSheet });
   var CHIP = null, TIM = null, SEEN = jget("eps.lcseen", {}), LASTPART = {}, FAST = 0;
   function seen(id) { return !!SEEN[id]; }
   function markSeen(id) { SEEN[id] = Date.now(); Object.keys(SEEN).forEach(function (k) { if (SEEN[k] < Date.now() - 2 * 864e5) delete SEEN[k]; }); jset("eps.lcseen", SEEN); }
@@ -1613,8 +1681,9 @@
     css(); var now = Date.now();
     if (!CHIP) { CHIP = document.createElement("button"); CHIP.type = "button"; CHIP.className = "lc-chip"; document.body.appendChild(CHIP); }
     if (!TIM) { TIM = document.createElement("div"); TIM.className = "lc-tim"; document.body.appendChild(TIM); }
-    var V = mine(all(KV).filter(function (v) { return v.on && v.st > now - 4 * 3600e3; }))[0];
-    var P = []; lecons().forEach(function (l) { if (l.statut === "brouillon") return; (l.prog || []).forEach(function (p) { if (p.at > now - 2 * 3600e3 && p.at < now + 14 * 3600e3) P.push({ c: p.c, at: p.at, l: l }); }); });
+    var dOk = demoOk() && demoHere();
+    var V = mine(all(KV).filter(function (v) { return v.on && v.st > now - 4 * 3600e3 && (dOk || !same(v.cls, DEMO_NOM)); }))[0];
+    var P = []; lecons().forEach(function (l) { if (l.statut === "brouillon" || (l.demo && !dOk)) return; (l.prog || []).forEach(function (p) { if (p.at > now - 2 * 3600e3 && p.at < now + 14 * 3600e3) P.push({ c: p.c, at: p.at, l: l }); }); });
     P = mine(P).sort(function (a, b) { return Math.abs(a.at - now) - Math.abs(b.at - now); });
     var next = P.filter(function (p) { return p.at > now; }).sort(function (a, b) { return a.at - b.at; })[0], past = P.filter(function (p) { return p.at <= now; }).sort(function (a, b) { return b.at - a.at; })[0];
     var st = document.getElementById("lc-st"), stOpen = st && st.style.display !== "none";
@@ -1636,6 +1705,7 @@
       else CHIP.style.display = "none";
       if (next && next.at - now < 15 * 6e4) FAST = now + 6e4;
     }
+    dockChip();
     /* pendant une leçon (ou juste avant) : relevé rapide de la leçon en cours */
     if (FAST > now && window.EPSD && EPSD.syncOne && now - (tickStudent.last || 0) > 6000) { tickStudent.last = now; EPSD.syncOne(KV); }
   }
@@ -1663,6 +1733,9 @@
     fiche: function (id) { return get(KL, id); },
     /* leçon commune lancée pour cette classe (📡 Leçon en cours) : les écrans « pas encore de leçon » des applis renvoient vers elle au lieu de se contredire */
     liveFor: function (cls) { try { var v = cls && live(cls); if (!v || !v.on) return null; var l = v.lec ? get(KL, v.lec) : null; return { titre: l ? titreL(l) : "Leçon du jour", open: function () { showStudent(l, v); } }; } catch (e) { return null; } },
+    pointPanel: pointPanel, eleveLecon: eleveLecon, classes: classes,
+    /* 👁 Vue élève sur la classe fictive : sa leçon de démonstration est lancée pour que la vue montre une leçon prête */
+    demoLive: function () { try { var D = window.EPSD && EPSD.demo; if (!D || !D.on()) return false; var v = live(D.nom); if (!(v && v.on && v.st > Date.now() - 3 * 3600e3)) { var l = get(KL, "demo-" + APP); if (!l) return false; startLive(D.nom, l.id); } return true; } catch (e) { return false; } },
     open: open, close: close, app: APP, code: CODE, nextProg: function (c) { var p = nextProg(c); return p ? { at: p.at, titre: titreL(p.l), id: p.l.id } : null; }, count: function (c) { return lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c); }).length; },
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
     /* un seul écran de suivi par activité (demande de l'enseignant) : l'appli qui a le sien (window.epsCtlOwn = {open(classe)}) le garde */

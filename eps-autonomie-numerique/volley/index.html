@@ -364,6 +364,7 @@ html.epst-on header nav#nav{display:none!important}
 .prpl{color:#B4232B;font-weight:600}.prpl .btn{margin-left:4px}
 .cdr{margin-bottom:8px}.cdr.prp textarea{color:#B4232B;border-color:#f0a5a9;background:#fff8f8}.cdr label{display:flex;align-items:center;gap:8px}
 .cbb{display:block;font-style:normal;color:#F0A030;font-weight:900;font-size:clamp(1rem,3vw,2rem)}
+.copop{position:fixed;inset:0;z-index:900;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:14px}.copop>div{background:var(--bg,#F5F3EE);border-radius:18px;width:min(820px,100%);max-height:92vh;overflow:auto;padding:16px}
 </style>
 <style id="eps-sep">/* séparation enseignant / élève : en mode élève, l'écran enseignant (barre à onglets et contenu) n'est même pas affiché sous l'écran élève */
 html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidden!important}</style>
@@ -1002,12 +1003,25 @@ function startHtml(){
    <div class="stbar"><i style="width:${Math.round(n/L.length*100)}%"></i></div>
    ${L.map((x,i)=>`<div class="stp ${x.ok?'ok':''}"><span class="stk">${x.ok?'✓':i+1}</span><div style="flex:1"><b>${x.t}</b><div class="muted">${x.d}</div></div><div class="row">${x.b.map(([l,f])=>`<button class="btn ${x.ok?'alt':''} sm" onclick="${f}">${l}</button>`).join('')}</div></div>`).join('')}
    ${n===L.length?'<p class="pok">✓ Tout est prêt : bonne séquence ! (replie ce cadre pour le masquer)</p>':''}</details>`}
+/* 27/11/2026 (demande de l'enseignant : toutes les leçons étaient visibles) : une seule leçon à l'écran ; ‹ › ou la fenêtre « Quelle leçon ? » pour en changer.
+   Par défaut : la leçon en cours de modification, sinon la première qui n'est pas faite. */
+let SEQSEL=null;
+function seqSel(){const L=S.seq.lecons||[];if(SEQEDIT&&L.some(l=>l.id===SEQEDIT))return SEQSEL=SEQEDIT;if(SEQSEL&&L.some(l=>l.id===SEQSEL))return SEQSEL;const l=L.find(x=>!x.faite)||L[L.length-1];return SEQSEL=l?l.id:null}
+function seqGo(d){const L=S.seq.lecons||[],k=L.findIndex(l=>l.id===seqSel()),l=L[k+d];if(l){SEQSEL=l.id;SEQEDIT=null;renderSeq()}}
+function volPopClose(){const o=document.getElementById('volpop');if(o)o.remove()}
+function volPop(titre,inner){volPopClose();const o=document.createElement('div');o.id='volpop';o.className='copop';o.setAttribute('role','dialog');o.setAttribute('aria-label',titre);
+  o.innerHTML=`<div style="max-width:620px"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">${esc(titre)}</h2><button class="btn alt" onclick="volPopClose()">✕ Fermer</button></div>${inner}</div>`;
+  o.addEventListener('click',e=>{if(e.target===o)volPopClose()});document.body.appendChild(o)}
+function seqPick(){const L=S.seq.lecons||[],sel=seqSel();
+  volPop('Quelle leçon ?',`<div style="display:grid;gap:8px">${L.map((l,i)=>`<button class="btn ${l.id===sel?'':'alt'}" style="justify-content:space-between;min-height:50px;text-align:left${l.id===sel?';background:var(--vol)':''}" onclick="SEQSEL=S.seq.lecons[${i}].id;SEQEDIT=null;volPopClose();renderSeq()"><span>Leçon ${l.n} · ${esc(l.titre)}</span><span>${l.faite?'✓ faite':l.prop?'proposition':''}</span></button>`).join('')}</div>`)}
 function seqLecons(){
   const L=S.seq.lecons,nf=L.filter(l=>l.faite).length,np=L.filter(l=>l.prop).length;
   return `${refBanner()}${startHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="rtag">${np} leçon(s) proposée(s)</span>`:''}</div>
     <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="window.EPSLC?EPSLC.open('lec'):addLecon()">+ Leçon</button></div></div>
     <p class="muted" style="margin:6px 0 0"><b style="color:#B4232B">En rouge</b> : mes propositions (leçons, contenus AFL2, indicateurs de performance, règles de point bonus) et, soulignées, les formulations à préciser. Garde, modifie ou retire. Rien de ce qui est en rouge n'est montré aux élèves. Le cadre de la séquence est dans l'onglet « AFL & évaluation ».</p></div>
-  ${L.map((l,i)=>SEQEDIT===l.id?lecEdit(l,i):`<div class="lec ${l.faite?'done':''} ${l.prop?'prop':''}">
+  ${(()=>{const sel=seqSel(),k=L.findIndex(l=>l.id===sel),l=L[k];if(!l)return '';
+    return `<div class="card" style="display:flex;gap:8px;align-items:center"><button class="btn alt" aria-label="Leçon précédente" ${k<=0?'disabled':''} onclick="seqGo(-1)">‹</button><button class="btn" style="flex:1;min-height:48px;justify-content:space-between;background:var(--vol)" onclick="seqPick()"><span style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Leçon ${l.n} · ${esc(l.titre)}</span><span style="flex:none;margin-left:10px">${k+1}/${L.length} ▾</span></button><button class="btn alt" aria-label="Leçon suivante" ${k>=L.length-1?'disabled':''} onclick="seqGo(1)">›</button></div>`})()}
+  ${L.map((l,i)=>l.id!==seqSel()&&SEQEDIT!==l.id?'':SEQEDIT===l.id?lecEdit(l,i):`<div class="lec ${l.faite?'done':''} ${l.prop?'prop':''}">
     <h3>Leçon ${l.n} · ${esc(l.titre)} ${l.prop?'<span class="rtag">Proposition</span>':''}${l.faite?'<span class="ctag" style="background:var(--d4)">✓ Faite</span>':''}${l.date?`<span class="muted" style="font-weight:600">${esc(new Date(l.date+'T12:00').toLocaleDateString('fr-FR'))}</span>`:''}</h3>
     <p style="margin:6px 0"><b>Objectif :</b> ${esc(l.obj)}</p>
     <ul>${l.cont.map(c=>`<li>${(l.rev||{})[c]?`<span class="aclar">${esc(c)}</span>`:esc(c)}</li>`).join('')}${(l.propC||[]).map((x,k)=>`<li class="prpl">${esc(x)} <button class="btn alt sm" onclick="propKeep(${i},${k})">✓ Garder</button><button class="btn alt sm" onclick="propDel(${i},${k})">✕</button></li>`).join('')}</ul>${lecRevHtml(l,i)}
@@ -1179,10 +1193,10 @@ function renderCoach(){
   if(!t){const E=c.equipes||[];
     box.innerHTML=`<div class="chd"><h1>🧢 ${esc(c.nom)} · Choisis ton équipe</h1><button class="lockbtn" onclick="coachQuit()">⌂ Accueil</button></div><div class="cbody">
      ${E.length?`<div class="tiles">${E.map(x=>{const j=(x.jours||{})[today()];const ch=j&&CHAS.find(k=>k[0]===j.chas);return `<button class="tile" onclick="CO.tid='${x.id}';CO.tab='lecon';CO.step=0;coSave();renderCoach()">${ch?`<span class="dot" style="background:${ch[1]};width:18px;height:18px;border-radius:50%;display:inline-block;border:2px solid #ccc;vertical-align:-3px"></span> `:''}${esc(x.nom)}<br><small class="muted" style="font-weight:600">${(x.el||[]).map(id=>shortName(elOf(c,id))).join(', ')}</small></button>`}).join('')}</div>`
-       :`<div class="card"><p>Ton enseignant n'a pas encore créé les équipes. Créez la vôtre :</p></div>`}
-     <div class="card"><h2>➕ Créer notre équipe</h2><input type="text" id="coNew" placeholder="Nom de l'équipe">
+       :`<div class="card" style="text-align:center;padding:26px 18px"><h2>⏳ Ton enseignant prépare les équipes</h2><p class="muted">Elles arrivent sur cette tablette dès qu'il les envoie.</p>${coAttente()}</div>`}
+     ${EQ_ELEVES()?'':'<div style="display:none">'}<div class="card"><h2>➕ Créer notre équipe</h2><input type="text" id="coNew" placeholder="Nom de l'équipe">
       <p class="muted">Coche les joueurs :</p><div class="pres" id="coNewEl">${c.eleves.filter(e=>!E.some(x=>(x.el||[]).includes(e.id))).map(e=>`<button data-id="${e.id}" onclick="this.classList.toggle('p')">${esc(fullName(e))}</button>`).join('')}</div>
-      <button class="btn or" style="margin-top:10px" onclick="coNewTeam()">Créer l'équipe</button></div></div>`;return}
+      <button class="btn or" style="margin-top:10px" onclick="coNewTeam()">Créer l'équipe</button></div>${EQ_ELEVES()?'':'</div>'}${E.length?`<div class="row" style="justify-content:center;margin-top:6px">${coAttente()}</div>`:''}</div>`;return}
   const j=jour(t),need=!j.ok,steps=[['Coach'],['Présents'],['Chasuble'],['Matériel']];
   const ch=CHAS.find(k=>k[0]===j.chas);
   const head=`<div class="chd">${ch?`<span class="dot" style="background:${ch[1]}"></span>`:''}<h1>${esc(t.nom)} · ${esc(c.nom)}${j.coach?` · 🧢 ${esc(shortName(elOf(c,j.coach)))}`:''}${j.terrain?` · Terrain ${j.terrain}`:''}</h1>
@@ -1197,6 +1211,12 @@ function renderCoach(){
     CO.tab==='lecon'?coLecon(c,t,j):CO.tab==='timer'?coTimer():CO.tab==='match'?coMatch(c,t):CO.tab==='tournoi'?coTournoi(c,t):CO.tab==='sit'?coSit(c,t):CO.tab==='rem'?coRem(c,t):CO.tab==='video'?coVideo(c,t):CO.tab==='auto'?coAuto(c,t,j):CO.tab==='fin'?coFin(c,t,j):bilanEquipe(c,t)}</div>`;
   if(CO.tab==='video')vidBind();tmTick();
 }
+/* 27/11/2026 (demande de l'enseignant) : c'est lui qui envoie les équipes ; en attendant, la tablette donne accès à la leçon et aux ressources.
+   Les élèves ne créent leur équipe que si le réglage « Équipes » le permet (⚙ Réglages → 🎛 Paramètres). */
+function EQ_ELEVES(){try{return /^\s*oui/i.test(String(EPSP.p({id:'eq_eleves',sec:'Équipes',label:'Les élèves peuvent créer leur équipe sur la tablette (oui / non)',type:'text',def:'non',aide:'Non : tu envoies les équipes (onglet Classe → Équipes, ou 🎲 Répartir automatiquement).'})))}catch(e){return false}}
+EQ_ELEVES();
+function coAttente(){return `<div class="row" style="justify-content:center;gap:10px;margin-top:12px"><button class="btn" onclick="coLeconCommune()">📖 La leçon</button><button class="btn alt" onclick="window.EPSG&&EPSG.ressources&&EPSG.ressources()">📚 Ressources</button></div>`}
+function coLeconCommune(){const c=coC();if(c&&window.EPSLC&&EPSLC.eleveLecon)EPSLC.eleveLecon(c.nom);else toast('La leçon arrive dans un instant')}
 function coNewTeam(){const c=coC(),nom=(document.getElementById('coNew').value||'').trim(),el=[...document.querySelectorAll('#coNewEl button.p')].map(b=>b.dataset.id);
   if(!nom||!el.length){toast("Donne un nom et coche au moins un joueur");return}
   const t={id:'t'+uid(),nom,el,jours:{},matchs:[],valid:{},rem:[]};c.equipes.push(t);CO.tid=t.id;CO.step=0;coSave();save();renderCoach()}
@@ -1530,10 +1550,14 @@ function analyse(M){const a=agg(M),out=[],L=a.l||0,att=(a.win.a3||0)+(a.win.a12|
   if(zt>=4&&zm/zt>=.6)add('zone',zm/zt,`${Math.round(zm/zt*100)} % de nos points dans la même zone`);
   return out.sort((x,y)=>y.v-x.v)}
 /* ---- situations ---- */
-function coSit(c,t){const n=lessonNow(),A=(S.seq.situations||[]).filter(x=>x.type==='app'),v=t.valid||{};
-  return `<div class="card"><h2>✅ Situations validées par toute l'équipe</h2><p class="muted">Une situation est validée quand <b>tous les joueurs présents</b> réussissent le but. ${Object.keys(v).filter(k=>A.some(x=>x.id===k)).length}/${A.length} validées.</p></div>
-  ${A.map(x=>`<div class="sit ${v[x.id]?'ok':''} ${+x.lec===n&&!v[x.id]?'sug':''}"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${esc(x.nom)}</b> <small class="muted">leçon ${x.lec}</small>${+x.lec===n?' <span class="ctag ptag">aujourd\'hui</span>':''} ${sitVoirBtn(x)}<br>${esc(x.but)}</div>
-   ${v[x.id]?`<span style="font-weight:800;color:var(--d4)">✓ ${new Date(v[x.id]+'T12:00').toLocaleDateString('fr-FR')}</span> <button class="btn alt sm" onclick="coValid('${x.id}')">Annuler</button>`:`<button class="btn" style="background:var(--d4)" onclick="coValid('${x.id}')">✓ Validée</button>`}</div></div>`).join('')}`}
+function coSitRow(x,v,n){return `<div class="sit ${v[x.id]?'ok':''} ${+x.lec===n&&!v[x.id]?'sug':''}"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${esc(x.nom)}</b> <small class="muted">leçon ${x.lec}</small>${+x.lec===n?' <span class="ctag ptag">aujourd\'hui</span>':''} ${sitVoirBtn(x)}<br>${esc(x.but)}</div>
+   ${v[x.id]?`<span style="font-weight:800;color:var(--d4)">✓ ${new Date(v[x.id]+'T12:00').toLocaleDateString('fr-FR')}</span> <button class="btn alt sm" onclick="coValid('${x.id}')">Annuler</button>`:`<button class="btn" style="background:var(--d4)" onclick="coValid('${x.id}')">✓ Validée</button>`}</div></div>`}
+/* fenêtre posée par-dessus la tablette du coach (rien ne s'accumule à l'écran : demande de l'enseignant, 27/11/2026) */
+function coPop(titre,inner){return `<div class="copop" role="dialog" aria-label="${esc(titre)}" onclick="if(event.target===this){CO.pop=null;renderCoach()}"><div><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px"><h2 style="margin:0">${esc(titre)}</h2><button class="btn alt" onclick="CO.pop=null;renderCoach()">✕ Fermer</button></div>${inner}</div></div>`}
+function coSit(c,t){const n=lessonNow(),A=(S.seq.situations||[]).filter(x=>x.type==='app'),v=t.valid||{},J=A.filter(x=>+x.lec===n),nv=Object.keys(v).filter(k=>A.some(x=>x.id===k)).length;
+  return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">✅ Situations d'aujourd'hui</h2><button class="btn alt" onclick="CO.pop='sit';renderCoach()">📚 Toutes · ${nv}/${A.length} validées</button></div><p class="muted" style="margin:6px 0 0">Validée quand <b>tous les joueurs présents</b> réussissent le but.</p></div>
+  ${J.length?J.map(x=>coSitRow(x,v,n)).join(''):'<div class="card"><p>Pas de situation à valider dans la leçon d\'aujourd\'hui.</p></div>'}
+  ${CO.pop==='sit'?coPop('Toutes les situations',A.map(x=>coSitRow(x,v,n)).join('')):''}`}
 function coValid(id){coSet(t=>{t.valid=t.valid||{};if(t.valid[id])delete t.valid[id];else t.valid[id]=today()})}
 /* ---- remédiation ---- */
 function coRem(c,t){const M=teamMatches(t,today()),M2=M.length?M:teamMatches(t).slice(-3),an=analyse(M2),Rm=(S.seq.situations||[]).filter(x=>x.type==='rem'),sug=an.map(x=>x.k),cur=(t.rem||[]).find(r=>r.ok==null);
@@ -1543,8 +1567,9 @@ function coRem(c,t){const M=teamMatches(t,today()),M2=M.length?M:teamMatches(t).
    <div class="card"><h2>🎯 Le coach choisit une situation de remédiation</h2>
     <label class="l">Notre problème principal</label><select class="f" id="coPb">${Object.entries(PB).map(([k,n])=>`<option value="${k}" ${sug[0]===k?'selected':''}>${n}</option>`).join('')}</select>
     <label class="l">Pourquoi ce choix ? (facultatif)</label><input type="text" id="coWhy" placeholder="ex. on a perdu 5 points sur nos services">
-    <div style="margin-top:10px">${Rm.sort((a,b)=>(sug.includes(b.pb)?1:0)-(sug.includes(a.pb)?1:0)).map(x=>`<div class="sit ${sug.includes(x.pb)?'sug':''}"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${esc(x.nom)}</b>${sug.includes(x.pb)?' <span class="ctag ptag">conseillée</span>':''}<br>${esc(x.but)}<br><small class="muted">Pour : ${esc(PB[x.pb]||'')}</small></div><button class="btn or" onclick="coRemGo('${x.id}')">Choisir</button></div></div>`).join('')}</div></div>
-   ${(t.rem||[]).length?`<div class="card"><h2>Nos remédiations</h2>${t.rem.slice().reverse().map(r=>{const x=Rm.find(y=>y.id===r.sit)||{nom:'?'};return `<div class="erow"><span class="nm">${new Date(r.date+'T12:00').toLocaleDateString('fr-FR')} · ${esc(x.nom)}<br><small class="muted">${esc(PB[r.pb]||'')}</small></span>${r.ok==null?'en cours':r.ok?'✅ réussie':'🔁 à retravailler'}</div>`}).join('')}</div>`:''}`}
+    <div style="margin-top:10px">${(()=>{const row=x=>`<div class="sit ${sug.includes(x.pb)?'sug':''}"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${esc(x.nom)}</b>${sug.includes(x.pb)?' <span class="ctag ptag">conseillée</span>':''}<br>${esc(x.but)}<br><small class="muted">Pour : ${esc(PB[x.pb]||'')}</small></div><button class="btn or" onclick="CO.pop=null;coRemGo('${x.id}')">Choisir</button></div></div>`,R=Rm.slice().sort((a,b)=>(sug.includes(b.pb)?1:0)-(sug.includes(a.pb)?1:0)),top=R.filter(x=>sug.includes(x.pb)).slice(0,3);
+      return (top.length?top.map(row).join(''):'')+(R.length>top.length?`<button class="btn alt" style="margin-top:6px" onclick="CO.pop='rem';renderCoach()">📚 ${top.length?'Autres situations':'Choisir une situation'} (${R.length-top.length})</button>`:'')+(CO.pop==='rem'?coPop('Situations de remédiation',R.map(row).join('')):'')})()}</div></div>
+   ${(t.rem||[]).length?`<details class="card"><summary style="font-weight:800;font-size:1.05rem;cursor:pointer">Nos remédiations (${t.rem.length})</summary>${t.rem.slice().reverse().map(r=>{const x=Rm.find(y=>y.id===r.sit)||{nom:'?'};return `<div class="erow"><span class="nm">${new Date(r.date+'T12:00').toLocaleDateString('fr-FR')} · ${esc(x.nom)}<br><small class="muted">${esc(PB[r.pb]||'')}</small></span>${r.ok==null?'en cours':r.ok?'✅ réussie':'🔁 à retravailler'}</div>`}).join('')}</details>`:''}`}
 function coRemGo(id){const pb=document.getElementById('coPb').value,txt=(document.getElementById('coWhy').value||'').trim();coSet(t=>{t.rem=t.rem||[];t.rem.push({id:'r'+uid(),date:today(),lecon:lessonNow(),sit:id,pb,txt,ok:null})})}
 function coRemEnd(ok){coSet(t=>{const r=(t.rem||[]).find(r=>r.ok==null);if(r)r.ok=ok})}
 /* ---- bilan (coach et enseignant) ---- */
@@ -2079,20 +2104,15 @@ function tableHtml(c){
      ${b.mode==='officiel'?`<td>${e.choix||'4-4'}</td>`:''}${optM()?`<td>${matchTxt(e)}</td>`:''}${optB()?`<td>${e.bonus||0}</td>`:''}<td><b>${note20(e)!=null?fr(note20(e)):'–'}</b></td></tr>`}).join('')}
    </tbody></table>`;
 }
+/* 27/11/2026 (demande de l'enseignant : plusieurs lignes de boutons) : un bouton, les formats dans une fenêtre */
+function volExp(){const b=(lab,fn,st)=>`<button class="btn alt" style="justify-content:flex-start;min-height:52px;text-align:left${st||''}" onclick="volPopClose();${fn}">${lab}</button>`,pf=B().langFiche==='prof';
+  volPop('📤 Exporter · '+C().nom,`<div style="display:grid;gap:8px">${b('🗜 Une fiche PDF par élève + récapitulatif (.zip)','exportZip()',';background:var(--vol);color:#fff')}${b('📄 Toutes les fiches dans un seul PDF','exportPdfTous()')}${b('📄 Notes + statistiques de la classe (PDF)',"printPDF('classe')")}${b('📄 Récapitulatif (PDF)','exportRecap()')}${b('📋 Pronote','exportPronote()')}${b('🌐 Publier en ligne (espace élève)','publierEnLigne()')}${b('⬇ Tableur (.csv)','exportCSV()')}</div>
+   <div class="row" style="margin-top:12px"><b style="color:var(--navy)">Fiches élèves :</b><div class="seg"><button class="${pf?'':'on'}" onclick="B().langFiche='eleve';save();renderBilan();volExp()">Version élève</button><button class="${pf?'on':''}" onclick="B().langFiche='prof';save();renderBilan();volExp()">Version enseignant</button></div></div>`)}
 function renderBilan(){
   const c=C(),st=classStats(c);
   document.getElementById('t-bilan').innerHTML=`
   <div class="card"><h2>Export – ${esc(c.nom)}</h2>
-    <div class="row">
-      <button class="btn or" onclick="printPDF('classe')">📄 PDF : notes + statistiques</button>
-      <button class="btn" style="background:var(--vol)" onclick="exportZip()">🗜 Fiches PDF + récapitulatif (.zip)</button>
-      <button class="btn" onclick="exportPdfTous()">📄 Toutes les fiches (un PDF)</button>
-      <button class="btn alt" onclick="exportRecap()">📄 Récapitulatif (PDF)</button>
-      <button class="btn alt" onclick="exportCSV()">⬇ Tableur (.csv)</button>
-      <button class="btn alt" onclick="exportPronote()">📋 Pronote</button><button class="btn alt" onclick="publierEnLigne()">🌐 Publier en ligne</button>
-    </div>
-    <div class="row" style="margin-top:10px"><b style="color:var(--navy)">Langage des fiches élèves (PDF et .zip) :</b>
-     <div class="seg"><button class="${B().langFiche!=='prof'?'on':''}" onclick="B().langFiche='eleve';save();renderBilan()">Version élève (simplifiée)</button><button class="${B().langFiche==='prof'?'on':''}" onclick="B().langFiche='prof';save();renderBilan()">Version enseignant</button></div></div>
+    <div class="row"><button class="btn or" style="min-height:52px;font-size:1.05rem" onclick="volExp()">📤 Exporter les bilans…</button><span class="muted">Fiches ${B().langFiche==='prof'?'en version enseignant':'en version élève'}</span></div>
     <p class="muted">Le .zip contient une fiche PDF par élève (même présentation que Danse : grille des degrés, ton positionnement ▼ et celui de l'élève ◯, note, commentaire, conseil pour progresser et, si c'est ouvert, le QR code pour se positionner) et le récapitulatif de la classe. « Notes + statistiques » passe par la fenêtre d'impression (« Enregistrer au format PDF »).</p>
     ${st.nonNotes?`<div class="warn">${st.nonNotes} élève(s) n'ont pas encore tous leurs critères évalués.</div>`:''}
   </div>
@@ -2638,6 +2658,7 @@ window.EPSTV=window.EPST?EPST.init({app:'vol',nom:'Volley-ball',color:'#6B3FA0',
  isTeacher:()=>isUnlocked(),when:()=>!isUnlocked()&&!coachOn()&&!apOn(),
  classes:()=>S.classes.filter(c=>c.eleves.length).map(c=>({id:c.id,nom:c.nom,note:c.eleves.length+' élève'+(c.eleves.length>1?'s':'')+((c.equipes||[]).length?' · '+c.equipes.length+' équipe'+(c.equipes.length>1?'s':''):'')})),
  current:()=>CO.cid||'',
+ groupes:{label:'Équipes',sub:'Retrouver mon équipe'},
  select:id=>{CO.cid=id;CO.tid=null;coachStart()},
  resources:[{ico:'🔥',label:'Échauffement',sub:'courses, temps I et II',open:()=>EPSG.sheet({titre:'Échauffement',html:'<h3>Courses · Temps I</h3><img src="echauffement-temps1.webp" alt="Échauffement, courses du temps I"><h3>Courses · Temps II</h3><img src="echauffement-temps2.webp" alt="Échauffement, courses du temps II">'})}],
  teacher:()=>unlock()});

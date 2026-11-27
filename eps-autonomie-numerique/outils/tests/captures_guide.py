@@ -10,7 +10,7 @@ srv = subprocess.Popen([sys.executable, "-I", "-m", "http.server", str(PORT), "-
 gs = subprocess.Popen([sys.executable, "-I", "mockgs.py"], cwd=os.path.dirname(os.path.abspath(__file__))); time.sleep(1.5)
 B = "http://localhost:%d/eps-autonomie-numerique/" % PORT; G = "http://127.0.0.1:8899/exec"
 SH = "localStorage.setItem('eps.share.v1',JSON.stringify({url:'" + G + "',key:'CLE'}));"
-TEACH = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');" + SH + "}catch(e){}"
+TEACH = "try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');" + SH + "}catch(e){}"
 ELEVE = "try{localStorage.removeItem('eps.teach.until');localStorage.removeItem('eps.console.trust');" + SH + "}catch(e){}"
 APPS = [("acro", "acrosport"), ("esc", "escalade"), ("ori", "orientation"), ("rel", "relais"), ("vol", "volley"), ("bad", "badminton"), ("dan", "danse"), ("ct", "crosstraining"), ("bk", "basket"), ("step", "step"), ("ccf", "ccf")]
 DEMO = "()=>{const b=[...document.querySelectorAll('button')].find(x=>/DÉMO/.test(x.innerText)&&x.offsetParent);if(b){b.click();return true}return false}"
@@ -91,7 +91,7 @@ async def main():
         await essai("console", console)
         # --- espace élève : publication (faux script), puis téléphone de l'élève
         async def espace():
-            await p.goto(B + "espace/"); await p.wait_for_timeout(2500); await p.click("[data-c]")
+            await p.goto(B + "espace/"); await p.wait_for_timeout(2500); await p.click("[data-mode=prep]"); await p.wait_for_timeout(300); await p.click("[data-c]")
             await p.click("[data-add=quiz]"); await p.click("[data-add=txt]"); await p.fill("[data-t='1']", "Regarde la vidéo de l'échauffement"); await p.keyboard.press("Tab"); await p.wait_for_timeout(200)
             await p.click("#pub"); await p.wait_for_timeout(12000); await p.evaluate("window.scrollTo(0,0)"); await shot(p, "espace")
             cd = await p.evaluate("(()=>{var I=JSON.parse(localStorage['eps.codes.v1']).items,k=Object.keys(I)[0];return I[k].c})()")

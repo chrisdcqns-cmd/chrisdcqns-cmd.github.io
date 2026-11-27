@@ -1,5 +1,8 @@
 /* EPS – Autonomie et numérique : espace enseignant commun (mêmes onglets, même ordre, dans toutes les applis).
-   Onglets : 📅 Séquence · 👁 Vue élève · 📚 Bibliothèque · 📋 Évaluation · 👥 Classe · 📄 Bilans · ⚙ Réglages.
+   Onglets (27/11/2026, demande de l'enseignant : on commence par un point sur la leçon, puis la vue élève) :
+   📍 Leçon · 👁 Vue élève · 📅 Séquence · 📚 Bibliothèque · 📋 Évaluation · 📜 CCF · 👥 Classe · 📄 Bilans · ⚙ Réglages.
+   « Leçon » = EPSLC.pointPanel (eps-lecons.js) : la leçon du jour de la classe, une seule à l'écran, les choix dans une petite fenêtre.
+   « Vue élève » s'ouvre sur la classe fictive (créée au besoin, leçon de démonstration lancée) ; la classe se change dans le bandeau.
    EPST.init({
      app, nom, color, isTeacher(),                     // obligatoire
      anchor: élément ou sélecteur après lequel la barre d'onglets s'insère (en général la barre du haut de l'appli),
@@ -13,7 +16,7 @@
    sans quitter le mode enseignant. */
 (function () {
   var BASE = ((document.currentScript && document.currentScript.src) || "").replace(/eps-shell\.js.*$/, "");
-  var ORDER = [["seq", "📅", "Séquence"], ["vue", "👁", "Vue élève"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluation"], ["ccf", "📜", "CCF"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
+  var ORDER = [["lec", "📍", "Leçon"], ["vue", "👁", "Vue élève"], ["seq", "📅", "Séquence"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluation"], ["ccf", "📜", "CCF"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
   var VUE = /[?&]vue=eleve\b/.test(location.search);
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function css() {
@@ -26,6 +29,10 @@
       ".epst-nav button{flex:none;border:0;background:transparent;color:#B9BEC7;font:700 15px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding:11px 14px 14px;border-radius:10px 10px 0 0;cursor:pointer;white-space:nowrap}",
       ".epst-nav button.on{background:var(--epst,#666);color:#fff}",
       ".epst-nav button span{margin-right:6px}",
+      /* tablette (portrait ou paysage) : les 9 onglets tiennent sur une ligne (icônes retirées, marges réduites) */
+      "@media (max-width:1100px){.epst-nav{padding:0 6px;gap:0}.epst-nav button{padding:11px 8px 14px;font-size:14px}.epst-nav button span{display:none}}",
+      ".epst-pop{position:fixed;inset:0;z-index:2147481600;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,sans-serif}.epst-pop>div{background:#fff;border-radius:18px;width:min(520px,100%);max-height:90vh;overflow:auto;padding:18px 20px}.epst-pop h2{margin:0 0 10px;font-size:20px}",
+      ".epst-pop .l{display:grid;gap:8px}.epst-pop .l button{min-height:52px;text-align:left;border-radius:12px;border:2px solid #E6E1D6;background:#fff;font:700 16px system-ui,sans-serif;padding:8px 14px;cursor:pointer;color:#14171C}.epst-pop .l button.on{border-color:var(--epst,#666)}.epst-pop .x{margin-top:12px;height:44px;border-radius:12px;border:2px solid #E6E1D6;background:#fff;font:800 15px system-ui,sans-serif;padding:0 16px;cursor:pointer}",
       ".epst-acts{display:none;gap:8px;flex-wrap:wrap;max-width:1100px;margin:10px auto 0;padding:0 18px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
       /* barre d'outils : un seul bloc blanc, icône au-dessus du libellé, séparateurs fins ; le reste dans « ⋯ Plus » */
       "html.epst-on.epst-acts-on .epst-acts{display:block}html.epst-pan .epst-acts{margin-bottom:-4px}",
@@ -50,7 +57,7 @@
       ".epst-vue{position:fixed;left:0;right:0;bottom:0;z-index:2147481500;background:#F5F3EE;display:none;flex-direction:column}",
       "html.epst-vue-on .epst-vue{display:flex}",
       ".epst-vue .h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#FFF6E0;border-bottom:1px solid #F0D58A;font:600 14px system-ui,sans-serif;color:#6b4e00}",
-      ".epst-vue .h button{margin-left:auto;height:44px;flex:none;border-radius:10px;border:1.5px solid #D8C27A;background:#fff;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer}",
+      ".epst-vue .h button{height:44px;flex:none;border-radius:10px;border:1.5px solid #D8C27A;background:#fff;font:700 14px system-ui,sans-serif;padding:0 12px;cursor:pointer;color:#14171C}.epst-vue .h button[data-vx],.epst-vue .h>button:only-of-type{margin-left:auto}.epst-vue .h i{font-style:normal;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}",
       ".epst-vue iframe{flex:1;border:0;width:100%;background:#F5F3EE}"
     ].join("\n");
     document.head.appendChild(st);
@@ -64,8 +71,8 @@
     acts.className = "epst-acts"; acts.style.setProperty("--epst", C.color);
     nav.className = "epst-nav"; nav.style.setProperty("--epst", C.color); pan.className = "epst-panel"; pan.style.setProperty("--epst", C.color);
     vue.className = "epst-vue";
-    vue.innerHTML = '<div class="h">👁 Vue élève · tes vraies données, tu restes en mode enseignant.<button type="button">✕ Fermer</button></div><iframe title="Vue élève"></iframe>';
-    var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (t[0] === "ccf" && !!(C.tabs && C.tabs.eval) && C.tabs.ccf !== false) || (C.tabs && C.tabs[t[0]]); });
+    vue.innerHTML = '<div class="h"><b>👁 Vue élève</b><button type="button" data-vc>👥 Classe ▾</button><i data-vm></i><button type="button" data-vr title="Revenir au début, comme un élève qui arrive">↺ Début</button><button type="button" data-vx>✕ Fermer</button></div><iframe title="Vue élève"></iframe>';
+    var tabs = ORDER.filter(function (t) { return t[0] === "lec" || t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (t[0] === "ccf" && !!(C.tabs && C.tabs.eval) && C.tabs.ccf !== false) || (C.tabs && C.tabs[t[0]]); });
     nav.innerHTML = tabs.map(function (t) { return '<button type="button" data-t="' + t[0] + '"><span>' + t[1] + "</span>" + t[2] + "</button>"; }).join("");
     /* deux bandeaux (barre de l'appli + onglets enseignant) : en descendant, seuls les onglets restent en haut ;
        la barre de l'appli revient dès qu'on remonte */
@@ -159,19 +166,37 @@
         if (n < 0) return; if (!n) { msg.textContent = "Aucun changement."; return; }
         try { window.EPSD && EPSD.syncSoon && EPSD.syncSoon(); } catch (e) {} msg.textContent = "✓ Enregistré. L'appli se recharge…"; setTimeout(function () { location.reload(); }, 1200); };
     }
-    function openVue() {
-      var f = vue.querySelector("iframe"), top = nav.getBoundingClientRect().bottom;
+    /* 👁 Vue élève : la classe fictive par défaut (créée si besoin, sa leçon de démonstration lancée : une leçon prête à regarder),
+       ou la classe demandée ; « 👥 Classe ▾ » change de classe dans une petite fenêtre, « ↺ Début » repart comme un élève qui arrive. */
+    function pop(titre, items, cur0, cb) { var d = document.createElement("div"); d.className = "epst-pop"; d.style.setProperty("--epst", C.color); d.setAttribute("role", "dialog");
+      d.innerHTML = "<div><h2>" + esc(titre) + '</h2><div class="l">' + items.map(function (x, i) { return '<button type="button" data-k="' + i + '"' + (x.id === cur0 ? ' class="on"' : "") + ">" + esc(x.t) + "</button>"; }).join("") + '</div><button type="button" class="x">✕ Fermer</button></div>';
+      document.body.appendChild(d); d.querySelector(".x").onclick = function () { d.remove(); }; d.addEventListener("click", function (e) { if (e.target === d) d.remove(); });
+      d.querySelectorAll("[data-k]").forEach(function (b) { b.onclick = function () { d.remove(); cb(items[+b.dataset.k]); }; }); }
+    function vueSrc(c) { return location.pathname + "?vue=eleve" + (c ? "&cls=" + encodeURIComponent(c) : ""); }
+    function openVue(cls) {
+      var f = vue.querySelector("iframe"), top = nav.getBoundingClientRect().bottom, D = window.EPSD && EPSD.demo, dn = (D && D.nom) || "", msg = vue.querySelector("[data-vm]");
       vue.style.top = Math.max(0, top) + "px";
-      if (!f.getAttribute("src")) f.src = location.pathname + "?vue=eleve";
+      if (cls) M.vueCls = cls; if (M.vueCls == null) M.vueCls = dn;
+      var c = M.vueCls, isDemo = !!dn && c === dn;
+      vue.querySelector("[data-vc]").textContent = "👥 " + (c || "Choisir la classe") + " ▾";
+      function show() { if (isDemo) { try { if (window.EPSLC && EPSLC.demoLive) EPSLC.demoLive(); } catch (e) {} } msg.textContent = isDemo ? "Classe fictive, leçon prête : rien ne touche tes vraies classes." : "Tes vraies données.";
+        var src = vueSrc(c); if (f.getAttribute("src") !== src) f.src = src; }
       document.documentElement.classList.add("epst-vue-on");
+      if (isDemo && D && !D.on()) { msg.textContent = "Préparation de la classe fictive…"; Promise.resolve(D.create()).then(function () { setTimeout(show, 600); }, show); } else show();
     }
     function closeVue() { document.documentElement.classList.remove("epst-vue-on"); }
-    vue.querySelector(".h button").onclick = function () { closeVue(); go(M.prev || C.home || "seq"); };
+    vue.querySelector("[data-vx]").onclick = function () { closeVue(); go(M.prev || "lec"); };
+    vue.querySelector("[data-vr]").onclick = function () { var f = vue.querySelector("iframe"); f.src = vueSrc(M.vueCls) + "&r=" + Date.now(); };
+    vue.querySelector("[data-vc]").onclick = function () { var D = window.EPSD && EPSD.demo, dn = (D && D.nom) || "", L = []; try { L = (window.EPSLC && EPSLC.classes ? EPSLC.classes() : []).filter(function (x) { return x !== dn; }); } catch (e) {}
+      pop("Voir l'appli comme quelle classe ?", (dn ? [{ id: dn, t: "🧪 " + dn + " · leçon prête" }] : []).concat(L.map(function (x) { return { id: x, t: x }; })), M.vueCls, function (x) { M.vueCls = x.id; vue.querySelector("iframe").removeAttribute("src"); openVue(x.id); }); };
+    try { window.addEventListener("eps-lc-close", function () { if (M.cur === "lec" && document.documentElement.classList.contains("epst-pan")) go("lec"); }); } catch (e) {}
     function go(id) {
       if (id !== "vue") { closeVue(); M.prev = id; }
       mark(id);
       var t = (C.tabs || {})[id];
       if (id === "vue") { openVue(); return; }
+      if (id === "lec") { var okp = !!(window.EPSLC && EPSLC.pointPanel), lp = panel(okp ? "" : '<p class="mut">Chargement…</p>'); if (!okp) { setTimeout(function () { if (M.cur === "lec") go("lec"); }, 700); return; }
+        try { EPSLC.pointPanel(lp, { vue: function (c) { mark("vue"); openVue(c); } }); } catch (e) { console.warn(e); } return; }
       if (id === "bib") { var BL = (window.EPSLC ? EPSLC.biblio() : []).concat(C.biblio || []); var p = panel("<h2>📚 Bibliothèque</h2><p class=\"mut\">Tes documents et tes leçons, puis les ressources et les écrans de l'appli, à consulter ou à montrer aux élèves.</p>" + cards(BL) + adaptHtml()); bindCards(p, BL, "bib"); bindAdapt(p); return; }
       if (id === "reg") {
         var R = [{ ico: "📖", label: "Fiche d'utilisation", sub: "Tout ce que permet " + C.nom + " et les fonctions communes", go: guide }]
@@ -189,7 +214,7 @@
       place();
       var on = false; try { on = !!C.isTeacher(); } catch (e) {}
       document.documentElement.classList.toggle("epst-on", on);
-      if (on && !was) { if (!M.cur) go(C.home || "seq"); }
+      if (on && !was) { if (!M.cur) go("lec"); }
       if (!on && was) { closePanel(); closeVue(); M.cur = null; }
       was = on;
       if (on && !barHidden) setHidden(false); else if (!on && barHidden) { barHidden = false; var sb = stickyBar(); if (sb) sb.style.top = ""; }

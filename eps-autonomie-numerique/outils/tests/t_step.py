@@ -16,7 +16,7 @@ async def main():
     async with async_playwright() as pw:
         b=await pw.chromium.launch(args=["--no-sandbox","--autoplay-policy=no-user-gesture-required"])
         urllib.request.urlopen("http://127.0.0.1:8899/ctl?reset=1&fail=0&old=0&nochk=0").read()
-        cp=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await cp.add_init_script("try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));"+SH+"}catch(e){}")
+        cp=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await cp.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));"+SH+"}catch(e){}")
         ca=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await ca.add_init_script("try{"+SH+"}catch(e){}")
         cb=await b.new_context(service_workers="block",viewport={"width":390,"height":844}); await cb.add_init_script("try{"+SH+"}catch(e){}")
         p=await cp.new_page(); a=await ca.new_page(); e=await cb.new_page()
@@ -26,6 +26,8 @@ async def main():
         await p.goto(B+"step/"); await p.wait_for_timeout(2500); await p.evaluate(LST,NOMS); await p.wait_for_timeout(500); await p.reload(); await p.wait_for_timeout(3000)
         tabs=await p.evaluate("[...document.querySelectorAll('.epst-nav button')].map(b=>b.textContent.trim())")
         ok("1 espace enseignant : onglets communs",len(tabs)>=7,tabs)
+        ok("1b l'espace enseignant s'ouvre sur 📍 Leçon",await p.evaluate("(document.querySelector('.epst-nav button.on')||{}).dataset.t")=="lec")
+        await p.click(".epst-nav [data-t=seq]"); await p.wait_for_timeout(400)  # 27/11/2026 : on arrive sur « Leçon » ; les écrans de l'appli sont dans Séquence
         await p.click("[data-onglet=pas]"); n0=await p.locator("#vue .pas").count(); ok("2 pas vérifiés présents",n0==11,n0)
         await p.click("[data-act=edNouveau]"); await p.fill("#edNom","Pas de l'essai"); 
         async def pose(fx,fy):
@@ -64,7 +66,7 @@ async def main():
         await a.goto(B+"step/"); await a.wait_for_timeout(2500); await a.evaluate(LST,NOMS); await a.reload(); await a.wait_for_timeout(14000)
         g=await a.evaluate("[...document.querySelectorAll('.epsg button')].map(b=>b.textContent.trim().slice(0,30))")
         ok("9 élève : écran « Choisis ta classe » avec ressources",any("2GT1" in x for x in g) and any("pas" in x.lower() for x in g) and not await a.evaluate("document.documentElement.classList.contains('eps-teach')"),g)
-        await a.locator(".epsg button",has_text="2GT1").first.click(); await a.wait_for_timeout(400)
+        await a.locator(".epsg button",has_text="2GT1").first.click(); await a.wait_for_timeout(400); await a.evaluate("(()=>{const b=document.querySelector('.epsg2 [data-go=g]');if(b)b.click()})()"); await a.wait_for_timeout(300);
         await a.click("[data-act=grpNom][data-i='0']"); await a.click("[data-act=grpNom][data-i='1']"); await a.click("[data-act=grpOk]"); await a.wait_for_timeout(300)
         ok("10 leçon du jour reçue par la tablette (consigne, tempo verrouillé)","Compose un bloc" in await a.text_content("#vue") and await a.evaluate("document.querySelector('#bpmR').disabled") and "132" in await a.text_content("#bpmO"),await a.text_content("#bpmO"))
         for nomp in ("Basic","V step","Pas de l'essai","Genou","Dégagé bas","A step"):
@@ -112,7 +114,7 @@ async def main():
         await a.wait_for_timeout(9000)
         # ---- tablette B (téléphone)
         await e.goto(B+"step/"); await e.wait_for_timeout(2500); await e.evaluate(LST,NOMS); await e.reload(); await e.wait_for_timeout(14000)
-        await e.locator(".epsg button",has_text="2GT1").first.click(); await e.wait_for_timeout(400)
+        await e.locator(".epsg button",has_text="2GT1").first.click(); await e.wait_for_timeout(400); await e.evaluate("(()=>{const b=document.querySelector('.epsg2 [data-go=g]');if(b)b.click()})()"); await e.wait_for_timeout(300);
         await e.click("[data-act=grpNom][data-i='2']"); await e.click("[data-act=grpOk]"); await e.wait_for_timeout(300)
         w1=await large(e); await e.click("[data-onglet=obs]"); await e.wait_for_timeout(300)
         txt=await e.text_content("#vue"); ok("17 le bloc de la tablette A arrive sur la tablette B","Lea" in txt and "Hugo" in txt,txt[:120])

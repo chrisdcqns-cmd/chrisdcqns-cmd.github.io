@@ -42,6 +42,9 @@ table{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}
 th,td{border:1px solid var(--line);padding:7px 9px;text-align:center}
 th:first-child,td:first-child{text-align:left}
 th{background:#FAF8F3;font-size:13px}
+/* 👁 Vue élève (27/11/2026) : le téléphone de l'élève, tel qu'il le voit avec son lien et son code */
+.vph{max-width:430px;margin:0 auto;border:10px solid #14171C;border-radius:34px;overflow:hidden;background:#fff;height:min(72vh,820px)}.vph iframe{width:100%;height:100%;border:0;display:block}
+.vpop{position:fixed;inset:0;z-index:50;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:16px}.vpop>div{background:#fff;border-radius:18px;width:min(520px,100%);max-height:88vh;overflow:auto;padding:18px}.vpop h2{margin:0 0 10px;font-size:20px}.vpop .l{display:grid;gap:8px}.vpop .l button{justify-content:flex-start;text-align:left}
 </style>
 </head>
 <body>
@@ -99,9 +102,31 @@ th{background:#FAF8F3;font-size:13px}
   function lignes(v) { return String(v || "").split("\n").map(function (x) { return x.trim().slice(0, 80); }).filter(Boolean).slice(0, 8); }
   var UI = { cls: (new URLSearchParams(location.search).get("cls")) || null, el: null }, TY = { quiz: "❓ Quiz", lien: "🔗 Vidéo ou lien", txt: "✏ Autre" };
   function tget(cls) { var t = EPSD.espace.get("t|" + cls); return (t && Array.isArray(t.todo)) ? t : { id: "t|" + cls, k: "todo", cls: cls, todo: [], pub: "" }; }
+  /* 👁 Vue élève : mode très simple (demande de l'enseignant, 27/11/2026), ouvert en premier. Deux choix dans une petite fenêtre (classe, élève),
+     puis la page de l'élève (mon-bilan/#apercu) dans un cadre : ce qu'il verrait avec son lien et son code. Rien n'est publié, rien n'est envoyé. */
+  function apercuData(o, full) { var T = tget(o.nom), QA = quizzes(), qz = {}; T.todo.forEach(function (t) { if (t.ty === "quiz") { var q = QA.filter(function (x) { return x.id === t.qz; })[0]; if (q) qz[q.id] = { nom: q.nom, q: q.q }; } });
+    return { kind: "espace", eleve: full, classe: o.nom, todo: T.todo.map(function (t) { return { id: t.id, ty: t.ty, t: t.ty === "quiz" ? (qz[t.qz] ? qz[t.qz].nom : "Quiz") : t.t, qz: t.qz || "", url: t.url || "" }; }).filter(function (t) { return t.ty !== "quiz" || qz[t.qz]; }), quiz: qz, acts: activites(o.nom, full), mis: mget(o.nom, full).m }; }
+  function vpick(titre, items, cb) { var d = document.createElement("div"); d.className = "vpop"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", titre);
+    d.innerHTML = "<div><h2>" + esc(titre) + '</h2><div class="l">' + items.map(function (x, i) { return '<button type="button" class="btn" data-k="' + i + '">' + esc(x) + "</button>"; }).join("") + '</div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-x>✕ Fermer</button></div></div>';
+    document.body.appendChild(d); d.addEventListener("click", function (e) { var b = e.target.closest("button"); if (e.target === d || (b && b.hasAttribute("data-x"))) { d.remove(); return; } if (b && b.dataset.k != null) { d.remove(); cb(items[+b.dataset.k]); } }); }
+  function vsend() { var f = $("#vfr"), C = classes(), o = C.filter(function (x) { return x.nom === UI.cls; })[0]; if (!f || !o || !UI.vel) return; try { f.contentWindow.postMessage({ epsApercu: apercuData(o, UI.vel) }, location.origin); } catch (e) {} }
+  window.addEventListener("message", function (ev) { if (ev.origin === location.origin && ev.data && ev.data.epsApercu === "pret") vsend(); });
+  function modeTabs() { return '<div class="row" style="margin:0 0 12px"><button type="button" class="btn' + (UI.mode !== "prep" ? " p" : "") + '" data-mode="vue">👁 Vue élève</button><button type="button" class="btn' + (UI.mode === "prep" ? " p" : "") + '" data-mode="prep">⚙ Préparer et publier</button></div>'; }
+  function renderVue(C) {
+    if (!UI.cls || !C.some(function (x) { return x.nom === UI.cls; })) UI.cls = C[0] ? C[0].nom : null;
+    var o = C.filter(function (x) { return x.nom === UI.cls; })[0], EL = o ? eleves(o).slice().sort(function (a, b) { return a.localeCompare(b, "fr"); }) : [];
+    if (!UI.vel || EL.indexOf(UI.vel) < 0) UI.vel = EL[0] || null;
+    $("#pg").innerHTML = modeTabs() + (o && UI.vel ? '<div class="row" style="margin:0 0 12px"><button type="button" class="btn" id="vcls">👥 ' + esc(o.nom) + ' ▾</button><button type="button" class="btn" id="vel">👤 ' + esc(UI.vel) + ' ▾</button></div><div class="vph"><iframe id="vfr" title="Vue élève : la page de l\'élève" src="../mon-bilan/#apercu"></iframe></div>'
+      : '<div class="card"><p class="mut">' + (o ? "Aucun élève dans cette classe." : "Aucune liste de classe sur cet appareil.") + "</p></div>");
+    var a = $("#vcls"); if (a) a.onclick = function () { vpick("Quelle classe ?", C.map(function (x) { return x.nom; }), function (n) { UI.cls = n; UI.vel = null; render(); }); };
+    var b = $("#vel"); if (b) b.onclick = function () { vpick("Quel élève ?", EL, function (n) { UI.vel = n; var x = $("#vel"); if (x) x.textContent = "👤 " + n + " ▾"; vsend(); }); };
+  }
+  document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("[data-mode]"); if (b) { UI.mode = b.dataset.mode; render(); } });
   function render() { var C = classes(), E = window.EPSD && EPSD.espace;
     if (!E) { $("#pg").innerHTML = '<div class="card"><p class="mut">Chargement…</p></div>'; return; }
-    var h = '<div class="card"><h2>L\'espace de tes élèves, sur leur téléphone</h2><p class="mut">Un seul lien pour tous ; chacun entre son code personnel de 6 caractères. Il y trouve ce qu\'il a à faire et ses activités (progression, bilans publiés).</p>' +
+    if (UI.mode !== "prep" && location.hash !== "#missions") { renderVue(C); return; }
+    UI.mode = "prep";
+    var h = modeTabs() + '<div class="card"><h2>L\'espace de tes élèves, sur leur téléphone</h2><p class="mut">Un seul lien pour tous ; chacun entre son code personnel de 6 caractères. Il y trouve ce qu\'il a à faire et ses activités (progression, bilans publiés).</p>' +
       (E.pret() ? '<div class="row"><input class="in" readonly value="' + esc(E.lien()) + '" style="flex:1;min-width:220px" aria-label="Lien de l\'espace élève"><button class="btn" id="cp" type="button">📋 Copier le lien</button></div><div id="qr" style="margin-top:10px"></div>' : '<p class="msg" style="color:var(--no)">Règle d\'abord le partage entre tablettes (accueil → Réglages communs).</p>') + "</div>" +
       '<div class="card"><h2>Classe</h2>' + (C.length ? '<div class="chips">' + C.map(function (o, i) { return '<button type="button" class="chip' + (UI.cls === o.nom ? " on" : "") + '" data-c="' + i + '">' + esc(o.nom) + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucune liste de classe sur cet appareil.</p>') + "</div>";
     var o = C.filter(function (x) { return x.nom === UI.cls; })[0];
@@ -168,7 +193,7 @@ th{background:#FAF8F3;font-size:13px}
   function start(n) { $("#lock").hidden = true; $("#pg").hidden = false; if (!jumped && location.hash === "#missions") setTimeout(function () { var x = document.getElementById("missions"); if (x) { jumped = true; x.scrollIntoView(); } }, 900); if (!window.EPSD || !EPSD.espace) { render(); if ((n || 0) < 60) setTimeout(function () { start((n || 0) + 1); }, 250); return; } render(); try { EPSD.espace.relever().then(function (k) { if (k) render(); }, function () {}); } catch (e) {} }
   function ask(n) { if (teach()) { start(0); return; } if (!window.EPSD || !EPSD.askCode) { if ((n || 0) < 40) setTimeout(function () { ask((n || 0) + 1); }, 250); return; } EPSD.askCode().then(function (ok) { if (ok) start(0); }); }
   $("#unlock").onclick = function () { ask(0); };
-  window.addEventListener("eps-lists", function () { if (!$("#pg").hidden && !document.querySelector("input:focus, select:focus")) render(); });
+  window.addEventListener("eps-lists", function () { if (!$("#pg").hidden && !document.querySelector("input:focus, select:focus") && !(UI.mode !== "prep" && $("#vfr"))) render(); });
   window.epsSyncNow = function () { try { return EPSD.syncOne("eps.espace.v1"); } catch (e) {} };
   if (teach()) start(0); else window.addEventListener("load", function () { setTimeout(function () { ask(0); }, 400); });
 })();

@@ -11,7 +11,7 @@ async def main():
     async with async_playwright() as pw:
         b=await pw.chromium.launch(args=["--no-sandbox"])
         urllib.request.urlopen("http://127.0.0.1:8899/ctl?reset=1&fail=0&old=0&nochk=0").read()
-        cp=await b.new_context(service_workers="block"); await cp.add_init_script("try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));"+SH+"}catch(e){}")
+        cp=await b.new_context(service_workers="block"); await cp.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));"+SH+"}catch(e){}")
         ce=await b.new_context(service_workers="block"); await ce.add_init_script("try{"+SH+"}catch(e){}")
         c3=await b.new_context(service_workers="block"); await c3.add_init_script("try{"+SH+"}catch(e){}")
         e=await ce.new_page(); await e.goto(B+"volley/"); e3=await c3.new_page(); await e3.goto(B+"badminton/")
