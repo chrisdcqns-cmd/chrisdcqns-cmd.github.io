@@ -25,7 +25,7 @@ async def main():
         e = await ce.new_page(); e.on("pageerror", lambda x: errs.append("élève " + str(x)[:200]))
         await p.goto(B + "escalade/"); await e.goto(B + "escalade/"); await e.wait_for_timeout(5000)
         # ---------- 1. élève : le bouton est dans le bandeau, un appui + un motif = appel ----------
-        await e.get_by_text("6 élèves").last.click(); await e.wait_for_timeout(2500)
+        await e.get_by_text("6 élèves").last.click(); await e.wait_for_timeout(800); await e.evaluate("(()=>{const b=document.querySelector('.epsg2 [data-go=g]');if(b)b.click()})()"); await e.wait_for_timeout(1700)  # fenêtre « Groupes / La leçon »
         s = await e.evaluate(BTN); out.append(("1 bouton « ✋ Enseignant » visible dans le bandeau élève", bool(s) and s["vis"] and s["top"] and "Enseignant" in s["t"], s))
         s = await p.evaluate(BTN); out.append(("1b pas de bouton d'appel côté enseignant tant qu'il n'y a pas d'appel", not s or not s["vis"], s))
         await e.click("#eps-callb"); await e.wait_for_timeout(300); n = await e.locator(".epsd-ov [data-mi]").count(); out.append(("1c fenêtre des motifs (5 par défaut)", n == 5, n)); await shot(e, "1-eleve-motifs")
