@@ -105,7 +105,8 @@ async def main():
         ok("niveau d'après la note : " + str(nts) + " → " + str([t[:22] for t in TX]), len(CAP) == 2 and TX[0].startswith("Excellent trimestre, ") and TX[1].startswith("Bon trimestre, ") and "Niveau fixé par la note" in CAP[0]["ctx"] and "Thèmes pour cet élève" in CAP[0]["ctx"] and "résultats :" in CAP[0]["t"], [q["ctx"][:220] for q in CAP] + [q["t"][:220] for q in CAP])
         CA2 = await p.evaluate("(function(){var s=document.querySelector('script[src*=\"eps-home\"]');return null})()") or []
         CA2 = __import__("re").findall(r'"([^"]+)"', __import__("re").search(r"var BUL_CA = \{([\s\S]*?)\};", open(ROOT + "/eps-autonomie-numerique/eps-home.js", encoding="utf-8").read()).group(1))   # thèmes de tous les CA (l'élève de la classe fictive a plusieurs activités)
-        ok("thème d'un champ d'apprentissage de l'élève et conseil final demandés", CAP and all(any(t in q["ctx"] for t in CA2) and "petit conseil" in q["ctx"] for q in CAP[-2:]), [q["ctx"][q["ctx"].find("Thèmes"):q["ctx"].find("Thèmes")+160] + " || " + q["t"][:200] for q in CAP[-2:]])
+        ok("thème d'un champ d'apprentissage de l'élève et conseil final demandés", CAP and all(any(t in q["ctx"] for t in CA2) and "perspective positive" in q["ctx"] for q in CAP[-2:]), [q["ctx"][q["ctx"].find("Thèmes"):q["ctx"].find("Thèmes")+160] + " || " + q["t"][:200] for q in CAP[-2:]])
+        ok("appréciation courte (entre 150 et 200 caractères) et unique (formules déjà écrites à éviter)", all("entre 150 et 200 caractères" in q["ctx"] for q in CAP[-2:]) and "UNIQUE" in CAP[-1]["ctx"], [q["ctx"][-300:] for q in CAP[-2:]])
         ok("génération en parallèle (jusqu'à " + str(ACT[1]) + " demandes à la fois)", ACT[1] >= 3, ACT)
         ok("aucune erreur de page", not errs, errs)
         await b.close()

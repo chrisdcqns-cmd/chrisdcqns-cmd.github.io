@@ -1433,14 +1433,19 @@
     for (var k = 0; out.length < 2 && k < 4 && L.length; k++) { var t = deck("_", L); if (out.indexOf(t) < 0) out.push(t); }
     return out; }
   function noteDans(s) { var m = /note[^0-9\n]{0,25}(\d{1,2}(?:[.,]\d+)?)\s*\/\s*20/i.exec(String(s || "")); return m ? +m[1].replace(",", ".") : null; }
-  function bulConsigne(pr, g, nv, th) {   /* 1200 caractères au plus (limite du script ; l'ancien script coupe à 900 : le plus important en tête) */
-    return "Consigne : appréciation de bulletin générale et positive, 255 caractères maximum, 2 ou 3 phrases courtes, simples et naturelles, sans tournure « IA », qui se termine par un petit conseil ou une perspective formulés positivement (ex. « à poursuivre », « peut maintenant viser… »)." +
+  /* longueur (demande du 27/11/2026 : « concises, courtes, valorisantes pour Pronote ou le livret scolaire, uniques… aux alentours de 150, 200 caractères ») :
+     paramètre commun « bul_longueur » (« 150-200 »), 255 au plus ; « uniques » : formules déjà écrites pour d'autres élèves de la classe à ne pas reprendre (o.eviter). */
+  function bulLong() { var m = /(\d+)\D+(\d+)/.exec(String(pCommun({ id: "bul_longueur", sec: "Appréciations de bulletin", label: "Longueur visée en caractères (ex. 150-200 ; 255 au plus)", type: "text", def: "150-200" }) || "")); var a = m ? +m[1] : 150, b = m ? +m[2] : 200; b = Math.min(255, Math.max(60, b)); a = Math.min(b, Math.max(40, a)); return [a, b]; }
+  function bulConsigne(pr, g, nv, th, ev) {   /* 1200 caractères au plus (limite du script ; l'ancien script coupe à 900 : le plus important en tête) */
+    var LG = bulLong();
+    return "Consigne : appréciation de bulletin concise, générale et valorisante, prête pour Pronote ou le livret scolaire : entre " + LG[0] + " et " + LG[1] + " caractères (jamais plus), 2 phrases courtes et naturelles, sans tournure « IA » ; une courte perspective positive peut finir la 2e phrase." +
       (nv ? " Niveau fixé par la note (" + String(nv.note).replace(".", ",") + "/20" + (nv.moy != null ? ", moyenne de la classe " + String(nv.moy).replace(".", ",") + "/20 : " + nv.pos : "") + ") : " + (nv.libre ? "« " + nv.t + " »" : "commence par « " + nv.t + ", »") + ", ton à ce niveau" + (nv.top ? "" : " ; « remarquable », « excellent » réservés aux meilleures notes") + (nv.moy != null && !/au-dessus/.test(nv.pos) ? " ; pas de « résultats solides » ni « très bons résultats »" : "") + "." : "") +
       (th && th.length ? " Thèmes pour cet élève : " + th.join(", ") + " (si les données le permettent ; varie le vocabulaire, pas de « méthode de travail » sauf si c'est un thème)." : "") +
       " Modèle : « Très bon trimestre, [Prénom] a su s'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l'attitude sont remarquables. »" +
       (pr ? " Écris [Prénom] à la place du prénom (une fois)." : " Ne nomme pas l'élève.") +
       (g === "f" ? " Élève : une fille, accorde au féminin." : g === "g" ? " Élève : un garçon, accorde au masculin." : " Évite les accords liés au genre.") +
-      " Ne cite ni l'activité, ni chiffre, note, critère, nombre de leçons, pourcentage.";
+      " Ne cite ni l'activité, ni chiffre, note, critère, nombre de leçons, pourcentage." +
+      (ev && ev.length ? " Appréciation UNIQUE : ne reprends pas les formules déjà écrites pour d'autres élèves : " + ev.map(function (t) { return "« " + String(t).replace(/\s+/g, " ").slice(0, 110) + " »"; }).join(" ").slice(0, 380) : "");
   }
 
 
@@ -1471,7 +1476,9 @@
     var nv = null;
     if (bul) { pr = o.prenom || (o.eleve ? prenomDe(o.eleve) : ""); texte = (ctx ? "Éléments d'évaluation : " + ctx + "\n" : "") + String(texte || "");
       nv = bulNiveau("note" in o ? o.note : noteDans(texte), o.moyClasse); if (nv && /ann[ée]e/i.test(String(o.periode || ""))) nv.libre = true;
-      ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : ""), nv, bulThemes(o.ca || (o.act ? [o.act] : []))); }
+      ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : ""), nv, bulThemes(o.ca || (o.act ? [o.act] : [])), (o.eviter || []).filter(function (x) { return x && (x.t || typeof x === "string"); }).slice(-3).map(function (x) {
+        /* jamais de prénom envoyé : celui de l'autre élève redevient [Prénom] */
+        var t = String(x.t || x), p0 = x.n ? prenomDe(x.n) : ""; return p0 ? t.split(p0).join("[Prénom]") : t; })); }
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
     return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : (bul || o.mode === "avis") ? 2200 : 1500), act: bul ? "EPS" : (o.act || actName()), ctx: ctx.slice(0, bul ? 1200 : 600), lang: o.lang || "" }, 90000).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script en 90 s (connexion ? Claude surchargé ?) : réessaie.");
@@ -2439,7 +2446,7 @@
       var MC = null; try { var vs = people(c).map(function (x) { var L = notesOf(x, c, PER[0], PER[1]); return L.length ? L.reduce(function (a, z) { return a + z.nt; }, 0) / L.length : null; }).filter(function (v) { return v != null; }); if (vs.length >= 3) MC = vs.reduce(function (a, v) { return a + v; }, 0) / vs.length; } catch (e) {}
       pool(P, function (n) { var dn = notes(c, n);
         var CAS = notesOf(n, c, PER[0], PER[1]).map(function (x) { return x.ca || x.nom; }).concat(evalsOf(n, c).map(function (x) { return x.app; }));
-        return reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], moyClasse: MC, periode: per, ca: CAS, ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
+        return reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], moyClasse: MC, periode: per, ca: CAS, eviter: Object.keys(R).filter(function (x) { return x !== n && R[x] && R[x].t; }).map(function (x) { return { t: R[x].t, n: x }; }).slice(-3), ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
           .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); upd(c, n); }); },
         function (f, N) { msg.textContent = "Claude rédige " + f + " / " + N + "…"; })
         .then(function (errs) { GO = false; bb.disabled = false; save(); draw();

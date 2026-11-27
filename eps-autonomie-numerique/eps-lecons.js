@@ -682,7 +682,7 @@
         if (!(window.EPSD && EPSD.reformuler && EPSD.pool)) { msg.textContent = "⚠ module commun indisponible (recharge la page)"; return; }
         msg.textContent = "Claude rédige (0 / " + K.length + ")…";
         EPSD.pool(K, function (k) { var e = D.EL.filter(function (z) { return z.k === k; })[0]; if (!e) return null;
-          return EPSD.reformuler(factsOf(D, e), { mode: M0, act: NOM, eleve: e.n, periode: PL0, moyClasse: MC, note: ok(e) ? e.pr.note : null }).then(function (t) { t = String(t || "").trim(); put(KAV, { id: ID[k], app: APP, cls: C0, mode: M0, per: PL0, k: k, t: t, ok: false });
+          return EPSD.reformuler(factsOf(D, e), { mode: M0, act: NOM, eleve: e.n, periode: PL0, moyClasse: MC, eviter: D.EL.filter(function (z) { return z.k !== k; }).map(function (z) { var a = get(KAV, ID[z.k] || aid(z.k)); return a && a.t ? { t: a.t, n: z.n } : null; }).filter(Boolean).slice(-3), note: ok(e) ? e.pr.note : null }).then(function (t) { t = String(t || "").trim(); put(KAV, { id: ID[k], app: APP, cls: C0, mode: M0, per: PL0, k: k, t: t, ok: false });
             var bx = ov.querySelector('[data-av="' + k + '"]'); if (bx && bx.getAttribute("data-aid") === ID[k]) { var tx = bx.querySelector("[data-tx]"); if (document.activeElement !== tx) tx.value = t; bx.querySelector("[data-ok]").checked = false; } }); },
           function (f, N) { msg.textContent = "Claude rédige (" + f + " / " + N + ")…"; })
           .then(function (errs) { msg.textContent = (errs.length < K.length ? "✓ Terminé : relis et coche ✓." : "") + (errs.length ? " ⚠ " + errs.length + " non rédigé(s) (" + errs[0] + ") : ✨ sur la ligne pour réessayer." : ""); }); }
