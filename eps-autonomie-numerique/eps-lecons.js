@@ -1626,7 +1626,7 @@
         (T.length ? '<h3>Terminales</h3><div class="lc-row">' + T.map(card).join("") + "</div>" : '<p class="mut">Aucune classe de terminale (nom commençant par T) : choisis une autre classe ci-dessous.</p>') +
         (O.length ? '<h3>Autres classes</h3><div class="lc-row">' + O.map(card).join("") + "</div>" : "");
       el.querySelectorAll("[data-cc]").forEach(function (b) { b.onclick = function () { clOpen({ cls: b.dataset.cc, tab: "proto" }); }; }); },
-    evalActions: function () { return [{ ico: "🧪", label: "Modalités d'évaluation", sub: "Crée tes propres épreuves : critères, types, poids, note automatique", main: 1, ord: -1, go: function () { modOpen({}); } }]; },
+    evalActions: function () { return [{ ico: "🧪", label: "Modalités d'évaluation", sub: "Crée tes propres épreuves : critères, types, poids, note automatique", main: 1, ord: -1, go: function () { modOpen({}); } }, { ico: "👥", label: "Coévaluation", sub: "Ta grille pour qu'un élève observe un camarade : critères, ouverture, résultats", main: 1, ord: -0.5, go: function () { if (window.EPSE && EPSE.coeval) EPSE.coeval.edit({ app: CODE, nom: NOM, color: COL, cls: (cur() && cur().nom) || "" }); else alert("Coévaluation indisponible sur cet écran : recharge la page."); } }]; },
     modalites: function (o) { modOpen(o); },
     /* onglet Bilans des applis : les bilans et avis (séquence, trimestre, bulletin) se font au même endroit, 🏫 Ma classe ; l'onglet de l'appli garde ses chiffres propres */
     bilActions: function () { return [{ ico: "📝", label: "Bilans & avis de la classe", main: 1, ord: -1, go: function () { clOpen({ tab: "bil" }); } }, { ico: "🏁", label: "Bilan de séquence (situations)", main: 1, ord: -0.5, go: function () { open("bil"); } }]; },

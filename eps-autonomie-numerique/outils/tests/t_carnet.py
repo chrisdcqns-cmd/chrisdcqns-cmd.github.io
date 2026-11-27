@@ -1,4 +1,4 @@
-# Carnet de classe, repères rapides (tablette de contrôle), plan de terrain, coévaluation, corbeille. python3 t_carnet.py <racine du dépôt> [dossier des captures]
+# Carnet de classe, repères rapides (tablette de contrôle), plan de terrain, corbeille (coévaluation et schéma partagé : t_coeval.py). python3 t_carnet.py <racine du dépôt> [dossier des captures]
 import asyncio, sys, subprocess, time, json, os
 from playwright.async_api import async_playwright
 ROOT = sys.argv[1]; SHOTS = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -85,26 +85,8 @@ async def main():
         g = await p.evaluate("(()=>{var I=" + IT("eps.live.volley.v1") + ",v=Object.values(I).filter(function(x){return x&&x.grp})[0];return v?[v.grp.g.length,v.grp.nm,v.grp.src]:null})()")
         out.append(("4f envoyé : groupes du jour avec le nom des zones", g is not None and g[0] == 4 and g[1][0] == "Terrain 1" and g[2] == "plan", g))
         await p.locator(".gr-w [data-x]").click(); await p.wait_for_timeout(300)
-        # ---------- 3. coévaluation ----------
-        await p.goto(B + "escalade/"); await p.wait_for_timeout(6000)
-        await p.evaluate("(()=>{var A=EPSE_INST[0].A;A.setSettings({apOuvert:true,apJusqua:'2099-01-01',coOn:true});try{EVESC.open('" + CL + "')}catch(e){};EPSE_INST[0].M.modeEleve('" + CL + "')})()"); await p.wait_for_timeout(600)
-        await p.select_option("[data-who]", index=1); await p.wait_for_timeout(300)
-        out.append(("3 coévaluation autorisée : choix « Je positionne »", await p.locator("[data-cible]").count() == 1, None))
-        await p.select_option("[data-cible]", index=2); await p.wait_for_timeout(300); await shot(p, "6-coevaluation", False)
-        ncr = await p.evaluate("EPSE_INST[0].A.grid().criteres.length")
-        for i in range(ncr):
-            await p.click("[data-suiv]"); await p.wait_for_timeout(150); await p.locator("[data-d='%d']" % (2 if i % 2 else 3)).click(); await p.wait_for_timeout(150)
-        await p.click("[data-suiv]"); await p.wait_for_timeout(200)
-        out.append(("3b dernière étape sans « avec tes mots » pour une observation", await p.locator("textarea[data-t]").count() == 0, None))
-        await p.click("[data-ok]"); await p.wait_for_timeout(400)
-        co = await p.evaluate("Object.values(" + IT("eps.coeval.v1") + ").map(function(o){return [o.app,o.cls,o.n,Object.values(o.by).map(function(b){return [b.n,Object.keys(b.ev).length]})]})")
-        out.append(("3c observation enregistrée : observé, observateur, tous les critères", len(co) == 1 and co[0][0] == "esc" and co[0][1] == CL and co[0][3][0][1] == ncr and co[0][2] != co[0][3][0][0], co))
-        ap = await p.evaluate("(()=>{var A=EPSE_INST[0].A,c=A.classes().filter(function(x){return x.nom==='" + CL + "'})[0];return [!!(A.getAp(c.eleves[0])||{}).t]})()")
-        out.append(("3d merci affiché, l'auto-positionnement de l'observateur n'est pas touché", "observation" in await p.inner_text(".epse-ap"), ap))
-        tk = await p.evaluate("(()=>{var o=Object.values(" + IT("eps.coeval.v1") + ")[0];return EPSREF.nk(o.n)})()")
+        # (coévaluation : voir t_coeval.py)
         await p.goto(B + "referentiel/"); await p.wait_for_timeout(2500)
-        r = await p.evaluate("(k)=>{var P=EPSREF.profil(k,{}),a=P.acts.filter(function(x){return x.sn.app==='esc'})[0];return a?[a.co,a.rows.filter(function(x){return x.c!=null}).length]:null}", tk)
-        out.append(("3e référentiel : 3e regard « camarades » sur l'élève observé", r is not None and r[0] == 1 and r[1] >= 1, [r, tk]))
         await p.click("[data-t=el]"); await p.wait_for_timeout(300); await p.locator("[data-c]", has_text="fictive").first.click(); await p.wait_for_timeout(300)
         kico = await p.evaluate("EPSREF.nk(Object.keys(Object.values(JSON.parse(localStorage.getItem('eps.ico.v1')).items)[0].el)[0])")
         await p.evaluate("(k)=>{document.querySelectorAll('[data-e]').forEach(function(b,i){if(EPSREF.eleves('" + CL + "')[i].k===k)b.click()})}", kico); await p.wait_for_timeout(500)

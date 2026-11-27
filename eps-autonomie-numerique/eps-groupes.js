@@ -235,14 +235,26 @@
      ou une photo du lieu s'il en dépose un ; les élèves se déplacent au doigt (glisser, ou toucher l'élève puis la zone).
      « 📡 Envoyer aux tablettes » = groupes du jour (sendDay, avec le nom des zones : v.grp.nm) : rien d'autre à apprendre aux applis.
      Magasin eps.terrain.v1 (tz|), synchronisé : lay|<dossier> {zones:[{id, nom, x, y}]} (position en % du plan) ; p|<dossier>|<classe> {cls, day, z:{zone:[noms]}}.
-     Le schéma déposé reste sur la tablette (eps.terrain.img.<dossier>, image réduite) : il n'est pas envoyé. */
+     Le schéma déposé est partagé entre les tablettes : image réduite (1100 px, JPEG), découpée en morceaux de 24 000 caractères
+     img|<dossier>|<i> {d} + img|<dossier> {n, v} (n = nombre de morceaux, 0 = retiré ; v = version). Copie locale eps.terrain.img.<dossier>
+     (+ « .v ») pour ne pas la recoller à chaque affichage ; tant que tous les morceaux ne sont pas arrivés, le plan s'affiche sans schéma. */
   var KTZ = "eps.terrain.v1";
   function tzLay(dir) { var o = ld(KTZ).items["lay|" + dir]; if (o && !o.del && Array.isArray(o.zones) && o.zones.length) return o;
     return { id: "lay|" + dir, zones: [0, 1, 2, 3].map(function (i) { return { id: "z" + (i + 1), nom: "Terrain " + (i + 1), x: 3 + (i % 2) * 50, y: 4 + Math.floor(i / 2) * 48 }; }) }; }
   function terrain(o) {
     o = o || {}; css(); var dir = o.dir, cls = o.cls || "", L = tzLay(dir), sel = null, arr = false, msg = "", IMGK = "eps.terrain.img." + dir;
     var ov = document.createElement("div"); ov.className = "gr-w"; ov.style.cssText = "position:fixed;inset:0;z-index:2147483250;background:#F5F3EE;display:flex;flex-direction:column"; document.body.appendChild(ov);
-    function img() { try { return localStorage.getItem(IMGK) || ""; } catch (e) { return ""; } }
+    var DRAG = false, TZC = 24000;
+    function imgMeta() { var m = ld(KTZ).items["img|" + dir]; return m && !m.del && typeof m.n === "number" ? m : null; }
+    /* schéma partagé : la copie locale si elle est à jour, sinon recollé depuis les morceaux reçus ("" tant qu'il en manque) */
+    function img() { var m = imgMeta(); if (!m || !m.n) return ""; try { if (localStorage.getItem(IMGK + ".v") === String(m.v)) { var c = localStorage.getItem(IMGK); if (c) return c; } } catch (e) {}
+      var I = ld(KTZ).items, d = ""; for (var i = 0; i < m.n; i++) { var p = I["img|" + dir + "|" + i]; if (!p || p.del || typeof p.d !== "string") return ""; d += p.d; }
+      if (d.indexOf("data:image/") !== 0) return ""; try { localStorage.setItem(IMGK, d); localStorage.setItem(IMGK + ".v", String(m.v)); } catch (e) {} return d; }
+    function imgAttente() { var m = imgMeta(); return !!(m && m.n && !img()); }
+    function imgSet(d) { var old = imgMeta(), n0 = old ? old.n || 0 : 0, n = d ? Math.ceil(d.length / TZC) : 0, v = Date.now(), i;
+      for (i = 0; i < n; i++) put(KTZ, { id: "img|" + dir + "|" + i, d: d.slice(i * TZC, (i + 1) * TZC) });
+      for (i = n; i < n0; i++) put(KTZ, { id: "img|" + dir + "|" + i, del: 1 });
+      put(KTZ, { id: "img|" + dir, n: n, v: v }); try { if (d) { localStorage.setItem(IMGK, d); localStorage.setItem(IMGK + ".v", String(v)); } else { localStorage.removeItem(IMGK); localStorage.removeItem(IMGK + ".v"); } } catch (e) {} }
     function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
     function plan() { var id = "p|" + dir + "|" + nn(cls), p = ld(KTZ).items[id]; if (p && !p.del && p.day === today() && p.z && typeof p.z === "object") return p; return null; }
     /* répartition de départ : le plan du jour, sinon les groupes du jour de la leçon, sinon tout le monde sur le banc */
@@ -266,9 +278,9 @@
         '<button type="button" class="tz-t" data-x>✕ Fermer</button></div>' +
         '<div style="padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border-bottom:1px solid #E6E1D6">' +
         '<button type="button" class="gr-b' + (arr ? " p" : "") + '" data-arr aria-pressed="' + arr + '">' + (arr ? "✓ Disposition terminée" : "✎ Disposer les zones") + "</button>" +
-        (arr ? '<button type="button" class="gr-b" data-add>＋ Zone</button><label class="gr-b" style="display:inline-flex;align-items:center;cursor:pointer">🖼 Schéma du lieu<input type="file" accept="image/*" data-img style="display:none"></label>' + (bg ? '<button type="button" class="gr-b" data-noimg>Retirer le schéma</button>' : "")
+        (arr ? '<button type="button" class="gr-b" data-add>＋ Zone</button><label class="gr-b" style="display:inline-flex;align-items:center;cursor:pointer">🖼 Schéma du lieu<input type="file" accept="image/*" data-img style="display:none"></label>' + (bg || imgAttente() ? '<button type="button" class="gr-b" data-noimg>Retirer le schéma</button>' : "")
           : '<select data-mode aria-label="Type de groupes" style="min-height:44px;border-radius:12px;border:1.5px solid #E6E1D6;padding:0 8px;font:700 15px system-ui">' + MODES.map(function (m) { return '<option value="' + m[0] + '">' + m[1] + "</option>"; }).join("") + '</select><button type="button" class="gr-b" data-mk>🎲 Répartir</button><button type="button" class="gr-b" data-vide>Tout remettre sur le banc</button><button type="button" class="gr-b p" data-send>📡 Envoyer aux tablettes</button>') +
-        '<span class="gr-mut" data-msg role="status" style="font-weight:800;color:#1E6B3A">' + esc(msg) + "</span></div>" +
+        '<span class="gr-mut" data-msg role="status" style="font-weight:800;color:#1E6B3A">' + esc(msg || (imgAttente() ? "Schéma du lieu en cours de réception…" : "")) + "</span></div>" +
         '<div style="flex:1;overflow:auto;padding:10px 12px"><div data-map style="position:relative;width:100%;min-height:440px;height:62vh;border:2px dashed #C9C3B6;border-radius:16px;background:' + (bg ? "#fff url(" + bg + ") center/contain no-repeat" : "#E9F0E4") + ';touch-action:none">' +
         L.zones.map(function (z, i) { var g = Z[z.id] || []; return '<div class="tz-z' + (arr ? " arr" : "") + '" data-z="' + esc(z.id) + '" style="left:' + z.x + "%;top:" + z.y + '%"><div class="tz-h" data-zh="' + esc(z.id) + '"><b>' + esc(z.nom) + "</b><span>" + g.length + "</span>" + (arr ? '<button type="button" data-ren="' + i + '" aria-label="Renommer ' + esc(z.nom) + '">✎</button><button type="button" data-delz="' + i + '" aria-label="Supprimer ' + esc(z.nom) + '">✕</button>' : "") + '</div><div class="tz-l">' + (g.map(chip).join("") || '<span class="gr-mut">' + (arr ? "glisse le titre pour déplacer" : "vide") + "</span>") + "</div></div>"; }).join("") + "</div>" +
         '<div data-z="" class="tz-banc"><b>Banc · ' + banc.length + " élève" + (banc.length > 1 ? "s" : "") + ' à placer</b><div class="tz-l" style="margin-top:6px">' + (banc.map(chip).join("") || '<span class="gr-mut">Tout le monde est placé.</span>') + '</div></div><p class="gr-mut">Glisse un élève vers une zone, ou touche-le puis touche la zone. 🩹 = dispensé (à placer sur un rôle). Les absents à l\'appel ne sont pas affichés.</p></div>';
@@ -279,9 +291,10 @@
       if (arr) { q("[data-add]").onclick = function () { if (L.zones.length >= 12) { msg = "12 zones au plus."; draw(); return; } addZone(); draw(); };
         qa("[data-ren]").forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); var z = L.zones[+b.dataset.ren], v = prompt("Nom de la zone (terrain, atelier, rôle…)", z.nom); if (v && v.trim()) { z.nom = v.trim().slice(0, 30); saveLay(); draw(); } }; });
         qa("[data-delz]").forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); var i = +b.dataset.delz, z = L.zones[i]; if (L.zones.length < 2) { msg = "Garde au moins une zone."; draw(); return; } if ((Z[z.id] || []).length && !confirm("Supprimer « " + z.nom + " » ? Ses élèves retournent sur le banc.")) return; L.zones.splice(i, 1); delete Z[z.id]; saveLay(); savePlan(); draw(); }; });
-        q("[data-img]").onchange = function () { var f = this.files && this.files[0]; if (!f) return; var r = new FileReader(); r.onload = function () { var im = new Image(); im.onload = function () { var k = Math.min(1, 1400 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
-              try { localStorage.setItem(IMGK, c.toDataURL("image/jpeg", .6)); msg = "✓ Schéma enregistré sur cette tablette"; } catch (e) { msg = "Image trop lourde pour la mémoire de la tablette."; } draw(); }; im.onerror = function () { msg = "Image illisible."; draw(); }; im.src = r.result; }; r.readAsDataURL(f); };
-        var ni = q("[data-noimg]"); if (ni) ni.onclick = function () { try { localStorage.removeItem(IMGK); } catch (e) {} draw(); };
+        q("[data-img]").onchange = function () { var f = this.files && this.files[0]; if (!f) return; var r = new FileReader(); r.onload = function () { var im = new Image(); im.onload = function () { var k = Math.min(1, 1100 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); var cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height); cx.drawImage(im, 0, 0, c.width, c.height);
+              var d = c.toDataURL("image/jpeg", .55); if (d.length > 400000) d = c.toDataURL("image/jpeg", .35);
+              if (d.length > 480000) msg = "Image trop lourde : choisis une photo plus simple ou un schéma."; else { imgSet(d); msg = "✓ Schéma enregistré et partagé avec tes autres tablettes"; } draw(); }; im.onerror = function () { msg = "Image illisible."; draw(); }; im.src = r.result; }; r.readAsDataURL(f); };
+        var ni = q("[data-noimg]"); if (ni) ni.onclick = function () { if (!confirm("Retirer le schéma du lieu sur toutes les tablettes ?")) return; imgSet(""); msg = "Schéma retiré"; draw(); };
       } else {
         q("[data-mk]").onclick = function () { var R2 = pratiquants(cls); if (!R2.length) { msg = "Aucun élève présent à répartir."; draw(); return; } var r = make({ dir: dir, cls: cls, names: R2, n: L.zones.length, mode: q("[data-mode]").value }), G = (r && r.g) || [];
           L.zones.forEach(function (z, i) { Z[z.id] = (G[i] || []).slice(); }); sel = null; msg = "✓ " + R2.length + " élèves répartis sur " + L.zones.length + " zones"; savePlan(); draw(); };
@@ -295,15 +308,15 @@
       /* glisser : un élève vers une zone, ou (mode disposition) une zone sur le plan */
       var map = q("[data-map]");
       qa("[data-n]").forEach(function (b) { b.addEventListener("pointerdown", function (e) { if (arr) return; var x0 = e.clientX, y0 = e.clientY, gh = null, n = b.dataset.n;
-          function mv(ev) { if (!gh && Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 10) return; if (!gh) { b._drag = true; gh = b.cloneNode(true); gh.style.cssText = "position:fixed;z-index:2147483600;pointer-events:none;opacity:.9;box-shadow:0 6px 18px rgba(0,0,0,.3)"; document.body.appendChild(gh); } gh.style.left = (ev.clientX - 40) + "px"; gh.style.top = (ev.clientY - 20) + "px"; ev.preventDefault(); }
-          function up(ev) { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up); if (!gh) return; gh.remove(); var t = document.elementFromPoint(ev.clientX, ev.clientY), zd = t && t.closest ? t.closest("[data-z]") : null; setTimeout(function () { b._drag = false; }, 50); if (zd && ov.contains(zd)) move(n, zd.dataset.z); }
+          function mv(ev) { if (!gh && Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 10) return; if (!gh) { b._drag = true; DRAG = true; gh = b.cloneNode(true); gh.style.cssText = "position:fixed;z-index:2147483600;pointer-events:none;opacity:.9;box-shadow:0 6px 18px rgba(0,0,0,.3)"; document.body.appendChild(gh); } gh.style.left = (ev.clientX - 40) + "px"; gh.style.top = (ev.clientY - 20) + "px"; ev.preventDefault(); }
+          function up(ev) { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up); DRAG = false; if (!gh) return; gh.remove(); var t = document.elementFromPoint(ev.clientX, ev.clientY), zd = t && t.closest ? t.closest("[data-z]") : null; setTimeout(function () { b._drag = false; }, 50); if (zd && ov.contains(zd)) move(n, zd.dataset.z); }
           document.addEventListener("pointermove", mv, { passive: false }); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up); }); });
-      if (arr) qa("[data-zh]").forEach(function (hd) { hd.addEventListener("pointerdown", function (e) { if (e.target.closest("button")) return; var z = L.zones.filter(function (q2) { return q2.id === hd.dataset.zh; })[0], box = hd.parentNode, r = map.getBoundingClientRect(), dx = e.clientX - box.getBoundingClientRect().left, dy = e.clientY - box.getBoundingClientRect().top; if (!z) return; e.preventDefault();
+      if (arr) qa("[data-zh]").forEach(function (hd) { hd.addEventListener("pointerdown", function (e) { if (e.target.closest("button")) return; var z = L.zones.filter(function (q2) { return q2.id === hd.dataset.zh; })[0], box = hd.parentNode, r = map.getBoundingClientRect(), dx = e.clientX - box.getBoundingClientRect().left, dy = e.clientY - box.getBoundingClientRect().top; if (!z) return; e.preventDefault(); DRAG = true;
           function mv(ev) { z.x = Math.max(0, Math.min(80, (ev.clientX - dx - r.left) / r.width * 100)); z.y = Math.max(0, Math.min(82, (ev.clientY - dy - r.top) / r.height * 100)); box.style.left = z.x + "%"; box.style.top = z.y + "%"; ev.preventDefault(); }
-          function up() { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up); saveLay(); }
+          function up() { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up); DRAG = false; saveLay(); }
           document.addEventListener("pointermove", mv, { passive: false }); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up); }); });
     }
-    try { if (window.EPSD && EPSD.store) EPSD.store({ key: KTZ, pre: "tz|", onChange: function () {} }); } catch (e) {}
+    try { if (window.EPSD && EPSD.store) EPSD.store({ key: KTZ, pre: "tz|", onChange: function () { if (!document.body.contains(ov) || DRAG || arr) return; var l2 = tzLay(dir); if (l2 && l2.zones) L = l2; draw(); } }); } catch (e) {}
     draw(); return ov;
   }
   function open(o) {

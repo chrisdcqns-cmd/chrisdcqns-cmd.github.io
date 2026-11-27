@@ -239,6 +239,8 @@
   function coVals(app, cls, key) { var I = sItems("eps.coeval.v1"), T = {}, n = 0; Object.keys(I).forEach(function (id) { var o = I[id]; if (!o || o.del || o.k !== "co" || o.app !== app || ck(o.cls) !== ck(cls) || nk(o.n) !== key || !o.by || typeof o.by !== "object") return;
       Object.keys(o.by).forEach(function (b) { var x = o.by[b]; if (!x || !x.ev || typeof x.ev !== "object") return; n++; Object.keys(x.ev).forEach(function (c) { var z = x.ev[c]; if (!z || !num(z.d)) return; var t = T[c] || (T[c] = { s: 0, n: 0 }); t.s += Math.max(0, Math.min(3, +z.d)) + (num(z.pos) ? Math.max(0, Math.min(1, +z.pos)) : .5); t.n++; }); }); });
     var ev = {}; Object.keys(T).forEach(function (c) { ev[c] = T[c].s / T[c].n; }); return { n: n, ev: ev }; }
+  /* grille de coévaluation créée par l'enseignant pour une activité (eps-eval.js : g|<appli>, src « own ») */
+  function coCrit(app) { var g = sItems("eps.coeval.v1")["g|" + app]; if (!g || g.del || g.k !== "g" || g.src === "eval" || !Array.isArray(g.crit)) return []; return g.crit.filter(function (c) { return c && c.id && String(c.nom || "").trim(); }).map(function (c) { return { id: String(c.id), nom: String(c.nom), afl: "", max: 1 }; }); }
   /* ⚡ repères rapides d'un élève : [{i, d, app}] et décompte par intitulé */
   function reperes(key, an) { var I = sItems("eps.ico.v1"), L = [], C = {}; Object.keys(I).forEach(function (id) { var r = I[id]; if (!r || r.del || !isDay(r.day) || (an && anOf(r.day) !== an)) return; var A = null; Object.keys(obj(r.el)).some(function (k) { if (nk(k) === key) { A = r.el[k]; return true; } return false; }); arr(A).forEach(function (z) { if (z && z.i) { L.push({ i: String(z.i), d: r.day, app: r.app || "" }); C[z.i] = (C[z.i] || 0) + 1; } }); });
     return { list: L.sort(function (a, b) { return a.d.localeCompare(b.d); }), counts: Object.keys(C).map(function (i) { return { i: i, n: C[i] }; }).sort(function (a, b) { return b.n - a.n; }) }; }
@@ -262,6 +264,7 @@
   function gridsPlus() { var N = leNoms(), L = [{ key: "_le|x", app: "_le", gv: "x", plus: "le", nom: "Évaluer la leçon (toutes activités)", ca: "", color: "", crit: [{ id: "p", nom: N[0], afl: "", max: 1 }, { id: "s", nom: N[1], afl: "", max: 1 }, { id: "t", nom: N[2] + " (leçon sans critère coché)", afl: "", max: 1 }] }];
     Object.keys(DIRS).forEach(function (app) { var I = sItems("eps.evmod." + DIRS[app] + ".v1"), g0 = gridOf(app, "gt"); Object.keys(I).forEach(function (id) { var m = I[id]; if (!m || m.del || m.k !== "mod" || !Array.isArray(m.crit) || !m.crit.length) return;
       L.push({ key: app + "|m|" + m.id, app: app, gv: "m", plus: "mod", nom: DNOM[app] + " · 🧪 " + String(m.nom || "Modalité"), ca: (g0 && g0.ca) || "", color: (g0 && g0.color) || "", crit: m.crit.filter(function (c) { return c && c.id != null; }).map(function (c) { return { id: m.id + ":" + c.id, nom: String(c.t || "Critère"), afl: String(c.afl || ""), max: +c.w > 0 ? +c.w : 1 }; }) }); }); });
+    Object.keys(DIRS).forEach(function (app) { var C = coCrit(app), g0 = gridOf(app, "gt"); if (C.length) L.push({ key: app + "|co", app: app, gv: "co", plus: "co", nom: DNOM[app] + " · 👥 Coévaluation", ca: (g0 && g0.ca) || "", color: (g0 && g0.color) || "", crit: C }); });
     return L; }
   function gridsAll() { return grids().map(function (g) { g.key = g.app + "|" + g.gv; return g; }).concat(gridsPlus()); }
   /* élèves et classes qui n'ont encore que des évaluations de leçon (pas d'évaluation de fin de séquence relevée) */
@@ -309,6 +312,8 @@
         var lt = moy(tl.map(function (z) { return z.t; })), le = moy(tl.map(function (z) { return z.e; }));
         push(u, cr, p != null ? p : lt, a != null ? a : le, { fp: p != null, fa: a != null, tl: tl, c: CO.ev[cr.id] != null ? CO.ev[cr.id] : null }); });
       act.co = CO.n;
+      /* 👥 critères de la grille de coévaluation de l'enseignant (regard des camarades seul) */
+      if (CO.n) coCrit(u.app).forEach(function (cr) { if (CO.ev[cr.id] != null) push({ app: u.app, gv: "co", ca: u.ca }, cr, null, null, { kind: "co", c: CO.ev[cr.id] }); });
       /* 📒 colonnes du carnet de classe rattachées à une compétence générale */
       arr(u.cols).forEach(function (c) { var pt = colPart(c, colVals(c.id)[key]); if (pt != null) push({ app: "_cb", gv: "x", ca: "" }, { id: c.id, nom: c.nom, afl: "", max: c.coef }, Math.min(3.99, pt * 4), null, { kind: "col", cg0: arr(c.cg), tl: [{ d: c.d, t: Math.min(3.99, pt * 4), e: null }] }); });
       /* évaluation de leçon : critères communs à toutes les activités */
