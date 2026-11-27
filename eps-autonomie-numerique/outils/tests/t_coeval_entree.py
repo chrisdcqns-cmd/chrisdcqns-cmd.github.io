@@ -1,5 +1,6 @@
 # CO Course : entrée enseignant (code à 4 chiffres, mot de passe du script une fois), console, téléphone d'élève. python3 t_coeval_entree.py <racine du dépôt>
-import asyncio,sys,subprocess,time
+import asyncio,sys,subprocess,time,tempfile,os
+SH=tempfile.mkdtemp(prefix="eps-coe-")
 from playwright.async_api import async_playwright
 ROOT=sys.argv[1]; PORT=8878
 srv=subprocess.Popen([sys.executable,"-I","-m","http.server",str(PORT),"--bind","127.0.0.1","--directory",ROOT],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1.2)
@@ -17,13 +18,13 @@ async def main():
         c=await ctx(b,"localStorage.setItem('eps.console.ask','0');"); p=await c.new_page(); p.on("pageerror",lambda x:errs.append(str(x)[:200]))
         await p.goto(B+"console/#app:co-eval"); await p.wait_for_timeout(6000); f=[x for x in p.frames if x!=p.main_frame and 'co-eval' in x.url][0]
         r=await f.evaluate(ST); ok(r["v"]=="pwd" and r["pwd"] and not r["qui"] and not r["pin"],"console sans mot de passe retenu : écran enseignant (mot de passe du script une fois), pas « Qui es-tu ? » %s"%r)
-        await p.screenshot(path="coe_pwd.png"); await c.close()
+        await p.screenshot(path=os.path.join(SH,"coe_pwd.png")); await c.close()
         # 2 console, mot de passe retenu
         c=await ctx(b,"localStorage.setItem('eps.console.ask','0');localStorage.setItem('coe.tpw',JSON.stringify('x'));"); p=await c.new_page(); p.on("pageerror",lambda x:errs.append(str(x)[:200]))
         await p.goto(B+"console/#app:co-eval"); await p.wait_for_timeout(6000); f=[x for x in p.frames if x!=p.main_frame and 'co-eval' in x.url][0]
         r=await f.evaluate(ST); ok(r["v"]=="prof" and r["a"]==["res"],"console avec mot de passe retenu : 📋 Résultats directement")
         st=await f.evaluate("(()=>{const s=getComputedStyle(document.getElementById('eps-upd'));return s.backgroundColor+'|'+s.borderStyle})()"); ok("239, 239, 239" not in st and "outset" not in st,"bouton 🔄 sans carré blanc (%s)"%st)
-        await p.screenshot(path="coe_res.png"); await c.close()
+        await p.screenshot(path=os.path.join(SH,"coe_res.png")); await c.close()
         # 3 tablette, mode enseignant fermé, mot de passe retenu : écran élève, 🔒 → code 4 chiffres
         c=await ctx(b,"localStorage.setItem('coe.tpw',JSON.stringify('x'));",(1024,768)); p=await c.new_page(); p.on("pageerror",lambda x:errs.append(str(x)[:200]))
         await p.goto(B+"co-eval/"); await p.wait_for_timeout(4000); r=await p.evaluate(ST); ok(r["v"]!="prof","tablette sans mode enseignant : écran élève")

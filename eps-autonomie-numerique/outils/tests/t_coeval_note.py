@@ -1,5 +1,6 @@
 # CO Course : onglet 🔤 Correction (récap par balise, accepter un code), Note (temps corrigé, meilleure répartition, détail AFL)
-import asyncio,sys,subprocess,time,json
+import asyncio,sys,subprocess,time,tempfile,os,json
+SH=tempfile.mkdtemp(prefix="eps-coe-")
 from playwright.async_api import async_playwright
 ROOT=sys.argv[1]; PORT=8879
 srv=subprocess.Popen([sys.executable,"-I","-m","http.server",str(PORT),"--bind","127.0.0.1","--directory",ROOT],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1.2)
@@ -26,7 +27,7 @@ async def main():
         ok("tapé 3 fois" in txt,"récap : code suspect signalé")
         ok("LUX × 1" in txt,"récap : « LUX » sur la 33")
         ok("tout le monde a le bon code" in txt,"récap : balises sans erreur signalées")
-        await p.screenshot(path="corr1.png",full_page=True)
+        await p.screenshot(path=os.path.join(SH,"corr1.png"),full_page=True)
         await p.click("[data-acc='31|KTX']"); await p.wait_for_timeout(800)
         ok(await p.evaluate("JSON.stringify(C.alt[31])")=='["KTX"]',"« Accepter KTX » : ajouté aux codes acceptés")
         txt=await p.evaluate("document.querySelector('#pv').innerText")
@@ -50,7 +51,7 @@ async def main():
         await p.click("button[data-det='%s']"%bil); await p.wait_for_timeout(600)
         d=await p.evaluate("document.querySelector('.modal')?document.querySelector('.modal').innerText:document.body.innerText.slice(-1500)")
         ok("AFL1 · élément 1" in d and "AFL3" in d and "Note selon la répartition" in d and "✨" in d,"détail des AFL : 4 AFL et comparaison des répartitions")
-        await p.screenshot(path="det.png")
+        await p.screenshot(path=os.path.join(SH,"det.png"))
         ok(not errs,"aucune erreur "+str(errs[:3])); await b.close()
     print(len(KO),"problème(s)")
 asyncio.run(main()); srv.terminate()
