@@ -4194,14 +4194,14 @@ function renderLvCtl(force){
   if(!S.on||!le){
     h=`<div class="r">${le?"":`<span class="note" style="flex:1 1 100%;margin:0">Pas encore de leçon aujourd'hui pour ${esc(C.name)}.</span>`}
       <select id="lv-fiche" aria-label="Fiche de leçon"><option value="">— sans fiche de leçon —</option>${S.fiches.map(f=>`<option value="${esc(f.id)}">${esc(f.t)}</option>`).join("")}</select>
-      <button class="go" data-lvc="start">▶ Démarrer la leçon</button><button data-lvc="pan" data-p="msg" class="${LV_PAN==="msg"?"on":""}">📣 Message</button></div>`;
+      <button class="go" data-lvc="start">▶ Démarrer la leçon</button><button data-lvc="pan" data-p="msg" class="${LV_PAN==="msg"?"on":""}">📣 Message</button><button data-lvc="plus" title="Appel, matériel, groupes du jour, rôles, rangement">⋯ Plus</button></div>`;
   }else{
     const pl=(S.parts.find(p=>p[0]===S.part)||[])[1];
     h=`<div class="r"><span class="st">● En cours <small>· ${Math.max(1,Math.round((Date.now()-S.since)/6e4))} min${S.titre?" · "+esc(S.titre):""}</small></span></div>
       <div class="r"><button data-lvc="pan" data-p="part" class="${LV_PAN==="part"?"on":""}">🧭 ${pl?esc(pl.replace(/^\S+\s/,"")):"Étape"}</button>
       <button data-lvc="pan" data-p="tim" class="${LV_PAN==="tim"?"on":""}">⏱ ${S.tim?`<span id="lv-tleft">${lvTim(S.tim)}</span>`:"Minuteur"}</button>
       <button data-lvc="pan" data-p="msg" class="${LV_PAN==="msg"?"on":""}">📣 Message</button>
-      <button data-lvc="course">⏱ Enregistrer une course</button><button class="end" data-lvc="stop">⏹ Terminer</button></div>`;
+      <button data-lvc="course">⏱ Enregistrer une course</button><button data-lvc="plus" title="Appel, matériel, groupes du jour, rôles, rangement">⋯ Plus</button><button class="end" data-lvc="stop">⏹ Terminer</button></div>`;
   }
   if(LV_PAN==="part"&&S.on)h+=`<div class="r">${S.parts.map(p=>`<button data-lvc="part" data-p="${p[0]}" class="${S.part===p[0]?"on":""}">${esc(p[1])}</button>`).join("")}</div>`;
   if(LV_PAN==="tim"&&S.on)h+=`<div class="r">${[1,2,3,5,8,10,15,20].map(n=>`<button data-lvc="tim" data-p="${n}">${n} min</button>`).join("")}${S.tim?`<button data-lvc="timstop">⏹ Arrêter</button>`:""}</div>`;
@@ -4215,6 +4215,7 @@ document.addEventListener("click",ev=>{const b=ev.target.closest("#lv-ctl [data-
     if(DATA.lecon!==l.id){DATA.lecon=l.id;resetST()}ensureLeconGroups(l);persist();K.start(n,f);LV_PAN=null;renderClassAll();renderLive();toast("Leçon démarrée sur les tablettes de "+n);return}
   if(a==="stop"){if(!confirm("Terminer la leçon pour "+n+" ?"))return;K.stop(n);LV_PAN=null;renderLvCtl(true);return}
   if(a==="course"){go("course");return}
+  if(a==="plus"){try{EPSLC.plus(n)}catch(e){console.warn(e)}return}
   if(a==="part"){K.part(n,p);LV_PAN=null}
   if(a==="tim"){K.timer(n,+p,"");LV_PAN=null;toast("Minuteur de "+p+" min lancé sur les tablettes")}
   if(a==="timstop"){K.timerStop(n);LV_PAN=null}
@@ -4224,7 +4225,7 @@ document.addEventListener("keydown",ev=>{if(ev.key==="Enter"&&ev.target.id==="lv
 window.addEventListener("eps-appels",()=>{try{if(viewNow()==="live")$("#lv-calls").innerHTML=EPSD.appels.html("relais")}catch(e){}});
 setInterval(()=>{try{if(viewNow()!=="live")return;const t=$("#lv-tleft"),K=lvCtl(),S=K&&CL()?K.state(CL().name):null;if(t&&S&&S.tim)t.textContent=lvTim(S.tim);else if(t||(S&&S.tim))renderLvCtl()}catch(e){}},1000);
 /* un seul écran de suivi par activité (charte) : onglet 📡 Suivi, pastille ✋ et EPSLC.controle() ouvrent cet écran ; plus de « Pilotage de leçon » en Relais */
-window.epsCtlOwn={on:()=>{try{return viewNow()==="live"}catch(e){return false}},open:cls=>{const c=cls&&DATA.classes.find(x=>nrm(x.name)===nrm(cls));if(c&&c.id!==DATA.cur){DATA.cur=c.id;DATA.lecon=null;persist()}go("live")}};
+window.epsCtlOwn={ctl:1,on:()=>{try{return viewNow()==="live"}catch(e){return false}},open:cls=>{const c=cls&&DATA.classes.find(x=>nrm(x.name)===nrm(cls));if(c&&c.id!==DATA.cur){DATA.cur=c.id;DATA.lecon=null;persist()}go("live")}};
 function renderLive(){
   if(!CL())return;try{renderLvCtl()}catch(e){console.warn(e)}
   {const off=!CLE();["#lv-sum","#lv-alert","#lv-aiout","#lv-rem","#lv-groups","#lv-ai","#lv-lecon"].forEach(s=>{const x=$(s);if(x)x.style.display=off?"none":""});const lg=document.querySelector("#v-live .lvleg");if(lg)lg.style.display=off?"none":"";if(off)return}
@@ -4549,7 +4550,7 @@ function goJour(v){const C=CL();if(C&&!CLE()){const l=(C.lecons||[]).find(x=>x.d
 window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
  /* Onglets (demande de l'enseignant, 27/11/2026) : 📅 Séquence = fiches de leçon communes (plus une classe) ; 👥 Classe = vue générale de toutes
     les classes, puis la préparation de la classe choisie (leçons, vitesses, groupes), jamais directement le tableau des vitesses. */
- tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course'].includes(viewNow()),actions:[{main:1,ico:'▶',label:'Leçon du jour',go:()=>goJour('home')},{ico:'⏱',label:'Courses',go:()=>goJour('course')}]},
+ tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course'].includes(viewNow()),actions:[{main:1,ico:'📱',label:'Écran des élèves',sub:'La leçon du jour telle que la tablette de la classe l\'affiche',go:()=>goJour('home')},{ico:'⏱',label:'Courses',go:()=>goJour('course')}]},
   eval:{go:()=>{RL_BIL=0;go('eval')},on:()=>['eval','auto'].includes(viewNow())||(viewNow()==='eleve'&&FE_BACK==='eval'),actions:[{ico:'📋',label:'Évaluer',go:()=>{RL_BIL=0;go('eval')}},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}],
   /* 📤 Bilan et export (onglet Évaluer) : le bilan de l'évaluation (chiffres, PDF, .zip, Pronote) ; le bilan des leçons (courses) en action à côté */
   bilan:{go:()=>{RL_BIL=1;if(!CL()&&DATA.classes.length===1){DATA.cur=DATA.classes[0].id;persist()}go('eval')},on:()=>(viewNow()==='bilan'&&!!RL_LB)||(viewNow()==='eval'&&RL_BIL),actions:[{ico:'🏃',label:'Bilan des leçons (courses)',main:1,go:()=>{RL_BIL=0;RL_LB=1;goBilans()}}]}},

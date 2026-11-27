@@ -40,6 +40,15 @@ async def main():
     await p.click("#lv-ctl [data-lvc=send]"); await p.wait_for_timeout(600)
     chk(await p.evaluate("JSON.stringify(EPSLC._test.all(EPSLC._test.KV)).includes('Regroupement')"),"message envoyé aux tablettes")
     if SHOT: await p.screenshot(path=SHOT+"suivi.png")
+    # ⋯ Plus : ce que « Leçon en cours » a en plus, sans les commandes en double ; plus de « Leçon en cours » dans Séquence
+    await p.click("#lv-ctl [data-lvc=plus]"); await p.wait_for_timeout(1500)
+    r=await p.evaluate("(()=>{const o=document.querySelector('.lc-ov'),v=e=>!!e&&e.offsetParent!==null,t=o?o.innerText:'';return {open:!!o&&getComputedStyle(o).display!=='none',rang:/Rangement/.test(t),grp:/Groupes du jour/.test(t),msg:v(o.querySelector('[data-mt]')),tim:v(o.querySelector('[data-tl]')),stop:v(o.querySelector('[data-stop]')),part:v(o.querySelector('[data-part]')),back:v(o.querySelector('[data-minback]'))}})()")
+    chk(r["open"] and r["rang"] and r["grp"] and r["back"] and not (r["msg"] or r["tim"] or r["stop"] or r["part"]),"⋯ Plus : appel, matériel, groupes, rôles, rangement, sans message / minuteur / étape / terminer "+str(r))
+    if SHOT: await p.screenshot(path=SHOT+"plus.png")
+    await p.evaluate("document.querySelector('.lc-ov [data-minback]').click()"); await p.wait_for_timeout(1200)
+    chk(await p.evaluate(V)=="live" and await p.evaluate(cur)=="suivi" and not await p.evaluate("(()=>{const o=document.querySelector('.lc-ov');return !!o&&getComputedStyle(o).display!=='none'})()"),"← Suivi : retour au suivi")
+    la=await p.evaluate("EPSLC.actions().map(a=>a.label).join('|')"); chk("Leçon en cours" not in la and "Fiches de leçon" in la,"Séquence : plus de « Leçon en cours » en double")
+    await p.evaluate("EPSLC.open('live',CL().name)"); await p.wait_for_timeout(900); chk(await p.evaluate("document.querySelector('.lc-ov [data-mt]').offsetParent!==null"),"l'écran commun complet reste intact quand on l'ouvre autrement"); await p.evaluate("EPSLC.close()")
     # appel d'un élève en tête
     chk(await p.evaluate("typeof EPSD.appels.html('relais')==='string'&&!!document.querySelector('#lv-calls')"),"emplacement des appels en tête de l'écran")
     await p.click(".epst-nav [data-t=seq]"); await p.wait_for_timeout(1500); chk(await p.evaluate(cur)=="seq","retour à Séquence")
