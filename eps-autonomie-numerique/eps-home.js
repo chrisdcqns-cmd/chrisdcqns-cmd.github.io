@@ -2652,6 +2652,8 @@
   try { var bst = document.createElement("style"); bst.textContent = "html{overflow-x:clip}" +
     "[data-eps-bar] #eps-sync,[data-eps-bar] #eps-sigb,[data-eps-bar] #eps-ovw,[data-eps-bar] #eps-find,html.eps-teach [data-eps-bar] .eps-fortb{display:none!important}" +
     "[data-eps-bar]{flex:0 1 auto;min-width:0;flex-wrap:wrap;justify-content:flex-end}" +
+    /* téléphone : l'en-tête de « Choisis ta classe » tenait sur plus large que l'écran, « ⌂ Accueil » était coupé : icône seule, marges réduites */
+    "@media (max-width:480px){.epsg-home{font-size:0!important;gap:0!important;padding:0 11px!important}.epsg-hd{gap:10px!important;padding-left:14px!important;padding-right:14px!important}.epsg-hd h1{font-size:21px!important}.epsg-hd .eps-fortb{margin-right:0!important}}" +
     "[data-eps-upd-slot] #eps-upd{height:40px;min-width:40px;padding:0 9px;border-radius:10px;border:1.5px solid #3A3F47;background:transparent;color:#D5D8DE;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none}" +
     ".epsm-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:560px){.epsm-g{grid-template-columns:1fr}}" +
     ".epsm-g button{display:flex;align-items:center;gap:12px;min-height:60px;text-align:left;border:1.5px solid #E6E1D6;background:#fff;border-radius:14px;padding:8px 14px;font:800 16px system-ui,sans-serif;color:#14171C;cursor:pointer}" +
