@@ -1258,7 +1258,7 @@
     gateCss(); gateClose();
     var col = G.color || "#1B1E24", L = [];
     try { L = (G.classes && G.classes()) || []; } catch (e) {}
-    if (!window.EPS_VUE_ELEVE && !demoOn()) L = L.filter(function (c) { return cmp(c.nom) !== cmp(DEMO_NOM); }); /* la classe fictive n'est pas proposée aux élèves sur une tablette où elle n'a pas été installée */
+    if (!window.EPS_VUE_ELEVE && !window.EPS_SIM) L = L.filter(function (c) { return cmp(c.nom) !== cmp(DEMO_NOM); }); /* les élèves ne voient jamais la classe fictive (demande de l'enseignant, 27/11/2026) : elle n'est proposée que dans la 👁 Vue élève et en 🧪 simulation */
     var cur = ""; try { cur = G.current ? G.current() : ""; } catch (e) {}
     var R = (G.resources || []).concat((window.EPSG_COMMON || []).filter(function (r) { try { return !r.when || r.when(); } catch (e) { return false; } }));
     var d = document.createElement("div"); d.className = "epsg";

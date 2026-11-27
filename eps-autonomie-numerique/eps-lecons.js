@@ -1649,7 +1649,7 @@
   function seen(id) { return !!SEEN[id]; }
   function markSeen(id) { SEEN[id] = Date.now(); Object.keys(SEEN).forEach(function (k) { if (SEEN[k] < Date.now() - 2 * 864e5) delete SEEN[k]; }); jset("eps.lcseen", SEEN); }
   function showMsg(t) { css(); var o = document.createElement("div"); o.className = "lc-msg"; o.innerHTML = "<p>" + esc(t) + '</p><button type="button">OK</button>'; o.querySelector("button").onclick = function () { o.remove(); }; document.body.appendChild(o); bip(3); setTimeout(function () { if (o.parentNode) o.remove(); }, 45000); }
-  function mine(list) { var c = cur(); if (c) return list.filter(function (x) { return same(x.cls || x.c, c.nom); }); return list.length === 1 ? list : []; }
+  function mine(list) { if (!VUE && !window.EPS_SIM) list = list.filter(function (x) { return !same(x.cls || x.c, "DÉMO (fictive)"); }); /* la leçon de la classe fictive ne s'ouvre jamais sur une tablette d'élèves */ var c = cur(); if (c) return list.filter(function (x) { return same(x.cls || x.c, c.nom); }); return list.length === 1 ? list : []; }
   function tickStudent() {
     var t = isT(); if (t) { if (CHIP) CHIP.style.display = "none"; if (TIM) TIM.style.display = "none"; var so = document.getElementById("lc-st"); if (so && !so.dataset.prev) so.style.display = "none"; return; }
     css(); var now = Date.now();

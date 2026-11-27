@@ -105,6 +105,10 @@ return epsPin; })();
     return { prenom: w[0], nom: w.slice(1).join(" ") };
   }
   function full(e) { return ((e.prenom || "") + " " + (e.nom || "")).replace(/\s+/g, " ").trim(); }
+  /* les élèves ne voient jamais la classe fictive (demande de l'enseignant, 27/11/2026) : EPSL.items() la retire hors du mode enseignant,
+     sauf dans la 👁 Vue élève et en 🧪 simulation. (La reprise des listes dans les applis, apply(), n'est pas concernée.) */
+  function eleveSeul() { if (window.EPS_VUE_ELEVE || window.EPS_SIM) return false; try { if (typeof window.epsIsTeacher === "function" && window.epsIsTeacher()) return false; } catch (e) {}
+    try { if (document.documentElement.classList.contains("eps-teach")) return false; return !(+localStorage.getItem("eps.teach.until") > Date.now()); } catch (e) { return true; } }
   function items(v) { return Object.keys(v.items).map(function (k) { return v.items[k]; }).filter(function (o) { return o && !o.del && o.nom; }); }
   function people(o) { var st = o.st || {}; return (o.el || []).map(function (f) { var s = st[nkey(f)], p = s ? { prenom: s[0], nom: s[1] } : split(f); p.full = f; p.k = nkey(f); return p; }); }
   function same(o, n) { return norm(n) === norm(o.nom) || (o.old && norm(n) === norm(o.old)); }
@@ -225,7 +229,7 @@ return epsPin; })();
 
   var APP = (function () { var p = location.pathname; return /\/escalade\//.test(p) ? "esc" : /\/relais\//.test(p) ? "rel" : /\/volley\//.test(p) ? "vol" : /\/badminton\//.test(p) ? "bad" : /\/danse\//.test(p) ? "dan" : ""; })();
   try { if (APP) apply(APP); } catch (e) {}
-  window.EPSL = { apply: apply, collect: collect, app: APP, items: function () { return items(ld()); }, people: people, norm: norm, nkey: nkey, KEY: KL };
+  window.EPSL = { apply: apply, collect: collect, app: APP, items: function () { var L = items(ld()); return eleveSeul() ? L.filter(function (o) { return !o.demo && norm(o.nom) !== "demo fictive"; }) : L; }, people: people, norm: norm, nkey: nkey, KEY: KL };
   /* 🎓 voie de la classe : « gt » (générale et technologique) ou « pro » (professionnelle).
      Règle de l'enseignant : TGT, 2GT et 1GT = générale, toutes les autres classes = pro. Une classe peut être corrigée à la main
      (⚙ Réglages → Listes de classes : champ « voie » de la liste commune, qui l'emporte). Sert aux textes officiels (AFL / AFLP),

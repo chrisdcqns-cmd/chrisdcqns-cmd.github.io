@@ -567,7 +567,7 @@ const store={
   get(k,def){try{const v=localStorage.getItem(k);if(!v)return def;const p=JSON.parse(v);/* valeur abîmée (null, ou liste à la place d'un objet) → valeur par défaut */if(p==null||(def!=null&&typeof def==="object"&&(typeof p!=="object"||Array.isArray(def)!==Array.isArray(p))))return def;return p}catch(e){return def}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
 };
-const K_GROUPS="acro.groups.v1", K_PROF="acro.prof.v1";
+const K_GROUPS="acro.groups.v1", K_PROF="acro.prof.v1", GDEMO="gdemo"; /* GDEMO : groupe fictif de la classe fictive (👁 vue élève) */
 let prof=Object.assign({n:3,pin:"eps",criteria:[]},store.get(K_PROF,{}));
 delete prof.classes;
 let groups=store.get(K_GROUPS,{});
@@ -839,7 +839,8 @@ function classes(){
   const base=(aG||!autres)?["1GT"]:[];
   const out=[...base]; (serverClasses||[]).forEach(c=>{if(c&&c.nom&&!out.some(x=>norm(x)===norm(c.nom))) out.push(c.nom)});
   commonLists().forEach(o=>{if(!out.some(x=>norm(x)===norm(o.nom))) out.push(o.nom)}); /* classes importées ailleurs (listes communes) */
-  return out.filter(c=>!notAcro(c));
+  const eleve=!(teacherPw||hubT())&&!window.EPS_VUE_ELEVE&&!window.EPS_SIM; /* les élèves ne voient jamais la classe fictive */
+  return out.filter(c=>!notAcro(c)&&!(eleve&&norm(c)===norm("DÉMO (fictive)")));
 }
 function findLocal(c,nom){return Object.values(groups).find(g=>norm(g.classe)===norm(c)&&norm(g.name)===norm(nom))}
 function renderClassPick(){
@@ -865,7 +866,7 @@ async function selectClass(c){
 }
 async function groupsOfClass(c){
   const locals=Object.values(groups).filter(g=>norm(g.classe)===norm(c)).map(g=>({nom:g.name||g.members.join(" · "),membres:g.members.join(", "),maj:g.updated||g.created,seances:oneADay(g.sessions).length,local:g.id,pending:!!(g.online&&g.online.pendingCreate)}));
-  if(!apiUrl()) return {list:locals,offline:false};
+  if(!apiUrl()||locals.some(l=>l.local===GDEMO)) return {list:locals,offline:false}; /* classe fictive : son groupe fictif n'existe que sur la tablette */
   let list, offline=false;
   try{
     list=(await apiC("listGroups",{},c)).groups;
@@ -874,7 +875,7 @@ async function groupsOfClass(c){
     if(!e.network) throw e;
     list=store.get(K_CACHE,{})[norm(c)]||[]; offline=true;
   }
-  for(const l of locals) if(l.pending&&!list.some(x=>norm(x.nom)===norm(l.nom))) list.push(l);
+  for(const l of locals) if((l.pending||l.local===GDEMO)&&!list.some(x=>norm(x.nom)===norm(l.nom))) list.push(l);
   return {list,offline};
 }
 let homeStudents=[];
@@ -973,7 +974,7 @@ async function enterGroup(g,pw){
 document.getElementById("enterBtn").onclick=async e=>{
   const it=homeList[document.getElementById("gSel").value];
   if(!it){toast("Choisis ton groupe");return}
-  if(!apiUrl()){const g=groups[it.local];if(g){G=g;openApp()}else toast("Groupe introuvable sur cette tablette");return}
+  if(!apiUrl()||it.local===GDEMO){const g=groups[it.local];if(g){G=g;openApp()}else toast("Groupe introuvable sur cette tablette");return} /* groupe fictif : sans mot de passe */
   const pw=document.getElementById("gPwIn").value;
   if(!pw){toast("Entre le mot de passe du groupe");document.getElementById("gPwIn").focus();return}
   const btn=e.currentTarget;btn.disabled=true;btn.textContent="Connexion…";
@@ -2864,7 +2865,10 @@ window.EPSTA=window.EPST?EPST.init({app:'acro',nom:'Acrosport',color:'#1F4FA3',i
  isTeacher:()=>!!teacherPw||hubT(),when:()=>!teacherPw&&!hubT()&&!homeClass,
  classes:()=>classes().map(c=>({id:c,nom:c,note:""})),
  current:()=>homeClass||"",
- select:c=>selectClass(c),
+ /* 👁 vue élève : la classe fictive a un groupe fictif, gardé sur la tablette seulement (pas de champ « online » : jamais envoyé), ouvert sans mot de passe */
+ demo:n=>{if(groups[GDEMO])return;const M=commonStudents(n).slice(0,4).map(p=>(p.prenom+" "+p.nom).trim()).filter(Boolean);if(M.length<2)return;
+  groups[GDEMO]={id:GDEMO,demo:1,classe:n,name:"Groupe fictif",members:M,created:new Date().toISOString(),current:{slots:[],mats:[]},sessions:[]};saveGroups()},
+ select:c=>{const g=groups[GDEMO],v=window.EPS_VUE_ELEVE&&g&&norm(g.classe)===norm(c);selectClass(c);if(v){G=g;openApp()}},
  resources:[{ico:"🔥",label:"Échauffement",sub:"à deux, 3 niveaux",open:()=>EPSG.sheet({titre:"Échauffement",html:["Léger","Modéré","Difficile"].map(l=>{const W=BONUS.warm.filter(w=>w.lvl===l);return W.length?"<h3>"+l+"</h3>"+W.map(w=>'<div class="epsgs-card"><b class="t">'+esc(w.title)+'</b><img src="'+w.img+'" alt="" style="max-width:260px">'+((w.d||[]).length?"<ul>"+w.d.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>":"")+((w.var||[]).length?'<p class="m">Variantes : '+w.var.map(esc).join(" · ")+"</p>":"")+"</div>").join(""):""}).join("")})},
   {ico:"✋",label:"Prises de mains",sub:"la légende des figures",open:()=>EPSG.sheet({titre:"Prises de mains",html:'<div class="epsgs-grid">'+BONUS.prises.map(p=>'<figure><img src="'+p.img+'" alt="">'+esc(p.label)+"</figure>").join("")+"</div>"})}],
  teacher:()=>openProf()});
