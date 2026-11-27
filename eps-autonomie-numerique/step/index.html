@@ -511,7 +511,7 @@ function vueSuivi(){ const sel=choixClasse(); if(!S.clsP){ $("#vue").innerHTML=`
 /* relevé toutes les 8 s tant que l'écran est affiché (jamais pendant une saisie ni avec une fenêtre ouverte) */
 setInterval(()=>{ try{ if(!S.prof||S.onglet!=="suivi"||$("#calque").innerHTML||document.documentElement.classList.contains("epst-pan")||document.hidden) return; const a=document.activeElement; if(a&&/^(SELECT|INPUT|TEXTAREA)$/.test(a.tagName)) return; try{ window.epsSyncNow(); }catch(e){} const y=window.scrollY; vueSuivi(); window.scrollTo(0,y); }catch(e){} },8000);
 /* un seul écran de suivi par activité : en step c'est « Groupes en direct » (le pilotage commun n'est pas proposé, les ✋ appels s'affichent ici) */
-window.epsCtlOwn={open:cls=>{ const c=classes().find(x=>norm(x.nom)===norm(cls)); if(c) S.clsP=c.nom; aller("suivi"); }};
+window.epsCtlOwn={on:()=>!!S.prof&&S.onglet==="suivi",open:cls=>{ const c=classes().find(x=>norm(x.nom)===norm(cls)); if(c) S.clsP=c.nom; aller("suivi"); }};
 
 /* ======================= ÉDITEUR DE PAS (enseignant) ======================= */
 function edOuvrir(id){ const p=id?pasId(id):null; S.ed={p:p?JSON.parse(JSON.stringify(p)):{id:"p"+uid(),nom:"",n:DUREES.includes(8)?8:DUREES[0],d:"",c:[],o:500,ex:0},k:1,cote:"R",neuf:!p}; edCaler(); edRendre(); }
@@ -660,8 +660,8 @@ window.EVST = window.EPSE ? EPSE.store({ app:"step", nom:"Step", ca:"CA5", color
    desc:["Suit le groupe sans proposer. Observation non faite ou au hasard.","Propose parfois. Observation faite, conseil vague.","Propose et aide à mémoriser. Observation fiable, conseil lié à un critère.","Fait progresser son groupe et le groupe observé : conseils précis et suivis d'effet."]}]}}) : null;
 /* espace enseignant commun (eps-shell.js) */
 window.EPSTST = window.EPST ? EPST.init({app:"step", nom:"Step", color:COL, isTeacher:()=>estProf(), anchor:"header", main:"#vue,nav.onglets", home:"seq",
-  tabs:{ seq:{go:()=>aller("jour"), on:()=>["jour","suivi"].includes(S.onglet),
-           actions:[{main:1,ico:"📌",label:"Leçon du jour",go:()=>aller("jour")},{main:1,ico:"🖥",label:"Groupes en direct",go:()=>aller("suivi")},{ico:"👣",label:"Créer un pas",go:()=>{ aller("pas"); edOuvrir(null); }}]},
+  tabs:{ seq:{go:()=>aller("jour"), on:()=>S.onglet==="jour",
+           actions:[{main:1,ico:"📌",label:"Leçon du jour",go:()=>aller("jour")},{ico:"👣",label:"Créer un pas",go:()=>{ aller("pas"); edOuvrir(null); }}]},
          eval:{panel:el=>{ if(window.EVST) EVST.mount(el,["eval","grille"],S.clsP||(classes()[0]||{}).nom); else el.innerHTML="<p>Évaluation indisponible.</p>"; }},
          cls:{panel:el=>panneauClasses(el)},
          bil:{panel:el=>panneauBilans(el)} },

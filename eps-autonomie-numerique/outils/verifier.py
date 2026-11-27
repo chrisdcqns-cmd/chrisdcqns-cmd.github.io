@@ -68,6 +68,7 @@ for p in list(B.glob("*/index.html")) + [B / "index.html"]:
     if not (p.parent / "src").is_dir() and "eps-source-directe" not in p.read_text(encoding="utf-8", errors="replace")[:600]:
         pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
 REPERES = {
+    "eps-shell.js": ["function suiviOn(", "[\"suivi\", \"📡\", \"Suivi\"]", "doit être un nombre", ">✕ Fermer</button></div><iframe"],
     "eps-home.js": ["function callHost(", "EPSD.appels = {", "appel_motifs", "function callHtml(", "function courtsHtml(", "function callT(", "function trKeep(", "function trRestore(", "bilans(want, true)", "html.eps-tous:not(.eps-teach) #eps-upd{display:none!important}", "data-eps-a11y-h", "function fortApply(", "var LEX = {", "eps.gate.last.", "async function espPublier(", "async function espRelever(", "EPSD.plan = {", "function planCheck(", "function gateSheet(", "sheet: gateSheet", "async function confirmes(", "ESSAIS_MAX"],
     "eps-lecons.js": ["window.epsCtlAlerts", "function ctlDet(", "ctl_inactif_min", "Pilotage de leçon", "function icoPop(", "function gNom(", "EPSD.trash.keep(", "if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
     "escalade/index.html": ["window.epsCtlOwn=", "window.epsTabInfo=", ".ccard.blink", "EPSD.appels.html('escalade')"],
@@ -83,7 +84,6 @@ REPERES = {
     "mon-bilan/index.html": ["ton enseignant", "kind === \"espace\"", "dropchk", "function mission(", "un seul envoi à la fois", "essais automatiques seulement", "../step/export.js"],
     "espace/index.html": ["E.publier(", "E.relever()", "noindex", "function mget(", "E.dispenses(", "get(DIRS.step).step"],
     "eps-lists.js": ["typeof def === \"number\" && (typeof o.v !== \"number\"", "eps-console-css"],
-    "eps-shell.js": ["doit être un nombre", ">✕ Fermer</button></div><iframe"],
     "eps-tactique.js": ["function editor(", "function depart("],
     "eps-ref.js": ["function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw", "function coVals(", "function colPut(", "EPSD.trash.keep("],
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter", "function vCdc(", "function saisie(", "function nbr("],

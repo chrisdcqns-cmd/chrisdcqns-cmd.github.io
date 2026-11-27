@@ -172,7 +172,7 @@ function openAppel() {
 // dispenses communes (page d'accueil EPS, eps-home.js)
 window.epsIsTeacher = () => !!sessionStorage.getItem("tpw");
 /* un seul écran de suivi en course d'orientation : le suivi en direct de la leçon (le pilotage commun n'est pas proposé) */
-window.epsCtlOwn = { open: () => { try { setPTab("seance"); scrollTo(0, 0); } catch (e) {} } };
+window.epsCtlOwn = { on: () => { try { return typeof ptab !== "undefined" && ptab === "seance" && !$("#prof").classList.contains("hidden"); } catch (e) { return false; } }, open: () => { try { setPTab("seance"); scrollTo(0, 0); } catch (e) {} } };
 function dzO(c, n) { try { return window.EPSD ? EPSD.find(c || "", n) : null; } catch (e) { return null; } }
 async function getClasses() { return (await DB.get("classes")) || {}; }
 async function classesPanel(box) {

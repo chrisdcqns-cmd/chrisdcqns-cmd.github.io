@@ -1948,7 +1948,7 @@ function openAppel() {
 // dispenses communes (page d'accueil EPS, eps-home.js)
 window.epsIsTeacher = () => !!sessionStorage.getItem("tpw");
 /* un seul écran de suivi en course d'orientation : le suivi en direct de la leçon (le pilotage commun n'est pas proposé) */
-window.epsCtlOwn = { open: () => { try { setPTab("seance"); scrollTo(0, 0); } catch (e) {} } };
+window.epsCtlOwn = { on: () => { try { return typeof ptab !== "undefined" && ptab === "seance" && !$("#prof").classList.contains("hidden"); } catch (e) { return false; } }, open: () => { try { setPTab("seance"); scrollTo(0, 0); } catch (e) {} } };
 function dzO(c, n) { try { return window.EPSD ? EPSD.find(c || "", n) : null; } catch (e) { return null; } }
 async function getClasses() { return (await DB.get("classes")) || {}; }
 async function classesPanel(box) {
@@ -3238,8 +3238,8 @@ window.EVORI=window.EPSE?EPSE.store({app:'ori',nom:'Course d\'orientation',ca:'C
 (function(){var st=document.createElement('style');st.textContent='html.epst-on #ptabs,html.epst-on #prof .epse-open{display:none!important}';document.head.appendChild(st)})();
 window.EPSTORI=window.EPST?EPST.init({app:'ori',nom:'OrienRun',color:'#E8701A',isTeacher:function(){var p=document.getElementById('prof');return !!p&&!p.classList.contains('hidden')},anchor:'#prof header',main:'#pview',home:'seq',
  tabs:{
-  seq:{go:function(){setPTab(['carte','balises','parcours','seance'].indexOf(ptab)>=0?ptab:'seance')},on:function(){return ['carte','balises','parcours','seance'].indexOf(ptab)>=0},
-   actions:[{main:1,ord:0.1,ico:'🚀',label:'Créer une séquence',go:function(){if(window.EPSLC)EPSLC.open('lec');else alert('Fiches de leçon encore en chargement : réessaie dans un instant.')}},{main:1,ico:'🛰',label:'Leçon live (GPS)',go:function(){setPTab('seance')}},{ico:'🗺',label:'Carte',go:function(){setPTab('carte')}},{ico:'🚩',label:'Balises',go:function(){setPTab('balises')}},{ico:'〰',label:'Parcours',go:function(){setPTab('parcours')}},{ico:'🆕',label:'Nouvelle carte',sub:'Même fond de carte, sans balise',go:function(){newMapDialog()}}]},
+  seq:{go:function(){setPTab(['carte','balises','parcours'].indexOf(ptab)>=0?ptab:'carte')},on:function(){return ['carte','balises','parcours'].indexOf(ptab)>=0},
+   actions:[{main:1,ord:0.1,ico:'🚀',label:'Créer une séquence',go:function(){if(window.EPSLC)EPSLC.open('lec');else alert('Fiches de leçon encore en chargement : réessaie dans un instant.')}},{ico:'🗺',label:'Carte',go:function(){setPTab('carte')}},{ico:'🚩',label:'Balises',go:function(){setPTab('balises')}},{ico:'〰',label:'Parcours',go:function(){setPTab('parcours')}},{ico:'🆕',label:'Nouvelle carte',sub:'Même fond de carte, sans balise',go:function(){newMapDialog()}}]},
   eval:{panel:function(el){var c=window.epsCurrentClass&&epsCurrentClass();if(window.EVORI&&EVORI.mount)EVORI.mount(el,['eval','grille'],c&&c.nom);else el.innerHTML='<p>Évaluation indisponible.</p>'}},
   cls:{panel:function(el){el.innerHTML='<h2>👥 Classes</h2><p class="mut">Listes d\'élèves d\'OrienRun (communes à toutes les applis).</p><div id="clPanelShell"></div>';classesPanel(el.querySelector('#clPanelShell'))}},
   bil:{panel:function(el){el.innerHTML='<h2>📄 Bilans</h2><p class="mut">Résultats des courses et fiches d\'évaluation (PDF, .zip, Pronote, publication en ligne).</p><div class="epst-grid"><button type="button" class="epst-card" id="ori-res"><i>🏁</i><span><b>Résultats des courses</b><small>Temps, balises, classements</small></span></button></div><div id="ori-ev"></div>';

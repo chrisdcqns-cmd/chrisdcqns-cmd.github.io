@@ -13,7 +13,7 @@
    sans quitter le mode enseignant. */
 (function () {
   var BASE = ((document.currentScript && document.currentScript.src) || "").replace(/eps-shell\.js.*$/, "");
-  var ORDER = [["seq", "📅", "Séquence"], ["vue", "👁", "Vue élève"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluation"], ["ccf", "📜", "CCF"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
+  var ORDER = [["seq", "📅", "Séquence"], ["suivi", "📡", "Suivi"], ["vue", "👁", "Vue élève"], ["bib", "📚", "Bibliothèque"], ["eval", "📋", "Évaluation"], ["ccf", "📜", "CCF"], ["cls", "👥", "Classe"], ["bil", "📄", "Bilans"], ["reg", "⚙", "Réglages"]];
   var VUE = /[?&]vue=eleve\b/.test(location.search);
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function css() {
@@ -65,8 +65,13 @@
     nav.className = "epst-nav"; nav.style.setProperty("--epst", C.color); pan.className = "epst-panel"; pan.style.setProperty("--epst", C.color);
     vue.className = "epst-vue";
     vue.innerHTML = '<div class="h">👁 Vue élève · tes vraies données, tu restes en mode enseignant.<button type="button">✕ Fermer</button></div><iframe title="Vue élève"></iframe>';
-    var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (t[0] === "ccf" && !!(C.tabs && C.tabs.eval) && C.tabs.ccf !== false) || (C.tabs && C.tabs[t[0]]); });
-    nav.innerHTML = tabs.map(function (t) { return '<button type="button" data-t="' + t[0] + '"><span>' + t[1] + "</span>" + t[2] + "</button>"; }).join("");
+    /* 📡 Suivi (27/11/2026, demande de l'enseignant : suivre ses classes au même endroit dans toutes les applis) : onglet commun, juste après
+       Séquence, dans toute appli d'activité (pas la CCF). Il ouvre l'écran de suivi de l'appli (window.epsCtlOwn = {open(classe), on()}),
+       jamais dans les autres (précision de l'enseignant : « commun » ne veut pas dire toutes les applis ; Danse, Cross-training, Relais
+       gardent l'action « Pilotage de leçon » de Séquence). Le bouton est toujours créé mais reste caché tant que l'appli n'a pas déclaré epsCtlOwn.
+       Dans ces applis, le suivi n'est plus une action de Séquence ni de Classe. */
+    var tabs = ORDER.filter(function (t) { return t[0] === "vue" || t[0] === "bib" || t[0] === "reg" || (t[0] === "suivi" && !!(C.tabs && C.tabs.seq) && C.app !== "ccf" && C.suivi !== false) || (t[0] === "ccf" && !!(C.tabs && C.tabs.eval) && C.tabs.ccf !== false) || (C.tabs && C.tabs[t[0]]); });
+    nav.innerHTML = tabs.map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (t[0] === "suivi" && !window.epsCtlOwn ? ' style="display:none"' : "") + '><span>' + t[1] + "</span>" + t[2] + "</button>"; }).join("");
     /* deux bandeaux (barre de l'appli + onglets enseignant) : en descendant, seuls les onglets restent en haut ;
        la barre de l'appli revient dès qu'on remonte */
     var barHidden = false, lastY = {};
@@ -167,7 +172,13 @@
     }
     function closeVue() { document.documentElement.classList.remove("epst-vue-on"); }
     vue.querySelector(".h button").onclick = function () { closeVue(); go(M.prev || C.home || "seq"); };
+    function suiviOn() { var o = window.epsCtlOwn; try { if (o && typeof o.on === "function") return !!o.on(); } catch (e) {} return false; }
     function go(id) {
+      if (id === "suivi") { /* l'écran de suivi de l'appli, ou le pilotage commun posé par-dessus */
+        closeVue(); closePanel(); if (M.cur && M.cur !== "suivi" && M.cur !== "vue") M.back = M.cur; var cc = null; try { cc = window.epsCurrentClass && window.epsCurrentClass(); } catch (e) {}
+        mark("suivi"); M.sv = Date.now();
+        try { if (window.epsCtlOwn && typeof window.epsCtlOwn.open === "function") window.epsCtlOwn.open((cc && cc.nom) || ""); } catch (e) { console.warn(e); }
+        return; }
       if (id !== "vue") { closeVue(); M.prev = id; }
       mark(id);
       var t = (C.tabs || {})[id];
@@ -196,6 +207,9 @@
       if (on && window.EPSLC && !M.lc) { M.lc = 1; if (M.cur && M.cur !== "vue") mark(M.cur); } /* leçons chargées après coup : raccourcis ajoutés */
       if (on && !document.documentElement.classList.contains("epst-pan") && M.cur !== "vue") { /* onglet actif suivant l'écran affiché par l'appli */
         var T = C.tabs || {}, k = Object.keys(T).filter(function (id) { return T[id].on && (function () { try { return T[id].on(); } catch (e) { return false; } })(); })[0];
+        /* 📡 Suivi : actif tant que l'écran de suivi est affiché (il l'emporte sur l'onglet qui portait cet écran) ; refermé, on revient à l'onglet d'avant */
+        var sb0 = nav.querySelector('[data-t="suivi"]'); if (sb0) sb0.style.display = window.epsCtlOwn ? "" : "none";
+        if (sb0 && window.epsCtlOwn) { if (suiviOn()) k = "suivi"; else if (M.cur === "suivi" && Date.now() - (M.sv || 0) > 1500) k = k || M.back || "seq"; else if (M.cur === "suivi") k = "suivi"; }
         if (k && k !== M.cur && !(M.cur === "bib" || M.cur === "reg")) mark(k);
       }
     }

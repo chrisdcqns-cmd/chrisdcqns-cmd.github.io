@@ -1636,7 +1636,7 @@ function planTour(n){const c=C(),tr=tourn(c);if(!tr)return;planEdit(c,p=>{p.ter=
 /* 📱 ce que fait cette tablette (liste des tablettes connectées, eps-home.js) */
 window.epsTabInfo=()=>{try{if(!isUnlocked()&&coachOn()){const c=coC(),t=coT(),j=t&&(t.jours||{})[today()];return{mode:'coach',cls:c?c.nom:'',eq:t?t.nom:'',lieu:j&&j.terrain?'Terrain '+j.terrain:''}}}catch(e){}return{}};
 /* un seul écran de suivi en volley : le 📡 tableau de bord de la leçon (3 terrains dessinés, ✋ appels en tête) ; le pilotage commun n'est pas proposé */
-window.epsCtlOwn={open:()=>{DBV=true;showTab('equipes');scrollTo(0,0)}};
+window.epsCtlOwn={on:()=>{try{return tabNow()==='equipes'&&DBV&&!EQT}catch(e){return false}},open:()=>{DBV=true;EQT=null;showTab('equipes');scrollTo(0,0)}};
 /* 🚫 terrains fermés par l'enseignant (🏟 Terrains du tableau de bord) : plus proposés aux équipes ni dans le plan */
 function terOffV(){try{return typeof EPSD!='undefined'&&EPSD.courtsOff?EPSD.courtsOff('volley'):[]}catch(e){return[]}}
 function volCt(n){const e=document.querySelector('.dbter[data-ter="'+n+'"]');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
@@ -2632,7 +2632,7 @@ const tabNow=()=>{const b=document.querySelector('#nav button.on');return b?b.da
 window.EPSTV=window.EPST?EPST.init({app:'vol',nom:'Volley-ball',color:'#6B3FA0',isTeacher:()=>isUnlocked()&&!(typeof coachOn==='function'&&coachOn()),anchor:'header',main:'main',home:'seq',
  tabs:{seq:{go:()=>showTab('seq'),on:()=>tabNow()==='seq'},
   eval:{go:()=>showTab('eval'),on:()=>['eval','bareme'].includes(tabNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>showTab('eval')},{ico:'🏐',label:'Évaluer en direct',go:()=>{showTab('eval');openLive()}},{ico:'🧮',label:'Barème et critères',go:()=>showTab('bareme')}]},
-  cls:{go:()=>showTab('eleves'),on:()=>['eleves','equipes'].includes(tabNow()),actions:[{ico:'👥',label:'Élèves',go:()=>showTab('eleves')},{ico:'🏐',label:'Équipes',go:()=>showTab('equipes')},{ico:'📡',label:'Tableau de bord de la leçon',go:()=>{DBV=true;showTab('equipes')}}]},
+  cls:{go:()=>showTab('eleves'),on:()=>['eleves','equipes'].includes(tabNow()),actions:[{ico:'👥',label:'Élèves',go:()=>showTab('eleves')},{ico:'🏐',label:'Équipes',go:()=>{DBV=false;showTab('equipes')}}]},
   bil:{go:()=>showTab('bilan'),on:()=>tabNow()==='bilan'}}}):null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, puis son équipe (tablette du coach) */
 (window.EPSG_Q=window.EPSG_Q||[]).push({app:'Volley-ball',sub:'CA4 · Tablette du coach',color:'#6B3FA0',

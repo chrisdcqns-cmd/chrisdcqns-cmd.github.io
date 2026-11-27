@@ -130,7 +130,7 @@ async def main():
             await e.evaluate("aller('%s')"%v); await e.wait_for_timeout(300); out.append(("390 px : "+v+" sans débordement",not await over(e),None))
         await e.evaluate("A.matchVoir({dataset:{id:Object.keys(JSON.parse(localStorage['bk.v1']).items).find(k=>k.startsWith('m|'))}})"); await e.wait_for_timeout(300); out.append(("390 px : match sans débordement",not await over(e),None))
         # prof : suivi mis à jour
-        await p.reload(); await p.wait_for_timeout(3000); await p.screenshot(path=SHOT+"p4-suivi.png",full_page=True)
+        await p.reload(); await p.wait_for_timeout(3000); await p.evaluate("window.epsCtlOwn.open()"); await p.wait_for_timeout(500); await p.screenshot(path=SHOT+"p4-suivi.png",full_page=True)
         out.append(("prof : classement affiché",await p.evaluate("document.querySelector('#vue').innerText.includes('Classement')"),None))
         out.append(("pas de débordement (suivi)",not await over(p),None))
         await p.click(".epst-nav button[data-t=bil]"); await p.wait_for_timeout(1200); await p.screenshot(path=SHOT+"p5-bilans.png",full_page=True)

@@ -3107,7 +3107,7 @@ function toTerrain(){TERR.cls=C().id;lockApp();terrStart()}
 setInterval(setLock,30000);
 window.epsAppHome=function(){if(document.getElementById('play').classList.contains('on'))return;if(!isUnlocked()){TERR.cls='';terrSave();if(window.EPSG&&EPSG.open){TERR.on=false;terrSave();setLock()}else{TERRT='jouer';renderTerr()}}else showTab('seq')};
 /* un seul écran de suivi en badminton : 🟢 Leçon en direct (5 terrains dessinés, ✋ appels en tête) ; le pilotage commun n'est pas proposé */
-window.epsCtlOwn={open:()=>{showTab('live');scrollTo(0,0)}};
+window.epsCtlOwn={on:()=>{try{return tabNow()==='live'}catch(e){return false}},open:()=>{showTab('live');scrollTo(0,0)}};
 function badCt(n){const e=document.querySelector('#t-live .lg[data-ter="'+n+'"]');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
 /* ✋ appel de l'enseignant : classe, groupe et terrain de la tablette */
 window.epsTabInfo=()=>{try{if(terrOn()&&!isUnlocked()){const c=classById(TERR.cls),g=c&&TERR.grp&&(c.groupes||{})[TERR.grp],t=g&&terrOf(c,g);return{mode:'terrain',cls:c?c.nom:'',eq:g?g.nom:'',lieu:t?'Terrain '+t:''}}}catch(e){}return{}};
@@ -3279,7 +3279,7 @@ window.epsListsHook={save:()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}c
 /* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 const tabNow=()=>{const b=document.querySelector('#nav button.on');return b?b.dataset.t:''};
 window.EPSTB=window.EPST?EPST.init({app:'bad',nom:'Badminton',color:'#0B7A75',isTeacher:()=>isUnlocked(),anchor:'header',main:'main',home:'seq',
- tabs:{seq:{go:()=>showTab('seq'),on:()=>['seq','match','terrain','live'].includes(tabNow()),actions:[{main:1,ico:'🟢',label:'Leçon en direct',go:()=>showTab('live')},{ico:'📊',label:'Matchs & stats',go:()=>showTab('match')},{ico:'🏸',label:'Terrain & scoring',go:()=>showTab('terrain')}]},
+ tabs:{seq:{go:()=>showTab('seq'),on:()=>['seq','match','terrain'].includes(tabNow()),actions:[{ico:'📊',label:'Matchs & stats',go:()=>showTab('match')},{ico:'🏸',label:'Terrain & scoring',go:()=>showTab('terrain')}]},
   eval:{go:()=>showTab('eval'),on:()=>['eval','bareme'].includes(tabNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>showTab('eval')},{ico:'🧮',label:'Barème et critères',go:()=>showTab('bareme')}]},
   cls:{go:()=>showTab('eleves'),on:()=>tabNow()==='eleves'},
   bil:{go:()=>showTab('bilan'),on:()=>tabNow()==='bilan'}}}):null;

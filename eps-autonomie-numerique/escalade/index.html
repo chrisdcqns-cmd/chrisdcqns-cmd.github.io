@@ -792,7 +792,7 @@ function helpOf(M){const low=M.filter(r=>Number(r.h)===0&&r.h!=='').length,last=
  return low?{t:low+'× sous la ligne rouge',why:M.filter(r=>r.why).slice(-1)[0]?.why||'Autre raison'}:fails?{t:'3 voies sans Top d\'affilée',why:'Échecs répétés'}:null}
 /* Un seul écran de suivi en escalade (demande de l'enseignant) : la tablette de contrôle des grimpes. Le pilotage commun n'est pas proposé ici
    (window.epsCtlOwn) ; les ✋ appels des élèves s'affichent en tête de cet écran et les cartes des élèves en échec clignotent. */
-window.epsCtlOwn={open:cls=>{try{const nk=s=>String(s||'').toLowerCase().replace(/\s+/g,''),k=CL.find(c=>nk(c.nom)==nk(cls))||(!CF.sel&&CL.length==1?CL[0]:null);if(k){CF.sel=k.id;save()}}catch(e){}S.t='ctl';render()}};
+window.epsCtlOwn={on:()=>!!S.T&&S.t=='ctl',open:cls=>{try{const nk=s=>String(s||'').toLowerCase().replace(/\s+/g,''),k=CL.find(c=>nk(c.nom)==nk(cls))||(!CF.sel&&CL.length==1?CL[0]:null);if(k){CF.sel=k.id;save()}}catch(e){}S.t='ctl';render()}};
 /* ---------- tablette de contrôle (enseignant) : une carte par élève, mise à jour en direct ---------- */
 function ctl(){const sel=CF.sel||CF.sea?.cl||'',k=CL.find(c=>c.id==sel),nom=k?.nom||'',t=today(),L=recOf(nom,t),cfg=lecFor(sel,t)||(CF.sea?.d==t&&(CF.sea.cl||'')==sel?CF.sea:null),min=cfg?.min||0;
  const all=[...new Set([...(k?.el||[]),...L.map(r=>r.el)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fr')),ab=absL(sel),names=all.filter(n=>!ab.includes(n)||L.some(r=>r.el==n)),absent=all.filter(n=>!names.includes(n));
@@ -1677,8 +1677,8 @@ app:'esc',nom:'Escalade',ca:'CA2',color:'#2E7D4F',pfx:'es',code:'ESC1',url:'http
 /* espace enseignant commun (eps-shell.js) : Séquence · Vue élève · Bibliothèque · Évaluation · Classe · Bilans · Réglages */
 window.EPSTESC=window.EPST?EPST.init({app:'esc',nom:'Escalade',color:'#2E7D4F',isTeacher:()=>!!S.T,anchor:'header',main:'#m,#nav',home:'seq',
  tabs:{
-  seq:{go:()=>{S.t=CL.length&&!S.tcl0?'tcl':'set';S.ce=null;render();scrollTo(0,0)},on:()=>['set','ctl','ped','tcl'].includes(S.t),
-   actions:[{main:1,ico:'🧗',label:'Leçon du jour (classe, critères, exercice)',ord:1,go:()=>{S.t='set';S.ce=null;render()}},{main:1,ico:'📈',label:'Suivi des grimpes en direct',ord:2.5,go:()=>{S.t='ctl';render()}}]},
+  seq:{go:()=>{S.t=CL.length&&!S.tcl0?'tcl':'set';S.ce=null;render();scrollTo(0,0)},on:()=>['set','ped','tcl'].includes(S.t),
+   actions:[{main:1,ico:'🧗',label:'Leçon du jour (classe, critères, exercice)',ord:1,go:()=>{S.t='set';S.ce=null;render()}}]},
   eval:{panel:el=>{if(window.EVESC)EVESC.mount(el,['eval','grille'],(epsCurrentClass()||{}).nom);else el.innerHTML='<p>Évaluation indisponible.</p>'}},
   cls:{go:()=>{S.t='cls';render();scrollTo(0,0)},on:()=>S.t==='cls'},
   bil:{panel:el=>{el.innerHTML='<h2>📄 Bilans</h2><p class="mut">Résultats des grimpes (Excel, Google Sheets, QR codes) et fiches d\'évaluation (PDF, .zip, auto-positionnement).</p><div class="epst-grid"><button type="button" class="epst-card" id="bil-res"><i>🧗</i><span><b>Résultats des grimpes et QR codes</b><small>Excel, Google Sheets, regroupement</small></span></button></div><div id="bil-ev"></div>';

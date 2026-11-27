@@ -41,3 +41,4 @@ Application web (PWA) d'acrosport pour tablettes, hébergée sur GitHub Pages de
 - Outils de leçon communs (eps-lecons.js) : barre d'actions au-dessus des cartes de l'onglet 📅 Séquence (Fiches de leçon, Leçon en cours, Évaluer la leçon, Ma classe, ⋯ Plus), mode enseignant seulement.
 
 - 27/11/2026 : le 📊 tableau de bord de la leçon (`lessonDashboard`) est le seul écran de suivi (`window.epsCtlOwn`) ; les ✋ appels des élèves s'affichent en tête (`#dCalls`, `EPSD.appels.html("acrosport")`).
+- 📡 onglet Suivi commun = tableau de bord de la leçon (fenêtre `#dBody`).

@@ -57,3 +57,4 @@ Application web pour tablette (badminton, CA4, lycée), hébergée sur GitHub Pa
 - 27/11/2026 : 🟢 Leçon en direct est le seul écran de suivi (`window.epsCtlOwn`, pas de pilotage commun) : ✋ appels en tête (`EPSD.appels.html`), puis les terrains dessinés (`EPSD.courts`, `bad5` = 2 de chaque côté en parallèle, 1 au centre, quand `c.terr.n` = 5, valeur par défaut ; `badCt(n)` descend à la carte du groupe, `data-ter`). `window.epsTabInfo()` : classe, groupe et terrain de la tablette pour l'appel.
 - Terrains dessinés : 5 de même taille, le 3 à la verticale au centre ; 👁 observateurs = membres présents des groupes du terrain qui ne jouent pas le match en cours, affichés à gauche des terrains 1-2, à droite des 4-5, sous le 3.
 - 🚫 Terrains fermés : `terOffB()` (bouton « 🏟 Terrains »), écartés de `terrAuto` et du choix du terrain d'un groupe ; dessinés grisés.
+- 📡 onglet Suivi commun = Leçon en direct (`tabNow()==='live'`), retirée des actions de Séquence.
