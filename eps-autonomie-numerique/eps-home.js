@@ -638,6 +638,14 @@
     it.rm = (it.rm || []).filter(function (k) { return !keep[k]; });
     if (exact) (it.el || []).forEach(function (n) { var k = nkey(n); if (!keep[k] && it.rm.indexOf(k) < 0) { it.rm.push(k); if (!it.demo) trKeep({ type: "Élève", label: n, sub: it.nom, el: { lid: it.id, nom: n } }); /* 🗑 corbeille */ } });
     else (it.el || []).forEach(function (n) { if (!keep[nkey(n)]) { names.push(n); keep[nkey(n)] = 1; } });
+    /* ✏ orthographe corrigée (majuscule, accent, espaces, ordre NOM / prénom) : même clé d'élève, donc même profil partout ;
+       seule l'écriture change (st = prénom / nom gardés), puis EPSL.apply la reporte dans chaque appli (demande de l'enseignant, 27/11/2026) */
+    if (exact) { it.st = it.st || {}; names.forEach(function (n) { var k = nkey(n), s = it.st[k], sp = splitFull(n); if (!sp) return;
+      var was = (it.el || []).filter(function (x) { return nkey(x) === k; })[0];
+      if (was == null || was === n) return;
+      /* garder le découpage prénom / nom déjà connu (noms composés) : on ne change que l'écriture de chaque partie */
+      if (s) { var lo = function (x) { return norm(x).replace(/ /g, ""); }, W = n.replace(/\s+/g, " ").trim(), pf = function (part) { var t = lo(part); if (!t) return ""; for (var a = 0; a < W.length; a++) for (var b = W.length; b > a; b--) { var c = W.slice(a, b).trim(); if (lo(c) === t) return c; } return part; };
+        it.st[k] = [pf(s[0] || ""), pf(s[1] || "")]; } else it.st[k] = [sp.prenom, sp.nom]; }); }
     it.old = old && norm(old) !== norm(nom) ? old : ""; it.nom = nom; it.el = names; it.ts = Date.now(); it.del = false;
     if (off) { it.off = off.slice(); it.man = 1; } /* activités choisies à la main : l'emploi du temps ne les change plus */
     L.pend[it.id] = stamp(); L.app[it.id] = JSON.stringify(it); lsv(L);
@@ -2444,8 +2452,10 @@
     function draw() {
       var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P = people(c);
       list.innerHTML = P.map(function (n, i) { var r = R[n] || {}, has = !!notes(c, n);
-        return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><div style="display:flex;gap:8px;align-items:center"><label style="display:flex;flex:1;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left;margin:0"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + "</label>" + gnBtn(n) + (has ? '<button type="button" class="epsd-one" data-one="' + i + '" title="Proposer l\'appréciation de cet élève">✨</button>' : "") + '</div><div class="epsd-cpw" style="margin-top:6px"><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + "</textarea>" + cpBtn() + '</div><div class="epsd-cnt" data-cn="' + i + '"></div></div>'; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
+        return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><div style="display:flex;gap:8px;align-items:center"><label style="display:flex;flex:1;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left;margin:0"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + "</label>" + gnBtn(n) + (has ? '<button type="button" class="epsd-one" data-one="' + i + '" title="Proposer l\'appréciation de cet élève">✨</button>' : "") + '</div><div class="epsd-cpw" style="margin-top:6px"><textarea class="epsd-in" data-t="' + i + '" data-eps-comment data-eps-mode="bulletin" data-eps-eleve="' + esc(n) + '" style="min-height:58px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + "</textarea>" + cpBtn() + '</div><div class="epsd-cnt" data-cn="' + i + '"></div></div>'; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
       P.forEach(function (n, i) { cnt(i); });
+      /* ✍ écrire soi-même : 🎤 Dicter et ✨ Reformuler sous chaque appréciation (comme Relais Vitesse), en plus de « ✨ » qui la génère */
+      try { commentBars(); } catch (e) {}
       list.querySelectorAll("[data-t]").forEach(function (ta) { ta.oninput = function () { var n = P[+ta.dataset.t]; R[n] = R[n] || {}; R[n].t = ta.value; R[n].ai = 0; ta.style.background = ""; cnt(ta.dataset.t); save(); }; });
       list.querySelectorAll("[data-one]").forEach(function (b) { b.onclick = function () { gen([P[+b.dataset.one]], b); }; });
       list.querySelectorAll("[data-ok]").forEach(function (cb) { cb.onchange = function () { var n = P[+cb.dataset.ok]; R[n] = R[n] || {}; R[n].ok = cb.checked; if (cb.checked) R[n].ai = 0; save(); draw(); }; });

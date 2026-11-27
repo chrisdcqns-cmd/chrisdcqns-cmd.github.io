@@ -124,7 +124,9 @@ return epsPin; })();
       names: function (c) { return (c.el || []).map(function (n) { return { full: n }; }); },
       make: function (L, o) { return { id: freeId(L, clsId(o.nom)), nom: o.nom, el: [] }; },
       add: function (c, p) { c.el.push(p.full); }, del: function (c, k) { c.el = c.el.filter(function (n) { return nkey(n) !== k; }); },
-      data: function (c) { var R = jget("escalade.r", []) || []; return R.some(function (r) { return r && (r.cl || "") === c.nom; }); } },
+      data: function (c) { var R = jget("escalade.r", []) || []; return R.some(function (r) { return r && (r.cl || "") === c.nom; }); },
+      /* Escalade range ses grimpes sous le nom écrit : l'écriture corrigée suit (la synchro d'Escalade voit le changement et l'envoie) */
+      ren: function (c, was, neu) { var R = jget("escalade.r", null); if (!Array.isArray(R)) return; var n = 0; R.forEach(function (r) { if (r && r.el === was && (r.cl || "") === c.nom) { r.el = neu; n++; } }); if (n) jset("escalade.r", R); } },
     rel: { key: "relais-vitesse-data-v3", list: function (d) { return d && d.classes || []; }, nom: "name", init: function () { return { classes: [], cur: null }; },
       names: function (c) { return (c.eleves || []).map(function (e) { return { full: full(e), prenom: e.prenom, nom: e.nom }; }); },
       make: function (L, o) { return { id: freeId(L, clsId(o.nom)), name: o.nom, eleves: [], groupes: [], courses: [], lecons: [], curg: "all" }; },
@@ -175,7 +177,13 @@ return epsPin; })();
       if (c[A.nom] !== o.nom) { c[A.nom] = o.nom; ch = true; }
       if (c.el) c.el = c.el || []; if (c.eleves) c.eleves = c.eleves || [];
       var have = {}; A.names(c).forEach(function (p) { have[nkey(p.full)] = 1; });
-      people(o).forEach(function (p) { if (!p.k || have[p.k]) return; A.add(c, p); have[p.k] = 1; ch = true; });
+      people(o).forEach(function (p) { if (!p.k) return;
+        /* même élève, écriture corrigée dans la liste commune (majuscule, accent…) : on met à jour son nom ici, sans toucher à ses données */
+        if (have[p.k]) { if (Array.isArray(c.el) && !c.eleves) { for (var j = 0; j < c.el.length; j++) if (typeof c.el[j] === "string" && nkey(c.el[j]) === p.k && c.el[j] !== p.full) { var was = c.el[j]; c.el[j] = p.full; ch = true; if (A.ren) try { A.ren(c, was, p.full); } catch (e) {} } }
+          else (c.eleves || []).forEach(function (e) { if (!e || nkey(full(e)) !== p.k) return; var pr = p.prenom != null ? p.prenom : e.prenom, no = p.nom != null ? p.nom : e.nom;
+            if ((pr || no) && (e.prenom !== pr || e.nom !== no) && nkey((pr || "") + " " + (no || "")) === p.k) { e.prenom = pr; e.nom = no; ch = true; } });
+          return; }
+        A.add(c, p); have[p.k] = 1; ch = true; });
       (o.rm || []).forEach(function (k) { if (!have[k]) return; var n0 = A.names(c).length; A.del(c, k); if (A.names(c).length !== n0) ch = true; });
     });
     /* classe vide par défaut (« Ma classe ») inutile dès qu'une vraie classe existe */

@@ -1719,7 +1719,7 @@
   var EJ = { cls: "", shut: {}, tap: { d: "", t: 0, tm: 0 } };
   function ejData(cls) { var D = {};
     all(KE).filter(function (o) { return same(o.cls, cls) && o.day && o.el && typeof o.el === "object"; }).forEach(function (o) { (D[o.day] = D[o.day] || { res: {} }).le = o; });
-    all(KS).filter(function (o) { return same(o.cls, cls) && o.day && o.ek; }).forEach(function (o) { var s = 0, n = 0, ok = 0; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = o.r[q]; if (v === 0 || v === 1 || v === 2) { s += v; n += 2; if (v === 2) ok++; } }); if (n) (D[o.day] = D[o.day] || { res: {} }).res[o.ek] = { t: s / n, ok: ok, n: n / 2 }; });
+    all(KS).filter(function (o) { return same(o.cls, cls) && o.day && o.ek; }).forEach(function (o) { var s = 0, n = 0, ok = 0; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = o.r[q]; if (v === 0 || v === 1 || v === 2) { s += v; n += 2; if (v === 2) ok++; } }); if (n) { var X = (D[o.day] = D[o.day] || { res: {} }); X.res[o.ek] = { t: s / n, ok: ok, n: n / 2 }; (X.raw = X.raw || {})[o.ek] = o.r; } });
     return D; }
   function ejCell(d, k) { var x = d.le && d.le.el && d.le.el[k], V = x ? ["p", "s", "t"].map(function (f) { return x[f]; }).filter(function (v) { return v != null && isFinite(+v); }).map(Number) : [], le = V.length ? V.reduce(function (a, b) { return a + b; }, 0) / (3 * V.length) : null, r = d.res[k] || null, t = r ? r.t : null;
     var a = Math.max(0, Math.min(100, noteCfg().jourSit)) / 100, sc = t != null && le != null ? a * t + (1 - a) * le : t != null ? t : le;
@@ -1744,7 +1744,7 @@
       var rows = R.map(function (n) { return { n: n, c: ejCell(x, ekey(n)) }; }), ok = rows.filter(function (r) { return r.c.sc != null; }), moy = ok.length ? ok.reduce(function (a, r) { return a + r.c.sc; }, 0) / ok.length : null;
       var top = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" data-ejd="' + d + '" title="Double appui pour modifier cette leçon" style="border:0;background:#F1EEE6;border-radius:10px;min-height:44px;padding:0 12px;font:800 16px system-ui;color:#14171C;cursor:pointer">' + esc(ejFr(d, true).replace(/^./, function (c) { return c.toUpperCase(); })) + "</button>" +
         '<span style="flex:1;min-width:120px;font-weight:700">' + esc(l ? titreL(l) : "") + (th ? ' <span class="lc-mut" style="margin:0;font-weight:500">' + (l ? "· " : "") + esc(th) + "</span>" : "") + "</span>" +
-        '<span class="lc-mut" style="margin:0">' + ok.length + " / " + R.length + " élèves</span>" + (moy != null ? '<span class="lc-tag" style="background:' + DEG[degOf(moy)] + ';margin:0">D' + (degOf(moy) + 1) + '</span><b>' + n20(Math.round(moy * 80) / 4) + ' / 20</b>' : "") +
+        '<span class="lc-mut" style="margin:0">' + ok.length + " / " + R.length + " élèves</span>" + (!shut && ejRem(x, R).length ? '<button type="button" class="lc-b s" data-ejrem="' + d + '" title="Situations ❌ / 🟠 de cette leçon à proposer en autonomie">🎯 Remédiation</button>' : "") + (moy != null ? '<span class="lc-tag" style="background:' + DEG[degOf(moy)] + ';margin:0">D' + (degOf(moy) + 1) + '</span><b>' + n20(Math.round(moy * 80) / 4) + ' / 20</b>' : "") +
         '<button type="button" class="lc-b s" data-ejf="' + d + '" aria-expanded="' + !shut + '" aria-label="' + (shut ? "Déplier" : "Replier") + ' cette leçon" style="min-width:44px;min-height:44px">' + (shut ? "▸" : "▾") + "</button></div>";
       if (shut) return '<div class="lc-box">' + top + "</div>";
       var tab = '<div style="overflow:auto;margin-top:8px"><table class="lc-tab"><tr><th>Élève</th>' + (x.le ? CR.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") : "") + (hasR ? "<th>Situations réussies</th>" : "") + "<th>Note</th><th>Degré</th></tr>" +
@@ -1758,12 +1758,24 @@
     if (q("[data-ejc]")) q("[data-ejc]").onchange = function () { EJ.cls = this.value; redraw(); };
     if (q("[data-ejnew]")) q("[data-ejnew]").onclick = function () { ejEdit(cls, tj, redraw); };
     if (q("[data-ejx]")) q("[data-ejx]").onclick = function () { ejExport(cls); };
+    qa("[data-ejrem]").forEach(function (b) { b.onclick = function () { ejRemOpen(cls, b.dataset.ejrem, D[b.dataset.ejrem], R); }; });
     qa("[data-ejf]").forEach(function (b) { b.onclick = function () { var k = cls + "|" + b.dataset.ejf; EJ.shut[k] = b.getAttribute("aria-expanded") === "true"; redraw(); }; });
     /* double appui sur la date = modifier toute la leçon (reconnu ici, car « dblclick » n'arrive pas sur toutes les tablettes) ; un appui seul rappelle le geste */
     qa("[data-ejd]").forEach(function (b) { b.onclick = function () { var T = EJ.tap, now = Date.now(), d = b.dataset.ejd; clearTimeout(T.tm);
       if (T.d === d && now - T.t < 450) { T.d = ""; ejEdit(cls, d, redraw); return; }
       T.d = d; T.t = now; T.tm = setTimeout(function () { T.d = ""; ejHint(b); }, 460); }; });
   }
+  /* 🎯 remédiation en autonomie : proposée depuis les leçons du jour (situations ❌ / 🟠), jamais depuis l'évaluation finale qui clôt la séquence (demande de l'enseignant, 27/11/2026) */
+  function ejRem(x, R) { var out = []; if (!x || !x.raw) return out; var S = allSits(false).filter(function (o) { return !o.s.noauto && o.l.statut !== "brouillon"; }), byK = {}; S.forEach(function (o) { byK[o.k] = o; });
+    R.forEach(function (n) { var r = x.raw[ekey(n)]; if (!r) return; var L = Object.keys(r).filter(function (q) { return !/@auto$/.test(q) && (r[q] === 0 || r[q] === 1) && byK[q]; }).map(function (q) { return { o: byK[q], v: r[q] }; }); if (L.length) out.push({ n: n, L: L }); }); return out; }
+  function ejRemOpen(cls, day, x, R) { var rows = ejRem(x, R); if (!rows.length) return;
+    var md = document.createElement("div"); md.className = "lc-modal"; md.style.zIndex = "2147483400";
+    md.innerHTML = '<div><h2>🎯 Remédiation · ' + esc(ejFr(day, true)) + '</h2><p class="lc-mut">Situations notées ❌ ou 🟠 par l\'élève : un appui la lui propose (il la retrouve dans « 🎯 Travailler en autonomie »).</p>' +
+      rows.map(function (r, i) { return '<div class="lc-box" style="margin:6px 0;padding:8px 10px"><b>' + esc(r.n) + "</b><br>" + r.L.map(function (z, j) { var ex = get(KRM, nn(cls) + "|" + ekey(r.n) + "|" + z.o.k);
+        return '<span style="display:inline-flex;gap:6px;align-items:center;margin:4px 8px 0 0">' + RES_I[z.v] + " " + esc(z.o.s.t || "Situation " + (z.o.i + 1)) + (ex ? ' <span class="lc-mut" style="margin:0">· ' + REC_ST[ex.st || 0] + "</span>" : ' <button type="button" class="lc-b s" data-rp="' + i + ":" + j + '">🎯 Proposer</button>') + "</span>"; }).join("") + "</div>"; }).join("") +
+      '<div class="lc-row"><button type="button" class="lc-b" data-x>✕ Fermer</button></div></div>';
+    document.body.appendChild(md); md.onclick = function (e) { if (e.target === md) md.remove(); }; md.querySelector("[data-x]").onclick = function () { md.remove(); };
+    md.querySelectorAll("[data-rp]").forEach(function (b) { b.onclick = function () { var p = b.dataset.rp.split(":"), r = rows[+p[0]], z = r.L[+p[1]]; recAdd(cls, r.n, z.o, "", "Leçon du " + ejFr(day) + " : " + RES_L[z.v]); b.outerHTML = '<span class="lc-mut" style="margin:0">· proposée ✓</span>'; }; }); }
   function ejHint(b) { var old = document.getElementById("lc-ejh"); if (old) old.remove(); if (!b.isConnected) return; var t = document.createElement("div"); t.id = "lc-ejh"; t.setAttribute("role", "status"); t.textContent = "Double appui pour modifier";
     var r = b.getBoundingClientRect(); t.style.cssText = "position:fixed;z-index:2147483000;left:" + Math.max(8, Math.round(r.left)) + "px;top:" + Math.round(r.bottom + 6) + "px;background:#14171C;color:#fff;border-radius:10px;padding:8px 12px;font:700 14px system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.25)"; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 1800); }
   window.EPSLC = {
