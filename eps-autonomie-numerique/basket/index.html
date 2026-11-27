@@ -485,10 +485,11 @@ function vBilan(){ const cls=nomClasse(), eq=S.eq, d=S.bilT?"":auj(), st=statsEq
 function clsProf(){ const C=classesBK(); if(!C.some(c=>c.id===S.classe)){ let cc=null; try{ cc=C.find(c=>c.nom===(localStorage.getItem("eps.eval.cls.bk")||"")); }catch(e){} S.classe=(cc||C[0]||{}).id||""; SS.set("classe",S.classe); } return nomClasse(); }
 const selCls=()=>`<select data-ch="cls" style="max-width:260px" aria-label="Classe">${classesBK().map(c=>`<option value="${h(c.id)}" ${c.id===S.classe?"selected":""}>${h(c.nom)}</option>`).join("")}</select>`;
 /* 🏟 les terrains du jour pour le suivi de l'enseignant : match en cours sur chaque terrain, sinon le prochain match de la rotation */
-function terrainsBK(cls,j,M){ const A=terA(j); return Array.from({length:j.nt},(x,i)=>{ const t=i+1, k=A.indexOf(t), m=M.filter(m=>+m.ter===t&&m.st!==1).sort((a,b)=>(b.u||0)-(a.u||0))[0];
-  const off=ri=>(((j.r||[])[ri]||{}).off||[]).filter(x=>+x[1]===k+1).map(x=>eqNom(cls,x[0]));
-  if(m){ const s=score(m); return {n:t,a:eqNom(cls,m.a),b:eqNom(cls,m.b),sc:s.a+" – "+s.b,etat:"jeu",sub:m.rot!=null?"Rotation "+(m.rot+1):"",obs:m.rot!=null&&k>=0?off(m.rot):[]}; }
-  const R=j.r||[]; if(k>=0) for(let ri=0;ri<R.length;ri++){ const x=(R[ri].m||[])[k]; if(!x) continue; const d=stGet(matchId(cls,j.day,ri,k)); if(d&&d.st===1) continue; return {n:t,a:eqNom(cls,x[0]),b:eqNom(cls,x[1]),sc:"",etat:"attente",sub:"Rotation "+(ri+1)+" à jouer",obs:off(ri)}; }
+function terrainsBK(cls,j,M){ const A=terA(j), E=eqs(cls), mb=id=>((E.find(e=>e.id===id)||{}).j||[]).map(n=>n+(absent(n,cls)?" (absent)":"")); /* mb = joueurs d'une équipe, pour la petite fenêtre ouverte en touchant son nom */
+  return Array.from({length:j.nt},(x,i)=>{ const t=i+1, k=A.indexOf(t), m=M.filter(m=>+m.ter===t&&m.st!==1).sort((a,b)=>(b.u||0)-(a.u||0))[0];
+  const off=ri=>(((j.r||[])[ri]||{}).off||[]).filter(x=>+x[1]===k+1).map(x=>({n:eqNom(cls,x[0]),m:mb(x[0])}));
+  if(m){ const s=score(m); return {n:t,ma:mb(m.a),mb:mb(m.b),a:eqNom(cls,m.a),b:eqNom(cls,m.b),sc:s.a+" – "+s.b,etat:"jeu",sub:m.rot!=null?"Rotation "+(m.rot+1):"",obs:m.rot!=null&&k>=0?off(m.rot):[]}; }
+  const R=j.r||[]; if(k>=0) for(let ri=0;ri<R.length;ri++){ const x=(R[ri].m||[])[k]; if(!x) continue; const d=stGet(matchId(cls,j.day,ri,k)); if(d&&d.st===1) continue; return {n:t,ma:mb(x[0]),mb:mb(x[1]),a:eqNom(cls,x[0]),b:eqNom(cls,x[1]),sc:"",etat:"attente",sub:"Rotation "+(ri+1)+" à jouer",obs:off(ri)}; }
   return {n:t,a:"",b:"",etat:"libre"}; }); }
 function vProf(){ const cls=clsProf(); if(!cls) return `<div class="carte"><h3>Aucune classe pour le basket-ball</h3><p class="doux">Attribue l'activité à une classe : onglet 👥 Classe → Listes d'élèves.</p></div>`;
   const j=jour(cls), E=eqs(cls), md=modeCfg(j.mode), B=bonusList(), M=matchsDe(cls,j.day).sort((a,b)=>(a.rot||0)-(b.rot||0)||(a.ter||0)-(b.ter||0)), O=obsDe(cls,j.day), PL=schemas(cls), pr=presents(cls), places=new Set(E.flatMap(e=>e.j)), sans=pr.filter(n=>!places.has(n)), SV=!!S.suivi, si=x=>SV?x:"", se=x=>SV?"":x; /* 📡 Suivi (terrains, rotations, matchs, classement, observations) ou 📅 Séquence (réglages du jour, équipes, rencontres, schémas) */
