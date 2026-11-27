@@ -1229,7 +1229,7 @@
        (window.EPSG_Q = window.EPSG_Q || []).push({ app, sub, color, icon(svg), classes(): [{id, nom, n, note}],
          current(): id, select(id), resources: [{ico, label, sub, open()}], teacher(), when(): bool, noClass: {label, sub, open()} });
      L'écran s'affiche au chargement de l'application, en mode élève seulement (when() permet de l'éviter). */
-  var GATE = null;
+  var GATE = null, DEMO_NOM = "DÉMO (fictive)";
   function gateCss() {
     if (document.getElementById("epsg-css")) return;
     var st = document.createElement("style"); st.id = "epsg-css";
@@ -1258,6 +1258,7 @@
     gateCss(); gateClose();
     var col = G.color || "#1B1E24", L = [];
     try { L = (G.classes && G.classes()) || []; } catch (e) {}
+    if (!window.EPS_VUE_ELEVE && !demoOn()) L = L.filter(function (c) { return cmp(c.nom) !== cmp(DEMO_NOM); }); /* la classe fictive n'est pas proposée aux élèves sur une tablette où elle n'a pas été installée */
     var cur = ""; try { cur = G.current ? G.current() : ""; } catch (e) {}
     var R = (G.resources || []).concat((window.EPSG_COMMON || []).filter(function (r) { try { return !r.when || r.when(); } catch (e) { return false; } }));
     var d = document.createElement("div"); d.className = "epsg";
@@ -1283,8 +1284,29 @@
     });
     document.body.appendChild(d); try { document.documentElement.style.overflow = "hidden"; } catch (e) {}
   }
+  /* 👁 Vue élève (cadre ?vue=eleve) : on arrive toujours sur la classe fictive, prête à être parcourue, jamais sur une vraie classe
+     (demande de l'enseignant, 27/11/2026). La classe fictive est créée au besoin ; sa fiche de leçon est remise « du jour » ;
+     l'appli prépare ce qu'il lui faut avec cfg.demo(nom de la classe) (leçon du jour, groupes, équipes…) puis cfg.select(id).
+     Le choix reste dans le cadre (voir eps-lists.js) : la tablette et les élèves ne sont pas touchés. « Changer de classe » reste possible. */
+  var VUE_DEMO = 0;
+  function vueDemoFiche() { try { var a = appDir(); if (!DEMO_APPS[a]) return; var k = "eps.lecons." + a + ".v1", V = stLd(k), l = V.items["demo-" + a], now = Date.now();
+    if (!l || l.del) { stPutRaw(k, demoLesson(a, DEMO_APPS[a], now - 30000)); return; }
+    var ok = (l.prog || []).some(function (p) { return p && cmp(p.c) === cmp(DEMO_NOM) && p.at > now - 90 * 60000 && p.at <= now; });
+    if (!ok) { l.prog = (l.prog || []).filter(function (p) { return p && cmp(p.c) !== cmp(DEMO_NOM); }).concat([{ c: DEMO_NOM, at: now - 30000 }]); stPutRaw(k, l); } } catch (e) {} }
+  function vueDemo(n) {
+    var G = GATE; if (!G || VUE_DEMO === 2) return;
+    if (!n) { VUE_DEMO = 1; try { gateCss(); gateClose(); var w = document.createElement("div"); w.className = "epsg"; w.innerHTML = '<div class="epsg-in"><div class="epsg-empty" style="margin-top:40px;text-align:center">👁 Vue élève · ouverture de la classe fictive…</div></div>'; document.body.appendChild(w); } catch (e) {}
+      if (!demoOn()) { demoCreate().then(function () { vueDemo(1); }, function () { vueDemo(1); }); return; } }
+    if (n <= 1) vueDemoFiche();
+    try { if (G.demo) G.demo(DEMO_NOM); } catch (e) { console.warn(e); }
+    var L = []; try { L = (G.classes && G.classes()) || []; } catch (e) {}
+    var d = L.filter(function (c) { return cmp(c.nom) === cmp(DEMO_NOM); })[0];
+    if (!d) { if (n < 20) setTimeout(function () { vueDemo(n + 1); }, 400); else { VUE_DEMO = 2; gateOpen(); } return; } /* classe fictive absente de cette appli : écran habituel */
+    VUE_DEMO = 2; gateClose(); try { G.select(d.id); } catch (e) { console.warn(e); }
+  }
   function gateRegister(cfg) {
     GATE = cfg;
+    if (window.EPS_VUE_ELEVE && !VUE_DEMO && !/[?&](sim|reel)=1\b/.test(location.search)) { VUE_DEMO = 1; setTimeout(function () { vueDemo(0); }, 0); return; }
     var show = true; try { show = !(cfg.isTeacher ? cfg.isTeacher() : isTeacher()) && (!cfg.when || cfg.when()); } catch (e) { show = false; }
     if (show) { if (document.body) gateOpen(); else document.addEventListener("DOMContentLoaded", gateOpen); }
   }

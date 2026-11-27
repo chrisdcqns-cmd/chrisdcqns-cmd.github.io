@@ -1,5 +1,5 @@
 // Terrain (OrienRun) — service worker : appli utilisable sans réseau ; fonds de carte IGN gardés en cache quand on les a vus.
-const CORE = "terrain-core-v10", LIBS = "terrain-libs-v1", TILES = "terrain-tiles-v1", MAX_TILES = 2500;
+const CORE = "terrain-core-v11", LIBS = "terrain-libs-v1", TILES = "terrain-tiles-v1", MAX_TILES = 2500;
 const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "../eps-lists.js"];
 const isShared = p => /\/eps-autonomie-numerique\/(eps-[a-z-]+\.js|vendor\/[^/]+)$/.test(p);
 const LIB_FILES = ["https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"];

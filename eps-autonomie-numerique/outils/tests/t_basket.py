@@ -55,7 +55,7 @@ async def main():
         await p.click(".epst-nav button[data-t=seq]"); await p.wait_for_timeout(400)
         # élève : même stockage, vue élève
         e=await c.new_page(); e.on("pageerror",lambda x:errs.append("eleve "+str(x)[:300]))
-        await e.goto(B+"basket/?vue=eleve"); await e.wait_for_timeout(3500)
+        await e.goto(B+"basket/?vue=eleve&reel=1"); await e.wait_for_timeout(3500)
         await e.screenshot(path=SHOT+"e0-classe.png")
         g=await e.evaluate("document.body.innerText.includes('Choisis ta classe')||!!document.querySelector('.epsg')")
         out.append(("élève : écran Choisis ta classe",g,await e.evaluate("document.body.innerText.slice(0,200)")))
