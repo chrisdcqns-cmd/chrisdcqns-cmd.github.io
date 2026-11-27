@@ -9,7 +9,7 @@ B = "http://localhost:8848/eps-autonomie-numerique/"; CL = "2GT1 TEST"
 NOMS = ["Lina MARTIN", "Noah PETIT", "Emma DURAND", "Hugo LEROY", "Jade MOREAU", "Louis SIMON", "Tom ROUX", "Ines FAURE"]
 SEED = "try{localStorage.setItem('eps.share.v1',JSON.stringify({url:'http://127.0.0.1:1/exec',key:'CLE'}));if(!localStorage.getItem('eps.lists.v1'))localStorage.setItem('eps.lists.v1',JSON.stringify({items:{c1:{id:'c1',nom:'" + CL + "',el:" + json.dumps(NOMS) + ",u:1}},pend:{},since:0}));localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}"
 FAKE = "(function(){var V=JSON.parse(localStorage.getItem('eps.sig.v1')||'{\"items\":{},\"pend\":{}}');V.items['call|x1']={id:'call|x1',k:'call',app:'%s',cls:'" + CL + "',who:[],eq:'Les Aigles',tab:'',lieu:'Terrain 2',motif:'🆘 Je suis bloqué',at:Date.now()-90000,st:0,from:'x1',u:Date.now()};localStorage.setItem('eps.sig.v1',JSON.stringify(V));})()"
-APPS = [("volley", 3, "vert"), ("badminton", 5, "bad5"), ("basket", 2, "duo")]
+APPS = [("volley", 3, "vert"), ("badminton", 5, "bad5"), ("basket", 4, "demi4")]
 async def main():
     out = []; errs = []
     async with async_playwright() as pw:
@@ -33,7 +33,9 @@ async def main():
             if app == "volley":
                 P = r["pos"]; out.append(("volley : 3 terrains à la verticale, côte à côte, de même taille", P[0][1] == P[1][1] == P[2][1] and P[0][0] < P[1][0] < P[2][0] and all(q[3] > q[2] and q[2] == P[0][2] and q[3] == P[0][3] for q in P), P))
             if app == "basket":
-                P = r["pos"]; out.append(("basket : 2 terrains côte à côte, de même taille, aux proportions d'un terrain de basket (28 × 15)", P[0][1] == P[1][1] and P[0][0] < P[1][0] and P[0][2] == P[1][2] and abs(P[0][2] / P[0][3] - 28 / 15) < 0.06, P))
+                P = r["pos"]; out.append(("basket 3 contre 3 : 4 demi-terrains côte à côte, de même taille (14 × 15), accolés deux par deux", all(q[1] == P[0][1] and q[2] == P[0][2] and q[3] == P[0][3] for q in P) and P[0][0] < P[1][0] < P[2][0] < P[3][0] and abs(P[0][2] / P[0][3] - 14 / 15) < 0.06 and (P[1][0] - P[0][0] - P[0][2]) < (P[2][0] - P[1][0] - P[1][2]), P))
+                await p.evaluate("jourSet(clsProf(),{mode:'4'});rendre()"); await p.wait_for_timeout(400); q4 = await p.evaluate("[document.querySelector('.epsct').className,[].map.call(document.querySelectorAll('.epsct-t'),function(t){var q=t.getBoundingClientRect();return Math.round(q.width)/Math.round(q.height)})]")
+                out.append(("basket 4 contre 4 : 2 terrains entiers aux proportions réelles (28 × 15)", "duo" in q4[0] and "sp-basket" in q4[0] and len(q4[1]) == 2 and abs(q4[1][0] - 28 / 15) < 0.08, q4)); await p.evaluate("jourSet(clsProf(),{mode:'3'});rendre()"); await p.wait_for_timeout(400)
             if SHOTS: await p.screenshot(path=os.path.join(SHOTS, "terrains-" + app + ".png"))
             await p.click("[data-eps-call]"); await p.wait_for_timeout(500)
             st = await p.evaluate("JSON.parse(localStorage.getItem('eps.sig.v1')).items['call|x1'].st"); out.append((app + " : « J'y vais » pris en compte depuis cet écran", st == 1, st))
@@ -44,7 +46,7 @@ async def main():
             if app == "badminton":
                 g = await p.evaluate("(function(){terrAuto();return Object.values(C().terr.g)})()"); out.append(("badminton : la répartition automatique n'envoie plus personne sur le terrain fermé", len(g) == 6 and 2 not in g, g))
             if app == "basket":
-                g = await p.evaluate("(function(){var j=jour(clsProf());return [terA(j),terN(j,0),terN(j,1)]})()"); out.append(("basket : un seul terrain utilisé, le match se joue sur le terrain 1", g[0] == [1] and g[1] == 1, g))
+                g = await p.evaluate("(function(){var j=jour(clsProf());return [terA(j),terN(j,0),terN(j,1)]})()"); out.append(("basket : 3 demi-terrains utilisés (1, 3, 4), le 2e match se joue sur le terrain 3", g[0] == [1, 3, 4] and g[1] == 1 and g[2] == 3, g))
             if app == "volley":
                 g = await p.evaluate("terOffV()"); out.append(("volley : le terrain 2 n'est plus proposé aux équipes ni dans le plan", g == [2], g))
             await p.evaluate("EPSLC.reperes({cls:'" + CL + "'})"); await p.wait_for_timeout(300); nb = await p.locator("#lc-rep [data-r]").count(); await p.locator("#lc-rep [data-r]").first.click(); await p.wait_for_timeout(300)

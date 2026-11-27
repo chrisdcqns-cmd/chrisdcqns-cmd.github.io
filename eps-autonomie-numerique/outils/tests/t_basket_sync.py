@@ -30,6 +30,7 @@ async def main():
         md=await e.evaluate("document.querySelector('.pastille').textContent"); print(("✓" if md=="4 contre 4" else "✗"),"forme du jour reçue :",md)
         await e.click("[data-act=matchRot] >> nth=0"); await e.wait_for_timeout(300); await e.click("[data-act=pt][data-e='0'][data-i='1']"); await e.wait_for_timeout(200); await e.click("[data-act=qui] >> nth=0")
         ok=False
+        await p.evaluate("window.epsCtlOwn.open()")  # 📡 Suivi : c'est là que l'enseignant voit les terrains et les scores
         for i in range(30):
             await p.wait_for_timeout(2000)
             try: await p.evaluate("EPSD.syncSoon&&EPSD.syncSoon()")
