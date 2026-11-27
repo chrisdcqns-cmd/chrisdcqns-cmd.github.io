@@ -456,6 +456,9 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
 .evrep{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px;font-weight:700}
 .evrep button{height:46px;padding:0 16px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:17px}
 .evrep button.on{border-color:var(--lane);background:var(--lane-soft);color:var(--lane)}
+.evst{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}.evst button{height:42px;padding:0 14px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:16px}
+.evst button.on{border-color:var(--ink);background:var(--ink);color:#fff}.evst button.on[data-evst="ABS"]{background:#C0392B;border-color:#C0392B}.evst button.on[data-evst="DISP"]{background:#5b6370;border-color:#5b6370}
+.evstmsg{margin-top:10px;padding:10px 14px;border-radius:12px;background:#FDECEA;color:#9C2B10;font-weight:700}.evoff{opacity:.38;pointer-events:none;filter:grayscale(.6)}
 .evgrid{display:grid;grid-template-columns:minmax(110px,180px) repeat(4,minmax(0,1fr));gap:8px;margin-top:16px}
 #ev-host #ev-body,#ev-host .epse-two>*{min-width:0}.evc,.evl{overflow-wrap:anywhere}
 .evh{border-radius:12px;color:#fff;font-weight:800;text-align:center;padding:10px 4px;font-size:17px}
@@ -1636,7 +1639,7 @@ $("#seq-open").addEventListener("click",()=>seqOpen());
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(/^g=/.test(h)&&!teachOn()){QR_HASH=location.hash;qrGroupOpen();return}if(VIEWS.includes(h))go(h)});
 
 /* ===== Étape 1 : classes ===== */
-function clsEvalN(c){const E=c.evals||{};return (c.eleves||[]).filter(e=>{const o=E[e.id];return e.ma!=="DISP"&&o&&o.prof&&evTotal(o.prof,o.rep||"4-4").n===4}).length}
+function clsEvalN(c){const E=c.evals||{};return (c.eleves||[]).filter(e=>{const o=E[e.id];return e.ma!=="DISP"&&o&&(evSt(o)||o.prof&&evTotal(o.prof,o.rep||"4-4").n===4)}).length}
 function renderClasses(){
   try{dupBanner()}catch(e){}
   try{$("#cl-hint").textContent=GO_AFTER==="live"?"Choisis la classe à suivre":GO_AFTER==="eval"?"Choisis la classe à évaluer":GO_AFTER==="bilans"?"Choisis la classe dont tu veux les bilans":"Choisis la classe pour commencer"}catch(e){}
@@ -2470,19 +2473,19 @@ function relaisPdf(e,l,list){
 /* ===== Bilan de l'évaluation : statistiques, PDF de la classe, fiches élèves, partage ===== */
 function evRows(){
   const C=CL();return evList(true).map(e=>{const o=(C.evals||{})[e.id]||{prof:{},auto:{}},rp=evRepOf(o),t=evTotal(o.prof||{},rp),la=lastAutoE(e),ta=la?evTotal(la.sel||{},rp):null;
-    return {e,o,rp,t,la,ta,done:t.n===4,adone:!!(ta&&ta.n===4)}}).sort((a,b)=>(a.e.nom+a.e.prenom).localeCompare(b.e.nom+b.e.prenom,"fr"))}
+    const st=evSt(o);return {e,o,rp,t,la,ta,st,done:!st&&t.n===4,adone:!st&&!!(ta&&ta.n===4)}}).sort((a,b)=>(a.e.nom+a.e.prenom).localeCompare(b.e.nom+b.e.prenom,"fr"))}
 function evStatsC(R){
-  const D=R.filter(r=>r.done),A=R.filter(r=>r.adone),B=R.filter(r=>r.done&&r.adone);
+  const D=R.filter(r=>r.done),A=R.filter(r=>r.adone),B=R.filter(r=>r.done&&r.adone),ns=R.filter(r=>r.st).length;R=R.filter(r=>!r.st);
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null,notes=D.map(r=>r.t.t);
   const dist={};EVE.forEach(x=>{dist[x.k]={4:0,3:0,2:0,1:0};R.forEach(r=>{const s=(r.o.prof||{})[x.k];if(s&&s.d)dist[x.k][s.d]++})});
-  return {n:R.length,nd:D.length,na:A.length,moy:avg(notes),min:notes.length?Math.min(...notes):null,max:notes.length?Math.max(...notes):null,
+  return {n:R.length,ns,nd:D.length,na:A.length,moy:avg(notes),min:notes.length?Math.min(...notes):null,max:notes.length?Math.max(...notes):null,
     moyA:avg(A.map(r=>r.ta.t)),gap:avg(B.map(r=>r.ta.t-r.t.t)),dist};
 }
 const DCOL={4:"#2E7D4F",3:"#6E9F2E",2:"#C98A00",1:"#C0392B"};
 function renderEvBilan(){
   const b=$("#ev-bilan");if(!b)return;const R=evRows(),S=evStatsC(R),f=v=>v==null?"–":fmtP(Math.round(v*100)/100);
   b.innerHTML=`<div class="label">📊 Bilan de l'évaluation <small style="font-weight:600;color:var(--muted)">${esc(CL().name)}</small></div>
-   <div class="bstats"><div><b>${S.nd} / ${S.n}</b><span>élèves évalués</span></div><div><b>${f(S.moy)}</b><span>moyenne de la classe /20</span></div>
+   <div class="bstats"><div><b>${S.nd} / ${S.n}</b><span>élèves évalués${S.ns?` · ${S.ns} absent(s) ou dispensé(s)`:""}</span></div><div><b>${f(S.moy)}</b><span>moyenne de la classe /20</span></div>
    <div><b>${S.min==null?"–":f(S.min)+" – "+f(S.max)}</b><span>note la plus basse – la plus haute</span></div>
    <div><b>${S.na} / ${S.n}</b><span>auto-évaluations reçues</span></div><div><b>${f(S.moyA)}</b><span>moyenne des auto-évaluations</span></div>
    <div><b>${S.gap==null?"–":(S.gap>0?"+":"")+f(S.gap)}</b><span>écart moyen élève − enseignant</span></div></div>
@@ -2505,7 +2508,7 @@ function evClassPdf(){
   const rp0=evRepOf({}),mx=k=>evMax(k,rp0);
   pdfHead(doc,"Relais vitesse : bilan de l'évaluation","Classe "+CL().name);
   pdfSec(doc,"La classe en chiffres");
-  pdfBoxes(doc,[[S.nd+" / "+S.n,"élèves évalués"],[f(S.moy),"moyenne /20"],[S.min==null?"–":f(S.min)+" – "+f(S.max),"note min – max"],[S.na+" / "+S.n,"auto-évaluations"],[f(S.moyA),"moyenne des auto-évaluations"],[S.gap==null?"–":(S.gap>0?"+":"")+f(S.gap),"écart élève − enseignant"]]);
+  pdfBoxes(doc,[[S.nd+" / "+S.n,"élèves évalués"+(S.ns?" ("+S.ns+" abs./disp.)":"")],[f(S.moy),"moyenne /20"],[S.min==null?"–":f(S.min)+" – "+f(S.max),"note min – max"],[S.na+" / "+S.n,"auto-évaluations"],[f(S.moyA),"moyenne des auto-évaluations"],[S.gap==null?"–":(S.gap>0?"+":"")+f(S.gap),"écart élève − enseignant"]]);
   pdfSec(doc,"Répartition des degrés");
   EVE.forEach(x=>{const d=S.dist[x.k],tot=d[4]+d[3]+d[2]+d[1];doc.need(22);doc.text(M,doc.y+12,x.t,{size:10,bold:true});let X=M+130;const W=CW-130;
     if(!tot){doc.text(X,doc.y+12,"pas encore évalué",{size:9,color:'#5b6370'})}else [4,3,2,1].forEach(k=>{if(!d[k])return;const w=W*d[k]/tot;doc.rect(X,doc.y+2,w,15,DCOL[k]);if(w>34)doc.text(X+4,doc.y+13,"D"+k+" : "+d[k],{size:8,bold:true,color:'#ffffff'});X+=w});doc.y+=22});
@@ -2513,7 +2516,7 @@ function evClassPdf(){
   const cols=[["Élève",150],...EVE.map(x=>[x.t+" /"+mx(x.k),(CW-150-110)/4]),["Note /20",55],["Auto /20",55]];
   const head=()=>{doc.rect(M,doc.y,CW,18,'#1B1E24');let x=M+4;cols.forEach(([t,w])=>{doc.text(x,doc.y+12.5,t,{size:8,bold:true,color:'#ffffff',max:w-4});x+=w});doc.y+=18};
   head();R.forEach((r,i)=>{if(doc.need(18))head();if(i%2)doc.rect(M,doc.y,CW,17,'#f7f4f1');
-    const v=[r.e.nom+" "+r.e.prenom,...EVE.map(x=>{const s=(r.o.prof||{})[x.k];return s?"D"+s.d+" · "+fmtP(evPts(r.o.prof,x.k,r.rp)):"–"}),r.t.n?fmtP(r.t.t)+(r.done?"":"*"):"–",r.adone?fmtP(r.ta.t):"–"];
+    const v=r.st?[r.e.nom+" "+r.e.prenom,...EVE.map(()=>"–"),evStLab(r.st),"–"]:[r.e.nom+" "+r.e.prenom,...EVE.map(x=>{const s=(r.o.prof||{})[x.k];return s?"D"+s.d+" · "+fmtP(evPts(r.o.prof,x.k,r.rp)):"–"}),r.t.n?fmtP(r.t.t)+(r.done?"":"*"):"–",r.adone?fmtP(r.ta.t):"–"];
     let x=M+4;cols.forEach(([,w],j)=>{doc.text(x,doc.y+12,String(v[j]),{size:9,bold:j===5,max:w-6});x+=w});doc.y+=17});
   doc.y+=8;doc.text(M,doc.y+8,"* note incomplète (au moins un indicateur manquant). D = degré (4 = le meilleur).",{size:8,color:'#5b6370'});
   EPDF.foot(doc,"Relais Vitesse EPS · bilan de l'évaluation · "+CL().name);
@@ -2523,7 +2526,7 @@ function evStudentPdf(e){
   const doc=EPDF.PDFDoc(),M=doc.M,CW=doc.W-2*M,C=CL(),o=(C.evals||{})[e.id]||{prof:{},auto:{}},rp=evRepOf(o),t=evTotal(o.prof||{},rp),la=lastAutoE(e),ta=la?evTotal(la.sel||{},rp):null;
   pdfHead(doc,"Relais vitesse : mon évaluation",(e.prenom+" "+e.nom).trim());
   pdfSec(doc,"Ma note");
-  pdfBoxes(doc,[[t.n?fmtP(t.t)+" / 20":"–",t.n===4?"note de l'enseignant":"note incomplète"],[ta&&ta.n===4?fmtP(ta.t)+" / 20":"–","mon auto-évaluation"],[rp.replace("-"," / "),"répartition AFL2 / AFL3"]]);
+  const sto=evSt(o);pdfBoxes(doc,[[sto?evStLab(sto,1):t.n?fmtP(t.t)+" / 20":"–",sto?"pas de note":t.n===4?"note de l'enseignant":"note incomplète"],[ta&&ta.n===4?fmtP(ta.t)+" / 20":"–","mon auto-évaluation"],[rp.replace("-"," / "),"répartition AFL2 / AFL3"]]);
   pdfSec(doc,"Ma grille");
   EVE.forEach(x=>{const s=(o.prof||{})[x.k],a=la&&la.sel&&la.sel[x.k],pt=evPts(o.prof,x.k,rp);doc.need(56);
     doc.rect(M,doc.y,CW,20,'#f6efe9');doc.text(M+8,doc.y+14,x.t+" ("+x.s+")",{size:11,bold:true});doc.text(doc.W-M-8,doc.y+14,(pt==null?"–":fmtP(pt))+" / "+evMax(x.k,rp)+" pts",{size:11,bold:true,color:'#D9481F',align:'right'});doc.y+=26;
@@ -2862,8 +2865,8 @@ $("#dispoPrint").addEventListener("click",()=>{try{window.print()}catch(e){toast
 const EVR={6:{4:[4.75,6],3:[3,4.5],2:[1.5,2.75],1:[0,1.25]},4:{4:[3.5,4],3:[2.5,3],2:[1,2],1:[0,0.5]},2:{4:[1.75,2],3:[1.25,1.5],2:[0.75,1],1:[0,0.5]}};
 const EVE=[
  {k:"perf",t:"Performance",s:"AFL1",
-  prof:{4:"Cible dépassée (écart supérieur à 0). Pas de ralentissement. Rapport fréquence/amplitude efficace.",3:"Cible atteinte ou écart de −0,5 km/h au plus. Léger ralentissement à l'approche du receveur. Foulées efficaces mais irrégulières.",2:"Écart de −0,5 à −1,5 km/h. Ralentissement visible avant la transmission. Foulées raccourcies.",1:"Écart de −2 km/h ou plus. Arrêt ou très forte décélération. Course désorganisée."},
-  el:{4:"Je dépasse ma vitesse cible, sans ralentir.",3:"J'atteins ma vitesse cible (ou presque). Je ralentis un peu.",2:"Il me manque 0,5 à 1,5 km/h. Je ralentis avant de donner le témoin.",1:"Il me manque 2 km/h ou plus. Je ralentis beaucoup."}},
+  prof:{4:"Cible atteinte ou dépassée (écart ≥ 0) sur la majorité des courses : atteinte = bas du degré, dépassée = haut du degré. Pas de ralentissement. Rapport fréquence/amplitude efficace.",3:"Écart de −0,5 km/h au plus sur la majorité des courses. Léger ralentissement à l'approche du receveur. Foulées efficaces mais irrégulières.",2:"Écart de −0,5 à −1,5 km/h sur la majorité des courses. Ralentissement visible avant la transmission. Foulées raccourcies.",1:"Écart de −2 km/h ou plus. Arrêt ou très forte décélération. Course désorganisée."},
+  el:{4:"J'atteins ou je dépasse ma vitesse cible le plus souvent, sans ralentir.",3:"Il me manque 0,5 km/h au plus le plus souvent. Je ralentis un peu.",2:"Il me manque 0,5 à 1,5 km/h. Je ralentis avant de donner le témoin.",1:"Il me manque 2 km/h ou plus. Je ralentis beaucoup."}},
  {k:"trans",t:"Transmission",s:"AFL1",
   prof:{4:"Transmission en Z3 (Zone 100), pleine vitesse. Prise de marque cohérente. Technique de transmission maîtrisée.",3:"Transmission en Z2 (Zone 10), sans ralentissement. Prise de marque cohérente. Technique de transmission maîtrisée.",2:"Transmission en Z2 (Zone 10) avec ralentissement. Prise de marque fragile. Technique de transmission fragile.",1:"Transmission en Z1, hors zone ou témoin tombé. Receveur qui attend le donneur. Prise de marque absente ou non utilisée. Technique non maîtrisée."},
   el:{4:"On transmet en Zone 100, à pleine vitesse, avec la bonne marque.",3:"On transmet en Zone 10, sans ralentir, avec la bonne marque.",2:"On transmet en Zone 10 mais on ralentit. Notre marque n'est pas encore sûre.",1:"On transmet en Zone 1 ou hors zone, ou le témoin tombe."}},
@@ -2881,6 +2884,10 @@ const evRepOf=o=>evRepMode()==="eleve"?(o&&o.rep)||"4-4":evRepMode();
 function evOf(id){const C=CL();if(!C.evals)C.evals={};const E=C.evals;if(!E[id])E[id]={rep:"4-4",prof:{},auto:{}};const o=E[id];o.prof=o.prof||{};o.auto=o.auto||{};o.rep=o.rep||"4-4";return o}
 function evPts(sel,k,rep){const s=sel&&sel[k];if(!s||!s.d)return null;const r=EVR[evMax(k,rep)][s.d];return s.p!=null?Math.min(r[1],Math.max(r[0],s.p)):r[1]}
 function evTotal(sel,rep){let t=0,n=0;EVE.forEach(x=>{const p=evPts(sel,x.k,rep);if(p!=null){t+=p;n++}});return {t:Math.round(t*100)/100,n}}
+/* 🚫 Absent / Dispensé à l'évaluation (demande de l'enseignant, 27/11/2026, comme Volley et Danse) : o.st = "ABS" | "DISP" (synchronisé dans evp|) ;
+   pas de note, les degrés déjà cochés sont gardés si l'élève redevient « Présent ». ABS / DISP sur Pronote, l'Excel et les PDF. */
+const evSt=o=>o&&(o.st==="ABS"||o.st==="DISP")?o.st:"";
+const evStLab=(st,long)=>st==="ABS"?(long?"Absent(e)":"ABS"):st==="DISP"?(long?"Dispensé(e)":"DISP"):"";
 /* auto-évaluations d'un élève, toutes tablettes confondues : aussi dans les classes du même nom (élève retrouvé par prénom + nom) */
 function autoSources(e){const C=CL(),out=[];if(!C||!e)return out;const k=ekey(e),n=nrm(C.name);
   DATA.classes.forEach(c=>{if(c!==C&&nrm(c.name)!==n)return;const x=c===C?e:(c.eleves||[]).find(y=>ekey(y)===k);if(!x)return;const o=(c.evals||{})[x.id];
@@ -2898,6 +2905,15 @@ const autoDone=(e,lid)=>{const o=(CL().evals||{})[e.id],a=o&&o.auto&&o.auto[lid]
 /* suggestions tirées des courses enregistrées (toutes les leçons) */
 /* toutes les courses de l'élève, les dernières leçons pondérées par un coefficient (1re leçon ×1, 2e ×2, …) */
 const EV_SEUIL=0.7;
+/* 🏃 Performance (AFL1), règle de l'enseignant (27/11/2026) : chaque course compte, pas la moyenne des écarts (« 3 courses sur 5 à 0 = degré 4,
+   plutôt en bas du degré »). Course réussie = écart ≥ 0 ; degré = le plus haut niveau atteint sur au moins PERF_PART % des courses
+   (4 : écart ≥ 0 · 3 : ≥ PERF_E3 · 2 : ≥ PERF_E2 · 1 : en dessous) ; place dans le degré 4 : bas si la cible est seulement atteinte, haut si elle est dépassée. */
+const evNum=(v,d)=>{v=parseFloat(String(v).replace(",","."));return isFinite(v)?v:d};
+const PERF_PART=Math.min(100,Math.max(1,evNum(EPSP.p({id:"ev_perf_part",sec:"Évaluation",label:"Performance : part des courses qui valide un degré (%)",type:"number",def:60,aide:"Ex. 60 : 3 courses réussies sur 5 suffisent pour le degré 4."}),60)))/100;
+const PERF_E3=evNum(EPSP.p({id:"ev_perf_e3",sec:"Évaluation",label:"Performance : écart le plus bas d'une course de degré 3 (km/h)",type:"number",def:-0.5}),-0.5);
+const PERF_E2=evNum(EPSP.p({id:"ev_perf_e2",sec:"Évaluation",label:"Performance : écart le plus bas d'une course de degré 2 (km/h)",type:"number",def:-1.5}),-1.5);
+const perfLvl=v=>v>=0?4:v>=PERF_E3?3:v>=PERF_E2?2:1;
+const posLab=f=>f<1/3?"bas du degré":f<2/3?"milieu du degré":"haut du degré";
 /* Demande de l'enseignant (27/11/2026) : l'évaluation prend toutes les leçons où le nom de l'élève apparaît, pas seulement la dernière,
    sauf s'il choisit « Leçon finale seulement ». Ce choix vaut pour la session (EV_SCOPE) : il n'est plus gardé ni synchronisé
    (l'ancien classe.evScope restait sur « dernière leçon » sans qu'on le voie).
@@ -2979,16 +2995,25 @@ function evStats(e){
   const coef={};lids.forEach((l,i)=>coef[l.id]=i+1);
   const inZ=z=>typeof z==="string"&&z&&z!==HZ&&z!==NR;
   const r={n:0,les:[],perf:null,trans:null,scope,last:lids.length?lids[lids.length-1].date:null};
-  let P={w:0,over:0,reach:0,sum:0},T={w:0,inz:0,z100:0};
+  let P={w:0,over:0,reach:0,sum:0,l3:0,l2:0,n:0,nr:0,no:0},T={w:0,inz:0,z100:0};
   lids.forEach(l=>{const L=cs.filter(c=>c.lid===l.id);if(!L.length)return;const k=coef[l.id];
     const ec=L.map(c=>c.ecart).filter(v=>typeof v==="number"),zs=L.map(c=>zK(c.zone)).filter(z=>inZ(z)||z===HZ);
     const row={date:l.date,k,n:L.length,ne:ec.length,over:ec.filter(v=>v>0).length,nz:zs.length,inz:zs.filter(inZ).length,z100:zs.filter(z=>z==="Zone 100").length};
     r.les.push(row);r.n+=L.length;
-    P.w+=k*ec.length;P.over+=k*row.over;P.reach+=k*ec.filter(v=>v>=0).length;P.sum+=k*ec.reduce((a,b)=>a+b,0);
+    row.reach=ec.filter(v=>v>=0).length;P.w+=k*ec.length;P.over+=k*row.over;P.reach+=k*row.reach;P.sum+=k*ec.reduce((a,b)=>a+b,0);
+    P.l3+=k*ec.filter(v=>perfLvl(v)>=3).length;P.l2+=k*ec.filter(v=>perfLvl(v)>=2).length;P.n+=ec.length;P.nr+=row.reach;P.no+=row.over;
     T.w+=k*zs.length;T.inz+=k*row.inz;T.z100+=k*row.z100});
-  if(P.w){r.pOver=P.over/P.w;r.pReach=P.reach/P.w;r.mEc=P.sum/P.w;r.perf=r.pOver>=EV_SEUIL?4:r.pReach>=EV_SEUIL?3:r.mEc>-2?2:1;
-    const m=(r.mEc>0?"+":"")+fmt(r.mEc)+" km/h";
-    r.perfWhy={4:`cible dépassée ${pc(r.pOver)} du temps (≥ 70 %)`,3:`cible atteinte ou dépassée ${pc(r.pReach)} du temps (≥ 70 %), mais dépassée seulement ${pc(r.pOver)}`,2:`cible atteinte seulement ${pc(r.pReach)} du temps, écart moyen ${m}`,1:`écart moyen ${m} (−2 km/h ou moins)`}[r.perf]}
+  if(P.w){r.pOver=P.over/P.w;r.pReach=P.reach/P.w;r.mEc=P.sum/P.w;const p3=P.l3/P.w,p2=P.l2/P.w,S=PERF_PART,pp=Math.round(S*100)+" %";
+    r.perf=r.pReach>=S-1e-9?4:p3>=S-1e-9?3:p2>=S-1e-9?2:1;
+    /* place dans le degré (0 = bas, 1 = haut) */
+    const f=r.perf===4?Math.min(1,Math.max(0,0.5*(S<1?(r.pReach-S)/(1-S):1)+0.5*(r.pReach?r.pOver/r.pReach:0)))
+      :Math.min(1,({3:r.pReach,2:p3,1:p2}[r.perf])/S);
+    const b=EVR[6][r.perf];r.perfPos=f;r.perfPts=Math.min(b[1],Math.max(b[0],Math.round((b[0]+f*(b[1]-b[0]))*4)/4));
+    const nb=`${P.nr} course${P.nr>1?"s":""} réussie${P.nr>1?"s":""} sur ${P.n} (écart ≥ 0)`;
+    r.perfWhy={4:`${nb}, ${pc(r.pReach)} du temps (≥ ${pp}) ; cible dépassée ${P.no} fois${r.pOver?"":", seulement atteinte"} → ${posLab(f)}`,
+      3:`${nb} : moins de ${pp} ; écart de ${fmt(PERF_E3)} km/h au plus ${pc(p3)} du temps → ${posLab(f)}`,
+      2:`${nb} ; écart de ${fmt(PERF_E2)} km/h au plus ${pc(p2)} du temps → ${posLab(f)}`,
+      1:`${nb} ; écart de ${fmt(PERF_E2)} km/h au plus seulement ${pc(p2)} du temps`}[r.perf]}
   if(T.w){r.pIn=T.inz/T.w;r.pZ100=T.z100/T.w;r.trans=r.pZ100>=EV_SEUIL?4:r.pIn>=EV_SEUIL?3:r.pIn>=0.5?2:1;
     r.transWhy={4:`Zone 100 ${pc(r.pZ100)} du temps (≥ 70 %)`,3:`dans la zone ${pc(r.pIn)} du temps (≥ 70 %), Zone 100 seulement ${pc(r.pZ100)}`,2:`dans la zone ${pc(r.pIn)} du temps (entre 50 et 70 %)`,1:`dans la zone seulement ${pc(r.pIn)} du temps`}[r.trans]}
   return r;
@@ -3002,13 +3027,14 @@ function evStatsHTML(e,s){
   const nl=s.les.length;
   let h=`<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale du "+fmtShort(s.last)+" · "+esc(e.prenom):"Toutes les courses de "+esc(e.prenom)} · ${s.n} course${s.n>1?"s":""}${s.scope==="all"?" sur "+nl+" leçon"+(nl>1?"s":""):""}</div>${seg}
     ${s.scope==="all"?`<p class="evrs">Les dernières leçons comptent plus : coefficient ${s.les.map(l=>"×"+l.k).join(", ")}.</p>`:""}`;
-  if(s.perf||s.trans)h+=`<div class="evsugg"><b>Positionnement suggéré d'après les résultats</b><ul>${s.perf?`<li><span class="dg d${s.perf}">${s.perf}</span> <b>Performance : degré ${s.perf}</b> — ${s.perfWhy}</li>`:""}${s.trans?`<li><span class="dg d${s.trans}">${s.trans}</span> <b>Transmission : degré ${s.trans}</b> — ${s.transWhy}</li>`:""}</ul><button class="btn sm evapply" data-evapply="1">Appliquer la suggestion</button></div>`;
+  if(s.perf||s.trans)h+=`<div class="evsugg"><b>Positionnement suggéré d'après les résultats</b><ul>${s.perf?`<li><span class="dg d${s.perf}">${s.perf}</span> <b>Performance : degré ${s.perf} (${fmtP(s.perfPts)} / 6)</b> — ${s.perfWhy}</li>`:""}${s.trans?`<li><span class="dg d${s.trans}">${s.trans}</span> <b>Transmission : degré ${s.trans}</b> — ${s.transWhy}</li>`:""}</ul><button class="btn sm evapply" data-evapply="1">Appliquer la suggestion</button></div>`;
   h+=`<div class="evrg">`;
-  h+=`<div><b>Performance</b>${s.pOver!=null?`<div class="evbig">${pc(s.pOver)}</div>vitesse cible dépassée ${badge(s.pOver)}<small>atteinte ou dépassée : ${pc(s.pReach)} · écart moyen ${s.mEc>0?"+":""}${fmt(s.mEc)} km/h</small>`:`<small>écart non renseigné</small>`}</div>`;
+  const bp=v=>v>=PERF_PART-1e-9?`<span class="evok">✓ au moins ${Math.round(PERF_PART*100)} %</span>`:`<span class="evko">✗ moins de ${Math.round(PERF_PART*100)} %</span>`;
+  h+=`<div><b>Performance</b>${s.pReach!=null?`<div class="evbig">${pc(s.pReach)}</div>courses réussies (cible atteinte ou dépassée) ${bp(s.pReach)}<small>dépassée : ${pc(s.pOver)} · écart moyen ${s.mEc>0?"+":""}${fmt(s.mEc)} km/h (pour information)</small>`:`<small>écart non renseigné</small>`}</div>`;
   h+=`<div><b>Transmission</b>${s.pIn!=null?`<div class="evbig">${pc(s.pIn)}</div>dans la zone de transmission ${badge(s.pIn)}<small>en Zone 100 : ${pc(s.pZ100)}</small>`:`<small>zone non renseignée</small>`}</div></div>`;
-  h+=`<table class="evrec evles"><thead><tr><th>Leçon</th><th class="n">Coef.</th><th class="n">Courses</th><th class="n">Cible dépassée</th><th class="n">Dans la zone</th><th class="n">Zone 100</th></tr></thead><tbody>`
-    +s.les.slice().reverse().map(l=>`<tr><td>${fmtShort(l.date)}</td><td class="n">×${l.k}</td><td class="n">${l.n}</td><td class="n">${l.ne?l.over+" / "+l.ne:"–"}</td><td class="n">${l.nz?l.inz+" / "+l.nz:"–"}</td><td class="n">${l.nz?l.z100+" / "+l.nz:"–"}</td></tr>`).join("")
-    +`</tbody></table><p style="margin:10px 0 0"><button class="btn ghost sm" data-fego="${e.id}">🔎 Toutes ses courses, une par une</button></p><p class="evrs" style="margin-top:6px">${s.scope==="all"?"Pourcentages pondérés par les coefficients. ":""}Degré 4 si ≥ 70 % (cible dépassée / Zone 100), degré 3 si ≥ 70 % (cible atteinte / dans la zone). Mise en projet et Vivre les rôles restent à ton appréciation.</p></div>`;
+  h+=`<table class="evrec evles"><thead><tr><th>Leçon</th><th class="n">Coef.</th><th class="n">Courses</th><th class="n">Réussies (écart ≥ 0)</th><th class="n">Dans la zone</th><th class="n">Zone 100</th></tr></thead><tbody>`
+    +s.les.slice().reverse().map(l=>`<tr><td>${fmtShort(l.date)}</td><td class="n">×${l.k}</td><td class="n">${l.n}</td><td class="n">${l.ne?l.reach+" / "+l.ne+(l.over?` <small style="color:var(--muted)">(dont ${l.over} dépassée${l.over>1?"s":""})</small>`:""):"–"}</td><td class="n">${l.nz?l.inz+" / "+l.nz:"–"}</td><td class="n">${l.nz?l.z100+" / "+l.nz:"–"}</td></tr>`).join("")
+    +`</tbody></table><p style="margin:10px 0 0"><button class="btn ghost sm" data-fego="${e.id}">🔎 Toutes ses courses, une par une</button></p><p class="evrs" style="margin-top:6px">${s.scope==="all"?"Pourcentages pondérés par les coefficients. ":""}Performance : chaque course compte (réussie si l'écart est ≥ 0), degré 4 si au moins ${Math.round(PERF_PART*100)} % des courses sont réussies, en bas du degré quand la cible est seulement atteinte, plus haut quand elle est dépassée. Transmission : degré 4 si ≥ 70 % en Zone 100, degré 3 si ≥ 70 % dans la zone. Mise en projet et Vivre les rôles restent à ton appréciation.</p></div>`;
   return h;
 }
 function evNamesHTML(list,sel,mark){
@@ -3025,11 +3051,12 @@ function evGridHTML(mode,e){
   const sel=prof?o.prof:((o.auto[lid]||{}).sel||{});
   const la=prof?lastAutoE(e):null,sg=prof?evSuggest(e):null;
   const repLab=r=>r.replace("-"," / ");
-  let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}${prof?apChipRel(e):""}</div>${prof?'<div data-relprop></div>':""}
+  const st=prof?evSt(o):"";
+  let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}${prof?apChipRel(e):""}</div>${prof?`<div class="evst">${[["","Présent"],["ABS","Absent"],["DISP","Dispensé"]].map(([v,l])=>`<button data-evst="${v}" class="${st===v?"on":""}">${l}</button>`).join("")}</div>${st?`<div class="evstmsg">${evStLab(st,1)} : pas de note pour cette évaluation (${evStLab(st)} sur Pronote et dans les exports). Les degrés déjà cochés sont gardés.</div>`:""}`:""}${prof?'<div data-relprop></div>':""}
     <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
       :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts${prof?" (répartition fixée dans les réglages de la leçon)":""}</span>`}</div>
     ${prof?evStatsHTML(e,sg):""}${prof?`<div class="evleg mt">${la?`<span><i></i>bleu : auto-positionnement de ${esc(e.prenom)}</span>`:""}${sg&&(sg.perf||sg.trans)?`<span><i class="r"></i>rouge : suggestion d'après les résultats</span>`:""}</div>`:""}
-    <div class="evgrid"><div></div>${[4,3,2,1].map(d=>`<div class="evh d${d}">Degré ${d}</div>`).join("")}`;
+    <div class="evgrid ${st?"evoff":""}"><div></div>${[4,3,2,1].map(d=>`<div class="evh d${d}">Degré ${d}</div>`).join("")}`;
   EVE.forEach(x=>{const mx=evMax(x.k,rp),pt=evPts(sel,x.k,rp);
     h+=`<div class="evl">${x.t}<small>${x.s} · sur ${mx} pts</small>${pt!=null?`<span class="evp">${fmtP(pt)} / ${mx}</span>`:""}</div>`;
     [4,3,2,1].forEach(d=>{const on=sel[x.k]&&sel[x.k].d===d,r=EVR[mx][d];
@@ -3053,7 +3080,8 @@ function evGridHTML(mode,e){
       +`<tr class="tot"><td>Note générale</td><td></td><td class="n">${t0.n?fmtP(t0.t):"–"} / 20${t0.n<4?` <small style="font-weight:600;color:var(--muted)">(incomplète)</small>`:""}</td>${la?`<td class="n">${ta.n?fmtP(ta.t):"–"} / 20</td>`:""}</tr></tbody></table>`
     h+=`<div class="evappc mt"><div class="label">✍️ Appréciation (bulletin et fiche PDF)</div><textarea rows="3" data-evapp="${e.id}" data-eps-comment data-eps-mode="bulletin" data-eps-ctx="${esc(evAppCtx(e))}" placeholder="Quelques mots (ou 🎤 Dicter), puis ✨ Reformuler : Claude rédige l'appréciation à partir de la grille et des courses. Relis avant de l'utiliser.">${esc(o.app||"")}</textarea></div>`}
   const t=evTotal(sel,rp);
-  h+=`<div class="evtot"><div class="big">${t.n?fmtP(t.t):"–"} / 20</div><div class="det">${t.n===4?(prof?"Note enregistrée ✓ · touche une autre case pour changer":"Auto-évaluation enregistrée ✓ · tu peux encore changer tes cases"):`${4-t.n} élément(s) à compléter`}</div>`
+  h+=st?`<div class="evtot"><div class="big">${evStLab(st,1)}</div><div class="det">Pas de note · touche « Présent » pour noter</div>`
+    +`<button class="btn ghost sm" style="margin-left:auto;background:transparent;color:#fff;border-color:#fff" data-evnext="1">Élève suivant →</button></div></div>`:`<div class="evtot"><div class="big">${t.n?fmtP(t.t):"–"} / 20</div><div class="det">${t.n===4?(prof?"Note enregistrée ✓ · touche une autre case pour changer":"Auto-évaluation enregistrée ✓ · tu peux encore changer tes cases"):`${4-t.n} élément(s) à compléter`}</div>`
     +(prof?`<button class="btn ghost sm" style="margin-left:auto;background:transparent;color:#fff;border-color:#fff" data-evshare="${e.id}">📤 Fiche PDF</button><button class="btn ghost sm" style="background:transparent;color:#fff;border-color:#fff" data-evnext="1">Élève suivant →</button>`:"")+`</div></div>`;
   return h;
 }
@@ -3067,13 +3095,13 @@ function renderEval(){
   try{if(EVRL&&CL()){const b=$("#ev-bilan"),c={nom:CL().name,eleves:CL().eleves||[]};(c.eleves).forEach(e=>EVCL.set(e,CL()));const d=document.createElement("div");d.innerHTML=EVRL.exportsHtml()+EVRL.card(c);b.appendChild(d);EVRL.bindExports(d,c);EVRL.bindCard(d,c)}}catch(e){console.warn(e)}
   const L=evList(true);if(EV_SEL!=null&&!L.some(e=>e.id===EV_SEL))EV_SEL=null;
   const lid=CLE()?CLE().id:null;
-  $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=lastAutoE(e);return (p||a||apRel(e))?`<small>${p?"✓":""}</small>${apChipRel(e)}`:""});
+  $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];if(evSt(o))return `<small>${evSt(o)==="ABS"?"Abs.":"Disp."}</small>`;const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=lastAutoE(e);return (p||a||apRel(e))?`<small>${p?"✓":""}</small>${apChipRel(e)}`:""});
   const e=EV_SEL!=null?byId(EV_SEL):null;
   const cell=(o,k,rp)=>{const s=o&&o.prof[k];return s?`<span class="dg d${s.d}">${s.d}</span> ${fmtP(evPts(o.prof,k,rp))}`:"–"};
   const ev0=CL().evals||{};
   $("#ev-recap").innerHTML=`<table class="evrec"><thead><tr><th>Élève</th>${EVE.map(x=>`<th class="n">${x.t}</th>`).join("")}<th class="n">Note /20</th><th class="n">Auto /20</th></tr></thead><tbody>`
     +L.map(st=>{const o=ev0[st.id],rp=evRepOf(o),t=o?evTotal(o.prof,rp):{n:0},la=lastAutoE(st),ta=la?evTotal(la.sel,rp):null;
-      return `<tr data-eve="${st.id}" class="${EV_SEL===st.id?"on":""}"><td><b>${esc(st.prenom)}</b> ${esc(st.nom)}</td>${EVE.map(x=>`<td class="n">${cell(o,x.k,rp)}</td>`).join("")}<td class="n"><b>${t.n?fmtP(t.t):"–"}</b>${t.n&&t.n<4?" *":""}</td><td class="n">${ta&&ta.n===4?fmtP(ta.t):"–"}</td></tr>`}).join("")
+      return `<tr data-eve="${st.id}" class="${EV_SEL===st.id?"on":""}"><td><b>${esc(st.prenom)}</b> ${esc(st.nom)}</td>${EVE.map(x=>`<td class="n">${evSt(o)?"–":cell(o,x.k,rp)}</td>`).join("")}<td class="n"><b>${evSt(o)?evStLab(evSt(o)):t.n?fmtP(t.t):"–"}</b>${!evSt(o)&&t.n&&t.n<4?" *":""}</td><td class="n">${ta&&ta.n===4?fmtP(ta.t):"–"}</td></tr>`}).join("")
     +`</tbody></table><p class="note" style="margin:8px 0 0">* note incomplète (il manque au moins un indicateur).</p>`;
   /* Évaluation finale au modèle Danse (27/11/2026) : 👤 élève par élève = la grille avec la colonne des élèves ; 📋 par critère / 👥 par groupe = saisie rapide commune */
   const QM=EVRL&&EVRL.quickInto?EVRL.mode():"",QC={nom:CL().name,eleves:L},qOn=QM&&QM!=="eleve",qEl=$("#ev-q"),host=$("#ev-host"),bod=$("#ev-body");
@@ -3093,25 +3121,38 @@ function renderAuto(){
   const e=AU_SEL!=null?byId(AU_SEL):null;
   $("#au-body").innerHTML=e?evGridHTML("auto",e):`<div class="card mt empty-msg">Touche ton prénom, puis clique dans chaque ligne sur la case qui te correspond le mieux.</div>`;
 }
+/* La page ne bouge plus quand on touche un degré (bug signalé le 27/11/2026 : « l'évaluation se baisse à chaque fois ») : la grille est redessinée
+   en entier (bloc de proposition commun posé après la mise en page, qui raccourcit un instant la page) ; on fige la hauteur de l'écran pendant le
+   dessin, puis on remet l'élément touché exactement au même endroit de l'écran. */
+function evKeep(el,fn){
+  const sel=el?[...el.attributes].filter(a=>/^data-ev/.test(a.name)).map(a=>`[${a.name}="${CSS.escape(a.value)}"]`).join(""):"";
+  const top=n=>{const L=[];for(let x=n,i=0;x&&i<4;x=x.parentElement,i++){L.push([x,x.style.transform]);x.style.transform="none"}const y=n.getBoundingClientRect().top;L.forEach(([x,t])=>x.style.transform=t);return y}; /* sans l'effet d'appui (.evc:active) */
+  const t0=el&&el.isConnected?top(el):null,y0=window.scrollY,v=$("#v-eval")||$("#v-auto");
+  if(v)v.style.minHeight=v.offsetHeight+"px";
+  const fix=()=>{const n=sel&&document.querySelector(".view.on "+sel);if(n&&t0!=null){const d=top(n)-t0;if(Math.abs(d)>1)window.scrollBy({top:d,behavior:"instant"})}
+    else if(Math.abs(window.scrollY-y0)>1)window.scrollTo({top:y0,behavior:"instant"})};
+  try{fn()}finally{fix();if(v)v.style.minHeight="";fix()}}
 function evClick(mode,ev){
   const t=ev.target,nm=t.closest("[data-eve]");
   if(nm){if(mode==="prof")EV_SEL=+nm.dataset.eve;else AU_SEL=+nm.dataset.eve;mode==="prof"?renderEval():renderAuto();
     const b=$(mode==="prof"?"#ev-body":"#au-body");if(b)b.scrollIntoView({behavior:"smooth",block:"start"});return}
   const id=mode==="prof"?EV_SEL:AU_SEL;if(id==null)return;const e=byId(id);if(!e)return;const o=evOf(id),lid=CLE()?CLE().id:null;if(mode!=="prof"&&!lid)return;
   const sc=t.closest("[data-evscope]");
-  if(sc){EV_SCOPE=sc.dataset.evscope==="last"?"last":"all";renderEval();return}
+  if(sc){EV_SCOPE=sc.dataset.evscope==="last"?"last":"all";evKeep(sc,renderEval);return}
   const ap=t.closest("[data-evapply]");
-  if(ap){const s=evStats(e);["perf","trans"].forEach(k=>{if(s[k]&&!(o.prof[k]&&o.prof[k].d===s[k]))o.prof[k]={d:s[k]}});o.prof.at=new Date().toISOString();persist();renderEval();toast("Suggestion appliquée : ajuste si besoin");return}
+  if(ap){const s=evStats(e);evKeep(ap,()=>{if(s.perf)o.prof.perf={d:s.perf,p:s.perfPts};if(s.trans&&!(o.prof.trans&&o.prof.trans.d===s.trans))o.prof.trans={d:s.trans};o.prof.at=new Date().toISOString();persist();renderEval()});toast("Suggestion appliquée : ajuste si besoin");return}
+  const sb=mode==="prof"&&t.closest("[data-evst]");
+  if(sb){const v=sb.dataset.evst;evKeep(sb,()=>{if(v==="ABS"||v==="DISP")o.st=v;else delete o.st;o.prof.at=new Date().toISOString();persist();renderEval()});return}
   const rr=t.closest("[data-evrep]");
   if(rr){if(evRepMode()!=="eleve")return;o.rep=rr.dataset.evrep;["proj","role"].forEach(k=>{if(o.prof[k])delete o.prof[k].p});persist();mode==="prof"?renderEval():renderAuto();return}
   const nx=t.closest("[data-evnext]");
   if(nx){const L=evList(true),i=L.findIndex(x=>x.id===id);EV_SEL=L[(i+1)%L.length].id;renderEval();$("#ev-body").scrollIntoView({behavior:"smooth",block:"start"});return}
   const aj=t.closest("[data-evadj]");
   if(aj){const k=aj.dataset.evk2,s=o.prof[k];if(!s)return;const r=EVR[evMax(k,evRepOf(o))][s.d];const cur=evPts(o.prof,k,evRepOf(o));
-    s.p=Math.min(r[1],Math.max(r[0],Math.round((cur+0.25*(+aj.dataset.evadj))*4)/4));o.prof.at=new Date().toISOString();persist();renderEval();return}
+    s.p=Math.min(r[1],Math.max(r[0],Math.round((cur+0.25*(+aj.dataset.evadj))*4)/4));o.prof.at=new Date().toISOString();persist();evKeep(aj,renderEval);return}
   const c=t.closest("[data-evk]");if(!c)return;const k=c.dataset.evk,d=+c.dataset.evd;
-  if(mode==="prof"){const s=o.prof[k];if(!(s&&s.d===d))o.prof[k]={d};o.prof.at=new Date().toISOString();persist();renderEval();return}
-  const was=autoDone(e,lid);const a=o.auto[lid]||(o.auto[lid]={sel:{}});a.sel[k]={d};a.at=new Date().toISOString();a.tab=(typeof SY!=="undefined"&&SY.nom)||"";persist();renderAuto();renderEvAlert();
+  if(mode==="prof"){const s=o.prof[k];if(!(s&&s.d===d))o.prof[k]={d};o.prof.at=new Date().toISOString();persist();evKeep(c,renderEval);return}
+  const was=autoDone(e,lid);const a=o.auto[lid]||(o.auto[lid]={sel:{}});a.sel[k]={d};a.at=new Date().toISOString();a.tab=(typeof SY!=="undefined"&&SY.nom)||"";persist();evKeep(c,renderAuto);renderEvAlert();
   if(!was&&autoDone(e,lid))toast("✓ Auto-évaluation enregistrée : "+fmtP(evTotal(a.sel,evRepOf(o)).t)+" / 20");
 }
 $("#v-eval").addEventListener("click",e=>evClick("prof",e));
@@ -3531,10 +3572,10 @@ function buildXlsx(CS){
   const vit=[["Classe","Code anonyme (Google Sheets)","Nom","Prénom","Groupe(s)","Arrêté E1","Arrêté E2","Arrêté E3","Moyenne arrêté","Lancé E1","Lancé E2","Lancé E3","Moyenne lancé"]];
   sortedEleves().forEach(e=>vit.push([C.name,anonCode(C,e),e.nom,e.prenom,grpOf(e.id),...e.ea,e.ma,...e.el,e.ml]));
   const ev=[["Classe","Nom","Prénom","Groupe(s)","Répartition AFL2/AFL3","Performance (degré)","Performance (pts /6)","Transmission (degré)","Transmission (pts /6)","Mise en projet (degré)","Mise en projet (pts)","Vivre les rôles (degré)","Vivre les rôles (pts)","Note enseignant /20","Auto-évaluation /20 (dernière)","Date de l'auto-évaluation","Appréciation"]];
-  sortedEleves().forEach(e=>{const o=(C.evals||{})[e.id]||{prof:{},auto:{}};if(!o.prof||(!Object.keys(o.prof).length&&!lastAutoE(e)))return;const rp=evRepOf(o),row=[C.name,e.nom,e.prenom,grpOf(e.id),rp.replace("-"," / ")];
+  sortedEleves().forEach(e=>{const o=(C.evals||{})[e.id]||{prof:{},auto:{}};if(!evSt(o)&&(!o.prof||(!Object.keys(o.prof).length&&!lastAutoE(e))))return;const rp=evRepOf(o),row=[C.name,e.nom,e.prenom,grpOf(e.id),rp.replace("-"," / ")];
     let ok=true;EVE.forEach(x=>{const s=(o.prof||{})[x.k],pt=evPts(o.prof,x.k,rp);if(!s)ok=false;row.push(s?"Degré "+s.d:"",pt==null?"":pt)});
     const t=evTotal(o.prof||{},rp),la=lastAutoE(e),ta=la?evTotal(la.sel||{},rp):null;
-    row.push(t.n?t.t:"",ta&&ta.n===4?ta.t:"",la&&la.at?fmtShort(la.at.slice(0,10)):"",o.app||"");ev.push(row)});
+    row.push(evSt(o)||(t.n?t.t:""),ta&&ta.n===4?ta.t:"",la&&la.at?fmtShort(la.at.slice(0,10)):"",o.app||"");ev.push(row)});
   const files=[
    {name:"[Content_Types].xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`},
    {name:"_rels/.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
@@ -3767,7 +3808,7 @@ function syRecords(){
     (c.lecons||[]).forEach(l=>{const o={};Object.keys(l).forEach(k=>{if(k!=="coach")o[k]=l[k]});put("lec|"+c.id+"|"+l.id,o);
       Object.entries(l.coach||{}).forEach(([g,v])=>{if(v!=null)put("lco|"+c.id+"|"+l.id+"|"+g,{v})})});
     (c.courses||[]).forEach(x=>{if(!x.cid)return;const o={};Object.keys(x).forEach(k=>{if(k!=="rx")o[k]=x[k]});put("co|"+c.id+"|"+x.cid,o)});
-    Object.entries(c.evals||{}).forEach(([id,o])=>{if(!o)return;put("evp|"+c.id+"|"+id,o.app?{rep:o.rep,prof:o.prof||{},app:o.app}:{rep:o.rep,prof:o.prof||{}});
+    Object.entries(c.evals||{}).forEach(([id,o])=>{if(!o)return;put("evp|"+c.id+"|"+id,Object.assign({rep:o.rep,prof:o.prof||{}},o.app?{app:o.app}:{},o.st?{st:o.st}:{}));
       Object.entries(o.auto||{}).forEach(([lid,a])=>{if(a)put("eva|"+c.id+"|"+id+"|"+lid,a)})});
   });
   if(DATA.dispo)put("dispo",DATA.dispo);
@@ -3827,7 +3868,7 @@ function syApply(k,o){
   if(t==="lco"){const l=c.lecons.find(x=>x.id===p[2]);if(!l)return false;l.coach=l.coach||{};l.coach[p[3]]=o.v;return true}
   if(t==="co"){const i=c.courses.findIndex(x=>x.cid===p[2]);const n={...o};if(i>=0&&c.courses[i].rx)n.rx=c.courses[i].rx;if(i<0)c.courses.push(n);else c.courses[i]=n;return true}
   if(t==="evp"||t==="eva"){c.evals=c.evals||{};const e=c.evals[p[2]]||(c.evals[p[2]]={rep:"4-4",prof:{},auto:{}});
-    if(t==="evp"){e.rep=o.rep;e.prof=o.prof||{};if(o.app!=null||e.app)e.app=o.app||""}else{e.auto=e.auto||{};e.auto[p[3]]=o}return true}
+    if(t==="evp"){e.rep=o.rep;e.prof=o.prof||{};if(o.app!=null||e.app)e.app=o.app||"";if(o.st!=null||e.st)e.st=o.st==="ABS"||o.st==="DISP"?o.st:""}else{e.auto=e.auto||{};e.auto[p[3]]=o}return true}
   return true;
 }
 function syRemove(k){
@@ -4337,7 +4378,7 @@ let EVAPP_T=null;
 document.addEventListener("input",e=>{const ta=e.target.closest&&e.target.closest("[data-evapp]");if(!ta)return;const o=evOf(+ta.dataset.evapp);o.app=ta.value;clearTimeout(EVAPP_T);EVAPP_T=setTimeout(persist,700)});
 async function evAppAll(b){
   if(!window.EPSD||!EPSD.reformuler){toast("Fonction indisponible : mets l'appli à jour (⟳)");return}
-  const L=evList(true).filter(e=>{const o=(CL().evals||{})[e.id];return o&&!(o.app||"").trim()&&evTotal(o.prof||{},evRepOf(o)).n===4});
+  const L=evList(true).filter(e=>{const o=(CL().evals||{})[e.id];return o&&!evSt(o)&&!(o.app||"").trim()&&evTotal(o.prof||{},evRepOf(o)).n===4});
   const msg=$("#ev-iamsg");if(!L.length){msg.textContent="Aucune appréciation à rédiger : il faut une grille complète (4 indicateurs) et une appréciation vide.";return}
   b.disabled=true;let ok=0,err="";
   for(let i=0;i<L.length;i++){const e=L[i];msg.textContent=`Claude rédige… ${i+1} / ${L.length} (aucun nom n'est envoyé)`;
@@ -4598,7 +4639,7 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  max:(cr,e)=>{const o=evrO(e);return evMax(cr.id,o?evRepOf(o):'4-4')},
  classes:evrClasses,name:e=>({nom:e.nom||'',prenom:e.prenom||''}),
  prof:(cr,e)=>{const o=evrO(e),s=o&&o.prof[cr.id];if(!s||!s.d)return null;const rp=evRepOf(o),pts=evPts(o.prof,cr.id,rp),b=EVR[evMax(cr.id,rp)][s.d];return{d:s.d-1,pos:b[1]>b[0]?Math.max(0,Math.min(1,(pts-b[0])/(b[1]-b[0]))):1,pts}},
- note:e=>{const o=evrO(e);if(!o)return null;const t=evTotal(o.prof,evRepOf(o));return t.n===4?t.t:null},absent:e=>'',comment:e=>{const o=evrO(e);return (o&&(o.comm||o.app))||''},
+ note:e=>{const o=evrO(e);if(!o||evSt(o))return null;const t=evTotal(o.prof,evRepOf(o));return t.n===4?t.t:null},absent:e=>evSt(evrO(e)),comment:e=>{const o=evrO(e);return (o&&(o.comm||o.app))||''},
  extras:(c,e)=>{const o=evrO(e);return o?['Répartition AFL2 / AFL3 : '+evRepOf(o).replace('-',' / ')]:[]},
  getAp:e=>{const o=evrO(e);return o&&o.ap||null},
  /* saisie rapide commune (par critère / par groupe) et « ✓ Reprendre ces degrés » ; groupes = ceux de la leçon du jour, sinon de la classe */
