@@ -28,7 +28,7 @@ async def main():
         async def route(r):
             q = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(r.request.url).query))
             if "ai" in q: CAP.append(q); ACT[0] += 1; ACT[1] = max(ACT[1], ACT[0]); await asyncio.sleep(0.7); ACT[0] -= 1
-            body = {"keyOk": True, "ai": "Très bon trimestre, [Prénom] a su s'investir pour réaliser des progrès. Les résultats et l'attitude sont remarquables.", "aiv": 5} if "ai" in q else {"keyOk": True}
+            body = {"keyOk": True, "ai": "Très bon trimestre, [Prénom] a su s'investir pour réaliser des progrès. Les résultats et l'attitude sont remarquables.", "aiv": 9} if "ai" in q else {"keyOk": True}
             await r.fulfill(status=200, content_type="application/javascript", body=q.get("callback", "x") + "(" + json.dumps(body) + ")")
         await c.route("https://script.google.com/**", route)
         p = await c.new_page(); p.on("dialog", lambda d: asyncio.ensure_future(d.accept())); p.on("pageerror", lambda x: errs.append(str(x)[:240])); p.set_default_timeout(9000)
@@ -85,7 +85,7 @@ async def main():
         ok("correction 👧 / 👦 gardée (eps.genre.v1)", '"g":"f"' in gs, gs)
         await p.evaluate("(function(){var r=[].filter.call(document.querySelectorAll('#epsbu-w [data-one]'),function(b){return /Hugo/.test(b.closest('div[style]').innerText)})[0];r.click()})()"); await p.wait_for_timeout(2200)
         tx = await p.evaluate("(function(){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return /^Hugo/.test(b.getAttribute('data-eps-genre'))})[0];return b.closest('div[style]').parentNode.querySelector('textarea').value})()")
-        ok("✨ d'un seul élève : prénom remis sur la tablette, accords d'après la correction", tx.startswith("Très bon trimestre, Hugo a su") and CAP and "une fille" in CAP[-1]["ctx"] and "Hugo" not in CAP[-1]["t"] + CAP[-1]["ctx"], (tx, CAP[-1]["ctx"][-200:] if CAP else ""))
+        ok("✨ d'un seul élève : prénom remis sur la tablette, accords d'après la correction", "Hugo a su" in tx and "[Prénom]" not in tx and CAP and "une fille" in CAP[-1]["ctx"] and "Hugo" not in CAP[-1]["t"] + CAP[-1]["ctx"], (tx, CAP[-1]["ctx"][-200:] if CAP else ""))
         await p.evaluate("(function(){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return /^Hugo/.test(b.getAttribute('data-eps-genre'))})[0];b.closest('div[style]').parentNode.querySelector('[data-eps-copy]').click()})()"); await p.wait_for_timeout(400)
         cp = await p.evaluate("navigator.clipboard.readText()"); bt = await p.evaluate("(function(){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return /^Hugo/.test(b.getAttribute('data-eps-genre'))})[0];return b.closest('div[style]').parentNode.querySelector('[data-eps-copy]').textContent})()")
         ok("📋 Copier à côté de chaque appréciation : texte de l'élève copié", cp == tx and "Copié" in bt and await p.evaluate("document.querySelectorAll('#epsbu-w .epsd-cpw [data-eps-copy]').length") == await p.evaluate("document.querySelectorAll('#epsbu-w textarea[data-t]').length"), (cp, bt))
@@ -102,11 +102,24 @@ async def main():
             await p.evaluate("(n)=>{var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return b.getAttribute('data-eps-genre')===n})[0];b.parentNode.querySelector('[data-one]').click()}", who); await p.wait_for_timeout(1800)
         TX = await p.evaluate("(N)=>N.map(function(n){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return b.getAttribute('data-eps-genre')===n})[0];return b.closest('div[style]').parentNode.querySelector('textarea').value})", NM[:2])
         nts = [(__import__('re').search(r"note (\d+(?:,\d+)?)/20", q["t"]) or [None, None])[1] for q in CAP]
-        ok("niveau d'après la note : " + str(nts) + " → " + str([t[:22] for t in TX]), len(CAP) == 2 and TX[0].startswith("Excellent trimestre, ") and TX[1].startswith("Bon trimestre, ") and "Niveau fixé par la note" in CAP[0]["ctx"] and "Thèmes pour cet élève" in CAP[0]["ctx"] and "résultats :" in CAP[0]["t"], [q["ctx"][:220] for q in CAP] + [q["t"][:220] for q in CAP])
+        ok("niveau d'après la note : " + str(nts) + " → " + str([t[:22] for t in TX]), len(CAP) == 2 and TX[0].startswith("Excellent trimestre. ") and TX[1].startswith("Un bon trimestre. ") and "Niveau fixé par la note" in CAP[0]["ctx"] and "Thèmes pour cet élève" in CAP[0]["ctx"] and "résultats :" in CAP[0]["t"], [q["ctx"][:220] for q in CAP] + [q["t"][:220] for q in CAP])
         CA2 = await p.evaluate("(function(){var s=document.querySelector('script[src*=\"eps-home\"]');return null})()") or []
         CA2 = __import__("re").findall(r'"([^"]+)"', __import__("re").search(r"var BUL_CA = \{([\s\S]*?)\};", open(ROOT + "/eps-autonomie-numerique/eps-home.js", encoding="utf-8").read()).group(1))   # thèmes de tous les CA (l'élève de la classe fictive a plusieurs activités)
-        ok("thème d'un champ d'apprentissage de l'élève et conseil final demandés", CAP and all(any(t in q["ctx"] for t in CA2) and "perspective positive" in q["ctx"] for q in CAP[-2:]), [q["ctx"][q["ctx"].find("Thèmes"):q["ctx"].find("Thèmes")+160] + " || " + q["t"][:200] for q in CAP[-2:]])
-        ok("appréciation courte (entre 150 et 200 caractères) et unique (formules déjà écrites à éviter)", all("entre 150 et 200 caractères" in q["ctx"] for q in CAP[-2:]) and "UNIQUE" in CAP[-1]["ctx"], [q["ctx"][-300:] for q in CAP[-2:]])
+        ok("thème d'un champ d'apprentissage de l'élève et conseil final demandés", CAP and all(any(t in q["ctx"] for t in CA2) and "conseil concret" in q["ctx"] for q in CAP[-2:]), [q["ctx"][q["ctx"].find("Thèmes"):q["ctx"].find("Thèmes")+160] + " || " + q["t"][:200] for q in CAP[-2:]])
+        ok("appréciation courte (entre 150 et 200 caractères) et unique (formules déjà écrites à éviter)", all("entre 150 et 200 caractères" in q["ctx"] for q in CAP[-2:]) and "Ne reprends pas" in CAP[-1]["ctx"], [q["ctx"][-300:] for q in CAP[-2:]])
+        # dispensé sans autre note : « Dispensé(e) » sans Claude ; appréciation de la classe ; mots trop employés
+        await p.evaluate("""(function(){EPSD.listSave('TEST DISP',['Zoé LAMBERT','Paul MOREL'],[]);var K='eps.eval.esc.v1',V=JSON.parse(localStorage.getItem(K)||'{"items":{},"pend":{}}');V.items['tdisp1']={id:'tdisp1',p:'Zoé',n:'LAMBERT',c:'TEST DISP',st:'DISP',ev:{},u:Date.now()};localStorage.setItem(K,JSON.stringify(V))})()"""); await p.wait_for_timeout(800)
+        n0 = len(CAP)
+        await p.evaluate("(c)=>{var w=document.getElementById('epsbu-w');if(w)w.remove();EPSD.bulletin(c)}", "TEST DISP"); await p.wait_for_timeout(900)
+        await p.evaluate("document.getElementById('bu-go').click()"); await p.wait_for_timeout(1200)
+        dz = await p.evaluate("[].map.call(document.querySelectorAll('#epsbu-w textarea[data-t]'),function(t){return t.value})")
+        ok("dispensé à l'évaluation sans autre note : « Dispensée », sans appel à Claude", "Dispensée" in dz and len(CAP) == n0, (dz, len(CAP) - n0))
+        await p.evaluate("(c)=>{var w=document.getElementById('epsbu-w');if(w)w.remove();EPSD.bulletin(c)}", NM[2]); await p.wait_for_timeout(900)
+        await p.evaluate("document.getElementById('bu-cl').click()"); await p.wait_for_timeout(1800)
+        cl = await p.evaluate("(function(){var t=document.getElementById('bu-clt');return t?t.value:''})()"); qc = [q for q in CAP if q.get("ai") == "classe"]
+        ok("🏫 appréciation de la classe (sans nom, avec moyenne et répartition)", cl and qc and "Moyenne" in qc[-1]["t"] and "Démo" not in qc[-1]["t"] and await p.evaluate("!!document.querySelector('#bu-cls [data-eps-copy]')"), (cl, qc[-1]["t"][:200] if qc else ""))
+        await p.evaluate("document.getElementById('bu-go').click()"); await p.wait_for_timeout(4500)
+        ok("mots déjà trop employés dans la classe signalés à Claude", any("trop employés" in q["ctx"] for q in CAP if q.get("ai") == "bulletin"), [q["ctx"][-250:] for q in CAP[-2:]])
         ok("génération en parallèle (jusqu'à " + str(ACT[1]) + " demandes à la fois)", ACT[1] >= 3, ACT)
         ok("aucune erreur de page", not errs, errs)
         await b.close()

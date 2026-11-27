@@ -1401,7 +1401,13 @@
     function go() { while (act < N && i < L.length) (function (x, k) { act++; Promise.resolve().then(function () { return fn(x, k); }).catch(function (e) { errs.push(e && e.message || String(e)); })
       .then(function () { act--; fin++; try { if (chaque) chaque(fin, L.length); } catch (e) {} if (fin >= L.length) res(errs); else go(); }); })(L[i], i++); }
     go(); }); }
-  var BUL_NIV = ["17 : Excellent trimestre", "14 : Très bon trimestre", "12 : Bon trimestre", "10 : Trimestre satisfaisant", "0 : Trimestre encourageant"];
+  var BUL_NIV = ["17 : Excellent trimestre.", "14 : Un très bon trimestre.", "12 : Un bon trimestre.", "10 : Trimestre satisfaisant.", "0 : Trimestre encourageant."];
+  /* modèles de l'enseignant (27/11/2026), un par niveau (du plus haut au plus bas), prénoms remplacés : la consigne reprend celui du niveau de l'élève */
+  var BUL_EX = ["Excellent trimestre. [Prénom] s'est dépassée tout au long de la séquence et a démontré de grandes qualités physiques. Ses résultats et son implication sont remarquables. Continue ainsi !",
+    "Un très bon trimestre dans l'ensemble. [Prénom] dispose toutefois d'une belle marge de progression : avec un travail plus régulier et davantage de rigueur, il a toutes les capacités pour atteindre l'excellence.",
+    "Un bon trimestre. [Prénom] possède de belles qualités et un niveau solide, mais ses résultats manquent encore de régularité. En gagnant en rigueur, il a tout le potentiel pour progresser davantage.",
+    "Trimestre satisfaisant. [Prénom] a montré du sérieux dans son travail, mais son implication est restée trop irrégulière. En gagnant en constance dans sa pratique, il pourra réellement progresser.",
+    "Trimestre encourageant. [Prénom] s'est montré volontaire à plusieurs reprises. En s'impliquant plus régulièrement, il pourra prendre confiance et progresser."];
   function bulNiveaux() { var L = pCommun({ id: "bul_niveaux", sec: "Appréciations de bulletin", label: "Début de l'appréciation selon la note sur 20 (« note minimale : début », un par ligne ; vaut pour toutes les activités)", type: "list", def: BUL_NIV });
     return L.map(function (x) { var m = /^\s*(\d+(?:[.,]\d+)?)\s*[:=–-]\s*(.+)$/.exec(String(x)); return m ? { min: +m[1].replace(",", "."), t: m[2].trim() } : null; }).filter(Boolean).sort(function (a, b) { return b.min - a.min; }); }
   /* moyenne de la classe (demande du 27/11/2026 : « difficile de parler de résultats solides avec 14 alors que la moyenne de classe est beaucoup plus
@@ -1411,7 +1417,7 @@
     var i = 0; while (i < L.length - 1 && q < L[i].min) i++;
     var ec = +pCommun({ id: "bul_ecart", sec: "Appréciations de bulletin", label: "Écart sous la moyenne de la classe qui fait descendre d'un niveau (points ; 0 = jamais)", type: "number", def: 2 }), m = moy != null && isFinite(+moy) ? Math.round(+moy * 4) / 4 : null;
     if (m != null && ec > 0 && q <= m - ec && i < L.length - 1) i++;
-    return { t: L[i].t, top: i === 0, note: q, moy: m, pos: m == null ? "" : q >= m + 1 ? "au-dessus de la moyenne de la classe" : q <= m - 1 ? "en dessous de la moyenne de la classe" : "dans la moyenne de la classe" }; }
+    return { t: L[i].t, i: i, n: L.length, top: i === 0, note: q, moy: m, pos: m == null ? "" : q >= m + 1 ? "au-dessus de la moyenne de la classe" : q <= m - 1 ? "en dessous de la moyenne de la classe" : "dans la moyenne de la classe" }; }
   /* 🎨 varier les appréciations (demande du 27/11/2026 : « tu me parles tout le temps de méthode de travail et de progrès ») : pour chaque élève,
      deux thèmes tirés d'une liste réglable (« bul_themes »), en tournant pour que deux élèves de suite n'aient pas les mêmes. */
   var BUL_TH = ["progrès", "attitude", "sérieux", "engagement", "consolidation des acquis", "régularité", "investissement", "autonomie", "coopération avec les autres", "persévérance", "écoute", "implication dans les rôles", "efforts fournis", "participation", "confiance en soi", "maîtrise"], THD = [];
@@ -1436,17 +1442,23 @@
   /* longueur (demande du 27/11/2026 : « concises, courtes, valorisantes pour Pronote ou le livret scolaire, uniques… aux alentours de 150, 200 caractères ») :
      paramètre commun « bul_longueur » (« 150-200 »), 255 au plus ; « uniques » : formules déjà écrites pour d'autres élèves de la classe à ne pas reprendre (o.eviter). */
   function bulLong() { var m = /(\d+)\D+(\d+)/.exec(String(pCommun({ id: "bul_longueur", sec: "Appréciations de bulletin", label: "Longueur visée en caractères (ex. 150-200 ; 255 au plus)", type: "text", def: "150-200" }) || "")); var a = m ? +m[1] : 150, b = m ? +m[2] : 200; b = Math.min(255, Math.max(60, b)); a = Math.min(b, Math.max(40, a)); return [a, b]; }
-  function bulConsigne(pr, g, nv, th, ev) {   /* 1200 caractères au plus (limite du script ; l'ancien script coupe à 900 : le plus important en tête) */
-    var LG = bulLong();
-    return "Consigne : appréciation de bulletin concise, générale et valorisante, prête pour Pronote ou le livret scolaire : entre " + LG[0] + " et " + LG[1] + " caractères (jamais plus), 2 phrases courtes et naturelles, sans tournure « IA » ; une courte perspective positive peut finir la 2e phrase." +
-      (nv ? " Niveau fixé par la note (" + String(nv.note).replace(".", ",") + "/20" + (nv.moy != null ? ", moyenne de la classe " + String(nv.moy).replace(".", ",") + "/20 : " + nv.pos : "") + ") : " + (nv.libre ? "« " + nv.t + " »" : "commence par « " + nv.t + ", »") + ", ton à ce niveau" + (nv.top ? "" : " ; « remarquable », « excellent » réservés aux meilleures notes") + (nv.moy != null && !/au-dessus/.test(nv.pos) ? " ; pas de « résultats solides » ni « très bons résultats »" : "") + "." : "") +
-      (th && th.length ? " Thèmes pour cet élève : " + th.join(", ") + " (si les données le permettent ; varie le vocabulaire, pas de « méthode de travail » sauf si c'est un thème)." : "") +
-      " Modèle : « Très bon trimestre, [Prénom] a su s'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l'attitude sont remarquables. »" +
+  /* mots trop employés dans les appréciations déjà écrites de la classe (demande du 28/11/2026 : « constance » revenait toutes les 3 ou 4 appréciations) */
+  var MOTS_VIDES = " alors aussi autres avait avec avoir cette cours dans depuis encore entre leurs leçon leçons pendant pour pourra quand sans selon séquence toujours toute toutes tout trimestre très faire fait bien plus elle elles nous vous sont être était ainsi dont celle celui chez comme donc lors même moins notre votre peut prénom ";
+  function motsUses(T) { var C = {}; (T || []).forEach(function (t) { var vu = {}; norm(String(t).replace(/\[pr[ée]nom\]/gi, " ")).split(" ").forEach(function (w) { if (w.length < 5 || MOTS_VIDES.indexOf(" " + w + " ") >= 0 || vu[w]) return; vu[w] = 1; C[w] = (C[w] || 0) + 1; }); });
+    var lim = Math.max(2, Math.ceil((T || []).length / 5)); return Object.keys(C).filter(function (w) { return C[w] >= lim; }).sort(function (a, b) { return C[b] - C[a]; }).slice(0, 12); }
+  function bulConsigne(pr, g, nv, th, ev, us) {   /* 1200 caractères au plus (limite du script ; le plus important en tête) */
+    var LG = bulLong(), ex = nv ? BUL_EX[Math.min(BUL_EX.length - 1, Math.round(nv.i * (BUL_EX.length - 1) / Math.max(1, nv.n - 1)))] : BUL_EX[1];
+    return "Consigne : appréciation de bulletin simple et naturelle, concise et valorisante, prête pour Pronote : entre " + LG[0] + " et " + LG[1] + " caractères (jamais plus). Une courte phrase de bilan, puis une ou deux phrases ; une nuance bienveillante est possible si les données la justifient (irrégularité, oublis, absences, remarque du professeur), suivie d'un conseil concret ou d'un encouragement." +
+      (nv ? " Niveau fixé par la note (" + String(nv.note).replace(".", ",") + "/20" + (nv.moy != null ? ", moyenne de la classe " + String(nv.moy).replace(".", ",") + "/20 : " + nv.pos : "") + ") : " + (nv.libre ? "niveau « " + nv.t + " »" : "commence par « " + nv.t.replace(/[.!\s]*$/, ".") + " »") + (nv.top ? "" : " ; « remarquable », « excellent » réservés aux meilleures notes") + (nv.moy != null && !/au-dessus/.test(nv.pos) ? " ; pas de « résultats solides »" : "") + "." : "") +
+      " Exemple de ce niveau : « " + ex + " »" +
+      (th && th.length ? " Thèmes pour cet élève : " + th.join(", ") + " (si les données le permettent)." : "") +
       (pr ? " Écris [Prénom] à la place du prénom (une fois)." : " Ne nomme pas l'élève.") +
       (g === "f" ? " Élève : une fille, accorde au féminin." : g === "g" ? " Élève : un garçon, accorde au masculin." : " Évite les accords liés au genre.") +
-      " Ne cite ni l'activité, ni chiffre, note, critère, nombre de leçons, pourcentage." +
-      (ev && ev.length ? " Appréciation UNIQUE : ne reprends pas les formules déjà écrites pour d'autres élèves : " + ev.map(function (t) { return "« " + String(t).replace(/\s+/g, " ").slice(0, 110) + " »"; }).join(" ").slice(0, 380) : "");
+      " Ne cite ni l'activité, ni chiffre, note, critère, pourcentage." +
+      (us && us.length ? " Mots déjà trop employés dans la classe, à ne pas utiliser : " + us.join(", ") + "." : "") +
+      (ev && ev.length ? " Ne reprends pas ces formules déjà écrites : " + ev.map(function (t) { return "« " + String(t).replace(/\s+/g, " ").slice(0, 100) + " »"; }).join(" ").slice(0, 230) : "");
   }
+
 
 
   /* 👧 / 👦 fille ou garçon : deviné d'après le prénom, corrigé d'un appui (bouton [data-eps-genre], n'importe où) et alors gardé dans
@@ -1476,20 +1488,22 @@
     var nv = null;
     if (bul) { pr = o.prenom || (o.eleve ? prenomDe(o.eleve) : ""); texte = (ctx ? "Éléments d'évaluation : " + ctx + "\n" : "") + String(texte || "");
       nv = bulNiveau("note" in o ? o.note : noteDans(texte), o.moyClasse); if (nv && /ann[ée]e/i.test(String(o.periode || ""))) nv.libre = true;
-      ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : ""), nv, bulThemes(o.ca || (o.act ? [o.act] : [])), (o.eviter || []).filter(function (x) { return x && (x.t || typeof x === "string"); }).slice(-3).map(function (x) {
+      ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : ""), nv, bulThemes(o.ca || (o.act ? [o.act] : [])), (o.eviter || []).filter(function (x) { return x && (x.t || typeof x === "string"); }).slice(-2).map(function (x) {
         /* jamais de prénom envoyé : celui de l'autre élève redevient [Prénom] */
-        var t = String(x.t || x), p0 = x.n ? prenomDe(x.n) : ""; return p0 ? t.split(p0).join("[Prénom]") : t; })); }
+        var t = String(x.t || x), p0 = x.n ? prenomDe(x.n) : ""; return p0 ? t.split(p0).join("[Prénom]") : t; }), motsUses((o.textesClasse || []).map(function (x) { return String(x.t || x); }))); }
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
     return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : (bul || o.mode === "avis") ? 2200 : 1500), act: bul ? "EPS" : (o.act || actName()), ctx: ctx.slice(0, bul ? 1200 : 600), lang: o.lang || "" }, 90000).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script en 90 s (connexion ? Claude surchargé ?) : réessaie.");
       if (!r.keyOk) throw new Error("Clé du partage refusée par le script");
       if (r.aiErr) throw new Error(/ANTHROPIC_KEY/.test(r.aiErr) ? "Clé Claude absente du script (Propriétés du script → ANTHROPIC_KEY)" : r.aiErr);
       if (r.ai == null) throw new Error("Le script n'est pas encore à jour : colle le nouveau Code.gs et redéploie (nouvelle version)");
+      if (o.mode === "classe" && !(r.aiv >= 9)) throw new Error("Le script Google doit être mis à jour pour l'appréciation de la classe : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
       if (o.mode === "indic" && !(r.aiv >= 3)) throw new Error("Le script Google doit être mis à jour pour proposer des indicateurs : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
       if (o.mode === "lecon" && !(r.aiv >= 2)) throw new Error("Le script Google doit être mis à jour pour le bilan de leçon : colle le nouveau Code.gs (dossier apps-script) et redéploie (nouvelle version)");
       if (bul) { var t = String(r.ai).replace(/\s*[\[{(]\s*pr[ée]nom( de l'élève)?\s*[\]})]/gi, function (m) { return (/^\s/.test(m) ? " " : "") + (pr || "l'élève"); }).replace(/^\s+/, "");
         /* début imposé par la note : remis à la place de celui de Claude s'il l'a changé */
-        if (nv && !nv.libre && t.toLowerCase().indexOf(nv.t.toLowerCase()) !== 0) { var m0 = /^[^,.!;]*\b(trimestre|ann[ée]e|s[ée]quence)\b[^,.!;]*[,.!;]\s*/i.exec(t); t = m0 ? nv.t + ", " + t.slice(m0[0].length) : nv.t + ". " + t; }
+        if (nv && !nv.libre) { var op = nv.t.replace(/[.!\s]*$/, ""), opP = op + ".";
+          if (t.toLowerCase().indexOf(op.toLowerCase()) !== 0) { var m0 = /^[^,.!;]*\b(trimestre|ann[ée]e|s[ée]quence)\b[^,.!;]*[,.!;]\s*/i.exec(t); var rest = m0 ? t.slice(m0[0].length) : t; t = opP + " " + rest.charAt(0).toUpperCase() + rest.slice(1); } }
         return t; }
       return r.ai; });
   }
@@ -1961,6 +1975,9 @@
     return Object.keys(best).map(function (a) { var x = best[a], R = [], M = []; x.af.forEach(function (z) { if (!z || !isFinite(+z[1])) return; (/^AFLP?1$|^AFLP2$/i.test(String(z[0]).replace(/\s+/g, "")) ? R : M).push(+z[1]); });
       var avg = function (L) { return L.reduce(function (a, b) { return a + b; }, 0) / L.length; };
       x.rep = [R.length ? "résultats : " + lv(avg(R)) : "", M.length ? "attitude et implication : " + lv(avg(M)) : ""].filter(Boolean).join(" ; "); return x; }); }
+  function reperesOf(full, cls, from, to) { var k = nkey(full), c = cmp(cls), C = {}; try { var I = stLd("eps.ico.v1").items; Object.keys(I).forEach(function (id) { var r = I[id]; if (!r || r.del || !r.el || cmp(r.cls) !== c || (from && r.day < from) || (to && r.day > to)) return; (Array.isArray(r.el[k]) ? r.el[k] : []).forEach(function (x) { if (x && x.i) C[x.i] = (C[x.i] || 0) + 1; }); }); } catch (e) {}
+    return Object.keys(C).map(function (i) { return { i: i, n: C[i] }; }).sort(function (a, b) { return b.n - a.n; }); }
+  function absOf(full, cls, from, to) { var k = nkey(full), c = cmp(cls), n = 0, a = 0; try { var I = stLd("eps.appel.v1").items; Object.keys(I).forEach(function (id) { var o = I[id]; if (!o || o.del || cmp(o.cls) !== c || (from && o.day < from) || (to && o.day > to)) return; n++; if ((o.abs || []).some(function (x) { return nkey(x) === k; })) a++; }); } catch (e) {} return { n: n, a: a }; }
   function evalsOf(nomComplet, classe) {
     var out = [], k = nkey(nomComplet), c = cmp(classe);
     for (var i = 0; i < localStorage.length; i++) { var key = localStorage.key(i), m = /^eps\.eval\.([a-z]+)\.v1$/.exec(key || ""); if (!m) continue;
@@ -2397,10 +2414,10 @@
     var PER = TR[TCUR], inPer = function (d) { return !d || (d >= PER[0] && d <= PER[1]); }, dOf = function (t) { var x = new Date(t); return pd(x.getFullYear(), x.getMonth() + 1, x.getDate()); }; try { C = (window.EPSL ? EPSL.items() : []).map(function (it) { return it.nom; }); } catch (e) {}
     var cur = want && C.indexOf(want) >= 0 ? want : B._cls && C.indexOf(B._cls) >= 0 ? B._cls : C[0];
     var o = win("epsbu-w", "📝 Appréciations de bulletin", '<div id="epsbu"><p class="m">Générales et positives, avec le prénom (accords fille / garçon : 👧 / 👦 à toucher pour corriger) ; aucun nom envoyé à Claude. Relis, corrige, coche ✓ : seules les cochées sont copiées.</p>' +
-      '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><select class="epsd-in" id="bu-p" style="width:auto;margin:0" aria-label="Période">' + [1, 2, 3, 0].map(function (t) { return '<option value="' + t + '"' + (t === TCUR ? " selected" : "") + ">" + (t ? "Trimestre " + t : "Toute l'année") + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><p class="m" id="bu-s" style="margin-top:-6px">💾 Tout est enregistré au fur et à mesure sur cette tablette, même si tu fermes la fenêtre pendant que Claude rédige.</p><div id="bu-l"></div></div>');
+      '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><select class="epsd-in" id="bu-p" style="width:auto;margin:0" aria-label="Période">' + [1, 2, 3, 0].map(function (t) { return '<option value="' + t + '"' + (t === TCUR ? " selected" : "") + ">" + (t ? "Trimestre " + t : "Toute l'année") + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button><button type="button" id="bu-cl">🏫 Appréciation de la classe</button></div><div id="bu-cls"></div><p class="m" id="bu-m"></p><p class="m" id="bu-s" style="margin-top:-6px">💾 Tout est enregistré au fur et à mesure sur cette tablette, même si tu fermes la fenêtre pendant que Claude rédige.</p><div id="bu-l"></div></div>');
     var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m"), psel = o.querySelector("#bu-p");
     var rk = function (c) { var k = c + "|" + psel.value; if (!B[k] && psel.value === String(TCUR) && B[c] && typeof B[c] === "object") B[k] = B[c]; return k; };
-    psel.onchange = function () { PER = TR[psel.value]; save(); draw(); };
+    psel.onchange = function () { PER = TR[psel.value]; save(); draw(); clsDraw(); };
     function people(c) { var P = []; try { EPSL.items().forEach(function (it) { if (it.nom === c) P = EPSL.people(it).map(function (p) { return p.full; }); }); } catch (e) {} return P; }
     function notes(c, n) { var O = (window.EPSOB ? EPSOB.of(n, c) : []).filter(function (o) { return inPer(o.day); }), fs = people(c).map(function (x) { return x.split(" ")[0]; });
       var LE = []; try { var kk = String(n).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean).sort().join(" ");
@@ -2412,6 +2429,9 @@
       var le = LE.length ? "\nÉvaluations de leçon (participation, sérieux, thème du jour) : moyenne " + (Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length * 10) / 10) + " / 3 sur " + LE.length + " leçon(s)" : "";
       var ob = O.length ? "\nObservations du professeur pendant les leçons : " + O.slice(-12).map(function (o) { var t = o.txt; fs.forEach(function (f) { if (f) t = t.replace(new RegExp("\\b" + f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "un camarade"); }); return t; }).join(" ; ") : "";
       /* notes de l'enseignant (relevés « sn| » du référentiel, faits par chaque appli : note = barème et répartition CCF, niveaux par AFL) */
+      /* ⚡ repères rapides (tenue oubliée, entraide…) et absences de la période : tendances pour Claude */
+      var rq = reperesOf(n, c, PER[0], PER[1]), ab = absOf(n, c, PER[0], PER[1]);
+      rm += (rq.length ? "\nRepères notés par le professeur : " + rq.map(function (x) { return x.i.replace(/^[^A-Za-zÀ-ÿ]+/, "") + (x.n > 1 ? " (" + x.n + " fois)" : ""); }).join(", ") : "") + (ab.n ? "\nPrésence aux leçons : " + (ab.n - ab.a) + " sur " + ab.n : "");
       var NT = notesOf(n, c, PER[0], PER[1]), vu = {}, mv = function (L) { return L.reduce(function (a, b) { return a + b; }, 0) / L.length; };
       REF[n] = NT.length ? mv(NT.map(function (x) { return x.nt; })) : LE.length ? mv(LE) / 3 * 20 : RS[1] ? RS[0] / RS[1] * 20 : null;
       var lnN = NT.map(function (x) { vu[norm(x.nom)] = 1; return x.nom + " : note " + String(x.nt).replace(".", ",") + "/20" + (x.rep ? " ; " + x.rep : ""); });
@@ -2430,7 +2450,7 @@
       list.querySelectorAll("[data-one]").forEach(function (b) { b.onclick = function () { gen([P[+b.dataset.one]], b); }; });
       list.querySelectorAll("[data-ok]").forEach(function (cb) { cb.onchange = function () { var n = P[+cb.dataset.ok]; R[n] = R[n] || {}; R[n].ok = cb.checked; if (cb.checked) R[n].ai = 0; save(); draw(); }; });
     }
-    sel.onchange = function () { save(); draw(); };
+    sel.onchange = function () { save(); draw(); clsDraw(); };
     /* génération : toute la classe (« ✨ Proposer les appréciations ») ou un seul élève (✨ de sa ligne, qui remplace sa proposition) */
     function cnt(i) { var ta = list.querySelector('[data-t="' + i + '"]'), d = list.querySelector('[data-cn="' + i + '"]'); if (!ta || !d) return; var L = ta.value.length; d.textContent = L ? L + " / 255" : ""; d.classList.toggle("over", L > 255); }
     /* une ligne seulement (génération en parallèle : on ne redessine pas toute la liste pendant que l'enseignant tape) */
@@ -2445,8 +2465,10 @@
       msg.textContent = "Claude rédige 0 / " + P.length + "… (" + Math.min(iaPar(), P.length) + " à la fois)";
       var MC = null; try { var vs = people(c).map(function (x) { var L = notesOf(x, c, PER[0], PER[1]); return L.length ? L.reduce(function (a, z) { return a + z.nt; }, 0) / L.length : null; }).filter(function (v) { return v != null; }); if (vs.length >= 3) MC = vs.reduce(function (a, v) { return a + v; }, 0) / vs.length; } catch (e) {}
       pool(P, function (n) { var dn = notes(c, n);
+        /* dispensé à l'évaluation finale sans autre note : « Dispensé(e) », sans Claude (demande du 28/11/2026) */
+        var E0 = evalsOf(n, c); if (!notesOf(n, c, PER[0], PER[1]).length && E0.length && E0.every(function (x) { return x.st === "DISP"; })) { R[n] = { t: gnGet(n).g === "f" ? "Dispensée" : "Dispensé", ai: 1, ok: false }; save(); upd(c, n); return null; }
         var CAS = notesOf(n, c, PER[0], PER[1]).map(function (x) { return x.ca || x.nom; }).concat(evalsOf(n, c).map(function (x) { return x.app; }));
-        return reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], moyClasse: MC, periode: per, ca: CAS, eviter: Object.keys(R).filter(function (x) { return x !== n && R[x] && R[x].t; }).map(function (x) { return { t: R[x].t, n: x }; }).slice(-3), ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
+        return reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], moyClasse: MC, periode: per, ca: CAS, eviter: Object.keys(R).filter(function (x) { return x !== n && R[x] && R[x].t; }).map(function (x) { return { t: R[x].t, n: x }; }).slice(-3), textesClasse: Object.keys(R).filter(function (x) { return x !== n && R[x] && R[x].t && R[x].t.length > 20; }).map(function (x) { return R[x].t; }), ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
           .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); upd(c, n); }); },
         function (f, N) { msg.textContent = "Claude rédige " + f + " / " + N + "…"; })
         .then(function (errs) { GO = false; bb.disabled = false; save(); draw();
@@ -2459,8 +2481,20 @@
     o.querySelector("#bu-cp").onclick = function () { var c = sel.value, R = B[rk(c)] || {}, txt = people(c).filter(function (n) { return R[n] && R[n].ok && R[n].t; }).map(function (n) { return n + " : " + R[n].t; }).join("\n");
       if (!txt) { msg.textContent = "Coche ✓ les appréciations relues pour les copier."; return; }
       (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { msg.textContent = "📋 Copié : colle dans Pronote ou un document."; }, function () { var ta = document.createElement("textarea"); ta.value = txt; o.appendChild(ta); ta.select(); try { document.execCommand("copy"); msg.textContent = "📋 Copié."; } catch (e) {} ta.remove(); }); };
-    o._open = function (w2) { o.style.display = "flex"; if (typeof w2 === "string" && w2 !== sel.value && C.indexOf(w2) >= 0) { save(); sel.value = w2; draw(); } };
-    draw();
+    /* 🏫 appréciation globale de la classe (demande du 28/11/2026) : moyenne, répartition des niveaux, présence, repères, tendances ; aucun nom envoyé */
+    function clsDraw() { var c = sel.value, R = B[rk(c)] || {}, x = R._classe, bx = o.querySelector("#bu-cls"); bx.innerHTML = x && x.t ? '<div style="border:1.5px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:8px 0"><b>🏫 Appréciation de la classe</b><div class="epsd-cpw" style="margin-top:6px"><textarea class="epsd-in" id="bu-clt" style="min-height:58px">' + esc(x.t) + "</textarea>" + cpBtn() + "</div></div>" : "";
+      var ta = bx.querySelector("#bu-clt"); if (ta) ta.oninput = function () { R._classe = { t: ta.value }; B[rk(c)] = R; save(); }; }
+    o.querySelector("#bu-cl").onclick = function () { var b = this, c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P0 = people(c), V = [], ND = { "17": 0 }, nAb = 0, nLe = 0, rq = {};
+      P0.forEach(function (n) { notes(c, n); if (REF[n] != null) V.push(REF[n]); var a = absOf(n, c, PER[0], PER[1]); nAb += a.a; nLe = Math.max(nLe, a.n); reperesOf(n, c, PER[0], PER[1]).forEach(function (x) { rq[x.i] = (rq[x.i] || 0) + x.n; }); });
+      if (!V.length) { msg.textContent = "Pas encore de notes pour cette classe sur la période."; return; }
+      var moy = V.reduce(function (a, v) { return a + v; }, 0) / V.length, L = bulNiveaux(), rep = L.map(function (l, i) { var hi = i ? L[i - 1].min : 99; return { t: l.t, n: V.filter(function (v) { return v >= l.min && v < hi; }).length }; }).filter(function (x) { return x.n; });
+      var nv = bulNiveau(moy), dat = "Classe de " + P0.length + " élèves, " + V.length + " évalués. Moyenne : " + String(Math.round(moy * 4) / 4).replace(".", ",") + "/20 (" + (nv ? nv.t : "") + "). Répartition : " + rep.map(function (x) { return x.n + " « " + x.t.replace(/[.!]$/, "") + " »"; }).join(", ") + "." +
+        (nLe ? " Leçons avec appel : " + nLe + ", absences cumulées : " + nAb + "." : "") + (Object.keys(rq).length ? " Repères du professeur : " + Object.keys(rq).map(function (i) { return i.replace(/^[^A-Za-zÀ-ÿ]+/, "") + " (" + rq[i] + ")"; }).join(", ") + "." : "");
+      b.disabled = true; msg.textContent = "Claude rédige l'appréciation de la classe…";
+      reformuler(dat, { mode: "classe", act: "EPS", ctx: "Appréciation générale de la classe en EPS pour le bulletin : 2 ou 3 phrases simples et naturelles, 250 caractères au plus, dynamique d'ensemble, ambiance de travail, points forts, puis une piste pour la suite ; sans chiffres, sans nom d'élève ni d'activité. Exemple : « Un bon trimestre pour cette classe dynamique et volontaire. L'investissement est réel pour la majorité ; un travail plus régulier permettra à chacun de progresser. »" })
+        .then(function (t) { R._classe = { t: String(t || "").trim() }; save(); clsDraw(); msg.textContent = "✓ Appréciation de la classe proposée : relis-la."; }, function (e) { msg.textContent = "⚠ " + e.message; }).then(function () { b.disabled = false; }); };
+    o._open = function (w2) { o.style.display = "flex"; if (typeof w2 === "string" && w2 !== sel.value && C.indexOf(w2) >= 0) { save(); sel.value = w2; draw(); clsDraw(); } };
+    draw(); clsDraw();
   }
   function searchBtn() {
     var b = document.getElementById("eps-find"), sl = epsSlot();
