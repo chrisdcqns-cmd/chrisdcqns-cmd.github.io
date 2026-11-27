@@ -50,7 +50,7 @@ async def main():
         await p.click("#nGen"); await p.wait_for_timeout(600)
         await p.click("button[data-det='%s']"%bil); await p.wait_for_timeout(600)
         d=await p.evaluate("document.querySelector('.modal')?document.querySelector('.modal').innerText:document.body.innerText.slice(-1500)")
-        ok("AFL1 · élément 1" in d and "AFL3" in d and "Note selon la répartition" in d and "✨" in d,"détail des AFL : 4 AFL et comparaison des répartitions")
+        ok("AFL1 · élément 1" in d and "AFL3" in d and "Répartition AFL2 / AFL3" in d and "✨" in d,"évaluation complète : 4 AFL et comparaison des répartitions")
         await p.screenshot(path=os.path.join(SH,"det.png"))
         ok(not errs,"aucune erreur "+str(errs[:3])); await b.close()
     print(len(KO),"problème(s)")

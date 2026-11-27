@@ -150,6 +150,17 @@ html:has(.dr),body:has(.dr){overscroll-behavior:none;touch-action:none}
 .alarm h1{font-size:2.4rem;margin:8px 0}.alarm p{font-size:1.2rem;max-width:520px}
 @keyframes pul{from{filter:brightness(1)}to{filter:brightness(1.15)}}
 .retour{background:#fff4ea;border:2px solid var(--or);border-radius:12px;padding:6px 10px;font-weight:800;font-size:.9rem;margin-top:6px}
+.modal.big{align-items:stretch}.modal.big>div{max-width:none;max-height:none;height:100%;border-radius:0;padding:14px 18px calc(80px + env(safe-area-inset-bottom))}
+.evk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.evk>div{background:#fff;border-radius:12px;padding:8px 12px}.evk span{display:block;font-size:.75rem;color:var(--mu);font-weight:700}.evk b{font-size:1.3rem}.evk small{display:block;color:var(--mu)}.evk .evn{border:3px solid var(--nv)}.evk .evn b{font-size:1.7rem}.evk .evn b small{display:inline;font-size:1rem}
+.evg{overflow:auto}.evgt{width:100%;min-width:820px;border-collapse:separate;border-spacing:6px;table-layout:fixed}.evgt th,.evgt td{vertical-align:top;text-align:left}
+.evgt thead th{font-size:.8rem;font-weight:900;padding:0 6px}.evgt tbody th{background:#fff;border-radius:12px;padding:10px;font-weight:400;font-size:.88rem}.evgt tbody th b{display:block;font-size:.95rem}.evgt tbody th small{display:block;color:var(--mu);margin-top:2px}
+.evw{margin-top:6px;font-size:.82rem;background:var(--bg);border-radius:8px;padding:5px 7px}
+.evc{position:relative;background:#fff;border:2px solid var(--li);border-radius:12px;padding:12px 10px 10px;cursor:pointer;font-size:.9rem;line-height:1.3}.evc small{display:block;color:var(--mu);margin-top:6px;font-weight:800}
+.evc.on{border:3px solid var(--dc);background:var(--db);font-weight:700}.evc.on small{color:var(--dc)}.evc.pp{border:2px dashed var(--dc)}
+.evt{position:absolute;top:-10px;right:8px;background:var(--dc);color:#fff;font-size:.7rem;font-weight:900;padding:2px 8px;border-radius:99px;white-space:nowrap}.evt.pp{background:#fff;color:var(--dc);border:1.5px dashed var(--dc)}
+.evp{background:#fff;border-radius:12px;text-align:center!important;vertical-align:middle!important;border:3px solid var(--dc,var(--nv))}.evp b{display:block;font-size:1.5rem}.evp small{display:block;color:var(--mu);font-size:.75rem}
+.evgt tr.grp td{background:var(--nv);color:#fff;border-radius:10px;padding:6px 10px;font-weight:800}.evgt tr.grp small{font-weight:400;opacity:.8}.evgt tr.tot td{background:#fff;border-radius:12px;padding:10px;font-size:.95rem}
+@media (max-width:700px){.evk{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ndeg{display:grid;gap:2px;white-space:nowrap}.ndeg label{display:flex;align-items:center;gap:4px}.ndeg select{padding:2px 4px;border:1px solid var(--li);border-radius:6px;font:inherit}.ndeg .man select{border:2px solid #E8701A;background:#FFF4E8}
 </style>
 </head>
@@ -1297,24 +1308,39 @@ function punch(r, code) {
   else { s.st = "faux"; r.idx = i + 1; }                          // code inexistant
   r.saisies.push(s);
 }
-function analyse(r) {
-  const S0 = r.saisies.map(s => (s.st === "faux" || s.st === "hors") && s.attendu != null && codesOf(balise(s.attendu)).includes(String(s.code || "").toUpperCase()) ? { ...s, st: "ok", bal: +s.attendu, corrige: 1 } : s);
-  const cr = r.debut ? (C.corr || {})[runKey(r)] : null; // corrections de l'enseignant (onglet Note) : projet et balises trouvées
+/* analyse d'un parcours, avec les balises de SA carte (CTXC) et les corrections de l'enseignant :
+   codes acceptés en plus (🔤 Correction, C.alt) et ✏️ Corriger de l'onglet Note (C.corr) ; `sans` = sans les corrections ✏️.
+   Bug du 27/11/2026 (signalé par l'enseignant) : les balises corrigées restaient « code faux » dans le bilan des élèves,
+   et un code accepté après une correction ✏️ n'était pas repris. Les corrections ✏️ s'écrivent donc en écarts
+   (`plus` / `moins` par rapport à la détection automatique) et sont reportées tronçon par tronçon (`corrige` 2). */
+function analyse(r, sans) { const kc = CTXC, cc = carteOf(r); if (cc) CTXC = cc; try { return analyse0(r, sans); } finally { CTXC = kc; } }
+function analyse0(r, sans) {
+  const S0 = r.saisies.map(s => { if (s.st !== "faux" && s.st !== "hors") return s; const c = String(s.code || "").toUpperCase();
+    if (s.attendu != null && codesOf(balise(s.attendu)).includes(c)) return { ...s, st: "ok", bal: +s.attendu, corrige: 1 };
+    const b = (r.plan || []).map(balise).find(x => x && codesOf(x).includes(c)); return b ? { ...s, st: "retour", bal: +b.n, corrige: 1 } : s; });
+  const cr = r.debut && !sans ? (C.corr || {})[runKey(r)] : null; // corrections de l'enseignant (onglet Note) : projet et balises trouvées
   const p = P(r.k) || {}, plan = cr && cr.plan ? cr.plan.map(Number) : r.plan, ok = new Set(), retards = new Set();
   S0.forEach(s => { if (s.st === "ok" || s.st === "saut") ok.add(+s.bal); if (s.st === "retour") retards.add(+s.bal); });
-  if (cr && cr.ok) { ok.clear(); retards.clear(); cr.ok.forEach(n => ok.add(+n)); }
+  const auto = new Set([...ok, ...retards]);
+  if (cr && (cr.plus || cr.moins)) { (cr.plus || []).forEach(n => ok.add(+n)); (cr.moins || []).forEach(n => { ok.delete(+n); retards.delete(+n); }); }
+  else if (cr && cr.ok) { ok.clear(); retards.clear(); cr.ok.forEach(n => ok.add(+n)); S0.forEach(s => { if (s.corrige === 1) ok.add(+s.bal); }); } // ancienne forme : liste complète + codes acceptés depuis
+  const fin = new Set([...ok, ...retards]), ajout = new Set([...fin].filter(n => !auto.has(n))), retire = new Set([...auto].filter(n => !fin.has(n)));
+  const S1 = !cr ? S0 : S0.map(s => { const n = s.attendu != null ? +s.attendu : null;
+    if (n != null && ajout.has(n) && ["faux", "hors", "passe"].includes(s.st)) { ajout.delete(n); return { ...s, st: "ok", bal: n, corrige: 2 }; } // validée par l'enseignant
+    if ((s.st === "ok" || s.st === "retour" || s.st === "saut") && retire.has(+s.bal)) return { ...s, st: "nonval", corrige: 2 }; // retirée par l'enseignant
+    return s; });
   const oublis = plan.filter(n => !ok.has(+n));
-  const passees = S0.filter(s => s.st === "passe").map(s => s.attendu);
-  const faux = S0.filter(s => s.st === "faux" || s.st === "hors").length;
+  const passees = S1.filter(s => s.st === "passe").map(s => s.attendu);
+  const faux = S1.filter(s => s.st === "faux" || s.st === "hors").length;
   const obligOk = !p.oblig || ok.has(+p.oblig) || retards.has(+p.oblig);
   const chrono = (r.fin || now()) - r.debut;
   const overRaw = p.max ? Math.max(0, chrono - p.max * 60000) : 0;
   /* correction de l'enseignant (✏️ Corriger, 27/11/2026) : cr.temps = "in" (compté dans les temps) ou "out" (compté hors temps) */
   const over = cr && cr.temps === "in" ? 0 : cr && cr.temps === "out" ? Math.max(overRaw, 1) : overRaw;
   const pen = C.noPen ? 0 : (oublis.length * C.penOubli + (obligOk ? 0 : C.penOblig) + (over ? Math.ceil(over / 60000) * C.penRetard : 0)) * 1000;
-  let prev = r.debut; const legs = S0.map(s => { const d = s.t - prev; prev = s.t; return { ...s, leg: d, cum: s.t - r.debut }; });
+  let prev = r.debut; const legs = S1.map(s => { const d = s.t - prev; prev = s.t; return { ...s, leg: d, cum: s.t - r.debut }; });
   const pts = plan.filter(n => ok.has(+n) || retards.has(+n)).reduce((a, n) => a + nivOf(n), 0);
-  return { found: [...ok, ...retards], plan, corrige: !!cr, overRaw, temps: cr ? cr.temps || "" : "", pts, ptsMax: ptsOf(plan), chrono, pen, final: chrono + pen, oublis, passees, faux, obligOk, nErr: oublis.length, over, legs, retour: r.fin ? r.fin - prev : null, ordre: oublis.length === 0 && S0.every(s => s.st === "ok") };
+  return { found: [...fin], plan, corrige: !!cr, overRaw, temps: cr ? cr.temps || "" : "", pts, ptsMax: ptsOf(plan), chrono, pen, final: chrono + pen, oublis, passees, faux, obligOk, nErr: oublis.length, over, legs, retour: r.fin ? r.fin - prev : null, ordre: oublis.length === 0 && S1.every(s => s.st === "ok") };
 }
 
 // ---------- Fin de parcours : ressenti + bilan ----------
@@ -1340,14 +1366,15 @@ function bilanHTML(k, teacher) {
   const legs = a.legs, maxLeg = Math.max(1, ...legs.map(l => l.leg), a.retour || 0);
   const best = legs.length ? legs.reduce((m, l) => l.leg < m.leg ? l : m) : null, worst = legs.length ? legs.reduce((m, l) => l.leg > m.leg ? l : m) : null;
   const ecart = r.prevu ? a.chrono / 1000 - r.prevu : null, from = i => i ? legs[i - 1].attendu : "▲";
-  const stat = s => ({ ok: '<span class="chip ok">✓</span>', saut: '<span class="chip ko">balise(s) sautée(s) avant</span>', retour: '<span class="chip or">hors ordre</span>', hors: '<span class="chip ko">hors parcours</span>', faux: '<span class="chip ko">code faux</span>', passe: '<span class="chip ko">passée</span>' })[s];
+  const stat = s => ({ ok: '<span class="chip ok">✓</span>', saut: '<span class="chip ko">balise(s) sautée(s) avant</span>', retour: '<span class="chip or">hors ordre</span>', hors: '<span class="chip ko">hors parcours</span>', faux: '<span class="chip ko">code faux</span>', passe: '<span class="chip ko">passée</span>', nonval: '<span class="chip ko">non validée</span>' })[s];
+  const corr = l => l.corrige ? ` <small class="muted">${l.corrige === 1 ? "code " + esc(l.code) + " accepté" : l.st === "ok" ? "validée" : "retirée"} par l'enseignant</small>` : "";
   return `<div class="card"><div class="small muted">Fiche bilan · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(p.nom)} · ${p.type === "duo" ? "collectif" : "individuel"}</h2><div class="small"><b>${esc(studentName(ME))}</b>${ME.classe ? " (" + esc(ME.classe) + ")" : ""}${r.duo ? teamOf(r).map(x => ` et <b>${esc(studentName(x))}</b>${x.classe ? " (" + esc(x.classe) + ")" : ""}`).join("") : ""} · Enseignant : <b>${esc(ME.prof)}</b> · ${new Date(r.debut).toLocaleDateString("fr-FR")}</div>
    <div class="kpi"><div><span>Temps de course</span><b>${fmt(a.chrono)}</b></div>${C.niv && (teacher || P(k).voirPts !== false) ? `<div><span>🎯 Points</span><b>${a.pts}${P(k).pts ? " / " + P(k).pts : ""}</b></div>` : ""}${show ? `<div><span>Pénalités</span><b style="color:${a.pen ? "var(--ko)" : "inherit"}">+${fmt(a.pen)}</b></div><div><span>Temps final</span><b>${fmt(a.final)}</b></div>` : ""}
-    <div><span>Balises</span><b>${r.saisies.filter(s => s.st !== "passe").length} / ${r.plan.length}</b>${a.passees.length ? `<small>${a.passees.length} passée(s)</small>` : ""}</div>${r.prevu ? `<div><span>Temps prévu</span><b>${fmt(r.prevu * 1000)}</b><small>${ecart >= 0 ? "+" : "−"}${fmt(Math.abs(ecart) * 1000)} ${Math.abs(ecart) <= 60 ? "· très bonne estimation 👍" : ecart > 0 ? "plus lent que prévu" : "plus rapide que prévu"}</small></div>` : ""}</div>
+    <div><span>Balises</span><b>${show ? a.plan.length - a.oublis.length : r.saisies.filter(s => s.st !== "passe").length} / ${a.plan.length}</b>${a.passees.length ? `<small>${a.passees.length} passée(s)</small>` : ""}</div>${r.prevu ? `<div><span>Temps prévu</span><b>${fmt(r.prevu * 1000)}</b><small>${ecart >= 0 ? "+" : "−"}${fmt(Math.abs(ecart) * 1000)} ${Math.abs(ecart) <= 60 ? "· très bonne estimation 👍" : ecart > 0 ? "plus lent que prévu" : "plus rapide que prévu"}</small></div>` : ""}</div>
    ${show ? `<p class="small" style="margin:4px 0">${a.ordre ? '<span class="chip ok">Parcours réalisé sans erreur, dans l\'ordre</span>' : `<span class="chip ko">${a.nErr} balise(s) non validée(s)</span> ${a.oublis.length ? `<b>${a.oublis.join(", ")}</b>. ` : ""}${a.faux ? `${a.faux} code(s) faux ou hors parcours. ` : ""}`} ${p.oblig ? (a.obligOk ? `<span class="chip ok">★ ${p.oblig} validée</span>` : `<span class="chip ko">★ ${p.oblig} manquée</span>`) : ""}${a.over ? ` <span class="chip ko">Temps max dépassé de ${fmt(a.over)}</span>` : ""}</p>` : ""}
    <h3 style="margin:14px 0 4px;font-size:1rem">Temps entre chaque balise</h3>
    <table class="t"><thead><tr><th>#</th><th>Tronçon</th><th class="n">Temps</th><th class="n">Cumul</th><th style="width:30%"></th>${show ? "<th>Contrôle</th>" : ""}</tr></thead><tbody>
-    ${legs.map((l, i) => `<tr><td>${i + 1}</td><td>${from(i)} → <b>${l.attendu}</b>${+l.attendu === +p.oblig ? " ★" : ""}${l.st === "passe" && !show ? ' <span class="chip">passée</span>' : ""}</td><td class="n">${fmt(l.leg)}</td><td class="n">${fmt(l.cum)}</td><td><div class="bar" style="width:${Math.max(4, l.leg / maxLeg * 100)}%;background:${l === best ? "var(--gr)" : l === worst ? "var(--ko)" : "var(--or)"}"></div></td>${show ? `<td>${stat(l.st)}${l.code && l.st !== "ok" ? ` <small class="muted">saisi ${esc(l.code)}${l.bal ? " (" + l.bal + ")" : ""}</small>` : ""}</td>` : ""}</tr>`).join("")}
+    ${legs.map((l, i) => `<tr><td>${i + 1}</td><td>${from(i)} → <b>${l.attendu}</b>${+l.attendu === +p.oblig ? " ★" : ""}${l.st === "passe" && !show ? ' <span class="chip">passée</span>' : ""}</td><td class="n">${fmt(l.leg)}</td><td class="n">${fmt(l.cum)}</td><td><div class="bar" style="width:${Math.max(4, l.leg / maxLeg * 100)}%;background:${l === best ? "var(--gr)" : l === worst ? "var(--ko)" : "var(--or)"}"></div></td>${show ? `<td>${stat(l.st)}${l.code && l.st !== "ok" && !l.corrige ? ` <small class="muted">saisi ${esc(l.code)}${l.bal ? " (" + l.bal + ")" : ""}</small>` : ""}${corr(l)}</td>` : ""}</tr>`).join("")}
     ${a.retour != null ? `<tr><td></td><td>${legs.length ? legs.at(-1).attendu : "▲"} → <b>◎ arrivée</b></td><td class="n">${fmt(a.retour)}</td><td class="n">${fmt(a.chrono)}</td><td><div class="bar" style="width:${Math.max(4, a.retour / maxLeg * 100)}%;background:var(--nv)"></div></td>${show ? "<td></td>" : ""}</tr>` : ""}
    </tbody></table>
    ${legs.length > 1 ? `<p class="small">🟢 Tronçon le plus rapide : <b>${from(legs.indexOf(best))} → ${best.attendu}</b> (${fmt(best.leg)}) · 🔴 le plus long : <b>${from(legs.indexOf(worst))} → ${worst.attendu}</b> (${fmt(worst.leg)}). Moyenne : ${fmt(a.chrono / (legs.length + 1))} par tronçon.</p>` : ""}
@@ -1405,15 +1432,15 @@ function vBilan(k, teacher) {
 }
 function fullHTML(teacher) {
   const A = RUNS.map((r, k) => r?.fin ? { k, r, a: analyse(r), p: P(k) } : null).filter(Boolean), show = teacher || C.voirErr;
-  const per = x => x.a.chrono / (x.r.plan.length + 1), mx = Math.max(1, ...A.map(per));
+  const per = x => x.a.chrono / (x.a.plan.length + 1), mx = Math.max(1, ...A.map(per));
   const est = A.filter(x => x.r.prevu).map(x => Math.abs(x.a.chrono / 1000 - x.r.prevu));
   const pertes = {}; A.forEach(x => (x.r.ress?.perte || []).forEach(v => pertes[v] = (pertes[v] || 0) + 1));
   const top = Object.entries(pertes).filter(([v]) => v !== "Rien de particulier").sort((a, b) => b[1] - a[1]);
   const pts = []; if (A.length > 1 && per(A.at(-1)) < per(A[0])) pts.push("Tu as été plus rapide par tronçon au fil des parcours."); if (show && A.length && A.every(x => x.a.ordre)) pts.push("Tous tes parcours ont été réalisés sans erreur."); if (est.length && Math.max(...est) <= 90) pts.push("Tu sais bien estimer ton temps de course."); if (A.length && A.every(x => x.r.trace?.length)) pts.push("Tu as préparé ton itinéraire sur la carte à chaque parcours.");
   const amel = []; if (A.some(x => x.a.passees.length)) amel.push("Tu as passé des balises : choisis des balises adaptées à ton niveau et repère un point d'appui (angle de chemin, bâtiment) avant chacune."); if (show && A.some(x => x.a.oublis.length > x.a.passees.length)) amel.push("Vérifier le numéro de la balise et son code avant de valider : chaque balise non validée coûte " + fmtMin(C.penOubli) + "."); if (est.some(e => e > 120)) amel.push("Mieux estimer ton temps : regarde la longueur de chaque tronçon avant de partir."); top.slice(0, 2).forEach(([v]) => amel.push(({ "Orienter ma carte": "Orienter la carte (le nord de la carte vers le nord) à chaque balise.", "Me situer sur la carte": "Garder le pouce sur ta position et suivre les éléments (chemins, lisières) en courant.", "Choix d'itinéraire": "Préparer chaque tronçon : chemin plus long mais plus rapide, ou ligne droite ?", "Trouver la balise": "Repérer un point d'appui proche de la balise et ralentir à l'approche.", "Fatigue": "Gérer ton allure : courir sur les chemins, marcher pour lire la carte." })[v] || v));
-  return `<div class="card"><div class="small muted">Bilan complet · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(studentName(ME))}</h2><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}Enseignant : ${esc(ME.prof)} · ${new Date().toLocaleDateString("fr-FR")} · ${A.length} parcours sur 2</div>
+  return `<div class="card"><div class="small muted">Bilan complet · ${esc(C.titre)}</div><h2 style="margin:2px 0">${esc(studentName(ME))}</h2><div class="small muted">${ME.classe ? esc(ME.classe) + " · " : ""}Enseignant : ${esc(ME.prof)} · ${new Date().toLocaleDateString("fr-FR")} · ${A.length} parcours sur ${C.parcours.length}</div>
     <table class="t" style="margin-top:10px"><thead><tr><th>Parcours</th><th class="n">Balises</th><th class="n">Temps</th>${show ? '<th class="n">Pénal.</th><th class="n">Final</th><th>Non val.</th>' : ""}<th class="n">Prévu</th><th class="n">Par tronçon</th></tr></thead><tbody>
-    ${A.map(x => `<tr><td><b>${esc(x.p.nom)}</b><br><small class="muted">${x.p.type === "duo" ? "👥 avec " + esc(teamNames(x.r)) : "👤 individuel"}</small></td><td class="n">${x.r.plan.length}</td><td class="n"><b>${fmt(x.a.chrono)}</b></td>${show ? `<td class="n">${x.a.pen ? "+" + fmt(x.a.pen) : "–"}</td><td class="n"><b>${fmt(x.a.final)}</b></td><td>${x.a.nErr ? `<span class="chip ko">${x.a.nErr}</span>` : '<span class="chip ok">0</span>'}</td>` : ""}<td class="n">${x.r.prevu ? fmt(x.r.prevu * 1000) : "–"}</td><td class="n">${fmt(per(x))}</td></tr>`).join("")}</tbody></table>
+    ${A.map(x => `<tr><td><b>${esc(x.p.nom)}</b><br><small class="muted">${x.p.type === "duo" ? "👥 avec " + esc(teamNames(x.r)) : "👤 individuel"}</small></td><td class="n">${show ? x.a.plan.length - x.a.oublis.length + " / " : ""}${x.a.plan.length}</td><td class="n"><b>${fmt(x.a.chrono)}</b></td>${show ? `<td class="n">${x.a.pen ? "+" + fmt(x.a.pen) : "–"}</td><td class="n"><b>${fmt(x.a.final)}</b></td><td>${x.a.nErr ? `<span class="chip ko">${x.a.nErr}</span>` : '<span class="chip ok">0</span>'}</td>` : ""}<td class="n">${x.r.prevu ? fmt(x.r.prevu * 1000) : "–"}</td><td class="n">${fmt(per(x))}</td></tr>`).join("")}</tbody></table>
     <h3 style="margin:14px 0 6px;font-size:1rem">Temps moyen par tronçon</h3>${A.map(x => `<div class="row small" style="margin-bottom:5px"><span style="width:90px">${esc(x.p.nom)}</span><div class="grow"><div class="bar" style="width:${per(x) / mx * 100}%"></div></div><b style="width:52px;text-align:right">${fmt(per(x))}</b></div>`).join("")}
     ${pts.length ? `<h3 style="margin:14px 0 4px;font-size:1rem">👍 Points forts</h3><ul class="small" style="margin:0;padding-left:20px">${pts.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
     ${amel.length ? `<h3 style="margin:14px 0 4px;font-size:1rem">🎯 À travailler</h3><ul class="small" style="margin:0;padding-left:20px">${amel.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
@@ -2258,26 +2285,31 @@ function profCorr(box) {
 // AFL1 = 2 éléments sur 6 (points réalisés / annoncés ; déplacement : temps, erreurs, niveaux) ; AFL2 + AFL3 = 8 pts (répartition 4-4, 6-2 ou 2-6 choisie par l'élève).
 // Balises attendues filles / garçons (CCF : 16 / 18), modifiables. Corrections de l'enseignant (C.corr) appliquées avant de générer.
 const NOTE_DEF = { attF: 16, attG: 18, avance: 2 }, BAREME = { 2: [0.5, 1, 1.5, 2], 4: [0.5, 1.5, 2.5, 4], 6: [0.5, 2, 4, 6] }, DEG1 = [[0, 1.5], [1.75, 3], [3.25, 4.5], [4.75, 6]];
-const ncfg = () => ({ ...NOTE_DEF, ...(C.ncfg || {}) });
+/* « 📍 Noter sur 1 parcours » (demande de l'enseignant, 27/11/2026) : élève qui n'a terminé qu'un seul parcours, coché dans C.un ;
+   balises attendues pour un seul parcours attF1 / attG1 (réglables ; sinon attendues ÷ nombre de parcours de l'évaluation, `a1` = proposées) */
+const ncfg = () => { const g = { ...NOTE_DEF, ...(C.ncfg || {}) }, n = Math.max(1, C.parcours.length); g.a1 = g.attF1 == null && g.attG1 == null;
+  if (g.attF1 == null) g.attF1 = Math.max(1, Math.round(g.attF / n)); if (g.attG1 == null) g.attG1 = Math.max(1, Math.round(g.attG / n)); return g; };
+const inCarte = (r, fn) => { const kc = CTXC, cc = carteOf(r); if (cc) CTXC = cc; try { return fn(); } finally { CTXC = kc; } };
+const repOf = id => (C.repart || {})[id] || C.repDef || "4-4";
 const q25 = v => Math.round(v * 4) / 4;
 const npts = n => C.niv ? nivOf(n) : 1;
 function noteData(x) {
   const R = x.runs.filter(r => r && r.debut && r.fin); if (!R.length) return null;
-  const g = ncfg(), sx = (C.sexe || {})[x.me.id] || "", att = sx === "F" ? g.attF : g.attG;
+  const g = ncfg(), sx = (C.sexe || {})[x.me.id] || "", un = !!(C.un || {})[x.me.id] && R.length === 1 && C.parcours.length > 1, att = un ? (sx === "F" ? g.attF1 : g.attG1) : sx === "F" ? g.attF : g.attG;
   let ann = 0, pts = 0, nbPlan = 0, nb = 0, n2 = 0, n3 = 0, modif = 0, oublis = 0, bonus = 0, over = 0, avance = 99, indMiss = 0, colOk = null, corr = 0, tfix = 0;
   R.forEach(r => { const a = withStudent(x, () => analyse(r)), F = new Set(a.found.map(Number)), extra = [...F].filter(n => !a.plan.includes(n)), p = P(r.k) || {};
-    ann += a.plan.reduce((s, n) => s + npts(n), 0); pts += [...F].reduce((s, n) => s + npts(n), 0); nbPlan += a.plan.length; nb += F.size; bonus += extra.length; corr += a.corrige ? 1 : 0; if (a.temps) tfix = 1;
-    F.forEach(n => { const v = +((balise(n) || {}).niv || 0); if (v === 2) n2++; if (v === 3) n3++; });
+    inCarte(r, () => { ann += a.plan.reduce((s, n) => s + npts(n), 0); pts += [...F].reduce((s, n) => s + npts(n), 0); }); nbPlan += a.plan.length; nb += F.size; bonus += extra.length; corr += a.corrige ? 1 : 0; if (a.temps) tfix = 1;
+    inCarte(r, () => F.forEach(n => { const v = +((balise(n) || {}).niv || 0); if (v === 2) n2++; if (v === 3) n3++; }));
     modif += a.passees.length; const miss = a.plan.filter(n => !F.has(+n)).length; oublis += miss; if (a.over) over = 1;
     if (p.max) avance = Math.min(avance, Math.round((p.max * 60000 - a.chrono) / 60000));
     if (isDuoK(r.k)) colOk = (colOk !== false) && !miss; else indMiss += miss; });
   if (avance === 99) avance = 0;
-  return { R, sx, att, ann, pts, nbPlan, nb, n2, n3, modif, oublis, bonus, over, avance, indMiss, colOk, corr, tfix, ind: R.some(r => !isDuoK(r.k)) };
+  return { R, sx, un, att, ann, pts, nbPlan, nb, n2, n3, modif, oublis, bonus, over, avance, indMiss, colOk, corr, tfix, ind: R.some(r => !isDuoK(r.k)) };
 }
 /* répartition AFL2 / AFL3 : 4-4, 6-2, 2-6 ou « max » = celle des trois qui donne la meilleure note (demande de l'enseignant, 27/11/2026) */
 const REPS = ["4-4", "6-2", "2-6"], REPL = { "4-4": "4-4", "6-2": "6-2", "2-6": "2-6", max: "✨ Meilleure note" };
 function noteProp(x, dk, rpf) {
-  const rs = rpf || (C.repart || {})[x.me.id] || "4-4";
+  const rs = rpf || repOf(x.me.id);
   if (rs === "max") { let best = null; REPS.forEach(r => { const q = noteProp(x, dk, r); if (q && (!best || q.tot > best.tot)) best = q; }); if (best) best.max = 1; return best; }
   const v = noteData(x); if (!v) return null; const g = ncfg(), ratio = v.att ? Math.min(1, v.nb / v.att) : 0, rp = (REPS.includes(rs) ? rs : "4-4").split("-").map(Number);
   let d1 = v.pts < v.ann ? 0 : v.pts > v.ann ? 3 : v.modif > 0 ? 1 : 2;
@@ -2288,86 +2320,229 @@ function noteProp(x, dk, rpf) {
   const pos = (d) => q25(DEG1[d][0] + (DEG1[d][1] - DEG1[d][0]) * ratio);
   const a1 = pos(d1), a2 = pos(d2), a3 = BAREME[rp[0]][d3], a4 = BAREME[rp[1]][d4];
   return { v, d: [d1, d2, d3, d4], auto, a: [a1, a2, a3, a4], rep: rp.join("-"), ratio, tot: q25(a1 + a2 + a3 + a4),
-    why: [`${v.pts} pts réalisés / ${v.ann} annoncés${v.modif ? ", " + v.modif + " poste(s) abandonné(s)" : ""}`, `${v.over ? "hors temps" : "dans les temps" + (v.avance > 0 ? " (" + v.avance + " min d'avance)" : "")}, ${v.oublis} balise(s) du projet manquée(s), N2 ${v.n2} / N3 ${v.n3}`, `${v.nb} balises ramenées / ${v.att} attendues${v.bonus ? ", " + v.bonus + " bonus" : ""}`, v.ind ? `individuel : ${v.indMiss ? v.indMiss + " balise(s) manquée(s)" : "complet"}${v.colOk != null ? ", collectif " + (v.colOk ? "complet" : "incomplet") : ""}` : "pas de parcours individuel"] };
+    why: [`${v.pts} pts réalisés / ${v.ann} annoncés${v.modif ? ", " + v.modif + " poste(s) abandonné(s)" : ""}`, `${v.over ? "hors temps" : "dans les temps" + (v.avance > 0 ? " (" + v.avance + " min d'avance)" : "")}, ${v.oublis} balise(s) du projet manquée(s), N2 ${v.n2} / N3 ${v.n3}`, `${v.nb} balises ramenées / ${v.att} attendues${v.un ? " (noté sur 1 parcours)" : ""}${v.bonus ? ", " + v.bonus + " bonus" : ""}`, v.ind ? `individuel : ${v.indMiss ? v.indMiss + " balise(s) manquée(s)" : "complet"}${v.colOk != null ? ", collectif " + (v.colOk ? "complet" : "incomplet") : ""}` : "pas de parcours individuel"] };
 }
 const NAFL = ["AFL1 (1)", "AFL1 (2)", "AFL2", "AFL3"];
 const dKeep = o => o && o.dm ? o.d.map((d, i) => o.dm[i] ? d : null) : null;
 function noteSet(N, x, reset) { const o = N[x.me.id], pr = noteProp(x, dKeep(o)); if (!pr) return false;
   const dm = pr.d.map((d, i) => !!(o && o.dm && o.dm[i])), why = pr.why.map((w, i) => dm[i] ? w + " · degré choisi par l'enseignant (proposé : " + (pr.auto[i] + 1) + ")" : w);
-  const keep = !reset && o && o.man; N[x.me.id] = { prop: pr.tot, a: pr.a, d: pr.d, dm, why, rep: pr.rep, max: pr.max ? 1 : 0, note: keep ? o.note : pr.tot, man: !!keep, t: now() }; return true; }
+  const keep = !reset && o && o.man; N[x.me.id] = { prop: pr.tot, a: pr.a, d: pr.d, dm, why, rep: pr.rep, max: pr.max ? 1 : 0, un: pr.v.un ? 1 : 0, note: keep ? o.note : pr.tot, man: !!keep, t: now() }; return true; }
 const NK = () => "notes:" + (C.ev ? C.ev.id : "cur");
 const pnClasses = () => { const f = LS.get("pf", ""); return [...new Set(allStudents().filter(x => (!f || x.me.prof === f) && x.me.classe).map(x => x.me.classe))].sort((a, b) => a.localeCompare(b, "fr", { numeric: true })); };
+/* élèves notés (au moins un parcours terminé, ni absent ni dispensé), du filtre enseignant `f` ("" = tous) */
+const noteList = (f, all = allStudents()) => all.filter(x => !x.abs && (!f || x.me.prof === f) && x.runs.some(r => r && r.fin)).sort((a, b) => (a.me.classe + a.me.nom + a.me.prenom).localeCompare(b.me.classe + b.me.nom + b.me.prenom, "fr"));
+/* recalcule les notes déjà générées (degrés choisis et note retenue modifiée gardés) : après un changement de répartition ou « 1 parcours » */
+function renote(L, ids) { const N = LS.get(NK(), {}); let n = 0; ids.forEach(id => { const x = L.find(y => y.me.id === id); if (x && N[id] && noteSet(N, x)) n++; }); LS.set(NK(), N); return n; }
 function profNote(box) {
-  const f = LS.get("pf", "");
-  const draw = () => { const g = ncfg();
-    const NT = LS.get(NK(), {}), L = allStudents().filter(x => !x.abs && (!f || x.me.prof === f) && x.runs.some(r => r && r.fin)).sort((a, b) => (a.me.classe + a.me.nom).localeCompare(b.me.classe + b.me.nom, "fr"));
-    box.innerHTML = `<div class="card"><h2 style="margin-top:0">🎓 Proposition de note · ${esc(C.ev ? C.ev.nom : "évaluation en cours")}</h2>
+  const draw = () => { const g = ncfg(), f = LS.get("pf", ""), all = allStudents(), profs = C.profs.filter(Boolean);
+    const NT = LS.get(NK(), {}), L = noteList(f, all), nbP = C.parcours.length;
+    box.innerHTML = `${profs.length ? `<div class="tabs2">${profs.map(p => `<button class="btn sm ${p === f ? "vi" : "gh"}" data-pf="${esc(p)}">👤 ${esc(p)} (${noteList(p, all).length})</button>`).join("")}<button class="btn sm ${!f ? "vi" : "gh"}" data-pf="">Tous (${noteList("", all).length})</button></div>` : ""}
+     <div class="card"><h2 style="margin-top:0">🎓 Proposition de note · ${esc(C.ev ? C.ev.nom : "évaluation en cours")}${f ? " · " + esc(f) : ""}</h2>
       <p class="small muted" style="margin-top:0">D'après le protocole CCF de course d'orientation (AFL1 : 2 × 6 pts ; AFL2 + AFL3 : 8 pts selon la répartition de l'élève). <b>1.</b> Règle le nombre de balises attendues et le sexe des élèves. <b>2.</b> Corrige si besoin le projet et les balises de chaque élève (✏️). <b>3.</b> Génère les notes, puis ajuste-les.</p>
       <div class="row small" style="gap:10px">Balises attendues : filles <input class="inp" type="number" min="1" id="nF" value="${g.attF}" style="width:70px;padding:6px"> garçons <input class="inp" type="number" min="1" id="nG" value="${g.attG}" style="width:70px;padding:6px"> <span class="muted">(CCF : 16 / 18)</span> · « en avance » à partir de <input class="inp" type="number" min="0" id="nA" value="${g.avance}" style="width:60px;padding:6px"> min ${g.attF !== 16 || g.attG !== 18 ? '<button class="btn sm gh" id="nCcf">↺ Valeurs du CCF</button>' : ""}</div>
-      <div class="row" style="margin-top:10px"><button class="btn or" id="nGen">🧮 Générer les notes</button>${Object.values(NT).filter(o => o.pend).length ? `<button class="btn or" id="nRpz">🔄 Repositionner (${Object.values(NT).filter(o => o.pend).length})</button>` : ""}<button class="btn sm gh" id="nCsv">⬇ Tableur</button>${pnClasses().map(c => `<button class="btn sm gh" data-pn="${esc(c)}">📋 Pronote${pnClasses().length > 1 ? " " + esc(c) : ""}</button>`).join("")}<button class="btn sm gh" id="nPr">🖨 Imprimer</button><span class="small muted grow" style="text-align:right">${L.length} élève(s) avec au moins un parcours terminé${C.niv ? "" : " · sans niveaux de balises : 1 balise = 1 point"}</span></div></div>
-     <div class="card" style="overflow:auto"><table class="t small"><thead><tr><th>Élève</th><th>Sexe</th><th>Répart.</th><th>Balises<br>ramenées / attendues</th><th>Points<br>réalisés / annoncés</th><th>Temps</th><th></th><th>Proposition</th><th>Note retenue</th></tr></thead><tbody>
-      ${L.map(x => { const id = x.me.id, v = noteData(x), sx = (C.sexe || {})[id] || "", rp = (C.repart || {})[id] || "4-4", nt = NT[id];
-        return `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}<br><small class="muted">${esc(x.me.classe)}</small></td>
+      ${nbP > 1 ? `<div class="row small" style="gap:10px;margin-top:6px">📍 Élève noté sur 1 parcours : filles <input class="inp" type="number" min="1" id="nF1" value="${g.attF1}" style="width:70px;padding:6px"> garçons <input class="inp" type="number" min="1" id="nG1" value="${g.attG1}" style="width:70px;padding:6px"> <span class="muted">${g.a1 ? "(proposé : attendues ÷ " + nbP + " parcours)" : ""}</span></div>` : ""}
+      <div class="row" style="margin-top:10px"><button class="btn or" id="nGen">🧮 Générer les notes</button>${Object.values(NT).filter(o => o.pend).length ? `<button class="btn or" id="nRpz">🔄 Repositionner (${Object.values(NT).filter(o => o.pend).length})</button>` : ""}<button class="btn vi" id="nExp">📤 Exporter (PDF · Excel)</button>${pnClasses().map(c => `<button class="btn sm gh" data-pn="${esc(c)}">📋 Pronote${pnClasses().length > 1 ? " " + esc(c) : ""}</button>`).join("")}<span class="small muted grow" style="text-align:right">${L.length} élève(s) avec au moins un parcours terminé${C.niv ? "" : " · sans niveaux de balises : 1 balise = 1 point"}</span></div></div>
+     <div class="card" style="overflow:auto"><table class="t small"><thead><tr><th>Élève</th><th>Sexe</th><th>Répart.<br><select class="inp" id="nRpAll" title="La même répartition pour tous les élèves affichés" style="width:auto;padding:3px 4px;margin-top:3px;font-size:.78rem"><option value="">Pour tous…</option>${["max", ...REPS].map(o => `<option value="${o}">${REPL[o]}</option>`).join("")}</select></th><th>Balises<br>ramenées / attendues</th><th>Points<br>réalisés / annoncés</th><th>Temps</th><th></th><th>Proposition</th><th>Note retenue</th></tr></thead><tbody>
+      ${L.map(x => { const id = x.me.id, v = noteData(x), sx = (C.sexe || {})[id] || "", rp = repOf(id), nt = NT[id];
+        return `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}<br><small class="muted">${esc(x.me.classe)}${!f && profs.length > 1 ? " · " + esc(x.me.prof) : ""}</small></td>
          <td><button class="btn sm ${sx === "F" ? "or" : "gh"}" data-sx="F" data-id="${esc(id)}">F</button><button class="btn sm ${sx === "G" ? "or" : "gh"}" data-sx="G" data-id="${esc(id)}">G</button>${sx ? "" : '<br><small style="color:var(--ko)">à préciser</small>'}</td>
          <td><select class="inp" data-rp="${esc(id)}" style="width:auto;padding:4px">${Object.keys(REPL).map(o => `<option value="${o}" ${o === rp ? "selected" : ""}>${REPL[o]}</option>`).join("")}</select>${rp === "max" && nt && nt.rep ? `<br><small class="muted">→ ${esc(nt.rep)}</small>` : ""}</td>
-         <td><b style="color:${v && v.nb >= v.att ? "var(--ok)" : "var(--ko)"}">${v ? v.nb : "—"}</b> / ${v ? v.att : "—"}<br><small class="muted">projet : ${v ? v.nbPlan : "—"}</small></td>
+         <td><b style="color:${v && v.nb >= v.att ? "var(--ok)" : "var(--ko)"}">${v ? v.nb : "—"}</b> / ${v ? v.att : "—"}<br><small class="muted">projet : ${v ? v.nbPlan : "—"}</small>${v && nbP > 1 && v.R.length < nbP ? `<br><small style="color:var(--or);font-weight:800">${v.R.length} parcours sur ${nbP}</small>${v.R.length === 1 ? `<br><button class="btn sm ${v.un ? "or" : "gh"}" data-un="${esc(id)}" title="Balises attendues d'un seul parcours">${v.un ? "📍 Noté sur 1 parcours ✓" : "📍 Noter sur 1 parcours"}</button>` : ""}` : ""}</td>
          <td>${v ? `${v.pts} / ${v.ann}` : "—"}</td><td>${v ? `<button class="btn sm gh" data-cr="${esc(id)}" title="Corriger le temps (dans / hors temps)" style="${v.over ? "color:var(--ko)" : ""}">${v.over ? "hors temps" : "dans les temps"}${v.tfix ? " ✓" : ""}</button>` : "—"}</td>
          <td><button class="btn sm gh" data-cr="${esc(id)}">✏️ Corriger${v && v.corr ? " ✓" : ""}</button></td>
          <td>${nt ? `<div class="ndeg">${NAFL.map((l, i) => `<label class="${nt.dm && nt.dm[i] ? "man" : ""}" title="${esc(nt.why[i] || "")}">${l} <select data-dg="${esc(id)}" data-i="${i}">${[0, 1, 2, 3].map(d => `<option value="${d}" ${d === nt.d[i] ? "selected" : ""}>D${d + 1}</option>`).join("")}</select> <b>${fr(nt.a[i])}</b></label>`).join("")}</div>
-           ${nt.pend ? `<button class="btn sm or" data-rpz="${esc(id)}" style="margin-top:4px">🔄 Repositionner</button>` : `<button class="btn sm gh" data-det="${esc(id)}" title="Détail des AFL"><b>${fr(nt.prop)}</b> <small class="muted">/ 20</small> 🔍</button>`}${nt.dm && nt.dm.some(Boolean) ? ` <button class="btn sm gh" data-dgr="${esc(id)}" title="Revenir aux degrés proposés">↺</button>` : ""}` : (v ? `<button class="btn sm gh" data-det="${esc(id)}">🔍 Voir le détail</button>` : '<span class="muted">—</span>')}</td>
+           ${nt.pend ? `<button class="btn sm or" data-rpz="${esc(id)}" style="margin-top:4px">🔄 Repositionner</button>` : `<button class="btn sm gh" data-det="${esc(id)}" title="Évaluation complète"><b>${fr(nt.prop)}</b> <small class="muted">/ 20</small> 🔍</button>`}${nt.dm && nt.dm.some(Boolean) ? ` <button class="btn sm gh" data-dgr="${esc(id)}" title="Revenir aux degrés proposés">↺</button>` : ""}` : (v ? `<button class="btn sm gh" data-det="${esc(id)}">🔍 Évaluation complète</button>` : '<span class="muted">—</span>')}</td>
          <td>${nt ? `<input class="inp" type="number" step="0.25" min="0" max="20" data-nt="${esc(id)}" value="${nt.note}" style="width:80px;padding:6px;font-weight:800">${nt.note !== nt.prop ? ' <small class="muted">modifiée</small>' : ""}` : ""}</td></tr>`; }).join("") || '<tr><td colspan="9" class="muted">Aucun parcours terminé pour l\'instant.</td></tr>'}
-     </tbody></table><p class="small muted">Degrés D1 à D4 modifiables par AFL (en orange : choisi par toi), puis « 🔄 Repositionner » recalcule la note. « ✏️ Corriger » : projet de l'élève, balises réellement trouvées et temps (dans / hors temps), s'applique aussi aux résultats. 🔍 sur la proposition : le détail de chaque AFL. Répartition « ✨ Meilleure note » : celle des trois (4-4, 6-2, 2-6) qui donne la meilleure note. La note retenue est modifiable ; « Générer » ne remplace pas une note que tu as modifiée.</p></div>`;
+     </tbody></table><p class="small muted">Degrés D1 à D4 modifiables par AFL (en orange : choisi par toi), puis « 🔄 Repositionner » recalcule la note. « ✏️ Corriger » : projet de l'élève, balises réellement trouvées et temps (dans / hors temps), s'applique aussi aux résultats et aux bilans. 🔍 : l'évaluation complète en grand, avec le positionnement proposé (un appui sur un degré le choisit). Répartition « ✨ Meilleure note » : celle des trois (4-4, 6-2, 2-6) qui donne la meilleure note ; « Pour tous… » la donne à tous les élèves affichés. La note retenue est modifiable ; « Générer » ne remplace pas une note que tu as modifiée.</p></div>`;
     const ch = () => { confChanged(); };
-    ["nF", "nG", "nA"].forEach(i => $("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF: +$("#nF").value || 16, attG: +$("#nG").value || 18, avance: +$("#nA").value || 0 }; ch(); draw(); });
+    const num = (id, d) => { const k = parseFloat(String($("#" + id).value).replace(",", ".")); return k >= 0 ? Math.round(k) : d; };
+    ["nF", "nG", "nA"].forEach(i => $("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF: num("nF", 16) || 16, attG: num("nG", 18) || 18, avance: num("nA", 0) }; ch(); draw(); });
+    ["nF1", "nG1"].forEach(i => $("#" + i) && ($("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF1: num("nF1", null) || null, attG1: num("nG1", null) || null }; ch(); draw(); }));
     $("#nCcf") && ($("#nCcf").onclick = () => { C.ncfg = { ...NOTE_DEF }; ch(); draw(); });
-    $$("[data-sx]").forEach(b => b.onclick = () => { const id = b.dataset.id, v = b.dataset.sx; C.sexe = { ...(C.sexe || {}), [id]: v }; ch(); draw(); });
-    $$("[data-rp]").forEach(x => x.onchange = () => { C.repart = { ...(C.repart || {}), [x.dataset.rp]: x.value }; ch(); draw(); });
-    $$("[data-nt]").forEach(x => x.onchange = () => { const N = LS.get(NK(), {}), o = N[x.dataset.nt]; if (!o) return; o.note = Math.max(0, Math.min(20, q25(+String(x.value).replace(",", ".") || 0))); o.man = o.note !== o.prop; LS.set(NK(), N); draw(); });
-    $$("[data-dg]").forEach(x => x.onchange = () => { const N = LS.get(NK(), {}), o = N[x.dataset.dg], i = +x.dataset.i; if (!o) return; o.d[i] = +x.value; o.dm = o.dm || [0, 0, 0, 0].map(() => false); o.dm[i] = true; o.pend = 1; LS.set(NK(), N); draw(); });
+    $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); draw(); });
+    $$("[data-sx]", box).forEach(b => b.onclick = () => { const id = b.dataset.id, v = b.dataset.sx; C.sexe = { ...(C.sexe || {}), [id]: v }; ch(); draw(); });
+    $$("[data-rp]", box).forEach(x => x.onchange = () => { C.repart = { ...(C.repart || {}), [x.dataset.rp]: x.value }; ch(); renote(L, [x.dataset.rp]); draw(); });
+    /* « Pour tous… » : la même répartition (✨ meilleure note…) pour tous les élèves affichés (demande de l'enseignant, 27/11/2026) */
+    $("#nRpAll").onchange = e => { const v = e.target.value; if (!v || !L.length) return; C.repart = { ...(C.repart || {}) }; L.forEach(x => { C.repart[x.me.id] = v; }); if (!f) C.repDef = v; ch(); const n = renote(L, L.map(x => x.me.id)); draw(); flash(`${REPL[v]} pour ${L.length} élève(s)${n ? " · " + n + " note(s) recalculée(s)" : ""}`); };
+    $$("[data-un]", box).forEach(b => b.onclick = () => { const id = b.dataset.un; C.un = { ...(C.un || {}) }; if (C.un[id]) delete C.un[id]; else C.un[id] = 1; ch(); renote(L, [id]); draw(); flash(C.un[id] ? "📍 Noté sur 1 parcours" : "📍 Noté sur tous les parcours"); });
+    $$("[data-nt]", box).forEach(x => x.onchange = () => { const N = LS.get(NK(), {}), o = N[x.dataset.nt]; if (!o) return; const k = parseFloat(String(x.value).replace(",", ".")); if (!(k >= 0)) { x.value = o.note; return; } o.note = Math.max(0, Math.min(20, q25(k))); o.man = o.note !== o.prop; LS.set(NK(), N); draw(); });
+    $$("[data-dg]", box).forEach(x => x.onchange = () => { const N = LS.get(NK(), {}), o = N[x.dataset.dg], i = +x.dataset.i; if (!o) return; o.d[i] = +x.value; o.dm = o.dm || [0, 0, 0, 0].map(() => false); o.dm[i] = true; o.pend = 1; LS.set(NK(), N); draw(); });
     const rpz = ids => { const N = LS.get(NK(), {}); let n = 0; ids.forEach(id => { const x = L.find(y => y.me.id === id); if (x && noteSet(N, x, true)) n++; }); LS.set(NK(), N); draw(); flash(`🔄 ${n} élève(s) repositionné(s)`); };
-    $$("[data-rpz]").forEach(b => b.onclick = () => rpz([b.dataset.rpz]));
+    $$("[data-rpz]", box).forEach(b => b.onclick = () => rpz([b.dataset.rpz]));
     $("#nRpz") && ($("#nRpz").onclick = () => rpz(Object.keys(LS.get(NK(), {})).filter(id => LS.get(NK(), {})[id].pend)));
-    $$("[data-dgr]").forEach(b => b.onclick = () => { const N = LS.get(NK(), {}), o = N[b.dataset.dgr]; if (!o) return; o.dm = null; LS.set(NK(), N); rpz([b.dataset.dgr]); });
-    $$("[data-cr]").forEach(b => b.onclick = () => corrDialog(L.find(x => x.me.id === b.dataset.cr), draw));
-    $$("[data-det]").forEach(b => b.onclick = () => noteDetail(L.find(x => x.me.id === b.dataset.det)));
+    $$("[data-dgr]", box).forEach(b => b.onclick = () => { const N = LS.get(NK(), {}), o = N[b.dataset.dgr]; if (!o) return; o.dm = null; LS.set(NK(), N); rpz([b.dataset.dgr]); });
+    $$("[data-cr]", box).forEach(b => b.onclick = () => corrDialog(L.find(x => x.me.id === b.dataset.cr), draw));
+    $$("[data-det]", box).forEach(b => b.onclick = () => noteBig(L, b.dataset.det, draw));
     $("#nGen").onclick = async () => { const miss = L.filter(x => !(C.sexe || {})[x.me.id]).length; if (miss && !(await ask("Sexe non précisé", `${miss} élève(s) sans sexe : le nombre de balises attendues des garçons (${ncfg().attG}) leur est appliqué.`, "Générer quand même", "or"))) return;
       const N = LS.get(NK(), {}); let n = 0; L.forEach(x => { if (noteSet(N, x)) n++; }); LS.set(NK(), N); draw(); flash(`🧮 ${n} note(s) proposée(s)`); };
+    $("#nExp").onclick = () => noteExport(f);
     /* 📋 Pronote (fenêtre commune EPSR.pronote d'eps-home.js) : un bouton par classe ; note retenue /20 + points par AFL ;
        absents et dispensés codés A / D, élève sans note : N. */
-    $$("[data-pn]").forEach(b => b.onclick = () => { if (!(window.EPSR && EPSR.pronote)) { flash("Export Pronote indisponible : recharge la page."); return; }
-      const cl = b.dataset.pn, N = LS.get(NK(), {}), R = allStudents().filter(x => x.me.classe === cl && (!f || x.me.prof === f));
+    $$("[data-pn]", box).forEach(b => b.onclick = () => { if (!(window.EPSR && EPSR.pronote)) { flash("Export Pronote indisponible : recharge la page."); return; }
+      const cl = b.dataset.pn, N = LS.get(NK(), {}), R = all.filter(x => x.me.classe === cl && (!f || x.me.prof === f));
       EPSR.pronote({ app: "CO – Évaluation", classe: cl, titre: C.ev ? C.ev.nom : "", color: "#14213D", cols: [{ t: "Note /20" }, { t: "Note proposée /20" }].concat(NAFL.map((l, i) => ({ t: l + (i < 2 ? " /6" : "") }))),
         rows: R.map(x => { const o = N[x.me.id]; return { nom: x.me.nom, prenom: x.me.prenom || "", st: x.abs ? String(x.st || "abs") : "", v: o && !x.abs ? [o.note, o.prop].concat(NAFL.map((l, i) => o.a[i])) : [null, null, null, null, null, null] }; }) }); });
-    $("#nCsv").onclick = () => { const N = LS.get(NK(), {}), rows = [["Nom", "Prénom", "Classe", "Sexe", "Répartition", "Balises ramenées", "Balises attendues", "Balises du projet", "Points réalisés", "Points annoncés", "Hors temps", "AFL1 (1) /6", "AFL1 (2) /6", "AFL2", "AFL3", "Degrés (AFL1-1, AFL1-2, AFL2, AFL3)", "Note proposée /20", "Note retenue /20", "Justification"]];
-      L.forEach(x => { const v = noteData(x), o = N[x.me.id]; rows.push([x.me.nom, x.me.prenom, x.me.classe, (C.sexe || {})[x.me.id] || "", o && o.rep ? o.rep + (o.max ? " (meilleure)" : "") : (C.repart || {})[x.me.id] || "4-4", v ? v.nb : "", v ? v.att : "", v ? v.nbPlan : "", v ? v.pts : "", v ? v.ann : "", v && v.over ? "oui" : "non", ...(o ? o.a.map(fr) : ["", "", "", ""]), o ? o.d.map(d => "D" + (d + 1)).join(" ") : "", o ? fr(o.prop) : "", o ? fr(o.note) : "", o ? o.why.join(" | ") : ""]); });
-      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n")], { type: "text/csv" })); a.download = `notes-CO-${(C.ev ? C.ev.nom : "evaluation").normalize("NFD").replace(/[^\w]+/g, "-")}.csv`; a.click(); };
-    $("#nPr").onclick = () => { const N = LS.get(NK(), {}); printDoc("Notes CO", `<h1>🎓 Notes de course d'orientation</h1><p class="sub">${evHead()} · balises attendues : filles ${g.attF}, garçons ${g.attG} · protocole CCF (AFL1 12 pts, AFL2 + AFL3 8 pts)</p><table><thead><tr><th>Élève</th><th>Classe</th><th>Sexe</th><th>Balises</th><th>Points</th><th>AFL1 (1)</th><th>AFL1 (2)</th><th>AFL2</th><th>AFL3</th><th>Note /20</th></tr></thead><tbody>${L.map(x => { const v = noteData(x), o = N[x.me.id]; return `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}</td><td>${esc(x.me.classe)}</td><td>${(C.sexe || {})[x.me.id] || ""}</td><td>${v ? v.nb + " / " + v.att : ""}</td><td>${v ? v.pts + " / " + v.ann : ""}</td>${o ? o.a.map(a => `<td>${fr(a)}</td>`).join("") + `<td><b>${fr(o.note)}</b></td>` : '<td colspan="5"></td>'}</tr>`; }).join("")}</tbody></table>`); };
   };
   draw();
 }
 const fr = v => String(Math.round(v * 100) / 100).replace(".", ",");
-/* 🔍 détail de la proposition d'un élève, AFL par AFL (demande de l'enseignant, 27/11/2026) : degré, pourquoi, règle, points, et la note avec chaque répartition */
+/* 🔍 Évaluation complète en grand (demande de l'enseignant, 27/11/2026 : « je veux voir l'évaluation complète en grand avec le positionnement que tu proposes ») :
+   grille AFL × degrés D1 à D4 (règle de chaque degré, points), degré proposé surligné, constat, points, note ; un appui sur un degré le choisit
+   (la note suit, comme « 🔄 Repositionner ») ; répartition, ✏️ Corriger, 📍 1 parcours ; élève précédent / suivant (‹ ›, flèches du clavier). */
 const AFLD = [
   ["AFL1 · élément 1 : le projet", "Points réalisés comparés aux points annoncés dans le projet.", ["moins de points réalisés qu'annoncés", "points annoncés réalisés, avec au moins un poste abandonné", "points annoncés réalisés, sans abandon", "plus de points réalisés qu'annoncés"]],
   ["AFL1 · élément 2 : le déplacement", "Temps, balises du projet manquées, niveaux des balises trouvées.", ["hors temps", "balise(s) du projet manquée(s), ou pas plus de balises N3 que N2", "plus de balises N3 que N2, sans oubli", "toutes les balises en N3, sans oubli, avec l'avance demandée"]],
   ["AFL2 : les balises ramenées", "Balises ramenées comparées aux balises attendues et au projet.", ["moins de la moitié du projet ramenée", "abandon, oubli, ou moins de balises que le nombre attendu", "au moins le nombre de balises attendu", "nombre attendu atteint, avec des balises bonus ou plus de points qu'annoncé"]],
   ["AFL3 : individuel et collectif", "Parcours individuel complet, puis parcours collectif.", ["—", "balise(s) manquée(s) en individuel", "individuel complet (ou pas de parcours individuel)", "individuel complet et collectif complet"]]];
-function noteDetail(x) {
-  if (!x) return; const N = LS.get(NK(), {}), o = N[x.me.id], pr = noteProp(x, dKeep(o)); if (!pr) return;
-  const v = pr.v, g = ncfg(), rp = pr.rep.split("-").map(Number), alt = REPS.map(r => { const q = noteProp(x, dKeep(o), r); return [r, q ? q.tot : 0]; }), best = Math.max(...alt.map(a => a[1]));
-  const pts = i => i < 2 ? `Dans le degré, place selon les balises ramenées / attendues (${v.nb} / ${v.att} = ${Math.round(pr.ratio * 100)} %) : D${pr.d[i] + 1} va de ${fr(DEG1[pr.d[i]][0])} à ${fr(DEG1[pr.d[i]][1])} → <b>${fr(pr.a[i])} / 6</b>.`
-    : `Répartition ${pr.rep} : ${NAFL[i]} sur ${rp[i - 2]} pts (D1 ${BAREME[rp[i - 2]].map(fr).join(" · D")}) → <b>${fr(pr.a[i])} / ${rp[i - 2]}</b>.`.replace(/ · D(\d)/g, " · D$1").replace(/\(D1 ([^)]*)\)/, (s, L) => "(" + L.split(" · D").map((y, k) => "D" + (k + 1) + " " + y.replace(/^\d /, "")).join(" · ") + ")");
-  const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">🔍 ${esc(x.me.prenom)} ${esc(x.me.nom)} · ${fr(pr.tot)} / 20</h2><button class="btn sm gh" id="ndX">Fermer</button></div>
-   <p class="small muted" style="margin-top:0">${esc(x.me.classe || "")} · ${v.nb} balises ramenées / ${v.att} attendues · ${v.pts} pts réalisés / ${v.ann} annoncés · ${v.over ? "hors temps" : "dans les temps"}${v.corr ? " · corrigé par toi" : ""}</p>
-   ${AFLD.map((A, i) => `<div class="card" style="margin:0 0 8px;padding:10px;border-left:5px solid ${["#d62839", "#f47a20", "#3aa0d8", "#2a9d6f"][pr.d[i]]}"><div class="row"><b class="grow">${A[0]}</b><span class="chip ${pr.d[i] >= 2 ? "ok" : "or"}">D${pr.d[i] + 1}${o && o.dm && o.dm[i] ? " · choisi par toi (proposé D" + (pr.auto[i] + 1) + ")" : ""}</span></div>
-     <div class="small muted">${A[1]}</div><div class="small" style="margin-top:4px">📌 ${esc(pr.why[i])}</div>
-     <details class="small" style="margin-top:4px"><summary style="cursor:pointer">Règle des degrés</summary>${A[2].map((r, d) => `<div${d === pr.d[i] ? ' style="font-weight:800"' : ""}>D${d + 1} : ${esc(r.replace("l'avance demandée", "au moins " + g.avance + " min d'avance"))}</div>`).join("")}</details>
-     <div class="small" style="margin-top:4px">${pts(i)}</div></div>`).join("")}
-   <div class="card" style="margin:0;padding:10px"><b>Note selon la répartition AFL2 / AFL3</b><div class="row" style="margin-top:6px">${alt.map(([r, n]) => `<span class="chip ${n === best ? "ok" : ""}" style="font-size:.9rem;padding:4px 10px">${r} → <b>${fr(n)}</b>${n === best ? " ✨" : ""}</span>`).join("")}</div>
-   <p class="small muted" style="margin:6px 0 0">Répartition retenue : ${pr.max ? "✨ meilleure note (" + pr.rep + ")" : pr.rep}.${o && o.note !== o.prop ? " Note retenue modifiée par toi : " + fr(o.note) + "." : ""}</p></div>`);
-  $("#ndX", m).onclick = m.close;
+const DCOL = ["#d62839", "#f47a20", "#3aa0d8", "#2a9d6f"], DBG = ["#fdecee", "#fff1e4", "#e6f3fb", "#e3f5ec"];
+function noteBig(L, id, after) {
+  let i = L.findIndex(x => x.me.id === id); if (i < 0) return;
+  const m = modal(""), box = m.firstElementChild; m.classList.add("big"); m.onclick = null;
+  const key = e => { if (e.target.closest && e.target.closest("input,select,textarea")) return; if (e.key === "ArrowLeft" && i > 0) { i--; draw(); } else if (e.key === "ArrowRight" && i < L.length - 1) { i++; draw(); } else if (e.key === "Escape") close(); };
+  const close = () => { document.removeEventListener("keydown", key); m.remove(); after && after(); };
+  document.addEventListener("keydown", key);
+  const save = (fn, reset) => { const x = L[i], N = LS.get(NK(), {}); if (!N[x.me.id]) noteSet(N, x); const o = N[x.me.id]; if (!o) return; fn(o); noteSet(N, x, reset); LS.set(NK(), N); draw(); };
+  const draw = () => { const x = L[i], N = LS.get(NK(), {}), o = N[x.me.id], pr = noteProp(x, dKeep(o)), g = ncfg(), nbP = C.parcours.length;
+    const head = `<div class="row" style="margin-bottom:10px;gap:8px"><button class="btn sm gh" id="bgX">✕ Fermer</button><button class="btn sm gh" id="bgP" ${i ? "" : "disabled"} aria-label="Élève précédent">‹</button>
+      <div class="grow" style="text-align:center;min-width:0"><h2 style="margin:0">${esc(x.me.prenom)} ${esc(x.me.nom)}</h2><small class="muted">${esc(x.me.classe || "")} · ${esc(x.me.prof || "")} · élève ${i + 1} / ${L.length} · ${esc(C.ev ? C.ev.nom : "évaluation en cours")}</small></div>
+      <button class="btn sm gh" id="bgN" ${i < L.length - 1 ? "" : "disabled"} aria-label="Élève suivant">›</button></div>`;
+    if (!pr) { box.innerHTML = head + '<div class="card muted">Aucun parcours terminé.</div>'; bind(); return; }
+    const v = pr.v, rp = pr.rep.split("-").map(Number), man = i2 => !!(o && o.dm && o.dm[i2]), alt = REPS.map(r => { const q = noteProp(x, dKeep(o), r); return [r, q ? q.tot : 0]; }), best = Math.max(...alt.map(a => a[1])), rs = repOf(x.me.id);
+    const maxOf = k => k < 2 ? 6 : rp[k - 2], rng = (k, d) => k < 2 ? `${fr(DEG1[d][0])} à ${fr(DEG1[d][1])} pts` : `${fr(BAREME[rp[k - 2]][d])} pt${BAREME[rp[k - 2]][d] > 1 ? "s" : ""}`;
+    const rule = (k, d) => AFLD[k][2][d].replace("l'avance demandée", "au moins " + g.avance + " min d'avance");
+    const row = k => `<tr><th><b>${AFLD[k][0]}</b><small>${AFLD[k][1]}</small><div class="evw">📌 ${esc(pr.why[k])}</div></th>
+      ${[0, 1, 2, 3].map(d => { const on = d === pr.d[k], pp = man(k) && d === pr.auto[k];
+        return `<td class="evc${on ? " on" : ""}${pp ? " pp" : ""}" data-gi="${k}" data-gd="${d}" style="--dc:${DCOL[d]};--db:${DBG[d]}" role="button" tabindex="0" aria-pressed="${on}">${on ? `<span class="evt">${man(k) ? "✋ choisi par toi" : "📌 proposé"}</span>` : pp ? '<span class="evt pp">📌 proposé</span>' : ""}<div>${esc(rule(k, d))}</div><small>${rng(k, d)}</small></td>`; }).join("")}
+      <td class="evp" style="--dc:${DCOL[pr.d[k]]}"><b>${fr(pr.a[k])}</b><small>/ ${maxOf(k)}</small>${k < 2 ? `<small>${Math.round(pr.ratio * 100)} % du degré</small>` : ""}</td></tr>`;
+    const runs = v.R.map(r => { const a = withStudent(x, () => analyse(r)), F = new Set(a.found.map(Number)); return `<span class="chip ${a.oublis.length ? "or" : "ok"}" title="Projet : ${esc(a.plan.join(" "))}">${esc((P(r.k) || {}).nom || "Parcours")} · ${a.plan.filter(n => F.has(+n)).length} / ${a.plan.length}${a.corrige ? " · ✏️" : ""}</span>`; }).join(" ");
+    box.innerHTML = head + `<div class="evk">
+       <div><span>Balises ramenées / attendues</span><b style="color:${v.nb >= v.att ? "var(--gr)" : "var(--ko)"}">${v.nb} / ${v.att}</b>${v.un ? "<small>noté sur 1 parcours</small>" : ""}</div>
+       <div><span>Points réalisés / annoncés</span><b>${v.pts} / ${v.ann}</b></div>
+       <div><span>Temps</span><b style="${v.over ? "color:var(--ko)" : ""}">${v.over ? "hors temps" : "dans les temps"}</b>${v.avance > 0 && !v.over ? `<small>${v.avance} min d'avance</small>` : ""}</div>
+       <div class="evn"><span>Note proposée</span><b>${fr(pr.tot)} <small>/ 20</small></b>${o && o.note !== o.prop ? `<small>note retenue : ${fr(o.note)}</small>` : ""}</div></div>
+      <div class="row small" style="margin:8px 0">${runs}${nbP > 1 && v.R.length < nbP ? ` <b style="color:var(--or)">${v.R.length} parcours sur ${nbP}</b>` : ""}<span class="grow"></span>
+       ${nbP > 1 && v.R.length === 1 ? `<button class="btn sm ${v.un ? "or" : "gh"}" id="bgUn">${v.un ? "📍 Noté sur 1 parcours ✓" : "📍 Noter sur 1 parcours"}</button>` : ""}<button class="btn sm gh" id="bgCr">✏️ Corriger${v.corr ? " ✓" : ""}</button>${o && o.dm && o.dm.some(Boolean) ? '<button class="btn sm gh" id="bgRz">↺ Degrés proposés</button>' : ""}${!o ? '<button class="btn sm or" id="bgGen">🧮 Retenir cette proposition</button>' : ""}</div>
+      <div class="evg"><table class="evgt"><colgroup><col style="width:22%"><col><col><col><col><col style="width:9%"></colgroup>
+       <thead><tr><th>Élément évalué</th>${[1, 2, 3, 4].map(d => `<th style="color:${DCOL[d - 1]}">Degré ${d}</th>`).join("")}<th>Points</th></tr></thead><tbody>
+       <tr class="grp"><td colspan="6">AFL1 · 12 pts <small>(place dans le degré : balises ramenées / attendues)</small></td></tr>${row(0)}${row(1)}
+       <tr class="grp"><td colspan="6">AFL2 + AFL3 · 8 pts <small>(répartition ${pr.rep}${pr.max ? ", ✨ meilleure note" : ""})</small></td></tr>${row(2)}${row(3)}
+       <tr class="tot"><td colspan="5">AFL1 <b>${fr(q25(pr.a[0] + pr.a[1]))} / 12</b> · AFL2 + AFL3 <b>${fr(q25(pr.a[2] + pr.a[3]))} / 8</b></td><td class="evp"><b>${fr(pr.tot)}</b><small>/ 20</small></td></tr></tbody></table></div>
+      <div class="card" style="margin-top:10px;padding:10px"><b>Répartition AFL2 / AFL3</b> <small class="muted">(un appui la choisit pour cet élève)</small><div class="row" style="margin-top:6px">${alt.map(([r, n]) => `<button class="btn sm ${rs === r ? "vi" : "gh"}" data-brp="${r}">${r} → <b>${fr(n)}</b>${n === best ? " ✨" : ""}</button>`).join("")}<button class="btn sm ${rs === "max" ? "vi" : "gh"}" data-brp="max">✨ Meilleure note → <b>${fr(best)}</b></button></div></div>
+      <p class="small muted">Un appui sur un degré le choisit (bord orange : choisi par toi, pointillés : degré proposé) et la note est recalculée. ${o ? "" : "La note de cet élève n'est pas encore générée : elle l'est au premier choix."}</p>`;
+    bind();
+  };
+  const bind = () => { const x = L[i];
+    $("#bgX", m).onclick = close; $("#bgP", m).onclick = () => { if (i > 0) { i--; draw(); } }; $("#bgN", m).onclick = () => { if (i < L.length - 1) { i++; draw(); } };
+    $$("[data-gd]", m).forEach(c => { const pick = () => { const k = +c.dataset.gi, d = +c.dataset.gd; save(o => { const au = (noteProp(x, null) || {}).auto || []; o.d[k] = d; o.dm = o.dm || [false, false, false, false]; o.dm[k] = d !== au[k]; delete o.pend; }, true); }; c.onclick = pick; c.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } }; });
+    $$("[data-brp]", m).forEach(b => b.onclick = () => { C.repart = { ...(C.repart || {}), [x.me.id]: b.dataset.brp }; confChanged(); renote(L, [x.me.id]); draw(); });
+    $("#bgRz", m) && ($("#bgRz", m).onclick = () => save(o => { o.dm = null; }, true));
+    $("#bgGen", m) && ($("#bgGen", m).onclick = () => { const N = LS.get(NK(), {}); noteSet(N, x); LS.set(NK(), N); draw(); flash("🧮 Note retenue"); });
+    $("#bgUn", m) && ($("#bgUn", m).onclick = () => { C.un = { ...(C.un || {}) }; if (C.un[x.me.id]) delete C.un[x.me.id]; else C.un[x.me.id] = 1; confChanged(); renote(L, [x.me.id]); draw(); });
+    $("#bgCr", m) && ($("#bgCr", m).onclick = () => corrDialog(x, () => { renote(L, [x.me.id]); draw(); }));
+  };
+  draw();
 }
-
+/* 📤 Exporter les notes (demande de l'enseignant, 27/11/2026) : PDF ou Excel (.xlsx), de tous les enseignants ou d'un seul.
+   Tous : PDF = une partie par enseignant (nouvelle page), Excel = une feuille « Tous » + une feuille par enseignant.
+   Élèves de l'évaluation : notés, sans note (proposition calculée), absents / dispensés, sans parcours terminé. */
+function noteRows(who) {
+  const N = LS.get(NK(), {}), nbP = C.parcours.length;
+  return allStudents().filter(x => !who || x.me.prof === who).sort((a, b) => byFr(a.me.prof || "", b.me.prof || "") || byFr(a.me.classe || "", b.me.classe || "") || byFr(a.me.nom, b.me.nom) || byFr(a.me.prenom || "", b.me.prenom || "")).map(x => {
+    const id = x.me.id, fini = x.runs.some(r => r && r.fin), v = fini ? noteData(x) : null, o = N[id], pr = !x.abs && v ? noteProp(x, dKeep(o)) : null, sx = (C.sexe || {})[id] || "";
+    const st = x.abs ? (STAT_LBL[x.st] || "absent") : !fini ? "pas de parcours terminé" : !o ? "note à générer" : o.pend ? "à repositionner" : o.man ? "note modifiée" : "";
+    const d = o ? o.d : pr ? pr.d : null, a = o ? o.a : pr ? pr.a : null, rep = o && o.rep ? o.rep + (o.max ? " (meilleure)" : "") : pr ? pr.rep + (pr.max ? " (meilleure)" : "") : repOf(id);
+    return { x, prof: x.me.prof || "", classe: x.me.classe || "", nom: x.me.nom, prenom: x.me.prenom || "", sx, st, abs: x.abs, v, d, a, rep, np: v ? (v.un ? "1 (noté sur 1)" : v.R.length + " / " + nbP) : "", prop: o ? o.prop : pr ? pr.tot : null, note: o && !x.abs ? o.note : null, why: o ? o.why : pr ? pr.why : null };
+  });
+}
+function noteExport(f0) {
+  const profs = C.profs.filter(Boolean); let who = profs.includes(f0) ? f0 : "";
+  const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">📤 Exporter les notes</h2><button class="btn sm gh" id="exX">✕ Fermer</button></div>
+    <label class="l">Quels élèves ?</label><div class="row" id="exW"></div><p class="small muted" id="exI"></p>
+    <div class="row" style="margin-top:10px"><button class="btn vi grow" id="exPdf">📄 PDF</button><button class="btn gr grow" id="exXl">📊 Excel</button><button class="btn gh grow" id="exPr">🖨 Imprimer</button></div>`);
+  const draw = () => { const R = noteRows(who), n = R.filter(r => r.note != null).length;
+    $("#exW", m).innerHTML = [["", "👥 Tous les enseignants"], ...profs.map(p => [p, "👤 " + p])].map(([v, l], k) => `<button class="btn sm ${v === who ? "vi" : "gh"}" data-w="${k}">${esc(l)}</button>`).join("");
+    $("#exI", m).textContent = `${R.length} élève(s), ${n} note(s) retenue(s)${!who && profs.length > 1 ? " · PDF : une partie par enseignant ; Excel : une feuille « Tous » et une feuille par enseignant" : ""}.`;
+    $$("[data-w]", m).forEach(b => b.onclick = () => { who = ["", ...profs][+b.dataset.w]; draw(); }); };
+  draw();
+  $("#exX", m).onclick = m.close;
+  const run = async (b, fn) => { const t = b.textContent; b.disabled = true; b.textContent = "Préparation…"; try { await fn(); } catch (e) { flash("Export impossible : " + (e && e.message || e)); } finally { b.disabled = false; b.textContent = t; } };
+  $("#exPdf", m).onclick = () => run($("#exPdf", m), () => notesPdf(who));
+  $("#exXl", m).onclick = () => run($("#exXl", m), () => notesXlsx(who));
+  $("#exPr", m).onclick = () => notesPrint(who);
+}
+const exName = (who, ext) => ("Notes_CO_" + (C.ev ? C.ev.nom : "evaluation") + "_" + (who || "tous") + "_" + new Date().toLocaleDateString("fr-FR").replace(/\//g, "-")).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").replace(/_+/g, "_") + "." + ext;
+async function saveFile(bytes, nom, type) {
+  const file = new File([bytes], nom, { type });
+  if (matchMedia("(pointer:coarse)").matches && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: nom }); flash("📤 " + nom); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); flash("📤 " + nom + " enregistré");
+}
+const exGroups = (R, who) => { const P0 = who ? [who] : [...new Set(R.map(r => r.prof))]; return P0.map(p => ({ prof: p, cls: [...new Set(R.filter(r => r.prof === p).map(r => r.classe))].map(c => ({ c, R: R.filter(r => r.prof === p && r.classe === c) })) })); };
+const exMoy = R => { const L2 = R.filter(r => r.note != null); return L2.length ? fr(Math.round(L2.reduce((s, r) => s + r.note, 0) / L2.length * 100) / 100) : "—"; };
+async function notesPdf(who) {
+  const R = noteRows(who); if (!R.length) return flash("Aucun élève à exporter");
+  const Lb = await loadPdfLib(), doc = await Lb.PDFDocument.create(), F = await doc.embedFont(Lb.StandardFonts.Helvetica), FB = await doc.embedFont(Lb.StandardFonts.HelveticaBold);
+  const PW = 842, PH = 595, M = 30, TW = PW - 2 * M, hx = c => Lb.rgb(parseInt(c.slice(1, 3), 16) / 255, parseInt(c.slice(3, 5), 16) / 255, parseInt(c.slice(5, 7), 16) / 255), g = ncfg();
+  const hd = window.EPSR && EPSR.head ? EPSR.head({ act: "Course d'orientation", titre: "Notes", ca: "CA2" }) : { l1: "Course d'orientation — Notes", l2: "" };
+  const COLS = [["Élève", 150], ["Sexe", 30], ["Parcours", 58], ["Répart.", 62], ["Balises", 50], ["Points", 48], ["Temps", 62], ["AFL1 (1) /6", 64], ["AFL1 (2) /6", 64], ["AFL2", 52], ["AFL3", 52], ["Note /20", 50]];
+  const sc = TW / COLS.reduce((s, c) => s + c[1], 0); COLS.forEach(c => c[1] *= sc);
+  let pg, y; const T = (t, x, yy, o = {}) => { const f = o.b ? FB : F, sz = o.s || 8.5; let s = pdfTxt(t); if (o.w) while (s.length > 1 && f.widthOfTextAtSize(s, sz) > o.w) s = s.slice(0, -2) + "…"; const w = f.widthOfTextAtSize(s, sz); pg.drawText(s, { x: o.r ? x - w : o.c ? x - w / 2 : x, y: yy, size: sz, font: f, color: hx(o.col || "#14171C") }); };
+  const page = (prof) => { pg = doc.addPage([PW, PH]); pg.drawRectangle({ x: M, y: PH - 22 - 50, width: TW, height: 50, color: hx("#14171C") }); pg.drawRectangle({ x: M, y: PH - 22 - 50, width: 6, height: 50, color: hx("#E8701A") });
+    T(hd.l1 || "Course d'orientation — Notes", M + 16, PH - 44, { b: 1, s: 13, col: "#FFFFFF", w: TW * .55 }); T(hd.l2 || "", M + 16, PH - 60, { s: 8.5, col: "#A9AEB8", w: TW * .55 });
+    T(prof ? prof : "Tous les enseignants", M + TW - 12, PH - 44, { b: 1, s: 13, col: "#FFFFFF", r: 1, w: TW * .4 }); T([C.ev ? C.ev.nom : "", new Date().toLocaleDateString("fr-FR")].filter(Boolean).join(" · "), M + TW - 12, PH - 60, { s: 8.5, col: "#A9AEB8", r: 1, w: TW * .4 });
+    T(`Protocole CCF : AFL1 12 pts · AFL2 + AFL3 8 pts · balises attendues : filles ${g.attF}, garçons ${g.attG}${C.parcours.length > 1 ? ` (noté sur 1 parcours : ${g.attF1} / ${g.attG1})` : ""}`, M, PH - 88, { s: 8.5, col: "#4B5563", w: TW });
+    y = PH - 100; };
+  const thead = () => { pg.drawRectangle({ x: M, y: y - 15, width: TW, height: 15, color: hx("#E6E1D6") }); let x = M; COLS.forEach(([t, w], k) => { T(t, k ? x + w / 2 : x + 4, y - 11, { b: 1, s: 8, c: k > 0, w: w - 4 }); x += w; }); y -= 15; };
+  const room = h => y - h >= M + 14, gp = G => G.prof || who || "";
+  for (const G of exGroups(R, who)) { page(gp(G)); let first = true;
+    for (const K of G.cls) { const titre = `${K.c || "Sans classe"} · ${K.R.length} élève(s) · moyenne des notes retenues : ${exMoy(K.R)}`;
+      if (!room(64)) page(gp(G)); else if (!first) y -= 8; first = false;
+      T(titre, M, y - 12, { b: 1, s: 10, col: "#14213D", w: TW }); y -= 18; thead();
+      K.R.forEach((r, k) => { if (!room(14)) { page(gp(G)); T((K.c || "Sans classe") + " (suite)", M, y - 12, { b: 1, s: 10, col: "#14213D" }); y -= 18; thead(); }
+        if (k % 2) pg.drawRectangle({ x: M, y: y - 14, width: TW, height: 14, color: hx("#F5F3EE") });
+        const cells = [`${r.nom} ${r.prenom}`, r.sx, r.np, r.v ? r.rep : "", r.v ? `${r.v.nb} / ${r.v.att}` : "", r.v ? `${r.v.pts} / ${r.v.ann}` : "", r.v ? (r.v.over ? "hors temps" : "dans les temps") : ""], vide = r.abs || !r.v || !r.d;
+        let x = M; cells.forEach((t, j) => { const w = COLS[j][1]; T(t, j ? x + w / 2 : x + 4, y - 10, { s: 8, c: j > 0, w: w - 4 }); x += w; });
+        if (vide) T(r.st, x + 4, y - 10, { s: 8, col: "#8C1020", w: COLS.slice(7, 11).reduce((s2, c) => s2 + c[1], 0) - 8 });
+        else r.d.forEach((d, j) => { const w = COLS[7 + j][1]; T(`D${d + 1} · ${fr(r.a[j])}`, x + w / 2, y - 10, { s: 8, c: 1, w: w - 4 }); x += w; });
+        T(r.note != null ? fr(r.note) : r.prop != null && !r.abs ? "(" + fr(r.prop) + ")" : r.abs ? (r.st === "dispensé" ? "D" : "A") : "", M + TW - COLS[11][1] / 2, y - 10, { b: r.note != null, s: 9, c: 1 });
+        pg.drawLine({ start: { x: M, y: y - 14 }, end: { x: M + TW, y: y - 14 }, thickness: .4, color: hx("#E6E1D6") }); y -= 14; });
+    }
+    if (!room(14)) page(gp(G)); T("(note entre parenthèses : proposition pas encore retenue) · A : absent · D : dispensé", M, y - 12, { s: 7.5, col: "#6B7280" }); y -= 14;
+  }
+  const P2 = doc.getPages(); P2.forEach((p, k) => { pg = p; T(`page ${k + 1} / ${P2.length}`, PW - M, 16, { s: 7.5, col: "#6B7280", r: 1 }); });
+  await saveFile(await doc.save(), exName(who, "pdf"), "application/pdf");
+}
+/* .xlsx fabriqué sur la tablette (JSZip de ../vendor, gardé hors ligne) : feuilles [{name, rows, widths}], 1re ligne en gras, figée, filtre */
+function loadJs(src, glob) { return window[glob] ? Promise.resolve(window[glob]) : new Promise((ok, ko) => { const s = document.createElement("script"); s.src = src; s.onload = () => ok(window[glob]); s.onerror = () => ko(new Error(src)); document.head.appendChild(s); }); }
+async function xlsxBlob(sheets) {
+  const Z = await loadJs("../vendor/jszip.min.js", "JSZip"), z = new Z(), X = s => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const col = n => { let s = ""; n++; while (n) { const k = (n - 1) % 26; s = String.fromCharCode(65 + k) + s; n = (n - k - 1) / 26; } return s; }, H = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const used = new Set(), nm = s => { let b = String(s || "Feuille").replace(/[\\/?*[\]:]/g, " ").trim().slice(0, 31) || "Feuille", t = b, k = 2; while (used.has(t.toLowerCase())) t = b.slice(0, 28) + " " + k++; used.add(t.toLowerCase()); return t; };
+  sheets.forEach(s => s.nm = nm(s.name));
+  z.file("[Content_Types].xml", H + `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s, k) => `<Override PartName="/xl/worksheets/sheet${k + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`);
+  z.file("_rels/.rels", H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+  z.file("xl/workbook.xml", H + `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, k) => `<sheet name="${X(s.nm)}" sheetId="${k + 1}" r:id="rId${k + 1}"/>`).join("")}</sheets></workbook>`);
+  z.file("xl/_rels/workbook.xml.rels", H + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s, k) => `<Relationship Id="rId${k + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${k + 1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  z.file("xl/styles.xml", H + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6E1D6"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
+  sheets.forEach((s, k) => { const nc = Math.max(1, ...s.rows.map(r => r.length));
+    const data = s.rows.map((r, y) => `<row r="${y + 1}">${r.map((v, c) => { if (v == null || v === "") return ""; const ref = col(c) + (y + 1), st = y === 0 ? ' s="1"' : (s.bold || []).includes(c) ? ' s="2"' : "";
+      return typeof v === "number" && isFinite(v) ? `<c r="${ref}"${st}><v>${v}</v></c>` : `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${X(v)}</t></is></c>`; }).join("")}</row>`).join("");
+    z.file(`xl/worksheets/sheet${k + 1}.xml`, H + `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${Array.from({ length: nc }, (_, c) => `<col min="${c + 1}" max="${c + 1}" width="${(s.widths || [])[c] || 12}" customWidth="1"/>`).join("")}</cols><sheetData>${data}</sheetData>${s.rows.length > 1 ? `<autoFilter ref="A1:${col(nc - 1)}${s.rows.length}"/>` : ""}</worksheet>`); });
+  return z.generateAsync({ type: "uint8array" });
+}
+async function notesXlsx(who) {
+  const R = noteRows(who); if (!R.length) return flash("Aucun élève à exporter");
+  const head = ["Enseignant", "Classe", "Nom", "Prénom", "Sexe", "Parcours notés", "Répartition", "Balises ramenées", "Balises attendues", "Balises du projet", "Points réalisés", "Points annoncés", "Temps", "Degré AFL1 (1)", "Degré AFL1 (2)", "Degré AFL2", "Degré AFL3", "AFL1 (1) /6", "AFL1 (2) /6", "AFL2 (pts)", "AFL3 (pts)", "Note proposée /20", "Note retenue /20", "Statut", "Justification"];
+  const W = [16, 10, 18, 14, 6, 13, 14, 10, 10, 10, 10, 10, 13, 9, 9, 9, 9, 9, 9, 9, 9, 11, 11, 18, 60];
+  const line = r => [r.prof, r.classe, r.nom, r.prenom, r.sx, r.np, r.v ? r.rep : "", r.v ? r.v.nb : "", r.v ? r.v.att : "", r.v ? r.v.nbPlan : "", r.v ? r.v.pts : "", r.v ? r.v.ann : "", r.v ? (r.v.over ? "hors temps" : "dans les temps") : "", ...(r.d && !r.abs ? r.d.map(d => "D" + (d + 1)) : ["", "", "", ""]), ...(r.a && !r.abs ? r.a : ["", "", "", ""]), r.prop != null && !r.abs ? r.prop : "", r.note != null ? r.note : "", r.st, r.why && !r.abs ? r.why.join(" | ") : ""];
+  const profs = [...new Set(R.map(r => r.prof))], sheets = [{ name: who || "Tous", rows: [head, ...R.map(line)], widths: W, bold: [22] }];
+  if (!who && profs.length > 1) profs.forEach(p => sheets.push({ name: p || "Sans enseignant", rows: [head, ...R.filter(r => r.prof === p).map(line)], widths: W, bold: [22] }));
+  await saveFile(await xlsxBlob(sheets), exName(who, "xlsx"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+}
+function notesPrint(who) {
+  const R = noteRows(who), g = ncfg();
+  printDoc("Notes CO", `<style>@page{size:A4 landscape}</style>${exGroups(R, who).map(G => `<div class="pg"><h1>🎓 Notes de course d'orientation${G.prof ? " · " + esc(G.prof) : ""}</h1><p class="sub">${evHead()} · balises attendues : filles ${g.attF}, garçons ${g.attG} · protocole CCF (AFL1 12 pts, AFL2 + AFL3 8 pts)</p>
+    ${G.cls.map(K => `<h2>${esc(K.c || "Sans classe")} · moyenne : ${exMoy(K.R)}</h2><table><thead><tr><th>Élève</th><th>Sexe</th><th>Parcours</th><th>Répart.</th><th>Balises</th><th>Points</th><th>AFL1 (1)</th><th>AFL1 (2)</th><th>AFL2</th><th>AFL3</th><th>Note /20</th></tr></thead><tbody>${K.R.map(r => `<tr><td><b>${esc(r.nom)}</b> ${esc(r.prenom)}</td><td>${r.sx}</td><td>${esc(r.np)}</td><td>${r.v ? esc(r.rep) : ""}</td><td>${r.v ? r.v.nb + " / " + r.v.att : ""}</td><td>${r.v ? r.v.pts + " / " + r.v.ann : ""}</td>${r.abs || !r.v ? `<td colspan="4">${esc(r.st)}</td>` : r.d.map((d, j) => `<td>D${d + 1} · ${fr(r.a[j])}</td>`).join("")}<td><b>${r.note != null ? fr(r.note) : r.prop != null && !r.abs ? "(" + fr(r.prop) + ")" : ""}</b></td></tr>`).join("")}</tbody></table>`).join("")}</div>`).join("")}`);
+}
 // corriger le projet et les balises trouvées d'un élève (chaque parcours)
 function corrDialog(x, after) {
   if (!x) return; const R = x.runs.filter(r => r && r.debut && r.fin);
@@ -2387,8 +2562,10 @@ function corrDialog(x, after) {
   $("#crOk", m).onclick = () => { const bad = [];
     R.forEach((r, i) => { const plan = $(`[data-cp="${i}"]`, m).value.split(/[^\d]+/).filter(Boolean).map(Number), ok = $$(`[data-cl="${i}"] [data-cf]:checked`, m).map(c => +c.dataset.cf), bon = $(`[data-cb="${i}"]`, m).value.split(/[^\d]+/).filter(Boolean).map(Number);
       [...plan, ...bon].forEach(n => { if (!balise(n)) bad.push(n); });
-      const a = withStudent(x, () => analyse(r)), tp = $(`[data-ct="${i}"]`, m).value, same = JSON.stringify(plan) === JSON.stringify(a.plan) && JSON.stringify([...ok, ...bon].sort()) === JSON.stringify(a.found.map(Number).sort()) && tp === a.temps;
-      if (!same) { C.corr = C.corr || {}; C.corr[runKey(r)] = { plan, ok: [...new Set([...ok, ...bon])], ...(tp ? { temps: tp } : {}) }; } });
+      const a = withStudent(x, () => analyse(r)), tp = $(`[data-ct="${i}"]`, m).value, ch = [...new Set([...ok, ...bon])], same = JSON.stringify(plan) === JSON.stringify(a.plan) && JSON.stringify([...ch].sort()) === JSON.stringify(a.found.map(Number).sort()) && tp === a.temps;
+      /* écarts par rapport à la détection automatique (codes acceptés compris) : un code accepté plus tard reste repris */
+      if (!same) { const A0 = new Set(withStudent(x, () => analyse(r, true)).found.map(Number)), plus = ch.filter(n => !A0.has(n)), moins = [...A0].filter(n => !ch.includes(n)), pl = JSON.stringify(plan) !== JSON.stringify((r.plan || []).map(Number));
+        C.corr = C.corr || {}; if (!plus.length && !moins.length && !pl && !tp) delete C.corr[runKey(r)]; else C.corr[runKey(r)] = { ...(pl ? { plan } : {}), plus, moins, ...(tp ? { temps: tp } : {}) }; } });
     if (bad.length) return flash("Balise inconnue : " + [...new Set(bad)].join(", "));
     confChanged(); m.close(); flash("✏️ Corrections enregistrées"); after && after(); };
 }
