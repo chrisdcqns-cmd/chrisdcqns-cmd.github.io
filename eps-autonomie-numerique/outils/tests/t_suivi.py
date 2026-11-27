@@ -10,7 +10,7 @@ NOMS = ["Lina MARTIN", "Noah PETIT", "Emma DURAND", "Hugo LEROY", "Jade MOREAU",
 SEED = "try{if(!localStorage.getItem('eps.lists.v1'))localStorage.setItem('eps.lists.v1',JSON.stringify({items:{c1:{id:'c1',nom:'" + CL + "',el:" + json.dumps(NOMS) + ",u:1}},pend:{},since:0}));localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}"
 # appli, texte attendu dans l'écran de suivi, écran propre (True) ou pilotage commun (False)
 APPS = [("volley", "Tableau de bord de la leçon", True), ("badminton", "Leçon en direct", True), ("basket", "Terrain 1", True), ("escalade", "Tablette de contrôle", True), ("step", "Groupes en direct", True),
-        ("danse", "Pilotage de leçon", False), ("relais", "Pilotage de leçon", False), ("crosstraining", "Pilotage de leçon", False)]
+        ("danse", "Pilotage de leçon", False), ("relais", "Démarrer la leçon", True), ("crosstraining", "Pilotage de leçon", False)]
 ETAT = "(function(){var n=document.querySelector('.epst-nav'),T=n?[].map.call(n.querySelectorAll('button'),function(b){return b.dataset.t}):[],on=n&&n.querySelector('button.on');var p=document.getElementById('lc-ctl');return {tabs:T,on:on?on.dataset.t:'',pil:!!(p&&p.style.display!=='none'),txt:document.body.innerText,acts:[].map.call(document.querySelectorAll('.epst-acts button, .epst-tb button'),function(b){return b.innerText.replace(/\\s+/g,' ').trim()}).join('|')}})()"
 async def main():
     out = []; errs = []

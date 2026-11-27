@@ -653,6 +653,11 @@ body.eteach .ebar .es{display:block}
 
 .vnote{font-size:13px;color:#A9AEB8;text-align:center;margin:0}
 /* tableau de bord en direct */
+.lvctl{padding:10px 12px;margin-top:6px}.lvctl .r{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.lvctl .r+.r{margin-top:10px;padding-top:10px;border-top:1.5px solid var(--line)}
+.lvctl button{min-height:44px;padding:0 14px;border-radius:12px;border:2px solid var(--line);background:#fff;font:inherit;font-weight:800;font-size:15px;cursor:pointer;color:var(--ink,#14171C)}
+.lvctl button.on{background:#D9481F;border-color:#D9481F;color:#fff}.lvctl button.go{background:#2E7D4F;border-color:#2E7D4F;color:#fff}.lvctl button.end{border-color:#C0392B;color:#C0392B;margin-left:auto}
+.lvctl select,.lvctl input{min-height:44px;border-radius:12px;border:2px solid var(--line);padding:0 10px;font:inherit;font-size:15px;min-width:0;flex:1 1 180px;max-width:100%}
+.lvctl .st{font-weight:800;font-size:15px;color:#2E7D4F}.lvctl .st small{font-weight:600;color:var(--muted)}
 .lvsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px}
 .lvsum>div{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px 14px}.lvsum b{display:block;font-size:26px}.lvsum span{font-size:13px;color:var(--muted);font-weight:600}
 .lvalert{margin-top:12px;background:#FFF4F0;border:2px solid #F3C2B0;border-radius:16px;padding:12px 16px}.lvalert h3{margin:0 0 6px;font-size:17px;color:#A33A14}
@@ -901,7 +906,7 @@ body.eteach .ebar .es{display:block}
     <span class="hctx" id="h-lecon"></span>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
     <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
-    <button class="btn ghost sm teach" data-go="live">📡 En direct</button>
+    <button class="btn ghost sm teach" data-go="live">📡 Suivi</button>
     <button class="btn ghost sm" data-vid>🎥 Filmer</button>
     <button class="btn ghost sm teach" id="btnCfgHome">Éléments saisis</button>
     <button class="btn ghost sm teach" data-go="lecons">Leçons</button>
@@ -954,15 +959,17 @@ body.eteach .ebar .es{display:block}
 <section class="view" id="v-live">
   <div class="top">
     <button class="back" data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Leçon</button>
-    <h2>📡 En direct · <span class="cname"></span></h2>
+    <h2>📡 Suivi · <span class="cname"></span></h2>
     <span class="chip" id="lv-lecon"></span>
     <button class="btn primary sm" id="lv-ai" style="margin-left:auto">✨ Bilan de la leçon (Claude)</button>
   </div>
+  <div id="lv-calls"></div>
+  <div class="card lvctl" id="lv-ctl"></div>
   <div class="lvsum" id="lv-sum"></div>
   <div id="lv-alert"></div>
   <div id="lv-aiout"></div>
-  <div id="lv-rem"></div>
   <div class="lvgrid" id="lv-groups"></div>
+  <div id="lv-rem"></div>
   <div class="lvleg"><span><i style="background:#2E7D4F"></i>Zone 100</span><span><i style="background:#8BC34A"></i>Zone 10</span><span><i style="background:#EF9F27"></i>Zone 1</span><span><i style="background:#C0392B"></i>hors zone</span><span><i style="background:#C9C4B8"></i>zone non saisie</span><span>· 5 dernières courses de l'élève, la plus récente à droite · mis à jour en direct</span></div>
   <div class="card mt"><div class="label">📡 Tablettes</div><div id="lv-devs"></div></div>
 </section>
@@ -1572,9 +1579,11 @@ function go(v){
      sinon on la demande et on revient à l'évaluation (GO_AFTER), au lieu de retomber sur « Leçons ». */
   if(v!=="classes")GO_AFTER=null;
   if(v==="eval"&&!CL()){if(DATA.classes.length===1){DATA.cur=DATA.classes[0].id;DATA.lecon=null;persist()}else if(DATA.classes.length)GO_AFTER="eval"}
+  if(v==="live"&&!CL()){if(DATA.classes.length===1){DATA.cur=DATA.classes[0].id;DATA.lecon=null;persist()}else if(DATA.classes.length)GO_AFTER="live"}
+  if(v==="live"&&CL()&&!CLE()){const l=(CL().lecons||[]).find(x=>x.date===todayISO());if(l){DATA.lecon=l.id;ensureLeconGroups(l);persist()}} /* 📡 Suivi : la leçon du jour s'ouvre d'elle-même */
   if(!["seq","classes","import","dispo","sits"].includes(v)&&!CL())v="classes";
   if(v!=="seq")seqClose();
-  if(["groupes","home","course","auto","live"].includes(v)&&!CLE())v="lecons";
+  if(["groupes","home","course","auto"].includes(v)&&!CLE())v="lecons";
   if(["groupes","home","course"].includes(v)&&CLE()&&!CLE().groupes){ensureLeconGroups(CLE());persist()}
   if(v==="bilan"&&!BILAN)v="lecons";
   document.body.classList.toggle("eteach",teachOn());
@@ -1602,7 +1611,7 @@ window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(/^g=
 function clsEvalN(c){const E=c.evals||{};return (c.eleves||[]).filter(e=>{const o=E[e.id];return e.ma!=="DISP"&&o&&o.prof&&evTotal(o.prof,o.rep||"4-4").n===4}).length}
 function renderClasses(){
   try{dupBanner()}catch(e){}
-  try{$("#cl-hint").textContent=GO_AFTER==="eval"?"Choisis la classe à évaluer":GO_AFTER==="bilans"?"Choisis la classe dont tu veux les bilans":"Choisis la classe pour commencer"}catch(e){}
+  try{$("#cl-hint").textContent=GO_AFTER==="live"?"Choisis la classe à suivre":GO_AFTER==="eval"?"Choisis la classe à évaluer":GO_AFTER==="bilans"?"Choisis la classe dont tu veux les bilans":"Choisis la classe pour commencer"}catch(e){}
   const ic=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`;
   $("#clist").innerHTML=DATA.classes.map(c=>`<div class="ctile"><button class="open" data-class="${c.id}"><h3>${esc(c.name)}</h3>
     <span class="meta">${c.eleves.length} élèves · ${c.groupes.length} groupe${c.groupes.length>1?"s":""} · ${(c.lecons||[]).length} leçon${(c.lecons||[]).length>1?"s":""}</span>
@@ -3867,7 +3876,7 @@ function syRefresh(){
     if(v==="dispo"){if(!DSP_EDIT)renderDispo();return}
     if(v==="seq"||v==="sits"||v==="import")return; /* écrans sans classe : une synchro ne déplace pas l'enseignant */
     if(!CL()){if(!teachOn())showWait();else go("classes");return}
-    if(["groupes","home","course","auto","live"].includes(v)&&!CLE()){if(!teachOn())startStudent();else go("lecons");return} /* pas « eval » : l'évaluation n'a pas besoin de leçon ouverte */
+    if(["groupes","home","course","auto"].includes(v)&&!CLE()){if(!teachOn())startStudent();else go("lecons");return} /* pas « live » (📡 Suivi), pas « eval » : l'évaluation n'a pas besoin de leçon ouverte */
     if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto","live"].includes(v))renderClassAll();
     if(v==="live")renderLive();if(v==="lecons")renderLecons();if(v==="perf")renderPerf();if(v==="bilan")renderBilan();if(v==="eval")renderEval();if(v==="auto")renderAuto();
     if(v==="course")try{renderGoalReminder()}catch(e){}
@@ -4111,8 +4120,57 @@ function liveData(){
     Object.entries(m).forEach(([s,n])=>{if(n>=2)rep.push({c:L[L.length-1],s,n,of:last.length})})});
   return {cfg,CS,N,st,pairs,rep};
 }
+/* 📡 Suivi : un seul onglet pour tout piloter (demande de l'enseignant, 27/11/2026, sur le modèle de la tablette de contrôle d'Escalade) :
+   ✋ appels des élèves, puis les commandes de la leçon (démarrer, étape, minuteur, message, terminer : EPSLC.ctl, les mêmes données que
+   « 📡 Leçon en cours »), puis le suivi des courses. LV_PAN : petit volet ouvert ("part" | "tim" | "msg"), un seul à la fois. */
+let LV_PAN=null;
+const lvCtl=()=>window.EPSLC&&EPSLC.ctl?EPSLC.ctl:null;
+function lvTim(t){const s=Math.max(0,Math.ceil((t.end-Date.now())/1000));return Math.floor(s/60)+":"+pad2(s%60)}
+function renderLvCtl(force){
+  const box=$("#lv-ctl"),C=CL();if(!box||!C)return;
+  try{$("#lv-calls").innerHTML=window.EPSD&&EPSD.appels?EPSD.appels.html("relais"):""}catch(e){}
+  if(!force&&box.contains(document.activeElement)&&/^(INPUT|SELECT)$/.test(document.activeElement.tagName))return;
+  const K=lvCtl(),S=K?K.state(C.name):null,le=CLE();
+  if(!S){box.innerHTML=`<div class="r"><span class="note">Chargement des commandes de la leçon…</span></div>`;setTimeout(()=>{if(viewNow()==="live"&&lvCtl())renderLvCtl()},1200);return}
+  let h="";
+  if(!S.on||!le){
+    h=`<div class="r">${le?"":`<span class="note" style="flex:1 1 100%;margin:0">Pas encore de leçon aujourd'hui pour ${esc(C.name)}.</span>`}
+      <select id="lv-fiche" aria-label="Fiche de leçon"><option value="">— sans fiche de leçon —</option>${S.fiches.map(f=>`<option value="${esc(f.id)}">${esc(f.t)}</option>`).join("")}</select>
+      <button class="go" data-lvc="start">▶ Démarrer la leçon</button><button data-lvc="pan" data-p="msg" class="${LV_PAN==="msg"?"on":""}">📣 Message</button></div>`;
+  }else{
+    const pl=(S.parts.find(p=>p[0]===S.part)||[])[1];
+    h=`<div class="r"><span class="st">● En cours <small>· ${Math.max(1,Math.round((Date.now()-S.since)/6e4))} min${S.titre?" · "+esc(S.titre):""}</small></span></div>
+      <div class="r"><button data-lvc="pan" data-p="part" class="${LV_PAN==="part"?"on":""}">🧭 ${pl?esc(pl.replace(/^\S+\s/,"")):"Étape"}</button>
+      <button data-lvc="pan" data-p="tim" class="${LV_PAN==="tim"?"on":""}">⏱ ${S.tim?`<span id="lv-tleft">${lvTim(S.tim)}</span>`:"Minuteur"}</button>
+      <button data-lvc="pan" data-p="msg" class="${LV_PAN==="msg"?"on":""}">📣 Message</button>
+      <button data-lvc="course">⏱ Enregistrer une course</button><button class="end" data-lvc="stop">⏹ Terminer</button></div>`;
+  }
+  if(LV_PAN==="part"&&S.on)h+=`<div class="r">${S.parts.map(p=>`<button data-lvc="part" data-p="${p[0]}" class="${S.part===p[0]?"on":""}">${esc(p[1])}</button>`).join("")}</div>`;
+  if(LV_PAN==="tim"&&S.on)h+=`<div class="r">${[1,2,3,5,8,10,15,20].map(n=>`<button data-lvc="tim" data-p="${n}">${n} min</button>`).join("")}${S.tim?`<button data-lvc="timstop">⏹ Arrêter</button>`:""}</div>`;
+  if(LV_PAN==="msg")h+=`<div class="r">${S.msgs.map(t=>`<button data-lvc="msg" data-p="${esc(t)}">${esc(t)}</button>`).join("")}</div><div class="r"><input id="lv-msg" placeholder="Ton message…" aria-label="Message aux tablettes"><button class="on" data-lvc="send">📣 Envoyer</button></div>`;
+  box.innerHTML=h;
+}
+document.addEventListener("click",ev=>{const b=ev.target.closest("#lv-ctl [data-lvc]");if(!b)return;const K=lvCtl(),C=CL();if(!K||!C)return;const a=b.dataset.lvc,p=b.dataset.p,n=C.name;
+  if(a==="pan"){LV_PAN=LV_PAN===p?null:p;renderLvCtl(true);return}
+  if(a==="start"){const f=($("#lv-fiche")||{}).value||"",t=todayISO();let l=CLE()||C.lecons.find(x=>x.date===t);
+    if(!l){l={id:uid("l"),date:t,cfg:lastCfg(C)};C.lecons.push(l);delete C.nextCfg}
+    if(DATA.lecon!==l.id){DATA.lecon=l.id;resetST()}ensureLeconGroups(l);persist();K.start(n,f);LV_PAN=null;renderClassAll();renderLive();toast("Leçon démarrée sur les tablettes de "+n);return}
+  if(a==="stop"){if(!confirm("Terminer la leçon pour "+n+" ?"))return;K.stop(n);LV_PAN=null;renderLvCtl(true);return}
+  if(a==="course"){go("course");return}
+  if(a==="part"){K.part(n,p);LV_PAN=null}
+  if(a==="tim"){K.timer(n,+p,"");LV_PAN=null;toast("Minuteur de "+p+" min lancé sur les tablettes")}
+  if(a==="timstop"){K.timerStop(n);LV_PAN=null}
+  if(a==="msg"||a==="send"){const t=a==="msg"?p:(($("#lv-msg")||{}).value||"").trim();if(!t)return;K.msg(n,t);LV_PAN=null;toast("Message envoyé aux tablettes")}
+  renderLvCtl(true)});
+document.addEventListener("keydown",ev=>{if(ev.key==="Enter"&&ev.target.id==="lv-msg"){const b=document.querySelector('#lv-ctl [data-lvc="send"]');if(b)b.click()}});
+window.addEventListener("eps-appels",()=>{try{if(viewNow()==="live")$("#lv-calls").innerHTML=EPSD.appels.html("relais")}catch(e){}});
+setInterval(()=>{try{if(viewNow()!=="live")return;const t=$("#lv-tleft"),K=lvCtl(),S=K&&CL()?K.state(CL().name):null;if(t&&S&&S.tim)t.textContent=lvTim(S.tim);else if(t||(S&&S.tim))renderLvCtl()}catch(e){}},1000);
+/* un seul écran de suivi par activité (charte) : onglet 📡 Suivi, pastille ✋ et EPSLC.controle() ouvrent cet écran ; plus de « Pilotage de leçon » en Relais */
+window.epsCtlOwn={on:()=>{try{return viewNow()==="live"}catch(e){return false}},open:cls=>{const c=cls&&DATA.classes.find(x=>nrm(x.name)===nrm(cls));if(c&&c.id!==DATA.cur){DATA.cur=c.id;DATA.lecon=null;persist()}go("live")}};
 function renderLive(){
-  if(!CL()||!CLE())return;const D=liveData(),{cfg,CS,st}=D;
+  if(!CL())return;try{renderLvCtl()}catch(e){console.warn(e)}
+  {const off=!CLE();["#lv-sum","#lv-alert","#lv-aiout","#lv-rem","#lv-groups","#lv-ai","#lv-lecon"].forEach(s=>{const x=$(s);if(x)x.style.display=off?"none":""});const lg=document.querySelector("#v-live .lvleg");if(lg)lg.style.display=off?"none":"";if(off)return}
+  const D=liveData(),{cfg,CS,st}=D;
   $("#lv-lecon").textContent="Leçon du "+fmtShort(CLE().date);
   const act=st.filter(x=>!x.disp),ran=act.filter(x=>x.mine.length),gd=cfg.goalOn?act.filter(x=>x.g&&x.g.done).length:null;
   const zs=CS.map(c=>c.zone).filter(z=>typeof z==="string"&&z!==NR),z100=zs.filter(z=>z==="Zone 100").length,inz=zs.filter(z=>z!==HZ).length;
@@ -4429,7 +4487,7 @@ document.addEventListener("click",e=>{
 window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
  /* Onglets (demande de l'enseignant, 27/11/2026) : 📅 Séquence = fiches de leçon communes (plus une classe) ; 👥 Classe = vue générale de toutes
     les classes, puis la préparation de la classe choisie (leçons, vitesses, groupes), jamais directement le tableau des vitesses. */
- tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course','live'].includes(viewNow()),actions:[{main:1,ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')},{main:1,ico:'📡',label:'En direct',go:()=>go('live')}]},
+ tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course'].includes(viewNow()),actions:[{main:1,ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')}]},
   eval:{go:()=>{RL_BIL=0;go('eval')},on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>{RL_BIL=0;go('eval')}},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}],
   /* 📤 Bilan et export (onglet Évaluer) : le bilan de l'évaluation (chiffres, PDF, .zip, Pronote) ; le bilan des leçons (courses) en action à côté */
   bilan:{go:()=>{RL_BIL=1;if(!CL()&&DATA.classes.length===1){DATA.cur=DATA.classes[0].id;persist()}go('eval')},on:()=>(viewNow()==='bilan'&&!!RL_LB)||(viewNow()==='eval'&&RL_BIL),actions:[{ico:'🏃',label:'Bilan des leçons (courses)',main:1,go:()=>{RL_BIL=0;RL_LB=1;goBilans()}}]}},
