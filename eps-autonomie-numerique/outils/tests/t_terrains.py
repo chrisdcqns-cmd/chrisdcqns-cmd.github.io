@@ -27,6 +27,7 @@ async def main():
             out.append((app + " : l'appel est en tête et sur le terrain 2 (motif affiché)", r["ap"] == 1 and "Terrain 2" in r["call"] and "bloqué" in r["call"], r["call"]))
             if app == "badminton":
                 P = r["pos"]; out.append(("badminton : 2 terrains de chaque côté en parallèle (1-2 à gauche, 4-5 à droite), le 3 au centre et à la verticale", P[0][0] == P[1][0] and P[3][0] == P[4][0] and P[0][0] < P[2][0] < P[3][0] and P[0][1] == P[3][1] and P[2][3] > P[2][2] and P[0][2] > P[0][3], P))
+                out.append(("badminton : les 5 terrains ont la même taille (le 3 est le même terrain tourné)", all(abs(P[i][2] - P[0][2]) <= 1 and abs(P[i][3] - P[0][3]) <= 1 for i in (1, 3, 4)) and abs(P[2][2] - P[0][3]) <= 1 and abs(P[2][3] - P[0][2]) <= 1, P))
                 hd = await p.evaluate("document.querySelector('#t-live .livehd').getBoundingClientRect().height"); out.append(("badminton : bandeau « Leçon en direct » sur une seule ligne", hd <= 60, hd))
             if app == "basket":
                 P = r["pos"]; out.append(("basket : 2 terrains côte à côte", P[0][1] == P[1][1] and P[0][0] < P[1][0], P))
