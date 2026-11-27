@@ -5,6 +5,7 @@
 #   et dans 🏫 Ma classe → 📝 Bilans & avis : génération enregistrée même si l'on change d'onglet pendant qu'elle tourne.
 #   Appréciation générale avec le prénom et les accords (demande du 27/11/2026) : prénom jamais envoyé ([Prénom] remplacé sur la tablette),
 #   « fille » / « garçon » deviné d'après le prénom et corrigé d'un appui (👧 / 👦, gardé), aucune activité ni nombre de critères envoyés.
+#   Génération en parallèle (demande du 27/11/2026 : « c'est 1 par 1, donc c'est long ») : plusieurs demandes à la fois.
 #   Niveau d'après la NOTE de l'enseignant (demande du 27/11/2026 : « très bon trimestre » à un 13, « bon trimestre » à un 19,75) : début imposé.
 # python3 t_bulletin_fenetre.py <racine du dépôt>      (classe fictive, Claude simulé : rien n'est envoyé en ligne)
 import asyncio, sys, subprocess, time, json, urllib.parse
@@ -17,7 +18,7 @@ INIT = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3))
 INST = {"volley": "EPSTV", "danse": "EPSTD", "escalade": "EPSTESC", "basket": "EPSTBK"}
 WIN = "(function(){var w=document.getElementById('epsbu-w');if(!w)return null;var r=w.getBoundingClientRect(),cs=getComputedStyle(w);return {shown:cs.display!=='none'&&r.height>40,dock:w.classList.contains('epst-dock'),top:Math.round(r.top),full:r.width>=innerWidth*0.9,pop:!!document.querySelector('.epsd-ov #epsbu'),mark:w.dataset.t||''}})()"
 BU = "JSON.parse(localStorage.getItem('eps.bulletin.v1')||'{}')"
-CAP = []
+CAP = []; ACT = [0, 0]
 async def main():
     out = []; errs = []
     def ok(t, c, d=""): out.append(bool(c)); print(("✅ " if c else "❌ ") + t + ("" if c else "  → " + str(d)[:400]), flush=True)
@@ -26,7 +27,7 @@ async def main():
         c = await b.new_context(service_workers="block", viewport={"width": 1024, "height": 768}); await c.add_init_script(INIT); await c.grant_permissions(["clipboard-read", "clipboard-write"], origin="http://localhost:8874")
         async def route(r):
             q = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(r.request.url).query))
-            if "ai" in q: CAP.append(q); await asyncio.sleep(0.7)
+            if "ai" in q: CAP.append(q); ACT[0] += 1; ACT[1] = max(ACT[1], ACT[0]); await asyncio.sleep(0.7); ACT[0] -= 1
             body = {"keyOk": True, "ai": "Très bon trimestre, [Prénom] a su s'investir pour réaliser des progrès. Les résultats et l'attitude sont remarquables.", "aiv": 5} if "ai" in q else {"keyOk": True}
             await r.fulfill(status=200, content_type="application/javascript", body=q.get("callback", "x") + "(" + json.dumps(body) + ")")
         await c.route("https://script.google.com/**", route)
@@ -102,6 +103,7 @@ async def main():
         TX = await p.evaluate("(N)=>N.map(function(n){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return b.getAttribute('data-eps-genre')===n})[0];return b.closest('div[style]').parentNode.querySelector('textarea').value})", NM[:2])
         nts = [(__import__('re').search(r"note (\d+(?:,\d+)?)/20", q["t"]) or [None, None])[1] for q in CAP]
         ok("niveau d'après la note : " + str(nts) + " → " + str([t[:22] for t in TX]), len(CAP) == 2 and TX[0].startswith("Excellent trimestre, ") and TX[1].startswith("Bon trimestre, ") and "Niveau fixé par la note" in CAP[0]["ctx"] and "résultats :" in CAP[0]["t"], [q["ctx"][:220] for q in CAP] + [q["t"][:220] for q in CAP])
+        ok("génération en parallèle (jusqu'à " + str(ACT[1]) + " demandes à la fois)", ACT[1] >= 3, ACT)
         ok("aucune erreur de page", not errs, errs)
         await b.close()
     print(("✅ " if all(out) else "❌ ") + str(sum(out)) + " / " + str(len(out)))

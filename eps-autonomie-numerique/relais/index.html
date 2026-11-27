@@ -4380,9 +4380,11 @@ async function evAppAll(b){
   if(!window.EPSD||!EPSD.reformuler){toast("Fonction indisponible : mets l'appli à jour (⟳)");return}
   const L=evList(true).filter(e=>{const o=(CL().evals||{})[e.id];return o&&!evSt(o)&&!(o.app||"").trim()&&evTotal(o.prof||{},evRepOf(o)).n===4});
   const msg=$("#ev-iamsg");if(!L.length){msg.textContent="Aucune appréciation à rédiger : il faut une grille complète (4 indicateurs) et une appréciation vide.";return}
-  b.disabled=true;let ok=0,err="";
-  for(let i=0;i<L.length;i++){const e=L[i];msg.textContent=`Claude rédige… ${i+1} / ${L.length} (aucun nom n'est envoyé)`;
-    try{const v=await EPSD.reformuler("",{mode:"bulletin",act:"Relais vitesse",ctx:evAppCtx(e),eleve:((e.prenom||"")+" "+(e.nom||"")).trim()});const o=evOf(e.id);if(!(o.app||"").trim()){o.app=v;ok++}}catch(x){err=x&&x.message||String(x);break}}
+  b.disabled=true;let ok=0,err="";msg.textContent=`Claude rédige… 0 / ${L.length} (aucun nom n'est envoyé)`;
+  /* plusieurs élèves en même temps (EPSD.pool, 27/11/2026) ; une erreur n'arrête pas les autres */
+  const run=(e)=>EPSD.reformuler("",{mode:"bulletin",act:"Relais vitesse",ctx:evAppCtx(e),eleve:((e.prenom||"")+" "+(e.nom||"")).trim()}).then(v=>{const o=evOf(e.id);if(!(o.app||"").trim()){o.app=v;ok++}});
+  const errs=EPSD.pool?await EPSD.pool(L,run,(f,n)=>{const m=$("#ev-iamsg");if(m)m.textContent=`Claude rédige… ${f} / ${n} (aucun nom n'est envoyé)`}):await (async()=>{const E=[];for(const e of L){try{await run(e)}catch(x){E.push(x&&x.message||String(x));break}}return E})();
+  if(errs.length)err=errs.length+" non rédigée(s) : "+errs[0];
   persist();try{renderEval()}catch(e){}const msg2=$("#ev-iamsg");if(msg2)msg2.textContent=(ok?`✓ ${ok} appréciation${ok>1?"s":""} rédigée${ok>1?"s":""} : relis-les dans la grille de chaque élève (et dans l'export Excel).`:"")+(err?" ⚠ "+err:"");
 }
 

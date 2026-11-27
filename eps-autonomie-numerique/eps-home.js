@@ -1387,10 +1387,22 @@
      le début de l'appréciation est fixé ici, sur la tablette, selon des seuils réglables (paramètre « bul_niveaux », section « Appréciations de
      bulletin » ; la dernière valeur modifiée, dans n'importe quelle appli, vaut pour toutes) ; Claude reçoit le niveau et doit commencer par ce début,
      sinon il est remis à la place du sien. La note vient de l'évaluation (barème, répartition CCF comprise : M.prop d'eps-eval.js). */
+  /* paramètre COMMUN à toutes les activités : déclaré dans 🎛 Paramètres de l'appli ouverte ; la dernière valeur modifiée, dans n'importe quelle appli, vaut partout */
+  function pCommun(d) { var v = d.def;
+    try { if (window.EPSP && EPSP.p && EPSP.app) EPSP.p(d); } catch (e) {}
+    try { var S = jget("eps.param.v1", {}), I = (S && S.items) || {}, best = null, re = new RegExp("\\|" + d.id + "$"); Object.keys(I).forEach(function (k) { var x = I[k]; if (re.test(k) && x && !x.del && x.v != null && (!best || (x.u || 0) > (best.u || 0))) best = x; });
+      if (best && (Array.isArray(d.def) ? Array.isArray(best.v) && best.v.length : typeof d.def === "number" ? isFinite(+best.v) : true)) v = best.v; } catch (e) {}
+    return v; }
+  /* ⚡ plusieurs demandes à Claude en même temps (demande de l'enseignant, 27/11/2026 : « c'est 1 par 1, donc c'est long ») : appréciations, avis…
+     n à la fois (paramètre commun « ia_simultanees », 4 par défaut, de 1 à 8 ; le script commun réessaie seul en cas de « trop de demandes ») ;
+     une erreur n'arrête pas les autres. pool(liste, fn(élément, i) → promesse, chaque(faits, total)) → promesse des messages d'erreur. */
+  function iaPar() { var n = Math.round(+pCommun({ id: "ia_simultanees", sec: "Appréciations de bulletin", label: "Demandes à Claude en même temps (1 à 8 ; plus = plus rapide)", type: "number", def: 4 })); return isFinite(n) ? Math.max(1, Math.min(8, n)) : 4; }
+  function pool(L, fn, chaque) { return new Promise(function (res) { var i = 0, act = 0, fin = 0, errs = [], N = iaPar(); if (!L.length) return res(errs);
+    function go() { while (act < N && i < L.length) (function (x, k) { act++; Promise.resolve().then(function () { return fn(x, k); }).catch(function (e) { errs.push(e && e.message || String(e)); })
+      .then(function () { act--; fin++; try { if (chaque) chaque(fin, L.length); } catch (e) {} if (fin >= L.length) res(errs); else go(); }); })(L[i], i++); }
+    go(); }); }
   var BUL_NIV = ["17 : Excellent trimestre", "14 : Très bon trimestre", "12 : Bon trimestre", "10 : Trimestre satisfaisant", "0 : Trimestre encourageant"];
-  function bulNiveaux() { var L = BUL_NIV;
-    try { if (window.EPSP && EPSP.p && EPSP.app) EPSP.p({ id: "bul_niveaux", sec: "Appréciations de bulletin", label: "Début de l'appréciation selon la note sur 20 (« note minimale : début », un par ligne ; vaut pour toutes les activités)", type: "list", def: BUL_NIV }); } catch (e) {}
-    try { var S = jget("eps.param.v1", {}), I = (S && S.items) || {}, best = null; Object.keys(I).forEach(function (k) { var x = I[k]; if (/\|bul_niveaux$/.test(k) && x && !x.del && Array.isArray(x.v) && x.v.length && (!best || (x.u || 0) > (best.u || 0))) best = x; }); if (best) L = best.v; } catch (e) {}
+  function bulNiveaux() { var L = pCommun({ id: "bul_niveaux", sec: "Appréciations de bulletin", label: "Début de l'appréciation selon la note sur 20 (« note minimale : début », un par ligne ; vaut pour toutes les activités)", type: "list", def: BUL_NIV });
     return L.map(function (x) { var m = /^\s*(\d+(?:[.,]\d+)?)\s*[:=–-]\s*(.+)$/.exec(String(x)); return m ? { min: +m[1].replace(",", "."), t: m[2].trim() } : null; }).filter(Boolean).sort(function (a, b) { return b.min - a.min; }); }
   function bulNiveau(note) { if (note == null || note === "" || !isFinite(+note)) return null; var L = bulNiveaux(), q = Math.round(+note * 4) / 4; if (!L.length) return null;
     for (var i = 0; i < L.length; i++) if (q >= L[i].min) return { t: L[i].t, top: i === 0, note: q }; return { t: L[L.length - 1].t, top: false, note: q }; }
@@ -1665,7 +1677,7 @@
     check: function () { check(); },
     restoreAll: function () { return restoreAll(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); }, bilans: function (c) { bilans(c); },
-    bulletin: function (c) { bulletin(c); },
+    bulletin: function (c) { bulletin(c); }, pool: function (L, fn, chaque) { return pool(L || [], fn, chaque); },
     copier: function (t) { return copyTxt(String(t || "")); }, copyBtn: function () { return cpBtn(); },
     genre: { get: function (n) { return gnGet(n); }, set: function (n, g) { gnSet(n, g); }, btn: function (n) { return gnBtn(n); }, prenom: function (n) { return prenomDe(n); } },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },
@@ -2378,7 +2390,6 @@
       var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P = people(c);
       list.innerHTML = P.map(function (n, i) { var r = R[n] || {}, has = !!notes(c, n);
         return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><div style="display:flex;gap:8px;align-items:center"><label style="display:flex;flex:1;gap:10px;align-items:center;justify-content:flex-start;font-weight:800;text-align:left;margin:0"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-ok="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(aucune donnée)</span>') + "</label>" + gnBtn(n) + (has ? '<button type="button" class="epsd-one" data-one="' + i + '" title="Proposer l\'appréciation de cet élève">✨</button>' : "") + '</div><div class="epsd-cpw" style="margin-top:6px"><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="Appréciation…">' + esc(r.t || "") + "</textarea>" + cpBtn() + '</div><div class="epsd-cnt" data-cn="' + i + '"></div></div>'; }).join("") || '<p class="m">Aucun élève dans cette classe.</p>';
-      var cnt = function (i) { var ta = list.querySelector('[data-t="' + i + '"]'), d = list.querySelector('[data-cn="' + i + '"]'); if (!ta || !d) return; var L = ta.value.length; d.textContent = L ? L + " / 255" : ""; d.classList.toggle("over", L > 255); };
       P.forEach(function (n, i) { cnt(i); });
       list.querySelectorAll("[data-t]").forEach(function (ta) { ta.oninput = function () { var n = P[+ta.dataset.t]; R[n] = R[n] || {}; R[n].t = ta.value; R[n].ai = 0; ta.style.background = ""; cnt(ta.dataset.t); save(); }; });
       list.querySelectorAll("[data-one]").forEach(function (b) { b.onclick = function () { gen([P[+b.dataset.one]], b); }; });
@@ -2386,19 +2397,23 @@
     }
     sel.onchange = function () { save(); draw(); };
     /* génération : toute la classe (« ✨ Proposer les appréciations ») ou un seul élève (✨ de sa ligne, qui remplace sa proposition) */
+    function cnt(i) { var ta = list.querySelector('[data-t="' + i + '"]'), d = list.querySelector('[data-cn="' + i + '"]'); if (!ta || !d) return; var L = ta.value.length; d.textContent = L ? L + " / 255" : ""; d.classList.toggle("over", L > 255); }
+    /* une ligne seulement (génération en parallèle : on ne redessine pas toute la liste pendant que l'enseignant tape) */
+    function upd(c, n) { if (sel.value !== c) return; var i = people(c).indexOf(n), ta = list.querySelector('[data-t="' + i + '"]'), cb = list.querySelector('[data-ok="' + i + '"]'), r = (B[rk(c)] || {})[n];
+      if (!ta || !r) return; if (document.activeElement !== ta) ta.value = r.t || ""; ta.style.background = r.ai && !r.ok ? "#FFF8D6" : ""; if (cb) cb.checked = !!r.ok; cnt(i); }
     var GO = false;
     function gen(P, b) {
-      var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, per = psel.options[psel.selectedIndex].text, i = 0, bb = o.querySelector("#bu-go");
+      var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, per = psel.options[psel.selectedIndex].text, bb = o.querySelector("#bu-go");
       if (!P.length) { msg.textContent = "Rien à proposer : appréciations déjà écrites ou validées, ou aucune donnée."; return; }
       if (GO) { msg.textContent = "Claude rédige déjà : attends la fin."; return; }
       GO = true; bb.disabled = true; if (b) b.disabled = true; try { if (window.EPSREF && EPSREF.snap) EPSREF.snap(); } catch (e) {}
-      (function next() {
-        if (i >= P.length) { GO = false; bb.disabled = false; msg.textContent = "✓ " + P.length + " proposition(s) en jaune : relis, corrige et coche ✓."; save(); draw(); return; }
-        var n = P[i++]; msg.textContent = "Claude rédige " + i + " / " + P.length + "…";
-        var dn = notes(c, n); reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], periode: per, ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
-          .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); draw(); next(); })
-          .catch(function (e) { GO = false; bb.disabled = false; msg.textContent = "⚠ " + e.message; save(); draw(); });
-      })();
+      msg.textContent = "Claude rédige 0 / " + P.length + "… (" + Math.min(iaPar(), P.length) + " à la fois)";
+      pool(P, function (n) { var dn = notes(c, n);
+        return reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], periode: per, ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
+          .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); upd(c, n); }); },
+        function (f, N) { msg.textContent = "Claude rédige " + f + " / " + N + "…"; })
+        .then(function (errs) { GO = false; bb.disabled = false; save(); draw();
+          msg.textContent = (P.length - errs.length ? "✓ " + (P.length - errs.length) + " proposition(s) en jaune : relis, corrige et coche ✓." : "") + (errs.length ? " ⚠ " + errs.length + " non rédigée(s) (" + errs[0] + ") : touche ✨ sur leur ligne pour réessayer." : ""); });
     }
     o.querySelector("#bu-go").onclick = function () {
       var c = sel.value, R = B[rk(c)] = B[rk(c)] || {};
