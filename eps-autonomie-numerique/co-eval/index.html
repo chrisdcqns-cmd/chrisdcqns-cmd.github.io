@@ -2388,11 +2388,20 @@ function profCorr(box) {
 // ======================= 🎓 NOTE (proposition d'après le protocole CCF de CO) =======================
 // AFL1 = 2 éléments sur 6 (points réalisés / annoncés ; déplacement : temps, erreurs, niveaux) ; AFL2 + AFL3 = 8 pts (répartition 4-4, 6-2 ou 2-6 choisie par l'élève).
 // Balises attendues filles / garçons (CCF : 16 / 18), modifiables. Corrections de l'enseignant (C.corr) appliquées avant de générer.
-const NOTE_DEF = { attF: 16, attG: 18, avance: 2 }, BAREME = { 2: [0.5, 1, 1.5, 2], 4: [0.5, 1.5, 2.5, 4], 6: [0.5, 2, 4, 6] }, DEG1 = [[0, 1.5], [1.75, 3], [3.25, 4.5], [4.75, 6]];
+const NOTE_DEF = { attF: 16, attG: 18, avance: 2, e1: "pts", ppp: 15 }, BAREME = { 2: [0.5, 1, 1.5, 2], 4: [0.5, 1.5, 2.5, 4], 6: [0.5, 2, 4, 6] }, DEG1 = [[0, 1.5], [1.75, 3], [3.25, 4.5], [4.75, 6]];
 /* « 📍 Noter sur 1 parcours » (demande de l'enseignant, 27/11/2026) : élève qui n'a terminé qu'un seul parcours, coché dans C.un ;
    balises attendues pour un seul parcours attF1 / attG1 (réglables ; sinon attendues ÷ nombre de parcours de l'évaluation, `a1` = proposées) */
 const ncfg = () => { const g = { ...NOTE_DEF, ...(C.ncfg || {}) }, n = Math.max(1, C.parcours.length); g.a1 = g.attF1 == null && g.attG1 == null;
   if (g.attF1 == null) g.attF1 = Math.max(1, Math.round(g.attF / n)); if (g.attG1 == null) g.attG1 = Math.max(1, Math.round(g.attG / n)); return g; };
+/* 🎯 AFL1 élément 1 noté sur les points rapportés (demande de l'enseignant, 27/11/2026 : « parler du nombre de points que ça rapporte » ;
+   10 balises par parcours, jusqu'à 15 points par parcours, 30 points sur l'individuel et le collectif) : C.ncfg.e1 = "pts" (défaut) | "projet"
+   (ancienne règle : points réalisés comparés aux annoncés) ; ppp = points possibles par parcours (15) ; ps = [seuils D2, D3, D4] en points pour
+   toute l'évaluation (absent = 25 / 50 / 75 % des points possibles, arrondis au-dessus), ramenés à la proportion pour un élève noté sur 1 parcours.
+   Place dans le degré : position des points entre le seuil du degré et le suivant. */
+const ptsCfg = (g, un) => { g = g || ncfg(); const n = Math.max(1, C.parcours.length), full = Math.max(1, +g.ppp || 15) * n, max = un ? full / n : full,
+  auto = [0.25, 0.5, 0.75].map(f => Math.ceil(full * f)), ps = Array.isArray(g.ps) && g.ps.length === 3 && g.ps.every(x => +x > 0) ? g.ps.map(Number) : null, sF = ps || auto, k = max / full;
+  return { full, max, auto, sFull: sF, s: sF.map(x => Math.round(x * k * 100) / 100), a: !ps, on: g.e1 !== "projet" }; };
+const ptsBand = (pc, d, pts) => { const lo = [0, ...pc.s][d], hi = [...pc.s, pc.max][d]; return hi > lo ? Math.max(0, Math.min(1, (pts - lo) / (hi - lo))) : 1; };
 const inCarte = (r, fn) => { const kc = CTXC, cc = carteOf(r); if (cc) CTXC = cc; try { return fn(); } finally { CTXC = kc; } };
 const repOf = id => (C.repart || {})[id] || C.repDef || "4-4";
 const q25 = v => Math.round(v * 4) / 4;
@@ -2408,7 +2417,7 @@ function noteData(x) {
     if (p.max) avance = Math.min(avance, Math.round((p.max * 60000 - a.chrono) / 60000));
     if (isDuoK(r.k)) colOk = (colOk !== false) && !miss; else indMiss += miss; });
   if (avance === 99) avance = 0;
-  return { R, sx, un, att, ann, pts, nbPlan, nb, nl, nh, hi: NV.hi, lo: NV.lo, modif, oublis, bonus, over, avance, indMiss, colOk, corr, tfix, ind: R.some(r => !isDuoK(r.k)) };
+  return { R, sx, un, att, ann, pts, pmax: ptsCfg(g, un).max, nbPlan, nb, nl, nh, hi: NV.hi, lo: NV.lo, modif, oublis, bonus, over, avance, indMiss, colOk, corr, tfix, ind: R.some(r => !isDuoK(r.k)) };
 }
 /* répartition AFL2 / AFL3 : 4-4, 6-2, 2-6 ou « max » = celle des trois qui donne la meilleure note (demande de l'enseignant, 27/11/2026) */
 const REPS = ["4-4", "6-2", "2-6"], REPL = { "4-4": "4-4", "6-2": "6-2", "2-6": "2-6", max: "✨ Meilleure note" };
@@ -2416,15 +2425,16 @@ function noteProp(x, dk, rpf) {
   const rs = rpf || repOf(x.me.id);
   if (rs === "max") { let best = null; REPS.forEach(r => { const q = noteProp(x, dk, r); if (q && (!best || q.tot > best.tot)) best = q; }); if (best) best.max = 1; return best; }
   const v = noteData(x); if (!v) return null; const g = ncfg(), ratio = v.att ? Math.min(1, v.nb / v.att) : 0, rp = (REPS.includes(rs) ? rs : "4-4").split("-").map(Number);
-  let d1 = v.pts < v.ann ? 0 : v.pts > v.ann ? 3 : v.modif > 0 ? 1 : 2;
+  const PC = ptsCfg(g, v.un), mp = PC.on;
+  let d1 = mp ? (v.pts >= PC.s[2] ? 3 : v.pts >= PC.s[1] ? 2 : v.pts >= PC.s[0] ? 1 : 0) : v.pts < v.ann ? 0 : v.pts > v.ann ? 3 : v.modif > 0 ? 1 : 2;
   let d2 = v.over ? 0 : v.oublis > 0 ? 1 : (v.nb && v.nh === v.nb && v.avance >= g.avance) ? 3 : v.nh > v.nl ? 2 : 1;
-  let d3 = v.nbPlan && v.nb < v.nbPlan / 2 ? 0 : (v.modif || v.oublis) ? 1 : v.nb >= v.att ? ((v.bonus > 0 || v.pts > v.ann) ? 3 : 2) : 1;
+  let d3 = v.nbPlan && v.nb < v.nbPlan / 2 ? 0 : (v.modif || v.oublis) ? 1 : v.nb >= v.att ? ((v.bonus > 0 || (!mp && v.pts > v.ann)) ? 3 : 2) : 1;
   let d4 = !v.ind ? 2 : v.indMiss ? 1 : v.colOk ? 3 : 2;
   const auto = [d1, d2, d3, d4]; [d1, d2, d3, d4] = auto.map((d, i) => dk && dk[i] != null ? +dk[i] : d);
-  const pos = (d) => q25(DEG1[d][0] + (DEG1[d][1] - DEG1[d][0]) * ratio);
-  const a1 = pos(d1), a2 = pos(d2), a3 = BAREME[rp[0]][d3], a4 = BAREME[rp[1]][d4];
-  return { v, d: [d1, d2, d3, d4], auto, a: [a1, a2, a3, a4], rep: rp.join("-"), ratio, tot: q25(a1 + a2 + a3 + a4),
-    why: [`${v.pts} pts réalisés / ${v.ann} annoncés${v.modif ? ", " + v.modif + " poste(s) abandonné(s)" : ""}`, `${v.over ? "hors temps" : "dans les temps" + (v.avance > 0 ? " (" + v.avance + " min d'avance)" : "")}, ${v.oublis} balise(s) du projet manquée(s), ${nivLbl(v.lo)} ${v.nl} / ${nivLbl(v.hi)} ${v.nh}`, `${v.nb} balises ramenées / ${v.att} attendues${v.un ? " (noté sur 1 parcours)" : ""}${v.bonus ? ", " + v.bonus + " bonus" : ""}`, v.ind ? `individuel : ${v.indMiss ? v.indMiss + " balise(s) manquée(s)" : "complet"}${v.colOk != null ? ", collectif " + (v.colOk ? "complet" : "incomplet") : ""}` : "pas de parcours individuel"] };
+  const pos = (d, rt) => q25(DEG1[d][0] + (DEG1[d][1] - DEG1[d][0]) * rt), r1 = mp ? ptsBand(PC, d1, v.pts) : ratio;
+  const a1 = pos(d1, r1), a2 = pos(d2, ratio), a3 = BAREME[rp[0]][d3], a4 = BAREME[rp[1]][d4];
+  return { v, d: [d1, d2, d3, d4], auto, a: [a1, a2, a3, a4], rep: rp.join("-"), ratio, ratios: [r1, ratio], tot: q25(a1 + a2 + a3 + a4),
+    why: [mp ? `${v.pts} point(s) rapporté(s) sur ${fr(PC.max)} possibles${v.un ? " (noté sur 1 parcours)" : ""}` : `${v.pts} pts réalisés / ${v.ann} annoncés${v.modif ? ", " + v.modif + " poste(s) abandonné(s)" : ""}`, `${v.over ? "hors temps" : "dans les temps" + (v.avance > 0 ? " (" + v.avance + " min d'avance)" : "")}, ${v.oublis} balise(s) du projet manquée(s), ${nivLbl(v.lo)} ${v.nl} / ${nivLbl(v.hi)} ${v.nh}`, `${v.nb} balises ramenées / ${v.att} attendues${v.un ? " (noté sur 1 parcours)" : ""}${v.bonus ? ", " + v.bonus + " bonus" : ""}`, v.ind ? `individuel : ${v.indMiss ? v.indMiss + " balise(s) manquée(s)" : "complet"}${v.colOk != null ? ", collectif " + (v.colOk ? "complet" : "incomplet") : ""}` : "pas de parcours individuel"] };
 }
 const NAFL = ["AFL1 (1)", "AFL1 (2)", "AFL2", "AFL3"];
 const dKeep = o => o && o.dm ? o.d.map((d, i) => o.dm[i] ? d : null) : null;
@@ -2446,13 +2456,13 @@ function profNote(box) {
       <div class="row small" style="gap:10px">Balises attendues : filles <input class="inp" type="number" min="1" id="nF" value="${g.attF}" style="width:70px;padding:6px"> garçons <input class="inp" type="number" min="1" id="nG" value="${g.attG}" style="width:70px;padding:6px"> <span class="muted">(CCF : 16 / 18)</span> · « en avance » à partir de <input class="inp" type="number" min="0" id="nA" value="${g.avance}" style="width:60px;padding:6px"> min ${g.attF !== 16 || g.attG !== 18 ? '<button class="btn sm gh" id="nCcf">↺ Valeurs du CCF</button>' : ""}</div>
       ${nbP > 1 ? `<div class="row small" style="gap:10px;margin-top:6px">📍 Élève noté sur 1 parcours : filles <input class="inp" type="number" min="1" id="nF1" value="${g.attF1}" style="width:70px;padding:6px"> garçons <input class="inp" type="number" min="1" id="nG1" value="${g.attG1}" style="width:70px;padding:6px"> <span class="muted">${g.a1 ? "(proposé : attendues ÷ " + nbP + " parcours)" : ""}</span></div>` : ""}
       <div class="row" style="margin-top:10px"><button class="btn or" id="nGen">🧮 Générer les notes</button>${Object.values(NT).filter(o => o.pend).length ? `<button class="btn or" id="nRpz">🔄 Repositionner (${Object.values(NT).filter(o => o.pend).length})</button>` : ""}<button class="btn gh" id="nGe" title="Textes des degrés et niveaux des balises">📝 Grille d'évaluation</button><button class="btn vi" id="nExp">📤 Exporter (PDF · Excel)</button>${pnClasses().map(c => `<button class="btn sm gh" data-pn="${esc(c)}">📋 Pronote${pnClasses().length > 1 ? " " + esc(c) : ""}</button>`).join("")}<span class="small muted grow" style="text-align:right">${L.length} élève(s) avec au moins un parcours terminé${C.niv ? "" : " · sans niveaux de balises : 1 balise = 1 point"}</span></div></div>
-     <div class="card" style="overflow:auto"><table class="t small"><thead><tr><th>Élève</th><th>Sexe</th><th>Répart.<br><select class="inp" id="nRpAll" title="La même répartition pour tous les élèves affichés" style="width:auto;padding:3px 4px;margin-top:3px;font-size:.78rem"><option value="">Pour tous…</option>${["max", ...REPS].map(o => `<option value="${o}">${REPL[o]}</option>`).join("")}</select></th><th>Balises<br>ramenées / attendues</th><th>Points<br>réalisés / annoncés</th><th>Temps</th><th></th><th>Proposition</th><th>Note retenue</th></tr></thead><tbody>
+     <div class="card" style="overflow:auto"><table class="t small"><thead><tr><th>Élève</th><th>Sexe</th><th>Répart.<br><select class="inp" id="nRpAll" title="La même répartition pour tous les élèves affichés" style="width:auto;padding:3px 4px;margin-top:3px;font-size:.78rem"><option value="">Pour tous…</option>${["max", ...REPS].map(o => `<option value="${o}">${REPL[o]}</option>`).join("")}</select></th><th>Balises<br>ramenées / attendues</th><th>${ptsCfg(g).on ? "Points<br>rapportés / possibles" : "Points<br>réalisés / annoncés"}</th><th>Temps</th><th></th><th>Proposition</th><th>Note retenue</th></tr></thead><tbody>
       ${L.map(x => { const id = x.me.id, v = noteData(x), sx = (C.sexe || {})[id] || "", rp = repOf(id), nt = NT[id];
         return `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}<br><small class="muted">${esc(x.me.classe)}${!f && profs.length > 1 ? " · " + esc(x.me.prof) : ""}</small></td>
          <td><button class="btn sm ${sx === "F" ? "or" : "gh"}" data-sx="F" data-id="${esc(id)}">F</button><button class="btn sm ${sx === "G" ? "or" : "gh"}" data-sx="G" data-id="${esc(id)}">G</button>${sx ? "" : '<br><small style="color:var(--ko)">à préciser</small>'}</td>
          <td><select class="inp" data-rp="${esc(id)}" style="width:auto;padding:4px">${Object.keys(REPL).map(o => `<option value="${o}" ${o === rp ? "selected" : ""}>${REPL[o]}</option>`).join("")}</select>${rp === "max" && nt && nt.rep ? `<br><small class="muted">→ ${esc(nt.rep)}</small>` : ""}</td>
          <td><b style="color:${v && v.nb >= v.att ? "var(--ok)" : "var(--ko)"}">${v ? v.nb : "—"}</b> / ${v ? v.att : "—"}<br><small class="muted">projet : ${v ? v.nbPlan : "—"}</small>${v && nbP > 1 && v.R.length < nbP ? `<br><small style="color:var(--or);font-weight:800">${v.R.length} parcours sur ${nbP}</small>${v.R.length === 1 ? `<br><button class="btn sm ${v.un ? "or" : "gh"}" data-un="${esc(id)}" title="Balises attendues d'un seul parcours">${v.un ? "📍 Noté sur 1 parcours ✓" : "📍 Noter sur 1 parcours"}</button>` : ""}` : ""}</td>
-         <td>${v ? `${v.pts} / ${v.ann}` : "—"}</td><td>${v ? `<button class="btn sm gh" data-cr="${esc(id)}" title="Corriger le temps (dans / hors temps)" style="${v.over ? "color:var(--ko)" : ""}">${v.over ? "hors temps" : "dans les temps"}${v.tfix ? " ✓" : ""}</button>` : "—"}</td>
+         <td>${v ? (ptsCfg(g).on ? `<b>${v.pts}</b> / ${fr(v.pmax)}` : `${v.pts} / ${v.ann}`) : "—"}</td><td>${v ? `<button class="btn sm gh" data-cr="${esc(id)}" title="Corriger le temps (dans / hors temps)" style="${v.over ? "color:var(--ko)" : ""}">${v.over ? "hors temps" : "dans les temps"}${v.tfix ? " ✓" : ""}</button>` : "—"}</td>
          <td><button class="btn sm gh" data-cr="${esc(id)}">✏️ Corriger${v && v.corr ? " ✓" : ""}</button></td>
          <td>${nt ? `<div class="ndeg">${NAFL.map((l, i) => `<label class="${nt.dm && nt.dm[i] ? "man" : ""}" title="${esc(nt.why[i] || "")}">${l} <select data-dg="${esc(id)}" data-i="${i}">${[0, 1, 2, 3].map(d => `<option value="${d}" ${d === nt.d[i] ? "selected" : ""}>D${d + 1}</option>`).join("")}</select> <b>${fr(nt.a[i])}</b></label>`).join("")}</div>
            ${nt.pend ? `<button class="btn sm or" data-rpz="${esc(id)}" style="margin-top:4px">🔄 Repositionner</button>` : `<button class="btn sm gh" data-det="${esc(id)}" title="Évaluation complète"><b>${fr(nt.prop)}</b> <small class="muted">/ 20</small> 🔍</button>`}${nt.dm && nt.dm.some(Boolean) ? ` <button class="btn sm gh" data-dgr="${esc(id)}" title="Revenir aux degrés proposés">↺</button>` : ""}` : (v ? `<button class="btn sm gh" data-det="${esc(id)}">🔍 Évaluation complète</button>` : '<span class="muted">—</span>')}</td>
@@ -2462,7 +2472,7 @@ function profNote(box) {
     const num = (id, d) => { const k = parseFloat(String($("#" + id).value).replace(",", ".")); return k >= 0 ? Math.round(k) : d; };
     ["nF", "nG", "nA"].forEach(i => $("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF: num("nF", 16) || 16, attG: num("nG", 18) || 18, avance: num("nA", 0) }; ch(); draw(); });
     ["nF1", "nG1"].forEach(i => $("#" + i) && ($("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF1: num("nF1", null) || null, attG1: num("nG1", null) || null }; ch(); draw(); }));
-    $("#nCcf") && ($("#nCcf").onclick = () => { const o = C.ncfg || {}, keep = {}; ["nh", "nl", "gt", "attF1", "attG1"].forEach(k => { if (k in o) keep[k] = o[k]; }); C.ncfg = { ...NOTE_DEF, ...keep }; ch(); draw(); });
+    $("#nCcf") && ($("#nCcf").onclick = () => { const o = C.ncfg || {}, keep = {}; ["nh", "nl", "gt", "attF1", "attG1", "e1", "ppp", "ps"].forEach(k => { if (k in o) keep[k] = o[k]; }); C.ncfg = { ...NOTE_DEF, ...keep }; ch(); draw(); });
     $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); draw(); });
     $$("[data-sx]", box).forEach(b => b.onclick = () => { const id = b.dataset.id, v = b.dataset.sx; C.sexe = { ...(C.sexe || {}), [id]: v }; ch(); draw(); });
     $$("[data-rp]", box).forEach(x => x.onchange = () => { C.repart = { ...(C.repart || {}), [x.dataset.rp]: x.value }; ch(); renote(L, [x.dataset.rp]); draw(); });
@@ -2499,6 +2509,10 @@ const AFLD = [
   ["AFL1 · élément 2 : le déplacement", "Temps, balises du projet manquées, niveaux des balises trouvées.", ["hors temps", "balise(s) du projet manquée(s), ou pas plus de balises {haut} que {bas}", "plus de balises {haut} que {bas}, sans oubli", "toutes les balises en {haut}, sans oubli, avec au moins {avance} d'avance"]],
   ["AFL2 : les balises ramenées", "Balises ramenées comparées aux balises attendues et au projet.", ["moins de la moitié du projet ramenée", "abandon, oubli, ou moins de balises que le nombre attendu", "au moins le nombre de balises attendu", "nombre attendu atteint, avec des balises bonus ou plus de points qu'annoncé"]],
   ["AFL3 : individuel et collectif", "Parcours individuel complet, puis parcours collectif.", ["—", "balise(s) manquée(s) en individuel", "individuel complet (ou pas de parcours individuel)", "individuel complet et collectif complet"]]];
+const AFLD_PTS = {
+  0: ["AFL1 · élément 1 : les points rapportés", "Points rapportés par les balises trouvées (une balise de niveau 2 rapporte 2 points), sur {max} points possibles.", ["moins de {p2} points", "de {p2} à moins de {p3} points", "de {p3} à moins de {p4} points", "{p4} points ou plus"]],
+  2: ["AFL2 : les balises ramenées", "Balises ramenées comparées aux balises attendues et au projet.", ["moins de la moitié du projet ramenée", "abandon, oubli, ou moins de balises que le nombre attendu", "au moins le nombre de balises attendu", "nombre attendu atteint, avec des balises bonus"]] };
+const afld = (k, e1) => ((e1 || ncfg().e1) !== "projet" && AFLD_PTS[k]) || AFLD[k];
 const DCOL = ["#d62839", "#f47a20", "#3aa0d8", "#2a9d6f"], DBG = ["#fdecee", "#fff1e4", "#e6f3fb", "#e3f5ec"];
 /* 📝 Grille d'évaluation modifiable (demande de l'enseignant, 27/11/2026 : « on parle de balises de niveau 1, 2 et 3, j'ai posé des balises de niveau 1 et 2 ») :
    - niveaux comparés pour l'AFL1 élément 2 : C.ncfg.nh (niveau « haut ») / C.ncfg.nl (niveau « bas ») ; absents = d'après les balises posées
@@ -2511,25 +2525,32 @@ function nivPair(g) { g = g || C.ncfg || {}; const u = nivUsed(); let hi = Math.
   if (!hi) hi = u.length ? u[u.length - 1] : 3;
   if (lo == null || lo >= hi) { const b = u.filter(v => v < hi); lo = b.length ? b[b.length - 1] : hi - 1; }
   return { hi, lo, auto: !(+g.nh), autoLo: !(g.nl === 0 || +g.nl > 0), u }; }
-const gridRaw = k => { const o = (((C.ncfg || {}).gt) || {})[k] || {}; return { t: o.t || AFLD[k][0], s: o.s != null ? o.s : AFLD[k][1], d: AFLD[k][2].map((x, i) => o.d && o.d[i] ? o.d[i] : x), mod: !!(o.t || o.s != null || (o.d || []).some(Boolean)) }; };
-const gridFill = (x, g) => { g = g || ncfg(); const n = nivPair(g); return String(x).replace(/\{haut\}/g, nivLbl(n.hi)).replace(/\{bas\}/g, nivLbl(n.lo)).replace(/\{avance\}/g, g.avance + " min"); };
+const gridRaw = k => { const o = (((C.ncfg || {}).gt) || {})[k] || {}, A = afld(k); return { t: o.t || A[0], s: o.s != null ? o.s : A[1], d: A[2].map((x, i) => o.d && o.d[i] ? o.d[i] : x), mod: !!(o.t || o.s != null || (o.d || []).some(Boolean)) }; };
+const gridFill = (x, g) => { g = g || ncfg(); const n = nivPair(g), pc = ptsCfg(g); return String(x).replace(/\{haut\}/g, nivLbl(n.hi)).replace(/\{bas\}/g, nivLbl(n.lo)).replace(/\{avance\}/g, g.avance + " min")
+  .replace(/\{max\}/g, fr(pc.full)).replace(/\{p2\}/g, fr(pc.sFull[0])).replace(/\{p3\}/g, fr(pc.sFull[1])).replace(/\{p4\}/g, fr(pc.sFull[2])); };
 const gridTxt = k => { const g = ncfg(), r = gridRaw(k); return { t: gridFill(r.t, g), s: gridFill(r.s, g), d: r.d.map(x => gridFill(x, g)) }; };
 function gridEdit(after) {
   const g0 = ncfg(), N0 = nivPair(g0), gt = JSON.parse(JSON.stringify(g0.gt || {}));
-  let nh = +g0.nh || 0, nl = g0.nl === 0 || +g0.nl > 0 ? +g0.nl : "";
+  let nh = +g0.nh || 0, nl = g0.nl === 0 || +g0.nl > 0 ? +g0.nl : "", e1 = g0.e1 === "projet" ? "projet" : "pts", ppp = +g0.ppp || 15, ps = Array.isArray(g0.ps) ? g0.ps.slice() : null;
+  const gx = () => ({ ...g0, nh, nl, e1, ppp, ps });
   const m = modal(""), box = m.firstElementChild; m.classList.add("big"); m.onclick = null;
   const opt = (v, cur, l) => `<option value="${v}" ${String(v) === String(cur) ? "selected" : ""}>${l}</option>`;
-  const draw = () => { const n = nivPair({ ...g0, nh, nl }), u = n.u;
+  const draw = () => { const n = nivPair({ ...g0, nh, nl }), u = n.u, pc = ptsCfg(gx());
     box.innerHTML = `<div class="row" style="margin-bottom:8px"><h2 style="margin:0" class="grow">📝 Grille d'évaluation</h2><button class="btn sm gh" id="geX">✕ Fermer</button></div>
+     <div class="card" style="margin:0 0 10px;padding:12px"><b>AFL1 · élément 1</b> <select class="inp" id="geE" style="width:auto;padding:6px;margin-left:6px">${opt("pts", e1, "🎯 Points rapportés par les balises")}${opt("projet", e1, "Projet : points réalisés comparés aux annoncés")}</select>
+      ${e1 === "pts" ? `<div class="row small" style="gap:10px;margin-top:8px">Points possibles par parcours <input class="inp" type="number" min="1" id="gePp" value="${ppp}" style="width:70px;padding:6px"> <span class="muted">× ${C.parcours.length} parcours = <b>${fr(pc.full)} points</b></span></div>
+       <div class="row small" style="gap:10px;margin-top:6px">Degré 2 à partir de <input class="inp" type="number" min="0" step="0.5" data-ps="0" value="${pc.sFull[0]}" style="width:70px;padding:6px"> pts · degré 3 à partir de <input class="inp" type="number" min="0" step="0.5" data-ps="1" value="${pc.sFull[1]}" style="width:70px;padding:6px"> pts · degré 4 à partir de <input class="inp" type="number" min="0" step="0.5" data-ps="2" value="${pc.sFull[2]}" style="width:70px;padding:6px"> pts
+        ${pc.a ? '<span class="muted">(automatique : 25 / 50 / 75 %)</span>' : '<button class="btn sm gh" id="gePsZ">↺ Automatique</button>'}</div>
+       <p class="small muted" style="margin:6px 0 0">Une balise rapporte autant de points que son niveau${C.niv ? "" : ' <b style="color:var(--ko)">(niveaux désactivés dans ⚙ Paramètres : 1 balise = 1 point)</b>'}. La place dans le degré suit les points entre deux seuils. Élève noté sur 1 parcours : seuils et points possibles ramenés à 1 parcours. En AFL2, le degré 4 demande alors des balises bonus (plus de « points supérieurs à l'annonce »).</p>` : '<p class="small muted" style="margin:6px 0 0">Règle du protocole : moins de points qu\'annoncés (D1), annoncés avec abandon (D2), annoncés sans abandon (D3), plus qu\'annoncés (D4).</p>'}</div>
      <div class="card" style="margin:0 0 10px;padding:12px"><b>Niveaux des balises</b> <small class="muted">(AFL1 · élément 2 : le déplacement)</small>
       <p class="small" style="margin:6px 0">Niveaux posés sur tes balises : <b>${u.length ? u.map(v => "N" + v).join(", ") : "aucun"}</b>${C.niv ? "" : ' <span style="color:var(--ko)">· niveaux de difficulté désactivés (⚙ Paramètres)</span>'}</p>
       <div class="row small" style="gap:10px">Balises difficiles : <select class="inp" id="geH" style="width:auto;padding:6px">${opt(0, nh, "automatique (" + nivLbl(nivPair({ ...g0, nh: 0, nl }).hi) + ")")}${[1, 2, 3].map(v => opt(v, nh, "N" + v)).join("")}</select>
        comparées aux balises : <select class="inp" id="geL" style="width:auto;padding:6px">${opt("", nl, "automatique (" + nivLbl(nivPair({ ...g0, nh, nl: "" }).lo) + ")")}${[0, 1, 2].filter(v => v < n.hi).map(v => opt(v, nl, nivLbl(v))).join("")}</select>
-       <span class="muted">→ dans la grille : {haut} = <b>${nivLbl(n.hi)}</b>, {bas} = <b>${nivLbl(n.lo)}</b>, {avance} = <b>${g0.avance} min</b></span></div></div>
-     ${AFLD.map((A, k) => { const o = gt[k] || {}, r = { t: o.t || A[0], s: o.s != null ? o.s : A[1], d: A[2].map((x, i) => o.d && o.d[i] ? o.d[i] : x) };
+       <span class="muted">→ dans la grille : {haut} = <b>${nivLbl(n.hi)}</b>, {bas} = <b>${nivLbl(n.lo)}</b>, {avance} = <b>${g0.avance} min</b>${e1 === "pts" ? `, {max} = <b>${fr(pc.full)}</b>, {p2} {p3} {p4} = <b>${pc.sFull.map(fr).join(" · ")}</b>` : ""}</span></div></div>
+     ${AFLD.map((A0, k) => { const A = afld(k, e1); const o = gt[k] || {}, r = { t: o.t || A[0], s: o.s != null ? o.s : A[1], d: A[2].map((x, i) => o.d && o.d[i] ? o.d[i] : x) };
        return `<div class="card" style="margin:0 0 10px;padding:12px" data-gk="${k}"><div class="row"><input class="inp grow" data-ge="t" value="${esc(r.t)}" style="font-weight:800;padding:8px">${o.t || o.s != null || (o.d || []).some(Boolean) ? `<button class="btn sm gh" data-gz="${k}" title="Textes d'origine">↺</button>` : ""}</div>
         <input class="inp" data-ge="s" value="${esc(r.s)}" style="margin-top:6px;padding:8px" placeholder="Description">
-        <div class="geg">${r.d.map((x, i) => `<label style="--dc:${DCOL[i]}"><b>Degré ${i + 1}</b><textarea class="inp" data-ge="d${i}" rows="3">${esc(x)}</textarea><small class="muted">${/\{/.test(x) ? "→ " + esc(gridFill(x, { ...g0, nh, nl })) : ""}</small></label>`).join("")}</div></div>`; }).join("")}
+        <div class="geg">${r.d.map((x, i) => `<label style="--dc:${DCOL[i]}"><b>Degré ${i + 1}</b><textarea class="inp" data-ge="d${i}" rows="3">${esc(x)}</textarea><small class="muted">${/\{/.test(x) ? "→ " + esc(gridFill(x, gx())) : ""}</small></label>`).join("")}</div></div>`; }).join("")}
      <p class="small muted">Repères remplacés automatiquement : <b>{haut}</b>, <b>{bas}</b> (niveaux ci-dessus) et <b>{avance}</b> (avance demandée, onglet Note). Les textes sont ceux de l'évaluation en grand, des fiches élèves et des exports ; le calcul des degrés proposés suit les règles du protocole, avec les niveaux choisis ici.</p>
      <div class="row"><button class="btn gh" id="geZ">↺ Tout remettre d'origine</button><span class="grow"></span><button class="btn or" id="geOk">✓ Enregistrer</button></div>`;
     $("#geX", m).onclick = () => m.remove();
@@ -2537,15 +2558,21 @@ function gridEdit(after) {
     $("#geL", m).onchange = e => { nl = e.target.value === "" ? "" : +e.target.value; read(); draw(); };
     $$("[data-gz]", m).forEach(b => b.onclick = () => { delete gt[b.dataset.gz]; draw(); });
     $("#geZ", m).onclick = () => { Object.keys(gt).forEach(k => delete gt[k]); nh = 0; nl = ""; draw(); };
-    $$("[data-ge]", m).forEach(x => x.oninput = () => { const s2 = x.nextElementSibling; if (s2 && s2.tagName === "SMALL") s2.textContent = /\{/.test(x.value) ? "→ " + gridFill(x.value, { ...g0, nh, nl }) : ""; });
+    $$("[data-ge]", m).forEach(x => x.oninput = () => { const s2 = x.nextElementSibling; if (s2 && s2.tagName === "SMALL") s2.textContent = /\{/.test(x.value) ? "→ " + gridFill(x.value, gx()) : ""; });
+    $("#geE", m).onchange = e => { read(); [0, 2].forEach(k => delete gt[k]); e1 = e.target.value; draw(); };
+    $("#gePp", m) && ($("#gePp", m).onchange = e => { const k = parseFloat(String(e.target.value).replace(",", ".")); if (k > 0) { ppp = k; ps = null; } read(); draw(); });
+    $$("[data-ps]", m).forEach(x => x.onchange = () => { const cur = ptsCfg(gx()).sFull.slice(), k = parseFloat(String(x.value).replace(",", ".")); if (!(k >= 0)) { draw(); return; } cur[+x.dataset.ps] = k;
+      if (!(cur[0] < cur[1] && cur[1] < cur[2])) { flash("Les seuils doivent monter : degré 2 < degré 3 < degré 4"); draw(); return; } ps = cur; read(); draw(); });
+    $("#gePsZ", m) && ($("#gePsZ", m).onclick = () => { ps = null; read(); draw(); });
     $("#geOk", m).onclick = () => { read(); const c = { ...(C.ncfg || {}) };
       if (nh) c.nh = nh; else delete c.nh; if (nl !== "") c.nl = nl; else delete c.nl;
       if (Object.keys(gt).length) c.gt = gt; else delete c.gt;
-      const chg = JSON.stringify([C.ncfg && C.ncfg.nh, C.ncfg && C.ncfg.nl]) !== JSON.stringify([c.nh, c.nl]);
+      c.e1 = e1; c.ppp = ppp; if (ps) c.ps = ps; else delete c.ps;
+      const o0 = C.ncfg || {}, sig = o => JSON.stringify([o.nh, o.nl, o.e1 || "pts", o.ppp || 15, o.ps || null]), chg = sig(o0) !== sig(c);
       C.ncfg = c; confChanged(); m.remove(); flash("📝 Grille enregistrée"); after && after(chg); };
   };
   /* lit les champs : garde seulement ce qui diffère des textes d'origine */
-  const read = () => $$("[data-gk]", m).forEach(cd => { const k = +cd.dataset.gk, A = AFLD[k], v = f => ($(`[data-ge="${f}"]`, cd).value || "").trim(), o = {};
+  const read = () => $$("[data-gk]", m).forEach(cd => { const k = +cd.dataset.gk, A = afld(k, e1), v = f => ($(`[data-ge="${f}"]`, cd).value || "").trim(), o = {};
     if (v("t") && v("t") !== A[0]) o.t = v("t"); if (v("s") !== A[1]) o.s = v("s");
     const d = A[2].map((x, i) => v("d" + i) && v("d" + i) !== x ? v("d" + i) : ""); if (d.some(Boolean)) o.d = d;
     if (Object.keys(o).length) gt[k] = o; else delete gt[k]; });
@@ -2570,18 +2597,18 @@ function noteBig(L, id, after) {
     const row = k => `<tr><th><b>${esc(GT[k].t)}</b><small>${esc(GT[k].s)}</small><div class="evw">📌 ${esc(pr.why[k])}</div></th>
       ${[0, 1, 2, 3].map(d => { const on = d === pr.d[k], pp = man(k) && d === pr.auto[k];
         return `<td class="evc${on ? " on" : ""}${pp ? " pp" : ""}" data-gi="${k}" data-gd="${d}" style="--dc:${DCOL[d]};--db:${DBG[d]}" role="button" tabindex="0" aria-pressed="${on}">${on ? `<span class="evt">${man(k) ? "✋ choisi par toi" : "📌 proposé"}</span>` : pp ? '<span class="evt pp">📌 proposé</span>' : ""}<div>${esc(rule(k, d))}</div><small>${rng(k, d)}</small></td>`; }).join("")}
-      <td class="evp" style="--dc:${DCOL[pr.d[k]]}"><b>${fr(pr.a[k])}</b><small>/ ${maxOf(k)}</small>${k < 2 ? `<small>${Math.round(pr.ratio * 100)} % du degré</small>` : ""}</td></tr>`;
+      <td class="evp" style="--dc:${DCOL[pr.d[k]]}"><b>${fr(pr.a[k])}</b><small>/ ${maxOf(k)}</small>${k < 2 ? `<small>${Math.round(pr.ratios[k] * 100)} % du degré</small>` : ""}</td></tr>`;
     const runs = v.R.map(r => { const a = withStudent(x, () => analyse(r)), F = new Set(a.found.map(Number)); return `<span class="chip ${a.oublis.length ? "or" : "ok"}" title="Projet : ${esc(a.plan.join(" "))}">${esc((P(r.k) || {}).nom || "Parcours")} · ${a.plan.filter(n => F.has(+n)).length} / ${a.plan.length}${a.corrige ? " · ✏️" : ""}</span>`; }).join(" ");
     box.innerHTML = head + `<div class="evk">
        <div><span>Balises ramenées / attendues</span><b style="color:${v.nb >= v.att ? "var(--gr)" : "var(--ko)"}">${v.nb} / ${v.att}</b>${v.un ? "<small>noté sur 1 parcours</small>" : ""}</div>
-       <div><span>Points réalisés / annoncés</span><b>${v.pts} / ${v.ann}</b></div>
+       ${ptsCfg(g).on ? `<div><span>Points rapportés / possibles</span><b>${v.pts} / ${fr(v.pmax)}</b></div>` : `<div><span>Points réalisés / annoncés</span><b>${v.pts} / ${v.ann}</b></div>`}
        <div><span>Temps</span><b style="${v.over ? "color:var(--ko)" : ""}">${v.over ? "hors temps" : "dans les temps"}</b>${v.avance > 0 && !v.over ? `<small>${v.avance} min d'avance</small>` : ""}</div>
        <div class="evn"><span>Note proposée</span><b>${fr(pr.tot)} <small>/ 20</small></b>${o && o.note !== o.prop ? `<small>note retenue : ${fr(o.note)}</small>` : ""}</div></div>
       <div class="row small" style="margin:8px 0">${runs}${nbP > 1 && v.R.length < nbP ? ` <b style="color:var(--or)">${v.R.length} parcours sur ${nbP}</b>` : ""}<span class="grow"></span>
        ${nbP > 1 && v.R.length === 1 ? `<button class="btn sm ${v.un ? "or" : "gh"}" id="bgUn">${v.un ? "📍 Noté sur 1 parcours ✓" : "📍 Noter sur 1 parcours"}</button>` : ""}<button class="btn sm gh" id="bgCr">✏️ Corriger${v.corr ? " ✓" : ""}</button><button class="btn sm gh" id="bgGe" title="Modifier les textes et les niveaux de la grille">📝 Grille</button><button class="btn sm vi" id="bgPdf" title="Fiche de l'élève avec son positionnement">📄 Fiche PDF</button>${o && o.dm && o.dm.some(Boolean) ? '<button class="btn sm gh" id="bgRz">↺ Degrés proposés</button>' : ""}${!o ? '<button class="btn sm or" id="bgGen">🧮 Retenir cette proposition</button>' : ""}</div>
       <div class="evg"><table class="evgt"><colgroup><col style="width:22%"><col><col><col><col><col style="width:9%"></colgroup>
        <thead><tr><th>Élément évalué</th>${[1, 2, 3, 4].map(d => `<th style="color:${DCOL[d - 1]}">Degré ${d}</th>`).join("")}<th>Points</th></tr></thead><tbody>
-       <tr class="grp"><td colspan="6">AFL1 · 12 pts <small>(place dans le degré : balises ramenées / attendues)</small></td></tr>${row(0)}${row(1)}
+       <tr class="grp"><td colspan="6">AFL1 · 12 pts <small>(place dans le degré : ${ptsCfg(g).on ? "points rapportés entre deux seuils pour l'élément 1, balises ramenées / attendues pour l'élément 2" : "balises ramenées / attendues"})</small></td></tr>${row(0)}${row(1)}
        <tr class="grp"><td colspan="6">AFL2 + AFL3 · 8 pts <small>(répartition ${pr.rep}${pr.max ? ", ✨ meilleure note" : ""})</small></td></tr>${row(2)}${row(3)}
        <tr class="tot"><td colspan="5">AFL1 <b>${fr(q25(pr.a[0] + pr.a[1]))} / 12</b> · AFL2 + AFL3 <b>${fr(q25(pr.a[2] + pr.a[3]))} / 8</b></td><td class="evp"><b>${fr(pr.tot)}</b><small>/ 20</small></td></tr></tbody></table></div>
       <div class="card" style="margin-top:10px;padding:10px"><b>Répartition AFL2 / AFL3</b> <small class="muted">(un appui la choisit pour cet élève)</small><div class="row" style="margin-top:6px">${alt.map(([r, n]) => `<button class="btn sm ${rs === r ? "vi" : "gh"}" data-brp="${r}">${r} → <b>${fr(n)}</b>${n === best ? " ✨" : ""}</button>`).join("")}<button class="btn sm ${rs === "max" ? "vi" : "gh"}" data-brp="max">✨ Meilleure note → <b>${fr(best)}</b></button></div></div>
@@ -2662,7 +2689,7 @@ async function notesPdf(who) {
       T(titre, M, y - 12, { b: 1, s: 10, col: "#14213D", w: TW }); y -= 18; thead();
       K.R.forEach((r, k) => { if (!room(14)) { page(gp(G)); T((K.c || "Sans classe") + " (suite)", M, y - 12, { b: 1, s: 10, col: "#14213D" }); y -= 18; thead(); }
         if (k % 2) pg.drawRectangle({ x: M, y: y - 14, width: TW, height: 14, color: hx("#F5F3EE") });
-        const cells = [`${r.nom} ${r.prenom}`, r.sx, r.np, r.v ? r.rep : "", r.v ? `${r.v.nb} / ${r.v.att}` : "", r.v ? `${r.v.pts} / ${r.v.ann}` : "", r.v ? (r.v.over ? "hors temps" : "dans les temps") : ""], vide = r.abs || !r.v || !r.d;
+        const cells = [`${r.nom} ${r.prenom}`, r.sx, r.np, r.v ? r.rep : "", r.v ? `${r.v.nb} / ${r.v.att}` : "", r.v ? (ptsCfg(g).on ? `${r.v.pts} / ${fr(r.v.pmax)}` : `${r.v.pts} / ${r.v.ann}`) : "", r.v ? (r.v.over ? "hors temps" : "dans les temps") : ""], vide = r.abs || !r.v || !r.d;
         let x = M; cells.forEach((t, j) => { const w = COLS[j][1]; T(t, j ? x + w / 2 : x + 4, y - 10, { s: 8, c: j > 0, w: w - 4 }); x += w; });
         if (vide) T(r.st, x + 4, y - 10, { s: 8, col: "#8C1020", w: COLS.slice(7, 11).reduce((s2, c) => s2 + c[1], 0) - 8 });
         else r.d.forEach((d, j) => { const w = COLS[7 + j][1]; T(`D${d + 1} · ${fr(r.a[j])}`, x + w / 2, y - 10, { s: 8, c: 1, w: w - 4 }); x += w; });
@@ -2694,7 +2721,7 @@ async function fichesPdf(rows, mode, who) {
     T([C.ev ? C.ev.nom : "", new Date().toLocaleDateString("fr-FR")].filter(Boolean).join(" · "), M + TW - 12, PH - 44, { s: 9, col: "#FFFFFF", r: 1, w: TW * .35 }); T(r.prof || "", M + TW - 12, PH - 60, { s: 8, col: "#A9AEB8", r: 1, w: TW * .35 });
     let y = PH - 100; T(`${r.prenom} ${r.nom}`, M, y, { b: 1, s: 17, w: TW * .7 }); T(r.classe || "", M + TW, y, { b: 1, s: 12, col: "#14213D", r: 1 });
     y -= 26; const v = r.v, rp = (String(r.rep).match(/(\d)-(\d)/) || [0, 4, 4]).slice(1).map(Number);
-    const K = [["Balises ramenées / attendues", v ? `${v.nb} / ${v.att}` : "—"], ["Points réalisés / annoncés", v ? `${v.pts} / ${v.ann}` : "—"], ["Temps" + (v && !v.over && v.avance > 0 ? ` (${v.avance} min d'avance)` : ""), v ? (v.over ? "hors temps" : "dans les temps") : "—"], ["Répartition AFL2 / AFL3", rp.join("-") + (/meilleure/.test(r.rep) ? " (meilleure note)" : "")]], kw = TW / 4;
+    const K = [["Balises ramenées / attendues", v ? `${v.nb} / ${v.att}` : "—"], ptsCfg(g).on ? ["Points rapportés / possibles", v ? `${v.pts} / ${fr(v.pmax)}` : "—"] : ["Points réalisés / annoncés", v ? `${v.pts} / ${v.ann}` : "—"], ["Temps" + (v && !v.over && v.avance > 0 ? ` (${v.avance} min d'avance)` : ""), v ? (v.over ? "hors temps" : "dans les temps") : "—"], ["Répartition AFL2 / AFL3", rp.join("-") + (/meilleure/.test(r.rep) ? " (meilleure note)" : "")]], kw = TW / 4;
     K.forEach(([l, t], i) => { const x = M + i * kw; pg.drawRectangle({ x: x + (i ? 3 : 0), y: y - 30, width: kw - 3, height: 36, color: hx("#F5F3EE") }); T(l, x + 10, y - 5, { s: 7, col: "#6B7280", w: kw - 16 }); T(t, x + 10, y - 21, { b: 1, s: 10.5, w: kw - 16 }); });
     y -= 46;
     const c0 = 128, cp = 46, cw = (TW - c0 - cp) / 4, X = i => M + c0 + i * cw;
@@ -2714,7 +2741,7 @@ async function fichesPdf(rows, mode, who) {
       pg.drawRectangle({ x: M + TW - cp + 2, y: y - H + 3, width: cp - 4, height: H - 6, color: hx(DBG[d]), borderColor: hx(DCOL[d]), borderWidth: 1 });
       T(fr(r.a[k]), M + TW - cp / 2, y - H / 2 - 2, { b: 1, s: 13, c: 1, col: DCOL[d] }); T("/ " + (k < 2 ? 6 : rp[k - 2]), M + TW - cp / 2, y - H / 2 - 13, { s: 7, c: 1, col: "#6B7280" });
       y -= H; };
-    grp("AFL1 · 12 pts (place dans le degré : balises ramenées / attendues)"); row(0); row(1);
+    grp(ptsCfg(g).on ? "AFL1 · 12 pts (place dans le degré : points rapportés pour l'élément 1, balises ramenées / attendues pour l'élément 2)" : "AFL1 · 12 pts (place dans le degré : balises ramenées / attendues)"); row(0); row(1);
     grp(`AFL2 + AFL3 · 8 pts (répartition ${rp.join("-")})`); row(2); row(3);
     y -= 10; const a1 = q25(r.a[0] + r.a[1]), a2 = q25(r.a[2] + r.a[3]);
     pg.drawRectangle({ x: M, y: y - 44, width: TW, height: 44, color: hx("#F5F3EE") });
@@ -2723,7 +2750,7 @@ async function fichesPdf(rows, mode, who) {
     pg.drawRectangle({ x: M + TW - 130, y: y - 40, width: 126, height: 36, color: hx("#14171C") });
     T("Note", M + TW - 122, y - 26, { s: 9, col: "#A9AEB8" }); T(`${fr(r.note != null ? r.note : r.prop)} / 20`, M + TW - 12, y - 28, { b: 1, s: 16, col: "#FFFFFF", r: 1 });
     y -= 58; T("Protocole CCF de course d'orientation · balises attendues : filles " + g.attF + ", garçons " + g.attG + (r.v && r.v.un ? " (noté sur 1 parcours)" : ""), M, Math.max(y, 40), { s: 7, col: "#6B7280", w: TW });
-    T("Degré positionné encadré en couleur. Degrés de l'AFL1 : la place dans le degré suit la part des balises attendues ramenées.", M, Math.max(y, 40) - 11, { s: 7, col: "#6B7280", w: TW });
+    T("Degré positionné encadré en couleur. AFL1 : la place dans le degré suit " + (ptsCfg(g).on ? "les points rapportés (élément 1) et la part des balises attendues ramenées (élément 2)." : "la part des balises attendues ramenées."), M, Math.max(y, 40) - 11, { s: 7, col: "#6B7280", w: TW });
   };
   const fonts = async doc => ({ F: await doc.embedFont(Lb.StandardFonts.Helvetica), FB: await doc.embedFont(Lb.StandardFonts.HelveticaBold) });
   const clean = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
@@ -2769,26 +2796,28 @@ async function xlsxBlob(sheets) {
    l'appli : nombre (sinon formule = note proposée). Feuille « Grille » : textes des degrés et mode d'emploi. */
 const XREP = { "4-4": "4 et 4", "6-2": "6 et 2", "2-6": "2 et 6" };
 async function notesXlsx(who) {
-  const R = noteRows(who); if (!R.length) return flash("Aucun élève à exporter");
-  const COLS = [["Enseignant", 16], ["Classe", 10], ["Nom", 18], ["Prénom", 14], ["Sexe", 6], ["Parcours notés", 13], ["Balises ramenées", 10], ["Balises attendues", 10], ["Balises du projet", 10], ["Points réalisés", 10], ["Points annoncés", 10], ["Temps", 13],
-    ["Part du degré AFL1", 10], ["Degré AFL1 (1)", 9], ["Degré AFL1 (2)", 9], ["Degré AFL2", 9], ["Degré AFL3", 9], ["Répartition AFL2 / AFL3", 13], ["AFL1 (1) /6", 9], ["AFL1 (2) /6", 9], ["AFL2 (pts)", 9], ["AFL3 (pts)", 9],
+  const R = noteRows(who), g = ncfg(); if (!R.length) return flash("Aucun élève à exporter");
+  const COLS = [["Enseignant", 16], ["Classe", 10], ["Nom", 18], ["Prénom", 14], ["Sexe", 6], ["Parcours notés", 13], ["Balises ramenées", 10], ["Balises attendues", 10], ["Balises du projet", 10], ["Points réalisés", 10], ["Points possibles", 10], ["Points annoncés", 10], ["Temps", 13],
+    ["Part du degré (balises)", 10], ["Degré AFL1 (1)", 9], ["Degré AFL1 (2)", 9], ["Degré AFL2", 9], ["Degré AFL3", 9], ["Répartition AFL2 / AFL3", 13], ["AFL1 (1) /6", 9], ["AFL1 (2) /6", 9], ["AFL2 (pts)", 9], ["AFL3 (pts)", 9],
     ["Note proposée /20", 11], ["Note retenue /20", 11], ["Statut", 18], ["Justification", 60], ["calcul 4-4", 8], ["calcul 6-2", 8], ["calcul 2-6", 8], ["calcul répartition", 8]];
   const col = n => { let s2 = ""; n++; while (n) { const k = (n - 1) % 26; s2 = String.fromCharCode(65 + k) + s2; n = (n - k - 1) / 26; } return s2; }, I = {}; COLS.forEach((c, k) => I[c[0]] = k);
   const A = (name, y) => col(I[name]) + y, head = COLS.map(c => c[0]), W = COLS.map(c => c[1]), hide = ["calcul 4-4", "calcul 6-2", "calcul 2-6", "calcul répartition"].map(n => I[n]);
   const B4 = d => `CHOOSE(${d},0.5,1.5,2.5,4)`, B6 = d => `CHOOSE(${d},0.5,2,4,6)`, B2 = d => `CHOOSE(${d},0.5,1,1.5,2)`;
   const line = (r, y) => { const ok = r.d && r.a && !r.abs && r.v, L = new Array(COLS.length).fill(""), set = (n, v) => L[I[n]] = v;
     set("Enseignant", r.prof); set("Classe", r.classe); set("Nom", r.nom); set("Prénom", r.prenom); set("Sexe", r.sx); set("Parcours notés", r.np); set("Statut", r.st);
-    if (r.v) { set("Balises ramenées", r.v.nb); set("Balises attendues", r.v.att); set("Balises du projet", r.v.nbPlan); set("Points réalisés", r.v.pts); set("Points annoncés", r.v.ann); set("Temps", r.v.over ? "hors temps" : "dans les temps"); }
+    if (r.v) { set("Balises ramenées", r.v.nb); set("Balises attendues", r.v.att); set("Balises du projet", r.v.nbPlan); set("Points réalisés", r.v.pts); set("Points possibles", r.v.pmax); set("Points annoncés", r.v.ann); set("Temps", r.v.over ? "hors temps" : "dans les temps"); }
     if (!ok) { if (r.abs) set("Note retenue /20", r.st === "dispensé" ? "D" : "A"); return L; }
-    const G = A("Balises ramenées", y), H = A("Balises attendues", y), P2 = A("Part du degré AFL1", y), D = ["Degré AFL1 (1)", "Degré AFL1 (2)", "Degré AFL2", "Degré AFL3"].map(n => A(n, y)), Q = A("Répartition AFL2 / AFL3", y);
+    const G = A("Balises ramenées", y), H = A("Balises attendues", y), P2 = A("Part du degré (balises)", y), D = ["Degré AFL1 (1)", "Degré AFL1 (2)", "Degré AFL2", "Degré AFL3"].map(n => A(n, y)), Q = A("Répartition AFL2 / AFL3", y);
     const S = ["calcul 4-4", "calcul 6-2", "calcul 2-6"].map(n => A(n, y)), CR = A("calcul répartition", y), mx = `MAX(${S.join(",")})`, rp = String(r.rep).match(/(\d)-(\d)/), rs = rp ? rp[1] + "-" + rp[2] : "4-4", best = /meilleure/.test(r.rep);
     const ratio = r.v.att ? Math.min(1, r.v.nb / r.v.att) : 0, d = r.d.map(x => x + 1);
     const b = (m, k) => BAREME[m][k - 1], tots = [b(4, d[2]) + b(4, d[3]), b(6, d[2]) + b(2, d[3]), b(2, d[2]) + b(6, d[3])], cr = best ? tots.indexOf(Math.max(...tots)) + 1 : { "4-4": 1, "6-2": 2, "2-6": 3 }[rs];
-    set("Part du degré AFL1", { f: `IF(${H}>0,MIN(1,${G}/${H}),0)`, v: Math.round(ratio * 10000) / 10000 });
+    set("Part du degré (balises)", { f: `IF(${H}>0,MIN(1,${G}/${H}),0)`, v: Math.round(ratio * 10000) / 10000 });
     D.forEach((ref, k) => L[I[["Degré AFL1 (1)", "Degré AFL1 (2)", "Degré AFL2", "Degré AFL3"][k]]] = { v: d[k], s: "in" });
     set("Répartition AFL2 / AFL3", { v: best ? "meilleure" : XREP[rs], s: "in" });
-    const a1 = k => `ROUND((CHOOSE(${D[k]},0,1.75,3.25,4.75)+(CHOOSE(${D[k]},1.5,3,4.5,6)-CHOOSE(${D[k]},0,1.75,3.25,4.75))*${P2})*4,0)/4`;
-    set("AFL1 (1) /6", { f: a1(0), v: r.a[0] }); set("AFL1 (2) /6", { f: a1(1), v: r.a[1] });
+    const a1 = (k, rt) => `ROUND((CHOOSE(${D[k]},0,1.75,3.25,4.75)+(CHOOSE(${D[k]},1.5,3,4.5,6)-CHOOSE(${D[k]},0,1.75,3.25,4.75))*${rt})*4,0)/4`;
+    /* élément 1 en points rapportés : place entre le seuil du degré et le suivant (seuils de l'élève, ramenés à 1 parcours s'il y a lieu) */
+    const PC = ptsCfg(g, r.v.un), J = A("Points réalisés", y), lo = `CHOOSE(${D[0]},0,${PC.s.join(",")})`, hi = `CHOOSE(${D[0]},${PC.s.join(",")},${PC.max})`;
+    set("AFL1 (1) /6", { f: PC.on ? a1(0, `IF(${hi}>${lo},MAX(0,MIN(1,(${J}-${lo})/(${hi}-${lo}))),1)`) : a1(0, P2), v: r.a[0] }); set("AFL1 (2) /6", { f: a1(1, P2), v: r.a[1] });
     set("calcul 4-4", { f: `${B4(D[2])}+${B4(D[3])}`, v: tots[0] }); set("calcul 6-2", { f: `${B6(D[2])}+${B2(D[3])}`, v: tots[1] }); set("calcul 2-6", { f: `${B2(D[2])}+${B6(D[3])}`, v: tots[2] });
     set("calcul répartition", { f: `IF(${Q}="4 et 4",1,IF(${Q}="6 et 2",2,IF(${Q}="2 et 6",3,IF(${S[0]}>=${mx},1,IF(${S[1]}>=${mx},2,3)))))`, v: cr });
     set("AFL2 (pts)", { f: `CHOOSE(${CR},${B4(D[2])},${B6(D[2])},${B2(D[2])})`, v: r.a[2] }); set("AFL3 (pts)", { f: `CHOOSE(${CR},${B4(D[3])},${B2(D[3])},${B6(D[3])})`, v: r.a[3] });
@@ -2802,9 +2831,9 @@ async function notesXlsx(who) {
   if (!who && profs.length > 1) profs.forEach(p => sheets.push(sheet(p || "Sans enseignant", R.filter(r => r.prof === p))));
   const GT = [0, 1, 2, 3].map(gridTxt);
   sheets.push({ name: "Grille", widths: [30, 34, 34, 34, 34, 22], rows: [["Élément évalué", "Degré 1", "Degré 2", "Degré 3", "Degré 4", "Points"],
-    ...GT.map((t, k) => [{ v: t.t + " — " + t.s, s: "w" }, ...t.d.map(x => ({ v: x, s: "w" })), { v: k < 2 ? "D1 0 à 1,5 · D2 1,75 à 3 · D3 3,25 à 4,5 · D4 4,75 à 6" : "selon la répartition (2, 4 ou 6 pts) : 0,5 · … · maximum", s: "w" }]),
+    ...GT.map((t, k) => [{ v: t.t + " — " + t.s, s: "w" }, ...t.d.map(x => ({ v: x, s: "w" })), { v: k < 2 ? "D1 0 à 1,5 · D2 1,75 à 3 · D3 3,25 à 4,5 · D4 4,75 à 6" + (k === 0 && ptsCfg(g).on ? " (place selon les points rapportés)" : "") : "selon la répartition (2, 4 ou 6 pts) : 0,5 · … · maximum", s: "w" }]),
     [], [{ v: "Mode d'emploi", s: "b" }, { v: "Change un degré (1 à 4) ou la répartition dans les cellules orange : les points des AFL, la note proposée et la note retenue se recalculent. Une note retenue écrite à la main remplace sa formule.", s: "w" }],
-    [{ v: "Part du degré AFL1", s: "b" }, { v: "Balises ramenées ÷ balises attendues (au plus 100 %) : place la note dans l'intervalle du degré, arrondie au quart de point.", s: "w" }],
+    [{ v: "Place dans le degré", s: "b" }, { v: (ptsCfg(g).on ? `Élément 1 : points rapportés entre le seuil du degré et le suivant (degré 2 dès ${fr(ptsCfg(g).sFull[0])} pts, degré 3 dès ${fr(ptsCfg(g).sFull[1])}, degré 4 dès ${fr(ptsCfg(g).sFull[2])}, sur ${fr(ptsCfg(g).full)}). ` : "") + "Élément 2 : balises ramenées ÷ balises attendues (au plus 100 %). Note arrondie au quart de point.", s: "w" }],
     [{ v: "Protocole", s: "b" }, { v: `CCF de course d'orientation : AFL1 12 pts, AFL2 + AFL3 8 pts · balises attendues : filles ${ncfg().attF}, garçons ${ncfg().attG}.`, s: "w" }]], nofilter: 1 });
   await saveFile(await xlsxBlob(sheets), exName(who, "xlsx"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 }
