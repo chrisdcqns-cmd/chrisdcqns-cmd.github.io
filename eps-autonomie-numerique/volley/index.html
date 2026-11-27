@@ -407,7 +407,7 @@ html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidde
 
   <!-- ÉLÈVES -->
   <section class="tab" id="t-eleves">
-    <div class="card">
+    <div class="card" data-sec="🗂 Classes">
       <h2>Classes / groupes</h2>
       <div class="row">
         <button class="btn" onclick="newClass()">+ Nouvelle classe</button>
@@ -415,14 +415,14 @@ html:not(.eps-teach) body>header,html:not(.eps-teach) body>main{visibility:hidde
         <button class="btn red" onclick="deleteClass()">Supprimer la classe</button>
       </div>
     </div>
-    <div class="card" id="impCard"></div>
-    <div class="card">
+    <div class="card" data-sec="📥 Importer" id="impCard"></div>
+    <div class="card" data-sec="📋 Liste" data-sec-open>
       <h2>Élèves de la classe</h2>
       <div class="row"><button class="btn alt" onclick="sortEleves()">Trier A→Z</button><button class="btn alt" onclick="addOne()">+ Un élève</button></div>
       <div class="elist" id="elist"></div>
     </div>
     </div>
-    <div class="card">
+    <div class="card" data-sec="💾 Sauvegarde">
       <h2>Sauvegarde</h2>
       <p id="syncSt" style="font-weight:600;margin:0 0 8px"></p>
       <div class="row" style="margin-bottom:10px"><button class="btn alt" onclick="syncSoon(50)">🔄 Synchroniser maintenant</button></div>
@@ -998,7 +998,7 @@ function startSteps(c){
 function startHtml(){
   const c=C();if(!c)return '';const L=startSteps(c),n=L.filter(x=>x.ok).length,H=(()=>{try{return JSON.parse(localStorage.getItem('eps_volley_start')||'{}')}catch(e){return {}}})();
   if(H[c.id]&&n===L.length)return '';
-  const open=!H[c.id];
+  const open=H[c.id]===false; /* 27/11/2026 : replié par défaut (une ligne « n/6 prêt ») ; il reste ouvert si l'enseignant l'ouvre */
   return `<details class="card stw" ${open?'open':''} ontoggle="try{const H=JSON.parse(localStorage.getItem('eps_volley_start')||'{}')||{};H[C().id]=!this.open;localStorage.setItem('eps_volley_start',JSON.stringify(H))}catch(e){}"><summary><b>🚀 Démarrer la séquence · ${esc(c.nom)}</b> <span class="stn ${n===L.length?'ok':''}">${n}/${L.length} prêt</span></summary>
    <div class="stbar"><i style="width:${Math.round(n/L.length*100)}%"></i></div>
    ${L.map((x,i)=>`<div class="stp ${x.ok?'ok':''}"><span class="stk">${x.ok?'✓':i+1}</span><div style="flex:1"><b>${x.t}</b><div class="muted">${x.d}</div></div><div class="row">${x.b.map(([l,f])=>`<button class="btn ${x.ok?'alt':''} sm" onclick="${f}">${l}</button>`).join('')}</div></div>`).join('')}
@@ -1016,8 +1016,8 @@ function seqPick(){const L=S.seq.lecons||[],sel=seqSel();
   volPop('Quelle leçon ?',`<div style="display:grid;gap:8px">${L.map((l,i)=>`<button class="btn ${l.id===sel?'':'alt'}" style="justify-content:space-between;min-height:50px;text-align:left${l.id===sel?';background:var(--vol)':''}" onclick="SEQSEL=S.seq.lecons[${i}].id;SEQEDIT=null;volPopClose();renderSeq()"><span>Leçon ${l.n} · ${esc(l.titre)}</span><span>${l.faite?'✓ faite':l.prop?'proposition':''}</span></button>`).join('')}</div>`)}
 function seqLecons(){
   const L=S.seq.lecons,nf=L.filter(l=>l.faite).length,np=L.filter(l=>l.prop).length;
-  return `${refBanner()}${startHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="rtag">${np} leçon(s) proposée(s)</span>`:''}</div>
-    <div class="row"><button class="btn alt sm" onclick="printSeq()">📄 PDF de la séquence</button><button class="btn sm" onclick="window.EPSLC?EPSLC.open('lec'):addLecon()">+ Leçon</button></div></div>
+  return `${startHtml()}<div class="card"><div class="row" style="justify-content:space-between"><div><b>${L.length} leçons</b> · ${nf} faite(s)${np?` · <span class="rtag">${np} leçon(s) proposée(s)</span>`:''}</div>
+    <div class="row"><button class="btn sm" onclick="window.EPSLC?EPSLC.open('lec'):addLecon()">📝 Mes fiches de leçon</button><button class="btn alt sm" onclick="window.EPSLC&&EPSLC.open('docs')">📥 Importer</button><button class="btn alt sm" onclick="printSeq()">📄 PDF</button></div></div>
     <p class="muted" style="margin:6px 0 0"><b style="color:#B4232B">En rouge</b> : mes propositions (leçons, contenus AFL2, indicateurs de performance, règles de point bonus) et, soulignées, les formulations à préciser. Garde, modifie ou retire. Rien de ce qui est en rouge n'est montré aux élèves. Le cadre de la séquence est dans l'onglet « AFL & évaluation ».</p></div>
   ${(()=>{const sel=seqSel(),k=L.findIndex(l=>l.id===sel),l=L[k];if(!l)return '';
     return `<div class="card" style="display:flex;gap:8px;align-items:center"><button class="btn alt" aria-label="Leçon précédente" ${k<=0?'disabled':''} onclick="seqGo(-1)">‹</button><button class="btn" style="flex:1;min-height:48px;justify-content:space-between;background:var(--vol)" onclick="seqPick()"><span style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Leçon ${l.n} · ${esc(l.titre)}</span><span style="flex:none;margin-left:10px">${k+1}/${L.length} ▾</span></button><button class="btn alt" aria-label="Leçon suivante" ${k>=L.length-1?'disabled':''} onclick="seqGo(1)">›</button></div>`})()}
@@ -1070,16 +1070,16 @@ function showFull(what){const f=document.getElementById('full');
 function seqEch(){
   const c=C(),d=today(),n=SEQR||nextLesson(),RR=routinesFor(n),all=S.seq.routines||[];
   return `<div class="card"><h2>Échauffement en 3 étapes</h2><p class="muted">1. Mobilisation articulaire · 2. Courses sur demi-terrain (Temps I, puis Temps II) · 3. Routines avec ballon, enrichies au fil de la séquence (la manchette arrive avec la leçon où elle est travaillée). Touche une affiche ou « Afficher en grand » pour la montrer aux élèves.</p></div>
-  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">1 · Mobilisation articulaire</h2><button class="btn sm" onclick="showFull('mob')">⛶ Afficher en grand</button></div>
+  <div class="card" data-sec="1 · Mobilisation"><div class="row" style="justify-content:space-between"><h2 style="margin:0">1 · Mobilisation articulaire</h2><button class="btn sm" onclick="showFull('mob')">⛶ Afficher en grand</button></div>
    <label class="l">Une articulation par ligne</label><textarea rows="6" onchange="S.seq.mob=this.value.split(/\\n/).map(x=>x.trim()).filter(Boolean);save();toast('Enregistré')">${esc((S.seq.mob||[]).join('\n'))}</textarea></div>
-  <div class="card"><h2>2 · Courses · Temps I</h2><img class="poster" src="echauffement-temps1.webp" alt="Temps I" onclick="showFull('I')"></div>
-  <div class="card"><h2>2 · Courses · Temps II</h2><img class="poster" src="echauffement-temps2.webp" alt="Temps II" onclick="showFull('II')"></div>
-  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">3 · Routines avec ballon</h2>
+  <div class="card" data-sec="2 · Courses"><h2>2 · Courses · Temps I</h2><img class="poster" src="echauffement-temps1.webp" alt="Temps I" onclick="showFull('I')"></div>
+  <div class="card" data-sec="2 · Courses"><h2>2 · Courses · Temps II</h2><img class="poster" src="echauffement-temps2.webp" alt="Temps II" onclick="showFull('II')"></div>
+  <div class="card" data-sec="3 · Routines"><div class="row" style="justify-content:space-between"><h2 style="margin:0">3 · Routines avec ballon</h2>
      <div class="row"><label class="muted" style="font-weight:700">Leçon</label><select class="f" style="width:auto" onchange="SEQR=+this.value;renderSeq()">${S.seq.lecons.map(l=>`<option value="${l.n}" ${l.n===n?'selected':''}>${l.n}. ${esc(l.titre)}</option>`).join('')}</select>
      <button class="btn sm" onclick="showFull('rout')">⛶ Afficher en grand</button></div></div>
    <p class="muted">Les routines s'ajoutent leçon après leçon : en leçon ${n}, les élèves enchaînent ${RR.length} routine(s).</p>
    <div style="margin-top:6px">${routHtml(n)}</div></div>
-  <div class="card"><h2>Routines de la séquence <span class="ctag ptag">Propositions</span></h2>
+  <div class="card" data-sec="3 · Routines"><h2>Routines de la séquence <span class="ctag ptag">Propositions</span></h2>
    <p class="muted">Chaque routine apparaît à partir de la leçon indiquée. Change la leçon d'ajout (par exemple la manchette avec la leçon où tu la travailles), modifie les consignes, ajoutes-en.</p>
    ${all.map((r,k)=>`<div class="bcrit"><div class="g2"><div><label class="l">Routine</label><input type="text" value="${esc(r.nom)}" onchange="routSet(${k},'nom',this.value)"></div>
      <div><label class="l">Ajoutée en leçon</label><input type="number" min="1" value="${r.lec}" onchange="routSet(${k},'lec',+this.value)"></div>
@@ -1087,7 +1087,7 @@ function seqEch(){
      <label class="l">Consignes (une par ligne)</label><textarea rows="3" onchange="routSet(${k},'cons',this.value.split(/\\n/).map(x=>x.trim()).filter(Boolean))">${esc(r.cons.join('\n'))}</textarea>
      <div class="row" style="margin-top:6px"><button class="btn red sm" onclick="routDel(${k})">Supprimer</button></div></div>`).join('')}
    <button class="btn" onclick="routAdd()">+ Routine</button></div>
-  <div class="card"><h2>Routine renforcée par chaque élève · ${esc(c.nom)} · aujourd'hui</h2>
+  <div class="card" data-sec="3 · Routines"><h2>Routine renforcée par chaque élève · ${esc(c.nom)} · aujourd'hui</h2>
    <p class="muted">Facultatif : quand un élève insiste sur une routine parce qu'il en a besoin, note-la. Ses choix apparaissent dans sa fiche, sous « ${esc(critName('ech'))} » (AFL2, « identifie ses lacunes et les travaille »).</p>
    ${c.eleves.length?`<div class="elist">${c.eleves.map((e,i)=>{const v=(e.t3||{})[d];return `<div class="erow" style="flex-wrap:wrap"><span class="nm">${esc(fullName(e))}<br><small class="muted" style="font-weight:400">${t3Txt(e)||'aucun relevé'}</small></span>
      ${RR.map(r=>`<button class="btn sm" style="background:${v===r.id?r.c:'#e8eef6'};color:${v===r.id?'#fff':'var(--navy)'}" onclick="setT3(${i},'${r.id}')">${esc(r.nom)}</button>`).join('')}</div>`}).join('')}</div>`:'<p class="muted">Aucun élève dans cette classe.</p>'}</div>`;
@@ -1099,13 +1099,13 @@ function setT3(i,k){const e=C().eleves[i],d=today();e.t3=e.t3||{};if(e.t3[d]===k
 function seqAfl(){
   const L=S.seq.lecons,cs=B().criteres;
   const AFL={AFL1:"S'engager pour gagner une rencontre en faisant des choix techniques et tactiques pertinents au regard de l'analyse du rapport de force.",AFL2:"Se préparer et s'entraîner, individuellement ou collectivement, pour conduire et maîtriser un affrontement collectif ou interindividuel.",AFL3:"Choisir et assumer les rôles qui permettent un fonctionnement collectif solidaire."};
-  return `${cadreHtml()}<div class="card"><h2>Compétence de fin de séquence (CA4 · lycée)</h2>
+  return `${cadreHtml()}<div class="card" data-sec="Compétence"><h2>Compétence de fin de séquence (CA4 · lycée)</h2>
    <textarea rows="4" onchange="S.seq.comp=this.value;save();toast('Enregistré')">${esc(S.seq.comp)}</textarea>
    <p class="muted">Proposition écrite à partir de tes AFL et de tes critères ; modifie-la librement.</p></div>
-  <div class="card"><h2>Les 3 AFL et tes critères</h2>
+  <div class="card" data-sec="AFL et critères"><h2>Les 3 AFL et tes critères</h2>
    ${['AFL1','AFL2','AFL3'].map((a,ai)=>{const cc=cs.filter(c=>c.afl===a);return `<div style="margin-bottom:12px"><span class="ctag a${ai+1}">${a}</span> <i>${AFL[a]}</i>
      <ul style="margin:6px 0">${cc.map(c=>`<li><b>${esc(c.nom)}</b> (${fr(B().mode==='perso'?c.pts:maxPts(c,null))} pts) — travaillé en leçon${L.filter(l=>l.crit.includes(c.id)).length>1?'s':''} ${L.filter(l=>l.crit.includes(c.id)).map(l=>l.n).join(', ')||'<span style="color:var(--d1)">aucune</span>'}</li>`).join('')||'<li class="muted">Aucun critère</li>'}</ul></div>`}).join('')}</div>
-  <div class="card"><h2>Où chaque critère est travaillé</h2><div class="tw"><table class="mx"><tr><th>Leçon</th>${cs.map(c=>`<th>${esc(c.nom)}<br><small>${c.afl}</small></th>`).join('')}</tr>
+  <div class="card" data-sec="Où c'est travaillé"><h2>Où chaque critère est travaillé</h2><div class="tw"><table class="mx"><tr><th>Leçon</th>${cs.map(c=>`<th>${esc(c.nom)}<br><small>${c.afl}</small></th>`).join('')}</tr>
    ${L.map(l=>`<tr><td>${l.n}. ${esc(l.titre)}${l.prop?' <small style="color:var(--vol)">(prop.)</small>':''}</td>${cs.map(c=>l.crit.includes(c.id)?'<td class="y">●</td>':'<td></td>').join('')}</tr>`).join('')}</table></div>
    ${cs.filter(c=>L.filter(l=>l.crit.includes(c.id)).length<3).map(c=>`<div class="warn">« ${esc(c.nom)} » n'est travaillé que dans ${L.filter(l=>l.crit.includes(c.id)).length} leçon(s) : pense à le prévoir avant l'évaluation.</div>`).join('')}</div>`;
 }
@@ -1286,16 +1286,16 @@ function coLecon(c,t,j){
   return `${prev?`<div class="card" style="border-left:6px solid var(--d2);background:#fffaf0"><h2>📨 Message de la dernière leçon <small class="muted">(${new Date(prev.date+'T12:00').toLocaleDateString('fr-FR')}, coach ${esc(shortName(elOf(c,prev.coach)))})</small></h2>
     <p><b>On avait réussi :</b> ${esc(prev.b.reussi||'—')}</p><p><b>À retravailler :</b> ${esc(prev.b.retravailler||'—')}</p><p class="big"><b>🎯 Notre objectif pour aujourd'hui :</b> ${esc(prev.b.objectif||'—')}</p></div>`:''}
   ${(()=>{const P=planOf(c);if(!P||!(P.msg||(P.sit||[]).length))return '';const Ls=(S.seq.situations||[]).filter(x=>(P.sit||[]).includes(x.id));
-    return `<div class="card" style="border-left:6px solid var(--vol);background:#f8f4fb"><h2>📌 Aujourd'hui, ton enseignant vous demande</h2>${P.msg?`<p class="big">${esc(P.msg)}</p>`:''}${Ls.map(x=>`<div class="sit"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${esc(x.nom)}</b><br>${esc(x.but)}</div>${sitVoirBtn(x)}</div></div>`).join('')}</div>`})()}
+    return `<div class="card" data-sec="📋 Aujourd'hui" style="border-left:6px solid var(--vol);background:#f8f4fb"><h2>📌 Aujourd'hui, ton enseignant vous demande</h2>${P.msg?`<p class="big">${esc(P.msg)}</p>`:''}${Ls.map(x=>`<div class="sit"><div class="row" style="justify-content:space-between"><div style="flex:1"><b>${esc(x.nom)}</b><br>${esc(x.but)}</div>${sitVoirBtn(x)}</div></div>`).join('')}</div>`})()}
   ${fd?`<details class="card"><summary><b>📜 Fil de la dernière leçon</b> <small class="muted">(${new Date(fd+'T12:00').toLocaleDateString('fr-FR')})</small> : ce que l'équipe a fait</summary>${filLecon(c,t,fd)}</details>`:''}
-  <div class="card" style="border-left:6px solid var(--vol)"><h2>📋 Leçon ${n}${l?' · '+esc(l.titre):''}</h2>${l?`<p class="big"><b>Objectif :</b> ${esc(l.obj)}</p><ul>${l.cont.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p>Pas d\'information pour cette leçon.</p>'}
+  <div class="card" data-sec="📋 Aujourd'hui" data-sec-open style="border-left:6px solid var(--vol)"><h2>📋 Leçon ${n}${l?' · '+esc(l.titre):''}</h2>${l?`<p class="big"><b>Objectif :</b> ${esc(l.obj)}</p><ul>${l.cont.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p>Pas d\'information pour cette leçon.</p>'}
    <p class="muted">Présents : ${Object.values(j.pres).filter(v=>v===1).length}/${(t.el||[]).length}${abs.length?' · absents : '+esc(abs.join(', ')):''} · chasubles ${esc(j.chas)} · terrain ${j.terrain}</p></div>
-  <div class="card"><h2>🔥 Échauffement du jour</h2><ol><li><b>Mobilisation articulaire</b> <button class="btn alt sm" onclick="showFull('mob')">voir</button></li>
+  <div class="card" data-sec="🔥 Échauffement"><h2>🔥 Échauffement du jour</h2><ol><li><b>Mobilisation articulaire</b> <button class="btn alt sm" onclick="showFull('mob')">voir</button></li>
    <li><b>Courses Temps ${l&&l.ech?l.ech:'I'}</b> <button class="btn alt sm" onclick="showFull('${l&&l.ech==='II'?'II':'I'}')">voir le schéma</button></li>
    <li><b>Routines avec ballon</b> : ${R.map(r=>esc(r.nom)+(+r.lec===n?' <span class="ctag ptag">nouveau</span>':'')).join(' → ')} <button class="btn alt sm" onclick="SEQR=${n};showFull('rout')">voir</button></li></ol></div>
-  <div class="card"><h2>🎭 Rôles de la leçon</h2><p>🧢 <b>Coach</b> : ${esc(fullName(elOf(c,j.coach)||{}))}</p>${rolesHtml(c,t,j,0)}</div>
-  ${sits.length?`<div class="card"><h2>✅ Situations à valider aujourd'hui</h2>${sits.map(x=>`<div class="sit ${(t.valid||{})[x.id]?'ok':''}"><b>${esc(x.nom)}</b><br>${esc(x.but)}</div>`).join('')}<button class="btn" onclick="CO.tab='sit';renderCoach()">Aller valider →</button></div>`:''}
-  <div class="card"><button class="btn alt" onclick="coSet(t=>{jour(t).ok=0});CO.step=0">👥 Corriger l'installation (coach, rôles, présents, chasuble, terrain, matériel)</button></div>`;
+  <div class="card" data-sec="🎭 Rôles"><h2>🎭 Rôles de la leçon</h2><p>🧢 <b>Coach</b> : ${esc(fullName(elOf(c,j.coach)||{}))}</p>${rolesHtml(c,t,j,0)}</div>
+  ${sits.length?`<div class="card" data-sec="📋 Aujourd'hui"><h2>✅ Situations à valider aujourd'hui</h2>${sits.map(x=>`<div class="sit ${(t.valid||{})[x.id]?'ok':''}"><b>${esc(x.nom)}</b><br>${esc(x.but)}</div>`).join('')}<button class="btn" onclick="CO.tab='sit';renderCoach()">Aller valider →</button></div>`:''}
+  <div class="card" data-sec="🎭 Rôles"><button class="btn alt" onclick="coSet(t=>{jour(t).ok=0});CO.step=0">👥 Corriger l'installation (coach, rôles, présents, chasuble, terrain, matériel)</button></div>`;
 }
 function lastBilan(t){const d=Object.keys(t.jours||{}).filter(x=>x<today()&&t.jours[x].bilan&&(t.jours[x].bilan.objectif||t.jours[x].bilan.reussi||t.jours[x].bilan.retravailler)).sort().pop();return d?{date:d,b:t.jours[d].bilan,coach:t.jours[d].coach}:null}
 
@@ -1741,7 +1741,7 @@ function dashHtml(c){
     const k=a?a.k:j&&j.terrain?j.terrain:0;(T[k]=T[k]||[]).push(t)});
   const ter=[1,2,3].concat(Object.keys(T).map(Number).filter(k=>k>3));
   const actifs=E.filter(t=>(t.jours||{})[d]).length,enMatch=E.filter(t=>curMatch(t)).length;
-  return `<div class="card dbcard"><div class="row" style="justify-content:space-between"><h2 style="margin:0">📡 Tableau de bord de la leçon</h2>
+  return `<div class="card dbcard" data-sec="📡 En direct"><div class="row" style="justify-content:space-between"><h2 style="margin:0">📡 Tableau de bord de la leçon</h2>
    <div class="row"><span class="muted">${actifs}/${E.length} équipe(s) installée(s) · ${enMatch} match(s) en cours</span><button class="btn sm" style="background:#F0A030;color:#14171C" onclick="EPSD.signal()">📣 Signal</button><button class="btn alt sm" onclick="EPSD.tablets()">📱 Tablettes</button>${syOk()?`<button class="btn alt sm" onclick="syCycle().then(()=>renderEquipes())">⟳ Actualiser</button>`:''}<button class="btn alt sm" onclick="DBV=!DBV;renderEquipes()">${DBV?'Masquer':'Afficher'}</button></div></div>
    ${DBV?`${typeof EPSD!='undefined'&&EPSD.appels?EPSD.appels.html('volley'):''}${typeof EPSD!='undefined'&&EPSD.courts?EPSD.courts({dispo:'ligne',app:'volley',color:'#6B3FA0',click:'volCt',cts:[1,2,3].map(n=>{const L=T[n]||[],m=L[0]&&curMatch(L[0]),s=m?(m.mode==='obs'?scOf(m):[(m.pts||[]).filter(p=>p.w).length,(m.pts||[]).filter(p=>!p.w).length]):null,per=L.some(t=>{const a=agg(teamMatches(t,d));return a.P>=2&&a.G===0});return{n,a:L[0]?L[0].nom:'',b:L[1]?L[1].nom:(m?m.adv:''),sc:s?s[0]+' – '+s[1]:'',etat:m||L.some(t=>curMatch(t))?'jeu':L.length?'attente':'libre',al:per,sub:L.length>2?L.slice(2).map(t=>t.nom).join(', ')+' en attente':per?'2 matchs perdus ou plus':''}})}):''}${E.length?'':'<p class="muted">Crée d\'abord les équipes (plus bas).</p>'}
    ${PLO||!P?`<div class="card" style="background:#faf8f4">${planHtml(c)}</div>`:''}<div class="row"><button class="btn sm" style="background:var(--vol)" onclick="PLO=!PLO;renderEquipes()">📍 ${PLO?'Fermer le plan des terrains':P?'Modifier le plan des terrains':'Envoyer les équipes sur les terrains'}</button></div>
@@ -1756,14 +1756,14 @@ let EQT=null,EQV='jour';
 function renderEquipes(){const c=C(),E=c.equipes=c.equipes||[],box=document.getElementById('t-equipes'),free=c.eleves.filter(e=>!E.some(t=>(t.el||[]).includes(e.id)));
   try{if(E.length>1&&window.epsGroupesLog)epsGroupesLog('volley',c.nom,E.map(t=>(t.el||[]).map(id=>{const e=c.eleves.find(x=>x.id===id);return e?(e.prenom||'')+' '+(e.nom||''):''})),'equipes')}catch(x){}
   if(EQT){const t=E.find(x=>x.id===EQT);if(t){box.innerHTML=`<div class="row" style="margin-bottom:10px"><button class="btn alt" onclick="EQT=null;renderEquipes()">← Retour</button><h2 style="margin:0;color:var(--navy)">${esc(t.nom)} · bilan</h2></div>`+bilanEquipe(c,t,1);return}EQT=null}
-  box.innerHTML=dashHtml(c)+`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Équipes · ${esc(c.nom)}</h2>
+  box.innerHTML=dashHtml(c)+`<div class="card" data-sec="👥 Équipes" data-sec-open><div class="row" style="justify-content:space-between"><h2 style="margin:0">Équipes · ${esc(c.nom)}</h2>
     <div class="row"><button class="btn alt sm" onclick="eqAuto()">🎲 Répartir automatiquement</button><button class="btn alt sm" onclick="eqNiv()">🧩 Équipes de niveau / affinités</button><button class="btn alt sm" onclick="eqFromDay()" title="Groupes formés dans 📡 Leçon en cours">👥 Groupes du jour</button><button class="btn sm" onclick="eqAdd()">+ Équipe</button><button class="btn sm" style="background:var(--vol)" onclick="lockApp();coachStart()">🧢 Passer en tablette du coach</button></div></div>
     <p class="muted">Les élèves coachs choisissent leur équipe sur la tablette, sans code et sans voir les notes. Une tablette par équipe : elle garde son équipe. Le coach change à chaque leçon, dans l'ordre des joueurs ci-dessous (🧢 = coach du jour ; ↑ pour changer l'ordre) ; s'il est absent, l'équipe en choisit un autre. ${free.length?`<b>${free.length} élève(s) sans équipe.</b>`:''}</p></div>
-  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🏆 Tournoi du jour</h2><button class="btn sm" onclick="${tourn(c)?"if(confirm('Refaire le calendrier du tournoi du jour ?'))":''}{genTournoi(C());renderEquipes()}">${tourn(c)?'↻ Refaire':'Créer'} le tournoi (3 terrains)</button></div>
+  <div class="card" data-sec="🏆 Tournoi"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🏆 Tournoi du jour</h2><button class="btn sm" onclick="${tourn(c)?"if(confirm('Refaire le calendrier du tournoi du jour ?'))":''}{genTournoi(C());renderEquipes()}">${tourn(c)?'↻ Refaire':'Créer'} le tournoi (3 terrains)</button></div>
    ${tourn(c)?tournoiHtml(c,tourn(c),null):'<p class="muted">Toutes les équipes se rencontrent, sur 3 terrains ; les équipes au repos arbitrent. Les coachs lancent leurs matchs depuis leur tablette et le classement se met à jour.</p>'}</div>
-  <div class="card"><h2>⏱ Déroulé de la leçon (minuteur des coachs)</h2>${(S.seq.deroule||[]).map((x,k)=>`<div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input type="text" value="${esc(x.nom)}" onchange="S.seq.deroule[${k}].nom=this.value;save()"><input type="number" min="1" value="${x.min}" style="width:90px" onchange="S.seq.deroule[${k}].min=+this.value;save();renderEquipes()"> min<button class="btn red sm" onclick="S.seq.deroule.splice(${k},1);save();renderEquipes()">✕</button></div>`).join('')}
+  <div class="card" data-sec="⏱ Déroulé"><h2>⏱ Déroulé de la leçon (minuteur des coachs)</h2>${(S.seq.deroule||[]).map((x,k)=>`<div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input type="text" value="${esc(x.nom)}" onchange="S.seq.deroule[${k}].nom=this.value;save()"><input type="number" min="1" value="${x.min}" style="width:90px" onchange="S.seq.deroule[${k}].min=+this.value;save();renderEquipes()"> min<button class="btn red sm" onclick="S.seq.deroule.splice(${k},1);save();renderEquipes()">✕</button></div>`).join('')}
    <div class="row"><button class="btn alt sm" onclick="S.seq.deroule.push({nom:'Nouvelle phase',min:5});save();renderEquipes()">+ Phase</button><span class="muted">Total : ${(S.seq.deroule||[]).reduce((s,x)=>s+(+x.min||0),0)} min</span></div></div>
-  ${E.map((t,k)=>{const j=(t.jours||{})[today()],ch=j&&CHAS.find(x=>x[0]===j.chas),a=agg(teamMatches(t));return `<div class="card"><div class="row" style="justify-content:space-between">
+  ${E.map((t,k)=>{const j=(t.jours||{})[today()],ch=j&&CHAS.find(x=>x[0]===j.chas),a=agg(teamMatches(t));return `<div class="card" data-sec="👥 Équipes"><div class="row" style="justify-content:space-between">
      <input type="text" value="${esc(t.nom)}" onchange="eqSet(${k},'nom',this.value)" style="max-width:260px;font-weight:800">
      <div class="row"><button class="btn alt sm" onclick="EQT='${t.id}';renderEquipes()">📊 Bilan</button><button class="btn red sm" onclick="eqDel(${k})">Supprimer</button></div></div>
     <div class="pick" style="margin-top:8px">${(t.el||[]).map((id,i)=>{const e=elOf(c,id);return e?`<label${window.epsAbsJour&&epsAbsJour(e,c.nom)?' style="opacity:.55;text-decoration:line-through" title="absent aujourd\'hui"':''}>${i===coachIdx(t)?'🧢 ':''}${esc(fullName(e))} <button class="btn alt sm" style="padding:2px 8px" onclick="eqMv(${k},${i},-1)">↑</button><button class="btn red sm" style="padding:2px 8px" onclick="eqRm(${k},'${id}')">✕</button></label>`:''}).join('')}</div>
@@ -1771,7 +1771,7 @@ function renderEquipes(){const c=C(),E=c.equipes=c.equipes||[],box=document.getE
     <p class="muted" style="margin-top:8px"><b>Aujourd'hui :</b> ${j?`coach ${esc(shortName(elOf(c,j.coach)))}${ROLES.map(([r,n])=>j.roles&&j.roles[r]?' · '+n.split(' ')[1].toLowerCase()+' '+esc(shortName(elOf(c,j.roles[r]))):'').join('')} · ${Object.values(j.pres).filter(v=>v===1).length} présent(s)${Object.keys(j.pres).filter(id=>j.pres[id]===0).length?' · absents : '+Object.keys(j.pres).filter(id=>j.pres[id]===0).map(id=>esc(shortName(elOf(c,id)))).join(', '):''} · ${ch?`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${ch[1]};border:1px solid #999"></span> ${esc(j.chas)}`:'chasuble ?'} · ${j.terrain?'terrain '+j.terrain:'terrain ?'} · matériel : ${MAT.filter(([m])=>j.mat[m]).map(x=>x[1]).join(', ')||'—'}`:'pas encore installée.'}
      · Matchs : ${a.G}-${a.N}-${a.P} · situations validées : ${Object.keys(t.valid||{}).length}${j&&j.rang?` · rangement : ${MAT.filter(([m])=>j.rang[m]).length}/${MAT.length}`:''}</p>
     ${lastBilan(t)||(j&&j.bilan)?`<p class="muted"><b>Bilan de l'équipe :</b> ${esc(((j&&j.bilan)||lastBilan(t).b).objectif?'🎯 '+((j&&j.bilan)||lastBilan(t).b).objectif:'')}</p>`:''}</div>`}).join('')}
-  <div class="card"><h2>Situations proposées aux coachs</h2><p class="muted">« Apprentissage » : validées par toute l'équipe, à partir de la leçon indiquée. « Remédiation » : choisies par le coach après les matchs, selon le problème repéré.</p>
+  <div class="card" data-sec="✅ Situations"><h2>Situations proposées aux coachs</h2><p class="muted">« Apprentissage » : validées par toute l'équipe, à partir de la leçon indiquée. « Remédiation » : choisies par le coach après les matchs, selon le problème repéré.</p>
    ${(S.seq.situations||[]).map((x,k)=>`<div class="bcrit"><div class="g2"><div><label class="l">Situation</label><input type="text" value="${esc(x.nom)}" onchange="sitSet(${k},'nom',this.value)"></div>
      <div><label class="l">Type</label><select class="f" onchange="sitSet(${k},'type',this.value,1)"><option value="app" ${x.type==='app'?'selected':''}>Apprentissage</option><option value="rem" ${x.type==='rem'?'selected':''}>Remédiation</option></select></div>
      <div>${x.type==='app'?`<label class="l">À partir de la leçon</label><input type="number" min="1" value="${x.lec}" onchange="sitSet(${k},'lec',+this.value)">`:`<label class="l">Pour le problème</label><select class="f" onchange="sitSet(${k},'pb',this.value)">${Object.entries(PB).map(([p,n])=>`<option value="${p}" ${x.pb===p?'selected':''}>${n}</option>`).join('')}</select>`}</div></div>
@@ -1841,7 +1841,7 @@ function renderBareme(){
   const offOk=aflCount('AFL1')>0&&aflCount('AFL2')>0&&aflCount('AFL3')>0;
   const ex=b.bandes.map((bd,i)=>`D${i+1} : ${fr(rnd(bd[0]/100*5,b.pas))}–${fr(rnd(bd[1]/100*5,b.pas))}`).join(' · ');
   document.getElementById('t-bareme').innerHTML=`
-  <div class="card"><h2>Mode de notation</h2>
+  <div class="card" data-sec="Notation"><h2>Mode de notation</h2>
     <div class="seg">
       <button class="${b.mode==='perso'?'on':''}" onclick="setB('mode','perso')">Mon barème (points par critère)</button>
       <button class="${b.mode==='officiel'?'on':''}" onclick="setB('mode','officiel')">Officiel CA4 : AFL1 /12 + AFL2-AFL3 /8</button>
@@ -1857,7 +1857,7 @@ function renderBareme(){
       <div><label class="l">Arrondi de la note /20</label><select class="f" onchange="setB('arrondi',+this.value)">${[0.1,0.25,0.5,1].map(v=>`<option value="${v}" ${b.arrondi==v?'selected':''}>${fr(v)}</option>`).join('')}</select></div>
     </div>
   </div>
-  <div class="card"><h2>Options (pour les prochaines évaluations)</h2>
+  <div class="card" data-sec="Options"><h2>Options (pour les prochaines évaluations)</h2>
     <div class="opt ${b.optMatchs?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optMatchs?'checked':''} onchange="setB('optMatchs',this.checked)" style="width:22px;height:22px"><b>Résultats des matchs (AFL1)</b></label>
       <p class="muted">Dans la fiche de l'élève, tu saisis ses matchs (gagné, nul, perdu). Une fois le degré choisi, le curseur des critères AFL1 se place selon la part de matchs gagnés : 0 % en bas du degré, 100 % en haut. Tu peux toujours le déplacer à la main.</p></div>
     <div class="opt ${b.optBonus?'on':''}"><label class="row" style="cursor:pointer"><input type="checkbox" ${b.optBonus?'checked':''} onchange="setB('optBonus',this.checked)" style="width:22px;height:22px"><b>Points bonus</b></label>
@@ -1868,7 +1868,7 @@ function renderBareme(){
       <p class="muted">Option, désactivée par défaut. Pendant le match, la tablette compte les points bonus de l'équipe à côté du score (score à deux colonnes : points / points bonus), d'après la façon et l'endroit où le point a été marqué ; le coach peut aussi ajouter ou retirer le bonus du dernier point (bouton ⭐). Repris dans le fil de la leçon.</p>
       ${b.optBonusM?`<label class="l">Ce qui rapporte un bonus</label><select class="f" onchange="setB('bonusRegle',this.value)">${BONR.map(([k,l])=>`<option value="${k}" ${(b.bonusRegle||'arr')===k?'selected':''}>${l}</option>`).join('')}</select>`:''}</div>
   </div>
-  <div class="card"><h2>Degrés et bornes (en % des points du critère)</h2>
+  <div class="card" data-sec="Degrés"><h2>Degrés et bornes (en % des points du critère)</h2>
     <p class="muted">Le curseur intra-degré se déplace entre ces bornes. Exemple sur 5 pts → ${ex}</p>
     <div class="g4">${b.degres.map((d,i)=>`<div class="bcrit" style="margin:0">
       <label class="l">Degré ${i+1}</label><input type="text" value="${esc(d)}" onchange="B().degres[${i}]=this.value;save()">
@@ -1876,7 +1876,7 @@ function renderBareme(){
       <div class="row" style="margin-top:6px;flex-wrap:nowrap"><input type="number" min="0" max="100" value="${b.bandes[i][0]}" onchange="setBand(${i},0,this.value)"> à <input type="number" min="0" max="100" value="${b.bandes[i][1]}" onchange="setBand(${i},1,this.value)"> %</div>
     </div>`).join('')}</div>
   </div>
-  <div class="card"><h2>Critères</h2>
+  <div class="card" data-sec="Critères"><h2>Critères</h2>
     ${b.criteres.map((c,k)=>`<div class="bcrit">
       <div class="g2">
         <div><label class="l">Critère</label><input type="text" value="${esc(c.nom)}" onchange="setC(${k},'nom',this.value)"></div>
@@ -2111,14 +2111,14 @@ function volExp(){const b=(lab,fn,st)=>`<button class="btn alt" style="justify-c
 function renderBilan(){
   const c=C(),st=classStats(c);
   document.getElementById('t-bilan').innerHTML=`
-  <div class="card"><h2>Export – ${esc(c.nom)}</h2>
+  <div class="card" data-sec="📤 Export"><h2>Export – ${esc(c.nom)}</h2>
     <div class="row"><button class="btn or" style="min-height:52px;font-size:1.05rem" onclick="volExp()">📤 Exporter les bilans…</button><span class="muted">Fiches ${B().langFiche==='prof'?'en version enseignant':'en version élève'}</span></div>
     <p class="muted">Le .zip contient une fiche PDF par élève (même présentation que Danse : grille des degrés, ton positionnement ▼ et celui de l'élève ◯, note, commentaire, conseil pour progresser et, si c'est ouvert, le QR code pour se positionner) et le récapitulatif de la classe. « Notes + statistiques » passe par la fenêtre d'impression (« Enregistrer au format PDF »).</p>
     ${st.nonNotes?`<div class="warn">${st.nonNotes} élève(s) n'ont pas encore tous leurs critères évalués.</div>`:''}
   </div>
   ${apCardHtml(c)}
-  <div class="card"><h2>Statistiques de la classe</h2>${statsHtml(c,st)}</div>
-  <div class="card"><h2>Notes des élèves</h2><div class="tw">${tableHtml(c)}</div></div>`;
+  <div class="card" data-sec="📈 Statistiques"><h2>Statistiques de la classe</h2>${statsHtml(c,st)}</div>
+  <div class="card" data-sec="📊 Notes" data-sec-open><h2>Notes des élèves</h2><div class="tw">${tableHtml(c)}</div></div>`;
   apQrCanvas();
 }
 
@@ -2479,7 +2479,7 @@ function apCardHtml(c){
     return `<tr><td class="l"><a href="#" onclick="event.preventDefault();showTab('eval');openEval(${i})">${esc(fullName(e))}</a></td>${cs.map(cr=>{const v=e.ev&&e.ev[cr.id],x=a&&a.ev[cr.id],g=apEcart(cr,e);
       return `<td><div class="apcell">${v&&v.d!=null?`<span class="apd" style="background:${DCOL[v.d]}" title="Enseignant">D${v.d+1}</span>`:'<span class="apd n">–</span>'}${x?`<span class="apd e" style="border-color:${DCOL[x.d]};color:${DCOL[x.d]}" title="Élève : ${esc(posLblEl(x.d,x.pos))}">🙋 D${x.d+1}</span>`:''}${g!=null&&Math.abs(g)>.6?`<span class="apg ${g>0?'up':'dn'}" title="${apEcartTxt(g)}">${g>0?'▲':'▼'}</span>`:''}</div></td>`}).join('')}
       <td class="l"><small>${a?esc(apDate(a))+' · '+({lien:'lien',code:'code',tablette:'tablette'}[a.via]||''):'<span class="muted">pas encore</span>'}</small>${a&&(a.r||a.m)?`<div class="apt">${a.r?'✓ '+esc(a.r):''}${a.r&&a.m?'<br>':''}${a.m?'→ '+esc(a.m):''}</div>`:''}</td></tr>`}).join('');
-  return `<div class="card apcard"><h2>🙋 Auto-positionnement des élèves</h2>
+  return `<div class="card apcard" data-sec="🙋 Auto-positionnement"><h2>🙋 Auto-positionnement des élèves</h2>
    <div class="row"><label class="sw"><input type="checkbox" ${b.apOuvert?'checked':''} onchange="B().apOuvert=this.checked;if(this.checked&&(!B().apJusqua||B().apJusqua<today()))B().apJusqua=plusJours(14);save();renderBilan()"><span></span>Autoriser l'auto-positionnement</label>
     <label>jusqu'au <input type="date" value="${esc(b.apJusqua||'')}" min="${today()}" onchange="B().apJusqua=this.value;save();renderBilan()"></label>
     <span class="apetat ${apOuvert()?'ok':''}">${esc(apEtat())}</span></div>

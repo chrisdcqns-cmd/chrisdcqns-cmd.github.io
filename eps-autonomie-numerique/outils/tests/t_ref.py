@@ -10,7 +10,7 @@ async def main():
     async with async_playwright() as pw:
         b = await pw.chromium.launch(args=["--no-sandbox"])
         c = await b.new_context(service_workers="block", viewport={"width": 1024, "height": 768})
-        await c.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}")
+        await c.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.sec','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}")
         p = await c.new_page(); p.on("pageerror", lambda x: errs.append(str(x)[:300])); p.on("dialog", lambda d: asyncio.ensure_future(d.accept()))
         await p.goto(B); await p.wait_for_timeout(2500)
         await p.evaluate("(localStorage.setItem('eps.demo.eleve','1'),EPSD.demo.create())"); await p.wait_for_timeout(1500)

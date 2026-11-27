@@ -3,7 +3,7 @@ from playwright.async_api import async_playwright
 ROOT=sys.argv[1]; PORT=9355
 srv=subprocess.Popen([sys.executable,"-I","-m","http.server",str(PORT),"--bind","127.0.0.1","--directory",ROOT],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1.2)
 B="http://localhost:%d/eps-autonomie-numerique/"%PORT
-TEACH="try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3))}catch(e){}"
+TEACH="try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.sec','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3))}catch(e){}"
 async def main():
     out=[]; errs=[]
     async with async_playwright() as pw:

@@ -16,7 +16,7 @@ async def main():
     async with async_playwright() as pw:
         b=await pw.chromium.launch(args=["--no-sandbox","--autoplay-policy=no-user-gesture-required"])
         urllib.request.urlopen("http://127.0.0.1:8899/ctl?reset=1&fail=0&old=0&nochk=0").read()
-        cp=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await cp.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));"+SH+"}catch(e){}")
+        cp=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await cp.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.sec','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));"+SH+"}catch(e){}")
         ca=await b.new_context(service_workers="block",viewport={"width":1024,"height":768}); await ca.add_init_script("try{"+SH+"}catch(e){}")
         cb=await b.new_context(service_workers="block",viewport={"width":390,"height":844}); await cb.add_init_script("try{"+SH+"}catch(e){}")
         p=await cp.new_page(); a=await ca.new_page(); e=await cb.new_page()

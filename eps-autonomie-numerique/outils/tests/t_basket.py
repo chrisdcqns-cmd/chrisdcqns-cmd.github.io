@@ -6,7 +6,7 @@ srv=subprocess.Popen([sys.executable,"-I","-m","http.server","8841","--bind","12
 B="http://localhost:8841/eps-autonomie-numerique/"
 NOMS=["Lina MARTIN","Noah PETIT","Emma DURAND","Hugo LEROY","Jade MOREAU","Louis SIMON","Chloé LAURENT","Adam MICHEL","Inès GARCIA","Tom DAVID","Sarah BERTRAND","Nathan ROUX","Léa VINCENT","Yanis FOURNIER"]
 SEED="try{if(!localStorage.getItem('eps.lists.v1'))localStorage.setItem('eps.lists.v1',JSON.stringify({items:{c1:{id:'c1',nom:'2GT1 TEST',el:"+json.dumps(NOMS)+",ts:1}},pend:{},app:{}}));}catch(e){}"
-TEACH="try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}"
+TEACH="try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.sec','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));}catch(e){}"
 SHOT=(sys.argv[2] if len(sys.argv)>2 else "/tmp")+"/"
 async def over(p): return await p.evaluate("document.documentElement.scrollWidth>innerWidth+1")
 async def main():

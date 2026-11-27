@@ -11,7 +11,7 @@ async def main():
         b=await pw.chromium.launch(args=["--no-sandbox"])
         for app,pre in (("volley","v:"),("badminton","b:")):
             ctx=await b.new_context(service_workers="block")
-            await ctx.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3))}catch(e){}")
+            await ctx.add_init_script("try{localStorage.setItem('eps.gate.step2','0');localStorage.setItem('eps.sec','0');localStorage.setItem('eps.demo.eleve','1');localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3))}catch(e){}")
             p=await ctx.new_page(); p.on("dialog",lambda d:asyncio.ensure_future(d.accept())); errs=[]; p.on("pageerror",lambda e:errs.append(str(e)[:150]))
             await p.goto(B); await p.wait_for_timeout(1200); await p.evaluate("async()=>{await EPSD.demo.create()}")
             ctl("reset=1&fail=1&old=0&nochk=0"); await p.evaluate("(g)=>localStorage.setItem('eps.share.v1',JSON.stringify({url:g,key:'CLE'}))",G)
