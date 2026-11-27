@@ -29,7 +29,7 @@ async def main():
         await p.evaluate("go('prof','note')"); await p.wait_for_timeout(700)
         await p.click("button[data-cr='%s']:not([title])"%ali); await p.wait_for_timeout(400)
         await p.check("[data-cl='0'] [data-cf='31']"); await p.click("#crOk"); await p.wait_for_timeout(600)
-        cr=await p.evaluate("(id)=>{const x=allStudents().find(y=>y.me.id==id);return JSON.stringify(C.corr[runKey(x.runs[0])])}",ali)
+        cr=await p.evaluate("(id)=>{const x=allStudents().find(y=>y.me.id==id);return JSON.stringify(withStudent(x,()=>corrOf(x.runs[0])))}",ali)
         ok('"plus":[31]' in cr,"correction enregistrée en écart (%s)"%cr)
         await p.evaluate("(id)=>{const x=allStudents().find(y=>y.me.id==id);ME=x.me;RUNS=x.runs;go('full',true)}",ali); await p.wait_for_timeout(700)
         t=await p.evaluate("document.querySelector('#app').innerText")
