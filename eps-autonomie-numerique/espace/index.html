@@ -59,6 +59,11 @@ th{background:#FAF8F3;font-size:13px}
   /* Réglage de l'espace élève (page mon-bilan/ sur le téléphone des élèves). Magasin « eps.espace.v1 » (ep|) :
      t|<classe> {k:"todo", cls, todo:[{id, ty:'quiz'|'lien'|'txt', t, qz, url}], pub} ; r|<classe>|<clé> = retours relevés (eps-home.js espRelever). */
   var DIRS = { acrosport: "Acrosport", escalade: "Escalade", orientation: "OrienRun", relais: "Relais Vitesse", volley: "Volley-ball", badminton: "Badminton", danse: "Danse", crosstraining: "Cross-training", basket: "Basket-ball", step: "Step", ccf: "CCF" };
+  /* Activités pratiquées par la classe : codes comme eps-home.js (edtApply/off). On ne publie dans « Mes activités » que ce que l'élève va réaliser,
+     c'est-à-dire ce que l'emploi du temps attribue à la classe (ou ce qui a été coché à la main) : off = codes des activités NON pratiquées. CCF n'est pas une activité sportive. */
+  var ACODE = { acrosport: "acro", escalade: "esc", orientation: "ori", relais: "rel", volley: "vol", badminton: "bad", danse: "dan", crosstraining: "ct", basket: "bk", step: "step" };
+  var LCODE = {}; Object.keys(DIRS).forEach(function (d) { if (ACODE[d]) LCODE[DIRS[d]] = ACODE[d]; });
+  function classOff(cls) { try { var it = (window.EPSL ? EPSL.items() : []).filter(function (o) { return o && !o.del && ck(o.nom) === ck(cls); })[0]; return (it && Array.isArray(it.off)) ? it.off : []; } catch (e) { return []; } }
   function $(s, r) { return (r || document).querySelector(s); }
   function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -84,7 +89,8 @@ th{background:#FAF8F3;font-size:13px}
       BL.sort(function (a, b) { return String(a.id) < String(b.id) ? -1 : 1; });
       if (BL.length) { BL.forEach(function (b) { NG = b.noms; b.items.forEach(function (x) { var p = x && SP["p|" + x.p]; if (p && !p.del && Array.isArray(p.c)) PS[x.p] = { nom: p.nom, n: p.n, c: p.c }; }); });
         get(DIRS.step).step = { titre: "Ma chorégraphie", noms: NG.map(function (n) { return String(n).trim().split(/\s+/)[0]; }), classe: cls, blocs: BL.map(function (b) { return { nom: b.nom, bpm: b.bpm, sym: b.sym ? 1 : 0, items: b.items.filter(function (x) { return x && PS[x.p]; }).map(function (x) { return { p: x.p, m: x.m ? 1 : 0 }; }) }; }), pas: PS }; } } catch (e) {}
-    return Object.keys(A).map(function (x) { return A[x]; }).sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); }); }
+    var off = classOff(cls); /* filtrer : uniquement les activités que la classe pratique (emploi du temps + cochage). Rien d'attribué → on n'enlève rien (repli). */
+    return Object.keys(A).map(function (x) { return A[x]; }).filter(function (a) { var c = LCODE[a.nom]; return !c || off.indexOf(c) < 0; }).sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); }); }
 
   /* Missions individuelles (dispensés, rôles) : m|<classe>|<clé> {k:"mis", cls, nom, m:[{id, ty:'cpt'|'role', t, l:[lignes], d:[phrases]}]} ; publiées dans l'espace de l'élève (champ mis). */
   var MOD = [
