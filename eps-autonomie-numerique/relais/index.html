@@ -4585,6 +4585,7 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  isTeacher:()=>teachOn(),when:()=>!teachOn()&&!WAIT_CL,
  classes:()=>DATA.classes.slice().sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(c=>{const l=(c.lecons||[]).find(x=>x.date===todayISO());return{id:c.id,nom:c.name,note:c.eleves.length+" élève"+(c.eleves.length>1?"s":"")+(l?" · leçon aujourd'hui":"")}}),
  current:()=>WAIT_CL||"",
+ demo:n=>{const C=DATA.classes.find(c=>c.name===n);if(C&&!(C.lecons||[]).some(x=>x.date===todayISO())){(C.lecons=C.lecons||[]).push({id:uid("l"),date:todayISO(),cfg:lastCfg(C)});persist()}},/* 👁 vue élève : la classe fictive a sa leçon du jour */
  select:id=>{WAIT_CL=id;WAIT_PICK=false;showWait()},
  resources:[{ico:"📐",label:"Dispositif",sub:"zones, plots, mesures",open:()=>{DISPO_BACK="wait";go("dispo")}},{ico:"📚",label:"Situations",sub:"exercices et consignes",open:()=>{SITS_BACK="wait";SIT_OPEN=null;SIT_CAT=sitsDay().length?"day":"all";go("sits")}}],
  teacher:async()=>{if(await requireCode())go("classes")}});

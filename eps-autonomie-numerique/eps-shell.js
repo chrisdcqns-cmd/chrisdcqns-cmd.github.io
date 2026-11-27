@@ -83,7 +83,7 @@
     acts.className = "epst-acts"; acts.style.setProperty("--epst", C.color);
     nav.className = "epst-nav"; nav.style.setProperty("--epst", C.color); pan.className = "epst-panel"; pan.style.setProperty("--epst", C.color);
     vue.className = "epst-vue";
-    vue.innerHTML = '<div class="h">👁 Vue élève · tes vraies données, tu restes en mode enseignant.<button type="button">✕ Fermer</button></div><iframe title="Vue élève"></iframe>';
+    vue.innerHTML = '<div class="h">👁 Vue élève · classe fictive « DÉMO », tu restes en mode enseignant.<button type="button">✕ Fermer</button></div><iframe title="Vue élève"></iframe>';
     /* 📡 Suivi (27/11/2026, demande de l'enseignant : suivre ses classes au même endroit dans toutes les applis) : onglet commun, juste après
        Séquence, dans toute appli d'activité (pas la CCF). Il ouvre l'écran de suivi de l'appli (window.epsCtlOwn = {open(classe), on()}),
        jamais dans les autres (précision de l'enseignant : « commun » ne veut pas dire toutes les applis ; Danse, Cross-training, Relais

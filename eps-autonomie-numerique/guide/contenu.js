@@ -63,7 +63,7 @@ window.EPS_GUIDE = (function () {
       ["img", "accueil-prof.jpg", "En mode enseignant, l'accueil montre aussi les outils enseignant."]
     ] },
     { t: "Les onglets, identiques dans chaque activité", b: [
-      ["strip", [["📅 Séquence", "préparer et conduire"], ["👁 Vue élève", "voir comme un élève"], ["📚 Bibliothèque", "documents, banque"], ["📋 Évaluer", "leçons, finale, bilan"], ["📜 CCF", "notes, protocole"], ["👥 Classe", "élèves, groupes"], ["📤 Bilan et export", "PDF, Pronote, en ligne"], ["⚙ Réglages", "tout est paramétrable"]]],
+      ["strip", [["📅 Séquence", "préparer et conduire"], ["👁 Vue élève", "classe fictive DÉMO"], ["📚 Bibliothèque", "documents, banque"], ["📋 Évaluer", "leçons, finale, bilan"], ["📜 CCF", "notes, protocole"], ["👥 Classe", "élèves, groupes"], ["📤 Bilan et export", "PDF, Pronote, en ligne"], ["⚙ Réglages", "tout est paramétrable"]]],
       ["img", "espace-prof.jpg", "Sous les onglets, la barre d'outils. « ⋯ Plus » contient le reste ; ☆ épingle une action."]
     ] },
     { t: "Les classes, une seule fois pour tout", b: [

@@ -744,6 +744,7 @@ window.EPSTBK = window.EPST ? EPST.init({app:CODE, nom:"Basket-ball", color:COL,
   isTeacher:()=>estProf(), when:()=>!estProf() && !S.classe,
   classes:()=>classesBK().map(c=>({id:c.id, nom:c.nom, note:(c.el||[]).length+" élèves · "+MODES[jour(c.nom).mode].nom})),
   current:()=>S.classe,
+  demo:n=>{ if(eqs(n).length) return; const P=personnes(n); if(P.length>=4) eqFaire(n,[P.slice(0,3),P.slice(3,6),P.slice(6)]); }, /* 👁 vue élève : la classe fictive a ses équipes */
   select:id=>{ S.classe=id; SS.set("classe",id); S.eq=""; SS.del("eq"); aller("eq"); },
   resources:[{ico:"📏",label:"Règles",sub:"3 contre 3 et 4 contre 4",open:()=>{ S.classe="-"; SS.set("classe","-"); aller("regles"); }},
              {ico:"📋",label:"Systèmes de jeu",sub:"schémas à travailler",open:()=>{ S.classe="-"; SS.set("classe","-"); aller("sys"); }},

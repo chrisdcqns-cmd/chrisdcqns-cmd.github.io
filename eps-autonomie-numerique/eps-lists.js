@@ -75,8 +75,14 @@ return epsPin; })();
   var T = { "eps.teach.until": 1, "tpw": 1, "acro.tpw": 1 };
   try {
     var g = Storage.prototype.getItem, st = Storage.prototype.setItem;
-    Storage.prototype.getItem = function (k) { return T[k] ? null : g.call(this, k); };
-    Storage.prototype.setItem = function (k, v) { if (T[k]) return; return st.call(this, k, v); };
+    /* 👁 Vue élève = classe fictive (27/11/2026) : ce qui dit « quelle classe / quel groupe utilise cette tablette » reste dans le cadre
+       (en mémoire), pour que la vue élève ne change jamais la classe en cours de la tablette ni celle des élèves. Tout le reste
+       (résultats notés, groupes créés…) s'enregistre normalement, sur la classe fictive. « escalade.cf » : lu tel quel, écrit en mémoire. */
+    if (/[?&]reel=1\b/.test(location.search)) return; /* ?vue=eleve&reel=1 : vue élève sur les vraies classes (tests automatiques) */
+    var ISO = /^(ccf\.e|eps_bad_terrain|eps_volley_coach_v1|escalade\.cf|acro\.class|step_.*|bk_.*|ct_.*|eps\.lcwho\..*|eps\.gate\.last\..*)$/, RT = { "escalade.cf": 1 }, M = {}, rm = Storage.prototype.removeItem;
+    Storage.prototype.getItem = function (k) { if (T[k]) return null; if (ISO.test(k)) return k in M ? M[k] : (RT[k] ? g.call(this, k) : null); return g.call(this, k); };
+    Storage.prototype.setItem = function (k, v) { if (T[k]) return; if (ISO.test(k)) { M[k] = String(v); return; } return st.call(this, k, v); };
+    Storage.prototype.removeItem = function (k) { if (ISO.test(k)) { if (RT[k]) M[k] = null; else delete M[k]; return; } return rm.call(this, k); };
   } catch (e) {}
 })();
 (function () {

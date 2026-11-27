@@ -1361,6 +1361,8 @@ window.EPSTCCF=window.EPST?EPST.init({app:'ccf',nom:'CCF',color:COL,isTeacher:()
  isTeacher:()=>isT(),when:()=>!isT()&&!(E.cls&&openActs(E.cls).length)&&!(E.tab==='res'&&E.act),
  classes:()=>openClasses().map(o=>({id:o.id,nom:o.nom,note:'CCF '+openActs(o.id).map(a=>ACTS[a].nom).join(', ')})),
  current:()=>E.cls||'',
+ demo:n=>{const c=lists().find(o=>o.nom===n);if(!c)return;let a=openActs(c.id)[0];if(!a){a=Object.keys(ACTS)[0];sesPut(a,c.id,S=>{S.open=true})}/* 👁 vue élève : la classe fictive a un CCF ouvert et ses équipes */
+  if(!(ses(a,c.id).eq||[]).length){const ks=people(c).map(p=>p.k),sz=a==='esc'?4:2,nb=Math.max(1,Math.round(ks.length/sz));if(ks.length)sesPut(a,c.id,S=>{S.eq=[];for(let i=0;i<nb;i++)S.eq.push({id:'q'+uid()+i,nom:(a==='esc'?'Équipe ':'Binôme ')+(i+1),el:[],g:''});ks.forEach((k,i)=>S.eq[i%nb].el.push(k))})}},
  select:id=>{E.cls=id;E.team='';const A=openActs(id);E.act=A.length===1?A[0]:'';E.tab='pra';saveE();render()},
  resources:Object.keys(ACTS).map(a=>({ico:'📚',label:'Ressources '+ACTS[a].nom,sub:'Sécurité, échauffement, fiches',open:()=>{E.cls='';E.act=a;E.tab='res';saveE();render()}})),
  teacher:()=>unlock()});

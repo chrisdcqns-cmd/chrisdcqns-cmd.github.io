@@ -1693,6 +1693,7 @@ window.EPSTESC=window.EPST?EPST.init({app:'esc',nom:'Escalade',color:'#2E7D4F',i
  isTeacher:()=>S.T,when:()=>!S.T&&['role','pickcl'].includes(S.t),
  classes:()=>CL.map(c=>({id:c.id,nom:c.nom,note:c.el.length+' élève'+(c.el.length>1?'s':'')+(lecFor(c.id,today())?' · leçon aujourd\'hui':'')})),
  current:()=>CF.wcl||'',
+ demo:n=>{const k=CL.find(c=>c.nom===n);if(k&&!lecFor(k.id,today()))activate(k.id)},/* 👁 vue élève : la classe fictive a sa leçon du jour (réglages de la dernière leçon) */
  select:id=>{S.T=false;pickCl(id)},
  noClass:CL.length?null:{label:'Sans liste',sub:'je tape mon prénom',open:()=>eleve()},
  resources:[{ico:'🔥',label:'Échauffement',open:()=>{S.t='prep';S.s='ech';render();scrollTo(0,0)}},

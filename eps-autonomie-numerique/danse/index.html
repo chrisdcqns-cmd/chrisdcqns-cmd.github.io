@@ -1780,7 +1780,10 @@ function defState() {
     obs: []
   };
 }
-function load() {
+/* 👁 vue élève : la classe choisie dans le cadre (classe fictive) n'est jamais enregistrée comme classe en cours de la tablette */
+const VUE_E = !!window.EPS_VUE_ELEVE; let VUE_CID = '', CID_REEL = null;
+function load() { const s = load0(); if (VUE_E) { CID_REEL = s.classeId; if (VUE_CID && s.classes.some(c => c.id === VUE_CID)) s.classeId = VUE_CID; } return s; }
+function load0() {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { s = null; }
   const d = defState();
@@ -1802,7 +1805,7 @@ function load() {
 }
 let S = load();
 let saveTimer = null, dirty = false;
-function saveNow() { clearTimeout(saveTimer); dirty = false; try { (S.classes || []).forEach(c => { const G = (c.groupes || []).map(g => (c.eleves || []).filter(e => e.groupeId === g.id).map(e => (e.prenom || '') + ' ' + (e.nom || ''))); if (window.epsGroupesLog && G.filter(g => g.length).length > 1) epsGroupesLog('danse', c.nom, G, 'groupes'); }); } catch (x) {} try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Impossible d\'enregistrer sur cet appareil'); } }
+function saveNow() { clearTimeout(saveTimer); dirty = false; try { (S.classes || []).forEach(c => { const G = (c.groupes || []).map(g => (c.eleves || []).filter(e => e.groupeId === g.id).map(e => (e.prenom || '') + ' ' + (e.nom || ''))); if (window.epsGroupesLog && G.filter(g => g.length).length > 1) epsGroupesLog('danse', c.nom, G, 'groupes'); }); } catch (x) {} try { localStorage.setItem(KEY, JSON.stringify(VUE_E && CID_REEL ? Object.assign({}, S, { classeId: CID_REEL }) : S)); } catch (e) { toast('Impossible d\'enregistrer sur cet appareil'); } }
 function save() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 200); if (typeof synchroBientot === 'function') synchroBientot(5000); }
 window.addEventListener('beforeunload', () => { if (dirty) saveNow(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && dirty) saveNow(); });
@@ -3758,7 +3761,9 @@ window.EPSTD = window.EPST ? EPST.init({ app: 'dan', nom: 'Danse', color: '#C218
   isTeacher: () => isTeacher(), when: () => !isTeacher() && !/^#eleve=/.test(location.hash) && !LIEN,
   classes: () => S.classes.filter(c => c.eleves.length).map(c => ({ id: c.id, nom: c.nom, n: c.eleves.length })),
   current: () => S.classeId || '',
-  select: id => { S.classeId = id; save(); UI.mode = 'cl'; UI.em = null; aller('observation'); route(); },
+  /* 👁 vue élève : la classe fictive a ses groupes de création */
+  demo: n => { const c = S.classes.find(x => x.nom === n); if (!c || !c.eleves.length || (c.groupes || []).length) return; c.groupes = [{ id: uid(), nom: 'Groupe 1', theme: '' }, { id: uid(), nom: 'Groupe 2', theme: '' }]; c.eleves.forEach((e, i) => { e.groupeId = c.groupes[i % 2].id; }); save(); },
+  select: id => { if (VUE_E) VUE_CID = id; S.classeId = id; save(); UI.mode = 'cl'; UI.em = null; aller('observation'); route(); },
   resources: [{ ico: '🎭', label: 'Procédés de composition', sub: 'répétition, canon, contraste…', open: () => { UI.mode = 'res'; aller('procedes'); route(); } },
     { ico: '🎲', label: 'Défis', sub: 'sortir du geste ordinaire', open: () => { UI.mode = 'res'; aller('procedes'); route(); } },
     { ico: '⚔️', label: 'Battles & jeux', sub: 'un thème, 2 min pour composer', open: () => { UI.mode = 'res'; UI.jx = null; aller('jeux'); route(); if (UI.jx) { UI.jx.tab = 'battle'; rJeux(); } } }],
