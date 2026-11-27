@@ -122,6 +122,16 @@
   function coGrid(app) { var o = coLd().items["g|" + app]; if (!o || o.del || o.k !== "g") o = { id: "g|" + app, k: "g", app: app, on: 0, src: "own", crit: [] }; if (!Array.isArray(o.crit)) o.crit = []; o.src = o.src === "eval" ? "eval" : "own"; return o; }
   function coNiv() { var d = ["Pas encore", "Parfois", "Souvent", "Toujours"]; try { var v = window.EPSP ? EPSP.p({ id: "co_niveaux", sec: "Coévaluation", label: "Les 4 niveaux proposés à l'élève observateur (du plus faible au plus fort)", type: "list", def: d, fixed: 4 }) : d; return Array.isArray(v) && v.length === 4 ? v.map(String) : d; } catch (e) { return d; } }
   function coInst(app) { ["evvol", "evdan"].forEach(function (f) { try { if (typeof window[f] === "function") window[f](); } catch (e) {} }); var L = (window.EPSE_INST || []).filter(function (x) { return x && x.A && x.A.app === app; }); return L[0] || null; }
+  /* 📋 Pronote depuis l'onglet Évaluation de TOUTE appli (action commune d'eps-lecons.js `evalActions`, 27/11/2026) : la classe en cours,
+     sinon la seule classe qui a des élèves, sinon on la demande ; puis `M.pronoteAll` (une colonne par évaluation). */
+  function pnOpen(o) { o = o || {}; var I = coInst(o.app), C = []; try { C = ((I && I.A.classes && I.A.classes()) || []).filter(function (c) { return c && c.nom && (c.eleves || []).length; }); } catch (e) {}
+    if (!I || !I.M || !I.M.pronoteAll) { toast("Export Pronote indisponible sur cet écran : recharge la page."); return; }
+    if (!C.length) { toast("Aucune classe avec des élèves pour l'instant."); return; }
+    var c = C.filter(function (x) { return nk(x.nom) === nk(o.cls); })[0] || (C.length === 1 ? C[0] : null);
+    if (c) { I.M.pronoteAll(c.nom, c.eleves); return; }
+    coCss(); var old = document.getElementById("co-pn"); if (old) old.remove(); var ov = document.createElement("div"); ov.className = "co-ov"; ov.id = "co-pn"; document.body.appendChild(ov);
+    ov.innerHTML = '<div role="dialog" aria-modal="true"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="flex:1">📋 Pronote : quelle classe ?</h2><button type="button" class="co-t" data-x>✕ Fermer</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px">' + C.map(function (x, i) { return '<button type="button" class="co-t p" data-pncl="' + i + '">' + esc(x.nom) + "</button>"; }).join("") + "</div></div>";
+    ov.addEventListener("click", function (e) { var t = e.target; if (t === ov || (t.closest && t.closest("[data-x]"))) { ov.remove(); return; } var b = t.closest && t.closest("[data-pncl]"); if (!b) return; var x = C[+b.dataset.pncl]; ov.remove(); I.M.pronoteAll(x.nom, x.eleves); }); }
   /* critères proposés à l'observateur : la grille de l'enseignant, ou celle de l'évaluation (formulée pour l'élève quand elle existe) */
   function coCrits(app) { var g = coGrid(app), N = coNiv(); if (g.src === "eval") { var I = coInst(app), G = null; try { G = I && I.A.grid(); } catch (e) {} return ((G && G.criteres) || []).map(function (cr) { var d = (cr.descEl && cr.descEl.length === 4 && cr.descEl.join("").trim() ? cr.descEl : cr.desc) || []; return { id: String(cr.id), nom: String(cr.nomEl || cr.nom || ""), desc: [0, 1, 2, 3].map(function (i) { return String(d[i] || N[i]); }) }; }); }
     return g.crit.filter(function (c) { return c && c.id && String(c.nom || "").trim(); }).map(function (c) { var d = Array.isArray(c.desc) ? c.desc : []; return { id: String(c.id), nom: String(c.nom), desc: [0, 1, 2, 3].map(function (i) { return String(d[i] || "").trim() || N[i]; }) }; }); }
@@ -831,5 +841,5 @@
     return M;
   }
 
-  window.EPSE = { create: create, store: store, libs: libs, DCOL: DCOL, DTINT: DTINT, coeval: { edit: coEdit, eleve: coEleve, grid: coGrid, crits: coCrits, moy: coMoy, DIR: CODIR } };
+  window.EPSE = { create: create, store: store, libs: libs, DCOL: DCOL, DTINT: DTINT, pronote: pnOpen, coeval: { edit: coEdit, eleve: coEleve, grid: coGrid, crits: coCrits, moy: coMoy, DIR: CODIR } };
 })();

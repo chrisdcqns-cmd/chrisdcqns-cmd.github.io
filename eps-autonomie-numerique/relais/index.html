@@ -728,7 +728,7 @@ body.eteach .ebar .es{display:block}
   <div class="hero">
     <div>
       <h1>Mes <span>classes</span></h1>
-      <p>Choisis la classe pour commencer</p>
+      <p id="cl-hint">Choisis la classe pour commencer</p>
     </div>
     <button class="btn ghost sm dispobtn" data-dispo>📐 Dispositif</button>
     <button class="btn ghost sm dispobtn teach" data-sits>📚 Situations</button>
@@ -1538,11 +1538,25 @@ $("#lkChange").addEventListener("click",async()=>{
 const VIEWS=["classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto","dispo","sits","live"];
 /* Espace enseignant : ces écrans demandent le code */
 const TEACH_VIEWS=["classes","import","lecons","bilan","eval","live"];
+let GO_AFTER=null;
+/* Onglet Bilans : ouvre le bilan de la dernière leçon qui a des courses (sinon la dernière leçon passée) au lieu de retomber sur « Leçons » ;
+   aucune leçon : le bilan de l'évaluation. Sans classe choisie : comme pour l'évaluation (seule classe, sinon on la demande). */
+function goBilans(){
+  if(!teachOn()){requireCode().then(ok=>{if(ok)goBilans()});return}
+  if(!CL()){if(DATA.classes.length===1){DATA.cur=DATA.classes[0].id;DATA.lecon=null;persist()}else{GO_AFTER=DATA.classes.length?"bilans":null;go("classes");return}}
+  const C=CL(),L=(C.lecons||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(!L.some(l=>l.id===BILAN)){const co=new Set(ALLCO().map(c=>c.lid)),w=L.filter(l=>co.has(l.id)).pop()||L.filter(l=>l.date<=todayISO()).pop();BILAN=w?w.id:null}
+  if(BILAN)go("bilan");else{go("eval");toast("Pas encore de leçon : voici le bilan de l'évaluation")}
+}
 function go(v){
   if(TEACH_VIEWS.includes(v)&&!teachOn()){requireCode().then(ok=>{if(ok)go(v)});return}
   if(v==="wait"){showWait();return}
+  /* Évaluation : accessible sans leçon ouverte (elle porte sur toute la séquence). Sans classe choisie : la seule classe est prise d'office,
+     sinon on la demande et on revient à l'évaluation (GO_AFTER), au lieu de retomber sur « Leçons ». */
+  if(v!=="classes")GO_AFTER=null;
+  if(v==="eval"&&!CL()){if(DATA.classes.length===1){DATA.cur=DATA.classes[0].id;DATA.lecon=null;persist()}else if(DATA.classes.length)GO_AFTER="eval"}
   if(!["classes","import","dispo","sits"].includes(v)&&!CL())v="classes";
-  if(["groupes","home","course","eval","auto","live"].includes(v)&&!CLE())v="lecons";
+  if(["groupes","home","course","auto","live"].includes(v)&&!CLE())v="lecons";
   if(["groupes","home","course"].includes(v)&&CLE()&&!CLE().groupes){ensureLeconGroups(CLE());persist()}
   if(v==="bilan"&&!BILAN)v="lecons";
   document.body.classList.toggle("eteach",teachOn());
@@ -1567,6 +1581,7 @@ window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(/^g=
 /* ===== Étape 1 : classes ===== */
 function renderClasses(){
   try{dupBanner()}catch(e){}
+  try{$("#cl-hint").textContent=GO_AFTER==="eval"?"Choisis la classe à évaluer":GO_AFTER==="bilans"?"Choisis la classe dont tu veux les bilans":"Choisis la classe pour commencer"}catch(e){}
   const ic=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`;
   $("#clist").innerHTML=DATA.classes.map(c=>`<div class="ctile"><button class="open" data-class="${c.id}"><h3>${esc(c.name)}</h3>
     <span class="meta">${c.eleves.length} élèves · ${c.groupes.length} groupe${c.groupes.length>1?"s":""} · ${(c.lecons||[]).length} leçon${(c.lecons||[]).length>1?"s":""}</span></button>
@@ -1575,7 +1590,7 @@ function renderClasses(){
 }
 $("#clist").addEventListener("click",async e=>{
   const s=e.target.closest("[data-cset]");if(s){if(await requireCode())openClassSettings(s.dataset.cset);return}
-  const o=e.target.closest("[data-class]");if(o){DATA.cur=o.dataset.class;DATA.lecon=null;persist();go("lecons");return}
+  const o=e.target.closest("[data-class]");if(o){const d=GO_AFTER||"lecons";GO_AFTER=null;DATA.cur=o.dataset.class;DATA.lecon=null;persist();if(d==="bilans")goBilans();else go(d);return}
   if(e.target.closest("#btnImport")){if(await requireCode())go("import")}
 });
 let KEDIT=null;
@@ -2873,7 +2888,7 @@ function evNamesHTML(list,sel,mark){
 }
 const evList=all=>(all?EL():poolFor()).filter(e=>e.ma!=="DISP").slice().sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
 function evGridHTML(mode,e){
-  const o=evOf(e.id),rp=evRepOf(o),lid=CLE().id,prof=mode==="prof",free=evRepMode()==="eleve";
+  const o=evOf(e.id),rp=evRepOf(o),lid=CLE()?CLE().id:null,prof=mode==="prof",free=evRepMode()==="eleve";
   const sel=prof?o.prof:((o.auto[lid]||{}).sel||{});
   const la=prof?lastAutoE(e):null,sg=prof?evSuggest(e):null;
   const repLab=r=>r.replace("-"," / ");
@@ -2937,7 +2952,7 @@ function evClick(mode,ev){
   const t=ev.target,nm=t.closest("[data-eve]");
   if(nm){if(mode==="prof")EV_SEL=+nm.dataset.eve;else AU_SEL=+nm.dataset.eve;mode==="prof"?renderEval():renderAuto();
     const b=$(mode==="prof"?"#ev-body":"#au-body");if(b)b.scrollIntoView({behavior:"smooth",block:"start"});return}
-  const id=mode==="prof"?EV_SEL:AU_SEL;if(id==null)return;const e=byId(id);if(!e)return;const o=evOf(id),lid=CLE().id;
+  const id=mode==="prof"?EV_SEL:AU_SEL;if(id==null)return;const e=byId(id);if(!e)return;const o=evOf(id),lid=CLE()?CLE().id:null;if(mode!=="prof"&&!lid)return;
   const sc=t.closest("[data-evscope]");
   if(sc){CL().evScope=sc.dataset.evscope;persist();renderEval();return}
   const ap=t.closest("[data-evapply]");
@@ -4363,7 +4378,7 @@ window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481
  tabs:{seq:{go:()=>go(CLE()?'home':'lecons'),on:()=>['lecons','home','course','perf','live'].includes(viewNow()),actions:[{ico:'📅',label:'Leçons',go:()=>go('lecons')},{main:1,ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')},{main:1,ico:'📡',label:'En direct',go:()=>go('live')}]},
   eval:{go:()=>go('eval'),on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>go('eval')},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}]},
   cls:{go:()=>go(CL()?'liste':'classes'),on:()=>['liste','groupes','classes','import'].includes(viewNow()),actions:[{ico:'🏫',label:'Toutes les classes',go:()=>go('classes')},{ico:'👥',label:'Élèves',go:()=>go('liste')},{ico:'🔀',label:'Groupes',go:()=>go('groupes')}]},
-  bil:{go:()=>go('bilan'),on:()=>viewNow()==='bilan'}},
+  bil:{go:()=>goBilans(),on:()=>viewNow()==='bilan'}},
  biblio:[{ico:'📐',label:'Dispositif',sub:'Zones, plots, témoin',go:()=>{DISPO_BACK='lecons';go('dispo')}},{ico:'📚',label:'Situations',sub:'Situations d\'apprentissage',go:()=>{SITS_BACK='lecons';SIT_OPEN=null;go('sits')}}]}):null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 /* évaluation commune (eps-eval.js) : auto-positionnement par QR code et fiches PDF au format Danse / Volley-ball,
