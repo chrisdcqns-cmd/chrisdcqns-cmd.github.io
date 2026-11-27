@@ -103,6 +103,8 @@ async def main():
         TX = await p.evaluate("(N)=>N.map(function(n){var b=[].filter.call(document.querySelectorAll('#epsbu-w [data-eps-genre]'),function(b){return b.getAttribute('data-eps-genre')===n})[0];return b.closest('div[style]').parentNode.querySelector('textarea').value})", NM[:2])
         nts = [(__import__('re').search(r"note (\d+(?:,\d+)?)/20", q["t"]) or [None, None])[1] for q in CAP]
         ok("niveau d'après la note : " + str(nts) + " → " + str([t[:22] for t in TX]), len(CAP) == 2 and TX[0].startswith("Excellent trimestre, ") and TX[1].startswith("Bon trimestre, ") and "Niveau fixé par la note" in CAP[0]["ctx"] and "Thèmes pour cet élève" in CAP[0]["ctx"] and "résultats :" in CAP[0]["t"], [q["ctx"][:220] for q in CAP] + [q["t"][:220] for q in CAP])
+        CA2 = ["lucidité dans ses choix", "prise en compte de la sécurité", "confiance en soi", "entraide et sécurité des autres", "adaptation à l'environnement", "maîtrise de ses émotions"]
+        ok("thème du champ d'apprentissage (Escalade : CA2) et conseil final demandés", CAP and all(any(t in q["ctx"] for t in CA2) and "petit conseil" in q["ctx"] for q in CAP[-2:]), [q["ctx"][:400] for q in CAP[-2:]])
         ok("génération en parallèle (jusqu'à " + str(ACT[1]) + " demandes à la fois)", ACT[1] >= 3, ACT)
         ok("aucune erreur de page", not errs, errs)
         await b.close()

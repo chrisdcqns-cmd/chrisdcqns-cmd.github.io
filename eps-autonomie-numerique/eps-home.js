@@ -1415,11 +1415,26 @@
   /* 🎨 varier les appréciations (demande du 27/11/2026 : « tu me parles tout le temps de méthode de travail et de progrès ») : pour chaque élève,
      deux thèmes tirés d'une liste réglable (« bul_themes »), en tournant pour que deux élèves de suite n'aient pas les mêmes. */
   var BUL_TH = ["progrès", "attitude", "sérieux", "engagement", "consolidation des acquis", "régularité", "investissement", "autonomie", "coopération avec les autres", "persévérance", "écoute", "implication dans les rôles", "efforts fournis", "participation", "confiance en soi", "maîtrise"], THD = [];
-  function bulThemes() { var L = pCommun({ id: "bul_themes", sec: "Appréciations de bulletin", label: "Thèmes à faire varier d'un élève à l'autre (un par ligne)", type: "list", def: BUL_TH }).filter(function (x) { return String(x).trim(); });
-    var out = []; for (var k = 0; k < 2 && L.length; k++) { if (!THD.length) THD = L.slice().sort(function () { return Math.random() - .5; }); var t = THD.shift(); if (out.indexOf(t) < 0) out.push(t); } return out; }
+  /* thèmes propres au champ d'apprentissage des activités de l'élève (demande du 27/11/2026 : « en danse ou en acrosport, on parle de s'exprimer,
+     de collaborer avec le groupe ; en relais vitesse, CA1, de se dépasser, de répéter, comme en CA4 ») : un thème du (des) CA + un thème général. */
+  var BUL_CA = { CA1: ["se dépasser", "répéter ses efforts", "gérer son effort", "persévérance", "régularité dans les essais", "connaissance de ses ressources"],
+    CA2: ["lucidité dans ses choix", "prise en compte de la sécurité", "confiance en soi", "entraide et sécurité des autres", "adaptation à l'environnement", "maîtrise de ses émotions"],
+    CA3: ["s'exprimer", "collaborer avec le groupe", "créativité", "oser se montrer", "concentration", "regard attentif sur les autres"],
+    CA4: ["se dépasser", "répéter pour progresser", "choix tactiques", "coopération avec ses partenaires", "respect des règles et de l'adversaire", "combativité"],
+    CA5: ["régularité", "connaissance de soi", "autonomie dans l'entraînement", "se fixer des objectifs", "persévérance", "attention à sa santé"] };
+  var CA_APP = { esc: "CA2", ori: "CA2", orientation: "CA2", escalade: "CA2", rel: "CA1", relais: "CA1", vol: "CA4", volley: "CA4", bad: "CA4", badminton: "CA4", bk: "CA4", basket: "CA4", dan: "CA3", danse: "CA3", acro: "CA3", acrosport: "CA3", ct: "CA5", crosstraining: "CA5", step: "CA5" }, THC = {};
+  function caDe(x) { x = String(x || ""); var m = /CA\s*([1-5])/i.exec(x); if (m) return "CA" + m[1]; var n = norm(x).replace(/\s+/g, ""); if (CA_APP[n]) return CA_APP[n];
+    return /relais|course|vitesse|demi.?fond|saut|lancer|natation/.test(n) ? "CA1" : /escalade|orientation|orienrun|sauvetage/.test(n) ? "CA2" : /danse|acro|cirque|gymnast/.test(n) ? "CA3" : /volley|badminton|basket|hand|foot|rugby|tennis|ultimate|boxe|lutte|judo/.test(n) ? "CA4" : /cross|step|muscu|course en duree|yoga|pilates/.test(n) ? "CA5" : ""; }
+  function deck(key, L) { var D = THC[key]; if (!D || !D.length) D = THC[key] = L.slice().sort(function () { return Math.random() - .5; }); return D.shift(); }
+  function bulThemes(cas) { var L = pCommun({ id: "bul_themes", sec: "Appréciations de bulletin", label: "Thèmes généraux à faire varier d'un élève à l'autre (un par ligne)", type: "list", def: BUL_TH }).filter(function (x) { return String(x).trim(); }), out = [];
+    var C = []; (cas || []).forEach(function (c) { c = caDe(c); if (!c || C.indexOf(c) >= 0) return; C.push(c); });
+    var LC = []; C.forEach(function (c) { pCommun({ id: "bul_themes_" + c.toLowerCase(), sec: "Appréciations de bulletin", label: "Thèmes du champ d'apprentissage " + c.charAt(2) + " (un par ligne)", type: "list", def: BUL_CA[c] }).forEach(function (t) { if (String(t).trim() && LC.indexOf(t) < 0) LC.push(t); }); });
+    if (LC.length) out.push(deck(C.join("+"), LC));
+    for (var k = 0; out.length < 2 && k < 4 && L.length; k++) { var t = deck("_", L); if (out.indexOf(t) < 0) out.push(t); }
+    return out; }
   function noteDans(s) { var m = /note[^0-9\n]{0,25}(\d{1,2}(?:[.,]\d+)?)\s*\/\s*20/i.exec(String(s || "")); return m ? +m[1].replace(",", ".") : null; }
   function bulConsigne(pr, g, nv, th) {   /* 1200 caractères au plus (limite du script ; l'ancien script coupe à 900 : le plus important en tête) */
-    return "Consigne : appréciation de bulletin générale et positive, 255 caractères maximum, 2 phrases simples et naturelles, sans tournure « IA »." +
+    return "Consigne : appréciation de bulletin générale et positive, 255 caractères maximum, 2 ou 3 phrases courtes, simples et naturelles, sans tournure « IA », qui se termine par un petit conseil ou une perspective formulés positivement (ex. « à poursuivre », « peut maintenant viser… »)." +
       (nv ? " Niveau fixé par la note (" + String(nv.note).replace(".", ",") + "/20" + (nv.moy != null ? ", moyenne de la classe " + String(nv.moy).replace(".", ",") + "/20 : " + nv.pos : "") + ") : " + (nv.libre ? "« " + nv.t + " »" : "commence par « " + nv.t + ", »") + ", ton à ce niveau" + (nv.top ? "" : " ; « remarquable », « excellent » réservés aux meilleures notes") + (nv.moy != null && !/au-dessus/.test(nv.pos) ? " ; pas de « résultats solides » ni « très bons résultats »" : "") + "." : "") +
       (th && th.length ? " Thèmes pour cet élève : " + th.join(", ") + " (si les données le permettent ; varie le vocabulaire, pas de « méthode de travail » sauf si c'est un thème)." : "") +
       " Modèle : « Très bon trimestre, [Prénom] a su s'investir tout au long de la séquence pour réaliser des progrès. Les résultats et l'attitude sont remarquables. »" +
@@ -1456,7 +1471,7 @@
     var nv = null;
     if (bul) { pr = o.prenom || (o.eleve ? prenomDe(o.eleve) : ""); texte = (ctx ? "Éléments d'évaluation : " + ctx + "\n" : "") + String(texte || "");
       nv = bulNiveau("note" in o ? o.note : noteDans(texte), o.moyClasse); if (nv && /ann[ée]e/i.test(String(o.periode || ""))) nv.libre = true;
-      ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : ""), nv, bulThemes()); }
+      ctx = bulConsigne(pr, o.genre || (o.eleve ? gnGet(o.eleve).g : ""), nv, bulThemes(o.ca || (o.act ? [o.act] : []))); }
     if (!cfg) return Promise.reject(new Error("Règle d'abord le partage entre tablettes (Réglages), qui donne accès au script commun."));
     return jsonp(cfg, { ai: o.mode || "fiche", t: String(texte || "").slice(0, o.mode === "lecon" ? 3200 : (bul || o.mode === "avis") ? 2200 : 1500), act: bul ? "EPS" : (o.act || actName()), ctx: ctx.slice(0, bul ? 1200 : 600), lang: o.lang || "" }, 90000).then(function (r) {
       if (!r) throw new Error("Pas de réponse du script en 90 s (connexion ? Claude surchargé ?) : réessaie.");
@@ -1934,7 +1949,7 @@
         var sp = 0, sm = 0, G = {}; (s.crit || []).forEach(function (cr) { var v = e.p && e.p[cr.id], mx = +cr.max > 0 ? +cr.max : 1; if (!Array.isArray(v) || !isFinite(+v[0])) return; var m = Math.min(4, +v[0] + (isFinite(+v[1]) ? +v[1] : .5)); sp += mx * m / 4; sm += mx;
           var g = G[cr.afl || "AFL1"] || (G[cr.afl || "AFL1"] = [0, 0]); g[0] += mx * m; g[1] += mx; });
         if (!sm) return; nt = sp / sm * 20; af = Object.keys(G).map(function (a) { return [a, G[a][0] / G[a][1]]; }); }
-      if (best[s.app] && (best[s.app].d || "") >= (s.d || "")) return; best[s.app] = { app: s.app, nom: String(s.nom || s.app), nt: Math.round(+nt * 4) / 4, af: af || [], d: s.d || "" }; }); } catch (e) {}
+      if (best[s.app] && (best[s.app].d || "") >= (s.d || "")) return; best[s.app] = { app: s.app, ca: s.ca || CA_APP[s.app] || "", nom: String(s.nom || s.app), nt: Math.round(+nt * 4) / 4, af: af || [], d: s.d || "" }; }); } catch (e) {}
     var lv = function (m) { return m >= 3.25 ? "très bon niveau" : m >= 2.5 ? "bon niveau" : m >= 1.75 ? "niveau correct" : "niveau en construction"; };
     return Object.keys(best).map(function (a) { var x = best[a], R = [], M = []; x.af.forEach(function (z) { if (!z || !isFinite(+z[1])) return; (/^AFLP?1$|^AFLP2$/i.test(String(z[0]).replace(/\s+/g, "")) ? R : M).push(+z[1]); });
       var avg = function (L) { return L.reduce(function (a, b) { return a + b; }, 0) / L.length; };
@@ -2423,7 +2438,8 @@
       msg.textContent = "Claude rédige 0 / " + P.length + "… (" + Math.min(iaPar(), P.length) + " à la fois)";
       var MC = null; try { var vs = people(c).map(function (x) { var L = notesOf(x, c, PER[0], PER[1]); return L.length ? L.reduce(function (a, z) { return a + z.nt; }, 0) / L.length : null; }).filter(function (v) { return v != null; }); if (vs.length >= 3) MC = vs.reduce(function (a, v) { return a + v; }, 0) / vs.length; } catch (e) {}
       pool(P, function (n) { var dn = notes(c, n);
-        return reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], moyClasse: MC, periode: per, ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
+        var CAS = notesOf(n, c, PER[0], PER[1]).map(function (x) { return x.ca || x.nom; }).concat(evalsOf(n, c).map(function (x) { return x.app; }));
+        return reformuler("Période : " + per + "\n" + dn, { mode: "bulletin", eleve: n, note: REF[n], moyClasse: MC, periode: per, ca: CAS, ctx: "Classe de lycée. Données du professeur pour un élève, activité par activité." })
           .then(function (t) { R[n] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); upd(c, n); }); },
         function (f, N) { msg.textContent = "Claude rédige " + f + " / " + N + "…"; })
         .then(function (errs) { GO = false; bb.disabled = false; save(); draw();
