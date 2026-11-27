@@ -486,7 +486,7 @@ function jourLire(){ const J=Object.assign({},jourDe(S.clsP)||{}); const c=$("#j
   J.c=S.clsP; J.d=auj(); return J; }
 
 /* ---------- Enseignant : groupes en direct (tablette de contrôle du step) ----------
-   ctlHtml(classe, court) sert à l'écran « Groupes en direct » et à la 🖥 Tablette de contrôle commune (window.epsCtlApp, sans boutons). */
+   ctlHtml(classe, court) sert à l'écran « Groupes en direct », seul écran de suivi du step (window.epsCtlOwn). */
 function ctlHtml(cls,court){ const B=blocsDe(cls), J=jourDe(cls), T={}, G={}, F=fcDe(cls).filter(f=>f.d===auj()), O=obsDe(cls), jour=auj();
   stItems("t|"+cls+"|").forEach(([,o])=>{ if(o.gk) T[String(o.gk)]=o; });
   B.forEach(b=>(G[b.gk]=G[b.gk]||{noms:b.noms,blocs:[]}).blocs.push(b));
@@ -507,10 +507,11 @@ function ctlHtml(cls,court){ const B=blocsDe(cls), J=jourDe(cls), T={}, G={}, F=
     :`<p class="doux">Aucun groupe pour cette classe. Les groupes arrivent ici dès qu'une tablette choisit ses élèves.</p>`;
   return hh; }
 function vueSuivi(){ const sel=choixClasse(); if(!S.clsP){ $("#vue").innerHTML=`<h2>🖥 Groupes en direct</h2><p class="doux">Aucune classe n'est attribuée au step pour l'instant.</p>`; return; }
-  $("#vue").innerHTML=`<h2>🖥 Groupes en direct</h2><div class="rang" style="margin-bottom:12px">${sel}<span class="doux petit">Actualisé à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</span></div>${ctlHtml(S.clsP,false)}`; }
+  $("#vue").innerHTML=`<h2>🖥 Groupes en direct</h2>${window.EPSD&&EPSD.appels?EPSD.appels.html("step"):""}<div class="rang" style="margin-bottom:12px">${sel}<span class="doux petit">Actualisé à ${new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</span></div>${ctlHtml(S.clsP,false)}`; }
 /* relevé toutes les 8 s tant que l'écran est affiché (jamais pendant une saisie ni avec une fenêtre ouverte) */
 setInterval(()=>{ try{ if(!S.prof||S.onglet!=="suivi"||$("#calque").innerHTML||document.documentElement.classList.contains("epst-pan")||document.hidden) return; const a=document.activeElement; if(a&&/^(SELECT|INPUT|TEXTAREA)$/.test(a.tagName)) return; try{ window.epsSyncNow(); }catch(e){} const y=window.scrollY; vueSuivi(); window.scrollTo(0,y); }catch(e){} },8000);
-window.epsCtlApp={label:"🧱 Step : groupes, blocs, fréquence cardiaque", html:cls=>{ const c=classes().find(x=>norm(x.nom)===norm(cls)); return c?ctlHtml(c.nom,true):""; }, open:cls=>{ const c=classes().find(x=>norm(x.nom)===norm(cls)); if(c) S.clsP=c.nom; aller("suivi"); }};
+/* un seul écran de suivi par activité : en step c'est « Groupes en direct » (le pilotage commun n'est pas proposé, les ✋ appels s'affichent ici) */
+window.epsCtlOwn={open:cls=>{ const c=classes().find(x=>norm(x.nom)===norm(cls)); if(c) S.clsP=c.nom; aller("suivi"); }};
 
 /* ======================= ÉDITEUR DE PAS (enseignant) ======================= */
 function edOuvrir(id){ const p=id?pasId(id):null; S.ed={p:p?JSON.parse(JSON.stringify(p)):{id:"p"+uid(),nom:"",n:DUREES.includes(8)?8:DUREES[0],d:"",c:[],o:500,ex:0},k:1,cote:"R",neuf:!p}; edCaler(); edRendre(); }

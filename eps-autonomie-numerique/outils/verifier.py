@@ -68,9 +68,9 @@ for p in list(B.glob("*/index.html")) + [B / "index.html"]:
     if not (p.parent / "src").is_dir() and "eps-source-directe" not in p.read_text(encoding="utf-8", errors="replace")[:600]:
         pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
 REPERES = {
-    "eps-home.js": ["function callHost(", "EPSD.appels = {", "appel_motifs", "function trKeep(", "function trRestore(", "bilans(want, true)", "html.eps-tous:not(.eps-teach) #eps-upd{display:none!important}", "data-eps-a11y-h", "function fortApply(", "var LEX = {", "eps.gate.last.", "async function espPublier(", "async function espRelever(", "EPSD.plan = {", "function planCheck(", "function gateSheet(", "sheet: gateSheet", "async function confirmes(", "ESSAIS_MAX"],
+    "eps-home.js": ["function callHost(", "EPSD.appels = {", "appel_motifs", "function callHtml(", "function trKeep(", "function trRestore(", "bilans(want, true)", "html.eps-tous:not(.eps-teach) #eps-upd{display:none!important}", "data-eps-a11y-h", "function fortApply(", "var LEX = {", "eps.gate.last.", "async function espPublier(", "async function espRelever(", "EPSD.plan = {", "function planCheck(", "function gateSheet(", "sheet: gateSheet", "async function confirmes(", "ESSAIS_MAX"],
     "eps-lecons.js": ["window.epsCtlAlerts", "function ctlDet(", "ctl_inactif_min", "Pilotage de leçon", "function icoPop(", "function gNom(", "EPSD.trash.keep(", "if (WORK) put(KL, WORK)", "dayOf(p.at) === day"],
-    "escalade/index.html": ["window.epsCtlAlerts=", "window.epsTabInfo="],
+    "escalade/index.html": ["window.epsCtlOwn=", "window.epsTabInfo=", ".ccard.blink", "EPSD.appels.html('escalade')"],
     "danse/index.html": ["Demande à ton enseignant de créer les groupes.", "SY.c[k] = { u: SY.p[k]", "function P01(", "P01(au.pos)", "P01(sel.pos)", "P01(x.pos)", "EPSG_Q", "UI.mode"],
     "volley/index.html": ["pd.n=(pd.n||0)+1", "function jsq(", "confirm(&quot;Changer l'équipe", "EPSG.sheet("],
     "badminton/index.html": ["pd.n=(pd.n||0)+1", "EPSG.sheet(", "Fiches techniques"],

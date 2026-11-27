@@ -1,5 +1,5 @@
 # ✋ Appeler l'enseignant et 🧭 Pilotage de leçon (deux tablettes, faux script) : appel envoyé par l'élève, file d'attente de l'enseignant,
-# « J'y vais » vu par l'élève, « ✓ Fait », élèves en échec en escalade (ligne rouge, assis dans le baudrier, sécurité), filtres, détail.
+# « J'y vais » vu par l'élève, « ✓ Fait » ; en escalade, un seul écran de suivi : la tablette de contrôle des grimpes (appels en tête, cartes en échec qui clignotent).
 # python3 t_appel.py <racine du dépôt> [dossier des captures]
 import asyncio, sys, subprocess, time, json, os, urllib.request
 from playwright.async_api import async_playwright
@@ -10,6 +10,8 @@ B = "http://localhost:8847/eps-autonomie-numerique/"; G = "http://127.0.0.1:8899
 NOMS = ["Lina MARTIN", "Noah PETIT", "Emma DURAND", "Hugo LEROY", "Jade MOREAU", "Louis SIMON"]
 SEED = "try{localStorage.setItem('eps.share.v1',JSON.stringify({url:'" + G + "',key:'CLE'}));if(!localStorage.getItem('eps.lists.v1'))localStorage.setItem('eps.lists.v1',JSON.stringify({items:{c1:{id:'c1',nom:'" + CL + "',el:" + json.dumps(NOMS) + ",u:1}},pend:{},since:0}));"
 BTN = "(()=>{var b=document.getElementById('eps-callb');if(!b)return null;var r=b.getBoundingClientRect();return {t:b.textContent,vis:getComputedStyle(b).display!=='none'&&r.width>0,top:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===b}})()"
+import re
+def new_heure(t): return bool(re.search(r'\b\d{2}:\d{2}\b', t))
 async def main():
     out = []; errs = []
     async def shot(p, name):
@@ -36,33 +38,29 @@ async def main():
             if await p.evaluate("EPSD.appels.list('escalade').length") == 1: ok = True; break
         out.append(("2 l'appel arrive sur la tablette de l'enseignant", ok, i)); await p.wait_for_timeout(2000)
         s = await p.evaluate(BTN); out.append(("2b pastille « ✋ 1 » dans le bandeau enseignant", bool(s) and s["vis"] and s["t"].strip() == "✋ 1", s))
-        await p.evaluate("EPSLC.controle({cls:'" + CL + "'})"); await p.wait_for_timeout(700); t = await p.inner_text("#lc-ctl")
-        out.append(("2c écran « Pilotage de leçon », appel avec son motif et la classe", "Pilotage de leçon" in t and "Vérification sécurité" in t and "Appels (1)" in t, t[:200])); await shot(p, "2-pilotage-appel")
-        await p.click("#lc-ctl [data-call]"); await p.wait_for_timeout(500); t = await p.inner_text("#lc-ctl"); out.append(("2d « J'y vais » : appel pris en charge, bouton « ✓ Fait »", "pris en charge" in t and "✓ Fait" in t, None))
+        await p.click("#eps-callb"); await p.wait_for_timeout(900); t = await p.evaluate("document.body.innerText")
+        out.append(("2c la pastille ouvre la tablette de contrôle des grimpes (seul écran de suivi), appel en tête avec son motif", await p.evaluate("S.t") == "ctl" and "Tablette de contrôle" in t and "Vérification sécurité" in t and await p.locator("[data-eps-appels] [data-eps-call]").count() == 1 and await p.evaluate("!document.getElementById('lc-ctl')||document.getElementById('lc-ctl').style.display==='none'"), t[:300])); await shot(p, "2-controle-appel")
+        out.append(("2c2 pas d'action « Pilotage de leçon » en escalade (pas de double contrôle)", "Pilotage de leçon" not in await p.evaluate("EPSLC.actions().map(function(a){return a.label}).join('|')"), None))
+        await p.click("[data-eps-call]"); await p.wait_for_timeout(500); t = await p.inner_text("[data-eps-appels]"); out.append(("2d « J'y vais » : appel pris en charge, bouton « ✓ Fait »", "pris en charge" in t and "✓ Fait" in t, t))
         ok = False
         for i in range(25):
             await e.wait_for_timeout(2000); s = await e.evaluate(BTN)
             if s and "Il arrive" in s["t"]: ok = True; break
         out.append(("2e l'élève voit « 👍 Il arrive »", ok, s))
-        await p.click("#lc-ctl [data-call]"); await p.wait_for_timeout(500); out.append(("2f « ✓ Fait » : plus d'appel", await p.evaluate("EPSD.appels.list('escalade').length") == 0 and "Aucun appel en cours" in await p.inner_text("#lc-ctl"), None))
+        await p.click("[data-eps-call]"); await p.wait_for_timeout(500); out.append(("2f « ✓ Fait » : plus d'appel à l'écran", await p.evaluate("EPSD.appels.list('escalade').length") == 0 and await p.locator("[data-eps-appels]").count() == 0, None))
         ok = False
         for i in range(25):
             await e.wait_for_timeout(2000); s = await e.evaluate(BTN)
             if s and "Enseignant" in s["t"]: ok = True; break
         out.append(("2g le bouton de l'élève revient à « ✋ Enseignant »", ok, s))
-        # ---------- 3. escalade : élèves en échec, sécurité, réussite ; filtres ; détail ----------
+        # ---------- 3. escalade : les cartes des élèves en échec clignotent dans la tablette de contrôle, rien d'autre ne change ----------
         await p.evaluate("""(()=>{var ts=new Date().toLocaleString('sv').slice(0,16),mk=(el,h,x)=>R.push(Object.assign({id:'t'+Math.random().toString(36).slice(2),ts:ts,cl:'%s',el:el,vo:1,c:'A',d:'5b',h:h,a:0,why:''},x||{}));
-          mk('Lina MARTIN',3);mk('Lina MARTIN',4);mk('Lina MARTIN',2);mk('Noah PETIT',9,{a:1});mk('Emma DURAND',9);mk('Hugo LEROY',0,{why:'Problème de matériel ou de sécurité'});})()""" % CL)
-        al = await p.evaluate("window.epsCtlAlerts('" + CL + "').map(function(a){return [a.n,a.niv,a.t]})"); d = {a[0]: a for a in al}
-        out.append(("3 escalade : 3 voies sans Top = échec, assis dans le baudrier = échec, sécurité, Top = réussite", d.get("Lina MARTIN", [0, 0])[1] == "echec" and d.get("Noah PETIT", [0, 0])[1] == "echec" and "assis" in d["Noah PETIT"][2] and d.get("Hugo LEROY", [0, 0])[1] == "secu" and d.get("Emma DURAND", [0, 0])[1] == "ok", al))
-        await p.evaluate("EPSLC.controle({cls:'" + CL + "'})"); await p.wait_for_timeout(700); t = await p.inner_text("#lc-ctl")
-        out.append(("3b filtres : « En échec 3 », « En réussite 1 », alerte sécurité en haut", "En échec 3" in t and "En réussite 1" in t and "🛡 Hugo LEROY" in t, t[:400])); await shot(p, "3-pilotage-classe")
-        await p.click("#lc-ctl [data-f='echec']"); await p.wait_for_timeout(300); n = await p.locator("#lc-ctl [data-el]").count(); out.append(("3c filtre « En échec » : 3 cartes seulement", n == 3, n)); await shot(p, "4-pilotage-en-echec")
-        await p.locator("#lc-ctl [data-el]", has_text="Noah").click(); await p.wait_for_timeout(300); t = await p.inner_text("#lc-det"); out.append(("3d détail de l'élève dans une petite fenêtre (grimpes, assis), ⚡ repères rapides", "assis" in t and "Repères rapides" in t and "Top" in t, t[:200])); await shot(p, "5-detail-eleve")
-        await p.click("#lc-det [data-x]"); await p.wait_for_timeout(200)
+          mk('Lina MARTIN',3);mk('Lina MARTIN',4);mk('Lina MARTIN',2);mk('Noah PETIT',9,{a:1});mk('Emma DURAND',9);mk('Hugo LEROY',0,{why:"J'ai eu peur"});render();})()""" % CL); await p.wait_for_timeout(400)
+        bl = await p.evaluate("[].map.call(document.querySelectorAll('.ccard.blink'),function(c){return c.innerText})"); tous = await p.evaluate("document.querySelectorAll('.ccard').length"); j = " | ".join(bl)
+        out.append(("3 clignotent : 3 voies sans Top (Lina), assis dans le baudrier (Noah), sous la ligne rouge (Hugo) ; pas Emma (Top)", len(bl) == 3 and "Lina" in j and "Noah" in j and "Hugo" in j and "Emma" not in j and tous >= 6, (len(bl), tous)))
+        an = await p.evaluate("(function(){var c=document.querySelector('.ccard.blink');return c?getComputedStyle(c).animationName:[S.t,S.T,CF.sel,document.querySelectorAll('.ccard').length,CL.map(function(c){return c.id+':'+c.nom})].join(' ~ ')})()"); out.append(("3b animation de clignotement posée sur la carte", an == "cblink", an))
+        t = await p.evaluate("document.body.innerText"); out.append(("3c la tablette de contrôle garde ses données (voies, heures des grimpes)", "Lina MARTIN" in t and new_heure(t), t[:200])); await shot(p, "3-controle-clignote")
         of = await p.evaluate("document.documentElement.scrollWidth>innerWidth"); out.append(("3e aucun débordement horizontal", not of, None))
-        await p.evaluate("EPSLC.controle({cls:'" + CL + "'})"); await p.wait_for_timeout(500); await p.click("#lc-ctl [data-xa]"); await p.wait_for_timeout(600)
-        t = await p.evaluate("document.body.innerText"); out.append(("3f « Ouvrir en grand » : la tablette de contrôle d'Escalade, avec les grimpes et leurs heures", await p.evaluate("S.t") == "ctl" and "Tablette de contrôle" in t and "Lina MARTIN" in t, t[:200])); await shot(p, "6-tablette-de-controle-escalade")
         # ---------- 4. réglage : bouton masqué quand le paramètre est à 0 ; rien en clair en ligne ----------
         raw = urllib.request.urlopen("http://127.0.0.1:8899/ctl?dump=1").read().decode("utf-8", "replace") if False else ""
         await e.evaluate("(()=>{var V=JSON.parse(localStorage.getItem('eps.param.v1')||'{\"items\":{}}');V.items=V.items||{};})()")

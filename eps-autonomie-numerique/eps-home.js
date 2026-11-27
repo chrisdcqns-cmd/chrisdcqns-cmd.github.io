@@ -1276,7 +1276,7 @@
       "</div>"; /* accès enseignant : 3 appuis rapides (ou appui long) sur le logo de l'appli, sans bouton visible pour les élèves */
     d.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
-      if (b.dataset.c != null) { try { localStorage.setItem("eps.gate.last." + appDir(), JSON.stringify({ id: b.dataset.c, day: today() })); } catch (er) {} gateClose(); try { G.select(b.dataset.c); } catch (er) {} }
+      if (b.dataset.c != null) { try { localStorage.setItem("eps.gate.last." + appDir(), JSON.stringify({ id: b.dataset.c, day: today(), nom: ((L.filter(function (x) { return String(x.id) === String(b.dataset.c); })[0] || {}).nom) || "" })); } catch (er) {} gateClose(); try { G.select(b.dataset.c); } catch (er) {} }
       else if (b.dataset.nl) { gateClose(); try { G.noClass.open(); } catch (er) {} }
       else if (b.dataset.r != null) { gateClose(); try { R[+b.dataset.r].open(); } catch (er) {} }
       else if (b.dataset.t) { gateClose(); try { G.teacher(); } catch (er) {} }
@@ -2437,6 +2437,8 @@
     if (!n.length && Array.isArray(o.who)) n = o.who.map(function (x) { return String(x); }).filter(Boolean).slice(0, 6);
     var R = []; try { R = ((cc && cc.eleves) || []).map(function (x) { return String(typeof x === "string" ? x : (x && (x.full || ((x.prenom || "") + " " + (x.nom || "")))) || "").trim(); }).filter(Boolean); } catch (e) {}
     var cl = o.cls || (cc && cc.nom) || "";
+    /* à défaut, la classe choisie aujourd'hui sur l'écran « Choisis ta classe » de cette tablette */
+    if (!cl) try { var gl = JSON.parse(localStorage.getItem("eps.gate.last." + appDir()) || "null"); if (gl && gl.day === today() && gl.nom) cl = String(gl.nom); } catch (e) {}
     if (!R.length && cl && window.EPSL) try { EPSL.items().forEach(function (it) { if (EPSL.norm(it.nom) === EPSL.norm(cl)) R = EPSL.people(it).map(function (x) { return x.full; }); }); } catch (e) {}
     return { cls: cl, eq: String(o.eq || ""), who: n, liste: R }; }
   function callZones() { try { var o = stLd("eps.terrain.v1").items["lay|" + appDir()]; if (o && !o.del && Array.isArray(o.zones)) return o.zones.map(function (z) { return String(z.nom || "").trim(); }).filter(Boolean).slice(0, 16); } catch (e) {} return []; }
@@ -2468,7 +2470,7 @@
     if (T) { var L = callAll().filter(function (c) { return c.from !== devInfo().id && (HUB || c.app === appDir()); }), n0 = L.filter(function (c) { return !c.st; }).length;
       b.style.display = L.length && (HUB || okApp) ? "" : "none"; b.textContent = "✋ " + L.length; b.title = "Appels des élèves"; b.setAttribute("aria-label", L.length + " appel" + (L.length > 1 ? "s" : "") + " d'élèves");
       b.style.background = n0 ? "#B4232B" : "#1E8449"; b.style.color = "#fff"; b.style.borderColor = "transparent"; b.style.fontWeight = "800";
-      b.onclick = function () { if (window.EPSLC && EPSLC.controle) EPSLC.controle({ cls: (L[0] && L[0].cls) || undefined }); else callListe(); };
+      b.onclick = function () { if (window.EPSLC && EPSLC.controle) EPSLC.controle({ cls: (L[0] && L[0].cls) || undefined }); else if (window.epsCtlOwn && window.epsCtlOwn.open) window.epsCtlOwn.open((L[0] && L[0].cls) || ""); else callListe(); };
       var nv = L.filter(function (c) { return !c.st && c.at > callSeen; });
       if (nv.length) { callSeen = Math.max.apply(null, nv.map(function (c) { return c.at; })); try { sessionStorage.setItem("eps.call.seen", String(callSeen)); } catch (e) {}
         if (callSon()) { bip(); try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) {} }
@@ -2493,7 +2495,14 @@
     Array.prototype.forEach.call(o.querySelectorAll("[data-go]"), function (b) { b.onclick = function () { var c = stLd(KSG).items[b.dataset.go]; callSet(b.dataset.go, c && c.st ? 2 : 1); o.remove(); callDraw(); if (callAll().length) callListe(); }; }); return o; }
   STORES.forEach(function (st) { if (st.key === KSG) { var f1 = st.onChange; st.onChange = function () { try { f1 && f1(); } catch (e) {} try { callDraw(); } catch (e) {} try { window.dispatchEvent(new CustomEvent("eps-appels")); } catch (e) {} }; } });
   setInterval(function () { try { callDraw(); } catch (e) {} }, 1500); setTimeout(function () { try { callDraw(); } catch (e) {} }, 1200);
-  EPSD.appels = { list: function (app) { return callAll().filter(function (c) { return !app || c.app === app; }); }, take: function (id) { var p = callSet(id, 1); callDraw(); return p; }, done: function (id) { var p = callSet(id, 2); callDraw(); return p; }, nom: callNom, ask: callAsk };
+  /* les appels en cours, prêts à poser en tête de l'écran de suivi propre à une appli (Escalade, Step) : EPSD.appels.html(dossier).
+     Rien quand il n'y a pas d'appel. Les boutons [data-eps-call] sont gérés ici, pour toute la page. */
+  function callHtml(app) { var L = callAll().filter(function (c) { return !app || c.app === app; }), now = Date.now(); if (!L.length) return "";
+    return '<div data-eps-appels style="display:grid;gap:6px;margin:0 0 10px">' + L.map(function (c) { var mn = Math.max(0, Math.round((now - c.at) / 6e4));
+      return '<div style="display:flex;gap:10px;align-items:center;background:#fff;border:2px solid ' + (c.st ? "#1E8449" : "#B4232B") + ';border-radius:12px;padding:8px 10px"><div style="flex:1;min-width:0;text-align:left"><b>✋ ' + esc(callNom(c)) + '</b><div style="font-size:13px;color:#5b6a72">' + esc(c.motif) + " · " + (mn ? mn + " min" : "à l'instant") + (c.st ? " · pris en charge" : "") + '</div></div><button type="button" data-eps-call="' + esc(c.id) + '" data-st="' + (c.st ? 2 : 1) + '" style="min-height:44px;padding:0 16px;border-radius:10px;border:0;font:800 15px system-ui,sans-serif;color:#fff;background:' + (c.st ? "#1E8449" : "#B4232B") + '">' + (c.st ? "✓ Fait" : "J'y vais") + "</button></div>"; }).join("") + "</div>"; }
+  document.addEventListener("click", function (e) { var b = e.target && e.target.closest ? e.target.closest("[data-eps-call]") : null; if (!b || !isTeacher()) return; callSet(b.getAttribute("data-eps-call"), b.getAttribute("data-st") === "2" ? 2 : 1); callDraw();
+    var bx = b.closest("[data-eps-appels]"); if (bx) bx.outerHTML = callHtml(bx.getAttribute("data-app") || appDir()); try { window.dispatchEvent(new CustomEvent("eps-appels")); } catch (x) {} });
+  EPSD.appels = { html: callHtml, list: function (app) { return callAll().filter(function (c) { return !app || c.app === app; }); }, take: function (id) { var p = callSet(id, 1); callDraw(); return p; }, done: function (id) { var p = callSet(id, 2); callDraw(); return p; }, nom: callNom, ask: callAsk };
   /* ouvre la planche par-dessus la page (cadre), sans quitter la leçon en cours */
   EPSD.planche = function (o) { o = o || {}; var old = document.getElementById("eps-planche"); if (old) old.remove();
     var sp = o.sport || ({ volley: "volley", badminton: "badminton", basket: "basket3" }[appDir()] || ""), f = document.createElement("div"); f.id = "eps-planche"; f.style.cssText = "position:fixed;inset:0;z-index:2147483000;background:#F5F3EE";
