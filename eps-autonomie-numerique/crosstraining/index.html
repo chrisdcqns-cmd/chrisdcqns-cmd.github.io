@@ -1214,13 +1214,13 @@ function lancerTimer(){
    La tablette élève pose son état dans le magasin partagé : « l|<tablette> » (un seul par tablette et par box, remplacé à chaque étape).
    {c, date, noms, duo, st: run | pause | fin | stop, tete, ph, lab, tour, emom, s (durée de la phase, 0 = libre), up (chrono montant),
     e (ms écoulées dans la phase à l'envoi), at (heure de l'envoi), tot (ms depuis le début du WOD), ex, niv, q, fait, cib, tours, nt, cible, ens (suite), rep, no, score}
-   Envoi : à chaque phase, exercice, tour, pause, fin ; toutes les 5 s au plus pendant les appuis ; toutes les 60 s sinon (tablette toujours là). */
+   Envoi : à chaque phase, exercice, tour, pause, fin ; toutes les 3 s au plus pendant les appuis ; toutes les 60 s sinon (tablette toujours là). */
 const LIVE_K = () => { let id=LS.get("dev",""); if(!id){ try{ id=(JSON.parse(localStorage.getItem("eps.dev.v1")||"{}")||{}).id||""; }catch(e){} id=id||"c"+Math.random().toString(36).slice(2,10); LS.set("dev",id); } return "l|"+id+(BOX?"-"+BOX:""); }; /* identifiant gardé : une tablette n'a jamais deux états */
 let LIVE_T=0;
 function livePub(st, doux){
   try{
     if(window.EPS_VUE_ELEVE||!aClasse()||!TM) return;
-    if(doux && Date.now()-(TM.liveAt||0)<5000) return;
+    if(doux && Date.now()-(TM.liveAt||0)<3000) return;
     const ph=TM.P[Math.min(TM.i,TM.P.length-1)]||{}, x=(st||!TM.P[TM.i])?null:exCourant(), l=S.lecon, w=texteWod(l);
     const nx = x ? null : TM.P.slice(TM.i+1).find(y=>y.t==="work"||y.t==="bloc"), nxe = nx && (nx.ex || (nx.it&&nx.it[0]));
     let rep=0, no=0; Object.values(TM.cpt).forEach(c=>{ rep+=c.rep; no+=c.no; });
@@ -1229,7 +1229,11 @@ function livePub(st, doux){
       titre:w.titre, tete:w.tete, ph:ph.t||"", lab:ph.lab||"", tour:ph.tour||0, emom:ph.emom?1:0, s:ph.s||0, up:(ph.up||ph.ouvert)?1:0,
       e: st?0:Math.max(0,Math.round(ecoule())), at:Date.now(), tot:Date.now()-TM.total0,
       ex:x?x.e.en:"", niv:x?x.niv:0, q:x?(ph.libre?ph.s+" s":qteTxt(x)):"", fait:TM.fait, cib:x&&!ph.libre&&x.e.mesure!=="temps"?cible(x):0,
-      tours:TM.tours, nt:ph.tours||0, cible:ph.cible||0, ens:nxe?nxe.e.en+" · N"+nxe.niv:"", rep, no, score:(TM.res&&TM.res.score)||""});
+      tours:TM.tours, nt:ph.tours||0, cible:ph.cible||0, ens:nxe?nxe.e.en+" · N"+nxe.niv:"", rep, no,
+      /* pour l'écran miroir de l'enseignant : exercice montré, compteurs de l'exercice en cours, liste « À suivre » */
+      xid:(x||nxe||{}).exId||"", xn:(x||nxe||{}).niv||0, nn:x?(x.e.niveaux[x.niv-1]||{}).nom||"":"", mes:x?x.e.mesure:"", lib:ph.libre?1:0, k:TM.k||0, ni:ph.it?ph.it.length:0,
+      cr:x?(TM.cpt[x.exId+"|"+x.niv]||{}).rep||0:0, cn:x?(TM.cpt[x.exId+"|"+x.niv]||{}).no||0:0,
+      suite:(st||!TM.P[TM.i])?[]:aSuivre().map(y=>y.tourSuiv?{t:1}:{q:qteTxt(y), n:y.e.en, v:y.niv}), score:(TM.res&&TM.res.score)||""});
     clearTimeout(LIVE_T); LIVE_T=setTimeout(()=>{ try{ window.EPSD&&EPSD.syncOne&&EPSD.syncOne(KST); }catch(e){} },700);
   }catch(e){}
 }
@@ -1373,11 +1377,50 @@ window.epsCtlAlerts = function(cls){
       if(o.st==="stop") return poser(n,{niv:"", at:o.u||at, t:"⏹ WOD arrêté · "+(o.tete||""), d:det});
       if(o.st==="fin") return poser(n,{niv:"", at:o.u||at, t:"🏁 WOD terminé"+(o.score?" · "+o.score:"")+" · "+mmssL((o.tot||0)/1000), d:det});
       if(perdu) return poser(n,{niv:"", at, t:"📵 Tablette sans nouvelle · "+role+L.t, d:det});
-      poser(n,{niv:"", at:o.st==="run"?now:(o.u||at), t:role+L.t, d:det, tm:{e:+o.e||0, at, s:+o.s||0, up:o.up?1:0, run:o.st==="run"?1:0, lab:L.lab, col:L.col}}); }); });
+      poser(n,{niv:"", at:o.st==="run"?now:(o.u||at), t:role+L.t, d:det, open:fiche=>liveVoir(n,cls,fiche), tm:{e:+o.e||0, at, s:+o.s||0, up:o.up?1:0, run:o.st==="run"?1:0, lab:L.lab, col:L.col}}); }); });
   return Object.values(par);
 };
+/* 👁 Écran miroir (demande de l'enseignant, 27/11/2026) : un appui sur la carte d'un élève en plein WOD montre ce qu'il voit sur son téléphone
+   (phase, exercice, chrono, compteurs REP / NO REP, « À suivre »). Affichage seul : aucun bouton n'agit sur le chrono de l'élève.
+   Même mise en forme que le timer élève (.tm-…), largeur d'un téléphone ; relu dans le magasin 2 fois par seconde. */
+let MIR=null;
+function liveDe(n,cls){ const d=auj(), k=String(cls||"").trim().toLowerCase(); let b=null; stItems("l|").forEach(([,o])=>{ if(String(o.c||"").trim().toLowerCase()===k&&o.date===d&&Array.isArray(o.noms)&&o.noms.includes(n)&&(!b||(o.at||0)>(b.at||0))) b=o; }); return b; }
+function liveFermer(){ if(MIR){ clearInterval(MIR.iv); MIR=null; } const m=document.getElementById("ctMiroir"); if(m) m.remove(); }
+function liveVoir(n,cls,fiche){
+  liveFermer(); const m=document.createElement("div"); m.id="ctMiroir"; m.className="voile"; m.style.cssText="z-index:2147483150;align-items:center;padding:10px"; document.body.appendChild(m);
+  MIR={n,cls,fiche,u:-1}; m.onclick=e=>{ const a=e.target.closest("[data-mir]"); if(e.target===m||(a&&a.dataset.mir==="x")) return liveFermer(); if(a&&a.dataset.mir==="fiche"){ const f=MIR.fiche; liveFermer(); try{ f&&f(); }catch(_){} } };
+  liveDessin(); MIR.iv=setInterval(liveDessin,500);
+}
+function liveDessin(){
+  const m=document.getElementById("ctMiroir"); if(!m||!MIR) return liveFermer();
+  const o=liveDe(MIR.n,MIR.cls), now=Date.now(); if(!o) return liveFermer();
+  const at=Math.min(+o.at||0,now), perdu=o.st==="run"&&now-at>150000, enCours=(o.st==="run"||o.st==="pause")&&!perdu;
+  if(MIR.u!==o.u||MIR.perdu!==perdu){ MIR.u=o.u; MIR.perdu=perdu;
+    const col=o.st==="pause"?"#6A6F78":{pret:"#C98A00",work:"#3F8F14",rest:"#2F6FDB",bloc:"#3F8F14"}[o.ph]||"#3F8F14";
+    const e=o.xid?exParId(o.xid):null, clip=e&&o.xn?clipHtml({e,niv:o.xn}).replace(' data-clip="',' data-vu="'):"";
+    const tete=`<div style="display:flex;align-items:center;gap:8px;background:#14171C;color:#fff;padding:8px 8px 8px 14px;text-align:left;margin-bottom:-12px"><div style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👁 ${h((o.noms||[]).join(" · "))}</b><span style="font-size:12px;opacity:.8">Écran de l'élève · affichage seul</span></div><button class="tm-x" data-mir="fiche" aria-label="Fiche de l'élève" title="Fiche de l'élève">📋</button><button class="tm-x" data-mir="x" aria-label="Fermer">✕</button></div>`;
+    let corps;
+    if(!enCours) corps=`<div class="tm-chrono" style="margin-top:26px"><div class="tm-nom">${o.st==="fin"?"🏁 WOD terminé":o.st==="stop"?"⏹ WOD arrêté":"📵 Tablette sans nouvelle"}</div><div class="tm-niv">${h(o.st==="fin"?(o.score||"")+" · "+mmssL((o.tot||0)/1000):o.tete||"")}</div></div>`;
+    else {
+      const rep=o.mes!=="temps", r=Math.max(0,(o.cib||0)-(o.fait||0));
+      const info = !o.ex ? "" : o.lib ? `<div class="tm-reste"><b>${o.fait||0}</b> répétition${o.fait>1?"s":""} valide${o.fait>1?"s":""}</div>` : o.mes==="temps" ? `<div class="tm-reste">Tient <b>${h(o.q)}</b> puis valide</div>` : r ? `<div class="tm-reste">Il reste <b>${r}</b> ${o.mes==="distance"?"aller-retour"+(r>1?"s":""):"répétition"+(r>1?"s":"")}</div>` : `<div class="tm-reste ok">✓ Terminé${o.emom?" · repos jusqu'à la minute suivante":""}</div>`;
+      const btns = !o.ex ? "" : `<div class="tm-btns" style="pointer-events:none" aria-hidden="true"><button class="tm-rep" disabled tabindex="-1"><span class="nb">${o.cr||0}</span><span class="lab">✓ ${rep?"REP":"Tenu"}</span></button><button class="tm-no" disabled tabindex="-1"><span class="nb">${o.cn||0}</span><span class="lab">✗ ${rep?"NO REP":"Lâché"}</span></button></div>`;
+      const tours = o.ph==="bloc" ? `<div class="tm-tours">Tour ${(o.tours||0)+1}${o.nt?" / "+o.nt:""}${o.cible?` · cible ${o.cible} tours`:""}<span id="mirAllure"></span></div>` : "";
+      const L=Array.isArray(o.suite)?o.suite:[];
+      corps=`<div class="tm-haut" style="background:${col}"><span>${o.st==="pause"?"⏸ PAUSE · ":""}${h({pret:"PRÊT",work:"TRAVAIL",rest:"REPOS",bloc:o.lab}[o.ph]||"")}${o.tour?` · ${o.emom?"minute":"tour"} ${o.tour}`:""}</span></div>
+        <div class="tm-ex"><div>${clip}</div><div class="tm-txt"><div class="tm-nom">${h(o.ex||o.lab||"")}</div>${o.ex?`<div class="tm-niv">${NIV(o.niv)} · ${h(o.nn||"")} · ${h(o.q||"")}</div>`:o.ens?`<div class="tm-niv">Ensuite : ${h(o.ens.replace(" · N"," · Niveau "))}</div>`:""}</div></div>
+        <div class="tm-chrono"><div id="mirTemps" class="tm-temps">0:00</div><div class="tm-barre"><div id="mirBarre" style="background:${col}"></div></div></div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin:0 14px">${tours}${info}${o.duo?"":btns}${o.duo?`<div class="tm-tours">Compté par le coach : ✓ ${o.cr||0} · ✗ ${o.cn||0}</div>`:""}${L.length?`<div class="tm-suite"><div class="tm-st">À suivre</div>${L.map(y=>y.t?`<div class="tm-l tour">↻ Tour suivant</div>`:`<div class="tm-l"><b>${h(y.q)}</b><span>${h(y.n)}</span><small>${NIV(y.v)}</small></div>`).join("")}</div>`:""}</div>`;
+    }
+    m.innerHTML=`<div class="feuille tm" style="max-width:420px;width:100%;max-height:96vh;border-radius:22px;overflow:auto;animation:none;box-shadow:0 20px 60px rgba(0,0,0,.4)">${tete}${corps}</div>`;
+  }
+  if(!enCours) return;
+  const e=((+o.e||0)+(o.st==="run"?now-at:0))/1000, z=m.querySelector("#mirTemps"); if(z) z.textContent = o.up||!o.s ? mmss(e) : mmss(Math.max(0,o.s-e));
+  const b=m.querySelector("#mirBarre"); if(b&&o.s) b.style.width=Math.min(100,e/o.s*100)+"%";
+  const a=m.querySelector("#mirAllure"); if(a&&o.cible&&o.s&&o.ni){ const att=e/(o.s/o.cible), f=(o.tours||0)+(o.k||0)/o.ni; a.textContent=" · "+(f>att+.5?"en avance":f+.5<att?"accélère":"bonne allure"); }
+}
 /* tablette de l'enseignant : le magasin est relevé toutes les 6 s tant que le pilotage est ouvert */
-setInterval(()=>{ try{ const p=document.getElementById("lc-ctl"); if(p&&p.style.display!=="none"&&estProf()&&document.visibilityState!=="hidden"&&!window.EPS_SIM&&window.EPSD&&EPSD.syncOne) EPSD.syncOne(KST); }catch(e){} },6000);
+setInterval(()=>{ try{ const p=document.getElementById("lc-ctl"); if(MIR&&(!p||p.style.display==="none")) liveFermer(); if(p&&p.style.display!=="none"&&estProf()&&document.visibilityState!=="hidden"&&!window.EPS_SIM&&window.EPSD&&EPSD.syncOne) EPSD.syncOne(KST); }catch(e){} },6000);
 /* ======================= ÉLÈVE : carnet ======================= */
 function vueCarnet(){
   const g=S.groupe||{noms:[]}, mes=stItems("w|").map(x=>x[1]).filter(o=>S.prof||(o.c===nomClasse()&&o.noms.some(n=>g.noms.includes(n)))).sort((a,b)=>b.u-a.u);

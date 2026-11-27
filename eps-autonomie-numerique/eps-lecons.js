@@ -490,7 +490,9 @@
       var xd = ov.querySelector("[data-xad]"); if (xd) xd.ontoggle = function () { CTL_XA = this.open; };
       ov.querySelectorAll("[data-f]").forEach(function (b) { b.onclick = function () { CTL_F = b.dataset.f; draw(); }; });
       ov.querySelectorAll("[data-call]").forEach(function (b) { b.onclick = function () { try { EPSD.appels[b.dataset.st === "2" ? "done" : "take"](b.dataset.call); } catch (e) {} draw(); }; });
-      ov.querySelectorAll("[data-el]").forEach(function (b) { b.onclick = function () { var e = EL.filter(function (x) { return x.k === b.dataset.el; })[0]; if (e) ctlDet(cls, e, SL, draw); }; });
+      ov.querySelectorAll("[data-el]").forEach(function (b) { b.onclick = function () { var e = EL.filter(function (x) { return x.k === b.dataset.el; })[0]; if (!e) return;
+        /* écran propre à l'appli pour cet élève (Cross-training : miroir de son timer) ; elle reçoit de quoi ouvrir la fiche commune */
+        if (e.x && typeof e.x.open === "function" && e.x.t === e.li) { try { e.x.open(function () { ctlDet(cls, e, SL, draw); }); return; } catch (er) {} } ctlDet(cls, e, SL, draw); }; });
       var xb = ov.querySelector("[data-xa]"); if (xb) xb.onclick = function () { close(); try { window.epsCtlApp.open(cls); } catch (e) {} };  ctlTmTick(ov); }
     draw(); T = ov._t = setInterval(function () { try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} draw(); }, 8000);
     if (ov._tm) clearInterval(ov._tm); ov._tm = setInterval(function () { if (ov.style.display === "none") { clearInterval(ov._tm); return; } ctlTmTick(ov); }, 500);
