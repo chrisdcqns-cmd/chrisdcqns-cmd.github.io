@@ -364,6 +364,11 @@
     ".epsd-in{width:100%;height:48px;border-radius:12px;border:2px solid #E2DDD2;background:#FBFAF7;font:500 17px system-ui,sans-serif;padding:0 12px;color:#1B1E24}" +
     ".epsd-lab{display:block;font-weight:800;font-size:14px;color:#6A6F78;margin:14px 0 6px}" +
     ".epsd-b2{min-height:44px;padding:0 14px;border-radius:12px;border:2px solid #E6E1D6;background:#fff;color:#14171C;font:800 15px system-ui,sans-serif;cursor:pointer}.epsd-b2:active{transform:scale(.98)}" +
+    ".epsd-win{position:fixed;inset:0;z-index:2147483100;background:#F5F3EE;color:#1B1E24;display:flex;flex-direction:column;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
+    ".epsd-wtop{display:flex;align-items:center;gap:10px;padding:10px 18px;background:#fff;border-bottom:1.5px solid #E6E1D6}.epsd-wtop b{flex:1;font-size:19px;font-weight:900}" +
+    ".epsd-wtop button{height:44px;padding:0 16px;border-radius:12px;border:2px solid #1B1E24;background:#fff;font:800 16px system-ui,sans-serif;color:#1B1E24;cursor:pointer}" +
+    ".epsd-wbody{flex:1;overflow:auto;padding:14px 18px 30px}.epsd-win .epsd-box{width:min(1000px,100%);max-height:none;overflow:visible;margin:0 auto;box-shadow:none;border:1.5px solid #E6E1D6;border-radius:16px}" +
+    ".epst-dock.epsd-win>.epsd-wtop{display:none!important}.epsd-ok{color:#1E7B45;font-weight:700}" +
     ".epsd-act{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.epsd-act button{height:50px;padding:0 20px;border-radius:14px;border:2px solid #1B1E24;background:#fff;font:800 17px system-ui,sans-serif;color:#1B1E24}" +
     ".epsd-act .p{background:#C0392B;border-color:#C0392B;color:#fff}.epsd-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}" +
     ".epsd-steps{display:flex;gap:8px;margin:4px 0 8px;font-weight:800;font-size:14px;color:#6A6F78}.epsd-steps .on{color:#C0392B}" +
@@ -382,6 +387,16 @@
     pill.title = n + " élève" + (n > 1 ? "s" : "") + " dispensé" + (n > 1 ? "s" : "") + " aujourd'hui" + (cc ? " (" + cc.nom + ")" : ""); pill.setAttribute("aria-label", pill.title);
     var hc = document.getElementById("epsd-hubcount");
     if (hc) hc.textContent = !hubTeach() ? "Mode enseignant pour voir les dispenses" : n ? n + " élève" + (n > 1 ? "s" : "") + " dispensé" + (n > 1 ? "s" : "") + " aujourd'hui" : "Aucun élève dispensé aujourd'hui";
+  }
+  /* 🪟 Fenêtre plein écran, PAS un pop-up (demande de l'enseignant, 27/11/2026 : « je risque de cliquer à côté et ça ne va pas se sauvegarder ») :
+     aucun fond à toucher, rien ne se ferme par un appui à côté ; seul « ✕ Fermer » la cache (contenu et travail en cours gardés, la même
+     fenêtre revient à la réouverture). Dans une appli d'activité, elle se range sous le bandeau comme .lc-ov (AUTO d'eps-shell.js).
+     À utiliser pour tout écran où l'on saisit ou génère quelque chose de long. */
+  function win(id, titre, html) {
+    var w = document.createElement("div"); w.id = id; w.className = "epsd-win";
+    w.innerHTML = '<div class="epsd-wtop"><b>' + titre + '</b><button type="button" data-x>✕ Fermer</button></div><div class="epsd-wbody"><div class="epsd-box">' + html + "</div></div>";
+    w.querySelector(".epsd-wtop [data-x]").onclick = function () { w.style.display = "none"; };
+    document.body.appendChild(w); return w;
   }
   function overlay(html) {
     var o = document.createElement("div"); o.className = "epsd-ov"; o.innerHTML = '<div class="epsd-box">' + html + "</div>";
@@ -1749,7 +1764,7 @@
   /* 🔄 toujours dans un bandeau : emplacement réservé visible ([data-eps-upd-slot] : écran « Choisis ta classe », pages sans barre commune,
      valeur "light" pour un bandeau clair), sinon la barre commune [data-eps-bar] ; si aucun bandeau n'est visible (écran plein recouvrant), masqué. */
   function visibleFree(el) { if (!el || !el.getClientRects().length) return false; var r = el.getBoundingClientRect(); if (!r.width && !r.height) { var p = el.parentElement; if (!p) return false; r = p.getBoundingClientRect(); }
-    var y = r.top + Math.max(4, r.height / 2), x = Math.max(r.left + 4, Math.min(r.right - 4, r.left + r.width / 2)); if (y < 0 || y > innerHeight) return false; var t = document.elementFromPoint(x, y); return !!t && (el.contains(t) || t.contains(el) || (el.parentElement && el.parentElement.contains(t) && !t.closest(".epse,.lc-ov,.lc-modal,.epsd-ov,.epspn,.lc-st"))); }
+    var y = r.top + Math.max(4, r.height / 2), x = Math.max(r.left + 4, Math.min(r.right - 4, r.left + r.width / 2)); if (y < 0 || y > innerHeight) return false; var t = document.elementFromPoint(x, y); return !!t && (el.contains(t) || t.contains(el) || (el.parentElement && el.parentElement.contains(t) && !t.closest(".epse,.lc-ov,.epsd-win,.lc-modal,.epsd-ov,.epspn,.lc-st"))); }
   /* 🟢 / 🔴 la tablette est-elle à jour ? version installée (cache « eps-core-vN » du service worker) comparée à celle publiée (/sw.js relu sans cache) ;
      pastille sur le bouton 🔄 : verte = à jour, rouge = nouvelle version publiée → toucher 🔄. Vérifié au chargement puis toutes les 5 min. */
   var UPD = { loc: 0, net: 0, at: 0 };
@@ -1862,7 +1877,7 @@
         : '<p class="m">Aucun élève trouvé.</p>';
     }
     q.oninput = draw; draw(); setTimeout(function () { q.focus(); }, 50);
-    var bb = document.createElement("button"); bb.type = "button"; bb.textContent = "📝 Appréciations de bulletin"; bb.onclick = bulletin;
+    var bb = document.createElement("button"); bb.type = "button"; bb.textContent = "📝 Appréciations de bulletin"; bb.onclick = function () { o.remove(); bulletin(); };
     var bn = document.createElement("button"); bn.type = "button"; bn.textContent = "🌐 Bilans en ligne"; bn.onclick = function () { o.remove(); bilans(); };
     var act = o.querySelector(".epsd-act"); if (act) { act.insertBefore(bb, act.firstChild); act.insertBefore(bn, act.firstChild); }
   }
@@ -2254,14 +2269,15 @@
   /* 📝 appréciations de bulletin : Claude rédige à partir de TES commentaires et évaluations (toutes activités), sans aucun nom d'élève ;
      tu relis, corriges, coches ✓, puis copies vers Pronote. Gardées sur cette tablette seulement (eps.bulletin.v1). */
   function bulletin(want) {
+    var W0 = document.getElementById("epsbu-w"); if (W0 && W0._open) { W0._open(want); return; } /* génération en cours, saisies : tout est gardé */
     var KB = "eps.bulletin.v1", B = jget(KB, {}), C = [];
     /* période : trimestre (année scolaire en cours) ou année ; les données datées (observations, évaluations de leçon, résultats, remédiation) sont filtrées */
     var SY = new Date().getMonth() >= 7 ? new Date().getFullYear() : new Date().getFullYear() - 1, pd = function (y, m, d) { return y + "-" + ("0" + m).slice(-2) + "-" + ("0" + d).slice(-2); };
     var TR = { 1: [pd(SY, 9, 1), pd(SY, 11, 30)], 2: [pd(SY, 12, 1), pd(SY + 1, 2, new Date(SY + 1, 2, 0).getDate())], 3: [pd(SY + 1, 3, 1), pd(SY + 1, 7, 10)], 0: [pd(SY, 8, 20), pd(SY + 1, 7, 10)] }, TCUR = [1, 2, 3].filter(function (t) { return today() >= TR[t][0] && today() <= TR[t][1]; })[0] || 0;
     var PER = TR[TCUR], inPer = function (d) { return !d || (d >= PER[0] && d <= PER[1]); }, dOf = function (t) { var x = new Date(t); return pd(x.getFullYear(), x.getMonth() + 1, x.getDate()); }; try { C = (window.EPSL ? EPSL.items() : []).map(function (it) { return it.nom; }); } catch (e) {}
     var cur = want && C.indexOf(want) >= 0 ? want : B._cls && C.indexOf(B._cls) >= 0 ? B._cls : C[0];
-    var o = overlay('<div id="epsbu"><h3>📝 Appréciations de bulletin</h3><p class="m">Claude part de tes commentaires et évaluations de toutes les activités de la période (aucun nom ne lui est envoyé) et formule une appréciation positive et générale, sans nommer l\'activité : tu ajoutes tes remarques. Relis, corrige, coche ✓ : seules les appréciations cochées sont copiées.</p>' +
-      '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><select class="epsd-in" id="bu-p" style="width:auto;margin:0" aria-label="Période">' + [1, 2, 3, 0].map(function (t) { return '<option value="' + t + '"' + (t === TCUR ? " selected" : "") + ">" + (t ? "Trimestre " + t : "Toute l'année") + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><div id="bu-l"></div><div class="epsd-act"><button data-x>Fermer</button></div></div>');
+    var o = win("epsbu-w", "📝 Appréciations de bulletin", '<div id="epsbu"><p class="m">Positives et générales (sans nommer l\'activité), à partir de toutes les activités de la période ; aucun nom envoyé à Claude. Relis, corrige, coche ✓ : seules les cochées sont copiées.</p>' +
+      '<div class="epsd-act" style="justify-content:flex-start;flex-wrap:wrap;align-items:center;margin-top:6px"><select class="epsd-in" id="bu-c" style="width:auto;margin:0">' + C.map(function (c) { return "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + '</select><select class="epsd-in" id="bu-p" style="width:auto;margin:0" aria-label="Période">' + [1, 2, 3, 0].map(function (t) { return '<option value="' + t + '"' + (t === TCUR ? " selected" : "") + ">" + (t ? "Trimestre " + t : "Toute l'année") + "</option>"; }).join("") + '</select><button type="button" id="bu-go">✨ Proposer les appréciations</button><button type="button" id="bu-cp">📋 Copier (✓)</button></div><p class="m" id="bu-m"></p><p class="m" id="bu-s" style="margin-top:-6px">💾 Tout est enregistré au fur et à mesure sur cette tablette, même si tu fermes la fenêtre pendant que Claude rédige.</p><div id="bu-l"></div></div>');
     var sel = o.querySelector("#bu-c"), list = o.querySelector("#bu-l"), msg = o.querySelector("#bu-m"), psel = o.querySelector("#bu-p");
     var rk = function (c) { var k = c + "|" + psel.value; if (!B[k] && psel.value === String(TCUR) && B[c] && typeof B[c] === "object") B[k] = B[c]; return k; };
     psel.onchange = function () { PER = TR[psel.value]; save(); draw(); };
@@ -2276,7 +2292,10 @@
       var le = LE.length ? "\nÉvaluations de leçon (participation, sérieux, thème du jour) : moyenne " + (Math.round(LE.reduce(function (a, b) { return a + b; }, 0) / LE.length * 10) / 10) + " / 3 sur " + LE.length + " leçon(s)" : "";
       var ob = O.length ? "\nObservations du professeur pendant les leçons : " + O.slice(-12).map(function (o) { var t = o.txt; fs.forEach(function (f) { if (f) t = t.replace(new RegExp("\\b" + f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "un camarade"); }); return t; }).join(" ; ") : "";
       return evalsOf(n, c).map(function (e) { return e.app + " : " + (e.st === "ABS" ? "absent(e)" : e.st === "DISP" ? "dispensé(e)" : e.n + " critère(s) évalué(s)") + (e.comm ? ". Commentaire du professeur : " + e.comm : ""); }).join("\n") + ob + le + rs + rm; }
-    function save() { B._cls = sel.value; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) {} }
+    var stat = o.querySelector("#bu-s"), sT = 0;
+    function save() { B._cls = sel.value; var ok = true; try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) { ok = false; }
+      stat.className = ok ? "m epsd-ok" : "m"; stat.textContent = ok ? "💾 Enregistré (" + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) + ")" : "⚠ Enregistrement impossible sur cette tablette (mémoire pleine ?) : copie tes appréciations.";
+      clearTimeout(sT); if (ok) sT = setTimeout(function () { stat.className = "m"; }, 1500); }
     function draw() {
       var c = sel.value, R = B[rk(c)] = B[rk(c)] || {}, P = people(c);
       list.innerHTML = P.map(function (n, i) { var r = R[n] || {}, has = !!notes(c, n);
@@ -2300,6 +2319,7 @@
     o.querySelector("#bu-cp").onclick = function () { var c = sel.value, R = B[rk(c)] || {}, txt = people(c).filter(function (n) { return R[n] && R[n].ok && R[n].t; }).map(function (n) { return n + " : " + R[n].t; }).join("\n");
       if (!txt) { msg.textContent = "Coche ✓ les appréciations relues pour les copier."; return; }
       (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { msg.textContent = "📋 Copié : colle dans Pronote ou un document."; }, function () { var ta = document.createElement("textarea"); ta.value = txt; o.appendChild(ta); ta.select(); try { document.execCommand("copy"); msg.textContent = "📋 Copié."; } catch (e) {} ta.remove(); }); };
+    o._open = function (w2) { o.style.display = "flex"; if (typeof w2 === "string" && w2 !== sel.value && C.indexOf(w2) >= 0) { save(); sel.value = w2; draw(); } };
     draw();
   }
   function searchBtn() {

@@ -126,7 +126,7 @@
        (.epst-dock), les onglets et le bandeau restent cliquables, son bouton « ✕ Fermer » disparaît, le bouton du bandeau reste marqué.
        Changer d'onglet ou toucher un autre bouton le remplace. Les écrans communs plein écran (.lc-ov, .gr-w) ouverts depuis une page de
        l'appli se rangent de la même façon. Jamais dans l'atelier de la console (?console=lecons / classe : l'écran y est la page). */
-    var H = document.documentElement, NODOCK = /[?&]console=(lecons|classe)/.test(location.search), ROOT = null, AUTO = ".lc-ov,.gr-w";
+    var H = document.documentElement, NODOCK = /[?&]console=(lecons|classe)/.test(location.search), ROOT = null, AUTO = ".lc-ov,.gr-w,.epsd-win";
     function shown(el) { if (!el || !el.isConnected) return false; var cs = getComputedStyle(el); return cs.display !== "none" && cs.visibility !== "hidden" && el.getBoundingClientRect().height > 40; }
     function big(el) { if (el.nodeType !== 1 || el === nav || el === acts || el === pan || el === vue || /^(SCRIPT|STYLE|LINK)$/.test(el.tagName)) return false;
       if (el.matches(".lc-st,.lc-msg,.epsg,.epst-mn,#eps-simbar,.epst-vue")) return false;
