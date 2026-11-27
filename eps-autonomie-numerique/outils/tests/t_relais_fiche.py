@@ -1,4 +1,4 @@
-# Relais : ▶ Leçon du jour n'amène plus vers Classe ; 👤 Fiche élève (toutes ses courses et ses performances), aussi depuis l'évaluation.
+# Relais : ▶ Leçon du jour n'amène plus vers Classe ; 👤 Fiche élève (toutes ses courses et ses performances), en fenêtre depuis l'évaluation ; Zone 3 = Zone 100.
 import asyncio,sys,subprocess,time
 from playwright.async_api import async_playwright
 ROOT=sys.argv[1]; PORT=8872; SHOT=sys.argv[2] if len(sys.argv)>2 else ""
@@ -47,8 +47,20 @@ async def main():
     # 3. depuis l'évaluation
     await p.click(".epst-nav [data-t=eval]"); await p.wait_for_timeout(800); await p.evaluate("[...document.querySelectorAll('.epst-tb button.seg')].find(b=>/finale/.test(b.innerText)).click()"); await p.wait_for_timeout(900)
     await p.evaluate("EV_SEL=CL().eleves[1].id;renderEval()"); await p.wait_for_timeout(800)
-    await p.evaluate("document.querySelector('#v-eval [data-fego]').click()"); await p.wait_for_timeout(1700)
-    chk(await p.evaluate(V)=="eleve" and await p.evaluate("FE_SEL===CL().eleves[1].id") and await p.evaluate(cur)=="eval","« Toutes ses courses » depuis l'évaluation : sa fiche, onglet Évaluer")
-    await p.click("#fe-back"); await p.wait_for_timeout(900); chk(await p.evaluate(V)=="eval" and await p.evaluate("EV_SEL===CL().eleves[1].id"),"retour à l'évaluation du même élève")
+    await p.evaluate("document.querySelector('#v-eval [data-fego]').click()"); await p.wait_for_timeout(1200)
+    chk(await p.evaluate(V)=="eval" and await p.evaluate("document.querySelector('#femodal').classList.contains('on')") and await p.evaluate(cur)=="eval","« Toutes ses courses » depuis l'évaluation : fenêtre par-dessus, on reste sur Évaluer")
+    t=await p.evaluate("document.querySelector('#fe-pop').innerText"); chk((await p.evaluate("CL().eleves[1].prenom")).upper() in t.upper() and "Ce que l'évaluation en déduit" in t,"la fenêtre montre la fiche de l'élève de l'évaluation")
+    if SHOT: await p.screenshot(path=SHOT+"fiche_pop.png")
+    await p.click("#fe-close"); await p.wait_for_timeout(500); chk(await p.evaluate("!document.querySelector('#femodal').classList.contains('on')") and await p.evaluate(V)=="eval" and await p.evaluate("EV_SEL===CL().eleves[1].id"),"✕ Fermer : retour à l'évaluation du même élève")
+    # 4. zones saisies en liste : Zone 3 = Zone 100, Zone 2 = Zone 10 (bug du 27/11/2026)
+    await p.evaluate("""(()=>{const C=CL(),E=C.eleves,co=(n,lid,a,b,z)=>({cid:'z'+n,lid,n,heure:'11:0'+n,i1:a.id,i2:b.id,p1:a.prenom,n1:a.nom,p2:b.prenom,n2:b.nom,cible:23,ecart:0,realise:23,zone:z,pm:5});
+      C.courses=[co(1,'l1',E[4],E[5],'Zone 3'),co(2,'l2',E[4],E[5],'Zone 3'),co(3,'l3',E[5],E[4],'Zone 2'),co(4,'l3',E[4],E[5],'Zone 1')];persist()})()""")
+    r=await p.evaluate("(()=>{EV_SCOPE='all';const s=evStats(CL().eleves[4]);return [s.les.reduce((a,l)=>a+l.z100,0),s.les.reduce((a,l)=>a+l.inz,0),s.les.reduce((a,l)=>a+l.nz,0)]})()")
+    chk(r==[2,4,4],"Zone 3 comptée en Zone 100 dans l'évaluation (2 / 4 attendu : "+str(r)+")")
+    await p.evaluate("EV_SEL=CL().eleves[4].id;renderEval()"); await p.wait_for_timeout(600); await p.evaluate("document.querySelector('#v-eval [data-fego]').click()"); await p.wait_for_timeout(900)
+    t=await p.evaluate("document.querySelector('#fe-pop').innerText"); chk("2 / 4" in t and "Zone 3 · 100" in t,"la fiche compte aussi 2 / 4 en Zone 100 et montre « Zone 3 · 100 »")
+    chk(await p.evaluate("zK('Zone 2')==='Zone 10'&&zK('Zone 1')==='Zone 1'&&zK('zone 100')==='Zone 100'&&zK('Hors zone')===HZ&&zK('Autre')==='Autre'"),"correspondance des noms de zones")
+    chk(await p.evaluate("(()=>{ST.zone='Zone 3';return !!diagResult().active})()"),"diagnostic de la transmission actif aussi avec « Zone 3 »")
+    await p.keyboard.press("Escape"); await p.wait_for_timeout(300); chk(await p.evaluate("!document.querySelector('#femodal').classList.contains('on')"),"Échap referme la fenêtre")
     print("erreurs:",errs); chk(not errs,"aucune erreur de page"); await b.close()
 asyncio.run(main()); srv.terminate(); sys.exit(0 if ok else 1)

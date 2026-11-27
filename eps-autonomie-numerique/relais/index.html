@@ -656,6 +656,10 @@ body.eteach .ebar .es{display:block}
 .fe .bstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px}.fe .bstats div{background:var(--soft);border-radius:12px;padding:10px 12px}
 .fe .bstats b{display:block;font-size:22px;font-weight:900}.fe .bstats span{font-size:13px;color:var(--muted)}.fe h3{margin:18px 0 0;font-size:17px}.fe h3 small{font-weight:600;color:var(--muted)}
 .fe .evrec{margin-top:8px;font-size:16px}.fe .evrec td{padding:9px 10px}.fe .pos{color:#2E7D4F;font-weight:800}.fe .neg{color:#C0392B;font-weight:800}
+#femodal{z-index:80}
+.fepop{max-width:980px!important;padding:0 22px 22px!important}.fepop .fe{box-shadow:none;padding:0;margin-top:0}
+.fepop-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;background:var(--card);padding:16px 0 10px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.fepop-top b{flex:1;font-size:18px}.fepop-top .btn{width:auto}
 .fe .zt{display:inline-block;padding:2px 9px;border-radius:999px;color:#fff;font-weight:800;font-size:13px;white-space:nowrap}
 .lvctl{padding:10px 12px;margin-top:6px}.lvctl .r{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.lvctl .r+.r{margin-top:10px;padding-top:10px;border-top:1.5px solid var(--line)}
 .lvctl button{min-height:44px;padding:0 14px;border-radius:12px;border:2px solid var(--line);background:#fff;font:inherit;font-weight:800;font-size:15px;cursor:pointer;color:var(--ink,#14171C)}
@@ -1403,6 +1407,11 @@ body.eteach .ebar .es{display:block}
 </div></div>
 
 <!-- Confirmation -->
+<!-- 🔎 Toutes ses courses (depuis l'évaluation) : fenêtre qu'on referme, sans changer de page (demande de l'enseignant, 27/11/2026) -->
+<div class="modal" id="femodal"><div class="box wide fepop" role="dialog" aria-label="Toutes ses courses">
+  <div class="fepop-top"><b>🔎 Toutes ses courses, une par une</b><button class="btn ghost sm" id="fe-close">✕ Fermer</button></div>
+  <div id="fe-pop"></div>
+</div></div>
 <div class="modal" id="modal"><div class="box">
   <h3 id="m-t"></h3><p id="m-p"></p>
   <div class="row"><button class="btn ghost" id="m-no" style="flex:1">Annuler</button><button class="btn primary" id="m-yes" style="flex:1">Confirmer</button></div>
@@ -1494,6 +1503,13 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const byId=id=>EL().find(e=>e.id===id);
 const NR="Non renseigné";
 const HZ="Hors zone";
+/* Zone d'une course, sous un seul nom (bug signalé par l'enseignant, 27/11/2026 : 2 transmissions en « Zone 3 » comptées 0 en Zone 100).
+   Saisie en liste (DEFCFG.zones : Zone 1, Zone 2, Zone 3) = zones de l'image : Zone 1 = 1 point, Zone 2 = Zone 10, Zone 3 = Zone 100.
+   Toujours comparer zK(c.zone), jamais c.zone directement à "Zone 100" / "Zone 10" / "Zone 1". */
+function zK(z){if(typeof z!=="string"||!z||z===HZ||z===NR)return z;
+  const s=z.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();if(/^hors/.test(s))return HZ;
+  const m=s.match(/^(?:z|zone)\s*(\d+)/)||s.match(/^(\d+)\b/);if(!m)return z;const n=+m[1];
+  return n===3||n===100?"Zone 100":n===2||n===10?"Zone 10":n===1?"Zone 1":z}
 function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("show"),2600)}
 function confirmBox(t,p,yes){return new Promise(res=>{$("#m-t").textContent=t;$("#m-p").textContent=p;$("#m-yes").textContent=yes||"Confirmer";$("#modal").classList.add("on");
   const done=v=>{$("#modal").classList.remove("on");$("#m-yes").onclick=$("#m-no").onclick=null;res(v)};
@@ -1583,7 +1599,7 @@ function seqClose(){clearTimeout(SEQ_T);if(!SEQ_ON)return;SEQ_ON=false;try{if(wi
 /* RL_LB : résultats d'une leçon ouverts depuis Évaluer → « Bilan des leçons (courses) » (l'onglet Évaluer reste allumé) ; sinon ils font partie de 👥 Classe */
 var RL_LB=0;
 function go(v){
-  if(v!=="eval")RL_BIL=0;if(v!=="bilan")RL_LB=0;if(v!=="eleve")FE_BACK=null; /* « Bilan et export » ne vaut que pour l'écran d'où on l'a ouvert */
+  if(v!=="eval")RL_BIL=0;if(v!=="bilan")RL_LB=0;if(v!=="eleve")FE_BACK=null;if(v!=="eval")try{feClose()}catch(e){} /* « Bilan et export » ne vaut que pour l'écran d'où on l'a ouvert */
   if(TEACH_VIEWS.includes(v)&&!teachOn()){requireCode().then(ok=>{if(ok)go(v)});return}
   if(v==="wait"){showWait();return}
   /* Évaluation : accessible sans leçon ouverte (elle porte sur toute la séquence). Sans classe choisie : la seule classe est prise d'office,
@@ -2899,7 +2915,7 @@ function evCourses(e){
   return out}
 /* 👤 Fiche élève (demande de l'enseignant, 27/11/2026 : « sélectionner une classe, un élève et avoir un récapitulatif de toutes ses courses et de
    ses performances », pour vérifier ce qu'affiche l'évaluation) : vue v-eleve, depuis 👥 Classe → Fiche élève ou « 🔎 Toutes ses courses » de
-   l'évaluation (FE_BACK="eval"). Mêmes courses que l'évaluation (evCourses), sans rien cacher : comptes bruts, puis ce que l'évaluation en déduit. */
+   l'évaluation (fenêtre #femodal, fePop : on reste sur l'évaluation). Mêmes courses que l'évaluation (evCourses), sans rien cacher : comptes bruts, puis ce que l'évaluation en déduit. */
 let FE_SEL=null,FE_BACK=null;
 function renderFiche(){
   const C=CL();if(!C)return;const L=EL().slice().sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
@@ -2908,14 +2924,17 @@ function renderFiche(){
   $("#fe-names").innerHTML=L.map(e=>`<button data-fe="${e.id}" class="${FE_SEL===e.id?"on":""}">${esc(e.prenom)} <small>${esc(e.nom?e.nom[0]+".":"")}</small></button>`).join("")||`<span class="note">Aucun élève</span>`;
   const e=FE_SEL!=null?byId(FE_SEL):null,box=$("#fe-body");
   if(!e){box.innerHTML=`<div class="card mt empty-msg">Touche un élève : ses vitesses, toutes ses courses leçon par leçon, et le calcul de l'évaluation.</div>`;return}
+  box.innerHTML=ficheHTML(e);
+}
+function ficheHTML(e){
   const sc=EV_SCOPE;EV_SCOPE="all";const s=evStats(e);EV_SCOPE=sc;
   const mine=evCourses(e).sort((a,b)=>b.date.localeCompare(a.date)||(b.c.n||0)-(a.c.n||0)),k=ekey(e);
   const isD=c=>c.i1===e.id||(c.i2!==e.id&&ekey({prenom:c.p1,nom:c.n1})===k);
   const tr=a=>(a||[]).filter(v=>typeof v==="number").map(v=>fmt(v)).join(" · ")||"–",sp=v=>typeof v==="number"?fmt(v)+" km/h":"–";
-  const ec=mine.map(x=>x.c.ecart).filter(v=>typeof v==="number"),zs=mine.map(x=>x.c.zone).filter(z=>typeof z==="string"&&z&&z!==NR);
+  const ec=mine.map(x=>x.c.ecart).filter(v=>typeof v==="number"),zs=mine.map(x=>zK(x.c.zone)).filter(z=>typeof z==="string"&&z&&z!==NR);
   const nD=mine.filter(x=>isD(x.c)).length,over=ec.filter(v=>v>0).length,reach=ec.filter(v=>v>=0).length,inz=zs.filter(z=>z!==HZ).length,z100=zs.filter(z=>z==="Zone 100").length;
   const ZC={"Zone 100":"#2E7D4F","Zone 10":"#8BC34A","Zone 1":"#EF9F27"};ZC[HZ]="#C0392B";
-  const zt=z=>typeof z==="string"&&z&&z!==NR?`<span class="zt" style="background:${ZC[z]||"#8A8F98"}">${esc(z)}</span>`:"–";
+  const zt=z=>typeof z==="string"&&z&&z!==NR?`<span class="zt" style="background:${ZC[zK(z)]||"#8A8F98"}">${esc(z)}${zK(z)!==z?" · "+esc(zK(z).replace("Zone ","")):""}</span>`:"–";
   let h=`<div class="card mt fe"><div class="label" style="font-size:22px">${esc(e.prenom)} ${esc(e.nom)}${e.ma==="DISP"?' <span class="flag">dispensé</span>':""}</div>
     <h3>⏱ Vitesses <small>· prise de performances</small></h3>
     <div class="bstats"><div><b>${sp(e.ma)}</b><span>départ arrêté · essais : ${tr(e.ea)}</span></div><div><b>${sp(e.ml)}</b><span>départ lancé · essais : ${tr(e.el)}</span></div></div>
@@ -2937,11 +2956,19 @@ function renderFiche(){
           return `<tr><td class="n">${c.n||"–"}${c.heure?`<br><small style="color:var(--muted)">${esc(c.heure)}</small>`:""}</td><td><b>${d1?"Donneur":"Receveur"}</b></td><td>${esc(d1?c.p2:c.p1)} <small>${esc(((d1?c.n2:c.n1)||"")[0]||"")}${(d1?c.n2:c.n1)?".":""}</small></td>
             <td class="n">${typeof c.cible==="number"?fmt(c.cible):"–"}</td><td class="n ${v?(c.ecart>=0?"pos":"neg"):""}">${v?sgn(c.ecart):"–"}</td><td class="n">${typeof c.realise==="number"?fmt(c.realise):"–"}</td><td class="n">${zt(c.zone)}</td><td class="n">${typeof c.pm==="number"?c.pm:"–"}</td></tr>`}).join("")+`</tbody></table></div>`});
     h+=`</div>`}
-  box.innerHTML=h;
+  return h;
 }
+/* « 🔎 Toutes ses courses, une par une » de l'évaluation : même fiche (ficheHTML), dans une fenêtre qu'on referme ; on reste sur l'évaluation. */
+let FE_POP=null;
+function fePop(id){if(id!=null)FE_POP=id;const e=FE_POP!=null?byId(FE_POP):null;if(!e){feClose();return}
+  $("#fe-pop").innerHTML=ficheHTML(e);const m=$("#femodal");if(!m.classList.contains("on")){m.classList.add("on");m.querySelector(".box").scrollTop=0}}
+function feClose(){$("#femodal").classList.remove("on");FE_POP=null}
+$("#fe-close").addEventListener("click",feClose);
+$("#femodal").addEventListener("click",ev=>{if(ev.target.id==="femodal")feClose()});
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&$("#femodal").classList.contains("on"))feClose()});
 document.addEventListener("click",ev=>{
   const a=ev.target.closest("#fe-names [data-fe]");if(a){FE_SEL=+a.dataset.fe;renderFiche();$("#fe-body").scrollIntoView({behavior:"smooth",block:"start"});return}
-  const g=ev.target.closest("[data-fego]");if(g){FE_SEL=+g.dataset.fego;const fb=viewNow()==="eval"?"eval":null;go("eleve");FE_BACK=fb;renderFiche();return}
+  const g=ev.target.closest("[data-fego]");if(g){fePop(+g.dataset.fego);return}
   if(ev.target.closest("#fe-back")){if(FE_BACK==="eval"){RL_BIL=0;go("eval")}else go(CL()?"lecons":"classes")}});
 function evStats(e){
   const mine=evCourses(e),all=new Set(mine.map(x=>x.date));
@@ -2954,7 +2981,7 @@ function evStats(e){
   const r={n:0,les:[],perf:null,trans:null,scope,last:lids.length?lids[lids.length-1].date:null};
   let P={w:0,over:0,reach:0,sum:0},T={w:0,inz:0,z100:0};
   lids.forEach(l=>{const L=cs.filter(c=>c.lid===l.id);if(!L.length)return;const k=coef[l.id];
-    const ec=L.map(c=>c.ecart).filter(v=>typeof v==="number"),zs=L.map(c=>c.zone).filter(z=>inZ(z)||z===HZ);
+    const ec=L.map(c=>c.ecart).filter(v=>typeof v==="number"),zs=L.map(c=>zK(c.zone)).filter(z=>inZ(z)||z===HZ);
     const row={date:l.date,k,n:L.length,ne:ec.length,over:ec.filter(v=>v>0).length,nz:zs.length,inz:zs.filter(inZ).length,z100:zs.filter(z=>z==="Zone 100").length};
     r.les.push(row);r.n+=L.length;
     P.w+=k*ec.length;P.over+=k*row.over;P.reach+=k*ec.filter(v=>v>=0).length;P.sum+=k*ec.reduce((a,b)=>a+b,0);
@@ -3125,7 +3152,7 @@ const DIAG={
 };
 /* Résultat du diagnostic : done = conseil final atteint */
 function diagResult(){
-  const d=DIAG[ST.zone],cfg=CFG();
+  const d=DIAG[zK(ST.zone)],cfg=CFG();
   if(!d)return {active:false,done:true};
   if(d.msg)return {active:true,done:true,conseil:d.msg,tone:d.tone};
   if(d.seq){for(const [k,,bad] of d.seq){if(ST[k]==null)return {active:true,done:false};if(ST[k]==="Oui")return {active:true,done:true,conseil:bad,tone:"warn"}}
@@ -3161,7 +3188,7 @@ function conseilHTML(r,pm,cfg){
   return `<div class="cons ${r.tone||""}"><div class="adv-ico">${ico}</div><div><div class="adv-big">${esc(r.conseil)}</div>${sub?`<div class="adv-sub">${sub}</div>`:""}${sl}</div></div>`;
 }
 function renderDiag(){
-  const d=DIAG[ST.zone],box=$("#r-advice"),cfg=CFG();
+  const d=DIAG[zK(ST.zone)],box=$("#r-advice"),cfg=CFG();
   const cb=$("#r-conseil");cb.innerHTML="";cb.classList.remove("on");
   if(!d||!cfg.zone){box.innerHTML="";box.classList.remove("on");return}
   const r=diagResult();let html=`<div class="bubble">`;
@@ -3302,7 +3329,7 @@ $("#r-save").addEventListener("click",()=>{
     cible:r.cible,ecart:on("ecart",num?ST.ecart:NR),realise:cfg.ecart&&num?r.cible+ST.ecart:null,
     zone:on("zone",ST.zone),dep:on("dep",ST.dep),
     pt:cfg.pt?(ptNeeded()?ST.pt:null):NR,ptd:cfg.pt&&ptNeeded()&&typeof ST.pt==="number"?ptDist(ST.pt):null,
-    ...(()=>{const r=diagResult();return {recul:r.recul||null,dv:r.active&&!DIAG[ST.zone].msg&&!DIAG[ST.zone].seq?ST.dv:null,zr:r.active&&DIAG[ST.zone].seq?ST.zr:null,za:r.active&&DIAG[ST.zone].seq&&ST.zr==="Non"?ST.za:null,dw:ST.dv==="Non"?ST.dw:null,de:ST.dv==="Oui"?ST.de:null,conseil:r.conseil||null,tone:r.tone||null}})(),
+    ...(()=>{const r=diagResult();return {recul:r.recul||null,dv:r.active&&!DIAG[zK(ST.zone)].msg&&!DIAG[zK(ST.zone)].seq?ST.dv:null,zr:r.active&&DIAG[zK(ST.zone)].seq?ST.zr:null,za:r.active&&DIAG[zK(ST.zone)].seq&&ST.zr==="Non"?ST.za:null,dw:ST.dv==="Non"?ST.dw:null,de:ST.dv==="Oui"?ST.de:null,conseil:r.conseil||null,tone:r.tone||null}})(),
     pm:on("pm",ST.pm),pmd:cfg.pm&&typeof ST.pm==="number"?pmDist(ST.pm):null
   });
   const last=CO()[CO().length-1],pmPrev=ST.pm,res=diagResult();
@@ -3926,7 +3953,8 @@ function syRefreshSoon(){clearTimeout(syRT);syRT=setTimeout(syRefresh,60)}
 function syRefresh(){
   const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)&&a.closest(".view.on,.modal.on")){syRT=setTimeout(syRefresh,2500);return}
   if(document.querySelector(".modal.on"))
-    {if($("#cmodal").classList.contains("on"))try{drawClassStudents()}catch(e){}}
+    {if($("#cmodal").classList.contains("on"))try{drawClassStudents()}catch(e){}
+     if($("#femodal").classList.contains("on"))try{fePop()}catch(e){}}
   const on=document.querySelector(".view.on"),v=on?on.id.slice(2):"";
   try{
     if(v==="wait"){startStudent();return}
@@ -4167,7 +4195,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
   else if(document.visibilityState==="visible"&&$("#vmodal").classList.contains("on")&&!VR.st&&!VR.cur)vCamOn().then(ok=>ok&&vUI("cam"))});
 
 /* ===== Tableau de bord en direct (enseignant) ===== */
-const zCls=z=>z==="Zone 100"?"z100":z==="Zone 10"?"z10":z==="Zone 1"?"z1":z===HZ?"hz":"";
+const zCls=z=>(z=zK(z))==="Zone 100"?"z100":z==="Zone 10"?"z10":z==="Zone 1"?"z1":z===HZ?"hz":"";
 function hmAgo(h){if(!CLE()||CLE().date!==todayISO()||!/^\d\d:\d\d$/.test(h||""))return null;const n=new Date(),[H,M]=h.split(":").map(Number);return Math.max(0,n.getHours()*60+n.getMinutes()-H*60-M)}
 const consShort=t=>{t=String(t||"");return /Bravo/.test(t)?"réussie":/Avance/.test(t)?"marque à avancer":/Recule/.test(t)?"marque à reculer":/retarde|trop tôt/i.test(t)?"transmission trop tôt":/vas-y à fond/.test(t)?"donneur qui ralentit":/regarde bien ta marque|bon moment/.test(t)?"départ du receveur mal réglé":/Recommence/.test(t)?"fatigue":t?t.slice(0,40):""};
 function liveData(){
@@ -4232,7 +4260,7 @@ function renderLive(){
   const D=liveData(),{cfg,CS,st}=D;
   $("#lv-lecon").textContent="Leçon du "+fmtShort(CLE().date);
   const act=st.filter(x=>!x.disp),ran=act.filter(x=>x.mine.length),gd=cfg.goalOn?act.filter(x=>x.g&&x.g.done).length:null;
-  const zs=CS.map(c=>c.zone).filter(z=>typeof z==="string"&&z!==NR),z100=zs.filter(z=>z==="Zone 100").length,inz=zs.filter(z=>z!==HZ).length;
+  const zs=CS.map(c=>zK(c.zone)).filter(z=>typeof z==="string"&&z!==NR),z100=zs.filter(z=>z==="Zone 100").length,inz=zs.filter(z=>z!==HZ).length;
   const lastC=CS[CS.length-1],ago=lastC?hmAgo(lastC.heure):null;
   $("#lv-sum").innerHTML=`<div><b>${CS.length}</b><span>courses</span></div><div><b>${ran.length} / ${act.length}</b><span>élèves qui ont couru</span></div>`
     +(gd!=null?`<div><b>${gd} / ${act.length}</b><span>objectif atteint (${D.N} courses)</span></div>`:"")
@@ -4262,11 +4290,11 @@ setInterval(()=>{try{syStatus()}catch(e){}},15000);
 function lvAnon(){const m=new Map(),r=new Map();EL().forEach((e,i)=>{m.set(e.id,"E"+(i+1));r.set("E"+(i+1),e)});return {m,r}}
 function lvPrompt(A){
   const D=liveData(),{cfg,CS}=D,c=x=>A.m.get(x)||"E?";
-  const zc={};CS.forEach(x=>{const z=x.zone===HZ?"hors zone":x.zone;if(z&&z!==NR)zc[z]=(zc[z]||0)+1});
+  const zc={};CS.forEach(x=>{const z=zK(x.zone)===HZ?"hors zone":zK(x.zone);if(z&&z!==NR)zc[z]=(zc[z]||0)+1});
   let t=`Leçon de relais-vitesse du ${fmtShort(CLE().date)}. Vitesse cible = moyenne des vitesses du donneur (départ arrêté) et du receveur (départ lancé).`
     +(cfg.goalOn?` Objectif : ${cfg.goalN||4} courses ${cfg.goalMode==="both"?"comme donneur et comme receveur":"dans son meilleur rôle"}.`:"")
     +`\n${CS.length} courses. Zones : ${Object.entries(zc).map(([z,n])=>z+" "+n).join(", ")||"non saisies"}.\nBinômes (donneur>receveur : nb de courses ; zones ; écart moyen à la cible ; conseils de l'appli) :\n`;
-  Object.values(D.pairs).forEach(L=>{const z={},k={};L.forEach(x=>{const zz=x.zone===HZ?"HZ":x.zone==="Zone 100"?"Z100":x.zone==="Zone 10"?"Z10":x.zone==="Zone 1"?"Z1":"";if(zz)z[zz]=(z[zz]||0)+1;const s=consShort(x.conseil);if(s)k[s]=(k[s]||0)+1});
+  Object.values(D.pairs).forEach(L=>{const z={},k={};L.forEach(x=>{const zx=zK(x.zone),zz=zx===HZ?"HZ":zx==="Zone 100"?"Z100":zx==="Zone 10"?"Z10":zx==="Zone 1"?"Z1":"";if(zz)z[zz]=(z[zz]||0)+1;const s=consShort(x.conseil);if(s)k[s]=(k[s]||0)+1});
     const ec=L.map(x=>x.ecart).filter(v=>typeof v==="number"),m=ec.length?ec.reduce((a,b)=>a+b,0)/ec.length:null;
     t+=`${c(L[0].i1)}>${c(L[0].i2)} : ${L.length} ; ${Object.entries(z).map(([a,b])=>a+"×"+b).join(" ")||"-"} ; ${m==null?"-":(m>0?"+":"")+fmt(m)+" km/h"} ; ${Object.entries(k).map(([a,b])=>a+(b>1?" ×"+b:"")).join(", ")||"-"}\n`});
   const zero=D.st.filter(x=>!x.disp&&!x.mine.length).map(x=>c(x.e.id)),di=D.st.filter(x=>x.disp).map(x=>c(x.e.id));
@@ -4509,7 +4537,7 @@ function remList(){
   /* courses : par binôme et par élève */
   const pairs={};CS.forEach(c=>{(pairs[c.i1+">"+c.i2]=pairs[c.i1+">"+c.i2]||[]).push(c)});
   Object.entries(pairs).forEach(([k,L])=>{const last=L.slice(-6),w=`${nm(L[0].i1)} → ${nm(L[0].i2)}`,n=f=>last.filter(f).length;
-    const tt=n(c=>c.zone==="Zone 1"||c.dw==="Le donneur a donné trop tôt");if(tt>=2)add("tropTot",k,w,`${tt} fois sur les ${last.length} dernières courses du binôme.`);
+    const tt=n(c=>zK(c.zone)==="Zone 1"||c.dw==="Le donneur a donné trop tôt");if(tt>=2)add("tropTot",k,w,`${tt} fois sur les ${last.length} dernières courses du binôme.`);
     const rl=n(c=>c.zr==="Oui"||/trop loin devant/.test(c.dw||""));if(rl>=2)add("recevLoin",k,w,`${rl} fois sur les ${last.length} dernières courses : receveur trop loin devant ou qui ralentit.`);
     const ra=n(c=>c.za==="Oui");if(ra>=2)add("recevAccel",k,w,`${ra} fois sur les ${last.length} dernières courses : le receveur accélère encore avec le témoin.`);
     const hz=n(c=>c.zone===HZ);if(hz>=2)add("horsZone",k,w,`${hz} transmissions hors zone sur les ${last.length} dernières courses.`);
