@@ -55,7 +55,7 @@ async def main():
                     if r["out"]: pb += 1; print("PB", app, t, lab[:34], "=>", " ; ".join(r["out"]), flush=True)
                     else: print("ok", app, t, lab[:34], "(rangé sous le bandeau)" if r["docked"] else "(dans la page)", flush=True)
                     if r["docked"]:
-                        other = [x for x in tabs if x not in (t, "vue")][0]
+                        other = [x for x in ("cls", "reg", "eval") if x in tabs and x != t][0]  # pas « seq » : en Relais, Séquence ouvre elle-même les fiches de leçon sous le bandeau
                         await p.evaluate(TAB, other); await p.wait_for_timeout(500)
                         if (await p.evaluate(BAD))["docked"]: pb += 1; print("PB", app, t, lab[:34], "=> l'écran rangé reste affiché après un changement d'onglet", flush=True)
             if errs: pb += 1; print("PB", app, "erreurs de page :", sorted(set(errs))[:3], flush=True)

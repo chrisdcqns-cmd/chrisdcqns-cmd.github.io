@@ -456,7 +456,8 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
 .evrep{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px;font-weight:700}
 .evrep button{height:46px;padding:0 16px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:800;font-size:17px}
 .evrep button.on{border-color:var(--lane);background:var(--lane-soft);color:var(--lane)}
-.evgrid{display:grid;grid-template-columns:180px repeat(4,1fr);gap:8px;margin-top:16px}
+.evgrid{display:grid;grid-template-columns:minmax(110px,180px) repeat(4,minmax(0,1fr));gap:8px;margin-top:16px}
+#ev-host #ev-body,#ev-host .epse-two>*{min-width:0}.evc,.evl{overflow-wrap:anywhere}
 .evh{border-radius:12px;color:#fff;font-weight:800;text-align:center;padding:10px 4px;font-size:17px}
 .evh.d4,.evc.on.d4{--c:#2E7D4F}.evh.d3,.evc.on.d3{--c:#6E9F2E}.evh.d2,.evc.on.d2{--c:#C98A00}.evh.d1,.evc.on.d1{--c:#C0392B}.evh{background:var(--c)}
 .evl{background:var(--soft);border-radius:14px;padding:12px;font-weight:800;font-size:18px;display:flex;flex-direction:column;justify-content:center}
@@ -746,6 +747,11 @@ body.eteach .ebar .es{display:block}
       <button class="lk" id="lkBackup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg>Sauvegarde</button>
     </div>
   </div>
+</section>
+
+<!-- SÉQUENCE (enseignant) : les fiches de leçon communes s'ouvrent ici, sous le bandeau, comme dans les autres applis -->
+<section class="view" id="v-seq">
+  <div class="card" style="text-align:center;margin-top:24px"><div class="label">📝 Fiches de leçon</div><p class="note" id="seq-msg">Ouverture des fiches de leçon…</p><button class="btn primary" id="seq-open">Ouvrir les fiches de leçon</button></div>
 </section>
 
 <!-- ÉCRAN ÉLÈVE QUAND AUCUNE LEÇON N'EST EN COURS -->
@@ -1536,9 +1542,9 @@ $("#lkChange").addEventListener("click",async()=>{
 });
 
 /* ===== Navigation ===== */
-const VIEWS=["classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto","dispo","sits","live"];
+const VIEWS=["seq","classes","import","lecons","perf","bilan","groupes","home","liste","course","eval","auto","dispo","sits","live"];
 /* Espace enseignant : ces écrans demandent le code */
-const TEACH_VIEWS=["classes","import","lecons","bilan","eval","live"];
+const TEACH_VIEWS=["seq","classes","import","lecons","bilan","eval","live"];
 let GO_AFTER=null;
 /* Onglet Bilans : ouvre le bilan de la dernière leçon qui a des courses (sinon la dernière leçon passée) au lieu de retomber sur « Leçons » ;
    aucune leçon : le bilan de l'évaluation. Sans classe choisie : comme pour l'évaluation (seule classe, sinon on la demande). */
@@ -1549,15 +1555,25 @@ function goBilans(){
   if(!L.some(l=>l.id===BILAN)){const co=new Set(ALLCO().map(c=>c.lid)),w=L.filter(l=>co.has(l.id)).pop()||L.filter(l=>l.date<=todayISO()).pop();BILAN=w?w.id:null}
   if(BILAN)go("bilan");else{go("eval");toast("Pas encore de leçon : voici le bilan de l'évaluation")}
 }
+/* 📅 Séquence (demande de l'enseignant, 27/11/2026) : l'onglet ouvre les fiches de leçon communes, comme dans les autres applis,
+   et non plus une classe. Les fiches (EPSLC, chargées après la page) se rangent sous le bandeau (eps-shell.js). */
+let SEQ_T=null,SEQ_ON=false;
+function seqOpen(){clearTimeout(SEQ_T);if(viewNow()!=="seq")return;
+  if(window.EPSLC&&EPSLC.open){try{EPSLC.open("lec");SEQ_ON=true;$("#seq-msg").textContent="Fiches de leçon, programmation et leçon en cours."}catch(e){console.warn(e)}}
+  else SEQ_T=setTimeout(seqOpen,400)}
+function seqClose(){clearTimeout(SEQ_T);if(!SEQ_ON)return;SEQ_ON=false;try{if(window.EPSLC&&EPSLC.close)EPSLC.close()}catch(e){}}
+/* RL_LB : résultats d'une leçon ouverts depuis Évaluer → « Bilan des leçons (courses) » (l'onglet Évaluer reste allumé) ; sinon ils font partie de 👥 Classe */
+var RL_LB=0;
 function go(v){
-  if(v!=="eval")RL_BIL=0; /* « Bilan et export » ne vaut que pour l'écran d'où on l'a ouvert */
+  if(v!=="eval")RL_BIL=0;if(v!=="bilan")RL_LB=0; /* « Bilan et export » ne vaut que pour l'écran d'où on l'a ouvert */
   if(TEACH_VIEWS.includes(v)&&!teachOn()){requireCode().then(ok=>{if(ok)go(v)});return}
   if(v==="wait"){showWait();return}
   /* Évaluation : accessible sans leçon ouverte (elle porte sur toute la séquence). Sans classe choisie : la seule classe est prise d'office,
      sinon on la demande et on revient à l'évaluation (GO_AFTER), au lieu de retomber sur « Leçons ». */
   if(v!=="classes")GO_AFTER=null;
   if(v==="eval"&&!CL()){if(DATA.classes.length===1){DATA.cur=DATA.classes[0].id;DATA.lecon=null;persist()}else if(DATA.classes.length)GO_AFTER="eval"}
-  if(!["classes","import","dispo","sits"].includes(v)&&!CL())v="classes";
+  if(!["seq","classes","import","dispo","sits"].includes(v)&&!CL())v="classes";
+  if(v!=="seq")seqClose();
   if(["groupes","home","course","auto","live"].includes(v)&&!CLE())v="lecons";
   if(["groupes","home","course"].includes(v)&&CLE()&&!CLE().groupes){ensureLeconGroups(CLE());persist()}
   if(v==="bilan"&&!BILAN)v="lecons";
@@ -1565,6 +1581,7 @@ function go(v){
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));window.scrollTo(0,0);
   try{history.replaceState(null,"",v==="classes"?location.pathname:"#"+v)}catch(e){}
   if(v==="classes"){renderClasses();updLock()}
+  if(v==="seq")seqOpen();
   if(v==="import")resetImport();
   if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto","live"].includes(v))renderClassAll();
   if(v==="auto"){AU_SEL=null;renderAuto()}
@@ -1578,15 +1595,18 @@ function go(v){
   if(v==="bilan")renderBilan();
 }
 document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b)go(b.dataset.go)});
+$("#seq-open").addEventListener("click",()=>seqOpen());
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(/^g=/.test(h)&&!teachOn()){QR_HASH=location.hash;qrGroupOpen();return}if(VIEWS.includes(h))go(h)});
 
 /* ===== Étape 1 : classes ===== */
+function clsEvalN(c){const E=c.evals||{};return (c.eleves||[]).filter(e=>{const o=E[e.id];return e.ma!=="DISP"&&o&&o.prof&&evTotal(o.prof,o.rep||"4-4").n===4}).length}
 function renderClasses(){
   try{dupBanner()}catch(e){}
   try{$("#cl-hint").textContent=GO_AFTER==="eval"?"Choisis la classe à évaluer":GO_AFTER==="bilans"?"Choisis la classe dont tu veux les bilans":"Choisis la classe pour commencer"}catch(e){}
   const ic=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`;
   $("#clist").innerHTML=DATA.classes.map(c=>`<div class="ctile"><button class="open" data-class="${c.id}"><h3>${esc(c.name)}</h3>
-    <span class="meta">${c.eleves.length} élèves · ${c.groupes.length} groupe${c.groupes.length>1?"s":""} · ${(c.lecons||[]).length} leçon${(c.lecons||[]).length>1?"s":""}</span></button>
+    <span class="meta">${c.eleves.length} élèves · ${c.groupes.length} groupe${c.groupes.length>1?"s":""} · ${(c.lecons||[]).length} leçon${(c.lecons||[]).length>1?"s":""}</span>
+    <span class="meta">${(c.courses||[]).length} course${(c.courses||[]).length>1?"s":""} · ${clsEvalN(c)} évalué${clsEvalN(c)>1?"s":""} sur ${c.eleves.filter(e=>e.ma!=="DISP").length}</span></button>
     <button class="gear" data-cset="${c.id}" aria-label="Réglages">${ic}</button></div>`).join("")
     +`<div class="ctile add"><button class="open" id="btnImport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><h3>Importer une liste d'élèves</h3><span class="meta">.xls, .xlsx, .ods ou .csv</span></button></div>`;
 }
@@ -2841,10 +2861,27 @@ const autoDone=(e,lid)=>{const o=(CL().evals||{})[e.id],a=o&&o.auto&&o.auto[lid]
 /* suggestions tirées des courses enregistrées (toutes les leçons) */
 /* toutes les courses de l'élève, les dernières leçons pondérées par un coefficient (1re leçon ×1, 2e ×2, …) */
 const EV_SEUIL=0.7;
+/* Demande de l'enseignant (27/11/2026) : l'évaluation prend toutes les leçons où le nom de l'élève apparaît, pas seulement la dernière,
+   sauf s'il choisit « Leçon finale seulement ». Ce choix vaut pour la session (EV_SCOPE) : il n'est plus gardé ni synchronisé
+   (l'ancien classe.evScope restait sur « dernière leçon » sans qu'on le voie).
+   evCourses(e) : ses courses dans la classe, par identifiant, et par prénom + nom quand l'identifiant de la course ne correspond plus
+   à personne (liste réimportée) ou dans une classe en double du même nom (autre tablette) ; chaque course une seule fois (cid). */
+let EV_SCOPE="all";
+function evClsSame(){const C=CL(),n=nrm(C.name);return DATA.classes.filter(c=>c===C||nrm(c.name)===n)}
+function evCoDay(c,co){const l=(c.lecons||[]).find(z=>z.id===co.lid);return l?l.date:(/^\d{2}\/\d{2}\/\d{4}$/.test(co.date||"")?frToIso(co.date):null)}
+function evCourses(e){
+  const C=CL(),k=ekey(e),out=[],seen=new Set();
+  evClsSame().forEach(c=>{const x=c===C?e:(c.eleves||[]).find(y=>ekey(y)===k)||null,ids=new Set((c.eleves||[]).map(y=>y.id));
+    const is=(i,p,n)=>x&&i===x.id?true:(i==null||!ids.has(i))&&(p||n)&&ekey({prenom:p,nom:n})===k;
+    (c.courses||[]).forEach(co=>{if(!is(co.i1,co.p1,co.n1)&&!is(co.i2,co.p2,co.n2))return;if(co.cid){if(seen.has(co.cid))return;seen.add(co.cid)}
+      const d=evCoDay(c,co);if(d)out.push({c:co,date:d})})});
+  return out}
 function evStats(e){
-  const C=CL(),cs=ALLCO().filter(c=>c.i1===e.id||c.i2===e.id);
-  let lids=[...new Set(ALLCO().map(c=>c.lid))].map(id=>C.lecons.find(l=>l.id===id)).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
-  const scope=C.evScope==="last"?"last":"all";if(scope==="last")lids=lids.slice(-1);
+  const mine=evCourses(e),all=new Set(mine.map(x=>x.date));
+  evClsSame().forEach(c=>(c.courses||[]).forEach(co=>{const d=evCoDay(c,co);if(d)all.add(d)}));
+  let lids=[...all].sort().map(d=>({id:d,date:d}));
+  const cs=mine.map(x=>Object.assign({},x.c,{lid:x.date}));
+  const scope=EV_SCOPE==="last"?"last":"all";if(scope==="last")lids=lids.slice(-1);
   const coef={};lids.forEach((l,i)=>coef[l.id]=i+1);
   const inZ=z=>typeof z==="string"&&z&&z!==HZ&&z!==NR;
   const r={n:0,les:[],perf:null,trans:null,scope,last:lids.length?lids[lids.length-1].date:null};
@@ -2865,7 +2902,7 @@ function evStats(e){
 const evSuggest=evStats;
 function pc(v){return Math.round(v*100)+" %"}
 function evStatsHTML(e,s){
-  const seg=`<div class="evscope"><button data-evscope="all" class="${s.scope==="all"?"on":""}">Toutes les leçons (dernières pondérées)</button><button data-evscope="last" class="${s.scope==="last"?"on":""}">Leçon finale seulement${s.scope==="last"&&s.last?" ("+fmtShort(s.last)+")":""}</button></div>`;
+  const seg=`<div class="evscope"><button data-evscope="all" class="${s.scope==="all"?"on":""}">Toutes ses leçons (dernières pondérées)</button><button data-evscope="last" class="${s.scope==="last"?"on":""}">Leçon finale seulement${s.scope==="last"&&s.last?" ("+fmtShort(s.last)+")":""}</button></div>`;
   if(!s.n)return `<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale":"Toutes les courses"} de ${esc(e.prenom)}</div>${seg}<p>Aucune course enregistrée pour cet élève${s.scope==="last"?" lors de la leçon finale":""}.</p></div>`;
   const badge=(v)=>v>=EV_SEUIL?`<span class="evok">✓ majoritairement (≥ 70 %)</span>`:`<span class="evko">✗ moins de 70 %</span>`;
   const nl=s.les.length;
@@ -2968,7 +3005,7 @@ function evClick(mode,ev){
     const b=$(mode==="prof"?"#ev-body":"#au-body");if(b)b.scrollIntoView({behavior:"smooth",block:"start"});return}
   const id=mode==="prof"?EV_SEL:AU_SEL;if(id==null)return;const e=byId(id);if(!e)return;const o=evOf(id),lid=CLE()?CLE().id:null;if(mode!=="prof"&&!lid)return;
   const sc=t.closest("[data-evscope]");
-  if(sc){CL().evScope=sc.dataset.evscope;persist();renderEval();return}
+  if(sc){EV_SCOPE=sc.dataset.evscope==="last"?"last":"all";renderEval();return}
   const ap=t.closest("[data-evapply]");
   if(ap){const s=evStats(e);["perf","trans"].forEach(k=>{if(s[k]&&!(o.prof[k]&&o.prof[k].d===s[k]))o.prof[k]={d:s[k]}});o.prof.at=new Date().toISOString();persist();renderEval();toast("Suggestion appliquée : ajuste si besoin");return}
   const rr=t.closest("[data-evrep]");
@@ -3828,8 +3865,9 @@ function syRefresh(){
     if(v==="wait"){startStudent();return}
     if(v==="classes"){renderClasses();return}
     if(v==="dispo"){if(!DSP_EDIT)renderDispo();return}
+    if(v==="seq"||v==="sits"||v==="import")return; /* écrans sans classe : une synchro ne déplace pas l'enseignant */
     if(!CL()){if(!teachOn())showWait();else go("classes");return}
-    if(["groupes","home","course","eval","auto","live"].includes(v)&&!CLE()){if(!teachOn())startStudent();else go("lecons");return}
+    if(["groupes","home","course","auto","live"].includes(v)&&!CLE()){if(!teachOn())startStudent();else go("lecons");return} /* pas « eval » : l'évaluation n'a pas besoin de leçon ouverte */
     if(["lecons","perf","bilan","groupes","home","liste","course","eval","auto","live"].includes(v))renderClassAll();
     if(v==="live")renderLive();if(v==="lecons")renderLecons();if(v==="perf")renderPerf();if(v==="bilan")renderBilan();if(v==="eval")renderEval();if(v==="auto")renderAuto();
     if(v==="course")try{renderGoalReminder()}catch(e){}
@@ -4389,12 +4427,14 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("[data-remshow]");if(b){REM_SHOW=b.dataset.remshow;renderRem();return}
   const j=e.target.closest("[data-remj]");if(j){const J=remJ(),k=j.dataset.k;J[k]=J[k]===j.dataset.remj?undefined:j.dataset.remj;if(!J[k])delete J[k];persist();renderRem()}});
 window.EPSTR=window.EPST?EPST.init({app:'rel',nom:'Relais Vitesse',color:'#D9481F',isTeacher:()=>teachOn(),anchor:'header.ebar',main:'.wrap',home:'seq',
- tabs:{seq:{go:()=>go(CLE()?'home':'lecons'),on:()=>['lecons','home','course','perf','live'].includes(viewNow()),actions:[{ico:'📅',label:'Leçons',go:()=>go('lecons')},{main:1,ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')},{main:1,ico:'📡',label:'En direct',go:()=>go('live')}]},
+ /* Onglets (demande de l'enseignant, 27/11/2026) : 📅 Séquence = fiches de leçon communes (plus une classe) ; 👥 Classe = vue générale de toutes
+    les classes, puis la préparation de la classe choisie (leçons, vitesses, groupes), jamais directement le tableau des vitesses. */
+ tabs:{seq:{go:()=>go('seq'),on:()=>['seq','home','course','live'].includes(viewNow()),actions:[{main:1,ico:'▶',label:'Leçon du jour',go:()=>go('home')},{ico:'⏱',label:'Courses',go:()=>go('course')},{main:1,ico:'📡',label:'En direct',go:()=>go('live')}]},
   eval:{go:()=>{RL_BIL=0;go('eval')},on:()=>['eval','auto'].includes(viewNow()),actions:[{ico:'📋',label:'Évaluer',go:()=>{RL_BIL=0;go('eval')}},{ico:'🙋',label:'Auto-évaluations',go:()=>go('auto')}],
   /* 📤 Bilan et export (onglet Évaluer) : le bilan de l'évaluation (chiffres, PDF, .zip, Pronote) ; le bilan des leçons (courses) en action à côté */
-  bilan:{go:()=>{RL_BIL=1;if(!CL()&&DATA.classes.length===1){DATA.cur=DATA.classes[0].id;persist()}go('eval')},on:()=>viewNow()==='bilan'||(viewNow()==='eval'&&RL_BIL),actions:[{ico:'🏃',label:'Bilan des leçons (courses)',main:1,go:()=>{RL_BIL=0;goBilans()}}]}},
-  cls:{go:()=>go(CL()?'liste':'classes'),on:()=>['liste','groupes','classes','import'].includes(viewNow()),actions:[{ico:'🏫',label:'Toutes les classes',go:()=>go('classes')},{ico:'👥',label:'Élèves',go:()=>go('liste')},{ico:'🔀',label:'Groupes',go:()=>go('groupes')}]},
-  bil:{go:()=>goBilans(),on:()=>viewNow()==='bilan'}},
+  bilan:{go:()=>{RL_BIL=1;if(!CL()&&DATA.classes.length===1){DATA.cur=DATA.classes[0].id;persist()}go('eval')},on:()=>(viewNow()==='bilan'&&!!RL_LB)||(viewNow()==='eval'&&RL_BIL),actions:[{ico:'🏃',label:'Bilan des leçons (courses)',main:1,go:()=>{RL_BIL=0;RL_LB=1;goBilans()}}]}},
+  cls:{go:()=>go('classes'),on:()=>['classes','import','lecons','perf','liste','groupes'].includes(viewNow())||(viewNow()==='bilan'&&!RL_LB),actions:[{ico:'🏫',label:'Toutes les classes',go:()=>go('classes')},{ico:'📅',label:'Préparation',go:()=>go('lecons')},{ico:'⏱',label:'Vitesses',go:()=>go('liste')},{ico:'🔀',label:'Groupes',go:()=>go('groupes')}]},
+  bil:{go:()=>goBilans(),on:()=>false}},
  biblio:[{ico:'📐',label:'Dispositif',sub:'Zones, plots, témoin',go:()=>{DISPO_BACK='lecons';go('dispo')}},{ico:'📚',label:'Situations',sub:'Situations d\'apprentissage',go:()=>{SITS_BACK='lecons';SIT_OPEN=null;go('sits')}}]}):null;
 /* écran élève commun (eps-home.js) : choisir sa classe en premier, ressources sans classe */
 /* évaluation commune (eps-eval.js) : auto-positionnement par QR code et fiches PDF au format Danse / Volley-ball,
@@ -4427,7 +4467,7 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  select:id=>{WAIT_CL=id;WAIT_PICK=false;showWait()},
  resources:[{ico:"📐",label:"Dispositif",sub:"zones, plots, mesures",open:()=>{DISPO_BACK="wait";go("dispo")}},{ico:"📚",label:"Situations",sub:"exercices et consignes",open:()=>{SITS_BACK="wait";SIT_OPEN=null;SIT_CAT=sitsDay().length?"day":"all";go("sits")}}],
  teacher:async()=>{if(await requireCode())go("classes")}});
-if(teachOn())go("classes");else startStudent();
+if(teachOn())go("seq");else startStudent();
 
 /* 📥 séquence type de l'appli (SQ_PROG : 8 leçons faites de situations de la bibliothèque) reprise dans les fiches de leçon communes, en brouillon à valider */
 window.EPS_RELAIS_TRAME=function(){const J=a=>(a||[]).filter(Boolean).join('\n'),S1=id=>SITS.find(s=>s.id===id);

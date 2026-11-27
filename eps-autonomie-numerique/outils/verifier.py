@@ -90,7 +90,7 @@ REPERES = {
     "eps-tactique.js": ["function editor(", "function depart("],
     "eps-ref.js": ["function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw", "function coVals(", "function colPut(", "EPSD.trash.keep("],
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter", "function vCdc(", "function saisie(", "function nbr("],
-    "relais/index.html": ["var RL_BIL=0", "setDeg:(cr,e,d)", "function goBilans(", "let GO_AFTER=null", "lid=CLE()?CLE().id:null,prof"],
+    "relais/index.html": ["var RL_BIL=0", "setDeg:(cr,e,d)", "function goBilans(", "let GO_AFTER=null", "lid=CLE()?CLE().id:null,prof", "function seqOpen(", "function evCourses(", "let EV_SCOPE=", "go:()=>go('seq')", "cls:{go:()=>go('classes')"],
     "eps-groupes.js": ["function terrain(", "v.grp.nm = noms", "function imgSet(", "TZC = 24000"],
     "tactique/index.html": ["EPSD.plan.send(", "EPSD.plan.live(", "data-all"],
     "boite/index.html": ["function chrono(", "function compteur(", "function video(", "function analyse(", "function aCfg(", "function marks(", "function rpSet(", "function charge("],
