@@ -68,7 +68,7 @@ for p in list(B.glob("*/index.html")) + [B / "index.html"]:
     if not (p.parent / "src").is_dir() and "eps-source-directe" not in p.read_text(encoding="utf-8", errors="replace")[:600]:
         pb.append("%s : repère « eps-source-directe » absent : la page a été remplacée par une version fabriquée ailleurs ? Repartir de la page publiée (git log)." % rel(p))
 REPERES = {
-    "co-eval/index.html": ["function code4(", "function vPwd(", "header .epsb{", "openProf(inConsole", "retb\" data-nolive", "const pnClasses = ", "data-pn="],
+    "co-eval/index.html": ["function profCorr(", "function noteDetail(", "cr.temps === \"in\"", "REPL = {", "function code4(", "function vPwd(", "header .epsb{", "openProf(inConsole", "retb\" data-nolive", "const pnClasses = ", "data-pn="],
     "console/index.html": ["window.epsConsoleOk", "function codeAsk(", "function pTransfert(", "function xUnpack(", "data-live", "doit être un nombre", "if (sm) sm.textContent", "Séquences terminées", 'id="seqan"'],
     "eps-lists.js": ["EPS_NOLIVE", "eps-nolive-css", "typeof def === \"number\" && (typeof o.v !== \"number\"", "eps-console-css", "window.EPS_CONSOLE = true", "#eps-callb:not("],
     "eps-eval.js": ["data-g-exp", 'jx.kind === "evaluation"', "function pnOpen(", "pronote: pnOpen", ".epse-ged textarea", "function gridFor(", "function coAdd(", "function coEdit(", "function coEleve(", "n !== P.moi", "J'observe un camarade"],

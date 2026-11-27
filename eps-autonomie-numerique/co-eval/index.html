@@ -644,7 +644,7 @@ function checkAlerts() {
 function onRemote(conf) {
   $("#hT").textContent = C.titre;
   const v = CUR.v;
-  if (v === "prof") { const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; if (["conf", "eleves", "carte"].includes(CUR.a[0])) return go("prof", ...CUR.a); return; }
+  if (v === "prof") { const a = document.activeElement; if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return; if (["conf", "eleves", "carte", "corr"].includes(CUR.a[0])) return go("prof", ...CUR.a); return; }
   if (v === "run" || v === "end") return; // la course continue : les nouveaux codes sont déjà pris en compte
   if ($(".dr") || $(".modal")) return; // l'élève est en train de tracer ou de choisir
   if (["home", "ident", "prep", "bilan", "full"].includes(v)) { const y = scrollY; go(v, ...CUR.a); scrollTo(0, y); if (conf) flash("🔄 Mis à jour par l'enseignant"); }
@@ -1308,11 +1308,13 @@ function analyse(r) {
   const faux = S0.filter(s => s.st === "faux" || s.st === "hors").length;
   const obligOk = !p.oblig || ok.has(+p.oblig) || retards.has(+p.oblig);
   const chrono = (r.fin || now()) - r.debut;
-  const over = p.max ? Math.max(0, chrono - p.max * 60000) : 0;
+  const overRaw = p.max ? Math.max(0, chrono - p.max * 60000) : 0;
+  /* correction de l'enseignant (✏️ Corriger, 27/11/2026) : cr.temps = "in" (compté dans les temps) ou "out" (compté hors temps) */
+  const over = cr && cr.temps === "in" ? 0 : cr && cr.temps === "out" ? Math.max(overRaw, 1) : overRaw;
   const pen = C.noPen ? 0 : (oublis.length * C.penOubli + (obligOk ? 0 : C.penOblig) + (over ? Math.ceil(over / 60000) * C.penRetard : 0)) * 1000;
   let prev = r.debut; const legs = S0.map(s => { const d = s.t - prev; prev = s.t; return { ...s, leg: d, cum: s.t - r.debut }; });
   const pts = plan.filter(n => ok.has(+n) || retards.has(+n)).reduce((a, n) => a + nivOf(n), 0);
-  return { found: [...ok, ...retards], plan, corrige: !!cr, pts, ptsMax: ptsOf(plan), chrono, pen, final: chrono + pen, oublis, passees, faux, obligOk, nErr: oublis.length, over, legs, retour: r.fin ? r.fin - prev : null, ordre: oublis.length === 0 && S0.every(s => s.st === "ok") };
+  return { found: [...ok, ...retards], plan, corrige: !!cr, overRaw, temps: cr ? cr.temps || "" : "", pts, ptsMax: ptsOf(plan), chrono, pen, final: chrono + pen, oublis, passees, faux, obligOk, nErr: oublis.length, over, legs, retour: r.fin ? r.fin - prev : null, ordre: oublis.length === 0 && S0.every(s => s.st === "ok") };
 }
 
 // ---------- Fin de parcours : ressenti + bilan ----------
@@ -1638,7 +1640,7 @@ function vProf(tab = "res") {
   if (!TPW) return go("pwd", tab);
   if (!statP) { ensureStat().then(() => { if (CUR.v === "prof") go("prof", CUR.a[0] || tab); }); }
   clearInterval(profTick); profTick = null;
-  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "note" ? "" : "gh"}" data-tb="note">🎓 Note</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><button class="btn sm or" id="pChk" title="Tout vérifier avant l'évaluation">✅ Prêt ?</button><button class="btn sm gh" id="pQr" title="QR code à afficher ou imprimer pour que les élèves ouvrent l'appli">📱 QR code d'accès</button><button class="btn sm vi" id="pSim" title="L'appli comme la voit un élève, avec un élève fictif : rien n'est envoyé">👁 Vue élève</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb" data-nolive><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
+  $("#app").innerHTML = `<div class="tabs2"><button class="btn sm ${tab === "suivi" ? "" : "gh"}" data-tb="suivi">📍 Suivi en direct</button><button class="btn sm ${tab === "res" ? "" : "gh"}" data-tb="res">📋 Résultats</button><button class="btn sm ${tab === "note" ? "" : "gh"}" data-tb="note">🎓 Note</button><button class="btn sm ${tab === "corr" ? "" : "gh"}" data-tb="corr">🔤 Correction</button><button class="btn sm ${tab === "conf" ? "" : "gh"}" data-tb="conf">⚙ Paramètres</button><button class="btn sm ${tab === "eleves" ? "" : "gh"}" data-tb="eleves">👥 Listes d'élèves</button><button class="btn sm ${tab === "carte" ? "" : "gh"}" data-tb="carte">🗺 Carte</button><button class="btn sm ${tab === "dev" ? "" : "gh"}" data-tb="dev">📱 Cet appareil</button><button class="btn sm or" id="pChk" title="Tout vérifier avant l'évaluation">✅ Prêt ?</button><button class="btn sm gh" id="pQr" title="QR code à afficher ou imprimer pour que les élèves ouvrent l'appli">📱 QR code d'accès</button><button class="btn sm vi" id="pSim" title="L'appli comme la voit un élève, avec un élève fictif : rien n'est envoyé">👁 Vue élève</button><span class="grow"></span><button class="btn sm or" id="pUp" title="Recharger la dernière version de l'appli, des paramètres et des résultats">🔄 Mise à jour</button><button class="btn sm gh" id="pX">Quitter</button></div>${["res", "dev", "suivi"].includes(tab) ? "" : '<div class="pub" id="pub"></div>'}<div class="retb" data-nolive><b>⏰ Heure de retour</b><input type="time" class="inp" id="hRet" style="width:auto;padding:6px 10px" value="${C.retour && C.retour > now() - 12 * 3600000 ? new Date(C.retour).toTimeString().slice(0, 5) : ""}"><button class="btn sm gh" id="hRetX">Effacer</button><span class="small muted grow">Les élèves sont prévenus 10 min avant, puis à l'heure.</span><button class="btn vi" id="bMsg">💬 Message</button><button class="btn ko" id="bRetour" style="font-size:1.1rem">📢 RETOUR</button></div><div id="pv"></div>`;
   $("#hRet").onchange = e => { const v = e.target.value; if (!v) return; const [h, mi] = v.split(":").map(Number), d = new Date(); d.setHours(h, mi, 0, 0); if (d.getTime() < now() - 6 * 3600000) d.setDate(d.getDate() + 1); C.retour = d.getTime(); confChanged(); flash(`Heure de retour : ${hhmm(C.retour)} ✓`); };
   $("#hRetX").onclick = () => { C.retour = null; $("#hRet").value = ""; confChanged(); };
   $("#bMsg").onclick = () => msgDialog();
@@ -1646,7 +1648,7 @@ function vProf(tab = "res") {
   $$("[data-tb]").forEach(b => b.onclick = () => go("prof", b.dataset.tb)); $("#pX").onclick = () => go("home"); $("#pSim").onclick = openSimView; $("#pQr").onclick = qrAccess; $("#pChk").onclick = checklist;
   $("#pUp").onclick = async () => { const b = $("#pUp"); b.disabled = true; b.textContent = "⏳ Mise à jour…"; clearTimeout(pubTimer); if (PUB.st === "wait") await publish(); VC = ""; VM = ""; LS.set("vc", ""); LS.set("vm", ""); LS.set("reopen", CUR.a[0] || "res"); location.replace(location.pathname + "?maj=" + Date.now()); };
   pubUI();
-  ({ suivi: profSuivi, res: profRes, note: profNote, conf: profConf, eleves: profEleves, carte: profCarte, dev: profDev })[tab]($("#pv"));
+  ({ suivi: profSuivi, res: profRes, note: profNote, corr: profCorr, conf: profConf, eleves: profEleves, carte: profCarte, dev: profDev })[tab]($("#pv"));
   if (tab === "conf") foldCards($("#pv"));
 }
 // --- suivi en direct : progression et dernière position connue de chaque élève ---
@@ -2121,7 +2123,7 @@ function profConf(box) {
   $("#cAdd").onclick = () => { C.balises.push({ n: Math.max(30, ...C.balises.map(b => +b.n)) + 1, code: rndCode() }); drawB(); ch(); };
   $("#cMany").onclick = () => { const v = prompt("Numéros des balises (ex. 31-50, ou 31,32,40) :"); if (!v) return; const L = []; v.split(/[,; ]+/).forEach(x => { const m = x.match(/^(\d+)-(\d+)$/); if (m) for (let i = +m[1]; i <= +m[2]; i++) L.push(i); else if (+x) L.push(+x); }); L.forEach(n => { if (!balise(n)) C.balises.push({ n, code: rndCode() }); }); C.balises.sort((a, b) => a.n - b.n); drawB(); ch(); };
   $("#cGen").onclick = async () => { if (!(await ask("Nouveaux codes ?", "Tous les codes seront remplacés par des codes tirés au hasard. Pense à réimprimer la fiche des balises.", "Remplacer", "ko"))) return; C.balises.forEach(b => b.code = ""); C.balises.forEach(b => b.code = rndCode()); drawB(); ch(); };
-  $("#cCodes").onclick = printCodes; $("#cAlt").onclick = altDialog; $("#cMaps").onclick = printMapsDialog; $("#cBal").onclick = () => printBalises(null);
+  $("#cCodes").onclick = printCodes; $("#cAlt").onclick = () => go("prof", "corr"); $("#cMaps").onclick = printMapsDialog; $("#cBal").onclick = () => printBalises(null);
   $("#cPrint").onclick = () => { const w = open(""); w.document.write(`<title>Balises</title><style>body{font-family:Arial}.g{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.b{border:2px solid #c21fbf;border-radius:4mm;padding:6mm;text-align:center;break-inside:avoid}.n{font-size:28mm;font-weight:900;color:#c21fbf;line-height:1}.c{font-size:22mm;font-weight:900;letter-spacing:4mm}</style><body><div class="g">${C.balises.map(b => `<div class="b"><div class="n">${b.n}</div><div class="c">${esc(b.code)}</div></div>`).join("")}</div><script>print()<\/script>`); w.document.close(); };
   $("#cReset").onclick = async () => { if (!(await ask("Paramètres de démonstration ?", "Tes paramètres seront remplacés par ceux de démonstration, chez toi et chez les élèves (les listes d'élèves sont gardées).", "Remplacer", "ko"))) return; const l = C.listes; C = fixConf(clone(DEF)); C.listes = l; confChanged(); go("prof", "conf"); };
 }
@@ -2208,6 +2210,50 @@ function profCarte(box) {
   $("#mD") && ($("#mD").onclick = async () => { if (await ask("Carte de démonstration ?", "Ta carte sera retirée chez les élèves.", "Retirer", "ko")) send(""); });
 }
 function shrink(f) { return new Promise(res => { const i = new Image(); i.onload = () => { const k = Math.min(1, 2600 / Math.max(i.width, i.height)), c = document.createElement("canvas"); c.width = Math.round(i.width * k); c.height = Math.round(i.height * k); const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(i, 0, 0, c.width, c.height); let q = .85, u = c.toDataURL("image/jpeg", q); while (u.length > 1.4e6 && q > .5) { q -= .1; u = c.toDataURL("image/jpeg", q); } res(u); }; i.src = URL.createObjectURL(f); }); }
+
+// ======================= 🔤 CORRECTION GÉNÉRALE (demande de l'enseignant, 27/11/2026) =======================
+// Codes acceptés en plus pour chaque balise (C.alt : seconde bonne réponse, comptée juste partout, parcours déjà faits compris)
+// et récapitulatif de l'évaluation balise par balise : visée, trouvée, codes tapés à la place → « ✓ Accepter » ajoute le code en un clic.
+function recapBal() {
+  const f = LS.get("pf", ""), R = {}, get = n => R[n] = R[n] || { n, vis: 0, ok: 0, err: 0, passe: 0, codes: {}, autres: {} };
+  allStudents().filter(x => !x.abs && (!f || x.me.prof === f)).forEach(x => x.runs.forEach(r => { if (!r || !r.debut || !r.fin) return;
+    const a = withStudent(x, () => analyse(r)), F = new Set(a.found.map(Number));
+    a.plan.forEach(n => { const o = get(+n); o.vis++; if (F.has(+n)) o.ok++; });
+    (r.saisies || []).forEach(s => { if (s.attendu == null) return; const o = get(+s.attendu), c = String(s.code || "").toUpperCase();
+      if (s.st === "passe") { o.passe++; return; }
+      if ((s.st === "faux" || s.st === "hors") && !codesOf(balise(s.attendu)).includes(c)) { o.err++; if (s.st === "hors" && s.bal != null) o.autres[s.bal] = (o.autres[s.bal] || 0) + 1; else if (c) o.codes[c] = (o.codes[c] || 0) + 1; } }); }));
+  C.balises.forEach(b => get(+b.n));
+  return Object.values(R).filter(o => balise(o.n)).sort((a, b) => a.n - b.n);
+}
+function balVerdict(o) { const top = Object.entries(o.codes).sort((a, b) => b[1] - a[1])[0];
+  if (!o.vis) return ["pas visée", "", null];
+  if (!o.err && o.ok === o.vis) return ["✅ tout le monde a le bon code", "ok", null];
+  if (top && top[1] >= Math.max(2, Math.ceil(o.vis * 0.25))) return [`⚠ « ${top[0]} » tapé ${top[1]} fois : code mal écrit ou mal lu ?`, "or", top[0]];
+  if (o.ok < o.vis / 2) return ["❌ beaucoup d'erreurs", "ko", null];
+  return ["🟠 quelques erreurs", "or", null]; }
+function profCorr(box) {
+  const f = LS.get("pf", "");
+  const draw = () => { const R = recapBal(), A = C.alt || {}, B = C.balises.slice().sort((a, b) => a.n - b.n), nv = R.filter(o => o.vis).length, nOk = R.filter(o => o.vis && !o.err && o.ok === o.vis).length;
+    box.innerHTML = `<div class="tabs2">${C.profs.filter(Boolean).map(p => `<button class="btn sm ${p === f ? "vi" : "gh"}" data-pf="${esc(p)}">👤 ${esc(p)}</button>`).join("")}<button class="btn sm ${!f ? "vi" : "gh"}" data-pf="">Tous</button></div>
+     <div class="card"><h2 style="margin-top:0">📊 Récapitulatif par balise · ${esc(VIEW ? VIEW.nom : C.ev ? C.ev.nom : "évaluation en cours")}</h2>
+      <p class="small muted" style="margin-top:0">${nv} balise(s) visée(s) dans les projets · ${nOk} sans aucune erreur. Pour chaque balise : combien d'élèves l'avaient dans leur projet, combien l'ont trouvée, et ce qu'ils ont tapé à la place du bon code. « ✓ Accepter » ajoute ce code comme seconde bonne réponse.</p>
+      <div style="overflow:auto"><table class="t small"><thead><tr><th>Balise</th><th>Code</th><th class="n">Visée</th><th class="n">Trouvée</th><th class="n">Erreurs</th><th>Tapé à la place</th><th>Bilan</th><th></th></tr></thead><tbody>
+      ${R.filter(o => o.vis || o.err).map(o => { const b = balise(o.n), V = balVerdict(o), alt = A[o.n] || [];
+        return `<tr><td><b>${o.n}</b>${b.niv ? ` <small class="muted">N${b.niv}</small>` : ""}</td><td style="font-family:monospace"><b>${esc(b.code)}</b>${alt.length ? `<br><small class="muted">+ ${esc(alt.join(", "))}</small>` : ""}</td><td class="n">${o.vis || "—"}</td><td class="n">${o.vis ? o.ok : "—"}</td><td class="n" style="${o.err ? "color:var(--ko);font-weight:800" : ""}">${o.err || "—"}</td>
+         <td>${Object.entries(o.codes).sort((a, c) => c[1] - a[1]).map(([c, n]) => `<span class="chip" style="font-family:monospace">${esc(c)} × ${n}</span>`).join(" ")}${Object.entries(o.autres).map(([m2, n]) => ` <span class="chip vi" title="Code d'une autre balise">code de la ${esc(m2)} × ${n}</span>`).join("")}${o.passe ? ` <span class="chip">passée × ${o.passe}</span>` : ""}</td>
+         <td><span class="chip ${V[1]}">${esc(V[0])}</span></td><td>${Object.keys(o.codes).length ? Object.keys(o.codes).sort((a, c) => o.codes[c] - o.codes[a]).slice(0, 3).map(c => `<button class="btn sm ${c === V[2] ? "or" : "gh"}" data-acc="${o.n}|${esc(c)}">✓ Accepter ${esc(c)}</button>`).join(" ") : ""}</td></tr>`; }).join("") || '<tr><td colspan="8" class="muted">Aucune balise.</td></tr>'}
+      </tbody></table></div>${R.some(o => !o.vis && !o.err) ? `<p class="small muted">Pas visées dans les projets : ${R.filter(o => !o.vis && !o.err).map(o => o.n).join(", ")}.</p>` : ""}<div class="row" style="margin-top:8px"><button class="btn sm gh" id="rbPr">🖨 Imprimer le récapitulatif</button></div></div>
+     <div class="card"><h2 style="margin-top:0">🔤 Codes acceptés en plus (seconde bonne réponse)</h2>
+      <p class="small muted" style="margin-top:0">Si une lettre était mal écrite ou ambiguë sur une balise, ajoute le code que les élèves ont pu taper (plusieurs : séparés par des virgules). Il est accepté sur les téléphones, et les parcours déjà faits, les résultats et les notes sont recalculés (code compté juste).</p>
+      <div style="max-height:60vh;overflow:auto">${B.map(b => `<div class="row" style="margin-bottom:4px"><b style="min-width:44px">${esc(b.n)}</b><b style="font-family:monospace;min-width:70px">${esc(b.code)}</b><input class="inp" data-al="${esc(b.n)}" value="${esc((A[b.n] || []).join(", "))}" placeholder="ex. DLX" style="flex:1;text-transform:uppercase;padding:6px"></div>`).join("")}</div>
+      <div class="row" style="margin-top:10px"><button class="btn or grow" id="alOk">✓ Enregistrer et publier</button></div></div>`;
+    $$("[data-pf]", box).forEach(b => b.onclick = () => { LS.set("pf", b.dataset.pf); draw(); });
+    $$("[data-acc]", box).forEach(b => b.onclick = () => { const [n, c] = b.dataset.acc.split("|"); C.alt = { ...(C.alt || {}) }; C.alt[n] = [...new Set([...(C.alt[n] || []), c])]; confChanged(); flash(`🔤 « ${c} » accepté pour la balise ${n} ✓`); draw(); });
+    $("#alOk", box).onclick = () => { const N = {}; $$("[data-al]", box).forEach(x => { const L = x.value.toUpperCase().split(/[\s,;]+/).map(z => z.replace(/[^A-Z0-9]/g, "")).filter(Boolean); if (L.length) N[x.dataset.al] = [...new Set(L)]; }); C.alt = N; confChanged(); flash("🔤 Codes acceptés publiés ✓"); draw(); };
+    $("#rbPr", box).onclick = () => printDoc("Récapitulatif par balise", `<h1>📊 Récapitulatif par balise</h1><p class="sub">${evHead()}</p><table><thead><tr><th>Balise</th><th>Code</th><th>Visée</th><th>Trouvée</th><th>Erreurs</th><th>Tapé à la place</th><th>Bilan</th></tr></thead><tbody>${recapBal().filter(o => o.vis || o.err).map(o => { const b = balise(o.n), V = balVerdict(o); return `<tr><td><b>${o.n}</b></td><td>${esc(b.code)}${(A[o.n] || []).length ? " + " + esc(A[o.n].join(", ")) : ""}</td><td>${o.vis}</td><td>${o.ok}</td><td>${o.err}</td><td>${Object.entries(o.codes).map(([c, n]) => esc(c) + " × " + n).concat(Object.entries(o.autres).map(([m2, n]) => "code de la " + m2 + " × " + n)).join(", ")}</td><td>${esc(V[0])}</td></tr>`; }).join("")}</tbody></table>`);
+  };
+  draw();
+}
 // ======================= 🎓 NOTE (proposition d'après le protocole CCF de CO) =======================
 // AFL1 = 2 éléments sur 6 (points réalisés / annoncés ; déplacement : temps, erreurs, niveaux) ; AFL2 + AFL3 = 8 pts (répartition 4-4, 6-2 ou 2-6 choisie par l'élève).
 // Balises attendues filles / garçons (CCF : 16 / 18), modifiables. Corrections de l'enseignant (C.corr) appliquées avant de générer.
@@ -2218,18 +2264,22 @@ const npts = n => C.niv ? nivOf(n) : 1;
 function noteData(x) {
   const R = x.runs.filter(r => r && r.debut && r.fin); if (!R.length) return null;
   const g = ncfg(), sx = (C.sexe || {})[x.me.id] || "", att = sx === "F" ? g.attF : g.attG;
-  let ann = 0, pts = 0, nbPlan = 0, nb = 0, n2 = 0, n3 = 0, modif = 0, oublis = 0, bonus = 0, over = 0, avance = 99, indMiss = 0, colOk = null, corr = 0;
+  let ann = 0, pts = 0, nbPlan = 0, nb = 0, n2 = 0, n3 = 0, modif = 0, oublis = 0, bonus = 0, over = 0, avance = 99, indMiss = 0, colOk = null, corr = 0, tfix = 0;
   R.forEach(r => { const a = withStudent(x, () => analyse(r)), F = new Set(a.found.map(Number)), extra = [...F].filter(n => !a.plan.includes(n)), p = P(r.k) || {};
-    ann += a.plan.reduce((s, n) => s + npts(n), 0); pts += [...F].reduce((s, n) => s + npts(n), 0); nbPlan += a.plan.length; nb += F.size; bonus += extra.length; corr += a.corrige ? 1 : 0;
+    ann += a.plan.reduce((s, n) => s + npts(n), 0); pts += [...F].reduce((s, n) => s + npts(n), 0); nbPlan += a.plan.length; nb += F.size; bonus += extra.length; corr += a.corrige ? 1 : 0; if (a.temps) tfix = 1;
     F.forEach(n => { const v = +((balise(n) || {}).niv || 0); if (v === 2) n2++; if (v === 3) n3++; });
     modif += a.passees.length; const miss = a.plan.filter(n => !F.has(+n)).length; oublis += miss; if (a.over) over = 1;
     if (p.max) avance = Math.min(avance, Math.round((p.max * 60000 - a.chrono) / 60000));
     if (isDuoK(r.k)) colOk = (colOk !== false) && !miss; else indMiss += miss; });
   if (avance === 99) avance = 0;
-  return { R, sx, att, ann, pts, nbPlan, nb, n2, n3, modif, oublis, bonus, over, avance, indMiss, colOk, corr, ind: R.some(r => !isDuoK(r.k)) };
+  return { R, sx, att, ann, pts, nbPlan, nb, n2, n3, modif, oublis, bonus, over, avance, indMiss, colOk, corr, tfix, ind: R.some(r => !isDuoK(r.k)) };
 }
-function noteProp(x, dk) {
-  const v = noteData(x); if (!v) return null; const g = ncfg(), ratio = v.att ? Math.min(1, v.nb / v.att) : 0, rp = ((C.repart || {})[x.me.id] || "4-4").split("-").map(Number);
+/* répartition AFL2 / AFL3 : 4-4, 6-2, 2-6 ou « max » = celle des trois qui donne la meilleure note (demande de l'enseignant, 27/11/2026) */
+const REPS = ["4-4", "6-2", "2-6"], REPL = { "4-4": "4-4", "6-2": "6-2", "2-6": "2-6", max: "✨ Meilleure note" };
+function noteProp(x, dk, rpf) {
+  const rs = rpf || (C.repart || {})[x.me.id] || "4-4";
+  if (rs === "max") { let best = null; REPS.forEach(r => { const q = noteProp(x, dk, r); if (q && (!best || q.tot > best.tot)) best = q; }); if (best) best.max = 1; return best; }
+  const v = noteData(x); if (!v) return null; const g = ncfg(), ratio = v.att ? Math.min(1, v.nb / v.att) : 0, rp = (REPS.includes(rs) ? rs : "4-4").split("-").map(Number);
   let d1 = v.pts < v.ann ? 0 : v.pts > v.ann ? 3 : v.modif > 0 ? 1 : 2;
   let d2 = v.over ? 0 : v.oublis > 0 ? 1 : (v.nb && v.n3 === v.nb && v.avance >= g.avance) ? 3 : v.n3 > v.n2 ? 2 : 1;
   let d3 = v.nbPlan && v.nb < v.nbPlan / 2 ? 0 : (v.modif || v.oublis) ? 1 : v.nb >= v.att ? ((v.bonus > 0 || v.pts > v.ann) ? 3 : 2) : 1;
@@ -2237,14 +2287,14 @@ function noteProp(x, dk) {
   const auto = [d1, d2, d3, d4]; [d1, d2, d3, d4] = auto.map((d, i) => dk && dk[i] != null ? +dk[i] : d);
   const pos = (d) => q25(DEG1[d][0] + (DEG1[d][1] - DEG1[d][0]) * ratio);
   const a1 = pos(d1), a2 = pos(d2), a3 = BAREME[rp[0]][d3], a4 = BAREME[rp[1]][d4];
-  return { v, d: [d1, d2, d3, d4], auto, a: [a1, a2, a3, a4], rep: rp.join("-"), tot: q25(a1 + a2 + a3 + a4),
+  return { v, d: [d1, d2, d3, d4], auto, a: [a1, a2, a3, a4], rep: rp.join("-"), ratio, tot: q25(a1 + a2 + a3 + a4),
     why: [`${v.pts} pts réalisés / ${v.ann} annoncés${v.modif ? ", " + v.modif + " poste(s) abandonné(s)" : ""}`, `${v.over ? "hors temps" : "dans les temps" + (v.avance > 0 ? " (" + v.avance + " min d'avance)" : "")}, ${v.oublis} balise(s) du projet manquée(s), N2 ${v.n2} / N3 ${v.n3}`, `${v.nb} balises ramenées / ${v.att} attendues${v.bonus ? ", " + v.bonus + " bonus" : ""}`, v.ind ? `individuel : ${v.indMiss ? v.indMiss + " balise(s) manquée(s)" : "complet"}${v.colOk != null ? ", collectif " + (v.colOk ? "complet" : "incomplet") : ""}` : "pas de parcours individuel"] };
 }
 const NAFL = ["AFL1 (1)", "AFL1 (2)", "AFL2", "AFL3"];
 const dKeep = o => o && o.dm ? o.d.map((d, i) => o.dm[i] ? d : null) : null;
 function noteSet(N, x, reset) { const o = N[x.me.id], pr = noteProp(x, dKeep(o)); if (!pr) return false;
   const dm = pr.d.map((d, i) => !!(o && o.dm && o.dm[i])), why = pr.why.map((w, i) => dm[i] ? w + " · degré choisi par l'enseignant (proposé : " + (pr.auto[i] + 1) + ")" : w);
-  const keep = !reset && o && o.man; N[x.me.id] = { prop: pr.tot, a: pr.a, d: pr.d, dm, why, rep: pr.rep, note: keep ? o.note : pr.tot, man: !!keep, t: now() }; return true; }
+  const keep = !reset && o && o.man; N[x.me.id] = { prop: pr.tot, a: pr.a, d: pr.d, dm, why, rep: pr.rep, max: pr.max ? 1 : 0, note: keep ? o.note : pr.tot, man: !!keep, t: now() }; return true; }
 const NK = () => "notes:" + (C.ev ? C.ev.id : "cur");
 const pnClasses = () => { const f = LS.get("pf", ""); return [...new Set(allStudents().filter(x => (!f || x.me.prof === f) && x.me.classe).map(x => x.me.classe))].sort((a, b) => a.localeCompare(b, "fr", { numeric: true })); };
 function profNote(box) {
@@ -2259,14 +2309,14 @@ function profNote(box) {
       ${L.map(x => { const id = x.me.id, v = noteData(x), sx = (C.sexe || {})[id] || "", rp = (C.repart || {})[id] || "4-4", nt = NT[id];
         return `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}<br><small class="muted">${esc(x.me.classe)}</small></td>
          <td><button class="btn sm ${sx === "F" ? "or" : "gh"}" data-sx="F" data-id="${esc(id)}">F</button><button class="btn sm ${sx === "G" ? "or" : "gh"}" data-sx="G" data-id="${esc(id)}">G</button>${sx ? "" : '<br><small style="color:var(--ko)">à préciser</small>'}</td>
-         <td><select class="inp" data-rp="${esc(id)}" style="width:auto;padding:4px">${["4-4", "6-2", "2-6"].map(o => `<option ${o === rp ? "selected" : ""}>${o}</option>`).join("")}</select></td>
+         <td><select class="inp" data-rp="${esc(id)}" style="width:auto;padding:4px">${Object.keys(REPL).map(o => `<option value="${o}" ${o === rp ? "selected" : ""}>${REPL[o]}</option>`).join("")}</select>${rp === "max" && nt && nt.rep ? `<br><small class="muted">→ ${esc(nt.rep)}</small>` : ""}</td>
          <td><b style="color:${v && v.nb >= v.att ? "var(--ok)" : "var(--ko)"}">${v ? v.nb : "—"}</b> / ${v ? v.att : "—"}<br><small class="muted">projet : ${v ? v.nbPlan : "—"}</small></td>
-         <td>${v ? `${v.pts} / ${v.ann}` : "—"}</td><td>${v ? (v.over ? '<span style="color:var(--ko)">hors temps</span>' : "dans les temps") : "—"}</td>
+         <td>${v ? `${v.pts} / ${v.ann}` : "—"}</td><td>${v ? `<button class="btn sm gh" data-cr="${esc(id)}" title="Corriger le temps (dans / hors temps)" style="${v.over ? "color:var(--ko)" : ""}">${v.over ? "hors temps" : "dans les temps"}${v.tfix ? " ✓" : ""}</button>` : "—"}</td>
          <td><button class="btn sm gh" data-cr="${esc(id)}">✏️ Corriger${v && v.corr ? " ✓" : ""}</button></td>
          <td>${nt ? `<div class="ndeg">${NAFL.map((l, i) => `<label class="${nt.dm && nt.dm[i] ? "man" : ""}" title="${esc(nt.why[i] || "")}">${l} <select data-dg="${esc(id)}" data-i="${i}">${[0, 1, 2, 3].map(d => `<option value="${d}" ${d === nt.d[i] ? "selected" : ""}>D${d + 1}</option>`).join("")}</select> <b>${fr(nt.a[i])}</b></label>`).join("")}</div>
-           ${nt.pend ? `<button class="btn sm or" data-rpz="${esc(id)}" style="margin-top:4px">🔄 Repositionner</button>` : `<b>${fr(nt.prop)}</b> <small class="muted">/ 20</small>`}${nt.dm && nt.dm.some(Boolean) ? ` <button class="btn sm gh" data-dgr="${esc(id)}" title="Revenir aux degrés proposés">↺</button>` : ""}` : '<span class="muted">—</span>'}</td>
+           ${nt.pend ? `<button class="btn sm or" data-rpz="${esc(id)}" style="margin-top:4px">🔄 Repositionner</button>` : `<button class="btn sm gh" data-det="${esc(id)}" title="Détail des AFL"><b>${fr(nt.prop)}</b> <small class="muted">/ 20</small> 🔍</button>`}${nt.dm && nt.dm.some(Boolean) ? ` <button class="btn sm gh" data-dgr="${esc(id)}" title="Revenir aux degrés proposés">↺</button>` : ""}` : (v ? `<button class="btn sm gh" data-det="${esc(id)}">🔍 Voir le détail</button>` : '<span class="muted">—</span>')}</td>
          <td>${nt ? `<input class="inp" type="number" step="0.25" min="0" max="20" data-nt="${esc(id)}" value="${nt.note}" style="width:80px;padding:6px;font-weight:800">${nt.note !== nt.prop ? ' <small class="muted">modifiée</small>' : ""}` : ""}</td></tr>`; }).join("") || '<tr><td colspan="9" class="muted">Aucun parcours terminé pour l\'instant.</td></tr>'}
-     </tbody></table><p class="small muted">Degrés D1 à D4 modifiables par AFL (en orange : choisi par toi), puis « 🔄 Repositionner » recalcule la note. « ✏️ Corriger » : projet de l'élève et balises réellement trouvées (s'applique aussi aux résultats). La note retenue est modifiable ; « Générer » ne remplace pas une note que tu as modifiée.</p></div>`;
+     </tbody></table><p class="small muted">Degrés D1 à D4 modifiables par AFL (en orange : choisi par toi), puis « 🔄 Repositionner » recalcule la note. « ✏️ Corriger » : projet de l'élève, balises réellement trouvées et temps (dans / hors temps), s'applique aussi aux résultats. 🔍 sur la proposition : le détail de chaque AFL. Répartition « ✨ Meilleure note » : celle des trois (4-4, 6-2, 2-6) qui donne la meilleure note. La note retenue est modifiable ; « Générer » ne remplace pas une note que tu as modifiée.</p></div>`;
     const ch = () => { confChanged(); };
     ["nF", "nG", "nA"].forEach(i => $("#" + i).onchange = () => { C.ncfg = { ...(C.ncfg || {}), attF: +$("#nF").value || 16, attG: +$("#nG").value || 18, avance: +$("#nA").value || 0 }; ch(); draw(); });
     $("#nCcf") && ($("#nCcf").onclick = () => { C.ncfg = { ...NOTE_DEF }; ch(); draw(); });
@@ -2279,6 +2329,7 @@ function profNote(box) {
     $("#nRpz") && ($("#nRpz").onclick = () => rpz(Object.keys(LS.get(NK(), {})).filter(id => LS.get(NK(), {})[id].pend)));
     $$("[data-dgr]").forEach(b => b.onclick = () => { const N = LS.get(NK(), {}), o = N[b.dataset.dgr]; if (!o) return; o.dm = null; LS.set(NK(), N); rpz([b.dataset.dgr]); });
     $$("[data-cr]").forEach(b => b.onclick = () => corrDialog(L.find(x => x.me.id === b.dataset.cr), draw));
+    $$("[data-det]").forEach(b => b.onclick = () => noteDetail(L.find(x => x.me.id === b.dataset.det)));
     $("#nGen").onclick = async () => { const miss = L.filter(x => !(C.sexe || {})[x.me.id]).length; if (miss && !(await ask("Sexe non précisé", `${miss} élève(s) sans sexe : le nombre de balises attendues des garçons (${ncfg().attG}) leur est appliqué.`, "Générer quand même", "or"))) return;
       const N = LS.get(NK(), {}); let n = 0; L.forEach(x => { if (noteSet(N, x)) n++; }); LS.set(NK(), N); draw(); flash(`🧮 ${n} note(s) proposée(s)`); };
     /* 📋 Pronote (fenêtre commune EPSR.pronote d'eps-home.js) : un bouton par classe ; note retenue /20 + points par AFL ;
@@ -2288,23 +2339,46 @@ function profNote(box) {
       EPSR.pronote({ app: "CO – Évaluation", classe: cl, titre: C.ev ? C.ev.nom : "", color: "#14213D", cols: [{ t: "Note /20" }, { t: "Note proposée /20" }].concat(NAFL.map((l, i) => ({ t: l + (i < 2 ? " /6" : "") }))),
         rows: R.map(x => { const o = N[x.me.id]; return { nom: x.me.nom, prenom: x.me.prenom || "", st: x.abs ? String(x.st || "abs") : "", v: o && !x.abs ? [o.note, o.prop].concat(NAFL.map((l, i) => o.a[i])) : [null, null, null, null, null, null] }; }) }); });
     $("#nCsv").onclick = () => { const N = LS.get(NK(), {}), rows = [["Nom", "Prénom", "Classe", "Sexe", "Répartition", "Balises ramenées", "Balises attendues", "Balises du projet", "Points réalisés", "Points annoncés", "Hors temps", "AFL1 (1) /6", "AFL1 (2) /6", "AFL2", "AFL3", "Degrés (AFL1-1, AFL1-2, AFL2, AFL3)", "Note proposée /20", "Note retenue /20", "Justification"]];
-      L.forEach(x => { const v = noteData(x), o = N[x.me.id]; rows.push([x.me.nom, x.me.prenom, x.me.classe, (C.sexe || {})[x.me.id] || "", (C.repart || {})[x.me.id] || "4-4", v ? v.nb : "", v ? v.att : "", v ? v.nbPlan : "", v ? v.pts : "", v ? v.ann : "", v && v.over ? "oui" : "non", ...(o ? o.a.map(fr) : ["", "", "", ""]), o ? o.d.map(d => "D" + (d + 1)).join(" ") : "", o ? fr(o.prop) : "", o ? fr(o.note) : "", o ? o.why.join(" | ") : ""]); });
+      L.forEach(x => { const v = noteData(x), o = N[x.me.id]; rows.push([x.me.nom, x.me.prenom, x.me.classe, (C.sexe || {})[x.me.id] || "", o && o.rep ? o.rep + (o.max ? " (meilleure)" : "") : (C.repart || {})[x.me.id] || "4-4", v ? v.nb : "", v ? v.att : "", v ? v.nbPlan : "", v ? v.pts : "", v ? v.ann : "", v && v.over ? "oui" : "non", ...(o ? o.a.map(fr) : ["", "", "", ""]), o ? o.d.map(d => "D" + (d + 1)).join(" ") : "", o ? fr(o.prop) : "", o ? fr(o.note) : "", o ? o.why.join(" | ") : ""]); });
       const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n")], { type: "text/csv" })); a.download = `notes-CO-${(C.ev ? C.ev.nom : "evaluation").normalize("NFD").replace(/[^\w]+/g, "-")}.csv`; a.click(); };
     $("#nPr").onclick = () => { const N = LS.get(NK(), {}); printDoc("Notes CO", `<h1>🎓 Notes de course d'orientation</h1><p class="sub">${evHead()} · balises attendues : filles ${g.attF}, garçons ${g.attG} · protocole CCF (AFL1 12 pts, AFL2 + AFL3 8 pts)</p><table><thead><tr><th>Élève</th><th>Classe</th><th>Sexe</th><th>Balises</th><th>Points</th><th>AFL1 (1)</th><th>AFL1 (2)</th><th>AFL2</th><th>AFL3</th><th>Note /20</th></tr></thead><tbody>${L.map(x => { const v = noteData(x), o = N[x.me.id]; return `<tr><td><b>${esc(x.me.nom)}</b> ${esc(x.me.prenom)}</td><td>${esc(x.me.classe)}</td><td>${(C.sexe || {})[x.me.id] || ""}</td><td>${v ? v.nb + " / " + v.att : ""}</td><td>${v ? v.pts + " / " + v.ann : ""}</td>${o ? o.a.map(a => `<td>${fr(a)}</td>`).join("") + `<td><b>${fr(o.note)}</b></td>` : '<td colspan="5"></td>'}</tr>`; }).join("")}</tbody></table>`); };
   };
   draw();
 }
 const fr = v => String(Math.round(v * 100) / 100).replace(".", ",");
+/* 🔍 détail de la proposition d'un élève, AFL par AFL (demande de l'enseignant, 27/11/2026) : degré, pourquoi, règle, points, et la note avec chaque répartition */
+const AFLD = [
+  ["AFL1 · élément 1 : le projet", "Points réalisés comparés aux points annoncés dans le projet.", ["moins de points réalisés qu'annoncés", "points annoncés réalisés, avec au moins un poste abandonné", "points annoncés réalisés, sans abandon", "plus de points réalisés qu'annoncés"]],
+  ["AFL1 · élément 2 : le déplacement", "Temps, balises du projet manquées, niveaux des balises trouvées.", ["hors temps", "balise(s) du projet manquée(s), ou pas plus de balises N3 que N2", "plus de balises N3 que N2, sans oubli", "toutes les balises en N3, sans oubli, avec l'avance demandée"]],
+  ["AFL2 : les balises ramenées", "Balises ramenées comparées aux balises attendues et au projet.", ["moins de la moitié du projet ramenée", "abandon, oubli, ou moins de balises que le nombre attendu", "au moins le nombre de balises attendu", "nombre attendu atteint, avec des balises bonus ou plus de points qu'annoncé"]],
+  ["AFL3 : individuel et collectif", "Parcours individuel complet, puis parcours collectif.", ["—", "balise(s) manquée(s) en individuel", "individuel complet (ou pas de parcours individuel)", "individuel complet et collectif complet"]]];
+function noteDetail(x) {
+  if (!x) return; const N = LS.get(NK(), {}), o = N[x.me.id], pr = noteProp(x, dKeep(o)); if (!pr) return;
+  const v = pr.v, g = ncfg(), rp = pr.rep.split("-").map(Number), alt = REPS.map(r => { const q = noteProp(x, dKeep(o), r); return [r, q ? q.tot : 0]; }), best = Math.max(...alt.map(a => a[1]));
+  const pts = i => i < 2 ? `Dans le degré, place selon les balises ramenées / attendues (${v.nb} / ${v.att} = ${Math.round(pr.ratio * 100)} %) : D${pr.d[i] + 1} va de ${fr(DEG1[pr.d[i]][0])} à ${fr(DEG1[pr.d[i]][1])} → <b>${fr(pr.a[i])} / 6</b>.`
+    : `Répartition ${pr.rep} : ${NAFL[i]} sur ${rp[i - 2]} pts (D1 ${BAREME[rp[i - 2]].map(fr).join(" · D")}) → <b>${fr(pr.a[i])} / ${rp[i - 2]}</b>.`.replace(/ · D(\d)/g, " · D$1").replace(/\(D1 ([^)]*)\)/, (s, L) => "(" + L.split(" · D").map((y, k) => "D" + (k + 1) + " " + y.replace(/^\d /, "")).join(" · ") + ")");
+  const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">🔍 ${esc(x.me.prenom)} ${esc(x.me.nom)} · ${fr(pr.tot)} / 20</h2><button class="btn sm gh" id="ndX">Fermer</button></div>
+   <p class="small muted" style="margin-top:0">${esc(x.me.classe || "")} · ${v.nb} balises ramenées / ${v.att} attendues · ${v.pts} pts réalisés / ${v.ann} annoncés · ${v.over ? "hors temps" : "dans les temps"}${v.corr ? " · corrigé par toi" : ""}</p>
+   ${AFLD.map((A, i) => `<div class="card" style="margin:0 0 8px;padding:10px;border-left:5px solid ${["#d62839", "#f47a20", "#3aa0d8", "#2a9d6f"][pr.d[i]]}"><div class="row"><b class="grow">${A[0]}</b><span class="chip ${pr.d[i] >= 2 ? "ok" : "or"}">D${pr.d[i] + 1}${o && o.dm && o.dm[i] ? " · choisi par toi (proposé D" + (pr.auto[i] + 1) + ")" : ""}</span></div>
+     <div class="small muted">${A[1]}</div><div class="small" style="margin-top:4px">📌 ${esc(pr.why[i])}</div>
+     <details class="small" style="margin-top:4px"><summary style="cursor:pointer">Règle des degrés</summary>${A[2].map((r, d) => `<div${d === pr.d[i] ? ' style="font-weight:800"' : ""}>D${d + 1} : ${esc(r.replace("l'avance demandée", "au moins " + g.avance + " min d'avance"))}</div>`).join("")}</details>
+     <div class="small" style="margin-top:4px">${pts(i)}</div></div>`).join("")}
+   <div class="card" style="margin:0;padding:10px"><b>Note selon la répartition AFL2 / AFL3</b><div class="row" style="margin-top:6px">${alt.map(([r, n]) => `<span class="chip ${n === best ? "ok" : ""}" style="font-size:.9rem;padding:4px 10px">${r} → <b>${fr(n)}</b>${n === best ? " ✨" : ""}</span>`).join("")}</div>
+   <p class="small muted" style="margin:6px 0 0">Répartition retenue : ${pr.max ? "✨ meilleure note (" + pr.rep + ")" : pr.rep}.${o && o.note !== o.prop ? " Note retenue modifiée par toi : " + fr(o.note) + "." : ""}</p></div>`);
+  $("#ndX", m).onclick = m.close;
+}
+
 // corriger le projet et les balises trouvées d'un élève (chaque parcours)
 function corrDialog(x, after) {
   if (!x) return; const R = x.runs.filter(r => r && r.debut && r.fin);
   const m = modal(`<div class="row" style="margin-bottom:6px"><h2 style="margin:0" class="grow">✏️ ${esc(x.me.prenom)} ${esc(x.me.nom)}</h2><button class="btn sm gh" id="crX">Fermer</button></div>
-   <p class="small muted" style="margin-top:0">Projet = balises annoncées (dans l'ordre). Coche les balises réellement trouvées ; ajoute les balises trouvées hors projet (bonus).</p>
+   <p class="small muted" style="margin-top:0">Projet = balises annoncées (dans l'ordre). Coche les balises réellement trouvées ; ajoute les balises trouvées hors projet (bonus). Temps : tu peux compter l'élève dans les temps (ou hors temps) ; les pénalités de retard sont recalculées.</p>
    ${R.map((r, i) => { const a = withStudent(x, () => analyse(r)), F = new Set(a.found.map(Number)), extra = [...F].filter(n => !a.plan.includes(n));
      return `<div class="card" style="margin:0 0 8px;padding:10px" data-ci="${i}"><b>${esc(P(r.k).nom)}</b>${a.corrige ? ' <span class="chip or">corrigé</span>' : ""}
       <label class="l">Projet (balises annoncées)</label><input class="inp" data-cp="${i}" value="${a.plan.join(" ")}">
       <div class="small" style="margin-top:6px">Trouvées :</div><div class="row" style="gap:4px;margin-top:4px" data-cl="${i}">${a.plan.map(n => `<label class="chip" style="cursor:pointer"><input type="checkbox" data-cf="${n}" ${F.has(+n) ? "checked" : ""}> ${n}${npts(n) > 1 ? " <small>(" + npts(n) + " pts)</small>" : ""}</label>`).join("")}</div>
       <label class="l">Balises bonus trouvées hors projet</label><input class="inp" data-cb="${i}" value="${extra.join(" ")}" placeholder="ex. 41 45">
+      <label class="l">Temps${P(r.k).max ? " (temps maximal : " + P(r.k).max + " min)" : ""}</label><select class="inp" data-ct="${i}" style="padding:8px"><option value="">Selon le chrono : ${fmt(a.chrono)} · ${a.overRaw ? "hors temps de " + fmt(a.overRaw) : "dans les temps"}</option><option value="in" ${a.temps === "in" ? "selected" : ""}>✓ Compter dans les temps</option><option value="out" ${a.temps === "out" ? "selected" : ""}>✕ Compter hors temps</option></select>
       ${a.corrige ? `<button class="btn sm gh" data-cz="${i}" style="margin-top:6px">↺ Revenir aux données du téléphone</button>` : ""}</div>`; }).join("")}
    <div class="row"><button class="btn or grow" id="crOk">✓ Enregistrer les corrections</button></div>`);
   $("#crX", m).onclick = m.close;
@@ -2313,8 +2387,8 @@ function corrDialog(x, after) {
   $("#crOk", m).onclick = () => { const bad = [];
     R.forEach((r, i) => { const plan = $(`[data-cp="${i}"]`, m).value.split(/[^\d]+/).filter(Boolean).map(Number), ok = $$(`[data-cl="${i}"] [data-cf]:checked`, m).map(c => +c.dataset.cf), bon = $(`[data-cb="${i}"]`, m).value.split(/[^\d]+/).filter(Boolean).map(Number);
       [...plan, ...bon].forEach(n => { if (!balise(n)) bad.push(n); });
-      const a = withStudent(x, () => analyse(r)), same = JSON.stringify(plan) === JSON.stringify(a.plan) && JSON.stringify([...ok, ...bon].sort()) === JSON.stringify(a.found.map(Number).sort());
-      if (!same) { C.corr = C.corr || {}; C.corr[runKey(r)] = { plan, ok: [...new Set([...ok, ...bon])] }; } });
+      const a = withStudent(x, () => analyse(r)), tp = $(`[data-ct="${i}"]`, m).value, same = JSON.stringify(plan) === JSON.stringify(a.plan) && JSON.stringify([...ok, ...bon].sort()) === JSON.stringify(a.found.map(Number).sort()) && tp === a.temps;
+      if (!same) { C.corr = C.corr || {}; C.corr[runKey(r)] = { plan, ok: [...new Set([...ok, ...bon])], ...(tp ? { temps: tp } : {}) }; } });
     if (bad.length) return flash("Balise inconnue : " + [...new Set(bad)].join(", "));
     confChanged(); m.close(); flash("✏️ Corrections enregistrées"); after && after(); };
 }
