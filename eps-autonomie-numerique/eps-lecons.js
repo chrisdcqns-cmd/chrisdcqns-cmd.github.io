@@ -135,6 +135,7 @@
       ".lc-ov h2{font-size:22px;margin:4px 0}.lc-ov h3{font-size:17px;margin:18px 0 8px}.lc-mut{color:#6A6F78;font-size:14px;margin:2px 0 12px}",
       ".lc-b{height:42px;border-radius:12px;border:2px solid " + COL + ";background:#fff;color:#14171C;font:800 14px system-ui,sans-serif;padding:0 14px;cursor:pointer}.lc-b.p{background:" + COL + ";color:#fff}.lc-b:disabled{opacity:.45}",
       ".lc-b.s{height:34px;border-radius:10px;font-size:13px;padding:0 10px;border-width:1.5px}.lc-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}",
+      "@media (min-width:1400px){.lc-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}.lc-cards .lc-card{margin:0}}@media (min-width:2100px){.lc-cards{grid-template-columns:repeat(3,minmax(0,1fr))}}",
       ".lc-card{background:#fff;border:1px solid #E6E1D6;border-left:5px solid " + COL + ";border-radius:14px;padding:12px 14px;margin:0 0 8px;display:flex;gap:10px;align-items:center;cursor:pointer}",
       ".lc-card .t{flex:1}.lc-card b{display:block;font-size:16px}.lc-card small{color:#6A6F78}",
       ".lc-tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:800;margin-left:6px}.lc-tag.br{background:#FFF1BF;color:#7A5A00}.lc-tag.ok{background:#E3F4E8;color:#1D6B3A}.lc-tag.pg{background:#E6EEF9;color:#1F4F8B}",
@@ -263,6 +264,7 @@
 
   /* ================= espace enseignant ================= */
   var OV = null, TAB = "lec", EDIT = null, LIVECLS = null;
+  var ATEL = /[?&]console=lecons/.test(location.search); /* atelier de la console : les fiches SONT la page, rien à fermer */
   function open(tab, arg) {
     css(); seedApp(); TAB = tab || "lec"; EDIT = null;
     if (tab === "edit") { TAB = "lec"; EDIT = arg; }
@@ -270,12 +272,12 @@
     if (!OV) { OV = document.createElement("div"); OV.className = "lc-ov"; document.body.appendChild(OV); }
     OV.style.display = "flex"; draw();
   }
-  function close() { if (OV) { OV.style.display = "none"; OV.innerHTML = ""; } EDIT = null; }
+  function close() { try { saveEdit(); } catch (e) {} if (OV) { OV.style.display = "none"; OV.innerHTML = ""; } EDIT = null; }
   function shell(body) {
     OV.innerHTML = '<div class="lc-top"><b>📝 Fiches de leçon · ' + esc(NOM) + '</b>' +
       [["lec", "📝 Fiches de leçon"], ["docs", "📂 Mes documents"], ["live", "📡 Leçon en cours"], ["eval", "📊 Évaluer la leçon"], ["bil", "🏁 Bilan de séquence"]].map(function (t) { return '<button type="button" data-tab="' + t[0] + '"' + (TAB === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") +
-      '<button type="button" class="x" data-x>✕ Fermer</button></div><div class="lc-body"><div class="lc-in">' + body + "</div></div>";
-    OV.querySelector("[data-x]").onclick = close;
+      (ATEL ? "" : '<button type="button" class="x" data-x>✕ Fermer</button>') + '</div><div class="lc-body"><div class="lc-in">' + body + "</div></div>";
+    var bx = OV.querySelector("[data-x]"); if (bx) bx.onclick = close;
     OV.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { saveEdit(); TAB = b.dataset.tab; EDIT = null; draw(); }; });
     return OV.querySelector(".lc-in");
   }
@@ -797,11 +799,11 @@
     }
     if (SELC.length) {
       var A = L.filter(function (l) { return SELC.every(function (c) { return expl(l, c); }); }), O = L.filter(function (l) { return A.indexOf(l) < 0; });
-      h += "<h3>📚 Séquence de " + esc(SELC.join(" + ")) + " (" + A.length + " leçon" + (A.length > 1 ? "s" : "") + ")</h3>" + (A.length ? A.map(function (l, i) { return card(l, "L" + (i + 1)); }).join("") : '<div class="lc-box">Aucune leçon attribuée : touche « ＋ Attribuer » sur les leçons ci-dessous.</div>');
-      if (O.length) h += "<h3>Autres leçons</h3>" + O.map(function (l) { return card(l); }).join("");
+      h += "<h3>📚 Séquence de " + esc(SELC.join(" + ")) + " (" + A.length + " leçon" + (A.length > 1 ? "s" : "") + ")</h3>" + (A.length ? '<div class="lc-cards">' + A.map(function (l, i) { return card(l, "L" + (i + 1)); }).join("") + "</div>" : '<div class="lc-box">Aucune leçon attribuée : touche « ＋ Attribuer » sur les leçons ci-dessous.</div>');
+      if (O.length) h += "<h3>Autres leçons</h3>" + '<div class="lc-cards">' + O.map(function (l) { return card(l); }).join("") + "</div>";
     } else S.forEach(function (s) {
       h += "<h3>📚 " + esc(s) + "</h3>";
-      L.filter(function (l) { return (l.seq || "Sans séquence") === s; }).forEach(function (l) { h += card(l); });
+      h += '<div class="lc-cards">'; L.filter(function (l) { return (l.seq || "Sans séquence") === s; }).forEach(function (l) { h += card(l); }); h += "</div>";
     });
     var el = shell(h);
     var apb = el.querySelector("[data-autoprog]"); if (apb) apb.onclick = function () { autoProg(el.querySelector("[data-apbox]")); };

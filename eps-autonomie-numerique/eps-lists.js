@@ -323,13 +323,18 @@ window.epsApChip = function (o) {
   var C = "html.eps-console", st = document.createElement("style"); st.id = "eps-console-css";
   st.textContent = "@media (min-width:1200px){" + C + "{--epsw:1560px}" +
     /* blocs communs : barre d'actions, panneaux d'onglet, grille d'évaluation, écran de classe */
-    [".epst-acts", ".epst-panel", ".epse-in", ".epsg-in",
+    [".epst-acts", ".epst-panel", ".epse-in", ".epsg-in", ".lc-in",
     /* blocs principaux des applis */
     "[data-eps-dir=escalade] main#m", "[data-eps-dir=relais] .wrap", "[data-eps-dir=volley] main", "[data-eps-dir=badminton] main", "[data-eps-dir=danse] main#view",
     "[data-eps-dir=acrosport] section#home", "[data-eps-dir=orientation] #home", "[data-eps-dir=crosstraining] .app", "[data-eps-dir=crosstraining] #onglets.in",
     "[data-eps-dir=basket] main#vue", "[data-eps-dir=step] .app", "[data-eps-dir=step] #onglets.in", "[data-eps-dir=ccf] .wrap", "[data-eps-dir=co-eval] main#app",
     "[data-eps-dir=edt] .wrap", "[data-eps-dir=appel-as] .wrap", "[data-eps-dir=course-orientation] .wrap", "[data-eps-dir=course-orientation] .in",
     "[data-eps-dir=referentiel] .wrap", "[data-eps-dir=referentiel] #nav"].map(function (s) { return C + (s.charAt(0) === "[" ? s : " " + s); }).join(",") +
-    "{max-width:min(var(--epsw),100%)!important}}";
+    "{max-width:min(var(--epsw),100%)!important}}" +
+    /* la console sert à configurer (demande de l'enseignant, 27/11/2026) : rien du mode élève n'y apparaît. Les boutons qui font passer la
+       tablette en mode élève (quitter le mode prof, verrouiller, mode élève) et le bouton élève « ✋ Enseignant » y sont masqués (pas la pastille « ✋ N » des appels reçus) ; l'élève se voit
+       seulement dans l'onglet 👁 Vue élève (cadre ?vue=eleve, qui ne porte pas html.eps-console). */
+    C + ' button[onclick="quitT()"],' + C + " .lockbtn," + C + ' button[onclick="lockApp()"],' + C + " #bLock," + C + ' #eps-callb:not([title="Appels des élèves"]),' + C + " #profHome{display:none!important}"; /* la pastille « ✋ N » des appels reçus (côté enseignant) reste */
+  window.EPS_CONSOLE = true;
   (document.head || H).appendChild(st);
 })();
