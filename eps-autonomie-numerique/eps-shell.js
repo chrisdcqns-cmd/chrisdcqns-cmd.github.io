@@ -51,6 +51,12 @@
       ".epst-dock{top:var(--epst-dt,0px)!important;bottom:0!important;height:auto!important;max-height:none!important;border-top:1px solid #E6E1D6}",
       ".epst-dock.epst-dock-m{background:#F5F3EE!important;align-items:flex-start!important;overflow:auto!important;padding-top:16px!important}",
       ".epst-dock [data-epst-x]{display:none!important}",
+      /* écran rangé sous le bandeau : pas de second en-tête (27/11/2026, demande de l'enseignant : « Fiches de leçon · Escalade », puis l'onglet
+         « Fiches de leçon », puis « Mes fiches de leçon » et sa description, c'était trois fois la même chose). Le bouton du bandeau, souligné, suffit :
+         barre des fiches de leçon masquée (ses onglets sont dans le bandeau), titre des autres barres masqué (on garde leurs sous-onglets),
+         barre vide masquée, titre de l'écran et sa phrase d'explication masqués. */
+      ".epst-dock.lc-ov:not([id])>.lc-top{display:none!important}.epst-dock .lc-top>b{display:none!important}.epst-dock .lc-top:not(:has(>button:not([data-epst-x]))){display:none!important}",
+      ".epst-dock.lc-ov:not([id]) .lc-in>h2:first-child,.epst-dock.lc-ov:not([id]) .lc-in>h2:first-child+p.lc-mut{display:none!important}.epst-dock .lc-body{padding-top:12px!important}",
       "html.epst-docked,html.epst-docked body{overflow:hidden!important}",
       ".epst-tb>button.cur{background:#F7F5F0}.epst-tb>button.cur::after{content:'';position:absolute;left:8px;right:8px;bottom:0;height:4px;border-radius:4px 4px 0 0;background:var(--epst,#666)}",
       ".epst-mn{z-index:2147483600!important}",
@@ -122,7 +128,8 @@
     function opaque(el) { var m = getComputedStyle(el).backgroundColor.match(/rgba\(([^)]+)\)/); return !m || parseFloat(m[1].split(",")[3]) > 0.9; }
     function screens() { return Array.prototype.filter.call(document.body.children, big); }
     function docked() { return Array.prototype.filter.call(document.body.children, function (e) { return e.classList && e.classList.contains("epst-dock"); }); }
-    function closer(el) { var B = el.querySelectorAll("button[data-x],button.x,button[data-close]"); for (var i = 0; i < B.length; i++) if (/Fermer|Retour|^\s*✕\s*$/.test(B[i].textContent)) return B[i]; return null; }
+    function closer(el) { var B = Array.prototype.slice.call(el.querySelectorAll("button[data-x],button.x,button[data-close]")), f = function (re) { return B.filter(function (b) { return re.test(b.textContent); })[0]; };
+      return f(/Fermer|^\s*✕\s*$/) || f(/Retour/) || null; } /* « Fermer » d'abord : un « ← Retour » de l'écran (ex. modalités) reste utilisable */
     function dockTop() { var a = shown(acts) ? acts : nav, t = Math.max(0, Math.round(a.getBoundingClientRect().bottom + (a === acts ? 8 : 0))); H.style.setProperty("--epst-dt", t + "px"); }
     function dock(el) { if (NODOCK || el.classList.contains("epst-dock")) return; el.classList.add("epst-dock"); if (!opaque(el)) el.classList.add("epst-dock-m");
       if (!ROOT || !shown(ROOT)) ROOT = el; dockSync(); }
