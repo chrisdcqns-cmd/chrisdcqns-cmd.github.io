@@ -35,7 +35,7 @@
   var uid = 0;
   function terr(s) { return T[s] || T.vierge; }
   function rad(t) { return Math.max(t.w, t.h) / 30; }
-  function clean(d) { d = (d && typeof d === "object") ? d : {}; return { sport: T[d.sport] ? d.sport : "vierge", items: Array.isArray(d.items) ? d.items.filter(function (i) { return i && typeof i === "object" && typeof i.t === "string"; }) : [] }; }
+  function clean(d) { d = (d && typeof d === "object") ? d : {}; return { sport: T[d.sport] ? d.sport : "vierge", forme: typeof d.forme === "string" ? d.forme.slice(0, 40) : "", items: Array.isArray(d.items) ? d.items.filter(function (i) { return i && typeof i === "object" && typeof i.t === "string"; }) : [] }; }
   function num(v) { return (typeof v === "number" && isFinite(v)) ? Math.round(v * 10) / 10 : 0; }
   function item(i, r, id, sel) {
     var h = "", hl = sel ? ' filter="url(#h' + id + ')"' : "";
@@ -99,7 +99,7 @@
       get: function () { return JSON.parse(JSON.stringify(d)); },
       set: function (x) { d = clean(JSON.parse(JSON.stringify(x || {}))); undo = []; selSet(-1); draw(); },
       tool: function (x) { tool = x; if (x !== "sel") selSet(-1); draw(); },
-      sport: function (s) { if (!T[s] || s === d.sport) return; snap(); var a = t(), b = T[s]; d.items.forEach(function (i) { var fx = b.w / a.w, fy = b.h / a.h; if (Array.isArray(i.p)) for (var q = 0; q + 1 < i.p.length; q += 2) { i.p[q] *= fx; i.p[q + 1] *= fy; } else { i.x *= fx; i.y *= fy; } }); d.sport = s; changed(); },
+      sport: function (s) { if (!T[s] || s === d.sport) return; snap(); var a = t(), b = T[s]; d.items.forEach(function (i) { var fx = b.w / a.w, fy = b.h / a.h; if (Array.isArray(i.p)) for (var q = 0; q + 1 < i.p.length; q += 2) { i.p[q] *= fx; i.p[q + 1] *= fy; } else { i.x *= fx; i.y *= fy; } }); d.sport = s; d.forme = ""; changed(); },
       undo: function () { if (!undo.length) return; d = clean(JSON.parse(undo.pop())); selSet(-1); changed(); },
       clear: function () { if (!d.items.length) return; snap(); d.items = []; selSet(-1); changed(); },
       del: function () { if (sel < 0) return; snap(); d.items.splice(sel, 1); selSet(-1); changed(); },
@@ -108,13 +108,44 @@
       count: function () { return d.items.length; }
     };
   }
-  /* Mise en place de départ proposée (modifiable) */
-  function depart(s) { var t = terr(s), I = [], P = function (e, n, x, y) { I.push({ t: "p", e: e, n: String(n), x: x * t.w, y: y * t.h }); };
-    if (s === "volley") { [[.42, .2], [.42, .5], [.42, .8], [.14, .8], [.14, .5], [.14, .2]].forEach(function (p, k) { P(0, [4, 3, 2, 1, 6, 5][k], p[0], p[1]); P(1, [2, 3, 4, 5, 6, 1][k], 1 - p[0], p[1]); }); }
-    else if (s === "badminton") { P(0, 1, .25, .5); P(1, 1, .75, .5); }
-    else if (s === "basket3") { [[.72, .5], [.36, .14], [.36, .86]].forEach(function (p, k) { P(0, k + 1, p[0], p[1]); }); [[.6, .5], [.3, .26], [.3, .74]].forEach(function (p, k) { P(1, k + 1, p[0], p[1]); }); I.push({ t: "b", x: t.w * .77, y: t.h * .46 }); return { sport: s, items: I }; }
-    else if (s !== "vierge") { var n = s === "foot" ? 5 : s === "rugby" ? 5 : s === "ultimate" ? 5 : s === "demi" ? 3 : 4, k; for (k = 0; k < n; k++) { P(0, k + 1, .3, (k + 1) / (n + 1)); P(1, k + 1, .7, (k + 1) / (n + 1)); } }
-    if (s !== "vierge") I.push({ t: "b", x: t.w * (s === "volley" ? .28 : s === "badminton" ? .36 : .5), y: t.h * (s === "volley" ? .35 : .5) });
-    return { sport: T[s] ? s : "vierge", items: I }; }
-  window.EPSTAC = { svg: svg, editor: editor, sports: function () { return ORDRE.map(function (k) { return { id: k, nom: T[k].nom }; }); }, depart: depart, clean: clean };
+  /* 🎯 Caractéristiques de chaque activité (demande de l'enseignant, 28/11/2026 : « quand on change d'activité, on retrouve les caractéristiques de l'activité ») :
+     formes de jeu pratiquées au lycée (jamais de 6 contre 6 en volley : 4 contre 4, 3 contre 3, 2 contre 2 ; badminton : simple ou double ; basket : 4 contre 4
+     ou 3 contre 3), mots de l'activité à poser sur la planche (frappes du badminton, « course, passe, tir, centre » du football…), nom de l'objet (ballon, volant,
+     disque) et du trait pointillé (passe, frappe). Tout est réglable : paramètres tac_formes_<sport> et tac_mots_<sport> (section « Planche tactique »),
+     une ligne par forme (« 4 contre 4 » : le premier nombre = joueurs par équipe ; « Simple », « Double ») ou par mot. La première forme est celle proposée. */
+  var CAR = {
+    volley: { f: ["4 contre 4", "3 contre 3", "2 contre 2"], m: ["Service", "Réception", "Passe", "Attaque", "Smash", "Contre", "Défense", "Manchette", "Soutien"], obj: "Ballon", tr: "Passe" },
+    badminton: { f: ["Simple", "Double"], m: ["Service court", "Service long", "Dégagé", "Amorti", "Contre-amorti", "Smash", "Lob", "Drive", "Kill", "Replacement"], obj: "Volant", tr: "Frappe" },
+    handball: { f: ["5 contre 5", "4 contre 4", "7 contre 7"], m: ["Passe", "Tir", "Dribble", "Débordement", "Appui", "Repli", "Montée de balle", "Gardien"], obj: "Ballon", tr: "Passe" },
+    basket: { f: ["4 contre 4", "3 contre 3"], m: ["Dribble", "Passe", "Tir", "Écran", "Rebond", "Démarquage", "Passe et va", "Contre-attaque", "Repli"], obj: "Ballon", tr: "Passe" },
+    basket3: { f: ["3 contre 3"], m: ["Dribble", "Passe", "Tir", "Écran", "Rebond", "Démarquage", "Passe et va", "Sortie de zone"], obj: "Ballon", tr: "Passe" },
+    foot: { f: ["5 contre 5", "4 contre 4", "7 contre 7"], m: ["Course", "Passe", "Tir", "Centre", "Dribble", "Appel", "Contrôle", "Pressing", "Gardien"], obj: "Ballon", tr: "Passe" },
+    rugby: { f: ["5 contre 5", "7 contre 7"], m: ["Course", "Passe", "Soutien", "Plaquage", "Essai", "Regroupement", "Ligne d'avantage", "Coup de pied"], obj: "Ballon", tr: "Passe" },
+    ultimate: { f: ["5 contre 5", "4 contre 4"], m: ["Passe", "Appel", "Démarquage", "Pivot", "Marque", "Interception", "Zone d'en-but"], obj: "Disque", tr: "Passe" },
+    demi: { f: ["3 contre 3", "2 contre 2", "4 contre 4"], m: ["Course", "Passe", "Tir", "Appel"], obj: "Ballon", tr: "Passe" },
+    vierge: { f: [], m: [], obj: "Ballon", tr: "Passe" } };
+  function car(s) { var c = CAR[s] || CAR.vierge, f = c.f.slice(), m = c.m.slice();
+    try { if (window.EPSP && EPSP.p && T[s] && s !== "vierge") {
+      var nom = T[s].nom, pf = EPSP.p({ id: "tac_formes_" + s, sec: "Planche tactique", label: nom + " : formes de jeu (la première est proposée)", type: "list", def: c.f, aide: "Une par ligne : « 4 contre 4 » (le premier nombre = joueurs par équipe), « Simple », « Double »." }),
+        pm = EPSP.p({ id: "tac_mots_" + s, sec: "Planche tactique", label: nom + " : mots à poser sur la planche", type: "list", def: c.m });
+      if (Array.isArray(pf) && pf.length) f = pf.map(String); if (Array.isArray(pm)) m = pm.map(String); } } catch (e) {}
+    return { formes: f, mots: m, objet: c.obj, trait: c.tr }; }
+  function nbDe(forme) { var t = String(forme || ""), m = /(\d+)/.exec(t); if (m) return Math.max(1, Math.min(11, +m[1])); if (/double/i.test(t)) return 2; if (/simple/i.test(t)) return 1; return 0; }
+  /* places de l'équipe de gauche (en part du terrain) pour n joueurs ; l'équipe de droite est en miroir */
+  function places(s, n) {
+    if (s === "volley") return ({ 1: [[.25, .5]], 2: [[.26, .3], [.26, .7]], 3: [[.38, .5], [.16, .25], [.16, .75]], 4: [[.4, .3], [.4, .7], [.16, .3], [.16, .7]], 6: [[.42, .2], [.42, .5], [.42, .8], [.14, .8], [.14, .5], [.14, .2]] })[n] || null;
+    if (s === "badminton") return ({ 1: [[.25, .5]], 2: [[.32, .3], [.2, .7]] })[n] || null;
+    return null; }
+  /* Mise en place de départ proposée (modifiable) : celle de la forme de jeu demandée, sinon la première forme de l'activité */
+  function depart(s, forme) { var t = terr(s), I = [], P = function (e, n, x, y) { I.push({ t: "p", e: e, n: String(n), x: x * t.w, y: y * t.h }); }, k;
+    if (!T[s] || s === "vierge") return { sport: T[s] ? s : "vierge", items: I };
+    var C = car(s), n = nbDe(forme || C.formes[0]) || 3, PL = places(s, n);
+    if (s === "basket3") { /* attaque face au panier (à gauche), un défenseur sur chaque attaquant */
+      var A3 = n === 3 ? [[.72, .5], [.36, .14], [.36, .86]] : null, D3 = n === 3 ? [[.6, .5], [.3, .26], [.3, .74]] : null;
+      if (A3) { A3.forEach(function (p, i) { P(0, i + 1, p[0], p[1]); }); D3.forEach(function (p, i) { P(1, i + 1, p[0], p[1]); }); I.push({ t: "b", x: t.w * .77, y: t.h * .46 }); return { sport: s, forme: C.formes[0], items: I }; } }
+    if (PL) PL.forEach(function (p, i) { P(0, i + 1, p[0], p[1]); P(1, i + 1, 1 - p[0], p[1]); });
+    else for (k = 0; k < n; k++) { P(0, k + 1, n > 5 && k % 2 ? .2 : .3, (k + 1) / (n + 1)); P(1, k + 1, n > 5 && k % 2 ? .8 : .7, (k + 1) / (n + 1)); }
+    I.push({ t: "b", x: t.w * (s === "volley" ? .28 : s === "badminton" ? .36 : .5), y: t.h * (s === "volley" ? .35 : .5) });
+    return { sport: s, forme: forme || C.formes[0] || "", items: I }; }
+  window.EPSTAC = { svg: svg, editor: editor, sports: function () { return ORDRE.map(function (k) { return { id: k, nom: T[k].nom }; }); }, depart: depart, clean: clean, car: car, nb: nbDe };
 })();

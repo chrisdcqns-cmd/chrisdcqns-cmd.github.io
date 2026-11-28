@@ -65,6 +65,7 @@ button,input,select{font:inherit;color:inherit}
 </div>
 <div class="wrap">
   <div class="tools" id="tools" role="toolbar" aria-label="Outils de dessin"></div>
+  <div id="car" style="display:flex;flex-direction:column;gap:6px;margin:0 0 8px"></div>
   <div id="board"></div>
   <div class="row">
     <button class="btn" id="undo" type="button">↶ Annuler</button>
@@ -98,23 +99,38 @@ button,input,select{font:inherit;color:inherit}
   var d0 = (dr && dr.d && !Q.get("sport")) ? dr.d : (dr && dr.d && dr.d.sport === Q.get("sport") ? dr.d : EPSTAC.depart(Q.get("sport") || "volley"));
   if (dr && dr.d === d0) cur = { id: dr.id || "", nom: dr.nom || "" };
   $("#sport").innerHTML = SP.map(function (s) { return '<option value="' + s.id + '">' + esc(s.nom) + "</option>"; }).join("");
+  /* 🎯 caractéristiques de l'activité choisie (eps-tactique.js EPSTAC.car) : formes de jeu, mots à poser, nom de l'objet et du trait pointillé */
+  var MOT = "", CARS = function () { return EPSTAC.car(ED ? ED.get().sport : (d0.sport || "volley")); };
   var TOOLS = [["sel", "✋", "Déplacer"], ["pa", '<span class="dot" style="background:#1F4FA3"></span>', "Joueur"], ["pb", '<span class="dot" style="background:#D9481F"></span>', "Adversaire"], ["b", '<span class="dot" style="background:#F0A030;width:14px;height:14px"></span>', "Ballon"], ["c", "🔺", "Plot"], ["am", "➜", "Déplacement"], ["ap", "⇢", "Passe"], ["f", "✏️", "Tracé libre"], ["x", "T", "Texte"]];
   var tool = "sel";
-  function drawTools() { $("#tools").innerHTML = TOOLS.map(function (t) { return '<button type="button" class="tl' + (tool === t[0] ? " on" : "") + '" data-t="' + t[0] + '" aria-pressed="' + (tool === t[0]) + '"><i>' + t[1] + "</i>" + t[2] + "</button>"; }).join("");
-    Array.prototype.forEach.call(document.querySelectorAll("#tools .tl"), function (b) { b.onclick = function () { tool = b.dataset.t; ED.tool(tool); drawTools(); }; }); }
+  function drawTools() { var C = CARS(); $("#tools").innerHTML = TOOLS.map(function (t) { var lab = t[0] === "b" ? C.objet : t[0] === "ap" ? C.trait : t[2]; return '<button type="button" class="tl' + (tool === t[0] ? " on" : "") + '" data-t="' + t[0] + '" aria-pressed="' + (tool === t[0]) + '"><i>' + t[1] + "</i>" + esc(lab) + "</button>"; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("#tools .tl"), function (b) { b.onclick = function () { tool = b.dataset.t; if (tool !== "x") MOT = ""; ED.tool(tool); drawTools(); }; }); drawCar(); }
+  /* la mise en place de l'activité telle qu'elle est proposée : si le dessin n'a pas été touché, on la remplace sans rien demander */
+  function intact() { try { var d = ED.get(); return JSON.stringify(d.items) === JSON.stringify(EPSTAC.depart(d.sport, d.forme || undefined).items); } catch (e) { return false; } }
+  function placer(sport, forme, demander) { if (ED.count() && !intact() && demander !== false && !confirm("Remplacer le dessin par la mise en place « " + (forme || EPSTAC.car(sport).formes[0] || "de départ") + " » ?")) return false;
+    ED.set(EPSTAC.depart(sport, forme)); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: ED.get() })); } catch (e) {} return true; }
+  function drawCar() { var el = $("#car"); if (!el || !ED) return; var d = ED.get(), C = CARS(), fc = d.forme || "", CH = "min-height:44px;padding:0 12px;border-radius:999px;border:2px solid #E6E1D6;background:#fff;font:700 15px system-ui,sans-serif;color:#14171C;cursor:pointer;width:auto";
+    el.innerHTML = (C.formes.length ? '<div class="row" style="margin:0;gap:6px;align-items:center" data-formes><span class="mut" style="font-weight:800">Forme de jeu</span>' + C.formes.map(function (f, i) { var on = fc === f; return '<button type="button" data-fo="' + i + '" aria-pressed="' + on + '" style="' + CH + (on ? ";background:#14171C;border-color:#14171C;color:#fff" : "") + '">' + esc(f) + "</button>"; }).join("") + "</div>" : "") +
+      (C.mots.length ? '<div class="row" style="margin:0;gap:6px;align-items:center" data-mots><span class="mut" style="font-weight:800">Mots</span>' + C.mots.map(function (m, i) { var on = MOT === m; return '<button type="button" data-mo="' + i + '" aria-pressed="' + on + '" style="' + CH + (on ? ";background:#0F766E;border-color:#0F766E;color:#fff" : "") + '">' + esc(m) + "</button>"; }).join("") + (MOT ? '<span class="mut">Touche la planche pour poser « ' + esc(MOT) + " ».</span>" : "") + "</div>" : "");
+    Array.prototype.forEach.call(el.querySelectorAll("[data-fo]"), function (b) { b.onclick = function () { if (placer(ED.get().sport, C.formes[+b.dataset.fo])) drawTools(); }; });
+    Array.prototype.forEach.call(el.querySelectorAll("[data-mo]"), function (b) { b.onclick = function () { var m = C.mots[+b.dataset.mo]; MOT = MOT === m ? "" : m; tool = MOT ? "x" : "sel"; ED.tool(tool); drawTools(); }; }); }
   function ask(titre, val, cb) { var o = document.createElement("div"); o.id = "ask"; o.innerHTML = '<div><b>' + esc(titre) + '</b><input class="in" style="width:100%;margin:10px 0" maxlength="60"><div class="row" style="justify-content:flex-end;margin:0"><button class="btn" data-x type="button">Annuler</button><button class="btn p" data-ok type="button">OK</button></div></div>';
     document.body.appendChild(o); var i = o.querySelector("input"); i.value = val || ""; setTimeout(function () { i.focus(); }, 30);
     var ok = function () { var v = i.value; o.remove(); cb(v); }; o.querySelector("[data-ok]").onclick = ok; o.querySelector("[data-x]").onclick = function () { o.remove(); }; i.onkeydown = function (e) { if (e.key === "Enter") ok(); }; }
   var ED = EPSTAC.editor($("#board"), d0, { maxh: "70vh",
     onChange: function (d) { livePush(); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: d })); } catch (e) {} },
     onSelect: function (i) { $("#del").disabled = !i; var lab = i && (i.t === "p" || i.t === "x"); $("#lab").hidden = !lab; if (lab) { $("#labt").textContent = i.t === "p" ? "Numéro" : "Texte"; $("#labi").value = i.t === "p" ? (i.n || "") : (i.s || ""); $("#labi").style.width = i.t === "p" ? "80px" : "220px"; } },
-    askText: function (cb) { ask("Texte à écrire sur la planche", "", cb); } });
+    askText: function (cb) { if (MOT) { cb(MOT); setTimeout(function () { tool = "x"; ED.tool("x"); drawTools(); }, 0); return; } ask("Texte à écrire sur la planche", "", cb); } });
   $("#sport").value = ED.get().sport; $("#nom").value = cur.nom;
-  $("#sport").onchange = function () { if (!ED.count()) ED.set(EPSTAC.depart(this.value)); else ED.sport(this.value); };
-  $("#undo").onclick = function () { ED.undo(); $("#sport").value = ED.get().sport; };
+  /* changer d'activité = retrouver SES caractéristiques (demande de l'enseignant, 28/11/2026) : sa mise en place (jamais les 6 joueurs du volley en badminton),
+     ses formes de jeu, ses mots. Un dessin déjà modifié n'est remplacé qu'après accord ; sinon il est gardé et seulement remis à l'échelle du nouveau terrain. */
+  $("#sport").onchange = function () { var s = this.value; MOT = ""; tool = "sel";
+    if (!ED.count() || intact() || confirm("Changer d'activité : remplacer le dessin par la mise en place « " + (EPSTAC.car(s).formes[0] || "de départ") + " » de cette activité ?\n\nAnnuler = garder mon dessin sur le nouveau terrain.")) placer(s, undefined, false); else ED.sport(s);
+    ED.tool("sel"); drawTools(); };
+  $("#undo").onclick = function () { ED.undo(); $("#sport").value = ED.get().sport; drawTools(); };
   $("#del").onclick = function () { ED.del(); };
   $("#clr").onclick = function () { ED.clear(); };
-  $("#dep").onclick = function () { if (ED.count() && !confirm("Remplacer le dessin par la mise en place de départ ?")) return; var s = ED.get().sport; ED.set(EPSTAC.depart(s)); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: ED.get() })); } catch (e) {} };
+  $("#dep").onclick = function () { var d = ED.get(); if (placer(d.sport, d.forme || undefined)) drawTools(); };
   $("#labi").oninput = function () { ED.label(this.value); };
   drawTools();
   if (EMB) { $("#home").hidden = true; $("#close").hidden = false; $("#close").onclick = function () { try { parent.postMessage({ epsPlanche: "close" }, location.origin); } catch (e) {} }; }
@@ -125,7 +141,7 @@ button,input,select{font:inherit;color:inherit}
   function P() { return window.EPSD && EPSD.plan; }
   function lib() { if (!P()) return; var L = EPSD.plan.list();
     $("#lib").innerHTML = L.length ? L.map(function (b, k) { return '<div><div style="pointer-events:none">' + EPSTAC.svg(b.d) + "</div><b>" + esc(b.nom) + '</b><div class="row" style="margin:0"><button class="btn" data-o="' + k + '" type="button">Ouvrir</button><button class="btn d" data-d="' + k + '" type="button" aria-label="Supprimer ' + esc(b.nom) + '">🗑</button></div></div>'; }).join("") : '<p class="mut" style="grid-column:1/-1">Aucune planche enregistrée. Dessine, donne un nom, puis « Enregistrer » : elle sera sur toutes tes tablettes.</p>';
-    Array.prototype.forEach.call(document.querySelectorAll("#lib [data-o]"), function (b) { b.onclick = function () { var x = L[+b.dataset.o]; cur = { id: x.id, nom: x.nom }; ED.set(x.d); $("#nom").value = x.nom; $("#sport").value = ED.get().sport; window.scrollTo(0, 0); }; });
+    Array.prototype.forEach.call(document.querySelectorAll("#lib [data-o]"), function (b) { b.onclick = function () { var x = L[+b.dataset.o]; cur = { id: x.id, nom: x.nom }; ED.set(x.d); $("#nom").value = x.nom; $("#sport").value = ED.get().sport; MOT = ""; tool = "sel"; drawTools(); window.scrollTo(0, 0); }; });
     Array.prototype.forEach.call(document.querySelectorAll("#lib [data-d]"), function (b) { b.onclick = function () { var x = L[+b.dataset.d]; if (!confirm("Supprimer la planche « " + x.nom + " » ?")) return; EPSD.plan.del(x.id); if (cur.id === x.id) cur.id = ""; lib(); }; }); }
   function send() { if (!P()) return; var el = $("#send");
     if (!EPSD.plan.ready()) { el.innerHTML = '<p class="mut">Le partage entre tablettes n\'est pas encore réglé sur cet appareil (accueil → Réglages communs). Sans lui, la planche reste sur cette tablette.</p>'; return; }
@@ -147,7 +163,7 @@ button,input,select{font:inherit;color:inherit}
     $("#save2").onclick = function () { $("#save").click(); var g = $("#gst"); if (g) { g.className = $("#sst").className; g.textContent = $("#sst").textContent; } }; var sb = $("#stop"); if (sb) sb.onclick = function () { EPSD.plan.stop().then(send, send); }; }
   $("#save").onclick = function () { if (!P()) return; var n = $("#nom").value.trim(); if (!ED.count()) { $("#sst").className = "st ko"; $("#sst").textContent = "La planche est vide."; return; } if (!n) { var dt = new Date(); n = "Planche du " + dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); $("#nom").value = n; }
     cur.id = EPSD.plan.save({ id: cur.id, nom: n, d: ED.get() }); cur.nom = n; $("#sst").className = "st ok"; $("#sst").textContent = "✓ Enregistrée"; setTimeout(function () { $("#sst").textContent = ""; }, 2500); lib(); };
-  $("#new").onclick = function () { cur = { id: "", nom: "" }; $("#nom").value = ""; ED.set(EPSTAC.depart($("#sport").value)); };
+  $("#new").onclick = function () { cur = { id: "", nom: "" }; $("#nom").value = ""; MOT = ""; tool = "sel"; ED.set(EPSTAC.depart($("#sport").value)); drawTools(); };
   $("#prt").onclick = function () { window.print(); };
   function prof(n) { if (!teach()) return; if (!P()) { if ((n || 0) < 60) setTimeout(function () { prof((n || 0) + 1); }, 250); return; } $("#prof").hidden = false; lib(); send(); setInterval(function () { if (!document.hidden && !document.querySelector("#send select:focus")) send(); }, 15000); }
   prof(0);
