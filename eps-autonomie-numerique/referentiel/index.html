@@ -6,7 +6,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Référentiel de compétences – EPS</title>
+<title>Suivi et compétences – EPS</title>
 <meta name="theme-color" content="#14171C">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
@@ -61,18 +61,50 @@ td.z{background:#FDECEA;color:var(--no);font-weight:800}
 .ck{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:8px 4px;border-top:1px solid var(--line);cursor:pointer}
 .ck input{width:22px;height:22px;flex:none;margin-top:1px}
 label.f{display:block;font-weight:800;font-size:14px;margin:10px 0 4px}
+/* barre latérale (modèle iDoceo, 28/11/2026) */
+.lay{display:flex;align-items:flex-start;min-height:calc(100vh - 60px)}
+.side{width:230px;flex:none;align-self:stretch;background:linear-gradient(180deg,#86198F,#5B1163);padding:12px 10px 30px;position:sticky;top:0;max-height:100vh;overflow:auto}
+.side .sd-h{color:#F3D7F6;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin:14px 8px 4px}
+.side .sd-h:first-child{margin-top:2px}
+.side button{display:block;width:100%;text-align:left;min-height:44px;padding:0 12px;margin:2px 0;border:0;border-radius:10px;background:transparent;color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+.side button:hover{background:rgba(255,255,255,.12)}
+.side button.on{background:#fff;color:#5B1163;font-weight:900}
+.lay>.wrap{flex:1;min-width:0}
+.wrap.wide{max-width:none}
+@media (max-width:899px){.lay{display:block}.side{width:auto;position:static;max-height:none;display:flex;gap:6px;overflow-x:auto;padding:8px 10px}.side .sd-h{display:none}.side button{width:auto;flex:none;white-space:nowrap}}
+/* carnet de notes */
+.cn-per{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+.cn-per button{min-height:52px;padding:4px 16px;border-radius:12px 12px 0 0;border:0;border-bottom:4px solid var(--pc);background:#fff;font-weight:900;font-size:15px;cursor:pointer;color:var(--ink);line-height:1.15}
+.cn-per button small{display:block;font-weight:600;font-size:12px;color:var(--muted)}
+.cn-per button.on{background:var(--pc);color:#fff}.cn-per button.on small{color:#fff;opacity:.85}
+.cn-tw{max-height:70vh;overflow:auto}
+table.cn{font-size:13px;width:auto;min-width:100%}
+table.cn th,table.cn td{padding:0;min-width:58px;height:40px}
+table.cn thead th{position:sticky;top:0;z-index:2;padding:4px 6px;font-size:12px}
+table.cn thead tr:nth-child(2) th{top:30px}
+table.cn th.cn-g{color:#fff;font-weight:900;font-size:13px;text-align:left;height:30px}
+table.cn .cn-n{position:sticky;left:0;z-index:1;background:#fff;text-align:left;padding:0 10px;min-width:170px;font-weight:700;white-space:nowrap}
+table.cn thead .cn-n{z-index:3;background:#FAF8F3}
+table.cn .cn-m{min-width:76px;font-size:14px;position:sticky;right:0;z-index:1;background-color:#fff;box-shadow:-2px 0 0 var(--line)}
+table.cn thead .cn-m{z-index:3;background-color:#FAF8F3}
+table.cn tr.cn-cl td{font-weight:800;background:#FAF8F3}
+.cnb{width:100%;height:40px;border:0;background:none;font:700 14px system-ui,sans-serif;cursor:pointer;color:var(--ink)}
+.cnh{border:0;background:none;font:800 12px system-ui,sans-serif;cursor:pointer;padding:0}
+.lg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px;color:var(--muted)}.lg i{width:14px;height:14px;border-radius:4px;display:inline-block;vertical-align:-2px;margin-right:4px;border:1px solid var(--line)}
+.cn-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+@media print{.side{display:none!important}.cn-tw{max-height:none;overflow:visible}}
 @media print{.hd,.nav,.noprint{display:none!important}html,body{background:#fff}.wrap{max-width:none;padding:0}.card{border:0;padding:0 0 10px}}
 </style>
 </head>
 <body>
 <div class="hd">
   <div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M12 11.5l-5.5 5.2M12 11.5l5.5 5.2"/></svg></div>
-  <h1>Référentiel de compétences</h1>
+  <h1>Suivi et compétences</h1>
   <span data-eps-upd-slot></span>
   <a class="hb" href="../">← Accueil</a>
 </div>
-<div class="nav noprint" id="nav" hidden></div>
-<div class="wrap" id="pg"><div class="card"><p class="mut">Outil enseignant : le code est demandé.</p></div></div>
+<div class="lay"><nav class="side noprint" id="nav" hidden aria-label="Sommaire"></nav>
+<div class="wrap" id="pg"><div class="card"><p class="mut">Outil enseignant : le code est demandé.</p></div></div></div>
 <script>window.EPS_REF_PAGE = 1;</script>
 <script src="../eps-ref.js"></script>
 <script>
@@ -83,12 +115,12 @@ label.f{display:block;font-weight:800;font-size:14px;margin:10px 0 4px}
   function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
   function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
   function teach() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
-  var TABS = [["str", "🧭 Structure"], ["act", "🔗 Activités"], ["cdc", "📒 Carnet"], ["el", "👤 Élève"], ["cl", "👥 Classe"], ["cov", "🗺 Couverture"], ["txt", "📜 Textes officiels"]];
+  var TABS = [["som", "🏠 Sommaire", "Notes"], ["cn", "📒 Carnet de notes"], ["el", "👤 Élève", "Suivi"], ["cl", "👥 Classe"], ["str", "🧭 Compétences", "Compétences"], ["act", "🔗 Activités"], ["cov", "🗺 Couverture"], ["txt", "📜 Textes officiels"], ["par", "⚙ Paramètres", "Réglages"]];
   var DIRS = R.DIRS;
   function vOk(g, v) { return (g.gv !== "gt" && g.gv !== "pro") || g.gv === v; }   /* grille propre à une voie, ou commune */
-  var UI = { tab: "str", voie: "gt", an: R.annee(), g: "", cls: "", el: "", mode: "og", busy: false };
-  try { var u0 = JSON.parse(sessionStorage.getItem("eps.ref.ui") || "null"); if (u0 && typeof u0 === "object") ["tab", "voie", "g", "cls", "mode"].forEach(function (k) { if (typeof u0[k] === "string") UI[k] = u0[k]; }); } catch (e) {}
-  function keep() { try { sessionStorage.setItem("eps.ref.ui", JSON.stringify({ tab: UI.tab, voie: UI.voie, g: UI.g, cls: UI.cls, mode: UI.mode })); } catch (e) {} }
+  var UI = { tab: "som", voie: "gt", an: R.annee(), g: "", cls: "", el: "", mode: "og", busy: false, per: "" };
+  try { var u0 = JSON.parse(sessionStorage.getItem("eps.ref.ui") || "null"); if (u0 && typeof u0 === "object") ["tab", "voie", "g", "cls", "mode", "per"].forEach(function (k) { if (typeof u0[k] === "string") UI[k] = u0[k]; }); } catch (e) {}
+  function keep() { try { sessionStorage.setItem("eps.ref.ui", JSON.stringify({ tab: UI.tab, voie: UI.voie, g: UI.g, cls: UI.cls, mode: UI.mode, per: UI.per })); } catch (e) {} }
   var VN = { gt: "Voie générale et technologique", pro: "Voie professionnelle", x: "Toutes les classes" };
 
   /* ---- petite fenêtre ---- */
@@ -331,10 +363,152 @@ label.f{display:block;font-weight:800;font-size:14px;margin:10px 0 4px}
       $("#epdef", o).onclick = function () { if (R.one("ep|" + v + "|" + ca)) R.del("ep|" + v + "|" + ca); shut(); render(); }; }); }
 
   /* ================= page ================= */
-  function render() { keep(); R.css(); var n = $("#nav"); n.hidden = false;
-    n.innerHTML = TABS.map(function (t) { return '<button type="button" data-t="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on" aria-current="page"' : "") + ">" + t[1] + "</button>"; }).join("");
+  /* ================= 📒 Carnet de notes (28/11/2026, demande de l'enseignant : sur le modèle d'iDoceo) =================
+     Tout est RELIÉ, rien n'est recopié : chaque colonne vient d'une saisie faite ailleurs et lue en direct :
+     🏁 évaluations finales (relevés sn| : note /20 de M.prop), 📅 évaluations de leçon de chaque activité (eps.leceval.<dossier>.v1 : participation,
+     sérieux / tenue, thème du jour), 🧪 modalités d'évaluation (eps.evmod.<dossier>.v1) et ✏️ colonnes du carnet (eps.cdc.v1, saisies ici).
+     Périodes par classe (trimestres ou semestres, dates réglables), moyennes par période et de l'année, couleurs par niveau.
+     Réglages : élément « cn|cfg » du magasin eps.ref.v1 (synchronisé). */
+  var ACOL = { esc: "#2E7D4F", rel: "#D9481F", vol: "#6B3FA0", bad: "#0B7A75", dan: "#C2185B", acro: "#1F4FA3", ori: "#E8701A", ct: "#4D7C0F", bk: "#A4161A", step: "#A21CAF" };
+  var ANOM = { esc: "Escalade", rel: "Relais Vitesse", vol: "Volley-ball", bad: "Badminton", dan: "Danse", acro: "Acrosport", ori: "OrienRun", ct: "Cross-training", bk: "Basket-ball", step: "Step" };
+  var SRC = { fin: ["🏁", "Évaluations finales", "#FDE7EF"], lec: ["📅", "Leçons", "#FFF6D6"], mod: ["🧪", "Modalités", "#E6F0FF"], man: ["✏️", "Mes colonnes", "#EAF6EA"] };
+  var CN0 = { trim: [["T1", "09-01", "11-30"], ["T2", "12-01", "02-28"], ["T3", "03-01", "07-10"]], sem: [["S1", "09-01", "01-31"], ["S2", "02-01", "07-10"]],
+    coef: { fin: 2, lec: 1, mod: 1, man: 1 }, seuils: [8, 10, 12, 14, 16], lec: "jour", cls: {}, pro: "sem", gt: "trim" };
+  var NIVC = ["#F6C9C4", "#FBDDBF", "#FFF0B8", "#E6F2D2", "#CDEABF", "#A9DB98"];
+  function cnCfg() { var o = R.one("cn|cfg") || {}, c = JSON.parse(JSON.stringify(CN0));
+    ["trim", "sem"].forEach(function (k) { if (Array.isArray(o[k]) && o[k].length) c[k] = o[k]; });
+    if (o.coef && typeof o.coef === "object") Object.keys(c.coef).forEach(function (k) { if (isFinite(+o.coef[k])) c.coef[k] = +o.coef[k]; });
+    if (Array.isArray(o.seuils) && o.seuils.length === 5) c.seuils = o.seuils.map(Number);
+    ["lec", "pro", "gt"].forEach(function (k) { if (typeof o[k] === "string") c[k] = o[k]; });
+    if (o.cls && typeof o.cls === "object") c.cls = o.cls; return c; }
+  function cnSave(c) { c.id = "cn|cfg"; c.k = "cncfg"; R.put(c); }
+  function perType(cls) { var c = cnCfg(), t = c.cls[R.ck(cls)]; return t === "trim" || t === "sem" ? t : (R.voieOf(cls) === "pro" ? c.pro : c.gt); }
+  function ymdOf(md, an) { var y = String(an || R.annee()).split("-").map(Number), m = +String(md).slice(0, 2); return (m >= 8 ? y[0] : y[1]) + "-" + md; }
+  function pers(cls, an) { var c = cnCfg(); return c[perType(cls)].map(function (p, i) { return { i: i, nom: p[0], a: ymdOf(p[1], an), b: ymdOf(p[2], an) }; }); }
+  function perOfDay(P, d) { if (!d) return P.length - 1; for (var i = 0; i < P.length; i++) if (d >= P[i].a && d <= P[i].b) return i; var k = 0; P.forEach(function (p, i) { if (d >= p.a) k = i; }); return k; }
+  function sI(k) { var v = null; try { v = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) {} return v && v.items && typeof v.items === "object" && !Array.isArray(v.items) ? v.items : {}; }
+  function elOf(E, key) { var r = null; Object.keys(E || {}).some(function (k) { if (R.nk(k) === key) { r = E[k]; return true; } return false; }); return r; }
+  function isNum(x) { return x != null && x !== "" && isFinite(+x); }
+  function leSur(dir) { var o = sI("eps.param.v1")[dir + "|leceval_sur"]; return o && !o.del && +o.v > 0 ? +o.v : 10; }
+  function leNoms() { var I = sI("eps.param.v1"), r = null; Object.keys(R.DIRS).some(function (a) { var o = I[R.DIRS[a] + "|leceval"]; if (o && !o.del && Array.isArray(o.v) && o.v.length === 3) { r = o.v.map(String); return true; } return false; }); return r || ["Participation", "Sérieux / tenue", "Thème du jour"]; }
+  function modPart(c, v) { if (!isNum(v)) return null; v = +v; if (c.ty === "deg") return Math.max(0, Math.min(1, (v - .5) / 4)); if (c.ty === "pts") return +c.max > 0 ? Math.max(0, Math.min(1, v / +c.max)) : null; if (c.ty === "ok") return v ? 1 : 0;
+    if (c.ty === "perf") { var b = +c.best, w = +c.worst; if (!isFinite(b) || !isFinite(w) || b === w || c.best === "" || c.worst === "") return null; return Math.max(0, Math.min(1, (v - w) / (b - w))); } return null; }
+  function dayU(u) { var d = new Date(+u > 1e11 ? +u : Date.now()); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function jf(d) { return d ? String(d).slice(5).split("-").reverse().join("/") : ""; }
+  /* toutes les colonnes d'une classe pour une année : {src, app, nom, sub, d, color, v:{clé élève:{n20, t, det}}} */
+  function cnCols(cls, an) { var c = cnCfg(), out = [], N = leNoms();
+    R.snaps({ an: an, cls: cls }).forEach(function (s) { var v = {}, any = false; Object.keys(s.el).forEach(function (k) { var o = s.el[k]; if (o && isNum(o.nt)) { v[k] = { n20: +o.nt, t: fr(+o.nt), det: "Note de l'évaluation finale : " + fr(+o.nt) + " / 20" }; any = true; } });
+      if (any) out.push({ src: "fin", app: s.app, nom: s.nom, sub: "/20", d: s.d0 || s.d, color: s.color || ACOL[s.app] || "#999", v: v, id: "f|" + s.app }); });
+    Object.keys(R.DIRS).forEach(function (a) { var dir = R.DIRS[a], sur = leSur(dir), IE = sI("eps.leceval." + dir + ".v1"), LC = sI("eps.lecons." + dir + ".v1"), byAct = null;
+      Object.keys(IE).sort(function (x, y) { return String((IE[x] || {}).day).localeCompare(String((IE[y] || {}).day)); }).forEach(function (id) { var r = IE[id]; if (!r || r.del || R.ck(r.cls) !== R.ck(cls) || !/^\d{4}-\d\d-\d\d$/.test(String(r.day)) || R.anOf(r.day) !== an) return;
+        var lt = r.lec && LC[r.lec] && LC[r.lec].titre ? String(LC[r.lec].titre) : "";
+        var mk = function (q) { var v = {}, any = false; Object.keys(r.el || {}).forEach(function (k) { var x = r.el[k] || {}, L = (q ? [q] : ["p", "s", "t"]).filter(function (z) { return isNum(x[z]); }); if (!L.length) return;
+            var m = L.reduce(function (s, z) { return s + Math.max(0, Math.min(3, +x[z])); }, 0) / L.length, n = m / 3 * sur;
+            v[R.nk(k)] = { n20: m / 3 * 20, t: fr(Math.round(n * 4) / 4), det: ["p", "s", "t"].filter(function (z) { return isNum(x[z]); }).map(function (z, i) { return N[["p", "s", "t"].indexOf(z)] + " : " + fr(Math.round(Math.max(0, Math.min(3, +x[z])) / 3 * sur * 4) / 4) + " / " + sur; }).join(" · ") }; any = true; }); return any ? v : null; };
+        if (c.lec === "act") { var v = mk(""); if (!v) return; if (!byAct) { byAct = { src: "lec", app: a, nom: ANOM[a], sub: "moy. /" + sur, d: r.day, color: ACOL[a], days: [], id: "la|" + a }; out.push(byAct); }
+          byAct.days.push({ d: r.day, v: v }); return; }
+        if (c.lec === "crit") ["p", "s", "t"].forEach(function (q, i) { var v = mk(q); if (v) out.push({ src: "lec", app: a, nom: N[i], sub: jf(r.day) + " /" + sur, d: r.day, color: ACOL[a], v: v, lec: lt, theme: r.theme, id: "l|" + id + "|" + q }); });
+        else { var v2 = mk(""); if (v2) out.push({ src: "lec", app: a, nom: jf(r.day), sub: "/" + sur, d: r.day, color: ACOL[a], v: v2, lec: lt, theme: r.theme, id: "l|" + id }); } });
+      if (byAct) { var V = {}; byAct.days.forEach(function (x) { Object.keys(x.v).forEach(function (k) { var o = V[k] || (V[k] = { s: 0, n: 0, L: [] }); o.s += x.v[k].n20; o.n++; o.L.push(jf(x.d) + " : " + x.v[k].t); }); });
+        byAct.v = {}; Object.keys(V).forEach(function (k) { var m = V[k].s / V[k].n; byAct.v[k] = { n20: m, t: fr(Math.round(m / 20 * sur * 4) / 4), det: V[k].n + " leçon(s) · " + V[k].L.join(" · ") }; }); byAct.nom = ANOM[a] + " (" + byAct.days.length + " leçons)"; byAct.d = byAct.days[byAct.days.length - 1].d; }
+      var IM = sI("eps.evmod." + dir + ".v1"); Object.keys(IM).forEach(function (id) { var r = IM[id]; if (!r || r.del || r.k !== "res" || R.ck(r.cls) !== R.ck(cls)) return; var m = IM[r.mod]; if (!m || m.del || !Array.isArray(m.crit)) return; var d = dayU(r.u); if (R.anOf(d) !== an) return;
+        var tot = +m.total > 0 ? +m.total : 20, v = {}, any = false; Object.keys(r.el || {}).forEach(function (k) { var x = r.el[k] || {}, sw = 0, s = 0; m.crit.forEach(function (cr) { var p = modPart(cr, x[cr.id]), w = +cr.w || 1; if (p == null) return; s += w * p; sw += w; });
+          if (!sw) return; var pt = s / sw; v[R.nk(k)] = { n20: pt * 20, t: fr(Math.round(pt * tot * 4) / 4), det: m.crit.filter(function (cr) { return isNum(x[cr.id]); }).map(function (cr) { return String(cr.t || "Critère") + " : " + fr(+x[cr.id]); }).join(" · ") }; any = true; });
+        if (any) out.push({ src: "mod", app: a, nom: String(m.nom || "Modalité"), sub: "/" + fr(tot), d: d, color: ACOL[a], v: v, id: "m|" + id }); }); });
+    CD.cols(cls).forEach(function (col) { var V = CD.vals(col.id), v = {}; Object.keys(V).forEach(function (k) { var x = V[k], p = CD.part(col, x); v[k] = { n20: p == null ? null : p * 20, t: null, raw: x, w: col.coef || 1 }; });
+      if (!col.d || R.anOf(col.d) === an) out.push({ src: "man", nom: col.nom, sub: col.ty === "note" ? "/" + fr(col.max) + (col.coef !== 1 ? " ×" + fr(col.coef) : "") : CD.TY[col.ty], d: col.d, color: "#3F8F3F", v: v, col: col, id: "c|" + col.id }); });
+    var ord = { fin: 0, lec: 1, mod: 2, man: 3 };
+    return out.sort(function (x, y) { return ord[x.src] - ord[y.src] || String(x.app || "").localeCompare(String(y.app || "")) || String(x.d || "").localeCompare(String(y.d || "")); }); }
+  /* moyenne /20 d'un élève sur des colonnes : moyenne de chaque source, puis moyenne pondérée par les coefficients des sources */
+  function cnMoy(C, k) { var cf = cnCfg().coef, S = {}; C.forEach(function (c) { var x = c.v[k]; if (!x || x.n20 == null) return; var w = c.src === "man" ? (x.w || 1) : 1, o = S[c.src] || (S[c.src] = { s: 0, w: 0 }); o.s += x.n20 * w; o.w += w; });
+    var s = 0, w = 0, det = {}; Object.keys(S).forEach(function (src) { var m = S[src].s / S[src].w; det[src] = m; var cw = +cf[src] || 0; if (cw > 0) { s += m * cw; w += cw; } }); return { m: w ? s / w : null, det: det }; }
+  function nivCol(n) { if (n == null) return ""; var T = cnCfg().seuils, i = 0; while (i < T.length && n >= T[i]) i++; return NIVC[i]; }
+  function cnCell(c, x, k) { if (!x) return c.src === "man" ? '<button type="button" class="cnb" data-cm="' + esc(c.id) + "|" + esc(k) + '"><span style="color:#B8B2A6">·</span></button>' : "";
+    var bg = x.n20 != null ? nivCol(x.n20) : "", txt = c.src === "man" ? cell(c.col, x.raw) : esc(x.t);
+    return '<button type="button" class="cnb" style="background:' + bg + '" ' + (c.src === "man" ? 'data-cm="' : 'data-cd="') + esc(c.id) + "|" + esc(k) + '">' + txt + "</button>"; }
+  function students(cls) { var o = lists().filter(function (x) { return R.ck(x.nom) === R.ck(cls); })[0], P = []; try { P = o ? EPSL.people(o) || [] : []; } catch (e) {}
+    return P.map(function (p) { var f = p.full || ((p.prenom || "") + " " + (p.nom || "")).trim(); return { k: R.nk(f), full: f, nom: p.nom || "", prenom: p.prenom || "" }; }).sort(function (a, b) { return a.full.localeCompare(b.full, "fr"); }); }
+  function curPer(P) { var t = R.today(), i = perOfDay(P, t); return t < P[0].a ? 0 : i; }
+  function vCn() { var L = lists().filter(function (o) { return !/^D[ÉE]MO/i.test(o.nom) || teach(); }), cur = L.filter(function (o) { return R.ck(o.nom) === R.ck(UI.cls); })[0], an = R.annee();
+    var h = '<div class="card noprint cn-top">' + (L.length ? '<div class="chips">' + L.map(function (o, i) { return '<button type="button" class="chip' + (cur === o ? " on" : "") + '" data-c="' + i + '">' + esc(o.nom) + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucune liste de classe sur cet appareil.</p>') + "</div>";
+    if (!cur) { $("#pg").innerHTML = h + (L.length ? '<div class="card"><p class="mut">Choisis une classe.</p></div>' : ""); $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.c].nom; render(); }; }); return; }
+    var P = pers(cur.nom, an), pt = perType(cur.nom); if (UI.per == null || UI.per === "" || (UI.per !== "an" && !P[+UI.per])) UI.per = String(curPer(P));
+    var all = cnCols(cur.nom, an), E = students(cur.nom), PC = ["#E8F5E9", "#FFF3E0", "#E3F2FD", "#FCE4EC"];
+    h += '<div class="cn-per noprint">' + P.map(function (p, i) { return '<button type="button" class="' + (UI.per === String(i) ? "on" : "") + '" data-per="' + i + '" style="--pc:' + ["#2E7D32", "#E65100", "#1565C0", "#AD1457"][i % 4] + '">' + esc(p.nom) + "<small>" + jf(p.a) + " → " + jf(p.b) + "</small></button>"; }).join("") +
+      '<button type="button" class="' + (UI.per === "an" ? "on" : "") + '" data-per="an" style="--pc:#4A148C">Bilan de l\'année<small>' + (pt === "sem" ? "semestres" : "trimestres") + "</small></button></div>";
+    h += '<div class="row noprint" style="margin:0 0 10px"><button type="button" class="btn p" id="cadd">＋ Colonne</button><button type="button" class="btn" id="cpn">📋 Pronote</button><button type="button" class="btn" id="prt">🖨 Imprimer</button><button type="button" class="btn" id="ctr">🗑 Corbeille</button>' +
+      '<label class="mut" style="margin-left:auto">Découpage : <select class="in" id="cnpt" style="width:auto;min-height:40px"><option value="trim"' + (pt === "trim" ? " selected" : "") + '>Trimestres</option><option value="sem"' + (pt === "sem" ? " selected" : "") + ">Semestres</option></select></label></div>";
+    if (!E.length) { $("#pg").innerHTML = h + '<div class="card"><p class="mut">Cette liste n\'a pas d\'élèves.</p></div>'; cnBind(cur, L, null, E, P); return; }
+    var tb;
+    if (UI.per === "an") { var PCs = P.map(function (p, i) { return all.filter(function (c) { return perOfDay(P, c.d) === i; }); });
+      tb = '<table class="cn"><thead><tr><th class="cn-n" rowspan="2">Élève</th>' + P.map(function (p, i) { return '<th colspan="' + (Object.keys(SRC).length + 1) + '" style="background:' + PC[i % 4] + '">' + esc(p.nom) + "</th>"; }).join("") + '<th rowspan="2" class="cn-m">Année<br><small>/20</small></th></tr><tr>' +
+        P.map(function (p, i) { return Object.keys(SRC).map(function (s) { return '<th style="background:' + SRC[s][2] + '" title="' + SRC[s][1] + '">' + SRC[s][0] + "</th>"; }).join("") + '<th class="cn-m">Moy.</th>'; }).join("") + "</tr></thead><tbody>" +
+        E.map(function (e) { var M = [], cells = P.map(function (p, i) { var r = cnMoy(PCs[i], e.k); if (r.m != null) M.push(r.m); return Object.keys(SRC).map(function (s) { var v = r.det[s]; return '<td style="background:' + (v == null ? "" : nivCol(v)) + '">' + (v == null ? "" : fr(Math.round(v * 100) / 100)) + "</td>"; }).join("") + '<td class="cn-m" style="background:' + nivCol(r.m) + '"><b>' + (r.m == null ? "–" : fr(Math.round(r.m * 100) / 100)) + "</b></td>"; }).join(""), A = M.length ? M.reduce(function (a, b) { return a + b; }, 0) / M.length : null;
+          return '<tr><td class="cn-n">' + esc(e.full) + "</td>" + cells + '<td class="cn-m" style="background:' + nivCol(A) + '"><b>' + (A == null ? "–" : fr(Math.round(A * 100) / 100)) + "</b></td></tr>"; }).join("") + "</tbody></table>";
+      UI.cnC = null; }
+    else { var pi = +UI.per, C = all.filter(function (c) { return perOfDay(P, c.d) === pi; }); UI.cnC = C;
+      var G = []; C.forEach(function (c) { var g = c.src + "|" + (c.src === "man" ? "" : c.app || ""), l = G[G.length - 1]; if (l && l.g === g) l.n++; else G.push({ g: g, n: 1, c: c }); });
+      tb = '<table class="cn"><thead><tr><th class="cn-n" rowspan="2">Élève</th>' + G.map(function (g) { var c = g.c, lab = SRC[c.src][0] + " " + (c.src === "man" ? SRC.man[1] : c.src === "fin" ? "Évaluation finale" : (ANOM[c.app] || "") + (c.src === "mod" ? " · modalités" : ""));
+          return '<th colspan="' + g.n + '" class="cn-g" style="background:' + (c.src === "man" ? "#3F8F3F" : c.color) + '">' + esc(lab) + "</th>"; }).join("") + '<th rowspan="2" class="cn-m">Moyenne<br><small>' + esc(P[pi].nom) + " /20</small></th></tr><tr>" +
+        C.map(function (c) { return '<th style="background:' + SRC[c.src][2] + '">' + (c.src === "man" ? '<button type="button" class="cnh" data-col="' + esc(c.col.id) + '">' + TYI[c.col.ty] + " " + esc(c.nom) + "</button>" : '<span title="' + esc(c.lec || c.nom) + '">' + esc(c.src === "fin" ? c.nom : c.nom) + "</span>") + "<br><small>" + esc(c.sub) + "</small></th>"; }).join("") + "</tr></thead><tbody>" +
+        E.map(function (e) { var r = cnMoy(C, e.k); return '<tr><td class="cn-n">' + esc(e.full) + "</td>" + C.map(function (c) { return "<td>" + cnCell(c, c.v[e.k], e.k) + "</td>"; }).join("") + '<td class="cn-m" style="background:' + nivCol(r.m) + '"><b>' + (r.m == null ? "–" : fr(Math.round(r.m * 100) / 100)) + "</b></td></tr>"; }).join("") +
+        '<tr class="cn-cl"><td class="cn-n">Moyenne de la classe</td>' + C.map(function (c) { var s = 0, n = 0; E.forEach(function (e) { var x = c.v[e.k]; if (x && x.n20 != null) { s += x.n20; n++; } }); return '<td style="background:' + (n ? nivCol(s / n) : "") + '">' + (n ? fr(Math.round(s / n * 10) / 10) : "") + "</td>"; }).join("") +
+          (function () { var s = 0, n = 0; E.forEach(function (e) { var m = cnMoy(C, e.k).m; if (m != null) { s += m; n++; } }); return '<td class="cn-m"><b>' + (n ? fr(Math.round(s / n * 100) / 100) : "") + "</b></td>"; })() + "</tr></tbody></table>";
+      if (!C.length) tb += '<p class="mut">Rien pour cette période : les notes de tes leçons (📊 Évaluer la leçon), de tes évaluations finales et de tes modalités arrivent ici toutes seules. ＋ Colonne pour une note à toi.</p>'; }
+    h += '<div class="card cn-card"><div class="tw cn-tw">' + tb + '</div><div class="lg noprint">' + ["< " + cnCfg().seuils[0]].concat(cnCfg().seuils.map(function (s, i, a) { return i < a.length - 1 ? s + " – " + a[i + 1] : "≥ " + s; })).map(function (t, i) { return '<span><i style="background:' + NIVC[i] + '"></i>' + esc(t) + "</span>"; }).join("") +
+      Object.keys(SRC).map(function (s) { return '<span><i style="background:' + SRC[s][2] + '"></i>' + SRC[s][0] + " " + SRC[s][1] + " ×" + fr(cnCfg().coef[s]) + "</span>"; }).join("") + "</div></div>";
+    $("#pg").innerHTML = h; cnBind(cur, L, all, E, P); }
+  function cnBind(cur, L, all, E, P) {
+    $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.c].nom; UI.per = ""; render(); }; });
+    $$("[data-per]").forEach(function (b) { b.onclick = function () { UI.per = b.dataset.per; render(); }; });
+    var pt = $("#cnpt"); if (pt) pt.onchange = function () { var c = cnCfg(); c.cls[R.ck(cur.nom)] = pt.value; cnSave(c); UI.per = ""; render(); };
+    $("#cadd").onclick = function () { colEdit(cur.nom, null); }; $("#prt").onclick = function () { window.print(); };
+    $("#ctr").onclick = function () { if (window.EPSD && EPSD.trash) EPSD.trash.open(); };
+    $("#cpn").onclick = function () { if (!(window.EPSR && EPSR.pronote)) { alert("Export Pronote indisponible : recharge la page."); return; }
+      var isAn = UI.per === "an", C = isAn ? all : UI.cnC || [], NC = C.filter(function (c) { return c.src !== "man" || c.col.ty === "note"; }), lab = isAn ? "Année" : P[+UI.per].nom;
+      var rows = E.map(function (e) { var mm; if (isAn) { var M = []; P.forEach(function (p, i) { var r = cnMoy(all.filter(function (c) { return perOfDay(P, c.d) === i; }), e.k); if (r.m != null) M.push(r.m); }); mm = M.length ? M.reduce(function (a, b) { return a + b; }, 0) / M.length : null; } else mm = cnMoy(C, e.k).m;
+        return { nom: e.nom, prenom: e.prenom, st: "", v: [mm == null ? null : Math.round(mm * 100) / 100].concat(isAn ? [] : NC.map(function (c) { var x = c.v[e.k]; return !x ? null : c.src === "man" ? (isNum(x.raw) ? +x.raw : null) : (isNum(String(x.t).replace(",", ".")) ? +String(x.t).replace(",", ".") : null); })) }; });
+      EPSR.pronote({ app: "Carnet de notes", classe: cur.nom + " · " + lab, color: "#86198F", cols: [{ t: "Moyenne " + lab + " /20" }].concat(isAn ? [] : NC.map(function (c) { return { t: (c.src === "lec" ? (ANOM[c.app] || "") + " " : "") + c.nom + " " + c.sub }; })), rows: rows }); };
+    if (!all) return;
+    var byId = {}; all.forEach(function (c) { byId[c.id] = c; });
+    $$("[data-col]").forEach(function (b) { b.onclick = function () { var c = byId["c|" + b.dataset.col]; if (c) colEdit(cur.nom, c.col); }; });
+    $$("[data-cm]").forEach(function (b) { b.onclick = function () { var p = b.dataset.cm.split("|"), k = p.pop(), c = byId[p.join("|")]; if (!c) return; var i = E.findIndex(function (e) { return e.k === k; }); if (i >= 0) saisie(c.col, E, i); }; });
+    $$("[data-cd]").forEach(function (b) { b.onclick = function () { var p = b.dataset.cd.split("|"), k = p.pop(), c = byId[p.join("|")]; if (!c) return; var x = c.v[k], e = E.filter(function (z) { return z.k === k; })[0];
+      pop("<h2>" + esc(e ? e.full : "") + '</h2><p class="mut">' + SRC[c.src][0] + " " + esc(c.src === "fin" ? "Évaluation finale · " + c.nom : (ANOM[c.app] || "") + " · " + (c.src === "mod" ? "🧪 " + c.nom : "leçon du " + jf(c.d) + (c.lec ? " · " + c.lec : ""))) + "</p>" +
+        '<p style="font-size:28px;font-weight:900;margin:6px 0">' + esc(x.t) + ' <small style="font-size:16px;color:var(--muted)">' + esc(c.sub) + "</small></p>" + (x.det ? '<p>' + esc(x.det) + "</p>" : "") + (c.theme ? '<p class="mut">Thème du jour : ' + esc(c.theme) + "</p>" : "") +
+        '<p class="mut">Note reliée : elle se modifie là où elle a été saisie (' + (c.src === "fin" ? "Évaluer → Évaluation finale" : c.src === "mod" ? "Évaluer → 🧪 Modalités" : "📊 Évaluer la leçon") + ' de l\'activité).</p><div class="row">' + (c.app && R.DIRS[c.app] ? '<a class="btn" href="../' + R.DIRS[c.app] + '/">Ouvrir ' + esc(ANOM[c.app] || "l'activité") + "</a>" : "") + '<button type="button" class="btn p" data-x>✕ Fermer</button></div>'); }; }); }
+  /* ================= ⚙ Paramètres du carnet ================= */
+  function vPar() { var c = cnCfg(), per = function (k) { return c[k].map(function (p) { return p[0] + " : " + jf("2000-" + p[1]) + " → " + jf("2000-" + p[2]); }).join("\n"); };
+    var h = '<div class="card"><h2>📅 Périodes</h2><p class="mut">Une ligne par période : « Nom : début → fin » (jour/mois). Tu peux en mettre autant que tu veux.</p><div class="cn-2"><div><label class="f" for="pt">Trimestres</label><textarea class="in" id="pt" rows="4">' + esc(per("trim")) + '</textarea></div><div><label class="f" for="ps">Semestres</label><textarea class="in" id="ps" rows="4">' + esc(per("sem")) + "</textarea></div></div>" +
+      '<div class="cn-2"><label class="f">Voie générale : <select class="in" id="pgt"><option value="trim">Trimestres</option><option value="sem"' + (c.gt === "sem" ? " selected" : "") + '>Semestres</option></select></label><label class="f">Voie professionnelle : <select class="in" id="ppro"><option value="trim">Trimestres</option><option value="sem"' + (c.pro === "sem" ? " selected" : "") + ">Semestres</option></select></label></div>" +
+      '<p class="mut">Une classe peut avoir son propre découpage : choix « Découpage » en haut de son carnet.</p></div>' +
+      '<div class="card"><h2>⚖ Coefficients des moyennes</h2><p class="mut">Moyenne de chaque source, puis moyenne pondérée par ces coefficients (0 = la source ne compte pas).</p><div class="cn-2">' + Object.keys(SRC).map(function (s) { return '<label class="f">' + SRC[s][0] + " " + SRC[s][1] + '<input class="in" data-cf="' + s + '" inputmode="decimal" value="' + fr(c.coef[s]) + '"></label>'; }).join("") + "</div></div>" +
+      '<div class="card"><h2>📅 Notes de leçon</h2><div class="chips">' + [["jour", "Une colonne par leçon"], ["crit", "Une colonne par critère (participation, tenue, thème)"], ["act", "Une moyenne par activité"]].map(function (x) { return '<button type="button" class="chip' + (c.lec === x[0] ? " on" : "") + '" data-lec="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><p class="mut">Intitulés des critères et barème (sur 10, sur 20…) : réglages de chaque activité, 🎛 Paramètres.</p></div>' +
+      '<div class="card"><h2>🎨 Couleurs</h2><p class="mut">Seuils sur 20, du rouge au vert.</p><div class="row">' + c.seuils.map(function (s, i) { return '<input class="in" data-se="' + i + '" inputmode="decimal" value="' + fr(s) + '" style="width:80px">'; }).join("") + '</div><div class="lg">' + NIVC.map(function (x) { return '<span><i style="background:' + x + '"></i></span>'; }).join("") + "</div></div>" +
+      '<div class="row"><button type="button" class="btn p" id="parok">✓ Enregistrer</button><span class="msg" id="parm" role="status"></span></div>';
+    $("#pg").innerHTML = h; var lec = c.lec;
+    $$("[data-lec]").forEach(function (b) { b.onclick = function () { lec = b.dataset.lec; $$("[data-lec]").forEach(function (x) { x.classList.toggle("on", x === b); }); }; });
+    var rd = function (t) { var out = [], bad = false; String(t).split("\n").forEach(function (l) { l = l.trim(); if (!l) return; var m = /^(.+?)\s*:\s*(\d{1,2})\/(\d{1,2})\s*(?:→|->|-|à|au)\s*(\d{1,2})\/(\d{1,2})$/.exec(l); if (!m) { bad = true; return; } var z = function (x) { return ("0" + x).slice(-2); }; out.push([m[1].trim(), z(m[3]) + "-" + z(m[2]), z(m[5]) + "-" + z(m[4])]); }); return bad || !out.length ? null : out; };
+    $("#parok").onclick = function () { var m = $("#parm"), t = rd($("#pt").value), s = rd($("#ps").value); if (!t || !s) { m.style.color = "var(--no)"; m.textContent = "Périodes : une ligne par période, ex. « T1 : 01/09 → 30/11 »."; return; }
+      var cf = {}, ok = true; $$("[data-cf]").forEach(function (i) { var v = nbr(i.value); if (v == null || v < 0) ok = false; else cf[i.dataset.cf] = v; });
+      var se = $$("[data-se]").map(function (i) { return nbr(i.value); }); if (!ok || se.some(function (v, i) { return v == null || (i && v <= se[i - 1]); })) { m.style.color = "var(--no)"; m.textContent = "Coefficients : des nombres ; seuils : croissants."; return; }
+      c.trim = t; c.sem = s; c.coef = cf; c.seuils = se; c.lec = lec; c.gt = $("#pgt").value; c.pro = $("#ppro").value; cnSave(c); UI.msg = "✓ Enregistré"; render(); }; if (UI.msg) { $("#parm").textContent = UI.msg; UI.msg = ""; } }
+  /* ================= 🏠 Sommaire ================= */
+  function vSom() { var an = R.annee(), L = lists().filter(function (o) { return !/^D[ÉE]MO/i.test(o.nom); });
+    var h = '<div class="card"><h2>Sommaire · ' + esc(an) + '</h2><p class="mut">Moyenne de chaque classe par période. Touche une classe pour ouvrir son carnet de notes.</p>';
+    if (!L.length) h += '<p class="mut">Aucune liste de classe sur cet appareil.</p>';
+    else h += '<div class="tw"><table class="cn"><thead><tr><th class="cn-n">Classe</th><th>Élèves</th><th>Découpage</th><th colspan="3">Moyennes par période</th><th>Année</th><th>Notes reliées</th></tr></thead><tbody>' + L.map(function (o, i) { var P = pers(o.nom, an), all = cnCols(o.nom, an), E = students(o.nom), Y = [];
+        var cells = P.map(function (p, j) { var C = all.filter(function (c) { return perOfDay(P, c.d) === j; }), s = 0, n = 0; E.forEach(function (e) { var m = cnMoy(C, e.k).m; if (m != null) { s += m; n++; } }); var v = n ? s / n : null; if (v != null) Y.push(v); return '<td style="background:' + nivCol(v) + '"><small>' + esc(p.nom) + "</small><br><b>" + (v == null ? "–" : fr(Math.round(v * 100) / 100)) + "</b></td>"; });
+        while (cells.length < 3) cells.push("<td></td>"); var A = Y.length ? Y.reduce(function (a, b) { return a + b; }, 0) / Y.length : null, cnt = {}; all.forEach(function (c) { cnt[c.src] = (cnt[c.src] || 0) + 1; });
+        return '<tr><td class="cn-n"><button type="button" class="btn s" data-so="' + i + '">' + esc(o.nom) + "</button></td><td>" + E.length + "</td><td>" + (perType(o.nom) === "sem" ? "Semestres" : "Trimestres") + "</td>" + cells.slice(0, Math.max(3, cells.length)).join("") + '<td style="background:' + nivCol(A) + '"><b>' + (A == null ? "–" : fr(Math.round(A * 100) / 100)) + "</b></td><td>" + Object.keys(SRC).filter(function (s) { return cnt[s]; }).map(function (s) { return '<span class="tag" style="background:' + SRC[s][2] + '">' + SRC[s][0] + " " + cnt[s] + "</span>"; }).join("") + "</td></tr>"; }).join("") + "</tbody></table></div>";
+    h += '</div><div class="card"><h2>Tout est relié</h2><p class="mut">Le carnet de notes lit en direct ce que tu saisis dans les activités : 🏁 notes des évaluations finales, 📅 évaluations de leçon (participation, tenue, thème du jour), 🧪 modalités d\'évaluation. Seules les ✏️ colonnes à toi se saisissent ici. Une note finale apparaît quand l\'activité a été ouverte en mode enseignant sur cet appareil, ou après « 🔄 Relever » dans 🔗 Activités.</p></div>';
+    $("#pg").innerHTML = h; $$("[data-so]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.so].nom; UI.per = ""; UI.tab = "cn"; render(); }; }); }
+
+  function render() { keep(); R.css(); var n = $("#nav"); n.hidden = false; if (UI.tab === "cdc") UI.tab = "cn";
+    n.innerHTML = TABS.map(function (t) { return (t[2] ? '<p class="sd-h">' + t[2] + "</p>" : "") + '<button type="button" data-t="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on" aria-current="page"' : "") + ">" + t[1] + "</button>"; }).join("");
     $$("[data-t]", n).forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.t; render(); window.scrollTo(0, 0); }; });
-    ({ str: vStr, act: vAct, cdc: vCdc, el: vEl, cl: vCl, cov: vCov, txt: vTxt }[UI.tab] || vStr)(); }
+    $("#pg").classList.toggle("wide", UI.tab === "cn" || UI.tab === "som");
+    ({ som: vSom, cn: vCn, par: vPar, str: vStr, act: vAct, el: vEl, cl: vCl, cov: vCov, txt: vTxt }[UI.tab] || vSom)(); }
   function start() { try { R.clean(); } catch (e) {} render();
     document.addEventListener("eps-ref", function () { if (!$("#ov") && !UI.busy) { var y = window.scrollY; render(); window.scrollTo(0, y); } }); }
   function ask(n) { if (teach()) { start(); return; } if (!window.EPSD || !EPSD.askCode) { if ((n || 0) < 40) setTimeout(function () { ask((n || 0) + 1); }, 250); return; } EPSD.askCode().then(function (ok) { if (ok) start(); }); }

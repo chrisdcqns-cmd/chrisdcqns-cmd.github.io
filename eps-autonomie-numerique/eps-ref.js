@@ -382,8 +382,8 @@
 
   /* synchronisation (eps-home.js) et relevé automatique dans les applis d'activité */
   (function reg(n) { if (window.EPSD && EPSD.store) { try { EPSD.store({ key: K, pre: PRE, onChange: function () { try { document.dispatchEvent(new CustomEvent("eps-ref")); } catch (e) {} } }); } catch (e) {} return; } if ((n || 0) < 80) setTimeout(function () { reg((n || 0) + 1); }, 250); })(0);
-  /* page Référentiel seulement : relevé (et pas seulement envoi) du carnet de classe, des repères rapides et de la coévaluation */
-  if (window.EPS_REF_PAGE) (function reg2(n) { if (window.EPSD && EPSD.store) { [[KC, "kc|"], ["eps.ico.v1", "iq|"], ["eps.coeval.v1", "cv|"]].forEach(function (x) { try { EPSD.store({ key: x[0], pre: x[1], onChange: function () { try { document.dispatchEvent(new CustomEvent("eps-ref")); } catch (e) {} } }); } catch (e) {} }); return; } if ((n || 0) < 80) setTimeout(function () { reg2((n || 0) + 1); }, 250); })(0);
+  /* page Suivi et compétences seulement : relevé (et pas seulement envoi) du carnet de classe, des repères rapides, de la coévaluation, et (carnet de notes, 28/11/2026) des évaluations de leçon et des modalités de toutes les activités */
+  if (window.EPS_REF_PAGE) (function reg2(n) { if (window.EPSD && EPSD.store) { [[KC, "kc|"], ["eps.ico.v1", "iq|"], ["eps.coeval.v1", "cv|"]].concat(Object.keys(DIRS).reduce(function (L, a) { var d = DIRS[a]; return L.concat([["eps.leceval." + d + ".v1", "le." + d + "|"], ["eps.evmod." + d + ".v1", "em." + d + "|"]]); }, [])).forEach(function (x) { try { EPSD.store({ key: x[0], pre: x[1], onChange: function () { try { document.dispatchEvent(new CustomEvent("eps-ref")); } catch (e) {} } }); } catch (e) {} }); return; } if ((n || 0) < 80) setTimeout(function () { reg2((n || 0) + 1); }, 250); })(0);
   function tick() { try { if (!document.hidden) snapAll(); } catch (e) {} }
   setTimeout(function () { try { clean(); } catch (e) {} tick(); }, 4000); setInterval(tick, 20000);
   document.addEventListener("visibilitychange", function () { if (document.hidden) { try { snapAll(); } catch (e) {} } });
