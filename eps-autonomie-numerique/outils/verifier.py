@@ -85,7 +85,7 @@ REPERES = {
     "step/index.html": ["function okPas(", "function mtTic(", "EPSG_Q", "function edBrancher(", "function ctlHtml(", "function fcOk(", "function plDessin(", "const VUE=!!window.EPS_VUE_ELEVE", "function donneesExport("],
     "basket/index.html": ["function evbkItems(", "EPSD.syncOne(KST)", "function rencontres(", "EPSG_Q", "m.by!==devId()", "id=\"modeBar\"", "function conseilSit(", "sitsVus().includes", "function terrainsBK(", "window.epsCtlOwn="],
     "ccf/index.html": ["tabs:{ccf:false,seq:"],
-    "mon-bilan/index.html": ["function culture()", "ton enseignant", "kind === \"espace\"", "dropchk", "function mission(", "un seul envoi à la fois", "essais automatiques seulement", "../step/export.js"],
+    "mon-bilan/index.html": ["function culture()", "ton enseignant", "kind === \"espace\"", "dropchk", "function mission(", "un seul envoi à la fois", "essais automatiques seulement", "../step/export.js", "if (APERCU) return;", "APERCU || !ESP", "function garde()"],
     "espace/index.html": ["E.publier(", "E.relever()", "noindex", "function mget(", "E.dispenses(", "get(DIRS.step).step"],
     "eps-tactique.js": ["function car(s)", "function player(el, d0, opt)", "function surChemin(P, e)", "pathClear: function", "function frames(d)", "frameAdd: function", "function places(s, n)", "function editor(", "function depart("],
     "eps-culture.js": ["function quiz(dir)", "window.EPSCULT = {", "function dossier(nom)"],

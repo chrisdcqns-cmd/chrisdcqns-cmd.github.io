@@ -43,6 +43,7 @@
   .ch { background: #fff; color: #14171C; border: 2px solid var(--line); text-align: left; font-size: 17px; margin-top: 8px; padding: 12px 14px; }
   .ch.ok { border-color: var(--ok); background: #EAF5EC; } .ch.ko { border-color: var(--no); background: #FBEDEC; }
   .fb { border-radius: 12px; padding: 10px 12px; margin: 10px 0 0; font-weight: 700; } .fb.ok { background: #EAF5EC; color: var(--ok); } .fb.ko { background: #FBEDEC; color: var(--no); } .fb span { display: block; color: #14171C; font-weight: 500; }
+  select.sel { width: 100%; min-height: 52px; border: 2px solid var(--line); border-radius: 14px; padding: 0 12px; font: 700 17px system-ui, sans-serif; background: #fff; color: #14171C; }
   .score { font-size: 48px; font-weight: 900; text-align: center; margin: 6px 0; }
   #st { position: fixed; left: 0; right: 0; bottom: 0; background: #14171C; color: #fff; font-size: 14px; font-weight: 700; text-align: center; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -82,7 +83,11 @@
   var url = S ? "https://script.google.com/macros/s/" + S + "/exec" : (function () { var m = /[#&]u=([^&]+)/.exec(location.hash), u = m ? decodeURIComponent(m[1]) : ""; return /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(u) && /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? u : ""; })() /* essais automatiques seulement */;
   var $ = function (id) { return document.getElementById(id); };
   var msg = $("msg"), res = $("res"), ESP = null, PDF = [], AUTO = [], ME = { quiz: {}, fait: {}, obs: {}, at: 0 }, HID = "", TAB = "todo", RUN = null, ACT = null, MIS = null;
-  if (!url) msg.innerHTML = '<span class="err">Lien incomplet : ouvre le lien envoyé par ton enseignant (sur Pronote).</span>';
+  /* 👁 Aperçu enseignant (28/11/2026, demande de l'enseignant : voir l'espace EPS d'un élève depuis la console ou une tablette, avec un élève fictif
+     ou en choisissant classe + élève, sans son code). ?apercu=1 (tablette : bouton de la page Espace élève) ou ?console=1 (outil de la console).
+     Réservé au mode enseignant (code à 4 chiffres). Lecture seule : rien n'est envoyé (pas de dépôt dan|E…) ni gardé sur l'appareil. */
+  var APERCU = /[?&](apercu|console)=1\b/.test(location.search), SIMU = null;
+  if (!url && !APERCU) msg.innerHTML = '<span class="err">Lien incomplet : ouvre le lien envoyé par ton enseignant (sur Pronote).</span>';
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function flat(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, ""); }
   function b64url(u8) { var x = ""; for (var i = 0; i < u8.length; i += 0x8000) x += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(x).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
@@ -100,9 +105,9 @@
   function meLoad() { try { var v = JSON.parse(localStorage.getItem("eps.espace.me." + HID) || "null"); if (v && typeof v === "object") ME = { quiz: v.quiz || {}, fait: v.fait || {}, obs: v.obs || {}, at: +v.at || 0 }; } catch (e) {} }
   var sendT = 0, pend = false, busy = false, encore = false;
   function st(t, ms) { var e = $("st"); e.textContent = t; e.hidden = !t; if (ms) setTimeout(function () { if (e.textContent === t) e.hidden = true; }, ms); }
-  function meSave() { ME.at = Date.now(); try { localStorage.setItem("eps.espace.me." + HID, JSON.stringify(ME)); } catch (e) {} pend = true; clearTimeout(sendT); sendT = setTimeout(envoyer, 600); }
+  function meSave() { ME.at = Date.now(); if (APERCU) return; try { localStorage.setItem("eps.espace.me." + HID, JSON.stringify(ME)); } catch (e) {} pend = true; clearTimeout(sendT); sendT = setTimeout(envoyer, 600); }
   /* un seul envoi à la fois : une saisie faite pendant l'envoi relance un envoi juste après (sinon le contrôle comparerait deux versions) */
-  async function envoyer() { if (!ESP || !ESP.rid || !ESP.rk || !pend) return; if (busy) { encore = true; return; } busy = true; encore = false; var vu = ME.at; st("Envoi à ton enseignant…");
+  async function envoyer() { if (APERCU || !ESP || !ESP.rid || !ESP.rk || !pend) return; if (busy) { encore = true; return; } busy = true; encore = false; var vu = ME.at; st("Envoi à ton enseignant…");
     try { var k = await crypto.subtle.importKey("raw", unb64(ESP.rk), "AES-GCM", false, ["encrypt"]), iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, new TextEncoder().encode(JSON.stringify(ME)))), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
       var x = b64url(all), dk = "dan|E" + ESP.rid; if (x.length > 7900) throw new Error("trop long");
       await fetch(url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ drop: { k: dk, x: x } }) });
@@ -113,19 +118,23 @@
   window.addEventListener("online", function () { if (pend) envoyer(); });
 
   /* ---- connexion ---- */
+  /* lit et déchiffre tout ce qui est publié pour un code : {h, out} (out = null : rien pour ce code) */
+  async function lire(code) {
+    var h = await hid(code), r = await jsonp({ bil: h });
+    if (r.bilErr) throw new Error("serveur");
+    var L = r.bil || []; if (!L.length) return { h: h, out: null };
+    var k = await key(code, h), out = [];
+    for (var i = 0; i < L.length; i++) { try { var b = unb64(L[i].parts.join("")), pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, k, b.slice(12)); out.push(JSON.parse(new TextDecoder().decode(pt))); } catch (e) {} }
+    if (!out.length) throw new Error("code");
+    return { h: h, out: out }; }
   async function go() {
     var code = $("code").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (code.length !== 6) { msg.innerHTML = '<span class="err">Le code a 6 caractères.</span>'; return; }
     if (!url) return;
     $("go").disabled = true; msg.textContent = "Ouverture de ton espace…";
     try {
-      var h = await hid(code), r = await jsonp({ bil: h });
-      if (r.bilErr) throw new Error("serveur");
-      var L = r.bil || [];
-      if (!L.length) { msg.innerHTML = '<span class="err">Rien pour ce code. Vérifie-le (O et 0, I et 1 n\'existent pas dans les codes) ou demande à ton enseignant.</span>'; $("go").disabled = false; return; }
-      var k = await key(code, h), out = [];
-      for (var i = 0; i < L.length; i++) { try { var b = unb64(L[i].parts.join("")), pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(0, 12) }, k, b.slice(12)); out.push(JSON.parse(new TextDecoder().decode(pt))); } catch (e) {} }
-      if (!out.length) throw new Error("code");
+      var lu = await lire(code), h = lu.h, out = lu.out;
+      if (!out) { msg.innerHTML = '<span class="err">Rien pour ce code. Vérifie-le (O et 0, I et 1 n\'existent pas dans les codes) ou demande à ton enseignant.</span>'; $("go").disabled = false; return; }
       ESP = out.filter(function (o) { return o && o.kind === "espace"; })[0] || null; PDF = out.filter(function (o) { return o && o.pdf; }); AUTO = out.filter(function (o) { return o && o.kind === "auto" && /^https?:\/\//.test(String(o.url || "")); });
       HID = h; meLoad(); msg.textContent = ""; $("code").value = ""; $("login").hidden = true; $("out").hidden = false;
       $("who").textContent = ((ESP && ESP.eleve) || (PDF[0] && PDF[0].eleve) || (AUTO[0] && AUTO[0].eleve) || "") + ((ESP && ESP.classe) ? " · " + ESP.classe : "");
@@ -242,6 +251,7 @@
       TAB = "todo"; draw();
       st("Simulation — données de démonstration (aucune donnée réelle n'est utilisée).");
     }
+    SIMU = lancerSimu;
     if (/[?&]demo=1\b/.test(location.search) || /(^|[#&])demo\b/.test(location.hash)) lancerSimu();
     var ic = document.querySelector(".bar .ic"), tmr = 0;
     if (ic) {
@@ -252,6 +262,70 @@
       ic.addEventListener("pointerup", stop);
       ic.addEventListener("pointerleave", stop);
     }
+  })();
+
+  /* ---- 👁 Aperçu enseignant : choix « élève fictif » ou classe + élève (code retrouvé dans eps.codes.v1, partagé entre les tablettes enseignant) ---- */
+  (function () {
+    if (!APERCU) return;
+    $("login").hidden = true; msg = $("ap-m") || msg;
+    function prof() { try { return Date.now() < +(localStorage.getItem("eps.teach.until") || 0); } catch (e) { return false; } }
+    function hashCode(c) { var h = 5381, s = "relais:" + c; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); }
+    function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+    function nk(t) { return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).sort().join(" "); }
+    function garde() { if (prof()) return Promise.resolve(true); var sto = jget("relais-vitesse-code-v1", null);
+      if (sto == null || !window.epsPin) return Promise.resolve(false);
+      return window.epsPin({ title: "🔒 Code enseignant", len: 4, check: function (v) { return hashCode(v) === sto; } }).then(function (v) {
+        if (v === null) return false; try { localStorage.setItem("eps.teach.until", String(Date.now() + 60 * 60000)); } catch (e) {} return true; }); }
+    function share() { var s0 = jget("eps.share.v1", null); return s0 && s0.url && s0.key ? s0.url : ""; }
+    function classes() { var L = []; try { L = EPSL.items().filter(function (o) { return o && !o.demo && !/^demo fictive$/i.test(String(o.nom).trim()); }); } catch (e) {} return L.sort(function (a, b) { return String(a.nom).localeCompare(String(b.nom), "fr", { numeric: true }); }); }
+    function eleves(o) { try { return EPSL.people(o).map(function (p) { return p.full; }).sort(function (a, b) { return a.localeCompare(b, "fr"); }); } catch (e) { return []; } }
+    function codeDe(cls, full) { var I = (jget("eps.codes.v1", {}) || {}).items || {}, r = ""; Object.keys(I).forEach(function (id) { var o = I[id]; if (o && !o.del && o.c && flat(o.cls) === flat(cls) && nk(o.n) === nk(full)) r = String(o.c); }); return r; }
+    /* ce que l'élève a déjà fait (retours relevés par l'enseignant) : tâches, missions, quiz */
+    function etat(cls, full) { var M = { quiz: {}, fait: {}, obs: {}, at: 0 }, E = (jget("eps.espace.v1", {}) || {}).items || {}, Q = (jget("eps.quiz.v1", {}) || {}).items || {};
+      Object.keys(E).forEach(function (k) { var o = E[k]; if (o && !o.del && o.k === "ret" && flat(o.cls) === flat(cls) && nk(o.nom) === nk(full)) { M.fait = o.fait || {}; M.obs = o.obs || {}; } });
+      Object.keys(Q).forEach(function (k) { var o = Q[k]; if (o && !o.del && o.k === "res" && o.qz && flat(o.cls) === flat(cls) && nk(o.nom) === nk(full)) M.quiz[o.qz] = { s: o.s, n: o.n, a: o.a || [], d: o.d, nb: o.nb }; });
+      return M; }
+    var SEL = { cls: (/[?&]cls=([^&]+)/.exec(location.search) || [])[1] ? decodeURIComponent(/[?&]cls=([^&]+)/.exec(location.search)[1]) : "", el: "" };
+    function bandeau(nom) { var e = $("st"); e.hidden = false; e.style.background = "#0369A1"; e.textContent = "👁 Aperçu enseignant · " + nom + " · rien n'est envoyé ni enregistré"; }
+    function choisir() {
+      ESP = null; PDF = []; AUTO = []; RUN = null; ACT = null; MIS = null; ME = { quiz: {}, fait: {}, obs: {}, at: 0 }; HID = ""; $("st").hidden = true; $("out").hidden = true; try { $("cult").hidden = true; } catch (e) {}
+      $("who").textContent = "Aperçu enseignant · ce que voit l'élève";
+      var C = classes(); if (!C.some(function (o) { return o.nom === SEL.cls; })) SEL.cls = C.length ? C[0].nom : "";
+      var co = C.filter(function (o) { return o.nom === SEL.cls; })[0], P = co ? eleves(co) : [];
+      if (P.indexOf(SEL.el) < 0) SEL.el = P[0] || "";
+      res.innerHTML = '<div class="card"><h1>👁 Espace EPS d\'un élève</h1><p class="mut">Tu vois exactement ce que voit l\'élève, sans son code. Rien n\'est envoyé ni enregistré.</p>' +
+        '<button type="button" id="ap-demo">🧪 Élève fictif (démonstration)</button></div>' +
+        '<div class="card"><h2>Un de mes élèves</h2>' + (C.length ?
+          '<label class="l" for="ap-c">Classe</label><select class="sel" id="ap-c">' + C.map(function (o) { return "<option" + (o.nom === SEL.cls ? " selected" : "") + ">" + esc(o.nom) + "</option>"; }).join("") + "</select>" +
+          '<label class="l" for="ap-e">Élève</label><select class="sel" id="ap-e">' + P.map(function (n) { return '<option value="' + esc(n) + '"' + (n === SEL.el ? " selected" : "") + ">" + esc(n) + (codeDe(SEL.cls, n) ? "" : " · pas encore de code") + "</option>"; }).join("") + "</select>" +
+          '<button type="button" id="ap-go"' + (P.length ? "" : " disabled") + '>Ouvrir son espace</button>' : '<p class="mut">Aucune liste de classe sur cet appareil.</p>') +
+        '<p id="ap-m" class="mut" role="status" aria-live="polite"></p></div>';
+      msg = $("ap-m");
+      $("ap-demo").onclick = function () { if (SIMU) { SIMU(); bandeau("élève fictif"); $("out").hidden = false; } };
+      var sc = $("ap-c"), se = $("ap-e"), bg = $("ap-go");
+      if (sc) sc.onchange = function () { SEL.cls = sc.value; SEL.el = ""; choisir(); };
+      if (se) se.onchange = function () { SEL.el = se.value; };
+      if (bg) bg.onclick = function () { ouvrir(SEL.cls, se.value); };
+    }
+    async function ouvrir(cls, full) {
+      var code = codeDe(cls, full), m = $("ap-m"), b = $("ap-go");
+      if (!code) { m.innerHTML = '<span class="err">Pas encore de code pour cet élève : rien n\'a été publié dans son espace.</span>'; return; }
+      url = share(); if (!url) { m.innerHTML = '<span class="err">Règle d\'abord le partage entre tablettes (accueil → Réglages communs).</span>'; return; }
+      b.disabled = true; m.textContent = "Ouverture de l'espace de " + full + "…";
+      try { var lu = await lire(code);
+        if (!lu.out) { m.innerHTML = '<span class="err">Rien n\'est encore publié dans l\'espace de ' + esc(full) + ".</span>"; b.disabled = false; return; }
+        ESP = lu.out.filter(function (o) { return o && o.kind === "espace"; })[0] || null; PDF = lu.out.filter(function (o) { return o && o.pdf; }); AUTO = lu.out.filter(function (o) { return o && o.kind === "auto" && /^https?:\/\//.test(String(o.url || "")); });
+        HID = lu.h; ME = etat(cls, full); $("out").hidden = false; $("who").textContent = full + " · " + cls;
+        TAB = (ESP && ((ESP.todo || []).length || (ESP.mis || []).length)) || autos().length ? "todo" : "acts"; draw(); window.scrollTo(0, 0); bandeau(full);
+      } catch (e) { m.innerHTML = '<span class="err">' + (e.message === "connexion" ? "Pas de connexion. Réessaie." : "Impossible d'ouvrir cet espace.") + "</span>"; b.disabled = false; }
+    }
+    var ob = $("out"); ob.textContent = "← Élèves"; ob.onclick = choisir;
+    res.innerHTML = '<div class="card"><p class="mut">Chargement…</p></div>';
+    var sc0 = document.createElement("script"); sc0.src = "../eps-lists.js";
+    sc0.onload = sc0.onerror = function () { garde().then(function (ok) {
+      if (!ok) { res.innerHTML = '<div class="card"><h2>Réservé à l\'enseignant</h2><p class="mut">Ouvre d\'abord le mode enseignant (code à 4 chiffres) sur cet appareil.</p><button type="button" id="ap-r">Saisir le code</button></div>'; var r = $("ap-r"); if (r) r.onclick = sc0.onload; return; }
+      choisir(); }); };
+    document.head.appendChild(sc0);
   })();
 
 })();

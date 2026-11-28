@@ -137,7 +137,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
 (function () {
   "use strict";
   var ACTS = [["esc", "escalade", "Escalade", "#2E7D4F"], ["rel", "relais", "Relais Vitesse", "#D9481F"], ["vol", "volley", "Volley-ball", "#6B3FA0"], ["bad", "badminton", "Badminton", "#0B7A75"], ["dan", "danse", "Danse", "#C2185B"], ["acro", "acrosport", "Acrosport", "#1F4FA3"], ["ori", "orientation", "OrienRun", "#E8701A"], ["ct", "crosstraining", "Cross-training", "#4D7C0F"], ["bk", "basket", "Basket-ball", "#A4161A"], ["step", "step", "Step", "#A21CAF"]];
-  var OUTILS = [["ccf", "CCF", "#B8860B"], ["co-eval", "CO Course", "#14213D"], ["edt", "Emploi du temps", "#1F5F8B"], ["appel-as", "Appel AS", "#475569"], ["terrain", "Pose des balises", "#8A5A1F"], ["referentiel", "Référentiel", "#86198F"]];
+  var OUTILS = [["ccf", "CCF", "#B8860B"], ["co-eval", "CO Course", "#14213D"], ["edt", "Emploi du temps", "#1F5F8B"], ["appel-as", "Appel AS", "#475569"], ["terrain", "Pose des balises", "#8A5A1F"], ["referentiel", "Référentiel", "#86198F"], ["mon-bilan", "Espace EPS des élèves", "#0369A1"]]; /* 👁 mon-bilan/?console=1 : aperçu enseignant (élève fictif ou classe + élève, sans code), 28/11/2026 */
   var NAMES = {}; ACTS.forEach(function (a) { NAMES[a[1]] = a[2]; }); OUTILS.forEach(function (a) { NAMES[a[0]] = a[1]; });
   var SECTIONS = [["accueil", "🏠", "Accueil"], ["journee", "📋", "Ma journée"], ["mesclasses", "🏫", "Mes classes"], ["lecons", "📝", "Leçons (atelier)"], ["annee", "🗓", "Programmation annuelle"], ["classes", "👥", "Classes et élèves"], ["groupes", "🧩", "Niveaux & groupes"], ["params", "🎛", "Paramètres des applis"], ["transfert", "📦", "Import / export"], ["tablettes", "📱", "Tablettes"], ["demandes", "📝", "Demandes de modification"], ["perso", "🎨", "Personnaliser la console"]];
   var KC = "eps.console.v1";
@@ -240,7 +240,7 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
     var m = /^app:(.+)$/.exec(s); cur.s = m ? "app" : s; cur.app = m ? m[1] : null; if (location.hash.slice(1) !== s) history.replaceState(null, "", "#" + s);
     var pg = $("#pg"); pg.className = "pg"; pg.style.flexDirection = ""; $("#tact").innerHTML = ""; $("#app").classList.remove("inapp"); menu();
     if (m) { pg.className = "pg full"; $("#ttl").textContent = NAMES[cur.app] || cur.app; pg.innerHTML = '<iframe title="' + esc(NAMES[cur.app]) + '" src="../' + cur.app + '/?console=1" allow="clipboard-write; microphone; camera; geolocation"></iframe>';
-      $("#tact").innerHTML = '<a class="tb" style="display:inline-flex;align-items:center;text-decoration:none" href="../' + cur.app + '/" target="_blank" rel="noopener">↗ Ouvrir dans un onglet</a><button class="tb" type="button" data-rl aria-label="Recharger l\'appli">↻ Recharger</button>'; $("#app").classList.add("inapp");
+      $("#tact").innerHTML = '<a class="tb" style="display:inline-flex;align-items:center;text-decoration:none" href="../' + cur.app + '/' + (cur.app === "mon-bilan" ? "?apercu=1" : "") + '" target="_blank" rel="noopener">↗ Ouvrir dans un onglet</a><button class="tb" type="button" data-rl aria-label="Recharger l\'appli">↻ Recharger</button>'; $("#app").classList.add("inapp");
       $("[data-rl]").onclick = function () { pg.querySelector("iframe").src = pg.querySelector("iframe").src; };
       merge(pg.querySelector("iframe"));
       return; }
