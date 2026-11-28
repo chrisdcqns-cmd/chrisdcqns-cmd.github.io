@@ -2245,6 +2245,43 @@
     setInterval(function () { try { if (HUB) return; var sl = epsSlot(); if (sl && !sl.querySelector(".eps-fortb")) { sl.appendChild(fortBtn()); fortApply(); }
       var gh = document.querySelector(".epsg .epsg-hd"); if (gh && !gh.querySelector(".eps-fortb")) { var hm = gh.querySelector(".epsg-home"), fb = fortBtn("height:40px;min-width:44px;border-radius:10px;border:1.5px solid #3A3F47;background:none;color:#D5D8DE;font-size:18px;cursor:pointer;margin-right:8px"); if (hm) gh.insertBefore(fb, hm); else gh.appendChild(fb); fortApply(); } } catch (e) {} }, 1500); } catch (e) {}
 
+  /* ================= ▦ Style « emboîté et lissé » à l'intérieur des applis (28/11/2026, demande de l'enseignant : « je n'aime pas les éléments ronds »,
+     modèle iDoceo ; pas sur l'accueil) =================
+     1) feuille commune : onglets enseignant en blocs jointifs, segments collés (.epse-seg), onglet / segment actif en couleur pleine ;
+     2) passe légère : tout élément dont l'arrondi dépasse 6 px passe à 4 px (les petits repères de couleur de 14 px ou moins restent ronds) ;
+     3) boutons voisins seuls sur une ligne (barre de choix ou d'actions) collés en une barre.
+     Une seule fois par élément (data-eps-sq / data-eps-seg) ; nouveaux éléments traités par lots (MutationObserver, 400 ms). */
+  (function boxy() {
+    if (HUB || window.EPS_NO_BOXY) return;
+    var de = document.documentElement; de.classList.add("eps-boxy");
+    try { var st = document.createElement("style"); st.id = "eps-boxy-css";
+      st.textContent = "html.eps-boxy .epst-nav{gap:0!important}html.eps-boxy .epst-nav button{border-radius:0!important;border-right:1px solid rgba(255,255,255,.08)!important}" +
+        "html.eps-boxy .epse-seg{gap:0!important;padding:0!important;border:1.5px solid #CFC8BA!important;overflow:hidden;background:#fff!important;border-radius:4px!important}" +
+        "html.eps-boxy .epse-seg button{border-radius:0!important;border-right:1px solid #E1DACD!important}html.eps-boxy .epse-seg button:last-child{border-right:0!important}" +
+        "html.eps-boxy .epse-seg button.on{background:#14171C!important;color:#fff!important;box-shadow:none!important}" +
+        "html.eps-boxy [data-eps-seg]>button{position:relative}html.eps-boxy [data-eps-seg]>button:focus-visible{z-index:1}";
+      (document.head || de).appendChild(st); } catch (e) {}
+    function sq(root) { var L = root.querySelectorAll ? root.querySelectorAll("*") : []; if (root.nodeType === 1) L = [root].concat(Array.prototype.slice.call(L));
+      for (var i = 0; i < L.length; i++) { var e = L[i]; if (e.hasAttribute && e.hasAttribute("data-eps-sq")) continue; if (!e.getBoundingClientRect || e.closest("svg,canvas,.lc-schema,[data-eps-round]")) continue;
+        var r = 0; try { r = parseFloat(getComputedStyle(e).borderTopLeftRadius) || 0; } catch (x) {} e.setAttribute("data-eps-sq", "");
+        if (r <= 6) continue; var w = e.offsetWidth, h = e.offsetHeight; if (w && w <= 14 && Math.abs(w - h) < 2) continue;
+        e.style.setProperty("border-radius", "4px", "important"); }
+      seg(root); }
+    function seg(root) { var P = (root.querySelectorAll ? root.querySelectorAll("div,span,nav") : []); P = Array.prototype.slice.call(P); if (root.nodeType === 1) P.unshift(root);
+      P.forEach(function (p) { if (p.hasAttribute("data-eps-seg") || p.closest(".epst-nav,.epse-seg,svg,[data-eps-compact],.epp,[data-eps-round]")) return; var k = p.children; if (k.length < 2) return;
+        for (var i = 0; i < k.length; i++) if (k[i].tagName !== "BUTTON") return;
+        var cs = getComputedStyle(p); if (!/flex/.test(cs.display) || /column/.test(cs.flexDirection)) return;
+        var t0 = null, vis = []; for (var j = 0; j < k.length; j++) { var b = k[j]; if (getComputedStyle(b).display === "none") continue; var rc = b.getBoundingClientRect(); if (!rc.width) return; if (t0 == null) t0 = rc.top; else if (Math.abs(rc.top - t0) > 4) return; if (rc.height > 70) return; vis.push(b); }
+        if (vis.length < 2) return; p.setAttribute("data-eps-seg", ""); p.style.setProperty("gap", "0", "important");
+        vis.forEach(function (b, n) { b.style.setProperty("border-radius", n === 0 ? "4px 0 0 4px" : n === vis.length - 1 ? "0 4px 4px 0" : "0", "important"); if (n) b.style.setProperty("margin-left", "-1px", "important"); }); }); }
+    var pend = [], tm = 0;
+    function flush() { tm = 0; var L = pend; pend = []; L.forEach(function (n) { if (n.isConnected) try { sq(n); } catch (e) {} }); }
+    function start() { try { sq(document.body); } catch (e) {}
+      try { new MutationObserver(function (M) { M.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) pend.push(n); }); }); if (pend.length && !tm) tm = setTimeout(flush, 400); }).observe(document.body, { childList: true, subtree: true }); } catch (e) {} }
+    if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
+    setInterval(function () { if (!document.hidden && document.body) try { seg(document.body); } catch (e) {} }, 2000);   /* barres d'un écran affiché plus tard (onglet, fenêtre) */
+  })();
+
   /* ================= 📖 Lexique de l'activité (ressource sans classe, modifiable : ⚙ Réglages → 🎛 Paramètres → Lexique) ================= */
   var LEX = {
     volley: ["Manchette : frappe à deux bras tendus, mains jointes, pour une balle basse", "Passe haute : frappe au-dessus du front, à dix doigts", "Smash : attaque frappée fort vers le bas, au-dessus du filet", "Contre : mains au-dessus du filet pour arrêter l'attaque adverse", "Rotation : chaque joueur avance d'un poste quand l'équipe récupère le service"],
