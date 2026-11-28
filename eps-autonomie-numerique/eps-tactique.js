@@ -4,7 +4,13 @@
    Planche : {sport, items:[{t:'p', e:0|1, n:'1', x, y} joueur · {t:'b', x, y} ballon · {t:'c', x, y} plot ·
               {t:'a', k:'m'|'p', p:[x1,y1,x2,y2]} flèche (m = déplacement, p = passe / trajectoire) ·
               {t:'f', p:[x,y,…]} tracé libre · {t:'x', x, y, s} texte]}
-   Unités : celles du terrain (voir T), marge M autour pour placer un serveur ou un remplaçant. */
+   Unités : celles du terrain (voir T), marge M autour pour placer un serveur ou un remplaçant.
+   🎬 Animation par temps (demande de l'enseignant, 28/11/2026 : « temps 1, temps 2, temps 3 pour montrer une action, une attaque, un déplacement, un
+   replacement ») : planche.fr = [éléments du temps 1, éléments du temps 2, …] (12 temps au plus) ; planche.items reste le temps 1, donc une planche sans fr
+   (ou lue par un ancien écran) est une image seule. Chaque élément porte un identifiant (id) : d'un temps au suivant, le même élément glisse de sa place à
+   la suivante ; un élément absent du temps suivant s'efface, un nouveau apparaît.
+   EPSTAC.frames(planche) → liste des temps · EPSTAC.svg(planche, {frame}) → un temps · EPSTAC.player(élément, planche, {maxh, auto}) → lecteur
+   (◀ temps ▶, ▶ Lecture, vitesse) pour les tablettes des élèves ; l'éditeur a frames(), frame(), frameGo(i), frameAdd(), frameDel(). */
 (function () {
   "use strict";
   if (window.EPSTAC) return;
@@ -35,7 +41,24 @@
   var uid = 0;
   function terr(s) { return T[s] || T.vierge; }
   function rad(t) { return Math.max(t.w, t.h) / 30; }
-  function clean(d) { d = (d && typeof d === "object") ? d : {}; return { sport: T[d.sport] ? d.sport : "vierge", forme: typeof d.forme === "string" ? d.forme.slice(0, 40) : "", items: Array.isArray(d.items) ? d.items.filter(function (i) { return i && typeof i === "object" && typeof i.t === "string"; }) : [] }; }
+  function clean(d) { d = (d && typeof d === "object") ? d : {}; var okI = function (L) { return Array.isArray(L) ? L.filter(function (i) { return i && typeof i === "object" && typeof i.t === "string"; }) : []; };
+    var o = { sport: T[d.sport] ? d.sport : "vierge", forme: typeof d.forme === "string" ? d.forme.slice(0, 40) : "", items: okI(d.items) };
+    if (Array.isArray(d.fr) && d.fr.length > 1) { o.fr = d.fr.slice(0, 12).map(okI); o.items = o.fr[0]; } return o; }
+  var NID = 0;
+  function nid() { return "i" + Date.now().toString(36) + (++NID).toString(36); }
+  /* liste des temps d'une planche (toujours au moins un), chaque élément ayant un identifiant */
+  function frames(d) { d = clean(d); var F = d.fr && d.fr.length > 1 ? d.fr : [d.items], vu = {};
+    F[0].forEach(function (i) { if (!i.id || vu[i.id]) i.id = nid(); vu[i.id] = 1; });
+    for (var k = 1; k < F.length; k++) { var v2 = {}; F[k].forEach(function (i) { if (!i.id || v2[i.id]) i.id = nid(); v2[i.id] = 1; }); }
+    return F; }
+  /* entre deux temps (u de 0 à 1) : les éléments communs glissent, ceux qui disparaissent s'effacent, les nouveaux apparaissent */
+  function mix(A, B, u) { var out = [], ia = {}; A.forEach(function (i) { ia[i.id] = i; }); var ib = {}; B.forEach(function (i) { ib[i.id] = i; });
+    var e = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, lerp = function (a, b) { return a + (b - a) * e; };
+    A.forEach(function (i) { if (!ib[i.id]) out.push({ i: i, o: Math.max(0, 1 - u * 2) }); });
+    B.forEach(function (j) { var i = ia[j.id]; if (!i || i.t !== j.t) { out.push({ i: j, o: Math.max(0, u * 2 - 1) }); return; }
+      var c = JSON.parse(JSON.stringify(j)); if (Array.isArray(j.p)) { if (Array.isArray(i.p) && i.p.length === j.p.length) c.p = j.p.map(function (v, q) { return lerp(i.p[q], v); }); else if (u < .5) c = i; } else { c.x = lerp(i.x, j.x); c.y = lerp(i.y, j.y); }
+      out.push({ i: c, o: 1 }); });
+    return out; }
   function num(v) { return (typeof v === "number" && isFinite(v)) ? Math.round(v * 10) / 10 : 0; }
   function item(i, r, id, sel) {
     var h = "", hl = sel ? ' filter="url(#h' + id + ')"' : "";
@@ -55,18 +78,44 @@
       "<defs>" + mk("m", INK) + mk("q", "#B45309") + '<filter id="h' + id + '" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="0" stdDeviation="' + (r * .35) + '" flood-color="#F0A030" flood-opacity="1"/><feDropShadow dx="0" dy="0" stdDeviation="' + (r * .2) + '" flood-color="#F0A030" flood-opacity="1"/></filter></defs>' +
       R(-M, -M, W, H, ' fill="#fff"') + (d.sport === "vierge" ? "" : R(0, 0, t.w, t.h, ' fill="' + t.bg + '"')) +
       '<g fill="none" stroke="' + INK + '" stroke-width=".6">' + t.d() + "</g>" +
-      d.items.map(function (i, k) { return item(i, r, id, o.sel === k); }).join("") + (o.extra || "") + "</svg>";
+      (o.under || "") + (o.mix ? o.mix.map(function (m) { return m.o >= 1 ? item(m.i, r, id, false) : m.o <= 0 ? "" : '<g opacity="' + (Math.round(m.o * 100) / 100) + '">' + item(m.i, r, id, false) + "</g>"; }).join("")
+        : (o.frame != null && d.fr && d.fr[o.frame] ? d.fr[o.frame] : d.items).map(function (i, k) { return item(i, r, id, o.sel === k); }).join("")) + (o.extra || "") + "</svg>";
   }
+  /* 🎬 lecteur : un temps à la fois, ◀ ▶ pour passer de l'un à l'autre (le passage est animé), ▶ Lecture pour tout dérouler.
+     Durée d'un passage : paramètre tac_duree (secondes, 1,5 par défaut). Une planche à un seul temps s'affiche sans commandes. */
+  function duree() { var v = 1.5; try { if (window.EPSP && EPSP.p) v = +EPSP.p({ id: "tac_duree", sec: "Planche tactique", label: "Animation : durée du passage d'un temps au suivant (secondes)", type: "number", def: 1.5 }); } catch (e) {} return isFinite(v) && v >= .3 && v <= 10 ? v : 1.5; }
+  function player(el, d0, opt) { opt = opt || {}; var d = clean(JSON.parse(JSON.stringify(d0 || {}))), F = frames(d), n = F.length, cur = Math.max(0, Math.min(n - 1, opt.frame || 0)), raf = 0, play = false, vit = 1, mort = false;
+    el.innerHTML = '<div data-tb></div>' + (n > 1 ? '<div data-tc style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px;font-family:system-ui,sans-serif"></div>' : "");
+    var bx = el.querySelector("[data-tb]"), cx = el.querySelector("[data-tc]"), BT = "min-height:48px;min-width:52px;padding:0 14px;border-radius:12px;border:2px solid #14171C;background:#fff;color:#14171C;font:800 17px system-ui,sans-serif;cursor:pointer";
+    function img(u, a) { bx.innerHTML = a == null ? svg({ sport: d.sport, items: F[cur] }, { maxh: opt.maxh }) : svg({ sport: d.sport, items: [] }, { maxh: opt.maxh, mix: mix(F[a], F[a + 1], u) }); }
+    function bar() { if (!cx) return; cx.innerHTML = '<button type="button" data-a="prev" aria-label="Temps précédent" style="' + BT + '"' + (cur <= 0 ? " disabled" : "") + '>◀</button><b style="font-size:18px;min-width:120px;text-align:center">Temps ' + (cur + 1) + " / " + n + '</b><button type="button" data-a="next" aria-label="Temps suivant" style="' + BT + '"' + (cur >= n - 1 ? " disabled" : "") + '>▶</button><button type="button" data-a="play" style="' + BT + ';background:#14171C;color:#fff">' + (play ? "⏸ Pause" : cur >= n - 1 ? "↺ Revoir" : "▶ Lecture") + '</button><button type="button" data-a="vit" aria-label="Vitesse" style="' + BT + '">' + (vit === 1 ? "Vitesse normale" : vit < 1 ? "Lent" : "Rapide") + "</button>";
+      Array.prototype.forEach.call(cx.querySelectorAll("[data-a]"), function (b) { b.onclick = function () { var a = b.dataset.a; if (a === "prev") { stop(); go(cur - 1); } else if (a === "next") { stop(); go(cur + 1); } else if (a === "vit") { vit = vit === 1 ? .5 : vit < 1 ? 2 : 1; bar(); } else if (play) { stop(); bar(); } else { if (cur >= n - 1) { cur = 0; img(); } play = true; bar(); suite(); } }; }); }
+    function stop() { play = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+    function anim(a, fin) { var t0 = 0, D = duree() * 1000 / vit; var pas = function (ts) { if (mort) return; if (!t0) t0 = ts; var u = Math.min(1, (ts - t0) / D); img(u, a); if (u < 1) raf = requestAnimationFrame(pas); else { raf = 0; cur = a + 1; img(); fin(); } }; raf = requestAnimationFrame(pas); }
+    function go(i) { if (i < 0 || i >= n || i === cur) { bar(); return; } if (raf) { cancelAnimationFrame(raf); raf = 0; } if (i === cur + 1) anim(cur, bar); else { cur = i; img(); bar(); } if (cx) { var l = cx.querySelector("b"); if (l) l.textContent = "Temps " + (i + 1) + " / " + n; } }
+    function suite() { if (!play || mort) return; if (cur >= n - 1) { play = false; bar(); return; } anim(cur, function () { bar(); if (play) setTimeout(suite, 450 / vit); }); }
+    img(); bar(); if (opt.auto && n > 1) { play = true; bar(); setTimeout(suite, 700); }
+    return { stop: function () { mort = true; stop(); }, go: go, count: function () { return n; }, frame: function () { return cur; }, play: function () { if (!play && n > 1) { if (cur >= n - 1) { cur = 0; img(); } play = true; bar(); suite(); } } }; }
   function segDist(px, py, a, b, c, e) { var dx = c - a, dy = e - b, l = dx * dx + dy * dy, u = l ? Math.max(0, Math.min(1, ((px - a) * dx + (py - b) * dy) / l)) : 0; return Math.hypot(px - a - u * dx, py - b - u * dy); }
   function editor(el, d0, opt) {
     opt = opt || {}; var d = clean(JSON.parse(JSON.stringify(d0 || {}))), tool = "sel", sel = -1, undo = [], drag = null, tmp = null;
+    /* F = les temps ; d.items est toujours la liste du temps affiché (F[cf]) */
+    var F = frames(d), cf = 0; d.items = F[0]; delete d.fr;
+    function out() { var o = { sport: d.sport, forme: d.forme || "", items: F[0] }; if (F.length > 1) o.fr = F; return JSON.parse(JSON.stringify(o)); }
+    function shot() { return JSON.stringify({ sport: d.sport, forme: d.forme || "", F: F, cf: cf }); }
+    function back(j) { var x = JSON.parse(j); d.sport = x.sport; d.forme = x.forme; F = x.F; cf = Math.max(0, Math.min(F.length - 1, x.cf)); d.items = F[cf]; }
+    /* le temps précédent en filigrane : d'où viennent les joueurs et le ballon */
+    function fantome() { if (cf < 1) return ""; var P = {}, r = rad(t()), h = ""; F[cf - 1].forEach(function (i) { P[i.id] = i; });
+      d.items.forEach(function (i) { var a = P[i.id]; if (!a || Array.isArray(i.p) || (i.t !== "p" && i.t !== "b") || Math.hypot(a.x - i.x, a.y - i.y) < r * .6) return;
+        h += '<line x1="' + num(a.x) + '" y1="' + num(a.y) + '" x2="' + num(i.x) + '" y2="' + num(i.y) + '" stroke="#6A6F78" stroke-width="' + (r * .14) + '" stroke-dasharray="' + (r * .3) + " " + (r * .35) + '" opacity=".7"/><circle cx="' + num(a.x) + '" cy="' + num(a.y) + '" r="' + (i.t === "b" ? r * .5 : r * .9) + '" fill="none" stroke="#6A6F78" stroke-width="' + (r * .12) + '" opacity=".6"/>'; });
+      return h; }
     el.style.touchAction = "none"; el.style.userSelect = "none"; el.style.webkitUserSelect = "none";
     function t() { return terr(d.sport); }
     function draw() { var r = rad(t()), ex = "";
       if (tmp && tmp.t === "a") ex = item(tmp, r, uid + 1, false); else if (tmp && tmp.t === "f" && tmp.p.length >= 4) ex = item(tmp, r, uid + 1, false);
-      el.innerHTML = svg(d, { sel: sel, extra: ex, maxh: opt.maxh }); }
-    function snap() { undo.push(JSON.stringify(d)); if (undo.length > 60) undo.shift(); }
-    function changed() { draw(); if (opt.onChange) try { opt.onChange(d); } catch (e) {} }
+      el.innerHTML = svg(d, { sel: sel, extra: ex, maxh: opt.maxh, under: fantome() }); }
+    function snap() { undo.push(shot()); if (undo.length > 60) undo.shift(); }
+    function changed() { draw(); if (opt.onChange) try { opt.onChange(out()); } catch (e) {} }
     function selSet(k) { sel = k; if (opt.onSelect) try { opt.onSelect(k >= 0 ? d.items[k] : null); } catch (e) {} }
     function pos(ev) { var s = el.querySelector("svg"), x, y, m = s.getScreenCTM && s.getScreenCTM();
       if (m && s.createSVGPoint) { var q = s.createSVGPoint(); q.x = ev.clientX; q.y = ev.clientY; q = q.matrixTransform(m.inverse()); x = q.x; y = q.y; }
@@ -78,11 +127,11 @@
       return -1; }
     function nextNum(e) { var m = 0; d.items.forEach(function (i) { if (i.t === "p" && (i.e ? 1 : 0) === e && /^\d+$/.test(String(i.n))) m = Math.max(m, +i.n); }); return String(m + 1); }
     function down(ev) { if (ev.button) return; ev.preventDefault(); try { el.setPointerCapture(ev.pointerId); } catch (e) {} var p = pos(ev);
-      if (tool === "sel") { var k = hit(p); selSet(k); drag = k >= 0 ? { p: p, moved: false, s: JSON.stringify(d) } : null; draw(); }
-      else if (tool === "pa" || tool === "pb" || tool === "b" || tool === "c") { snap(); var it = tool === "b" ? { t: "b" } : tool === "c" ? { t: "c" } : { t: "p", e: tool === "pb" ? 1 : 0, n: nextNum(tool === "pb" ? 1 : 0) }; it.x = p.x; it.y = p.y; d.items.push(it); selSet(d.items.length - 1); drag = { p: p, moved: true, s: null }; changed(); }
+      if (tool === "sel") { var k = hit(p); selSet(k); drag = k >= 0 ? { p: p, moved: false, s: shot() } : null; draw(); }
+      else if (tool === "pa" || tool === "pb" || tool === "b" || tool === "c") { snap(); var it = tool === "b" ? { t: "b" } : tool === "c" ? { t: "c" } : { t: "p", e: tool === "pb" ? 1 : 0, n: nextNum(tool === "pb" ? 1 : 0) }; it.x = p.x; it.y = p.y; it.id = nid(); d.items.push(it); selSet(d.items.length - 1); drag = { p: p, moved: true, s: null }; changed(); }
       else if (tool === "am" || tool === "ap") { tmp = { t: "a", k: tool === "ap" ? "p" : "m", p: [p.x, p.y, p.x, p.y] }; selSet(-1); draw(); }
       else if (tool === "f") { tmp = { t: "f", p: [p.x, p.y] }; selSet(-1); draw(); }
-      else if (tool === "x") { selSet(-1); if (opt.askText) opt.askText(function (s) { s = String(s || "").trim(); if (!s) return; snap(); d.items.push({ t: "x", x: p.x, y: p.y, s: s.slice(0, 60) }); selSet(d.items.length - 1); changed(); }); }
+      else if (tool === "x") { selSet(-1); if (opt.askText) opt.askText(function (s) { s = String(s || "").trim(); if (!s) return; snap(); d.items.push({ t: "x", id: nid(), x: p.x, y: p.y, s: s.slice(0, 60) }); selSet(d.items.length - 1); changed(); }); }
     }
     function move(ev) { if (!drag && !tmp) return; ev.preventDefault(); var p = pos(ev);
       if (tmp && tmp.t === "a") { tmp.p[2] = p.x; tmp.p[3] = p.y; draw(); }
@@ -91,21 +140,26 @@
         if (!drag.moved) { drag.moved = true; if (drag.s) { undo.push(drag.s); drag.s = null; } }
         if (Array.isArray(i.p)) for (var q = 0; q + 1 < i.p.length; q += 2) { i.p[q] += dx; i.p[q + 1] += dy; } else { i.x += dx; i.y += dy; }
         drag.p = p; draw(); } }
-    function up() { if (tmp) { var r = rad(t()), ok = tmp.t === "a" ? Math.hypot(tmp.p[2] - tmp.p[0], tmp.p[3] - tmp.p[1]) > r : tmp.p.length >= 6; if (ok) { snap(); d.items.push(tmp); } tmp = null; changed(); }
+    function up() { if (tmp) { var r = rad(t()), ok = tmp.t === "a" ? Math.hypot(tmp.p[2] - tmp.p[0], tmp.p[3] - tmp.p[1]) > r : tmp.p.length >= 6; if (ok) { snap(); tmp.id = nid(); d.items.push(tmp); } tmp = null; changed(); }
       else if (drag && drag.moved) changed(); drag = null; }
     el.addEventListener("pointerdown", down); el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", function () { tmp = null; drag = null; draw(); });
     draw();
     return {
-      get: function () { return JSON.parse(JSON.stringify(d)); },
-      set: function (x) { d = clean(JSON.parse(JSON.stringify(x || {}))); undo = []; selSet(-1); draw(); },
+      get: function () { return out(); },
+      set: function (x) { d = clean(JSON.parse(JSON.stringify(x || {}))); F = frames(d); cf = 0; d.items = F[0]; delete d.fr; undo = []; selSet(-1); draw(); },
+      /* 🎬 temps de l'animation */
+      frames: function () { return F.length; }, frame: function () { return cf; },
+      frameGo: function (i) { i = Math.max(0, Math.min(F.length - 1, +i || 0)); if (i === cf) return; cf = i; d.items = F[cf]; selSet(-1); draw(); },
+      frameAdd: function () { if (F.length >= 12) return false; snap(); F.splice(cf + 1, 0, JSON.parse(JSON.stringify(F[cf])).filter(function (i) { return i.t !== "a" && i.t !== "f"; })); cf++; d.items = F[cf]; selSet(-1); changed(); return true; },
+      frameDel: function () { if (F.length < 2) return false; snap(); F.splice(cf, 1); cf = Math.max(0, cf - 1); d.items = F[cf]; selSet(-1); changed(); return true; },
       tool: function (x) { tool = x; if (x !== "sel") selSet(-1); draw(); },
-      sport: function (s) { if (!T[s] || s === d.sport) return; snap(); var a = t(), b = T[s]; d.items.forEach(function (i) { var fx = b.w / a.w, fy = b.h / a.h; if (Array.isArray(i.p)) for (var q = 0; q + 1 < i.p.length; q += 2) { i.p[q] *= fx; i.p[q + 1] *= fy; } else { i.x *= fx; i.y *= fy; } }); d.sport = s; d.forme = ""; changed(); },
-      undo: function () { if (!undo.length) return; d = clean(JSON.parse(undo.pop())); selSet(-1); changed(); },
-      clear: function () { if (!d.items.length) return; snap(); d.items = []; selSet(-1); changed(); },
+      sport: function (s) { if (!T[s] || s === d.sport) return; snap(); var a = t(), b = T[s]; F.forEach(function (L) { L.forEach(function (i) { var fx = b.w / a.w, fy = b.h / a.h; if (Array.isArray(i.p)) for (var q = 0; q + 1 < i.p.length; q += 2) { i.p[q] *= fx; i.p[q + 1] *= fy; } else { i.x *= fx; i.y *= fy; } }); }); d.sport = s; d.forme = ""; changed(); },
+      undo: function () { if (!undo.length) return; back(undo.pop()); selSet(-1); changed(); },
+      clear: function () { if (!d.items.length) return; snap(); d.items = F[cf] = []; selSet(-1); changed(); },
       del: function () { if (sel < 0) return; snap(); d.items.splice(sel, 1); selSet(-1); changed(); },
       label: function (s) { var i = d.items[sel]; if (!i) return; snap(); if (i.t === "p") i.n = String(s).slice(0, 3); else if (i.t === "x") i.s = String(s).slice(0, 60); changed(); },
       selected: function () { return sel >= 0 ? d.items[sel] : null; },
-      count: function () { return d.items.length; }
+      count: function () { return F.reduce(function (a, L) { return a + L.length; }, 0); }
     };
   }
   /* 🎯 Caractéristiques de chaque activité (demande de l'enseignant, 28/11/2026 : « quand on change d'activité, on retrouve les caractéristiques de l'activité ») :
@@ -147,5 +201,5 @@
     else for (k = 0; k < n; k++) { P(0, k + 1, n > 5 && k % 2 ? .2 : .3, (k + 1) / (n + 1)); P(1, k + 1, n > 5 && k % 2 ? .8 : .7, (k + 1) / (n + 1)); }
     I.push({ t: "b", x: t.w * (s === "volley" ? .28 : s === "badminton" ? .36 : .5), y: t.h * (s === "volley" ? .35 : .5) });
     return { sport: s, forme: forme || C.formes[0] || "", items: I }; }
-  window.EPSTAC = { svg: svg, editor: editor, sports: function () { return ORDRE.map(function (k) { return { id: k, nom: T[k].nom }; }); }, depart: depart, clean: clean, car: car, nb: nbDe };
+  window.EPSTAC = { svg: svg, editor: editor, sports: function () { return ORDRE.map(function (k) { return { id: k, nom: T[k].nom }; }); }, depart: depart, clean: clean, car: car, nb: nbDe, frames: frames, player: player };
 })();

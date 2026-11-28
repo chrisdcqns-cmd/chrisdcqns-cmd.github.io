@@ -2722,7 +2722,10 @@
     document.body.appendChild(el); bip();
     planDraw(el, c);
   }
-  function planDraw(el, c) { tacLoad(function () { var bx = el.querySelector("[data-pl]"); if (!bx || !window.EPSTAC) return; var w = bx.firstChild || bx.appendChild(document.createElement("div")); w.style.cssText = "width:100%;max-width:" + Math.round((window.innerHeight - 110) * 1.9) + "px"; w.innerHTML = EPSTAC.svg(c.d, { maxh: (window.innerHeight - 100) + "px" }); }); }
+  function planDraw(el, c) { tacLoad(function () { var bx = el.querySelector("[data-pl]"); if (!bx || !window.EPSTAC) return; var w = bx.firstChild || bx.appendChild(document.createElement("div")); w.style.cssText = "width:100%;max-width:" + Math.round((window.innerHeight - 110) * 1.9) + "px"; /* 🎬 planche animée (plusieurs temps) : lecteur avec ◀ ▶ et ▶ Lecture, lancé tout seul ; une image seule sinon */
+      try { if (w._pl) w._pl.stop(); } catch (e) {} w._pl = null;
+      if (EPSTAC.player && c.d && Array.isArray(c.d.fr) && c.d.fr.length > 1) w._pl = EPSTAC.player(w, c.d, { maxh: (window.innerHeight - 190) + "px", auto: true });
+      else w.innerHTML = EPSTAC.svg(c.d, { maxh: (window.innerHeight - 100) + "px" }); }); }
   /* planche en direct : la tablette élève relève le signal toutes les 3 s tant que la planche est en cours */
   var planFastT = 0;
   function planFast(on) { if (on && !planFastT) planFastT = setInterval(function () { if (!document.hidden && shCfg()) try { EPSD.syncOne(KSG); } catch (e) {} }, 3000); else if (!on && planFastT) { clearInterval(planFastT); planFastT = 0; } }

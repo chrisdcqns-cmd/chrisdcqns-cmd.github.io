@@ -67,6 +67,8 @@ button,input,select{font:inherit;color:inherit}
   <div class="tools" id="tools" role="toolbar" aria-label="Outils de dessin"></div>
   <div id="car" style="display:flex;flex-direction:column;gap:6px;margin:0 0 8px"></div>
   <div id="board"></div>
+  <div id="lect" hidden></div>
+  <div id="tps" class="row" style="gap:6px;align-items:center;margin:8px 0 0"></div>
   <div class="row">
     <button class="btn" id="undo" type="button">↶ Annuler</button>
     <button class="btn d" id="del" type="button" disabled>🗑 Retirer l'élément</button>
@@ -104,9 +106,33 @@ button,input,select{font:inherit;color:inherit}
   var TOOLS = [["sel", "✋", "Déplacer"], ["pa", '<span class="dot" style="background:#1F4FA3"></span>', "Joueur"], ["pb", '<span class="dot" style="background:#D9481F"></span>', "Adversaire"], ["b", '<span class="dot" style="background:#F0A030;width:14px;height:14px"></span>', "Ballon"], ["c", "🔺", "Plot"], ["am", "➜", "Déplacement"], ["ap", "⇢", "Passe"], ["f", "✏️", "Tracé libre"], ["x", "T", "Texte"]];
   var tool = "sel";
   function drawTools() { var C = CARS(); $("#tools").innerHTML = TOOLS.map(function (t) { var lab = t[0] === "b" ? C.objet : t[0] === "ap" ? C.trait : t[2]; return '<button type="button" class="tl' + (tool === t[0] ? " on" : "") + '" data-t="' + t[0] + '" aria-pressed="' + (tool === t[0]) + '"><i>' + t[1] + "</i>" + esc(lab) + "</button>"; }).join("");
-    Array.prototype.forEach.call(document.querySelectorAll("#tools .tl"), function (b) { b.onclick = function () { tool = b.dataset.t; if (tool !== "x") MOT = ""; ED.tool(tool); drawTools(); }; }); drawCar(); }
+    Array.prototype.forEach.call(document.querySelectorAll("#tools .tl"), function (b) { b.onclick = function () { tool = b.dataset.t; if (tool !== "x") MOT = ""; ED.tool(tool); drawTools(); }; }); drawCar(); drawTps(); }
   /* la mise en place de l'activité telle qu'elle est proposée : si le dessin n'a pas été touché, on la remplace sans rien demander */
-  function intact() { try { var d = ED.get(); return JSON.stringify(d.items) === JSON.stringify(EPSTAC.depart(d.sport, d.forme || undefined).items); } catch (e) { return false; } }
+  function intact() { try { var d = ED.get(), nu = function (L) { return JSON.stringify(L.map(function (i) { var c = JSON.parse(JSON.stringify(i)); delete c.id; return c; })); }; return !(d.fr && d.fr.length > 1) && nu(d.items) === nu(EPSTAC.depart(d.sport, d.forme || undefined).items); } catch (e) { return false; } }
+  /* 🎬 Animation par temps (demande de l'enseignant, 28/11/2026) : frise « Temps 1 · 2 · 3 », « ＋ Temps » copie le temps affiché (sans ses flèches) pour n'avoir
+     qu'à déplacer ce qui bouge, « ▶ Lecture » déroule l'action. En mode enseignant : « 📡 Partager à toutes les tablettes », d'un seul appui, leçon lancée ou non. */
+  var LECT = null, CHT = "min-height:44px;padding:0 12px;border-radius:999px;border:2px solid #E6E1D6;background:#fff;font:700 15px system-ui,sans-serif;color:#14171C;cursor:pointer;width:auto";
+  function lectStop() { if (LECT) { try { LECT.stop(); } catch (e) {} LECT = null; } $("#lect").hidden = true; $("#lect").innerHTML = ""; $("#board").hidden = false; }
+  function drawTps() { var el = $("#tps"); if (!el || !ED) return; var n = ED.frames(), c = ED.frame(), h = "";
+    if (LECT) h = '<button type="button" data-tp="stop" style="' + CHT + ';background:#14171C;border-color:#14171C;color:#fff">✏️ Revenir au dessin</button><span class="mut">Lecture de l\'animation : ◀ ▶ pour aller d\'un temps à l\'autre.</span>';
+    else { h = '<span class="mut" style="font-weight:800">🎬 Animation</span>';
+      for (var i = 0; i < n; i++) h += '<button type="button" data-tg="' + i + '" aria-pressed="' + (i === c) + '" style="' + CHT + (i === c ? ";background:#14171C;border-color:#14171C;color:#fff" : "") + '">Temps ' + (i + 1) + "</button>";
+      h += '<button type="button" data-tp="add" style="' + CHT + '"' + (n >= 12 ? " disabled" : "") + ' title="Copie le temps affiché : il reste à déplacer ce qui bouge">＋ Temps</button>' + (n > 1 ? '<button type="button" data-tp="del" style="' + CHT + ';color:#B3261E">🗑 Retirer ce temps</button><button type="button" data-tp="play" style="' + CHT + ';background:#0F766E;border-color:#0F766E;color:#fff">▶ Lecture</button>' : "") +
+        (n > 1 && c > 0 ? '<span class="mut">En gris : d\'où viennent les joueurs.</span>' : ""); }
+    if (teach() && !LECT) h += '<span style="flex:1"></span><button type="button" data-tp="share" data-nolive style="' + CHT + ';background:#F0A030;border-color:#F0A030">📡 Partager à toutes les tablettes</button><span class="st" id="shst" role="status"></span>';
+    el.innerHTML = h;
+    Array.prototype.forEach.call(el.querySelectorAll("[data-tg]"), function (b) { b.onclick = function () { ED.frameGo(+b.dataset.tg); drawTps(); }; });
+    Array.prototype.forEach.call(el.querySelectorAll("[data-tp]"), function (b) { b.onclick = function () { var a = b.dataset.tp;
+      if (a === "add") { ED.frameAdd(); tool = "sel"; MOT = ""; ED.tool("sel"); drawTools(); }
+      else if (a === "del") { if (confirm("Retirer le temps " + (ED.frame() + 1) + " de l'animation ?")) ED.frameDel(); drawTps(); }
+      else if (a === "play") { $("#board").hidden = true; $("#lect").hidden = false; LECT = EPSTAC.player($("#lect"), ED.get(), { maxh: "70vh", auto: true }); drawTps(); }
+      else if (a === "stop") { lectStop(); drawTps(); }
+      else if (a === "share") partager(); }; }); }
+  function partager() { var st = $("#shst"); if (!st) return; var P0 = window.EPSD && EPSD.plan;
+    if (!P0 || !P0.ready || !P0.ready()) { st.className = "st ko"; st.textContent = "Partage entre tablettes pas encore réglé sur cet appareil (accueil → Réglages communs)."; return; }
+    if (!ED.count()) { st.className = "st ko"; st.textContent = "La planche est vide."; return; }
+    st.className = "st"; st.textContent = "Envoi…";
+    P0.send({ nom: ($("#nom") ? $("#nom").value.trim() : "") || "Planche de ton enseignant", d: ED.get() }, "*", MIN, true).then(function () { LIVE = true; try { send(); } catch (e) {} var s2 = $("#shst"); if (s2) { s2.className = "st ok"; s2.textContent = navigator.onLine === false ? "Hors ligne : elle partira au retour du réseau." : "✓ Envoyée à toutes les tablettes (elle suit ton dessin pendant " + MIN + " min)"; } }, function () { st.className = "st ko"; st.textContent = "Envoi impossible pour l'instant."; }); }
   function placer(sport, forme, demander) { if (ED.count() && !intact() && demander !== false && !confirm("Remplacer le dessin par la mise en place « " + (forme || EPSTAC.car(sport).formes[0] || "de départ") + " » ?")) return false;
     ED.set(EPSTAC.depart(sport, forme)); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: ED.get() })); } catch (e) {} return true; }
   function drawCar() { var el = $("#car"); if (!el || !ED) return; var d = ED.get(), C = CARS(), fc = d.forme || "", CH = "min-height:44px;padding:0 12px;border-radius:999px;border:2px solid #E6E1D6;background:#fff;font:700 15px system-ui,sans-serif;color:#14171C;cursor:pointer;width:auto";
@@ -118,7 +144,7 @@ button,input,select{font:inherit;color:inherit}
     document.body.appendChild(o); var i = o.querySelector("input"); i.value = val || ""; setTimeout(function () { i.focus(); }, 30);
     var ok = function () { var v = i.value; o.remove(); cb(v); }; o.querySelector("[data-ok]").onclick = ok; o.querySelector("[data-x]").onclick = function () { o.remove(); }; i.onkeydown = function (e) { if (e.key === "Enter") ok(); }; }
   var ED = EPSTAC.editor($("#board"), d0, { maxh: "70vh",
-    onChange: function (d) { livePush(); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: d })); } catch (e) {} },
+    onChange: function (d) { try { if (ED && $("#tps") && $("#tps").querySelectorAll("[data-tg]").length !== ED.frames()) drawTps(); } catch (e) {} livePush(); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: d })); } catch (e) {} },
     onSelect: function (i) { $("#del").disabled = !i; var lab = i && (i.t === "p" || i.t === "x"); $("#lab").hidden = !lab; if (lab) { $("#labt").textContent = i.t === "p" ? "Numéro" : "Texte"; $("#labi").value = i.t === "p" ? (i.n || "") : (i.s || ""); $("#labi").style.width = i.t === "p" ? "80px" : "220px"; } },
     askText: function (cb) { if (MOT) { cb(MOT); setTimeout(function () { tool = "x"; ED.tool("x"); drawTools(); }, 0); return; } ask("Texte à écrire sur la planche", "", cb); } });
   $("#sport").value = ED.get().sport; $("#nom").value = cur.nom;
@@ -140,7 +166,7 @@ button,input,select{font:inherit;color:inherit}
   function livePush() { clearTimeout(liveT); liveT = setTimeout(function () { var c = P() && EPSD.plan.cur(); if (c && c.live) EPSD.plan.live({ nom: $("#nom").value.trim(), d: ED.get() }); }, 900); }
   function P() { return window.EPSD && EPSD.plan; }
   function lib() { if (!P()) return; var L = EPSD.plan.list();
-    $("#lib").innerHTML = L.length ? L.map(function (b, k) { return '<div><div style="pointer-events:none">' + EPSTAC.svg(b.d) + "</div><b>" + esc(b.nom) + '</b><div class="row" style="margin:0"><button class="btn" data-o="' + k + '" type="button">Ouvrir</button><button class="btn d" data-d="' + k + '" type="button" aria-label="Supprimer ' + esc(b.nom) + '">🗑</button></div></div>'; }).join("") : '<p class="mut" style="grid-column:1/-1">Aucune planche enregistrée. Dessine, donne un nom, puis « Enregistrer » : elle sera sur toutes tes tablettes.</p>';
+    $("#lib").innerHTML = L.length ? L.map(function (b, k) { return '<div><div style="pointer-events:none">' + EPSTAC.svg(b.d) + "</div><b>" + esc(b.nom) + (b.d && b.d.fr && b.d.fr.length > 1 ? " · 🎬 " + b.d.fr.length + " temps" : "") + '</b><div class="row" style="margin:0"><button class="btn" data-o="' + k + '" type="button">Ouvrir</button><button class="btn d" data-d="' + k + '" type="button" aria-label="Supprimer ' + esc(b.nom) + '">🗑</button></div></div>'; }).join("") : '<p class="mut" style="grid-column:1/-1">Aucune planche enregistrée. Dessine, donne un nom, puis « Enregistrer » : elle sera sur toutes tes tablettes.</p>';
     Array.prototype.forEach.call(document.querySelectorAll("#lib [data-o]"), function (b) { b.onclick = function () { var x = L[+b.dataset.o]; cur = { id: x.id, nom: x.nom }; ED.set(x.d); $("#nom").value = x.nom; $("#sport").value = ED.get().sport; MOT = ""; tool = "sel"; drawTools(); window.scrollTo(0, 0); }; });
     Array.prototype.forEach.call(document.querySelectorAll("#lib [data-d]"), function (b) { b.onclick = function () { var x = L[+b.dataset.d]; if (!confirm("Supprimer la planche « " + x.nom + " » ?")) return; EPSD.plan.del(x.id); if (cur.id === x.id) cur.id = ""; lib(); }; }); }
   function send() { if (!P()) return; var el = $("#send");
