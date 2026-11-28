@@ -905,8 +905,33 @@
     function cfg() { var c = ld().items.cfg || {}; if (!c.grid) c.grid = JSON.parse(JSON.stringify(o.grid)); return c; }
     function setCfg(x) { var c = cfg(); Object.keys(x).forEach(function (k) { c[k] = x[k]; }); put("cfg", c); }
     function sid(cl, n) { return "s" + h32(nk(cl) + "|" + nkey((n.prenom || "") + " " + (n.nom || ""))); }
-    function rec(cl, n) { var id = sid(cl, n), r = ld().items[id]; return r || { c: cl, n: n.nom, p: n.prenom || "", ev: {}, ap: null, comm: "", st: "" }; }
-    function save(cl, n, r) { r.c = cl; r.n = n.nom; r.p = n.prenom || ""; put(sid(cl, n), r); }
+    /* 🗂 Plusieurs évaluations par classe (demande de l'enseignant, 28/11/2026 : « enregistrer une évaluation lundi, en refaire une jeudi en repartant de
+       zéro », comme on crée une leçon). L'évaluation EN COURS reste rangée comme avant (id = sid : tout ce qui lit le magasin, bulletin, référentiel,
+       groupes, voit donc toujours la dernière). « ＋ Nouvelle évaluation » range l'actuelle dans des copies « sid~<id> » (champs c0, n0, p0, ev0, ap0,
+       comm0, st0 : noms différents exprès, pour qu'aucun lecteur du magasin ne les compte deux fois) puis remet les fiches à zéro.
+       Liste par classe : élément « ses|<classe> » {k:"ses", c0, cur:{nom, d}, list:[{id, nom, d}]}. UI.ses = "" (en cours) ou l'id d'une ancienne,
+       que l'on peut rouvrir et corriger. */
+    function sesId(cl) { return "ses|" + h32(nk(cl)); }
+    function sesGet(cl) { var s = ld().items[sesId(cl)]; return s && s.k === "ses" ? s : { k: "ses", c0: cl, cur: { nom: "", d: "" }, list: [] }; }
+    function sesVu(cl) { return UI && UI.ses && sesGet(cl).list.some(function (x) { return x.id === UI.ses; }) ? UI.ses : ""; }
+    function recA(cl, n, S) { var a = ld().items[sid(cl, n) + "~" + S]; return a ? { c: cl, n: n.nom, p: n.prenom || "", ev: a.ev0 || {}, ap: a.ap0 || null, comm: a.comm0 || "", st: a.st0 || "" } : { c: cl, n: n.nom, p: n.prenom || "", ev: {}, ap: null, comm: "", st: "" }; }
+    function rec(cl, n) { var S = sesVu(cl); if (S) return recA(cl, n, S); var id = sid(cl, n), r = ld().items[id]; return r || { c: cl, n: n.nom, p: n.prenom || "", ev: {}, ap: null, comm: "", st: "" }; }
+    function save(cl, n, r) { var S = sesVu(cl); if (S) { put(sid(cl, n) + "~" + S, { arch: S, c0: cl, n0: n.nom, p0: n.prenom || "", ev0: r.ev || {}, ap0: r.ap || null, comm0: r.comm || "", st0: r.st || "" }); return; }
+      r.c = cl; r.n = n.nom; r.p = n.prenom || ""; put(sid(cl, n), r); }
+    function sesNouvelle(c, nom) { var S = sesGet(c.nom), id = "e" + Date.now().toString(36), I = ld().items, jour = new Date().toISOString().slice(0, 10), nb = 0;
+      c.eleves.forEach(function (e) { var r = I[sid(c.nom, e)]; if (!r) return; var plein = (r.ev && Object.keys(r.ev).length) || r.ap || r.comm || r.st; if (!plein) return; nb++;
+        put(sid(c.nom, e) + "~" + id, { arch: id, c0: c.nom, n0: e.nom, p0: e.prenom || "", ev0: r.ev || {}, ap0: r.ap || null, comm0: r.comm || "", st0: r.st || "" });
+        put(sid(c.nom, e), { c: c.nom, n: e.nom, p: e.prenom || "", ev: {}, ap: null, comm: "", st: "" }); });
+      if (nb) S.list.push({ id: id, nom: (S.cur && S.cur.nom) || "Évaluation", d: (S.cur && S.cur.d) || jour, fin: jour });
+      S.cur = { nom: nom || "Évaluation", d: jour }; S.c0 = c.nom; put(sesId(c.nom), S); UI.ses = ""; return nb; }
+    function frJ(d) { var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String(d || "")); return m ? m[3] + "/" + m[2] : ""; }
+    function sesHtml(c) { var S = sesGet(c.nom), V = sesVu(c.nom), cur = (S.cur && S.cur.nom) || "Évaluation en cours";
+      return '<label class="epse-mut">Évaluation <select data-ses>' + '<option value=""' + (V ? "" : " selected") + ">" + esc(cur) + (S.cur && S.cur.d ? " · " + frJ(S.cur.d) : "") + " (en cours)</option>" + S.list.slice().reverse().map(function (x) { return '<option value="' + esc(x.id) + '"' + (V === x.id ? " selected" : "") + ">" + esc(x.nom) + (x.d ? " · " + frJ(x.d) : "") + "</option>"; }).join("") + '</select></label><button type="button" data-sesnew title="Garder l\'évaluation actuelle et en commencer une autre, à zéro">＋ Nouvelle évaluation</button>'; }
+    function sesDialog(c) { var old = document.getElementById("epse-sesd"); if (old) old.remove(); var d = document.createElement("div"); d.id = "epse-sesd"; d.style.cssText = "position:fixed;inset:0;z-index:2147483260;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:14px";
+      var j = new Date(), def = "Évaluation du " + String(j.getDate()).padStart(2, "0") + "/" + String(j.getMonth() + 1).padStart(2, "0");
+      d.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Nouvelle évaluation" style="background:#fff;border-radius:16px;padding:16px 18px;max-width:460px;width:100%;font-family:system-ui,sans-serif;color:#14171C"><h2 style="margin:0 0 8px;font:800 20px system-ui">＋ Nouvelle évaluation · ' + esc(c.nom) + '</h2><p style="margin:0 0 10px;font-size:15px;line-height:1.4">L\'évaluation actuelle est gardée : tu la retrouves dans la liste « Évaluation » et tu peux la rouvrir. La nouvelle part de zéro (degrés, commentaires, auto-positionnements).</p><input type="text" data-n value="' + esc(def) + '" aria-label="Nom de la nouvelle évaluation" style="width:100%;box-sizing:border-box;font:700 17px system-ui;padding:10px;border:2px solid #E6E1D6;border-radius:10px"><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" data-ok style="min-height:44px;padding:0 16px;border-radius:10px;border:0;background:' + (o.color || "#14171C") + ';color:#fff;font:800 16px system-ui">✓ Créer</button><button type="button" data-x style="min-height:44px;padding:0 16px;border-radius:10px;border:2px solid #E6E1D6;background:#fff;font:800 16px system-ui">✕ Fermer</button></div></div>';
+      document.body.appendChild(d); d.querySelector("[data-x]").onclick = function () { d.remove(); };
+      d.querySelector("[data-ok]").onclick = function () { var nb = sesNouvelle(c, d.querySelector("[data-n]").value.trim()); d.remove(); UI.el = 0; render(); toast(nb ? "Nouvelle évaluation créée : l'ancienne est gardée (" + nb + " fiches)." : "Nouvelle évaluation créée."); }; }
     function classes() {
       var L = []; try { if (window.EPSL) L = EPSL.items().filter(function (it) { return (it.off || []).indexOf(o.app) < 0; }).map(function (it) { return { nom: it.nom, eleves: EPSL.people(it).map(function (p) { return { nom: p.nom || "", prenom: p.prenom || "", _c: it.nom }; }) }; }); } catch (e) {}
       L.sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); }); L.forEach(function (c) { c.eleves.sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); }); }); return L;
@@ -940,6 +965,7 @@
       setDeg: function (cr, e, d) { var r = rec(e._c, e); r.ev = r.ev || {}; if (d == null) delete r.ev[cr.id]; else r.ev[cr.id] = { d: d, pos: .5 }; save(e._c, e, r); },
       setProf: function (cr, e, v) { var r = rec(e._c, e); r.ev = r.ev || {}; if (r.ev[cr.id] || !v || v.d == null) return; r.ev[cr.id] = { d: v.d, pos: v.pos == null ? .5 : v.pos }; save(e._c, e, r); },
       extras: function (c, e) { try { return o.extras ? o.extras(c, e) : []; } catch (x) { return []; } },
+      resultat: function (cr, e, cls) { try { return o.resultat ? o.resultat(cr, e, cls) : null; } catch (x) { return null; } },
       getAp: function (e) { return rec(e._c, e).ap; }, setAp: function (e, ap) { var r = rec(e._c, e); r.ap = ap; save(e._c, e, r); },
       settings: function () { return cfg(); }, setSettings: setCfg, isTeacher: o.isTeacher, unlock: o.unlock, changed: function () { if (UI.open) render(); } };
     var M = create(A);
@@ -973,10 +999,11 @@
       var tabsH = [["eval", "Évaluation finale"], ["bilan", "Bilan et export"], ["grille", "Grille"]].filter(function (t) { return !UI.only || UI.only.indexOf(t[0]) >= 0; });
       var MODES = [["eleve", "👤 Élève par élève"], ["crit", "📋 Par critère"], ["groupe", "👥 Par groupe"]], modesH = '<div class="epse-seg" role="tablist" aria-label="Façon d\'évaluer">' + MODES.map(function (m) { return '<button type="button" role="tab" aria-selected="' + (UI.mode === m[0]) + '" data-mode="' + m[0] + '"' + (UI.mode === m[0] ? ' class="on"' : "") + ">" + m[1] + "</button>"; }).join("") + "</div>";
       /* dans l'onglet Évaluer de l'espace enseignant : les 3 modes à gauche, la grille et la classe à droite (plus de sous-onglets « Évaluer / Grille ») */
-      var gOk = !UI.only || UI.only.indexOf("grille") >= 0, head = UI.host ? '<div class="epse-sub">' + (UI.tab === "eval" ? modesH : UI.tab === "grille" ? '<button data-tab="eval">← Retour</button><b style="font-size:17px">🧩 Grille d\'évaluation</b>' : "") + '<span style="flex:1"></span>' + (UI.tab === "eval" && c ? M.classBtnsHtml() : "") + (UI.tab === "eval" && gOk ? '<button data-tab="grille">🧩 Grille</button>' : "") + (sel ? '<label class="epse-mut">Classe ' + sel + "</label>" : "") + "</div>"
+      var gOk = !UI.only || UI.only.indexOf("grille") >= 0, head = UI.host ? '<div class="epse-sub">' + (UI.tab === "eval" ? modesH : UI.tab === "grille" ? '<button data-tab="eval">← Retour</button><b style="font-size:17px">🧩 Grille d\'évaluation</b>' : "") + '<span style="flex:1"></span>' + (UI.tab === "eval" && c ? M.classBtnsHtml() : "") + (UI.tab === "eval" && gOk ? '<button data-tab="grille">🧩 Grille</button>' : "") + (sel ? '<label class="epse-mut">Classe ' + sel + "</label>" : "") + (c && UI.tab !== "grille" ? sesHtml(c) : "") + "</div>" +
+          (c && sesVu(c.nom) ? '<div class="epse-card" style="background:#FFF8D6;border-color:#E9CF6A;padding:8px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>📂 Ancienne évaluation ouverte</b><span style="flex:1">Tu peux la consulter et la corriger.</span><button type="button" class="epse-btn" data-sescur>← Revenir à l\'évaluation en cours</button></div>' : "")
         : '<div class="epse-bar"><span class="ei">' + (o.icon || "") + "</span><b>" + esc(o.nom) + "</b><small>Évaluation · " + esc(o.ca) + "</small>" + sel + '<button data-close>✕ Fermer</button></div>' +
         '<div class="epse-tabs">' + tabsH.map(function (t) { return '<button data-tab="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on"' : "") + ">" + t[1] + "</button>"; }).join("") + "</div>";
-      if (!UI.host && UI.tab === "eval" && c) modesH = '<div class="epse-sub">' + modesH + '<span style="flex:1"></span>' + M.classBtnsHtml() + "</div>";
+      if (!UI.host && UI.tab === "eval" && c) modesH = '<div class="epse-sub">' + modesH + '<span style="flex:1"></span>' + M.classBtnsHtml() + sesHtml(c) + "</div>" + (sesVu(c.nom) ? '<div class="epse-card" style="background:#FFF8D6;border-color:#E9CF6A;padding:8px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>📂 Ancienne évaluation ouverte</b><span style="flex:1">Tu peux la consulter et la corriger.</span><button type="button" class="epse-btn" data-sescur>← Revenir à l\'évaluation en cours</button></div>' : "");
       var body = "";
       if (!c) body = '<div class="epse-card"><p>Aucune classe pour cette activité. Importe une liste d\'élèves dans Réglages (accueil) et vérifie que l\'activité est cochée pour la classe.</p></div>';
       else if (UI.tab === "eval" && !c.eleves.length) body = '<div class="epse-card"><p>Aucun élève dans cette classe.</p></div>';
@@ -993,7 +1020,10 @@
       if (c && UI.tab === "eval" && UI.mode !== "eleve" && c.eleves.length) bindRapide(R, c, G, GRP);
       if (c && UI.tab === "eval") M.bindClassBtns(R, c.nom, c.eleves);
       if (R.querySelector("[data-close]")) R.querySelector("[data-close]").onclick = close;
-      var s = R.querySelector("[data-cls]"); if (s) s.onchange = function () { UI.cls = s.value; UI.el = -1; render(); };
+      var s = R.querySelector("[data-cls]"); if (s) s.onchange = function () { UI.cls = s.value; UI.el = -1; UI.ses = ""; render(); };
+      var ss = R.querySelector("[data-ses]"); if (ss) ss.onchange = function () { UI.ses = ss.value; render(); };
+      var sn = R.querySelector("[data-sesnew]"); if (sn && c) sn.onclick = function () { sesDialog(c); };
+      var sc = R.querySelector("[data-sescur]"); if (sc) sc.onclick = function () { UI.ses = ""; render(); };
       R.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.tab; render(); }; });
       R.querySelectorAll("[data-el]").forEach(function (b) { b.onclick = function (ev) { if (ev.target.closest && ev.target.closest("[data-eps-ap]")) return; UI.el = +b.dataset.el; render(); if (!UI.host) R.scrollTop = 0; else { var f = R.querySelector(".epse-fiche"); if (f && f.getBoundingClientRect().top < 0) f.scrollIntoView({ block: "start" }); } }; });
       if (c && UI.tab === "eval" && UI.mode === "eleve" && c.eleves[UI.el]) bindSheet(R, c, c.eleves[UI.el]);
@@ -1001,13 +1031,25 @@
       if (UI.tab === "grille") bindGrid(R);
     }
     function sheet(c, e) {
-      var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap;
+      var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap, P = M.prop(e, e._c), RS = null, POSL = function (p) { p = p == null ? .5 : p; return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; };
+      try { RS = o.resultats ? o.resultats(c, e) : null; } catch (x) { RS = null; }
+      /* 📊 Ses résultats (demande de l'enseignant, 28/11/2026 : voir sur la fiche les courses, les grimpes… comme en Relais) : les mesures communes
+         (évaluations du jour, réussite aux situations) puis celles de l'appli, données par o.resultats(classe, élève) → {chips:[[valeur, libellé]…], lignes:[…]}. */
+      var chips = []; if (P.noteLec != null) chips.push([fr(P.noteLec) + " / 20", "évaluations du jour" + (P.nLec ? " · " + P.nLec + " leçon" + (P.nLec > 1 ? "s" : "") : "")]);
+      if (P.sit && P.sit.t != null && isFinite(+P.sit.t)) chips.push([Math.round(P.sit.t * 100) + " %", "de réussite aux situations" + (P.nSit ? " · " + P.nSit + " leçon" + (P.nSit > 1 ? "s" : "") : "")]);
+      if (RS && Array.isArray(RS.chips)) chips = chips.concat(RS.chips);
+      var resH = '<div class="epse-card" data-res><h2 style="margin:0 0 6px">📊 Ses résultats</h2>' + (chips.length ? '<div style="display:flex;gap:8px;flex-wrap:wrap">' + chips.map(function (x) { return '<span style="background:#F6F3EC;border-radius:10px;padding:6px 10px;line-height:1.2"><b style="font-size:18px;display:block">' + esc(x[0]) + '</b><small class="epse-mut">' + esc(x[1]) + "</small></span>"; }).join("") + "</div>" : '<p class="epse-mut" style="margin:0">Pas encore de résultat enregistré en leçon pour cet élève.</p>') +
+        (RS && Array.isArray(RS.lignes) && RS.lignes.length ? '<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:800;padding:8px 0">' + esc(RS.titre || "Voir le détail") + " (" + RS.lignes.length + ')</summary><ul style="margin:4px 0 0;padding-left:20px;line-height:1.5">' + RS.lignes.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul></details>" : "") + "</div>";
+      var recap = function (cr) { var x = ap && ap.ev && ap.ev[cr.id], s = P.est && P.est[cr.id], H = "";
+        if (x && x.d != null) H += '<span style="background:' + DTINT[x.d] + ";border:1.5px solid " + DCOL[x.d] + ';border-radius:8px;padding:3px 8px;font-weight:800">🙋 L\'élève se situe : D' + (x.d + 1) + " · " + esc((G.degresEl || G.degres)[x.d] || "") + "</span>";
+        if (s) H += '<span style="background:#FFF6E0;border:1.5px dashed #C99A1A;border-radius:8px;padding:3px 8px;font-weight:800">💡 Proposé : D' + (s.d + 1) + " (" + POSL(s.pos) + ")</span>";
+        return H ? '<div data-recap style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;font-size:14px">' + H + "</div>" : ""; };
       return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1" aria-label="Élève précédent" style="min-width:46px">‹</button> <button class="epse-btn" data-nav="1" aria-label="Élève suivant" style="min-width:46px">›</button></span></div>' +
         '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (st) { return '<button class="epse-btn' + ((r.st || "") === st ? " p" : "") + '" data-st="' + st + '">' + (st || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button></div></div>' +
-        M.propHtml(e, e._c) +
-        G.criteres.map(function (cr) { var v = r.ev && r.ev[cr.id], x = ap && ap.ev && ap.ev[cr.id], p = prof(cr, e);
-          return '<div class="epse-crit"><div class="epse-ch"><b>' + esc(cr.nom) + "</b><span>" + esc(cr.afl || "") + " · " + fr(maxOf(cr)) + " pts" + (p ? " · " + fr(p.pts) + " pts" : "") + "</span></div>" + (cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.but) + "</p>" : "") +
-            '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
+        resH + M.propHtml(e, e._c) +
+        G.criteres.map(function (cr) { var v = r.ev && r.ev[cr.id], x = ap && ap.ev && ap.ev[cr.id], p = prof(cr, e), s = P.est && P.est[cr.id];
+          return '<div class="epse-crit"><div class="epse-ch"><b>' + esc(cr.nom) + "</b><span>" + esc(cr.afl || "") + " · " + fr(maxOf(cr)) + " pts" + (p ? " · " + fr(p.pts) + " pts" : "") + "</span></div>" + (cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.but) + "</p>" : "") + recap(cr) +
+            '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + (s && s.d === d ? '<span class="me" style="border-style:dashed;border-color:#C99A1A;color:#7A5A00">💡 proposé</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
             (v ? '<div class="epse-intra" style="--dc:' + DCOL[v.d] + '"><span>Dans le degré :</span><input type="range" min="0" max="4" step="1" value="' + Math.round((v.pos == null ? .5 : v.pos) * 4) + '" data-p="' + esc(cr.id) + '"><b style="color:' + DCOL[v.d] + '">' + esc(posLbl(v.d, v.pos == null ? .5 : v.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
         (ap && (ap.r || ap.m) ? '<div class="epse-card"><h2>🙋 Les mots de l\'élève</h2>' + (ap.r ? "<p>✓ " + esc(ap.r) + "</p>" : "") + (ap.m ? "<p>→ " + esc(ap.m) + "</p>" : "") + "</div>" : "") +
         '<div class="epse-card"><div class="epse-row" style="margin:0 0 6px"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button></div><div data-phrbox></div><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
