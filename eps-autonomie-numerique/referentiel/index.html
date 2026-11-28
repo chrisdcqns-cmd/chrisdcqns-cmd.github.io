@@ -80,8 +80,12 @@ label.f{display:block;font-weight:800;font-size:14px;margin:10px 0 4px}
 .cn-tw{max-height:70vh;overflow:auto}
 table.cn{font-size:13px;width:auto;min-width:100%}
 table.cn th,table.cn td{padding:0;min-width:58px;height:40px}
-table.cn thead th{position:sticky;top:0;z-index:2;padding:4px 6px;font-size:12px}
-table.cn thead tr:nth-child(2) th{top:30px}
+table.cn thead th{position:sticky;z-index:2;padding:4px 6px;font-size:12px;box-sizing:border-box}
+table.cn thead tr.r1 th{top:0;height:28px}table.cn thead tr.r2 th{top:28px;height:30px}table.cn thead tr.r3 th{top:58px}
+table.cn th.cn-p{color:#fff;font-weight:900;font-size:14px;text-align:left;letter-spacing:.02em}table.cn th.cn-p small{font-weight:600;opacity:.85}
+table.cn .cn-sep{border-left:3px solid #8A8478!important}
+table.cn th.cn-pm{background:color-mix(in srgb,var(--pc) 22%,#fff);color:#14171C;font-weight:900;min-width:70px}
+table.cn td.cn-pm{font-size:14px;min-width:70px;box-shadow:inset 2px 0 0 rgba(0,0,0,.12)}
 table.cn th.cn-g{color:#fff;font-weight:900;font-size:13px;text-align:left;height:30px}
 table.cn .cn-n{position:sticky;left:0;z-index:1;background:#fff;text-align:left;padding:0 10px;min-width:170px;font-weight:700;white-space:nowrap}
 table.cn thead .cn-n{z-index:3;background:#FAF8F3}
@@ -432,7 +436,7 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
         var mk = function (q) { var v = {}, any = false; Object.keys(r.el || {}).forEach(function (k) { var x = r.el[k] || {}, L = (q ? [q] : ["p", "s", "t"]).filter(function (z) { return isNum(x[z]); }); if (!L.length) return;
             var m = L.reduce(function (s, z) { return s + Math.max(0, Math.min(3, +x[z])); }, 0) / L.length, n = m / 3 * sur;
             v[R.nk(k)] = { n20: m / 3 * 20, t: fr(Math.round(n * 4) / 4), det: ["p", "s", "t"].filter(function (z) { return isNum(x[z]); }).map(function (z, i) { return N[["p", "s", "t"].indexOf(z)] + " : " + fr(Math.round(Math.max(0, Math.min(3, +x[z])) / 3 * sur * 4) / 4) + " / " + sur; }).join(" · ") }; any = true; }); return any ? v : null; };
-        if (c.lec === "act") { var v = mk(""); if (!v) return; if (!byAct) { byAct = { src: "lec", app: a, nom: ANOM[a], sub: "moy. /" + sur, d: r.day, color: ACOL[a], days: [], id: "la|" + a }; out.push(byAct); }
+        if (false) { var v = mk(""); if (!v) return; if (!byAct) { byAct = { src: "lec", app: a, nom: ANOM[a], sub: "moy. /" + sur, d: r.day, color: ACOL[a], days: [], id: "la|" + a }; out.push(byAct); }
           byAct.days.push({ d: r.day, v: v }); return; }
         if (c.lec === "crit") ["p", "s", "t"].forEach(function (q, i) { var v = mk(q); if (v) out.push({ src: "lec", app: a, nom: N[i], sub: jf(r.day) + " /" + sur, d: r.day, color: ACOL[a], v: v, lec: lt, theme: r.theme, id: "l|" + id + "|" + q }); });
         else { var v2 = mk(""); if (v2) out.push({ src: "lec", app: a, nom: jf(r.day), sub: "/" + sur, d: r.day, color: ACOL[a], v: v2, lec: lt, theme: r.theme, id: "l|" + id }); } });
@@ -456,48 +460,65 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
   function students(cls) { var o = lists().filter(function (x) { return R.ck(x.nom) === R.ck(cls); })[0], P = []; try { P = o ? EPSL.people(o) || [] : []; } catch (e) {}
     return P.map(function (p) { var f = p.full || ((p.prenom || "") + " " + (p.nom || "")).trim(); return { k: R.nk(f), full: f, nom: p.nom || "", prenom: p.prenom || "" }; }).sort(function (a, b) { return a.full.localeCompare(b.full, "fr"); }); }
   function curPer(P) { var t = R.today(), i = perOfDay(P, t); return t < P[0].a ? 0 : i; }
+  /* colonnes affichées pour une période : regroupées PAR ACTIVITÉ (activité dans l'ordre de sa première date dans la période, puis ses colonnes
+     dans l'ordre des dates : leçons, modalités, évaluation finale) ; une activité à cheval sur deux périodes apparaît sous chacune d'elles.
+     Réglage « une moyenne par activité » : les leçons de l'activité dans la période sont réunies en une colonne. */
+  function perCols(all, P, i) { var C = all.filter(function (c) { return perOfDay(P, c.d) === i; }), act = cnCfg().lec === "act";
+    if (act) { var keep = [], agg = {}; C.forEach(function (c) { if (c.src !== "lec") { keep.push(c); return; } var g = agg[c.app]; if (!g) { g = agg[c.app] = { src: "lec", app: c.app, nom: "Leçons", n: 0, d: c.d, d1: c.d, color: c.color, id: "la|" + c.app + "|" + i, V: {}, sur: c.sub }; keep.push(g); }
+        g.n++; if (c.d < g.d) g.d = c.d; if (c.d > g.d1) g.d1 = c.d; Object.keys(c.v).forEach(function (k) { var o = g.V[k] || (g.V[k] = { s: 0, n: 0, L: [] }); o.s += c.v[k].n20; o.n++; o.L.push(jf(c.d) + " : " + c.v[k].t); }); });
+      Object.keys(agg).forEach(function (a) { var g = agg[a], sur = leSur(R.DIRS[a]); g.v = {}; g.sub = g.n + " leçon" + (g.n > 1 ? "s" : "") + " · moy. /" + sur; Object.keys(g.V).forEach(function (k) { var m = g.V[k].s / g.V[k].n; g.v[k] = { n20: m, t: fr(Math.round(m / 20 * sur * 4) / 4), det: g.V[k].L.join(" · ") }; }); g.nom = jf(g.d) + " → " + jf(g.d1); });
+      C = keep; }
+    var first = {}; C.forEach(function (c) { var g = c.src === "man" ? "~man" : c.app || "~"; if (!first[g] || c.d < first[g]) first[g] = c.d || "9999"; });
+    var rk = { lec: 0, mod: 1, fin: 2, man: 3 };
+    return C.sort(function (x, y) { var gx = x.src === "man" ? "~man" : x.app || "~", gy = y.src === "man" ? "~man" : y.app || "~";
+      if (gx !== gy) { if (gx === "~man") return 1; if (gy === "~man") return -1; return String(first[gx]).localeCompare(String(first[gy])) || gx.localeCompare(gy); }
+      return String(x.d || "").localeCompare(String(y.d || "")) || rk[x.src] - rk[y.src]; }); }
+  function colLab(c) { return c.src === "fin" ? "🏁 Éval. finale" : c.src === "mod" ? "🧪 " + c.nom : c.src === "man" ? TYI[c.col.ty] + " " + c.nom : c.nom; }
   function vCn() { var L = lists().filter(function (o) { return !/^D[ÉE]MO/i.test(o.nom) || teach(); }), cur = L.filter(function (o) { return R.ck(o.nom) === R.ck(UI.cls); })[0], an = R.annee();
     var h = '<div class="card noprint cn-top">' + (L.length ? '<div class="chips">' + L.map(function (o, i) { return '<button type="button" class="chip' + (cur === o ? " on" : "") + '" data-c="' + i + '">' + esc(o.nom) + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucune liste de classe sur cet appareil.</p>') + "</div>";
     if (!cur) { $("#pg").innerHTML = h + (L.length ? '<div class="card"><p class="mut">Choisis une classe.</p></div>' : ""); $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.c].nom; render(); }; }); return; }
-    var P = pers(cur.nom, an), pt = perType(cur.nom); if (UI.per == null || UI.per === "" || (UI.per !== "an" && !P[+UI.per])) UI.per = String(curPer(P));
-    var all = cnCols(cur.nom, an), E = students(cur.nom), PC = ["#E8F5E9", "#FFF3E0", "#E3F2FD", "#FCE4EC"];
-    h += '<div class="cn-per noprint">' + P.map(function (p, i) { return '<button type="button" class="' + (UI.per === String(i) ? "on" : "") + '" data-per="' + i + '" style="--pc:' + ["#2E7D32", "#E65100", "#1565C0", "#AD1457"][i % 4] + '">' + esc(p.nom) + "<small>" + jf(p.a) + " → " + jf(p.b) + "</small></button>"; }).join("") +
-      '<button type="button" class="' + (UI.per === "an" ? "on" : "") + '" data-per="an" style="--pc:#4A148C">Bilan de l\'année<small>' + (pt === "sem" ? "semestres" : "trimestres") + "</small></button></div>";
-    h += '<div class="row noprint" style="margin:0 0 10px"><button type="button" class="btn p" id="cadd">＋ Colonne</button><button type="button" class="btn" id="cpn">📋 Pronote</button><button type="button" class="btn" id="prt">🖨 Imprimer</button><button type="button" class="btn" id="ctr">🗑 Corbeille</button>' +
+    var P = pers(cur.nom, an), pt = perType(cur.nom), PCOL = ["#2E7D32", "#E65100", "#1565C0", "#AD1457", "#6A1B9A", "#00838F"];
+    if (UI.per == null || UI.per === "" || (UI.per !== "an" && !P[+UI.per])) UI.per = "an";
+    var all = cnCols(cur.nom, an), E = students(cur.nom), isAn = UI.per === "an", show = isAn ? P.map(function (p, i) { return i; }) : [+UI.per], moyOnly = isAn && UI.cnMo;
+    h += '<div class="cn-per noprint"><button type="button" class="' + (isAn ? "on" : "") + '" data-per="an" style="--pc:#4A148C">Toute l\'année<small>' + (pt === "sem" ? "semestres" : "trimestres") + "</small></button>" + P.map(function (p, i) { return '<button type="button" class="' + (UI.per === String(i) ? "on" : "") + '" data-per="' + i + '" style="--pc:' + PCOL[i % PCOL.length] + '">' + esc(p.nom) + "<small>" + jf(p.a) + " → " + jf(p.b) + "</small></button>"; }).join("") + "</div>";
+    h += '<div class="row noprint" style="margin:10px 0"><button type="button" class="btn p" id="cadd">＋ Colonne</button><button type="button" class="btn" id="cpn">📋 Pronote</button><button type="button" class="btn" id="prt">🖨 Imprimer</button><button type="button" class="btn" id="ctr">🗑 Corbeille</button>' +
+      (isAn ? '<span class="chips" style="margin-left:12px"><button type="button" class="chip' + (moyOnly ? "" : " on") + '" data-mo="0">Détail</button><button type="button" class="chip' + (moyOnly ? " on" : "") + '" data-mo="1">Moyennes seulement</button></span>' : "") +
       '<label class="mut" style="margin-left:auto">Découpage : <select class="in" id="cnpt" style="width:auto;min-height:40px"><option value="trim"' + (pt === "trim" ? " selected" : "") + '>Trimestres</option><option value="sem"' + (pt === "sem" ? " selected" : "") + ">Semestres</option></select></label></div>";
-    if (!E.length) { $("#pg").innerHTML = h + '<div class="card"><p class="mut">Cette liste n\'a pas d\'élèves.</p></div>'; cnBind(cur, L, null, E, P); return; }
-    var tb;
-    if (UI.per === "an") { var PCs = P.map(function (p, i) { return all.filter(function (c) { return perOfDay(P, c.d) === i; }); });
-      tb = '<table class="cn"><thead><tr><th class="cn-n" rowspan="2">Élève</th>' + P.map(function (p, i) { return '<th colspan="' + (Object.keys(SRC).length + 1) + '" style="background:' + PC[i % 4] + '">' + esc(p.nom) + "</th>"; }).join("") + '<th rowspan="2" class="cn-m">Année<br><small>/20</small></th></tr><tr>' +
-        P.map(function (p, i) { return Object.keys(SRC).map(function (s) { return '<th style="background:' + SRC[s][2] + '" title="' + SRC[s][1] + '">' + SRC[s][0] + "</th>"; }).join("") + '<th class="cn-m">Moy.</th>'; }).join("") + "</tr></thead><tbody>" +
-        E.map(function (e) { var M = [], cells = P.map(function (p, i) { var r = cnMoy(PCs[i], e.k); if (r.m != null) M.push(r.m); return Object.keys(SRC).map(function (s) { var v = r.det[s]; return '<td style="background:' + (v == null ? "" : nivCol(v)) + '">' + (v == null ? "" : fr(Math.round(v * 100) / 100)) + "</td>"; }).join("") + '<td class="cn-m" style="background:' + nivCol(r.m) + '"><b>' + (r.m == null ? "–" : fr(Math.round(r.m * 100) / 100)) + "</b></td>"; }).join(""), A = M.length ? M.reduce(function (a, b) { return a + b; }, 0) / M.length : null;
-          return '<tr><td class="cn-n">' + esc(e.full) + "</td>" + cells + '<td class="cn-m" style="background:' + nivCol(A) + '"><b>' + (A == null ? "–" : fr(Math.round(A * 100) / 100)) + "</b></td></tr>"; }).join("") + "</tbody></table>";
-      UI.cnC = null; }
-    else { var pi = +UI.per, C = all.filter(function (c) { return perOfDay(P, c.d) === pi; }); UI.cnC = C;
-      var G = []; C.forEach(function (c) { var g = c.src + "|" + (c.src === "man" ? "" : c.app || ""), l = G[G.length - 1]; if (l && l.g === g) l.n++; else G.push({ g: g, n: 1, c: c }); });
-      tb = '<table class="cn"><thead><tr><th class="cn-n" rowspan="2">Élève</th>' + G.map(function (g) { var c = g.c, lab = SRC[c.src][0] + " " + (c.src === "man" ? SRC.man[1] : c.src === "fin" ? "Évaluation finale" : (ANOM[c.app] || "") + (c.src === "mod" ? " · modalités" : ""));
-          return '<th colspan="' + g.n + '" class="cn-g" style="background:' + (c.src === "man" ? "#3F8F3F" : c.color) + '">' + esc(lab) + "</th>"; }).join("") + '<th rowspan="2" class="cn-m">Moyenne<br><small>' + esc(P[pi].nom) + " /20</small></th></tr><tr>" +
-        C.map(function (c) { return '<th style="background:' + SRC[c.src][2] + '">' + (c.src === "man" ? '<button type="button" class="cnh" data-col="' + esc(c.col.id) + '">' + TYI[c.col.ty] + " " + esc(c.nom) + "</button>" : '<span title="' + esc(c.lec || c.nom) + '">' + esc(c.src === "fin" ? c.nom : c.nom) + "</span>") + "<br><small>" + esc(c.sub) + "</small></th>"; }).join("") + "</tr></thead><tbody>" +
-        E.map(function (e) { var r = cnMoy(C, e.k); return '<tr><td class="cn-n">' + esc(e.full) + "</td>" + C.map(function (c) { return "<td>" + cnCell(c, c.v[e.k], e.k) + "</td>"; }).join("") + '<td class="cn-m" style="background:' + nivCol(r.m) + '"><b>' + (r.m == null ? "–" : fr(Math.round(r.m * 100) / 100)) + "</b></td></tr>"; }).join("") +
-        '<tr class="cn-cl"><td class="cn-n">Moyenne de la classe</td>' + C.map(function (c) { var s = 0, n = 0; E.forEach(function (e) { var x = c.v[e.k]; if (x && x.n20 != null) { s += x.n20; n++; } }); return '<td style="background:' + (n ? nivCol(s / n) : "") + '">' + (n ? fr(Math.round(s / n * 10) / 10) : "") + "</td>"; }).join("") +
-          (function () { var s = 0, n = 0; E.forEach(function (e) { var m = cnMoy(C, e.k).m; if (m != null) { s += m; n++; } }); return '<td class="cn-m"><b>' + (n ? fr(Math.round(s / n * 100) / 100) : "") + "</b></td>"; })() + "</tr></tbody></table>";
-      if (!C.length) tb += '<p class="mut">Rien pour cette période : les notes de tes leçons (📊 Évaluer la leçon), de tes évaluations finales et de tes modalités arrivent ici toutes seules. ＋ Colonne pour une note à toi.</p>'; }
+    if (!E.length) { $("#pg").innerHTML = h + '<div class="card"><p class="mut">Cette liste n\'a pas d\'élèves.</p></div>'; cnBind(cur, L, null, E, P, []); return; }
+    /* trois étages d'en-tête : période · activité · date, pour que chaque colonne soit sous sa période et sous son activité */
+    var S = show.map(function (i) { return { i: i, p: P[i], C: moyOnly ? [] : perCols(all, P, i) }; }), R1 = "", R2 = "", R3 = "", shown = [];
+    S.forEach(function (s) { var pc = PCOL[s.i % PCOL.length];
+      R1 += '<th class="cn-p" colspan="' + (s.C.length + 1) + '" style="background:' + pc + '">' + esc(s.p.nom) + ' <small>' + jf(s.p.a) + " → " + jf(s.p.b) + "</small></th>";
+      var G = []; s.C.forEach(function (c) { var g = c.src === "man" ? "~man" : c.app || "~", l = G[G.length - 1]; if (l && l.g === g) l.n++; else G.push({ g: g, n: 1, c: c }); });
+      G.forEach(function (g, j) { R2 += '<th colspan="' + g.n + '" class="cn-g' + (j === 0 ? " cn-sep" : "") + '" style="background:' + (g.g === "~man" ? "#3F8F3F" : g.c.color) + '">' + esc(g.g === "~man" ? "✏️ Mes colonnes" : (ANOM[g.c.app] || g.c.nom)) + "</th>"; });
+      s.C.forEach(function (c, j) { shown.push(c); R3 += '<th class="' + (j === 0 ? "cn-sep" : "") + '" style="background:' + SRC[c.src][2] + '">' + (c.src === "man" ? '<button type="button" class="cnh" data-col="' + esc(c.col.id) + '">' + esc(colLab(c)) + "</button>" : '<span title="' + esc(c.lec || c.nom) + '">' + esc(colLab(c)) + "</span>") + "<br><small>" + esc(c.src === "lec" && cnCfg().lec !== "act" ? c.sub : c.src === "man" ? c.sub : c.src === "fin" ? jf(c.d) + " " + c.sub : c.sub) + "</small></th>"; });
+      R2 += '<th rowspan="2" class="cn-pm' + (s.C.length ? "" : " cn-sep") + '" style="--pc:' + pc + '">Moy.<br>' + esc(s.p.nom) + "<br><small>/20</small></th>"; });
+    var moyP = function (s, k) { return cnMoy(all.filter(function (c) { return perOfDay(P, c.d) === s.i; }), k).m; };
+    var tb = '<table class="cn"><thead><tr class="r1"><th class="cn-n" rowspan="3">Élève</th>' + R1 + (isAn ? '<th class="cn-m" rowspan="3">Année<br><small>/20</small></th>' : "") + '</tr><tr class="r2">' + R2 + '</tr><tr class="r3">' + R3 + "</tr></thead><tbody>" +
+      E.map(function (e) { var Y = [], row = S.map(function (s) { var m = moyP(s, e.k); if (m != null) Y.push(m);
+          return s.C.map(function (c, j) { return '<td class="' + (j === 0 ? "cn-sep" : "") + '">' + cnCell(c, c.v[e.k], e.k) + "</td>"; }).join("") + '<td class="cn-pm' + (s.C.length ? "" : " cn-sep") + '" style="background:' + (nivCol(m) || "#fff") + '"><b>' + (m == null ? "–" : fr(Math.round(m * 100) / 100)) + "</b></td>"; }).join(""), A = Y.length ? Y.reduce(function (a, b) { return a + b; }, 0) / Y.length : null;
+        return '<tr><td class="cn-n">' + esc(e.full) + "</td>" + row + (isAn ? '<td class="cn-m" style="background:' + (nivCol(A) || "#fff") + '"><b>' + (A == null ? "–" : fr(Math.round(A * 100) / 100)) + "</b></td>" : "") + "</tr>"; }).join("") +
+      '<tr class="cn-cl"><td class="cn-n">Moyenne de la classe</td>' + S.map(function (s) { var cl = function (vals, cls) { var n = 0, t = 0; vals.forEach(function (v) { if (v != null) { t += v; n++; } }); var m = n ? t / n : null; return '<td class="' + cls + '" style="background:' + (nivCol(m) || "") + '">' + (m == null ? "" : fr(Math.round(m * 10) / 10)) + "</td>"; };
+          return s.C.map(function (c, j) { return cl(E.map(function (e) { var x = c.v[e.k]; return x ? x.n20 : null; }), j === 0 ? "cn-sep" : ""); }).join("") + cl(E.map(function (e) { return moyP(s, e.k); }), "cn-pm" + (s.C.length ? "" : " cn-sep")); }).join("") +
+        (isAn ? (function () { var V = E.map(function (e) { var Y = S.map(function (s) { return moyP(s, e.k); }).filter(function (v) { return v != null; }); return Y.length ? Y.reduce(function (a, b) { return a + b; }, 0) / Y.length : null; }).filter(function (v) { return v != null; }); var m = V.length ? V.reduce(function (a, b) { return a + b; }, 0) / V.length : null; return '<td class="cn-m"><b>' + (m == null ? "" : fr(Math.round(m * 100) / 100)) + "</b></td>"; })() : "") + "</tr></tbody></table>";
+    if (!shown.length && !moyOnly) tb += '<p class="mut" style="padding:8px 12px">Rien pour l\'instant : les notes de tes leçons (📊 Évaluer la leçon), de tes évaluations finales et de tes modalités arrivent ici toutes seules. ＋ Colonne pour une note à toi.</p>';
     h += '<div class="card cn-card"><div class="tw cn-tw">' + tb + '</div><div class="lg noprint">' + ["< " + cnCfg().seuils[0]].concat(cnCfg().seuils.map(function (s, i, a) { return i < a.length - 1 ? s + " – " + a[i + 1] : "≥ " + s; })).map(function (t, i) { return '<span><i style="background:' + NIVC[i] + '"></i>' + esc(t) + "</span>"; }).join("") +
       Object.keys(SRC).map(function (s) { return '<span><i style="background:' + SRC[s][2] + '"></i>' + SRC[s][0] + " " + SRC[s][1] + " ×" + fr(cnCfg().coef[s]) + "</span>"; }).join("") + "</div></div>";
-    $("#pg").innerHTML = h; cnBind(cur, L, all, E, P); }
-  function cnBind(cur, L, all, E, P) {
+    $("#pg").innerHTML = h; cnBind(cur, L, all, E, P, shown); }
+  function cnBind(cur, L, all, E, P, shown) {
     $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.c].nom; UI.per = ""; render(); }; });
     $$("[data-per]").forEach(function (b) { b.onclick = function () { UI.per = b.dataset.per; render(); }; });
+    $$("[data-mo]").forEach(function (b) { b.onclick = function () { UI.cnMo = b.dataset.mo === "1"; render(); }; });
     var pt = $("#cnpt"); if (pt) pt.onchange = function () { var c = cnCfg(); c.cls[R.ck(cur.nom)] = pt.value; cnSave(c); UI.per = ""; render(); };
     $("#cadd").onclick = function () { colEdit(cur.nom, null); }; $("#prt").onclick = function () { window.print(); };
     $("#ctr").onclick = function () { if (window.EPSD && EPSD.trash) EPSD.trash.open(); };
     $("#cpn").onclick = function () { if (!(window.EPSR && EPSR.pronote)) { alert("Export Pronote indisponible : recharge la page."); return; }
-      var isAn = UI.per === "an", C = isAn ? all : UI.cnC || [], NC = C.filter(function (c) { return c.src !== "man" || c.col.ty === "note"; }), lab = isAn ? "Année" : P[+UI.per].nom;
+      var isAn = UI.per === "an", C = isAn ? all : shown || [], NC = C.filter(function (c) { return c.src !== "man" || c.col.ty === "note"; }), lab = isAn ? "Année" : P[+UI.per].nom;
       var rows = E.map(function (e) { var mm; if (isAn) { var M = []; P.forEach(function (p, i) { var r = cnMoy(all.filter(function (c) { return perOfDay(P, c.d) === i; }), e.k); if (r.m != null) M.push(r.m); }); mm = M.length ? M.reduce(function (a, b) { return a + b; }, 0) / M.length : null; } else mm = cnMoy(C, e.k).m;
-        return { nom: e.nom, prenom: e.prenom, st: "", v: [mm == null ? null : Math.round(mm * 100) / 100].concat(isAn ? [] : NC.map(function (c) { var x = c.v[e.k]; return !x ? null : c.src === "man" ? (isNum(x.raw) ? +x.raw : null) : (isNum(String(x.t).replace(",", ".")) ? +String(x.t).replace(",", ".") : null); })) }; });
-      EPSR.pronote({ app: "Carnet de notes", classe: cur.nom + " · " + lab, color: "#86198F", cols: [{ t: "Moyenne " + lab + " /20" }].concat(isAn ? [] : NC.map(function (c) { return { t: (c.src === "lec" ? (ANOM[c.app] || "") + " " : "") + c.nom + " " + c.sub }; })), rows: rows }); };
+        return { nom: e.nom, prenom: e.prenom, st: "", v: [mm == null ? null : Math.round(mm * 100) / 100].concat(isAn ? P.map(function (p, i) { var r = cnMoy(all.filter(function (c) { return perOfDay(P, c.d) === i; }), e.k).m; return r == null ? null : Math.round(r * 100) / 100; }) : NC.map(function (c) { var x = c.v[e.k]; return !x ? null : c.src === "man" ? (isNum(x.raw) ? +x.raw : null) : (isNum(String(x.t).replace(",", ".")) ? +String(x.t).replace(",", ".") : null); })) }; });
+      EPSR.pronote({ app: "Carnet de notes", classe: cur.nom + " · " + lab, color: "#86198F", cols: [{ t: "Moyenne " + lab + " /20" }].concat(isAn ? P.map(function (p) { return { t: "Moyenne " + p.nom + " /20" }; }) : NC.map(function (c) { return { t: (c.src === "lec" ? (ANOM[c.app] || "") + " " : "") + c.nom + " " + c.sub }; })), rows: rows }); };
     if (!all) return;
-    var byId = {}; all.forEach(function (c) { byId[c.id] = c; });
+    var byId = {}; all.concat(shown || []).forEach(function (c) { byId[c.id] = c; });
     $$("[data-col]").forEach(function (b) { b.onclick = function () { var c = byId["c|" + b.dataset.col]; if (c) colEdit(cur.nom, c.col); }; });
     $$("[data-cm]").forEach(function (b) { b.onclick = function () { var p = b.dataset.cm.split("|"), k = p.pop(), c = byId[p.join("|")]; if (!c) return; var i = E.findIndex(function (e) { return e.k === k; }); if (i >= 0) saisie(c.col, E, i); }; });
     $$("[data-cd]").forEach(function (b) { b.onclick = function () { var p = b.dataset.cd.split("|"), k = p.pop(), c = byId[p.join("|")]; if (!c) return; var x = c.v[k], e = E.filter(function (z) { return z.k === k; })[0];
