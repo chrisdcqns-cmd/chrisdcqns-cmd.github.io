@@ -134,6 +134,8 @@
      « J'observe », un critère par écran, récapitulatif. Côté enseignant : EPSE.coeval.edit({app, nom, color, cls}) (action de l'onglet Évaluation, carte 🙋).
      Niveaux par défaut réglables (paramètre co_niveaux). Lu aussi par le référentiel (eps-ref.js). */
   var KCO = "eps.coeval.v1", CODIR = { esc: "escalade", rel: "relais", vol: "volley", bad: "badminton", dan: "danse", acro: "acrosport", ori: "orientation", ct: "crosstraining", bk: "basket", step: "step" };
+  var ARCH0_FIN = "2026-12-15", ARCH0_NOM = "Évaluation déjà enregistrée";
+  function arch0Fini() { return new Date().toISOString().slice(0, 10) > ARCH0_FIN; }
   function coLd() { var v = jget(KCO, null); if (!v || !v.items || typeof v.items !== "object" || Array.isArray(v.items)) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend && typeof v.pend === "object" ? v.pend : {}; return v; }
   function coPut(o) { var V = coLd(), old = V.items[o.id]; o.u = Math.max(Date.now(), ((old && old.u) || 0) + 1); V.items[o.id] = o; V.pend[o.id] = o.u; jset(KCO, V); try { if (window.EPSD && EPSD.syncSoon) EPSD.syncSoon(); } catch (e) {} }
   function coId(app, cls, full) { return app + "|" + nk(cls) + "|" + nkey(full); }
@@ -545,10 +547,15 @@
       if (avecLien) { var by = y - fh - 8, bh = 82;
         page.drawRectangle({ x: Mg, y: by - bh, width: W, height: bh, color: rgbH("#F5F3EE"), borderColor: app, borderWidth: 1.2 });
         /* auto-positionnement déjà fait (demande de l'enseignant, 28/11/2026) : on ne redemande pas à l'élève de se positionner, on lui rappelle où il s'était situé */
-        var dejaL = a ? G.criteres.filter(function (cr) { return a[cr.id] && a[cr.id].d != null; }).map(function (cr) { var nm = String((el && cr.nomEl) || cr.nom || ""); return (nm.length > 34 ? nm.slice(0, 33) + "…" : nm) + " : " + DG[a[cr.id].d]; }) : [];
-        if (dejaL.length) { PT(page, el ? "Mon auto-positionnement : voici où je m'étais situé(e)" : "Auto-positionnement de l'élève : déjà fait", Mg + 12, by - 20, 12, F.b, app);
-          var dl = wrap(dejaL.join("   ·   "), F.r, 9.2, W - 24).slice(0, 4); PLn(page, dl, Mg + 12, by - 36, 9.2, F.r, 11.6, ink);
-          PT(page, el ? "Compare avec le positionnement de ton enseignant (triangle noir) : le rond montre le tien." : "Le rond sur chaque jauge montre où l'élève s'est situé.", Mg + 12, by - bh + 8, 8, F.o, grey);
+        var dejaL = a ? G.criteres.filter(function (cr) { return a[cr.id] && a[cr.id].d != null; }) : [];
+        if (dejaL.length) { /* une colonne par élément évalué, avec le bandeau de couleur du degré où l'élève s'était situé (demande du 28/11/2026) */
+          PT(page, el ? "Mon auto-positionnement : voici où je m'étais situé(e)" : "Auto-positionnement de l'élève", Mg + 10, by - 15, 11, F.b, app);
+          var NC = G.criteres.length, gap = 8, cw = (W - 20 - gap * (NC - 1)) / NC, fz = NC > 5 ? 6.6 : 7.6;
+          G.criteres.forEach(function (cr, ci) { var x0 = Mg + 10 + ci * (cw + gap), z = a[cr.id] && a[cr.id].d != null ? a[cr.id] : null, nm = wrap(String((el && cr.nomEl) || cr.nom || ""), F.b, fz, cw - 4).slice(0, 3);
+            PLn(page, nm, x0 + 2, by - 28, fz, F.b, fz * 1.18, ink);
+            var hy = by - bh + 7, hh = 19; page.drawRectangle({ x: x0, y: hy, width: cw, height: hh, color: z ? rgbH(DCOL[z.d]) : rgbH("#E6E1D6") });
+            var lb = z ? "D" + (z.d + 1) + " · " + DG[z.d] : "non renseigné", ls = 9.5; while (ls > 6 && F.b.widthOfTextAtSize(san(F.b, lb), ls) > cw - 8) ls -= .5;
+            PT(page, lb, x0 + (cw - F.b.widthOfTextAtSize(san(F.b, lb), ls)) / 2, hy + (hh - ls) / 2 + 1.5, ls, F.b, z ? white : grey); });
           PT(page, A.nom + " EPS — " + (el ? "grille en langage élève" : "grille enseignant") + " · document généré le " + dateFR(), Mg, Mg - 12, 6.5, F.r, grey); return; }
         var q = qrPdf(page, url, Mg + 6, by - bh + 4, bh - 8), tx0 = Mg + 16 + q, auto = false; try { auto = JSON.parse(b64d(url.split(HASH)[1])).length > 4; } catch (x) {}
         PT(page, el ? "Et moi, où je me situe ? Je me positionne !" : "Auto-positionnement de l'élève", tx0, by - 24, 12, F.b, app);
@@ -730,14 +737,23 @@
     function resScope() { try { return localStorage.getItem(KSC) === "last" ? "last" : "all"; } catch (e) { return "all"; } }
     function resPas() { var p = 1; try { if (window.EPSP) p = EPSP.p({ id: "res_coef_pas", sec: "Proposition de positionnement", label: "Résultats : coefficient ajouté à chaque nouvelle leçon", type: "number", def: 1, aide: "1 = 1re leçon ×1, 2e ×2, 3e ×3… ; 0 = toutes les leçons comptent pareil." }); } catch (e) {} p = +p; return isFinite(p) && p >= 0 ? p : 1; }
     M.resScope = resScope;
-    M.resCoef = function (days) { var D = (days || []).map(String).filter(function (d, i, T) { return d && T.indexOf(d) === i; }).sort(), K = {}, pas = resPas(); if (resScope() === "last") D = D.slice(-1); D.forEach(function (d, i) { K[d] = Math.round((1 + pas * i) * 100) / 100; }); return K; };
+    /* 🎚 Coefficient choisi par l'enseignant pour une leçon (demande du 28/11/2026 : « valoriser des leçons, ×2 la première, ×1 la suivante… ») :
+       eps.eval.coef.<app>.v1 = { <classe>: { "AAAA-MM-JJ": coefficient } } ; 0 = leçon non comptée ; rien = coefficient par défaut (1 + res_coef_pas × rang). */
+    var KCF = "eps.eval.coef." + A.app + ".v1";
+    function cfAll() { var v = jget(KCF, null); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
+    M.coefDe = function (cls, day, def) { var o = cfAll()[nk(cls || "")], v = o ? o[String(day)] : null; return v != null && isFinite(+v) && +v >= 0 ? +v : def; };
+    M.coefSet = function (cls, day, v) { var V = cfAll(), k = nk(cls || ""); V[k] = V[k] || {}; if (v == null) delete V[k][String(day)]; else V[k][String(day)] = Math.max(0, Math.min(20, Math.round(+v * 2) / 2)); jset(KCF, V); };
+    M.coefRegle = function (cls) { var o = cfAll()[nk(cls || "")]; return !!(o && Object.keys(o).length); };
+    M.coefRaz = function (cls) { var V = cfAll(); delete V[nk(cls || "")]; jset(KCF, V); };
+    M.resCoef = function (days, cls) { var D = (days || []).map(String).filter(function (d, i, T) { return d && T.indexOf(d) === i; }).sort(), K = {}, pas = resPas(), last = resScope() === "last"; if (last) D = D.slice(-1);
+      D.forEach(function (d, i) { var k = Math.round((1 + pas * i) * 100) / 100; K[d] = last || cls == null ? k : M.coefDe(cls, d, k); }); return K; };
     function frD(d) { var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String(d || "")); return m ? m[3] + "/" + m[2] + "/" + m[1] : String(d || ""); }
     function resData(E, cls) { var D = null; try { D = typeof A.resultats === "function" ? A.resultats(E, cls) : null; } catch (e) { D = null; }
       if (D && D.own) return null;
       var items = D && Array.isArray(D.items) ? D.items : null, nom = (D && D.nom) || "situation", noms = (D && D.noms) || "situations";
       if (!items) { items = []; var k = ekey(E), LB = ["pas encore", "en cours", "réussie"]; magasin("lecres").forEach(function (o) { if (o.ek !== k || nk(o.cls) !== nk(cls) || !o.day) return; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = o.r[q]; if (v !== 0 && v !== 1 && v !== 2) return; var t = ""; try { t = window.EPSLC && EPSLC.sitNom ? EPSLC.sitNom(q) : ""; } catch (e) {} items.push({ day: String(o.day).slice(0, 10), txt: (t || "Situation") + " : " + LB[v], ok: v / 2 }); }); }); }
       items = items.filter(function (x) { return x && x.day; }).sort(function (a, b) { return String(a.day).localeCompare(String(b.day)); });
-      var all = items.map(function (x) { return x.day; }), K = M.resCoef(all), sc = resScope(), les = [], w = 0, s = 0;
+      var all = items.map(function (x) { return x.day; }), K = M.resCoef(all, cls), sc = resScope(), les = [], w = 0, s = 0;
       Object.keys(K).sort().forEach(function (d) { var L = items.filter(function (x) { return x.day === d; }), J = L.filter(function (x) { return x.ok != null && isFinite(+x.ok); }), ok = J.reduce(function (a, x) { return a + (+x.ok); }, 0);
         les.push({ day: d, k: K[d], n: L.length, nj: J.length, ok: ok, L: L }); w += K[d] * J.length; s += K[d] * ok; });
       var last = all.length ? all[all.length - 1] : "";
@@ -752,9 +768,10 @@
       var h = '<div class="epse-card" data-res><h2 style="margin:0 0 6px">📊 Ses résultats' + (D.n ? ' <small class="epse-mut" style="font-weight:600">· ' + D.n + " " + one(D.n) + (D.scope === "all" ? " sur " + D.les.length + " leçon" + (D.les.length > 1 ? "s" : "") : "") + "</small>" : "") + "</h2>" +
         (chips.length ? '<div style="display:flex;gap:8px;flex-wrap:wrap">' + chips.map(function (x) { return '<span style="background:#F6F3EC;border-radius:10px;padding:6px 10px;line-height:1.2"><b style="font-size:18px;display:block">' + esc(x[0]) + '</b><small class="epse-mut">' + esc(x[1]) + "</small></span>"; }).join("") + "</div>" : "") + seg;
       if (!D.n) return h + '<p class="epse-mut" style="margin:8px 0 0">Pas encore de résultat enregistré pour cet élève' + (D.scope === "last" ? " à la leçon finale" : "") + ".</p></div>";
-      if (D.scope === "all" && D.les.length > 1) h += '<p class="epse-mut" style="margin:8px 0 0">Les dernières leçons comptent plus : coefficient ' + D.les.map(function (l) { return "×" + fr(l.k); }).join(", ") + ".</p>";
+      var regle = M.coefRegle(cls), CB = "min-width:40px;min-height:40px;border-radius:10px;border:2px solid #E6E1D6;background:#fff;font:800 18px system-ui";
+      if (D.scope === "all" && D.les.length > 1) h += '<p data-rcp style="margin:8px 0 0;color:#6A6F78;font-size:14px">' + (regle ? "Coefficients choisis par toi" : "Les dernières leçons comptent plus") + " : coefficient " + D.les.map(function (l) { return "×" + fr(l.k); }).join(", ") + ". Règle-les avec − et + (0 = leçon non comptée) ; ils valent pour toute la classe." + (regle ? ' <button type="button" data-rcz style="min-height:36px;border-radius:8px;border:2px solid #E6E1D6;background:#fff;font:700 14px system-ui;padding:0 10px">↺ Coefficients par défaut</button>' : "") + "</p>";
       h += '<table data-restab style="width:100%;border-collapse:collapse;margin-top:8px;font-size:15px"><thead><tr style="text-align:left;color:#6A6F78"><th style="padding:4px 6px">Leçon</th><th style="padding:4px 6px">Coef.</th><th style="padding:4px 6px">' + esc(D.noms.charAt(0).toUpperCase() + D.noms.slice(1)) + '</th><th style="padding:4px 6px">Réussies</th></tr></thead><tbody>' +
-        D.les.slice().reverse().map(function (l) { return '<tr style="border-top:1px solid #F0ECE3"><td style="padding:5px 6px">' + frD(l.day).slice(0, 5) + '</td><td style="padding:5px 6px">×' + fr(l.k) + '</td><td style="padding:5px 6px">' + l.n + '</td><td style="padding:5px 6px">' + (l.nj ? fr(Math.round(l.ok * 10) / 10) + " / " + l.nj : "–") + "</td></tr>"; }).join("") + "</tbody></table>" +
+        D.les.slice().reverse().map(function (l) { return '<tr style="border-top:1px solid #F0ECE3"><td style="padding:5px 6px">' + frD(l.day).slice(0, 5) + '</td><td style="padding:5px 6px;white-space:nowrap">' + (D.scope === "all" ? '<button type="button" data-rck="' + esc(l.day) + '" data-v="' + (l.k - 1) + '" aria-label="Baisser le coefficient" style="' + CB + '"' + (l.k <= 0 ? " disabled" : "") + '>−</button> <b style="display:inline-block;min-width:34px;text-align:center">×' + fr(l.k) + '</b> <button type="button" data-rck="' + esc(l.day) + '" data-v="' + (l.k + 1) + '" aria-label="Monter le coefficient" style="' + CB + '">+</button>' : "×" + fr(l.k)) + '</td><td style="padding:5px 6px">' + l.n + '</td><td style="padding:5px 6px">' + (l.nj ? fr(Math.round(l.ok * 10) / 10) + " / " + l.nj : "–") + "</td></tr>"; }).join("") + "</tbody></table>" +
         '<p style="margin:10px 0 0"><button type="button" class="epse-btn" data-resall>🔎 Toutes ses ' + esc(D.noms) + ", une par une</button></p></div>";
       return h; };
     M.resWin = function (E, cls) { var D = resData(E, cls); if (!D) return; var n = A.name(E), old = document.getElementById("epse-resw"); if (old) old.remove();
@@ -826,6 +843,8 @@
     M.bindProp = function (R, E, cls, redraw, take) {
       [].forEach.call(R.querySelectorAll("[data-rsc]"), function (b) { b.onclick = function () { try { localStorage.setItem(KSC, b.dataset.rsc === "last" ? "last" : "all"); } catch (e) {} redraw(); }; });
       var ra = R.querySelector("[data-resall]"); if (ra) ra.onclick = function () { M.resWin(E, cls); };
+      [].forEach.call(R.querySelectorAll("[data-rck]"), function (b) { b.onclick = function () { M.coefSet(cls, b.dataset.rck, +b.dataset.v); redraw(); }; });
+      var rz = R.querySelector("[data-rcz]"); if (rz) rz.onclick = function () { M.coefRaz(cls); redraw(); };
       var b = R.querySelector("[data-ccf]"); if (b) b.onchange = function () { M.setCcf(cls, { on: b.checked }); redraw(); };
       var v = R.querySelector("[data-voie]"); if (v) v.onchange = function () { M.setCcf(cls, { voie: v.value }); redraw(); };
       var c = R.querySelector("[data-choix]"); if (c) c.onchange = function () { M.setChoix(cls, E, c.value); redraw(); };
@@ -894,6 +913,13 @@
       var st = snapAll(list), nb = Object.keys(st).length, jour = new Date().toISOString().slice(0, 10);
       if (nb) { var id = "e" + Date.now().toString(36); s.arch[id] = st; s.list.push({ id: id, nom: s.cur.nom || "Évaluation", d: s.cur.d || jour, fin: jour }); }
       loadAll(list, {}); s.cur = { nom: nom || "Évaluation", d: jour }; s.view = ""; sesPut(cls, s); sesFin(); return nb; };
+    /* 📦 Évaluations déjà enregistrées avant l'arrivée des évaluations multiples (demande de l'enseignant, 28/11/2026 : « les enregistrer sous une évaluation,
+       comme ça quand j'ouvre l'application j'ai accès à une nouvelle évaluation ») : une seule fois par classe, jusqu'au ARCH0_FIN (après, une tablette
+       restée de côté ne rangerait pas par surprise une évaluation en cours), jamais pour la classe fictive. */
+    M.sesAuto = function (cls, list, force) { if (!M.sesOk()) return 0; var V = sesAll(), k = nk(cls); if (V[k] && !force) return 0;
+      var s = sesOf(cls); if (!force && (arch0Fini() || /d[ée]mo \(fictive\)/i.test(String(cls)))) { sesPut(cls, s); return 0; }
+      var nb = Object.keys(snapAll(list)).length; if (!nb) { sesPut(cls, s); return 0; }
+      s.cur = { nom: ARCH0_NOM, d: "" }; sesPut(cls, s); return M.sesNew(cls, list, "Nouvelle évaluation"); };
     M.sesAsk = function (clsNom, cb) { var old = document.getElementById("epse-sesd"); if (old) old.remove(); var d = document.createElement("div"); d.id = "epse-sesd"; d.style.cssText = "position:fixed;inset:0;z-index:2147483260;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:14px";
       var j = new Date(), def = "Évaluation du " + String(j.getDate()).padStart(2, "0") + "/" + String(j.getMonth() + 1).padStart(2, "0");
       d.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Nouvelle évaluation" style="background:#fff;border-radius:16px;padding:16px 18px;max-width:460px;width:100%;font-family:system-ui,sans-serif;color:#14171C"><h2 style="margin:0 0 8px;font:800 20px system-ui">＋ Nouvelle évaluation · ' + esc(clsNom) + '</h2><p style="margin:0 0 10px;font-size:15px;line-height:1.4">L\'évaluation actuelle est gardée : tu la retrouves dans la liste « Évaluation » et tu peux la rouvrir. La nouvelle part de zéro (degrés, commentaires, auto-positionnements).</p><input type="text" data-n value="' + esc(def) + '" aria-label="Nom de la nouvelle évaluation" style="width:100%;box-sizing:border-box;font:700 17px system-ui;padding:10px;border:2px solid #E6E1D6;border-radius:10px"><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" data-ok style="min-height:44px;padding:0 16px;border-radius:10px;border:0;background:' + (A.color || "#14171C") + ';color:#fff;font:800 16px system-ui">✓ Créer</button><button type="button" data-x style="min-height:44px;padding:0 16px;border-radius:10px;border:2px solid #E6E1D6;background:#fff;font:800 16px system-ui">✕ Fermer</button></div></div>';
@@ -903,7 +929,7 @@
     M.sesBarHtml = function (cls) { if (!M.sesOk()) return ""; var s = sesOf(cls), V = s.view || "", cur = s.cur.nom || "Évaluation en cours";
       return '<label class="epse-mut" style="display:inline-flex;gap:6px;align-items:center;font-weight:700">Évaluation <select data-ases style="min-height:42px;border-radius:10px;border:2px solid #E6E1D6;padding:0 8px;font:700 15px system-ui;max-width:230px"><option value=""' + (V ? "" : " selected") + ">" + esc(cur) + (s.cur.d ? " · " + frJ2(s.cur.d) : "") + " (en cours)</option>" + s.list.slice().reverse().map(function (x) { return '<option value="' + esc(x.id) + '"' + (V === x.id ? " selected" : "") + ">" + esc(x.nom) + (x.d ? " · " + frJ2(x.d) : "") + "</option>"; }).join("") + '</select></label><button type="button" data-asesnew title="Garder l\'évaluation actuelle et en commencer une autre, à zéro">＋ Nouvelle évaluation</button>' +
         (V ? '<button type="button" data-asescur style="background:#FFF8D6;border-color:#E9CF6A" title="Tu es dans une ancienne évaluation : tu peux la consulter et la corriger">📂 Ancienne évaluation · revenir à celle en cours</button>' : ""); };
-    M.sesBarBind = function (root, cls, list) { if (!root || !M.sesOk()) return; var box = root.querySelector("[data-asesbox]"); if (box) box.innerHTML = M.sesBarHtml(cls);
+    M.sesBarBind = function (root, cls, list) { if (!root || !M.sesOk()) return; if (!sesAll()[nk(cls)]) { var nbA = 0; try { nbA = M.sesAuto(cls, list); } catch (e) { console.warn(e); } if (nbA) { toast("Tes évaluations déjà enregistrées sont rangées dans « " + ARCH0_NOM + " » (liste Évaluation). Tu pars sur une nouvelle."); return; } } var box = root.querySelector("[data-asesbox]"); if (box) box.innerHTML = M.sesBarHtml(cls);
       var s = root.querySelector("[data-ases]"); if (s) s.onchange = function () { M.sesView(cls, list, s.value); };
       var n = root.querySelector("[data-asesnew]"); if (n) n.onclick = function () { M.sesAsk(cls, function (nom) { var nb = M.sesNew(cls, list, nom); toast(nb ? "Nouvelle évaluation créée : l'ancienne est gardée (" + nb + " fiches)." : "Nouvelle évaluation créée."); }); };
       var c = root.querySelector("[data-asescur]"); if (c) c.onclick = function () { M.sesView(cls, list, ""); }; };
@@ -1002,6 +1028,9 @@
     function rec(cl, n) { var S = sesVu(cl); if (S) return recA(cl, n, S); var id = sid(cl, n), r = ld().items[id]; return r || { c: cl, n: n.nom, p: n.prenom || "", ev: {}, ap: null, comm: "", st: "" }; }
     function save(cl, n, r) { var S = sesVu(cl); if (S) { put(sid(cl, n) + "~" + S, { arch: S, c0: cl, n0: n.nom, p0: n.prenom || "", ev0: r.ev || {}, ap0: r.ap || null, comm0: r.comm || "", st0: r.st || "" }); return; }
       r.c = cl; r.n = n.nom; r.p = n.prenom || ""; put(sid(cl, n), r); }
+    function sesAuto0(c, force) { var I = ld().items; if (I[sesId(c.nom)] && !force) return 0; var S = sesGet(c.nom);
+      if (!force && (arch0Fini() || /d[ée]mo \(fictive\)/i.test(String(c.nom)))) { put(sesId(c.nom), S); return 0; }
+      S.cur = { nom: ARCH0_NOM, d: "" }; S.c0 = c.nom; put(sesId(c.nom), S); var nb = sesNouvelle(c, "Nouvelle évaluation"); return nb; }
     function sesNouvelle(c, nom) { var S = sesGet(c.nom), id = "e" + Date.now().toString(36), I = ld().items, jour = new Date().toISOString().slice(0, 10), nb = 0;
       c.eleves.forEach(function (e) { var r = I[sid(c.nom, e)]; if (!r) return; var plein = (r.ev && Object.keys(r.ev).length) || r.ap || r.comm || r.st; if (!plein) return; nb++;
         put(sid(c.nom, e) + "~" + id, { arch: id, c0: c.nom, n0: e.nom, p0: e.prenom || "", ev0: r.ev || {}, ap0: r.ap || null, comm0: r.comm || "", st0: r.st || "" });
@@ -1075,6 +1104,7 @@
     }
     function render() {
       var R = root(), L = classes(), c = curC(), G = grid();
+      try { if (c && !ld().items[sesId(c.nom)] && (!o.isTeacher || o.isTeacher())) { if (sesAuto0(c)) toast("Tes évaluations déjà enregistrées sont rangées dans « " + ARCH0_NOM + " » (liste Évaluation). Tu pars sur une nouvelle."); } } catch (e) { console.warn(e); }
       var GRP = c && UI.tab === "eval" ? grouper(c) : null;
       var sel = L.length ? '<select data-cls>' + L.map(function (x) { return "<option" + (c && x.nom === c.nom ? " selected" : "") + ">" + esc(x.nom) + "</option>"; }).join("") + "</select>" : "";
       var tabsH = [["eval", "Évaluation finale"], ["bilan", "Bilan et export"], ["grille", "Grille"]].filter(function (t) { return !UI.only || UI.only.indexOf(t[0]) >= 0; });
@@ -1211,7 +1241,7 @@
       var obs = setInterval(function () { if (!document.body.contains(el)) { clearInterval(obs); if (UI.host === el) { UI.host = null; UI.open = false; UI.only = null; } } }, 1000); }
     function open(cls) { UI.host = null; UI.only = null; UI.open = true; if (cls) UI.cls = cls; UI.el = -1; render(); document.documentElement.style.overflow = "hidden"; }
     function close() { UI.open = false; var v = document.getElementById("epse-" + o.app); if (v) v.remove(); document.documentElement.style.overflow = ""; }
-    M.open = open; M.close = close; M.mount = mount; M.classes = classes; M.adapter = A;
+    M.open = open; M.close = close; M.mount = mount; M.classes = classes; M.adapter = A; M.sesAuto0 = sesAuto0;
     return M;
   }
 

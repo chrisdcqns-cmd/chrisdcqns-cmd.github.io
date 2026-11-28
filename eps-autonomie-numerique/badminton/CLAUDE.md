@@ -58,3 +58,4 @@ Application web pour tablette (badminton, CA4, lycée), hébergée sur GitHub Pa
 - Terrains dessinés : 5 de même taille, le 3 à la verticale au centre ; 👁 observateurs = membres présents des groupes du terrain qui ne jouent pas le match en cours, affichés à gauche des terrains 1-2, à droite des 4-5, sous le 3.
 - 🚫 Terrains fermés : `terOffB()` (bouton « 🏟 Terrains »), écartés de `terrAuto` et du choix du terrain d'un groupe ; dessinés grisés.
 - 📡 onglet Suivi commun = Leçon en direct (`tabNow()==='live'`), retirée des actions de Séquence.
+- **28/11/2026** : évaluation : `evbMatchs(e, classe)` (matchs terminés, hors exercices) alimente « 📊 Ses résultats » (par leçon, coefficients réglables) et la proposition `resultat` (part de matchs gagnés pondérée, critères AFL1 / AFLP1-2). Plusieurs évaluations : `sesGet` / `sesSet` / `sesDone`.

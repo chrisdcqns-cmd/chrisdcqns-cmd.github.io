@@ -3000,7 +3000,8 @@ function evStats(e){
   let lids=[...all].sort().map(d=>({id:d,date:d}));
   const cs=mine.map(x=>Object.assign({},x.c,{lid:x.date}));
   const scope=EV_SCOPE==="last"?"last":"all";if(scope==="last")lids=lids.slice(-1);
-  const coef={};lids.forEach((l,i)=>coef[l.id]=i+1);
+  /* 🎚 coefficient réglable par leçon (eps-eval.js coefDe / coefSet, par classe) ; à défaut 1re leçon ×1, 2e ×2… */
+  const coef={},cn=CL()?CL().name:"";lids.forEach((l,i)=>coef[l.id]=scope==="all"&&window.EVRL&&EVRL.coefDe?EVRL.coefDe(cn,l.id,i+1):i+1);
   const inZ=z=>typeof z==="string"&&z&&z!==HZ&&z!==NR;
   const r={n:0,les:[],perf:null,trans:null,scope,last:lids.length?lids[lids.length-1].date:null};
   let P={w:0,over:0,reach:0,sum:0,l3:0,l2:0,n:0,nr:0,no:0},T={w:0,inz:0,z100:0};
@@ -3034,14 +3035,14 @@ function evStatsHTML(e,s){
   const badge=(v)=>v>=EV_SEUIL?`<span class="evok">✓ majoritairement (≥ 70 %)</span>`:`<span class="evko">✗ moins de 70 %</span>`;
   const nl=s.les.length;
   let h=`<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale du "+fmtShort(s.last)+" · "+esc(pnm(e)):"Toutes les courses de "+esc(pnm(e))} · ${s.n} course${s.n>1?"s":""}${s.scope==="all"?" sur "+nl+" leçon"+(nl>1?"s":""):""}</div>${seg}
-    ${s.scope==="all"?`<p class="evrs">Les dernières leçons comptent plus : coefficient ${s.les.map(l=>"×"+l.k).join(", ")}.</p>`:""}`;
+    ${s.scope==="all"?`<p class="evrs">${window.EVRL&&EVRL.coefRegle&&EVRL.coefRegle(CL().name)?"Coefficients choisis par toi":"Les dernières leçons comptent plus"} : coefficient ${s.les.map(l=>"×"+fmt(l.k)).join(", ")}. Règle-les dans le tableau avec − et + (0 = leçon non comptée) ; ils valent pour toute la classe.${window.EVRL&&EVRL.coefRegle&&EVRL.coefRegle(CL().name)?` <button class="btn ghost sm" data-evcoefz="1">↺ Coefficients par défaut</button>`:""}</p>`:""}`;
   if(s.perf||s.trans)h+=`<div class="evsugg"><b>Positionnement suggéré d'après les résultats</b><ul>${s.perf?`<li><span class="dg d${s.perf}">${s.perf}</span> <b>Performance : degré ${s.perf} (${fmtP(s.perfPts)} / 6)</b> — ${s.perfWhy}</li>`:""}${s.trans?`<li><span class="dg d${s.trans}">${s.trans}</span> <b>Transmission : degré ${s.trans}</b> — ${s.transWhy}</li>`:""}</ul><button class="btn sm evapply" data-evapply="1">Appliquer la suggestion</button></div>`;
   h+=`<div class="evrg">`;
   const bp=v=>v>=PERF_PART-1e-9?`<span class="evok">✓ au moins ${Math.round(PERF_PART*100)} %</span>`:`<span class="evko">✗ moins de ${Math.round(PERF_PART*100)} %</span>`;
   h+=`<div><b>Performance</b>${s.pReach!=null?`<div class="evbig">${pc(s.pReach)}</div>courses réussies (cible atteinte ou dépassée) ${bp(s.pReach)}<small>dépassée : ${pc(s.pOver)} · écart moyen ${s.mEc>0?"+":""}${fmt(s.mEc)} km/h (pour information)</small>`:`<small>écart non renseigné</small>`}</div>`;
   h+=`<div><b>Transmission</b>${s.pIn!=null?`<div class="evbig">${pc(s.pIn)}</div>dans la zone de transmission ${badge(s.pIn)}<small>en Zone 100 : ${pc(s.pZ100)}</small>`:`<small>zone non renseignée</small>`}</div></div>`;
   h+=`<table class="evrec evles"><thead><tr><th>Leçon</th><th class="n">Coef.</th><th class="n">Courses</th><th class="n">Réussies (écart ≥ 0)</th><th class="n">Dans la zone</th><th class="n">Zone 100</th></tr></thead><tbody>`
-    +s.les.slice().reverse().map(l=>`<tr><td>${fmtShort(l.date)}</td><td class="n">×${l.k}</td><td class="n">${l.n}</td><td class="n">${l.ne?l.reach+" / "+l.ne+(l.over?` <small style="color:var(--muted)">(dont ${l.over} dépassée${l.over>1?"s":""})</small>`:""):"–"}</td><td class="n">${l.nz?l.inz+" / "+l.nz:"–"}</td><td class="n">${l.nz?l.z100+" / "+l.nz:"–"}</td></tr>`).join("")
+    +s.les.slice().reverse().map(l=>`<tr><td>${fmtShort(l.date)}</td><td class="n" style="white-space:nowrap">${s.scope==="all"?`<button class="btn ghost sm" data-evcoef="${l.date}" data-v="${l.k-1}" aria-label="Baisser le coefficient"${l.k<=0?" disabled":""}>−</button> <b>×${fmt(l.k)}</b> <button class="btn ghost sm" data-evcoef="${l.date}" data-v="${l.k+1}" aria-label="Monter le coefficient">+</button>`:"×"+l.k}</td><td class="n">${l.n}</td><td class="n">${l.ne?l.reach+" / "+l.ne+(l.over?` <small style="color:var(--muted)">(dont ${l.over} dépassée${l.over>1?"s":""})</small>`:""):"–"}</td><td class="n">${l.nz?l.inz+" / "+l.nz:"–"}</td><td class="n">${l.nz?l.z100+" / "+l.nz:"–"}</td></tr>`).join("")
     +`</tbody></table><p style="margin:10px 0 0"><button class="btn ghost sm" data-fego="${e.id}">🔎 Toutes ses courses, une par une</button></p><p class="evrs" style="margin-top:6px">${s.scope==="all"?"Pourcentages pondérés par les coefficients. ":""}Performance : chaque course compte (réussie si l'écart est ≥ 0), degré 4 si au moins ${Math.round(PERF_PART*100)} % des courses sont réussies, en bas du degré quand la cible est seulement atteinte, plus haut quand elle est dépassée. Transmission : degré 4 si ≥ 70 % en Zone 100, degré 3 si ≥ 70 % dans la zone. Mise en projet et Vivre les rôles restent à ton appréciation.</p></div>`;
   return h;
 }
@@ -3145,6 +3146,8 @@ function evClick(mode,ev){
   if(nm){if(mode==="prof")EV_SEL=+nm.dataset.eve;else AU_SEL=+nm.dataset.eve;mode==="prof"?renderEval():renderAuto();
     const b=$(mode==="prof"?"#ev-body":"#au-body");if(b)b.scrollIntoView({behavior:"smooth",block:"start"});return}
   const id=mode==="prof"?EV_SEL:AU_SEL;if(id==null)return;const e=byId(id);if(!e)return;const o=evOf(id),lid=CLE()?CLE().id:null;if(mode!=="prof"&&!lid)return;
+  const kc=t.closest("[data-evcoef]");if(kc&&window.EVRL&&EVRL.coefSet){EVRL.coefSet(CL().name,kc.dataset.evcoef,+kc.dataset.v);renderEval();return}
+  const kz=t.closest("[data-evcoefz]");if(kz&&window.EVRL&&EVRL.coefRaz){EVRL.coefRaz(CL().name);renderEval();return}
   const sc=t.closest("[data-evscope]");
   if(sc){EV_SCOPE=sc.dataset.evscope==="last"?"last":"all";evKeep(sc,renderEval);return}
   const ap=t.closest("[data-evapply]");

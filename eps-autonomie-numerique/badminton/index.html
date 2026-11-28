@@ -2306,6 +2306,10 @@ function azOf(x,y){const h=toHalf(x,y),r=h.d<SSL?'a':h.d<4.72?'m':'f',c=h.l<CW/3
 let STC={},STCv=-1;
 function natOf(p){return p.t||(p.f?'fd':'pd')}
 function isFd(p){return p.t?(p.t==='fd'||p.t==='fs'):!!p.f} /* faute directe commise par le perdant du point */
+/* matchs terminés d'un élève (hors exercices) pour l'évaluation : jour, gagné 1 / nul 0,5 / perdu 0, texte */
+function evbMatchs(e,cl){const c=(S.classes||[]).find(x=>x.nom===cl);if(!c)return[];const nm=id=>{const x=(c.eleves||[]).find(y=>y.id===id);return x?fullName(x):'?'};
+ return matchesOf(c,m=>(m.a===e.id||m.b===e.id)&&m.pre&&m.pre.type!=='exo').map(m=>{const R=replay(m);if(!(m.fin||R.fin))return null;const s=m.a===e.id?0:1,ok=R.win===s?1:R.win<0?.5:0;
+  return{day:String(m.date||'').slice(0,10),ok,txt:(m.pre.nom?m.pre.nom+' · ':'')+'contre '+nm(s?m.a:m.b)+' : '+R.sc[s]+' – '+R.sc[1-s]+' ('+(ok===1?'gagné':ok?'nul':'perdu')+')'}}).filter(x=>x&&x.day)}
 function matchesOf(c,f){return Object.values(c.matchs||{}).filter(m=>!f||f(m)).sort((a,b)=>(a.t0||0)-(b.t0||0))}
 function elStats(c,eid,date,pid){
   const k=c.id+'|'+eid+'|'+(date||'')+'|'+(pid||'');if(STCv!==STV){STC={};STCv=STV}if(STC[k])return STC[k];
@@ -3280,6 +3284,10 @@ var EVB=window.EPSE?EPSE.create({app:'bad',nom:'Badminton',ca:'CA4',color:'#0B7A
  note:e=>note20(e),absent:e=>isAbs(e)?e.statut:'',comment:e=>e.comment||'',setComment:(e,t)=>{e.comment=t;save()},
  extras:(c,e)=>{const x=[];['AFL1','AFL2','AFL3','AFLP1','AFLP2'].forEach(a=>{const r=aflPts(e,a);if(r)x.push(a+' : '+fr(r.pts)+' / '+fr(r.max))});return x},
  getAp:e=>e.ap||null,setAp:(e,ap)=>{e.ap=ap;save()},
+ /* 📊 « Ses résultats » (eps-eval.js) : ses matchs terminés, rangés par leçon avec leur coefficient ; 💡 proposition d'après la part de matchs gagnés,
+    pour les critères AFL1 (AFLP1 et AFLP2 en voie pro), comme l'option « matchs gagnés » de la grille. Rien n'est enregistré sans « ✓ Reprendre ». */
+ resultats:(e,cl)=>({nom:'match',noms:'matchs',items:evbMatchs(e,cl).map(x=>({day:x.day,ok:x.ok,txt:x.txt}))}),
+ resultat:(cr,e,cl)=>{if(!(cr.afl==='AFL1'||lpCore(cr.afl)))return null;const L=evbMatchs(e,cl);if(!L.length)return null;const K=EVB.resCoef(L.map(x=>x.day),cl);let s=0,w=0;L.forEach(x=>{const k=K[x.day]||0;s+=k*x.ok;w+=k});return w?s/w:null},
  /* 🗂 plusieurs évaluations (eps-eval.js) : ce qui fait l'évaluation d'un élève */
  sesGet:e=>(e.ev&&Object.keys(e.ev).length)||e.ap||e.comment||e.statut?{ev:e.ev||{},ap:e.ap||null,comment:e.comment||'',statut:e.statut||''}:null,
  sesSet:(e,s)=>{s=s||{};e.ev=s.ev||{};e.ap=s.ap||null;e.comment=s.comment||'';e.statut=s.statut||''},sesDone:()=>{save();curEl=null;try{document.getElementById('evPanel').style.display='none';document.getElementById('evList').style.display='block'}catch(x){}renderList()},
