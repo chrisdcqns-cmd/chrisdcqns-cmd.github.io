@@ -1,5 +1,5 @@
 // OrienRun EPS — service worker : appli à jour quand il y a du réseau, utilisable hors connexion sinon.
-const CORE = "orienrun-core-v76";
+const CORE = "orienrun-core-v77";
 const LIBS = "orienrun-libs-v1";
 const CORE_FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const SHARED = ["../eps-lists.js", "../eps-home.js", "../eps-eval.js", "../eps-shell.js", "../eps-lecons.js", "../eps-obs.js", "../eps-groupes.js", "../eps-guides.js", "../eps-remed-ref.js", "../eps-tactique.js", "../eps-ref.js", "../eps-culture.js", "../eps-qr.js"]; // fichiers communs (dossier parent), gardés aussi ici pour le hors ligne

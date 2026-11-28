@@ -2282,6 +2282,55 @@
     setInterval(function () { if (!document.hidden && document.body) try { seg(document.body); } catch (e) {} }, 2000);   /* barres d'un écran affiché plus tard (onglet, fenêtre) */
   })();
 
+  /* ================= ↕ Tableaux : tri par colonne et largeur réglable, partout (28/11/2026, demande de l'enseignant) =================
+     Un appui sur un titre de colonne trie (▲ puis ▼ puis sans tri) ; plusieurs critères : le dernier titre touché passe en premier, les précédents
+     départagent (1, 2, 3 à côté des flèches). Les lignes de bilan (« Moyenne… », « Classe », « Total ») restent en bas. Poignée au bord droit d'un
+     titre : glisser pour régler la largeur (double appui : largeur d'origine). Tri gardé le temps de la session, largeurs gardées sur l'appareil.
+     Tableaux concernés : un seul rang de titres simple, au moins 3 lignes ; [data-eps-nosort] pour en exclure un. */
+  (function tables() {
+    var KS = "eps.tblsort", KW = "eps.tblw";
+    function jg(st, k) { try { return JSON.parse(st.getItem(k) || "{}") || {}; } catch (e) { return {}; } }
+    function js(st, k, v) { try { st.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    try { var cs = document.createElement("style"); cs.textContent = "th.eps-ths{cursor:pointer;user-select:none;-webkit-user-select:none}th.eps-ths .eps-ar{font-size:11px;margin-left:3px;color:#6A6F78;white-space:nowrap}th.eps-ths.eps-on .eps-ar{color:#14171C}" +
+      "th.eps-thw{position:relative}th .eps-rz{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:3;touch-action:none}th .eps-rz:hover,th .eps-rz.on{background:rgba(31,95,139,.35)}" +
+      "td.eps-cut,th.eps-cut{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"; (document.head || document.documentElement).appendChild(cs); } catch (e) {}
+    function head(t) { var tr = t.tHead && t.tHead.rows.length ? t.tHead.rows[t.tHead.rows.length - 1] : t.rows[0]; if (!tr) return null; var C = tr.cells; if (C.length < 2) return null;
+      for (var i = 0; i < C.length; i++) if (C[i].tagName !== "TH" || C[i].colSpan > 1 || C[i].rowSpan > 1) return null; if (t.tHead && t.tHead.rows.length > 1) return null; return tr; }
+    function body(t, hr) { var R = []; Array.prototype.forEach.call(t.tBodies.length ? t.tBodies : [t], function (b) { Array.prototype.forEach.call(b.rows, function (r) { if (r !== hr && r.parentNode !== t.tHead) R.push(r); }); }); return R; }
+    function keyOf(t, hr) { return location.pathname + "|" + Array.prototype.map.call(hr.cells, function (c) { return (c.textContent || "").replace(/[▲▼\d·]/g, "").trim().slice(0, 18); }).join("|"); }
+    function isFoot(r) { var c = r.cells[0]; return r.classList.contains("cn-cl") || (c && c.tagName === "TH") || /^(moyenne|moy\.|classe|total|bilan)\b/i.test(((c && c.textContent) || "").trim()); }
+    function val(c) { if (!c) return null; var t = (c.getAttribute("data-sort") || c.textContent || "").trim(); if (!t || /^[–—·-]$/.test(t)) return null; var m = /^(-?\d+(?:[.,]\d+)?)\s*(?:\/\s*\d+(?:[.,]\d+)?|%|h|pts?|s)?$/i.exec(t); return m ? parseFloat(m[1].replace(",", ".")) : t.toLowerCase(); }
+    function sortT(t, hr, S) { var R = body(t, hr), n = hr.cells.length, rows = R.filter(function (r) { return r.cells.length === n && !isFoot(r); }), foot = R.filter(function (r) { return rows.indexOf(r) < 0; });
+      if (rows.length < 2) return; rows.forEach(function (r, i) { if (r._o == null) r._o = i; });
+      rows.sort(function (a, b) { for (var i = 0; i < S.length; i++) { var c = S[i].c, x = val(a.cells[c]), y = val(b.cells[c]); if (x === y) continue; if (x == null) return 1; if (y == null) return -1;
+          var d = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "fr", { numeric: true }); if (d) return S[i].d * d; } return a._o - b._o; });
+      var par = rows[0].parentNode; rows.concat(foot.filter(function (r) { return r.parentNode === par; })).forEach(function (r) { par.appendChild(r); });
+      Array.prototype.forEach.call(hr.cells, function (c, i) { var a = c.querySelector(".eps-ar"), k = -1; S.forEach(function (s, j) { if (s.c === i) k = j; }); c.classList.toggle("eps-on", k >= 0); if (a) a.textContent = k < 0 ? "↕" : (S[k].d > 0 ? "▲" : "▼") + (S.length > 1 ? k + 1 : ""); c.setAttribute("aria-sort", k === 0 ? (S[0].d > 0 ? "ascending" : "descending") : "none"); }); }
+    function width(t, hr, i, w) { var c = hr.cells[i]; if (!c) return; var set = function (el) { if (w) { el.style.width = w + "px"; el.style.minWidth = w + "px"; el.style.maxWidth = w + "px"; el.classList.add("eps-cut"); } else { el.style.width = el.style.minWidth = el.style.maxWidth = ""; el.classList.remove("eps-cut"); } };
+      set(c); body(t, hr).forEach(function (r) { if (r.cells[i]) set(r.cells[i]); }); }
+    function prep(t) { if (t._epsT || t.closest("[data-eps-nosort],.epp,svg") || t.hasAttribute("data-eps-nosort")) return; var hr = head(t); if (!hr) return; var R = body(t, hr); if (R.length < 3) return;
+      t._epsT = 1; var key = keyOf(t, hr), S0 = jg(sessionStorage, KS)[key] || [], W = jg(localStorage, KW)[key] || {};
+      Array.prototype.forEach.call(hr.cells, function (c, i) { c.classList.add("eps-ths", "eps-thw"); if (!c.querySelector(".eps-ar")) { var a = document.createElement("span"); a.className = "eps-ar"; a.textContent = "↕"; c.appendChild(a); }
+        c.addEventListener("click", function (e) { if (e.target.closest("button,a,input,select,.eps-rz") && !e.target.classList.contains("eps-ar")) return;
+          var A = jg(sessionStorage, KS), S = (A[key] || []).slice(), k = -1; S.forEach(function (s, j) { if (s.c === i) k = j; });
+          if (k === 0) { if (S[0].d > 0) S[0].d = -1; else S.shift(); } else { if (k > 0) S.splice(k, 1); S.unshift({ c: i, d: 1 }); } S = S.slice(0, 3);
+          A[key] = S; js(sessionStorage, KS, A); sortT(t, hr, S); });
+        var z = document.createElement("span"); z.className = "eps-rz"; z.title = "Glisser pour régler la largeur (double appui : largeur d'origine)"; c.appendChild(z);
+        var x0 = 0, w0 = 0, last = 0;
+        z.addEventListener("pointerdown", function (e) { e.preventDefault(); e.stopPropagation(); var now = Date.now(); if (now - last < 350) { width(t, hr, i, 0); var A = jg(localStorage, KW); if (A[key]) delete A[key][i]; js(localStorage, KW, A); return; } last = now;
+          x0 = e.clientX; w0 = c.getBoundingClientRect().width; z.classList.add("on"); try { z.setPointerCapture(e.pointerId); } catch (er) {} });
+        z.addEventListener("pointermove", function (e) { if (!z.classList.contains("on")) return; width(t, hr, i, Math.max(36, Math.round(w0 + e.clientX - x0))); });
+        z.addEventListener("pointerup", function () { if (!z.classList.contains("on")) return; z.classList.remove("on"); var A = jg(localStorage, KW); (A[key] = A[key] || {})[i] = Math.round(c.getBoundingClientRect().width); js(localStorage, KW, A); });
+        z.addEventListener("click", function (e) { e.stopPropagation(); }); });
+      Object.keys(W).forEach(function (i) { width(t, hr, +i, W[i]); }); if (S0.length) sortT(t, hr, S0); }
+    function scan(root) { var L = root.querySelectorAll ? root.querySelectorAll("table") : []; Array.prototype.forEach.call(L, function (t) { try { prep(t); } catch (e) {} }); if (root.tagName === "TABLE") try { prep(root); } catch (e) {} }
+    var pend = [], tm = 0;
+    function go() { if (!document.body) return; scan(document.body);
+      try { new MutationObserver(function (M) { M.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) pend.push(n); }); }); if (pend.length && !tm) tm = setTimeout(function () { tm = 0; var L = pend; pend = []; L.forEach(function (n) { if (n.isConnected) scan(n); }); }, 300); }).observe(document.body, { childList: true, subtree: true }); } catch (e) {} }
+    if (document.body) go(); else document.addEventListener("DOMContentLoaded", go);
+    window.EPSTBL = { scan: scan };
+  })();
+
   /* ================= 📖 Lexique de l'activité (ressource sans classe, modifiable : ⚙ Réglages → 🎛 Paramètres → Lexique) ================= */
   var LEX = {
     volley: ["Manchette : frappe à deux bras tendus, mains jointes, pour une balle basse", "Passe haute : frappe au-dessus du front, à dix doigts", "Smash : attaque frappée fort vers le bas, au-dessus du filet", "Contre : mains au-dessus du filet pour arrêter l'attaque adverse", "Rotation : chaque joueur avance d'un poste quand l'équipe récupère le service"],

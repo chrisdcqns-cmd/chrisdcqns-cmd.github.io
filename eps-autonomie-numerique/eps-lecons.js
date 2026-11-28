@@ -808,14 +808,21 @@
     if (SELC === null) { var c0 = cur(); SELC = c0 ? [c0.nom] : []; }
     SELC = SELC.filter(function (c) { return CC.some(function (x) { return same(x, c); }); });
     var nd = docList().filter(function (d) { return d.use && !L.some(function (l) { return l.doc === d.id; }); }).length;
-    var h = '<h2>Mes fiches de leçon</h2><p class="lc-mut">Fiches de leçon de ' + esc(NOM) + ". Les élèves ne voient que les leçons validées ✓, programmées ou lancées.</p>" +
-      '<div class="lc-row"><button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button><button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button>' +
-      trames().map(function (t, k) { return '<button type="button" class="lc-b" data-trame="' + k + '" title="Trame proposée : ' + esc(t.nom) + '" aria-label="Trame proposée : ' + esc(t.nom) + '">📥 Trame proposée</button>'; }).join("") +
-      (nd ? '<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>" : "") +
+    /* barre des fiches : seuls les boutons choisis restent visibles, les autres vont dans ⋯ Plus (28/11/2026, demande de l'enseignant ; réglable :
+       ⚙ Réglages → 🎛 Paramètres → Fiches de leçon → « lec_barre », un début d'intitulé par ligne) */
+    var BAR = []; try { if (window.EPSP && EPSP.p) BAR = EPSP.p({ id: "lec_barre", sec: "Fiches de leçon", label: "Boutons visibles de la barre des fiches de leçon, un par ligne (les autres vont dans ⋯ Plus)", type: "list", def: ["Nouvelle leçon", "Importer mes leçons rédigées", "Mettre en fiches mes documents"] }) || []; } catch (e) {}
+    var barN = function (t) { return String(t).replace(/^[^A-Za-zÀ-ÿ0-9]+/, "").trim().toLowerCase(); }, inBar = function (lab) { var l = barN(lab); return BAR.some(function (x) { x = barN(x); return x && l.indexOf(x) === 0; }); };
+    var BTN = [['<button type="button" class="lc-b p" data-new>＋ Nouvelle leçon</button>', "Nouvelle leçon"], ['<button type="button" class="lc-b" data-ai>✨ Proposer avec Claude</button>', "Proposer avec Claude"]]
+      .concat(trames().map(function (t, k) { return ['<button type="button" class="lc-b" data-trame="' + k + '" title="Trame proposée : ' + esc(t.nom) + '" aria-label="Trame proposée : ' + esc(t.nom) + '">📥 Trame proposée</button>', "Trame proposée"]; }))
+      .concat(nd ? [['<button type="button" class="lc-b" data-imall>📥 Mettre en fiches mes documents (' + nd + ")</button>", "Mettre en fiches mes documents"]] : [])
       /* 🏦 Banque & apprentissages : seulement dans 📚 Bibliothèque (doublon retiré de cette barre, demande du 28/11/2026) */
-      '<button type="button" class="lc-b" data-autoprog>📅 Programmer d\'après l\'emploi du temps</button>' +
-      '<button type="button" class="lc-b" data-docs title="Tes leçons rédigées (Word, PDF, photo…) : dépose-les, puis « Mettre en fiches » les range selon ton modèle, dans la séquence de ton choix">📥 Importer mes leçons rédigées' + (docList().length ? " (" + docList().length + ")" : "") + "</button>" +
-      '<details class="lc-more"><summary class="lc-b">⋯ Plus</summary><div>' + (L.length ? '<button type="button" class="lc-b" data-printseq>🖨 Imprimer une séquence</button>' : "") + (L.length ? '<button type="button" class="lc-b" data-refall title="Toutes les fiches de l\'activité rangées selon ton modèle (importées de Word, de documents…)">🔁 Remettre en forme toutes les fiches</button>' : "") + "</div></details></div>" +
+      .concat([['<button type="button" class="lc-b" data-autoprog>📅 Programmer d\'après l\'emploi du temps</button>', "Programmer d'après l'emploi du temps"],
+        ['<button type="button" class="lc-b" data-docs title="Tes leçons rédigées (Word, PDF, photo…) : dépose-les, puis « Mettre en fiches » les range selon ton modèle, dans la séquence de ton choix">📥 Importer mes leçons rédigées' + (docList().length ? " (" + docList().length + ")" : "") + "</button>", "Importer mes leçons rédigées"]])
+      .concat(L.length ? [['<button type="button" class="lc-b" data-printseq>🖨 Imprimer une séquence</button>', "Imprimer une séquence"], ['<button type="button" class="lc-b" data-refall title="Toutes les fiches de l\'activité rangées selon ton modèle (importées de Word, de documents…)">🔁 Remettre en forme toutes les fiches</button>', "Remettre en forme toutes les fiches"]] : []);
+    if (!BTN.some(function (b) { return inBar(b[1]); })) BAR = ["Nouvelle leçon"];
+    var h = '<h2>Mes fiches de leçon</h2><p class="lc-mut">Fiches de leçon de ' + esc(NOM) + ". Les élèves ne voient que les leçons validées ✓, programmées ou lancées.</p>" +
+      '<div class="lc-row">' + BTN.filter(function (b) { return inBar(b[1]); }).map(function (b) { return b[0]; }).join("") +
+      '<details class="lc-more"><summary class="lc-b">⋯ Plus</summary><div>' + BTN.filter(function (b) { return !inBar(b[1]); }).map(function (b) { return b[0]; }).join("") + "</div></details></div>" +
       (CC.length ? '<div class="lc-box"><b>👥 Séquence par classe</b><p class="lc-mut" style="margin:2px 0 6px">Touche une ou plusieurs classes, puis « ＋ Attribuer » sur les leçons à leur proposer : chaque classe a sa propre séquence. Une classe sans leçon attribuée garde toutes les leçons.</p><div class="lc-row">' +
         CC.map(function (c) { var on = SELC.some(function (x) { return same(x, c); }); return '<button type="button" class="lc-b s' + (on ? " p" : "") + '" data-selc="' + esc(c) + '" title="' + (vClasse(c) === "pro" ? "Voie professionnelle" : "Voie générale") + '">' + (on ? "✓ " : "") + esc(c) + "</button>"; }).join("") +
         (SELC.length ? '<button type="button" class="lc-b s" data-selc0>✕ Aucune</button>' : "") + "</div></div>" : "") +

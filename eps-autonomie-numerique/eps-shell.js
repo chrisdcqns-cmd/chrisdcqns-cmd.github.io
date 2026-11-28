@@ -223,10 +223,16 @@
     /* actions principales : les 4 communes les plus utilisées + celles que l'appli marque main:1 + celles épinglées ★ par l'enseignant (sur cette tablette) ;
        un onglet avec 5 actions ou moins les montre toutes. Le reste est dans « ⋯ Plus ». */
     var MAIN = /^(Fiches de leçon|Leçon en cours|Évaluer la leçon|Ma classe : vue d'ensemble)$/, PKB = "eps.acts.pin." + (C.app || location.pathname);
-    function pins() { try { return JSON.parse(localStorage.getItem(PKB + "." + M.cur) || "null"); } catch (e) { return null; } }
+    /* barre de chaque onglet réglable aussi dans ⚙ Réglages → 🎛 Paramètres → « Barres d'outils » (28/11/2026, demande de l'enseignant) :
+       paramètre barre_<onglet> = intitulés des boutons de la barre (vide = barre par défaut), synchronisé ; ☆ / ★ du menu « Plus » l'écrivent aussi. */
+    function pdecl() { if (!window.EPSP || !EPSP.p) return null; var o = ORDER.filter(function (x) { return x[0] === M.cur; })[0];
+      try { return EPSP.p({ id: "barre_" + M.cur, sec: "Barres d'outils", label: "Onglet « " + (o ? o[2] : M.cur) + " » : boutons dans la barre, un par ligne (le reste va dans ⋯ Plus ; vide = barre par défaut)", type: "list", def: [] }); } catch (e) { return null; } }
+    function pins() { var v = pdecl(); if (Array.isArray(v) && v.filter(String).length) return v.map(function (x) { return String(x).trim(); }).filter(Boolean); try { return JSON.parse(localStorage.getItem(PKB + "." + M.cur) || "null"); } catch (e) { return null; } }
+    function pinsSet(P) { try { if (window.EPSP && EPSP.set) EPSP.set("barre_" + M.cur, P && P.length ? P : null); } catch (e) {} try { if (P) localStorage.setItem(PKB + "." + M.cur, JSON.stringify(P)); else localStorage.removeItem(PKB + "." + M.cur); } catch (e) {} }
     function short(l) { return String(l).replace(/\s*\(.*\)\s*$/, "").replace(/ : vue d'ensemble$/, "").replace(/^Tableau de bord de la leçon$/, "Tableau de bord"); }
     function drawActs(A) {
-      var P = pins(), isMain = function (x) { return !!x.seg || (P ? P.indexOf(x.label) >= 0 : (x.main || MAIN.test(x.label))); }, N = A.filter(function (x) { return !x.seg; }).length; /* les entrées d'un onglet (segments) restent toujours dans la barre et ne comptent pas */
+      var P = pins(), nrm = function (t) { return String(t).replace(/^[^A-Za-zÀ-ÿ0-9]+/, "").trim().toLowerCase(); }, PN = P ? P.map(nrm) : null,
+        isMain = function (x) { return !!x.seg || (PN ? PN.indexOf(nrm(x.label)) >= 0 || PN.indexOf(nrm(short(x.label))) >= 0 : (x.main || MAIN.test(x.label))); }, N = A.filter(function (x) { return !x.seg; }).length; /* les entrées d'un onglet (segments) restent toujours dans la barre et ne comptent pas */
       var top = N <= 5 ? A : A.filter(isMain), rest = N <= 5 ? [] : A.filter(function (x) { return !isMain(x); });
       if (!top.length) { top = A.slice(0, 4); rest = A.slice(4); }
       acts.innerHTML = '<div class="epst-tb">' + top.map(function (x) { return '<button type="button"' + (x.seg ? ' class="seg' + (x.on ? " on" : "") + '" aria-pressed="' + !!x.on + '"' : "") + ' data-a="' + A.indexOf(x) + '" title="' + esc(x.label) + '"><i>' + (x.ico || "•") + "</i>" + esc(short(x.label)) + "</button>"; }).join("") +
@@ -247,8 +253,8 @@
       setTimeout(function () { document.addEventListener("click", out, true); document.addEventListener("keydown", key); }, 0);
       m.querySelectorAll("[data-g]").forEach(function (b) { b.onclick = function () { close(); run(A[+b.dataset.g]); }; });
       m.querySelectorAll("[data-pin]").forEach(function (b) { b.onclick = function () { var x = A[+b.dataset.pin], P = pins() || A.filter(isMain).map(function (y) { return y.label; }), i = P.indexOf(x.label);
-        if (i >= 0) P.splice(i, 1); else P.push(x.label); try { localStorage.setItem(PKB + "." + M.cur, JSON.stringify(P)); } catch (e) {} close(); drawActs(A); menu(acts.querySelector("[data-more]"), A, function (y) { return P.indexOf(y.label) >= 0; }); }; });
-      var rs = m.querySelector("[data-reset]"); if (rs) rs.onclick = function () { try { localStorage.removeItem(PKB + "." + M.cur); } catch (e) {} close(); drawActs(A); }; }
+        if (i >= 0) P.splice(i, 1); else P.push(x.label); pinsSet(P); close(); drawActs(A); menu(acts.querySelector("[data-more]"), A, function (y) { return P.indexOf(y.label) >= 0; }); }; });
+      var rs = m.querySelector("[data-reset]"); if (rs) rs.onclick = function () { pinsSet(null); close(); drawActs(A); }; }
     function panel(html) { document.documentElement.classList.add("epst-pan"); mains(false); pan.innerHTML = html; window.scrollTo(0, 0); return pan; }
     function closePanel() { document.documentElement.classList.remove("epst-pan"); mains(true); pan.innerHTML = ""; }
     function cards(L) { return '<div class="epst-grid">' + L.map(function (x, i) { return '<button type="button" class="epst-card" data-i="' + i + '"><i>' + (x.ico || "•") + "</i><span><b>" + esc(x.label) + "</b>" + (x.sub ? "<small>" + esc(x.sub) + "</small>" : "") + "</span></button>"; }).join("") + "</div>"; }

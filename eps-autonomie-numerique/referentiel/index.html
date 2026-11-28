@@ -63,7 +63,7 @@ td.z{background:#FDECEA;color:var(--no);font-weight:800}
 label.f{display:block;font-weight:800;font-size:14px;margin:10px 0 4px}
 /* barre latérale (modèle iDoceo, 28/11/2026) */
 .lay{display:flex;align-items:flex-start;min-height:calc(100vh - 60px)}
-.side{width:230px;flex:none;align-self:stretch;background:linear-gradient(180deg,#86198F,#5B1163);padding:12px 10px 30px;position:sticky;top:0;max-height:100vh;overflow:auto}
+.side{width:230px;flex:none;align-self:stretch;background:#1C1F26;padding:12px 10px 30px;position:sticky;top:0;max-height:100vh;overflow:auto}
 .side .sd-h{color:#F3D7F6;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin:14px 8px 4px}
 .side .sd-h:first-child{margin-top:2px}
 .side button{display:block;width:100%;text-align:left;min-height:44px;padding:0 12px;margin:2px 0;border:0;border-radius:10px;background:transparent;color:#fff;font-weight:700;font-size:15px;cursor:pointer}
@@ -78,8 +78,9 @@ label.f{display:block;font-weight:800;font-size:14px;margin:10px 0 4px}
 .cn-per button small{display:block;font-weight:600;font-size:12px;color:var(--muted)}
 .cn-per button.on{background:var(--pc);color:#fff}.cn-per button.on small{color:#fff;opacity:.85}
 .cn-tw{max-height:70vh;overflow:auto}
-table.cn{font-size:13px;width:auto;min-width:100%}
-table.cn th,table.cn td{padding:0;min-width:58px;height:40px}
+table.cn{font-size:13px;width:auto;table-layout:auto}
+table.cn th,table.cn td{padding:0;min-width:var(--cnc,56px);width:var(--cnc,56px);height:40px}
+table.cn th.cn-st{cursor:pointer}table.cn .cn-ar{font-size:11px;white-space:nowrap}
 table.cn thead th{position:sticky;z-index:2;padding:4px 6px;font-size:12px;box-sizing:border-box}
 table.cn thead tr.r1 th{top:0;height:28px}table.cn thead tr.r2 th{top:28px;height:30px}table.cn thead tr.r3 th{top:58px}
 table.cn th.cn-p{color:#fff;font-weight:900;font-size:14px;text-align:left;letter-spacing:.02em}table.cn th.cn-p small{font-weight:600;opacity:.85}
@@ -87,7 +88,7 @@ table.cn .cn-sep{border-left:3px solid #8A8478!important}
 table.cn th.cn-pm{background:color-mix(in srgb,var(--pc) 22%,#fff);color:#14171C;font-weight:900;min-width:70px}
 table.cn td.cn-pm{font-size:14px;min-width:70px;box-shadow:inset 2px 0 0 rgba(0,0,0,.12)}
 table.cn th.cn-g{color:#fff;font-weight:900;font-size:13px;text-align:left;height:30px}
-table.cn .cn-n{position:sticky;left:0;z-index:1;background:#fff;text-align:left;padding:0 10px;min-width:170px;font-weight:700;white-space:nowrap}
+table.cn .cn-n{position:sticky;left:0;z-index:1;background:#fff;text-align:left;padding:0 10px;min-width:var(--cnn,150px);width:var(--cnn,150px);max-width:var(--cnn,150px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 table.cn thead .cn-n{z-index:3;background:#FAF8F3}
 table.cn .cn-m{min-width:76px;font-size:14px;position:sticky;right:0;z-index:1;background-color:#fff;box-shadow:-2px 0 0 var(--line)}
 table.cn thead .cn-m{z-index:3;background-color:#FAF8F3}
@@ -110,7 +111,11 @@ table.cn tr.cn-cl td{font-weight:800;background:#FAF8F3}
 .side{padding:10px 0 30px}
 .side .sd-h{margin:16px 16px 4px}
 .side button{border-radius:0;margin:0;padding:0 16px;border-left:4px solid transparent;border-bottom:1px solid rgba(255,255,255,.08)}
-.side button.on{background:rgba(255,255,255,.95);border-left-color:#F0ABFC;color:#5B1163}
+/* une nuance par catégorie (28/11/2026, demande de l'enseignant : « des nuances de couleurs entre les catégories, plus propre ») */
+.side [data-cat=n]{--k:#3B82C4}.side [data-cat=s]{--k:#0E9488}.side [data-cat=c]{--k:#A855C7}.side [data-cat=r]{--k:#8A94A6}
+.side .sd-h{color:var(--k)!important;border-top:1px solid rgba(255,255,255,.07);padding-top:12px}.side .sd-h:first-child{border-top:0;padding-top:0}
+.side button{color:#D5D8DE}.side button:hover{background:color-mix(in srgb,var(--k) 18%,transparent)}
+.side button.on{background:color-mix(in srgb,var(--k) 85%,#000);border-left-color:var(--k);color:#fff;font-weight:800}
 .cn-per{gap:0;margin:0;border-bottom:3px solid var(--line)}
 .cn-per button{border-radius:0;border:0;border-right:1px solid rgba(255,255,255,.35);background:color-mix(in srgb,var(--pc) 16%,#fff);border-bottom:0;min-width:120px}
 .cn-per button:first-child{border-radius:6px 0 0 0}.cn-per button:last-child{border-radius:0 6px 0 0;border-right:0}
@@ -470,19 +475,24 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
       C = keep; }
     var first = {}; C.forEach(function (c) { var g = c.src === "man" ? "~man" : c.app || "~"; if (!first[g] || c.d < first[g]) first[g] = c.d || "9999"; });
     var rk = { lec: 0, mod: 1, fin: 2, man: 3 };
+    if (cnUi().ord === "date") return C.sort(function (x, y) { var mx = x.src === "man" ? 1 : 0, my = y.src === "man" ? 1 : 0; return mx - my || String(x.d || "").localeCompare(String(y.d || "")) || String(x.app || "").localeCompare(String(y.app || "")) || rk[x.src] - rk[y.src]; });
     return C.sort(function (x, y) { var gx = x.src === "man" ? "~man" : x.app || "~", gy = y.src === "man" ? "~man" : y.app || "~";
       if (gx !== gy) { if (gx === "~man") return 1; if (gy === "~man") return -1; return String(first[gx]).localeCompare(String(first[gy])) || gx.localeCompare(gy); }
       return String(x.d || "").localeCompare(String(y.d || "")) || rk[x.src] - rk[y.src]; }); }
+  /* ↔ largeurs, ↕ tri et ordre des colonnes (28/11/2026, demande de l'enseignant) : gardés sur l'appareil (eps.cn.ui) */
+  function cnUi() { var o = {}; try { o = JSON.parse(localStorage.getItem("eps.cn.ui") || "{}") || {}; } catch (e) {} return { wn: +o.wn > 0 ? +o.wn : 150, wc: +o.wc > 0 ? +o.wc : 56, ord: o.ord === "date" ? "date" : "act", sort: Array.isArray(o.sort) ? o.sort.slice(0, 3) : [] }; }
+  function cnUiSet(k, v) { var o = cnUi(); o[k] = v; try { localStorage.setItem("eps.cn.ui", JSON.stringify(o)); } catch (e) {} }
   function colLab(c) { return c.src === "fin" ? "🏁 Éval. finale" : c.src === "mod" ? "🧪 " + c.nom : c.src === "man" ? TYI[c.col.ty] + " " + c.nom : c.nom; }
   function vCn() { var L = lists().filter(function (o) { return !/^D[ÉE]MO/i.test(o.nom) || teach(); }), cur = L.filter(function (o) { return R.ck(o.nom) === R.ck(UI.cls); })[0], an = R.annee();
     var h = '<div class="card noprint cn-top">' + (L.length ? '<div class="chips">' + L.map(function (o, i) { return '<button type="button" class="chip' + (cur === o ? " on" : "") + '" data-c="' + i + '">' + esc(o.nom) + "</button>"; }).join("") + "</div>" : '<p class="mut">Aucune liste de classe sur cet appareil.</p>') + "</div>";
     if (!cur) { $("#pg").innerHTML = h + (L.length ? '<div class="card"><p class="mut">Choisis une classe.</p></div>' : ""); $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.c].nom; render(); }; }); return; }
     var P = pers(cur.nom, an), pt = perType(cur.nom), PCOL = ["#2E7D32", "#E65100", "#1565C0", "#AD1457", "#6A1B9A", "#00838F"];
     if (UI.per == null || UI.per === "" || (UI.per !== "an" && !P[+UI.per])) UI.per = "an";
-    var all = cnCols(cur.nom, an), E = students(cur.nom), isAn = UI.per === "an", show = isAn ? P.map(function (p, i) { return i; }) : [+UI.per], moyOnly = isAn && UI.cnMo;
+    var U0 = cnUi(), all = cnCols(cur.nom, an), E = students(cur.nom), isAn = UI.per === "an", show = isAn ? P.map(function (p, i) { return i; }) : [+UI.per], moyOnly = isAn && UI.cnMo;
     h += '<div class="cn-per noprint"><button type="button" class="' + (isAn ? "on" : "") + '" data-per="an" style="--pc:#4A148C">Toute l\'année<small>' + (pt === "sem" ? "semestres" : "trimestres") + "</small></button>" + P.map(function (p, i) { return '<button type="button" class="' + (UI.per === String(i) ? "on" : "") + '" data-per="' + i + '" style="--pc:' + PCOL[i % PCOL.length] + '">' + esc(p.nom) + "<small>" + jf(p.a) + " → " + jf(p.b) + "</small></button>"; }).join("") + "</div>";
     h += '<div class="row noprint" style="margin:10px 0"><button type="button" class="btn p" id="cadd">＋ Colonne</button><button type="button" class="btn" id="cpn">📋 Pronote</button><button type="button" class="btn" id="prt">🖨 Imprimer</button><button type="button" class="btn" id="ctr">🗑 Corbeille</button>' +
       (isAn ? '<span class="chips" style="margin-left:12px"><button type="button" class="chip' + (moyOnly ? "" : " on") + '" data-mo="0">Détail</button><button type="button" class="chip' + (moyOnly ? " on" : "") + '" data-mo="1">Moyennes seulement</button></span>' : "") +
+      '<span class="chips" style="margin-left:12px"><button type="button" class="chip" id="cnsort">↕ Trier' + (U0.sort.length ? " (" + U0.sort.length + ")" : "") + '</button><button type="button" class="chip" id="cnw">↔ Largeurs</button></span>' +
       '<label class="mut" style="margin-left:auto">Découpage : <select class="in" id="cnpt" style="width:auto;min-height:40px"><option value="trim"' + (pt === "trim" ? " selected" : "") + '>Trimestres</option><option value="sem"' + (pt === "sem" ? " selected" : "") + ">Semestres</option></select></label></div>";
     if (!E.length) { $("#pg").innerHTML = h + '<div class="card"><p class="mut">Cette liste n\'a pas d\'élèves.</p></div>'; cnBind(cur, L, null, E, P, []); return; }
     /* trois étages d'en-tête : période · activité · date, pour que chaque colonne soit sous sa période et sous son activité */
@@ -491,10 +501,17 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
       R1 += '<th class="cn-p" colspan="' + (s.C.length + 1) + '" style="background:' + pc + '">' + esc(s.p.nom) + ' <small>' + jf(s.p.a) + " → " + jf(s.p.b) + "</small></th>";
       var G = []; s.C.forEach(function (c) { var g = c.src === "man" ? "~man" : c.app || "~", l = G[G.length - 1]; if (l && l.g === g) l.n++; else G.push({ g: g, n: 1, c: c }); });
       G.forEach(function (g, j) { R2 += '<th colspan="' + g.n + '" class="cn-g' + (j === 0 ? " cn-sep" : "") + '" style="background:' + (g.g === "~man" ? "#3F8F3F" : g.c.color) + '">' + esc(g.g === "~man" ? "✏️ Mes colonnes" : (ANOM[g.c.app] || g.c.nom)) + "</th>"; });
-      s.C.forEach(function (c, j) { shown.push(c); R3 += '<th class="' + (j === 0 ? "cn-sep" : "") + '" style="background:' + SRC[c.src][2] + '">' + (c.src === "man" ? '<button type="button" class="cnh" data-col="' + esc(c.col.id) + '">' + esc(colLab(c)) + "</button>" : '<span title="' + esc(c.lec || c.nom) + '">' + esc(colLab(c)) + "</span>") + "<br><small>" + esc(c.src === "lec" && cnCfg().lec !== "act" ? c.sub : c.src === "man" ? c.sub : c.src === "fin" ? jf(c.d) + " " + c.sub : c.sub) + "</small></th>"; });
-      R2 += '<th rowspan="2" class="cn-pm' + (s.C.length ? "" : " cn-sep") + '" style="--pc:' + pc + '">Moy.<br>' + esc(s.p.nom) + "<br><small>/20</small></th>"; });
+      s.C.forEach(function (c, j) { shown.push(c); R3 += '<th class="cn-st' + (j === 0 ? " cn-sep" : "") + '" data-sk="c:' + esc(c.id) + '" style="background:' + SRC[c.src][2] + '">' + (c.src === "man" ? '<button type="button" class="cnh" data-col="' + esc(c.col.id) + '">' + esc(colLab(c)) + "</button>" : '<span title="' + esc(c.lec || c.nom) + '">' + esc(colLab(c)) + "</span>") + "<br><small>" + esc(c.src === "lec" && cnCfg().lec !== "act" ? c.sub : c.src === "man" ? c.sub : c.src === "fin" ? jf(c.d) + " " + c.sub : c.sub) + "</small></th>"; });
+      R2 += '<th rowspan="2" class="cn-pm cn-st' + (s.C.length ? "" : " cn-sep") + '" data-sk="p' + s.i + '" style="--pc:' + pc + '">Moy.<br>' + esc(s.p.nom) + "<br><small>/20</small>" + "@@AR" + s.i + "@@</th>"; });
     var moyP = function (s, k) { return cnMoy(all.filter(function (c) { return perOfDay(P, c.d) === s.i; }), k).m; };
-    var tb = '<table class="cn"><thead><tr class="r1"><th class="cn-n" rowspan="3">Élève</th>' + R1 + (isAn ? '<th class="cn-m" rowspan="3">Année<br><small>/20</small></th>' : "") + '</tr><tr class="r2">' + R2 + '</tr><tr class="r3">' + R3 + "</tr></thead><tbody>" +
+    var byIdS = {}; shown.forEach(function (c) { byIdS[c.id] = c; });
+    var sv = function (e, k) { if (k === "nom") return (e.nom || e.full).toLowerCase(); if (k === "prenom") return (e.prenom || e.full).toLowerCase();
+      if (k === "an") { var Y = P.map(function (p, i) { return moyP({ i: i }, e.k); }).filter(function (v) { return v != null; }); return Y.length ? Y.reduce(function (a, b) { return a + b; }, 0) / Y.length : null; }
+      if (/^p\d+$/.test(k)) return moyP({ i: +k.slice(1) }, e.k); var c = byIdS[k.slice(2)]; if (!c) return null; var x = c.v[e.k]; return x ? (x.n20 != null ? x.n20 : String(x.raw == null ? "" : x.raw).toLowerCase()) : null; };
+    if (U0.sort.length) E = E.slice().sort(function (a, b) { for (var i = 0; i < U0.sort.length; i++) { var k = U0.sort[i].k, x = sv(a, k), y = sv(b, k); if (x === y) continue; if (x == null) return 1; if (y == null) return -1; var d = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "fr"); if (d) return U0.sort[i].d * d; } return a.full.localeCompare(b.full, "fr"); });
+    var arw = function (k) { var j = -1; U0.sort.forEach(function (z, n) { if (z.k === k) j = n; }); return j < 0 ? "" : ' <span class="cn-ar">' + (U0.sort[j].d > 0 ? "▲" : "▼") + (U0.sort.length > 1 ? j + 1 : "") + "</span>"; };
+    R2 = R2.replace(/@@AR(\d+)@@/g, function (m, i) { return arw("p" + i); }); R3 = R3.replace(/data-sk="(c:[^"]*)"([^>]*)>([\s\S]*?)<\/th>/g, function (m, k, a, inner) { return 'data-sk="' + k + '"' + a + ">" + inner + arw(k.replace(/&amp;/g, "&")) + "</th>"; });
+    var tb = '<table class="cn" data-eps-nosort style="--cnn:' + U0.wn + 'px;--cnc:' + U0.wc + 'px"><thead><tr class="r1"><th class="cn-n cn-st" data-sk="nom" rowspan="3">Élève' + arw("nom") + arw("prenom") + '</th>' + R1 + (isAn ? '<th class="cn-m cn-st" data-sk="an" rowspan="3">Année<br><small>/20</small>' + arw("an") + "</th>" : "") + '</tr><tr class="r2">' + R2 + '</tr><tr class="r3">' + R3 + "</tr></thead><tbody>" +
       E.map(function (e) { var Y = [], row = S.map(function (s) { var m = moyP(s, e.k); if (m != null) Y.push(m);
           return s.C.map(function (c, j) { return '<td class="' + (j === 0 ? "cn-sep" : "") + '">' + cnCell(c, c.v[e.k], e.k) + "</td>"; }).join("") + '<td class="cn-pm' + (s.C.length ? "" : " cn-sep") + '" style="background:' + (nivCol(m) || "#fff") + '"><b>' + (m == null ? "–" : fr(Math.round(m * 100) / 100)) + "</b></td>"; }).join(""), A = Y.length ? Y.reduce(function (a, b) { return a + b; }, 0) / Y.length : null;
         return '<tr><td class="cn-n">' + esc(e.full) + "</td>" + row + (isAn ? '<td class="cn-m" style="background:' + (nivCol(A) || "#fff") + '"><b>' + (A == null ? "–" : fr(Math.round(A * 100) / 100)) + "</b></td>" : "") + "</tr>"; }).join("") +
@@ -509,6 +526,23 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
     $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.c].nom; UI.per = ""; render(); }; });
     $$("[data-per]").forEach(function (b) { b.onclick = function () { UI.per = b.dataset.per; render(); }; });
     $$("[data-mo]").forEach(function (b) { b.onclick = function () { UI.cnMo = b.dataset.mo === "1"; render(); }; });
+    /* ↕ tri : un appui sur un titre = tri par cette colonne (▲, ▼, puis sans) ; il passe en premier critère, les autres départagent */
+    $$("[data-sk]").forEach(function (b) { b.addEventListener("click", function (e) { if (e.target.closest("button")) return; var k = b.dataset.sk, S = cnUi().sort, j = -1; S.forEach(function (z, n) { if (z.k === k) j = n; });
+      if (j === 0) { if (S[0].d > 0) S[0].d = -1; else S.shift(); } else { if (j > 0) S.splice(j, 1); S.unshift({ k: k, d: k === "nom" || k === "prenom" ? 1 : -1 }); } cnUiSet("sort", S.slice(0, 3)); render(); }); });
+    var bs = $("#cnsort"); if (bs) bs.onclick = function () { var S = cnUi().sort, opts = [["nom", "Nom"], ["prenom", "Prénom"]].concat(P.map(function (p, i) { return ["p" + i, "Moyenne " + p.nom]; })).concat([["an", "Moyenne de l'année"]]).concat((shown || []).map(function (c) { return ["c:" + c.id, (c.src === "man" ? "✏️ " : (ANOM[c.app] || "") + " · ") + colLab(c) + (c.src === "lec" ? "" : "")]; }));
+      var line = function (n) { var z = S[n] || { k: "", d: 1 }; return '<div class="row" style="margin-top:8px"><span class="mut" style="width:90px;margin:0">' + (n ? "puis par" : "Trier par") + '</span><select class="in" data-sk2="' + n + '" style="width:auto;flex:1;margin:0"><option value="">—</option>' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === z.k ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + '</select><select class="in" data-sd2="' + n + '" style="width:auto;margin:0"><option value="1">▲ croissant</option><option value="-1"' + (z.d < 0 ? " selected" : "") + ">▼ décroissant</option></select></div>"; };
+      pop('<h2>↕ Trier les élèves</h2><p class="mut">Jusqu\'à trois critères ; le suivant départage les égalités. Raccourci : touche le titre d\'une colonne.</p>' + [0, 1, 2].map(line).join("") +
+        '<h2 style="margin-top:16px">Ordre des colonnes</h2><div class="chips"><button type="button" class="chip' + (cnUi().ord === "act" ? " on" : "") + '" data-ord="act">Par activité, puis date</button><button type="button" class="chip' + (cnUi().ord === "date" ? " on" : "") + '" data-ord="date">Par date (activités mêlées)</button></div>' +
+        '<div class="row" style="margin-top:14px"><button type="button" class="btn p" id="sok2">✓ Appliquer</button><button type="button" class="btn" id="s0">Sans tri</button><button type="button" class="btn" data-x>Annuler</button></div>', function (o) { var ord = cnUi().ord;
+          $$("[data-ord]", o).forEach(function (b) { b.onclick = function () { ord = b.dataset.ord; $$("[data-ord]", o).forEach(function (x) { x.classList.toggle("on", x === b); }); }; });
+          $("#s0", o).onclick = function () { cnUiSet("sort", []); cnUiSet("ord", ord); shut(); render(); };
+          $("#sok2", o).onclick = function () { var L2 = []; [0, 1, 2].forEach(function (n) { var k = $('[data-sk2="' + n + '"]', o).value; if (k && !L2.some(function (z) { return z.k === k; })) L2.push({ k: k, d: +$('[data-sd2="' + n + '"]', o).value }); }); cnUiSet("sort", L2); cnUiSet("ord", ord); shut(); render(); }; }); };
+    var bw = $("#cnw"); if (bw) bw.onclick = function () { var u = cnUi();
+      pop('<h2>↔ Largeurs des colonnes</h2><label class="f" for="wn">Colonne des noms : <b id="wnv">' + u.wn + ' px</b></label><input type="range" id="wn" min="90" max="320" step="5" value="' + u.wn + '" style="width:100%">' +
+        '<label class="f" for="wc">Colonnes de notes : <b id="wcv">' + u.wc + ' px</b></label><input type="range" id="wc" min="38" max="120" step="2" value="' + u.wc + '" style="width:100%">' +
+        '<p class="mut">L\'aperçu change tout de suite ; gardé sur cet appareil.</p><div class="row"><button type="button" class="btn p" data-x>✓ Fermer</button><button type="button" class="btn" id="w0">Largeurs d\'origine</button></div>', function (o) {
+          var t = $("table.cn"), up = function () { var a = +$("#wn", o).value, b = +$("#wc", o).value; $("#wnv", o).textContent = a + " px"; $("#wcv", o).textContent = b + " px"; if (t) { t.style.setProperty("--cnn", a + "px"); t.style.setProperty("--cnc", b + "px"); } cnUiSet("wn", a); cnUiSet("wc", b); };
+          $("#wn", o).oninput = up; $("#wc", o).oninput = up; $("#w0", o).onclick = function () { $("#wn", o).value = 150; $("#wc", o).value = 56; up(); }; }); };
     var pt = $("#cnpt"); if (pt) pt.onchange = function () { var c = cnCfg(); c.cls[R.ck(cur.nom)] = pt.value; cnSave(c); UI.per = ""; render(); };
     $("#cadd").onclick = function () { colEdit(cur.nom, null); }; $("#prt").onclick = function () { window.print(); };
     $("#ctr").onclick = function () { if (window.EPSD && EPSD.trash) EPSD.trash.open(); };
@@ -553,7 +587,7 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
     $("#pg").innerHTML = h; $$("[data-so]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.so].nom; UI.per = ""; UI.tab = "cn"; render(); }; }); }
 
   function render() { keep(); R.css(); var n = $("#nav"); n.hidden = false; if (UI.tab === "cdc") UI.tab = "cn";
-    n.innerHTML = TABS.map(function (t) { return (t[2] ? '<p class="sd-h">' + t[2] + "</p>" : "") + '<button type="button" data-t="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on" aria-current="page"' : "") + ">" + t[1] + "</button>"; }).join("");
+    var cat = ""; n.innerHTML = TABS.map(function (t) { if (t[2]) cat = { Notes: "n", Suivi: "s", "Compétences": "c", "Réglages": "r" }[t[2]] || "n"; return (t[2] ? '<p class="sd-h" data-cat="' + cat + '">' + t[2] + "</p>" : "") + '<button type="button" data-cat="' + cat + '" data-t="' + t[0] + '"' + (UI.tab === t[0] ? ' class="on" aria-current="page"' : "") + ">" + t[1] + "</button>"; }).join("");
     $$("[data-t]", n).forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.t; render(); window.scrollTo(0, 0); }; });
     $("#pg").classList.toggle("wide", UI.tab === "cn" || UI.tab === "som");
     ({ som: vSom, cn: vCn, par: vPar, str: vStr, act: vAct, el: vEl, cl: vCl, cov: vCov, txt: vTxt }[UI.tab] || vSom)(); }
