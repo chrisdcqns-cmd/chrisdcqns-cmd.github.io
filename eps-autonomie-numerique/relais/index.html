@@ -4641,7 +4641,7 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  max:(cr,e)=>{const o=evrO(e);return evMax(cr.id,o?evRepOf(o):'4-4')},
  classes:evrClasses,name:e=>({nom:e.nom||'',prenom:e.prenom||''}),
  prof:(cr,e)=>{const o=evrO(e),s=o&&o.prof[cr.id];if(!s||!s.d)return null;const rp=evRepOf(o),pts=evPts(o.prof,cr.id,rp),b=EVR[evMax(cr.id,rp)][s.d];return{d:s.d-1,pos:b[1]>b[0]?Math.max(0,Math.min(1,(pts-b[0])/(b[1]-b[0]))):1,pts}},
- note:e=>{const o=evrO(e);if(!o||evSt(o))return null;const t=evTotal(o.prof,evRepOf(o));return t.n===4?t.t:null},absent:e=>evSt(evrO(e)),comment:e=>{const o=evrO(e);return (o&&(o.comm||o.app))||''},
+ note:e=>{const o=evrO(e);if(!o||evSt(o))return null;const t=evTotal(o.prof,evRepOf(o));return t.n===4?t.t:null},absent:e=>evSt(evrO(e)),comment:e=>{const o=evrO(e);return (o&&(o.comm||o.app))||''},setComment:(e,t)=>{const o=evOf(e.id);o.comm=t;persist()},
  extras:(c,e)=>{const o=evrO(e);return o?['Répartition AFL2 / AFL3 : '+evRepOf(o).replace('-',' / ')]:[]},
  getAp:e=>{const o=evrO(e);return o&&o.ap||null},
  /* saisie rapide commune (par critère / par groupe) et « ✓ Reprendre ces degrés » ; groupes = ceux de la leçon du jour, sinon de la classe */

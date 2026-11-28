@@ -1,12 +1,12 @@
 # Lot du 28/11/2026 : évaluation de leçon à 4 degrés ajustables et moyenne sur 10, écran qui ne bouge plus, écart entre degrés,
 #   listes par-dessus les fenêtres plein écran, bouton de mise à jour coloré (plus de pastille), classe fictive hors de la vue d'ensemble.
 # python3 t_lot28.py <racine du dépôt>      (classe fictive, rien n'est envoyé en ligne)
-import asyncio, sys, subprocess, time, json
+import asyncio, sys, subprocess, time, json, urllib.parse
 from playwright.async_api import async_playwright
 ROOT = sys.argv[1]
 srv = subprocess.Popen([sys.executable, "-I", "-m", "http.server", "8877", "--bind", "127.0.0.1", "--directory", ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1.2)
 B = "http://localhost:8877/eps-autonomie-numerique/"
-INIT = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');}catch(e){}"
+INIT = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');if(!localStorage.getItem('eps.share.v1'))localStorage.setItem('eps.share.v1',JSON.stringify({url:'https://script.google.com/macros/s/TEST/exec',key:'k'}));}catch(e){}"
 INST = {"relais": "EPSTR", "acrosport": "EPSTA", "danse": "EPSTD", "basket": "EPSTBK", "volley": "EPSTV", "step": "EPSTST", "orientation": "EPSTORI", "crosstraining": "EPSTCT", "escalade": "EPSTESC", "badminton": "EPSTB"}
 # position de défilement de la page et de tous les blocs qui défilent
 SCR = "(function(){var o={w:Math.round(scrollY)};[].forEach.call(document.querySelectorAll('*'),function(e,i){if(e.scrollTop>0)o[(e.id||e.className||e.tagName)+'#'+i]=Math.round(e.scrollTop)});return o})()"
@@ -16,6 +16,11 @@ async def main():
     async with async_playwright() as pw:
         b = await pw.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
         c = await b.new_context(service_workers="block", viewport={"width": 1024, "height": 768}); await c.add_init_script(INIT)
+        async def route(r):
+            q = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(r.request.url).query))
+            body = {"keyOk": True, "ai": "Tu t'es engagé avec sérieux ; continue à oser des voies plus difficiles.", "aiv": 9} if "ai" in q else {"keyOk": True}
+            await r.fulfill(status=200, content_type="application/javascript", body=q.get("callback", "x") + "(" + json.dumps(body) + ")")
+        await c.route("https://script.google.com/**", route)
         p = await c.new_page(); p.on("dialog", lambda d: asyncio.ensure_future(d.accept())); p.on("pageerror", lambda x: errs.append(str(x)[:240])); p.set_default_timeout(9000)
         await p.goto(B); await p.wait_for_timeout(2500); await p.evaluate("(async()=>{var x=EPSD.demo.create();if(x&&x.then)await x})()"); await p.wait_for_timeout(1800)
         # ---- vue d'ensemble sans la classe fictive ; bouton de mise à jour sans pastille
@@ -79,6 +84,18 @@ async def main():
             a1 = await p.evaluate("(function(){var L=" + SEL + ",e=L[L.length-2];return e?Math.round(e.getBoundingClientRect().top):null})()")
             ok(app + " : l'écran reste en place quand on touche un degré (" + str(a0) + " → " + str(a1) + ")", a1 is not None and abs(a1 - a0) <= 60, (a0, a1, n))
             await p.set_viewport_size({"width": 1024, "height": 768})
+        # ---- ✨ commentaires de bilan pour toute la classe, mis sur les fiches des élèves (Escalade : module commun ; Volley, Danse : écrans propres)
+        for app, inst in (("escalade", "EPSTESC"), ("volley", "EPSTV"), ("danse", "EPSTD")):
+            await p.goto(B + app + "/"); await p.wait_for_timeout(4200)
+            await p.evaluate(inst + ".go('eval')"); await p.wait_for_timeout(500); await p.evaluate(inst + ".evGo('fin')"); await p.wait_for_timeout(1500)
+            if app == "danse": await p.evaluate("(function(){var x=[].filter.call(document.querySelectorAll('*'),function(e){return e.children.length===0&&/D.MO \\(fictive\\)/.test(e.textContent)&&e.offsetParent})[0];if(x)x.click()})()"); await p.wait_for_timeout(1200)
+            cl = await p.evaluate("(function(){var b=[].filter.call(document.querySelectorAll('button'),function(b){return b.offsetParent&&/Commentaires de bilan/.test(b.getAttribute('aria-label')||'')})[0];if(b)b.click();return !!b})()"); await p.wait_for_timeout(900)
+            if not cl or not await p.evaluate("!!document.getElementById('epse-phw')"): ok(app + " : bouton « ✨ Commentaires de bilan » et sa fenêtre", False, cl); continue
+            await p.evaluate("document.querySelector('#epse-phw [data-go]').click()"); await p.wait_for_timeout(3500)
+            n1 = await p.evaluate("[].filter.call(document.querySelectorAll('#epse-phw textarea'),function(t){return /sérieux/.test(t.value)}).length")
+            await p.evaluate("document.querySelector('#epse-phw [data-all]').click()"); await p.wait_for_timeout(300); await p.evaluate("document.querySelector('#epse-phw [data-ok]').click()"); await p.wait_for_timeout(600)
+            n2 = await p.evaluate("(function(){var x=(window.EPSE_INST||[])[0],A=x.A,c=A.classes().filter(function(c){return /D.MO/.test(c.nom)})[0];return c.eleves.filter(function(E){return /sérieux/.test(A.comment(E))}).length})()")
+            ok(app + " : " + str(n1) + " commentaires proposés, " + str(n2) + " mis sur les fiches des élèves", n1 > 0 and n2 == n1, (n1, n2, await p.evaluate("document.querySelector('#epse-phw [data-msg]').textContent")))
         ok("aucune erreur de page", not errs, errs)
         await b.close()
     print(("✅ " if all(out) else "❌ ") + str(sum(out)) + " / " + str(len(out)))

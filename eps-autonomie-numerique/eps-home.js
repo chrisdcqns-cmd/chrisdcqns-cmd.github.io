@@ -1734,7 +1734,7 @@
     check: function () { check(); },
     restoreAll: function () { return restoreAll(); },
     publish: function (o) { publish(o); }, bilLink: function () { return bilLink(); }, bilans: function (c) { bilans(c); },
-    bulletin: function (c) { bulletin(c); }, pool: function (L, fn, chaque) { return pool(L || [], fn, chaque); },
+    bulletin: function (c) { bulletin(c); }, fenetre: function (id, titre, html) { return win(id, titre, html); }, pool: function (L, fn, chaque) { return pool(L || [], fn, chaque); },
     copier: function (t) { return copyTxt(String(t || "")); }, copyBtn: function () { return cpBtn(); },
     genre: { get: function (n) { return gnGet(n); }, set: function (n, g) { gnSet(n, g); }, btn: function (n) { return gnBtn(n); }, prenom: function (n) { return prenomDe(n); } },
     syncSoon: function () { clearTimeout(timer); timer = setTimeout(sync, 4000); },

@@ -228,6 +228,9 @@ Quand l'enseignant demande une nouvelle appli, elle reprend **la même forme que
 - **Vue d'ensemble** (`overview()`) : jamais la classe fictive.
 - **Barres allégées** : « 📥 Trame proposée » (nom de la trame au survol), « 🏦 Banque & apprentissages » seulement dans 📚 Bibliothèque ; Relais : action « 📱 Écran des élèves » retirée (elle renvoyait vers Suivi).
 
+## ✨ Commentaires de bilan pour toute la classe (28/11/2026)
+- eps-eval.js `M.phrasesClasse(classe, élèves)` : bouton « ✨ Bilans » (libellé court pour tenir sur la ligne des trois modes ; nom complet « Commentaires de bilan » en infobulle) à gauche de « Appréciations de bulletin » (`M.classBtnsHtml`, Danse : `#evPhr`) ; fenêtre `EPSD.fenetre` (= `win`, pas un pop-up), un commentaire proposé par élève évalué (`M.phraseNotes`, mode `fiche`, `EPSD.pool`), relu et coché, puis « ✓ Mettre sur les fiches » → `A.setComment(E, texte)` (commentaire de la fiche PDF, du bilan en ligne). **Tout adaptateur `EPSE.create` fournit `setComment`** (fait : store, Volley, Badminton, Danse, Relais). Brouillons locaux `eps.phrbil.<appli>`. Rien n'est écrit sans le bouton. Le bouton « Appréciations de bulletin » reste général (toutes activités).
+
 ## 🎯 Proposition d'après les résultats du critère (28/11/2026)
 - eps-eval.js `M.prop` : la source « situations » (cochée par défaut avec « auto ») lit d'abord les situations rattachées au critère (`EPSLC.sitsFor(cr)` : cases « Critères d'évaluation travaillés » ou mot-clé), sinon celles des critères du même AFL, sinon toutes (`serieSitK`, `clesCrit`) ; une appli peut ajouter ses résultats propres par `A.resultat(cr, E, classe)` → 0 à 1. Toujours une proposition (jaune) : rien n'est enregistré sans « ✓ Reprendre ces degrés ».
 

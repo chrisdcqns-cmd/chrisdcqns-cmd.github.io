@@ -3277,7 +3277,7 @@ var EVB=window.EPSE?EPSE.create({app:'bad',nom:'Badminton',ca:'CA4',color:'#0B7A
  max:(cr,e)=>maxPts(B().criteres.find(x=>x.id===cr.id)||cr,e),
  classes:()=>S.classes,voie:()=>S.voie,name:e=>({nom:e.nom||'',prenom:e.prenom||''}),
  prof:(cr,e)=>{const c0=B().criteres.find(x=>x.id===cr.id)||cr,v=e.ev&&e.ev[c0.id];if(!v||v.d==null)return null;const [lo,hi]=band(c0,e,v.d),p=critPts(c0,e);return{d:v.d,pos:hi>lo?Math.max(0,Math.min(1,(p-lo)/(hi-lo))):.5,pts:p}},
- note:e=>note20(e),absent:e=>isAbs(e)?e.statut:'',comment:e=>e.comment||'',
+ note:e=>note20(e),absent:e=>isAbs(e)?e.statut:'',comment:e=>e.comment||'',setComment:(e,t)=>{e.comment=t;save()},
  extras:(c,e)=>{const x=[];['AFL1','AFL2','AFL3','AFLP1','AFLP2'].forEach(a=>{const r=aflPts(e,a);if(r)x.push(a+' : '+fr(r.pts)+' / '+fr(r.max))});return x},
  getAp:e=>e.ap||null,setAp:(e,ap)=>{e.ap=ap;save()},
   /* saisie rapide commune (par critère / par groupe) et « ✓ Reprendre ces degrés » de la proposition ; groupes = groupes de la classe */

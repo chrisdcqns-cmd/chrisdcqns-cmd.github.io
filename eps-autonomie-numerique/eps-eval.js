@@ -797,8 +797,34 @@
     function qMax(cr, E) { try { if (A.max && E) return A.max(cr, E); } catch (e) {} return +cr.max || 0; }
     /* 📝 Appréciations de bulletin et 📋 Export Pronote de l'évaluation finale (demande du 27/11/2026) : à droite de la barre
        « Élève par élève · Par critère · Par groupe », dans toutes les applis ; plus dans la fiche de l'élève */
-    M.classBtnsHtml = function () { return '<button type="button" data-bul>📝 Appréciations de bulletin</button><button type="button" data-pnall>📋 Export Pronote</button>'; };
-    M.bindClassBtns = function (root, cls, list) { var b = root.querySelector("[data-bul]"), p = root.querySelector("[data-pnall]");
+    M.classBtnsHtml = function () { return (A.setComment ? '<button type="button" data-phrall title="Un commentaire de bilan proposé pour chaque élève de la classe, à relire puis à mettre sur les fiches" aria-label="Commentaires de bilan">✨ Bilans</button>' : "") + '<button type="button" data-bul>📝 Appréciations de bulletin</button><button type="button" data-pnall>📋 Export Pronote</button>'; };
+    /* ✨ Commentaires de bilan pour toute la classe (demande de l'enseignant, 28/11/2026 : des bilans proposés « sans que j'aie grand-chose à faire », que
+       l'élève retrouve) : pour chaque élève évalué, Claude propose le commentaire de sa fiche (même consigne que « ✨ Proposer une phrase pour l'élève »,
+       plusieurs à la fois) ; l'enseignant relit, corrige, coche, puis « ✓ Mettre sur les fiches » l'écrit dans le commentaire de l'élève (A.setComment) :
+       il figure alors sur sa fiche PDF, son bilan en ligne et son espace. Rien n'est écrit sans ce bouton. Brouillons gardés sur la tablette. */
+    M.phrasesClasse = function (cls, list) {
+      if (!(window.EPSD && EPSD.reformuler && EPSD.pool && EPSD.fenetre)) { toast("Module commun indisponible (recharge la page)"); return; }
+      var KB = "eps.phrbil." + A.app, B = {}; try { B = JSON.parse(localStorage.getItem(KB) || "{}") || {}; } catch (e) {} var R = B[cls] = B[cls] || {};
+      var L = (list || []).filter(function (E) { return !(A.absent && A.absent(E)); }), nomE = function (E) { var n = A.name(E); return ((n.prenom || "") + " " + (n.nom || "")).trim(); }, GO = false;
+      var old = document.getElementById("epse-phw"); if (old) old.remove();
+      var w = EPSD.fenetre("epse-phw", "✨ Commentaires de bilan · " + esc(cls), '<p class="m">Un commentaire proposé pour la fiche de chaque élève, d\'après son évaluation. Relis, corrige, coche ✓, puis mets-les sur les fiches : l\'élève le retrouve sur sa fiche PDF et son bilan en ligne.</p><div class="epsd-act" style="margin:0 0 8px"><button type="button" class="pri" data-go>✨ Proposer les commentaires</button><button type="button" data-all>☑ Tout cocher</button><button type="button" data-ok>✓ Mettre sur les fiches (cochés)</button></div><p class="m" data-msg></p><div data-l></div>');
+      var list0 = w.querySelector("[data-l]"), msg = w.querySelector("[data-msg]");
+      function save() { try { localStorage.setItem(KB, JSON.stringify(B)); } catch (e) {} }
+      function draw() { list0.innerHTML = L.map(function (E, i) { var n = nomE(E), r = R[n] || {}, cur = A.comment ? A.comment(E) : "", has = !!M.phraseNotes(E, cls);
+          return '<div style="border:1px solid #E6E1D6;border-radius:12px;padding:8px 12px;margin:0 0 8px"><label style="display:flex;gap:10px;align-items:center;font-weight:800;margin:0"><input type="checkbox" style="width:24px;height:24px;flex:none;margin:0" data-c="' + i + '"' + (r.ok ? " checked" : "") + "> " + esc(n) + (has ? "" : ' <span class="m" style="font-weight:400">(pas encore évalué)</span>') + (cur ? ' <span class="m" style="font-weight:400">· a déjà un commentaire</span>' : "") + '</label><textarea class="epsd-in" data-t="' + i + '" style="min-height:58px;margin-top:6px' + (r.ai && !r.ok ? ";background:#FFF8D6" : "") + '" placeholder="' + esc(cur || "Commentaire de bilan…") + '">' + esc(r.t || "") + "</textarea></div>"; }).join("") || '<p class="m">Aucun élève.</p>';
+        list0.querySelectorAll("[data-t]").forEach(function (ta) { ta.oninput = function () { var n = nomE(L[+ta.dataset.t]); R[n] = R[n] || {}; R[n].t = ta.value; R[n].ai = 0; ta.style.background = ""; save(); }; });
+        list0.querySelectorAll("[data-c]").forEach(function (cb) { cb.onchange = function () { var n = nomE(L[+cb.dataset.c]); R[n] = R[n] || {}; R[n].ok = cb.checked; save(); }; }); }
+      w.querySelector("[data-go]").onclick = function () { var b = this; if (GO) return; var P = L.filter(function (E) { var r = R[nomE(E)]; return M.phraseNotes(E, cls) && !(r && (r.ok || (r.t && !r.ai))); });
+        if (!P.length) { msg.textContent = "Rien à proposer : commentaires déjà écrits ou cochés, ou élèves pas encore évalués."; return; }
+        GO = true; b.disabled = true; msg.textContent = "Claude rédige 0 / " + P.length + "…";
+        EPSD.pool(P, function (E) { return EPSD.reformuler(M.phraseNotes(E, cls), { mode: "fiche", act: A.nom, ctx: "Phrase de bilan pour l'élève, à partir de son évaluation" }).then(function (t) { R[nomE(E)] = { t: String(t || "").trim(), ai: 1, ok: false }; save(); var i = L.indexOf(E), ta = list0.querySelector('[data-t="' + i + '"]'); if (ta && document.activeElement !== ta) { ta.value = R[nomE(E)].t; ta.style.background = "#FFF8D6"; } }); },
+          function (f, N) { msg.textContent = "Claude rédige " + f + " / " + N + "…"; }).then(function (errs) { GO = false; b.disabled = false; draw(); msg.textContent = (P.length - errs.length ? "✓ " + (P.length - errs.length) + " proposition(s) en jaune : relis, corrige et coche ✓." : "") + (errs.length ? " ⚠ " + errs.length + " non rédigée(s) (" + errs[0] + ")." : ""); }); };
+      w.querySelector("[data-all]").onclick = function () { L.forEach(function (E) { var r = R[nomE(E)]; if (r && r.t) r.ok = true; }); save(); draw(); };
+      w.querySelector("[data-ok]").onclick = function () { var n = 0; L.forEach(function (E) { var k = nomE(E), r = R[k]; if (r && r.ok && r.t && r.t.trim()) { try { A.setComment(E, r.t.trim()); n++; delete R[k]; } catch (e) {} } }); save(); draw();
+        msg.textContent = n ? "✓ " + n + " commentaire(s) mis sur les fiches : ils figurent sur la fiche PDF et le bilan en ligne de l'élève (📤 Bilan et export pour publier)." : "Coche d'abord les commentaires à garder."; };
+      draw(); };
+    M.bindClassBtns = function (root, cls, list) { var b = root.querySelector("[data-bul]"), p = root.querySelector("[data-pnall]"), ph = root.querySelector("[data-phrall]");
+      if (ph) ph.onclick = function () { M.phrasesClasse(cls, typeof list === "function" ? list() : list); };
       if (b) b.onclick = function () { if (window.EPSD && EPSD.bulletin) EPSD.bulletin(cls); else toast("Appréciations indisponibles (recharge la page)"); };
       if (p) p.onclick = function () { M.pronoteAll(cls, list); }; };
     M.mode = function () { return Q.mode; };
@@ -910,7 +936,7 @@
     var A = { app: o.app, nom: o.nom, ca: o.ca, color: o.color, icon: o.icon, pfx: o.pfx, code: o.code, url: o.url, gridFor: gridFor,
       grid: function () { var G = grid(); G.criteres.forEach(function (cr) { if (!cr.descEl) cr.descEl = cr.desc; }); return G; },
       classes: classes, name: function (e) { return { nom: e.nom, prenom: e.prenom }; }, prof: prof, note: note,
-      absent: function (e) { return rec(e._c, e).st || ""; }, comment: function (e) { return rec(e._c, e).comm || ""; },
+      absent: function (e) { return rec(e._c, e).st || ""; }, comment: function (e) { return rec(e._c, e).comm || ""; }, setComment: function (e, t) { var r = rec(e._c, e); r.comm = t; save(e._c, e, r); },
       setDeg: function (cr, e, d) { var r = rec(e._c, e); r.ev = r.ev || {}; if (d == null) delete r.ev[cr.id]; else r.ev[cr.id] = { d: d, pos: .5 }; save(e._c, e, r); },
       setProf: function (cr, e, v) { var r = rec(e._c, e); r.ev = r.ev || {}; if (r.ev[cr.id] || !v || v.d == null) return; r.ev[cr.id] = { d: v.d, pos: v.pos == null ? .5 : v.pos }; save(e._c, e, r); },
       extras: function (c, e) { try { return o.extras ? o.extras(c, e) : []; } catch (x) { return []; } },
