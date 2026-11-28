@@ -270,7 +270,12 @@ body.dense .pg{padding:12px 16px 30px}body.dense .card{padding:10px 12px}body.de
           x = d.createElement("span"); x.id = "epsc-x"; x.setAttribute("data-eps-a11y-h", "0");
           x.innerHTML = '<button type="button" data-c="nav" title="Menu de la console" aria-label="Menu de la console">☰</button><button type="button" data-c="tab" title="Ouvrir l\'appli dans un onglet" aria-label="Ouvrir dans un onglet">↗</button><button type="button" data-c="rl" title="Recharger l\'appli" aria-label="Recharger l\'appli">↻</button><button type="button" data-c="ai" title="Assistant Claude" aria-label="Assistant Claude">🤖</button>';
           if (lum(S.parentNode, w) > 0.6) x.className = "cl";
+          /* la barre de l'appli est poussée à droite (margin-left:auto, Step, Cross-training…) : les boutons de la console vont avec elle, à droite,
+             au lieu de rester collés au titre (remarque de l'enseignant, 28/11/2026) */
+          var pv = S.previousElementSibling, gap = pv ? S.getBoundingClientRect().left - pv.getBoundingClientRect().right : 0;
           S.parentNode.insertBefore(x, S);
+          var ps = w.getComputedStyle(S.parentNode); gap -= parseFloat(ps.columnGap) || 0;
+          if (ps.display.indexOf("flex") >= 0) { x.style.marginLeft = gap > 14 ? "auto" : Math.max(0, Math.round(gap)) + "px"; S.style.marginLeft = "6px"; }
           x.addEventListener("click", function (e) { var b = e.target.closest("[data-c]"); if (!b) return; var c = b.dataset.c;
             if (c === "nav") $("#navT").click(); else if (c === "tab") window.open("../" + cur.app + "/", "_blank", "noopener"); else if (c === "rl") fr.src = fr.src; else if (c === "ai") $("#aiBtn").click(); });
         }
