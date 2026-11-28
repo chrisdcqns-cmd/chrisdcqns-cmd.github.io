@@ -91,6 +91,16 @@ button{font:inherit;color:inherit}
 .mrow{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,.8fr) 64px 44px;gap:6px;align-items:center;margin-top:6px}
 .mrow input{height:40px;border-radius:10px;border:2px solid var(--line);padding:0 8px;font:600 15px system-ui,sans-serif;min-width:0}
 .mrow input[type=color]{padding:2px;width:64px}
+/* 🧪 propositions (brouillons d'emploi du temps) */
+.pw{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.pw{grid-template-columns:1fr}}
+.pl .it{display:flex;gap:8px;align-items:center;padding:7px 4px;border-top:1px solid var(--line);font-size:14px}.pl .it:first-child{border-top:0}
+.pl .it .n{flex:1;min-width:0}.pl .it b{font-size:15px}
+.pb{font-size:14px;margin:4px 0;padding:6px 10px;border-radius:10px;background:#FDE3DF;color:#9C2B10;font-weight:700}
+.pb.ok{background:#DFF1E6;color:#1E5A37}
+.slots{display:flex;flex-wrap:wrap;gap:6px;max-height:38vh;overflow:auto;margin-top:8px}
+.slots button{height:38px;border-radius:10px;border:2px solid var(--line);background:#fff;font-weight:700;padding:0 10px;cursor:pointer}
+.link{border:0;background:none;color:var(--muted);text-decoration:underline;font-weight:700;cursor:pointer;font-size:14px;padding:6px}
 /* séquences */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
 .card{background:#fff;border-radius:18px;padding:14px;box-shadow:0 3px 0 var(--line)}
@@ -199,9 +209,9 @@ function render(){
   var h=head(true);
   h+='<div class="chips noprint">'+D.T.map(function(t){return'<button class="chip'+(U.moi===t[0]?" on":"")+'" data-moi="'+esc(t[0])+'"><i class="dot" style="background:'+t[1]+'"></i>'+esc(t[0])+"</button>";}).join("")+"</div>";
   if(!U.moi){app.innerHTML=h+'<div class="empty"><h2>Qui es-tu ?</h2><p>Choisis ton prénom ci-dessus : il sera retenu sur cette tablette.</p></div>';bind();return;}
-  h+='<div class="tabs noprint">'+[["sem","Ma semaine"],["grille","Grille"],["inst","Installations"],["seq","Mes séquences"],["cfg","✏️ Configurer"]].map(function(t){return'<button data-tab="'+t[0]+'" class="'+(U.tab===t[0]?"on":"")+'">'+t[1]+"</button>";}).join("")+"</div>";
-  if(U.tab!=="seq"&&U.tab!=="cfg")h+=weekNav();
-  h+=U.tab==="sem"?vSem():U.tab==="grille"?vGrille():U.tab==="inst"?vInst():U.tab==="cfg"?vCfg():vSeq();
+  h+='<div class="tabs noprint">'+[["sem","Ma semaine"],["grille","Grille"],["inst","Installations"],["seq","Mes séquences"],["cfg","✏️ Configurer"]].concat(U.tab==="prop"?[["prop","🧪 Propositions"]]:[]).map(function(t){return'<button data-tab="'+t[0]+'" class="'+(U.tab===t[0]?"on":"")+'">'+t[1]+"</button>";}).join("")+"</div>";
+  if(U.tab!=="seq"&&U.tab!=="cfg"&&U.tab!=="prop")h+=weekNav();
+  h+=U.tab==="sem"?vSem():U.tab==="grille"?vGrille():U.tab==="inst"?vInst():U.tab==="cfg"?vCfg():U.tab==="prop"?vProp():vSeq();
   h+='<p style="color:var(--muted);font-size:13px;margin-top:18px" class="noprint">Planning de l\'équipe importé depuis Planif EPS le '+new Date(D.gen).toLocaleDateString("fr-FR")+' · année '+esc(D.annee)+'.</p>';
   app.innerHTML=h;bind();
 }
@@ -401,7 +411,7 @@ function vCfg(){
     h+='<div class="card"><h3>'+DAYS[d]+'</h3>'+rs.map(function(r){var w=cw,s=st(r,w);for(var k=cw;k<D.w.length&&!(s=st(r,k),s.k==="cours");k++);
       var now=s.k==="cours"?esc(s.t)+" "+ib(s.i):'<span style="color:var(--muted)">plus de cours prévu</span>';
       return'<div class="crs"><span class="sw" style="width:10px;height:30px;border-radius:5px;flex:none;background:'+(r.t?tcol(r.t):"#ccc")+'"></span><div class="n"><b>'+esc(r.c)+'</b>'+(r.f!=="H"?' <span class="pill">Q'+r.f+"</span>":"")+"<div>"+fr(r.s,r.e)+" · "+esc(r.t||"—")+" · "+now+'</div></div><button class="ed" data-ed="'+esc(String(r.id))+'" aria-label="Modifier le cours" style="border:0;background:none;font-size:20px;cursor:pointer">✏️</button></div>';}).join("")+"</div>";}
-  return h+"</div>"+(R.length?"":'<div class="empty">Aucun cours</div>');
+  return h+"</div>"+(R.length?"":'<div class="empty">Aucun cours</div>')+'<p style="text-align:center;margin-top:18px" class="noprint"><button class="link" data-tab="prop">🧪 Propositions d\'emploi du temps (brouillons pour l\'an prochain ou une nouvelle répartition)</button></p>';
 }
 function manList(title,items,cols,save){
   var o=document.createElement("div");o.className="ov";var L=clone(items);
@@ -442,6 +452,153 @@ function manEns(){
 }
 function exporter(){var x=clone(D);x.type="eps-edt";x.gen=Date.now();var t=JSON.stringify(x);
   try{var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"application/json"}));a.download="emploi-du-temps-eps.json";document.body.appendChild(a);a.click();a.remove();toast("Fichier enregistré ✓");}catch(e){toast("Export impossible");}}
+/* ======== 🧪 Propositions d'emploi du temps (onglet discret, 28/11/2026 : retravailler une répartition sans toucher au vrai emploi du temps) ========
+   Brouillons gardés sur l'appareil (eps.edt.props.v1, export / import en fichier) : cours placés + cours à répartir (d = null),
+   options (capacité des installations, forfait, mercredi après-midi, pause de midi) et indisponibilités par enseignant.
+   🎲 Répartir place les cours restants sur les créneaux qui ne créent aucun conflit ; « Appliquer » écrit le brouillon dans l'emploi du temps
+   à partir d'une semaine (avec ↩ Annuler possible). */
+var KB="eps.edt.props.v1";
+function bAll(){try{var x=JSON.parse(localStorage.getItem(KB)||"null");return x&&Array.isArray(x.list)?x:{list:[]};}catch(e){return{list:[]};}}
+function bSave(A){try{localStorage.setItem(KB,JSON.stringify(A));}catch(e){toast("Enregistrement impossible");}}
+function bCur(){var A=bAll();return A.list.filter(function(b){return b.id===A.cur;})[0]||A.list[0]||null;}
+function bPut(B){var A=bAll(),k=A.list.findIndex(function(x){return x.id===B.id;});B.at=Date.now();if(k<0)A.list.push(B);else A.list[k]=B;A.cur=B.id;bSave(A);}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function bOpt(B){var o=B.opt=B.opt||{};if(o.forfait==null)o.forfait=17;if(o.mer==null)o.mer=1;if(o.midi==null)o.midi=1;if(o.h0==null)o.h0=8;if(o.h1==null)o.h1=18;if(o.am==null)o.am=14;o.cap=o.cap||{};o.ind=o.ind||{};return o;}
+function bNew(from){var B={id:uid(),nom:"Proposition "+(bAll().list.length+1),C:[],opt:{}};bOpt(B);
+  if(from!=null){var seen={};[from,from+1].forEach(function(w){if(w>=D.w.length)return;ROWS.forEach(function(r){var s=st(r,w);if(s.k!=="cours"&&s.k!=="ccf")return;if(seen[r.id])return;seen[r.id]=1;
+      var li=s.k==="ccf"?lesson(r,w):null;B.C.push({id:uid(),c:r.c,t:r.t||"",d:r.d,s:r.s,e:r.e,f:r.f,i:s.k==="cours"?s.i:(li&&li.sq?li.sq.i:null),act:s.k==="cours"?s.t:(li&&li.sq?li.sq.t:"")});});});
+    B.nom="Depuis la semaine du "+fdate(wd(from,0));}
+  return B;}
+function ovl(a,b){return a.d===b.d&&a.d!=null&&a.s<b.e&&b.s<a.e&&(a.f==="H"||b.f==="H"||a.f===b.f);}
+function sameCls(a,b){var p=function(x){return String(x).toUpperCase().split(/[\/+,&]| ET /).map(function(y){return y.trim();}).filter(Boolean);};var A=p(a),Bb=p(b);return A.some(function(x){return Bb.indexOf(x)>=0;});}
+function probs(B,x){var o=bOpt(B),P=[];if(x.d==null)return P;
+  B.C.forEach(function(y){if(y===x||y.d==null||!ovl(x,y))return;
+    if(x.t&&y.t===x.t)P.push("👤 "+x.t+" a déjà "+y.c+" ("+fr(y.s,y.e)+")");
+    if(sameCls(x.c,y.c))P.push("👥 "+y.c+" a déjà cours ("+(y.t||"?")+", "+fr(y.s,y.e)+")");});
+  if(x.i!=null){var cap=+(o.cap[x.i]||1);for(var t=x.s;t<x.e;t+=0.5){var n=1;B.C.forEach(function(y){if(y!==x&&y.d===x.d&&y.i===x.i&&y.s<=t&&y.e>t&&(x.f==="H"||y.f==="H"||x.f===y.f))n++;});
+      if(n>cap){P.push("🏟 "+iShort(x.i)+" : "+n+" classes pour "+cap+" place"+(cap>1?"s":""));break;}}}
+  if(o.mer&&x.d===2&&x.e>12.5)P.push("Mercredi après-midi");
+  if(o.midi&&x.s<o.am&&x.e>12)P.push("Pause de midi (cours avant "+fh(o.am)+")");
+  if(x.s<o.h0||x.e>o.h1)P.push("Hors des horaires ("+fh(o.h0)+"–"+fh(o.h1)+")");
+  ((o.ind[x.t]||[])).forEach(function(z){var dd=+z[0],p=z[1];if(dd!==x.d)return;if(p==="j"||(p==="m"&&x.s<12.5)||(p==="a"&&x.e>12.5))P.push("⛔ "+x.t+" indisponible ("+DAYS[dd]+" "+(p==="j"?"journée":p==="m"?"matin":"après-midi")+")");});
+  return P.filter(function(v,k,a){return a.indexOf(v)===k;});}
+function slotsFor(B,x){var o=bOpt(B),dur=(x.e-x.s)||2,L=[];
+  for(var d=0;d<5;d++)for(var s0=o.h0;s0+dur<=o.h1;s0+=0.5){var y={};for(var k in x)y[k]=x[k];y.d=d;y.s=s0;y.e=s0+dur;var save=x;
+    var i=B.C.indexOf(save);if(i>=0)B.C[i]=y;var p=probs(B,y);if(i>=0)B.C[i]=save;if(!p.length)L.push([d,s0,s0+dur]);}
+  return L;}
+function hoursOf(B,t){var h=0;B.C.forEach(function(y){if(y.t===t&&y.d!=null)h+=(y.e-y.s)*(y.f==="H"?1:.5);});return h;}
+function vProp(){
+  var A=bAll(),B=bCur();
+  var h='<div class="ibar noprint"><select id="b-sel" class="btn sm" style="height:38px">'+A.list.map(function(b){return'<option value="'+b.id+'"'+(B&&b.id===B.id?" selected":"")+">"+esc(b.nom)+"</option>";}).join("")+(A.list.length?"":"<option>Aucune proposition</option>")+'</select>'+
+    '<button class="btn sm p" data-bp="new">＋ Nouvelle proposition</button>'+(B?'<button class="btn sm" data-bp="ren">✏️ Renommer</button><button class="btn sm" data-bp="dup">⧉ Copier</button><button class="btn sm" data-bp="opt">⚙ Options et requêtes</button><button class="btn sm" data-bp="exp">📤</button>':"")+'<button class="btn sm" data-bp="imp">📥</button>'+(B?'<button class="btn sm" data-bp="del" style="border-color:#C0392B;color:#C0392B">Supprimer</button>':"")+'<span style="flex:1"></span><button class="link" data-tab="cfg">← Retour</button></div>';
+  if(!B)return h+'<div class="empty"><h2>Aucune proposition</h2><p>Une proposition est un brouillon : elle ne change pas l\'emploi du temps tant que tu ne l\'appliques pas.</p></div>';
+  var o=bOpt(B),todo=B.C.filter(function(x){return x.d==null;}),bad=B.C.filter(function(x){return x.d!=null&&probs(B,x).length;});
+  if(U.bv==null)U.bv="jour";if(U.bd==null)U.bd=0;
+  h+='<div class="pw"><div>';
+  h+='<div class="card pl"><h3>À répartir <small>· '+todo.length+'</small></h3>'+(todo.length?todo.map(function(x){return'<div class="it"><div class="n"><b>'+esc(x.c)+"</b> "+fh(x.e-x.s).replace(/^0h/,"")+(x.f!=="H"?" · Q"+x.f:"")+"<div>"+esc(x.t||"enseignant ?")+(x.act?" · "+esc(x.act):"")+(x.i!=null?" · "+esc(iShort(x.i)):"")+'</div></div><button class="btn sm" data-bpl="'+x.id+'">Placer</button><button class="ed" data-bed="'+x.id+'" aria-label="Modifier">✏️</button></div>';}).join(""):'<p style="color:var(--muted);margin:6px 0">Tout est placé.</p>')+
+    '<div class="acts"><button class="btn sm" data-bp="add">＋ Cours à répartir</button>'+(todo.length?'<button class="btn sm p" data-bp="auto">🎲 Répartir</button>':"")+"</div></div>";
+  h+='<div class="card" style="margin-top:12px"><h3>Vérifications</h3>'+(bad.length?bad.map(function(x){return'<div class="pb" data-bed="'+x.id+'" style="cursor:pointer">'+esc(x.c)+" · "+DSH[x.d]+" "+fr(x.s,x.e)+" : "+esc(probs(B,x).join(" · "))+"</div>";}).join(""):'<div class="pb ok">Aucun conflit</div>')+
+    '<div style="margin-top:8px;font-size:14px">'+D.T.map(function(t){var hh=hoursOf(B,t[0]),df=hh-o.forfait;return'<div style="display:flex;gap:6px;align-items:center;padding:2px 0"><i class="dot" style="background:'+t[1]+'"></i><span style="flex:1">'+esc(t[0])+'</span><b>'+String(hh).replace(".",",")+" h</b> "+(hh?'<span class="pill '+(df>0?"o":df<0?"":"ok")+'">'+(df>0?"+"+String(df).replace(".",",")+" HS":df<0?String(df).replace(".",","):"forfait")+"</span>":"")+"</div>";}).join("")+'<div style="color:var(--muted);font-size:13px;margin-top:4px">Forfait de cours : '+o.forfait+' h (quinzaine = ½)</div></div>'+
+    '<div class="acts"><button class="btn sm p" data-bp="apply">✓ Appliquer à l\'emploi du temps…</button></div></div>';
+  h+='</div><div>';
+  h+='<div class="ibar"><div class="seg">'+[["jour","📅 Par jour"],["ens","👤 Par enseignant"]].map(function(t){return'<button data-bv="'+t[0]+'" class="'+(U.bv===t[0]?"on":"")+'">'+t[1]+"</button>";}).join("")+'</div><button class="btn sm" data-bp="add2">＋ Cours</button></div>';
+  var it=function(x){return{r:{id:"b"+x.id,c:x.c,t:x.t,s:x.s,e:x.e,f:x.f,d:x.d},i:x.i==null?-1:x.i,act:x.act,ccf:0,bad:probs(B,x).length};},L=B.C.filter(function(x){return x.d!=null;}).map(it);
+  if(U.bv==="ens"){if(!U.bt)U.bt=U.moi||(D.T[0]||[])[0];
+    h+='<div class="chips">'+D.T.map(function(t){return'<button class="chip sm'+(U.bt===t[0]?" on":"")+'" data-bt="'+esc(t[0])+'"><i class="dot" style="background:'+t[1]+'"></i>'+esc(t[0])+"</button>";}).join("")+"</div>";
+    h+=iGrid([0,1,2,3,4],DSH.map(function(d){return'<div class="h">'+d+"</div>";}),L.filter(function(x){return x.r.t===U.bt;}),function(x){return x.r.d;});
+  }else{
+    h+='<div class="chips">'+DAYS.map(function(d,k){return'<button class="chip sm'+(U.bd===k?" on":"")+'" data-bd="'+k+'">'+d+"</button>";}).join("")+"</div>";
+    var Ld=L.filter(function(x){return x.r.d===U.bd;}),cs=[];Ld.forEach(function(x){if(cs.indexOf(x.i)<0)cs.push(x.i);});cs.sort(function(a,b){return(a<0?999:a)-(b<0?999:b);});
+    h+=cs.length?iGrid(cs,cs.map(function(i){var c=iCol(i);return'<div class="h ih" style="background:'+c+";color:"+txt(c)+'">'+esc(iShort(i))+"</div>";}),Ld,function(x){return x.i;}):'<div class="empty">Aucun cours ce jour</div>';
+  }
+  return h+'<p style="color:var(--muted);font-size:13px">Brouillon gardé sur cet appareil ; le vrai emploi du temps ne change qu\'avec « Appliquer ». Un cours en conflit est entouré de rouge : touche-le pour le modifier.</p></div></div>';
+}
+function bEdit(B,x,isNew){
+  var o=document.createElement("div");o.className="ov";
+  o.innerHTML='<div class="box"><h3>'+(isNew?"＋ Cours":"✏️ "+esc(x.c))+'</h3><div class="fm">'+
+    '<label>Classe / groupe<input id="b-c" value="'+esc(x.c)+'"></label>'+
+    '<label>Enseignant<select id="b-t"><option value="">— à décider</option>'+D.T.map(function(t){return'<option'+(t[0]===x.t?" selected":"")+">"+esc(t[0])+"</option>";}).join("")+'</select></label>'+
+    '<label>Jour<select id="b-d"><option value="">— à répartir</option>'+DAYS.map(function(v,i){return'<option value="'+i+'"'+(i===x.d?" selected":"")+">"+v+"</option>";}).join("")+'</select></label>'+
+    '<label>Fréquence<select id="b-f">'+[["H","Chaque semaine"],["A","Semaine A"],["B","Semaine B"]].map(function(v){return'<option value="'+v[0]+'"'+(v[0]===x.f?" selected":"")+">"+v[1]+"</option>";}).join("")+'</select></label>'+
+    '<label>Début<select id="b-s">'+hopts(+x.s,7,18)+'</select></label><label>Fin<select id="b-e">'+hopts(+x.e,7.5,19)+'</select></label>'+
+    '<label>Activité<input id="b-a" list="b-acts" value="'+esc(x.act||"")+'"><datalist id="b-acts">'+D.acts.map(function(a){return"<option>"+esc(a)+"</option>";}).join("")+'</datalist></label>'+
+    '<label>Lieu<select id="b-i">'+lopt(x.i==null?"":x.i)+'</select></label></div>'+
+    '<div id="b-pb"></div><div class="acts">'+(isNew?"":'<button class="btn" id="b-del" style="border-color:#C0392B;color:#C0392B">Supprimer</button>')+'<span style="flex:1"></span><button class="btn" data-x>Annuler</button><button class="btn p" id="b-ok">Enregistrer</button></div></div>';
+  document.body.appendChild(o);var q=function(k){return o.querySelector("#"+k);};
+  o.addEventListener("click",function(e){if(e.target===o||e.target.closest("[data-x]"))o.remove();});
+  q("b-ok").onclick=function(){var c=q("b-c").value.trim(),s0=+q("b-s").value,e0=+q("b-e").value;if(!c){toast("Indique la classe");return;}if(e0<=s0){toast("L'heure de fin doit être après le début");return;}
+    x.c=c;x.t=q("b-t").value;x.d=q("b-d").value===""?null:+q("b-d").value;x.s=s0;x.e=e0;x.f=q("b-f").value;x.act=q("b-a").value.trim();x.i=q("b-i").value===""?null:+q("b-i").value;
+    if(isNew)B.C.push(x);bPut(B);o.remove();render();var p=probs(B,x);if(p.length)toast("⚠ "+p[0]);};
+  if(!isNew)q("b-del").onclick=function(){B.C=B.C.filter(function(y){return y!==x;});bPut(B);o.remove();render();};
+}
+function bPlace(B,x){var L=slotsFor(B,x),o=document.createElement("div");o.className="ov";
+  o.innerHTML='<div class="box"><h3>Placer '+esc(x.c)+'</h3><p>'+esc(x.t||"enseignant à décider")+" · "+fh(x.e-x.s).replace(/^0h/,"")+(x.i!=null?" · "+esc(iName(x.i)):"")+" : créneaux sans conflit.</p>"+
+    (L.length?'<div class="slots">'+L.map(function(z,k){return'<button data-k="'+k+'">'+DSH[z[0]]+" "+fr(z[1],z[2])+"</button>";}).join("")+"</div>":'<div class="pb">Aucun créneau libre avec ces contraintes. Change l\'enseignant, le lieu, la durée ou les options.</div>')+
+    '<div class="acts"><button class="btn" data-x>Fermer</button><button class="btn" id="b-ed">✏️ Modifier le cours</button></div></div>';
+  document.body.appendChild(o);o.addEventListener("click",function(e){if(e.target===o||e.target.closest("[data-x]"))o.remove();var b=e.target.closest("[data-k]");if(!b)return;var z=L[+b.dataset.k];x.d=z[0];x.s=z[1];x.e=z[2];bPut(B);o.remove();render();toast("Placé ✓ "+DSH[z[0]]+" "+fr(z[1],z[2]));});
+  o.querySelector("#b-ed").onclick=function(){o.remove();bEdit(B,x);};}
+function bAuto(B){var todo=B.C.filter(function(x){return x.d==null;}),n=0,miss=[];
+  todo.map(function(x){return{x:x,n:slotsFor(B,x).length};}).sort(function(a,b){return a.n-b.n;}).forEach(function(z){var L=slotsFor(B,z.x);if(!L.length){miss.push(z.x.c);return;}
+    /* préférence : le matin, puis le jour le moins chargé pour l'enseignant */
+    L.sort(function(a,b){var ca=B.C.filter(function(y){return y.t===z.x.t&&y.d===a[0];}).length,cb=B.C.filter(function(y){return y.t===z.x.t&&y.d===b[0];}).length;return(a[1]>=12)-(b[1]>=12)||ca-cb||a[0]-b[0]||a[1]-b[1];});
+    z.x.d=L[0][0];z.x.s=L[0][1];z.x.e=L[0][2];n++;});
+  bPut(B);render();toast(n+" cours placé"+(n>1?"s":"")+(miss.length?" · sans créneau : "+miss.join(", "):""));}
+function bOptions(B){var o=bOpt(B),ov=document.createElement("div");ov.className="ov";
+  var ind=function(){return D.T.map(function(t){var L=o.ind[t[0]]||[];return'<div style="margin-top:8px"><b>'+esc(t[0])+'</b> '+L.map(function(z,k){return'<span class="pill" style="margin:2px">'+DSH[z[0]]+" "+(z[1]==="j"?"journée":z[1]==="m"?"matin":"après-midi")+' <button class="link" data-rmi="'+esc(t[0])+"|"+k+'" aria-label="Retirer" style="padding:0 2px">✕</button></span>';}).join("")+'</div>';}).join("");};
+  ov.innerHTML='<div class="box"><h3>⚙ Options et requêtes</h3><div class="fm">'+
+    '<label>Forfait de cours (h)<input id="o-f" inputmode="decimal" value="'+o.forfait+'"></label><label>Reprise l\'après-midi<select id="o-am">'+hopts(o.am,12.5,15)+'</select></label>'+
+    '<label>Premier cours<select id="o-h0">'+hopts(o.h0,7,10)+'</select></label><label>Fin des cours<select id="o-h1">'+hopts(o.h1,16,19)+'</select></label>'+
+    '<label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="o-mer" style="width:24px;height:24px"'+(o.mer?" checked":"")+'> Mercredi après-midi libre</label>'+
+    '<label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="o-midi" style="width:24px;height:24px"'+(o.midi?" checked":"")+'> Pas de cours entre 12h et la reprise</label></div>'+
+    '<h3 style="font-size:17px;margin-top:14px">🏟 Classes en même temps par installation</h3><div class="fm">'+D.inf.map(function(x,i){return'<label>'+esc(x[1]||x[2])+'<input data-cap="'+i+'" inputmode="numeric" value="'+(o.cap[i]||1)+'"></label>';}).join("")+'</div>'+
+    '<h3 style="font-size:17px;margin-top:14px">⛔ Requêtes des enseignants (indisponibilités)</h3><div class="tool"><select id="o-t">'+D.T.map(function(t){return"<option>"+esc(t[0])+"</option>";}).join("")+'</select><select id="o-d">'+DAYS.map(function(v,i){return'<option value="'+i+'">'+v+"</option>";}).join("")+'</select><select id="o-p"><option value="m">Matin</option><option value="a">Après-midi</option><option value="j">Journée</option></select><button class="btn sm p" id="o-add">Ajouter</button></div><div id="o-ind">'+ind()+'</div>'+
+    '<div class="acts"><span style="flex:1"></span><button class="btn" data-x>Annuler</button><button class="btn p" id="o-ok">Enregistrer</button></div></div>';
+  document.body.appendChild(ov);var q=function(k){return ov.querySelector("#"+k);};
+  ov.addEventListener("click",function(e){if(e.target===ov||e.target.closest("[data-x]")){ov.remove();return;}var r=e.target.closest("[data-rmi]");if(r){var p=r.dataset.rmi.split("|");(o.ind[p[0]]||[]).splice(+p[1],1);q("o-ind").innerHTML=ind();}});
+  q("o-add").onclick=function(){var t=q("o-t").value;(o.ind[t]=o.ind[t]||[]).push([+q("o-d").value,q("o-p").value]);q("o-ind").innerHTML=ind();};
+  q("o-ok").onclick=function(){var f=parseFloat(String(q("o-f").value).replace(",","."));if(!isFinite(f)||f<0){toast("Forfait : un nombre");return;}
+    o.forfait=f;o.am=+q("o-am").value;o.h0=+q("o-h0").value;o.h1=+q("o-h1").value;o.mer=q("o-mer").checked?1:0;o.midi=q("o-midi").checked?1:0;
+    var okc=true;ov.querySelectorAll("[data-cap]").forEach(function(i){var v=parseInt(i.value,10);if(!(v>=1)){okc=false;return;}o.cap[i.dataset.cap]=v;});if(!okc){toast("Capacité : un nombre entier, 1 au moins");return;}
+    bPut(B);ov.remove();render();};}
+function bApply(B){var todo=B.C.filter(function(x){return x.d==null;}).length,bad=B.C.filter(function(x){return x.d!=null&&probs(B,x).length;}).length,ov=document.createElement("div");ov.className="ov";
+  ov.innerHTML='<div class="box"><h3>✓ Appliquer « '+esc(B.nom)+' »</h3><p>À partir de la semaine choisie, les cours de l\'emploi du temps sont remplacés par ceux de la proposition (une activité et un lieu par cours, à affiner ensuite dans ✏️ Configurer). Les semaines d\'avant ne changent pas. ↩ Annuler reste possible.</p>'+
+    (todo?'<div class="pb">'+todo+" cours encore à répartir (ils seront ignorés)</div>":"")+(bad?'<div class="pb">'+bad+" cours en conflit</div>":"")+
+    '<div class="fm"><label class="full">À partir de la semaine du<select id="a-w">'+wopt(curW())+'</select></label></div><div class="acts"><span style="flex:1"></span><button class="btn" data-x>Annuler</button><button class="btn p" id="a-ok">Appliquer</button></div></div>';
+  document.body.appendChild(ov);ov.addEventListener("click",function(e){if(e.target===ov||e.target.closest("[data-x]"))ov.remove();});
+  ov.querySelector("#a-ok").onclick=function(){var w0=+ov.querySelector("#a-w").value,D2=clone(D),nw=D2.w.length;
+    D2.R.forEach(function(r){var c=String(r[6]).split(",");for(var w=w0;w<nw;w++)c[w]="";r[6]=c.join(",");});
+    D2.R=D2.R.filter(function(r){return String(r[6]).split(",").some(function(t){return t;});});
+    var add=getAdd().filter(function(a){return a.w0<w0;}).map(function(a){if(a.w1>=w0)a.w1=w0-1;return a;});
+    B.C.forEach(function(x){if(x.d==null)return;var ti=-1;D2.T.forEach(function(t,k){if(t[0]===x.t)ti=k;});var ai=actIdx(D2,x.act),c=[];
+      for(var w=0;w<nw;w++)c.push(w<w0||(x.f!=="H"&&par(w)!==x.f)?"":cellStr({k:"cours",a:ai,i:x.i}));D2.R.push([x.d,x.s,x.e,ti,x.c,x.f,c.join(",")]);});
+    ov.remove();U.tab="cfg";commit(D2,add);toast("Proposition appliquée ✓ (↩ Annuler possible)");};}
+function pBind(){var B=bCur();
+  var sel=document.getElementById("b-sel");if(sel)sel.onchange=function(){var A=bAll();A.cur=sel.value;bSave(A);render();};
+  app.querySelectorAll("[data-bv]").forEach(function(b){b.onclick=function(){U.bv=b.dataset.bv;render();};});
+  app.querySelectorAll("[data-bd]").forEach(function(b){b.onclick=function(){U.bd=+b.dataset.bd;render();};});
+  app.querySelectorAll("[data-bt]").forEach(function(b){b.onclick=function(){U.bt=b.dataset.bt;render();};});
+  var byId=function(id){return B.C.filter(function(x){return x.id===id;})[0];};
+  app.querySelectorAll("[data-bpl]").forEach(function(b){b.onclick=function(){bPlace(B,byId(b.dataset.bpl));};});
+  app.querySelectorAll("[data-bed]").forEach(function(b){b.onclick=function(){bEdit(B,byId(b.dataset.bed));};});
+  app.querySelectorAll("[data-io]").forEach(function(b){var x=byId(String(b.dataset.io).slice(1));if(!x)return;if(probs(B,x).length)b.style.outline="3px solid #C0392B";b.onclick=function(){bEdit(B,x);};});
+  app.querySelectorAll("[data-bp]").forEach(function(b){b.onclick=function(){var k=b.dataset.bp;
+    if(k==="new"){var ov=document.createElement("div");ov.className="ov";ov.innerHTML='<div class="box"><h3>＋ Nouvelle proposition</h3><p>Partir de l\'emploi du temps d\'une semaine (ses cours sont recopiés dans le brouillon), ou d\'une proposition vide.</p><div class="fm"><label class="full">Semaine de départ<select id="n-w"><option value="">Proposition vide</option>'+wopt(curW())+'</select></label></div><div class="acts"><span style="flex:1"></span><button class="btn" data-x>Annuler</button><button class="btn p" id="n-ok">Créer</button></div></div>';
+      document.body.appendChild(ov);ov.addEventListener("click",function(e){if(e.target===ov||e.target.closest("[data-x]"))ov.remove();});
+      ov.querySelector("#n-w").value=String(curW());
+      ov.querySelector("#n-ok").onclick=function(){var v=ov.querySelector("#n-w").value;bPut(bNew(v===""?null:+v));ov.remove();render();};}
+    else if(k==="ren"){var n=prompt("Nom de la proposition",B.nom);if(n&&n.trim()){B.nom=n.trim();bPut(B);render();}}
+    else if(k==="dup"){var B2=clone(B);B2.id=uid();B2.nom=B.nom+" (copie)";bPut(B2);render();}
+    else if(k==="del"){if(!confirm("Supprimer la proposition « "+B.nom+" » ?"))return;var A=bAll();A.list=A.list.filter(function(x){return x.id!==B.id;});A.cur=A.list[0]?A.list[0].id:null;bSave(A);render();}
+    else if(k==="opt")bOptions(B);
+    else if(k==="add")bEdit(B,{id:uid(),c:"",t:"",d:null,s:8,e:10,f:"H",i:null,act:""},true);
+    else if(k==="add2")bEdit(B,{id:uid(),c:"",t:U.bv==="ens"?U.bt:"",d:U.bv==="jour"?U.bd:0,s:8,e:10,f:"H",i:null,act:""},true);
+    else if(k==="auto")bAuto(B);
+    else if(k==="apply")bApply(B);
+    else if(k==="exp"){var t=JSON.stringify({type:"eps-edt-prop",p:B});var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"application/json"}));a.download="proposition-edt.json";document.body.appendChild(a);a.click();a.remove();}
+    else if(k==="imp"){var f=document.createElement("input");f.type="file";f.accept=".json,application/json";f.onchange=function(){var r=new FileReader();r.onload=function(){var x=null;try{x=JSON.parse(r.result);}catch(e){}
+        if(!x||x.type!=="eps-edt-prop"||!x.p||!Array.isArray(x.p.C)){toast("Ce n'est pas une proposition exportée");return;}x.p.id=uid();bPut(x.p);render();toast("Proposition importée ✓");};r.readAsText(f.files[0]);};f.click();}
+  };});
+}
 function legend(){return'<div class="lg">'+D.inf.map(function(x){return"<span><i style=\"background:"+x[3]+"\"></i>"+esc(x[2])+"</span>";}).join("")+'<span><i style="background:#E5323B"></i>CCF</span><span><i style="background:#B48CE0"></i>AS</span></div>';}
 function bind(){
   app.querySelectorAll("[data-moi]").forEach(function(b){b.onclick=function(){U.moi=b.dataset.moi;try{localStorage.setItem(KM,U.moi);}catch(e){}render();};});
@@ -453,6 +610,7 @@ function bind(){
   app.querySelectorAll("[data-ii]").forEach(function(b){b.onclick=function(){U.ii=+b.dataset.ii;render();};});
   app.querySelectorAll("[data-io]").forEach(function(b){b.onclick=function(){iDetail(b.dataset.io);};});
   app.querySelectorAll("[data-add]").forEach(function(b){b.onclick=function(){editCourse(null);};});
+  if(U.tab==="prop")pBind();
   app.querySelectorAll("[data-ed]").forEach(function(b){b.onclick=function(){editCourse(b.dataset.ed);};});
   app.querySelectorAll("[data-cft]").forEach(function(b){b.onclick=function(){U.cft=b.dataset.cft;render();};});
   app.querySelectorAll("[data-cfg]").forEach(function(b){b.onclick=function(){var k=b.dataset.cfg;if(k==="inf")manInf();else if(k==="ens")manEns();else if(k==="undo")undo();else if(k==="exp")exporter();};});
