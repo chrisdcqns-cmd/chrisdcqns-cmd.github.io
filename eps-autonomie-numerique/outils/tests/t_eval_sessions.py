@@ -29,8 +29,20 @@ async def main():
         pre = nom.split(" ")[0]
         await p.evaluate("""([cl,pre])=>{[['5b',9,9,8,14],['5c',9,7,10,15],['4c',9,9,9,12]].forEach(function(x,i){R.push({id:'t'+i,ts:'2026-11-2'+i+' 10:0'+i,cl:cl,el:pre,vo:i+1,c:'bleu',d:x[0],h:x[1],ann:x[2],m:x[3],p:x[4]})});EPSTESC.go('eval')}""", [cl, pre]); await p.wait_for_timeout(1200)
         t = await p.evaluate(FICHE)
-        ok("bloc « Ses résultats » avec les grimpes", "Ses résultats" in t and "grimpées" in t and "meilleure voie réussie" in t and "5c" in t, t[:400])
-        ok("détail des grimpes", "Voir ses grimpes (3)" in t, t[:500])
+        ok("bloc « Ses résultats » : grimpes, meilleure voie", "Ses résultats" in t and "3 grimpes sur 3 leçons" in t and "meilleure voie réussie" in t and "5c" in t, t[:400])
+        ok("coefficient par leçon (×1, ×2, ×3) et tableau par leçon", "coefficient ×1, ×2, ×3" in t and await p.evaluate("document.querySelectorAll('.epse-fiche [data-restab] tbody tr').length") == 3, t[:600])
+        await p.click(".epse-fiche [data-resall]"); await p.wait_for_timeout(500)
+        w = await p.evaluate("(function(){var w=document.getElementById('epse-resw');return w?w.innerText:''})()")
+        ok("fenêtre « toutes ses grimpes, une par une », par leçon", "coefficient ×3" in w and "corde 2" in w and "Top" in w and w.count("📅") == 3, w[:500])
+        await p.screenshot(path="/tmp/t/eval-grimpes.png")
+        await p.click("#epse-resw [data-x2]"); await p.wait_for_timeout(200)
+        ok("fenêtre refermée par « ✕ Fermer »", not await p.evaluate("!!document.getElementById('epse-resw')"))
+        await p.click(".epse-fiche [data-rsc='last']"); await p.wait_for_timeout(600); t2 = await p.evaluate(FICHE)
+        ok("« Leçon finale seulement » : une seule leçon comptée", "1 grimpe" in t2 and await p.evaluate("document.querySelectorAll('.epse-fiche [data-restab] tbody tr').length") == 1, t2[:300])
+        await p.click(".epse-fiche [data-rsc='all']"); await p.wait_for_timeout(600)
+        # même prénom : le prénom seul ne suffit plus, « Prénom + initiale » oui
+        hm = await p.evaluate("""([cl,pre])=>{var k=CL.find(function(c){return c.nom==cl});var a={prenom:pre,nom:'Démo'},n0=evMine(cl,a).length;k.el.push(pre+' Martin');var n1=evMine(cl,a).length;R.push({id:'tz',ts:'2026-11-25 09:00',cl:cl,el:pre+' D.',vo:1,d:'4a',h:9});var n2=evMine(cl,a).length,n3=evMine(cl,{prenom:pre,nom:'Martin'}).length;k.el.pop();R.pop();return [n0,n1,n2,n3]}""", [cl, pre])
+        ok("même prénom dans la classe : grimpes non mélangées " + str(hm), hm[0] == 3 and hm[1] == 0 and hm[2] == 1 and hm[3] == 0, hm)
         pr = await p.evaluate("EVESC && document.querySelectorAll('.epse-fiche [data-recap]').length")
         ok("auto-positionnement / proposition rappelés sur les critères (" + str(pr) + ")", pr and pr >= 1, pr)
         ok("bloc élève conservé : phrase, Dicter / Reformuler", "Proposer une phrase pour l'élève" in t, t[-400:])
@@ -59,10 +71,47 @@ async def main():
         await p.click("[data-sescur]"); await p.wait_for_timeout(600)
         n3 = await p.evaluate("document.querySelectorAll('.epse-fiche .epse-deg.on').length")
         ok("retour à l'évaluation en cours (vide)", n3 == 0, n3)
+        # ---- fiche PDF : auto-positionnement déjà fait (pas d'erreur à la génération)
+        await p.select_option("[data-ses]", index=1); await p.wait_for_timeout(700)   # l'ancienne évaluation porte l'auto-positionnement de la classe fictive
+        await p.evaluate("(function(){var c=EVESC.classes().filter(function(x){return /DÉMO/.test(x.nom)})[0],e=c.eleves[0],G=EVESC.adapter.grid(),ev={};G.criteres.forEach(function(cr,i){ev[cr.id]={d:(i+1)%4,pos:.5}});EVESC.adapter.setAp(e,{ev:ev})})()")
+        async with p.expect_download(timeout=20000) as dl:
+            await p.click(".epse-fiche [data-pdf]")
+        d = await dl.value; await d.save_as("/tmp/t/fiche.pdf")
+        ok("fiche PDF générée", d.suggested_filename.endswith(".pdf"))
+        await p.click("[data-sescur]"); await p.wait_for_timeout(500)
         # ---- une autre appli du modèle commun
         await p.goto(B + "basket/"); await p.wait_for_timeout(4200); await p.evaluate("EPSTBK.go('eval')"); await p.wait_for_timeout(1500)
         tb = await p.evaluate(FICHE)
         ok("Basket : même fiche (résultats, nouvelle évaluation)", "Ses résultats" in tb and await p.evaluate("!!document.querySelector('[data-sesnew]')"), tb[:300])
+        # ---- Volley, Badminton, Danse, Relais : nouvelle évaluation, ancienne rouverte, bloc résultats
+        # on pose un commentaire « lundi » sur le premier élève, puis on compte les fiches qui le portent
+        POSE = {"volley": "(function(){C().eleves[0].comment='lundi';save()})()", "badminton": "(function(){C().eleves[0].comment='lundi';save()})()",
+                "danse": "(function(){curClasse().eleves[0].comm='lundi';save()})()", "relais": "(function(){evOf(CL().eleves[0].id).comm='lundi';persist()})()"}
+        NOTES = {"volley": "C().eleves.filter(function(e){return e.comment==='lundi'}).length", "badminton": "C().eleves.filter(function(e){return e.comment==='lundi'}).length",
+                 "danse": "curClasse().eleves.filter(function(e){return e.comm==='lundi'}).length", "relais": "CL().eleves.filter(function(e){return (CL().evals[e.id]||{}).comm==='lundi'}).length"}
+        for app, inst in (("volley", "EPSTV"), ("badminton", "EPSTB"), ("danse", "EPSTD"), ("relais", "EPSTR")):
+            await p.goto(B + app + "/"); await p.wait_for_timeout(4500); await p.evaluate(inst + ".go('eval')"); await p.wait_for_timeout(1800)
+            try: await p.evaluate(inst + ".evGo('fin')"); await p.wait_for_timeout(1500)
+            except Exception: pass
+            if not await p.evaluate("!!document.querySelector('[data-asesnew]')"):   # choisir d'abord la classe fictive
+                await p.evaluate("(function(){var L=[].filter.call(document.querySelectorAll('button,.card,[onclick],b'),function(e){return e.offsetParent&&/DÉMO \\(fictive\\)/.test(e.textContent)&&e.textContent.length<200});if(L.length)L[L.length-1].click()})()"); await p.wait_for_timeout(1800)
+            if not await p.evaluate("!!document.querySelector('[data-asesnew]')") and app == "badminton":
+                await p.evaluate("(function(){S.cur=S.classes.findIndex(function(c){return /DÉMO/.test(c.nom)});showTab('eval');openEval(0)})()"); await p.wait_for_timeout(1200)
+            has = await p.evaluate("!!document.querySelector('[data-asesnew]')&&!!document.querySelector('[data-ases]')")
+            ok(app + " : liste « Évaluation » et « ＋ Nouvelle évaluation »", has)
+            if not has: continue
+            await p.evaluate(POSE[app]); n0 = await p.evaluate(NOTES[app])
+            await p.evaluate("document.querySelector('[data-asesnew]').click()"); await p.wait_for_timeout(400)
+            await p.fill("#epse-sesd [data-n]", "Jeudi"); await p.click("#epse-sesd [data-ok]"); await p.wait_for_timeout(1500)
+            n1 = await p.evaluate(NOTES[app]); op = await p.evaluate("[].map.call(document.querySelectorAll('[data-ases] option'),function(o){return o.textContent})")
+            ok(app + " : la nouvelle part de zéro (" + str(n0) + " → " + str(n1) + ")", n0 > 0 and n1 == 0 and len(op) == 2 and "Jeudi" in op[0], [n0, n1, op])
+            await p.evaluate("(function(){var s=document.querySelector('[data-ases]');s.value=s.options[1].value;s.onchange()})()"); await p.wait_for_timeout(1500)
+            n2 = await p.evaluate(NOTES[app])
+            ok(app + " : ancienne évaluation rouverte (" + str(n2) + ")", n2 == n0 and await p.evaluate("!!document.querySelector('[data-asescur]')"), n2)
+            await p.evaluate("document.querySelector('[data-asescur]').click()"); await p.wait_for_timeout(1500)
+            n3 = await p.evaluate(NOTES[app])
+            ok(app + " : retour à l'évaluation en cours (vide)", n3 == 0, n3)
+            await p.evaluate("(function(){var s=document.querySelector('[data-ases]');s.value=s.options[1].value;s.onchange()})()"); await p.wait_for_timeout(1200)
         ok("aucune erreur de page", not errs, errs)
         await b.close()
     srv.terminate(); print(str(sum(out)) + " / " + str(len(out))); sys.exit(0 if all(out) else 1)

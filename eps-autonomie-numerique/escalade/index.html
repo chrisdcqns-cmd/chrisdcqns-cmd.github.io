@@ -1664,20 +1664,30 @@ sync();
 syncSoon(800);
 /* évaluation commune (eps-eval.js) : grille par degrés, auto-positionnement par QR code, fiches PDF au format Danse / Volley-ball.
    Grille proposée (CA2, lycée), modifiable dans Évaluation → Grille ; données « eps.eval.esc.v1 », synchronisées entre tablettes. */
-/* Grimpes d'un élève de la liste commune : les grimpes sont rangées par prénom (r.el), on rapproche « Prénom », « Prénom Nom », « Nom Prénom », « Prénom N ». */
-const evNz=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-function evMine(cl,e){const p=evNz(e.prenom),n=evNz(e.nom),K=[p,(p+' '+n).trim(),(n+' '+p).trim(),(p+' '+n.charAt(0)).trim()].filter(Boolean);return R.filter(r=>(r.cl||'')==(cl||'')&&K.includes(evNz(r.el))).sort((a,b)=>a.ts<b.ts?-1:1)}
-function evGrimpes(cl,e){const L=evMine(cl,e);if(!L.length)return null;
- const tops=L.filter(r=>Number(r.h)==TOP).length,best=bestOk(L),rp=L.map(rpR).filter(x=>x!=null),Q=L.filter(r=>isNum(r.ann)&&dgOf(r)!=null),chips=[[String(L.length),pw(L.length,'voie')+' '+pw(L.length,'grimpée')],[tops+' ('+Math.round(tops/L.length*100)+' %)','Top'+(tops>1?'s':'')]];
+/* Grimpes d'un élève de la liste commune. Les grimpes sont rangées sous le nom touché dans la liste (r.el = nom complet) ; sans liste, l'élève a écrit son prénom.
+   Même prénom dans la classe (demande de l'enseignant, 28/11/2026 : ne pas mélanger les élèves) : le prénom seul ne suffit plus, il faut le nom complet ou
+   « Prénom + première(s) lettre(s) du nom » (« Hugo D », « Hugo D. », « Hugo Du »). */
+const evNz=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(),evTk=s=>evNz(s).split(' ').filter(Boolean).sort().join(' ');
+function evMine(cl,e){const p=evNz(e.prenom),n=evNz(e.nom),full=evTk(e.prenom+' '+e.nom),k=CL.find(c=>c.nom==cl),autres=((k&&k.el)||[]).filter(x=>evTk(x)!=full),seul=!autres.some(x=>(' '+evNz(x)+' ').includes(' '+p+' '));
+ const ok=x=>{const v=evNz(x);if(!v)return false;if(evTk(x)==full)return true;if(v==p)return seul;
+  if(n&&v.startsWith(p+' ')){const r=v.slice(p.length+1).replace(/ /g,''),nn=n.replace(/ /g,'');if(r&&nn.startsWith(r))return !autres.some(y=>{const t=evNz(y);return(' '+t+' ').includes(' '+p+' ')&&t.split(' ').some(w=>w!=p&&w.startsWith(r))})}
+  return false};
+ return R.filter(r=>(r.cl||'')==(cl||'')&&ok(r.el)).sort((a,b)=>a.ts<b.ts?-1:1)}
+/* 📊 bloc « Ses résultats » commun (eps-eval.js) : une ligne par grimpe, rangées par leçon avec leur coefficient ; les chiffres suivent la portée choisie */
+const evDay=r=>String(r.ts).slice(0,10);
+function evPoids(L){const K=window.EVESC&&EVESC.resCoef?EVESC.resCoef(L.map(evDay)):null;return L.map(r=>[r,K?(K[evDay(r)]||0):1]).filter(x=>x[1]>0)}
+const evMoy=(W,f)=>{let s=0,w=0;W.forEach(([r,k])=>{const v=f(r);if(v!=null&&isFinite(v)){s+=k*v;w+=k}});return w?s/w:null};
+function evGrimpes(e,cl){const L=evMine(cl,e);if(!L.length)return{nom:'grimpe',noms:'grimpes',items:[]};
+ const W=evPoids(L),S=W.map(x=>x[0]),best=bestOk(S),rp=evMoy(W,rpR),ec=evMoy(W,r=>isNum(r.ann)&&dgOf(r)!=null?Math.abs(dgOf(r)-Number(r.ann)):null),chips=[];
  if(best)chips.push([String(best),'meilleure voie réussie']);
- if(rp.length)chips.push([(rp.reduce((a,b)=>a+b,0)/rp.length).toFixed(1).replace('.',','),'pieds pour une main']);
- if(Q.length){const ec=Q.reduce((a,r)=>a+Math.abs(dgOf(r)-Number(r.ann)),0)/Q.length;chips.push([ec.toFixed(1).replace('.',',')+' dégaine'+(ec>=2?'s':''),"d'écart avec le projet annoncé"])}
- return{chips,titre:'Voir ses grimpes',lignes:L.slice().reverse().slice(0,12).map(r=>String(r.ts).slice(8,10)+'/'+String(r.ts).slice(5,7)+' · corde '+(r.vo||'?')+' · '+(r.d||'?')+' → '+(isNum(r.h)?(Number(r.h)==TOP?'Top':'dégaine '+r.h):'?')+(isNum(r.ann)?' (annoncé : '+hl(r.ann)+')':'')+(rpR(r)!=null?' · pieds / mains '+rpR(r).toFixed(1).replace('.',','):''))}}
-/* part de 0 à 1 proposée pour un critère d'après les grimpes ; null = rien à proposer */
-function evPropose(cr,e,cl){const L=evMine(cl,e);if(!L.length)return null;const id=String(cr.id||''),P=window.EPSP?EPSP.p:(o=>o.def);
+ if(rp!=null)chips.push([rp.toFixed(1).replace('.',','),'pieds pour une main']);
+ if(ec!=null)chips.push([ec.toFixed(1).replace('.',',')+' dégaine'+(ec>=2?'s':''),"d'écart avec le projet annoncé"]);
+ return{nom:'grimpe',noms:'grimpes',chips,items:L.map(r=>({day:evDay(r),ok:isNum(r.h)?(Number(r.h)==TOP?1:0):null,txt:String(r.ts).slice(11,16)+' · corde '+(r.vo||'?')+' · '+(r.d||'?')+' → '+(isNum(r.h)?(Number(r.h)==TOP?'Top':'dégaine '+r.h):'?')+(isNum(r.ann)?' (annoncé : '+hl(r.ann)+')':'')+(rpR(r)!=null?' · pieds / mains '+rpR(r).toFixed(1).replace('.',','):'')}))}}
+/* part de 0 à 1 proposée pour un critère d'après les grimpes (pondérées par le coefficient de leur leçon) ; null = rien à proposer */
+function evPropose(cr,e,cl){const W=evPoids(evMine(cl,e));if(!W.length)return null;const L=W.map(x=>x[0]),id=String(cr.id||''),P=window.EPSP?EPSP.p:(o=>o.def);
  if(id=='dif'){const b=bestOk(L);if(!b)return null;const S=P({id:'esc_eval_cotations',sec:'Évaluation',label:'Proposition « difficulté » : plus petite cotation réussie des degrés 2, 3 et 4',type:'list',def:['4c','5b','6a'],aide:'Une par ligne. En dessous de la première : degré 1.'});let d=0;(Array.isArray(S)?S:['4c','5b','6a']).slice(0,3).forEach((c,i)=>{if(gk(b)>=gk(c))d=i+1});return(d+.5)/4}
- if(id=='mot'||id=='pro-p2'){const rp=L.map(rpR).filter(x=>x!=null);if(!rp.length)return null;const m=rp.reduce((a,b)=>a+b,0)/rp.length;return Math.max(0,Math.min(1,(m-.5)/1.5))}
- if(id=='prep'||id=='pro-p1'){const Q=L.filter(r=>isNum(r.ann)&&dgOf(r)!=null);if(!Q.length)return null;const ec=Q.reduce((a,r)=>a+Math.abs(dgOf(r)-Number(r.ann)),0)/Q.length;return ec<.5?.875:ec<=1?.625:ec<=2?.375:.125}
+ if(id=='mot'||id=='pro-p2'){const m=evMoy(W,rpR);return m==null?null:Math.max(0,Math.min(1,(m-.5)/1.5))}
+ if(id=='prep'||id=='pro-p1'){const ec=evMoy(W,r=>isNum(r.ann)&&dgOf(r)!=null?Math.abs(dgOf(r)-Number(r.ann)):null);return ec==null?null:ec<.5?.875:ec<=1?.625:ec<=2?.375:.125}
  return null}
 window.EVESC=window.EPSE?EPSE.store({
  /* 🛠 grille de la voie pro : reprise à la lettre du protocole CCF Bac pro de l'enseignant (ccf/src/protocoles.js, FCE_BacPro_CA2_Escalade_LP_CamilleClaudel_Fourmies_0590083V_Session_2024) */
@@ -1686,7 +1696,7 @@ app:'esc',nom:'Escalade',ca:'CA2',color:'#2E7D4F',pfx:'es',code:'ESC1',url:'http
  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-12 4 6 3-4 5 10z"/><path d="M14 4v6"/><circle cx="14" cy="3" r="1"/></svg>',
  isTeacher:()=>!!S.T,unlock:()=>Promise.resolve(unlock()),
  /* 📊 les grimpes de l'élève sur sa fiche d'évaluation, et 💡 ce qu'elles proposent (jamais enregistré sans « ✓ Reprendre ») */
- resultats:(c,e)=>evGrimpes(c.nom,e),resultat:(cr,e,cl)=>evPropose(cr,e,cl),
+ resultats:(e,cl)=>evGrimpes(e,cl),resultat:(cr,e,cl)=>evPropose(cr,e,cl),
  grid:{degres:['Degré 1','Degré 2','Degré 3','Degré 4'],degresEl:['Je débute','Je progresse','Je maîtrise','Je suis expert(e)'],criteres:[
   {id:'dif',afl:'AFL1',max:6,nom:'Difficulté de la voie réussie',but:"Grimper en tête ou en moulinette la voie la plus difficile possible, en sécurité.",nomEl:'La difficulté de mes voies',butEl:'Je réussis des voies de plus en plus difficiles, en sécurité.',
    desc:["Réussit des voies faciles (≤ 4b) avec des arrêts fréquents ; abandonne dès que la voie se complique.","Réussit des voies de niveau 4c-5a ; quelques chutes ou repos sur la corde dans les passages clés.","Réussit des voies de niveau 5b-5c, enchaîne la plupart des passages ; gère un repos utile.","Réussit des voies de niveau 6a et plus, à vue ou après repérage, sans repos sur la corde."],

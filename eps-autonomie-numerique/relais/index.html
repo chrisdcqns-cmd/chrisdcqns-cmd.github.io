@@ -510,7 +510,8 @@ body.stu-home #v-home.on{min-height:calc(100vh + 110px)}
 .evadj button{width:40px;height:40px;border-radius:10px;border:2px solid var(--ink);background:#fff;font-size:22px;font-weight:800}
 .evadj b{font-size:20px;min-width:52px;text-align:center}
 .evstu .evc{font-size:17px}
-.evtot{position:sticky;bottom:10px;margin-top:18px;background:var(--ink);color:#fff;border-radius:16px;padding:16px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+/* plus collé en bas de l'écran : il recouvrait la proposition et les critères (28/11/2026) */
+.evtot{margin-top:18px;background:var(--ink);color:#fff;border-radius:16px;padding:16px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:0 6px 18px rgba(0,0,0,.2)}
 .evtot .big{font-size:36px;font-weight:900}.evtot .det{font-size:15px;opacity:.85}
 .evinfo{margin-top:12px;color:var(--muted);font-size:15px}
 @media(max-width:820px){.evgrid{grid-template-columns:1fr 1fr}.evl{grid-column:1/-1}.evh{display:none}.evc .evdl{display:block}}
@@ -1478,6 +1479,13 @@ const frToIso=s=>{const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s||"");return m?`${
 const isoDate=iso=>new Date(iso+"T12:00:00");
 const fmtLong=iso=>isoDate(iso).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+/* 👥 Même prénom dans la classe (demande de l'enseignant, 28/11/2026) : là où seul le prénom s'affiche, on ajoute la ou les premières lettres du nom
+   (« Hugo D. », « Hugo Du. » si l'initiale ne suffit pas) pour ne pas mélanger les élèves. */
+function pnm(e){if(!e)return"";const p0=String(e.prenom||"");try{const k=x=>String(x||"").trim().toLowerCase(),p=k(e.prenom),n=String(e.nom||"").trim();if(!p||!n)return p0;
+  const L=((CL()&&CL().eleves)||[]).filter(x=>x!==e&&x.id!==e.id&&k(x.prenom)===p);if(!L.length)return p0;
+  for(let i=1;i<=n.length;i++){const a=k(n.slice(0,i));if(i===n.length||!L.some(x=>k(x.nom).slice(0,i)===a))return p0+" "+n.charAt(0).toUpperCase()+n.slice(1,i).toLowerCase()+(i<n.length?".":"")}
+  return p0}catch(x){return p0}}
+
 const fmtShort=iso=>isoDate(iso).toLocaleDateString("fr-FR");
 const DEFCFG={evRep:"4-4",evalOn:false,autoOn:false,autoReq:false,coachOn:false,goalOn:false,goalN:4,goalMode:"both",allPairs:false,zoneImg:true,ecart:true,zone:true,dep:true,pt:true,pm:true,zones:["Zone 1","Zone 2","Zone 3"],deps:["Debout","Trépied","Balancé"],nPT:10,nPM:10};
 /* Version précédente : les courses sont rangées dans des leçons selon leur date */
@@ -1660,7 +1668,7 @@ function openClassSettings(id){KEDIT=id;DATA.cur=id;DATA.lecon=null;persist();$(
 function drawClassGroups(){
   const C=DATA.classes.find(c=>c.id===KEDIT);if(!C)return;
   $("#k-gcount").textContent="("+C.groupes.length+")";
-  const nm=id=>{const e=C.eleves.find(x=>x.id===id);return e?e.prenom:""};
+  const nm=id=>{const e=C.eleves.find(x=>x.id===id);return e?pnm(e):""};
   $("#k-glist").innerHTML=C.groupes.map(g=>`<button class="gitem" data-kg="${g.id}"><h3>${esc(g.name)}<small>${g.members.filter(nm).length} élève(s)</small></h3><div class="names">${g.members.map(nm).filter(Boolean).sort((a,b)=>a.localeCompare(b,"fr")).map(n=>`<span>${esc(n)}</span>`).join("")}</div></button>`).join("")||`<div class="empty-msg" style="grid-column:1/-1">Aucun groupe habituel.</div>`;
 }
 $("#k-glist").addEventListener("click",e=>{const b=e.target.closest("[data-kg]");if(!b)return;DATA.cur=KEDIT;DATA.lecon=null;openGroupe(b.dataset.kg)});
@@ -1976,7 +1984,7 @@ function renderGroupes(){
   if(!GR().length){$("#glist").innerHTML=`<div class="card empty-msg" style="grid-column:1/-1">Aucun groupe pour l'instant. Touche « Créer un groupe » et sélectionne les élèves, ou continue sans groupe.</div>`;return}
   $("#glist").innerHTML=GR().map(g=>{const m=groupMembers(g);
     return `<button class="gitem" data-gedit="${g.id}"><h3>${esc(g.name)}<small>${m.length} élève${m.length>1?"s":""}</small></h3>
-    <div class="names">${m.map(e=>{const dz=dispOf(e)?`<i class="dz" title="${esc(dispTxt(e))}">🩹 ${esc(dispTxt(e).replace("dispensé(e) ",""))}</i>`:"";const az=absJ(e)?' style="text-decoration:line-through;opacity:.6" title="absent aujourd\'hui"':"";return isCoachE(e)&&coachOf(g.id)===e.id?`<span class="coach"${az}>🏅 ${esc(e.prenom)}${dz}</span>`:`<span${az}>${esc(e.prenom)}${dz}</span>`}).join("")||'<span style="background:none;color:var(--muted)">Aucun élève</span>'}</div>
+    <div class="names">${m.map(e=>{const dz=dispOf(e)?`<i class="dz" title="${esc(dispTxt(e))}">🩹 ${esc(dispTxt(e).replace("dispensé(e) ",""))}</i>`:"";const az=absJ(e)?' style="text-decoration:line-through;opacity:.6" title="absent aujourd\'hui"':"";return isCoachE(e)&&coachOf(g.id)===e.id?`<span class="coach"${az}>🏅 ${esc(pnm(e))}${dz}</span>`:`<span${az}>${esc(pnm(e))}${dz}</span>`}).join("")||'<span style="background:none;color:var(--muted)">Aucun élève</span>'}</div>
     <span class="edit">Modifier →</span></button>`}).join("");
 }
 let GEDIT=null,GSEL=new Set();
@@ -2059,8 +2067,8 @@ function renderCoach(){
     const roles=needBest(cfg)?bestRolesHTML(g):"";
     if(!cfg.coachOn){box.innerHTML=roles;return}
     const id=coachOf(g.id),e=id!=null?byId(id):null;
-    if(e)box.innerHTML=roles+`<div class="coachbar">${coachTag(esc(e.prenom))}<div class="ctxt"><b>Entraîneur du groupe ${esc(g.name)}</b><small>${COACH_MISSIONS}</small></div><button class="cchg" data-coachchg="${g.id}">Changer</button></div>`;
-    else box.innerHTML=`<div class="coachpick"><b>🏅 Désignez l'entraîneur de votre groupe</b><small>${COACH_MISSIONS}</small><div class="cpick">${groupMembers(g).filter(x=>x.ma!=="DISP"||true).map(x=>`<button data-coach="${x.id}" data-g="${g.id}">${esc(x.prenom)}</button>`).join("")}</div>${roles?`<div class="rpin">${roles}</div>`:""}</div>`;
+    if(e)box.innerHTML=roles+`<div class="coachbar">${coachTag(esc(pnm(e)))}<div class="ctxt"><b>Entraîneur du groupe ${esc(g.name)}</b><small>${COACH_MISSIONS}</small></div><button class="cchg" data-coachchg="${g.id}">Changer</button></div>`;
+    else box.innerHTML=`<div class="coachpick"><b>🏅 Désignez l'entraîneur de votre groupe</b><small>${COACH_MISSIONS}</small><div class="cpick">${groupMembers(g).filter(x=>x.ma!=="DISP"||true).map(x=>`<button data-coach="${x.id}" data-g="${g.id}">${esc(pnm(x))}</button>`).join("")}</div>${roles?`<div class="rpin">${roles}</div>`:""}</div>`;
   });
 }
 /* Objectif « dans son meilleur rôle » : chaque élève du groupe enregistre son meilleur rôle */
@@ -2070,9 +2078,9 @@ const needBest=cfg=>!!(cfg.goalOn&&cfg.goalMode==="best");
 const bestMissing=g=>groupMembers(g).filter(x=>x.ma!=="DISP"&&!x.best);
 function bestRolesHTML(g){
   const m=groupMembers(g).filter(x=>x.ma!=="DISP"),miss=bestMissing(g).length;
-  if(!miss&&!ROLE_EDIT[g.id])return `<div class="rolepick done compact"><b>🎯 Meilleurs rôles</b> ${m.map(e=>`<span class="rpchip">${esc(e.prenom)} · ${e.best==="D"?"donneur":"receveur"}</span>`).join("")}<button class="cchg rpchg" data-rolechg="${g.id}">Changer</button></div>`;
+  if(!miss&&!ROLE_EDIT[g.id])return `<div class="rolepick done compact"><b>🎯 Meilleurs rôles</b> ${m.map(e=>`<span class="rpchip">${esc(pnm(e))} · ${e.best==="D"?"donneur":"receveur"}</span>`).join("")}<button class="cchg rpchg" data-rolechg="${g.id}">Changer</button></div>`;
   return `<div class="rolepick ${miss?"":"done"}"><b>🎯 Ton meilleur rôle dans le relais</b><small>${miss?`Chacun choisit le rôle où il est le plus efficace : son objectif de courses se fera dans ce rôle. Encore ${miss} élève${miss>1?"s":""} à renseigner.`:"Tout le groupe a choisi son meilleur rôle ✓"}</small>
-    ${!miss?`<div style="margin:-4px 0 8px"><button class="cchg rpchg" data-roledone="${g.id}">✓ Terminé</button></div>`:""}<div class="rplist">${m.map(e=>`<div class="rprow"><span>${isCoachE(e)?"🏅 ":""}${esc(e.prenom)}</span><button data-best="D" data-e="${e.id}" class="${e.best==="D"?"on":""}">Donneur <small>coureur 1</small></button><button data-best="R" data-e="${e.id}" class="${e.best==="R"?"on":""}">Receveur <small>coureur 2</small></button></div>`).join("")}</div></div>`;
+    ${!miss?`<div style="margin:-4px 0 8px"><button class="cchg rpchg" data-roledone="${g.id}">✓ Terminé</button></div>`:""}<div class="rplist">${m.map(e=>`<div class="rprow"><span>${isCoachE(e)?"🏅 ":""}${esc(pnm(e))}</span><button data-best="D" data-e="${e.id}" class="${e.best==="D"?"on":""}">Donneur <small>coureur 1</small></button><button data-best="R" data-e="${e.id}" class="${e.best==="R"?"on":""}">Receveur <small>coureur 2</small></button></div>`).join("")}</div></div>`;
 }
 document.addEventListener("click",async e=>{
   const ch=e.target.closest("[data-rolechg]");
@@ -2106,7 +2114,7 @@ function renderGPicks(){
     +(teachOn()||!GR().length?`<button data-g="all" class="${CURG()==="all"?"on":""}">Toute la classe</button>`:"");
   const ds=poolFor().filter(e=>dispOf(e));
   const ab=poolFor().filter(absJ);
-  const dl=(ds.length?`<div class="displine">🩹 ${ds.map(e=>`<b>${esc(e.prenom)}</b> ${esc(dispTxt(e))}`).join(" · ")}</div>`:"")+(ab.length?`<div class="displine">🙋 Absent${ab.length>1?"s":""} : ${ab.map(e=>`<b>${esc(e.prenom)}</b>`).join(", ")}</div>`:"");
+  const dl=(ds.length?`<div class="displine">🩹 ${ds.map(e=>`<b>${esc(pnm(e))}</b> ${esc(dispTxt(e))}`).join(" · ")}</div>`:"")+(ab.length?`<div class="displine">🙋 Absent${ab.length>1?"s":""} : ${ab.map(e=>`<b>${esc(pnm(e))}</b>`).join(", ")}</div>`:"");
   ["#c-g","#r-g"].forEach(s=>$(s).innerHTML=html+dl);
   try{renderEvAlert()}catch(e){}
   try{renderSitDay()}catch(e){}
@@ -2224,7 +2232,7 @@ function renderPerf(){
   pool.forEach(e=>{
     if(e.ma==="DISP"){t+=`<tr class="disp"><td class="l"><b>${esc(e.prenom)}</b> <small>${esc(e.nom?e.nom[0]+".":"")}</small></td><td colspan="8" class="pdisp">dispensé</td></tr>`;return}
     const pend=PEND[e.id]&&(["a","l"].some(k=>(PEND[e.id][k]||[]).some(x=>x!=null)));
-    t+=`<tr class="${pend?"rpend":""}"><td class="l pn">${isCoachE(e)?coachTag("<b>"+esc(e.prenom)+"</b>"):"<b>"+esc(e.prenom)+"</b>"} <small>${esc(e.nom?e.nom[0]+".":"")}</small>
+    t+=`<tr class="${pend?"rpend":""}"><td class="l pn">${isCoachE(e)?coachTag("<b>"+esc(pnm(e))+"</b>"):"<b>"+esc(e.prenom)+"</b>"} <small>${esc(e.nom?e.nom[0]+".":"")}</small>
       ${pend?`<div class="pact"><button class="pok" data-val="${e.id}">✓ Valider</button><button class="pcan" data-can="${e.id}" aria-label="Annuler">↺</button></div>`:""}</td>
       ${[0,1,2].map(i=>cellHTML(e,"a",i)).join("")}${moyHTML(e,"a")}${[0,1,2].map(i=>cellHTML(e,"l",i)).join("")}${moyHTML(e,"l")}</tr>`;
   });
@@ -2955,7 +2963,7 @@ function ficheHTML(e){
     <h3>⏱ Vitesses <small>· prise de performances</small></h3>
     <div class="bstats"><div><b>${sp(e.ma)}</b><span>départ arrêté · essais : ${tr(e.ea)}</span></div><div><b>${sp(e.ml)}</b><span>départ lancé · essais : ${tr(e.el)}</span></div></div>
     <h3>🏃 Ses courses <small>· ${mine.length} course${mine.length>1?"s":""} sur ${new Set(mine.map(x=>x.date)).size} leçon${new Set(mine.map(x=>x.date)).size>1?"s":""}</small></h3>`;
-  if(!mine.length)h+=`<p class="note">Aucune course enregistrée au nom de ${esc(e.prenom)}.</p></div>`;
+  if(!mine.length)h+=`<p class="note">Aucune course enregistrée au nom de ${esc(pnm(e))}.</p></div>`;
   else{
     h+=`<div class="bstats"><div><b>${nD} · ${mine.length-nD}</b><span>donneur · receveur</span></div>
       <div><b>${ec.length?over+" / "+ec.length:"–"}</b><span>cible dépassée${ec.length?" ("+pc(over/ec.length)+")":""}</span></div>
@@ -3022,10 +3030,10 @@ const evSuggest=evStats;
 function pc(v){return Math.round(v*100)+" %"}
 function evStatsHTML(e,s){
   const seg=`<div class="evscope"><button data-evscope="all" class="${s.scope==="all"?"on":""}">Toutes ses leçons (dernières pondérées)</button><button data-evscope="last" class="${s.scope==="last"?"on":""}">Leçon finale seulement${s.scope==="last"&&s.last?" ("+fmtShort(s.last)+")":""}</button></div>`;
-  if(!s.n)return `<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale":"Toutes les courses"} de ${esc(e.prenom)}</div>${seg}<p>Aucune course enregistrée pour cet élève${s.scope==="last"?" lors de la leçon finale":""}.</p></div>`;
+  if(!s.n)return `<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale":"Toutes les courses"} de ${esc(pnm(e))}</div>${seg}<p>Aucune course enregistrée pour cet élève${s.scope==="last"?" lors de la leçon finale":""}.</p></div>`;
   const badge=(v)=>v>=EV_SEUIL?`<span class="evok">✓ majoritairement (≥ 70 %)</span>`:`<span class="evko">✗ moins de 70 %</span>`;
   const nl=s.les.length;
-  let h=`<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale du "+fmtShort(s.last)+" · "+esc(e.prenom):"Toutes les courses de "+esc(e.prenom)} · ${s.n} course${s.n>1?"s":""}${s.scope==="all"?" sur "+nl+" leçon"+(nl>1?"s":""):""}</div>${seg}
+  let h=`<div class="evred"><div class="evrt">📊 ${s.scope==="last"?"Leçon finale du "+fmtShort(s.last)+" · "+esc(pnm(e)):"Toutes les courses de "+esc(pnm(e))} · ${s.n} course${s.n>1?"s":""}${s.scope==="all"?" sur "+nl+" leçon"+(nl>1?"s":""):""}</div>${seg}
     ${s.scope==="all"?`<p class="evrs">Les dernières leçons comptent plus : coefficient ${s.les.map(l=>"×"+l.k).join(", ")}.</p>`:""}`;
   if(s.perf||s.trans)h+=`<div class="evsugg"><b>Positionnement suggéré d'après les résultats</b><ul>${s.perf?`<li><span class="dg d${s.perf}">${s.perf}</span> <b>Performance : degré ${s.perf} (${fmtP(s.perfPts)} / 6)</b> — ${s.perfWhy}</li>`:""}${s.trans?`<li><span class="dg d${s.trans}">${s.trans}</span> <b>Transmission : degré ${s.trans}</b> — ${s.transWhy}</li>`:""}</ul><button class="btn sm evapply" data-evapply="1">Appliquer la suggestion</button></div>`;
   h+=`<div class="evrg">`;
@@ -3038,7 +3046,7 @@ function evStatsHTML(e,s){
   return h;
 }
 function evNamesHTML(list,sel,mark){
-  const btn=e=>`<button data-eve="${e.id}" class="${sel===e.id?"on":""}">${esc(e.prenom)}${mark(e)}</button>`;
+  const btn=e=>`<button data-eve="${e.id}" class="${sel===e.id?"on":""}">${esc(pnm(e))}${mark(e)}</button>`;
   const gs=GR();
   if(gs.length&&list.length>8){const seen=new Set();let h="";
     gs.forEach(g=>{const m=groupMembers(g).filter(e=>list.includes(e)&&!seen.has(e.id));if(!m.length)return;m.forEach(e=>seen.add(e.id));h+=`<div class="evgt">${esc(g.name)}</div>`+m.map(btn).join("")});
@@ -3055,7 +3063,7 @@ function evGridHTML(mode,e){
   let h=`<div class="card mt ${prof?"":"evstu"}"><div class="label" style="font-size:22px">${esc(e.prenom)} ${prof?esc(e.nom):""}${prof?apChipRel(e):""}</div>${prof?`<div class="evst">${[["","Présent"],["ABS","Absent"],["DISP","Dispensé"]].map(([v,l])=>`<button data-evst="${v}" class="${st===v?"on":""}">${l}</button>`).join("")}</div>${st?`<div class="evstmsg">${evStLab(st,1)} : pas de note pour cette évaluation (${evStLab(st)} sur Pronote et dans les exports). Les degrés déjà cochés sont gardés.</div>`:""}`:""}${prof?'<div data-relprop></div>':""}
     <div class="evrep">${free?`<span>${prof?"Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :":"Je répartis 8 points entre Mise en projet et Vivre les rôles :"}</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
       :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts${prof?" (répartition fixée dans les réglages de la leçon)":""}</span>`}</div>
-    ${prof?evStatsHTML(e,sg):""}${prof?`<div class="evleg mt">${la?`<span><i></i>bleu : auto-positionnement de ${esc(e.prenom)}</span>`:""}${sg&&(sg.perf||sg.trans)?`<span><i class="r"></i>rouge : suggestion d'après les résultats</span>`:""}</div>`:""}
+    ${prof?evStatsHTML(e,sg):""}${prof?`<div class="evleg mt">${la?`<span><i></i>bleu : auto-positionnement de ${esc(pnm(e))}</span>`:""}${sg&&(sg.perf||sg.trans)?`<span><i class="r"></i>rouge : suggestion d'après les résultats</span>`:""}</div>`:""}
     <div class="evgrid ${st?"evoff":""}"><div></div>${[4,3,2,1].map(d=>`<div class="evh d${d}">Degré ${d}</div>`).join("")}`;
   EVE.forEach(x=>{const mx=evMax(x.k,rp),pt=evPts(sel,x.k,rp);
     h+=`<div class="evl">${x.t}<small>${x.s} · sur ${mx} pts</small>${pt!=null?`<span class="evp">${fmtP(pt)} / ${mx}</span>`:""}</div>`;
@@ -3404,7 +3412,7 @@ function renderCourses(sel,CS,cfg){
     const pr=cfg.allPairs?pairsTodo(gname,list):null;
     const gRow=goalsRow(gname,list,span,cfg);
     const gObj=GR().find(x=>x.name===gname),lec0=list[0]?CL().lecons.find(l=>l.id===list[0].lid):CLE(),cId=gObj?coachOf(gObj.id,lec0):undefined,cE=cId!=null?byId(cId):null;
-    h+=`<tr class="ghead"><td colspan="${span}">${esc(gname||"Sans groupe")}${cE?` <span class="coach sm">🏅 Entraîneur : ${esc(cE.prenom)}</span>`:""}<small>${list.length} course${list.length>1?"s":""}${pr?` · binômes faits ${pr.done}/${pr.total}`:""}</small></td></tr>`;
+    h+=`<tr class="ghead"><td colspan="${span}">${esc(gname||"Sans groupe")}${cE?` <span class="coach sm">🏅 Entraîneur : ${esc(pnm(cE))}</span>`:""}<small>${list.length} course${list.length>1?"s":""}${pr?` · binômes faits ${pr.done}/${pr.total}`:""}</small></td></tr>`;
     h+=gRow;
     const half=pr&&pr.total?pairsHalf(gname,list,pr,cfg):false;
     if(pr&&pr.total&&half)h+=`<tr class="pairs"><td colspan="${span}">${pr.todo.length?`<b>Binômes à faire (${pr.todo.length}) :</b><div class="todo">${pr.html.map(t=>`<span>${t}</span>`).join("")}</div>`:`<b class="alldone">✓ Toutes les personnes du groupe ont couru ensemble, dans les deux rôles.</b>`}</td></tr>`;
@@ -3451,8 +3459,8 @@ function goalHTML(e,role){
   const cfg=CFG();if(!cfg.goalOn||!e)return "";
   const s=goalStatus(e,cfg,CO());
   let warn="";
-  if(cfg.goalMode==="best"){const b=bestRole(e);if(b&&b.r!==role)warn=`<div class="gwarn">Attention : le meilleur rôle de ${esc(e.prenom)} est ${roleName(b.r)}. Cette course ne compte pas pour son objectif.</div>`}
-  return `<div class="ghead2">Objectif de ${esc(e.prenom)}${s.note?` · <span>${esc(s.note)}</span>`:""}${s.done?` <b class="gdone">✓ atteint</b>`:""}</div>`
+  if(cfg.goalMode==="best"){const b=bestRole(e);if(b&&b.r!==role)warn=`<div class="gwarn">Attention : le meilleur rôle de ${esc(pnm(e))} est ${roleName(b.r)}. Cette course ne compte pas pour son objectif.</div>`}
+  return `<div class="ghead2">Objectif de ${esc(pnm(e))}${s.note?` · <span>${esc(s.note)}</span>`:""}${s.done?` <b class="gdone">✓ atteint</b>`:""}</div>`
     +s.lines.map(([l,v,n])=>`<div class="gline"><span>${esc(l)}</span><div class="gbar"><i style="width:${Math.min(100,v/n*100)}%" class="${v>=n?"full":""}"></i></div><b>${Math.min(v,n)}/${n}</b></div>`).join("")+warn;
 }
 /* rappel de l'objectif de la leçon sur la page de saisie (pour ne pas se laisser surprendre par le temps) */
@@ -3464,7 +3472,7 @@ function renderGoalReminder(){
   let rest="";
   if(g){const all=groupMembers(g).filter(e=>e.ma!=="DISP"),m=all.filter(e=>!dispOf(e)&&!absJ(e));
     const left=m.map(e=>{const s=goalStatus(e,cfg,CO());const n=s.lines.reduce((t,[l,v,n])=>t+Math.max(0,n-v),0);return {e,n}}).filter(x=>x.n>0);
-    rest=left.length?`<div class="grl">Encore à courir : ${left.map(x=>`<span><b>${esc(x.e.prenom)}</b> ${x.n}</span>`).join("")}</div><div class="grt">⏱ Organisez-vous pour avoir le temps de toutes les faire avant la fin de la leçon !</div>`
+    rest=left.length?`<div class="grl">Encore à courir : ${left.map(x=>`<span><b>${esc(pnm(x.e))}</b> ${x.n}</span>`).join("")}</div><div class="grt">⏱ Organisez-vous pour avoir le temps de toutes les faire avant la fin de la leçon !</div>`
       :`<div class="grt ok">✓ Tout le groupe a atteint l'objectif de la leçon. Bravo !</div>`;
   }else rest=`<div class="grt">⏱ Pensez à garder du temps pour atteindre cet objectif avant la fin de la leçon !</div>`;
   box.innerHTML=`<div class="grh">🎯 Objectif de la leçon : <b>${how}</b> pour chaque élève.</div>`+rest;box.style.display="";
@@ -3473,7 +3481,7 @@ function goalsRow(gname,list,span,cfg){
   const g=GR().find(x=>x.name===gname);if(!g||!cfg.goalOn)return "";
   const m=groupMembers(g).filter(e=>e.ma!=="DISP");
   return `<tr class="pairs"><td colspan="${span}"><b>Objectifs (${cfg.goalN} course${cfg.goalN>1?"s":""} ${cfg.goalMode==="both"?"dans les deux rôles":"dans le meilleur rôle"}) :</b><div class="todo">`
-    +m.map(e=>{const s=goalStatus(e,cfg,CO());return `<span class="${s.done?"gok":""}">${s.done?"✓ ":""}${isCoachE(e)?"🏅 ":""}${esc(e.prenom)} · ${s.lines.map(([l,v,n])=>(s.lines.length>1?l[0]+" ":(cfg.goalMode==="best"&&l!=="Toutes les courses"?l.toLowerCase()+" ":""))+Math.min(v,n)+"/"+n).join(" · ")}${s.note==="meilleur rôle à déterminer"?" (rôle à déterminer)":""}</span>`}).join("")+`</div></td></tr>`;
+    +m.map(e=>{const s=goalStatus(e,cfg,CO());return `<span class="${s.done?"gok":""}">${s.done?"✓ ":""}${isCoachE(e)?"🏅 ":""}${esc(pnm(e))} · ${s.lines.map(([l,v,n])=>(s.lines.length>1?l[0]+" ":(cfg.goalMode==="best"&&l!=="Toutes les courses"?l.toLowerCase()+" ":""))+Math.min(v,n)+"/"+n).join(" · ")}${s.note==="meilleur rôle à déterminer"?" (rôle à déterminer)":""}</span>`}).join("")+`</div></td></tr>`;
 }
 /* Condition « courir avec toutes les personnes du groupe » : chaque binôme ordonné (donneur → receveur) ;
    en mode « meilleur rôle », il suffit d'avoir couru une fois ensemble, quel que soit le rôle */
@@ -3498,7 +3506,7 @@ function pairsTodo(gname,list){
   /* regroupé par donneur (coureur 1) : « Éloïse en donneur (coureur 1) → receveur (coureur 2) : Lily, Remi » */
   const html=[];
   m.forEach(a=>{const rec=m.filter(b=>{if(a===b)return false;total++;return !did.has(key(a.prenom,a.nom)+">"+key(b.prenom,b.nom))});
-    if(rec.length){rec.forEach(b=>todo.push(b));html.push(`<b>${esc(a.prenom)}</b> en donneur (coureur 1) → receveur (coureur 2) : ${rec.map(b=>esc(b.prenom)).join(", ")}`)}});
+    if(rec.length){rec.forEach(b=>todo.push(b));html.push(`<b>${esc(pnm(a))}</b> en donneur (coureur 1) → receveur (coureur 2) : ${rec.map(b=>esc(pnm(b))).join(", ")}`)}});
   return {total,done:total-todo.length,todo,html};
 }
 async function deleteCourse(cid,after){
@@ -4153,7 +4161,7 @@ function markHTML(p){
   const a=$(`#${p}-r1`).value,b=$(`#${p}-r2`).value;if(a===""||b===""||!CL())return "";
   if(CLE()&&!CFG().pm&&!ALLCO().some(c=>c.i1===+a&&c.i2===+b&&typeof c.pm==="number"))return "";
   const e1=byId(+a),e2=byId(+b);if(!e1||!e2)return "";const m=markFor(+a,+b);
-  if(!m)return `<div class="pmark new"><div class="pmi">🎯</div><div><b>Premier essai de ${esc(e1.prenom)} et ${esc(e2.prenom)}</b><span>Choisissez une marque et notez son plot : l'appli vous dira ensuite s'il faut la reculer ou l'avancer.</span></div></div>`;
+  if(!m)return `<div class="pmark new"><div class="pmi">🎯</div><div><b>Premier essai de ${esc(pnm(e1))} et ${esc(pnm(e2))}</b><span>Choisissez une marque et notez son plot : l'appli vous dira ensuite s'il faut la reculer ou l'avancer.</span></div></div>`;
   const L=CL().lecons.find(l=>l.id===m.c.lid),when=L&&L.id!==DATA.lecon?"leçon du "+fmtShort(L.date):"cette leçon";
   const why=m.t?`Course n°${m.c.n} (${when}) : ${m.t.replace(/\.$/,"")}.`:`Course n°${m.c.n} (${when}).`;
   if(m.np==null)return `<div class="pmark"><div class="pmi">🎯</div><div><b>Dernier conseil du binôme</b><span>${esc(why)} Notez le plot de votre marque pour que l'appli s'en souvienne.</span></div></div>`;
@@ -4310,7 +4318,7 @@ function renderLive(){
   const al=[];
   D.rep.forEach(r=>al.push(`<b>${esc(r.c.p1)} → ${esc(r.c.p2)}</b> : ${r.n} fois sur les ${r.of} dernières courses « ${esc(r.s)} »`));
   GR().forEach(g=>{const L=CS.filter(c=>c.gid===g.id),l=L[L.length-1],a=l?hmAgo(l.heure):null;if(CS.length>=3&&(!l||(a!=null&&a>=10)))al.push(`<b>${esc(g.name)}</b> : ${l?"pas de course depuis "+a+" min":"aucune course pour l'instant"}`)});
-  const zero=act.filter(x=>!x.mine.length);if(CS.length>=3&&zero.length)al.push(`Pas encore couru : ${zero.map(x=>esc(x.e.prenom)).join(", ")}`);
+  const zero=act.filter(x=>!x.mine.length);if(CS.length>=3&&zero.length)al.push(`Pas encore couru : ${zero.map(x=>esc(pnm(x.e))).join(", ")}`);
   $("#lv-alert").innerHTML=al.length?`<div class="lvalert"><h3>👀 À aller voir</h3><ul>${al.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"";
   const row=x=>{const z=x.mine.slice(-5).map(c=>`<i class="${zCls(c.zone)}" title="${esc(c.zone||"")}"></i>`).join("");
     const gl=x.disp?`🩹 ${esc(dispTxt(x.e)||"dispensé")}`:x.g?x.g.lines.map(([l,v,n])=>`${l==="Donneur"?"D":l==="Receveur"?"R":""} ${Math.min(v,n)}/${n}`).join(" · ")+(x.g.done?" ✓":""):`D ${x.cnt.D} · R ${x.cnt.R}`;
@@ -4413,7 +4421,7 @@ function renderTurn(){
   const box=$("#r-turn");if(!box)return;const both=$("#r-r1").value!==""&&$("#r-r2").value!=="";
   const L=both?[]:turnCands();if(!L.length){box.innerHTML="";return}
   const k=CURG(),i=(TURN_SKIP[k]||0)%L.length,p=L[i],e1=byId(p.a),e2=byId(p.b);if(!e1||!e2){box.innerHTML="";return}
-  box.innerHTML=`<div class="turn"><div class="ti">👟</div><div class="tt"><small>Conseil · au tour de${p.g?" · "+esc(p.g):""}</small><b>${esc(e1.prenom)}<em>donne à</em>${esc(e2.prenom)}</b><span>${!CO().length?"Première course de la leçon.":CURG()!=="all"?"Ceux qui ont le moins couru dans leur rôle passent d'abord.":"Ceux qui ont le moins couru passent d'abord, groupe après groupe."} Ce n'est qu'un conseil : une course oubliée ou un autre binôme ? Choisissez vous-mêmes les coureurs.</span></div><button class="btn primary" data-turn="go">On y va</button><button class="btn ghost sm" data-turn="skip">Autre binôme</button><button class="btn ghost sm" data-turn="own">Choisir nous-mêmes ↓</button></div>`;
+  box.innerHTML=`<div class="turn"><div class="ti">👟</div><div class="tt"><small>Conseil · au tour de${p.g?" · "+esc(p.g):""}</small><b>${esc(pnm(e1))}<em>donne à</em>${esc(pnm(e2))}</b><span>${!CO().length?"Première course de la leçon.":CURG()!=="all"?"Ceux qui ont le moins couru dans leur rôle passent d'abord.":"Ceux qui ont le moins couru passent d'abord, groupe après groupe."} Ce n'est qu'un conseil : une course oubliée ou un autre binôme ? Choisissez vous-mêmes les coureurs.</span></div><button class="btn primary" data-turn="go">On y va</button><button class="btn ghost sm" data-turn="skip">Autre binôme</button><button class="btn ghost sm" data-turn="own">Choisir nous-mêmes ↓</button></div>`;
   box.dataset.a=p.a;box.dataset.b=p.b;
 }
 document.addEventListener("click",e=>{const b=e.target.closest("[data-turn]");if(!b)return;const box=$("#r-turn");
@@ -4466,7 +4474,7 @@ function qrSVG(L,txt){const q=new L.QRCode(-1,L.ECL.M);q.addData(txt);q.make();c
 const qrURL=(C,g)=>location.origin+location.pathname.replace(/index\.html$/,"")+"#g="+encodeURIComponent(C.id)+"."+encodeURIComponent(g.id)+"."+encodeURIComponent(C.name);
 $("#btnQRG").addEventListener("click",async()=>{const C=CL();if(!C)return;
   $("#q-list").innerHTML=`<p class="note">Préparation…</p>`;$("#qmodal").classList.add("on");
-  try{const L=await qrLoad();$("#q-list").innerHTML=`<div>${qrSVG(L,qrURL(C,{id:"all"}))}<b>${esc(C.name)} · toute la classe</b><span>Relais vitesse · tablette partagée : ouvre la leçon du jour de la classe</span></div>`+GR().map(g=>`<div>${qrSVG(L,qrURL(C,g))}<b>${esc(g.name)}</b><span>Relais vitesse · ${esc(C.name)} · ${groupMembers(g).map(e=>esc(e.prenom)).join(", ")}</span></div>`).join("")}
+  try{const L=await qrLoad();$("#q-list").innerHTML=`<div>${qrSVG(L,qrURL(C,{id:"all"}))}<b>${esc(C.name)} · toute la classe</b><span>Relais vitesse · tablette partagée : ouvre la leçon du jour de la classe</span></div>`+GR().map(g=>`<div>${qrSVG(L,qrURL(C,g))}<b>${esc(g.name)}</b><span>Relais vitesse · ${esc(C.name)} · ${groupMembers(g).map(e=>esc(pnm(e))).join(", ")}</span></div>`).join("")}
   catch(e){$("#q-list").innerHTML=`<p class="note">QR codes indisponibles hors connexion la première fois : réessaie avec Internet.</p>`}});
 $("#q-close").addEventListener("click",()=>$("#qmodal").classList.remove("on"));
 $("#q-print").addEventListener("click",()=>{document.body.classList.add("qrprint");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("qrprint"),500)},50)});
@@ -4571,7 +4579,7 @@ const remMed=a=>{const b=a.filter(x=>typeof x==="number").sort((x,y)=>x-y);if(!b
 const remSd=a=>{if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/(a.length-1))};
 function remList(){
   const C=CL();if(!C)return [];const CS=REM_SCOPE==="lec"&&CLE()?CO():ALLCO(),E=EL().filter(e=>e.ma!=="DISP"),cfg=CFG(),out=[];
-  const nm=id=>{const e=byId(id);return e?e.prenom:"?"},add=(r,key,who,ev)=>out.push({r,key:r+"|"+key,who,ev,rule:REM_RULES[r]});
+  const nm=id=>{const e=byId(id);return e?pnm(e):"?"},add=(r,key,who,ev)=>out.push({r,key:r+"|"+key,who,ev,rule:REM_RULES[r]});
   /* performances : départ et vitesse lancée (comparaison à la classe) */
   const okP=E.filter(e=>typeof e.ma==="number"&&typeof e.ml==="number"&&e.ma>0&&e.ml>0),dif=okP.map(e=>e.ml-e.ma),md=remMed(dif),mlm=remMed(okP.map(e=>e.ml));
   const q=okP.map(e=>e.ml).sort((a,b)=>a-b),q1=q.length>=6?q[Math.floor(q.length/4)]:null;
@@ -4642,6 +4650,11 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  classes:evrClasses,name:e=>({nom:e.nom||'',prenom:e.prenom||''}),
  prof:(cr,e)=>{const o=evrO(e),s=o&&o.prof[cr.id];if(!s||!s.d)return null;const rp=evRepOf(o),pts=evPts(o.prof,cr.id,rp),b=EVR[evMax(cr.id,rp)][s.d];return{d:s.d-1,pos:b[1]>b[0]?Math.max(0,Math.min(1,(pts-b[0])/(b[1]-b[0]))):1,pts}},
  note:e=>{const o=evrO(e);if(!o||evSt(o))return null;const t=evTotal(o.prof,evRepOf(o));return t.n===4?t.t:null},absent:e=>evSt(evrO(e)),comment:e=>{const o=evrO(e);return (o&&(o.comm||o.app))||''},setComment:(e,t)=>{const o=evOf(e.id);o.comm=t;persist()},
+ /* 🗂 plusieurs évaluations (eps-eval.js) : toute la fiche d'évaluation de l'élève (degrés, répartition, auto-positionnement, commentaire, statut) */
+ sesGet:e=>{const c=EVCL.get(e)||CL(),o=c&&c.evals&&c.evals[e.id];return o&&((o.prof&&Object.keys(o.prof).length)||o.ap||o.comm||o.app||o.st)?{prof:o.prof||{},rep:o.rep||"4-4",ap:o.ap||null,comm:o.comm||"",app:o.app||"",st:o.st||""}:null},
+ /* les auto-évaluations de leçon (o.auto, une par leçon) ne font pas partie de l'évaluation finale : elles restent */
+ sesSet:(e,s)=>{const o=evrO(e);if(!o)return;s=s||{};o.prof=s.prof||{};o.rep=s.rep||"4-4";if(s.ap)o.ap=s.ap;else delete o.ap;o.comm=s.comm||"";o.app=s.app||"";o.st=s.st||""},sesDone:()=>{persist();renderEval()},
+ resultats:()=>({own:1}), /* Relais a déjà son bloc « toutes les courses » (evStatsHTML, coefficients par leçon, fenêtre fePop) : c'est le modèle du bloc commun */
  extras:(c,e)=>{const o=evrO(e);return o?['Répartition AFL2 / AFL3 : '+evRepOf(o).replace('-',' / ')]:[]},
  getAp:e=>{const o=evrO(e);return o&&o.ap||null},
  /* saisie rapide commune (par critère / par groupe) et « ✓ Reprendre ces degrés » ; groupes = ceux de la leçon du jour, sinon de la classe */

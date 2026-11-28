@@ -496,7 +496,7 @@
     function pageEleve(ctx, c, E, url, el) {
       var doc = ctx.doc, F = ctx.F, G = A.grid(), PW = 841.89, PH = 595.28, Mg = 26, W = PW - 2 * Mg, ink = PDFLib.rgb(.106, .118, .141), grey = PDFLib.rgb(.42, .43, .47), light = PDFLib.rgb(.86, .85, .82), white = PDFLib.rgb(1, 1, 1), app = rgbH(A.color);
       var LW = 170, CW = (W - LW) / 4, pad = 5, abs = A.absent(E), n20 = abs ? null : A.note(E), ap = A.getAp(E), a = ap && ap.ev && Object.keys(ap.ev).length ? ap.ev : null;
-      var avecLien = !!url && ouvert() && !abs, HL = avecLien ? 90 : 0, comm = (A.comment(E) || "").trim(), obj = abs ? "" : conseil(E, el), extra = (A.extras ? A.extras(c, E) : []) || [];
+      var avecLien = !abs && ((!!url && ouvert()) || !!a), HL = avecLien ? 90 : 0, comm = (A.comment(E) || "").trim(), obj = abs ? "" : conseil(E, el), extra = (A.extras ? A.extras(c, E) : []) || [];
       var DG = el ? (G.degresEl || G.degres) : G.degres;
       function mesure(fs) { var lh = fs * 1.22;
         var rows = G.criteres.map(function (cr) { var nm = el ? (cr.nomEl || cr.nom) : cr.nom, bt = el ? (cr.butEl || cr.but || "") : (cr.but || ""), D = el ? (cr.descEl || cr.desc) : cr.desc;
@@ -544,6 +544,12 @@
       box(el ? "Le mot de mon enseignant" : "Commentaire du professeur", L.cl1, rgbH("#1F5F8B")); box(el ? "Pour progresser" : "Axe de progrès", L.cl2, rgbH("#2e9e5b"));
       if (avecLien) { var by = y - fh - 8, bh = 82;
         page.drawRectangle({ x: Mg, y: by - bh, width: W, height: bh, color: rgbH("#F5F3EE"), borderColor: app, borderWidth: 1.2 });
+        /* auto-positionnement déjà fait (demande de l'enseignant, 28/11/2026) : on ne redemande pas à l'élève de se positionner, on lui rappelle où il s'était situé */
+        var dejaL = a ? G.criteres.filter(function (cr) { return a[cr.id] && a[cr.id].d != null; }).map(function (cr) { var nm = String((el && cr.nomEl) || cr.nom || ""); return (nm.length > 34 ? nm.slice(0, 33) + "…" : nm) + " : " + DG[a[cr.id].d]; }) : [];
+        if (dejaL.length) { PT(page, el ? "Mon auto-positionnement : voici où je m'étais situé(e)" : "Auto-positionnement de l'élève : déjà fait", Mg + 12, by - 20, 12, F.b, app);
+          var dl = wrap(dejaL.join("   ·   "), F.r, 9.2, W - 24).slice(0, 4); PLn(page, dl, Mg + 12, by - 36, 9.2, F.r, 11.6, ink);
+          PT(page, el ? "Compare avec le positionnement de ton enseignant (triangle noir) : le rond montre le tien." : "Le rond sur chaque jauge montre où l'élève s'est situé.", Mg + 12, by - bh + 8, 8, F.o, grey);
+          PT(page, A.nom + " EPS — " + (el ? "grille en langage élève" : "grille enseignant") + " · document généré le " + dateFR(), Mg, Mg - 12, 6.5, F.r, grey); return; }
         var q = qrPdf(page, url, Mg + 6, by - bh + 4, bh - 8), tx0 = Mg + 16 + q, auto = false; try { auto = JSON.parse(b64d(url.split(HASH)[1])).length > 4; } catch (x) {}
         PT(page, el ? "Et moi, où je me situe ? Je me positionne !" : "Auto-positionnement de l'élève", tx0, by - 24, 12, F.b, app);
         var m = "Scanne le QR code ou clique ici pour te positionner toi-même dans les niveaux" + (S().apJusqua ? " (lien valable jusqu'au " + dIso(S().apJusqua) + ")" : "") + ". " + (auto ? "Quand tu valides, ton positionnement est envoyé directement à ton enseignant." : "Ensuite, envoie le code obtenu à ton enseignant par la messagerie Pronote.");
@@ -714,6 +720,49 @@
       return { afl: afl, note: note, detail: detail, src: src, nT: nT, nA: nA, lec: lec, noteLec: noteLec, sit: sit, noteSit: sit ? Math.round(sit.t * 20 * 4) / 4 : null, ccf: cc,
         cfg: CF, used: SRC_ID.filter(function (x) { return used[x]; }), est: est, nLec: sL.length, nSit: sS.length };
     };
+    /* 📊 Ses résultats, pour TOUTES les applis (demande de l'enseignant, 28/11/2026 : garder le modèle Relais = un coefficient par leçon, les dernières comptent
+       plus, et une fenêtre « toutes ses courses, une par une » ; le mettre dans les autres applis, ex. les grimpes par leçon en Escalade).
+       L'appli donne A.resultats(élève, classe) → { nom:"grimpe", noms:"grimpes", items:[{day:"AAAA-MM-JJ", txt, ok: 0 à 1 ou null}], chips:[[valeur, libellé]] } ;
+       { own:1 } = l'appli a déjà son propre bloc (Relais). Sans rien : les situations des fiches de leçon notées par l'élève.
+       Coefficient de la leçon i (0 = la plus ancienne) : 1 + res_coef_pas × i (réglage ; 0 = toutes les leçons pareil). Portée (toutes les leçons / leçon finale
+       seulement) gardée par appli : eps.eval.scope.<app>. M.resCoef(jours) → {jour: coefficient} sert aussi aux propositions des applis. */
+    var KSC = "eps.eval.scope." + A.app;
+    function resScope() { try { return localStorage.getItem(KSC) === "last" ? "last" : "all"; } catch (e) { return "all"; } }
+    function resPas() { var p = 1; try { if (window.EPSP) p = EPSP.p({ id: "res_coef_pas", sec: "Proposition de positionnement", label: "Résultats : coefficient ajouté à chaque nouvelle leçon", type: "number", def: 1, aide: "1 = 1re leçon ×1, 2e ×2, 3e ×3… ; 0 = toutes les leçons comptent pareil." }); } catch (e) {} p = +p; return isFinite(p) && p >= 0 ? p : 1; }
+    M.resScope = resScope;
+    M.resCoef = function (days) { var D = (days || []).map(String).filter(function (d, i, T) { return d && T.indexOf(d) === i; }).sort(), K = {}, pas = resPas(); if (resScope() === "last") D = D.slice(-1); D.forEach(function (d, i) { K[d] = Math.round((1 + pas * i) * 100) / 100; }); return K; };
+    function frD(d) { var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String(d || "")); return m ? m[3] + "/" + m[2] + "/" + m[1] : String(d || ""); }
+    function resData(E, cls) { var D = null; try { D = typeof A.resultats === "function" ? A.resultats(E, cls) : null; } catch (e) { D = null; }
+      if (D && D.own) return null;
+      var items = D && Array.isArray(D.items) ? D.items : null, nom = (D && D.nom) || "situation", noms = (D && D.noms) || "situations";
+      if (!items) { items = []; var k = ekey(E), LB = ["pas encore", "en cours", "réussie"]; magasin("lecres").forEach(function (o) { if (o.ek !== k || nk(o.cls) !== nk(cls) || !o.day) return; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = o.r[q]; if (v !== 0 && v !== 1 && v !== 2) return; var t = ""; try { t = window.EPSLC && EPSLC.sitNom ? EPSLC.sitNom(q) : ""; } catch (e) {} items.push({ day: String(o.day).slice(0, 10), txt: (t || "Situation") + " : " + LB[v], ok: v / 2 }); }); }); }
+      items = items.filter(function (x) { return x && x.day; }).sort(function (a, b) { return String(a.day).localeCompare(String(b.day)); });
+      var all = items.map(function (x) { return x.day; }), K = M.resCoef(all), sc = resScope(), les = [], w = 0, s = 0;
+      Object.keys(K).sort().forEach(function (d) { var L = items.filter(function (x) { return x.day === d; }), J = L.filter(function (x) { return x.ok != null && isFinite(+x.ok); }), ok = J.reduce(function (a, x) { return a + (+x.ok); }, 0);
+        les.push({ day: d, k: K[d], n: L.length, nj: J.length, ok: ok, L: L }); w += K[d] * J.length; s += K[d] * ok; });
+      var last = all.length ? all[all.length - 1] : "";
+      return { nom: nom, noms: noms, items: items, les: les, n: les.reduce(function (a, l) { return a + l.n; }, 0), pct: w ? s / w : null, scope: sc, last: last, chips: (D && Array.isArray(D.chips) ? D.chips : []) }; }
+    M.resData = resData;
+    M.resHtml = function (E, cls, P) { css(A.color); var D = resData(E, cls); if (!D) return ""; P = P || {};
+      var chips = []; if (P.noteLec != null) chips.push([fr(P.noteLec) + " / 20", "évaluations du jour" + (P.nLec ? " · " + P.nLec + " leçon" + (P.nLec > 1 ? "s" : "") : "")]);
+      if (D.pct != null) chips.push([Math.round(D.pct * 100) + " %", D.noms + " réussies" + (D.scope === "all" && D.les.length > 1 ? " (pondéré)" : "")]);
+      chips = chips.concat(D.chips);
+      var one = function (n) { return n > 1 ? D.noms : D.nom; };
+      var seg = '<div class="epse-seg" style="margin:8px 0 0;flex-wrap:wrap"><button type="button" data-rsc="all"' + (D.scope === "all" ? ' class="on"' : "") + '>Toutes ses leçons (dernières pondérées)</button><button type="button" data-rsc="last"' + (D.scope === "last" ? ' class="on"' : "") + ">Leçon finale seulement" + (D.scope === "last" && D.last ? " (" + frD(D.last).slice(0, 5) + ")" : "") + "</button></div>";
+      var h = '<div class="epse-card" data-res><h2 style="margin:0 0 6px">📊 Ses résultats' + (D.n ? ' <small class="epse-mut" style="font-weight:600">· ' + D.n + " " + one(D.n) + (D.scope === "all" ? " sur " + D.les.length + " leçon" + (D.les.length > 1 ? "s" : "") : "") + "</small>" : "") + "</h2>" +
+        (chips.length ? '<div style="display:flex;gap:8px;flex-wrap:wrap">' + chips.map(function (x) { return '<span style="background:#F6F3EC;border-radius:10px;padding:6px 10px;line-height:1.2"><b style="font-size:18px;display:block">' + esc(x[0]) + '</b><small class="epse-mut">' + esc(x[1]) + "</small></span>"; }).join("") + "</div>" : "") + seg;
+      if (!D.n) return h + '<p class="epse-mut" style="margin:8px 0 0">Pas encore de résultat enregistré pour cet élève' + (D.scope === "last" ? " à la leçon finale" : "") + ".</p></div>";
+      if (D.scope === "all" && D.les.length > 1) h += '<p class="epse-mut" style="margin:8px 0 0">Les dernières leçons comptent plus : coefficient ' + D.les.map(function (l) { return "×" + fr(l.k); }).join(", ") + ".</p>";
+      h += '<table data-restab style="width:100%;border-collapse:collapse;margin-top:8px;font-size:15px"><thead><tr style="text-align:left;color:#6A6F78"><th style="padding:4px 6px">Leçon</th><th style="padding:4px 6px">Coef.</th><th style="padding:4px 6px">' + esc(D.noms.charAt(0).toUpperCase() + D.noms.slice(1)) + '</th><th style="padding:4px 6px">Réussies</th></tr></thead><tbody>' +
+        D.les.slice().reverse().map(function (l) { return '<tr style="border-top:1px solid #F0ECE3"><td style="padding:5px 6px">' + frD(l.day).slice(0, 5) + '</td><td style="padding:5px 6px">×' + fr(l.k) + '</td><td style="padding:5px 6px">' + l.n + '</td><td style="padding:5px 6px">' + (l.nj ? fr(Math.round(l.ok * 10) / 10) + " / " + l.nj : "–") + "</td></tr>"; }).join("") + "</tbody></table>" +
+        '<p style="margin:10px 0 0"><button type="button" class="epse-btn" data-resall>🔎 Toutes ses ' + esc(D.noms) + ", une par une</button></p></div>";
+      return h; };
+    M.resWin = function (E, cls) { var D = resData(E, cls); if (!D) return; var n = A.name(E), old = document.getElementById("epse-resw"); if (old) old.remove();
+      var h = D.les.length ? D.les.slice().reverse().map(function (l) { return '<h3 style="margin:14px 0 6px">📅 ' + frD(l.day) + ' <small style="font-weight:600;color:#6A6F78">· ' + l.n + " " + (l.n > 1 ? D.noms : D.nom) + (D.scope === "all" ? " · coefficient ×" + fr(l.k) : "") + (l.nj ? " · " + fr(Math.round(l.ok * 10) / 10) + " / " + l.nj + " réussies" : "") + '</small></h3><ol style="margin:0;padding-left:24px;line-height:1.6">' + l.L.map(function (x) { return "<li>" + (x.ok == null ? "" : +x.ok >= 1 ? "✅ " : +x.ok > 0 ? "◐ " : "❌ ") + esc(x.txt || "") + "</li>"; }).join("") + "</ol>"; }).join("") : "<p>Aucun résultat enregistré.</p>";
+      h = '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 8px"><b style="font-size:20px;flex:1">' + esc(((n.prenom || "") + " " + (n.nom || "")).trim()) + " · " + esc(D.noms) + '</b><button type="button" data-x2 style="min-height:44px;padding:0 16px;border-radius:10px;border:2px solid #E6E1D6;background:#fff;font:800 16px system-ui">✕ Fermer</button></div><p style="margin:0;color:#6A6F78">' + (D.scope === "last" ? "Leçon finale seulement." : "Toutes ses leçons, la plus récente en premier.") + " Ce sont les résultats que l'évaluation utilise pour sa proposition.</p>" + h;
+      var t = "🔎 " + esc(((n.prenom || "") + " " + (n.nom || "")).trim()) + " · " + esc(D.noms);
+      if (window.EPSD && EPSD.fenetre) { var w = EPSD.fenetre("epse-resw", t, h); [].forEach.call(w ? w.querySelectorAll(".epsd-wtop [data-x],[data-x2]") : [], function (x) { x.onclick = function () { w.remove(); }; }); }
+      else { var d = document.createElement("div"); d.id = "epse-resw"; d.style.cssText = "position:fixed;inset:0;z-index:2147483260;background:#fff;overflow:auto;padding:16px;font-family:system-ui,sans-serif"; d.innerHTML = '<button type="button" data-x style="float:right;min-height:44px;padding:0 14px;font-weight:800">✕ Fermer</button><h2>' + t + "</h2>" + h; document.body.appendChild(d); [].forEach.call(d.querySelectorAll("[data-x],[data-x2]"), function (x) { x.onclick = function () { d.remove(); }; }); } };
     M.propHtml = function (E, cls) { css(A.color);
       var P = M.prop(E, cls), DL = ["Degré 1", "Degré 2", "Degré 3", "Degré 4"], cc = P.ccf;
       var dap = P.used.map(function (x) { return SRC_MOT[x]; }).join(", ");
@@ -727,7 +776,7 @@
       var pos = function (p) { return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; };
       var vo = window.epsVoie && cls ? epsVoie(cls) : "", codes = P.afl.map(function (a) { return a.code; }), aflp = codes.some(function (c) { return /^AFLP/i.test(c); }), afl = codes.some(function (c) { return /^AFL\d/i.test(c); });
       var vWarn = vo === "pro" && afl && !aflp ? "Classe de voie professionnelle, mais la grille parle d'AFL (lycée général) : pour les textes et le barème Bac pro, mets les codes AFLP1 à AFLP6 dans la grille (champ AFL de chaque critère)." : vo === "gt" && aflp && !afl ? "Classe de voie générale, mais la grille parle d'AFLP (voie pro) : mets les codes AFL1 à AFL3 pour le barème du bac général." : "";
-      return '<div class="epse-card epse-prop"><h2 style="margin:0 0 6px">🎯 Proposition de positionnement' + (vo ? ' <small class="epse-mut" style="font-weight:600">· ' + (vo === "pro" ? "🛠 voie professionnelle" : "🎓 voie générale") + "</small>" : "") + "</h2>" + (vWarn ? '<div style="background:#FFF6E0;border-radius:10px;padding:6px 10px;margin:0 0 6px;font-size:14px">⚠ ' + esc(vWarn) + "</div>" : "") +
+      return M.resHtml(E, cls, P) + '<div class="epse-card epse-prop"><h2 style="margin:0 0 6px">🎯 Proposition de positionnement' + (vo ? ' <small class="epse-mut" style="font-weight:600">· ' + (vo === "pro" ? "🛠 voie professionnelle" : "🎓 voie générale") + "</small>" : "") + "</h2>" + (vWarn ? '<div style="background:#FFF6E0;border-radius:10px;padding:6px 10px;margin:0 0 6px;font-size:14px">⚠ ' + esc(vWarn) + "</div>" : "") +
         P.afl.map(function (a) { return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid #F0ECE3;padding:6px 0"><b style="min-width:70px">' + esc(a.code) + "</b>" +
           (a.deg == null ? '<span class="epse-mut">non évalué</span>' : '<span style="background:' + DCOL[a.deg] + ';color:#fff;border-radius:8px;padding:2px 8px;font-weight:800">' + DL[a.deg] + "</span><span class=\"epse-mut\">(" + pos(a.pos) + " du degré" + (a.done < a.crit ? " · " + a.done + "/" + a.crit + " critères" : "") + (a.auto ? ", dont " + a.auto + " proposé" + (a.auto > 1 ? "s" : "") : "") + ")</span>" +
             '<span style="margin-left:auto;font-weight:800">' + (cc.on ? (a.ccf != null ? fr(a.ccf) + " / " + fr(a.ccfMax) + " pts CCF" : "") : fr(a.pts) + " / " + fr(a.mx) + " pts") + "</span>") + "</div>"; }).join("") +
@@ -775,6 +824,8 @@
         try { if (false && window.EPSLC && EPSLC.remCard) { var lows = []; A.grid().criteres.forEach(function (cr) { var v = A.prof(cr, E); if (v && v.d != null && v.d <= 1) lows.push({ cr: cr, d: v.d }); });
           var n = A.name(E), rc = EPSLC.remCard(cls, ((n.prenom || "") + " " + (n.nom || "")).trim(), lows); if (rc) { var w = document.createElement("div"); w.innerHTML = rc.html; d.appendChild(w); rc.bind(w); } } } catch (e) { console.warn(e); } } catch (e) { console.warn(e); } };
     M.bindProp = function (R, E, cls, redraw, take) {
+      [].forEach.call(R.querySelectorAll("[data-rsc]"), function (b) { b.onclick = function () { try { localStorage.setItem(KSC, b.dataset.rsc === "last" ? "last" : "all"); } catch (e) {} redraw(); }; });
+      var ra = R.querySelector("[data-resall]"); if (ra) ra.onclick = function () { M.resWin(E, cls); };
       var b = R.querySelector("[data-ccf]"); if (b) b.onchange = function () { M.setCcf(cls, { on: b.checked }); redraw(); };
       var v = R.querySelector("[data-voie]"); if (v) v.onchange = function () { M.setCcf(cls, { voie: v.value }); redraw(); };
       var c = R.querySelector("[data-choix]"); if (c) c.onchange = function () { M.setChoix(cls, E, c.value); redraw(); };
@@ -797,7 +848,7 @@
     function qMax(cr, E) { try { if (A.max && E) return A.max(cr, E); } catch (e) {} return +cr.max || 0; }
     /* 📝 Appréciations de bulletin et 📋 Export Pronote de l'évaluation finale (demande du 27/11/2026) : à droite de la barre
        « Élève par élève · Par critère · Par groupe », dans toutes les applis ; plus dans la fiche de l'élève */
-    M.classBtnsHtml = function () { return (A.setComment ? '<button type="button" data-phrall title="Un commentaire de bilan proposé pour chaque élève de la classe, à relire puis à mettre sur les fiches" aria-label="Commentaires de bilan">✨ Bilans</button>' : "") + '<button type="button" data-bul>📝 Appréciations de bulletin</button><button type="button" data-pnall>📋 Export Pronote</button>'; };
+    M.classBtnsHtml = function () { return (A.setComment ? '<button type="button" data-phrall title="Un commentaire de bilan proposé pour chaque élève de la classe, à relire puis à mettre sur les fiches" aria-label="Commentaires de bilan">✨ Bilans</button>' : "") + '<button type="button" data-bul>📝 Appréciations de bulletin</button><button type="button" data-pnall>📋 Export Pronote</button>' + (M.sesOk() ? '<span data-asesbox style="display:contents"></span>' : ""); };
     /* ✨ Commentaires de bilan pour toute la classe (demande de l'enseignant, 28/11/2026 : des bilans proposés « sans que j'aie grand-chose à faire », que
        l'élève retrouve) : pour chaque élève évalué, Claude propose le commentaire de sa fiche (même consigne que « ✨ Proposer une phrase pour l'élève »,
        plusieurs à la fois) ; l'enseignant relit, corrige, coche, puis « ✓ Mettre sur les fiches » l'écrit dans le commentaire de l'élève (A.setComment) :
@@ -823,7 +874,40 @@
       w.querySelector("[data-ok]").onclick = function () { var n = 0; L.forEach(function (E) { var k = nomE(E), r = R[k]; if (r && r.ok && r.t && r.t.trim()) { try { A.setComment(E, r.t.trim()); n++; delete R[k]; } catch (e) {} } }); save(); draw();
         msg.textContent = n ? "✓ " + n + " commentaire(s) mis sur les fiches : ils figurent sur la fiche PDF et le bilan en ligne de l'élève (📤 Bilan et export pour publier)." : "Coche d'abord les commentaires à garder."; };
       draw(); };
-    M.bindClassBtns = function (root, cls, list) { var b = root.querySelector("[data-bul]"), p = root.querySelector("[data-pnall]"), ph = root.querySelector("[data-phrall]");
+    /* 🗂 Plusieurs évaluations par classe pour les applis qui rangent l'évaluation dans LEURS élèves (Volley, Badminton, Danse, Relais ; 28/11/2026).
+       L'adaptateur donne sesGet(E) → copie de l'évaluation de l'élève (null si vide), sesSet(E, copie | null) → la remet ou l'efface, sesDone() → enregistre et redessine.
+       Les fiches des élèves portent toujours l'évaluation AFFICHÉE : en cours, ou une ancienne rouverte (la « en cours » attend alors dans live).
+       Rangement local : eps.evalses.<app>.v1 = { <classe>: { cur:{nom,d}, view:"", list:[{id,nom,d,fin}], arch:{id:{<élève>:copie}}, live } }. */
+    var KSES = "eps.evalses." + A.app + ".v1";
+    M.sesOk = function () { return typeof A.sesGet === "function" && typeof A.sesSet === "function"; };
+    function sesAll() { var v = jget(KSES, null); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
+    function sesOf(cls) { var s = sesAll()[nk(cls)]; if (!s || typeof s !== "object") s = { cur: { nom: "", d: "" }, view: "", list: [], arch: {} }; s.list = Array.isArray(s.list) ? s.list : []; s.arch = s.arch || {}; s.cur = s.cur || { nom: "", d: "" }; if (s.view && !s.arch[s.view]) s.view = ""; return s; }
+    function sesPut(cls, s) { var V = sesAll(); V[nk(cls)] = s; jset(KSES, V); }
+    function sesL(list) { return (typeof list === "function" ? list() : list) || []; }
+    function snapAll(list) { var o = {}; sesL(list).forEach(function (E) { var x = null; try { x = A.sesGet(E); } catch (e) { x = null; } if (x != null) o[ekey(E)] = JSON.parse(JSON.stringify(x)); }); return o; }
+    function loadAll(list, src) { sesL(list).forEach(function (E) { var x = src && src[ekey(E)]; try { A.sesSet(E, x != null ? JSON.parse(JSON.stringify(x)) : null); } catch (e) { console.warn(e); } }); }
+    function sesFin() { try { if (A.sesDone) A.sesDone(); } catch (e) { console.warn(e); } }
+    M.sesInfo = function (cls) { return sesOf(cls); };
+    M.sesView = function (cls, list, id) { var s = sesOf(cls); id = id || ""; if ((s.view || "") === id || (id && !s.arch[id])) return; var st = snapAll(list); if (s.view) s.arch[s.view] = st; else s.live = st;
+      loadAll(list, (id ? s.arch[id] : s.live) || {}); s.view = id; if (!id) delete s.live; sesPut(cls, s); sesFin(); };
+    M.sesNew = function (cls, list, nom) { var s = sesOf(cls); if (s.view) { M.sesView(cls, list, ""); s = sesOf(cls); }
+      var st = snapAll(list), nb = Object.keys(st).length, jour = new Date().toISOString().slice(0, 10);
+      if (nb) { var id = "e" + Date.now().toString(36); s.arch[id] = st; s.list.push({ id: id, nom: s.cur.nom || "Évaluation", d: s.cur.d || jour, fin: jour }); }
+      loadAll(list, {}); s.cur = { nom: nom || "Évaluation", d: jour }; s.view = ""; sesPut(cls, s); sesFin(); return nb; };
+    M.sesAsk = function (clsNom, cb) { var old = document.getElementById("epse-sesd"); if (old) old.remove(); var d = document.createElement("div"); d.id = "epse-sesd"; d.style.cssText = "position:fixed;inset:0;z-index:2147483260;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:14px";
+      var j = new Date(), def = "Évaluation du " + String(j.getDate()).padStart(2, "0") + "/" + String(j.getMonth() + 1).padStart(2, "0");
+      d.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Nouvelle évaluation" style="background:#fff;border-radius:16px;padding:16px 18px;max-width:460px;width:100%;font-family:system-ui,sans-serif;color:#14171C"><h2 style="margin:0 0 8px;font:800 20px system-ui">＋ Nouvelle évaluation · ' + esc(clsNom) + '</h2><p style="margin:0 0 10px;font-size:15px;line-height:1.4">L\'évaluation actuelle est gardée : tu la retrouves dans la liste « Évaluation » et tu peux la rouvrir. La nouvelle part de zéro (degrés, commentaires, auto-positionnements).</p><input type="text" data-n value="' + esc(def) + '" aria-label="Nom de la nouvelle évaluation" style="width:100%;box-sizing:border-box;font:700 17px system-ui;padding:10px;border:2px solid #E6E1D6;border-radius:10px"><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" data-ok style="min-height:44px;padding:0 16px;border-radius:10px;border:0;background:' + (A.color || "#14171C") + ';color:#fff;font:800 16px system-ui">✓ Créer</button><button type="button" data-x style="min-height:44px;padding:0 16px;border-radius:10px;border:2px solid #E6E1D6;background:#fff;font:800 16px system-ui">✕ Fermer</button></div></div>';
+      document.body.appendChild(d); d.querySelector("[data-x]").onclick = function () { d.remove(); };
+      d.querySelector("[data-ok]").onclick = function () { var v = d.querySelector("[data-n]").value.trim(); d.remove(); cb(v); }; };
+    function frJ2(d) { var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String(d || "")); return m ? m[3] + "/" + m[2] : ""; }
+    M.sesBarHtml = function (cls) { if (!M.sesOk()) return ""; var s = sesOf(cls), V = s.view || "", cur = s.cur.nom || "Évaluation en cours";
+      return '<label class="epse-mut" style="display:inline-flex;gap:6px;align-items:center;font-weight:700">Évaluation <select data-ases style="min-height:42px;border-radius:10px;border:2px solid #E6E1D6;padding:0 8px;font:700 15px system-ui;max-width:230px"><option value=""' + (V ? "" : " selected") + ">" + esc(cur) + (s.cur.d ? " · " + frJ2(s.cur.d) : "") + " (en cours)</option>" + s.list.slice().reverse().map(function (x) { return '<option value="' + esc(x.id) + '"' + (V === x.id ? " selected" : "") + ">" + esc(x.nom) + (x.d ? " · " + frJ2(x.d) : "") + "</option>"; }).join("") + '</select></label><button type="button" data-asesnew title="Garder l\'évaluation actuelle et en commencer une autre, à zéro">＋ Nouvelle évaluation</button>' +
+        (V ? '<button type="button" data-asescur style="background:#FFF8D6;border-color:#E9CF6A" title="Tu es dans une ancienne évaluation : tu peux la consulter et la corriger">📂 Ancienne évaluation · revenir à celle en cours</button>' : ""); };
+    M.sesBarBind = function (root, cls, list) { if (!root || !M.sesOk()) return; var box = root.querySelector("[data-asesbox]"); if (box) box.innerHTML = M.sesBarHtml(cls);
+      var s = root.querySelector("[data-ases]"); if (s) s.onchange = function () { M.sesView(cls, list, s.value); };
+      var n = root.querySelector("[data-asesnew]"); if (n) n.onclick = function () { M.sesAsk(cls, function (nom) { var nb = M.sesNew(cls, list, nom); toast(nb ? "Nouvelle évaluation créée : l'ancienne est gardée (" + nb + " fiches)." : "Nouvelle évaluation créée."); }); };
+      var c = root.querySelector("[data-asescur]"); if (c) c.onclick = function () { M.sesView(cls, list, ""); }; };
+    M.bindClassBtns = function (root, cls, list) { var b = root.querySelector("[data-bul]"), p = root.querySelector("[data-pnall]"), ph = root.querySelector("[data-phrall]"); M.sesBarBind(root, cls, list);
       if (ph) ph.onclick = function () { M.phrasesClasse(cls, typeof list === "function" ? list() : list); };
       if (b) b.onclick = function () { if (window.EPSD && EPSD.bulletin) EPSD.bulletin(cls); else toast("Appréciations indisponibles (recharge la page)"); };
       if (p) p.onclick = function () { M.pronoteAll(cls, list); }; };
@@ -927,11 +1011,7 @@
     function frJ(d) { var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String(d || "")); return m ? m[3] + "/" + m[2] : ""; }
     function sesHtml(c) { var S = sesGet(c.nom), V = sesVu(c.nom), cur = (S.cur && S.cur.nom) || "Évaluation en cours";
       return '<label class="epse-mut">Évaluation <select data-ses>' + '<option value=""' + (V ? "" : " selected") + ">" + esc(cur) + (S.cur && S.cur.d ? " · " + frJ(S.cur.d) : "") + " (en cours)</option>" + S.list.slice().reverse().map(function (x) { return '<option value="' + esc(x.id) + '"' + (V === x.id ? " selected" : "") + ">" + esc(x.nom) + (x.d ? " · " + frJ(x.d) : "") + "</option>"; }).join("") + '</select></label><button type="button" data-sesnew title="Garder l\'évaluation actuelle et en commencer une autre, à zéro">＋ Nouvelle évaluation</button>'; }
-    function sesDialog(c) { var old = document.getElementById("epse-sesd"); if (old) old.remove(); var d = document.createElement("div"); d.id = "epse-sesd"; d.style.cssText = "position:fixed;inset:0;z-index:2147483260;background:rgba(20,23,28,.55);display:flex;align-items:center;justify-content:center;padding:14px";
-      var j = new Date(), def = "Évaluation du " + String(j.getDate()).padStart(2, "0") + "/" + String(j.getMonth() + 1).padStart(2, "0");
-      d.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Nouvelle évaluation" style="background:#fff;border-radius:16px;padding:16px 18px;max-width:460px;width:100%;font-family:system-ui,sans-serif;color:#14171C"><h2 style="margin:0 0 8px;font:800 20px system-ui">＋ Nouvelle évaluation · ' + esc(c.nom) + '</h2><p style="margin:0 0 10px;font-size:15px;line-height:1.4">L\'évaluation actuelle est gardée : tu la retrouves dans la liste « Évaluation » et tu peux la rouvrir. La nouvelle part de zéro (degrés, commentaires, auto-positionnements).</p><input type="text" data-n value="' + esc(def) + '" aria-label="Nom de la nouvelle évaluation" style="width:100%;box-sizing:border-box;font:700 17px system-ui;padding:10px;border:2px solid #E6E1D6;border-radius:10px"><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" data-ok style="min-height:44px;padding:0 16px;border-radius:10px;border:0;background:' + (o.color || "#14171C") + ';color:#fff;font:800 16px system-ui">✓ Créer</button><button type="button" data-x style="min-height:44px;padding:0 16px;border-radius:10px;border:2px solid #E6E1D6;background:#fff;font:800 16px system-ui">✕ Fermer</button></div></div>';
-      document.body.appendChild(d); d.querySelector("[data-x]").onclick = function () { d.remove(); };
-      d.querySelector("[data-ok]").onclick = function () { var nb = sesNouvelle(c, d.querySelector("[data-n]").value.trim()); d.remove(); UI.el = 0; render(); toast(nb ? "Nouvelle évaluation créée : l'ancienne est gardée (" + nb + " fiches)." : "Nouvelle évaluation créée."); }; }
+    function sesDialog(c) { M.sesAsk(c.nom, function (nom) { var nb = sesNouvelle(c, nom); UI.el = 0; render(); toast(nb ? "Nouvelle évaluation créée : l'ancienne est gardée (" + nb + " fiches)." : "Nouvelle évaluation créée."); }); }
     function classes() {
       var L = []; try { if (window.EPSL) L = EPSL.items().filter(function (it) { return (it.off || []).indexOf(o.app) < 0; }).map(function (it) { return { nom: it.nom, eleves: EPSL.people(it).map(function (p) { return { nom: p.nom || "", prenom: p.prenom || "", _c: it.nom }; }) }; }); } catch (e) {}
       L.sort(function (a, b) { return a.nom.localeCompare(b.nom, "fr"); }); L.forEach(function (c) { c.eleves.sort(function (a, b) { return (a.nom + " " + a.prenom).localeCompare(b.nom + " " + b.prenom, "fr"); }); }); return L;
@@ -966,6 +1046,7 @@
       setProf: function (cr, e, v) { var r = rec(e._c, e); r.ev = r.ev || {}; if (r.ev[cr.id] || !v || v.d == null) return; r.ev[cr.id] = { d: v.d, pos: v.pos == null ? .5 : v.pos }; save(e._c, e, r); },
       extras: function (c, e) { try { return o.extras ? o.extras(c, e) : []; } catch (x) { return []; } },
       resultat: function (cr, e, cls) { try { return o.resultat ? o.resultat(cr, e, cls) : null; } catch (x) { return null; } },
+      resultats: function (e, cls) { try { return o.resultats ? o.resultats(e, cls) : null; } catch (x) { return null; } },
       getAp: function (e) { return rec(e._c, e).ap; }, setAp: function (e, ap) { var r = rec(e._c, e); r.ap = ap; save(e._c, e, r); },
       settings: function () { return cfg(); }, setSettings: setCfg, isTeacher: o.isTeacher, unlock: o.unlock, changed: function () { if (UI.open) render(); } };
     var M = create(A);
@@ -1031,22 +1112,14 @@
       if (UI.tab === "grille") bindGrid(R);
     }
     function sheet(c, e) {
-      var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap, P = M.prop(e, e._c), RS = null, POSL = function (p) { p = p == null ? .5 : p; return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; };
-      try { RS = o.resultats ? o.resultats(c, e) : null; } catch (x) { RS = null; }
-      /* 📊 Ses résultats (demande de l'enseignant, 28/11/2026 : voir sur la fiche les courses, les grimpes… comme en Relais) : les mesures communes
-         (évaluations du jour, réussite aux situations) puis celles de l'appli, données par o.resultats(classe, élève) → {chips:[[valeur, libellé]…], lignes:[…]}. */
-      var chips = []; if (P.noteLec != null) chips.push([fr(P.noteLec) + " / 20", "évaluations du jour" + (P.nLec ? " · " + P.nLec + " leçon" + (P.nLec > 1 ? "s" : "") : "")]);
-      if (P.sit && P.sit.t != null && isFinite(+P.sit.t)) chips.push([Math.round(P.sit.t * 100) + " %", "de réussite aux situations" + (P.nSit ? " · " + P.nSit + " leçon" + (P.nSit > 1 ? "s" : "") : "")]);
-      if (RS && Array.isArray(RS.chips)) chips = chips.concat(RS.chips);
-      var resH = '<div class="epse-card" data-res><h2 style="margin:0 0 6px">📊 Ses résultats</h2>' + (chips.length ? '<div style="display:flex;gap:8px;flex-wrap:wrap">' + chips.map(function (x) { return '<span style="background:#F6F3EC;border-radius:10px;padding:6px 10px;line-height:1.2"><b style="font-size:18px;display:block">' + esc(x[0]) + '</b><small class="epse-mut">' + esc(x[1]) + "</small></span>"; }).join("") + "</div>" : '<p class="epse-mut" style="margin:0">Pas encore de résultat enregistré en leçon pour cet élève.</p>') +
-        (RS && Array.isArray(RS.lignes) && RS.lignes.length ? '<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:800;padding:8px 0">' + esc(RS.titre || "Voir le détail") + " (" + RS.lignes.length + ')</summary><ul style="margin:4px 0 0;padding-left:20px;line-height:1.5">' + RS.lignes.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul></details>" : "") + "</div>";
+      var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap, P = M.prop(e, e._c), POSL = function (p) { p = p == null ? .5 : p; return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; };
       var recap = function (cr) { var x = ap && ap.ev && ap.ev[cr.id], s = P.est && P.est[cr.id], H = "";
         if (x && x.d != null) H += '<span style="background:' + DTINT[x.d] + ";border:1.5px solid " + DCOL[x.d] + ';border-radius:8px;padding:3px 8px;font-weight:800">🙋 L\'élève se situe : D' + (x.d + 1) + " · " + esc((G.degresEl || G.degres)[x.d] || "") + "</span>";
         if (s) H += '<span style="background:#FFF6E0;border:1.5px dashed #C99A1A;border-radius:8px;padding:3px 8px;font-weight:800">💡 Proposé : D' + (s.d + 1) + " (" + POSL(s.pos) + ")</span>";
         return H ? '<div data-recap style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;font-size:14px">' + H + "</div>" : ""; };
       return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1" aria-label="Élève précédent" style="min-width:46px">‹</button> <button class="epse-btn" data-nav="1" aria-label="Élève suivant" style="min-width:46px">›</button></span></div>' +
         '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (st) { return '<button class="epse-btn' + ((r.st || "") === st ? " p" : "") + '" data-st="' + st + '">' + (st || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button></div></div>' +
-        resH + M.propHtml(e, e._c) +
+        M.propHtml(e, e._c) +
         G.criteres.map(function (cr) { var v = r.ev && r.ev[cr.id], x = ap && ap.ev && ap.ev[cr.id], p = prof(cr, e), s = P.est && P.est[cr.id];
           return '<div class="epse-crit"><div class="epse-ch"><b>' + esc(cr.nom) + "</b><span>" + esc(cr.afl || "") + " · " + fr(maxOf(cr)) + " pts" + (p ? " · " + fr(p.pts) + " pts" : "") + "</span></div>" + (cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.but) + "</p>" : "") + recap(cr) +
             '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + (s && s.d === d ? '<span class="me" style="border-style:dashed;border-color:#C99A1A;color:#7A5A00">💡 proposé</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
