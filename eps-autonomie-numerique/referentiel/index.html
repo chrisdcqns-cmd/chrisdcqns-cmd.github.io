@@ -236,8 +236,12 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
       '<div class="row"><button type="button" class="btn p" id="lnok">✓ Enregistrer</button><button type="button" class="btn" data-x>Annuler</button></div>',
       function (o) { $("#lnok", o).onclick = function () { R.linkSet(g.app, g.gv, cr.id, { cg: $$("[data-cg]", o).filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.cg; }), ep: $$("[data-ep]", o).filter(function (x) { return x.checked; }).map(function (x) { return +x.dataset.ep; }) }); shut(); render(); }; }); }
   /* 🔄 chaque appli d'activité est ouverte un instant en arrière-plan : elle refait elle-même son relevé (eps-ref.js) */
-  function relever() { if (UI.busy) return; UI.busy = true; render(); var L = Object.keys(DIRS).map(function (a) { return DIRS[a]; }), i = 0, box = document.createElement("div"); box.style.cssText = "position:fixed;left:-3000px;top:0;width:1024px;height:768px;opacity:0;pointer-events:none"; box.setAttribute("aria-hidden", "true"); document.body.appendChild(box);
-    (function next() { box.innerHTML = ""; if (i >= L.length) { box.remove(); UI.busy = false; render(); var m = $("#relm"); if (m) m.textContent = "✓ Relevé terminé"; return; }
+  /* relevé discret des notes finales quand le carnet s'ouvre (au plus toutes les 6 h sur l'appareil) : chaque activité ouverte en arrière-plan
+     enregistre ses notes, le carnet sait ainsi de quelle activité vient chaque note sans que l'enseignant rouvre les applis (28/11/2026) */
+  function autoRel() { var t = 0; try { t = +localStorage.getItem("eps.ref.autorel") || 0; } catch (e) {} if (UI.busy || UI.relq || Date.now() - t < 6 * 3600e3) return; try { localStorage.setItem("eps.ref.autorel", String(Date.now())); } catch (e) {} relever(true); }
+  function relever(quiet) { if (UI.busy) return; quiet = quiet === true; UI.busy = !quiet; UI.relq = quiet; if (!quiet) render(); var L = Object.keys(DIRS).map(function (a) { return DIRS[a]; }), i = 0, box = document.createElement("div"); box.style.cssText = "position:fixed;left:-3000px;top:0;width:1024px;height:768px;opacity:0;pointer-events:none"; box.setAttribute("aria-hidden", "true"); document.body.appendChild(box);
+    (function next() { box.innerHTML = ""; if (i >= L.length) { box.remove(); UI.busy = false; UI.relq = false; if (!$("#ov")) render(); var m = $("#relm"); if (m) m.textContent = "✓ Relevé terminé"; var q = $("#cnrel"); if (q) q.remove(); return; }
+      var q0 = $("#cnrel"); if (q0) q0.textContent = "🔄 Relevé des notes finales : " + L[i] + " (" + (i + 1) + " / " + L.length + ")…";
       var m = $("#relm"); if (m) m.textContent = "Relevé : " + L[i] + " (" + (i + 1) + " / " + L.length + ")…";
       var f = document.createElement("iframe"); f.title = "Relevé"; f.tabIndex = -1; f.style.cssText = "width:1024px;height:768px;border:0"; f.src = "../" + L[i] + "/?console=1"; box.appendChild(f); i++;
       var t0 = Date.now(), iv = setInterval(function () { var ok = false; try { var w = f.contentWindow; if (w && w.EPSREF && Date.now() - t0 > 3500) { w.EPSREF.snap(); ok = true; } } catch (e) { ok = Date.now() - t0 > 6000; }
@@ -273,6 +277,7 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
     pop("<h2>" + (c ? "Modifier la colonne" : "Nouvelle colonne") + '</h2><label class="f" for="cn">Intitulé</label><input class="in" id="cn" maxlength="40" value="' + esc(c ? c.nom : "") + '" placeholder="Ex. Service, Tenue, VMA…">' +
       '<p class="f" style="margin-bottom:4px">Type' + (has ? " (non modifiable : la colonne a déjà des valeurs)" : "") + '</p><div class="chips" id="cty">' + Object.keys(CD.TY).map(function (t) { return '<button type="button" class="chip' + (ty === t ? " on" : "") + '" data-ty="' + t + '"' + (has && ty !== t ? " disabled" : "") + ">" + TYI[t] + " " + CD.TY[t] + "</button>"; }).join("") + "</div>" +
       '<div id="cx"></div><label class="f" for="cdt">Date</label><input class="in" id="cdt" type="date" value="' + esc(c ? c.d : R.today()) + '" style="width:auto">' +
+      '<label class="f" for="capp">Activité <span class="mut" id="cappm"></span></label><select class="in" id="capp" style="width:auto"><option value="">Aucune (colonne à part)</option>' + Object.keys(ANOM).map(function (a) { return '<option value="' + a + '">' + esc(ANOM[a]) + "</option>"; }).join("") + "</select>" +
       '<div id="ccg"><p class="f" style="margin-bottom:0">Compétences générales (pour le profil de l\'élève)</p>' + (Cg.length ? Cg.map(function (g) { return '<label class="ck"><input type="checkbox" data-cg="' + esc(g.id) + '"' + (c && (c.cg || []).indexOf(g.id) >= 0 ? " checked" : "") + "><span><b>" + esc(g.nom) + "</b> " + (g.og || []).map(function (id) { return R.ogChip(id, R.voieOf(cls), 1); }).join("") + "</span></label>"; }).join("") : '<p class="mut">Ton répertoire est vide : 🧭 Structure.</p>') + "</div>" +
       '<p class="msg" id="cm" role="alert" style="color:var(--no)"></p><div class="row"><button type="button" class="btn p" id="cok">✓ Enregistrer</button><button type="button" class="btn" data-x>Annuler</button>' + (c ? '<button type="button" class="btn" id="cdel" style="margin-left:auto;border-color:var(--no);color:var(--no)">Supprimer</button>' : "") + "</div>",
       function (o) { function extra() { var x = "";
@@ -280,9 +285,11 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
           else if (ty === "perf") x = '<label class="f" for="cunit">Unité</label><input class="in" id="cunit" maxlength="12" value="' + esc(c ? c.unit : "") + '" placeholder="s, m, km/h…">';
           else if (ty === "ico") x = '<label class="f" for="cicos">Icônes proposées, séparées par des espaces</label><input class="in" id="cicos" value="' + esc((c && c.icos && c.icos.length ? c.icos : ICO0).join(" ")) + '">';
           $("#cx", o).innerHTML = x; $("#ccg", o).hidden = !(ty === "note" || ty === "deg"); }
+        var ap = $("#capp", o), apm = $("#cappm", o), prop = function () { var e = edtAt(cls, $("#cdt", o).value); apm.textContent = e && e.app ? "· emploi du temps : " + (ANOM[e.app] || e.act) + (e.n ? ", leçon " + e.n + "/" + e.of : "") : ""; return e && e.app ? e.app : ""; };
+        ap.value = c ? (c.app || "") : prop(); prop(); $("#cdt", o).onchange = function () { var a = prop(); if (!c || !c.app) ap.value = a; };
         extra(); $$("[data-ty]", o).forEach(function (b) { b.onclick = function () { if (b.disabled) return; ty = b.dataset.ty; $$("[data-ty]", o).forEach(function (z) { z.classList.toggle("on", z === b); }); extra(); }; });
         $("#cok", o).onclick = function () { var nom = $("#cn", o).value.trim(), m = $("#cm", o); if (!nom) { m.textContent = "Donne un intitulé."; return; }
-          var it = { id: c && c.id, cls: cls, nom: nom, ty: ty, d: $("#cdt", o).value, max: c ? c.max : 20, coef: c ? c.coef : 1, unit: c ? c.unit : "", icos: c ? c.icos : [], cg: ty === "note" || ty === "deg" ? $$("[data-cg]", o).filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.cg; }) : [] };
+          var it = { id: c && c.id, cls: cls, nom: nom, ty: ty, d: $("#cdt", o).value, app: $("#capp", o).value, max: c ? c.max : 20, coef: c ? c.coef : 1, unit: c ? c.unit : "", icos: c ? c.icos : [], cg: ty === "note" || ty === "deg" ? $$("[data-cg]", o).filter(function (x) { return x.checked; }).map(function (x) { return x.dataset.cg; }) : [] };
           if (ty === "note") { var mx = nbr($("#cmax", o).value), cf = nbr($("#ccoef", o).value); if (mx == null || mx <= 0) { m.textContent = "« Notée sur » doit être un nombre plus grand que 0."; return; } if (cf == null || cf <= 0) { m.textContent = "Le coefficient doit être un nombre plus grand que 0."; return; } it.max = mx; it.coef = cf; }
           if (ty === "perf") it.unit = $("#cunit", o).value.trim();
           if (ty === "ico") { it.icos = $("#cicos", o).value.trim().split(/\s+/).filter(Boolean); if (!it.icos.length) { m.textContent = "Indique au moins une icône."; return; } }
@@ -444,7 +451,7 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
         if (false) { var v = mk(""); if (!v) return; if (!byAct) { byAct = { src: "lec", app: a, nom: ANOM[a], sub: "moy. /" + sur, d: r.day, color: ACOL[a], days: [], id: "la|" + a }; out.push(byAct); }
           byAct.days.push({ d: r.day, v: v }); return; }
         if (c.lec === "crit") ["p", "s", "t"].forEach(function (q, i) { var v = mk(q); if (v) out.push({ src: "lec", app: a, nom: N[i], sub: jf(r.day) + " /" + sur, d: r.day, color: ACOL[a], v: v, lec: lt, theme: r.theme, id: "l|" + id + "|" + q }); });
-        else { var v2 = mk(""); if (v2) out.push({ src: "lec", app: a, nom: jf(r.day), sub: "/" + sur, d: r.day, color: ACOL[a], v: v2, lec: lt, theme: r.theme, id: "l|" + id }); } });
+        else { var v2 = mk(""), ea = edtAt(cls, r.day); if (v2) out.push({ src: "lec", app: a, nom: jf(r.day), sub: (ea && ea.app === a && ea.n ? "L" + ea.n + "/" + ea.of + " · " : "") + "/" + sur, ln: ea && ea.app === a ? ea : null, d: r.day, color: ACOL[a], v: v2, lec: lt, theme: r.theme, id: "l|" + id }); } });
       if (byAct) { var V = {}; byAct.days.forEach(function (x) { Object.keys(x.v).forEach(function (k) { var o = V[k] || (V[k] = { s: 0, n: 0, L: [] }); o.s += x.v[k].n20; o.n++; o.L.push(jf(x.d) + " : " + x.v[k].t); }); });
         byAct.v = {}; Object.keys(V).forEach(function (k) { var m = V[k].s / V[k].n; byAct.v[k] = { n20: m, t: fr(Math.round(m / 20 * sur * 4) / 4), det: V[k].n + " leçon(s) · " + V[k].L.join(" · ") }; }); byAct.nom = ANOM[a] + " (" + byAct.days.length + " leçons)"; byAct.d = byAct.days[byAct.days.length - 1].d; }
       var IM = sI("eps.evmod." + dir + ".v1"); Object.keys(IM).forEach(function (id) { var r = IM[id]; if (!r || r.del || r.k !== "res" || R.ck(r.cls) !== R.ck(cls)) return; var m = IM[r.mod]; if (!m || m.del || !Array.isArray(m.crit)) return; var d = dayU(r.u); if (R.anOf(d) !== an) return;
@@ -452,7 +459,7 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
           if (!sw) return; var pt = s / sw; v[R.nk(k)] = { n20: pt * 20, t: fr(Math.round(pt * tot * 4) / 4), det: m.crit.filter(function (cr) { return isNum(x[cr.id]); }).map(function (cr) { return String(cr.t || "Critère") + " : " + fr(+x[cr.id]); }).join(" · ") }; any = true; });
         if (any) out.push({ src: "mod", app: a, nom: String(m.nom || "Modalité"), sub: "/" + fr(tot), d: d, color: ACOL[a], v: v, id: "m|" + id }); }); });
     CD.cols(cls).forEach(function (col) { var V = CD.vals(col.id), v = {}; Object.keys(V).forEach(function (k) { var x = V[k], p = CD.part(col, x); v[k] = { n20: p == null ? null : p * 20, t: null, raw: x, w: col.coef || 1 }; });
-      if (!col.d || R.anOf(col.d) === an) out.push({ src: "man", nom: col.nom, sub: col.ty === "note" ? "/" + fr(col.max) + (col.coef !== 1 ? " ×" + fr(col.coef) : "") : CD.TY[col.ty], d: col.d, color: "#3F8F3F", v: v, col: col, id: "c|" + col.id }); });
+      if (!col.d || R.anOf(col.d) === an) out.push({ src: "man", app: col.app || "", nom: col.nom, sub: col.ty === "note" ? "/" + fr(col.max) + (col.coef !== 1 ? " ×" + fr(col.coef) : "") : CD.TY[col.ty], d: col.d, color: "#3F8F3F", v: v, col: col, id: "c|" + col.id }); });
     var ord = { fin: 0, lec: 1, mod: 2, man: 3 };
     return out.sort(function (x, y) { return ord[x.src] - ord[y.src] || String(x.app || "").localeCompare(String(y.app || "")) || String(x.d || "").localeCompare(String(y.d || "")); }); }
   /* moyenne /20 d'un élève sur des colonnes : moyenne de chaque source, puis moyenne pondérée par les coefficients des sources */
@@ -473,12 +480,24 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
         g.n++; if (c.d < g.d) g.d = c.d; if (c.d > g.d1) g.d1 = c.d; Object.keys(c.v).forEach(function (k) { var o = g.V[k] || (g.V[k] = { s: 0, n: 0, L: [] }); o.s += c.v[k].n20; o.n++; o.L.push(jf(c.d) + " : " + c.v[k].t); }); });
       Object.keys(agg).forEach(function (a) { var g = agg[a], sur = leSur(R.DIRS[a]); g.v = {}; g.sub = g.n + " leçon" + (g.n > 1 ? "s" : "") + " · moy. /" + sur; Object.keys(g.V).forEach(function (k) { var m = g.V[k].s / g.V[k].n; g.v[k] = { n20: m, t: fr(Math.round(m / 20 * sur * 4) / 4), det: g.V[k].L.join(" · ") }; }); g.nom = jf(g.d) + " → " + jf(g.d1); });
       C = keep; }
-    var first = {}; C.forEach(function (c) { var g = c.src === "man" ? "~man" : c.app || "~"; if (!first[g] || c.d < first[g]) first[g] = c.d || "9999"; });
+    var gk = function (c) { return c.src === "man" && !c.app ? "~man" : c.app || "~"; };
+    var first = {}; C.forEach(function (c) { var g = gk(c); if (!first[g] || c.d < first[g]) first[g] = c.d || "9999"; });
     var rk = { lec: 0, mod: 1, fin: 2, man: 3 };
-    if (cnUi().ord === "date") return C.sort(function (x, y) { var mx = x.src === "man" ? 1 : 0, my = y.src === "man" ? 1 : 0; return mx - my || String(x.d || "").localeCompare(String(y.d || "")) || String(x.app || "").localeCompare(String(y.app || "")) || rk[x.src] - rk[y.src]; });
-    return C.sort(function (x, y) { var gx = x.src === "man" ? "~man" : x.app || "~", gy = y.src === "man" ? "~man" : y.app || "~";
+    if (cnUi().ord === "date") return C.sort(function (x, y) { var mx = x.src === "man" && !x.app ? 1 : 0, my = y.src === "man" && !y.app ? 1 : 0; return mx - my || String(x.d || "").localeCompare(String(y.d || "")) || String(x.app || "").localeCompare(String(y.app || "")) || rk[x.src] - rk[y.src]; });
+    return C.sort(function (x, y) { var gx = gk(x), gy = gk(y);
       if (gx !== gy) { if (gx === "~man") return 1; if (gy === "~man") return -1; return String(first[gx]).localeCompare(String(first[gy])) || gx.localeCompare(gy); }
       return String(x.d || "").localeCompare(String(y.d || "")) || rk[x.src] - rk[y.src]; }); }
+  /* 🗓 lien avec l'emploi du temps (planning des installations, 28/11/2026) : activité que la classe pratique à une date, et numéro de la leçon
+     dans la séquence (eps.edt.v1, même format que l'export Planif : D.w semaines, D.R cours, D.acts activités) */
+  function actCodeN(n) { n = String(n || "").toLowerCase(); return /escal/.test(n) ? "esc" : /relais|vitesse/.test(n) ? "rel" : /volley/.test(n) ? "vol" : /badm/.test(n) ? "bad" : /danse/.test(n) ? "dan" : /acro/.test(n) ? "acro" : /orient|\bco\b/.test(n) ? "ori" : /cross/.test(n) ? "ct" : /basket/.test(n) ? "bk" : /step/.test(n) ? "step" : ""; }
+  var EDTC = { raw: null, D: null };
+  function edtD() { var raw = null; try { raw = localStorage.getItem("eps.edt.v1"); } catch (e) {} if (raw !== EDTC.raw) { EDTC.raw = raw; var x = null; try { x = JSON.parse(raw || "null"); } catch (e) {} EDTC.D = x && x.data && x.data.R && x.data.w ? x.data : null; } return EDTC.D; }
+  function edtAt(cls, day) { var D = edtD(); if (!D || !day) return null; var w = -1, d0 = new Date(day + "T12:00:00"); D.w.forEach(function (m, i) { var a = new Date(m + "T12:00:00"); if (d0 >= a && d0 - a < 7 * 864e5) w = i; }); if (w < 0) return null;
+    var dow = (d0.getDay() + 6) % 7, cl = R.ck(cls), out = null;
+    D.R.forEach(function (r) { if (out || +r[0] !== dow) return; var names = String(r[4]).split(/[\/+,&]| et /).map(function (x) { return R.ck(x); }); if (names.indexOf(cl) < 0 && R.ck(r[4]) !== cl) return;
+      var cells = String(r[6]).split(","), t = cells[w] || ""; if (!t || /^[scou]$/.test(t)) return; var a = +t.split("~")[0].split(".")[0], act = (D.acts || [])[a] || "";
+      var n = 0, of = 0; for (var k = 0; k < cells.length; k++) { var tk = cells[k] || ""; if (!tk || /^[scou]$/.test(tk)) continue; var ak = +tk.split("~")[0].split(".")[0]; if (ak !== a) { if (k < w) { n = 0; of = 0; continue; } break; } of++; if (k <= w) n = of; }
+      out = { app: actCodeN(act), act: act, n: n, of: of }; }); return out; }
   /* ↔ largeurs, ↕ tri et ordre des colonnes (28/11/2026, demande de l'enseignant) : gardés sur l'appareil (eps.cn.ui) */
   function cnUi() { var o = {}; try { o = JSON.parse(localStorage.getItem("eps.cn.ui") || "{}") || {}; } catch (e) {} return { wn: +o.wn > 0 ? +o.wn : 150, wc: +o.wc > 0 ? +o.wc : 56, ord: o.ord === "date" ? "date" : "act", sort: Array.isArray(o.sort) ? o.sort.slice(0, 3) : [] }; }
   function cnUiSet(k, v) { var o = cnUi(); o[k] = v; try { localStorage.setItem("eps.cn.ui", JSON.stringify(o)); } catch (e) {} }
@@ -499,8 +518,8 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
     var S = show.map(function (i) { return { i: i, p: P[i], C: moyOnly ? [] : perCols(all, P, i) }; }), R1 = "", R2 = "", R3 = "", shown = [];
     S.forEach(function (s) { var pc = PCOL[s.i % PCOL.length];
       R1 += '<th class="cn-p" colspan="' + (s.C.length + 1) + '" style="background:' + pc + '">' + esc(s.p.nom) + ' <small>' + jf(s.p.a) + " → " + jf(s.p.b) + "</small></th>";
-      var G = []; s.C.forEach(function (c) { var g = c.src === "man" ? "~man" : c.app || "~", l = G[G.length - 1]; if (l && l.g === g) l.n++; else G.push({ g: g, n: 1, c: c }); });
-      G.forEach(function (g, j) { R2 += '<th colspan="' + g.n + '" class="cn-g' + (j === 0 ? " cn-sep" : "") + '" style="background:' + (g.g === "~man" ? "#3F8F3F" : g.c.color) + '">' + esc(g.g === "~man" ? "✏️ Mes colonnes" : (ANOM[g.c.app] || g.c.nom)) + "</th>"; });
+      var G = []; s.C.forEach(function (c) { var g = c.src === "man" && !c.app ? "~man" : c.app || "~", l = G[G.length - 1]; if (l && l.g === g) l.n++; else G.push({ g: g, n: 1, c: c }); });
+      G.forEach(function (g, j) { R2 += '<th colspan="' + g.n + '" class="cn-g' + (j === 0 ? " cn-sep" : "") + '" style="background:' + (g.g === "~man" ? "#3F8F3F" : ACOL[g.g] || g.c.color) + '">' + esc(g.g === "~man" ? "✏️ Mes colonnes" : (ANOM[g.c.app] || g.c.nom)) + "</th>"; });
       s.C.forEach(function (c, j) { shown.push(c); R3 += '<th class="cn-st' + (j === 0 ? " cn-sep" : "") + '" data-sk="c:' + esc(c.id) + '" style="background:' + SRC[c.src][2] + '">' + (c.src === "man" ? '<button type="button" class="cnh" data-col="' + esc(c.col.id) + '">' + esc(colLab(c)) + "</button>" : '<span title="' + esc(c.lec || c.nom) + '">' + esc(colLab(c)) + "</span>") + "<br><small>" + esc(c.src === "lec" && cnCfg().lec !== "act" ? c.sub : c.src === "man" ? c.sub : c.src === "fin" ? jf(c.d) + " " + c.sub : c.sub) + "</small></th>"; });
       R2 += '<th rowspan="2" class="cn-pm cn-st' + (s.C.length ? "" : " cn-sep") + '" data-sk="p' + s.i + '" style="--pc:' + pc + '">Moy.<br>' + esc(s.p.nom) + "<br><small>/20</small>" + "@@AR" + s.i + "@@</th>"; });
     var moyP = function (s, k) { return cnMoy(all.filter(function (c) { return perOfDay(P, c.d) === s.i; }), k).m; };
@@ -521,7 +540,9 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
     if (!shown.length && !moyOnly) tb += '<p class="mut" style="padding:8px 12px">Rien pour l\'instant : les notes de tes leçons (📊 Évaluer la leçon), de tes évaluations finales et de tes modalités arrivent ici toutes seules. ＋ Colonne pour une note à toi.</p>';
     h += '<div class="card cn-card"><div class="tw cn-tw">' + tb + '</div><div class="lg noprint">' + ["< " + cnCfg().seuils[0]].concat(cnCfg().seuils.map(function (s, i, a) { return i < a.length - 1 ? s + " – " + a[i + 1] : "≥ " + s; })).map(function (t, i) { return '<span><i style="background:' + NIVC[i] + '"></i>' + esc(t) + "</span>"; }).join("") +
       Object.keys(SRC).map(function (s) { return '<span><i style="background:' + SRC[s][2] + '"></i>' + SRC[s][0] + " " + SRC[s][1] + " ×" + fr(cnCfg().coef[s]) + "</span>"; }).join("") + "</div></div>";
-    $("#pg").innerHTML = h; cnBind(cur, L, all, E, P, shown); }
+    $("#pg").innerHTML = h; cnBind(cur, L, all, E, P, shown);
+    if (UI.relq) { var q = document.createElement("p"); q.id = "cnrel"; q.className = "mut noprint"; q.textContent = "🔄 Relevé des notes finales en cours…"; var cd = $(".cn-card"); if (cd) cd.parentNode.insertBefore(q, cd); }
+    autoRel(); }
   function cnBind(cur, L, all, E, P, shown) {
     $$("[data-c]").forEach(function (b) { b.onclick = function () { UI.cls = L[+b.dataset.c].nom; UI.per = ""; render(); }; });
     $$("[data-per]").forEach(function (b) { b.onclick = function () { UI.per = b.dataset.per; render(); }; });
@@ -557,7 +578,7 @@ table.cn th.cn-g{border-right:1px solid rgba(255,255,255,.5)}
     $$("[data-cm]").forEach(function (b) { b.onclick = function () { var p = b.dataset.cm.split("|"), k = p.pop(), c = byId[p.join("|")]; if (!c) return; var i = E.findIndex(function (e) { return e.k === k; }); if (i >= 0) saisie(c.col, E, i); }; });
     $$("[data-cd]").forEach(function (b) { b.onclick = function () { var p = b.dataset.cd.split("|"), k = p.pop(), c = byId[p.join("|")]; if (!c) return; var x = c.v[k], e = E.filter(function (z) { return z.k === k; })[0];
       pop("<h2>" + esc(e ? e.full : "") + '</h2><p class="mut">' + SRC[c.src][0] + " " + esc(c.src === "fin" ? "Évaluation finale · " + c.nom : (ANOM[c.app] || "") + " · " + (c.src === "mod" ? "🧪 " + c.nom : "leçon du " + jf(c.d) + (c.lec ? " · " + c.lec : ""))) + "</p>" +
-        '<p style="font-size:28px;font-weight:900;margin:6px 0">' + esc(x.t) + ' <small style="font-size:16px;color:var(--muted)">' + esc(c.sub) + "</small></p>" + (x.det ? '<p>' + esc(x.det) + "</p>" : "") + (c.theme ? '<p class="mut">Thème du jour : ' + esc(c.theme) + "</p>" : "") +
+        '<p style="font-size:28px;font-weight:900;margin:6px 0">' + esc(x.t) + ' <small style="font-size:16px;color:var(--muted)">' + esc(c.sub) + "</small></p>" + (x.det ? '<p>' + esc(x.det) + "</p>" : "") + (c.theme ? '<p class="mut">Thème du jour : ' + esc(c.theme) + "</p>" : "") + (c.ln && c.ln.n ? '<p class="mut">🗓 Emploi du temps : leçon ' + c.ln.n + " sur " + c.ln.of + " de la séquence " + esc(c.ln.act) + ".</p>" : "") +
         '<p class="mut">Note reliée : elle se modifie là où elle a été saisie (' + (c.src === "fin" ? "Évaluer → Évaluation finale" : c.src === "mod" ? "Évaluer → 🧪 Modalités" : "📊 Évaluer la leçon") + ' de l\'activité).</p><div class="row">' + (c.app && R.DIRS[c.app] ? '<a class="btn" href="../' + R.DIRS[c.app] + '/">Ouvrir ' + esc(ANOM[c.app] || "l'activité") + "</a>" : "") + '<button type="button" class="btn p" data-x>✕ Fermer</button></div>'); }; }); }
   /* ================= ⚙ Paramètres du carnet ================= */
   function vPar() { var c = cnCfg(), per = function (k) { return c[k].map(function (p) { return p[0] + " : " + jf("2000-" + p[1]) + " → " + jf("2000-" + p[2]); }).join("\n"); };

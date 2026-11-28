@@ -2299,7 +2299,9 @@
       ".eps-hsw{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}" +
       ".eps-hs{position:sticky;bottom:0;z-index:20;height:18px;overflow-x:auto;overflow-y:hidden;background:rgba(245,243,238,.94);border-top:1px solid #E6E1D6}.eps-hs>div{height:1px}" +
       ".eps-hs::-webkit-scrollbar{height:14px}.eps-hs::-webkit-scrollbar-thumb{background:#8A8478;border-radius:3px;border:3px solid rgba(245,243,238,.94)}.eps-hs::-webkit-scrollbar-track{background:transparent}.eps-hs{scrollbar-width:auto;scrollbar-color:#8A8478 transparent}" +
-      "@media (pointer:coarse){.eps-hs{display:none!important}}"; (document.head || document.documentElement).appendChild(cs); } catch (e) {}
+      "@media (pointer:coarse){.eps-hs{display:none!important}}" +
+      /* colonne des noms figée quand le tableau défile de gauche à droite */
+      ".eps-hsx table tr>td:first-child,.eps-hsx table tr>th:first-child{position:sticky;left:0;z-index:2;background-color:#fff;box-shadow:2px 0 0 rgba(0,0,0,.06)}.eps-hsx table thead tr>th:first-child{background-color:#FAF8F3;z-index:4}"; (document.head || document.documentElement).appendChild(cs); } catch (e) {}
     /* titres : rangées de titres (thead, sinon premières rangées faites de th), positions réelles des colonnes (cases fusionnées comprises) ;
        un titre « feuille » = une seule colonne et qui descend jusqu'à la dernière rangée de titres : c'est lui qui trie et règle la largeur */
     function head(t) { var H = t.tHead && t.tHead.rows.length ? Array.prototype.slice.call(t.tHead.rows) : [], i;
@@ -2341,7 +2343,7 @@
     /* ⇆ barre de défilement horizontal collée en bas de l'écran (ordinateur) pour tout tableau plus large que son cadre */
     function wrapOf(t) { for (var e = t.parentElement; e && e !== document.body; e = e.parentElement) { var ox = getComputedStyle(e).overflowX; if (ox === "auto" || ox === "scroll") return e; } return null; }
     function hs(t) { var w = wrapOf(t); if (!w) return; w.classList.add("eps-hsw"); var b = w._epsHs;
-      var need = w.scrollWidth > w.clientWidth + 8;
+      var need = w.scrollWidth > w.clientWidth + 8; w.classList.toggle("eps-hsx", need && !t.closest("[data-eps-nofreeze]") && !t.querySelector(".cn-n"));
       if (!need) { if (b) b.style.display = "none"; return; }
       if (!b) { b = document.createElement("div"); b.className = "eps-hs"; b.setAttribute("aria-hidden", "true"); b.innerHTML = "<div></div>"; w.parentNode.insertBefore(b, w.nextSibling); w._epsHs = b;
         b.addEventListener("scroll", function () { if (Math.abs(w.scrollLeft - b.scrollLeft) > 1) w.scrollLeft = b.scrollLeft; });

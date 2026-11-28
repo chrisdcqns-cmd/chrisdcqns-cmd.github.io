@@ -43,7 +43,7 @@
       ".epst-mn{position:absolute;z-index:70;background:#fff;border:1px solid #E6E1D6;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:6px;min-width:280px;max-height:70vh;overflow:auto;font-family:system-ui,sans-serif}",
       ".epst-mn .r{display:flex;align-items:center;gap:4px}.epst-mn .r>button:first-child{flex:1;display:flex;align-items:center;gap:10px;border:0;background:none;text-align:left;padding:10px;border-radius:10px;font:700 14.5px system-ui;color:#14171C;cursor:pointer}",
       ".epst-mn .r>button:first-child:hover{background:#F5F3EE}.epst-mn .r>button:first-child i{font-style:normal;width:24px;text-align:center;font-size:18px}",
-      ".epst-mn .pin{border:0;background:none;font-size:18px;width:38px;height:38px;border-radius:10px;cursor:pointer;color:#B5AFA3}.epst-mn .pin.on{color:#D4A000}.epst-mn .pin:hover{background:#F5F3EE}",
+      ".epst-mn .pin{border:0;background:none;font-size:18px;width:38px;height:38px;border-radius:10px;cursor:pointer;color:#B5AFA3}.epst-mn .pin.on{color:#D4A000}.epst-mn .drg{cursor:grab;touch-action:none;width:26px;text-align:center;color:#8A8478;font-size:18px;user-select:none}.epst-mn .r.drag{background:#FFF6D6;box-shadow:0 2px 8px rgba(0,0,0,.15)}.epst-mn .pin:hover{background:#F5F3EE}",
       ".epst-mn .h{font:800 11px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#8A8F98;padding:8px 10px 4px}",
       ".epst-panel{display:none;max-width:1100px;margin:0 auto;padding:18px 18px 60px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#14171C}",
       "html.epst-pan .epst-panel{display:block}",
@@ -234,6 +234,7 @@
       var P = pins(), nrm = function (t) { return String(t).replace(/^[^A-Za-zÀ-ÿ0-9]+/, "").trim().toLowerCase(); }, PN = P ? P.map(nrm) : null,
         isMain = function (x) { return !!x.seg || (PN ? PN.indexOf(nrm(x.label)) >= 0 || PN.indexOf(nrm(short(x.label))) >= 0 : (x.main || MAIN.test(x.label))); }, N = A.filter(function (x) { return !x.seg; }).length; /* les entrées d'un onglet (segments) restent toujours dans la barre et ne comptent pas */
       var top = N <= 5 ? A : A.filter(isMain), rest = N <= 5 ? [] : A.filter(function (x) { return !isMain(x); });
+      if (PN) { var pos = function (x) { if (x.seg) return -1; var i = PN.indexOf(nrm(x.label)); if (i < 0) i = PN.indexOf(nrm(short(x.label))); return i < 0 ? 999 : i; }; top = top.map(function (x, i) { return [x, i]; }).sort(function (a, b) { return pos(a[0]) - pos(b[0]) || a[1] - b[1]; }).map(function (z) { return z[0]; }); }
       if (!top.length) { top = A.slice(0, 4); rest = A.slice(4); }
       acts.innerHTML = '<div class="epst-tb">' + top.map(function (x) { return '<button type="button"' + (x.seg ? ' class="seg' + (x.on ? " on" : "") + '" aria-pressed="' + !!x.on + '"' : "") + ' data-a="' + A.indexOf(x) + '" title="' + esc(x.label) + '"><i>' + (x.ico || "•") + "</i>" + esc(short(x.label)) + "</button>"; }).join("") +
         (rest.length || N > 5 ? '<button type="button" class="more" data-more aria-haspopup="true" title="Autres actions"><i>⋯</i>Plus' + (rest.length ? " (" + rest.length + ")" : "") + "</button>" : "") + "</div>";
@@ -242,7 +243,7 @@
     function menu(mb, A, isMain) {
       var old = document.querySelector(".epst-mn"); if (old) { old.remove(); mb.classList.remove("open"); return; }
       var m = document.createElement("div"); m.className = "epst-mn"; m.setAttribute("role", "menu");
-      var row = function (x) { var on = isMain(x); return '<div class="r"><button type="button" data-g="' + A.indexOf(x) + '"><i>' + (x.ico || "•") + "</i>" + esc(x.label) + '</button><button type="button" class="pin' + (on ? " on" : "") + '" data-pin="' + A.indexOf(x) + '" title="' + (on ? "Retirer de la barre" : "Mettre dans la barre") + '" aria-label="' + (on ? "Retirer de la barre" : "Mettre dans la barre") + '">' + (on ? "★" : "☆") + "</button></div>"; };
+      var row = function (x) { var on = isMain(x); return '<div class="r"' + (on && !x.seg ? ' data-dr="' + A.indexOf(x) + '"' : "") + ">" + (on && !x.seg ? '<span class="drg" title="Glisser pour changer l\'ordre" aria-hidden="true">⠿</span>' : "") + '<button type="button" data-g="' + A.indexOf(x) + '"><i>' + (x.ico || "•") + "</i>" + esc(x.label) + '</button><button type="button" class="pin' + (on ? " on" : "") + '" data-pin="' + A.indexOf(x) + '" title="' + (on ? "Retirer de la barre" : "Mettre dans la barre") + '" aria-label="' + (on ? "Retirer de la barre" : "Mettre dans la barre") + '">' + (on ? "★" : "☆") + "</button></div>"; };
       var rest = A.filter(function (x) { return !isMain(x); }), top = A.filter(function (x) { return isMain(x) && !x.seg; });
       m.innerHTML = (rest.length ? '<div class="h">Autres actions</div>' + rest.map(row).join("") : "") + '<div class="h">Dans la barre (★ pour retirer)</div>' + top.map(row).join("") +
         (pins() ? '<div class="r"><button type="button" data-reset style="color:#6A6F78;font-weight:600"><i>↺</i>Barre par défaut</button></div>' : "");
@@ -254,7 +255,13 @@
       m.querySelectorAll("[data-g]").forEach(function (b) { b.onclick = function () { close(); run(A[+b.dataset.g]); }; });
       m.querySelectorAll("[data-pin]").forEach(function (b) { b.onclick = function () { var x = A[+b.dataset.pin], P = pins() || A.filter(isMain).map(function (y) { return y.label; }), i = P.indexOf(x.label);
         if (i >= 0) P.splice(i, 1); else P.push(x.label); pinsSet(P); close(); drawActs(A); menu(acts.querySelector("[data-more]"), A, function (y) { return P.indexOf(y.label) >= 0; }); }; });
-      var rs = m.querySelector("[data-reset]"); if (rs) rs.onclick = function () { pinsSet(null); close(); drawActs(A); }; }
+      var rs = m.querySelector("[data-reset]"); if (rs) rs.onclick = function () { pinsSet(null); close(); drawActs(A); };
+      /* ⠿ glisser-déposer (28/11/2026, demande de l'enseignant) : l'ordre des boutons de la barre suit l'ordre de cette liste (paramètre barre_<onglet>) */
+      m.querySelectorAll(".drg").forEach(function (h) { h.addEventListener("pointerdown", function (e) { e.preventDefault(); var r = h.parentNode, box = r.parentNode; r.classList.add("drag"); try { h.setPointerCapture(e.pointerId); } catch (er) {}
+        var mv = function (ev) { var L = Array.prototype.slice.call(box.querySelectorAll("[data-dr]")); for (var i = 0; i < L.length; i++) { var q = L[i]; if (q === r) continue; var b = q.getBoundingClientRect(); if (ev.clientY > b.top && ev.clientY < b.bottom) { if (ev.clientY < b.top + b.height / 2) box.insertBefore(r, q); else box.insertBefore(r, q.nextSibling); break; } } };
+        var up = function () { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up); r.classList.remove("drag");
+          var P2 = Array.prototype.map.call(box.querySelectorAll("[data-dr]"), function (q) { return A[+q.dataset.dr].label; }); pinsSet(P2); drawActs(A); var mb2 = acts.querySelector("[data-more]"); if (mb2) mb2.classList.add("open"); };
+        document.addEventListener("pointermove", mv); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up); }); }); }
     function panel(html) { document.documentElement.classList.add("epst-pan"); mains(false); pan.innerHTML = html; window.scrollTo(0, 0); return pan; }
     function closePanel() { document.documentElement.classList.remove("epst-pan"); mains(true); pan.innerHTML = ""; }
     function cards(L) { return '<div class="epst-grid">' + L.map(function (x, i) { return '<button type="button" class="epst-card" data-i="' + i + '"><i>' + (x.ico || "•") + "</i><span><b>" + esc(x.label) + "</b>" + (x.sub ? "<small>" + esc(x.sub) + "</small>" : "") + "</span></button>"; }).join("") + "</div>"; }
