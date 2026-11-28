@@ -3118,7 +3118,7 @@ window.epsAppHome=function(){if(document.getElementById('play').classList.contai
 window.epsCtlOwn={on:()=>{try{return tabNow()==='live'}catch(e){return false}},open:()=>{showTab('live');scrollTo(0,0)}};
 function badCt(n){const e=document.querySelector('#t-live .lg[data-ter="'+n+'"]');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
 /* ✋ appel de l'enseignant : classe, groupe et terrain de la tablette */
-window.epsTabInfo=()=>{try{if(terrOn()&&!isUnlocked()){const c=classById(TERR.cls),g=c&&TERR.grp&&(c.groupes||{})[TERR.grp],t=g&&terrOf(c,g);return{mode:'terrain',cls:c?c.nom:'',eq:g?g.nom:'',lieu:t?'Terrain '+t:''}}}catch(e){}return{}};
+window.epsTabInfo=()=>{try{if(terrOn()&&!isUnlocked()){const c=classById(TERR.cls),g=c&&TERR.grp&&(c.groupes||{})[TERR.grp],t=g&&terrOf(c,g);return{mode:'terrain',cls:c?c.nom:'',eq:g?g.nom:'',who:g?(g.el||[]).map(id=>{const e=c.eleves.find(x=>x.id===id);return e&&!isAbs(e)?((e.prenom||'')+' '+(e.nom||'')).trim():''}).filter(Boolean):[],lieu:t?'Terrain '+t:''}}}catch(e){}return{}};
 window.epsCurrentClass=()=>{const c=terrOn()&&!isUnlocked()?classById(TERR.cls):C();return c?{nom:c.nom,eleves:c.eleves.map(e=>((e.prenom||'')+' '+e.nom).trim())}:null};
 
 /* ================== SYNCHRONISATION ENTRE TABLETTES ==================

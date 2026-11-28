@@ -1647,7 +1647,7 @@ function planTour(n){const c=C(),tr=tourn(c);if(!tr)return;planEdit(c,p=>{p.ter=
   const jouent=new Set(Object.values(p.ter).flat());p.arb={};(c.equipes||[]).filter(t=>!jouent.has(t.id)).forEach(t=>{p.arb[t.id]={};planSplitIn(c,p,t.id)})});renderEquipes();toast('Tour '+n+' envoyé aux tablettes')}
 
 /* 📱 ce que fait cette tablette (liste des tablettes connectées, eps-home.js) */
-window.epsTabInfo=()=>{try{if(!isUnlocked()&&coachOn()){const c=coC(),t=coT(),j=t&&(t.jours||{})[today()];return{mode:'coach',cls:c?c.nom:'',eq:t?t.nom:'',lieu:j&&j.terrain?'Terrain '+j.terrain:''}}}catch(e){}return{}};
+window.epsTabInfo=()=>{try{if(!isUnlocked()&&coachOn()){const c=coC(),t=coT(),j=t&&(t.jours||{})[today()];return{mode:'coach',cls:c?c.nom:'',eq:t?t.nom:'',who:c&&t?volMembres(c,t).filter(n=>!/\(absent\)$/.test(n)):[],lieu:j&&j.terrain?'Terrain '+j.terrain:''}}}catch(e){}return{}};
 /* un seul écran de suivi en volley : le 📡 tableau de bord de la leçon (3 terrains dessinés, ✋ appels en tête) ; le pilotage commun n'est pas proposé */
 window.epsCtlOwn={on:()=>{try{return tabNow()==='equipes'&&DBV&&!EQT}catch(e){return false}},open:()=>{DBV=true;EQT=null;showTab('equipes');scrollTo(0,0)}};
 /* 🚫 terrains fermés par l'enseignant (🏟 Terrains du tableau de bord) : plus proposés aux équipes ni dans le plan */

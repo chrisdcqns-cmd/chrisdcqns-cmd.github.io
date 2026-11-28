@@ -672,7 +672,7 @@ document.addEventListener("change",ev=>{ const t=ev.target, k=t.dataset&&t.datas
 
 /* ======================= BRANCHEMENTS COMMUNS ======================= */
 window.epsCurrentClass=()=>{ const c=clsObj(); return c?{nom:c.nom, eleves:(c.el||[])}:null; };
-window.epsTabInfo=()=>{ try{ if(!estProf()&&aClasse()&&S.eq){ const m=matchCur(); return {mode:"équipe", cls:nomClasse(), eq:eqNom(nomClasse(),S.eq), lieu:m&&m.ter&&m.st!==1?"Terrain "+m.ter:""}; } }catch(e){} return {}; };
+window.epsTabInfo=()=>{ try{ if(!estProf()&&aClasse()&&S.eq){ const m=matchCur(); const e0=eqDe(nomClasse(),S.eq); return {mode:"équipe", cls:nomClasse(), eq:eqNom(nomClasse(),S.eq), who:e0&&Array.isArray(e0.j)?e0.j.slice():[], lieu:m&&m.ter&&m.st!==1?"Terrain "+m.ter:""}; } }catch(e){} return {}; };
 /* un seul écran de suivi en basket : la leçon du jour de l'enseignant (terrains dessinés, ✋ appels en tête) ; le pilotage commun n'est pas proposé */
 window.epsCtlOwn={on:()=>{ try{ return estProf()&&S.vue==="prof"&&!!S.suivi; }catch(e){ return false; } }, open:cls=>{ try{ const c=classesBK().find(x=>nk(x.nom)===nk(cls)); if(c){ S.classe=c.id; SS.set("classe",S.classe); } }catch(e){} S.suivi=1; aller("prof"); scrollTo(0,0); }};
 /* 🧩 niveau proposé pour les groupes : points marqués et efficacité observée */

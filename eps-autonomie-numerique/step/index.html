@@ -290,7 +290,7 @@ const jourDe=nom=>{ const o=stLd().items["j|"+nom+"|"+auj()]; return o&&typeof o
 function pasPermis(){ const J=!S.prof&&aClasse()?jourDe(nomClasse()):null, L=tousPas(); if(J&&Array.isArray(J.pas)&&J.pas.length){ const ok=L.filter(p=>J.pas.includes(p.id)); if(ok.length) return ok; } return L; }
 function bpmImpose(){ const J=!S.prof&&aClasse()?jourDe(nomClasse()):null; const b=J?Math.round(+J.bpm):0; return b>=30&&b<=300?b:0; }
 window.epsCurrentClass=()=>{ const nom=S.prof?(S.clsP||""):nomClasse(), c=classes().find(x=>x.nom===nom); return c?{nom:c.nom,eleves:personnes(c.nom)}:null; };
-window.epsTabInfo=()=>{ try{ if(!S.prof&&aClasse()) return {mode:"eleve",cls:nomClasse(),eq:S.groupe?S.groupe.noms.map(prenom).join(", "):""}; }catch(e){} return {}; };
+window.epsTabInfo=()=>{ try{ if(!S.prof&&aClasse()) return {mode:"eleve",cls:nomClasse(),eq:S.groupe?S.groupe.noms.map(prenom).join(", "):"",who:S.groupe?S.groupe.noms.slice():[]}; }catch(e){} return {}; };
 
 /* blocs : {c (classe), gk, noms, nom, items:[{p, m}], sym, bpm, d} */
 function okBloc(b){ if(!b||typeof b!=="object") return null; return {id:String(b.id||""),c:String(b.c||""),gk:String(b.gk||""),noms:Array.isArray(b.noms)?b.noms.map(String):[],nom:String(b.nom||"Bloc").slice(0,30),items:(Array.isArray(b.items)?b.items:[]).filter(x=>x&&typeof x==="object"&&x.p).map(x=>({p:String(x.p),m:x.m?1:0})),sym:b.sym?1:0,bpm:borne(Math.round(+b.bpm)||BPM_DEF,30,300),d:String(b.d||""),u:+b.u||0}; }

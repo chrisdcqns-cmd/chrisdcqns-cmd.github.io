@@ -1518,11 +1518,32 @@
   function resId(cls, day, k) { return nn(cls) + "|" + day + "|" + k; }
   var PREVRES = {};
   function resGet(cls, nom, sk, prev) { if (prev) return PREVRES[nom + "|" + sk]; var o = get(KS, resId(cls, today(), ekey(nom))); return o && o.r ? o.r[sk] : undefined; }
+  /* 🧗 Ligne propre à l'activité dans chaque situation (demande du 28/11/2026, Escalade : mur, difficulté de la voie, dégaine atteinte) :
+     l'appli fournit window.epsSitChamps(classe) → [{id, label, opts:[…]}] ; valeurs gardées avec le résultat de l'élève (« x » du même enregistrement :
+     x[situation] = {id: valeur}), pour chaque élève de la tablette. */
+  function champsApp(cls) { try { var L = typeof window.epsSitChamps === "function" ? window.epsSitChamps(cls) : null; return Array.isArray(L) ? L.filter(function (c) { return c && c.id && Array.isArray(c.opts) && c.opts.length; }) : []; } catch (e) { return []; } }
+  function xRow(sk, CH) { return CH.length ? '<div class="res xf" data-xsk="' + esc(sk) + '" style="align-items:center">' + CH.map(function (c) { return '<label style="display:inline-flex;gap:6px;align-items:center;font-weight:700">' + esc(c.label) + ' <select data-xf="' + esc(c.id) + '" style="font:700 17px system-ui;padding:8px;border-radius:10px;border:2px solid #E6E1D6;background:#fff;min-height:44px"><option value="">—</option>' + c.opts.map(function (o) { return '<option>' + esc(o) + "</option>"; }).join("") + "</select></label>"; }).join("") + "</div>" : ""; }
+  var PREVX = {};
+  function xGet(cls, nom, sk, prev) { if (prev) return PREVX[nom + "|" + sk] || {}; var o = get(KS, resId(cls, today(), ekey(nom))); return (o && o.x && o.x[sk]) || {}; }
+  function xSet(cls, nom, sk, f, v, prev) { if (prev) { var p = PREVX[nom + "|" + sk] = PREVX[nom + "|" + sk] || {}; p[f] = v; return; }
+    var k = ekey(nom), id = resId(cls, today(), k), o = get(KS, id) || { id: id, cls: cls, day: today(), ek: k, r: {} }; o.x = o.x || {}; var x = o.x[sk] = o.x[sk] || {}; if (v === "" || v == null) delete x[f]; else x[f] = v; put(KS, o); }
   function resSet(cls, nom, sk, v, prev) { if (prev) { if (v == null) delete PREVRES[nom + "|" + sk]; else PREVRES[nom + "|" + sk] = v; return; }
     var k = ekey(nom), id = resId(cls, today(), k), o = get(KS, id) || { id: id, cls: cls, day: today(), ek: k, r: {} }; o.r = o.r || {}; if (v == null) delete o.r[sk]; else o.r[sk] = v; put(KS, o); }
   function whoList(cls) { return roster(cls).filter(function (n) { return !isAbs(cls, n); }); }
-  function whoGet(cls) { try { var w = JSON.parse(sessionStorage.getItem("eps.lcwho." + APP) || "null"); return w && same(w.cls, cls) ? w.n || [] : []; } catch (e) { return []; } }
-  function whoSet(cls, n) { try { sessionStorage.setItem("eps.lcwho." + APP, JSON.stringify({ cls: cls, n: n })); } catch (e) {} }
+  /* 👥 Les élèves gardent leur groupe constitué (demande de l'enseignant, 28/11/2026, toutes les applis) : « Qui utilise cette tablette ? » est rempli
+     tout seul, dans cet ordre : 1) ce que la tablette a déjà choisi (gardé pour la journée, même après une fermeture : « eps.lcwho.<appli>.j ») ;
+     2) le groupe / l'équipe de la tablette dans l'appli (window.epsTabInfo().who = noms des élèves) ; 3) au premier nom touché, tout son groupe du jour
+     (v.grp). Les élèves peuvent toujours retirer ou ajouter un nom. */
+  function whoApp(cls) { try { var t = typeof window.epsTabInfo === "function" ? window.epsTabInfo() : null; if (!t || !Array.isArray(t.who) || !t.who.length || (t.cls && !same(t.cls, cls))) return [];
+      var R = whoList(cls), out = []; t.who.forEach(function (n) { var m = typeof window.epsMatchNom === "function" ? window.epsMatchNom(R, String(n).replace(/\s*\(absent\)$/, "")) : R.filter(function (x) { return ekey(x) === ekey(n); })[0]; if (m && out.indexOf(m) < 0) out.push(m); }); return out; } catch (e) { return []; } }
+  function whoSig(cls) { return whoApp(cls).map(ekey).sort().join("+"); } /* le groupe de l'appli a changé (« Changer de groupe ») → il reprend la main */
+  function whoGet(cls) { try { var A = whoApp(cls), sg = A.map(ekey).sort().join("+"), ok = function (x) { return x && same(x.cls, cls) && (!sg || (x.g || "") === sg); };
+      var w = JSON.parse(sessionStorage.getItem("eps.lcwho." + APP) || "null"); if (ok(w)) return w.n || [];
+      var j = JSON.parse(localStorage.getItem("eps.lcwho." + APP + ".j") || "null"); if (j && j.day === today() && ok(j) && Array.isArray(j.n) && j.n.length) return j.n.slice();
+      return A; } catch (e) { return []; } }
+  function whoSet(cls, n) { try { var g = whoSig(cls); sessionStorage.setItem("eps.lcwho." + APP, JSON.stringify({ cls: cls, n: n, g: g })); localStorage.setItem("eps.lcwho." + APP + ".j", JSON.stringify({ cls: cls, day: today(), n: n, g: g })); } catch (e) {} }
+  function whoGroupe(cls, n) { try { var v = live(cls), G = v && v.grp && v.grp.g; if (!Array.isArray(G)) return [n]; var R = whoList(cls), g = G.filter(function (g) { return (g || []).some(function (x) { return ekey(x) === ekey(n); }); })[0]; if (!g) return [n];
+      var out = [n]; g.forEach(function (x) { var m = R.filter(function (r) { return ekey(r) === ekey(x); })[0]; if (m && out.indexOf(m) < 0 && !isAbs(cls, m, today())) out.push(m); }); return out; } catch (e) { return [n]; } }
   /* 🎨 indicateur coloré d'une situation (repris d'Escalade) : « intitulé ; seuil orange ; seuil vert ; unité » ; l'élève saisit sa valeur,
      la couleur (vert = réussi, orange = en partie, rouge = pas encore) devient son résultat de la situation */
   function indParse(t) { var p = String(t || "").split(";").map(function (x) { return x.trim(); }); if (p.length < 3) return null; var o = parseFloat(p[1].replace(",", ".")), g = parseFloat(p[2].replace(",", "."));
@@ -1535,6 +1556,7 @@
   function bindRes(o, l, cls, prev) {
     var R = cls ? whoList(cls) : [], SL = sitList(l);
     function upd() { var W = whoGet(cls);
+      o.querySelectorAll("[data-xsk]").forEach(function (r) { var x = W.length ? xGet(cls, W[0], r.dataset.xsk, prev) : {}; r.querySelectorAll("[data-xf]").forEach(function (se) { if (document.activeElement !== se) se.value = x[se.dataset.xf] || ""; }); });
       o.querySelectorAll(".lc-who button").forEach(function (b) { var on = W.indexOf(R[+b.dataset.who]) >= 0; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
       o.querySelectorAll(".res").forEach(function (r) { var vals = W.map(function (n) { return resGet(cls, n, r.dataset.sk, prev); }), v = vals.length && vals.every(function (x) { return x === vals[0]; }) ? vals[0] : undefined;
         r.querySelectorAll("[data-rv]").forEach(function (b) { var on = v != null && +b.dataset.rv === v; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
@@ -1548,11 +1570,14 @@
       else if (SL.some(function (s) { return W.some(function (n) { return resGet(cls, n, s.k, prev) != null; }); })) h += '<div style="margin-top:8px;padding:10px 12px;background:#E3F4E8;border-radius:12px">👏 Tout est réussi ! La prochaine fois, essaie la variante « plus difficile ».</div>';
       try { var VB = W.map(function (n) { var m = vMine(cls, n); return m.length ? "<div>🥋 <b>" + esc(n.split(" ")[0]) + "</b> : " + m.map(esc).join(" · ") + "</div>" : ""; }).join(""); if (VB) h += '<div style="margin-top:8px;padding:10px 12px;background:#EEF4FF;border-radius:12px"><b>🥋 Mes validations</b>' + VB + "</div>"; } catch (e) {}
       t.innerHTML = h; }
-    o.querySelectorAll(".lc-who button").forEach(function (b) { b.onclick = function () { var W = whoGet(cls), n = R[+b.dataset.who], i = W.indexOf(n); if (i >= 0) W.splice(i, 1); else W.push(n); whoSet(cls, W); upd(); }; });
+    o.querySelectorAll(".lc-who button").forEach(function (b) { b.onclick = function () { var W = whoGet(cls), n = R[+b.dataset.who], i = W.indexOf(n); if (i >= 0) W.splice(i, 1); else if (!W.length) W = whoGroupe(cls, n); else W.push(n); whoSet(cls, W); upd(); }; });
     o.querySelectorAll(".res [data-ivok]").forEach(function (b) { b.onclick = function () { var r = b.parentNode, x = parseFloat(String(r.querySelector("[data-iv]").value).replace(",", ".")); if (!isFinite(x)) return;
       var I = { o: +b.dataset.o, g: +b.dataset.g }; I.up = I.g > I.o; var v = indVal(I, x), out = r.querySelector("[data-ivr]"); out.textContent = ["🔴 pas encore", "🟠 presque", "🟢 réussi !"][v]; out.style.color = ["#C0392B", "#D35400", "#1E8449"][v];
       var W = whoGet(cls); if (!W.length) { var wb = o.querySelector(".bk.who"); if (wb) { wb.scrollIntoView({ block: "center" }); wb.classList.add("need"); setTimeout(function () { wb.classList.remove("need"); }, 1600); } return; }
       W.forEach(function (n) { resSet(cls, n, r.dataset.sk, v, prev); }); upd(); }; });
+    o.querySelectorAll("[data-xsk] [data-xf]").forEach(function (se) { se.onchange = function () { var W = whoGet(cls), sk = se.closest("[data-xsk]").dataset.xsk;
+      if (!W.length) { se.value = ""; var wb = o.querySelector(".bk.who"); if (wb) { wb.scrollIntoView({ block: "center" }); wb.classList.add("need"); setTimeout(function () { wb.classList.remove("need"); }, 1600); } return; }
+      W.forEach(function (n) { xSet(cls, n, sk, se.dataset.xf, se.value, prev); }); }; });
     o.querySelectorAll(".res [data-rv]").forEach(function (b) { b.onclick = function () { var W = whoGet(cls), sk = b.parentNode.dataset.sk, v = +b.dataset.rv;
       if (!W.length) { var wb = o.querySelector(".bk.who"); if (wb) { wb.scrollIntoView({ block: "center" }); wb.classList.add("need"); setTimeout(function () { wb.classList.remove("need"); }, 1600); } return; }
       var allSame = W.every(function (n) { return resGet(cls, n, sk, prev) === v; }); W.forEach(function (n) { resSet(cls, n, sk, allSame ? null : v, prev); }); upd(); }; });
@@ -1668,10 +1693,11 @@
     if (v && v.roles && v.roles.who && Object.keys(v.roles.who).length) { var WR = rcls ? whoGet(rcls) : [], CAT = {}; rolesCat().forEach(function (t) { var r = roleSplit(t); CAT[r.n] = r.m; });
       h += '<div class="bk"><h3>🎭 Rôles du jour</h3>' + Object.keys(v.roles.who).map(function (n) { var me = WR.indexOf(n) >= 0, r = v.roles.who[n]; return '<div style="padding:4px 8px;border-radius:10px;' + (me ? "background:" + COL + "22;font-weight:800" : "") + '">' + (me ? "👉 " : "") + esc(n) + " : <b>" + esc(r) + "</b>" + (me && CAT[r] ? '<div style="font-weight:500">' + esc(CAT[r]) + "</div>" : "") + "</div>"; }).join("") + "</div>"; }
     if (v && v.rang && v.rang.g != null) h += '<div class="bk rang"><h3>🧹 Rangement aujourd\'hui : groupe ' + (v.rang.g + 1) + '</h3><div>' + esc((v.rang.noms || []).join(", ")) + "</div></div>";
+    var CHX = rcls ? champsApp(rcls) : [];
     if (l) {
       h += (l.but || l.mat) ? '<div class="bk">' + k("But de la leçon", l.but) + k("Matériel", l.mat) + "</div>" : "";
       h += bk("ech", "🔥 Échauffement", (l.ech ? '<div class="lc-pre">' + esc(l.ech) + "</div>" : "") + img(l.echImg));
-      (l.sits || []).forEach(function (s, i) { h += bk("s" + i, "🏃 Situation " + (i + 1) + (s.t ? " · " + esc(s.t) : ""), (s.cons ? '<div class="lc-pre">' + esc(s.cons) + "</div>" : "") + img(s.img) + k("✅ Je réussis si…", [s.crQ, s.crQl].filter(Boolean).join("\n")) + k("💡 Comment faire…", s.crR) + k("⬇ Plus facile", s.simp) + k("⬆ Plus difficile", s.comp) + (RR.length ? (indParse(s.ind) ? indRow(l.id + ":s" + i, indParse(s.ind)) : resRow(l.id + ":s" + i)) : "")); });
+      (l.sits || []).forEach(function (s, i) { h += bk("s" + i, "🏃 Situation " + (i + 1) + (s.t ? " · " + esc(s.t) : ""), (s.cons ? '<div class="lc-pre">' + esc(s.cons) + "</div>" : "") + img(s.img) + k("✅ Je réussis si…", [s.crQ, s.crQl].filter(Boolean).join("\n")) + k("💡 Comment faire…", s.crR) + k("⬇ Plus facile", s.simp) + k("⬆ Plus difficile", s.comp) + (RR.length ? xRow(l.id + ":s" + i, CHX) + (indParse(s.ind) ? indRow(l.id + ":s" + i, indParse(s.ind)) : resRow(l.id + ":s" + i)) : "")); });
       h += bk("rem", "🏆 Remise en action", (l.rem ? '<div class="lc-pre">' + esc(l.rem) + "</div>" : "") + k("✅ Je réussis si…", l.remCr) + (RR.length && (l.rem || l.remCr) ? resRow(l.id + ":rem") : ""));
       if (RR.length) h += '<div class="bk today" data-today></div>';
     } else h += '<div class="bk">La leçon a commencé. Écoute les consignes de ton professeur.</div>';
@@ -1749,7 +1775,7 @@
   var EJ = { cls: "", shut: {}, tap: { d: "", t: 0, tm: 0 } };
   function ejData(cls) { var D = {};
     all(KE).filter(function (o) { return same(o.cls, cls) && o.day && o.el && typeof o.el === "object"; }).forEach(function (o) { (D[o.day] = D[o.day] || { res: {} }).le = o; });
-    all(KS).filter(function (o) { return same(o.cls, cls) && o.day && o.ek; }).forEach(function (o) { var s = 0, n = 0, ok = 0; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = o.r[q]; if (v === 0 || v === 1 || v === 2) { s += v; n += 2; if (v === 2) ok++; } }); if (n) { var X = (D[o.day] = D[o.day] || { res: {} }); X.res[o.ek] = { t: s / n, ok: ok, n: n / 2 }; (X.raw = X.raw || {})[o.ek] = o.r; } });
+    all(KS).filter(function (o) { return same(o.cls, cls) && o.day && o.ek; }).forEach(function (o) { var s = 0, n = 0, ok = 0; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q)) return; var v = o.r[q]; if (v === 0 || v === 1 || v === 2) { s += v; n += 2; if (v === 2) ok++; } }); if (n) { var X = (D[o.day] = D[o.day] || { res: {} }); X.res[o.ek] = { t: s / n, ok: ok, n: n / 2 }; (X.raw = X.raw || {})[o.ek] = o.r; } if (o.x && Object.keys(o.x).length) { var X2 = (D[o.day] = D[o.day] || { res: {} }); (X2.xs = X2.xs || {})[o.ek] = o.x; } });
     return D; }
   function ejCell(d, k) { var x = d.le && d.le.el && d.le.el[k], V = x ? ["p", "s", "t"].map(function (f) { return x[f]; }).filter(function (v) { return v != null && isFinite(+v); }).map(Number) : [], le = V.length ? V.reduce(function (a, b) { return a + b; }, 0) / (3 * V.length) : null, r = d.res[k] || null, t = r ? r.t : null;
     var a = Math.max(0, Math.min(100, noteCfg().jourSit)) / 100, sc = t != null && le != null ? a * t + (1 - a) * le : t != null ? t : le;
@@ -1780,7 +1806,9 @@
       var tab = '<div style="overflow:auto;margin-top:8px"><table class="lc-tab"><tr><th>Élève</th>' + (x.le ? CR.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") : "") + (hasR ? "<th>Situations réussies</th>" : "") + "<th>Note /" + leSur() + "</th><th>Degré</th></tr>" +
         rows.map(function (r) { var c = r.c, ab = isAbs(cls, r.n, d);
           if (c.sc == null) return '<tr style="color:#6A6F78"><td>' + (ab ? "<s>" + esc(r.n) + "</s>" : esc(r.n)) + '</td><td colspan="' + ((x.le ? 3 : 0) + (hasR ? 1 : 0) + 2) + '">' + (ab ? "Absent(e) à l'appel" : "Pas évalué(e)") + "</td></tr>";
-          return "<tr><td><b>" + esc(r.n) + "</b></td>" + (x.le ? ["p", "s", "t"].map(function (q) { return "<td>" + pill(c.x[q]) + "</td>"; }).join("") : "") + (hasR ? "<td>" + (c.r ? "✅ " + c.r.ok + " / " + c.r.n + ' <span class="lc-mut" style="margin:0">· ' + Math.round(c.r.t * 100) + " %</span>" : '<span class="lc-mut" style="margin:0">—</span>') + "</td>" : "") +
+          return "<tr><td><b>" + esc(r.n) + "</b></td>" + (x.le ? ["p", "s", "t"].map(function (q) { return "<td>" + pill(c.x[q]) + "</td>"; }).join("") : "") + (hasR ? "<td>" + (c.r ? "✅ " + c.r.ok + " / " + c.r.n + ' <span class="lc-mut" style="margin:0">· ' + Math.round(c.r.t * 100) + " %</span>" : '<span class="lc-mut" style="margin:0">—</span>') +
+              /* ce que l'élève a renseigné dans chaque situation (Escalade : mur · difficulté · dégaine) */
+              (function () { var xs = x.xs && x.xs[ekey(r.n)]; if (!xs) return ""; return Object.keys(xs).sort().map(function (sk) { var v = xs[sk], t = Object.keys(v).map(function (f) { return v[f]; }).join(" · "); return t ? '<div class="lc-mut" style="margin:2px 0 0;font-size:13px">S' + ((+(/:s(\d+)$/.exec(sk) || [0, 0])[1]) + 1) + " : " + esc(t) + "</div>" : ""; }).join(""); })() + "</td>" : "") +
             "<td><b>" + f10(Math.round(c.sc * leSur() * 4) / 4) + ' / ' + leSur() + '</b></td><td><span class="lc-tag" style="background:' + DEG[c.deg] + ';margin:0">D' + (c.deg + 1) + "</span></td></tr>"; }).join("") + "</table></div>";
       return '<div class="lc-box">' + top + (R.length ? tab : '<p class="lc-mut">Aucune liste d\'élèves pour cette classe.</p>') + "</div>"; }).join("");
     el.innerHTML = h;
@@ -1815,7 +1843,10 @@
     seedApp: seedApp,
     fiche: function (id) { return get(KL, id); },
     /* leçon commune lancée pour cette classe (📡 Leçon en cours) : les écrans « pas encore de leçon » des applis renvoient vers elle au lieu de se contredire */
-    liveFor: function (cls) { try { var v = cls && live(cls); if (!v || !v.on) return null; var l = v.lec ? get(KL, v.lec) : null; return { titre: l ? titreL(l) : "Leçon du jour", open: function () { showStudent(l, v); } }; } catch (e) { return null; } },
+    liveFor: function (cls) { try { var v = cls && live(cls);
+      /* pas de leçon lancée : la leçon programmée qui a commencé depuis moins de 2 h (« 📅 Leçon du jour » de l'élève) compte aussi */
+      if (!v || !v.on) { var now = Date.now(), pp = null; lecons().forEach(function (l) { if (l.statut === "brouillon") return; (l.prog || []).forEach(function (p) { if (same(p.c, cls) && p.at <= now && p.at > now - 2 * 3600e3 && (!pp || p.at > pp.at)) pp = { at: p.at, l: l }; }); });
+        if (!pp || (same(cls, "DÉMO (fictive)") && !VUE && !window.EPS_SIM)) return null; var l0 = pp.l; return { titre: titreL(l0), sits: Array.isArray(l0.sits) ? l0.sits.length : 0, prog: 1, open: function () { showStudent(l0, null); } }; } var l = v.lec ? get(KL, v.lec) : null; return { titre: l ? titreL(l) : "Leçon du jour", sits: l && Array.isArray(l.sits) ? l.sits.length : 0, open: function () { showStudent(l, v); } }; } catch (e) { return null; } },
     open: open, close: close, app: APP, code: CODE, nextProg: function (c) { var p = nextProg(c); return p ? { at: p.at, titre: titreL(p.l), id: p.l.id } : null; }, count: function (c) { return lecons().filter(function (l) { return l.statut !== "brouillon" && forCls(l, c); }).length; },
     /* ord : place dans l'onglet Séquence (0 préparer, 1 actions propres de l'appli, 2 faire la leçon, 3 simuler) */
     /* un seul écran de suivi par activité (demande de l'enseignant) : l'appli qui a le sien (window.epsCtlOwn = {open(classe)}) le garde */
