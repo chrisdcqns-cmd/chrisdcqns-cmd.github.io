@@ -1061,7 +1061,7 @@ function renderEval0(){
      :'<p class="muted">Aucun match ni exercice saisi sur le terrain pour cet élève.</p>'}</div>
   ${st.mj||st.pts?pjCard(st,false,'',c,e.id):''}`;
   p.innerHTML=EVB.ficheHtml(cc,e,{reset:1,head:(EVB.apChip?EVB.apChip(e):'')+(dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''),extra,foot:'<div class="total" id="totBar"></div>'});
-  EVB.ficheBind(p,cc,e,{redraw:renderEval,nav:d=>navEl(d),pdf:()=>printPDF('un'),reset:()=>resetEleve()});
+  EVB.ficheBind(p,cc,e,{redraw:renderEval,nav:d=>navEl(d),reset:()=>resetEleve()}); /* 📄 Fiche PDF : celle du module commun, la même dans toutes les applis */
   renderTotal();
 }
 /* ================== AFL1 PRÉCIS : 3 critères notés 1-2-3 par élément, le degré est calculé ==================
@@ -3003,23 +3003,16 @@ function addC(){B().criteres.push({id:uid(),nom:'Nouveau critère',but:'',afl:S.
 
 /* ================== BILANS & EXPORTS ================== */
 let BDATE='';
+/* 📤 Bilan et export = page commune (eps-eval.js M.bilanHtml, 28/11/2026) : export, auto-positionnement, bilan de l'évaluation, répartition, notes ; puis ce qui est propre à l'appli */
 function renderBilan(){
-  const c=C(),ev=c.eleves.filter(e=>note20(e)!=null),notes=ev.map(note20),moy=notes.length?notes.reduce((a,x)=>a+x,0)/notes.length:null;
+  const c=C(),cc={nom:c.nom,eleves:c.eleves},T=document.getElementById('t-bilan');
   const dates=[...new Set(matchesOf(c).map(m=>m.date))].sort().reverse();if(!BDATE||!dates.includes(BDATE))BDATE=dates[0]||'';
-  const crit=B().criteres.map(cr=>{const cnt=[0,0,0,0];c.eleves.forEach(e=>{const v=e.ev&&e.ev[cr.id];if(!isAbs(e)&&v&&v.d!=null)cnt[v.d]++});return{cr,cnt,t:cnt.reduce((a,b)=>a+b,0)||1}});
-  document.getElementById('t-bilan').innerHTML=`
-  <div class="card"><h2>Bilans de leçon · ${esc(c.nom)}</h2>
+  T.innerHTML=EVB.bilanHtml(cc,{extra:`<div class="card"><h2>Bilans de leçon · ${esc(c.nom)}</h2>
    <p class="muted">Un bilan par élève pour la leçon choisie : matchs et scores, araignée du profil de jeu, carte des points marqués, exercices, routine renforcée et un conseil. Fichier .zip à décompresser, puis à publier élève par élève sur Pronote.</p>
    ${dates.length?`<div class="row"><select class="f" style="width:auto" onchange="BDATE=this.value">${dates.map(d=>`<option value="${d}" ${d===BDATE?'selected':''}>Leçon du ${dateFR(d)}</option>`).join('')}</select>
-     <button class="btn or" onclick="zipLecon()">🗜 Bilans de la leçon (.zip)</button><button class="btn alt" onclick="printLecon()">📄 PDF (impression)</button></div>`:'<p class="muted">Aucun match saisi pour cette classe.</p>'}</div>
-  <div class="card"><h2>Évaluation · ${esc(c.nom)}</h2>
-   <div class="row"><button class="btn or" onclick="printPDF('classe')">📄 PDF : notes + statistiques</button><button class="btn" onclick="printPDF('fiches')">📄 PDF : fiches individuelles</button><button class="btn alt" onclick="exportCSV()">⬇ Tableur (.csv)</button><button class="btn alt" onclick="zipEval()">🗜 Fiches d'évaluation (.zip)</button></div>
-   <div class="row" style="margin-top:10px"><b style="color:var(--navy)">Langage des fiches élèves :</b><div class="seg"><button class="${B().langFiche!=='prof'?'on':''}" onclick="B().langFiche='eleve';save();renderBilan()">Version élève</button><button class="${B().langFiche==='prof'?'on':''}" onclick="B().langFiche='prof';save();renderBilan()">Version enseignant</button></div></div>
-   <div class="stats" style="margin-top:12px"><div class="stat"><b>${moy!=null?fr(Math.round(moy*100)/100):'–'}</b><span>Moyenne /20</span></div><div class="stat"><b>${notes.length?fr(Math.min(...notes)):'–'}</b><span>Min.</span></div><div class="stat"><b>${notes.length?fr(Math.max(...notes)):'–'}</b><span>Max.</span></div><div class="stat"><b>${ev.length}/${c.eleves.length}</b><span>Élèves notés</span></div></div>
-   <h3>Répartition des degrés</h3><div class="legend">${B().degres.map((d,i)=>`<span><i class="bg${i+1}"></i>D${i+1} ${esc(d)}</span>`).join('')}</div>
-   ${crit.map(x=>`<div><b>${esc(x.cr.nom)}</b> <span class="tag">${x.cr.afl}</span><div class="bar">${x.cnt.map((n,i)=>n?`<div class="bg${i+1}" style="width:${n/x.t*100}%">${n}</div>`:'').join('')}</div></div>`).join('')}</div>
-  <div class="card"><h2>Notes</h2><div class="tw">${tableHtml(c)}</div></div><div id="evb-bilan">${EVB?EVB.exportsHtml()+EVB.card(c):''}</div>`;
-  if(EVB){const R=document.getElementById('evb-bilan');EVB.bindExports(R,c);EVB.bindCard(R,c)}
+     <button class="btn or" onclick="zipLecon()">🗜 Bilans de la leçon (.zip)</button><button class="btn alt" onclick="printLecon()">📄 PDF (impression)</button></div>`:'<p class="muted">Aucun match saisi pour cette classe.</p>'}
+   <div class="row" style="margin-top:10px"><button class="btn alt" onclick="printPDF('classe')">📄 PDF : notes + statistiques (impression)</button></div></div>`});
+  EVB.bilanBind(T,cc);
 }
 function tableHtml(c){const b=B(),afls=aflList();
   return `<table><thead><tr><th>Élève</th>${b.criteres.map(cr=>`<th>${esc(cr.nom)}<br><small>${cr.afl}</small></th>`).join('')}${afls.map(a=>`<th>${a}</th>`).join('')}${b.mode==='officiel'?'<th>Choix</th>':''}<th>Matchs G/J</th><th>Note /20</th></tr></thead><tbody>

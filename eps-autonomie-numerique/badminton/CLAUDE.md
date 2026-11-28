@@ -60,3 +60,4 @@ Application web pour tablette (badminton, CA4, lycée), hébergée sur GitHub Pa
 - 📡 onglet Suivi commun = Leçon en direct (`tabNow()==='live'`), retirée des actions de Séquence.
 - **28/11/2026** : évaluation : `evbMatchs(e, classe)` (matchs terminés, hors exercices) alimente « 📊 Ses résultats » (par leçon, coefficients réglables) et la proposition `resultat` (part de matchs gagnés pondérée, critères AFL1 / AFLP1-2). Plusieurs évaluations : `sesGet` / `sesSet` / `sesDone`.
 - **28/11/2026 (fiche commune)** : `renderEval0` = fiche commune `EVB.ficheHtml` (choix, « Ce que disent ses matchs », profil de jeu en `extra` ; historique, évaluation précise, observables par `critInfo` ; total en `foot`). Les actions de l'évaluation précise et des observables redessinent par `renderEval()`.
+- **28/11/2026 (bilan commun)** : `renderBilan` = page commune `EVB.bilanHtml` (bilans de leçon en `extra`) ; fiche PDF = celle du module commun.

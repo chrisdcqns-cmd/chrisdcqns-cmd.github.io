@@ -7,3 +7,4 @@
 - Terrains espacés sur la largeur (un par colonne de détail) ; 🚫 terrains fermés : `terOffV()` (bouton « 🏟 Terrains »), retirés du choix des équipes et du plan.
 - 📡 onglet Suivi commun = tableau de bord de la leçon (`epsCtlOwn.on()` : onglet `equipes`, `DBV`, pas de fiche d'équipe ouverte) ; Classe → Équipes ouvre le tableau de bord replié.
 - **28/11/2026 (fiche commune)** : `renderEval0` = fiche commune `M.ficheHtml` (choix AFL2 / AFL3, matchs, bonus en `extra` ; rôles et routines par `critInfo` ; points du degré par `degInfo` ; total en `foot`). `critHtml`, `setDeg(id,d)`, `setVal` ne sont plus appelés par la fiche.
+- **28/11/2026 (bilan commun)** : `renderBilan` = page commune `M.bilanHtml` (exports et fiche PDF du volley gardés : QR de son auto-positionnement ; statistiques détaillées en `extra`). Matchs datés (`e.matchsD`), `resultats` / `resultat` de l'adaptateur.

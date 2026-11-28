@@ -132,6 +132,20 @@ async def main():
             nb = await p.evaluate(INS + ".sesAuto(" + CN + "," + LST + ",true)"); await p.wait_for_timeout(1200)
             op = await p.evaluate("[].map.call(document.querySelectorAll('[data-ases] option'),function(o){return o.textContent})")
             ok(app + " : évaluation déjà enregistrée rangée d'office", nb >= 1 and await p.evaluate(NOTES[app]) == 0 and any("Évaluation déjà enregistrée" in x for x in op), [nb, op])
+        # ---- « Bilan et export » : la même page partout (export, bilan de l'évaluation, répartition, notes avec PDF par élève)
+        for app, inst in (("volley", "EPSTV"), ("badminton", "EPSTB"), ("danse", "EPSTD"), ("relais", "EPSTR"), ("escalade", "EPSTESC"), ("basket", "EPSTBK")):
+            await p.goto(B + app + "/"); await p.wait_for_timeout(4500); await p.evaluate(inst + ".go('eval')"); await p.wait_for_timeout(1200)
+            if app == "badminton": await p.evaluate("(function(){S.cur=S.classes.findIndex(function(c){return /DÉMO/.test(c.nom)})})()")
+            for cmd in (inst + ".evGo('bil')", inst + ".go('bil')"):
+                try: await p.evaluate(cmd); await p.wait_for_timeout(1500)
+                except Exception: pass
+                if await p.evaluate("!!document.querySelector('.epse-bilan')"): break
+            if not await p.evaluate("!!document.querySelector('.epse-bilan')"):
+                await p.evaluate("(function(){var L=[].filter.call(document.querySelectorAll('button,.card,[onclick],b'),function(e){return e.offsetParent&&/DÉMO \\(fictive\\)/.test(e.textContent)&&e.textContent.length<200});if(L.length)L[L.length-1].click()})()"); await p.wait_for_timeout(1500)
+                try: await p.evaluate(inst + ".evGo('bil')"); await p.wait_for_timeout(1500)
+                except Exception: pass
+            r = await p.evaluate("(function(){var b=[].filter.call(document.querySelectorAll('.epse-bilan'),function(x){return x.offsetParent})[0];if(!b)return null;return {exp:/Export/.test(b.innerText)&&/Pronote/.test(b.innerText),st:!!b.querySelector('[data-bstats]'),tb:b.querySelectorAll('[data-btable] tr').length,pdf:b.querySelectorAll('[data-tpdf]').length}})()")
+            ok(app + " : page « Bilan et export » commune", r and r["exp"] and r["st"] and r["tb"] >= 2 and r["pdf"] >= 1, r)
         ok("aucune erreur de page", not errs, errs)
         await b.close()
     srv.terminate(); print(str(sum(out)) + " / " + str(len(out))); sys.exit(0 if all(out) else 1)

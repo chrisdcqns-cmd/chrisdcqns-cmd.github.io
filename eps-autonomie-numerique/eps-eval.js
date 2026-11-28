@@ -288,7 +288,7 @@
     var HASH = "#auto=", SEQ = "eps.eval.seq." + A.app;
     if (document.head) css(); else document.addEventListener("DOMContentLoaded", function () { css(); });
     var M = {};
-    function S() { return A.settings() || {}; }
+    function S() { return (typeof A.settings === "function" ? A.settings() : null) || {}; }
     function ouvert() { var s = S(); return !!s.apOuvert && (!s.apJusqua || today() <= s.apJusqua); }
     function etat() { var s = S(); if (ouvert()) return s.apJusqua ? "Ouvert jusqu'au " + dIso(s.apJusqua) + " : un lien personnel figure sur chaque fiche PDF." : "Ouvert : un lien personnel figure sur chaque fiche PDF.";
       return s.apOuvert ? "Date dépassée : les liens ne fonctionnent plus." : "Fermé : aucun lien sur les fiches, les élèves ne peuvent pas se positionner."; }
@@ -840,6 +840,28 @@
         /* 🎯 remédiation : plus dans l'évaluation finale (elle clôt la séquence) ; proposée depuis 📅 Leçons du jour (demande de l'enseignant, 27/11/2026) */
         try { if (false && window.EPSLC && EPSLC.remCard) { var lows = []; A.grid().criteres.forEach(function (cr) { var v = A.prof(cr, E); if (v && v.d != null && v.d <= 1) lows.push({ cr: cr, d: v.d }); });
           var n = A.name(E), rc = EPSLC.remCard(cls, ((n.prenom || "") + " " + (n.nom || "")).trim(), lows); if (rc) { var w = document.createElement("div"); w.innerHTML = rc.html; d.appendChild(w); rc.bind(w); } } } catch (e) { console.warn(e); } } catch (e) { console.warn(e); } };
+    /* ================= 📤 « Bilan et export », la MÊME page dans toutes les applis (28/11/2026) =================
+       M.bilanHtml(classe, o) + M.bilanBind(racine, classe, o). Ordre : 📤 Export → 🙋 Auto-positionnement → 📊 Bilan de l'évaluation (chiffres de la classe)
+       → Répartition dans les degrés → 📋 Notes des élèves (bouton PDF par élève) → ce qui est propre à l'appli (o.extra).
+       o.auto = bloc d'auto-positionnement de l'appli quand elle a le sien (Volley, Danse) ; o.exports = sa carte d'export et o.pdf(E) = sa fiche PDF quand l'appli
+       a son propre auto-positionnement (son QR code doit rester sur ses fiches : Volley, Danse) ; o.cls(E) = classe de l'élève si regroupement. */
+    M.statsHtml = function (c) { var G = A.grid(), L = c.eleves, N = [], nAbs = 0, nAp = 0;
+      L.forEach(function (E) { var st = A.absent ? A.absent(E) : ""; if (st) { nAbs++; return; } var n = A.note ? A.note(E) : null; if (n != null && isFinite(+n)) N.push(+n); });
+      L.forEach(function (E) { var ap = A.getAp ? A.getAp(E) : null; if (ap && ap.ev && Object.keys(ap.ev).length) nAp++; });
+      var moy = N.length ? N.reduce(function (a, b) { return a + b; }, 0) / N.length : null, r2 = function (v) { return fr(Math.round(v * 100) / 100); };
+      var chips = [[N.length + " / " + L.length, "élèves notés" + (nAbs ? " · " + nAbs + " absent(s) ou dispensé(s)" : "")], [moy == null ? "–" : r2(moy), "moyenne de la classe / 20"], [N.length ? r2(Math.min.apply(null, N)) + " – " + r2(Math.max.apply(null, N)) : "–", "note la plus basse – la plus haute"], [nAp + " / " + L.length, "auto-positionnements reçus"]];
+      var rep = G.criteres.map(function (cr) { var r = [0, 0, 0, 0]; L.forEach(function (E) { if (A.absent && A.absent(E)) return; var v = A.prof(cr, E); if (v && v.d != null) r[v.d]++; }); return r; });
+      return '<div class="epse-card" data-bstats><h2 style="margin:0 0 8px">📊 Bilan de l\'évaluation</h2><div style="display:flex;gap:8px;flex-wrap:wrap">' + chips.map(function (x) { return '<span style="background:#F6F3EC;border-radius:10px;padding:6px 10px;line-height:1.2"><b style="font-size:18px;display:block">' + esc(x[0]) + '</b><small class="epse-mut">' + esc(x[1]) + "</small></span>"; }).join("") + "</div>" +
+        '<h3 style="margin:14px 0 6px;font-size:16px">Répartition dans les degrés</h3>' + G.criteres.map(function (cr, i) { var r = rep[i], t = r[0] + r[1] + r[2] + r[3];
+          return '<div style="display:grid;grid-template-columns:minmax(120px,32%) 1fr;gap:8px;align-items:center;margin:4px 0"><span style="font-weight:700;font-size:14px">' + esc(cr.nom) + '</span><div style="display:flex;height:24px;border-radius:8px;overflow:hidden;background:#F1EEE6">' + (t ? r.map(function (v, k) { return v ? '<i style="width:' + (v / t * 100) + "%;background:" + DCOL[k] + ';color:#fff;font:800 12px/24px system-ui;text-align:center;font-style:normal" title="Degré ' + (k + 1) + " : " + v + '">D' + (k + 1) + "·" + v + "</i>" : ""; }).join("") : '<i style="font:600 12px/24px system-ui;color:#6A6F78;padding:0 8px;font-style:normal">pas encore évalué</i>') + "</div></div>"; }).join("") + "</div>"; };
+    M.tableHtml = function (c) { var G = A.grid();
+      return '<div class="epse-card" data-btable><h2>📋 Notes des élèves · ' + esc(c.nom) + '</h2><div style="overflow:auto"><table><tr><th class="l" style="text-align:left">Élève</th>' + G.criteres.map(function (cr) { return "<th>" + esc(cr.nom) + "</th>"; }).join("") + "<th>Note /20</th><th>🙋 Auto</th><th></th></tr>" +
+        c.eleves.map(function (E, i) { var n = A.name(E), st = A.absent ? A.absent(E) : "", no = A.note ? A.note(E) : null, ap = A.getAp ? A.getAp(E) : null;
+          return '<tr><td class="l" style="text-align:left"><b>' + esc(n.nom || "") + "</b> " + esc(n.prenom || "") + "</td>" + G.criteres.map(function (cr) { var p = A.prof(cr, E); return "<td>" + (p && p.d != null ? '<span class="epse-d" style="background:' + DCOL[p.d] + '">D' + (p.d + 1) + "</span>" + (p.pts != null ? " " + fr(p.pts) : "") : "–") + "</td>"; }).join("") +
+            "<td><b>" + (st || (no == null ? "–" : fr(no))) + "</b></td><td>" + (ap && ap.ev ? G.criteres.map(function (cr) { var z = ap.ev[cr.id]; return z && z.d != null ? "D" + (z.d + 1) : "–"; }).join(" ") : "") + '</td><td><button type="button" class="epse-btn" data-tpdf="' + i + '" style="min-height:38px;padding:0 10px">PDF</button></td></tr>'; }).join("") + "</table></div></div>"; };
+    M.bilanHtml = function (c, o) { o = o || {}; css(A.color); return '<div class="epse-bilan" style="--app:' + (A.color || "#14171C") + '">' + (o.exports != null ? o.exports : M.exportsHtml(c)) + (o.auto != null ? o.auto : M.card(c)) + M.statsHtml(c) + M.tableHtml(c) + (o.extra || "") + "</div>"; };
+    M.bilanBind = function (root, c, o) { o = o || {}; if (!root) return; if (o.exports == null) { try { M.bindExports(root, c); } catch (e) { console.warn(e); } } if (o.auto == null) { try { M.bindCard(root, c); } catch (e) { console.warn(e); } }
+      [].forEach.call(root.querySelectorAll("[data-tpdf]"), function (b) { b.onclick = function () { var E = c.eleves[+b.dataset.tpdf], x = root.querySelector("[data-x-prof]"); if (!E) return; if (o.pdf) o.pdf(E); else M.pdfEleve(c, E, !(x && x.checked)); }; }); };
     /* ================= 📄 Fiche d'évaluation d'un élève, la MÊME dans toutes les applis (forme Escalade retenue par l'enseignant, 28/11/2026) =================
        M.ficheHtml(classe, élève, o) + M.ficheBind(racine, classe, élève, o). Tout passe par l'adaptateur :
          prof(cr, E) → {d, pos, pts} · setDeg(cr, E, d | null) · setPos(cr, E, 0 à 1) · posN(cr, E, d) → nombre de crans du curseur (défaut 4)
@@ -1169,7 +1191,7 @@
         var item = function (i) { var e = c.eleves[i], n = note(e), r = rec(e._c, e); return '<button type="button" class="epse-li' + (i === UI.el ? " on" : "") + (r.st ? " st" : n != null ? " ok" : "") + '" data-el="' + i + '"' + (i === UI.el ? ' aria-current="true"' : "") + "><i></i><span>" + esc(e.prenom + " " + e.nom) + "<small>" + (r.st ? r.st : n != null ? fr(n) + " / 20" : "à évaluer") + "</small></span>" + (r.ap ? M.apChip(e) : "") + "</button>"; };
         body = (UI.host ? "" : modesH) + '<div class="epse-two"' + (UI.host ? "" : ' style="margin-top:12px"') + '><div class="epse-col" role="navigation" aria-label="Élèves de la classe">' + (GRP ? GRP.map(function (g) { return "<h3>" + esc(g.nom) + "</h3>" + g.ids.map(item).join(""); }).join("") : c.eleves.map(function (e, i) { return item(i); }).join("")) + '</div><div class="epse-fiche">' + sheet(c, c.eleves[UI.el]) + "</div></div>"; }
       else if (UI.tab === "eval") body = (UI.host ? "" : modesH + '<div style="height:12px"></div>') + rapide(c, G, GRP);
-      else if (UI.tab === "bilan") body = M.exportsHtml(c) + M.card(c) + table(c);
+      else if (UI.tab === "bilan") body = M.bilanHtml(c);
       else body = gridEditor(G);
       var oc = R.querySelector(".epse-col"), ocY = oc ? oc.scrollTop : 0, ocX = oc ? oc.scrollLeft : 0;
       R.innerHTML = head + '<div class="epse-in">' + body + "</div>";
@@ -1185,7 +1207,7 @@
       R.querySelectorAll("[data-tab]").forEach(function (b) { b.onclick = function () { UI.tab = b.dataset.tab; render(); }; });
       R.querySelectorAll("[data-el]").forEach(function (b) { b.onclick = function (ev) { if (ev.target.closest && ev.target.closest("[data-eps-ap]")) return; UI.el = +b.dataset.el; render(); if (!UI.host) R.scrollTop = 0; else { var f = R.querySelector(".epse-fiche"); if (f && f.getBoundingClientRect().top < 0) f.scrollIntoView({ block: "start" }); } }; });
       if (c && UI.tab === "eval" && UI.mode === "eleve" && c.eleves[UI.el]) bindSheet(R, c, c.eleves[UI.el]);
-      if (c && UI.tab === "bilan") { M.bindCard(R, c); M.bindExports(R, c); }
+      if (c && UI.tab === "bilan") M.bilanBind(R, c);
       if (UI.tab === "grille") bindGrid(R);
     }
     function sheet(c, e) { return M.ficheHtml(c, e, { cls: e._c }); }

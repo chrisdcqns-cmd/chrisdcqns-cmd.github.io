@@ -33,3 +33,4 @@ Application web pour tablette (danse, CA3, lycée), hébergée sur GitHub Pages 
 
 - **28/11/2026** : écart entre les degrés (0-20 / 25-45 / 50-70 / 75-100), un appui = milieu du degré ; anciennes plages contiguës converties une fois (`regMerge`, `bv2`). Les notes déjà données ont pu bouger légèrement.
 - **28/11/2026 (fiche commune)** : `rEvMain0` = fiche commune `EV.ficheHtml` (groupe, carnet en `extra` ; fiches d'observation AFL3 par `critInfo` ; phrases toutes prêtes et suppression de l'auto-positionnement en `foot`). Adaptateur : `setDeg`, `setPos`, `posN`, `setStatut` ; `absent` rend maintenant ABS ou DISP.
+- **28/11/2026 (bilan commun)** : `rBilan` = page commune `EV.bilanHtml` (exports, fiche PDF et auto-positionnement de Danse gardés).

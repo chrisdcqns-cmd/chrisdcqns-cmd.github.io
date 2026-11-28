@@ -869,6 +869,11 @@ function closeEval(){curEl=null;document.getElementById('evLive').style.display=
 /* adaptateur vers le module commun (eps-eval.js) : 🎯 proposition de positionnement, case CCF, phrase pour l'élève */
 var EVVOL=null;function evvol(){if(EVVOL||!window.EPSE)return EVVOL;EVVOL=EPSE.create({app:'vol',nom:'Volley-ball',ca:'CA4',color:'#6B3FA0',
   grid:()=>({degres:B().degres||['Degré 1','Degré 2','Degré 3','Degré 4'],degresEl:B().degresEl||null,criteres:B().criteres.map(c=>({id:c.id,afl:c.afl||'AFL1',nom:c.nom,but:c.but||'',nomEl:c.nomEl||'',butEl:c.butEl||'',desc:c.desc,descEl:(c.descEl&&c.descEl.length?c.descEl:null),max:maxPts(c,null)}))}),
+  /* 📊 « Ses résultats » : ses matchs (gagné, nul, perdu) rangés par leçon quand ils sont datés ; 💡 proposition d'après la part de matchs gagnés pour les critères AFL1 */
+  resultats:(e,cl)=>{const M=e.matchs||[],D=e.matchsD||[];if(!M.length)return{nom:'match',noms:'matchs',items:[]};const sd=M.filter((x,i)=>!D[i]).length,L={G:'gagné',N:'nul',P:'perdu'};
+    return{nom:'match',noms:'matchs',chips:sd?[[String(sd),'match'+(sd>1?'s':'')+' sans date (saisi'+(sd>1?'s':'')+' avant le 28/11)']]:[],items:M.map((x,i)=>D[i]?{day:D[i],ok:x==='G'?1:x==='N'?.5:0,txt:'Match '+(L[x]||x)}:null).filter(Boolean)}},
+  resultat:(cr,e,cl)=>{const c=B().criteres.find(x=>x.id===cr.id);if(!c||c.afl!=='AFL1')return null;const M=e.matchs||[],D=e.matchsD||[];if(!M.length)return null;const dated=M.map((x,i)=>D[i]?{d:D[i],v:x==='G'?1:x==='N'?.5:0}:null).filter(Boolean);
+    if(!dated.length)return matchProp(e);const K=evvol().resCoef(dated.map(x=>x.d),cl);let s=0,w=0;dated.forEach(x=>{const k=K[x.d]||0;s+=k*x.v;w+=k});return w?s/w:null},
   /* fiche commune : statut, curseur dans le degré (par pas de points de la grille), repères propres au volley */
   setStatut:(e,s)=>{e.statut=s||'';save()},
   setPos:(cr,e,p)=>{const c=B().criteres.find(x=>x.id===cr.id),v=c&&e.ev&&e.ev[c.id];if(!v||v.d==null)return;const[lo,hi]=band(c,e,v.d),mx=maxPts(c,e);v.f=mx?rnd(lo+(hi-lo)*p,B().pas)/mx:0;v.man=1;save()},
@@ -940,8 +945,9 @@ function bonusCard(e){
    <div class="cnt"><button onclick="addBonus(-1)">−</button><b>${n}</b><button onclick="addBonus(1)">+</button></div>
    ${seuil?`<div class="muted" style="margin-top:6px">${n>=seuil?'✓ Objectif atteint':'Objectif : '+seuil}</div>`:''}</div>`;
 }
-function addMatch(x){const e=curE();e.matchs=e.matchs||[];e.matchs.push(x);applyMatchs(e);save();renderEval()}
-function delMatch(i){const e=curE();if(!confirm('Supprimer ce résultat ?'))return;e.matchs.splice(i,1);applyMatchs(e);save();renderEval()}
+/* e.matchsD[i] = jour du match i (depuis le 28/11/2026) : sert à ranger les matchs par leçon dans « 📊 Ses résultats » */
+function addMatch(x){const e=curE();e.matchs=e.matchs||[];e.matchsD=e.matchsD||[];while(e.matchsD.length<e.matchs.length)e.matchsD.push('');e.matchs.push(x);e.matchsD.push(today());applyMatchs(e);save();renderEval()}
+function delMatch(i){const e=curE();if(!confirm('Supprimer ce résultat ?'))return;e.matchs.splice(i,1);if(e.matchsD)e.matchsD.splice(i,1);applyMatchs(e);save();renderEval()}
 function addBonus(d){const e=curE();e.bonus=Math.max(0,(e.bonus||0)+d);save();renderEval()}
 function renderTotal(){
   const e=C().eleves[curEl],t=document.getElementById('totBar');if(!t)return;
@@ -2085,26 +2091,23 @@ function tableHtml(c){
      ${b.mode==='officiel'?`<td>${e.choix||'4-4'}</td>`:''}${optM()?`<td>${matchTxt(e)}</td>`:''}${optB()?`<td>${e.bonus||0}</td>`:''}<td><b>${note20(e)!=null?fr(note20(e)):'–'}</b></td></tr>`}).join('')}
    </tbody></table>`;
 }
+/* 📤 Bilan et export = page commune (eps-eval.js M.bilanHtml, 28/11/2026) : export, auto-positionnement, bilan de l'évaluation, répartition, notes ; puis ce qui est propre à l'appli */
 function renderBilan(){
-  const c=C(),st=classStats(c);
-  document.getElementById('t-bilan').innerHTML=`
-  <div class="card"><h2>Export – ${esc(c.nom)}</h2>
+  const c=C(),st=classStats(c),M=evvol(),cc={nom:c.nom,eleves:c.eleves},T=document.getElementById('t-bilan');
+  /* le volley garde ses exports et sa fiche PDF : elle porte le QR code de SON auto-positionnement */
+  const exp=`<div class="card"><h2>📤 Export – ${esc(c.nom)}</h2>
     <div class="row">
-      <button class="btn or" onclick="printPDF('classe')">📄 PDF : notes + statistiques</button>
-      <button class="btn" style="background:var(--vol)" onclick="exportZip()">🗜 Fiches PDF + récapitulatif (.zip)</button>
+      <button class="btn" style="background:var(--vol)" onclick="exportZip()">🗂 Fiches PDF + récapitulatif (.zip)</button>
       <button class="btn" onclick="exportPdfTous()">📄 Toutes les fiches (un PDF)</button>
-      <button class="btn alt" onclick="exportRecap()">📄 Récapitulatif (PDF)</button>
+      <button class="btn alt" onclick="exportRecap()">📊 Récapitulatif (PDF)</button>
       <button class="btn alt" onclick="exportCSV()">⬇ Tableur (.csv)</button>
       <button class="btn alt" onclick="exportPronote()">📋 Pronote</button><button class="btn alt" onclick="publierEnLigne()">🌐 Publier en ligne</button>
     </div>
     <div class="row" style="margin-top:10px"><b style="color:var(--navy)">Langage des fiches élèves (PDF et .zip) :</b>
-     <div class="seg"><button class="${B().langFiche!=='prof'?'on':''}" onclick="B().langFiche='eleve';save();renderBilan()">Version élève (simplifiée)</button><button class="${B().langFiche==='prof'?'on':''}" onclick="B().langFiche='prof';save();renderBilan()">Version enseignant</button></div></div>
-    <p class="muted">Le .zip contient une fiche PDF par élève (même présentation que Danse : grille des degrés, ton positionnement ▼ et celui de l'élève ◯, note, commentaire, conseil pour progresser et, si c'est ouvert, le QR code pour se positionner) et le récapitulatif de la classe. « Notes + statistiques » passe par la fenêtre d'impression (« Enregistrer au format PDF »).</p>
-    ${st.nonNotes?`<div class="warn">${st.nonNotes} élève(s) n'ont pas encore tous leurs critères évalués.</div>`:''}
-  </div>
-  ${apCardHtml(c)}
-  <div class="card"><h2>Statistiques de la classe</h2>${statsHtml(c,st)}</div>
-  <div class="card"><h2>Notes des élèves</h2><div class="tw">${tableHtml(c)}</div></div>`;
+     <div class="seg"><button class="${B().langFiche!=='prof'?'on':''}" onclick="B().langFiche='eleve';save();renderBilan()">Version élève (simplifiée)</button><button class="${B().langFiche==='prof'?'on':''}" onclick="B().langFiche='prof';save();renderBilan()">Version enseignant</button></div></div></div>`;
+  T.innerHTML=M.bilanHtml(cc,{exports:exp,auto:apCardHtml(c),extra:`${st.nonNotes?`<div class="warn">${st.nonNotes} élève(s) n'ont pas encore tous leurs critères évalués.</div>`:''}
+  <div class="card"><h2>Statistiques détaillées du volley</h2>${statsHtml(c,st)}<div class="row" style="margin-top:10px"><button class="btn or" onclick="printPDF('classe')">📄 PDF : notes + statistiques (impression)</button></div></div>`});
+  M.bilanBind(T,cc,{exports:1,auto:1,pdf:E=>{curEl=c.eleves.indexOf(E);exportPdfEleve()}});
   apQrCanvas();
 }
 

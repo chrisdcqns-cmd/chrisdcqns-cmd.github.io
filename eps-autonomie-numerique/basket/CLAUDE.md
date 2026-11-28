@@ -17,3 +17,4 @@
 - 🚫 Terrains fermés : `terA(j)` = terrains utilisés, `terN(j, mi)` = terrain du match n° mi d'une rotation (au lieu de `mi+1`) ; `rencontres` reçoit `terA(j).length`.
 - 📡 onglet Suivi commun : `S.suivi` (1 = suivi : terrains, rotations, matchs, classement, observations ; 0 = Séquence : réglages du jour, équipes, rencontres, schémas), `epsCtlOwn.on()`.
 - Terrains dessinés : 3 contre 3 = 4 demi-terrains (`demi4`, `nt` = 4 par défaut), 4 contre 4 = 2 terrains entiers (`duo`, `nt` = 2 par défaut) ; un autre nombre = grille simple avec le tracé correspondant.
+- **28/11/2026 (bilan commun)** : évaluation : `evbkItems(e, classe)` alimente « 📊 Ses résultats » et la proposition (`tech` : efficacité observée ; `tact` : matchs gagnés par l'équipe).

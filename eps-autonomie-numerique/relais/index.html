@@ -2490,15 +2490,13 @@ function evStatsC(R){
     moyA:avg(A.map(r=>r.ta.t)),gap:avg(B.map(r=>r.ta.t-r.t.t)),dist};
 }
 const DCOL={4:"#2E7D4F",3:"#6E9F2E",2:"#C98A00",1:"#C0392B"};
+/* propre au relais, sous la page commune : écart élève − enseignant, partage du bilan, Excel, appréciations manquantes */
 function renderEvBilan(){
   const b=$("#ev-bilan");if(!b)return;const R=evRows(),S=evStatsC(R),f=v=>v==null?"–":fmtP(Math.round(v*100)/100);
-  b.innerHTML=`<div class="label">📊 Bilan de l'évaluation <small style="font-weight:600;color:var(--muted)">${esc(CL().name)}</small></div>
-   <div class="bstats"><div><b>${S.nd} / ${S.n}</b><span>élèves évalués${S.ns?` · ${S.ns} absent(s) ou dispensé(s)`:""}</span></div><div><b>${f(S.moy)}</b><span>moyenne de la classe /20</span></div>
-   <div><b>${S.min==null?"–":f(S.min)+" – "+f(S.max)}</b><span>note la plus basse – la plus haute</span></div>
-   <div><b>${S.na} / ${S.n}</b><span>auto-évaluations reçues</span></div><div><b>${f(S.moyA)}</b><span>moyenne des auto-évaluations</span></div>
+  b.innerHTML=`<div class="card mt"><div class="label">🏃 Propre au relais <small style="font-weight:600;color:var(--muted)">${esc(CL().name)}</small></div>
+   <div class="bstats"><div><b>${S.na} / ${S.n}</b><span>auto-évaluations reçues</span></div><div><b>${f(S.moyA)}</b><span>moyenne des auto-évaluations</span></div>
    <div><b>${S.gap==null?"–":(S.gap>0?"+":"")+f(S.gap)}</b><span>écart moyen élève − enseignant</span></div></div>
-   <div class="bdist">${EVE.map(x=>{const d=S.dist[x.k],tot=d[4]+d[3]+d[2]+d[1];return `<span><b>${x.t}</b></span><div class="bbar">${tot?[4,3,2,1].map(k=>d[k]?`<i style="width:${d[k]/tot*100}%;background:${DCOL[k]}">D${k}·${d[k]}</i>`:"").join(""):'<i style="width:100%;color:var(--muted)">pas encore évalué</i>'}</div>`}).join("")}</div>
-   <div class="bact"><button class="btn primary sm" data-evbil="share">📤 Partager le bilan (PDF)</button><button class="btn ghost sm" data-evbil="pdf">📄 PDF de la classe</button><button class="btn ghost sm" data-evbil="zip">🗜 Fiches élèves (.zip)</button><button class="btn ghost sm" data-evbil="xlsx">📊 Excel</button><button class="btn ghost sm" data-evbil="ia">✨ Rédiger les appréciations manquantes</button></div><div class="note" id="ev-iamsg"></div>`;
+   <div class="bact"><button class="btn primary sm" data-evbil="share">📤 Partager le bilan (PDF)</button><button class="btn ghost sm" data-evbil="pdf">📄 PDF de la classe</button><button class="btn ghost sm" data-evbil="xlsx">📊 Excel</button><button class="btn ghost sm" data-evbil="ia">✨ Rédiger les appréciations manquantes</button></div><div class="note" id="ev-iamsg"></div></div>`;
 }
 function pdfHead(doc,title,sub,right){
   const PW=doc.W,M=doc.M;
@@ -3109,10 +3107,10 @@ let EV_SEL=null,AU_SEL=null;
 /* RL_BIL : l'écran Évaluation montré comme « 📤 Bilan et export » (bilan de l'évaluation seul) ; sinon la grille seule (évaluation finale) */
 var RL_BIL=0;
 function renderEval(){
-  try{const bv=!!RL_BIL;$("#ev-bilan").style.display=bv?"":"none";["#ev-namesc","#ev-host","#ev-q","#ev-body"].forEach(x=>{const n=$(x);if(n)n.style.display=bv||x==="#ev-q"?"none":""});const rc=$("#ev-recap");if(rc&&rc.closest(".card"))rc.closest(".card").style.display=bv?"":"none";
+  try{const bv=!!RL_BIL;$("#ev-bilan").style.display=bv?"":"none";["#ev-namesc","#ev-host","#ev-q","#ev-body"].forEach(x=>{const n=$(x);if(n)n.style.display=bv||x==="#ev-q"?"none":""});const rc=$("#ev-recap");if(rc&&rc.closest(".card"))rc.closest(".card").style.display="none"; /* le tableau des notes est celui de la page commune */
     const h2=document.querySelector("#v-eval .top h2");if(h2)h2.firstChild.textContent=bv?"Bilan de l'évaluation · ":"Évaluation · "}catch(e){}
   try{dupBanner()}catch(e){}try{renderEvBilan()}catch(e){}
-  try{if(EVRL&&CL()){const b=$("#ev-bilan"),c={nom:CL().name,eleves:CL().eleves||[]};(c.eleves).forEach(e=>EVCL.set(e,CL()));const d=document.createElement("div");d.innerHTML=EVRL.exportsHtml()+EVRL.card(c);b.appendChild(d);EVRL.bindExports(d,c);EVRL.bindCard(d,c)}}catch(e){console.warn(e)}
+  try{if(EVRL&&CL()){const b=$("#ev-bilan"),c={nom:CL().name,eleves:CL().eleves||[]};(c.eleves).forEach(e=>EVCL.set(e,CL()));const d=document.createElement("div");/* page commune « Bilan et export » (eps-eval.js M.bilanHtml), placée AVANT les exports propres au relais */d.innerHTML=EVRL.bilanHtml(c);b.insertBefore(d,b.firstChild);EVRL.bilanBind(d,c)}}catch(e){console.warn(e)}
   const L=evList(true);if(EV_SEL!=null&&!L.some(e=>e.id===EV_SEL))EV_SEL=null;
   const lid=CLE()?CLE().id:null;
   $("#ev-names").innerHTML=evNamesHTML(L,EV_SEL,e=>{const o=(CL().evals||{})[e.id];if(evSt(o))return `<small>${evSt(o)==="ABS"?"Abs.":"Disp."}</small>`;const p=o&&evTotal(o.prof||{},evRepOf(o)).n===4,a=lastAutoE(e);return (p||a||apRel(e))?`<small>${p?"✓":""}</small>${apChipRel(e)}`:""});
@@ -3133,7 +3131,7 @@ function renderEval(){
   $("#ev-body").innerHTML=e2?(EVRL&&EVRL.ficheHtml?evFicheHTML(e2,QC):evGridHTML("prof",e2)):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
   /* 🎯 proposition commune (eps-eval.js) sous le nom de l'élève */
   if(QM&&!RL_BIL&&L.length){const i=Math.max(0,L.findIndex(x=>x.id===EV_SEL));EVRL.layout(host,QC,i,{pick:j=>{EV_SEL=L[j].id;renderEval()},onMode:renderEval})}
-  try{if(e2&&EVRL&&EVRL.ficheBind)EVRL.ficheBind($("#ev-body"),QC,e2,{redraw:renderEval,pdf:()=>shareOrSave(evStudentPdf(e2),"Relais_"+EPDF.pFile(e2.nom+" "+e2.prenom)+".pdf","application/pdf"),
+  try{if(e2&&EVRL&&EVRL.ficheBind)EVRL.ficheBind($("#ev-body"),QC,e2,{redraw:renderEval, /* 📄 Fiche PDF : celle du module commun */
     nav:d=>{const i=L.findIndex(x=>x.id===EV_SEL),n=i+d;if(i>=0&&n>=0&&n<L.length){EV_SEL=L[n].id;renderEval()}}})}catch(x){console.warn(x)}
   try{const h=document.querySelector("#ev-body [data-relprop]");if(e2&&h&&EVRL&&EVRL.propBlock)EVRL.propBlock(h,e2,CL().name,{list:()=>evList(true),redraw:renderEval,keep:t=>{const o=evOf(e.id);o.comm=t;persist();renderEval()}})}catch(x){}
 }

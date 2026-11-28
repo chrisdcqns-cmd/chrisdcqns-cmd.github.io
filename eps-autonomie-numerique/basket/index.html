@@ -686,9 +686,22 @@ window.epsCheck=function(cls){ const R=[], c=classesBK().find(x=>nk(x.nom)===nk(
   return R; };
 const ICONE_BK='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3v18"/><path d="M5.6 5.6c3 3 3 9.8 0 12.8"/><path d="M18.4 5.6c-3 3-3 9.8 0 12.8"/></svg>';
 /* évaluation commune (eps-eval.js) : grille CA4 proposée, modifiable ou importée (Additio) dans Évaluation → Grille */
+/* résultats d'un élève pour l'évaluation : observations individuelles (who = son nom) et matchs terminés de son équipe */
+function evbkItems(e,cls){ const kz=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().split(" ").filter(Boolean).sort().join(" "), me=kz((e.prenom||"")+" "+(e.nom||"")), out=[];
+  try{ obsDe(cls).filter(o=>o&&o.ty==="ind"&&kz(o.who)===me).forEach(o=>{ const I=indic(o), g=k=>(I.find(x=>x.k===k)||{}).v, eff=g("eff"), j=g("joues"); if(!j) return;
+    out.push({ty:"obs",day:String(o.day||"").slice(0,10),ok:eff==null?null:Math.max(0,Math.min(1,eff/100)),txt:"Observation : "+j+" ballon"+(j>1?"s":"")+" joué"+(j>1?"s":"")+" · efficacité "+(eff==null?"—":eff+" %")+(g("reu")!=null?" · réussite au tir "+g("reu")+" %":"")}); }); }catch(x){}
+  try{ const E=eqs(cls), eq=E.find(q=>(q.j||[]).some(n=>kz(n)===me)), nomEq=id=>(E.find(q=>q.id===id)||{}).nom||"?";
+    if(eq) matchsDe(cls).filter(m=>m.st===1&&(m.a===eq.id||m.b===eq.id)).forEach(m=>{ const s=score(m), mo=m.a===eq.id?s.a:s.b, ad=m.a===eq.id?s.b:s.a, day=String(m.day||(String(m.id||"").split("|")[2])||"").slice(0,10);
+      out.push({ty:"match",day:day,ok:mo>ad?1:mo<ad?0:.5,txt:"Match de son équipe contre "+nomEq(m.a===eq.id?m.b:m.a)+" : "+mo+" – "+ad+" ("+(mo>ad?"gagné":mo<ad?"perdu":"nul")+")"}); }); }catch(x){}
+  return out.filter(x=>/^\d{4}-\d\d-\d\d$/.test(x.day)); }
 window.EVBK = window.EPSE ? EPSE.store({
  app:CODE, nom:"Basket-ball", ca:"CA4", color:COL, pfx:"bk", code:"BK1", url:"https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/basket/", icon:ICONE_BK,
  isTeacher:()=>estProf(), unlock:()=>Promise.resolve(true),
+ /* 📊 « Ses résultats » : ses fiches d'observation individuelles (efficacité, réussite au tir) et les matchs terminés de son équipe, rangés par leçon ;
+    💡 proposition : « tech » d'après son efficacité observée, « tact » d'après la part de matchs gagnés par son équipe. Rien n'est enregistré sans « ✓ Reprendre ». */
+ resultats:(e,cls)=>({nom:"résultat",noms:"résultats",items:evbkItems(e,cls).map(x=>({day:x.day,ok:x.ok,txt:x.txt}))}),
+ resultat:(cr,e,cls)=>{ const ty=cr.id==="tech"?"obs":cr.id==="tact"?"match":""; if(!ty) return null; const L=evbkItems(e,cls).filter(x=>x.ty===ty&&x.ok!=null); if(!L.length) return null;
+   const K=EVBK.resCoef(L.map(x=>x.day),cls); let s=0,w=0; L.forEach(x=>{ const k=K[x.day]||0; s+=k*x.ok; w+=k; }); return w?s/w:null; },
  groups:cls=>eqs(cls).map(e=>({nom:e.nom, membres:e.j.slice()})),
  grid:{degres:["Degré 1","Degré 2","Degré 3","Degré 4"], degresEl:["Je débute","Je progresse","Je maîtrise","Je suis expert(e)"], criteres:[
   {id:"tech",afl:"AFL1",max:6,nom:"Actions techniques d'attaque et de défense",but:"S'engager et réaliser des actions techniques d'attaque et de défense en relation avec son projet de jeu.",nomEl:"Mes actions avec et sans ballon",butEl:"Je dribble, je passe, je tire et je défends pour aider mon équipe à gagner.",
