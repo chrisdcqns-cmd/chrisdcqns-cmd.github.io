@@ -32,7 +32,8 @@ async def main():
     await p.evaluate(tab); await p.wait_for_timeout(1000); chk(await p.evaluate("viewNow()")=="eval","classe choisie sans leçon : Évaluation")
     await p.evaluate("document.querySelector('#ev-names [data-eve]').click()"); await p.wait_for_timeout(800)
     for k in ("perf","trans","proj","role"):
-        await p.evaluate("document.querySelector('#ev-body [data-evk=%s][data-evd=\"3\"]').click()"%k); await p.wait_for_timeout(300)
+        # fiche commune (forme Escalade, 28/11/2026) : degré 3 = data-d 2
+        await p.evaluate("(()=>{const b=document.querySelector('#ev-body [data-crits] [data-c=%s][data-d=\"2\"]');if(!b.classList.contains('on'))b.click()})()"%k); await p.wait_for_timeout(400)
     chk(await p.evaluate("(()=>{const o=CL().evals[EV_SEL];return evTotal(o.prof,evRepOf(o)).n})()")==4,"grille remplie sans leçon ouverte")
     pass
     btn=await p.evaluate("[...document.querySelectorAll('#v-eval button')].filter(b=>b.offsetParent).map(b=>b.innerText.trim().slice(0,50))")

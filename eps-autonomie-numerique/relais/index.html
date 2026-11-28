@@ -3055,6 +3055,17 @@ function evNamesHTML(list,sel,mark){
   return list.map(btn).join("")||`<span class="note">Aucun élève</span>`;
 }
 const evList=all=>(all?EL():poolFor()).filter(e=>e.ma!=="DISP").slice().sort((a,b)=>a.prenom.localeCompare(b.prenom,"fr"));
+/* 📄 fiche de l'élève côté enseignant = fiche commune (eps-eval.js M.ficheHtml, forme Escalade retenue par l'enseignant, 28/11/2026). Propre au relais, gardé tel quel :
+   répartition AFL2 / AFL3, bloc « toutes les courses » avec le positionnement suggéré d'après les résultats et « Appliquer la suggestion » (evStatsHTML),
+   repère « 📊 résultats » sur le degré suggéré, appréciation de bulletin. La grille evGridHTML reste celle de l'auto-évaluation des élèves. */
+function evFicheHTML(e,QC){
+  const o=evOf(e.id),rp=evRepOf(o),free=evRepMode()==="eleve",la=lastAutoE(e),sg=evSuggest(e),repLab=r=>r.replace("-"," / ");
+  const extra=`<div class="card mt"><div class="evrep" style="margin:0">${free?`<span>Répartition AFL2 / AFL3 choisie par l'élève (Mise en projet / Vivre les rôles) :</span>${EV_REPS.map(r=>`<button data-evrep="${r}" class="${rp===r?"on":""}">${repLab(r)}</button>`).join("")}`
+      :`<span style="font-weight:600;color:var(--muted)">Mise en projet sur ${evMax("proj",rp)} pts · Vivre les rôles sur ${evMax("role",rp)} pts (répartition fixée dans les réglages de la leçon)</span>`}</div></div>${evStatsHTML(e,sg)}`;
+  const inf=la?(()=>{const ta=evTotal(la.sel,rp);return "Auto-évaluation de l'élève"+(la.at?" du "+fmtShort(la.at.slice(0,10)):"")+(la.tab?" ("+la.tab+")":"")+" : "+(ta.n===4?fmtP(ta.t)+" / 20":"incomplète")})():"";
+  const foot=(inf?`<div class="evinfo">${esc(inf)}</div>`:"")+`<div class="evappc mt"><div class="label">✍️ Appréciation (bulletin et fiche PDF)</div><textarea rows="3" data-evapp="${e.id}" data-eps-comment data-eps-mode="bulletin" data-eps-eleve="${esc(((e.prenom||"")+" "+(e.nom||"")).trim())}" data-eps-ctx="${esc(evAppCtx(e))}" placeholder="Quelques mots (ou 🎤 Dicter), puis ✨ Reformuler : Claude rédige l'appréciation à partir de la grille et des courses. Relis avant de l'utiliser.">${esc(o.app||"")}</textarea></div>`;
+  return EVRL.ficheHtml(QC,e,{head:apChipRel(e),extra,foot});
+}
 function evGridHTML(mode,e){
   const o=evOf(e.id),rp=evRepOf(o),lid=CLE()?CLE().id:null,prof=mode==="prof",free=evRepMode()==="eleve";
   const sel=prof?o.prof:((o.auto[lid]||{}).sel||{});
@@ -3119,9 +3130,11 @@ function renderEval(){
   const e2=EV_SEL!=null?byId(EV_SEL):null;
   if(qOn&&!RL_BIL){host.style.display="none";qEl.style.display="";EVRL.quickInto(qEl,QC,{redraw:renderEval,onMode:renderEval,noGroups:"Forme d'abord les groupes (Leçon du jour → Groupes) : ils apparaîtront ici."});return}
   if(QM&&!RL_BIL){qEl.style.display="none";host.style.display=""}
-  $("#ev-body").innerHTML=e2?evGridHTML("prof",e2):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
+  $("#ev-body").innerHTML=e2?(EVRL&&EVRL.ficheHtml?evFicheHTML(e2,QC):evGridHTML("prof",e2)):`<div class="card mt empty-msg">Touche un élève pour remplir sa grille. En bleu : son auto-positionnement. En rouge : la suggestion d'après ses courses.</div>`;
   /* 🎯 proposition commune (eps-eval.js) sous le nom de l'élève */
   if(QM&&!RL_BIL&&L.length){const i=Math.max(0,L.findIndex(x=>x.id===EV_SEL));EVRL.layout(host,QC,i,{pick:j=>{EV_SEL=L[j].id;renderEval()},onMode:renderEval})}
+  try{if(e2&&EVRL&&EVRL.ficheBind)EVRL.ficheBind($("#ev-body"),QC,e2,{redraw:renderEval,pdf:()=>shareOrSave(evStudentPdf(e2),"Relais_"+EPDF.pFile(e2.nom+" "+e2.prenom)+".pdf","application/pdf"),
+    nav:d=>{const i=L.findIndex(x=>x.id===EV_SEL),n=i+d;if(i>=0&&n>=0&&n<L.length){EV_SEL=L[n].id;renderEval()}}})}catch(x){console.warn(x)}
   try{const h=document.querySelector("#ev-body [data-relprop]");if(e2&&h&&EVRL&&EVRL.propBlock)EVRL.propBlock(h,e2,CL().name,{list:()=>evList(true),redraw:renderEval,keep:t=>{const o=evOf(e.id);o.comm=t;persist();renderEval()}})}catch(x){}
 }
 function renderAuto(){
@@ -4659,7 +4672,13 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  sesSet:(e,s)=>{const o=evrO(e);if(!o)return;s=s||{};o.prof=s.prof||{};o.rep=s.rep||"4-4";if(s.ap)o.ap=s.ap;else delete o.ap;o.comm=s.comm||"";o.app=s.app||"";o.st=s.st||""},sesDone:()=>{persist();renderEval()},
  resultats:()=>({own:1}), /* Relais a déjà son bloc « toutes les courses » (evStatsHTML, coefficients par leçon, fenêtre fePop) : c'est le modèle du bloc commun */
  extras:(c,e)=>{const o=evrO(e);return o?['Répartition AFL2 / AFL3 : '+evRepOf(o).replace('-',' / ')]:[]},
- getAp:e=>{const o=evrO(e);return o&&o.ap||null},
+ /* auto-positionnement : celui du lien / QR, sinon la dernière auto-évaluation faite sur tablette en leçon (repère « 🙋 élève » de la fiche) */
+ getAp:e=>{const o=evrO(e);if(o&&o.ap)return o.ap;const la=lastAutoE(e);if(!la||!la.sel)return null;const ev={};EVE.forEach(x=>{const s=la.sel[x.k];if(s&&s.d)ev[x.k]={d:s.d-1,pos:.5}});return Object.keys(ev).length?{ev,r:la.r||'',m:la.m||'',t:la.at?Date.parse(la.at):0}:null},
+ /* fiche commune : statut, curseur dans le degré (par quart de point), points du degré et repère « 📊 résultats » (suggestion d'après les courses) */
+ setStatut:(e,s)=>{const o=evrO(e);if(!o)return;if(s==="ABS"||s==="DISP")o.st=s;else delete o.st;o.prof.at=new Date().toISOString();persist()},
+ setPos:(cr,e,p)=>{const o=evrO(e),s=o&&o.prof[cr.id];if(!s||!s.d)return;const b=EVR[evMax(cr.id,evRepOf(o))][s.d];if(!b)return;s.p=Math.round((b[0]+Math.max(0,Math.min(1,p))*(b[1]-b[0]))*4)/4;o.prof.at=new Date().toISOString();persist()},
+ posN:(cr,e,d)=>{const o=evrO(e),b=o&&EVR[evMax(cr.id,evRepOf(o))][d+1];return b?Math.max(1,Math.round((b[1]-b[0])/.25)):4},
+ degInfo:(cr,e,d)=>{const o=evrO(e),b=o&&EVR[evMax(cr.id,evRepOf(o))][d+1];let sg=null;try{sg=evSuggest(e)}catch(x){}return (b?fmtP(b[0])+(b[1]>b[0]?" à "+fmtP(b[1]):"")+" pts":"")+(sg&&sg[cr.id]===d+1?" · 📊 résultats":"")},
  /* saisie rapide commune (par critère / par groupe) et « ✓ Reprendre ces degrés » ; groupes = ceux de la leçon du jour, sinon de la classe */
  setDeg:(cr,e,d)=>{const o=evrO(e);if(!o)return;if(d==null)delete o.prof[cr.id];else{const r0=EVR[evMax(cr.id,evRepOf(o))][d+1];o.prof[cr.id]=r0?{d:d+1,p:Math.round((r0[0]+r0[1])/2*4)/4}:{d:d+1}}o.prof.at=new Date().toISOString();persist()},
  setProf:(cr,e,v)=>{const o=evrO(e);if(!o||!v||v.d==null||(o.prof[cr.id]&&o.prof[cr.id].d))return;const d=Math.max(1,Math.min(4,Math.round(+v.d)+1)),b=EVR[evMax(cr.id,evRepOf(o))][d],p=isFinite(+v.pos)?Math.max(0,Math.min(1,+v.pos)):.5;o.prof[cr.id]=b&&b[1]>b[0]?{d,p:Math.round((b[0]+p*(b[1]-b[0]))*4)/4}:{d};o.prof.at=new Date().toISOString();persist()},

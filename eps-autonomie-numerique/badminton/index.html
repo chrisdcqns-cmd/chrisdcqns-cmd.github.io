@@ -1048,32 +1048,20 @@ function renderEval(){ renderEval0(); try{const c=C(),e=c.eleves[curEl];if(e&&ty
   if(e&&typeof EVB!=='undefined'&&EVB&&EVB.layout){BAD_LAST=curEl;const p=document.getElementById('evPanel'),rt=p.querySelector('.evhead [onclick="closeEval()"]');if(rt)rt.remove();
     EVB.layout(p,{nom:c.nom,eleves:c.eleves},curEl,{pick:i=>openEval(i),onMode:()=>{curEl=null;document.getElementById('evPanel').style.display='none';document.getElementById('evList').style.display='block';renderList()}})}}catch(x){console.warn(x)} }
 /* 🎯 proposition commune (eps-eval.js) ajoutée sous l'en-tête de la fiche */
+/* 📄 fiche de l'élève = fiche commune (eps-eval.js M.ficheHtml, forme Escalade retenue par l'enseignant, 28/11/2026). Propre au badminton, gardé tel quel :
+   choix AFL2 / AFL3, « Ce que disent ses matchs » (radar, profil de jeu) en haut ; historique, évaluation précise et observables sous chaque critère ; total en bas. */
 function renderEval0(){
   const c=C(),e=c.eleves[curEl];if(!e){closeEval();return}
-  e.ev=e.ev||{};const b=B(),p=document.getElementById('evPanel'),st=elStats(c,e.id);
-  p.innerHTML=`
-  <div class="evhead">
-    <button class="btn alt" onclick="closeEval()">← Retour</button>
-    <h2>${esc(fullName(e))}${(typeof EVB!=='undefined'&&EVB&&EVB.apChip)?EVB.apChip(e):''}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
-    <button class="btn alt sm" onclick="navEl(-1)" ${curEl===0?'disabled':''}>◀ Préc.</button>
-    <button class="btn alt sm" onclick="navEl(1)" ${curEl===c.eleves.length-1?'disabled':''}>Suiv. ▶</button>
-  </div>
-  <div class="row" style="margin-bottom:12px">
-    <div class="seg"><button class="${!e.statut?'on':''}" onclick="setStatut('')">Présent</button><button class="${e.statut==='ABS'?'on':''}" onclick="setStatut('ABS')">Absent</button><button class="${e.statut==='DISP'?'on':''}" onclick="setStatut('DISP')">Dispensé</button></div>
-    <label class="sw"><input type="checkbox" ${TXEL?'checked':''} onchange="TXEL=this.checked;try{localStorage.setItem('eps_bad_txel',TXEL?'1':'')}catch(e){};renderEval()"><span></span>Texte élève</label>
-    <button class="btn sm" onclick="printPDF('un')">📄 PDF élève</button>
-    <button class="btn red sm" onclick="resetEleve()">Effacer la note</button>
-  </div>
-  ${b.mode==='officiel'?`<div class="card" style="padding:10px 14px"><div class="row"><b style="color:var(--navy)">Choix de l'élève ${isLP()?'(2 AFLP sur 8 pts)':'AFL2 / AFL3'} :</b>
+  e.ev=e.ev||{};const b=B(),p=document.getElementById('evPanel'),st=elStats(c,e.id),cc={nom:c.nom,eleves:c.eleves};
+  const extra=`${b.mode==='officiel'?`<div class="card" style="padding:10px 14px"><div class="row"><b style="color:var(--navy)">Choix de l'élève ${isLP()?'(2 AFLP sur 8 pts)':'AFL2 / AFL3'} :</b>
      <div class="seg">${CHOIX.map(x=>`<button class="${(e.choix||'4-4')===x?'on':''}" onclick="setChoix('${x}')">${choixLab(x)}</button>`).join('')}</div><span class="muted">à annoncer avant l'épreuve</span></div></div>`:''}
   <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">📊 Ce que disent ses matchs</h2>
      <div class="seg" id="evRad">${['profil','zones','coups'].map(k=>`<button class="${RADK===k?'on':''}" onclick="RADK='${k}';renderEval()">${{profil:'Profil',zones:'Zones',coups:'Coups'}[k]}</button>`).join('')}</div></div>
    ${st.mj||st.ex.length?`<div class="statrow"><div>${radarSvg(radarAxes(RADK,[st]),[{nom:fullName(e),c:'#0B7A75'}],300)}</div><div style="flex:1;min-width:220px">${statLines(st)}${B().optMatchs?`<div class="ok" style="margin-top:8px">Option active : le curseur des critères ${isLP()?'AFLP1 et AFLP2':'AFL1'} se place selon la part de matchs gagnés (${st.mj?Math.round((st.mg+st.mn*.5)/st.mj*100):0} %).</div>`:''}</div></div>`
      :'<p class="muted">Aucun match ni exercice saisi sur le terrain pour cet élève.</p>'}</div>
-  ${st.mj||st.pts?pjCard(st,false,'',c,e.id):''}
-  <div id="crits" ${isAbs(e)?'style="opacity:.4;pointer-events:none"':''}>${b.criteres.map(cr=>critHtml(cr,e)).join('')}</div>
-  <div class="card"><h2>Commentaire / bilan pour l'élève</h2><textarea data-eps-comment rows="3" oninput="curE().comment=this.value;save()" placeholder="Points forts, axes de progrès…">${esc(e.comment||'')}</textarea></div>
-  <div class="total" id="totBar"></div>`;
+  ${st.mj||st.pts?pjCard(st,false,'',c,e.id):''}`;
+  p.innerHTML=EVB.ficheHtml(cc,e,{reset:1,head:(EVB.apChip?EVB.apChip(e):'')+(dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''),extra,foot:'<div class="total" id="totBar"></div>'});
+  EVB.ficheBind(p,cc,e,{redraw:renderEval,nav:d=>navEl(d),pdf:()=>printPDF('un'),reset:()=>resetEleve()});
   renderTotal();
 }
 /* ================== AFL1 PRÉCIS : 3 critères notés 1-2-3 par élément, le degré est calculé ==================
@@ -1111,7 +1099,7 @@ function subApply(cr,e){const r=subCalc((e.sub||{})[cr.id]);if(!r)return;const [
   if(B().optMatchs){const st=elStats(C(),e.id);if(st.mj)pos=(pos+(st.mg+st.mn*.5)/st.mj)/2}
   e.ev[cr.id]={d:r.d,f:mx?rnd(lo+pos*(hi-lo),B().pas)/mx:0,sub:1}}
 function subClick(id,i,n){const e=curE(),cr=B().criteres.find(x=>x.id===id);e.sub=e.sub||{};const a=e.sub[id]=(e.sub[id]||[0,0,0]).slice();a[i]=a[i]===n?0:n;
-  subApply(cr,e);save();document.getElementById('c-'+id).outerHTML=critHtml(cr,e);renderTotal()}
+  subApply(cr,e);save();renderEval()}
 function subHtml(cr,e){const set=subSet(cr);if(!set)return'';const a=(e.sub||{})[cr.id]||[0,0,0],r=subCalc(a),st=elStats(C(),e.id),v=e.ev[cr.id],X=cTx(cr,TXEL);
   const rows=set.map((s,i)=>{const p=subProp(s.k,st),tx=TXEL?s.el:s.t;return `<div class="sous"><div class="sh"><b>${i+1}. ${esc(s.nom)}</b>${a[i]?` <span class="muted">: ${a[i]}/3</span>`:''}
      ${p?`<button class="spr ${a[i]===p.n?'ok':''}" onclick="subClick('${cr.id}',${i},${p.n})" title="Proposition calculée d'après les matchs">📊 Les matchs proposent ${p.n} (${esc(p.why)})</button>`:''}</div>
@@ -1168,8 +1156,8 @@ function obsApply(cr,e){const st=elStats(C(),e.id),r=obsCalc(cr,e,st),[lo,hi]=ba
   if(B().optMatchs&&st.mj)pos=(pos+(st.mg+st.mn*.5)/st.mj)/2;
   e.ev[cr.id]={d:r.d,f:mx?rnd(lo+pos*(hi-lo),B().pas)/mx:0,obs:1}}
 function obsClick(id,d,i){const e=curE(),cr=B().criteres.find(x=>x.id===id),st=elStats(C(),e.id),cur=obsVal(cr,e,st,d,i).v;
-  e.obs=e.obs||{};const o=e.obs[id]=Object.assign({},e.obs[id]||{});o[d+'-'+i]=cur?0:1;obsApply(cr,e);save();document.getElementById('c-'+id).outerHTML=critHtml(cr,e);renderTotal()}
-function obsGo(id){const e=curE(),cr=B().criteres.find(x=>x.id===id);obsApply(cr,e);save();document.getElementById('c-'+id).outerHTML=critHtml(cr,e);renderTotal()}
+  e.obs=e.obs||{};const o=e.obs[id]=Object.assign({},e.obs[id]||{});o[d+'-'+i]=cur?0:1;obsApply(cr,e);save();renderEval()}
+function obsGo(id){const e=curE(),cr=B().criteres.find(x=>x.id===id);obsApply(cr,e);save();renderEval()}
 function obsHtml(cr,e){const set=obsSet(cr);if(!set)return'';const st=elStats(C(),e.id),r=obsCalc(cr,e,st),v=e.ev[cr.id],X=cTx(cr,TXEL);
   const lv=set.map((L,d)=>{const head=`<div class="oh d${d+1}">D${d+1} · ${esc(X.deg[d])}${d?` <span class="muted">${r.n[d]}/3</span>`:''}</div>`;
     if(!d)return `<div class="olv ${r.d===0?'on':''}">${head}<ul>${(TXEL?L.el:L.r).map(t=>`<li>${esc(t)}</li>`).join('')}</ul><div class="muted" style="font-size:.8em">Degré donné si le D2 n'est pas validé.</div></div>`;
@@ -3284,6 +3272,13 @@ var EVB=window.EPSE?EPSE.create({app:'bad',nom:'Badminton',ca:'CA4',color:'#0B7A
  note:e=>note20(e),absent:e=>isAbs(e)?e.statut:'',comment:e=>e.comment||'',setComment:(e,t)=>{e.comment=t;save()},
  extras:(c,e)=>{const x=[];['AFL1','AFL2','AFL3','AFLP1','AFLP2'].forEach(a=>{const r=aflPts(e,a);if(r)x.push(a+' : '+fr(r.pts)+' / '+fr(r.max))});return x},
  getAp:e=>e.ap||null,setAp:(e,ap)=>{e.ap=ap;save()},
+ /* fiche commune : statut, curseur dans le degré (par pas de points de la grille), repères propres au badminton sous chaque critère */
+ setStatut:(e,s)=>{e.statut=s||'';save()},
+ setPos:(cr,e,p)=>{const c=B().criteres.find(x=>x.id===cr.id),v=c&&e.ev&&e.ev[c.id];if(!v||v.d==null)return;const[lo,hi]=band(c,e,v.d),mx=maxPts(c,e);v.f=mx?rnd(lo+(hi-lo)*p,B().pas)/mx:0;v.man=1;save()},
+ posN:(cr,e,d)=>{const c=B().criteres.find(x=>x.id===cr.id);if(!c)return 4;const[lo,hi]=band(c,e,d);return Math.max(1,Math.round((hi-lo)/(B().pas||.25)))},
+ degInfo:(cr,e,d)=>{const c=B().criteres.find(x=>x.id===cr.id);if(!c)return'';const[lo,hi]=band(c,e,d);return fr(lo)+' à '+fr(hi)+' pt'},
+ critInfo:(cr,e)=>{const c=B().criteres.find(x=>x.id===cr.id);if(!c)return'';const r=c.afl==='AFL2'||c.id==='ana'?routTxt(e):'';
+   return (r?`<div class="muted" style="color:var(--vol);font-weight:700;margin:0 0 6px">Routines renforcées : ${esc(r)}</div>`:'')+lqHistHtml(c,e)+subHtml(c,e)+obsHtml(c,e)+(precMode()==='off'&&subSetRaw(c)?`<div class="muted" style="margin:6px 0">Évaluation précise désactivée ${precSw()}</div>`:'')},
  /* 📊 « Ses résultats » (eps-eval.js) : ses matchs terminés, rangés par leçon avec leur coefficient ; 💡 proposition d'après la part de matchs gagnés,
     pour les critères AFL1 (AFLP1 et AFLP2 en voie pro), comme l'option « matchs gagnés » de la grille. Rien n'est enregistré sans « ✓ Reprendre ». */
  resultats:(e,cl)=>({nom:'match',noms:'matchs',items:evbMatchs(e,cl).map(x=>({day:x.day,ok:x.ok,txt:x.txt}))}),

@@ -868,7 +868,13 @@ function openEval(i){curEl=i;document.getElementById('evLive').style.display='no
 function closeEval(){curEl=null;document.getElementById('evLive').style.display='none';document.getElementById('evPanel').style.display='none';document.getElementById('evList').style.display='block';renderList()}
 /* adaptateur vers le module commun (eps-eval.js) : 🎯 proposition de positionnement, case CCF, phrase pour l'élève */
 var EVVOL=null;function evvol(){if(EVVOL||!window.EPSE)return EVVOL;EVVOL=EPSE.create({app:'vol',nom:'Volley-ball',ca:'CA4',color:'#6B3FA0',
-  grid:()=>({degres:['Degré 1','Degré 2','Degré 3','Degré 4'],criteres:B().criteres.map(c=>({id:c.id,afl:c.afl||'AFL1',nom:c.nom,desc:c.desc,max:maxPts(c,null)}))}),
+  grid:()=>({degres:B().degres||['Degré 1','Degré 2','Degré 3','Degré 4'],degresEl:B().degresEl||null,criteres:B().criteres.map(c=>({id:c.id,afl:c.afl||'AFL1',nom:c.nom,but:c.but||'',nomEl:c.nomEl||'',butEl:c.butEl||'',desc:c.desc,descEl:(c.descEl&&c.descEl.length?c.descEl:null),max:maxPts(c,null)}))}),
+  /* fiche commune : statut, curseur dans le degré (par pas de points de la grille), repères propres au volley */
+  setStatut:(e,s)=>{e.statut=s||'';save()},
+  setPos:(cr,e,p)=>{const c=B().criteres.find(x=>x.id===cr.id),v=c&&e.ev&&e.ev[c.id];if(!v||v.d==null)return;const[lo,hi]=band(c,e,v.d),mx=maxPts(c,e);v.f=mx?rnd(lo+(hi-lo)*p,B().pas)/mx:0;v.man=1;save()},
+  posN:(cr,e,d)=>{const c=B().criteres.find(x=>x.id===cr.id);if(!c)return 4;const[lo,hi]=band(c,e,d);return Math.max(1,Math.round((hi-lo)/(B().pas||.25)))},
+  degInfo:(cr,e,d)=>{const c=B().criteres.find(x=>x.id===cr.id);if(!c)return'';const[lo,hi]=band(c,e,d);return fr(lo)+' à '+fr(hi)+' pt'},
+  critInfo:(cr,e)=>{const c=B().criteres.find(x=>x.id===cr.id)||cr;return (c.afl==='AFL3'&&rolesTxt(C(),e)?`<div class="muted" style="color:#B26B00;font-weight:700;margin:0 0 6px">🎭 Rôles tenus : ${rolesTxt(C(),e)}</div>`:'')+(c.afl==='AFL2'&&t3Txt(e)?`<div class="muted" style="color:var(--vol);font-weight:700;margin:0 0 6px">Routines renforcées : ${t3Txt(e)}</div>`:'')},
   max:(cr,e)=>{const c=B().criteres.find(x=>x.id===cr.id);return c?maxPts(c,e):0},
   prof:(cr,e)=>{const c=B().criteres.find(x=>x.id===cr.id),v=e.ev&&e.ev[cr.id];if(!c||!v||v.d==null)return null;const bd=B().bandes[v.d],f=(v.f||0)*100;return{d:v.d,pos:bd&&bd[1]>bd[0]?Math.max(0,Math.min(1,(f-bd[0])/(bd[1]-bd[0]))):.5,pts:critPts(c,e)}},
   /* « ✓ Reprendre ces degrés » de la proposition commune (sources cochées par l'enseignant) : écrit un degré seulement s'il n'y en a pas déjà un */
@@ -883,39 +889,19 @@ var EVVOL=null;function evvol(){if(EVVOL||!window.EPSE)return EVVOL;EVVOL=EPSE.c
 function renderEval(){ renderEval0(); try{const c=C(),e=c.eleves[curEl],M=evvol();if(e&&M){VOL_LAST=curEl;M.propBlock(document.querySelector('#evPanel .evhead'),e,c.nom,{list:()=>c.eleves,redraw:renderEval,keep:t=>{e.comment=t;save();renderEval()}});
   const p=document.getElementById('evPanel'),rt=p.querySelector('.evhead [onclick="closeEval()"]');if(rt)rt.remove();
   M.layout(p,{nom:c.nom,eleves:c.eleves},curEl,{pick:i=>openEval(i),onMode:()=>{curEl=null;document.getElementById('evPanel').style.display='none';document.getElementById('evList').style.display='block';renderList()}})}}catch(x){console.warn(x)} }
+/* 📄 fiche de l'élève = fiche commune (eps-eval.js M.ficheHtml, forme Escalade retenue par l'enseignant, 28/11/2026). Propre au volley, gardé tel quel :
+   choix AFL2 / AFL3, résultats des matchs, points bonus (en haut), rôles tenus et routines (sous le critère), barre du total (en bas). */
 function renderEval0(){
   const c=C(),e=c.eleves[curEl];if(!e){closeEval();return}
   e.ev=e.ev||{};
-  const b=B(),p=document.getElementById('evPanel');
+  const b=B(),p=document.getElementById('evPanel'),M=evvol(),cc={nom:c.nom,eleves:c.eleves};
   const choixHtml=b.mode==='officiel'?`<div class="card" style="padding:10px 14px"><div class="row"><b style="color:var(--navy)">Choix de l'élève AFL2 / AFL3 :</b>
      <div class="seg">${CHOIX.map(x=>`<button class="${(e.choix||'4-4')===x?'on':''}" onclick="setChoix('${x}')">${x.replace('-',' / ')} pts</button>`).join('')}</div>
      <span class="muted">à annoncer avant l'épreuve</span></div></div>`:'';
-  p.innerHTML=`
-  <div class="evhead">
-    <button class="btn alt" onclick="closeEval()">← Retour</button>
-    <h2>${esc(fullName(e))}${apChipVol(e)}${dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''}</h2>
-    <button class="btn alt sm" onclick="nav(-1)" ${curEl===0?'disabled':''}>◀ Préc.</button>
-    <button class="btn alt sm" onclick="nav(1)" ${curEl===c.eleves.length-1?'disabled':''}>Suiv. ▶</button>
-  </div>
-  <div class="row" style="margin-bottom:12px">
-    <div class="seg">
-      <button class="${!e.statut?'on':''}" onclick="setStatut('')">Présent</button>
-      <button class="${e.statut==='ABS'?'on':''}" onclick="setStatut('ABS')">Absent</button>
-      <button class="${e.statut==='DISP'?'on':''}" onclick="setStatut('DISP')">Dispensé</button>
-    </div>
-    <label class="sw" title="Afficher les critères avec les mots de l'élève"><input type="checkbox" ${TXEL?'checked':''} onchange="TXEL=this.checked;try{localStorage.setItem('eps_volley_txel',TXEL?'1':'')}catch(e){};renderEval()"><span></span>Texte élève</label>
-    <button class="btn sm" onclick="exportPdfEleve()">📄 Fiche PDF</button>
-    <button class="btn red sm" onclick="resetEleve()">Effacer la note</button>
-  </div>
-  ${choixHtml}
-  ${optM()||optB()?`<div class="row" style="align-items:stretch;margin-bottom:12px">${optM()?matchCard(e):''}${optB()?bonusCard(e):''}</div>`:''}
-  <div id="crits" ${isAbs(e)?'style="opacity:.4;pointer-events:none"':''}>
-  ${b.criteres.map(cr=>critHtml(cr,e)).join('')}
-  </div>
-  ${apMots(e)}
-  <div class="card"><h2>Commentaire / bilan pour l'élève</h2>
-    <textarea data-eps-comment rows="3" oninput="setComment(this.value)" placeholder="Points forts, axes de progrès…">${esc(e.comment||'')}</textarea></div>
-  <div class="total" id="totBar"></div>`;
+  p.innerHTML=M.ficheHtml(cc,e,{reset:1,head:apChipVol(e)+(dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''),
+    extra:choixHtml+(optM()||optB()?`<div class="row" style="align-items:stretch;margin-bottom:12px">${optM()?matchCard(e):''}${optB()?bonusCard(e):''}</div>`:''),
+    foot:'<div class="total" id="totBar"></div>'});
+  M.ficheBind(p,cc,e,{redraw:renderEval,nav:d=>nav(d),pdf:()=>exportPdfEleve(),reset:()=>resetEleve()});
   renderTotal();
 }
 let TXEL=(()=>{try{return !!localStorage.getItem('eps_volley_txel')}catch(e){return false}})();

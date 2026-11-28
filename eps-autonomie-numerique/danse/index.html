@@ -2286,8 +2286,14 @@ function rListe() {
 /* adaptateur vers le module commun (eps-eval.js) : 🎯 proposition de positionnement, case CCF, phrase pour l'élève */
 let EVDAN = null;
 function evdan() { if (EVDAN || !window.EPSE) return EVDAN; EVDAN = EPSE.create({ app: 'dan', nom: 'Danse', ca: 'CA3', color: '#C2185B',
-  grid: () => ({ degres: ['Degré 1', 'Degré 2', 'Degré 3', 'Degré 4'], criteres: S.criteres.map(c => ({ id: c.id, afl: c.afl || c.court || 'AFL1', nom: c.titre || c.court || '', desc: c.d, max: c.poids || 1 })) }),
-  prof: (cr, e) => { const x = e.ev && e.ev[cr.id]; return x && x.d ? { d: x.d - 1, pos: x.pos == null ? .5 : x.pos } : null; },
+  grid: () => ({ degres: ['Degré 1', 'Degré 2', 'Degré 3', 'Degré 4'], criteres: S.criteres.map(c => ({ id: c.id, afl: c.afl || c.court || 'AFL1', nom: c.titre || c.court || '', nomEl: c.titreEleve || '', but: c.sous || '', desc: c.d, descEl: (c.e && c.e.length ? c.e : null), max: c.poids || 1 })) }),
+  prof: (cr, e) => { const x = e.ev && e.ev[cr.id]; if (!(x && x.d)) return null; const c = S.criteres.find(k => k.id === cr.id), p = c ? pts(c, x) : null; return { d: x.d - 1, pos: x.pos == null ? .5 : x.pos, pts: p == null ? undefined : p }; },
+  /* fiche commune : degré (un appui le pose, un second l'enlève), curseur par quart de point, statut, fiches d'observation sous le critère AFL3 */
+  setDeg: (cr, e, d) => { const c = S.criteres.find(k => k.id === cr.id); if (!c) return; e.ev = e.ev || {}; if (d == null) delete e.ev[c.id]; else e.ev[c.id] = { d: d + 1, pos: defPos(c, d + 1) }; save(); },
+  setPos: (cr, e, p) => { const c = S.criteres.find(k => k.id === cr.id), x = c && e.ev && e.ev[c.id]; if (!x || !x.d) return; x.pos = snap(c, x.d, p); save(); },
+  posN: (cr, e, d) => { const c = S.criteres.find(k => k.id === cr.id); return c ? nSteps(c, d + 1) : 4; },
+  setStatut: (e, st) => { e.statut = st === 'ABS' ? 'abs' : st === 'DISP' ? 'disp' : ''; save(); },
+  critInfo: (cr, e) => { if (cr.id !== 'afl3') return ''; const mes = S.obs.filter(o => o.obsId === e.id); return mes.length ? `<details class="obsd"><summary>Voir ses ${mes.length} fiche${mes.length > 1 ? 's' : ''} d'observation</summary>${mes.map(o => obsCard(o, false)).join('')}</details>` : ''; },
   getAp: e => { const a = e.auto; if (!a || !a.ev) return null; const ev = {}; Object.keys(a.ev).forEach(k => { const y = a.ev[k]; if (y && y.d) ev[k] = { d: y.d - 1, pos: .5 }; }); return { ev, r: a.reussi || '', m: a.ameliorer || '', t: a.t }; },
   setAp: (e, ap) => { const ev = {}; Object.keys((ap && ap.ev) || {}).forEach(k => { ev[k] = { d: ap.ev[k].d + 1 }; }); e.auto = { ev, reussi: ap.r || '', ameliorer: ap.m || '', t: ap.t || Date.now(), via: ap.via }; save(); },
   /* « ✓ Reprendre ces degrés » de la proposition commune (sources cochées par l'enseignant) : écrit un degré seulement s'il n'y en a pas déjà un */
@@ -2295,43 +2301,40 @@ function evdan() { if (EVDAN || !window.EPSE) return EVDAN; EVDAN = EPSE.create(
   /* 🗂 plusieurs évaluations (eps-eval.js) : ce qui fait l'évaluation d'un élève */
   sesGet: e => (e.ev && Object.keys(e.ev).length) || e.auto || e.comm || e.commentaire || e.comment || e.statut ? { ev: e.ev || {}, auto: e.auto || null, comm: e.comm || '', commentaire: e.commentaire || '', comment: e.comment || '', statut: e.statut || '' } : null,
   sesSet: (e, s) => { s = s || {}; e.ev = s.ev || {}; if (s.auto) e.auto = s.auto; else delete e.auto; e.comm = s.comm || ''; e.commentaire = s.commentaire || ''; e.comment = s.comment || ''; e.statut = s.statut || ''; }, sesDone: () => { save(); rEval(); },
-  name: e => ({ nom: e.nom || '', prenom: e.prenom || '' }), note: e => note(e), absent: e => e.statut ? 'ABS' : '', classes: () => (S.classes || []).map(c => ({ nom: c.nom, eleves: c.eleves || [] })), comment: e => e.commentaire || e.comment || e.comm || '', setComment: (e, t) => { e.comm = t; save(); } }); return EVDAN; }
+  name: e => ({ nom: e.nom || '', prenom: e.prenom || '' }), note: e => note(e), absent: e => e.statut === 'abs' ? 'ABS' : e.statut ? 'DISP' : '', classes: () => (S.classes || []).map(c => ({ nom: c.nom, eleves: c.eleves || [] })), comment: e => e.commentaire || e.comment || e.comm || '', setComment: (e, t) => { e.comm = t; save(); } }); return EVDAN; }
 function rEvMain() { rEvMain0(); try { const cl = curClasse(), e = cl.eleves.find(x => x.id === UI.selId), M = evdan(); if (e && M) M.propBlock(document.querySelector('#evMain .ev-head'), e, cl.nom, { list: () => cl.eleves, redraw: rEvMain, keep: t => { e.comm = t; save(); rEvMain(); } }); } catch (x) { console.warn(x); } }
+/* 📄 fiche de l'élève = fiche commune (eps-eval.js M.ficheHtml, forme Escalade retenue par l'enseignant, 28/11/2026). Propre à la danse, gardé tel quel :
+   groupe et carnet du groupe (en haut), fiches d'observation (sous le critère AFL3), phrases toutes prêtes et suppression de l'auto-positionnement (en bas). */
 function rEvMain0() {
   const cl = curClasse(); const e = cl.eleves.find(x => x.id === UI.selId); const M = $('#evMain');
   if (!e) { M.innerHTML = ''; return; }
   e.ev = e.ev || {};
+  const EV = evdan(), cc = { nom: cl.nom, eleves: cl.eleves };
   const g = groupeDe(cl, e);
   const list = elevesFiltres(cl); const idx = list.findIndex(x => x.id === e.id);
   const nObs = S.obs.filter(o => o.obsId === e.id).length;
   const canShare = !!(navigator.canShare && window.File);
-  M.innerHTML = `
-  <div class="card ev-head">
-    <div class="who">
+  const extra = `<div class="card" style="padding:10px 14px">
       <select id="mSel" class="mobile-only">${list.map(x => `<option value="${x.id}" ${x.id === e.id ? 'selected' : ''}>${esc(nomComplet(x))}</option>`).join('')}</select>
-      <h2>${esc(e.nom)} <span>${esc(e.prenom || '')}</span></h2>
-      ${dispOf(cl, e) ? `<p class="tagdisp">🩹 Dispensé : ${esc(dispLabel(dispOf(cl, e)))}</p>` : ''}
-      <p class="muted">${g ? `${esc(g.nom)}${g.theme ? ' — « ' + esc(g.theme) + ' »' : ''}` : 'Sans groupe'} · ${nObs} fiche${nObs > 1 ? 's' : ''} d'observation</p>
-      ${g && g.carnet && (g.carnet.titre || (g.carnet.procedes || []).length) ? `<details class="obsd"><summary>📓 Carnet du groupe${g.carnet.titre ? ' : « ' + esc(g.carnet.titre) + ' »' : ''}</summary>${g.carnet.intention ? `<p>${esc(g.carnet.intention)}</p>` : ''}<div class="mini">${(g.carnet.procedes || []).concat(g.carnet.relations || []).map(p => `<span>${esc(p)}</span>`).join('')}</div>${['debut', 'milieu', 'fin'].filter(x => g.carnet[x]).map(x => `<p><small>${{ debut: 'Début', milieu: 'Milieu', fin: 'Fin' }[x]} :</small> ${esc(g.carnet[x])}</p>`).join('')}</details>` : ''}
-    </div>
-    <div class="tot"><span id="totVal">${e.statut ? (e.statut === 'abs' ? 'ABS' : 'DISP') : fmt(note(e))}</span><small>/ 20</small></div>
-  </div>
-  <div class="ev-tools">
-    <div class="seg" id="statSeg">
-      <button data-s="" class="${!e.statut ? 'on' : ''}">Présent</button><button data-s="abs" class="${e.statut === 'abs' ? 'on' : ''}">Absent</button><button data-s="disp" class="${e.statut === 'disp' ? 'on' : ''}">Dispensé</button>
-    </div>
-    <label class="sw"><input type="checkbox" id="txtEl" ${UI.txtEleve ? 'checked' : ''}><span></span>Texte élève</label>
-    <span class="grow"></span>
-    <button class="btn" id="bPrev" ${idx <= 0 ? 'disabled' : ''}>‹ Préc.</button>
-    <button class="btn" id="bNext" ${idx < 0 || idx >= list.length - 1 ? 'disabled' : ''}>Suiv. ›</button>
-    <button class="btn primary" id="bPdf">PDF élève</button>
-    ${canShare ? '<button class="btn" id="bShare">Partager</button>' : ''}
-  </div>
-  ${S.criteres.map(c => critHTML(c, e)).join('')}
-  ${e.auto ? autoHTML(e) : ''}
-  <div class="card"><label class="lbl">Commentaire pour l'élève (figure sur le PDF)</label><textarea id="comm" data-eps-comment rows="3" placeholder="Ex. : Très belle présence. Ose davantage changer de niveau pour sortir du mime.">${esc(e.comm || '')}</textarea>
-    <div class="cbank"><small>Phrases toutes prêtes (touche pour ajouter, puis complète) :</small>${COMMS.map((t, i) => `<button class="chip sm ${(e.comm || '').includes(t) ? 'on' : ''}" data-cb="${i}">${esc(t)}</button>`).join('')}</div></div>`;
-  bindEval(e);
+      <p class="muted" style="margin:0">${g ? `${esc(g.nom)}${g.theme ? ' — « ' + esc(g.theme) + ' »' : ''}` : 'Sans groupe'} · ${nObs} fiche${nObs > 1 ? 's' : ''} d'observation${canShare ? ' · <button class="lnk" id="bShare">Partager le PDF</button>' : ''}</p>
+      ${g && g.carnet && (g.carnet.titre || (g.carnet.procedes || []).length) ? `<details class="obsd"><summary>📓 Carnet du groupe${g.carnet.titre ? ' : « ' + esc(g.carnet.titre) + ' »' : ''}</summary>${g.carnet.intention ? `<p>${esc(g.carnet.intention)}</p>` : ''}<div class="mini">${(g.carnet.procedes || []).concat(g.carnet.relations || []).map(p => `<span>${esc(p)}</span>`).join('')}</div>${['debut', 'milieu', 'fin'].filter(x => g.carnet[x]).map(x => `<p><small>${{ debut: 'Début', milieu: 'Milieu', fin: 'Fin' }[x]} :</small> ${esc(g.carnet[x])}</p>`).join('')}</details>` : ''}</div>`;
+  const foot = `<div class="card"><div class="cbank" style="margin:0"><small>Phrases toutes prêtes (touche pour ajouter au commentaire, puis complète) :</small>${COMMS.map((t, i) => `<button class="chip sm ${(e.comm || '').includes(t) ? 'on' : ''}" data-cb="${i}">${esc(t)}</button>`).join('')}</div>
+    ${e.auto ? `<p class="muted" style="margin:10px 0 0">🙋 Auto-positionnement de l'élève ${esc(e.auto.date || '')} · <button class="lnk" data-act="supAuto">supprimer</button></p>` : ''}</div>`;
+  M.innerHTML = EV.ficheHtml(cc, e, { head: dispOf(cl, e) ? ` <span class="tagdisp">🩹 ${esc(dispLabel(dispOf(cl, e)))}</span>` : '', extra, foot });
+  const redraw = () => { rEvMain(); rListe(); };
+  EV.ficheBind(M, cc, e, { redraw, pdf: () => exportPdfEleve(e),
+    nav: d => { const n = idx + d; if (idx >= 0 && n >= 0 && n < list.length) { UI.selId = list[n].id; rListe(); rEvMain(); } },
+    extraBind: () => {
+      const sel = $('#mSel'); if (sel) sel.onchange = () => { UI.selId = sel.value; rListe(); rEvMain(); };
+      const bs = $('#bShare'); if (bs) bs.onclick = () => partagerPdfEleve(e);
+      M.onclick = ev => {
+        const cbk = ev.target.closest('[data-cb]');
+        if (cbk) { const t = COMMS[+cbk.dataset.cb], ta = M.querySelector('[data-comm]'); let v = e.comm || ''; if (v.includes(t)) v = v.replace(t, '').replace(/\s{2,}/g, ' ').trim(); else v = (v.trim() ? v.trim() + ' ' : '') + t; e.comm = v; if (ta) ta.value = v; cbk.classList.toggle('on', v.includes(t)); save(); return; }
+        const b = ev.target.closest('[data-act]'); if (!b) return; const act = b.dataset.act;
+        if (act === 'supAuto') { modal({ titre: 'Supprimer l\'auto-positionnement ?', ok: 'Supprimer', danger: true }).then(ok => { if (ok) { delete e.auto; save(); redraw(); } }); }
+        else if (act === 'supObs') { supprimerObs(b.dataset.id, () => rEvMain()); }
+      };
+    } });
 }
 function critHTML(c, e) {
   const x = e.ev[c.id]; const a = e.auto && e.auto.ev ? e.auto.ev[c.id] : null;

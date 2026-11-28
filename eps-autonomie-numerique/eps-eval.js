@@ -840,6 +840,51 @@
         /* 🎯 remédiation : plus dans l'évaluation finale (elle clôt la séquence) ; proposée depuis 📅 Leçons du jour (demande de l'enseignant, 27/11/2026) */
         try { if (false && window.EPSLC && EPSLC.remCard) { var lows = []; A.grid().criteres.forEach(function (cr) { var v = A.prof(cr, E); if (v && v.d != null && v.d <= 1) lows.push({ cr: cr, d: v.d }); });
           var n = A.name(E), rc = EPSLC.remCard(cls, ((n.prenom || "") + " " + (n.nom || "")).trim(), lows); if (rc) { var w = document.createElement("div"); w.innerHTML = rc.html; d.appendChild(w); rc.bind(w); } } } catch (e) { console.warn(e); } } catch (e) { console.warn(e); } };
+    /* ================= 📄 Fiche d'évaluation d'un élève, la MÊME dans toutes les applis (forme Escalade retenue par l'enseignant, 28/11/2026) =================
+       M.ficheHtml(classe, élève, o) + M.ficheBind(racine, classe, élève, o). Tout passe par l'adaptateur :
+         prof(cr, E) → {d, pos, pts} · setDeg(cr, E, d | null) · setPos(cr, E, 0 à 1) · posN(cr, E, d) → nombre de crans du curseur (défaut 4)
+         absent(E) / setStatut(E, "" | "ABS" | "DISP") · comment(E) / setComment(E, texte) · getAp(E) · note(E) · max(cr, E)
+         critInfo(cr, E) → HTML sous le titre du critère (rôles tenus…) · degInfo(cr, E, d) → texte court dans le degré (« 2 à 4 pts »)
+       o : { cls (classe de l'élève si regroupement), extra (HTML de l'appli après l'en-tête : choix AFL2 / AFL3, matchs, bloc de résultats propre…), foot (HTML en bas),
+             head (HTML à droite du nom), redraw(), nav(±1), pdf(), reset() (bouton « Effacer la note »), extraBind(racine) }.
+       Ordre : en-tête → extra → 📊 Ses résultats → 🎯 Proposition → critères (🙋 élève, 💡 proposé) → 🙋 mots de l'élève → ✨ phrase + commentaire → foot. */
+    var KTX = "eps.eval.txel." + A.app;
+    function txEl() { try { return localStorage.getItem(KTX) === "1"; } catch (e) { return false; } }
+    M.ficheHtml = function (c, E, o) { o = o || {}; css(A.color);
+      var G = A.grid(), cls = o.cls || c.nom, nm = A.name(E), st = (A.absent && A.absent(E)) || "", n = st ? null : (A.note ? A.note(E) : null), ap = A.getAp ? A.getAp(E) : null, P = M.prop(E, cls), TX = txEl(),
+        DGL = TX && G.degresEl ? G.degresEl : G.degres, POSL = function (p) { p = p == null ? .5 : p; return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; },
+        mxOf = function (cr) { try { if (A.max) return A.max(cr, E); } catch (e) {} return +cr.max || 0; }, hasEl = G.criteres.some(function (cr) { return cr.descEl || cr.nomEl; }) || !!G.degresEl;
+      var recap = function (cr) { var x = ap && ap.ev && ap.ev[cr.id], s2 = P.est && P.est[cr.id], H = "";
+        if (x && x.d != null) H += '<span style="background:' + DTINT[x.d] + ";border:1.5px solid " + DCOL[x.d] + ';border-radius:8px;padding:3px 8px;font-weight:800">🙋 L\'élève se situe : D' + (x.d + 1) + " · " + esc((G.degresEl || G.degres)[x.d] || "") + "</span>";
+        if (s2) H += '<span style="background:#FFF6E0;border:1.5px dashed #C99A1A;border-radius:8px;padding:3px 8px;font-weight:800">💡 Proposé : D' + (s2.d + 1) + " (" + POSL(s2.pos) + ")</span>";
+        return H ? '<div data-recap style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;font-size:14px">' + H + "</div>" : ""; };
+      var ctx = G.criteres.map(function (cr) { var p = A.prof(cr, E); return cr.nom + " : " + (p && p.d != null ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "");
+      return '<div class="epse-card" data-fiche><div class="epse-row" style="justify-content:space-between"><b style="font-size:20px">' + esc(((nm.prenom || "") + " " + (nm.nom || "")).trim()) + (o.head || "") + '</b><span class="epse-note">' + (st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1" aria-label="Élève précédent" style="min-width:46px">‹</button> <button class="epse-btn" data-nav="1" aria-label="Élève suivant" style="min-width:46px">›</button></span></div>' +
+        '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (x) { return '<button class="epse-btn' + (st === x ? " p" : "") + '" data-st="' + x + '">' + (x || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button>' +
+        (hasEl ? '<label style="display:inline-flex;gap:6px;align-items:center;font-weight:700;min-height:44px" title="Afficher les critères avec les mots de l\'élève"><input type="checkbox" data-txel' + (TX ? " checked" : "") + ' style="width:22px;height:22px">Texte élève</label>' : "") +
+        (o.reset ? '<button class="epse-btn" data-raz style="margin-left:auto;color:#B3261E">Effacer la note</button>' : "") + "</div></div>" +
+        (o.extra || "") + M.propHtml(E, cls) +
+        '<div data-crits' + (st ? ' style="opacity:.45;pointer-events:none"' : "") + ">" + G.criteres.map(function (cr) { var v = A.prof(cr, E), x = ap && ap.ev && ap.ev[cr.id], s2 = P.est && P.est[cr.id], mx = mxOf(cr), inf = "", DS = TX && cr.descEl && cr.descEl.length ? cr.descEl : cr.desc; if (v && v.d == null) v = null;
+          try { inf = A.critInfo ? (A.critInfo(cr, E) || "") : ""; } catch (e) { inf = ""; }
+          var N = 4; if (v) { try { N = A.posN ? Math.max(1, Math.round(+A.posN(cr, E, v.d)) || 4) : 4; } catch (e) { N = 4; } }
+          return '<div class="epse-crit"><div class="epse-ch"><b>' + esc((TX && cr.nomEl) || cr.nom) + "</b><span>" + esc(cr.afl || "") + " · " + fr(mx) + " pts" + (v && v.pts != null ? " · <b data-pts>" + fr(v.pts) + " pts</b>" : "") + "</span></div>" + (((TX && cr.butEl) || cr.but) ? '<p class="epse-mut" style="margin:0 0 8px">' + esc((TX && cr.butEl) || cr.but) + "</p>" : "") + inf + recap(cr) +
+            '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { var di = ""; try { di = A.degInfo ? (A.degInfo(cr, E, d) || "") : ""; } catch (e) { di = ""; }
+              return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(DGL[d] || "") + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + (s2 && s2.d === d ? '<span class="me" style="border-style:dashed;border-color:#C99A1A;color:#7A5A00">💡 proposé</span>' : "") + "</b>" + (di ? '<small style="display:block;font-weight:800;opacity:.75">' + esc(di) + "</small>" : "") + esc((DS || [])[d] || "") + "</button>"; }).join("") + "</div>" +
+            (v ? '<div class="epse-intra" style="--dc:' + DCOL[v.d] + '"><span>Dans le degré :</span><input type="range" min="0" max="' + N + '" step="1" value="' + Math.round((v.pos == null ? .5 : v.pos) * N) + '" data-p="' + esc(cr.id) + '" data-n="' + N + '" aria-label="Position dans le degré"><b style="color:' + DCOL[v.d] + '">' + esc(posLbl(v.d, v.pos == null ? .5 : v.pos)) + (v.pts != null ? " · " + fr(v.pts) + " / " + fr(mx) + " pts" : "") + "</b></div>" : "") + "</div>"; }).join("") + "</div>" +
+        (ap && (ap.r || ap.m) ? '<div class="epse-card"><h2>🙋 Les mots de l\'élève</h2>' + (ap.r ? "<p>✓ " + esc(ap.r) + "</p>" : "") + (ap.m ? "<p>→ " + esc(ap.m) + "</p>" : "") + "</div>" : "") +
+        '<div class="epse-card"><div class="epse-row" style="margin:0 0 6px"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button></div><div data-phrbox></div><label class="epse-mut" style="font-weight:800;display:block">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment style="display:block;width:100%;box-sizing:border-box;margin-top:4px;font:inherit;font-weight:500;font-size:16px;padding:8px;border-radius:10px;border:2px solid #E6E1D6" data-eps-ctx="' + esc(ctx) + '">' + esc((A.comment && A.comment(E)) || "") + "</textarea></label></div>" + (o.foot || ""); };
+    M.ficheBind = function (R, c, E, o) { o = o || {}; if (!R) return; var cls = o.cls || c.nom, redraw = o.redraw || function () {}, G = A.grid(), crOf = function (id) { return G.criteres.filter(function (x) { return String(x.id) === String(id); })[0]; };
+      [].forEach.call(R.querySelectorAll("[data-fiche] [data-nav]"), function (b) { b.onclick = function () { if (o.nav) o.nav(+b.dataset.nav); }; });
+      [].forEach.call(R.querySelectorAll("[data-fiche] [data-st]"), function (b) { b.onclick = function () { try { if (A.setStatut) A.setStatut(E, b.dataset.st); } catch (e) { console.warn(e); } redraw(); }; });
+      var pd = R.querySelector("[data-fiche] [data-pdf]"); if (pd) pd.onclick = function () { if (o.pdf) o.pdf(); else M.pdfEleve(c, E, true); };
+      var tx = R.querySelector("[data-txel]"); if (tx) tx.onchange = function () { try { localStorage.setItem(KTX, tx.checked ? "1" : "0"); } catch (e) {} redraw(); };
+      var rz = R.querySelector("[data-raz]"); if (rz) rz.onclick = function () { if (o.reset) o.reset(); };
+      [].forEach.call(R.querySelectorAll("[data-crits] [data-d]"), function (b) { b.onclick = function () { var cr = crOf(b.dataset.c), d = +b.dataset.d; if (!cr) return; var v = A.prof(cr, E); try { A.setDeg(cr, E, v && v.d === d ? null : d); } catch (e) { console.warn(e); } redraw(); }; });
+      [].forEach.call(R.querySelectorAll("[data-crits] [data-p]"), function (i) { i.onchange = function () { var cr = crOf(i.dataset.p); if (!cr) return; try { if (A.setPos) A.setPos(cr, E, (+i.value) / (+i.dataset.n || 4)); } catch (e) { console.warn(e); } redraw(); }; });
+      var t = R.querySelector("[data-comm]"); if (t) t.oninput = t.onchange = function () { try { if (A.setComment) A.setComment(E, t.value); } catch (e) { console.warn(e); } };
+      M.bindProp(R, E, cls, redraw, o.take);
+      M.bindPhrase(R, E, cls, function (txt) { try { if (A.setComment) A.setComment(E, txt); } catch (e) { console.warn(e); } redraw(); });
+      try { if (o.extraBind) o.extraBind(R); } catch (e) { console.warn(e); } };
     M.bindProp = function (R, E, cls, redraw, take) {
       [].forEach.call(R.querySelectorAll("[data-rsc]"), function (b) { b.onclick = function () { try { localStorage.setItem(KSC, b.dataset.rsc === "last" ? "last" : "all"); } catch (e) {} redraw(); }; });
       var ra = R.querySelector("[data-resall]"); if (ra) ra.onclick = function () { M.resWin(E, cls); };
@@ -1075,6 +1120,8 @@
       setProf: function (cr, e, v) { var r = rec(e._c, e); r.ev = r.ev || {}; if (r.ev[cr.id] || !v || v.d == null) return; r.ev[cr.id] = { d: v.d, pos: v.pos == null ? .5 : v.pos }; save(e._c, e, r); },
       extras: function (c, e) { try { return o.extras ? o.extras(c, e) : []; } catch (x) { return []; } },
       resultat: function (cr, e, cls) { try { return o.resultat ? o.resultat(cr, e, cls) : null; } catch (x) { return null; } },
+      setStatut: function (e, st) { var r = rec(e._c, e); r.st = st || ""; save(e._c, e, r); },
+      setPos: function (cr, e, p) { var r = rec(e._c, e); if (r.ev && r.ev[cr.id]) { r.ev[cr.id].pos = Math.max(0, Math.min(1, +p || 0)); save(e._c, e, r); } },
       resultats: function (e, cls) { try { return o.resultats ? o.resultats(e, cls) : null; } catch (x) { return null; } },
       getAp: function (e) { return rec(e._c, e).ap; }, setAp: function (e, ap) { var r = rec(e._c, e); r.ap = ap; save(e._c, e, r); },
       settings: function () { return cfg(); }, setSettings: setCfg, isTeacher: o.isTeacher, unlock: o.unlock, changed: function () { if (UI.open) render(); } };
@@ -1141,33 +1188,8 @@
       if (c && UI.tab === "bilan") { M.bindCard(R, c); M.bindExports(R, c); }
       if (UI.tab === "grille") bindGrid(R);
     }
-    function sheet(c, e) {
-      var G = grid(), r = rec(e._c, e), n = note(e), ap = r.ap, P = M.prop(e, e._c), POSL = function (p) { p = p == null ? .5 : p; return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; };
-      var recap = function (cr) { var x = ap && ap.ev && ap.ev[cr.id], s = P.est && P.est[cr.id], H = "";
-        if (x && x.d != null) H += '<span style="background:' + DTINT[x.d] + ";border:1.5px solid " + DCOL[x.d] + ';border-radius:8px;padding:3px 8px;font-weight:800">🙋 L\'élève se situe : D' + (x.d + 1) + " · " + esc((G.degresEl || G.degres)[x.d] || "") + "</span>";
-        if (s) H += '<span style="background:#FFF6E0;border:1.5px dashed #C99A1A;border-radius:8px;padding:3px 8px;font-weight:800">💡 Proposé : D' + (s.d + 1) + " (" + POSL(s.pos) + ")</span>";
-        return H ? '<div data-recap style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;font-size:14px">' + H + "</div>" : ""; };
-      return '<div class="epse-card"><div class="epse-row" style="justify-content:space-between"><b style="font-size:20px">' + esc(e.prenom + " " + e.nom) + '</b><span class="epse-note">' + (r.st || (n == null ? "—" : fr(n) + " / 20")) + '</span><span><button class="epse-btn" data-nav="-1" aria-label="Élève précédent" style="min-width:46px">‹</button> <button class="epse-btn" data-nav="1" aria-label="Élève suivant" style="min-width:46px">›</button></span></div>' +
-        '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (st) { return '<button class="epse-btn' + ((r.st || "") === st ? " p" : "") + '" data-st="' + st + '">' + (st || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button></div></div>' +
-        M.propHtml(e, e._c) +
-        G.criteres.map(function (cr) { var v = r.ev && r.ev[cr.id], x = ap && ap.ev && ap.ev[cr.id], p = prof(cr, e), s = P.est && P.est[cr.id];
-          return '<div class="epse-crit"><div class="epse-ch"><b>' + esc(cr.nom) + "</b><span>" + esc(cr.afl || "") + " · " + fr(maxOf(cr)) + " pts" + (p ? " · " + fr(p.pts) + " pts" : "") + "</span></div>" + (cr.but ? '<p class="epse-mut" style="margin:0 0 8px">' + esc(cr.but) + "</p>" : "") + recap(cr) +
-            '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { return '<button class="epse-deg' + (v && v.d === d ? " on" : "") + '" style="--dc:' + DCOL[d] + ";--dt:" + DTINT[d] + '" data-c="' + esc(cr.id) + '" data-d="' + d + '"><b>D' + (d + 1) + " · " + esc(G.degres[d]) + (x && x.d === d ? '<span class="me">🙋 élève</span>' : "") + (s && s.d === d ? '<span class="me" style="border-style:dashed;border-color:#C99A1A;color:#7A5A00">💡 proposé</span>' : "") + "</b>" + esc(cr.desc[d] || "") + "</button>"; }).join("") + "</div>" +
-            (v ? '<div class="epse-intra" style="--dc:' + DCOL[v.d] + '"><span>Dans le degré :</span><input type="range" min="0" max="4" step="1" value="' + Math.round((v.pos == null ? .5 : v.pos) * 4) + '" data-p="' + esc(cr.id) + '"><b style="color:' + DCOL[v.d] + '">' + esc(posLbl(v.d, v.pos == null ? .5 : v.pos)) + "</b></div>" : "") + "</div>"; }).join("") +
-        (ap && (ap.r || ap.m) ? '<div class="epse-card"><h2>🙋 Les mots de l\'élève</h2>' + (ap.r ? "<p>✓ " + esc(ap.r) + "</p>" : "") + (ap.m ? "<p>→ " + esc(ap.m) + "</p>" : "") + "</div>" : "") +
-        '<div class="epse-card"><div class="epse-row" style="margin:0 0 6px"><button type="button" class="epse-btn" data-phr>✨ Proposer une phrase pour l\'élève</button></div><div data-phrbox></div><label class="epse-mut" style="font-weight:800">Commentaire (sur la fiche)<textarea rows="3" data-comm data-eps-comment data-eps-ctx="' + esc(G.criteres.map(function (cr) { var p = prof(cr, e); return cr.nom + " : " + (p ? "degré " + (p.d + 1) + " (" + G.degres[p.d] + ")" : "non évalué"); }).join(" ; ") + (n != null ? " ; note " + fr(n) + "/20" : "")) + '">' + esc(r.comm || "") + "</textarea></label></div>";
-    }
-    function bindSheet(R, c, e) {
-      var up = function (f) { var r = rec(e._c, e); f(r); save(e._c, e, r); render(); };
-      R.querySelectorAll("[data-nav]").forEach(function (b) { b.onclick = function () { var n = UI.el + (+b.dataset.nav); if (n >= 0 && n < c.eleves.length) { UI.el = n; render(); } }; });
-      R.querySelectorAll("[data-st]").forEach(function (b) { b.onclick = function () { up(function (r) { r.st = b.dataset.st; }); }; });
-      R.querySelector("[data-pdf]").onclick = function () { M.pdfEleve(c, e, true); };
-      R.querySelectorAll("[data-d]").forEach(function (b) { b.onclick = function () { up(function (r) { r.ev = r.ev || {}; var id = b.dataset.c, d = +b.dataset.d; if (r.ev[id] && r.ev[id].d === d) delete r.ev[id]; else r.ev[id] = { d: d, pos: .5 }; }); }; });
-      R.querySelectorAll("[data-p]").forEach(function (i) { i.onchange = function () { up(function (r) { r.ev[i.dataset.p].pos = (+i.value) / 4; }); }; });
-      var t = R.querySelector("[data-comm]"); t.oninput = t.onchange = function () { var r = rec(e._c, e); r.comm = t.value; save(e._c, e, r); };
-      M.bindProp(R, e, e._c, render, function () { var P = M.prop(e, e._c); up(function (r) { r.ev = r.ev || {}; grid().criteres.forEach(function (cr) { var x = P.est[cr.id]; if (!r.ev[cr.id] && x) r.ev[cr.id] = { d: x.d, pos: x.pos }; }); }); });
-      M.bindPhrase(R, e, e._c, function (txt) { var r = rec(e._c, e); r.comm = txt; save(e._c, e, r); render(); });
-    }
+    function sheet(c, e) { return M.ficheHtml(c, e, { cls: e._c }); }
+    function bindSheet(R, c, e) { M.ficheBind(R, c, e, { cls: e._c, redraw: render, nav: function (d) { var n = UI.el + d; if (n >= 0 && n < c.eleves.length) { UI.el = n; render(); } } }); }
     /* « 👥 Par groupe » : groupes de l'appli (o.groups, rangés par grouper) sinon groupes du jour ; la saisie rapide est celle du module (M.quickHtml) */
     function rapide(c, G, GRP) { if (!G.criteres.length) return '<div class="epse-card"><p>La grille n\'a pas encore de critère : touche « 🧩 Grille ».</p></div>'; return M.quickHtml(c, { groups: GRP || null }); }
     function bindRapide(R, c, G, GRP) { M.bindQuick(R, c, function () { render(); }, { groups: GRP || null }); }

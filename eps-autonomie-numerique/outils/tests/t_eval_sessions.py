@@ -110,6 +110,12 @@ async def main():
             has = await p.evaluate("!!document.querySelector('[data-asesnew]')&&!!document.querySelector('[data-ases]')")
             ok(app + " : liste « Évaluation » et « ＋ Nouvelle évaluation »", has)
             if not has: continue
+            # même fiche que les autres applis (forme Escalade) : degré posé, curseur, résultats et proposition, phrase pour l'élève
+            await p.evaluate("(function(){var b=document.querySelector('[data-crits] .epse-deg[data-d=\"2\"]');if(b&&!b.classList.contains('on'))b.click()})()"); await p.wait_for_timeout(900)
+            fi = await p.evaluate("(function(){var f=document.querySelector('[data-fiche]'),r=document.querySelector('[data-crits] [data-p]');if(r){r.value=r.max;r.onchange()}return {f:!!f,on:document.querySelectorAll('[data-crits] .epse-deg.on').length,prop:/Proposition de positionnement/.test(document.body.innerText),phr:!!document.querySelector('[data-phr]'),comm:!!document.querySelector('[data-comm]'),st:document.querySelectorAll('[data-fiche] [data-st]').length}})()"); await p.wait_for_timeout(900)
+            lb = await p.evaluate("(function(){var b=document.querySelector('[data-crits] .epse-intra b');return b?b.textContent:''})()")
+            ok(app + " : fiche commune (degré, curseur « " + lb[:40] + " », proposition, phrase)", fi["f"] and fi["on"] >= 1 and fi["prop"] and fi["phr"] and fi["comm"] and fi["st"] == 3 and "pts" in lb, [fi, lb])
+            if app == "relais": ok("relais : son bloc « toutes les courses » et la répartition sont gardés", await p.evaluate("!!document.querySelector('#ev-body .evred')&&!!document.querySelector('#ev-body .evrep')"))
             await p.evaluate(POSE[app]); n0 = await p.evaluate(NOTES[app])
             await p.evaluate("document.querySelector('[data-asesnew]').click()"); await p.wait_for_timeout(400)
             await p.fill("#epse-sesd [data-n]", "Jeudi"); await p.click("#epse-sesd [data-ok]"); await p.wait_for_timeout(1500)
