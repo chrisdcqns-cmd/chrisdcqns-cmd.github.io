@@ -87,7 +87,7 @@ REPERES = {
     "ccf/index.html": ["tabs:{ccf:false,seq:"],
     "mon-bilan/index.html": ["function culture()", "ton enseignant", "kind === \"espace\"", "dropchk", "function mission(", "un seul envoi à la fois", "essais automatiques seulement", "../step/export.js"],
     "espace/index.html": ["E.publier(", "E.relever()", "noindex", "function mget(", "E.dispenses(", "get(DIRS.step).step"],
-    "eps-tactique.js": ["function car(s)", "function player(el, d0, opt)", "function frames(d)", "frameAdd: function", "function places(s, n)", "function editor(", "function depart("],
+    "eps-tactique.js": ["function car(s)", "function player(el, d0, opt)", "function surChemin(P, e)", "pathClear: function", "function frames(d)", "frameAdd: function", "function places(s, n)", "function editor(", "function depart("],
     "eps-culture.js": ["function quiz(dir)", "window.EPSCULT = {", "function dossier(nom)"],
     "eps-ref.js": ["o.nt = r2(+pr.note)", "function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw", "function coVals(", "function colPut(", "EPSD.trash.keep("],
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter", "function vCdc(", "function saisie(", "function nbr("],

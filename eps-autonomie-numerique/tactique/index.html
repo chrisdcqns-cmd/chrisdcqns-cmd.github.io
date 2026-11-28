@@ -114,11 +114,13 @@ button,input,select{font:inherit;color:inherit}
   var LECT = null, CHT = "min-height:44px;padding:0 12px;border-radius:999px;border:2px solid #E6E1D6;background:#fff;font:700 15px system-ui,sans-serif;color:#14171C;cursor:pointer;width:auto";
   function lectStop() { if (LECT) { try { LECT.stop(); } catch (e) {} LECT = null; } $("#lect").hidden = true; $("#lect").innerHTML = ""; $("#board").hidden = false; }
   function drawTps() { var el = $("#tps"); if (!el || !ED) return; var n = ED.frames(), c = ED.frame(), h = "";
+    /* l'animation (frise, temps, lecture, partage) n'existe qu'en mode enseignant (demande du 28/11/2026) : côté élève, la planche reste une image à dessiner */
+    if (!teach()) { el.innerHTML = ""; return; }
     if (LECT) h = '<button type="button" data-tp="stop" style="' + CHT + ';background:#14171C;border-color:#14171C;color:#fff">✏️ Revenir au dessin</button><span class="mut">Lecture de l\'animation : ◀ ▶ pour aller d\'un temps à l\'autre.</span>';
     else { h = '<span class="mut" style="font-weight:800">🎬 Animation</span>';
       for (var i = 0; i < n; i++) h += '<button type="button" data-tg="' + i + '" aria-pressed="' + (i === c) + '" style="' + CHT + (i === c ? ";background:#14171C;border-color:#14171C;color:#fff" : "") + '">Temps ' + (i + 1) + "</button>";
       h += '<button type="button" data-tp="add" style="' + CHT + '"' + (n >= 12 ? " disabled" : "") + ' title="Copie le temps affiché : il reste à déplacer ce qui bouge">＋ Temps</button>' + (n > 1 ? '<button type="button" data-tp="del" style="' + CHT + ';color:#B3261E">🗑 Retirer ce temps</button><button type="button" data-tp="play" style="' + CHT + ';background:#0F766E;border-color:#0F766E;color:#fff">▶ Lecture</button>' : "") +
-        (n > 1 && c > 0 ? '<span class="mut">En gris : d\'où viennent les joueurs.</span>' : ""); }
+        (n > 1 && c > 0 ? (ED.hasPath && ED.hasPath() ? '<button type="button" data-tp="droit" style="' + CHT + '">↔ Chemin direct</button>' : "") + '<span class="mut">Fais glisser un joueur ou le ballon : il suivra le chemin de ton doigt.</span>' : ""); }
     if (teach() && !LECT) h += '<span style="flex:1"></span><button type="button" data-tp="share" data-nolive style="' + CHT + ';background:#F0A030;border-color:#F0A030">📡 Partager à toutes les tablettes</button><span class="st" id="shst" role="status"></span>';
     el.innerHTML = h;
     Array.prototype.forEach.call(el.querySelectorAll("[data-tg]"), function (b) { b.onclick = function () { ED.frameGo(+b.dataset.tg); drawTps(); }; });
@@ -127,6 +129,7 @@ button,input,select{font:inherit;color:inherit}
       else if (a === "del") { if (confirm("Retirer le temps " + (ED.frame() + 1) + " de l'animation ?")) ED.frameDel(); drawTps(); }
       else if (a === "play") { $("#board").hidden = true; $("#lect").hidden = false; LECT = EPSTAC.player($("#lect"), ED.get(), { maxh: "70vh", auto: true }); drawTps(); }
       else if (a === "stop") { lectStop(); drawTps(); }
+      else if (a === "droit") { ED.pathClear(); drawTps(); }
       else if (a === "share") partager(); }; }); }
   function partager() { var st = $("#shst"); if (!st) return; var P0 = window.EPSD && EPSD.plan;
     if (!P0 || !P0.ready || !P0.ready()) { st.className = "st ko"; st.textContent = "Partage entre tablettes pas encore réglé sur cet appareil (accueil → Réglages communs)."; return; }
@@ -145,7 +148,7 @@ button,input,select{font:inherit;color:inherit}
     var ok = function () { var v = i.value; o.remove(); cb(v); }; o.querySelector("[data-ok]").onclick = ok; o.querySelector("[data-x]").onclick = function () { o.remove(); }; i.onkeydown = function (e) { if (e.key === "Enter") ok(); }; }
   var ED = EPSTAC.editor($("#board"), d0, { maxh: "70vh",
     onChange: function (d) { try { if (ED && $("#tps") && $("#tps").querySelectorAll("[data-tg]").length !== ED.frames()) drawTps(); } catch (e) {} livePush(); try { localStorage.setItem(KD, JSON.stringify({ id: cur.id, nom: $("#nom").value, d: d })); } catch (e) {} },
-    onSelect: function (i) { $("#del").disabled = !i; var lab = i && (i.t === "p" || i.t === "x"); $("#lab").hidden = !lab; if (lab) { $("#labt").textContent = i.t === "p" ? "Numéro" : "Texte"; $("#labi").value = i.t === "p" ? (i.n || "") : (i.s || ""); $("#labi").style.width = i.t === "p" ? "80px" : "220px"; } },
+    onSelect: function (i) { try { if (ED) drawTps(); } catch (e) {} $("#del").disabled = !i; var lab = i && (i.t === "p" || i.t === "x"); $("#lab").hidden = !lab; if (lab) { $("#labt").textContent = i.t === "p" ? "Numéro" : "Texte"; $("#labi").value = i.t === "p" ? (i.n || "") : (i.s || ""); $("#labi").style.width = i.t === "p" ? "80px" : "220px"; } },
     askText: function (cb) { if (MOT) { cb(MOT); setTimeout(function () { tool = "x"; ED.tool("x"); drawTools(); }, 0); return; } ask("Texte à écrire sur la planche", "", cb); } });
   $("#sport").value = ED.get().sport; $("#nom").value = cur.nom;
   /* changer d'activité = retrouver SES caractéristiques (demande de l'enseignant, 28/11/2026) : sa mise en place (jamais les 6 joueurs du volley en badminton),

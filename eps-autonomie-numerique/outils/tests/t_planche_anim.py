@@ -23,10 +23,14 @@ async def main():
         ok("＋ Temps : temps 2 créé et affiché", await p.evaluate(T) == ["Temps 1", "Temps 2*"], await p.evaluate(T))
         # déplacer le joueur bleu n° 1 dans le temps 2
         pos = await p.evaluate("(function(){var c=document.querySelector('#board svg circle[fill=\"#1F4FA3\"]').getBoundingClientRect();return [c.left+c.width/2,c.top+c.height/2]})()")
-        await p.mouse.move(pos[0], pos[1]); await p.mouse.down(); await p.mouse.move(pos[0] + 60, pos[1] + 80, steps=6); await p.mouse.up(); await p.wait_for_timeout(300)
+        await p.mouse.move(pos[0], pos[1]); await p.mouse.down(); await p.mouse.move(pos[0] + 90, pos[1], steps=6); await p.mouse.move(pos[0] + 90, pos[1] + 110, steps=6); await p.mouse.up(); await p.wait_for_timeout(300)
         d = await p.evaluate("(function(){var K=Object.keys(localStorage).filter(function(k){try{var v=JSON.parse(localStorage.getItem(k));return v&&v.d&&v.d.sport==='volley'&&Array.isArray(v.d.items)}catch(e){return false}})[0];var d=JSON.parse(localStorage.getItem(K)).d;return {n:d.fr?d.fr.length:1,a:d.fr?[d.fr[0][0].x,d.fr[0][0].y]:null,b:d.fr?[d.fr[1][0].x,d.fr[1][0].y]:null,id:d.fr?d.fr[0][0].id===d.fr[1][0].id:false,fl:d.fr?d.fr[1].filter(function(i){return i.t==='a'}).length:9}})()")
         ok("le joueur a bougé dans le temps 2 seulement (même identifiant)", d["n"] == 2 and d["id"] and (abs(d["a"][0] - d["b"][0]) > 3 or abs(d["a"][1] - d["b"][1]) > 3), d)
-        ok("temps précédent en filigrane", await p.evaluate("document.querySelectorAll('#board svg line[stroke=\"#6A6F78\"]').length") >= 1)
+        ch = await p.evaluate("(function(){var K=Object.keys(localStorage).filter(function(k){try{var v=JSON.parse(localStorage.getItem(k));return v&&v.d&&v.d.sport==='volley'&&Array.isArray(v.d.fr)}catch(e){return false}})[0];var d=JSON.parse(localStorage.getItem(K)).d,i=d.fr[1][0],a=d.fr[0][0];var el=document.createElement('div');document.body.appendChild(el);var m=null;try{var P=EPSTAC.player(el,d,{});P.stop()}catch(e){m=String(e)}el.remove();return {n:(i.ch||[]).length,deb:i.ch?[Math.abs(i.ch[0]-a.x)<.2,Math.abs(i.ch[1]-a.y)<.2]:null,err:m,poly:document.querySelectorAll('#board svg polyline[stroke=\"#6A6F78\"]').length,btn:!!document.querySelector('#tps [data-tp=droit]')}})()")
+        ok("le chemin du doigt est gardé (" + str(ch["n"] // 2) + " points), dessiné en gris, bouton « Chemin direct »", ch["n"] >= 8 and ch["deb"] == [True, True] and ch["poly"] >= 1 and ch["btn"] and not ch["err"], ch)
+        mi = await p.evaluate("(function(){var K=Object.keys(localStorage).filter(function(k){try{var v=JSON.parse(localStorage.getItem(k));return v&&v.d&&v.d.sport==='volley'&&Array.isArray(v.d.fr)}catch(e){return false}})[0];var d=JSON.parse(localStorage.getItem(K)).d,a=d.fr[0][0],b=d.fr[1][0];var el=document.createElement('div');el.style.cssText='position:fixed;left:0;top:0;width:600px;opacity:0';document.body.appendChild(el);var P=EPSTAC.player(el,d,{});return new Promise(function(res){P.go(1);setTimeout(function(){var c=el.querySelector('svg circle[fill=\"#1F4FA3\"]');var x=+c.getAttribute('cx'),y=+c.getAttribute('cy');P.stop();el.remove();/* écart à la ligne droite a→b */var dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);res(Math.abs((x-a.x)*dy-(y-a.y)*dx)/L)},750)})})()")
+        ok("à la lecture, le joueur suit le chemin tracé, pas la ligne droite (écart " + str(round(mi, 1)) + ")", mi > 3, mi)
+        ok("temps précédent en filigrane", await p.evaluate("document.querySelectorAll('#board svg [stroke=\"#6A6F78\"]').length") >= 1)
         await p.click("#tps [data-tp=add]"); await p.wait_for_timeout(300)
         ok("troisième temps", await p.evaluate(T) == ["Temps 1", "Temps 2", "Temps 3*"], await p.evaluate(T))
         await p.screenshot(path="/tmp/t/planche-temps.png")
@@ -50,6 +54,11 @@ async def main():
             sg = await p.evaluate("(function(){var V=JSON.parse(localStorage.getItem('eps.sig.v1')||'null'),c=V&&V.items&&V.items.plan;return c?{to:c.to,live:c.live,n:c.d&&c.d.fr?c.d.fr.length:1,ok:c.until>Date.now()}:null})()")
             ok("planche partie pour toutes les tablettes, en direct, avec ses 3 temps", sg and sg["to"] == "*" and sg["live"] == 1 and sg["n"] == 3 and sg["ok"], sg)
             ok("message de confirmation", "Envoyée à toutes les tablettes" in await p.evaluate("(document.getElementById('shst')||{}).textContent||''"), await p.evaluate("(document.getElementById('shst')||{}).textContent||''"))
+        # hors du mode enseignant : pas de frise d'animation
+        c2 = await b.new_context(service_workers="block", viewport={"width": 1024, "height": 768}); p2 = await c2.new_page(); p2.on("pageerror", lambda x: errs.append(str(x)[:240]))
+        await p2.goto(U + "tactique/?sport=volley"); await p2.wait_for_timeout(3000)
+        ok("mode élève : aucune commande d'animation ni de partage", await p2.evaluate("document.querySelector('#tps').children.length") == 0 and await p2.evaluate("document.querySelector('#prof').hidden"))
+        await c2.close()
         # côté élève : le lecteur se pose tout seul sur la planche reçue
         r = await p.evaluate("(function(){var d=EPSTAC.depart('basket3'),F=EPSTAC.frames(d),f2=JSON.parse(JSON.stringify(F[0]));f2[0].x+=20;var el=document.createElement('div');document.body.appendChild(el);var P=EPSTAC.player(el,{sport:'basket3',items:F[0],fr:[F[0],f2]},{});var r={n:P.count(),cmd:el.querySelectorAll('[data-a]').length};P.stop();el.remove();var el2=document.createElement('div');var P2=EPSTAC.player(el2,d,{});r.seul=el2.querySelectorAll('[data-a]').length;return r})()")
         ok("lecteur : commandes pour une planche animée, aucune pour une image seule", r["n"] == 2 and r["cmd"] == 4 and r["seul"] == 0, r)

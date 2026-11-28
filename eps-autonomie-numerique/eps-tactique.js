@@ -9,6 +9,9 @@
    replacement ») : planche.fr = [éléments du temps 1, éléments du temps 2, …] (12 temps au plus) ; planche.items reste le temps 1, donc une planche sans fr
    (ou lue par un ancien écran) est une image seule. Chaque élément porte un identifiant (id) : d'un temps au suivant, le même élément glisse de sa place à
    la suivante ; un élément absent du temps suivant s'efface, un nouveau apparaît.
+   🛤 Chemin tracé (28/11/2026 : « que je lui trace son chemin et qu'il le suive ») : dans un temps 2, 3…, un joueur, le ballon ou un plot déplacé au doigt
+   garde le chemin du doigt (élément.ch = [x, y, …] depuis sa place au temps précédent jusqu'à sa nouvelle place) ; à la lecture il suit ce chemin au lieu
+   d'aller tout droit. Sans ch : ligne droite. L'éditeur a pathClear() pour revenir à la ligne droite.
    EPSTAC.frames(planche) → liste des temps · EPSTAC.svg(planche, {frame}) → un temps · EPSTAC.player(élément, planche, {maxh, auto}) → lecteur
    (◀ temps ▶, ▶ Lecture, vitesse) pour les tablettes des élèves ; l'éditeur a frames(), frame(), frameGo(i), frameAdd(), frameDel(). */
 (function () {
@@ -51,12 +54,18 @@
     F[0].forEach(function (i) { if (!i.id || vu[i.id]) i.id = nid(); vu[i.id] = 1; });
     for (var k = 1; k < F.length; k++) { var v2 = {}; F[k].forEach(function (i) { if (!i.id || v2[i.id]) i.id = nid(); v2[i.id] = 1; }); }
     return F; }
+  /* point à la part e (0 à 1) de la longueur d'une ligne brisée [x, y, x, y, …] */
+  function surChemin(P, e) { var n = P.length / 2, L = [0], tot = 0, k; for (k = 1; k < n; k++) { tot += Math.hypot(P[2 * k] - P[2 * k - 2], P[2 * k + 1] - P[2 * k - 1]); L.push(tot); }
+    if (!tot) return [P[0], P[1]]; var c = e * tot; for (k = 1; k < n; k++) if (c <= L[k] || k === n - 1) { var seg = L[k] - L[k - 1], f = seg ? Math.max(0, Math.min(1, (c - L[k - 1]) / seg)) : 0; return [P[2 * k - 2] + (P[2 * k] - P[2 * k - 2]) * f, P[2 * k - 1] + (P[2 * k + 1] - P[2 * k - 1]) * f]; }
+    return [P[2 * n - 2], P[2 * n - 1]]; }
+  /* chemin complet d'un élément entre sa place a (temps précédent) et sa place b : son tracé, recalé sur les deux places */
+  function chemin(a, b) { if (!Array.isArray(b.ch) || b.ch.length < 6) return null; var P = b.ch.slice(); P[0] = a.x; P[1] = a.y; P[P.length - 2] = b.x; P[P.length - 1] = b.y; return P; }
   /* entre deux temps (u de 0 à 1) : les éléments communs glissent, ceux qui disparaissent s'effacent, les nouveaux apparaissent */
   function mix(A, B, u) { var out = [], ia = {}; A.forEach(function (i) { ia[i.id] = i; }); var ib = {}; B.forEach(function (i) { ib[i.id] = i; });
     var e = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, lerp = function (a, b) { return a + (b - a) * e; };
     A.forEach(function (i) { if (!ib[i.id]) out.push({ i: i, o: Math.max(0, 1 - u * 2) }); });
     B.forEach(function (j) { var i = ia[j.id]; if (!i || i.t !== j.t) { out.push({ i: j, o: Math.max(0, u * 2 - 1) }); return; }
-      var c = JSON.parse(JSON.stringify(j)); if (Array.isArray(j.p)) { if (Array.isArray(i.p) && i.p.length === j.p.length) c.p = j.p.map(function (v, q) { return lerp(i.p[q], v); }); else if (u < .5) c = i; } else { c.x = lerp(i.x, j.x); c.y = lerp(i.y, j.y); }
+      var c = JSON.parse(JSON.stringify(j)); if (Array.isArray(j.p)) { if (Array.isArray(i.p) && i.p.length === j.p.length) c.p = j.p.map(function (v, q) { return lerp(i.p[q], v); }); else if (u < .5) c = i; } else { var CH = chemin(i, j); if (CH) { var q2 = surChemin(CH, e); c.x = q2[0]; c.y = q2[1]; } else { c.x = lerp(i.x, j.x); c.y = lerp(i.y, j.y); } }
       out.push({ i: c, o: 1 }); });
     return out; }
   function num(v) { return (typeof v === "number" && isFinite(v)) ? Math.round(v * 10) / 10 : 0; }
@@ -107,7 +116,8 @@
     /* le temps précédent en filigrane : d'où viennent les joueurs et le ballon */
     function fantome() { if (cf < 1) return ""; var P = {}, r = rad(t()), h = ""; F[cf - 1].forEach(function (i) { P[i.id] = i; });
       d.items.forEach(function (i) { var a = P[i.id]; if (!a || Array.isArray(i.p) || (i.t !== "p" && i.t !== "b") || Math.hypot(a.x - i.x, a.y - i.y) < r * .6) return;
-        h += '<line x1="' + num(a.x) + '" y1="' + num(a.y) + '" x2="' + num(i.x) + '" y2="' + num(i.y) + '" stroke="#6A6F78" stroke-width="' + (r * .14) + '" stroke-dasharray="' + (r * .3) + " " + (r * .35) + '" opacity=".7"/><circle cx="' + num(a.x) + '" cy="' + num(a.y) + '" r="' + (i.t === "b" ? r * .5 : r * .9) + '" fill="none" stroke="#6A6F78" stroke-width="' + (r * .12) + '" opacity=".6"/>'; });
+        var CH = chemin(a, i), pts = []; if (CH) for (var q = 0; q + 1 < CH.length; q += 2) pts.push(num(CH[q]) + "," + num(CH[q + 1]));
+        h += (CH ? '<polyline points="' + pts.join(" ") + '" fill="none" stroke="#6A6F78" stroke-width="' + (r * .16) + '" stroke-dasharray="' + (r * .3) + " " + (r * .35) + '" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>' : '<line x1="' + num(a.x) + '" y1="' + num(a.y) + '" x2="' + num(i.x) + '" y2="' + num(i.y) + '" stroke="#6A6F78" stroke-width="' + (r * .14) + '" stroke-dasharray="' + (r * .3) + " " + (r * .35) + '" opacity=".7"/>') + '<circle cx="' + num(a.x) + '" cy="' + num(a.y) + '" r="' + (i.t === "b" ? r * .5 : r * .9) + '" fill="none" stroke="#6A6F78" stroke-width="' + (r * .12) + '" opacity=".6"/>'; });
       return h; }
     el.style.touchAction = "none"; el.style.userSelect = "none"; el.style.webkitUserSelect = "none";
     function t() { return terr(d.sport); }
@@ -137,11 +147,14 @@
       if (tmp && tmp.t === "a") { tmp.p[2] = p.x; tmp.p[3] = p.y; draw(); }
       else if (tmp && tmp.t === "f") { var n = tmp.p.length; if (Math.hypot(p.x - tmp.p[n - 2], p.y - tmp.p[n - 1]) > rad(t()) * .35 && n < 600) { tmp.p.push(p.x, p.y); draw(); } }
       else if (drag && sel >= 0 && d.items[sel]) { var i = d.items[sel], dx = p.x - drag.p.x, dy = p.y - drag.p.y; if (!drag.moved && Math.hypot(dx, dy) < .8) return;
-        if (!drag.moved) { drag.moved = true; if (drag.s) { undo.push(drag.s); drag.s = null; } }
+        if (!drag.moved) { drag.moved = true; if (drag.s) { undo.push(drag.s); drag.s = null; }
+          /* 🛤 à partir du temps 2 : le doigt trace le chemin de l'élément (depuis sa place au temps précédent) */
+          drag.ch = null; if (cf > 0 && !Array.isArray(i.p) && (i.t === "p" || i.t === "b" || i.t === "c")) { var pv = F[cf - 1].filter(function (z) { return z.id === i.id; })[0]; if (pv) { if (!Array.isArray(i.ch) || i.ch.length < 4) i.ch = [pv.x, pv.y]; drag.ch = i.ch; } } }
         if (Array.isArray(i.p)) for (var q = 0; q + 1 < i.p.length; q += 2) { i.p[q] += dx; i.p[q + 1] += dy; } else { i.x += dx; i.y += dy; }
+        if (drag.ch) { var nc = drag.ch.length; if (Math.hypot(i.x - drag.ch[nc - 2], i.y - drag.ch[nc - 1]) > rad(t()) * .45 && nc < 400) drag.ch.push(Math.round(i.x * 10) / 10, Math.round(i.y * 10) / 10); }
         drag.p = p; draw(); } }
     function up() { if (tmp) { var r = rad(t()), ok = tmp.t === "a" ? Math.hypot(tmp.p[2] - tmp.p[0], tmp.p[3] - tmp.p[1]) > r : tmp.p.length >= 6; if (ok) { snap(); tmp.id = nid(); d.items.push(tmp); } tmp = null; changed(); }
-      else if (drag && drag.moved) changed(); drag = null; }
+      else if (drag && drag.moved) { if (drag.ch && sel >= 0 && d.items[sel]) { var it2 = d.items[sel]; drag.ch.push(Math.round(it2.x * 10) / 10, Math.round(it2.y * 10) / 10); if (drag.ch.length < 6) delete it2.ch; } changed(); selSet(sel); } drag = null; }
     el.addEventListener("pointerdown", down); el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", function () { tmp = null; drag = null; draw(); });
     draw();
     return {
@@ -150,10 +163,14 @@
       /* 🎬 temps de l'animation */
       frames: function () { return F.length; }, frame: function () { return cf; },
       frameGo: function (i) { i = Math.max(0, Math.min(F.length - 1, +i || 0)); if (i === cf) return; cf = i; d.items = F[cf]; selSet(-1); draw(); },
-      frameAdd: function () { if (F.length >= 12) return false; snap(); F.splice(cf + 1, 0, JSON.parse(JSON.stringify(F[cf])).filter(function (i) { return i.t !== "a" && i.t !== "f"; })); cf++; d.items = F[cf]; selSet(-1); changed(); return true; },
+      frameAdd: function () { if (F.length >= 12) return false; snap(); F.splice(cf + 1, 0, JSON.parse(JSON.stringify(F[cf])).filter(function (i) { return i.t !== "a" && i.t !== "f"; }).map(function (i) { delete i.ch; return i; })); cf++; d.items = F[cf]; selSet(-1); changed(); return true; },
+      /* 🛤 l'élément choisi a-t-il un chemin tracé ? · revenir à la ligne droite */
+      hasPath: function () { var i = d.items[sel]; return !!(i && Array.isArray(i.ch) && i.ch.length >= 6); },
+      pathClear: function () { var i = d.items[sel]; if (!i || !i.ch) return; snap(); delete i.ch; changed(); selSet(sel); },
       frameDel: function () { if (F.length < 2) return false; snap(); F.splice(cf, 1); cf = Math.max(0, cf - 1); d.items = F[cf]; selSet(-1); changed(); return true; },
       tool: function (x) { tool = x; if (x !== "sel") selSet(-1); draw(); },
-      sport: function (s) { if (!T[s] || s === d.sport) return; snap(); var a = t(), b = T[s]; F.forEach(function (L) { L.forEach(function (i) { var fx = b.w / a.w, fy = b.h / a.h; if (Array.isArray(i.p)) for (var q = 0; q + 1 < i.p.length; q += 2) { i.p[q] *= fx; i.p[q + 1] *= fy; } else { i.x *= fx; i.y *= fy; } }); }); d.sport = s; d.forme = ""; changed(); },
+      sport: function (s) { if (!T[s] || s === d.sport) return; snap(); var a = t(), b = T[s]; F.forEach(function (L) { L.forEach(function (i) { var fx = b.w / a.w, fy = b.h / a.h; if (Array.isArray(i.p)) for (var q = 0; q + 1 < i.p.length; q += 2) { i.p[q] *= fx; i.p[q + 1] *= fy; } else { i.x *= fx; i.y *= fy; }
+        if (Array.isArray(i.ch)) for (var q3 = 0; q3 + 1 < i.ch.length; q3 += 2) { i.ch[q3] *= fx; i.ch[q3 + 1] *= fy; } }); }); d.sport = s; d.forme = ""; changed(); },
       undo: function () { if (!undo.length) return; back(undo.pop()); selSet(-1); changed(); },
       clear: function () { if (!d.items.length) return; snap(); d.items = F[cf] = []; selSet(-1); changed(); },
       del: function () { if (sel < 0) return; snap(); d.items.splice(sel, 1); selSet(-1); changed(); },
