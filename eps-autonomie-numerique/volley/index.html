@@ -2431,6 +2431,8 @@ function renderAp(){
   V.innerHTML=top+`<div class="ap-in">${prog}${corps}<div class="ap-nav">${E.step?'<button class="ap-btn alt" onclick="apStep(APE.step-1)">← Retour</button>':'<span></span>'}${E.step<=N?`<button class="ap-btn" ${ok1?'':'disabled'} onclick="apStep(APE.step+1)">Suivant →</button>`:'<button class="ap-btn" onclick="apValider()">Valider mon positionnement</button>'}</div></div>`;
 }
 function apStep(k){APE.step=k;renderAp();scrollTo(0,0)}
+/* débuts de phrase communs (eps-eval.js EPSE.apAide) au-dessus des deux zones « avec tes mots » : posés après chaque dessin de l'écran */
+setInterval(()=>{try{if(!window.EPSE||!EPSE.apAide||typeof APE==='undefined')return;document.querySelectorAll('.ap-card textarea').forEach(t=>{const o=t.getAttribute('oninput')||'';if(/APE\.reussi/.test(o))EPSE.apAide(t,'reussi',v=>{APE.reussi=v});else if(/APE\.ameliorer/.test(o))EPSE.apAide(t,'ameliorer',v=>{APE.ameliorer=v})})}catch(e){}},700);
 function apQui(id){const e=C().eleves.find(x=>x.id===id);
   if(e&&e.ap&&e.ap.ev&&Object.keys(e.ap.ev).length&&!confirm((e.prenom||e.nom)+", tu t'es déjà positionné(e)"+(e.ap.t?" le "+new Date(e.ap.t).toLocaleDateString('fr-FR'):'')+".\nSi tu continues, ta nouvelle réponse remplacera l'ancienne.\n\nOK = c'est moi, je recommence · Annuler = ce n'est pas moi")){APE.eleveId='';renderAp();return}
   APE.eleveId=id;renderAp()}

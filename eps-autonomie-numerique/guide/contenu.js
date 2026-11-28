@@ -31,7 +31,8 @@ window.EPS_GUIDE = (function () {
   G.a.gen = [
     { t: "Mon parcours, le même dans toutes les activités", b: [
       ["flow", [["Je choisis", "mon activité, puis ma classe"], ["Je me trouve", "mon prénom, mon groupe ou mon équipe"], ["Je fais", "je lis ou j'écoute 🔊 la consigne"], ["Je note", "✅ réussi · 🟠 en partie · ❌ pas encore"], ["Je me positionne", "un critère par écran, puis mes mots"]]],
-      ["two", ["accueil-eleve.jpg", "1 · L'accueil : une tuile par activité."], ["classe.jpg", "2 · « Choisis ta classe ». Sans classe, les ressources restent ouvertes."]]
+      ["two", ["accueil-eleve.jpg", "1 · L'accueil : une tuile par activité."], ["classe.jpg", "2 · « Choisis ta classe ». Sans classe, les ressources restent ouvertes."]],
+      ["strip", [["📅 Ma leçon", "la leçon en cours"], ["▶ Continuer", "mon activité, mes résultats"], ["📒 Mon bilan", "mon carnet ou mon espace EPS"], ["📖 Culture et lexique", "quand j'ai un moment : d'où vient l'activité, ses règles, ses mots"]]]
     ] },
     { t: "Pendant la leçon", b: [
       ["flow", [["La leçon s'ouvre", "toute seule quand mon enseignant la lance"], ["Qui utilise cette tablette ?", "je touche mon prénom"], ["Je lis la situation", "ou je touche 🔊 pour l'écouter"], ["Je fais", "puis je note mon résultat"]]],

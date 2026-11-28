@@ -2980,6 +2980,8 @@ function rEleveMode() {
     E.eleveId = id; E.clId = cl.id; rEleveMode();
   };
   const r1 = $('#emR'); if (r1) r1.oninput = ev => E.reussi = ev.target.value;
+  /* débuts de phrase communs (eps-eval.js EPSE.apAide), comme dans les autres activités */
+  try { if (window.EPSE && EPSE.apAide) { if (r1) EPSE.apAide(r1, 'reussi', v => { E.reussi = v; }); const rA = $('#emA'); if (rA) EPSE.apAide(rA, 'ameliorer', v => { E.ameliorer = v; }); } } catch (x) { }
   const r2 = $('#emA'); if (r2) r2.oninput = ev => E.ameliorer = ev.target.value;
   const bp = $('#emPrev'); if (bp) bp.onclick = () => aller2(E.step - 1);
   const bs = $('#emSuiv'); if (bs) bs.onclick = () => { if (!peutSuivre) { toast(E.step ? 'Touche le niveau qui te ressemble' : 'Choisis ton nom dans la liste'); return; } aller2(E.step + 1); };

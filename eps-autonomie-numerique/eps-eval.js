@@ -1315,5 +1315,14 @@
     return M;
   }
 
-  window.EPSE = { create: create, store: store, libs: libs, DCOL: DCOL, DTINT: DTINT, pronote: pnOpen, autopos: apOpen, apAdapt: apAdapt, coeval: { edit: coEdit, eleve: coEleve, grid: coGrid, crits: coCrits, moy: coMoy, DIR: CODIR } };
+  /* débuts de phrase de l'auto-positionnement, pour les écrans propres d'une appli (Volley, Danse ; 28/11/2026 : les mêmes aides partout) :
+     EPSE.apAide(zone de texte, "reussi" | "ameliorer", après(valeur)) pose les pastilles au-dessus de la zone (paramètres ap_aide_reussi / ap_aide_ameliorer). */
+  function apAide(t, k, apres) { try { if (!t || !t.parentNode || (t.previousElementSibling && /epse-aide/.test(t.previousElementSibling.className))) return;
+    var AID = { reussi: ["J'ai réussi à ", "Je sais maintenant ", "Je suis fier de "], ameliorer: ["Je veux améliorer ", "La prochaine fois, je ", "J'ai encore du mal à "] }, L = AID[k] || [];
+    if (window.EPSP && EPSP.p) L = EPSP.p({ id: "ap_aide_" + k, sec: "Auto-positionnement", label: "Débuts de phrase : " + (k === "reussi" ? "ce que j'ai réussi" : "ce que je veux améliorer"), type: "list", def: L }) || L;
+    if (!L.length) return; var d = document.createElement("div"); d.className = "epse-aide"; d.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px";
+    L.forEach(function (x) { var b = document.createElement("button"); b.type = "button"; b.textContent = String(x).trim() + "…"; b.style.cssText = "min-height:44px;padding:0 12px;border-radius:999px;border:1.5px solid #E6E1D6;background:#fff;font:700 14px system-ui,sans-serif;color:#14171C;width:auto";
+      b.onclick = function (ev) { ev.preventDefault(); var s = String(x).replace(/\s*$/, " "); t.value = (t.value && !/\s$/.test(t.value) ? t.value + " " : t.value) + s; if (apres) apres(t.value); t.focus(); }; d.appendChild(b); });
+    t.parentNode.insertBefore(d, t); } catch (e) { console.warn(e); } }
+  window.EPSE = { apAide: apAide, create: create, store: store, libs: libs, DCOL: DCOL, DTINT: DTINT, pronote: pnOpen, autopos: apOpen, apAdapt: apAdapt, coeval: { edit: coEdit, eleve: coEleve, grid: coGrid, crits: coCrits, moy: coMoy, DIR: CODIR } };
 })();
