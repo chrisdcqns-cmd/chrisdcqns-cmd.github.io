@@ -286,6 +286,27 @@ const L = (num, titre, objM, objMe, objS, but, ech, rem, bilan) => ({ num, titre
    L("8", "Évaluation", "Réaliser son WOD personnel avec des gestes efficaces et une charge adaptée.", "Analyser sa séance : ressentis, fréquence cardiaque, régulations.", "Juger et conseiller son partenaire.", "Présenter et réaliser sa séance, puis coacher celle de son partenaire.", "Échauffement conçu par l'élève (10 min).", "", "Bilan de la séquence dans le carnet ; auto-positionnement.")
   ] });
 
+/* ======================= CONTENUS DE L'ENSEIGNANT (Réglages → Contenus) =======================
+   Éléments « x|<base>|<id> » du magasin ct.v1 : {id (le même), b: ech | def | cal | wod | reg | lex | phr, o: le contenu}.
+   ech / def / cal : o = la carte entière ; même id qu'une carte d'origine = sa version modifiée (« ↺ Version d'origine » l'efface).
+   wod : o = un WOD au format de WODS ; reg, phr : {t} ; lex : {a, b}. perso() refait les listes (mêmes tableaux, modifiés sur place) à chaque rendre(). */
+const BASE0 = { ech: ECHAUF.slice(), def: DEFIS.slice(), cal: CALME.slice() }, TXT0 = { reg: REGLES.length, lex: LEXIQUE.length, phr: PHRASES.length };
+const LISTE = { ech: ECHAUF, def: DEFIS, cal: CALME }, TXT = { reg: REGLES, lex: LEXIQUE, phr: PHRASES };
+let ALLW = WODS, PSIG = "";
+const xItems = b => { try { return stItems("x|" + b + "|").map(x => x[1]).filter(o => o && o.o).sort((a, c) => String(a.id).localeCompare(String(c.id))); } catch (e) { return []; } };
+function perso(PW) { let X; try { X = stItems("x|"); } catch (e) { return; }
+  const sig = X.length + ":" + X.reduce((m, x) => Math.max(m, x[1].u || 0), 0); if (PW) ALLW = PW; if (sig === PSIG && (!PW || PW._cp === sig)) return; PSIG = sig;
+  ["ech", "def", "cal"].forEach(b => { const M = {}; xItems(b).forEach(o => { if (o.o.id) M[o.o.id] = o.o; }); const L = LISTE[b], D = BASE0[b];
+    L.length = 0; D.forEach(d => L.push(M[d.id] ? Object.assign({}, M[d.id], { mod: 1 }) : d)); Object.values(M).filter(o => !D.some(d => d.id === o.id)).forEach(o => L.push(Object.assign({}, o, { perso: 1 }))); });
+  ["reg", "lex", "phr"].forEach(b => { const L = TXT[b]; L.length = TXT0[b]; xItems(b).forEach(o => L.push(b === "lex" ? [String(o.o.a || ""), String(o.o.b || "")] : String(o.o.t || ""))); });
+  if (PW) { for (let i = PW.length - 1; i >= 0; i--) if (PW[i].perso) PW.splice(i, 1);
+    xItems("wod").forEach(o => { const w = o.o; if (w && w.id && Array.isArray(w.items) && FORMATS[w.format] && THEMES[w.theme]) PW.push(Object.assign({ mat: ["PC"], params: {}, note: "" }, w, { perso: 1 })); }); PW._cp = sig; } }
+const xKey = (b, id) => "x|" + b + "|" + id;
+const xPut = (b, o) => stPut(xKey(b, o.id), { id: xKey(b, o.id), b, o });
+function xDel(b, id, label) { const k = xKey(b, id); try { window.EPSD && EPSD.trash && EPSD.trash.keep({ type: "Contenu du cross-training", label: label || id, sub: NOMB[b] || b, items: [{ key: "ct.v1", id: k }] }); } catch (e) {} stPut(k, { id: k, del: 1 }); }
+const NOMB = { ech: "échauffement", def: "défi ou jeu", cal: "retour au calme", wod: "WOD", reg: "règle d'or", lex: "mot du lexique", phr: "phrase de motivation" };
+const nbr = (v, def) => { const t = String(v == null ? "" : v).trim().replace(",", "."); if (t === "") return def; const n = +t; return isFinite(n) && n >= 0 ? n : NaN; };
+
 /* ======================= OUTILS ======================= */
 const cfg = () => { try { return stLd().items.cfg || {}; } catch (e) { return {}; } };
 const offL = () => { const o = cfg().off; return Array.isArray(o) ? o : []; };
@@ -301,10 +322,11 @@ const TYPES = { guide: "Guidé au chrono", spec: "Spécifique", musique: "En mus
 const familleDe = e => opt("charge") && ["KB", "MB"].includes(e.materiel) ? "H" : e.famille;
 const qualOk = (e, v) => { if (!v) return true; const q = QUAL[e.id] || []; return v[0] === "s" ? (SPORTS[v.slice(2)] || []).some(x => q.includes(x)) : q.includes(v.slice(2)); };
 function styles() { if (document.getElementById("ctp-css")) return; const s = document.createElement("style"); s.id = "ctp-css";
-  s.textContent = ".cp-nav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.cp-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--ligne)}.cp-row:first-of-type{border-top:0}.cp-row>div{flex:1;min-width:0}.cp-row.off>div{opacity:.45;text-decoration:line-through}.cp-row button{flex:none}" +
-    ".cp-det{background:#fff;border:1px solid var(--ligne);border-radius:14px;margin:0 0 10px;padding:0 12px}.cp-det>summary{cursor:pointer;padding:12px 0;font-weight:700;list-style:none;display:flex;gap:8px;align-items:center}.cp-det>summary::-webkit-details-marker{display:none}.cp-det>summary small{font-weight:400;color:var(--doux);margin-left:auto}" +
-    ".cp-oie{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.cp-oie div{border:1px solid var(--ligne);border-radius:10px;padding:6px;font-size:12px;background:#fff;min-height:54px;position:relative}.cp-oie div b{display:block;color:var(--doux);font-size:11px}.cp-oie .ici{border-color:var(--ct);box-shadow:0 0 0 2px var(--ct) inset}.cp-pion{display:inline-block;width:16px;height:16px;border-radius:50%;color:#fff;font-size:10px;text-align:center;line-height:16px;margin-right:2px}" +
-    ".cp-temps{display:flex;gap:10px;align-items:flex-start}.cp-temps>i{flex:none;width:34px;height:34px;border-radius:10px;background:var(--ct);color:#fff;display:grid;place-items:center;font-style:normal;font-weight:700}.cp-dot{position:absolute;right:6px;bottom:6px;width:10px;height:10px;border-radius:50%;background:#E08A00;border:2px solid #fff}.cp-lex{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}.cp-lex b{white-space:nowrap}";
+  s.textContent = ".cp-nav{display:flex;gap:0;flex-wrap:wrap;margin:0 0 12px}.cp-nav .puce{border-radius:0;margin:0 -1.5px -1.5px 0;padding:10px 14px;flex:1 1 auto;text-align:center}.cp-nav .puce:first-child{border-radius:6px 0 0 6px}.cp-nav .puce:last-child{border-radius:0 6px 6px 0}.cp-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--ligne)}.cp-row:first-of-type{border-top:0}.cp-row>div{flex:1;min-width:0}.cp-row.off>div{opacity:.45;text-decoration:line-through}.cp-row button{flex:none}" +
+    ".cp-det{background:#fff;border:1px solid var(--ligne);border-radius:6px;margin:0 0 10px;padding:0 12px}.cp-det>summary{cursor:pointer;padding:12px 0;font-weight:700;list-style:none;display:flex;gap:8px;align-items:center}.cp-det>summary::-webkit-details-marker{display:none}.cp-det>summary small{font-weight:400;color:var(--doux);margin-left:auto}" +
+    ".cp-oie{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.cp-oie div{border:1px solid var(--ligne);border-radius:4px;padding:6px;font-size:12px;background:#fff;min-height:54px;position:relative}.cp-oie div b{display:block;color:var(--doux);font-size:11px}.cp-oie .ici{border-color:var(--ct);box-shadow:0 0 0 2px var(--ct) inset}.cp-pion{display:inline-block;width:16px;height:16px;border-radius:3px;color:#fff;font-size:10px;text-align:center;line-height:16px;margin-right:2px}" +
+    ".cp-temps{display:flex;gap:10px;align-items:flex-start}.cp-temps>i{flex:none;width:34px;height:34px;border-radius:4px;background:var(--ct);color:#fff;display:grid;place-items:center;font-style:normal;font-weight:700}.cp-dot{position:absolute;right:0;bottom:0;width:0;height:0;border-style:solid;border-width:0 0 14px 14px;border-color:transparent transparent #E08A00 transparent}.cp-lex{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}.cp-lex b{white-space:nowrap}" +
+    ".cp-row .cp-bts{display:flex;gap:0;flex:none}.cp-row .cp-bts .btn{border-radius:0;margin-left:-1px}.cp-row .cp-bts .btn:first-child{border-radius:4px 0 0 4px;margin-left:0}.cp-row .cp-bts .btn:last-child{border-radius:0 4px 4px 0}.cp-row .cp-bts .btn:only-child{border-radius:4px}.cp-add{display:flex;gap:8px;flex-wrap:wrap;padding:10px 0 12px;border-top:1px solid var(--ligne)}.cp-add input[type=text]{flex:1;min-width:140px}.cp-tag{font-size:11px;font-weight:700;background:var(--ct);color:#fff;padding:1px 6px;border-radius:3px;margin-left:6px;vertical-align:middle}.cp-form label.champ{margin-top:10px}.cp-form textarea{width:100%}";
   document.head.appendChild(s); }
 
 /* ======================= HUB « Avant · après » : échauffements, défis et jeux, retour au calme, savoir ======================= */
@@ -315,7 +337,7 @@ function carteBase(o, pre) { const c = o.chrono, t = pre === "ech" ? TYPES[o.typ
   return `<section class="bloc"><div class="bloc-t">${h(o.nom)}<small>${t ? h(t) + " · " : ""}${c ? dureeTxt(c) : String(o.duree).replace(".5", " min 30").replace(/^(\d+)$/, "$1 min")}</small></div>
     <p class="petit" style="margin:0">${h(o.texte)}</p>${regles(o)}${o.mat && o.mat !== "Aucun" ? `<p class="petit doux" style="margin:6px 0 0">Matériel : ${h(o.mat)}</p>` : ""}${S.prof ? src(o.src) : ""}
     <div class="ligne" style="margin-top:8px;flex-wrap:wrap">${c ? `<button class="btn ct" data-cp="gc:${pre}:${o.id}">▶ Lancer · ${dureeTxt(c)}</button>` : ""}${o.outil ? `<button class="btn ct" data-cp="outil:${o.outil}">${o.outil === "oie" ? "🎲 Ouvrir le plateau" : "🎲 Lancer le dé"}</button>` : ""}
-    ${(o.wods || []).filter(id => !isOff("wod:" + id) && WODS.some(w => w.id === id)).map(id => `<button class="btn clair petit" data-prendrew="${id}" style="padding:8px 10px">${h(WODS.find(w => w.id === id).nom)}</button>`).join("")}</div></section>`; }
+    ${(o.wods || []).filter(id => !isOff("wod:" + id) && ALLW.some(w => w.id === id)).map(id => `<button class="btn clair petit" data-prendrew="${id}" style="padding:8px 10px">${h(ALLW.find(w => w.id === id).nom)}</button>`).join("")}</div></section>`; }
 function vueHub() { styles(); if (S.cpOutil) return vueOutil(S.cpOutil); S.hub = S.hub || "calme"; const nav = hubNav(), v = $("#vue");
   if (S.hub === "calme") { vueEtir(); const R = actifs(CALME, "cal");
     v.insertAdjacentHTML("afterbegin", nav + `<h2>🌙 Retour au calme</h2><p class="petit doux">Pour se détendre et entretenir sa souplesse. Les étirements n'évitent pas les courbatures.</p>${R.map(o => carteBase(o, "cal")).join("")}`); return; }
@@ -354,25 +376,25 @@ const parId = (L, id) => L.find(x => x.id === id);
 function jourBlocsHtml(f) { if (!opt("plan")) return ""; f.blocs = f.blocs || {}; f.adapt = f.adapt || {};
   const sel = (k, t, Ls) => `<div style="flex:1;min-width:150px"><label class="champ">${t}</label><select data-cpj="${k}"><option value="">—</option>${Ls.map(([v, n]) => `<option value="${h(v)}" ${f.blocs[k] === v ? "selected" : ""}>${h(n)}</option>`).join("")}</select></div>`;
   const ech = actifs(ECHAUF, "ech"), D = durees(), it = classesCT().find(c => c.nom === f.c); let P = []; try { P = it ? EPSL.people(it).map(p => p.full) : []; } catch (e) {}
-  const WA = WODS.filter(w => w.adapt && !isOff("wod:" + w.id));
+  const WA = ALLW.filter(w => w.adapt && !isOff("wod:" + w.id));
   return `<details class="cp-det" ${Object.values(f.blocs).some(Boolean) || Object.keys(f.adapt).length ? "open" : ""} style="margin-top:12px"><summary>🧩 Les 5 temps de la leçon <small>facultatif · ${D.reduce((a, b) => a + b, 0)} min</small></summary>
     <p class="petit doux" style="margin:0 0 6px">L'élève voit un onglet « Leçon » avec ces temps : ${TEMPS.map((t, i) => `${t.toLowerCase()} ${D[i]} min`).join(", ")}. Le WOD se règle au-dessus.</p>
     <div class="ligne" style="flex-wrap:wrap">${sel("e1", "Échauffement · forme guidée", ech.filter(o => o.type === "guide" || o.type === "spec").map(o => [o.id, o.nom]))}${sel("e2", "Échauffement · jeu", ech.filter(o => o.type === "jeu" || o.type === "musique").map(o => [o.id, o.nom]))}</div>
     <div class="ligne" style="flex-wrap:wrap">${sel("skill", "Skill du jour", S.fiches.exercices.filter(visibleEleve).map(e => [e.id, e.en + " · " + e.fr]))}${sel("defi", "Défi ou jeu", actifs(DEFIS, "def").map(o => [o.id, o.nom]))}</div>
     <div class="ligne" style="flex-wrap:wrap">${sel("calme", "Retour au calme", [["etir", "Étirements · routine courte"]].concat(actifs(CALME, "cal").map(o => [o.id, o.nom])))}</div>
     ${WA.length ? `<label class="champ" style="margin-top:10px">♿ WOD adapté pour un élève (inaptitude partielle)</label>
-      ${Object.entries(f.adapt).map(([n, id]) => `<div class="cp-row"><div class="petit"><b>${h(n)}</b> · ${h((WODS.find(w => w.id === id) || {}).nom || "")}</div><button class="btn danger petit" data-cpadel="${h(n)}" style="padding:4px 8px">✕</button></div>`).join("")}
+      ${Object.entries(f.adapt).map(([n, id]) => `<div class="cp-row"><div class="petit"><b>${h(n)}</b> · ${h((ALLW.find(w => w.id === id) || {}).nom || "")}</div><button class="btn danger petit" data-cpadel="${h(n)}" style="padding:4px 8px">✕</button></div>`).join("")}
       <div class="ligne" style="flex-wrap:wrap"><select id="cpAdN" style="flex:1;min-width:140px"><option value="">Élève…</option>${P.map(n => `<option>${h(n)}</option>`).join("")}</select><select id="cpAdW" style="flex:1;min-width:140px">${WA.map(w => `<option value="${w.id}">${h(w.nom)}</option>`).join("")}</select><button class="btn clair" data-cp="adapt:add">Ajouter</button></div>` : ""}</details>`; }
 function jourPoser(o, f) { const b = {}; Object.entries(f.blocs || {}).forEach(([k, v]) => { if (v) b[k] = v; }); if (Object.keys(b).length) o.blocs = b; if (f.adapt && Object.keys(f.adapt).length) o.adapt = Object.assign({}, f.adapt); }
 function jourResume(o) { const b = o.blocs || {}, n = id => (parId(ECHAUF, id) || parId(DEFIS, id) || parId(CALME, id) || {}).nom || (id === "etir" ? "Étirements" : ""), sk = b.skill && exParId(b.skill);
   const Ls = [n(b.e1), n(b.e2), sk ? "skill " + sk.en : "", n(b.defi), n(b.calme)].filter(Boolean), A = Object.keys(o.adapt || {});
   return (Ls.length ? `<div class="petit doux">🧩 ${h(Ls.join(" · "))}</div>` : "") + (A.length ? `<div class="petit doux">♿ WOD adapté : ${h(A.join(", "))}</div>` : ""); }
 const aPlan = () => { if (S.prof || !opt("plan")) return false; const J = leconDuJour(); return !!(J && J.blocs && Object.values(J.blocs).some(Boolean)); };
-function adaptPour(J) { if (!J || !J.adapt || !S.groupe || !S.groupe.noms) return null; const n = S.groupe.noms.find(x => J.adapt[x]); const w = n && WODS.find(x => x.id === J.adapt[n]); return w && !isOff("wod:" + w.id) ? w : null; }
+function adaptPour(J) { if (!J || !J.adapt || !S.groupe || !S.groupe.noms) return null; const n = S.groupe.noms.find(x => J.adapt[x]); const w = n && ALLW.find(x => x.id === J.adapt[n]); return w && !isOff("wod:" + w.id) ? w : null; }
 function vuePlan() { styles(); const J = leconDuJour(), v = $("#vue"); if (!J || !J.blocs) { S.onglet = "lecon"; return rendre(); }
   const b = J.blocs, D = durees(), sk = b.skill && exParId(b.skill);
   const bloc = (o, pre) => !o ? "" : `<div style="margin-top:6px"><b>${h(o.nom)}</b><p class="petit" style="margin:2px 0 0">${h(o.texte)}</p>${regles(o)}<div class="ligne" style="margin-top:6px;flex-wrap:wrap">${o.chrono ? `<button class="btn ct" data-cp="gc:${pre}:${o.id}">▶ Lancer · ${dureeTxt(o.chrono)}</button>` : ""}${o.outil ? `<button class="btn ct" data-cp="outil:${o.outil}">🎲 ${o.outil === "oie" ? "Ouvrir le plateau" : "Lancer le dé"}</button>` : ""}
-    ${(o.wods || []).filter(id => !isOff("wod:" + id) && WODS.some(w => w.id === id)).map(id => `<button class="btn clair petit" data-prendrew="${id}" style="padding:8px 10px">${h(WODS.find(w => w.id === id).nom)}</button>`).join("")}</div></div>`;
+    ${(o.wods || []).filter(id => !isOff("wod:" + id) && ALLW.some(w => w.id === id)).map(id => `<button class="btn clair petit" data-prendrew="${id}" style="padding:8px 10px">${h(ALLW.find(w => w.id === id).nom)}</button>`).join("")}</div></div>`;
   const temps = (i, corps) => `<section class="bloc"><div class="cp-temps"><i>${i + 1}</i><div style="flex:1;min-width:0"><div class="bloc-t" style="margin:0">${TEMPS[i]}<small>${D[i]} min</small></div>${corps}</div></div></section>`;
   const cal = b.calme === "etir" ? `<div style="margin-top:6px"><b>Étirements · routine courte</b><div class="ligne" style="margin-top:6px"><button class="btn ct" data-act="etirCourt">▶ Lancer</button></div></div>` : bloc(parId(CALME, b.calme), "cal");
   v.innerHTML = `<h2>📌 ${h(J.titre || "Leçon du jour")}</h2>${J.consigne ? `<div class="alerte" style="margin-bottom:12px">${h(J.consigne)}</div>` : ""}
@@ -395,24 +417,113 @@ function testEleve(mes) { const p = progres(mes); if (!p) return "";
   return `<div class="carte"><b>📈 Mon WOD test</b><div class="petit">Premier essai : ${dateFR(p.a.date)} · <b>${h(p.a.res.score)}</b>${p.n > 1 ? `<br>Dernier essai : ${dateFR(p.z.date)} · <b>${h(p.z.res.score)}</b>${p.txt ? ` · progrès : <b>${h(p.txt)}</b>` : ""}` : `<br><span class="doux">Refais-le en fin de séquence pour mesurer tes progrès.</span>`}</div></div>`; }
 const phrase = () => { if (!opt("phrases")) return ""; const Ls = PHRASES.filter((x, i) => !isOff("phr:" + i)); return Ls.length ? `<p class="petit" style="margin:8px 0 0;font-style:italic">${h(Ls[Math.floor(Math.random() * Ls.length)])}</p>` : ""; };
 
-/* ======================= ⚙ RÉGLAGES → 🗂 CONTENUS : tout supprimer / remettre ======================= */
-function vueContenus() { styles(); S.cpOpen = S.cpOpen || {}; const v = $("#vue"), D = durees();
-  const row = (k, nom, sub) => { const o = isOff(k); return `<div class="cp-row ${o ? "off" : ""}"><div><b>${h(nom)}</b>${sub ? `<div class="petit doux">${h(sub)}</div>` : ""}</div><button class="btn ${o ? "clair" : "danger"} petit" data-cp="${o ? "on" : "off"}:${h(k)}" style="padding:6px 10px">${o ? "♻ Remettre" : "🗑 Supprimer"}</button></div>`; };
-  const det = (id, titre, rows, keys) => { const n = keys.filter(k => !isOff(k)).length; return `<details class="cp-det" data-cpdet="${id}" ${S.cpOpen[id] ? "open" : ""}><summary>${titre}<small>${n} sur ${keys.length}</small></summary>${rows}</details>`; };
+/* ======================= À PLUSIEURS : compte de chaque partenaire (res.par) ======================= */
+const pct = (a, b) => a + b ? Math.round(a / (a + b) * 100) + " %" : "—";
+function parHtml(res) { const P = res && res.par; if (!Array.isArray(P) || !P.length) return "";
+  return `<label class="champ">Chaque partenaire</label><table class="rapport"><tr><th>Partenaire</th><th class="c">Rep</th><th class="c">No rep</th><th class="c">Validité</th></tr>${P.map(x => `<tr><td>${h(x.nom)}</td><td class="c ok">${x.rep}</td><td class="c ko">${x.no}</td><td class="c">${pct(x.rep, x.no)}</td></tr>`).join("")}</table>`; }
+function parTxt(res) { const P = res && res.par; return Array.isArray(P) && P.length ? `<div class="petit">Chaque partenaire : ${P.map(x => `${h(String(x.nom).split(" ")[0])} ${x.rep} ✓ / ${x.no} ✗`).join(" · ")}</div>` : ""; }
+
+/* ======================= ÉVALUATION : les WOD du carnet → « 📊 Ses résultats » et proposition de positionnement =======================
+   Données : résultats « w|… » de l'élève (classe, noms du groupe). Répétitions valables : son compte à lui (res.par) quand le WOD s'est fait à plusieurs,
+   le compte de l'observateur quand il était l'athlète ; rien quand il était coach. Carnet : FC relevée, analyse « si… alors » écrite, progrès au WOD test.
+   Coach : repères PASER notés, écart entre le ressenti qu'il a estimé et celui de l'athlète. Seuils réglables (🎛 Paramètres, section « Évaluation »).
+   Toujours une proposition : rien n'est enregistré sans « ✓ Reprendre ces degrés ». Le choix des paramètres du WOD (critère « pro ») reste à l'appréciation de l'enseignant. */
+const nz = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+const cle = t => nz(t).split(" ").filter(Boolean).sort().join(" ");
+const PRM = [["ct_ev_valid_bas", "Répétitions valables : % de ✓ REP en dessous duquel la proposition est au plus bas", 60, "En dessous : bas du degré 1."],
+  ["ct_ev_valid_haut", "Répétitions valables : % de ✓ REP à partir duquel la proposition est au plus haut", 95, "À partir de ce pourcentage : haut du degré 4."],
+  ["ct_ev_test", "Carnet : points ajoutés (sur 100) quand l'élève progresse au WOD test", 15, "0 = le WOD test ne compte pas dans la proposition."]];
+const prm = i => { const d = PRM[i]; let v = d[2]; try { if (window.EPSP) v = EPSP.p({ id: d[0], sec: "Évaluation", label: d[1], type: "number", def: d[2], aide: d[3] }); } catch (e) {} v = +String(v).replace(",", "."); return isFinite(v) && v >= 0 ? v : d[2]; };
+try { PRM.forEach((x, i) => prm(i)); } catch (e) {}
+function wodsDe(E, cls) { const k = cle((E.prenom || "") + " " + (E.nom || "")), c = nz(cls); if (!k) return [];
+  let L = []; try { L = stItems("w|").map(x => x[1]); } catch (e) {}
+  return L.filter(o => o && o.res && o.wod && o.date && nz(o.c) === c && Array.isArray(o.noms) && o.noms.some(n => cle(n) === k)).map(o => [o, mesure(o, k)]).sort((a, b) => (a[0].u || 0) - (b[0].u || 0)); }
+function mesure(o, k) { const r = o.res, d = r.duo, P = (Array.isArray(r.par) ? r.par : []).find(p => cle(p.nom) === k);
+  const role = d ? (cle(d.ath) === k ? "ath" : cle(d.coach) === k ? "coach" : "autre") : "ath"; let rep = 0, no = 0;
+  if (P) { rep = +P.rep || 0; no = +P.no || 0; } else if (role === "ath" && !r.par) (r.cpt || []).forEach(c => { rep += +c.rep || 0; no += +c.no || 0; });
+  return { role, rep, no, val: role === "ath" && rep + no > 0 ? rep / (rep + no) : null, fc: !!r.fc, comm: String(r.comm || "").trim().length >= 8 }; }
+const valPart = v => { const a = prm(0), b = Math.max(a + 1, prm(1)); return Math.max(0, Math.min(1, (v * 100 - a) / (b - a))); };
+function critQuoi(cr) { const id = String(cr.id || ""), afl = String(cr.afl || "").toUpperCase().replace(/\s/g, ""), t = nz((cr.nom || "") + " " + (cr.but || ""));
+  if (id === "eng" || id === "pro-p1") return "valid"; if (id === "ent" || id === "pro-p2" || id === "pro-p3") return "carnet"; if (id === "coo") return "coach"; if (id === "pro" || id === "pro-p6") return "";
+  if (afl === "AFL3" || /cooper|coach|conseill|observ/.test(t)) return "coach"; if (afl === "AFL2" || /carnet|regul|recueil|s entrainer/.test(t)) return "carnet";
+  if (/no rep|repetition|valide|motricite|securit|amplitude|engage/.test(t)) return "valid"; return ""; }
+function evResultat(cr, E, cls) { const q = critQuoi(cr); if (!q) return null; const L = wodsDe(E, cls); if (!L.length) return null;
+  let K = null; try { K = window.EVCT && EVCT.resCoef ? EVCT.resCoef(L.map(x => x[0].date), cls) : null; } catch (e) {}
+  const moy = f => { let s2 = 0, w = 0; L.forEach(([o, m]) => { const k = K ? (K[o.date] || 0) : 1, v = f(m, o); if (k > 0 && v != null && isFinite(v)) { s2 += k * v; w += k; } }); return w ? s2 / w : null; };
+  if (q === "valid") return moy(m => m.val == null ? null : valPart(m.val));
+  if (q === "carnet") { let v = moy(m => m.role !== "ath" ? null : .3 + (m.fc ? .3 : 0) + (m.comm ? .4 : 0)); if (v == null) return null; const p = progres(L.filter(x => x[1].role === "ath").map(x => x[0])); if (p && p.ok) v += prm(2) / 100; return Math.max(0, Math.min(1, v)); }
+  return moy((m, o) => { if (m.role !== "coach") return null; const d = o.res.duo || {}; return .4 + ((d.paser || []).length ? .3 : 0) + .3 * Math.max(0, 1 - Math.abs((+d.rpeCoach || 0) - (+o.res.rpe || 0)) / 4); }); }
+function evResultats(E, cls) { const L = wodsDe(E, cls), R = { nom: "réalisation", noms: "réalisations", items: [], chips: [] }; if (!L.length) return R;
+  let rep = 0, no = 0, coach = 0, ana = 0, ath = 0;
+  R.items = L.map(([o, m]) => { const w = o.texte || {}, r = o.res; if (m.role === "coach") coach++; if (m.role === "ath") { ath++; if (m.comm) ana++; } rep += m.rep; no += m.no;
+    return { day: String(o.date).slice(0, 10), ok: m.val == null ? null : valPart(m.val),
+      txt: [(o.wod.titre || "WOD") + (o.wod.test ? " (WOD test)" : ""), w.tete || "", r.score || "", m.role === "coach" ? "coach de " + String((r.duo || {}).ath || "").split(" ")[0] + ((r.duo.paser || []).length ? ", repères PASER notés" : "") : m.rep + m.no ? m.rep + " ✓ / " + m.no + " ✗ (" + pct(m.rep, m.no) + " de répétitions valables)" : "",
+        m.role === "coach" ? "" : "ressenti " + r.rpe + "/10" + (r.fc ? ", FC " + r.fc : ""), m.role !== "coach" && m.comm ? "analyse écrite" : ""].filter(Boolean).join(" · ") }; });
+  R.chips.push([String(L.length), "WOD dans son carnet"]); if (rep + no) R.chips.push([pct(rep, no), "de répétitions valables"]);
+  if (ath) R.chips.push([ana + " / " + ath, "analyses « si… alors » écrites"]); if (coach) R.chips.push([String(coach), "fois coach"]);
+  const p = progres(L.filter(x => x[1].role === "ath").map(x => x[0])); if (p && p.n > 1 && p.txt) R.chips.push([p.txt, "au WOD test (" + p.a.res.score + " → " + p.z.res.score + ")"]); else if (p) R.chips.push([String(p.a.res.score), "WOD test, premier essai"]);
+  return R; }
+
+/* ======================= ⚙ RÉGLAGES → 🗂 CONTENUS : ajouter les siens, modifier, supprimer / remettre ======================= */
+const etapesTxt = c => c && c.type === "seq" && Array.isArray(c.etapes) ? c.etapes.map(e => [e.ex, e.travail, e.repos || 0].join(" ; ")).join("\n") : "";
+function vueForm() { const { b, id } = S.cpEd, v = $("#vue"), sig = b + ":" + (id || ""); if (v.querySelector(`#cpForm[data-sig="${sig}"]`)) return; /* déjà affiché : on ne réécrit pas ce qui est en cours de saisie */
+  const o = (id && parId(LISTE[b], id)) || {}, c = o.chrono, autre = c && c.type !== "seq";
+  v.innerHTML = `<h2>${id ? "✎ Modifier" : "＋ Ajouter"} · ${NOMB[b]}</h2><div class="ligne" style="margin-bottom:12px"><button class="btn clair" data-cp="xfin">← Retour</button></div>
+    <div class="carte cp-form" id="cpForm" data-sig="${sig}">
+      <label class="champ" style="margin-top:0">Nom</label><input type="text" id="cpfNom" maxlength="60" value="${h(o.nom || "")}">
+      ${b === "ech" ? `<div class="params"><div><label>Forme</label><select id="cpfType">${Object.entries(TYPES).map(([k, t]) => `<option value="${k}" ${(o.type || "jeu") === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>
+        <div><label>Onglet « Avant · après » des élèves</label><select id="cpfEl"><option value="">Non : seulement dans la leçon du jour</option><option value="1" ${o.eleve ? "selected" : ""}>Oui</option></select></div></div>` : ""}
+      <div class="params"><div><label>Durée (min)</label><input type="text" inputmode="decimal" id="cpfDur" value="${o.duree != null ? String(o.duree).replace(".", ",") : "5"}"></div><div><label>Matériel</label><input type="text" id="cpfMat" value="${h(o.mat && o.mat !== "Aucun" ? o.mat : "")}" placeholder="Aucun"></div></div>
+      <label class="champ">Déroulement (ce que lisent les élèves)</label><textarea id="cpfTxt" rows="3">${h(o.texte || "")}</textarea>
+      <label class="champ">Règles, une par ligne (facultatif)</label><textarea id="cpfReg" rows="4">${h((o.regles || []).join("\n"))}</textarea>
+      <label class="champ">Variantes (facultatif)</label><input type="text" id="cpfVar" value="${h(o.variantes || "")}">
+      <label class="champ">Chrono guidé (facultatif) : une étape par ligne, « nom ; travail en secondes ; repos en secondes »</label>
+      ${autre ? `<p class="petit doux" style="margin:0 0 4px">Cette forme a déjà un chrono (${h(dureeTxt(c))}) : il est gardé si tu n'écris aucune étape.</p>` : ""}
+      <textarea id="cpfEt" rows="5" placeholder="10 squats ; 30 ; 10">${h(etapesTxt(c))}</textarea>
+      <div class="params"><div><label>Tours</label><input type="text" inputmode="numeric" id="cpfTours" value="${c && c.type === "seq" ? c.tours || 1 : 1}"></div><div><label>Récupération entre les tours (s)</label><input type="text" inputmode="numeric" id="cpfRec" value="${c && c.type === "seq" ? c.recupTour || 0 : 0}"></div></div>
+      <button class="btn ct plein" data-cp="xsave" style="margin-top:14px">Enregistrer</button></div>`; scrollTo(0, 0); }
+function formLire() { const { b, id } = S.cpEd, o = (id && parId(LISTE[b], id)) || {}, g = i => ($("#" + i) || {}).value || "";
+  const nom = g("cpfNom").trim(); if (!nom) return toast("Donne un nom"), null;
+  const duree = nbr(g("cpfDur"), 5); if (isNaN(duree)) return toast("Durée : entre un nombre de minutes"), null;
+  const tours = nbr(g("cpfTours"), 1), rec = nbr(g("cpfRec"), 0); if (isNaN(tours) || tours < 1 || isNaN(rec)) return toast("Tours et récupération : entre des nombres"), null;
+  const et = []; for (const li of g("cpfEt").split("\n").map(x => x.trim()).filter(Boolean)) { const p = li.split(";").map(x => x.trim()), tr = nbr(p[1], 30), rp = nbr(p[2], 0);
+    if (!p[0] || isNaN(tr) || tr < 1 || isNaN(rp)) return toast("Étape à revoir : « " + li.slice(0, 30) + " »"), null; et.push({ ex: p[0], travail: Math.round(tr), repos: Math.round(rp) }); }
+  const n = { id: id || "x" + Date.now().toString(36), nom, duree, mat: g("cpfMat").trim() || "Aucun", texte: g("cpfTxt").trim() };
+  ["src", "outil", "wods"].forEach(k => { if (o[k]) n[k] = o[k]; });
+  if (b === "ech") { n.type = TYPES[g("cpfType")] ? g("cpfType") : "jeu"; if (g("cpfEl")) n.eleve = 1; }
+  const rg = g("cpfReg").split("\n").map(x => x.trim()).filter(Boolean); if (rg.length) n.regles = rg; if (g("cpfVar").trim()) n.variantes = g("cpfVar").trim();
+  if (et.length) n.chrono = Object.assign({ type: "seq", nom, tours: Math.round(tours), recupTour: Math.round(rec), ex: [], etapes: et }, b === "cal" ? { calme: 1 } : {});
+  else if (o.chrono && o.chrono.type !== "seq") n.chrono = o.chrono;
+  return n; }
+function wodDeLecon(l, nom, adapt) { const mats = [...new Set(l.items.map(it => { const e = exParId(it.exId); return e ? (e.materiel || "PC") : null; }).filter(Boolean))].filter((m, i, T) => m !== "PC" || T.length === 1), p = {};
+  FORMATS[l.format].p.forEach(([k, , d]) => { p[k] = (l.params || {})[k] != null ? l.params[k] : d; });
+  return Object.assign({ id: "x" + Date.now().toString(36), nom, mat: mats.length ? mats : ["PC"], theme: l.theme, format: l.format, params: p, note: "",
+    items: l.items.filter(it => exParId(it.exId)).map(it => [it.exId, it.niv, it.qte, Object.assign({}, it.g ? { g: it.g } : {}, it.fixe ? { fixe: 1 } : {})]) }, l.ech ? { ech: l.ech } : {}, l.rep ? { duo: l.rep } : {}, adapt ? { adapt: "perso" } : {}); }
+function vueContenus() { styles(); if (S.cpEd) return vueForm(); S.cpOpen = S.cpOpen || {}; const v = $("#vue"), D = durees();
+  const row = (k, nom, sub, plus, tag) => { const o = isOff(k); return `<div class="cp-row ${o ? "off" : ""}"><div><b>${h(nom)}</b>${tag ? `<span class="cp-tag">${tag}</span>` : ""}${sub ? `<div class="petit doux">${h(sub)}</div>` : ""}</div><span class="cp-bts">${plus || ""}<button class="btn ${o ? "clair" : "danger"} petit" data-cp="${o ? "on" : "off"}:${h(k)}" style="padding:6px 10px">${o ? "♻ Remettre" : "🗑 Supprimer"}</button></span></div>`; };
+  /* contenu ajouté par l'enseignant : vraie suppression (copie gardée 30 jours dans la corbeille commune) */
+  const rowX = (b, id, nom, sub, ed) => `<div class="cp-row"><div><b>${h(nom)}</b><span class="cp-tag">à moi</span>${sub ? `<div class="petit doux">${h(sub)}</div>` : ""}</div><span class="cp-bts">${ed ? `<button class="btn clair petit" data-cp="xed:${b}:${h(id)}" style="padding:6px 10px">✎ Modifier</button>` : ""}<button class="btn danger petit" data-cp="xdel:${b}:${h(id)}" style="padding:6px 10px">🗑 Supprimer</button></span></div>`;
+  const carte = (b, o, sub) => o.perso ? rowX(b, o.id, o.nom, sub, 1) : row(b + ":" + o.id, o.nom, sub, `<button class="btn clair petit" data-cp="xed:${b}:${o.id}" style="padding:6px 10px">✎ Modifier</button>${o.mod ? `<button class="btn clair petit" data-cp="xraz:${b}:${o.id}" style="padding:6px 10px">↺ Version d'origine</button>` : ""}`, o.mod ? "modifié" : "");
+  const plus = (b, t) => `<div class="cp-add"><button class="btn ct" data-cp="xnew:${b}">＋ Ajouter ${t}</button></div>`;
+  const plusT = (b, ph, ph2) => `<div class="cp-add"><input type="text" id="cpx-${b}" maxlength="${b === "lex" ? 30 : 160}" placeholder="${ph}">${ph2 ? `<input type="text" id="cpx-${b}2" maxlength="120" placeholder="${ph2}">` : ""}<button class="btn ct" data-cp="xadd:${b}">＋ Ajouter</button></div>`;
+  const det = (id, titre, rows, keys, n2) => { const n = keys.filter(k => !isOff(k)).length + (n2 || 0); return `<details class="cp-det" data-cpdet="${id}" ${S.cpOpen[id] ? "open" : ""}><summary>${titre}<small>${n} sur ${keys.length + (n2 || 0)}</small></summary>${rows}</details>`; };
   const exo = e => { const la = !!exParId(e.id); return `<div class="cp-row ${la ? "" : "off"}"><div><b>${h(e.en)}</b><div class="petit doux">${h(e.fr)} · ${h(MATERIELS[e.materiel || "PC"])}</div></div><button class="btn ${la ? "danger" : "clair"} petit" data-cp="${la ? "exoff" : "exon"}:${e.id}" style="padding:6px 10px">${la ? "🗑 Supprimer" : "♻ Remettre"}</button></div>`; };
-  const fm = ["echelle", "montante", "deathby"];
-  v.innerHTML = `<h2>🗂 Contenus du cross-training</h2><p class="petit doux">Tout ce qui a été ajouté à partir de la ressource peut être supprimé ici, puis remis. Le choix est suivi par toutes les tablettes. Les exercices supprimés sont à publier (bandeau « Publier »).</p>
+  const fm = ["echelle", "montante", "deathby"], XW = xItems("wod"), XR = xItems("reg"), XL = xItems("lex"), XP = xItems("phr"), nx = b => LISTE[b].filter(o => o.perso).length;
+  const wsub = w => (FORMATS[w.format] || {}).nom + " · " + (w.mat || []).map(m => MATERIELS[m]).join(", ") + (w.duo ? " · à 2" : "") + (w.adapt ? " · adapté" : "");
+  const lw = S.lecon && S.lecon.items && S.lecon.items.length ? S.lecon : null;
+  v.innerHTML = `<h2>🗂 Contenus du cross-training</h2><p class="petit doux">Ajoute tes échauffements, jeux, WOD, règles et mots ; modifie ou supprime ceux de l'appli, puis remets-les. Le choix est suivi par toutes les tablettes. Les exercices supprimés sont à publier (bandeau « Publier »).</p>
     <div class="ligne" style="margin-bottom:12px;flex-wrap:wrap"><button class="btn clair" data-onglet="param">← Réglages</button><button class="btn contour" data-cp="toutremettre">♻ Tout remettre</button></div>
     ${det("exo", "🏋️ Exercices ajoutés", EXOS.map(exo).join(""), []).replace(/<small>.*?<\/small>/, `<small>${EXOS.filter(e => exParId(e.id)).length} sur ${EXOS.length}</small>`)}
-    ${det("wod", "📚 WOD", WODS.map(w => row("wod:" + w.id, w.nom, FORMATS[w.format].nom + " · " + w.mat.map(m => MATERIELS[m]).join(", ") + (w.duo ? " · à 2" : "") + (w.adapt ? " · adapté" : ""))).join(""), WODS.map(w => "wod:" + w.id))}
+    ${det("wod", "📚 WOD", WODS.map(w => row("wod:" + w.id, w.nom, wsub(w))).join("") + XW.map(x => rowX("wod", x.o.id, x.o.nom, wsub(x.o))).join("") +
+      `<div class="cp-add">${lw ? `<input type="text" id="cpx-wod" maxlength="40" placeholder="Nom du WOD" value="${h(lw.titre || "")}"><select id="cpx-wod2" style="flex:1;min-width:140px"><option value="">Visible des élèves</option><option value="1">WOD adapté (masqué aux élèves)</option></select><button class="btn ct" data-cp="xadd:wod">＋ Ajouter le WOD de l'onglet « WOD »</button>` : `<p class="petit doux" style="margin:0">Pour ajouter un WOD type : compose-le dans l'onglet « WOD », puis reviens ici.</p>`}</div>`, WODS.map(w => "wod:" + w.id), XW.length)}
     ${det("fmt", "⏱ Formes de travail ajoutées", fm.map(k => row("fmt:" + k, FORMATS[k].nom, FORMATS[k].fr)).join(""), fm.map(k => "fmt:" + k))}
-    ${det("ech", "🔥 Échauffements", ECHAUF.map(o => row("ech:" + o.id, o.nom, TYPES[o.type])).join(""), ECHAUF.map(o => "ech:" + o.id))}
-    ${det("def", "🎯 Défis et jeux", DEFIS.map(o => row("def:" + o.id, o.nom, o.texte)).join(""), DEFIS.map(o => "def:" + o.id))}
-    ${det("cal", "🌙 Retour au calme", CALME.map(o => row("cal:" + o.id, o.nom, "")).join(""), CALME.map(o => "cal:" + o.id))}
-    ${det("reg", "❗ Règles d'or", REGLES.map((r, i) => row("reg:" + i, r, "")).join(""), REGLES.map((r, i) => "reg:" + i))}
-    ${det("lex", "📖 Lexique", LEXIQUE.map((x, i) => row("lex:" + i, x[0], x[1])).join(""), LEXIQUE.map((x, i) => "lex:" + i))}
+    ${det("ech", "🔥 Échauffements", ECHAUF.map(o => carte("ech", o, TYPES[o.type])).join("") + plus("ech", "un échauffement ou un jeu"), BASE0.ech.map(o => "ech:" + o.id), nx("ech"))}
+    ${det("def", "🎯 Défis et jeux", DEFIS.map(o => carte("def", o, o.texte)).join("") + plus("def", "un défi ou un jeu"), BASE0.def.map(o => "def:" + o.id), nx("def"))}
+    ${det("cal", "🌙 Retour au calme", CALME.map(o => carte("cal", o, "")).join("") + plus("cal", "un retour au calme"), BASE0.cal.map(o => "cal:" + o.id), nx("cal"))}
+    ${det("reg", "❗ Règles d'or", REGLES.slice(0, TXT0.reg).map((r, i) => row("reg:" + i, r, "")).join("") + XR.map(x => rowX("reg", x.o.id, x.o.t, "")).join("") + plusT("reg", "Nouvelle règle d'or"), REGLES.slice(0, TXT0.reg).map((r, i) => "reg:" + i), XR.length)}
+    ${det("lex", "📖 Lexique", LEXIQUE.slice(0, TXT0.lex).map((x, i) => row("lex:" + i, x[0], x[1])).join("") + XL.map(x => rowX("lex", x.o.id, x.o.a, x.o.b)).join("") + plusT("lex", "Mot", "Ce que ça veut dire"), LEXIQUE.slice(0, TXT0.lex).map((x, i) => "lex:" + i), XL.length)}
     ${det("ide", "🔎 Idées reçues, squat, tableau des AFL (enseignant)", IDEES.map((x, i) => row("ide:" + i, x[0], x[2])).join("") + row("opt:squat", "Fiche « Le squat »", "") + row("opt:aflmap", "Tableau « d'où viennent les données »", ""), IDEES.map((x, i) => "ide:" + i).concat(["opt:squat", "opt:aflmap"]))}
-    ${det("phr", "💬 Phrases de motivation", PHRASES.map((x, i) => row("phr:" + i, x, "")).join(""), PHRASES.map((x, i) => "phr:" + i))}
+    ${det("phr", "💬 Phrases de motivation", PHRASES.slice(0, TXT0.phr).map((x, i) => row("phr:" + i, x, "")).join("") + XP.map(x => rowX("phr", x.o.id, x.o.t, "")).join("") + plusT("phr", "Nouvelle phrase"), PHRASES.slice(0, TXT0.phr).map((x, i) => "phr:" + i), XP.length)}
     ${det("opt", "🎛 Options", OPTS.map(([k, n, s]) => row("opt:" + k, n, s)).join(""), OPTS.map(x => "opt:" + x[0]))}
     <div class="carte"><b>⏲ Durée des 5 temps de la leçon</b><p class="petit doux">En minutes ; total : ${D.reduce((a, b) => a + b, 0)} min.</p><div class="params">${TEMPS.map((t, i) => `<div><label>${t}</label><input type="number" min="0" data-cpdur="${i}" value="${D[i]}"></div>`).join("")}</div></div>`;
   v.querySelectorAll("details[data-cpdet]").forEach(d => d.addEventListener("toggle", () => { S.cpOpen[d.dataset.cpdet] = d.open; }));
@@ -428,12 +539,22 @@ document.addEventListener("click", ev => {
   const t = ev.target.closest("[data-cp]"); if (!t) return; const p = t.dataset.cp.split(":"), k = p[0];
   if (k === "hub") { S.hub = p[1]; S.cpOutil = null; S.onglet = "etir"; rendre(); scrollTo(0, 0); return; }
   if (k === "retour") { S.cpOutil = null; S.onglet = aPlan() ? "plan" : "etir"; rendre(); scrollTo(0, 0); return; }
-  if (k === "gc") { const o = parId(p[1] === "ech" ? ECHAUF : CALME, p[2]); if (o && o.chrono) lancerGC(JSON.parse(JSON.stringify(o.chrono))); return; }
+  if (k === "gc") { const o = parId(LISTE[p[1]] || CALME, p[2]); if (o && o.chrono) lancerGC(JSON.parse(JSON.stringify(o.chrono))); return; }
   if (k === "outil") { S.cpOutil = p[1]; S.onglet = "etir"; rendre(); scrollTo(0, 0); return; }
   if (k === "de") { const d = S.cpDe; d.c = tirage(); d.n++; return vueOutil("de"); }
   if (k === "oie") { const o = S.cpOie; if (p[1] === "n") { o.n = +p[2]; o.tour = 0; } else if (p[1] === "neuf") { S.cpOie = null; } else { o.de = 1 + Math.floor(Math.random() * 6); o.pos[o.tour] = Math.min(o.cases.length, o.pos[o.tour] + o.de); o.dern = "Équipe " + (o.tour + 1) + " : " + caseTxt(o.cases[o.pos[o.tour] - 1]); o.tour = (o.tour + 1) % o.n; } return vueOutil("oie"); }
   if (k === "adapt") { const n = $("#cpAdN").value, w = $("#cpAdW").value; if (!n) return toast("Choisis un élève"); S.formJour.adapt[n] = w; return rendre(); }
   if (k === "off" || k === "on") { setOff(p.slice(1).join(":"), k === "off"); toast(k === "off" ? "Supprimé (tu peux le remettre)" : "Remis"); return vueContenus(); }
+  if (k === "xnew" || k === "xed") { S.cpEd = { b: p[1], id: p[2] || null }; S.onglet = "contenus"; return rendre(); }
+  if (k === "xfin") { S.cpEd = null; rendre(); return scrollTo(0, 0); }
+  if (k === "xsave") { const n = formLire(); if (!n) return; const b = S.cpEd.b; xPut(b, n); S.cpEd = null; S.cpOpen = S.cpOpen || {}; S.cpOpen[b] = true; toast("Enregistré ✓"); rendre(); return scrollTo(0, 0); }
+  if (k === "xdel") { const b = p[1], id = p.slice(2).join(":"), o = b === "wod" ? ALLW.find(w => w.id === id) : LISTE[b] ? parId(LISTE[b], id) : (xItems(b).find(x => x.o.id === id) || {}).o, nom = o ? o.nom || o.t || o.a || "" : "";
+    if (!confirm("Supprimer « " + nom + " » ? Une copie reste 30 jours dans la corbeille (Réglages communs).")) return; xDel(b, id, nom); toast("Supprimé"); return rendre(); }
+  if (k === "xraz") { if (!confirm("Revenir à la version d'origine ?")) return; xDel(p[1], p[2], (parId(LISTE[p[1]], p[2]) || {}).nom); toast("Version d'origine remise"); return rendre(); }
+  if (k === "xadd") { const b = p[1], a = (($("#cpx-" + b) || {}).value || "").trim(), a2 = (($("#cpx-" + b + "2") || {}).value || "").trim(), id = "x" + Date.now().toString(36);
+    if (b === "wod") { const l = S.lecon; if (!l || !l.items.length) return toast("Compose d'abord un WOD dans l'onglet « WOD »"); if (!a) return toast("Donne un nom au WOD"); xPut("wod", wodDeLecon(l, a, !!a2)); }
+    else { if (!a || (b === "lex" && !a2)) return toast(b === "lex" ? "Écris le mot et ce qu'il veut dire" : "Écris le texte"); xPut(b, b === "lex" ? { id, a, b: a2 } : { id, t: a }); }
+    (S.cpOpen = S.cpOpen || {})[b] = true; toast("Ajouté ✓"); return rendre(); }
   if (k === "exoff") { if (!confirm("Supprimer cette fiche d'exercice ? Tu pourras la remettre ici.")) return; S.fiches.exercices = S.fiches.exercices.filter(x => x.id !== p[1]); S.nonPublie = true; indexerDrive(); sauver(); return rendre(); }
   if (k === "exon") { const e = EXOS.find(x => x.id === p[1]); if (e && !exParId(e.id)) { S.fiches.exercices.push(JSON.parse(JSON.stringify(e))); S.nonPublie = true; indexerDrive(); sauver(); } return rendre(); }
   if (k === "toutremettre") { if (!confirm("Remettre tous les contenus supprimés ?")) return; const c = Object.assign({}, cfg()); c.off = []; stPut("cfg", c); let n = 0; EXOS.forEach(e => { if (!exParId(e.id)) { S.fiches.exercices.push(JSON.parse(JSON.stringify(e))); n++; } }); if (n) { S.nonPublie = true; indexerDrive(); sauver(); } toast("Tout est remis"); return rendre(); }
@@ -450,5 +571,5 @@ document.addEventListener("input", ev => { const t = ev.target; if (t.dataset.cp
 function echelle(l) { const E2 = String((l && l.ech) || "21-15-9").split(/[-\s,;/]+/).map(x => x.trim().toLowerCase()).filter(Boolean).map(x => /^x\d+([.,]\d+)?$/.test(x) ? { m: +x.slice(1).replace(",", ".") } : /^\d+$/.test(x) ? { n: +x } : null).filter(Boolean); return E2.length ? E2 : [{ n: 21 }, { n: 15 }, { n: 9 }]; }
 const echTxt = l => echelle(l).map(v => v.m ? "×" + v.m : v.n).join("-");
 
-window.CTP = { styles, EXOS, WODS, DUO, ECHAUF, DEFIS, CALME, QUAL, QUALITES, SPORTS, EXIGEANT, isOff, opt, familleDe, qualOk, vueHub, vueOutil, vuePlan, vueContenus, jourBlocsHtml, jourPoser, jourResume, aPlan, adaptPour, testHtml, testEleve, phrase, migrer, echelle, echTxt, fmtOn: k => !isOff("fmt:" + k), wodOn: w => !isOff("wod:" + w.id) };
+window.CTP = { styles, EXOS, WODS, DUO, ECHAUF, DEFIS, CALME, QUAL, QUALITES, SPORTS, EXIGEANT, isOff, opt, familleDe, qualOk, vueHub, vueOutil, vuePlan, vueContenus, jourBlocsHtml, jourPoser, jourResume, aPlan, adaptPour, testHtml, testEleve, phrase, migrer, echelle, echTxt, perso, parHtml, parTxt, evResultats, evResultat, fmtOn: k => !isOff("fmt:" + k), wodOn: w => !isOff("wod:" + w.id) };
 })();

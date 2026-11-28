@@ -266,6 +266,17 @@ h2{font-size:22px;margin:4px 0 14px}
 .tm-rep{background:#2E9E4F}.tm-no{background:#D9483B}
 .tm-btns button:active{transform:scale(.97);filter:brightness(1.1)}
 .tm-btns button.pulse{animation:pulse .25s}
+/* à plusieurs : une ligne par partenaire (prénom · ✓ REP · ✗), segments collés */
+.tm-eq{display:grid;gap:8px}
+.tm-eqr{display:grid;grid-template-columns:minmax(0,1fr) 1.25fr .8fr;gap:0;border-radius:6px;overflow:hidden;box-shadow:0 4px 12px rgba(20,23,28,.12)}
+.tm-eqn{background:#14171C;color:#fff;padding:8px 10px;display:flex;flex-direction:column;justify-content:center;text-align:left;font:800 18px/1.15 system-ui,sans-serif;min-width:0;overflow:hidden}
+.tm-eqn small{font:600 13px system-ui,sans-serif;color:#C9CED6;margin-top:2px}
+.tm-eqr button{border:0;border-radius:0;color:#fff;padding:8px 4px 10px;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:76px}
+.tm-eqr .nb{font:800 40px/1 ui-monospace,Menlo,monospace}.tm-eqr .lab{font:800 15px system-ui,sans-serif;letter-spacing:.5px}
+.tm-eqr button:active{filter:brightness(1.12)}.tm-eqr button.pulse{animation:pulse .25s}
+.tm-eqr.fini .tm-rep{background:#8FB79A}.tm-eqr.fini .tm-eqn small{color:#9BE2B0}
+.tm-und{align-self:center;padding:8px 14px}
+.tm-reste small{display:block;font-size:14px;font-weight:600;color:#6A6F78;margin-top:2px}
 @keyframes pulse{50%{transform:scale(1.05)}}
 .tm-suite{background:#fff;border:1px solid var(--ligne);border-radius:18px;padding:10px 14px;text-align:left}
 .tm-st{font-size:12px;color:var(--doux);font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
@@ -719,7 +730,7 @@ function appliquerAffichage(){ const m=LS.get("affichage","auto"), tel = m==="te
   const b=$("#affBtn"); if(b) { b.textContent = tel ? "📱" : "💻 Tablette"+(m==="auto"?" · auto":""); b.title = (tel?"Affichage téléphone":"Affichage tablette")+(m==="auto"?" (automatique)":"")+" · toucher pour changer"; } }
 addEventListener("resize", appliquerAffichage);
 function rendre(){
-  appliquerAffichage(); CTP.styles();
+  appliquerAffichage(); CTP.styles(); CTP.perso(WODS);
   let ong;
   if(RESS && !S.prof){ ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["fc","❤️","Zones et pouls"],["chrono","⏱","Grand chrono"],["etir","🤸","Avant · après"]]; if(!["biblio","wods","fc","chrono","etir"].includes(S.onglet)) S.onglet="biblio"; }
   else if(S.prof) ong=[["biblio","▦","Exercices"],["wods","📚","WOD types"],["lecon","⏱","WOD"],["jour","📌","Leçon du jour"],["etir","🤸","Échauff. · jeux"],["gerer","⚙","Vidéos"]];
@@ -1093,7 +1104,7 @@ document.addEventListener("click", ev=>{
   if(d.ouvrir){ S.lecon=JSON.parse(JSON.stringify(S.lecons[d.ouvrir])); S.onglet="lecon"; sauver(); rendre(); return; }
   if(d.dupliquer){ const c=JSON.parse(JSON.stringify(S.lecons[d.dupliquer])); c.id=Date.now().toString(36); c.titre+=" (copie)"; c.date=Date.now(); S.lecons.unshift(c); sauver(); rendre(); return; }
   if(d.effacer){ if(confirm("Supprimer cette leçon ?")){ S.lecons.splice(d.effacer,1); sauver(); rendre(); } return; }
-  if(d.cpt&&TM){ compter(d.cpt); return; }
+  if(d.cpt&&TM){ compter(d.cpt, d.pj); return; }
   if(d.edit){ editer(d.edit); return; }
   if(d.fmode){ S.formJour.mode=d.fmode; vueJour(); return; }
   if(d.gmode){ S.choixGroupe.mode=d.gmode; vueGroupe(); return; }
@@ -1112,6 +1123,7 @@ document.addEventListener("click", ev=>{
     case "affichage": { const o=["auto","tel","tab"], m=LS.get("affichage","auto"); LS.set("affichage", o[(o.indexOf(m)+1)%3]); appliquerAffichage(); toast({auto:"Affichage automatique",tel:"Affichage téléphone",tab:"Affichage tablette"}[LS.get("affichage")]); rendre(); break; }
     case "tmPause": if(TM.enPause){ TM.debut+=Date.now()-TM.pause; TM.enPause=false; } else { TM.pause=Date.now(); TM.enPause=true; } dessinerTimer(); break;
     case "tmSuiv": suivante(); break;
+    case "tmUndo": annulerAppui(); break;
     case "tmFini": finTimer(); break;
     case "tmStop": if(confirm("Arrêter le WOD ?")){ clearInterval(TM.iv); livePub("stop"); TM=null; fermer(); } break;
     case "tmSave": sauverResultat(); break;
@@ -1227,6 +1239,9 @@ function phases(l){
 function lancerTimer(){
   const l=S.lecon; if(!l.items.length) return toast("Ajoute d'abord des exercices");
   TM={duo:!!S.duoNext, paser:{}, flip:LS.get("flip",false), cpt:{}, P:phases(l), i:0, debut:Date.now(), pause:0, enPause:false, tours:0, k:0, fait:0, total0:Date.now()};
+  /* WOD « à plusieurs » (l.rep) réalisé par un groupe, hors mode athlète / coach : chaque partenaire a ses boutons et son compte (TM.par), voir compter() */
+  const eqN=((S.groupe&&S.groupe.noms)||[]).filter(Boolean).slice(0,4);
+  if(!TM.duo && l.rep && CTP.DUO[l.rep] && eqN.length>1){ TM.eq=eqN; TM.eqm=l.rep; TM.par=eqN.map(()=>({rep:0,no:0})); TM.pf=eqN.map(()=>0); }
   try{ navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>TM.lock=w); }catch(e){}
   bip(880,.15); dessinerTimer(); TM.iv=setInterval(tick,200);
 }
@@ -1248,12 +1263,13 @@ function livePub(st, doux){
     stPut(LIVE_K(), {c:nomClasse(), date:auj(), noms:((S.groupe&&S.groupe.noms)||[]).filter(Boolean), duo:TM.duo?1:0, st: st||(TM.enPause?"pause":"run"),
       titre:w.titre, tete:w.tete, ph:ph.t||"", lab:ph.lab||"", tour:ph.tour||0, emom:ph.emom?1:0, s:ph.s||0, up:(ph.up||ph.ouvert)?1:0,
       e: st?0:Math.max(0,Math.round(ecoule())), at:Date.now(), tot:Date.now()-TM.total0,
-      ex:x?x.e.en:"", niv:x?x.niv:0, q:x?(ph.libre?ph.s+" s":qteTxt(x)):"", fait:TM.fait, cib:x&&!ph.libre&&x.e.mesure!=="temps"?cible(x):0,
+      ex:x?x.e.en:"", niv:x?x.niv:0, q:x?(ph.libre?ph.s+" s":qteTxt(x)):"", fait:TM.fait, cib:x&&!ph.libre&&x.e.mesure!=="temps"?cibleTot(x):0,
       tours:TM.tours, nt:ph.tours||0, cible:ph.cible||0, ens:nxe?nxe.e.en+" · N"+nxe.niv:"", rep, no,
       /* pour l'écran miroir de l'enseignant : exercice montré, compteurs de l'exercice en cours, liste « À suivre » */
       xid:(x||nxe||{}).exId||"", xn:(x||nxe||{}).niv||0, nn:x?(x.e.niveaux[x.niv-1]||{}).nom||"":"", mes:x?x.e.mesure:"", lib:ph.libre?1:0, k:TM.k||0, ni:ph.it?ph.it.length:0,
       cr:x?(TM.cpt[x.exId+"|"+x.niv]||{}).rep||0:0, cn:x?(TM.cpt[x.exId+"|"+x.niv]||{}).no||0:0,
-      suite:(st||!TM.P[TM.i])?[]:aSuivre().map(y=>y.tourSuiv?{t:1}:{q:qteTxt(y), n:y.e.en, v:y.niv}), score:(TM.res&&TM.res.score)||""});
+      suite:(st||!TM.P[TM.i])?[]:aSuivre().map(y=>y.tourSuiv?{t:1}:{q:qteTxt(y), n:y.e.en, v:y.niv}), score:(TM.res&&TM.res.score)||"",
+      ...(TM.eq?{pq:TM.eq.map((n,j)=>[prenomEq(j), TM.pf[j]||0, x&&eqPart()&&!ph.libre?cibleDe(x,j):0, TM.par[j].rep, TM.par[j].no])}:{})});
     clearTimeout(LIVE_T); LIVE_T=setTimeout(()=>{ try{ window.EPSD&&EPSD.syncOne&&EPSD.syncOne(KST); }catch(e){} },700);
   }catch(e){}
 }
@@ -1268,7 +1284,7 @@ function tick(){
   if(Date.now()-(TM.liveAt||0)>60000) livePub();
   majChrono();
 }
-function suivante(){ if((TM.P[TM.i]||{}).mn){ TM.k=0; TM.tours=0; TM.mnOk=0; } TM.i++; TM.debut=Date.now(); TM.dern=null; TM.fait=0; if(TM.i>=TM.P.length) return finTimer(); bip(TM.P[TM.i].t==="rest"?440:990,.35); dessinerTimer(); }
+function suivante(){ if((TM.P[TM.i]||{}).mn){ TM.k=0; TM.tours=0; TM.mnOk=0; } TM.i++; TM.debut=Date.now(); TM.dern=null; razFait(); if(TM.i>=TM.P.length) return finTimer(); bip(TM.P[TM.i].t==="rest"?440:990,.35); dessinerTimer(); }
 const mmss = s => `${Math.floor(s/60)}:${String(Math.max(0,Math.floor(s%60))).padStart(2,"0")}`;
 /* exercice en cours (objet de la leçon) */
 function exCourant(){ const ph=TM.P[TM.i]; return ph.t==="bloc" ? (ph.mn&&TM.mnOk ? null : ph.it[TM.k]) : ph.t==="work" ? ph.ex : null; }
@@ -1277,6 +1293,12 @@ function cible(x){ if(!x) return 0; const ph=TM&&TM.P[TM.i];
   if(ph&&ph.t==="bloc"&&!x.fixe){ if(ph.ech){ const v=ph.ech[Math.min(TM.tours,ph.ech.length-1)]; return v.m?Math.max(1,Math.round(x.qte*v.m)):v.n; }
     if(ph.plus) return +x.qte+(ph.db!=null?ph.db:TM.tours)*ph.plus; }
   return +x.qte; }
+/* à plusieurs : « en même temps » et « en parallèle » = chacun fait toute la quantité ; « moitié-moitié » = chacun sa part ; « à tour de rôle » et « libre » = un total à se répartir */
+const eqPart = () => !!TM.eq && TM.eqm!=="tour" && TM.eqm!=="libre";
+function cibleDe(x,j){ const c=cible(x), n=TM.eq.length; return TM.eqm==="moitie" ? Math.floor(c/n)+(j<c%n?1:0) : c; }
+function cibleTot(x){ return TM&&TM.eq&&(TM.eqm==="meme"||TM.eqm==="para") ? cible(x)*TM.eq.length : cible(x); }
+function prenomEq(j){ const P=TM.eq.map(n=>String(n).trim().split(/\s+/)), p=P[j]; return P.filter(q=>q[0]===p[0]).length>1&&p[1] ? p[0]+" "+p[1][0]+"." : p[0]; }
+function razFait(){ TM.fait=0; TM.und=null; if(TM.eq) TM.pf=TM.eq.map(()=>0); }
 function aSuivre(){
   const ph=TM.P[TM.i], L=[];
   if(ph.t==="bloc"&&ph.mn){ if(!TM.mnOk) ph.it.slice(TM.k+1).forEach(x=>L.push(x)); }
@@ -1291,16 +1313,19 @@ function zoneHtml(){
   if(x){
     if(ph.libre) info=`<div class="tm-reste"><b>${TM.fait}</b> répétition${TM.fait>1?"s":""} valide${TM.fait>1?"s":""}</div>`;
     else if(x.e.mesure==="temps") info=`<div class="tm-reste">Tiens <b>${x.qte} s</b> puis valide</div>`;
-    else { const r=Math.max(0,cible(x)-TM.fait); info = r ? `<div class="tm-reste">Il reste <b>${r}</b> ${x.e.mesure==="distance"?"aller-retour"+(r>1?"s":""):"répétition"+(r>1?"s":"")}</div>` : `<div class="tm-reste ok">✓ Terminé${ph.emom?" · repos jusqu'à la minute suivante":""}</div>`; }
+    else { const r=Math.max(0,cibleTot(x)-TM.fait), aq=TM.eq?` <small>(${TM.eqm==="moitie"?"moitié chacun":eqPart()?cible(x)+" chacun":"à vous "+TM.eq.length})</small>`:""; info = r ? `<div class="tm-reste">Il reste <b>${r}</b> ${x.e.mesure==="distance"?"aller-retour"+(r>1?"s":""):"répétition"+(r>1?"s":"")}${aq}</div>` : `<div class="tm-reste ok">✓ Terminé${ph.emom?" · repos jusqu'à la minute suivante":""}</div>`; }
   }
   if(ph.mn&&TM.mnOk) info=`<div class="tm-reste ok">✓ Minute réussie · repos jusqu'à la minute suivante</div>`;
   const c=x?(TM.cpt[x.exId+"|"+x.niv]||{rep:0,no:0}):null;
-  const btns = !x ? "" : `<div class="tm-btns"><button class="tm-rep" data-cpt="${rep?"rep":"tenu"}"><span class="nb">${c.rep}</span><span class="lab">✓ ${rep?"REP":"Tenu"}</span></button><button class="tm-no" data-cpt="no"><span class="nb">${c.no}</span><span class="lab">✗ ${rep?"NO REP":"Lâché"}</span></button></div>`;
+  const btns = !x ? "" : TM.eq ? `<div class="tm-eq">${TM.eq.map((n,j)=>{ const cj=cibleDe(x,j), ind=eqPart()&&!ph.libre, fini=ind&&TM.pf[j]>=cj;
+      return `<div class="tm-eqr ${fini?"fini":""}"><span class="tm-eqn">${h(prenomEq(j))}<small>${fini?"✓ terminé":!rep?"tiens "+x.qte+" s":ind?"sur "+cj:"✓ "+TM.par[j].rep+" en tout"}</small></span><button class="tm-rep" data-cpt="${rep?"rep":"tenu"}" data-pj="${j}"><span class="nb">${rep?TM.pf[j]:TM.pf[j]?"✓":"–"}</span><span class="lab">✓ ${rep?"REP":"Tenu"}</span></button><button class="tm-no" data-cpt="no" data-pj="${j}"><span class="nb">${TM.par[j].no}</span><span class="lab">✗ ${rep?"NO REP":"Lâché"}</span></button></div>`; }).join("")}</div>`
+    : `<div class="tm-btns"><button class="tm-rep" data-cpt="${rep?"rep":"tenu"}"><span class="nb">${c.rep}</span><span class="lab">✓ ${rep?"REP":"Tenu"}</span></button><button class="tm-no" data-cpt="no"><span class="nb">${c.no}</span><span class="lab">✗ ${rep?"NO REP":"Lâché"}</span></button></div>`;
+  const und = x&&TM.und&&!TM.duo ? `<button class="btn contour petit tm-und" data-act="tmUndo">↶ Annuler le dernier appui</button>` : "";
   const tours = ph.t==="bloc"&&!ph.mn ? `<div class="tm-tours">Tour ${TM.tours+1}${ph.tours?" / "+ph.tours:""}${ph.cible?` · cible ${ph.cible} tours`:""}<span id="tmAllure"></span></div>` : "";
   const L=aSuivre();
-  return tours + info + (TM.duo?"":btns) + (L.length?`<div class="tm-suite"><div class="tm-st">À suivre</div>${L.map(y=>y.tourSuiv?`<div class="tm-l tour">↻ Tour suivant</div>`:`<div class="tm-l"><b>${qteTxt(y)}</b><span>${h(y.e.en)}</span><small>${NIV(y.niv)}</small></div>`).join("")}</div>`:"");
+  return tours + info + (TM.duo?"":btns) + und + (L.length?`<div class="tm-suite"><div class="tm-st">À suivre</div>${L.map(y=>y.tourSuiv?`<div class="tm-l tour">↻ Tour suivant</div>`:`<div class="tm-l"><b>${qteTxt(y)}</b><span>${h(y.e.en)}</span><small>${NIV(y.niv)}</small></div>`).join("")}</div>`:"");
 }
-function majZone(type){ const z=$("#tmZone"); if(z) z.innerHTML=zoneHtml(); if(TM.duo){ majCoach(); if(type){ const b=document.querySelector("#tmCoach "+(type==="no"?".tm-no":".tm-rep")); if(b) b.classList.add("pulse"); } } if(type){ const b=z&&z.querySelector(type==="no"?".tm-no":".tm-rep"); if(b) b.classList.add("pulse"); } majChrono(); }
+function majZone(type, j){ const z=$("#tmZone"); if(z) z.innerHTML=zoneHtml(); if(TM.duo){ majCoach(); if(type){ const b=document.querySelector("#tmCoach "+(type==="no"?".tm-no":".tm-rep")); if(b) b.classList.add("pulse"); } } if(type){ const b=z&&z.querySelector((TM.eq&&j>=0?`.tm-eqr:nth-child(${j+1}) `:"")+(type==="no"?".tm-no":".tm-rep")); if(b) b.classList.add("pulse"); } majChrono(); }
 function majChrono(){
   const ph=TM.P[TM.i], e=ecoule()/1000, z=$("#tmTemps"); if(!z) return;
   z.textContent = ph.up||ph.ouvert ? mmss(e) : mmss(Math.max(0,ph.s-e));
@@ -1338,21 +1363,31 @@ function dessinerTimer(){
     : `<div class="voile" style="align-items:stretch"><div class="feuille tm tm-${ph.t}">${ath}</div></div>`;
   majChrono(); animerClips(); livePub();
 }
-/* appui REP / NO REP / Tenu */
-function compter(type){
+/* appui REP / NO REP / Tenu ; pj = numéro du partenaire quand le WOD se fait à plusieurs (TM.eq).
+   TM.und = état d'avant le dernier appui, tant qu'on est sur le même exercice (« ↶ Annuler le dernier appui »). */
+function compter(type, pj){
   const ph=TM.P[TM.i], x=exCourant(); if(!x) return;
-  const k=x.exId+"|"+x.niv, c=TM.cpt[k]=TM.cpt[k]||{rep:0,no:0};
-  if(type==="no"){ c.no++; bip(220,.1); try{ navigator.vibrate&&navigator.vibrate([40,40,40]); }catch(e){} livePub("",1); return majZone("no"); }
-  c.rep += type==="tenu" ? 0 : 1; TM.fait += type==="tenu" ? cible(x) : 1; bip(1320,.06); try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
-  if(ph.libre || TM.fait < cible(x)){ livePub("",1); return majZone("rep"); }
+  const k=x.exId+"|"+x.niv, c=TM.cpt[k]=TM.cpt[k]||{rep:0,no:0}, E=TM.eq, j=E?Math.max(0,Math.min(E.length-1,+pj||0)):-1;
+  const snap={sig:[TM.i,TM.k,TM.tours,TM.mnOk||0].join("|"), k, rep:c.rep, no:c.no, fait:TM.fait, pf:TM.pf?TM.pf.slice():null, par:TM.par?TM.par.map(p=>({rep:p.rep,no:p.no})):null};
+  if(type==="no"){ c.no++; if(E) TM.par[j].no++; TM.und=snap; bip(220,.1); try{ navigator.vibrate&&navigator.vibrate([40,40,40]); }catch(e){} livePub("",1); return majZone("no",j); }
+  const tot=cibleTot(x);
+  if(E){ const ind=eqPart()&&!ph.libre, cj=cibleDe(x,j);
+    if(ind&&TM.pf[j]>=cj){ bip(220,.08); return; } /* ce partenaire a déjà fait sa part */
+    const add = type==="tenu"&&!ph.libre ? Math.max(0, ind?cj-TM.pf[j]:tot-TM.fait) : 1;
+    if(type!=="tenu"){ c.rep++; TM.par[j].rep++; } TM.pf[j]+=add; TM.fait+=add; }
+  else { c.rep += type==="tenu" ? 0 : 1; TM.fait += type==="tenu" ? cible(x) : 1; }
+  bip(1320,.06); try{ navigator.vibrate&&navigator.vibrate(25); }catch(e){}
+  if(ph.libre || TM.fait < tot){ TM.und=snap; livePub("",1); return majZone("rep",j); }
   /* objectif atteint */
-  if(ph.t==="bloc"){ TM.k++; TM.fait=0; bip(990,.25);
+  if(ph.t==="bloc"){ TM.k++; razFait(); bip(990,.25);
     if(TM.k>=ph.it.length){ TM.k=0; TM.tours++; bip(1200,.4); if(ph.mn){ TM.mnOk=1; livePub(); return majZone(); } if(ph.tours&&TM.tours>=ph.tours) return finTimer(); }
     $("#tmVid").innerHTML=clipHtml(exCourant()); animerClips(); const n=$(".tm-nom"), nv=$(".tm-niv"), y=exCourant(); if(n) n.textContent=y.e.en; if(nv) nv.textContent=`${NIV(y.niv)} · ${y.e.niveaux[y.niv-1]?.nom||""} · ${qteTxt(y)}`;
     livePub(); return majZone(); }
   if(ph.ouvert) return suivante();
-  livePub(); majZone();
+  TM.und=snap; livePub(); majZone();
 }
+function annulerAppui(){ const u=TM&&TM.und; if(!u||u.sig!==[TM.i,TM.k,TM.tours,TM.mnOk||0].join("|")) return; const c=TM.cpt[u.k]; if(c){ c.rep=u.rep; c.no=u.no; }
+  TM.fait=u.fait; if(u.pf) TM.pf=u.pf; if(u.par) TM.par=u.par; TM.und=null; bip(440,.08); livePub("",1); majZone(); }
 function finTimer(fini){
   clearInterval(TM.iv); try{ TM.lock&&TM.lock.release(); }catch(e){} bip(1200,.6);
   const l=S.lecon, duree=Math.round((Date.now()-TM.total0)/1000), ph=TM.P.find(x=>x.t==="bloc");
@@ -1361,10 +1396,11 @@ function finTimer(fini){
   TM.res={cpt, score: l.format==="amrap"?`${TM.tours} tours + ${TM.k} exercice(s) (cible ${params(l).cible} tours)`: chrono?(TM.capAtteint?`time cap atteint · ${TM.tours} tours`:`${mmss(ecoule()/1000)}`)
     : l.format==="montante"?`${TM.tours} palier(s) terminé(s) + ${TM.k} exercice(s)`: l.format==="deathby"?`${TM.dbMin||0} minute(s) réussie(s)`:"WOD terminé", duree};
   if(chrono&&!TM.capAtteint) TM.res.sec=Math.round(ecoule()/1000); /* temps en secondes : progrès du WOD test */
+  if(TM.eq) TM.res.par=TM.eq.map((n,j)=>({nom:n, rep:TM.par[j].rep, no:TM.par[j].no})); /* à plusieurs : ✓ / ✗ de chaque partenaire (carnet, évaluation) */
   livePub("fin");
   const OMNI=["Très très facile","","Facile","","Plutôt dur","","Dur","","Très dur","","Extrêmement dur"];
   $("#calque").innerHTML = `<div class="voile"><div class="feuille"><div class="tete"><div class="t"><div class="en">🏁 Bravo !</div><div class="doux">${h(TM.res.score)} · ${mmss(duree)}</div>${CTP.phrase()}</div><button class="fermer" data-act="fermer">✕</button></div>
-    <div class="corps">${TM.res.cpt.length?`<label class="champ">Comptage de l'observateur</label><table class="rapport"><tr><th>Exercice</th><th class="c">Rep</th><th class="c">No rep</th><th class="c">Validité</th></tr>${TM.res.cpt.map(x=>`<tr><td>${h(x.ex)} · niveau ${x.niv}</td><td class="c ok">${x.rep}</td><td class="c ko">${x.no}</td><td class="c">${Math.round(x.rep/(x.rep+x.no)*100)} %</td></tr>`).join("")}</table>${TM.res.cpt.some(x=>x.no/(x.rep+x.no)>.2)?`<p class="petit alerte" style="margin-top:6px">Plus de 20 % de No rep sur un exercice : si… alors je baisse d'un niveau ou je ralentis pour garder l'amplitude.</p>`:""}`:""}
+    <div class="corps">${TM.res.cpt.length?`<label class="champ">Comptage de l'observateur</label><table class="rapport"><tr><th>Exercice</th><th class="c">Rep</th><th class="c">No rep</th><th class="c">Validité</th></tr>${TM.res.cpt.map(x=>`<tr><td>${h(x.ex)} · niveau ${x.niv}</td><td class="c ok">${x.rep}</td><td class="c ko">${x.no}</td><td class="c">${Math.round(x.rep/(x.rep+x.no)*100)} %</td></tr>`).join("")}</table>${CTP.parHtml(TM.res)}${TM.res.cpt.some(x=>x.no/(x.rep+x.no)>.2)?`<p class="petit alerte" style="margin-top:6px">Plus de 20 % de No rep sur un exercice : si… alors je baisse d'un niveau ou je ralentis pour garder l'amplitude.</p>`:""}`:""}
     ${TM.duo?`<section class="bloc" style="margin-top:12px"><div class="bloc-t">Coach · ${h(roles().coach)}</div>
       ${paserResume().length?`<div class="petit">Erreurs vues : ${paserResume().map(x=>`${h(x.ex)} ${x.l}×${x.n}`).join(" · ")}</div>`:`<div class="petit doux">Aucune erreur PASER notée.</div>`}
       <label class="champ">Ressenti estimé de ${h(roles().ath)} (avant sa réponse)</label><input type="range" min="0" max="10" value="6" id="rpeC" style="width:100%"><div class="petit" id="rpeCTxt">6</div></section>
@@ -1441,7 +1477,7 @@ function liveDessin(){
       corps=`<div class="tm-haut" style="background:${col}"><span>${o.st==="pause"?"⏸ PAUSE · ":""}${h({pret:"PRÊT",work:"TRAVAIL",rest:"REPOS",bloc:o.lab}[o.ph]||"")}${o.tour?` · ${o.emom?"minute":"tour"} ${o.tour}`:""}</span></div>
         <div class="tm-ex"><div>${clip}</div><div class="tm-txt"><div class="tm-nom">${h(o.ex||o.lab||"")}</div>${o.ex?`<div class="tm-niv">${NIV(o.niv)} · ${h(o.nn||"")} · ${h(o.q||"")}</div>`:o.ens?`<div class="tm-niv">Ensuite : ${h(o.ens.replace(" · N"," · Niveau "))}</div>`:""}</div></div>
         <div class="tm-chrono"><div id="mirTemps" class="tm-temps">0:00</div><div class="tm-barre"><div id="mirBarre" style="background:${col}"></div></div></div>
-        <div style="display:flex;flex-direction:column;gap:12px;margin:0 14px">${tours}${info}${o.duo?"":btns}${o.duo?`<div class="tm-tours">Compté par le coach : ✓ ${o.cr||0} · ✗ ${o.cn||0}</div>`:""}${L.length?`<div class="tm-suite"><div class="tm-st">À suivre</div>${L.map(y=>y.t?`<div class="tm-l tour">↻ Tour suivant</div>`:`<div class="tm-l"><b>${h(y.q)}</b><span>${h(y.n)}</span><small>${NIV(y.v)}</small></div>`).join("")}</div>`:""}</div>`;
+        <div style="display:flex;flex-direction:column;gap:12px;margin:0 14px">${tours}${info}${o.duo?"":Array.isArray(o.pq)&&o.ex?`<div class="tm-eq" style="pointer-events:none" aria-hidden="true">${o.pq.map(q=>`<div class="tm-eqr ${q[2]&&q[1]>=q[2]?"fini":""}"><span class="tm-eqn">${h(q[0])}<small>${q[2]?(q[1]>=q[2]?"✓ terminé":"sur "+q[2]):"✓ "+(q[3]||0)+" en tout"}</small></span><button class="tm-rep" disabled tabindex="-1"><span class="nb">${rep?q[1]||0:q[1]?"✓":"–"}</span><span class="lab">✓ ${rep?"REP":"Tenu"}</span></button><button class="tm-no" disabled tabindex="-1"><span class="nb">${q[4]||0}</span><span class="lab">✗ ${rep?"NO REP":"Lâché"}</span></button></div>`).join("")}</div>`:btns}${o.duo?`<div class="tm-tours">Compté par le coach : ✓ ${o.cr||0} · ✗ ${o.cn||0}</div>`:""}${L.length?`<div class="tm-suite"><div class="tm-st">À suivre</div>${L.map(y=>y.t?`<div class="tm-l tour">↻ Tour suivant</div>`:`<div class="tm-l"><b>${h(y.q)}</b><span>${h(y.n)}</span><small>${NIV(y.v)}</small></div>`).join("")}</div>`:""}</div>`;
     }
     m.innerHTML=`<div class="feuille tm" style="max-width:420px;width:100%;max-height:96vh;border-radius:22px;overflow:auto;animation:none;box-shadow:0 20px 60px rgba(0,0,0,.4)">${tete}${corps}</div>`;
   }
@@ -1458,7 +1494,7 @@ function vueCarnet(){
   $("#vue").innerHTML = `<h2>Mon carnet</h2><p class="petit doux">${h(g.noms.join(" · "))}</p>${CTP.testEleve(mes)}
     ${mes.length?mes.map(o=>`<div class="carte"><div class="ligne"><b style="flex:1">${dateFR(o.date)} · ${h(o.wod.titre||"WOD")}</b><span class="m" style="background:var(--${o.wod.theme}-c);color:var(--${o.wod.theme})">${THEMES[o.wod.theme].nom}</span></div>
       <div class="petit">${h(o.texte.tete)} · <b>${h(o.res.score)}</b> · ressenti ${o.res.rpe}/10${o.res.fc?` · FC ${o.res.fc}`:""}</div>
-      ${(o.res.cpt||[]).length?`<div class="petit">Observateur : ${o.res.cpt.map(x=>`${h(x.ex)} ${x.rep} ✓ / ${x.no} ✗`).join(" · ")}</div>`:""}
+      ${(o.res.cpt||[]).length?`<div class="petit">Observateur : ${o.res.cpt.map(x=>`${h(x.ex)} ${x.rep} ✓ / ${x.no} ✗`).join(" · ")}</div>`:""}${CTP.parTxt(o.res)}
       ${o.res.duo?`<div class="petit">Athlète ${h(o.res.duo.ath)} · coach ${h(o.res.duo.coach)}${o.res.duo.paser.length?` · erreurs vues : ${o.res.duo.paser.map(x=>`${h(x.ex)} ${x.l}×${x.n}`).join(", ")}`:""} · ressenti estimé ${o.res.duo.rpeCoach}/10 (déclaré ${o.res.rpe}, écart ${Math.abs(o.res.duo.rpeCoach-o.res.rpe)})</div>`:""}
       ${o.res.comm?`<div class="petit doux">« ${h(o.res.comm)} »</div>`:""}<button class="btn clair petit" style="margin-top:6px;padding:6px 10px" data-refaire="${o.u}">↻ Refaire ce WOD</button></div>`).join("")
     :`<div class="vide-lecon">Pas encore de WOD terminé. Lance le timer depuis « Mon WOD ».</div>`}
@@ -2060,6 +2096,8 @@ window.EVCT = window.EPSE ? EPSE.store({
  gridPro:{"degres": ["Degré 1", "Degré 2", "Degré 3", "Degré 4"], "degresEl": ["Je débute", "Je progresse", "Je maîtrise", "Je suis expert(e)"], "criteres": [{"id": "pro-p1", "afl": "AFLP1", "max": 7, "nom": "Produire sa séance de manière sécuritaire", "but": "Concevoir et mettre en œuvre un projet d'entraînement pour répondre à un mobile personnel de développement", "desc": ["Motricité dangereuse\n• Trajet modifié\n• Respiration absente\n• Posture en désalignement total\n• Amplitude faible\n• Rythme irrégulier", "Motricité partiellement sécuritaire\n• Trajet modifié en milieu de répétition\n• Respiration inversée\n• Posture légèrement désalignée\n• Amplitude incomplète\n• Rythme en baisse sur la fin des répétitions", "Motricité maitrisée et sécuritaire\n• Trajet modifié en fin de séance\n• Respiration timide\n• Posture droite\n• Amplitude complète\n• Rythme régulier ou en légère baisse en fin de séance", "Motricité maitrisée et sécuritaire tout au long de la séance\n• Trajet ok\n• Respiration ok\n• Posture droite\n• Amplitude complète\n• Rythme maitrisé"]}, {"id": "pro-p2", "afl": "AFLP2", "max": 5, "nom": "Recueillir des données physiques et physiologiques pour réguler sa séance en partenariat", "but": "Éprouver différentes méthodes d'entraînement et en identifier des principes pour les réutiliser dans sa séance", "desc": ["Données relevées de manière aléatoire", "Les données ne sont pas utilisées pour réguler la production malgré des critères en dehors de l'objectif", "Séance régulée entre les rounds avec l'aide des données", "Séance régulée tout au long de la séance et de manière sécuritaire"]}, {"id": "pro-p3", "afl": "AFLP3", "max": 4, "nom": "Réguler sa séance afin de répondre à un objectif visé", "but": "Systématiser un retour réflexif sur sa pratique pour réguler sa charge de travail en fonction d'indicateurs de l'effort (fréquence cardiaque, ressenti musculaire et respiratoire, fatigue générale)", "desc": ["Activité spontanée n'ayant toutefois pas permis d'atteindre les objectifs d'une séance trop ambitieuse", "Régulation en cours de séance pour atteindre l'objectif, mais cela n'est pas efficace. Séance adaptée à un pratiquant", "Objectif atteint et la séance est réalisable et adaptée à chacun", "Objectif atteint pour le binôme avec ou sans régulation"]}, {"id": "pro-p6", "afl": "AFLP6", "max": 4, "nom": "Connaître différents paramètres physiologiques et physionomiques pour pratiquer en sécurit", "but": "Intégrer des conseils d'entraînement, de diététique, d'hygiène de vie pour se construire un mode de vie sain et une pratique raisonnée", "desc": ["Sait prendre sa fréquence cardiaque et ne connaît que quelques muscles", "Connaît les muscles en fonction de l'exercice qu'il connaît", "Connaît la totalité des muscles", "Connaît la totalité des muscles et sait comment les travailler"]}]},gridProSrc:"FCE_BacPro_CA5_Crosstraining_LP_CamilleClaudel_Fourmies_0590083V_Session_2024",
 app:"ct", nom:"Cross-training", ca:"CA5", color:"#4D7C0F", pfx:"ct", code:"CT1", url:"https://chrisdcqns-cmd.github.io/eps-autonomie-numerique/crosstraining/", icon:ICONE_CT,
  isTeacher:()=>estProf(), unlock:()=>Promise.resolve(true),
+ /* 📊 Ses résultats (WOD du carnet, par leçon) et 💡 ce qu'ils proposent pour les critères : jamais enregistré sans « ✓ Reprendre ces degrés » (ct-plus.js) */
+ resultats:(e,cl)=>CTP.evResultats(e,cl), resultat:(cr,e,cl)=>CTP.evResultat(cr,e,cl),
  grid:{degres:["Degré 1","Degré 2","Degré 3","Degré 4"], degresEl:["Je débute","Je progresse","Je maîtrise","Je suis expert(e)"], criteres:[
   {id:"pro",afl:"AFL1",max:6,nom:"Choix des paramètres cohérents avec le thème",but:"Construire un WOD (format, exercices, niveaux, quantités, récupérations) cohérent avec le thème choisi et son projet.",nomEl:"Mon WOD est adapté à mon thème",butEl:"Je choisis format, exercices, niveaux et quantités en lien avec mon thème.",
    desc:["Paramètres choisis au hasard ou par imitation ; format sans lien avec le thème.","Format en lien avec le thème, mais quantités ou niveaux inadaptés (trop faciles ou trop durs).","Format, niveaux, quantités et récupérations cohérents avec le thème ; choix justifiés.","Paramètres précis et personnalisés (niveaux, allure cible, récupérations) ; justification avec les indicateurs du thème."],
@@ -2088,7 +2126,7 @@ window.EPSTCT = window.EPST ? EPST.init({app:"ct", nom:"Cross-training", color:"
           {ico:"🧘",label:"Retour au calme",sub:"6 routines, 14 étirements, lexique et règles d'or",go:()=>{ S.hub="calme"; S.cpOutil=null; aller("etir"); }}],
   reglages:[{ico:"📲",label:"Tablette partagée",sub:"tablette scindée (2 boxes, athlète / coach) ou tablette ressource",go:()=>aller("param")},
             {ico:"👥",label:"Groupes et Claude",sub:"solo, binôme, trinôme · IA enseignant / élèves",go:()=>aller("param")},
-            {ico:"🗂",label:"Contenus",sub:"supprimer ou remettre exercices, WOD, échauffements, jeux, lexique…",go:()=>aller("contenus")},
+            {ico:"🗂",label:"Contenus",sub:"ajouter les tiens, modifier, supprimer ou remettre : WOD, échauffements, jeux, lexique…",go:()=>aller("contenus")},
             {ico:"🎬",label:"Vidéos du cross-training",sub:"lien du dossier Drive, partage, hors ligne",go:()=>aller("gerer")}]
 }) : null;
 /* écran élève commun « Choisis ta classe » : sans classe, seulement la bibliothèque */
