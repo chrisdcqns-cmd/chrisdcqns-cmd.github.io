@@ -88,7 +88,7 @@ REPERES = {
     "mon-bilan/index.html": ["function culture()", "ton enseignant", "kind === \"espace\"", "dropchk", "function mission(", "un seul envoi à la fois", "essais automatiques seulement", "../step/export.js"],
     "espace/index.html": ["E.publier(", "E.relever()", "noindex", "function mget(", "E.dispenses(", "get(DIRS.step).step"],
     "eps-tactique.js": ["function editor(", "function depart("],
-    "eps-culture.js": ["window.EPSCULT = {", "function dossier(nom)"],
+    "eps-culture.js": ["function quiz(dir)", "window.EPSCULT = {", "function dossier(nom)"],
     "eps-ref.js": ["o.nt = r2(+pr.note)", "function snapInst(", "function profil(", "function link(", "if (!nb) return;", "function lecTr(", "function gridsPlus(", "c.raw === raw", "function coVals(", "function colPut(", "EPSD.trash.keep("],
     "referentiel/index.html": ["function relever(", "function lnEdit(", "✕ Ne rien ajouter", "function vCdc(", "function saisie(", "function nbr("],
     "relais/index.html": ["EVRL.bilanHtml(c)", "function evFicheHTML(", "EVRL.ficheBind(", "data-evcoef", "function pnm(e)", "resultats:()=>({own:1})", "sesGet:e=>", "function evKeep(", "evKeep(c,renderEval)", "const PERF_PART=", "r.perf=r.pReach>=S-1e-9?4", "data-evst=", "absent:e=>evSt(evrO(e))", "o.st?{st:o.st}:{}", "function zK(z)", "zs=L.map(c=>zK(c.zone))", "DIAG[zK(ST.zone)]", "function fePop(", "fePop(+g.dataset.fego)", "var RL_BIL=0", "setDeg:(cr,e,d)", "function goBilans(", "let GO_AFTER=null", "lid=CLE()?CLE().id:null,prof", "function seqOpen(", "function evCourses(", "let EV_SCOPE=", "go:()=>go('seq')", "cls:{go:()=>go('classes')", "function renderLvCtl(", "function renderFiche(", "function goJour(", "window.epsCtlOwn={ctl:1", "« 📱 Écran des élèves » retiré", ],

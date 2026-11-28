@@ -29,6 +29,8 @@ async def main():
         t = await p.evaluate("(function(){var w=document.getElementById('eps-cult');return w?w.innerText:''})()")
         ok("fenêtre : culture puis lexique de l'escalade", "D'où ça vient" in t and "Les mots de l'activité" in t and "Assurer" in t, t[:300])
         await p.screenshot(path="/tmp/t/culture-fenetre.png")
+        qz = await p.evaluate("(function(){var w=document.getElementById('eps-cult'),B=w.querySelectorAll('[data-epscq]');var bon=w.querySelector('[data-epscq=\"1\"]');bon.click();return {n:B.length,vert:bon.style.color,titre:/Je me teste/.test(w.innerText)}})()")
+        ok("trois questions pour se tester, corrigées sur place (" + str(qz["n"]) + " réponses)", qz["n"] == 9 and qz["titre"] and "255" in qz["vert"], qz)
         await p.evaluate("document.querySelector('#eps-cult [data-x2]').click()"); await p.wait_for_timeout(300)
         ok("fenêtre refermée", not await p.evaluate("!!document.getElementById('eps-cult')"))
         await p.screenshot(path="/tmp/t/culture-icone.png", clip={"x": 0, "y": 0, "width": 1024, "height": 110})
