@@ -59,7 +59,7 @@
 </style>
 </head>
 <body>
-<div class="bar"><div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2M10 7h4M10 10.5h4"/></svg></div><div><b>Mon espace EPS</b><small id="who">À faire · mes activités · mes bilans</small></div><button type="button" id="out" hidden>Quitter</button></div>
+<div class="bar"><div class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2M10 7h4M10 10.5h4"/></svg></div><div><b>Mon espace EPS</b><small id="who">À faire · mes activités · mes bilans</small></div><button type="button" id="cult" hidden aria-label="Culture des activités" title="Culture des activités" style="margin-left:auto;min-width:44px;min-height:44px;border-radius:10px;border:1.5px solid #3A3F47;background:none;color:#fff;font-size:18px">📖</button><button type="button" id="out" hidden>Quitter</button></div>
 <main>
   <div class="card" id="login">
     <h1>Bonjour !</h1>
@@ -72,6 +72,7 @@
   <div id="res"></div>
 </main>
 <div id="st" hidden role="status" aria-live="polite"></div>
+<script src="../eps-culture.js"></script>
 <script>
 /* Espace élève (téléphone). Tout arrive chiffré avec le code personnel : fiches PDF publiées par les applis ({app, classe, date, pdf})
    et l'espace publié par l'enseignant ({kind:"espace", eleve, classe, todo, quiz, acts, rid, rk}). Les retours (quiz faits, tâches cochées)
@@ -133,12 +134,22 @@
     $("go").disabled = false;
   }
   $("go").onclick = go; $("code").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
-  $("out").onclick = function () { ESP = null; PDF = []; AUTO = []; RUN = null; ACT = null; MIS = null; res.innerHTML = ""; $("login").hidden = false; $("out").hidden = true; $("who").textContent = "À faire · mes activités · mes bilans"; };
+  $("out").onclick = function () { ESP = null; PDF = []; AUTO = []; RUN = null; ACT = null; MIS = null; CUL = false; try { $("cult").hidden = true; } catch (e) {} res.innerHTML = ""; $("login").hidden = false; $("out").hidden = true; $("who").textContent = "À faire · mes activités · mes bilans"; };
 
   /* ---- affichage : deux onglets seulement ---- */
   function acts() { var A = (ESP && Array.isArray(ESP.acts)) ? ESP.acts.slice() : []; PDF.forEach(function (p) { if (!A.some(function (a) { return flat(a.nom) === flat(p.app); })) A.push({ nom: p.app, lec: 0, pc: null, n: 0, comm: "", apr: "", apm: "" }); }); return A; }
   function blob(o) { return new Blob([unb64(String(o.pdf).replace(/\+/g, "-").replace(/\//g, "_"))], { type: "application/pdf" }); }
-  function draw() { if (RUN) return quiz(); if (ACT) return fiche(); if (MIS) return mission();
+  /* 📖 Culture des activités (demande de l'enseignant, 28/11/2026) : une petite icône dans le bandeau, à consulter quand on veut ; rien dans « À faire ».
+     Les activités de l'élève d'abord, dépliables ; le texte vient d'eps-culture.js (repères généraux, les mêmes que dans les applis). */
+  var CUL = false;
+  function culture() { var A = acts().map(function (a) { return window.EPSCULT ? EPSCULT.dossier(a.nom) : ""; }).filter(function (d, i, T) { return d && T.indexOf(d) === i; }), tous = window.EPSCULT ? EPSCULT.noms().map(function (x) { return x.dir; }) : [];
+    var L = A.concat(tous.filter(function (d) { return A.indexOf(d) < 0; }));
+    var h = '<button type="button" class="s" id="cb" style="margin:0 0 12px">← Retour</button><div class="card"><h2 style="margin:0 0 4px">📖 Culture des activités</h2><p class="mut" style="margin:0">Quelques repères sur chaque activité : d\'où elle vient, ses règles, où la pratiquer.</p></div>' +
+      L.map(function (d, i) { return '<details class="card"' + (i === 0 && A.length ? " open" : "") + '><summary style="cursor:pointer;font-weight:800;font-size:18px;min-height:44px;display:flex;align-items:center">' + esc(EPSCULT.data[d].nom) + (A.indexOf(d) >= 0 ? ' <small class="mut" style="font-weight:600;margin-left:8px">une de mes activités</small>' : "") + '</summary><div style="margin-top:10px">' + EPSCULT.html(d) + "</div></details>"; }).join("");
+    res.innerHTML = h; var b = document.getElementById("cb"); if (b) b.onclick = function () { CUL = false; draw(); window.scrollTo(0, 0); }; }
+  function draw() { var cu = document.getElementById("cult"); if (cu) { cu.hidden = !window.EPSCULT; cu.onclick = function () { CUL = true; RUN = null; ACT = null; MIS = null; draw(); window.scrollTo(0, 0); }; }
+    if (CUL && window.EPSCULT) return culture();
+    if (RUN) return quiz(); if (ACT) return fiche(); if (MIS) return mission();
     var AU = autos(), MI = (ESP && Array.isArray(ESP.mis)) ? ESP.mis : [], T = (ESP && ESP.todo) || [], reste = AU.filter(function (a) { return !ME.fait["auto|" + a.app]; }).length + T.filter(function (t) { return !fait(t); }).length + MI.filter(function (m) { return !ME.obs[m.id]; }).length;
     var h = '<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="todo" class="' + (TAB === "todo" ? "on" : "") + '" aria-selected="' + (TAB === "todo") + '">À faire' + (reste ? " (" + reste + ")" : "") + '</button><button type="button" role="tab" data-tab="acts" class="' + (TAB === "acts" ? "on" : "") + '" aria-selected="' + (TAB === "acts") + '">Mes activités</button></div>';
     if (TAB === "todo") { MI.forEach(function (m, i) { var d = !!ME.obs[m.id]; h += '<button type="button" class="tk' + (d ? " done" : "") + '" data-mi="' + i + '"><span class="i" aria-hidden="true">' + (d ? "✅" : "🎯") + '</span><span class="t">' + esc(m.t) + "<small>Ma mission du jour · " + (m.ty === "cpt" ? "j'observe et je compte" : "ma fiche de rôle") + (d ? " · envoyée" : "") + "</small></span></button>"; });
