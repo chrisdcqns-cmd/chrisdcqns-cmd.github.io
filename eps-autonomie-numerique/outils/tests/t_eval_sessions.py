@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 ROOT = sys.argv[1]
 srv = subprocess.Popen([sys.executable, "-I", "-m", "http.server", "8879", "--bind", "127.0.0.1", "--directory", ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1.2)
 B = "http://localhost:8879/eps-autonomie-numerique/"
-INIT = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');if(!localStorage.getItem('eps.share.v1'))localStorage.setItem('eps.share.v1',JSON.stringify({url:'https://script.google.com/macros/s/TEST/exec',key:'k'}));}catch(e){}"
+INIT = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');localStorage.setItem('eps.eval.pli','1');if(!localStorage.getItem('eps.share.v1'))localStorage.setItem('eps.share.v1',JSON.stringify({url:'https://script.google.com/macros/s/TEST/exec',key:'k'}));}catch(e){}"
 FICHE = "(function(){var f=document.querySelector('.epse-fiche');return f?f.innerText:''})()"
 async def main():
     out = []; errs = []
@@ -25,6 +25,10 @@ async def main():
         nom = await p.evaluate("(function(){var b=document.querySelector('.epse-li.on span');return b?b.firstChild.textContent:''})()")
         cl = await p.evaluate("(function(){var s=document.querySelector('[data-cls]');return s?s.value:''})()")
         ok("fiche ouverte (" + nom + ", " + cl + ")", nom and cl, [nom, cl])
+        # « Ses résultats » et « Proposition » sont repliés par défaut : on vérifie, puis on rouvre (le test garde le bloc ouvert)
+        await p.evaluate("(function(){localStorage.removeItem('eps.eval.pli');EPSTESC.go('eval')})()"); await p.wait_for_timeout(900)
+        ok("résultats et proposition repliés par défaut, critères visibles", await p.evaluate("(function(){var d=document.querySelector('.epse-fiche [data-pli]');return !!d&&!d.open&&document.querySelectorAll('.epse-fiche [data-crits] .epse-deg').length>=8})()"))
+        await p.evaluate("(function(){localStorage.setItem('eps.eval.pli','1');EPSTESC.go('eval')})()"); await p.wait_for_timeout(900)
         # ---- grimpes de l'élève : bloc résultats + proposition
         pre = nom.split(" ")[0]
         await p.evaluate("""([cl,pre])=>{[['5b',9,9,8,14],['5c',9,7,10,15],['4c',9,9,9,12]].forEach(function(x,i){R.push({id:'t'+i,ts:'2026-11-2'+i+' 10:0'+i,cl:cl,el:pre,vo:i+1,c:'bleu',d:x[0],h:x[1],ann:x[2],m:x[3],p:x[4]})});EPSTESC.go('eval')}""", [cl, pre]); await p.wait_for_timeout(1200)

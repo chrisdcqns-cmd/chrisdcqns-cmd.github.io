@@ -2322,7 +2322,7 @@ function rEvMain0() {
     ${e.auto ? `<p class="muted" style="margin:10px 0 0">🙋 Auto-positionnement de l'élève ${esc(e.auto.date || '')} · <button class="lnk" data-act="supAuto">supprimer</button></p>` : ''}</div>`;
   M.innerHTML = EV.ficheHtml(cc, e, { head: dispOf(cl, e) ? ` <span class="tagdisp">🩹 ${esc(dispLabel(dispOf(cl, e)))}</span>` : '', extra, foot });
   const redraw = () => { rEvMain(); rListe(); };
-  EV.ficheBind(M, cc, e, { redraw, pdf: () => exportPdfEleve(e),
+  EV.ficheBind(M, cc, e, { redraw,
     nav: d => { const n = idx + d; if (idx >= 0 && n >= 0 && n < list.length) { UI.selId = list[n].id; rListe(); rEvMain(); } },
     extraBind: () => {
       const sel = $('#mSel'); if (sel) sel.onchange = () => { UI.selId = sel.value; rListe(); rEvMain(); };
@@ -2709,22 +2709,11 @@ function rBilan() {
   if (!cl || !cl.eleves.length) { V.innerHTML = `<div class="empty card"><h2>Pas encore d'élèves</h2><button class="btn primary" onclick="aller('classe')">Importer ma liste</button></div>`; return; }
   /* 📤 Bilan et export = page commune (eps-eval.js M.bilanHtml, 28/11/2026) ; l'ouverture de l'auto-positionnement reste celle de Danse */
   const EV = evdan(), cc = { nom: cl.nom, eleves: trierEleves(cl.eleves) };
-  /* la danse garde ses exports et sa fiche PDF : elle porte le QR code de SON auto-positionnement */
-  const exp = `<div class="card"><h3>📤 Export – ${esc(cl.nom)}</h3><div class="row wrap">
-      <button class="btn primary" id="xZip">🗂 Fiches PDF + récapitulatif (.zip)</button>
-      <button class="btn" id="xRecap">📊 Récapitulatif (PDF)</button>
-      <button class="btn" id="xCsv">⬇ Tableur (.csv)</button>
-      <button class="btn" id="xPn">📋 Pronote</button><button class="btn" id="xPub">🌐 Publier en ligne</button></div>
-    <p class="muted">Langage du PDF élève : <b>${S.reglages.langPDF === 'eleve' ? 'version élève simplifiée' : 'version enseignant'}</b> · note ${S.reglages.noteSurPDF ? 'affichée' : 'masquée'} (modifiable dans Réglages).</p></div>`;
-  V.innerHTML = EV.bilanHtml(cc, { exports: exp, auto: `<div class="card"><h3>🙋 Auto-positionnement des élèves</h3>${autoCtlHTML()}</div>`,
+  /* exports et fiche PDF communs (eps-eval.js) : la fiche porte le QR code de l'auto-positionnement de Danse (window.epsApAdapt) */
+  V.innerHTML = EV.bilanHtml(cc, { auto: `<div class="card"><h3>🙋 Auto-positionnement des élèves</h3>${autoCtlHTML()}</div>`,
     extra: `<div class="card"><p class="muted" style="margin:0">Fiches d'observation de la classe : <b>${S.obs.filter(o => o.classeId === cl.id).length}</b> · langage du PDF et note affichée : voir Réglages.</p></div>` });
-  EV.bilanBind(V, cc, { exports: 1, auto: 1, pdf: E => exportPdfEleve(E) });
+  EV.bilanBind(V, cc, { auto: 1 });
   bindAutoCtl($('#view'), rBilan);
-  $('#xZip').onclick = () => exportZip(cl);
-  $('#xRecap').onclick = () => exportRecap(cl);
-  $('#xCsv').onclick = () => exportCsv(cl);
-  $('#xPn').onclick = () => exportPronote(cl);
-  $('#xPub').onclick = () => { if (!(window.EPSD && EPSD.publish)) { toast('Publication indisponible (recharge la page)'); return; } EPSD.publish({ app: 'danse', nom: 'Danse', color: '#C2185B', classe: cl.nom, eleves: cl.eleves.map(e => ({ full: ((e.prenom || '') + ' ' + (e.nom || '')).trim(), bytes: () => pdfEleveBytes(cl, e) })) }); };
 }
 
 /* =========================================================

@@ -906,7 +906,7 @@ function renderEval0(){
   p.innerHTML=M.ficheHtml(cc,e,{reset:1,head:apChipVol(e)+(dispOf(e)?` <span class="tag abs">🩹 ${esc(EPSD.label(dispOf(e)))}</span>`:''),
     extra:choixHtml+(optM()||optB()?`<div class="row" style="align-items:stretch;margin-bottom:12px">${optM()?matchCard(e):''}${optB()?bonusCard(e):''}</div>`:''),
     foot:'<div class="total" id="totBar"></div>'});
-  M.ficheBind(p,cc,e,{redraw:renderEval,nav:d=>nav(d),pdf:()=>exportPdfEleve(),reset:()=>resetEleve()});
+  M.ficheBind(p,cc,e,{redraw:renderEval,nav:d=>nav(d),reset:()=>resetEleve()});
   renderTotal();
 }
 let TXEL=(()=>{try{return !!localStorage.getItem('eps_volley_txel')}catch(e){return false}})();
@@ -2094,20 +2094,10 @@ function tableHtml(c){
 /* 📤 Bilan et export = page commune (eps-eval.js M.bilanHtml, 28/11/2026) : export, auto-positionnement, bilan de l'évaluation, répartition, notes ; puis ce qui est propre à l'appli */
 function renderBilan(){
   const c=C(),st=classStats(c),M=evvol(),cc={nom:c.nom,eleves:c.eleves},T=document.getElementById('t-bilan');
-  /* le volley garde ses exports et sa fiche PDF : elle porte le QR code de SON auto-positionnement */
-  const exp=`<div class="card"><h2>📤 Export – ${esc(c.nom)}</h2>
-    <div class="row">
-      <button class="btn" style="background:var(--vol)" onclick="exportZip()">🗂 Fiches PDF + récapitulatif (.zip)</button>
-      <button class="btn" onclick="exportPdfTous()">📄 Toutes les fiches (un PDF)</button>
-      <button class="btn alt" onclick="exportRecap()">📊 Récapitulatif (PDF)</button>
-      <button class="btn alt" onclick="exportCSV()">⬇ Tableur (.csv)</button>
-      <button class="btn alt" onclick="exportPronote()">📋 Pronote</button><button class="btn alt" onclick="publierEnLigne()">🌐 Publier en ligne</button>
-    </div>
-    <div class="row" style="margin-top:10px"><b style="color:var(--navy)">Langage des fiches élèves (PDF et .zip) :</b>
-     <div class="seg"><button class="${B().langFiche!=='prof'?'on':''}" onclick="B().langFiche='eleve';save();renderBilan()">Version élève (simplifiée)</button><button class="${B().langFiche==='prof'?'on':''}" onclick="B().langFiche='prof';save();renderBilan()">Version enseignant</button></div></div></div>`;
-  T.innerHTML=M.bilanHtml(cc,{exports:exp,auto:apCardHtml(c),extra:`${st.nonNotes?`<div class="warn">${st.nonNotes} élève(s) n'ont pas encore tous leurs critères évalués.</div>`:''}
+  /* exports et fiche PDF communs (eps-eval.js) : la fiche porte le QR code de l'auto-positionnement du volley (window.epsApAdapt) */
+  T.innerHTML=M.bilanHtml(cc,{auto:apCardHtml(c),extra:`${st.nonNotes?`<div class="warn">${st.nonNotes} élève(s) n'ont pas encore tous leurs critères évalués.</div>`:''}
   <div class="card"><h2>Statistiques détaillées du volley</h2>${statsHtml(c,st)}<div class="row" style="margin-top:10px"><button class="btn or" onclick="printPDF('classe')">📄 PDF : notes + statistiques (impression)</button></div></div>`});
-  M.bilanBind(T,cc,{exports:1,auto:1,pdf:E=>{curEl=c.eleves.indexOf(E);exportPdfEleve()}});
+  M.bilanBind(T,cc,{auto:1});
   apQrCanvas();
 }
 

@@ -289,7 +289,11 @@
     if (document.head) css(); else document.addEventListener("DOMContentLoaded", function () { css(); });
     var M = {};
     function S() { return (typeof A.settings === "function" ? A.settings() : null) || {}; }
-    function ouvert() { var s = S(); return !!s.apOuvert && (!s.apJusqua || today() <= s.apJusqua); }
+    /* appli qui a SON écran d'auto-positionnement (window.epsApAdapt : Volley, Danse, liens en #eleve=) : les fiches PDF communes portent son lien et suivent son ouverture */
+    function apW() { var W = window.epsApAdapt; return W && W.app === A.app && typeof W.lien === "function" ? W : null; }
+    function apWc(c) { var W = apW(); try { var L = W.classes() || []; return L.filter(function (x) { return x && x.nom === (c && c.nom); })[0] || c; } catch (e) { return c; } }
+    function ouvert(c) { var W = apW(); if (W) { try { return !!W.ouvert(c ? apWc(c) : undefined); } catch (e) { return false; } } var s = S(); return !!s.apOuvert && (!s.apJusqua || today() <= s.apJusqua); }
+    function jusquaDe(c) { var W = apW(); if (W) { try { return W.jusqua(c ? apWc(c) : undefined) || ""; } catch (e) { return ""; } } return S().apJusqua || ""; }
     function etat() { var s = S(); if (ouvert()) return s.apJusqua ? "Ouvert jusqu'au " + dIso(s.apJusqua) + " : un lien personnel figure sur chaque fiche PDF." : "Ouvert : un lien personnel figure sur chaque fiche PDF.";
       return s.apOuvert ? "Date dépassée : les liens ne fonctionnent plus." : "Fermé : aucun lien sur les fiches, les élèves ne peuvent pas se positionner."; }
     function pageUrl() { if (/^https?:$/.test(location.protocol)) return location.href.split("#")[0].split("?")[0]; return A.url; }
@@ -301,6 +305,7 @@
     async function cle(secret, id) { return u8b64((await hmac(secret, A.app + "|k|" + id)).slice(0, 16)); }
     async function depot(cfg, cnom, n) { var id = A.pfx + u8b64((await hmac(cfg.key, A.app + "|id|" + nk(cnom) + "|" + nk(n.nom) + "|" + nk(n.prenom))).slice(0, 12)); return { id: id, k: await cle(cfg.key, id) }; }
     async function lien(E, c) {
+      var W = apW(); if (W) return W.lien(E, apWc(c));
       var n = A.name(E), t = [n.nom, n.prenom || "", c.nom, (S().apJusqua || "").replace(/-/g, "")], cfg = envoi();
       if (cfg && cryptoOk()) { try { var d = await depot(cfg, c.nom, n); t.push(d.id, d.k, sidDe(cfg.url) || cfg.url); } catch (e) {} }
       return pageUrl() + HASH + b64e(JSON.stringify(t));
@@ -336,7 +341,7 @@
       } finally { releve = false; }
     }
     function msg(r) { return !r ? "" : r.err === "connexion" ? "Pas de connexion au script Google." : r.err === "cle" ? "Clé secrète refusée par le script." : r.err === "script" ? "Ce n'est pas le script des auto-positionnements." : r.err === "reglage" ? "Envoi automatique non réglé." : r.n ? r.n + " nouveau(x) positionnement(s) reçu(s)" + (r.inconnus ? ", " + r.inconnus + " élève(s) non reconnu(s)" : "") + "." : "Rien de nouveau."; }
-    setInterval(function () { if (!isT_() || !boite().lire.length || document.hidden || !ouvert()) return; relever(false).then(function (r) { if (r && r.n) { toast("🙋 " + r.n + " auto-positionnement" + (r.n > 1 ? "s" : "") + " reçu" + (r.n > 1 ? "s" : "")); try { A.changed(); } catch (e) {} } }); }, 30000);
+    setInterval(function () { if (!isT_() || apW() || !boite().lire.length || document.hidden || !ouvert()) return; relever(false).then(function (r) { if (r && r.n) { toast("🙋 " + r.n + " auto-positionnement" + (r.n > 1 ? "s" : "") + " reçu" + (r.n > 1 ? "s" : "")); try { A.changed(); } catch (e) {} } }); }, 30000);
     function codeDe(P) { return A.code + "." + b64e(JSON.stringify(payload(P))); }
     function importer(txt) {
       var codes = String(txt || "").match(new RegExp(A.code.replace(/\./g, "\\.") + "\\.[A-Za-z0-9_-]+", "g")) || []; if (!codes.length) { toast("Aucun code trouvé"); return; }
@@ -498,7 +503,7 @@
     function pageEleve(ctx, c, E, url, el) {
       var doc = ctx.doc, F = ctx.F, G = A.grid(), PW = 841.89, PH = 595.28, Mg = 26, W = PW - 2 * Mg, ink = PDFLib.rgb(.106, .118, .141), grey = PDFLib.rgb(.42, .43, .47), light = PDFLib.rgb(.86, .85, .82), white = PDFLib.rgb(1, 1, 1), app = rgbH(A.color);
       var LW = 170, CW = (W - LW) / 4, pad = 5, abs = A.absent(E), n20 = abs ? null : A.note(E), ap = A.getAp(E), a = ap && ap.ev && Object.keys(ap.ev).length ? ap.ev : null;
-      var avecLien = !abs && ((!!url && ouvert()) || !!a), HL = avecLien ? 90 : 0, comm = (A.comment(E) || "").trim(), obj = abs ? "" : conseil(E, el), extra = (A.extras ? A.extras(c, E) : []) || [];
+      var avecLien = !abs && ((!!url && ouvert(c)) || !!a), HL = avecLien ? 90 : 0, comm = (A.comment(E) || "").trim(), obj = abs ? "" : conseil(E, el), extra = (A.extras ? A.extras(c, E) : []) || [];
       var DG = el ? (G.degresEl || G.degres) : G.degres;
       function mesure(fs) { var lh = fs * 1.22;
         var rows = G.criteres.map(function (cr) { var nm = el ? (cr.nomEl || cr.nom) : cr.nom, bt = el ? (cr.butEl || cr.but || "") : (cr.but || ""), D = el ? (cr.descEl || cr.desc) : cr.desc;
@@ -557,15 +562,15 @@
             var lb = z ? "D" + (z.d + 1) + " · " + DG[z.d] : "non renseigné", ls = 9.5; while (ls > 6 && F.b.widthOfTextAtSize(san(F.b, lb), ls) > cw - 8) ls -= .5;
             PT(page, lb, x0 + (cw - F.b.widthOfTextAtSize(san(F.b, lb), ls)) / 2, hy + (hh - ls) / 2 + 1.5, ls, F.b, z ? white : grey); });
           PT(page, A.nom + " EPS — " + (el ? "grille en langage élève" : "grille enseignant") + " · document généré le " + dateFR(), Mg, Mg - 12, 6.5, F.r, grey); return; }
-        var q = qrPdf(page, url, Mg + 6, by - bh + 4, bh - 8), tx0 = Mg + 16 + q, auto = false; try { auto = JSON.parse(b64d(url.split(HASH)[1])).length > 4; } catch (x) {}
+        var q = qrPdf(page, url, Mg + 6, by - bh + 4, bh - 8), tx0 = Mg + 16 + q, auto = false; try { auto = JSON.parse(b64d(url.split(/#(?:auto|eleve)=/)[1])).length > 4; } catch (x) {}
         PT(page, el ? "Et moi, où je me situe ? Je me positionne !" : "Auto-positionnement de l'élève", tx0, by - 24, 12, F.b, app);
-        var m = "Scanne le QR code ou clique ici pour te positionner toi-même dans les niveaux" + (S().apJusqua ? " (lien valable jusqu'au " + dIso(S().apJusqua) + ")" : "") + ". " + (auto ? "Quand tu valides, ton positionnement est envoyé directement à ton enseignant." : "Ensuite, envoie le code obtenu à ton enseignant par la messagerie Pronote.");
+        var m = "Scanne le QR code ou clique ici pour te positionner toi-même dans les niveaux" + (jusquaDe(c) ? " (lien valable jusqu'au " + dIso(jusquaDe(c)) + ")" : "") + ". " + (auto ? "Quand tu valides, ton positionnement est envoyé directement à ton enseignant." : "Ensuite, envoie le code obtenu à ton enseignant par la messagerie Pronote.");
         PLn(page, wrap(m, F.r, 9.2, W - (tx0 - Mg) - 160), tx0, by - 42, 9.2, F.r, 11.6, ink);
         var bw = 128, bx2 = Mg + W - bw - 12, bby = by - bh / 2 - 13; page.drawRectangle({ x: bx2, y: bby, width: bw, height: 26, color: app });
         var lb = "Je me positionne  >"; PT(page, lb, bx2 + (bw - F.b.widthOfTextAtSize(lb, 10)) / 2, bby + 9, 10, F.b, white); lienPdf(doc, page, url, Mg, by - bh, W, bh); }
       PT(page, A.nom + " EPS — " + (el ? "grille en langage élève" : "grille enseignant") + " · document généré le " + dateFR(), Mg, Mg - 12, 6.5, F.r, grey);
     }
-    async function pageLien(ctx, c, E, el) { var u = ouvert() && !A.absent(E) ? await lien(E, c) : ""; pageEleve(ctx, c, E, u, el); }
+    async function pageLien(ctx, c, E, el) { var u = ouvert(c) && !A.absent(E) ? await lien(E, c) : ""; pageEleve(ctx, c, E, u, el); }
     function nomPdf(c, E) { var n = A.name(E); return (safe(n.nom) + "_" + safe(n.prenom || "") + "_" + safe(A.nom) + "_" + safe(c.nom) + ".pdf").replace(/__+/g, "_"); }
     async function ficheBytes(c, E, el) { var ctx = await doc0(); await pageLien(ctx, c, E, el); return ctx.doc.save(); }
     async function recapBytes(c) {
@@ -740,11 +745,13 @@
     /* 🎚 Coefficient choisi par l'enseignant pour une leçon (demande du 28/11/2026 : « valoriser des leçons, ×2 la première, ×1 la suivante… ») :
        eps.eval.coef.<app>.v1 = { <classe>: { "AAAA-MM-JJ": coefficient } } ; 0 = leçon non comptée ; rien = coefficient par défaut (1 + res_coef_pas × rang). */
     var KCF = "eps.eval.coef." + A.app + ".v1";
-    function cfAll() { var v = jget(KCF, null); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
+    /* synchronisés entre tablettes depuis le 28/11/2026 : élément « <app>|coef » du magasin commun eps.ccfcfg.v1 (cc|) ; l'ancien rangement local est repris une fois */
+    function cfAll() { var o = ccGet(A.app + "|coef"); if (o && o.v && typeof o.v === "object") return o.v; var v = jget(KCF, null); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
+    function cfPut(V) { try { ccPut({ id: A.app + "|coef", k: "coef", app: A.app, v: V }); } catch (e) { jset(KCF, V); } }
     M.coefDe = function (cls, day, def) { var o = cfAll()[nk(cls || "")], v = o ? o[String(day)] : null; return v != null && isFinite(+v) && +v >= 0 ? +v : def; };
-    M.coefSet = function (cls, day, v) { var V = cfAll(), k = nk(cls || ""); V[k] = V[k] || {}; if (v == null) delete V[k][String(day)]; else V[k][String(day)] = Math.max(0, Math.min(20, Math.round(+v * 2) / 2)); jset(KCF, V); };
+    M.coefSet = function (cls, day, v) { var V = cfAll(), k = nk(cls || ""); V[k] = V[k] || {}; if (v == null) delete V[k][String(day)]; else V[k][String(day)] = Math.max(0, Math.min(20, Math.round(+v * 2) / 2)); cfPut(V); };
     M.coefRegle = function (cls) { var o = cfAll()[nk(cls || "")]; return !!(o && Object.keys(o).length); };
-    M.coefRaz = function (cls) { var V = cfAll(); delete V[nk(cls || "")]; jset(KCF, V); };
+    M.coefRaz = function (cls) { var V = cfAll(); delete V[nk(cls || "")]; cfPut(V); };
     M.resCoef = function (days, cls) { var D = (days || []).map(String).filter(function (d, i, T) { return d && T.indexOf(d) === i; }).sort(), K = {}, pas = resPas(), last = resScope() === "last"; if (last) D = D.slice(-1);
       D.forEach(function (d, i) { var k = Math.round((1 + pas * i) * 100) / 100; K[d] = last || cls == null ? k : M.coefDe(cls, d, k); }); return K; };
     function frD(d) { var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String(d || "")); return m ? m[3] + "/" + m[2] + "/" + m[1] : String(d || ""); }
@@ -885,7 +892,7 @@
         '<div class="epse-row">' + ["", "ABS", "DISP"].map(function (x) { return '<button class="epse-btn' + (st === x ? " p" : "") + '" data-st="' + x + '">' + (x || "Présent(e)") + "</button>"; }).join("") + '<button class="epse-btn" data-pdf>📄 Fiche PDF</button>' +
         (hasEl ? '<label style="display:inline-flex;gap:6px;align-items:center;font-weight:700;min-height:44px" title="Afficher les critères avec les mots de l\'élève"><input type="checkbox" data-txel' + (TX ? " checked" : "") + ' style="width:22px;height:22px">Texte élève</label>' : "") +
         (o.reset ? '<button class="epse-btn" data-raz style="margin-left:auto;color:#B3261E">Effacer la note</button>' : "") + "</div></div>" +
-        (o.extra || "") + M.propHtml(E, cls) +
+        (o.extra || "") + '<details class="epse-pli" data-pli><summary style="cursor:pointer;font-weight:800;font-size:16px;padding:12px 14px;background:#fff;border:1.5px solid #E6E1D6;border-radius:14px;margin:0 0 10px">📊 Ses résultats et 🎯 proposition · note proposée : ' + (P.note == null ? "—" : fr(P.note) + " / 20") + (P.nA ? " · " + P.nA + " critère" + (P.nA > 1 ? "s" : "") + " proposé" + (P.nA > 1 ? "s" : "") : "") + "</summary>" + M.propHtml(E, cls) + "</details>" +
         '<div data-crits' + (st ? ' style="opacity:.45;pointer-events:none"' : "") + ">" + G.criteres.map(function (cr) { var v = A.prof(cr, E), x = ap && ap.ev && ap.ev[cr.id], s2 = P.est && P.est[cr.id], mx = mxOf(cr), inf = "", DS = TX && cr.descEl && cr.descEl.length ? cr.descEl : cr.desc; if (v && v.d == null) v = null;
           try { inf = A.critInfo ? (A.critInfo(cr, E) || "") : ""; } catch (e) { inf = ""; }
           var N = 4; if (v) { try { N = A.posN ? Math.max(1, Math.round(+A.posN(cr, E, v.d)) || 4) : 4; } catch (e) { N = 4; } }
@@ -904,6 +911,8 @@
       [].forEach.call(R.querySelectorAll("[data-crits] [data-d]"), function (b) { b.onclick = function () { var cr = crOf(b.dataset.c), d = +b.dataset.d; if (!cr) return; var v = A.prof(cr, E); try { A.setDeg(cr, E, v && v.d === d ? null : d); } catch (e) { console.warn(e); } redraw(); }; });
       [].forEach.call(R.querySelectorAll("[data-crits] [data-p]"), function (i) { i.onchange = function () { var cr = crOf(i.dataset.p); if (!cr) return; try { if (A.setPos) A.setPos(cr, E, (+i.value) / (+i.dataset.n || 4)); } catch (e) { console.warn(e); } redraw(); }; });
       var t = R.querySelector("[data-comm]"); if (t) t.oninput = t.onchange = function () { try { if (A.setComment) A.setComment(E, t.value); } catch (e) { console.warn(e); } };
+      /* replié par défaut (demande du 28/11/2026 : les critères tout de suite visibles) ; le choix de l'enseignant est gardé sur la tablette */
+      var pl = R.querySelector("[data-pli]"); if (pl) { try { pl.open = localStorage.getItem("eps.eval.pli") === "1"; } catch (e) {} pl.addEventListener("toggle", function () { try { localStorage.setItem("eps.eval.pli", pl.open ? "1" : "0"); } catch (e) {} }); }
       M.bindProp(R, E, cls, redraw, o.take);
       M.bindPhrase(R, E, cls, function (txt) { try { if (A.setComment) A.setComment(E, txt); } catch (e) { console.warn(e); } redraw(); });
       try { if (o.extraBind) o.extraBind(R); } catch (e) { console.warn(e); } };
@@ -966,9 +975,13 @@
        Rangement local : eps.evalses.<app>.v1 = { <classe>: { cur:{nom,d}, view:"", list:[{id,nom,d,fin}], arch:{id:{<élève>:copie}}, live } }. */
     var KSES = "eps.evalses." + A.app + ".v1";
     M.sesOk = function () { return typeof A.sesGet === "function" && typeof A.sesSet === "function"; };
+    /* synchronisées entre tablettes depuis le 28/11/2026 : un élément « <app>|ses|<classe> » par classe dans eps.ccfcfg.v1 (cc|) ; l'ancien rangement local
+       (eps.evalses.<app>.v1) est lu tant que la classe n'a pas été réécrite */
+    function sesId2(cls) { return A.app + "|ses|" + nk(cls); }
     function sesAll() { var v = jget(KSES, null); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; }
-    function sesOf(cls) { var s = sesAll()[nk(cls)]; if (!s || typeof s !== "object") s = { cur: { nom: "", d: "" }, view: "", list: [], arch: {} }; s.list = Array.isArray(s.list) ? s.list : []; s.arch = s.arch || {}; s.cur = s.cur || { nom: "", d: "" }; if (s.view && !s.arch[s.view]) s.view = ""; return s; }
-    function sesPut(cls, s) { var V = sesAll(); V[nk(cls)] = s; jset(KSES, V); }
+    function sesRaw(cls) { var o = ccGet(sesId2(cls)); if (o && o.s && typeof o.s === "object") return o.s; return sesAll()[nk(cls)] || null; }
+    function sesOf(cls) { var s = sesRaw(cls); s = s ? JSON.parse(JSON.stringify(s)) : null; if (!s || typeof s !== "object") s = { cur: { nom: "", d: "" }, view: "", list: [], arch: {} }; s.list = Array.isArray(s.list) ? s.list : []; s.arch = s.arch || {}; s.cur = s.cur || { nom: "", d: "" }; if (s.view && !s.arch[s.view]) s.view = ""; return s; }
+    function sesPut(cls, s) { try { ccPut({ id: sesId2(cls), k: "ses", app: A.app, cls: cls, s: s }); } catch (e) { var V = sesAll(); V[nk(cls)] = s; jset(KSES, V); } }
     function sesL(list) { return (typeof list === "function" ? list() : list) || []; }
     function snapAll(list) { var o = {}; sesL(list).forEach(function (E) { var x = null; try { x = A.sesGet(E); } catch (e) { x = null; } if (x != null) o[ekey(E)] = JSON.parse(JSON.stringify(x)); }); return o; }
     function loadAll(list, src) { sesL(list).forEach(function (E) { var x = src && src[ekey(E)]; try { A.sesSet(E, x != null ? JSON.parse(JSON.stringify(x)) : null); } catch (e) { console.warn(e); } }); }
@@ -983,7 +996,7 @@
     /* 📦 Évaluations déjà enregistrées avant l'arrivée des évaluations multiples (demande de l'enseignant, 28/11/2026 : « les enregistrer sous une évaluation,
        comme ça quand j'ouvre l'application j'ai accès à une nouvelle évaluation ») : une seule fois par classe, jusqu'au ARCH0_FIN (après, une tablette
        restée de côté ne rangerait pas par surprise une évaluation en cours), jamais pour la classe fictive. */
-    M.sesAuto = function (cls, list, force) { if (!M.sesOk()) return 0; var V = sesAll(), k = nk(cls); if (V[k] && !force) return 0;
+    M.sesAuto = function (cls, list, force) { if (!M.sesOk()) return 0; if (sesRaw(cls) && !force) return 0;
       var s = sesOf(cls); if (!force && (arch0Fini() || /d[ée]mo \(fictive\)/i.test(String(cls)))) { sesPut(cls, s); return 0; }
       var nb = Object.keys(snapAll(list)).length; if (!nb) { sesPut(cls, s); return 0; }
       s.cur = { nom: ARCH0_NOM, d: "" }; sesPut(cls, s); return M.sesNew(cls, list, "Nouvelle évaluation"); };
@@ -996,7 +1009,7 @@
     M.sesBarHtml = function (cls) { if (!M.sesOk()) return ""; var s = sesOf(cls), V = s.view || "", cur = s.cur.nom || "Évaluation en cours";
       return '<label class="epse-mut" style="display:inline-flex;gap:6px;align-items:center;font-weight:700">Évaluation <select data-ases style="min-height:42px;border-radius:10px;border:2px solid #E6E1D6;padding:0 8px;font:700 15px system-ui;max-width:230px"><option value=""' + (V ? "" : " selected") + ">" + esc(cur) + (s.cur.d ? " · " + frJ2(s.cur.d) : "") + " (en cours)</option>" + s.list.slice().reverse().map(function (x) { return '<option value="' + esc(x.id) + '"' + (V === x.id ? " selected" : "") + ">" + esc(x.nom) + (x.d ? " · " + frJ2(x.d) : "") + "</option>"; }).join("") + '</select></label><button type="button" data-asesnew title="Garder l\'évaluation actuelle et en commencer une autre, à zéro">＋ Nouvelle évaluation</button>' +
         (V ? '<button type="button" data-asescur style="background:#FFF8D6;border-color:#E9CF6A" title="Tu es dans une ancienne évaluation : tu peux la consulter et la corriger">📂 Ancienne évaluation · revenir à celle en cours</button>' : ""); };
-    M.sesBarBind = function (root, cls, list) { if (!root || !M.sesOk()) return; if (!sesAll()[nk(cls)]) { var nbA = 0; try { nbA = M.sesAuto(cls, list); } catch (e) { console.warn(e); } if (nbA) { toast("Tes évaluations déjà enregistrées sont rangées dans « " + ARCH0_NOM + " » (liste Évaluation). Tu pars sur une nouvelle."); return; } } var box = root.querySelector("[data-asesbox]"); if (box) box.innerHTML = M.sesBarHtml(cls);
+    M.sesBarBind = function (root, cls, list) { if (!root || !M.sesOk()) return; if (!sesRaw(cls)) { var nbA = 0; try { nbA = M.sesAuto(cls, list); } catch (e) { console.warn(e); } if (nbA) { toast("Tes évaluations déjà enregistrées sont rangées dans « " + ARCH0_NOM + " » (liste Évaluation). Tu pars sur une nouvelle."); return; } } var box = root.querySelector("[data-asesbox]"); if (box) box.innerHTML = M.sesBarHtml(cls);
       var s = root.querySelector("[data-ases]"); if (s) s.onchange = function () { M.sesView(cls, list, s.value); };
       var n = root.querySelector("[data-asesnew]"); if (n) n.onclick = function () { M.sesAsk(cls, function (nom) { var nb = M.sesNew(cls, list, nom); toast(nb ? "Nouvelle évaluation créée : l'ancienne est gardée (" + nb + " fiches)." : "Nouvelle évaluation créée."); }); };
       var c = root.querySelector("[data-asescur]"); if (c) c.onclick = function () { M.sesView(cls, list, ""); }; };
