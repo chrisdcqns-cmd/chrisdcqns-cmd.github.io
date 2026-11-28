@@ -4656,7 +4656,14 @@ var EVRL=window.EPSE?EPSE.create({app:'rel',nom:'Relais Vitesse',ca:'CA1',color:
  isTeacher:()=>teachOn(),when:()=>!teachOn()&&!WAIT_CL,
  classes:()=>DATA.classes.slice().sort((a,b)=>a.name.localeCompare(b.name,"fr")).map(c=>{const l=(c.lecons||[]).find(x=>x.date===todayISO());return{id:c.id,nom:c.name,note:c.eleves.length+" élève"+(c.eleves.length>1?"s":"")+(l?" · leçon aujourd'hui":"")}}),
  current:()=>WAIT_CL||"",
- demo:n=>{const C=DATA.classes.find(c=>c.name===n);if(C&&!(C.lecons||[]).some(x=>x.date===todayISO())){(C.lecons=C.lecons||[]).push({id:uid("l"),date:todayISO(),cfg:lastCfg(C)});persist()}},/* 👁 vue élève : la classe fictive a sa leçon du jour */
+ demo:n=>{const C=DATA.classes.find(c=>c.name===n);if(!C)return;let ch=false;
+   /* 👁 vue élève (demande du 28/11/2026 : « sans leçon enregistrée, une fausse leçon pour explorer ») : la classe fictive reçoit aussi des vitesses
+      et deux groupes, sinon « Aucun élève disponible dans ce groupe » ; rien n'est écrasé si l'enseignant a déjà rempli la classe fictive */
+   (C.eleves||[]).forEach((e,i)=>{if(!(e.ma>0)&&!(e.ml>0)){const a=19+(i*3)%6,l=a+3+(i%2);e.ea=[a,a,a];e.ma=a;e.el=[l,l,l];e.ml=l;ch=true}});
+   if(!(C.groupes||[]).length&&(C.eleves||[]).length>1){const ids=C.eleves.map(e=>e.id),h=Math.ceil(ids.length/2);C.groupes=[{id:uid("g"),name:"Groupe 1",members:ids.slice(0,h)},{id:uid("g"),name:"Groupe 2",members:ids.slice(h)}];ch=true}
+   let l=(C.lecons||[]).find(x=>x.date===todayISO());if(!l){l={id:uid("l"),date:todayISO(),cfg:lastCfg(C)};(C.lecons=C.lecons||[]).push(l);ch=true}
+   if(!(l.groupes||[]).length&&(C.groupes||[]).length){l.groupes=clone(C.groupes);ch=true}
+   if(ch)persist()},/* 👁 vue élève : la classe fictive a sa leçon du jour */
  select:id=>{WAIT_CL=id;WAIT_PICK=false;showWait()},
  resources:[{ico:"📐",label:"Dispositif",sub:"zones, plots, mesures",open:()=>{DISPO_BACK="wait";go("dispo")}},{ico:"📚",label:"Situations",sub:"exercices et consignes",open:()=>{SITS_BACK="wait";SIT_OPEN=null;SIT_CAT=sitsDay().length?"day":"all";go("sits")}}],
  teacher:async()=>{if(await requireCode())go("classes")}});

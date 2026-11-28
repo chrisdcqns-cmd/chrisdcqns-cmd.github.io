@@ -1769,8 +1769,9 @@ function defState() {
     v: 1,
     reglages: {
       etab: '', prof: '', activite: 'Danse — CA3',
-      bandes: [{ min: 0, max: 25, def: 15 }, { min: 25, max: 50, def: 45 }, { min: 50, max: 75, def: 75 }, { min: 75, max: 100, def: 100 }],
-      defaut: 'additio', arrondi: 0.25, noteSurPDF: true, langPDF: 'eleve',
+      /* écart entre les degrés (accord de l'enseignant, 28/11/2026) : le haut du degré 2 ne vaut jamais le bas du degré 3 ; un appui = milieu du degré */
+      bandes: BANDES2(), bv2: 1,
+      defaut: 'milieu', arrondi: 0.25, noteSurPDF: true, langPDF: 'eleve',
       autoOuvert: false, autoJusqua: '', urlAppli: '', envoiUrl: '', envoiCle: ''
     },
     grilleNom: 'origine', grilleV: 2,
@@ -1783,6 +1784,11 @@ function defState() {
 /* 👁 vue élève : la classe choisie dans le cadre (classe fictive) n'est jamais enregistrée comme classe en cours de la tablette */
 const VUE_E = !!window.EPS_VUE_ELEVE; let VUE_CID = '', CID_REEL = null;
 function load() { const s = load0(); if (VUE_E) { CID_REEL = s.classeId; if (VUE_CID && s.classes.some(c => c.id === VUE_CID)) s.classeId = VUE_CID; } return s; }
+function BANDES2() { return [{ min: 0, max: 20, def: 10 }, { min: 25, max: 45, def: 35 }, { min: 50, max: 70, def: 60 }, { min: 75, max: 100, def: 87.5 }]; }
+/* anciennes plages contiguës (0-25-50-75-100, jamais modifiées par l'enseignant) → plages avec écart, une seule fois (bv2) */
+function bandesMaj(R) { if (!R || R.bv2) return R; const B = R.bandes || [], old = [[0, 25], [25, 50], [50, 75], [75, 100]];
+  if (B.length === 4 && B.every((b, i) => b && +b.min === old[i][0] && +b.max === old[i][1])) { R.bandes = BANDES2(); R.defaut = 'milieu'; } R.bv2 = 1; return R; }
+function regMerge(st) { const had = st && st.bv2, R = Object.assign(defState().reglages, st || {}); if (!had) { R.bv2 = 0; bandesMaj(R); } return R; }
 function load0() {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { s = null; }
@@ -1790,7 +1796,7 @@ function load0() {
   if (!s || typeof s !== 'object' || !Array.isArray(s.classes)) return d;
   const critOk = c => c && c.id && Array.isArray(c.d) && c.d.length === 4 && Array.isArray(c.e) && c.e.length === 4;
   if (!Array.isArray(s.criteres) || !s.criteres.length || !s.criteres.every(critOk)) { s.criteres = d.criteres; s.grilleNom = 'origine'; }
-  s.reglages = Object.assign(d.reglages, s.reglages || {});
+  s.reglages = regMerge(s.reglages);
   delete s.reglages.pin;
   if (!Array.isArray(s.obs)) s.obs = [];
   if (!s.classes.length) s.classes = d.classes;
@@ -3251,7 +3257,7 @@ function rReglages() {
   };
   $('#rSave').onclick = () => { saveNow(); telecharger(new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }), `danse-eps-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`); };
   $('#rLoad').onchange = ev => lireFichier(ev.target.files[0], async t => {
-    try { const d = JSON.parse(t); if (!d.criteres || !d.classes) throw 0; if (await modal({ titre: 'Restaurer cette sauvegarde ?', html: '<p>Les données actuelles de cet appareil seront remplacées.</p>', ok: 'Restaurer', danger: true })) { S = Object.assign(defState(), d); S.reglages = Object.assign(defState().reglages, d.reglages || {}); saveNow(); synchroBientot(1500); toast('Données restaurées'); route(); } }
+    try { const d = JSON.parse(t); if (!d.criteres || !d.classes) throw 0; if (await modal({ titre: 'Restaurer cette sauvegarde ?', html: '<p>Les données actuelles de cet appareil seront remplacées.</p>', ok: 'Restaurer', danger: true })) { S = Object.assign(defState(), d); S.reglages = regMerge(d.reglages); saveNow(); synchroBientot(1500); toast('Données restaurées'); route(); } }
     catch (e) { toast('Fichier de sauvegarde invalide'); }
   });
   $('#rReset').onclick = async () => { if (await modal({ titre: 'Tout effacer ?', html: '<p>Classes, évaluations, observations et réglages seront supprimés de cet appareil. Pense à exporter une sauvegarde avant.</p>' + (communCfg() ? '<p>Tes autres appareils ne sont pas touchés : les données synchronisées reviendront ici à la prochaine synchronisation.</p>' : ''), ok: 'Tout effacer', danger: true })) { S = defState(); SY = { since: 0, h: {}, u: {}, p: {} }; sySave(); saveNow(); route(); } };
@@ -3627,7 +3633,7 @@ function syAppliquer(k, del, o, u) {
       const parDefaut = S.grilleNom === 'origine' && JSON.stringify(S.criteres) === JSON.stringify(grilleVers('origine'));
       if (parDefaut) { S.criteres = o.criteres; S.grilleNom = o.grilleNom; S.grilleV = o.grilleV; }
       const R0 = S.reglages; Object.keys(o.reglages || {}).forEach(x => { if (R0[x] === '' || R0[x] == null || R0[x] === false) R0[x] = o.reglages[x]; });
-    } else { S.criteres = o.criteres; S.grilleNom = o.grilleNom; S.grilleV = o.grilleV; S.reglages = Object.assign(defState().reglages, o.reglages || {}); }
+    } else { S.criteres = o.criteres; S.grilleNom = o.grilleNom; S.grilleV = o.grilleV; S.reglages = regMerge(o.reglages); }
   } else if (t === 'cl') {
     let c = S.classes.find(x => x.id === id);
     if (del) { if (c) { S.classes = S.classes.filter(x => x !== c); S.obs = S.obs.filter(ob => ob.classeId !== id); } }
