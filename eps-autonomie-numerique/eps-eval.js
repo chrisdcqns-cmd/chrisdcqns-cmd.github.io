@@ -879,6 +879,18 @@
        Ordre : en-tête → extra → 📊 Ses résultats → 🎯 Proposition → critères (🙋 élève, 💡 proposé) → 🙋 mots de l'élève → ✨ phrase + commentaire → foot. */
     var KTX = "eps.eval.txel." + A.app;
     function txEl() { try { return localStorage.getItem(KTX) === "1"; } catch (e) { return false; } }
+    /* 🎭 Rôles tenus et 🎯 travail choisi en autonomie, rappelés sous les critères qu'ils concernent (28/11/2026 : rôles sociaux et « savoir s'entraîner »
+       rendus visibles au moment d'évaluer, sans rien demander de plus aux élèves). Rôles : eps.lecroles.<dossier>.v1 (attribués dans 📡 Leçon en cours) ;
+       autonomie : résultats « <situation>@auto » d'eps.lecres (🎯 En autonomie, choisie par l'élève). Critère concerné = son AFL (AFL3 / AFL2) ou ses mots. */
+    function flatT(s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
+    M.rolesDe = function (E, cls) { var k = ekey(E), C = {}, n = 0; magasin("lecroles").forEach(function (o) { if (nk(o.cls) !== nk(cls)) return; Object.keys(o.who || {}).forEach(function (nom) { if (nkey(nom) !== k) return; (o.who[nom] || []).forEach(function (r) { C[r] = (C[r] || 0) + 1; n++; }); }); });
+      return { n: n, txt: Object.keys(C).map(function (r) { return r + (C[r] > 1 ? " ×" + C[r] : ""); }).join(" · ") }; };
+    M.autoDe = function (E, cls) { var k = ekey(E), L = [], IC = ["❌", "🟠", "✅"]; magasin("lecres").forEach(function (o) { if (o.ek !== k || nk(o.cls) !== nk(cls) || !o.day) return; Object.keys(o.r || {}).forEach(function (q) { if (!/@auto$/.test(q)) return; var v = o.r[q], t = ""; try { t = window.EPSLC && EPSLC.sitNom ? EPSLC.sitNom(q.replace(/@auto$/, "")) : ""; } catch (e) {} L.push({ day: String(o.day), t: (IC[v] || "") + " " + (t || "une situation") }); }); });
+      L.sort(function (a, b) { return b.day.localeCompare(a.day); }); return L; };
+    M.infoLecon = function (cr, E, cls) { var t = flatT((cr.afl || "") + " " + (cr.nom || "") + " " + (cr.but || "")), afl = String(cr.afl || "").trim().toUpperCase(), H = "";
+      if (afl === "AFL3" || /\brole|arbitr|\bjuge|coach|observat|assure|pareur|partenaire/.test(t)) { var R = M.rolesDe(E, cls); if (R.n) H += '<div style="color:#8A5A00;font-weight:700;font-size:14px;margin:0 0 6px">🎭 Rôles tenus en leçon : ' + esc(R.txt) + "</div>"; }
+      if (afl === "AFL2" || /entrain|se preparer|echauff|projet/.test(t)) { var L = M.autoDe(E, cls); if (L.length) H += '<div style="color:#1F5F8B;font-weight:700;font-size:14px;margin:0 0 6px">🎯 A choisi de travailler en autonomie (' + L.length + ") : " + esc(L.slice(0, 3).map(function (x) { return x.t.trim(); }).join(" · ")) + (L.length > 3 ? "…" : "") + "</div>"; }
+      return H; };
     M.ficheHtml = function (c, E, o) { o = o || {}; css(A.color);
       var G = A.grid(), cls = o.cls || c.nom, nm = A.name(E), st = (A.absent && A.absent(E)) || "", n = st ? null : (A.note ? A.note(E) : null), ap = A.getAp ? A.getAp(E) : null, P = M.prop(E, cls), TX = txEl(),
         DGL = TX && G.degresEl ? G.degresEl : G.degres, POSL = function (p) { p = p == null ? .5 : p; return p < .34 ? "bas" : p < .67 ? "milieu" : "haut"; },
@@ -895,6 +907,7 @@
         (o.extra || "") + '<details class="epse-pli" data-pli><summary style="cursor:pointer;font-weight:800;font-size:16px;padding:12px 14px;background:#fff;border:1.5px solid #E6E1D6;border-radius:14px;margin:0 0 10px">📊 Ses résultats et 🎯 proposition · note proposée : ' + (P.note == null ? "—" : fr(P.note) + " / 20") + (P.nA ? " · " + P.nA + " critère" + (P.nA > 1 ? "s" : "") + " proposé" + (P.nA > 1 ? "s" : "") : "") + "</summary>" + M.propHtml(E, cls) + "</details>" +
         '<div data-crits' + (st ? ' style="opacity:.45;pointer-events:none"' : "") + ">" + G.criteres.map(function (cr) { var v = A.prof(cr, E), x = ap && ap.ev && ap.ev[cr.id], s2 = P.est && P.est[cr.id], mx = mxOf(cr), inf = "", DS = TX && cr.descEl && cr.descEl.length ? cr.descEl : cr.desc; if (v && v.d == null) v = null;
           try { inf = A.critInfo ? (A.critInfo(cr, E) || "") : ""; } catch (e) { inf = ""; }
+          try { inf += M.infoLecon(cr, E, cls); } catch (e) {}
           var N = 4; if (v) { try { N = A.posN ? Math.max(1, Math.round(+A.posN(cr, E, v.d)) || 4) : 4; } catch (e) { N = 4; } }
           return '<div class="epse-crit"><div class="epse-ch"><b>' + esc((TX && cr.nomEl) || cr.nom) + "</b><span>" + esc(cr.afl || "") + " · " + fr(mx) + " pts" + (v && v.pts != null ? " · <b data-pts>" + fr(v.pts) + " pts</b>" : "") + "</span></div>" + (((TX && cr.butEl) || cr.but) ? '<p class="epse-mut" style="margin:0 0 8px">' + esc((TX && cr.butEl) || cr.but) + "</p>" : "") + inf + recap(cr) +
             '<div class="epse-degs">' + [0, 1, 2, 3].map(function (d) { var di = ""; try { di = A.degInfo ? (A.degInfo(cr, E, d) || "") : ""; } catch (e) { di = ""; }

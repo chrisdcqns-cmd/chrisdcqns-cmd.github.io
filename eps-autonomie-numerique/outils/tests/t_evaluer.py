@@ -8,7 +8,7 @@ from playwright.async_api import async_playwright
 ROOT = sys.argv[1]; SHOTS = sys.argv[2] if len(sys.argv) > 2 else ""
 srv = subprocess.Popen([sys.executable, "-I", "-m", "http.server", "8853", "--bind", "127.0.0.1", "--directory", ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1.2)
 B = "http://localhost:8853/eps-autonomie-numerique/"
-TEACH = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');}catch(e){}"
+TEACH = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');localStorage.setItem('eps.eval.pli','1');}catch(e){}"
 APPS = ["escalade", "acrosport", "orientation", "crosstraining", "basket", "step", "danse", "volley", "badminton", "relais"]
 INST = {"relais": "EPSTR", "acrosport": "EPSTA", "danse": "EPSTD", "basket": "EPSTBK", "volley": "EPSTV", "step": "EPSTST", "orientation": "EPSTORI", "crosstraining": "EPSTCT", "escalade": "EPSTESC", "badminton": "EPSTB"}
 TB = "[].map.call(document.querySelectorAll('.epst-tb button'),function(b){return (b.classList.contains('on')?'*':'')+b.title})"

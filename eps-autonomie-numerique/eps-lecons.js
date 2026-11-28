@@ -1362,6 +1362,11 @@
   function rolesCat() { var d = ["Arbitre : fait respecter les règles et annonce le score", "Observateur : relève un critère sur la fiche et le dit à son camarade", "Coach : donne un conseil précis entre deux essais ou deux points", "Chronométreur : mesure et annonce les temps", "Juge : positionne la prestation selon les critères", "Pareur / contre-assureur : sécurise le pratiquant", "Responsable du matériel : installe et range", "Statisticien : remplit la tablette (scores, réussites)", "Capitaine : organise le groupe et rappelle les consignes", "Échauffeur : mène l'échauffement du groupe"];
     try { return window.EPSP ? EPSP.p({ id: "roles_cat", sec: "Rôles", label: "Rôles proposés (« Nom : mission », un par ligne) : tu choisis ceux du jour dans 📡 Leçon en cours", type: "list", def: d }) : d; } catch (e) { return d; } }
   function roleSplit(t) { var i = String(t).indexOf(":"); return i > 0 ? { n: t.slice(0, i).trim(), m: t.slice(i + 1).trim() } : { n: String(t).trim(), m: "" }; }
+  /* 🎭 trace des rôles tenus (28/11/2026 : les rôles sont évalués, ils doivent rester visibles après la leçon) : eps.lecroles.<appli>.v1 (lo.<appli>|),
+     id classe|jour, {cls, day, who:{élève:[rôles tenus ce jour-là]}} ; écrit à chaque attribution ou rotation, lu par la fiche d'évaluation (eps-eval.js) et le carnet. */
+  var KRO = "eps.lecroles." + APP + ".v1";
+  function rolesLog(cls, who) { try { var id = nn(cls) + "|" + today(), o = get(KRO, id) || { id: id, cls: cls, day: today(), who: {} }, ch = false; o.who = o.who || {};
+    Object.keys(who || {}).forEach(function (n) { var r = who[n]; if (!r) return; var L = o.who[n] = o.who[n] || []; if (L.indexOf(r) < 0) { L.push(r); ch = true; } }); if (ch) put(KRO, o); } catch (e) {} }
   function rolesAssign(cls, v) { var ON = (v.roles && v.roles.on) || []; if (!ON.length) return {}; var who = {}, G = v.grp && v.grp.g && v.grp.g.length ? v.grp.g.map(function (g) { return g.slice(); }) : [pratiquants(cls)], D = presents(cls).filter(function (n) { return isDisp(cls, n); }), sh = (v.roles.sh || 0);
     G.forEach(function (g) { var L = D.concat(g.filter(function (n) { return D.indexOf(n) < 0; })); ON.forEach(function (r, i) { var n = L.length ? L[(i + sh) % L.length] : null; if (n && !who[n]) who[n] = r; }); }); return who; }
   /* LIVEMIN (demande de l'enseignant, 27/11/2026, Relais : pas de doublon entre 📡 Suivi et 📡 Leçon en cours) : l'écran ne montre que ce que
@@ -1418,8 +1423,8 @@
       md.querySelector("[data-ok]").onclick = function () { var G = v.grp.g.map(function (_, i) { return md.querySelector('[data-g="' + i + '"]').value.split(",").map(function (s) { return s.trim(); }).filter(Boolean); }); md.remove(); try { window.epsGroupesLog && epsGroupesLog(APP, cls, G, "jour"); } catch (e) {} liveSet(cls, function (x) { x.grp = Object.assign({}, x.grp, { g: G }); }); }; };
     el.querySelectorAll("[data-part]").forEach(function (b) { b.onclick = function () { liveSet(cls, function (x) { x.part = b.dataset.part; }); }; });
     el.querySelectorAll("[data-q]").forEach(function (b) { b.onclick = function () { sendMsg(cls, b.dataset.q); }; });
-    el.querySelectorAll("[data-role]").forEach(function (b) { b.onclick = function () { var r = roleSplit(rolesCat()[+b.dataset.role]).n; liveSet(cls, function (v) { v.roles = v.roles || { on: [], sh: 0 }; var i = v.roles.on.indexOf(r); if (i >= 0) v.roles.on.splice(i, 1); else v.roles.on.push(r); v.roles.who = rolesAssign(cls, v); }); }; });
-    var rt = el.querySelector("[data-rot]"); if (rt) rt.onclick = function () { liveSet(cls, function (v) { v.roles.sh = (v.roles.sh || 0) + 1; v.roles.who = rolesAssign(cls, v); }); };
+    el.querySelectorAll("[data-role]").forEach(function (b) { b.onclick = function () { var r = roleSplit(rolesCat()[+b.dataset.role]).n; liveSet(cls, function (v) { v.roles = v.roles || { on: [], sh: 0 }; var i = v.roles.on.indexOf(r); if (i >= 0) v.roles.on.splice(i, 1); else v.roles.on.push(r); v.roles.who = rolesAssign(cls, v); rolesLog(cls, v.roles.who); }); }; });
+    var rt = el.querySelector("[data-rot]"); if (rt) rt.onclick = function () { liveSet(cls, function (v) { v.roles.sh = (v.roles.sh || 0) + 1; v.roles.who = rolesAssign(cls, v); rolesLog(cls, v.roles.who); }); };
     var mt = el.querySelector("[data-mt]"); el.querySelector("[data-send]").onclick = function () { if (mt.value.trim()) sendMsg(cls, mt.value.trim()); };
     var dc = el.querySelector("[data-dict]"); if (dc) dc.onclick = function () { var r = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); r.lang = "fr-FR"; dc.textContent = "⏺"; r.onresult = function (e) { mt.value = e.results[0][0].transcript; }; r.onend = function () { dc.textContent = "🎤"; }; try { r.start(); } catch (e) {} };
     el.querySelectorAll("[data-tm]").forEach(function (b) { b.onclick = function () { var lab = el.querySelector("[data-tl]").value.trim(); liveSet(cls, function (x) { x.tim = { end: Date.now() + (+b.dataset.tm) * 6e4, lab: lab }; }); }; });
@@ -1758,6 +1763,7 @@
     EPSD.store({ pre: "lv." + APP + "|", key: KV, onChange: function () { if (TAB === "live") redraw(); } });
     EPSD.store({ pre: "iq|", key: KQ, onChange: function () {} });
     EPSD.store({ pre: "le." + APP + "|", key: KE, onChange: function () { if (TAB === "eval") redraw(); } });
+    EPSD.store({ pre: "lo." + APP + "|", key: KRO });
     EPSD.store({ pre: "lr." + APP + "|", key: KS, onChange: function () { if (TAB === "bil") redraw(); } });
     EPSD.store({ pre: "rg|", key: KR, onChange: function () { if (TAB === "live") redraw(); } });
     try { var SF = JSON.parse(localStorage.getItem("eps.sim.v1") || "null"); if (SF && SF.next && SF.next.app === APP && SF.next.act === "lesson") { SF.next = null; localStorage.setItem("eps.sim.v1", JSON.stringify(SF)); setTimeout(simulate, 1500); } } catch (e) {}

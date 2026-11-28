@@ -91,7 +91,12 @@ th{background:#FAF8F3;font-size:13px}
     Object.keys(DIRS).forEach(function (d) { var I = (jget("eps.lecres." + d + ".v1", {}) || {}).items || {}, days = 0, s = 0, t = 0;
       Object.keys(I).forEach(function (id) { var r = I[id], p = String(id).split("|"); if (!r || !r.r || typeof r.r !== "object" || p.length < 3 || ck(p[0]) !== ck(cls) || nk(p.slice(2).join(" ")) !== k || !dansAnnee(p[1])) return; var any = false;
         Object.keys(r.r).forEach(function (x) { if (/@auto$/.test(x)) return; var v = +r.r[x]; if (v >= 0 && v <= 2) { s += v; t += 2; any = true; } }); if (any) days++; });
-      if (days) { var a = get(DIRS[d]); a.lec = days; a.pc = t ? Math.round(s / t * 100) : null; } });
+      if (days) { var a = get(DIRS[d]); a.lec = days; a.pc = t ? Math.round(s / t * 100) : null; }
+      /* 🎯 ce que l'élève a choisi de travailler en autonomie, 🎭 les rôles qu'il a tenus (28/11/2026) */
+      var nAuto = 0; Object.keys(I).forEach(function (id) { var r = I[id], p = String(id).split("|"); if (!r || !r.r || typeof r.r !== "object" || p.length < 3 || ck(p[0]) !== ck(cls) || nk(p.slice(2).join(" ")) !== k || !dansAnnee(p[1])) return; Object.keys(r.r).forEach(function (x) { if (/@auto$/.test(x)) nAuto++; }); });
+      var RO = (jget("eps.lecroles." + d + ".v1", {}) || {}).items || {}, RC = {}; Object.keys(RO).forEach(function (id) { var o = RO[id]; if (!o || o.del || ck(o.cls) !== ck(cls) || !dansAnnee(o.day)) return; Object.keys(o.who || {}).forEach(function (n) { if (nk(n) !== k) return; (o.who[n] || []).forEach(function (r) { RC[r] = (RC[r] || 0) + 1; }); }); });
+      var rtx = Object.keys(RC).map(function (r) { return r + (RC[r] > 1 ? " ×" + RC[r] : ""); }).join(" · ");
+      if (nAuto || rtx) { var a2 = get(DIRS[d]); a2.auto = nAuto; a2.roles = rtx; } });
     var E = []; try { E = (window.EPSD && EPSD.evalsOf && EPSD.evalsOf(full, cls)) || []; } catch (e) {}
     E.forEach(function (e) { if (!e || !e.app) return; var a = get(e.app); a.n = Math.max(a.n, +e.n || 0); if (e.comm) a.comm = String(e.comm); if (e.apr) a.apr = String(e.apr); if (e.apm) a.apm = String(e.apm); });
     var Q = [], QI = (jget("eps.quiz.v1", {}) || {}).items || {}; Object.keys(QI).forEach(function (id) { var r = QI[id]; if (r && r.k === "res" && ck(r.cls) === ck(cls) && nk(r.nom) === k) { var q = QI[r.qz]; if (q && !q.del) Q.push({ nom: q.nom || "Quiz", s: +r.s || 0, n: +r.n || 0 }); } });
@@ -114,7 +119,7 @@ th{background:#FAF8F3;font-size:13px}
     if (!Y.acts.length && !Y.quiz.length) h += '<div class="card"><p class="mut">Rien d\'enregistré pour l\'instant cette année.</p></div>';
     Y.acts.forEach(function (a, i) { h += '<div class="act"><h3>' + esc(a.nom) + '</h3><div class="kp">' + (a.lec ? "<span>" + a.lec + " leçon" + (a.lec > 1 ? "s" : "") + " avec résultats</span>" : "") + (a.pc != null ? "<span>Réussite aux situations : " + a.pc + " %</span>" : "") + (a.n ? "<span>" + a.n + " critère" + (a.n > 1 ? "s" : "") + " évalué" + (a.n > 1 ? "s" : "") + "</span>" : "") + "</div>" +
         (a.pc != null ? '<div class="bar" role="img" aria-label="Réussite ' + a.pc + ' %"><i style="width:' + a.pc + '%"></i></div>' : "") +
-        (a.apr ? '<p class="q"><b>Ce que j\'ai réussi</b>' + esc(a.apr) + "</p>" : "") + (a.apm ? '<p class="q"><b>Ce que je veux améliorer</b>' + esc(a.apm) + "</p>" : "") + (a.comm ? '<p class="q"><b>Le mot de mon enseignant</b>' + esc(a.comm) + "</p>" : "") +
+        (a.apr ? '<p class="q"><b>Ce que j\'ai réussi</b>' + esc(a.apr) + "</p>" : "") + (a.apm ? '<p class="q"><b>Ce que je veux améliorer</b>' + esc(a.apm) + "</p>" : "") + (a.comm ? '<p class="q"><b>Le mot de mon enseignant</b>' + esc(a.comm) + "</p>" : "") + (a.roles ? '<p class="q"><b>🎭 Les rôles que j\'ai tenus</b>' + esc(a.roles) + "</p>" : "") + (a.auto ? '<p class="q"><b>🎯 Je me suis entraîné(e) en autonomie</b>' + a.auto + " fois, sur des situations que j\'ai choisies</p>" : "") +
         (edit ? '<label class="q" style="display:block"><b>Mon objectif pour la suite</b><textarea class="in" rows="2" maxlength="300" data-obj="' + i + '" placeholder="Ce que je veux travailler, et comment">' + esc(Y.o[a.nom] || "") + "</textarea></label>" : (Y.o && Y.o[a.nom] ? '<p class="q"><b>Mon objectif</b>' + esc(Y.o[a.nom]) + "</p>" : "")) + "</div>"; });
     if (Y.quiz.length) h += '<div class="act"><h3>Quiz</h3><div class="kp">' + Y.quiz.map(function (q) { return "<span>" + esc(q.nom) + " : " + q.s + " / " + q.n + "</span>"; }).join("") + "</div></div>";
     return h; }

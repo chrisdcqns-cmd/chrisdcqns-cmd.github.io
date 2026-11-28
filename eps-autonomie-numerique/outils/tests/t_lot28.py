@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 ROOT = sys.argv[1]
 srv = subprocess.Popen([sys.executable, "-I", "-m", "http.server", "8877", "--bind", "127.0.0.1", "--directory", ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1.2)
 B = "http://localhost:8877/eps-autonomie-numerique/"
-INIT = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');if(!localStorage.getItem('eps.share.v1'))localStorage.setItem('eps.share.v1',JSON.stringify({url:'https://script.google.com/macros/s/TEST/exec',key:'k'}));}catch(e){}"
+INIT = "try{localStorage.setItem('eps.teach.until',String(Date.now()+12*3600e3));localStorage.setItem('eps.console.trust','1');localStorage.setItem('eps.eval.pli','1');if(!localStorage.getItem('eps.share.v1'))localStorage.setItem('eps.share.v1',JSON.stringify({url:'https://script.google.com/macros/s/TEST/exec',key:'k'}));}catch(e){}"
 INST = {"relais": "EPSTR", "acrosport": "EPSTA", "danse": "EPSTD", "basket": "EPSTBK", "volley": "EPSTV", "step": "EPSTST", "orientation": "EPSTORI", "crosstraining": "EPSTCT", "escalade": "EPSTESC", "badminton": "EPSTB"}
 # position de défilement de la page et de tous les blocs qui défilent
 SCR = "(function(){var o={w:Math.round(scrollY)};[].forEach.call(document.querySelectorAll('*'),function(e,i){if(e.scrollTop>0)o[(e.id||e.className||e.tagName)+'#'+i]=Math.round(e.scrollTop)});return o})()"

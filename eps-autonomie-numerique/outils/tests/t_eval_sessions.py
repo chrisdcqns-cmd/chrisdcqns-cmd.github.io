@@ -50,6 +50,10 @@ async def main():
         ok("coefficient d'une leçon réglé par l'enseignant (×2, ×2, ×3)", "Coefficients choisis par toi : coefficient ×2, ×2, ×3" in t3, t3[:500])
         await p.click(".epse-fiche [data-rcz]"); await p.wait_for_timeout(600)
         ok("↺ coefficients par défaut", "coefficient ×1, ×2, ×3" in await p.evaluate(FICHE))
+        # rôles tenus (📡 Leçon en cours) et travail choisi en autonomie, rappelés sous les critères concernés
+        await p.evaluate("""([cl,nomc])=>{var K='eps.lecroles.escalade.v1',V={items:{},pend:{},since:0};V.items['x|2026-11-20']={id:'x|2026-11-20',cls:cl,day:'2026-11-20',who:{}};V.items['x|2026-11-20'].who[nomc]=['Arbitre','Coach'];V.items['x|2026-11-21']={id:'x|2026-11-21',cls:cl,day:'2026-11-21',who:{}};V.items['x|2026-11-21'].who[nomc]=['Coach'];localStorage.setItem(K,JSON.stringify(V));EPSTESC.go('eval')}""", [cl, nom]); await p.wait_for_timeout(900)
+        tr = await p.evaluate(FICHE)
+        ok("rôles tenus rappelés sous un critère (Coach ×2)", "Rôles tenus en leçon" in tr and "Coach ×2" in tr and "Arbitre" in tr, tr[tr.find("Rôles"):][:200])
         # même prénom : le prénom seul ne suffit plus, « Prénom + initiale » oui
         hm = await p.evaluate("""([cl,pre])=>{var k=CL.find(function(c){return c.nom==cl});var a={prenom:pre,nom:'Démo'},n0=evMine(cl,a).length;k.el.push(pre+' Martin');var n1=evMine(cl,a).length;R.push({id:'tz',ts:'2026-11-25 09:00',cl:cl,el:pre+' D.',vo:1,d:'4a',h:9});var n2=evMine(cl,a).length,n3=evMine(cl,{prenom:pre,nom:'Martin'}).length;k.el.pop();R.pop();return [n0,n1,n2,n3]}""", [cl, pre])
         ok("même prénom dans la classe : grimpes non mélangées " + str(hm), hm[0] == 3 and hm[1] == 0 and hm[2] == 1 and hm[3] == 0, hm)

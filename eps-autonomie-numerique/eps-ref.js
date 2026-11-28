@@ -70,6 +70,9 @@
     CA3: "Réaliser une prestation corporelle destinée à être vue et appréciée",
     CA4: "Conduire et maîtriser un affrontement collectif ou interindividuel pour gagner",
     CA5: "Réaliser et orienter son activité physique pour développer ses ressources et s'entretenir" };
+  /* "bo" (28/11/2026) = relu mot pour mot sur le programme officiel publié par le ministère (voie professionnelle, arrêté du 3-4-2019, AFLP du baccalauréat
+     professionnel des champs 1 et 2, education.gouv.fr) : plus de pastille « à vérifier ». Les AFL de la voie générale restent "prog" : le texte officiel n'a pas
+     pu être relu mot pour mot, l'enseignant les valide. */
   var AFL = {
     gt: {
       CA1: [["prog", "S'engager pour produire une performance maximale à l'aide de techniques efficaces, en gérant les efforts musculaires et respiratoires nécessaires et en faisant le meilleur compromis entre l'accroissement de vitesse d'exécution et de précision."],
@@ -88,18 +91,18 @@
         ["prog", "S'entraîner, individuellement ou collectivement, pour développer ses ressources et s'entretenir en fonction des effets recherchés."],
         ["prog", "Coopérer pour faire progresser."]] },
     pro: {
-      CA1: [["prog", "Produire et répartir lucidement ses efforts en mobilisant de façon optimale ses ressources pour gagner ou pour battre un record."],
-        ["prog", "Connaître et mobiliser les techniques efficaces pour produire la meilleure performance possible."],
-        ["prog", "Analyser sa performance pour adapter son projet et progresser."],
-        ["prog", "Assumer des rôles sociaux pour organiser une épreuve de production de performance, un concours."],
-        ["prog", "Assurer la prise en charge de sa préparation et de celle d'un groupe, de façon autonome pour produire la meilleure performance possible."],
-        ["prog", "Connaître son niveau pour établir un projet de performance située culturellement."]],
-      CA2: [["prog", "Anticiper et planifier son itinéraire pour concevoir et conduire dans sa totalité un projet de déplacement."],
-        ["prog", "Mobiliser des techniques efficaces pour adapter et optimiser son déplacement aux caractéristiques du milieu."],
-        ["prog", "Analyser sa prestation pour comprendre les alternatives possibles et ajuster son projet en fonction de ses ressources et de celles du milieu."],
-        ["prog", "Assumer les rôles sociaux pour organiser la pratique des activités de pleine nature."],
-        ["prog", "Se préparer et maintenir un engagement optimal permettant de garder sa lucidité tout au long de son parcours pour pouvoir réévaluer son itinéraire ou renoncer le cas échéant."],
-        ["prog", "Respecter et faire respecter la réglementation et les procédures d'urgence pour les mettre en œuvre dans les différents environnements de pratique."]],
+      CA1: [["bo", "Produire et répartir lucidement ses efforts en mobilisant de façon optimale ses ressources pour gagner ou pour battre un record."],
+        ["bo", "Connaître et mobiliser les techniques efficaces pour produire la meilleure performance possible."],
+        ["bo", "Analyser sa performance pour adapter son projet et progresser."],
+        ["bo", "Assumer des rôles sociaux pour organiser une épreuve de production de performance, un concours."],
+        ["bo", "Assurer la prise en charge de sa préparation et de celle d'un groupe, de façon autonome pour produire la meilleure performance possible."],
+        ["bo", "Connaître son niveau pour établir un projet de performance située culturellement."]],
+      CA2: [["bo", "Anticiper et planifier son itinéraire pour concevoir et conduire dans sa totalité un projet de déplacement."],
+        ["bo", "Mobiliser des techniques efficaces pour adapter et optimiser son déplacement aux caractéristiques du milieu."],
+        ["bo", "Analyser sa prestation pour comprendre les alternatives possibles et ajuster son projet en fonction de ses ressources et de celles du milieu."],
+        ["bo", "Assumer les rôles sociaux pour organiser la pratique des activités de pleine nature."],
+        ["bo", "Se préparer et maintenir un engagement optimal permettant de garder sa lucidité tout au long de son parcours pour pouvoir réévaluer son itinéraire ou renoncer le cas échéant."],
+        ["bo", "Respecter et faire respecter la réglementation et les procédures d'urgence pour les mettre en œuvre dans les différents environnements de pratique."]],
       CA3: [["ccf", "Accomplir une prestation animée d'une intention dans la perspective d'être jugé et/ou apprécié."],
         ["ccf", "Mobiliser des techniques de plus en plus complexes pour rendre plus fluide la prestation et pour l'enrichir de formes corporelles variées et maitrisées."],
         ["ccf", "Composer et organiser dans le temps et l'espace le déroulement des moments forts et faibles de sa prestation pour se produire devant des spectateurs/juges."],
@@ -140,7 +143,7 @@
   function caT(ca) { return tx("ca|" + ca, CA[ca] || ""); }
   function caOf(s) { var m = /CA\s*([1-5])/i.exec(String(s || "")); return m ? "CA" + m[1] : ""; }
   function aflList(voie, ca) { voie = voie === "pro" ? "pro" : "gt"; var L = (AFL[voie] && AFL[voie][ca]) || [], P = voie === "pro" ? "AFLP" : "AFL";
-    return L.map(function (x, i) { var code = P + (i + 1), key = "afl|" + voie + "|" + ca + "|" + code; return { code: code, key: key, t: tx(key, x[1]), def: x[1], src: x[0], sur: x[0] === "ccf" || txOk(key), og: aflOg(voie, ca, code) }; }); }
+    return L.map(function (x, i) { var code = P + (i + 1), key = "afl|" + voie + "|" + ca + "|" + code; return { code: code, key: key, t: tx(key, x[1]), def: x[1], src: x[0], sur: x[0] === "ccf" || x[0] === "bo" || txOk(key), og: aflOg(voie, ca, code) }; }); }
   function aflOg(voie, ca, code) { voie = voie === "pro" ? "pro" : "gt"; var o = one("ao|" + voie + "|" + ca + "|" + code); if (o && Array.isArray(o.og)) return o.og.slice();
     var m = /(\d)/.exec(code), i = m ? +m[1] - 1 : -1, T = AO[voie] || {}, L = T[ca] || T["*"] || []; return L[i] ? [L[i]] : []; }
   function epList(voie, ca) { voie = voie === "pro" ? "pro" : "gt"; var o = one("ep|" + voie + "|" + ca); if (o && Array.isArray(o.l)) return o.l.map(String); return voie === "gt" ? (EP[ca] || []).slice() : []; }

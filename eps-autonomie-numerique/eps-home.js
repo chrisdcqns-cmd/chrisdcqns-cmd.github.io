@@ -242,10 +242,10 @@
   var STORES = [], ESSAIS_MAX = 8; /* essais sans confirmation avant de lever l'attente quand même (évite de renvoyer sans fin) */
   function stLd(k) { var v = jget(k, null); if (!v || !v.items) v = { items: {}, pend: {}, since: 0 }; v.pend = v.pend || {}; return v; }
   var AUTOPAT = [[/^eps\.attest\.v1$/, "at|"], [/^eps\.quiz\.v1$/, "qz|"], [/^eps\.carnet\.v1$/, "cn|"], [/^eps\.ref\.v1$/, "rf|"], [/^eps\.ico\.v1$/, "iq|"], [/^eps\.cdc\.v1$/, "kc|"], [/^eps\.terrain\.v1$/, "tz|"], [/^eps\.coeval\.v1$/, "cv|"], [/^eps\.trash\.v1$/, "tk|"], [/^eps\.genre\.v1$/, "gn|"], [/^eps\.analyse\.v1$/, "an|"], [/^eps\.eval\.([a-z]+)\.v1$/, "ev.$1|"], [/^eps\.lecons\.([a-z]+)\.v1$/, "lc.$1|"], [/^eps\.lcimg\.([a-z]+)\.v1$/, "li.$1|"], [/^eps\.lcdocs\.([a-z]+)\.v1$/, "ld.$1|"],
-    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^step\.v1$/, "sp|"], [/^bk\.v1$/, "bk|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
+    [/^eps\.live\.([a-z]+)\.v1$/, "lv.$1|"], [/^eps\.leceval\.([a-z]+)\.v1$/, "le.$1|"], [/^eps\.lecres\.([a-z]+)\.v1$/, "lr.$1|"], [/^eps\.lecroles\.([a-z]+)\.v1$/, "lo.$1|"], [/^eps\.evmod\.([a-z]+)\.v1$/, "em.$1|"], [/^eps\.valid\.([a-z]+)\.v1$/, "va.$1|"], [/^eps\.obs\.v1$/, "ob|"], [/^eps\.rang\.v1$/, "rg|"], [/^ct\.v1$/, "ct|"], [/^step\.v1$/, "sp|"], [/^bk\.v1$/, "bk|"], [/^eps\.niv\.v1$/, "nv|"], [/^eps\.remed\.v1$/, "rm|"], [/^eps\.avis\.v1$/, "av|"], [/^eps\.grphist\.v1$/, "gh|"], [/^eps\.console\.v1$/, "cs|"]], FULLPULL = false;
   function autoStores(all) { var out = [], seen = {}; STORES.forEach(function (s) { seen[s.key] = 1; });
     var keys = []; for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
-    if (all) { ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "ccf", "crosstraining", "basket", "step"].forEach(function (d) { ["lecons", "lcimg", "lcdocs", "live", "leceval", "lecres"].forEach(function (t) { keys.push("eps." + t + "." + d + ".v1"); }); });
+    if (all) { ["escalade", "relais", "volley", "badminton", "danse", "acrosport", "orientation", "ccf", "crosstraining", "basket", "step"].forEach(function (d) { ["lecons", "lcimg", "lcdocs", "live", "leceval", "lecres", "lecroles"].forEach(function (t) { keys.push("eps." + t + "." + d + ".v1"); }); });
       ["esc", "acro", "ori", "ct", "bk", "step"].forEach(function (a) { keys.push("eps.eval." + a + ".v1"); }); keys.push("eps.obs.v1", "eps.rang.v1", "ct.v1", "bk.v1", "step.v1"); }
     keys.forEach(function (k) { if (!k || seen[k]) return; for (var j = 0; j < AUTOPAT.length; j++) if (AUTOPAT[j][0].test(k)) { seen[k] = 1; out.push({ key: k, pre: k.replace(AUTOPAT[j][0], AUTOPAT[j][1]) }); break; } });
     return out; }
@@ -1291,8 +1291,17 @@
     d.innerHTML = '<div class="epsg-hd" style="background:#14171C;box-shadow:inset 0 -4px 0 ' + col + '"><div class="epsg-ic" style="background:' + col + '">' + (G.icon || "") + '</div><div style="flex:1"><h1>' + esc(G.app || "") + '</h1>' + (G.sub ? "<p>" + esc(G.sub) + "</p>" : "") + '</div><span data-eps-upd-slot></span><a class="epsg-home" href="' + BASE + '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Accueil</a></div>' +
       '<div class="epsg-in">' + (function () { /* classe déjà choisie aujourd'hui sur cette tablette : un seul appui pour continuer */
         var last = null; try { last = JSON.parse(localStorage.getItem("eps.gate.last." + appDir()) || "null"); } catch (e) {}
-        var c = last && last.day === today() && !cur ? L.filter(function (x) { return String(x.id) === String(last.id); })[0] : null;
-        return c ? '<button class="epsg-c on" data-c="' + esc(c.id) + '" style="border-color:' + col + ';width:100%;max-width:520px;margin:0 0 14px;display:block;text-align:left"><b>▶ Continuer : ' + esc(c.nom) + '</b><span>Ta classe d\'aujourd\'hui sur cette tablette</span></button>' : ""; })() + '<h2>Choisis ta classe</h2>' +
+        var c = last && last.day === today() ? L.filter(function (x) { return String(x.id) === String(last.id); })[0] : null;
+        /* 🏠 Accueil de l'élève, le même dans toutes les activités (28/11/2026) : trois tuiles dès que la classe du jour est connue : ma leçon, mon activité, mon bilan.
+           Aucun appui de plus : au premier passage l'élève choisit sa classe comme avant ; les tuiles l'attendent quand il revient par « Accueil ». */
+        if (!c) return "";
+        var lvT = ""; try { var LV = window.EPSLC && EPSLC.liveFor ? EPSLC.liveFor(c.nom) : null; lvT = LV ? String(LV.titre || "Leçon du jour") : ""; } catch (e) {}
+        var carOn = false; try { var CV = JSON.parse(localStorage.getItem("eps.carnet.v1") || "null"); carOn = !!(CV && CV.items && CV.items.cfg && CV.items.cfg.on); } catch (e) {}
+        var T3 = "border-color:" + col + ";margin:0;display:block;text-align:left";
+        return '<div class="epsg-g" data-eps-accueil style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin:0 0 18px">' +
+          '<button class="epsg-c' + (lvT ? " on" : "") + '" data-lec="' + esc(c.id) + '" style="' + (lvT ? T3 : "margin:0;display:block;text-align:left") + '"><b>📅 Ma leçon</b><span>' + esc(lvT || "Pas de leçon lancée pour l'instant") + "</span></button>" +
+          '<button class="epsg-c on" data-c="' + esc(c.id) + '" style="' + T3 + '"><b>▶ Continuer : ' + esc(c.nom) + "</b><span>Mon activité, mes résultats</span></button>" +
+          '<button class="epsg-c" data-bil="' + (carOn ? "carnet" : "mon-bilan") + '" style="margin:0;display:block;text-align:left"><b>📒 Mon bilan</b><span>' + (carOn ? "Mon carnet, mes progrès" : "Mon espace EPS, avec mon code") + "</span></button></div>"; })() + '<h2>Choisis ta classe</h2>' +
       (L.length || G.noClass ? '<div class="epsg-g">' + L.map(function (c) {
         return '<button class="epsg-c' + (c.id === cur ? " on" : "") + '" data-c="' + esc(c.id) + '"' + (c.id === cur ? ' style="border-color:' + col + '"' : "") + '><b>' + esc(c.nom) + '</b><span>' + esc(c.note || (c.n != null ? c.n + " élève" + (c.n > 1 ? "s" : "") : "")) + "</span></button>";
       }).join("") + (G.noClass ? '<button class="epsg-c nl" data-nl="1"><b style="font-size:17px">' + esc(G.noClass.label || "Sans liste") + "</b><span>" + esc(G.noClass.sub || "") + "</span></button>" : "") + "</div>"
@@ -1304,6 +1313,9 @@
     d.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
       if (b.dataset.c != null) { try { localStorage.setItem("eps.gate.last." + appDir(), JSON.stringify({ id: b.dataset.c, day: today(), nom: ((L.filter(function (x) { return String(x.id) === String(b.dataset.c); })[0] || {}).nom) || "" })); } catch (er) {} gateClose(); try { G.select(b.dataset.c); } catch (er) {} }
+      else if (b.dataset.lec != null) { var idL = b.dataset.lec, nomL = ((L.filter(function (x) { return String(x.id) === String(idL); })[0] || {}).nom) || ""; gateClose(); try { G.select(idL); } catch (er) {}
+        setTimeout(function () { try { var LV2 = window.EPSLC && EPSLC.liveFor ? EPSLC.liveFor(nomL) : null; if (LV2 && LV2.open) LV2.open(); } catch (er) {} }, 700); }
+      else if (b.dataset.bil) { try { location.href = BASE + b.dataset.bil + "/"; } catch (er) {} }
       else if (b.dataset.nl) { gateClose(); try { G.noClass.open(); } catch (er) {} }
       else if (b.dataset.r != null) { gateClose(); try { R[+b.dataset.r].open(); } catch (er) {} }
       else if (b.dataset.t) { gateClose(); try { G.teacher(); } catch (er) {} }
@@ -2069,7 +2081,7 @@
       Object.keys(V.items).forEach(function (k) { var o = V.items[k]; if (!o || o.del) return;
         if (o.demo || /^demo-/.test(k) || (o.cls && cmp(o.cls) === cmp(DEMO)) || (o.c && cmp(o.c) === cmp(DEMO))) { V.items[k] = { id: k, del: 1, u: Date.now() }; V.pend[k] = Date.now(); ch = true; } });
       if (ch) try { localStorage.setItem(st.key, JSON.stringify(V)); } catch (e) {} });
-    for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (!/^eps\.(lecons|eval|leceval|lecres)\.[a-z]+\.v1$/.test(k || "")) continue; var V = stLd(k), ch = false;
+    for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (!/^eps\.(lecons|eval|leceval|lecres|lecroles)\.[a-z]+\.v1$/.test(k || "")) continue; var V = stLd(k), ch = false;
       Object.keys(V.items).forEach(function (id) { var o = V.items[id]; if (o && !o.del && (o.demo || /^demo-/.test(id) || (o.c && cmp(o.c) === cmp(DEMO)) || (o.cls && cmp(o.cls) === cmp(DEMO)))) { V.items[id] = { id: id, del: 1, u: Date.now() }; V.pend[id] = Date.now(); ch = true; } });
       if (ch) try { localStorage.setItem(k, JSON.stringify(V)); } catch (e) {} }
     var L = lld(); Object.keys(L.items).forEach(function (k) { var o = L.items[k]; if (o && o.nom && cmp(o.nom) === cmp(DEMO)) { o.demo = 1; L.app[k] = JSON.stringify(o); } }); lsv(L);
@@ -2124,6 +2136,9 @@
           if (!letters && !b.hasAttribute("data-eps-a11y-sm")) { var r = b.getBoundingClientRect(); if (r.width && (r.width < 32 || r.height < 32)) b.setAttribute("data-eps-a11y-sm", ""); }
           /* écran tactile (tablette, téléphone) : aucun bouton de moins de 44 px de haut (demande de l'enseignant, 27/11/2026) ; les boutons posés à un endroit précis (plan, carte) et les ⓘ ne bougent pas */
           if (TOUCH && !b.hasAttribute("data-eps-a11y-h")) { var r2 = b.getBoundingClientRect(); if (r2.height >= 16 && r2.height < 43.5) { var cs = getComputedStyle(b), ok = cs.position !== "absolute" && cs.position !== "fixed" && !/eps-tipb/.test(b.className) && !b.closest("svg,[data-eps-compact]"); b.setAttribute("data-eps-a11y-h", ok ? "1" : "0"); } } });
+        /* cases à cocher et boutons radio visibles de moins de 24 px : agrandis à 26 px (tour des écrans élèves du 28/11/2026 : cases de 13 et 22 px en Badminton et Volley) */
+        document.querySelectorAll("input[type=checkbox]:not([data-eps-a11y-c]),input[type=radio]:not([data-eps-a11y-c])").forEach(function (f) { var r = f.getBoundingClientRect(); if (!r.width) return; f.setAttribute("data-eps-a11y-c", "1");
+          if (r.width < 24 && r.height < 24 && +getComputedStyle(f).opacity > .2 && !f.closest("[data-eps-compact]")) { f.style.width = "26px"; f.style.height = "26px"; f.style.flex = "none"; } });
         document.querySelectorAll("input:not([type=hidden]),select,textarea").forEach(function (f) {
           if (f.getAttribute("aria-label") || f.getAttribute("aria-labelledby") || (f.labels && f.labels.length) || f.placeholder || f.title) return;
           var pv = f.previousElementSibling, t = pv && /LABEL|SPAN|B|STRONG|DIV|SMALL/.test(pv.tagName) ? (pv.innerText || "").trim() : "";
