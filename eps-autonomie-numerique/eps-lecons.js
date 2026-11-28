@@ -1843,6 +1843,7 @@
     seedApp: seedApp,
     fiche: function (id) { return get(KL, id); },
     /* leçon commune lancée pour cette classe (📡 Leçon en cours) : les écrans « pas encore de leçon » des applis renvoient vers elle au lieu de se contredire */
+    sitsFor: function (cr) { try { return sitsForCrit(cr).map(function (o) { return o.k; }); } catch (e) { return []; } }, /* situations liées à un critère (eps-eval.js : proposition par critère) */
     liveFor: function (cls) { try { var v = cls && live(cls);
       /* pas de leçon lancée : la leçon programmée qui a commencé depuis moins de 2 h (« 📅 Leçon du jour » de l'élève) compte aussi */
       if (!v || !v.on) { var now = Date.now(), pp = null; lecons().forEach(function (l) { if (l.statut === "brouillon") return; (l.prog || []).forEach(function (p) { if (same(p.c, cls) && p.at <= now && p.at > now - 2 * 3600e3 && (!pp || p.at > pp.at)) pp = { at: p.at, l: l }; }); });

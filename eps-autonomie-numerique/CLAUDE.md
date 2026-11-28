@@ -228,6 +228,9 @@ Quand l'enseignant demande une nouvelle appli, elle reprend **la même forme que
 - **Vue d'ensemble** (`overview()`) : jamais la classe fictive.
 - **Barres allégées** : « 📥 Trame proposée » (nom de la trame au survol), « 🏦 Banque & apprentissages » seulement dans 📚 Bibliothèque ; Relais : action « 📱 Écran des élèves » retirée (elle renvoyait vers Suivi).
 
+## 🎯 Proposition d'après les résultats du critère (28/11/2026)
+- eps-eval.js `M.prop` : la source « situations » (cochée par défaut avec « auto ») lit d'abord les situations rattachées au critère (`EPSLC.sitsFor(cr)` : cases « Critères d'évaluation travaillés » ou mot-clé), sinon celles des critères du même AFL, sinon toutes (`serieSitK`, `clesCrit`) ; une appli peut ajouter ses résultats propres par `A.resultat(cr, E, classe)` → 0 à 1. Toujours une proposition (jaune) : rien n'est enregistré sans « ✓ Reprendre ces degrés ».
+
 ## 👥 Groupe gardé · 🧗 réussite sur la situation (28/11/2026, demandes de l'enseignant)
 - **Les élèves gardent leur groupe constitué** (eps-lecons.js `whoGet` / `whoSet` / `whoApp` / `whoGroupe`) : « Qui utilise cette tablette ? » de la fiche de leçon est rempli tout seul : choix déjà fait (gardé pour la journée, `eps.lcwho.<appli>.j`), sinon groupe de la tablette dans l'appli (`window.epsTabInfo().who` = noms des élèves : Escalade, Step, Basket, Volley, Badminton), sinon tout le groupe du jour au premier nom touché. Si le groupe de l'appli change, il reprend la main (`whoSig`). **Toute appli où la tablette appartient à un groupe / une équipe donne `who` dans `epsTabInfo()`.**
 - **Ligne propre à l'activité dans chaque situation** : `window.epsSitChamps(classe)` → `[{id, label, opts}]` ; valeurs gardées dans le résultat de l'élève (`eps.lecres` : `x[situation] = {id: valeur}`), affichées à l'enseignant dans Évaluer → 📅 Leçons du jour (sous « Situations réussies »). Escalade : mur / corde, difficulté de la voie (cotations de `W`), dégaine atteinte (0 à 8, Top).

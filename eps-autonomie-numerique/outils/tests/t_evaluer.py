@@ -73,7 +73,7 @@ async def main():
         ok("poids des dernières leçons à 100 : la dernière compte 5 fois plus (5/6 des 4 degrés)", abs(r2["m"] - 4 * 5 / 6) < 0.01 and r2["deg"] == 3 and abs(await p.evaluate(M + "._moyPond([{v:0},{v:1}],100)") - 5 / 6) < 1e-9, r2)
         await p.evaluate("EPSP.set('prop_recent',null);EPSP.set('prop_sources',null)"); await p.evaluate("EPSTESC.evGo('fin')"); await p.wait_for_timeout(900)
         await p.evaluate("document.querySelector('.epse-src summary').click()"); await p.wait_for_timeout(200); await p.click("[data-ps=lecons]"); await p.wait_for_timeout(700)
-        ok("les cases de la fiche règlent le paramètre de l'activité", await p.evaluate("JSON.stringify(EPSP.get('prop_sources',['auto']))") == '["auto","lecons"]' and await p.evaluate("document.querySelector('[data-ps=lecons]').checked&&document.querySelector('.epse-src').open"))
+        ok("les cases de la fiche règlent le paramètre de l'activité", await p.evaluate("JSON.stringify(EPSP.get('prop_sources',['auto']))") in ('["auto","lecons","situations"]', '["auto","situations","lecons"]') and await p.evaluate("document.querySelector('[data-ps=lecons]').checked&&document.querySelector('.epse-src').open"))
         n0 = await p.evaluate("(function(){var m=" + M + ",c=m.classes()[0];return c.eleves.filter(function(e){return m.adapter.note(e)!=null}).length})()")
         ok("la proposition n'enregistre rien toute seule", n0 == 0, n0)
         await p.click("[data-take]"); await p.wait_for_timeout(900)

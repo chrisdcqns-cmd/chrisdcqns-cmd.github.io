@@ -656,7 +656,13 @@
        Une leçon vaut un score de 0 à 1, ramené sur les 4 degrés (× 4). L'évaluation de l'enseignant l'emporte toujours : rien n'est enregistré sans « ✓ Reprendre ». */
     var SRC_ID = ["auto", "lecons", "situations", "coeval"], SRC_LBL = { auto: "🙋 Auto-positionnement", lecons: "📊 Évaluations du jour", situations: "🏁 Résultats mesurés en leçon", coeval: "👥 Coévaluation" },
       SRC_MOT = { auto: "l'auto-positionnement de l'élève", lecons: "les évaluations du jour", situations: "les résultats mesurés en leçon", coeval: "la coévaluation" };
-    function srcCfg() { var d = ["auto"], L = d, r = 0;
+    /* 🎯 résultats liés au critère ou à son AFL (demande de l'enseignant, 28/11/2026 : placer le curseur d'après les résultats liés à la compétence ou à l'AFL) :
+       situations rattachées au critère (cases « Critères d'évaluation travaillés » de la fiche, ou mot-clé), sinon situations des autres critères du même AFL,
+       sinon toutes les situations ; une appli peut ajouter ses propres résultats par A.resultat(critère, élève, classe) → part de 0 à 1 (ou null). */
+    function serieSitK(cls, E, K) { var k = ekey(E), S = []; magasin("lecres").forEach(function (o) { if (o.ek !== k || nk(o.cls) !== nk(cls) || !o.day) return; var s = 0, n = 0; Object.keys(o.r || {}).forEach(function (q) { if (/@auto$/.test(q) || !K[q]) return; var v = o.r[q]; if (v === 0 || v === 1 || v === 2) { s += v; n += 2; } }); if (n) S.push({ day: String(o.day), v: s / n }); });
+      return S.sort(function (a, b) { return a.day.localeCompare(b.day); }); }
+    function clesCrit(cr) { var K = {}; try { if (window.EPSLC && EPSLC.sitsFor) EPSLC.sitsFor(cr).forEach(function (q) { K[q] = 1; }); } catch (e) {} return K; }
+    function srcCfg() { var d = ["auto", "situations"], L = d, r = 0;
       try { if (window.EPSP) { L = EPSP.p({ id: "prop_sources", sec: "Proposition de positionnement", label: "Sources de la proposition, pour les critères que tu n'as pas encore évalués", type: "list", def: d, aide: "Une par ligne, parmi : auto (auto-positionnement), lecons (évaluations du jour), situations (résultats mesurés en leçon), coeval (coévaluation). Se règle aussi par les cases de la fiche d'un élève." });
         r = EPSP.p({ id: "prop_recent", sec: "Proposition de positionnement", label: "Poids des dernières leçons, de 0 à 100", type: "number", def: 0, aide: "0 = moyenne simple de toutes les leçons ; 100 = la dernière leçon compte 5 fois plus que la première." }); } } catch (e) {}
       L = (Array.isArray(L) ? L : d).map(function (x) { return String(x).trim().toLowerCase(); }).filter(function (x, i, T) { return SRC_ID.indexOf(x) >= 0 && T.indexOf(x) === i; });
@@ -679,7 +685,12 @@
           if (on("auto") && a && a.d != null) { W.push(a.d + (a.pos == null ? .5 : a.pos)); U.push("auto"); }
           if (c && c.v != null && isFinite(+c.v)) { W.push(+c.v); U.push("coeval"); }
           if (vL != null) { W.push(vL * 4); U.push("lecons"); }
-          if (vS != null) { W.push(vS * 4); U.push("situations"); }
+          if (on("situations") && cls) { /* d'abord les situations du critère, puis celles de son AFL, puis toutes */
+            var Kc = clesCrit(cr), vC = Object.keys(Kc).length ? moyPond(serieSitK(cls, E, Kc), CF.rec) : null;
+            if (vC == null) { var Ka = {}; G.criteres.forEach(function (c2) { if (String(c2.afl || "AFL1").trim() !== code) return; var K2 = clesCrit(c2); Object.keys(K2).forEach(function (q) { Ka[q] = 1; }); }); vC = Object.keys(Ka).length ? moyPond(serieSitK(cls, E, Ka), CF.rec) : null; }
+            if (vC == null) vC = vS;
+            if (vC != null) { W.push(vC * 4); U.push("situations"); }
+            try { var ra = typeof A.resultat === "function" ? A.resultat(cr, E, cls) : null; if (ra != null && isFinite(+ra)) { W.push(Math.max(0, Math.min(1, +ra)) * 4); U.push("situations"); } } catch (e) {} }
           if (W.length) { var mm = Math.max(0, Math.min(3.999, W.reduce(function (x, y) { return x + y; }, 0) / W.length)), dd = Math.floor(mm); v = { d: dd, pos: mm - dd }; src = "auto"; est[cr.id] = { d: dd, pos: Math.round((mm - dd) * 4) / 4 }; U.forEach(function (u) { used[u] = 1; }); } }
         var mx = A.max ? A.max(cr, E) : (+cr.max || 1); if (!groups[code]) { groups[code] = { code: code, w: 0, s: 0, mx: 0, crit: 0, done: 0, auto: 0 }; order.push(code); }
         var g = groups[code]; g.mx += mx; g.crit++; if (v) { g.w += mx; g.s += mx * (v.d + (v.pos == null ? .5 : v.pos)); g.p = (g.p || 0) + (v.pts != null && isFinite(+v.pts) ? +v.pts : mx * partPts(v.d, v.pos)); g.done++; if (src === "auto") { g.auto++; nA++; } else nT++; } });
