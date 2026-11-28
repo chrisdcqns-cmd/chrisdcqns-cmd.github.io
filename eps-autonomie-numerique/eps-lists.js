@@ -348,11 +348,16 @@ window.epsApChip = function (o) {
     [".epst-acts", ".epst-panel", ".epse-in", ".epsg-in", ".lc-in",
     /* blocs principaux des applis */
     "[data-eps-dir=escalade] main#m", "[data-eps-dir=relais] .wrap", "[data-eps-dir=volley] main", "[data-eps-dir=badminton] main", "[data-eps-dir=danse] main#view",
-    "[data-eps-dir=acrosport] section#home", "[data-eps-dir=orientation] #home", "[data-eps-dir=crosstraining] .app", "[data-eps-dir=crosstraining] #onglets.in",
-    "[data-eps-dir=basket] main#vue", "[data-eps-dir=step] .app", "[data-eps-dir=step] #onglets.in", "[data-eps-dir=ccf] .wrap", "[data-eps-dir=co-eval] main#app",
+    "[data-eps-dir=acrosport] section#home", "[data-eps-dir=orientation] #home", 
+    "[data-eps-dir=basket] main#vue", "[data-eps-dir=ccf] .wrap", "[data-eps-dir=co-eval] main#app",
     "[data-eps-dir=edt] .wrap", "[data-eps-dir=appel-as] .wrap", "[data-eps-dir=course-orientation] .wrap", "[data-eps-dir=course-orientation] .in",
     "[data-eps-dir=referentiel] .wrap", "[data-eps-dir=referentiel] #nav"].map(function (s) { return C + (s.charAt(0) === "[" ? s : " " + s); }).join(",") +
-    "{max-width:min(var(--epsw),100%)!important}}" +
+    "{max-width:min(var(--epsw),100%)!important}" +
+    /* Step et Cross-training (28/11/2026, demande de l'enseignant : « ne prennent pas tout l'écran ») : leur bloc .app porte aussi la barre
+       du haut et les onglets ; bridé, il laissait deux bandes vides de chaque côté. Il prend toute la largeur, comme la barre des autres applis,
+       et ce sont les blocs de contenu qui restent bridés à --epsw. */
+    [".app", "#onglets.in", ".barre-action .in"].map(function (s) { return C + "[data-eps-dir=step] " + s + "," + C + "[data-eps-dir=crosstraining] " + s; }).join(",") + "{max-width:none!important}" +
+    C + "[data-eps-dir=step] .app>main," + C + "[data-eps-dir=crosstraining] .app>main{max-width:var(--epsw);margin-left:auto;margin-right:auto}}" +
     /* la console sert à configurer (demande de l'enseignant, 27/11/2026) : rien du mode élève n'y apparaît. Les boutons qui font passer la
        tablette en mode élève (quitter le mode prof, verrouiller, mode élève) et le bouton élève « ✋ Enseignant » y sont masqués (pas la pastille « ✋ N » des appels reçus) ; l'élève se voit
        seulement dans l'onglet 👁 Vue élève (cadre ?vue=eleve, qui ne porte pas html.eps-console). */
